@@ -502,10 +502,8 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       ...this.sessionMetadata,
       session_type: "codex",
       codex_thread_id: normalizedThreadId,
-      codex_thread_model: buildThreadModelScope(this.config),
     };
     this.sessionMetadata.codex_thread_id = normalizedThreadId;
-    this.sessionMetadata.codex_thread_model = nextMetadata.codex_thread_model;
     this.sessionMetadata.session_type = "codex";
     await this.config.setSessionMetadata?.(nextMetadata);
   };
@@ -546,12 +544,6 @@ function readString(value: unknown): string | undefined {
 
 function readRawString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
-}
-
-function buildThreadModelScope(config: CodexAppServerNcpAgentRuntimeConfig): string {
-  return readString(config.threadOptions?.model) ??
-    readString(config.model) ??
-    "__nextclaw_runtime_default__";
 }
 
 function formatError(error: unknown): string {

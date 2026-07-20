@@ -355,15 +355,9 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
       ...this.sessionMetadata,
       session_type: "codex",
       codex_thread_id: normalizedThreadId,
-      codex_thread_model: buildThreadModelScope(this.config),
     };
     this.sessionMetadata.codex_thread_id = normalizedThreadId;
-    this.sessionMetadata.codex_thread_model = nextMetadata.codex_thread_model;
     this.sessionMetadata.session_type = "codex";
     await this.config.setSessionMetadata?.(nextMetadata);
   };
-}
-
-function buildThreadModelScope(config: CodexSdkNcpAgentRuntimeConfig): string {
-  return config.threadOptions?.model ?? config.model ?? "__nextclaw_runtime_default__";
 }

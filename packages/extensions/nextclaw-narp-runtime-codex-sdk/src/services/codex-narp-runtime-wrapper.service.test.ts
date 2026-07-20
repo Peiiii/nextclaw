@@ -146,7 +146,7 @@ describe("CodexNarpRuntimeWrapper", () => {
     expect(config.threadOptions?.workingDirectory).toBeUndefined();
   });
 
-  it("does not resume an unscoped Codex thread when using the runtime default model", async () => {
+  it("resumes an existing Codex thread when using the runtime default model", async () => {
     const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
@@ -161,31 +161,31 @@ describe("CodexNarpRuntimeWrapper", () => {
       },
     });
 
-    expect(config.threadId).toBeNull();
+    expect(config.threadId).toBe("thread-created-by-an-old-model");
     expect(config.model).toBeUndefined();
     expect(config.threadOptions?.model).toBeUndefined();
   });
 
-  it("does not resume a Codex thread when its model scope differs from the current model", async () => {
+  it("keeps the Codex thread stable when switching from the runtime default to a custom model", async () => {
     const wrapper = createWrapper();
 
     const config = await wrapper.buildRuntimeConfig({
       sessionId: "session-1",
       cwd: "/tmp/workspace",
-      modelId: "__nextclaw_runtime_default__",
+      modelId: "provider/model-b",
       promptMeta: {
         sessionMetadata: {
-          codex_thread_id: "thread-created-by-deepseek",
-          codex_thread_model: "nextclaw-codex-bridge-chat/deepseek-v4-flash",
-          model: "__nextclaw_runtime_default__",
-          preferred_model: "__nextclaw_runtime_default__",
+          codex_thread_id: "thread-created-by-runtime-default",
+          codex_thread_model: "__nextclaw_runtime_default__",
+          model: "provider/model-b",
+          preferred_model: "provider/model-b",
         },
       },
     });
 
-    expect(config.threadId).toBeNull();
-    expect(config.model).toBeUndefined();
-    expect(config.threadOptions?.model).toBeUndefined();
+    expect(config.threadId).toBe("thread-created-by-runtime-default");
+    expect(config.model).toBe("model-b");
+    expect(config.threadOptions?.model).toBe("provider/model-b");
   });
 
   it("enables raw Codex reasoning output for runtime-default thinking without overriding the model", async () => {

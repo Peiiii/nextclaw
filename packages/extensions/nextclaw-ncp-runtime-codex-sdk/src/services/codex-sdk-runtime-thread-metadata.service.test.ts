@@ -47,14 +47,13 @@ describe("CodexSdkNcpAgentRuntime thread metadata", () => {
       {
         session_type: "codex",
         codex_thread_id: "thread-1",
-        codex_thread_model: "__nextclaw_runtime_default__",
       },
     ]);
   });
 });
 
 describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
-  it("stores the model scope together with a started Codex thread id", async () => {
+  it("stores a started Codex thread id without making the model part of session identity", async () => {
     const writes: Record<string, unknown>[] = [];
     const runtime = new CodexAppServerNcpAgentRuntime({
       sessionId: "session-1",
@@ -90,7 +89,6 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
       {
         session_type: "codex",
         codex_thread_id: "thread-1",
-        codex_thread_model: "nextclaw-codex-bridge-chat/deepseek-v4-flash",
       },
     ]);
   });

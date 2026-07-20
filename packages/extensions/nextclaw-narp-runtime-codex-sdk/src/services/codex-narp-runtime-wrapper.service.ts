@@ -196,13 +196,12 @@ export class CodexNarpRuntimeWrapper {
       workingDirectory: cwd,
     });
 
-    const threadModelScope = threadModel ?? RUNTIME_DEFAULT_MODEL_VALUE;
     const config = {
       sessionId,
       apiKey,
       apiBase,
       model: providerLocalModel,
-      threadId: resolveReusableThreadId(sessionMetadata, threadModelScope),
+      threadId: readString(sessionMetadata.codex_thread_id) ?? null,
       ...(codexPathOverride ? { codexPathOverride } : {}),
       sessionMetadata,
       ...(setSessionMetadata ? { setSessionMetadata } : {}),
@@ -230,21 +229,6 @@ export class CodexNarpRuntimeWrapper {
     });
     return config;
   };
-}
-
-function resolveReusableThreadId(
-  sessionMetadata: Record<string, unknown>,
-  threadModelScope: string,
-): string | null {
-  const threadId = readString(sessionMetadata.codex_thread_id);
-  if (!threadId) {
-    return null;
-  }
-  const threadScope = readString(sessionMetadata.codex_thread_model);
-  if (!threadScope) {
-    return null;
-  }
-  return threadScope === threadModelScope ? threadId : null;
 }
 
 function readString(value: unknown): string | undefined {
@@ -373,12 +357,11 @@ function logCodexRuntimeConfig(params: {
     providerLocalModel: providerLocalModel ?? null,
     requestedThreadModel: requestedThreadModel ?? null,
     sessionId: config.sessionId,
-      sessionMetadata: {
-        codex_thread_id: readString(sessionMetadata.codex_thread_id) ?? null,
-        codex_thread_model: readString(sessionMetadata.codex_thread_model) ?? null,
-        model: readString(sessionMetadata.model) ?? null,
-        preferred_model: readString(sessionMetadata.preferred_model) ?? null,
-        preferred_thinking: readString(sessionMetadata.preferred_thinking) ?? null,
+    sessionMetadata: {
+      codex_thread_id: readString(sessionMetadata.codex_thread_id) ?? null,
+      model: readString(sessionMetadata.model) ?? null,
+      preferred_model: readString(sessionMetadata.preferred_model) ?? null,
+      preferred_thinking: readString(sessionMetadata.preferred_thinking) ?? null,
       thinking: readString(sessionMetadata.thinking) ?? null,
     },
     sdkConfig: {
