@@ -46,7 +46,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
   const supportsSessionTypeChoice = sessionTypeOptions.length > 1;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-0.5">
       {groups.map((group) => {
         const actionLabel = `${t('chatSidebarNewTask')} · ${group.projectName}`;
         const isCollapsed = collapsedProjectRoots.includes(group.projectRoot);
@@ -56,7 +56,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
 
         return (
           <div key={group.projectRoot}>
-            <div className="group/project relative h-10 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900">
+            <div className="group/project relative h-8 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900">
               <button
                 type="button"
                 aria-expanded={!isCollapsed}

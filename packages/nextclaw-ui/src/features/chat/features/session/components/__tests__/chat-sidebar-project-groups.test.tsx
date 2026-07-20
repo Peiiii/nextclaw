@@ -67,10 +67,11 @@ describe("ChatSidebarProjectGroups", () => {
   });
 
   it("keeps the project header as the full-width folder row and collapses its sessions", () => {
-    renderProjectGroups();
+    const { container } = renderProjectGroups();
 
     const header = screen.getByLabelText("Collapse project");
-    expect(header.parentElement?.className).toContain("h-10");
+    expect(container.firstElementChild?.className).toBe("space-y-0.5");
+    expect(header.parentElement?.className).toContain("h-8");
     expect(header.parentElement?.className).toContain("hover:bg-gray-200/60");
     expect(header.parentElement?.className).not.toContain("focus-within:bg");
     expect(screen.getByText("analysis-project").nextElementSibling?.tagName).toBe("svg");
