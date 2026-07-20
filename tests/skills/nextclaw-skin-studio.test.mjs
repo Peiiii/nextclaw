@@ -62,6 +62,8 @@ test("ships actionable full-product skin authoring and repair guidance", () => {
     "renderer.js",
     "foundation-styles.js",
     "navigation-styles.js",
+    "concept-navigation-styles.js",
+    "concept-decoration-styles.js",
     "content-styles.js",
     "control-styles.js",
   ]) {
@@ -115,6 +117,10 @@ test("applies the selected skin and reports its status", () => {
   assert.match(injection, /session-item/);
   assert.match(injection, /collection-section/);
   assert.match(injection, /settings-section/);
+  assert.match(injection, /sidebar-session-scroll/);
+  assert.match(injection, /session-group-label/);
+  assert.match(injection, /nextclaw-skin-studio-chrome/);
+  assert.match(injection, /nextclaw-skin-concept-drift/);
   assert.match(injection, /URL\.createObjectURL/);
   assert.match(injection, /__NEXTCLAW_SKIN_STYLE_FACTORIES__/);
   assert.match(injection, /NextClaw skin style assets are incomplete/);
@@ -127,6 +133,7 @@ test("applies the selected skin and reports its status", () => {
   const layerOrder = [
     injection.indexOf("return `\n    :root.nextclaw-skin-studio"),
     injection.indexOf('return `    html.nextclaw-skin-studio [data-skin-role="shell"]'),
+    injection.indexOf("if (!isConcept) return \"\""),
     injection.indexOf('return `    html.nextclaw-skin-studio [data-skin-role="page"]'),
     injection.indexOf('return `    html.nextclaw-skin-studio [data-skin-role="chat-header"]'),
     injection.indexOf("class SkinRuntime"),

@@ -64,11 +64,15 @@ For a personal skin, edit `skin.json`, `skin.css`, and `skin.js`. The installed 
 | `assets/renderer.js` | Shared page discovery, semantic roles, dynamic-node tracking, decorations, and runtime cleanup |
 | `assets/foundation-styles.js` | Tokens, typography, whole-page canvas, background continuity, density, and shared surfaces |
 | `assets/navigation-styles.js` | Shell, sidebar, navigation, session rows, sidebar actions, and run indicator placement |
+| `assets/concept-navigation-styles.js` | Art-directed sidebar hierarchy and grouped navigation for concept-gallery skins |
+| `assets/concept-decoration-styles.js` | Page texture, ornamental chrome, particles, plaques, cards, and composer accents for concept-gallery skins |
 | `assets/content-styles.js` | Cards, messages, Markdown, code, process rows, composer, and settings sections |
 | `assets/control-styles.js` | Header controls, tabs, forms, tables, overlays, feedback, and loading visuals |
 | `scripts/skin.mjs` | Project creation, validation, asset assembly, ownership protection, and atomic writes |
 
 Keep shared owners singular. Do not create one renderer or style bundle per bundled skin. A personal effect belongs in the personal project unless it is a real improvement every skin should inherit.
+
+Coverage is only the floor. A bundled reference skin must also preserve the reference's **visual density and authored hierarchy**: section rhythm, icon treatment, ornamental marks, information grouping, signature components, and page-specific composition. A generic token pass that technically touches every surface but leaves the product looking like stock NextClaw is not a faithful skin. Re-express those reference-specific qualities through real NextClaw data and controls; never manufacture fake projects, tasks, messages, or status content just to resemble a concept screenshot.
 
 ## Full-product coverage map
 

@@ -31,6 +31,8 @@
 - 新增仓库内临时 `replicating-reference-skins` 验收 Skill，把真实数据、组件族、状态矩阵、页面巡检、稳定预览和禁止假 UI 固化为可重复执行的门槛。
 - 复盘时发现临时 Skill 曾错误写成“每轮先清理旧标记”，会诱导后续实现重新制造动画重启。规则已修正为按本轮目标集合差量清理，并新增整页共同画布、实际 CSS 像素、跨完整周期和 DOM 身份连续性的强制验收门。
 - Marketplace Skill 现自带 `skin-authoring-and-repair-guide.md`，并增加独立个人皮肤工程：用户源码保存在 Skill 目录之外，`skin.css` 与 `skin.js` 可以原样植入任意 CSS、同源 JavaScript、DOM/SVG、布局和动效。Skill 不提供扩展 API 或组件白名单，只负责创建工程、静态语法检查、资源内嵌和原子应用；Marketplace 更新不会覆盖个人源码。指南仍用真实数据、稳定预览和全产品覆盖图帮助 Agent 把“消息、侧边栏、工具展示、输入面板或任何可见区域不对”的反馈落实成真实效果，而不是补丁生成的 `ui-inject.js`。
+- 后续对照确认，用户引用的 Jackson Yee 侧边栏来自上游标注为“不可直接导入”的概念效果图；但真实上游运行时仍有整窗沉浸、装饰 chrome、粒子和原生控件深度改造。此前实现虽然 selector 覆盖较多，视觉上仍是默认 NextClaw 统一换色，缺少参考设计的信息分组、装饰密度、图标语言和页面叙事。
+- 概念图类皮肤现增加专用艺术指导层：真实会话侧边栏拆出品牌、新任务、搜索、主导航、会话标题、日期分组、真实会话行和底部区语义；不伪造概念图中的项目、任务或身份数据。会话 hover 改为单层扁平编辑感，选中态、日期虚线、图标符号、签名、主题铭牌、印章、粒子、页面纹理和输入器细节共同形成一套完整视觉体系；设置侧栏按真实结构隔离，不误套会话专属配方。
 
 ### Marketplace 列表异常的根因与修复
 
@@ -71,11 +73,14 @@
 - 本轮整页画布与墨焰更新已再次发布到正式 Marketplace：详情接口更新时间为 `2026-07-19T04:09:56.131Z`，文件清单为 11 个且包含四个 `*-styles.js`。从仓库外全新目录安装后，11 款目录、六个 JavaScript 文件语法、易烊千玺应用和生成文件中的全画布/30px 墨焰合同均通过。
 - 个人皮肤工程更新已发布到正式 Marketplace：详情接口更新时间为 `2026-07-19T05:20:31.258Z`，最近更新列表中排第一；仓库外安装得到 13 个文件，与本地发布源排除安装元数据后逐字节一致。使用回装副本应用同一个个人工程后，生成的 `ui-inject.js` 与本地副本 SHA-256 同为 `284edc87cfb010c8d69971fe1a3e1335eceb9383a23041bd718fd395c345022c`。
 - 真实浏览器执行证明：个人 JavaScript 成功写入 `data-runtime-project=executed` 并创建真实 DOM；个人 CSS 的计算结果为 `width: 73px`、`color: rgb(1, 2, 3)`；共享按钮语义角色仍为 `button`、控制台无 warning/error，且页面不存在 `__NEXTCLAW_SKIN_PROJECT_API__`。
+- Jackson 艺术指导层运行态验收继续使用 `/Users/peiwang/.nextclaw` 的 134 条真实会话：4 个日期分组、会话行宽 253px，行内、会话滚动区和整页横向溢出均为 0；滚动到 `scrollTop=1880` 时 134 条会话与 4 个分组角色保持完整。首页、技能市场、模型设置和真实会话四页均加载装饰 chrome，控制台 0 error；设置页不会生成任何会话专属 `sidebar-*` 角色。
+- 本轮 Marketplace 更新后详情接口返回 200、`install.kind=marketplace`、更新时间 `2026-07-19T06:04:03.162Z`。仓库外回装得到 15 个发布文件和 1 个安装元数据文件，与本地源排除安装元数据后逐字节一致；回装副本成功应用 `jackson-yee`，生成注入通过 `node --check`，且包含六层样式工厂、概念粒子和会话分组合同。
 
 ## 发布/部署方式
 
 - Marketplace Skill `@nextclaw/nextclaw-skin-studio` 已发布；旧 `@nextclaw/abyssal-compass-theme` 已从公开目录下架。
 - 个人皮肤工程能力已通过同一 Marketplace 条目的 `skills update` 更新，不需要发布新的 Skill 或增加产品部署；用户更新/重新安装 Skill 后即可使用 `create-project` 与 `apply-project`。
+- Jackson 艺术指导增强已通过同一 Marketplace 条目再次执行 `skills update`；本轮只更新 Skill 文件，不发布 NextClaw 主产品、不重启线上服务。
 - 官方 Marketplace 当前公开目录为 32 条，新 Skill 位于最近发布首位，旧 Skill 详情为 404。
 - Worker 查询约束的源码、类型、lint 和 build 已通过；当前环境没有 `CLOUDFLARE_API_TOKEN`，尚未部署 Worker。现有公开数据已通过历史记录清理恢复正确，长期防回归仍需后续 Worker 部署。
 - 国内镜像修复已暂存至 ECS，替换活动文件和服务短重启需要用户知情许可；在许可前没有改动线上运行服务。
@@ -105,6 +110,7 @@
 - 新代码治理、治理 backlog ratchet 和 generated-clean 均通过。治理检查曾发现新 Python 测试文件不是 kebab-case，已改为 `marketplace-mirror-server-test.py` 后复跑通过。
 - 个人工程能力新增后，`skin.mjs` 一度增长到 477 行并接近文件预算；收尾时把纯工程格式、读取和校验职责收敛到 176 行的 `skin-project.mjs`，命令编排入口回落到 340 行。当前 guard 为 0 error；仅测试文件从 155 行增至 283 行产生一条低于 900 行预算的增长提示，未为此制造测试 helper 层。
 - 本轮个人工程增减统计：全部任务文件新增 599 行、删除 43 行、净增 556 行；排除测试后新增 471 行、删除 43 行、净增 428 行。增长属于新的用户可见能力，主要是 127 行作者指南、176 行个人工程校验 owner 和相应设计/元数据；没有把复杂度放入 NextClaw 产品主干。
+- 本轮参考皮肤艺术指导增强的 guard 统计为：总新增 412 行、删除 10 行、净增 402 行；排除测试后新增 405 行、删除 10 行、净增 395 行。增长属于新的用户可见表现能力，并且仍完全位于可独立卸载的 Marketplace Skill。最初 339 行的单一概念样式文件触发 80% 预算警告，收尾时按变化原因拆为 229 行的 `concept-navigation-styles.js` 与 123 行的 `concept-decoration-styles.js`；最终 maintainability guard、定向 ESLint、新代码治理和 backlog ratchet 均 0 error、0 warning。
 - 可维护性复核结论：通过；本次顺手减债：是。正向动作包括删除按“本机已知 Skill”过滤上游分页的旧辅助路径、删除最近发布的本地伪排序、复用现有 Marketplace fetch/fallback owner，并把所有皮肤状态变更收敛到一个脚本。no maintainability findings；保留上述 4 个非阻塞 warning 作为明确观察点。
 
 ## NPM 包发布记录

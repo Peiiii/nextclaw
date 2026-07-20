@@ -29,6 +29,8 @@ const presets = catalog.skins;
 const styleAssets = [
   "foundation-styles.js",
   "navigation-styles.js",
+  "concept-navigation-styles.js",
+  "concept-decoration-styles.js",
   "content-styles.js",
   "control-styles.js",
 ].map((fileName) => readFileSync(new URL(`../assets/${fileName}`, import.meta.url), "utf8"));

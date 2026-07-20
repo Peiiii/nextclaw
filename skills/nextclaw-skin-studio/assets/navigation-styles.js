@@ -65,9 +65,9 @@
       color: var(--nextclaw-skin-text) !important;
       background: transparent !important;
       border: 1px solid transparent !important;
-      border-radius: 14px !important;
+      border-radius: 10px !important;
       box-shadow: none !important;
-      transition: color 150ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease !important;
+      transition: color 150ms ease, background 160ms ease !important;
     }
     html.nextclaw-skin-studio [data-skin-role="session-item"]::before {
       content: "";
@@ -78,16 +78,14 @@
       width: 3px;
       border-radius: 999px;
       background: linear-gradient(180deg, var(--nextclaw-skin-secondary), var(--nextclaw-skin-accent));
-      box-shadow: 0 0 10px color-mix(in srgb, var(--nextclaw-skin-accent) 36%, transparent);
       opacity: 0;
       transform: scaleY(.3);
       transition: opacity 160ms ease, transform 180ms ease;
       pointer-events: none;
     }
     html.nextclaw-skin-studio [data-skin-role="session-item"]:hover {
-      background: linear-gradient(95deg, color-mix(in srgb, var(--nextclaw-skin-accent) 15%, transparent), color-mix(in srgb, var(--nextclaw-skin-secondary) 7%, transparent)) !important;
-      border-color: color-mix(in srgb, var(--nextclaw-skin-accent) 23%, transparent) !important;
-      box-shadow: 0 7px 18px color-mix(in srgb, var(--nextclaw-skin-bg) 18%, transparent) !important;
+      background: linear-gradient(95deg, color-mix(in srgb, var(--nextclaw-skin-accent) 10%, transparent), color-mix(in srgb, var(--nextclaw-skin-secondary) 4%, transparent)) !important;
+      border-color: transparent !important;
     }
     html.nextclaw-skin-studio [data-skin-role="session-item"]:hover::before,
     html.nextclaw-skin-studio [data-skin-role="session-item"][data-skin-selected="true"]::before {
@@ -96,9 +94,9 @@
     }
     html.nextclaw-skin-studio [data-skin-role="session-item"][data-skin-selected="true"] {
       color: var(--nextclaw-skin-text) !important;
-      background: linear-gradient(95deg, color-mix(in srgb, var(--nextclaw-skin-accent) 18%, transparent), color-mix(in srgb, var(--nextclaw-skin-secondary) 9%, transparent)) !important;
-      border-color: color-mix(in srgb, var(--nextclaw-skin-accent) 23%, transparent) !important;
-      box-shadow: 0 8px 20px color-mix(in srgb, var(--nextclaw-skin-bg) 20%, transparent) !important;
+      background: linear-gradient(95deg, color-mix(in srgb, var(--nextclaw-skin-accent) 15%, transparent), color-mix(in srgb, var(--nextclaw-skin-secondary) 7%, transparent)) !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
     }
     html.nextclaw-skin-studio [data-skin-role="session-content"] {
       color: inherit !important;

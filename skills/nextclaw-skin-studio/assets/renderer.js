@@ -31,6 +31,7 @@
   const escapeCssContent = (value) => String(value ?? "").replace(/["\\\n\r]/g, " ");
   const signature = escapeCssContent(config.details?.signature);
   const tagline = escapeCssContent(config.details?.tagline);
+  const skinLabel = escapeCssContent(config.details?.label || config.name);
   const cardCaption = escapeCssContent(config.details?.cardCaption || config.details?.label || config.name);
   const motifGlyph = escapeCssContent({
     bolt: "⚡　⌁",
@@ -76,6 +77,22 @@
       if (element.dataset.skinSelected !== "true") element.dataset.skinSelected = "true";
     };
 
+    ensureChrome = () => {
+      const chromeId = "nextclaw-skin-studio-chrome";
+      const existing = document.getElementById(chromeId);
+      if (!isConcept) {
+        existing?.remove();
+        return;
+      }
+      if (existing) return;
+      const chrome = document.createElement("div");
+      chrome.id = chromeId;
+      chrome.setAttribute("aria-hidden", "true");
+      chrome.innerHTML = '<div class="nextclaw-skin-plaque"></div><div class="nextclaw-skin-particles"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="nextclaw-skin-seal"></div>';
+      document.body.appendChild(chrome);
+      this.cleanups.push(() => chrome.remove());
+    };
+
     markSurfaces = () => {
       this.roleTargets.clear();
       this.selectedTargets.clear();
@@ -98,6 +115,28 @@
       this.setRole(sidebar, "sidebar");
       this.setRole(dock, "dock");
       this.setRole(page, "page");
+
+      const sidebarChildren = Array.from(sidebar?.children || []);
+      const sessionScroll = sidebarChildren.find((element) => element.matches(".custom-scrollbar.overflow-y-auto"));
+      if (sessionScroll) {
+        const sessionScrollIndex = sidebarChildren.indexOf(sessionScroll);
+        const sidebarRoles = new Map([
+          [0, "sidebar-brand"],
+          [1, "sidebar-new-task"],
+          [2, "sidebar-search"],
+          [3, "sidebar-primary-nav"],
+          [sessionScrollIndex - 2, "sidebar-divider"],
+          [sessionScrollIndex - 1, "sidebar-session-heading"],
+          [sessionScrollIndex, "sidebar-session-scroll"],
+          [sessionScrollIndex + 1, "sidebar-footer"],
+        ]);
+        sidebarRoles.forEach((role, index) => this.setRole(sidebarChildren[index], role));
+      }
+      Array.from(sessionScroll?.firstElementChild?.children || []).forEach((group) => {
+        this.setRole(group, "session-group");
+        this.setRole(group.children[0], "session-group-label");
+        this.setRole(group.children[1], "session-group-list");
+      });
 
       sidebar?.querySelectorAll("a").forEach((element) => this.setRole(element, "nav-item"));
       sidebar?.querySelectorAll("button").forEach((element) => {
@@ -183,6 +222,7 @@
     };
 
     start = () => {
+      this.ensureChrome();
       this.markSurfaces();
       const observer = new MutationObserver(this.schedule);
       observer.observe(document.body, { childList: true, subtree: true });
@@ -217,7 +257,7 @@
         linear-gradient(180deg, transparent 48%, color-mix(in srgb, var(--nextclaw-skin-bg) 76%, transparent))`;
 
   const styleFactories = globalThis.__NEXTCLAW_SKIN_STYLE_FACTORIES__;
-  if (!Array.isArray(styleFactories) || styleFactories.length !== 4) {
+  if (!Array.isArray(styleFactories) || styleFactories.length !== 6) {
     throw new Error("NextClaw skin style assets are incomplete");
   }
   const styleContext = {
@@ -228,6 +268,7 @@
     signature,
     tagline,
     cardCaption,
+    skinLabel,
     motifGlyph,
     usesCraneMotif,
     craneArt,
