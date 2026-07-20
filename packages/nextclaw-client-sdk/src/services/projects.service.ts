@@ -1,4 +1,5 @@
 import type {
+  ProjectAddExistingRequest,
   ProjectCreateRequest,
   ProjectListView,
   ProjectView,
@@ -13,4 +14,7 @@ export class ProjectsService {
 
   readonly create = async (input: ProjectCreateRequest): Promise<ProjectView> =>
     await this.requestService.post<ProjectView>("/api/projects", input);
+
+  readonly addExisting = async (input: ProjectAddExistingRequest): Promise<ProjectView> =>
+    await this.requestService.post<ProjectView>("/api/projects/existing", input);
 }

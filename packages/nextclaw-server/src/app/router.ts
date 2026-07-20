@@ -227,6 +227,7 @@ class UiRouteRegistry {
       ["delete", "/api/preferences/:key", preferences.delete],
       ["get", "/api/projects", projects.list],
       ["post", "/api/projects", projects.create],
+      ["post", "/api/projects/existing", projects.addExisting],
       ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
       ["post", "/api/panel-apps/:id/open", panelApps.recordPanelAppOpened],
       ["get", "/api/panel-apps/:id/content", panelApps.getPanelAppContent],

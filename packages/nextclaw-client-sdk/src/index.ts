@@ -114,6 +114,7 @@ export type {
   ProviderTemplateView,
   ProviderTemplatesView,
   ProvidersView,
+  ProjectAddExistingRequest,
   ProjectCreateRequest,
   ProjectListView,
   ProjectTemplateView,

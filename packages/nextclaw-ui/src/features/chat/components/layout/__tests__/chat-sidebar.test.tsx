@@ -49,6 +49,7 @@ vi.mock("@/shared/hooks/use-projects", () => ({
     isPending: false,
     error: null,
   }),
+  useAddExistingProject: () => ({ mutateAsync: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
 }));
 function sidebarElement(variant?: "desktop" | "mobile") {
   const queryClient = new QueryClient({

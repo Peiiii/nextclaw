@@ -20,6 +20,7 @@ vi.mock('@/shared/hooks/use-server-path-create-directory', () => ({
 }));
 
 type PickerOverrides = {
+  allowCreateDirectory?: boolean;
   currentPath?: string;
   defaultWorkspacePath?: string;
   description?: string;
@@ -29,6 +30,7 @@ type PickerOverrides = {
 const createPickerElement = (overrides?: PickerOverrides) => (
   <ServerPathPickerDialog
     open={overrides?.open ?? true}
+    allowCreateDirectory={overrides?.allowCreateDirectory}
     currentPath={overrides?.currentPath ?? '/workspace'}
     defaultWorkspacePath={overrides?.defaultWorkspacePath}
     isSaving={false}
@@ -234,6 +236,13 @@ describe('ServerPathPickerDialog', () => {
     expect((screen.getByRole('button', { name: '后退' }) as HTMLButtonElement).disabled).toBe(
       true,
     );
+  });
+
+  it('hides directory creation when the caller only allows existing directories', () => {
+    renderPicker({ allowCreateDirectory: false });
+
+    expect(screen.queryByRole('button', { name: '新建文件夹' })).toBeNull();
+    expect(screen.getByText('单击选择，双击进入')).toBeTruthy();
   });
 
   it('uses single click to select and double click to enter a folder', async () => {

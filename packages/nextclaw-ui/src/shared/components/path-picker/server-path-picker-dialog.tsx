@@ -20,6 +20,7 @@ import { t } from '@/shared/lib/i18n';
 
 type ServerPathPickerDialogProps = {
   open: boolean;
+  allowCreateDirectory?: boolean;
   currentPath?: string | null;
   defaultWorkspacePath?: string | null;
   isSaving: boolean;
@@ -51,6 +52,7 @@ function resolveHomeRelativePath(path: string, homePath?: string | null): string
 
 export function ServerPathPickerDialog({
   open,
+  allowCreateDirectory = true,
   currentPath,
   defaultWorkspacePath,
   isSaving,
@@ -88,6 +90,7 @@ export function ServerPathPickerDialog({
         {open ? (
           <ServerPathPickerSession
             key={sessionKey}
+            allowCreateDirectory={allowCreateDirectory}
             currentPath={normalizedCurrentPath}
             defaultWorkspacePath={normalizedDefaultWorkspacePath}
             isSaving={isSaving}
@@ -105,6 +108,7 @@ export function ServerPathPickerDialog({
 }
 
 type ServerPathPickerSessionProps = {
+  allowCreateDirectory: boolean;
   currentPath: string;
   defaultWorkspacePath: string;
   isSaving: boolean;
@@ -117,6 +121,7 @@ type ServerPathPickerSessionProps = {
 };
 
 function ServerPathPickerSession({
+  allowCreateDirectory,
   currentPath,
   defaultWorkspacePath,
   isSaving,
@@ -245,7 +250,7 @@ function ServerPathPickerSession({
   const createDirectory = async () => {
     const parentPath = browseQuery.data?.currentPath;
     const name = newFolderName.trim();
-    if (!parentPath || !name || createDirectoryMutation.isPending) {
+    if (!allowCreateDirectory || !parentPath || !name || createDirectoryMutation.isPending) {
       return;
     }
     try {
@@ -301,6 +306,7 @@ function ServerPathPickerSession({
           />
 
           <ServerPathPickerToolbar
+            allowCreateDirectory={allowCreateDirectory}
             disabled={navigationDisabled || !browseQuery.data?.currentPath}
             onNewFolder={() => {
               setNewFolderVisible(true);
@@ -320,7 +326,7 @@ function ServerPathPickerSession({
             />
           </div>
 
-          {newFolderVisible ? (
+          {allowCreateDirectory && newFolderVisible ? (
             <ServerPathPickerNewFolder
               errorMessage={createDirectoryErrorMessage}
               isCreating={createDirectoryMutation.isPending}

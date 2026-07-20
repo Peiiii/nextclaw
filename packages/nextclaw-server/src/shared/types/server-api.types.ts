@@ -428,7 +428,7 @@ export type RuntimeEntryView = {
 };
 
 export type { ChatSessionTypeCtaView, ChatSessionTypeOptionView, ChatSessionTypesView } from "@nextclaw-server/features/sessions/index.js";
-export type { ProjectCreateRequest, ProjectListView, ProjectTemplateView, ProjectView } from "@nextclaw-server/features/projects/index.js";
+export type { ProjectAddExistingRequest, ProjectCreateRequest, ProjectListView, ProjectTemplateView, ProjectView } from "@nextclaw-server/features/projects/index.js";
 
 export type SessionEntryView = {
   key: string;

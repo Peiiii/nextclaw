@@ -1,6 +1,6 @@
 import type { NcpSessionStatus } from '@nextclaw/ncp';
 import type { RuntimeEntryView, NcpSessionSummaryView } from './ncp-session.types';
-export type { ProjectCreateRequest, ProjectListView, ProjectTemplateView, ProjectView } from '@nextclaw/client-sdk';
+export type { ProjectAddExistingRequest, ProjectCreateRequest, ProjectListView, ProjectTemplateView, ProjectView } from '@nextclaw/client-sdk';
 export type { SessionEntryView, RuntimeEntryView, SessionTypeIconView, SessionMessageView, SessionEventView, NcpSessionSummaryView, NcpSessionsListView, NcpMessageView, NcpSessionMessagesView, SessionContextWindowView } from './ncp-session.types';
 
 // API Types - matching backend response format

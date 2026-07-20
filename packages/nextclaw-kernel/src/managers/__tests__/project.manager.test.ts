@@ -70,6 +70,23 @@ describe("ProjectManager", () => {
     expect(await readFile(join(rootPath, "keep.txt"), "utf8")).toBe("keep");
   });
 
+  it("registers an existing non-empty directory without initializing its contents", async () => {
+    const fixture = createFixture();
+    const rootPath = join(fixture.workspace, "existing");
+    await mkdir(rootPath, { recursive: true });
+    await writeFile(join(rootPath, "keep.txt"), "keep", "utf8");
+
+    const project = await fixture.manager.registerExistingProject(rootPath);
+
+    expect(project).toMatchObject({
+      name: "existing",
+      rootPath: await realpath(rootPath),
+    });
+    expect(project).not.toHaveProperty("template");
+    expect(await readdir(rootPath)).toEqual(["keep.txt"]);
+    expect(await readFile(join(rootPath, "keep.txt"), "utf8")).toBe("keep");
+  });
+
   it("rejects invalid project path types at the owner boundary", async () => {
     const fixture = createFixture();
 

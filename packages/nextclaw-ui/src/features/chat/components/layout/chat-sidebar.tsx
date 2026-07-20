@@ -16,8 +16,12 @@ import { useChatSessionListStore } from "@/features/chat/stores/chat-session-lis
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useSystemStatus } from "@/features/system-status";
 import { useAgents } from "@/shared/hooks/use-agents";
-import { useCreateProject, useProjects } from "@/shared/hooks/use-projects";
-import type { ProjectCreateRequest } from "@/shared/lib/api";
+import {
+  useAddExistingProject,
+  useCreateProject,
+  useProjects,
+} from "@/shared/hooks/use-projects";
+import type { ProjectAddExistingRequest, ProjectCreateRequest } from "@/shared/lib/api";
 import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
 import { cn } from "@/shared/lib/utils";
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from "@/shared/lib/i18n";
@@ -45,7 +49,7 @@ import {
 import { useChatNewSessionTypePreference } from "@/features/chat/features/session-type/hooks/use-chat-new-session-type-preference";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import { SIDEBAR_RAIL_WIDTH_CLASS } from "@/app/components/layout/sidebar-rail.styles";
-import { ChatProjectCreateDialog } from "@/features/chat/features/project/components/chat-project-create-dialog";
+import { ChatProjectAddDialog } from "@/features/chat/features/project/components/chat-project-add-dialog";
 
 type ChatSidebarVariant = "desktop" | "mobile";
 
@@ -98,7 +102,7 @@ export function ChatSidebar({
     (state) => state.isSidebarCollapsed,
   );
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
-  const [isProjectCreateOpen, setIsProjectCreateOpen] = useState(false);
+  const [isProjectAddOpen, setIsProjectAddOpen] = useState(false);
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
   const sessionTypesData = useChatQueryStore(
@@ -111,6 +115,7 @@ export function ChatSidebar({
   const agentsQuery = useAgents();
   const projectsQuery = useProjects();
   const projectCreateMutation = useCreateProject();
+  const projectAddExistingMutation = useAddExistingProject();
   const { isLoading, items } = useNcpSessionListView();
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
@@ -246,13 +251,20 @@ export function ChatSidebar({
       sessionType,
     });
   };
-  const openProjectCreate = () => {
+  const openProjectAdd = () => {
     projectCreateMutation.reset();
-    setIsProjectCreateOpen(true);
+    projectAddExistingMutation.reset();
+    setIsProjectAddOpen(true);
   };
   const createProjectFromSidebar = async (input: ProjectCreateRequest): Promise<void> => {
     await projectCreateMutation.mutateAsync(input);
-    setIsProjectCreateOpen(false);
+    setIsProjectAddOpen(false);
+  };
+  const addExistingProjectFromSidebar = async (
+    input: ProjectAddExistingRequest,
+  ): Promise<void> => {
+    await projectAddExistingMutation.mutateAsync(input);
+    setIsProjectAddOpen(false);
   };
 
   return (
@@ -324,7 +336,7 @@ export function ChatSidebar({
         isCollapsed={shouldCollapse}
         isLoading={isLoading}
         isProjectFirstView={isProjectFirstView}
-        onCreateProject={openProjectCreate}
+        onAddProject={openProjectAdd}
         onSelectMode={presenter.chatSessionListManager.setListMode}
         projectGroups={projectGroups}
         renderSessionItem={renderSessionItem}
@@ -354,16 +366,19 @@ export function ChatSidebar({
         />
       ) : null}
 
-      <ChatProjectCreateDialog
-        open={isProjectCreateOpen}
+      <ChatProjectAddDialog
+        open={isProjectAddOpen}
         defaultWorkspacePath={normalizeSessionProjectRootValue(
           config?.agents.defaults.workspace,
         )}
         templates={projectsQuery.data?.templates ?? []}
         isCreating={projectCreateMutation.isPending}
-        errorMessage={projectCreateMutation.error?.message}
-        onOpenChange={setIsProjectCreateOpen}
+        isAddingExisting={projectAddExistingMutation.isPending}
+        createErrorMessage={projectCreateMutation.error?.message}
+        addExistingErrorMessage={projectAddExistingMutation.error?.message}
+        onOpenChange={setIsProjectAddOpen}
         onCreate={createProjectFromSidebar}
+        onAddExisting={addExistingProjectFromSidebar}
       />
     </aside>
   );

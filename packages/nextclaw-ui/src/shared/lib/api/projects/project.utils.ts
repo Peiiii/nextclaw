@@ -1,5 +1,6 @@
 import { nextclawClient } from "@/shared/lib/api/managers/client.manager";
 import type {
+  ProjectAddExistingRequest,
   ProjectCreateRequest,
   ProjectListView,
   ProjectView,
@@ -11,4 +12,10 @@ export async function fetchProjects(): Promise<ProjectListView> {
 
 export async function createProject(input: ProjectCreateRequest): Promise<ProjectView> {
   return await nextclawClient.projects.create(input);
+}
+
+export async function addExistingProject(
+  input: ProjectAddExistingRequest,
+): Promise<ProjectView> {
+  return await nextclawClient.projects.addExisting(input);
 }

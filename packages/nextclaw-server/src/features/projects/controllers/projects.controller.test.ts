@@ -70,4 +70,31 @@ describe("projects routes", () => {
       template: "knowledge-base",
     });
   });
+
+  it("mounts existing-directory registration without a template payload", async () => {
+    const registerExistingProject = vi.fn(async (rootPath) => ({
+      name: "existing",
+      rootPath,
+      createdAt: "2026-07-20T00:00:00.000Z",
+      updatedAt: "2026-07-20T00:00:00.000Z",
+    }));
+    const app = createProjectsApp({
+      registerExistingProject,
+      listProjects: async () => [],
+      listTemplates: () => [],
+    });
+
+    const response = await app.request("http://localhost/api/projects/existing", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ rootPath: "/tmp/existing" }),
+    });
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: { name: "existing", rootPath: "/tmp/existing" },
+    });
+    expect(registerExistingProject).toHaveBeenCalledWith("/tmp/existing");
+  });
 });

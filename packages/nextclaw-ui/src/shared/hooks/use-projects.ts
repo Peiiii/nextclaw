@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { createProject, fetchProjects } from "@/shared/lib/api";
+import { addExistingProject, createProject, fetchProjects } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
 
 const PROJECTS_QUERY_KEY = ["projects"] as const;
@@ -23,6 +23,20 @@ export function useCreateProject() {
     },
     onError: (error: Error) => {
       toast.error(`${t("chatProjectCreateFailed")}: ${error.message}`);
+    },
+  });
+}
+
+export function useAddExistingProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: addExistingProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY });
+      toast.success(t("chatProjectExistingAdded"));
+    },
+    onError: (error: Error) => {
+      toast.error(`${t("chatProjectExistingFailed")}: ${error.message}`);
     },
   });
 }

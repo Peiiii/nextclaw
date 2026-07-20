@@ -17,3 +17,6 @@ export type ProjectCreateRequest = {
   rootPath?: string;
   template?: ProjectTemplateId;
 };
+export type ProjectAddExistingRequest = {
+  rootPath: string;
+};

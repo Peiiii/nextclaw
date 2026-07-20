@@ -32,6 +32,33 @@ import {
     );
   });
 
+  it("adds an existing project directory through its dedicated api", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
+      ok: true,
+      data: {
+        name: "existing",
+        rootPath: "/workspace/existing",
+        createdAt: "2026-07-20T00:00:00.000Z",
+        updatedAt: "2026-07-20T00:00:00.000Z",
+      },
+    }), { status: 201, headers: { "Content-Type": "application/json" } }));
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl,
+    });
+
+    await expect(client.projects.addExisting({
+      rootPath: "/workspace/existing",
+    })).resolves.toMatchObject({ name: "existing" });
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/projects/existing",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ rootPath: "/workspace/existing" }),
+      }),
+    );
+  });
+
   it("serializes cron pagination and filtering through the config service", async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({
       ok: true,
