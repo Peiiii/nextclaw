@@ -47,6 +47,7 @@ function createProviderProbeApp(configPath: string) {
         listTemplates: () => [],
       } as never,
       serviceAppManager: {} as never,
+      sessionContextCompactionManager: {} as never,
       llmProviders: { testConnection: testConnectionMock } as unknown as LlmProviderManager,
     } satisfies UiKernelHost,
   });

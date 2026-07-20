@@ -31,6 +31,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       deleteSession: async () => undefined,
       getContextWindow: async () => null,
     } as never,
+    sessionContextCompactionManager: {
+      compact: async () => unavailable("sessionContextCompactionManager.compact"),
+    } as never,
     panelAppManager: {
       listPanelApps: async () => ({
         workspacePath: "",

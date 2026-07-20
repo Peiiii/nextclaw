@@ -20,11 +20,25 @@ export type AgentRuntimeRunOptions = {
   signal?: AbortSignal;
 };
 
+export type AgentRuntimeContextCompactionOptions = Pick<
+  AgentRuntimeRunOptions,
+  "session" | "sessionRun"
+>;
+
+export type AgentRuntimeContextCompactionResult = {
+  events: readonly NcpEndpointEvent[];
+  performed: boolean;
+  supported: boolean;
+};
+
 export type AgentRuntime = {
   run: (
     spec: AgentRunSpec,
     options: AgentRuntimeRunOptions,
   ) => AsyncIterable<NcpEndpointEvent>;
+  compactContext?: (
+    options: AgentRuntimeContextCompactionOptions,
+  ) => Promise<AgentRuntimeContextCompactionResult>;
   dispose?: () => Promise<void> | void;
 };
 

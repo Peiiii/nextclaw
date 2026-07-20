@@ -208,6 +208,7 @@ class UiRouteRegistry {
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
       ["get", "/api/ncp/sessions/:sessionId", ncpSession.getSession],
       ["put", "/api/ncp/sessions/:sessionId", ncpSession.patchSession],
+      ["post", "/api/ncp/sessions/:sessionId/context/compact", ncpSession.compactSessionContext],
       ["get", "/api/ncp/sessions/:sessionId/messages", ncpSession.listSessionMessages],
       ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
       ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],

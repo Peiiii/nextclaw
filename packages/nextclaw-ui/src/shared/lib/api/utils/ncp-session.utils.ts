@@ -45,6 +45,13 @@ export async function updateNcpSession(
   )) as NcpSessionSummaryView;
 }
 
+// POST /api/ncp/sessions/:sessionId/context/compact
+export async function compactNcpSessionContext(
+  sessionId: string,
+): Promise<{ compacted: true; sessionId: string }> {
+  return await nextclawClient.sessions.compactContext(sessionId);
+}
+
 // DELETE /api/ncp/sessions/:sessionId
 export async function deleteNcpSession(
   sessionId: string,

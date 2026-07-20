@@ -1,5 +1,6 @@
 import {
   createNcpEndpointEvent,
+  type NcpAgentContextCompactionInput,
   type NcpAgentRunInput,
   type NcpAgentRunOptions,
   type NcpAgentRuntime,
@@ -118,6 +119,19 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     } finally {
       signal?.removeEventListener("abort", abortListener);
     }
+  };
+
+  compactContext = async (
+    _input: NcpAgentContextCompactionInput,
+  ): Promise<void> => {
+    const client = await this.resolveClient();
+    await this.resolveThread(client);
+    if (!this.threadId) {
+      throw new Error("Codex context compaction requires a thread id.");
+    }
+    await client.request("thread/compact/start", {
+      threadId: this.threadId,
+    });
   };
 
   private resolveClient = async (): Promise<CodexAppServerClient> => {

@@ -34,6 +34,19 @@ export class AgentRunContextCompactionManager {
   runPreflight = async (
     input: AgentRunContextCompactionInput,
   ): Promise<readonly NcpEndpointEvent[]> => {
+    return await this.run(input, "automatic");
+  };
+
+  runManual = async (
+    input: AgentRunContextCompactionInput,
+  ): Promise<readonly NcpEndpointEvent[]> => {
+    return await this.run(input, "manual");
+  };
+
+  private run = async (
+    input: AgentRunContextCompactionInput,
+    trigger: "automatic" | "manual",
+  ): Promise<readonly NcpEndpointEvent[]> => {
     const beginResult = this.preflightService.begin({
       contextBlocks: input.contextBlocks,
       inputMessages: [],
@@ -43,6 +56,7 @@ export class AgentRunContextCompactionManager {
       sessionMessages: input.messages,
       storedAgentId: input.agentId,
       storedMetadata: input.metadata,
+      trigger,
     });
     if (!beginResult.pendingCompaction) {
       return [];

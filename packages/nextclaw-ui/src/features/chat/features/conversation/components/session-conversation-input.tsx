@@ -49,6 +49,7 @@ import {
 } from '@/features/chat/managers/chat-recent-skills.manager';
 
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
+import { useSessionConversationSlashCommands } from '@/features/chat/features/conversation/hooks/use-session-conversation-slash-commands';
 import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
 import type { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
@@ -222,26 +223,10 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     skillGroupLabels: labels.skillGroupLabels,
     skillScopeLabels: labels.skillScopeLabels,
   });
-  const slashCommands = useMemo(() => {
-    const parentSessionKey = inputQuery.selectedSessionKey?.trim();
-    if (!parentSessionKey) {
-      return [];
-    }
-    return [
-      {
-        key: 'side-chat',
-        title: t('chatSlashCommandSideChatTitle', language),
-        description: t('chatSlashCommandSideChatDescription', language),
-        detailLines: [t('chatSlashCommandSideChatDetail', language)],
-        keywords: ['side', 'chat', 'child', 'branch', 'new'],
-        onSelect: () => presenter.chatThreadManager.openSideChatDraft(parentSessionKey),
-      },
-    ];
-  }, [
-    inputQuery.selectedSessionKey,
+  const slashCommands = useSessionConversationSlashCommands({
     language,
-    presenter.chatThreadManager,
-  ]);
+    selectedSessionKey: inputQuery.selectedSessionKey,
+  });
   const handleSlashPanelAppSelect = useCallback(
     (appId: string) =>
       void presenter.chatUiManager.showContent({

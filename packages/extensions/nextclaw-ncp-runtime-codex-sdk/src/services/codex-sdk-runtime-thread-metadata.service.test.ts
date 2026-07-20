@@ -53,6 +53,34 @@ describe("CodexSdkNcpAgentRuntime thread metadata", () => {
 });
 
 describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
+  it("compacts the resumed Codex thread through the app-server command", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/resume") {
+        return { thread: { id: "thread-1" } };
+      }
+      if (method === "thread/compact/start") {
+        return {};
+      }
+      throw new Error(`Unexpected request: ${method}`);
+    });
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "sk-test",
+      threadId: "thread-1",
+      desktopThreadIndexSync: false,
+    });
+    (runtime as unknown as {
+      resolveClient: () => Promise<{ request: typeof request }>;
+    }).resolveClient = async () => ({ request });
+
+    await runtime.compactContext({ sessionId: "session-1" });
+
+    expect(request.mock.calls).toEqual([
+      ["thread/resume", expect.objectContaining({ threadId: "thread-1" })],
+      ["thread/compact/start", { threadId: "thread-1" }],
+    ]);
+  });
+
   it("stores a started Codex thread id without making the model part of session identity", async () => {
     const writes: Record<string, unknown>[] = [];
     const runtime = new CodexAppServerNcpAgentRuntime({

@@ -1,4 +1,5 @@
 import type {
+  NcpSessionContextCompactionView,
   NcpSessionSkillsView,
   SessionPatchUpdate,
   UiNcpAssetPutView,
@@ -79,6 +80,14 @@ export class SessionsService {
     return await this.requestService.put<NcpSessionSummary>(
       `/api/ncp/sessions/${encodeURIComponent(sessionId)}`,
       patch
+    );
+  };
+
+  readonly compactContext = async (
+    sessionId: string,
+  ): Promise<NcpSessionContextCompactionView> => {
+    return await this.requestService.post<NcpSessionContextCompactionView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/context/compact`,
     );
   };
 

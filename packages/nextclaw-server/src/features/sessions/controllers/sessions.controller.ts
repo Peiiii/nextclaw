@@ -5,7 +5,12 @@ import type {
   UiNcpSessionListView
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
-import { isProjectError, isSessionMessageCursorError, isSessionSettingsError } from "@nextclaw/kernel";
+import {
+  isProjectError,
+  isSessionContextCompactionError,
+  isSessionMessageCursorError,
+  isSessionSettingsError,
+} from "@nextclaw/kernel";
 import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/services/session-skills-view.service.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
@@ -233,6 +238,21 @@ export class NcpSessionRoutesController {
     }
 
     return c.json(ok(this.withRuntimeStatus(updated)));
+  };
+
+  readonly compactSessionContext = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    try {
+      return c.json(ok(
+        await this.options.kernel.sessionContextCompactionManager.compact(sessionId),
+      ));
+    } catch (error) {
+      if (!isSessionContextCompactionError(error)) {
+        throw error;
+      }
+      const status = error.code === "SESSION_NOT_FOUND" ? 404 : 409;
+      return c.json(err(error.code, error.message), status);
+    }
   };
 
   readonly deleteSession = async (c: Context) => {

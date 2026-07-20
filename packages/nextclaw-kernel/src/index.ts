@@ -8,6 +8,7 @@ export * from "@kernel/managers/channel.manager.js";
 export * from "@kernel/managers/config.manager.js";
 export * from "@kernel/managers/extension.manager.js";
 export * from "@kernel/managers/session.manager.js";
+export * from "@kernel/managers/session-context-compaction.manager.js";
 export * from "@kernel/managers/llm-usage.manager.js";
 export * from "@kernel/managers/mcp.manager.js";
 export * from "@kernel/managers/panel-app.manager.js";

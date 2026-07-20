@@ -18,6 +18,7 @@ import {
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type {
   AgentRuntime,
+  AgentRuntimeContextCompactionOptions,
   AgentRuntimeRunOptions,
 } from "@kernel/managers/agent-runtime.manager.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
@@ -85,6 +86,17 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
   dispose = async (): Promise<void> => {
     await this.disposeRuntimeInstance();
     this.currentTools = [];
+  };
+
+  compactContext = async (
+    options: AgentRuntimeContextCompactionOptions,
+  ) => {
+    const runtime = this.getRuntime();
+    if (!runtime.compactContext) {
+      return { events: [], performed: false, supported: false };
+    }
+    await runtime.compactContext({ sessionId: options.sessionRun.sessionId });
+    return { events: [], performed: true, supported: true };
   };
 
   private disposeRuntimeInstance = async (): Promise<void> => {

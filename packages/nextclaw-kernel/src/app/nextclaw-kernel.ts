@@ -12,6 +12,7 @@ import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
+import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { PreferenceManager } from "@kernel/managers/preference.manager.js";
 import { ProjectManager } from "@kernel/managers/project.manager.js";
@@ -148,6 +149,7 @@ export class NextclawKernel {
   readonly contextCompactionManager: AgentRunContextCompactionManager;
   readonly contextProviderManager = new ContextProviderManager();
   readonly sessionRunManager: SessionRunManager;
+  readonly sessionContextCompactionManager: SessionContextCompactionManager;
   readonly toolProviderManager = new ToolProviderManager();
   readonly agentRunRequestManager: AgentRunRequestManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
@@ -245,6 +247,12 @@ export class NextclawKernel {
       this.sessionManager,
     );
     this.sessionRunManager = new SessionRunManager(this.sessionManager);
+    this.sessionContextCompactionManager = new SessionContextCompactionManager(
+      this.agentRuntimeManager,
+      this.eventBus,
+      this.sessionManager,
+      this.sessionRunManager,
+    );
     this.agentRunRequestManager = new AgentRunRequestManager(
       this.agentRuntimeManager,
       this.agents,

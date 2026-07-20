@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   NcpEventType,
   readNcpAiExecutionMetadata,
@@ -101,6 +101,41 @@ function createRuntimeFailureEvents(messageId: string, message: string): NcpEndp
 }
 
 describe("NcpAgentRuntimeWrapper", () => {
+  it("delegates manual compaction when the external runtime supports it", async () => {
+    const compactContext = vi.fn(async () => undefined);
+    const wrapper = new NcpAgentRuntimeWrapper({
+      createRuntime: () => ({ run: () => emptyEvents(), compactContext }),
+    });
+    const sessionRun = createSessionRun(createMessage("user-1"));
+
+    await expect(wrapper.compactContext({
+      session: {
+        sessionId: "session-1",
+        agentRuntimeId: "codex",
+        workingDir: "/session/workspace",
+        metadata: {},
+      },
+      sessionRun,
+    })).resolves.toEqual({ events: [], performed: true, supported: true });
+    expect(compactContext).toHaveBeenCalledWith({ sessionId: "session-1" });
+  });
+
+  it("reports unsupported external runtimes without fallback", async () => {
+    const wrapper = new NcpAgentRuntimeWrapper({
+      createRuntime: () => ({ run: () => emptyEvents() }),
+    });
+
+    await expect(wrapper.compactContext({
+      session: {
+        sessionId: "session-1",
+        agentRuntimeId: "claude-code",
+        workingDir: "/session/workspace",
+        metadata: {},
+      },
+      sessionRun: createSessionRun(createMessage("user-1")),
+    })).resolves.toEqual({ events: [], performed: false, supported: false });
+  });
+
   it("uses refreshed session metadata when reusing the same underlying runtime", async () => {
     const inputs: NcpAgentRunInput[] = [];
     const wrapper = new NcpAgentRuntimeWrapper({

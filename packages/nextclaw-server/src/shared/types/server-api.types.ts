@@ -505,6 +505,11 @@ export type NcpSessionSkillsView = {
   records: SessionSkillEntryView[];
 };
 
+export type NcpSessionContextCompactionView = {
+  compacted: true;
+  sessionId: string;
+};
+
 export type ServerPathEntryView = {
   name: string;
   path: string;

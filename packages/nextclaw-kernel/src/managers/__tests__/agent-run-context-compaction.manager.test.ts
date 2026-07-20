@@ -87,6 +87,44 @@ function createManager(providerManager: object, patchSessionMetadata = vi.fn()) 
 }
 
 describe("AgentRunContextCompactionManager", () => {
+  it("manually compacts history below the automatic budget threshold", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => ({ content: "# Compressed Working Context\n\nManual." })),
+    };
+    const { manager } = createManager(providerManager);
+    const messages = [
+      createMessage({
+        id: "older-message",
+        role: "assistant",
+        text: "Short prior answer.",
+        timestamp: "2026-07-16T01:00:00.000Z",
+      }),
+      createMessage({
+        id: "current-message",
+        role: "user",
+        text: "Continue.",
+        timestamp: "2026-07-16T01:01:00.000Z",
+      }),
+    ];
+
+    await expect(manager.runPreflight({
+      agentId: "main",
+      contextBlocks: [],
+      messages,
+      metadata: {},
+      model: "run-selected-model",
+      sessionId: SESSION_ID,
+    })).resolves.toEqual([]);
+    await expect(manager.runManual({
+      agentId: "main",
+      contextBlocks: [],
+      messages,
+      metadata: {},
+      model: "run-selected-model",
+      sessionId: SESSION_ID,
+    })).resolves.toHaveLength(1);
+  });
+
   it("uses the run-selected model and only persists the completed checkpoint", async () => {
     const providerManager = {
       chat: vi.fn(async () => ({ content: "# Compressed Working Context\n\nContinue." })),

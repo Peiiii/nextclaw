@@ -78,6 +78,34 @@ function createAssistantMessage(params: {
 }
 
 describe("ContextCompactionPreflightService", () => {
+  it("creates a compaction plan for short history only when manually triggered", () => {
+    const service = new ContextCompactionPreflightService(createAgentManager());
+    const sessionMessages = [
+      createAssistantMessage({
+        id: "older-assistant",
+        text: "A short prior answer.",
+        timestamp: "2026-06-05T17:12:18.000Z",
+      }),
+      createAssistantMessage({
+        id: "latest-assistant",
+        text: "The latest answer.",
+        timestamp: "2026-06-05T17:12:19.000Z",
+      }),
+    ];
+    const input = {
+      inputMessages: [],
+      model: "test-model",
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages,
+      storedAgentId: "main",
+      storedMetadata: {},
+    };
+
+    expect(service.begin(input).pendingCompaction).toBeNull();
+    expect(service.begin({ ...input, trigger: "manual" }).pendingCompaction).not.toBeNull();
+  });
+
   it("projects from the checkpoint timestamp when replay order leaves old messages after the marker", () => {
     const existingCheckpoint = createCheckpoint();
     const service = new ContextCompactionPreflightService(createAgentManager());

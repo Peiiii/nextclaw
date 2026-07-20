@@ -35,6 +35,8 @@ export type ContextCompactionPreflightBeginResult = {
   pendingCompaction: ContextCompactionPendingWork | null;
 };
 
+export type ContextCompactionTrigger = "automatic" | "manual";
+
 type ContextCompactionPendingWork = {
   checkpoint: ReturnType<typeof buildCompressingCompactionCheckpoint>;
   contextTokens: number;
@@ -224,6 +226,7 @@ export class ContextCompactionPreflightService {
     sessionMessages: readonly NcpMessage[];
     storedAgentId?: string;
     storedMetadata: Record<string, unknown>;
+    trigger?: ContextCompactionTrigger;
   }): ContextCompactionPreflightBeginResult => {
     const {
       contextBlocks = [],
@@ -234,6 +237,7 @@ export class ContextCompactionPreflightService {
       sessionMessages,
       storedAgentId,
       storedMetadata,
+      trigger = "automatic",
     } = params;
     const profile = this.resolveCompactionProfile({
       requestMetadata,
@@ -262,12 +266,12 @@ export class ContextCompactionPreflightService {
       contextTokens,
       reservedContextTokens,
     });
-    const plan = !budget.shouldCompact
+    const plan = trigger === "automatic" && !budget.shouldCompact
       ? null
       : this.compactionService.prepareForModelInput({
           messages,
           contextTokens,
-          compactionThresholdTokens: budget.triggerTokens,
+          compactionThresholdTokens: trigger === "manual" ? 0 : budget.triggerTokens,
         });
     const coveredSessionMessageCount = plan
       ? (existingCheckpoint?.coveredSessionMessageCount ?? 0) + plan.coveredMessages.length - (existingCheckpoint ? 1 : 0)

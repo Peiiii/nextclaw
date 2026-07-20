@@ -60,8 +60,8 @@ export class AgentRunRuntimeContribution implements KernelContribution {
       kind: DEFAULT_AGENT_RUNTIME_ENTRY_ID,
       label: "Native",
       defaultReuseScope: "global",
-      createRuntime: () =>
-        new DefaultNcpAgentRuntime({
+      createRuntime: () => {
+        const runtime = new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
           runPreflight: async ({ contextBlocks, spec, sessionRun }) => {
@@ -75,7 +75,27 @@ export class AgentRunRuntimeContribution implements KernelContribution {
               sessionId: sessionRun.sessionId,
             });
           },
-        }),
+        });
+        return {
+          run: runtime.run.bind(runtime),
+          compactContext: async ({ session, sessionRun }) => {
+            const model = session.model ?? this.kernel.configManager.getDefaultModel();
+            const events = await this.kernel.contextCompactionManager.runManual({
+              agentId: session.agentId ?? this.kernel.agents.getDefaultAgentId(),
+              contextBlocks: [],
+              messages: sessionRun.getSnapshot().messages,
+              metadata: session.metadata,
+              model,
+              sessionId: session.sessionId,
+            });
+            return {
+              events,
+              performed: events.length > 0,
+              supported: true,
+            };
+          },
+        };
+      },
     });
 
   private registerNarpRuntime = (

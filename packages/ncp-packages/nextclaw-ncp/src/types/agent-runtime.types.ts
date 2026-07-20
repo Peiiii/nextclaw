@@ -20,11 +20,16 @@ export type NcpAgentRunOptions = {
   signal?: AbortSignal;
 };
 
+export type NcpAgentContextCompactionInput = {
+  sessionId: string;
+};
+
 export interface NcpAgentRuntime {
   run(
     input: NcpAgentRunInput,
     options?: NcpAgentRunOptions,
   ): AsyncIterable<NcpEndpointEvent>;
+  compactContext?(input: NcpAgentContextCompactionInput): Promise<void>;
 }
 
 export type NcpContextPrepareOptions = {
