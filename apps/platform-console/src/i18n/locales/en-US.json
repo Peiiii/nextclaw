@@ -290,10 +290,11 @@
   },
   "remote": {
     "title": "My Instances",
-    "description": "After you sign in on desktop and enable remote access, your instances appear here. You can open them directly in the browser or create revocable share links for others.",
+    "description": "Each service port on a device is one instance. The platform keeps a random default domain, and you can add a custom domain; both point to the same instance.",
     "table": {
       "instance": "Instance",
       "platform": "Platform",
+      "stableDomain": "Instance domains",
       "status": "Status",
       "lastSeenAt": "Last seen",
       "actions": "Actions"
@@ -311,7 +312,7 @@
         "online": "Online",
         "offline": "Offline"
       },
-      "searchPlaceholder": "Search name, ID, platform, or version",
+      "searchPlaceholder": "Search name, ID, domain, port, platform, or version",
       "search": "Search",
       "reset": "Reset"
     },
@@ -324,14 +325,18 @@
     "actions": {
       "createShare": "Create share link",
       "open": "Open",
-      "fixedDomain": "Fixed domain",
       "shares": "Shares",
       "closeSharePanel": "Collapse",
       "copyInstanceId": "Copy instance ID: {instanceId}",
       "offlineHint": "This instance is offline and cannot be opened",
       "archive": "Archive",
       "restore": "Restore",
-      "delete": "Delete"
+      "delete": "Delete",
+      "editDomainShort": "Edit domain",
+      "setDomainShort": "Set domain",
+      "removeDomainShort": "Remove",
+      "saveDomain": "Save",
+      "cancelDomain": "Cancel"
     },
     "status": {
       "online": "Online",
@@ -353,22 +358,39 @@
       "revokeShareFailed": "Failed to revoke share link",
       "loadSharesFailed": "Failed to load shares",
       "shareCopied": "Share link copied to clipboard.",
-    "shareCopyManual": "Copy failed. Please copy the link manually.",
-    "newShareCopied": "New share link copied to clipboard.",
-    "newShareCreated": "New share link created. Please copy it manually.",
-    "instanceIdCopied": "Instance ID copied to clipboard.",
-    "instanceIdCopyManual": "Copy failed. Please copy the instance ID manually.",
-    "shareRevoked": "Share link revoked. Existing shared sessions will stop working immediately.",
-    "noShares": "No share links for this instance yet.",
-    "archiveSuccess": "Instance archived. Use the Archived filter to restore or delete it.",
-    "restoreSuccess": "Instance restored.",
-    "deleteSuccess": "Archived instance deleted permanently.",
-    "archiveFailed": "Failed to archive instance",
-    "restoreFailed": "Failed to restore instance",
-    "deleteFailed": "Failed to delete instance",
-    "archiveConfirm": "Archive this instance? You can restore it from the Archived filter.",
-    "deleteConfirm": "Delete this archived instance permanently? This also removes its saved share links and session history."
-  },
+      "shareCopyManual": "Copy failed. Please copy the link manually.",
+      "newShareCopied": "New share link copied to clipboard.",
+      "newShareCreated": "New share link created. Please copy it manually.",
+      "instanceIdCopied": "Instance ID copied to clipboard.",
+      "instanceIdCopyManual": "Copy failed. Please copy the instance ID manually.",
+      "shareRevoked": "Share link revoked. Existing shared sessions will stop working immediately.",
+      "noShares": "No share links for this instance yet.",
+      "archiveSuccess": "Instance archived. Use the Archived filter to restore or delete it.",
+      "restoreSuccess": "Instance restored.",
+      "deleteSuccess": "Archived instance deleted permanently.",
+      "archiveFailed": "Failed to archive instance",
+      "restoreFailed": "Failed to restore instance",
+      "deleteFailed": "Failed to delete instance",
+      "archiveConfirm": "Archive this instance? You can restore it from the Archived filter.",
+      "deleteConfirm": "Delete this archived instance permanently? This also removes its saved share links and session history.",
+      "domainUpdated": "Custom domain updated. The default domain remains available.",
+      "domainReleased": "Custom domain removed. The default domain remains available.",
+      "domainReleaseConfirm": "Remove this custom domain? The random default domain will remain available.",
+      "updateDomainFailed": "Failed to update custom domain",
+      "releaseDomainFailed": "Failed to remove custom domain"
+    },
+    "domain": {
+      "prefixLabel": "Custom domain prefix",
+      "systemLabel": "Default domain",
+      "customLabel": "Custom domain",
+      "customEmpty": "Not set",
+      "unavailable": "Domain service unavailable",
+      "errors": {
+        "invalid": "Use 1–63 lowercase letters, numbers, or hyphens, without a hyphen at either end.",
+        "reserved": "This prefix is reserved by the platform. Choose another one.",
+        "taken": "This prefix is already in use. Choose another one."
+      }
+    },
     "archived": {
       "archivedAt": "Archived {archivedAt}"
     },

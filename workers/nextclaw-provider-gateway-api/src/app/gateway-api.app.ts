@@ -7,30 +7,44 @@ import {
 } from "@/controllers/remote-quota-durable-object.controller.js";
 import { NextclawRemoteRelayDurableObject } from "@/controllers/remote-relay-durable-object.controller.js";
 import { registerAppRoutes } from "@/routes/app.route.js";
+import { remoteInstanceDomainRoutes } from "@/routes/remote-instance-domain.route.js";
 import type { Env } from "@/types/platform.js";
 import { openaiError } from "@/utils/platform.utils.js";
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("/platform/*", cors({
-  origin: "*",
-  allowHeaders: ["Authorization", "Content-Type", "X-Idempotency-Key"],
-  allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"]
-}));
+app.use(
+  "/platform/*",
+  cors({
+    origin: "*",
+    allowHeaders: ["Authorization", "Content-Type", "X-Idempotency-Key"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  }),
+);
 
-app.use("/v1/*", cors({
-  origin: "*",
-  allowHeaders: ["Authorization", "Content-Type", "X-Idempotency-Key"],
-  allowMethods: ["GET", "POST", "OPTIONS"]
-}));
+app.use(
+  "/v1/*",
+  cors({
+    origin: "*",
+    allowHeaders: ["Authorization", "Content-Type", "X-Idempotency-Key"],
+    allowMethods: ["GET", "POST", "OPTIONS"],
+  }),
+);
 
+app.route("/", remoteInstanceDomainRoutes);
 registerAppRoutes(app);
 
 app.all("*", remoteProxyHandler);
 
 app.notFound((c) => openaiError(c, 404, "endpoint not found", "not_found"));
 
-app.onError((error, c) => openaiError(c, 500, error.message || "internal error", "internal_error"));
+app.onError((error, c) =>
+  openaiError(c, 500, error.message || "internal error", "internal_error"),
+);
 
-export { NextclawRemoteRelayDurableObject, NextclawRemoteQuotaDurableObject, NextclawQuotaDurableObject };
+export {
+  NextclawRemoteRelayDurableObject,
+  NextclawRemoteQuotaDurableObject,
+  NextclawQuotaDurableObject,
+};
 export default app;

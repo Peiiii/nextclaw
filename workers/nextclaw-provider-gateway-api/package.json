@@ -9,6 +9,8 @@
     "lint": "eslint src --max-warnings=0",
     "tsc": "tsc -p tsconfig.json --noEmit",
     "test:remote-instances": "pnpm run build && node tests/remote-instance-list.test.mjs",
+    "test:remote-domains": "pnpm run build && node tests/remote-instance-domain.test.mjs",
+    "test:remote-panel": "pnpm run build && node tests/remote-panel-app-session.test.mjs",
     "test:admin-users": "pnpm run build && node tests/admin-user-list.test.mjs",
     "test:quota": "pnpm run build && node tests/remote-quota-policy-runner.test.mjs",
     "deploy": "wrangler deploy",

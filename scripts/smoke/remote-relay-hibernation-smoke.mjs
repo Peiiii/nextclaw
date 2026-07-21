@@ -1,122 +1,94 @@
 #!/usr/bin/env node
-import { createServer } from "node:http";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { WebSocketServer } from "ws";
 import {
-  assertFixedDomainOpenUrlShape,
-  assertRemoteOpenUrlShape,
-  extractCookie,
-  fetchWithRetry,
   findFreePort,
-  nextclawCli,
-  queryLocalD1,
   requestJson,
   rootDir,
   runOrThrow,
-  waitFor,
   waitForHealth,
   wranglerBin,
 } from "./remote-relay-smoke-support.mjs";
+import {
+  assertOwnerRemoteAccess,
+  assertRemoteShareLifecycle,
+} from "./remote-relay/remote-relay-access-smoke.utils.mjs";
+import {
+  assertNoIdleRemoteWrites,
+  assertStableRemoteInstance,
+  claimAndVerifyStableDomain,
+  loginRemoteSmokeCli,
+  releaseAndVerifyCustomDomain,
+  restartRemoteConnectorAcrossHome,
+  startRemoteSmokeConnector,
+  waitForDistinctRemoteInstance,
+  waitForRemoteInstance,
+} from "./remote-relay/remote-relay-instance-smoke.utils.mjs";
+import {
+  startPrimaryRemoteUiFixture,
+  startSecondaryRemoteUiFixture,
+} from "./remote-relay/remote-relay-local-ui-smoke.utils.mjs";
 
 const workerDir = resolve(rootDir, "workers/nextclaw-provider-gateway-api");
-const workerConfig = resolve(
-  workerDir,
-  "wrangler.toml"
-);
+const workerConfig = resolve(workerDir, "wrangler.toml");
 
-async function main() {
-  const persistDir = mkdtempSync(resolve(tmpdir(), "nextclaw-remote-relay-smoke-"));
-  const nextclawHome = mkdtempSync(resolve(tmpdir(), "nextclaw-remote-home-"));
-  const envFile = resolve(persistDir, ".smoke.env");
-  const backendPort = await findFreePort();
-  const uiPort = await findFreePort();
-  const base = `http://127.0.0.1:${backendPort}`;
-  const apiBase = `${base}/v1`;
-  const userEmail = `remote-smoke.${Date.now()}@example.com`;
-  const password = "Passw0rd!";
-
-  let workerProcess = null;
-  let connectorProcess = null;
-  let workerLogs = "";
-  let connectorLogs = "";
-
-  const localUiServer = createServer(async (req, res) => {
-    const url = new URL(req.url ?? "/", `http://127.0.0.1:${uiPort}`);
-    if (req.method === "GET" && url.pathname === "/api/health") {
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true }));
-      return;
-    }
-    if (req.method === "POST" && url.pathname === "/api/auth/bridge") {
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({
-        ok: true,
-        data: {
-          cookie: "nextclaw_ui_bridge=smoke-bridge"
-        }
-      }));
-      return;
-    }
-    if (req.method === "GET" && url.pathname === "/probe") {
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({
-        ok: true,
-        path: url.pathname,
-        search: url.search,
-        cookie: req.headers.cookie ?? ""
-      }));
-      return;
-    }
-    if (req.method === "GET" && url.pathname === "/") {
-      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end("<html><body>remote-smoke-ok</body></html>");
-      return;
-    }
-    res.writeHead(404, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: "not_found", path: url.pathname }));
-  });
-
-  const localUiWss = new WebSocketServer({ noServer: true });
-  localUiServer.on("upgrade", (request, socket, head) => {
-    const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `127.0.0.1:${uiPort}`}`);
-    if (url.pathname !== "/ws") {
-      socket.destroy();
-      return;
-    }
-    localUiWss.handleUpgrade(request, socket, head, (ws) => {
-      localUiWss.emit("connection", ws, request);
-    });
-  });
-  localUiWss.on("connection", (socket) => {
-    socket.send(JSON.stringify({
-      type: "session.updated",
-      payload: { sessionKey: "remote-hibernation-smoke-session" }
-    }));
-  });
-
-  await new Promise((resolveListen, rejectListen) => {
-    localUiServer.once("error", rejectListen);
-    localUiServer.listen(uiPort, "127.0.0.1", () => resolveListen());
-  });
-
-  writeFileSync(
-    envFile,
-    [
-      "AUTH_TOKEN_SECRET=smoke-token-secret-with-length-at-least-32",
-      "DASHSCOPE_API_KEY=smoke-upstream-key",
-      "DASHSCOPE_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1",
-      "PLATFORM_AUTH_EMAIL_PROVIDER=console",
-      "PLATFORM_AUTH_DEV_EXPOSE_CODE=true",
-      "GLOBAL_FREE_USD_LIMIT=20",
-      "REQUEST_FLAT_USD_PER_REQUEST=0.0002"
-    ].join("\n"),
-    "utf-8"
+class RemoteRelaySmokeRunner {
+  persistDir = mkdtempSync(resolve(tmpdir(), "nextclaw-remote-relay-smoke-"));
+  nextclawHome = mkdtempSync(resolve(tmpdir(), "nextclaw-remote-home-"));
+  restartedNextclawHome = mkdtempSync(
+    resolve(tmpdir(), "nextclaw-remote-restarted-home-"),
   );
+  envFile = resolve(this.persistDir, ".smoke.env");
+  userEmail = `remote-smoke.${Date.now()}@example.com`;
+  password = "Passw0rd!";
+  domainPrefix = `remote-smoke-${Date.now().toString(36)}`;
+  stableDomain = `${this.domainPrefix}.claw.cool`;
+  backendPort = 0;
+  uiPort = 0;
+  base = "";
+  apiBase = "";
+  workerProcess = null;
+  connectorProcess = null;
+  secondaryConnectorProcess = null;
+  primaryUiFixture = null;
+  secondaryUiFixture = null;
+  workerLogs = "";
+  connectorLogs = "";
 
-  try {
+  captureWorkerLog = (chunk) => {
+    this.workerLogs = `${this.workerLogs}${String(chunk ?? "")}`.slice(-20_000);
+  };
+
+  captureConnectorLog = (chunk) => {
+    this.connectorLogs = `${this.connectorLogs}${String(chunk ?? "")}`.slice(
+      -20_000,
+    );
+  };
+
+  prepare = async () => {
+    this.backendPort = await findFreePort();
+    this.uiPort = await findFreePort();
+    this.base = `http://127.0.0.1:${this.backendPort}`;
+    this.apiBase = `${this.base}/v1`;
+    this.primaryUiFixture = await startPrimaryRemoteUiFixture(this.uiPort);
+    writeFileSync(
+      this.envFile,
+      [
+        "AUTH_TOKEN_SECRET=smoke-token-secret-with-length-at-least-32",
+        "DASHSCOPE_API_KEY=smoke-upstream-key",
+        "DASHSCOPE_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "PLATFORM_AUTH_EMAIL_PROVIDER=console",
+        "PLATFORM_AUTH_DEV_EXPOSE_CODE=true",
+        "GLOBAL_FREE_USD_LIMIT=20",
+        "REQUEST_FLAT_USD_PER_REQUEST=0.0002",
+      ].join("\n"),
+      "utf-8",
+    );
+  };
+
+  startWorker = async () => {
     console.log("[remote-relay-smoke] apply local migrations...");
     runOrThrow(wranglerBin, [
       "d1",
@@ -127,359 +99,249 @@ async function main() {
       "--config",
       workerConfig,
       "--persist-to",
-      persistDir
+      this.persistDir,
     ]);
-
     console.log("[remote-relay-smoke] start worker...");
-    workerProcess = spawn(
+    this.workerProcess = spawn(
       wranglerBin,
       [
         "dev",
         "--local",
         "--port",
-        String(backendPort),
+        String(this.backendPort),
+        "--host",
+        this.stableDomain,
         "--config",
         workerConfig,
         "--env-file",
-        envFile,
+        this.envFile,
         "--persist-to",
-        persistDir
+        this.persistDir,
       ],
       {
         cwd: rootDir,
         env: { ...process.env },
-        stdio: ["ignore", "pipe", "pipe"]
-      }
+        stdio: ["ignore", "pipe", "pipe"],
+      },
     );
+    this.workerProcess.stdout?.on("data", this.captureWorkerLog);
+    this.workerProcess.stderr?.on("data", this.captureWorkerLog);
+    await waitForHealth(`${this.base}/health`);
+  };
 
-    const captureWorkerLog = (chunk) => {
-      workerLogs = `${workerLogs}${String(chunk ?? "")}`.slice(-20_000);
-    };
-    workerProcess.stdout?.on("data", captureWorkerLog);
-    workerProcess.stderr?.on("data", captureWorkerLog);
-
-    await waitForHealth(`${base}/health`);
-
-    console.log("[remote-relay-smoke] build affected CLI...");
-    runOrThrow("pnpm", ["-C", "packages/nextclaw", "build"]);
-
-    console.log("[remote-relay-smoke] register smoke user via platform auth API...");
+  registerUser = async () => {
     const registerCode = await requestJson({
       method: "POST",
-      url: `${base}/platform/auth/register/send-code`,
-      body: { email: userEmail },
-      expectedStatus: 202
+      url: `${this.base}/platform/auth/register/send-code`,
+      body: { email: this.userEmail },
+      expectedStatus: 202,
     });
     const debugCode = registerCode.body?.data?.debugCode;
     if (!debugCode) {
-      throw new Error(`Missing debug register code: ${JSON.stringify(registerCode.body)}`);
+      throw new Error(
+        `Missing debug register code: ${JSON.stringify(registerCode.body)}`,
+      );
     }
-    const registerComplete = await requestJson({
+    const registration = await requestJson({
       method: "POST",
-      url: `${base}/platform/auth/register/complete`,
-      body: {
-        email: userEmail,
-        code: debugCode,
-        password
-      },
-      expectedStatus: 201
+      url: `${this.base}/platform/auth/register/complete`,
+      body: { email: this.userEmail, code: debugCode, password: this.password },
+      expectedStatus: 201,
     });
-    const userToken = registerComplete.body?.data?.token;
-    if (!userToken) {
+    const token = registration.body?.data?.token;
+    if (!token) {
       throw new Error("Missing user token after registration.");
     }
+    return token;
+  };
 
-    console.log("[remote-relay-smoke] login via nextclaw CLI...");
-    runOrThrow("node", [
-      nextclawCli,
-      "login",
-      "--api-base",
-      apiBase,
-      "--email",
-      userEmail,
-      "--password",
-      password
-    ], {
-      env: {
-        ...process.env,
-        NEXTCLAW_HOME: nextclawHome
-      }
+  connectPrimaryInstance = async (token) => {
+    loginRemoteSmokeCli({
+      apiBase: this.apiBase,
+      email: this.userEmail,
+      password: this.password,
+      home: this.nextclawHome,
     });
+    this.connectorProcess = startRemoteSmokeConnector({
+      apiBase: this.apiBase,
+      home: this.nextclawHome,
+      localOrigin: `http://127.0.0.1:${this.uiPort}`,
+      name: "remote-hibernation-smoke",
+      captureLog: this.captureConnectorLog,
+    });
+    const instance = await waitForRemoteInstance({
+      base: this.base,
+      token,
+      label: "connector online",
+      predicate: (items) =>
+        items.find(
+          (item) =>
+            item.displayName === "remote-hibernation-smoke" &&
+            item.status === "online",
+        ) ?? null,
+    });
+    assertStableRemoteInstance(instance, this.uiPort);
+    return instance;
+  };
 
-    console.log("[remote-relay-smoke] start real connector...");
-    connectorProcess = spawn(
-      "node",
-      [
-        nextclawCli,
-        "remote",
-        "connect",
-        "--api-base",
-        apiBase,
-        "--local-origin",
-        `http://127.0.0.1:${uiPort}`,
-        "--name",
-        "remote-hibernation-smoke",
-        "--once"
-      ],
-      {
-        cwd: rootDir,
-        env: {
-          ...process.env,
-          NEXTCLAW_HOME: nextclawHome
-        },
-        stdio: ["ignore", "pipe", "pipe"]
-      }
+  verifyIdentityAndDomain = async (token, instance) => {
+    console.log(
+      "[remote-relay-smoke] restart from a different data home and verify identity reuse...",
     );
-
-    const captureConnectorLog = (chunk) => {
-      connectorLogs = `${connectorLogs}${String(chunk ?? "")}`.slice(-20_000);
-    };
-    connectorProcess.stdout?.on("data", captureConnectorLog);
-    connectorProcess.stderr?.on("data", captureConnectorLog);
-
-    const instance = await waitFor(async () => {
-      const instancesResponse = await requestJson({
-        method: "GET",
-        url: `${base}/platform/remote/instances`,
-        token: userToken,
-        expectedStatus: 200
-      });
-      const items = instancesResponse.body?.data?.items ?? [];
-      return items.find((item) => item.displayName === "remote-hibernation-smoke" && item.status === "online") ?? null;
-    }, 30_000, "connector online");
-
-    console.log("[remote-relay-smoke] verify no heartbeat writes after idle...");
-    const [deviceRowBeforeIdle] = queryLocalD1({
-      persistDir,
-      sql: `SELECT status, last_seen_at, updated_at FROM remote_devices WHERE id = '${instance.id}'`
-    });
-    if (!deviceRowBeforeIdle || deviceRowBeforeIdle.status !== "online") {
-      throw new Error(`Expected online remote device row, got ${JSON.stringify(deviceRowBeforeIdle)}`);
-    }
-    await new Promise((resolveSleep) => setTimeout(resolveSleep, 18_000));
-    const [deviceRowAfterIdle] = queryLocalD1({
-      persistDir,
-      sql: `SELECT status, last_seen_at, updated_at FROM remote_devices WHERE id = '${instance.id}'`
-    });
-    if (!deviceRowAfterIdle || deviceRowAfterIdle.status !== "online") {
-      throw new Error(`Expected online remote device row after idle, got ${JSON.stringify(deviceRowAfterIdle)}`);
-    }
-    if (
-      deviceRowAfterIdle.last_seen_at !== deviceRowBeforeIdle.last_seen_at
-      || deviceRowAfterIdle.updated_at !== deviceRowBeforeIdle.updated_at
-    ) {
-      throw new Error(
-        `Expected no heartbeat-driven DB writes while idle, before=${JSON.stringify(deviceRowBeforeIdle)}, after=${JSON.stringify(deviceRowAfterIdle)}`
-      );
-    }
-
-    console.log("[remote-relay-smoke] open remote session and verify local bridge...");
-    const openSession = await requestJson({
-      method: "POST",
-      url: `${base}/platform/remote/instances/${encodeURIComponent(instance.id)}/open`,
-      token: userToken,
-      body: {},
-      expectedStatus: 200
-    });
-    const openUrl = openSession.body?.data?.openUrl;
-    const fixedDomainOpenUrl = openSession.body?.data?.fixedDomainOpenUrl;
-    const sessionCreatedAt = openSession.body?.data?.lastUsedAt;
-    if (!openUrl) {
-      throw new Error(`Missing openUrl in session response: ${JSON.stringify(openSession.body)}`);
-    }
-    const remoteOpenUrl = assertRemoteOpenUrlShape(openUrl, "owner openUrl");
-    if (!fixedDomainOpenUrl) {
-      throw new Error(`Missing fixedDomainOpenUrl in session response: ${JSON.stringify(openSession.body)}`);
-    }
-    assertFixedDomainOpenUrlShape(fixedDomainOpenUrl, "owner fixedDomainOpenUrl");
-    if (!sessionCreatedAt) {
-      throw new Error(`Missing lastUsedAt in session response: ${JSON.stringify(openSession.body)}`);
-    }
-    const [sessionRowBeforeProxies] = queryLocalD1({
-      persistDir,
-      sql: "SELECT id, last_used_at, updated_at FROM remote_sessions ORDER BY created_at DESC LIMIT 1"
-    });
-    if (!sessionRowBeforeProxies) {
-      throw new Error("Missing remote session row before proxied requests.");
-    }
-    const localOpenUrl = new URL(remoteOpenUrl);
-    localOpenUrl.protocol = "http:";
-    localOpenUrl.host = `127.0.0.1:${backendPort}`;
-    const redirectResponse = await fetchWithRetry(localOpenUrl, { redirect: "manual" }, "owner open redirect");
-    if (redirectResponse.status !== 302) {
-      throw new Error(
-        `Expected redirect status 302, got ${redirectResponse.status}, openUrl=${openUrl}, localOpenUrl=${localOpenUrl}, body=${await redirectResponse.text()}`
-      );
-    }
-    const remoteSessionCookie = extractCookie(redirectResponse.headers.get("set-cookie"));
-    const proxiedProbe = await requestJson({
-      method: "GET",
-      url: `${base}/probe?hit=1`,
-      expectedStatus: 200,
-      headers: { cookie: remoteSessionCookie }
-    });
-    if (!String(proxiedProbe.body?.cookie ?? "").includes("nextclaw_ui_bridge=smoke-bridge")) {
-      throw new Error(`Expected bridged local auth cookie, got ${JSON.stringify(proxiedProbe.body)}`);
-    }
-
-    const secondProxy = await requestJson({
-      method: "GET",
-      url: `${base}/probe?hit=2`,
-      expectedStatus: 200,
-      headers: { cookie: remoteSessionCookie }
-    });
-    if (!secondProxy.body?.ok) {
-      throw new Error(`Second proxied request failed: ${JSON.stringify(secondProxy.body)}`);
-    }
-    const [sessionRowAfterProxies] = queryLocalD1({
-      persistDir,
-      sql: "SELECT id, last_used_at, updated_at FROM remote_sessions ORDER BY created_at DESC LIMIT 1"
-    });
-    if (!sessionRowAfterProxies) {
-      throw new Error("Missing remote session row after proxied requests.");
-    }
-    if (
-      sessionRowAfterProxies.last_used_at !== sessionRowBeforeProxies.last_used_at
-      || sessionRowAfterProxies.updated_at !== sessionRowBeforeProxies.updated_at
-    ) {
-      throw new Error(
-        `Expected throttled session touch, before=${JSON.stringify(sessionRowBeforeProxies)}, after=${JSON.stringify(sessionRowAfterProxies)}, sessionCreatedAt=${sessionCreatedAt}`
-      );
-    }
-
-    console.log("[remote-relay-smoke] create share link and verify revocation closes existing shared session...");
-    const createdShare = await requestJson({
-      method: "POST",
-      url: `${base}/platform/remote/instances/${encodeURIComponent(instance.id)}/shares`,
-      token: userToken,
-      body: {},
-      expectedStatus: 200
-    });
-    const shareUrl = createdShare.body?.data?.shareUrl;
-    const grantId = createdShare.body?.data?.id;
-    if (!shareUrl || !grantId) {
-      throw new Error(`Missing share grant payload: ${JSON.stringify(createdShare.body)}`);
-    }
-    const parsedShareUrl = new URL(shareUrl);
-    if (parsedShareUrl.origin !== "https://platform.nextclaw.io" || !parsedShareUrl.pathname.startsWith("/share/")) {
-      throw new Error(`Share URL must stay on platform.nextclaw.io/share/<token>, got ${shareUrl}`);
-    }
-    const sharePath = parsedShareUrl.pathname;
-    const grantToken = sharePath.split("/").filter(Boolean).at(-1);
-    if (!grantToken) {
-      throw new Error(`Missing grant token in share URL: ${shareUrl}`);
-    }
-    const shareOpenApiResponse = await requestJson({
-      method: "POST",
-      url: `${base}/platform/share/${encodeURIComponent(grantToken)}/open`,
-      expectedStatus: 200
-    });
-    const sharedOpenUrl = shareOpenApiResponse.body?.data?.openUrl;
-    const sharedFixedDomainOpenUrl = shareOpenApiResponse.body?.data?.fixedDomainOpenUrl;
-    if (!sharedOpenUrl) {
-      throw new Error(`Missing openUrl in share open response: ${JSON.stringify(shareOpenApiResponse.body)}`);
-    }
-    const parsedSharedOpenUrl = assertRemoteOpenUrlShape(sharedOpenUrl, "share openUrl");
-    if (!sharedFixedDomainOpenUrl) {
-      throw new Error(`Missing fixedDomainOpenUrl in share open response: ${JSON.stringify(shareOpenApiResponse.body)}`);
-    }
-    assertFixedDomainOpenUrlShape(sharedFixedDomainOpenUrl, "share fixedDomainOpenUrl");
-    if (parsedSharedOpenUrl.hostname === remoteOpenUrl.hostname) {
-      throw new Error(
-        `Share openUrl must allocate a distinct access-session host, owner=${openUrl}, share=${sharedOpenUrl}`
-      );
-    }
-    const localSharedOpenUrl = new URL(parsedSharedOpenUrl);
-    localSharedOpenUrl.protocol = "http:";
-    localSharedOpenUrl.host = `127.0.0.1:${backendPort}`;
-    const shareOpenResponse = await fetchWithRetry(localSharedOpenUrl, { redirect: "manual" }, "share open redirect");
-    if (shareOpenResponse.status !== 302) {
-      throw new Error(
-        `Expected open redirect status 302 from share, got ${shareOpenResponse.status}, sharedOpenUrl=${sharedOpenUrl}, localSharedOpenUrl=${localSharedOpenUrl}, body=${await shareOpenResponse.text()}`
-      );
-    }
-    const sharedSessionCookie = extractCookie(shareOpenResponse.headers.get("set-cookie"));
-    const sharedProbe = await requestJson({
-      method: "GET",
-      url: `${base}/probe?share=1`,
-      expectedStatus: 200,
-      headers: { cookie: sharedSessionCookie }
-    });
-    if (!String(sharedProbe.body?.cookie ?? "").includes("nextclaw_ui_bridge=smoke-bridge")) {
-      throw new Error(`Expected bridged cookie for shared probe, got ${JSON.stringify(sharedProbe.body)}`);
-    }
-    await requestJson({
-      method: "POST",
-      url: `${base}/platform/remote/shares/${encodeURIComponent(grantId)}/revoke`,
-      token: userToken,
-      body: {},
-      expectedStatus: 200
+    this.connectorProcess = await restartRemoteConnectorAcrossHome({
+      base: this.base,
+      apiBase: this.apiBase,
+      token,
+      email: this.userEmail,
+      password: this.password,
+      originalConnector: this.connectorProcess,
+      instance,
+      home: this.restartedNextclawHome,
+      localOrigin: `http://127.0.0.1:${this.uiPort}`,
+      captureLog: this.captureConnectorLog,
     });
 
-    const revokedSharedProbe = await requestJson({
-      method: "GET",
-      url: `${base}/probe?share=2`,
-      expectedStatus: 410,
-      headers: { cookie: sharedSessionCookie }
-    });
-    if (typeof revokedSharedProbe.body !== "string" || !revokedSharedProbe.body.includes("revoked")) {
-      throw new Error(`Expected revoked shared session response, got ${JSON.stringify(revokedSharedProbe.body)}`);
-    }
-
-    const revokedShareOpenApi = await requestJson({
-      method: "POST",
-      url: `${base}/platform/share/${encodeURIComponent(grantToken)}/open`,
-      expectedStatus: 410
-    });
-    if (revokedShareOpenApi.status !== 410) {
-      throw new Error(`Expected revoked share open API to return 410, got ${revokedShareOpenApi.status}`);
-    }
-
-    console.log("[remote-relay-smoke] stop connector and verify offline transition...");
-    if (connectorProcess.exitCode === null && !connectorProcess.killed) {
-      connectorProcess.kill("SIGTERM");
-    }
-    await waitFor(async () => {
-      const instancesResponse = await requestJson({
-        method: "GET",
-        url: `${base}/platform/remote/instances`,
-        token: userToken,
-        expectedStatus: 200
-      });
-      const items = instancesResponse.body?.data?.items ?? [];
-      return items.find((item) => item.id === instance.id && item.status === "offline") ?? null;
-    }, 30_000, "connector offline");
-
-    console.log("[remote-relay-smoke] all checks passed.");
-  } catch (error) {
-    throw new Error(
-      `${error instanceof Error ? error.message : String(error)}`
-      + `\n[worker logs]\n${workerLogs}`
-      + `\n[connector logs]\n${connectorLogs}`
+    console.log(
+      "[remote-relay-smoke] start a second port and verify a distinct instance...",
     );
-  } finally {
-    if (connectorProcess && connectorProcess.exitCode === null && !connectorProcess.killed) {
-      connectorProcess.kill("SIGTERM");
-      await new Promise((resolveWait) => setTimeout(resolveWait, 800));
-      if (connectorProcess.exitCode === null && !connectorProcess.killed) {
-        connectorProcess.kill("SIGKILL");
-      }
+    const secondaryPort = await findFreePort();
+    this.secondaryUiFixture =
+      await startSecondaryRemoteUiFixture(secondaryPort);
+    this.secondaryConnectorProcess = startRemoteSmokeConnector({
+      apiBase: this.apiBase,
+      home: this.restartedNextclawHome,
+      localOrigin: `http://127.0.0.1:${secondaryPort}`,
+      name: "remote-secondary-port-smoke",
+      captureLog: this.captureConnectorLog,
+    });
+    const secondaryInstance = await waitForDistinctRemoteInstance({
+      base: this.base,
+      token,
+      instanceId: instance.id,
+    });
+
+    console.log(
+      "[remote-relay-smoke] claim a custom stable domain and enforce reservation/uniqueness...",
+    );
+    await claimAndVerifyStableDomain({
+      base: this.base,
+      token,
+      instance,
+      secondaryInstance,
+      domainPrefix: this.domainPrefix,
+      stableDomain: this.stableDomain,
+    });
+  };
+
+  verifyAccess = async (token, instance) => {
+    console.log(
+      "[remote-relay-smoke] verify no heartbeat writes after idle...",
+    );
+    await assertNoIdleRemoteWrites({
+      persistDir: this.persistDir,
+      instanceId: instance.id,
+    });
+    console.log(
+      "[remote-relay-smoke] open remote session and verify local bridge...",
+    );
+    const ownerAccess = await assertOwnerRemoteAccess({
+      base: this.base,
+      token,
+      instance,
+      stableDomain: this.stableDomain,
+      backendPort: this.backendPort,
+      persistDir: this.persistDir,
+    });
+    console.log(
+      "[remote-relay-smoke] create share link and verify revocation closes existing shared session...",
+    );
+    await assertRemoteShareLifecycle({
+      base: this.base,
+      token,
+      instanceId: instance.id,
+      ownerSessionHostname: ownerAccess.ownerSessionHostname,
+      backendPort: this.backendPort,
+    });
+    console.log(
+      "[remote-relay-smoke] release the custom domain and preserve the default domain...",
+    );
+    await releaseAndVerifyCustomDomain({
+      base: this.base,
+      token,
+      instance,
+    });
+  };
+
+  verifyOfflineTransition = async (token, instanceId) => {
+    console.log(
+      "[remote-relay-smoke] stop connector and verify offline transition...",
+    );
+    this.connectorProcess?.kill("SIGTERM");
+    await waitForRemoteInstance({
+      base: this.base,
+      token,
+      label: "connector offline",
+      predicate: (items) =>
+        items.find(
+          (item) => item.id === instanceId && item.status === "offline",
+        ) ?? null,
+    });
+  };
+
+  stopProcess = async (child) => {
+    if (!child || child.exitCode !== null || child.killed) {
+      return;
     }
-    if (workerProcess && workerProcess.exitCode === null && !workerProcess.killed) {
-      workerProcess.kill("SIGTERM");
-      await new Promise((resolveWait) => setTimeout(resolveWait, 800));
-      if (workerProcess.exitCode === null && !workerProcess.killed) {
-        workerProcess.kill("SIGKILL");
-      }
+    child.kill("SIGTERM");
+    await new Promise((resolveWait) => setTimeout(resolveWait, 800));
+    if (child.exitCode === null && !child.killed) {
+      child.kill("SIGKILL");
     }
-    localUiWss.close();
-    await new Promise((resolveClose) => localUiServer.close(() => resolveClose()));
-    rmSync(persistDir, { recursive: true, force: true });
-    rmSync(nextclawHome, { recursive: true, force: true });
-  }
+  };
+
+  cleanup = async () => {
+    await this.stopProcess(this.connectorProcess);
+    await this.stopProcess(this.secondaryConnectorProcess);
+    await this.stopProcess(this.workerProcess);
+    await this.secondaryUiFixture?.close();
+    await this.primaryUiFixture?.close();
+    rmSync(this.persistDir, { recursive: true, force: true });
+    rmSync(this.nextclawHome, { recursive: true, force: true });
+    rmSync(this.restartedNextclawHome, { recursive: true, force: true });
+  };
+
+  run = async () => {
+    await this.prepare();
+    try {
+      await this.startWorker();
+      console.log("[remote-relay-smoke] build affected CLI...");
+      runOrThrow("pnpm", ["-C", "packages/nextclaw", "build"]);
+      console.log(
+        "[remote-relay-smoke] register smoke user via platform auth API...",
+      );
+      const token = await this.registerUser();
+      console.log("[remote-relay-smoke] start real connector...");
+      const instance = await this.connectPrimaryInstance(token);
+      await this.verifyIdentityAndDomain(token, instance);
+      await this.verifyAccess(token, instance);
+      await this.verifyOfflineTransition(token, instance.id);
+      console.log("[remote-relay-smoke] all checks passed.");
+    } catch (error) {
+      throw new Error(
+        `${error instanceof Error ? error.message : String(error)}` +
+          `\n[worker logs]\n${this.workerLogs}` +
+          `\n[connector logs]\n${this.connectorLogs}`,
+      );
+    } finally {
+      await this.cleanup();
+    }
+  };
 }
 
-main().catch((error) => {
-  console.error("[remote-relay-smoke] failed:", error instanceof Error ? error.message : String(error));
+new RemoteRelaySmokeRunner().run().catch((error) => {
+  console.error(
+    "[remote-relay-smoke] failed:",
+    error instanceof Error ? error.message : String(error),
+  );
   process.exitCode = 1;
 });

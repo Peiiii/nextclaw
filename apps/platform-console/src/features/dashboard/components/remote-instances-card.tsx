@@ -1,20 +1,24 @@
-import type { FormEvent } from 'react';
-import type { RemoteInstance } from '@/api/types';
-import { Button } from '@/shared/components/button';
-import { CardTitle } from '@/shared/components/card';
-import { DataTable, type DataTableColumn } from '@/shared/components/data-table';
-import { Input } from '@/shared/components/input';
+import type { FormEvent } from "react";
+import type { RemoteInstance } from "@/features/dashboard/types/remote-instance.types";
+import { Button } from "@/shared/components/button";
+import { CardTitle } from "@/shared/components/card";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/shared/components/data-table";
+import { Input } from "@/shared/components/input";
 import {
   RemoteInstanceActions,
   RemoteInstanceIdentity,
   RemoteInstanceMobileCard,
   RemoteInstanceStatus,
-  type RemoteInstanceTranslate
-} from '@/features/dashboard/components/remote-instance-list-item';
-import { RemoteShareGrantPanel } from '@/features/dashboard/components/remote-share-grant-panel';
-import { useRemoteInstanceActions } from '@/features/dashboard/hooks/use-remote-instance-actions';
-import { useRemoteInstanceList } from '@/features/dashboard/hooks/use-remote-instance-list';
-import { formatDateTime, type LocaleCode } from '@/i18n/i18n.service';
+  type RemoteInstanceTranslate,
+} from "@/features/dashboard/components/remote-instance-list-item";
+import { RemoteShareGrantPanel } from "@/features/dashboard/components/remote-share-grant-panel";
+import { RemoteInstanceDomainEditor } from "@/features/dashboard/components/remote-instance-domain-editor";
+import { useRemoteInstanceActions } from "@/features/dashboard/hooks/use-remote-instance-actions";
+import { useRemoteInstanceList } from "@/features/dashboard/hooks/use-remote-instance-list";
+import { formatDateTime, type LocaleCode } from "@/i18n/i18n.service";
 
 type Translate = RemoteInstanceTranslate;
 
@@ -24,18 +28,21 @@ type RemoteInstancesCardProps = {
   token: string;
 };
 
-export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Element {
+export function RemoteInstancesCard(
+  props: RemoteInstancesCardProps,
+): JSX.Element {
   const list = useRemoteInstanceList({ token: props.token });
   const actions = useRemoteInstanceActions({
     token: props.token,
     t: props.t,
-    onInstanceListChanged: list.resetPage
+    onInstanceListChanged: list.resetPage,
   });
   const page = list.query.data;
   const instances = page?.items ?? [];
-  const hasActiveFilters = list.listQuery.archiveStatus !== 'active'
-    || list.listQuery.connectionStatus !== 'all'
-    || Boolean(list.listQuery.q);
+  const hasActiveFilters =
+    list.listQuery.archiveStatus !== "active" ||
+    list.listQuery.connectionStatus !== "all" ||
+    Boolean(list.listQuery.q);
   const columns = createRemoteInstanceColumns(props, actions);
 
   function handleSearch(event: FormEvent<HTMLFormElement>): void {
@@ -47,22 +54,33 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
   return (
     <section className="space-y-3 sm:space-y-4 sm:rounded-2xl sm:border sm:border-[var(--color-border)] sm:bg-[var(--color-surface)] sm:p-5 sm:shadow-[0_1px_3px_rgba(31,31,29,0.04)]">
       <div className="hidden space-y-1 sm:block">
-        <CardTitle>{props.t('remote.title')}</CardTitle>
-        <p className="text-sm leading-6 text-[var(--color-foreground-muted)]">{props.t('remote.description')}</p>
+        <CardTitle>{props.t("remote.title")}</CardTitle>
+        <p className="text-sm leading-6 text-[var(--color-foreground-muted)]">
+          {props.t("remote.description")}
+        </p>
       </div>
 
       <DataTable
         columns={columns}
         rows={instances}
         rowKey={(instance) => instance.id}
-        minWidth={1020}
+        minWidth={1180}
         loading={list.query.isLoading}
-        loadingLabel={props.t('remote.messages.loadingInstances')}
-        empty={hasActiveFilters ? props.t('remote.messages.filteredEmpty') : props.t('remote.messages.empty')}
+        loadingLabel={props.t("remote.messages.loadingInstances")}
+        empty={
+          hasActiveFilters
+            ? props.t("remote.messages.filteredEmpty")
+            : props.t("remote.messages.empty")
+        }
         renderMobileRow={(instance) => (
-          <RemoteInstanceMobileCard instance={instance} locale={props.locale} t={props.t} actions={actions} />
+          <RemoteInstanceMobileCard
+            instance={instance}
+            locale={props.locale}
+            t={props.t}
+            actions={actions}
+          />
         )}
-        toolbar={(
+        toolbar={
           <RemoteInstanceTableToolbar
             t={props.t}
             list={list}
@@ -70,15 +88,15 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
             onSearch={handleSearch}
             onListScopeChanged={() => actions.commands.selectInstance(null)}
           />
-        )}
+        }
         sorting={{
           columnKey: list.listQuery.sortBy,
           direction: list.listQuery.sortDirection,
           onChange: (columnKey, direction) => {
-            if (columnKey === 'displayName' || columnKey === 'lastSeenAt') {
+            if (columnKey === "displayName" || columnKey === "lastSeenAt") {
               list.setSorting(columnKey, direction);
             }
-          }
+          },
         }}
         pagination={{
           page: page?.page ?? list.listQuery.page,
@@ -86,18 +104,26 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
           total: page?.total ?? 0,
           pageSizeOptions: [10, 20, 50],
           labels: {
-            pageSize: props.t('remote.pagination.pageSize'),
-            previous: props.t('remote.pagination.previous'),
-            next: props.t('remote.pagination.next'),
-            summary: (from, to, total) => props.t('remote.pagination.summary', { from, to, total })
+            pageSize: props.t("remote.pagination.pageSize"),
+            previous: props.t("remote.pagination.previous"),
+            next: props.t("remote.pagination.next"),
+            summary: (from, to, total) =>
+              props.t("remote.pagination.summary", { from, to, total }),
           },
           onPageChange: list.setPage,
-          onPageSizeChange: list.setPageSize
+          onPageSizeChange: list.setPageSize,
         }}
       />
 
       <RemoteInstanceErrors list={list} actions={actions} t={props.t} />
-      {actions.state.feedback ? <p className="text-sm text-[var(--color-foreground-muted)]" role="status">{actions.state.feedback}</p> : null}
+      {actions.state.feedback ? (
+        <p
+          className="text-sm text-[var(--color-foreground-muted)]"
+          role="status"
+        >
+          {actions.state.feedback}
+        </p>
+      ) : null}
 
       {actions.state.selectedInstanceId ? (
         <RemoteShareGrantPanel
@@ -110,9 +136,15 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
           isCreatingShare={actions.mutations.createShare.isPending}
           isRevokingShare={actions.mutations.revokeShare.isPending}
           onClose={() => actions.commands.selectInstance(null)}
-          onCreateShare={(instanceId) => void actions.mutations.createShare.mutateAsync(instanceId)}
-          onCopyShareUrl={(shareUrl) => void actions.commands.copyShareUrl(shareUrl)}
-          onRevokeShare={(grantId, instanceId) => actions.mutations.revokeShare.mutate({ grantId, instanceId })}
+          onCreateShare={(instanceId) =>
+            void actions.mutations.createShare.mutateAsync(instanceId)
+          }
+          onCopyShareUrl={(shareUrl) =>
+            void actions.commands.copyShareUrl(shareUrl)
+          }
+          onRevokeShare={(grantId, instanceId) =>
+            actions.mutations.revokeShare.mutate({ grantId, instanceId })
+          }
         />
       ) : null}
     </section>
@@ -121,45 +153,76 @@ export function RemoteInstancesCard(props: RemoteInstancesCardProps): JSX.Elemen
 
 function createRemoteInstanceColumns(
   props: RemoteInstancesCardProps,
-  actions: ReturnType<typeof useRemoteInstanceActions>
+  actions: ReturnType<typeof useRemoteInstanceActions>,
 ): DataTableColumn<RemoteInstance>[] {
   return [
     {
-      key: 'displayName',
-      title: props.t('remote.table.instance'),
+      key: "displayName",
+      title: props.t("remote.table.instance"),
       width: 300,
-      fixed: 'left',
+      fixed: "left",
       sortable: true,
       render: (instance) => (
-        <RemoteInstanceIdentity instance={instance} locale={props.locale} t={props.t} onCopy={actions.commands.copyInstanceId} />
-      )
+        <RemoteInstanceIdentity
+          instance={instance}
+          locale={props.locale}
+          t={props.t}
+          onCopy={actions.commands.copyInstanceId}
+        />
+      ),
     },
     {
-      key: 'platform',
-      title: props.t('remote.table.platform'),
+      key: "platform",
+      title: props.t("remote.table.platform"),
       width: 120,
-      render: (instance) => <span className="capitalize">{instance.platform}</span>
+      render: (instance) => (
+        <span className="capitalize">{instance.platform}</span>
+      ),
     },
     {
-      key: 'status',
-      title: props.t('remote.table.status'),
+      key: "stableDomain",
+      title: props.t("remote.table.stableDomain"),
+      width: 330,
+      render: (instance) => (
+        <RemoteInstanceDomainEditor
+          instance={instance}
+          t={props.t}
+          isSaving={actions.mutations.updateDomain.isPending}
+          isRemoving={actions.mutations.releaseDomain.isPending}
+          onSave={async (instanceId, prefix) =>
+            await actions.mutations.updateDomain.mutateAsync({
+              instanceId,
+              prefix,
+            })
+          }
+          onRemove={async (instanceId) =>
+            await actions.mutations.releaseDomain.mutateAsync(instanceId)
+          }
+        />
+      ),
+    },
+    {
+      key: "status",
+      title: props.t("remote.table.status"),
       width: 130,
-      render: (instance) => <RemoteInstanceStatus instance={instance} t={props.t} />
+      render: (instance) => (
+        <RemoteInstanceStatus instance={instance} t={props.t} />
+      ),
     },
     {
-      key: 'lastSeenAt',
-      title: props.t('remote.table.lastSeenAt'),
+      key: "lastSeenAt",
+      title: props.t("remote.table.lastSeenAt"),
       width: 190,
       sortable: true,
-      defaultSortDirection: 'desc',
-      render: (instance) => formatDateTime(props.locale, instance.lastSeenAt)
+      defaultSortDirection: "desc",
+      render: (instance) => formatDateTime(props.locale, instance.lastSeenAt),
     },
     {
-      key: 'actions',
-      title: props.t('remote.table.actions'),
-      width: 280,
-      align: 'right',
-      fixed: 'right',
+      key: "actions",
+      title: props.t("remote.table.actions"),
+      width: 220,
+      align: "right",
+      fixed: "right",
       render: (instance) => (
         <RemoteInstanceActions
           instance={instance}
@@ -170,12 +233,12 @@ function createRemoteInstanceColumns(
           isRestoring={actions.mutations.restore.isPending}
           onArchive={actions.commands.archiveInstance}
           onDelete={actions.commands.deleteInstance}
-          onOpen={(instanceId, entry) => actions.mutations.open.mutate({ instanceId, entry })}
+          onOpen={(instanceId) => actions.mutations.open.mutate(instanceId)}
           onRestore={actions.commands.restoreInstance}
           onSelectShares={actions.commands.selectInstance}
         />
-      )
-    }
+      ),
+    },
   ];
 }
 
@@ -192,16 +255,20 @@ function RemoteInstanceTableToolbar(props: {
         <div
           className="inline-flex min-w-0 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] p-0.5 sm:p-1"
           role="group"
-          aria-label={props.t('remote.filters.archiveLabel')}
+          aria-label={props.t("remote.filters.archiveLabel")}
         >
-          {(['active', 'archived', 'all'] as const).map((archiveStatus) => (
+          {(["active", "archived", "all"] as const).map((archiveStatus) => (
             <button
               key={archiveStatus}
               type="button"
-              aria-pressed={props.list.listQuery.archiveStatus === archiveStatus}
-              className={props.list.listQuery.archiveStatus === archiveStatus
-                ? 'rounded-md bg-brand-500 px-2.5 py-1.5 text-xs font-medium text-white sm:px-3'
-                : 'rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface-muted)] sm:px-3'}
+              aria-pressed={
+                props.list.listQuery.archiveStatus === archiveStatus
+              }
+              className={
+                props.list.listQuery.archiveStatus === archiveStatus
+                  ? "rounded-md bg-brand-500 px-2.5 py-1.5 text-xs font-medium text-white sm:px-3"
+                  : "rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--color-foreground-muted)] hover:bg-[var(--color-surface-muted)] sm:px-3"
+              }
               onClick={() => {
                 props.list.setArchiveStatus(archiveStatus);
                 props.onListScopeChanged();
@@ -212,36 +279,56 @@ function RemoteInstanceTableToolbar(props: {
           ))}
         </div>
         <label className="min-w-0 flex-1 sm:flex-none">
-          <span className="sr-only">{props.t('remote.filters.connectionLabel')}</span>
+          <span className="sr-only">
+            {props.t("remote.filters.connectionLabel")}
+          </span>
           <select
-            aria-label={props.t('remote.filters.connectionLabel')}
+            aria-label={props.t("remote.filters.connectionLabel")}
             className="h-9 w-full rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-2 text-xs text-[var(--color-foreground)] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 sm:min-w-[132px] sm:px-3 sm:text-sm"
             value={props.list.listQuery.connectionStatus}
             onChange={(event) => {
-              props.list.setConnectionStatus(event.target.value as 'all' | 'online' | 'offline');
+              props.list.setConnectionStatus(
+                event.target.value as "all" | "online" | "offline",
+              );
               props.onListScopeChanged();
             }}
           >
-            <option value="all">{props.t('remote.filters.connection.all')}</option>
-            <option value="online">{props.t('remote.filters.connection.online')}</option>
-            <option value="offline">{props.t('remote.filters.connection.offline')}</option>
+            <option value="all">
+              {props.t("remote.filters.connection.all")}
+            </option>
+            <option value="online">
+              {props.t("remote.filters.connection.online")}
+            </option>
+            <option value="offline">
+              {props.t("remote.filters.connection.offline")}
+            </option>
           </select>
         </label>
         {props.list.query.isFetching && !props.list.query.isLoading ? (
-          <span className="hidden text-xs text-[var(--color-foreground-subtle)] sm:inline" role="status">{props.t('remote.messages.refreshing')}</span>
+          <span
+            className="hidden text-xs text-[var(--color-foreground-subtle)] sm:inline"
+            role="status"
+          >
+            {props.t("remote.messages.refreshing")}
+          </span>
         ) : null}
       </div>
 
-      <form className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:items-center" onSubmit={props.onSearch}>
+      <form
+        className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:items-center"
+        onSubmit={props.onSearch}
+      >
         <Input
           className="min-w-0 sm:max-w-[360px]"
           value={props.list.searchInput}
-          placeholder={props.t('remote.filters.searchPlaceholder')}
-          aria-label={props.t('remote.filters.searchPlaceholder')}
+          placeholder={props.t("remote.filters.searchPlaceholder")}
+          aria-label={props.t("remote.filters.searchPlaceholder")}
           onChange={(event) => props.list.setSearchInput(event.target.value)}
         />
         <div className="flex items-center gap-1 sm:ml-auto sm:gap-2">
-          <Button type="submit" className="h-10 px-3 sm:flex-none">{props.t('remote.filters.search')}</Button>
+          <Button type="submit" className="h-10 px-3 sm:flex-none">
+            {props.t("remote.filters.search")}
+          </Button>
           {props.hasActiveFilters || props.list.searchInput ? (
             <Button
               type="button"
@@ -252,7 +339,7 @@ function RemoteInstanceTableToolbar(props: {
                 props.onListScopeChanged();
               }}
             >
-              {props.t('remote.filters.reset')}
+              {props.t("remote.filters.reset")}
             </Button>
           ) : null}
         </div>
@@ -267,16 +354,29 @@ function RemoteInstanceErrors(props: {
   t: Translate;
 }): JSX.Element | null {
   const errors = [
-    [props.list.query.error, 'remote.messages.loadInstancesFailed'],
-    [props.actions.mutations.open.error, 'remote.messages.openInstanceFailed'],
-    [props.actions.mutations.createShare.error, 'remote.messages.createShareFailed'],
-    [props.actions.mutations.revokeShare.error, 'remote.messages.revokeShareFailed'],
-    [props.actions.mutations.archive.error, 'remote.messages.archiveFailed'],
-    [props.actions.mutations.restore.error, 'remote.messages.restoreFailed'],
-    [props.actions.mutations.delete.error, 'remote.messages.deleteFailed']
+    [props.list.query.error, "remote.messages.loadInstancesFailed"],
+    [props.actions.mutations.open.error, "remote.messages.openInstanceFailed"],
+    [
+      props.actions.mutations.createShare.error,
+      "remote.messages.createShareFailed",
+    ],
+    [
+      props.actions.mutations.revokeShare.error,
+      "remote.messages.revokeShareFailed",
+    ],
+    [props.actions.mutations.archive.error, "remote.messages.archiveFailed"],
+    [props.actions.mutations.restore.error, "remote.messages.restoreFailed"],
+    [props.actions.mutations.delete.error, "remote.messages.deleteFailed"],
   ] as const;
   const activeErrors = errors.filter(([error]) => Boolean(error));
-  if (activeErrors.length === 0) {
+  const domainError = formatRemoteInstanceDomainError(
+    props.actions.mutations.updateDomain.error,
+    props.t,
+  );
+  const releaseDomainError = props.actions.mutations.releaseDomain.error
+    ? props.t("remote.messages.releaseDomainFailed")
+    : null;
+  if (activeErrors.length === 0 && !domainError && !releaseDomainError) {
     return null;
   }
   return (
@@ -286,6 +386,25 @@ function RemoteInstanceErrors(props: {
           {error instanceof Error ? error.message : props.t(fallback)}
         </p>
       ))}
+      {domainError ? (
+        <p className="text-sm text-rose-600">{domainError}</p>
+      ) : null}
+      {releaseDomainError ? (
+        <p className="text-sm text-rose-600">{releaseDomainError}</p>
+      ) : null}
     </div>
   );
+}
+
+function formatRemoteInstanceDomainError(
+  error: Error | null,
+  t: Translate,
+): string | null {
+  if (!error) return null;
+  if (error.message.includes("reserved"))
+    return t("remote.domain.errors.reserved");
+  if (error.message.includes("already in use"))
+    return t("remote.domain.errors.taken");
+  if (error.message.includes("1-63")) return t("remote.domain.errors.invalid");
+  return t("remote.messages.updateDomainFailed");
 }

@@ -140,6 +140,8 @@ export type {
   RemoteAccessSessionView,
   RemoteInstanceArchiveStatus,
   RemoteInstanceConnectionStatus,
+  RemoteInstanceDomainKind,
+  RemoteInstanceDomainRow,
   RemoteInstanceListQuery,
   RemoteInstanceListView,
   RemoteInstanceRow,
@@ -256,17 +258,21 @@ export type ChargeSplit = {
 
 export type ChargeResult =
   | {
-    ok: true;
-    split: ChargeSplit;
-    snapshot: BillingSnapshot;
-  }
+      ok: true;
+      split: ChargeSplit;
+      snapshot: BillingSnapshot;
+    }
   | {
-    ok: false;
-    reason: "insufficient_quota";
-    snapshot: BillingSnapshot;
-  };
+      ok: false;
+      reason: "insufficient_quota";
+      snapshot: BillingSnapshot;
+    };
 
-export type AdminMarketplaceSkillPublishStatus = "pending" | "published" | "rejected" | "all";
+export type AdminMarketplaceSkillPublishStatus =
+  | "pending"
+  | "published"
+  | "rejected"
+  | "all";
 export type AdminMarketplaceSkillReviewStatus = "published" | "rejected";
 export type OwnerMarketplaceSkillVisibility = "public" | "hidden";
 export type OwnerMarketplaceSkillManageAction = "hide" | "show" | "delete";
@@ -305,14 +311,15 @@ export type AdminMarketplaceSkillSummaryView = {
   publishedAt: string;
   updatedAt: string;
 };
-export type AdminMarketplaceSkillDetailView = AdminMarketplaceSkillSummaryView & {
-  summaryI18n: Record<string, string>;
-  description?: string;
-  descriptionI18n?: Record<string, string>;
-  sourceRepo?: string;
-  homepage?: string;
-  install: MarketplaceSkillInstallView;
-};
+export type AdminMarketplaceSkillDetailView =
+  AdminMarketplaceSkillSummaryView & {
+    summaryI18n: Record<string, string>;
+    description?: string;
+    descriptionI18n?: Record<string, string>;
+    sourceRepo?: string;
+    homepage?: string;
+    install: MarketplaceSkillInstallView;
+  };
 export type AdminMarketplaceSkillListView = {
   counts: AdminMarketplaceSkillCountsView;
   total: number;
@@ -347,23 +354,28 @@ export type OwnerMarketplaceSkillSummaryView = {
   publishedAt: string;
   updatedAt: string;
 };
-export type OwnerMarketplaceSkillDetailView = OwnerMarketplaceSkillSummaryView & {
-  summaryI18n: Record<string, string>;
-  description?: string;
-  descriptionI18n?: Record<string, string>;
-  sourceRepo?: string;
-  homepage?: string;
-  install: MarketplaceSkillInstallView;
-  canShow: boolean;
-  canHide: boolean;
-  canDelete: boolean;
-};
+export type OwnerMarketplaceSkillDetailView =
+  OwnerMarketplaceSkillSummaryView & {
+    summaryI18n: Record<string, string>;
+    description?: string;
+    descriptionI18n?: Record<string, string>;
+    sourceRepo?: string;
+    homepage?: string;
+    install: MarketplaceSkillInstallView;
+    canShow: boolean;
+    canHide: boolean;
+    canDelete: boolean;
+  };
 export type OwnerMarketplaceSkillListView = {
   total: number;
   items: OwnerMarketplaceSkillSummaryView[];
 };
 
-export type AdminMarketplaceAppPublishStatus = "pending" | "published" | "rejected" | "all";
+export type AdminMarketplaceAppPublishStatus =
+  | "pending"
+  | "published"
+  | "rejected"
+  | "all";
 export type AdminMarketplaceAppReviewStatus = "published" | "rejected";
 export type OwnerMarketplaceAppVisibility = "public" | "hidden";
 export type OwnerMarketplaceAppManageAction = "hide" | "show" | "delete";
@@ -524,7 +536,8 @@ export type CursorPayload = {
   id: string;
 };
 
-export const DEFAULT_DASHSCOPE_API_BASE = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+export const DEFAULT_DASHSCOPE_API_BASE =
+  "https://dashscope.aliyuncs.com/compatible-mode/v1";
 export const DEFAULT_GLOBAL_FREE_USD_LIMIT = 20;
 export const DEFAULT_USER_FREE_USD_LIMIT = 2;
 export const DEFAULT_REQUEST_FLAT_USD_PER_REQUEST = 0.0002;
@@ -546,43 +559,45 @@ export const SUPPORTED_MODELS: SupportedModelSpec[] = [
     upstreamModel: "qwen3.5-plus",
     displayName: "Qwen3.5 Plus",
     inputUsdPer1M: 0.8,
-    outputUsdPer1M: 2.4
+    outputUsdPer1M: 2.4,
   },
   {
     id: "dashscope/qwen3.5-flash",
     upstreamModel: "qwen3.5-flash",
     displayName: "Qwen3.5 Flash",
     inputUsdPer1M: 0.2,
-    outputUsdPer1M: 0.6
+    outputUsdPer1M: 0.6,
   },
   {
     id: "dashscope/qwen3.5-397b-a17b",
     upstreamModel: "qwen3.5-397b-a17b",
     displayName: "Qwen3.5 397B A17B",
     inputUsdPer1M: 1.2,
-    outputUsdPer1M: 3.6
+    outputUsdPer1M: 3.6,
   },
   {
     id: "dashscope/qwen3.5-122b-a10b",
     upstreamModel: "qwen3.5-122b-a10b",
     displayName: "Qwen3.5 122B A10B",
     inputUsdPer1M: 0.6,
-    outputUsdPer1M: 1.8
+    outputUsdPer1M: 1.8,
   },
   {
     id: "dashscope/qwen3.5-35b-a3b",
     upstreamModel: "qwen3.5-35b-a3b",
     displayName: "Qwen3.5 35B A3B",
     inputUsdPer1M: 0.35,
-    outputUsdPer1M: 1.05
+    outputUsdPer1M: 1.05,
   },
   {
     id: "dashscope/qwen3.5-27b",
     upstreamModel: "qwen3.5-27b",
     displayName: "Qwen3.5 27B",
     inputUsdPer1M: 0.28,
-    outputUsdPer1M: 0.84
-  }
+    outputUsdPer1M: 0.84,
+  },
 ];
 
-export const MODEL_MAP = new Map<string, SupportedModelSpec>(SUPPORTED_MODELS.map((model) => [model.id, model]));
+export const MODEL_MAP = new Map<string, SupportedModelSpec>(
+  SUPPORTED_MODELS.map((model) => [model.id, model]),
+);

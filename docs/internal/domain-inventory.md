@@ -2,39 +2,39 @@
 
 > 非面向用户文档。用于运维/发布时统一查看 Nextclaw 当前线上域名。
 >
-> 最近校验时间：2026-03-22
+> 最近校验时间：2026-07-20
 
 ## 0) 配置事实源
 
-| 配置项 | 事实源文件 |
-| --- | --- |
-| Platform 用户站域名 | Cloudflare Pages 项目 `nextclaw-platform-console`（控制台） |
-| Platform 管理站域名 | Cloudflare Pages 项目 `nextclaw-platform-admin`（控制台） |
-| Platform API 域名 | `workers/nextclaw-provider-gateway-api/wrangler.toml` 的 `routes` |
-| 前端生产 API Base | `apps/platform-console/.env.production`、`apps/platform-admin/.env.production` |
-| 一键平台发布命令 | 根目录 `package.json` 的 `deploy:platform*` 脚本 |
+| 配置项              | 事实源文件                                                                     |
+| ------------------- | ------------------------------------------------------------------------------ |
+| Platform 用户站域名 | Cloudflare Pages 项目 `nextclaw-platform-console`（控制台）                    |
+| Platform 管理站域名 | Cloudflare Pages 项目 `nextclaw-platform-admin`（控制台）                      |
+| Platform API 域名   | `workers/nextclaw-provider-gateway-api/wrangler.toml` 的 `routes`              |
+| 前端生产 API Base   | `apps/platform-console/.env.production`、`apps/platform-admin/.env.production` |
+| 一键平台发布命令    | 根目录 `package.json` 的 `deploy:platform*` 脚本                               |
 
 ## 1) 平台前端（Cloudflare Pages）
 
-| 站点 | Pages 项目 | 业务域名 | Pages 默认域名 | 校验结果 |
-| --- | --- | --- | --- | --- |
-| 用户站 | `nextclaw-platform-console` | `https://platform.nextclaw.io` | `https://nextclaw-platform-console.pages.dev` | 200 / 200 |
-| 管理后台 | `nextclaw-platform-admin` | `https://platform-admin.nextclaw.io` | `https://nextclaw-platform-admin.pages.dev` | 200 / 200 |
-| 文档站 | `nextclaw-docs` | `https://docs.nextclaw.io` | `https://nextclaw-docs.pages.dev` | 200 / 200 |
-| Landing | `nextclaw-landing` | `https://nextclaw.io`、`https://bibo.bot`、`https://openclaw-pro-max.com` | `https://nextclaw-landing.pages.dev` | `nextclaw.io`=200, `bibo.bot`=200, `openclaw-pro-max.com`=TLS 异常 |
+| 站点     | Pages 项目                  | 业务域名                                                                  | Pages 默认域名                                | 校验结果                                                           |
+| -------- | --------------------------- | ------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------ |
+| 用户站   | `nextclaw-platform-console` | `https://platform.nextclaw.io`                                            | `https://nextclaw-platform-console.pages.dev` | 200 / 200                                                          |
+| 管理后台 | `nextclaw-platform-admin`   | `https://platform-admin.nextclaw.io`                                      | `https://nextclaw-platform-admin.pages.dev`   | 200 / 200                                                          |
+| 文档站   | `nextclaw-docs`             | `https://docs.nextclaw.io`                                                | `https://nextclaw-docs.pages.dev`             | 200 / 200                                                          |
+| Landing  | `nextclaw-landing`          | `https://nextclaw.io`、`https://bibo.bot`、`https://openclaw-pro-max.com` | `https://nextclaw-landing.pages.dev`          | `nextclaw.io`=200, `bibo.bot`=200, `openclaw-pro-max.com`=TLS 异常 |
 
 ## 2) API（Cloudflare Workers）
 
-| 服务 | Worker 名称 | 业务域名 | workers.dev 默认域名 | 校验结果 |
-| --- | --- | --- | --- | --- |
-| Provider Gateway API | `nextclaw-provider-gateway-api` | `https://ai-gateway-api.nextclaw.io` | `https://nextclaw-provider-gateway-api.15353764479037.workers.dev` | `/health`=200, `/v1/models`=200（两域名一致） |
-| Remote Access Entry | `nextclaw-provider-gateway-api` | `https://r-<access-session-id>.claw.cool`（默认并行访问入口）、`https://remote.claw.cool`（固定域名入口；同一 Worker route `https://*.claw.cool/*`） | 无 | `https://r-test.claw.cool/health`=200, `https://remote.claw.cool/health`=200 |
-| Marketplace API | `nextclaw-marketplace-api` | `https://marketplace-api.nextclaw.io` | `https://nextclaw-marketplace-api.15353764479037.workers.dev` | `/health`=200, `/api/v1/skills/items`=200 |
+| 服务                 | Worker 名称                     | 业务域名                                                                                                                                                                                                                                                                                     | workers.dev 默认域名                                               | 校验结果                                                  |
+| -------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| Provider Gateway API | `nextclaw-provider-gateway-api` | `https://ai-gateway-api.nextclaw.io`                                                                                                                                                                                                                                                         | `https://nextclaw-provider-gateway-api.15353764479037.workers.dev` | `/health`=200, `/v1/models`=200（两域名一致）             |
+| Remote Access Entry  | `nextclaw-provider-gateway-api` | `https://<system-prefix>.claw.cool`（每个实例自动保留的默认入口）、可选 `https://<custom-prefix>.claw.cool`（同实例自定义入口）、`https://r-<access-session-id>.claw.cool`（可撤销分享/兼容会话入口）、`https://remote.claw.cool`（共享兼容入口；同一 Worker route `https://*.claw.cool/*`） | 无                                                                 | 2026-07-21 已完成双域名、占用冲突、释放及默认入口线上校验 |
+| Marketplace API      | `nextclaw-marketplace-api`      | `https://marketplace-api.nextclaw.io`                                                                                                                                                                                                                                                        | `https://nextclaw-marketplace-api.15353764479037.workers.dev`      | `/health`=200, `/api/v1/skills/items`=200                 |
 
 ## 3) 待处理/历史域名
 
-| 域名 | 当前状态 | 备注 |
-| --- | --- | --- |
+| 域名                      | 当前状态                               | 备注                                           |
+| ------------------------- | -------------------------------------- | ---------------------------------------------- |
 | `https://api.nextclaw.io` | 不可用（HTTP 空响应 / HTTPS TLS 失败） | 不要用于生产流量，需单独确认是否废弃或重新绑定 |
 
 ## 4) 维护规则
@@ -42,3 +42,4 @@
 1. 每次新增站点/Worker/自定义域名后，必须同步更新本文件。
 2. 每次发布后至少校验一次：前端首页 `200`，API 关键健康接口 `200`。
 3. 若域名证书或解析异常，先记录在“待处理/历史域名”并标注日期与现象。
+4. `<system-prefix>.claw.cool` 与可选 `<custom-prefix>.claw.cool` 由 Gateway 的同一 Remote 实例域名 claim owner 管理；两者都指向同一实例，`remote`、所有 `r-*`、`i-*`、`nc-*` 及平台保留前缀不得作为自定义名称分配。

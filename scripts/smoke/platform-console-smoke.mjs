@@ -5,14 +5,17 @@ import {
   assertArchiveLifecycle,
   assertInstanceTableFlow,
   assertInstanceTableResponsiveLayout,
+  assertRemoteDomainEditing,
   assertRemoteOpenActions,
-  createRemoteInstanceFixtures,
-  installRemoteInstanceRoutes
 } from "./platform-console/platform-console-instance-table-smoke.utils.mjs";
 import {
-  assertQuotaResponsiveLayout
-} from "./platform-console/platform-console-quota-smoke.utils.mjs";
-const baseUrl = (process.env.PLATFORM_CONSOLE_BASE_URL ?? "http://127.0.0.1:4173").replace(/\/+$/, "");
+  createRemoteInstanceFixtures,
+  installRemoteInstanceRoutes,
+} from "./platform-console/platform-console-remote-routes-smoke.utils.mjs";
+import { assertQuotaResponsiveLayout } from "./platform-console/platform-console-quota-smoke.utils.mjs";
+const baseUrl = (
+  process.env.PLATFORM_CONSOLE_BASE_URL ?? "http://127.0.0.1:4173"
+).replace(/\/+$/, "");
 function okEnvelope(data) {
   return JSON.stringify({ ok: true, data });
 }
@@ -21,7 +24,7 @@ async function fulfillJson(route, data) {
   await route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: okEnvelope(data)
+    body: okEnvelope(data),
   });
 }
 
@@ -31,7 +34,7 @@ function createDashboardFixtures() {
       id: "user-1",
       email: "user@example.com",
       role: "user",
-      username: null
+      username: null,
     },
     ...createRemoteInstanceFixtures(),
     ownerSkills: [
@@ -45,12 +48,12 @@ function createDashboardFixtures() {
         summary: "Daily market briefing skill for investors.",
         summaryI18n: {
           en: "Daily market briefing skill for investors.",
-          zh: "给投资者的每日市场简报 skill。"
+          zh: "给投资者的每日市场简报 skill。",
         },
         description: "Summarize watchlist moves, catalysts, and next checks.",
         descriptionI18n: {
           en: "Summarize watchlist moves, catalysts, and next checks.",
-          zh: "总结自选股波动、催化因素和下一步检查项。"
+          zh: "总结自选股波动、催化因素和下一步检查项。",
         },
         author: "peiiii",
         tags: ["market", "briefing"],
@@ -66,14 +69,14 @@ function createDashboardFixtures() {
         install: {
           kind: "marketplace",
           spec: "@peiiii/stock-briefing",
-          command: "nextclaw skills install @peiiii/stock-briefing"
+          command: "nextclaw skills install @peiiii/stock-briefing",
         },
         canShow: false,
         canHide: true,
         canDelete: true,
-        ownerDeletedAt: null
-      }
-    ]
+        ownerDeletedAt: null,
+      },
+    ],
   };
 }
 
@@ -94,7 +97,7 @@ function toOwnerSkillSummary(skill) {
     reviewNote: skill.reviewNote,
     reviewedAt: skill.reviewedAt,
     publishedAt: skill.publishedAt,
-    updatedAt: skill.updatedAt
+    updatedAt: skill.updatedAt,
   };
 }
 
@@ -109,14 +112,14 @@ function toOwnerSkillDetail(skill) {
     install: skill.install,
     canShow: !skill.ownerDeletedAt && skill.ownerVisibility === "hidden",
     canHide: !skill.ownerDeletedAt && skill.ownerVisibility === "public",
-    canDelete: !skill.ownerDeletedAt
+    canDelete: !skill.ownerDeletedAt,
   };
 }
 
 async function installDashboardRoutes(page, fixtures) {
   await page.route("**/platform/auth/me", async (route) => {
     await fulfillJson(route, {
-      user: fixtures.accountUser
+      user: fixtures.accountUser,
     });
   });
   await page.route("**/platform/auth/profile", async (route) => {
@@ -124,7 +127,7 @@ async function installDashboardRoutes(page, fixtures) {
     fixtures.accountUser.username = body.username;
     await fulfillJson(route, {
       token: "demo-token-2",
-      user: fixtures.accountUser
+      user: fixtures.accountUser,
     });
   });
   await installRemoteInstanceRoutes(page, fixtures);
@@ -150,13 +153,17 @@ async function installOwnerSkillRoutes(page, fixtures) {
 
     await fulfillJson(route, {
       total: items.length,
-      items
+      items,
     });
   });
   await page.route("**/platform/marketplace/skills/*/manage", async (route) => {
-    const selector = readMarketplaceSkillSelector(route.request().url()).replace(/\/manage$/, "");
+    const selector = readMarketplaceSkillSelector(
+      route.request().url(),
+    ).replace(/\/manage$/, "");
     const body = JSON.parse(route.request().postData() ?? "{}");
-    const skill = fixtures.ownerSkills.find((entry) => entry.packageName === selector || entry.slug === selector);
+    const skill = fixtures.ownerSkills.find(
+      (entry) => entry.packageName === selector || entry.slug === selector,
+    );
     if (!skill) {
       await fulfillNotFound(route);
       return;
@@ -172,13 +179,15 @@ async function installOwnerSkillRoutes(page, fixtures) {
     skill.updatedAt = "2026-03-23T09:30:00.000Z";
 
     await fulfillJson(route, {
-      item: toOwnerSkillDetail(skill)
+      item: toOwnerSkillDetail(skill),
     });
   });
   await page.route("**/platform/marketplace/skills/*", async (route) => {
     const selector = readMarketplaceSkillSelector(route.request().url());
     const skill = fixtures.ownerSkills.find(
-      (entry) => !entry.ownerDeletedAt && (entry.packageName === selector || entry.slug === selector)
+      (entry) =>
+        !entry.ownerDeletedAt &&
+        (entry.packageName === selector || entry.slug === selector),
     );
     if (!skill) {
       await fulfillNotFound(route);
@@ -199,19 +208,24 @@ async function fulfillNotFound(route) {
     body: JSON.stringify({
       ok: false,
       error: {
-        message: "Marketplace skill not found."
-      }
-    })
+        message: "Marketplace skill not found.",
+      },
+    }),
   });
 }
 
 async function initializeDashboardPage(page) {
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: baseUrl });
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: baseUrl,
+  });
   await page.addInitScript((themePreference) => {
     window.localStorage.clear();
     window.localStorage.setItem("nextclaw.platform.token", "demo-token");
     if (themePreference === "dark") {
-      window.localStorage.setItem("nextclaw.platform.theme", JSON.stringify({ state: { preference: "dark" }, version: 1 }));
+      window.localStorage.setItem(
+        "nextclaw.platform.theme",
+        JSON.stringify({ state: { preference: "dark" }, version: 1 }),
+      );
     }
     window.__openedUrls = [];
     window.open = (url) => {
@@ -231,10 +245,11 @@ async function assertDashboardLanding(page) {
     "My Apps",
     "My Skills",
     "ID: inst-1",
-    "Fixed domain",
+    "i-system-1.claw.cool",
+    "instance-1.claw.cool",
     "Rows per page",
     "1–10 of 12",
-    "Account"
+    "Account",
   ];
   for (const expected of requiredText) {
     if (!bodyText.includes(expected)) {
@@ -242,10 +257,16 @@ async function assertDashboardLanding(page) {
     }
   }
   if (bodyText.includes("Recharge") || bodyText.includes("Ledger")) {
-    throw new Error("Dashboard still exposes billing details that should stay hidden.");
+    throw new Error(
+      "Dashboard still exposes billing details that should stay hidden.",
+    );
   }
-  await page.getByRole("button", { name: "Copy instance ID: inst-1", exact: true }).click();
-  await page.waitForFunction(() => document.body.innerText.includes("Instance ID copied to clipboard."));
+  await page
+    .getByRole("button", { name: "Copy instance ID: inst-1", exact: true })
+    .click();
+  await page.waitForFunction(() =>
+    document.body.innerText.includes("Instance ID copied to clipboard."),
+  );
 }
 
 async function assertUsageRouteFlow(page) {
@@ -256,9 +277,13 @@ async function assertUsageRouteFlow(page) {
   await page.waitForURL(`${baseUrl}/usage`);
   const spaNavGuard = await page.evaluate(() => window.__spaNavGuard);
   if (spaNavGuard !== "alive") {
-    throw new Error("Usage sidebar navigation triggered a full page reload instead of SPA routing.");
+    throw new Error(
+      "Usage sidebar navigation triggered a full page reload instead of SPA routing.",
+    );
   }
-  await page.waitForFunction(() => document.body.innerText.includes("Daily Worker requests"));
+  await page.waitForFunction(() =>
+    document.body.innerText.includes("Daily Worker requests"),
+  );
   const usageText = await page.locator("body").innerText();
   const requiredText = [
     "Usage & Billing",
@@ -266,7 +291,7 @@ async function assertUsageRouteFlow(page) {
     "Normal use is governed by the daily allowance, with no short per-session rate limit.",
     "Daily Worker requests",
     "Recent actual usage",
-    "COMING SOON"
+    "COMING SOON",
   ];
   for (const expected of requiredText) {
     if (!usageText.includes(expected)) {
@@ -276,7 +301,9 @@ async function assertUsageRouteFlow(page) {
   await assertQuotaResponsiveLayout(page);
   await page.getByRole("link", { name: "My Instances" }).click();
   await page.waitForURL(`${baseUrl}/`);
-  await page.getByRole("button", { name: "Copy instance ID: inst-1", exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "Copy instance ID: inst-1", exact: true })
+    .waitFor();
 }
 
 async function assertAccountSettingsFlow(page) {
@@ -284,12 +311,21 @@ async function assertAccountSettingsFlow(page) {
   await page.evaluate(() => {
     window.__spaNavGuard = "alive";
   });
-  await page.getByRole("list").getByRole("link", { name: "Account", exact: true }).click();
+  await page
+    .getByRole("list")
+    .getByRole("link", { name: "Account", exact: true })
+    .click();
   await page.waitForURL(`${baseUrl}/account`);
-  await page.waitForFunction(() => document.body.innerText.includes("You are on the exact account settings page"));
+  await page.waitForFunction(() =>
+    document.body.innerText.includes(
+      "You are on the exact account settings page",
+    ),
+  );
   const spaNavGuard = await page.evaluate(() => window.__spaNavGuard);
   if (spaNavGuard !== "alive") {
-    throw new Error("Sidebar navigation triggered a full page reload instead of SPA routing.");
+    throw new Error(
+      "Sidebar navigation triggered a full page reload instead of SPA routing.",
+    );
   }
   const accountText = await page.locator("body").innerText();
   if (!accountText.includes("You are on the exact account settings page")) {
@@ -297,10 +333,14 @@ async function assertAccountSettingsFlow(page) {
   }
   await page.getByPlaceholder("For example: alice-dev").fill("alice-dev");
   await page.getByRole("button", { name: "Save Username" }).click();
-  await page.waitForFunction(() => document.body.innerText.includes("@alice-dev/*"));
+  await page.waitForFunction(() =>
+    document.body.innerText.includes("@alice-dev/*"),
+  );
   const readyText = await page.locator("body").innerText();
   if (!readyText.includes("Personal publishing is unlocked")) {
-    throw new Error("/account did not confirm that personal publishing is ready.");
+    throw new Error(
+      "/account did not confirm that personal publishing is ready.",
+    );
   }
 }
 
@@ -313,29 +353,39 @@ async function assertSkillManagementFlow(page) {
   await page.waitForURL(`${baseUrl}/skills`);
   const spaNavGuard = await page.evaluate(() => window.__spaNavGuard);
   if (spaNavGuard !== "alive") {
-    throw new Error("Skills sidebar navigation triggered a full page reload instead of SPA routing.");
+    throw new Error(
+      "Skills sidebar navigation triggered a full page reload instead of SPA routing.",
+    );
   }
 
-  await page.waitForFunction(() => document.body.innerText.includes("Stock Briefing"));
+  await page.waitForFunction(() =>
+    document.body.innerText.includes("Stock Briefing"),
+  );
   await page.getByRole("button", { name: "Hide" }).waitFor();
 
   await page.getByRole("button", { name: "Hide" }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Hidden"));
   const hiddenText = await page.locator("body").innerText();
   if (!hiddenText.includes("Make visible")) {
-    throw new Error("Skill detail did not expose the show action after hiding the skill.");
+    throw new Error(
+      "Skill detail did not expose the show action after hiding the skill.",
+    );
   }
 
   await page.getByRole("button", { name: "Make visible" }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Visible"));
   const shownText = await page.locator("body").innerText();
   if (!shownText.includes("Hide")) {
-    throw new Error("Skill detail did not restore the hide action after showing the skill.");
+    throw new Error(
+      "Skill detail did not restore the hide action after showing the skill.",
+    );
   }
 
   acceptNextDialog(page);
   await page.getByRole("button", { name: "Delete" }).click();
-  await page.waitForFunction(() => document.body.innerText.includes("No skills under your scope yet."));
+  await page.waitForFunction(() =>
+    document.body.innerText.includes("No skills under your scope yet."),
+  );
 }
 
 function acceptNextDialog(page) {
@@ -348,16 +398,26 @@ async function assertDashboardLocaleSwitch(page) {
   await page.getByRole("button", { name: "中", exact: true }).click();
   await page.waitForTimeout(300);
   const zhText = await page.locator("body").innerText();
-  const requiredText = ["我的实例", "用量与充值", "我的 Apps", "我的 Skills", "账号"];
+  const requiredText = [
+    "我的实例",
+    "用量与充值",
+    "我的 Apps",
+    "我的 Skills",
+    "账号",
+  ];
   for (const expected of requiredText) {
     if (!zhText.includes(expected)) {
-      throw new Error(`Dashboard did not switch expected text to Chinese: ${expected}`);
+      throw new Error(
+        `Dashboard did not switch expected text to Chinese: ${expected}`,
+      );
     }
   }
   if (process.env.PLATFORM_CONSOLE_ZH_MOBILE_SCREENSHOT_PATH) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByTestId("remote-instance-mobile-card").first().waitFor();
-    await page.screenshot({ path: process.env.PLATFORM_CONSOLE_ZH_MOBILE_SCREENSHOT_PATH });
+    await page.screenshot({
+      path: process.env.PLATFORM_CONSOLE_ZH_MOBILE_SCREENSHOT_PATH,
+    });
     await page.setViewportSize({ width: 1440, height: 900 });
   }
 }
@@ -374,6 +434,7 @@ async function assertDashboardFlow(browser) {
   await assertAccountSettingsFlow(page);
   await assertSkillManagementFlow(page);
   await assertRemoteOpenActions(page, baseUrl);
+  await assertRemoteDomainEditing(page, baseUrl);
   await assertArchiveLifecycle(page);
   await assertDashboardLocaleSwitch(page);
   await page.close();
@@ -389,7 +450,11 @@ async function assertLoginFlow(browser) {
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
   const loginEn = await page.locator("body").innerText();
 
-  if (!loginEn.includes("Sign in to NextClaw Web and continue your instances and agent workflows.")) {
+  if (
+    !loginEn.includes(
+      "Sign in to NextClaw Web and continue your instances and agent workflows.",
+    )
+  ) {
     throw new Error("Login page did not render the default English hero copy.");
   }
 

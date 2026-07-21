@@ -32,6 +32,7 @@
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",
+    "test:identity": "pnpm run build && node tests/remote-platform-client-identity.test.mjs",
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {

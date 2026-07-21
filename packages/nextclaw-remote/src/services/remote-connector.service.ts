@@ -1,20 +1,30 @@
-import { RemoteAppAdapter, type ConnectorClientCommand } from "./remote-app.service.js";
+import {
+  RemoteAppAdapter,
+  type ConnectorClientCommand,
+} from "./remote-app.service.js";
 import {
   describeUnexpectedRemoteConnectorClose,
-  isTerminalRemoteConnectorError
+  isTerminalRemoteConnectorError,
 } from "../remote-connector-error.js";
-import { RemoteRelayBridge, type RelayRequestFrame } from "./remote-relay-bridge.service.js";
+import {
+  RemoteRelayBridge,
+  type RelayRequestFrame,
+} from "./remote-relay-bridge.service.js";
 import {
   formatReconnectDelay,
-  resolveReconnectDelayMs
+  resolveReconnectDelayMs,
 } from "../remote-connector-retry.utils.js";
 import { readRemoteConnectorSocketErrorMessage } from "../remote-connector-websocket-error.utils.js";
-import { delay, redactWsUrl, type RemotePlatformClient } from "../remote-platform-client.js";
+import {
+  delay,
+  redactWsUrl,
+  type RemotePlatformClient,
+} from "./remote-platform-client.service.js";
 import type {
   RegisteredRemoteDevice,
   RemoteConnectorRunOptions,
   RemoteLogger,
-  RemoteRunContext
+  RemoteRunContext,
 } from "../types.js";
 
 const CONNECTOR_KEEPALIVE_INTERVAL_MS = 25_000;
@@ -29,7 +39,7 @@ export class RemoteConnector {
       createSocket?: (wsUrl: string) => WebSocket;
       delayFn?: typeof delay;
       random?: () => number;
-    }
+    },
   ) {}
   private get logger(): RemoteLogger {
     return this.deps.logger ?? console;
@@ -120,11 +130,15 @@ export class RemoteConnector {
           platformBase: params.platformBase,
           localOrigin: params.localOrigin,
           lastConnectedAt: new Date().toISOString(),
-          lastError: null
+          lastError: null,
         });
-        this.logger.info(`✓ Remote connector connected: ${redactWsUrl(params.wsUrl)}`);
+        this.logger.info(
+          `✓ Remote connector connected: ${redactWsUrl(params.wsUrl)}`,
+        );
         void appAdapter.start().catch((error) => {
-          this.logger.error(`Remote event bridge error: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error(
+            `Remote event bridge error: ${error instanceof Error ? error.message : String(error)}`,
+          );
         });
       });
 
@@ -133,13 +147,15 @@ export class RemoteConnector {
           data: event.data,
           relayBridge: params.relayBridge,
           appAdapter,
-          socket
+          socket,
         });
       });
 
       socket.addEventListener("close", (event) => {
         appAdapter.stop();
-        const closeMessage = describeUnexpectedRemoteConnectorClose(event ?? {});
+        const closeMessage = describeUnexpectedRemoteConnectorClose(
+          event ?? {},
+        );
         if (!aborted && closeMessage) {
           finishReject(new Error(closeMessage));
           return;
@@ -177,45 +193,57 @@ export class RemoteConnector {
         await params.appAdapter.handle(frame);
       } catch (error) {
         if (frame.type === "request") {
-          params.socket.send(JSON.stringify({
-            type: "response.error",
-            requestId: frame.requestId,
-            message: error instanceof Error ? error.message : String(error)
-          }));
+          params.socket.send(
+            JSON.stringify({
+              type: "response.error",
+              requestId: frame.requestId,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          );
           return;
         }
         if (frame.type === "client.request") {
-          params.socket.send(JSON.stringify({
-            type: "client.request.error",
-            clientId: frame.clientId,
-            id: frame.id,
-            message: error instanceof Error ? error.message : String(error)
-          }));
+          params.socket.send(
+            JSON.stringify({
+              type: "client.request.error",
+              clientId: frame.clientId,
+              id: frame.id,
+              message: error instanceof Error ? error.message : String(error),
+            }),
+          );
           return;
         }
-        params.socket.send(JSON.stringify({
-          type: "client.stream.error",
-          clientId: frame.clientId,
-          streamId: frame.streamId,
-          message: error instanceof Error ? error.message : String(error)
-        }));
+        params.socket.send(
+          JSON.stringify({
+            type: "client.stream.error",
+            clientId: frame.clientId,
+            streamId: frame.streamId,
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        );
       }
     })();
   };
 
-  private parseRelayFrame = (data: unknown): RelayRequestFrame | ConnectorClientCommand | null => {
+  private parseRelayFrame = (
+    data: unknown,
+  ): RelayRequestFrame | ConnectorClientCommand | null => {
     try {
       const frame = JSON.parse(String(data ?? ""));
-      if (typeof frame !== "object" || !frame || typeof frame.type !== "string") {
+      if (
+        typeof frame !== "object" ||
+        !frame ||
+        typeof frame.type !== "string"
+      ) {
         return null;
       }
       if (frame.type === "request") {
         return frame as RelayRequestFrame;
       }
       if (
-        frame.type === "client.request"
-        || frame.type === "client.stream.open"
-        || frame.type === "client.stream.cancel"
+        frame.type === "client.request" ||
+        frame.type === "client.stream.open" ||
+        frame.type === "client.stream.cancel"
       ) {
         return frame as ConnectorClientCommand;
       }
@@ -238,9 +266,11 @@ export class RemoteConnector {
       token: context.token,
       deviceInstallId: context.deviceInstallId,
       displayName: context.displayName,
-      localOrigin: context.localOrigin
+      localOrigin: context.localOrigin,
     });
-    this.logger.info(`✓ Remote instance registered: ${registeredDevice.displayName} (${registeredDevice.id})`);
+    this.logger.info(
+      `✓ Remote instance registered: ${registeredDevice.displayName} (${registeredDevice.id})`,
+    );
     this.logger.info(`✓ Local origin: ${context.localOrigin}`);
     this.logger.info(`✓ Platform: ${context.platformBase}`);
     return registeredDevice;
@@ -248,7 +278,9 @@ export class RemoteConnector {
 
   private writeRemoteState = (
     statusStore: RemoteConnectorRunOptions["statusStore"],
-    next: Parameters<NonNullable<RemoteConnectorRunOptions["statusStore"]>["write"]>[0]
+    next: Parameters<
+      NonNullable<RemoteConnectorRunOptions["statusStore"]>["write"]
+    >[0],
   ): void => {
     statusStore?.write(next);
   };
@@ -274,12 +306,12 @@ export class RemoteConnector {
         deviceName: context.displayName,
         platformBase: context.platformBase,
         localOrigin: context.localOrigin,
-        lastError: null
+        lastError: null,
       });
       device = await this.ensureDevice({ device, context });
       const wsUrl =
-        `${context.platformBase.replace(/^http/i, "ws")}/platform/remote/connect`
-        + `?instanceId=${encodeURIComponent(device.id)}&token=${encodeURIComponent(context.token)}`;
+        `${context.platformBase.replace(/^http/i, "ws")}/platform/remote/connect` +
+        `?instanceId=${encodeURIComponent(device.id)}&token=${encodeURIComponent(context.token)}`;
       const outcome = await this.connectOnce({
         wsUrl,
         relayBridge,
@@ -288,7 +320,7 @@ export class RemoteConnector {
         displayName: context.displayName,
         deviceId: device.id,
         platformBase: context.platformBase,
-        localOrigin: context.localOrigin
+        localOrigin: context.localOrigin,
       });
       if (outcome !== "aborted") {
         this.writeRemoteState(opts.statusStore, {
@@ -298,14 +330,14 @@ export class RemoteConnector {
           deviceName: context.displayName,
           platformBase: context.platformBase,
           localOrigin: context.localOrigin,
-          lastError: null
+          lastError: null,
         });
       }
       return {
         device,
         outcome: outcome === "aborted" ? "aborted" : "retry",
         retryFailure: false,
-        lastError: null
+        lastError: null,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -316,23 +348,24 @@ export class RemoteConnector {
         deviceName: context.displayName,
         platformBase: context.platformBase,
         localOrigin: context.localOrigin,
-        lastError: message
+        lastError: message,
       });
       this.logger.error(`Remote connector error: ${message}`);
       return {
         device,
         outcome: isTerminalRemoteConnectorError(error) ? "stop" : "retry",
         retryFailure: true,
-        lastError: message
+        lastError: message,
       };
     }
   };
 
   run = async (opts: RemoteConnectorRunOptions = {}): Promise<void> => {
     const context = this.deps.platformClient.resolveRunContext(opts);
-    const relayBridge = (this.deps.relayBridgeFactory ?? ((localOrigin) => new RemoteRelayBridge(localOrigin)))(
-      context.localOrigin
-    );
+    const relayBridge = (
+      this.deps.relayBridgeFactory ??
+      ((localOrigin) => new RemoteRelayBridge(localOrigin))
+    )(context.localOrigin);
     await relayBridge.ensureLocalUiHealthy();
     let device: RegisteredRemoteDevice | null = null;
     let preserveRuntimeError = false;
@@ -341,17 +374,26 @@ export class RemoteConnector {
     while (!opts.signal?.aborted) {
       const cycle = await this.runCycle({ device, context, relayBridge, opts });
       device = cycle.device;
-      consecutiveReconnectFailures = cycle.retryFailure ? consecutiveReconnectFailures + 1 : 0;
+      consecutiveReconnectFailures = cycle.retryFailure
+        ? consecutiveReconnectFailures + 1
+        : 0;
       if (cycle.outcome === "stop") {
         preserveRuntimeError = true;
         break;
       }
-      if (cycle.outcome === "aborted" || !context.autoReconnect || opts.signal?.aborted) {
+      if (
+        cycle.outcome === "aborted" ||
+        !context.autoReconnect ||
+        opts.signal?.aborted
+      ) {
         break;
       }
-      const reconnectDelayMs = resolveReconnectDelayMs(cycle.retryFailure ? consecutiveReconnectFailures : 1, this.random);
+      const reconnectDelayMs = resolveReconnectDelayMs(
+        cycle.retryFailure ? consecutiveReconnectFailures : 1,
+        this.random,
+      );
       this.logger.warn(
-        `Remote connector disconnected. Reconnecting in ${formatReconnectDelay(reconnectDelayMs)}...`
+        `Remote connector disconnected. Reconnecting in ${formatReconnectDelay(reconnectDelayMs)}...`,
       );
       try {
         await this.delayFn(reconnectDelayMs, opts.signal);
@@ -365,13 +407,14 @@ export class RemoteConnector {
     }
 
     this.writeRemoteState(opts.statusStore, {
-      enabled: opts.mode === "service" ? true : Boolean(context.config.remote.enabled),
+      enabled:
+        opts.mode === "service" ? true : Boolean(context.config.remote.enabled),
       state: opts.signal?.aborted ? "disconnected" : "disabled",
       deviceId: device?.id,
       deviceName: context.displayName,
       platformBase: context.platformBase,
       localOrigin: context.localOrigin,
-      lastError: null
+      lastError: null,
     });
   };
 }

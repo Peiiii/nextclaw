@@ -6,7 +6,9 @@ import type {
 } from "@/types/platform";
 import type { RemoteAccessUrlSet } from "@/services/remote-access.service";
 
-function normalizeRemoteAccessSessionStatus(row: RemoteAccessSessionRow): RemoteAccessSessionView["status"] {
+function normalizeRemoteAccessSessionStatus(
+  row: RemoteAccessSessionRow,
+): RemoteAccessSessionView["status"] {
   if (row.revoked_at) {
     return "revoked";
   }
@@ -24,15 +26,16 @@ export async function createRemoteAccessSession(
     sourceGrantId?: string | null;
     openedByUserId?: string | null;
     expiresAt: string;
-  }
+  },
 ): Promise<void> {
   const now = new Date().toISOString();
-  await db.prepare(
-    `INSERT INTO remote_sessions (
+  await db
+    .prepare(
+      `INSERT INTO remote_sessions (
       id, token, user_id, device_id, status, source_type, source_grant_id, opened_by_user_id,
       expires_at, last_used_at, revoked_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, NULL, ?, ?)`
-  )
+    ) VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, NULL, ?, ?)`,
+    )
     .bind(
       payload.id,
       payload.token,
@@ -44,56 +47,97 @@ export async function createRemoteAccessSession(
       payload.expiresAt,
       now,
       now,
-      now
+      now,
     )
     .run();
 }
 
-export async function getRemoteAccessSessionByToken(db: D1Database, token: string): Promise<RemoteAccessSessionRow | null> {
-  const row = await db.prepare(
-    `SELECT id, token, user_id, device_id AS instance_id, status, source_type, source_grant_id, opened_by_user_id,
+export async function getRemoteAccessSessionByToken(
+  db: D1Database,
+  token: string,
+): Promise<RemoteAccessSessionRow | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, token, user_id, device_id AS instance_id, status, source_type, source_grant_id, opened_by_user_id,
             expires_at, last_used_at, revoked_at, created_at, updated_at
        FROM remote_sessions
-      WHERE token = ?`
-  )
+      WHERE token = ?`,
+    )
     .bind(token)
     .first<RemoteAccessSessionRow>();
   return row ?? null;
 }
 
-export async function getRemoteAccessSessionById(db: D1Database, sessionId: string): Promise<RemoteAccessSessionRow | null> {
-  const row = await db.prepare(
-    `SELECT id, token, user_id, device_id AS instance_id, status, source_type, source_grant_id, opened_by_user_id,
+export async function getRemoteAccessSessionById(
+  db: D1Database,
+  sessionId: string,
+): Promise<RemoteAccessSessionRow | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, token, user_id, device_id AS instance_id, status, source_type, source_grant_id, opened_by_user_id,
             expires_at, last_used_at, revoked_at, created_at, updated_at
        FROM remote_sessions
-      WHERE id = ?`
-  )
+      WHERE id = ?`,
+    )
     .bind(sessionId)
     .first<RemoteAccessSessionRow>();
   return row ?? null;
 }
 
-export async function touchRemoteAccessSession(db: D1Database, sessionId: string, lastUsedAt: string): Promise<void> {
-  await db.prepare(
-    `UPDATE remote_sessions
+export async function getActiveOwnerRemoteAccessSessionByInstanceId(
+  db: D1Database,
+  instanceId: string,
+  nowIso: string,
+): Promise<RemoteAccessSessionRow | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, token, user_id, device_id AS instance_id, status, source_type, source_grant_id, opened_by_user_id,
+            expires_at, last_used_at, revoked_at, created_at, updated_at
+       FROM remote_sessions
+      WHERE device_id = ?
+        AND source_type = 'owner_open'
+        AND status = 'active'
+        AND revoked_at IS NULL
+        AND datetime(expires_at) > datetime(?)
+      ORDER BY updated_at DESC, id DESC
+      LIMIT 1`,
+    )
+    .bind(instanceId, nowIso)
+    .first<RemoteAccessSessionRow>();
+  return row ?? null;
+}
+
+export async function touchRemoteAccessSession(
+  db: D1Database,
+  sessionId: string,
+  lastUsedAt: string,
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE remote_sessions
         SET last_used_at = ?,
             updated_at = ?
-      WHERE id = ?`
-  )
+      WHERE id = ?`,
+    )
     .bind(lastUsedAt, lastUsedAt, sessionId)
     .run();
 }
 
-export async function closeRemoteAccessSessionsByGrantId(db: D1Database, grantId: string, revokedAt: string): Promise<void> {
-  await db.prepare(
-    `UPDATE remote_sessions
+export async function closeRemoteAccessSessionsByGrantId(
+  db: D1Database,
+  grantId: string,
+  revokedAt: string,
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE remote_sessions
         SET status = 'closed',
             revoked_at = ?,
             updated_at = ?
       WHERE source_grant_id = ?
         AND status = 'active'
-        AND revoked_at IS NULL`
-  )
+        AND revoked_at IS NULL`,
+    )
     .bind(revokedAt, revokedAt, grantId)
     .run();
 }
@@ -106,43 +150,64 @@ export async function createRemoteShareGrant(
     ownerUserId: string;
     instanceId: string;
     expiresAt: string;
-  }
+  },
 ): Promise<void> {
   const now = new Date().toISOString();
-  await db.prepare(
-    `INSERT INTO remote_share_grants (
+  await db
+    .prepare(
+      `INSERT INTO remote_share_grants (
       id, token, owner_user_id, device_id, status, expires_at, revoked_at, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, 'active', ?, NULL, ?, ?)`
-  )
-    .bind(payload.id, payload.token, payload.ownerUserId, payload.instanceId, payload.expiresAt, now, now)
+    ) VALUES (?, ?, ?, ?, 'active', ?, NULL, ?, ?)`,
+    )
+    .bind(
+      payload.id,
+      payload.token,
+      payload.ownerUserId,
+      payload.instanceId,
+      payload.expiresAt,
+      now,
+      now,
+    )
     .run();
 }
 
-export async function getRemoteShareGrantByToken(db: D1Database, token: string): Promise<RemoteShareGrantRow | null> {
-  const row = await db.prepare(
-    `SELECT id, token, owner_user_id, device_id AS instance_id, status, expires_at, revoked_at, created_at, updated_at
+export async function getRemoteShareGrantByToken(
+  db: D1Database,
+  token: string,
+): Promise<RemoteShareGrantRow | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, token, owner_user_id, device_id AS instance_id, status, expires_at, revoked_at, created_at, updated_at
        FROM remote_share_grants
-      WHERE token = ?`
-  )
+      WHERE token = ?`,
+    )
     .bind(token)
     .first<RemoteShareGrantRow>();
   return row ?? null;
 }
 
-export async function getRemoteShareGrantById(db: D1Database, grantId: string): Promise<RemoteShareGrantRow | null> {
-  const row = await db.prepare(
-    `SELECT id, token, owner_user_id, device_id AS instance_id, status, expires_at, revoked_at, created_at, updated_at
+export async function getRemoteShareGrantById(
+  db: D1Database,
+  grantId: string,
+): Promise<RemoteShareGrantRow | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, token, owner_user_id, device_id AS instance_id, status, expires_at, revoked_at, created_at, updated_at
        FROM remote_share_grants
-      WHERE id = ?`
-  )
+      WHERE id = ?`,
+    )
     .bind(grantId)
     .first<RemoteShareGrantRow>();
   return row ?? null;
 }
 
-export async function listRemoteShareGrantsByInstanceId(db: D1Database, instanceId: string): Promise<RemoteShareGrantRow[]> {
-  const rows = await db.prepare(
-    `SELECT grants.id, grants.token, grants.owner_user_id, grants.device_id AS instance_id, grants.status,
+export async function listRemoteShareGrantsByInstanceId(
+  db: D1Database,
+  instanceId: string,
+): Promise<RemoteShareGrantRow[]> {
+  const rows = await db
+    .prepare(
+      `SELECT grants.id, grants.token, grants.owner_user_id, grants.device_id AS instance_id, grants.status,
             grants.expires_at, grants.revoked_at, grants.created_at, grants.updated_at,
             (
               SELECT COUNT(1)
@@ -154,26 +219,34 @@ export async function listRemoteShareGrantsByInstanceId(db: D1Database, instance
             ) AS active_session_count
        FROM remote_share_grants grants
       WHERE grants.device_id = ?
-      ORDER BY grants.updated_at DESC, grants.id DESC`
-  )
+      ORDER BY grants.updated_at DESC, grants.id DESC`,
+    )
     .bind(instanceId)
     .all<RemoteShareGrantRow>();
   return rows.results ?? [];
 }
 
-export async function revokeRemoteShareGrant(db: D1Database, grantId: string, revokedAt: string): Promise<void> {
-  await db.prepare(
-    `UPDATE remote_share_grants
+export async function revokeRemoteShareGrant(
+  db: D1Database,
+  grantId: string,
+  revokedAt: string,
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE remote_share_grants
         SET status = 'revoked',
             revoked_at = ?,
             updated_at = ?
-      WHERE id = ?`
-  )
+      WHERE id = ?`,
+    )
     .bind(revokedAt, revokedAt, grantId)
     .run();
 }
 
-export function toRemoteAccessSessionView(row: RemoteAccessSessionRow, urls: RemoteAccessUrlSet): RemoteAccessSessionView {
+export function toRemoteAccessSessionView(
+  row: RemoteAccessSessionRow,
+  urls: RemoteAccessUrlSet,
+): RemoteAccessSessionView {
   return {
     id: row.id,
     instanceId: row.instance_id,
@@ -186,10 +259,15 @@ export function toRemoteAccessSessionView(row: RemoteAccessSessionRow, urls: Rem
     createdAt: row.created_at,
     openUrl: urls.openUrl,
     fixedDomainOpenUrl: urls.fixedDomainOpenUrl,
+    systemDomainOpenUrl: urls.systemDomainOpenUrl,
+    customDomainOpenUrl: urls.customDomainOpenUrl,
   };
 }
 
-export function toRemoteShareGrantView(row: RemoteShareGrantRow, shareUrl: string): RemoteShareGrantView {
+export function toRemoteShareGrantView(
+  row: RemoteShareGrantRow,
+  shareUrl: string,
+): RemoteShareGrantView {
   return {
     id: row.id,
     instanceId: row.instance_id,

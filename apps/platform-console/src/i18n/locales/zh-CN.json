@@ -290,10 +290,11 @@
   },
   "remote": {
     "title": "我的实例",
-    "description": "在桌面端登录 NextClaw Account 并开启远程访问后，实例会出现在这里。你可以直接在网页里打开它，也可以生成可撤销的分享链接给其他人访问。",
+    "description": "每台设备上的每个服务端口对应一个实例。平台会保留一个默认随机域名，你还可以额外设置一个自定义域名；两个域名都指向同一实例。",
     "table": {
       "instance": "实例",
       "platform": "平台",
+      "stableDomain": "实例域名",
       "status": "状态",
       "lastSeenAt": "最近在线",
       "actions": "操作"
@@ -311,7 +312,7 @@
         "online": "在线",
         "offline": "离线"
       },
-      "searchPlaceholder": "搜索实例名称、ID、平台或版本",
+      "searchPlaceholder": "搜索实例名称、ID、域名、端口、平台或版本",
       "search": "搜索",
       "reset": "重置"
     },
@@ -324,14 +325,18 @@
     "actions": {
       "createShare": "创建分享链接",
       "open": "打开",
-      "fixedDomain": "固定域名",
       "shares": "分享",
       "closeSharePanel": "收起",
       "copyInstanceId": "复制实例 ID：{instanceId}",
       "offlineHint": "实例离线，暂时无法打开",
       "archive": "归档",
       "restore": "恢复",
-      "delete": "删除"
+      "delete": "删除",
+      "editDomainShort": "修改域名",
+      "setDomainShort": "设置域名",
+      "removeDomainShort": "移除",
+      "saveDomain": "保存",
+      "cancelDomain": "取消"
     },
     "status": {
       "online": "在线",
@@ -353,22 +358,39 @@
       "revokeShareFailed": "撤销分享失败",
       "loadSharesFailed": "加载分享失败",
       "shareCopied": "分享链接已复制到剪贴板。",
-    "shareCopyManual": "复制失败，请手动复制链接。",
-    "newShareCopied": "新分享链接已复制到剪贴板。",
-    "newShareCreated": "新分享链接已创建，请手动复制。",
-    "instanceIdCopied": "实例 ID 已复制到剪贴板。",
-    "instanceIdCopyManual": "复制失败，请手动复制实例 ID。",
-    "shareRevoked": "分享链接已撤销，已打开的分享会话会立即失效。",
-    "noShares": "当前实例还没有分享链接。",
-    "archiveSuccess": "实例已归档。可在“已归档”筛选中恢复或删除。",
-    "restoreSuccess": "实例已恢复。",
-    "deleteSuccess": "归档实例已被永久删除。",
-    "archiveFailed": "归档实例失败",
-    "restoreFailed": "恢复实例失败",
-    "deleteFailed": "删除实例失败",
-    "archiveConfirm": "确认归档这个实例吗？归档后可通过“已归档”筛选恢复。",
-    "deleteConfirm": "确认永久删除这个已归档实例吗？它关联的分享链接和会话记录也会一起移除。"
-  },
+      "shareCopyManual": "复制失败，请手动复制链接。",
+      "newShareCopied": "新分享链接已复制到剪贴板。",
+      "newShareCreated": "新分享链接已创建，请手动复制。",
+      "instanceIdCopied": "实例 ID 已复制到剪贴板。",
+      "instanceIdCopyManual": "复制失败，请手动复制实例 ID。",
+      "shareRevoked": "分享链接已撤销，已打开的分享会话会立即失效。",
+      "noShares": "当前实例还没有分享链接。",
+      "archiveSuccess": "实例已归档。可在“已归档”筛选中恢复或删除。",
+      "restoreSuccess": "实例已恢复。",
+      "deleteSuccess": "归档实例已被永久删除。",
+      "archiveFailed": "归档实例失败",
+      "restoreFailed": "恢复实例失败",
+      "deleteFailed": "删除实例失败",
+      "archiveConfirm": "确认归档这个实例吗？归档后可通过“已归档”筛选恢复。",
+      "deleteConfirm": "确认永久删除这个已归档实例吗？它关联的分享链接和会话记录也会一起移除。",
+      "domainUpdated": "自定义域名已更新，默认域名继续保留。",
+      "domainReleased": "自定义域名已移除，默认域名继续可用。",
+      "domainReleaseConfirm": "确认移除这个自定义域名吗？默认随机域名不受影响。",
+      "updateDomainFailed": "修改自定义域名失败",
+      "releaseDomainFailed": "移除自定义域名失败"
+    },
+    "domain": {
+      "prefixLabel": "自定义域名前缀",
+      "systemLabel": "默认域名",
+      "customLabel": "自定义域名",
+      "customEmpty": "尚未设置",
+      "unavailable": "域名服务暂不可用",
+      "errors": {
+        "invalid": "域名前缀需为 1–63 个小写字母、数字或连字符，且首尾不能是连字符。",
+        "reserved": "这个域名前缀是平台保留名称，请换一个。",
+        "taken": "这个域名前缀已被占用，请换一个。"
+      }
+    },
     "archived": {
       "archivedAt": "归档于 {archivedAt}"
     },
