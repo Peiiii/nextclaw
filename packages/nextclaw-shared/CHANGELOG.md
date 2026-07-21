@@ -1,5 +1,13 @@
 # @nextclaw/shared
 
+## 0.4.10
+
+### Patch Changes
+
+- d116010: 允许 `show_panel_app` 通过可选绝对路径打开标准 Panels 目录之外的 Panel App，并让侧栏与聊天内联展示复用同一份路径合同和资源加载链路。
+- Updated dependencies [36c5362]
+  - @nextclaw/ncp@0.7.9
+
 ## 0.4.9
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/app-sdk",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": false,
   "description": "Lightweight bridge client for NextClaw Apps.",
   "type": "module",
@@ -43,6 +43,7 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "devDependencies": {
+    "@types/node": "^20.17.6",
     "typescript": "^5.6.3",
     "vitest": "^4.1.2"
   }

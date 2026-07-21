@@ -1,5 +1,28 @@
 # @nextclaw/kernel
 
+## 0.6.13
+
+### Patch Changes
+
+- 36c5362: 新增会话级手动上下文压缩命令，统一通过 Kernel runtime capability 调用 Native 压缩链路或 Codex `thread/compact/start`，并为不支持、会话忙碌和无可压缩历史提供明确反馈。
+- d116010: 允许 `show_panel_app` 通过可选绝对路径打开标准 Panels 目录之外的 Panel App，并让侧栏与聊天内联展示复用同一份路径合同和资源加载链路。
+- Updated dependencies [36c5362]
+- Updated dependencies
+- Updated dependencies [d116010]
+  - @nextclaw/ncp@0.7.9
+  - @nextclaw/channel-extension-feishu@0.2.11
+  - @nextclaw/channel-extension-weixin@0.2.11
+  - @nextclaw/core@0.15.11
+  - @nextclaw/mcp@0.3.11
+  - @nextclaw/ncp-agent-runtime@0.4.9
+  - @nextclaw/ncp-agent-runtime-next@0.1.9
+  - @nextclaw/ncp-mcp@0.2.11
+  - @nextclaw/ncp-toolkit@0.6.10
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.9
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.12
+  - @nextclaw/runtime@0.4.11
+  - @nextclaw/shared@0.4.10
+
 ## 0.6.12
 
 ### Patch Changes

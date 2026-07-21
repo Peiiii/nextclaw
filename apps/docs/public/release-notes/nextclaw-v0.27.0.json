@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-07-21",
+  "title": {
+    "zh-CN": "NextClaw v0.27.0",
+    "en-US": "NextClaw v0.27.0"
+  },
+  "summary": {
+    "zh-CN": "本版本带来稳定的 Remote 实例与双域名、手动上下文压缩，以及更顺畅的项目和会话体验。",
+    "en-US": "This release adds stable Remote instances with two domains, manual context compaction, and smoother project and session workflows."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-21-nextclaw-v0-27-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-21-nextclaw-v0-27-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "新功能",
+        "en-US": "New Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "稳定的 Remote 实例",
+            "en-US": "Stable Remote instances"
+          },
+          "body": {
+            "zh-CN": "同一设备与本地端口在重启后继续使用同一个实例身份，不再反复创建实例记录。",
+            "en-US": "The same device and local port keep one instance identity across restarts instead of creating duplicate records."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "默认域名与自定义域名并存",
+            "en-US": "Default and custom domains together"
+          },
+          "body": {
+            "zh-CN": "每个实例自动保留一个随机固定域名，还可认领一个全局唯一的自定义域名；两个域名始终指向同一实例。",
+            "en-US": "Every instance retains a persistent random domain and can claim one globally unique custom domain; both point to the same instance."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "手动压缩会话上下文",
+            "en-US": "Manual conversation compaction"
+          },
+          "body": {
+            "zh-CN": "长会话可以主动触发上下文压缩，并在运行时不支持、忙碌或没有可压缩历史时获得明确反馈。",
+            "en-US": "Long conversations can trigger context compaction on demand, with clear feedback for unsupported, busy, or empty sessions."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "直接添加已有目录",
+            "en-US": "Add existing directories directly"
+          },
+          "body": {
+            "zh-CN": "可以把已有目录添加为项目而不修改其内容，Panel App 也支持从标准目录之外的绝对路径打开。",
+            "en-US": "Existing directories can be added as projects without modifying their contents, and Panel Apps can open from absolute paths outside the standard directory."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "体验改进",
+        "en-US": "Improvements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "模型切换保持会话连续",
+            "en-US": "Model switches preserve session continuity"
+          },
+          "body": {
+            "zh-CN": "Codex 在运行时默认模型与自定义模型之间切换时会继续沿用原会话上下文。",
+            "en-US": "Codex keeps the existing conversation context when switching between the runtime default and custom models."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "技能安装更可靠",
+            "en-US": "More reliable skill installation"
+          },
+          "body": {
+            "zh-CN": "镜像下载超时时会自动尝试备用来源，并在完整下载后再替换目标，减少半安装状态。",
+            "en-US": "Mirror timeouts fall back to an alternate source, and the target is replaced only after a complete download."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更清楚的项目与文件反馈",
+            "en-US": "Clearer project and file feedback"
+          },
+          "body": {
+            "zh-CN": "项目列表更紧凑，缺失的工作区文件会显示友好的本地化预览提示。",
+            "en-US": "The project list is more compact, and missing workspace files produce a friendly localized preview message."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "域名长期保留",
+            "en-US": "Domains remain reserved"
+          },
+          "body": {
+            "zh-CN": "随机默认域名会自动创建并保留；自定义域名释放后才可被其他实例使用，本版本暂不自动过期。",
+            "en-US": "Random default domains are created and retained automatically; custom domains become available to others only after release and do not expire automatically yet."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级；本次不包含新的桌面安装包。",
+            "en-US": "Existing npm installations can update through the stable channel; this release does not include a new desktop installer."
+          }
+        }
+      ]
+    }
+  ]
+}

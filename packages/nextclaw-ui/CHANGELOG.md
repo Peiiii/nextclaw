@@ -1,5 +1,27 @@
 # @nextclaw/ui
 
+## 0.15.13
+
+### Patch Changes
+
+- a7b66d2: Add a clear project-list entry for either creating a new project or adding an existing directory without modifying its contents.
+- 36c5362: 新增会话级手动上下文压缩命令，统一通过 Kernel runtime capability 调用 Native 压缩链路或 Codex `thread/compact/start`，并为不支持、会话忙碌和无可压缩历史提供明确反馈。
+- 1bfb5f3: 收紧聊天侧边栏项目列表的行高与项目间距，让项目视图更紧凑。
+- 6a6fc32: 为会话工作台文件预览补充友好的本地化错误提示，文件不存在时不再直接展示服务端诊断信息。
+- d116010: 允许 `show_panel_app` 通过可选绝对路径打开标准 Panels 目录之外的 Panel App，并让侧栏与聊天内联展示复用同一份路径合同和资源加载链路。
+- Updated dependencies [a7b66d2]
+- Updated dependencies [36c5362]
+- Updated dependencies
+- Updated dependencies [d116010]
+  - @nextclaw/client-sdk@0.5.13
+  - @nextclaw/ncp@0.7.9
+  - @nextclaw/agent-chat@0.3.7
+  - @nextclaw/ncp-http-agent-client@0.4.9
+  - @nextclaw/ncp-react@0.5.11
+  - @nextclaw/ncp-toolkit@0.6.10
+  - @nextclaw/shared@0.4.10
+  - @nextclaw/agent-chat-ui@0.6.13
+
 ## 0.15.12
 
 ### Patch Changes

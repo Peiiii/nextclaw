@@ -1,5 +1,18 @@
 # @nextclaw/client-sdk
 
+## 0.5.13
+
+### Patch Changes
+
+- a7b66d2: Add a clear project-list entry for either creating a new project or adding an existing directory without modifying its contents.
+- 36c5362: 新增会话级手动上下文压缩命令，统一通过 Kernel runtime capability 调用 Native 压缩链路或 Codex `thread/compact/start`，并为不支持、会话忙碌和无可压缩历史提供明确反馈。
+- Updated dependencies [a7b66d2]
+- Updated dependencies [36c5362]
+- Updated dependencies [d116010]
+  - @nextclaw/server@0.15.13
+  - @nextclaw/ncp@0.7.9
+  - @nextclaw/shared@0.4.10
+
 ## 0.5.12
 
 ### Patch Changes

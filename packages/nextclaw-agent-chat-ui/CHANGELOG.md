@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.13
+
+### Patch Changes
+
+- d116010: 允许 `show_panel_app` 通过可选绝对路径打开标准 Panels 目录之外的 Panel App，并让侧栏与聊天内联展示复用同一份路径合同和资源加载链路。
+
 ## 0.6.12
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @nextclaw/nextclaw-narp-runtime-codex-sdk
 
+## 0.2.10
+
+### Patch Changes
+
+- 173ffef: Keep Codex conversation context intact when switching between the runtime default and custom models, including reasoning-enabled providers.
+- Updated dependencies [36c5362]
+- Updated dependencies
+- Updated dependencies [173ffef]
+  - @nextclaw/ncp@0.7.9
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk@0.2.9
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.10
+
 ## 0.2.9
 
 ### Patch Changes

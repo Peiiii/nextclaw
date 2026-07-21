@@ -1,5 +1,18 @@
 # @nextclaw/remote
 
+## 0.3.13
+
+### Patch Changes
+
+- e8118cf: Remote 实例现在会按设备与本地端口保持稳定身份，重启后继续使用同一实例。每个实例会自动保留一个随机固定域名，还可额外设置一个全局唯一的自定义域名；两个域名始终指向同一实例，系统保留域名会被自动拒绝。
+- Updated dependencies [a7b66d2]
+- Updated dependencies [36c5362]
+- Updated dependencies
+- Updated dependencies [d116010]
+  - @nextclaw/server@0.15.13
+  - @nextclaw/kernel@0.6.13
+  - @nextclaw/core@0.15.11
+
 ## 0.3.12
 
 ### Patch Changes

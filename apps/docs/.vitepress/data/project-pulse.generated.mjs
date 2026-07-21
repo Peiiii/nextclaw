@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-20T05:49:37.219Z",
+  "generatedAt": "2026-07-21T01:44:35.117Z",
   "hero": {
     "currentLoc": 212622,
     "testLoc": 74778,
     "trackedFiles": 2306,
-    "recentCommitCount": 303,
-    "activeDays30": 29,
-    "recentReleaseCount": 46,
-    "latestReleaseDate": "2026-07-19",
-    "latestNoteDate": "2026-07-18",
+    "recentCommitCount": 317,
+    "activeDays30": 30,
+    "recentReleaseCount": 47,
+    "latestReleaseDate": "2026-07-20",
+    "latestNoteDate": "2026-07-21",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2226744,
     "basePercentOfBenchmark": 9.55,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-03-23",
-        "label": "03-23",
-        "value": 102099
-      },
       {
         "key": "2026-03-24",
         "label": "03-24",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-07-20",
         "label": "07-20",
         "value": 212622
+      },
+      {
+        "key": "2026-07-21",
+        "label": "07-21",
+        "value": 212622
       }
     ],
     "testLocDaily": [
@@ -976,11 +976,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-06-21",
-        "label": "06-21",
-        "value": 1
-      },
-      {
         "key": "2026-06-22",
         "label": "06-22",
         "value": 6
@@ -1118,12 +1113,17 @@ export default {
       {
         "key": "2026-07-19",
         "label": "07-19",
-        "value": 11
+        "value": 12
       },
       {
         "key": "2026-07-20",
         "label": "07-20",
-        "value": 0
+        "value": 12
+      },
+      {
+        "key": "2026-07-21",
+        "label": "07-21",
+        "value": 2
       }
     ],
     "commitWeekly": [
@@ -1180,12 +1180,12 @@ export default {
       {
         "key": "2026-07-13",
         "label": "07-13",
-        "value": 196
+        "value": 197
       },
       {
         "key": "2026-07-20",
         "label": "07-20",
-        "value": 0
+        "value": 14
       }
     ],
     "releaseMonthly": [
@@ -1247,7 +1247,7 @@ export default {
       {
         "key": "2026-07",
         "label": "07/26",
-        "value": 11
+        "value": 12
       }
     ]
   },
@@ -1318,6 +1318,15 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-07-20",
+        "tagCount": 49,
+        "sampleTags": [
+          "@nextclaw/aigen@0.2.6",
+          "@nextclaw/browser-connector@0.3.6",
+          "@nextclaw/channel-extension-dingtalk@0.2.10"
+        ]
+      },
+      {
         "date": "2026-07-19",
         "tagCount": 2,
         "sampleTags": [
@@ -1360,20 +1369,49 @@ export default {
           "@nextclaw/channel-extension-discord@0.2.4",
           "@nextclaw/channel-extension-email@0.2.4"
         ]
-      },
-      {
-        "date": "2026-07-14",
-        "tagCount": 20,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.6.4",
-          "@nextclaw/channel-extension-feishu@0.2.4",
-          "@nextclaw/channel-extension-weixin@0.2.4"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-21-nextclaw-v0-27-0",
+        "date": "2026-07-21",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-07-21 · NextClaw v0.27.0",
+          "description": "NextClaw v0.27.0 adds stable Remote instances with two domains, manual context compaction, and smoother project and session workflows.",
+          "href": "/en/notes/2026-07-21-nextclaw-v0-27-0"
+        },
+        "zh": {
+          "title": "2026-07-21 · NextClaw v0.27.0",
+          "description": "NextClaw v0.27.0 带来稳定的 Remote 实例与双域名、手动上下文压缩，以及更顺畅的项目和会话体验。",
+          "href": "/zh/notes/2026-07-21-nextclaw-v0-27-0"
+        }
+      },
+      {
+        "slug": "2026-07-20-nextclaw-v0-26-1",
+        "date": "2026-07-20",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-20 · NextClaw v0.26.1",
+          "description": "NextClaw v0.26.1 refines chat runtime details, the mobile composer, and scheduled task templates.",
+          "href": "/en/notes/2026-07-20-nextclaw-v0-26-1"
+        },
+        "zh": {
+          "title": "2026-07-20 · NextClaw v0.26.1",
+          "description": "NextClaw v0.26.1 优化聊天运行信息、移动端输入区和定时任务模板布局。",
+          "href": "/zh/notes/2026-07-20-nextclaw-v0-26-1"
+        }
+      },
       {
         "slug": "2026-07-18-nextclaw-v0-26-0",
         "date": "2026-07-18",
@@ -1784,7 +1822,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-20T05:49:35.446Z",
     "sourceCount": {
-      "notes": 17,
+      "notes": 19,
       "scopes": 8
     }
   }

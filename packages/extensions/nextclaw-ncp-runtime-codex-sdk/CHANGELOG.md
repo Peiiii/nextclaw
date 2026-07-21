@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.2.9
+
+### Patch Changes
+
+- 36c5362: 新增会话级手动上下文压缩命令，统一通过 Kernel runtime capability 调用 Native 压缩链路或 Codex `thread/compact/start`，并为不支持、会话忙碌和无可压缩历史提供明确反馈。
+- 173ffef: Keep Codex conversation context intact when switching between the runtime default and custom models, including reasoning-enabled providers.
+- Updated dependencies [36c5362]
+  - @nextclaw/ncp@0.7.9
+
 ## 0.2.8
 
 ### Patch Changes

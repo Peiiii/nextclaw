@@ -1,5 +1,21 @@
 # nextclaw-server
 
+## 0.15.13
+
+### Patch Changes
+
+- a7b66d2: Add a clear project-list entry for either creating a new project or adding an existing directory without modifying its contents.
+- 36c5362: 新增会话级手动上下文压缩命令，统一通过 Kernel runtime capability 调用 Native 压缩链路或 Codex `thread/compact/start`，并为不支持、会话忙碌和无可压缩历史提供明确反馈。
+- d116010: 允许 `show_panel_app` 通过可选绝对路径打开标准 Panels 目录之外的 Panel App，并让侧栏与聊天内联展示复用同一份路径合同和资源加载链路。
+- Updated dependencies [36c5362]
+- Updated dependencies
+- Updated dependencies [d116010]
+  - @nextclaw/ncp@0.7.9
+  - @nextclaw/kernel@0.6.13
+  - @nextclaw/core@0.15.11
+  - @nextclaw/mcp@0.3.11
+  - @nextclaw/runtime@0.4.11
+
 ## 0.15.12
 
 ### Patch Changes

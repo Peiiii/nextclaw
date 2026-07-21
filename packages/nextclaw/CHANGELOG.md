@@ -1,5 +1,35 @@
 # nextclaw
 
+## 0.27.0
+
+### Minor Changes
+
+- Add stable Remote instance identities with persistent default and custom domains, manual context compaction, existing-directory project creation, and improved session continuity.
+
+### Patch Changes
+
+- 0e6075f: Marketplace 技能安装现在会在镜像单文件下载超时时自动切换备用源，并在完整下载后原子替换目标目录，避免安装或更新失败留下半套技能。
+- Updated dependencies [a7b66d2]
+- Updated dependencies [36c5362]
+- Updated dependencies
+- Updated dependencies [0e6075f]
+- Updated dependencies [d116010]
+- Updated dependencies [e8118cf]
+  - @nextclaw/server@0.15.13
+  - @nextclaw/ncp@0.7.9
+  - @nextclaw/kernel@0.6.13
+  - @nextclaw/core@0.15.11
+  - @nextclaw/mcp@0.3.11
+  - @nextclaw/ncp-agent-runtime@0.4.9
+  - @nextclaw/ncp-mcp@0.2.11
+  - @nextclaw/ncp-toolkit@0.6.10
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.9
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.9
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.12
+  - @nextclaw/runtime@0.4.11
+  - @nextclaw/service@0.3.13
+  - @nextclaw/remote@0.3.13
+
 ## 0.26.1
 
 ### Patch Changes

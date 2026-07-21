@@ -1,5 +1,41 @@
 # @nextclaw/service
 
+## 0.3.13
+
+### Patch Changes
+
+- 0e6075f: Marketplace 技能安装现在会在镜像单文件下载超时时自动切换备用源，并在完整下载后原子替换目标目录，避免安装或更新失败留下半套技能。
+- Updated dependencies [a7b66d2]
+- Updated dependencies [36c5362]
+- Updated dependencies
+- Updated dependencies [d116010]
+- Updated dependencies [e8118cf]
+  - @nextclaw/server@0.15.13
+  - @nextclaw/client-sdk@0.5.13
+  - @nextclaw/ncp@0.7.9
+  - @nextclaw/kernel@0.6.13
+  - @nextclaw/channel-extension-dingtalk@0.2.11
+  - @nextclaw/channel-extension-discord@0.2.11
+  - @nextclaw/channel-extension-email@0.2.11
+  - @nextclaw/channel-extension-feishu@0.2.11
+  - @nextclaw/channel-extension-qq@0.2.10
+  - @nextclaw/channel-extension-slack@0.2.11
+  - @nextclaw/channel-extension-telegram@0.2.11
+  - @nextclaw/channel-extension-wecom@0.2.11
+  - @nextclaw/channel-extension-weixin@0.2.11
+  - @nextclaw/channel-extension-whatsapp@0.2.11
+  - @nextclaw/core@0.15.11
+  - @nextclaw/mcp@0.3.11
+  - @nextclaw/ncp-agent-runtime@0.4.9
+  - @nextclaw/ncp-mcp@0.2.11
+  - @nextclaw/ncp-toolkit@0.6.10
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.9
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.9
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.12
+  - @nextclaw/runtime@0.4.11
+  - @nextclaw/shared@0.4.10
+  - @nextclaw/remote@0.3.13
+
 ## 0.3.12
 
 ### Patch Changes
