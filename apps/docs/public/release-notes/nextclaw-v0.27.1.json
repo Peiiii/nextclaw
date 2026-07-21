@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-22",
+  "title": {
+    "zh-CN": "NextClaw v0.27.1",
+    "en-US": "NextClaw v0.27.1"
+  },
+  "summary": {
+    "zh-CN": "流式回复期间向上滚动后，视图会稳定停留在当前位置，不再被后续内容拉回底部。",
+    "en-US": "After scrolling up during a streaming reply, the view now stays in place instead of being pulled back to the bottom."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-22-nextclaw-v0-27-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-22-nextclaw-v0-27-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "流式回复可稳定退出自动贴底",
+            "en-US": "Reliable escape from streaming auto-scroll"
+          },
+          "body": {
+            "zh-CN": "向上滚动超过 10px 后，即使回复继续增长，视图也会停留在当前位置；需要时可用回到底部按钮恢复贴底。",
+            "en-US": "After scrolling more than 10px upward, the view remains in place as the reply grows; use the scroll-to-bottom button to resume following the latest message."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级；本次不包含新的桌面安装包。",
+            "en-US": "Existing npm installations can update through the stable channel; this release does not include a new desktop installer."
+          }
+        }
+      ]
+    }
+  ]
+}

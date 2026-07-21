@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.6.14
+
+### Patch Changes
+
+- 1ea89b9: 修复流式回复期间主动向上滚动后仍会被拉回底部的问题；距离底部超过 10px 后会稳定退出自动贴底。
+
 ## 0.6.13
 
 ### Patch Changes
