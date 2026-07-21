@@ -28,6 +28,7 @@
 - 四份公开 stable manifest：darwin-arm64、darwin-x64、linux-x64、win32-x64 均为 `latestVersion=0.27.1`、`minimumLauncherVersion=0.18.11`、`hostKind=npm-runtime-bundle`，bundle hash、bundle signature 与 manifest signature 均非空，`releaseNotesUrl` 指向本次英文更新说明。
 - 旧版升级实测：从公开 registry 隔离安装 `nextclaw@0.27.0`，在未注入自定义公钥的环境中依次执行 stable 检查、下载和应用；状态从 `update-available` 进入 `downloaded`、`restart-required`，随后同一 CLI 进程入口的 `--version` 返回 `0.27.1`。
 - Docs Deploy workflow [`29857076903`](https://github.com/Peiiii/nextclaw/actions/runs/29857076903)：全球站、国内站及双域同产物验证全部成功；`docs.nextclaw.io` 与 `docs.nextclaw.net` 的中英文说明页和结构化 JSON 均返回 HTTP 200。
+- 旁路 CI 审计：`windows-update-smoke` 因既有工作流仍调用已移除的 `update --timeout` 失败；`desktop-validate` 的 Windows 临时目录长短路径断言和 Linux AppImage 初始化冒烟失败。这两组工作流在 `0.27.0` 及更早连续多次 master 运行中已有相同失败，本次修复与版本提交未触达对应源码或工作流；同轮 macOS DMG、desktop runtime、Windows installer 冒烟通过，因此不把既有旁路失败误判为本次 NPM/runtime 发布回归，也不表述为全仓 CI 全绿。
 
 ## 发布/部署方式
 
