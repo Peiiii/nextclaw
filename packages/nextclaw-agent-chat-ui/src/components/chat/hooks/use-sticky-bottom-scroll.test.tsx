@@ -112,6 +112,47 @@ it("does not reclaim the viewport when content resizes after the user scrolls aw
   }
 });
 
+it("cancels a queued sticky scroll when the user escapes the bottom threshold", () => {
+  let nextFrameId = 0;
+  const queuedFrames = new Map<number, FrameRequestCallback>();
+
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    nextFrameId += 1;
+    queuedFrames.set(nextFrameId, callback);
+    return nextFrameId;
+  });
+  vi.stubGlobal("cancelAnimationFrame", (frameId: number) => {
+    queuedFrames.delete(frameId);
+  });
+
+  try {
+    const scrollElement = document.createElement("div");
+    setScrollMetrics(scrollElement, {
+      clientHeight: 100,
+      scrollHeight: 1000,
+      scrollTop: 900,
+    });
+    const view = renderHook(() =>
+      useStickyBottomScrollTestHarness(scrollElement, true),
+    );
+
+    scrollElement.scrollTop = 889;
+    act(() => {
+      view.result.current.onScroll();
+    });
+    act(() => {
+      for (const frame of queuedFrames.values()) {
+        frame(0);
+      }
+    });
+
+    expect(view.result.current.isAtBottom).toBe(false);
+    expect(scrollElement.scrollTop).toBe(889);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 it("reports when the user scrolls away from the bottom", () => {
   const scrollElement = document.createElement("div");
   setScrollMetrics(scrollElement, {

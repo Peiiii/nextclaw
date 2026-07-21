@@ -57,15 +57,22 @@ export function useStickyBottomScroll({
     [stickyThresholdPx],
   );
 
+  const cancelQueuedScroll = useCallback(() => {
+    const scheduledScrollFrame = scheduledScrollFrameRef.current;
+    if (scheduledScrollFrame === null) {
+      return;
+    }
+    cancelAnimationFrame(scheduledScrollFrame);
+    scheduledScrollFrameRef.current = null;
+  }, []);
+
   const queueScrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const element = scrollRef.current;
     if (!element) {
       return;
     }
 
-    if (scheduledScrollFrameRef.current !== null) {
-      cancelAnimationFrame(scheduledScrollFrameRef.current);
-    }
+    cancelQueuedScroll();
 
     scheduledScrollFrameRef.current = requestAnimationFrame(() => {
       scheduledScrollFrameRef.current = null;
@@ -83,7 +90,7 @@ export function useStickyBottomScroll({
         currentElement.scrollTop = currentElement.scrollHeight;
       }
     });
-  }, [scrollRef]);
+  }, [cancelQueuedScroll, scrollRef]);
 
   const scrollToBottom = useCallback(() => {
     updateStickyState(true);
@@ -96,8 +103,12 @@ export function useStickyBottomScroll({
       return;
     }
 
-    updateStickyState(resolveIsAtBottom(element));
-  }, [resolveIsAtBottom, scrollRef, updateStickyState]);
+    const nextIsAtBottom = resolveIsAtBottom(element);
+    if (!nextIsAtBottom) {
+      cancelQueuedScroll();
+    }
+    updateStickyState(nextIsAtBottom);
+  }, [cancelQueuedScroll, resolveIsAtBottom, scrollRef, updateStickyState]);
 
   useEffect(() => {
     if (previousResetKeyRef.current === resetKey) {
@@ -110,14 +121,8 @@ export function useStickyBottomScroll({
   }, [resetKey, updateStickyState]);
 
   useEffect(() => {
-    return () => {
-      const scheduledScrollFrame = scheduledScrollFrameRef.current;
-      if (scheduledScrollFrame !== null) {
-        cancelAnimationFrame(scheduledScrollFrame);
-        scheduledScrollFrameRef.current = null;
-      }
-    };
-  }, []);
+    return cancelQueuedScroll;
+  }, [cancelQueuedScroll]);
 
   useEffect(() => {
     const content = contentRef?.current;
@@ -142,27 +147,17 @@ export function useStickyBottomScroll({
       return;
     }
 
-    const element = scrollRef.current;
-    if (!element) {
-      return;
-    }
-
     pendingInitialScrollRef.current = false;
     queueScrollToBottom();
-  }, [hasContent, isLoading, queueScrollToBottom, scrollRef]);
+  }, [hasContent, isLoading, queueScrollToBottom]);
 
   useLayoutEffect(() => {
     if (!isStickyRef.current || !hasContent) {
       return;
     }
 
-    const element = scrollRef.current;
-    if (!element) {
-      return;
-    }
-
     queueScrollToBottom();
-  }, [contentVersion, hasContent, queueScrollToBottom, scrollRef]);
+  }, [contentVersion, hasContent, queueScrollToBottom]);
 
   return { isAtBottom, onScroll, scrollToBottom };
 }
