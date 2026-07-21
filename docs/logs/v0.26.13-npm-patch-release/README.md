@@ -4,7 +4,7 @@
 
 本次发布目标为 `nextclaw@0.27.1`，采用 full public workspace patch batch，共 49 个公开包，确保 `nextclaw` 安装包、`@nextclaw/ui` 与 `@nextclaw/agent-chat-ui` 使用同一批已发布依赖。
 
-用户可见变化只有一项：流式回复期间，用户主动向上滚动超过 10px 后可以稳定退出自动贴底，后续内容继续增长也不会夺回视图位置。中英文产品更新说明与结构化 JSON 已写入仓库。
+用户可见变化只有一项：流式回复期间，用户主动向上滚动超过 10px 后可以稳定退出自动贴底，后续内容继续增长也不会夺回视图位置。中英文产品更新说明与结构化 JSON 已发布到两个生产域；NPM、stable runtime channel 与公开升级链路均已完成验证。
 
 本次不配图：修复的是持续流式输出期间的时间性滚动行为，静态截图无法真实证明修复结果。X 帖不适用：这是单项稳定性 patch，不扩大为社交媒体发布。
 
@@ -21,14 +21,19 @@
 - `pnpm -C apps/docs build`、发布说明 JSON 解析、`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet` 与 `git diff --check`：通过。
 - 当前 workspace tarball 合同检查：`nextclaw@0.27.1` 不含 `workspace:*` 依赖，并包含 app CLI、launcher CLI、update public key 与 `ui-dist/index.html`。
 - 打包 UI 中已确认存在 10px 默认阈值和用户逃逸时取消待执行滚动帧的逻辑，避免源码修复未进入 NPM 资产。
-
-发布完成后继续记录 registry、runtime channel、公开更新说明与真实安装/更新验收结果。
+- `pnpm release:publish`：49/49 个公开包发布成功，Changesets 创建的 49 个 tag 已推送；`nextclaw@0.27.1`、`@nextclaw/ui@0.15.14` 与 `@nextclaw/agent-chat-ui@0.6.14` 的 `latest` 均指向本批次版本。
+- 公开 registry tarball：`nextclaw@0.27.1` 的 integrity 为 `sha512-8nAcJbatKhr0UB6JnHLwUBmSGHGGmbmLIdT+htOYwbWL+Xk8wQYAbU7O7db2C3V543ag0Y/f4wj9I7sXsafVsw==`，无 `workspace:*` 依赖，必要 CLI、public key 和 UI 资产完整。
+- 公开安装冒烟：从 registry 安装 `nextclaw@0.27.1` 后，`--version` 返回 `0.27.1`；不注入自定义公钥时 `update --check --json` 正常，证明发布包可发现内置更新公钥。
+- stable runtime workflow [`29857081621`](https://github.com/Peiiii/nextclaw/actions/runs/29857081621)：四个平台构建、签名、release asset 上传和 gh-pages 发布全部成功。
+- 四份公开 stable manifest：darwin-arm64、darwin-x64、linux-x64、win32-x64 均为 `latestVersion=0.27.1`、`minimumLauncherVersion=0.18.11`、`hostKind=npm-runtime-bundle`，bundle hash、bundle signature 与 manifest signature 均非空，`releaseNotesUrl` 指向本次英文更新说明。
+- 旧版升级实测：从公开 registry 隔离安装 `nextclaw@0.27.0`，在未注入自定义公钥的环境中依次执行 stable 检查、下载和应用；状态从 `update-available` 进入 `downloaded`、`restart-required`，随后同一 CLI 进程入口的 `--version` 返回 `0.27.1`。
+- Docs Deploy workflow [`29857076903`](https://github.com/Peiiii/nextclaw/actions/runs/29857076903)：全球站、国内站及双域同产物验证全部成功；`docs.nextclaw.io` 与 `docs.nextclaw.net` 的中英文说明页和结构化 JSON 均返回 HTTP 200。
 
 ## 发布/部署方式
 
 - NPM：使用仓库标准 `pnpm release:publish`，不使用 raw `npm publish`。
-- Runtime update：NPM 发布成功后通过 stable runtime workflow 发布 `0.27.1`。
-- Docs：发布中英文 `0.27.1` 更新说明与结构化 JSON，供 runtime manifest 的 `releaseNotesUrl` 使用。
+- Runtime update：已通过 stable runtime workflow 发布 `0.27.1`，GitHub Release 为 [`nextclaw@0.27.1`](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.27.1)。
+- Docs：中英文 `0.27.1` 更新说明与结构化 JSON 已发布，runtime manifest 的 `releaseNotesUrl` 指向英文说明页。
 - Desktop installer / manifest：不适用，本次没有新的桌面安装包。
 - 数据库 migration / 独立后端部署：不适用，本次只修复前端会话滚动行为。
 
@@ -45,7 +50,7 @@
 
 ## NPM 包发布记录
 
-以下 49 个公开包已完成 patch 版本化，当前状态为待发布：
+以下 49 个公开包已完成 patch 发布，并通过 registry 49/49 版本校验：
 
 - `@nextclaw/agent-chat@0.3.8`
 - `@nextclaw/agent-chat-ui@0.6.14`

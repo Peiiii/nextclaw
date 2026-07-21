@@ -19,8 +19,9 @@
 
 ## 发布/部署方式
 
-- 已新增 `.changeset/fix-chat-sticky-scroll-escape.md`，为 `@nextclaw/agent-chat-ui` 与其产品消费包 `@nextclaw/ui` 声明 patch 版本。
-- 本轮未执行 NPM 发布、线上部署、宿主重启、Git 提交或推送；真实验收使用隔离的当前源码实例完成，未影响用户现有运行实例。
+- 原始 changeset 已由统一 full public workspace patch 批次消费，修复随 `nextclaw@0.27.1`、`@nextclaw/agent-chat-ui@0.6.14` 与 `@nextclaw/ui@0.15.14` 发布。
+- stable runtime channel、两个生产文档域与公开旧版升级链路均已完成验证，完整发布证据见 `docs/logs/v0.26.13-npm-patch-release/README.md`。
+- 发布与验收均使用隔离环境，没有重启或修改用户现有运行实例。
 
 ## 用户/产品视角的验收步骤
 
@@ -37,5 +38,6 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/agent-chat-ui`：需要 patch 发布，本轮未发布，等待统一发布流程。
-- `@nextclaw/ui`：作为用户产品消费包需要同步 patch 发布，本轮未发布，等待统一发布流程。
+- `@nextclaw/agent-chat-ui@0.6.14`：已发布，`latest` 已验证。
+- `@nextclaw/ui@0.15.14`：已发布，`latest` 已验证。
+- `nextclaw@0.27.1`：已随 full public workspace patch batch 发布并完成公开安装与 stable runtime 更新验收。
