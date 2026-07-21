@@ -21,18 +21,24 @@
 - 干净安装验证发现 `@nextclaw/app-sdk`、`@nextclaw/client-sdk`、`@nextclaw/ncp-react-ui` 继承统一 Node 类型合同时依赖工作区偶然提升；现已为三个包显式声明 `@types/node`，定向 `tsc` 与完整 release check 均通过。
 - `pnpm -C apps/docs build`、发布说明 JSON 解析、`pnpm lint:maintainability:guard`：通过；可维护性检查 0 errors、0 warnings，非测试语义代码净增为 0。
 - `packages/nextclaw/ui-dist` 已从当前源码重新生成并纳入发布提交，避免 NPM 包继续携带旧前端资源。
-
-发布前仍需在发布提交上复核生成产物清洁度与 tarball 合同；发布后还需验证 registry、stable runtime update、公开 manifest、产品更新说明 URL，以及本机更新和重启结果。最终状态将在闭环完成后回填。
+- 发布提交 `78593df06` 已进入本地 `master` 并推送 `origin/master`；49 个 package tag 已全部推送。
+- `pnpm release:publish` 与 `release:verify:published`：通过，49/49 个公开包均已发布；`nextclaw@latest` 为 `0.27.0`。
+- 从 registry 执行 `npm pack nextclaw@0.27.0`：通过，tarball integrity 与 registry 一致，且包含 app CLI、launcher CLI、update public key 和 `ui-dist/index.html`。
+- 隔离安装 `nextclaw@0.27.0`：`--version` 返回 `0.27.0`，stable `update --check --json` 返回 `up-to-date`。
+- 真实更新烟测：隔离安装 `nextclaw@0.26.1` 后依次执行 `update --check`、`--download-only`、`--apply`，成功发现、下载并切换到 `0.27.0`，最终 CLI 与 runtime pointer 均为 `0.27.0`。
+- Docs workflow `29794479718`：成功；中英文更新说明与结构化 JSON 在 `docs.nextclaw.io`、`docs.nextclaw.net` 均返回 200。
+- Stable runtime workflow `29794663007`：成功；darwin-arm64、darwin-x64、linux-x64、win32-x64 四个平台资产齐全，公开 manifest 均为 `latestVersion=0.27.0`、`minimumLauncherVersion=0.18.11`、`hostKind=npm-runtime-bundle`，bundle 和 manifest 签名非空，更新说明指向英文公开页面。
+- 本机全局安装已从 `0.26.1` 更新到 `0.27.0`，在原端口 `55667` 重启；PID 从 `60407` 切换为 `63642`，managed/configured health 均为 `ok`，`/api/app/meta` 返回 `productVersion=0.27.0`，Remote runtime 为 `connected`，stable 更新检查返回 `up-to-date`。
 
 ## 发布/部署方式
 
-- NPM：使用仓库标准命令 `pnpm release:publish` 统一发布 49 个公开包，不使用 raw `npm publish`。
-- Runtime update：NPM 发布后执行 stable runtime workflow，版本为 `0.27.0`，release tag 为 `nextclaw@0.27.0`。
-- Docs：发布中英文 `0.27.0` 更新说明与结构化 JSON，使 runtime manifest 的 `releaseNotesUrl` 指向公开页面。
-- 本地运行时：安装 `nextclaw@latest`，沿用端口 `55667` 重启，并验证版本、PID、健康状态和更新检查。
+- NPM：已使用仓库标准命令 `pnpm release:publish` 统一发布 49 个公开包，没有使用 raw `npm publish`。
+- Runtime update：已完成 stable runtime workflow，版本为 `0.27.0`，release tag 为 `nextclaw@0.27.0`。
+- Docs：已发布中英文 `0.27.0` 更新说明与结构化 JSON，runtime manifest 的 `releaseNotesUrl` 指向公开页面。
+- 本地运行时：已安装 `nextclaw@latest`，沿用端口 `55667` 重启，并完成版本、PID、健康状态、Remote 连接和更新检查验证。
 - Desktop installer / manifest：不适用，本次没有新的桌面安装包。
 - 数据库 migration / 独立后端部署：不适用；Remote 所需 migration、Gateway 与 Platform 已在功能交付阶段完成并验证。
-- X 帖：minor 版本需要在公开文档可访问后完成发布或记录明确阻塞。
+- X 帖：未执行。`x-twitter-bird` 要求只有用户明确授权发帖时才能操作社交账号；本次“全量 NPM 发布”不扩大为社交账号写入权限。
 
 ## 用户/产品视角的验收步骤
 
@@ -47,7 +53,7 @@
 
 ## NPM 包发布记录
 
-需要发布。以下 49 个公开包已完成版本化，当前状态为 `待统一发布`：
+已发布。以下 49 个公开包已完成版本化、NPM publish、registry 校验与 tag 推送：
 
 - `@nextclaw/agent-chat@0.3.7`
 - `@nextclaw/agent-chat-ui@0.6.13`
