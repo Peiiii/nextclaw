@@ -90,12 +90,15 @@ export function buildNextclawConfiguredRemoteState(config: Config): RemoteRuntim
 export function readCurrentNextclawRemoteRuntimeState(): RemoteRuntimeState | null {
   const uiRuntimeState = localUiRuntimeStore.read();
   const serviceState = managedServiceStateStore.read();
-  const currentRemoteState = currentProcessRemoteRuntimeState ?? uiRuntimeState?.remote ?? serviceState?.remote ?? null;
+  const owningRuntime =
+    serviceState && isProcessRunning(serviceState.pid)
+      ? serviceState
+      : uiRuntimeState ?? serviceState;
+  const currentRemoteState = currentProcessRemoteRuntimeState ?? owningRuntime?.remote ?? null;
   if (!currentRemoteState) {
     return null;
   }
 
-  const owningRuntime = uiRuntimeState ?? serviceState;
   if (!owningRuntime || isProcessRunning(owningRuntime.pid)) {
     return currentRemoteState;
   }

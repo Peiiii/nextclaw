@@ -193,4 +193,51 @@ describe("createManagedRemoteModuleForUi", () => {
       ]);
     });
   });
+
+  it("does not publish runtime state when another process owns remote access", () => {
+    const stateChanges: unknown[] = [];
+    const module = createManagedRemoteModuleForUi({
+      loadConfig: () =>
+        ({
+          remote: {
+            enabled: true,
+            autoReconnect: true,
+            deviceName: "dev-box",
+            platformApiBase: "https://platform.example.com"
+          }
+        }) as never,
+      uiConfig: {
+        enabled: true,
+        host: "127.0.0.1",
+        port: 18792
+      },
+      onRemoteStateChange: (state) => stateChanges.push(state)
+    });
+
+    expect(module).not.toBeNull();
+    if (!module) {
+      return;
+    }
+
+    const createConnector = vi.fn();
+    (module as unknown as {
+      deps: {
+        createConnector: typeof createConnector;
+        claimOwnership?: () => { ok: false; error: string };
+      };
+    }).deps.createConnector = createConnector;
+    (module as unknown as {
+      deps: {
+        claimOwnership?: () => { ok: false; error: string };
+      };
+    }).deps.claimOwnership = () => ({
+      ok: false,
+      error: "Remote access is already owned by another process."
+    });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    expect(module.start()).toBeNull();
+    expect(createConnector).not.toHaveBeenCalled();
+    expect(stateChanges).toEqual([]);
+  });
 });

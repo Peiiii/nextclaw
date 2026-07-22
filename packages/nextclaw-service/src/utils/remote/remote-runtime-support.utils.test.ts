@@ -82,6 +82,49 @@ describe("readCurrentNextclawRemoteRuntimeState", () => {
     });
   });
 
+  it("prefers the live managed remote owner over a competing ui runtime", () => {
+    vi.spyOn(localUiRuntimeStore, "read").mockReturnValue({
+      pid: 18792,
+      startedAt: "2026-03-22T00:00:00.000Z",
+      uiUrl: "http://127.0.0.1:18792",
+      apiUrl: "http://127.0.0.1:18792/api",
+      remote: {
+        enabled: true,
+        mode: "service",
+        state: "error",
+        localOrigin: "http://127.0.0.1:5174",
+        lastError: "Remote access is already owned by another process.",
+        updatedAt: "2026-03-22T00:00:00.000Z"
+      }
+    });
+    vi.spyOn(managedServiceStateStore, "read").mockReturnValue({
+      pid: 4242,
+      startedAt: "2026-03-22T00:00:00.000Z",
+      uiUrl: "http://127.0.0.1:55667",
+      apiUrl: "http://127.0.0.1:55667/api",
+      logPath: "/tmp/service.log",
+      remote: {
+        enabled: true,
+        mode: "service",
+        state: "connected",
+        deviceId: "service-device",
+        localOrigin: "http://127.0.0.1:55667",
+        lastError: null,
+        updatedAt: "2026-03-22T00:00:00.000Z"
+      }
+    });
+    vi.spyOn(utils, "isProcessRunning").mockReturnValue(true);
+
+    const state = readCurrentNextclawRemoteRuntimeState();
+
+    expect(state).toMatchObject({
+      state: "connected",
+      deviceId: "service-device",
+      localOrigin: "http://127.0.0.1:55667",
+      lastError: null
+    });
+  });
+
   it("reads live foreground ui runtime state without requiring managed service state", () => {
     vi.spyOn(localUiRuntimeStore, "read").mockReturnValue({
       pid: 18792,

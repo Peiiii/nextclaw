@@ -154,7 +154,9 @@ describe("RemoteConnector runtime policy", () => {
       lastError: "Invalid or expired token."
     });
   });
+});
 
+describe("RemoteConnector reconnect backoff", () => {
   it("keeps backing off transient websocket failures until the 30 minute cap", async () => {
     const statusWrites: Array<Omit<RemoteRuntimeState, "mode" | "updatedAt">> = [];
     const logger = createLogger();
@@ -207,6 +209,65 @@ describe("RemoteConnector runtime policy", () => {
     });
   });
 
+  it("resets failed handshake backoff after a websocket connection opens", async () => {
+    const statusWrites: Array<Omit<RemoteRuntimeState, "mode" | "updatedAt">> = [];
+    const logger = createLogger();
+    const delayCalls: number[] = [];
+    const abortController = new AbortController();
+    const platformClient = {
+      resolveRunContext: vi.fn().mockReturnValue(createRunContext()),
+      registerDevice: vi.fn<() => Promise<RegisteredRemoteDevice>>().mockResolvedValue(createDevice())
+    };
+    let socketAttempt = 0;
+    const connector = new RemoteConnector({
+      platformClient: platformClient as never,
+      relayBridgeFactory: () =>
+        ({
+          ensureLocalUiHealthy: vi.fn().mockResolvedValue(undefined)
+        }) as never,
+      logger,
+      delayFn: vi.fn(async (delayMs: number) => {
+        delayCalls.push(delayMs);
+        if (delayCalls.length === 4) {
+          abortController.abort();
+        }
+      }),
+      random: () => 0.5,
+      createSocket: () => {
+        socketAttempt += 1;
+        const socket = new FakeRemoteConnectorSocket();
+        queueMicrotask(() => {
+          if (socketAttempt < 4) {
+            socket.emit("error", {
+              error: new Error("connect ECONNREFUSED 127.0.0.1:443")
+            });
+            return;
+          }
+          socket.emit("open", {});
+          socket.emit("close", {
+            code: 1006,
+            reason: "",
+            wasClean: false
+          });
+        });
+        return socket as unknown as WebSocket;
+      }
+    });
+
+    await connector.run({
+      mode: "service",
+      autoReconnect: true,
+      signal: abortController.signal,
+      statusStore: createStatusWriter(statusWrites)
+    });
+
+    expect(delayCalls).toEqual([3_000, 6_000, 12_000, 3_000]);
+    expect(statusWrites.some((entry) => entry.state === "connected")).toBe(true);
+    expect(logger.warn).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("RemoteConnector terminal websocket errors", () => {
   it("treats websocket handshake rejection as a terminal error", async () => {
     const statusWrites: Array<Omit<RemoteRuntimeState, "mode" | "updatedAt">> = [];
     const logger = createLogger();

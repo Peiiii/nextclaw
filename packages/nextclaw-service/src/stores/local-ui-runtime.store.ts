@@ -74,7 +74,7 @@ export class LocalUiRuntimeStore {
       apiUrl: `${uiUrl}/api`,
       uiHost: uiConfig.host,
       uiPort: uiConfig.port,
-      ...(existing?.remote ? { remote: existing.remote } : {})
+      ...(existing?.pid === pid && existing.remote ? { remote: existing.remote } : {})
     };
     this.write(state);
     return state;

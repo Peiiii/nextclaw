@@ -51,16 +51,6 @@ export class RemoteServiceModule {
 
     const ownership = this.deps.claimOwnership?.();
     if (ownership && !ownership.ok) {
-      this.deps.statusStore.write({
-        enabled: true,
-        state: "error",
-        deviceName: config.remote.deviceName || undefined,
-        deviceId: undefined,
-        platformBase: config.remote.platformApiBase || undefined,
-        localOrigin: this.deps.localOrigin,
-        lastError: ownership.error,
-        lastConnectedAt: null
-      });
       logger.error(ownership.error);
       return null;
     }

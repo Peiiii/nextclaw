@@ -63,6 +63,7 @@ export class RemoteConnector {
     deviceId: string;
     platformBase: string;
     localOrigin: string;
+    onConnected: () => void;
   }): Promise<"closed" | "aborted"> => {
     return await new Promise<"closed" | "aborted">((resolve, reject) => {
       const socket = this.createSocket(params.wsUrl);
@@ -112,6 +113,7 @@ export class RemoteConnector {
       }
 
       socket.addEventListener("open", () => {
+        params.onConnected();
         keepaliveTimer = setInterval(() => {
           if (socket.readyState !== 1) {
             return;
@@ -276,15 +278,6 @@ export class RemoteConnector {
     return registeredDevice;
   };
 
-  private writeRemoteState = (
-    statusStore: RemoteConnectorRunOptions["statusStore"],
-    next: Parameters<
-      NonNullable<RemoteConnectorRunOptions["statusStore"]>["write"]
-    >[0],
-  ): void => {
-    statusStore?.write(next);
-  };
-
   private runCycle = async (params: {
     device: RegisteredRemoteDevice | null;
     context: RemoteRunContext;
@@ -294,12 +287,12 @@ export class RemoteConnector {
     device: RegisteredRemoteDevice | null;
     outcome: "aborted" | "retry" | "stop";
     retryFailure: boolean;
-    lastError: string | null;
   }> => {
     const { context, device: initialDevice, opts, relayBridge } = params;
     let device = initialDevice;
+    let connectionEstablished = false;
     try {
-      this.writeRemoteState(opts.statusStore, {
+      opts.statusStore?.write({
         enabled: true,
         state: "connecting",
         deviceId: initialDevice?.id,
@@ -321,9 +314,12 @@ export class RemoteConnector {
         deviceId: device.id,
         platformBase: context.platformBase,
         localOrigin: context.localOrigin,
+        onConnected: () => {
+          connectionEstablished = true;
+        },
       });
       if (outcome !== "aborted") {
-        this.writeRemoteState(opts.statusStore, {
+        opts.statusStore?.write({
           enabled: true,
           state: "disconnected",
           deviceId: device.id,
@@ -337,11 +333,10 @@ export class RemoteConnector {
         device,
         outcome: outcome === "aborted" ? "aborted" : "retry",
         retryFailure: false,
-        lastError: null,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.writeRemoteState(opts.statusStore, {
+      opts.statusStore?.write({
         enabled: true,
         state: "error",
         deviceId: initialDevice?.id,
@@ -354,8 +349,7 @@ export class RemoteConnector {
       return {
         device,
         outcome: isTerminalRemoteConnectorError(error) ? "stop" : "retry",
-        retryFailure: true,
-        lastError: message,
+        retryFailure: !connectionEstablished,
       };
     }
   };
@@ -406,7 +400,7 @@ export class RemoteConnector {
       return;
     }
 
-    this.writeRemoteState(opts.statusStore, {
+    opts.statusStore?.write({
       enabled:
         opts.mode === "service" ? true : Boolean(context.config.remote.enabled),
       state: opts.signal?.aborted ? "disconnected" : "disabled",

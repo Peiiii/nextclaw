@@ -100,6 +100,15 @@ owner 打开实例：
 
 特殊 panel sandbox 请求不能只凭稳定 hostname 获得权限。Gateway 必须先把 hostname 映射到实例，再验证该实例存在有效 owner session；session host 的既有受限回退保持不变。
 
+### 3.5 连接可用性与运行状态 owner
+
+固定域名只保证入口身份稳定，真正在线仍依赖 connector 到 Relay 的唯一 WebSocket。连接生命周期继续归 `RemoteConnector`，但必须守住两个不变量：
+
+- 只有尚未完成 WebSocket `open` 的连续握手失败才累计指数退避；一旦连接成功，历史失败计数立即清零。之后发生的 `1006` 等断线属于新的重连周期，从基础延迟重新开始，不能继承数小时运行前的历史失败并等待几十分钟。
+- Remote 运行状态只由取得本地 ownership lease 的进程发布。竞争失败的开发进程只记录诊断日志，不得把“already owned”写成共享 Remote 状态；读取状态时优先采用仍存活的 managed service owner，UI runtime 状态只能代表其自身进程，且不能跨 PID 继承。
+
+重连仍使用单一主路径：握手失败按 `3s` 起步指数退避并保留上限与 jitter，成功连接后的下一次异常断线重新从基础延迟开始。不新增第二套 watchdog、轮询器或按错误文案特判的 fallback。
+
 ## 4. API 与界面
 
 实例 view 增加：
@@ -178,8 +187,11 @@ DELETE /platform/remote/instances/:instanceId/domain
 ### 工程验证
 
 - connector identity 定向单测。
+- connector 重连策略覆盖“连续握手失败增长退避”和“成功连接后 `1006` 从基础延迟重试”。
+- ownership 竞争失败不得写共享运行状态；并存 managed service 与 UI runtime 时，状态读取必须命中真实在线 owner。
 - Gateway repository/domain/controller/session/panel 定向测试。
 - platform console 列表、域名编辑、冲突反馈和打开行为 smoke。
 - remote relay 真实链路 smoke，覆盖系统默认域名、自定义域名、移除后默认域名保留和 session 分享域名。
+- 安装态真实断联恢复验收：Relay 观察到 connector 离线后，下一次连接在基础重连窗口内恢复，固定域名重新返回产品页面而不是长期 503 offline。
 - 生产环境 `OPTIONS` 预检必须包含 `DELETE`，并在真实登录态完成设置、重复占用拒绝、释放和默认域名继续打开。
 - 所有触达 TypeScript workspace 的 `tsc`、新代码治理、可维护性 guard 和 backlog ratchet 通过。
