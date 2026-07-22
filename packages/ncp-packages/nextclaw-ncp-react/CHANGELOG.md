@@ -1,5 +1,14 @@
 # @nextclaw/ncp-react
 
+## 0.5.13
+
+### Patch Changes
+
+- e9d49c0: 会话正在回复时继续发送的消息现在由后端按会话排队，并会在当前回复完成后按顺序执行；切换会话或刷新页面后仍能查看、编辑和删除对应会话的待发消息。
+- Updated dependencies
+  - @nextclaw/ncp@0.7.11
+  - @nextclaw/ncp-toolkit@0.6.12
+
 ## 0.5.12
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @nextclaw/remote
 
+## 0.3.15
+
+### Patch Changes
+
+- 517e816: Remote 连接异常断开后会从基础延迟重新连接，不再因历史失败累计而长时间显示 offline；多个本地进程同时运行时，状态页也会以真正持有 Remote 的服务为准。
+- Updated dependencies
+- Updated dependencies [80eda82]
+- Updated dependencies [e9d49c0]
+  - @nextclaw/core@0.15.13
+  - @nextclaw/kernel@0.6.15
+  - @nextclaw/server@0.15.15
+
 ## 0.3.14
 
 ### Patch Changes

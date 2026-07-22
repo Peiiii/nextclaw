@@ -1,5 +1,29 @@
 # nextclaw
 
+## 0.27.2
+
+### Patch Changes
+
+- 517e816: Remote 连接异常断开后会从基础延迟重新连接，不再因历史失败累计而长时间显示 offline；多个本地进程同时运行时，状态页也会以真正持有 Remote 的服务为准。
+- Updated dependencies
+- Updated dependencies [80eda82]
+- Updated dependencies [517e816]
+- Updated dependencies [e9d49c0]
+  - @nextclaw/core@0.15.13
+  - @nextclaw/mcp@0.3.13
+  - @nextclaw/ncp@0.7.11
+  - @nextclaw/ncp-agent-runtime@0.4.11
+  - @nextclaw/ncp-mcp@0.2.13
+  - @nextclaw/ncp-toolkit@0.6.12
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.11
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.11
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.14
+  - @nextclaw/runtime@0.4.13
+  - @nextclaw/kernel@0.6.15
+  - @nextclaw/remote@0.3.15
+  - @nextclaw/service@0.3.15
+  - @nextclaw/server@0.15.15
+
 ## 0.27.1
 
 ### Patch Changes

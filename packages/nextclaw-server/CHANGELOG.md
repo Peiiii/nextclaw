@@ -1,5 +1,19 @@
 # nextclaw-server
 
+## 0.15.15
+
+### Patch Changes
+
+- e9d49c0: 会话正在回复时继续发送的消息现在由后端按会话排队，并会在当前回复完成后按顺序执行；切换会话或刷新页面后仍能查看、编辑和删除对应会话的待发消息。
+- Updated dependencies
+- Updated dependencies [80eda82]
+- Updated dependencies [e9d49c0]
+  - @nextclaw/core@0.15.13
+  - @nextclaw/mcp@0.3.13
+  - @nextclaw/ncp@0.7.11
+  - @nextclaw/runtime@0.4.13
+  - @nextclaw/kernel@0.6.15
+
 ## 0.15.14
 
 ### Patch Changes

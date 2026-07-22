@@ -1,5 +1,28 @@
 # @nextclaw/kernel
 
+## 0.6.15
+
+### Patch Changes
+
+- 80eda82: 聊天消息现在会显式保存技能的名称、来源与文件路径；点击技能可直接打开对应 `SKILL.md` 预览，旧消息无法解析时也会显示明确错误。
+- e9d49c0: 会话正在回复时继续发送的消息现在由后端按会话排队，并会在当前回复完成后按顺序执行；切换会话或刷新页面后仍能查看、编辑和删除对应会话的待发消息。
+- Updated dependencies
+- Updated dependencies [80eda82]
+- Updated dependencies [e9d49c0]
+  - @nextclaw/channel-extension-feishu@0.2.13
+  - @nextclaw/channel-extension-weixin@0.2.13
+  - @nextclaw/core@0.15.13
+  - @nextclaw/mcp@0.3.13
+  - @nextclaw/ncp@0.7.11
+  - @nextclaw/ncp-agent-runtime@0.4.11
+  - @nextclaw/ncp-agent-runtime-next@0.1.11
+  - @nextclaw/ncp-mcp@0.2.13
+  - @nextclaw/ncp-toolkit@0.6.12
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.11
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.14
+  - @nextclaw/runtime@0.4.13
+  - @nextclaw/shared@0.4.12
+
 ## 0.6.14
 
 ### Patch Changes

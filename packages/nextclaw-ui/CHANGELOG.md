@@ -1,5 +1,24 @@
 # @nextclaw/ui
 
+## 0.15.15
+
+### Patch Changes
+
+- 80eda82: 聊天消息现在会显式保存技能的名称、来源与文件路径；点击技能可直接打开对应 `SKILL.md` 预览，旧消息无法解析时也会显示明确错误。
+- e9d49c0: 会话正在回复时继续发送的消息现在由后端按会话排队，并会在当前回复完成后按顺序执行；切换会话或刷新页面后仍能查看、编辑和删除对应会话的待发消息。
+- 9b9ebfa: 长会话向上滚动时，Mermaid 等异步内容和历史分页不再导致当前阅读位置跳动。
+- Updated dependencies
+- Updated dependencies [80eda82]
+- Updated dependencies [e9d49c0]
+  - @nextclaw/agent-chat@0.3.9
+  - @nextclaw/ncp@0.7.11
+  - @nextclaw/ncp-http-agent-client@0.4.11
+  - @nextclaw/ncp-toolkit@0.6.12
+  - @nextclaw/agent-chat-ui@0.6.15
+  - @nextclaw/shared@0.4.12
+  - @nextclaw/client-sdk@0.5.15
+  - @nextclaw/ncp-react@0.5.13
+
 ## 0.15.14
 
 ### Patch Changes

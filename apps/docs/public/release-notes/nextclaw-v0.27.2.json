@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-23",
+  "title": {
+    "zh-CN": "NextClaw v0.27.2",
+    "en-US": "NextClaw v0.27.2"
+  },
+  "summary": {
+    "zh-CN": "会话排队、技能预览、长会话滚动和 Remote 断线恢复更加稳定。",
+    "en-US": "Queued messages, skill previews, long-chat scrolling, and Remote reconnects are now more reliable."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-23-nextclaw-v0-27-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-23-nextclaw-v0-27-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "待发消息按会话排队",
+            "en-US": "Queued messages are scoped to each session"
+          },
+          "body": {
+            "zh-CN": "回复期间继续发送的消息会按顺序执行，切换会话或刷新后仍可查看、编辑和删除。",
+            "en-US": "Messages sent during a reply run in order and remain available to view, edit, or delete after navigation or refresh."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "技能引用可直接预览",
+            "en-US": "Skill references open directly in preview"
+          },
+          "body": {
+            "zh-CN": "聊天消息会保留技能名称、来源和文件路径，点击后可打开对应的 SKILL.md。",
+            "en-US": "Chat messages retain skill names, sources, and file paths so the matching SKILL.md can be opened directly."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "长会话滚动位置更稳定",
+            "en-US": "More stable scrolling in long chats"
+          },
+          "body": {
+            "zh-CN": "异步内容改变高度或加载历史消息时，当前阅读位置不会被意外拉动。",
+            "en-US": "Asynchronous content and history loading no longer pull the current reading position unexpectedly."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Remote 断线后及时恢复",
+            "en-US": "Prompt recovery after Remote disconnects"
+          },
+          "body": {
+            "zh-CN": "Remote 异常断开后会从基础延迟重新连接，多个本地进程并存时也会显示真实连接 owner 的状态。",
+            "en-US": "Remote restarts its retry cycle after an unexpected disconnect and reports status from the process that owns the connection."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级；会话、配置和 Remote 域名保持不变。",
+            "en-US": "Existing npm installations can update through the stable channel while sessions, configuration, and Remote domains remain unchanged."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-07-22T05:28:39.960Z",
+  "generatedAt": "2026-07-22T17:26:33.234Z",
   "hero": {
     "currentLoc": 215168,
     "testLoc": 75830,
     "trackedFiles": 2320,
-    "recentCommitCount": 318,
+    "recentCommitCount": 320,
     "activeDays30": 30,
     "recentReleaseCount": 49,
     "latestReleaseDate": "2026-07-22",
-    "latestNoteDate": "2026-07-22",
+    "latestNoteDate": "2026-07-23",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2250562,
     "basePercentOfBenchmark": 9.56,
@@ -1133,7 +1133,7 @@ export default {
       {
         "key": "2026-07-22",
         "label": "07-22",
-        "value": 4
+        "value": 6
       }
     ],
     "commitWeekly": [
@@ -1195,7 +1195,7 @@ export default {
       {
         "key": "2026-07-20",
         "label": "07-20",
-        "value": 21
+        "value": 29
       }
     ],
     "releaseMonthly": [
@@ -1384,6 +1384,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-23-nextclaw-v0-27-2",
+        "date": "2026-07-23",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-23 · NextClaw v0.27.2",
+          "description": "NextClaw v0.27.2 improves queued messages, skill previews, long-chat scrolling, and Remote reconnects.",
+          "href": "/en/notes/2026-07-23-nextclaw-v0-27-2"
+        },
+        "zh": {
+          "title": "2026-07-23 · NextClaw v0.27.2",
+          "description": "NextClaw v0.27.2 改进会话排队、技能预览、长会话滚动和 Remote 断线恢复。",
+          "href": "/zh/notes/2026-07-23-nextclaw-v0-27-2"
+        }
+      },
       {
         "slug": "2026-07-22-nextclaw-v0-27-1",
         "date": "2026-07-22",
@@ -1851,7 +1870,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-22T05:28:38.196Z",
     "sourceCount": {
-      "notes": 20,
+      "notes": 21,
       "scopes": 8
     }
   }
