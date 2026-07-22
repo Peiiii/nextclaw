@@ -42,6 +42,6 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/remote`：patch changeset，待统一发布。
-- `@nextclaw/service`：patch changeset，待统一发布。
-- `nextclaw`：patch changeset，待 full public workspace 稳定发布与 runtime channel 闭环。
+- 已随 `nextclaw@0.27.2` full public workspace patch batch 统一发布并完成 registry 校验。
+- `@nextclaw/remote@0.3.15`、`@nextclaw/service@0.3.15` 与 `nextclaw@0.27.2` 已发布，`latest`、tag、tarball、stable runtime 和公开升级链路均已闭环。
+- 本机安装态已从 0.27.1 更新并重启到 0.27.2；PID 由 42987 变为 72926，Remote 状态为 `connected`，默认域名与自定义域名均返回 HTTP 200 且不含 offline 文案。完整发布证据见 `docs/logs/v0.26.18-npm-patch-release/README.md`。

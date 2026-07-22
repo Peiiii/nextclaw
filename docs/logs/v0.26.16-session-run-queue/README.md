@@ -43,10 +43,6 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/shared`：patch changeset 待统一发布。
-- `@nextclaw/kernel`：patch changeset 待统一发布。
-- `@nextclaw/server`：patch changeset 待统一发布。
-- `@nextclaw/client-sdk`：patch changeset 待统一发布。
-- `@nextclaw/ncp-react`：patch changeset 待统一发布。
-- `@nextclaw/ui`：patch changeset 待统一发布。
-- `nextclaw`：由后续统一 public workspace 发布流程评估并闭合依赖批次，本轮未发布。
+- 已随 `nextclaw@0.27.2` full public workspace patch batch 统一发布并完成 registry 校验。
+- `@nextclaw/shared@0.4.12`、`@nextclaw/kernel@0.6.15`、`@nextclaw/server@0.15.15`、`@nextclaw/client-sdk@0.5.15`、`@nextclaw/ncp-react@0.5.13`、`@nextclaw/ui@0.15.15` 均已发布。
+- Stable runtime、公开升级链路和中英文发布说明已闭环，详见 `docs/logs/v0.26.18-npm-patch-release/README.md`。
