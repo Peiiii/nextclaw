@@ -43,6 +43,67 @@ NextClaw is a local-first AI workspace for tasks that need more than a single an
 
 [Explore more use cases](https://nextclaw.io/en/use-cases/)
 
+## Product Tour
+
+### Choose the Agent Runtime for each task
+
+Keep an Agent's identity, workspace, memory, and skills, then run the task with Native, Codex, Claude Code, OpenCode, or Hermes. The real task below uses Codex to refine a project architecture while the generated Markdown stays open beside the conversation.
+
+[![NextClaw uses Codex to work on a project with its Markdown architecture document open beside the conversation](images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png)](images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png)
+
+### Inspect real files beside the conversation
+
+Open code, Markdown, HTML, Word, Excel, and PowerPoint without losing the task that produced them.
+
+[![An Excel file open beside a NextClaw conversation](images/screenshots/nextclaw-office-file-preview-en.png)](images/screenshots/nextclaw-office-file-preview-en.png)
+
+### Keep the small apps you build
+
+Build a page with an Agent, run it beside the conversation, and keep it as a Panel App you can open and improve later.
+
+[![A Panel App running beside a NextClaw conversation](images/screenshots/nextclaw-panel-app-running-en.png)](images/screenshots/nextclaw-panel-app-running-en.png)
+
+### More of the workspace
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Dedicated Agents</strong><br />
+      Give different kinds of work their own role, memory, skills, runtime, and workspace.<br /><br />
+      <a href="images/screenshots/nextclaw-agents-page-en.png"><img src="images/screenshots/nextclaw-agents-page-en.png" width="100%" alt="NextClaw agent management page" /></a>
+    </td>
+    <td width="50%" valign="top">
+      <strong>Image generation</strong><br />
+      Generate an image, keep the local file, and continue using it in the same task.<br /><br />
+      <a href="images/screenshots/nextclaw-image-generation-result-en.png"><img src="images/screenshots/nextclaw-image-generation-result-en.png" width="100%" alt="An image generated inside a NextClaw task" /></a>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Messaging channels</strong><br />
+      Connect Weixin, Feishu/Lark, QQ, and other channels to the Agents running on your machine.<br /><br />
+      <a href="images/screenshots/nextclaw-channels-page-en.png"><img src="images/screenshots/nextclaw-channels-page-en.png" width="100%" alt="NextClaw messaging channel settings" /></a>
+    </td>
+    <td width="50%" valign="top">
+      <strong>Scheduled work</strong><br />
+      Run recurring briefs, checks, and other tasks on a schedule you control.<br /><br />
+      <a href="images/screenshots/nextclaw-cron-job-page-en.png"><img src="images/screenshots/nextclaw-cron-job-page-en.png" width="100%" alt="NextClaw scheduled task list" /></a>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Skills and references</strong><br />
+      Install skills while keeping their documentation open in the right-side Doc Browser.<br /><br />
+      <a href="images/screenshots/nextclaw-skills-doc-browser-en.png"><img src="images/screenshots/nextclaw-skills-doc-browser-en.png" width="100%" alt="NextClaw skill market with the Doc Browser open" /></a>
+    </td>
+    <td width="50%" valign="top">
+      <strong>Model providers</strong><br />
+      Use built-in providers or add your own OpenAI-compatible endpoint and models.<br /><br />
+      <a href="images/screenshots/nextclaw-providers-page-en.png"><img src="images/screenshots/nextclaw-providers-page-en.png" width="100%" alt="NextClaw model provider settings" /></a>
+    </td>
+  </tr>
+</table>
+
 ## Install NextClaw
 
 ### Desktop App
@@ -77,32 +138,6 @@ curl -fsSL https://nextclaw.io/install-docker.sh | bash
 ```
 
 See the [Docker deployment guide](https://docs.nextclaw.io/en/guide/tutorials/docker-one-click) for reverse proxy, domain, and remote access setup. You can compare every supported path on the [install options page](https://nextclaw.io/en/install/).
-
-## Product Tour
-
-### Keep files, source, and HTML beside the task
-
-Open local HTML, code, Markdown, and project files in the right-side workspace while the conversation remains available.
-
-![NextClaw conversation with a local HTML analytics dashboard open in the side workspace](images/screenshots/nextclaw-workspace-preview-en.png)
-
-### Give different agents their own working context
-
-Create agents with separate roles, memory, skills, runtimes, and workspaces, then start the right one from the same interface.
-
-![NextClaw agent management page with multiple specialized agents](images/screenshots/nextclaw-agents-page-en.png)
-
-### Generate an image and keep the local file
-
-Create visuals for articles, product drafts, or source material, then continue using the result in the same task.
-
-![A local image-generation result produced through NextClaw](images/screenshots/nextclaw-image-generation-result-en.png)
-
-### Add skills and keep references open
-
-Browse and install skills from the workspace. Skill details, docs, and other references can stay open in the global side browser while you work.
-
-![NextClaw skill market with Browser Control open in the right-side Doc Browser](images/screenshots/nextclaw-skills-doc-browser-en.png)
 
 ## Models, Channels, and Tools
 

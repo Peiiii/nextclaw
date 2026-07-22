@@ -66,6 +66,17 @@ hero:
   <a class="nc-docs-link" href="/zh/guide/doc-browser"><strong>Doc Browser</strong><span>把网页、文档和多个浏览标签留在全局右侧。</span></a>
 </div>
 
+## 用熟悉的 Agent Runtime 继续项目
+
+同一个任务可以选择 Native、Codex、Claude Code、OpenCode 或 Hermes 来执行。会话、项目目录和生成结果仍留在 NextClaw 里。下面这个真实任务使用 Codex 整理项目架构，右侧同步查看 Markdown 文档。
+
+<figure class="nc-docs-product-shot nc-docs-product-shot--wide">
+  <img src="/product-screenshots/nextclaw-codex-runtime-markdown-preview-cn.png" alt="NextClaw 使用 Codex 推进项目并在右侧预览 Markdown 架构文档">
+  <figcaption>使用 Codex 推进项目，生成的文档可以直接在任务旁查看。</figcaption>
+</figure>
+
+[查看 Claude Code、Codex 与 Hermes 集成](/zh/guide/tutorials/claude-codex-hermes)
+
 ## 把常用工作变成自己的 Agent 和应用
 
 专用 Agent 可以保留身份、主目录、记忆、技能和运行时。跑通的步骤可以整理成 Skill，需要外部系统时接入 MCP；如果结果适合长期操作，还可以做成留在右侧的 Panel App。

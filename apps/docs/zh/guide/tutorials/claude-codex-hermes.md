@@ -8,6 +8,10 @@
 - 你希望把外部 agent runtime 接入 NextClaw
 - 你需要在不同 runtime 之间做会话或任务路由
 
+下面是一个使用 Codex 的真实任务：左侧继续讨论并执行项目修改，右侧直接查看生成的 Markdown 架构文档。
+
+![NextClaw 使用 Codex 推进项目并在右侧预览 Markdown 架构文档](/product-screenshots/nextclaw-codex-runtime-markdown-preview-cn.png)
+
 ## 接入前确认
 
 - NextClaw 本体已经跑通

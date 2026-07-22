@@ -27,9 +27,9 @@ export const RUNTIME_SHOWCASE_COPY: Record<Locale, RuntimeShowcase> = {
     runtimeDescription: "决定这次会话如何执行",
     runtimeNames: ["Native", "Codex", "Claude Code", "OpenCode", "Hermes"],
     imageSrc: new URL(
-      "../../../../../../images/screenshots/nextclaw-agent-runtime-picker-cn.png",
+      "../../../../../../images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png",
       import.meta.url,
     ).href,
-    imageAlt: "NextClaw 新任务界面中独立选择 Agent 和 Agent Runtime",
+    imageAlt: "NextClaw 使用 Codex 推进项目并在右侧预览 Markdown 架构文档",
   },
 };

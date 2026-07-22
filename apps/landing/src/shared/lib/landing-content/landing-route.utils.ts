@@ -38,7 +38,7 @@ export const LINKS: Record<'github' | 'npm' | 'discord' | 'wechatGroupImage', st
   github: 'https://github.com/Peiiii/nextclaw',
   npm: 'https://www.npmjs.com/package/nextclaw',
   discord: 'https://discord.gg/j4Skbgye',
-  wechatGroupImage: '/contact/nextclaw-contact-wechat-group-2026-07-14.png',
+  wechatGroupImage: '/contact/nextclaw-contact-wechat-group-2026-07-23.png',
   docs: {
     en: 'https://docs.nextclaw.io/en/',
     zh: 'https://docs.nextclaw.io/zh/'
