@@ -241,7 +241,10 @@ it("renders inline token content inside a user message bubble", () => {
               inlineTokens: [
                 {
                   kind: "skill",
-                  key: "weather",
+                  ref: "workspace:/skills/weather",
+                  name: "weather",
+                  source: "workspace",
+                  path: "/skills/weather/SKILL.md",
                   label: "Weather",
                   rawText: "$weather",
                 },
@@ -316,7 +319,10 @@ it("renders skill tokens as link-styled interactive entities with a tooltip", as
               inlineTokens: [
                 {
                   kind: "skill",
-                  key: "weather",
+                  ref: "workspace:/skills/weather",
+                  name: "weather",
+                  source: "workspace",
+                  path: "/skills/weather/SKILL.md",
                   label: "Weather",
                   rawText: "$weather",
                 },
@@ -340,7 +346,10 @@ it("renders skill tokens as link-styled interactive entities with a tooltip", as
   fireEvent.click(skillButton);
   expect(onInlineTokenClick).toHaveBeenCalledWith({
     kind: "skill",
-    key: "weather",
+    ref: "workspace:/skills/weather",
+    name: "weather",
+    source: "workspace",
+    path: "/skills/weather/SKILL.md",
     label: "Weather",
     rawText: "$weather",
   });

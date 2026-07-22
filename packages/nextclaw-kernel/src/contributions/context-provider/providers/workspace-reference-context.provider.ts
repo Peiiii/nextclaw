@@ -1,8 +1,8 @@
 import {
   CHAT_INLINE_TOKENS_METADATA_KEY,
+  CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
-  type ChatInlineTokenMetadata,
 } from "@nextclaw/shared";
 import type {
   AgentRunRequest,
@@ -24,8 +24,15 @@ function readString(value: unknown): string | null {
 }
 
 function readWorkspaceReferences(metadata: Record<string, unknown> | undefined): WorkspaceReference[] {
-  const rawTokens = metadata?.[CHAT_INLINE_TOKENS_METADATA_KEY];
-  if (!Array.isArray(rawTokens)) {
+  const raw = metadata?.[CHAT_INLINE_TOKENS_METADATA_KEY];
+  const rawTokens = Array.isArray(raw)
+    ? raw
+    : isRecord(raw) &&
+        raw.schemaVersion === CHAT_INLINE_TOKENS_SCHEMA_VERSION &&
+        Array.isArray(raw.items)
+      ? raw.items
+      : null;
+  if (!rawTokens) {
     return [];
   }
   const references: WorkspaceReference[] = [];
@@ -34,13 +41,12 @@ function readWorkspaceReferences(metadata: Record<string, unknown> | undefined):
     if (!isRecord(rawToken)) {
       continue;
     }
-    const token = rawToken as Partial<ChatInlineTokenMetadata>;
-    const kind = token.kind === CHAT_WORKSPACE_FILE_TOKEN_KIND
+    const kind = rawToken.kind === CHAT_WORKSPACE_FILE_TOKEN_KIND
       ? CHAT_WORKSPACE_FILE_TOKEN_KIND
-      : token.kind === CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
+      : rawToken.kind === CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
         ? CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
         : null;
-    const key = readString(token.key);
+    const key = readString(rawToken.key);
     if (!kind || !key || seen.has(`${kind}:${key}`)) {
       continue;
     }
@@ -48,7 +54,7 @@ function readWorkspaceReferences(metadata: Record<string, unknown> | undefined):
     references.push({
       kind,
       key,
-      label: readString(token.label) ?? key,
+      label: readString(rawToken.label) ?? key,
     });
   }
   return references;

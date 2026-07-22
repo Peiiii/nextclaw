@@ -12,10 +12,10 @@ describe('deriveNcpMessagePartsFromComposer', () => {
           label: 'one.png'
         }),
         createChatComposerTextNode(' between '),
-        createChatComposerTokenNode({
-          tokenKind: 'skill',
-          tokenKey: 'web-search',
-          label: 'Web Search'
+          createChatComposerTokenNode({
+            tokenKind: 'skill',
+            tokenKey: 'workspace:/tmp/workspace/skills/web-search',
+            label: 'Web Search'
         }),
         createChatComposerTextNode('after'),
         createChatComposerTokenNode({
@@ -56,7 +56,7 @@ describe('deriveNcpMessagePartsFromComposer', () => {
       },
       {
         type: 'text',
-        text: ' between $web-searchafter'
+        text: ' between $Web Searchafter'
       },
       {
         type: 'file',

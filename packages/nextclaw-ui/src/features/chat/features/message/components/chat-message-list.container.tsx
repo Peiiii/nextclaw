@@ -6,6 +6,7 @@ import {
   type RefObject,
 } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
+import { toast } from "sonner";
 import {
   type ChatInlineDisplayViewModel,
   type ChatInlineTokenViewModel,
@@ -51,7 +52,7 @@ import {
   type ChatTimelineItem,
   type ContextInheritanceTimelineView,
 } from "@/features/chat/features/message/utils/chat-message-timeline.utils";
-import { buildServerPathContentUrl } from "@/shared/lib/api";
+import { buildServerPathContentUrl, fetchNcpSessionSkills } from "@/shared/lib/api";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -331,20 +332,18 @@ export function ChatMessageListContainer({
     activeRowKey,
     focusedRowKey,
   });
-  const sessionSkillsQuery = useChatQueryStore(
-    (state) => state.snapshot.sessionSkillsQuery,
-  );
   const handleInlineTokenClick = useCallback(
     (token: ChatInlineTokenViewModel) => {
-      if (token.kind === "panel_app") {
+      if (token.kind === "panel_app" && "key" in token) {
         void presenter.chatUiManager.showContent({
           target: { type: "panel_app", payload: { appId: token.key } },
         });
         return;
       }
       if (
-        token.kind === "workspace_file" ||
-        token.kind === "workspace_directory"
+        "key" in token &&
+        (token.kind === "workspace_file" ||
+          token.kind === "workspace_directory")
       ) {
         const path = resolveWorkspaceReferencePath({
           projectRoot: selectedSession?.projectRoot,
@@ -359,31 +358,45 @@ export function ChatMessageListContainer({
         }
         return;
       }
-      if (token.kind !== "skill") return;
-      const skillKey = token.key.trim();
-      if (!skillKey) {
+      if (token.kind !== "skill" || !("ref" in token)) return;
+      const skillPath = token.path?.trim();
+      if (skillPath) {
+        presenter.chatThreadManager.openFilePreview({
+          path: skillPath,
+          label: token.label || token.name,
+          viewMode: "preview",
+          previewViewer: "rendered",
+        });
         return;
       }
-      const records = sessionSkillsQuery?.data?.records ?? [];
-      const matched = records.find(
-        (record) => record.ref === skillKey || record.name === skillKey,
-      );
-      const skillPath = matched?.path?.trim();
-      if (!skillPath) {
+      if (!sessionKey) {
+        toast.error(t("chatSkillPreviewUnavailable"));
         return;
       }
-      presenter.chatThreadManager.openFilePreview({
-        path: skillPath,
-        label: token.label || matched?.name || skillKey,
-        viewMode: "preview",
-        previewViewer: "rendered",
-      });
+      void fetchNcpSessionSkills(sessionKey, {
+        projectRoot: selectedSession?.projectRoot ?? null,
+      }).then(({ records }) => {
+        const exact = records.find((record) => record.ref === token.ref);
+        const named = records.filter((record) => record.name === token.name);
+        const matched = exact ?? (named.length === 1 ? named[0] : null);
+        const legacyPath = matched?.path.trim();
+        if (!matched || !legacyPath) {
+          toast.error(t("chatSkillPreviewUnavailable"));
+          return;
+        }
+        presenter.chatThreadManager.openFilePreview({
+          path: legacyPath,
+          label: token.label || matched.name,
+          viewMode: "preview",
+          previewViewer: "rendered",
+        });
+      }).catch(() => toast.error(t("chatSkillPreviewUnavailable")));
     },
     [
       presenter.chatThreadManager,
       presenter.chatUiManager,
       selectedSession?.projectRoot,
-      sessionSkillsQuery,
+      sessionKey,
     ],
   );
   const handleAttachmentOpen = useCallback(

@@ -51,12 +51,19 @@ export {
 } from "./configs/runtime-model.config.js";
 export {
   CHAT_INLINE_TOKENS_METADATA_KEY,
+  CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
 export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
-export type { ChatInlineTokenMetadata } from "./configs/chat-composer-token.config.js";
+export type {
+  ChatInlineTokenMetadata,
+  ChatInlineTokensMetadata,
+  ChatSkillInlineTokenMetadata,
+  ChatSkillSource,
+  ChatWorkspaceInlineTokenMetadata,
+} from "./configs/chat-composer-token.config.js";
 export type { RuntimeModelSelectionMode } from "./configs/runtime-model.config.js";
 export type {
   AgentRunSendIngressPayload,

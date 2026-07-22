@@ -433,6 +433,7 @@
   "chatSkillsPickerNoDescription": "No description",
   "chatSkillsPickerOfficial": "Official",
   "chatSkillsPickerManage": "Manage Skills",
+  "chatSkillPreviewUnavailable": "This skill file is unavailable. It may have been moved or removed.",
   "chatInputAttach": "Attach file",
   "chatInputAttachmentUnsupported": "This file type is not supported in the current upload flow.",
   "chatInputAttachmentTooLarge": "Files must be {maxMb} MB or smaller.",

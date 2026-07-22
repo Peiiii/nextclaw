@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { NcpTool } from "@nextclaw/ncp";
 import {
   CHAT_INLINE_TOKENS_METADATA_KEY,
+  CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   EventBus,
 } from "@nextclaw/shared";
@@ -176,14 +177,17 @@ describe("ContextProviderContribution native prompt contract", () => {
     const blocks = await contextProviderManager.buildContext(
       createRequest(projectRoot, {
         requested_skill_refs: [`project:${projectSkillDir}`],
-        [CHAT_INLINE_TOKENS_METADATA_KEY]: [
-          {
-            kind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
-            key: "reference.ts",
-            label: "reference.ts",
-            rawText: "@file:reference.ts",
-          },
-        ],
+        [CHAT_INLINE_TOKENS_METADATA_KEY]: {
+          schemaVersion: CHAT_INLINE_TOKENS_SCHEMA_VERSION,
+          items: [
+            {
+              kind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
+              key: "reference.ts",
+              label: "reference.ts",
+              rawText: "@file:reference.ts",
+            },
+          ],
+        },
       }),
     );
     const context = blocks

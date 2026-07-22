@@ -74,6 +74,51 @@ it("uses the latest host callback without replacing rendered links", () => {
   });
 });
 
+it("keeps same-name skill references aligned with their message order", () => {
+  const onInlineTokenClick = vi.fn();
+  render(
+    <ChatMessageMarkdown
+      text="$review and $review"
+      role="user"
+      texts={defaultTexts}
+      inlineTokens={[
+        {
+          kind: "skill",
+          ref: "project:/project/.agents/skills/review",
+          name: "review",
+          source: "project",
+          path: "/project/.agents/skills/review/SKILL.md",
+          label: "review",
+          rawText: "$review",
+        },
+        {
+          kind: "skill",
+          ref: "global:/home/.agents/skills/review",
+          name: "review",
+          source: "global",
+          path: "/home/.agents/skills/review/SKILL.md",
+          label: "review",
+          rawText: "$review",
+        },
+      ]}
+      onInlineTokenClick={onInlineTokenClick}
+    />,
+  );
+
+  const buttons = screen.getAllByRole("button", { name: "review" });
+  fireEvent.click(buttons[0]);
+  fireEvent.click(buttons[1]);
+
+  expect(onInlineTokenClick).toHaveBeenNthCalledWith(1, expect.objectContaining({
+    ref: "project:/project/.agents/skills/review",
+    path: "/project/.agents/skills/review/SKILL.md",
+  }));
+  expect(onInlineTokenClick).toHaveBeenNthCalledWith(2, expect.objectContaining({
+    ref: "global:/home/.agents/skills/review",
+    path: "/home/.agents/skills/review/SKILL.md",
+  }));
+});
+
 it("opens local file links through the file preview action", () => {
   const onFileOpen = vi.fn();
 

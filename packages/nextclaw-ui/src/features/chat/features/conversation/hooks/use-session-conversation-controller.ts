@@ -190,6 +190,9 @@ function buildQueuedInputDraft(params: BuildQueuedInputDraftParams): QueuedInput
         ? inputQuery.selectedSession?.projectRoot ?? null
         : inputSnapshot.pendingProjectRoot,
     requestedSkills: [...inputSnapshot.selectedSkills],
+    skillRecords: inputQuery.skillRecords.filter((record) =>
+      inputSnapshot.selectedSkills.includes(record.ref)
+    ),
     composerNodes: [...inputSnapshot.nodes],
     sessionMaterialization: materializationContext
       ? {

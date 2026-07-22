@@ -190,6 +190,37 @@ describe('buildChatRunMetadata', () => {
     });
   });
 
+  it('snapshots explicit skill references while keeping internal refs out of message text', () => {
+    expect(buildChatRunMetadata({
+      requestedSkills: ['workspace:/tmp/workspace/skills/review'],
+      skillRecords: [{
+        ref: 'workspace:/tmp/workspace/skills/review',
+        name: 'review',
+        source: 'workspace',
+        path: '/tmp/workspace/skills/review/SKILL.md',
+      }],
+      composerNodes: [createChatComposerTokenNode({
+        tokenKind: 'skill',
+        tokenKey: 'workspace:/tmp/workspace/skills/review',
+        label: 'review',
+      })],
+    })).toMatchObject({
+      requested_skill_refs: ['workspace:/tmp/workspace/skills/review'],
+      ui_inline_tokens: {
+        schemaVersion: 2,
+        items: [{
+          kind: 'skill',
+          ref: 'workspace:/tmp/workspace/skills/review',
+          name: 'review',
+          source: 'workspace',
+          path: '/tmp/workspace/skills/review/SKILL.md',
+          label: 'review',
+          rawText: '$review',
+        }],
+      },
+    });
+  });
+
   it('serializes panel app references as text without run metadata', () => {
     expect(
       buildChatRunMetadata({
@@ -227,14 +258,17 @@ describe('buildChatRunMetadata', () => {
         ],
       }),
     ).toMatchObject({
-      ui_inline_tokens: [
-        {
-          kind: 'workspace_file',
-          key: 'src/file name.ts',
-          label: 'file name.ts',
-          rawText: '@file:src%2Ffile%20name.ts',
-        },
-      ],
+      ui_inline_tokens: {
+        schemaVersion: 2,
+        items: [
+          {
+            kind: 'workspace_file',
+            key: 'src/file name.ts',
+            label: 'file name.ts',
+            rawText: '@file:src%2Ffile%20name.ts',
+          },
+        ],
+      },
     });
   });
 

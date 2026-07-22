@@ -433,6 +433,7 @@
   "chatSkillsPickerNoDescription": "暂无描述",
   "chatSkillsPickerOfficial": "官方",
   "chatSkillsPickerManage": "管理技能",
+  "chatSkillPreviewUnavailable": "无法打开这个技能文件，它可能已被移动或删除。",
   "chatInputAttach": "添加附件",
   "chatInputAttachmentUnsupported": "当前上传流程不支持该文件类型。",
   "chatInputAttachmentTooLarge": "文件不能超过 {maxMb} MB。",

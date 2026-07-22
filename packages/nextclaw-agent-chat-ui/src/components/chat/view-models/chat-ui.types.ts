@@ -381,12 +381,22 @@ export type ChatToolPartViewModel = {
   };
 };
 
-export type ChatInlineTokenViewModel = {
-  kind: string;
-  key: string;
-  label: string;
-  rawText: string;
-};
+export type ChatInlineTokenViewModel =
+  | {
+      kind: "skill";
+      ref: string;
+      name: string;
+      source: "builtin" | "global" | "project" | "workspace" | null;
+      path: string | null;
+      label: string;
+      rawText: string;
+    }
+  | {
+      kind: string;
+      key: string;
+      label: string;
+      rawText: string;
+    };
 
 export type ChatMessagePartViewModel =
   | {

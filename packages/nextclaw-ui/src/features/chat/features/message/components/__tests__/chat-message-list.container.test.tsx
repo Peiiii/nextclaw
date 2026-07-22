@@ -224,14 +224,20 @@ it("adapts persisted inline token metadata into markdown token data", () => {
     status: "final",
     timestamp: "2026-03-31T10:00:00.000Z",
     metadata: {
-      ui_inline_tokens: [
-        {
-          kind: "skill",
-          key: "weather",
-          label: "Weather",
-          rawText: "$weather",
-        },
-      ],
+      ui_inline_tokens: {
+        schemaVersion: 2,
+        items: [
+          {
+            kind: "skill",
+            ref: "workspace:/skills/weather",
+            name: "weather",
+            source: "workspace",
+            path: "/skills/weather/SKILL.md",
+            label: "Weather",
+            rawText: "$weather",
+          },
+        ],
+      },
     },
     parts: [{ type: "text", text: "please use $weather now" }],
   } satisfies NcpMessage;
@@ -249,7 +255,10 @@ it("adapts persisted inline token metadata into markdown token data", () => {
         inlineTokens: [
           {
             kind: "skill",
-            key: "weather",
+            ref: "workspace:/skills/weather",
+            name: "weather",
+            source: "workspace",
+            path: "/skills/weather/SKILL.md",
             label: "Weather",
             rawText: "$weather",
           },
