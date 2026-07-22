@@ -5,14 +5,10 @@ import {
   useVirtualizer,
 } from "@tanstack/react-virtual";
 
-type ChatMessageVirtualRow = {
-  key: string;
-};
-
 const ESTIMATED_CHAT_MESSAGE_ROW_HEIGHT = 180;
 
 export function useChatMessageVirtualizer(params: {
-  rows: readonly ChatMessageVirtualRow[];
+  rows: readonly { key: string }[];
   scrollRef: RefObject<HTMLDivElement | null>;
   activeRowKey?: string | null;
   focusedRowKey?: string | null;
@@ -56,6 +52,8 @@ export function useChatMessageVirtualizer(params: {
       elementScroll(offset, options, instance);
     },
   });
+  virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (item) =>
+    item.start < (virtualizer.scrollOffset ?? 0);
   const containerRef = useCallback(
     (node: HTMLDivElement | null) => {
       sizeContainerRef.current = node;

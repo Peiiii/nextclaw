@@ -13,6 +13,8 @@
 - 真实验收还发现测试 HTML 的 `#details { display: grid }` 覆盖了 `hidden`，按钮显示收起但内容仍占布局；已修正本地 fixture，先证明内容确实回缩，再给产品链路判定通过，避免用错误测试数据掩盖结论。
 - 后续真实滚动验收捕获到“正常内容 → 整个会话区空白 → 内容恢复”的单帧闪烁。连续截图量化显示修前空白关键帧白色像素占比为 `99.83%`；根因是外层在 `requestAnimationFrame` 中先写入 prepend 后的 `scrollTop`，virtualizer 要到后续滚动事件才更新挂载范围，浏览器因此先绘制了一帧没有消息行覆盖视口的空白区域。现已删除外层补偿，改由 virtualizer 的稳定 key 锚定在 React 布局提交前同步范围与滚动位置，直接消除错误时序而非用遮罩掩盖。
 - 扩大验收路径后又定位到两条瞬态竞争：reload 被 provider 整页骨架门串行化为“骨架 → 空会话壳 → 消息”，滚动时父组件的 ResizeObserver 还会读取滞后的 `isAtBottom` state，把刚离开底部的视口抢回去。现已删除整页骨架门，让会话历史与 provider 配置并行加载；sticky-scroll owner 统一接管高度观察并读取同步 ref；virtualizer 使用直接 DOM 定位、尾部初始 offset，并在滚动写入前同步最新容器高度。
+- 后续真实上滚复现确认了另一条动态高度缺口：TanStack Virtual 默认在向上滚动时跳过已测量行的二次高度补偿，Mermaid 从加载态切换到 SVG、或其它异步内容在上方 overscan 内变高时，会让当前阅读锚点随高度差一起跳动。修复由现有 virtualizer owner 统一复用“行起点位于视口上方”的原有几何条件，只取消向上滚动时的方向跳过；不在 Mermaid、HTML 或 Panel App renderer 内增加特判，也不恢复外层延迟补写 `scrollTop` 的旧路径。
+- 连续帧验收同时捕获到分页返回前后的 `24px` 瞬态偏移：顶部加载圆点原本以 `6px` 高度和上下各 `9px` 外边距参与文档流，显示与消失都会改变整列消息的起点。现已收敛为当前 conversation track 内的绝对定位反馈，保留加载状态且不再影响布局。
 
 ## 测试/验证/验收方式
 
@@ -27,6 +29,8 @@
 - 扩展瞬态 A/B：修前 reload 连续出现整页白、整页骨架、真实壳空消息区和错误范围内容四种画面；修后移除骨架与错误范围中间帧，真实消息首次出现即稳定在最新消息。滚动分别覆盖回到底部、上滚 `1000`、上滚 `6000` 和跨页上滚，全部连续帧 `blankFrames=0`，挂载 `11–20` 行；跨页后锚点保持。inline HTML 行从 `401px` 展开到 `771px` 再回到 `401px`，两段连续帧同样为 `0` 空帧，滚动位置未被抢回。
 - 闪烁修正工程验证：`@nextclaw/agent-chat-ui` sticky-scroll 定向 `4` 个用例、`@nextclaw/ui` 会话/虚拟列表定向 `33` 个用例通过；两个 package 的 `tsc`、完整 ESLint 与生产构建通过。agent-chat-ui 全量 Vitest 为 `229 passed / 3 failed`，UI 全量 Vitest 为 `776 passed / 14 failed`；失败集中在同一脏工作区的公共 contract、jsdom selection、文件操作 class、会话创建参数、欢迎页 QueryClient、工作台旧文案和旧 query key 测试，与本次触达文件和闪烁链路无关，已保留为并行任务收口缺口而未越界修改。
 - 最新源码热更新后的真实瞬态复验：reload 连续采集 `50` 帧，前 `5` 帧为浏览器文档清空和无消息加载壳，未再出现整页灰色骨架；消息从第 `6` 帧首次出现，后续 `45` 帧画面指标完全一致，空白帧为 `0`。从底部一次上滚约 `6000px` 连续采集 `32` 帧，空白帧为 `0`，滚动位置从 `14512` 到 `8525`，挂载行数从 `11` 到 `20`，动态高度更新后没有被抢回底部。
+- 视口上方二次高度 A/B：在真实 `1200` 条混合会话、相同向上滚动位置，将一条已测量且位于视口上方的行增高 `260px`；修前 `scrollTop` 未补偿且可见锚点下跳 `260px`，修后 `scrollTop` 精确补偿 `260px`、可见锚点位移为 `0`。同一连续上滚脚本中，历史页 Mermaid 进入上方 overscan 的修前额外偏移为 `40px`，修后为 `0`；底部 Mermaid 离开挂载范围时前后均无位移，排除了“离开视口即塌高”的假设。
+- 修正顶部加载反馈后再次采集分页连续帧：同一可见消息在请求前、`80` 条历史前插后、新行实测后始终保持 `142px` 屏幕位置，`blankFrames=0`。继续执行 `315` 步、每步 `70px` 的真实上滚，覆盖底部 Mermaid 回收、历史 Mermaid 进入 overscan 和跨页前插，`deviationCount=0`、`blankFrames=0`、最大 DOM 挂载行数 `21`。
 - 动态 HTML A/B：有效收起基线为 iframe `278px`、虚拟行 `401px`；展开后为内容 `1303px`、受容器上限约束的虚拟行 `771px`；再次收起回到 `278px / 401px`。相邻行无可见重叠，iframe 未因高度变化更换业务 key 或父级结构。
 - 真实 Panel App：同屏渲染“唐诗卡片”，源码实例返回的注入脚本已使用共享自然高度算法；点击“下一首”后标题从“登鹳雀楼”变为“望庐山瀑布”，iframe 保持 `489px`，同屏虚拟挂载行数为 `17`。
 - 隔离源码实例验收结束后已停止，没有重启或影响用户当前运行实例。
@@ -35,7 +39,7 @@
 
 ## 发布/部署方式
 
-- 变更由 `.changeset/add-chat-message-virtual-timeline.md` 记录，后续随受影响 workspace package 的 patch 版本统一发布。
+- 主体变更由 `.changeset/add-chat-message-virtual-timeline.md` 记录，动态高度跳动补丁由 `.changeset/stable-chat-dynamic-height-scroll.md` 记录，后续随受影响 workspace package 的 patch 版本统一发布。
 - 本次未执行 NPM 发布、线上部署、Git push、Git commit 或当前 NextClaw 实例重启。
 - API 压测仍使用隔离源码实例；此外在用户当前的源码开发实例 `5174 / 18792` 使用真实 home 写入了可长期复验的会话 fixture。没有手工重启宿主、服务或桌面应用，源码 watcher 自行消费改动。
 
@@ -58,6 +62,7 @@
 - NCP toolkit 把历史合并收敛为纯数据变换，并把 tool-call Map mutation 移回拥有这些 Map 的 manager；server 把新增分页 controller 测试移出接近预算的根路由测试文件。
 - 单一事实链保持清晰：journal 是持久化事实 owner，投影只做可重建读取加速，conversation manager 只做消息状态合并，scroll container 只做物理滚动表面、顶部触发和贴底协调，virtualizer 统一负责挂载范围、测量与 prepend 锚定。
 - 闪烁修正删除了外层延迟高度补偿，仅在 virtualizer 增加现成锚定选项，生产语义代码净减 `6` 行；定向 maintainability guard 检查 `4` 个文件为 `0 error / 0 warning`。guard 相对 `HEAD` 的同批长会话功能总量为 `+323 / -21 / net +302`，排除测试为 `+125 / -11 / net +114`；本次微调本身没有新增生产分支、文件或抽象。
+- 视口上方二次高度修复继续归现有 virtualizer owner，只增加一条锚定策略并简化 `scrollToFn` 的局部判空，不新增 renderer 分支、effect、文件或抽象；回归测试直接表达滚动合同，避免再次只验证“总高度更新”。
 - reload/滚动瞬态补强的定向 maintainability guard 为 `0 error / 2 warning`；总代码 `+681 / -431 / net +250`，排除测试后为 `+395 / -396 / net -1`。正向减债来自删除 `86` 行整页 skeleton、重复 ResizeObserver、无效空态分支及多余回调/DOM 层；消息 container 从基线 `498` 行降到 `462` 行。两个 warning 都是接近既有文件预算的提示，没有新增超预算文件。
 - 剩余 warning 主要是贴近预算的既有 owner/test 文件和已登记目录例外；本批没有新增超预算文件、平行渲染实现、嵌套滚动容器或第二套消息状态。
 
@@ -97,5 +102,5 @@
 - `@nextclaw/server`：需要 patch，新增有界消息分页 HTTP 合同与 `INVALID_CURSOR` 映射，待统一发布。
 - `@nextclaw/shared`：需要 patch，新增 HTML 与 Panel App 共同使用的自然内容高度读取原语，待统一发布。
 - `@nextclaw/ui`：需要 patch，新增向上加载、滚动锚点、错误重试和动态高度虚拟时间线，待统一发布。
-- Changeset：`.changeset/add-chat-message-virtual-timeline.md`。
+- Changeset：`.changeset/add-chat-message-virtual-timeline.md`、`.changeset/stable-chat-dynamic-height-scroll.md`。
 - 本次未执行 NPM 发布。

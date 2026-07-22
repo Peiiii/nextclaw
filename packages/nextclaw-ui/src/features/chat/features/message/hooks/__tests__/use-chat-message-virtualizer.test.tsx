@@ -160,4 +160,94 @@ describe("useChatMessageVirtualizer", () => {
     expect(result.current.virtualizer.getTotalSize()).toBe(420);
     row.remove();
   });
+
+  it("keeps the visible anchor when an offscreen earlier row changes height", async () => {
+    const scrollElement = document.createElement("div");
+    Object.defineProperties(scrollElement, {
+      clientHeight: { configurable: true, value: 800 },
+      offsetHeight: { configurable: true, value: 800 },
+      offsetWidth: { configurable: true, value: 800 },
+      scrollTop: { configurable: true, writable: true, value: 0 },
+    });
+    scrollElement.scrollTo = vi.fn((options) => {
+      if (typeof options === "object" && options.top !== undefined) {
+        scrollElement.scrollTop = options.top;
+      }
+    });
+    const rows = Array.from({ length: 10 }, (_, index) => ({
+      key: `message:${index}`,
+    }));
+    const { result } = renderHook(() =>
+      useChatMessageVirtualizer({
+        rows,
+        scrollRef: { current: scrollElement },
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        result.current.virtualizer.getVirtualItems().length,
+      ).toBeGreaterThan(0),
+    );
+    act(() => result.current.virtualizer.resizeItem(0, 220));
+    scrollElement.scrollTop = 900;
+    act(() => scrollElement.dispatchEvent(new Event("scroll")));
+    await waitFor(() =>
+      expect(result.current.virtualizer.scrollOffset).toBe(900),
+    );
+    const anchor = result.current.virtualizer.getVirtualItemForOffset(900);
+    const anchorOffset = 900 - (anchor?.start ?? 0);
+
+    act(() => result.current.virtualizer.resizeItem(0, 480));
+
+    const anchored = result.current.virtualizer.getVirtualItemForOffset(
+      scrollElement.scrollTop,
+    );
+    expect(scrollElement.scrollTop).toBe(1_160);
+    expect(anchored?.key).toBe(anchor?.key);
+    expect(scrollElement.scrollTop - (anchored?.start ?? 0)).toBe(anchorOffset);
+  });
+
+  it("keeps later rows anchored when the first visible row changes height", async () => {
+    const scrollElement = document.createElement("div");
+    Object.defineProperties(scrollElement, {
+      clientHeight: { configurable: true, value: 800 },
+      offsetHeight: { configurable: true, value: 800 },
+      offsetWidth: { configurable: true, value: 800 },
+      scrollTop: { configurable: true, writable: true, value: 0 },
+    });
+    scrollElement.scrollTo = vi.fn((options) => {
+      if (typeof options === "object" && options.top !== undefined) {
+        scrollElement.scrollTop = options.top;
+      }
+    });
+    const rows = Array.from({ length: 10 }, (_, index) => ({
+      key: `message:${index}`,
+    }));
+    const { result } = renderHook(() =>
+      useChatMessageVirtualizer({
+        rows,
+        scrollRef: { current: scrollElement },
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        result.current.virtualizer.getVirtualItems().length,
+      ).toBeGreaterThan(0),
+    );
+    act(() => result.current.virtualizer.resizeItem(4, 220));
+    scrollElement.scrollTop = 900;
+    act(() => scrollElement.dispatchEvent(new Event("scroll")));
+    await waitFor(() =>
+      expect(result.current.virtualizer.scrollOffset).toBe(900),
+    );
+    const anchor = result.current.virtualizer.getVirtualItemForOffset(980);
+    const anchorTop = (anchor?.start ?? 0) - scrollElement.scrollTop;
+
+    act(() => result.current.virtualizer.resizeItem(4, 480));
+
+    const anchored = result.current.virtualizer.getVirtualItemForOffset(1_240);
+    expect(scrollElement.scrollTop).toBe(1_160);
+    expect(anchored?.key).toBe(anchor?.key);
+    expect((anchored?.start ?? 0) - scrollElement.scrollTop).toBe(anchorTop);
+  });
 });

@@ -84,7 +84,7 @@ export function ChatConversationContent({
         ) : (
           <div ref={contentRef}>
             {hasMessages ? (
-              <ChatConversationTrack className="py-4 sm:py-5">
+              <ChatConversationTrack className="relative py-4 sm:py-5">
                 {historyError ? (
                   <div role="alert" className="flex h-8 justify-center">
                     <button
@@ -99,7 +99,7 @@ export function ChatConversationContent({
                 ) : isLoadingPreviousMessages ? (
                   <span
                     aria-hidden="true"
-                    className="mx-auto my-[9px] block h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground/50"
+                    className="pointer-events-none absolute left-1/2 top-[13px] block h-1.5 w-1.5 -translate-x-1/2 animate-pulse rounded-full bg-muted-foreground/50 sm:top-[17px]"
                   />
                 ) : null}
                 <ChatMessageListContainer

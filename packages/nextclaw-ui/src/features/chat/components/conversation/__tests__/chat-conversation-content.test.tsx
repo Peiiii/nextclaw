@@ -54,6 +54,7 @@ function renderContent(
     bottomSlot?: React.ReactNode;
     hasPreviousMessages?: boolean;
     historyError?: Error | null;
+    isLoadingPreviousMessages?: boolean;
     onLoadPreviousMessages?: () => Promise<void>;
   } = {},
 ) {
@@ -64,7 +65,7 @@ function renderContent(
       historyError={options.historyError ?? null}
       isAwaitingAssistantOutput={false}
       isHistoryLoading={false}
-      isLoadingPreviousMessages={false}
+      isLoadingPreviousMessages={options.isLoadingPreviousMessages ?? false}
       isSending={false}
       messages={messages}
       sessionKey="session-1"
@@ -140,6 +141,17 @@ it("loads older messages when the reader approaches the top", async () => {
 
   await waitFor(() => expect(onLoadPreviousMessages).toHaveBeenCalledOnce());
   expect(captures.onScroll).toHaveBeenCalledOnce();
+});
+
+it("shows earlier-message loading feedback without shifting message layout", () => {
+  const { container } = renderContent({
+    hasPreviousMessages: true,
+    isLoadingPreviousMessages: true,
+  });
+
+  const indicator = container.querySelector(".animate-pulse");
+  expect(indicator?.classList.contains("absolute")).toBe(true);
+  expect(indicator?.parentElement?.classList.contains("relative")).toBe(true);
 });
 
 it("shows a retry action when loading earlier messages fails", async () => {

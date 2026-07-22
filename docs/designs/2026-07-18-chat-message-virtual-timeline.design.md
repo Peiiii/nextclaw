@@ -138,7 +138,9 @@ prependHistory(messages: ReadonlyArray<NcpMessage>): void;
 - 使用 `@tanstack/react-virtual` 的 element virtualizer。
 - `getItemKey` 返回稳定 timeline key。
 - `measureElement` 绑定每个绝对定位行根节点；row 的 `ResizeObserver` 会覆盖折叠、展开、Markdown、图片、inline HTML 与 Panel App 高度变化。
+- 顶部历史加载反馈必须脱离消息文档流；反馈的显示与消失不得改变消息容器的几何起点。
 - virtualizer 使用 `anchorTo: "end"`，在 prepend 触发的 key/index 迁移期间先按稳定业务 key 重算可见范围，再在布局提交阶段同步真实滚动位置；不允许外层下一帧直接改 `scrollTop`。
+- 已测量行的起点在视口上方且发生二次高度变化时，virtualizer 必须补偿完整高度差且不受当前滚动方向影响；起点位于视口内或视口下方时不补偿，让可见内容自然展开。该合同统一覆盖 Mermaid、图片、inline HTML、Panel App 与折叠内容，不在各 renderer 内建立专用滚动分支。
 - 首次挂载从估算尾部开始，滚动中的容器尺寸与行位置由 virtualizer 直接写入 DOM；调整滚动位置前必须先同步最新虚拟总高度，避免浏览器按旧 scroll range 截断写入后再补偿一帧。
 - iframe 只上报自然内容高度，不把当前 iframe 视口的 `clientHeight / scrollHeight` 当作内容事实；否则外层增高后会形成无法回缩的反馈环。工作区 HTML 与 Panel App 注入脚本共同复用 `readInlineContentHeight`，只保留一套高度计算合同。
 - 合理 overscan 吸收快速滚动和高度估算误差。
@@ -246,8 +248,9 @@ type UiNcpSessionMessagesView = {
 5. inline HTML / Panel App 在已经增高后收起，iframe 与虚拟行必须回到自然内容高度，不能保留旧视口造成的空白。
 6. streaming 行保持稳定 key；位于底部时持续贴底，用户向上阅读时不抢滚动。
 7. 聚焦交互行在虚拟范围边缘保持挂载，离开焦点并远离视口后可回收。
-8. 触顶分页的连续关键帧不得出现没有任何消息行覆盖视口的空白帧。
+8. 触顶分页的连续关键帧不得出现没有任何消息行覆盖视口的空白帧，历史加载反馈也不得推移可见锚点。
 9. reload、普通滚动、大跨度滚动、分页前插和可见动态高度展开/收起必须分别做连续帧验收；首次真实内容出现后不得再绘制错误范围，用户离开底部后高度变化不得抢回滚动位置。
+10. 向上滚动期间，视口上方的已测量行从加载态切换到真实高度时，当前可见消息的屏幕位置必须保持不变；验收至少包含 Mermaid、一个通用高度探针和顶部局部可见行。
 
 ### 工程验证
 
