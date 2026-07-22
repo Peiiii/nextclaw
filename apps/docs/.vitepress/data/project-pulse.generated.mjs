@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-07-21T05:29:37.897Z",
+  "generatedAt": "2026-07-22T05:28:39.960Z",
   "hero": {
-    "currentLoc": 215172,
-    "testLoc": 75794,
+    "currentLoc": 215168,
+    "testLoc": 75830,
     "trackedFiles": 2320,
-    "recentCommitCount": 319,
+    "recentCommitCount": 318,
     "activeDays30": 30,
-    "recentReleaseCount": 48,
-    "latestReleaseDate": "2026-07-21",
-    "latestNoteDate": "2026-07-21",
+    "recentReleaseCount": 49,
+    "latestReleaseDate": "2026-07-22",
+    "latestNoteDate": "2026-07-22",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2236641,
-    "basePercentOfBenchmark": 9.62,
-    "lighterByPercent": 90.38
+    "benchmarkCodeLines": 2250562,
+    "basePercentOfBenchmark": 9.56,
+    "lighterByPercent": 90.44
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-03-24",
-        "label": "03-24",
-        "value": 109649
-      },
       {
         "key": "2026-03-25",
         "label": "03-25",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-07-21",
         "label": "07-21",
         "value": 215172
+      },
+      {
+        "key": "2026-07-22",
+        "label": "07-22",
+        "value": 215168
       }
     ],
     "testLocDaily": [
@@ -977,14 +977,14 @@ export default {
         "key": "2026-07-21",
         "label": "07-21",
         "value": 75794
+      },
+      {
+        "key": "2026-07-22",
+        "label": "07-22",
+        "value": 75830
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-06-22",
-        "label": "06-22",
-        "value": 6
-      },
       {
         "key": "2026-06-23",
         "label": "06-23",
@@ -1128,6 +1128,11 @@ export default {
       {
         "key": "2026-07-21",
         "label": "07-21",
+        "value": 5
+      },
+      {
+        "key": "2026-07-22",
+        "label": "07-22",
         "value": 4
       }
     ],
@@ -1190,7 +1195,7 @@ export default {
       {
         "key": "2026-07-20",
         "label": "07-20",
-        "value": 16
+        "value": 21
       }
     ],
     "releaseMonthly": [
@@ -1252,7 +1257,7 @@ export default {
       {
         "key": "2026-07",
         "label": "07/26",
-        "value": 13
+        "value": 14
       }
     ]
   },
@@ -1295,8 +1300,8 @@ export default {
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 10508,
-        "testCodeLines": 6842,
+        "codeLines": 10504,
+        "testCodeLines": 6878,
         "files": 108,
         "sharePercent": 4.9
       },
@@ -1317,11 +1322,20 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2236641,
-      "basePercentOfBenchmark": 9.62,
-      "lighterByPercent": 90.38
+      "benchmarkCodeLines": 2250562,
+      "basePercentOfBenchmark": 9.56,
+      "lighterByPercent": 90.44
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-07-22",
+        "tagCount": 49,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.6.14",
+          "@nextclaw/agent-chat@0.3.8",
+          "@nextclaw/aigen@0.2.8"
+        ]
+      },
       {
         "date": "2026-07-21",
         "tagCount": 49,
@@ -1365,20 +1379,30 @@ export default {
           "@nextclaw/client-sdk@0.5.7",
           "@nextclaw/companion@0.2.7"
         ]
-      },
-      {
-        "date": "2026-07-16",
-        "tagCount": 43,
-        "sampleTags": [
-          "@nextclaw/channel-extension-dingtalk@0.2.5",
-          "@nextclaw/channel-extension-discord@0.2.5",
-          "@nextclaw/channel-extension-email@0.2.5"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-22-nextclaw-v0-27-1",
+        "date": "2026-07-22",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-22 · NextClaw v0.27.1",
+          "description": "NextClaw v0.27.1 fixes chat views being pulled back to the bottom during streaming replies.",
+          "href": "/en/notes/2026-07-22-nextclaw-v0-27-1"
+        },
+        "zh": {
+          "title": "2026-07-22 · NextClaw v0.27.1",
+          "description": "NextClaw v0.27.1 修复流式回复时向上滚动仍会被拉回底部的问题。",
+          "href": "/zh/notes/2026-07-22-nextclaw-v0-27-1"
+        }
+      },
       {
         "slug": "2026-07-21-nextclaw-v0-27-0",
         "date": "2026-07-21",
@@ -1825,9 +1849,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-07-21T05:29:36.173Z",
+    "locGeneratedAt": "2026-07-22T05:28:38.196Z",
     "sourceCount": {
-      "notes": 19,
+      "notes": 20,
       "scopes": 8
     }
   }
