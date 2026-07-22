@@ -19,6 +19,10 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
     } as never,
     eventBus: new EventBus(),
     ingress: new Ingress(),
+    agentRunRequestManager: {
+      listQueuedInputs: () => [],
+      removeQueuedInput: () => null,
+    } as never,
     llmProviders: {} as never,
     sessionManager: {
       listSessions: async () => [],
@@ -30,6 +34,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       updateSessionMetadata: async () => false,
       deleteSession: async () => undefined,
       getContextWindow: async () => null,
+    } as never,
+    sessionRunManager: {
+      deleteSessionRun: () => false,
     } as never,
     sessionContextCompactionManager: {
       compact: async () => unavailable("sessionContextCompactionManager.compact"),

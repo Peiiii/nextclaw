@@ -12,6 +12,7 @@ import {
   type NcpRunHandle,
 } from "@nextclaw/ncp";
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
+import { SessionRun } from "@kernel/managers/session-run.manager.js";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "@kernel/utils/agent-run-metadata.utils.js";
 import { extractMessageMetadata } from "@kernel/utils/ncp-message-bridge.utils.js";
@@ -30,6 +31,10 @@ describe("AgentRunRequestManager message run spec metadata", () => {
     const ingress = new Ingress();
     const queuedMessages: NcpMessage[] = [];
     const runtimeSpecs: AgentRunSpec[] = [];
+    const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
+    sessionRun.inbox.enqueue = (message: NcpMessage) => {
+      queuedMessages.push(structuredClone(message));
+    };
     const manager = new AgentRunRequestManager(
       {
         getOrCreate: () => ({
@@ -69,16 +74,7 @@ describe("AgentRunRequestManager message run spec metadata", () => {
       } as never,
       {
         getSessionRun: () => null,
-        createSessionRun: async () => ({
-          sessionId: "session-1",
-          inbox: {
-            enqueue: (message: NcpMessage) => {
-              queuedMessages.push(structuredClone(message));
-            },
-          },
-          beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
-          onStatusChange: () => () => undefined,
-        }),
+        getOrCreateSessionRun: async () => sessionRun,
       } as never,
       { buildTools: async () => [] } as never,
     );
@@ -103,13 +99,13 @@ describe("AgentRunRequestManager message run spec metadata", () => {
     expect(handle).toMatchObject({
       sessionId: "session-1",
       userMessageId: queuedMessage?.id,
-      runId: "run-1",
+      runId: runtimeSpecs[0]?.runId,
       correlationId: "corr-1",
     });
     expect(Date.parse((runSpec as { startedAt?: string }).startedAt ?? "")).not.toBeNaN();
     expect(runSpec).toMatchObject({
       version: 1,
-      runId: "run-1",
+      runId: runtimeSpecs[0]?.runId,
       sessionId: "session-1",
       agentRuntimeId: "native",
       agentId: "main",
@@ -147,7 +143,7 @@ describe("AgentRunRequestManager message run spec metadata", () => {
       },
     });
     expect(runtimeSpecs[0]).toMatchObject({
-      runId: "run-1",
+      runId: runtimeSpecs[0]?.runId,
       runtimeId: "native",
       agentId: "main",
       model: "custom-3/mimo-v2.5-pro",

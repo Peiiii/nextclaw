@@ -387,6 +387,10 @@ function AttachmentSubmitHarness({ send }: { readonly send: AttachmentSubmitAgen
     inputSnapshot,
     inputQuery,
     isRuntimeBlocked: false,
+    runQueue: {
+      inputs: [],
+      removeQueuedInput: async () => null,
+    },
     selectedAgentId: 'main',
     sessionKey: 'session-attachment',
     resetComposer: inputActions.resetComposer,

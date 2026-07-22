@@ -637,6 +637,19 @@ export type SecretsConfigUpdate = {
 
 export type UiNcpSessionListView = { sessions: NcpSessionSummary[]; total: number };
 
+export type UiNcpSessionQueuedInputsView = {
+  sessionId: string;
+  inputs: UiNcpSessionQueuedInputView[];
+};
+
+export type UiNcpSessionQueuedInputView = {
+  id: string;
+  sessionId: string;
+  enqueuedAt: string;
+  message: NcpMessage;
+  metadata: Record<string, unknown>;
+};
+
 export type UiNcpSessionMessagesView = {
   sessionId: string;
   status: NcpSessionStatus;

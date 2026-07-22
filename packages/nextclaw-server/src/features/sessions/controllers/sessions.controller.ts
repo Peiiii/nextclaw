@@ -2,7 +2,8 @@ import type { Context } from "hono";
 import type {
   ChatSessionTypesView,
   SessionPatchUpdate,
-  UiNcpSessionListView
+  UiNcpSessionListView,
+  UiNcpSessionQueuedInputsView,
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
 import {
@@ -204,6 +205,39 @@ export class NcpSessionRoutesController {
     );
   };
 
+  readonly listSessionQueuedInputs = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    const existing = await this.options.kernel.sessionManager.getSession(sessionId);
+    if (!existing) {
+      return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
+    }
+    const payload: UiNcpSessionQueuedInputsView = {
+      sessionId,
+      inputs: [...this.options.kernel.agentRunRequestManager.listQueuedInputs(sessionId)],
+    };
+    return c.json(ok(payload));
+  };
+
+  readonly deleteSessionQueuedInput = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    const queuedInputId = decodeURIComponent(c.req.param("queuedInputId"));
+    const existing = await this.options.kernel.sessionManager.getSession(sessionId);
+    if (!existing) {
+      return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
+    }
+    const removed = this.options.kernel.agentRunRequestManager.removeQueuedInput(
+      sessionId,
+      queuedInputId,
+    );
+    if (!removed) {
+      return c.json(err(
+        "NOT_FOUND",
+        `queued input not found in session ${sessionId}: ${queuedInputId}`,
+      ), 404);
+    }
+    return c.json(ok(removed));
+  };
+
   readonly patchSession = async (c: Context) => {
     const sessionManager = this.options.kernel.sessionManager;
     const sessionId = decodeURIComponent(c.req.param("sessionId"));
@@ -263,6 +297,7 @@ export class NcpSessionRoutesController {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }
 
+    this.options.kernel.sessionRunManager.deleteSessionRun(sessionId);
     await sessionManager.deleteSession(sessionId);
     return c.json(ok({ deleted: true, sessionId }));
   };

@@ -1,11 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
 
 import { useSessionConversationController } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
 
-type TestAgentSendEnvelope = NcpAgentSendEnvelope;
-type TestAgentSend = (envelope: TestAgentSendEnvelope) => Promise<NcpRunHandle | null>;
+type TestAgentSend = (envelope: NcpAgentSendEnvelope) => Promise<NcpRunHandle | null>;
 
 function createTextNode(text: string) {
   return {
@@ -26,34 +26,49 @@ function createRunHandle(overrides: Partial<NcpRunHandle> = {}): NcpRunHandle {
   };
 }
 
-function createSendMock() {
-  return vi.fn<TestAgentSend>(async () => createRunHandle());
+function createQueuedInput(): UiNcpSessionQueuedInputView {
+  return {
+    id: 'queued-input-1',
+    sessionId: 'session-1',
+    enqueuedAt: '2026-07-05T10:00:00.000Z',
+    metadata: {},
+    message: {
+      id: 'user-message-queued',
+      sessionId: 'session-1',
+      role: 'user',
+      status: 'final',
+      timestamp: '2026-07-05T10:00:00.000Z',
+      parts: [{ type: 'text', text: 'queued task' }],
+    },
+  };
 }
 
-function createAgent(params: {
-  isRunning: boolean;
-  send: ReturnType<typeof createSendMock>;
-}) {
-  return {
-    abort: vi.fn(),
-    isHydrating: false,
-    isRunning: params.isRunning,
-    isSending: false,
-    send: params.send,
-    snapshot: {
-      activeRun: params.isRunning ? { sessionId: 'session-1' } : null,
-    },
-    visibleMessages: [],
-  };
+function createSendMock(handle: NcpRunHandle | null = createRunHandle()) {
+  return vi.fn<TestAgentSend>(async () => handle);
 }
 
 function createControllerParams(params: {
   isRunning: boolean;
+  queuedInputs?: readonly UiNcpSessionQueuedInputView[];
   send?: ReturnType<typeof createSendMock>;
 }) {
-  const send = params.send ?? createSendMock();
+  const { isRunning, queuedInputs = [], send: requestedSend } = params;
+  const send = requestedSend ?? createSendMock();
+  const removeQueuedInput = vi.fn(async (id: string) =>
+    queuedInputs.find((item) => item.id === id) ?? null,
+  );
   return {
-    agent: createAgent({ isRunning: params.isRunning, send }),
+    agent: {
+      abort: vi.fn(),
+      isHydrating: false,
+      isRunning,
+      isSending: false,
+      send,
+      snapshot: {
+        activeRun: isRunning ? { sessionId: 'session-1' } : null,
+      },
+      visibleMessages: [],
+    },
     inputQuery: {
       defaultModel: 'test-model',
       defaultProjectRoot: null,
@@ -90,6 +105,10 @@ function createControllerParams(params: {
       text: 'next task',
     },
     isRuntimeBlocked: false,
+    runQueue: {
+      inputs: queuedInputs,
+      removeQueuedInput,
+    },
     selectedAgentId: 'main',
     sessionKey: 'session-1',
     resetComposer: vi.fn(),
@@ -98,84 +117,57 @@ function createControllerParams(params: {
   };
 }
 
-describe('useSessionConversationController queued input delivery', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('queues a draft while the agent is running and sends it when the run becomes idle', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-07-05T10:00:00.000Z'));
-    const send = createSendMock();
-    const { result, rerender } = renderHook(
-      ({ isRunning }) => useSessionConversationController(createControllerParams({ isRunning, send })),
-      { initialProps: { isRunning: true } },
-    );
+describe('useSessionConversationController backend run queue', () => {
+  it('submits immediately while the session is running so the backend can enqueue it', async () => {
+    const send = createSendMock(createRunHandle({ runId: null }));
+    const params = createControllerParams({ isRunning: true, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
 
     await act(async () => {
       await result.current.send();
     });
 
-    expect(send).not.toHaveBeenCalled();
-    expect(result.current.queuedInputs).toEqual([{ id: expect.any(String), preview: 'next task' }]);
-
-    vi.setSystemTime(new Date('2026-07-05T10:01:00.000Z'));
-    rerender({ isRunning: false });
-
-    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0]?.[0]).toMatchObject({
+      sessionId: 'session-1',
       message: expect.objectContaining({
         parts: [{ type: 'text', text: 'next task' }],
-        timestamp: '2026-07-05T10:01:00.000Z',
       }),
-      sessionId: 'session-1',
     });
-    expect(send.mock.calls[0]?.[0]).not.toHaveProperty('runDelivery');
+    expect(params.resetComposer).toHaveBeenCalledTimes(1);
   });
 
-  it('returns a queued draft to the composer for editing and cancels its queue entry', async () => {
-    const send = createSendMock();
-    const params = createControllerParams({ isRunning: true, send });
+  it('projects the backend queue and returns a removed item to the composer for editing', async () => {
+    const queuedInput = createQueuedInput();
+    const params = createControllerParams({ isRunning: true, queuedInputs: [queuedInput] });
     const { result } = renderHook(() => useSessionConversationController(params));
 
-    await act(async () => {
-      await result.current.send();
-    });
-    const queuedId = result.current.queuedInputs[0]?.id;
-    expect(queuedId).toBeTruthy();
-
+    expect(result.current.queuedInputs).toEqual([
+      { id: queuedInput.id, preview: 'queued task' },
+    ]);
     act(() => {
-      result.current.editQueuedInput(queuedId ?? '');
+      result.current.editQueuedInput(queuedInput.id);
     });
 
-    expect(result.current.queuedInputs).toEqual([]);
-    expect(params.restoreComposer).toHaveBeenCalledWith({
+    await waitFor(() => expect(params.runQueue.removeQueuedInput).toHaveBeenCalledWith(queuedInput.id));
+    expect(params.restoreComposer).toHaveBeenCalledWith(expect.objectContaining({
       attachments: [],
-      nodes: [createTextNode('next task')],
       selectedSkills: [],
       skillRecords: [],
-      text: 'next task',
-    });
-    expect(send).not.toHaveBeenCalled();
+      text: 'queued task',
+    }));
   });
 
-  it('deletes a queued draft without restoring it to the composer', async () => {
-    const send = createSendMock();
-    const params = createControllerParams({ isRunning: true, send });
+  it('deletes through the backend queue owner without restoring the composer', async () => {
+    const queuedInput = createQueuedInput();
+    const params = createControllerParams({ isRunning: true, queuedInputs: [queuedInput] });
     const { result } = renderHook(() => useSessionConversationController(params));
 
-    await act(async () => {
-      await result.current.send();
-    });
-    const queuedId = result.current.queuedInputs[0]?.id;
-    expect(queuedId).toBeTruthy();
-
     act(() => {
-      result.current.deleteQueuedInput(queuedId ?? '');
+      result.current.deleteQueuedInput(queuedInput.id);
     });
 
-    expect(result.current.queuedInputs).toEqual([]);
+    await waitFor(() => expect(params.runQueue.removeQueuedInput).toHaveBeenCalledWith(queuedInput.id));
     expect(params.restoreComposer).not.toHaveBeenCalled();
-    expect(send).not.toHaveBeenCalled();
   });
 });

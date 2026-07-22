@@ -4,7 +4,9 @@ import type {
   SessionPatchUpdate,
   UiNcpAssetPutView,
   UiNcpSessionListView,
-  UiNcpSessionMessagesView
+  UiNcpSessionMessagesView,
+  UiNcpSessionQueuedInputView,
+  UiNcpSessionQueuedInputsView,
 } from "@nextclaw/server";
 import type { EventBus } from "@nextclaw/shared";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
@@ -73,6 +75,23 @@ export class SessionsService {
       {
         query: params?.projectRoot?.trim() ? { projectRoot: params.projectRoot.trim() } : undefined
       }
+    );
+  };
+
+  readonly listQueuedInputs = async (
+    sessionId: string,
+  ): Promise<UiNcpSessionQueuedInputsView> => {
+    return await this.requestService.get<UiNcpSessionQueuedInputsView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/queued-inputs`,
+    );
+  };
+
+  readonly deleteQueuedInput = async (
+    sessionId: string,
+    queuedInputId: string,
+  ): Promise<UiNcpSessionQueuedInputView> => {
+    return await this.requestService.delete<UiNcpSessionQueuedInputView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/queued-inputs/${encodeURIComponent(queuedInputId)}`,
     );
   };
 

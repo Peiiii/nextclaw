@@ -33,8 +33,16 @@ export type AgentRunAbortRequest = {
 export type AgentRunAccepted = {
   sessionId: string;
   userMessageId: string;
-  runId: string;
+  runId: string | null;
   correlationId?: string;
+};
+
+export type SessionQueuedInput = {
+  id: string;
+  sessionId: string;
+  enqueuedAt: string;
+  message: NcpMessage;
+  metadata: Record<string, unknown>;
 };
 
 export type AgentRunSpec = {

@@ -182,6 +182,17 @@ vi.mock(
 );
 
 vi.mock(
+  "@/features/chat/features/conversation/hooks/use-session-run-queue",
+  () => ({
+    useSessionRunQueue: () => ({
+      inputs: [],
+      isLoading: false,
+      removeQueuedInput: vi.fn(async () => null),
+    }),
+  }),
+);
+
+vi.mock(
   "@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils",
   () => ({
     isNcpChatRuntimeBlocked: () => false,

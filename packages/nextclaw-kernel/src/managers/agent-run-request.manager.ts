@@ -1,9 +1,6 @@
-import { randomUUID } from "node:crypto";
 import {
-  CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
   eventKeys,
   ingressKeys,
-  type AgentRunSessionMaterializationMetadata,
   type AgentRunSendIngressPayload,
   type AgentRunSessionMessageRequestPayload,
   type EventBus,
@@ -17,7 +14,7 @@ import {
   type NcpMessageAbortPayload,
   type NcpRunHandle,
 } from "@nextclaw/ncp";
-import { catchError, from, lastValueFrom, tap } from "rxjs";
+import { catchError, filter, from, lastValueFrom, tap } from "rxjs";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type {
@@ -26,7 +23,12 @@ import type {
   AgentRuntimeRunOptions,
 } from "./agent-runtime.manager.js";
 import type { ContextProviderManager } from "./context-provider.manager.js";
-import type { SessionRunManager } from "./session-run.manager.js";
+import type {
+  SessionRun,
+  SessionRunActiveRequest,
+  SessionRunManager,
+  SessionRunQueuedRequest,
+} from "./session-run.manager.js";
 import type { ToolProviderManager } from "./tool-provider.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type {
@@ -34,267 +36,30 @@ import type {
   AgentRunAccepted,
   AgentRunRequest,
   AgentRunSpec,
+  SessionQueuedInput,
 } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import {
-  AGENT_RUN_EXECUTION_METADATA,
   createUnavailableAiExecutionMetadataEvent,
   hasAiExecutionMetadata,
   readAgentRunStartedAt,
-  type AgentRunMessageRunSpecMetadata,
-  type AgentRunModelSource,
 } from "@kernel/utils/agent-run-execution-metadata.utils.js";
-import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "@kernel/utils/agent-run-metadata.utils.js";
-
-function toAgentRunRequest(
-  envelope: AgentRunSendIngressPayload,
-): AgentRunRequest {
-  const metadata = envelope.metadata ?? {};
-  const peerId = readOptionalString(envelope.peerId);
-  const requestMetadata = {
-    agentRuntimeId: metadata.agentRuntimeId,
-    agentId: metadata.agentId,
-    projectRoot: metadata.projectRoot,
-    channel: metadata.channel,
-    correlationId: envelope.correlationId,
-    metadata: structuredClone(metadata),
-    model: metadata.model,
-    maxTokens: metadata.maxTokens,
-    thinkingEffort: metadata.thinkingEffort,
-  };
-  if (Array.isArray(envelope.content)) {
-    const sessionId = readOptionalString(envelope.sessionId);
-    if (sessionId && peerId) {
-      throw new Error("agent-run.send cannot accept both sessionId and peerId.");
-    }
-    return {
-      ...requestMetadata,
-      sessionId,
-      peerId,
-      message: {
-        sessionId: sessionId ?? "",
-        id: `user-message-${randomUUID()}`,
-        role: "user",
-        status: "final",
-        timestamp: new Date().toISOString(),
-        parts: structuredClone(envelope.content),
-      },
-    };
-  }
-  const sourceMessage = envelope.message;
-  if (!sourceMessage) {
-    throw new Error("Invalid agent run send request.");
-  }
-  const envelopeSessionId = readOptionalString(envelope.sessionId);
-  const messageSessionId = readOptionalString(sourceMessage.sessionId);
-  const sessionId = envelopeSessionId ?? messageSessionId;
-  if (sessionId && peerId) {
-    throw new Error("agent-run.send cannot accept both sessionId and peerId.");
-  }
-  const message: NcpMessage = {
-    ...sourceMessage,
-    sessionId: sessionId ?? "",
-    id: sourceMessage.id ?? `user-message-${randomUUID()}`,
-    role: sourceMessage.role ?? "user",
-    status: sourceMessage.status ?? "final",
-    timestamp: sourceMessage.timestamp ?? new Date().toISOString(),
-    parts: structuredClone(sourceMessage.parts),
-  };
-  return {
-    ...requestMetadata,
-    sessionId,
-    peerId,
-    message,
-  };
-}
-
-function readOptionalString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed || undefined;
-}
-
-function createCompletedAssistantMessageEvent(params: {
-  sessionId: string;
-  message: NcpMessage;
-  correlationId?: string;
-}): NcpEndpointEvent {
-  return {
-    occurredAt: new Date().toISOString(),
-    type: NcpEventType.MessageCompleted,
-    payload: {
-      sessionId: params.sessionId,
-      message: params.message,
-      correlationId: params.correlationId,
-    },
-  };
-}
-
-function createSyntheticRunErrorEvent(params: {
-  error: unknown;
-  runId: string;
-  sessionId: string;
-  correlationId?: string;
-  startedAt: string;
-}): NcpEndpointEvent {
-  const {
-    correlationId,
-    error,
-    runId,
-    sessionId,
-    startedAt,
-  } = params;
-  const endedAt = new Date().toISOString();
-  return {
-    occurredAt: endedAt,
-    type: NcpEventType.RunError,
-    payload: {
-      error: error instanceof Error ? error.message : String(error),
-      runId,
-      sessionId,
-      correlationId,
-      startedAt,
-      endedAt,
-    },
-  };
-}
-
-function readSessionMaterialization(
-  metadata: Record<string, unknown>,
-): AgentRunSessionMaterializationMetadata | null {
-  const value = metadata[CHAT_SESSION_MATERIALIZATION_METADATA_KEY];
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  const materialization = value as Partial<AgentRunSessionMaterializationMetadata>;
-  if (materialization.kind !== "child") {
-    throw new Error("session_materialization.kind must be \"child\".");
-  }
-  const parentSessionId = readOptionalString(materialization.parentSessionId);
-  if (!parentSessionId) {
-    throw new Error("session_materialization.parentSessionId is required.");
-  }
-  if (materialization.inheritContext !== true) {
-    throw new Error("session_materialization.inheritContext must be true.");
-  }
-  return {
-    kind: "child",
-    parentSessionId,
-    inheritContext: true,
-  };
-}
-
-function toRunHandle(accepted: AgentRunAccepted): NcpRunHandle {
-  return {
-    sessionId: accepted.sessionId,
-    userMessageId: accepted.userMessageId,
-    assistantMessageId: null,
-    runId: accepted.runId,
-    correlationId: accepted.correlationId,
-  };
-}
-
-function findCompletedAssistantMessage(
-  messages: readonly NcpMessage[],
-  messageId?: string,
-): NcpMessage | null {
-  return (
-    [...messages]
-      .reverse()
-      .find(
-        (message) =>
-          message.role === "assistant" &&
-          message.status === "final" &&
-          (!messageId || message.id === messageId),
-      ) ?? null
-  );
-}
-
-function readMessageTask(message: NcpMessage): string {
-  return (
-    message.parts.flatMap((part) =>
-      (part.type === "text" ||
-        part.type === "rich-text" ||
-        part.type === "reasoning") &&
-      part.text.trim()
-        ? [part.text.trim()]
-        : [],
-    )[0] ?? "Session"
-  );
-}
-
-function resolveRunSpec(params: {
-  agentManager: AgentManager;
-  configManager: ConfigManager;
-  request: AgentRunRequest;
-  runId: string;
-  session: AgentRunSession;
-}): { modelSource: AgentRunModelSource; spec: AgentRunSpec } {
-  const { agentManager, configManager, request, runId, session } = params;
-  const modelSource =
-    request.model !== undefined
-      ? "request"
-      : session.model !== undefined
-        ? "session"
-        : "default";
-  const model = request.model ?? session.model ?? configManager.getDefaultModel();
-  const agentId =
-    request.agentId ??
-    session.agentId ??
-    agentManager.getDefaultAgentId();
-  return {
-    modelSource,
-    spec: {
-      runId,
-      runtimeId: session.agentRuntimeId,
-      agentId,
-      model,
-      requestedModel: request.model ?? null,
-      maxTokens: request.maxTokens ?? configManager.getModelMaxTokens(model),
-      thinkingEffort: request.thinkingEffort ?? session.thinkingEffort ?? null,
-      correlationId: request.correlationId,
-    },
-  };
-}
-
-function attachRunSpecMetadata(params: {
-  message: NcpMessage;
-  modelSource: AgentRunModelSource;
-  request: AgentRunRequest;
-  session: AgentRunSession;
-  spec: AgentRunSpec;
-  startedAt: string;
-}): NcpMessage {
-  const { message, modelSource, request, session, spec, startedAt } = params;
-  const metadata = structuredClone(message.metadata ?? {});
-  const runSpec: AgentRunMessageRunSpecMetadata = {
-    version: 1,
-    runId: spec.runId,
-    startedAt,
-    sessionId: session.sessionId,
-    agentRuntimeId: session.agentRuntimeId,
-    agentId: spec.agentId,
-    model: spec.model,
-    modelSource,
-    requestedModel: request.model ?? null,
-    maxTokens: spec.maxTokens,
-    thinkingEffort: spec.thinkingEffort,
-    projectRoot: request.projectRoot ?? session.projectRoot ?? null,
-    workingDir: session.workingDir ?? null,
-    correlationId: spec.correlationId ?? null,
-    execution: structuredClone(AGENT_RUN_EXECUTION_METADATA),
-  };
-  metadata[AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY] = runSpec;
-  return {
-    ...message,
-    metadata,
-  };
-}
+import {
+  attachRunSpecMetadata,
+  createCompletedAssistantMessageEvent,
+  createMessageSentEvent,
+  createSyntheticRunErrorEvent,
+  findCompletedAssistantMessage,
+  readMessageTask,
+  readSessionMaterialization,
+  resolveRunSpec,
+  toAgentRunRequest,
+  toRunHandle,
+} from "@kernel/utils/agent-run-request.utils.js";
 
 export class AgentRunRequestManager {
   readonly cleanups: Array<() => void> = [];
+  private readonly observedSessionRuns = new Set<SessionRun>();
   private started = false;
 
   constructor(
@@ -334,7 +99,26 @@ export class AgentRunRequestManager {
     while (this.cleanups.length > 0) {
       this.cleanups.pop()?.();
     }
+    this.observedSessionRuns.clear();
     this.started = false;
+  };
+
+  listQueuedInputs = (sessionId: string): readonly SessionQueuedInput[] => {
+    const sessionRun = this.sessionRunManager.getSessionRun(sessionId);
+    return sessionRun?.listQueuedRequests().map(this.toQueuedInput) ?? [];
+  };
+
+  removeQueuedInput = (
+    sessionId: string,
+    queuedInputId: string,
+  ): SessionQueuedInput | null => {
+    const sessionRun = this.sessionRunManager.getSessionRun(sessionId);
+    const removed = sessionRun?.removeQueuedRequest(queuedInputId) ?? null;
+    if (!removed) {
+      return null;
+    }
+    this.publishRunQueueUpdated(sessionId);
+    return this.toQueuedInput(removed);
   };
 
   private handleSendRequest = async (
@@ -382,46 +166,56 @@ export class AgentRunRequestManager {
     request: AgentRunRequest,
   ): Promise<AgentRunAccepted> => {
     const session = await this.getOrCreateSessionForRequest(request);
-    const sessionRun =
-      this.sessionRunManager.getSessionRun(session.sessionId) ??
-      (await this.sessionRunManager.createSessionRun(session.sessionId));
+    const sessionRun = await this.sessionRunManager.getOrCreateSessionRun(
+      session.sessionId,
+    );
+    this.observeSessionRun(sessionRun);
     const baseMessage: NcpMessage = {
       ...request.message,
       sessionId: session.sessionId,
     };
-    let stopPublishingRunStatus = (): void => undefined;
-    stopPublishingRunStatus = sessionRun.onStatusChange((status) => {
-      this.eventBus.emit(eventKeys.sessionRunStatus, {
-        sessionKey: sessionRun.sessionId,
-        status,
-      }, {
-        emittedAt: new Date().toISOString(),
-        source: "agent-run-request",
-      });
-      if (status === "idle") {
-        stopPublishingRunStatus();
-      }
-    });
-    this.cleanups.push(stopPublishingRunStatus);
-    const requestRunStartedAt = new Date().toISOString();
-    const activeRun = (() => {
-      try {
-        return sessionRun.beginRun();
-      } catch (error) {
-        stopPublishingRunStatus();
-        throw error;
-      }
-    })();
+    const queuedRequest = sessionRun.enqueueRequest({
+      ...request,
+      sessionId: session.sessionId,
+      message: baseMessage,
+    }, session);
+    const activeRequest = sessionRun.beginNextRun();
+    this.publishRunQueueUpdated(session.sessionId);
+    if (activeRequest?.id === queuedRequest.id) {
+      await this.startQueuedRun(sessionRun, activeRequest);
+    } else if (activeRequest) {
+      void this.startQueuedRun(sessionRun, activeRequest).catch(() => undefined);
+    }
 
+    return {
+      sessionId: session.sessionId,
+      userMessageId: queuedRequest.request.message.id,
+      runId: activeRequest?.id === queuedRequest.id ? activeRequest.runId : null,
+      correlationId: request.correlationId,
+    };
+  };
+
+  private startQueuedRun = async (
+    sessionRun: SessionRun,
+    activeRequest: SessionRunActiveRequest,
+  ): Promise<void> => {
+    const { request, session } = activeRequest;
+    const requestRunStartedAt = new Date().toISOString();
+    const model = request.model ?? session.model ?? this.configManager.getDefaultModel();
     const { modelSource, spec } = resolveRunSpec({
-      agentManager: this.agentManager,
-      configManager: this.configManager,
+      defaultAgentId: this.agentManager.getDefaultAgentId(),
+      model,
+      modelMaxTokens: this.configManager.getModelMaxTokens(model),
       request,
-      runId: activeRun.runId,
+      runId: activeRequest.runId,
       session,
     });
     const message = attachRunSpecMetadata({
-      message: baseMessage,
+      message: {
+        ...request.message,
+        sessionId: session.sessionId,
+        timestamp: requestRunStartedAt,
+      },
       modelSource,
       request,
       session,
@@ -433,35 +227,45 @@ export class AgentRunRequestManager {
       sessionId: session.sessionId,
       message,
     };
-    sessionRun.inbox.enqueue(message);
-
-    const runtime = this.agentRuntimeManager.getOrCreate({
-      agentRuntimeId: session.agentRuntimeId,
-      session,
-      sessionRun,
+    const messageSentEvent = createMessageSentEvent({
+      sessionId: session.sessionId,
+      message,
+      correlationId: request.correlationId,
     });
-    const contextBlocks =
-      await this.contextProviderManager.buildContext(providerRequest);
-    const tools = await this.toolProviderManager.buildTools(providerRequest);
-    this.startRuntimeRun({
-      options: {
-        contextBlocks,
+    await sessionRun.applyEvents([messageSentEvent]);
+    this.publishNcpEvent(messageSentEvent);
+    try {
+      const runtime = this.agentRuntimeManager.getOrCreate({
+        agentRuntimeId: session.agentRuntimeId,
         session,
         sessionRun,
-        signal: activeRun.signal,
-        tools,
-      },
-      requestRunStartedAt,
-      runtime,
-      spec,
-    });
-
-    return {
-      sessionId: session.sessionId,
-      userMessageId: message.id,
-      runId: spec.runId,
-      correlationId: request.correlationId,
-    };
+      });
+      const contextBlocks =
+        await this.contextProviderManager.buildContext(providerRequest);
+      const tools = await this.toolProviderManager.buildTools(providerRequest);
+      sessionRun.inbox.enqueue(message);
+      this.startRuntimeRun({
+        options: {
+          contextBlocks,
+          session,
+          sessionRun,
+          signal: activeRequest.signal,
+          tools,
+        },
+        requestRunStartedAt,
+        runtime,
+        spec,
+      });
+    } catch (error) {
+      await this.publishRunStartupFailure({
+        error,
+        requestRunStartedAt,
+        sessionRun,
+        spec,
+      });
+      this.startNextQueuedRun(sessionRun);
+      throw error;
+    }
   };
 
   private startRuntimeRun = (params: {
@@ -480,6 +284,7 @@ export class AgentRunRequestManager {
       from(
         runtime.run(spec, options),
       ).pipe(
+        filter((event) => event.type !== NcpEventType.MessageSent),
         tap((event) => {
           const eventsToPublish: NcpEndpointEvent[] = [];
           if (event.type === NcpEventType.RunError) {
@@ -513,12 +318,7 @@ export class AgentRunRequestManager {
             messageCompletedSeen = true;
           }
           eventsToPublish.push(event);
-          for (const eventToPublish of eventsToPublish) {
-            this.eventBus.emit(eventKeys.ncpEvent, eventToPublish, {
-              emittedAt: new Date().toISOString(),
-              source: "agent-run-request",
-            });
-          }
+          eventsToPublish.forEach(this.publishNcpEvent);
         }),
         catchError(async (error) => {
           runtimeFailed = true;
@@ -528,10 +328,7 @@ export class AgentRunRequestManager {
               sessionId: session.sessionId,
             });
             await sessionRun.applyEvents([metadataEvent]);
-            this.eventBus.emit(eventKeys.ncpEvent, metadataEvent, {
-              emittedAt: new Date().toISOString(),
-              source: "agent-run-request",
-            });
+            this.publishNcpEvent(metadataEvent);
           }
           const event = createSyntheticRunErrorEvent({
             error,
@@ -541,25 +338,104 @@ export class AgentRunRequestManager {
             startedAt: runStartedAt,
           });
           await sessionRun.applyEvents([event]);
-          this.eventBus.emit(eventKeys.ncpEvent, event, {
-            emittedAt: new Date().toISOString(),
-            source: "agent-run-request",
-          });
+          this.publishNcpEvent(event);
         }),
       ),
       { defaultValue: undefined },
-    ).finally(() => {
-      if (!runtimeFailed) {
-        return;
+    ).finally(async () => {
+      if (runtimeFailed) {
+        await this.agentRuntimeManager.disposeRuntime({
+          agentRuntimeId: session.agentRuntimeId,
+          session,
+          sessionRun,
+        }).catch(() => undefined);
       }
-      void this.agentRuntimeManager.disposeRuntime({
-        agentRuntimeId: session.agentRuntimeId,
-        session,
-        sessionRun,
-      }).catch(() => undefined);
+      this.startNextQueuedRun(sessionRun);
     });
-
   };
+
+  private publishRunStartupFailure = async (params: {
+    error: unknown;
+    requestRunStartedAt: string;
+    sessionRun: SessionRun;
+    spec: AgentRunSpec;
+  }): Promise<void> => {
+    const {
+      error,
+      requestRunStartedAt,
+      sessionRun,
+      spec,
+    } = params;
+    const metadataEvent = createUnavailableAiExecutionMetadataEvent({
+      spec,
+      sessionId: sessionRun.sessionId,
+    });
+    const errorEvent = createSyntheticRunErrorEvent({
+      error,
+      runId: spec.runId,
+      sessionId: sessionRun.sessionId,
+      correlationId: spec.correlationId,
+      startedAt: requestRunStartedAt,
+    });
+    await sessionRun.applyEvents([metadataEvent, errorEvent]);
+    this.publishNcpEvent(metadataEvent);
+    this.publishNcpEvent(errorEvent);
+  };
+
+  private startNextQueuedRun = (sessionRun: SessionRun): void => {
+    const nextRequest = sessionRun.beginNextRun();
+    if (!nextRequest) {
+      return;
+    }
+    this.publishRunQueueUpdated(sessionRun.sessionId);
+    void this.startQueuedRun(sessionRun, nextRequest).catch(() => undefined);
+  };
+
+  private observeSessionRun = (sessionRun: SessionRun): void => {
+    if (this.observedSessionRuns.has(sessionRun)) {
+      return;
+    }
+    this.observedSessionRuns.add(sessionRun);
+    const stop = sessionRun.onStatusChange((status) => {
+      this.eventBus.emit(eventKeys.sessionRunStatus, {
+        sessionKey: sessionRun.sessionId,
+        status,
+      }, {
+        emittedAt: new Date().toISOString(),
+        source: "agent-run-request",
+      });
+    });
+    this.cleanups.push(() => {
+      stop();
+      this.observedSessionRuns.delete(sessionRun);
+    });
+  };
+
+  private publishRunQueueUpdated = (sessionId: string): void => {
+    this.eventBus.emit(eventKeys.sessionRunQueueUpdated, {
+      sessionKey: sessionId,
+    }, {
+      emittedAt: new Date().toISOString(),
+      source: "agent-run-request",
+    });
+  };
+
+  private publishNcpEvent = (event: NcpEndpointEvent): void => {
+    this.eventBus.emit(eventKeys.ncpEvent, event, {
+      emittedAt: new Date().toISOString(),
+      source: "agent-run-request",
+    });
+  };
+
+  private toQueuedInput = (
+    queuedRequest: Pick<SessionRunQueuedRequest, "id" | "enqueuedAt" | "request">,
+  ): SessionQueuedInput => ({
+    id: queuedRequest.id,
+    sessionId: queuedRequest.request.message.sessionId,
+    enqueuedAt: queuedRequest.enqueuedAt,
+    message: structuredClone(queuedRequest.request.message),
+    metadata: structuredClone(queuedRequest.request.metadata ?? {}),
+  });
 
   private getOrCreateSessionForRequest = async (
     request: AgentRunRequest,

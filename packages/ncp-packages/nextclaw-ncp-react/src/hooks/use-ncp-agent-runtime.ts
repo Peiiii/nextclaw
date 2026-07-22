@@ -9,7 +9,6 @@ import {
   type NcpMessage,
   type NcpOutboundMessageDraft,
   type NcpRunHandle,
-  NcpEventType,
 } from "@nextclaw/ncp";
 
 export type NcpAgentSendInput = string | NcpAgentSendEnvelope;
@@ -259,7 +258,7 @@ export function useNcpAgentRuntime({
   const isRunning = !!snapshot.activeRun;
 
   const send = async (input: NcpAgentSendInput) => {
-    if (isSending || isRunning) {
+    if (isSending) {
       return null;
     }
     const envelope = normalizeSendEnvelope(input, sessionId);
@@ -269,20 +268,6 @@ export function useNcpAgentRuntime({
 
     manager.clearError();
     setIsSending(true);
-    if (sessionId) {
-      await manager.dispatch({
-        occurredAt: new Date().toISOString(),
-        type: NcpEventType.MessageSent,
-        payload: {
-          sessionId,
-          message: {
-            ...envelope.message,
-            sessionId,
-          },
-          metadata: envelope.metadata,
-        },
-      });
-    }
     try {
       return await client.send(envelope);
     } finally {

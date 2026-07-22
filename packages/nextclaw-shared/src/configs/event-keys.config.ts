@@ -24,6 +24,9 @@ export const eventKeys = {
     sessionKey: string;
     status: "running" | "idle";
   }>("session.run-status"),
+  sessionRunQueueUpdated: createAppEventKey<{ sessionKey: string }>(
+    "session.run-queue.updated",
+  ),
   sessionMetadataChanged: createAppEventKey<{
     metadata: Record<string, unknown>;
     mode: "set" | "update";

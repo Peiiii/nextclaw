@@ -80,12 +80,7 @@ describe("AgentRunRequestManager branch session creation", () => {
         },
       } as never,
       {
-        getSessionRun: () => null,
-        createSessionRun: async () => ({
-          inbox: { enqueue: () => undefined },
-          beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
-          onStatusChange: () => () => undefined,
-        }),
+        getOrCreateSessionRun: async () => new SessionRun({ sessionId: "session-1", messages: [] }),
       } as never,
       { buildTools: async () => [] } as never,
     );
@@ -156,12 +151,7 @@ describe("AgentRunRequestManager branch session creation", () => {
         },
       } as never,
       {
-        getSessionRun: () => null,
-        createSessionRun: async () => ({
-          inbox: { enqueue: () => undefined },
-          beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
-          onStatusChange: () => () => undefined,
-        }),
+        getOrCreateSessionRun: async () => new SessionRun({ sessionId: "child-session-1", messages: [] }),
       } as never,
       { buildTools: async () => [] } as never,
     );
@@ -277,12 +267,7 @@ describe("AgentRunRequestManager peer session identity", () => {
         },
       } as never,
       {
-        getSessionRun: () => null,
-        createSessionRun: async () => ({
-          inbox: { enqueue: () => undefined },
-          beginRun: () => ({ runId: "run-1", signal: new AbortController().signal }),
-          onStatusChange: () => () => undefined,
-        }),
+        getOrCreateSessionRun: async () => new SessionRun({ sessionId: "agent-peer-stable", messages: [] }),
       } as never,
       { buildTools: async () => [] } as never,
     );
@@ -366,6 +351,20 @@ describe("AgentRunRequestManager event publication", () => {
           run: async function* (_spec: unknown, options: { sessionRun: SessionRun }): AsyncGenerator<NcpEndpointEvent> {
             const events: NcpEndpointEvent[] = [
               {
+                type: NcpEventType.MessageSent,
+                payload: {
+                  sessionId: "session-1",
+                  message: {
+                    id: "runtime-user-message",
+                    sessionId: "session-1",
+                    role: "user",
+                    status: "final",
+                    timestamp: new Date().toISOString(),
+                    parts: [{ type: "text", text: "重复输入" }],
+                  },
+                },
+              },
+              {
                 type: NcpEventType.RunStarted,
                 payload: { sessionId: "session-1", messageId: assistantMessageId, runId: "run-1" },
               },
@@ -420,7 +419,7 @@ describe("AgentRunRequestManager event publication", () => {
       } as never,
       {
         getSessionRun: () => null,
-        createSessionRun: async () => sessionRun,
+        getOrCreateSessionRun: async () => sessionRun,
       } as never,
       { buildTools: async () => [] } as never,
     );
@@ -438,6 +437,9 @@ describe("AgentRunRequestManager event publication", () => {
       { sessionKey: "session-1", status: "running" },
       { sessionKey: "session-1", status: "idle" },
     ]);
+    expect(
+      publishedEvents.filter((event) => event.type === NcpEventType.MessageSent),
+    ).toHaveLength(1);
     manager.dispose();
   });
 
@@ -504,7 +506,7 @@ describe("AgentRunRequestManager event publication", () => {
       } as never,
       {
         getSessionRun: () => null,
-        createSessionRun: async () => sessionRun,
+        getOrCreateSessionRun: async () => sessionRun,
       } as never,
       { buildTools: async () => [] } as never,
     );
@@ -532,7 +534,9 @@ describe("AgentRunRequestManager event publication", () => {
     });
     manager.dispose();
   });
+});
 
+describe("AgentRunRequestManager runtime failure publication", () => {
   it("disposes the cached runtime after a runtime terminal error", async () => {
     const ingress = new Ingress();
     const eventBus = new EventBus();
@@ -599,7 +603,7 @@ describe("AgentRunRequestManager event publication", () => {
       } as never,
       {
         getSessionRun: () => null,
-        createSessionRun: async () => sessionRun,
+        getOrCreateSessionRun: async () => sessionRun,
       } as never,
       { buildTools: async () => [] } as never,
     );
@@ -697,7 +701,7 @@ describe("AgentRunRequestManager tool context", () => {
       } as never,
       {
         getSessionRun: () => null,
-        createSessionRun: async () => sessionRun,
+        getOrCreateSessionRun: async () => sessionRun,
       } as never,
       { buildTools: async () => [tool] } as never,
     );

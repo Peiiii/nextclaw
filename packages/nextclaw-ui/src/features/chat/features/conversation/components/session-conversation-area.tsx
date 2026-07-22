@@ -25,6 +25,7 @@ import {
 } from "@/features/chat/features/conversation/hooks/use-session-conversation-controller";
 import { useSessionConversationInputQuery } from "@/features/chat/features/conversation/hooks/use-session-conversation-input-query";
 import { useSessionConversationInputState } from "@/features/chat/features/conversation/hooks/use-session-conversation-input-state";
+import { useSessionRunQueue } from "@/features/chat/features/conversation/hooks/use-session-run-queue";
 import {
   SessionConversationInput,
   type SessionConversationInputController,
@@ -192,6 +193,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     (state) => state.snapshot.selectedAgentId,
   );
   const agent = useNcpSessionConversation(sessionKey ?? undefined);
+  const runQueue = useSessionRunQueue(sessionKey);
   const { inputActions, inputSnapshot } = useSessionConversationInputState(initialPrompt);
   const inputQuery = useSessionConversationInputQuery({
     sessionKey,
@@ -257,6 +259,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     inputQuery,
     isRuntimeBlocked,
     materializationContext,
+    runQueue,
     selectedAgentId,
     sessionKey,
     onSessionMaterialized,

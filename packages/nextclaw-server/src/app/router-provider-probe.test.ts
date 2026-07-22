@@ -26,9 +26,11 @@ function createProviderProbeApp(configPath: string) {
       assetStore: {} as never,
       eventBus: new EventBus(),
       ingress: {} as never,
+      agentRunRequestManager: {} as never,
       isSessionRunning: () => false,
       listSessionTypes: async () => ({ defaultType: "native", options: [] }),
       sessionManager: {} as never,
+      sessionRunManager: {} as never,
       panelAppManager: {
         listPanelApps: async () => ({ workspacePath: "", panelsPath: "", entries: [] }),
         getPanelAppContent: async () => {

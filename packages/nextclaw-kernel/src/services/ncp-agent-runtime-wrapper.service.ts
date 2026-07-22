@@ -4,7 +4,6 @@ import type {
   NcpAgentRunInput,
   NcpAgentRuntime,
   NcpEndpointEvent,
-  NcpMessage,
   NcpTool,
   OpenAITool,
 } from "@nextclaw/ncp";
@@ -48,9 +47,6 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     const messages = sessionRun.inbox.drain();
     let executionMetadataSeen = false;
     try {
-      for (const event of this.toMessageSentEvents(messages, spec, sessionRun.sessionId)) {
-        yield await this.applyEvent(sessionRun, event);
-      }
       const input: NcpAgentRunInput & { runId?: string } = {
         sessionId: sessionRun.sessionId,
         runId: spec.runId,
@@ -115,21 +111,6 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     }
     return this.runtime;
   };
-
-  private toMessageSentEvents = (
-    messages: readonly NcpMessage[],
-    spec: AgentRunSpec,
-    sessionId: string,
-  ): NcpEndpointEvent[] =>
-    messages.map((message) => ({
-      occurredAt: new Date().toISOString(),
-      type: NcpEventType.MessageSent,
-      payload: {
-        sessionId,
-        message,
-        correlationId: spec.correlationId,
-      },
-    }));
 
   private buildMetadata = (session: AgentRunSession, spec: AgentRunSpec): Record<string, unknown> => ({
     ...session.metadata,

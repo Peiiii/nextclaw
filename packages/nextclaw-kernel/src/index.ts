@@ -69,3 +69,4 @@ export * from "@kernel/types/panel-app.types.js";
 export * from "@kernel/types/preference.types.js";
 export * from "@kernel/types/project.types.js";
 export * from "@kernel/types/session.types.js";
+export type { SessionQueuedInput } from "@kernel/types/agent-run.types.js";

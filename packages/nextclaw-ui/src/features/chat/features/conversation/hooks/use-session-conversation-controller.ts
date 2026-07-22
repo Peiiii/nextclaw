@@ -1,19 +1,15 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type MutableRefObject,
-  type SetStateAction,
-} from 'react';
+import { useCallback, useMemo } from 'react';
 import { buildNcpRequestEnvelope } from '@nextclaw/ncp-react';
+import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope, NcpMessage, NcpRunHandle } from '@nextclaw/ncp';
 
 import { deriveNcpMessagePartsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
 import { buildChatRunMetadata } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
+import {
+  buildSessionQueuedInputComposerSnapshot,
+  buildSessionQueuedInputPreview,
+} from '@/features/chat/features/conversation/utils/session-queued-input.utils';
 import type { SessionConversationInputSnapshot } from './use-session-conversation-input-state';
 import type { useSessionConversationInputQuery } from './use-session-conversation-input-query';
 
@@ -44,9 +40,11 @@ export type SessionConversationQueuedInput = {
   readonly preview: string;
 };
 
-type QueuedInputDraft = SessionConversationQueuedInput & {
-  readonly composerSnapshot: ComposerDraftSnapshot;
-  readonly metadata: Record<string, unknown>;
+type SessionRunQueue = {
+  readonly inputs: readonly UiNcpSessionQueuedInputView[];
+  readonly removeQueuedInput: (
+    queuedInputId: string,
+  ) => Promise<UiNcpSessionQueuedInputView | null>;
 };
 
 export type SessionConversationMaterializationContext = {
@@ -61,6 +59,7 @@ type UseSessionConversationControllerParams = {
   readonly inputQuery: SessionConversationInputQuery;
   readonly isRuntimeBlocked: boolean;
   readonly materializationContext?: SessionConversationMaterializationContext | null;
+  readonly runQueue: SessionRunQueue;
   readonly selectedAgentId: string;
   readonly sessionKey: string | null;
   readonly onSessionMaterialized?: (sessionKey: string) => void;
@@ -69,7 +68,7 @@ type UseSessionConversationControllerParams = {
   readonly setSendError: (message: string | null) => void;
 };
 
-type BuildQueuedInputDraftParams = {
+type BuildSubmissionDraftParams = {
   readonly agentIsSending: boolean;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly inputQuery: SessionConversationInputQuery;
@@ -79,36 +78,9 @@ type BuildQueuedInputDraftParams = {
   readonly sessionKey: string | null;
 };
 
-type SendEnvelope = (
-  envelope: NcpAgentSendEnvelope,
-) => Promise<NcpRunHandle | null>;
-
-type SendQueuedDraft = (
-  draft: QueuedInputDraft,
-) => Promise<NcpRunHandle | null>;
-
-type UseQueuedDraftAutoSendParams = {
-  readonly agentIsRunning: boolean;
-  readonly agentIsSending: boolean;
-  readonly queuedDrafts: readonly QueuedInputDraft[];
-  readonly sendQueuedDraft: SendQueuedDraft;
-  readonly setQueuedDrafts: Dispatch<SetStateAction<QueuedInputDraft[]>>;
-  readonly setSendError: (message: string | null) => void;
-};
-
-type StartQueuedDraftAutoSendParams = {
-  readonly autoSendingQueuedDraftIdRef: MutableRefObject<string | null>;
-  readonly draft: QueuedInputDraft;
-  readonly sendQueuedDraft: SendQueuedDraft;
-  readonly setQueuedDrafts: Dispatch<SetStateAction<QueuedInputDraft[]>>;
-  readonly setSendError: (message: string | null) => void;
-};
-
-type UseQueuedDraftActionsParams = {
-  readonly queuedDrafts: readonly QueuedInputDraft[];
-  readonly restoreComposer: (snapshot: ComposerDraftSnapshot) => void;
-  readonly setQueuedDrafts: Dispatch<SetStateAction<QueuedInputDraft[]>>;
-  readonly setSendError: (message: string | null) => void;
+type SubmissionDraft = {
+  readonly composerSnapshot: ComposerDraftSnapshot;
+  readonly metadata: Record<string, unknown>;
 };
 
 const hasSendableMessagePart = (parts: ReturnType<typeof deriveNcpMessagePartsFromComposer>): boolean =>
@@ -119,17 +91,6 @@ const resolveModelForSend = (value: string | null | undefined): string | undefin
   return trimmed || undefined;
 };
 
-function buildQueuedInputPreview(snapshot: Pick<
-  SessionConversationInputSnapshot,
-  'attachments' | 'text'
->): string {
-  const compactText = snapshot.text.replace(/\s+/g, ' ').trim();
-  if (compactText) {
-    return compactText;
-  }
-  return snapshot.attachments.map((attachment) => attachment.name).filter(Boolean).join(', ');
-}
-
 function buildInputAvailabilitySnapshot(inputQuery: SessionConversationInputQuery) {
   return {
     isProviderStateResolved: inputQuery.isProviderStateResolved,
@@ -138,7 +99,7 @@ function buildInputAvailabilitySnapshot(inputQuery: SessionConversationInputQuer
   };
 }
 
-function buildQueuedInputDraft(params: BuildQueuedInputDraftParams): QueuedInputDraft | null {
+function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDraft | null {
   const {
     agentIsSending,
     inputQuery,
@@ -169,49 +130,46 @@ function buildQueuedInputDraft(params: BuildQueuedInputDraftParams): QueuedInput
     skillRecords: [...inputSnapshot.skillRecords],
     attachments: [...inputSnapshot.attachments],
   };
-  const metadata = buildChatRunMetadata({
-    agentId: materializationContext ? undefined : selectedAgentId,
-    model: materializationContext
-      ? resolveModelForSend(inputSnapshot.selectedModel)
-      : resolveModelForSend(
-          inputSnapshot.selectedModel ??
-          inputQuery.fallbackPreferredModel ??
-          inputQuery.defaultModel,
-        ),
-    thinkingLevel: materializationContext
-      ? inputSnapshot.selectedThinkingLevel ?? undefined
-      : inputSnapshot.selectedThinkingLevel ?? inputQuery.fallbackPreferredThinking ?? undefined,
-    sessionType: materializationContext
-      ? undefined
-      : inputQuery.sessionTypeState.selectedSessionType,
-    projectRoot: materializationContext
-      ? inputSnapshot.pendingProjectRoot
-      : sessionKey
-        ? inputQuery.selectedSession?.projectRoot ?? null
-        : inputSnapshot.pendingProjectRoot,
-    requestedSkills: [...inputSnapshot.selectedSkills],
-    skillRecords: inputQuery.skillRecords.filter((record) =>
-      inputSnapshot.selectedSkills.includes(record.ref)
-    ),
-    composerNodes: [...inputSnapshot.nodes],
-    sessionMaterialization: materializationContext
-      ? {
-          kind: materializationContext.kind,
-          parentSessionId: materializationContext.parentSessionKey,
-          inheritContext: materializationContext.inheritContext,
-        }
-      : null,
-  });
   return {
     composerSnapshot,
-    id: `queued-input-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,
-    metadata,
-    preview: buildQueuedInputPreview(composerSnapshot),
+    metadata: buildChatRunMetadata({
+      agentId: materializationContext ? undefined : selectedAgentId,
+      model: materializationContext
+        ? resolveModelForSend(inputSnapshot.selectedModel)
+        : resolveModelForSend(
+            inputSnapshot.selectedModel ??
+            inputQuery.fallbackPreferredModel ??
+            inputQuery.defaultModel,
+          ),
+      thinkingLevel: materializationContext
+        ? inputSnapshot.selectedThinkingLevel ?? undefined
+        : inputSnapshot.selectedThinkingLevel ?? inputQuery.fallbackPreferredThinking ?? undefined,
+      sessionType: materializationContext
+        ? undefined
+        : inputQuery.sessionTypeState.selectedSessionType,
+      projectRoot: materializationContext
+        ? inputSnapshot.pendingProjectRoot
+        : sessionKey
+          ? inputQuery.selectedSession?.projectRoot ?? null
+          : inputSnapshot.pendingProjectRoot,
+      requestedSkills: [...inputSnapshot.selectedSkills],
+      skillRecords: inputQuery.skillRecords.filter((record) =>
+        inputSnapshot.selectedSkills.includes(record.ref)
+      ),
+      composerNodes: [...inputSnapshot.nodes],
+      sessionMaterialization: materializationContext
+        ? {
+            kind: materializationContext.kind,
+            parentSessionId: materializationContext.parentSessionKey,
+            inheritContext: materializationContext.inheritContext,
+          }
+        : null,
+    }),
   };
 }
 
-function buildQueuedDraftEnvelope(
-  draft: QueuedInputDraft,
+function buildSubmissionEnvelope(
+  draft: SubmissionDraft,
   sessionKey: string | null,
 ): NcpAgentSendEnvelope | null {
   return buildNcpRequestEnvelope({
@@ -226,102 +184,6 @@ function buildQueuedDraftEnvelope(
   });
 }
 
-function startQueuedDraftAutoSend(params: StartQueuedDraftAutoSendParams): void {
-  const {
-    autoSendingQueuedDraftIdRef,
-    draft,
-    sendQueuedDraft,
-    setQueuedDrafts,
-    setSendError,
-  } = params;
-  autoSendingQueuedDraftIdRef.current = draft.id;
-  setQueuedDrafts((current) => current[0]?.id === draft.id ? current.slice(1) : current);
-  setSendError(null);
-  void sendQueuedDraft(draft)
-    .catch((error) => {
-      setQueuedDrafts((current) => [draft, ...current]);
-      const message = error instanceof Error ? error.message : String(error);
-      setSendError(message);
-    })
-    .finally(() => {
-      autoSendingQueuedDraftIdRef.current = null;
-    });
-}
-
-function useQueuedDraftAutoSend(params: UseQueuedDraftAutoSendParams) {
-  const {
-    agentIsRunning,
-    agentIsSending,
-    queuedDrafts,
-    sendQueuedDraft,
-    setQueuedDrafts,
-    setSendError,
-  } = params;
-  const autoSendingQueuedDraftIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (
-      agentIsRunning ||
-      agentIsSending ||
-      autoSendingQueuedDraftIdRef.current ||
-      queuedDrafts.length === 0
-    ) {
-      return;
-    }
-    startQueuedDraftAutoSend({
-      autoSendingQueuedDraftIdRef,
-      draft: queuedDrafts[0],
-      sendQueuedDraft,
-      setQueuedDrafts,
-      setSendError,
-    });
-  }, [
-    agentIsRunning,
-    agentIsSending,
-    queuedDrafts,
-    sendQueuedDraft,
-    setQueuedDrafts,
-    setSendError,
-  ]);
-}
-
-function useQueuedDraftActions(params: UseQueuedDraftActionsParams) {
-  const {
-    queuedDrafts,
-    restoreComposer,
-    setQueuedDrafts,
-    setSendError,
-  } = params;
-
-  const editQueuedInput = useCallback((id: string) => {
-    const draft = queuedDrafts.find((item) => item.id === id);
-    if (!draft) {
-      return;
-    }
-    setQueuedDrafts((current) => current.filter((item) => item.id !== id));
-    restoreComposer(draft.composerSnapshot);
-    setSendError(null);
-  }, [
-    queuedDrafts,
-    restoreComposer,
-    setQueuedDrafts,
-    setSendError,
-  ]);
-
-  const deleteQueuedInput = useCallback((id: string) => {
-    setQueuedDrafts((current) => current.filter((item) => item.id !== id));
-    setSendError(null);
-  }, [
-    setQueuedDrafts,
-    setSendError,
-  ]);
-
-  return {
-    deleteQueuedInput,
-    editQueuedInput,
-  };
-}
-
 export function useSessionConversationController(params: UseSessionConversationControllerParams) {
   const {
     agent,
@@ -329,6 +191,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     inputQuery,
     isRuntimeBlocked,
     materializationContext,
+    runQueue,
     selectedAgentId,
     sessionKey,
     onSessionMaterialized,
@@ -342,16 +205,14 @@ export function useSessionConversationController(params: UseSessionConversationC
   );
   const hasSendableDraft = hasSendableMessagePart(parts);
   const isSending = agent.isSending || agent.isRunning;
-  const baseSendDisabled = isNcpChatSendDisabled({
+  const sendDisabled = isNcpChatSendDisabled({
     snapshot: buildInputAvailabilitySnapshot(inputQuery),
     hasSendableDraft,
     isRuntimeBlocked,
-  });
-  const sendDisabled = baseSendDisabled || agent.isSending;
-  const [queuedDrafts, setQueuedDrafts] = useState<QueuedInputDraft[]>([]);
+  }) || agent.isSending;
 
-  const buildDraftSubmission = useCallback((): QueuedInputDraft | null => {
-    return buildQueuedInputDraft({
+  const send = useCallback(async () => {
+    const draft = buildSubmissionDraft({
       agentIsSending: agent.isSending,
       inputSnapshot,
       inputQuery,
@@ -360,86 +221,69 @@ export function useSessionConversationController(params: UseSessionConversationC
       selectedAgentId,
       sessionKey,
     });
-  }, [
-    agent.isSending,
-    inputQuery,
-    inputSnapshot,
-    isRuntimeBlocked,
-    materializationContext,
-    selectedAgentId,
-    sessionKey,
-  ]);
-
-  const sendEnvelope = useCallback<SendEnvelope>(async (envelope) => {
-    const handle = await agent.send(envelope);
-    const materializedSessionKey =
-      handle?.sessionId?.trim() ||
-      agent.snapshot.activeRun?.sessionId?.trim() ||
-      null;
-    if (!sessionKey && materializedSessionKey) {
-      onSessionMaterialized?.(materializedSessionKey);
-    }
-    return handle;
-  }, [
-    agent,
-    onSessionMaterialized,
-    sessionKey,
-  ]);
-
-  const sendQueuedDraft = useCallback<SendQueuedDraft>(async (draft) => {
-    const envelope = buildQueuedDraftEnvelope(draft, sessionKey);
-    if (!envelope) {
-      return null;
-    }
-    return sendEnvelope(envelope);
-  }, [
-    sendEnvelope,
-    sessionKey,
-  ]);
-
-  const send = useCallback(async () => {
-    const draft = buildDraftSubmission();
     if (!draft) {
+      return;
+    }
+    const envelope = buildSubmissionEnvelope(draft, sessionKey);
+    if (!envelope) {
       return;
     }
     resetComposer();
     setSendError(null);
-    if (agent.isRunning) {
-      setQueuedDrafts((current) => [...current, draft]);
-      return;
-    }
     try {
-      await sendQueuedDraft(draft);
+      const handle = await agent.send(envelope);
+      const materializedSessionKey =
+        handle?.sessionId?.trim() ||
+        agent.snapshot.activeRun?.sessionId?.trim() ||
+        null;
+      if (!sessionKey && materializedSessionKey) {
+        onSessionMaterialized?.(materializedSessionKey);
+      }
     } catch (error) {
       restoreComposer(draft.composerSnapshot);
-      const message = error instanceof Error ? error.message : String(error);
-      setSendError(message);
+      setSendError(error instanceof Error ? error.message : String(error));
       throw error;
     }
   }, [
-    agent.isRunning,
-    buildDraftSubmission,
+    agent,
+    inputQuery,
+    inputSnapshot,
+    isRuntimeBlocked,
+    materializationContext,
+    onSessionMaterialized,
     resetComposer,
     restoreComposer,
-    sendQueuedDraft,
+    selectedAgentId,
+    sessionKey,
     setSendError,
   ]);
 
-  const queuedDraftActions = useQueuedDraftActions({
-    queuedDrafts,
-    restoreComposer,
-    setQueuedDrafts,
-    setSendError,
-  });
+  const editQueuedInput = useCallback((id: string) => {
+    const input = runQueue.inputs.find((item) => item.id === id);
+    if (!input) {
+      return;
+    }
+    void runQueue.removeQueuedInput(id).then((removed) => {
+      if (!removed) {
+        return;
+      }
+      restoreComposer(buildSessionQueuedInputComposerSnapshot(
+        removed,
+        inputQuery.skillRecords,
+      ));
+      setSendError(null);
+    }).catch((error) => {
+      setSendError(error instanceof Error ? error.message : String(error));
+    });
+  }, [inputQuery.skillRecords, restoreComposer, runQueue, setSendError]);
 
-  useQueuedDraftAutoSend({
-    agentIsRunning: agent.isRunning,
-    agentIsSending: agent.isSending,
-    queuedDrafts,
-    sendQueuedDraft,
-    setQueuedDrafts,
-    setSendError,
-  });
+  const deleteQueuedInput = useCallback((id: string) => {
+    void runQueue.removeQueuedInput(id).then(() => {
+      setSendError(null);
+    }).catch((error) => {
+      setSendError(error instanceof Error ? error.message : String(error));
+    });
+  }, [runQueue, setSendError]);
 
   const stop = useCallback(async () => {
     await agent.abort();
@@ -447,10 +291,14 @@ export function useSessionConversationController(params: UseSessionConversationC
 
   return {
     canStopGeneration: agent.isRunning,
-    ...queuedDraftActions,
+    deleteQueuedInput,
+    editQueuedInput,
     hasSendableDraft,
     isSending,
-    queuedInputs: queuedDrafts.map(({ id, preview }) => ({ id, preview })),
+    queuedInputs: runQueue.inputs.map((input) => ({
+      id: input.id,
+      preview: buildSessionQueuedInputPreview(input),
+    })),
     send,
     sendDisabled,
     stop,

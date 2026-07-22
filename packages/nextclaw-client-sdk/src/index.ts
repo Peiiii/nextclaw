@@ -154,6 +154,8 @@ export type {
   UiNcpAssetPutView as NcpAssetPutView,
   UiNcpSessionListView,
   UiNcpSessionMessagesView,
+  UiNcpSessionQueuedInputView,
+  UiNcpSessionQueuedInputsView,
   UiServerEvent
 } from "@nextclaw/server";
 export type {

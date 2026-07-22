@@ -210,6 +210,8 @@ class UiRouteRegistry {
       ["put", "/api/ncp/sessions/:sessionId", ncpSession.patchSession],
       ["post", "/api/ncp/sessions/:sessionId/context/compact", ncpSession.compactSessionContext],
       ["get", "/api/ncp/sessions/:sessionId/messages", ncpSession.listSessionMessages],
+      ["get", "/api/ncp/sessions/:sessionId/queued-inputs", ncpSession.listSessionQueuedInputs],
+      ["delete", "/api/ncp/sessions/:sessionId/queued-inputs/:queuedInputId", ncpSession.deleteSessionQueuedInput],
       ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
       ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
       ["get", "/api/panel-apps", panelApps.list],
