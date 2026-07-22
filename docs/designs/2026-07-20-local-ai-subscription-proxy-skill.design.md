@@ -11,7 +11,7 @@
 3. `/v1/models` 返回真实模型，`/v1/responses` 返回固定 marker。
 4. 用户明确同意后，NextClaw 自定义 provider 候选配置先通过真实 connection test，再启用。
 5. 新建 provider 的 test 或保存失败时自动删除回滚；已有 provider 在 test 成功前不发生写入。
-6. `native + local-subscriptions/<model>` 的 NCP 对话返回固定 marker。
+6. `native + <provider-id>/<model>` 的 NCP 对话复用用户选定的 provider id 并返回固定 marker。
 7. Marketplace 远端包可以安装，并包含全部运行脚本。
 
 代理直连 smoke 固定使用 `/v1/responses`，用于证明通用 OpenAI Responses 端点成立；NextClaw provider 固定使用 `wireApi=chat`。真实 NCP 验收发现 `native` 注入的工具定义经 Responses wire 到 CLIProxyAPI 时会出现工具 schema 不兼容，而 Chat Completions wire 能完整通过工具上下文与最终回复，因此两层有意使用不同 wire，不做隐式 fallback。
@@ -21,6 +21,7 @@
 这项能力增强 NextClaw 的统一入口与生态扩展能力，但不把第三方代理实现塞进内核。
 
 - `single-domain-owner`：CLIProxyAPI 拥有 OAuth、模型路由和 OpenAI 协议；NextClaw 现有 provider owner 拥有 provider 持久化和模型路由；skill 只拥有接入编排。
+- `single-source-of-truth`：provider id 在接入时只选择一次，配置、模型 route、NCP smoke 与完成报告都消费同一个值；不得在下游验收脚本重新写死实例名。
 - `cqs-pure-read`：版本、配置安全、模型发现属于只读检查；写代理配置、写 provider、真实模型 smoke 使用显式命令。
 - `boundary-only-defense`：版本、URL、文件权限、HTTP payload 和回滚只在外部边界校验；内部流程使用规范合同。
 - `predictable-behavior-first`：不做隐式 fallback，不猜模型，不复用未知 provider，不把 health 或模型列表当成功。
@@ -58,7 +59,8 @@ flowchart LR
 - auth 目录 `0700`，配置与 key 文件 `0600`。
 - key 使用 `randomBytes(32)` 生成，只经 mode `0600` 文件传递。
 - 已有非模板、非本 skill 管理的配置默认拒绝覆盖；显式 `--force` 时先备份。
-- provider id 默认 `local-subscriptions`；同名 provider 指向其他端点时默认拒绝替换。
+- 标准工作流显式选择 provider id：Codex 推荐 `codex-sub`，Claude Code 推荐 `claude-sub`，用户可以指定其他 kebab-case 名称；脚本保留 `local-subscriptions` 作为直接调用的兼容默认值。
+- 同名 provider 指向其他端点时默认拒绝替换。
 - NextClaw provider 默认 `wireApi=chat`；不使用已在真实 NCP 工具上下文中失败的 Responses wire。
 - 不默认修改 NextClaw 全局默认模型。
 

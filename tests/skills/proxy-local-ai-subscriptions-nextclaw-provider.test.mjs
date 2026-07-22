@@ -174,8 +174,9 @@ test("existing provider remains unchanged when candidate test fails", async () =
   );
 });
 
-test("NCP smoke requires a real native-session marker", async () => {
+test("NCP smoke accepts the configured provider id and requires a real native-session marker", async () => {
   let streamResponse = null;
+  let sentEnvelope = null;
   const port = await listen(async (request, response) => {
     if (request.method === "GET" && request.url === "/api/ncp/session-types") {
       sendJson(response, { data: { options: [{ value: "native", ready: true }] } });
@@ -192,7 +193,7 @@ test("NCP smoke requires a real native-session marker", async () => {
       return;
     }
     if (request.method === "POST" && request.url === "/api/ncp/agent/send") {
-      await readRequestBody(request);
+      sentEnvelope = await readRequestBody(request);
       sendJson(response, { ok: true });
       streamResponse.write(`data: ${JSON.stringify({
         type: "message.completed",
@@ -207,11 +208,13 @@ test("NCP smoke requires a real native-session marker", async () => {
 
   const result = await runScript(smokeScript, [
     "--nextclaw-api", `http://127.0.0.1:${port}/api`,
-    "--model", "local-subscriptions/gpt-5.4-codex",
+    "--model", "codex-sub/gpt-5.4-codex",
   ]);
   assert.equal(result.code, 0, result.stderr);
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.sessionType, "native");
   assert.equal(payload.assistantText, "NEXTCLAW_NCP_PROXY_OK");
   assert.equal(payload.terminalEvent, "run.finished");
+  assert.equal(sentEnvelope.metadata.model, "codex-sub/gpt-5.4-codex");
+  assert.match(sentEnvelope.sessionId, /^smoke-native-/);
 });

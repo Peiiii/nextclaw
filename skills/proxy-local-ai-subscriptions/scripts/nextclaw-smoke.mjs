@@ -98,8 +98,8 @@ async function main() {
     values: ["model", "nextclaw-api", "nextclaw-command", "prompt", "expect", "timeout-ms"],
   });
   const model = requireOption(options, "model");
-  if (!model.startsWith("local-subscriptions/")) {
-    throw new Error("--model must use the local-subscriptions/<raw-model-id> provider scope");
+  if (!/^[^/]+\/.+$/.test(model)) {
+    throw new Error("--model must use a NextClaw <provider-id>/<raw-model-id> scope");
   }
   const nextclawApi = options["nextclaw-api"]
     ? normalizeNextclawApi(options["nextclaw-api"])
@@ -122,7 +122,7 @@ async function main() {
     throw new Error(`Native session type is not ready: ${native?.reasonMessage || native?.reason || "unknown reason"}`);
   }
 
-  const sessionId = createId("smoke-native-local-subscriptions");
+  const sessionId = createId("smoke-native");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(new Error(`NCP smoke timed out after ${timeoutMs}ms`)), timeoutMs);
   const events = [];

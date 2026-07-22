@@ -109,22 +109,26 @@ node scripts/cliproxy.mjs smoke \
 
 用户没有明确同意时停止，不写 NextClaw 配置，也不改变默认模型。
 
+接入前只选择一次 provider id，并在配置、模型 route 与 NCP 验收中始终复用它。provider id 是用户可自定义的 NextClaw 配置实例名，不是固定协议名：仅接 Codex 时推荐 `codex-sub`，仅接 Claude Code 时推荐 `claude-sub`；同一端点承载两类订阅时询问用户名称，推荐 `local-ai-subscriptions`。用户指定其他 kebab-case 名称时直接使用，不要改回预设名。
+
 用户同意后执行：
 
 ```bash
 node scripts/nextclaw-provider.mjs \
   --endpoint http://127.0.0.1:8317/v1 \
   --api-key-file "$HOME/.cli-proxy-api/nextclaw-api-key" \
+  --provider-id <provider-id> \
+  --display-name "<display-name>" \
   --model <raw-model-id>
 ```
 
-脚本默认从 `nextclaw status --json` 读取当前 API 地址，使用 provider id `local-subscriptions` 和 `wireApi=chat`。代理直连仍用 Responses API 证明 OpenAI 端点成立，但 NextClaw `native` 会携带工具定义；本次真实验收确认 Chat Completions wire 能保持工具 schema 兼容。脚本会发现模型、先对候选配置执行真实 provider test，成功后才启用；新建 provider 在失败时自动删除回滚。若同名 provider 已指向其他端点，必须先解释冲突并获得同意，才可加 `--replace-existing`。
+脚本默认从 `nextclaw status --json` 读取当前 API 地址，并使用 `wireApi=chat`。直接调用脚本且省略 `--provider-id` 时，为兼容既有用法仍默认 `local-subscriptions`；标准 skill 工作流必须显式传入上一步选定的 id，不能依赖该默认值。代理直连仍用 Responses API 证明 OpenAI 端点成立，但 NextClaw `native` 会携带工具定义；本次真实验收确认 Chat Completions wire 能保持工具 schema 兼容。脚本会发现模型、先对候选配置执行真实 provider test，成功后才启用；新建 provider 在失败时自动删除回滚。若同名 provider 已指向其他端点，必须先解释冲突并获得同意，才可加 `--replace-existing`。
 
 随后必须走 `native` session type 做一次 NCP 真实对话：
 
 ```bash
 node scripts/nextclaw-smoke.mjs \
-  --model local-subscriptions/<raw-model-id>
+  --model <provider-id>/<raw-model-id>
 ```
 
 只有 provider test 和 NCP 最终回复都通过，才能说“已可在 NextClaw 使用”。不要因为 `/api/health`、模型列表或编译通过就宣告完成。
@@ -136,8 +140,8 @@ node scripts/nextclaw-smoke.mjs \
 - CLIProxyAPI 版本、配置路径、auth 目录、监听地址；
 - OAuth 类型（Codex 或 Claude），不要输出账号 token；
 - 真实验证的 raw model id 与 OpenAI wire；
-- 是否创建/更新 `local-subscriptions` provider；
-- NCP session type 必须是 `native`，模型必须是 `local-subscriptions/<raw-model-id>`；
+- 实际创建/更新的 provider id 与 display name；
+- NCP session type 必须是 `native`，模型必须复用同一个 `<provider-id>/<raw-model-id>`；
 - 未验证的平台或能力（例如本次只验 Codex，就明确 Claude 未做真实验收）。
 
 ## 故障与退出
