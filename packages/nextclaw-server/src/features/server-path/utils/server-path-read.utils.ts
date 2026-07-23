@@ -155,16 +155,14 @@ async function readFilePreviewBytes(params: {
   const fileHandle = await open(resolvedPath, "r");
   try {
     const location =
-      targetLine === 1
-        ? { offset: 0, startLine: 1 }
-        : targetLine
-          ? await findPreviewWindowLocation({
-              fileHandle,
-              maxBytes,
-              sizeBytes,
-              targetLine,
-            })
-          : null;
+      targetLine && targetLine > 1 && sizeBytes > maxBytes
+        ? await findPreviewWindowLocation({
+            fileHandle,
+            maxBytes,
+            sizeBytes,
+            targetLine,
+          })
+        : null;
     const { offset, startLine } = location ?? { offset: 0, startLine: 1 };
     const bytesToRead = Math.min(sizeBytes - offset, maxBytes);
     const buffer = Buffer.alloc(bytesToRead);

@@ -572,10 +572,10 @@ describe("ServerPathRoutesController Office content", () => {
 });
 
 describe("ServerPathRoutesController location reads", () => {
-  it("returns a target-centered window with real file line numbers", async () => {
+  it("keeps a targeted file complete when it fits within the preview limit", async () => {
     const app = createTestApp();
     const root = realpathSync(createTempDir("nextclaw-ui-read-location-"));
-    const filePath = join(root, "large.txt");
+    const filePath = join(root, "small.txt");
     writeFileSync(
       filePath,
       Array.from({ length: 100 }, (_, index) => `line ${index + 1}`).join("\n"),
@@ -591,10 +591,38 @@ describe("ServerPathRoutesController location reads", () => {
     expect(response.status).toBe(200);
     expect(payload).toMatchObject({
       ok: true,
-      data: { startLine: 60, truncated: true },
+      data: { startLine: 1, truncated: false },
     });
-    expect(payload.data.text.startsWith("line 60\n")).toBe(true);
+    expect(payload.data.text.startsWith("line 1\n")).toBe(true);
     expect(payload.data.text).toContain("line 80\n");
-    expect(payload.data.text).not.toContain("line 59\n");
+  });
+
+  it("returns a target-centered window for files above the preview limit", async () => {
+    const app = createTestApp();
+    const root = realpathSync(createTempDir("nextclaw-ui-read-location-large-"));
+    const filePath = join(root, "large.txt");
+    const fileText = Array.from(
+      { length: 30_000 },
+      (_, index) => `line ${index + 1} xxxxxxxx`,
+    ).join("\n");
+    expect(Buffer.byteLength(fileText)).toBeGreaterThan(200_000);
+    writeFileSync(filePath, fileText);
+
+    const response = await app.request(
+      `http://localhost/api/server-paths/read?path=${encodeURIComponent(filePath)}&line=25000`,
+    );
+    const payload = (await response.json()) as {
+      ok: boolean;
+      data: { startLine: number; text: string; truncated: boolean };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      ok: true,
+      data: { startLine: 24_980, truncated: true },
+    });
+    expect(payload.data.text.startsWith("line 24980 xxxxxxxx\n")).toBe(true);
+    expect(payload.data.text).toContain("line 25000 xxxxxxxx\n");
+    expect(payload.data.text).not.toContain("line 24979 xxxxxxxx\n");
   });
 });
