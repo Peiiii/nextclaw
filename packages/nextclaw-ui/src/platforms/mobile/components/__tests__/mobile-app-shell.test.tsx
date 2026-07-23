@@ -1,8 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/app/components/i18n-provider";
 import { MobileAppShell } from "@/platforms/mobile/components/mobile-app-shell";
+
+vi.mock("@/shared/components/doc-browser", () => ({
+  useDocBrowser: () => ({ open: vi.fn() }),
+}));
 
 function renderShell(pathname: string) {
   const view = render(

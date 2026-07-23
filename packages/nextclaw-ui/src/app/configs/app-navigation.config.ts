@@ -30,7 +30,7 @@ export type AppNavigationSection = {
   items: AppNavigationItem[];
 };
 
-function matchesRouteTarget(pathname: string, target: string): boolean {
+export function matchesRouteTarget(pathname: string, target: string): boolean {
   const normalizedPath = pathname.toLowerCase();
   const normalizedTarget = target.toLowerCase();
   return (
