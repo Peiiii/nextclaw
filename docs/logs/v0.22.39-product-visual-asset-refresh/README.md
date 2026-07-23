@@ -15,6 +15,11 @@
 - 中英文 GitHub README 重新组织产品导览，把 Agent Runtime、Office 文件预览和 Panel App 作为全宽重点展示，并补齐 Agent、图片生成、消息渠道、定时任务、技能与参考资料、模型提供商六类真实界面图册。
 - Codex 推进真实项目并在右侧预览 Markdown 架构文档的截图同步用于 GitHub README、官网 Agent Runtime 展示、文档首页、Runtime 教程和产品博客。
 - 使用既有二维码同步脚本更新 GitHub 稳定路径、landing 稳定路径和 `2026-07-23` 日期路径；官网引用切换到新文件名，避免继续命中旧二维码缓存。
+- 修复 Star 趋势图自动刷新失效：根因是 Star 步骤位于产品截图之后，而截图任务报错后残留进程并运行到 GitHub Actions 六小时上限，导致 Star 步骤被跳过；原流程即使成功也只创建 PR，不能自动进入默认分支。
+- 将 Star 趋势图收敛到独立的 `star-history.yml` workflow，每周直接读取 GitHub API、生成静态 SVG，并只在目标图片变化时自动提交默认分支；产品截图 workflow 不再拥有 Star 资产。
+- 生成器将横轴终点固定到当天上海时间日末，同一天、同一 Star 数据重复运行会得到完全一致的 SVG，避免手动重跑产生无意义提交。
+- 当前 SVG 已从 217 更新到 242，与 GitHub 仓库总 Star 数一致。
+- 默认 GitHub README 首图改为复用中文官网精心筛选的数据分析与 Markdown 工作台截图；不复制图片、不新增平行资产，并通过路径变化避开 GitHub 对旧首图的缓存。
 
 ## 测试/验证/验收方式
 
@@ -29,6 +34,10 @@
 - `@nextclaw/landing` 的 `tsc`、lint 和 production build 通过；lint 仅保留 `main.ts` 两个既有文件长度 warning。文档站使用当前内容完成 VitePress production build。
 - 本地生产预览确认中英文 README 图片全部存在，官网社群入口引用 `/contact/nextclaw-contact-wechat-group-2026-07-23.png`，图片自然尺寸正确。
 - 定向 new-code governance、governance backlog ratchet、generated-clean 检查和非功能 maintainability guard 通过；两个 landing 配置文件总变更 `+3/-3/net 0`。
+- Star 趋势图通过 GitHub API 总数对账、XML 解析、生成脚本语法检查和真实 Chromium 渲染；图中显示 242，日期为 `2026-07-23`。
+- 仓库目标文件与两次独立临时生成的 SVG SHA-256 均为 `3b9bb7af75baaccf176f44da244ba335a542c838a860d4a99bfa5ae93a43a242`，证明同日生成幂等。
+- 新旧两个 workflow 均通过 YAML 解析；独立 workflow 推送后通过 `workflow_dispatch` 做 GitHub Actions 真实运行验收。
+- 默认 README 首图路径与中文官网首图源文件一致，图片存在且替代文本准确描述实际内容。
 
 ## 发布/部署方式
 
@@ -41,13 +50,15 @@
 - 本次 Star 趋势图修复只调整 README、仓库资产和维护自动化，不新增独立 NPM changeset，也不需要重新部署官网。
 - 2026-07-23 续更通过 `pnpm deploy:landing` 发布到 `https://92c5b673.nextclaw-landing.pages.dev`；部署地址与 `https://nextclaw.io/contact/nextclaw-contact-wechat-group-2026-07-23.png` 均已验证能加载新二维码。
 - 正式域名首页在缓存穿透访问下已引用 `2026-07-23` 路径；GitHub README 和文档内容随本批 `master` 提交推送更新，不涉及数据库、runtime、桌面端或 NPM 发布。
+- Star 趋势图随本批 `master` 提交立即更新；后续由独立 GitHub Actions workflow 每周自动提交，不再依赖产品截图任务或人工合并 PR。
 
 ## 用户/产品视角的验收步骤
 
 1. 打开 `https://nextclaw.io/zh/`，确认首屏和主要能力区使用当前真实产品截图，没有空态、旧卡片消息或主题混用。
 2. 滚动到“加入社群”，确认微信群卡片显示 2026-07-23 的新二维码；点击后可以打开完整原图。
-3. 打开 GitHub 仓库首页，在中英文 README 中确认使用场景、桌面版/npm/Docker 安装入口、产品能力截图和微信群二维码均可见。
+3. 打开 GitHub 仓库首页，确认默认 README 首图与中文官网精选首图一致，并在中英文 README 中确认使用场景、桌面版/npm/Docker 安装入口、产品能力截图和微信群二维码均可见。
 4. 后续产品界面变化时，直接触发 `refresh-product-visual-assets` skill；稳定页面批量生成，代表性会话只需提供真实 session id 和可选目标文字。
+5. 滚动到 GitHub README 底部，确认 Star 趋势图显示当前仓库总数；需要立即刷新时，可手动触发 `Star History Refresh` workflow。
 
 ## 可维护性总结汇总
 
@@ -56,6 +67,9 @@
 - 顺手删除了主脚本中的重复模式判断和环境变量解析，既有超预算文件净减少 5 行；新文件命名、角色和目录边界通过治理检查。
 - 已使用 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review`。主观复核无阻塞 finding；保留的观察点是主截图入口仍为历史超长文件，后续新增稳定场景时应继续把场景配置或远端 marketplace 处理迁入现有子目录。
 - 2026-07-23 续更没有新增展示链路：README 复用现有截图源，文档站继续通过 `product-screenshots` 软链接消费同一资产，二维码继续由单一同步脚本维护三份目标文件。两个 landing 配置文件保持净增长为 0。
+- Star 刷新从截图 workflow 中删除 7 行旧责任，改由独立 workflow 单独拥有 API 读取、生成和自动提交；没有保留 PR 与直推两套路径，失败边界和十分钟超时均明确。
+- Star 生成脚本变更为 `+1/-1/net 0`，定向 maintainability guard 为 0 错误、0 警告；新增 workflow 是独立自动维护能力的必要 owner，不向产品运行时代码增加分支、函数或抽象。
+- README 首图直接复用官网现有精选源图，没有生成副本、同步脚本或新的图片维护链路。
 
 ## NPM 包发布记录
 
@@ -64,3 +78,4 @@
 - `npm pack nextclaw@0.22.4 --json` 验证发布包包含 CLI、launcher、`update-bundle-public.pem` 与 `ui-dist` 静态产物。
 - 临时前缀全局安装冒烟通过：`nextclaw --version` 输出 `0.22.4`，`nextclaw update --check --json` 返回 `up-to-date`。
 - 2026-07-23 续更只涉及官网、GitHub README、文档和视觉资产，不新增 changeset，也不涉及 NPM 包发布。
+- Star 趋势图自动刷新修复不改变任何 NPM 包内容，不新增 changeset，不涉及 NPM 包发布。

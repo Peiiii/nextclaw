@@ -92,7 +92,7 @@ function formatUpdatedDate(date) {
 function buildChartSvg({ repository, stars, repositoryInfo }) {
   const plot = { left: 72, right: 954, top: 118, bottom: 374 };
   const startDate = new Date(repositoryInfo.created_at);
-  const endDate = new Date();
+  const endDate = new Date(`${formatUpdatedDate(new Date())}T23:59:59.999+08:00`);
   const startTime = startDate.getTime();
   const endTime = Math.max(endDate.getTime(), startTime + 1);
   const totalStars = Math.max(repositoryInfo.stargazers_count, stars.length);

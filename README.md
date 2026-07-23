@@ -28,7 +28,7 @@ Tell NextClaw what you want done. It brings files, models, agents, skills, brows
 
 </div>
 
-![NextClaw running an interactive piano Panel App inside a real conversation](images/screenshots/nextclaw-hero-workbench-en.png)
+![NextClaw showing a data visualization result with a Markdown document open beside it](images/screenshots/nextclaw-hero-workbench-cn.png)
 
 NextClaw is a local-first AI workspace for tasks that need more than a single answer. A conversation can keep its files, references, tools, generated results, and follow-up work together instead of making you restart in separate apps.
 

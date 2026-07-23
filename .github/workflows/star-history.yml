@@ -1,0 +1,38 @@
+name: Star History Refresh
+
+on:
+  schedule:
+    - cron: "20 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: star-history-refresh-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Refresh star history chart
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/docs/visual-assets/refresh-star-history-chart.mjs
+
+      - name: Commit star history chart
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(docs): refresh star history [skip ci]"
+          file_pattern: images/metrics/nextclaw-star-history.svg
