@@ -243,9 +243,15 @@ export function createManagedRemoteModule(params: {
     createConnector: (logger) => createNextclawRemoteConnector({ logger }),
     claimOwnership: () => claimManagedRemoteRuntimeOwnership({ localOrigin }),
     logger: {
-      info: (message) => console.log(`[remote] ${message}`),
-      warn: (message) => console.warn(`[remote] ${message}`),
-      error: (message) => console.error(`[remote] ${message}`)
+      info: (message, context) => context
+        ? console.log(`[remote] ${message}`, context)
+        : console.log(`[remote] ${message}`),
+      warn: (message, context) => context
+        ? console.warn(`[remote] ${message}`, context)
+        : console.warn(`[remote] ${message}`),
+      error: (message, context) => context
+        ? console.error(`[remote] ${message}`, context)
+        : console.error(`[remote] ${message}`)
     }
   });
 }

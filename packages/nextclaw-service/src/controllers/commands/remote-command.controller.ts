@@ -105,14 +105,46 @@ function describePlatformTokenCheck(token: string | undefined): RemoteCommandDoc
   };
 }
 
+function describeRemoteConnectionStability(
+  runtime: RemoteStatusSnapshot["runtime"],
+): RemoteCommandDoctorCheck {
+  const connection = runtime?.connection;
+  if (!connection) {
+    return {
+      name: "connection-stability",
+      ok: false,
+      detail: "connection diagnostics unavailable",
+    };
+  }
+  if (connection.disconnectCount === 0) {
+    return {
+      name: "connection-stability",
+      ok: true,
+      detail: `no disconnects observed since ${connection.observedSince}`,
+    };
+  }
+  const lastDisconnect = connection.lastDisconnect;
+  const recovery = connection.lastRecoveredAt
+    ? `; last recovered in ${connection.lastRecoveryDurationMs ?? "unknown"}ms`
+    : "; the latest disconnect has not recovered";
+  return {
+    name: "connection-stability",
+    ok: false,
+    detail:
+      `${connection.disconnectCount} disconnect(s) observed since ${connection.observedSince}` +
+      `${lastDisconnect ? `; last ${lastDisconnect.source} at ${lastDisconnect.at}` : ""}` +
+      recovery,
+  };
+}
+
 export class RemoteCommands {
   constructor(private readonly deps: { currentLocalOrigin?: string } = {}) {}
 
-  updateConfig(params: {
+  updateConfig = (params: {
     enabled?: boolean;
     apiBase?: string;
     name?: string;
-  } = {}): RemoteConfigChange {
+  } = {}): RemoteConfigChange => {
     const config = loadConfig(getConfigPath());
     const nextEnabled = typeof params.enabled === "boolean" ? params.enabled : config.remote.enabled;
     const nextPlatformApiBase =
@@ -136,29 +168,31 @@ export class RemoteCommands {
         config.remote.deviceName !== next.remote.deviceName,
       config: next
     };
-  }
+  };
 
-  enableConfig(opts: RemoteEnableCommandOptions = {}): RemoteConfigChange {
+  enableConfig = (
+    opts: RemoteEnableCommandOptions = {},
+  ): RemoteConfigChange => {
     return this.updateConfig({
       enabled: true,
       apiBase: typeof opts.apiBase === "string" ? opts.apiBase : undefined,
       name: typeof opts.name === "string" ? opts.name : undefined
     });
-  }
+  };
 
-  disableConfig(): RemoteConfigChange {
+  disableConfig = (): RemoteConfigChange => {
     return this.updateConfig({ enabled: false });
-  }
+  };
 
-  async connect(opts: RemoteConnectCommandOptions = {}): Promise<void> {
+  connect = async (opts: RemoteConnectCommandOptions = {}): Promise<void> => {
     const connector = createNextclawRemoteConnector();
     await connector.run({
       ...opts,
       mode: "foreground"
     });
-  }
+  };
 
-  getStatusView(): RemoteCommandStatusView {
+  getStatusView = (): RemoteCommandStatusView => {
     const config = loadConfig(getConfigPath());
     const snapshot = resolveNextclawRemoteStatusSnapshot(config);
     const resolvedLocalOrigin =
@@ -176,9 +210,9 @@ export class RemoteCommands {
         normalizeOptionalString(config.providers.nextclaw?.apiBase) ??
         null
     };
-  }
+  };
 
-  async status(opts: RemoteStatusCommandOptions = {}): Promise<void> {
+  status = async (opts: RemoteStatusCommandOptions = {}): Promise<void> => {
     const view = this.getStatusView();
 
     if (opts.json) {
@@ -203,9 +237,29 @@ export class RemoteCommands {
     if (runtime?.lastError) {
       console.log(`Last error: ${runtime.lastError}`);
     }
-  }
+    if (runtime?.connection) {
+      console.log(`Connection ID: ${runtime.connection.connectionId ?? "none"}`);
+      console.log(`Disconnects observed: ${runtime.connection.disconnectCount}`);
+      console.log(
+        `Heartbeat: ${runtime.connection.heartbeatSupported ? "acknowledged" : "compatibility mode"}`,
+      );
+      if (runtime.connection.lastDisconnect) {
+        console.log(
+          `Last disconnect: ${runtime.connection.lastDisconnect.source} at ${runtime.connection.lastDisconnect.at}`,
+        );
+      }
+      if (runtime.connection.lastRecoveredAt) {
+        console.log(
+          `Last recovery: ${runtime.connection.lastRecoveredAt} (${runtime.connection.lastRecoveryDurationMs ?? "unknown"}ms)`,
+        );
+      }
+      if (runtime.connection.nextReconnectAt) {
+        console.log(`Next reconnect: ${runtime.connection.nextReconnectAt}`);
+      }
+    }
+  };
 
-  async getDoctorView(): Promise<RemoteCommandDoctorView> {
+  getDoctorView = async (): Promise<RemoteCommandDoctorView> => {
     const config = loadConfig(getConfigPath());
     const snapshot = resolveNextclawRemoteStatusSnapshot(config);
     const localOrigin =
@@ -238,16 +292,17 @@ export class RemoteCommands {
         name: "service-runtime",
         ok: snapshot.runtime?.state === "connected",
         detail: snapshot.runtime ? snapshot.runtime.state : "no managed remote runtime detected"
-      }
+      },
+      describeRemoteConnectionStability(snapshot.runtime),
     ];
     return {
       generatedAt: new Date().toISOString(),
       checks,
       snapshot
     };
-  }
+  };
 
-  async doctor(opts: RemoteDoctorCommandOptions = {}): Promise<void> {
+  doctor = async (opts: RemoteDoctorCommandOptions = {}): Promise<void> => {
     const report = await this.getDoctorView();
 
     if (opts.json) {
@@ -259,5 +314,5 @@ export class RemoteCommands {
     for (const check of report.checks) {
       console.log(`${check.ok ? "✓" : "✗"} ${check.name}: ${check.detail}`);
     }
-  }
+  };
 }

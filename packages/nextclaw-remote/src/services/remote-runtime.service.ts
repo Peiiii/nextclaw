@@ -1,5 +1,8 @@
 import type { Config } from "@nextclaw/core";
-import type { RemoteLogger, RemoteStatusWriter } from "../types.js";
+import type {
+  RemoteLogger,
+  RemoteStatusWriter,
+} from "../types/remote.types.js";
 import type { RemoteConnector } from "./remote-connector.service.js";
 
 export class RemoteServiceModule {

@@ -43,8 +43,17 @@ export type ConnectorAttachment = {
   type: "connector";
   deviceId: string;
   userId: string;
+  connectionId: string;
   connectedAt: string;
   unsettledQuotaMessages: number;
+  closeHandled: boolean;
+};
+
+export type ConnectorCloseObservation = {
+  source: "close" | "error";
+  code: number | null;
+  reason: string;
+  wasClean: boolean;
 };
 
 export type ClientAttachment = {

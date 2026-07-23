@@ -1,6 +1,10 @@
 import { hostname } from "node:os";
 import type { Config } from "@nextclaw/core";
-import type { RemoteRuntimeState, RemoteStatusSnapshot, RemoteStatusWriter } from "./types.js";
+import type {
+  RemoteRuntimeState,
+  RemoteStatusSnapshot,
+  RemoteStatusWriter,
+} from "../types/remote.types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -27,21 +31,22 @@ export function resolveRemoteStatusSnapshot(params: {
   currentRemoteState?: RemoteRuntimeState | null;
   fallbackDeviceName?: string;
 }): RemoteStatusSnapshot {
-  if (params.currentRemoteState) {
+  const { config, currentRemoteState, fallbackDeviceName } = params;
+  if (currentRemoteState) {
     return {
-      configuredEnabled: Boolean(params.config.remote.enabled),
-      runtime: params.currentRemoteState
+      configuredEnabled: Boolean(config.remote.enabled),
+      runtime: currentRemoteState
     };
   }
 
-  if (params.config.remote.enabled) {
+  if (config.remote.enabled) {
     return {
       configuredEnabled: true,
       runtime: {
-        ...buildConfiguredRemoteState(params.config),
+        ...buildConfiguredRemoteState(config),
         deviceName:
-          normalizeOptionalString(params.config.remote.deviceName)
-          ?? normalizeOptionalString(params.fallbackDeviceName)
+          normalizeOptionalString(config.remote.deviceName)
+          ?? normalizeOptionalString(fallbackDeviceName)
           ?? hostname()
       }
     };
@@ -61,11 +66,11 @@ export class RemoteStatusStore implements RemoteStatusWriter {
     }
   ) {}
 
-  write(next: Omit<RemoteRuntimeState, "mode" | "updatedAt">): void {
+  write = (next: Omit<RemoteRuntimeState, "mode" | "updatedAt">): void => {
     this.deps.writeRemoteState({
       ...next,
       mode: this.mode,
       updatedAt: new Date().toISOString()
     });
-  }
+  };
 }

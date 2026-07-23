@@ -4,7 +4,7 @@ import type {
   RemoteDoctorCommandOptions,
   RemoteEnableCommandOptions,
   RemoteStatusCommandOptions
-} from "./types.js";
+} from "../types/remote.types.js";
 
 type RemoteConfigChange = {
   changed: boolean;
@@ -30,11 +30,11 @@ export class RemoteRuntimeActions {
     }
   ) {}
 
-  async connect(opts: RemoteConnectCommandOptions = {}): Promise<void> {
+  connect = async (opts: RemoteConnectCommandOptions = {}): Promise<void> => {
     await this.deps.remoteCommands.connect(opts);
-  }
+  };
 
-  async enable(opts: RemoteEnableCommandOptions = {}): Promise<void> {
+  enable = async (opts: RemoteEnableCommandOptions = {}): Promise<void> => {
     await this.deps.initAuto("remote enable");
     const result = this.deps.remoteCommands.enableConfig(opts);
     console.log("✓ Remote access enabled");
@@ -50,22 +50,22 @@ export class RemoteRuntimeActions {
       return;
     }
     console.log(`Tip: Run "${this.deps.appName} start" to bring the managed remote connector online.`);
-  }
+  };
 
-  async disable(): Promise<void> {
+  disable = async (): Promise<void> => {
     const result = this.deps.remoteCommands.disableConfig();
     console.log(result.changed ? "✓ Remote access disabled" : "Remote access was already disabled");
     if (this.deps.hasRunningManagedService()) {
       await this.deps.restartBackgroundService("remote access disabled");
       console.log("✓ Running background service restarted without remote access");
     }
-  }
+  };
 
-  async status(opts: RemoteStatusCommandOptions = {}): Promise<void> {
+  status = async (opts: RemoteStatusCommandOptions = {}): Promise<void> => {
     await this.deps.remoteCommands.status(opts);
-  }
+  };
 
-  async doctor(opts: RemoteDoctorCommandOptions = {}): Promise<void> {
+  doctor = async (opts: RemoteDoctorCommandOptions = {}): Promise<void> => {
     await this.deps.remoteCommands.doctor(opts);
-  }
+  };
 }

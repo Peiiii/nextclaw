@@ -4,7 +4,7 @@ import type {
   RemoteDoctorCommandOptions,
   RemoteEnableCommandOptions,
   RemoteStatusCommandOptions
-} from "./types.js";
+} from "../types/remote.types.js";
 
 type RemoteCommandRuntime = {
   enable: (opts?: RemoteEnableCommandOptions) => Promise<void>;

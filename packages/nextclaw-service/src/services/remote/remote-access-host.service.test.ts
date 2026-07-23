@@ -38,6 +38,33 @@ function createPlatformToken(payload: Record<string, unknown>): string {
   return `nca.${Buffer.from(JSON.stringify(payload)).toString("base64url")}.sig`;
 }
 
+function createConnectionDiagnostics() {
+  return {
+    observedSince: "2026-03-22T00:00:00.000Z",
+    connectionId: "connection-a",
+    connectedAt: null,
+    heartbeatSupported: true,
+    lastHeartbeatSentAt: "2026-03-22T00:01:00.000Z",
+    lastHeartbeatAckAt: "2026-03-22T00:01:00.010Z",
+    lastHeartbeatLatencyMs: 10,
+    disconnectCount: 1,
+    consecutiveFailures: 1,
+    reconnectAttempt: 1,
+    nextReconnectAt: "2026-03-22T00:01:03.000Z",
+    lastDisconnect: {
+      source: "close",
+      connectionId: "connection-a",
+      at: "2026-03-22T00:01:00.000Z",
+      code: 1006,
+      reason: null,
+      wasClean: false,
+      connectedDurationMs: 60_000
+    },
+    lastRecoveredAt: null,
+    lastRecoveryDurationMs: null
+  } as const;
+}
+
 describe("RemoteAccessHost service control", () => {
   let tempHome = "";
 
@@ -110,6 +137,7 @@ describe("RemoteAccessHost service control", () => {
         localOrigin: "http://127.0.0.1:55667",
         lastConnectedAt: null,
         lastError: "Invalid or expired token.",
+        connection: createConnectionDiagnostics(),
         updatedAt: "2026-03-22T00:00:00.000Z"
       },
       localOrigin: "http://127.0.0.1:55667",
@@ -123,6 +151,7 @@ describe("RemoteAccessHost service control", () => {
     expect(status.account.loggedIn).toBe(false);
     expect(status.account.email).toBeUndefined();
     expect(status.runtime?.lastError).toBe("Invalid or expired token.");
+    expect(status.runtime?.connection?.lastDisconnect?.code).toBe(1006);
   });
 
   it("routes current-process restart through the managed service restart coordinator", async () => {

@@ -20,6 +20,33 @@ export type RemoteDoctorCommandOptions = {
   json?: boolean;
 };
 
+export type RemoteDisconnectObservation = {
+  source: "close" | "socket_error" | "heartbeat_timeout";
+  connectionId: string;
+  at: string;
+  code: number | null;
+  reason: string | null;
+  wasClean: boolean | null;
+  connectedDurationMs: number | null;
+};
+
+export type RemoteConnectionDiagnostics = {
+  observedSince: string;
+  connectionId: string | null;
+  connectedAt: string | null;
+  heartbeatSupported: boolean;
+  lastHeartbeatSentAt: string | null;
+  lastHeartbeatAckAt: string | null;
+  lastHeartbeatLatencyMs: number | null;
+  disconnectCount: number;
+  consecutiveFailures: number;
+  reconnectAttempt: number;
+  nextReconnectAt: string | null;
+  lastDisconnect: RemoteDisconnectObservation | null;
+  lastRecoveredAt: string | null;
+  lastRecoveryDurationMs: number | null;
+};
+
 export type RemoteRuntimeState = {
   enabled: boolean;
   mode: "service" | "foreground";
@@ -30,6 +57,7 @@ export type RemoteRuntimeState = {
   localOrigin?: string;
   lastConnectedAt?: string | null;
   lastError?: string | null;
+  connection?: RemoteConnectionDiagnostics;
   updatedAt: string;
 };
 
@@ -39,9 +67,9 @@ export type RemoteStatusSnapshot = {
 };
 
 export type RemoteLogger = {
-  info: (message: string) => void;
-  warn: (message: string) => void;
-  error: (message: string) => void;
+  info: (message: string, context?: Record<string, unknown>) => void;
+  warn: (message: string, context?: Record<string, unknown>) => void;
+  error: (message: string, context?: Record<string, unknown>) => void;
 };
 
 export type RemoteServiceStateView = {

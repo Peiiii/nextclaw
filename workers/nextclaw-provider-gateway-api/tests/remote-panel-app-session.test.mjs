@@ -5,6 +5,7 @@ import {
   readRemoteSessionIdFromHost,
 } from "../dist/utils/remote-panel-app-request.utils.js";
 import { RemoteAccessService } from "../dist/services/remote-access.service.js";
+import { renderRemoteAccessErrorPage } from "../dist/utils/remote-access-error-page-renderer.utils.js";
 import { getActiveOwnerRemoteAccessSessionByInstanceId } from "../dist/repositories/remote.repository.js";
 
 class LocalD1Statement {
@@ -35,6 +36,32 @@ function createRequest(path, options = {}) {
     headers: options.headers,
   });
 }
+
+const reconnectingPage = renderRemoteAccessErrorPage({
+  status: 503,
+  message: "Remote device connector is offline.",
+  incidentId: "incident-a",
+  retryAfterSeconds: 7,
+});
+const reconnectingHtml = await reconnectingPage.text();
+assert.equal(reconnectingPage.headers.get("retry-after"), "7");
+assert.equal(
+  reconnectingPage.headers.get("x-nextclaw-incident-id"),
+  "incident-a",
+);
+assert.match(reconnectingHtml, /Remote connector is reconnecting/);
+assert.match(reconnectingHtml, /http-equiv="refresh" content="7"/);
+assert.match(reconnectingHtml, /Incident ID: <code>incident-a<\/code>/);
+assert.match(reconnectingHtml, /href="">Retry now<\/a>/);
+
+const expiredPage = renderRemoteAccessErrorPage({
+  status: 410,
+  message: "Remote access session expired.",
+  incidentId: null,
+});
+const expiredHtml = await expiredPage.text();
+assert.equal(expiredPage.headers.get("retry-after"), null);
+assert.doesNotMatch(expiredHtml, /http-equiv="refresh"/);
 
 assert.equal(
   isPanelAppSandboxProxyRequest(

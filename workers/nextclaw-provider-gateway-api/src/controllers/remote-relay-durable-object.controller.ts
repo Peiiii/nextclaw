@@ -1,4 +1,5 @@
 import { touchRemoteInstance } from "@/repositories/remote-instance.repository";
+import { RemoteConnectorObservabilityService } from "@/services/remote-connector-observability.service";
 import { dispatchRemoteRelayClientFrame } from "@/utils/remote-relay-client-frame.utils.js";
 import { decodeRelayBase64, decodeRelayMessageData } from "@/utils/remote-relay-message.utils.js";
 import {
@@ -12,6 +13,7 @@ import {
   type BrowserCommandFrame,
   type ClientAttachment,
   type ConnectorAttachment,
+  type ConnectorCloseObservation,
   type ConnectorClientFrame,
   type HeaderEntry,
   type RelayRequestFrame,
@@ -25,6 +27,7 @@ const CONNECTOR_TAG = "connector"; const CLIENT_TAG = "client";
 
 export class NextclawRemoteRelayDurableObject {
   private readonly pending = new Map<string, PendingRelay>();
+  private readonly observability = new RemoteConnectorObservabilityService();
 
   constructor(private readonly state: DurableObjectState, private readonly env: Env) {}
 
@@ -46,6 +49,9 @@ export class NextclawRemoteRelayDurableObject {
   private handleConnectorUpgrade = async (request: Request): Promise<Response> => {
     const deviceId = request.headers.get("x-nextclaw-remote-device-id")?.trim();
     const userId = request.headers.get("x-nextclaw-remote-user-id")?.trim();
+    const connectionId =
+      request.headers.get("x-nextclaw-remote-connection-id")?.trim() ||
+      crypto.randomUUID();
     if (!deviceId || !userId) {
       return new Response("Remote connector quota metadata missing.", { status: 400 });
     }
@@ -57,8 +63,10 @@ export class NextclawRemoteRelayDurableObject {
       type: "connector",
       deviceId,
       userId,
+      connectionId,
       connectedAt,
-      unsettledQuotaMessages: 0
+      unsettledQuotaMessages: 0,
+      closeHandled: false
     } satisfies ConnectorAttachment);
     this.state.acceptWebSocket(server, [CONNECTOR_TAG]);
     for (const existingConnector of this.getConnectorSockets()) {
@@ -68,12 +76,31 @@ export class NextclawRemoteRelayDurableObject {
       existingConnector.close(1012, "Replaced by a newer connector session.");
     }
     await this.setDeviceStatus(deviceId, "online", connectedAt);
-    return new Response(null, { status: 101, webSocket: client });
+    server.send(JSON.stringify({
+      type: "connector.ready",
+      connectionId,
+      protocolVersion: 1,
+      heartbeatAck: true
+    }));
+    this.observability.recordConnected({
+      connectionId,
+      deviceId,
+      connectedAt,
+      browserConnectionCount: this.getClientSockets().filter((socket) => socket.readyState === WebSocket.OPEN).length,
+    });
+    return new Response(null, {
+      status: 101,
+      webSocket: client,
+      headers: { "x-nextclaw-remote-connection-id": connectionId }
+    });
   }
 
   private handleBrowserUpgrade = async (request: Request): Promise<Response> => {
     if (!this.getActiveConnector()) {
-      return new Response("Remote device connector is offline.", { status: 503 });
+      return this.observability.createUnavailableResponse({
+        request,
+        source: "browser_upgrade",
+      });
     }
     const attachment = readRemoteBrowserAttachment(request);
     if (!attachment) {
@@ -95,7 +122,10 @@ export class NextclawRemoteRelayDurableObject {
   private handleProxyRequest = async (request: Request): Promise<Response> => {
     const connector = this.getActiveConnector();
     if (!connector) {
-      return new Response("Remote device connector is offline.", { status: 503 });
+      return this.observability.createUnavailableResponse({
+        request,
+        source: "proxy_request",
+      });
     }
     const payload = await request.json<{
       method: string;
@@ -119,10 +149,14 @@ export class NextclawRemoteRelayDurableObject {
     } catch (error) {
       clearTimeout(pending.timeoutId);
       this.pending.delete(requestId);
-      return new Response(
-        error instanceof Error ? error.message : "Failed to forward remote request.",
-        { status: 503 }
-      );
+      return this.observability.createUnavailableResponse({
+        request,
+        source: "proxy_send",
+        connectionId:
+          (connector.deserializeAttachment() as ConnectorAttachment | null)
+            ?.connectionId ?? null,
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
     return await pending.responsePromise;
   }
@@ -171,12 +205,31 @@ export class NextclawRemoteRelayDurableObject {
     });
   }
 
-  webSocketClose = (webSocket: WebSocket): Promise<void> => {
-    return this.state.blockConcurrencyWhile(async () => await this.handleSocketClosed(webSocket));
+  webSocketClose = (
+    webSocket: WebSocket,
+    code: number,
+    reason: string,
+    wasClean: boolean,
+  ): Promise<void> => {
+    return this.state.blockConcurrencyWhile(async () =>
+      await this.handleSocketClosed(webSocket, {
+        source: "close",
+        code,
+        reason,
+        wasClean,
+      })
+    );
   };
 
-  webSocketError = (webSocket: WebSocket): Promise<void> => {
-    return this.state.blockConcurrencyWhile(async () => await this.handleSocketClosed(webSocket));
+  webSocketError = (webSocket: WebSocket, error: unknown): Promise<void> => {
+    return this.state.blockConcurrencyWhile(async () =>
+      await this.handleSocketClosed(webSocket, {
+        source: "error",
+        code: null,
+        reason: error instanceof Error ? error.message : String(error),
+        wasClean: false,
+      })
+    );
   };
 
   private handleConnectorMessage = async (
@@ -184,6 +237,26 @@ export class NextclawRemoteRelayDurableObject {
     attachment: ConnectorAttachment,
     raw: string
   ): Promise<void> => {
+    try {
+      const control = JSON.parse(raw) as Record<string, unknown>;
+      if (
+        control.type === "connector.ping" &&
+        control.connectionId === attachment.connectionId &&
+        typeof control.heartbeatId === "string" &&
+        typeof control.sentAt === "string"
+      ) {
+        webSocket.send(JSON.stringify({
+          type: "connector.pong",
+          connectionId: attachment.connectionId,
+          heartbeatId: control.heartbeatId,
+          sentAt: control.sentAt,
+          serverAt: new Date().toISOString()
+        }));
+        return;
+      }
+    } catch {
+      // Invalid business frames still follow the existing quota path.
+    }
     const unsettledQuotaMessages = (attachment.unsettledQuotaMessages ?? 0) + 1;
     const reportSize = parseBoundedInt(
       this.env.REMOTE_QUOTA_WS_USAGE_REPORT_SIZE,
@@ -280,18 +353,29 @@ export class NextclawRemoteRelayDurableObject {
 
     const connector = this.getActiveConnector();
     if (!connector) {
+      const incidentId = this.observability.recordUnavailable({
+        source: "browser_message",
+        deviceId: attachment.instanceId,
+        path: "websocket",
+      });
       if (frame.type === "request") {
         this.sendToClient(attachment.clientId, {
           type: "request.error",
           id: frame.id,
-          message: "Remote device connector is offline."
+          message: "Remote device connector is offline.",
+          code: "CONNECTOR_OFFLINE",
+          incidentId,
+          retryAfterSeconds: 5
         });
         return;
       }
       this.sendToClient(attachment.clientId, {
         type: "stream.error",
         streamId: frame.streamId,
-        message: "Remote device connector is offline."
+        message: "Remote device connector is offline.",
+        code: "CONNECTOR_OFFLINE",
+        incidentId,
+        retryAfterSeconds: 5
       });
       return;
     }
@@ -346,7 +430,10 @@ export class NextclawRemoteRelayDurableObject {
     return null;
   }
 
-  private handleSocketClosed = async (closedSocket: WebSocket): Promise<void> => {
+  private handleSocketClosed = async (
+    closedSocket: WebSocket,
+    observation: ConnectorCloseObservation,
+  ): Promise<void> => {
     const attachment = closedSocket.deserializeAttachment() as ConnectorAttachment | ClientAttachment | null;
     if (attachment?.type === "client") {
       if (attachment.quotaReleased) {
@@ -360,21 +447,32 @@ export class NextclawRemoteRelayDurableObject {
       await releaseRemoteClientQuota(this.env, attachment);
       return;
     }
-    await this.handleConnectorClosed(closedSocket);
+    await this.handleConnectorClosed(closedSocket, observation);
   }
 
-  private handleConnectorClosed = async (closedSocket: WebSocket): Promise<void> => {
+  private handleConnectorClosed = async (
+    closedSocket: WebSocket,
+    observation: ConnectorCloseObservation,
+  ): Promise<void> => {
     const attachment = closedSocket.deserializeAttachment() as ConnectorAttachment | null;
-    if (attachment?.type !== "connector") {
+    if (attachment?.type !== "connector" || attachment.closeHandled) {
       return;
     }
+    const closedAt = new Date();
+    closedSocket.serializeAttachment({
+      ...attachment,
+      unsettledQuotaMessages: 0,
+      closeHandled: true
+    } satisfies ConnectorAttachment);
     if ((attachment.unsettledQuotaMessages ?? 0) > 0) {
-      closedSocket.serializeAttachment({
-        ...attachment,
-        unsettledQuotaMessages: 0
-      } satisfies ConnectorAttachment);
       await reportRemoteConnectorQuota(this.env, attachment);
     }
+    this.observability.recordDisconnected({
+      attachment,
+      observation,
+      disconnectedAt: closedAt,
+      browserConnectionCount: this.getClientSockets().filter((socket) => socket.readyState === WebSocket.OPEN).length
+    });
     const hasOtherOpenConnector = this.getConnectorSockets().some((socket) => {
       return socket !== closedSocket && socket.readyState === WebSocket.OPEN;
     });
@@ -390,7 +488,7 @@ export class NextclawRemoteRelayDurableObject {
         socket.close(1012, "Remote device connector disconnected.");
       }
     }
-    await this.setDeviceStatus(attachment.deviceId, "offline", new Date().toISOString());
+    await this.setDeviceStatus(attachment.deviceId, "offline", closedAt.toISOString());
   }
 
   private handleConnectorClientFrame = (frame: ConnectorClientFrame): void => {

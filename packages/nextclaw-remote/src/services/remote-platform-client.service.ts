@@ -9,7 +9,7 @@ import type {
   RemoteConnectorRunOptions,
   RemotePlatformClientDeps,
   RemoteRunContext,
-} from "../types.js";
+} from "../types/remote.types.js";
 import { readPlatformSessionTokenState } from "../platform-session-token.js";
 
 const REMOTE_INSTANCE_IDENTITY_VERSION = "v2";

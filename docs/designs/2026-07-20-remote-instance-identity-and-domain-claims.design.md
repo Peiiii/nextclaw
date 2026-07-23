@@ -1,6 +1,6 @@
 # Remote 实例身份与双固定域名占用方案
 
-日期：2026-07-20，2026-07-21 修订双域名模型
+日期：2026-07-20，2026-07-21 修订双域名模型，2026-07-23 补充连接可观测性与离线恢复
 
 ## 1. 背景与目标
 
@@ -109,6 +109,27 @@ owner 打开实例：
 
 重连仍使用单一主路径：握手失败按 `3s` 起步指数退避并保留上限与 jitter，成功连接后的下一次异常断线重新从基础延迟开始。不新增第二套 watchdog、轮询器或按错误文案特判的 fallback。
 
+### 3.6 连接可观测性与离线恢复
+
+2026-07-23 的真实安装态日志显示，同一 managed service 进程在约 17 小时内发生 69 次 WebSocket `1006` 非正常断开。每次 connector 都在约 3–5 秒内恢复，但浏览器导航如果刚好落在这个窗口，会得到 `Remote device connector is offline.`；现有错误页不会自动重试，因而一次短断线会表现成持续离线。与此同时，`remote status/doctor` 在恢复后只保留最新的 `connected` 和空 `lastError`，无法回答断线次数、最近一次关闭码、恢复耗时或连接心跳是否正常。
+
+可观测性继续由现有 owner 完成，不新增平行诊断服务：
+
+- `RemoteConnector` 是本机连接生命周期的 `information expert`，负责维护当前进程内的连接诊断快照：观测起点、connection ID、当前连接时间、心跳发送/确认时间、断线总数、最近一次断线详情、连续握手失败、下次重试时间和最近恢复耗时。
+- connector 每个连接周期生成一个不含凭据的 `connectionId`，同时写入本机结构化日志、运行状态和 Relay attachment。客户端与云端因此能围绕同一个 ID 对齐事件，而不再依赖时间戳猜测。
+- 现有 25 秒 keepalive 升级为带 `heartbeatId` 的双向 `connector.ping` / `connector.pong`。Relay 在配额计数前处理控制帧，心跳不再混入用户 WebSocket 消息用量。只有 Relay 明确通过 `connector.ready` 声明支持确认帧后，客户端才启用超时判断，以保证新旧 Worker/connector 滚动发布兼容。
+- Relay 的 connector `connected`、`closed`、`error` 事件写入 Cloudflare Workers 结构化日志，包含 connection ID、实例 ID、关闭码、原因、clean 标记、持续时间和浏览器连接数；不记录 token、cookie 或请求正文。
+- Relay 在 HTTP 或浏览器 WebSocket 请求撞上 connector 离线时生成 `incidentId`，同时写日志并通过 `x-nextclaw-incident-id` 响应头返回。HTML 导航展示该编号并自动重试，短断线恢复后无需用户反复刷新；API 请求仍保持明确的 `503`。
+- `nextclaw remote doctor --json` 与 UI Remote doctor 继续读取同一 canonical runtime snapshot，输出稳定性检查和连接诊断字段，不解析日志、不触发重连，保持查询纯读。
+
+这套设计落实 `single-domain-owner`、`information-expert` 与 `cqs-pure-read`：connector/Relay 分别记录自己亲历的事实，status/doctor 只消费事实。结构化日志保留完整时间线，状态快照保留“当前值 + 最近事故 + 累计次数”，两者互补而不双写业务状态。
+
+明确不做：
+
+- 不把 D1 `remote_devices.status` 扩成事件仓库，避免每次心跳或断线产生数据库审计写入。
+- 不把 `1006` 武断归因于本地网络、代理或 Cloudflare；在云端关闭原因缺失的情况下只记录已证实的 transport abnormal close。新的双端 correlation 证据用于下一次把责任层定位到本机、网络边缘或 Relay。
+- 不用自动刷新掩盖终态鉴权错误；只有 connector 短暂离线 `503` 自动重试，session 过期、撤销、域名不匹配仍展示明确原因并要求重新打开。
+
 ## 4. API 与界面
 
 实例 view 增加：
@@ -193,5 +214,9 @@ DELETE /platform/remote/instances/:instanceId/domain
 - platform console 列表、域名编辑、冲突反馈和打开行为 smoke。
 - remote relay 真实链路 smoke，覆盖系统默认域名、自定义域名、移除后默认域名保留和 session 分享域名。
 - 安装态真实断联恢复验收：Relay 观察到 connector 离线后，下一次连接在基础重连窗口内恢复，固定域名重新返回产品页面而不是长期 503 offline。
+- 故障注入必须证明：`1006` 后本机状态保留关闭码、断线次数和恢复耗时；成功重连不会清除最近事故；同一 connection ID 可在 connector 与 Relay 两端日志关联。
+- 心跳合同必须证明：Relay 返回匹配的 pong，控制帧不消耗业务配额；未声明 heartbeat capability 的旧 Relay 不触发客户端误判；声明后心跳超时进入唯一重连主路径。
+- 离线导航必须返回 incident ID、`Retry-After` 并自动重试；非导航/API 请求仍返回原始 `503`，session 过期等终态错误不得自动重试。
+- `remote doctor --json` 在当前已恢复为 connected 时仍能报告本进程累计断线、最近关闭事实与恢复耗时，避免“当前绿色覆盖历史事故”。
 - 生产环境 `OPTIONS` 预检必须包含 `DELETE`，并在真实登录态完成设置、重复占用拒绝、释放和默认域名继续打开。
 - 所有触达 TypeScript workspace 的 `tsc`、新代码治理、可维护性 guard 和 backlog ratchet 通过。

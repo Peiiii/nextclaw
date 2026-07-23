@@ -2,7 +2,11 @@ import type { Context } from "hono";
 import { RemoteControllerQuotaSupportService } from "@/services/remote-controller-quota-support.service";
 import { RemoteProxyAccessService } from "@/services/remote-proxy-access.service";
 import { appendAuditLog } from "@/repositories/platform.repository";
-import { renderRemoteAccessErrorPage } from "@/services/remote-access-error-page-renderer.service";
+import {
+  presentRemoteAccessResponse,
+  REMOTE_DOCUMENT_CACHE_CONTROL,
+  withRemoteVaryCookie,
+} from "@/utils/remote-access-error-page-renderer.utils";
 import {
   closeRemoteAccessSessionsByGrantId,
   createRemoteShareGrant,
@@ -40,8 +44,6 @@ import {
   sanitizeResponseHeaders,
 } from "@/utils/platform.utils";
 
-const REMOTE_DOCUMENT_CACHE_CONTROL =
-  "private, no-store, max-age=0, must-revalidate";
 const REMOTE_PROXY_BLOCKED_HEADERS = new Set([
   "cookie",
   "host",
@@ -51,6 +53,7 @@ const REMOTE_PROXY_BLOCKED_HEADERS = new Set([
   "x-forwarded-for",
   "x-forwarded-proto",
 ]);
+const REMOTE_CONNECTION_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
 
 function requireRemoteShareUrl(
   c: Context<{ Bindings: Env }>,
@@ -65,57 +68,6 @@ function requireRemoteShareUrl(
       "NextClaw Web base URL is not configured.",
     )
   );
-}
-
-function isHtmlNavigationRequest(c: Context<{ Bindings: Env }>): boolean {
-  const dest = c.req.header("sec-fetch-dest")?.trim().toLowerCase();
-  const mode = c.req.header("sec-fetch-mode")?.trim().toLowerCase();
-  return c.req.method === "GET" && (dest === "document" || mode === "navigate");
-}
-
-function withVaryCookie(source: Headers): Headers {
-  const headers = new Headers(source);
-  if (
-    !(headers.get("vary") ?? "")
-      .split(",")
-      .some((value) => value.trim().toLowerCase() === "cookie")
-  ) {
-    headers.append("Vary", "Cookie");
-  }
-  return headers;
-}
-
-function applyRemoteDocumentCachePolicy(
-  c: Context<{ Bindings: Env }>,
-  response: Response,
-): Response {
-  const headers = new Headers(response.headers);
-  const contentType = headers.get("content-type")?.toLowerCase() ?? "";
-  if (!isHtmlNavigationRequest(c) && !contentType.includes("text/html")) {
-    return response;
-  }
-  headers.set("Cache-Control", REMOTE_DOCUMENT_CACHE_CONTROL);
-  return new Response(response.body, {
-    status: response.status,
-    headers: withVaryCookie(headers),
-  });
-}
-
-async function maybeRenderRemoteAccessErrorPage(
-  c: Context<{ Bindings: Env }>,
-  response: Response,
-): Promise<Response> {
-  if (!isHtmlNavigationRequest(c)) {
-    return response;
-  }
-  const message =
-    (await response.text()).trim() || "Remote access unavailable.";
-  const webBaseUrl = optionalTrimmedString(c.env.NEXTCLAW_WEB_BASE_URL ?? "");
-  return renderRemoteAccessErrorPage({
-    status: response.status,
-    message,
-    webBaseUrl,
-  });
 }
 
 async function requireOwnedRemoteInstance(c: Context<{ Bindings: Env }>) {
@@ -401,7 +353,7 @@ export async function openRemoteSessionRedirectHandler(
     );
   }
 
-  const headers = withVaryCookie(
+  const headers = withRemoteVaryCookie(
     new Headers({
       "Set-Cookie": buildCookie({
         name: REMOTE_SESSION_COOKIE,
@@ -456,9 +408,14 @@ export async function remoteConnectorWebSocketHandler(
     c.env.NEXTCLAW_REMOTE_RELAY.idFromName(instance.id),
   );
   const headers = new Headers(c.req.raw.headers);
+  const requestedConnectionId = c.req.query("connectionId")?.trim() ?? "";
+  const connectionId = REMOTE_CONNECTION_ID_PATTERN.test(requestedConnectionId)
+    ? requestedConnectionId
+    : crypto.randomUUID();
   headers.set("x-nextclaw-remote-role", "connector");
   headers.set("x-nextclaw-remote-device-id", instance.id);
   headers.set("x-nextclaw-remote-user-id", auth.user.id);
+  headers.set("x-nextclaw-remote-connection-id", connectionId);
   return stub.fetch(new Request(c.req.raw, { headers }));
 }
 
@@ -530,10 +487,7 @@ export async function remoteProxyHandler(
 
   const resolved = await new RemoteProxyAccessService(c).resolve();
   if (resolved instanceof Response) {
-    return applyRemoteDocumentCachePolicy(
-      c,
-      await maybeRenderRemoteAccessErrorPage(c, resolved),
-    );
+    return presentRemoteAccessResponse(c, resolved);
   }
   const quotaResponse = await new RemoteControllerQuotaSupportService(
     c.env,
@@ -565,11 +519,9 @@ export async function remoteProxyHandler(
       bodyBase64: rawBody ? encodeBase64(rawBody) : "",
     }),
   });
-  return applyRemoteDocumentCachePolicy(
-    c,
-    new Response(response.body, {
-      status: response.status,
-      headers: sanitizeResponseHeaders(response.headers),
-    }),
-  );
+  const forwardedResponse = new Response(response.body, {
+    status: response.status,
+    headers: sanitizeResponseHeaders(response.headers),
+  });
+  return presentRemoteAccessResponse(c, forwardedResponse);
 }

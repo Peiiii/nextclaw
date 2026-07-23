@@ -36,8 +36,10 @@ test("browser quota lease survives burst ordering and relay durable object react
       type: "connector",
       deviceId: "instance-a",
       userId: "user-a",
+      connectionId: "connection-a",
       connectedAt: new Date(0).toISOString(),
-      unsettledQuotaMessages: 0
+      unsettledQuotaMessages: 0,
+      closeHandled: false
     }),
     send: (value) => {
       forwardedFrames.push(JSON.parse(value));
@@ -100,4 +102,126 @@ test("browser quota lease survives burst ordering and relay durable object react
     { length: 11 },
     (_value, index) => `request-${index}`
   ));
+});
+
+test("connector heartbeats receive acknowledgements without consuming business quota", async () => {
+  const sentFrames = [];
+  const quotaRequests = [];
+  let attachment = {
+    type: "connector",
+    deviceId: "instance-a",
+    userId: "user-a",
+    connectionId: "connection-a",
+    connectedAt: new Date(0).toISOString(),
+    unsettledQuotaMessages: 0,
+    closeHandled: false
+  };
+  const connectorSocket = {
+    readyState: WebSocket.OPEN,
+    deserializeAttachment: () => attachment,
+    serializeAttachment: (value) => {
+      attachment = value;
+    },
+    send: (value) => {
+      sentFrames.push(JSON.parse(value));
+    }
+  };
+  const state = {
+    getWebSockets: (tag) => tag === "connector" ? [connectorSocket] : [],
+    blockConcurrencyWhile: (callback) => callback()
+  };
+  const env = {
+    REMOTE_QUOTA_WS_USAGE_REPORT_SIZE: "1",
+    NEXTCLAW_REMOTE_QUOTA: {
+      idFromName: (name) => name,
+      get: () => ({
+        fetch: async (_url, init) => {
+          quotaRequests.push(init);
+          return new Response(null, { status: 204 });
+        }
+      })
+    }
+  };
+  const relay = new NextclawRemoteRelayDurableObject(state, env);
+
+  await relay.webSocketMessage(connectorSocket, JSON.stringify({
+    type: "connector.ping",
+    connectionId: "connection-a",
+    heartbeatId: "heartbeat-a",
+    sentAt: "2026-07-23T00:00:00.000Z"
+  }));
+
+  assert.equal(quotaRequests.length, 0);
+  assert.equal(attachment.unsettledQuotaMessages, 0);
+  assert.deepEqual(sentFrames[0], {
+    type: "connector.pong",
+    connectionId: "connection-a",
+    heartbeatId: "heartbeat-a",
+    sentAt: "2026-07-23T00:00:00.000Z",
+    serverAt: sentFrames[0].serverAt
+  });
+  assert.equal(Number.isNaN(Date.parse(sentFrames[0].serverAt)), false);
+});
+
+test("connector close metadata is logged once and marks the device offline", async () => {
+  const updates = [];
+  const warnings = [];
+  let attachment = {
+    type: "connector",
+    deviceId: "instance-a",
+    userId: "user-a",
+    connectionId: "connection-a",
+    connectedAt: "2026-07-23T00:00:00.000Z",
+    unsettledQuotaMessages: 0,
+    closeHandled: false
+  };
+  const connectorSocket = {
+    readyState: WebSocket.CLOSED,
+    deserializeAttachment: () => attachment,
+    serializeAttachment: (value) => {
+      attachment = value;
+    }
+  };
+  const state = {
+    getWebSockets: (tag) => tag === "connector" ? [connectorSocket] : [],
+    blockConcurrencyWhile: (callback) => callback()
+  };
+  const env = {
+    NEXTCLAW_PLATFORM_DB: {
+      prepare: () => {
+        let bindings = [];
+        return {
+          bind: (...values) => {
+            bindings = values;
+            return {
+              run: async () => {
+                updates.push(bindings);
+              }
+            };
+          }
+        };
+      }
+    }
+  };
+  const originalWarn = console.warn;
+  console.warn = (message, context) => {
+    warnings.push({ message, context });
+  };
+  try {
+    const relay = new NextclawRemoteRelayDurableObject(state, env);
+    await relay.webSocketClose(connectorSocket, 1006, "", false);
+    await relay.webSocketError(connectorSocket, new Error("duplicate event"));
+  } finally {
+    console.warn = originalWarn;
+  }
+
+  assert.equal(attachment.closeHandled, true);
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0][0], "offline");
+  assert.equal(updates[0][3], "instance-a");
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].context.event, "remote.connector.disconnected");
+  assert.equal(warnings[0].context.connectionId, "connection-a");
+  assert.equal(warnings[0].context.closeCode, 1006);
+  assert.equal(warnings[0].context.wasClean, false);
 });

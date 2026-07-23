@@ -45,6 +45,7 @@ function toRemoteRuntimeView(runtime: ReturnType<RemoteCommands["getStatusView"]
     localOrigin: runtime.localOrigin,
     lastConnectedAt: runtime.lastConnectedAt,
     lastError: runtime.lastError,
+    connection: runtime.connection,
     updatedAt: runtime.updatedAt
   };
 }
