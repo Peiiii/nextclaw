@@ -20,6 +20,7 @@
 - 离线页面：connector offline 页面包含 incident ID、`Retry-After`、手动重试和自动刷新；session expired 页面没有自动刷新。
 - Gateway Remote 回归：remote panel、实例列表、域名占用测试通过。
 - 真实本地 Relay smoke：`pnpm smoke:remote-relay` 通过，覆盖实例复用、不同端口拆分、默认/自定义双域名、占用去重、心跳空闲、owner 打开、分享撤销、释放自定义域名后默认域名保留，以及 connector 停止后的 offline 转换。
+- 生产安装态双域名浏览器验收：随机域名 `nc-82bcca90a43a43c184d9730a3dc1a9e5.claw.cool` 与自定义域名 `peiiii.claw.cool` 均经真实 owner session、Cookie 和 Worker relay 返回 200，渲染 Chat 页面，无 offline 文案、页面异常或失败请求，并各自保持一条未关闭的 `/_remote/ws`。
 - 治理：`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet` 和 feature maintainability guard 通过。
 
 ## 发布/部署方式
@@ -27,11 +28,12 @@
 - Gateway Worker：当前源码已部署到生产，Cloudflare Worker version ID 为 `f2af7613-7f2c-4161-a1b0-afb91bcefe07`。
 - 生产关联验证：当前源码运行实例连接生产 Relay 后，本机状态记录 `connectionId=df8ad9ca-434f-4899-aa3a-e1409e41b948`，Cloudflare tail 记录同一 connection ID 的 connected/disconnected 事件，并包含关闭码、clean 标记、连接持续时间和浏览器连接数。
 - 生产心跳验证：新 connector 与新 Relay 完成真实 ping/pong，`heartbeatSupported=true`，观测到的两次心跳延迟分别为 `406ms` 与 `192ms`，断线累计为 0。
-- NPM：已生成 `nextclaw@0.27.3` full public workspace stable patch 批次；严格 release check 覆盖 49 个公开包的 build、tsc 和 lint 并通过，registry、stable runtime 与本机升级证据在发布完成后回填。
-- 产品更新说明：已生成中英文 v0.27.3 文档页和结构化 JSON。配图不适用，本次主结论是连接稳定性与诊断链路，没有能直接增加理解价值的视觉变化。
+- NPM：`nextclaw@0.27.3` full public workspace stable patch 批次已完成，49 个公开包全部发布；严格 release check 覆盖全部包的 build、tsc 和 lint 并通过。
+- Stable runtime：GitHub Release、四个平台资产与 stable manifest 已发布；从隔离目录中的公开 `nextclaw@0.27.2` 成功完成 check、download、apply 和新进程 `0.27.3` 的真实升级。
+- 产品更新说明：中英文 v0.27.3 文档页和结构化 JSON 已部署，全球 Cloudflare、国内 OSS/CDN 与跨域验证均通过。配图不适用，本次主结论是连接稳定性与诊断链路，没有能直接增加理解价值的视觉变化。
 - 数据库 migration 不适用：本次不新增事件表，不把 `remote_devices` 扩成日志仓库。
 - Desktop installer 不适用：本次目标是 Gateway Worker、NPM runtime 与 stable update channel。
-- 本机安装态需要在公开版本发布后更新并重启，再验证 CLI/Remote doctor、心跳确认和两个固定域名。
+- 本机安装态已更新并重启到公开 `nextclaw@0.27.3`，当前进程 PID `71562` 直接运行全局安装包 `dist/cli/app/index.js`；`remote doctor` 六项通过，连接 `a7fd8a0e-f025-4104-b9d7-2bfd24a3cc75` 的心跳往返延迟为 `188ms`，重启后断线累计为 0。
 
 ## 用户/产品视角的验收步骤
 
@@ -52,4 +54,9 @@
 
 ## NPM 包发布记录
 
-- 待 full public workspace stable patch 发布完成后回填版本、registry、tag、stable runtime、公开升级和本机更新重启证据。
+- 功能提交：`6b84324a7 feat(remote): add connection observability and offline recovery`；发布提交：`ed249cc69 chore(release): publish stable npm 0.27.3`。
+- NPM registry：49/49 个 public workspace 包已发布，`nextclaw@0.27.3` 的 `latest` dist-tag 为 `0.27.3`；公开包内容包含 launcher、app runtime 和 update bundle 公钥，关键直接依赖已锁定到本批次版本。
+- Stable runtime workflow：<https://github.com/Peiiii/nextclaw/actions/runs/30006771687>；GitHub Release：<https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.27.3>；四个平台资产与 darwin-arm64 stable manifest 均已核验。
+- 产品更新说明 workflow：<https://github.com/Peiiii/nextclaw/actions/runs/30007097844>；中文页 <https://docs.nextclaw.io/zh/notes/2026-07-23-nextclaw-v0-27-3>、英文页 <https://docs.nextclaw.io/en/notes/2026-07-23-nextclaw-v0-27-3> 和结构化 JSON 均返回 200。
+- 公开升级：隔离安装 `nextclaw@0.27.2` 未注入自定义 manifest 或公钥，通过 stable channel 检出、下载并应用 `0.27.3`，新进程报告版本 `0.27.3`。
+- 本机更新：全局 NPM 包、CLI 与实际宿主进程均为 `0.27.3`；重启后 Remote 实例在线、心跳已确认、doctor 六项通过，系统随机域名与自定义域名的真实浏览器链路均通过。
