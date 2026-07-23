@@ -19,13 +19,18 @@
 - `NEXTCLAW_RELEASE_CHECK_RESET=1 pnpm release:check:strict`：从空 checkpoint 完成 49 个公开包的 build、TypeScript 与 lint，0 个阻断错误；输出中的 lint 项均为既有 warning。
 - `pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet` 与 scoped maintainability guard：通过。
 - `pnpm -C apps/docs build` 与结构化发布说明 JSON 解析：通过。
-- `packages/nextclaw/resources/update-bundle-public.pem` 已存在且非空；registry、tag、stable runtime 与公开升级验证将在发布后回填。
+- `packages/nextclaw/resources/update-bundle-public.pem` 已存在且非空；`nextclaw@0.27.4` 发布 tarball 的 prepack 合同检查通过，并包含该公钥与本次构建的 UI 制品。
+- NPM registry 已确认 49/49 包版本可见，`nextclaw@latest` 为 `0.27.4`；49 个 annotated tag 已推送。
+- stable runtime workflow [30016749618](https://github.com/Peiiii/nextclaw/actions/runs/30016749618) 四个平台全部成功，GitHub Release 与公开 manifest 验证通过。
+- 公网安装与升级：全新安装的 CLI 报告 `0.27.4`；隔离安装的 `0.27.3` 检查到 `0.27.4`，完成签名 bundle 下载与应用后报告 `currentVersion: 0.27.4`。
+- Docs Deploy [30016482460](https://github.com/Peiiii/nextclaw/actions/runs/30016482460) 成功，中英文发布说明与结构化 JSON 均返回 HTTP 200。
+- 自动触发的 Windows NPM 冒烟首次遇到 registry 传播竞态；49/49 可见后重跑已成功安装 CLI，但 workflow 仍调用已移除的 `nextclaw update --timeout` 参数而失败。这是既有 workflow 合同漂移，不是 `0.27.4` 安装或 stable manifest 失败。
 
 ## 发布/部署方式
 
 - NPM：使用仓库标准 `pnpm release:publish` 发布 49 个公开包，不使用 raw `npm publish`。
-- Runtime update：发布 `0.27.4` stable runtime channel，并等待四平台 workflow 完成。
-- Docs：发布中英文更新说明与结构化 JSON，验证公开站点产物。
+- Runtime update：已发布 `0.27.4` stable runtime channel；[GitHub Release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.27.4) 与四平台公开 manifest 已验证。
+- Docs：已发布[中文更新说明](https://docs.nextclaw.io/zh/notes/2026-07-23-nextclaw-v0-27-4)、[英文更新说明](https://docs.nextclaw.io/en/notes/2026-07-23-nextclaw-v0-27-4)和结构化 JSON，公开请求均为 HTTP 200。
 - Desktop installer / manifest：不适用，本次不发布新的桌面安装包。
 - 数据库 migration / 独立后端部署：不适用，本次没有数据库或独立后端变更。
 - 当前用户运行中的 NextClaw 服务：不主动重启，避免中断正在进行的会话。
@@ -49,5 +54,6 @@
 - 发布批次：49 个公开包 full public workspace patch。
 - 主包：`nextclaw@0.27.4`。
 - 关键包：`@nextclaw/ui@0.15.17`、`@nextclaw/server@0.15.17`。
-- 当前状态：版本化与严格发布检查已通过；registry publish、tag、stable runtime、文档上线与公开升级验证待发布后回填。
+- 当前状态：registry publish、`latest`、49 个 tag、stable runtime、GitHub Release、公开 manifest、Docs Deploy、全新安装和 `0.27.3 -> 0.27.4` 隔离升级验证全部闭合。
 - `@nextclaw/desktop` 是 private workspace package，只同步内部版本元数据，不进入 NPM publish。
+- Desktop installer / manifest 未发布；自动 `desktop-validate` 的 Linux runtime 初始化与 Windows 临时路径短名断言失败不属于本次 NPM patch 发布面。
