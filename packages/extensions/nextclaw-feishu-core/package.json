@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/feishu-core",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "private": false,
   "description": "Feishu platform core for NextClaw.",
   "type": "module",

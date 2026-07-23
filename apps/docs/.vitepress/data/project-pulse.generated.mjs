@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-07-23T12:15:46.695Z",
+  "generatedAt": "2026-07-23T14:29:11.873Z",
   "hero": {
     "currentLoc": 215671,
     "testLoc": 77014,
     "trackedFiles": 2331,
-    "recentCommitCount": 328,
+    "recentCommitCount": 334,
     "activeDays30": 30,
     "recentReleaseCount": 49,
     "latestReleaseDate": "2026-07-23",
@@ -1138,7 +1138,7 @@ export default {
       {
         "key": "2026-07-23",
         "label": "07-23",
-        "value": 10
+        "value": 16
       }
     ],
     "commitWeekly": [
@@ -1200,7 +1200,7 @@ export default {
       {
         "key": "2026-07-20",
         "label": "07-20",
-        "value": 33
+        "value": 39
       }
     ],
     "releaseMonthly": [
@@ -1334,7 +1334,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-07-23",
-        "tagCount": 49,
+        "tagCount": 98,
         "sampleTags": [
           "@nextclaw/aigen@0.2.9",
           "@nextclaw/browser-connector@0.3.9",
@@ -1389,6 +1389,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-23-nextclaw-v0-27-4",
+        "date": "2026-07-23",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-23 · NextClaw v0.27.4",
+          "description": "NextClaw v0.27.4 fixes streaming scroll escape and improves mobile app access and targeted file previews.",
+          "href": "/en/notes/2026-07-23-nextclaw-v0-27-4"
+        },
+        "zh": {
+          "title": "2026-07-23 · NextClaw v0.27.4",
+          "description": "NextClaw v0.27.4 修复流式阅读位置，并改进移动端应用入口与定点文件预览。",
+          "href": "/zh/notes/2026-07-23-nextclaw-v0-27-4"
+        }
+      },
       {
         "slug": "2026-07-23-nextclaw-v0-27-3",
         "date": "2026-07-23",
@@ -1894,7 +1913,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-23T05:34:12.513Z",
     "sourceCount": {
-      "notes": 22,
+      "notes": 23,
       "scopes": 8
     }
   }

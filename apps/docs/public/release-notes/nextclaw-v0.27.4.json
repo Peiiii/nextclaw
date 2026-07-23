@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.4",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-23",
+  "title": {
+    "zh-CN": "NextClaw v0.27.4",
+    "en-US": "NextClaw v0.27.4"
+  },
+  "summary": {
+    "zh-CN": "流式阅读位置更加稳定，移动端应用入口与定点文件预览也更顺手。",
+    "en-US": "Streaming reading positions are more stable, with easier mobile app access and complete targeted file previews."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-23-nextclaw-v0-27-4",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-23-nextclaw-v0-27-4"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "移动端应用入口",
+            "en-US": "Mobile Apps entry"
+          },
+          "body": {
+            "zh-CN": "移动端底部导航可以直接浏览并打开面板应用。",
+            "en-US": "Mobile bottom navigation can now browse and open panel apps directly."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "流式回复不再抢回滚动位置",
+            "en-US": "Streaming replies no longer reclaim scroll position"
+          },
+          "body": {
+            "zh-CN": "向上滚动超过 10px 后会持续保持当前位置，消息继续增高也不会重新拉回底部。",
+            "en-US": "After scrolling more than 10 px upward, the reading position remains escaped as the message grows."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "定点文件预览保留完整内容",
+            "en-US": "Complete targeted file previews"
+          },
+          "body": {
+            "zh-CN": "带行号打开未超过上限的文本或 Markdown 文件时，会显示完整文件并定位到目标行。",
+            "en-US": "Opening a text or Markdown file at a specific line keeps the complete file when it is below the preview limit."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级，不需要迁移配置、会话或文件。",
+            "en-US": "Existing npm installations can update through the stable channel without migrating configuration, sessions, or files."
+          }
+        }
+      ]
+    }
+  ]
+}

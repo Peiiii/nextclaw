@@ -1,5 +1,21 @@
 # @nextclaw/ui
 
+## 0.15.17
+
+### Patch Changes
+
+- d924f27: 修复流式消息动态增高时重新夺回滚动位置的问题；向上滚动超过 10px 后会持续保持逃逸状态。
+- af2b22b: 在移动端底部导航增加“应用”入口，可以直接浏览并打开面板应用。
+- Updated dependencies
+  - @nextclaw/agent-chat@0.3.11
+  - @nextclaw/agent-chat-ui@0.6.17
+  - @nextclaw/client-sdk@0.5.17
+  - @nextclaw/ncp@0.7.13
+  - @nextclaw/ncp-http-agent-client@0.4.13
+  - @nextclaw/ncp-react@0.5.15
+  - @nextclaw/ncp-toolkit@0.6.14
+  - @nextclaw/shared@0.4.14
+
 ## 0.15.16
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # nextclaw-server
 
+## 0.15.17
+
+### Patch Changes
+
+- 9ec5ea2: 修复带行号打开小型文本或 Markdown 文件时被错误裁成局部内容的问题；未超过预览上限的文件现在会完整展示并继续定位到目标行。
+- Updated dependencies
+  - @nextclaw/core@0.15.15
+  - @nextclaw/kernel@0.6.17
+  - @nextclaw/mcp@0.3.15
+  - @nextclaw/ncp@0.7.13
+  - @nextclaw/runtime@0.4.15
+
 ## 0.15.16
 
 ### Patch Changes
