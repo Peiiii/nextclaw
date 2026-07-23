@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.3",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-23",
+  "title": {
+    "zh-CN": "NextClaw v0.27.3",
+    "en-US": "NextClaw v0.27.3"
+  },
+  "summary": {
+    "zh-CN": "Remote 断线现在可追踪，短暂的连接器离线也会自动重试。",
+    "en-US": "Remote disconnects are now traceable, and temporary connector outages retry automatically."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-23-nextclaw-v0-27-3",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-23-nextclaw-v0-27-3"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "连接诊断持续保留",
+            "en-US": "Persistent connection diagnostics"
+          },
+          "body": {
+            "zh-CN": "Remote 状态会显示连接标识、心跳、断线、重连和最近一次恢复结果，连接恢复后异常证据仍可查询。",
+            "en-US": "Remote status reports connection identity, heartbeat, disconnect, reconnect, and recovery data while retaining incident evidence after recovery."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "本机与 Relay 日志可以关联",
+            "en-US": "Correlated local and Relay logs"
+          },
+          "body": {
+            "zh-CN": "同一个连接标识会贯穿本机与云端事件，并记录关闭码、持续时间和心跳结果。",
+            "en-US": "A shared connection identifier links local and cloud events with close codes, connection duration, and heartbeat results."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "短暂离线自动恢复",
+            "en-US": "Automatic recovery from temporary outages"
+          },
+          "body": {
+            "zh-CN": "连接器短暂离线时，域名页面会显示事件标识并自动重试；会话失效仍会明确要求重新登录。",
+            "en-US": "Temporary connector outages show an incident identifier and retry automatically, while invalid sessions still require sign-in."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级，Remote 实例和两个域名都会保持不变。",
+            "en-US": "Existing npm installations can update through the stable channel while Remote instances and both domains remain unchanged."
+          }
+        }
+      ]
+    }
+  ]
+}

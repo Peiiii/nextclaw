@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-narp-stdio-runtime-wrapper",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "private": false,
   "description": "Wraps an NCP agent runtime as a NARP stdio ACP agent.",
   "type": "module",

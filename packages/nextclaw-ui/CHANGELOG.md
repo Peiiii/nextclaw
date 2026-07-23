@@ -1,5 +1,20 @@
 # @nextclaw/ui
 
+## 0.15.16
+
+### Patch Changes
+
+- 6b84324: Remote access now keeps disconnect and recovery diagnostics, correlates local and relay connection events, detects heartbeat loss, and automatically retries temporary connector-offline pages.
+- Updated dependencies
+  - @nextclaw/agent-chat@0.3.10
+  - @nextclaw/agent-chat-ui@0.6.16
+  - @nextclaw/client-sdk@0.5.16
+  - @nextclaw/ncp@0.7.12
+  - @nextclaw/ncp-http-agent-client@0.4.12
+  - @nextclaw/ncp-react@0.5.14
+  - @nextclaw/ncp-toolkit@0.6.13
+  - @nextclaw/shared@0.4.13
+
 ## 0.15.15
 
 ### Patch Changes

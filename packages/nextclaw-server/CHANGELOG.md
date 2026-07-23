@@ -1,5 +1,17 @@
 # nextclaw-server
 
+## 0.15.16
+
+### Patch Changes
+
+- 6b84324: Remote access now keeps disconnect and recovery diagnostics, correlates local and relay connection events, detects heartbeat loss, and automatically retries temporary connector-offline pages.
+- Updated dependencies
+  - @nextclaw/core@0.15.14
+  - @nextclaw/kernel@0.6.16
+  - @nextclaw/mcp@0.3.14
+  - @nextclaw/ncp@0.7.12
+  - @nextclaw/runtime@0.4.14
+
 ## 0.15.15
 
 ### Patch Changes

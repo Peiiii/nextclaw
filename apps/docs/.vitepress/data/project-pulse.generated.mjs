@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-07-23T05:34:14.306Z",
+  "generatedAt": "2026-07-23T12:15:46.695Z",
   "hero": {
     "currentLoc": 215671,
     "testLoc": 77014,
     "trackedFiles": 2331,
-    "recentCommitCount": 326,
+    "recentCommitCount": 328,
     "activeDays30": 30,
     "recentReleaseCount": 49,
     "latestReleaseDate": "2026-07-23",
@@ -1138,7 +1138,7 @@ export default {
       {
         "key": "2026-07-23",
         "label": "07-23",
-        "value": 8
+        "value": 10
       }
     ],
     "commitWeekly": [
@@ -1200,7 +1200,7 @@ export default {
       {
         "key": "2026-07-20",
         "label": "07-20",
-        "value": 31
+        "value": 33
       }
     ],
     "releaseMonthly": [
@@ -1389,6 +1389,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-23-nextclaw-v0-27-3",
+        "date": "2026-07-23",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-23 · NextClaw v0.27.3",
+          "description": "NextClaw v0.27.3 makes Remote disconnects traceable and retries temporary connector outages automatically.",
+          "href": "/en/notes/2026-07-23-nextclaw-v0-27-3"
+        },
+        "zh": {
+          "title": "2026-07-23 · NextClaw v0.27.3",
+          "description": "NextClaw v0.27.3 让 Remote 断线可追踪，并自动重试短暂的连接器离线。",
+          "href": "/zh/notes/2026-07-23-nextclaw-v0-27-3"
+        }
+      },
       {
         "slug": "2026-07-23-nextclaw-v0-27-2",
         "date": "2026-07-23",
@@ -1875,7 +1894,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-07-23T05:34:12.513Z",
     "sourceCount": {
-      "notes": 21,
+      "notes": 22,
       "scopes": 8
     }
   }

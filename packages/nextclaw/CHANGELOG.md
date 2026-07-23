@@ -1,5 +1,27 @@
 # nextclaw
 
+## 0.27.3
+
+### Patch Changes
+
+- 6b84324: Remote access now keeps disconnect and recovery diagnostics, correlates local and relay connection events, detects heartbeat loss, and automatically retries temporary connector-offline pages.
+- Updated dependencies
+- Updated dependencies [6b84324]
+  - @nextclaw/core@0.15.14
+  - @nextclaw/kernel@0.6.16
+  - @nextclaw/mcp@0.3.14
+  - @nextclaw/ncp@0.7.12
+  - @nextclaw/ncp-agent-runtime@0.4.12
+  - @nextclaw/ncp-mcp@0.2.14
+  - @nextclaw/ncp-toolkit@0.6.13
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.12
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.12
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.15
+  - @nextclaw/runtime@0.4.14
+  - @nextclaw/remote@0.3.16
+  - @nextclaw/service@0.3.16
+  - @nextclaw/server@0.15.16
+
 ## 0.27.2
 
 ### Patch Changes

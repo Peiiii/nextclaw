@@ -24,8 +24,11 @@
 
 ## 发布/部署方式
 
-- Gateway Worker：需要部署当前源码，并用真实 connector 验证同一 connection ID 出现在本机与 Cloudflare 两端、心跳确认生效、临时 offline 响应带 incident ID。
-- NPM：已添加 `nextclaw`、`@nextclaw/remote`、`@nextclaw/service`、`@nextclaw/server`、`@nextclaw/ui` patch changeset；需要进入下一次 full public workspace stable patch batch。
+- Gateway Worker：当前源码已部署到生产，Cloudflare Worker version ID 为 `f2af7613-7f2c-4161-a1b0-afb91bcefe07`。
+- 生产关联验证：当前源码运行实例连接生产 Relay 后，本机状态记录 `connectionId=df8ad9ca-434f-4899-aa3a-e1409e41b948`，Cloudflare tail 记录同一 connection ID 的 connected/disconnected 事件，并包含关闭码、clean 标记、连接持续时间和浏览器连接数。
+- 生产心跳验证：新 connector 与新 Relay 完成真实 ping/pong，`heartbeatSupported=true`，观测到的两次心跳延迟分别为 `406ms` 与 `192ms`，断线累计为 0。
+- NPM：已生成 `nextclaw@0.27.3` full public workspace stable patch 批次；严格 release check 覆盖 49 个公开包的 build、tsc 和 lint 并通过，registry、stable runtime 与本机升级证据在发布完成后回填。
+- 产品更新说明：已生成中英文 v0.27.3 文档页和结构化 JSON。配图不适用，本次主结论是连接稳定性与诊断链路，没有能直接增加理解价值的视觉变化。
 - 数据库 migration 不适用：本次不新增事件表，不把 `remote_devices` 扩成日志仓库。
 - Desktop installer 不适用：本次目标是 Gateway Worker、NPM runtime 与 stable update channel。
 - 本机安装态需要在公开版本发布后更新并重启，再验证 CLI/Remote doctor、心跳确认和两个固定域名。
