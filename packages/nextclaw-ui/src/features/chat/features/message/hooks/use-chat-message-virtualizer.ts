@@ -53,7 +53,7 @@ export function useChatMessageVirtualizer(params: {
     },
   });
   virtualizer.shouldAdjustScrollPositionOnItemSizeChange = (item) =>
-    item.start < (virtualizer.scrollOffset ?? 0);
+    item.end <= (virtualizer.scrollOffset ?? 0);
   const containerRef = useCallback(
     (node: HTMLDivElement | null) => {
       sizeContainerRef.current = node;
