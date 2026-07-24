@@ -68,6 +68,34 @@ describe('useSessionConversationSlashCommands', () => {
     ));
   });
 
+  it('reports visible compaction state for the lifetime of the request', async () => {
+    let resolveRequest!: () => void;
+    mocks.compactNcpSessionContext.mockReturnValue(new Promise((resolve) => {
+      resolveRequest = () => resolve({
+        compacted: true,
+        sessionId: 'session-1',
+      });
+    }));
+    const onContextCompactingChange = vi.fn();
+    const { result } = renderHook(() => useSessionConversationSlashCommands({
+      language: 'en',
+      selectedSessionKey: 'session-1',
+      onContextCompactingChange,
+    }));
+
+    act(() => result.current.find((entry) => entry.key === 'compact-context')?.onSelect());
+
+    expect(onContextCompactingChange).toHaveBeenCalledWith('session-1', true);
+    expect(onContextCompactingChange).not.toHaveBeenCalledWith('session-1', false);
+
+    act(() => resolveRequest());
+
+    await waitFor(() => expect(onContextCompactingChange).toHaveBeenLastCalledWith(
+      'session-1',
+      false,
+    ));
+  });
+
   it('does not expose session commands before a session exists', () => {
     const { result } = renderHook(() => useSessionConversationSlashCommands({
       language: 'en',

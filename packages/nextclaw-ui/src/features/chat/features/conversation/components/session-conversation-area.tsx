@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
@@ -200,6 +200,23 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     inputSnapshot,
     setPendingSessionType: inputActions.setPendingSessionType,
   });
+  const [compactingSessionIds, setCompactingSessionIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const handleContextCompactingChange = useCallback(
+    (compactingSessionId: string, isCompacting: boolean) => {
+      setCompactingSessionIds((current) => {
+        const next = new Set(current);
+        if (isCompacting) {
+          next.add(compactingSessionId);
+        } else {
+          next.delete(compactingSessionId);
+        }
+        return next;
+      });
+    },
+    [],
+  );
   useEffect(() => {
     inputActions.syncSessionPreferences({
       defaultModel: inputQuery.defaultModel,
@@ -336,6 +353,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         inputActions={inputActions}
         inputQuery={inputQuery}
         inputSnapshot={displayInputSnapshot}
+        onContextCompactingChange={handleContextCompactingChange}
         surface={surface}
       />
     ),
@@ -345,6 +363,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       inputController,
       inputActions,
       inputQuery,
+      handleContextCompactingChange,
     ],
   );
   const showWelcome =
@@ -365,6 +384,9 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         isHistoryLoading={agent.isHydrating}
         isLoadingPreviousMessages={agent.isLoadingPreviousMessages}
         isSending={controller.isSending}
+        isContextCompacting={Boolean(
+          sessionKey && compactingSessionIds.has(sessionKey),
+        )}
         bottomSlot={sessionFailureSlot}
         messages={agent.visibleMessages}
         sessionKey={sessionKey}

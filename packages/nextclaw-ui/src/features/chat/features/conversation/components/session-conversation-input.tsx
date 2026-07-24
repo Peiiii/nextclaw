@@ -192,6 +192,7 @@ type SessionConversationInputProps = {
   readonly inputActions: SessionConversationInputActions;
   readonly inputQuery: SessionConversationInputQuery;
   readonly inputSnapshot: SessionConversationInputSnapshot;
+  readonly onContextCompactingChange?: (sessionId: string, isCompacting: boolean) => void;
   readonly surface?: 'default' | 'embedded';
 };
 
@@ -202,6 +203,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     inputActions,
     inputQuery,
     inputSnapshot,
+    onContextCompactingChange,
     surface = 'default',
   } = props;
   const presenter = usePresenter();
@@ -225,6 +227,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   });
   const slashCommands = useSessionConversationSlashCommands({
     language,
+    onContextCompactingChange,
     selectedSessionKey: inputQuery.selectedSessionKey,
   });
   const handleSlashPanelAppSelect = useCallback(

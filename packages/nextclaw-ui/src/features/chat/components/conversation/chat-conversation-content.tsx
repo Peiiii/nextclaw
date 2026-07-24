@@ -7,7 +7,10 @@ import {
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { ArrowDown } from "lucide-react";
-import { ChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
+import {
+  ChatContextCompactionDivider,
+  ChatMessageListContainer,
+} from "@/features/chat/features/message/components/chat-message-list.container";
 import { ChatConversationTrack } from "@/features/chat/components/conversation/chat-conversation-track";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { t } from "@/shared/lib/i18n";
@@ -19,6 +22,7 @@ type ChatConversationContentProps = {
   hasPreviousMessages: boolean;
   historyError: Error | null;
   isLoadingPreviousMessages: boolean;
+  isContextCompacting?: boolean;
   isSending: boolean;
   messages: readonly NcpMessage[];
   sessionKey: string | null;
@@ -34,6 +38,7 @@ export function ChatConversationContent({
   hasPreviousMessages,
   historyError,
   isLoadingPreviousMessages,
+  isContextCompacting = false,
   isSending,
   messages,
   sessionKey,
@@ -110,6 +115,7 @@ export function ChatConversationContent({
                   scrollRef={threadRef}
                   sessionKey={sessionKey}
                 />
+                {isContextCompacting ? <ChatContextCompactionDivider /> : null}
               </ChatConversationTrack>
             ) : null}
             {bottomSlot ? (

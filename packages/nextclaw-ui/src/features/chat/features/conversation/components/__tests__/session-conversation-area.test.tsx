@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
@@ -138,17 +138,20 @@ vi.mock(
   () => ({
     ChatConversationContent: ({
       bottomSlot,
+      isContextCompacting,
       messages,
       showWelcome,
       welcomeSlot,
     }: {
       bottomSlot?: ReactNode;
+      isContextCompacting?: boolean;
       messages: readonly unknown[];
       showWelcome: boolean;
       welcomeSlot?: ReactNode;
     }) => (
       <div
         data-testid="conversation-content"
+        data-context-compacting={String(Boolean(isContextCompacting))}
         data-show-welcome={String(showWelcome)}
       >
         {showWelcome ? (
@@ -295,6 +298,23 @@ describe("SessionConversationArea input boundary", () => {
 
     expect(screen.getByTestId("message-count").textContent).toBe("1");
     expect(mocks.inputRenderSpy).toHaveBeenCalledOnce();
+  });
+
+  it("shows compaction feedback only for the active session", () => {
+    renderArea("session-1");
+    const inputProps = mocks.inputRenderSpy.mock.calls[0]?.[0] as {
+      onContextCompactingChange: (sessionId: string, isCompacting: boolean) => void;
+    };
+
+    act(() => inputProps.onContextCompactingChange("session-1", true));
+
+    expect(screen.getByTestId("conversation-content").dataset.contextCompacting)
+      .toBe("true");
+
+    act(() => inputProps.onContextCompactingChange("session-1", false));
+
+    expect(screen.getByTestId("conversation-content").dataset.contextCompacting)
+      .toBe("false");
   });
 
   it("does not replace the welcome composer just because draft send starts", () => {

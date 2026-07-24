@@ -7,6 +7,7 @@
 可观察验收条件：
 
 - 已选择真实会话时，输入 `/` 可以找到“压缩上下文”命令；
+- 命令请求未结束时，当前会话消息时间线立即显示“正在压缩上下文”，完成或失败后移除该瞬态反馈；
 - Native runtime 复用现有上下文压缩 checkpoint、摘要和时间线消息链路；
 - Codex app-server runtime 调用官方 `thread/compact/start`；
 - 会话正在运行、历史不足或 runtime 不支持时返回明确错误，不静默成功、不自动发送替代 prompt；
@@ -41,6 +42,7 @@ slash command
 - Codex runtime 先恢复已有 thread，再调用 `thread/compact/start`；请求完成才向上返回成功。
 - action 只允许显式用户触发，不用于页面加载、轮询、焦点变化或自动重试。
 - 命令执行中不允许同会话并发 run；服务端以 `SESSION_BUSY` 拒绝竞争。
+- 进行中反馈由 conversation composition 按 session id 持有，只表达当前请求生命周期；最终 checkpoint 仍由 kernel/runtime 事件持久化，失败时不留下伪时间线事实。
 
 ## 错误与可预测性
 
@@ -62,7 +64,7 @@ slash command
 - runtime：Codex 请求顺序和 `thread/compact/start` 参数；
 - server：组装后的真实路由成功 envelope 与错误映射；
 - client SDK：method、URL 和返回 shape；
-- UI：命令可见、调用选中会话、成功/失败反馈和重复点击保护；
+- UI：命令可见、调用选中会话、请求进行中在消息时间线显示反馈、完成后移除、成功/失败反馈和重复点击保护；
 - 触达 TypeScript package 的 tsc、定向测试、governance 与 maintainability 检查。
 
 ## 非目标

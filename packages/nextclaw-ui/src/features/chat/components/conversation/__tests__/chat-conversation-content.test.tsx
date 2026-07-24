@@ -31,6 +31,9 @@ vi.mock(
       captures.messageListSessionKeys.push(sessionKey);
       return <div data-testid="chat-message-list" />;
     },
+    ChatContextCompactionDivider: () => (
+      <div data-testid="context-compaction-pending" />
+    ),
   }),
 );
 
@@ -54,6 +57,7 @@ function renderContent(
     bottomSlot?: React.ReactNode;
     hasPreviousMessages?: boolean;
     historyError?: Error | null;
+    isContextCompacting?: boolean;
     isLoadingPreviousMessages?: boolean;
     onLoadPreviousMessages?: () => Promise<void>;
   } = {},
@@ -65,6 +69,7 @@ function renderContent(
       historyError={options.historyError ?? null}
       isAwaitingAssistantOutput={false}
       isHistoryLoading={false}
+      isContextCompacting={options.isContextCompacting}
       isLoadingPreviousMessages={options.isLoadingPreviousMessages ?? false}
       isSending={false}
       messages={messages}
@@ -81,6 +86,12 @@ beforeEach(() => {
   captures.messageListSessionKeys = [];
   captures.onScroll.mockReset();
   captures.scrollToBottom.mockReset();
+});
+
+it("renders manual context compaction feedback after the message list", () => {
+  renderContent({ isContextCompacting: true });
+
+  expect(screen.getByTestId("context-compaction-pending")).toBeTruthy();
 });
 
 it("uses the centered reading track in flat message layout", () => {

@@ -7,9 +7,10 @@ import type { ChatSlashCommandDescriptor } from '@/features/chat/features/input/
 
 export function useSessionConversationSlashCommands(params: {
   language: I18nLanguage;
+  onContextCompactingChange?: (sessionId: string, isCompacting: boolean) => void;
   selectedSessionKey?: string | null;
 }): readonly ChatSlashCommandDescriptor[] {
-  const { language, selectedSessionKey } = params;
+  const { language, onContextCompactingChange, selectedSessionKey } = params;
   const presenter = usePresenter();
   const compactingSessionIdsRef = useRef(new Set<string>());
   const compactContext = useCallback(async (sessionId: string) => {
@@ -17,6 +18,7 @@ export function useSessionConversationSlashCommands(params: {
       return;
     }
     compactingSessionIdsRef.current.add(sessionId);
+    onContextCompactingChange?.(sessionId, true);
     try {
       await compactNcpSessionContext(sessionId);
       toast.success(t('chatSlashCommandCompactContextSuccess', language));
@@ -25,8 +27,9 @@ export function useSessionConversationSlashCommands(params: {
       toast.error(`${t('chatSlashCommandCompactContextFailed', language)}: ${message}`);
     } finally {
       compactingSessionIdsRef.current.delete(sessionId);
+      onContextCompactingChange?.(sessionId, false);
     }
-  }, [language]);
+  }, [language, onContextCompactingChange]);
 
   return useMemo(() => {
     const sessionId = selectedSessionKey?.trim();

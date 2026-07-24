@@ -159,16 +159,19 @@ const renderChatPanelAppCard = (panelApp: ChatPanelAppCardViewModel) => (
   <ChatInlinePanelAppCard panelApp={panelApp} />
 );
 
-function ChatContextCompactionDivider({
+export function ChatContextCompactionDivider({
   checkpoint,
 }: {
-  checkpoint: ContextCompactionTimelineView;
+  checkpoint?: ContextCompactionTimelineView;
 }) {
-  const title = [
-    `${t("chatContextCompactionCoveredMessages")}: ${checkpoint.coveredSessionMessageCount}`,
-    `${t("chatContextCompactionOriginalTokens")}: ${checkpoint.originalEstimatedTokens}`,
-    `${t("chatContextCompactionProjectedTokens")}: ${checkpoint.projectedEstimatedTokens}`,
-  ].join("\n");
+  const isCompacting = !checkpoint || checkpoint.status === "compressing";
+  const title = checkpoint
+    ? [
+        `${t("chatContextCompactionCoveredMessages")}: ${checkpoint.coveredSessionMessageCount}`,
+        `${t("chatContextCompactionOriginalTokens")}: ${checkpoint.originalEstimatedTokens}`,
+        `${t("chatContextCompactionProjectedTokens")}: ${checkpoint.projectedEstimatedTokens}`,
+      ].join("\n")
+    : undefined;
   return (
     <div
       className="my-4 flex items-center gap-3 text-[11px] text-muted-foreground"
@@ -176,13 +179,13 @@ function ChatContextCompactionDivider({
     >
       <div className="h-px flex-1 bg-border" />
       <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1">
-        {checkpoint.status === "compressing" ? (
+        {isCompacting ? (
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
         ) : (
           <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
         )}
         <span>
-          {checkpoint.status === "compressing"
+          {isCompacting
             ? t("chatContextCompactionCompressing")
             : t("chatContextCompactionCompressed")}
         </span>
