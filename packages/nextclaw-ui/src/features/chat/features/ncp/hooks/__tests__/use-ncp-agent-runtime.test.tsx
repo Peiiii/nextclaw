@@ -200,10 +200,116 @@ describe("useNcpAgentRuntime", () => {
       assistantMessageId: "assistant-1",
       runId: "run-1",
     });
-    expect(result.current.visibleMessages).toEqual([]);
+    expect(result.current.visibleMessages).toEqual([
+      expect.objectContaining({
+        ...envelope.message,
+        sessionId: "session-created",
+      }),
+    ]);
     expect(client.stop).not.toHaveBeenCalled();
 
     rerender({ sessionId: "session-created" });
+  });
+
+  it("shows an existing-session user message before send returns and deduplicates the server event", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const envelope: NcpAgentSendEnvelope = {
+      sessionId: "session-existing",
+      message: {
+        id: "user-optimistic",
+        sessionId: "session-existing",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "hello now" }],
+        timestamp: now,
+      },
+    };
+    let releaseSend = () => {};
+    client.send.mockImplementationOnce(
+      (pendingEnvelope) =>
+        new Promise((resolve) => {
+          releaseSend = () =>
+            resolve({
+              sessionId: "session-existing",
+              userMessageId: pendingEnvelope.message.id,
+              assistantMessageId: "assistant-1",
+              runId: "run-1",
+            });
+        }),
+    );
+    const { result } = renderHook(() =>
+      useNcpAgentRuntime({
+        sessionId: "session-existing",
+        client,
+        manager: manager as never,
+      }),
+    );
+
+    let sendPromise!: ReturnType<typeof result.current.send>;
+    act(() => {
+      sendPromise = result.current.send(envelope);
+    });
+
+    await waitFor(() => {
+      expect(result.current.visibleMessages).toEqual([envelope.message]);
+    });
+
+    await act(async () => {
+      await client.emit({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: "session-existing",
+          message: envelope.message as NcpMessage,
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(result.current.visibleMessages).toHaveLength(1);
+    });
+
+    await act(async () => {
+      releaseSend();
+      await sendPromise;
+    });
+    expect(result.current.visibleMessages).toEqual([envelope.message]);
+  });
+
+  it("marks an optimistic user message as failed when send fails", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const envelope: NcpAgentSendEnvelope = {
+      sessionId: "session-existing",
+      message: {
+        id: "user-failed",
+        sessionId: "session-existing",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "please retry" }],
+        timestamp: now,
+      },
+    };
+    client.send.mockRejectedValueOnce(new Error("network unavailable"));
+    const { result } = renderHook(() =>
+      useNcpAgentRuntime({
+        sessionId: "session-existing",
+        client,
+        manager: manager as never,
+      }),
+    );
+
+    await act(async () => {
+      await expect(result.current.send(envelope)).rejects.toThrow(
+        "network unavailable",
+      );
+    });
+
+    expect(result.current.visibleMessages).toEqual([
+      expect.objectContaining({
+        ...envelope.message,
+        status: "error",
+      }),
+    ]);
   });
 
   it("aborts by session id even before a hydrated active run reaches local state", async () => {

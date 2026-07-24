@@ -9,6 +9,7 @@ import {
   type NcpMessage,
   type NcpOutboundMessageDraft,
   type NcpRunHandle,
+  NcpEventType,
 } from "@nextclaw/ncp";
 
 export type NcpAgentSendInput = string | NcpAgentSendEnvelope;
@@ -103,25 +104,6 @@ class NcpEventDispatchBatcher {
   };
 }
 
-function dispatchEventsToManager(
-  manager: DefaultNcpAgentConversationStateManager,
-  events: readonly NcpEndpointEvent[],
-): Promise<void> {
-  const batchDispatch = (
-    manager as DefaultNcpAgentConversationStateManager & {
-      dispatchBatch?: (batch: readonly NcpEndpointEvent[]) => Promise<void>;
-    }
-  ).dispatchBatch;
-  if (typeof batchDispatch === "function") {
-    return batchDispatch.call(manager, events);
-  }
-
-  return events.reduce<Promise<void>>(
-    (chain, event) => chain.then(() => manager.dispatch(event)),
-    Promise.resolve(),
-  );
-}
-
 function shouldDispatchEventToSession(
   event: NcpEndpointEvent,
   sessionId: string | undefined,
@@ -191,6 +173,16 @@ function normalizeSendEnvelope(
   };
 }
 
+function createSessionMessage(
+  envelope: NcpAgentSendEnvelope,
+  sessionId: string,
+): NcpMessage {
+  return {
+    ...envelope.message,
+    sessionId,
+  };
+}
+
 export function useScopedAgentManager(
   sessionId: string | undefined,
 ): DefaultNcpAgentConversationStateManager {
@@ -223,6 +215,7 @@ export function useNcpAgentRuntime({
     () => manager.getSnapshot(),
   );
   const [isSending, setIsSending] = useState(false);
+  const optimisticMessageIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     sessionIdRef.current = sessionId;
@@ -234,16 +227,20 @@ export function useNcpAgentRuntime({
 
   useEffect(() => {
     const eventBatcher = new NcpEventDispatchBatcher((events) =>
-      dispatchEventsToManager(manager, events),
+      manager.dispatchBatch(events),
     );
     const unsubscribeClient = client.subscribe((event) => {
       if (!shouldDispatchEventToSession(event, sessionIdRef.current)) {
         return;
       }
+      if (event.type === NcpEventType.MessageSent) {
+        optimisticMessageIdsRef.current.delete(event.payload.message.id);
+      }
       eventBatcher.enqueue(event);
     });
 
     return () => {
+      optimisticMessageIdsRef.current.clear();
       unsubscribeClient();
       eventBatcher.dispose();
       void client.stop();
@@ -268,8 +265,54 @@ export function useNcpAgentRuntime({
 
     manager.clearError();
     setIsSending(true);
+    const optimisticMessage = envelope.sessionId
+      ? createSessionMessage(envelope, envelope.sessionId)
+      : null;
+    const failOptimisticMessage = async () => {
+      if (
+        !optimisticMessage ||
+        !optimisticMessageIdsRef.current.delete(optimisticMessage.id)
+      ) {
+        return;
+      }
+      await manager.dispatch({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: optimisticMessage.sessionId,
+          message: { ...optimisticMessage, status: "error" },
+        },
+      });
+    };
+    if (optimisticMessage) {
+      optimisticMessageIdsRef.current.add(optimisticMessage.id);
+      await manager.dispatch({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: optimisticMessage.sessionId,
+          message: optimisticMessage,
+        },
+      });
+    }
     try {
-      return await client.send(envelope);
+      const handle = await client.send(envelope);
+      if (!handle) {
+        await failOptimisticMessage();
+        return null;
+      }
+      optimisticMessageIdsRef.current.delete(envelope.message.id);
+      if (!optimisticMessage) {
+        await manager.dispatch({
+          type: NcpEventType.MessageSent,
+          payload: {
+            sessionId: handle.sessionId,
+            message: createSessionMessage(envelope, handle.sessionId),
+          },
+        });
+      }
+      return handle;
+    } catch (error) {
+      await failOptimisticMessage();
+      throw error;
     } finally {
       setIsSending(false);
     }

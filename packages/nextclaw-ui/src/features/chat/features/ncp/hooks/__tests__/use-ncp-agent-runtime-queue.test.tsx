@@ -5,7 +5,7 @@ import { useNcpAgentRuntime } from '@nextclaw/ncp-react';
 import { DefaultNcpAgentConversationStateManager } from '@nextclaw/ncp-toolkit';
 
 describe('useNcpAgentRuntime backend queue submission', () => {
-  it('forwards a new message while a run is active and waits for backend events to add it', async () => {
+  it('forwards and immediately shows a new message while a run is active', async () => {
     const manager = new DefaultNcpAgentConversationStateManager();
     manager.hydrate({ sessionId: 'session-1', messages: [] });
     await manager.dispatch({
@@ -46,6 +46,13 @@ describe('useNcpAgentRuntime backend queue submission', () => {
         parts: [{ type: 'text', text: 'queue this' }],
       }),
     }));
-    expect(result.current.visibleMessages).toEqual([]);
+    expect(result.current.visibleMessages).toEqual([
+      expect.objectContaining({
+        sessionId: 'session-1',
+        role: 'user',
+        status: 'final',
+        parts: [{ type: 'text', text: 'queue this' }],
+      }),
+    ]);
   });
 });

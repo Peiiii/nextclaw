@@ -1,5 +1,10 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { NcpEventType, type NcpAgentClientEndpoint } from "@nextclaw/ncp";
+import {
+  NcpEventType,
+  type NcpAgentClientEndpoint,
+  type NcpEndpointSubscriber,
+  type NcpMessage,
+} from "@nextclaw/ncp";
 import { useHydratedNcpAgent, useNcpAgentRuntime } from "@nextclaw/ncp-react";
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -146,5 +151,121 @@ describe("useHydratedNcpAgent", () => {
       await Promise.resolve();
     });
     expect(result.current.visibleMessages).toEqual([historyMessage]);
+  });
+
+  it("starts the live stream when a draft manager already contains the materialized session", async () => {
+    let subscriber: NcpEndpointSubscriber | null = null;
+    const client = {
+      stop: mocks.stop.mockResolvedValue(undefined),
+      stream: mocks.stream.mockImplementation(() => new Promise(() => {})),
+      subscribe: vi.fn((nextSubscriber: NcpEndpointSubscriber) => {
+        subscriber = nextSubscriber;
+        return () => {};
+      }),
+    } as unknown as NcpAgentClientEndpoint;
+    const loadSeed = vi.fn().mockResolvedValue({
+      messages: [],
+      status: "idle",
+    });
+    const materializedMessage: NcpMessage = {
+      id: "message-materialized",
+      sessionId: "session-materialized",
+      role: "user",
+      status: "final",
+      parts: [{ type: "text", text: "Visible immediately" }],
+      timestamp: "2026-07-24T00:00:00.000Z",
+    };
+    const { result, rerender } = renderHook(
+      ({ sessionId }: { sessionId?: string }) =>
+        useHydratedNcpAgent({
+          sessionId,
+          client: client as never,
+          loadSeed,
+        }),
+      { initialProps: { sessionId: undefined as string | undefined } },
+    );
+
+    await waitFor(() => {
+      expect(subscriber).not.toBeNull();
+    });
+    act(() => {
+      subscriber?.({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: "session-materialized",
+          message: materializedMessage,
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(result.current.visibleMessages).toEqual([materializedMessage]);
+    });
+
+    rerender({ sessionId: "session-materialized" });
+
+    await waitFor(() => {
+      expect(result.current.isHydrating).toBe(false);
+    });
+    expect(loadSeed).not.toHaveBeenCalled();
+    expect(mocks.stream).toHaveBeenCalledWith({
+      sessionId: "session-materialized",
+    });
+  });
+
+  it("reloads missed state and reconnects after the live stream disconnects", async () => {
+    vi.useFakeTimers();
+    try {
+      const connected = new Promise<void>(() => {});
+      const client = {
+        stop: mocks.stop.mockResolvedValue(undefined),
+        stream: mocks.stream
+          .mockRejectedValueOnce(new Error("stream disconnected"))
+          .mockImplementationOnce(() => connected),
+        subscribe: vi.fn(() => () => {}),
+        send: mocks.send,
+      } as unknown as NcpAgentClientEndpoint;
+      const recoveredMessage = {
+        id: "message-recovered",
+        sessionId: "session-recovery",
+        role: "assistant",
+        status: "final",
+        parts: [{ type: "text", text: "Recovered" }],
+        timestamp: "2026-07-24T00:01:00.000Z",
+      } as const;
+      const loadSeed = vi
+        .fn()
+        .mockResolvedValueOnce({ messages: [], status: "running" })
+        .mockResolvedValueOnce({
+          messages: [recoveredMessage],
+          status: "idle",
+        });
+      const { result } = renderHook(() =>
+        useHydratedNcpAgent({
+          sessionId: "session-recovery",
+          client: client as never,
+          loadSeed,
+        }),
+      );
+
+      await vi.waitFor(() => {
+        expect(result.current.hydrateError?.message).toBe(
+          "stream disconnected",
+        );
+      });
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+      await vi.waitFor(() => {
+        expect(result.current.visibleMessages).toEqual([recoveredMessage]);
+      });
+
+      expect(loadSeed).toHaveBeenCalledTimes(2);
+      expect(mocks.stream).toHaveBeenCalledTimes(2);
+      expect(mocks.send).not.toHaveBeenCalled();
+      expect(result.current.hydrateError).toBeNull();
+      expect(result.current.isRunning).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
