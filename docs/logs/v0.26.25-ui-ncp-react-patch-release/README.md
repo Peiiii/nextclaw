@@ -32,6 +32,7 @@
 - 独立产品更新说明：不适用；本批没有新的顶层 `nextclaw` 产品版本、runtime manifest 或 GitHub Release，用户可见变更由包 changelog 承载。
 - Runtime update、桌面 installer、数据库 migration、后端部署与 Docs Deploy：不适用。
 - 当前用户运行中的 NextClaw 实例：不重启。
+- Git：功能、版本与发布记录均已提交到本地 `master`；未获得 `git push` 授权，因此 `origin/master` 与远端 tag 尚未更新。
 
 ## 用户/产品视角的验收步骤
 
@@ -45,6 +46,7 @@
 - Runtime 模型偏好修复的生产代码为 `+13 / -13 / net 0`，通过删除未使用动作保持非功能改动净增长为零。
 - 三项修复均复用既有 owner 与主链路，没有为发布增加平行实现、兼容分支或新的抽象层。
 - 目录、文件角色、generated-clean、new-code governance 与 backlog ratchet 已通过。
+- 发布复盘：本次没有新的发布阻塞；UI 包首次 registry 校验存在短暂传播等待，仓库发布验证器已自动重试并成功闭合，因此无需新增发布脚本或规则。
 
 ## NPM 包发布记录
 
