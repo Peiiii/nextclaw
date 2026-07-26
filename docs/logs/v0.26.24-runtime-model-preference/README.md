@@ -29,7 +29,9 @@
 
 ## 发布/部署方式
 
-- 本次未发布、未部署、未提交。
+- 功能提交：`cf539fe37`。
+- 已随稳定 NPM patch 批次发布 `@nextclaw/ui@0.15.18`。
+- 本批不包含顶层 `nextclaw`、runtime update channel、桌面安装包、数据库 migration 或独立后端部署。
 - 浏览器验收使用当前源码构建的隔离运行实例；验收后已停止。
 - 未重启或修改用户正在运行的 NextClaw 实例。
 
@@ -53,6 +55,7 @@
 ## NPM 包发布记录
 
 - 受影响包：`@nextclaw/ui`
-- 版本建议：patch
-- 已新增用户可见 changeset：`.changeset/fix-runtime-model-preference.md`
-- 发布状态：未发布，等待后续统一 NPM 发布流程。
+- 发布版本：`0.15.18`
+- dist-tag：`latest`
+- 原 changeset 已由版本化流程消费。
+- registry 与隔离安装验证均已通过；完整批次记录见 `docs/logs/v0.26.25-ui-ncp-react-patch-release/README.md`。

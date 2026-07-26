@@ -22,11 +22,13 @@
 - `pnpm release:check-readmes`、`pnpm release:check:groups`：通过。
 - `pnpm release:check:strict`：两个包的 build、TypeScript、lint 均完成；lint 为 `0` 个错误，`@nextclaw/ncp-react` 有 `2` 个既有治理 warning。
 - Runtime 模型偏好修复的相关 `53` 个测试、UI `tsc --noEmit`、lint、build 与隔离源码浏览器真实验收均已通过。
-- 发布后还需验证 registry 版本、`latest` dist-tag 与隔离安装结果。
+- `pnpm release:publish`：两个包均发布成功，仓库校验在 registry 传播完成后确认 `2/2` 版本可见。
+- registry 独立复核：`@nextclaw/ncp-react@0.5.16` 与 `@nextclaw/ui@0.15.18` 的 `latest` dist-tag 均指向本次版本。
+- 隔离安装精确版本成功，共安装 `567` 个依赖；读取到 NCP React `13` 个导出，且已发布 UI 包把 `@nextclaw/ncp-react` 解析为 `0.5.16`。
 
 ## 发布/部署方式
 
-- NPM：通过仓库标准 `pnpm release:publish` 发布，不使用包目录内的 raw `npm publish`。
+- NPM：已通过仓库标准 `pnpm release:publish` 发布，没有使用包目录内的 raw `npm publish`。
 - 独立产品更新说明：不适用；本批没有新的顶层 `nextclaw` 产品版本、runtime manifest 或 GitHub Release，用户可见变更由包 changelog 承载。
 - Runtime update、桌面 installer、数据库 migration、后端部署与 Docs Deploy：不适用。
 - 当前用户运行中的 NextClaw 实例：不重启。
@@ -46,7 +48,8 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/ncp-react@0.5.16`：版本已准备，等待 registry publish。
-- `@nextclaw/ui@0.15.18`：版本已准备，等待 registry publish。
-- dist-tag：计划发布到 `latest`。
+- `@nextclaw/ncp-react@0.5.16`：已发布，registry 与隔离安装验证通过。
+- `@nextclaw/ui@0.15.18`：已发布，registry、依赖闭包与隔离安装验证通过。
+- dist-tag：两个包均为 `latest`。
+- 本地 tag：`@nextclaw/ncp-react@0.5.16`、`@nextclaw/ui@0.15.18`。
 - 顶层 `nextclaw`：不在本批次。
