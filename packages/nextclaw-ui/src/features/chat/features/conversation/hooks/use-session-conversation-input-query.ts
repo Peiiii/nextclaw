@@ -124,7 +124,7 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
   );
 
   return useMemo(() => ({
-    defaultModel: config?.agents.defaults.model,
+    defaultModel: sessionTypeState.selectedSessionTypeOption?.recommendedModel ?? config?.agents.defaults.model,
     defaultProjectRoot,
     fallbackPreferredModel,
     fallbackPreferredThinking,

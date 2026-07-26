@@ -36,6 +36,7 @@ describe('useSessionConversationInputState session preferences', () => {
         modelOptions: MODEL_OPTIONS,
         selectedSessionExists: true,
         selectedSessionKey: 'session-a',
+        selectedSessionType: 'native',
         selectedSessionPreferredModel: 'deepseek/deepseek-v4-flash',
       });
     });
@@ -46,6 +47,7 @@ describe('useSessionConversationInputState session preferences', () => {
         modelOptions: MODEL_OPTIONS,
         selectedSessionExists: false,
         selectedSessionKey: 'session-b',
+        selectedSessionType: 'native',
       });
     });
     expect(result.current.inputSnapshot.selectedModel).toBe('deepseek/deepseek-v4-flash');
@@ -55,9 +57,48 @@ describe('useSessionConversationInputState session preferences', () => {
         modelOptions: MODEL_OPTIONS,
         selectedSessionExists: true,
         selectedSessionKey: 'session-b',
+        selectedSessionType: 'native',
         selectedSessionPreferredModel: 'minimax/MiniMax-M3',
       });
     });
     expect(result.current.inputSnapshot.selectedModel).toBe('minimax/MiniMax-M3');
+  });
+
+  it('prefers the runtime recent model and otherwise restores the runtime default in a draft', () => {
+    const { result } = renderHook(() => useSessionConversationInputState());
+
+    act(() => {
+      result.current.inputActions.syncSessionPreferences({
+        fallbackPreferredModel: 'deepseek/deepseek-v4-flash',
+        modelOptions: MODEL_OPTIONS,
+        selectedSessionExists: false,
+        selectedSessionKey: null,
+        selectedSessionType: 'native',
+      });
+    });
+    expect(result.current.inputSnapshot.selectedModel).toBe('deepseek/deepseek-v4-flash');
+
+    act(() => {
+      result.current.inputActions.syncSessionPreferences({
+        defaultModel: 'deepseek/deepseek-v4-flash',
+        fallbackPreferredModel: 'minimax/MiniMax-M3',
+        modelOptions: MODEL_OPTIONS,
+        selectedSessionExists: false,
+        selectedSessionKey: null,
+        selectedSessionType: 'codex',
+      });
+    });
+    expect(result.current.inputSnapshot.selectedModel).toBe('minimax/MiniMax-M3');
+
+    act(() => {
+      result.current.inputActions.syncSessionPreferences({
+        defaultModel: 'deepseek/deepseek-v4-flash',
+        modelOptions: MODEL_OPTIONS,
+        selectedSessionExists: false,
+        selectedSessionKey: null,
+        selectedSessionType: 'hermes',
+      });
+    });
+    expect(result.current.inputSnapshot.selectedModel).toBe('deepseek/deepseek-v4-flash');
   });
 });

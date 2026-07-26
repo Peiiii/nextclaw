@@ -20,7 +20,6 @@ const mocks = vi.hoisted(() => {
     setAttachments: vi.fn(),
     addAttachments: vi.fn(() => []),
     removeAttachment: vi.fn(),
-    setSelectedModel: vi.fn(),
     setSelectedThinkingLevel: vi.fn(),
     syncSessionPreferences: vi.fn(),
     setPendingSessionType: vi.fn(),
@@ -43,9 +42,9 @@ const mocks = vi.hoisted(() => {
     sendError: null,
   };
   const inputQuery = {
-    defaultModel: undefined,
+    defaultModel: undefined as string | undefined,
     defaultProjectRoot: null,
-    fallbackPreferredModel: undefined,
+    fallbackPreferredModel: undefined as string | undefined,
     fallbackPreferredThinking: null,
     isProviderStateResolved: true,
     isSkillsLoading: false,
@@ -267,7 +266,10 @@ describe("SessionConversationArea input boundary", () => {
     mocks.agent.isRunning = true;
     mocks.agent.isSending = true;
     mocks.agent.snapshot.contextWindow = null;
+    mocks.inputQuery.defaultModel = undefined;
+    mocks.inputQuery.fallbackPreferredModel = undefined;
     mocks.inputQuery.selectedSession = null;
+    mocks.inputQuery.sessionTypeState.selectedSessionType = "default";
   });
 
   it("passes running state without treating an active run as a send request in flight", () => {
@@ -348,6 +350,30 @@ describe("SessionConversationArea input boundary", () => {
     );
 
     expect(mocks.initialPromptSpy).toHaveBeenCalledWith("每天整理项目风险");
+  });
+
+  it("syncs draft preferences with the selected runtime context", () => {
+    mocks.inputQuery.defaultModel = "openai/gpt-5";
+    mocks.inputQuery.fallbackPreferredModel = "minimax/MiniMax-M3";
+    const rendered = renderArea(null);
+    mocks.inputActions.syncSessionPreferences.mockClear();
+
+    mocks.inputQuery.sessionTypeState.selectedSessionType = "codex";
+    rendered.rerender(
+      <MemoryRouter>
+        <SessionConversationArea sessionKey={null} />
+      </MemoryRouter>,
+    );
+
+    expect(mocks.inputActions.syncSessionPreferences).toHaveBeenCalledOnce();
+    expect(mocks.inputActions.syncSessionPreferences).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        defaultModel: "openai/gpt-5",
+        fallbackPreferredModel: "minimax/MiniMax-M3",
+        selectedSessionKey: null,
+        selectedSessionType: "codex",
+      }),
+    );
   });
 
   it("surfaces selected-session failure previews at the conversation bottom", () => {

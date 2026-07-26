@@ -225,6 +225,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       modelOptions: inputQuery.modelOptions,
       selectedSessionExists: Boolean(inputQuery.selectedSession),
       selectedSessionKey: inputQuery.selectedSessionKey,
+      selectedSessionType: inputQuery.sessionTypeState.selectedSessionType,
       selectedSessionPreferredModel:
         inputQuery.selectedSession?.preferredModel ?? undefined,
       selectedSessionPreferredThinking:
@@ -238,6 +239,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     inputQuery.modelOptions,
     inputQuery.selectedSession,
     inputQuery.selectedSessionKey,
+    inputQuery.sessionTypeState.selectedSessionType,
   ]);
   useSessionConversationDraftRouteState({
     sessionKey,

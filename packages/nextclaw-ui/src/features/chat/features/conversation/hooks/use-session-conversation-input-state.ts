@@ -53,7 +53,6 @@ export type SessionConversationInputActions = {
   readonly setAttachments: (attachments: readonly NcpDraftAttachment[]) => void;
   readonly addAttachments: (attachments: readonly NcpDraftAttachment[]) => readonly NcpDraftAttachment[];
   readonly removeAttachment: (attachmentId: string) => void;
-  readonly setSelectedModel: (model: SessionConversationInputStateValue) => void;
   readonly setSelectedThinkingLevel: (level: ThinkingLevel | null) => void;
   readonly syncSessionPreferences: (params: SessionConversationPreferenceSyncParams) => void;
   readonly setPendingSessionType: (sessionType: SetStateAction<string>) => void;
