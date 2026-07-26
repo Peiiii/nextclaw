@@ -1,5 +1,15 @@
 # @nextclaw/ui
 
+## 0.15.18
+
+### Patch Changes
+
+- 2802f74: 手动压缩上下文时立即在当前会话时间线显示进行中反馈，并在请求完成或失败后正确清理。
+- ccb9829: 修复发送消息后偶尔需要刷新页面才会显示的问题；消息会立即出现在当前会话中，实时连接中断后也会自动补回遗漏内容。
+- cf539fe: 修复新任务切换 Agent Runtime 后仍沿用其他 Runtime 模型的问题。现在会优先恢复用户最近为该 Runtime 选择的模型；没有历史选择时，再使用该 Runtime 的推荐模型或全局默认模型。
+- Updated dependencies [ccb9829]
+  - @nextclaw/ncp-react@0.5.16
+
 ## 0.15.17
 
 ### Patch Changes
