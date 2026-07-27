@@ -23,6 +23,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 
 ## Primary Contracts
 - Prefer the repo release flow; do not publish from package folders with raw `npm publish`.
+- Treat a user-authorized NPM patch/stable release as one transaction across registry, audited source/tag push, GitHub Release assets, public release notes, and the stable runtime channel. Do not stop after registry publication or ask again for each GitHub metadata step unless the user explicitly requested NPM-only/no-push scope.
 - Before any publish attempt, verify npm auth with the same npm config source that the publish command will use. If publishing from a temp worktree or copied checkout, first check whether the project root has a private `.npmrc`; when it does, run publish and post-publish registry/install verification with `NPM_CONFIG_USERCONFIG=<project-root>/.npmrc` instead of assuming the user-level npm login is the source of truth.
 - A published `nextclaw` package must include `resources/update-bundle-public.pem`.
 - Publishing, build, and verification commands must not leave generated artifacts in the active worktree. After release commands finish, run `git status --short`; every generated change must either be intentionally committed as part of the release record or removed/restored before final response.

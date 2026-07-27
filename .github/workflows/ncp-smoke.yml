@@ -3,10 +3,7 @@ name: ncp-smoke
 on:
   pull_request:
     paths:
-      - "packages/nextclaw-ncp/**"
-      - "packages/nextclaw-ncp-agent-runtime/**"
-      - "packages/nextclaw-ncp-http-agent-server/**"
-      - "packages/nextclaw-ncp-http-agent-client/**"
+      - "packages/ncp-packages/**"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -16,10 +13,7 @@ on:
       - master
       - main
     paths:
-      - "packages/nextclaw-ncp/**"
-      - "packages/nextclaw-ncp-agent-runtime/**"
-      - "packages/nextclaw-ncp-http-agent-server/**"
-      - "packages/nextclaw-ncp-http-agent-client/**"
+      - "packages/ncp-packages/**"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -57,33 +51,33 @@ jobs:
       - name: Lint affected NCP packages
         run: |
           set -euo pipefail
-          pnpm -C packages/nextclaw-ncp lint
-          pnpm -C packages/nextclaw-ncp-agent-runtime lint
-          pnpm -C packages/nextclaw-ncp-http-agent-server lint
-          pnpm -C packages/nextclaw-ncp-http-agent-client lint
+          pnpm --filter @nextclaw/ncp lint
+          pnpm --filter @nextclaw/ncp-agent-runtime lint
+          pnpm --filter @nextclaw/ncp-http-agent-server lint
+          pnpm --filter @nextclaw/ncp-http-agent-client lint
 
       - name: Typecheck affected NCP packages
         run: |
           set -euo pipefail
-          pnpm -C packages/nextclaw-ncp tsc
-          pnpm -C packages/nextclaw-ncp-agent-runtime tsc
-          pnpm -C packages/nextclaw-ncp-http-agent-server tsc
-          pnpm -C packages/nextclaw-ncp-http-agent-client tsc
+          pnpm --filter @nextclaw/ncp tsc
+          pnpm --filter @nextclaw/ncp-agent-runtime tsc
+          pnpm --filter @nextclaw/ncp-http-agent-server tsc
+          pnpm --filter @nextclaw/ncp-http-agent-client tsc
 
       - name: Build affected NCP packages
         run: |
           set -euo pipefail
-          pnpm -C packages/nextclaw-ncp build
-          pnpm -C packages/nextclaw-ncp-toolkit build
-          pnpm -C packages/nextclaw-ncp-agent-runtime build
-          pnpm -C packages/nextclaw-ncp-http-agent-server build
-          pnpm -C packages/nextclaw-ncp-http-agent-client build
+          pnpm --filter @nextclaw/ncp build
+          pnpm --filter @nextclaw/ncp-toolkit build
+          pnpm --filter @nextclaw/ncp-agent-runtime build
+          pnpm --filter @nextclaw/ncp-http-agent-server build
+          pnpm --filter @nextclaw/ncp-http-agent-client build
 
       - name: Run NCP package tests
         run: |
           set -euo pipefail
-          pnpm -C packages/nextclaw-ncp-http-agent-server test
-          pnpm -C packages/nextclaw-ncp-http-agent-client test
+          pnpm --filter @nextclaw/ncp-http-agent-server test
+          pnpm --filter @nextclaw/ncp-http-agent-client test
 
       - name: Runtime smoke (event loop end-to-end)
         run: |
@@ -94,8 +88,8 @@ jobs:
             DefaultNcpContextBuilder,
             EchoNcpLLMApi,
             DefaultNcpToolRegistry,
-          } from "./packages/nextclaw-ncp-agent-runtime/dist/index.js";
-          import { DefaultNcpAgentConversationStateManager } from "./packages/nextclaw-ncp-toolkit/dist/index.js";
+          } from "./packages/ncp-packages/nextclaw-ncp-agent-runtime/dist/index.js";
+          import { DefaultNcpAgentConversationStateManager } from "./packages/ncp-packages/nextclaw-ncp-toolkit/dist/index.js";
 
           const stateManager = new DefaultNcpAgentConversationStateManager();
           const runtime = new DefaultNcpAgentRuntime({

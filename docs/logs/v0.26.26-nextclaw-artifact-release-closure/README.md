@@ -23,14 +23,17 @@
 - `pnpm release:publish`：发布 `nextclaw@0.27.5`，registry 传播重试后确认 `1/1` 版本可见。
 - `/tmp/nextclaw-0275-smoke.CvN1fr` 隔离安装：CLI 报告 `0.27.5`，发布包内嵌 UI 使用当前 `De7Zwitu` hash，不再包含旧 `C9AcZKKs` hash。
 - 公共 package build 脚本审计：browser assets、NCP React CSS、core skills 与 Hermes bridge 都只复制各自 package 内部资源；当前唯一跨公共包的构建产物边是 `@nextclaw/ui -> nextclaw`。桌面端复制顶层运行时，但属于 private installer 发布合同。
-- Stable runtime 公共 manifest 当前仍为 `0.27.4`，新版本说明公开 URL 当前返回 `404`；这是待推送主干/tag 和 runtime workflow 闭合的剩余缺口。
+- `pnpm release:stable:runtime -- --version 0.27.5 --release-tag nextclaw@0.27.5`：四个平台签名 bundle、GitHub Release assets、gh-pages 与公共 manifest 全部验证通过，workflow 为 `30289790352`。
+- `/tmp/nextclaw-0274-update-smoke.mqjsv4` 旧版升级：`0.27.4` 检测到 `0.27.5`，完成 download-only、签名验证、apply，新进程报告 `0.27.5`。
+- 发布后主干 CI 审计：修复 NCP smoke 的搬迁前目录引用与 Windows update smoke 的失效 `--timeout` 合同；本地等价 lint、tsc、build、14 个测试、event-loop smoke 和发布版 `update --check` 均通过。
 
 ## 发布/部署方式
 
 - NPM：已通过仓库 Changesets 发布流程补发 `nextclaw@0.27.5`。
-- Stable runtime update：待获得 `git push` 授权并公开主干/tag 后，通过 `pnpm release:stable:runtime` 发布并验证。
-- 产品更新说明：中英文页面与结构化 JSON 已提交到本地主干；公开 URL 需随远端主干部署后生效。
-- Docs Deploy：待远端主干更新后闭合。
+- GitHub：本地主干与 `origin/master` 已一致，三个 NPM 版本 tag 已推送；`nextclaw@0.27.5` GitHub Release 已创建并带四个平台 runtime assets。
+- Stable runtime update：workflow `https://github.com/Peiiii/nextclaw/actions/runs/30289790352` 已成功，公共 manifest 为 `0.27.5`。
+- 产品更新说明：中英文页面与结构化 JSON 已公开，runtime manifest 指向本次英文页面。
+- Docs Deploy：workflow `30289470083` 已成功，公开版本说明返回 HTTP `200`。
 - 桌面 installer、数据库 migration 与后端部署：不适用，本次不涉及这些交付面。
 
 ## 用户/产品视角的验收步骤
@@ -53,5 +56,6 @@
 - `@nextclaw/ncp-react@0.5.16`：已发布，`latest` 已验证。
 - `@nextclaw/ui@0.15.18`：已发布，`latest` 已验证。
 - `nextclaw@0.27.5`：已发布到 `latest`，registry 与隔离安装验证通过。
-- 本地 tag：`nextclaw@0.27.5` 已创建；远端 tag 尚未推送。
-- Stable runtime update：公共 manifest 仍为 `0.27.4`，待推送后闭合。
+- 远端 tag：`@nextclaw/ncp-react@0.5.16`、`@nextclaw/ui@0.15.18`、`nextclaw@0.27.5` 均已推送。
+- GitHub Release：`https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.27.5`。
+- Stable runtime update：公共 manifest、下载、验签、apply 与新进程版本均已验证为 `0.27.5`。

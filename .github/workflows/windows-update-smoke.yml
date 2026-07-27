@@ -38,18 +38,19 @@ jobs:
         shell: pwsh
         run: npm install -g nextclaw
 
-      - name: Run nextclaw update on Windows
+      - name: Check nextclaw runtime update on Windows
         shell: pwsh
-        env:
-          NEXTCLAW_UPDATE_COMMAND: 'node -e "process.exit(0)"'
         run: |
           $ErrorActionPreference = "Stop"
-          $output = nextclaw update --timeout 120000
+          $output = nextclaw update --check
           $output | Out-Host
           $joinedOutput = ($output | Out-String)
           if ($LASTEXITCODE -ne 0) {
-            throw "nextclaw update failed with exit code $LASTEXITCODE"
+            throw "nextclaw update --check failed with exit code $LASTEXITCODE"
           }
-          if ($joinedOutput -notmatch "Update complete") {
-            throw "nextclaw update output missing success marker"
+          if ($joinedOutput -notmatch "Current npm launcher version:") {
+            throw "nextclaw update --check output missing launcher version"
+          }
+          if ($joinedOutput -notmatch "Runtime update available:|NextClaw runtime is already up to date") {
+            throw "nextclaw update --check output missing runtime status"
           }
