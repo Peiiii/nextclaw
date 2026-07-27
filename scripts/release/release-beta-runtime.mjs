@@ -7,7 +7,6 @@ import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.
 
 const ROOT_DIR = process.cwd();
 const REPO = "Peiiii/nextclaw";
-const DEFAULT_CHANNEL = "beta";
 const CHANNELS = new Set(["beta", "stable"]);
 const RUNTIME_WORKFLOW = "npm-runtime-update-release.yml";
 const RUNTIME_MANIFEST_TARGETS = [
@@ -36,8 +35,7 @@ Default behavior:
   1. resolve the target nextclaw version (beta: nextclaw@beta, stable: nextclaw@latest)
   2. trigger npm-runtime-update-release for the selected channel
   3. wait for workflow success
-  4. verify GitHub release assets
-  5. verify gh-pages manifests and public channel manifests
+  4. verify GitHub release metadata, assets, gh-pages manifests, and public channel manifests
 `.trim());
 }
 
@@ -92,7 +90,7 @@ function parseArgs(argv) {
 }
 
 function normalizeChannel(channel) {
-  const normalized = (channel ?? DEFAULT_CHANNEL).trim().toLowerCase();
+  const normalized = (channel ?? "beta").trim().toLowerCase();
   if (!CHANNELS.has(normalized)) {
     throw new Error(`Unsupported runtime update channel: ${channel}`);
   }
@@ -226,7 +224,7 @@ function watchWorkflowRun(runId) {
   return runSummary;
 }
 
-function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion) {
+function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion, channel) {
   const releaseSummary = readJsonCommand("gh", [
     "release",
     "view",
@@ -234,8 +232,11 @@ function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion) {
     "--repo",
     REPO,
     "--json",
-    "url,assets"
+    "url,isPrerelease,assets"
   ]);
+  if (releaseSummary.isPrerelease !== (channel === "beta")) {
+    throw new Error(`GitHub release prerelease flag does not match the ${channel} channel: ${releaseSummary.url}`);
+  }
   const assetNames = new Set((releaseSummary.assets ?? []).map((asset) => asset.name));
   for (const target of RUNTIME_MANIFEST_TARGETS) {
     const expectedAssetName = `nextclaw-runtime-${target.platform}-${target.arch}-${nextclawVersion}.zip`;
@@ -257,8 +258,7 @@ function buildDryRunPlan({ branch, channel, nextclawVersion, releaseTag, minimum
       : "- minimum launcher version override: none",
     "- trigger npm-runtime-update-release workflow only",
     "- wait for workflow success",
-    "- verify GitHub release assets",
-    `- verify gh-pages manifests and public ${channel} manifests`
+    `- verify GitHub release metadata, assets, gh-pages manifests, and public ${channel} manifests`
   ];
 }
 
@@ -305,7 +305,7 @@ async function main() {
   });
   const workflowRun = await waitForWorkflowRun(branch, dispatchStartedAtMs);
   const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
-  const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion);
+  const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion, channel);
   const publicManifestSummary = await verifyPublicRuntimeManifests({
     channel,
     expectedReleaseNotesUrl,

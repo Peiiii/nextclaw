@@ -25,12 +25,13 @@
 - 公共 package build 脚本审计：browser assets、NCP React CSS、core skills 与 Hermes bridge 都只复制各自 package 内部资源；当前唯一跨公共包的构建产物边是 `@nextclaw/ui -> nextclaw`。桌面端复制顶层运行时，但属于 private installer 发布合同。
 - `pnpm release:stable:runtime -- --version 0.27.5 --release-tag nextclaw@0.27.5`：四个平台签名 bundle、GitHub Release assets、gh-pages 与公共 manifest 全部验证通过，workflow 为 `30289790352`。
 - `/tmp/nextclaw-0274-update-smoke.mqjsv4` 旧版升级：`0.27.4` 检测到 `0.27.5`，完成 download-only、签名验证、apply，新进程报告 `0.27.5`。
-- 发布后主干 CI 审计：修复 NCP smoke 的搬迁前目录引用与 Windows update smoke 的失效 `--timeout` 合同；本地等价 lint、tsc、build、14 个测试、event-loop smoke 和发布版 `update --check` 均通过。
+- 发布后主干 CI 审计：修复 NCP smoke 的搬迁前目录引用与 Windows update smoke 的失效 `--timeout` 合同；本地等价验证通过，远端 workflow `30290885642`、`30290885353` 均成功。
+- GitHub Release 元数据审计：`nextclaw@0.27.5` 已由错误的 prerelease 校正为 stable/latest，标题、用户结果摘要、公开 release notes 链接和四个平台 assets 均已验证。
 
 ## 发布/部署方式
 
 - NPM：已通过仓库 Changesets 发布流程补发 `nextclaw@0.27.5`。
-- GitHub：本地主干与 `origin/master` 已一致，三个 NPM 版本 tag 已推送；`nextclaw@0.27.5` GitHub Release 已创建并带四个平台 runtime assets。
+- GitHub：本地主干与 `origin/master` 已一致，三个 NPM 版本 tag 已推送；`nextclaw@0.27.5` stable/latest GitHub Release 已创建并带公开 release notes 与四个平台 runtime assets。
 - Stable runtime update：workflow `https://github.com/Peiiii/nextclaw/actions/runs/30289790352` 已成功，公共 manifest 为 `0.27.5`。
 - 产品更新说明：中英文页面与结构化 JSON 已公开，runtime manifest 指向本次英文页面。
 - Docs Deploy：workflow `30289470083` 已成功，公开版本说明返回 HTTP `200`。
@@ -49,6 +50,7 @@
 - 删除独立的 `release-frontend.mjs` changeset writer，前端命令复用共享 release scope。
 - 发布闭包只有一个事实 owner；自动补全与阻断检查读取同一份产物依赖。
 - `release:frontend` 使用显式 UI 种子，避免全仓漂移扫描扩大发布范围。
+- Runtime workflow 删除平行的 `release.published` 触发路径；stable/beta Release 元数据由显式 channel 决定，发布脚本同步验证 prerelease 合同。
 - 定向 ESLint、new-code governance、backlog ratchet、maintainability guard 与主观复核结果在发布前补齐。
 
 ## NPM 包发布记录
