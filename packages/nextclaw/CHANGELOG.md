@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.27.5
+
+### Patch Changes
+
+- d448b5c: Keep new-chat model choices scoped to each Agent Runtime, show immediate feedback while manually compacting context, and preserve message continuity across realtime reconnects.
+
 ## 0.27.4
 
 ### Patch Changes
