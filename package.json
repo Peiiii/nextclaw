@@ -158,7 +158,7 @@
     "release:stable:runtime": "node scripts/release/release-beta-runtime.mjs --channel stable",
     "release:desktop:beta": "node scripts/release/release-desktop.mjs --channel beta",
     "release:desktop:stable": "node scripts/release/release-desktop.mjs --channel stable",
-    "release:frontend": "node scripts/release/release-frontend.mjs && pnpm release:version && pnpm release:publish:frontend",
+    "release:frontend": "pnpm release:auto:changeset -- --package @nextclaw/ui && pnpm release:version && pnpm release:publish:frontend",
     "release": "pnpm changeset && pnpm release:version && pnpm release:publish",
     "docker:start": "bash scripts/dev/docker-start.sh",
     "docker:stop": "docker compose -p nextclaw-docker -f docker/compose.yml down",

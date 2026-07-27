@@ -1,5 +1,7 @@
 # UI 与 NCP React 稳定 NPM Patch 发布
 
+> 2026-07-28 纠正：本记录最初把低层包发布误判为完整产品交付。`nextclaw` 会把 UI 构建产物复制到自身的 `ui-dist`，运行时并不消费 registry 中的 `@nextclaw/ui`。因此本批实际只完成了低层包发布，没有让 `nextclaw@latest` 用户获得这些变化。纠正发布与发布门禁修复记录在 `docs/logs/v0.26.26-nextclaw-artifact-release-closure/README.md`。
+
 ## 迭代完成说明
 
 本批次统一交付三个已经提交并带 changeset 的用户可见修复：
@@ -13,7 +15,7 @@
 - `@nextclaw/ncp-react@0.5.16`
 - `@nextclaw/ui@0.15.18`
 
-本批不包含顶层 `nextclaw`、runtime update channel 或桌面安装包，不建立新的 NextClaw 产品版本号。
+本批当时未包含顶层 `nextclaw`、runtime update channel 或桌面安装包；这是实际发布范围，但不是完整的 NextClaw 产品交付范围。
 
 ## 测试/验证/验收方式
 
@@ -29,7 +31,7 @@
 ## 发布/部署方式
 
 - NPM：已通过仓库标准 `pnpm release:publish` 发布，没有使用包目录内的 raw `npm publish`。
-- 独立产品更新说明：不适用；本批没有新的顶层 `nextclaw` 产品版本、runtime manifest 或 GitHub Release，用户可见变更由包 changelog 承载。
+- 独立产品更新说明：本批当时未生成；由于顶层产品包被错误排除，这项“不适用”判断无效。
 - Runtime update、桌面 installer、数据库 migration、后端部署与 Docs Deploy：不适用。
 - 当前用户运行中的 NextClaw 实例：不重启。
 - Git：功能、版本与发布记录均已提交到本地 `master`；未获得 `git push` 授权，因此 `origin/master` 与远端 tag 尚未更新。
@@ -46,7 +48,7 @@
 - Runtime 模型偏好修复的生产代码为 `+13 / -13 / net 0`，通过删除未使用动作保持非功能改动净增长为零。
 - 三项修复均复用既有 owner 与主链路，没有为发布增加平行实现、兼容分支或新的抽象层。
 - 目录、文件角色、generated-clean、new-code governance 与 backlog ratchet 已通过。
-- 发布复盘：本次没有新的发布阻塞；UI 包首次 registry 校验存在短暂传播等待，仓库发布验证器已自动重试并成功闭合，因此无需新增发布脚本或规则。
+- 发布复盘纠正：原复盘遗漏了构建产物消费者关系。Changesets、release health 与 generic publish gate 都没有把 `@nextclaw/ui -> nextclaw` 建模为强制闭包，导致一个可以通过全部检查、但用户拿不到 UI 变化的发布批次。
 
 ## NPM 包发布记录
 
@@ -54,4 +56,4 @@
 - `@nextclaw/ui@0.15.18`：已发布，registry、依赖闭包与隔离安装验证通过。
 - dist-tag：两个包均为 `latest`。
 - 本地 tag：`@nextclaw/ncp-react@0.5.16`、`@nextclaw/ui@0.15.18`。
-- 顶层 `nextclaw`：不在本批次。
+- 顶层 `nextclaw`：本批次遗漏，待由纠正发布补齐。

@@ -3,20 +3,35 @@ import { join } from "node:path";
 import {
   collectWorkspacePackages,
   readMeaningfulPublishDrift,
-  readPendingChangesetPackages
+  readPendingChangesetPackages,
+  resolveArtifactReleaseScope
 } from "./release-scope.mjs";
 
 const changesetDir = join(process.cwd(), ".changeset");
 const isCheckMode = process.argv.includes("--check");
+const requestedPackageNames = new Set(process.argv.filter((_, index, argv) => argv[index - 1] === "--package"));
 
 const pendingChangesetPackages = readPendingChangesetPackages();
-const releaseEntries = collectWorkspacePackages()
+const workspacePackages = collectWorkspacePackages();
+const releaseCandidates = workspacePackages
   .filter((entry) => entry.private === false)
-  .map((entry) => ({
-    entry,
-    driftFiles: readMeaningfulPublishDrift(entry)
-  }))
-  .filter(({ entry }) => !pendingChangesetPackages.has(entry.pkg.name))
+  .map((entry) => ({ entry, driftFiles: readMeaningfulPublishDrift(entry) }));
+const { expandedPackageNames: releasePackageNames } = resolveArtifactReleaseScope(
+  requestedPackageNames.size > 0
+    ? requestedPackageNames
+    : new Set([
+        ...pendingChangesetPackages,
+        ...releaseCandidates
+          .filter(({ driftFiles }) => driftFiles.length > 0)
+          .map(({ entry }) => entry.pkg.name)
+      ])
+);
+const releaseEntries = releaseCandidates
+  .filter(
+    ({ entry }) =>
+      releasePackageNames.has(entry.pkg.name) &&
+      !pendingChangesetPackages.has(entry.pkg.name)
+  )
   .sort((left, right) => left.entry.pkg.name.localeCompare(right.entry.pkg.name));
 
 if (releaseEntries.length === 0) {

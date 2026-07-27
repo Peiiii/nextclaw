@@ -2,7 +2,8 @@ import {
   collectWorkspacePackages,
   getExpectedPublishGuardCommand,
   getExplicitReleaseBatchPackageNames,
-  readPendingChangesetPackages
+  readPendingChangesetPackages,
+  resolveArtifactReleaseScope
 } from "./release-scope.mjs";
 
 const workspacePackages = collectWorkspacePackages();
@@ -15,6 +16,16 @@ const batchPackageNames = getExplicitReleaseBatchPackageNames(
 const batchPackages = workspacePackages.filter(
   (entry) => entry.private === false && batchPackageNames.has(entry.pkg.name)
 );
+const { failures: artifactReleaseClosureFailures } = resolveArtifactReleaseScope(batchPackageNames);
+
+if (artifactReleaseClosureFailures.length > 0) {
+  console.error(
+    `Artifact release closure check failed.\n${artifactReleaseClosureFailures
+      .map(({ producerPackageName, consumerPackageName }) => `- ${producerPackageName} requires ${consumerPackageName}`)
+      .join("\n")}\nUse \`pnpm release:frontend\`.`
+  );
+  process.exit(1);
+}
 
 const publishGuardFailures = batchPackages
   .map((entry) => {

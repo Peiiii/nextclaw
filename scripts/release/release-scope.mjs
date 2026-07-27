@@ -10,6 +10,21 @@ const NPM_VIEW_TIMEOUT_MS = 15000;
 const PUBLISHED_VERSION_CACHE = new Map();
 const PACKAGE_VERSION_COMMIT_CACHE = new Map();
 const PACKAGE_VERSION_DRIFT_CACHE = new Map();
+const ARTIFACT_RELEASE_DEPENDENCIES = new Map([["@nextclaw/ui", "nextclaw"]]);
+
+export function resolveArtifactReleaseScope(packageNames) {
+  const expandedPackageNames = new Set(packageNames);
+  const failures = [];
+  for (const [producerPackageName, consumerPackageName] of ARTIFACT_RELEASE_DEPENDENCIES) {
+    if (expandedPackageNames.has(producerPackageName)) {
+      expandedPackageNames.add(consumerPackageName);
+      if (!packageNames.has(consumerPackageName)) {
+        failures.push({ producerPackageName, consumerPackageName });
+      }
+    }
+  }
+  return { expandedPackageNames, failures };
+}
 
 function collectPackageJsonFiles(dir) {
   const entries = readdirSync(dir, { withFileTypes: true });

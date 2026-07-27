@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.5",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-28",
+  "title": {
+    "zh-CN": "NextClaw v0.27.5",
+    "en-US": "NextClaw v0.27.5"
+  },
+  "summary": {
+    "zh-CN": "新会话会恢复每个 Agent Runtime 最近使用的模型，并改进上下文压缩反馈与消息连续性。",
+    "en-US": "New chats restore each Agent Runtime's recent model, with clearer context compaction feedback and stronger message continuity."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-28-nextclaw-v0-27-5",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-28-nextclaw-v0-27-5"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "按 Agent Runtime 恢复模型",
+            "en-US": "Per-runtime model restoration"
+          },
+          "body": {
+            "zh-CN": "在全新会话中切换 Agent Runtime 时，会恢复用户最近为该 Runtime 选择的模型。",
+            "en-US": "Switching Agent Runtimes in a new chat restores the model most recently selected for that runtime."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "上下文压缩反馈",
+            "en-US": "Context compaction feedback"
+          },
+          "body": {
+            "zh-CN": "手动压缩上下文后会立即显示进行中状态，并在请求结束后正确清理。",
+            "en-US": "Manual context compaction shows immediate progress and clears it correctly when the request finishes."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "消息连续性",
+            "en-US": "Message continuity"
+          },
+          "body": {
+            "zh-CN": "发送的消息会立即出现，实时连接恢复后也会自动补回遗漏内容。",
+            "en-US": "Sent messages appear immediately, and missed content is recovered after a realtime reconnect."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级，不需要迁移配置、会话或文件。",
+            "en-US": "Existing npm installations can update through the stable channel without migrating configuration, sessions, or files."
+          }
+        }
+      ]
+    }
+  ]
+}
