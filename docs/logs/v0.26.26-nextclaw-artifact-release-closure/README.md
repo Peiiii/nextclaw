@@ -23,7 +23,7 @@
 - `pnpm release:publish`：发布 `nextclaw@0.27.5`，registry 传播重试后确认 `1/1` 版本可见。
 - `/tmp/nextclaw-0275-smoke.CvN1fr` 隔离安装：CLI 报告 `0.27.5`，发布包内嵌 UI 使用当前 `De7Zwitu` hash，不再包含旧 `C9AcZKKs` hash。
 - 公共 package build 脚本审计：browser assets、NCP React CSS、core skills 与 Hermes bridge 都只复制各自 package 内部资源；当前唯一跨公共包的构建产物边是 `@nextclaw/ui -> nextclaw`。桌面端复制顶层运行时，但属于 private installer 发布合同。
-- `pnpm release:stable:runtime -- --version 0.27.5 --release-tag nextclaw@0.27.5`：四个平台签名 bundle、GitHub Release assets、gh-pages 与公共 manifest 全部验证通过，workflow 为 `30289790352`。
+- `pnpm release:stable:runtime -- --version 0.27.5 --release-tag nextclaw@0.27.5`：修正后的 workflow `30291742688` 完成四个平台签名 bundle、stable GitHub Release 元数据、assets、gh-pages 与公共 manifest 验证。
 - `/tmp/nextclaw-0274-update-smoke.mqjsv4` 旧版升级：`0.27.4` 检测到 `0.27.5`，完成 download-only、签名验证、apply，新进程报告 `0.27.5`。
 - 发布后主干 CI 审计：修复 NCP smoke 的搬迁前目录引用与 Windows update smoke 的失效 `--timeout` 合同；本地等价验证通过，远端 workflow `30290885642`、`30290885353` 均成功。
 - GitHub Release 元数据审计：`nextclaw@0.27.5` 已由错误的 prerelease 校正为 stable/latest，标题、用户结果摘要、公开 release notes 链接和四个平台 assets 均已验证。
@@ -32,7 +32,7 @@
 
 - NPM：已通过仓库 Changesets 发布流程补发 `nextclaw@0.27.5`。
 - GitHub：本地主干与 `origin/master` 已一致，三个 NPM 版本 tag 已推送；`nextclaw@0.27.5` stable/latest GitHub Release 已创建并带公开 release notes 与四个平台 runtime assets。
-- Stable runtime update：workflow `https://github.com/Peiiii/nextclaw/actions/runs/30289790352` 已成功，公共 manifest 为 `0.27.5`。
+- Stable runtime update：修正后的 workflow `https://github.com/Peiiii/nextclaw/actions/runs/30291742688` 已成功，公共 manifest 为 `0.27.5`。
 - 产品更新说明：中英文页面与结构化 JSON 已公开，runtime manifest 指向本次英文页面。
 - Docs Deploy：workflow `30289470083` 已成功，公开版本说明返回 HTTP `200`。
 - 桌面 installer、数据库 migration 与后端部署：不适用，本次不涉及这些交付面。
