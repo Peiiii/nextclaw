@@ -56,4 +56,4 @@
 - `@nextclaw/ui@0.15.18`：已发布，registry、依赖闭包与隔离安装验证通过。
 - dist-tag：两个包均为 `latest`。
 - 本地 tag：`@nextclaw/ncp-react@0.5.16`、`@nextclaw/ui@0.15.18`。
-- 顶层 `nextclaw`：本批次遗漏，待由纠正发布补齐。
+- 顶层 `nextclaw`：本批次遗漏，已由纠正发布 `nextclaw@0.27.5` 补齐。

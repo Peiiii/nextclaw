@@ -19,14 +19,17 @@
 - 临时单包 changeset 反例：`pnpm release:check:groups` 明确阻断缺少 `nextclaw` 的 UI 发布批次。
 - 同一反例下运行 `pnpm release:auto:changeset -- --check`：自动选择缺失的 `nextclaw`。
 - `pnpm release:auto:changeset -- --check --package @nextclaw/ui`：只以 UI 为显式种子，并展开为 UI 与顶层包，不扫描无关公共包。
-- 发布前后继续记录 package build、pack、registry、隔离安装与 stable runtime update 验收结果。
+- `pnpm release:check:strict`：顶层 `nextclaw` build、TypeScript 与 lint 通过，构建确认当前 UI 被复制到 `ui-dist`。
+- `pnpm release:publish`：发布 `nextclaw@0.27.5`，registry 传播重试后确认 `1/1` 版本可见。
+- `/tmp/nextclaw-0275-smoke.CvN1fr` 隔离安装：CLI 报告 `0.27.5`，发布包内嵌 UI 使用当前 `De7Zwitu` hash，不再包含旧 `C9AcZKKs` hash。
+- Stable runtime 公共 manifest 当前仍为 `0.27.4`，新版本说明公开 URL 当前返回 `404`；这是待推送主干/tag 和 runtime workflow 闭合的剩余缺口。
 
 ## 发布/部署方式
 
-- NPM：通过仓库 Changesets 发布流程补发 `nextclaw@0.27.5`。
-- Stable runtime update：顶层 NPM 发布后通过 `pnpm release:stable:runtime` 发布并验证。
-- 产品更新说明：中英文页面与结构化 JSON 已准备，runtime manifest 使用对应英文页面 URL。
-- Docs Deploy：随主干发布链路公开版本说明。
+- NPM：已通过仓库 Changesets 发布流程补发 `nextclaw@0.27.5`。
+- Stable runtime update：待获得 `git push` 授权并公开主干/tag 后，通过 `pnpm release:stable:runtime` 发布并验证。
+- 产品更新说明：中英文页面与结构化 JSON 已提交到本地主干；公开 URL 需随远端主干部署后生效。
+- Docs Deploy：待远端主干更新后闭合。
 - 桌面 installer、数据库 migration 与后端部署：不适用，本次不涉及这些交付面。
 
 ## 用户/产品视角的验收步骤
@@ -48,5 +51,6 @@
 
 - `@nextclaw/ncp-react@0.5.16`：已发布，`latest` 已验证。
 - `@nextclaw/ui@0.15.18`：已发布，`latest` 已验证。
-- `nextclaw@0.27.5`：待版本化、发布与 registry 验证。
-- Stable runtime update：待 NPM 发布后闭合。
+- `nextclaw@0.27.5`：已发布到 `latest`，registry 与隔离安装验证通过。
+- 本地 tag：`nextclaw@0.27.5` 已创建；远端 tag 尚未推送。
+- Stable runtime update：公共 manifest 仍为 `0.27.4`，待推送后闭合。
