@@ -22,6 +22,7 @@
 - `pnpm release:check:strict`：顶层 `nextclaw` build、TypeScript 与 lint 通过，构建确认当前 UI 被复制到 `ui-dist`。
 - `pnpm release:publish`：发布 `nextclaw@0.27.5`，registry 传播重试后确认 `1/1` 版本可见。
 - `/tmp/nextclaw-0275-smoke.CvN1fr` 隔离安装：CLI 报告 `0.27.5`，发布包内嵌 UI 使用当前 `De7Zwitu` hash，不再包含旧 `C9AcZKKs` hash。
+- 公共 package build 脚本审计：browser assets、NCP React CSS、core skills 与 Hermes bridge 都只复制各自 package 内部资源；当前唯一跨公共包的构建产物边是 `@nextclaw/ui -> nextclaw`。桌面端复制顶层运行时，但属于 private installer 发布合同。
 - Stable runtime 公共 manifest 当前仍为 `0.27.4`，新版本说明公开 URL 当前返回 `404`；这是待推送主干/tag 和 runtime workflow 闭合的剩余缺口。
 
 ## 发布/部署方式
