@@ -165,7 +165,6 @@ export function RemoteInstanceActions(props: {
   if (instance.archivedAt) {
     return (
       <div
-        data-testid="remote-instance-actions"
         className="grid grid-cols-2 gap-1 min-[360px]:flex min-[360px]:flex-wrap md:justify-end"
       >
         <Button
@@ -191,18 +190,14 @@ export function RemoteInstanceActions(props: {
   }
 
   const isOffline = instance.status !== "online";
-  const offlineTitle = isOffline
-    ? props.t("remote.actions.offlineHint")
-    : undefined;
   return (
     <div
-      data-testid="remote-instance-actions"
       className="grid grid-cols-2 gap-1 min-[360px]:flex min-[360px]:flex-wrap md:justify-end"
     >
       <Button
         type="button"
         className="h-8 px-2 text-xs"
-        title={offlineTitle}
+        title={isOffline ? props.t("remote.actions.offlineHint") : undefined}
         disabled={isOffline || props.isOpening}
         onClick={() => props.onOpen(instance.id)}
       >

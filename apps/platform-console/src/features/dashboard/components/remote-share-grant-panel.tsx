@@ -22,20 +22,20 @@ type RemoteShareGrantPanelProps = {
 
 export function RemoteShareGrantPanel(props: RemoteShareGrantPanelProps): JSX.Element {
   return (
-    <div className="space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-4">
+    <dialog ref={openDialog} aria-labelledby="remote-share-dialog-title" className="m-auto max-h-[calc(100dvh_-_2rem)] w-[calc(100%_-_2rem)] max-w-4xl space-y-3 overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-4 text-[var(--color-foreground)] shadow-[0_24px_80px_rgba(31,31,29,0.24)] backdrop:bg-[#1f1f1d]/35 backdrop:backdrop-blur-[2px]" onClose={props.onClose}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-[var(--color-foreground)]">{props.t('remote.sharePanel.title')}</p>
+          <h3 id="remote-share-dialog-title" className="text-sm font-medium text-[var(--color-foreground)]">{props.t('remote.sharePanel.title')}</h3>
           <p className="text-sm leading-6 text-[var(--color-foreground-muted)]">{props.t('remote.sharePanel.description')}</p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <form method="dialog" className="flex shrink-0 gap-2">
           <Button type="button" variant="secondary" className="h-9" onClick={() => props.onCreateShare(props.instanceId)} disabled={props.isCreatingShare}>
             {props.t('remote.actions.createShare')}
           </Button>
-          <Button type="button" variant="ghost" className="h-9" onClick={props.onClose}>
+          <Button type="submit" variant="ghost" className="h-9">
             {props.t('remote.actions.closeSharePanel')}
           </Button>
-        </div>
+        </form>
       </div>
 
       {props.isLoading ? <p className="text-sm text-[var(--color-foreground-subtle)]">{props.t('remote.messages.loadingShares')}</p> : null}
@@ -90,6 +90,10 @@ export function RemoteShareGrantPanel(props: RemoteShareGrantPanelProps): JSX.El
           </div>
         ))}
       </div>
-    </div>
+    </dialog>
   );
+}
+
+function openDialog(dialog: HTMLDialogElement | null): void {
+  if (dialog && !dialog.open) dialog.showModal();
 }

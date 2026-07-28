@@ -6,8 +6,8 @@ import {
   assertInstanceTableFlow,
   assertInstanceTableResponsiveLayout,
   assertRemoteDomainEditing,
-  assertRemoteOpenActions,
 } from "./platform-console/platform-console-instance-table-smoke.utils.mjs";
+import { assertRemoteAccessActions } from "./platform-console/platform-console-share-dialog.test.mjs";
 import {
   createRemoteInstanceFixtures,
   installRemoteInstanceRoutes,
@@ -433,7 +433,7 @@ async function assertDashboardFlow(browser) {
   await assertUsageRouteFlow(page);
   await assertAccountSettingsFlow(page);
   await assertSkillManagementFlow(page);
-  await assertRemoteOpenActions(page, baseUrl);
+  await assertRemoteAccessActions(page, baseUrl);
   await assertRemoteDomainEditing(page, baseUrl);
   await assertArchiveLifecycle(page);
   await assertDashboardLocaleSwitch(page);
