@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { ChatMessageMarkdown } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-markdown";
 
@@ -14,8 +14,10 @@ const texts = {
   copyCodeLabel: "Copy",
   copiedCodeLabel: "Copied",
   mermaidDiagramLabel: "Diagram",
+  mermaidExpandLabel: "Expand diagram",
   mermaidLoadingLabel: "Rendering diagram…",
   mermaidRenderErrorLabel: "Diagram could not be rendered; showing source instead",
+  attachmentCloseLabel: "Close preview",
 };
 
 beforeEach(() => {
@@ -57,6 +59,36 @@ it("renders fenced Mermaid blocks as strict SVG diagrams", async () => {
   expect(
     container.querySelector("figure[data-chat-mermaid-diagram=true]")?.className,
   ).not.toContain("border");
+});
+
+it("opens rendered Mermaid diagrams in a dismissible lightbox", async () => {
+  render(
+    <ChatMessageMarkdown
+      text={"```mermaid\nflowchart LR\n  A --> B\n```"}
+      role="assistant"
+      texts={texts}
+    />,
+  );
+
+  await screen.findByTestId("mermaid-svg");
+  fireEvent.click(screen.getByRole("button", { name: "Expand diagram" }));
+
+  const dialog = screen.getByRole("dialog", { name: "Diagram" });
+  const expandedDiagram = dialog.querySelector('[data-testid="mermaid-svg"]');
+  expect(expandedDiagram).toBeTruthy();
+  fireEvent.click(expandedDiagram!);
+  expect(screen.getByRole("dialog", { name: "Diagram" })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
+  expect(screen.queryByRole("dialog", { name: "Diagram" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Expand diagram" }));
+  fireEvent.click(screen.getByRole("dialog", { name: "Diagram" }));
+  expect(screen.queryByRole("dialog", { name: "Diagram" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Expand diagram" }));
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "Diagram" })).toBeNull();
 });
 
 it("keeps Mermaid source hidden behind a stable surface during the first render", async () => {

@@ -50,6 +50,7 @@ type ChatMessageMarkdownProps = {
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
     | "mermaidDiagramLabel"
+    | "mermaidExpandLabel"
     | "mermaidLoadingLabel"
     | "mermaidRenderErrorLabel"
   >;

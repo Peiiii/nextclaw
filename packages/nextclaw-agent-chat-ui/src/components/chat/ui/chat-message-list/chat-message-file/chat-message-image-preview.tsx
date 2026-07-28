@@ -1,69 +1,7 @@
-import { useEffect, useId, useState } from "react";
-import { createPortal } from "react-dom";
-import { Expand, X } from "lucide-react";
+import { useState } from "react";
+import { Expand } from "lucide-react";
+import { ChatMessageLightbox } from "@agent-chat-ui/components/chat/ui/chat-message-lightbox";
 
-function ChatMessageImageLightbox({
-  alt,
-  closeLabel,
-  onClose,
-  src,
-}: {
-  alt: string;
-  closeLabel: string;
-  onClose: () => void;
-  src: string;
-}) {
-  const titleId = useId();
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
-
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      className="fixed inset-0 z-[var(--z-modal,10050)] flex items-center justify-center bg-black/80 p-4 backdrop-blur-[2px]"
-      data-testid="chat-message-image-lightbox"
-      onClick={onClose}
-    >
-      <span id={titleId} className="sr-only">
-        {alt}
-      </span>
-      <button
-        type="button"
-        aria-label={closeLabel}
-        className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70"
-        onClick={(event) => {
-          event.stopPropagation();
-          onClose();
-        }}
-      >
-        <X className="h-4 w-4" strokeWidth={2} />
-      </button>
-      <img
-        src={src}
-        alt={alt}
-        className="max-h-[min(92vh,100%)] max-w-[min(96vw,100%)] object-contain shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      />
-    </div>,
-    document.body,
-  );
-}
 export function ChatMessageImagePreview({
   alt,
   expandLabel,
@@ -123,12 +61,17 @@ export function ChatMessageImagePreview({
         ) : null}
       </span>
       {isExpanded ? (
-        <ChatMessageImageLightbox
-          alt={alt}
+        <ChatMessageLightbox
           closeLabel={closeLabel}
+          label={alt}
           onClose={() => setIsExpanded(false)}
-          src={src}
-        />
+        >
+          <img
+            src={src}
+            alt={alt}
+            className="max-h-[min(92vh,100%)] max-w-[min(96vw,100%)] object-contain shadow-2xl"
+          />
+        </ChatMessageLightbox>
       ) : null}
     </>
   );

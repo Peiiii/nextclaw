@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Expand, Loader2 } from "lucide-react";
 import type { Mermaid } from "mermaid";
 import { ChatCodeBlock } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-code-block";
+import { ChatMessageLightbox } from "@agent-chat-ui/components/chat/ui/chat-message-lightbox";
 import type { ChatMessageTexts } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 
 type MermaidTheme = "default" | "dark";
@@ -65,8 +66,10 @@ export function ChatMermaidDiagram({
     | "copyCodeLabel"
     | "copiedCodeLabel"
     | "mermaidDiagramLabel"
+    | "mermaidExpandLabel"
     | "mermaidLoadingLabel"
     | "mermaidRenderErrorLabel"
+    | "attachmentCloseLabel"
   >;
 }) {
   const reactId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -84,10 +87,13 @@ export function ChatMermaidDiagram({
   const renderInProgress = useRef(false);
   const lastRenderStartedAt = useRef(Date.now());
   const mounted = useRef(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [renderRequest, setRenderRequest] =
     useState<MermaidRenderRequest | null>(null);
   const [state, setState] = useState<MermaidRenderState>(null);
   const diagramLabel = texts.mermaidDiagramLabel ?? "Mermaid diagram";
+  const expandLabel = texts.mermaidExpandLabel ?? "Expand diagram";
+  const closeLabel = texts.attachmentCloseLabel ?? "Close preview";
   const loadingLabel = texts.mermaidLoadingLabel ?? "Rendering diagram…";
   const errorLabel =
     texts.mermaidRenderErrorLabel ?? "Diagram could not be rendered";
@@ -221,35 +227,59 @@ export function ChatMermaidDiagram({
   const renderedState = state?.status === "rendered" ? state : null;
 
   return (
-    <figure
-      aria-label={diagramLabel}
-      aria-busy={!currentState}
-      data-chat-mermaid-diagram="true"
-      data-chat-mermaid-pending={!renderedState || undefined}
-      data-chat-mermaid-updating={!currentState || undefined}
-      className={
-        renderedState
-          ? "my-3 min-h-24 overflow-auto py-2"
-          : "my-3 flex min-h-14 items-center justify-center rounded-xl bg-muted/20 px-3 py-2"
-      }
-    >
-      {renderedState ? (
-        <div
-          className="min-w-fit [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
-          dangerouslySetInnerHTML={{ __html: renderedState.svg }}
-        />
-      ) : (
-        <div
-          role="status"
-          className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground/80"
+    <>
+      <figure
+        aria-label={diagramLabel}
+        aria-busy={!currentState}
+        data-chat-mermaid-diagram="true"
+        data-chat-mermaid-pending={!renderedState || undefined}
+        data-chat-mermaid-updating={!currentState || undefined}
+        className={
+          renderedState
+            ? "group/mermaid relative my-3 min-h-24 overflow-auto py-2"
+            : "my-3 flex min-h-14 items-center justify-center rounded-xl bg-muted/20 px-3 py-2"
+        }
+      >
+        {renderedState ? (
+          <button
+            type="button"
+            aria-label={expandLabel}
+            className="relative block min-w-full cursor-zoom-in border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+            onClick={() => setIsExpanded(true)}
+          >
+            <span
+              className="block min-w-fit [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+              dangerouslySetInnerHTML={{ __html: renderedState.svg }}
+            />
+            <span className="pointer-events-none absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-black/45 text-white opacity-0 transition-opacity duration-150 group-hover/mermaid:opacity-100 group-focus-within/mermaid:opacity-100">
+              <Expand className="h-3.5 w-3.5" strokeWidth={2} />
+            </span>
+          </button>
+        ) : (
+          <div
+            role="status"
+            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground/80"
+          >
+            <Loader2
+              aria-hidden="true"
+              className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+            />
+            <span>{loadingLabel}</span>
+          </div>
+        )}
+      </figure>
+      {isExpanded && renderedState ? (
+        <ChatMessageLightbox
+          closeLabel={closeLabel}
+          label={diagramLabel}
+          onClose={() => setIsExpanded(false)}
         >
-          <Loader2
-            aria-hidden="true"
-            className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none"
+          <div
+            className="max-h-[92vh] max-w-[96vw] overflow-auto rounded-xl bg-background p-4 shadow-2xl [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:!max-w-none"
+            dangerouslySetInnerHTML={{ __html: renderedState.svg }}
           />
-          <span>{loadingLabel}</span>
-        </div>
-      )}
-    </figure>
+        </ChatMessageLightbox>
+      ) : null}
+    </>
   );
 }

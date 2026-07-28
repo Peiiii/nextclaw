@@ -388,6 +388,7 @@
   "chatMessageCopy": "Copy",
   "chatMessageCopied": "Copied",
   "chatMermaidDiagram": "Diagram",
+  "chatMermaidExpand": "Expand diagram",
   "chatMermaidLoading": "Rendering diagram…",
   "chatMermaidRenderError": "Diagram could not be rendered; showing source instead",
   "chatSidebarNewTask": "New Task",

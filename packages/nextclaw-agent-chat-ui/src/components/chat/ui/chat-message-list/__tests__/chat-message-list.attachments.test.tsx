@@ -174,11 +174,11 @@ it("opens a fullscreen lightbox when expanding a message image", () => {
   );
 
   fireEvent.click(screen.getAllByLabelText("Expand image")[0]!);
-  expect(screen.getByTestId("chat-message-image-lightbox")).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "hero.png" })).toBeTruthy();
   expect(screen.getAllByRole("img", { name: "hero.png" }).length).toBeGreaterThan(1);
 
   fireEvent.click(screen.getByLabelText("Close preview"));
-  expect(screen.queryByTestId("chat-message-image-lightbox")).toBeNull();
+  expect(screen.queryByRole("dialog", { name: "hero.png" })).toBeNull();
 });
 
 it("renders image-looking files as images even when the image flag is missing", () => {

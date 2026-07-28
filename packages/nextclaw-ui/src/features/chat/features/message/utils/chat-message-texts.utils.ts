@@ -150,6 +150,7 @@ export function buildChatMessageTexts(
     copyMessageLabel: t("chatMessageCopy"),
     copiedMessageLabel: t("chatMessageCopied"),
     mermaidDiagramLabel: t("chatMermaidDiagram"),
+    mermaidExpandLabel: t("chatMermaidExpand"),
     mermaidLoadingLabel: t("chatMermaidLoading"),
     mermaidRenderErrorLabel: t("chatMermaidRenderError"),
     typingLabel: t("chatTyping"),

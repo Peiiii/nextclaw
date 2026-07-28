@@ -493,6 +493,7 @@ export type ChatMessageTexts = {
   copiedMessageLabel: string;
   typingLabel: string;
   mermaidDiagramLabel?: string;
+  mermaidExpandLabel?: string;
   mermaidLoadingLabel?: string;
   mermaidRenderErrorLabel?: string;
   attachmentOpenLabel?: string;

@@ -497,9 +497,9 @@ it("uses the shared expandable preview for consecutive Markdown images", () => {
   expect(previews[0]?.nextElementSibling).toBe(previews[1]);
 
   fireEvent.click(screen.getAllByLabelText("Expand image")[0]!);
-  expect(screen.getByTestId("chat-message-image-lightbox")).toBeTruthy();
+  expect(screen.getByRole("dialog")).toBeTruthy();
   fireEvent.keyDown(window, { key: "Escape" });
-  expect(screen.queryByTestId("chat-message-image-lightbox")).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 it("keeps every scheme-less Markdown href clickable as a local resource", () => {
