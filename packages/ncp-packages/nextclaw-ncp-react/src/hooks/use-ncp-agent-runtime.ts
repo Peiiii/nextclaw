@@ -214,45 +214,50 @@ export function useNcpAgentRuntime({
     () => manager.getSnapshot(),
     () => manager.getSnapshot(),
   );
-  const [isSending, setIsSending] = useState(false);
-  const optimisticMessageIdsRef = useRef(new Set<string>());
+  const [sendingSessionId, setSendingSessionId] = useState<string | null | undefined>(null);
+  const [optimisticMessage, setOptimisticMessage] = useState<NcpMessage | null>(null);
 
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
 
   useEffect(() => {
-    setIsSending(false);
-  }, [sessionId]);
-
-  useEffect(() => {
-    const eventBatcher = new NcpEventDispatchBatcher((events) =>
-      manager.dispatchBatch(events),
-    );
+    const eventBatcher = new NcpEventDispatchBatcher(async (events) => {
+      await manager.dispatchBatch(events);
+      events.forEach((event) => {
+        if (event.type === NcpEventType.MessageSent) {
+          setOptimisticMessage((message) =>
+            message?.id === event.payload.message.id ? null : message,
+          );
+        }
+      });
+    });
     const unsubscribeClient = client.subscribe((event) => {
       if (!shouldDispatchEventToSession(event, sessionIdRef.current)) {
         return;
-      }
-      if (event.type === NcpEventType.MessageSent) {
-        optimisticMessageIdsRef.current.delete(event.payload.message.id);
       }
       eventBatcher.enqueue(event);
     });
 
     return () => {
-      optimisticMessageIdsRef.current.clear();
       unsubscribeClient();
       eventBatcher.dispose();
       void client.stop();
     };
   }, [client, manager]);
 
-  const visibleMessages: readonly NcpMessage[] = snapshot.streamingMessage
-    ? [...snapshot.messages, snapshot.streamingMessage]
+  const messagesWithOptimistic = optimisticMessage &&
+    optimisticMessage.sessionId === sessionId &&
+    !snapshot.messages.some((message) => message.id === optimisticMessage.id)
+    ? [...snapshot.messages, optimisticMessage]
     : snapshot.messages;
+  const visibleMessages: readonly NcpMessage[] = snapshot.streamingMessage
+    ? [...messagesWithOptimistic, snapshot.streamingMessage]
+    : messagesWithOptimistic;
 
   const activeRunId = snapshot.activeRun?.runId ?? null;
   const isRunning = !!snapshot.activeRun;
+  const isSending = sendingSessionId === sessionId;
 
   const send = async (input: NcpAgentSendInput) => {
     if (isSending) {
@@ -264,43 +269,33 @@ export function useNcpAgentRuntime({
     }
 
     manager.clearError();
-    setIsSending(true);
-    const optimisticMessage = envelope.sessionId
+    setSendingSessionId(sessionId);
+    const pendingMessage = envelope.sessionId
       ? createSessionMessage(envelope, envelope.sessionId)
       : null;
     const failOptimisticMessage = async () => {
-      if (
-        !optimisticMessage ||
-        !optimisticMessageIdsRef.current.delete(optimisticMessage.id)
-      ) {
+      if (!pendingMessage) {
         return;
       }
+      setOptimisticMessage(null);
       await manager.dispatch({
         type: NcpEventType.MessageSent,
         payload: {
-          sessionId: optimisticMessage.sessionId,
-          message: { ...optimisticMessage, status: "error" },
+          sessionId: pendingMessage.sessionId,
+          message: { ...pendingMessage, status: "error" },
         },
       });
     };
-    if (optimisticMessage) {
-      optimisticMessageIdsRef.current.add(optimisticMessage.id);
-      await manager.dispatch({
-        type: NcpEventType.MessageSent,
-        payload: {
-          sessionId: optimisticMessage.sessionId,
-          message: optimisticMessage,
-        },
-      });
-    }
+    setOptimisticMessage(isRunning ? null : pendingMessage);
     try {
       const handle = await client.send(envelope);
       if (!handle) {
         await failOptimisticMessage();
         return null;
       }
-      optimisticMessageIdsRef.current.delete(envelope.message.id);
-      if (!optimisticMessage) {
+      if (handle.runId === null) {
+        setOptimisticMessage(null);
+      } else if (!envelope.sessionId) {
         await manager.dispatch({
           type: NcpEventType.MessageSent,
           payload: {
@@ -314,7 +309,9 @@ export function useNcpAgentRuntime({
       await failOptimisticMessage();
       throw error;
     } finally {
-      setIsSending(false);
+      setSendingSessionId((currentSessionId) =>
+        currentSessionId === sessionId ? null : currentSessionId,
+      );
     }
   };
 

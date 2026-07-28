@@ -1,11 +1,17 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { NcpEventType, type NcpAgentClientEndpoint } from '@nextclaw/ncp';
+import {
+  NcpEventType,
+  type NcpAgentClientEndpoint,
+  type NcpAgentSendEnvelope,
+  type NcpEndpointSubscriber,
+  type NcpMessage,
+} from '@nextclaw/ncp';
 import { useNcpAgentRuntime } from '@nextclaw/ncp-react';
 import { DefaultNcpAgentConversationStateManager } from '@nextclaw/ncp-toolkit';
 
 describe('useNcpAgentRuntime backend queue submission', () => {
-  it('forwards and immediately shows a new message while a run is active', async () => {
+  it('keeps a queued message out of the conversation until the backend starts it', async () => {
     const manager = new DefaultNcpAgentConversationStateManager();
     manager.hydrate({ sessionId: 'session-1', messages: [] });
     await manager.dispatch({
@@ -16,18 +22,22 @@ describe('useNcpAgentRuntime backend queue submission', () => {
         messageId: 'assistant-1',
       },
     });
-    const send = vi.fn(async () => ({
+    const send = vi.fn(async (envelope: NcpAgentSendEnvelope) => ({
       assistantMessageId: null,
       runId: null,
       sessionId: 'session-1',
-      userMessageId: 'user-queued',
+      userMessageId: envelope.message.id,
     }));
+    let subscriber: NcpEndpointSubscriber | null = null;
     const client = {
       abort: vi.fn(async () => undefined),
       send,
       stop: vi.fn(async () => undefined),
       stream: vi.fn(async () => undefined),
-      subscribe: vi.fn(() => () => undefined),
+      subscribe: vi.fn((listener: NcpEndpointSubscriber) => {
+        subscriber = listener;
+        return () => undefined;
+      }),
     } as unknown as NcpAgentClientEndpoint;
     const { result } = renderHook(() => useNcpAgentRuntime({
       client,
@@ -46,13 +56,21 @@ describe('useNcpAgentRuntime backend queue submission', () => {
         parts: [{ type: 'text', text: 'queue this' }],
       }),
     }));
-    expect(result.current.visibleMessages).toEqual([
-      expect.objectContaining({
-        sessionId: 'session-1',
-        role: 'user',
-        status: 'final',
-        parts: [{ type: 'text', text: 'queue this' }],
-      }),
-    ]);
+    expect(result.current.visibleMessages).toEqual([]);
+
+    const queuedMessage = send.mock.calls[0][0].message as NcpMessage;
+    await act(async () => {
+      subscriber?.({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: 'session-1',
+          message: queuedMessage,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.visibleMessages).toEqual([queuedMessage]);
+    });
   });
 });
