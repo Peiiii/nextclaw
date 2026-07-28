@@ -1,4 +1,6 @@
 import type {
+  ChatContentParamValue,
+  ChatContentParams,
   ChatFilePreviewViewer,
   ChatInlineDisplayTarget,
   ChatInlineDisplayViewModel,
@@ -11,6 +13,8 @@ const FILE_PREVIEW_VIEWERS = new Set<ChatFilePreviewViewer>([
   "source",
   "rendered",
 ]);
+const CONTENT_PARAMS_MAX_DEPTH = 32;
+const CONTENT_PARAMS_MAX_SERIALIZED_BYTES = 64 * 1024;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -40,6 +44,40 @@ function readTargetPayload(record: Record<string, unknown>): Record<string, unkn
   return isRecord(payload) ? payload : null;
 }
 
+function isContentParamValue(
+  value: unknown,
+  depth: number,
+): value is ChatContentParamValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value);
+  }
+  if (depth >= CONTENT_PARAMS_MAX_DEPTH || typeof value !== "object") {
+    return false;
+  }
+  const values = Array.isArray(value) ? value : Object.values(value);
+  return values.every((item) => isContentParamValue(item, depth + 1));
+}
+
+function readContentParams(value: unknown): ChatContentParams | undefined | null {
+  if (typeof value === "undefined") {
+    return undefined;
+  }
+  if (!isRecord(value) || !isContentParamValue(value, 0)) {
+    return null;
+  }
+  return new TextEncoder().encode(JSON.stringify(value)).byteLength <=
+    CONTENT_PARAMS_MAX_SERIALIZED_BYTES
+    ? value
+    : null;
+}
+
 function readFileTarget(record: Record<string, unknown>): ChatInlineDisplayTarget | null {
   const payload = readTargetPayload(record);
   if (!payload) {
@@ -49,13 +87,22 @@ function readFileTarget(record: Record<string, unknown>): ChatInlineDisplayTarge
   if (!path) {
     return null;
   }
+  const viewer = readFilePreviewViewer(payload.viewer);
+  const params = readContentParams(payload.params);
+  if (
+    params === null ||
+    (params && (viewer === "source" || !/\.html?$/i.test(path)))
+  ) {
+    return null;
+  }
   return {
     type: "file",
     payload: {
       path,
       line: readPositiveInteger(payload.line),
       column: readPositiveInteger(payload.column),
-      viewer: readFilePreviewViewer(payload.viewer),
+      viewer,
+      params: params ?? undefined,
     },
   };
 }
@@ -84,11 +131,16 @@ function readPanelAppTarget(record: Record<string, unknown>): ChatInlineDisplayT
   if (!appId) {
     return null;
   }
+  const params = readContentParams(payload.params);
+  if (params === null) {
+    return null;
+  }
   return {
     type: "panel_app",
     payload: {
       appId,
       path: readString(payload.path),
+      params: params ?? undefined,
     },
   };
 }

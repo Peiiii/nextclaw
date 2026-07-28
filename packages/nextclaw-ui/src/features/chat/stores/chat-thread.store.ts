@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { NcpMessage } from '@nextclaw/ncp';
-import type { ChatFileOperationLineViewModel, ChatFilePreviewViewer } from '@nextclaw/agent-chat-ui';
+import type {
+  ChatContentParams,
+  ChatFileOperationLineViewModel,
+  ChatFilePreviewViewer,
+} from '@nextclaw/agent-chat-ui';
 import type {
   SessionContextWindowView,
   SessionTypeIconView
@@ -38,6 +42,7 @@ export type ChatWorkspaceFileTab = {
   previewViewer?: ChatFilePreviewViewer | null;
   line?: number | null;
   column?: number | null;
+  params?: ChatContentParams | null;
   rawText?: string | null;
   /** Attachment/binary content URL for workspace-native media preview. */
   contentUrl?: string | null;

@@ -269,6 +269,9 @@ describe('DocBrowserProvider panel app resources', () => {
 
     act(() => {
       result.current.openTarget({
+        contentParams: {
+          file: { path: '/tmp/photo.png' },
+        },
         dedupeKey: 'panel-app:demo',
         dockIcon: { type: 'url', url: '/api/panel-apps/demo/assets/icon.png' },
         historyPolicy: 'managed',
@@ -281,11 +284,40 @@ describe('DocBrowserProvider panel app resources', () => {
 
     expect(result.current.currentTab).toMatchObject({
       currentUrl: '/api/panel-apps/demo/content',
+      contentParams: {
+        file: { path: '/tmp/photo.png' },
+      },
       dedupeKey: 'panel-app:demo',
       dockIcon: { type: 'url', url: '/api/panel-apps/demo/assets/icon.png' },
       kind: 'panel-app',
       resourceUri: 'nextclaw://panel-app/demo',
       title: 'Demo Panel App',
+    });
+  });
+
+  it('reloads a reused Panel App tab when its params change', () => {
+    const { result } = renderHook(() => useDocBrowser(), { wrapper });
+    const openPanelApp = (path: string) => {
+      result.current.openTarget({
+        contentParams: { file: { path } },
+        dedupeKey: 'panel-app:demo',
+        historyPolicy: 'managed',
+        kind: 'panel-app',
+        resourceUri: 'nextclaw://panel-app/demo',
+        title: 'Demo Panel App',
+        url: '/api/panel-apps/demo/content',
+      });
+    };
+
+    act(() => openPanelApp('/tmp/first.png'));
+    const firstNavVersion = result.current.currentTab?.navVersion;
+    act(() => openPanelApp('/tmp/second.png'));
+
+    expect(result.current.currentTab).toMatchObject({
+      contentParams: {
+        file: { path: '/tmp/second.png' },
+      },
+      navVersion: (firstNavVersion ?? 0) + 1,
     });
   });
 });

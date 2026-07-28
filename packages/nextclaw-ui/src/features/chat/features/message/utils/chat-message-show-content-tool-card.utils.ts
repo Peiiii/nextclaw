@@ -7,6 +7,10 @@ import type {
 import type {
   ToolCardViewSource,
 } from "./chat-message-tool-card.utils";
+import {
+  readUiContentParams,
+  type UiContentParams,
+} from "@nextclaw/shared";
 
 const SHOW_CONTENT_TOOL_NAMES = ["show_content", "show_file", "show_url", "show_panel_app"];
 
@@ -56,6 +60,14 @@ function readFileViewer(value: unknown): NonNullable<
     : undefined;
 }
 
+function readContentParams(value: unknown): UiContentParams | undefined | null {
+  try {
+    return readUiContentParams(value);
+  } catch {
+    return null;
+  }
+}
+
 function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null {
   if (!isRecord(value) || !isRecord(value.target)) {
     return null;
@@ -78,6 +90,16 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
     if (!path) {
       return null;
     }
+    const params = readContentParams(payload.params);
+    if (
+      params === null ||
+      (params && (
+        readFileViewer(payload.viewer) === "source" ||
+        !/\.html?$/i.test(path)
+      ))
+    ) {
+      return null;
+    }
     return {
       target: {
         type: "file",
@@ -86,6 +108,7 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
           line: readOptionalPositiveInteger(payload.line),
           column: readOptionalPositiveInteger(payload.column),
           viewer: readFileViewer(payload.viewer),
+          params: params ?? undefined,
         },
       },
       title,
@@ -116,12 +139,17 @@ function readShowContentRequest(value: unknown): ChatUiShowContentRequest | null
   if (!appId) {
     return null;
   }
+  const params = readContentParams(payload.params);
+  if (params === null) {
+    return null;
+  }
   return {
     target: {
       type: "panel_app",
       payload: {
         appId,
         path: readOptionalString(payload.path),
+        params: params ?? undefined,
       },
     },
     title,
@@ -180,6 +208,7 @@ export function buildShowContentToolCard(params: {
     ? {
         appId: request.target.payload.appId,
         path: request.target.payload.path,
+        params: request.target.payload.params,
         title: request.title,
         action: showContentAction,
       }

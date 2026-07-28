@@ -5,6 +5,7 @@ import {
 } from "@/features/right-panel-resources";
 import { PANEL_APP_INLINE_HOST_CONTRACT } from "@nextclaw/shared";
 import type { DocBrowserTab } from "@/shared/components/doc-browser/doc-browser-context";
+import type { ChatContentParams } from "@nextclaw/agent-chat-ui";
 
 export function createFallbackPanelAppContentPath(appId: string, sourcePath?: string): string {
   return createPanelAppContentPath(appId, sourcePath);
@@ -37,11 +38,13 @@ export function readInlinePanelAppContentHeight(value: unknown): number | null {
 export function createInlinePanelAppTab(params: {
   appId: string;
   path?: string;
+  params?: ChatContentParams;
   title: string;
   url: string;
 }): DocBrowserTab {
-  const { appId, path, title, url } = params;
+  const { appId, params: contentParams, path, title, url } = params;
   return {
+    contentParams,
     currentUrl: url,
     dedupeKey: `panel-app:${path ?? appId}`,
     history: [url],

@@ -1,6 +1,14 @@
 export type UiShowContentPurpose = "read" | "preview" | "edit" | "interact";
 export type UiShowContentPlacement = "inline" | "side_panel";
 export type UiShowContentFileViewer = "auto" | "source" | "rendered";
+export type UiContentParamValue =
+  | null
+  | boolean
+  | number
+  | string
+  | UiContentParamValue[]
+  | { [key: string]: UiContentParamValue };
+export type UiContentParams = Record<string, UiContentParamValue>;
 
 export type UiShowContentTarget =
   | {
@@ -10,6 +18,7 @@ export type UiShowContentTarget =
         line: number | undefined;
         column: number | undefined;
         viewer: UiShowContentFileViewer | undefined;
+        params?: UiContentParams;
       };
     }
   | {
@@ -23,6 +32,7 @@ export type UiShowContentTarget =
       payload: {
         appId: string;
         path?: string;
+        params?: UiContentParams;
       };
     };
 

@@ -14,7 +14,10 @@ import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { resolveServerPathLocations } from "@nextclaw-server/features/server-path/utils/server-path-locations.utils.js";
 import { resolveServerPath } from "@nextclaw-server/features/server-path/utils/server-path-resolution.utils.js";
-import { EventBus } from "@nextclaw/shared";
+import {
+  EventBus,
+  UI_CONTENT_PARAMS_HOST_CONTRACT,
+} from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
 
@@ -369,6 +372,35 @@ describe("ServerPathRoutesController", () => {
       "image/svg+xml; charset=utf-8",
     );
     expect(await response.text()).toContain("<circle");
+  });
+});
+
+describe("rendered HTML content params", () => {
+  it("injects the params bootstrap only when rendered HTML opts in", async () => {
+    const app = createTestApp();
+    const root = realpathSync(
+      createTempDir("nextclaw-ui-server-path-content-params-"),
+    );
+    const htmlPath = join(root, "index.html");
+    writeFileSync(
+      htmlPath,
+      "<!doctype html><html><head><script>window.author = true;</script></head></html>",
+    );
+    const markedUrl = new URL(buildContentUrl(htmlPath));
+    markedUrl.searchParams.set(
+      UI_CONTENT_PARAMS_HOST_CONTRACT.bootstrapQueryParam,
+      UI_CONTENT_PARAMS_HOST_CONTRACT.bootstrapQueryValue,
+    );
+
+    const plainHtml = await (await app.request(buildContentUrl(htmlPath))).text();
+    const bootstrappedHtml = await (await app.request(markedUrl)).text();
+
+    expect(plainHtml).not.toContain("nextclaw:content-params:bootstrap");
+    expect(bootstrappedHtml).toContain("nextclaw:content-params:bootstrap");
+    expect(bootstrappedHtml.indexOf("nextclaw:content-params:bootstrap")).toBeLessThan(
+      bootstrappedHtml.indexOf("window.author = true"),
+    );
+    expect(bootstrappedHtml).not.toContain("/tmp/photo.png");
   });
 });
 

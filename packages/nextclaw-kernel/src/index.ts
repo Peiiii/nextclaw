@@ -60,6 +60,7 @@ export * from "@kernel/features/native-runtime/index.js";
 export * from "@kernel/features/session-request/index.js";
 export { listExtensionChannelIds } from "@kernel/features/extension-runtime/index.js";
 export * from "@kernel/utils/ncp-session-message-adapter.utils.js";
+export * from "@kernel/utils/ui-content-params-injection.utils.js";
 export * from "@kernel/types/access.types.js";
 export * from "@kernel/types/llm-usage.types.js";
 export * from "@kernel/types/update.types.js";

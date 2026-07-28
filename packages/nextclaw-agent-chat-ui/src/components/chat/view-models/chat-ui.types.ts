@@ -250,6 +250,14 @@ export type ChatFileOperationBlockViewModel = {
 export type ChatUiShowContentPurpose = "read" | "preview" | "edit" | "interact";
 export type ChatUiShowContentPlacement = "inline" | "side_panel";
 export type ChatFilePreviewViewer = "auto" | "source" | "rendered";
+export type ChatContentParamValue =
+  | null
+  | boolean
+  | number
+  | string
+  | ChatContentParamValue[]
+  | { [key: string]: ChatContentParamValue };
+export type ChatContentParams = Record<string, ChatContentParamValue>;
 
 export type ChatUiShowContentTarget =
   | {
@@ -259,6 +267,7 @@ export type ChatUiShowContentTarget =
         line?: number;
         column?: number;
         viewer?: ChatFilePreviewViewer;
+        params?: ChatContentParams;
       };
     }
   | {
@@ -272,6 +281,7 @@ export type ChatUiShowContentTarget =
       payload: {
         appId: string;
         path?: string;
+        params?: ChatContentParams;
       };
     };
 
@@ -304,6 +314,7 @@ export type ChatFileOpenActionViewModel = {
   previewViewer?: ChatFilePreviewViewer;
   line?: number;
   column?: number;
+  params?: ChatContentParams;
   rawText?: string;
   /** Content URL for attachment/binary preview (asset API, data URL, etc.). */
   contentUrl?: string;
@@ -319,6 +330,7 @@ export type ChatFileOpenActionViewModel = {
 export type ChatPanelAppCardViewModel = {
   appId: string;
   path?: string;
+  params?: ChatContentParams;
   title?: string;
   action: Extract<ChatToolActionViewModel, { kind: "show-content" }>;
 };
@@ -331,6 +343,7 @@ export type ChatInlineDisplayTarget =
         line?: number;
         column?: number;
         viewer?: ChatFilePreviewViewer;
+        params?: ChatContentParams;
       };
     }
   | {
@@ -344,6 +357,7 @@ export type ChatInlineDisplayTarget =
       payload: {
         appId: string;
         path?: string;
+        params?: ChatContentParams;
       };
     }
   | {

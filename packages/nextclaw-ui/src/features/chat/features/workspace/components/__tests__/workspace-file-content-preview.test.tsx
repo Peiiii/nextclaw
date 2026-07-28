@@ -87,3 +87,44 @@ it("reports same-origin HTML height changes without replacing the iframe", () =>
   unmount();
   expect(disconnect).toHaveBeenCalledTimes(1);
 });
+
+it("passes params through window.name without exposing values in the content URL", () => {
+  const { rerender } = render(
+    <WorkspaceFileContentPreview
+      contentUrl="/api/server-paths/content?path=%2Ftmp%2Fchart.html"
+      contentParams={{
+        chart: {
+          series: [3, 5, 8],
+        },
+      }}
+      kind="html"
+      label="chart.html"
+    />,
+  );
+
+  const frame = screen.getByTestId(
+    "workspace-html-preview",
+  ) as HTMLIFrameElement;
+  expect(frame.name).toContain('"series":[3,5,8]');
+  expect(frame.src).toContain("nextclawContentParams=1");
+  expect(frame.src).not.toContain("series");
+
+  rerender(
+    <WorkspaceFileContentPreview
+      contentUrl="/api/server-paths/content?path=%2Ftmp%2Fchart.html"
+      contentParams={{
+        chart: {
+          series: [13, 21, 34],
+        },
+      }}
+      kind="html"
+      label="chart.html"
+    />,
+  );
+
+  const nextFrame = screen.getByTestId(
+    "workspace-html-preview",
+  ) as HTMLIFrameElement;
+  expect(nextFrame).not.toBe(frame);
+  expect(nextFrame.name).toContain('"series":[13,21,34]');
+});

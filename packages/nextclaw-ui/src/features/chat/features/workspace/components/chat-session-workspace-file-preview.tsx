@@ -185,6 +185,7 @@ function WorkspacePreviewBody({
   contentUrl,
   contentUrlKind,
   contentLabel,
+  contentParams,
   directoryQuery,
   fileBasePath,
   onFileOpen,
@@ -200,6 +201,7 @@ function WorkspacePreviewBody({
   contentUrl: string | null;
   contentUrlKind: WorkspaceFileContentKind | null;
   contentLabel: string;
+  contentParams: ChatWorkspaceFileTab["params"];
   directoryQuery: ReturnType<typeof useServerPathBrowse> | null | undefined;
   fileBasePath: string | null;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
@@ -216,6 +218,7 @@ function WorkspacePreviewBody({
     return (
       <WorkspaceFileContentPreview
         contentUrl={contentUrl}
+        contentParams={contentParams ?? undefined}
         kind={contentUrlKind}
         label={contentLabel}
         onHtmlContentHeightChange={onHtmlContentHeightChange}
@@ -424,6 +427,7 @@ export function ChatSessionWorkspaceFilePreview({
             contentUrl={contentUrl}
             contentUrlKind={contentUrlKind}
             contentLabel={file.label?.trim() || resolvedPath}
+            contentParams={file.params}
             directoryQuery={directoryQuery}
             fileBasePath={sessionWorkingDir}
             onFileOpen={onFileOpen}

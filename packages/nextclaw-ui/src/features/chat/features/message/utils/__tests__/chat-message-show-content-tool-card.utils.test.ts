@@ -150,6 +150,9 @@ describe("buildShowContentToolCard", () => {
               payload: {
                 appId: "reader",
                 path: "/tmp/reader.panel",
+                params: {
+                  file: { path: "/tmp/photo.png" },
+                },
               },
             },
             title: "Reader",
@@ -166,6 +169,9 @@ describe("buildShowContentToolCard", () => {
       panelApp: {
         appId: "reader",
         path: "/tmp/reader.panel",
+        params: {
+          file: { path: "/tmp/photo.png" },
+        },
         title: "Reader",
         action: {
           kind: "show-content",
@@ -176,6 +182,9 @@ describe("buildShowContentToolCard", () => {
               payload: {
                 appId: "reader",
                 path: "/tmp/reader.panel",
+                params: {
+                  file: { path: "/tmp/photo.png" },
+                },
               },
             },
             title: "Reader",

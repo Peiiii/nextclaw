@@ -60,6 +60,7 @@ describe('chat thread workspace panel persistence', () => {
           label: 'README.md',
           viewMode: 'preview',
           previewViewer: 'rendered',
+          params: { chart: { series: [3, 5, 8] } },
           rawText: '# Hello',
           fullLines: [],
         },
@@ -98,6 +99,9 @@ describe('chat thread workspace panel persistence', () => {
     expect(persisted.state.snapshot.isSending).toBeUndefined();
     expect(persisted.state.snapshot.workspaceFileTabs[0].rawText).toBe('# Hello');
     expect(persisted.state.snapshot.workspaceFileTabs[0].previewViewer).toBe('rendered');
+    expect(persisted.state.snapshot.workspaceFileTabs[0].params).toEqual({
+      chart: { series: [3, 5, 8] },
+    });
     expect(persisted.state.snapshot.workspaceFileTabs[0].fullLines).toBeUndefined();
   });
 

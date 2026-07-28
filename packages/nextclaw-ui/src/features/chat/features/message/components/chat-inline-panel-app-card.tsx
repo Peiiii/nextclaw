@@ -19,10 +19,11 @@ import { ChatInlineContentSurface } from "@/features/chat/features/message/compo
 import { useDocBrowser } from "@/shared/components/doc-browser";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { t } from "@/shared/lib/i18n";
+import { createUiContentParamsWindowName } from "@nextclaw/shared";
 
 type ChatInlinePanelAppDescriptor = Pick<
   ChatPanelAppCardViewModel,
-  "appId" | "path" | "title"
+  "appId" | "params" | "path" | "title"
 >;
 
 export function ChatInlinePanelAppCard({
@@ -60,21 +61,27 @@ export function ChatInlinePanelAppCard({
     () =>
       createInlinePanelAppTab({
         appId: entry?.id ?? panelApp.appId,
+        params: panelApp.params,
         path: panelApp.path,
         title,
         url,
-      }),
-    [entry?.id, panelApp.appId, panelApp.path, title, url],
+    }),
+    [entry?.id, panelApp.appId, panelApp.params, panelApp.path, title, url],
   );
-  const iframeInstanceId = `${tab.id}:${tab.navVersion}:${iframeId}`;
+  const contentParamsWindowName = createUiContentParamsWindowName(panelApp.params);
+  const iframeInstanceId = `${tab.id}:${tab.navVersion}:${iframeId}:${contentParamsWindowName ?? ""}`;
   const openExpanded = () => {
     if (target) {
-      docBrowser.openTarget(target);
+      docBrowser.openTarget({
+        ...target,
+        contentParams: panelApp.params,
+      });
       return;
     }
     docBrowser.open(url, {
       dedupeKey: tab.dedupeKey,
       kind: tab.kind,
+      contentParams: panelApp.params,
       title,
     });
   };
@@ -130,6 +137,7 @@ export function ChatInlinePanelAppCard({
         ref={iframeRef}
         key={iframeInstanceId}
         src={cardUrl}
+        name={contentParamsWindowName}
         title={title}
         sandbox={PANEL_APP_IFRAME_SANDBOX}
         tabIndex={0}

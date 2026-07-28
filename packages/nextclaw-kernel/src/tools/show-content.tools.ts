@@ -6,6 +6,7 @@ import {
 import type { NcpTool } from "@nextclaw/ncp";
 import {
   eventKeys,
+  readUiContentParams,
   type EventBus,
   type UiShowContentEventPayload,
   type UiShowContentFileViewer,
@@ -98,14 +99,21 @@ function readCommonRequestFields(
 
 function normalizeShowFileArgs(args: unknown): ShowContentRequest {
   const params = normalizeToolParams(args);
+  const path = readRequiredString(params.path, "path");
+  const viewer = readOptionalEnum(params.viewer, "viewer", FILE_VIEWERS) ?? "auto";
+  const contentParams = readUiContentParams(params.params);
+  if (contentParams && (viewer === "source" || !/\.html?$/i.test(path))) {
+    throw new Error("params are supported only for rendered HTML file previews.");
+  }
   return {
     target: {
       type: "file",
       payload: {
-        path: readRequiredString(params.path, "path"),
+        path,
         line: readOptionalPositiveInteger(params.line, "line"),
         column: readOptionalPositiveInteger(params.column, "column"),
-        viewer: readOptionalEnum(params.viewer, "viewer", FILE_VIEWERS) ?? "auto",
+        viewer,
+        params: contentParams,
       },
     },
     ...readCommonRequestFields(params, FILE_PURPOSES),
@@ -128,6 +136,7 @@ function normalizeShowUrlArgs(args: unknown): ShowContentRequest {
 function normalizeShowPanelAppArgs(args: unknown): ShowContentRequest {
   const params = normalizeToolParams(args);
   const path = readOptionalString(params.path);
+  const contentParams = readUiContentParams(params.params);
   if (path && !isAbsolute(path)) {
     throw new Error("path must be an absolute path.");
   }
@@ -137,6 +146,7 @@ function normalizeShowPanelAppArgs(args: unknown): ShowContentRequest {
       payload: {
         appId: readRequiredString(params.appId, "appId"),
         path,
+        params: contentParams,
       },
     },
     ...readCommonRequestFields(params, PANEL_APP_PURPOSES),
@@ -204,6 +214,7 @@ const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
         line: { type: "integer", minimum: 1, description: "Optional 1-based line number." },
         column: { type: "integer", minimum: 1, description: "Optional 1-based column number." },
         viewer: { type: "string", enum: FILE_VIEWERS, description: "Optional file viewer mode." },
+        params: { type: "object", description: "Optional JSON object exposed as window.nextclaw.params for rendered HTML." },
       },
       required: ["path"],
       additionalProperties: false,
@@ -233,6 +244,7 @@ const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
       properties: {
         appId: { type: "string", description: "Installed Panel App id to show." },
         path: { type: "string", description: "Optional absolute path to a .panel.html file or .panel directory outside the standard panels directory." },
+        params: { type: "object", description: "Optional JSON object exposed synchronously as window.nextclaw.params." },
         title: { type: "string", description: "Optional title for the shown content." },
         purpose: { type: "string", enum: PANEL_APP_PURPOSES, description: "Optional user intent." },
       },

@@ -10,6 +10,7 @@ import {
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { NavigationLink } from '@/shared/components/actions/navigation-link';
 import { t } from '@/shared/lib/i18n';
+import { createUiContentParamsWindowName } from '@nextclaw/shared';
 
 type DocBrowserAddressToolbarProps = {
   isVisible: boolean;
@@ -86,6 +87,7 @@ export function DocBrowserFrameContent({
           ref={iframeRef}
           key={iframeInstanceId}
           src={currentUrl}
+          name={createUiContentParamsWindowName(currentTab?.contentParams)}
           className="absolute inset-0 w-full h-full border-0"
           title={currentTab?.title || 'NextClaw Docs'}
           sandbox={iframeSandbox}

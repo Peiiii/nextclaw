@@ -68,6 +68,7 @@ export type {
   ChatContextWindowIndicator,
   ChatMessageLayout,
   ChatMessageRole,
+  ChatContentParams,
   ChatFileOperationLineViewModel,
   ChatFileOperationBlockViewModel,
   ChatFilePreviewViewer,

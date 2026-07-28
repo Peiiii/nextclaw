@@ -88,6 +88,9 @@ describe('ChatUiManager content display', () => {
         type: 'panel_app',
         payload: {
           appId: 'reader',
+          params: {
+            file: { path: '/tmp/photo.png' },
+          },
         },
       },
       title: 'Reader',
@@ -95,6 +98,9 @@ describe('ChatUiManager content display', () => {
 
     expect(docBrowserManager.openTarget).toHaveBeenCalledWith({
       dedupeKey: 'panel-app:encoded-reader',
+      contentParams: {
+        file: { path: '/tmp/photo.png' },
+      },
       historyPolicy: 'managed',
       kind: 'panel-app',
       resourceUri: 'nextclaw://panel-app/encoded-reader',

@@ -43,6 +43,7 @@ describe("show content tools", () => {
     expect(fileParameters.required).toEqual(["path"]);
     expect(fileParameters.properties).toHaveProperty("path");
     expect(fileParameters.properties).toHaveProperty("viewer");
+    expect(fileParameters.properties).toHaveProperty("params");
     expect(fileParameters.properties).not.toHaveProperty("payload");
     expect(fileParameters.properties).not.toHaveProperty("placement");
     expect(fileParameters.additionalProperties).toBe(false);
@@ -62,6 +63,7 @@ describe("show content tools", () => {
     expect(panelAppParameters.required).toEqual(["appId"]);
     expect(panelAppParameters.properties).toHaveProperty("appId");
     expect(panelAppParameters.properties).toHaveProperty("path");
+    expect(panelAppParameters.properties).toHaveProperty("params");
     expect(panelAppParameters.properties).not.toHaveProperty("payload");
     expect(panelAppParameters.properties).not.toHaveProperty("placement");
     expect(panelAppParameters.additionalProperties).toBe(false);
@@ -130,6 +132,9 @@ describe("show content tools", () => {
       path: "preview.html",
       viewer: "rendered",
       title: "HTML Preview",
+      params: {
+        series: [3, 5, 8],
+      },
     });
 
     expect(result).toMatchObject({
@@ -139,6 +144,9 @@ describe("show content tools", () => {
           payload: {
             path: "preview.html",
             viewer: "rendered",
+            params: {
+              series: [3, 5, 8],
+            },
           },
         },
       },
@@ -152,6 +160,9 @@ describe("show content tools", () => {
             line: undefined,
             column: undefined,
             viewer: "rendered",
+            params: {
+              series: [3, 5, 8],
+            },
           },
         },
         placement: "side_panel",
@@ -177,6 +188,23 @@ describe("show content tools", () => {
       }),
     ).rejects.toThrow('viewer must be "auto", "source", "rendered".');
   });
+
+  it("rejects params for source and non-HTML file previews", async () => {
+    await expect(
+      getTool("show_file").execute({
+        path: "preview.html",
+        viewer: "source",
+        params: { series: [3, 5, 8] },
+      }),
+    ).rejects.toThrow("params are supported only for rendered HTML file previews.");
+    await expect(
+      getTool("show_file").execute({
+        path: "preview.json",
+        viewer: "rendered",
+        params: { series: [3, 5, 8] },
+      }),
+    ).rejects.toThrow("params are supported only for rendered HTML file previews.");
+  });
 });
 
 describe("show_panel_app", () => {
@@ -191,6 +219,9 @@ describe("show_panel_app", () => {
       appId: "reader",
       title: "Reader",
       purpose: "interact",
+      params: {
+        file: { path: "/tmp/photo.png" },
+      },
     });
 
     expect(result).toEqual({
@@ -202,6 +233,9 @@ describe("show_panel_app", () => {
           payload: {
             appId: "reader",
             path: undefined,
+            params: {
+              file: { path: "/tmp/photo.png" },
+            },
           },
         },
         title: "Reader",
@@ -217,6 +251,9 @@ describe("show_panel_app", () => {
           payload: {
             appId: "reader",
             path: undefined,
+            params: {
+              file: { path: "/tmp/photo.png" },
+            },
           },
         },
         title: "Reader",

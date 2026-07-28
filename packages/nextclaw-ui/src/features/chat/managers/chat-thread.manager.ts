@@ -347,6 +347,7 @@ export class ChatThreadManager {
       previewViewer: nextViewer,
       line: sourceTab.line ?? undefined,
       column: sourceTab.column ?? undefined,
+      params: sourceTab.params ?? undefined,
       rawText: sourceTab.rawText ?? undefined,
       contentUrl: sourceTab.contentUrl ?? undefined,
       mimeType: sourceTab.mimeType ?? undefined,
@@ -419,6 +420,7 @@ export class ChatThreadManager {
         previewViewer: request.target.payload.viewer,
         line: request.target.payload.line,
         column: request.target.payload.column,
+        params: request.target.payload.params,
       });
       return;
     }

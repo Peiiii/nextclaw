@@ -8,10 +8,12 @@ import type {
   DocBrowserTab,
 } from '@/shared/components/doc-browser/types/doc-browser.types';
 import {
+  appendManualNavigation,
   createDocBrowserActiveHistoryEntry,
   createDefaultDocBrowserState,
   createDocBrowserTab,
   normalizeDocBrowserDockedWidth,
+  updateTabForOpen,
 } from '@/shared/components/doc-browser/utils/doc-browser-state.utils';
 import {
   DOC_BROWSER_HOME_TAB_KIND,
@@ -43,14 +45,6 @@ function updateTab(
 
 function updateActiveTab(state: DocBrowserState, updater: (tab: DocBrowserTab) => DocBrowserTab): DocBrowserState {
   return updateTab(state, state.activeTabId, updater);
-}
-
-function appendManualNavigation(tab: DocBrowserTab, url: string): Pick<DocBrowserTab, 'history' | 'historyIndex'> {
-  const history = [...tab.history.slice(0, tab.historyIndex + 1), url];
-  return {
-    history,
-    historyIndex: history.length - 1,
-  };
 }
 
 function areActiveHistoryEntriesEquivalent(
@@ -140,34 +134,6 @@ function restoreActiveHistoryEntry(
   );
 }
 
-function updateTabForOpen(
-  routeResolver: DocBrowserRouteResolver,
-  tab: DocBrowserTab,
-  target: DocBrowserRouteTarget,
-  options?: DocBrowserOpenOptions,
-  dedupeKey?: string,
-): DocBrowserTab {
-  const baseTab = {
-    ...tab,
-    title: options?.title || target.title || tab.title,
-    kind: target.kind,
-    resourceUri: target.resourceUri ?? target.url,
-    dockIcon: options?.dockIcon ?? target.dockIcon,
-    dedupeKey,
-  };
-
-  if (routeResolver.areUrlsEquivalent(tab.currentUrl, target.url, tab.kind, target.kind)) {
-    return baseTab;
-  }
-
-  return {
-    ...baseTab,
-    currentUrl: target.url,
-    ...appendManualNavigation(tab, target.url),
-    navVersion: tab.navVersion + 1,
-  };
-}
-
 function isClosedDefaultHomeState(state: DocBrowserState, activeTab?: DocBrowserTab): boolean {
   return !state.isOpen
     && state.tabs.length === 1
@@ -213,7 +179,15 @@ function openResolvedDocBrowserState(
   }
 
   if (shouldForceNewTab || dedupeKey || !activeTab || activeTab.kind !== target.kind) {
-    const newTab = createDocBrowserTab(target.url, target.kind, title ?? target.title, dedupeKey, target.resourceUri ?? target.url, options?.dockIcon ?? target.dockIcon);
+    const newTab = createDocBrowserTab(
+      target.url,
+      target.kind,
+      title ?? target.title,
+      dedupeKey,
+      target.resourceUri ?? target.url,
+      options?.dockIcon ?? target.dockIcon,
+      target.contentParams,
+    );
     if (isClosedDefaultHomeState(prev, activeTab)) {
       const nextState = {
         ...prev,
@@ -257,7 +231,15 @@ function openDocBrowserState(
     kind: options?.kind,
     url,
   });
-  return openResolvedDocBrowserState(routeResolver, prev, target, options);
+  return openResolvedDocBrowserState(
+    routeResolver,
+    prev,
+    {
+      ...target,
+      contentParams: options?.contentParams,
+    },
+    options,
+  );
 }
 
 export class DocBrowserManager {

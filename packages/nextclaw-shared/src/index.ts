@@ -29,6 +29,8 @@ export type {
 export { createTypedKey, getKeyId } from "./types/typed-key.types.js";
 export type { Key, TypedKey } from "./types/typed-key.types.js";
 export type {
+  UiContentParams,
+  UiContentParamValue,
   UiShowContentEventPayload,
   UiShowContentFileViewer,
   UiShowContentPlacement,
@@ -57,6 +59,13 @@ export {
 } from "./configs/chat-composer-token.config.js";
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
 export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
+export {
+  appendUiContentParamsBootstrapQuery,
+  createUiContentParamsWindowName,
+  readUiContentParams,
+  UI_CONTENT_PARAMS_HOST_CONTRACT,
+  UiContentParamsError,
+} from "./utils/ui-content-params.utils.js";
 export type {
   ChatInlineTokenMetadata,
   ChatInlineTokensMetadata,

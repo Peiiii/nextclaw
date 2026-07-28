@@ -1,5 +1,10 @@
 import { useEffect, useRef } from "react";
-import { readInlineContentHeight } from "@nextclaw/shared";
+import {
+  appendUiContentParamsBootstrapQuery,
+  createUiContentParamsWindowName,
+  readInlineContentHeight,
+  type UiContentParams,
+} from "@nextclaw/shared";
 import { WorkspaceDocxPreview } from "./file-content-preview/workspace-docx-preview";
 import { WorkspacePresentationPreview } from "./file-content-preview/workspace-presentation-preview";
 import { WorkspaceSpreadsheetPreview } from "./file-content-preview/workspace-spreadsheet-preview";
@@ -119,15 +124,18 @@ function WorkspaceUnsupportedContent({
 
 function WorkspaceHtmlPreview({
   contentUrl,
+  contentParams,
   label,
   onContentHeightChange,
 }: {
   contentUrl: string;
+  contentParams?: UiContentParams;
   label: string;
   onContentHeightChange?: (height: number) => void;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const observerCleanupRef = useRef<(() => void) | null>(null);
+  const contentParamsWindowName = createUiContentParamsWindowName(contentParams);
 
   useEffect(
     () => () => {
@@ -177,10 +185,12 @@ function WorkspaceHtmlPreview({
   return (
     <iframe
       ref={iframeRef}
+      key={contentParamsWindowName ?? "no-content-params"}
       allowFullScreen
       className="h-full w-full border-0 bg-white"
       data-testid="workspace-html-preview"
-      src={contentUrl}
+      name={contentParamsWindowName}
+      src={appendUiContentParamsBootstrapQuery(contentUrl, contentParams)}
       title={label}
       onLoad={observeContentHeight}
     />
@@ -189,11 +199,13 @@ function WorkspaceHtmlPreview({
 
 export function WorkspaceFileContentPreview({
   contentUrl,
+  contentParams,
   kind,
   label,
   onHtmlContentHeightChange,
 }: {
   contentUrl: string;
+  contentParams?: UiContentParams;
   kind: WorkspaceFileContentKind;
   label: string;
   onHtmlContentHeightChange?: (height: number) => void;
@@ -243,6 +255,7 @@ export function WorkspaceFileContentPreview({
     return (
       <WorkspaceHtmlPreview
         contentUrl={contentUrl}
+        contentParams={contentParams}
         label={label}
         onContentHeightChange={onHtmlContentHeightChange}
       />

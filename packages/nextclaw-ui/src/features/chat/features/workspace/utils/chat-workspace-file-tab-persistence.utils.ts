@@ -1,5 +1,6 @@
 import type { ChatFilePreviewViewer } from '@nextclaw/agent-chat-ui';
 import type { ChatWorkspaceFileTab } from '@/features/chat/stores/chat-thread.store';
+import { readUiContentParams } from '@nextclaw/shared';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
@@ -27,6 +28,14 @@ function normalizeFilePreviewViewer(value: unknown): ChatFilePreviewViewer | nul
     : null;
 }
 
+function normalizeContentParams(value: unknown): ChatWorkspaceFileTab['params'] {
+  try {
+    return readUiContentParams(value) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function normalizePersistedWorkspaceFileTab(
   value: unknown,
 ): ChatWorkspaceFileTab | null {
@@ -52,6 +61,7 @@ export function normalizePersistedWorkspaceFileTab(
     previewViewer: normalizeFilePreviewViewer(value.previewViewer),
     line: normalizeOptionalNumber(value.line),
     column: normalizeOptionalNumber(value.column),
+    params: normalizeContentParams(value.params),
     rawText: normalizeOptionalText(value.rawText),
     contentUrl: normalizeOptionalString(value.contentUrl),
     mimeType: normalizeOptionalString(value.mimeType),
@@ -75,6 +85,7 @@ export function toPersistedWorkspaceFileTab(
     previewViewer: tab.previewViewer,
     line: tab.line,
     column: tab.column,
+    params: tab.params,
     rawText: tab.rawText,
     contentUrl: tab.contentUrl,
     mimeType: tab.mimeType,

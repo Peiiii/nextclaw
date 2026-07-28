@@ -145,6 +145,7 @@ function renderChatInlineDisplay(display: ChatInlineDisplayViewModel) {
     <ChatInlinePanelAppCard
       panelApp={{
         appId: display.target.payload.appId,
+        params: display.target.payload.params,
         path: display.target.payload.path,
         title: display.title,
       }}

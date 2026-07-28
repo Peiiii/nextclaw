@@ -1,4 +1,6 @@
 import type { Context } from "hono";
+import { injectUiContentParamsBootstrap } from "@nextclaw/kernel";
+import { UI_CONTENT_PARAMS_HOST_CONTRACT } from "@nextclaw/shared";
 import type {
   ServerPathBrowseView,
   ServerPathReadView,
@@ -123,7 +125,14 @@ export class ServerPathRoutesController {
   ): Promise<Response> => {
     try {
       const payload = await readServerPathContent(options);
-      return new Response(payload.content, {
+      const shouldInjectContentParams =
+        payload.contentType.startsWith("text/html") &&
+        c.req.query(UI_CONTENT_PARAMS_HOST_CONTRACT.bootstrapQueryParam) ===
+          UI_CONTENT_PARAMS_HOST_CONTRACT.bootstrapQueryValue;
+      const content = shouldInjectContentParams
+        ? injectUiContentParamsBootstrap(payload.content.toString("utf8"))
+        : payload.content;
+      return new Response(content, {
         headers: {
           "content-type": payload.contentType,
           "cache-control": "no-store",

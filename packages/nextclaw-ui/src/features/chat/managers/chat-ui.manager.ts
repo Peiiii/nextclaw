@@ -96,21 +96,27 @@ export class ChatUiManager {
       });
       return;
     }
-    const { appId, path } = target.payload;
+    const { appId, params: contentParams, path } = target.payload;
     if (path) {
       this.docBrowserManager.open(createPanelAppResourceUri(appId, path), {
+        contentParams,
         title,
       });
       return;
     }
     const entry = await this.resolvePanelAppEntry(appId);
     if (entry) {
-      this.docBrowserManager.openTarget(createPanelAppRightPanelResourceTarget(entry), {
-        title,
-      });
+      this.docBrowserManager.openTarget(
+        {
+          ...createPanelAppRightPanelResourceTarget(entry),
+          contentParams,
+        },
+        { title },
+      );
       return;
     }
     this.docBrowserManager.open(createPanelAppResourceUri(appId), {
+      contentParams,
       title,
     });
   };

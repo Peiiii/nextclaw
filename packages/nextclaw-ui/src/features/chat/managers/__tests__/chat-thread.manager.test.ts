@@ -301,13 +301,15 @@ describe('ChatThreadManager', () => {
     );
 
     manager.openFilePreview({
-      path: 'README.md',
-      label: 'README.md',
+      path: 'chart.html',
+      label: 'Chart',
       viewMode: 'preview',
+      previewViewer: 'rendered',
+      params: { chart: { series: [3, 5, 8] } },
     });
     manager.openFilePreview({
-      path: 'README.md',
-      label: 'README.md',
+      path: 'chart.html',
+      label: 'Chart',
       viewMode: 'diff',
       beforeText: 'old\n',
       afterText: 'new\n',
@@ -316,13 +318,14 @@ describe('ChatThreadManager', () => {
     expect(useChatThreadStore.getState().snapshot.workspaceFileTabs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          key: 'parent-session-1::preview:rendered::README.md',
-          path: 'README.md',
+          key: 'parent-session-1::preview:rendered::chart.html',
+          path: 'chart.html',
           viewMode: 'preview',
+          params: { chart: { series: [3, 5, 8] } },
         }),
         expect.objectContaining({
-          key: 'parent-session-1::diff::README.md',
-          path: 'README.md',
+          key: 'parent-session-1::diff::chart.html',
+          path: 'chart.html',
           viewMode: 'diff',
         }),
       ]),

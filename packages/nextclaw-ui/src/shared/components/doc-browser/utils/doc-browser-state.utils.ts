@@ -1,6 +1,9 @@
 import type {
   DocBrowserActiveHistoryEntry,
   DocBrowserDockIcon,
+  DocBrowserOpenOptions,
+  DocBrowserRouteResolver,
+  DocBrowserRouteTarget,
   DocBrowserState,
   DocBrowserTab,
   DocBrowserTabKind,
@@ -11,6 +14,10 @@ import {
   inferTabTitle,
 } from './doc-browser-url.utils';
 import { t } from '@/shared/lib/i18n';
+import {
+  createUiContentParamsWindowName,
+  type UiContentParams,
+} from '@nextclaw/shared';
 
 export const DOC_BROWSER_DOCKED_DEFAULT_WIDTH = 420;
 export const DOC_BROWSER_DOCKED_MIN_WIDTH = 320;
@@ -36,6 +43,7 @@ export function createDocBrowserTab(
   dedupeKey?: string,
   resourceUri?: string,
   dockIcon?: DocBrowserDockIcon,
+  contentParams?: UiContentParams,
 ): DocBrowserTab {
   const tabTitle = title?.trim() || inferTabTitle(url, kind, kind === 'docs' ? t('docBrowserHelp') : 'Detail');
   const normalizedResourceUri = resourceUri?.trim();
@@ -46,11 +54,66 @@ export function createDocBrowserTab(
     title: tabTitle,
     currentUrl: url,
     resourceUri: normalizedResourceUri ? normalizedResourceUri : undefined,
+    contentParams,
     dockIcon,
     dedupeKey,
     history: [url],
     historyIndex: 0,
     navVersion: 0,
+  };
+}
+
+export function appendManualNavigation(
+  tab: DocBrowserTab,
+  url: string,
+): Pick<DocBrowserTab, 'history' | 'historyIndex'> {
+  const history = [...tab.history.slice(0, tab.historyIndex + 1), url];
+  return {
+    history,
+    historyIndex: history.length - 1,
+  };
+}
+
+export function updateTabForOpen(
+  routeResolver: DocBrowserRouteResolver,
+  tab: DocBrowserTab,
+  target: DocBrowserRouteTarget,
+  options?: DocBrowserOpenOptions,
+  dedupeKey?: string,
+): DocBrowserTab {
+  const baseTab = {
+    ...tab,
+    title: options?.title || target.title || tab.title,
+    kind: target.kind,
+    resourceUri: target.resourceUri ?? target.url,
+    dockIcon: options?.dockIcon ?? target.dockIcon,
+    dedupeKey,
+    contentParams: target.contentParams,
+  };
+  const hasSameUrl = routeResolver.areUrlsEquivalent(
+    tab.currentUrl,
+    target.url,
+    tab.kind,
+    target.kind,
+  );
+  if (
+    hasSameUrl &&
+    createUiContentParamsWindowName(tab.contentParams) ===
+      createUiContentParamsWindowName(target.contentParams)
+  ) {
+    return baseTab;
+  }
+  if (hasSameUrl) {
+    return {
+      ...baseTab,
+      navVersion: tab.navVersion + 1,
+    };
+  }
+  return {
+    ...baseTab,
+    currentUrl: target.url,
+    ...appendManualNavigation(tab, target.url),
+    navVersion: tab.navVersion + 1,
   };
 }
 

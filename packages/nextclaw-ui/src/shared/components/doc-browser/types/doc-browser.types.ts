@@ -1,3 +1,5 @@
+import type { UiContentParams } from '@nextclaw/shared';
+
 export type DocBrowserMode = 'floating' | 'docked';
 export type DocBrowserTabKind = 'docs' | 'content' | (string & {});
 
@@ -7,6 +9,7 @@ export type DocBrowserTab = {
   title: string;
   currentUrl: string;
   resourceUri?: string;
+  contentParams?: UiContentParams;
   dockIcon?: DocBrowserDockIcon;
   dedupeKey?: string;
   history: string[];
@@ -21,6 +24,7 @@ export type DocBrowserRouteTarget = {
   historyPolicy: 'managed' | 'none';
   kind: DocBrowserTabKind;
   resourceUri?: string;
+  contentParams?: UiContentParams;
   title: string;
   url: string;
 };
@@ -71,6 +75,7 @@ export type DocBrowserOpenOptions = {
   newTab?: boolean;
   title?: string;
   kind?: DocBrowserTabKind;
+  contentParams?: UiContentParams;
 };
 
 export type DocBrowserState = {

@@ -72,6 +72,9 @@ it("renders panel apps through the shared adaptive inline surface", () => {
     <ChatInlinePanelAppCard
       panelApp={{
         appId: "weather-card",
+        params: {
+          city: "Shanghai",
+        },
         title: "Weather",
       }}
     />,
@@ -99,6 +102,8 @@ it("renders panel apps through the shared adaptive inline surface", () => {
   expect(iframe.getAttribute("src")).toBe(
     "/api/panel-apps/weather-card/content?nextclawDisplayMode=card&nextclawPlacement=inline",
   );
+  expect(iframe.name).toContain('"city":"Shanghai"');
+  expect(iframe.getAttribute("src")).not.toContain("Shanghai");
 
   fireEvent(
     window,
@@ -118,12 +123,42 @@ it("renders panel apps through the shared adaptive inline surface", () => {
 
   expect(mocks.openTarget).toHaveBeenCalledWith(
     expect.objectContaining({
+      contentParams: {
+        city: "Shanghai",
+      },
       dedupeKey: "panel-app:weather-card",
       kind: "panel-app",
       title: "Weather",
       url: "/api/panel-apps/weather-card/content",
     }),
   );
+});
+
+it("replaces the inline iframe when params change at the same URL", () => {
+  const { rerender } = render(
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: "weather-card",
+        params: { city: "Shanghai" },
+        title: "Weather",
+      }}
+    />,
+  );
+  const firstIframe = screen.getByTitle("Weather");
+
+  rerender(
+    <ChatInlinePanelAppCard
+      panelApp={{
+        appId: "weather-card",
+        params: { city: "Beijing" },
+        title: "Weather",
+      }}
+    />,
+  );
+
+  const nextIframe = screen.getByTitle("Weather") as HTMLIFrameElement;
+  expect(nextIframe).not.toBe(firstIframe);
+  expect(nextIframe.name).toContain('"city":"Beijing"');
 });
 
 it("renders and expands a panel app from an explicit external path", () => {

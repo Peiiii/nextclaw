@@ -2,6 +2,7 @@ import {
   PANEL_APP_INLINE_HOST_CONTRACT,
   readInlineContentHeight,
 } from "@nextclaw/shared";
+import { getUiContentParamsBootstrapScript } from "@kernel/utils/ui-content-params-injection.utils.js";
 
 const PANEL_APP_BRIDGE_MARKER = "nextclaw:panel-app-service-actions:request";
 
@@ -79,6 +80,7 @@ export function getPanelAppBridgeScript(
   const appId = JSON.stringify(params.appId);
   const runtimeToken = JSON.stringify(params.runtimeToken);
   return `
+${getUiContentParamsBootstrapScript()}
 (() => {
   const requestType = "nextclaw:panel-app-service-actions:request";
   const responseType = "nextclaw:panel-app-service-actions:response";

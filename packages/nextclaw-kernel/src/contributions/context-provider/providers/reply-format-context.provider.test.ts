@@ -92,6 +92,8 @@ describe("ReplyFormatContextProvider", () => {
       "internal API URLs",
       "bad `report.docx` -> good [report.docx](report.docx)",
       "good ![chart](/Users/example/chart.png)",
+      "window.nextclaw.params",
+      "JSON object at `payload.params`",
     ]) {
       expect(context).toContain(expected);
     }

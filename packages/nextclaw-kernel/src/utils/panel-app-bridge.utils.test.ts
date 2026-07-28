@@ -1,9 +1,46 @@
 import { createContext, runInContext } from "node:vm";
 import { describe, expect, it, vi } from "vitest";
-import { PANEL_APP_INLINE_HOST_CONTRACT } from "@nextclaw/shared";
+import {
+  PANEL_APP_INLINE_HOST_CONTRACT,
+  createUiContentParamsWindowName,
+} from "@nextclaw/shared";
 import { getPanelAppBridgeScript } from "@kernel/utils/panel-app-bridge.utils.js";
 
 describe("panel app inline host bridge", () => {
+  it("preserves bootstrapped params when installing Panel App capabilities", () => {
+    const windowLike = {
+      addEventListener: vi.fn(),
+      document: {
+        body: null,
+        documentElement: {},
+        readyState: "complete",
+      },
+      location: { href: "http://localhost/panel", origin: "http://localhost", search: "" },
+      name: createUiContentParamsWindowName({
+        file: { path: "/tmp/photo.png" },
+      }),
+      parent: { postMessage: vi.fn() },
+    };
+
+    runInContext(
+      getPanelAppBridgeScript(),
+      createContext({ URLSearchParams, window: windowLike }),
+    );
+
+    expect(windowLike.name).toBe("");
+    expect(windowLike.nextclaw).toMatchObject({
+      params: {
+        file: { path: "/tmp/photo.png" },
+      },
+      agent: {
+        send: expect.any(Function),
+      },
+      serviceActions: {
+        invoke: expect.any(Function),
+      },
+    });
+  });
+
   it("reports dynamic content height after the inline card document is ready", () => {
     const postMessage = vi.fn();
     let notifyResize = () => undefined;

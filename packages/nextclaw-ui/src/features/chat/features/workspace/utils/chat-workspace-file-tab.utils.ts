@@ -29,6 +29,7 @@ export function createWorkspaceFileTab(
     previewViewer,
     line: action.line ?? null,
     column: action.column ?? null,
+    params: action.params ?? null,
     rawText: action.rawText ?? null,
     contentUrl: action.contentUrl?.trim() || null,
     mimeType: action.mimeType?.trim() || null,

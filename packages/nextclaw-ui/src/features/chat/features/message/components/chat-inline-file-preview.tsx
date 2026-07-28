@@ -31,7 +31,7 @@ export function ChatInlineFilePreview({
   if (display.target.type !== "file") {
     return null;
   }
-  const { path, line, column, viewer } = display.target.payload;
+  const { path, line, column, params, viewer } = display.target.payload;
   const file = createWorkspaceFileTab(
     {
       path,
@@ -40,6 +40,7 @@ export function ChatInlineFilePreview({
       previewViewer: viewer,
       line,
       column,
+      params,
     },
     parentSessionKey,
   );
@@ -58,6 +59,7 @@ export function ChatInlineFilePreview({
       previewViewer,
       line: file.line ?? undefined,
       column: file.column ?? undefined,
+      params: file.params ?? undefined,
     });
   };
 
