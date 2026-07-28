@@ -36,6 +36,7 @@ const RELOAD_RULES: ReloadRule[] = [
   { prefix: "agents.defaults.thinkingDefault", kind: "reload-agent" },
   { prefix: "agents.defaults.models", kind: "reload-agent" },
   { prefix: "agents.defaults.maxToolIterations", kind: "reload-agent" },
+  { prefix: "agents.runtimes", kind: "restart-required" },
   { prefix: "agents.context", kind: "reload-agent" },
   { prefix: "agents.learningLoop", kind: "reload-agent" },
   { prefix: "agents.defaults.contextTokens", kind: "reload-agent" },
@@ -48,6 +49,7 @@ const RELOAD_RULES: ReloadRule[] = [
   { prefix: "companion", kind: "reload-companion" },
   { prefix: "secrets", kind: "none" },
   { prefix: "gateway", kind: "none" },
+  { prefix: "ui.ncp.runtimes.native", kind: "restart-required" },
   { prefix: "ui", kind: "none" }
 ];
 

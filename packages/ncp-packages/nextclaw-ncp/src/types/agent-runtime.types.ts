@@ -7,6 +7,7 @@ import type {
 export type NcpAgentRunInput = {
   sessionId: string;
   messages: ReadonlyArray<NcpMessage>;
+  contextBlocks?: ReadonlyArray<string>;
   correlationId?: string;
   metadata?: Record<string, unknown>;
   executionContext?: NcpAgentRunExecutionContext;

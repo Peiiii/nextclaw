@@ -1,6 +1,7 @@
 import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import {
   NarpStdioRuntimeWrapper,
+  renderNextclawContextInstructions,
   type NarpStdioRuntimeWrapperContext,
 } from "@nextclaw/nextclaw-narp-stdio-runtime-wrapper";
 import {
@@ -39,6 +40,9 @@ export class ClaudeCodeNarpRuntimeWrapper {
     const { cwd, modelId, promptMeta, sessionId, setSessionMetadata } = context;
     const providerRoute = promptMeta.providerRoute;
     const sessionMetadata = promptMeta.sessionMetadata ?? {};
+    const nextclawInstructions = renderNextclawContextInstructions(
+      promptMeta.contextBlocks,
+    );
     const requestedModelRoute =
       readString(sessionMetadata.preferred_model) ??
       readString(sessionMetadata.preferredModel) ??
@@ -86,9 +90,16 @@ export class ClaudeCodeNarpRuntimeWrapper {
       baseQueryOptions: {
         permissionMode: "bypassPermissions",
         includePartialMessages: true,
-        ...(useClaudeRuntimeDefaults
-          ? { settingSources: ["user", "project", "local"] }
-          : {}),
+        settingSources: useClaudeRuntimeDefaults
+          ? ["user", "project", "local"]
+          : undefined,
+        systemPrompt: nextclawInstructions
+          ? {
+              type: "preset",
+              preset: "claude_code",
+              append: nextclawInstructions,
+            }
+          : undefined,
       },
       ...(apiBase && shouldUseAnthropicGateway(providerRoute?.headers)
         ? {

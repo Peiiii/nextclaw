@@ -29,6 +29,7 @@ export type CodexAppServerNcpAgentRuntimeConfig = {
   apiKey: string;
   apiBase?: string;
   model?: string;
+  developerInstructions?: string;
   threadId?: string | null;
   codexPathOverride?: string;
   env?: Record<string, string>;

@@ -21,6 +21,16 @@ describe("buildReloadPlan", () => {
     expect(plan.restartRequired).toEqual([]);
   });
 
+  it.each([
+    "agents.runtimes.entries.codex.config.injectNextclawContext",
+    "ui.ncp.runtimes.native.injectNextclawContext",
+  ])("requires restart for agent runtime config changes at %s", (path) => {
+    const plan = buildReloadPlan([path]);
+
+    expect(plan.reloadAgent).toBe(false);
+    expect(plan.restartRequired).toEqual([path]);
+  });
+
   it("hot applies companion feature changes without requiring restart", () => {
     const plan = buildReloadPlan(["companion.enabled"]);
     expect(plan.reloadCompanion).toBe(true);

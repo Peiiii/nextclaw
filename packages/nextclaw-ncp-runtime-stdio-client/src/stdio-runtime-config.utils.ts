@@ -1,4 +1,8 @@
-import type { OpenAITool, NcpProviderRuntimeRoute } from "@nextclaw/ncp";
+import type {
+  NcpAgentRunInput,
+  NcpProviderRuntimeRoute,
+  OpenAITool,
+} from "@nextclaw/ncp";
 import { createRuntimeChildEnv } from "@nextclaw/core";
 
 export const NARP_STDIO_PROMPT_META_KEY = "nextclaw_narp";
@@ -18,10 +22,26 @@ export type StdioRuntimeProcessScope = "per-session";
 
 export type NarpStdioPromptMeta = {
   correlationId?: string;
+  contextBlocks?: ReadonlyArray<string>;
   providerRoute?: NcpProviderRuntimeRoute;
   sessionMetadata?: Record<string, unknown>;
   tools?: ReadonlyArray<OpenAITool>;
 };
+
+export function buildNarpStdioPromptMeta(params: {
+  input: NcpAgentRunInput;
+  providerRoute?: NcpProviderRuntimeRoute;
+  tools: ReadonlyArray<OpenAITool>;
+}): NarpStdioPromptMeta {
+  const { input, providerRoute, tools } = params;
+  return {
+    correlationId: input.correlationId,
+    contextBlocks: input.contextBlocks,
+    providerRoute,
+    sessionMetadata: input.metadata,
+    tools: tools.length > 0 ? tools : undefined,
+  };
+}
 
 export type StdioRuntimeResolvedConfig = {
   wireDialect: StdioRuntimeWireDialect;

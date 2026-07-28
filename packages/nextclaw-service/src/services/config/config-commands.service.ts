@@ -81,7 +81,8 @@ export class ConfigCommands {
       prevConfig,
       nextConfig: nextConfig as Config,
       reason: `config.set ${pathExpr}`,
-      manualMessage: `Updated ${pathExpr}. Restart the gateway to apply.`
+      manualMessage: `Updated ${pathExpr}. Restart the gateway to apply.`,
+      silentRestartNotice: opts.silentRestartNotice,
     });
   };
 
@@ -126,8 +127,15 @@ export class ConfigCommands {
     nextConfig: Config;
     reason: string;
     manualMessage: string;
+    silentRestartNotice?: boolean;
   }): Promise<void> => {
-    const { manualMessage, nextConfig, prevConfig, reason } = params;
+    const {
+      manualMessage,
+      nextConfig,
+      prevConfig,
+      reason,
+      silentRestartNotice,
+    } = params;
     const changedPaths = diffConfigPaths(prevConfig, nextConfig);
     if (!changedPaths.length) {
       return;
@@ -140,7 +148,8 @@ export class ConfigCommands {
       changedPaths: plan.restartRequired,
       mode: "notify",
       reason: `${reason} (${plan.restartRequired.join(", ")})`,
-      manualMessage
+      manualMessage,
+      silentNotification: silentRestartNotice,
     });
   };
 }

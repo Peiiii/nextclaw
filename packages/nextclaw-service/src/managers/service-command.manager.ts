@@ -1,4 +1,4 @@
-import { APP_NAME, getConfigPath, getDataDir } from "@nextclaw/core";
+import { APP_NAME, getConfigPath, getDataDir, loadConfig } from "@nextclaw/core";
 import { AgentManager, NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import { AgentCommands, runCliAgentCommand } from "@nextclaw-service/controllers/commands/agent-command.controller.js";
@@ -76,6 +76,9 @@ export class ServiceCommandManager {
       forcedPublicHost: FORCED_PUBLIC_UI_HOST,
       init: (params) => this.deps.init(params)
     });
+    const config = new ConfigCommands({
+      requestRestart: (params) => this.deps.restart.requestRestart(params),
+    });
     this.platformAuth = new PlatformAuthCommands();
     this.remote = new RemoteCommands();
     this.commands = {
@@ -88,17 +91,21 @@ export class ServiceCommandManager {
       }),
       skills: new SkillsCommands(),
       service: new ServiceCommands(),
-      config: new ConfigCommands({
-        requestRestart: (params) => this.deps.restart.requestRestart(params),
-      }),
+      config,
       mcp: new McpCommands(),
       secrets: new SecretsCommands({
         requestRestart: (params) => this.deps.restart.requestRestart(params),
       }),
-      agents: new AgentCommands(new AgentManager(undefined, {
-        initializeAgentHomeDirectory: (homeDirectory) =>
-          this.deps.workspace.createWorkspaceTemplates(homeDirectory),
-      })),
+      agents: new AgentCommands(
+        new AgentManager(undefined, {
+          initializeAgentHomeDirectory: (homeDirectory) =>
+            this.deps.workspace.createWorkspaceTemplates(homeDirectory),
+        }),
+        {
+          load: () => loadConfig(),
+          set: config.set,
+        },
+      ),
       channels: new ChannelCommands({
         requestRestart: (params) => this.deps.restart.requestRestart(params),
       }),

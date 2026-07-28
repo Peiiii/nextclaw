@@ -252,6 +252,10 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
           parts: [{ type: "text", text: "ping over stdio" }],
         },
       ],
+      contextBlocks: [
+        "NextClaw official instructions",
+        "<available_skills>skill-a</available_skills>",
+      ],
       correlationId: "corr-1",
       executionContext: TEST_EXECUTION_CONTEXT,
       metadata: {
@@ -296,6 +300,10 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
       headerKeys: ["x-minimax-group-id"],
       envHeaderKeys: ["x-minimax-group-id"],
       toolNames: ["list_dir"],
+      contextBlocks: [
+        "NextClaw official instructions",
+        "<available_skills>skill-a</available_skills>",
+      ],
     });
 
     const completedEvent = events.find(
@@ -319,6 +327,10 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
           headerKeys: ["x-minimax-group-id"],
           envHeaderKeys: ["x-minimax-group-id"],
           toolNames: ["list_dir"],
+          contextBlocks: [
+            "NextClaw official instructions",
+            "<available_skills>skill-a</available_skills>",
+          ],
         },
       },
       { type: "text", text: "pong via ACP" },

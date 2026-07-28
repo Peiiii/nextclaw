@@ -7,6 +7,7 @@ import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-s
 import { ServiceRestartManager } from "@nextclaw-service/managers/service-restart.manager.js";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
+import { pendingRestartStore } from "@nextclaw-service/stores/pending-restart.store.js";
 
 const mocks = vi.hoisted(() => ({
   spawn: vi.fn(() => ({ unref: vi.fn() }))
@@ -38,6 +39,7 @@ describe("ServiceRestartManager self relaunch", () => {
     process.env.NEXTCLAW_HOME = tempHome;
     vi.useFakeTimers();
     mocks.spawn.mockClear();
+    pendingRestartStore.clear();
     restartManager = new ServiceRestartManager({
       managedService: {} as ManagedServiceManager
     });
@@ -68,6 +70,7 @@ describe("ServiceRestartManager self relaunch", () => {
       process.env.NEXTCLAW_HOME = originalHome;
     }
     rmSync(tempHome, { recursive: true, force: true });
+    pendingRestartStore.clear();
   });
 
   it("re-enters the runtime launcher so an activated bundle can replace the current app", async () => {
@@ -104,5 +107,24 @@ describe("ServiceRestartManager self relaunch", () => {
     expect(helperScript).toContain("/repo/packages/nextclaw/src/cli/launcher/index.ts");
     expect(helperScript).not.toContain("/repo/packages/nextclaw/src/cli/app/index.ts");
     expect(helperScript).toContain('"start","--ui-port","19199"');
+  });
+
+  it("records a pending restart without polluting machine-readable output", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await restartManager.requestRestart({
+      changedPaths: ["agents.runtimes"],
+      mode: "notify",
+      reason: "agent runtime config changed",
+      manualMessage: "Restart the gateway to apply changes.",
+      silentNotification: true,
+    });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(pendingRestartStore.read()).toMatchObject({
+      changedPaths: ["agents.runtimes"],
+      message: "Restart the gateway to apply changes.",
+      reasons: ["agent runtime config changed"],
+    });
   });
 });

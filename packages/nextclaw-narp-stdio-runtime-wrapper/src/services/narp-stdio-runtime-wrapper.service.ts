@@ -357,6 +357,7 @@ function buildRunInput(params: {
         parts: [{ type: "text", text: readPromptText(prompt) }],
       },
     ],
+    contextBlocks: promptMeta.contextBlocks,
     ...(promptMeta.correlationId ? { correlationId: promptMeta.correlationId } : {}),
     ...(promptMeta.sessionMetadata ? { metadata: promptMeta.sessionMetadata } : {}),
   };

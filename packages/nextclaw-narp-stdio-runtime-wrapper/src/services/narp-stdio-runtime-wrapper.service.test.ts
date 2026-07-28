@@ -115,6 +115,10 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
       _meta: {
         [NARP_STDIO_PROMPT_META_KEY]: {
           correlationId: "corr-1",
+          contextBlocks: [
+            "NextClaw official instructions",
+            "<available_skills>skill-a</available_skills>",
+          ],
           providerRoute: {
             model: "route-model",
             apiKey: "route-key",
@@ -138,6 +142,10 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
         modelId: "model-from-client",
         promptMeta: {
           correlationId: "corr-1",
+          contextBlocks: [
+            "NextClaw official instructions",
+            "<available_skills>skill-a</available_skills>",
+          ],
           providerRoute: {
             model: "route-model",
             apiKey: "route-key",
@@ -152,6 +160,10 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
     expect(runtime.inputs[0]).toMatchObject({
       sessionId: session.sessionId,
       correlationId: "corr-1",
+      contextBlocks: [
+        "NextClaw official instructions",
+        "<available_skills>skill-a</available_skills>",
+      ],
       metadata: { project_root: "/tmp/project" },
       messages: [
         {

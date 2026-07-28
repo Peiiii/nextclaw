@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { EffectiveAgentProfile } from "@nextclaw/core";
+import { ConfigSchema, type Config, type EffectiveAgentProfile } from "@nextclaw/core";
 import type { AgentManager } from "@nextclaw/kernel";
 
 const mocks = vi.hoisted(() => ({
@@ -22,6 +22,22 @@ function createAgentManager(overrides: Partial<AgentManager> = {}): AgentManager
   } as unknown as AgentManager;
 }
 
+function createAgentCommands(
+  agentManager = createAgentManager(),
+  params: {
+    config?: Config;
+    set?: (
+      pathExpr: string,
+      value: string,
+    ) => Promise<void>;
+  } = {},
+): AgentCommands {
+  return new AgentCommands(agentManager, {
+    load: () => params.config ?? ConfigSchema.parse({}),
+    set: params.set ?? (async () => undefined),
+  });
+}
+
 describe("AgentCommands", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -42,7 +58,7 @@ describe("AgentCommands", () => {
     const agentManager = createAgentManager({
       updateAgent: vi.fn().mockResolvedValue(updated),
     });
-    const commands = new AgentCommands(agentManager);
+    const commands = createAgentCommands(agentManager);
 
     await commands.update("researcher", {
       name: "Researcher",
@@ -76,7 +92,7 @@ describe("AgentCommands", () => {
     const agentManager = createAgentManager({
       updateAgent: vi.fn().mockResolvedValue(updated),
     });
-    const commands = new AgentCommands(agentManager);
+    const commands = createAgentCommands(agentManager);
 
     await commands.update("main", {
       description: "负责统筹"
@@ -99,7 +115,7 @@ describe("AgentCommands", () => {
     const agentManager = createAgentManager({
       createAgent: vi.fn().mockResolvedValue(created),
     });
-    const commands = new AgentCommands(agentManager);
+    const commands = createAgentCommands(agentManager);
 
     await commands.create("engineer", {
       runtime: "codex",
@@ -155,7 +171,7 @@ describe("AgentCommands", () => {
       ],
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new AgentCommands(createAgentManager());
+    const commands = createAgentCommands();
 
     await commands.runtimes({
       json: true,
@@ -193,6 +209,115 @@ describe("AgentCommands", () => {
       ],
     }, null, 2));
   });
+});
+
+describe("AgentCommands runtime configuration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows default-on NextClaw context injection for a configured runtime", async () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const commands = createAgentCommands(createAgentManager(), {
+      config: ConfigSchema.parse({
+        agents: {
+          runtimes: {
+            entries: {
+              codex: {
+                type: "narp-stdio",
+                config: {
+                  command: "nextclaw-codex-narp",
+                },
+              },
+            },
+          },
+        },
+      }),
+    });
+
+    await commands.runtimeConfig("CODEX", { json: true });
+
+    expect(logSpy).toHaveBeenCalledWith(JSON.stringify({
+      runtimeId: "codex",
+      type: "narp-stdio",
+      injectNextclawContext: true,
+    }, null, 2));
+  });
+
+  it("updates one runtime context injection switch through the config owner", async () => {
+    const set = vi.fn(async () => undefined);
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const commands = createAgentCommands(createAgentManager(), {
+      config: ConfigSchema.parse({
+        agents: {
+          runtimes: {
+            entries: {
+              "claude-code": {
+                type: "narp-stdio",
+                config: {
+                  command: "nextclaw-claude-code-narp",
+                },
+              },
+            },
+          },
+        },
+      }),
+      set,
+    });
+
+    await commands.runtimeConfig("claude-code", {
+      injectNextclawContext: false,
+      json: true,
+    });
+
+    expect(set).toHaveBeenCalledWith(
+      "agents.runtimes.entries.claude-code.config.injectNextclawContext",
+      "false",
+      {
+        silentRestartNotice: true,
+      },
+    );
+    expect(logSpy).toHaveBeenCalledWith(JSON.stringify({
+      runtimeId: "claude-code",
+      type: "narp-stdio",
+      injectNextclawContext: false,
+    }, null, 2));
+  });
+
+  it("uses the native runtime config path for the built-in runtime", async () => {
+    const set = vi.fn(async () => undefined);
+    const commands = createAgentCommands(createAgentManager(), { set });
+
+    await commands.runtimeConfig("native", {
+      injectNextclawContext: false,
+    });
+
+    expect(set).toHaveBeenCalledWith(
+      "ui.ncp.runtimes.native.injectNextclawContext",
+      "false",
+      {
+        silentRestartNotice: false,
+      },
+    );
+  });
+
+  it("rejects unknown runtime ids before writing config", async () => {
+    const set = vi.fn(async () => undefined);
+    const commands = createAgentCommands(createAgentManager(), { set });
+
+    await expect(
+      commands.runtimeConfig("missing-runtime", {
+        injectNextclawContext: false,
+      }),
+    ).rejects.toThrow("agent runtime 'missing-runtime' not found");
+    expect(set).not.toHaveBeenCalled();
+  });
+});
+
+describe("AgentCommands listing and removal", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it("lists agents from AgentManager", () => {
     const agents = [
@@ -211,7 +336,7 @@ describe("AgentCommands", () => {
       listAgents: vi.fn(() => agents),
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new AgentCommands(agentManager);
+    const commands = createAgentCommands(agentManager);
 
     commands.list({ json: true });
 
@@ -234,7 +359,7 @@ describe("AgentCommands", () => {
       removeAgent: vi.fn().mockResolvedValue(true),
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new AgentCommands(agentManager);
+    const commands = createAgentCommands(agentManager);
 
     await commands.remove("researcher", { json: true });
 

@@ -104,6 +104,7 @@ describe("NcpAgentRuntimeWrapper", () => {
   it("delegates manual compaction when the external runtime supports it", async () => {
     const compactContext = vi.fn(async () => undefined);
     const wrapper = new NcpAgentRuntimeWrapper({
+      injectNextclawContext: true,
       createRuntime: () => ({ run: () => emptyEvents(), compactContext }),
     });
     const sessionRun = createSessionRun(createMessage("user-1"));
@@ -122,6 +123,7 @@ describe("NcpAgentRuntimeWrapper", () => {
 
   it("reports unsupported external runtimes without fallback", async () => {
     const wrapper = new NcpAgentRuntimeWrapper({
+      injectNextclawContext: true,
       createRuntime: () => ({ run: () => emptyEvents() }),
     });
 
@@ -139,6 +141,7 @@ describe("NcpAgentRuntimeWrapper", () => {
   it("uses refreshed session metadata when reusing the same underlying runtime", async () => {
     const inputs: NcpAgentRunInput[] = [];
     const wrapper = new NcpAgentRuntimeWrapper({
+      injectNextclawContext: true,
       createRuntime: () => ({
         run: (input: NcpAgentRunInput): AsyncIterable<NcpEndpointEvent> => {
           inputs.push(structuredClone(input));
@@ -185,11 +188,73 @@ describe("NcpAgentRuntimeWrapper", () => {
     expect(inputs[1]?.executionContext?.cwd).toBe("/session/workspace");
   });
 
+  it("forwards NextClaw context blocks when runtime injection is enabled", async () => {
+    const inputs: NcpAgentRunInput[] = [];
+    const wrapper = new NcpAgentRuntimeWrapper({
+      injectNextclawContext: true,
+      createRuntime: () => ({
+        run: (input: NcpAgentRunInput): AsyncIterable<NcpEndpointEvent> => {
+          inputs.push(input);
+          return emptyEvents();
+        },
+      }),
+    });
+
+    for await (const _event of wrapper.run(SPEC, {
+      contextBlocks: ["NextClaw instructions", "Available skills"],
+      session: {
+        sessionId: "session-1",
+        agentRuntimeId: "codex",
+        workingDir: "/session/workspace",
+        metadata: {},
+      },
+      sessionRun: createSessionRun(createMessage("user-1")),
+      tools: [],
+    })) {
+      // Drain the wrapper output.
+    }
+
+    expect(inputs[0]?.contextBlocks).toEqual([
+      "NextClaw instructions",
+      "Available skills",
+    ]);
+  });
+
+  it("omits NextClaw context blocks when runtime injection is disabled", async () => {
+    const inputs: NcpAgentRunInput[] = [];
+    const wrapper = new NcpAgentRuntimeWrapper({
+      injectNextclawContext: false,
+      createRuntime: () => ({
+        run: (input: NcpAgentRunInput): AsyncIterable<NcpEndpointEvent> => {
+          inputs.push(input);
+          return emptyEvents();
+        },
+      }),
+    });
+
+    for await (const _event of wrapper.run(SPEC, {
+      contextBlocks: ["must not be forwarded"],
+      session: {
+        sessionId: "session-1",
+        agentRuntimeId: "claude-code",
+        workingDir: "/session/workspace",
+        metadata: {},
+      },
+      sessionRun: createSessionRun(createMessage("user-1")),
+      tools: [],
+    })) {
+      // Drain the wrapper output.
+    }
+
+    expect(inputs[0]?.contextBlocks).toBeUndefined();
+  });
+
   it("forwards external runtime stream failures without adding a wrapper retry layer", async () => {
     const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
     sessionRun.inbox.enqueue(createMessage("user-1"));
     let runtimeCreations = 0;
     const wrapper = new NcpAgentRuntimeWrapper({
+      injectNextclawContext: true,
       createRuntime: () => {
         runtimeCreations += 1;
         return {

@@ -33,6 +33,7 @@ describe("resolveAgentRuntimeEntries", () => {
     });
 
     expect(resolved.entries.map((entry) => entry.id)).toEqual(["native"]);
+    expect(resolved.entries[0]?.injectNextclawContext).toBe(true);
   });
 
   it("preserves explicit runtime entry overrides", () => {
@@ -54,12 +55,31 @@ describe("resolveAgentRuntimeEntries", () => {
       expect.objectContaining({
         label: "External Runtime",
         type: "narp-stdio",
+        injectNextclawContext: true,
         config: {
           wireDialect: "acp",
           command: "/opt/nextclaw/external-narp",
         },
       }),
     );
+  });
+
+  it("keeps explicit NextClaw context injection opt-outs", () => {
+    const resolved = resolveAgentRuntimeEntries({
+      config: createConfig({
+        external: {
+          type: "narp-stdio",
+          config: {
+            injectNextclawContext: false,
+          },
+        },
+      }),
+    });
+
+    expect(
+      resolved.entries.find((entry) => entry.id === "external")
+        ?.injectNextclawContext,
+    ).toBe(false);
   });
 
   it("provides the official icon for an OpenCode runtime entry", () => {

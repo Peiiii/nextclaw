@@ -568,6 +568,7 @@ Skill loading contract:
 | `nextclaw init --force` | Re-run init and overwrite templates |
 | `nextclaw agents list` | List built-in and created agents |
 | `nextclaw agents runtimes` | List installed agent runtimes (`--json`, `--probe`) |
+| `nextclaw agents runtime config <runtime-id>` | Show or update one runtime's NextClaw context injection setting |
 | `nextclaw agents new <agent-id>` | Create a new agent with default home/template/avatar |
 | `nextclaw agents update <agent-id>` | Update an existing agent's display metadata |
 | `nextclaw agents remove <agent-id>` | Remove an extra agent (built-in `main` cannot be removed) |
@@ -623,6 +624,13 @@ Agent management notes:
 - `nextclaw agents runtimes` accepts:
   - `--json`
   - `--probe` to actively check runtime readiness instead of only reporting lightweight observations
+- `nextclaw agents runtime config <runtime-id>` accepts:
+  - `--inject-nextclaw-context <true|false>`
+  - `--json`
+  - Without the injection option, the command shows the effective setting.
+  - NextClaw context injection is enabled by default. It supplies product instructions, workspace/session context, and the available skill manifest to supported agent runtimes.
+  - Codex keeps its native base instructions and receives NextClaw context as developer instructions. Claude Code keeps the `claude_code` preset and receives NextClaw context through the preset's append field.
+  - Changing this runtime setting is saved immediately and requires a gateway restart before new runtime processes use it.
 - `nextclaw agents new <agent-id>` accepts:
   - `--name <display-name>`
   - `--description <description>`
@@ -638,6 +646,14 @@ Agent management notes:
   - `--json`
 - `runtime` defaults to `native`.
 - Use `nextclaw agents runtimes --json` before setting a non-default `runtime`; it returns the actual installed runtime kinds instead of requiring guesswork.
+- Use the dedicated runtime config command instead of editing runtime entry JSON:
+
+  ```bash
+  nextclaw agents runtime config codex --json
+  nextclaw agents runtime config codex --inject-nextclaw-context false --json
+  nextclaw agents runtime config claude-code --inject-nextclaw-context true --json
+  ```
+
 - The same runtime kinds are also what NCP `sessions_spawn` expects in its optional `runtime` field.
 - `nextclaw agents update` allows updating the built-in `main` agent.
 - For `nextclaw agents update`, passing an empty string to `--name`, `--description`, or `--avatar` clears the stored override for that field.
@@ -687,6 +703,7 @@ Rules:
 - Do not try to create or remove the built-in `main` agent. `nextclaw agents update main` is allowed.
 - For normal Agent management, prefer `nextclaw agents list|new|update|remove --json` over direct `config.json` or `agents.list` edits.
 - For runtime discovery, prefer `nextclaw agents runtimes --json` over guessing enum values from memory or stale examples.
+- For runtime context injection, prefer `nextclaw agents runtime config <runtime-id>` over direct config edits. Restart the gateway after changing the setting.
 - Direct `config.json` / `agents.list` edits are recovery-only: use them only for explicit operator-led disaster recovery, or when a documented CLI path still cannot express the requested change.
 - Humans should use the `Agents` page or the CLI for Agent identities. `Routing & Runtime` is not the identity-management entry point.
 - If the user asked AI to perform Agent CRUD, AI should run the command, not only describe it.

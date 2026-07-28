@@ -8,3 +8,4 @@ export type {
   NarpStdioRuntimeWrapperConfig,
   NarpStdioRuntimeWrapperContext,
 } from "./types/narp-stdio-runtime-wrapper.types.js";
+export { renderNextclawContextInstructions } from "./utils/nextclaw-context.utils.js";

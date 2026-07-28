@@ -9,6 +9,7 @@ import type {
 } from "@nextclaw/ncp";
 import {
   NarpStdioRuntimeWrapper,
+  renderNextclawContextInstructions,
   type NarpStdioRuntimeWrapperContext,
 } from "@nextclaw/nextclaw-narp-stdio-runtime-wrapper";
 import {
@@ -16,7 +17,7 @@ import {
   CodexLiveOutputStream,
   buildCodexBridgeModelProviderId,
   ensureCodexOpenAiResponsesBridge,
-  type CodexSdkNcpAgentRuntimeConfig,
+  type CodexAppServerNcpAgentRuntimeConfig,
   type CodexOpenAiResponsesBridgeResult,
   type CodexOpenAiResponsesBridgeRuntimeConfig,
 } from "@nextclaw/nextclaw-ncp-runtime-codex-sdk";
@@ -30,8 +31,12 @@ const CODEX_NARP_DEBUG_CONFIG_ENV = "NEXTCLAW_CODEX_NARP_DEBUG_CONFIG";
 const RUNTIME_DEFAULT_MODEL_VALUE = "__nextclaw_runtime_default__";
 
 export type CodexNarpRuntimeFactory = (
-  config: CodexSdkNcpAgentRuntimeConfig,
+  config: CodexAppServerNcpAgentRuntimeConfig,
 ) => NcpAgentRuntime;
+
+type CodexNarpRuntimeConfig = CodexAppServerNcpAgentRuntimeConfig & {
+  liveOutputStream?: CodexLiveOutputStream;
+};
 
 export type CodexResponsesBridgeFactory = (
   config: CodexOpenAiResponsesBridgeRuntimeConfig,
@@ -83,7 +88,7 @@ export class CodexNarpRuntimeWrapper {
 
   buildRuntimeConfig = (
     context: NarpStdioRuntimeWrapperContext,
-  ): Promise<CodexSdkNcpAgentRuntimeConfig> => {
+  ): Promise<CodexAppServerNcpAgentRuntimeConfig> => {
     const { cwd, modelId, promptMeta, sessionId, setSessionMetadata } = context;
     const providerRoute = promptMeta.providerRoute;
     const sessionMetadata = promptMeta.sessionMetadata ?? {};
@@ -114,6 +119,9 @@ export class CodexNarpRuntimeWrapper {
           : readString(providerRoute?.apiKey) ?? readString(process.env.NEXTCLAW_API_KEY)) ??
         "",
       cwd,
+      developerInstructions: renderNextclawContextInstructions(
+        promptMeta.contextBlocks,
+      ),
       externalModelProvider,
       providerLocalModel,
       sessionId,
@@ -135,6 +143,7 @@ export class CodexNarpRuntimeWrapper {
   private resolveRuntimeConfig = async (params: {
     apiKey: string;
     cwd?: string;
+    developerInstructions?: string;
     externalModelProvider?: string;
     providerLocalModel?: string;
     sessionId: string;
@@ -142,11 +151,12 @@ export class CodexNarpRuntimeWrapper {
     threadModel?: string;
     upstreamApiBase?: string;
     upstreamExtraHeaders?: Record<string, string>;
-    setSessionMetadata?: CodexSdkNcpAgentRuntimeConfig["setSessionMetadata"];
-  }): Promise<CodexSdkNcpAgentRuntimeConfig> => {
+    setSessionMetadata?: CodexAppServerNcpAgentRuntimeConfig["setSessionMetadata"];
+  }): Promise<CodexNarpRuntimeConfig> => {
     const {
       apiKey,
       cwd,
+      developerInstructions,
       externalModelProvider,
       providerLocalModel,
       sessionId,
@@ -201,6 +211,7 @@ export class CodexNarpRuntimeWrapper {
       apiKey,
       apiBase,
       model: providerLocalModel,
+      developerInstructions,
       threadId: readString(sessionMetadata.codex_thread_id) ?? null,
       ...(codexPathOverride ? { codexPathOverride } : {}),
       sessionMetadata,
@@ -299,7 +310,7 @@ function buildCodexCliConfig(params: {
   apiBase?: string;
   modelProvider?: string;
   showRawAgentReasoning?: boolean;
-}): CodexSdkNcpAgentRuntimeConfig["cliConfig"] | undefined {
+}): CodexAppServerNcpAgentRuntimeConfig["cliConfig"] | undefined {
   const { apiBase, modelProvider, showRawAgentReasoning } = params;
   if (!modelProvider && !showRawAgentReasoning) {
     return undefined;
@@ -322,12 +333,12 @@ function buildCodexCliConfig(params: {
       },
     };
   }
-  return config as CodexSdkNcpAgentRuntimeConfig["cliConfig"];
+  return config as CodexAppServerNcpAgentRuntimeConfig["cliConfig"];
 }
 
 function logCodexRuntimeConfig(params: {
   bridgeModelProvider?: string;
-  config: CodexSdkNcpAgentRuntimeConfig;
+  config: CodexNarpRuntimeConfig;
   externalModelProvider?: string;
   providerLocalModel?: string;
   requestedThreadModel?: string;

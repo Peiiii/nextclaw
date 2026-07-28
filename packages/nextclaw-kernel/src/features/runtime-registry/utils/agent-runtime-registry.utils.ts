@@ -38,6 +38,7 @@ export type AgentRuntimeEntry = {
   icon?: AgentRuntimeSessionTypeIcon | null;
   type: string;
   enabled?: boolean;
+  injectNextclawContext?: boolean;
   config?: Record<string, unknown>;
 };
 
@@ -197,6 +198,8 @@ function buildNativeRuntimeEntry(
     label: "Native",
     type: DEFAULT_AGENT_RUNTIME_ENTRY_ID,
     enabled: nativeRuntimeConfig.enabled !== false,
+    injectNextclawContext:
+      nativeRuntimeConfig.injectNextclawContext !== false,
     config: nativeRuntimeConfig,
   };
 }
@@ -234,6 +237,8 @@ export function resolveAgentRuntimeEntries(params: {
         : {}),
       type,
       enabled: rawEntry.enabled !== false,
+      injectNextclawContext:
+        rawEntry.config?.injectNextclawContext !== false,
       config: rawEntry.config ? { ...rawEntry.config } : {},
     });
   }

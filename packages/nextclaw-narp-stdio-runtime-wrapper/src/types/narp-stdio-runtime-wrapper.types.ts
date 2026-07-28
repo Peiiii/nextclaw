@@ -6,6 +6,7 @@ import type {
 
 export type NarpStdioPromptMeta = {
   correlationId?: string;
+  contextBlocks?: ReadonlyArray<string>;
   providerRoute?: NcpProviderRuntimeRoute;
   sessionMetadataPatch?: Record<string, unknown>;
   sessionMetadata?: Record<string, unknown>;

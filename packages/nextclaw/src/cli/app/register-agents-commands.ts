@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import { InvalidArgumentError, type Command } from "commander";
 import type { NextclawServiceRuntime } from "@nextclaw/service";
 
 export function registerAgentsCommands(program: Command, nextclaw: NextclawServiceRuntime): void {
@@ -17,6 +17,21 @@ export function registerAgentsCommands(program: Command, nextclaw: NextclawServi
     .option("--probe", "Actively probe runtime readiness", false)
     .option("--json", "Output JSON", false)
     .action(async (opts) => agentsCommands.runtimes(opts));
+
+  agents
+    .command("runtime")
+    .description("Manage one agent runtime")
+    .command("config <runtimeId>")
+    .description("Show or update agent runtime configuration")
+    .option(
+      "--inject-nextclaw-context <boolean>",
+      "Inject NextClaw instructions, workspace context, and skills",
+      parseBoolean,
+    )
+    .option("--json", "Output JSON", false)
+    .action(async (runtimeId, opts) =>
+      agentsCommands.runtimeConfig(runtimeId, opts),
+    );
 
   agents
     .command("new <agentId>")
@@ -44,4 +59,14 @@ export function registerAgentsCommands(program: Command, nextclaw: NextclawServi
     .description("Remove an agent")
     .option("--json", "Output JSON", false)
     .action(async (agentId, opts) => agentsCommands.remove(agentId, opts));
+}
+
+function parseBoolean(value: string): boolean {
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  throw new InvalidArgumentError('Expected "true" or "false".');
 }

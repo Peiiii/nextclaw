@@ -1,10 +1,30 @@
-import type { EffectiveAgentProfile } from "@nextclaw/core";
+import type { Config, EffectiveAgentProfile } from "@nextclaw/core";
 import type { AgentManager } from "@nextclaw/kernel";
 import { listAvailableAgentRuntimes } from "@nextclaw-service/utils/agent-runtime.utils.js";
-import type { AgentsListCommandOptions, AgentsNewCommandOptions, AgentsRemoveCommandOptions, AgentsRuntimesCommandOptions, AgentsUpdateCommandOptions } from "@nextclaw-service/types/cli.types.js";
+import type {
+  AgentsListCommandOptions,
+  AgentsNewCommandOptions,
+  AgentsRemoveCommandOptions,
+  AgentsRuntimeConfigCommandOptions,
+  AgentsRuntimesCommandOptions,
+  AgentsUpdateCommandOptions,
+  ConfigSetOptions,
+} from "@nextclaw-service/types/cli.types.js";
+
+type AgentCommandsConfigAccess = {
+  load: () => Config;
+  set: (
+    pathExpr: string,
+    value: string,
+    opts?: ConfigSetOptions,
+  ) => Promise<void>;
+};
 
 export class AgentCommands {
-  constructor(private readonly agentManager: AgentManager) {}
+  constructor(
+    private readonly agentManager: AgentManager,
+    private readonly configAccess: AgentCommandsConfigAccess,
+  ) {}
 
   list = (opts: AgentsListCommandOptions = {}): void => {
     const agents = this.agentManager.listAgents().map((agent) => this.toAgentListEntry(agent));
@@ -46,6 +66,40 @@ export class AgentCommands {
       console.log(`  recommendedModel: ${runtime.recommendedModel ?? "-"}`);
       console.log(`  supportedModels: ${runtime.supportedModels?.join(", ") ?? "-"}`);
     }
+  };
+
+  runtimeConfig = async (
+    runtimeIdInput: string,
+    opts: AgentsRuntimeConfigCommandOptions = {},
+  ): Promise<void> => {
+    const runtimeId = normalizeRuntimeId(runtimeIdInput);
+    const runtime = resolveRuntimeConfig(this.configAccess.load(), runtimeId);
+    const injectNextclawContext =
+      opts.injectNextclawContext ??
+      (runtime.config.injectNextclawContext !== false);
+
+    if (opts.injectNextclawContext !== undefined) {
+      await this.configAccess.set(
+        `${runtime.configPath}.injectNextclawContext`,
+        String(opts.injectNextclawContext),
+        {
+          silentRestartNotice: opts.json === true,
+        },
+      );
+    }
+
+    const result = {
+      runtimeId,
+      type: runtime.type,
+      injectNextclawContext,
+    };
+    if (opts.json) {
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+    console.log(runtimeId);
+    console.log(`  type: ${runtime.type}`);
+    console.log(`  injectNextclawContext: ${injectNextclawContext ? "yes" : "no"}`);
   };
 
   create = async (agentId: string, opts: AgentsNewCommandOptions = {}): Promise<void> => {
@@ -118,5 +172,39 @@ export class AgentCommands {
       runtime: agent.runtime ?? agent.engine ?? null,
       builtIn: agent.builtIn === true
     };
+  };
+}
+
+function normalizeRuntimeId(value: string): string {
+  const runtimeId = value.trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(runtimeId)) {
+    throw new Error("runtime id must match /^[a-z0-9][a-z0-9_-]*$/");
+  }
+  return runtimeId;
+}
+
+function resolveRuntimeConfig(
+  config: Config,
+  runtimeId: string,
+): {
+  config: Record<string, unknown>;
+  configPath: string;
+  type: string;
+} {
+  if (runtimeId === "native") {
+    return {
+      config: config.ui.ncp.runtimes.native ?? {},
+      configPath: "ui.ncp.runtimes.native",
+      type: "native",
+    };
+  }
+  const entry = config.agents.runtimes.entries[runtimeId];
+  if (!entry) {
+    throw new Error(`agent runtime '${runtimeId}' not found`);
+  }
+  return {
+    config: entry.config,
+    configPath: `agents.runtimes.entries.${runtimeId}.config`,
+    type: entry.type,
   };
 }

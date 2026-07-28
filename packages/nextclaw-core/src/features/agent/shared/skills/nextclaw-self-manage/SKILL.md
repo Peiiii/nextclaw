@@ -43,6 +43,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - For channel discovery before messaging, use `nextclaw channels list --json` and treat returned `channels[].id` values as authoritative.
 - For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
+- For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Restart the gateway after changing it.
 - For project creation and discovery, use `nextclaw projects list|templates|create --json`; do not synthesize placeholder sessions or edit the project registry file directly.
 - For session naming and project binding, use `nextclaw sessions rename|set-project|clear-project --json`; do not edit session journal metadata directly.
 - Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.
@@ -72,7 +73,7 @@ When user asks "what changed in version X", follow:
 - Service App live runtime: `nextclaw app restart <app-id> --json`
 - Channels: `nextclaw channels list --json|status|login`
 - Config: `nextclaw config get|set|unset`
-- Agents: `nextclaw agents list|new|update|remove`
+- Agents: `nextclaw agents list|runtimes|runtime config|new|update|remove`
 - Projects: `nextclaw projects list|templates|create`
 - Sessions: `nextclaw sessions rename|set-project|clear-project`
 - Automation: `nextclaw cron list|add|remove|enable|run`

@@ -24,6 +24,7 @@ import type { AgentRunSession } from "@kernel/types/session.types.js";
 import type { AgentRunSpec } from "@kernel/types/agent-run.types.js";
 
 export type NcpAgentRuntimeWrapperParams = {
+  injectNextclawContext: boolean;
   createRuntime: (params: {
     resolveTools: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined;
     stateManager: NcpAgentConversationStateManager;
@@ -42,7 +43,7 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     spec: AgentRunSpec,
     options: AgentRuntimeRunOptions,
   ): AsyncIterable<NcpEndpointEvent> {
-    const { session, sessionRun, signal, tools } = options;
+    const { contextBlocks, session, sessionRun, signal, tools } = options;
     this.currentTools = tools.map(this.toOpenAiTool);
     const messages = sessionRun.inbox.drain();
     let executionMetadataSeen = false;
@@ -51,6 +52,9 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
         sessionId: sessionRun.sessionId,
         runId: spec.runId,
         messages,
+        contextBlocks: this.params.injectNextclawContext
+          ? contextBlocks
+          : undefined,
         correlationId: spec.correlationId,
         metadata: this.buildMetadata(session, spec),
         executionContext: {

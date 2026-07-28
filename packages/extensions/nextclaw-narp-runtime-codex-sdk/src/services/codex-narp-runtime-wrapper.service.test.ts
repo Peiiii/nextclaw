@@ -65,6 +65,10 @@ describe("CodexNarpRuntimeWrapper", () => {
       cwd: "/tmp/workspace",
       modelId: "provider/model-a",
       promptMeta: {
+        contextBlocks: [
+          "NextClaw official instructions",
+          "<available_skills>skill-a</available_skills>",
+        ],
         providerRoute: {
           model: "model-a",
           apiKey: "route-key",
@@ -85,6 +89,8 @@ describe("CodexNarpRuntimeWrapper", () => {
       apiKey: "route-key",
       apiBase: "https://route.example/v1",
       model: "model-a",
+      developerInstructions:
+        "NextClaw official instructions\n\n<available_skills>skill-a</available_skills>",
       threadId: "thread-1",
       sessionMetadata: {
         codex_thread_id: "thread-1",
@@ -126,6 +132,7 @@ describe("CodexNarpRuntimeWrapper", () => {
     });
 
     expect(config.model).toBeUndefined();
+    expect(config.developerInstructions).toBeUndefined();
     expect(config.threadOptions?.model).toBeUndefined();
     expect(config.threadOptions).toMatchObject({
       workingDirectory: "/tmp/workspace",

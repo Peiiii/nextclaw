@@ -28,6 +28,10 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
       cwd: "/tmp/workspace",
       modelId: "client-model",
       promptMeta: {
+        contextBlocks: [
+          "NextClaw official instructions",
+          "<available_skills>skill-a</available_skills>",
+        ],
         providerRoute: {
           model: "claude-3-5-sonnet",
           apiKey: "route-key",
@@ -60,6 +64,13 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
         baseQueryOptions: {
           permissionMode: "bypassPermissions",
           includePartialMessages: true,
+          settingSources: undefined,
+          systemPrompt: {
+            type: "preset",
+            preset: "claude_code",
+            append:
+              "NextClaw official instructions\n\n<available_skills>skill-a</available_skills>",
+          },
         },
       },
     ]);
@@ -193,6 +204,11 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
     });
 
     expect(capturedConfigs[0]?.workingDirectory).toBeUndefined();
+    expect(capturedConfigs[0]).toMatchObject({
+      baseQueryOptions: {
+        systemPrompt: undefined,
+      },
+    });
   });
 
   it("delegates model and configuration ownership to Claude Code for runtime-default requests", () => {

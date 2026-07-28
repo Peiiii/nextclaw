@@ -60,7 +60,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
       kind: DEFAULT_AGENT_RUNTIME_ENTRY_ID,
       label: "Native",
       defaultReuseScope: "global",
-      createRuntime: () => {
+      createRuntime: ({ entry }) => {
         const runtime = new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
@@ -77,7 +77,14 @@ export class AgentRunRuntimeContribution implements KernelContribution {
           },
         });
         return {
-          run: runtime.run.bind(runtime),
+          run: (spec, options) =>
+            runtime.run(spec, {
+              ...options,
+              contextBlocks:
+                entry.injectNextclawContext === false
+                  ? []
+                  : options.contextBlocks,
+            }),
           compactContext: async ({ session, sessionRun }) => {
             const model = session.model ?? this.kernel.configManager.getDefaultModel();
             const events = await this.kernel.contextCompactionManager.runManual({
@@ -111,6 +118,8 @@ export class AgentRunRuntimeContribution implements KernelContribution {
           throw new Error(`Agent runtime provider does not support entries: ${provider.kind}`);
         }
         return new NcpAgentRuntimeWrapper({
+          injectNextclawContext:
+            entry.injectNextclawContext !== false,
           createRuntime: ({ resolveTools, stateManager }) =>
             provider.createRuntimeForEntry!({
               entry,

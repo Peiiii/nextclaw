@@ -118,6 +118,11 @@ export type AgentsRuntimesCommandOptions = {
   probe?: boolean;
 };
 
+export type AgentsRuntimeConfigCommandOptions = {
+  injectNextclawContext?: boolean;
+  json?: boolean;
+};
+
 export type AgentsNewCommandOptions = {
   name?: string;
   description?: string;
@@ -181,6 +186,7 @@ export type ConfigGetOptions = {
 
 export type ConfigSetOptions = {
   json?: boolean;
+  silentRestartNotice?: boolean;
 };
 
 export type McpListOptions = {
@@ -339,6 +345,7 @@ export type RequestRestartParams = {
   manualMessage: string;
   strategy?: RestartStrategy;
   delayMs?: number;
+  silentNotification?: boolean;
   silentOnServiceRestart?: boolean;
   changedPaths?: string[];
   mode?: "execute" | "notify";

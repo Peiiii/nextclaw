@@ -18,6 +18,7 @@ import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type { StdioRuntimeResolvedConfig, NarpStdioPromptMeta } from "./stdio-runtime-config.utils.js";
 import {
   NARP_STDIO_PROMPT_META_KEY,
+  buildNarpStdioPromptMeta,
   buildStdioRuntimeLaunchEnv,
 } from "./stdio-runtime-config.utils.js";
 import {
@@ -332,12 +333,11 @@ class StdioRuntimeRunController {
     const promptPromise = this.session.runPrompt({
       sessionId: this.input.sessionId,
       text: extractPromptText(requestMessage),
-      meta: {
-        ...(this.input.correlationId ? { correlationId: this.input.correlationId } : {}),
-        ...(this.resolvedProviderRoute ? { providerRoute: this.resolvedProviderRoute } : {}),
-        ...(this.input.metadata ? { sessionMetadata: this.input.metadata } : {}),
-        ...(this.resolvedTools.length > 0 ? { tools: this.resolvedTools } : {}),
-      },
+      meta: buildNarpStdioPromptMeta({
+        input: this.input,
+        providerRoute: this.resolvedProviderRoute,
+        tools: this.resolvedTools,
+      }),
       modelId: resolveModelId({
         providerRoute: this.resolvedProviderRoute,
         metadata: this.input.metadata,

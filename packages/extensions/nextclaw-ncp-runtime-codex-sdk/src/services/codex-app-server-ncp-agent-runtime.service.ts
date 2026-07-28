@@ -190,6 +190,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       modelProvider: route.modelProvider,
       approvalPolicy: threadOptions?.approvalPolicy,
       sandbox: normalizeSandbox(threadOptions?.sandboxMode),
+      developerInstructions: this.config.developerInstructions,
       config: this.config.cliConfig,
     });
   };

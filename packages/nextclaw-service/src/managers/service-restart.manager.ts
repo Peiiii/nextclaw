@@ -35,6 +35,7 @@ export class ServiceRestartManager {
       manualMessage,
       mode,
       reason,
+      silentNotification,
       silentOnServiceRestart,
       strategy
     } = params;
@@ -44,7 +45,9 @@ export class ServiceRestartManager {
         manualMessage,
         reason
       });
-      console.warn(manualMessage);
+      if (!silentNotification) {
+        console.warn(manualMessage);
+      }
       return;
     }
 

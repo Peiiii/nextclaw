@@ -104,6 +104,9 @@ class EchoAgent {
         ? meta.tools.map((tool) => tool?.function?.name).filter(Boolean)
         : [],
     };
+    if (Array.isArray(meta.contextBlocks) && meta.contextBlocks.length > 0) {
+      rawOutput.contextBlocks = meta.contextBlocks;
+    }
     if (process.env.NEXTCLAW_ECHO_CWD_INFO === "1") {
       rawOutput.sessionCwd = session.cwd;
       rawOutput.processCwd = process.cwd();
