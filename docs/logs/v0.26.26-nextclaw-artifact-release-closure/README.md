@@ -1,8 +1,10 @@
-# NextClaw UI 产物发布闭包与补发
+# NextClaw UI 产物发布闭包、补发与 Desktop stable 发布
 
 ## 迭代完成说明
 
 本次纠正 `@nextclaw/ui@0.15.18` 发布后普通 NextClaw 用户仍无法获得最新 UI 的问题，并补发顶层 `nextclaw@0.27.5`。
+
+同批次继续发布 NextClaw Desktop `0.0.234` / runtime `0.27.5` 正式版，并闭合 GitHub Release、四平台安装资产、stable 更新通道、Linux APT 仓库与官网下载 fallback。
 
 根因分为四层：
 
@@ -27,6 +29,11 @@
 - `/tmp/nextclaw-0274-update-smoke.mqjsv4` 旧版升级：`0.27.4` 检测到 `0.27.5`，完成 download-only、签名验证、apply，新进程报告 `0.27.5`。
 - 发布后主干 CI 审计：修复 NCP smoke 的搬迁前目录引用与 Windows update smoke 的失效 `--timeout` 合同；本地等价验证通过，远端 workflow `30290885642`、`30290885353` 均成功。
 - GitHub Release 元数据审计：`nextclaw@0.27.5` 已由错误的 prerelease 校正为 stable/latest，标题、用户结果摘要、公开 release notes 链接和四个平台 assets 均已验证。
+- `pnpm release:desktop:stable -- --notes-file docs/logs/v0.26.26-nextclaw-artifact-release-closure/github-desktop-release-v0.27.5.md`：首次隔离验证在读取公开 manifest 时遇到一次 `SSL_ERROR_SYSCALL`，确认公共页面恢复后完整重跑；最终本地 Desktop lint/tsc、DMG 打包、manifest 验签、seed runtime `0.27.5`、GUI、runtime health 与命令面全部通过。
+- Desktop 远端签名预检 workflow `30320904173` 成功；正式 workflow `30320926805` 的五个平台构建、Release 资产聚合、stable 更新通道和 Linux APT 发布共 `8/8` 成功。
+- Desktop GitHub Release `v0.27.5-desktop.1` 为 stable/latest、非 draft、非 prerelease，共 30 个资产；macOS arm64/x64、Windows x64/arm64、Linux x64 安装资产与 runtime bundle 均已核对。
+- 四个平台公共 stable manifest 均为 runtime `0.27.5`、最低 launcher `0.0.141`，并指向公开英文产品说明；公共 APT `Packages` 为 Desktop `0.0.234`。
+- `pnpm -C apps/landing lint`、`tsc`、`build`：通过；只有 `src/main.ts` 的两个既有文件长度 warning，构建产物 fallback 已对齐 `v0.27.5-desktop.1 / 0.0.234`。
 
 ## 发布/部署方式
 
@@ -35,7 +42,9 @@
 - Stable runtime update：修正后的 workflow `https://github.com/Peiiii/nextclaw/actions/runs/30291742688` 已成功，公共 manifest 为 `0.27.5`。
 - 产品更新说明：中英文页面与结构化 JSON 已公开，runtime manifest 指向本次英文页面。
 - Docs Deploy：workflow `30289470083` 已成功，公开版本说明返回 HTTP `200`。
-- 桌面 installer、数据库 migration 与后端部署：不适用，本次不涉及这些交付面。
+- Desktop stable：GitHub Release `https://github.com/Peiiii/nextclaw/releases/tag/v0.27.5-desktop.1` 与 workflow `https://github.com/Peiiii/nextclaw/actions/runs/30320926805` 已完成，公共 stable manifest 和 APT 仓库已传播。
+- 官网下载 fallback：源码与构建产物已对齐 `v0.27.5-desktop.1 / 0.0.234`，等待本批次 landing 部署与正式域名验证。
+- 数据库 migration 与后端部署：不适用，本次没有数据库 schema、远程后端或服务端部署变更。
 
 ## 用户/产品视角的验收步骤
 
@@ -44,6 +53,7 @@
 3. 新建会话并切换 Agent Runtime，确认恢复用户最近为该 Runtime 选择的模型。
 4. 手动压缩上下文，确认立即出现进行中反馈并在完成后清理。
 5. 发送消息并模拟实时连接恢复，确认当前消息即时出现且遗漏消息能补回。
+6. 从官网下载页获取 Desktop `0.0.234`，确认平台链接落到 `v0.27.5-desktop.1`；已安装 launcher `0.0.141` 及以上版本检查 stable 更新时，应获取 runtime `0.27.5`。
 
 ## 可维护性总结汇总
 
@@ -51,6 +61,7 @@
 - 发布闭包只有一个事实 owner；自动补全与阻断检查读取同一份产物依赖。
 - `release:frontend` 使用显式 UI 种子，避免全仓漂移扫描扩大发布范围。
 - Runtime workflow 删除平行的 `release.published` 触发路径；stable/beta Release 元数据由显式 channel 决定，发布脚本同步验证 prerelease 合同。
+- 官网动态 Release 查询与静态 fallback 继续共享一个 `DESKTOP_RELEASE_FALLBACK` owner，本次只更新 tag/version 两个事实常量，不新增平行下载逻辑。
 - 定向 ESLint、new-code governance、backlog ratchet、maintainability guard 与主观复核结果在发布前补齐。
 
 ## NPM 包发布记录
@@ -61,3 +72,4 @@
 - 远端 tag：`@nextclaw/ncp-react@0.5.16`、`@nextclaw/ui@0.15.18`、`nextclaw@0.27.5` 均已推送。
 - GitHub Release：`https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.27.5`。
 - Stable runtime update：公共 manifest、下载、验签、apply 与新进程版本均已验证为 `0.27.5`。
+- Desktop stable：`@nextclaw/desktop@0.0.234` 为 private installer 身份，不发布到 NPM；GitHub Release `v0.27.5-desktop.1`、30 个资产、四平台 stable manifest 和 APT `0.0.234` 已验证。
