@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-narp-stdio-runtime-wrapper
 
+## 0.3.15
+
+### Patch Changes
+
+- c35189d: Codex 和 Claude Code agent runtime 现在会保留各自原生系统提示词，并默认追加 NextClaw 产品指令、工作区上下文与 skill 信息；可通过 `nextclaw agents runtime config` 按 runtime 关闭或恢复注入。
+- Updated dependencies [c35189d]
+  - @nextclaw/ncp@0.7.14
+
 ## 0.3.14
 
 ### Patch Changes

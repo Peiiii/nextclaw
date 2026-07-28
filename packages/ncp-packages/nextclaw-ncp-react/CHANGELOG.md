@@ -1,5 +1,15 @@
 # @nextclaw/ncp-react
 
+## 0.5.17
+
+### Patch Changes
+
+- 8f93ce4: 修复 AI 回复期间追加消息会同时出现在会话记录和待发队列的问题；排队消息会在真正开始执行后进入会话记录，并且只显示一次。
+- Updated dependencies [c35189d]
+- Updated dependencies
+  - @nextclaw/ncp@0.7.14
+  - @nextclaw/ncp-toolkit@0.6.15
+
 ## 0.5.16
 
 ### Patch Changes

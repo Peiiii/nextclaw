@@ -1,5 +1,16 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.3.17
+
+### Patch Changes
+
+- c35189d: Codex 和 Claude Code agent runtime 现在会保留各自原生系统提示词，并默认追加 NextClaw 产品指令、工作区上下文与 skill 信息；可通过 `nextclaw agents runtime config` 按 runtime 关闭或恢复注入。
+- Updated dependencies [c35189d]
+- Updated dependencies
+  - @nextclaw/ncp@0.7.14
+  - @nextclaw/core@0.15.16
+  - @nextclaw/ncp-toolkit@0.6.15
+
 ## 0.3.16
 
 ### Patch Changes

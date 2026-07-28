@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.15.16
+
+### Patch Changes
+
+- c35189d: Codex 和 Claude Code agent runtime 现在会保留各自原生系统提示词，并默认追加 NextClaw 产品指令、工作区上下文与 skill 信息；可通过 `nextclaw agents runtime config` 按 runtime 关闭或恢复注入。
+- Updated dependencies
+- Updated dependencies [77208ed]
+  - @nextclaw/feishu-core@0.3.12
+  - @nextclaw/shared@0.4.15
+
 ## 0.15.15
 
 ### Patch Changes

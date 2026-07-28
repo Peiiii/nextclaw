@@ -1,5 +1,40 @@
 # @nextclaw/service
 
+## 0.3.18
+
+### Patch Changes
+
+- c35189d: Codex 和 Claude Code agent runtime 现在会保留各自原生系统提示词，并默认追加 NextClaw 产品指令、工作区上下文与 skill 信息；可通过 `nextclaw agents runtime config` 按 runtime 关闭或恢复注入。
+- Updated dependencies [c35189d]
+- Updated dependencies
+- Updated dependencies [77208ed]
+- Updated dependencies [5476d85]
+  - @nextclaw/ncp@0.7.14
+  - @nextclaw/core@0.15.16
+  - @nextclaw/kernel@0.6.18
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.17
+  - @nextclaw/channel-extension-dingtalk@0.2.16
+  - @nextclaw/channel-extension-discord@0.2.16
+  - @nextclaw/channel-extension-email@0.2.16
+  - @nextclaw/channel-extension-feishu@0.2.16
+  - @nextclaw/channel-extension-qq@0.2.15
+  - @nextclaw/channel-extension-slack@0.2.16
+  - @nextclaw/channel-extension-telegram@0.2.16
+  - @nextclaw/channel-extension-wecom@0.2.16
+  - @nextclaw/channel-extension-weixin@0.2.16
+  - @nextclaw/channel-extension-whatsapp@0.2.16
+  - @nextclaw/client-sdk@0.5.18
+  - @nextclaw/mcp@0.3.16
+  - @nextclaw/ncp-agent-runtime@0.4.14
+  - @nextclaw/ncp-mcp@0.2.16
+  - @nextclaw/ncp-toolkit@0.6.15
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.14
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.14
+  - @nextclaw/remote@0.3.18
+  - @nextclaw/runtime@0.4.16
+  - @nextclaw/shared@0.4.15
+  - @nextclaw/server@0.15.18
+
 ## 0.3.17
 
 ### Patch Changes

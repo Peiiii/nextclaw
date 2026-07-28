@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.6",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-29",
+  "title": {
+    "zh-CN": "NextClaw v0.27.6",
+    "en-US": "NextClaw v0.27.6"
+  },
+  "summary": {
+    "zh-CN": "Agent Runtime 可以获得更有用的 NextClaw 上下文，富内容更容易查看和复用，排队消息也不再重复出现。",
+    "en-US": "Agent Runtimes gain more useful NextClaw context, rich content is easier to inspect and reuse, and queued messages no longer appear twice."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-29-nextclaw-v0-27-6",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-29-nextclaw-v0-27-6"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Agent Runtime 上下文",
+            "en-US": "Agent Runtime context"
+          },
+          "body": {
+            "zh-CN": "Codex 与 Claude Code Runtime 会保留原生指令，同时获得 NextClaw 产品说明、工作区上下文和 skill 信息。",
+            "en-US": "Codex and Claude Code Runtimes keep their native instructions while receiving NextClaw product guidance, workspace context, and skill information."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "按 Runtime 配置",
+            "en-US": "Per-runtime configuration"
+          },
+          "body": {
+            "zh-CN": "上下文注入默认开启，并可通过 nextclaw agents runtime config 按 runtime 查询或修改。",
+            "en-US": "Context injection is enabled by default and can be inspected or changed per runtime with nextclaw agents runtime config."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "富内容运行参数",
+            "en-US": "Rich content parameters"
+          },
+          "body": {
+            "zh-CN": "Panel App 与 HTML 内容可以通过只读的 window.nextclaw.params 获取结构化运行参数。",
+            "en-US": "Panel Apps and HTML content can read structured runtime data from the read-only window.nextclaw.params object."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Mermaid 全屏预览",
+            "en-US": "Full-screen Mermaid preview"
+          },
+          "body": {
+            "zh-CN": "聊天中的 Mermaid 图表可以全屏查看，并通过关闭按钮、遮罩或 Escape 键退出。",
+            "en-US": "Mermaid diagrams in chat can open full screen and close through the button, backdrop, or Escape key."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "主动选择可视化",
+            "en-US": "Proactive visual presentation"
+          },
+          "body": {
+            "zh-CN": "当比较、流程、层级或数值关系更适合视觉表达时，Agent 会更主动地选择紧凑表格或 Mermaid 图示。",
+            "en-US": "Agents are more likely to choose a compact table or Mermaid diagram when comparisons, flows, hierarchies, or numeric relationships benefit from visual presentation."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "排队消息只显示一次",
+            "en-US": "Queued messages appear once"
+          },
+          "body": {
+            "zh-CN": "排队消息会等到真正开始执行后再进入会话记录，不再同时出现在待发队列和聊天时间线中。",
+            "en-US": "Queued messages enter the conversation only when execution begins instead of appearing in both the pending queue and chat timeline."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级，不需要迁移配置、会话或文件。",
+            "en-US": "Existing npm installations can update through the stable channel without migrating configuration, sessions, or files."
+          }
+        }
+      ]
+    }
+  ]
+}

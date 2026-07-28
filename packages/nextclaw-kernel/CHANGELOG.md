@@ -1,5 +1,29 @@
 # @nextclaw/kernel
 
+## 0.6.18
+
+### Patch Changes
+
+- c35189d: Codex 和 Claude Code agent runtime 现在会保留各自原生系统提示词，并默认追加 NextClaw 产品指令、工作区上下文与 skill 信息；可通过 `nextclaw agents runtime config` 按 runtime 关闭或恢复注入。
+- 77208ed: Panel App 与 HTML 文件展示现在支持传入结构化参数；页面可在首次脚本执行时通过只读的 `window.nextclaw.params` 使用这些运行时数据。
+- 5476d85: Agent 现在会根据比较、流程、层级和数值关系主动选择更清楚的表格或 Mermaid 图示；简单问题仍保持简洁文字回答。
+- Updated dependencies [c35189d]
+- Updated dependencies
+- Updated dependencies [77208ed]
+  - @nextclaw/ncp@0.7.14
+  - @nextclaw/core@0.15.16
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.17
+  - @nextclaw/channel-extension-feishu@0.2.16
+  - @nextclaw/channel-extension-weixin@0.2.16
+  - @nextclaw/mcp@0.3.16
+  - @nextclaw/ncp-agent-runtime@0.4.14
+  - @nextclaw/ncp-agent-runtime-next@0.1.14
+  - @nextclaw/ncp-mcp@0.2.16
+  - @nextclaw/ncp-toolkit@0.6.15
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.14
+  - @nextclaw/runtime@0.4.16
+  - @nextclaw/shared@0.4.15
+
 ## 0.6.17
 
 ### Patch Changes

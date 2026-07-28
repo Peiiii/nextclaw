@@ -1,5 +1,26 @@
 # @nextclaw/ui
 
+## 0.15.19
+
+### Patch Changes
+
+- 77208ed: Panel App 与 HTML 文件展示现在支持传入结构化参数；页面可在首次脚本执行时通过只读的 `window.nextclaw.params` 使用这些运行时数据。
+- 8f93ce4: 修复 AI 回复期间追加消息会同时出现在会话记录和待发队列的问题；排队消息会在真正开始执行后进入会话记录，并且只显示一次。
+- e85976d: 聊天中的 Mermaid 图表现在支持点击放大查看，并可通过关闭按钮、遮罩或 Escape 键退出全屏预览。
+- Updated dependencies [c35189d]
+- Updated dependencies
+- Updated dependencies [77208ed]
+- Updated dependencies [8f93ce4]
+- Updated dependencies [e85976d]
+  - @nextclaw/ncp@0.7.14
+  - @nextclaw/agent-chat@0.3.12
+  - @nextclaw/client-sdk@0.5.18
+  - @nextclaw/ncp-http-agent-client@0.4.14
+  - @nextclaw/ncp-toolkit@0.6.15
+  - @nextclaw/shared@0.4.15
+  - @nextclaw/agent-chat-ui@0.6.18
+  - @nextclaw/ncp-react@0.5.17
+
 ## 0.15.18
 
 ### Patch Changes
