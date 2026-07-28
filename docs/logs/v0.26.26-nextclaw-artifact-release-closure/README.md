@@ -43,7 +43,7 @@
 - 产品更新说明：中英文页面与结构化 JSON 已公开，runtime manifest 指向本次英文页面。
 - Docs Deploy：workflow `30289470083` 已成功，公开版本说明返回 HTTP `200`。
 - Desktop stable：GitHub Release `https://github.com/Peiiii/nextclaw/releases/tag/v0.27.5-desktop.1` 与 workflow `https://github.com/Peiiii/nextclaw/actions/runs/30320926805` 已完成，公共 stable manifest 和 APT 仓库已传播。
-- 官网下载 fallback：源码与构建产物已对齐 `v0.27.5-desktop.1 / 0.0.234`，等待本批次 landing 部署与正式域名验证。
+- 官网下载 fallback：源码与构建产物已对齐 `v0.27.5-desktop.1 / 0.0.234`，并部署到 `https://32936780.nextclaw-landing.pages.dev`；正式域名中英文下载页的 HTML 与 JS bundle 均已验证为新版本。
 - 数据库 migration 与后端部署：不适用，本次没有数据库 schema、远程后端或服务端部署变更。
 
 ## 用户/产品视角的验收步骤
