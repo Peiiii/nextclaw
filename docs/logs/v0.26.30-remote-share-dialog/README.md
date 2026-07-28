@@ -13,6 +13,8 @@
 - 修前失败基线：`PLATFORM_CONSOLE_BASE_URL=http://127.0.0.1:5176 pnpm smoke:platform:console`，失败信息为分享表面位于视口外。
 - 源码开发实例：同一命令修后通过。
 - 正式构建预览：`pnpm -C apps/platform-console build` 后，以 `http://127.0.0.1:4173` 启动 preview；`PLATFORM_CONSOLE_BASE_URL=http://127.0.0.1:4173 pnpm smoke:platform:console` 通过。
+- 线上自动化冒烟：`PLATFORM_CONSOLE_BASE_URL=https://platform.nextclaw.io pnpm smoke:platform:console` 通过，覆盖桌面与移动端分享对话框可见性、关闭、Esc 与焦点恢复。
+- 线上真实账号验收：在正式域当前在线实例 `82bcca90-a43a-43c1-84d9-730a3dc1a9e5` 点击“分享”，对话框立即可见且展示分享链接管理内容；点击“收起”后对话框从页面移除。
 - `pnpm -C apps/platform-console tsc`：通过。
 - `pnpm -C apps/platform-console lint`：通过。
 - `pnpm lint:new-code:governance`：在只应用本次补丁的隔离工作树中通过；主工作区的全量命令被并行改动中的 `workspace-reference-materializer.service.ts` 既有问题阻断，与本次文件无关。
@@ -20,7 +22,12 @@
 
 ## 发布/部署方式
 
-- 本轮未部署线上环境，也未执行 Git 提交或推送；用户本轮只要求修复并验证。
+- 修复提交：`b3c19ed8b`（`fix(platform): show remote share dialog`）。
+- 从该提交创建隔离发布工作树，使用本机已安装且完成 OAuth 登录的 Wrangler 人工部署到 Cloudflare Pages 项目 `nextclaw-platform-console`；没有使用临时下载的 CLI，也不把该链路视为无人值守发布。
+- Cloudflare Pages 部署地址：`https://56b03289.nextclaw-platform-console.pages.dev`；正式域名：`https://platform.nextclaw.io`。
+- 正式域首页已加载本次 `index-DsrONcNd.js` 与 `index-4-lnX1dq.css`；JS 文件返回 `application/javascript`、大小 `352755` 字节，并与隔离构建产物保持相同 SHA-256：`02937635ed26d73bb7ff45c2f9ca7e880d81f4ef634e5dbaceec453c1999ef26`。
+- 部署切换初期捕获到一次边缘传播竞态：正式域旧 HTML 尚未切换时，第一轮线上冒烟没有找到新对话框；确认首页与静态资产完成切换后，以相同正式域入口重跑通过，没有把首次失败误报为成功。
+- 本地 `master` 与 `origin/master` 存在并行分叉，本轮未在脏工作区强行合并或推送；线上部署直接关联上述本地修复提交。
 - 后端、数据库与 migration 不适用：本次只调整 Platform Console 展示组件与浏览器冒烟。
 
 ## 用户/产品视角的验收步骤
