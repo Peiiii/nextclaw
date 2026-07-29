@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -6,6 +12,7 @@ import type { NcpTool } from "@nextclaw/ncp";
 import {
   CHAT_INLINE_TOKENS_METADATA_KEY,
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
+  CHAT_PROJECT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   EventBus,
 } from "@nextclaw/shared";
@@ -104,10 +111,12 @@ describe("ContextProviderContribution native prompt contract", () => {
   it("assembles the native context through kernel providers in the legacy prompt order", async () => {
     const hostWorkspace = createWorkspace();
     const projectRoot = createWorkspace();
+    const referencedProjectRoot = realpathSync(createWorkspace());
     const projectSkillDir = join(projectRoot, ".agents", "skills", "project-review");
     writeFileSync(join(hostWorkspace, "AGENTS.md"), "NextClaw workspace rules.\n");
     writeFileSync(join(projectRoot, "AGENTS.md"), "Project rules.\n");
     writeFileSync(join(projectRoot, "reference.ts"), "export const referenced = true;\n");
+    writeFileSync(join(referencedProjectRoot, "PROJECT.md"), "# Referenced project\n");
     mkdirSync(join(hostWorkspace, "skills", "demo-skill"), { recursive: true });
     writeFileSync(
       join(hostWorkspace, "skills", "demo-skill", "SKILL.md"),
@@ -161,6 +170,14 @@ describe("ContextProviderContribution native prompt contract", () => {
           thinkingEffort: null,
         }),
       },
+      projectManager: {
+        listProjects: async () => [{
+          name: "Referenced",
+          rootPath: referencedProjectRoot,
+          createdAt: "2026-07-28T00:00:00.000Z",
+          updatedAt: "2026-07-28T00:00:00.000Z",
+        }],
+      },
       toolProviderManager: {
         buildTools: async (): Promise<NcpTool[]> => [
           {
@@ -185,6 +202,12 @@ describe("ContextProviderContribution native prompt contract", () => {
               key: "reference.ts",
               label: "reference.ts",
               rawText: "@file:reference.ts",
+            },
+            {
+              kind: CHAT_PROJECT_TOKEN_KIND,
+              key: referencedProjectRoot,
+              label: "Referenced",
+              rawText: `@project:${encodeURIComponent(referencedProjectRoot)}`,
             },
           ],
         },
@@ -221,6 +244,8 @@ describe("ContextProviderContribution native prompt contract", () => {
       "# Project Context",
       "## Explicit Workspace References",
       "export const referenced = true;",
+      `<project_reference name="Referenced" root_path="${referencedProjectRoot}">`,
+      "PROJECT.md",
       "# Agent Bootstrap Context",
       "Agent bootstrap files loaded:",
       "## AGENTS.md\n\nProject rules.",

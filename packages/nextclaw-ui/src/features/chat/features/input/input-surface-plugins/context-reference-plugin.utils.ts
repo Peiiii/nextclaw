@@ -5,20 +5,28 @@ import {
   type ChatInputSurfacePlugin,
   type ChatInputSurfaceTriggerSpec,
 } from '@nextclaw/agent-chat-ui';
+import type { PanelAppEntryView } from '@/shared/lib/api';
+import type {
+  ChatInputProductPluginData,
+  ContextReferenceLocation,
+} from './chat-input-product-plugin-adapters.types';
 import {
-  CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
-  CHAT_WORKSPACE_FILE_TOKEN_KIND,
-} from '@nextclaw/shared';
-import type { PanelAppEntryView, ServerPathSearchEntryView } from '@/shared/lib/api';
-import type { ChatInputProductPluginData } from './chat-input-product-plugin-adapters.types';
+  buildBackNavigationItem,
+  buildCurrentDirectoryReferenceItem,
+  buildFilesNavigationItem,
+  buildProjectReferenceItems,
+  buildProjectsNavigationItem,
+  buildWorkspaceReferenceItems,
+  FILES_NAVIGATION_ITEM_KEY,
+  PROJECTS_NAVIGATION_ITEM_KEY,
+  ROOT_NAVIGATION_ITEM_KEY,
+  type ContextReferenceInputSurfaceTexts,
+} from './context-reference-items.utils';
 import {
   scoreInputSurfaceSearchCandidate,
   resolveInputSurfaceMatchTier,
 } from './input-surface-search.utils';
 
-const FILES_NAVIGATION_ITEM_KEY = 'context-reference:navigate:files';
-const ROOT_NAVIGATION_ITEM_KEY = 'context-reference:navigate:root';
-const WORKSPACE_SECTION_KEY = 'workspace';
 const PANEL_APP_SECTION_KEY = 'panel-apps';
 
 export const CONTEXT_REFERENCE_TRIGGER_SPEC: ChatInputSurfaceTriggerSpec = {
@@ -33,32 +41,8 @@ export type PanelAppInputSurfaceItemTexts = {
   subtitle: string;
 };
 
-export type ContextReferenceInputSurfaceTexts = {
-  backLabel: string;
-  backDescription: string;
-  backHintLabel: string;
-  currentDirectoryLabel: string;
-  directoryDescription: string;
-  fileDescription: string;
-  filesDescription: string;
-  filesHintLabel: string;
-  filesLabel: string;
-  filesSubtitle: string;
-  panelAppSectionLabel: string;
-  parentLabel: string;
-  parentDescription: string;
-  parentHintLabel: string;
-  projectRootLabel: string;
-  searchFailedLabel: string;
-  workspaceSectionLabel: string;
-};
-
 function getPanelAppActivityTime(entry: PanelAppEntryView): number {
   return Date.parse(entry.lastOpenedAt ?? entry.updatedAt) || 0;
-}
-
-function resolveProjectLabel(projectRoot: string): string {
-  return projectRoot.split(/[\\/]+/).filter(Boolean).at(-1) ?? projectRoot;
 }
 
 function resolvePanelAppInputSurfaceEntries(params: {
@@ -155,171 +139,64 @@ function buildPanelAppReferenceItems(params: {
   }));
 }
 
-function buildPathPreview(params: {
-  kind: 'directory' | 'file';
-  projectRoot: string;
-  relativePath: string;
-}) {
-  const { kind, projectRoot, relativePath } = params;
-  const pathSegments = relativePath.split('/').filter(Boolean);
-  return {
-    rootLabel: resolveProjectLabel(projectRoot),
-    segments: pathSegments.map((label, index) => ({
-      label,
-      kind: index === pathSegments.length - 1 ? kind : 'directory' as const,
-    })),
-  };
-}
-
-function buildWorkspaceReferenceItems(params: {
-  entries: readonly ServerPathSearchEntryView[];
-  navigateDirectories: boolean;
-  projectRoot: string;
-  texts: ContextReferenceInputSurfaceTexts;
-}): ChatInputSurfaceItem[] {
-  const projectLabel = resolveProjectLabel(params.projectRoot);
-  return params.entries.map((entry) => {
-    const navigates = params.navigateDirectories && entry.kind === 'directory';
-    return {
-      key: `workspace:${entry.kind}:${entry.relativePath}`,
-      icon: entry.kind === 'directory' ? 'folder' : 'file',
-      title: entry.name,
-      subtitle: entry.parentRelativePath || projectLabel,
-      description: entry.kind === 'directory'
-        ? params.texts.directoryDescription
-        : params.texts.fileDescription,
-      detailLines: [
-        `${params.texts.projectRootLabel}: ${params.projectRoot}`,
-        entry.relativePath,
-      ],
-      sectionKey: WORKSPACE_SECTION_KEY,
-      sectionLabel: params.texts.workspaceSectionLabel,
-      value: entry.relativePath,
-      tokenKind: navigates
-        ? undefined
-        : entry.kind === 'directory'
-          ? CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
-          : CHAT_WORKSPACE_FILE_TOKEN_KIND,
-      tokenKey: navigates ? undefined : entry.relativePath,
-      selectionBehavior: navigates ? 'navigate' : undefined,
-      pathPreview: buildPathPreview({
-        kind: entry.kind,
-        projectRoot: params.projectRoot,
-        relativePath: entry.relativePath,
-      }),
-    } satisfies ChatInputSurfaceItem;
-  });
-}
-
-function resolveParentReferencePath(referencePath: string): string | null {
-  const segments = referencePath.split('/').filter(Boolean);
-  if (segments.length === 0) {
-    return null;
-  }
-  return segments.slice(0, -1).join('/');
-}
-
-function buildCurrentDirectoryReferenceItem(params: {
-  projectRoot: string;
-  referencePath: string;
-  texts: ContextReferenceInputSurfaceTexts;
-}): ChatInputSurfaceItem {
-  const { projectRoot, referencePath, texts } = params;
-  const title = referencePath.split('/').filter(Boolean).at(-1) ?? referencePath;
-  return {
-    key: `context-reference:current-directory:${referencePath}`,
-    icon: 'folder',
-    title: texts.currentDirectoryLabel,
-    subtitle: title,
-    description: texts.directoryDescription,
-    detailLines: [
-      `${texts.projectRootLabel}: ${projectRoot}`,
-      referencePath,
-    ],
-    sectionKey: WORKSPACE_SECTION_KEY,
-    sectionLabel: texts.workspaceSectionLabel,
-    value: referencePath,
-    tokenKind: CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
-    tokenKey: referencePath,
-    pathPreview: buildPathPreview({
-      kind: 'directory',
-      projectRoot,
-      relativePath: referencePath,
-    }),
-  };
-}
-
-function buildFilesNavigationItem(texts: ContextReferenceInputSurfaceTexts): ChatInputSurfaceItem {
-  return {
-    key: FILES_NAVIGATION_ITEM_KEY,
-    icon: 'files',
-    title: texts.filesLabel,
-    subtitle: texts.filesSubtitle,
-    description: texts.filesDescription,
-    detailLines: [],
-    hintLabel: texts.filesHintLabel,
-    selectionBehavior: 'navigate',
-  };
-}
-
-function buildBackNavigationItem(params: {
-  referencePath: string;
-  texts: ContextReferenceInputSurfaceTexts;
-}): ChatInputSurfaceItem {
-  const { referencePath, texts } = params;
-  const isProjectRoot = !referencePath;
-  return {
-    key: ROOT_NAVIGATION_ITEM_KEY,
-    icon: 'back',
-    title: isProjectRoot ? texts.backLabel : texts.parentLabel,
-    subtitle: '',
-    description: isProjectRoot ? texts.backDescription : texts.parentDescription,
-    detailLines: [],
-    hintLabel: isProjectRoot ? texts.backHintLabel : texts.parentHintLabel,
-    value: resolveParentReferencePath(referencePath) ?? '',
-    selectionBehavior: 'navigate',
-  };
-}
-
 export function createContextReferenceInputSurfacePlugin(params: {
   itemTexts: {
     context: ContextReferenceInputSurfaceTexts;
     panelApp: PanelAppInputSurfaceItemTexts;
   };
   menuTexts: ChatInputSurfaceMenuTexts;
-  onNavigate: (path: string | null) => void;
+  onNavigate: (location: ContextReferenceLocation) => void;
 }): ChatInputSurfacePlugin<ChatInputProductPluginData> {
   return createInputSurfaceTriggeredPanelPlugin({
     key: 'context-reference',
     trigger: CONTEXT_REFERENCE_TRIGGER_SPEC,
     resolvePanel: ({ data, trigger }) => {
-      const isFilesMode = data.referencePath !== null;
+      const isFilesMode = data.referenceLocation.view === 'files';
+      const isProjectsMode = data.referenceLocation.view === 'projects';
       const isBrowsing = isFilesMode && !trigger.query.trim();
+      const referencePath = data.referenceLocation.view === 'files'
+        ? data.referenceLocation.path
+        : '';
       const workspaceItems = buildWorkspaceReferenceItems({
         entries: data.serverPathEntries,
         navigateDirectories: isBrowsing,
         projectRoot: data.projectRoot,
         texts: params.itemTexts.context,
       });
-      const currentDirectoryItem = isBrowsing && data.referencePath
+      const projectItems = buildProjectReferenceItems({
+        projects: data.projects,
+        query: trigger.query,
+        texts: params.itemTexts.context,
+      });
+      const currentDirectoryItem = isBrowsing && referencePath
         ? buildCurrentDirectoryReferenceItem({
             projectRoot: data.projectRoot,
-            referencePath: data.referencePath,
+            referencePath,
             texts: params.itemTexts.context,
           })
         : null;
       const items = isFilesMode
         ? [
             buildBackNavigationItem({
-              referencePath: data.referencePath ?? '',
+              location: data.referenceLocation,
               texts: params.itemTexts.context,
             }),
             ...(currentDirectoryItem ? [currentDirectoryItem] : []),
             ...workspaceItems,
           ]
-        : [
+        : isProjectsMode
+          ? [
+              buildBackNavigationItem({
+                location: data.referenceLocation,
+                texts: params.itemTexts.context,
+              }),
+              ...projectItems,
+            ]
+          : [
             buildFilesNavigationItem(params.itemTexts.context),
+            buildProjectsNavigationItem(params.itemTexts.context),
             ...(trigger.query ? workspaceItems : []),
+            ...(trigger.query ? projectItems : []),
             ...buildPanelAppReferenceItems({
               entries: data.panelApps,
               query: trigger.query,
@@ -329,25 +206,37 @@ export function createContextReferenceInputSurfacePlugin(params: {
           ];
       const relevantLoading = isFilesMode
         ? data.isServerPathSearchLoading
-        : data.isPanelAppsLoading || (Boolean(trigger.query) && data.isServerPathSearchLoading);
+        : isProjectsMode
+          ? data.isProjectsLoading
+          : data.isPanelAppsLoading ||
+            (Boolean(trigger.query) && (data.isProjectsLoading || data.isServerPathSearchLoading));
+      const errorMessage = isProjectsMode && data.projectsError
+        ? `${params.itemTexts.context.projectsLoadFailedLabel}: ${data.projectsError}`
+        : data.serverPathSearchError
+          ? `${params.itemTexts.context.searchFailedLabel}: ${data.serverPathSearchError}`
+          : null;
       return {
-        isLoading: isFilesMode
-          ? relevantLoading
-          : relevantLoading && items.length === 0,
+        isLoading: isProjectsMode ? relevantLoading : relevantLoading && items.length === 0,
         items,
-        notice: data.serverPathSearchError
+        notice: errorMessage
           ? {
-              message: `${params.itemTexts.context.searchFailedLabel}: ${data.serverPathSearchError}`,
+              message: errorMessage,
               tone: 'error',
             }
           : undefined,
         onSelectItem: (item) => {
           if (item.key === FILES_NAVIGATION_ITEM_KEY) {
-            params.onNavigate('');
+            params.onNavigate({ view: 'files', path: '' });
+          } else if (item.key === PROJECTS_NAVIGATION_ITEM_KEY) {
+            params.onNavigate({ view: 'projects' });
           } else if (item.key === ROOT_NAVIGATION_ITEM_KEY) {
-            params.onNavigate(data.referencePath ? item.value ?? '' : null);
+            params.onNavigate(
+              isFilesMode && referencePath
+                ? { view: 'files', path: item.value ?? '' }
+                : { view: 'root' },
+            );
           } else if (item.selectionBehavior === 'navigate' && item.value) {
-            params.onNavigate(item.value);
+            params.onNavigate({ view: 'files', path: item.value });
           }
         },
         texts: params.menuTexts,

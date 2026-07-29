@@ -1,6 +1,7 @@
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -9,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  CHAT_PROJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "@nextclaw/shared";
@@ -101,5 +103,54 @@ describe("WorkspaceReferenceMaterializerService", () => {
 
     expect(context).toContain("rejected: resolved path is outside the active project");
     expect(context).not.toContain("secret\n");
+  });
+
+  it("materializes registered project metadata and a bounded root outline", async () => {
+    const activeProjectRoot = createTempDirectory("nextclaw-workspace-reference-active-");
+    const referencedProjectRoot = realpathSync(
+      createTempDirectory("nextclaw-workspace-reference-project-"),
+    );
+    mkdirSync(join(referencedProjectRoot, "docs"), { recursive: true });
+    writeFileSync(join(referencedProjectRoot, "README.md"), "# Referenced\n");
+    writeFileSync(join(referencedProjectRoot, "docs", "guide.md"), "# Guide\n");
+
+    const context = await new WorkspaceReferenceMaterializerService().materialize({
+      projectRoot: activeProjectRoot,
+      references: [{
+        kind: CHAT_PROJECT_TOKEN_KIND,
+        key: referencedProjectRoot,
+        label: "Knowledge",
+        project: {
+          name: "Knowledge",
+          rootPath: referencedProjectRoot,
+        },
+      }],
+    });
+
+    expect(context).toContain(
+      `<project_reference name="Knowledge" root_path="${referencedProjectRoot}">`,
+    );
+    expect(context).toContain("docs/");
+    expect(context).toContain("guide.md");
+    expect(context).toContain("README.md");
+  });
+
+  it("reports unregistered project references without reading their path", async () => {
+    const activeProjectRoot = createTempDirectory("nextclaw-workspace-reference-active-");
+    const unregisteredProjectRoot = createTempDirectory("nextclaw-workspace-reference-unregistered-");
+    writeFileSync(join(unregisteredProjectRoot, "secret.txt"), "secret");
+
+    const context = await new WorkspaceReferenceMaterializerService().materialize({
+      projectRoot: activeProjectRoot,
+      references: [{
+        kind: CHAT_PROJECT_TOKEN_KIND,
+        key: unregisteredProjectRoot,
+        label: "Unregistered",
+        project: null,
+      }],
+    });
+
+    expect(context).toContain("unavailable: project is not registered");
+    expect(context).not.toContain("secret.txt");
   });
 });

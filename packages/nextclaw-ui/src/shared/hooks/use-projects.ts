@@ -5,10 +5,11 @@ import { t } from "@/shared/lib/i18n";
 
 const PROJECTS_QUERY_KEY = ["projects"] as const;
 
-export function useProjects() {
+export function useProjects(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: PROJECTS_QUERY_KEY,
     queryFn: fetchProjects,
+    enabled: options.enabled ?? true,
     staleTime: 30_000,
   });
 }

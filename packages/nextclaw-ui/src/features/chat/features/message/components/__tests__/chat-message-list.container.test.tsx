@@ -453,7 +453,7 @@ it("wires markdown file link actions to the workspace file preview manager", () 
   expect(captures.openFilePreview).toHaveBeenCalledWith(action);
 });
 
-it("opens workspace file and directory tokens from the message", () => {
+it("opens workspace and project reference tokens from the message", () => {
   captures.selectedSession = {
     projectRoot: "/tmp/project",
     workingDir: "/tmp/project/packages/ui",
@@ -474,6 +474,12 @@ it("opens workspace file and directory tokens from the message", () => {
     label: "server",
     rawText: "@folder:packages%2Fserver",
   });
+  onInlineTokenClick?.({
+    kind: "project",
+    key: "/tmp/nextclaw",
+    label: "NextClaw",
+    rawText: "@project:%2Ftmp%2Fnextclaw",
+  });
 
   expect(captures.openFilePreview).toHaveBeenNthCalledWith(1, {
     path: "/tmp/project/docs/guide.md",
@@ -483,6 +489,11 @@ it("opens workspace file and directory tokens from the message", () => {
   expect(captures.openFilePreview).toHaveBeenNthCalledWith(2, {
     path: "/tmp/project/packages/server",
     label: "server",
+    viewMode: "preview",
+  });
+  expect(captures.openFilePreview).toHaveBeenNthCalledWith(3, {
+    path: "/tmp/nextclaw",
+    label: "NextClaw",
     viewMode: "preview",
   });
 });

@@ -56,7 +56,7 @@ export class ContextProviderContribution implements KernelContribution {
       createRuntimeContextProvider(),
       createSelfManagementContextProvider(),
       new ProjectContextProvider(context),
-      new WorkspaceReferenceContextProvider(context),
+      new WorkspaceReferenceContextProvider(context, this.kernel.projectManager),
       new AgentBootstrapContextProvider(context),
       new WorkspaceMemoryContextProvider(context),
       new SkillsContextProvider(context),

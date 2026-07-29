@@ -35,6 +35,7 @@ export type ChatInputSurfaceItemIcon =
   | 'files'
   | 'folder'
   | 'panel-app'
+  | 'project'
   | 'skill';
 
 export type ChatInputSurfacePathPreview = {

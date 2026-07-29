@@ -226,6 +226,35 @@ describe('chat inline token workspace references', () => {
     ]);
   });
 
+  it('serializes project references with their registered path and display name', () => {
+    expect(
+      buildInlineTokensFromComposer([
+        createChatComposerTokenNode({
+          tokenKind: 'project',
+          tokenKey: '/tmp/NextClaw Project',
+          label: 'NextClaw',
+        }),
+      ]),
+    ).toEqual([
+      {
+        kind: 'project',
+        key: '/tmp/NextClaw Project',
+        label: 'NextClaw',
+        rawText: '@project:%2Ftmp%2FNextClaw%20Project',
+      },
+    ]);
+    expect(
+      buildInlineTokensFromTextProtocol('review @project:%2Ftmp%2FNextClaw%20Project'),
+    ).toEqual([
+      {
+        kind: 'project',
+        key: '/tmp/NextClaw Project',
+        label: 'NextClaw Project',
+        rawText: '@project:%2Ftmp%2FNextClaw%20Project',
+      },
+    ]);
+  });
+
   it('resolves workspace token paths inside POSIX and Windows project roots', () => {
     expect(resolveWorkspaceReferencePath({
       projectRoot: '/tmp/project/',

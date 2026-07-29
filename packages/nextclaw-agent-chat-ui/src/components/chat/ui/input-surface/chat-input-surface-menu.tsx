@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CircleAlert, Command, File, Files, Folder, PanelsTopLeft, Puzzle } from 'lucide-react';
+import { ArrowLeft, CircleAlert, Command, File, Files, Folder, FolderKanban, PanelsTopLeft, Puzzle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import { useElementWidth } from '@agent-chat-ui/components/chat/hooks/use-element-width';
@@ -36,6 +36,7 @@ const INPUT_SURFACE_ITEM_ICONS: Record<ChatInputSurfaceItemIcon, LucideIcon> = {
   files: Files,
   folder: Folder,
   'panel-app': PanelsTopLeft,
+  project: FolderKanban,
   skill: Puzzle,
 };
 

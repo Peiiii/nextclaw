@@ -86,6 +86,7 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isProjectsLoading: false,
         isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [
@@ -96,8 +97,10 @@ describe('createSlashCommandInputSurfacePlugin', () => {
           }),
         ],
         projectRoot: '/tmp/project',
+        projects: [],
+        projectsError: null,
         recentSkillValues: [],
-        referencePath: null,
+        referenceLocation: { view: 'root' },
         serverPathEntries: [],
         serverPathSearchError: null,
         skillRecords: [
@@ -153,12 +156,15 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isProjectsLoading: false,
         isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [],
         projectRoot: '/tmp/project',
+        projects: [],
+        projectsError: null,
         recentSkillValues: [],
-        referencePath: null,
+        referenceLocation: { view: 'root' },
         serverPathEntries: [],
         serverPathSearchError: null,
         skillRecords: [
@@ -202,12 +208,15 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isProjectsLoading: false,
         isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [],
         projectRoot: '/tmp/project',
+        projects: [],
+        projectsError: null,
         recentSkillValues: [],
-        referencePath: null,
+        referenceLocation: { view: 'root' },
         serverPathEntries: [],
         serverPathSearchError: null,
         skillRecords: [],
@@ -233,6 +242,7 @@ describe('createSlashCommandInputSurfacePlugin', () => {
     const state = resolveChatInputSurfaceState({
       data: {
         isPanelAppsLoading: false,
+        isProjectsLoading: false,
         isServerPathSearchLoading: false,
         isSkillsLoading: false,
         panelApps: [
@@ -243,8 +253,10 @@ describe('createSlashCommandInputSurfacePlugin', () => {
           }),
         ],
         projectRoot: '/tmp/project',
+        projects: [],
+        projectsError: null,
         recentSkillValues: [],
-        referencePath: null,
+        referenceLocation: { view: 'root' },
         serverPathEntries: [],
         serverPathSearchError: null,
         skillRecords: [],

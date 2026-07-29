@@ -1,4 +1,4 @@
-import { AppWindow, FileText, Folder, Puzzle } from "lucide-react";
+import { AppWindow, FileText, Folder, FolderKanban, Puzzle } from "lucide-react";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatUiPrimitives } from "@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives";
 
@@ -9,6 +9,8 @@ function renderInlineTokenIcon(kind: string) {
     <FileText aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
   ) : kind === "workspace_directory" ? (
     <Folder aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
+  ) : kind === "project" ? (
+    <FolderKanban aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
   ) : (
     <Puzzle aria-hidden="true" className="h-[0.9em] w-[0.9em]" />
   );

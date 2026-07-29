@@ -2,6 +2,7 @@ import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import {
   CHAT_INLINE_TOKENS_METADATA_KEY,
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
+  CHAT_PROJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   type ChatInlineTokenMetadata,
@@ -13,6 +14,7 @@ import { serializeChatComposerTokenText } from './chat-composer-token-protocol.u
 export { CHAT_INLINE_TOKENS_METADATA_KEY };
 const CHAT_PANEL_APP_TOKEN_PREFIX = '@panel-app:';
 const CHAT_PANEL_APP_TOKEN_PATTERN = /@panel-app:([A-Za-z0-9_-]+)/g;
+const CHAT_PROJECT_TOKEN_PATTERN = /@project:([^\s]+)/g;
 const CHAT_WORKSPACE_FILE_TOKEN_PATTERN = /@file:([^\s]+)/g;
 const CHAT_WORKSPACE_DIRECTORY_TOKEN_PATTERN = /@folder:([^\s]+)/g;
 
@@ -96,6 +98,7 @@ export function buildInlineTokensFromComposer(
     }
     if (
       node.tokenKind !== 'skill' &&
+      node.tokenKind !== CHAT_PROJECT_TOKEN_KIND &&
       node.tokenKind !== CHAT_WORKSPACE_FILE_TOKEN_KIND &&
       node.tokenKind !== CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
     ) {
@@ -121,6 +124,15 @@ export function buildInlineTokensFromComposer(
       });
       continue;
     }
+    if (node.tokenKind === CHAT_PROJECT_TOKEN_KIND) {
+      tokens.push({
+        kind: CHAT_PROJECT_TOKEN_KIND,
+        key: node.tokenKey,
+        label: node.label,
+        rawText,
+      });
+      continue;
+    }
     const workspaceKind = node.tokenKind === CHAT_WORKSPACE_FILE_TOKEN_KIND
       ? CHAT_WORKSPACE_FILE_TOKEN_KIND
       : CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
@@ -134,8 +146,11 @@ export function buildInlineTokensFromComposer(
   return dedupeInlineTokens(tokens);
 }
 
-function appendWorkspaceTokens(params: {
-  kind: typeof CHAT_WORKSPACE_FILE_TOKEN_KIND | typeof CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
+function appendEncodedKeyTokens(params: {
+  kind:
+    | typeof CHAT_PROJECT_TOKEN_KIND
+    | typeof CHAT_WORKSPACE_FILE_TOKEN_KIND
+    | typeof CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
   pattern: RegExp;
   text: string;
   tokens: ChatInlineTokenSource[];
@@ -155,7 +170,7 @@ function appendWorkspaceTokens(params: {
     tokens.push({
       kind,
       key,
-      label: key.split('/').filter(Boolean).at(-1) ?? key,
+      label: key.split(/[\\/]+/).filter(Boolean).at(-1) ?? key,
       rawText: match[0],
     });
   }
@@ -175,13 +190,19 @@ export function buildInlineTokensFromTextProtocol(text: string): ChatInlineToken
       rawText: `${CHAT_PANEL_APP_TOKEN_PREFIX}${key}`
     });
   }
-  appendWorkspaceTokens({
+  appendEncodedKeyTokens({
+    kind: CHAT_PROJECT_TOKEN_KIND,
+    pattern: CHAT_PROJECT_TOKEN_PATTERN,
+    text,
+    tokens,
+  });
+  appendEncodedKeyTokens({
     kind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
     pattern: CHAT_WORKSPACE_FILE_TOKEN_PATTERN,
     text,
     tokens,
   });
-  appendWorkspaceTokens({
+  appendEncodedKeyTokens({
     kind: CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
     pattern: CHAT_WORKSPACE_DIRECTORY_TOKEN_PATTERN,
     text,

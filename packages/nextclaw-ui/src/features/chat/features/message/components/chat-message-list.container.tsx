@@ -6,6 +6,7 @@ import {
   type RefObject,
 } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
+import { CHAT_PROJECT_TOKEN_KIND } from "@nextclaw/shared";
 import { toast } from "sonner";
 import {
   type ChatInlineDisplayViewModel,
@@ -346,13 +347,16 @@ export function ChatMessageListContainer({
       }
       if (
         "key" in token &&
-        (token.kind === "workspace_file" ||
+        (token.kind === CHAT_PROJECT_TOKEN_KIND ||
+          token.kind === "workspace_file" ||
           token.kind === "workspace_directory")
       ) {
-        const path = resolveWorkspaceReferencePath({
-          projectRoot: selectedSession?.projectRoot,
-          relativePath: token.key,
-        });
+        const path = token.kind === CHAT_PROJECT_TOKEN_KIND
+          ? token.key
+          : resolveWorkspaceReferencePath({
+              projectRoot: selectedSession?.projectRoot,
+              relativePath: token.key,
+            });
         if (path) {
           presenter.chatThreadManager.openFilePreview({
             path,

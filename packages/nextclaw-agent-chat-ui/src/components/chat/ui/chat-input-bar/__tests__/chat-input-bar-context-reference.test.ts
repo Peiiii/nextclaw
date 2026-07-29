@@ -28,4 +28,30 @@ describe('chat input bar context references', () => {
       }),
     ]);
   });
+
+  it('replaces an @ query with a project token', () => {
+    const snapshot = insertInputSurfaceItemIntoChatComposer({
+      item: {
+        key: 'project:/tmp/nextclaw',
+        title: 'NextClaw',
+        subtitle: 'Project',
+        description: 'Registered project',
+        detailLines: ['/tmp/nextclaw'],
+        tokenKind: 'project',
+        tokenKey: '/tmp/nextclaw',
+      },
+      nodes: [createChatComposerTextNode('@next')],
+      selection: { start: 5, end: 5 },
+      triggerSpecs: [{ key: 'context-reference', marker: '@' }],
+    });
+
+    expect(snapshot.nodes).toEqual([
+      expect.objectContaining({
+        type: 'token',
+        tokenKind: 'project',
+        tokenKey: '/tmp/nextclaw',
+        label: 'NextClaw',
+      }),
+    ]);
+  });
 });

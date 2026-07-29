@@ -9,6 +9,14 @@ const usePanelAppsMock = vi.hoisted(() =>
     isLoading: false,
   })),
 );
+const useProjectsMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    data: { projects: [] },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  })),
+);
 const useServerPathSearchMock = vi.hoisted(() =>
   vi.fn(() => ({
     data: { entries: [] },
@@ -37,6 +45,9 @@ const useServerPathBrowseMock = vi.hoisted(() =>
 
 vi.mock('@/features/panel-apps', () => ({
   usePanelApps: usePanelAppsMock,
+}));
+vi.mock('@/shared/hooks/use-projects', () => ({
+  useProjects: useProjectsMock,
 }));
 vi.mock('@/shared/hooks/use-server-path-search', () => ({
   useServerPathSearch: useServerPathSearchMock,
@@ -68,6 +79,7 @@ function createHookParams() {
 
 beforeEach(() => {
   usePanelAppsMock.mockClear();
+  useProjectsMock.mockClear();
   useServerPathBrowseMock.mockClear();
   useServerPathSearchMock.mockClear();
 });
@@ -84,6 +96,7 @@ it('browses nested folders while reserving search for project-wide queries', () 
       start: 0,
     }),
   );
+  expect(useProjectsMock).toHaveBeenLastCalledWith({ enabled: true });
   const filesItem = result.current.inputSurfaceState.panel?.items.find(
     (item) => item.selectionBehavior === 'navigate',
   );

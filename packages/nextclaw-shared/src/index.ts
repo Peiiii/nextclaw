@@ -54,6 +54,7 @@ export {
 export {
   CHAT_INLINE_TOKENS_METADATA_KEY,
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
+  CHAT_PROJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
@@ -69,6 +70,7 @@ export {
 export type {
   ChatInlineTokenMetadata,
   ChatInlineTokensMetadata,
+  ChatProjectInlineTokenMetadata,
   ChatSkillInlineTokenMetadata,
   ChatSkillSource,
   ChatWorkspaceInlineTokenMetadata,

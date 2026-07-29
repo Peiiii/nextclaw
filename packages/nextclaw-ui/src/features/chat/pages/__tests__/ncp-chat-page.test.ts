@@ -272,6 +272,32 @@ describe('buildChatRunMetadata', () => {
     });
   });
 
+  it('adds structured project references to run metadata', () => {
+    expect(
+      buildChatRunMetadata({
+        composerNodes: [
+          createChatComposerTokenNode({
+            tokenKind: 'project',
+            tokenKey: '/tmp/nextclaw',
+            label: 'NextClaw',
+          }),
+        ],
+      }),
+    ).toMatchObject({
+      ui_inline_tokens: {
+        schemaVersion: 2,
+        items: [
+          {
+            kind: 'project',
+            key: '/tmp/nextclaw',
+            label: 'NextClaw',
+            rawText: '@project:%2Ftmp%2Fnextclaw',
+          },
+        ],
+      },
+    });
+  });
+
   it('serializes child session materialization metadata for side chat drafts', () => {
     expect(
       buildChatRunMetadata({

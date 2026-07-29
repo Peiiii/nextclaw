@@ -4,7 +4,8 @@ import {
   CONTEXT_REFERENCE_TRIGGER_SPEC,
   createContextReferenceInputSurfacePlugin,
 } from '@/features/chat/features/input/input-surface-plugins/context-reference-plugin.utils';
-import type { PanelAppEntryView } from '@/shared/lib/api';
+import type { ContextReferenceLocation } from '@/features/chat/features/input/input-surface-plugins/chat-input-product-plugin-adapters.types';
+import type { PanelAppEntryView, ProjectView } from '@/shared/lib/api';
 
 function createPanelApp(): PanelAppEntryView {
   return {
@@ -22,6 +23,15 @@ function createPanelApp(): PanelAppEntryView {
     clientDeclared: false,
     clientGranted: false,
     openCount: 0,
+  };
+}
+
+function createProject(): ProjectView {
+  return {
+    name: 'NextClaw',
+    rootPath: '/tmp/nextclaw',
+    createdAt: '2026-07-28T00:00:00.000Z',
+    updatedAt: '2026-07-28T00:00:00.000Z',
   };
 }
 
@@ -43,6 +53,15 @@ function createPlugin(onNavigate = vi.fn()) {
         parentLabel: 'Up one folder',
         parentDescription: 'Browse parent',
         parentHintLabel: 'Enter to browse parent',
+        projectDescription: 'Project context',
+        projectPathLabel: 'Project path',
+        projectSectionLabel: 'Projects',
+        projectSubtitle: 'Project',
+        projectsDescription: 'Browse registered projects',
+        projectsHintLabel: 'Enter to browse projects',
+        projectsLabel: 'Projects',
+        projectsLoadFailedLabel: 'Projects failed',
+        projectsSubtitle: 'Project Context',
         projectRootLabel: 'Project directory',
         searchFailedLabel: 'Search failed',
         workspaceSectionLabel: 'Files & Folders',
@@ -65,15 +84,18 @@ function createPlugin(onNavigate = vi.fn()) {
   });
 }
 
-function createData(referencePath: string | null = null) {
+function createData(referenceLocation: ContextReferenceLocation = { view: 'root' }) {
   return {
     isPanelAppsLoading: false,
+    isProjectsLoading: false,
     isServerPathSearchLoading: false,
     isSkillsLoading: false,
     panelApps: [createPanelApp()],
     projectRoot: '/tmp/project',
+    projects: [createProject()],
+    projectsError: null,
     recentSkillValues: [],
-    referencePath,
+    referenceLocation,
     serverPathEntries: [
       {
         name: 'server-path.ts',
@@ -98,7 +120,7 @@ function createData(referencePath: string | null = null) {
 }
 
 describe('context reference input surface plugin', () => {
-  it('shows Files & Folders and panel apps in the root @ menu', () => {
+  it('shows Files & Folders, Projects, and panel apps in the root @ menu', () => {
     const state = resolveChatInputSurfaceState({
       plugins: [createPlugin()],
       trigger: {
@@ -114,6 +136,11 @@ describe('context reference input surface plugin', () => {
       expect.objectContaining({
         title: 'Files & Folders',
         icon: 'files',
+        selectionBehavior: 'navigate',
+      }),
+      expect.objectContaining({
+        title: 'Projects',
+        icon: 'project',
         selectionBehavior: 'navigate',
       }),
       expect.objectContaining({
@@ -133,7 +160,7 @@ describe('context reference input surface plugin', () => {
         start: 0,
         end: 7,
       },
-      data: createData(''),
+      data: createData({ view: 'files', path: '' }),
     });
 
     expect(state.panel?.items.slice(1)).toEqual([
@@ -173,7 +200,7 @@ describe('context reference input surface plugin', () => {
 
     state.panel?.onSelectItem?.(item!);
 
-    expect(onNavigate).toHaveBeenCalledWith('');
+    expect(onNavigate).toHaveBeenCalledWith({ view: 'files', path: '' });
     expect(item).not.toHaveProperty('tokenKind');
   });
 
@@ -187,7 +214,7 @@ describe('context reference input surface plugin', () => {
         start: 0,
         end: 1,
       },
-      data: createData(''),
+      data: createData({ view: 'files', path: '' }),
     });
     const directoryItem = rootState.panel?.items.find((item) => item.title === 'docs');
 
@@ -197,7 +224,7 @@ describe('context reference input surface plugin', () => {
     });
     expect(directoryItem?.tokenKind).toBeUndefined();
     rootState.panel?.onSelectItem?.(directoryItem!);
-    expect(onNavigate).toHaveBeenCalledWith('docs');
+    expect(onNavigate).toHaveBeenCalledWith({ view: 'files', path: 'docs' });
 
     const nestedState = resolveChatInputSurfaceState({
       plugins: [createPlugin(onNavigate)],
@@ -207,7 +234,7 @@ describe('context reference input surface plugin', () => {
         start: 0,
         end: 1,
       },
-      data: createData('docs'),
+      data: createData({ view: 'files', path: 'docs' }),
     });
     expect(nestedState.panel?.items).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -221,5 +248,48 @@ describe('context reference input surface plugin', () => {
         selectionBehavior: 'navigate',
       }),
     ]));
+  });
+
+  it('opens the project view and builds semantic project tokens', () => {
+    const onNavigate = vi.fn();
+    const rootState = resolveChatInputSurfaceState({
+      plugins: [createPlugin(onNavigate)],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: '',
+        start: 0,
+        end: 1,
+      },
+      data: createData(),
+    });
+    const projectsItem = rootState.panel?.items.find((item) => item.title === 'Projects');
+
+    rootState.panel?.onSelectItem?.(projectsItem!);
+    expect(onNavigate).toHaveBeenCalledWith({ view: 'projects' });
+
+    const projectsState = resolveChatInputSurfaceState({
+      plugins: [createPlugin(onNavigate)],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: 'next',
+        start: 0,
+        end: 5,
+      },
+      data: createData({ view: 'projects' }),
+    });
+
+    expect(projectsState.panel?.items).toEqual([
+      expect.objectContaining({
+        title: 'Back',
+        selectionBehavior: 'navigate',
+      }),
+      expect.objectContaining({
+        title: 'NextClaw',
+        icon: 'project',
+        tokenKind: 'project',
+        tokenKey: '/tmp/nextclaw',
+        detailLines: ['Project path: /tmp/nextclaw'],
+      }),
+    ]);
   });
 });
