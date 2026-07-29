@@ -1,5 +1,27 @@
 # @nextclaw/kernel
 
+## 0.6.19
+
+### Patch Changes
+
+- 215a61f: 聊天输入框现在可以通过 `@` 选择已登记项目，并把项目名称、路径和目录概览作为本次消息的显式上下文。
+- Updated dependencies
+- Updated dependencies [d80eeb2]
+- Updated dependencies [215a61f]
+  - @nextclaw/channel-extension-feishu@0.2.17
+  - @nextclaw/channel-extension-weixin@0.2.17
+  - @nextclaw/core@0.15.17
+  - @nextclaw/mcp@0.3.17
+  - @nextclaw/ncp-agent-runtime@0.4.15
+  - @nextclaw/ncp-agent-runtime-next@0.1.15
+  - @nextclaw/ncp-mcp@0.2.17
+  - @nextclaw/ncp-toolkit@0.6.16
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.15
+  - @nextclaw/runtime@0.4.17
+  - @nextclaw/ncp@0.7.15
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.18
+  - @nextclaw/shared@0.4.16
+
 ## 0.6.18
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @nextclaw/nextclaw-narp-runtime-codex-sdk
 
+## 0.2.16
+
+### Patch Changes
+
+- 9d84369: 让 Codex 会话默认拥有完整的本地执行权限；在审批交互尚不可用时，文件和命令操作不再因继承只读策略而失败。
+- Updated dependencies [9d84369]
+- Updated dependencies [d80eeb2]
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk@0.2.15
+  - @nextclaw/ncp@0.7.15
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.16
+
 ## 0.2.15
 
 ### Patch Changes

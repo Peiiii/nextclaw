@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.2.15
+
+### Patch Changes
+
+- 9d84369: 让 Codex 会话默认拥有完整的本地执行权限；在审批交互尚不可用时，文件和命令操作不再因继承只读策略而失败。
+- d80eeb2: Keep Codex conversations attached to the same thread across idle timeouts, and treat ongoing command output as activity so long-running commands can continue while they are still making progress.
+- Updated dependencies [d80eeb2]
+  - @nextclaw/ncp@0.7.15
+
 ## 0.2.14
 
 ### Patch Changes

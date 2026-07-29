@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-narp-stdio-runtime-wrapper
 
+## 0.3.16
+
+### Patch Changes
+
+- d80eeb2: Keep Codex conversations attached to the same thread across idle timeouts, and treat ongoing command output as activity so long-running commands can continue while they are still making progress.
+- Updated dependencies [d80eeb2]
+  - @nextclaw/ncp@0.7.15
+
 ## 0.3.15
 
 ### Patch Changes

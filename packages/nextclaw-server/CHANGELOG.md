@@ -1,5 +1,19 @@
 # nextclaw-server
 
+## 0.15.19
+
+### Patch Changes
+
+- d80eeb2: Keep Codex conversations attached to the same thread across idle timeouts, and treat ongoing command output as activity so long-running commands can continue while they are still making progress.
+- Updated dependencies
+- Updated dependencies [d80eeb2]
+- Updated dependencies [215a61f]
+  - @nextclaw/core@0.15.17
+  - @nextclaw/mcp@0.3.17
+  - @nextclaw/runtime@0.4.17
+  - @nextclaw/ncp@0.7.15
+  - @nextclaw/kernel@0.6.19
+
 ## 0.15.18
 
 ### Patch Changes

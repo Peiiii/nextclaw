@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.7.15
+
+### Patch Changes
+
+- d80eeb2: Keep Codex conversations attached to the same thread across idle timeouts, and treat ongoing command output as activity so long-running commands can continue while they are still making progress.
+
 ## 0.7.14
 
 ### Patch Changes

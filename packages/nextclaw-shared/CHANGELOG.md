@@ -1,5 +1,13 @@
 # @nextclaw/shared
 
+## 0.4.16
+
+### Patch Changes
+
+- 215a61f: 聊天输入框现在可以通过 `@` 选择已登记项目，并把项目名称、路径和目录概览作为本次消息的显式上下文。
+- Updated dependencies [d80eeb2]
+  - @nextclaw/ncp@0.7.15
+
 ## 0.4.15
 
 ### Patch Changes

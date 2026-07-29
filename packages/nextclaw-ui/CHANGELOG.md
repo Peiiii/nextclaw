@@ -1,5 +1,23 @@
 # @nextclaw/ui
 
+## 0.15.20
+
+### Patch Changes
+
+- 15771a6: Remove a queued message from the composer queue as soon as stopping the current reply starts that message.
+- 215a61f: 聊天输入框现在可以通过 `@` 选择已登记项目，并把项目名称、路径和目录概览作为本次消息的显式上下文。
+- Updated dependencies
+- Updated dependencies [d80eeb2]
+- Updated dependencies [215a61f]
+  - @nextclaw/agent-chat@0.3.13
+  - @nextclaw/client-sdk@0.5.19
+  - @nextclaw/ncp-http-agent-client@0.4.15
+  - @nextclaw/ncp-react@0.5.18
+  - @nextclaw/ncp-toolkit@0.6.16
+  - @nextclaw/ncp@0.7.15
+  - @nextclaw/shared@0.4.16
+  - @nextclaw/agent-chat-ui@0.6.19
+
 ## 0.15.19
 
 ### Patch Changes

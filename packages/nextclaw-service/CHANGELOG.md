@@ -1,5 +1,39 @@
 # @nextclaw/service
 
+## 0.3.19
+
+### Patch Changes
+
+- 7c293d1: 强化 workspace skill 卸载目标校验，只允许卸载由 Marketplace 管理的直属 skill 目录。
+- Updated dependencies
+- Updated dependencies [d80eeb2]
+- Updated dependencies [215a61f]
+  - @nextclaw/channel-extension-dingtalk@0.2.17
+  - @nextclaw/channel-extension-discord@0.2.17
+  - @nextclaw/channel-extension-email@0.2.17
+  - @nextclaw/channel-extension-feishu@0.2.17
+  - @nextclaw/channel-extension-qq@0.2.16
+  - @nextclaw/channel-extension-slack@0.2.17
+  - @nextclaw/channel-extension-telegram@0.2.17
+  - @nextclaw/channel-extension-wecom@0.2.17
+  - @nextclaw/channel-extension-weixin@0.2.17
+  - @nextclaw/channel-extension-whatsapp@0.2.17
+  - @nextclaw/client-sdk@0.5.19
+  - @nextclaw/core@0.15.17
+  - @nextclaw/mcp@0.3.17
+  - @nextclaw/ncp-agent-runtime@0.4.15
+  - @nextclaw/ncp-mcp@0.2.17
+  - @nextclaw/ncp-toolkit@0.6.16
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.15
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.15
+  - @nextclaw/remote@0.3.19
+  - @nextclaw/runtime@0.4.17
+  - @nextclaw/ncp@0.7.15
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.18
+  - @nextclaw/server@0.15.19
+  - @nextclaw/shared@0.4.16
+  - @nextclaw/kernel@0.6.19
+
 ## 0.3.18
 
 ### Patch Changes

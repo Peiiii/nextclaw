@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.27.7",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-07-29",
+  "title": {
+    "zh-CN": "NextClaw v0.27.7",
+    "en-US": "NextClaw v0.27.7"
+  },
+  "summary": {
+    "zh-CN": "聊天现在可以引用已登记项目，同时改进 Codex 会话连续性、默认执行权限和 Marketplace 卸载安全。",
+    "en-US": "Chat can now reference registered projects, with improved Codex continuity, default execution access, and Marketplace uninstall safety."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-07-29-nextclaw-v0-27-7",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-07-29-nextclaw-v0-27-7"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "项目上下文引用",
+            "en-US": "Project context references"
+          },
+          "body": {
+            "zh-CN": "在聊天输入框的 @ 菜单中选择已登记项目，把项目名称、路径和受限目录概览加入本次消息，同时保持当前会话工作目录不变。",
+            "en-US": "Select a registered project from the chat composer’s @ menu to add its name, path, and bounded directory overview to the current message without changing the conversation’s working directory."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Codex 会话连续性",
+            "en-US": "Codex conversation continuity"
+          },
+          "body": {
+            "zh-CN": "持续的命令输出会被视为活跃；真正超时后仍保留原 thread 身份，下一轮恢复同一会话。",
+            "en-US": "Ongoing command output counts as activity, and a real timeout preserves the existing thread identity for the next turn."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Codex 默认执行权限",
+            "en-US": "Codex default execution access"
+          },
+          "body": {
+            "zh-CN": "Codex 会话默认使用完整本地执行权限和无审批策略，避免在审批交互尚不可用时继承只读配置。",
+            "en-US": "Codex conversations default to full local execution access with approvals disabled instead of inheriting read-only settings while approval interaction is unavailable."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "排队消息刷新",
+            "en-US": "Queued message refresh"
+          },
+          "body": {
+            "zh-CN": "停止当前回复并开始执行排队消息时，该消息会立即从输入框队列移除。",
+            "en-US": "A queued message leaves the composer queue as soon as stopping the current reply starts it."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Marketplace 卸载边界",
+            "en-US": "Marketplace uninstall boundary"
+          },
+          "body": {
+            "zh-CN": "Marketplace 只允许卸载 workspace skills 目录下由它管理的直属 skill，并拒绝路径越界目标。",
+            "en-US": "Marketplace only uninstalls direct skills it manages under the workspace skills directory and rejects path escape targets."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级，不需要迁移配置、会话或文件。",
+            "en-US": "Existing npm installations can update through the stable channel without migrating configuration, sessions, or files."
+          }
+        }
+      ]
+    }
+  ]
+}
