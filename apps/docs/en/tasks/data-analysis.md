@@ -54,4 +54,4 @@ Open HTML, Markdown, code, and local files in the right-side workspace. Compare 
 - Package a stable analysis process as a Skill.
 - After the manual workflow is reliable, follow [Generate and Send a Scheduled Brief](/en/tasks/scheduled-brief).
 
-Related: [Chat and Sessions](/en/guide/chat) · [Skills](/en/guide/tutorials/skills) · [Automations](/en/guide/cron)
+Related: [Visualize results](/en/guide/visualizations) · [Chat and Sessions](/en/guide/chat) · [Skills](/en/guide/tutorials/skills) · [Automations](/en/guide/cron)

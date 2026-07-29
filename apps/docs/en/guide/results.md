@@ -40,4 +40,6 @@ Keep the processed data. Replace the first page with an executive summary and ad
 
 Review the actual final file after the change. Do not treat a textual success message as proof that the artifact is correct.
 
+Related: [Visualize results](/en/guide/visualizations) · [Panel Apps](/en/guide/panel-apps)
+
 Next: [choose how to reuse the work](/en/guide/after-setup).

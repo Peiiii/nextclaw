@@ -54,4 +54,4 @@ HTML、Markdown、代码和本地文件可以在右侧工作区打开。对照�
 - 将固定分析流程做成 Skill，供下次复用。
 - 需要周期更新时，先手动跑通，再参考[定时生成并发送简报](/zh/tasks/scheduled-brief)。
 
-相关文档：[对话与会话](/zh/guide/chat) · [Skills](/zh/guide/tutorials/skills) · [运行自动化](/zh/guide/cron)
+相关文档：[可视化结果](/zh/guide/visualizations) · [对话与会话](/zh/guide/chat) · [Skills](/zh/guide/tutorials/skills) · [运行自动化](/zh/guide/cron)

@@ -44,4 +44,6 @@ Markdown、代码、HTML、文档、表格和演示文稿可以直接打开。HT
 
 修改完成后再次检查最终文件，而不是只根据 Agent 的文字确认。
 
+相关文档：[可视化结果](/zh/guide/visualizations) · [Panel Apps](/zh/guide/panel-apps)
+
 下一步：[选择如何复用这项工作](/zh/guide/after-setup)。
