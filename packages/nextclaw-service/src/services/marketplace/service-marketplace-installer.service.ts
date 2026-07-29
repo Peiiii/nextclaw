@@ -6,12 +6,13 @@ import type {
   MarketplaceMcpInstallRequest
 } from "@nextclaw/server";
 import { existsSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, resolve } from "node:path";
 import {
   buildMarketplaceSkillInstallArgs,
   buildMarketplaceSkillUpdateArgs,
   pickUserFacingCommandSummary
 } from "@nextclaw-service/utils/marketplace/service-marketplace-helpers.utils.js";
+import { validateSkillSlug } from "@nextclaw-service/utils/marketplace/marketplace-identity.utils.js";
 import { ServiceMcpMarketplaceOps } from "@nextclaw-service/services/marketplace/service-mcp-marketplace-ops.service.js";
 
 type UserFacingResult = {
@@ -30,20 +31,20 @@ export class ServiceMarketplaceInstaller {
     }
   ) {}
 
-  createInstaller(): MarketplaceInstaller {
+  createInstaller = (): MarketplaceInstaller => {
     return {
-      installSkill: (params) => this.installSkill(params),
-      updateSkill: (params) => this.updateSkill(params),
-      installMcp: (params) => this.installMcp(params),
-      uninstallSkill: (slug) => this.uninstallSkill(slug),
-      enableMcp: (name) => this.enableMcp(name),
-      disableMcp: (name) => this.disableMcp(name),
-      removeMcp: (name) => this.removeMcp(name),
-      doctorMcp: (name) => this.doctorMcp(name)
+      installSkill: this.installSkill,
+      updateSkill: this.updateSkill,
+      installMcp: this.installMcp,
+      uninstallSkill: this.uninstallSkill,
+      enableMcp: this.enableMcp,
+      disableMcp: this.disableMcp,
+      removeMcp: this.removeMcp,
+      doctorMcp: this.doctorMcp
     };
-  }
+  };
 
-  private async installSkill(params: MarketplaceInstallSkillParams): Promise<UserFacingResult> {
+  private installSkill = async (params: MarketplaceInstallSkillParams): Promise<UserFacingResult> => {
     const { force, kind, slug } = params;
     if (kind === "builtin") {
       const result = this.deps.installBuiltinSkill(slug, force);
@@ -75,13 +76,13 @@ export class ServiceMarketplaceInstaller {
       }
       return fallback;
     }
-  }
+  };
 
-  private async installMcp(params: MarketplaceMcpInstallRequest): Promise<{ name: string; message: string; output?: string }> {
+  private installMcp = async (params: MarketplaceMcpInstallRequest): Promise<{ name: string; message: string; output?: string }> => {
     return await this.createMcpMarketplaceOps().install(params);
-  }
+  };
 
-  private async updateSkill(params: MarketplaceInstallSkillParams): Promise<UserFacingResult> {
+  private updateSkill = async (params: MarketplaceInstallSkillParams): Promise<UserFacingResult> => {
     const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
     const output = await this.deps.runCliSubcommand(buildMarketplaceSkillUpdateArgs({
       slug: params.slug,
@@ -90,42 +91,45 @@ export class ServiceMarketplaceInstaller {
     }));
     const summary = pickUserFacingCommandSummary(output, `Updated skill: ${params.slug}`);
     return { message: summary, output };
-  }
+  };
 
-  private async uninstallSkill(slug: string): Promise<UserFacingResult> {
-    const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
-    const targetDir = join(getSkillsPath(workspace), slug);
+  private uninstallSkill = async (slug: string): Promise<UserFacingResult> => {
+    const skillsRoot = getSkillsPath(getWorkspacePath(loadConfig().agents.defaults.workspace));
+    const targetDir = resolve(skillsRoot, validateSkillSlug(slug.trim(), "slug"));
+    if (dirname(targetDir) !== skillsRoot) {
+      throw new Error(`Skill uninstall target must be a direct workspace skill: ${slug}`);
+    }
 
-    if (!existsSync(targetDir)) {
+    if (!existsSync(resolve(targetDir, "SKILL.md"))) {
       throw new Error(`Skill not installed in workspace: ${slug}`);
     }
 
-    rmSync(targetDir, { recursive: true, force: true });
+    rmSync(targetDir, { recursive: true });
 
     return {
       message: `Uninstalled skill: ${slug}`
     };
-  }
+  };
 
-  private async enableMcp(name: string): Promise<UserFacingResult> {
+  private enableMcp = async (name: string): Promise<UserFacingResult> => {
     return await this.createMcpMarketplaceOps().enable(name);
-  }
+  };
 
-  private async disableMcp(name: string): Promise<UserFacingResult> {
+  private disableMcp = async (name: string): Promise<UserFacingResult> => {
     return await this.createMcpMarketplaceOps().disable(name);
-  }
+  };
 
-  private async removeMcp(name: string): Promise<UserFacingResult> {
+  private removeMcp = async (name: string): Promise<UserFacingResult> => {
     return await this.createMcpMarketplaceOps().remove(name);
-  }
+  };
 
-  private async doctorMcp(name: string): Promise<MarketplaceMcpDoctorResult> {
+  private doctorMcp = async (name: string): Promise<MarketplaceMcpDoctorResult> => {
     return await this.createMcpMarketplaceOps().doctor(name);
-  }
+  };
 
-  private createMcpMarketplaceOps(): ServiceMcpMarketplaceOps {
+  private createMcpMarketplaceOps = (): ServiceMcpMarketplaceOps => {
     return new ServiceMcpMarketplaceOps({
       applyLiveConfigReload: this.deps.applyLiveConfigReload
     });
-  }
+  };
 }
