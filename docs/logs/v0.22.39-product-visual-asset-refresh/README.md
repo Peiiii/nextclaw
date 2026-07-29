@@ -21,6 +21,11 @@
 - 当前 SVG 已从 217 更新到 242，与 GitHub 仓库总 Star 数一致。
 - 默认 GitHub README 首图改为复用中文官网精心筛选的数据分析与 Markdown 工作台截图；不复制图片、不新增平行资产，并通过路径变化避开 GitHub 对旧首图的缓存。
 
+2026-07-29 续更：
+
+- 使用既有二维码同步脚本导入新微信群二维码，同时更新 GitHub README 稳定资产、landing 稳定资产和 `2026-07-29` 日期防缓存资产。
+- 官网唯一引用切换到 `/contact/nextclaw-contact-wechat-group-2026-07-29.png`；历史日期资产继续保留，不新增平行同步路径。
+
 ## 测试/验证/验收方式
 
 - 新 skill 通过 `quick_validate.py`；三个触达脚本通过 `node --check` 与定向 ESLint，0 错误、0 警告。
@@ -38,6 +43,10 @@
 - 仓库目标文件与两次独立临时生成的 SVG SHA-256 均为 `3b9bb7af75baaccf176f44da244ba335a542c838a860d4a99bfa5ae93a43a242`，证明同日生成幂等。
 - 新旧两个 workflow 均通过 YAML 解析；独立 workflow 推送后通过 `workflow_dispatch` 做 GitHub Actions 真实运行验收。
 - 默认 README 首图路径与中文官网首图源文件一致，图片存在且替代文本准确描述实际内容。
+- 2026-07-29 新二维码由 JPEG 规范化为 `1207 x 1732` PNG，GitHub 稳定资产、landing 稳定资产和日期资产 SHA-256 均为 `b45e668513147ed642ec8faae8b1fc8817b040bd4a543e8f5330a3858ca09594`。
+- `pnpm --filter @nextclaw/landing tsc`、`pnpm --filter @nextclaw/landing build` 通过；包级 ESLint 为 0 error，仅保留 `main.ts` 两个与本次无关的既有长度 warning。
+- 本地 production preview 的 `/zh/` 与 `/en/` 均返回 200，并实际加载 `/contact/nextclaw-contact-wechat-group-2026-07-29.png`；图片可见、加载完整，自然尺寸为 `1207 x 1732`，直接资源请求返回 PNG 200。
+- `CI=true pnpm lint:new-code:governance`、`CI=true pnpm check:governance-backlog-ratchet`、`pnpm check:generated-clean` 与非功能 maintainability guard 均通过。
 
 ## 发布/部署方式
 
@@ -51,6 +60,7 @@
 - 2026-07-23 续更通过 `pnpm deploy:landing` 发布到 `https://92c5b673.nextclaw-landing.pages.dev`；部署地址与 `https://nextclaw.io/contact/nextclaw-contact-wechat-group-2026-07-23.png` 均已验证能加载新二维码。
 - 正式域名首页在缓存穿透访问下已引用 `2026-07-23` 路径；GitHub README 和文档内容随本批 `master` 提交推送更新，不涉及数据库、runtime、桌面端或 NPM 发布。
 - Star 趋势图随本批 `master` 提交立即更新；后续由独立 GitHub Actions workflow 每周自动提交，不再依赖产品截图任务或人工合并 PR。
+- 2026-07-29 续更通过范围化 Git 提交交付，未执行官网部署或推送；不涉及数据库、runtime、桌面端或 NPM 发布。
 
 ## 用户/产品视角的验收步骤
 
@@ -59,6 +69,7 @@
 3. 打开 GitHub 仓库首页，确认默认 README 首图与中文官网精选首图一致，并在中英文 README 中确认使用场景、桌面版/npm/Docker 安装入口、产品能力截图和微信群二维码均可见。
 4. 后续产品界面变化时，直接触发 `refresh-product-visual-assets` skill；稳定页面批量生成，代表性会话只需提供真实 session id 和可选目标文字。
 5. 滚动到 GitHub README 底部，确认 Star 趋势图显示当前仓库总数；需要立即刷新时，可手动触发 `Star History Refresh` workflow。
+6. 2026-07-29 续更发布后，打开官网中英文首页和 GitHub README，确认展示的是群名为“NextClaw股东许愿 OpenClaw交流群”、有效期提示为“8月5日前”的二维码。
 
 ## 可维护性总结汇总
 
@@ -70,6 +81,7 @@
 - Star 刷新从截图 workflow 中删除 7 行旧责任，改由独立 workflow 单独拥有 API 读取、生成和自动提交；没有保留 PR 与直推两套路径，失败边界和十分钟超时均明确。
 - Star 生成脚本变更为 `+1/-1/net 0`，定向 maintainability guard 为 0 错误、0 警告；新增 workflow 是独立自动维护能力的必要 owner，不向产品运行时代码增加分支、函数或抽象。
 - README 首图直接复用官网现有精选源图，没有生成副本、同步脚本或新的图片维护链路。
+- 2026-07-29 续更继续复用唯一二维码同步脚本，只替换三份既有角色资产和一个日期引用；TypeScript 变更为 `+1/-1/net 0`，没有新增代码、分支、函数、文件角色或目录层级。非功能 maintainability guard 为 0 error、0 warning，主观复核无可维护性 finding。
 
 ## NPM 包发布记录
 
@@ -79,3 +91,4 @@
 - 临时前缀全局安装冒烟通过：`nextclaw --version` 输出 `0.22.4`，`nextclaw update --check --json` 返回 `up-to-date`。
 - 2026-07-23 续更只涉及官网、GitHub README、文档和视觉资产，不新增 changeset，也不涉及 NPM 包发布。
 - Star 趋势图自动刷新修复不改变任何 NPM 包内容，不新增 changeset，不涉及 NPM 包发布。
+- 2026-07-29 二维码续更不改变 NPM 包内容，不新增 changeset，不涉及 NPM 包发布。
