@@ -68,7 +68,9 @@ async function runRuntime(threadId?: string): Promise<void> {
     developerInstructions: "NextClaw instructions\n\nAvailable skills",
     threadId,
     threadOptions: {
+      approvalPolicy: "never",
       model: "gpt-5.4",
+      sandboxMode: "danger-full-access",
       workingDirectory: "/tmp/workspace",
       skipGitRepoCheck: true,
     },
@@ -96,12 +98,22 @@ describe("CodexAppServerNcpAgentRuntime NextClaw instructions", () => {
         (candidate) => candidate.method === method,
       );
       expect(request?.params).toMatchObject({
+        approvalPolicy: "never",
         cwd: "/tmp/workspace",
         model: "gpt-5.4",
+        sandbox: "danger-full-access",
         developerInstructions:
           "NextClaw instructions\n\nAvailable skills",
       });
       expect(request?.params).not.toHaveProperty("baseInstructions");
+
+      const turnRequest = appServer.requests.find(
+        (candidate) => candidate.method === "turn/start",
+      );
+      expect(turnRequest?.params).toMatchObject({
+        approvalPolicy: "never",
+        sandboxPolicy: { type: "dangerFullAccess" },
+      });
     },
   );
 });

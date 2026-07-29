@@ -21,9 +21,9 @@ import {
 } from "@/utils/codex-app-server-item-mapper.utils.js";
 import {
   compactObject,
-  normalizeSandbox,
   splitModelRoute,
   toAppServerInput,
+  toSandboxPolicy,
 } from "@/utils/codex-app-server-request.utils.js";
 import { CodexAppServerClient } from "./codex-app-server-client.service.js";
 import type {
@@ -190,7 +190,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       model: route.model,
       modelProvider: route.modelProvider,
       approvalPolicy: threadOptions?.approvalPolicy,
-      sandbox: normalizeSandbox(threadOptions?.sandboxMode),
+      sandbox: threadOptions?.sandboxMode,
       developerInstructions: this.config.developerInstructions,
       config: this.config.cliConfig,
     });
@@ -202,7 +202,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       cwd: threadOptions?.workingDirectory,
       model: route.model,
       effort: threadOptions?.modelReasoningEffort,
-      sandboxPolicy: normalizeSandbox(threadOptions?.sandboxMode),
+      sandboxPolicy: toSandboxPolicy(threadOptions?.sandboxMode),
       approvalPolicy: threadOptions?.approvalPolicy,
     });
   };

@@ -206,7 +206,7 @@ export class CodexNarpRuntimeWrapper {
       workingDirectory: cwd,
     });
 
-    const config = {
+    const config: CodexNarpRuntimeConfig = {
       sessionId,
       apiKey,
       apiBase,
@@ -223,7 +223,9 @@ export class CodexNarpRuntimeWrapper {
         showRawAgentReasoning: Boolean(modelReasoningEffort),
       }),
       threadOptions: {
+        approvalPolicy: "never",
         ...(threadModel ? { model: threadModel } : {}),
+        sandboxMode: "danger-full-access",
         workingDirectory: cwd,
         skipGitRepoCheck: true,
         ...(modelReasoningEffort ? { modelReasoningEffort } : {}),

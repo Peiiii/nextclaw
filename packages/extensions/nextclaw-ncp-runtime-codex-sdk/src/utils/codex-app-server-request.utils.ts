@@ -51,13 +51,16 @@ export function compactObject(value: JsonObject): JsonObject {
   return out;
 }
 
-export function normalizeSandbox(
+const SANDBOX_POLICY_TYPE_BY_MODE: Record<NonNullable<ThreadOptions["sandboxMode"]>, string> = {
+  "read-only": "readOnly",
+  "workspace-write": "workspaceWrite",
+  "danger-full-access": "dangerFullAccess",
+};
+
+export function toSandboxPolicy(
   value: ThreadOptions["sandboxMode"] | undefined,
-): string | undefined {
-  if (value === "read-only" || value === "workspace-write" || value === "danger-full-access") {
-    return value;
-  }
-  return undefined;
+): JsonObject | undefined {
+  return value ? { type: SANDBOX_POLICY_TYPE_BY_MODE[value] } : undefined;
 }
 
 function readString(value: unknown): string | undefined {

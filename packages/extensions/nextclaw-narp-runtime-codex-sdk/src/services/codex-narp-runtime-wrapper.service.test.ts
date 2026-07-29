@@ -112,7 +112,9 @@ describe("CodexNarpRuntimeWrapper", () => {
         },
       },
       threadOptions: {
+        approvalPolicy: "never",
         model: "provider/model-a",
+        sandboxMode: "danger-full-access",
         workingDirectory: "/tmp/workspace",
         skipGitRepoCheck: true,
         modelReasoningEffort: "medium",
@@ -135,6 +137,8 @@ describe("CodexNarpRuntimeWrapper", () => {
     expect(config.developerInstructions).toBeUndefined();
     expect(config.threadOptions?.model).toBeUndefined();
     expect(config.threadOptions).toMatchObject({
+      approvalPolicy: "never",
+      sandboxMode: "danger-full-access",
       workingDirectory: "/tmp/workspace",
       skipGitRepoCheck: true,
     });
