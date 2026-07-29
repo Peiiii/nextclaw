@@ -18,19 +18,16 @@ import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import type { StdioRuntimeResolvedConfig, NarpStdioPromptMeta } from "./stdio-runtime-config.utils.js";
 import {
   NARP_STDIO_PROMPT_META_KEY,
+  SESSION_METADATA_PATCH_KIND,
   buildNarpStdioPromptMeta,
   buildStdioRuntimeLaunchEnv,
+  readSessionMetadataPatch,
 } from "./stdio-runtime-config.utils.js";
 import {
   buildSpawnFailureMessage,
   isAbortLikeRuntimeError,
   normalizeRuntimeError,
 } from "./stdio-runtime-error.utils.js";
-import {
-  createPromptTimeoutRecoveryEvents,
-  readSessionMetadataPatch,
-  SESSION_METADATA_PATCH_KIND,
-} from "./utils/stdio-runtime-recovery.utils.js";
 import { extractPromptText, resolveModelId } from "./utils/stdio-runtime-input.utils.js";
 import { resolveToolNameFromAcpUpdate } from "./stdio-runtime-tool-name.utils.js";
 type AcpClientUpdate = acp.SessionUpdate;
@@ -268,9 +265,6 @@ class StdioRuntimeSession {
 
   readStderr = (): string => this.stderr;
 
-  readPromptTimeoutMetadataResetKeys = (): readonly string[] | undefined =>
-    this.config.resetSessionMetadataOnPromptTimeout;
-
   dispose = async (): Promise<void> => {
     void this.cancel();
     const child = this.child;
@@ -482,16 +476,6 @@ class StdioRuntimeRunController {
     error: unknown,
   ): AsyncGenerator<NcpEndpointEvent> {
     const ncpError = normalizeRuntimeError(error, { stderr: this.session.readStderr() });
-    for (const recoveryEvent of createPromptTimeoutRecoveryEvents({
-      correlationId: this.input.correlationId,
-      error,
-      messageId: assistantMessageId,
-      resetKeys: this.session.readPromptTimeoutMetadataResetKeys(),
-      runId: this.runId,
-      sessionId: this.input.sessionId,
-    })) {
-      yield* this.emitEvent(recoveryEvent);
-    }
     yield* this.emitEvent({
       type: NcpEventType.MessageFailed,
       payload: {

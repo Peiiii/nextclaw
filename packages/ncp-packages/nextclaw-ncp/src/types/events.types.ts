@@ -1,4 +1,4 @@
-import type { OpenAITool } from "../agent-runtime/llm-api.js";
+import type { OpenAITool } from "./agent-runtime.types.js";
 import type { NcpError } from "./errors.js";
 import type { NcpMessage, NcpToolOutputContentItem } from "./message.js";
 
@@ -262,6 +262,13 @@ export type NcpToolCallArgsDeltaPayload = {
   delta: string;
 } & NcpCorrelationPayload;
 
+export type NcpToolCallOutputDeltaPayload = {
+  sessionId: string;
+  messageId?: string;
+  toolCallId: string;
+  delta: string;
+} & NcpCorrelationPayload;
+
 export type NcpToolCallEndPayload = {
   sessionId: string;
   toolCallId: string;
@@ -298,6 +305,7 @@ export enum NcpEventType {
   MessageToolCallStart = "message.tool-call-start",
   MessageToolCallArgs = "message.tool-call-args",
   MessageToolCallArgsDelta = "message.tool-call-args-delta",
+  MessageToolCallOutputDelta = "message.tool-call-output-delta",
   MessageToolCallEnd = "message.tool-call-end",
   MessageToolCallResult = "message.tool-call-result",
   MessageRead = "message.read",
@@ -348,6 +356,7 @@ export type NcpEndpointEvent = NcpEventTiming & (
   | { type: NcpEventType.MessageToolCallStart; payload: NcpToolCallStartPayload }
   | { type: NcpEventType.MessageToolCallArgs; payload: NcpToolCallArgsPayload }
   | { type: NcpEventType.MessageToolCallArgsDelta; payload: NcpToolCallArgsDeltaPayload }
+  | { type: NcpEventType.MessageToolCallOutputDelta; payload: NcpToolCallOutputDeltaPayload }
   | { type: NcpEventType.MessageToolCallEnd; payload: NcpToolCallEndPayload }
   | { type: NcpEventType.MessageToolCallResult; payload: NcpToolCallResultPayload }
   | { type: NcpEventType.TypingStart; payload: NcpTypingStartPayload }

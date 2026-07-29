@@ -241,7 +241,6 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
       return;
     }
 
-    let finished = false;
     for await (const event of streamed.events) {
       const shouldFinish = yield* this.handleThreadEvent({
         sessionId,
@@ -253,14 +252,11 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
         toolStateById,
       });
       if (shouldFinish) {
-        finished = true;
         return;
       }
     }
 
-    if (!finished) {
-      yield* this.eventEmitter.emitRunCompleted(sessionId, messageId, runId);
-    }
+    yield* this.eventEmitter.emitRunCompleted(sessionId, messageId, runId);
   };
 
   private handleThreadEvent = async function* (
@@ -350,14 +346,16 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     if (!normalizedThreadId || normalizedThreadId === this.threadId) {
       return;
     }
+    if (this.threadId) {
+      throw new Error(
+        `Codex thread identity cannot change from "${this.threadId}" to "${normalizedThreadId}".`,
+      );
+    }
     this.threadId = normalizedThreadId;
-    const nextMetadata = {
-      ...this.sessionMetadata,
+    Object.assign(this.sessionMetadata, {
       session_type: "codex",
       codex_thread_id: normalizedThreadId,
-    };
-    this.sessionMetadata.codex_thread_id = normalizedThreadId;
-    this.sessionMetadata.session_type = "codex";
-    await this.config.setSessionMetadata?.(nextMetadata);
+    });
+    await this.config.setSessionMetadata?.({ ...this.sessionMetadata });
   };
 }

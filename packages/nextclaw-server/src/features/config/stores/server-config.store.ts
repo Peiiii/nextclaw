@@ -176,7 +176,6 @@ type ActionHandler = (
 function matchesExtraSensitivePath(path: string): boolean {
   return path !== "session" &&
     !path.startsWith("session.") &&
-    !/^agents\.runtimes\.entries\.[^.]+\.config\.resetSessionMetadataOnPromptTimeout$/.test(path) &&
     EXTRA_SENSITIVE_PATH_PATTERNS.some((pattern) => pattern.test(path));
 }
 

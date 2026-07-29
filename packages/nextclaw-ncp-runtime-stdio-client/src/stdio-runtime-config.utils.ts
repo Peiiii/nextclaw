@@ -6,6 +6,7 @@ import type {
 import { createRuntimeChildEnv } from "@nextclaw/core";
 
 export const NARP_STDIO_PROMPT_META_KEY = "nextclaw_narp";
+export const SESSION_METADATA_PATCH_KIND = "session_metadata_patch";
 const DEFAULT_STARTUP_TIMEOUT_MS = 10_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 3_000;
 const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
@@ -27,6 +28,14 @@ export type NarpStdioPromptMeta = {
   sessionMetadata?: Record<string, unknown>;
   tools?: ReadonlyArray<OpenAITool>;
 };
+
+export function readSessionMetadataPatch(meta: unknown): Record<string, unknown> | null {
+  const narpMeta = isRecord(meta) ? meta[NARP_STDIO_PROMPT_META_KEY] : undefined;
+  const patch = isRecord(narpMeta) ? narpMeta.sessionMetadataPatch : undefined;
+  return isRecord(patch) && Object.keys(patch).length > 0
+    ? structuredClone(patch)
+    : null;
+}
 
 export function buildNarpStdioPromptMeta(params: {
   input: NcpAgentRunInput;
@@ -50,7 +59,6 @@ export type StdioRuntimeResolvedConfig = {
   args: string[];
   cwd?: string;
   env?: StdioRuntimeEnv;
-  resetSessionMetadataOnPromptTimeout?: string[];
   startupTimeoutMs: number;
   probeTimeoutMs: number;
   requestTimeoutMs: number;
@@ -178,10 +186,6 @@ export class StdioRuntimeConfigResolver {
       override?.env ??
       readStringRecord(this.source.env) ??
       readStringRecord(parseJsonObject(process.env.NEXTCLAW_NARP_STDIO_ENV));
-    const resetSessionMetadataOnPromptTimeout = readStringArray(
-      this.source.resetSessionMetadataOnPromptTimeout,
-    );
-
     return {
       wireDialect,
       processScope,
@@ -189,9 +193,6 @@ export class StdioRuntimeConfigResolver {
       args,
       ...(cwd ? { cwd } : {}),
       ...(env ? { env } : {}),
-      ...(resetSessionMetadataOnPromptTimeout
-        ? { resetSessionMetadataOnPromptTimeout }
-        : {}),
       startupTimeoutMs:
         readPositiveInteger(this.source.startupTimeoutMs) ??
         readPositiveInteger(process.env.NEXTCLAW_NARP_STDIO_STARTUP_TIMEOUT_MS) ??
@@ -272,4 +273,8 @@ function parseJsonObject(value: unknown): unknown {
   } catch {
     return undefined;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

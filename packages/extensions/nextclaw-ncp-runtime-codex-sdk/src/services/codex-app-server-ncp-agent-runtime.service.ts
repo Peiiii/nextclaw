@@ -177,9 +177,10 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       ...this.buildThreadOverrides(route),
     });
     const nextThreadId = readString(response.thread?.id);
-    if (nextThreadId) {
-      await this.updateThreadId(nextThreadId);
+    if (!nextThreadId) {
+      throw new Error("Codex thread/start did not return a thread id.");
     }
+    await this.updateThreadId(nextThreadId);
   };
 
   private buildThreadOverrides = (route: ReturnType<typeof splitModelRoute>): JsonObject => {
@@ -207,12 +208,11 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
   };
 
   private buildTurnInput = async (input: NcpAgentRunInput): Promise<CodexThreadInput> => {
-    if (this.config.inputBuilder) {
-      return await this.config.inputBuilder(input);
-    }
-    return await buildCodexTurnInputFromRunInput(input, {
-      resolveAssetContentPath: this.config.resolveAssetContentPath,
-    });
+    return this.config.inputBuilder
+      ? await this.config.inputBuilder(input)
+      : await buildCodexTurnInputFromRunInput(input, {
+          resolveAssetContentPath: this.config.resolveAssetContentPath,
+        });
   };
 
   private handleNotification = async function* (
@@ -241,7 +241,10 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       toolState,
     } = params;
     if (notification.method === "thread/started") {
-      await this.handleThreadStarted(notification.params);
+      const threadId = readString((notification.params.thread as JsonObject | undefined)?.id);
+      if (threadId) {
+        await this.updateThreadId(threadId);
+      }
       return false;
     }
     if (notification.method === "item/agentMessage/delta") {
@@ -265,6 +268,16 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
         reasoningState,
         sessionId,
       });
+      return false;
+    }
+    if (notification.method === "item/commandExecution/outputDelta") {
+      const toolCallId = readString(notification.params.itemId);
+      if (toolCallId) {
+        yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
+          type: NcpEventType.MessageToolCallOutputDelta,
+          payload: { sessionId, messageId, toolCallId, delta: readRawString(notification.params.delta) ?? "" },
+        }));
+      }
       return false;
     }
     if (notification.method === "item/started" || notification.method === "item/completed") {
@@ -300,13 +313,6 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       return true;
     }
     return false;
-  };
-
-  private handleThreadStarted = async (params: JsonObject): Promise<void> => {
-    const threadId = readString((params.thread as JsonObject | undefined)?.id);
-    if (threadId) {
-      await this.updateThreadId(threadId);
-    }
   };
 
   private emitTextDelta = async function* (
@@ -533,15 +539,17 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     if (!normalizedThreadId || normalizedThreadId === this.threadId) {
       return;
     }
+    if (this.threadId) {
+      throw new Error(
+        `Codex thread identity cannot change from "${this.threadId}" to "${normalizedThreadId}".`,
+      );
+    }
     this.threadId = normalizedThreadId;
-    const nextMetadata = {
-      ...this.sessionMetadata,
+    Object.assign(this.sessionMetadata, {
       session_type: "codex",
       codex_thread_id: normalizedThreadId,
-    };
-    this.sessionMetadata.codex_thread_id = normalizedThreadId;
-    this.sessionMetadata.session_type = "codex";
-    await this.config.setSessionMetadata?.(nextMetadata);
+    });
+    await this.config.setSessionMetadata?.({ ...this.sessionMetadata });
   };
 
   private syncDesktopThreadIndex = async (): Promise<void> => {

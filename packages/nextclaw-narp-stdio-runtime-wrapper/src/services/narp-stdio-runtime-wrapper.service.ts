@@ -26,10 +26,8 @@ type WrapperSession = {
 type AcpConnection = Pick<AgentSideConnection, "sessionUpdate">;
 
 type ToolCallState = {
-  toolName: string;
   rawInput: string;
-  started: boolean;
-  completed: boolean;
+  rawOutput: string;
 };
 
 class NcpToAcpSessionUpdateTranslator {
@@ -59,8 +57,10 @@ class NcpToAcpSessionUpdateTranslator {
         return this.translateToolCallArgs(event.payload.toolCallId, event.payload.args);
       case NcpEventType.MessageToolCallArgsDelta:
         return this.translateToolCallArgsDelta(event.payload.toolCallId, event.payload.delta);
+      case NcpEventType.MessageToolCallOutputDelta:
+        return this.translateToolCallOutputDelta(event.payload.toolCallId, event.payload.delta);
       case NcpEventType.MessageToolCallEnd:
-        return this.translateToolCallEnd(event.payload.toolCallId);
+        return [];
       case NcpEventType.MessageToolCallResult:
         return this.translateToolCallResult(event.payload.toolCallId, event.payload.content);
       default:
@@ -72,10 +72,8 @@ class NcpToAcpSessionUpdateTranslator {
     event: Extract<NcpEndpointEvent, { type: NcpEventType.MessageToolCallStart }>,
   ): acp.SessionUpdate[] => {
     this.tools.set(event.payload.toolCallId, {
-      toolName: event.payload.toolName,
       rawInput: "{}",
-      started: true,
-      completed: false,
+      rawOutput: "",
     });
     return [
       {
@@ -120,17 +118,18 @@ class NcpToAcpSessionUpdateTranslator {
     ];
   };
 
-  private translateToolCallEnd = (toolCallId: string): acp.SessionUpdate[] => {
+  private translateToolCallOutputDelta = (
+    toolCallId: string,
+    delta: string,
+  ): acp.SessionUpdate[] => {
     const tool = this.ensureTool(toolCallId);
-    if (tool.completed) {
-      return [];
-    }
-    tool.completed = true;
+    tool.rawOutput += delta;
     return [
       {
         sessionUpdate: "tool_call_update",
         toolCallId,
-        status: "completed",
+        status: "in_progress",
+        rawOutput: tool.rawOutput,
       },
     ];
   };
@@ -153,10 +152,8 @@ class NcpToAcpSessionUpdateTranslator {
       return existing;
     }
     const created = {
-      toolName: toolCallId,
       rawInput: "{}",
-      started: false,
-      completed: false,
+      rawOutput: "",
     };
     this.tools.set(toolCallId, created);
     return created;

@@ -88,14 +88,18 @@ describe("runtime config companion updates", () => {
         supported: ["off", "low", "high"],
         default: "high",
       },
-      resetSessionMetadataOnPromptTimeout: ["external_thread_id"],
     });
+    expect(loadConfig(configPath).agents.runtimes.entries.external?.config).not.toHaveProperty(
+      "resetSessionMetadataOnPromptTimeout",
+    );
     expect(view.agents.runtimes?.entries?.external?.config).toMatchObject({
       runtimeDefaultThinking: {
         supported: ["off", "low", "high"],
         default: "high",
       },
-      resetSessionMetadataOnPromptTimeout: ["external_thread_id"],
     });
+    expect(view.agents.runtimes?.entries?.external?.config).not.toHaveProperty(
+      "resetSessionMetadataOnPromptTimeout",
+    );
   });
 });

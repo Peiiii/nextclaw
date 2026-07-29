@@ -7,12 +7,13 @@ test("summarizeRepoLineChanges excludes test files from non-test totals", () => 
   const summary = summarizeRepoLineChanges({
     diffNumstatOutput: [
       "10\t3\tpackages/demo/src/chat.service.ts",
-      "4\t1\tpackages/demo/src/chat.service.test.ts"
+      "4\t1\tpackages/demo/src/chat.service.test.ts",
+      "6\t2\tpackages/demo/src/test-fixtures/active-agent.utils.mjs"
     ].join("\n"),
     statusOutput: ""
   });
 
-  assert.deepEqual(summary.total, { added: 14, deleted: 4, net: 10 });
+  assert.deepEqual(summary.total, { added: 20, deleted: 6, net: 14 });
   assert.deepEqual(summary.non_test, { added: 10, deleted: 3, net: 7 });
 });
 

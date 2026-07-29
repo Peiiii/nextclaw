@@ -127,7 +127,10 @@ export function isTestPath(pathText) {
   }
   const name = path.posix.basename(normalized).toLowerCase();
   const segments = normalized.split("/").map((segment) => segment.toLowerCase());
-  return name.includes(".test.") || name.includes(".spec.") || segments.some((segment) => segment === "__tests__" || segment === "tests");
+  return name.includes(".test.") || name.includes(".spec.") || segments.some(
+    (segment) =>
+      ["__fixtures__", "__tests__", "fixtures", "test-fixtures", "tests"].includes(segment),
+  );
 }
 
 export function listCodeFilesUnder(pathText) {

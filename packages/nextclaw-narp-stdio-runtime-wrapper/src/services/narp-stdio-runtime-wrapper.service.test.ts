@@ -57,6 +57,24 @@ class FakeRuntime implements NcpAgentRuntime {
       },
     };
     yield {
+      type: NcpEventType.MessageToolCallOutputDelta,
+      payload: {
+        sessionId: input.sessionId,
+        messageId: "assistant-1",
+        toolCallId: "tool-1",
+        delta: "first line\n",
+      },
+    };
+    yield {
+      type: NcpEventType.MessageToolCallOutputDelta,
+      payload: {
+        sessionId: input.sessionId,
+        messageId: "assistant-1",
+        toolCallId: "tool-1",
+        delta: "second line\n",
+      },
+    };
+    yield {
       type: NcpEventType.MessageToolCallResult,
       payload: {
         sessionId: input.sessionId,
@@ -206,7 +224,14 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
       {
         sessionUpdate: "tool_call_update",
         toolCallId: "tool-1",
-        status: "completed",
+        status: "in_progress",
+        rawOutput: "first line\n",
+      },
+      {
+        sessionUpdate: "tool_call_update",
+        toolCallId: "tool-1",
+        status: "in_progress",
+        rawOutput: "first line\nsecond line\n",
       },
       {
         sessionUpdate: "tool_call_update",

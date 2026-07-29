@@ -537,12 +537,25 @@ describe("AgentRunRequestManager event publication", () => {
 });
 
 describe("AgentRunRequestManager runtime failure publication", () => {
-  it("disposes the cached runtime after a runtime terminal error", async () => {
+  it("recreates a failed runtime with the same persisted session identity", async () => {
     const ingress = new Ingress();
     const eventBus = new EventBus();
     const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
     const publishedEvents: NcpEndpointEvent[] = [];
     const disposeRuntime = vi.fn(async () => true);
+    const getOrCreate = vi.fn((_params: {
+      session: { metadata: Record<string, unknown> };
+    }) => ({
+      run: async function* (
+        _spec: unknown,
+        options: { sessionRun: SessionRun },
+      ): AsyncGenerator<NcpEndpointEvent> {
+        for (const event of runEvents) {
+          await options.sessionRun.applyEvents([event]);
+          yield event;
+        }
+      },
+    }));
     eventBus.on(eventKeys.ncpEvent, (event) => {
       publishedEvents.push(event);
     });
@@ -572,14 +585,7 @@ describe("AgentRunRequestManager runtime failure publication", () => {
     ];
     const manager = new AgentRunRequestManager(
       {
-        getOrCreate: () => ({
-          run: async function* (_spec: unknown, options: { sessionRun: SessionRun }): AsyncGenerator<NcpEndpointEvent> {
-            for (const event of runEvents) {
-              await options.sessionRun.applyEvents([event]);
-              yield event;
-            }
-          },
-        }),
+        getOrCreate,
         disposeRuntime,
       } as never,
       { getDefaultAgentId: () => "main" } as never,
@@ -596,7 +602,9 @@ describe("AgentRunRequestManager runtime failure publication", () => {
           sessionId: "session-1",
           agentId: "main",
           agentRuntimeId: "codex",
-          metadata: {},
+          metadata: {
+            codex_thread_id: "thread-stable-1",
+          },
           model: "test-model",
           thinkingEffort: null,
         }),
@@ -625,6 +633,20 @@ describe("AgentRunRequestManager runtime failure publication", () => {
       }),
       sessionRun,
     });
+
+    await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.send,
+      payload: {
+        content: [{ type: "text", text: "继续" }],
+      },
+    }, { source: "test" });
+    await waitForCondition(() => getOrCreate.mock.calls.length === 2);
+    await waitForCondition(() => disposeRuntime.mock.calls.length === 2);
+
+    expect(getOrCreate.mock.calls.map(([params]) => params.session.metadata)).toEqual([
+      { codex_thread_id: "thread-stable-1" },
+      { codex_thread_id: "thread-stable-1" },
+    ]);
     manager.dispose();
   });
 });

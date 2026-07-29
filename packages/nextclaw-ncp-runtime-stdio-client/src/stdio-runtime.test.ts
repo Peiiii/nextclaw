@@ -29,6 +29,12 @@ const SLOW_CANCEL_FIXTURE_PATH = join(
   "slow-cancel-agent.utils.mjs",
 );
 
+const ACTIVE_SLOW_FIXTURE_PATH = join(
+  import.meta.dirname,
+  "test-fixtures",
+  "active-slow-agent.utils.mjs",
+);
+
 const HERMES_TOOL_TITLE_FIXTURE_PATH = join(
   import.meta.dirname,
   "test-fixtures",
@@ -43,49 +49,6 @@ const FAILING_FIXTURE_PATH = join(
 const TEST_EXECUTION_CONTEXT = {
   cwd: dirname(FIXTURE_PATH),
 };
-const ACTIVE_SLOW_AGENT_SCRIPT = String.raw`
-import { randomUUID } from "node:crypto";
-import { Readable, Writable } from "node:stream";
-import * as acp from "@agentclientprotocol/sdk";
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-class ActiveSlowAgent {
-  constructor(connection) {
-    this.connection = connection;
-    this.sessions = new Set();
-  }
-
-  initialize = async () => ({
-    protocolVersion: acp.PROTOCOL_VERSION,
-    agentCapabilities: { loadSession: false },
-  });
-  newSession = async () => {
-    const sessionId = randomUUID();
-    this.sessions.add(sessionId);
-    return { sessionId };
-  };
-  authenticate = async () => ({});
-  setSessionMode = async () => ({});
-  prompt = async (params) => {
-    if (!this.sessions.has(params.sessionId)) {
-      throw new Error("Session " + params.sessionId + " not found");
-    }
-    for (const text of ["active", " slow", " prompt", " done"]) {
-      await sleep(30);
-      await this.connection.sessionUpdate({
-        sessionId: params.sessionId,
-        update: { sessionUpdate: "agent_message_chunk", content: { type: "text", text } },
-      });
-    }
-    return { stopReason: "end_turn" };
-  };
-  cancel = async () => ({});
-}
-
-const stream = acp.ndJsonStream(Writable.toWeb(process.stdout), Readable.toWeb(process.stdin));
-new acp.AgentSideConnection((connection) => new ActiveSlowAgent(connection), stream);
-`;
 
 async function waitUntilProcessStops(pid: number): Promise<void> {
   const deadline = Date.now() + 5_000;
@@ -140,6 +103,17 @@ describe("StdioRuntimeConfigResolver", () => {
       probeTimeoutMs: 2222,
       requestTimeoutMs: 4567,
     });
+  });
+
+  it("drops the legacy prompt-timeout metadata reset option", () => {
+    const resolver = new StdioRuntimeConfigResolver({
+      command: process.execPath,
+      resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
+    });
+
+    expect(resolver.resolve()).not.toHaveProperty(
+      "resetSessionMetadataOnPromptTimeout",
+    );
   });
 
   it("applies command overrides without mutating persisted runtime config", () => {
@@ -535,7 +509,10 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
     });
   });
 
-  it("emits configured session metadata resets when a prompt times out", async () => {
+  it("times out an idle prompt without mutating session identity", async () => {
+    const sessionMetadata = {
+      codex_thread_id: "thread-stable-1",
+    };
     const runtime = new StdioRuntimeNcpAgentRuntime({
       wireDialect: "acp",
       processScope: "per-session",
@@ -544,28 +521,25 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
       startupTimeoutMs: 10_000,
       probeTimeoutMs: 3_000,
       requestTimeoutMs: 50,
-      resetSessionMetadataOnPromptTimeout: ["codex_thread_id"],
     });
 
     const events: NcpEndpointEvent[] = [];
     try {
       for await (const event of runtime.run({
-        sessionId: "session-stdio-runtime-timeout-reset",
+        sessionId: "session-stdio-runtime-idle-timeout",
         messages: [
           {
-            id: "user-timeout-reset",
-            sessionId: "session-stdio-runtime-timeout-reset",
+            id: "user-idle-timeout",
+            sessionId: "session-stdio-runtime-idle-timeout",
             role: "user",
             status: "final",
             timestamp: "2026-06-11T00:00:00.000Z",
-            parts: [{ type: "text", text: "timeout reset" }],
+            parts: [{ type: "text", text: "idle timeout" }],
           },
         ],
-        correlationId: "corr-timeout-reset",
+        correlationId: "corr-idle-timeout",
         executionContext: TEST_EXECUTION_CONTEXT,
-        metadata: {
-          codex_thread_id: "thread-stuck-1",
-        },
+        metadata: sessionMetadata,
       })) {
         events.push(event);
       }
@@ -573,21 +547,11 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
       await runtime.dispose();
     }
 
-    const metadataEvent = events.find(
-      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.RunMetadata }> =>
-        event.type === NcpEventType.RunMetadata,
-    );
-    expect(metadataEvent?.payload).toMatchObject({
-      sessionId: "session-stdio-runtime-timeout-reset",
-      correlationId: "corr-timeout-reset",
-      metadata: {
-        kind: "session_metadata_patch",
-        sessionMetadataPatch: {
-          codex_thread_id: null,
-        },
-      },
-    });
+    expect(events.map((event) => event.type)).not.toContain(NcpEventType.RunMetadata);
     expect(events.map((event) => event.type)).toContain(NcpEventType.RunError);
+    expect(sessionMetadata).toEqual({
+      codex_thread_id: "thread-stable-1",
+    });
   });
 
   it("does not time out an active prompt just because total runtime exceeds request timeout", async () => {
@@ -595,7 +559,7 @@ describe("StdioRuntimeNcpAgentRuntime session metadata bridging", () => {
       wireDialect: "acp",
       processScope: "per-session",
       command: process.execPath,
-      args: ["--input-type=module", "-e", ACTIVE_SLOW_AGENT_SCRIPT],
+      args: [ACTIVE_SLOW_FIXTURE_PATH],
       startupTimeoutMs: 10_000,
       probeTimeoutMs: 3_000,
       requestTimeoutMs: 60,

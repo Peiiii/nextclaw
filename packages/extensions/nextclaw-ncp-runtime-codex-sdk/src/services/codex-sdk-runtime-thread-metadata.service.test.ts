@@ -50,6 +50,35 @@ describe("CodexSdkNcpAgentRuntime thread metadata", () => {
       },
     ]);
   });
+
+  it("rejects a different thread id after the Codex session identity is bound", async () => {
+    const writes: Record<string, unknown>[] = [];
+    const runtime = new CodexSdkNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "sk-test",
+      threadId: "thread-stable",
+      setSessionMetadata: async (metadata) => {
+        writes.push(metadata);
+      },
+    });
+
+    await expect((runtime as unknown as {
+      handleThreadEvent: (params: unknown) => AsyncGenerator<unknown, boolean>;
+    }).handleThreadEvent({
+      sessionId: "session-1",
+      messageId: "message-1",
+      runId: "run-1",
+      event: {
+        type: "thread.started",
+        thread_id: "thread-replacement",
+      },
+      itemTextById: new Map(),
+      toolStateById: new Map(),
+    }).next()).rejects.toThrow(
+      'Codex thread identity cannot change from "thread-stable" to "thread-replacement".',
+    );
+    expect(writes).toEqual([]);
+  });
 });
 
 describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
@@ -184,6 +213,120 @@ describe("CodexAppServerNcpAgentRuntime thread metadata", () => {
         codex_thread_id: "thread-1",
       },
     ]);
+  });
+});
+
+describe("CodexAppServerNcpAgentRuntime session continuity", () => {
+  it("emits command execution output deltas as tool activity", async () => {
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "sk-test",
+      threadId: "thread-1",
+      desktopThreadIndexSync: false,
+    });
+
+    const event = await (runtime as unknown as {
+      handleNotification: (params: unknown) => AsyncGenerator<NcpEndpointEvent, boolean>;
+    }).handleNotification({
+      sessionId: "session-1",
+      messageId: "message-1",
+      runId: "run-1",
+      notification: {
+        method: "item/commandExecution/outputDelta",
+        params: {
+          itemId: "command-1",
+          delta: "still working\n",
+        },
+      },
+      textState: new Set(),
+      textDeltaState: new Set(),
+      reasoningState: new Set(),
+      reasoningDeltaState: new Set(),
+      toolState: new Set(),
+    }).next();
+
+    expect(event.value).toMatchObject({
+      type: NcpEventType.MessageToolCallOutputDelta,
+      payload: {
+        sessionId: "session-1",
+        messageId: "message-1",
+        toolCallId: "command-1",
+        delta: "still working\n",
+      },
+    });
+  });
+
+  it("fails resume without starting a replacement thread or clearing metadata", async () => {
+    const writes: Record<string, unknown>[] = [];
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/resume") {
+        throw new Error("thread is unavailable");
+      }
+      throw new Error(`Unexpected request: ${method}`);
+    });
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "sk-test",
+      model: "gpt-test",
+      threadId: "thread-stable",
+      desktopThreadIndexSync: false,
+      inputBuilder: () => "continue",
+      setSessionMetadata: async (metadata) => {
+        writes.push(metadata);
+      },
+    });
+    (runtime as unknown as {
+      resolveClient: () => Promise<{ request: typeof request }>;
+    }).resolveClient = async () => ({ request });
+
+    await expect((async () => {
+      for await (const _event of runtime.run({
+        sessionId: "session-1",
+        messages: [],
+      })) {
+        // Drain events emitted before resume fails.
+      }
+    })()).rejects.toThrow("thread is unavailable");
+
+    expect(request.mock.calls.map(([method]) => method)).toEqual(["thread/resume"]);
+    expect(writes).toEqual([]);
+  });
+
+  it("rejects a replacement id returned by thread resume", async () => {
+    const writes: Record<string, unknown>[] = [];
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/resume") {
+        return { thread: { id: "thread-replacement" } };
+      }
+      throw new Error(`Unexpected request: ${method}`);
+    });
+    const runtime = new CodexAppServerNcpAgentRuntime({
+      sessionId: "session-1",
+      apiKey: "sk-test",
+      model: "gpt-test",
+      threadId: "thread-stable",
+      desktopThreadIndexSync: false,
+      inputBuilder: () => "continue",
+      setSessionMetadata: async (metadata) => {
+        writes.push(metadata);
+      },
+    });
+    (runtime as unknown as {
+      resolveClient: () => Promise<{ request: typeof request }>;
+    }).resolveClient = async () => ({ request });
+
+    await expect((async () => {
+      for await (const _event of runtime.run({
+        sessionId: "session-1",
+        messages: [],
+      })) {
+        // Drain events emitted before identity validation fails.
+      }
+    })()).rejects.toThrow(
+      'Codex thread identity cannot change from "thread-stable" to "thread-replacement".',
+    );
+    expect(request.mock.calls.map(([method]) => method)).toEqual(["thread/resume"]);
+    expect(writes).toEqual([]);
   });
 });
 

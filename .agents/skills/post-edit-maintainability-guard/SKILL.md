@@ -247,7 +247,7 @@ line-growth exemption 只能用于“必要增长”，不能用于掩盖未完�
 - 默认源码文件：400 行
 - 默认目录文件预算：`12` 个直接手写代码文件起默认禁止
 - 目录级预算统计口径：只看当前目录的直接代码文件，不递归子目录
-- 目录级预算默认排除：`__tests__`、`tests`、`__fixtures__`、`fixtures`、`generated`、`migrations`
+- 测试资产与目录级预算默认排除：`*.test.*`、`*.spec.*`、`__tests__`、`tests`、`__fixtures__`、`fixtures`、`test-fixtures`、`generated`、`migrations`
 - `service` / `controller` / `manager` / `runtime` / `loop` / `router` / `provider`：600 行
 - React 页面或 App 入口：650 行
 - UI 组件 / form / dialog / panel：500 行

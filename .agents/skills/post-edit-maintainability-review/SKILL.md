@@ -94,6 +94,7 @@ For the two line-change reports, always include:
 - `*.spec.*`
 - `__tests__/`
 - `tests/`
+- `__fixtures__/`、`fixtures/`、`test-fixtures/`
 
 If total or non-test code is net positive, you must explicitly explain:
 
