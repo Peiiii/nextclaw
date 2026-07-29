@@ -17,10 +17,14 @@
 - `pnpm lint:new-code:governance`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
 - `pnpm clean:generated && pnpm check:generated-clean`：通过，构建生成物已清理。
+- GitHub Actions [Docs Deploy](https://github.com/Peiiii/nextclaw/actions/runs/30465606800)：通过；构建、Cloudflare 全球站、国内 OSS/CDN 与双域一致性校验全部成功。
+- 线上定向验收：`docs.nextclaw.io` 与 `docs.nextclaw.net` 的中英文可视化页面、页面标题、导航关联和主截图均返回 200。
 
 ## 发布/部署方式
 
-- 本次只完成本地文档实现与验证，尚未执行 git commit、push 或文档站部署。
+- 功能提交 `fa9bc8a87b40d1828b846db78a9d68b9b3658720` 已推送到 `origin/master`，并由 `docs-deploy.yml` 发布同一不可变构建。
+- 部署 tree hash 为 `ce1b434ec16fae93961019938314bdf1caa67e12e1ef916977fc89fe1dbefa99`；全球站 `docs.nextclaw.io` 与国内站 `docs.nextclaw.net` 的 release manifest 已确认一致。
+- 第一次 CI verifier 访问国内域名时发生 10 秒连接超时；两路发布 job 均已成功，本地正式验证器随即通过。只重跑失败的 verify job 后，工作流整体成功，没有重复修改或发布新的构建。
 - 不涉及数据库 migration、后端部署、Desktop installer、runtime update 或线上 API 冒烟。
 
 ## 用户/产品视角的验收步骤
