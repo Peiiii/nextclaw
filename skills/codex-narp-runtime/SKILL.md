@@ -1,6 +1,6 @@
 ---
 name: codex-narp-runtime
-description: 当用户希望把 Codex 或 Codex CLI/SDK 作为 NextClaw 正式会话类型接入，尤其是通过 narp-stdio 配置、安装、修复、doctor 或真实冒烟时使用。
+description: 当用户希望把 Codex 或 Codex CLI/SDK 作为 NextClaw 正式会话类型接入，或要求安装、更新/升级 Codex NARP runtime、修复、doctor、排查版本或真实冒烟时使用。
 metadata: {"nextclaw":{"emoji":"C"}}
 ---
 
@@ -32,7 +32,7 @@ metadata: {"nextclaw":{"emoji":"C"}}
 ## 这个 Skill 负责什么
 
 - 解释 Codex 通过 NARP stdio 接入的正确心智模型。
-- 发现、安装或修复 `nextclaw-codex-narp`。
+- 发现、安装、显式更新或修复 `nextclaw-codex-narp`。
 - 在 `${NEXTCLAW_HOME:-~/.nextclaw}/bin` 下生成稳定 shim。
 - 写入或修复 `agents.runtimes.entries.codex`。
 - 运行 runtime probe。
@@ -45,6 +45,8 @@ metadata: {"nextclaw":{"emoji":"C"}}
 - 不要要求用户手工编辑 `config.json`，除非当前 agent 没有文件写权限。
 - 不要修改通用 NARP stdio client 来识别 Codex。
 - 不要在 core/kernel/service 注入 Codex 默认 entry 或 provider 分支。
+- 用户没有明确要求“更新”“升级”或指定目标版本时，不要查询最新版或改动一个已经可用的 wrapper。
+- 显式更新不能用“现有 launcher 能运行”或“源码仓库里有 dist”代替版本升级。
 - 没有 probe 和真实模型回复时，不要声称已经完成接入。
 
 ## Setup 流程
@@ -87,6 +89,8 @@ npm install --prefix "$NEXTCLAW_HOME/runtime/codex-narp-runtime" @nextclaw/nextc
 ```bash
 "$NEXTCLAW_HOME/runtime/codex-narp-runtime/node_modules/.bin/nextclaw-codex-narp" --help
 ```
+
+解析系统 launcher 时必须解析真实路径，并排除 `$NEXTCLAW_HOME/bin/nextclaw-codex-narp` 自身，禁止生成指回自己的递归 shim。
 
 如果包未发布、npm 不可用或安装失败，报告具体 blocker。不要退化成要求用户手动放 PATH。
 
@@ -163,6 +167,32 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-codex-narp"
 
 如果用户说“跑通”或“完成”，默认至少跑文本；如果用户明确要求工具/思考或这是 agent runtime 新接入，必须覆盖“思考 + 工具 + 最终文本”的同轮冒烟。
 
+## 显式更新流程
+
+只在用户明确提出“更新/升级 Codex runtime”“更新到最新版”或指定 wrapper 版本时进入本流程。普通接入、启动、doctor 和故障排查不得顺带升级。
+
+这里的更新对象是 `@nextclaw/nextclaw-narp-runtime-codex-sdk` 及其 NPM 依赖闭包，不是重新安装 NextClaw，也不是擅自更新系统全局 Codex CLI。
+
+1. 读取当前 shim 的真实目标和对应 package version；不能用 `--help` 成功代替版本识别。
+2. 用户指定版本时以该版本为目标；用户要求最新版时，通过 `npm view @nextclaw/nextclaw-narp-runtime-codex-sdk@latest version` 查询目标，并校验返回值是合法 semver。
+3. 无论当前是否存在全局 launcher 或源码 dist，都把目标发布版本安装到 NextClaw 管理的独立版本目录：
+
+```bash
+CODEX_NARP_PACKAGE="@nextclaw/nextclaw-narp-runtime-codex-sdk"
+CODEX_NARP_TARGET_VERSION="<validated-target-version>"
+CODEX_NARP_RELEASE_DIR="$NEXTCLAW_HOME/runtime/codex-narp-runtime/releases/$CODEX_NARP_TARGET_VERSION"
+npm install --prefix "$CODEX_NARP_RELEASE_DIR" "$CODEX_NARP_PACKAGE@$CODEX_NARP_TARGET_VERSION"
+```
+
+4. 切换前验证安装目录里的 wrapper package version 与目标完全相等，并对该目录的 `node_modules/.bin/nextclaw-codex-narp` 执行 `--help`。同时记录实际安装的 `@nextclaw/nextclaw-ncp-runtime-codex-sdk` 版本，确认依赖闭包已经落盘。
+5. 只有上述验证通过后，才把稳定 shim 原子替换为指向这个版本目录；保留原 shim 目标和旧安装，不要先删除可工作的版本。runtime entry 仍只指向 `$NEXTCLAW_HOME/bin/nextclaw-codex-narp`。
+6. `processScope` 是 `per-session`，已运行的子进程不会热替换。不要擅自中断现有会话；通过新建 Codex 会话启动新进程，完成 runtime probe 和真实回复冒烟。
+7. 最终报告 `原版本 -> 目标版本`、shim 真实目标、probe 与冒烟结果。只有最终 package version 等于目标版本，才能说“更新完成”。
+
+如果当前已经是目标版本但 shim 仍指向全局安装或源码 dist，仍要安装/复用受管版本目录并切换 shim；只有“版本相等 + shim 已指向该受管版本 + 验证通过”时才可以跳过安装。
+
+任何查询、安装或切换前验证失败，都必须保留原 shim，不得报告更新成功。可以明确报告“旧版本仍可用，更新失败在第 N 步”，但不要自动回退到全局 launcher、源码 dist 或另一个版本。
+
 ## Doctor
 
 当用户要求 doctor 或报错时，按顺序检查：
@@ -178,9 +208,12 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-codex-narp"
 
 根据第一个失败点修复。不要在下游事件层伪造成功。
 
+Doctor 可以报告当前 wrapper 版本；除非用户同时明确要求更新，否则不要查询最新版或安装新版本。发现已知版本问题时先建议更新并等待用户确认。
+
 ## 常见问题
 
 - `command_missing`：重新生成 shim；如果真实 launcher 缺失，安装 wrapper 包。
+- 用户要求更新但版本未变化：检查是否错误复用了全局 launcher、源码 dist 或稳定 shim 自身；按“显式更新流程”重新解析目标版本和受管安装目录。
 - npm 安装失败或包未发布：说明这是 wrapper 分发 blocker，给出当前源码构建方案或等待发布，不要说接入已完成。
 - provider 鉴权失败：修复 NextClaw provider/route 配置，不要改 runtime entry。
 - 只有文本没有 reasoning：先做 provider 直连、bridge 直测、Codex raw event 三段对照，再判断是 provider 参数、bridge 字段形状还是 Codex SDK/CLI 暴露问题。
@@ -199,3 +232,4 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-codex-narp"
 - launcher 不依赖用户手动 PATH，而是 NextClaw 管理的绝对 shim。
 - 真实模型回复通过。
 - 如本次目标包含工具或思考，则对应真实冒烟也通过。
+- 如本次目标是更新，最终 wrapper version 必须等于目标版本，稳定 shim 必须指向对应受管版本目录，并使用新启动的 per-session 进程完成验证。
