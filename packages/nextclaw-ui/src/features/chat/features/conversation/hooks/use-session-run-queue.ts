@@ -21,14 +21,13 @@ export function useSessionRunQueue(sessionKey: string | null) {
     if (!normalizedSessionKey) {
       return undefined;
     }
-    return nextclawClient.eventBus.on(eventKeys.sessionRunQueueUpdated, ({ sessionKey: updatedSessionKey }) => {
+    return nextclawClient.eventBus.on(eventKeys.sessionRunQueueUpdated, async ({ sessionKey: updatedSessionKey }) => {
       if (updatedSessionKey !== normalizedSessionKey) {
         return;
       }
-      void queryClient.invalidateQueries({
-        queryKey: [SESSION_RUN_QUEUE_QUERY_KEY, normalizedSessionKey],
-        exact: true,
-      });
+      const queryKey = [SESSION_RUN_QUEUE_QUERY_KEY, normalizedSessionKey];
+      await queryClient.cancelQueries({ queryKey, exact: true });
+      await queryClient.invalidateQueries({ queryKey, exact: true });
     });
   }, [normalizedSessionKey, queryClient]);
 

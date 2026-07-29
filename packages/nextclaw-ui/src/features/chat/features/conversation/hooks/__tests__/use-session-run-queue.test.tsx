@@ -82,4 +82,32 @@ describe('useSessionRunQueue', () => {
     await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(2));
     unmount();
   });
+
+  it('replaces an in-flight stale queue read after the queue changes', async () => {
+    let resolveInitialRead!: (queue: UiNcpSessionQueuedInputsView) => void;
+    const initialRead = new Promise<UiNcpSessionQueuedInputsView>((resolve) => {
+      resolveInitialRead = resolve;
+    });
+    const listQueuedInputs = vi.spyOn(nextclawClient.sessions, 'listQueuedInputs')
+      .mockImplementationOnce(async () => await initialRead)
+      .mockResolvedValue({ sessionId: 'session-1', inputs: [] });
+    const { result } = renderHook(
+      () => useSessionRunQueue('session-1'),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      nextclawClient.eventBus.emit(eventKeys.sessionRunQueueUpdated, {
+        sessionKey: 'session-1',
+      });
+    });
+    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      resolveInitialRead(createQueue('session-1', 'stale queued input'));
+      await initialRead;
+    });
+    await waitFor(() => expect(result.current.inputs).toEqual([]));
+  });
 });
