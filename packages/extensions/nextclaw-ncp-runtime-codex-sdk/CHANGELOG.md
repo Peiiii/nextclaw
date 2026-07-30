@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.2.16
+
+### Patch Changes
+
+- 8b8655c: 修复 Codex runtime 在标准 NPM 安装布局中无法启动 app-server 的问题，已有会话和新会话可以重新正常处理消息。
+
 ## 0.2.15
 
 ### Patch Changes

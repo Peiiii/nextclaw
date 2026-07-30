@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
 
+## 0.3.16
+
+### Patch Changes
+
+- 7301af6: 阻止 Claude Code 与 Hermes runtime 在同一个 NextClaw 会话中被上游响应替换外部会话身份；检测到身份漂移时会明确失败，避免静默切换上下文。
+
 ## 0.3.15
 
 ### Patch Changes
