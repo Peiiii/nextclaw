@@ -21,7 +21,8 @@
 
 ## 发布/部署方式
 
-- 本次仅交付本地 `master` fast-forward commit；不 push、不创建 PR、不发布 NPM 包、不触发 runtime update 或线上部署。
+- 本次已提交到本地 `master`，并通过仓库 Changesets 流程发布 Codex NCP/NARP runtime patch。
+- 未 push、未创建 PR；本批不包含顶层 `nextclaw`，因此不触发 NPM runtime update channel、产品 GitHub Release 或线上部署。
 - 不涉及数据库 migration、生产配置、Desktop installer、update manifest 或主实例重启。
 
 ## 用户/产品视角的验收步骤
@@ -40,6 +41,7 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.2.15`：当前版本已发布；已加入 patch changeset，修复标准 NPM 安装布局下的 app-server 启动，待统一发布。
-- `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.16`：当前版本已发布；已加入 patch changeset 以携带受影响的 NCP runtime 依赖，待统一发布。
-- 本轮未执行 NPM publish、tag、GitHub Release 或 runtime update。
+- `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.2.16`：已发布到 NPM `latest`，修复标准 NPM 安装布局下的 app-server 启动。
+- `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.17`：已发布到 NPM `latest`，依赖精确更新为 Codex NCP runtime `0.2.16`。
+- 仓库 `release:verify:published` 已确认两个版本可从 registry 读取；隔离安装后公共入口可正常导入。
+- 本地 package tags 已生成；未执行 Git push、产品 GitHub Release 或 runtime update。

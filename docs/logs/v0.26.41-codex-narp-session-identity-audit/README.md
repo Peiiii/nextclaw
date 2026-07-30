@@ -22,7 +22,8 @@
 
 ## 发布/部署方式
 
-- 本轮只修改本地工作区；按用户要求不 commit、不 push、不创建 PR、不发布 NPM 包、不触发 runtime update 或线上部署。
+- 本轮已提交到本地 `master`，并通过仓库 Changesets 流程发布 Claude NCP/NARP 与 Hermes HTTP runtime patch。
+- 未 push、未创建 PR；本批不包含顶层 `nextclaw`，因此不触发 NPM runtime update channel、产品 GitHub Release 或线上部署。
 - 真实验收只启动隔离源码实例，没有重启、修改或接管用户当前运行的 NextClaw 主实例。
 - 不涉及数据库 migration、生产配置、Desktop installer 或 update manifest。
 
@@ -54,8 +55,10 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.2.16`：当前版本已发布；已加入 patch changeset，发布 session identity 不可替换约束。
-- `@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.2.16`：当前版本已发布；已加入 patch changeset 以携带更新后的 Claude NCP runtime 依赖。
-- `@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http@0.3.15`：当前版本已发布；已加入 patch changeset，发布 Hermes session identity 不可替换约束与角色目录整理。
-- 本批还包含前一迭代已登记、尚未发布的 Codex app-server binary patch：`@nextclaw/nextclaw-ncp-runtime-codex-sdk` 与 `@nextclaw/nextclaw-narp-runtime-codex-sdk`。
+- `@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.2.17`：已发布到 NPM `latest`，包含 session identity 不可替换约束。
+- `@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.2.17`：已发布到 NPM `latest`，依赖精确更新为 Claude NCP runtime `0.2.17`。
+- `@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http@0.3.16`：已发布到 NPM `latest`，包含 Hermes session identity 不可替换约束与角色目录整理。
+- 同批发布了前一迭代登记的 Codex app-server binary patch：`@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.2.16` 与 `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.17`。
+- 仓库 `release:verify:published` 已确认五个版本可从 registry 读取；隔离安装后五个公共入口均可正常导入，Hermes CLI 发布路径存在且权限为 `755`。
+- 本地 package tags 已生成；未执行 Git push。
 - 本批不包含顶层 `nextclaw`，因此 NPM runtime update channel、产品版本更新笔记、GitHub 产品 Release 和 X 宣发不适用。
