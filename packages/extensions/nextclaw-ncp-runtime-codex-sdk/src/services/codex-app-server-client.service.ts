@@ -1,6 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { statSync } from "node:fs";
-import { delimiter, dirname, join } from "node:path";
+import { createRequire } from "node:module";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import type { CodexOptions } from "@openai/codex-sdk";
@@ -19,6 +18,11 @@ type PendingRequest = {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
   timer: NodeJS.Timeout;
+};
+
+type CodexCommand = {
+  executablePath: string;
+  args: string[];
 };
 
 class AsyncNotificationQueue {
@@ -121,8 +125,8 @@ export class CodexAppServerClient {
     if (this.child) {
       return;
     }
-    const resolved = this.resolveCodexExecutable();
-    const args = ["app-server", "--stdio"];
+    const command = this.resolveCodexCommand();
+    const args = [...command.args, "app-server", "--stdio"];
     for (const override of serializeConfigOverrides(this.config.cliConfig)) {
       args.push("--config", override);
     }
@@ -136,8 +140,7 @@ export class CodexAppServerClient {
     if (this.config.apiKey.trim()) {
       env.CODEX_API_KEY = this.config.apiKey.trim();
     }
-    this.prependCodexPathDirs(env, resolved.pathDirs);
-    this.child = spawn(resolved.executablePath, args, { env });
+    this.child = spawn(command.executablePath, args, { env });
     this.child.stderr.on("data", (data) => this.captureStderr(data.toString()));
     this.child.once("error", (error) => {
       this.rejectAll(error);
@@ -216,26 +219,16 @@ export class CodexAppServerClient {
     this.pending.clear();
   };
 
-  private resolveCodexExecutable = (): { executablePath: string; pathDirs: string[] } => {
+  private resolveCodexCommand = (): CodexCommand => {
     if (this.config.codexPathOverride?.trim()) {
-      return { executablePath: this.config.codexPathOverride.trim(), pathDirs: [] };
+      return { executablePath: this.config.codexPathOverride.trim(), args: [] };
     }
     const codexSdkEntry = fileURLToPath(import.meta.resolve("@openai/codex-sdk"));
-    const codexSdkRoot = dirname(dirname(codexSdkEntry));
-    const localBin = join(codexSdkRoot, "node_modules", ".bin", binaryName());
-    if (isFile(localBin)) {
-      return { executablePath: localBin, pathDirs: [] };
-    }
-    throw new Error("Unable to locate Codex app-server binary from @openai/codex-sdk.");
-  };
-
-  private prependCodexPathDirs = (env: Record<string, string>, pathDirs: string[]): void => {
-    if (pathDirs.length === 0) {
-      return;
-    }
-    const key = process.platform === "win32" ? "Path" : "PATH";
-    const existing = (env[key] ?? "").split(delimiter).filter(Boolean);
-    env[key] = [...pathDirs, ...existing.filter((entry) => !pathDirs.includes(entry))].join(delimiter);
+    const codexSdkRequire = createRequire(codexSdkEntry);
+    return {
+      executablePath: process.execPath,
+      args: [codexSdkRequire.resolve("@openai/codex/bin/codex.js")],
+    };
   };
 }
 
@@ -302,16 +295,4 @@ const TOML_BARE_KEY = /^[A-Za-z0-9_-]+$/;
 
 function formatTomlKey(key: string): string {
   return TOML_BARE_KEY.test(key) ? key : JSON.stringify(key);
-}
-
-function binaryName(): string {
-  return process.platform === "win32" ? "codex.exe" : "codex";
-}
-
-function isFile(path: string): boolean {
-  try {
-    return statSync(path).isFile();
-  } catch {
-    return false;
-  }
 }
