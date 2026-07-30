@@ -6,7 +6,7 @@ import {
   type NcpRequestEnvelope,
   type OpenAITool,
 } from "@nextclaw/ncp";
-import { HermesHttpAdapterConfigResolver } from "./hermes-http-adapter-config.utils.js";
+import { HermesHttpAdapterConfigResolver } from "@/hermes-http-adapter-config.utils.js";
 import {
   buildHermesMessages,
   createAssistantMessageFromParts,
@@ -21,8 +21,8 @@ import {
   toErrorSseFrame,
   toNcpError,
   toNcpSseFrame,
-} from "./hermes-http-adapter-message.utils.js";
-import { parseHermesOpenAIChatStream } from "./hermes-openai-stream-parser.utils.js";
+} from "@/hermes-http-adapter-message.utils.js";
+import { parseHermesOpenAIChatStream } from "@/hermes-openai-stream-parser.utils.js";
 import { HermesHttpAdapterSessionStore } from "./hermes-http-adapter-session-store.service.js";
 import {
   createHermesMessageAcceptedEvent,
@@ -32,14 +32,14 @@ import {
   createHermesRunFinishedEvent,
   createHermesRunHandle,
   createHermesRunStartedEvent,
-} from "./hermes-http-adapter-events.utils.js";
+} from "@/hermes-http-adapter-events.utils.js";
 import type {
   HermesAdapterAssistantMessageFactory,
   HermesHttpAdapterResolvedConfig,
   HermesHttpAdapterRun,
   HermesHttpAdapterRunResult,
-} from "./hermes-http-adapter.types.js";
-import type { HermesHttpAdapterConfigInput } from "./hermes-http-adapter-config.utils.js";
+} from "@/hermes-http-adapter.types.js";
+import type { HermesHttpAdapterConfigInput } from "@/hermes-http-adapter-config.utils.js";
 
 function isUserVisibleAssistantEvent(event: NcpEndpointEvent): boolean {
   const eventType = event.type;
@@ -499,7 +499,7 @@ class HermesHttpAdapterRouteService {
 
     const returnedSessionId = response.headers.get("x-hermes-session-id")?.trim();
     if (returnedSessionId) {
-      this.sessions.setHermesSessionId(sessionId, returnedSessionId);
+      this.sessions.bindHermesSessionId(sessionId, returnedSessionId);
     }
 
     return response;

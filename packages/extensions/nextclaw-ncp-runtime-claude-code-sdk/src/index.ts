@@ -69,9 +69,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   constructor(private readonly config: ClaudeCodeSdkNcpAgentRuntimeConfig) {
     this.sessionRuntimeId = config.sessionRuntimeId?.trim() || null;
     this.sessionStore = config.sessionStore ?? createClaudeCodeSessionStore(config);
-    this.sessionMetadata = {
-      ...(config.sessionMetadata ? structuredClone(config.sessionMetadata) : {}),
-    };
+    this.sessionMetadata = structuredClone(config.sessionMetadata ?? {});
   }
 
   async *run(
@@ -130,19 +128,11 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     }
   }
 
-  private getSdkModule = async (): Promise<ClaudeCodeSdkModule> => {
-    if (!this.sdkModulePromise) {
-      this.sdkModulePromise = claudeCodeLoader.loadClaudeCodeSdkModule();
-    }
-    return this.sdkModulePromise;
-  };
+  private getSdkModule = async (): Promise<ClaudeCodeSdkModule> =>
+    (this.sdkModulePromise ??= claudeCodeLoader.loadClaudeCodeSdkModule());
 
-  private getPreparedAccess = async (): Promise<ClaudePreparedGatewayAccess> => {
-    if (!this.preparedAccessPromise) {
-      this.preparedAccessPromise = prepareClaudeGatewayAccess(this.config);
-    }
-    return await this.preparedAccessPromise;
-  };
+  private getPreparedAccess = async (): Promise<ClaudePreparedGatewayAccess> =>
+    (this.preparedAccessPromise ??= prepareClaudeGatewayAccess(this.config));
 
   private createQueryRun = async (input: NcpAgentRunInput, options?: NcpAgentRunOptions): Promise<{
     query: ReturnType<ClaudeCodeSdkModule["query"]>;
@@ -174,10 +164,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   };
 
   private buildTurnInput = async (input: NcpAgentRunInput): Promise<string> => {
-    if (this.config.inputBuilder) {
-      return await this.config.inputBuilder(input);
-    }
-    return readUserText(input);
+    return this.config.inputBuilder?.(input) ?? readUserText(input);
   };
 
   private async *emitEvent(event: NcpEndpointEvent): AsyncGenerator<NcpEndpointEvent> {
@@ -195,7 +182,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     const { sessionId, messageId, runId, message, eventState } = params;
 
     if (typeof message.session_id === "string" && message.session_id.trim()) {
-      await this.updateSessionRuntimeId(message.session_id);
+      await this.bindSessionRuntimeId(message.session_id);
     }
 
     const failure = extractFailureMessage(message);
@@ -383,10 +370,15 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     }, endedAt));
   }
 
-  private updateSessionRuntimeId = async (nextSessionId: string): Promise<void> => {
+  private bindSessionRuntimeId = async (nextSessionId: string): Promise<void> => {
     const normalizedSessionId = nextSessionId.trim();
     if (!normalizedSessionId || normalizedSessionId === this.sessionRuntimeId) {
       return;
+    }
+    if (this.sessionRuntimeId) {
+      throw new Error(
+        `Claude session identity cannot change from "${this.sessionRuntimeId}" to "${normalizedSessionId}".`,
+      );
     }
 
     this.sessionRuntimeId = normalizedSessionId;

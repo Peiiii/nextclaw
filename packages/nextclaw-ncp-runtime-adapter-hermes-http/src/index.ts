@@ -1,6 +1,6 @@
 export {
   HermesHttpAdapterServer,
-} from "./hermes-http-adapter.service.js";
+} from "./services/hermes-http-adapter.service.js";
 export {
   HermesHttpAdapterConfigResolver,
   normalizeBasePath,

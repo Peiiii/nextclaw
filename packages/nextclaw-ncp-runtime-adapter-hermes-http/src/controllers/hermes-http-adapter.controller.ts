@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { HermesHttpAdapterServer } from "./hermes-http-adapter.service.js";
+import { HermesHttpAdapterServer } from "@/services/hermes-http-adapter.service.js";
 
 class HermesHttpAdapterCli {
   run = async (): Promise<void> => {

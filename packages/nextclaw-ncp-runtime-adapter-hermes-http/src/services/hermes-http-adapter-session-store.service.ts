@@ -1,4 +1,4 @@
-import type { HermesHttpAdapterRun } from "./hermes-http-adapter.types.js";
+import type { HermesHttpAdapterRun } from "@/hermes-http-adapter.types.js";
 
 type SessionRunWaiter = {
   resolve: (run: HermesHttpAdapterRun) => void;
@@ -58,7 +58,9 @@ export class HermesHttpAdapterSessionStore {
       };
 
       const handleAbort = (): void => {
-        waiter.reject(createAbortError("stream request aborted before send arrived"));
+        waiter.reject(
+          new DOMException("stream request aborted before send arrived", "AbortError"),
+        );
       };
 
       const timeout = setTimeout(() => {
@@ -78,8 +80,7 @@ export class HermesHttpAdapterSessionStore {
     sessionId: string,
     controller: AbortController,
   ): void => {
-    const session = this.getOrCreateEntry(sessionId);
-    session.activeAbortController = controller;
+    this.getOrCreateEntry(sessionId).activeAbortController = controller;
   };
 
   clearActiveAbortController = (sessionId: string): void => {
@@ -100,17 +101,23 @@ export class HermesHttpAdapterSessionStore {
     return true;
   };
 
-  setHermesSessionId = (sessionId: string, hermesSessionId: string): void => {
+  bindHermesSessionId = (sessionId: string, hermesSessionId: string): void => {
     const session = this.getOrCreateEntry(sessionId);
-    session.hermesSessionId = hermesSessionId;
+    const next = hermesSessionId.trim();
+    const current = session.hermesSessionId;
+    if (current && current !== next) {
+      throw new Error(
+        `[hermes-http-adapter] session identity for ${sessionId} cannot change: "${current}" -> "${next}".`,
+      );
+    }
+    session.hermesSessionId = current || next || undefined;
   };
 
   readHermesSessionId = (sessionId: string): string | undefined =>
     this.sessions.get(sessionId)?.hermesSessionId;
 
   setSelectedModel = (sessionId: string, model: string): void => {
-    const session = this.getOrCreateEntry(sessionId);
-    session.selectedModel = model;
+    this.getOrCreateEntry(sessionId).selectedModel = model;
   };
 
   readSelectedModel = (sessionId: string): string | undefined =>
@@ -152,20 +159,11 @@ export class HermesHttpAdapterSessionStore {
   };
 
   private getOrCreateEntry = (sessionId: string): SessionEntry => {
-    const existing = this.sessions.get(sessionId);
-    if (existing) {
-      return existing;
+    let session = this.sessions.get(sessionId);
+    if (!session) {
+      session = { waiters: new Set() };
+      this.sessions.set(sessionId, session);
     }
-    const created: SessionEntry = {
-      waiters: new Set(),
-    };
-    this.sessions.set(sessionId, created);
-    return created;
+    return session;
   };
-}
-
-function createAbortError(message: string): Error {
-  const error = new Error(message);
-  error.name = "AbortError";
-  return error;
 }
