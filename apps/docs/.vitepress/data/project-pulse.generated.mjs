@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-07-29T05:30:50.808Z",
+  "generatedAt": "2026-07-30T05:17:39.487Z",
   "hero": {
-    "currentLoc": 217389,
-    "testLoc": 78542,
-    "trackedFiles": 2343,
-    "recentCommitCount": 364,
-    "activeDays30": 30,
+    "currentLoc": 217702,
+    "testLoc": 79113,
+    "trackedFiles": 2345,
+    "recentCommitCount": 376,
+    "activeDays30": 29,
     "recentReleaseCount": 50,
     "latestReleaseDate": "2026-07-29",
     "latestNoteDate": "2026-07-29",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2359106,
-    "basePercentOfBenchmark": 9.21,
-    "lighterByPercent": 90.79
+    "benchmarkCodeLines": 2384194,
+    "basePercentOfBenchmark": 9.13,
+    "lighterByPercent": 90.87
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-01",
-        "label": "04-01",
-        "value": 153977
-      },
       {
         "key": "2026-04-02",
         "label": "04-02",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-07-29",
         "label": "07-29",
         "value": 217389
+      },
+      {
+        "key": "2026-07-30",
+        "label": "07-30",
+        "value": 217702
       }
     ],
     "testLocDaily": [
@@ -1017,14 +1017,14 @@ export default {
         "key": "2026-07-29",
         "label": "07-29",
         "value": 78542
+      },
+      {
+        "key": "2026-07-30",
+        "label": "07-30",
+        "value": 79113
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-06-30",
-        "label": "06-30",
-        "value": 1
-      },
       {
         "key": "2026-07-01",
         "label": "07-01",
@@ -1168,7 +1168,12 @@ export default {
       {
         "key": "2026-07-29",
         "label": "07-29",
-        "value": 4
+        "value": 17
+      },
+      {
+        "key": "2026-07-30",
+        "label": "07-30",
+        "value": 0
       }
     ],
     "commitWeekly": [
@@ -1230,7 +1235,7 @@ export default {
       {
         "key": "2026-07-27",
         "label": "07-27",
-        "value": 24
+        "value": 37
       }
     ],
     "releaseMonthly": [
@@ -1300,23 +1305,23 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 53484,
-        "testCodeLines": 26252,
-        "files": 651,
-        "sharePercent": 24.6
+        "codeLines": 53669,
+        "testCodeLines": 26431,
+        "files": 652,
+        "sharePercent": 24.7
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 20151,
-        "testCodeLines": 9157,
+        "codeLines": 20246,
+        "testCodeLines": 9247,
         "files": 213,
         "sharePercent": 9.3
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 15047,
-        "testCodeLines": 6573,
-        "files": 162,
+        "codeLines": 15051,
+        "testCodeLines": 6711,
+        "files": 163,
         "sharePercent": 6.9
       },
       {
@@ -1335,15 +1340,15 @@ export default {
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 10658,
-        "testCodeLines": 7061,
+        "codeLines": 10661,
+        "testCodeLines": 7085,
         "files": 111,
         "sharePercent": 4.9
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 10264,
-        "testCodeLines": 7497,
+        "codeLines": 10257,
+        "testCodeLines": 7501,
         "files": 118,
         "sharePercent": 4.7
       },
@@ -1357,14 +1362,14 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2359106,
-      "basePercentOfBenchmark": 9.21,
-      "lighterByPercent": 90.79
+      "benchmarkCodeLines": 2384194,
+      "basePercentOfBenchmark": 9.13,
+      "lighterByPercent": 90.87
     },
     "recentReleaseBatches": [
       {
         "date": "2026-07-29",
-        "tagCount": 49,
+        "tagCount": 98,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.6.18",
           "@nextclaw/agent-chat@0.3.12",
@@ -1418,6 +1423,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-07-29-nextclaw-v0-27-7",
+        "date": "2026-07-29",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-07-29 · NextClaw v0.27.7",
+          "description": "NextClaw v0.27.7 adds registered project references in chat and improves Codex continuity, default execution access, and Marketplace uninstall safety.",
+          "href": "/en/notes/2026-07-29-nextclaw-v0-27-7"
+        },
+        "zh": {
+          "title": "2026-07-29 · NextClaw v0.27.7",
+          "description": "NextClaw v0.27.7 支持在聊天中引用已登记项目，并改进 Codex 会话连续性、默认执行权限和 Marketplace 卸载安全。",
+          "href": "/zh/notes/2026-07-29-nextclaw-v0-27-7"
+        }
+      },
       {
         "slug": "2026-07-29-nextclaw-v0-27-6",
         "date": "2026-07-29",
@@ -1978,9 +2002,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-07-29T05:30:49.168Z",
+    "locGeneratedAt": "2026-07-30T05:17:37.560Z",
     "sourceCount": {
-      "notes": 25,
+      "notes": 26,
       "scopes": 8
     }
   }
