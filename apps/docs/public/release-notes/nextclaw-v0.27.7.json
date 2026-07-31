@@ -10,8 +10,8 @@
     "en-US": "NextClaw v0.27.7"
   },
   "summary": {
-    "zh-CN": "聊天现在可以引用已登记项目，同时改进 Codex 会话连续性、默认执行权限和 Marketplace 卸载安全。",
-    "en-US": "Chat can now reference registered projects, with improved Codex continuity, default execution access, and Marketplace uninstall safety."
+    "zh-CN": "聊天现在可以引用已登记项目，同时改进 Codex 会话连续性、默认执行权限和 Marketplace 卸载安全；Desktop 0.0.236 已同步提供。",
+    "en-US": "Chat can now reference registered projects, with improved Codex continuity, default execution access, and Marketplace uninstall safety; Desktop 0.0.236 is also available."
   },
   "links": {
     "html": {
@@ -103,6 +103,16 @@
           "body": {
             "zh-CN": "现有 NPM 安装可以直接通过 stable 通道升级，不需要迁移配置、会话或文件。",
             "en-US": "Existing npm installations can update through the stable channel without migrating configuration, sessions, or files."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "桌面端正式版",
+            "en-US": "Desktop stable release"
+          },
+          "body": {
+            "zh-CN": "NextClaw Desktop 0.0.236 为 macOS、Windows 和 Linux 打包 runtime 0.27.7，最低 launcher 版本保持 0.0.141，并包含 runtime 0.27.6 的 Agent Runtime 上下文与富内容改进。",
+            "en-US": "NextClaw Desktop 0.0.236 packages runtime 0.27.7 for macOS, Windows, and Linux, keeps the minimum launcher version at 0.0.141, and includes the Agent Runtime context and rich-content improvements from runtime 0.27.6."
           }
         }
       ]
