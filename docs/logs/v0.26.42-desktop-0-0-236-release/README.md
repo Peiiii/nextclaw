@@ -2,10 +2,11 @@
 
 ## 迭代完成说明
 
-- 本轮把已发布的 NextClaw runtime `0.27.7` 带到 Desktop stable 通道，桌面壳版本为 `0.0.236`，候选 tag 为 `v0.27.7-desktop.1`。
+- 本轮已把 NextClaw runtime `0.27.7` 带到 Desktop stable 通道，桌面壳版本为 `0.0.236`，正式 tag 为 `v0.27.7-desktop.1`。
 - 发布内容覆盖自上一桌面正式版 `0.0.234 / 0.27.5` 以来的 `0.27.6` 与 `0.27.7` 用户能力，并包含 Codex app-server binary 解析与跨 runtime session identity 的后续可靠性修复。
 - stable 最低 launcher 版本继续保持 `0.0.141`，没有提高已安装用户的更新门槛。
 - 已修正 `0.27.7` 中英文公开说明与结构化 release notes，把原先“本次不包含新的桌面安装包”更新为 Desktop `0.0.236` 的真实发布范围。
+- 正式 GitHub Release 为 stable/latest、非 draft、非 prerelease，共 30 个资产；双语 Release body 中英各保留一条 changelog，已移除 GitHub 创建时自动附加的重复尾注。
 
 ## 测试/验证/验收方式
 
@@ -13,13 +14,20 @@
 - 远端创建 Release 前运行 `desktop-release-preflight.yml`，确认 stable 签名密钥和发布目标 SHA 合同。
 - 正式 workflow 必须完成 macOS arm64/x64、Windows x64/arm64、Linux x64 构建，以及 release assets、desktop update channels 与 stable APT 发布。
 - 收尾必须核对 GitHub Release 资产、`gh-pages` stable manifest、公开 Pages manifest 和公开 APT `Packages`。
+- 本地隔离验证已真实构建 140.4 MB 的 macOS arm64 DMG，验证安装包内公钥、seed runtime `0.27.7`、262 个 runtime 文件、31 个 plugin 文件、隔离 runtime init、GUI `ready-to-show`、renderer 加载与健康 API。
+- 远端 preflight run `30617638319` 成功；Desktop release run `30617658653` 的 attempt 2 成功，5 个平台 matrix job 与 `publish-release-assets`、`publish-desktop-update-channels`、`publish-linux-apt-repo` 全部通过。
+- attempt 1 的 Linux `.deb` smoke 在真正启动安装包前，因 Docker Hub 连续三次拉取 `ubuntu:24.04` 超时失败；同一 run 只重跑失败 job 后越过该边界并通过，证明失败属于外部镜像网络瞬态，不是 `.deb` 或 runtime 缺陷。
+- 公开 stable manifest 的 darwin arm64/x64、win32 arm64/x64、linux x64 五个 target 均为 runtime `0.27.7`、最低 launcher `0.0.141`，并指向同一公开 release notes URL；公开 APT `Packages` 包含 `nextclaw-desktop 0.0.236`。
 
 ## 发布/部署方式
 
-- 使用仓库标准入口 `pnpm release:desktop:stable -- --notes-file docs/logs/v0.26.42-desktop-0-0-236-release/github-release.md`。
-- 自动化会先把本地 `master` 的已提交发布目标推送到 `origin/master`，再执行远端预检、创建正式 GitHub Release 并等待完整发布闭环。
+- 使用仓库标准入口 `pnpm release:desktop:stable -- --notes-file docs/logs/v0.26.42-desktop-0-0-236-release/github-release.md`，发布目标为 `ac4e6ba28f4c7b571006dd62c638016783b2f7eb`。
+- 自动化已把本地 `master` 的 7 个已提交发布目标推送到 `origin/master`，再执行远端预检、创建正式 GitHub Release 并等待完整发布闭环。
 - 本轮不发布 `@nextclaw/desktop` 到 NPM；桌面安装包、portable 包、runtime bundle、更新 manifest 与 APT 包统一由 GitHub Desktop Release workflow 产出。
 - 不涉及数据库 migration 或后端服务部署。
+- GitHub Release：https://github.com/Peiiii/nextclaw/releases/tag/v0.27.7-desktop.1
+- Desktop release workflow：https://github.com/Peiiii/nextclaw/actions/runs/30617658653
+- Signing preflight workflow：https://github.com/Peiiii/nextclaw/actions/runs/30617638319
 
 ## 用户/产品视角的验收步骤
 
@@ -34,6 +42,7 @@
 - 本轮发布准备只修改用户可见说明、结构化 release notes 与迭代记录，没有修改源码、脚本、测试或运行链路。
 - 公开文案与 stable manifest 复用同一份 `0.27.7` release notes URL，避免桌面资产已经发布但说明仍声明“无桌面安装包”的双重事实。
 - 桌面版本、runtime 版本、最低 launcher 版本和 tag 仍由现有标准自动化读取与校验，没有新增手工发布分支或替代脚本。
+- 发布准备提交共 `+137/-8`；非文档生产语义代码 `+0/-0`，满足非功能改动净增 `<= 0`。收尾只更新本迭代 README，不触达生产代码。
 
 ## 红区触达与减债记录
 
