@@ -20,6 +20,8 @@
 - stable runtime workflow `31032968267` 完成 macOS arm64/x64、Linux x64、Windows x64 四个平台签名包、Release assets、gh-pages 和公共 stable manifest；仓库发布入口的最终 manifest 验证通过。
 - GitHub Release 事件自动触发 Desktop workflow `31032708216`；Desktop `0.0.237 / runtime 0.28.0` 的五个平台构建、macOS DMG、Windows 安装器与便携版、Linux AppImage/deb、更新通道和 APT 发布全部成功。
 - push 级 `desktop-validate` workflow `31032672345` 曾因 Windows 临时目录 8.3 / 长路径字符串断言与独立 Linux 初始化校验失败；正式 release workflow 对实际发布产物的 Windows、AppImage、deb 对应冒烟全部通过。本记录保留两者差异，不把前置校验失败误写为产品发布失败。
+- 发布事实修正后，[Docs Deploy workflow 31034532468](https://github.com/Peiiii/nextclaw/actions/runs/31034532468) 以提交 `cff7d75bd` 重新部署全球与国内站点，`deploy:docs:verify` 已校验线上不可变产物与该提交一致。
+- 官网下载页通过 Cloudflare Pages 部署到 `https://c4cfedfa.nextclaw-landing.pages.dev`；正式中英文下载页与生产 bundle 已验证返回 HTTP `200`，并且只包含稳定回退 `nextclaw@0.28.0 / 0.0.237`。
 - 在 `/tmp/nextclaw-0280-smoke.ElpN6n` 从 registry 隔离安装 `nextclaw@0.28.0`，真实二进制报告 `0.28.0`；全新 `NEXTCLAW_HOME` 执行 `update --check` 返回 stable runtime 已是最新 `0.28.0`。
 
 ## 发布/部署方式
@@ -29,6 +31,7 @@
 - 文档站通过 [Docs Deploy workflow 31032716842](https://github.com/Peiiii/nextclaw/actions/runs/31032716842) 部署；公开指南与版本说明见文末验收入口。
 - NPM runtime stable 通道通过 [workflow 31032968267](https://github.com/Peiiii/nextclaw/actions/runs/31032968267) 发布，manifest 的 release notes URL 指向本次英文公开说明。
 - Desktop `0.0.237` 通过 [workflow 31032708216](https://github.com/Peiiii/nextclaw/actions/runs/31032708216) 发布到同一 GitHub Release；五个平台公开 manifest 均为 runtime `0.28.0`、最低 launcher `0.0.141`，公开 APT 为 `0.0.237`。
+- 官网下载页同步识别独立 Desktop tag 和统一 `nextclaw@<version>` tag；本次生产部署为 [Cloudflare Pages `c4cfedfa`](https://c4cfedfa.nextclaw-landing.pages.dev)。
 - 不涉及数据库 migration 或线上后端服务部署；本次已包含新的 Desktop launcher / installer。
 - 社交传播只准备候选文案，未在未获授权时发布：`后台工作终于会回来找你。NextClaw 0.28.0 带来会话完成通知与 AI 收件箱，支持 Markdown、静态 HTML 和继续聊。`
 
@@ -41,6 +44,7 @@
 5. 打开 HTML“每日 AI 与科技简报”，确认正文留白与圆角保留、没有额外黑色边框，脚本、远程资源与导航能力被隔离。
 6. 点击“继续聊”，确认创建或复用关联会话，Agent 能感知送达报告上下文。
 7. 打开 [中文场景指南](https://docs.nextclaw.io/zh/guide/background-results)、[English guide](https://docs.nextclaw.io/en/guide/background-results)、[中文版本说明](https://docs.nextclaw.io/zh/notes/2026-08-06-nextclaw-v0-28-0) 与 [English release notes](https://docs.nextclaw.io/en/notes/2026-08-06-nextclaw-v0-28-0)，确认正文和真实截图可见。
+8. 打开 [中文下载页](https://nextclaw.io/zh/download/) 或 [English download page](https://nextclaw.io/en/download/)，确认稳定版指向 `nextclaw@0.28.0`，Desktop 版本为 `0.0.237`。
 
 ## 可维护性总结汇总
 
