@@ -5,6 +5,7 @@ export {
 } from "./nextclaw-app-client.utils.js";
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
+export { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
 export { eventKeys } from "@nextclaw/shared";
 export type { AgentRunSendIngressPayload, AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/shared";
 export type {
@@ -166,5 +167,11 @@ export type {
   NcpStreamRequestPayload
 } from "@nextclaw/ncp";
 export type { UpdateSnapshot } from "@nextclaw/shared";
+export type {
+  InboxDelivery,
+  InboxDeliveryContinueResult,
+  InboxDeliveryListView,
+  InboxDeliveryStateAction,
+} from "@nextclaw/shared";
 export type ChannelConfigUpdate = Record<string, unknown>;
 export type PanelAppPreferencesUpdateView = { favorite?: boolean };

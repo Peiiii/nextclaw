@@ -19,6 +19,20 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
     } as never,
     eventBus: new EventBus(),
     ingress: new Ingress(),
+    inboxDeliveryManager: {
+      listDeliveries: async () => ({
+        deliveries: [],
+        total: 0,
+        unreadCount: 0,
+        unpresentedCount: 0,
+      }),
+      getDelivery: async () => null,
+      updateDeliveryState: async () =>
+        unavailable("inboxDeliveryManager.updateDeliveryState"),
+      deleteDelivery: async () => false,
+      continueInChat: async () =>
+        unavailable("inboxDeliveryManager.continueInChat"),
+    } as never,
     agentRunRequestManager: {
       listQueuedInputs: () => [],
       removeQueuedInput: () => null,

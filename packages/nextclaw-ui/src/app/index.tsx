@@ -11,6 +11,7 @@ import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styl
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
 import { AccountPanel } from "@/features/account";
+import { InboxRuntime } from "@/features/inbox";
 import { ServiceActionAuthorizationDialog } from "@/features/service-apps";
 import { runtimeUpdateManager, useSystemStatusSources } from "@/features/system-status";
 import {
@@ -122,6 +123,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
     element: createLazyElement(<ChatPage view="cron" />),
   },
   {
+    path: "/inbox/:deliveryId?",
+    element: createLazyElement(<ChatPage view="inbox" />),
+  },
+  {
     path: "/appearance",
     element: createLazyElement(<AppearanceSettingsPage />),
   },
@@ -224,6 +229,7 @@ function ProtectedApp() {
   return (
     <AppPresenterProvider>
       <AppNotificationRuntime />
+      <InboxRuntime />
       <AppLayout>
         <ProtectedRoutes />
       </AppLayout>

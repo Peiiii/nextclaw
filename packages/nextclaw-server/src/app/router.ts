@@ -15,6 +15,7 @@ import { AppRoutesController } from "@nextclaw-server/app/controllers/app.contro
 import { AuthRoutesController, UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { ConfigRoutesController } from "@nextclaw-server/features/config/index.js";
 import { CronRoutesController } from "@nextclaw-server/features/cron/index.js";
+import { InboxDeliveriesRoutesController } from "@nextclaw-server/features/inbox-deliveries/index.js";
 import { NcpAssetRoutesController } from "@nextclaw-server/features/attachments/index.js";
 import { NcpSessionRoutesController } from "@nextclaw-server/features/sessions/index.js";
 import {
@@ -56,6 +57,7 @@ function createUiRouteControllers(
     auth: new AuthRoutesController(authService),
     config: new ConfigRoutesController(options),
     cron: new CronRoutesController(options),
+    inboxDeliveries: new InboxDeliveriesRoutesController(kernel.inboxDeliveryManager),
     ncpSession: new NcpSessionRoutesController(options),
     ncpAsset: new NcpAssetRoutesController(options),
     panelApps: new PanelAppsRoutesController(kernel.panelAppManager, {
@@ -197,6 +199,7 @@ class UiRouteRegistry {
   private readonly mountResourceRoutes = (): void => {
     const {
       ncpSession,
+      inboxDeliveries,
       panelApps,
       preferences,
       projects,
@@ -214,6 +217,11 @@ class UiRouteRegistry {
       ["delete", "/api/ncp/sessions/:sessionId/queued-inputs/:queuedInputId", ncpSession.deleteSessionQueuedInput],
       ["get", "/api/ncp/sessions/:sessionId/skills", ncpSession.getSessionSkills],
       ["delete", "/api/ncp/sessions/:sessionId", ncpSession.deleteSession],
+      ["get", "/api/inbox/deliveries", inboxDeliveries.list],
+      ["get", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.get],
+      ["patch", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.updateState],
+      ["delete", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.delete],
+      ["post", "/api/inbox/deliveries/:deliveryId/continue", inboxDeliveries.continueInChat],
       ["get", "/api/panel-apps", panelApps.list],
       ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
       ["get", "/api/panel-app-client-sdk.js", panelApps.getPanelAppClientSdkScript],

@@ -5,6 +5,7 @@ import {
   AlarmClock,
   Cpu,
   Download,
+  Inbox,
   KeyRound,
   MessageCircle,
   MessageSquare,
@@ -44,6 +45,8 @@ export function isMainWorkspaceRoute(pathname: string): boolean {
   return (
     normalized === "/chat" ||
     normalized.startsWith("/chat/") ||
+    normalized === "/inbox" ||
+    normalized.startsWith("/inbox/") ||
     normalized === "/skills" ||
     normalized.startsWith("/skills/") ||
     normalized === "/cron" ||
@@ -66,6 +69,11 @@ export function getMobileBottomNavItems(
       target: "/chat",
       label: translate("chat"),
       icon: MessageCircle,
+    },
+    {
+      target: "/inbox",
+      label: translate("inboxTitle"),
+      icon: Inbox,
     },
     {
       target: "/skills",
@@ -93,6 +101,11 @@ export function getMainSidebarNavItems(
       target: "/chat",
       label: translate("chat"),
       icon: MessageCircle,
+    },
+    {
+      target: "/inbox",
+      label: translate("inboxTitle"),
+      icon: Inbox,
     },
     {
       target: "/chat/cron",
@@ -224,6 +237,14 @@ export function resolveMobileRouteMeta(
       title: translate("chat"),
       backTarget: null,
       backLabel: null,
+    };
+  }
+
+  if (normalized === "/inbox" || normalized.startsWith("/inbox/")) {
+    return {
+      title: translate("inboxTitle"),
+      backTarget: normalized === "/inbox" ? null : "/inbox",
+      backLabel: translate("inboxTitle"),
     };
   }
 

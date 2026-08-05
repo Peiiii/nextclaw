@@ -7,6 +7,7 @@ import zhCron from './locales/zh-CN/cron.json';
 import zhDesktopUpdate from './locales/zh-CN/desktop-update.json';
 import zhDocBrowser from './locales/zh-CN/doc-browser.json';
 import zhMarketplace from './locales/zh-CN/marketplace.json';
+import zhInbox from './locales/zh-CN/inbox.json';
 import zhPathPicker from './locales/zh-CN/path-picker.json';
 import zhPwa from './locales/zh-CN/pwa.json';
 import zhRemote from './locales/zh-CN/remote.json';
@@ -21,6 +22,7 @@ import enCron from './locales/en-US/cron.json';
 import enDesktopUpdate from './locales/en-US/desktop-update.json';
 import enDocBrowser from './locales/en-US/doc-browser.json';
 import enMarketplace from './locales/en-US/marketplace.json';
+import enInbox from './locales/en-US/inbox.json';
 import enPathPicker from './locales/en-US/path-picker.json';
 import enPwa from './locales/en-US/pwa.json';
 import enRemote from './locales/en-US/remote.json';
@@ -54,6 +56,7 @@ const zhCatalog: MessageCatalog = {
   ...zhChat,
   ...zhAgents,
   ...zhMarketplace,
+  ...zhInbox,
   ...zhDocBrowser,
   ...zhPathPicker,
   ...zhPwa,
@@ -71,6 +74,7 @@ const enCatalog: MessageCatalog = {
   ...enChat,
   ...enAgents,
   ...enMarketplace,
+  ...enInbox,
   ...enDocBrowser,
   ...enPathPicker,
   ...enPwa,

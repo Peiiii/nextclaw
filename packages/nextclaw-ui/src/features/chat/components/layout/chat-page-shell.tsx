@@ -6,7 +6,8 @@ import { CronConfig } from "@/features/cron";
 import { MarketplacePage } from "@/features/marketplace";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { ChatMobileShell } from "@/platforms/mobile";
-export type MainPanelView = "chat" | "cron" | "skills" | "agents";
+import { InboxPage } from "@/features/inbox";
+export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox";
 export type ChatPageProps = {
   view: MainPanelView;
 };
@@ -51,7 +52,11 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
         isMobile ? <ChatMobileShell /> : <ChatConversationPanel />
       ) : (
         <section className="flex-1 min-h-0 overflow-hidden bg-background">
-          {view === "cron" ? (
+          {view === "inbox" ? (
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-[min(1180px,100%)] flex-col py-4 sm:px-6 sm:py-5">
+              <InboxPage />
+            </div>
+          ) : view === "cron" ? (
             <div className="h-full overflow-auto custom-scrollbar">
               <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
                 <CronConfig />

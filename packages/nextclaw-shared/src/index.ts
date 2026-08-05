@@ -38,6 +38,18 @@ export type {
   UiShowContentTarget,
 } from "./types/ui-show-content.types.js";
 export {
+  INBOX_DELIVERY_SESSION_METADATA_KEY,
+} from "./types/inbox-delivery.types.js";
+export type {
+  InboxDelivery,
+  InboxDeliveryChangedEventPayload,
+  InboxDeliveryContinueResult,
+  InboxDeliveryListView,
+  InboxDeliverySource,
+  InboxDeliveryStateAction,
+  InboxDeliveryStateUpdate,
+} from "./types/inbox-delivery.types.js";
+export {
   createAppEventKey,
   createEventKey,
   eventKeys,

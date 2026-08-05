@@ -16,10 +16,12 @@ import {
   AlarmClock,
   Bot,
   BrainCircuit,
+  Inbox,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
 } from "lucide-react";
+import { useInboxUnreadCount } from "@/features/inbox";
 import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
 import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-sidebar-utility-menu";
 import { isWindowsDesktopHost } from "@/platforms/desktop";
@@ -34,6 +36,11 @@ import {
 } from "@/app/components/layout/sidebar-rail.styles";
 
 const navItems = [
+  {
+    target: "/inbox",
+    label: () => t("inboxTitle"),
+    icon: Inbox,
+  },
   {
     target: "/cron",
     label: () => t("chatSidebarScheduledTasks"),
@@ -99,6 +106,7 @@ export function ChatSidebarDesktopNav({
 }: {
   isCollapsed: boolean;
 }) {
+  const unreadCount = useInboxUnreadCount();
   return (
     <>
       <div className={cn("pb-2", isCollapsed ? "px-0" : "px-3")}>
@@ -114,6 +122,10 @@ export function ChatSidebarDesktopNav({
                 icon={item.icon}
                 density="compact"
                 collapsed={isCollapsed}
+                indicator={item.target === "/inbox" && unreadCount > 0}
+                trailing={item.target === "/inbox" && unreadCount > 0
+                  ? unreadCount > 99 ? "99+" : unreadCount
+                  : undefined}
               />
             </li>
           ))}

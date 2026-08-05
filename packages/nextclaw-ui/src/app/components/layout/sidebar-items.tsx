@@ -100,6 +100,8 @@ type SidebarNavLinkItemProps = {
   density?: SidebarItemDensity;
   className?: string;
   collapsed?: boolean;
+  indicator?: boolean;
+  trailing?: ReactNode;
 };
 
 export function SidebarNavLinkItem({
@@ -109,6 +111,8 @@ export function SidebarNavLinkItem({
   density = "default",
   className,
   collapsed = false,
+  indicator = false,
+  trailing,
 }: SidebarNavLinkItemProps) {
   const tone = getSidebarItemTone(density);
   const { pathname } = useLocation();
@@ -133,18 +137,28 @@ export function SidebarNavLinkItem({
         className,
       )}
     >
-      <Icon
-        className={cn(
-          collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
-          "shrink-0 transition-colors",
-          isActive
-            ? "text-gray-700"
-            : "text-muted-foreground group-hover:text-gray-700",
-        )}
-      />
+      <span className="relative shrink-0">
+        <Icon
+          className={cn(
+            collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
+            "block transition-colors",
+            isActive
+              ? "text-gray-700"
+              : "text-muted-foreground group-hover:text-gray-700",
+          )}
+        />
+        {indicator ? (
+          <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-background" />
+        ) : null}
+      </span>
       <span className={collapsed ? "sr-only" : "min-w-0 flex-1 text-left"}>
         {label}
       </span>
+      {!collapsed && trailing ? (
+        <span className={cn("shrink-0 text-muted-foreground", tone.value)}>
+          {trailing}
+        </span>
+      ) : null}
     </Link>
   );
 

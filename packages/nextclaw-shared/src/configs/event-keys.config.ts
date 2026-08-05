@@ -2,6 +2,7 @@ import type { NcpEndpointEvent, NcpSessionSummary } from "@nextclaw/ncp";
 import type { AppEventKey, EventKey } from "../types/event-bus.types.js";
 import { createTypedKey } from "../types/typed-key.types.js";
 import type { UiShowContentEventPayload } from "../types/ui-show-content.types.js";
+import type { InboxDeliveryChangedEventPayload } from "../types/inbox-delivery.types.js";
 import type { UpdateSnapshot } from "../types/update.types.js";
 
 export function createEventKey<T>(id: string): EventKey<T> {
@@ -40,6 +41,9 @@ export const eventKeys = {
     "session.summary.delete",
   ),
   uiShowContent: createAppEventKey<UiShowContentEventPayload>("ui.show-content"),
+  inboxDeliveryChanged: createAppEventKey<InboxDeliveryChangedEventPayload>(
+    "inbox.delivery.changed",
+  ),
   configReloadStarted: createAppEventKey<Record<string, unknown> | undefined>(
     "config.reload.started",
   ),

@@ -7,6 +7,7 @@ import {
 } from '@/features/chat';
 import { AppNotificationManager } from '@/features/notifications';
 import { PanelAppBridgeManager } from '@/features/panel-apps';
+import { InboxManager } from '@/features/inbox';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 import { RemoteAccessManager } from '@/features/remote';
 import { ServiceActionAuthorizationManager } from '@/features/service-apps';
@@ -22,6 +23,7 @@ function isChatWorkspacePanelOpen(snapshot: ChatThreadSnapshot): boolean {
 
 export class AppPresenter {
   notificationManager = new AppNotificationManager();
+  inboxManager = new InboxManager();
   chatCompletionNotificationManager = new ChatCompletionNotificationManager(
     this.notificationManager,
   );

@@ -9,6 +9,7 @@ import { AuthService } from "./services/auth.service.js";
 import { ChannelAuthService } from "./services/channel-auth.service.js";
 import { ConfigService } from "./services/config.service.js";
 import { MarketplaceService } from "./services/marketplace.service.js";
+import { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
 import { McpMarketplaceService } from "./services/mcp-marketplace.service.js";
 import { PanelAppsClientService } from "./services/panel-apps.service.js";
 import { ProviderService } from "./services/providers.service.js";
@@ -32,6 +33,7 @@ export class NextClawClient {
   readonly config: ConfigService;
   readonly eventBus: EventBus;
   readonly marketplace: MarketplaceService;
+  readonly inboxDeliveries: InboxDeliveriesService;
   readonly mcpMarketplace: McpMarketplaceService;
   readonly panelApps: PanelAppsClientService;
   readonly providers: ProviderService;
@@ -76,6 +78,7 @@ export class NextClawClient {
     this.channelAuth = new ChannelAuthService(requestService);
     this.config = new ConfigService(requestService);
     this.marketplace = new MarketplaceService(requestService);
+    this.inboxDeliveries = new InboxDeliveriesService(requestService);
     this.mcpMarketplace = new McpMarketplaceService(requestService);
     this.panelApps = new PanelAppsClientService(requestService);
     this.providers = new ProviderService(requestService);

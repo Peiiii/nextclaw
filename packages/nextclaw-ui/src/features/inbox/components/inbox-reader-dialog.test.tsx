@@ -1,0 +1,63 @@
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { InboxReaderDialog } from "@/features/inbox/components/inbox-reader-dialog";
+import { useInboxStore } from "@/features/inbox/stores/inbox.store";
+
+const mocks = vi.hoisted(() => ({
+  closeReader: vi.fn(),
+  continueInChat: vi.fn(),
+  markRead: vi.fn(),
+  selectInReader: vi.fn(),
+}));
+
+vi.mock("@/app/components/app-presenter-provider", () => ({
+  useAppPresenter: () => ({ inboxManager: mocks }),
+}));
+
+vi.mock("@/features/inbox/hooks/use-inbox-deliveries", () => ({
+  useInboxDeliveries: () => ({
+    data: {
+      deliveries: [{
+        id: "delivery-1",
+        title: "A considered report",
+        summary: "A concise summary",
+        content: "# Finding\n\n**Important** result",
+        contentType: "markdown",
+        source: { kind: "agent", agentId: null, sessionId: null, toolCallId: null, filePath: null },
+        createdAt: "2026-08-06T00:00:00.000Z",
+        updatedAt: "2026-08-06T00:00:00.000Z",
+        presentedAt: "2026-08-06T00:01:00.000Z",
+        readAt: null,
+        archivedAt: null,
+        conversationSessionId: null,
+      }],
+    },
+  }),
+}));
+
+vi.mock("@nextclaw/agent-chat-ui", () => ({
+  ChatMessageMarkdown: ({ text }: { text: string }) => (
+    <article>{text.replace(/[*#]/g, "").trim()}</article>
+  ),
+}));
+
+describe("InboxReaderDialog", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useInboxStore.setState({
+      snapshot: { readerOpen: true, activeDeliveryId: "delivery-1" },
+    });
+  });
+
+  it("renders one accessible reader with friendly Markdown output", () => {
+    render(<MemoryRouter><InboxReaderDialog /></MemoryRouter>);
+
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    const title = screen.getByRole("heading", { name: "A considered report" });
+    expect(title).toBeTruthy();
+    expect(document.activeElement).toBe(title);
+    expect(screen.getByText(/Important result/)).toBeTruthy();
+    expect(screen.queryByText("**Important** result")).toBeNull();
+  });
+});

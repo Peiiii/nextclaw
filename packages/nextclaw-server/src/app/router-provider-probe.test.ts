@@ -26,6 +26,7 @@ function createProviderProbeApp(configPath: string) {
       assetStore: {} as never,
       eventBus: new EventBus(),
       ingress: {} as never,
+      inboxDeliveryManager: {} as never,
       agentRunRequestManager: {} as never,
       isSessionRunning: () => false,
       listSessionTypes: async () => ({ defaultType: "native", options: [] }),

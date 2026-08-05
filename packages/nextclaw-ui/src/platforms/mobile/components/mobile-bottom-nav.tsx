@@ -6,6 +6,7 @@ import {
   matchesRouteTarget,
 } from "@/app/configs/app-navigation.config";
 import { openApps } from "@/features/panel-apps";
+import { useInboxUnreadCount } from "@/features/inbox";
 import { useDocBrowser } from "@/shared/components/doc-browser";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
@@ -13,6 +14,7 @@ import { cn } from "@/shared/lib/utils";
 export function MobileBottomNav() {
   const { pathname } = useLocation();
   const docBrowser = useDocBrowser();
+  const unreadCount = useInboxUnreadCount();
 
   return (
     <nav
@@ -23,7 +25,7 @@ export function MobileBottomNav() {
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.25rem)",
       }}
     >
-      <ul className="grid grid-cols-5 gap-1 px-2 pt-1">
+      <ul className="grid grid-cols-6 gap-1 px-2 pt-1">
         {getMobileBottomNavItems(t).map((item) => {
           const active = item.target === "/settings"
             ? isSettingsRoute(pathname)
@@ -41,12 +43,17 @@ export function MobileBottomNav() {
                     : "text-gray-500 hover:bg-gray-50 hover:text-gray-800",
                 )}
               >
-                <item.icon
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    active ? "text-gray-900" : "text-gray-400",
-                  )}
-                />
+                <span className="relative">
+                  <item.icon
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      active ? "text-gray-900" : "text-gray-400",
+                    )}
+                  />
+                  {item.target === "/inbox" && unreadCount > 0 ? (
+                    <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-primary ring-1 ring-white" />
+                  ) : null}
+                </span>
                 <span className="max-w-full truncate">{item.label}</span>
               </Link>
             </li>

@@ -10,6 +10,7 @@ import { ContextProviderManager } from "@kernel/managers/context-provider.manage
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
+import { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
@@ -88,6 +89,16 @@ function resolveKernelProjectStorePath(options: NextclawKernelOptions): string {
   return resolve(getDataDir(), "projects", "projects.json");
 }
 
+function resolveKernelInboxDeliveryStorePath(
+  options: NextclawKernelOptions,
+): string {
+  const homeDir = options.homeDir?.trim();
+  if (homeDir) {
+    return resolve(expandHome(homeDir), "inbox", "deliveries.json");
+  }
+  return resolve(getDataDir(), "inbox", "deliveries.json");
+}
+
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
   gateway: (input: TGatewayInput) => Promise<void>;
   ui: (input: TUiInput) => Promise<void>;
@@ -140,6 +151,7 @@ export class NextclawKernel {
   readonly assetStore: LocalAssetStore;
   readonly mcpManager: McpManager;
   readonly sessionManager: SessionManager;
+  readonly inboxDeliveryManager: InboxDeliveryManager;
   readonly panelAppManager: PanelAppManager;
   readonly preferenceManager: PreferenceManager;
   readonly projectManager: ProjectManager;
@@ -202,6 +214,11 @@ export class NextclawKernel {
       journalStore: this.ncpAgentSessionJournalStore,
       projectManager: this.projectManager,
       sessionSearch: this.sessionSearch,
+    });
+    this.inboxDeliveryManager = new InboxDeliveryManager({
+      eventBus: this.eventBus,
+      sessionManager: this.sessionManager,
+      storePath: resolveKernelInboxDeliveryStorePath(options),
     });
     this.panelAppManager = new PanelAppManager({
       configManager: this.configManager,
