@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-31T05:44:52.586Z",
+  "generatedAt": "2026-08-05T05:24:33.625Z",
   "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "dea79f8443711030bd7f687f8cd0d2c4c8734c7c",
+    "sha": "c1f68ba510ae5ae5d740f17ddd5dffe0f967aec9",
     "ref": "master"
   },
   "scope": {
@@ -96,22 +96,22 @@
     "codeLineSemantics": "production-code-with-tests-separated"
   },
   "totals": {
-    "files": 2345,
-    "totalLines": 327309,
-    "blankLines": 29809,
+    "files": 2348,
+    "totalLines": 327452,
+    "blankLines": 29832,
     "commentLines": 685,
-    "codeLines": 217702,
-    "testCodeLines": 79113
+    "codeLines": 217676,
+    "testCodeLines": 79259
   },
   "byLanguage": [
     {
       "name": "TypeScript",
-      "files": 1865,
-      "totalLines": 254146,
-      "blankLines": 23873,
+      "files": 1868,
+      "totalLines": 254289,
+      "blankLines": 23896,
       "commentLines": 615,
-      "codeLines": 173338,
-      "testCodeLines": 56320
+      "codeLines": 173312,
+      "testCodeLines": 56466
     },
     {
       "name": "TSX",
@@ -234,12 +234,12 @@
     },
     {
       "name": "packages/extensions/nextclaw-ncp-runtime-codex-sdk",
-      "files": 33,
-      "totalLines": 6230,
-      "blankLines": 518,
+      "files": 34,
+      "totalLines": 6282,
+      "blankLines": 527,
       "commentLines": 3,
-      "codeLines": 4429,
-      "testCodeLines": 1280
+      "codeLines": 4412,
+      "testCodeLines": 1340
     },
     {
       "name": "apps/platform-admin",
@@ -252,12 +252,12 @@
     },
     {
       "name": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
-      "files": 21,
-      "totalLines": 3766,
-      "blankLines": 368,
+      "files": 22,
+      "totalLines": 3826,
+      "blankLines": 377,
       "commentLines": 0,
-      "codeLines": 3135,
-      "testCodeLines": 263
+      "codeLines": 3127,
+      "testCodeLines": 322
     },
     {
       "name": "packages/browser-connector",
@@ -324,12 +324,12 @@
     },
     {
       "name": "packages/nextclaw-ncp-runtime-adapter-hermes-http",
-      "files": 11,
-      "totalLines": 2837,
-      "blankLines": 259,
+      "files": 12,
+      "totalLines": 2868,
+      "blankLines": 264,
       "commentLines": 0,
-      "codeLines": 1820,
-      "testCodeLines": 758
+      "codeLines": 1819,
+      "testCodeLines": 785
     },
     {
       "name": "packages/nextclaw-ncp-runtime-stdio-client",
@@ -776,7 +776,7 @@
       "codeLines": 572
     },
     {
-      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/hermes-http-adapter.service.ts",
+      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/services/hermes-http-adapter.service.ts",
       "scope": "packages/nextclaw-ncp-runtime-adapter-hermes-http",
       "language": "TypeScript",
       "files": 1,
@@ -1676,16 +1676,6 @@
       "codeLines": 367
     },
     {
-      "path": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/index.ts",
-      "scope": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 398,
-      "blankLines": 32,
-      "commentLines": 0,
-      "codeLines": 366
-    },
-    {
       "path": "packages/nextclaw-ui/src/shared/lib/transport/remote-transport.service.ts",
       "scope": "packages/nextclaw-ui",
       "language": "TypeScript",
@@ -1812,6 +1802,16 @@
       "files": 1,
       "totalLines": 393,
       "blankLines": 35,
+      "commentLines": 0,
+      "codeLines": 358
+    },
+    {
+      "path": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/index.ts",
+      "scope": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 390,
+      "blankLines": 32,
       "commentLines": 0,
       "codeLines": 358
     },
@@ -2706,16 +2706,6 @@
       "codeLines": 289
     },
     {
-      "path": "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src/services/codex-app-server-client.service.ts",
-      "scope": "packages/extensions/nextclaw-ncp-runtime-codex-sdk",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 318,
-      "blankLines": 31,
-      "commentLines": 0,
-      "codeLines": 287
-    },
-    {
       "path": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/utils/anthropic-openai-bridge-stream.utils.ts",
       "scope": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
       "language": "TypeScript",
@@ -2954,6 +2944,16 @@
       "blankLines": 4,
       "commentLines": 0,
       "codeLines": 272
+    },
+    {
+      "path": "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src/services/codex-app-server-client.service.ts",
+      "scope": "packages/extensions/nextclaw-ncp-runtime-codex-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 299,
+      "blankLines": 29,
+      "commentLines": 0,
+      "codeLines": 270
     },
     {
       "path": "packages/nextclaw-server/src/features/cron/controllers/cron.controller.ts",
@@ -5666,16 +5666,6 @@
       "codeLines": 150
     },
     {
-      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/hermes-http-adapter-session-store.service.ts",
-      "scope": "packages/nextclaw-ncp-runtime-adapter-hermes-http",
-      "language": "TypeScript",
-      "files": 1,
-      "totalLines": 172,
-      "blankLines": 23,
-      "commentLines": 0,
-      "codeLines": 149
-    },
-    {
       "path": "packages/nextclaw-ncp-runtime-stdio-client/src/test-fixtures/echo-agent.utils.mjs",
       "scope": "packages/nextclaw-ncp-runtime-stdio-client",
       "language": "MJS",
@@ -5714,6 +5704,16 @@
       "blankLines": 12,
       "commentLines": 0,
       "codeLines": 149
+    },
+    {
+      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/services/hermes-http-adapter-session-store.service.ts",
+      "scope": "packages/nextclaw-ncp-runtime-adapter-hermes-http",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 170,
+      "blankLines": 22,
+      "commentLines": 0,
+      "codeLines": 148
     },
     {
       "path": "packages/nextclaw-mcp/src/lifecycle/mcp-server-lifecycle-manager.ts",
@@ -12256,7 +12256,7 @@
       "codeLines": 49
     },
     {
-      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/cli.ts",
+      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/controllers/hermes-http-adapter.controller.ts",
       "scope": "packages/nextclaw-ncp-runtime-adapter-hermes-http",
       "language": "TypeScript",
       "files": 1,
@@ -19316,7 +19316,7 @@
       "codeLines": 0
     },
     {
-      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/hermes-http-adapter.service.test.ts",
+      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/services/hermes-http-adapter.service.test.ts",
       "scope": "packages/nextclaw-ncp-runtime-adapter-hermes-http",
       "language": "TypeScript",
       "files": 1,
@@ -22556,6 +22556,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src/services/codex-app-server-client.service.test.ts",
+      "scope": "packages/extensions/nextclaw-ncp-runtime-codex-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 71,
+      "blankLines": 11,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-input-bar/__tests__/chat-composer-lexical-owner.test.ts",
       "scope": "packages/nextclaw-agent-chat-ui",
       "language": "TypeScript",
@@ -22682,6 +22692,16 @@
       "files": 1,
       "totalLines": 69,
       "blankLines": 8,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
+      "path": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/services/claude-code-session-identity.service.test.ts",
+      "scope": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 68,
+      "blankLines": 9,
       "commentLines": 0,
       "codeLines": 0
     },
@@ -23736,6 +23756,16 @@
       "codeLines": 0
     },
     {
+      "path": "packages/nextclaw-ncp-runtime-adapter-hermes-http/src/services/hermes-http-adapter-session-store.service.test.ts",
+      "scope": "packages/nextclaw-ncp-runtime-adapter-hermes-http",
+      "language": "TypeScript",
+      "files": 1,
+      "totalLines": 33,
+      "blankLines": 6,
+      "commentLines": 0,
+      "codeLines": 0
+    },
+    {
       "path": "packages/nextclaw-service/src/utils/config-path.utils.test.ts",
       "scope": "packages/nextclaw-service",
       "language": "TypeScript",
@@ -24127,7 +24157,7 @@
     }
   ],
   "delta": {
-    "previousCodeLines": 217702,
+    "previousCodeLines": 217676,
     "codeLines": 0,
     "percent": 0
   }
