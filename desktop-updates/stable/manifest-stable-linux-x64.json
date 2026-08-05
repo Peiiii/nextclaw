@@ -2,11 +2,11 @@
   "channel": "stable",
   "platform": "linux",
   "arch": "x64",
-  "latestVersion": "0.27.7",
+  "latestVersion": "0.28.0",
   "minimumLauncherVersion": "0.0.141",
-  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.27.7-desktop.1/nextclaw-bundle-linux-x64-0.27.7.zip",
-  "bundleSha256": "51c5fd54ee48161df9ad6afefb71f7f7adf3f088c495f459f9805edffa940000",
-  "bundleSignature": "N6OoE4B/6eroK2MWU39ZP2HcuFeTJslGvFCVDwxX5Q4ZFvgLw5QMpW0zfwZ5EbHjy2vuyCzqG+cDVq/AV18DBw==",
-  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-07-29-nextclaw-v0-27-7",
-  "manifestSignature": "pB6Wo6gkdmiVEtS1kxpLdsRF2r3zi3nq46IP2JN9/x0KvvxuORBz+dEoloqnDZoxpnwTluGFOcrmRL2VNGQvBA=="
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.28.0/nextclaw-bundle-linux-x64-0.28.0.zip",
+  "bundleSha256": "9bf9507d4ccdc38c71285df0026973b04fe873de5595f1d4b1b795be4218843a",
+  "bundleSignature": "CwhsIS/YnwG+bA6TJ/hoovylpXLol2nwOTHib1bKSZXqNcXvgTMuDun78aro6Pavzl0dodqwq2axkj4+OmiABQ==",
+  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-06-nextclaw-v0-28-0",
+  "manifestSignature": "+YtRGU4ozHww+MxG8MGw04bByFkU0zDQuu29MX8HCPOljvCUmMNbid9ApNFfKXXjRv0T2EMQNQyr7ZZ7YvDHAQ=="
 }
