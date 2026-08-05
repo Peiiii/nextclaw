@@ -15,6 +15,7 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
 - 不需要进入最终 changelog 的内部变更：不添加任何发布说明片段
 - 面向最终用户的版本更新说明：发布时由 AI 基于 `.changeset`、commit 区间和必要 `docs/logs` 证据手写产品更新笔记，不能只机械拼接 changeset
 - 面向产品更新提示的结构化版本说明：发布时同步生成可拉取 JSON，供更新 UI 在用户更新前展示本版本内容
+- 面向版本更新笔记的需求级视觉证据：在对应 changeset 中绑定本地化源截图，发布时自动发现和校验，不靠发布当天搜索文件
 
 ## 提交/收尾时
 
@@ -42,12 +43,27 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
 - 如果用户看了也没有意义，就不写。
 - 不要为“不需要进入 changelog”的变更创建额外记录。
 
+### 需求级配图证据
+
+如果本次用户可见变更已经产出适合作为版本更新说明证据的正式截图，必须把截图与同一需求的 changeset 绑定。每个语言版本使用一条不可见指令：
+
+```md
+<!-- release-note-image: zh-CN | images/screenshots/<asset-cn>.png | 中文替代文本 -->
+<!-- release-note-image: en-US | images/screenshots/<asset-en>.png | English alt text -->
+```
+
+- 指令必须放在 changeset 正文中；不要另建平行清单，也不要依赖文件名猜测所属需求。
+- 路径必须是仓库相对路径，源文件必须位于 `images/screenshots/`，支持 PNG、JPEG 和 WebP。
+- 替代文本直接描述用户看到的产品结果，不写“宣传图”“截图如下”或内部方案话术。
+- 没有合格截图时不写空指令；截图是候选证据，不是所有 changeset 的必填项。
+- 提交或收尾前运行 `pnpm release:summary -- --json`，确保已声明素材存在、格式合法且可被未来发布流程发现。
+
 ## 发布时
 
 在 `/release-beta`、`/release-beta-npm`、稳定 NPM 发布、GitHub release 或用户要求“生成本次 changelog/汇总更新内容”时：
 
-1. 读取未发布 `.changeset/*.md`。
-2. 聚合受影响 packages、semver bump 和用户可读摘要，作为写作底稿。
+1. 运行 `pnpm release:summary -- --json`，读取未发布 changeset、受影响 packages、semver bump、用户可读摘要和需求级本地化截图；命令报错时先修复素材合同，不得继续版本化。
+2. 以聚合结果作为写作和配图底稿；必要时再读取 commit 区间与对应 `docs/logs` 补充证据，不能用临时全仓搜索替代 changeset 关联。
 3. 判断是否需要用户可见版本更新笔记：
    - 只要本批包含用户会感知的产品变化，并且发布结果会进入用户安装、自动更新、GitHub release、官网/docs 或 update manifest，就必须生成或更新版本更新笔记。
    - 稳定 NPM minor 发布是强制项：只要 `nextclaw` 的稳定版本从 `0.x.y` 升到下一个 minor（例如 `0.22.x -> 0.23.0`），发布前必须补齐文档站版本更新笔记，不能用 changeset、GitHub release 或 npm changelog 代替。
@@ -59,6 +75,7 @@ description: 当用户要求提交、收尾、统一 NPM 发布、GitHub release
    - 同步更新对应 `apps/docs/<locale>/notes/index.md`
    - 结构化 JSON：`apps/docs/public/release-notes/nextclaw-v<version>.json`
    - 如果本次只面向中文用户或发布窗口不足，可以先写中文，并在发布报告中明确英文缺口。
+   - 通过配图门槛的需求级源截图复制为版本稳定资产：`apps/docs/public/release-notes/nextclaw-v<version>-<slug>.<ext>`；中英文笔记分别引用匹配 locale 的图片，不直接引用仓库根目录源图。
 6. 对 runtime / desktop update channel，必须让 update manifest 的 `releaseNotesUrl` 指向本次用户可读版本更新笔记；更新 UI 可通过同源 `/release-notes/nextclaw-v<version>.json` 拉取结构化内容。不要为了 JSON URL 轻易新增签名 manifest 字段，除非已经审计旧客户端验签兼容性。
 7. 用聚合结果生成 NPM changelog / GitHub release notes。
 8. 若本次 release type 是 `minor` 或 `major`，发布完成且文档站 release note URL 已公开可访问后，必须补齐 X 发布帖闭环；`patch` 默认不发 X 帖，除非用户明确要求或发布报告说明本次 patch 有明确宣传价值。
@@ -110,6 +127,9 @@ X 帖是文档站版本更新笔记的下游产物，只服务 minor / major 版
 - 纯 CLI、协议、兼容性、稳定性、内部链路、发布元数据或无明确视觉变化的更新，默认不配图。
 - 如果只能拿到空态、mock、加载态、被裁断结果、概念图，或图片不能支撑正文主结论，也默认不配图；需要配图时先补真实素材或调整正文。
 - 需要配图时，联动 `product-blog-storytelling` 选择图片形式和核心亮点，联动 `refresh-product-visual-assets` 生成或检查真实素材，并继续遵守 `user-facing-content-boundary` 的截图真实性、隐私和文案对齐要求。
+- `release:summary` 返回的需求级图片是默认候选。只要图片通过上述门槛并支撑本版主结论，就默认进入对应语言的版本更新笔记；不得因为发布当天忘记、文件难找或需要手工复制而漏用。
+- 候选图片未采用时，发布报告必须逐项说明原因，例如与主结论无关、内容已经过时、隐私风险或构图不合格；“没有注意到”不是有效理由。
+- 同一版本有多张合格候选时，优先选择最能解释主变化的一至两张，避免把版本更新笔记写成截图画廊。
 
 ## 结构化 JSON 要求
 
@@ -122,19 +142,19 @@ X 帖是文档站版本更新笔记的下游产物，只服务 minor / major 版
 - `sections[]`: 每个 section 包含 `kind`、本地化 `title`、`items[]`
 - `kind` 只使用 `feature`、`enhancement`、`fix`、`compatibility`
 - `items[]` 只写用户可见标题和简短说明，不写内部讨论、测试、治理或分类依据
+- schema v1 暂不承载文档配图；需求级图片用于中英文人类页面和下游宣发，若未来更新 UI 需要媒体能力，必须另行设计兼容的 schema 演进。
 
 ## 自动化边界
 
-当前仓库已有 Changesets 与 `pnpm release:auto:changeset`。后续若补脚本，只需要围绕这个简单合同：
+当前仓库已有 Changesets、`pnpm release:auto:changeset` 与需求证据聚合命令：
 
 ```bash
-pnpm release:notes:check
-pnpm release:summary
+pnpm release:summary -- --json
 ```
 
-`release:notes:check` 只检查“明显用户可见的 staged/package 改动是否缺 changeset”，不要要求内部治理、测试、docs/logs 生成排除记录。
+`release:version` 在执行 `changeset version` 前自动运行 `release:summary`，因此无效路径、缺失文件或格式错误会阻断版本化。AI 仍须显式读取 JSON 输出，完成配图判断和用户文案写作。
 
-如果后续补 `release:summary`，它只能生成证据底稿和缺口清单；最终用户可见版本更新笔记仍由 AI 审阅并手写，不能把脚本输出直接当正文。
+`release:summary` 只能生成证据底稿和缺口清单；最终用户可见版本更新笔记仍由 AI 审阅并手写，不能把脚本输出直接当正文。
 
 ## 禁止做法
 

@@ -50,6 +50,7 @@ pnpm run screenshots:refresh
 - `panel-app-running-en`、`panel-app-running-zh`
 - `workspace-preview-en`、`workspace-preview-zh`
 - `skills-detail-en`、`skills-detail-zh`
+- `inbox-delivery-en`、`inbox-delivery-zh`
 
 如需单独使用真实 marketplace：
 
@@ -142,6 +143,23 @@ GitHub/文档源图放在 `images/screenshots/`。仍通过 public URL 使用的
 
 Agent 与消息渠道截图由 landing 通过 Vite 导入。Agent 场景会等每张可见卡片的头像（图片或回退头像）就绪后再截图，避免把资源尚未加载完成的界面写入正式素材。
 
+## 需求级截图与版本更新说明
+
+正式截图进入 `images/screenshots/` 后，如果它能直接证明某个用户可见需求的价值，应在同一需求的 `.changeset/*.md` 中加入本地化引用：
+
+```md
+<!-- release-note-image: zh-CN | images/screenshots/<asset-cn>.png | 中文替代文本 -->
+<!-- release-note-image: en-US | images/screenshots/<asset-en>.png | English alt text -->
+```
+
+运行以下命令检查所有未发布 changeset 的图片引用：
+
+```bash
+pnpm release:summary -- --json
+```
+
+命令会校验 locale、文件位置、扩展名、替代文本与文件存在性，并输出需求、包变更和图片的聚合关系。`release:version` 会在 Changesets 版本化前自动执行同一校验。未来生成版本更新笔记时，发布 skill 默认从该聚合结果选择合格图片，复制到 `apps/docs/public/release-notes/` 的版本稳定路径，再分别写入中英文页面；不直接从文件名推断需求，也不把聚合 JSON 机械转换成公开文案。
+
 ## CI
 
 `.github/workflows/product-screenshots.yml` 每周和手动运行 stable 模式，并在资产变化时创建 PR。CI 不刷新精选真实任务或二维码，因为这两类素材需要明确的人类输入。
@@ -155,4 +173,5 @@ Agent 与消息渠道截图由 landing 通过 Vite 导入。Agent 场景会等�
 5. 用 `shasum -a 256` 检查 GitHub 源图与 landing 镜像。
 6. 用 `rg` 检查 README、landing 和 docs 的实际引用没有指向旧资源。
 7. 运行 `pnpm --filter @nextclaw/landing build`，并在本地页面打开实际图片入口。
-8. 最后检查 `git diff --name-status`，不要混入本次视觉资产范围之外的工作区改动。
+8. 对已绑定 changeset 的需求级截图运行 `pnpm release:summary -- --json`。
+9. 最后检查 `git diff --name-status`，不要混入本次视觉资产范围之外的工作区改动。

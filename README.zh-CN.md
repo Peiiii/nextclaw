@@ -45,6 +45,12 @@ NextClaw 是一个本地优先的 AI 工作台，适合处理那些不只是“�
 
 ## 产品导览
 
+### AI 主动把重要结果送到你面前
+
+定时任务、后台 Agent 或长期监测完成后，NextClaw 可以把报告送进收件箱。你可以稍后阅读、集中管理，也可以带着完整内容直接继续聊。
+
+[![NextClaw AI 主动送达项目晨报](images/screenshots/nextclaw-ai-delivery-inbox-cn.png)](images/screenshots/nextclaw-ai-delivery-inbox-cn.png)
+
 ### 每次任务都可以选择 Agent Runtime
 
 Agent 保留自己的身份、主目录、记忆和技能，再由 Native、Codex、Claude Code、OpenCode 或 Hermes 执行当前任务。下面这个真实会话使用 Codex 完善项目架构，右侧同步查看生成的 Markdown 文档。

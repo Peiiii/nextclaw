@@ -26,9 +26,10 @@ import {
   parseBooleanEnv
 } from './product-screenshots/curated-scenes.utils.mjs';
 import { createAgentRuntimeScreenshotScenes } from './product-screenshots/agent-runtime-scenes.config.mjs';
+import { createInboxDeliveryScreenshotScenes, resolveInboxDeliveryScreenshotMock } from './product-screenshots/inbox-delivery-scenes.config.mjs';
 import {
   initializeScreenshotDocument,
-  installMockApiRoutes,
+  installScreenshotApiRoutes,
   openFirstSkillDetail,
   waitForChatReady,
   waitForDocBrowserPanel,
@@ -219,6 +220,7 @@ const stableScenes = [
       'apps/landing/public/nextclaw-chat-page-cn.png'
     ]
   },
+  ...createInboxDeliveryScreenshotScenes(),
   {
     id: 'apps-panel-en',
     route: `/chat/${localPanels.workspaceSessionId}`,
@@ -439,7 +441,7 @@ const staticGetMocks = new Map([
   }]
 ]);
 
-const resolveMock = createScreenshotRouteMockResolver({ localPanels, marketplaceSkills, staticGetMocks });
+const resolveMock = createScreenshotRouteMockResolver({ localPanels, marketplaceSkills, resolveSceneMock: resolveInboxDeliveryScreenshotMock, staticGetMocks });
 
 function asObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -701,7 +703,6 @@ async function captureScene(browser, scene, uiOrigin) {
     }
 
     const page = await context.newPage();
-    await page.route('**/api/ui-inject.js', (route) => route.fulfill({ status: 204 }));
     page.on('pageerror', (error) => {
       const message = error instanceof Error ? error.stack || error.message : String(error);
       pageErrors.push(message);
@@ -716,13 +717,12 @@ async function captureScene(browser, scene, uiOrigin) {
       }
     });
 
-    if (!useRealAppData) {
-      await installMockApiRoutes(page, {
-        useRealMarketplace,
-        resolveRealMarketplace,
-        resolveMock
-      });
-    }
+    await installScreenshotApiRoutes(page, {
+      resolveMock: (pathname, searchParams, method) => resolveMock(pathname, searchParams, method, scene.id),
+      resolveRealMarketplace,
+      useMockApi: !useRealAppData,
+      useRealMarketplace
+    });
 
     await page.goto(`${uiOrigin}${scene.route}`, {
       waitUntil: useRealAppData ? 'commit' : 'domcontentloaded'

@@ -10,6 +10,9 @@
 - 新增桌面双栏、移动列表/详情式收件箱，包含未读/全部/已归档筛选、已读切换、归档、恢复、删除和继续聊；桌面侧栏与移动底栏显示未读提示。
 - “继续聊”创建或复用真实 NCP 会话，并通过 `inbox_delivery_id` 会话元数据和 Context Provider 在后续 Agent 运行时注入送达内容，不把报告伪装成用户消息。
 - 阅读弹窗初始焦点落在标题，不会误触发上一项/下一项 tooltip；视觉使用轻边框、受控阴影和 24px 圆角，避免此前讨论过的过大阴影与松散边距。
+- 新增可重复生成的中英文宣传截图场景，使用真实产品界面展示 AI 主动送达“项目晨报”；标准资产进入 GitHub/文档源目录与 landing 同名镜像，并接入中英文 README 和结果文档。
+- 新增需求级版本配图证据合同：收件箱 changeset 直接绑定中英文截图，`release:summary` 自动聚合并校验路径、语言、格式、替代文本和文件存在性；`release:version` 在版本化前执行同一检查，未来 release-note skill 默认消费候选图片。
+- 修复产品截图脚本中通用 `/api/*` mock 覆盖 `ui-inject.js` 专用响应的问题；专用空 JavaScript 路由现在最后注册，不再产生 `Unexpected token ':'` 页面异常。
 - 正式方案见 `docs/designs/2026-08-06-ai-delivery-inbox.design.md`。
 
 ## 测试/验证/验收方式
@@ -28,6 +31,9 @@
 - 治理：`pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet` 通过。
 - 可维护性守卫：本功能相关新增目录均有合法 role 与 owner；全工作区守卫仍被并行用户改动 `packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime.service.ts` 的既有超长文件继续增长阻断，本轮未触碰或覆盖该改动。
 - 生成物：构建后 `pnpm check:generated-clean` 通过。
+- 宣传素材：`inbox-delivery-en,inbox-delivery-zh` 场景按雾蓝主题、1512×828 CSS 视口与 2x 输出生成；源资产和 landing 镜像通过尺寸、哈希与人工构图检查。
+- 宣传页面：`@nextclaw/landing` 与 `@nextclaw/docs` 生产构建通过；截图脚本定向 ESLint 通过。
+- 发布证据：`release-summary.test.mjs` 3 项通过；`pnpm release:summary -- --json` 能发现收件箱中英文图片且无合同错误。
 
 ## 发布/部署方式
 
@@ -51,6 +57,9 @@
 - 这是跨 Shared、Kernel、Server、SDK、UI 的新增用户能力，生产代码净增符合新增能力豁免。增长集中在明确 owner 和端到端合同，没有新增兼容路径或复制旧实现。
 - 正向减债：把收件箱页面拆成页级编排、列表面板与阅读面板；React Query 继续作为服务端事实 owner，Zustand 仅保存弹窗 UI 状态；工具、API、事件和界面共用唯一 Kernel mutation owner。
 - 目录预算：Tool Provider、Context Provider 和 Client SDK services 都是稳定扩展点的同角色扁平目录，已有或新增明确预算说明；没有为了通过预算制造单文件假子树。
+- 宣传截图接入没有继续扩大已超预算的总脚本：`refresh-product-screenshots.mjs` 保持基线 811 行，页面路由安装职责收敛到既有 browser helper，场景数据与行为由独立配置拥有。
+- 版本配图关联复用现有 changeset 作为需求 owner，没有新增平行 manifest；聚合脚本只产生证据底稿，最终公开文案仍由 release-note skill 审阅。
+- 版本证据自动化是新增发布能力，新增聚合脚本 166 行和定向测试 96 行，同时让既有 release scope 复用同一 owner、删除旧 changeset 解析分支；该批非测试代码 `+174/-32`、净增 142 行，没有复制发布说明生成器或扩张结构化 release-note JSON 协议。
 - 收件箱实现本身没有新增可维护性问题。
 
 ## NPM 包发布记录

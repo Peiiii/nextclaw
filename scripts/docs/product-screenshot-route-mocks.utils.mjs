@@ -126,8 +126,14 @@ function resolveDefaultGetMock({ method }) {
   return method === 'GET' ? ok({}) : null;
 }
 
-export function createScreenshotRouteMockResolver({ localPanels, marketplaceSkills, staticGetMocks }) {
+export function createScreenshotRouteMockResolver({
+  localPanels,
+  marketplaceSkills,
+  resolveSceneMock,
+  staticGetMocks,
+}) {
   const resolvers = [
+    resolveSceneMock,
     (params) => resolveStaticMock({ ...params, staticGetMocks }),
     (params) => resolveLocalPanelMock({ ...params, localPanels }),
     resolveSessionHistoryMock,
@@ -139,8 +145,8 @@ export function createScreenshotRouteMockResolver({ localPanels, marketplaceSkil
     resolveDefaultGetMock
   ];
 
-  return (pathname, searchParams, method) => {
-    const params = { method, pathname, searchParams };
+  return (pathname, searchParams, method, sceneId = "") => {
+    const params = { method, pathname, sceneId, searchParams };
     for (const resolve of resolvers) {
       const response = resolve(params);
       if (response) {

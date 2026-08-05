@@ -18,6 +18,12 @@ Markdown、代码、HTML、文档、表格和演示文稿可以直接打开。HT
 
 ![在会话旁查看 HTML 数据报告](/product-screenshots/nextclaw-workspace-preview-cn.png)
 
+### 收件箱与主动送达
+
+定时任务、后台 Agent 或长期监测完成后，AI 可以把报告送到收件箱。关闭阅读弹窗不会把内容标为已读；需要继续处理时，可以从报告直接创建关联会话。
+
+![AI 把项目晨报主动送到 NextClaw 收件箱](/product-screenshots/nextclaw-ai-delivery-inbox-cn.png)
+
 ### Panel App
 
 如果交付物是仪表盘、表单、计算器或交互页面，可以作为 Panel App 留在右侧继续使用，而不是只保存一张截图。

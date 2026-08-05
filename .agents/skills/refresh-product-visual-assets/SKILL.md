@@ -75,6 +75,7 @@ GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
 - 不得出现密钥、token、私人标识、无关会话、失败提示、加载态、调试工具或被裁断的关键结果。
 - 产品截图必须来自真实运行界面；概念图、重排卡片或拼接图不能冒充产品截图。
 - `images/screenshots/` 是 GitHub/文档源资产；landing 使用的同名镜像必须与源资产哈希一致。
+- 为单个用户可见需求产出的正式截图，如果适合未来版本更新说明，必须通过 `release-note-image` 指令绑定到同一需求的 changeset；不要只把图片放进目录后期待发布时按文件名猜测。
 - README 中的动态指标图使用仓库自有静态资产，并由 workflow 定期刷新；不得直接依赖需要公开 token 的第三方图片 URL。
 - 定时 CI 只刷新稳定场景。精选真实任务和外部时效资产需要明确输入，不加入无输入的定时任务。
 
@@ -85,6 +86,18 @@ GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
 3. 用 `rg` 检查 README、landing 与 docs 的实际引用，确认没有仍指向旧资产。
 4. 对 landing 变更运行 `pnpm --filter @nextclaw/landing build`，并在真实页面打开对应图片或入口。
 5. 运行触达脚本的 ESLint、skill validator、maintainability guard 和治理检查。
-6. 最后检查 `git diff --name-status`，只保留本次视觉资产机制和实际受影响图片；未经用户要求不要提交。
+6. 若本次图片已绑定 changeset，运行 `pnpm release:summary -- --json`，确认语言、路径、替代文本和文件存在性全部通过。
+7. 最后检查 `git diff --name-status`，只保留本次视觉资产机制和实际受影响图片；未经用户要求不要提交。
+
+## 与版本更新说明关联
+
+需求级截图的长期 owner 仍是 `images/screenshots/`，changeset 只保存机器可读引用：
+
+```md
+<!-- release-note-image: zh-CN | images/screenshots/<asset-cn>.png | 中文替代文本 -->
+<!-- release-note-image: en-US | images/screenshots/<asset-en>.png | English alt text -->
+```
+
+仅在截图真实、公开安全、能直接证明需求价值时添加。完整发现、筛选、版本化复制和未采用原因由 `nextclaw-release-notes-automation` 负责；本 skill 不生成最终 release note。
 
 详细场景清单、环境变量和资产 owner 以 [`docs/workflows/product-screenshot-automation.md`](../../../docs/workflows/product-screenshot-automation.md) 为准。

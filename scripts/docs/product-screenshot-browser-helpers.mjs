@@ -137,28 +137,38 @@ export function initializeScreenshotDocument({ key, value, useMockRealtime }) {
   window.WebSocket = MockWebSocket;
 }
 
-export async function installMockApiRoutes(page, { useRealMarketplace, resolveRealMarketplace, resolveMock }) {
-  await page.route(
-    (url) => new URL(url).pathname.startsWith('/api/'),
-    async (route) => {
-      const requestUrl = new URL(route.request().url());
-      let response = null;
-      if (useRealMarketplace && requestUrl.pathname.startsWith('/api/marketplace/')) {
-        try {
-          response = await resolveRealMarketplace(requestUrl.pathname, requestUrl.searchParams, route.request().method());
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          console.warn(`[screenshot] real marketplace fallback -> mock: ${requestUrl.pathname} (${message})`);
+export async function installScreenshotApiRoutes(
+  page,
+  { resolveMock, resolveRealMarketplace, useMockApi, useRealMarketplace }
+) {
+  if (useMockApi) {
+    await page.route(
+      (url) => new URL(url).pathname.startsWith('/api/'),
+      async (route) => {
+        const requestUrl = new URL(route.request().url());
+        let response = null;
+        if (useRealMarketplace && requestUrl.pathname.startsWith('/api/marketplace/')) {
+          try {
+            response = await resolveRealMarketplace(requestUrl.pathname, requestUrl.searchParams, route.request().method());
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.warn(`[screenshot] real marketplace fallback -> mock: ${requestUrl.pathname} (${message})`);
+          }
         }
-      }
 
-      if (!response) {
-        response = resolveMock(requestUrl.pathname, requestUrl.searchParams, route.request().method());
-      }
+        if (!response) {
+          response = resolveMock(requestUrl.pathname, requestUrl.searchParams, route.request().method());
+        }
 
-      await route.fulfill(response);
-    }
-  );
+        await route.fulfill(response);
+      }
+    );
+  }
+  await page.route('**/api/ui-inject.js', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/javascript; charset=utf-8',
+    body: ''
+  }));
 }
 
 export async function waitForSceneText(page, scene) {

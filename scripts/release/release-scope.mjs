@@ -2,9 +2,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 
+import { collectReleaseSummary } from "./release-summary.mjs";
+
 const ROOT_DIR = process.cwd();
 const WORKSPACE_ROOTS = ["packages", "apps", "workers"];
-const CHANGESET_DIR = join(ROOT_DIR, ".changeset");
 const NPM_CONFIG_TIMEOUT_MS = 5000;
 const NPM_VIEW_TIMEOUT_MS = 15000;
 const PUBLISHED_VERSION_CACHE = new Map();
@@ -66,37 +67,11 @@ export function collectWorkspacePackages() {
 }
 
 export function readPendingChangesetPackages() {
-  if (!existsSync(CHANGESET_DIR)) {
-    return new Set();
-  }
-
-  const preStatePath = join(CHANGESET_DIR, "pre.json");
-  const appliedChangesets = new Set(
-    existsSync(preStatePath) ? JSON.parse(readFileSync(preStatePath, "utf8")).changesets ?? [] : []
+  return new Set(
+    collectReleaseSummary(ROOT_DIR).changesets.flatMap((changeset) =>
+      changeset.packages.map((pkg) => pkg.name)
+    )
   );
-  const entries = readdirSync(CHANGESET_DIR, { withFileTypes: true });
-  const packages = new Set();
-  for (const entry of entries) {
-    if (!entry.isFile() || !entry.name.endsWith(".md")) {
-      continue;
-    }
-    if (appliedChangesets.has(entry.name.replace(/\.md$/, ""))) {
-      continue;
-    }
-    const content = readFileSync(join(CHANGESET_DIR, entry.name), "utf8");
-    const match = content.match(/^---\n([\s\S]*?)\n---/);
-    if (!match) {
-      continue;
-    }
-    for (const line of match[1].split("\n")) {
-      const trimmed = line.trim();
-      const packageMatch = trimmed.match(/^["']?([^"']+)["']?\s*:\s*(major|minor|patch)\s*$/);
-      if (packageMatch) {
-        packages.add(packageMatch[1]);
-      }
-    }
-  }
-  return packages;
 }
 
 export function getPackageTagName(pkg) {

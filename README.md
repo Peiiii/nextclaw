@@ -45,6 +45,12 @@ NextClaw is a local-first AI workspace for tasks that need more than a single an
 
 ## Product Tour
 
+### Let AI deliver important results to you
+
+When scheduled work, a background Agent, or a long-running monitor finishes, NextClaw can deliver the report to your inbox. Read it later, manage it with the rest of your results, or continue the conversation with the full context.
+
+[![NextClaw delivering a project brief to the AI inbox](images/screenshots/nextclaw-ai-delivery-inbox-en.png)](images/screenshots/nextclaw-ai-delivery-inbox-en.png)
+
 ### Choose the Agent Runtime for each task
 
 Keep an Agent's identity, workspace, memory, and skills, then run the task with Native, Codex, Claude Code, OpenCode, or Hermes. The real task below uses Codex to refine a project architecture while the generated Markdown stays open beside the conversation.

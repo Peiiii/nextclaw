@@ -18,6 +18,12 @@ Open Markdown, code, HTML, documents, spreadsheets, and presentations without le
 
 ![An HTML data report open beside its NextClaw session](/product-screenshots/nextclaw-workspace-preview-en.png)
 
+### Inbox deliveries
+
+Scheduled work, background Agents, and long-running monitors can deliver reports to the inbox. Closing the reader keeps the item unread, and you can start a linked conversation when the result needs follow-up work.
+
+![AI delivering a project brief to the NextClaw inbox](/product-screenshots/nextclaw-ai-delivery-inbox-en.png)
+
 ### Panel Apps
 
 Dashboards, forms, calculators, and interactive pages can remain available as Panel Apps instead of becoming a static screenshot.
