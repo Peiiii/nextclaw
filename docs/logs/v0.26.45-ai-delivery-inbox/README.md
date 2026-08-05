@@ -40,8 +40,10 @@
 
 ## 发布/部署方式
 
-- 已添加 Shared、Kernel、Server、Client SDK 与 UI 的 patch changeset，并把顶层 `nextclaw` 标记为 minor；计划随 `0.28.0` 稳定版统一发布。
-- 不涉及数据库 migration、线上服务部署、runtime update channel 或桌面安装包发布。
+- 已随 `nextclaw@0.28.0` 稳定版统一发布；Shared、Kernel、Server、Client SDK 与 UI 的公共合同同步升级并发布。
+- 文档站中英文场景指南、版本说明、结构化 JSON 与通知 / Markdown / HTML / 收件箱管理真实截图已经部署；HTML 版本说明采用“每日 AI 与科技简报”场景。
+- stable runtime workflow `31032968267` 已完成四个平台运行包、GitHub Release 资产、gh-pages 与公共 manifest 发布。
+- 不涉及数据库 migration、线上后端服务部署或新的桌面安装包；本轮更新 NPM runtime 与 stable runtime channel。
 
 ## 用户/产品视角的验收步骤
 
@@ -67,8 +69,9 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/shared`：需要 patch，新增 Inbox Delivery 公共合同、会话元数据 key 与实时事件类型；当前 `0.4.16`，状态为 `待统一发布`。
-- `@nextclaw/kernel`：需要 patch，新增持久化 owner、Agent 工具、Tool Provider 与 Context Provider；当前 `0.6.19`，状态为 `待统一发布`。
-- `@nextclaw/server`：需要 patch，新增 Inbox Delivery HTTP API；当前 `0.15.19`，状态为 `待统一发布`。
-- `@nextclaw/client-sdk`：需要 patch，新增 `inboxDeliveries` namespace；当前 `0.5.19`，状态为 `待统一发布`。
-- `@nextclaw/ui`：需要 patch，新增全局阅读层、收件箱页面、导航入口、未读提示与中英文文案；当前 `0.15.20`，状态为 `待统一发布`。
+- `@nextclaw/shared@0.4.17`：已发布，包含 Inbox Delivery 公共合同、会话元数据 key 与实时事件类型。
+- `@nextclaw/kernel@0.6.20`：已发布，包含持久化 owner、Agent 工具、Tool Provider 与 Context Provider。
+- `@nextclaw/server@0.15.20`：已发布，包含 Inbox Delivery HTTP API。
+- `@nextclaw/client-sdk@0.5.20`：已发布，包含 `inboxDeliveries` namespace。
+- `@nextclaw/ui@0.15.21`：已发布，包含全局阅读层、收件箱页面、导航入口、未读提示与中英文文案。
+- `nextclaw@0.28.0`：已发布到 `latest`；registry、真实隔离安装、CLI 版本与 stable 更新检查均已验证。

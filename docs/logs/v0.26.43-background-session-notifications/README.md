@@ -39,8 +39,10 @@
 
 ## 发布/部署方式
 
-- 已添加 `@nextclaw/ui` patch changeset，并为中英文版本说明绑定真实产品截图；计划随 NextClaw `0.28.0` 稳定版统一发布。
-- 不涉及数据库 migration、后端部署、runtime update channel 或桌面安装包发布。
+- 已随 NextClaw `0.28.0` 稳定版统一发布；`@nextclaw/ui` 升级到 `0.15.21`，顶层 `nextclaw` 升级到 `0.28.0`。
+- 中英文版本说明已使用 changeset 绑定的真实通知截图，公开页面分别为 [中文](https://docs.nextclaw.io/zh/notes/2026-08-06-nextclaw-v0-28-0) 与 [English](https://docs.nextclaw.io/en/notes/2026-08-06-nextclaw-v0-28-0)。
+- stable runtime workflow `31032968267` 已完成四个平台运行包、GitHub Release 资产与公共 manifest 发布。
+- 不涉及数据库 migration、后端服务部署或新的桌面安装包；本轮只更新 NPM runtime 与 stable runtime channel。
 
 ## 用户/产品视角的验收步骤
 
@@ -62,6 +64,6 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/ui`：需要 patch 发布，因为新增了用户可感知的后台会话完成通知。
-- 当前状态：工作区版本 `0.15.20`；本次变更尚未发布，已添加 changeset，状态为 `待统一发布`。
-- 其他 workspace 包未改变公共合同，不需要随本次变更升级。
+- `@nextclaw/ui@0.15.21`：已发布到 `latest`，包含后台会话完成通知与全局应用内通知 owner。
+- `nextclaw@0.28.0`：已发布到 `latest`，包含本次 UI 产物；registry 隔离安装与 `--version` 已验证。
+- 远端 tags `@nextclaw/ui@0.15.21` 与 `nextclaw@0.28.0` 已推送；GitHub Release 为 https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.28.0。
