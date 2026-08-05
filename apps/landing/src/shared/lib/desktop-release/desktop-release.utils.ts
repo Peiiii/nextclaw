@@ -8,10 +8,11 @@ export type DesktopReleaseInfo = {
   windowsPortableZipUrl: string | null;
 };
 
-const STABLE_DESKTOP_RELEASE_TAG = 'v0.27.7-desktop.1';
-const STABLE_DESKTOP_VERSION = '0.0.236';
+const STABLE_DESKTOP_RELEASE_TAG = 'nextclaw@0.28.0';
+const STABLE_DESKTOP_VERSION = '0.0.237';
 const STABLE_DESKTOP_RELEASE_URL = `https://github.com/Peiiii/nextclaw/releases/tag/${STABLE_DESKTOP_RELEASE_TAG}`;
 const STABLE_DESKTOP_ASSET_BASE_URL = `https://github.com/Peiiii/nextclaw/releases/download/${STABLE_DESKTOP_RELEASE_TAG}`;
+const STABLE_DESKTOP_RELEASE_TAG_PATTERN = /^(?:v\d+\.\d+\.\d+-desktop\.\d+|nextclaw@\d+\.\d+\.\d+)$/;
 
 export const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
   tag: STABLE_DESKTOP_RELEASE_TAG,
@@ -59,7 +60,7 @@ function resolveDesktopReleaseInfo(input: unknown): DesktopReleaseInfo | null {
     return null;
   }
 
-  if (typeof release.tag_name !== 'string' || !/^v\d+\.\d+\.\d+-desktop\.\d+$/.test(release.tag_name)) {
+  if (typeof release.tag_name !== 'string' || !STABLE_DESKTOP_RELEASE_TAG_PATTERN.test(release.tag_name)) {
     return null;
   }
 

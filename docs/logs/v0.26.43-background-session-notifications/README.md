@@ -42,7 +42,7 @@
 - 已随 NextClaw `0.28.0` 稳定版统一发布；`@nextclaw/ui` 升级到 `0.15.21`，顶层 `nextclaw` 升级到 `0.28.0`。
 - 中英文版本说明已使用 changeset 绑定的真实通知截图，公开页面分别为 [中文](https://docs.nextclaw.io/zh/notes/2026-08-06-nextclaw-v0-28-0) 与 [English](https://docs.nextclaw.io/en/notes/2026-08-06-nextclaw-v0-28-0)。
 - stable runtime workflow `31032968267` 已完成四个平台运行包、GitHub Release 资产与公共 manifest 发布。
-- 不涉及数据库 migration、后端服务部署或新的桌面安装包；本轮只更新 NPM runtime 与 stable runtime channel。
+- 不涉及数据库 migration 或后端服务部署；GitHub Release 事件同时发布了 Desktop `0.0.237` 安装资产与 stable 桌面更新通道。
 
 ## 用户/产品视角的验收步骤
 

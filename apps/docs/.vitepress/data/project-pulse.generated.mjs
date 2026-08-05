@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-05T05:24:35.496Z",
+  "generatedAt": "2026-08-05T18:21:52.050Z",
   "hero": {
     "currentLoc": 217676,
     "testLoc": 79259,
     "trackedFiles": 2348,
-    "recentCommitCount": 331,
-    "activeDays30": 29,
+    "recentCommitCount": 333,
+    "activeDays30": 30,
     "recentReleaseCount": 48,
-    "latestReleaseDate": "2026-07-31",
-    "latestNoteDate": "2026-07-29",
+    "latestReleaseDate": "2026-08-06",
+    "latestNoteDate": "2026-08-06",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2427146,
     "basePercentOfBenchmark": 8.97,
@@ -1203,7 +1203,7 @@ export default {
       {
         "key": "2026-08-05",
         "label": "08-05",
-        "value": 0
+        "value": 2
       }
     ],
     "commitWeekly": [
@@ -1265,7 +1265,7 @@ export default {
       {
         "key": "2026-08-03",
         "label": "08-03",
-        "value": 3
+        "value": 11
       }
     ],
     "releaseMonthly": [
@@ -1327,7 +1327,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 0
+        "value": 1
       }
     ]
   },
@@ -1398,10 +1398,21 @@ export default {
     },
     "recentReleaseBatches": [
       {
-        "date": "2026-07-31",
-        "tagCount": 1,
+        "date": "2026-08-06",
+        "tagCount": 26,
         "sampleTags": [
-          "v0.27.7-desktop.1"
+          "@nextclaw/channel-extension-dingtalk@0.2.18",
+          "@nextclaw/channel-extension-discord@0.2.18",
+          "@nextclaw/channel-extension-email@0.2.18"
+        ]
+      },
+      {
+        "date": "2026-07-31",
+        "tagCount": 6,
+        "sampleTags": [
+          "@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.2.17",
+          "@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.17",
+          "@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http@0.3.16"
         ]
       },
       {
@@ -1437,20 +1448,30 @@ export default {
           "@nextclaw/browser-connector@0.3.9",
           "@nextclaw/channel-extension-dingtalk@0.2.13"
         ]
-      },
-      {
-        "date": "2026-07-22",
-        "tagCount": 49,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.6.14",
-          "@nextclaw/agent-chat@0.3.8",
-          "@nextclaw/aigen@0.2.8"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-06-nextclaw-v0-28-0",
+        "date": "2026-08-06",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-06 · NextClaw v0.28.0",
+          "description": "NextClaw v0.28.0 brings background results back to you through completion notifications and a persistent inbox for important reports.",
+          "href": "/en/notes/2026-08-06-nextclaw-v0-28-0"
+        },
+        "zh": {
+          "title": "2026-08-06 · NextClaw v0.28.0",
+          "description": "NextClaw v0.28.0 让后台结果主动回到你身边：其他会话完成时即时提醒，重要报告则进入可持久管理的收件箱。",
+          "href": "/zh/notes/2026-08-06-nextclaw-v0-28-0"
+        }
+      },
       {
         "slug": "2026-07-29-nextclaw-v0-27-7",
         "date": "2026-07-29",
@@ -2033,7 +2054,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-05T05:24:33.625Z",
     "sourceCount": {
-      "notes": 26,
+      "notes": 27,
       "scopes": 8
     }
   }

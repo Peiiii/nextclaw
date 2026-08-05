@@ -124,6 +124,16 @@
             "zh-CN": "现有配置、会话和文件保持兼容，已有 NPM 安装可以通过 stable 通道升级。",
             "en-US": "Existing configuration, conversations, and files remain compatible, and npm installations can update through the stable channel."
           }
+        },
+        {
+          "title": {
+            "zh-CN": "Desktop 0.0.237",
+            "en-US": "Desktop 0.0.237"
+          },
+          "body": {
+            "zh-CN": "NextClaw Desktop 0.0.237 为 macOS、Windows 和 Linux 打包 runtime 0.28.0，最低 launcher 版本保持 0.0.141。",
+            "en-US": "NextClaw Desktop 0.0.237 packages runtime 0.28.0 for macOS, Windows, and Linux while keeping the minimum launcher version at 0.0.141."
+          }
         }
       ]
     }

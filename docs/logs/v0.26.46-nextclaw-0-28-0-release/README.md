@@ -18,6 +18,8 @@
 - `pnpm release:publish` 在干净隔离 worktree 中完成；registry 传播重试后确认全部 26 个版本可读取，`nextclaw@latest` 为 `0.28.0`。
 - 文档部署 workflow `31032716842` 的 build、全球 Cloudflare Pages、国内 OSS/CDN 与双域名 verify 全部成功；四个中英文指南 / 版本说明页面以及代表性 PNG 资源均返回 HTTP `200`。
 - stable runtime workflow `31032968267` 完成 macOS arm64/x64、Linux x64、Windows x64 四个平台签名包、Release assets、gh-pages 和公共 stable manifest；仓库发布入口的最终 manifest 验证通过。
+- GitHub Release 事件自动触发 Desktop workflow `31032708216`；Desktop `0.0.237 / runtime 0.28.0` 的五个平台构建、macOS DMG、Windows 安装器与便携版、Linux AppImage/deb、更新通道和 APT 发布全部成功。
+- push 级 `desktop-validate` workflow `31032672345` 曾因 Windows 临时目录 8.3 / 长路径字符串断言与独立 Linux 初始化校验失败；正式 release workflow 对实际发布产物的 Windows、AppImage、deb 对应冒烟全部通过。本记录保留两者差异，不把前置校验失败误写为产品发布失败。
 - 在 `/tmp/nextclaw-0280-smoke.ElpN6n` 从 registry 隔离安装 `nextclaw@0.28.0`，真实二进制报告 `0.28.0`；全新 `NEXTCLAW_HOME` 执行 `update --check` 返回 stable runtime 已是最新 `0.28.0`。
 
 ## 发布/部署方式
@@ -26,7 +28,8 @@
 - NPM 使用仓库 Changesets 标准流程版本化和发布；GitHub Release 为 [NextClaw v0.28.0](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.28.0)，stable/latest、非 draft、非 prerelease。
 - 文档站通过 [Docs Deploy workflow 31032716842](https://github.com/Peiiii/nextclaw/actions/runs/31032716842) 部署；公开指南与版本说明见文末验收入口。
 - NPM runtime stable 通道通过 [workflow 31032968267](https://github.com/Peiiii/nextclaw/actions/runs/31032968267) 发布，manifest 的 release notes URL 指向本次英文公开说明。
-- 不涉及数据库 migration、线上后端服务部署或新的 Desktop launcher / installer；现有桌面壳会通过 stable runtime 通道获得 `0.28.0`。
+- Desktop `0.0.237` 通过 [workflow 31032708216](https://github.com/Peiiii/nextclaw/actions/runs/31032708216) 发布到同一 GitHub Release；五个平台公开 manifest 均为 runtime `0.28.0`、最低 launcher `0.0.141`，公开 APT 为 `0.0.237`。
+- 不涉及数据库 migration 或线上后端服务部署；本次已包含新的 Desktop launcher / installer。
 - 社交传播只准备候选文案，未在未获授权时发布：`后台工作终于会回来找你。NextClaw 0.28.0 带来会话完成通知与 AI 收件箱，支持 Markdown、静态 HTML 和继续聊。`
 
 ## 用户/产品视角的验收步骤
@@ -46,6 +49,7 @@
 - 发布截图继续以 changeset 为需求 owner，没有新增平行 release-note manifest；版本化前会自动阻断缺图、错语言或不存在的资源。
 - 本次发布收尾只更新版本元数据、changelog 与迭代记录，没有新增生产语义代码；功能批次的精确代码增减与两项既有截图入口 warning 已分别记录在 v0.26.43 和 v0.26.45。
 - 干净 worktree 首次发布前发现未变化的 `@nextclaw/ncp` 与 `@nextclaw/ncp-agent-runtime-next` 缺少 dist，补构建后利用发布 checkpoint 完成 26 个包且没有重复 publish。后续应把这类发布期前置产物纳入统一 build closure；本轮没有在已发布途中扩张发布脚本。
+- NPM GitHub Release 的 `published` 事件自动触发 Desktop workflow，并把 Desktop 资产与 NPM runtime 资产汇集到同一个 Release；现有 desktop closure 脚本仍按独立 Desktop tag 建模，无法直接验收混合资产。本轮按 workflow、Release assets、五个平台公共 manifest 与 APT 逐项人工闭合，并把统一 Release tag 纳入官网稳定下载识别；后续应统一 release trigger 与 closure 的同一身份合同。
 
 ## 红区触达与减债记录
 
@@ -60,3 +64,4 @@
 - 直接与依赖传播包：`@nextclaw/companion@0.2.20`、`@nextclaw/core@0.15.18`、`@nextclaw/extension-sdk@0.3.17`、`@nextclaw/mcp@0.3.18`、`@nextclaw/ncp-mcp@0.2.18`、`@nextclaw/nextclaw-narp-runtime-opencode@0.2.19`、`@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.19`、`@nextclaw/remote@0.3.20`、`@nextclaw/runtime@0.4.18`、`@nextclaw/service@0.3.20`。
 - Channel extensions：DingTalk、Discord、Email、Feishu、Slack、Telegram、WeCom、Weixin、WhatsApp 均为 `0.2.18`，QQ 为 `0.2.17`。
 - 全部 26 个版本 tags 已推送，registry 验证为 `26/26`，`nextclaw@latest` 为 `0.28.0`；GitHub Release 资产与 stable runtime public manifests 已验证。
+- Desktop `0.0.237` 不发布到 NPM；GitHub Release 同时提供 macOS、Windows、Linux 安装资产、便携包、更新 bundle 与 manifest，stable APT 为 `0.0.237`。

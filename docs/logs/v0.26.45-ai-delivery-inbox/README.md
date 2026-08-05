@@ -43,7 +43,7 @@
 - 已随 `nextclaw@0.28.0` 稳定版统一发布；Shared、Kernel、Server、Client SDK 与 UI 的公共合同同步升级并发布。
 - 文档站中英文场景指南、版本说明、结构化 JSON 与通知 / Markdown / HTML / 收件箱管理真实截图已经部署；HTML 版本说明采用“每日 AI 与科技简报”场景。
 - stable runtime workflow `31032968267` 已完成四个平台运行包、GitHub Release 资产、gh-pages 与公共 manifest 发布。
-- 不涉及数据库 migration、线上后端服务部署或新的桌面安装包；本轮更新 NPM runtime 与 stable runtime channel。
+- 不涉及数据库 migration 或线上后端服务部署；GitHub Release 事件同时发布了 Desktop `0.0.237` 安装资产与 stable 桌面更新通道。
 
 ## 用户/产品视角的验收步骤
 
