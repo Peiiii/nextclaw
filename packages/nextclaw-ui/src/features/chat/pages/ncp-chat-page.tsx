@@ -59,10 +59,19 @@ export function NcpChatPage({ view }: ChatPageProps) {
 }
 
 function NcpChatPageContent({ view }: ChatPageProps) {
+  const appPresenter = useAppPresenter();
   const presenter = usePresenter();
   const confirmDialog = useNcpChatUiBindings();
   const routeSelection = useNcpChatRouteSelection();
   const { routeSessionKey, sessionKey } = routeSelection;
+  useEffect(() => {
+    appPresenter.chatCompletionNotificationManager.syncActiveSession(
+      sessionKey ?? null,
+    );
+    return () => {
+      appPresenter.chatCompletionNotificationManager.syncActiveSession(null);
+    };
+  }, [appPresenter.chatCompletionNotificationManager, sessionKey]);
   useChatQueryStoreSync({
     sessionKey: sessionKey ?? null,
   });

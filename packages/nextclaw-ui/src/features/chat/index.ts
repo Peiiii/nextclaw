@@ -4,6 +4,7 @@ export { ChatPresenterProvider } from "./components/providers/chat-presenter.pro
 export { usePresenter } from "./components/providers/chat-presenter.provider";
 export { ChatPresenter } from "./presenters/chat.presenter";
 export { ChatDraftIntentManager } from "./managers/chat-draft-intent.manager";
+export { ChatCompletionNotificationManager } from "./managers/chat-completion-notification.manager";
 export { useChatSessionListStore } from "./stores/chat-session-list.store";
 export { useChatThreadStore } from "./stores/chat-thread.store";
 export { useChatMessageLayoutStore } from "./stores/chat-message-layout.store";

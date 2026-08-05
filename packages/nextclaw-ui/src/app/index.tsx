@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect } from "react";
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "sonner";
 import { appQueryClient } from "@/app-query-client";
 import { AppPresenterProvider } from "@/app/components/app-presenter-provider";
+import { AppNotificationRuntime } from "@/app/components/app-notification-runtime";
 import { AppLayout } from "@/app/components/layout/app-layout";
+import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styles";
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
 import { AccountPanel } from "@/features/account";
@@ -20,6 +22,8 @@ import {
   PwaInstallBanner,
 } from "@/pwa/components/pwa-install-entry";
 import { startNextClawPwa } from "@/pwa/register-pwa";
+
+const NOTIFICATION_TOASTER_STYLE = { "--width": "320px" } as CSSProperties;
 
 const ModelConfigPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/model-config-page"))
@@ -219,6 +223,7 @@ function ProtectedApp() {
 
   return (
     <AppPresenterProvider>
+      <AppNotificationRuntime />
       <AppLayout>
         <ProtectedRoutes />
       </AppLayout>
@@ -257,7 +262,16 @@ export default function AppContent() {
     <QueryClientProvider client={appQueryClient}>
       <AuthGate />
       <PwaInstallBanner />
-      <Toaster position="top-right" richColors offset={window.nextclawDesktop?.platform === "win32" ? 56 : undefined} mobileOffset={window.nextclawDesktop?.platform === "win32" ? 56 : undefined} />
+      <Toaster
+        position="top-right"
+        richColors
+        offset={{
+          top: window.nextclawDesktop?.platform === "win32" ? 56 : 44,
+          right: SIDEBAR_RAIL_WIDTH_PX + 16,
+        }}
+        mobileOffset={window.nextclawDesktop?.platform === "win32" ? 56 : undefined}
+        style={NOTIFICATION_TOASTER_STYLE}
+      />
     </QueryClientProvider>
   );
 }

@@ -1,9 +1,11 @@
 import { AccountManager } from '@/features/account';
 import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
 import {
+  ChatCompletionNotificationManager,
   ChatDraftIntentManager,
   useChatThreadStore,
 } from '@/features/chat';
+import { AppNotificationManager } from '@/features/notifications';
 import { PanelAppBridgeManager } from '@/features/panel-apps';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 import { RemoteAccessManager } from '@/features/remote';
@@ -19,6 +21,10 @@ function isChatWorkspacePanelOpen(snapshot: ChatThreadSnapshot): boolean {
 }
 
 export class AppPresenter {
+  notificationManager = new AppNotificationManager();
+  chatCompletionNotificationManager = new ChatCompletionNotificationManager(
+    this.notificationManager,
+  );
   accountManager = new AccountManager();
   rightPanelResourceRouteResolver = new RightPanelResourceRouteResolver();
   notifyRightPanelOpened = () => {
