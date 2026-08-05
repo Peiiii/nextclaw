@@ -75,7 +75,7 @@ export class InboxDeliveryStore {
       typeof value.title === "string" &&
       (value.summary === null || typeof value.summary === "string") &&
       typeof value.content === "string" &&
-      value.contentType === "markdown" &&
+      (value.contentType === "markdown" || value.contentType === "html") &&
       typeof value.createdAt === "string" &&
       typeof value.updatedAt === "string" &&
       this.isOptionalTimestamp(value.presentedAt) &&

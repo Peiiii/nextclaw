@@ -30,6 +30,7 @@ const enGuideSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Quickstart', link: '/en/guide/getting-started' },
       { text: 'Create your first task', link: '/en/guide/create-task' },
       { text: 'Inspect results', link: '/en/guide/results' },
+      { text: 'Receive background results', link: '/en/guide/background-results' },
       { text: 'Choose the next step', link: '/en/guide/after-setup' }
     ]
   },
@@ -103,6 +104,7 @@ const zhGuideSidebar: DefaultTheme.SidebarItem[] = [
       { text: '快速开始', link: '/zh/guide/getting-started' },
       { text: '创建第一个任务', link: '/zh/guide/create-task' },
       { text: '查看任务结果', link: '/zh/guide/results' },
+      { text: '接收后台结果', link: '/zh/guide/background-results' },
       { text: '选择下一步', link: '/zh/guide/after-setup' }
     ]
   },

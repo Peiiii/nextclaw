@@ -1,5 +1,5 @@
 import { readFile, stat } from "node:fs/promises";
-import { isAbsolute } from "node:path";
+import { extname, isAbsolute } from "node:path";
 import type { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
 import { MAX_INBOX_DELIVERY_CONTENT_LENGTH } from "@kernel/managers/inbox-delivery.manager.js";
 import {
@@ -7,7 +7,10 @@ import {
   type ToolExecutionContext,
 } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
-import type { InboxDeliverySource } from "@nextclaw/shared";
+import type {
+  InboxDeliveryContentType,
+  InboxDeliverySource,
+} from "@nextclaw/shared";
 
 type InboxDeliveryToolSource = Pick<
   InboxDeliverySource,
@@ -18,6 +21,7 @@ type InboxDeliveryRequest = {
   title: string;
   summary: string | null;
   content: string | null;
+  contentType: InboxDeliveryContentType;
   filePath: string | null;
 };
 
@@ -35,6 +39,16 @@ function readOptionalString(value: unknown): string | null {
   return value.trim() || null;
 }
 
+function readContentType(value: unknown): InboxDeliveryContentType | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (value !== "markdown" && value !== "html") {
+    throw new Error("contentType must be markdown or html.");
+  }
+  return value;
+}
+
 function normalizeRequest(args: unknown): InboxDeliveryRequest {
   const params = normalizeToolParams(args);
   const content = readOptionalString(params.content);
@@ -45,10 +59,16 @@ function normalizeRequest(args: unknown): InboxDeliveryRequest {
   if (filePath && !isAbsolute(filePath)) {
     throw new Error("filePath must be an absolute path.");
   }
+  const requestedContentType = readContentType(params.contentType);
   return {
     title: readRequiredString(params.title, "title"),
     summary: readOptionalString(params.summary),
     content,
+    contentType: requestedContentType ?? (
+      filePath && [".htm", ".html"].includes(extname(filePath).toLowerCase())
+        ? "html"
+        : "markdown"
+    ),
     filePath,
   };
 }
@@ -56,7 +76,7 @@ function normalizeRequest(args: unknown): InboxDeliveryRequest {
 class DeliverToInboxTool implements NcpTool {
   readonly name = "deliver_to_inbox";
   readonly description =
-    "Deliver a durable Markdown report, recommendation, or article to the user's NextClaw inbox. Use content for direct Markdown or filePath to snapshot a local UTF-8 text file. The user can read it later and continue in a new chat.";
+    "Deliver a durable Markdown or static HTML report, recommendation, or article to the user's NextClaw inbox. Use content for direct text or filePath to snapshot a local UTF-8 text file. Set contentType for direct HTML; .html and .htm files are detected automatically. The user can read it later and continue in a new chat.";
   readonly parameters: NcpTool["parameters"] = {
     type: "object",
     properties: {
@@ -70,11 +90,16 @@ class DeliverToInboxTool implements NcpTool {
       },
       content: {
         type: "string",
-        description: "Markdown content. Provide exactly one of content or filePath.",
+        description: "Markdown or static HTML content. Provide exactly one of content or filePath.",
+      },
+      contentType: {
+        type: "string",
+        enum: ["markdown", "html"],
+        description: "Content format. Defaults to HTML for .html/.htm files and Markdown otherwise.",
       },
       filePath: {
         type: "string",
-        description: "Absolute path to a UTF-8 Markdown or text file to snapshot.",
+        description: "Absolute path to a UTF-8 Markdown, HTML, or text file to snapshot.",
       },
     },
     required: ["title"],
@@ -96,6 +121,7 @@ class DeliverToInboxTool implements NcpTool {
       title: request.title,
       summary: request.summary,
       content,
+      contentType: request.contentType,
       source: {
         kind: "agent",
         agentId: this.source.agentId,

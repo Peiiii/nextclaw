@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.28.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-06",
+  "title": {
+    "zh-CN": "NextClaw v0.28.0",
+    "en-US": "NextClaw v0.28.0"
+  },
+  "summary": {
+    "zh-CN": "后台结果现在会主动回到你身边：其他会话完成时即时提醒，重要报告则进入可持久管理的收件箱。",
+    "en-US": "Background results now return to you through completion notifications and a persistent inbox for important reports."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-06-nextclaw-v0-28-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-06-nextclaw-v0-28-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "后台会话完成通知",
+            "en-US": "Background completion notifications"
+          },
+          "body": {
+            "zh-CN": "其他会话里的 AI 最终回复完成后，右上角会显示带有会话标题和纯文本摘要的可点击通知。",
+            "en-US": "A completed final AI reply in another conversation produces a clickable upper-right notification with the conversation title and a plain-text preview."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "AI 主动送达收件箱",
+            "en-US": "Proactive AI delivery inbox"
+          },
+          "body": {
+            "zh-CN": "定时任务、后台 Agent 和长期监测可以把 Markdown 或静态 HTML 报告送到可持久管理的收件箱。",
+            "en-US": "Scheduled work, background Agents, and long-running monitors can deliver Markdown or static HTML reports to a persistent inbox."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "收件箱生命周期管理",
+            "en-US": "Inbox lifecycle management"
+          },
+          "body": {
+            "zh-CN": "在未读、全部和已归档视图中标记已读或未读、归档、恢复和删除送达内容。",
+            "en-US": "Manage deliveries across Unread, All, and Archived views with read, unread, archive, restore, and delete actions."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "从报告继续聊",
+            "en-US": "Continue from a report"
+          },
+          "body": {
+            "zh-CN": "从送达内容创建或复用关联会话，并把完整报告作为 AI 上下文继续处理。",
+            "en-US": "Create or reuse a linked conversation and continue with the complete delivered report supplied as AI context."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更自然的未读默认行为",
+            "en-US": "More natural unread defaults"
+          },
+          "body": {
+            "zh-CN": "有未读内容时优先展示未读，没有未读内容时自动展示全部历史记录。",
+            "en-US": "The inbox prioritizes unread deliveries when present and otherwise falls back to the complete history."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "清爽的通知摘要",
+            "en-US": "Cleaner notification previews"
+          },
+          "body": {
+            "zh-CN": "通知预览会清理 Markdown 标记，同时保留原始会话回复。",
+            "en-US": "Notification previews remove Markdown syntax while preserving the original conversation response."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "静态 HTML 安全边界",
+            "en-US": "Static HTML safety boundary"
+          },
+          "body": {
+            "zh-CN": "HTML 报告支持内联样式，但脚本、表单、弹窗、远程资源和网络请求默认被隔离。",
+            "en-US": "HTML reports support inline styles while scripts, forms, popups, remote resources, and network requests remain isolated by default."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "无需手动迁移",
+            "en-US": "No manual migration required"
+          },
+          "body": {
+            "zh-CN": "现有配置、会话和文件保持兼容，已有 NPM 安装可以通过 stable 通道升级。",
+            "en-US": "Existing configuration, conversations, and files remain compatible, and npm installations can update through the stable channel."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { useInboxStore } from "@/features/inbox/stores/inbox.store";
 
 const mocks = vi.hoisted(() => ({
   closeReader: vi.fn(),
+  contentType: "markdown",
   continueInChat: vi.fn(),
   markRead: vi.fn(),
   selectInReader: vi.fn(),
@@ -22,8 +23,10 @@ vi.mock("@/features/inbox/hooks/use-inbox-deliveries", () => ({
         id: "delivery-1",
         title: "A considered report",
         summary: "A concise summary",
-        content: "# Finding\n\n**Important** result",
-        contentType: "markdown",
+        content: mocks.contentType === "html"
+          ? "<h1>HTML finding</h1>"
+          : "# Finding\n\n**Important** result",
+        contentType: mocks.contentType,
         source: { kind: "agent", agentId: null, sessionId: null, toolCallId: null, filePath: null },
         createdAt: "2026-08-06T00:00:00.000Z",
         updatedAt: "2026-08-06T00:00:00.000Z",
@@ -45,6 +48,7 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
 describe("InboxReaderDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.contentType = "markdown";
     useInboxStore.setState({
       snapshot: { readerOpen: true, activeDeliveryId: "delivery-1" },
     });
@@ -59,5 +63,15 @@ describe("InboxReaderDialog", () => {
     expect(document.activeElement).toBe(title);
     expect(screen.getByText(/Important result/)).toBeTruthy();
     expect(screen.queryByText("**Important** result")).toBeNull();
+  });
+
+  it("uses compact chrome and lets HTML fill the reading area", () => {
+    mocks.contentType = "html";
+    render(<MemoryRouter><InboxReaderDialog /></MemoryRouter>);
+
+    const title = screen.getByRole("heading", { name: "A considered report" });
+    expect(title.className).toContain("text-sm");
+    expect(screen.getByText("A concise summary").className).toContain("sr-only");
+    expect(screen.getByTitle("A considered report").className).toContain("h-full");
   });
 });

@@ -21,11 +21,9 @@ import {
   runtimeUpdatePayload
 } from './product-screenshot-status-mocks.mjs';
 import { createScreenshotRouteMockResolver } from './product-screenshot-route-mocks.utils.mjs';
-import {
-  createScreenshotModeState,
-  parseBooleanEnv
-} from './product-screenshots/curated-scenes.utils.mjs';
+import { createScreenshotModeState, parseBooleanEnv } from './product-screenshots/curated-scenes.utils.mjs';
 import { createAgentRuntimeScreenshotScenes } from './product-screenshots/agent-runtime-scenes.config.mjs';
+import { createBackgroundSessionNotificationScreenshotScenes } from './product-screenshots/background-session-notification-scenes.config.mjs';
 import { createInboxDeliveryScreenshotScenes, resolveInboxDeliveryScreenshotMock } from './product-screenshots/inbox-delivery-scenes.config.mjs';
 import {
   initializeScreenshotDocument,
@@ -221,6 +219,7 @@ const stableScenes = [
     ]
   },
   ...createInboxDeliveryScreenshotScenes(),
+  ...createBackgroundSessionNotificationScreenshotScenes(),
   {
     id: 'apps-panel-en',
     route: `/chat/${localPanels.workspaceSessionId}`,

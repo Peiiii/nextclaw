@@ -20,9 +20,13 @@ Open Markdown, code, HTML, documents, spreadsheets, and presentations without le
 
 ### Inbox deliveries
 
-Scheduled work, background Agents, and long-running monitors can deliver reports to the inbox. Closing the reader keeps the item unread, and you can start a linked conversation when the result needs follow-up work.
+Scheduled work, background Agents, and long-running monitors can deliver Markdown or static HTML reports to the inbox. HTML is displayed in isolation without running scripts or loading remote resources. Closing the reader keeps the item unread, and you can start a linked conversation when the result needs follow-up work.
 
-![AI delivering a project brief to the NextClaw inbox](/product-screenshots/nextclaw-ai-delivery-inbox-en.png)
+![A daily AI and technology briefing created by a background Agent and displayed in the inbox reader](/product-screenshots/nextclaw-ai-delivery-html-en.png)
+
+The inbox prioritizes unread deliveries when any exist, then falls back to the full history instead of showing an empty list. From the same page, you can change filters, continue the conversation, archive a delivery, or delete it.
+
+![Viewing and managing AI-delivered reports in the NextClaw inbox](/product-screenshots/nextclaw-inbox-page-en.png)
 
 ### Panel Apps
 
@@ -46,6 +50,6 @@ Keep the processed data. Replace the first page with an executive summary and ad
 
 Review the actual final file after the change. Do not treat a textual success message as proof that the artifact is correct.
 
-Related: [Visualize results](/en/guide/visualizations) · [Panel Apps](/en/guide/panel-apps)
+Related: [Background results and proactive delivery](/en/guide/background-results) · [Visualize results](/en/guide/visualizations) · [Panel Apps](/en/guide/panel-apps)
 
 Next: [choose how to reuse the work](/en/guide/after-setup).

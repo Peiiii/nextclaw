@@ -12,8 +12,8 @@ const delivery: InboxDelivery = {
   id: "delivery-1",
   title: "Research brief",
   summary: "The result",
-  content: "# Result",
-  contentType: "markdown",
+  content: "<!doctype html><html><body><h1>Result</h1></body></html>",
+  contentType: "html",
   source: {
     kind: "agent",
     agentId: "main",
@@ -73,7 +73,12 @@ describe("inbox delivery routes", () => {
     });
 
     expect(listResponse.status).toBe(200);
-    await expect(listResponse.json()).resolves.toMatchObject({ data: { total: 1 } });
+    await expect(listResponse.json()).resolves.toMatchObject({
+      data: {
+        deliveries: [{ contentType: "html", content: delivery.content }],
+        total: 1,
+      },
+    });
     expect(patchResponse.status).toBe(200);
     expect(updateDeliveryState).toHaveBeenCalledWith("delivery-1", "present");
   });

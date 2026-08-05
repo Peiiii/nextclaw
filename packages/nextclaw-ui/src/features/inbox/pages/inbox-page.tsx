@@ -13,6 +13,18 @@ import { cn } from "@/shared/lib/utils";
 
 type InboxFilter = "unread" | "all" | "archived";
 
+export function resolveInboxFilter(
+  deliveries: readonly Pick<InboxDelivery, "archivedAt" | "readAt">[],
+  selectedFilter: InboxFilter | null,
+): InboxFilter {
+  if (selectedFilter) {
+    return selectedFilter;
+  }
+  return deliveries.some((delivery) => !delivery.readAt && !delivery.archivedAt)
+    ? "unread"
+    : "all";
+}
+
 function filterDeliveries(deliveries: InboxDelivery[], filter: InboxFilter): InboxDelivery[] {
   if (filter === "unread") {
     return deliveries.filter((delivery) => !delivery.readAt && !delivery.archivedAt);
@@ -168,9 +180,13 @@ function InboxDetailPane({
   if (!delivery) {
     return <main className="flex min-h-0 flex-col"><InboxEmptyState selection /></main>;
   }
+  const isHtml = delivery.contentType === "html";
   return (
     <main className="flex min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border/60 px-5 py-4 sm:px-8 sm:py-6">
+      <div className={cn(
+        "shrink-0 border-b border-border/60 px-5 sm:px-8",
+        isHtml ? "py-3 sm:py-4" : "py-4 sm:py-6",
+      )}>
         {isMobile ? (
           <button
             type="button"
@@ -184,18 +200,32 @@ function InboxDetailPane({
         <div className="text-xs text-muted-foreground">
           {t("inboxDeliveredBy")} · {formatDateTime(delivery.createdAt)}
         </div>
-        <h2 className="mt-3 text-balance text-2xl font-semibold leading-tight tracking-[-0.02em] text-foreground">
+        <h2 className={cn(
+          "text-balance font-semibold leading-tight tracking-[-0.02em] text-foreground",
+          isHtml ? "mt-2 text-lg sm:text-xl" : "mt-3 text-2xl",
+        )}>
           {delivery.title}
         </h2>
-        {delivery.summary ? (
+        {delivery.summary && !isHtml ? (
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
             {delivery.summary}
           </p>
         ) : null}
       </div>
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
-        <div className="mx-auto max-w-3xl">
-          <InboxDeliveryContent content={delivery.content} />
+      <div className={cn(
+        "min-h-0 flex-1",
+        isHtml
+          ? "p-4 sm:p-5"
+          : "custom-scrollbar overflow-y-auto px-5 py-6 sm:px-8 sm:py-8",
+      )}>
+        <div className={cn("mx-auto", isHtml ? "h-full max-w-5xl" : "max-w-3xl")}>
+          <InboxDeliveryContent
+            className={isHtml ? "h-full" : undefined}
+            content={delivery.content}
+            contentType={delivery.contentType}
+            fillHeight={isHtml}
+            title={delivery.title}
+          />
         </div>
       </div>
       <div className="shrink-0 border-t border-border/60 px-5 py-3 sm:px-8">
@@ -231,7 +261,7 @@ export function InboxPage() {
   const { inboxManager } = useAppPresenter();
   const deliveriesQuery = useInboxDeliveries();
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [filter, setFilter] = useState<InboxFilter>("unread");
+  const [selectedFilter, setSelectedFilter] = useState<InboxFilter | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const deliveries = useMemo(
@@ -244,6 +274,7 @@ export function InboxPage() {
       : null,
     [deliveries, deliveryId],
   );
+  const filter = resolveInboxFilter(deliveries, selectedFilter);
 
   useEffect(() => {
     if (activeDelivery && !activeDelivery.readAt) {
@@ -332,7 +363,7 @@ export function InboxPage() {
               activeDeliveryId={activeDelivery?.id ?? null}
               deliveries={deliveries}
               filter={filter}
-              onFilterChange={setFilter}
+              onFilterChange={setSelectedFilter}
             /> : null}
             {showDetail ? <InboxDetailPane
               delivery={activeDelivery}

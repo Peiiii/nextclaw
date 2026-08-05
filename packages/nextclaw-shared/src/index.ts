@@ -43,6 +43,7 @@ export {
 export type {
   InboxDelivery,
   InboxDeliveryChangedEventPayload,
+  InboxDeliveryContentType,
   InboxDeliveryContinueResult,
   InboxDeliveryListView,
   InboxDeliverySource,

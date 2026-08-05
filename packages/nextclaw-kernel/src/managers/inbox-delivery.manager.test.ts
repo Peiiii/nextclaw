@@ -38,6 +38,7 @@ function createInput(index = 1) {
     title: `Report ${index}`,
     summary: `Summary ${index}`,
     content: `# Report ${index}\n\nDetails`,
+    contentType: "markdown" as const,
     source: {
       kind: "agent" as const,
       agentId: "main",
@@ -72,6 +73,21 @@ describe("InboxDeliveryManager", () => {
     expect(view.unreadCount).toBe(8);
     expect(view.unpresentedCount).toBe(8);
     expect(new Set(view.deliveries.map(({ id }) => id)).size).toBe(8);
+  });
+
+  it("restores HTML deliveries without changing their source content", async () => {
+    const { manager, sessionManager, storePath } = await createFixture();
+    const content = "<!doctype html><html><body><h1>Report</h1></body></html>";
+    await manager.createDelivery({ ...createInput(), content, contentType: "html" });
+
+    const restored = new InboxDeliveryManager({
+      eventBus: new EventBus(),
+      sessionManager,
+      storePath,
+    });
+    const [delivery] = (await restored.listDeliveries()).deliveries;
+
+    expect(delivery).toMatchObject({ content, contentType: "html" });
   });
 
   it("keeps a dismissed delivery unread without making it auto-presentable again", async () => {

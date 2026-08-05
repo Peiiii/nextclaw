@@ -1,5 +1,7 @@
 export const INBOX_DELIVERY_SESSION_METADATA_KEY = "inbox_delivery_id";
 
+export type InboxDeliveryContentType = "markdown" | "html";
+
 export type InboxDeliverySource = {
   kind: "agent";
   agentId: string | null;
@@ -13,7 +15,7 @@ export type InboxDelivery = {
   title: string;
   summary: string | null;
   content: string;
-  contentType: "markdown";
+  contentType: InboxDeliveryContentType;
   source: InboxDeliverySource;
   createdAt: string;
   updatedAt: string;

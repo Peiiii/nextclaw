@@ -9,6 +9,7 @@
 - 最近已处理消息 ID 使用 200 条有界集合去重。当前会话里完成的消息也会记入集合，避免离开会话后因事件重放补弹旧提醒。
 - 通知卡按参考图的 Retina 比例收敛到 320 × 74px、20px 圆角、18px 阴影落幅、18px 水平 inset 和 12px 图文间距；摘要固定单行省略，窄屏保留 16px 安全边距，夜间主题使用设计令牌自动适配。
 - 桌面通知右侧预留 72px，避开 56px 全局 Side Dock；Windows 顶部仍保留既有 56px 标题栏安全区。
+- 新增中英文真实产品截图场景，通过全局 `AppNotificationManager` 在运行中的源码 UI 内展示通知，不使用后期合成卡片；截图以“每日 AI 与科技简报”作为可理解的后台结果示例，并由 changeset 绑定为版本说明候选素材。
 - 设计依据见 `docs/designs/2026-08-05-background-session-notifications.design.md`。
 
 ## 测试/验证/验收方式
@@ -33,12 +34,12 @@
   - `chat-session-workspace-panel.test.tsx`
   主要表现为测试缺少 QueryClientProvider、历史文案断言和 query key 断言与当前实现不一致。本轮未扩大范围修复这些既有测试债务。
 - 真实页面同时观察到既有 `NavigationLink` ref 警告，堆栈不经过通知模块；通知链路本身没有新增 console error。
+- 宣传素材：`background-session-notification-{en,zh}` 两个场景通过配置测试和真实截图脚本，输出 1512×828 CSS 视口、2x 的中英文资产；人工复核确认右上角通知未遮挡 Side Dock，标题、摘要与页面背景均无测试状态或敏感信息。
 - 构建后已运行 `pnpm clean:generated`，最终用 `pnpm check:generated-clean` 确认无生成物残留。
 
 ## 发布/部署方式
 
-- 本轮未提交、未推送、未部署，也未发布 NPM 包。
-- 已添加 `@nextclaw/ui` patch changeset，进入后续统一 NPM 发布批次时由 Changesets 聚合。
+- 已添加 `@nextclaw/ui` patch changeset，并为中英文版本说明绑定真实产品截图；计划随 NextClaw `0.28.0` 稳定版统一发布。
 - 不涉及数据库 migration、后端部署、runtime update channel 或桌面安装包发布。
 
 ## 用户/产品视角的验收步骤

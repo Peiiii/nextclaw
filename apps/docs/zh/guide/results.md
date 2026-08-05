@@ -20,9 +20,13 @@ Markdown、代码、HTML、文档、表格和演示文稿可以直接打开。HT
 
 ### 收件箱与主动送达
 
-定时任务、后台 Agent 或长期监测完成后，AI 可以把报告送到收件箱。关闭阅读弹窗不会把内容标为已读；需要继续处理时，可以从报告直接创建关联会话。
+定时任务、后台 Agent 或长期监测完成后，AI 可以把 Markdown 或静态 HTML 报告送到收件箱。HTML 会在隔离环境中展示，不执行脚本或加载远程资源。关闭阅读弹窗不会把内容标为已读；需要继续处理时，可以从报告直接创建关联会话。
 
-![AI 把项目晨报主动送到 NextClaw 收件箱](/product-screenshots/nextclaw-ai-delivery-inbox-cn.png)
+![后台 Agent 生成的每日 AI 与科技简报在收件箱阅读窗中展示](/product-screenshots/nextclaw-ai-delivery-html-cn.png)
+
+收件箱默认优先展示未读内容；没有未读内容时自动展示全部历史送达，避免出现空白列表。你也可以在同一页面切换筛选、继续聊、归档或删除。
+
+![在 NextClaw 收件箱集中查看和管理 AI 主动送达的报告](/product-screenshots/nextclaw-inbox-page-cn.png)
 
 ### Panel App
 
@@ -50,6 +54,6 @@ Markdown、代码、HTML、文档、表格和演示文稿可以直接打开。HT
 
 修改完成后再次检查最终文件，而不是只根据 Agent 的文字确认。
 
-相关文档：[可视化结果](/zh/guide/visualizations) · [Panel Apps](/zh/guide/panel-apps)
+相关文档：[后台结果与主动送达](/zh/guide/background-results) · [可视化结果](/zh/guide/visualizations) · [Panel Apps](/zh/guide/panel-apps)
 
 下一步：[选择如何复用这项工作](/zh/guide/after-setup)。

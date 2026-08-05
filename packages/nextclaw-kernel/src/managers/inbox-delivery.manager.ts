@@ -6,6 +6,7 @@ import {
   eventKeys,
   type EventBus,
   type InboxDelivery,
+  type InboxDeliveryContentType,
   type InboxDeliveryContinueResult,
   type InboxDeliveryListView,
   type InboxDeliverySource,
@@ -20,6 +21,7 @@ export type CreateInboxDeliveryInput = {
   title: string;
   summary?: string | null;
   content: string;
+  contentType: InboxDeliveryContentType;
   source: InboxDeliverySource;
 };
 
@@ -90,7 +92,7 @@ export class InboxDeliveryManager {
           "content",
           MAX_INBOX_DELIVERY_CONTENT_LENGTH,
         ),
-        contentType: "markdown",
+        contentType: input.contentType,
         source: structuredClone(input.source),
         createdAt: now,
         updatedAt: now,

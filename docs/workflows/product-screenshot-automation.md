@@ -51,6 +51,9 @@ pnpm run screenshots:refresh
 - `workspace-preview-en`、`workspace-preview-zh`
 - `skills-detail-en`、`skills-detail-zh`
 - `inbox-delivery-en`、`inbox-delivery-zh`
+- `inbox-html-delivery-en`、`inbox-html-delivery-zh`
+- `inbox-page-en`、`inbox-page-zh`
+- `background-session-notification-en`、`background-session-notification-zh`
 
 如需单独使用真实 marketplace：
 
@@ -131,6 +134,9 @@ GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
 - `apps/landing/public/nextclaw-panel-apps-page-*.png`
 - `apps/landing/public/nextclaw-panel-app-running-*.png`
 - `apps/landing/public/nextclaw-workspace-preview-*.png`
+- `apps/landing/public/nextclaw-ai-delivery-*.png`
+- `apps/landing/public/nextclaw-inbox-page-*.png`
+- `apps/landing/public/nextclaw-background-session-notification-*.png`
 
 精选真实任务产出：
 

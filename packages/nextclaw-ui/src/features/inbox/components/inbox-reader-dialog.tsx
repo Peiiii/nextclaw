@@ -14,6 +14,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { formatDateTime, t } from "@/shared/lib/i18n";
+import { cn } from "@/shared/lib/utils";
 
 function formatPosition(current: number, total: number): string {
   return t("inboxReaderPosition")
@@ -34,6 +35,7 @@ export function InboxReaderDialog() {
   );
   const activeIndex = unreadDeliveries.findIndex(({ id }) => id === activeDeliveryId);
   const activeDelivery = activeIndex >= 0 ? unreadDeliveries[activeIndex] : null;
+  const isHtml = activeDelivery?.contentType === "html";
 
   const runAction = async (name: string, action: () => Promise<void>) => {
     setPendingAction(name);
@@ -87,6 +89,26 @@ export function InboxReaderDialog() {
     });
   };
 
+  const positionControls = (
+    <div className="flex shrink-0 items-center gap-1 pr-1">
+      <span className="mr-1 text-[11px] tabular-nums text-muted-foreground">
+        {formatPosition(activeIndex + 1, unreadDeliveries.length)}
+      </span>
+      <IconActionButton
+        icon={<ChevronLeft className="h-4 w-4" />}
+        label={t("inboxPrevious")}
+        disabled={activeIndex <= 0 || pendingAction === "select"}
+        onClick={() => selectAt(activeIndex - 1)}
+      />
+      <IconActionButton
+        icon={<ChevronRight className="h-4 w-4" />}
+        label={t("inboxNext")}
+        disabled={activeIndex >= unreadDeliveries.length - 1 || pendingAction === "select"}
+        onClick={() => selectAt(activeIndex + 1)}
+      />
+    </div>
+  );
+
   return (
     <Dialog
       open={readerOpen && Boolean(activeDelivery)}
@@ -105,50 +127,72 @@ export function InboxReaderDialog() {
       >
         {activeDelivery ? (
           <>
-            <header className="shrink-0 border-b border-border/60 px-6 pb-4 pt-5 pr-14 sm:px-8 sm:pb-5 sm:pt-6">
-              <div className="mb-5 flex min-h-8 items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Inbox className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="truncate">{t("inboxDeliveredBy")}</span>
-                  <span aria-hidden="true">·</span>
-                  <time dateTime={activeDelivery.createdAt}>
-                    {formatDateTime(activeDelivery.createdAt)}
-                  </time>
+            {isHtml ? (
+              <header className="shrink-0 border-b border-border/60 px-6 py-3 pr-14 sm:px-8">
+                <div className="flex min-h-8 items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <Inbox className="h-3.5 w-3.5" />
+                    </span>
+                    <DialogTitle
+                      ref={titleRef}
+                      tabIndex={-1}
+                      className="truncate text-sm font-semibold text-foreground outline-none"
+                    >
+                      {activeDelivery.title}
+                    </DialogTitle>
+                    <span aria-hidden="true">·</span>
+                    <time className="shrink-0" dateTime={activeDelivery.createdAt}>
+                      {formatDateTime(activeDelivery.createdAt)}
+                    </time>
+                  </div>
+                  {positionControls}
                 </div>
-                <div className="flex shrink-0 items-center gap-1 pr-1">
-                  <span className="mr-1 text-[11px] tabular-nums text-muted-foreground">
-                    {formatPosition(activeIndex + 1, unreadDeliveries.length)}
-                  </span>
-                  <IconActionButton
-                    icon={<ChevronLeft className="h-4 w-4" />}
-                    label={t("inboxPrevious")}
-                    disabled={activeIndex <= 0 || pendingAction === "select"}
-                    onClick={() => selectAt(activeIndex - 1)}
-                  />
-                  <IconActionButton
-                    icon={<ChevronRight className="h-4 w-4" />}
-                    label={t("inboxNext")}
-                    disabled={activeIndex >= unreadDeliveries.length - 1 || pendingAction === "select"}
-                    onClick={() => selectAt(activeIndex + 1)}
-                  />
+                <DialogDescription className="sr-only">
+                  {activeDelivery.summary ?? t("inboxNoSummary")}
+                </DialogDescription>
+              </header>
+            ) : (
+              <header className="shrink-0 border-b border-border/60 px-6 pb-4 pt-5 pr-14 sm:px-8 sm:pb-5 sm:pt-6">
+                <div className="mb-5 flex min-h-8 items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <Inbox className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="truncate">{t("inboxDeliveredBy")}</span>
+                    <span aria-hidden="true">·</span>
+                    <time dateTime={activeDelivery.createdAt}>
+                      {formatDateTime(activeDelivery.createdAt)}
+                    </time>
+                  </div>
+                  {positionControls}
                 </div>
-              </div>
-              <DialogTitle
-                ref={titleRef}
-                tabIndex={-1}
-                className="max-w-[680px] text-balance text-2xl font-semibold leading-tight tracking-[-0.02em] outline-none sm:text-[28px]"
-              >
-                {activeDelivery.title}
-              </DialogTitle>
-              <DialogDescription className="mt-2 max-w-[680px] text-sm leading-6 text-muted-foreground">
-                {activeDelivery.summary ?? t("inboxNoSummary")}
-              </DialogDescription>
-            </header>
+                <DialogTitle
+                  ref={titleRef}
+                  tabIndex={-1}
+                  className="max-w-[680px] text-balance text-2xl font-semibold leading-tight tracking-[-0.02em] outline-none sm:text-[28px]"
+                >
+                  {activeDelivery.title}
+                </DialogTitle>
+                <DialogDescription className="mt-2 max-w-[680px] text-sm leading-6 text-muted-foreground">
+                  {activeDelivery.summary ?? t("inboxNoSummary")}
+                </DialogDescription>
+              </header>
+            )}
 
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-7">
-              <InboxDeliveryContent content={activeDelivery.content} />
+            <div className={cn(
+              "min-h-0 flex-1",
+              isHtml
+                ? "p-4 sm:p-5"
+                : "custom-scrollbar overflow-y-auto px-6 py-6 sm:px-8 sm:py-7",
+            )}>
+              <InboxDeliveryContent
+                className={isHtml ? "h-full" : undefined}
+                content={activeDelivery.content}
+                contentType={activeDelivery.contentType}
+                fillHeight={isHtml}
+                title={activeDelivery.title}
+              />
             </div>
 
             <footer className="shrink-0 border-t border-border/60 bg-background/95 px-6 py-4 backdrop-blur sm:px-8">

@@ -45,6 +45,7 @@ describe("deliver_to_inbox", () => {
     const [delivery] = (await manager.listDeliveries()).deliveries;
     expect(delivery).toMatchObject({
       content: "# Brief\n\n- One",
+      contentType: "markdown",
       source: {
         agentId: "writer",
         sessionId: "source-session",
@@ -52,6 +53,16 @@ describe("deliver_to_inbox", () => {
         filePath: null,
       },
     });
+  });
+
+  it("creates an explicit HTML delivery from direct content", async () => {
+    const { manager, tool } = await createFixture();
+    const content = "<!doctype html><html><body><h1>Brief</h1></body></html>";
+
+    await tool.execute({ title: "HTML brief", content, contentType: "html" });
+
+    const [delivery] = (await manager.listDeliveries()).deliveries;
+    expect(delivery).toMatchObject({ content, contentType: "html" });
   });
 
   it("snapshots an absolute UTF-8 file", async () => {
@@ -65,6 +76,19 @@ describe("deliver_to_inbox", () => {
     const [delivery] = (await manager.listDeliveries()).deliveries;
     expect(delivery.content).toBe("# Snapshotted report");
     expect(delivery.source.filePath).toBe(filePath);
+  });
+
+  it("infers HTML files and allows an explicit Markdown override", async () => {
+    const { directory, manager, tool } = await createFixture();
+    const htmlPath = join(directory, "report.HTML");
+    await writeFile(htmlPath, "<h1>HTML report</h1>", "utf8");
+
+    await tool.execute({ title: "HTML file", filePath: htmlPath });
+    await tool.execute({ title: "Source sample", filePath: htmlPath, contentType: "markdown" });
+
+    const deliveries = (await manager.listDeliveries()).deliveries;
+    expect(deliveries.find(({ title }) => title === "HTML file")?.contentType).toBe("html");
+    expect(deliveries.find(({ title }) => title === "Source sample")?.contentType).toBe("markdown");
   });
 
   it("requires exactly one content source", async () => {
@@ -81,6 +105,11 @@ describe("deliver_to_inbox", () => {
       title: "Relative",
       filePath: "report.md",
     })).rejects.toThrow("filePath must be an absolute path");
+    await expect(tool.execute({
+      title: "Unsupported type",
+      content: "body",
+      contentType: "richtext",
+    })).rejects.toThrow("contentType must be markdown or html");
   });
 
   it("rejects a file that is not valid UTF-8 text", async () => {
