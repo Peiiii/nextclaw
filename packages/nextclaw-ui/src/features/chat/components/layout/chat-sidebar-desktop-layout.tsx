@@ -19,7 +19,7 @@ import {
   Inbox,
   PanelLeftClose,
   PanelLeftOpen,
-  Plus,
+  FolderPlus,
 } from "lucide-react";
 import { useInboxUnreadCount } from "@/features/inbox";
 import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
@@ -176,10 +176,10 @@ export function ChatSidebarSessionArea({
         <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/75">
           {t("chatSidebarTaskRecords")}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex h-7 items-center gap-1">
           {isProjectFirstView ? (
             <IconActionButton
-              icon={<Plus className="h-3.5 w-3.5" />}
+              icon={<FolderPlus className="h-3.5 w-3.5" />}
               label={t("chatProjectAdd")}
               onClick={onAddProject}
             />
