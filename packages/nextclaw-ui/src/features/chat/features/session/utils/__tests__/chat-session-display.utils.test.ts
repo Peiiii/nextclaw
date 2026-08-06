@@ -73,6 +73,32 @@ describe('chat-session-display', () => {
     ).toBe('正在调用工具：shell');
   });
 
+  it('localizes structured tool activity previews', () => {
+    const session = createSession({
+      activityPreview: {
+        state: 'running',
+        statusKind: 'tool-completed',
+        statusText: 'gateway',
+        timestamp: '2026-05-16T01:00:00.000Z'
+      }
+    });
+
+    expect(sessionActivityPreviewText(session, 'zh')).toBe('工具调用 · 已完成 · gateway');
+    expect(sessionActivityPreviewText(session, 'en')).toBe('Tool Call · Completed · gateway');
+  });
+
+  it('localizes persisted legacy tool activity previews', () => {
+    const session = createSession({
+      activityPreview: {
+        state: 'running',
+        statusText: 'Tool call completed: gateway',
+        timestamp: '2026-05-16T01:00:00.000Z'
+      }
+    });
+
+    expect(sessionActivityPreviewText(session, 'zh')).toBe('工具调用 · 已完成 · gateway');
+  });
+
   it('shows the final assistant reply after completion', () => {
     expect(
       sessionActivityPreviewText(

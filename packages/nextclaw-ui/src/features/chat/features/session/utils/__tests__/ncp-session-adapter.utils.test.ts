@@ -106,7 +106,8 @@ describe('adaptNcpSessionSummary', () => {
           last_activity_preview: {
             state: 'completed',
             replyText: 'Plan is ready',
-            statusText: 'Tool call completed',
+            statusKind: 'tool-completed',
+            statusText: 'read_file',
             timestamp: '2026-05-16T01:00:00.000Z',
           },
         },
@@ -116,7 +117,8 @@ describe('adaptNcpSessionSummary', () => {
     expect(adapted.activityPreview).toEqual({
       state: 'completed',
       replyText: 'Plan is ready',
-      statusText: 'Tool call completed',
+      statusKind: 'tool-completed',
+      statusText: 'read_file',
       timestamp: '2026-05-16T01:00:00.000Z',
     });
   });

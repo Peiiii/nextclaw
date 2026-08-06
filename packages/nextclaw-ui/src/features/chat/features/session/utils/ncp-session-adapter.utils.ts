@@ -21,6 +21,13 @@ const SESSION_ACTIVITY_PREVIEW_STATE_SET = new Set<SessionActivityPreviewView['s
   'cancelled',
   'idle'
 ]);
+const SESSION_ACTIVITY_PREVIEW_STATUS_KIND_SET = new Set<NonNullable<SessionActivityPreviewView['statusKind']>>([
+  'thinking',
+  'tool-running',
+  'tool-completed',
+  'run-failed',
+  'run-interrupted'
+]);
 
 function stringifyUnknown(value: unknown): string {
   if (typeof value === 'string') {
@@ -66,13 +73,15 @@ function readNcpSessionActivityPreview(summary: NcpSessionSummaryView): SessionA
   if (!SESSION_ACTIVITY_PREVIEW_STATE_SET.has(state as SessionActivityPreviewView['state']) || !timestamp) {
     return null;
   }
-  const statusText = readOptionalString(previewRecord.statusText);
-  const replyText = readOptionalString(previewRecord.replyText);
+  const rawStatusKind = readOptionalString(previewRecord.statusKind);
   return {
     state: state as SessionActivityPreviewView['state'],
     timestamp,
-    ...(statusText ? { statusText } : {}),
-    ...(replyText ? { replyText } : {})
+    statusKind: SESSION_ACTIVITY_PREVIEW_STATUS_KIND_SET.has(rawStatusKind as NonNullable<SessionActivityPreviewView['statusKind']>)
+      ? rawStatusKind as NonNullable<SessionActivityPreviewView['statusKind']>
+      : undefined,
+    statusText: readOptionalString(previewRecord.statusText) ?? undefined,
+    replyText: readOptionalString(previewRecord.replyText) ?? undefined
   };
 }
 

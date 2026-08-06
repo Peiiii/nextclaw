@@ -16,8 +16,6 @@ import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/ser
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
-const INTERRUPTED_SESSION_STATUS_TEXT =
-  "Run interrupted: no completion or error event was recorded. Please send the message again.";
 const DEFAULT_SESSION_MESSAGE_PAGE_SIZE = 80;
 const MAX_SESSION_MESSAGE_PAGE_SIZE = 200;
 
@@ -91,7 +89,8 @@ function normalizeSessionActivityPreview(session: NcpSessionSummary): NcpSession
       last_activity_preview: {
         ...preview,
         state,
-        statusText: state === "failed" ? INTERRUPTED_SESSION_STATUS_TEXT : preview.statusText
+        statusKind: state === "failed" ? "run-interrupted" : undefined,
+        statusText: undefined
       }
     }
   };

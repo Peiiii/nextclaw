@@ -15,7 +15,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       sessionId: "session-1",
       preview: {
         state: "running",
-        statusText: "Thinking",
+        statusKind: "thinking",
         timestamp: TIMESTAMP,
       },
     });
@@ -37,7 +37,8 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       sessionId: "session-1",
       preview: {
         state: "running",
-        statusText: "Tool call completed: read_file",
+        statusKind: "tool-completed",
+        statusText: "read_file",
         timestamp: TIMESTAMP,
       },
     });

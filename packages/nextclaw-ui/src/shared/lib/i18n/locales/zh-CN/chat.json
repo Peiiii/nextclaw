@@ -355,6 +355,7 @@
   "chatProjectExistingAdded": "项目已添加",
   "chatProjectExistingFailed": "添加项目失败",
   "chatSessionErrorTitle": "出错了",
+  "chatSessionActivityInterrupted": "运行意外中断，请重新发送消息。",
   "chatSendFailed": "发送消息失败",
   "chatErrorDetails": "查看详情",
   "chatRoleUser": "你",

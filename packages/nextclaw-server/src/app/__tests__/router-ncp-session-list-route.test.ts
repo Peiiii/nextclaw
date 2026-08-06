@@ -107,9 +107,9 @@ it("completes idle running previews that already have a final reply", async () =
 
   expect(payload.data.metadata?.last_activity_preview).toMatchObject({
     state: "completed",
-    statusText: "Thinking",
     replyText: "上一条回复",
   });
+  expect(payload.data.metadata?.last_activity_preview?.statusText).toBeUndefined();
 });
 
 it("marks idle running previews without a final reply as interrupted", async () => {
@@ -137,13 +137,14 @@ it("marks idle running previews without a final reply as interrupted", async () 
 
   const response = await app.request("http://localhost/api/ncp/sessions/session-1");
   const payload = await response.json() as {
-    data: { metadata?: { last_activity_preview?: { state?: string; statusText?: string; replyText?: string } } };
+    data: { metadata?: { last_activity_preview?: { state?: string; statusKind?: string; statusText?: string } } };
   };
 
   expect(payload.data.metadata?.last_activity_preview).toMatchObject({
     state: "failed",
-    statusText: "Run interrupted: no completion or error event was recorded. Please send the message again.",
+    statusKind: "run-interrupted",
   });
+  expect(payload.data.metadata?.last_activity_preview?.statusText).toBeUndefined();
 });
 
 it("normalizes legacy user-cancelled failed previews as cancelled", async () => {
@@ -176,8 +177,8 @@ it("normalizes legacy user-cancelled failed previews as cancelled", async () => 
 
   expect(payload.data.metadata?.last_activity_preview).toMatchObject({
     state: "cancelled",
-    statusText: "Run interrupted: User stopped the current run.",
   });
+  expect(payload.data.metadata?.last_activity_preview?.statusText).toBeUndefined();
 });
 
 it("keeps running previews for sessions that are still active", async () => {

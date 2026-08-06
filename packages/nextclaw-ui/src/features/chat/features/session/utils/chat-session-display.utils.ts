@@ -1,5 +1,16 @@
-import type { SessionEntryView } from '@/shared/lib/api';
+import type { SessionActivityPreviewView, SessionEntryView } from '@/shared/lib/api';
 import { getLanguage, getLocale, t, type I18nLanguage } from '@/shared/lib/i18n';
+
+const LEGACY_ACTIVITY_STATUS_LABELS: Array<[
+  string,
+  NonNullable<SessionActivityPreviewView['statusKind']>
+]> = [
+  ['Thinking', 'thinking'],
+  ['Calling tool', 'tool-running'],
+  ['Tool call completed', 'tool-completed'],
+  ['Run failed', 'run-failed'],
+  ['Run interrupted', 'run-interrupted']
+];
 
 export function sessionDisplayName(session: SessionEntryView): string {
   const label = session.label?.trim();
@@ -10,21 +21,46 @@ export function sessionDisplayName(session: SessionEntryView): string {
   return chunks[chunks.length - 1] || session.key;
 }
 
-export function sessionActivityPreviewText(session: SessionEntryView): string | null {
+function formatSessionActivityStatus(
+  preview: SessionActivityPreviewView,
+  lang: I18nLanguage
+): string | null {
+  const detail = preview.statusText?.trim();
+  const legacyStatus = preview.statusKind || !detail
+    ? undefined
+    : LEGACY_ACTIVITY_STATUS_LABELS.find(([label]) => detail === label || detail.startsWith(`${label}: `));
+  const statusKind = preview.statusKind ?? legacyStatus?.[1];
+  const localizedDetail = legacyStatus
+    ? detail?.slice(legacyStatus[0].length).replace(/^:\s*/, '') || undefined
+    : detail;
+  switch (statusKind) {
+    case 'thinking':
+      return t('chatTyping', lang);
+    case 'tool-running':
+      return [t('chatToolCall', lang), t('chatToolStatusRunning', lang), localizedDetail].filter(Boolean).join(' · ');
+    case 'tool-completed':
+      return [t('chatToolCall', lang), t('chatToolStatusCompleted', lang), localizedDetail].filter(Boolean).join(' · ');
+    case 'run-failed':
+      return [t('chatToolStatusFailed', lang), localizedDetail].filter(Boolean).join(' · ');
+    case 'run-interrupted':
+      return t('chatSessionActivityInterrupted', lang);
+    default:
+      return localizedDetail ?? null;
+  }
+}
+
+export function sessionActivityPreviewText(
+  session: SessionEntryView,
+  lang: I18nLanguage = getLanguage()
+): string | null {
   const preview = session.activityPreview;
-  if (!preview) {
+  if (!preview || preview.state === 'cancelled') {
     return null;
   }
-  if (preview.state === 'cancelled') {
-    return null;
+  if (preview.state === 'completed' && preview.replyText) {
+    return preview.replyText;
   }
-  if (preview.state === 'failed' || preview.state === 'running') {
-    return preview.statusText ?? preview.replyText ?? null;
-  }
-  if (preview.state === 'completed') {
-    return preview.replyText ?? preview.statusText ?? null;
-  }
-  return preview.statusText ?? preview.replyText ?? null;
+  return formatSessionActivityStatus(preview, lang) ?? preview.replyText ?? null;
 }
 
 function startOfLocalDate(date: Date): number {

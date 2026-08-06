@@ -39,6 +39,7 @@ export type SessionContextWindowView = {
 export type SessionActivityPreviewView = {
   state: "running" | "completed" | "failed" | "cancelled" | "idle";
   timestamp: string;
+  statusKind?: "thinking" | "tool-running" | "tool-completed" | "run-failed" | "run-interrupted";
   statusText?: string;
   replyText?: string;
 };

@@ -389,7 +389,7 @@ describe("SessionConversationArea input boundary", () => {
 
     expect(screen.getByTestId("conversation-bottom-slot")).toBeTruthy();
     expect(screen.getByText(/出错了|Something went wrong/)).toBeTruthy();
-    expect(screen.getByText("Run failed: Invalid API Key")).toBeTruthy();
+    expect(screen.getByText(/Failed · Invalid API Key|失败 · Invalid API Key/)).toBeTruthy();
   });
 
   it("does not surface user-cancelled previews as conversation errors", () => {

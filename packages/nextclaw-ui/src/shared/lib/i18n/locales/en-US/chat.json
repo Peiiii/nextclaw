@@ -355,6 +355,7 @@
   "chatProjectExistingAdded": "Project added",
   "chatProjectExistingFailed": "Failed to add project",
   "chatSessionErrorTitle": "Something went wrong",
+  "chatSessionActivityInterrupted": "The run was interrupted. Send the message again.",
   "chatSendFailed": "Failed to send message",
   "chatErrorDetails": "Details",
   "chatRoleUser": "You",

@@ -13,6 +13,7 @@ import {
   resolveNcpChatSendErrorMessage,
 } from "@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils";
 import { buildChatContextWindowIndicator } from "@/features/chat/features/session/utils/chat-context-window-indicator.utils";
+import { sessionActivityPreviewText } from "@/features/chat/features/session/utils/chat-session-display.utils";
 import { readNcpContextWindowValue } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 import { ChatConversationWelcome } from "@/features/chat/features/welcome/components/chat-conversation-welcome";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
@@ -326,12 +327,10 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     }),
     [inputSnapshot, lastSendError],
   );
-  const sessionFailurePreview = inputQuery.selectedSession?.activityPreview;
+  const { selectedSession } = inputQuery;
   const sessionFailureMessage =
-    sessionFailurePreview?.state === "failed"
-      ? sessionFailurePreview.statusText?.trim() ||
-        sessionFailurePreview.replyText?.trim() ||
-        null
+    selectedSession?.activityPreview?.state === "failed"
+      ? sessionActivityPreviewText(selectedSession)
       : null;
   const sessionFailureSlot = sessionFailureMessage ? (
     <div className="rounded-lg border border-red-200/80 bg-red-50/80 px-3 py-2.5 shadow-sm">
