@@ -1035,7 +1035,7 @@ class LandingPage {
           </div>
         </main>
 
-        ${this.route === 'home' ? renderHomeSections(this.copy, docsLink) : ''}
+        ${this.route === 'home' ? renderHomeSections(this.copy, docsLink, this.locale) : ''}
 
         ${renderLandingFooter(this.copy, docsLink, releasesRoute)}
 

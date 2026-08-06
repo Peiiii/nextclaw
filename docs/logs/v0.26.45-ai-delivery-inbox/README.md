@@ -14,6 +14,8 @@
 - 文档站新增“后台结果与主动送达”中英文场景指南，用通知、HTML 每日简报和收件箱管理页三张真实截图解释两种交付形态、未读规则、静态 HTML 边界与“继续聊”链路。
 - 新增需求级版本配图证据合同：收件箱 changeset 直接绑定中英文截图，`release:summary` 自动聚合并校验路径、语言、格式、替代文本和文件存在性；`release:version` 在版本化前执行同一检查，未来 release-note skill 默认消费候选图片。
 - 修复产品截图脚本中通用 `/api/*` mock 覆盖 `ui-inject.js` 专用响应的问题；专用空 JavaScript 路由现在最后注册，不再产生 `Unexpected token ':'` 页面异常。
+- 官网首页新增“主动送达”重点展示：以 HTML“每日 AI 与科技简报”作为 AI 收件箱主视觉，以后台任务完成通知作为辅助证据，把“主动推荐 / 报告送达”与“完成召回”收敛成一条异步结果交付叙事。
+- 修复完成通知悬停时背景意外变透明的问题：根因是通知卡片把 `hover:bg-muted/10` 当作轻微灰色反馈，但该类实际会用仅 10% 不透明度的背景替换原有实色背景；现已从组件 owner 删除 hover / active 半透明背景，保留链接语义和键盘焦点反馈。
 - 正式方案见 `docs/designs/2026-08-06-ai-delivery-inbox.design.md`。
 
 ## 测试/验证/验收方式
@@ -37,6 +39,8 @@
 - 宣传页面：`@nextclaw/landing` 与 `@nextclaw/docs` 生产构建通过；截图脚本定向 ESLint 通过。
 - 截图配置：`inbox-delivery-scenes.config.test.mjs` 3 项通过，覆盖场景 ID / 输出路径唯一性、HTML 报告内容和管理页 3 条记录 / 2 条未读数据。
 - 发布证据：`release-summary.test.mjs` 3 项通过；`pnpm release:summary -- --json` 能发现本需求 6 张中英文图片且无合同错误。
+- 官网跟进验证：`pnpm -C apps/landing tsc`、`pnpm -C apps/landing lint` 和 `pnpm -C apps/landing build` 通过；Lint 仅保留 `main.ts` 的 2 条历史超长 warning，本次没有继续恶化。Playwright 在 1440px、1280px、768px 与 390px 视口检查中英文页面，确认桌面端主次卡片约为 `2:1`、窄屏改为纵向排列、无横向溢出、lazy loading 图片滚动到可见区后按 `3024×1656` 正常加载，文档链接指向对应语言页面。
+- 通知悬停回归：新增组件断言先在旧实现上稳定失败，删除半透明交互类后通过；通知域 4 个测试文件共 11 项通过，`pnpm -C packages/nextclaw-ui tsc`、`lint`、`build` 通过。真实 Vite 页面用 Playwright 触发通知并悬停，确认卡片背景在 hover 前后均为 `rgb(255, 255, 255)`，卡片及 Sonner 外层透明度均保持 `1`。
 
 ## 发布/部署方式
 
@@ -44,6 +48,7 @@
 - 文档站中英文场景指南、版本说明、结构化 JSON 与通知 / Markdown / HTML / 收件箱管理真实截图已经部署；HTML 版本说明采用“每日 AI 与科技简报”场景。
 - stable runtime workflow `31032968267` 已完成四个平台运行包、GitHub Release 资产、gh-pages 与公共 manifest 发布。
 - 不涉及数据库 migration 或线上后端服务部署；GitHub Release 事件同时发布了 Desktop `0.0.237` 安装资产与 stable 桌面更新通道。
+- 官网“主动送达”跟进改动已通过本地源码与生产构建验收并纳入本次提交，尚未部署；上线时继续使用 `pnpm deploy:landing` 的 Cloudflare Pages 链路。
 
 ## 用户/产品视角的验收步骤
 
@@ -53,6 +58,7 @@
 4. 打开收件箱，检查未读、全部、已归档筛选及 Markdown / HTML 正文；确认 HTML 样式可见，但脚本和远程资源不执行；验证标记未读、归档、恢复和删除。
 5. 点击“继续聊”，确认进入新的关联会话；发送后续问题，确认 AI 能理解送达报告内容。
 6. 在移动端重复打开列表和详情，确认底部导航未读提示、返回动作和操作区可用。
+7. 打开官网首页并滚动到 Agent Runtime 之后，确认“主动送达”区域先展示 AI 收件箱日报，再以较小卡片展示完成提醒；移动端应改为上下排列。
 
 ## 可维护性总结汇总
 
@@ -66,6 +72,16 @@
 - 版本证据自动化是新增发布能力，新增聚合脚本 166 行和定向测试 96 行，同时让既有 release scope 复用同一 owner、删除旧 changeset 解析分支；该批非测试代码 `+174/-32`、净增 142 行，没有复制发布说明生成器或扩张结构化 release-note JSON 协议。
 - 收件箱实现本身没有新增可维护性问题。
 - HTML、智能默认筛选与宣传场景跟进批次的定向可维护性守卫检查 19 个源码/测试文件，结果为 0 error、2 warning；合计 `+738/-103`，排除测试后 `+515/-98`、净增 417 行。增长属于新增用户能力，集中在既有工具入口、共享合同、Store 校验、单一正文 renderer 和可重复截图场景，没有新增 manager/service、平行存储或兼容分支；安全包装位于展示边界，原始正文仍只有一个事实来源。两项 warning 分别是 Inbox 截图场景配置由 115 行增至 284 行，以及总截图入口虽从 811 行减至 810 行但仍高于预算；前者仍低于 500 行且内容均为同一功能的声明式双语场景，后者没有继续增长。后续若继续增加第四类 Inbox 场景，应提取报告 fixture；总入口的场景细节继续留在独立配置中。
+- 官网跟进批次是新增用户可见能力；包含样式的完整实现 diff 为 `+304/-2`，其中可维护性守卫纳入的 TypeScript 与配置为 `+122/-2`。新增文案在独立 `config` owner，响应式样式由专用 CSS 拥有，首页 renderer 只负责组合；没有新增状态、effect、helper 链或兼容分支。守卫结果 0 error、2 warning；`main.ts` 与其 `render` 方法仍是历史超预算热点，但本次都保持行数净增 `0`，未继续恶化。
+- 通知悬停修复的生产代码为 `+1/-1`、净增 `0`，测试为 `+3/-0`；正向减债动作是直接删除组件内无意义的半透明 hover / active 状态及其过渡类，没有新增全局覆盖、状态分支或样式抽象。
+
+## 红区触达与减债记录
+
+### apps/landing/src/main.ts
+
+- 本次是否减债：是，阻止历史红区继续增长。
+- 说明：首轮实现将新文案接入 `main.ts`，守卫明确阻断后已将文案收回独立 config，样式由 section 模块自行加载；最终 `main.ts` 仅替换既有调用参数，行数不变。
+- 下一步拆分缝：将现有大型双语 `COPY` 与路由页面渲染从 `main.ts` 分别收敛到 landing content config 和 page renderer，同时解决文件长度与 `render` 方法长度历史 warning。
 
 ## NPM 包发布记录
 
@@ -73,5 +89,6 @@
 - `@nextclaw/kernel@0.6.20`：已发布，包含持久化 owner、Agent 工具、Tool Provider 与 Context Provider。
 - `@nextclaw/server@0.15.20`：已发布，包含 Inbox Delivery HTTP API。
 - `@nextclaw/client-sdk@0.5.20`：已发布，包含 `inboxDeliveries` namespace。
-- `@nextclaw/ui@0.15.21`：已发布，包含全局阅读层、收件箱页面、导航入口、未读提示与中英文文案。
+- `@nextclaw/ui@0.15.21`：已发布，包含全局阅读层、收件箱页面、导航入口、未读提示与中英文文案；通知悬停保持不透明的后续修复已补 patch changeset，待后续统一发布。
 - `nextclaw@0.28.0`：已发布到 `latest`；registry、真实隔离安装、CLI 版本与 stable 更新检查均已验证。
+- 官网“主动送达”展示不涉及 NPM 包发布；`apps/landing` 为 private 站点应用，因此不新增 changeset。

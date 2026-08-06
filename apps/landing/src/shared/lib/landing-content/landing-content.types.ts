@@ -25,6 +25,21 @@ export type RuntimeShowcase = Omit<ShowcaseItem, 'eyebrow'> & {
   runtimeNames: string[];
 };
 
+export type ProactiveDeliveryShowcase = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  inboxLabel: string;
+  inboxTitle: string;
+  notificationLabel: string;
+  notificationTitle: string;
+  guideLabel: string;
+  inboxImageSrc: string;
+  inboxImageAlt: string;
+  notificationImageSrc: string;
+  notificationImageAlt: string;
+};
+
 export type EcosystemItem = {
   label: string;
   logo?: string;

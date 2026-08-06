@@ -10,7 +10,7 @@ export type AppNotificationToastProps = {
 };
 
 const NOTIFICATION_CARD_CLASS =
-  "group ml-auto flex min-h-[74px] w-[320px] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-[20px] border border-border/80 bg-background px-[18px] py-3 text-left text-foreground shadow-[0_8px_18px_rgba(0,0,0,0.12),0_2px_5px_rgba(0,0,0,0.06)] transition-colors duration-150 hover:bg-muted/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background active:bg-muted/20 motion-reduce:transition-none";
+  "group ml-auto flex min-h-[74px] w-[320px] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-[20px] border border-border/80 bg-background px-[18px] py-3 text-left text-foreground shadow-[0_8px_18px_rgba(0,0,0,0.12),0_2px_5px_rgba(0,0,0,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 function AppNotificationContent({
   title,

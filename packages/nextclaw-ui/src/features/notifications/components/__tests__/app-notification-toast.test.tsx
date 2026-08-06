@@ -24,6 +24,9 @@ describe("AppNotificationToast", () => {
       name: "Open the background task reply",
     });
     expect(notification.getAttribute("href")).toBe("/chat/session-1");
+    expect(notification.className).not.toMatch(
+      /(?:hover|active):bg-\S*\/\d+/,
+    );
     expect(screen.getByText("Background task")).toBeTruthy();
     expect(screen.getByText("The requested summary is ready.")).toBeTruthy();
 
