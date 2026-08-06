@@ -118,7 +118,7 @@ function PanelAppMenuItem({
       type="button"
       className={cn(
         'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-        destructive ? 'text-destructive hover:bg-destructive/10' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        destructive ? 'text-destructive hover:bg-destructive/10' : 'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground',
       )}
       disabled={disabled}
       onClick={onClick}

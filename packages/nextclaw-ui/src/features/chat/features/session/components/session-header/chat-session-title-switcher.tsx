@@ -29,7 +29,7 @@ import { cn } from "@/shared/lib/utils";
 import { useProjects } from "@/shared/hooks/use-projects";
 
 const SWITCHER_TRIGGER_CLASS =
-  "group inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border";
+  "group inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border";
 
 function ChatSessionTitle({ title }: { title: string }) {
   return (

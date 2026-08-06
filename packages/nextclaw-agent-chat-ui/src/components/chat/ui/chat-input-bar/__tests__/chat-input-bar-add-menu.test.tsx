@@ -1,10 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ChatInputBarSkillPicker } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-input-bar-skill-picker';
+import { ChatInputBarAddMenu } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-input-bar-add-menu';
 import type { ChatSkillPickerProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 const createPicker = (): ChatSkillPickerProps => ({
   title: 'Skills',
-  allGroupsLabel: 'All skills',
   searchPlaceholder: 'Search skills',
   loadingLabel: 'Loading skills',
   emptyLabel: 'No skills',
@@ -32,9 +31,12 @@ const createPicker = (): ChatSkillPickerProps => ({
   onSelectedKeysChange: vi.fn(),
 });
 
-it('keeps a fixed panel height and filters directly to built-in skills', () => {
-  render(<ChatInputBarSkillPicker picker={createPicker()} />);
+it('opens a compact action menu before the height-capped skill view', () => {
+  render(<ChatInputBarAddMenu label="Add content" accessories={[]} picker={createPicker()} />);
 
+  fireEvent.click(screen.getByRole('button', { name: 'Add content' }));
+  expect(screen.queryByRole('listbox')).toBeNull();
+  expect(screen.queryByPlaceholderText('Search skills')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Skills' }));
   const listbox = screen.getByRole('listbox');
   const panelStyle = listbox.closest('[data-state="open"]')?.getAttribute('style') ?? '';
@@ -46,8 +48,8 @@ it('keeps a fixed panel height and filters directly to built-in skills', () => {
   expect(panelStyle).toContain('100vh');
   expect(panelStyle).toContain('2rem');
 
-  fireEvent.click(screen.getByRole('button', { name: /built-in skills/i }));
+  fireEvent.change(screen.getByPlaceholderText('Search skills'), { target: { value: 'summ' } });
   expect(screen.getByText('Summarize')).toBeTruthy();
   expect(screen.queryByText('Web Search')).toBeNull();
-  expect(screen.getByRole('button', { name: /built-in skills/i }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.queryByRole('button', { name: /built-in skills/i })).toBeNull();
 });

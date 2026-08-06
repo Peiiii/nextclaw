@@ -92,6 +92,7 @@ function createInputBarProps(overrides: ChatInputBarPropsOverrides = {}): ChatIn
     },
     hint: null,
     toolbar: {
+      addMenuLabel: 'Add content',
       selects: [],
       actions: {
         isSending: false,
@@ -236,7 +237,6 @@ function SkillPickerInsertionHarness() {
         toolbar: {
           skillPicker: {
             title: 'Skills',
-            allGroupsLabel: 'All skills',
             searchPlaceholder: 'Search skills',
             loadingLabel: 'Loading skills',
             emptyLabel: 'No skills',
@@ -246,6 +246,11 @@ function SkillPickerInsertionHarness() {
                 key: 'web-search',
                 label: 'Web Search',
                 description: 'Search the web',
+              },
+              {
+                key: 'summarize',
+                label: 'Summarize',
+                description: 'Summarize the conversation',
               },
             ],
             onSelectedKeysChange: setSelectedKeys,
@@ -382,21 +387,33 @@ it('renders inline skill tokens inside the composer surface', async () => {
 it('shows a selected skill inside the composer after choosing it from the skill picker', async () => {
   render(<SkillPickerInsertionHarness />);
 
-  fireEvent.click(screen.getByRole('button', { name: /skills/i }));
-  fireEvent.click(await screen.findByRole('button', { name: /add web search/i }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add content' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Skills' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Web Search' }));
 
-  await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
-  expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
+  await waitFor(() => {
+    expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
+  });
 });
 
-it('keeps skill option text selectable without toggling the skill', async () => {
+it('keeps the skill menu open for consecutive selections', async () => {
   render(<SkillPickerInsertionHarness />);
 
-  fireEvent.click(screen.getByRole('button', { name: /skills/i }));
-  fireEvent.click(await screen.findByText('Search the web'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add content' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Skills' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Web Search' }));
+  expect(screen.getByPlaceholderText('Search skills')).toBeTruthy();
+  await waitFor(() => {
+    expect(screen.getByRole('option', { name: 'Web Search' }).getAttribute('aria-selected')).toBe('true');
+  });
+  fireEvent.click(screen.getByRole('option', { name: 'Summarize' }));
 
-  expect(screen.getByText('Search the web')).toBeTruthy();
-  expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeNull();
+  await waitFor(() => {
+    const textbox = screen.getByRole('textbox');
+    expect(textbox.querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
+    expect(textbox.querySelector('[data-composer-token-key="summarize"]')).toBeTruthy();
+  });
+  expect(screen.getByPlaceholderText('Search skills')).toBeTruthy();
 });
 
 it('keeps an existing skill token when typing plain text after it', async () => {
@@ -750,20 +767,6 @@ it('keeps the send control active during streaming when the draft can be queued'
   expect(screen.queryByTestId('chat-stop-icon')).toBeNull();
 });
 
-it('keeps the model dropdown narrower on mobile while preserving desktop width', async () => {
-  renderInputBar({
-    toolbar: {
-      selects: [createModelSelect()],
-    },
-  });
-
-  fireEvent.click(screen.getByRole('combobox'));
-
-  const listbox = await screen.findByRole('listbox');
-  expect(listbox.className).toContain('w-[min(18rem,calc(100vw-1rem))]');
-  expect(listbox.className).toContain('sm:w-[320px]');
-});
-
 it('lets leading controls shrink before trailing model and send actions wrap', () => {
   const { container } = renderInputBar({
     toolbar: {
@@ -771,43 +774,54 @@ it('lets leading controls shrink before trailing model and send actions wrap', (
         createModelSelect({
           value: 'deepseek/deepseek-v3.2-super-long-model-name',
           selectedLabel: 'DeepSeek/deepseek-v3.2-super-long-model-name',
+          icon: 'sparkles',
           options: [],
         }),
       ],
-      accessories: [{ key: 'attach', label: 'Attach file', icon: 'paperclip', iconOnly: true }],
+      accessories: [{ key: 'attach', label: 'Attach file', icon: 'paperclip' }],
     },
   });
 
   const leadingControls = container.querySelector('.nextclaw-chat-toolbar-leading-controls');
   expect(leadingControls?.className).toContain('min-w-0');
   expect(leadingControls?.className).not.toContain('min-w-[12rem]');
-  expect(screen.getByRole('combobox')).toBeTruthy();
+  expect(screen.getByRole('combobox', {
+    name: 'Select model: DeepSeek/deepseek-v3.2-super-long-model-name',
+  })).toBeTruthy();
+  expect(screen.getAllByText('deepseek-v3.2-super-long-model-name')).toHaveLength(2);
+  expect(screen.queryByText('DeepSeek/deepseek-v3.2-super-long-model-name')).toBeNull();
+  expect(container.querySelector('.lucide-sparkles')?.getAttribute('class')).toContain('hidden');
+  expect(container.querySelector('.lucide-sparkles')?.getAttribute('class')).toContain('max-width:440px');
   expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();
 });
 
-it('renders disabled accessories as icon-only triggers when tooltip copy exists', () => {
+it('folds accessories and skills into a compact two-level menu', () => {
   renderInputBar({
     toolbar: {
+      skillPicker: {
+        title: 'Skills', searchPlaceholder: 'Search skills',
+        loadingLabel: 'Loading skills', emptyLabel: 'No skills', selectedKeys: [], options: [],
+        onSelectedKeysChange: vi.fn(),
+      },
       accessories: [
         {
           key: 'attach',
           label: 'Attach file',
           icon: 'paperclip',
-          iconOnly: true,
           disabled: true,
-          tooltip: 'Coming soon'
         }
       ],
     }
   });
 
-  const button = screen.getByRole('button', { name: 'Attach file' });
-  const trigger = button.parentElement as HTMLElement;
-
-  expect(button).toBeTruthy();
-  expect(screen.queryByText('Attach file')).toBeNull();
-  expect(screen.queryByText('Coming soon')).toBeNull();
-  expect(trigger.tagName).toBe('SPAN');
+  expect(screen.queryByRole('button', { name: 'Attach file' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Skills' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Add content' }));
+  expect(screen.getByRole('button', { name: 'Attach file' }).hasAttribute('disabled')).toBe(true);
+  expect(screen.queryByPlaceholderText('Search skills')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Skills' }));
+  expect(screen.getByPlaceholderText('Search skills')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Attach file' })).toBeNull();
 });
 
 it('collapses long send errors and reveals the full text in a details popover', async () => {

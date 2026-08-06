@@ -50,21 +50,24 @@ describe('ChatWelcome', () => {
     expect(screen.queryByText('Current Agent:')).toBeNull();
   });
 
-  it('uses an adaptive capability grid for narrow docked layouts', () => {
+  it('renders a single-purpose welcome surface with compact prompt suggestions', () => {
     renderWelcome({ agents: [{ id: 'main', displayName: 'Main' }] });
 
-    expect(
-      screen.getByRole('button', { name: /Smart Conversations/ }).parentElement
-        ?.className,
-    ).toContain('auto-fit');
+    expect(screen.getByRole('heading', { name: 'What would you like to get done?' })).toBeTruthy();
+    expect(screen.queryByText(/Describe the goal/)).toBeNull();
+    expect(screen.getByRole('group', { name: 'Task context' })).toBeTruthy();
+    const suggestion = screen.getByRole('button', { name: 'Review this project' });
+    expect(suggestion.className).toContain('rounded-full');
+    expect(suggestion.className).not.toContain('border');
+    expect(suggestion.parentElement?.className).toContain('flex-wrap');
   });
 
-  it('fills the composer with a prompt suggestion when clicking a capability card', () => {
+  it('fills the composer with a prompt suggestion when clicking a suggestion', () => {
     const onSelectPrompt = vi.fn();
 
     renderWelcome({ onSelectPrompt });
 
-    fireEvent.click(screen.getByRole('button', { name: /Smart Conversations/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Review this project' }));
 
     expect(onSelectPrompt).toHaveBeenCalledWith(
       expect.stringContaining('next three concrete things'),

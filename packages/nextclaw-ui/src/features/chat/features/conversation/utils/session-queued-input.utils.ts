@@ -115,6 +115,7 @@ export function buildSessionQueuedInputComposerSnapshot(
       tokenKind: 'file',
       tokenKey: id,
       label: attachment.name,
+      previewUrl: attachment.mimeType.startsWith('image/') ? attachment.url : undefined,
     }));
   });
 

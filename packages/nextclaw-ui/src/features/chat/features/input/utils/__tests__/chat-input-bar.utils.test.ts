@@ -22,6 +22,7 @@ function createModelTexts() {
     favoriteModelsLabel: 'Favorites',
     favoriteModelLabel: 'Favorite model',
     unfavoriteModelLabel: 'Remove favorite',
+    manageModelsLabel: 'Manage models and providers',
     recentModelsLabel: 'Recent',
     allModelsLabel: 'All models'
   };
@@ -262,6 +263,8 @@ describe('buildModelToolbarSelect', () => {
       value: 'minimax/MiniMax-M2.7',
       label: 'MiniMax/MiniMax-M2.7'
     });
+    expect(select.manageLabel).toBe('Manage models and providers');
+    expect(select.manageHref).toBe('/providers');
   });
 
   it('keeps the full provider/model label in shared state while exposing a compact mobile label', () => {

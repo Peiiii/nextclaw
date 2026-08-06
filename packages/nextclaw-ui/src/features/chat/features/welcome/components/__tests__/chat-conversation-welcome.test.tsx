@@ -79,6 +79,12 @@ vi.mock("@/shared/hooks/use-agents", () => ({
   }),
 }));
 
+vi.mock("@/shared/hooks/use-projects", () => ({
+  useProjects: () => ({
+    data: { projects: [] },
+  }),
+}));
+
 function createFetchedQuery<TData>(data: TData) {
   return {
     data,

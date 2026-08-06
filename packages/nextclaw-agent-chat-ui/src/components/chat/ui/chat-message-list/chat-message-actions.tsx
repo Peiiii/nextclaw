@@ -29,7 +29,7 @@ function ChatMessageActionCopy({
           <button
             type="button"
             onClick={() => void copy()}
-            className="flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+            className="flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
             aria-label={label}
           >
             {copied ? (
@@ -135,7 +135,7 @@ function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
                   ref={triggerRef}
                   type="button"
                   aria-label={moreActions.triggerLabel}
-                  className="flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+                  className="flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
                 >
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </button>
@@ -152,7 +152,7 @@ function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
               key={action.key}
               type="button"
               role="menuitem"
-              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-[var(--interaction-hover)] focus-visible:bg-accent focus-visible:outline-none"
               onClick={() => {
                 setMenuOpen(false);
                 setSelectedAction(action);

@@ -348,7 +348,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     applyPromptSuggestion: inputActions.applyPromptSuggestion,
   });
   const renderInput = useCallback(
-    (surface: "default" | "embedded") => (
+    (surface: "default" | "embedded", placeholder?: string) => (
       <SessionConversationInput
         contextWindow={contextWindow}
         controller={inputController}
@@ -356,6 +356,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         inputQuery={inputQuery}
         inputSnapshot={displayInputSnapshot}
         onContextCompactingChange={handleContextCompactingChange}
+        placeholder={placeholder}
         surface={surface}
       />
     ),
@@ -396,7 +397,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         onLoadPreviousMessages={agent.loadPreviousMessages}
         welcomeSlot={
           <ChatConversationWelcome
-            inputSlot={renderInput("embedded")}
+            inputSlot={renderInput("embedded", t("chatWelcomeInputPlaceholder"))}
             pendingProjectRoot={inputSnapshot.pendingProjectRoot}
             pendingSessionType={inputSnapshot.pendingSessionType}
             selectedSessionTypeValue={inputSnapshot.selectedSessionType}

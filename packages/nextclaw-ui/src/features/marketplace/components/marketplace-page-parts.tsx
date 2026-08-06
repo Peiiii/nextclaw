@@ -37,7 +37,7 @@ export function FilterPanel({
             value={searchText}
             onChange={(event) => onSearchTextChange(event.target.value)}
             placeholder={searchPlaceholder}
-            className="h-9 w-full rounded-xl border border-border/75 bg-card pl-9 pr-9 text-sm transition-colors focus:outline-none focus:ring-0 focus:border-border"
+            className="h-9 w-full rounded-xl border border-border/75 bg-card pl-9 pr-9 text-sm transition-colors focus:outline-none focus:ring-0"
           />
           {isRefreshing && (
             <Loader2

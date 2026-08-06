@@ -18,7 +18,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         ref={ref}
         className={cn(
           'switch-track peer inline-flex h-[22px] w-10 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors duration-fast focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-not-allowed disabled:opacity-50',
-          checked ? 'border-primary/70 bg-primary' : 'border-border/60 bg-muted hover:bg-accent',
+          checked ? 'border-primary/70 bg-primary' : 'border-border/60 bg-muted hover:bg-[var(--interaction-hover)]',
           className
         )}
         onClick={() => onCheckedChange?.(!checked)}

@@ -2,6 +2,7 @@ export type { ChatComposerEditorSnapshot } from './chat-composer-lexical-editor-
 export {
   CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
   readChatComposerSnapshotFromEditorState,
+  syncChatComposerTokenSelectionState,
   syncLexicalEditorFromChatComposerState,
   syncLexicalSelectionFromChatComposerSelection,
   writeChatComposerStateToLexicalRoot,

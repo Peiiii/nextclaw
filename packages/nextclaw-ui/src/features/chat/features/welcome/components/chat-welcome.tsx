@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { ChatSessionProjectDialog } from '@/features/chat/features/session/components/session-header/chat-session-project-dialog';
 import { ChatWelcomeAgentPicker } from '@/features/chat/features/welcome/components/chat-welcome-agent-picker';
-import { ChatWelcomeCapabilityGrid } from '@/features/chat/features/welcome/components/chat-welcome-capability-grid';
+import { ChatWelcomePromptSuggestions } from '@/features/chat/features/welcome/components/chat-welcome-prompt-suggestions';
 import { ChatWelcomeProjectPicker } from '@/features/chat/features/welcome/components/chat-welcome-project-picker';
 import { ChatWelcomeSessionTypePicker } from '@/features/chat/features/welcome/components/chat-welcome-session-type-picker';
 import type { ChatWelcomeProjectOption } from '@/features/chat/features/welcome/utils/chat-welcome-project-options.utils';
@@ -61,45 +61,47 @@ export function ChatWelcome({
   const selectableProjectRoot = Boolean(onSelectProjectRoot);
 
   return (
-    <div className="flex min-h-full items-center justify-center px-4 py-8 sm:p-8">
-      <div className="min-w-0 w-full max-w-[min(760px,100%)]">
+    <div className="flex min-h-full items-center justify-center px-4 py-10 sm:p-8">
+      <div className="w-full min-w-0 max-w-[min(680px,100%)]">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+          <h2 className="text-2xl font-semibold leading-tight text-foreground sm:text-[2rem]">
             {t('chatWelcomeTitle')}
           </h2>
-          <p className="mt-3 text-sm font-medium text-muted-foreground sm:text-base">
-            {t('chatWelcomeSubtitle')}
-          </p>
         </div>
 
-        {inputSlot ? <div className="mt-8">{inputSlot}</div> : null}
+        {inputSlot ? <div className="mt-6">{inputSlot}</div> : null}
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 px-1 text-sm text-muted-foreground">
-          {onSelectProjectRoot ? (
-            <ChatWelcomeProjectPicker
-              defaultProjectRoot={defaultProjectRoot}
-              isSaving={isProjectSaving}
-              projectOptions={projectOptions}
-              projectRoot={resolvedProjectRoot}
-              selectable={selectableProjectRoot}
-              onOpenProjectDialog={() => setIsProjectDialogOpen(true)}
-              onSelectProjectRoot={saveProjectRoot}
+        <div className="mt-2 flex justify-center px-1">
+          <div
+            role="group"
+            aria-label={t('chatWelcomeContextLabel')}
+            className="flex min-w-0 max-w-full flex-wrap items-center justify-center gap-0.5 rounded-xl bg-muted/40 p-1 text-sm text-muted-foreground"
+          >
+            {onSelectProjectRoot ? (
+              <ChatWelcomeProjectPicker
+                isSaving={isProjectSaving}
+                projectOptions={projectOptions}
+                projectRoot={resolvedProjectRoot}
+                selectable={selectableProjectRoot}
+                onOpenProjectDialog={() => setIsProjectDialogOpen(true)}
+                onSelectProjectRoot={saveProjectRoot}
+              />
+            ) : null}
+            <ChatWelcomeAgentPicker
+              agents={agents}
+              selectedAgent={selectedAgent}
+              selectedAgentId={selectedAgentId}
+              onSelectAgent={onSelectAgent}
             />
-          ) : null}
-          <ChatWelcomeAgentPicker
-            agents={agents}
-            selectedAgent={selectedAgent}
-            selectedAgentId={selectedAgentId}
-            onSelectAgent={onSelectAgent}
-          />
-          <ChatWelcomeSessionTypePicker
-            options={sessionTypeOptions}
-            selectedSessionType={selectedSessionType}
-            onSelectSessionType={onSelectSessionType}
-          />
+            <ChatWelcomeSessionTypePicker
+              options={sessionTypeOptions}
+              selectedSessionType={selectedSessionType}
+              onSelectSessionType={onSelectSessionType}
+            />
+          </div>
         </div>
 
-        <ChatWelcomeCapabilityGrid onSelectPrompt={onSelectPrompt} />
+        <ChatWelcomePromptSuggestions onSelectPrompt={onSelectPrompt} />
       </div>
 
       {onSelectProjectRoot ? (

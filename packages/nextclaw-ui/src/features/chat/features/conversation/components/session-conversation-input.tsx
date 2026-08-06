@@ -193,6 +193,7 @@ type SessionConversationInputProps = {
   readonly inputQuery: SessionConversationInputQuery;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly onContextCompactingChange?: (sessionId: string, isCompacting: boolean) => void;
+  readonly placeholder?: string;
   readonly surface?: 'default' | 'embedded';
 };
 
@@ -204,6 +205,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     inputQuery,
     inputSnapshot,
     onContextCompactingChange,
+    placeholder,
     surface = 'default',
   } = props;
   const presenter = usePresenter();
@@ -277,7 +279,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   const attachmentSupported = true;
   const textareaPlaceholder = isModelOptionsEmpty
     ? t('chatModelNoOptions')
-    : t(isMobile ? 'chatInputPlaceholderCompact' : 'chatInputPlaceholder');
+    : placeholder ?? t(isMobile ? 'chatInputPlaceholderCompact' : 'chatInputPlaceholder');
   const selectedModelOption = modelRecords.find((option) => option.value === selectedModel);
   const thinkingSupportedLevels = selectedModelOption?.thinkingCapability?.supported ?? [];
   const { handleFilesAdd, handleFileInputChange } = useSessionConversationInputAttachments({
@@ -426,6 +428,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
         },
       })}
       toolbar={{
+        addMenuLabel: t('chatInputAdd'),
         selects: [],
         trailingSelects: toolbarSelects,
         accessories: [
@@ -433,7 +436,6 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
             key: 'attach',
             label: t('chatInputAttach'),
             icon: 'paperclip' as const,
-            iconOnly: true,
             disabled: !attachmentSupported || inputDisabled,
             onClick: () => fileInputRef.current?.click(),
           },

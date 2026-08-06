@@ -98,8 +98,8 @@ function ChatInputBarSendError({ sendError, sendErrorDetailsLabel }: Pick<ChatIn
 }
 
 export type ChatInputBarHandle = {
-  insertFileToken: (tokenKey: string, label: string) => void;
-  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
+  insertFileToken: (tokenKey: string, label: string, previewUrl?: string) => void;
+  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string; previewUrl?: string }>) => void;
   focusComposer: () => void;
   focusComposerAtEnd: (nodes?: ChatInputBarProps['composer']['nodes']) => void;
 };
@@ -142,7 +142,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   }, [toolbarProps]);
 
   useImperativeHandle(ref, () => ({
-    insertFileToken: (tokenKey, label) => composerRef.current?.insertFileToken(tokenKey, label),
+    insertFileToken: (tokenKey, label, previewUrl) => composerRef.current?.insertFileToken(tokenKey, label, previewUrl),
     insertFileTokens: (tokens) => composerRef.current?.insertFileTokens(tokens),
     focusComposer: () => composerRef.current?.focusComposer(),
     focusComposerAtEnd: (nodes) => composerRef.current?.focusComposerAtEnd(nodes),

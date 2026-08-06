@@ -55,6 +55,41 @@ export type ChatComposerEditorSnapshot = {
   selection: ChatComposerSelection | null;
 };
 
+export function syncChatComposerTokenSelectionState(
+  root: HTMLElement,
+  snapshot: ChatComposerEditorSnapshot,
+): void {
+  const selectionStart = snapshot.selection?.start ?? 0;
+  const selectionEnd = snapshot.selection?.end ?? 0;
+  const selectedTokenIds = new Set<string>();
+  let cursor = 0;
+  for (const node of snapshot.nodes) {
+    const nodeLength = node.type === 'text' ? node.text.length : 1;
+    if (
+      node.type === 'token' &&
+      selectionStart < cursor + nodeLength &&
+      selectionEnd > cursor
+    ) {
+      selectedTokenIds.add(node.id);
+    }
+    cursor += nodeLength;
+  }
+  root.querySelectorAll<HTMLElement>('[data-composer-node-type="token"]').forEach((element) => {
+    const selected = selectedTokenIds.has(element.dataset.composerNodeId ?? '');
+    if (element.dataset.composerSelected === String(selected)) {
+      return;
+    }
+    element.dataset.composerSelected = String(selected);
+    if (selected) {
+      element.style.setProperty('background-color', 'var(--interaction-selection)', 'important');
+      element.style.setProperty('border-color', 'var(--interaction-selection-border)', 'important');
+      return;
+    }
+    element.style.removeProperty('background-color');
+    element.style.removeProperty('border-color');
+  });
+}
+
 export const CHAT_COMPOSER_EXTERNAL_UPDATE_TAG = 'nextclaw-chat-composer-external-update';
 
 function getComposerLeafDescriptors(): {
@@ -254,6 +289,7 @@ function readNodesFromEditor(): ChatComposerNode[] {
     nextNodes.push({
       id: tokenNode.getComposerId(),
       label: tokenNode.getLabel(),
+      previewUrl: tokenNode.getPreviewUrl(),
       tokenKey: tokenNode.getTokenKey(),
       tokenKind: tokenNode.getTokenKind(),
       type: 'token',
@@ -304,6 +340,7 @@ export function writeChatComposerStateToLexicalRoot(
         $createChatComposerTokenNode({
           composerId: node.id,
           label: node.label,
+          previewUrl: node.previewUrl,
           tokenKey: node.tokenKey,
           tokenKind: node.tokenKind,
         }),

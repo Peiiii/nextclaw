@@ -27,12 +27,13 @@ function getDocumentLength(nodes: ChatComposerNode[]): number {
 function insertToken(params: {
   label: string;
   nodes: ChatComposerNode[];
+  previewUrl?: string;
   selection: ChatComposerSelection | null;
   tokenKey: string;
   tokenKind: ChatComposerTokenKind;
   trigger?: { end: number; query: string; start: number } | null;
 }): ChatComposerEditorSnapshot {
-  const { label, nodes, selection, tokenKey, tokenKind, trigger } = params;
+  const { label, nodes, previewUrl, selection, tokenKey, tokenKind, trigger } = params;
   const documentLength = getDocumentLength(nodes);
   const [selectionStart, selectionEnd] = selection ? [Math.min(selection.start, selection.end), Math.max(selection.start, selection.end)] : [documentLength, documentLength];
   const replaceStart = trigger?.start ?? selectionStart;
@@ -46,6 +47,7 @@ function insertToken(params: {
       [
         createChatComposerTokenNode({
           label,
+          previewUrl,
           tokenKey,
           tokenKind,
         }),
@@ -136,7 +138,7 @@ export function getChatComposerNodesSignature(nodes: ChatComposerNode[]): string
     .map((node) =>
       node.type === 'text'
         ? `text:${node.text}`
-        : `token:${node.tokenKind}:${node.tokenKey}:${node.label}`,
+        : `token:${node.tokenKind}:${node.tokenKey}:${node.label}:${node.previewUrl ?? ''}`,
     )
     .join('\u001f');
 }
@@ -168,13 +170,15 @@ export function replaceChatComposerSelectionWithText(params: {
 export function insertFileTokenIntoChatComposer(params: {
   label: string;
   nodes: ChatComposerNode[];
+  previewUrl?: string;
   selection: ChatComposerSelection | null;
   tokenKey: string;
 }): ChatComposerEditorSnapshot {
-  const { label, nodes, selection, tokenKey } = params;
+  const { label, nodes, previewUrl, selection, tokenKey } = params;
   return insertToken({
     label,
     nodes,
+    previewUrl,
     selection,
     tokenKey,
     tokenKind: 'file',

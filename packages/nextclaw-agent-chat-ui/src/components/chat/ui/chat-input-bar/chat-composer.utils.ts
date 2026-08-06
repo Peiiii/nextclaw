@@ -30,13 +30,16 @@ export function createChatComposerTokenNode(params: {
   tokenKind: ChatComposerTokenKind;
   tokenKey: string;
   label: string;
+  previewUrl?: string;
 }): ChatComposerTokenNode {
+  const { label, previewUrl, tokenKey, tokenKind } = params;
   return {
     id: createComposerNodeId(),
     type: 'token',
-    tokenKind: params.tokenKind,
-    tokenKey: params.tokenKey,
-    label: params.label
+    tokenKind,
+    tokenKey,
+    label,
+    previewUrl,
   };
 }
 

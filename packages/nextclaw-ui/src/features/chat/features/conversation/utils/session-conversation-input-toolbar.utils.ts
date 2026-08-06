@@ -82,6 +82,7 @@ export function buildSessionConversationToolbarSelects(params: ToolbarSelectBuil
         favoriteModelsLabel,
         favoriteModelLabel,
         unfavoriteModelLabel,
+        manageModelsLabel: t('chatManageModels'),
         recentModelsLabel,
         allModelsLabel,
       },

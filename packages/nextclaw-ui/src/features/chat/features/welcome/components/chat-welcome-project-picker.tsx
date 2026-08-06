@@ -11,7 +11,6 @@ import { t } from '@/shared/lib/i18n';
 import { getSessionProjectName } from '@/shared/lib/session-project';
 
 type ChatWelcomeProjectPickerProps = {
-  defaultProjectRoot?: string | null;
   isSaving: boolean;
   projectOptions: readonly ChatWelcomeProjectOption[];
   projectRoot: string | null;
@@ -23,7 +22,6 @@ type ChatWelcomeProjectPickerProps = {
 const PROJECT_PICKER_MAX_HEIGHT = createPopoverAvailableHeightLimit('20rem');
 
 export function ChatWelcomeProjectPicker({
-  defaultProjectRoot,
   isSaving,
   projectOptions,
   projectRoot,
@@ -34,10 +32,6 @@ export function ChatWelcomeProjectPicker({
   const [isOpen, setIsOpen] = useState(false);
   const projectLabel =
     getSessionProjectName(projectRoot) ?? t('chatWelcomeProjectPickerPlaceholder');
-  const isDefaultProject =
-    defaultProjectRoot !== null &&
-    defaultProjectRoot !== undefined &&
-    projectRoot === defaultProjectRoot;
 
   const selectProjectRoot = async (nextProjectRoot: string) => {
     setIsOpen(false);
@@ -49,18 +43,13 @@ export function ChatWelcomeProjectPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           title={projectRoot ?? undefined}
           aria-label={t('chatWelcomeProjectPickerLabel')}
           disabled={!selectable || isSaving}
         >
           <FolderOpen className="h-4 w-4 shrink-0" />
           <span className="truncate">{projectLabel}</span>
-          {isDefaultProject ? (
-            <span className="shrink-0 text-xs font-normal text-muted-foreground/70">
-              {t('chatWelcomeProjectDefaultBadge')}
-            </span>
-          ) : null}
           <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         </button>
       </PopoverTrigger>
@@ -78,7 +67,7 @@ export function ChatWelcomeProjectPicker({
               <button
                 key={option.projectRoot}
                 type="button"
-                className="flex w-full min-w-0 items-start gap-2 rounded-xl px-2 py-2 text-left transition-colors hover:bg-accent"
+                className="flex w-full min-w-0 items-start gap-2 rounded-xl px-2 py-2 text-left transition-colors hover:bg-[var(--interaction-hover)]"
                 title={option.projectRoot}
                 onClick={() => {
                   void selectProjectRoot(option.projectRoot);
@@ -111,7 +100,7 @@ export function ChatWelcomeProjectPicker({
         <div className="shrink-0 border-t border-border p-1.5">
           <button
             type="button"
-            className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-semibold text-foreground transition-colors hover:bg-accent"
+            className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-semibold text-foreground transition-colors hover:bg-[var(--interaction-hover)]"
             onClick={() => {
               setIsOpen(false);
               onOpenProjectDialog();

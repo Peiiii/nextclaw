@@ -7,7 +7,7 @@ import {
   type NodeKey,
   type SerializedLexicalNode,
 } from 'lexical';
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { AppWindow, FileText, Folder, FolderKanban, ImageIcon, Puzzle } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { CHAT_COMPOSER_TOKEN_PLACEHOLDER } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
@@ -16,6 +16,7 @@ import type { ChatComposerTokenKind } from '@agent-chat-ui/components/chat/view-
 type SerializedChatComposerTokenNode = SerializedLexicalNode & {
   composerId: string;
   label: string;
+  previewUrl?: string;
   tokenKey: string;
   tokenKind: ChatComposerTokenKind;
   type: 'chat-composer-token';
@@ -31,65 +32,74 @@ const CHAT_COMPOSER_TOKEN_ICONS: Record<string, LucideIcon> = {
 };
 
 function buildTokenClassName(tokenKind: ChatComposerTokenKind): string {
+  const sharedClassNames = [
+    'mx-[2px]',
+    'inline-flex',
+    'h-6',
+    'items-center',
+    'gap-1.5',
+    'rounded-[7px]',
+    'border',
+    'px-1.5',
+    'align-middle',
+    'leading-none',
+    'selection:bg-transparent',
+    'selection:text-current',
+    'data-[composer-selected=true]:shadow-[0_0_0_2px_var(--interaction-selection,Highlight)]',
+  ];
+
   if (tokenKind === 'file') {
     return [
-      'mx-[2px]',
-      'inline-flex',
-      'h-7',
+      ...sharedClassNames,
       'max-w-[min(100%,17rem)]',
-      'items-center',
-      'gap-1.5',
-      'rounded-lg',
-      'border',
       'border-border',
       'bg-muted',
-      'px-2',
-      'align-baseline',
       'text-foreground',
-      'transition-[border-color,background-color,box-shadow,color]',
-      'duration-150',
     ].join(' ');
   }
 
   return [
-    'mx-[2px]',
-    'inline-flex',
-    'h-7',
+    ...sharedClassNames,
     'max-w-full',
-    'items-center',
-    'gap-1.5',
-    'rounded-lg',
-    'border',
     'border-primary/12',
     'bg-primary/8',
-    'px-2',
-    'align-baseline',
     'text-[11px]',
     'font-medium',
     'text-primary',
-    'transition',
   ].join(' ');
 }
 
 function ChatComposerTokenChip({
   label,
+  previewUrl,
   tokenKind,
 }: {
   label: string;
+  previewUrl?: string;
   tokenKind: ChatComposerTokenKind;
 }): ReactElement {
   const isWorkspaceReference = tokenKind === 'workspace_file' || tokenKind === 'workspace_directory';
+  const [previewFailed, setPreviewFailed] = useState(false);
   const TokenIcon = CHAT_COMPOSER_TOKEN_ICONS[tokenKind] ?? Puzzle;
   return (
     <>
       <span
         className={
           tokenKind === 'file'
-            ? 'inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md bg-card text-muted-foreground ring-1 ring-border'
+            ? 'inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-[4px] bg-card text-muted-foreground ring-1 ring-border'
             : 'inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center text-primary/70'
         }
       >
-        <TokenIcon aria-hidden="true" className="h-3 w-3" />
+        {previewUrl && !previewFailed ? (
+          <img
+            alt=""
+            className="h-full w-full object-cover"
+            onError={() => setPreviewFailed(true)}
+            src={previewUrl}
+          />
+        ) : (
+          <TokenIcon aria-hidden="true" className="h-3 w-3" />
+        )}
       </span>
       <span
         className={
@@ -111,6 +121,7 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
   __tokenKind: ChatComposerTokenKind;
   __tokenKey: string;
   __label: string;
+  __previewUrl?: string;
 
   static getType(): string {
     return 'chat-composer-token';
@@ -122,6 +133,7 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
       node.__tokenKind,
       node.__tokenKey,
       node.__label,
+      node.__previewUrl,
       node.__key,
     );
   }
@@ -130,6 +142,7 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
     return $createChatComposerTokenNode({
       composerId: serializedNode.composerId,
       label: serializedNode.label,
+      previewUrl: serializedNode.previewUrl,
       tokenKey: serializedNode.tokenKey,
       tokenKind: serializedNode.tokenKind,
     });
@@ -140,6 +153,7 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
     tokenKind: ChatComposerTokenKind,
     tokenKey: string,
     label: string,
+    previewUrl?: string,
     key?: NodeKey,
   ) {
     super(key);
@@ -147,6 +161,7 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
     this.__tokenKind = tokenKind;
     this.__tokenKey = tokenKey;
     this.__label = label;
+    this.__previewUrl = previewUrl;
   }
 
   private readonly applyTokenDom = (element: HTMLElement): void => {
@@ -172,13 +187,20 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
   };
 
   decorate = (): ReactElement => {
-    return <ChatComposerTokenChip label={this.__label} tokenKind={this.__tokenKind} />;
+    return (
+      <ChatComposerTokenChip
+        label={this.__label}
+        previewUrl={this.__previewUrl}
+        tokenKind={this.__tokenKind}
+      />
+    );
   };
 
   exportJSON = (): SerializedChatComposerTokenNode => {
     return {
       composerId: this.__composerId,
       label: this.__label,
+      previewUrl: this.__previewUrl,
       tokenKey: this.__tokenKey,
       tokenKind: this.__tokenKind,
       type: 'chat-composer-token',
@@ -202,6 +224,10 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
     return this.getLatest().__label;
   };
 
+  getPreviewUrl = (): string | undefined => {
+    return this.getLatest().__previewUrl;
+  };
+
   getTextContent = (): string => {
     return CHAT_COMPOSER_TOKEN_PLACEHOLDER;
   };
@@ -222,12 +248,13 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
 export function $createChatComposerTokenNode(params: {
   composerId: string;
   label: string;
+  previewUrl?: string;
   tokenKey: string;
   tokenKind: ChatComposerTokenKind;
 }): ChatComposerTokenNode {
-  const { composerId, label, tokenKey, tokenKind } = params;
+  const { composerId, label, previewUrl, tokenKey, tokenKind } = params;
   return $applyNodeReplacement(
-    new ChatComposerTokenNode(composerId, tokenKind, tokenKey, label),
+    new ChatComposerTokenNode(composerId, tokenKind, tokenKey, label, previewUrl),
   );
 }
 

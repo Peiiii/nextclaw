@@ -25,7 +25,7 @@ function ContextWindowIndicator({ contextWindow }: { contextWindow: ChatContextW
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
             aria-label={contextWindow.label}
             title={contextWindow.label}
           >

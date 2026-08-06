@@ -86,6 +86,7 @@ export function buildModelToolbarSelect({
     | "favoriteModelsLabel"
     | "favoriteModelLabel"
     | "unfavoriteModelLabel"
+    | "manageModelsLabel"
     | "recentModelsLabel"
     | "allModelsLabel"
   >;
@@ -172,6 +173,8 @@ export function buildModelToolbarSelect({
           onToggle: onFavoriteToggle,
         }
       : undefined,
+    manageLabel: texts.manageModelsLabel,
+    manageHref: "/providers",
     onValueChange,
   };
 }

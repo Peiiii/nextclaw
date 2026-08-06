@@ -47,6 +47,7 @@ export type ChatComposerTokenNode = {
   tokenKind: ChatComposerTokenKind;
   tokenKey: string;
   label: string;
+  previewUrl?: string;
 };
 
 export type ChatComposerNode = ChatComposerTextNode | ChatComposerTokenNode;
@@ -57,8 +58,6 @@ export type ChatComposerSelection = {
 };
 
 export type ChatToolbarIcon = "sparkles" | "brain";
-
-export type ChatToolbarAccessoryIcon = ChatToolbarIcon | "paperclip";
 
 export type ChatToolbarSelectOption = {
   value: string;
@@ -98,16 +97,18 @@ export type ChatToolbarSelect = {
   emptyLabel?: string;
   search?: ChatToolbarSelectSearch;
   optionAction?: ChatToolbarSelectOptionAction;
+  manageLabel?: string;
+  manageHref?: string;
   onValueChange: (value: string) => void;
 };
+
+export type ChatToolbarAccessoryIcon = "paperclip";
 
 export type ChatToolbarAccessory = {
   key: string;
   label: string;
   icon?: ChatToolbarAccessoryIcon;
-  iconOnly?: boolean;
   disabled?: boolean;
-  tooltip?: string;
   onClick?: () => void;
 };
 
@@ -126,7 +127,6 @@ export type ChatSkillPickerOptionGroup = {
 
 export type ChatSkillPickerProps = {
   title: string;
-  allGroupsLabel: string;
   searchPlaceholder: string;
   emptyLabel: string;
   loadingLabel: string;
@@ -161,6 +161,7 @@ export type ChatContextWindowIndicator = {
 };
 
 export type ChatInputBarToolbarProps = {
+  addMenuLabel?: string;
   selects: ChatToolbarSelect[];
   trailingSelects?: ChatToolbarSelect[];
   accessories?: ChatToolbarAccessory[];

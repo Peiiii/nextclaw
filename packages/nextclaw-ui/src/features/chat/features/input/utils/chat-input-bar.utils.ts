@@ -278,7 +278,6 @@ export function buildSkillPickerModel(params: {
   const recentKeySet = new Set(groupedRecentSkillValues ?? []);
   return {
     title: texts.title,
-    allGroupsLabel: texts.allSkillsLabel,
     searchPlaceholder: texts.searchPlaceholder,
     emptyLabel: texts.emptyLabel,
     loadingLabel: texts.loadingLabel,

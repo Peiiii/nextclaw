@@ -131,7 +131,7 @@ export function ChatConversationContent({
           label={t("chatScrollToBottom")}
           onClick={scrollToBottom}
           tooltipSide="top"
-          className="absolute bottom-4 left-1/2 z-10 h-9 w-9 -translate-x-1/2 rounded-full border border-border bg-background/90 text-foreground shadow-lg backdrop-blur hover:bg-accent hover:text-accent-foreground"
+          className="absolute bottom-4 left-1/2 z-10 h-9 w-9 -translate-x-1/2 rounded-full border border-border bg-background/90 text-foreground shadow-lg backdrop-blur hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
         />
       ) : null}
     </div>

@@ -94,7 +94,7 @@ export const CronTaskComposer = forwardRef<
         ref={ref}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="pl-9 pr-11 focus:border-border/75"
+        className="pl-9 pr-11"
         placeholder={t("cronComposerPlaceholder")}
         aria-label={t("cronComposerLabel")}
       />

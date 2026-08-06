@@ -112,7 +112,7 @@ export function ServerPathPickerLocations({
         type="button"
         className={cn(
           'flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border',
-          active ? 'bg-primary/12 text-primary' : 'text-foreground hover:bg-accent',
+          active ? 'bg-primary/12 text-primary' : 'text-foreground hover:bg-[var(--interaction-hover)]',
         )}
         aria-current={active ? 'location' : undefined}
         onClick={() => onNavigate(item.path)}

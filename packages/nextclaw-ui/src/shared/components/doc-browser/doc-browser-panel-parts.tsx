@@ -55,7 +55,7 @@ export function DocBrowserAddressToolbar({
           onChange={(e) => onUrlInputChange(e.target.value)}
           aria-label={t('docBrowserAddressLabel')}
           placeholder={placeholder}
-          className="h-8 w-full rounded-lg border border-border/75 bg-background pl-8 pr-3 text-xs text-foreground transition-colors placeholder:text-muted-foreground/55 focus:border-border focus:outline-none focus:ring-0"
+          className="h-8 w-full rounded-lg border border-border/75 bg-background pl-8 pr-3 text-xs text-foreground transition-colors placeholder:text-muted-foreground/55 focus:outline-none focus:ring-0"
         />
       </form>
       <IconActionButton

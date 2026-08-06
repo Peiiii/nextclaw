@@ -31,7 +31,7 @@ describe('IconActionButton', () => {
     const button = screen.getByRole('button', { name: 'More' });
     expect(button.className).toContain('h-7');
     expect(button.className).toContain('w-7');
-    expect(button.className).toContain('hover:bg-accent');
+    expect(button.className).toContain('hover:bg-[var(--interaction-hover)]');
   });
 
   it('ignores restored pointer focus while preserving keyboard tooltip focus', () => {
