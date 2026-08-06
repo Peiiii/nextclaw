@@ -3,6 +3,38 @@ import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { DefaultNcpAgentConversationStateManager } from "../agent-conversation-state.manager.js";
 
 describe("DefaultNcpAgentConversationStateManager tool hydration", () => {
+  it("keeps the latest snapshot when hydrated history repeats a message id", () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const partialMessage: NcpMessage = {
+      id: "assistant-duplicate",
+      sessionId: "session-duplicate",
+      role: "assistant",
+      status: "streaming",
+      timestamp: "2026-03-12T00:00:00.000Z",
+      parts: [{ type: "text", text: "partial" }],
+    };
+
+    manager.hydrate({
+      sessionId: "session-duplicate",
+      messages: [
+        partialMessage,
+        {
+          ...partialMessage,
+          status: "final",
+          parts: [{ type: "text", text: "complete" }],
+        },
+      ],
+    });
+
+    expect(manager.getSnapshot().messages).toMatchObject([
+      {
+        id: "assistant-duplicate",
+        status: "final",
+        parts: [{ text: "complete" }],
+      },
+    ]);
+  });
+
   it("continues partial tool arguments without dropping their hydrated prefix", async () => {
     const manager = new DefaultNcpAgentConversationStateManager();
     const argsPrefix = '{"path":"src/app.ts","oldText":"before","newText":"aft';

@@ -127,7 +127,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   hydrate = (payload: NcpAgentConversationHydrationParams): void => {
-    this.messages = payload.messages.map((message: NcpMessage) => normalizeConversationMessage(message));
+    this.messages = [...new Map(payload.messages.map((message) => [message.id, normalizeConversationMessage(message)])).values()];
     this.streamingMessage = null;
     this.error = null;
     this.contextWindow = payload.contextWindow ? { ...payload.contextWindow } : null;

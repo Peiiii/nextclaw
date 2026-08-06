@@ -17,6 +17,9 @@ import {
   EventBus,
 } from "@nextclaw/shared";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
+import {
+  createSilentRepliesContextProvider,
+} from "@kernel/contributions/context-provider/providers/native-static-context.provider.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
 import { createShowContentTools } from "@kernel/tools/show-content.tools.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
@@ -105,6 +108,18 @@ afterEach(() => {
   while (tempWorkspaces.length > 0) {
     rmSync(tempWorkspaces.pop()!, { recursive: true, force: true });
   }
+});
+
+describe("Silent replies context contract", () => {
+  it("requires the silent marker without escaped or leading newlines", async () => {
+    const workspace = createWorkspace();
+    const [context] = await createSilentRepliesContextProvider().provide(createRequest(workspace));
+
+    expect(context).toContain("respond with EXACTLY <noreply/>");
+    expect(context).toContain('✅ Right: "<noreply/>"');
+    expect(context).not.toContain("two blank lines");
+    expect(context).not.toContain("\\n\\n<noreply/>");
+  });
 });
 
 describe("ContextProviderContribution native prompt contract", () => {

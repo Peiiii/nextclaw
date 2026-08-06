@@ -97,7 +97,7 @@ export const createMessagingContextProvider = (): ContextProvider =>
     "- For `action=send`, include `message` plus an explicit `to/chatId` whenever the destination is another channel or another conversation.",
     "- Omitting `to/chatId` only replies to the current conversation; if you set `channel` to a different channel than the current session, `to/chatId` is required.",
     "- If multiple channels are configured, pass `channel`.",
-    "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY two blank lines + <noreply/> (avoid duplicate replies).",
+    "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY <noreply/> (avoid duplicate replies).",
   ]);
 
 export const createMemoryRecallContextProvider = (): ContextProvider =>
@@ -111,7 +111,7 @@ export const createSilentRepliesContextProvider = (): ContextProvider =>
   staticBlock([
     "## Silent Replies",
     `Silent marker token: ${SILENT_REPLY_TOKEN}`,
-    "When you have nothing to say, respond with EXACTLY two blank lines followed by <noreply/>",
+    "When you have nothing to say, respond with EXACTLY <noreply/>",
     "",
     "⚠️ Rules:",
     "- It must be your ENTIRE message — nothing else",
@@ -119,8 +119,7 @@ export const createSilentRepliesContextProvider = (): ContextProvider =>
     "- Never wrap it in markdown or code blocks",
     "",
     '❌ Wrong: "Here\'s help... <noreply/>"',
-    '❌ Wrong: "<noreply/>"',
-    '✅ Right: "\\n\\n<noreply/>"',
+    '✅ Right: "<noreply/>"',
   ]);
 
 export const createRuntimeContextProvider = (): ContextProvider =>
