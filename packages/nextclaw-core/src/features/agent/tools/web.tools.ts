@@ -165,6 +165,38 @@ function normalizeTavilyResults(payload: unknown): SearchResultSet {
   };
 }
 
+function normalizeExaResults(payload: unknown): SearchResultSet {
+  if (!isRecord(payload) || !Array.isArray(payload.results)) {
+    return { results: [] };
+  }
+  const results: SearchResultItem[] = [];
+  for (const entry of payload.results) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const title = getStringByKeys(entry, ["title"]);
+    const url = getStringByKeys(entry, ["url"]);
+    if (!title || !url) {
+      continue;
+    }
+    const item: SearchResultItem = {
+      title,
+      url,
+      summary: getStringByKeys(entry, ["text", "snippet"]) ?? ""
+    };
+    const siteName = getStringByKeys(entry, ["author", "domain"]);
+    const publishedAt = getStringByKeys(entry, ["publishedDate", "published_date"]);
+    if (siteName) {
+      item.siteName = siteName;
+    }
+    if (publishedAt) {
+      item.publishedAt = publishedAt;
+    }
+    results.push(item);
+  }
+  return { results };
+}
+
 function formatResults(resultSet: SearchResultSet): string {
   const sections: string[] = [];
   if (resultSet.answer) {
@@ -196,6 +228,9 @@ function normalizeSearchResults(provider: SearchProviderName, payload: unknown):
   }
   if (provider === "tavily") {
     return normalizeTavilyResults(payload);
+  }
+  if (provider === "exa") {
+    return normalizeExaResults(payload);
   }
   return normalizeBraveResults(payload);
 }
@@ -307,6 +342,26 @@ export class WebSearchTool extends Tool {
           max_results: maxResults,
           search_depth: tavily.searchDepth,
           include_answer: tavily.includeAnswer
+        })
+      });
+    }
+    if (provider === "exa") {
+      const exa = this.config?.providers.exa;
+      if (!exa?.apiKey) {
+        throw new Error("Exa API key not configured");
+      }
+      return fetch(exa.baseUrl, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${exa.apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          query,
+          numResults: maxResults,
+          type: "auto",
+          contents: { text: true }
         })
       });
     }
