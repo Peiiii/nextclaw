@@ -72,6 +72,7 @@ export type ProviderSpec = {
   detectByKeyPrefix?: string;
   detectByBaseKeyword?: string;
   defaultApiBase?: string;
+  anonymousApiKey?: string;
   stripModelPrefix?: boolean;
   modelOverrides?: Array<[string, Record<string, unknown>]>;
   supportsWireApi?: boolean;

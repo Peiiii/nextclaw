@@ -4,7 +4,7 @@ layout: home
 hero:
   name: NextClaw 文档
   text: 让 Agent 把任务做成真实结果
-  tagline: NextClaw 可以在你自己的设备上读取资料、使用工具、操作文件并生成可检查的文档、图表、代码和应用。这里从第一个任务开始，讲清每一步怎么用。
+  tagline: 安装后直接使用内置免费试用模型，无需 API Key。NextClaw 可以在你自己的设备上读取资料、使用工具、操作文件，并生成可检查的文档、图表、代码和应用。
   actions:
     - theme: brand
       text: 创建第一个任务
@@ -35,8 +35,8 @@ hero:
 <div class="nc-docs-path-grid">
   <a class="nc-docs-card" href="/zh/guide/install">
     <span class="nc-docs-step">第一步</span>
-    <strong>安装并配置一个模型</strong>
-    <span>桌面版适合直接使用；npm 和 Docker 适合终端、服务器与长期托管。</span>
+    <strong>安装后直接开始第一个任务</strong>
+    <span>内置 OpenCode Zen 免费试用模型无需 API Key；也可以换成自己的云端或本地模型。</span>
   </a>
   <a class="nc-docs-card" href="/zh/guide/create-task">
     <span class="nc-docs-step">第二步</span>

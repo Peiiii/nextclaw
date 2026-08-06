@@ -31,6 +31,7 @@ type ProviderMeta = {
   envKey?: string;
   defaultApiBase?: string;
   defaultModels?: string[];
+  apiKeyRequired?: boolean;
   supportsWireApi?: boolean;
   defaultWireApi?: "auto" | "chat" | "responses";
   auth?: {
@@ -98,6 +99,14 @@ describe("provider meta catalog", () => {
     ]);
     expect(minimax?.supportsWireApi).toBe(true);
     expect(minimax?.defaultWireApi).toBe("chat");
+  });
+
+  it("marks OpenCode Zen as not requiring a user API key", async () => {
+    const providers = await loadProviderMeta();
+    const opencode = providers.find((provider) => provider.providerType === "opencode");
+
+    expect(opencode).toBeDefined();
+    expect(opencode?.apiKeyRequired).toBe(false);
   });
 
   it("exposes dashscope coding plan as a dedicated provider in meta", async () => {

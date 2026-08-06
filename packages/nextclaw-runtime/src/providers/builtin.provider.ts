@@ -1,6 +1,7 @@
 import type { ProviderCatalogPlugin } from "@nextclaw/core";
 import { dashscopeCodingPlanProviderSpec } from "./dashscope-coding-plan.provider.js";
 import { kimiCodingProviderSpec } from "./kimi-coding.provider.js";
+import { opencodeZenProviderSpec } from "./opencode-zen.provider.js";
 export const builtinProviderPlugin: ProviderCatalogPlugin = {
   id: "builtin-runtime-providers",
   providers: [
@@ -31,6 +32,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = {
       stripModelPrefix: false,
       modelOverrides: [],
     },
+    opencodeZenProviderSpec,
     {
       name: "openrouter",
       keywords: ["openrouter"],

@@ -50,7 +50,7 @@ const COPY: Record<Locale, LandingCopy> = {
     heroTitleLine1: 'NextClaw',
     heroEyebrow: 'From a request to usable results',
     heroDescription:
-      'Tell NextClaw what you want done. It brings files, models, agents, skills, channels, and local tools into the same task so the work can keep moving toward a result.',
+      'Tell NextClaw what you want done. New installations include OpenCode Zen free-trial models, so you can send the first message without adding an API key.',
     heroDownloadButton: 'Download Desktop',
     heroInstallButton: 'Install options',
     downloadTitle: 'Download NextClaw Desktop',
@@ -116,11 +116,11 @@ const COPY: Record<Locale, LandingCopy> = {
       }
     ],
     downloadInstallTeaserTitle: 'Need npm or Docker?',
-    downloadInstallTeaserDescription: 'Desktop is the easiest path, but terminal and server installs are available too.',
+    downloadInstallTeaserDescription: 'Every install includes free-trial models for the first task. Terminal and server options are available too.',
     downloadInstallTeaserButton: 'View install options',
     installTitle: 'Choose your NextClaw install path.',
     installSubtitle:
-      'Desktop is the easiest start. npm works well for terminals and servers. Docker is for long-running hosted environments.',
+      'Desktop, npm, and Docker all start with OpenCode Zen free-trial models. No API key is required for the first task.',
     installCopyLabel: 'Copy',
     installCopiedText: 'Copied',
     installMethods: [
@@ -227,8 +227,8 @@ const COPY: Record<Locale, LandingCopy> = {
     integrationShowcaseItems: [
       {
         eyebrow: 'Model providers',
-        title: 'Use built-in providers or a compatible endpoint',
-        description: 'Configure OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, MiniMax, Moonshot, DashScope, Zhipu, vLLM, or your own OpenAI-compatible service.',
+        title: 'Start free, or connect your own provider',
+        description: 'New installations include OpenCode Zen free-trial models with no API key required. You can also configure OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, and compatible services.',
         imageSrc: '/nextclaw-providers-page-en.png',
         imageAlt: 'NextClaw model provider settings'
       },
@@ -251,7 +251,7 @@ const COPY: Record<Locale, LandingCopy> = {
       {
         icon: 'brain-circuit',
         title: 'Model providers',
-        description: 'Use built-in providers or point NextClaw at an OpenAI-compatible endpoint.',
+        description: 'Start with built-in free-trial models, or point NextClaw at your own provider or compatible endpoint.',
         items: [
           { label: 'OpenRouter', logo: '/logos/openrouter.svg' },
           { label: 'OpenAI', logo: '/logos/openai.svg' },
@@ -366,7 +366,7 @@ const COPY: Record<Locale, LandingCopy> = {
       { icon: 'calendar-clock', title: 'Schedule helper', description: 'Run briefs, checks, reminders, or follow-ups on a schedule and keep the records visible.' }
     ],
     ctaTitle: 'Ready to upgrade your AI?',
-    ctaDescription: 'Get started with NextClaw in seconds. One command and your gateway is operational.',
+    ctaDescription: 'Install, open a task, and use the built-in free-trial model without adding an API key.',
     ctaButton: 'View Documentation',
     footerProject: 'NextClaw Project',
     footerLicense: 'Released under the MIT License.',
@@ -399,7 +399,7 @@ const COPY: Record<Locale, LandingCopy> = {
     heroTitleLine1: 'NextClaw',
     heroEyebrow: '从一句话到可用结果',
     heroDescription:
-      '说出你要做什么。NextClaw 会把资料、模型、Agent、技能、聊天入口和本机工具放进同一个任务里，一路推进到能用的结果。',
+      '说出你要做什么。全新安装已带 OpenCode Zen 免费试用模型，不填 API Key 也能直接发送第一条消息。',
     heroDownloadButton: '下载桌面版',
     heroInstallButton: '安装方式',
     downloadTitle: '下载 NextClaw Desktop',
@@ -465,10 +465,10 @@ const COPY: Record<Locale, LandingCopy> = {
       }
     ],
     downloadInstallTeaserTitle: '需要 npm 或 Docker？',
-    downloadInstallTeaserDescription: '桌面版是最简单的路径，但命令行和服务器部署也有入口。',
+    downloadInstallTeaserDescription: '每种安装方式都自带首个任务可用的免费试用模型，也支持命令行和服务器部署。',
     downloadInstallTeaserButton: '查看安装方式',
     installTitle: '选择适合你的安装方式。',
-    installSubtitle: '普通用户优先下载桌面版；熟悉命令行可以用 npm；要长期放在服务器上，再看 Docker 部署。',
+    installSubtitle: '桌面版、npm 和 Docker 都内置 OpenCode Zen 免费试用模型，第一个任务无需配置 API Key。',
     installCopyLabel: '复制',
     installCopiedText: '已复制',
     installMethods: [
@@ -571,8 +571,8 @@ const COPY: Record<Locale, LandingCopy> = {
     integrationShowcaseItems: [
       {
         eyebrow: '模型提供商',
-        title: '可以用内置提供商，也可以接兼容接口',
-        description: 'OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、MiniMax、Moonshot、通义千问、智谱、vLLM 和自定义 OpenAI 兼容服务都可以配置。',
+        title: '可以直接免费试用，也可以接自己的模型',
+        description: '全新安装无需 API Key 即可使用 OpenCode Zen 免费试用模型，也可以继续配置 OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek 和兼容服务。',
         imageSrc: '/nextclaw-providers-page-cn.png',
         imageAlt: 'NextClaw 模型提供商设置'
       },
@@ -595,7 +595,7 @@ const COPY: Record<Locale, LandingCopy> = {
       {
         icon: 'brain-circuit',
         title: '模型可以自己选',
-        description: '内置常见提供商，也可以接 OpenAI 兼容接口和自定义模型。',
+        description: '先用内置免费试用模型，也可以接自己的提供商、OpenAI 兼容接口和自定义模型。',
         items: [
           { label: 'OpenRouter', logo: '/logos/openrouter.svg' },
           { label: 'OpenAI', logo: '/logos/openai.svg' },
@@ -706,7 +706,7 @@ const COPY: Record<Locale, LandingCopy> = {
       { icon: 'calendar-clock', title: '按时间继续跑', description: '日报、巡检、提醒和后续跟进可以定时执行，记录留在工作台里。' }
     ],
     ctaTitle: '开始使用 NextClaw',
-    ctaDescription: '下载桌面版，或者先看文档了解配置方式。',
+    ctaDescription: '安装后打开任务，直接使用内置免费试用模型，无需先配置 API Key。',
     ctaButton: '进入文档',
     footerProject: 'NextClaw 项目',
     footerLicense: '基于 MIT License 发布。',

@@ -6,18 +6,20 @@ For the first model setup, choose the path most likely to succeed. Do not start 
 
 | Your situation | Suggested path |
 |----------------|----------------|
-| You want the fastest trial | Use an account or provider you can access immediately |
+| You want the fastest trial | Use the built-in OpenCode Zen free trial with no API key |
 | You already have an API key | Configure that provider directly |
 | You want local models | Use the Ollama path |
 | You want Claude Code / Codex / Hermes | Use the dedicated integration guide |
 
 ## Minimum decision
 
-You only need to confirm:
+For the built-in free trial, confirm that the model returns a normal reply in the UI. When connecting your own provider, also confirm:
 
 - you can get authentication details
 - you know which model to use
 - you can get one normal reply in the UI
+
+Free-trial access uses a public gateway. Limits and models may change, and it is not appropriate for sensitive or confidential data. Configure your own provider when you need stable quotas, a defined data contract, or a specific model.
 
 ## Next step
 

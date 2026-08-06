@@ -8,7 +8,7 @@ Use the desktop app when you want to download NextClaw and open it directly. It 
 
 [Download the latest stable release](https://nextclaw.io/en/download/)
 
-Open NextClaw after installation, follow the model setup in the interface, then continue to the [Quickstart](/en/guide/getting-started).
+Open NextClaw after installation. A fresh install enables OpenCode Zen free-trial models by default, so you can send the first message without entering an API key. Then continue to the [Quickstart](/en/guide/getting-started).
 
 ## Terminal and local service: npm
 
@@ -24,6 +24,8 @@ Then open:
 ```text
 http://127.0.0.1:55667
 ```
+
+The built-in free-trial models are ready on first launch; you do not need to prepare an API key first.
 
 Common management commands:
 
@@ -53,3 +55,5 @@ Review remote scripts before running them on a server. See [Docker Deployment](/
 | Develop NextClaw itself | [Run from source](https://github.com/Peiiii/nextclaw#develop-from-source) |
 
 After choosing, continue to the [Quickstart](/en/guide/getting-started).
+
+> OpenCode Zen free-trial access uses a public gateway. Limits and models may change, and request data may be used to improve models. Do not send passwords, secrets, or other sensitive or confidential information.

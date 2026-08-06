@@ -1,4 +1,4 @@
-import type { ProviderCatalogPlugin, ProviderSpec } from "./types.js";
+import type { ProviderCatalogPlugin, ProviderSpec } from "@core/features/llm-providers/types/provider.types.js";
 
 export type {
   LocalizedText,
@@ -9,7 +9,7 @@ export type {
   ProviderDeviceCodeAuthProtocol,
   ProviderDeviceCodeAuthSpec,
   WireApiMode
-} from "./types.js";
+} from "../types/provider.types.js";
 
 function mergeProviderSpecs(plugins: readonly ProviderCatalogPlugin[]): ProviderSpec[] {
   const deduped = new Map<string, ProviderSpec>();
@@ -33,29 +33,29 @@ export class ProviderRegistry {
     this.replacePlugins(plugins);
   }
 
-  replacePlugins(plugins: ProviderCatalogPlugin[]): void {
+  replacePlugins = (plugins: ProviderCatalogPlugin[]): void => {
     this.plugins = [...plugins];
     this.providers = mergeProviderSpecs(this.plugins);
-  }
+  };
 
-  addPlugin(plugin: ProviderCatalogPlugin): void {
+  addPlugin = (plugin: ProviderCatalogPlugin): void => {
     this.plugins.push(plugin);
     this.providers = mergeProviderSpecs(this.plugins);
-  }
+  };
 
-  listProviderPlugins(): ProviderCatalogPlugin[] {
+  listProviderPlugins = (): ProviderCatalogPlugin[] => {
     return [...this.plugins];
-  }
+  };
 
-  listProviderSpecs(): ProviderSpec[] {
+  listProviderSpecs = (): ProviderSpec[] => {
     return [...this.providers];
-  }
+  };
 
-  findProviderByName(name: string): ProviderSpec | undefined {
+  findProviderByName = (name: string): ProviderSpec | undefined => {
     return this.providers.find((spec) => spec.name === name);
-  }
+  };
 
-  findProviderByModel(model: string): ProviderSpec | undefined {
+  findProviderByModel = (model: string): ProviderSpec | undefined => {
     const modelLower = model.toLowerCase();
     return this.providers.find((spec) => {
       if (spec.isGateway || spec.isLocal) {
@@ -63,9 +63,9 @@ export class ProviderRegistry {
       }
       return spec.keywords.some((keyword) => modelLower.includes(keyword));
     });
-  }
+  };
 
-  findGateway(providerName?: string | null, apiKey?: string | null, apiBase?: string | null): ProviderSpec | undefined {
+  findGateway = (providerName?: string | null, apiKey?: string | null, apiBase?: string | null): ProviderSpec | undefined => {
     if (providerName) {
       const spec = this.findProviderByName(providerName);
       if (spec && (spec.isGateway || spec.isLocal)) {
@@ -81,7 +81,7 @@ export class ProviderRegistry {
       }
     }
     return undefined;
-  }
+  };
 }
 
 let globalProviderRegistry = new ProviderRegistry();

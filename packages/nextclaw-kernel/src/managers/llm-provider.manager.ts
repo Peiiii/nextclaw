@@ -33,6 +33,7 @@ type ProviderRoute = {
   providerId: string | null;
   providerName: string | null;
   provider: ProviderConfig | null;
+  apiKey: string | null;
   apiBase: string | null;
   modelConfig?: ProviderConfig["modelConfig"];
 };
@@ -144,6 +145,7 @@ export class LlmProviderManager {
         models: [],
         modelConfig: {},
       },
+      apiKey: this.resolveProviderApiKey(input.providerName, input.apiKey),
       apiBase: input.apiBase ?? null,
       model: input.defaultModel,
     });
@@ -175,6 +177,7 @@ export class LlmProviderManager {
       providerId: route.providerId,
       providerName: name,
       provider,
+      apiKey: this.resolveProviderApiKey(name, provider?.apiKey),
       apiBase: provider?.apiBase ?? providerSpec?.defaultApiBase ?? null,
       modelConfig: { ...specModelConfig, ...providerModelConfig },
     };
@@ -211,7 +214,9 @@ export class LlmProviderManager {
         return { name: providerType, providerId, provider, spec };
       })
       .filter((entry): entry is { name: string; providerId: string; provider: ProviderConfig; spec: NonNullable<ReturnType<ProviderRegistry["findProviderByName"]>> } => Boolean(entry.name && entry.spec))
-      .filter((entry) => entry.provider?.enabled !== false && Boolean(entry.provider?.apiKey))
+      .filter((entry) => entry.provider.enabled !== false && Boolean(
+        this.resolveProviderApiKey(entry.name, entry.provider.apiKey),
+      ))
       .filter((entry) => entry.spec.keywords.some((keyword) => modelLower.includes(keyword)));
     if (keywordMatches.length === 1) {
       const match = keywordMatches[0];
@@ -224,7 +229,9 @@ export class LlmProviderManager {
 
     const builtinNames = new Set(specs.map((spec) => spec.name));
     const enabledProviders = Object.entries(providers)
-      .filter(([, provider]) => provider.enabled !== false && Boolean(provider.apiKey));
+      .filter(([providerId, provider]) => provider.enabled !== false && Boolean(
+        this.resolveProviderApiKey(this.resolveProviderType(providerId, provider), provider.apiKey),
+      ));
     const enabledBuiltin = enabledProviders.filter(([name]) => builtinNames.has(name));
     if (enabledBuiltin.length === 1) {
       const [name, provider] = enabledBuiltin[0];
@@ -271,6 +278,20 @@ export class LlmProviderManager {
     return this.providerRegistry.findProviderByName(providerId) ? providerId : null;
   };
 
+  private resolveProviderApiKey = (
+    providerName: string | null,
+    configuredApiKey: string | null | undefined,
+  ): string | null => {
+    const normalizedConfiguredKey = typeof configuredApiKey === "string" ? configuredApiKey.trim() : "";
+    if (normalizedConfiguredKey) {
+      return normalizedConfiguredKey;
+    }
+    const anonymousApiKey = providerName
+      ? this.providerRegistry.findProviderByName(providerName)?.anonymousApiKey?.trim()
+      : "";
+    return anonymousApiKey || null;
+  };
+
   private rewriteModelForTemplate = (model: string, providerId: string, providerType: string | null): string => {
     const prefix = `${providerId}/`;
     if (!model.startsWith(prefix)) {
@@ -300,7 +321,7 @@ export class LlmProviderManager {
   };
 
   private getOrCreateProvider = (route: ProviderRoute): LLMProvider => {
-    if (!route.provider?.apiKey && !route.model.startsWith("bedrock/")) {
+    if (!route.apiKey && !route.model.startsWith("bedrock/")) {
       return this.missingProvider;
     }
 
@@ -317,7 +338,7 @@ export class LlmProviderManager {
 
   private createProvider = (route: ProviderRoute): LLMProvider => {
     return new LiteLLMProvider({
-      apiKey: route.provider?.apiKey ?? null,
+      apiKey: route.apiKey,
       apiBase: route.apiBase,
       defaultModel: route.model,
       extraHeaders: route.provider?.extraHeaders ?? null,
@@ -346,7 +367,7 @@ export class LlmProviderManager {
     return [
       route.providerName ?? "",
       route.providerId ?? "",
-      routeProvider?.apiKey ?? "",
+      route.apiKey ?? "",
       route.apiBase ?? "",
       routeProvider?.wireApi ?? "",
       headersFingerprint(routeProvider?.extraHeaders ?? null),

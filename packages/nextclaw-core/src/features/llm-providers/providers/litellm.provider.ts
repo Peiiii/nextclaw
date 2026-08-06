@@ -7,7 +7,7 @@ import {
   findProviderByName,
   type ProviderRegistry,
   type ProviderSpec
-} from "./registry.js";
+} from "./provider-registry.provider.js";
 import type { ThinkingLevel } from "@core/shared/lib/core-utils/index.js";
 
 type ProviderRegistryView = Pick<

@@ -440,25 +440,23 @@ function toProviderView(
           uiHints
         ) as Record<string, string>)
       : null;
-  const view: ProviderInstanceView = {
+  const supportsWireApi = Boolean(spec?.supportsWireApi) || providerType === null;
+  return {
     providerId,
     providerType,
     isBuiltInType: providerType !== null,
     isCustom: providerType === null,
     enabled: provider.enabled !== false,
     displayName: resolveProviderInstanceDisplayName(providerId, provider, spec),
+    apiKeyRequired: !spec?.anonymousApiKey,
     apiKeySet: masked.apiKeySet || apiKeyRefSet,
     apiKeyMasked: masked.apiKeyMasked ?? (apiKeyRefSet ? "****" : undefined),
     apiBase: provider.apiBase ?? null,
     extraHeaders: extraHeaders && Object.keys(extraHeaders).length > 0 ? extraHeaders : null,
     models: normalizeModelList(provider.models ?? []),
-    modelConfig: normalizeProviderModelConfig(provider.modelConfig ?? {})
+    modelConfig: normalizeProviderModelConfig(provider.modelConfig ?? {}),
+    wireApi: supportsWireApi ? provider.wireApi ?? spec?.defaultWireApi ?? "auto" : undefined
   };
-  const supportsWireApi = Boolean(spec?.supportsWireApi) || providerType === null;
-  if (supportsWireApi) {
-    view.wireApi = provider.wireApi ?? spec?.defaultWireApi ?? "auto";
-  }
-  return view;
 }
 
 export function buildConfigView(config: Config, options?: ExtensionConfigProjectionOptions): ConfigView {
@@ -570,6 +568,7 @@ export function buildProviderTemplatesView(): ProviderTemplatesView {
       envKey: spec.envKey,
       isGateway: spec.isGateway,
       isLocal: spec.isLocal,
+      apiKeyRequired: !spec.anonymousApiKey,
       defaultApiBase: spec.defaultApiBase,
       logo: spec.logo,
       apiBaseHelp: spec.apiBaseHelp,
@@ -936,7 +935,7 @@ export async function testProviderConnection(
   const hasApiKeyPatch = Object.prototype.hasOwnProperty.call(patch, "apiKey");
   const providedApiKey = normalizeOptionalString(patch.apiKey);
   const currentApiKey = normalizeOptionalString(provider.apiKey);
-  const apiKey = hasApiKeyPatch ? providedApiKey : currentApiKey;
+  const apiKey = (hasApiKeyPatch ? providedApiKey : currentApiKey) ?? normalizeOptionalString(spec?.anonymousApiKey);
 
   const hasApiBasePatch = Object.prototype.hasOwnProperty.call(patch, "apiBase");
   const patchedApiBase = normalizeOptionalString(patch.apiBase);

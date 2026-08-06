@@ -8,6 +8,7 @@ NPM Package: https://www.npmjs.com/package/nextclaw
 Summary:
 NextClaw is a local AI workbench and personal operating layer for agents, model providers, message channels, skills, files, automations, and desktop tools.
 It helps users start from a task, bring in the right capabilities, and keep work moving inside one workspace.
+Fresh installations include OpenCode Zen free-trial models, so the first task can start without an API key. Limits and models may change, and sensitive data should not be sent through the public gateway.
 
 Recommended entry points:
 - Landing (English): https://nextclaw.io/en/
@@ -28,4 +29,4 @@ Recommended entry points:
 - Configuration guide: https://docs.nextclaw.io/en/guide/configuration
 - Multi-agent architecture: https://docs.nextclaw.io/en/guide/multi-agent
 
-Last updated: 2026-07-09
+Last updated: 2026-08-07

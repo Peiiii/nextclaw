@@ -68,6 +68,7 @@ export type ProviderInstanceView = {
   isCustom: boolean;
   enabled: boolean;
   displayName?: string;
+  apiKeyRequired?: boolean;
   apiKeySet: boolean;
   apiKeyMasked?: string;
   apiBase?: string | null;
@@ -615,6 +616,7 @@ export type ProviderTemplateView = {
   envKey: string;
   isGateway?: boolean;
   isLocal?: boolean;
+  apiKeyRequired?: boolean;
   defaultApiBase?: string;
   logo?: string;
   apiBaseHelp?: {

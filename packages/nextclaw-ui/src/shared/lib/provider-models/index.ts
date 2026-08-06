@@ -201,12 +201,13 @@ export function findProviderByModel(
   return null;
 }
 
-function isProviderConfigured(provider: ProviderConfigView | undefined): boolean {
+export function isProviderConfigured(provider: ProviderConfigView | undefined): boolean {
   if (!provider) {
     return false;
   }
-  // Keep in sync with ProvidersList "已配置" tab: only enabled providers with apiKey count as configured.
-  return provider.enabled !== false && provider.apiKeySet === true;
+  return provider.enabled !== false && (
+    provider.apiKeyRequired === false || provider.apiKeySet === true
+  );
 }
 
 export function buildProviderModelCatalog(params: {

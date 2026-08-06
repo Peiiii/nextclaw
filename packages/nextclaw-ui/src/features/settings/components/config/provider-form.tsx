@@ -9,7 +9,6 @@ import {
   useTestProviderConnection,
   useUpdateProvider
 } from '@/shared/hooks/use-config';
-import { MaskedInput } from '@/shared/components/common/masked-input';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -445,7 +444,11 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
             >
               <Trash2 className='h-4 w-4' />
             </button>
-            <ProviderStatusBadge enabled={context.currentEnabled} apiKeySet={context.resolvedProviderConfig.apiKeySet} />
+            <ProviderStatusBadge
+              enabled={context.currentEnabled}
+              apiKeyRequired={context.resolvedProviderConfig.apiKeyRequired}
+              apiKeySet={context.resolvedProviderConfig.apiKeySet}
+            />
           </div>
         </div>
       </ConfigSplitPaneHeader>
@@ -467,22 +470,11 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
             <p className='text-xs text-muted-foreground'>{t('providerDisplayNameHelpShort')}</p>
           </div>
 
-          <div className='space-y-2'>
-            <Label htmlFor='apiKey' className='text-sm font-medium text-foreground'>
-              {t('apiKey')}
-            </Label>
-            <MaskedInput
-              id='apiKey'
-              value={apiKey}
-              isSet={context.resolvedProviderConfig.apiKeySet}
-              onChange={(e) => onApiKeyChange(e.target.value)}
-              placeholder={context.apiKeyHint?.placeholder ?? t('enterApiKey')}
-              className='rounded-xl'
-            />
-            <p className='text-xs text-muted-foreground'>{t('leaveBlankToKeepUnchanged')}</p>
-          </div>
-
           <ProviderAuthSection
+            apiKey={apiKey}
+            apiKeyRequired={context.resolvedProviderConfig.apiKeyRequired !== false}
+            apiKeySet={context.resolvedProviderConfig.apiKeySet}
+            apiKeyPlaceholder={context.apiKeyHint?.placeholder ?? t('enterApiKey')}
             providerAuth={context.providerAuth}
             providerAuthNote={context.providerAuth?.note?.[language] || context.providerAuth?.note?.en || context.providerAuth?.displayName || ''}
             providerAuthMethodOptions={context.providerAuthMethodOptions}
@@ -497,6 +489,7 @@ function ProviderFormDetailPane(props: ProviderFormDetailPaneProps) {
             importPending={importPending}
             authSessionId={authSessionId}
             authStatusMessage={authStatusMessage}
+            onApiKeyChange={onApiKeyChange}
           />
 
           <div className='space-y-2'>

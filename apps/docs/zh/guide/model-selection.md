@@ -4,14 +4,21 @@ NextClaw 可以连接云端模型、本地模型和自定义 OpenAI 兼容接口
 
 ![NextClaw 模型提供方设置](/product-screenshots/nextclaw-providers-page-cn.png)
 
+## 全新安装可以直接开始
+
+全新安装会默认启用 `OpenCode Zen Free Trial`，无需填写 API Key。聊天页默认选择 `big-pickle`，也可以在模型选择器中切换其他当前可用的免费试用模型。
+
+这条路径适合快速验证安装和开始第一个任务。它通过 OpenCode Zen 公共网关提供，限额和模型清单可能变化；请求数据可能被用于改进模型，请勿发送密码、密钥、商业机密或其他敏感内容。需要稳定配额、指定模型或明确数据合同，请配置自己的提供方或本地模型。
+
 ## 选择一条最容易验证的路径
 
+- 想直接开始：保留默认 OpenCode Zen 免费试用，无需 API Key。
 - 已经有 API Key：配置对应云端提供方。
 - 使用统一模型网关：填写 OpenAI 兼容地址、凭证和模型名。
 - 希望模型在本机运行：使用 Ollama、vLLM 等本地服务。
 - 使用不同 Agent runtime：为对应会话或 Agent 选择合适运行时。
 
-当前界面覆盖 OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、MiniMax、Moonshot、通义千问、智谱、AiHubMix、vLLM 等提供方，也支持自定义兼容接口。实际可用模型取决于你的账号、区域和服务配置。
+当前界面覆盖 OpenCode Zen、OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、MiniMax、Moonshot、通义千问、智谱、AiHubMix、vLLM 等提供方，也支持自定义兼容接口。实际可用模型取决于免费试用目录、账号、区域和服务配置。
 
 ## 配置后怎样验证
 

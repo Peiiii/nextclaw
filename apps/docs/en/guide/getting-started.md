@@ -1,6 +1,6 @@
 # Quickstart: complete an end-to-end task
 
-This path takes about ten minutes and covers the complete NextClaw workflow: configure a model, choose a working directory, send a real task, observe execution, and open the final file.
+This path takes about ten minutes and covers the complete NextClaw workflow: use the built-in free-trial model, choose a working directory, send a real task, observe execution, and open the final file.
 
 ## 1. Open NextClaw
 
@@ -19,11 +19,11 @@ nextclaw status
 nextclaw doctor
 ```
 
-## 2. Configure one working model
+## 2. Confirm the default model is ready
 
-Open Settings, choose a provider for which you have credentials, enter the authentication details, and select a default model. You can also use a local model or a custom OpenAI-compatible endpoint.
+A fresh installation selects `OpenCode Zen Free Trial / big-pickle` by default. Open chat and start without entering an API key.
 
-Start with one reliable path. See [Models and providers](/en/guide/model-selection) for the full set of options.
+If the free trial is rate-limited, its model list changes, or your task contains sensitive data, switch to your own hosted provider, local model, or custom OpenAI-compatible endpoint. See [Models and providers](/en/guide/model-selection) for the full set of options.
 
 ## 3. Create a task with a deliverable
 
@@ -50,7 +50,7 @@ Find `summary.md` in the right workspace. Check the content and verify that the 
 ## Quickstart completion criteria
 
 - The interface opens reliably.
-- One model can respond and use tools.
+- The default free-trial model can respond and use tools without an API key.
 - The agent accesses only the selected working directory.
 - `summary.md` exists locally and opens in the right workspace.
 - A follow-up edit keeps the current task context.

@@ -1,4 +1,5 @@
 import { Button } from '@/shared/components/ui/button';
+import { MaskedInput } from '@/shared/components/common/masked-input';
 import { Label } from '@/shared/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { t } from '@/shared/lib/i18n';
@@ -6,6 +7,10 @@ import type { ProviderTemplateView } from '@/shared/lib/api';
 import { ProviderPillSelector } from './provider-pill-selector';
 
 type ProviderAuthSectionProps = {
+  apiKey: string;
+  apiKeyRequired: boolean;
+  apiKeySet: boolean;
+  apiKeyPlaceholder: string;
   providerAuth: ProviderTemplateView['auth'];
   providerAuthNote: string;
   providerAuthMethodOptions: Array<{ value: string; label: string }>;
@@ -20,10 +25,15 @@ type ProviderAuthSectionProps = {
   importPending: boolean;
   authSessionId: string | null;
   authStatusMessage: string;
+  onApiKeyChange: (value: string) => void;
 };
 
 export function ProviderAuthSection(props: ProviderAuthSectionProps) {
   const {
+    apiKey,
+    apiKeyRequired,
+    apiKeySet,
+    apiKeyPlaceholder,
     providerAuth,
     providerAuthNote,
     providerAuthMethodOptions,
@@ -37,75 +47,96 @@ export function ProviderAuthSection(props: ProviderAuthSectionProps) {
     startPending,
     importPending,
     authSessionId,
-    authStatusMessage
+    authStatusMessage,
+    onApiKeyChange
   } = props;
 
-  if (providerAuth?.kind !== 'device_code') return null;
+  const apiKeyField = apiKeyRequired ? (
+    <div className='space-y-2'>
+      <Label htmlFor='apiKey' className='text-sm font-medium text-foreground'>
+        {t('apiKey')}
+      </Label>
+      <MaskedInput
+        id='apiKey'
+        value={apiKey}
+        isSet={apiKeySet}
+        onChange={(event) => onApiKeyChange(event.target.value)}
+        placeholder={apiKeyPlaceholder}
+        className='rounded-xl'
+      />
+      <p className='text-xs text-muted-foreground'>{t('leaveBlankToKeepUnchanged')}</p>
+    </div>
+  ) : null;
+
+  if (providerAuth?.kind !== 'device_code') return apiKeyField;
 
   return (
-    <div className='space-y-2 rounded-xl bg-muted/45 p-3'>
-      <Label className='text-sm font-medium text-foreground'>
-        {providerAuth.displayName || t('providerAuthSectionTitle')}
-      </Label>
-      {providerAuthNote ? <p className='text-xs text-muted-foreground'>{providerAuthNote}</p> : null}
-      {providerAuthMethodsCount > 1 ? (
-        <div className='space-y-2'>
-          <Label className='text-xs font-medium text-foreground'>{t('providerAuthMethodLabel')}</Label>
-          {shouldUseAuthMethodPills ? (
-            <ProviderPillSelector
-              value={resolvedAuthMethodId}
-              onChange={onAuthMethodChange}
-              options={providerAuthMethodOptions}
-            />
-          ) : (
-            <Select value={resolvedAuthMethodId} onValueChange={onAuthMethodChange}>
-              <SelectTrigger className='h-8 rounded-lg'>
-                <SelectValue placeholder={t('providerAuthMethodPlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                {providerAuthMethodOptions.map((method) => (
-                  <SelectItem key={method.value} value={method.value}>
-                    {method.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {selectedAuthMethodHint ? <p className='text-xs text-muted-foreground'>{selectedAuthMethodHint}</p> : null}
-        </div>
-      ) : null}
-      <div className='flex flex-wrap items-center gap-2'>
-        <Button
-          type='button'
-          variant='outline'
-          size='sm'
-          onClick={onStartProviderAuth}
-          disabled={startPending || Boolean(authSessionId)}
-        >
-          {startPending
-            ? t('providerAuthStarting')
-            : authSessionId
-              ? t('providerAuthAuthorizing')
-              : t('providerAuthAuthorizeInBrowser')}
-        </Button>
-        {providerAuth.supportsCliImport ? (
+    <>
+      {apiKeyField}
+      <div className='space-y-2 rounded-xl bg-muted/45 p-3'>
+        <Label className='text-sm font-medium text-foreground'>
+          {providerAuth.displayName || t('providerAuthSectionTitle')}
+        </Label>
+        {providerAuthNote ? <p className='text-xs text-muted-foreground'>{providerAuthNote}</p> : null}
+        {providerAuthMethodsCount > 1 ? (
+          <div className='space-y-2'>
+            <Label className='text-xs font-medium text-foreground'>{t('providerAuthMethodLabel')}</Label>
+            {shouldUseAuthMethodPills ? (
+              <ProviderPillSelector
+                value={resolvedAuthMethodId}
+                onChange={onAuthMethodChange}
+                options={providerAuthMethodOptions}
+              />
+            ) : (
+              <Select value={resolvedAuthMethodId} onValueChange={onAuthMethodChange}>
+                <SelectTrigger className='h-8 rounded-lg'>
+                  <SelectValue placeholder={t('providerAuthMethodPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {providerAuthMethodOptions.map((method) => (
+                    <SelectItem key={method.value} value={method.value}>
+                      {method.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {selectedAuthMethodHint ? <p className='text-xs text-muted-foreground'>{selectedAuthMethodHint}</p> : null}
+          </div>
+        ) : null}
+        <div className='flex flex-wrap items-center gap-2'>
           <Button
             type='button'
             variant='outline'
             size='sm'
-            onClick={onImportProviderAuthFromCli}
-            disabled={importPending}
+            onClick={onStartProviderAuth}
+            disabled={startPending || Boolean(authSessionId)}
           >
-            {importPending ? t('providerAuthImporting') : t('providerAuthImportFromCli')}
+            {startPending
+              ? t('providerAuthStarting')
+              : authSessionId
+                ? t('providerAuthAuthorizing')
+                : t('providerAuthAuthorizeInBrowser')}
           </Button>
-        ) : null}
-        {authSessionId ? (
-          <span className='text-xs text-muted-foreground'>
-            {t('providerAuthSessionLabel')}: {authSessionId.slice(0, 8)}…
-          </span>
-        ) : null}
+          {providerAuth.supportsCliImport ? (
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={onImportProviderAuthFromCli}
+              disabled={importPending}
+            >
+              {importPending ? t('providerAuthImporting') : t('providerAuthImportFromCli')}
+            </Button>
+          ) : null}
+          {authSessionId ? (
+            <span className='text-xs text-muted-foreground'>
+              {t('providerAuthSessionLabel')}: {authSessionId.slice(0, 8)}…
+            </span>
+          ) : null}
+        </div>
+        {authStatusMessage ? <p className='text-xs text-muted-foreground'>{authStatusMessage}</p> : null}
       </div>
-      {authStatusMessage ? <p className='text-xs text-muted-foreground'>{authStatusMessage}</p> : null}
-    </div>
+    </>
   );
 }
