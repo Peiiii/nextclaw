@@ -12,6 +12,7 @@ import { t, type I18nLanguage } from "@/shared/lib/i18n";
 import type { UiTheme } from "@/shared/lib/theme";
 import { SidebarNavLinkItem } from "@/app/components/layout/sidebar-items";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import {
   AlarmClock,
   Bot,
@@ -32,7 +33,6 @@ import {
   SIDEBAR_RAIL_PADDING_X_CLASS,
   SIDEBAR_RAIL_STACK_CLASS,
   SIDEBAR_RAIL_SURFACE_CLASS,
-  SIDEBAR_SCROLL_EDGE_FADE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
 const navItems = [
@@ -194,7 +194,7 @@ export function ChatSidebarSessionArea({
       <div
         className={cn(
           "custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-7 pt-2",
-          SIDEBAR_SCROLL_EDGE_FADE_CLASS,
+          SCROLL_BOTTOM_EDGE_FADE_CLASS,
         )}
       >
         <ChatSidebarSessionList

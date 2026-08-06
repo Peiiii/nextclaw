@@ -16,6 +16,7 @@ import {
   type SidebarNavListItem,
 } from "@/app/components/layout/sidebar-items";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useRemoteStatus } from "@/features/remote";
 import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
@@ -29,7 +30,6 @@ import {
   SIDEBAR_RAIL_STACK_CLASS,
   SIDEBAR_RAIL_SURFACE_CLASS,
   SIDEBAR_RAIL_WIDTH_CLASS,
-  SIDEBAR_SCROLL_EDGE_FADE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
 type SidebarNavSection = {
@@ -141,7 +141,7 @@ function SidebarNavigation({
       className={cn(
         "custom-scrollbar min-h-0 flex-1 overflow-y-auto",
         isCollapsed ? "pr-0" : "pr-1",
-        SIDEBAR_SCROLL_EDGE_FADE_CLASS,
+        SCROLL_BOTTOM_EDGE_FADE_CLASS,
       )}
     >
       {!isCollapsed ? (

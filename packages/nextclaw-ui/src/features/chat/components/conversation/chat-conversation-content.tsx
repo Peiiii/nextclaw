@@ -13,6 +13,7 @@ import {
 } from "@/features/chat/features/message/components/chat-message-list.container";
 import { ChatConversationTrack } from "@/features/chat/components/conversation/chat-conversation-track";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { t } from "@/shared/lib/i18n";
 
 type ChatConversationContentProps = {
@@ -81,13 +82,13 @@ export function ChatConversationContent({
         ref={threadRef}
         onScroll={handleScroll}
         data-chat-scroll-container="true"
-        className="h-full overflow-y-auto custom-scrollbar"
+        className={showWelcome ? "h-full overflow-y-auto custom-scrollbar" : `h-full overflow-y-auto custom-scrollbar ${SCROLL_BOTTOM_EDGE_FADE_CLASS}`}
         style={{ overflowAnchor: "none" }}
       >
         {showWelcome ? (
           (welcomeSlot ?? null)
         ) : (
-          <div ref={contentRef}>
+          <div ref={contentRef} className="pb-7">
             {hasMessages ? (
               <ChatConversationTrack className="relative py-4 sm:py-5">
                 {historyError ? (
@@ -109,9 +110,7 @@ export function ChatConversationContent({
                 ) : null}
                 <ChatMessageListContainer
                   messages={messages}
-                  isSending={
-                    hasMessages && isSending && isAwaitingAssistantOutput
-                  }
+                  isSending={isSending && isAwaitingAssistantOutput}
                   scrollRef={threadRef}
                   sessionKey={sessionKey}
                 />
