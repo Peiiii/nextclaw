@@ -10,7 +10,7 @@ export function ChatSidebarListModeSwitch({ isProjectFirstView, onSelectMode }: 
         type="button"
         aria-pressed={!isProjectFirstView}
         onClick={() => onSelectMode('time-first')}
-        className={cn('transition-colors', isProjectFirstView ? 'text-muted-foreground/65 hover:text-muted-foreground' : 'font-medium text-foreground')}
+        className={cn('rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border', isProjectFirstView ? 'text-muted-foreground/65 hover:text-muted-foreground' : 'font-medium text-foreground')}
       >
         {t('chatSidebarViewTime')}
       </button>
@@ -19,7 +19,7 @@ export function ChatSidebarListModeSwitch({ isProjectFirstView, onSelectMode }: 
         type="button"
         aria-pressed={isProjectFirstView}
         onClick={() => onSelectMode('project-first')}
-        className={cn('transition-colors', isProjectFirstView ? 'font-medium text-foreground' : 'text-muted-foreground/65 hover:text-muted-foreground')}
+        className={cn('rounded-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border', isProjectFirstView ? 'font-medium text-foreground' : 'text-muted-foreground/65 hover:text-muted-foreground')}
       >
         {t('chatSidebarViewProject')}
       </button>

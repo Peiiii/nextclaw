@@ -75,10 +75,7 @@ export class ChatThreadManager {
     useChatThreadStore.getState().setSnapshot(patch);
   };
 
-  private clearDeletedSessionState = (sessionKey: string) => {
-    if (useChatSessionListStore.getState().snapshot.selectedSessionKey === sessionKey) {
-      this.sessionListManager.setSelectedSessionKey(null);
-    }
+  private clearDeletedSessionState = () => {
     useChatThreadStore.getState().setSnapshot({
       sessionKey: null,
       sessionTypeLabel: null,
@@ -569,7 +566,7 @@ export class ChatThreadManager {
       await deleteNcpSessionApi(selectedSessionKey);
       deleteNcpSessionSummaryInQueryClient(appQueryClient, selectedSessionKey);
       appQueryClient.removeQueries({ queryKey: ['ncp-session-messages', selectedSessionKey] });
-      this.clearDeletedSessionState(selectedSessionKey);
+      this.clearDeletedSessionState();
       this.uiManager.goToChatRoot({ replace: true });
     } finally {
       useChatThreadStore.getState().setSnapshot({ isDeletePending: false });

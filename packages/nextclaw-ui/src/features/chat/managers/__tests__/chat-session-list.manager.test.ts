@@ -70,6 +70,18 @@ function resetChatSessionListManagerState() {
 describe("ChatSessionListManager draft and selection flow", () => {
   beforeEach(resetChatSessionListManagerState);
 
+  it("clears the route-derived session selection outside session routes", () => {
+    const manager = new ChatSessionListManager(
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
+    );
+
+    manager.syncRouteSessionSelection(null);
+
+    expect(
+      useChatSessionListStore.getState().snapshot.selectedSessionKey,
+    ).toBeNull();
+  });
+
   it("applies the requested session type when creating a session", () => {
     const uiManager = {
       goToChatRoot: vi.fn(),
@@ -93,7 +105,7 @@ describe("ChatSessionListManager draft and selection flow", () => {
     });
     expect(
       useChatSessionListStore.getState().snapshot.selectedSessionKey,
-    ).toBeNull();
+    ).toBe("session-1");
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(
       useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage,
@@ -126,7 +138,7 @@ describe("ChatSessionListManager draft and selection flow", () => {
     );
     expect(
       useChatSessionListStore.getState().snapshot.selectedSessionKey,
-    ).toBeNull();
+    ).toBe("session-1");
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(
       useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage,
@@ -198,7 +210,7 @@ describe("ChatSessionListManager draft and selection flow", () => {
 
     expect(
       useChatSessionListStore.getState().snapshot.selectedSessionKey,
-    ).toBeNull();
+    ).toBe("session-1");
     expect(uiManager.navigateTo).toHaveBeenCalledWith(
       "/chat/draft",
       expect.any(Object),

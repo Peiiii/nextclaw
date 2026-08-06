@@ -100,9 +100,8 @@ export class ChatSessionListManager {
     this.setSelectedAgentId(normalizedAgentId);
   };
 
-  setSelectedSessionKey = (next: SetStateAction<string | null>) => {
+  private setSelectedSessionKey = (value: string | null) => {
     const prev = useChatSessionListStore.getState().snapshot.selectedSessionKey;
-    const value = this.resolveUpdateValue(prev, next);
     if (value === prev) {
       return;
     }
@@ -111,24 +110,8 @@ export class ChatSessionListManager {
       .setSnapshot({ selectedSessionKey: value });
   };
 
-  syncRouteSessionSelection = (params: {
-    isChatView: boolean;
-    routeSessionKey: string | null;
-  }) => {
-    const { isChatView, routeSessionKey } = params;
-    if (!isChatView) {
-      return;
-    }
-    const { selectedSessionKey } = useChatSessionListStore.getState().snapshot;
-    if (routeSessionKey) {
-      if (selectedSessionKey !== routeSessionKey) {
-        this.setSelectedSessionKey(routeSessionKey);
-      }
-      return;
-    }
-    if (selectedSessionKey !== null) {
-      this.setSelectedSessionKey(null);
-    }
+  syncRouteSessionSelection = (routeSessionKey: string | null) => {
+    this.setSelectedSessionKey(routeSessionKey);
   };
 
   setListMode = (next: SetStateAction<"time-first" | "project-first">) => {
@@ -207,9 +190,6 @@ export class ChatSessionListManager {
     );
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
     const normalizedPrompt = prompt?.trim() || null;
-    useChatSessionListStore.getState().setSnapshot({
-      selectedSessionKey: null,
-    });
     this.syncDraftThreadState();
     this.uiManager.navigateTo(CHAT_DRAFT_SESSION_PATH, {
       replace: this.uiManager.isAtChatRoot(),

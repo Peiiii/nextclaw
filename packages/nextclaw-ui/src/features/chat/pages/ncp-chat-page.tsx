@@ -76,7 +76,6 @@ function NcpChatPageContent({ view }: ChatPageProps) {
     sessionKey: sessionKey ?? null,
   });
   useChatSessionSync({
-    view,
     routeSessionKey,
     syncRouteSessionSelection:
       presenter.chatSessionListManager.syncRouteSessionSelection,

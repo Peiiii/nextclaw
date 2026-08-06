@@ -61,10 +61,10 @@ export function ChatSidebarSessionList({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {groups.map((group) => (
         <div key={group.label}>
-          <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+          <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/65">
             {group.label}
           </div>
           <div className="space-y-0.5">{group.items.map(renderSessionItem)}</div>

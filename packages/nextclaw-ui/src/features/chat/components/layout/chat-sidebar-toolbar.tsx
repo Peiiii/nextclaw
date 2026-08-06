@@ -1,4 +1,4 @@
-import { Button, type ButtonProps } from "@/shared/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { Input } from "@/shared/components/ui/input";
 import {
@@ -20,51 +20,6 @@ import {
 } from "@/app/components/layout/sidebar-rail.styles";
 
 type SessionTypeOption = ChatSessionTypeOption;
-type NewSessionActionStyleVariant =
-  | "neutralSurface"
-  | "brandSoft"
-  | "brandTextSurface"
-  | "brandSolid";
-
-const NEW_SESSION_ACTION_STYLE_VARIANT: NewSessionActionStyleVariant =
-  "brandSoft";
-
-const NEW_SESSION_ACTION_STYLE_CLASSES: Record<
-  NewSessionActionStyleVariant,
-  {
-    leftVariant: ButtonProps["variant"];
-    leftClassName: string;
-    rightClassName: string;
-  }
-> = {
-  neutralSurface: {
-    leftVariant: "ghost",
-    leftClassName:
-      "bg-card text-foreground shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-accent-foreground hover:shadow-sm active:bg-accent",
-    rightClassName:
-      "bg-card text-muted-foreground shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-accent-foreground hover:shadow-sm active:bg-accent",
-  },
-  brandSoft: {
-    leftVariant: "ghost",
-    leftClassName:
-      "bg-primary/10 text-primary shadow-none ring-1 ring-primary/10 transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
-    rightClassName:
-      "bg-primary/10 text-primary shadow-none ring-1 ring-primary/10 transition-[background-color,color,box-shadow] hover:bg-primary/15 hover:text-primary-700 hover:shadow-sm active:bg-primary/20",
-  },
-  brandTextSurface: {
-    leftVariant: "ghost",
-    leftClassName:
-      "bg-card text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
-    rightClassName:
-      "bg-card text-primary shadow-none transition-[background-color,color,box-shadow] hover:bg-accent hover:text-primary-700 hover:shadow-sm active:bg-primary/15",
-  },
-  brandSolid: {
-    leftVariant: "primary",
-    leftClassName: "",
-    rightClassName:
-      "bg-primary text-primary-foreground shadow-sm hover:bg-primary-600 hover:text-primary-foreground active:bg-primary-700",
-  },
-};
 
 type ChatSidebarToolbarProps = {
   query: string;
@@ -117,8 +72,6 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
     collapsed = false,
   } = props;
   const supportsSessionTypeSwitch = sessionTypeOptions.length > 1;
-  const actionStyle =
-    NEW_SESSION_ACTION_STYLE_CLASSES[NEW_SESSION_ACTION_STYLE_VARIANT];
 
   if (collapsed) {
     return (
@@ -183,21 +136,20 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
 
   return (
     <>
-      <div className="px-4 pb-3">
-        <div className="flex items-center gap-2">
+      <div className="px-4 pb-2">
+        <div className="flex overflow-hidden rounded-lg bg-primary/10 text-primary ring-1 ring-primary/10">
           <Button
-            variant={actionStyle.leftVariant}
+            variant="ghost"
             className={cn(
-              "min-w-0 rounded-xl",
-              actionStyle.leftClassName,
-              supportsSessionTypeSwitch ? "flex-1 rounded-r-md" : "w-full",
+              "min-w-0 rounded-none bg-transparent px-3 text-primary shadow-none hover:bg-primary/10 hover:text-primary-700 active:bg-primary/15",
+              supportsSessionTypeSwitch ? "flex-1" : "w-full",
             )}
             onClick={() => {
               onCreateMenuOpenChange(false);
               onCreateSession(selectedNewSessionType);
             }}
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="mr-1.5 h-4 w-4" />
             {t("chatSidebarNewTask")}
           </Button>
           {supportsSessionTypeSwitch ? (
@@ -208,19 +160,16 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
               <PopoverTrigger asChild>
                 <IconActionButton
                   icon={
-                    <span className="inline-flex items-center gap-0.5">
+                    <span className="inline-flex items-center gap-1">
                       <SessionTypeTriggerIcon
                         option={selectedNewSessionTypeOption}
                       />
-                      <ChevronDown className="h-3 w-3 opacity-60" />
+                      <ChevronDown className="h-3 w-3 opacity-50" />
                     </span>
                   }
                   label={t("chatSessionTypeLabel")}
                   tooltip={t("chatSessionTypeLabel")}
-                  className={cn(
-                    "h-9 w-12 shrink-0 rounded-xl rounded-l-md",
-                    actionStyle.rightClassName,
-                  )}
+                  className="h-9 w-12 shrink-0 rounded-none border-l border-primary/10 bg-transparent text-primary shadow-none hover:bg-primary/10 hover:text-primary-700 active:bg-primary/15"
                 />
               </PopoverTrigger>
               <ChatPopoverContent
@@ -241,14 +190,14 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
         </div>
       </div>
 
-      <div className="px-4 pb-3">
+      <div className="px-4 pb-2">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <Input
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={t("chatSidebarSearchPlaceholder")}
-            className="h-9 rounded-lg pl-8 text-xs"
+            className="h-8 rounded-lg border-transparent bg-background/55 pl-8 text-xs shadow-none hover:bg-background/75"
           />
         </div>
       </div>

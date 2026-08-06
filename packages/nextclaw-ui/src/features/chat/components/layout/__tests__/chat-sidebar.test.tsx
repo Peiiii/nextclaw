@@ -311,7 +311,7 @@ describe("ChatSidebar create and list basics", () => {
   it("renders the lightweight list mode switch in the session header row and toggles to project view", () => {
     renderSidebar();
 
-    expect(screen.getByText("Sessions")).not.toBeNull();
+    expect(screen.queryByText("Sessions")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Project" }));
 
     expect(mocks.setListMode).toHaveBeenCalledWith("project-first");
