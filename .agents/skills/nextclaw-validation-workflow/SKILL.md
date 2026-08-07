@@ -20,6 +20,9 @@ First classify the touched surface:
 
 ## Required Baseline
 
+- 验证强度必须与风险、影响面和根因不确定性成比例。低风险、局部、合同清晰的简单改动，选择一个信息增益最高的功能证据并配合该文件类型的强制静态检查即可；同一权威信号已经证明结果后，不得为了“看起来更完整”重复跑等价测试、浏览器路径或截图。
+- 只有跨 owner、跨 transport、状态迁移、兼容 fallback、用户已报告真实失败或高回归影响面时，才逐级增加 assembled test、真实链路冒烟和更大范围回归；每增加一层都要能排除新的风险，而不是机械叠加命令。
+
 Pure docs, wording, or trivial metadata:
 
 - build/lint/tsc not required,
@@ -70,6 +73,7 @@ User-visible or runnable behavior:
 - 虚拟列表、滚动闪烁和动态高度回归不能用最终静态截图收口；必须分别覆盖首次进入或 reload、普通滚动、大跨度滚动、分页前插和可见内容展开/收起，并用连续帧或逐帧 DOM 覆盖率证明没有空视口、错误抢滚动或短暂错位。一个手势通过不能代替其他瞬态路径。
 - editor/IME/选区类修复必须在最终 consumer 增加 assembled boundary test，覆盖实际 `beforeinput` / `input` / composition 事件类别与目标平台顺序，并直接断言正文 DOM 身份和 caret；只在组件包模拟 `compositionEnd(data)`、只断言文本、或只跑 editor owner 单测均不足以关闭问题。
 - 附件、文件引用、技能、项目或 mention 等结构化输入不得只验证输入框里出现了 token；至少要用 assembled boundary test 覆盖“语义节点 → outgoing message parts / metadata → 持久化用户消息展示”，若该输入还应进入 Agent 上下文，必须断言实际 send envelope 中的精确协议载荷。入口视觉测试不能替代下游语义保真验证。
+- 可点击的附件、文件引用、技能、项目或 mention 还必须验证消费闭环：assembled boundary test 至少覆盖“持久化 token → 用户点击 → 目标 owner 收到准确 action / 用户目标表面打开”，并覆盖项目根、工作目录或兼容根目录的真实可选状态。只断言 token 渲染成按钮、局部 `onClick` 被调用或理想 root 存在时能解析，不能证明用户点击链路成立。
 - If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
 - For runtime startup or status-log fixes, assert the visible log/status wording matches the intended state. Cooldown, disabled, degraded, or externally rate-limited states must not be reported as generic startup failure when the system is intentionally waiting or skipping work.
 

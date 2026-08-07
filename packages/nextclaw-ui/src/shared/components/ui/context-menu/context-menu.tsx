@@ -1,5 +1,7 @@
 import {
   cloneElement,
+  createContext,
+  useContext,
   useLayoutEffect,
   useRef,
   useState,
@@ -25,10 +27,18 @@ export type ContextMenuGroup = {
 };
 
 type ContextMenuPosition = {
+  align: "start" | "end";
   x: number;
   y: number;
   trigger: HTMLElement;
 };
+
+type ContextMenuController = {
+  isOpen: boolean;
+  toggleFromButton: (trigger: HTMLElement) => void;
+};
+
+const ContextMenuControllerContext = createContext<ContextMenuController | null>(null);
 
 const CONTEXT_MENU_EDGE_GAP = 8;
 
@@ -51,9 +61,12 @@ function ContextMenuSurface({
       return;
     }
     const rect = menu.getBoundingClientRect();
+    const preferredLeft = position.align === "end"
+      ? position.x - rect.width
+      : position.x;
     const left = Math.max(
       CONTEXT_MENU_EDGE_GAP,
-      Math.min(position.x, window.innerWidth - rect.width - CONTEXT_MENU_EDGE_GAP),
+      Math.min(preferredLeft, window.innerWidth - rect.width - CONTEXT_MENU_EDGE_GAP),
     );
     const top = Math.max(
       CONTEXT_MENU_EDGE_GAP,
@@ -151,7 +164,10 @@ export function ContextMenu({
   groups,
   label,
 }: {
-  children: ReactElement<{ onContextMenu?: (event: MouseEvent) => void }>;
+  children: ReactElement<{
+    "data-context-menu-open"?: string;
+    onContextMenu?: (event: MouseEvent) => void;
+  }>;
   groups: readonly ContextMenuGroup[];
   label: string;
 }) {
@@ -165,7 +181,25 @@ export function ContextMenu({
     }
   };
 
+  const toggleFromButton = (trigger: HTMLElement) => {
+    if (position?.trigger === trigger) {
+      closeMenu(true);
+      return;
+    }
+    if (visibleGroups.length === 0) {
+      return;
+    }
+    const bounds = trigger.getBoundingClientRect();
+    setPosition({
+      align: "end",
+      x: bounds.right,
+      y: bounds.bottom,
+      trigger,
+    });
+  };
+
   const child = cloneElement(children, {
+    "data-context-menu-open": position ? "" : undefined,
     onContextMenu: (event: MouseEvent) => {
       children.props.onContextMenu?.(event);
       if (event.defaultPrevented || visibleGroups.length === 0) {
@@ -175,6 +209,7 @@ export function ContextMenu({
       const trigger = event.currentTarget as HTMLElement;
       const bounds = trigger.getBoundingClientRect();
       setPosition({
+        align: "start",
         x: event.clientX || bounds.left,
         y: event.clientY || bounds.bottom,
         trigger,
@@ -183,7 +218,9 @@ export function ContextMenu({
   });
 
   return (
-    <>
+    <ContextMenuControllerContext.Provider
+      value={{ isOpen: Boolean(position), toggleFromButton }}
+    >
       {child}
       {position ? (
         <ContextMenuSurface
@@ -193,6 +230,34 @@ export function ContextMenu({
           onClose={closeMenu}
         />
       ) : null}
-    </>
+    </ContextMenuControllerContext.Provider>
   );
+}
+
+export function ContextMenuTrigger({
+  children,
+}: {
+  children: ReactElement<{
+    "aria-expanded"?: boolean;
+    "aria-haspopup"?: "menu";
+    onClick?: (event: MouseEvent) => void;
+  }>;
+}) {
+  const controller = useContext(ContextMenuControllerContext);
+  if (!controller) {
+    throw new Error("ContextMenuTrigger must be rendered inside ContextMenu");
+  }
+
+  return cloneElement(children, {
+    "aria-expanded": controller.isOpen,
+    "aria-haspopup": "menu",
+    onClick: (event: MouseEvent) => {
+      children.props.onClick?.(event);
+      if (event.defaultPrevented) {
+        return;
+      }
+      event.stopPropagation();
+      controller.toggleFromButton(event.currentTarget as HTMLElement);
+    },
+  });
 }

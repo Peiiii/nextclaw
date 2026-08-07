@@ -1,9 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { isValidElement, type ComponentProps, useRef } from "react";
+import {
+  isValidElement,
+  type ComponentProps,
+  type ComponentType,
+  useRef,
+} from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
+import type { ChatMessageListProps } from "@nextclaw/agent-chat-ui";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChatMessageListContainer as RuntimeChatMessageListContainer } from "@/features/chat/features/message/components/chat-message-list.container";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+
+type AgentChatUiModule = {
+  ChatMessageList: ComponentType<ChatMessageListProps>;
+};
 
 function ChatMessageListContainer({
   sessionKey = "session-1",
@@ -25,47 +35,35 @@ function ChatMessageListContainer({
 }
 
 const captures = vi.hoisted(() => ({
-  renders: [] as Array<{
-    messages: unknown[];
-    onToolAction?: (action: unknown) => void;
-    onFileOpen?: (action: unknown) => void;
-    onAttachmentOpen?: (file: unknown) => void;
-    onInlineTokenClick?: (token: unknown) => void;
-    assistantAvatarIcon?: unknown;
-    renderInlineDisplay?: (display: unknown) => unknown;
-    renderPanelAppCard?: (panelApp: unknown) => unknown;
-    texts?: Record<string, unknown>;
-  }>,
+  renders: [] as ChatMessageListProps[],
   language: "en",
+  renderActualChatMessageList: false,
   openFilePreview: vi.fn(),
   handleToolAction: vi.fn(),
   showContent: vi.fn(),
   filePreviewProps: [] as Array<{ showBreadcrumbs?: boolean }>,
   selectedSessionKeys: [] as Array<string | null>,
   selectedSession: null as null | {
-    projectRoot: string;
+    projectRoot: string | null;
     workingDir?: string | null;
     sessionType?: string;
   },
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal() as AgentChatUiModule;
+  const ActualChatMessageList = actual.ChatMessageList;
   return {
-    ...(actual as object),
-    ChatMessageList: (props: {
-      messages: unknown[];
-      onToolAction?: (action: unknown) => void;
-      onFileOpen?: (action: unknown) => void;
-      onAttachmentOpen?: (file: unknown) => void;
-      onInlineTokenClick?: (token: unknown) => void;
-      assistantAvatarIcon?: unknown;
-      renderInlineDisplay?: (display: unknown) => unknown;
-      renderPanelAppCard?: (panelApp: unknown) => unknown;
-      texts?: Record<string, unknown>;
-    }) => {
+    ...actual,
+    ChatMessageList: (
+      props: ChatMessageListProps,
+    ) => {
       captures.renders.push(props);
-      return <div data-testid="chat-message-list" />;
+      return captures.renderActualChatMessageList ? (
+        <ActualChatMessageList {...props} />
+      ) : (
+        <div data-testid="chat-message-list" />
+      );
     },
   };
 });
@@ -132,6 +130,7 @@ vi.mock(
 beforeEach(() => {
   captures.renders = [];
   captures.language = "en";
+  captures.renderActualChatMessageList = false;
   captures.openFilePreview.mockReset();
   captures.handleToolAction.mockReset();
   captures.showContent.mockReset();
@@ -216,9 +215,14 @@ it("keeps historical adapted message references stable when only the streaming m
   expect(secondMessages[1]).not.toBe(firstMessages[1]);
 });
 
-it("adapts persisted inline token metadata into markdown token data", () => {
+it("opens a persisted workspace reference from a working-directory session", () => {
+  captures.renderActualChatMessageList = true;
+  captures.selectedSession = {
+    projectRoot: null,
+    workingDir: "/tmp/default-workspace",
+  };
   const message = {
-    id: "user-inline-token",
+    id: "user-workspace-file",
     sessionId: "session-1",
     role: "user",
     status: "final",
@@ -226,20 +230,18 @@ it("adapts persisted inline token metadata into markdown token data", () => {
     metadata: {
       ui_inline_tokens: {
         schemaVersion: 2,
-        items: [
-          {
-            kind: "skill",
-            ref: "workspace:/skills/weather",
-            name: "weather",
-            source: "workspace",
-            path: "/skills/weather/SKILL.md",
-            label: "Weather",
-            rawText: "$weather",
-          },
-        ],
+        items: [{
+          kind: "workspace_file",
+          key: "fish-index/fish.js",
+          label: "fish.js",
+          rawText: "@file:fish-index%2Ffish.js",
+        }],
       },
     },
-    parts: [{ type: "text", text: "please use $weather now" }],
+    parts: [{
+      type: "text",
+      text: "@file:fish-index%2Ffish.js 这里面有啥",
+    }],
   } satisfies NcpMessage;
 
   render(<ChatMessageListContainer messages={[message]} isSending={false} />);
@@ -251,20 +253,23 @@ it("adapts persisted inline token metadata into markdown token data", () => {
     parts: [
       {
         type: "markdown",
-        text: "please use $weather now",
+        text: "@file:fish-index%2Ffish.js 这里面有啥",
         inlineTokens: [
           {
-            kind: "skill",
-            ref: "workspace:/skills/weather",
-            name: "weather",
-            source: "workspace",
-            path: "/skills/weather/SKILL.md",
-            label: "Weather",
-            rawText: "$weather",
+            kind: "workspace_file",
+            key: "fish-index/fish.js",
+            label: "fish.js",
+            rawText: "@file:fish-index%2Ffish.js",
           },
         ],
       },
     ],
+  });
+  fireEvent.click(screen.getByRole("button", { name: "fish.js" }));
+  expect(captures.openFilePreview).toHaveBeenCalledWith({
+    path: "/tmp/default-workspace/fish-index/fish.js",
+    label: "fish.js",
+    viewMode: "preview",
   });
 });
 
@@ -445,7 +450,7 @@ it("wires markdown file link actions to the workspace file preview manager", () 
     path: "/Users/peiwang/Downloads/particle-cosmos.html",
     label: "particle-cosmos.html",
     viewMode: "preview",
-  };
+  } as const;
 
   render(<ChatMessageListContainer messages={[message]} isSending={false} />);
   captures.renders[captures.renders.length - 1]?.onFileOpen?.(action);
@@ -677,7 +682,7 @@ it("delegates tool actions to the chat thread manager owner", () => {
     kind: "open-session",
     sessionId: "child-session-1",
     sessionKind: "child",
-  };
+  } as const;
 
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
 

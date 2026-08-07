@@ -319,7 +319,8 @@ export function ChatMessageListContainer({
         const path = token.kind === CHAT_PROJECT_TOKEN_KIND
           ? token.key
           : resolveWorkspaceReferencePath({
-              projectRoot: selectedSession?.projectRoot,
+              projectRoot:
+                selectedSession?.projectRoot ?? selectedSession?.workingDir,
               relativePath: token.key,
             });
         if (path) {
@@ -369,6 +370,7 @@ export function ChatMessageListContainer({
       presenter.chatThreadManager,
       presenter.chatUiManager,
       selectedSession?.projectRoot,
+      selectedSession?.workingDir,
       sessionKey,
     ],
   );

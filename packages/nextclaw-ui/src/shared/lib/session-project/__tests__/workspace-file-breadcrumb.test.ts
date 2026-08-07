@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildWorkspaceFileBreadcrumb } from "@/shared/lib/session-project";
+import {
+  buildWorkspaceFileBreadcrumb,
+  resolveWorkspaceRelativePath,
+} from "@/shared/lib/session-project";
 
 describe("buildWorkspaceFileBreadcrumb", () => {
   it("builds project-relative breadcrumbs for files inside the active workspace", () => {
@@ -90,5 +93,29 @@ describe("buildWorkspaceFileBreadcrumb", () => {
     expect(breadcrumb.truncated).toBe(true);
     expect(breadcrumb.segments[0]?.label).toBe("project-alpha");
     expect(breadcrumb.segments[1]?.label).toBe("README.md");
+  });
+});
+
+describe("resolveWorkspaceRelativePath", () => {
+  it("normalizes relative and project-contained absolute file paths", () => {
+    expect(resolveWorkspaceRelativePath({
+      path: "src\\chat\\example.tsx",
+      sessionProjectRoot: "C:\\work\\nextclaw",
+    })).toBe("src/chat/example.tsx");
+    expect(resolveWorkspaceRelativePath({
+      path: "/Users/demo/project-alpha/src/chat/example.tsx",
+      sessionProjectRoot: "/Users/demo/project-alpha",
+    })).toBe("src/chat/example.tsx");
+  });
+
+  it("rejects project-external and parent-traversing paths", () => {
+    expect(resolveWorkspaceRelativePath({
+      path: "/tmp/example.ts",
+      sessionProjectRoot: "/Users/demo/project-alpha",
+    })).toBeNull();
+    expect(resolveWorkspaceRelativePath({
+      path: "../secrets.txt",
+      sessionProjectRoot: "/Users/demo/project-alpha",
+    })).toBeNull();
   });
 });

@@ -102,6 +102,14 @@ export function ChatSessionWorkspacePanel({
         workspaceFileTabs,
         activeSelection,
         optimisticReadAtBySessionKey,
+        sessionProjectRoot: sessionProjectRoot ?? sessionWorkingDir,
+        onAddFileToChat: ({ label, tokenKey }) => {
+          presenter.chatComposerIntentManager.requestFileReference({
+            targetSessionKey: sessionKey,
+            tokenKey,
+            label,
+          });
+        },
         onSelectSession: presenter.chatThreadManager.selectChildSessionDetail,
         onSelectFile: presenter.chatThreadManager.selectWorkspaceFile,
         onOpenFileViewer: presenter.chatThreadManager.openWorkspaceFileViewer,
@@ -128,8 +136,11 @@ export function ChatSessionWorkspacePanel({
       closedWorkspaceTabEntries,
       optimisticReadAtBySessionKey,
       presenter.chatThreadManager,
+      presenter.chatComposerIntentManager,
       resolvedChildTabs,
       sessionKey,
+      sessionProjectRoot,
+      sessionWorkingDir,
       workspaceFileTabs,
     ],
   );

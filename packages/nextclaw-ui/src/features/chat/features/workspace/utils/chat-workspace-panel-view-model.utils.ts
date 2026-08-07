@@ -13,6 +13,7 @@ import {
   type ChatWorkspaceFileViewer,
 } from "@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils";
 import { areWorkspaceNavigationEntriesEqual } from "@/features/chat/features/workspace/utils/chat-thread-workspace-session.utils";
+import { resolveWorkspaceRelativePath } from "@/shared/lib/session-project";
 
 export type WorkspaceSelection =
   | {
@@ -56,6 +57,7 @@ export type WorkspaceTabViewModel = {
     viewer: ChatWorkspaceFileViewer;
     onSelect: () => void;
   } | null;
+  onAddToChat?: () => void;
   onSelect: () => void;
   onClose?: () => void;
 };
@@ -161,6 +163,8 @@ type WorkspaceTabsViewModelParams = {
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   activeSelection: WorkspaceSelection | null;
   optimisticReadAtBySessionKey: Record<string, string>;
+  sessionProjectRoot?: string | null;
+  onAddFileToChat?: (reference: { label: string; tokenKey: string }) => void;
   onSelectSession: (sessionKey: string) => void;
   onSelectFile: (fileKey: string) => void;
   onOpenFileViewer: (fileKey: string, viewer: ChatWorkspaceFileViewer) => void;
@@ -237,6 +241,8 @@ export function buildWorkspaceTabsViewModel(
     workspaceFileTabs,
     activeSelection,
     optimisticReadAtBySessionKey,
+    sessionProjectRoot,
+    onAddFileToChat,
     onSelectSession,
     onSelectFile,
     onOpenFileViewer,
@@ -325,6 +331,10 @@ export function buildWorkspaceTabsViewModel(
       ? resolveAlternateWorkspaceFileViewer(file.path, file.previewViewer)
       : null;
     const fileTitle = readWorkspaceFileTitle(file);
+    const tokenKey = resolveWorkspaceRelativePath({
+      path: file.path,
+      sessionProjectRoot: sessionProjectRoot ?? null,
+    });
     return {
       key: `file:${file.key}`,
       kind: "file" as const,
@@ -344,6 +354,9 @@ export function buildWorkspaceTabsViewModel(
             onSelect: () => onOpenFileViewer(file.key, alternateViewer),
           }
         : null,
+      onAddToChat: tokenKey && onAddFileToChat
+        ? () => onAddFileToChat({ label: fileTitle, tokenKey })
+        : undefined,
       active:
         activeSelection?.kind === "file" && activeSelection.file.key === file.key,
       onSelect: () => onSelectFile(file.key),

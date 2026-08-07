@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   closeWorkspacePanel: vi.fn(),
   setWorkspacePanelWidth: vi.fn(),
   invalidateQueries: vi.fn(),
+  requestFileReference: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-query", async (importOriginal) => ({
@@ -28,6 +29,9 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatThreadManager: mocks,
+    chatComposerIntentManager: {
+      requestFileReference: mocks.requestFileReference,
+    },
   }),
 }));
 
@@ -77,7 +81,7 @@ function renderPanel(displayMode: "docked" | "overlay" = "docked") {
       workspaceNavigationHistoryIndex={0}
       activePanelKind="file"
       sessionCronJobs={[]}
-      sessionProjectRoot={null}
+      sessionProjectRoot="/workspace"
       sessionWorkingDir={null}
       displayMode={displayMode}
     />,
@@ -106,6 +110,22 @@ describe("ChatSessionWorkspacePanel", () => {
         .getByTestId("workspace-panel-content")
         .getAttribute("data-file-refresh-version"),
     ).toBe("1");
+  });
+
+  it("adds an opened project file to the active chat from its action menu", async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(
+      screen.getByRole("button", { name: "File actions" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Add to chat" }));
+
+    expect(mocks.requestFileReference).toHaveBeenCalledWith({
+      targetSessionKey: "session-1",
+      tokenKey: "README.md",
+      label: "README.md",
+    });
   });
 
   it("maximizes and restores the docked workspace panel within its container", async () => {

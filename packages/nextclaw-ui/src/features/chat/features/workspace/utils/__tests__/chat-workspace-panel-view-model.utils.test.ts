@@ -408,6 +408,52 @@ describe("buildWorkspaceTabsViewModel", () => {
     );
   });
 
+  it("adds project files to chat with a normalized relative reference", () => {
+    const onAddFileToChat = vi.fn();
+    const projectFile = {
+      key: "project-file",
+      parentSessionKey: "parent-1",
+      path: "/workspace/docs/guide.md",
+      viewMode: "preview" as const,
+    };
+    const externalFile = {
+      key: "external-file",
+      parentSessionKey: "parent-1",
+      path: "/tmp/notes.md",
+      viewMode: "preview" as const,
+    };
+
+    const tabs = buildWorkspaceTabsViewModel({
+      hasSession: true,
+      resolvedChildTabs: [],
+      activeSideChatDraft: null,
+      closedWorkspaceTabEntries: [],
+      workspaceFileTabs: [projectFile, externalFile],
+      activeSelection: { kind: "file", file: projectFile },
+      optimisticReadAtBySessionKey: {},
+      sessionProjectRoot: "/workspace",
+      onAddFileToChat,
+      onSelectSession: vi.fn(),
+      onSelectFile: vi.fn(),
+      onOpenFileViewer: vi.fn(),
+      onCloseTab: vi.fn(),
+      onSelectOverview: vi.fn(),
+      onSelectChildSessions: vi.fn(),
+      onSelectProjectFiles: vi.fn(),
+      onSelectCronJobs: vi.fn(),
+    });
+
+    tabs.find((tab) => tab.key === "file:project-file")?.onAddToChat?.();
+
+    expect(onAddFileToChat).toHaveBeenCalledWith({
+      label: "guide.md",
+      tokenKey: "docs/guide.md",
+    });
+    expect(
+      tabs.find((tab) => tab.key === "file:external-file")?.onAddToChat,
+    ).toBeUndefined();
+  });
+
   it("shows only project files before a draft session is materialized", () => {
     const tabs = buildWorkspaceTabsViewModel({
       hasSession: false,

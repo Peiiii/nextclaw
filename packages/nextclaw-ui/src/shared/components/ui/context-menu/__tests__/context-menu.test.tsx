@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ContextMenu } from "@/shared/components/ui/context-menu/context-menu";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+} from "@/shared/components/ui/context-menu/context-menu";
 
 describe("ContextMenu", () => {
   it("opens at the trigger and supports keyboard selection", async () => {
@@ -35,6 +38,34 @@ describe("ContextMenu", () => {
     await userEvent.keyboard("{ArrowDown}{Enter}");
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("opens the same menu from an explicit trigger", async () => {
+    const onSelect = vi.fn();
+    render(
+      <ContextMenu
+        label="File actions"
+        groups={[
+          {
+            key: "file",
+            items: [{ key: "add", label: "Add to chat", onSelect }],
+          },
+        ]}
+      >
+        <div>
+          <span>README.md</span>
+          <ContextMenuTrigger>
+            <button type="button" aria-label="More actions" />
+          </ContextMenuTrigger>
+        </div>
+      </ContextMenu>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.getByRole("menu", { name: "File actions" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("menuitem", { name: "Add to chat" }));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 
   it("does not steal focus back when an action focuses the composer", async () => {

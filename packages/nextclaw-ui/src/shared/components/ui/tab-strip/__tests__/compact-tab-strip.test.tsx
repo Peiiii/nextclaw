@@ -141,12 +141,18 @@ describe("CompactTabStrip", () => {
             label: "index.html",
             active: true,
             menuLabel: "File actions",
-            menuActions: [
+            menuGroups: [
               {
-                key: "preview",
-                icon: <span />,
-                label: "Open preview",
-                onClick: onAction,
+                key: "file",
+                items: [
+                  {
+                    key: "preview",
+                    icon: <span />,
+                    label: "Open preview",
+                    restoreFocus: false,
+                    onSelect: onAction,
+                  },
+                ],
               },
             ],
             onSelect,
@@ -160,7 +166,14 @@ describe("CompactTabStrip", () => {
     await user.click(menuTrigger);
     await user.click(screen.getByRole("menuitem", { name: "Open preview" }));
 
-    expect(onAction).toHaveBeenCalledTimes(1);
+    const tabItem = screen
+      .getByRole("button", { name: "index.html" })
+      .closest("[data-compact-tab-item]");
+    expect(tabItem).not.toBeNull();
+    fireEvent.contextMenu(tabItem!);
+    await user.click(screen.getByRole("menuitem", { name: "Open preview" }));
+
+    expect(onAction).toHaveBeenCalledTimes(2);
     expect(onSelect).not.toHaveBeenCalled();
     expect(document.activeElement).not.toBe(menuTrigger);
   });
