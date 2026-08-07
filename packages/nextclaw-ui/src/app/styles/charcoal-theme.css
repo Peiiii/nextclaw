@@ -1,0 +1,85 @@
+@layer base {
+  :root[data-theme="charcoal"] {
+    color-scheme: dark;
+
+    /* Clear blue actions over quiet charcoal surfaces. */
+    --brand-50: 203 70% 94%;
+    --brand-100: 203 68% 86%;
+    --brand-200: 203 66% 76%;
+    --brand-300: 202 70% 65%;
+    --brand-400: 201 76% 55%;
+    --brand-500: 201 78% 48%;
+    --brand-600: 202 79% 41%;
+    --brand-700: 203 76% 34%;
+    --brand-800: 204 70% 26%;
+    --brand-900: 205 62% 18%;
+
+    /* Lifted neutral blacks keep large surfaces from feeling heavy. */
+    --gray-50: 0 0% 11%;
+    --gray-100: 0 0% 13%;
+    --gray-200: 0 0% 17%;
+    --gray-300: 0 0% 24%;
+    --gray-400: 0 0% 42%;
+    --gray-500: 0 0% 60%;
+    --gray-600: 0 0% 72%;
+    --gray-700: 0 0% 80%;
+    --gray-800: 0 0% 88%;
+    --gray-900: 0 0% 96%;
+
+    --background: var(--gray-50);
+    --background-secondary: var(--gray-100);
+    --background-tertiary: var(--gray-200);
+    --foreground: var(--gray-800);
+    --foreground-secondary: var(--gray-700);
+    --foreground-tertiary: var(--gray-500);
+    --foreground-muted: var(--gray-400);
+    --primary: var(--brand-400);
+    --primary-hover: var(--brand-300);
+    --primary-active: var(--brand-200);
+    --primary-foreground: var(--gray-50);
+    --secondary: var(--gray-100);
+    --secondary-hover: var(--gray-200);
+    --secondary-foreground: var(--gray-800);
+    --accent: 0 0% 19%;
+    --accent-foreground: var(--gray-900);
+    --interaction-hover: hsl(var(--gray-200));
+    --interaction-selection: hsl(202 38% 27%);
+    --interaction-selection-border: hsl(202 48% 40%);
+    --muted: var(--gray-100);
+    --muted-foreground: var(--gray-500);
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 145 58% 48%;
+    --success-foreground: var(--gray-50);
+    --warning: 40 88% 60%;
+    --warning-foreground: var(--gray-50);
+    --card: 0 0% 15%;
+    --card-foreground: var(--gray-800);
+    --card-border: 0 0% 24%;
+    --popover: 0 0% 15%;
+    --popover-foreground: var(--gray-800);
+    --border: 0 0% 24%;
+    --border-hover: 0 0% 32%;
+    --border-active: var(--brand-400);
+    --input: 0 0% 16%;
+    --input-border: 0 0% 26%;
+    --input-focus: var(--brand-400);
+    --ring: var(--brand-400);
+    --ring-offset: var(--gray-50);
+
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.16);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.16);
+    --shadow-md: 0 8px 18px -12px rgb(0 0 0 / 0.34), 0 4px 8px -6px rgb(0 0 0 / 0.22);
+    --shadow-lg: 0 16px 30px -18px rgb(0 0 0 / 0.4), 0 8px 14px -10px rgb(0 0 0 / 0.28);
+    --shadow-xl: 0 24px 42px -22px rgb(0 0 0 / 0.46), 0 10px 18px -12px rgb(0 0 0 / 0.3);
+    --shadow-2xl: 0 32px 60px -26px rgb(0 0 0 / 0.54);
+    --shadow-card: 0 0 0 1px hsl(var(--border) / 0.72), 0 16px 40px -32px rgb(0 0 0 / 0.5);
+    --shadow-card-hover: 0 0 0 1px hsl(var(--border-hover) / 0.78), 0 22px 50px -34px rgb(0 0 0 / 0.58);
+  }
+
+  :root[data-theme="charcoal"] :is(.nextclaw-chat-message-user, .nextclaw-chat-message-avatar-user) {
+    background-color: hsl(var(--background-tertiary));
+    border-color: hsl(var(--border) / 0.72);
+    color: hsl(var(--foreground));
+  }
+}
