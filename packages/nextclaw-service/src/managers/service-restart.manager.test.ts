@@ -47,6 +47,7 @@ describe("ServiceRestartManager self relaunch", () => {
       version: "0.23.0",
       appEntrypoint: "/pkg/runtime/dist/cli/app/index.js",
       launcherEntrypoint: "/pkg/runtime/dist/cli/launcher/index.js",
+      templatesDir: "/pkg/runtime/templates",
       uiDistDir: "/pkg/runtime/ui-dist",
       runtimeUpdatePublicKeyPath: "/pkg/runtime/resources/update-bundle-public.pem"
     });

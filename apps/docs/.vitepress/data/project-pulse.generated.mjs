@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-08-07T02:35:09.487Z",
+  "generatedAt": "2026-08-07T03:21:36.701Z",
   "hero": {
     "currentLoc": 219694,
     "testLoc": 80186,
     "trackedFiles": 2381,
-    "recentCommitCount": 344,
+    "recentCommitCount": 345,
     "activeDays30": 30,
     "recentReleaseCount": 50,
     "latestReleaseDate": "2026-08-07",
@@ -1208,7 +1208,7 @@ export default {
       {
         "key": "2026-08-07",
         "label": "08-07",
-        "value": 11
+        "value": 12
       }
     ],
     "commitWeekly": [
@@ -1270,7 +1270,7 @@ export default {
       {
         "key": "2026-08-03",
         "label": "08-03",
-        "value": 25
+        "value": 26
       }
     ],
     "releaseMonthly": [
@@ -1458,6 +1458,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-07-nextclaw-v0-28-2",
+        "date": "2026-08-07",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-07 · NextClaw v0.28.2",
+          "description": "NextClaw v0.28.2 completes fresh-install onboarding with packaged workspace templates and accurate zero-key guidance.",
+          "href": "/en/notes/2026-08-07-nextclaw-v0-28-2"
+        },
+        "zh": {
+          "title": "2026-08-07 · NextClaw v0.28.2",
+          "description": "NextClaw v0.28.2 补齐全新安装的工作区模板与零密钥引导，让开箱即用体验从第一步就保持一致。",
+          "href": "/zh/notes/2026-08-07-nextclaw-v0-28-2"
+        }
+      },
       {
         "slug": "2026-08-07-nextclaw-v0-28-1",
         "date": "2026-08-07",
@@ -2078,7 +2097,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-06T05:26:27.506Z",
     "sourceCount": {
-      "notes": 28,
+      "notes": 29,
       "scopes": 8
     }
   }

@@ -133,6 +133,7 @@ const TEST_DISTRIBUTION = {
   version: "0.18.12-beta.4",
   appEntrypoint: "/pkg/dist/cli/app/index.js",
   launcherEntrypoint: "/pkg/dist/cli/launcher/index.js",
+  templatesDir: "/pkg/templates",
   uiDistDir: "/pkg/ui-dist",
   runtimeUpdatePublicKeyPath: "/pkg/resources/update-bundle-public.pem"
 };

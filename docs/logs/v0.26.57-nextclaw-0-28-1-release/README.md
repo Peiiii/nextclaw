@@ -48,3 +48,11 @@
 - `@nextclaw/desktop@0.0.238` 仅随依赖传播更新私有 workspace 元数据，不发布到 NPM，也不代表本次发布 Desktop 安装包。
 - 当前状态：版本化、全量测试、关键包 TypeScript/lint、governance 与可维护性门禁已完成；待最终发布门禁、NPM 发布与 registry / fresh-install 验证。
 - stable runtime update channel、GitHub Release、公开 manifest 与产品更新笔记 URL 均属于本次发布闭环。
+
+## 0.28.2 全新安装验收补丁
+
+- `0.28.1` 发布后的完全空白目录验收证明默认 `opencode/big-pickle` 无密钥聊天可用，但同时发现两处开箱体验缺口：`init` 仍提示先添加 API Key，发布包虽然包含模板，service 却从错误的包根查找模板。
+- 修复把 `templatesDir` 纳入顶层 `nextclaw` distribution 合同，由运行时显式交给 `ServiceWorkspaceManager`；删除 service 基于自身编译路径反推顶层包根的错误路径。初始化文案只在新建配置时明确提示 OpenCode Zen 无需 API Key，已有配置则保持中性提示。
+- 新增 service 工作区模板复制测试和顶层 distribution 路径断言；全仓测试通过，其中 Service 为 48 个文件 / 175 个测试，UI 为 188 个文件 / 864 个测试，Kernel 为 51 个文件 / 242 个测试，NextClaw 为 4 个文件 / 8 个测试。
+- `pnpm release:check:strict -- --reset`、文档正式构建、中英文镜像检查、release group/readme 门禁、governance 与 maintainability guard 均通过。补丁功能源码非测试行新增 12、删除 20，净减 8；未新增文件层级或平行 owner。
+- 最终交付版本提升为 `nextclaw@0.28.2`，并将重新执行 registry、完全空白目录安装、初始化模板、前端真实选模、无密钥聊天以及从 `0.28.1` 升级的 stable runtime 全链路验收；最终公共 URL 与结果在发布完成后回填。

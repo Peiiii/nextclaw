@@ -8,6 +8,7 @@ describe("NpmRuntimeUpdateCommandService", () => {
       version: "0.19.26",
       appEntrypoint: "/runtime/dist/cli/app/index.js",
       launcherEntrypoint: "/runtime/dist/cli/launcher/index.js",
+      templatesDir: "/runtime/templates",
       uiDistDir: "/runtime/ui-dist",
       runtimeUpdatePublicKeyPath: "/runtime/resources/update-bundle-public.pem"
     });
