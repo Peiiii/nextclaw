@@ -18,6 +18,7 @@ import {
 } from "@nextclaw/shared";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
 import {
+  createMessagingContextProvider,
   createSilentRepliesContextProvider,
 } from "@kernel/contributions/context-provider/providers/native-static-context.provider.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
@@ -110,7 +111,17 @@ afterEach(() => {
   }
 });
 
-describe("Silent replies context contract", () => {
+describe("Messaging context delivery policy", () => {
+  it("prefers the inbox for durable content without an external route", async () => {
+    const workspace = createWorkspace();
+    const [context] = await createMessagingContextProvider().provide(createRequest(workspace));
+
+    expect(context).toContain("Durable reading material with no explicit external destination");
+    expect(context).toContain("collected news, briefings, reports, recommendations, and articles");
+    expect(context).toContain('Wording such as "send it to me" alone does not name a chat channel');
+    expect(context).toContain("do not infer Weixin or another channel");
+  });
+
   it("requires the silent marker without escaped or leading newlines", async () => {
     const workspace = createWorkspace();
     const [context] = await createSilentRepliesContextProvider().provide(createRequest(workspace));

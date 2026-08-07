@@ -1,18 +1,19 @@
 ---
 name: cross-channel-messaging
-description: Use when the user wants the AI to send, relay, or notify through another NextClaw session or chat channel, especially after work completes, including deciding between a normal reply and message, and resolving route/account details without guessing.
-description_zh: 当用户希望 AI 通过另一个 NextClaw 会话或聊天渠道发送、转发、通知结果时使用，包含目标路由、账号和是否需要跨渠道发送的判断。
+description: 'Use when deciding how to deliver an AI result: reply now, put durable news, reports, recommendations, or articles in the NextClaw inbox, or send to an explicitly requested chat channel without guessing a route.'
+description_zh: '当需要决定 AI 结果如何交付时使用：当前会话直接回复、把新闻简报/报告/推荐/文章投递到 NextClaw 收件箱，或发送到用户明确指定的聊天渠道且不猜测路由。'
 ---
 
-# Cross-Channel Messaging
+# Result Delivery And Cross-Channel Messaging
 
 This is a NextClaw built-in skill for the AI itself.
 
-It does not introduce a new runtime abstraction. It teaches the AI how to use existing NextClaw messaging primitives in a predictable way.
+It teaches the AI how to choose among NextClaw's existing delivery primitives in a predictable way.
 
 Use this skill when the user wants any of these:
 
 - send a result to another conversation,
+- deliver collected news, a briefing, report, recommendation, or article for later reading,
 - notify them through Weixin, Lark, Telegram, Signal, or another channel,
 - proactively send a message after a task finishes,
 - forward or relay content across sessions or channels.
@@ -20,6 +21,8 @@ Use this skill when the user wants any of these:
 Strong triggers include user wording such as:
 
 - "notify me when done",
+- "collect the news and send it to me",
+- "put this report somewhere I can read later",
 - "send this to my Weixin",
 - "message me on Telegram",
 - "forward the result to another chat",
@@ -29,15 +32,17 @@ Do not wait for the user to name this skill. If the task is about delivery, rout
 
 ## Core Rule
 
-Do not invent a separate notification system.
-
-Pick the smallest existing primitive that already matches the user intent:
+Pick the existing primitive that matches both the content shape and the destination:
 
 1. Reply in the current conversation:
    Just reply normally when the user means the current session.
-2. Send to another conversation or channel:
+2. Deliver durable reading material:
+   Use `deliver_to_inbox` for news digests, briefings, reports, recommendations, or articles meant to remain available for later reading and follow-up, unless the user explicitly names an external channel.
+3. Send to another conversation or channel:
    Use `message` when the user wants a direct outbound send to a specific channel/chat/account route.
    If an existing session may already hold the route, use `sessions_list` narrowly to recover that route first, then call `message`.
+
+"Send it to me" or "notify me" alone is not an external route. Do not infer Weixin, Lark, Telegram, or another channel from saved configuration, a previous route, or the mere availability of `message`.
 
 ## Tool Choice
 
@@ -49,11 +54,22 @@ Use a normal assistant reply when:
 - the target is clearly the current session,
 - no cross-session or cross-channel delivery is needed.
 
+### `deliver_to_inbox`
+
+Use `deliver_to_inbox` when:
+
+- the result is durable reading material rather than a short conversational answer,
+- common examples include collected news, daily/weekly briefings, research reports, recommendations, and generated articles,
+- the user wants it sent, delivered, saved, or available to read later,
+- and no external channel or other conversation was explicitly requested.
+
+Give the delivery a concise title and useful summary. Use Markdown for normal documents and static HTML when the content benefits from a designed report surface. Do not also send the full result through `message` unless the user explicitly asks for both destinations.
+
 ### `message`
 
 Use `message` when:
 
-- the user explicitly wants a proactive send,
+- the user explicitly names another conversation or channel destination,
 - the target is described as a channel route,
 - you need to send to a specific `channel` + `to/chatId`,
 - or the user asks for a channel action that belongs to the message tool.
@@ -220,7 +236,7 @@ If delivery fails because route information is missing or ambiguous:
 - do not silently fall back to another channel,
 - do not silently send back into the current session instead.
 
-If the user asks for "notify me when done" but no target route is actually known, ask where to send it.
+If the user asks only to "notify me when done" with no external destination, finish in the current session; ask for route data only when an external channel is clearly requested but cannot be resolved.
 If `message` returns `unknown channel`, run `nextclaw channels list --json`, pick only an exact returned `id`, and retry only when the target route is otherwise unambiguous.
 
 ## Common Failure Patterns To Avoid
@@ -229,6 +245,8 @@ If `message` returns `unknown channel`, run `nextclaw channels list --json`, pic
 - Writing `channel: "wechat"` instead of discovering and using the exact runtime id.
 - Skipping `nextclaw channels list --json` when the exact channel id is unknown.
 - Asking for both `accountId` and `user_id` when only one of them is actually missing.
+- Treating "send it to me" as permission to pick Weixin or another configured channel.
+- Returning a durable news digest or report only as a transient chat message when `deliver_to_inbox` is available and no external channel was requested.
 - Falling back to a normal reply in the current chat when the user explicitly requested proactive delivery.
 - Claiming proactive send is impossible before checking channel discovery output, current session metadata, and known routes.
 
@@ -236,7 +254,8 @@ If `message` returns `unknown channel`, run `nextclaw channels list --json`, pic
 
 This skill is working correctly when:
 
-- the AI chooses between a normal reply and `message` correctly,
+- the AI chooses correctly among a normal reply, `deliver_to_inbox`, and `message`,
+- durable material without an explicit external destination lands in the NextClaw inbox,
 - it reuses existing session routes when possible,
 - it reads route/account information from explicit context when available,
 - it asks for missing route data instead of guessing,

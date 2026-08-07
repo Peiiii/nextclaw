@@ -33,6 +33,14 @@ afterEach(async () => {
 });
 
 describe("deliver_to_inbox", () => {
+  it("advertises durable inbox delivery instead of an inferred external channel", async () => {
+    const { tool } = await createFixture();
+
+    expect(tool.description).toContain("collected news, briefings, reports");
+    expect(tool.description).toContain("did not explicitly request an external chat channel");
+    expect(tool.description).toContain("read later");
+  });
+
   it("creates a durable Markdown delivery from direct content", async () => {
     const { manager, tool } = await createFixture();
     const result = await tool.execute({
