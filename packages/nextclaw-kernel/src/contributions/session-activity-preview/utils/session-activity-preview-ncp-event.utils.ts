@@ -53,12 +53,12 @@ function createProjection(
 
 function readErrorDetail(error: unknown): string | undefined {
   if (typeof error === "string" && error.trim()) {
-    return truncatePreviewText(error);
+    return error.trim();
   }
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) {
-      return truncatePreviewText(message);
+      return message.trim();
     }
   }
   return undefined;

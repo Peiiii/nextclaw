@@ -70,6 +70,45 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
     });
   });
 
+  it("preserves complete provider errors without compacting or truncating them", () => {
+    const providerError = `Chat Completions API failed (402): {\n  "error": "${"x".repeat(180)} END_OF_PROVIDER_ERROR"\n}`;
+
+    expect(
+      createSessionActivityPreviewFromNcpEvent({
+        type: NcpEventType.RunError,
+        payload: {
+          sessionId: "session-1",
+          error: providerError,
+        },
+      }, TIMESTAMP),
+    ).toEqual({
+      sessionId: "session-1",
+      preview: {
+        state: "failed",
+        statusKind: "run-failed",
+        statusText: providerError,
+        timestamp: TIMESTAMP,
+      },
+    });
+
+    expect(
+      createSessionActivityPreviewFromNcpEvent({
+        type: NcpEventType.MessageFailed,
+        payload: {
+          sessionId: "session-1",
+          error: {
+            code: "runtime-error",
+            message: providerError,
+          },
+        },
+      }, TIMESTAMP),
+    ).toMatchObject({
+      preview: {
+        statusText: providerError,
+      },
+    });
+  });
+
   it("projects user message aborts into metadata-only cancelled previews", () => {
     expect(
       createSessionActivityPreviewFromNcpEvent({

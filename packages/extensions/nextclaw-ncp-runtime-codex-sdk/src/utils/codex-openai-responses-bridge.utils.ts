@@ -113,7 +113,8 @@ class CodexResponsesBridgeRequestHandler {
     });
     const upstreamResponse = await fetch(upstream.request.url, upstream.request.init);
     if (!upstreamResponse.ok) {
-      throw new Error((await upstreamResponse.text()).slice(0, 240));
+      const rawText = await upstreamResponse.text();
+      throw new Error(rawText || `HTTP ${upstreamResponse.status}`);
     }
     await writeResponsesUpstreamStream({
       response: this.response,

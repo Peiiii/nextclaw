@@ -13,7 +13,6 @@ import {
   resolveNcpChatSendErrorMessage,
 } from "@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils";
 import { buildChatContextWindowIndicator } from "@/features/chat/features/session/utils/chat-context-window-indicator.utils";
-import { sessionActivityPreviewText } from "@/features/chat/features/session/utils/chat-session-display.utils";
 import { readNcpContextWindowValue } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 import { ChatConversationWelcome } from "@/features/chat/features/welcome/components/chat-conversation-welcome";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
@@ -320,26 +319,22 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       ),
     [agent.snapshot.contextWindow],
   );
-  const displayInputSnapshot = useMemo(
-    () => ({
-      ...inputSnapshot,
-      sendError: lastSendError ?? inputSnapshot.sendError,
-    }),
-    [inputSnapshot, lastSendError],
-  );
   const { selectedSession } = inputQuery;
-  const sessionFailureMessage =
-    selectedSession?.activityPreview?.state === "failed"
-      ? sessionActivityPreviewText(selectedSession)
-      : null;
-  const sessionFailureSlot = sessionFailureMessage ? (
-    <div className="rounded-lg border border-red-200/80 bg-red-50/80 px-3 py-2.5 shadow-sm">
-      <div className="text-xs font-semibold text-red-800">
-        {t("chatSessionErrorTitle")}
-      </div>
-      <div className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-red-700">
-        {sessionFailureMessage}
-      </div>
+  const conversationFailureMessage =
+    inputSnapshot.sendError?.trim() ||
+    lastSendError?.trim() ||
+    (selectedSession?.activityPreview?.state === "failed"
+      ? selectedSession.activityPreview.statusText?.trim()
+      : null) ||
+    null;
+  const conversationFailureSlot = conversationFailureMessage ? (
+    <div
+      className="rounded-lg border-l-2 border-destructive/40 bg-muted/45 px-3 py-2.5"
+      role="status"
+    >
+      <pre className="max-h-32 select-text overflow-auto whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-muted-foreground">
+        {conversationFailureMessage}
+      </pre>
     </div>
   ) : null;
   useSessionConversationDraftIntent({
@@ -353,7 +348,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         controller={inputController}
         inputActions={inputActions}
         inputQuery={inputQuery}
-        inputSnapshot={displayInputSnapshot}
+        inputSnapshot={inputSnapshot}
         onContextCompactingChange={handleContextCompactingChange}
         placeholder={placeholder}
         surface={surface}
@@ -361,10 +356,10 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     ),
     [
       contextWindow,
-      displayInputSnapshot,
       inputController,
       inputActions,
       inputQuery,
+      inputSnapshot,
       handleContextCompactingChange,
     ],
   );
@@ -389,14 +384,19 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         isContextCompacting={Boolean(
           sessionKey && compactingSessionIds.has(sessionKey),
         )}
-        bottomSlot={sessionFailureSlot}
+        bottomSlot={showWelcome ? null : conversationFailureSlot}
         messages={agent.visibleMessages}
         sessionKey={sessionKey}
         showWelcome={showWelcome}
         onLoadPreviousMessages={agent.loadPreviousMessages}
         welcomeSlot={
           <ChatConversationWelcome
-            inputSlot={renderInput("embedded", t("chatWelcomeInputPlaceholder"))}
+            inputSlot={
+              <div className="space-y-2">
+                {renderInput("embedded", t("chatWelcomeInputPlaceholder"))}
+                {conversationFailureSlot}
+              </div>
+            }
             pendingProjectRoot={inputSnapshot.pendingProjectRoot}
             pendingSessionType={inputSnapshot.pendingSessionType}
             selectedSessionTypeValue={inputSnapshot.selectedSessionType}

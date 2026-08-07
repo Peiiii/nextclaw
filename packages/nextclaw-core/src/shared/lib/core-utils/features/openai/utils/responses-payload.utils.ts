@@ -21,7 +21,7 @@ export function parseOpenAiResponsesPayload(rawText: string): Record<string, unk
       return unwrapResponsesEnvelope(sseJson);
     }
 
-    throw new Error(`Responses API returned non-JSON payload: ${text.slice(0, 240)}`);
+    throw new Error(`Responses API returned non-JSON payload: ${text}`);
   }
 }
 

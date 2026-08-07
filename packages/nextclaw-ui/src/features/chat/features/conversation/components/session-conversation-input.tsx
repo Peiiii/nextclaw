@@ -403,8 +403,6 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     <ChatInputBar
       ref={inputBarRef}
       surface={useReadingTrack ? 'embedded' : surface}
-      sendError={inputSnapshot.sendError}
-      sendErrorDetailsLabel={t('chatErrorDetails', language)}
       topSlot={controller.queuedInputs.length > 0
         ? <SessionQueuedInputRows controller={controller} />
         : null}

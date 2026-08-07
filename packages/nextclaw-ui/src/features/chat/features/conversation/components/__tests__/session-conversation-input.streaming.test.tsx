@@ -83,6 +83,14 @@ vi.mock('@/shared/hooks/use-server-path-search', () => ({
   }),
 }));
 
+vi.mock('@/shared/hooks/use-projects', () => ({
+  useProjects: () => ({
+    data: { projects: [] },
+    isFetching: false,
+    isLoading: false,
+  }),
+}));
+
 vi.mock('@/shared/lib/api', async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -120,6 +128,7 @@ const controller: SessionConversationInputController = {
 
 function createStreamingInputSnapshot(
   nodes: readonly ChatComposerNode[],
+  sendError: string | null = null,
 ): SessionConversationInputSnapshot {
   return {
     attachments: [],
@@ -131,7 +140,7 @@ function createStreamingInputSnapshot(
     selectedSessionType: 'default',
     selectedSkills: [],
     selectedThinkingLevel: null,
-    sendError: null,
+    sendError,
     skillRecords: [],
     text: nodes
       .map((node) => (node.type === 'text' ? node.text : ''))
@@ -178,9 +187,11 @@ async function insertText(textbox: HTMLElement, text: string): Promise<void> {
 function StreamingSessionConversationInputHarness({
   controllerOverride = controller,
   controlRef,
+  sendError = null,
 }: {
   controllerOverride?: SessionConversationInputController;
   controlRef: MutableRefObject<StreamingInputControl | null>;
+  sendError?: string | null;
 }) {
   const [nodes, setNodes] = useState<readonly ChatComposerNode[]>([
     createChatComposerTextNode(''),
@@ -195,7 +206,10 @@ function StreamingSessionConversationInputHarness({
     };
   }, [bumpStream, controlRef]);
 
-  const inputSnapshot = useMemo(() => createStreamingInputSnapshot(nodes), [nodes]);
+  const inputSnapshot = useMemo(
+    () => createStreamingInputSnapshot(nodes, sendError),
+    [nodes, sendError],
+  );
   const inputActions: SessionConversationInputActions = useMemo(() => ({
     addAttachments: vi.fn(() => []),
     applyPromptSuggestion: vi.fn(),
@@ -337,6 +351,20 @@ describe('SessionConversationInput streaming stability', () => {
 
     expect(editQueuedInput).toHaveBeenCalledWith('queued-1');
     expect(deleteQueuedInput).toHaveBeenCalledWith('queued-2');
+  });
+
+  it('leaves send-error rendering to the conversation surface', () => {
+    const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
+    const providerError = 'Chat Completions API failed (402): raw provider error';
+
+    render(
+      <StreamingSessionConversationInputHarness
+        controlRef={controlRef}
+        sendError={providerError}
+      />,
+    );
+
+    expect(screen.queryByText(providerError)).toBeNull();
   });
 });
 

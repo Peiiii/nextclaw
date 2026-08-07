@@ -124,4 +124,30 @@ describe("AnthropicMessagesProvider", () => {
       reasoningContent: null
     });
   });
+
+  it("preserves the complete raw provider error response", async () => {
+    const responseText = JSON.stringify({
+      type: "error",
+      error: {
+        type: "invalid_request_error",
+        message: `provider detail ${"x".repeat(240)} END_OF_PROVIDER_ERROR`,
+      },
+    });
+    globalThis.fetch = vi.fn(async () => new Response(responseText, {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    })) as unknown as typeof globalThis.fetch;
+    const provider = new AnthropicMessagesProvider({
+      apiKey: "anthropic-secret",
+      apiBase: "https://api.anthropic.com/v1",
+      defaultModel: "claude-test",
+    });
+
+    await expect(provider.chat({
+      messages: [{ role: "user", content: "ping" }],
+    })).rejects.toMatchObject({
+      message: responseText,
+      status: 400,
+    });
+  });
 });
