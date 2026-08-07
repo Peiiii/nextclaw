@@ -1093,9 +1093,9 @@ Allow the agent to run shell commands:
 ```json
 {
   "tools": {
-    "exec": { "timeout": 60 }
-  },
-  "restrictToWorkspace": false
+    "exec": { "timeout": 60 },
+    "restrictToWorkspace": false
+  }
 }
 ```
 
