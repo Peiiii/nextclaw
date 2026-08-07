@@ -1,7 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { useSessionConversationInputState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 
 const MODEL_OPTIONS: ChatModelOption[] = [
@@ -20,6 +21,10 @@ const MODEL_OPTIONS: ChatModelOption[] = [
 ];
 
 describe('useSessionConversationInputState session preferences', () => {
+  beforeEach(() => {
+    useChatThreadStore.getState().setSnapshot({ draftProjectRoot: null });
+  });
+
   it('owns the initial routed prompt before the composer first renders', () => {
     const { result } = renderHook(() => useSessionConversationInputState('  每天整理项目风险  '));
 
@@ -100,5 +105,16 @@ describe('useSessionConversationInputState session preferences', () => {
       });
     });
     expect(result.current.inputSnapshot.selectedModel).toBe('deepseek/deepseek-v4-flash');
+  });
+
+  it('shares the selected draft project with the thread workspace owner', () => {
+    const { result } = renderHook(() => useSessionConversationInputState());
+
+    act(() => {
+      result.current.inputActions.setPendingProjectRoot('/tmp/project-alpha');
+    });
+
+    expect(result.current.inputSnapshot.pendingProjectRoot).toBe('/tmp/project-alpha');
+    expect(useChatThreadStore.getState().snapshot.draftProjectRoot).toBe('/tmp/project-alpha');
   });
 });

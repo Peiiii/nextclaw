@@ -56,7 +56,7 @@ describe('deriveNcpMessagePartsFromComposer', () => {
       },
       {
         type: 'text',
-        text: ' between $Web Searchafter'
+        text: ' between $Web Search after'
       },
       {
         type: 'file',
@@ -111,6 +111,27 @@ describe('deriveNcpMessagePartsFromComposer', () => {
       {
         type: 'text',
         text: '@file:src%2Ffile%20name.ts and @folder:docs%2F%E8%AE%BE%E8%AE%A1',
+      },
+    ]);
+  });
+
+  it('separates workspace references from adjacent message text', () => {
+    expect(
+      deriveNcpMessagePartsFromComposer(
+        [
+          createChatComposerTokenNode({
+            tokenKind: 'workspace_file',
+            tokenKey: 'AGENTS.md',
+            label: 'AGENTS.md',
+          }),
+          createChatComposerTextNode('这里面有啥'),
+        ],
+        [],
+      ),
+    ).toEqual([
+      {
+        type: 'text',
+        text: '@file:AGENTS.md 这里面有啥',
       },
     ]);
   });

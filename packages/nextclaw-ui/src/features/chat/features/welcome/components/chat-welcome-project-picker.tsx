@@ -16,7 +16,7 @@ type ChatWelcomeProjectPickerProps = {
   projectRoot: string | null;
   selectable: boolean;
   onOpenProjectDialog: () => void;
-  onSelectProjectRoot: (projectRoot: string) => Promise<void> | void;
+  onSelectProjectRoot: (projectRoot: string | null) => Promise<void> | void;
 };
 
 const PROJECT_PICKER_MAX_HEIGHT = createPopoverAvailableHeightLimit('20rem');
@@ -33,7 +33,7 @@ export function ChatWelcomeProjectPicker({
   const projectLabel =
     getSessionProjectName(projectRoot) ?? t('chatWelcomeProjectPickerPlaceholder');
 
-  const selectProjectRoot = async (nextProjectRoot: string) => {
+  const selectProjectRoot = async (nextProjectRoot: string | null) => {
     setIsOpen(false);
     await onSelectProjectRoot(nextProjectRoot);
   };
@@ -70,7 +70,7 @@ export function ChatWelcomeProjectPicker({
                 className="flex w-full min-w-0 items-start gap-2 rounded-xl px-2 py-2 text-left transition-colors hover:bg-[var(--interaction-hover)]"
                 title={option.projectRoot}
                 onClick={() => {
-                  void selectProjectRoot(option.projectRoot);
+                  void selectProjectRoot(option.isDefault ? null : option.projectRoot);
                 }}
               >
                 <FolderOpen className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/70" />
@@ -79,6 +79,11 @@ export function ChatWelcomeProjectPicker({
                     <span className="truncate text-[13px] font-semibold text-foreground">
                       {option.projectName}
                     </span>
+                    {option.isDefault ? (
+                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {t('chatWelcomeProjectDefaultBadge')}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="block truncate text-[11px] leading-4 text-muted-foreground">
                     {option.projectRoot}

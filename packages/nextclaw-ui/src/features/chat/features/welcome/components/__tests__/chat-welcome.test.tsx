@@ -93,9 +93,16 @@ describe('ChatWelcome', () => {
       onSelectProjectRoot,
       projectOptions: [
         {
+          projectRoot: '/Users/demo/.nextclaw/workspace',
+          projectName: 'workspace',
+          sessionCount: 0,
+          isDefault: true,
+        },
+        {
           projectRoot: '/tmp/project-alpha',
           projectName: 'project-alpha',
           sessionCount: 3,
+          isDefault: false,
         },
       ],
     });
@@ -103,7 +110,8 @@ describe('ChatWelcome', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Choose working directory' }),
     );
-    expect(screen.getByText('Recent projects')).toBeTruthy();
+    expect(screen.getByText('Working directories')).toBeTruthy();
+    expect(screen.getByText('Default')).toBeTruthy();
     expect(screen.getByText('/tmp/project-alpha')).toBeTruthy();
     expect(screen.getByText('Open folder')).toBeTruthy();
     expect(screen.getByText('/tmp/project-alpha').closest('.overflow-y-auto'))
@@ -113,7 +121,14 @@ describe('ChatWelcome', () => {
 
     expect(onSelectProjectRoot).toHaveBeenCalledWith('/tmp/project-alpha');
     await waitFor(() => {
-      expect(screen.queryByText('Recent projects')).toBeNull();
+      expect(screen.queryByText('Working directories')).toBeNull();
     });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose working directory' }),
+    );
+    fireEvent.click(screen.getByText('/Users/demo/.nextclaw/workspace'));
+
+    expect(onSelectProjectRoot).toHaveBeenLastCalledWith(null);
   });
 });

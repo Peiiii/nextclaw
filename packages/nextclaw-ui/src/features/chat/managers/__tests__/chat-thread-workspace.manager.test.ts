@@ -24,6 +24,8 @@ describe('ChatThreadManager workspace pages', () => {
         activeWorkspacePanelKind: null,
         activeChildSessionKey: null,
         activeWorkspaceFileKey: null,
+        draftProjectRoot: null,
+        workspaceFileTabs: [],
         closedWorkspaceTabEntries: [],
         workspaceNavigationHistory: [],
         workspaceNavigationHistoryIndex: 0,
@@ -72,6 +74,73 @@ describe('ChatThreadManager workspace pages', () => {
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       workspacePanelParentKey: null,
       activeWorkspacePanelKind: null,
+    });
+  });
+
+  it('opens project files for a draft without exposing session-only pages', () => {
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+    );
+
+    manager.toggleWorkspacePanel(null);
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      workspacePanelParentKey: null,
+      activeWorkspacePanelKind: 'project-files',
+      workspaceNavigationHistory: [{ kind: 'project-files' }],
+    });
+  });
+
+  it('reparents an open draft workspace and its file tabs after materialization', () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        draftProjectRoot: '/tmp/project-alpha',
+        workspacePanelParentKey: null,
+        activeWorkspacePanelKind: 'file',
+        activeWorkspaceFileKey: 'draft::preview::README.md',
+        workspaceFileTabs: [
+          {
+            key: 'draft::preview::README.md',
+            parentSessionKey: null,
+            path: 'README.md',
+            viewMode: 'preview',
+          },
+        ],
+        workspaceNavigationHistory: [
+          { kind: 'project-files' },
+          { kind: 'file', key: 'draft::preview::README.md' },
+        ],
+        workspaceNavigationHistoryIndex: 1,
+      },
+    });
+    const manager = new ChatThreadManager(
+      createUiManager(),
+      {} as ConstructorParameters<typeof ChatThreadManager>[1],
+    );
+
+    manager.materializeDraftWorkspace('materialized-session');
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      draftProjectRoot: null,
+      workspacePanelParentKey: 'materialized-session',
+      activeWorkspacePanelKind: 'file',
+      activeWorkspaceFileKey:
+        'materialized-session::preview::README.md',
+      workspaceFileTabs: [
+        expect.objectContaining({
+          key: 'materialized-session::preview::README.md',
+          parentSessionKey: 'materialized-session',
+        }),
+      ],
+      workspaceNavigationHistory: [
+        { kind: 'project-files' },
+        {
+          kind: 'file',
+          key: 'materialized-session::preview::README.md',
+        },
+      ],
     });
   });
 

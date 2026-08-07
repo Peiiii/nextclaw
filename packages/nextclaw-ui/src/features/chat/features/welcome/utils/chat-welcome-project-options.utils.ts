@@ -6,6 +6,7 @@ export type ChatWelcomeProjectOption = {
   projectRoot: string;
   projectName: string;
   sessionCount: number;
+  isDefault: boolean;
 };
 
 function readSessionActivityAt(session: {
@@ -34,6 +35,7 @@ export function buildChatWelcomeProjectOptions(params: {
       projectRoot: project.rootPath,
       projectName: project.name,
       sessionCount: 0,
+      isDefault: false,
       latestUpdatedAt: new Date(project.updatedAt).getTime(),
     });
   }
@@ -57,7 +59,18 @@ export function buildChatWelcomeProjectOptions(params: {
         getSessionProjectName(projectRoot) ||
         projectRoot,
       sessionCount: 1,
+      isDefault: false,
       latestUpdatedAt,
+    });
+  }
+
+  if (defaultProjectRoot) {
+    groups.set(defaultProjectRoot, {
+      projectRoot: defaultProjectRoot,
+      projectName: getSessionProjectName(defaultProjectRoot) || defaultProjectRoot,
+      sessionCount: 0,
+      isDefault: true,
+      latestUpdatedAt: Number.POSITIVE_INFINITY,
     });
   }
 

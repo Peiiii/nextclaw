@@ -12,7 +12,7 @@ import { t } from '@/shared/lib/i18n';
 const SESSION_HEADER_ACTION_GROUP_CLASS = 'flex shrink-0 items-center gap-1.5';
 
 type ChatSessionHeaderActionsProps = {
-  sessionKey: string;
+  sessionKey: string | null;
   canDeleteSession: boolean;
   isDeletePending: boolean;
   currentPath?: string | null;
@@ -42,6 +42,9 @@ export function ChatSessionHeaderActions({
   const isBusy = isDeletePending || isProjectPending;
 
   const runProjectUpdate = async (nextProjectRoot: string | null) => {
+    if (!sessionKey) {
+      return;
+    }
     const persistToServer = canDeleteSession;
     setIsProjectPending(true);
     try {
@@ -59,48 +62,50 @@ export function ChatSessionHeaderActions({
 
   return (
     <div className={SESSION_HEADER_ACTION_GROUP_CLASS}>
-      <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-        <PopoverTrigger asChild>
-          <IconActionButton
-            icon={<MoreVertical className="h-4 w-4" />}
-            label={t('chatSessionMoreActions')}
-            tooltip={false}
-            disabled={isBusy}
-          />
-        </PopoverTrigger>
-        <ChatPopoverContent align="end" className="w-56 p-2">
-          <div className="space-y-1">
-            <ChatSessionHeaderMenuItem
-              icon={FolderOpen}
-              label={t('chatSessionSetProject')}
-              onClick={() => {
-                setIsMenuOpen(false);
-                setIsDialogOpen(true);
-              }}
+      {sessionKey ? (
+        <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+          <PopoverTrigger asChild>
+            <IconActionButton
+              icon={<MoreVertical className="h-4 w-4" />}
+              label={t('chatSessionMoreActions')}
+              tooltip={false}
               disabled={isBusy}
             />
-            <ChatSessionHeaderMenuItem
-              icon={Braces}
-              label={t('chatSessionViewMetadata')}
-              onClick={() => {
-                setIsMenuOpen(false);
-                setIsMetadataDialogOpen(true);
-              }}
-              disabled={isBusy}
-            />
-            <ChatSessionHeaderMenuItem
-              icon={Trash2}
-              label={t('chatDeleteSession')}
-              onClick={() => {
-                setIsMenuOpen(false);
-                onDeleteSession();
-              }}
-              disabled={!canDeleteSession || isBusy}
-              destructive
-            />
-          </div>
-        </ChatPopoverContent>
-      </Popover>
+          </PopoverTrigger>
+          <ChatPopoverContent align="end" className="w-56 p-2">
+            <div className="space-y-1">
+              <ChatSessionHeaderMenuItem
+                icon={FolderOpen}
+                label={t('chatSessionSetProject')}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setIsDialogOpen(true);
+                }}
+                disabled={isBusy}
+              />
+              <ChatSessionHeaderMenuItem
+                icon={Braces}
+                label={t('chatSessionViewMetadata')}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setIsMetadataDialogOpen(true);
+                }}
+                disabled={isBusy}
+              />
+              <ChatSessionHeaderMenuItem
+                icon={Trash2}
+                label={t('chatDeleteSession')}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onDeleteSession();
+                }}
+                disabled={!canDeleteSession || isBusy}
+                destructive
+              />
+            </div>
+          </ChatPopoverContent>
+        </Popover>
+      ) : null}
       <IconActionButton
         icon={
           isWorkspaceOpen ? (
@@ -119,19 +124,23 @@ export function ChatSessionHeaderActions({
         disabled={isBusy}
       />
 
-      <ChatSessionProjectDialog
-        open={isDialogOpen}
-        currentProjectRoot={currentPath}
-        defaultWorkspacePath={defaultWorkspacePath}
-        isSaving={isProjectPending}
-        onOpenChange={setIsDialogOpen}
-        onSave={runProjectUpdate}
-      />
-      <ChatSessionMetadataDialog
-        open={isMetadataDialogOpen}
-        metadata={metadata}
-        onOpenChange={setIsMetadataDialogOpen}
-      />
+      {sessionKey ? (
+        <>
+          <ChatSessionProjectDialog
+            open={isDialogOpen}
+            currentProjectRoot={currentPath}
+            defaultWorkspacePath={defaultWorkspacePath}
+            isSaving={isProjectPending}
+            onOpenChange={setIsDialogOpen}
+            onSave={runProjectUpdate}
+          />
+          <ChatSessionMetadataDialog
+            open={isMetadataDialogOpen}
+            metadata={metadata}
+            onOpenChange={setIsMetadataDialogOpen}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

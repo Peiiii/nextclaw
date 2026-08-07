@@ -55,6 +55,7 @@ function resetChatSessionListManagerState() {
   useChatThreadStore.setState({
     snapshot: {
       ...useChatThreadStore.getState().snapshot,
+      draftProjectRoot: null,
       workspacePanelParentKey: "session-1",
       activeWorkspacePanelKind: "child-session",
       activeChildSessionKey: "child-session-1",
@@ -169,6 +170,41 @@ describe("ChatSessionListManager draft and selection flow", () => {
         },
       },
     });
+    expect(useChatThreadStore.getState().snapshot.draftProjectRoot).toBe(
+      "/tmp/project-alpha",
+    );
+  });
+
+  it("drops file tabs from an abandoned draft while preserving real session tabs", () => {
+    useChatThreadStore.getState().setSnapshot({
+      workspaceFileTabs: [
+        {
+          key: "draft::preview::old.md",
+          parentSessionKey: null,
+          path: "old.md",
+          viewMode: "preview",
+        },
+        {
+          key: "session-1::preview::kept.md",
+          parentSessionKey: "session-1",
+          path: "kept.md",
+          viewMode: "preview",
+        },
+      ],
+    });
+    const manager = new ChatSessionListManager({
+      navigateTo: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0]);
+
+    manager.createSession({ projectRoot: "/tmp/new-project" });
+
+    expect(useChatThreadStore.getState().snapshot.workspaceFileTabs).toEqual([
+      expect.objectContaining({
+        key: "session-1::preview::kept.md",
+        parentSessionKey: "session-1",
+      }),
+    ]);
   });
 
   it("carries an initial prompt through the draft route state", () => {

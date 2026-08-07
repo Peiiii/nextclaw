@@ -95,6 +95,7 @@ export function ChatSessionWorkspacePanel({
   const workspaceTabs = useMemo<WorkspaceTabViewModel[]>(
     () =>
       buildWorkspaceTabsViewModel({
+        hasSession: Boolean(sessionKey),
         resolvedChildTabs,
         activeSideChatDraft,
         closedWorkspaceTabEntries,
@@ -114,8 +115,7 @@ export function ChatSessionWorkspacePanel({
             presenter.chatThreadManager.openChildSessions(sessionKey);
         },
         onSelectProjectFiles: () => {
-          if (sessionKey)
-            presenter.chatThreadManager.openProjectFiles(sessionKey);
+          presenter.chatThreadManager.openProjectFiles(sessionKey);
         },
         onSelectCronJobs: () => {
           if (sessionKey)

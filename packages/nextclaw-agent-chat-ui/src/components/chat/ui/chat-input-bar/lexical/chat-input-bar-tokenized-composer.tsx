@@ -12,6 +12,7 @@ import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
 import type {
   ChatComposerNode,
   ChatComposerSelection,
+  ChatComposerTokenKind,
   ChatInputSurfaceItem,
   ChatInputSurfaceTriggerChangeReason,
   ChatInputSurfaceTriggerSpec,
@@ -27,6 +28,11 @@ import { ChatComposerBindingsPlugin } from './chat-composer-plugins';
 import { ChatComposerTokenNode } from './chat-composer-token-node';
 
 export type ChatInputBarTokenizedComposerHandle = {
+  insertToken: (token: {
+    tokenKind: ChatComposerTokenKind;
+    tokenKey: string;
+    label: string;
+  }) => void;
   insertInputSurfaceItem: (
     item: ChatInputSurfaceItem,
     triggerSpecs?: readonly ChatInputSurfaceTriggerSpec[],

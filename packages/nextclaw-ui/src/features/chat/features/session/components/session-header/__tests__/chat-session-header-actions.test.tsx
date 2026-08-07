@@ -120,6 +120,23 @@ describe('ChatSessionHeaderActions', () => {
     expect(screen.queryByRole('button', { name: 'View session cron jobs' })).toBeNull();
   });
 
+  it('keeps only the workspace action before a draft becomes a session', () => {
+    render(
+      <ChatSessionHeaderActions
+        sessionKey={null}
+        canDeleteSession={false}
+        isDeletePending={false}
+        currentPath="/tmp/project-alpha"
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
+        onDeleteSession={mocks.onDeleteSession}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Open session workspace' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull();
+  });
+
   it('uses the shared compact action density for workspace and menu buttons', () => {
     render(
       <ChatSessionHeaderActions

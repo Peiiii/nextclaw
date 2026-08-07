@@ -47,4 +47,30 @@ describe("HostCapabilityManager", () => {
       reason: "popup-blocked"
     });
   });
+
+  it("reveals a path only through the explicit desktop bridge", async () => {
+    const revealPath = vi.fn(async () => ({ revealed: true as const }));
+    const manager = new HostCapabilityManager(() => ({
+      open: vi.fn(),
+      nextclawDesktop: {
+        host: { revealPath }
+      }
+    } as unknown as Window));
+
+    expect(manager.canRevealPath()).toBe(true);
+    await expect(manager.revealPath(" /tmp/demo.txt ")).resolves.toEqual({ revealed: true });
+    expect(revealPath).toHaveBeenCalledWith("/tmp/demo.txt");
+  });
+
+  it("does not invent a web fallback for revealing local paths", async () => {
+    const manager = new HostCapabilityManager(() => ({
+      open: vi.fn()
+    } as unknown as Window));
+
+    expect(manager.canRevealPath()).toBe(false);
+    await expect(manager.revealPath("/tmp/demo.txt")).resolves.toEqual({
+      revealed: false,
+      reason: "host-unavailable"
+    });
+  });
 });

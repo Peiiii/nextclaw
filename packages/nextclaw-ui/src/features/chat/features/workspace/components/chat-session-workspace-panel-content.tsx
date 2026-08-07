@@ -189,9 +189,11 @@ function WorkspaceChildSessions({
 
 function WorkspaceProjectFiles({
   projectRoot,
+  sessionKey,
   workingDir,
 }: {
   projectRoot: string | null;
+  sessionKey: string | null;
   workingDir: string | null;
 }) {
   const presenter = usePresenter();
@@ -212,8 +214,10 @@ function WorkspaceProjectFiles({
 
   return (
     <ChatSessionWorkspaceDirectoryBrowser
+      key={rootPath}
       browseQuery={browseQuery}
       onFileOpen={presenter.chatThreadManager.openFilePreview}
+      sessionKey={sessionKey}
       renderStatus={({ text, tone = "muted" }) => (
         <div
           className={cn(
@@ -279,7 +283,7 @@ function WorkspaceSideChatDraftHeader() {
   );
 }
 
-export function ChatSessionWorkspacePanelContent({
+function WorkspaceSelectedContent({
   activeSelection,
   childSessionTabs,
   filePreviewRefreshVersion,
@@ -296,15 +300,6 @@ export function ChatSessionWorkspacePanelContent({
         childSessionTabs={childSessionTabs}
         sessionCronJobs={sessionCronJobs}
         sessionKey={sessionKey}
-      />
-    );
-  }
-
-  if (activeSelection.kind === "project-files") {
-    return (
-      <WorkspaceProjectFiles
-        projectRoot={sessionProjectRoot}
-        workingDir={sessionWorkingDir}
       />
     );
   }
@@ -362,4 +357,43 @@ export function ChatSessionWorkspacePanelContent({
   }
 
   return <SessionCronJobContent jobs={sessionCronJobs} />;
+}
+
+export function ChatSessionWorkspacePanelContent(
+  {
+    activeSelection,
+    sessionKey,
+    sessionProjectRoot,
+    sessionWorkingDir,
+    ...selectedContentProps
+  }: ChatSessionWorkspacePanelContentProps,
+) {
+  const projectFilesActive = activeSelection.kind === "project-files";
+
+  return (
+    <>
+      <div
+        className={cn(
+          "min-h-0 flex-1 flex-col",
+          projectFilesActive ? "flex" : "hidden",
+        )}
+        aria-hidden={!projectFilesActive}
+      >
+        <WorkspaceProjectFiles
+          projectRoot={sessionProjectRoot}
+          sessionKey={sessionKey}
+          workingDir={sessionWorkingDir}
+        />
+      </div>
+      {projectFilesActive ? null : (
+        <WorkspaceSelectedContent
+          {...selectedContentProps}
+          activeSelection={activeSelection}
+          sessionKey={sessionKey}
+          sessionProjectRoot={sessionProjectRoot}
+          sessionWorkingDir={sessionWorkingDir}
+        />
+      )}
+    </>
+  );
 }

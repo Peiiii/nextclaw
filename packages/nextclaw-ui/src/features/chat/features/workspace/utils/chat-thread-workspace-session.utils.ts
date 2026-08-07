@@ -8,6 +8,7 @@ import {
   filterNavigationHistoryEntries,
   pushNavigationHistoryEntry,
 } from "@/shared/lib/navigation-history";
+import { reparentWorkspaceFileTab } from "@/features/chat/features/workspace/utils/chat-workspace-file-tab.utils";
 
 export function areWorkspaceNavigationEntriesEqual(
   current: ChatWorkspaceNavigationEntry,
@@ -204,6 +205,52 @@ export function upsertChildSessionTab(
     agentId: existingTab.agentId?.trim() ? existingTab.agentId : nextTab.agentId,
   };
   return nextTabs;
+}
+
+export function materializeDraftWorkspaceSnapshot(
+  snapshot: ChatThreadSnapshot,
+  sessionKey: string,
+): Partial<ChatThreadSnapshot> | null {
+  const normalizedSessionKey = sessionKey.trim();
+  if (!normalizedSessionKey) {
+    return null;
+  }
+  const materializedFileKeys = new Map<string, string>();
+  const workspaceFileTabs = snapshot.workspaceFileTabs.map((tab) => {
+    if (tab.parentSessionKey !== null) {
+      return tab;
+    }
+    const materializedTab = reparentWorkspaceFileTab(tab, normalizedSessionKey);
+    materializedFileKeys.set(tab.key, materializedTab.key);
+    return materializedTab;
+  });
+  const materializeNavigationEntry = (
+    entry: ChatWorkspaceNavigationEntry,
+  ): ChatWorkspaceNavigationEntry => {
+    if (entry.kind !== 'file') {
+      return entry;
+    }
+    const materializedKey = materializedFileKeys.get(entry.key);
+    return materializedKey ? { ...entry, key: materializedKey } : entry;
+  };
+  return {
+    draftProjectRoot: null,
+    workspaceFileTabs,
+    activeWorkspaceFileKey: snapshot.activeWorkspaceFileKey
+      ? materializedFileKeys.get(snapshot.activeWorkspaceFileKey) ??
+        snapshot.activeWorkspaceFileKey
+      : null,
+    closedWorkspaceTabEntries: snapshot.closedWorkspaceTabEntries.map(
+      materializeNavigationEntry,
+    ),
+    workspaceNavigationHistory: snapshot.workspaceNavigationHistory.map(
+      materializeNavigationEntry,
+    ),
+    workspacePanelParentKey:
+      snapshot.workspacePanelParentKey === null && snapshot.activeWorkspacePanelKind
+        ? normalizedSessionKey
+        : snapshot.workspacePanelParentKey,
+  };
 }
 
 export function materializeSideChatDraftSnapshot(params: {

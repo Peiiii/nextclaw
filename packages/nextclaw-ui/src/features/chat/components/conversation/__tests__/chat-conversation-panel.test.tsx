@@ -7,6 +7,7 @@ import { useChatSessionListStore } from "@/features/chat/stores/chat-session-lis
 const mocks = vi.hoisted(() => ({
   goToSession: vi.fn(),
   isAtChatRoot: vi.fn(() => true),
+  materializeDraftWorkspace: vi.fn(),
 }));
 const persistStorage = new Map<string, unknown>();
 
@@ -27,6 +28,9 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
     chatUiManager: {
       goToSession: mocks.goToSession,
       isAtChatRoot: mocks.isAtChatRoot,
+    },
+    chatThreadManager: {
+      materializeDraftWorkspace: mocks.materializeDraftWorkspace,
     },
   }),
 }));
@@ -72,6 +76,7 @@ describe("ChatConversationPanel", () => {
     persistStorage.clear();
     useChatSessionListStore.persist.setOptions({ storage: createPersistStorage() as never });
     mocks.goToSession.mockReset();
+    mocks.materializeDraftWorkspace.mockReset();
     mocks.isAtChatRoot.mockReset();
     mocks.isAtChatRoot.mockReturnValue(true);
     useChatSessionListStore.setState({
@@ -106,6 +111,9 @@ describe("ChatConversationPanel", () => {
     render(<ChatConversationPanel />);
     await user.click(screen.getByTestId("session-conversation-area"));
 
+    expect(mocks.materializeDraftWorkspace).toHaveBeenCalledWith(
+      "materialized-session",
+    );
     expect(mocks.goToSession).toHaveBeenCalledWith("materialized-session", {
       replace: true,
     });
@@ -118,6 +126,7 @@ describe("ChatConversationPanel", () => {
     render(<ChatConversationPanel />);
     await user.click(screen.getByTestId("session-conversation-area"));
 
+    expect(mocks.materializeDraftWorkspace).not.toHaveBeenCalled();
     expect(mocks.goToSession).not.toHaveBeenCalled();
   });
 });

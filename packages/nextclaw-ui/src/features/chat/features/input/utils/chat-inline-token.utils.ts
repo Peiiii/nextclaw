@@ -215,7 +215,15 @@ export function resolveInlineTokensForText(
   text: string,
   tokens: readonly ChatInlineTokenSource[]
 ): ChatInlineTokenSource[] {
-  return dedupeInlineTokens([...tokens, ...buildInlineTokensFromTextProtocol(text)]);
+  const inferredTokens = buildInlineTokensFromTextProtocol(text).filter((inferredToken) => {
+    const inferredIndex = text.indexOf(inferredToken.rawText);
+    return !tokens.some((explicitToken) => (
+      explicitToken.kind === inferredToken.kind &&
+      inferredToken.rawText.startsWith(explicitToken.rawText) &&
+      text.indexOf(explicitToken.rawText) === inferredIndex
+    ));
+  });
+  return dedupeInlineTokens([...tokens, ...inferredTokens]);
 }
 
 export function readInlineTokensFromMetadata(

@@ -23,7 +23,7 @@ type ChatWelcomeProps = {
   sessionTypeOptions: readonly SessionTypeOption[];
   onSelectAgent: (agentId: string) => void;
   onSelectPrompt: (prompt: string) => void;
-  onSelectProjectRoot?: (projectRoot: string) => Promise<void> | void;
+  onSelectProjectRoot?: (projectRoot: string | null) => Promise<void> | void;
   onSelectSessionType: (sessionType: string) => void;
 };
 
@@ -46,7 +46,7 @@ export function ChatWelcome({
   const [isProjectSaving, setIsProjectSaving] = useState(false);
   const resolvedProjectRoot = selectedProjectRoot ?? defaultProjectRoot ?? null;
 
-  const saveProjectRoot = async (projectRoot: string) => {
+  const saveProjectRoot = async (projectRoot: string | null) => {
     if (!onSelectProjectRoot) {
       return;
     }

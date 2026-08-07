@@ -27,6 +27,7 @@ import {
   closeWorkspaceTabSnapshot,
   createWorkspaceSelectionPatch,
   createSideChatDraft,
+  materializeDraftWorkspaceSnapshot,
   materializeSideChatDraftSnapshot,
   upsertChildSessionTab,
 } from '@/features/chat/features/workspace/utils/chat-thread-workspace-session.utils';
@@ -81,7 +82,7 @@ export class ChatThreadManager {
       sessionTypeLabel: null,
       agentId: null,
       sessionDisplayName: undefined,
-      sessionProjectRoot: null,
+      draftProjectRoot: null,
       sessionProjectName: null,
       canDeleteSession: false,
       parentSessionKey: null,
@@ -177,11 +178,11 @@ export class ChatThreadManager {
   };
 
   private openWorkspacePage = (
-    rawParentSessionKey: string,
+    rawParentSessionKey: string | null,
     kind: 'overview' | 'child-sessions' | 'project-files' | 'cron',
   ) => {
-    const parentSessionKey = rawParentSessionKey.trim();
-    if (!parentSessionKey) {
+    const parentSessionKey = rawParentSessionKey?.trim() || null;
+    if (!parentSessionKey && kind !== 'project-files') {
       return;
     }
     this.setWorkspaceSelection({
@@ -199,11 +200,8 @@ export class ChatThreadManager {
     this.openWorkspacePage(sessionKey, 'overview');
   };
 
-  toggleWorkspacePanel = (sessionKey: string) => {
-    const normalizedSessionKey = sessionKey.trim();
-    if (!normalizedSessionKey) {
-      return;
-    }
+  toggleWorkspacePanel = (sessionKey: string | null) => {
+    const normalizedSessionKey = sessionKey?.trim() || null;
     const { snapshot } = useChatThreadStore.getState();
     if (
       snapshot.workspacePanelParentKey === normalizedSessionKey &&
@@ -212,7 +210,11 @@ export class ChatThreadManager {
       this.closeWorkspacePanel();
       return;
     }
-    this.openWorkspaceOverview(normalizedSessionKey);
+    if (normalizedSessionKey) {
+      this.openWorkspaceOverview(normalizedSessionKey);
+      return;
+    }
+    this.openProjectFiles(null);
   };
 
   setWorkspacePanelWidth = (width: number) => {
@@ -225,8 +227,19 @@ export class ChatThreadManager {
     this.openWorkspacePage(sessionKey, 'child-sessions');
   };
 
-  openProjectFiles = (sessionKey: string) => {
+  openProjectFiles = (sessionKey: string | null) => {
     this.openWorkspacePage(sessionKey, 'project-files');
+  };
+
+  materializeDraftWorkspace = (sessionKey: string) => {
+    const patch = materializeDraftWorkspaceSnapshot(
+      useChatThreadStore.getState().snapshot,
+      sessionKey,
+    );
+    if (!patch) {
+      return;
+    }
+    useChatThreadStore.getState().setSnapshot(patch);
   };
 
   openChildSessionPanel = (params: {

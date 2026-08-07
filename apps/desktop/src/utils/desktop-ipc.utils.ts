@@ -10,6 +10,7 @@ export const DESKTOP_WINDOW_CONTROL_CHANNEL = "nextclaw-desktop:window:control";
 export const DESKTOP_WINDOW_STATE_GET_CHANNEL = "nextclaw-desktop:window:get-state";
 export const DESKTOP_WINDOW_STATE_CHANGED_CHANNEL = "nextclaw-desktop:window:state-changed";
 export const DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL = "nextclaw-desktop:host:open-external-url";
+export const DESKTOP_HOST_REVEAL_PATH_CHANNEL = "nextclaw-desktop:host:reveal-path";
 export const DESKTOP_PRESENCE_GET_STATE_CHANNEL = "nextclaw-desktop:presence:get-state";
 export const DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL = "nextclaw-desktop:presence:update-preferences";
 export const DESKTOP_LOCALE_GET_CHANNEL = "nextclaw-desktop:locale:get";

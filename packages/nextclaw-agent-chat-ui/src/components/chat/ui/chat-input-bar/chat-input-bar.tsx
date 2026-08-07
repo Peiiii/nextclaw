@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import type {
   ChatInputBarProps,
   ChatInputSurfaceConfig,
+  ChatComposerTokenKind,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ChatInputSurfaceHost } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
@@ -98,6 +99,11 @@ function ChatInputBarSendError({ sendError, sendErrorDetailsLabel }: Pick<ChatIn
 }
 
 export type ChatInputBarHandle = {
+  insertToken: (token: {
+    tokenKind: ChatComposerTokenKind;
+    tokenKey: string;
+    label: string;
+  }) => void;
   insertFileToken: (tokenKey: string, label: string, previewUrl?: string) => void;
   insertFileTokens: (tokens: Array<{ tokenKey: string; label: string; previewUrl?: string }>) => void;
   focusComposer: () => void;
@@ -142,6 +148,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   }, [toolbarProps]);
 
   useImperativeHandle(ref, () => ({
+    insertToken: (token) => composerRef.current?.insertToken(token),
     insertFileToken: (tokenKey, label, previewUrl) => composerRef.current?.insertFileToken(tokenKey, label, previewUrl),
     insertFileTokens: (tokens) => composerRef.current?.insertFileTokens(tokens),
     focusComposer: () => composerRef.current?.focusComposer(),

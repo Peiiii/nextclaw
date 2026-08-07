@@ -21,12 +21,7 @@ import {
   useChatInputSurfaceState,
 } from '@/features/chat/features/input/hooks/use-chat-input-surface-state';
 import { useChatModelFavorites } from '@/features/chat/features/input/hooks/use-chat-model-favorites';
-import {
-  deriveChatComposerDraft,
-  deriveSelectedSkillsFromComposer,
-  pruneComposerAttachments,
-  syncComposerSkills,
-} from '@/features/chat/features/input/utils/chat-composer-state.utils';
+import { syncComposerSkills } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import {
   buildModelStateHint,
   type ChatSkillRecord,
@@ -49,6 +44,8 @@ import {
 } from '@/features/chat/managers/chat-recent-skills.manager';
 
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
+import { useChatComposerFileReferenceIntent } from '@/features/chat/features/conversation/hooks/use-chat-composer-file-reference-intent';
+import { useSessionConversationComposerNodes } from '@/features/chat/features/conversation/hooks/use-session-conversation-composer-nodes';
 import { useSessionConversationSlashCommands } from '@/features/chat/features/conversation/hooks/use-session-conversation-slash-commands';
 import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
@@ -287,16 +284,14 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     }
     void updateNcpSession(inputQuery.selectedSessionKey, patch).catch(() => undefined);
   }, [inputQuery.selectedSession, inputQuery.selectedSessionKey]);
-  const handleNodesChange = useCallback((nodes: SessionConversationInputSnapshot['nodes']) => {
-    const nextNodes = [...nodes];
-    inputActions.update((current) => ({
-      nodes: nextNodes,
-      attachments: pruneComposerAttachments(nextNodes, current.attachments),
-      text: deriveChatComposerDraft(nextNodes),
-      selectedSkills: deriveSelectedSkillsFromComposer(nextNodes),
-      sendError: null,
-    }));
-  }, [inputActions]);
+  const handleNodesChange = useSessionConversationComposerNodes(inputActions);
+
+  useChatComposerFileReferenceIntent({
+    inputBarRef,
+    intentManager: presenter.chatComposerIntentManager,
+    selectedSessionKey: inputQuery.selectedSessionKey,
+  });
+
   const handleModelChange = useCallback((value: string) => {
     const nextThinkingLevel = resolveThinkingForConversationModel(
       modelRecords.find((option) => option.value === value) ??

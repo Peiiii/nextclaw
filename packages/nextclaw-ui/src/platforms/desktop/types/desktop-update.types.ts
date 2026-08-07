@@ -52,8 +52,13 @@ export type DesktopOpenExternalUrlResult =
   | { opened: true }
   | { opened: false; reason: 'unsupported-url' | 'popup-blocked' | 'bridge-failed' };
 
+export type DesktopRevealPathResult =
+  | { revealed: true }
+  | { revealed: false; reason: 'unsupported-path' | 'bridge-failed' };
+
 export type DesktopHostBridge = {
   openExternalUrl: (url: string) => Promise<DesktopOpenExternalUrlResult>;
+  revealPath?: (path: string) => Promise<DesktopRevealPathResult>;
 };
 
 export type NextClawDesktopBridge = {

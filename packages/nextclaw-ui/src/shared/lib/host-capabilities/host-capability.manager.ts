@@ -7,10 +7,18 @@ export type OpenExternalUrlResult =
   | { opened: true }
   | { opened: false; reason: OpenExternalUrlFailureReason };
 
+export type RevealPathResult =
+  | { revealed: true }
+  | {
+      revealed: false;
+      reason: "unsupported-path" | "host-unavailable" | "bridge-failed";
+    };
+
 type HostWindow = Pick<Window, "open"> & {
   nextclawDesktop?: {
     host?: {
       openExternalUrl?: (url: string) => Promise<OpenExternalUrlResult>;
+      revealPath?: (path: string) => Promise<RevealPathResult>;
     };
   };
 };
@@ -43,6 +51,26 @@ export class HostCapabilityManager {
       return { opened: true };
     } catch {
       return { opened: false, reason: "bridge-failed" };
+    }
+  };
+
+  canRevealPath = (): boolean => {
+    return Boolean(this.getWindow()?.nextclawDesktop?.host?.revealPath);
+  };
+
+  revealPath = async (rawPath: string): Promise<RevealPathResult> => {
+    const path = rawPath.trim();
+    if (!path) {
+      return { revealed: false, reason: "unsupported-path" };
+    }
+    const revealPath = this.getWindow()?.nextclawDesktop?.host?.revealPath;
+    if (!revealPath) {
+      return { revealed: false, reason: "host-unavailable" };
+    }
+    try {
+      return await revealPath(path);
+    } catch {
+      return { revealed: false, reason: "bridge-failed" };
     }
   };
 }

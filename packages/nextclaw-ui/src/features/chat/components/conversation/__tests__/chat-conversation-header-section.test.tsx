@@ -421,6 +421,22 @@ describe("ChatConversationHeaderSection", () => {
     expect(mocks.selectSession).toHaveBeenCalledWith("session:ncp-2");
   });
 
+  it("opens project files from a new-session header before materialization", async () => {
+    const user = userEvent.setup();
+    useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: null });
+    useChatThreadStore.getState().setSnapshot({
+      sessionKey: null,
+      draftProjectRoot: "/workspace/draft",
+      workspacePanelParentKey: null,
+      activeWorkspacePanelKind: null,
+    });
+
+    renderHeaderSection();
+    await user.click(screen.getByRole("button", { name: "Open session workspace" }));
+
+    expect(mocks.toggleWorkspacePanel).toHaveBeenCalledWith(null);
+  });
+
   it("filters the collapsed title switcher with a local search query", async () => {
     const user = userEvent.setup();
     viewportLayoutManager.setSidebarCollapsed(true);

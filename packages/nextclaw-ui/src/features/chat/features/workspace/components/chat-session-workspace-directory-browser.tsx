@@ -1,15 +1,31 @@
 import { useState, type ReactNode } from "react";
-import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
-import { ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
+import { copyText, type ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
+import {
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Folder,
+  FolderOpen,
+  LocateFixed,
+  MessageSquarePlus,
+} from "lucide-react";
+import { toast } from "sonner";
+import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { FileTypeIcon } from "@/shared/components/file-type-icon";
+import {
+  ContextMenu,
+  type ContextMenuGroup,
+} from "@/shared/components/ui/context-menu/context-menu";
 import { useServerPathBrowse } from "@/shared/hooks/use-server-path-browse";
 import type { ServerPathEntryView } from "@/shared/lib/api";
+import { hostCapabilityManager } from "@/shared/lib/host-capabilities";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 type ChatSessionWorkspaceDirectoryBrowserProps = {
   browseQuery: ReturnType<typeof useServerPathBrowse>;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+  sessionKey?: string | null;
   renderStatus: (params: {
     text: string;
     tone?: "muted" | "error";
@@ -27,6 +43,13 @@ function buildDirectoryEntryLabel(entry: ServerPathEntryView): string {
 
 function readPathName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
+}
+
+async function copyWorkspacePath(path: string) {
+  const copied = await copyText(path);
+  toast[copied ? "success" : "error"](
+    t(copied ? "chatCodeCopied" : "chatWorkspaceCopyPathFailed"),
+  );
 }
 
 function readBrowseError(
@@ -62,11 +85,17 @@ function WorkspaceDirectoryEntryIcon({
 function WorkspaceDirectoryTreeChildren({
   browseQuery,
   level,
+  onAddFileToChat,
   onFileOpen,
+  onRevealPath,
+  parentRelativePath,
 }: {
   browseQuery: ReturnType<typeof useServerPathBrowse>;
   level: number;
+  onAddFileToChat?: (entry: ServerPathEntryView, relativePath: string) => void;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+  onRevealPath?: (path: string) => void;
+  parentRelativePath: string | null;
 }) {
   const entries = browseQuery.data?.entries ?? [];
   const errorMessage = readBrowseError(browseQuery);
@@ -108,7 +137,14 @@ function WorkspaceDirectoryTreeChildren({
       key={entry.path}
       entry={entry}
       level={level + 1}
+      onAddFileToChat={onAddFileToChat}
       onFileOpen={onFileOpen}
+      onRevealPath={onRevealPath}
+      relativePath={
+        parentRelativePath
+          ? `${parentRelativePath}/${entry.name}`
+          : null
+      }
     />
   ));
 }
@@ -116,11 +152,17 @@ function WorkspaceDirectoryTreeChildren({
 function WorkspaceDirectoryTreeEntry({
   entry,
   level,
+  onAddFileToChat,
   onFileOpen,
+  onRevealPath,
+  relativePath,
 }: {
   entry: ServerPathEntryView;
   level: number;
+  onAddFileToChat?: (entry: ServerPathEntryView, relativePath: string) => void;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+  onRevealPath?: (path: string) => void;
+  relativePath: string | null;
 }) {
   const isDirectory = entry.kind === "directory";
   const [isExpanded, setIsExpanded] = useState(false);
@@ -129,6 +171,49 @@ function WorkspaceDirectoryTreeEntry({
     includeFiles: true,
     enabled: isDirectory && isExpanded,
   });
+  const contextMenuGroups: ContextMenuGroup[] = [
+    {
+      key: "primary",
+      items: [
+        ...(entry.kind === "file" && relativePath && onAddFileToChat
+          ? [{
+              key: "add-to-chat",
+              label: t("chatWorkspaceAddToChat"),
+              icon: <MessageSquarePlus className="h-4 w-4" />,
+              restoreFocus: false,
+              onSelect: () => onAddFileToChat(entry, relativePath),
+            }]
+          : []),
+        ...(onRevealPath
+          ? [{
+              key: "reveal",
+              label: t("chatWorkspaceRevealInFileManager"),
+              icon: <LocateFixed className="h-4 w-4" />,
+              onSelect: () => onRevealPath(entry.path),
+            }]
+          : []),
+      ],
+    },
+    {
+      key: "copy",
+      items: [
+        {
+          key: "copy-path",
+          label: t("chatWorkspaceCopyPath"),
+          icon: <Copy className="h-4 w-4" />,
+          onSelect: () => void copyWorkspacePath(entry.path),
+        },
+        ...(relativePath
+          ? [{
+              key: "copy-relative-path",
+              label: t("chatWorkspaceCopyRelativePath"),
+              icon: <Copy className="h-4 w-4" />,
+              onSelect: () => void copyWorkspacePath(relativePath),
+            }]
+          : []),
+      ],
+    },
+  ];
   const activateEntry = () => {
     if (isDirectory) {
       setIsExpanded((value) => !value);
@@ -147,38 +232,46 @@ function WorkspaceDirectoryTreeEntry({
       aria-expanded={isDirectory ? isExpanded : undefined}
       aria-label={buildDirectoryEntryLabel(entry)}
     >
-      <button
-        type="button"
-        className={cn(
-          "flex h-7 w-full min-w-0 items-center gap-1.5 pr-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border",
-          entry.hidden ? "opacity-65" : null,
-        )}
-        style={{ paddingLeft: `${8 + level * 14}px` }}
-        onClick={activateEntry}
+      <ContextMenu
+        groups={contextMenuGroups}
+        label={t("chatWorkspaceFileContextMenu")}
       >
-        <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-gray-400">
-          {isDirectory ? (
-            isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5" />
-            )
-          ) : null}
-        </span>
-        <WorkspaceDirectoryEntryIcon
-          fileName={entry.name}
-          isDirectory={isDirectory}
-          isExpanded={isExpanded}
-        />
-        <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-      </button>
+        <button
+          type="button"
+          className={cn(
+            "flex h-7 w-full min-w-0 items-center gap-1.5 pr-2 text-left text-[13px] text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-border",
+            entry.hidden ? "opacity-65" : null,
+          )}
+          style={{ paddingLeft: `${8 + level * 14}px` }}
+          onClick={activateEntry}
+        >
+          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-gray-400">
+            {isDirectory ? (
+              isExpanded ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )
+            ) : null}
+          </span>
+          <WorkspaceDirectoryEntryIcon
+            fileName={entry.name}
+            isDirectory={isDirectory}
+            isExpanded={isExpanded}
+          />
+          <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+        </button>
+      </ContextMenu>
 
       {isDirectory && isExpanded ? (
         <div role="group">
           <WorkspaceDirectoryTreeChildren
             browseQuery={browseQuery}
             level={level}
+            onAddFileToChat={onAddFileToChat}
             onFileOpen={onFileOpen}
+            onRevealPath={onRevealPath}
+            parentRelativePath={relativePath}
           />
         </div>
       ) : null}
@@ -189,11 +282,31 @@ function WorkspaceDirectoryTreeEntry({
 export function ChatSessionWorkspaceDirectoryBrowser({
   browseQuery,
   onFileOpen,
+  sessionKey,
   renderStatus,
   showRoot = false,
 }: ChatSessionWorkspaceDirectoryBrowserProps) {
+  const presenter = usePresenter();
   const entries = browseQuery.data?.entries ?? [];
   const errorMessage = readBrowseError(browseQuery);
+  const onRevealPath = hostCapabilityManager.canRevealPath()
+    ? (path: string) => {
+        void hostCapabilityManager.revealPath(path).then((result) => {
+          if (!result.revealed) {
+            toast.error(t("chatWorkspaceRevealPathFailed"));
+          }
+        });
+      }
+    : undefined;
+  const onAddFileToChat = sessionKey !== undefined
+    ? (entry: ServerPathEntryView, relativePath: string) => {
+        presenter.chatComposerIntentManager.requestFileReference({
+          targetSessionKey: sessionKey,
+          tokenKey: relativePath,
+          label: entry.name,
+        });
+      }
+    : undefined;
 
   if (browseQuery.isLoading && !browseQuery.data) {
     return renderStatus({ text: t("chatWorkspaceLoadingDirectory") });
@@ -232,7 +345,10 @@ export function ChatSessionWorkspaceDirectoryBrowser({
                 key={entry.path}
                 entry={entry}
                 level={1}
+                onAddFileToChat={onAddFileToChat}
                 onFileOpen={onFileOpen}
+                onRevealPath={onRevealPath}
+                relativePath={onAddFileToChat ? entry.name : null}
               />
             ))}
           </div>
@@ -243,7 +359,10 @@ export function ChatSessionWorkspaceDirectoryBrowser({
             key={entry.path}
             entry={entry}
             level={0}
+            onAddFileToChat={onAddFileToChat}
             onFileOpen={onFileOpen}
+            onRevealPath={onRevealPath}
+            relativePath={onAddFileToChat ? entry.name : null}
           />
         ))
       )}

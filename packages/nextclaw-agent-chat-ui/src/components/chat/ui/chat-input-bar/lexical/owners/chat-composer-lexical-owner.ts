@@ -11,6 +11,7 @@ import {
 import type {
   ChatComposerNode,
   ChatComposerSelection,
+  ChatComposerTokenKind,
   ChatInputBarActionsProps,
   ChatInputSurfaceItem,
   ChatInputSurfaceTriggerChangeReason,
@@ -25,6 +26,7 @@ import {
   CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
   type ChatComposerEditorSnapshot,
   getChatComposerNodesSignature,
+  insertChatComposerTokenIntoChatComposer,
   insertFileTokenIntoChatComposer,
   insertInputSurfaceItemIntoChatComposer,
   readChatComposerSnapshotFromEditorState,
@@ -290,6 +292,23 @@ export class ChatComposerLexicalOwner {
     };
 
     return {
+      insertToken: (token: {
+        tokenKind: ChatComposerTokenKind;
+        tokenKey: string;
+        label: string;
+      }): void => {
+        this.publishRuntimeSnapshot(
+          (snapshot) => insertChatComposerTokenIntoChatComposer({
+            label: token.label,
+            nodes: snapshot.nodes,
+            selection: snapshot.selection,
+            tokenKey: token.tokenKey,
+            tokenKind: token.tokenKind,
+            triggerSpecs: [],
+          }),
+          { focusAfterSync: true },
+        );
+      },
       insertInputSurfaceItem,
       insertSlashItem: (item: ChatSlashItem): void => {
         insertInputSurfaceItem(item);

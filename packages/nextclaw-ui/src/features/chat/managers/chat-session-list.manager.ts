@@ -36,10 +36,14 @@ function toggleListValue(values: string[], value: string): string[] {
 export class ChatSessionListManager {
   constructor(private uiManager: ChatUiManager) {}
 
-  private syncDraftThreadState = () => {
+  private syncDraftThreadState = (draftProjectRoot: string | null) => {
+    const workspaceFileTabs = useChatThreadStore
+      .getState()
+      .snapshot.workspaceFileTabs.filter((tab) => tab.parentSessionKey !== null);
     useChatThreadStore.getState().setSnapshot({
       sessionKey: null,
       sessionDisplayName: undefined,
+      draftProjectRoot,
       canDeleteSession: false,
       parentSessionKey: null,
       parentSessionLabel: null,
@@ -47,7 +51,9 @@ export class ChatSessionListManager {
       activeWorkspacePanelKind: null,
       childSessionTabs: [],
       activeChildSessionKey: null,
+      activeSideChatDraft: null,
       activeWorkspaceFileKey: null,
+      workspaceFileTabs,
       closedWorkspaceTabEntries: [],
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
@@ -112,6 +118,9 @@ export class ChatSessionListManager {
 
   syncRouteSessionSelection = (routeSessionKey: string | null) => {
     this.setSelectedSessionKey(routeSessionKey);
+    if (routeSessionKey) {
+      useChatThreadStore.getState().setSnapshot({ draftProjectRoot: null });
+    }
   };
 
   setListMode = (next: SetStateAction<"time-first" | "project-first">) => {
@@ -190,7 +199,7 @@ export class ChatSessionListManager {
     );
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
     const normalizedPrompt = prompt?.trim() || null;
-    this.syncDraftThreadState();
+    this.syncDraftThreadState(normalizedProjectRoot);
     this.uiManager.navigateTo(CHAT_DRAFT_SESSION_PATH, {
       replace: this.uiManager.isAtChatRoot(),
       state: {

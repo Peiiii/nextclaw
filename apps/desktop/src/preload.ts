@@ -10,6 +10,7 @@ import {
   DESKTOP_RUNTIME_RESTART_APP_CHANNEL,
   DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL,
   DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL,
+  DESKTOP_HOST_REVEAL_PATH_CHANNEL,
   DESKTOP_WINDOW_CONTROL_CHANNEL,
   DESKTOP_WINDOW_STATE_CHANGED_CHANNEL,
   DESKTOP_WINDOW_STATE_GET_CHANNEL,
@@ -45,6 +46,9 @@ type DesktopWindowStateSnapshot = {
 type DesktopOpenExternalUrlResult =
   | { opened: true }
   | { opened: false; reason: "unsupported-url" | "popup-blocked" | "bridge-failed" };
+type DesktopRevealPathResult =
+  | { revealed: true }
+  | { revealed: false; reason: "unsupported-path" | "bridge-failed" };
 
 contextBridge.exposeInMainWorld("nextclawDesktop", {
   platform: process.platform,
@@ -74,7 +78,9 @@ contextBridge.exposeInMainWorld("nextclawDesktop", {
   },
   host: {
     openExternalUrl: async (url: string): Promise<DesktopOpenExternalUrlResult> =>
-      await ipcRenderer.invoke(DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL, url)
+      await ipcRenderer.invoke(DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL, url),
+    revealPath: async (path: string): Promise<DesktopRevealPathResult> =>
+      await ipcRenderer.invoke(DESKTOP_HOST_REVEAL_PATH_CHANNEL, path)
   },
   onWindowStateChanged: (listener: (snapshot: DesktopWindowStateSnapshot) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, snapshot: DesktopWindowStateSnapshot) => {

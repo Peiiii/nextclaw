@@ -5,6 +5,7 @@ import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import type { ThinkingLevel } from '@/shared/lib/api';
 import { DEFAULT_SESSION_TYPE } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { createChatComposerNodesFromDraft } from '@/features/chat/features/input/utils/chat-composer-state.utils';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import {
   useSessionConversationPreferenceActions,
   type SessionConversationPreferenceSyncParams,
@@ -34,9 +35,14 @@ export type SessionConversationInputSnapshot = SessionConversationComposerState 
   readonly sendError: string | null;
 };
 
+type SessionConversationOwnedInputSnapshot = Omit<
+  SessionConversationInputSnapshot,
+  'pendingProjectRoot'
+>;
+
 export type SessionConversationInputPatch =
-  Partial<SessionConversationInputSnapshot> |
-  ((snapshot: SessionConversationInputSnapshot) => Partial<SessionConversationInputSnapshot>);
+  Partial<SessionConversationOwnedInputSnapshot> |
+  ((snapshot: SessionConversationInputSnapshot) => Partial<SessionConversationOwnedInputSnapshot>);
 
 export type SessionConversationInputActions = {
   readonly update: (patch: SessionConversationInputPatch) => void;
@@ -73,7 +79,7 @@ const EMPTY_COMPOSER_STATE: SessionConversationComposerState = {
 
 const createInitialInputSnapshot = (
   initialPrompt?: string | null,
-): SessionConversationInputSnapshot => {
+): SessionConversationOwnedInputSnapshot => {
   const prompt = initialPrompt?.trim() ?? '';
   const composer = prompt
     ? {
@@ -89,7 +95,6 @@ const createInitialInputSnapshot = (
     selectedThinkingLevel: null,
     pendingSessionType: DEFAULT_SESSION_TYPE,
     selectedSessionType: DEFAULT_SESSION_TYPE,
-    pendingProjectRoot: null,
     composerFocusRequestId: prompt ? 1 : 0,
     sendError: null,
   };
@@ -127,14 +132,50 @@ const mergeAttachments = (
   return merged;
 };
 
+function useSessionConversationAttachmentActions(params: {
+  attachments: readonly NcpDraftAttachment[];
+  update: (patch: SessionConversationInputPatch) => void;
+}) {
+  const { attachments: currentAttachments, update } = params;
+  const setAttachments = useCallback((attachments: readonly NcpDraftAttachment[]) => {
+    update({ attachments });
+  }, [update]);
+  const addAttachments = useCallback((attachments: readonly NcpDraftAttachment[]) => {
+    if (attachments.length === 0) {
+      return [];
+    }
+    const existingKeys = new Set(currentAttachments.map(buildAttachmentKey));
+    const nextAttachments = mergeAttachments(currentAttachments, attachments);
+    const insertedAttachments = nextAttachments.filter(
+      (attachment) => !existingKeys.has(buildAttachmentKey(attachment)),
+    );
+    if (insertedAttachments.length > 0) {
+      update({ attachments: nextAttachments });
+    }
+    return insertedAttachments;
+  }, [currentAttachments, update]);
+  const removeAttachment = useCallback((attachmentId: string) => {
+    update((current) => ({
+      attachments: current.attachments.filter((attachment) => attachment.id !== attachmentId),
+    }));
+  }, [update]);
+  return { addAttachments, removeAttachment, setAttachments };
+}
+
 export const useSessionConversationInputState = (initialPrompt?: string | null) => {
-  const [snapshot, setSnapshot] = useState<SessionConversationInputSnapshot>(
+  const pendingProjectRoot = useChatThreadStore((state) => state.snapshot.draftProjectRoot);
+  const [snapshot, setSnapshot] = useState<SessionConversationOwnedInputSnapshot>(
     () => createInitialInputSnapshot(initialPrompt),
   );
 
   const update = useCallback((patch: SessionConversationInputPatch) => {
     setSnapshot((current) => {
-      const resolvedPatch = typeof patch === 'function' ? patch(current) : patch;
+      const resolvedPatch = typeof patch === 'function'
+        ? patch({
+            ...current,
+            pendingProjectRoot: useChatThreadStore.getState().snapshot.draftProjectRoot,
+          })
+        : patch;
       return {
         ...current,
         ...resolvedPatch,
@@ -191,30 +232,14 @@ export const useSessionConversationInputState = (initialPrompt?: string | null) 
     update({ composerFocusRequestId: 0 });
   }, [update]);
 
-  const setAttachments = useCallback((attachments: readonly NcpDraftAttachment[]) => {
-    update({ attachments });
-  }, [update]);
-
-  const addAttachments = useCallback((attachments: readonly NcpDraftAttachment[]) => {
-    if (attachments.length === 0) {
-      return [];
-    }
-    const existingKeys = new Set(snapshot.attachments.map(buildAttachmentKey));
-    const nextAttachments = mergeAttachments(snapshot.attachments, attachments);
-    const insertedAttachments = nextAttachments.filter(
-      (attachment) => !existingKeys.has(buildAttachmentKey(attachment)),
-    );
-    if (insertedAttachments.length > 0) {
-      update({ attachments: nextAttachments });
-    }
-    return insertedAttachments;
-  }, [snapshot.attachments, update]);
-
-  const removeAttachment = useCallback((attachmentId: string) => {
-    update((current) => ({
-      attachments: current.attachments.filter((attachment) => attachment.id !== attachmentId),
-    }));
-  }, [update]);
+  const {
+    addAttachments,
+    removeAttachment,
+    setAttachments,
+  } = useSessionConversationAttachmentActions({
+    attachments: snapshot.attachments,
+    update,
+  });
 
   const preferenceActions = useSessionConversationPreferenceActions({
     selectedModel: snapshot.selectedModel,
@@ -236,8 +261,8 @@ export const useSessionConversationInputState = (initialPrompt?: string | null) 
   }, [update]);
 
   const setPendingProjectRoot = useCallback((projectRoot: string | null) => {
-    update({ pendingProjectRoot: projectRoot });
-  }, [update]);
+    useChatThreadStore.getState().setSnapshot({ draftProjectRoot: projectRoot });
+  }, []);
 
   const setSelectedSkills = useCallback((
     selectedSkills: readonly string[],
@@ -289,7 +314,10 @@ export const useSessionConversationInputState = (initialPrompt?: string | null) 
   ]);
 
   return {
-    inputSnapshot: snapshot,
+    inputSnapshot: {
+      ...snapshot,
+      pendingProjectRoot,
+    },
     inputActions: actions,
   };
 };

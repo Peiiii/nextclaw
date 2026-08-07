@@ -154,6 +154,7 @@ export function resolveWorkspaceSelection(params: {
 }
 
 type WorkspaceTabsViewModelParams = {
+  hasSession: boolean;
   resolvedChildTabs: ResolvedChildSessionTab[];
   activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
   closedWorkspaceTabEntries: readonly ChatWorkspaceNavigationEntry[];
@@ -172,6 +173,7 @@ type WorkspaceTabsViewModelParams = {
 
 function buildWorkspacePageTabs({
   activeSelection,
+  hasSession,
   onSelectChildSessions,
   onSelectCronJobs,
   onSelectOverview,
@@ -179,12 +181,13 @@ function buildWorkspacePageTabs({
 }: Pick<
   WorkspaceTabsViewModelParams,
   | "activeSelection"
+  | "hasSession"
   | "onSelectChildSessions"
   | "onSelectCronJobs"
   | "onSelectOverview"
   | "onSelectProjectFiles"
 >): WorkspaceTabViewModel[] {
-  return [
+  const pageTabs: WorkspaceTabViewModel[] = [
     {
       key: "overview",
       kind: "overview",
@@ -218,12 +221,16 @@ function buildWorkspacePageTabs({
       onSelect: onSelectProjectFiles,
     },
   ];
+  return hasSession
+    ? pageTabs
+    : pageTabs.filter((tab) => tab.kind === "project-files");
 }
 
 export function buildWorkspaceTabsViewModel(
   params: WorkspaceTabsViewModelParams,
 ): WorkspaceTabViewModel[] {
   const {
+    hasSession,
     activeSideChatDraft,
     closedWorkspaceTabEntries,
     resolvedChildTabs,
@@ -242,6 +249,7 @@ export function buildWorkspaceTabsViewModel(
 
   const workspacePages = buildWorkspacePageTabs({
     activeSelection,
+    hasSession,
     onSelectChildSessions,
     onSelectCronJobs,
     onSelectOverview,

@@ -23,6 +23,7 @@ export function ChatConversationPanel({
     if (!presenter.chatUiManager.isAtChatRoot()) {
       return;
     }
+    presenter.chatThreadManager.materializeDraftWorkspace(materializedSessionKey);
     presenter.chatUiManager.goToSession(materializedSessionKey, { replace: true });
   }, [presenter]);
 

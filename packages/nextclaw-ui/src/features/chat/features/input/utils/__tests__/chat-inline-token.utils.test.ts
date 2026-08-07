@@ -226,6 +226,29 @@ describe('chat inline token workspace references', () => {
     ]);
   });
 
+  it('prefers persisted token metadata over a greedy protocol fallback', () => {
+    expect(
+      resolveInlineTokensForText(
+        '@file:AGENTS.md这里面有啥',
+        [
+          {
+            kind: 'workspace_file',
+            key: 'AGENTS.md',
+            label: 'AGENTS.md',
+            rawText: '@file:AGENTS.md',
+          },
+        ],
+      ),
+    ).toEqual([
+      {
+        kind: 'workspace_file',
+        key: 'AGENTS.md',
+        label: 'AGENTS.md',
+        rawText: '@file:AGENTS.md',
+      },
+    ]);
+  });
+
   it('serializes project references with their registered path and display name', () => {
     expect(
       buildInlineTokensFromComposer([
