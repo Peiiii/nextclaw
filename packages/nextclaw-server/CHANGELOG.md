@@ -1,5 +1,19 @@
 # nextclaw-server
 
+## 0.15.21
+
+### Patch Changes
+
+- 43b0e1d: 让全新安装的 NextClaw 默认接入 OpenCode Zen 当前可调用的七个免费试用模型，无需填写 API Key 即可在模型选择器中直接选择并开始聊天；已有其他提供商配置保持不变，已失效的 Ling 免费模型会从 OpenCode 配置中移除，并明确提示公共网关的限额、模型变化与数据隐私边界。
+- 14f321a: 会话列表中的思考、工具调用、运行失败与意外中断预览会跟随界面语言显示；已有会话中保存的英文活动预览也会按当前语言呈现。
+- Updated dependencies [dbececb]
+- Updated dependencies [43b0e1d]
+- Updated dependencies [14f321a]
+  - @nextclaw/core@0.15.19
+  - @nextclaw/kernel@0.6.21
+  - @nextclaw/runtime@0.4.19
+  - @nextclaw/mcp@0.3.19
+
 ## 0.15.20
 
 ### Patch Changes

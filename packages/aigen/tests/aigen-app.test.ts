@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -51,10 +52,13 @@ describe("AigenApp", () => {
   it("reports the package version", async () => {
     const app = createAigenApp(homeDir);
     const output = await app.run(["--version"]);
+    const packageJson = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
 
     expect(output).toEqual({
       ok: true,
-      output: "0.1.0"
+      output: packageJson.version,
     });
   });
 });

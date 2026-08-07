@@ -113,7 +113,7 @@ it("shows all session workspace entries in the overview", async () => {
     name: /Child sessions/,
   });
   const cronJobsButton = screen.getByRole("button", {
-    name: /Session cron jobs/,
+    name: /Scheduled tasks/,
   });
 
   expect((childSessionsButton as HTMLButtonElement).disabled).toBe(false);

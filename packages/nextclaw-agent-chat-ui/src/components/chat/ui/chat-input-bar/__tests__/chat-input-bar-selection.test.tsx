@@ -24,6 +24,37 @@ Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
   writable: true,
 });
 
+if (!Selection.prototype.modify) {
+  Object.defineProperty(Selection.prototype, 'modify', {
+    value: function modify(
+      this: Selection,
+      alter: string,
+      direction: string,
+      granularity: string,
+    ) {
+      const { anchorNode, anchorOffset, focusNode, focusOffset } = this;
+      if (
+        alter !== 'extend'
+        || direction !== 'backward'
+        || granularity !== 'character'
+        || focusNode?.nodeType !== Node.TEXT_NODE
+        || focusOffset === 0
+      ) {
+        return;
+      }
+      const textBeforeFocus = focusNode.textContent?.slice(0, focusOffset) ?? '';
+      const previousCharacterLength = Array.from(textBeforeFocus).at(-1)?.length ?? 1;
+      this.setBaseAndExtent(
+        anchorNode ?? focusNode,
+        anchorOffset,
+        focusNode,
+        focusOffset - previousCharacterLength,
+      );
+    },
+    writable: true,
+  });
+}
+
 function SlashQueryDeletionHarness() {
   const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('/agent')]);
   const inputRef = useRef<ChatInputBarHandle | null>(null);

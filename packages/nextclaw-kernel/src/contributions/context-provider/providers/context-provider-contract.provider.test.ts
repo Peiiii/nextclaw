@@ -173,6 +173,7 @@ describe("ContextProviderContribution native prompt contract", () => {
         }),
       },
       sessionManager: {
+        getSessionRecord: async () => null,
         getAgentRunSession: async () => ({
           sessionId: "session-1",
           agentId: "main",

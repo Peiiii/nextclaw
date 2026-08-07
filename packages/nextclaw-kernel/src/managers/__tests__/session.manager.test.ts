@@ -446,7 +446,7 @@ describe("SessionManager activity previews", () => {
         metadata: {
           last_activity_preview: {
             state: "running",
-            statusText: "Tool call completed: read_file",
+            statusText: "read_file",
           },
         },
       });

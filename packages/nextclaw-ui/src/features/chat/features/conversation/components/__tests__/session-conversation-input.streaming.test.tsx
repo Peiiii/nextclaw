@@ -3,9 +3,11 @@ import {
   useEffect,
   useMemo,
   useState,
+  type ReactElement,
   type MutableRefObject,
 } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createChatComposerTextNode,
@@ -29,6 +31,15 @@ import { useSessionConversationInputState } from '@/features/chat/features/conve
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
 
 const uploadNcpAssetsMock = vi.hoisted(() => vi.fn());
+
+function renderInput(input: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>{input}</QueryClientProvider>,
+  );
+}
 
 afterEach(() => {
   useChatMessageLayoutStore.getState().setLayout('card');
@@ -254,7 +265,7 @@ describe('SessionConversationInput streaming stability', () => {
     useChatMessageLayoutStore.getState().setLayout('flat');
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
 
-    render(<StreamingSessionConversationInputHarness controlRef={controlRef} />);
+    renderInput(<StreamingSessionConversationInputHarness controlRef={controlRef} />);
 
     const track = document.querySelector(
       '[data-chat-conversation-track="flat"][data-chat-conversation-track-width="composer"]',
@@ -266,7 +277,7 @@ describe('SessionConversationInput streaming stability', () => {
 
   it('keeps a numbered IME candidate commit stable while streamed output rerenders the owner', async () => {
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
-    render(<StreamingSessionConversationInputHarness controlRef={controlRef} />);
+    renderInput(<StreamingSessionConversationInputHarness controlRef={controlRef} />);
 
     const textbox = screen.getByRole('textbox');
     fireEvent.focus(textbox);
@@ -300,7 +311,7 @@ describe('SessionConversationInput streaming stability', () => {
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
     const deleteQueuedInput = vi.fn();
     const editQueuedInput = vi.fn();
-    render(
+    renderInput(
       <StreamingSessionConversationInputHarness
         controlRef={controlRef}
         controllerOverride={{
@@ -427,7 +438,7 @@ describe('SessionConversationInput attachment submit', () => {
     ]);
     const send = vi.fn<AttachmentSubmitAgentSend>(async () => createAttachmentRunHandle());
 
-    render(<AttachmentSubmitHarness send={send} />);
+    renderInput(<AttachmentSubmitHarness send={send} />);
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
     expect(fileInput).toBeTruthy();

@@ -1,5 +1,12 @@
 # @nextclaw/extension-sdk
 
+## 0.3.18
+
+### Patch Changes
+
+- Updated dependencies [dbececb]
+  - @nextclaw/shared@0.4.18
+
 ## 0.3.17
 
 ### Patch Changes

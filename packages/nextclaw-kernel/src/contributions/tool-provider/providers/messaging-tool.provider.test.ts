@@ -1,36 +1,31 @@
 import { describe, expect, it, vi } from "vitest";
-import { ConfigSchema } from "@nextclaw/core";
 import { MessagingToolProvider } from "./messaging-tool.provider.js";
 
-function createKernel(deliver: (message: unknown) => Promise<boolean>) {
-  return {
-    channels: {
-      deliver,
-    },
-    configManager: {
-      loadConfig: () => ConfigSchema.parse({}),
-    },
-    extensions: {
-      getExtensionRegistry: () => ({
-        channels: [
-          {
-            channel: {
-              id: "weixin",
-            },
-          },
-        ],
+function createProvider(deliver: (message: unknown) => Promise<boolean>) {
+  return new MessagingToolProvider(
+    {
+      resolve: async () => ({
+        toolRunContext: {
+          channel: "ui",
+          chatId: "web-ui",
+          metadata: {},
+        },
       }),
-    },
-    sessionManager: {
-      getAgentRunSession: async () => null,
-    },
-  };
+    } as never,
+    { deliver } as never,
+    {} as never,
+    {
+      getExtensionRegistry: () => ({
+        channels: [{ channel: { id: "weixin" } }],
+      }),
+    } as never,
+  );
 }
 
 describe("MessagingToolProvider", () => {
   it("executes message sends through the channel manager delivery owner", async () => {
     const deliver = vi.fn(async () => true);
-    const provider = new MessagingToolProvider(createKernel(deliver) as never);
+    const provider = createProvider(deliver);
     const tools = await provider.provide({
       message: {
         metadata: {
@@ -57,7 +52,7 @@ describe("MessagingToolProvider", () => {
   });
 
   it("fails the message tool when the target channel is unavailable", async () => {
-    const provider = new MessagingToolProvider(createKernel(async () => false) as never);
+    const provider = createProvider(async () => false);
     const tools = await provider.provide({
       message: {
         metadata: {},

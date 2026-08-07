@@ -99,9 +99,9 @@ it('searches toolbar model options and toggles option favorites', async () => {
   expect(modelOption?.className).not.toContain('py-2');
   expect(modelOption?.className).toContain('leading-4');
   const searchInput = screen.getByPlaceholderText('Search models');
-  expect(searchInput.className).toContain('h-7');
+  expect(searchInput.className).toContain('h-8');
   expect(searchInput.className).toContain('focus:ring-0');
-  expect(searchInput.className).toContain('focus:border-border');
+  expect(searchInput.className).toContain('border-transparent');
   expect(searchInput.className).not.toContain('focus:ring-primary');
   expect(searchInput.className).not.toContain('focus:border-primary');
   expect(screen.queryByText('MiniMax/minimax-m2.7')).toBeNull();

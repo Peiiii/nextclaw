@@ -1,5 +1,11 @@
 # @nextclaw/ncp-toolkit
 
+## 0.6.17
+
+### Patch Changes
+
+- dbececb: 修复并发消息完成时聊天记录偶发重叠的问题，并隐藏静默回复遗留的异常文本。
+
 ## 0.6.16
 
 ### Patch Changes

@@ -510,7 +510,10 @@ it("renders write previews with a single gutter and without repeating the file p
     0,
   );
   expect(screen.queryByText("WRITE")).toBeNull();
-  expect(screen.getByText(longLine).className).toContain("whitespace-pre");
+  expect(
+    screen.getByText(longLine).closest('[data-file-code-row="true"]')
+      ?.className,
+  ).toContain("whitespace-pre");
   expect(
     screen
       .getByText(longLine)

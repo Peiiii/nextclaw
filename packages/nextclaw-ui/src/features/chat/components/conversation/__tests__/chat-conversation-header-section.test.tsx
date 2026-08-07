@@ -279,7 +279,7 @@ describe("ChatConversationHeaderSection", () => {
     renderHeaderSection("mobile");
     await user.click(screen.getByRole("button", { name: "New Task" }));
 
-    expect(mocks.createSession).toHaveBeenCalledWith("codex");
+    expect(mocks.createSession).toHaveBeenCalledWith({ sessionType: "codex" });
   });
 
   it("keeps the new-session shortcut mobile-only", () => {

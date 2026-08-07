@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-narp-runtime-opencode",
-  "version": "0.2.19",
+  "version": "0.2.20",
   "private": false,
   "description": "NARP stdio launcher for the OpenCode runtime.",
   "type": "module",
@@ -19,7 +19,7 @@
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",
-    "test": "vitest run",
+    "test": "vitest run --config ../../../scripts/test/vitest-runtime-alias.config.mjs",
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "files": [

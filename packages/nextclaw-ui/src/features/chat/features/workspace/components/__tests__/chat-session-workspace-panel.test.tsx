@@ -96,7 +96,7 @@ describe("ChatSessionWorkspacePanel", () => {
     await user.click(screen.getByRole("button", { name: "Refresh preview" }));
 
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["server-path-read", "README.md", null],
+      queryKey: ["server-path-read", "README.md", null, null],
     });
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["server-path-browse", "README.md", "", true],

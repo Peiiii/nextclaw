@@ -189,7 +189,7 @@ describe("ChatSidebar read state sync", () => {
     const { container } = renderReadStateSidebar(createTestQueryClient());
 
     expect(
-      screen.getByText("Sessions").parentElement?.nextElementSibling?.className,
+      container.querySelector(".custom-scrollbar")?.className,
     ).toContain("[mask-image:linear-gradient");
     expect(
       screen.getByRole("button", { name: "Settings menu" }).parentElement
