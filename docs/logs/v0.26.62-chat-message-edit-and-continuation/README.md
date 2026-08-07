@@ -38,6 +38,7 @@
 - 这是新增用户能力，受影响生产路径相对基线为 `+1327/-151，净增 1176`；净增长主要来自跨 shared / kernel / transport / React / UI 的完整合同、同会话恢复能力和共享编辑器复用，不适用非功能改动净增不大于零门槛。
 - 守卫首次发现两个越界后已直接减债：把 edit / continue 的校验、同 session 并发锁、历史回退和 continuation 消息构造从 `AgentRunRequestManager` 拆入 `AgentRunSessionCommandManager`，请求主干恢复为 send / runtime 执行 owner；把 timeline divider 从消息列表容器移到稳定展示组件，容器较基线净减 33 行。
 - 前端没有复制第二套 contenteditable；内联编辑复用 `ChatComposerEditor` 和同一个 `ChatComposerLexicalOwner`，因此 token、附件、选区与键盘语义仍由共享 editor owner 维护。
+- 队列消息恢复也改为复用同一 `buildSessionMessageComposerSnapshot` owner，删除 `session-queued-input.utils.ts` 内重复的文本 token、附件和技能快照构造，生产代码净减 93 行。
 - session journal 重写只有 `SessionManager.rewindSessionBeforeMessage` 一个持久化 owner，`SessionRun.replaceMessages` 只同步当前内存态；router、SDK 和 UI 不直接篡改持久化数据。
 - 仍需关注但未越界：共享 Lexical owner 477 行、会话输入 487 行、SessionManager 600 行；本次未继续拆分，因为各自仍保持单一稳定职责，额外拆分不会直接降低当前功能风险。
 
