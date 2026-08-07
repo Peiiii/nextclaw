@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState, type RefObject } from "react";
-import { Check, Copy, MoreHorizontal } from "lucide-react";
+import { Check, CirclePlay, Copy, MoreHorizontal, Pencil } from "lucide-react";
 import { useCopyFeedback } from "@agent-chat-ui/components/chat/hooks/use-copy-feedback";
 import type {
   ChatMessageDetailActionViewModel,
+  ChatMessageActionViewModel,
   ChatMessageTexts,
   ChatMessageViewModel,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
@@ -41,6 +42,42 @@ function ChatMessageActionCopy({
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
           {label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function ChatMessageAction({
+  action,
+  onAction,
+}: {
+  action: ChatMessageActionViewModel;
+  onAction: (action: ChatMessageActionViewModel) => void;
+}) {
+  const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } =
+    ChatUiPrimitives;
+
+  return (
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            aria-label={action.label}
+            className="flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+            disabled={action.disabled}
+            onClick={() => onAction(action)}
+          >
+            {action.icon === "edit" ? (
+              <Pencil className="h-3.5 w-3.5" />
+            ) : (
+              <CirclePlay data-testid="chat-continue-message-icon" className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {action.label}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -178,9 +215,11 @@ function ChatMessageActionMore({ message }: { message: ChatMessageViewModel }) {
 
 export function ChatMessageActions({
   message,
+  onAction,
   texts,
 }: {
   message: ChatMessageViewModel;
+  onAction?: (action: ChatMessageActionViewModel) => void;
   texts: Pick<ChatMessageTexts, "copyMessageLabel" | "copiedMessageLabel">;
 }) {
   const messageText = useMemo(
@@ -198,6 +237,11 @@ export function ChatMessageActions({
 
   return (
     <div className="flex items-center gap-0.5">
+      {onAction
+        ? message.actions?.map((action) => (
+          <ChatMessageAction key={action.key} action={action} onAction={onAction} />
+        ))
+        : null}
       <ChatMessageActionCopy messageText={messageText} texts={texts} />
       <ChatMessageActionMore message={message} />
     </div>

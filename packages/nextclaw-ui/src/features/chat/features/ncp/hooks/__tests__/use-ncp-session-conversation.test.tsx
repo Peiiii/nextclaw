@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NcpMessage } from "@nextclaw/ncp";
 import type * as SharedApi from "@/shared/lib/api";
 import {
   fetchNcpSessionConversationSeed,
@@ -8,12 +9,15 @@ import {
 
 const mocks = vi.hoisted(() => ({
   fetchNcpSessionMessages: vi.fn(),
+  editMessage: vi.fn(),
   prependHistory: vi.fn(),
+  replaceHistory: vi.fn(),
   hydratedCalls: [] as Array<{ client: unknown; loadSeed: unknown }>,
   runtimeAvailability: {
     phase: "cold-starting" as "cold-starting" | "ready",
     lastReadyAt: null as number | null,
   },
+  visibleMessages: [] as NcpMessage[],
   useHydratedNcpAgent: vi.fn(() => ({
     snapshot: {
       messages: [],
@@ -21,7 +25,7 @@ const mocks = vi.hoisted(() => ({
       activeRun: null,
       error: null as Error | null,
     },
-    visibleMessages: [],
+    visibleMessages: mocks.visibleMessages,
     activeRunId: null,
     isRunning: false,
     isSending: false,
@@ -29,6 +33,7 @@ const mocks = vi.hoisted(() => ({
     abort: vi.fn(),
     streamRun: vi.fn(),
     prependHistory: mocks.prependHistory,
+    replaceHistory: mocks.replaceHistory,
     isHydrating: false,
     hydrateError: null,
   })),
@@ -40,6 +45,13 @@ vi.mock("@/shared/lib/api", async (importOriginal) => {
   return {
     ...actual,
     fetchNcpSessionMessages: mocks.fetchNcpSessionMessages,
+    nextclawClient: {
+      ...actual.nextclawClient,
+      agentRuns: {
+        ...actual.nextclawClient.agentRuns,
+        editMessage: mocks.editMessage,
+      },
+    },
   };
 });
 
@@ -73,12 +85,15 @@ vi.mock("@/features/system-status", () => ({
 describe("useNcpSessionConversation", () => {
   beforeEach(() => {
     mocks.fetchNcpSessionMessages.mockReset();
+    mocks.editMessage.mockReset();
     mocks.prependHistory.mockReset();
+    mocks.replaceHistory.mockReset();
     mocks.useHydratedNcpAgent.mockClear();
     mocks.hydratedCalls.length = 0;
     mocks.clientInstances.length = 0;
     mocks.runtimeAvailability.phase = "cold-starting";
     mocks.runtimeAvailability.lastReadyAt = null;
+    mocks.visibleMessages.length = 0;
   });
 
   it("hydrates seed from the shared session messages endpoint payload", async () => {
@@ -172,6 +187,129 @@ describe("useNcpSessionConversation", () => {
       sessionId: undefined,
     });
     expect(mocks.fetchNcpSessionMessages).not.toHaveBeenCalled();
+  });
+
+  it("replaces the current session history after editing instead of creating a background session", async () => {
+    mocks.editMessage.mockResolvedValue({
+      sessionId: "session-1",
+      userMessageId: "edited-user-1",
+      assistantMessageId: null,
+      runId: "run-2",
+    });
+    const editedMessage = {
+      id: "edited-user-1",
+      sessionId: "session-1",
+      role: "user" as const,
+      status: "final" as const,
+      timestamp: "2026-08-08T10:00:00.000Z",
+      parts: [{ type: "text" as const, text: "edited request" }],
+    };
+    mocks.visibleMessages.push({
+      ...editedMessage,
+      id: "user-original",
+      parts: [{ type: "text", text: "original request" }],
+    });
+    const { result } = renderHook(() => useNcpSessionConversation("session-1"));
+
+    await act(async () => {
+      await result.current.editMessage({
+        sessionId: "session-1",
+        messageId: "user-original",
+        message: editedMessage,
+      });
+    });
+
+    expect(mocks.editMessage).toHaveBeenCalledWith({
+      sessionId: "session-1",
+      messageId: "user-original",
+      message: editedMessage,
+    });
+    expect(mocks.replaceHistory).toHaveBeenCalledWith({
+      status: "idle",
+      messages: [editedMessage],
+    });
+    expect(mocks.fetchNcpSessionMessages).not.toHaveBeenCalled();
+  });
+
+  it("restores the previous current-session history when an edit is rejected", async () => {
+    const originalMessage = {
+      id: "user-original",
+      sessionId: "session-1",
+      role: "user" as const,
+      status: "final" as const,
+      timestamp: "2026-08-08T10:00:00.000Z",
+      parts: [{ type: "text" as const, text: "original request" }],
+    };
+    const editedMessage = {
+      ...originalMessage,
+      id: "edited-user-1",
+      parts: [{ type: "text" as const, text: "edited request" }],
+    };
+    mocks.visibleMessages.push(originalMessage);
+    mocks.editMessage.mockRejectedValue(new Error("session is running"));
+    mocks.fetchNcpSessionMessages.mockRejectedValue(new Error("recovery unavailable"));
+    const { result } = renderHook(() => useNcpSessionConversation("session-1"));
+
+    await act(async () => {
+      await expect(result.current.editMessage({
+        sessionId: "session-1",
+        messageId: originalMessage.id,
+        message: editedMessage,
+      })).rejects.toThrow("session is running");
+    });
+
+    expect(mocks.replaceHistory).toHaveBeenNthCalledWith(1, {
+      messages: [editedMessage],
+      status: "idle",
+    });
+    expect(mocks.replaceHistory).toHaveBeenNthCalledWith(2, {
+      messages: [originalMessage],
+      status: "idle",
+    });
+  });
+
+  it("rejects a second session command before React has time to rerender", async () => {
+    const originalMessage = {
+      id: "user-original",
+      sessionId: "session-1",
+      role: "user" as const,
+      status: "final" as const,
+      timestamp: "2026-08-08T10:00:00.000Z",
+      parts: [{ type: "text" as const, text: "original request" }],
+    };
+    const editedMessage = {
+      ...originalMessage,
+      id: "edited-user-1",
+      parts: [{ type: "text" as const, text: "edited request" }],
+    };
+    let finishEdit: ((value: unknown) => void) | null = null;
+    mocks.visibleMessages.push(originalMessage);
+    mocks.editMessage.mockImplementation(
+      () => new Promise((resolve) => {
+        finishEdit = resolve;
+      }),
+    );
+    const { result } = renderHook(() => useNcpSessionConversation("session-1"));
+    const payload = {
+      sessionId: "session-1",
+      messageId: originalMessage.id,
+      message: editedMessage,
+    };
+
+    await act(async () => {
+      const firstCommand = result.current.editMessage(payload);
+      await expect(result.current.editMessage(payload)).rejects.toThrow(
+        "A session command is already in progress.",
+      );
+      finishEdit?.({
+        sessionId: "session-1",
+        userMessageId: editedMessage.id,
+        runId: "run-2",
+      });
+      await firstCommand;
+    });
+
+    expect(mocks.editMessage).toHaveBeenCalledTimes(1);
   });
 
   it("exposes the hydrated session context window without changing the generic ncp agent seed", async () => {
@@ -344,6 +482,7 @@ describe("useNcpSessionConversation", () => {
       abort: vi.fn(),
       streamRun: vi.fn(),
       prependHistory: mocks.prependHistory,
+      replaceHistory: mocks.replaceHistory,
       isHydrating: false,
       hydrateError: null,
     }));

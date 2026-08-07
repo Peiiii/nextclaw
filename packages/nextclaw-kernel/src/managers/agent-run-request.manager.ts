@@ -1,6 +1,8 @@
 import {
   eventKeys,
   ingressKeys,
+  type AgentRunContinueIngressPayload,
+  type AgentRunEditMessageIngressPayload,
   type AgentRunSendIngressPayload,
   type AgentRunSessionMessageRequestPayload,
   type EventBus,
@@ -23,6 +25,7 @@ import type {
   AgentRuntimeRunOptions,
 } from "./agent-runtime.manager.js";
 import type { ContextProviderManager } from "./context-provider.manager.js";
+import { AgentRunSessionCommandManager } from "./agent-run-session-command.manager.js";
 import type {
   SessionRun,
   SessionRunActiveRequest,
@@ -60,6 +63,7 @@ import {
 export class AgentRunRequestManager {
   readonly cleanups: Array<() => void> = [];
   private readonly observedSessionRuns = new Set<SessionRun>();
+  private readonly sessionCommandManager: AgentRunSessionCommandManager;
   private started = false;
 
   constructor(
@@ -72,7 +76,13 @@ export class AgentRunRequestManager {
     private readonly sessionManager: SessionManager,
     private readonly sessionRunManager: SessionRunManager,
     private readonly toolProviderManager: ToolProviderManager,
-  ) {}
+  ) {
+    this.sessionCommandManager = new AgentRunSessionCommandManager(
+      sessionManager,
+      sessionRunManager,
+      this.send,
+    );
+  }
 
   start = (): void => {
     if (this.started) {
@@ -89,6 +99,14 @@ export class AgentRunRequestManager {
         this.handleAbortRequest,
       ),
       this.ingress.addHandler(
+        ingressKeys.agentRun.editMessage,
+        this.handleEditMessageRequest,
+      ),
+      this.ingress.addHandler(
+        ingressKeys.agentRun.continue,
+        this.handleContinueRequest,
+      ),
+      this.ingress.addHandler(
         ingressKeys.agentRun.sessionMessageRequest,
         this.handleSessionMessageRequest,
       ),
@@ -100,6 +118,7 @@ export class AgentRunRequestManager {
       this.cleanups.pop()?.();
     }
     this.observedSessionRuns.clear();
+    this.sessionCommandManager.dispose();
     this.started = false;
   };
 
@@ -142,6 +161,24 @@ export class AgentRunRequestManager {
       correlationId: envelope.payload.correlationId,
       reason: envelope.payload.reason,
     });
+  };
+
+  private handleEditMessageRequest = async (
+    envelope: IngressEnvelope<AgentRunEditMessageIngressPayload>,
+  ): Promise<NcpRunHandle> => {
+    if (!envelope.payload) {
+      throw new Error("Invalid agent run edit-message request.");
+    }
+    return toRunHandle(await this.sessionCommandManager.editMessage(envelope.payload));
+  };
+
+  private handleContinueRequest = async (
+    envelope: IngressEnvelope<AgentRunContinueIngressPayload>,
+  ): Promise<NcpRunHandle> => {
+    if (!envelope.payload) {
+      throw new Error("Invalid agent run continue request.");
+    }
+    return toRunHandle(await this.sessionCommandManager.continueRun(envelope.payload));
   };
 
   private handleSessionMessageRequest = async (

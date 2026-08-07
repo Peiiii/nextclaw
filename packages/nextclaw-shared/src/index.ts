@@ -95,6 +95,8 @@ export type {
 } from "./configs/chat-composer-token.config.js";
 export type { RuntimeModelSelectionMode } from "./configs/runtime-model.config.js";
 export type {
+  AgentRunContinueIngressPayload,
+  AgentRunEditMessageIngressPayload,
   AgentRunSendIngressPayload,
   AgentRunSessionMaterializationMetadata,
   AgentRunSessionMessageRequestPayload,

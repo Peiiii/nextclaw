@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
+import {
+  NCP_INTERNAL_VISIBILITY_METADATA_KEY,
+  NcpEventType,
+  type NcpEndpointEvent,
+} from "@nextclaw/ncp";
 import { createSessionActivityPreviewFromNcpEvent } from "./session-activity-preview-ncp-event.utils.js";
 
 const TIMESTAMP = "2026-05-16T01:00:00.000Z";
@@ -143,5 +147,25 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
     };
 
     expect(createSessionActivityPreviewFromNcpEvent(event, TIMESTAMP)).toBeNull();
+  });
+
+  it("ignores hidden continuation prompts so they never replace the user-facing preview", () => {
+    expect(createSessionActivityPreviewFromNcpEvent({
+      type: NcpEventType.MessageSent,
+      payload: {
+        sessionId: "session-1",
+        message: {
+          id: "continue-1",
+          sessionId: "session-1",
+          role: "user",
+          status: "final",
+          timestamp: TIMESTAMP,
+          parts: [{ type: "text", text: "internal continuation prompt" }],
+          metadata: {
+            [NCP_INTERNAL_VISIBILITY_METADATA_KEY]: "hidden",
+          },
+        },
+      },
+    }, TIMESTAMP)).toBeNull();
   });
 });

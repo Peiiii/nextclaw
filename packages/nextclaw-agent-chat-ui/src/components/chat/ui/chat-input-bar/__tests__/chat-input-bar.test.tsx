@@ -743,6 +743,25 @@ it('switches between send and stop controls', () => {
   expect(onStop).toHaveBeenCalled();
 });
 
+it('shows a tooltip and an outline play glyph for the continue action', async () => {
+  renderInputBar({
+    toolbar: {
+      actions: {
+        sendButtonLabel: 'Continue running',
+        sendIcon: 'continue',
+      },
+    },
+  });
+
+  const button = screen.getByRole('button', { name: 'Continue running' });
+  const trigger = button.parentElement;
+  expect(trigger).toBeTruthy();
+  fireEvent.pointerMove(trigger as HTMLElement);
+
+  expect((await screen.findByRole('tooltip')).textContent).toBe('Continue running');
+  expect(screen.getByTestId('chat-continue-input-icon').getAttribute('class')).not.toContain('fill-current');
+});
+
 it('keeps the send control active during streaming when the draft can be queued', () => {
   const onSend = vi.fn();
   const onStop = vi.fn();

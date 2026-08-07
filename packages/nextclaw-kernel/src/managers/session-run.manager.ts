@@ -75,6 +75,16 @@ export class SessionRun {
     }
   };
 
+  replaceMessages = (messages: readonly NcpMessage[]): void => {
+    if (this.isBusy()) {
+      throw new Error(`Cannot replace messages while session is running: ${this.sessionId}`);
+    }
+    this.stateManager.hydrate({
+      sessionId: this.sessionId,
+      messages,
+    });
+  };
+
   onStatusChange = (
     listener: (status: "idle" | "running") => void,
   ): (() => void) => {

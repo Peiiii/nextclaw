@@ -160,6 +160,7 @@ export type ChatInputBarActionsProps = {
   stopDisabled: boolean;
   stopHint: string;
   sendButtonLabel: string;
+  sendIcon?: "send" | "continue";
   stopButtonLabel: string;
   contextWindow?: ChatContextWindowIndicator | null;
   onSend: () => Promise<void> | void;
@@ -479,6 +480,13 @@ export type ChatMessageMoreActionsViewModel = {
   items: ChatMessageDetailActionViewModel[];
 };
 
+export type ChatMessageActionViewModel = {
+  disabled?: boolean;
+  icon: "continue" | "edit";
+  key: string;
+  label: string;
+};
+
 export type ChatMessageViewModel = {
   id: string;
   role: ChatMessageRole;
@@ -488,6 +496,7 @@ export type ChatMessageViewModel = {
   status?: string;
   processSummary?: ChatMessageProcessSummaryViewModel;
   executionSummaryLabel?: string;
+  actions?: ChatMessageActionViewModel[];
   moreActions?: ChatMessageMoreActionsViewModel;
 };
 

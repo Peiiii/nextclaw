@@ -245,7 +245,6 @@ export class ChatComposerLexicalOwner {
     const end = getChatComposerDocumentLength(targetNodes);
     const targetSelection = { start: end, end };
     this.selectionRef.current = targetSelection;
-    this.pendingSelectionRef.current = targetSelection;
     editor.getRootElement()?.focus({ preventScroll: true });
     if (nodes) {
       const signature = getChatComposerNodesSignature(nodes);
@@ -256,6 +255,17 @@ export class ChatComposerLexicalOwner {
       syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
     }
     editor.focus(() => {
+      const currentSelection = this.selectionRef.current;
+      const currentSignature = getChatComposerNodesSignature(
+        readChatComposerSnapshotFromEditorState(editor.getEditorState()).nodes,
+      );
+      if (
+        currentSignature !== getChatComposerNodesSignature(targetNodes) ||
+        currentSelection?.start !== targetSelection.start ||
+        currentSelection?.end !== targetSelection.end
+      ) {
+        return;
+      }
       syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
     });
   };

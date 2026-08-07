@@ -7,7 +7,7 @@ import type {
 import { ChatInputSurfaceHost } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import { ChatInputBarToolbar } from './chat-input-bar-toolbar';
-import { ChatInputBarTokenizedComposer, type ChatInputBarTokenizedComposerHandle } from './chat-input-bar-tokenized-composer';
+import { ChatComposerEditor, type ChatComposerEditorHandle } from './chat-composer-editor';
 
 const SEND_ERROR_PREVIEW_MAX_CHARS = 120;
 
@@ -114,7 +114,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   { composer, hint, inputSurface, sendError, sendErrorDetailsLabel, slashMenu, surface, toolbar: toolbarProps, topSlot },
   ref
 ) {
-  const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
+  const composerRef = useRef<ChatComposerEditorHandle | null>(null);
   const resolvedInputSurface: ChatInputSurfaceConfig | null = inputSurface ?? (slashMenu
       ? {
         isLoading: slashMenu.isLoading,
@@ -186,7 +186,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
                 onInputSurfaceOpenChange,
                 onInputSurfaceSnapshotChange,
               }) => (
-                <ChatInputBarTokenizedComposer
+                <ChatComposerEditor
                   ref={composerRef}
                   nodes={composer.nodes}
                   placeholder={composer.placeholder}

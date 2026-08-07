@@ -7,6 +7,8 @@ import type {
 import { AccessManager } from "@nextclaw/kernel";
 import {
   ingressKeys,
+  type AgentRunContinueIngressPayload,
+  type AgentRunEditMessageIngressPayload,
   type AgentRunSendIngressPayload,
   type IngressEnvelope,
 } from "@nextclaw/shared";
@@ -131,6 +133,31 @@ function isAbortPayload(value: unknown): value is NcpMessageAbortPayload {
   return isRecord(value) && typeof value.sessionId === "string" && value.sessionId.trim().length > 0;
 }
 
+function isContinuePayload(value: unknown): value is AgentRunContinueIngressPayload {
+  return isRecord(value) && typeof value.sessionId === "string" && value.sessionId.trim().length > 0;
+}
+
+function isEditMessagePayload(value: unknown): value is AgentRunEditMessageIngressPayload {
+  if (
+    !isRecord(value) ||
+    typeof value.sessionId !== "string" ||
+    !value.sessionId.trim() ||
+    typeof value.messageId !== "string" ||
+    !value.messageId.trim() ||
+    !isRecord(value.message)
+  ) {
+    return false;
+  }
+  const message = value.message;
+  return (
+    typeof message.id === "string" &&
+    message.id.trim().length > 0 &&
+    message.role === "user" &&
+    Array.isArray(message.parts) &&
+    message.parts.length > 0
+  );
+}
+
 class UiRouteRegistry {
   constructor(
     private readonly app: Hono,
@@ -182,6 +209,34 @@ class UiRouteRegistry {
         { source: "ui-http" },
       );
       return c.json(ok({ accepted: true }));
+    });
+    this.app.post(`${basePath}/edit-message`, async (c) => {
+      const body = await readJson<AgentRunEditMessageIngressPayload>(c.req.raw);
+      if (!body.ok || !isEditMessagePayload(body.data)) {
+        return c.json(err("INVALID_BODY", "A valid sessionId, messageId, and user message are required."), 400);
+      }
+      const handle = await kernel.ingress.handle<AgentRunEditMessageIngressPayload, NcpRunHandle>(
+        {
+          type: ingressKeys.agentRun.editMessage,
+          payload: body.data,
+        },
+        { source: "ui-http" },
+      );
+      return c.json(ok(handle));
+    });
+    this.app.post(`${basePath}/continue`, async (c) => {
+      const body = await readJson<AgentRunContinueIngressPayload>(c.req.raw);
+      if (!body.ok || !isContinuePayload(body.data)) {
+        return c.json(err("INVALID_BODY", "sessionId is required."), 400);
+      }
+      const handle = await kernel.ingress.handle<AgentRunContinueIngressPayload, NcpRunHandle>(
+        {
+          type: ingressKeys.agentRun.continue,
+          payload: body.data,
+        },
+        { source: "ui-http" },
+      );
+      return c.json(ok(handle));
     });
   };
 

@@ -115,6 +115,18 @@ export type AgentRunSessionMaterializationMetadata = {
   inheritContext: true;
 };
 
+export type AgentRunEditMessageIngressPayload = {
+  correlationId?: string;
+  message: NcpMessage;
+  messageId: string;
+  sessionId: string;
+};
+
+export type AgentRunContinueIngressPayload = {
+  correlationId?: string;
+  sessionId: string;
+};
+
 export type AgentRunSendIngressMetadata = Record<string, unknown> & {
   agentRuntimeId?: string;
   agentId?: string;
@@ -165,6 +177,12 @@ export const ingressKeys = {
   agentRun: {
     send: createTypedKey<AgentRunSendIngressPayload>("agent-run.send"),
     abort: createTypedKey<NcpMessageAbortPayload>("agent-run.abort"),
+    editMessage: createTypedKey<AgentRunEditMessageIngressPayload>(
+      "agent-run.edit-message",
+    ),
+    continue: createTypedKey<AgentRunContinueIngressPayload>(
+      "agent-run.continue",
+    ),
     sessionMessageRequest:
       createTypedKey<AgentRunSessionMessageRequestPayload>(
         "agent-run.session-message.request",

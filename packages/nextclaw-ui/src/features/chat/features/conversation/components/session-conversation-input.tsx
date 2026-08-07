@@ -74,6 +74,7 @@ export type SessionConversationInputController = {
   readonly editQueuedInput: (id: string) => void;
   readonly isSending: boolean;
   readonly queuedInputs: readonly SessionConversationQueuedInput[];
+  readonly primaryAction: 'continue' | 'send';
   readonly sendDisabled: boolean;
   readonly stopDisabled: boolean;
   readonly send: () => Promise<void> | void;
@@ -449,7 +450,12 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
           sendDisabled: controller.sendDisabled,
           stopDisabled: controller.stopDisabled,
           stopHint: t('chatStopUnavailable'),
-          sendButtonLabel: controller.isSending ? t('chatQueueSend') : t('chatSend'),
+          sendButtonLabel: controller.primaryAction === 'continue'
+            ? t('chatContinueRun')
+            : controller.isSending
+              ? t('chatQueueSend')
+              : t('chatSend'),
+          sendIcon: controller.primaryAction,
           stopButtonLabel: t('chatStop'),
           contextWindow,
           onSend: controller.send,

@@ -1,4 +1,9 @@
-import { NcpEventType, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
+import {
+  isHiddenNcpMessage,
+  NcpEventType,
+  type NcpEndpointEvent,
+  type NcpMessage,
+} from "@nextclaw/ncp";
 import type {
   SessionActivityPreviewMetadata,
   SessionActivityPreviewProjection,
@@ -97,6 +102,9 @@ export function createSessionActivityPreviewFromNcpEvent(
         timestamp,
       });
     case NcpEventType.MessageSent: {
+      if (isHiddenNcpMessage(event.payload.message)) {
+        return null;
+      }
       const text = readSessionActivityPreviewText(event.payload.message);
       if (!text || event.payload.message.role !== "user") {
         return null;

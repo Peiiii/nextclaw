@@ -298,6 +298,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       editQueuedInput: (id: string) =>
         controllerRef.current.editQueuedInput(id),
       isSending: controller.isSending,
+      primaryAction: controller.primaryAction,
       queuedInputs: controller.queuedInputs,
       send: () => controllerRef.current.send(),
       sendDisabled: controller.sendDisabled,
@@ -307,6 +308,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     [
       controller.canStopGeneration,
       controller.isSending,
+      controller.primaryAction,
       controller.queuedInputs,
       controller.sendDisabled,
       controller.stopDisabled,
@@ -381,6 +383,8 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         isHistoryLoading={agent.isHydrating}
         isLoadingPreviousMessages={agent.isLoadingPreviousMessages}
         isSending={controller.isSending}
+        canContinue={controller.canContinue}
+        messageActionsDisabled={controller.isSending}
         isContextCompacting={Boolean(
           sessionKey && compactingSessionIds.has(sessionKey),
         )}
@@ -389,6 +393,8 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         sessionKey={sessionKey}
         showWelcome={showWelcome}
         onLoadPreviousMessages={agent.loadPreviousMessages}
+        onContinueRun={() => controllerRef.current.continueRun()}
+        onEditMessage={(payload) => controllerRef.current.editMessage(payload)}
         welcomeSlot={
           <ChatConversationWelcome
             inputSlot={

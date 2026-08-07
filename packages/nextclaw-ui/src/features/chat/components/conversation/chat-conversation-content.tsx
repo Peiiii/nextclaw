@@ -18,6 +18,7 @@ import { t } from "@/shared/lib/i18n";
 
 type ChatConversationContentProps = {
   bottomSlot?: ReactNode;
+  canContinue?: boolean;
   isAwaitingAssistantOutput: boolean;
   isHistoryLoading: boolean;
   hasPreviousMessages: boolean;
@@ -25,15 +26,22 @@ type ChatConversationContentProps = {
   isLoadingPreviousMessages: boolean;
   isContextCompacting?: boolean;
   isSending: boolean;
+  messageActionsDisabled?: boolean;
   messages: readonly NcpMessage[];
   sessionKey: string | null;
   showWelcome: boolean;
   onLoadPreviousMessages: () => Promise<void>;
+  onContinueRun?: () => Promise<void> | void;
+  onEditMessage?: (payload: {
+    readonly message: NcpMessage;
+    readonly messageId: string;
+  }) => Promise<void> | void;
   welcomeSlot?: ReactNode;
 };
 
 export function ChatConversationContent({
   bottomSlot,
+  canContinue = false,
   isAwaitingAssistantOutput,
   isHistoryLoading,
   hasPreviousMessages,
@@ -41,10 +49,13 @@ export function ChatConversationContent({
   isLoadingPreviousMessages,
   isContextCompacting = false,
   isSending,
+  messageActionsDisabled = false,
   messages,
   sessionKey,
   showWelcome,
   onLoadPreviousMessages,
+  onContinueRun,
+  onEditMessage,
   welcomeSlot,
 }: ChatConversationContentProps) {
   const threadRef = useRef<HTMLDivElement | null>(null);
@@ -109,8 +120,12 @@ export function ChatConversationContent({
                   />
                 ) : null}
                 <ChatMessageListContainer
+                  canContinue={canContinue}
                   messages={messages}
                   isSending={isSending && isAwaitingAssistantOutput}
+                  messageActionsDisabled={messageActionsDisabled}
+                  onContinueRun={onContinueRun}
+                  onEditMessage={onEditMessage}
                   scrollRef={threadRef}
                   sessionKey={sessionKey}
                 />

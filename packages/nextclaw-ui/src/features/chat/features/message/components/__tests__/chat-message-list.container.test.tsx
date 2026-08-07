@@ -858,3 +858,59 @@ it("renders context compaction as an in-flow divider instead of a chat message",
   expect(renderedGroups[0]).toMatchObject([{ id: "message-before" }]);
   expect(renderedGroups[1]).toMatchObject([{ id: "message-after" }]);
 });
+
+it("shows edit only while the latest user message is actually editable", () => {
+  const userMessage = {
+    id: "user-editable",
+    sessionId: "session-1",
+    role: "user",
+    status: "final",
+    timestamp: "2026-08-08T10:00:00.000Z",
+    parts: [{ type: "text", text: "original" }],
+  } satisfies NcpMessage;
+  const assistantMessage = {
+    id: "assistant-final",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-08-08T10:01:00.000Z",
+    parts: [{ type: "text", text: "answer" }],
+  } satisfies NcpMessage;
+  const onEditMessage = vi.fn();
+  const { rerender } = render(
+    <ChatMessageListContainer
+      messages={[userMessage, assistantMessage]}
+      isSending={false}
+      messageActionsDisabled={false}
+      onEditMessage={onEditMessage}
+    />,
+  );
+
+  expect(captures.renders.flatMap((rendered) => rendered.messages)).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        id: "user-editable",
+        actions: [expect.objectContaining({ key: "edit-message" })],
+      }),
+    ]),
+  );
+
+  captures.renders = [];
+  rerender(
+    <ChatMessageListContainer
+      messages={[userMessage, assistantMessage]}
+      isSending
+      messageActionsDisabled
+      onEditMessage={onEditMessage}
+    />,
+  );
+  const busyUserMessage = captures.renders
+    .flatMap((rendered) => rendered.messages)
+    .find((message) =>
+      typeof message === "object" &&
+      message !== null &&
+      "id" in message &&
+      message.id === "user-editable"
+    );
+  expect(busyUserMessage).not.toHaveProperty("actions");
+});

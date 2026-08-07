@@ -137,6 +137,7 @@ const controller: SessionConversationInputController = {
   deleteQueuedInput: vi.fn(),
   editQueuedInput: vi.fn(),
   isSending: true,
+  primaryAction: 'send',
   queuedInputs: [],
   send: vi.fn(),
   sendDisabled: true,
@@ -496,6 +497,8 @@ function AttachmentSubmitHarness({
   }), []);
   const agent = useMemo(() => ({
     abort: vi.fn(),
+    continueRun: vi.fn(),
+    editMessage: vi.fn(),
     isHydrating: false,
     isRunning: false,
     isSending: false,

@@ -20,6 +20,7 @@ export type UseHydratedNcpAgentResult = UseNcpAgentResult & {
   isHydrating: boolean;
   hydrateError: Error | null;
   prependHistory: (messages: ReadonlyArray<NcpMessage>) => void;
+  replaceHistory: (seed: NcpConversationSeed) => void;
 };
 
 type HydrationState = {
@@ -123,11 +124,24 @@ export function useHydratedNcpAgent({
     (messages: ReadonlyArray<NcpMessage>) => manager.prependHistory(messages),
     [manager]
   );
+  const replaceHistory = useCallback((seed: NcpConversationSeed) => {
+    if (!sessionId) {
+      return;
+    }
+    manager.hydrate({
+      sessionId,
+      messages: seed.messages,
+      activeRun: seed.status === "running"
+        ? { runId: null, sessionId, abortDisabledReason: null }
+        : null,
+    });
+  }, [manager, sessionId]);
 
   return {
     ...runtime,
     isHydrating: Boolean(sessionId && hydration.sessionId !== sessionId),
     hydrateError: hydration.error,
-    prependHistory
+    prependHistory,
+    replaceHistory,
   };
 }

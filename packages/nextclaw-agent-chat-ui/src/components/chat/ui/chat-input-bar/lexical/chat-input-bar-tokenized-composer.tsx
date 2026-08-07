@@ -45,7 +45,7 @@ export type ChatInputBarTokenizedComposerHandle = {
   syncSelectedSkills: (nextKeys: string[], options: ChatSkillPickerOption[]) => void;
 };
 
-type ChatInputBarTokenizedComposerProps = {
+export type ChatInputBarTokenizedComposerProps = {
   nodes: ChatComposerNode[];
   placeholder: string;
   disabled: boolean;

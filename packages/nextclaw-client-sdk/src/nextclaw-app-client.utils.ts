@@ -13,6 +13,8 @@ export function createNextClawAppClient(hostClient: NextClawClient) {
     },
     agentRuns: {
       send: hostClient.agentRuns.send,
+      editMessage: hostClient.agentRuns.editMessage,
+      continue: hostClient.agentRuns.continue,
       stream: hostClient.agentRuns.stream,
       abort: hostClient.agentRuns.abort,
     },
