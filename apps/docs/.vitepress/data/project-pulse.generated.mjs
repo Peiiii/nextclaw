@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-08-07T04:32:16.325Z",
+  "generatedAt": "2026-08-07T18:37:59.965Z",
   "hero": {
     "currentLoc": 220029,
     "testLoc": 80952,
     "trackedFiles": 2390,
-    "recentCommitCount": 347,
+    "recentCommitCount": 349,
     "activeDays30": 30,
     "recentReleaseCount": 50,
     "latestReleaseDate": "2026-08-07",
@@ -1213,7 +1213,7 @@ export default {
       {
         "key": "2026-08-07",
         "label": "08-07",
-        "value": 14
+        "value": 16
       }
     ],
     "commitWeekly": [
@@ -1275,7 +1275,7 @@ export default {
       {
         "key": "2026-08-03",
         "label": "08-03",
-        "value": 28
+        "value": 45
       }
     ],
     "releaseMonthly": [
@@ -1427,9 +1427,11 @@ export default {
       },
       {
         "date": "2026-07-31",
-        "tagCount": 1,
+        "tagCount": 6,
         "sampleTags": [
-          "v0.27.7-desktop.1"
+          "@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.2.17",
+          "@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.17",
+          "@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http@0.3.16"
         ]
       },
       {
