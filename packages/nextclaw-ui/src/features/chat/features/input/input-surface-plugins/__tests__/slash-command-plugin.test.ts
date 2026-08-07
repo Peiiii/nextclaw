@@ -35,6 +35,7 @@ function createPlugin(
     commands: [
       {
         key: 'side-chat',
+        icon: 'message-square-plus',
         title: 'Side chat',
         description: 'Open side chat',
         detailLines: ['Creates a child session on first send'],
@@ -133,7 +134,7 @@ describe('createSlashCommandInputSurfacePlugin', () => {
       { key: 'panel-apps', label: 'Panel Apps', sectionKeys: ['panel-apps'] },
     ]);
     expect(state.panel?.items[0]).toMatchObject({
-      icon: 'command',
+      icon: 'message-square-plus',
       sectionKey: 'commands',
       sectionLabel: 'Commands',
       hintLabel: 'Run command',

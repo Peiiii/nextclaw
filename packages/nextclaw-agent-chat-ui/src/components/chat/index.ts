@@ -97,6 +97,7 @@ export type {
   ChatMessageTexts
 } from './view-models/chat-ui.types';
 export type {
+  ChatInputSurfaceItemIcon,
   ChatInputSurfacePanel,
   ChatInputSurfacePlugin,
   ChatInputSurfacePluginContext,

@@ -226,7 +226,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={t("chatSidebarSearchPlaceholder")}
-            className="h-9 rounded-full border-transparent bg-muted pl-9 pr-3 text-[13px] shadow-none focus:border-border focus:bg-card"
+            className="h-9 rounded-full border-transparent bg-muted pl-9 pr-3 text-[13px] shadow-none"
           />
         </div>
 
@@ -240,7 +240,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
                 icon={<Plus className="h-4 w-4" />}
                 label={t("chatSidebarNewTask")}
                 tooltip={false}
-                className="h-9 w-9 shrink-0 rounded-full bg-muted text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+                className="h-9 w-9 shrink-0 rounded-full bg-muted text-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
               />
             </PopoverTrigger>
             <ChatPopoverContent
@@ -263,7 +263,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
           <IconActionButton
             icon={<Plus className="h-4 w-4" />}
             label={t("chatSidebarNewTask")}
-            className="h-9 w-9 shrink-0 rounded-full bg-muted text-foreground shadow-none hover:bg-accent hover:text-accent-foreground"
+            className="h-9 w-9 shrink-0 rounded-full bg-muted text-foreground shadow-none hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
             onClick={() => onCreateSession(defaultSessionType)}
           />
         )}

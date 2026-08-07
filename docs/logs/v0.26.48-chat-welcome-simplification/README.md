@@ -13,6 +13,7 @@
 - 将 hover 从强调/选中态 `accent` 中拆为全局浅交互色；模型按钮、菜单、共享按钮和列表使用一致的 `#f5f5f5` 反馈。
 - 模型面板与技能面板统一为轻量搜索、平铺分组和底部管理入口；未收藏星标仅在 hover/focus 时出现，并增加“管理模型与提供商”跳转。
 - 模型搜索支持分词与跨 `/`、空格、连字符的子序列模糊匹配，例如 `deep v4`、`dsv4` 均可命中对应 DeepSeek 模型。
+- 斜杠命令不再统一使用 Command 图标；“侧边对话”显示新对话图标，“压缩上下文”显示列表折叠图标，命令描述符必须显式声明图标语义。
 - 所有文本输入框聚焦时保持原边框、背景与阴影，不再额外显示 focus 边框或 ring。
 - 粘贴或添加图片后，附件 token 显示真实图片缩略图，加载失败才退回通用图标；文件、技能、项目、工作区引用和面板应用等编辑器内嵌 token 共用 24px 高、16px 图标、7px 圆角和垂直居中的紧凑尺寸骨架。
 - 编辑器范围选区把 token 当作原子对象：选区跨过 token 时整块显示统一浅蓝选中态，并抑制缩略图、图标和内部文字各自出现碎片化原生高亮。
@@ -29,10 +30,14 @@
 - `pnpm --filter @nextclaw/ui build`：生产构建通过；仅保留既有大 chunk 提示。
 - 输入工具栏定向测试：3 个文件、35 条测试通过，覆盖两级菜单、连续多选、模型模糊搜索与管理入口。
 - 内嵌附件 token 定向测试：2 条测试通过，覆盖统一紧凑尺寸、真实图片缩略图和原子选区状态。
+- 命令图标定向测试：`@nextclaw/agent-chat-ui` 1 个文件、3 条测试通过；`@nextclaw/ui` 2 个文件、8 条测试通过，覆盖命令图标目录、适配传递与最终 DOM 渲染。
+- 命令图标类型验证：`pnpm --filter @nextclaw/agent-chat-ui tsc` 通过；`pnpm --filter @nextclaw/ui tsc` 中本次公共导出错误已消失，仍被并行工作区 4 个既有 `statusKind` / 调用参数测试错误阻塞。
+- 命令图标 lint：`pnpm --filter @nextclaw/agent-chat-ui lint` 与 `pnpm --filter @nextclaw/ui lint` 均通过。
 - `pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`pnpm check:generated-clean`：通过。
 - Playwright 真实页面验收：`http://127.0.0.1:5174/`，在 `1440x900` 与 `915x603` 视口分别检查中英文欢迎页，横向溢出均为 `0`；工作目录弹层可打开，点击“梳理当前项目”后同一编辑器写入完整提示词。
 - Playwright 真实交互验收：技能面板连续选择两项后仍保持打开，2 个选中勾同时存在；模型与“＋”按钮 hover 均为 `rgb(245, 245, 245)`；模型搜索输入聚焦前后 border/background/box-shadow 完全一致；`dsv4` 可命中 `deepseek-v4-flash`；管理入口指向 `/providers`；页面错误为 0。
 - Playwright 真实图片与选区验收：附件 token 实测高度 24px、缩略图 16px、圆角 7px、`vertical-align: middle`；全选后 token 的 `data-composer-selected=true`，整块背景为 `rgb(214, 234, 255)`、边框为 `rgb(184, 213, 245)`，与相邻正文选区连续显示。
+- 命令图标真实页面验收：在 `http://127.0.0.1:5174/chat/<session>` 的会话输入框用真实键盘输入 `/`，前两项分别渲染 `message-square-plus` 与 `list-collapse`；验收后原有 138 字草稿逐字恢复。
 
 ## 发布/部署方式
 
@@ -49,7 +54,8 @@
 6. 打开“＋ → 技能”，连续选择多个技能，确认浮层不关闭；关闭后“＋”旁不出现数量徽标。
 7. 打开模型选择，输入模型名称片段或缩写，确认可模糊匹配；底部“管理模型与提供商”可进入提供商页。
 8. 聚焦模型搜索、技能搜索及其他文本输入框，确认边框、背景和阴影均不跳变。
-9. 粘贴图片并输入正文、技能或上下文引用，确认所有内嵌 token 等高；全选内容时确认 token 整块进入选中态，不再只有文件名或技能名局部染蓝。
+10. 在已有任务的输入框中输入 `/`，确认“侧边对话”和“压缩上下文”显示不同且符合操作含义的图标。
+11. 粘贴图片并输入正文、技能或上下文引用，确认所有内嵌 token 等高；全选内容时确认 token 整块进入选中态，不再只有文件名或技能名局部染蓝。
 
 ## 可维护性总结汇总
 
@@ -59,9 +65,10 @@
 - 文件继续留在现有 `features/chat/features/welcome/components` 子 feature，未增加目录层级、barrel 或共享层抽象。
 - 守卫保留 7 条既有/临界预算预警；`chat-input-bar.test.tsx` 已从超限修回 893 行，新增模型搜索回归测试进入独立文件，未继续挤压该热点文件。
 - 可维护性复核结论：通过；无新增维护债务，非测试语义代码净减 56 行。
+- 命令图标增强为 `+21/-5/net +16`，其中非测试代码 `+11/-2/net +9`；由命令目录选择业务无关的图标原语，删除 slash-command 适配层对 `command` 的硬编码，同时保留共享组件已有的公共图标取值兼容。未新增 helper、条件分支或第二套映射；守卫 0 error，保留 `chat-input-surface-menu.tsx` 405/500 行的临界预算预警，达到预算线时再按稳定变化原因拆分。
 - 图片缩略图与富文本选区属于新增用户能力，相关 12 个文件守卫为 0 error、2 条临界文件预算预警；选区到 token DOM 的纯映射收敛在 editor-state 模块，owner 只负责调度，数据继续沿既有附件 token 与 Lexical selection 链路传递，没有新增平行附件状态或第二套编辑器选区模型。
 
 ## NPM 包发布记录
 
 - 本轮不涉及 NPM 包发布。
-- 源码触达 `@nextclaw/ui` 与 `@nextclaw/agent-chat-ui`；已添加 patch changeset，待后续统一发布批次处理。
+- 源码触达 `@nextclaw/ui` 与 `@nextclaw/agent-chat-ui`；命令图标增强已添加 patch changeset，待后续统一发布批次处理。

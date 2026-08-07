@@ -39,6 +39,10 @@ describe('useSessionConversationSlashCommands', () => {
     }));
     const command = result.current.find((entry) => entry.key === 'compact-context');
 
+    expect(result.current.map(({ key, icon }) => ({ key, icon }))).toEqual([
+      { key: 'side-chat', icon: 'message-square-plus' },
+      { key: 'compact-context', icon: 'list-collapse' },
+    ]);
     act(() => command?.onSelect());
 
     await waitFor(() => expect(compactNcpSessionContext).toHaveBeenCalledWith('session-1'));
