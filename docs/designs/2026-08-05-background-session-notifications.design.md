@@ -40,7 +40,8 @@ kernel EventBus: ncp.event(message.completed)
   -> AppNotificationManager.show({ id, title, description, href })
   -> Sonner global toaster
   -> AppNotificationToast
-  -> 点击 Link，dismiss 后进入目标会话
+  -> 点击正文：dismiss 后进入目标会话
+  -> 点击关闭：仅 dismiss 当前通知
 ```
 
 状态与不变量：
@@ -56,7 +57,7 @@ kernel EventBus: ncp.event(message.completed)
 - 位置：复用全局 `top-right` toaster；参考图按 Retina 比例还原为约 320px 宽、74px 高，桌面顶部留 44px，移动端右侧留 16px。NextClaw 桌面端右侧额外避让 Side Dock，这是相对参考图唯一显著的布局适配。
 - 结构：左侧 24px NextClaw 图标容器，卡片水平 inset 18px、图文间距 12px；右侧一行加粗会话名和一行低对比回复摘要，长内容使用省略号，保持参考图的固定紧凑高度。
 - 视觉：20px 圆角、低对比边框、实体主题背景，以及约 18px 落幅的克制双层阴影；不使用大面积 blur、透明材质或 hover 上浮，避免比参考图更厚重。
-- 操作：整张卡片是内部路由链接；点击时关闭当前通知并打开目标会话。键盘可聚焦，保留 `focus-visible`，不主动抢焦点。
+- 操作：正文区域是内部路由链接，点击时关闭当前通知并打开目标会话；右上角始终展示独立关闭按钮，仅移除当前通知，不触发跳转或改变会话状态。两个操作都是同级语义控件，键盘可分别聚焦，保留 `focus-visible`，不主动抢焦点。
 - 生命周期：默认展示 8 秒；多条通知由 Sonner 堆叠；相同消息 ID 去重。
 - 当前会话完成回复时不弹窗，避免重复反馈；用户在其它会话或其它页面时弹窗。
 
@@ -84,7 +85,7 @@ Chat 事件到通知的业务映射仍留在 `features/chat/managers/`；应用�
 ## 验收标准
 
 - manager 单测覆盖：后台 assistant final 弹出、Markdown 摘要转为可读纯文本、当前会话及其后续重放不弹、非 assistant/非 final/隐藏消息不弹、重复消息 ID 去重、start/stop 幂等。
-- 组件测试覆盖：真实 link 语义、标题与两行摘要、点击关闭、无路由通知保持非链接状态。
+- 组件测试覆盖：真实 link 语义、标题与两行摘要、正文点击跳转、独立关闭不跳转、无路由通知保持非链接状态但仍可关闭。
 - App/页面连接测试覆盖：全局 runtime 启停订阅；Chat 路由切换同步 active session，卸载时清空。
 - TypeScript `tsc`、定向 ESLint、相关 Vitest、Vite build、new-code governance 与 maintainability 检查通过。
 - 真实浏览器在正常桌面、窄桌面和移动宽度下触发通知并截图，验证位置、宽度、文字截断、点击跳转、焦点语义和主题对比度。

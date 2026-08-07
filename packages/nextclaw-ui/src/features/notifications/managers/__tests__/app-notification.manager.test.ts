@@ -5,6 +5,7 @@ import {
   AppNotificationToast,
   type AppNotificationToastProps,
 } from "@/features/notifications";
+import { t } from "@/shared/lib/i18n";
 
 const mocks = vi.hoisted(() => ({
   custom: vi.fn(),
@@ -54,6 +55,7 @@ describe("AppNotificationManager", () => {
       title: "Research complete",
       description: "The findings are ready.",
       href: "/chat/session-1",
+      dismissLabel: t("notificationDismiss"),
     }));
 
     element.props.onDismiss();
