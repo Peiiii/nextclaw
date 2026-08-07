@@ -1,5 +1,11 @@
 # @nextclaw/service
 
+## 0.3.22
+
+### Patch Changes
+
+- 817f30a: Make fresh installs truly ready to use: initialize the packaged workspace templates correctly and tell users that the built-in OpenCode Zen model can be used without an API key.
+
 ## 0.3.21
 
 ### Patch Changes
