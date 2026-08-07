@@ -60,6 +60,26 @@ describe("ContextCompactionService", () => {
     expect(plan?.coveredMessages.map((message) => message.ncp_message_id)).toContain("large-previous-reply");
   });
 
+  it("covers the full conversation for a mid-run compaction", () => {
+    const service = new ContextCompactionService();
+    const messages = [
+      { role: "system", content: "system prompt" },
+      assistantMessage("active-assistant", "tool result ".repeat(1_000)),
+    ];
+
+    const plan = service.prepareForModelInput({
+      messages,
+      contextTokens: 1_000,
+      compactionThresholdTokens: 20,
+      retainLatestMessage: false,
+    });
+
+    expect(plan?.coveredMessages.map((message) => message.ncp_message_id)).toEqual([
+      "active-assistant",
+    ]);
+    expect(plan?.retainedMessages).toEqual([]);
+  });
+
   it("returns system plus compressed summary and retained tail after compaction", async () => {
     const service = new ContextCompactionService();
     const messages = [

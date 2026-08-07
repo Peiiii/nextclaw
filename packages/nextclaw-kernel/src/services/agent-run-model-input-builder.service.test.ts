@@ -190,6 +190,82 @@ describe("AgentRunModelInputBuilder", () => {
     );
   });
 
+});
+
+describe("AgentRunModelInputBuilder mid-run continuation", () => {
+  it("continues a mid-run checkpoint without replaying covered tool parts", async () => {
+    const checkpoint: ContextCompactionCheckpoint = {
+      ...createCheckpoint(),
+      phase: "mid-run",
+      continuationMessageId: "active-assistant",
+      continuationMessageCoveredPartCount: 1,
+    };
+    const sourceMessages: NcpMessage[] = [
+      {
+        id: "active-assistant",
+        sessionId: SESSION_ID,
+        role: "assistant",
+        status: "streaming",
+        timestamp: "2026-06-05T17:12:00.000Z",
+        parts: [
+          {
+            type: "tool-invocation",
+            toolName: "lookup",
+            toolCallId: "covered-call",
+            state: "result",
+            args: { query: "covered" },
+            result: { canary: "COVERED_TOOL_RESULT" },
+          },
+          { type: "text", text: "New output after compaction." },
+        ],
+      },
+      createTimelineMessage(checkpoint),
+    ];
+    const messageProjector = {
+      project: vi.fn(() =>
+        buildContextCompactionModelInput({
+          sessionId: SESSION_ID,
+          sessionMessages: sourceMessages,
+        }),
+      ),
+    } as unknown as AgentRunMessageProjector;
+    const modelInputBudgeter = {
+      prune: vi.fn(async ({ messages }: { messages: readonly OpenAIChatMessage[] }) => ({
+        messages: [...messages],
+      })),
+    } as unknown as AgentRunModelInputBudgeter;
+
+    const input = await new AgentRunModelInputBuilder(
+      messageProjector,
+      modelInputBudgeter,
+    ).build({
+      spec: {
+        runId: "run-1",
+        agentId: "researcher",
+        model: "test-model",
+      },
+      sessionId: SESSION_ID,
+      messages: sourceMessages,
+      contextBlocks: [],
+      tools: [],
+    });
+
+    expect(input.messages).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        role: "user",
+        content: expect.stringContaining("Continue the active run"),
+      }),
+      expect.objectContaining({
+        role: "assistant",
+        content: "New output after compaction.",
+      }),
+    ]));
+    expect(input.messages.some((message) => message.role === "tool")).toBe(false);
+    expect(JSON.stringify(input.messages)).not.toContain("COVERED_TOOL_RESULT");
+  });
+});
+
+describe("AgentRunModelInputBuilder budget pruning", () => {
   it("keeps compressed context ahead of oversized bootstrap context when real pruning runs", async () => {
     const checkpoint = createCheckpoint();
     const sourceMessages = [

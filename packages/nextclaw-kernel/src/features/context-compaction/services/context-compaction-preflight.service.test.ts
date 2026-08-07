@@ -281,6 +281,114 @@ describe("ContextCompactionPreflightService", () => {
       "large-previous-reply",
     );
   });
+
+});
+
+describe("ContextCompactionPreflightService mid-run compaction", () => {
+  it("records a part boundary and keeps only later parts after mid-run compaction", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => ({
+        content: "# Compressed Working Context\n\nThe lookup completed.\n\n## Continuation Contract\nContinue after the lookup.",
+      })),
+    };
+    const service = new ContextCompactionPreflightService(
+      createAgentManager(),
+      providerManager as never,
+    );
+    const activeAssistant: NcpMessage = {
+      id: "active-assistant",
+      sessionId: SESSION_ID,
+      role: "assistant",
+      status: "streaming",
+      timestamp: "2026-06-05T17:14:00.000Z",
+      parts: [
+        { type: "text", text: "Working. ".repeat(2_000) },
+        {
+          type: "tool-invocation",
+          toolName: "lookup",
+          toolCallId: "call-1",
+          state: "result",
+          args: { query: "context compaction" },
+          result: { ok: true },
+        },
+      ],
+    };
+    const beginResult = service.begin({
+      inputMessages: [],
+      model: "run-selected-model",
+      phase: "mid-run",
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages: [activeAssistant],
+      storedAgentId: "main",
+      storedMetadata: {},
+    });
+
+    expect(beginResult.pendingCompaction?.plan.retainedMessages).toEqual([]);
+    const finishResult = await service.finish(beginResult.pendingCompaction!);
+    const checkpoint = finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY] as ContextCompactionCheckpoint;
+    expect(checkpoint).toMatchObject({
+      phase: "mid-run",
+      continuationMessageId: "active-assistant",
+      continuationMessageCoveredPartCount: 2,
+    });
+
+    const projectedMessages = buildContextCompactionModelInput({
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        {
+          ...activeAssistant,
+          parts: [
+            ...activeAssistant.parts,
+            { type: "text", text: "New model output after compaction." },
+          ],
+        },
+        finishResult.timelineMessage!,
+      ],
+    });
+
+    expect(projectedMessages[0]).toMatchObject({ role: "service" });
+    expect(projectedMessages[1]).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: expect.stringContaining("Continue the active run") }],
+    });
+    expect(projectedMessages[2]).toMatchObject({
+      id: "active-assistant",
+      parts: [{ type: "text", text: "New model output after compaction." }],
+    });
+
+    const rollingAssistant: NcpMessage = {
+      ...activeAssistant,
+      parts: [
+        ...activeAssistant.parts,
+        { type: "text", text: `SECOND_ROUND_CANARY ${"next ".repeat(2_000)}` },
+      ],
+    };
+    const rollingBeginResult = service.begin({
+      inputMessages: [],
+      model: "run-selected-model",
+      phase: "mid-run",
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages: [rollingAssistant, finishResult.timelineMessage!],
+      storedAgentId: "main",
+      storedMetadata: {
+        [CONTEXT_COMPACTION_METADATA_KEY]: checkpoint,
+      },
+    });
+
+    const rollingFinishResult = await service.finish(rollingBeginResult.pendingCompaction!);
+    const rollingCheckpoint = rollingFinishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY] as ContextCompactionCheckpoint;
+    const rollingSummaryRequest = providerManager.chat.mock.calls[1]?.[0].messages[1]?.content ?? "";
+    expect(rollingSummaryRequest).toContain("The lookup completed.");
+    expect(rollingSummaryRequest).toContain("SECOND_ROUND_CANARY");
+    expect(rollingSummaryRequest).not.toContain("Working. Working.");
+    expect(rollingCheckpoint).toMatchObject({
+      phase: "mid-run",
+      continuationMessageId: "active-assistant",
+      continuationMessageCoveredPartCount: 3,
+    });
+  });
 });
 
 describe("ContextCompactionPreflightService rolling source", () => {

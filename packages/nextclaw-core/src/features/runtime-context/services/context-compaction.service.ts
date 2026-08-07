@@ -7,12 +7,17 @@ type ContextCompactionSummaryGenerator = (params: {
 
 export const CONTEXT_COMPACTION_METADATA_KEY = "last_context_compaction";
 
+export type ContextCompactionPhase = "pre-run" | "mid-run";
+
 export type ContextCompactionCheckpoint = {
   version: 1;
   id: string;
   status: "compressing" | "compressed";
+  phase?: ContextCompactionPhase;
   summary: string;
   coveredUntil?: string;
+  continuationMessageId?: string;
+  continuationMessageCoveredPartCount?: number;
   coveredMessageCount: number;
   coveredSessionMessageCount: number;
   originalEstimatedTokens: number;
@@ -61,8 +66,14 @@ export class ContextCompactionService {
     messages: RuntimeMessage[];
     contextTokens: number;
     compactionThresholdTokens?: number;
+    retainLatestMessage?: boolean;
   }): ContextCompactionPlan | null => {
-    const { compactionThresholdTokens, contextTokens, messages } = params;
+    const {
+      compactionThresholdTokens,
+      contextTokens,
+      messages,
+      retainLatestMessage = true,
+    } = params;
     const originalEstimate = this.inputBudgetPruner.estimate({
       messages,
       contextTokens,
@@ -74,8 +85,10 @@ export class ContextCompactionService {
 
     const leadingSystemMessage = isSystemMessage(messages[0]) ? messages[0] : null;
     const conversationMessages = leadingSystemMessage ? messages.slice(1) : messages;
-    const retainedMessages = conversationMessages.slice(-RETAINED_CURRENT_MESSAGE_COUNT);
-    const coveredMessages = conversationMessages.slice(0, -retainedMessages.length);
+    const retainedMessageCount = retainLatestMessage ? RETAINED_CURRENT_MESSAGE_COUNT : 0;
+    const coveredMessageCount = Math.max(0, conversationMessages.length - retainedMessageCount);
+    const retainedMessages = conversationMessages.slice(coveredMessageCount);
+    const coveredMessages = conversationMessages.slice(0, coveredMessageCount);
     if (coveredMessages.length === 0) {
       return null;
     }

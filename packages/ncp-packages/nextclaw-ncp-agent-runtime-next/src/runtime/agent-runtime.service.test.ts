@@ -349,6 +349,49 @@ describe("DefaultNcpAgentRuntime stream recovery", () => {
   });
 });
 
+describe("DefaultNcpAgentRuntime preflight", () => {
+  it("runs preflight again before continuing after tool results", async () => {
+    const phases: Array<"pre-run" | "mid-run"> = [];
+    let generateRound = 0;
+    const llmApi: NcpLLMApi = {
+      generate: async function* () {
+        generateRound += 1;
+        if (generateRound === 1) {
+          yield toolCallChunk(0, "call-1", "lookup", "{}");
+          yield finishChunk("tool_calls");
+          return;
+        }
+
+        yield finishChunk("stop");
+      },
+    };
+    const tool: NcpTool = {
+      execute: async () => ({ ok: true }),
+      name: "lookup",
+    };
+    const runtime = new DefaultNcpAgentRuntime({
+      llmApi,
+      modelInputBuilder,
+      runPreflight: async (input) => {
+        phases.push(input.phase);
+        return [];
+      },
+    });
+    const { sessionRun } = createSessionRun();
+
+    for await (const _event of runtime.run(spec, {
+      contextBlocks: [],
+      sessionRun,
+      tools: [tool],
+    })) {
+      // Consume the complete run.
+    }
+
+    expect(phases).toEqual(["pre-run", "mid-run"]);
+    expect(generateRound).toBe(2);
+  });
+});
+
 describe("DefaultNcpAgentRuntime tool call scheduling", () => {
   it("emits partial tool call args before the model round finishes", async () => {
     const partialArgsSeen = deferred();
