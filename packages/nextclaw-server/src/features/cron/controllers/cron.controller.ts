@@ -199,7 +199,7 @@ export class CronRoutesController {
     const normalizedQuery = query.query?.trim().toLowerCase() ?? "";
     const filteredJobs = allJobs.filter(
       (job) => matchesCronListStatus(job, status) && matchesCronListQuery(job, normalizedQuery),
-    );
+    ).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
     const offset = offsetResult.value ?? 0;
     const jobs = limitResult.value === null
       ? filteredJobs

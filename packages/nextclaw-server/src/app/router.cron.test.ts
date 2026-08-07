@@ -168,8 +168,8 @@ describe("cron routes", () => {
     };
     expect(defaultPayload.data.total).toBe(2);
     expect(defaultPayload.data.jobs).toMatchObject([
-      { id: "job-enabled", enabled: true },
-      { id: "job-disabled", enabled: false }
+      { id: "job-disabled", enabled: false },
+      { id: "job-enabled", enabled: true }
     ]);
     expect(defaultPayload.data.summary).toEqual({
       total: 2,
@@ -178,6 +178,14 @@ describe("cron routes", () => {
       attention: 0,
     });
     expect(cron.listJobs).toHaveBeenNthCalledWith(1, true);
+
+    const firstPageResponse = await app.request("http://localhost/api/cron?offset=0&limit=1");
+    expect(firstPageResponse.status).toBe(200);
+    const firstPagePayload = await firstPageResponse.json() as {
+      ok: true;
+      data: { jobs: Array<{ id: string }> };
+    };
+    expect(firstPagePayload.data.jobs).toMatchObject([{ id: "job-disabled" }]);
 
     const enabledOnlyResponse = await app.request("http://localhost/api/cron?enabledOnly=1");
     expect(enabledOnlyResponse.status).toBe(200);
@@ -190,7 +198,7 @@ describe("cron routes", () => {
     };
     expect(enabledOnlyPayload.data.total).toBe(1);
     expect(enabledOnlyPayload.data.jobs).toMatchObject([{ id: "job-enabled", enabled: true }]);
-    expect(cron.listJobs).toHaveBeenNthCalledWith(2, true);
+    expect(cron.listJobs).toHaveBeenNthCalledWith(3, true);
 
     const pagedResponse = await app.request(
       "http://localhost/api/cron?status=disabled&query=disabled&offset=0&limit=1",
@@ -207,7 +215,7 @@ describe("cron routes", () => {
     expect(pagedPayload.data.total).toBe(1);
     expect(pagedPayload.data.jobs).toMatchObject([{ id: "job-disabled", enabled: false }]);
     expect(pagedPayload.data.summary.total).toBe(2);
-    expect(cron.listJobs).toHaveBeenNthCalledWith(3, true);
+    expect(cron.listJobs).toHaveBeenNthCalledWith(4, true);
 
     const invalidResponse = await app.request("http://localhost/api/cron?limit=0");
     expect(invalidResponse.status).toBe(400);
