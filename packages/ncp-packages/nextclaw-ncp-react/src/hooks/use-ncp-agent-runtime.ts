@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
+import { DefaultNcpAgentConversationStateManager, insertMessageByTimeline } from "@nextclaw/ncp-toolkit";
 import {
   type NcpAgentClientEndpoint,
   type NcpAgentSendEnvelope,
@@ -249,10 +249,10 @@ export function useNcpAgentRuntime({
   const messagesWithOptimistic = optimisticMessage &&
     optimisticMessage.sessionId === sessionId &&
     !snapshot.messages.some((message) => message.id === optimisticMessage.id)
-    ? [...snapshot.messages, optimisticMessage]
+    ? insertMessageByTimeline(snapshot.messages, optimisticMessage)
     : snapshot.messages;
   const visibleMessages: readonly NcpMessage[] = snapshot.streamingMessage
-    ? [...messagesWithOptimistic, snapshot.streamingMessage]
+    ? insertMessageByTimeline(messagesWithOptimistic, snapshot.streamingMessage)
     : messagesWithOptimistic;
 
   const activeRunId = snapshot.activeRun?.runId ?? null;

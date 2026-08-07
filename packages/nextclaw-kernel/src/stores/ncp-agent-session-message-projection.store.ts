@@ -19,7 +19,7 @@ import {
   serializeNcpAgentSessionMessageLocation
 } from "@kernel/utils/ncp-agent-session-message-projection.utils.js";
 
-const PROJECTION_VERSION = 2;
+const PROJECTION_VERSION = 3;
 const PROJECTION_ROOT_DIRECTORY = ".message-projections";
 
 type MessageProjectionMeta = {

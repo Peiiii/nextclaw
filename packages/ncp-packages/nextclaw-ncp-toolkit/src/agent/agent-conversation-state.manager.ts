@@ -254,11 +254,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         )
       );
       this.replaceStreamingMessage(null);
-      if (targetMessageId) {
-        this.toolCalls.clearByMessageId(targetMessageId);
-      } else {
-        this.toolCalls.clearByMessageId(streamingMessageId);
-      }
+      this.toolCalls.clearByMessageId(targetMessageId || streamingMessageId);
       this.toolCalls.markAborted(toolCallIds);
     }
   };
@@ -373,6 +369,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   handleRunStarted = (payload: NcpRunStartedPayload): void => {
     if (this.isSettledRunId(payload.runId)) return;
+    if (this.streamingMessage && this.activeRun?.runId !== payload.runId) {
+      this.handleMessageAbort({ sessionId: this.streamingMessage.sessionId, messageId: this.streamingMessage.id });
+    }
     this.runExecution.clear();
     this.setError(null);
     this.activeRun = {

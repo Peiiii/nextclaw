@@ -275,6 +275,59 @@ describe("useNcpAgentRuntime", () => {
     expect(result.current.visibleMessages).toEqual([envelope.message]);
   });
 
+  it("keeps an earlier streaming assistant before a later optimistic user message", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    manager.hydrate({
+      sessionId: "session-existing",
+      messages: [
+        {
+          id: "user-first",
+          sessionId: "session-existing",
+          role: "user",
+          status: "final",
+          parts: [{ type: "text", text: "start" }],
+          timestamp: "2026-05-14T00:00:00.000Z",
+        },
+        {
+          id: "assistant-old",
+          sessionId: "session-existing",
+          role: "assistant",
+          status: "streaming",
+          parts: [{ type: "text", text: "working" }],
+          timestamp: "2026-05-14T00:00:01.000Z",
+        },
+      ],
+    });
+    await manager.dispatch({
+      type: NcpEventType.MessageTextStart,
+      payload: { sessionId: "session-existing", messageId: "assistant-old" },
+    });
+    const { result } = renderHook(() =>
+      useNcpAgentRuntime({ sessionId: "session-existing", client, manager: manager as never }),
+    );
+
+    await act(async () => {
+      await result.current.send({
+        sessionId: "session-existing",
+        message: {
+          id: "user-later",
+          sessionId: "session-existing",
+          role: "user",
+          status: "final",
+          parts: [{ type: "text", text: "later" }],
+          timestamp: "2026-05-14T00:00:02.000Z",
+        },
+      });
+    });
+
+    expect(result.current.visibleMessages.map((message) => message.id)).toEqual([
+      "user-first",
+      "assistant-old",
+      "user-later",
+    ]);
+  });
+
   it("marks an optimistic user message as failed when send fails", async () => {
     const client = new DeferredSendClient();
     const manager = new DefaultNcpAgentConversationStateManager();
