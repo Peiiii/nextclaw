@@ -8,6 +8,7 @@ export {
   buildModelStateHint,
   buildModelToolbarSelect,
   buildThinkingToolbarSelect,
+  toChatModelRecords,
 } from "./chat-input-toolbar.utils";
 import type {
   ChatInputBarAdapterTexts,

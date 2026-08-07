@@ -7,11 +7,42 @@ import type {
   ChatModelRecord,
   ChatThinkingLevel,
 } from "@/features/chat/types/chat-input-bar.types";
+import type { ChatModelOption } from "@/features/chat/types/chat-input.types";
 
 function formatModelOptionLabel(option: ChatModelRecord): string {
   const modelLabel = option.modelLabel.trim();
   const providerLabel = option.providerLabel.trim();
   return providerLabel ? `${providerLabel}/${modelLabel}` : modelLabel;
+}
+
+function buildDiscoveredModelGroups(options: ChatModelRecord[]) {
+  const groups = new Map<string, { key: string; label: string; options: Array<{ value: string; label: string }> }>();
+  for (const option of options) {
+    const separatorIndex = option.value.indexOf('/');
+    const providerKey = separatorIndex > 0 ? option.value.slice(0, separatorIndex) : option.providerLabel;
+    const group = groups.get(providerKey) ?? {
+      key: providerKey,
+      label: option.providerLabel,
+      options: [],
+    };
+    group.options.push({ value: option.value, label: option.modelLabel });
+    groups.set(providerKey, group);
+  }
+  return [...groups.values()];
+}
+
+export function toChatModelRecords(snapshotModels: ChatModelOption[]): ChatModelRecord[] {
+  return snapshotModels.map((model) => ({
+    value: model.value,
+    modelLabel: model.modelLabel,
+    providerLabel: model.providerLabel,
+    thinkingCapability: model.thinkingCapability
+      ? {
+          supported: model.thinkingCapability.supported as ChatThinkingLevel[],
+          default: (model.thinkingCapability.default as ChatThinkingLevel | null | undefined) ?? null,
+        }
+      : null,
+  }));
 }
 
 function normalizeThinkingLevels(
@@ -60,22 +91,30 @@ export function buildModelStateHint(params: {
 
 export function buildModelToolbarSelect({
   modelOptions,
+  discoveredModelOptions,
   favoriteModelValues,
   recentModelValues,
   selectedModel,
   isModelOptionsLoading,
   hasModelOptions,
   onFavoriteToggle,
+  onDiscoveredModelSelect,
+  onDiscoveredModelsDismiss,
+  onOpen,
   onValueChange,
   texts,
 }: {
   modelOptions: ChatModelRecord[];
+  discoveredModelOptions?: ChatModelRecord[];
   favoriteModelValues?: string[];
   recentModelValues?: string[];
   selectedModel: string;
   isModelOptionsLoading: boolean;
   hasModelOptions: boolean;
   onFavoriteToggle?: (value: string, favorite: boolean) => void;
+  onDiscoveredModelSelect?: (value: string) => Promise<void> | void;
+  onDiscoveredModelsDismiss?: () => void;
+  onOpen?: () => void;
   onValueChange: (value: string) => void;
   texts: Pick<
     ChatInputBarAdapterTexts,
@@ -87,6 +126,11 @@ export function buildModelToolbarSelect({
     | "favoriteModelLabel"
     | "unfavoriteModelLabel"
     | "manageModelsLabel"
+    | "discoveredModelsSummaryLabel"
+    | "discoveredModelsViewLabel"
+    | "discoveredModelsGroupLabel"
+    | "discoveredModelAddLabel"
+    | "discoveredModelsDismissLabel"
     | "recentModelsLabel"
     | "allModelsLabel"
   >;
@@ -143,6 +187,7 @@ export function buildModelToolbarSelect({
           },
         ].filter((group) => group.options.length > 0)
     : undefined;
+  const discoveryOptions = discoveredModelOptions ?? [];
 
   return {
     key: "model",
@@ -157,7 +202,7 @@ export function buildModelToolbarSelect({
       label: formatModelOptionLabel(option),
     })),
     groups: optionGroups,
-    disabled: !hasModelOptions,
+    disabled: !hasModelOptions && discoveryOptions.length === 0,
     loading: isModelOptionsLoading,
     emptyLabel: texts.modelNoOptionsLabel,
     search: {
@@ -173,8 +218,22 @@ export function buildModelToolbarSelect({
           onToggle: onFavoriteToggle,
         }
       : undefined,
+    discovery: onDiscoveredModelSelect && onDiscoveredModelsDismiss && discoveryOptions.length > 0
+      ? {
+          summaryLabel: texts.discoveredModelsSummaryLabel.replace('{count}', String(discoveryOptions.length)),
+          viewLabel: texts.discoveredModelsViewLabel,
+          groupLabel: texts.discoveredModelsGroupLabel,
+          allGroupLabel: texts.allModelsLabel,
+          actionLabel: texts.discoveredModelAddLabel,
+          dismissLabel: texts.discoveredModelsDismissLabel,
+          groups: buildDiscoveredModelGroups(discoveryOptions),
+          onDismiss: onDiscoveredModelsDismiss,
+          onSelect: onDiscoveredModelSelect,
+        }
+      : undefined,
     manageLabel: texts.manageModelsLabel,
     manageHref: "/providers",
+    onOpen,
     onValueChange,
   };
 }

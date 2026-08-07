@@ -3,6 +3,7 @@ export * from "@kernel/managers/agent.manager.js";
 export * from "@kernel/managers/access.manager.js";
 export * from "@kernel/managers/skill.manager.js";
 export * from "@kernel/managers/llm-provider.manager.js";
+export * from "@kernel/managers/provider-model-catalog.manager.js";
 export * from "@kernel/managers/automation.manager.js";
 export * from "@kernel/managers/channel.manager.js";
 export * from "@kernel/managers/config.manager.js";

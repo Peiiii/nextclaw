@@ -1,6 +1,7 @@
 import {
   LLMProvider,
   LiteLLMProvider,
+  ProviderModelDiscoveryService,
   ProviderRegistry,
   modelSupportsVision,
   normalizeProviderModelConfig,
@@ -8,6 +9,7 @@ import {
   type LLMResponse,
   type LLMStreamEvent,
   type ProviderConfig,
+  type ProviderModelDiscoveryResult,
   type ThinkingLevel,
 } from "@nextclaw/core";
 import { BUILTIN_PROVIDER_PLUGINS } from "@nextclaw/runtime";
@@ -50,6 +52,14 @@ type ProviderConnectionTestInput = {
   signal?: AbortSignal;
 };
 
+export type ProviderModelsDiscoverInput = {
+  providerName: string | null;
+  apiKey?: string | null;
+  apiBase?: string | null;
+  extraHeaders?: Record<string, string> | null;
+  signal?: AbortSignal;
+};
+
 const normalizedModel = (value: string | null | undefined): string | null => {
   const trimmed = typeof value === "string" ? value.trim() : "";
   return trimmed || null;
@@ -83,6 +93,7 @@ class MissingKernelProvider extends LLMProvider {
 
 export class LlmProviderManager {
   private readonly providerRegistry: ProviderRegistry;
+  private readonly providerModelDiscovery = new ProviderModelDiscoveryService();
   private readonly providerPool = new Map<string, LLMProvider>();
   private readonly missingProvider = new MissingKernelProvider("gpt-4o");
   private config: Config | null = null;
@@ -153,6 +164,32 @@ export class LlmProviderManager {
       messages: input.messages,
       model: input.defaultModel,
       maxTokens: input.maxTokens,
+      signal: input.signal,
+    });
+  };
+
+  supportsModelDiscovery = (providerName: string | null): boolean => {
+    if (!providerName) {
+      return true;
+    }
+    const providerSpec = this.providerRegistry.findProviderByName(providerName);
+    return providerSpec ? Boolean(providerSpec.modelDiscovery) : true;
+  };
+
+  discoverModels = async (
+    input: ProviderModelsDiscoverInput,
+  ): Promise<ProviderModelDiscoveryResult> => {
+    const providerSpec = input.providerName
+      ? this.providerRegistry.findProviderByName(input.providerName)
+      : undefined;
+    if (!this.supportsModelDiscovery(input.providerName)) {
+      throw new Error("This provider does not expose a model discovery endpoint.");
+    }
+    return await this.providerModelDiscovery.discover({
+      providerSpec,
+      apiKey: this.resolveProviderApiKey(input.providerName, input.apiKey),
+      apiBase: input.apiBase ?? providerSpec?.defaultApiBase ?? null,
+      extraHeaders: input.extraHeaders,
       signal: input.signal,
     });
   };

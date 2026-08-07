@@ -54,6 +54,23 @@ export type ProviderModelSpec = {
   vision?: boolean;
 };
 
+export type ProviderModelDiscoverySpec =
+  | {
+      kind: "openai-compatible";
+      path?: string;
+    }
+  | {
+      kind: "anthropic";
+      path?: string;
+      anthropicVersion?: string;
+    }
+  | {
+      kind: "models-dev";
+      url: string;
+      providerId: string;
+      freeOnly?: boolean;
+    };
+
 export type ProviderSpec = {
   name: string;
   keywords: string[];
@@ -63,6 +80,7 @@ export type ProviderSpec = {
   modelPrefix?: string;
   defaultModels?: string[];
   modelConfig?: Record<string, ProviderModelSpec>;
+  modelDiscovery?: ProviderModelDiscoverySpec | false;
   defaultHeaders?: Record<string, string>;
   litellmPrefix?: string;
   skipPrefixes?: string[];

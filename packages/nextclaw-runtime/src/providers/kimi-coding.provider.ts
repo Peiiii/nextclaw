@@ -17,6 +17,7 @@ export const kimiCodingProviderSpec: ProviderSpec = {
   detectByKeyPrefix: "",
   detectByBaseKeyword: "api.kimi.com/coding",
   defaultApiBase: "https://api.kimi.com/coding",
+  modelDiscovery: false,
   stripModelPrefix: false,
   modelOverrides: [],
   logo: "moonshot.png",

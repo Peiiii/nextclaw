@@ -4,6 +4,7 @@ import {
   fetchConfigMeta,
   fetchConfigSchema,
   fetchProviders,
+  fetchProviderModelCatalog,
   fetchProviderTemplates,
   updateModel,
   updateSearch,
@@ -11,6 +12,7 @@ import {
   deleteProvider,
   updateProvider,
   testProviderConnection,
+  discoverProviderModels,
   startProviderAuth,
   pollProviderAuth,
   importProviderAuthFromCli,
@@ -21,6 +23,7 @@ import {
 } from '@/shared/lib/api';
 import { toast } from 'sonner';
 import { t } from '@/shared/lib/i18n';
+import type { ProvidersView } from '@/shared/lib/api';
 
 export function useConfig() {
   return useQuery({
@@ -53,6 +56,20 @@ export function useProviderTemplates() {
     queryKey: ['provider-templates'],
     queryFn: fetchProviderTemplates,
     staleTime: Infinity
+  });
+}
+
+export function useProviderModelCatalog(options: {
+  pollWhileRefreshing?: boolean;
+  refreshOnMount?: boolean;
+} = {}) {
+  return useQuery({
+    queryKey: ['provider-model-catalog'],
+    queryFn: fetchProviderModelCatalog,
+    staleTime: 30_000,
+    refetchInterval: (query) => options.pollWhileRefreshing && query.state.data?.refreshing ? 1_000 : false,
+    refetchOnMount: options.refreshOnMount ? 'always' : true,
+    refetchOnWindowFocus: true
   });
 }
 
@@ -101,7 +118,15 @@ export function useUpdateProvider() {
   return useMutation({
     mutationFn: ({ provider, data }: { provider: string; data: unknown; silentSuccess?: boolean }) =>
       updateProvider(provider, data as Parameters<typeof updateProvider>[1]),
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
+      queryClient.setQueryData<ProvidersView>(['providers'], (current) => current
+        ? {
+            providers: {
+              ...current.providers,
+              [variables.provider]: data,
+            },
+          }
+        : current);
       queryClient.invalidateQueries({ queryKey: ['providers'] });
       queryClient.invalidateQueries({ queryKey: ['config'] });
       if (!variables.silentSuccess) {
@@ -151,6 +176,13 @@ export function useTestProviderConnection() {
   return useMutation({
     mutationFn: ({ provider, data }: { provider: string; data: unknown }) =>
       testProviderConnection(provider, data as Parameters<typeof testProviderConnection>[1])
+  });
+}
+
+export function useDiscoverProviderModels() {
+  return useMutation({
+    mutationFn: ({ provider, data }: { provider: string; data: unknown }) =>
+      discoverProviderModels(provider, data as Parameters<typeof discoverProviderModels>[1])
   });
 }
 

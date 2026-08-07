@@ -16,6 +16,7 @@ const MINIMAX_PORTAL_PROVIDER_SPEC: ProviderSpec = {
   detectByBaseKeyword: '',
   defaultApiBase: 'https://api.minimax.io/v1',
   defaultModels: ['minimax-portal/MiniMax-M3', 'minimax-portal/MiniMax-M2.5', 'minimax-portal/MiniMax-M2.5-highspeed'],
+  modelDiscovery: false,
   modelConfig: { 'minimax-portal/MiniMax-M3': { vision: true } },
   stripModelPrefix: false,
   modelOverrides: [],

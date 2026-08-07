@@ -84,6 +84,18 @@ export type ChatToolbarSelectOptionAction = {
   onToggle: (value: string, active: boolean) => void;
 };
 
+export type ChatToolbarSelectDiscovery = {
+  summaryLabel: string;
+  viewLabel: string;
+  groupLabel: string;
+  allGroupLabel: string;
+  actionLabel: string;
+  dismissLabel: string;
+  groups: ChatToolbarSelectGroup[];
+  onDismiss: () => void;
+  onSelect: (value: string) => Promise<void> | void;
+};
+
 export type ChatToolbarSelect = {
   key: string;
   value?: string;
@@ -97,8 +109,10 @@ export type ChatToolbarSelect = {
   emptyLabel?: string;
   search?: ChatToolbarSelectSearch;
   optionAction?: ChatToolbarSelectOptionAction;
+  discovery?: ChatToolbarSelectDiscovery;
   manageLabel?: string;
   manageHref?: string;
+  onOpen?: () => void;
   onValueChange: (value: string) => void;
 };
 

@@ -70,13 +70,18 @@ function createControllerParams(params: {
       visibleMessages: [],
     },
     inputQuery: {
+      addDiscoveredModel: vi.fn(async () => null),
       defaultModel: 'test-model',
       defaultProjectRoot: null,
+      dismissDiscoveredModels: vi.fn(),
+      discoveredModelOptions: [],
       fallbackPreferredModel: undefined,
       fallbackPreferredThinking: undefined,
       isProviderStateResolved: true,
       isSkillsLoading: false,
       modelOptions: [],
+      providersView: null,
+      refreshProviderModelCatalog: vi.fn(),
       selectedSession: null,
       selectedSessionKey: 'session-1',
       sessionTypeState: {

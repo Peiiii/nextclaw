@@ -2,9 +2,14 @@ import {
   RUNTIME_DEFAULT_MODEL_VALUE,
   type RuntimeModelSelectionMode,
 } from '@nextclaw/shared';
-import type { ConfigView, ProvidersView, ProviderTemplatesView } from '@/shared/lib/api';
-import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
-import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/shared/lib/provider-models';
+import type { ConfigView, ProviderModelCatalogView, ProvidersView, ProviderTemplatesView } from '@/shared/lib/api';
+import type { ChatModelOption, DiscoveredChatModelOption } from '@/features/chat/types/chat-input.types';
+import {
+  buildProviderModelCatalog,
+  composeProviderModel,
+  resolveModelThinkingCapability,
+  toProviderLocalModel,
+} from '@/shared/lib/provider-models';
 
 function buildRuntimeDefaultModelOption(
   label: string,
@@ -48,6 +53,63 @@ export function buildNcpChatProviderModelOptions(params: {
     const providerCompare = left.providerLabel.localeCompare(right.providerLabel);
     return providerCompare === 0 ? left.modelLabel.localeCompare(right.modelLabel) : providerCompare;
   });
+}
+
+export function buildNcpChatDiscoveredModelOptions(params: {
+  catalogView: ProviderModelCatalogView | null;
+  config: ConfigView | null;
+  providersView: ProvidersView | null;
+  templatesView: ProviderTemplatesView | null;
+}): DiscoveredChatModelOption[] {
+  const { catalogView, config, providersView, templatesView } = params;
+  const remoteCatalog = catalogView?.providers ?? {};
+  const seen = new Set<string>();
+  return buildProviderModelCatalog({
+    providersView: providersView ?? undefined,
+    templatesView: templatesView ?? undefined,
+    config: config ?? undefined,
+  }).flatMap((provider) => {
+    if (!provider.configured) {
+      return [];
+    }
+    const configuredModels = new Set(provider.models);
+    return (remoteCatalog[provider.name]?.models ?? []).map((remoteModel): DiscoveredChatModelOption | null => {
+      const providerModel = toProviderLocalModel(remoteModel, provider.aliases);
+      const value = composeProviderModel(provider.prefix, providerModel);
+      if (!providerModel || !value || configuredModels.has(providerModel) || seen.has(value)) {
+        return null;
+      }
+      seen.add(value);
+      return {
+        value,
+        providerId: provider.name,
+        providerModel,
+        modelLabel: providerModel,
+        providerLabel: provider.displayName,
+        thinkingCapability: resolveModelThinkingCapability(
+          provider.modelThinking,
+          providerModel,
+          provider.aliases,
+        ),
+      };
+    }).filter((option): option is DiscoveredChatModelOption => option !== null);
+  });
+}
+
+export function filterNcpChatDiscoveredModelOptionsBySessionType(params: {
+  modelOptions: DiscoveredChatModelOption[];
+  modelSelectionMode?: RuntimeModelSelectionMode;
+  supportedModels?: string[];
+}): DiscoveredChatModelOption[] {
+  const { modelOptions, modelSelectionMode, supportedModels } = params;
+  if (modelSelectionMode === 'runtime-default') {
+    return [];
+  }
+  if (!supportedModels || supportedModels.length === 0) {
+    return modelOptions;
+  }
+  const supportedModelSet = new Set(supportedModels);
+  return modelOptions.filter((option) => supportedModelSet.has(option.value));
 }
 
 export function filterNcpChatModelOptionsBySessionType(params: {

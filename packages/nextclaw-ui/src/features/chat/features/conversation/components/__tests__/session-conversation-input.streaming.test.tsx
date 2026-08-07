@@ -237,13 +237,18 @@ function StreamingSessionConversationInputHarness({
     },
   }), []);
   const inputQuery = useMemo(() => ({
+    addDiscoveredModel: vi.fn(async () => null),
+    dismissDiscoveredModels: vi.fn(),
     defaultModel: undefined,
     defaultProjectRoot: null,
+    discoveredModelOptions: [],
     fallbackPreferredModel: undefined,
     fallbackPreferredThinking: undefined,
     isProviderStateResolved: true,
     isSkillsLoading: false,
     modelOptions: [],
+    providersView: null,
+    refreshProviderModelCatalog: vi.fn(),
     selectedSession: null,
     selectedSessionKey: null,
     sessionTypeState: {
@@ -383,8 +388,11 @@ function createAttachmentRunHandle(): NcpRunHandle {
 function AttachmentSubmitHarness({ send }: { readonly send: AttachmentSubmitAgentSend }) {
   const { inputActions, inputSnapshot } = useSessionConversationInputState();
   const inputQuery = useMemo(() => ({
+    addDiscoveredModel: vi.fn(async () => null),
+    dismissDiscoveredModels: vi.fn(),
     defaultModel: 'test-model',
     defaultProjectRoot: null,
+    discoveredModelOptions: [],
     fallbackPreferredModel: undefined,
     fallbackPreferredThinking: undefined,
     isProviderStateResolved: true,
@@ -397,6 +405,8 @@ function AttachmentSubmitHarness({ send }: { readonly send: AttachmentSubmitAgen
         thinkingCapability: null,
       },
     ],
+    providersView: null,
+    refreshProviderModelCatalog: vi.fn(),
     selectedSession: null,
     selectedSessionKey: 'session-attachment',
     sessionTypeState: {

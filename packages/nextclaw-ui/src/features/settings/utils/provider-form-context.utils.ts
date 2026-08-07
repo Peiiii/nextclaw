@@ -86,6 +86,7 @@ export function resolveProviderFormContext(input: ProviderFormContextInput) {
   const currentDisplayName = (resolvedProviderConfig.displayName || '').trim();
   const effectiveDisplayName = currentDisplayName || defaultDisplayName;
   const currentEnabled = resolvedProviderConfig.enabled !== false;
+  const supportsModelDiscovery = isCustomProvider || providerSpec?.supportsModelDiscovery === true;
   const providerModelAliases = normalizeModelList([providerSpec?.modelPrefix || providerSpec?.providerType || '', providerName || '']);
   const defaultApiBase = providerSpec?.defaultApiBase || '';
   const currentApiBase = resolvedProviderConfig.apiBase || defaultApiBase;
@@ -125,6 +126,7 @@ export function resolveProviderFormContext(input: ProviderFormContextInput) {
     providerConfig,
     providerModelAliases,
     resolvedProviderConfig,
+    supportsModelDiscovery,
     wireApiHint,
     ...wireApiContext
   };

@@ -21,6 +21,31 @@ export function addProviderLocalModel(models: string[], draft: string, aliases: 
   return { models: [...models, next], draft: '' };
 }
 
+export function mergeProviderLocalModels(
+  models: string[],
+  discoveredModels: string[],
+  aliases: string[]
+): { models: string[]; addedCount: number } {
+  const merged = [...models];
+  const known = new Set(models);
+  for (const discoveredModel of discoveredModels) {
+    const model = toProviderLocalModelId(discoveredModel, aliases);
+    if (model && !known.has(model)) {
+      known.add(model);
+      merged.push(model);
+    }
+  }
+  return { models: merged, addedCount: merged.length - models.length };
+}
+
+export function findProviderModelSuggestions(
+  models: string[],
+  catalogModels: string[],
+  aliases: string[]
+): string[] {
+  return mergeProviderLocalModels(models, catalogModels, aliases).models.slice(models.length);
+}
+
 export function removeProviderLocalModel(models: string[], modelConfig: ModelConfig, modelName: string): {
   models: string[];
   modelConfig: ModelConfig;

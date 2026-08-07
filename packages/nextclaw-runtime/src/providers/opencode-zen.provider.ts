@@ -24,6 +24,12 @@ export const opencodeZenProviderSpec: ProviderSpec = {
   anonymousApiKey: OPENCODE_ZEN_PUBLIC_API_KEY,
   defaultModels: [...OPENCODE_ZEN_FREE_MODELS],
   modelConfig: { ...OPENCODE_ZEN_MODEL_CONFIG },
+  modelDiscovery: {
+    kind: "models-dev",
+    url: "https://models.opencode.ai/api.json",
+    providerId: OPENCODE_ZEN_PROVIDER_ID,
+    freeOnly: true,
+  },
   stripModelPrefix: false,
   modelOverrides: [],
   supportsWireApi: true,

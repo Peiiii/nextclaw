@@ -29,9 +29,9 @@ import {
 } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import {
   buildModelStateHint,
-  type ChatModelRecord,
   type ChatSkillRecord,
   type ChatThinkingLevel,
+  toChatModelRecords,
 } from '@/features/chat/features/input/utils/chat-input-bar.utils';
 import {
   hasNcpChatModelOptions,
@@ -66,6 +66,7 @@ import {
   resolveThinkingForConversationModel,
 } from '@/features/chat/features/conversation/utils/session-conversation-input-toolbar.utils';
 import { SessionQueuedInputRows } from './session-queued-input-rows';
+import { toast } from 'sonner';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
 type SkillSource = SessionSkillEntryView['source'];
@@ -96,20 +97,6 @@ function toSkillRecords(
     description: record.description,
     descriptionZh: record.descriptionZh,
     badgeLabel: scopeLabels[record.source],
-  }));
-}
-
-function toModelRecords(snapshotModels: SessionConversationInputQuery['modelOptions']): ChatModelRecord[] {
-  return snapshotModels.map((model) => ({
-    value: model.value,
-    modelLabel: model.modelLabel,
-    providerLabel: model.providerLabel,
-    thinkingCapability: model.thinkingCapability
-      ? {
-          supported: model.thinkingCapability.supported as ChatThinkingLevel[],
-          default: (model.thinkingCapability.default as ChatThinkingLevel | null | undefined) ?? null,
-        }
-      : null,
   }));
 }
 
@@ -167,7 +154,7 @@ function useSessionConversationInputCollections(params: {
     () => toSkillRecords(sourceSkillRecords, skillScopeLabels, skillGroupLabels),
     [skillGroupLabels, skillScopeLabels, sourceSkillRecords],
   );
-  const modelRecords = useMemo(() => toModelRecords(modelOptions), [modelOptions]);
+  const modelRecords = useMemo(() => toChatModelRecords(modelOptions), [modelOptions]);
   return {
     skillRecords,
     modelRecords,
@@ -227,6 +214,10 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     skillGroupLabels: labels.skillGroupLabels,
     skillScopeLabels: labels.skillScopeLabels,
   });
+  const discoveredModelRecords = useMemo(
+    () => toChatModelRecords(inputQuery.discoveredModelOptions),
+    [inputQuery.discoveredModelOptions],
+  );
   const slashCommands = useSessionConversationSlashCommands({
     language,
     onContextCompactingChange,
@@ -308,7 +299,8 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   }, [inputActions]);
   const handleModelChange = useCallback((value: string) => {
     const nextThinkingLevel = resolveThinkingForConversationModel(
-      modelRecords.find((option) => option.value === value),
+      modelRecords.find((option) => option.value === value) ??
+        discoveredModelRecords.find((option) => option.value === value),
       selectedThinkingLevel,
     );
     inputActions.update({
@@ -328,10 +320,21 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     });
   }, [
     inputActions,
+    discoveredModelRecords,
     inputQuery.sessionTypeState.selectedSessionType,
     modelRecords,
     selectedThinkingLevel,
     syncSessionPreferences,
+  ]);
+  const handleDiscoveredModelSelect = useCallback(async (value: string) => {
+    const option = await inputQuery.addDiscoveredModel(value);
+    if (!option) {
+      toast.error(t('chatDiscoveredModelUnavailable'));
+      throw new Error('Discovered provider model is no longer available.');
+    }
+    toast.success(t('chatDiscoveredModelAdded').replace('{model}', option.modelLabel));
+  }, [
+    inputQuery,
   ]);
   const handleThinkingChange = useCallback((value: ChatThinkingLevel | null) => {
     inputActions.setSelectedThinkingLevel(value);
@@ -372,10 +375,16 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     favoriteModelsLabel: labels.favoriteModelsLabel,
     hasModelOptions,
     isModelOptionsLoading,
+    discoveredModelRecords,
     modelRecords,
     modelSearchEmptyLabel: labels.modelSearchEmptyLabel,
     modelSearchPlaceholder: labels.modelSearchPlaceholder,
     onFavoriteModelToggle: setModelFavorite,
+    onDiscoveredModelSelect: handleDiscoveredModelSelect,
+    onDiscoveredModelsDismiss: inputQuery.dismissDiscoveredModels,
+    onModelSelectOpen: () => {
+      void inputQuery.refreshProviderModelCatalog();
+    },
     onModelChange: handleModelChange,
     onThinkingChange: handleThinkingChange,
     recentModelValues,

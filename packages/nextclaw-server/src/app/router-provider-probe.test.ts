@@ -52,6 +52,15 @@ function createProviderProbeApp(configPath: string) {
       serviceAppManager: {} as never,
       sessionContextCompactionManager: {} as never,
       llmProviders: { testConnection: testConnectionMock } as unknown as LlmProviderManager,
+      providerModelCatalog: {
+        getSnapshot: () => ({
+          refreshIntervalMs: 43_200_000,
+          refreshing: false,
+          lastRefreshStartedAt: null,
+          lastRefreshCompletedAt: null,
+          providers: {},
+        }),
+      } as never,
     } satisfies UiKernelHost,
   });
 }

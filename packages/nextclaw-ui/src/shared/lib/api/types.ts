@@ -102,6 +102,11 @@ export type ProviderConnectionTestRequest = ProviderConfigUpdate & {
   model?: string | null;
 };
 
+export type ProviderModelDiscoveryRequest = Pick<
+  ProviderConfigUpdate,
+  'apiKey' | 'apiBase' | 'extraHeaders'
+>;
+
 export type ProviderCreateRequest = ProviderConfigUpdate & {
   providerId?: string | null;
 };
@@ -133,6 +138,30 @@ export type ProviderConnectionTestResult = {
   httpStatus?: number;
   endpoint?: string;
   hint?: string;
+};
+
+export type ProviderModelDiscoveryResult = {
+  provider: string;
+  models: string[];
+  source: 'provider' | 'catalog';
+  fetchedAt: string;
+};
+
+export type ProviderModelCatalogView = {
+  refreshIntervalMs: number;
+  refreshing: boolean;
+  lastRefreshStartedAt: string | null;
+  lastRefreshCompletedAt: string | null;
+  providers: Record<string, {
+    providerId: string;
+    models: string[];
+    source: 'provider' | 'catalog' | null;
+    fetchedAt: string | null;
+    lastError: {
+      message: string;
+      occurredAt: string;
+    } | null;
+  }>;
 };
 
 export type SearchProviderName = "bocha" | "tavily" | "brave";
@@ -651,6 +680,7 @@ export type ProviderTemplateView = {
     supportsCliImport?: boolean;
   };
   defaultModels?: string[];
+  supportsModelDiscovery?: boolean;
   modelConfig?: Record<string, {
     thinking?: { supported: ThinkingLevel[]; default?: ThinkingLevel | null };
     vision?: boolean;
