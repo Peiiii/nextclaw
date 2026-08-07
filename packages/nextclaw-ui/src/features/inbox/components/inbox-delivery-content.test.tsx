@@ -23,7 +23,7 @@ describe("InboxDeliveryContent", () => {
   it("renders static HTML in an isolated document", () => {
     render(
       <InboxDeliveryContent
-        content={'<meta http-equiv="refresh" content="0;url=https://example.com"><h1 onclick="alert(1)">Report</h1><script>alert(1)</script>'}
+        content={'<meta http-equiv="refresh" content="0;url=https://example.com"><h1 onclick="alert(1)">Report</h1><a href="https://example.com/report">Source</a><a href="javascript:alert(1)">Unsafe</a><script>alert(1)</script>'}
         contentType="html"
         fillHeight
         title="HTML report"
@@ -31,7 +31,9 @@ describe("InboxDeliveryContent", () => {
     );
 
     const frame = screen.getByTitle<HTMLIFrameElement>("HTML report");
-    expect(frame.getAttribute("sandbox")).toBe("");
+    expect(frame.getAttribute("sandbox")).toBe(
+      "allow-popups allow-popups-to-escape-sandbox",
+    );
     expect(frame.className).toContain("h-full");
     expect(frame.className).toContain("border-0");
     expect(frame.srcdoc).toContain("Content-Security-Policy");
@@ -40,6 +42,10 @@ describe("InboxDeliveryContent", () => {
     expect(frame.srcdoc).not.toContain("http-equiv=\"refresh\"");
     expect(frame.srcdoc).not.toContain("onclick");
     expect(frame.srcdoc).not.toContain("<script");
+    expect(frame.srcdoc).toContain('href="https://example.com/report"');
+    expect(frame.srcdoc).toContain('target="_blank"');
+    expect(frame.srcdoc).toContain('rel="noopener noreferrer"');
+    expect(frame.srcdoc).not.toContain("javascript:");
   });
 
   it("preserves the iframe instance while the surrounding view rerenders", () => {
