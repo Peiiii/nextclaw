@@ -13,6 +13,7 @@ export default defineConfig({
       "@nextclaw/server": new URL("../nextclaw-server/src/index.ts", import.meta.url).pathname,
       "@nextclaw-service/": new URL("./src/", import.meta.url).pathname,
       "@nextclaw-service": new URL("./src/index.ts", import.meta.url).pathname,
+      "@stdio-runtime-client": new URL("../nextclaw-ncp-runtime-stdio-client/src", import.meta.url).pathname,
       "@nextclaw/shared": new URL("../nextclaw-shared/src/index.ts", import.meta.url).pathname
     }
   }

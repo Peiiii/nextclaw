@@ -8,6 +8,7 @@ import {
   type NcpAgentRunInput,
   type NcpAgentRuntime,
   type NcpEndpointEvent,
+  type NcpMessagePart,
   NcpEventType,
 } from "@nextclaw/ncp";
 import type {
@@ -351,7 +352,7 @@ function buildRunInput(params: {
         role: "user",
         status: "final",
         timestamp: new Date().toISOString(),
-        parts: [{ type: "text", text: readPromptText(prompt) }],
+        parts: buildPromptParts(prompt),
       },
     ],
     contextBlocks: promptMeta.contextBlocks,
@@ -360,12 +361,30 @@ function buildRunInput(params: {
   };
 }
 
-function readPromptText(prompt: acp.PromptRequest["prompt"]): string {
-  const text = prompt
-    .map((block) => (block.type === "text" ? block.text : ""))
-    .join("\n")
-    .trim();
-  return text.length > 0 ? text : "[empty message]";
+function buildPromptParts(prompt: acp.PromptRequest["prompt"]): NcpMessagePart[] {
+  const parts: NcpMessagePart[] = [];
+  for (const block of prompt) {
+    if (block.type === "text") {
+      if (block.text.length > 0) {
+        parts.push({ type: "text", text: block.text });
+      }
+      continue;
+    }
+    if (block.type === "resource_link") {
+      parts.push({
+        type: "file",
+        name: block.name,
+        mimeType: block.mimeType ?? undefined,
+        url: block.uri,
+        sizeBytes: block.size ?? undefined,
+      });
+      continue;
+    }
+    throw new Error(
+      `[narp-stdio-wrapper] unsupported ACP prompt content block type: ${block.type}`,
+    );
+  }
+  return parts.length > 0 ? parts : [{ type: "text", text: "[empty message]" }];
 }
 
 function parseToolPayload(value: string): unknown {

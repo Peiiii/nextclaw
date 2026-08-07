@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
 
@@ -61,7 +62,10 @@ const RUN_INPUT: NcpAgentRunInput = {
   ],
 };
 
-async function runRuntime(threadId?: string): Promise<void> {
+async function runRuntime(
+  threadId?: string,
+  input: NcpAgentRunInput = RUN_INPUT,
+): Promise<void> {
   const runtime = new CodexAppServerNcpAgentRuntime({
     sessionId: "session-1",
     apiKey: "",
@@ -76,7 +80,7 @@ async function runRuntime(threadId?: string): Promise<void> {
     },
     desktopThreadIndexSync: false,
   });
-  for await (const _event of runtime.run(RUN_INPUT)) {
+  for await (const _event of runtime.run(input)) {
     // Drain the runtime output.
   }
 }
@@ -116,4 +120,36 @@ describe("CodexAppServerNcpAgentRuntime NextClaw instructions", () => {
       });
     },
   );
+
+  it("sends file resource links to Codex as local image input", async () => {
+    const imagePath = "/tmp/nextclaw-narp-reference.png";
+    await runRuntime(undefined, {
+      ...RUN_INPUT,
+      messages: [
+        {
+          ...RUN_INPUT.messages[0]!,
+          parts: [
+            {
+              type: "file",
+              name: "reference.png",
+              mimeType: "image/png",
+              url: pathToFileURL(imagePath).href,
+            },
+            { type: "text", text: "inspect this image" },
+          ],
+        },
+      ],
+    });
+
+    const turnRequest = appServer.requests.find(
+      (candidate) => candidate.method === "turn/start",
+    );
+    expect(turnRequest?.params.input).toEqual([
+      {
+        type: "text",
+        text: expect.stringContaining("[Attached Image: reference.png]"),
+      },
+      { type: "localImage", path: imagePath },
+    ]);
+  });
 });

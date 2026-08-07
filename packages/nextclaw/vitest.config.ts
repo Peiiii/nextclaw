@@ -9,6 +9,7 @@ export default defineConfig({
       "@core": path.resolve(__dirname, "../nextclaw-core/src"),
       "@nextclaw/shared": path.resolve(__dirname, "../nextclaw-shared/src/index.ts"),
       "@kernel": path.resolve(__dirname, "../nextclaw-kernel/src"),
+      "@stdio-runtime-client": path.resolve(__dirname, "../nextclaw-ncp-runtime-stdio-client/src"),
     },
   },
 });

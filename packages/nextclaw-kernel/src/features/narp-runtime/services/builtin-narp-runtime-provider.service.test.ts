@@ -22,6 +22,7 @@ function createRunInput(metadata?: Record<string, unknown>): NcpAgentRunInput {
 
 function createRuntimeConfig(params: {
   entryConfig?: Record<string, unknown>;
+  resolveAssetContentPath?: (assetUri: string) => string | null;
   sessionMetadata?: Record<string, unknown>;
 }) {
   const service = new BuiltinNarpRuntimeProviderService({
@@ -49,11 +50,13 @@ function createRuntimeConfig(params: {
       },
     },
     runtimeParams: {
+      resolveAssetContentPath: params.resolveAssetContentPath,
       sessionMetadata: params.sessionMetadata ?? {},
     },
   });
   return (runtime as never as {
     config: {
+      resolveAssetContentPath?: (assetUri: string) => string | null;
       resolveProviderRoute?: (input: NcpAgentRunInput) => unknown;
     };
   }).config;
@@ -120,5 +123,13 @@ describe("BuiltinNarpRuntimeProviderService", () => {
     expect(config.resolveProviderRoute?.(createRunInput({
       preferred_model: RUNTIME_DEFAULT_MODEL_VALUE,
     }))).toBeUndefined();
+  });
+
+  it("passes the kernel asset content resolver to the stdio runtime", () => {
+    const resolveAssetContentPath = (assetUri: string): string | null =>
+      assetUri === "asset://test/image" ? "/tmp/image.png" : null;
+    const config = createRuntimeConfig({ resolveAssetContentPath });
+
+    expect(config.resolveAssetContentPath).toBe(resolveAssetContentPath);
   });
 });
