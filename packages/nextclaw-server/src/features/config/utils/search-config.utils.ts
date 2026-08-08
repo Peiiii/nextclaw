@@ -18,10 +18,12 @@ import type {
 const MASK_MIN_LENGTH = 8;
 const BOCHA_OPEN_URL = "https://open.bocha.cn";
 const TAVILY_DOCS_URL = "https://docs.tavily.com/documentation/api-reference/endpoint/search";
-const SEARCH_PROVIDER_NAMES = ["bocha", "tavily", "brave"] as const;
+const EXA_DOCS_URL = "https://exa.ai/docs/reference/search";
+const SEARCH_PROVIDER_NAMES = ["bocha", "tavily", "brave", "exa"] as const;
 type BochaSearchPatch = NonNullable<NonNullable<SearchConfigUpdate["providers"]>["bocha"]>;
 type TavilySearchPatch = NonNullable<NonNullable<SearchConfigUpdate["providers"]>["tavily"]>;
 type BraveSearchPatch = NonNullable<NonNullable<SearchConfigUpdate["providers"]>["brave"]>;
+type ExaSearchPatch = NonNullable<NonNullable<SearchConfigUpdate["providers"]>["exa"]>;
 
 function normalizeOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -78,6 +80,13 @@ export const SEARCH_PROVIDER_META: ConfigMetaView["search"] = [
     displayName: "Brave Search",
     description: "Brave web search API kept as an optional provider.",
     supportsSummary: false
+  },
+  {
+    name: "exa",
+    displayName: "Exa Search",
+    description: "Semantic web search with extracted page content.",
+    docsUrl: EXA_DOCS_URL,
+    supportsSummary: true
   }
 ];
 
@@ -123,7 +132,8 @@ export function buildSearchView(config: Config): ConfigView["search"] {
     providers: {
       bocha: toSearchProviderView(config, "bocha", config.search.providers.bocha),
       tavily: toSearchProviderView(config, "tavily", config.search.providers.tavily),
-      brave: toSearchProviderView(config, "brave", config.search.providers.brave)
+      brave: toSearchProviderView(config, "brave", config.search.providers.brave),
+      exa: toSearchProviderView(config, "exa", config.search.providers.exa)
     }
   };
 }
@@ -285,24 +295,41 @@ function applyBraveSearchPatch(config: Config, patch: BraveSearchPatch | undefin
   );
 }
 
-export function updateSearch(configPath: string, patch: SearchConfigUpdate): ConfigView["search"] {
-  const config = loadConfig(configPath);
-  const nextConfig = applyBraveSearchPatch(
-    applyTavilySearchPatch(
-      applyBochaSearchPatch(
-        applySearchDefaultsPatch(
-          applyEnabledSearchProvidersPatch(
-            applyActiveSearchProviderPatch(config, patch.provider),
-            patch.enabledProviders
-          ),
-          patch.defaults
-        ),
-        patch.providers?.bocha
-      ),
-      patch.providers?.tavily
-    ),
-    patch.providers?.brave
+function applyExaSearchPatch(config: Config, patch: ExaSearchPatch | undefined): Config {
+  if (!patch) {
+    return config;
+  }
+  let nextRefs = config.secrets.refs;
+  let nextProvider = config.search.providers.exa;
+  if (Object.prototype.hasOwnProperty.call(patch, "apiKey")) {
+    nextProvider = { ...nextProvider, apiKey: patch.apiKey ?? "" };
+    nextRefs = clearSecretRef(nextRefs, "search.providers.exa.apiKey");
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "baseUrl")) {
+    nextProvider = {
+      ...nextProvider,
+      baseUrl: normalizeOptionalString(patch.baseUrl) ?? "https://api.exa.ai/search"
+    };
+  }
+  return replaceSearchConfig(
+    config,
+    {
+      ...config.search,
+      providers: { ...config.search.providers, exa: nextProvider }
+    },
+    nextRefs
   );
+}
+
+export function updateSearch(configPath: string, patch: SearchConfigUpdate): ConfigView["search"] {
+  let nextConfig = loadConfig(configPath);
+  nextConfig = applyActiveSearchProviderPatch(nextConfig, patch.provider);
+  nextConfig = applyEnabledSearchProvidersPatch(nextConfig, patch.enabledProviders);
+  nextConfig = applySearchDefaultsPatch(nextConfig, patch.defaults);
+  nextConfig = applyBochaSearchPatch(nextConfig, patch.providers?.bocha);
+  nextConfig = applyTavilySearchPatch(nextConfig, patch.providers?.tavily);
+  nextConfig = applyBraveSearchPatch(nextConfig, patch.providers?.brave);
+  nextConfig = applyExaSearchPatch(nextConfig, patch.providers?.exa);
   const next = ConfigSchema.parse(nextConfig);
   saveConfig(next, configPath);
   return buildSearchView(next);

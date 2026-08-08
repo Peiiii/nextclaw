@@ -15,6 +15,7 @@
   "searchProviderBochaDescription": "更适合中国大陆用户的 AI 搜索。",
   "searchProviderTavilyDescription": "更适合调研和网页信息整合的搜索 provider。",
   "searchProviderBraveDescription": "保留 Brave 作为可选 provider。",
+  "searchProviderExaDescription": "语义搜索并提取网页正文，适合调研和资料发现。",
   "searchStatusConfigured": "已配置",
   "searchStatusNeedsSetup": "待配置",
   "searchFreshnessNoLimit": "不限",

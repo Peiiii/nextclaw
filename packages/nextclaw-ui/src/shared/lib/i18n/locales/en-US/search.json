@@ -15,6 +15,7 @@
   "searchProviderBochaDescription": "AI-ready search that works better for mainland China users.",
   "searchProviderTavilyDescription": "Research-focused search with configurable answer synthesis.",
   "searchProviderBraveDescription": "Keep Brave as an optional provider.",
+  "searchProviderExaDescription": "Semantic search with page content for research and discovery.",
   "searchStatusConfigured": "Configured",
   "searchStatusNeedsSetup": "Needs Setup",
   "searchFreshnessNoLimit": "No Limit",

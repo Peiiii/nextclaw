@@ -52,7 +52,8 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   "providers.minimax.apiBase": "CN: https://api.minimaxi.com/v1; Global: https://api.minimax.io/v1",
   "search.providers.bocha.baseUrl": "https://api.bocha.cn/v1/web-search",
   "search.providers.brave.baseUrl": "https://api.search.brave.com/res/v1/web/search",
-  "search.providers.tavily.baseUrl": "https://api.tavily.com/search"
+  "search.providers.tavily.baseUrl": "https://api.tavily.com/search",
+  "search.providers.exa.baseUrl": "https://api.exa.ai/search"
 };
 
 const READ_ONLY_FIELDS = new Set<string>(["ui.host"]);

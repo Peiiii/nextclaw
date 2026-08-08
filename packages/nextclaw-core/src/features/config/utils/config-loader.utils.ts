@@ -132,6 +132,7 @@ function migrateSearchConfig(params: {
   const braveSearch = (rawSearchProviders.brave ?? {}) as Record<string, unknown>;
   const bochaSearch = (rawSearchProviders.bocha ?? {}) as Record<string, unknown>;
   const tavilySearch = (rawSearchProviders.tavily ?? {}) as Record<string, unknown>;
+  const exaSearch = (rawSearchProviders.exa ?? {}) as Record<string, unknown>;
 
   if (
     typeof legacyWebSearchConfig.apiKey === "string" &&
@@ -158,7 +159,7 @@ function migrateSearchConfig(params: {
 
   const currentEnabledProviders = collectStringArray(rawSearch.enabledProviders);
   const normalizedEnabledProviders = Array.from(new Set(
-    currentEnabledProviders.filter((value) => value === "bocha" || value === "tavily" || value === "brave")
+    currentEnabledProviders.filter((value) => value === "bocha" || value === "tavily" || value === "brave" || value === "exa")
   ));
   if (
     currentEnabledProviders.length !== normalizedEnabledProviders.length ||
@@ -175,7 +176,8 @@ function migrateSearchConfig(params: {
         ...rawSearchProviders,
         bocha: bochaSearch,
         tavily: tavilySearch,
-        brave: braveSearch
+        brave: braveSearch,
+        exa: exaSearch
       }
     },
     changed

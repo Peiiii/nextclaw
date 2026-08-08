@@ -34,6 +34,43 @@ function createSearchConfig(): SearchConfig {
       brave: {
         apiKey: "",
         baseUrl: "https://api.search.brave.com/res/v1/web/search"
+      },
+      exa: {
+        apiKey: "exa_test_key",
+        baseUrl: "https://api.exa.ai/search"
+      }
+    }
+  };
+}
+
+function createExaSearchConfig(): SearchConfig {
+  return {
+    provider: "exa",
+    enabledProviders: ["exa"],
+    defaults: {
+      maxResults: 5
+    },
+    providers: {
+      bocha: {
+        apiKey: "",
+        baseUrl: "https://api.bocha.cn/v1/web-search",
+        summary: true,
+        freshness: "noLimit",
+        docsUrl: "https://open.bocha.cn"
+      },
+      tavily: {
+        apiKey: "",
+        baseUrl: "https://api.tavily.com/search",
+        searchDepth: "basic",
+        includeAnswer: false
+      },
+      brave: {
+        apiKey: "",
+        baseUrl: "https://api.search.brave.com/res/v1/web/search"
+      },
+      exa: {
+        apiKey: "exa_test_key",
+        baseUrl: "https://api.exa.ai/search"
       }
     }
   };
@@ -82,6 +119,46 @@ describe("WebSearchTool", () => {
     );
     expect(result).toContain("Answer: Hydrogen is the lightest chemical element.");
     expect(result).toContain("- Hydrogen - Example");
+    expect(result).toContain("https://example.com/hydrogen");
+    expect(result).toContain("Example Docs | 2026-04-01");
+  });
+
+  it("calls Exa with provider-specific payload and formats results", async () => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            title: "Hydrogen - Exa",
+            url: "https://example.com/hydrogen",
+            text: "Hydrogen is the first element in the periodic table.",
+            publishedDate: "2026-04-01",
+            author: "Example Docs"
+          }
+        ]
+      })
+    });
+
+    const tool = new WebSearchTool(createExaSearchConfig());
+    const result = await tool.execute({ query: "what is hydrogen?", maxResults: 3 });
+
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      "https://api.exa.ai/search",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Authorization": "Bearer exa_test_key",
+          "Content-Type": "application/json"
+        }),
+        body: JSON.stringify({
+          query: "what is hydrogen?",
+          numResults: 3,
+          type: "auto",
+          contents: { text: true }
+        })
+      })
+    );
+    expect(result).toContain("- Hydrogen - Exa");
     expect(result).toContain("https://example.com/hydrogen");
     expect(result).toContain("Example Docs | 2026-04-01");
   });
