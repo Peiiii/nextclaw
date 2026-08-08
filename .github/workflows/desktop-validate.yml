@@ -463,6 +463,7 @@ jobs:
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop native-resources -- --platform linux --arch x64
           pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never
 
       - name: Normalize Linux artifact filenames
