@@ -104,6 +104,9 @@ class EchoAgent {
         ? meta.tools.map((tool) => tool?.function?.name).filter(Boolean)
         : [],
     };
+    if (process.env.NEXTCLAW_ECHO_PROMPT_INFO === "1") {
+      rawOutput.prompt = params.prompt;
+    }
     if (Array.isArray(meta.contextBlocks) && meta.contextBlocks.length > 0) {
       rawOutput.contextBlocks = meta.contextBlocks;
     }

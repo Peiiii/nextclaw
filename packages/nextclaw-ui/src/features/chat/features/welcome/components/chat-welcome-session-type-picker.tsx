@@ -39,7 +39,7 @@ export function ChatWelcomeSessionTypePicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+          className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-left font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
           aria-label={t('chatWelcomeSessionTypePickerLabel')}
         >
           {selectedOption.icon?.src ? (

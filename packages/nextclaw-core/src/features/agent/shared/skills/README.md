@@ -29,6 +29,6 @@ The skill format and metadata structure follow OpenClaw's conventions to maintai
 | `nextclaw-app-creator` | Create complete NextClaw lightweight apps by choosing Panel-only, Service-only, or Panel + Service |
 | `panel-app-creator` | Create the Panel App UI part of a NextClaw lightweight app |
 | `service-app-creator` | Create the Service App backend action part of a NextClaw lightweight app |
-| `cross-channel-messaging` | Resolve channel/account/user routes before sending or relaying messages |
+| `cross-channel-messaging` | Choose between a current reply, durable inbox delivery, and an explicit cross-channel send |
 | `qq-group-speaker-distinction` | Keep one QQ group session while preserving per-message speaker identity |
 | `qq-url-guard` | Avoid QQ outbound URL-like text blocks (e.g. xx.xx / USER.md / markdown links) |

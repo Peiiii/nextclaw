@@ -90,7 +90,9 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   expect(screen.queryByText("Input Summary")).toBeNull();
   expect(screen.queryByText("Call ID")).toBeNull();
   expect(screen.getByText("Typing...")).toBeTruthy();
-  expect(screen.getByTestId("chat-message-avatar-user")).toBeTruthy();
+  expect(screen.getByTestId("chat-message-avatar-user").className).toContain(
+    "nextclaw-chat-message-avatar-user",
+  );
   expect(container.querySelector(".nextclaw-chat-message-user")).toBeTruthy();
   expect(
     screen.getAllByTestId("chat-message-avatar-assistant").length,
@@ -172,6 +174,64 @@ it("opens persisted run metadata from the message more-actions menu", async () =
   expect(document.activeElement).toBe(
     screen.getByRole("button", { name: "More actions" }),
   );
+});
+
+it("renders accessible message actions and forwards the selected action", () => {
+  const onMessageAction = vi.fn();
+  const message = {
+    id: "user-editable",
+    role: "user" as const,
+    roleLabel: "You",
+    timestampLabel: "10:00",
+    parts: [{ type: "markdown" as const, text: "Edit me" }],
+    actions: [{
+      icon: "edit" as const,
+      key: "edit-message",
+      label: "Edit message",
+    }],
+  };
+  render(
+    <ChatMessageList
+      messages={[message]}
+      isSending={false}
+      hasAssistantDraft={false}
+      onMessageAction={onMessageAction}
+      texts={defaultTexts}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Edit message" }));
+  expect(onMessageAction).toHaveBeenCalledWith(
+    expect.objectContaining({ id: "user-editable" }),
+    expect.objectContaining({ key: "edit-message" }),
+  );
+});
+
+it("uses an outlined circle-play icon for continuing a message", () => {
+  render(
+    <ChatMessageList
+      messages={[{
+        id: "assistant-interrupted",
+        role: "assistant",
+        roleLabel: "Assistant",
+        timestampLabel: "10:01",
+        parts: [{ type: "markdown", text: "Partial response" }],
+        actions: [{
+          icon: "continue",
+          key: "continue-run",
+          label: "Continue running",
+        }],
+      }]}
+      isSending={false}
+      hasAssistantDraft={false}
+      onMessageAction={vi.fn()}
+      texts={defaultTexts}
+    />,
+  );
+
+  const icon = screen.getByTestId("chat-continue-message-icon");
+  expect(icon.querySelector("circle")).toBeTruthy();
+  expect(icon.getAttribute("class")).not.toContain("fill-current");
 });
 
 it("renders unknown parts with fallback label", () => {

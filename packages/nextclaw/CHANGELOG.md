@@ -1,5 +1,32 @@
 # nextclaw
 
+## 0.28.2
+
+### Patch Changes
+
+- 817f30a: Make fresh installs truly ready to use: initialize the packaged workspace templates correctly and tell users that the built-in OpenCode Zen model can be used without an API key.
+- Updated dependencies [817f30a]
+  - @nextclaw/service@0.3.22
+
+## 0.28.1
+
+### Patch Changes
+
+- dbececb: 修复并发消息完成时聊天记录偶发重叠的问题，并隐藏静默回复遗留的异常文本。
+- Updated dependencies [dbececb]
+- Updated dependencies [43b0e1d]
+- Updated dependencies [14f321a]
+  - @nextclaw/core@0.15.19
+  - @nextclaw/ncp-toolkit@0.6.17
+  - @nextclaw/kernel@0.6.21
+  - @nextclaw/runtime@0.4.19
+  - @nextclaw/server@0.15.21
+  - @nextclaw/service@0.3.21
+  - @nextclaw/mcp@0.3.19
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.20
+  - @nextclaw/remote@0.3.21
+  - @nextclaw/ncp-mcp@0.2.19
+
 ## 0.28.0
 
 ### Minor Changes

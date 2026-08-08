@@ -50,6 +50,19 @@ function response(): LLMResponse {
 }
 
 describe("LlmProviderManager", () => {
+  it("does not infer model discovery support from inference protocol compatibility", async () => {
+    const manager = new LlmProviderManager();
+
+    expect(manager.supportsModelDiscovery("dashscope")).toBe(false);
+    expect(manager.supportsModelDiscovery("dashscope-coding-plan")).toBe(false);
+    expect(manager.supportsModelDiscovery("openai")).toBe(true);
+    await expect(manager.discoverModels({
+      providerName: "dashscope",
+      apiKey: "sk-test",
+      apiBase: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    })).rejects.toThrow("does not expose a model discovery endpoint");
+  });
+
   it("keeps image inputs for builtin vision model specs when persisted modelConfig is empty", () => {
     const manager = new LlmProviderManager();
     manager.load(ConfigSchema.parse({
@@ -161,6 +174,41 @@ describe("LlmProviderManager", () => {
     });
 
     expect(upstreamModel).toBe("deepseek-v4-flash");
+  });
+
+  it("routes the OpenCode Zen free model without a configured API key or forwarded provider prefix", async () => {
+    const manager = new LlmProviderManager();
+    manager.load(ConfigSchema.parse({
+      agents: {
+        defaults: {
+          model: "opencode/big-pickle",
+        },
+      },
+      providers: {
+        opencode: {
+          providerType: "opencode",
+          apiKey: "",
+          apiBase: "https://opencode.ai/zen/v1",
+          wireApi: "chat",
+          models: ["opencode/big-pickle"],
+        },
+      },
+    }));
+
+    let upstreamModel: unknown;
+    mockResolvedProviderClient(manager, "opencode/big-pickle", {
+      chat: async (params) => {
+        upstreamModel = params.model;
+        return response();
+      },
+    });
+
+    await manager.chat({
+      model: "opencode/big-pickle",
+      messages: [{ role: "user", content: "ping" }],
+    });
+
+    expect(upstreamModel).toBe("big-pickle");
   });
 
   it("keeps legacy builtin provider routes compatible", async () => {

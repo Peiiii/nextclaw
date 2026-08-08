@@ -10,7 +10,8 @@ describe("writeSessionActivityPreviewMetadata", () => {
       writeSessionActivityPreviewMetadata({
         [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
           state: "running",
-          statusText: "Tool call completed",
+          statusKind: "tool-completed",
+          statusText: "read_file",
           replyText: "Final reply",
           timestamp: "2026-05-16T01:00:00.000Z",
         },
@@ -24,7 +25,8 @@ describe("writeSessionActivityPreviewMetadata", () => {
     ).toEqual({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "completed",
-        statusText: "Tool call completed",
+        statusKind: "tool-completed",
+        statusText: "read_file",
         replyText: "Final reply",
         timestamp: "2026-05-16T01:01:00.000Z",
       },
@@ -67,14 +69,14 @@ describe("writeSessionActivityPreviewMetadata", () => {
         sessionId: "session-1",
         preview: {
           state: "running",
-          statusText: "Thinking",
+          statusKind: "thinking",
           timestamp: "2026-05-16T01:02:00.000Z",
         },
       }),
     ).toEqual({
       [SESSION_ACTIVITY_PREVIEW_METADATA_KEY]: {
         state: "running",
-        statusText: "Thinking",
+        statusKind: "thinking",
         timestamp: "2026-05-16T01:02:00.000Z",
       },
     });

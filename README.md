@@ -32,6 +32,8 @@ Tell NextClaw what you want done. It brings files, models, agents, skills, brows
 
 NextClaw is a local-first AI workspace for tasks that need more than a single answer. A conversation can keep its files, references, tools, generated results, and follow-up work together instead of making you restart in separate apps.
 
+**Ready on a fresh install:** NextClaw includes OpenCode Zen free-trial models, so you can start the first task without entering an API key. Free-trial access uses a public gateway; limits and models may change, and sensitive or confidential data should not be sent through it.
+
 ## What You Can Do
 
 - **Research and compare** — collect pages, notes, and references, then turn them into a brief, source list, or comparison table.
@@ -127,7 +129,7 @@ npm install -g nextclaw
 nextclaw start
 ```
 
-Open [http://127.0.0.1:55667](http://127.0.0.1:55667), choose a model provider, and start a task.
+Open [http://127.0.0.1:55667](http://127.0.0.1:55667) and start with the built-in free-trial model. Connect your own provider when you need it.
 
 If `npm` is unavailable, install or reinstall Node.js LTS and reopen the terminal. On a remote host, port `55667` serves plain HTTP. Use it directly only for a quick check; terminate HTTPS with Nginx or Caddy for regular access.
 
@@ -147,7 +149,7 @@ See the [Docker deployment guide](https://docs.nextclaw.io/en/guide/tutorials/do
 
 ## Models, Channels, and Tools
 
-- **Models** — OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, MiniMax, Moonshot, DashScope, Zhipu, AiHubMix, vLLM, and custom OpenAI-compatible endpoints.
+- **Models** — built-in OpenCode Zen free-trial access, plus OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, MiniMax, Moonshot, DashScope, Zhipu, AiHubMix, vLLM, and custom OpenAI-compatible endpoints.
 - **Messaging channels** — Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, WhatsApp, and email.
 - **Capabilities** — skills, MCP servers, CLI tools, browser control, local files, Panel Apps, and scheduled tasks.
 - **Local control** — configuration, conversations, and credentials stay in the environment you control. Connected providers and channels receive the data you send through them.

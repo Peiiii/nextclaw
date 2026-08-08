@@ -41,6 +41,8 @@ export type AgentRuntimeSessionState = {
   applyEvents(events: readonly NcpEndpointEvent[]): Promise<void>;
 };
 
+export type AgentRunPreflightPhase = "pre-run" | "mid-run";
+
 export type DefaultNcpAgentRuntimeRunOptions = {
   sessionRun: AgentRuntimeSessionState;
   contextBlocks: readonly string[];
@@ -50,6 +52,7 @@ export type DefaultNcpAgentRuntimeRunOptions = {
 
 export type AgentRunPreflight = (input: {
   contextBlocks: readonly string[];
+  phase: AgentRunPreflightPhase;
   spec: DefaultNcpAgentRunSpec;
   sessionRun: AgentRuntimeSessionState;
 }) => Promise<readonly NcpEndpointEvent[]>;
@@ -212,15 +215,10 @@ export class DefaultNcpAgentRuntime {
         }
         yield await this.applyEvent(sessionRun, event);
       }
-      const preflightEvents = this.runPreflight
-        ? await this.runPreflight({ contextBlocks, spec, sessionRun })
-        : [];
-      for (const event of preflightEvents) {
-        if (this.isAbortRequested(signal)) {
-          break;
-        }
-        yield await this.applyEvent(sessionRun, event);
-      }
+      yield* this.runPreflightPhase(
+        { contextBlocks, phase: "pre-run", sessionRun, spec },
+        signal,
+      );
       runStartedAt = new Date().toISOString();
       yield await this.applyEvent(sessionRun, createRuntimeEvent({
         type: NcpEventType.RunStarted,
@@ -283,6 +281,10 @@ export class DefaultNcpAgentRuntime {
           break;
         }
         if (toolExecutor.hasStartedToolCalls() || drainedInbox.drained) {
+          yield* this.runPreflightPhase(
+            { contextBlocks, phase: "mid-run", sessionRun, spec },
+            signal,
+          );
           continue;
         }
 
@@ -335,6 +337,22 @@ export class DefaultNcpAgentRuntime {
           endedAt,
         },
       }, endedAt));
+    }
+  }
+
+  private async *runPreflightPhase(
+    input: Parameters<AgentRunPreflight>[0],
+    signal?: AbortSignal,
+  ): AsyncIterable<NcpEndpointEvent> {
+    if (!this.runPreflight) {
+      return;
+    }
+    const events = await this.runPreflight(input);
+    for (const event of events) {
+      if (this.isAbortRequested(signal)) {
+        break;
+      }
+      yield await this.applyEvent(input.sessionRun, event);
     }
   }
 

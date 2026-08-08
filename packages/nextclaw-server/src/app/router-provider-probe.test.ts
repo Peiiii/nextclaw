@@ -52,6 +52,15 @@ function createProviderProbeApp(configPath: string) {
       serviceAppManager: {} as never,
       sessionContextCompactionManager: {} as never,
       llmProviders: { testConnection: testConnectionMock } as unknown as LlmProviderManager,
+      providerModelCatalog: {
+        getSnapshot: () => ({
+          refreshIntervalMs: 43_200_000,
+          refreshing: false,
+          lastRefreshStartedAt: null,
+          lastRefreshCompletedAt: null,
+          providers: {},
+        }),
+      } as never,
     } satisfies UiKernelHost,
   });
 }
@@ -67,6 +76,35 @@ afterEach(() => {
 });
 
 describe("provider connection probe route", () => {
+  it("probes OpenCode Zen without a user API key", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const app = createProviderProbeApp(configPath);
+    await app.request("http://localhost/api/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ providerType: "opencode" })
+    });
+
+    const response = await app.request("http://localhost/api/providers/opencode/test", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: "opencode/big-pickle" })
+    });
+    const payload = (await response.json()) as {
+      ok: true;
+      data: { success: boolean };
+    };
+
+    expect(response.status).toBe(200);
+    expect(payload.data.success).toBe(true);
+    expect(testConnectionMock).toHaveBeenCalledWith(expect.objectContaining({
+      apiKey: "public",
+      defaultModel: "opencode/big-pickle"
+    }));
+  });
+
   it("uses maxTokens >= 16 when probing provider connection", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);

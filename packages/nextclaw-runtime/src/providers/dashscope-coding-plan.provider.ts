@@ -28,6 +28,7 @@ export const dashscopeCodingPlanProviderSpec: ProviderSpec = {
     "dashscope-coding-plan/kimi-k2.6",
     "dashscope-coding-plan/kimi-k2.5",
   ],
+  modelDiscovery: false,
   modelConfig: {
     "dashscope-coding-plan/qwen3.7-plus": { vision: true },
     "dashscope-coding-plan/qwen3.7-max": { vision: true },

@@ -39,6 +39,7 @@ export function useSessionConversationSlashCommands(params: {
     return [
       {
         key: 'side-chat',
+        icon: 'message-square-plus',
         title: t('chatSlashCommandSideChatTitle', language),
         description: t('chatSlashCommandSideChatDescription', language),
         detailLines: [t('chatSlashCommandSideChatDetail', language)],
@@ -47,6 +48,7 @@ export function useSessionConversationSlashCommands(params: {
       },
       {
         key: 'compact-context',
+        icon: 'list-collapse',
         title: t('chatSlashCommandCompactContextTitle', language),
         description: t('chatSlashCommandCompactContextDescription', language),
         detailLines: [t('chatSlashCommandCompactContextDetail', language)],

@@ -38,7 +38,7 @@ export class NextclawServiceRuntime {
   constructor(options: NextclawServiceRuntimeOptions) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? "🤖";
-    this.workspaceManager = new ServiceWorkspaceManager();
+    this.workspaceManager = new ServiceWorkspaceManager(NextclawDistributionService.get().templatesDir);
     this.managedServiceManager = new ManagedServiceManager({
       requestRestart: (params) => this.restartManager.requestRestart(params),
       initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
@@ -119,8 +119,12 @@ export class NextclawServiceRuntime {
     if (!options.auto) {
       console.log(`\n${this.logo} ${APP_NAME} is ready! (${source})`);
       console.log("\nNext steps:");
-      console.log(`  1. Add your API key to ${configPath}`);
-      console.log(`  2. Chat: ${APP_NAME} agent -m "Hello!"`);
+      if (createdConfig) {
+        console.log(`  1. Chat now (OpenCode Zen needs no API key): ${APP_NAME} agent -m "Hello!"`);
+      } else {
+        console.log(`  1. Chat: ${APP_NAME} agent -m "Hello!"`);
+      }
+      console.log(`  2. Optional: configure another provider in ${configPath}`);
     } else {
       console.log(
         `Tip: Run "${APP_NAME} init${force ? " --force" : ""}" to re-run initialization if needed.`,

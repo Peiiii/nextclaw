@@ -29,6 +29,27 @@ function appendTextPart(parts: NcpMessagePart[], text: string): NcpMessagePart[]
   ];
 }
 
+function hasSerializedTokenText(node: ChatComposerNode | undefined): boolean {
+  return node?.type === 'token' && Boolean(serializeChatComposerTokenText(node));
+}
+
+function serializeTokenWithTextBoundaries(params: {
+  index: number;
+  nodes: readonly ChatComposerNode[];
+  tokenText: string;
+}): string {
+  const { index, nodes, tokenText } = params;
+  const previousNode = nodes[index - 1];
+  const nextNode = nodes[index + 1];
+  const needsLeadingSpace = (
+    previousNode?.type === 'text' && /\S$/.test(previousNode.text)
+  ) || hasSerializedTokenText(previousNode);
+  const needsTrailingSpace = (
+    nextNode?.type === 'text' && /^\S/.test(nextNode.text)
+  ) || hasSerializedTokenText(nextNode);
+  return `${needsLeadingSpace ? ' ' : ''}${tokenText}${needsTrailingSpace ? ' ' : ''}`;
+}
+
 export function createInitialChatComposerNodes(): ChatComposerNode[] {
   return createEmptyChatComposerNodes();
 }
@@ -102,7 +123,7 @@ export function deriveNcpMessagePartsFromComposer(
   const attachmentById = new Map(attachments.map((attachment) => [attachment.id, attachment]));
   let parts: NcpMessagePart[] = [];
 
-  for (const node of nodes) {
+  for (const [index, node] of nodes.entries()) {
     if (node.type === 'text') {
       parts = appendTextPart(parts, node.text);
       continue;
@@ -110,7 +131,11 @@ export function deriveNcpMessagePartsFromComposer(
 
     const tokenText = serializeChatComposerTokenText(node);
     if (tokenText) {
-      parts = appendTextPart(parts, tokenText);
+      parts = appendTextPart(parts, serializeTokenWithTextBoundaries({
+        index,
+        nodes,
+        tokenText,
+      }));
       continue;
     }
 

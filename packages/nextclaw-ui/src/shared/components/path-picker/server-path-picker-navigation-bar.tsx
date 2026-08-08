@@ -99,7 +99,7 @@ export function ServerPathPickerNavigationBar({
         disabled={!canGoUp || disabled}
       />
 
-      <div className="ml-1 flex h-9 min-w-0 flex-1 items-center overflow-hidden rounded-md border border-border bg-background shadow-sm focus-within:ring-1 focus-within:ring-primary/50">
+      <div className="ml-1 flex h-9 min-w-0 flex-1 items-center overflow-hidden rounded-md border border-border bg-background shadow-sm">
         {editingAddress ? (
           <Input
             value={addressDraft}
@@ -136,7 +136,7 @@ export function ServerPathPickerNavigationBar({
                           <>
                             <button
                               type="button"
-                              className="rounded px-1.5 py-1 text-sm text-muted-foreground hover:bg-accent"
+                              className="rounded px-1.5 py-1 text-sm text-muted-foreground hover:bg-[var(--interaction-hover)]"
                               aria-label={t('pathPickerShowFullAddress')}
                               onClick={beginAddressEdit}
                             >
@@ -149,7 +149,7 @@ export function ServerPathPickerNavigationBar({
                     ) : null}
                     <button
                       type="button"
-                      className="max-w-40 truncate rounded px-1.5 py-1 text-sm text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+                      className="max-w-40 truncate rounded px-1.5 py-1 text-sm text-foreground hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
                       onClick={() => onNavigate(breadcrumb.path)}
                       disabled={disabled}
                     >

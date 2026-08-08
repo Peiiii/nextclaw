@@ -14,5 +14,5 @@
     "stdio-runtime.service.ts",
     "stdio-runtime.test.ts"
   ],
-  "allowedRootDirectories": ["test-fixtures"]
+  "allowedRootDirectories": ["__tests__", "test-fixtures"]
 }

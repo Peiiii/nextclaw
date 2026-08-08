@@ -311,3 +311,43 @@ describe("NarpStdioRuntimeWrapperAgent", () => {
     })).rejects.toThrow("upstream failed");
   });
 });
+
+describe("NarpStdioRuntimeWrapperAgent prompt input", () => {
+  it("preserves ACP resource links as NCP file parts", async () => {
+    const runtime = new FakeRuntime();
+    const agent = new NarpStdioRuntimeWrapperAgent(
+      { sessionUpdate: async () => undefined },
+      {
+        agentName: "test-narp-wrapper",
+        createRuntime: async () => runtime,
+      },
+    );
+    const session = await agent.newSession({ cwd: "/tmp/project", mcpServers: [] });
+
+    await agent.prompt({
+      sessionId: session.sessionId,
+      messageId: "user-image",
+      prompt: [
+        {
+          type: "resource_link",
+          name: "reference.png",
+          uri: "file:///tmp/reference.png",
+          mimeType: "image/png",
+          size: 512,
+        },
+        { type: "text", text: "inspect this image" },
+      ],
+    });
+
+    expect(runtime.inputs[0]?.messages[0]?.parts).toEqual([
+      {
+        type: "file",
+        name: "reference.png",
+        mimeType: "image/png",
+        url: "file:///tmp/reference.png",
+        sizeBytes: 512,
+      },
+      { type: "text", text: "inspect this image" },
+    ]);
+  });
+});

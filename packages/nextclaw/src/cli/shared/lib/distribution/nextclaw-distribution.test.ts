@@ -20,6 +20,7 @@ describe("createNextclawDistribution", () => {
         version: "0.19.4",
         appEntrypoint: resolve(packageRoot, "dist/cli/app/index.js"),
         launcherEntrypoint: resolve(packageRoot, "dist/cli/launcher/index.js"),
+        templatesDir: resolve(packageRoot, "templates"),
         uiDistDir: resolve(packageRoot, "ui-dist"),
         runtimeUpdatePublicKeyPath: resolve(packageRoot, "resources/update-bundle-public.pem")
       });

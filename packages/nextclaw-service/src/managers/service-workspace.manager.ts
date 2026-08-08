@@ -1,17 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { APP_NAME, DEFAULT_PANELS_DIR, DEFAULT_SKILLS_DIR } from "@nextclaw/core";
 
 export class ServiceWorkspaceManager {
-  private readonly pkgRoot = resolve(
-    fileURLToPath(new URL(".", import.meta.url)),
-    "..",
-    "..",
-    "..",
-    "..",
-    ".."
-  );
+  constructor(private readonly templatesDir: string) {}
 
   readonly createWorkspaceTemplates = (workspace: string, options: { force?: boolean } = {}): { created: string[] } => {
     const created: string[] = [];
@@ -75,13 +67,7 @@ export class ServiceWorkspaceManager {
     if (override) {
       return override;
     }
-    const candidates = [join(this.pkgRoot, "templates")];
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) {
-        return candidate;
-      }
-    }
-    return null;
+    return existsSync(this.templatesDir) ? this.templatesDir : null;
   };
 
 }

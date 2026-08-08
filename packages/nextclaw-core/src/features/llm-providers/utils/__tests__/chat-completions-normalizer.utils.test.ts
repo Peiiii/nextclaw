@@ -62,22 +62,26 @@ describe("normalizeChatCompletionsResponse", () => {
   });
 
   it("throws invalid payload error when choices are missing", () => {
+    const providerTail = `${"x".repeat(240)} END_OF_PROVIDER_ERROR`;
     try {
-      normalizeChatCompletionsResponse({ foo: "bar" }, () => ({}));
+      normalizeChatCompletionsResponse({ foo: providerTail }, () => ({}));
       throw new Error("expected error");
     } catch (error) {
       expect(error).toBeInstanceOf(ChatCompletionsPayloadError);
       expect((error as ChatCompletionsPayloadError).code).toBe("INVALID_CHAT_COMPLETIONS_PAYLOAD");
       expect((error as Error).message).toContain("missing choices[0]");
+      expect((error as Error).message).toContain("END_OF_PROVIDER_ERROR");
     }
   });
 
   it("throws upstream payload error when error field exists", () => {
+    const providerTail = `${"x".repeat(240)} END_OF_PROVIDER_ERROR`;
     try {
       normalizeChatCompletionsResponse(
         {
           error: {
-            message: "model is blocked"
+            message: "model is blocked",
+            metadata: { detail: providerTail }
           }
         },
         () => ({})
@@ -87,6 +91,7 @@ describe("normalizeChatCompletionsResponse", () => {
       expect(error).toBeInstanceOf(ChatCompletionsPayloadError);
       expect((error as ChatCompletionsPayloadError).code).toBe("UPSTREAM_CHAT_COMPLETIONS_ERROR");
       expect((error as Error).message).toContain("model is blocked");
+      expect((error as Error).message).toContain("END_OF_PROVIDER_ERROR");
     }
   });
 

@@ -22,7 +22,7 @@ function readCheckpointTimelineText(checkpoint: ContextCompactionTimelineCheckpo
 function buildCompressedContextSystemText(checkpoint: ContextCompactionCheckpoint): string {
   return [
     "Authoritative compressed prior conversation context for this session.",
-    "Continue from this context and the latest user message. Do not restart onboarding or treat missing profile fields as a new-session trigger unless the compressed context says onboarding is the active user task.",
+    "Continue from this context and any following messages. Do not restart onboarding or treat missing profile fields as a new-session trigger unless the compressed context says onboarding is the active user task.",
     "",
     checkpoint.summary,
   ].join("\n");
@@ -60,6 +60,45 @@ function buildContextCompactionSummaryMessage(params: {
       [CONTEXT_COMPACTION_PROJECTION_METADATA_KEY]: CONTEXT_COMPACTION_PROJECTION_KIND,
     },
   };
+}
+
+function buildMidRunContinuationMessage(params: {
+  checkpoint: ContextCompactionCheckpoint;
+  sessionId: string;
+}): NcpMessage {
+  const { checkpoint, sessionId } = params;
+  return {
+    id: `${sessionId}:context-compaction-continuation:${checkpoint.id}:${checkpoint.updatedAt}`,
+    sessionId,
+    role: "user",
+    status: "final",
+    timestamp: checkpoint.updatedAt,
+    parts: [{
+      type: "text",
+      text: "Continue the active run from the compressed working context. Do not repeat completed tool calls; proceed with the next required action.",
+    }],
+  };
+}
+
+function projectMessageAfterCheckpoint(
+  message: NcpMessage,
+  checkpoint: ContextCompactionCheckpoint,
+): NcpMessage | null {
+  const coveredPartCount = checkpoint.continuationMessageCoveredPartCount;
+  if (
+    message.id === checkpoint.continuationMessageId &&
+    typeof coveredPartCount === "number" &&
+    Number.isInteger(coveredPartCount) &&
+    coveredPartCount >= 0
+  ) {
+    const parts = message.parts.slice(coveredPartCount);
+    return parts.length > 0
+      ? { ...structuredClone(message), parts: structuredClone(parts) }
+      : null;
+  }
+  return Date.parse(message.timestamp) > Date.parse(readCheckpointCoveredUntil(checkpoint))
+    ? structuredClone(message)
+    : null;
 }
 
 function readCheckpointCoveredUntil(checkpoint: ContextCompactionCheckpoint): string {
@@ -114,12 +153,16 @@ export function buildContextCompactionModelInput(params: {
     return regularMessages.map((message) => structuredClone(message));
   }
   const { checkpoint } = marker;
-  const coveredUntil = readCheckpointCoveredUntil(checkpoint);
+  const projectedRegularMessages = regularMessages
+    .map((message) => projectMessageAfterCheckpoint(message, checkpoint))
+    .filter((message): message is NcpMessage => Boolean(message))
+    .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   return [
     buildContextCompactionSummaryMessage({ checkpoint, sessionId }),
-    ...regularMessages
-      .filter((message) => Date.parse(message.timestamp) > Date.parse(coveredUntil))
-      .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp)),
+    ...(checkpoint.phase === "mid-run"
+      ? [buildMidRunContinuationMessage({ checkpoint, sessionId })]
+      : []),
+    ...projectedRegularMessages,
   ].map((message) => structuredClone(message));
 }
 

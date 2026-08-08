@@ -74,6 +74,11 @@ export {
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
 export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
 export {
+  containsSilentReplyMarker,
+  isSilentReplyNcpMessage,
+  SILENT_REPLY_TOKEN,
+} from "./utils/silent-reply.utils.js";
+export {
   appendUiContentParamsBootstrapQuery,
   createUiContentParamsWindowName,
   readUiContentParams,
@@ -90,6 +95,8 @@ export type {
 } from "./configs/chat-composer-token.config.js";
 export type { RuntimeModelSelectionMode } from "./configs/runtime-model.config.js";
 export type {
+  AgentRunContinueIngressPayload,
+  AgentRunEditMessageIngressPayload,
   AgentRunSendIngressPayload,
   AgentRunSessionMaterializationMetadata,
   AgentRunSessionMessageRequestPayload,

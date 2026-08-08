@@ -17,6 +17,10 @@ import {
   EventBus,
 } from "@nextclaw/shared";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
+import {
+  createMessagingContextProvider,
+  createSilentRepliesContextProvider,
+} from "@kernel/contributions/context-provider/providers/native-static-context.provider.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
 import { createShowContentTools } from "@kernel/tools/show-content.tools.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
@@ -107,6 +111,28 @@ afterEach(() => {
   }
 });
 
+describe("Messaging context delivery policy", () => {
+  it("prefers the inbox for durable content without an external route", async () => {
+    const workspace = createWorkspace();
+    const [context] = await createMessagingContextProvider().provide(createRequest(workspace));
+
+    expect(context).toContain("Durable reading material with no explicit external destination");
+    expect(context).toContain("collected news, briefings, reports, recommendations, and articles");
+    expect(context).toContain('Wording such as "send it to me" alone does not name a chat channel');
+    expect(context).toContain("do not infer Weixin or another channel");
+  });
+
+  it("requires the silent marker without escaped or leading newlines", async () => {
+    const workspace = createWorkspace();
+    const [context] = await createSilentRepliesContextProvider().provide(createRequest(workspace));
+
+    expect(context).toContain("respond with EXACTLY <noreply/>");
+    expect(context).toContain('✅ Right: "<noreply/>"');
+    expect(context).not.toContain("two blank lines");
+    expect(context).not.toContain("\\n\\n<noreply/>");
+  });
+});
+
 describe("ContextProviderContribution native prompt contract", () => {
   it("assembles the native context through kernel providers in the legacy prompt order", async () => {
     const hostWorkspace = createWorkspace();
@@ -158,6 +184,7 @@ describe("ContextProviderContribution native prompt contract", () => {
         }),
       },
       sessionManager: {
+        getSessionRecord: async () => null,
         getAgentRunSession: async () => ({
           sessionId: "session-1",
           agentId: "main",

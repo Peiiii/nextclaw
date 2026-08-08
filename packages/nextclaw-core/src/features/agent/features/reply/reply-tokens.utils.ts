@@ -1,15 +1,11 @@
-export const SILENT_REPLY_TOKEN = "<noreply/>";
+import {
+  containsSilentReplyMarker,
+  SILENT_REPLY_TOKEN,
+} from "@nextclaw/shared";
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const SILENT_REPLY_MARKER_PATTERN = /<\s*noreply\s*\/\s*>/i;
-
-export function containsSilentReplyMarker(text: string | null | undefined): boolean {
-  if (!text) {
-    return false;
-  }
-  return SILENT_REPLY_MARKER_PATTERN.test(text);
-}
+export { containsSilentReplyMarker, SILENT_REPLY_TOKEN };
 
 export function isSilentReplyText(text: string | undefined, token: string = SILENT_REPLY_TOKEN): boolean {
   if (!text) {

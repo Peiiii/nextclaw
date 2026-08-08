@@ -6,6 +6,7 @@ import {
   buildContextWindowSnapshot,
   readCompressedContextCompactionCheckpoint,
   type ContextCompactionCheckpoint,
+  type ContextCompactionPhase,
   type ContextCompactionPlan,
   type ContextWindowBudgetEvaluation,
   type ContextWindowSnapshot,
@@ -37,9 +38,16 @@ export type ContextCompactionPreflightBeginResult = {
 
 export type ContextCompactionTrigger = "automatic" | "manual";
 
+type ContinuationMessageBoundary = {
+  messageId: string;
+  coveredPartCount: number;
+};
+
 type ContextCompactionPendingWork = {
   checkpoint: ReturnType<typeof buildCompressingCompactionCheckpoint>;
+  continuationMessageBoundary: ContinuationMessageBoundary | null;
   contextTokens: number;
+  phase: ContextCompactionPhase;
   serviceMessageId: string;
   model: string;
   plan: ContextCompactionPlan;
@@ -81,6 +89,24 @@ function mergeInputMessages(params: {
     messages.push(structuredClone(message));
   }
   return messages;
+}
+
+function readContinuationMessageBoundary(
+  messages: readonly NcpMessage[],
+): ContinuationMessageBoundary | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (
+      message?.role === "assistant" &&
+      (message.status === "pending" || message.status === "streaming")
+    ) {
+      return {
+        messageId: message.id,
+        coveredPartCount: message.parts.length,
+      };
+    }
+  }
+  return null;
 }
 
 function toCompactionSourceMessage(message: Record<string, unknown>): Record<string, unknown> {
@@ -221,6 +247,7 @@ export class ContextCompactionPreflightService {
     contextBlocks?: readonly string[];
     inputMessages: readonly NcpMessage[];
     model: string;
+    phase?: ContextCompactionPhase;
     requestMetadata: Record<string, unknown>;
     sessionId: string;
     sessionMessages: readonly NcpMessage[];
@@ -232,6 +259,7 @@ export class ContextCompactionPreflightService {
       contextBlocks = [],
       inputMessages,
       model,
+      phase = "pre-run",
       requestMetadata,
       sessionId,
       sessionMessages,
@@ -248,6 +276,9 @@ export class ContextCompactionPreflightService {
       inputMessages,
       sessionMessages,
     });
+    const continuationMessageBoundary = phase === "mid-run"
+      ? readContinuationMessageBoundary(ncpMessages)
+      : null;
     const existingCheckpoint = readCompressedContextCompactionCheckpoint(
       storedMetadata[CONTEXT_COMPACTION_METADATA_KEY],
     ) ?? readLatestContextCompactionCheckpoint(ncpMessages);
@@ -272,6 +303,7 @@ export class ContextCompactionPreflightService {
           messages,
           contextTokens,
           compactionThresholdTokens: trigger === "manual" ? 0 : budget.triggerTokens,
+          retainLatestMessage: phase === "pre-run",
         });
     const coveredSessionMessageCount = plan
       ? (existingCheckpoint?.coveredSessionMessageCount ?? 0) + plan.coveredMessages.length - (existingCheckpoint ? 1 : 0)
@@ -300,7 +332,9 @@ export class ContextCompactionPreflightService {
       pendingCompaction: plan && checkpoint
         ? {
             checkpoint,
+            continuationMessageBoundary,
             contextTokens,
+            phase,
             serviceMessageId,
             model,
             plan,
@@ -328,10 +362,14 @@ export class ContextCompactionPreflightService {
     if (!generatedCheckpoint) {
       throw new Error("context compaction pending work did not produce a checkpoint");
     }
-    const checkpoint = {
+    const checkpoint: ContextCompactionCheckpoint = {
       ...generatedCheckpoint,
       id: pending.checkpoint.id,
       createdAt: pending.checkpoint.createdAt,
+      phase: pending.phase,
+      continuationMessageId: pending.continuationMessageBoundary?.messageId,
+      continuationMessageCoveredPartCount:
+        pending.continuationMessageBoundary?.coveredPartCount,
       coveredMessageCount: pending.checkpoint.coveredMessageCount,
       coveredSessionMessageCount: pending.checkpoint.coveredSessionMessageCount,
       status: "compressed" as const,
@@ -377,7 +415,7 @@ export class ContextCompactionPreflightService {
           content: [
             "You are NextClaw's context compactor for a coding agent session.",
             "Create a complete compressed working context that will replace all prior conversation messages in a future model request.",
-            "Only the latest current input may remain raw, so preserve the active task, latest user intent, latest assistant response, and recent turns with high fidelity inside the summary.",
+            "Only an intentionally retained latest input may remain raw, so preserve the active task, latest user intent, latest assistant response, tool results, and recent turns with high fidelity inside the summary.",
             "Always include a 'Continuation Contract' section that states what the next assistant response should remember and how it should continue the session.",
             "Do not turn missing user profile, assistant nickname, or onboarding fields into blockers unless onboarding is the active user task in the latest turns.",
             "If the latest user message is a short greeting, preserve the prior active task and last assistant stance so the next response does not restart as a fresh session.",

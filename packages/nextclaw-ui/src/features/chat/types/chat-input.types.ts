@@ -13,6 +13,11 @@ export type ChatModelOption = {
   thinkingCapability?: ChatModelThinkingCapability | null;
 };
 
+export type DiscoveredChatModelOption = ChatModelOption & {
+  providerId: string;
+  providerModel: string;
+};
+
 export type ChatInputBarSlashItem = {
   kind: 'skill';
   key: string;

@@ -1,4 +1,5 @@
 export * from "./configs/brand.config.js";
+export * from "./configs/opencode-zen.config.js";
 export * from "./utils/config-actions.utils.js";
 export * from "./utils/agent-profiles.utils.js";
 export * from "./utils/config-loader.utils.js";

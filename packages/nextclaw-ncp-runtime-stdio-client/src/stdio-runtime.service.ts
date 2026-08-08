@@ -28,11 +28,16 @@ import {
   isAbortLikeRuntimeError,
   normalizeRuntimeError,
 } from "./stdio-runtime-error.utils.js";
-import { extractPromptText, resolveModelId } from "./utils/stdio-runtime-input.utils.js";
+import {
+  buildAcpPrompt,
+  type AssetContentPathResolver,
+  resolveModelId,
+} from "./utils/stdio-runtime-input.utils.js";
 import { resolveToolNameFromAcpUpdate } from "./stdio-runtime-tool-name.utils.js";
 type AcpClientUpdate = acp.SessionUpdate;
 const HERMES_ACP_ROUTE_BRIDGE_ENV = "NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE";
 export type StdioRuntimeNcpAgentRuntimeConfig = StdioRuntimeResolvedConfig & {
+  resolveAssetContentPath?: AssetContentPathResolver;
   stateManager?: NcpAgentConversationStateManager;
   resolveTools?: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined;
   resolveProviderRoute?: (input: NcpAgentRunInput) => NcpProviderRuntimeRoute | undefined;
@@ -190,12 +195,12 @@ class StdioRuntimeSession {
 
   runPrompt = async (params: {
     sessionId: string;
-    text: string;
+    message: NcpMessage;
     meta: NarpStdioPromptMeta;
     modelId?: string;
     onUpdate: (update: AcpClientUpdate) => void;
   }): Promise<acp.PromptResponse> => {
-    const { meta, modelId, onUpdate, sessionId, text } = params;
+    const { message, meta, modelId, onUpdate, sessionId } = params;
     const connection = this.connection;
     const remoteSessionId = this.remoteSessionId;
     if (!connection || !remoteSessionId) {
@@ -230,7 +235,7 @@ class StdioRuntimeSession {
       return await withTimeout(
         connection.prompt({
           sessionId: remoteSessionId,
-          prompt: [{ type: "text", text }],
+          prompt: buildAcpPrompt(message, this.config.resolveAssetContentPath),
           _meta: {
             [NARP_STDIO_PROMPT_META_KEY]: meta,
           },
@@ -326,7 +331,7 @@ class StdioRuntimeRunController {
     const assistantMessageId = createAssistantMessageId(requestMessage.id);
     const promptPromise = this.session.runPrompt({
       sessionId: this.input.sessionId,
-      text: extractPromptText(requestMessage),
+      message: requestMessage,
       meta: buildNarpStdioPromptMeta({
         input: this.input,
         providerRoute: this.resolvedProviderRoute,

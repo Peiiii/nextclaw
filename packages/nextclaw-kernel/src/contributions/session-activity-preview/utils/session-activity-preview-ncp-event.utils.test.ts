@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
+import {
+  NCP_INTERNAL_VISIBILITY_METADATA_KEY,
+  NcpEventType,
+  type NcpEndpointEvent,
+} from "@nextclaw/ncp";
 import { createSessionActivityPreviewFromNcpEvent } from "./session-activity-preview-ncp-event.utils.js";
 
 const TIMESTAMP = "2026-05-16T01:00:00.000Z";
@@ -15,7 +19,7 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       sessionId: "session-1",
       preview: {
         state: "running",
-        statusText: "Thinking",
+        statusKind: "thinking",
         timestamp: TIMESTAMP,
       },
     });
@@ -37,7 +41,8 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
       sessionId: "session-1",
       preview: {
         state: "running",
-        statusText: "Tool call completed: read_file",
+        statusKind: "tool-completed",
+        statusText: "read_file",
         timestamp: TIMESTAMP,
       },
     });
@@ -65,6 +70,45 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
         state: "completed",
         replyText: "已经整理好方案 下一步可以实现",
         timestamp: TIMESTAMP,
+      },
+    });
+  });
+
+  it("preserves complete provider errors without compacting or truncating them", () => {
+    const providerError = `Chat Completions API failed (402): {\n  "error": "${"x".repeat(180)} END_OF_PROVIDER_ERROR"\n}`;
+
+    expect(
+      createSessionActivityPreviewFromNcpEvent({
+        type: NcpEventType.RunError,
+        payload: {
+          sessionId: "session-1",
+          error: providerError,
+        },
+      }, TIMESTAMP),
+    ).toEqual({
+      sessionId: "session-1",
+      preview: {
+        state: "failed",
+        statusKind: "run-failed",
+        statusText: providerError,
+        timestamp: TIMESTAMP,
+      },
+    });
+
+    expect(
+      createSessionActivityPreviewFromNcpEvent({
+        type: NcpEventType.MessageFailed,
+        payload: {
+          sessionId: "session-1",
+          error: {
+            code: "runtime-error",
+            message: providerError,
+          },
+        },
+      }, TIMESTAMP),
+    ).toMatchObject({
+      preview: {
+        statusText: providerError,
       },
     });
   });
@@ -103,5 +147,25 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
     };
 
     expect(createSessionActivityPreviewFromNcpEvent(event, TIMESTAMP)).toBeNull();
+  });
+
+  it("ignores hidden continuation prompts so they never replace the user-facing preview", () => {
+    expect(createSessionActivityPreviewFromNcpEvent({
+      type: NcpEventType.MessageSent,
+      payload: {
+        sessionId: "session-1",
+        message: {
+          id: "continue-1",
+          sessionId: "session-1",
+          role: "user",
+          status: "final",
+          timestamp: TIMESTAMP,
+          parts: [{ type: "text", text: "internal continuation prompt" }],
+          metadata: {
+            [NCP_INTERNAL_VISIBILITY_METADATA_KEY]: "hidden",
+          },
+        },
+      },
+    }, TIMESTAMP)).toBeNull();
   });
 });

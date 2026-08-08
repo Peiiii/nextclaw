@@ -92,6 +92,59 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
     });
   });
 
+  it("updates an earlier snapshot by id without appending a duplicate", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
+    const store = new NcpAgentSessionMessageProjectionStore(tempDir);
+    await store.rebuild({
+      sessionId,
+      messages: [message(1), message(2, "partial"), message(3)],
+      projectedJournalOffset: 300,
+    });
+    const restartedStore = new NcpAgentSessionMessageProjectionStore(tempDir);
+
+    await expect(
+      restartedStore.synchronize({
+        sessionId,
+        messages: [message(2, "complete")],
+        projectedJournalOffset: 400,
+      }),
+    ).resolves.toBe(true);
+
+    expect(await restartedStore.readPage({ sessionId, limit: 10 })).toMatchObject({
+      total: 3,
+      messages: [
+        { id: "message-1" },
+        { id: "message-2", parts: [{ text: "complete" }] },
+        { id: "message-3" },
+      ],
+    });
+  });
+
+  it("merges an earlier unstable snapshot without returning the id twice", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
+    const store = new NcpAgentSessionMessageProjectionStore(tempDir);
+    await store.rebuild({
+      sessionId,
+      messages: [message(1), message(2, "partial"), message(3)],
+      projectedJournalOffset: 300,
+    });
+
+    expect(
+      await store.readPage({
+        sessionId,
+        limit: 10,
+        tailMessages: [message(2, "complete")],
+      }),
+    ).toMatchObject({
+      total: 3,
+      messages: [
+        { id: "message-1" },
+        { id: "message-2", parts: [{ text: "complete" }] },
+        { id: "message-3" },
+      ],
+    });
+  });
+
   it("merges an unstable tail into the newest page without duplicating the latest message", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
     const store = new NcpAgentSessionMessageProjectionStore(tempDir);

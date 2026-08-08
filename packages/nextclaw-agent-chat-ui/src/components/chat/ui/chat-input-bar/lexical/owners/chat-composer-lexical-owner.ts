@@ -11,6 +11,7 @@ import {
 import type {
   ChatComposerNode,
   ChatComposerSelection,
+  ChatComposerTokenKind,
   ChatInputBarActionsProps,
   ChatInputSurfaceItem,
   ChatInputSurfaceTriggerChangeReason,
@@ -25,9 +26,11 @@ import {
   CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
   type ChatComposerEditorSnapshot,
   getChatComposerNodesSignature,
+  insertChatComposerTokenIntoChatComposer,
   insertFileTokenIntoChatComposer,
   insertInputSurfaceItemIntoChatComposer,
   readChatComposerSnapshotFromEditorState,
+  syncChatComposerTokenSelectionState,
   syncLexicalEditorFromChatComposerState,
   syncLexicalSelectionFromChatComposerSelection,
   syncSelectedSkillsIntoChatComposer,
@@ -204,7 +207,8 @@ export class ChatComposerLexicalOwner {
     this.pendingOwnerSignatureRef.current = signature;
     if (editor) {
       this.editorSignatureRef.current = signature;
-      syncLexicalEditorFromChatComposerState(editor, snapshot.nodes, snapshot.selection);
+      const preserveDomSelection = editor.getRootElement() !== document.activeElement;
+      syncLexicalEditorFromChatComposerState(editor, snapshot.nodes, snapshot.selection, preserveDomSelection);
     }
     callbacks.onInputSurfaceSnapshotChange?.(
       snapshot.nodes,
@@ -241,7 +245,6 @@ export class ChatComposerLexicalOwner {
     const end = getChatComposerDocumentLength(targetNodes);
     const targetSelection = { start: end, end };
     this.selectionRef.current = targetSelection;
-    this.pendingSelectionRef.current = targetSelection;
     editor.getRootElement()?.focus({ preventScroll: true });
     if (nodes) {
       const signature = getChatComposerNodesSignature(nodes);
@@ -252,6 +255,17 @@ export class ChatComposerLexicalOwner {
       syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
     }
     editor.focus(() => {
+      const currentSelection = this.selectionRef.current;
+      const currentSignature = getChatComposerNodesSignature(
+        readChatComposerSnapshotFromEditorState(editor.getEditorState()).nodes,
+      );
+      if (
+        currentSignature !== getChatComposerNodesSignature(targetNodes) ||
+        currentSelection?.start !== targetSelection.start ||
+        currentSelection?.end !== targetSelection.end
+      ) {
+        return;
+      }
       syncLexicalSelectionFromChatComposerSelection(editor, targetSelection);
     });
   };
@@ -288,22 +302,40 @@ export class ChatComposerLexicalOwner {
     };
 
     return {
+      insertToken: (token: {
+        tokenKind: ChatComposerTokenKind;
+        tokenKey: string;
+        label: string;
+      }): void => {
+        this.publishRuntimeSnapshot(
+          (snapshot) => insertChatComposerTokenIntoChatComposer({
+            label: token.label,
+            nodes: snapshot.nodes,
+            selection: snapshot.selection,
+            tokenKey: token.tokenKey,
+            tokenKind: token.tokenKind,
+            triggerSpecs: [],
+          }),
+          { focusAfterSync: true },
+        );
+      },
       insertInputSurfaceItem,
       insertSlashItem: (item: ChatSlashItem): void => {
         insertInputSurfaceItem(item);
       },
-      insertFileToken: (tokenKey: string, label: string): void => {
+      insertFileToken: (tokenKey: string, label: string, previewUrl?: string): void => {
         this.publishRuntimeSnapshot(
           (snapshot) => insertFileTokenIntoChatComposer({
             label,
             nodes: snapshot.nodes,
+            previewUrl,
             selection: snapshot.selection,
             tokenKey,
           }),
           { focusAfterSync: true },
         );
       },
-      insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>): void => {
+      insertFileTokens: (tokens: Array<{ tokenKey: string; label: string; previewUrl?: string }>): void => {
         this.publishRuntimeSnapshot(
           (snapshot) =>
             tokens.reduce(
@@ -311,6 +343,7 @@ export class ChatComposerLexicalOwner {
                 insertFileTokenIntoChatComposer({
                   label: token.label,
                   nodes: nextSnapshot.nodes,
+                  previewUrl: token.previewUrl,
                   selection: nextSnapshot.selection,
                   tokenKey: token.tokenKey,
                 }),
@@ -329,7 +362,7 @@ export class ChatComposerLexicalOwner {
             options,
             selection: snapshot.selection,
           }),
-          { focusAfterSync: true },
+          {},
         );
       },
     };
@@ -376,6 +409,10 @@ export class ChatComposerLexicalOwner {
     tags: ReadonlySet<string>,
   ): void => {
     const snapshot = readChatComposerSnapshotFromEditorState(editorState);
+    const root = this.editor?.getRootElement();
+    if (root) {
+      syncChatComposerTokenSelectionState(root, snapshot);
+    }
     const signature = getChatComposerNodesSignature(snapshot.nodes);
     const expectedExternalSignature = this.editorSignatureRef.current;
 
@@ -405,6 +442,10 @@ export class ChatComposerLexicalOwner {
 
   handleSelectionChange = (editor: LexicalEditor, callbacks: ChatComposerLexicalOwnerCallbacks): void => {
     const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
+    const root = editor.getRootElement();
+    if (root) {
+      syncChatComposerTokenSelectionState(root, snapshot);
+    }
     if (editor.isComposing()) {
       return;
     }

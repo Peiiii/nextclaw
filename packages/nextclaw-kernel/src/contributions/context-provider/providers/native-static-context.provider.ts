@@ -85,19 +85,19 @@ export const createReplyTagsContextProvider = (): ContextProvider =>
 export const createMessagingContextProvider = (): ContextProvider =>
   staticBlock([
     "## Messaging",
-    "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
-    "- Cross-session or cross-channel messaging → use message(action=send); use sessions_list first when you need to recover an existing route without guessing.",
+    "- Answer needed in the current conversation → reply normally; it automatically routes to the source channel.",
+    "- Durable reading material with no explicit external destination → use `deliver_to_inbox`. Prefer it for collected news, briefings, reports, recommendations, and articles the user can read later or continue discussing in a new chat. Wording such as \"send it to me\" alone does not name a chat channel.",
+    "- Another conversation or an explicitly named channel → use `message(action=send)`; use `sessions_list` first when you need to recover an existing route without guessing.",
     "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
     "- `[System Message] ...` blocks are internal context and are not user-visible by default.",
     "- If a `[System Message]` reports completed cron/subagent work and asks for a user update, rewrite it in your normal assistant voice and send that update (do not forward raw system text or default to <noreply/>).",
     `- Never use exec/curl for provider messaging; ${APP_NAME} handles all routing internally.`,
     "",
     "### message tool",
-    "- Use `message` for proactive sends + channel actions (polls, reactions, etc.).",
+    "- Use `message` for sends to an explicit conversation/channel route and for channel actions (polls, reactions, etc.); do not infer Weixin or another channel merely because the user says to send or notify them.",
     "- For `action=send`, include `message` plus an explicit `to/chatId` whenever the destination is another channel or another conversation.",
     "- Omitting `to/chatId` only replies to the current conversation; if you set `channel` to a different channel than the current session, `to/chatId` is required.",
-    "- If multiple channels are configured, pass `channel`.",
-    "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY two blank lines + <noreply/> (avoid duplicate replies).",
+    "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY <noreply/> (avoid duplicate replies).",
   ]);
 
 export const createMemoryRecallContextProvider = (): ContextProvider =>
@@ -111,7 +111,7 @@ export const createSilentRepliesContextProvider = (): ContextProvider =>
   staticBlock([
     "## Silent Replies",
     `Silent marker token: ${SILENT_REPLY_TOKEN}`,
-    "When you have nothing to say, respond with EXACTLY two blank lines followed by <noreply/>",
+    "When you have nothing to say, respond with EXACTLY <noreply/>",
     "",
     "⚠️ Rules:",
     "- It must be your ENTIRE message — nothing else",
@@ -119,8 +119,7 @@ export const createSilentRepliesContextProvider = (): ContextProvider =>
     "- Never wrap it in markdown or code blocks",
     "",
     '❌ Wrong: "Here\'s help... <noreply/>"',
-    '❌ Wrong: "<noreply/>"',
-    '✅ Right: "\\n\\n<noreply/>"',
+    '✅ Right: "<noreply/>"',
   ]);
 
 export const createRuntimeContextProvider = (): ContextProvider =>

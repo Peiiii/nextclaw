@@ -315,11 +315,6 @@ function buildRequestHeaders(params: {
   return headers;
 }
 
-function readErrorMessage(payload: Record<string, unknown> | null, fallback: string): string {
-  const errorRecord = readRecord(payload?.error);
-  return readString(errorRecord?.message) ?? readString(payload?.message) ?? fallback;
-}
-
 export class AnthropicMessagesProvider extends LLMProvider {
   private readonly defaultModel: string;
   private readonly extraHeaders: Record<string, string> | null;
@@ -372,16 +367,16 @@ export class AnthropicMessagesProvider extends LLMProvider {
           signal
         });
         const rawText = await response.text();
-        const parsed = rawText.trim().length > 0
-          ? (JSON.parse(rawText) as Record<string, unknown>)
-          : {};
         if (!response.ok) {
-          const error = new Error(readErrorMessage(parsed, rawText.slice(0, 240) || `HTTP ${response.status}`)) as Error & {
+          const error = new Error(rawText || `HTTP ${response.status}`) as Error & {
             status?: number;
           };
           error.status = response.status;
           throw error;
         }
+        const parsed = rawText.trim().length > 0
+          ? (JSON.parse(rawText) as Record<string, unknown>)
+          : {};
         return normalizeResponse(parsed);
       } catch (error) {
         lastError = error;

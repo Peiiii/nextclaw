@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { ChatSessionWorkspacePanelContent } from "@/features/chat/features/workspace/components/chat-session-workspace-panel-content";
@@ -6,6 +6,7 @@ import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks
 
 const mocks = vi.hoisted(() => ({
   materializeSideChatDraft: vi.fn(),
+  requestFileReference: vi.fn(),
   openChildSessions: vi.fn(),
   openFilePreview: vi.fn(),
   openProjectFiles: vi.fn(),
@@ -17,6 +18,9 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatThreadManager: {
       ...mocks,
+    },
+    chatComposerIntentManager: {
+      requestFileReference: mocks.requestFileReference,
     },
   }),
 }));
@@ -43,7 +47,7 @@ vi.mock("@/shared/hooks/use-server-path-browse", () => ({
         },
         {
           name: "package.json",
-          path: "/Users/peiwang/Projects/nextbot/package.json",
+          path: "/private/resolved-worktree/package.json",
           kind: "file",
           hidden: false,
         },
@@ -113,7 +117,7 @@ it("shows all session workspace entries in the overview", async () => {
     name: /Child sessions/,
   });
   const cronJobsButton = screen.getByRole("button", {
-    name: /Session cron jobs/,
+    name: /Scheduled tasks/,
   });
 
   expect((childSessionsButton as HTMLButtonElement).disabled).toBe(false);
@@ -163,4 +167,70 @@ it("shows the selected session project as a hierarchical file tree", () => {
     screen.getByRole("treeitem", { name: "Open directory: src" }),
   ).toBeTruthy();
   expect(document.querySelector('[data-file-type-icon="npm"]')).toBeTruthy();
+});
+
+it("adds a project file to the targeted chat from its context menu", async () => {
+  const user = userEvent.setup();
+  mocks.requestFileReference.mockReset();
+  render(
+    <ChatSessionWorkspacePanelContent
+      activeSelection={{ kind: "project-files" }}
+      childSessionTabs={[]}
+      filePreviewRefreshVersion={0}
+      sessionKey={null}
+      sessionCronJobs={[]}
+      sessionProjectRoot="/Users/peiwang/Projects/nextbot"
+      sessionWorkingDir="/Users/peiwang/Projects/nextbot"
+    />,
+  );
+
+  fireEvent.contextMenu(
+    screen.getByRole("button", { name: "package.json" }),
+  );
+
+  expect(screen.getByRole("menuitem", { name: "Copy path" })).toBeTruthy();
+  expect(screen.getByRole("menuitem", { name: "Copy relative path" })).toBeTruthy();
+  await user.click(screen.getByRole("menuitem", { name: "Add to chat" }));
+
+  expect(mocks.requestFileReference).toHaveBeenCalledWith({
+    targetSessionKey: null,
+    tokenKey: "package.json",
+    label: "package.json",
+  });
+});
+
+it("preserves project tree expansion and scroll while visiting another workspace tab", async () => {
+  const user = userEvent.setup();
+  const projectFilesProps = {
+    activeSelection: { kind: "project-files" as const },
+    childSessionTabs: [],
+    filePreviewRefreshVersion: 0,
+    sessionKey: "parent-1",
+    sessionCronJobs: [],
+    sessionProjectRoot: "/Users/peiwang/Projects/nextbot",
+    sessionWorkingDir: "/Users/peiwang/Projects/nextbot",
+  };
+  const { rerender } = render(
+    <ChatSessionWorkspacePanelContent {...projectFilesProps} />,
+  );
+  const tree = screen.getByRole("tree", { name: "Project files" });
+  const sourceDirectory = screen.getByRole("treeitem", {
+    name: "Open directory: src",
+  });
+  await user.click(screen.getByRole("button", { name: "src" }));
+  tree.scrollTop = 128;
+  expect(sourceDirectory.getAttribute("aria-expanded")).toBe("true");
+
+  rerender(
+    <ChatSessionWorkspacePanelContent
+      {...projectFilesProps}
+      activeSelection={{ kind: "overview" }}
+    />,
+  );
+  rerender(<ChatSessionWorkspacePanelContent {...projectFilesProps} />);
+
+  expect(screen.getByRole("tree", { name: "Project files" })).toBe(tree);
+  expect(sourceDirectory.isConnected).toBe(true);
+  expect(sourceDirectory.getAttribute("aria-expanded")).toBe("true");
+  expect(tree.scrollTop).toBe(128);
 });

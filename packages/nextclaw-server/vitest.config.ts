@@ -11,6 +11,7 @@ export default defineConfig({
       "@kernel": new URL("../nextclaw-kernel/src", import.meta.url).pathname,
       "@nextclaw/core": new URL("../nextclaw-core/src/index.ts", import.meta.url).pathname,
       "@nextclaw/kernel": new URL("../nextclaw-kernel/src/index.ts", import.meta.url).pathname,
+      "@stdio-runtime-client": new URL("../nextclaw-ncp-runtime-stdio-client/src", import.meta.url).pathname,
       "@nextclaw/shared": new URL("../nextclaw-shared/src/index.ts", import.meta.url).pathname
     }
   }

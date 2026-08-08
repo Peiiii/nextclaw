@@ -63,12 +63,12 @@ function ChatSidebarSessionEditingView({
           }
         }}
         placeholder={t('sessionsLabelPlaceholder')}
-        className="h-8 rounded-lg border-gray-300 bg-white text-xs"
+        className="h-8 rounded-lg border-border bg-background text-xs"
         autoFocus
         disabled={isSaving}
       />
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0 text-[11px] text-gray-400 truncate">{sessionKey}</div>
+        <div className="min-w-0 truncate text-[11px] text-muted-foreground/65">{sessionKey}</div>
         <div className="flex items-center gap-1">
           <IconActionButton
             icon={<Check className="h-3.5 w-3.5" />}
@@ -134,8 +134,8 @@ function ChatSidebarSessionDisplayView({
                 className={cn(
                   'shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none',
                   active
-                    ? 'border-gray-300 bg-white/80 text-gray-700'
-                    : 'border-gray-200 bg-gray-100 text-gray-500'
+                    ? 'border-border/70 bg-background/80 text-foreground/75'
+                    : 'border-transparent bg-muted/70 text-muted-foreground'
                 )}
               >
                 {context.label}
@@ -143,12 +143,12 @@ function ChatSidebarSessionDisplayView({
             ) : null}
             {context.icon ? (
               <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                <SessionContextIconNode icon={context.icon} className={cn('h-[13px] w-[13px]', active ? 'text-gray-700' : 'text-gray-500')} />
+                <SessionContextIconNode icon={context.icon} className={cn('h-[13px] w-[13px]', active ? 'text-foreground/75' : 'text-muted-foreground')} />
               </span>
             ) : null}
           </span>
         </div>
-        <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
+        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground/65">
           <span className="min-w-0 truncate">
             {previewText}
           </span>
@@ -169,7 +169,7 @@ function ChatSidebarSessionDisplayView({
             event.stopPropagation();
             onOpenChildSessions();
           }}
-          className="pointer-events-none absolute right-12 top-0 inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-colors hover:bg-black/10 hover:text-foreground group-hover/session:pointer-events-auto group-hover/session:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
+          className="pointer-events-none absolute right-12 top-0 inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-colors hover:bg-background/80 hover:text-foreground group-hover/session:pointer-events-auto group-hover/session:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100"
           aria-label={t('chatSessionOpenChildSessions')}
           title={t('chatSessionOpenChildSessions')}
         >
@@ -245,10 +245,10 @@ export function ChatSidebarSessionItem({
   return (
     <div
       className={cn(
-        'w-full rounded-xl px-3 py-2.5 text-left transition-all text-[13px]',
+        'w-full rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors',
         active
-          ? 'bg-gray-200/80 text-gray-900 font-semibold shadow-sm'
-          : 'text-gray-700 hover:bg-gray-200/60 hover:text-gray-900'
+          ? 'bg-background/90 font-medium text-foreground'
+          : 'text-foreground/80 hover:bg-background/65 hover:text-foreground'
       )}
     >
       {isEditing ? (

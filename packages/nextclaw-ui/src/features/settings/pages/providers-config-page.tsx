@@ -17,6 +17,7 @@ import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import { StatusDot } from '@/shared/components/status/status-dot';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
+import { isProviderConfigured } from '@/shared/lib/provider-models';
 import { ProviderForm } from '@/features/settings/components/config/provider-form';
 import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import {
@@ -232,7 +233,7 @@ export function ProvidersConfigPage() {
             {filteredProviders.map((provider) => {
               const template = provider.providerType ? templateByType.get(provider.providerType) : null;
               const isEnabled = provider.enabled !== false;
-              const isReady = Boolean(isEnabled && provider.apiKeySet);
+              const isReady = isProviderConfigured(provider);
               const providerLabel = provider.displayName?.trim() || template?.displayName || provider.providerId;
               const description =
                 formatBasePreview(provider.apiBase || template?.defaultApiBase || '') ||

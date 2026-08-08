@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.28.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-07",
+  "title": {
+    "zh-CN": "NextClaw v0.28.2",
+    "en-US": "NextClaw v0.28.2"
+  },
+  "summary": {
+    "zh-CN": "补齐全新安装的工作区模板与零密钥引导，让 OpenCode Zen 免费试用真正从第一步就开箱可用。",
+    "en-US": "Completes fresh-install workspace templates and zero-key guidance so OpenCode Zen free trials work cleanly from the first step."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-07-nextclaw-v0-28-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-07-nextclaw-v0-28-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "完整创建工作区模板",
+            "en-US": "Complete workspace templates"
+          },
+          "body": {
+            "zh-CN": "全新安装会从 NPM 包的正确位置创建工作区模板，不再显示找不到模板目录的警告。",
+            "en-US": "Fresh installations create workspace templates from the correct npm package location without a missing-template warning."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "准确的零密钥引导",
+            "en-US": "Accurate zero-key guidance"
+          },
+          "body": {
+            "zh-CN": "初始化完成后会直接提示 OpenCode Zen 无需 API Key 即可聊天，不再要求先配置密钥。",
+            "en-US": "Initialization now explains that OpenCode Zen can chat without an API key instead of asking for a key first."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "默认模型与已有配置保持不变",
+            "en-US": "Default model and existing configuration stay unchanged"
+          },
+          "body": {
+            "zh-CN": "默认仍为 OpenCode Zen Free Trial / big-pickle；已有配置和工作区不会被覆盖。",
+            "en-US": "The default remains OpenCode Zen Free Trial / big-pickle, and existing configuration and workspaces are preserved."
+          }
+        }
+      ]
+    }
+  ]
+}

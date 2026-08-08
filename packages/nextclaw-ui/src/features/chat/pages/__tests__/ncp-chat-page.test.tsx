@@ -39,17 +39,11 @@ vi.mock('@/shared/hooks/use-confirm-dialog', () => ({
 vi.mock('@/features/chat/components/layout/chat-page-shell', () => ({
   ChatPageLayout: () => <div data-testid="chat-page-layout" />,
   useChatSessionSync: (params: {
-    syncRouteSessionSelection: (value: {
-      isChatView: boolean;
-      routeSessionKey: string | null;
-    }) => void;
+    routeSessionKey: string | null;
+    syncRouteSessionSelection: (routeSessionKey: string | null) => void;
   }) => {
     mocks.useChatSessionSync(params);
-    const { syncRouteSessionSelection } = params;
-    syncRouteSessionSelection({
-      isChatView: true,
-      routeSessionKey: null,
-    });
+    params.syncRouteSessionSelection(params.routeSessionKey);
   },
 }));
 

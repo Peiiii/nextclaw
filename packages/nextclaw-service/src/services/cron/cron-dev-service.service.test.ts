@@ -1,10 +1,18 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, type ChildProcess } from "node:child_process";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 type CronJobRecord = {
   id: string;
@@ -23,11 +31,70 @@ type DevServiceHandle = {
   spawnedAtMs: number;
 };
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const nextclawCliPackageRoot = resolve(packageRoot, "../nextclaw");
 const tempDirs: string[] = [];
 const activeServices: DevServiceHandle[] = [];
 let nextPort = 19100;
+let mockProviderApiBase = "";
+const mockProviderServer = createServer((request, response) => {
+  let body = "";
+  request.setEncoding("utf8");
+  request.on("data", (chunk) => {
+    body += chunk;
+  });
+  request.on("end", () => {
+    const payload = JSON.parse(body) as { model?: string; stream?: boolean };
+    if (payload.stream) {
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.write(`data: ${JSON.stringify({
+        id: "chatcmpl-cron-test",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: payload.model ?? "mock",
+        choices: [{ index: 0, delta: { role: "assistant", content: "Pong" }, finish_reason: null }],
+      })}\n\n`);
+      response.write(`data: ${JSON.stringify({
+        id: "chatcmpl-cron-test",
+        object: "chat.completion.chunk",
+        created: 1,
+        model: payload.model ?? "mock",
+        choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+      })}\n\n`);
+      response.end("data: [DONE]\n\n");
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-cron-test",
+      object: "chat.completion",
+      created: 1,
+      model: payload.model ?? "mock",
+      choices: [{ index: 0, message: { role: "assistant", content: "Pong" }, finish_reason: "stop" }],
+    }));
+  });
+});
+
+beforeAll(async () => {
+  await new Promise<void>((resolveListen, rejectListen) => {
+    mockProviderServer.once("error", rejectListen);
+    mockProviderServer.listen(0, "127.0.0.1", resolveListen);
+  });
+  const address = mockProviderServer.address() as AddressInfo;
+  mockProviderApiBase = `http://127.0.0.1:${address.port}/v1`;
+});
+
+afterAll(async () => {
+  await new Promise<void>((resolveClose, rejectClose) => {
+    mockProviderServer.close((error) => {
+      if (error) {
+        rejectClose(error);
+        return;
+      }
+      resolveClose();
+    });
+  });
+});
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,6 +104,22 @@ function createTempHome(): string {
   const root = mkdtempSync(join(tmpdir(), "nextclaw-cron-dev-test-"));
   const home = join(root, "home");
   mkdirSync(home, { recursive: true });
+  writeFileSync(
+    join(home, "config.json"),
+    JSON.stringify({
+      agents: { defaults: { model: "test/mock" } },
+      providers: {
+        test: {
+          apiBase: mockProviderApiBase,
+          apiKey: "test",
+          models: ["test/mock"],
+          providerType: "openai",
+          wireApi: "chat",
+        },
+      },
+    }),
+    "utf8",
+  );
   tempDirs.push(root);
   return home;
 }
@@ -243,7 +326,14 @@ describe("cron dev-mode integration", () => {
       const home = createTempHome();
       await startDevService(home);
       const uniqueName = `running-job-${randomUUID().slice(0, 8)}`;
-      const { jobId } = await addJobViaCli(home, ["-n", uniqueName, "-m", "Ping", "-e", "2"]);
+      const { jobId } = await addJobViaCli(home, [
+        "-n",
+        uniqueName,
+        "-m",
+        "Ping",
+        "-e",
+        "2",
+      ]);
 
       const firstRun = await waitForCondition(
         "first interval trigger",
@@ -322,7 +412,7 @@ describe("cron dev-mode integration", () => {
           && job?.state.nextRunAtMs === null,
         12_000
       );
-      expect(finishedOneShot?.state.lastStatus).toBe("error");
+      expect(finishedOneShot?.state.lastStatus).toBe("ok");
 
       const forcedName = `forced-run-${randomUUID().slice(0, 8)}`;
       const { jobId: forcedJobId } = await addJobViaCli(home, [
@@ -358,6 +448,7 @@ describe("cron dev-mode integration", () => {
         8_000
       );
       expect(afterForce?.enabled).toBe(false);
+      expect(afterForce?.state.lastStatus).toBe("ok");
     },
     40_000
   );
@@ -408,7 +499,7 @@ describe("cron dev-mode integration", () => {
         (job) => (job?.state.lastRunAtMs ?? 0) >= secondService.spawnedAtMs,
         12_000
       );
-      expect(triggeredAfterRestart?.state.lastStatus).toBe("error");
+      expect(triggeredAfterRestart?.state.lastStatus).toBe("ok");
     },
     45_000
   );

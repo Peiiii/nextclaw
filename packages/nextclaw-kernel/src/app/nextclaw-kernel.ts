@@ -9,6 +9,7 @@ import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
+import { ProviderModelCatalogManager } from "@kernel/managers/provider-model-catalog.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
@@ -138,6 +139,7 @@ export class NextclawKernel {
   readonly ingress: Ingress = new Ingress();
   readonly messageBus: MessageBus = new MessageBus();
   readonly llmProviders: LlmProviderManager = new LlmProviderManager();
+  readonly providerModelCatalog = new ProviderModelCatalogManager(this.llmProviders);
   readonly llmUsage: LlmUsageManager = new LlmUsageManager();
   readonly configManager: ConfigManager;
   readonly accessManager: AccessManager;
@@ -195,6 +197,7 @@ export class NextclawKernel {
       configPath: options.configPath,
       channels: this.channels,
       providerManager: this.llmProviders,
+      providerModelCatalogManager: this.providerModelCatalog,
     });
     this.agents = new AgentManager(this.configManager);
     this.accessManager = new AccessManager({
@@ -306,6 +309,7 @@ export class NextclawKernel {
   start = async (): Promise<void> => {
     void this.sessionSearch.start();
     this.mcpManager.start();
+    this.providerModelCatalog.start();
     await this.projectManager.importSessionProjects(
       (await this.sessionManager.listSessions()).map((session) =>
         readProjectRoot(session.metadata)
@@ -319,6 +323,7 @@ export class NextclawKernel {
   };
 
   dispose = async (): Promise<void> => {
+    this.providerModelCatalog.dispose();
     this.agentRunRequestManager.dispose();
     for (const contribution of [...this.contributions].reverse()) {
       await contribution.dispose();

@@ -76,7 +76,7 @@ function normalizeRequest(args: unknown): InboxDeliveryRequest {
 class DeliverToInboxTool implements NcpTool {
   readonly name = "deliver_to_inbox";
   readonly description =
-    "Deliver a durable Markdown or static HTML report, recommendation, or article to the user's NextClaw inbox. Use content for direct text or filePath to snapshot a local UTF-8 text file. Set contentType for direct HTML; .html and .htm files are detected automatically. The user can read it later and continue in a new chat.";
+    "Deliver durable reading material to the user's NextClaw inbox. Prefer this for collected news, briefings, reports, recommendations, or articles when the user can read later and did not explicitly request an external chat channel. Accepts Markdown or static HTML via content, or snapshots a local UTF-8 filePath; .html and .htm files are detected automatically. The user can continue from the delivery in a new chat.";
   readonly parameters: NcpTool["parameters"] = {
     type: "object",
     properties: {

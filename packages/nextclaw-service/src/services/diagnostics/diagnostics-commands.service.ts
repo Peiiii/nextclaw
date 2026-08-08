@@ -329,10 +329,17 @@ export class DiagnosticsCommands {
           detail: provider.apiBase ? provider.apiBase : "apiBase not set"
         };
       }
+      const hasAnonymousAccess = Boolean(spec.anonymousApiKey);
       return {
         name: spec.displayName ?? spec.name,
-        configured: Boolean(provider.apiKey) || apiKeyRefSet,
-        detail: provider.apiKey ? "apiKey set" : apiKeyRefSet ? "apiKey ref set" : "apiKey not set"
+        configured: Boolean(provider.apiKey) || apiKeyRefSet || hasAnonymousAccess,
+        detail: provider.apiKey
+          ? "apiKey set"
+          : apiKeyRefSet
+            ? "apiKey ref set"
+            : hasAnonymousAccess
+              ? "anonymous access"
+              : "apiKey not set"
       };
     });
   };

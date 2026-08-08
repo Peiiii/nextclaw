@@ -31,6 +31,8 @@ type ProviderMeta = {
   envKey?: string;
   defaultApiBase?: string;
   defaultModels?: string[];
+  apiKeyRequired?: boolean;
+  supportsModelDiscovery?: boolean;
   supportsWireApi?: boolean;
   defaultWireApi?: "auto" | "chat" | "responses";
   auth?: {
@@ -100,6 +102,14 @@ describe("provider meta catalog", () => {
     expect(minimax?.defaultWireApi).toBe("chat");
   });
 
+  it("marks OpenCode Zen as not requiring a user API key", async () => {
+    const providers = await loadProviderMeta();
+    const opencode = providers.find((provider) => provider.providerType === "opencode");
+
+    expect(opencode).toBeDefined();
+    expect(opencode?.apiKeyRequired).toBe(false);
+  });
+
   it("exposes dashscope coding plan as a dedicated provider in meta", async () => {
     const providers = await loadProviderMeta();
     const codingPlan = providers.find(
@@ -125,6 +135,29 @@ describe("provider meta catalog", () => {
       "dashscope-coding-plan/kimi-k2.6",
       "dashscope-coding-plan/kimi-k2.5",
     ]);
+  });
+
+  it("only exposes model discovery for audited built-in providers", async () => {
+    const providers = await loadProviderMeta();
+    const supportedProviders = providers
+      .filter((provider) => provider.supportsModelDiscovery)
+      .map((provider) => provider.providerType)
+      .sort();
+
+    expect(supportedProviders).toEqual([
+      "aihubmix",
+      "anthropic",
+      "deepseek",
+      "groq",
+      "minimax",
+      "nextclaw",
+      "openai",
+      "opencode",
+      "openrouter",
+      "vllm",
+    ]);
+    expect(providers.find((provider) => provider.providerType === "dashscope")?.supportsModelDiscovery).toBe(false);
+    expect(providers.find((provider) => provider.providerType === "dashscope-coding-plan")?.supportsModelDiscovery).toBe(false);
   });
 
   it("exposes kimi coding as a dedicated provider in meta", async () => {

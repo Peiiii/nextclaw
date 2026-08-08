@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { buildNcpRequestEnvelope } from '@nextclaw/ncp-react';
 import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
-import type { NcpAgentSendEnvelope, NcpMessage, NcpRunHandle } from '@nextclaw/ncp';
+import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
 
 import { deriveNcpMessagePartsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
@@ -12,6 +12,10 @@ import {
 } from '@/features/chat/features/conversation/utils/session-queued-input.utils';
 import type { SessionConversationInputSnapshot } from './use-session-conversation-input-state';
 import type { useSessionConversationInputQuery } from './use-session-conversation-input-query';
+import {
+  useSessionConversationRecoveryActions,
+  type SessionConversationRecoveryAgent,
+} from './use-session-conversation-recovery-actions';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
 type ComposerDraftSnapshot = Pick<
@@ -19,11 +23,8 @@ type ComposerDraftSnapshot = Pick<
   'text' | 'nodes' | 'selectedSkills' | 'skillRecords' | 'attachments'
 >;
 
-type SessionConversationAgent = {
+type SessionConversationAgent = SessionConversationRecoveryAgent & {
   readonly isHydrating: boolean;
-  readonly isSending: boolean;
-  readonly isRunning: boolean;
-  readonly visibleMessages: readonly NcpMessage[];
   readonly snapshot: {
     readonly activeRun?: {
       readonly sessionId?: string | null;
@@ -205,13 +206,34 @@ export function useSessionConversationController(params: UseSessionConversationC
   );
   const hasSendableDraft = hasSendableMessagePart(parts);
   const isSending = agent.isSending || agent.isRunning;
-  const sendDisabled = isNcpChatSendDisabled({
-    snapshot: buildInputAvailabilitySnapshot(inputQuery),
-    hasSendableDraft,
-    isRuntimeBlocked,
-  }) || agent.isSending;
+  const activityState = inputQuery.selectedSession?.activityPreview?.state;
+  const canContinue = Boolean(
+    sessionKey &&
+    !isSending &&
+    !isRuntimeBlocked &&
+    (activityState === 'cancelled' || activityState === 'failed'),
+  );
+  const primaryAction: 'continue' | 'send' =
+    canContinue && !hasSendableDraft ? 'continue' : 'send';
+  const sendDisabled = primaryAction === 'continue'
+    ? false
+    : isNcpChatSendDisabled({
+        snapshot: buildInputAvailabilitySnapshot(inputQuery),
+        hasSendableDraft,
+        isRuntimeBlocked,
+      }) || agent.isSending;
+
+  const { continueRun, editMessage } = useSessionConversationRecoveryActions({
+    agent,
+    sessionKey,
+    setSendError,
+  });
 
   const send = useCallback(async () => {
+    if (primaryAction === 'continue') {
+      await continueRun();
+      return;
+    }
     const draft = buildSubmissionDraft({
       agentIsSending: agent.isSending,
       inputSnapshot,
@@ -246,6 +268,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     }
   }, [
     agent,
+    continueRun,
     inputQuery,
     inputSnapshot,
     isRuntimeBlocked,
@@ -256,6 +279,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     selectedAgentId,
     sessionKey,
     setSendError,
+    primaryAction,
   ]);
 
   const editQueuedInput = useCallback((id: string) => {
@@ -290,8 +314,11 @@ export function useSessionConversationController(params: UseSessionConversationC
   }, [agent]);
 
   return {
+    canContinue,
     canStopGeneration: agent.isRunning,
+    continueRun,
     deleteQueuedInput,
+    editMessage,
     editQueuedInput,
     hasSendableDraft,
     isSending,
@@ -301,6 +328,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     })),
     send,
     sendDisabled,
+    primaryAction,
     stop,
     stopDisabled: !agent.isRunning,
   };

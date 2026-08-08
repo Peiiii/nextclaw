@@ -12,29 +12,20 @@ export type ChatPageProps = {
   view: MainPanelView;
 };
 type UseChatSessionSyncParams = {
-  view: MainPanelView;
   routeSessionKey: string | null;
-  syncRouteSessionSelection: (params: {
-    isChatView: boolean;
-    routeSessionKey: string | null;
-  }) => void;
+  syncRouteSessionSelection: (routeSessionKey: string | null) => void;
 };
 export function useChatSessionSync(params: UseChatSessionSyncParams): void {
   const {
-    view,
     routeSessionKey,
     syncRouteSessionSelection,
   } = params;
 
   useLayoutEffect(() => {
-    syncRouteSessionSelection({
-      isChatView: view === "chat",
-      routeSessionKey,
-    });
+    syncRouteSessionSelection(routeSessionKey);
   }, [
     routeSessionKey,
     syncRouteSessionSelection,
-    view,
   ]);
 }
 type ChatPageLayoutProps = {

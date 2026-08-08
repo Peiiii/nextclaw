@@ -19,14 +19,13 @@ import {
   serializeNcpAgentSessionMessageLocation
 } from "@kernel/utils/ncp-agent-session-message-projection.utils.js";
 
-const PROJECTION_VERSION = 1;
+const PROJECTION_VERSION = 3;
 const PROJECTION_ROOT_DIRECTORY = ".message-projections";
 
 type MessageProjectionMeta = {
   version: typeof PROJECTION_VERSION;
   sessionId: string;
   total: number;
-  lastMessageId: string | null;
   projectedJournalOffset: number;
   dataBytes: number;
   contextWindow: Record<string, unknown> | null;
@@ -44,6 +43,8 @@ type MessageProjectionSource = {
 };
 
 export class NcpAgentSessionMessageProjectionStore {
+  private readonly messageOrdinals = new Map<string, Map<string, number>>();
+
   constructor(
     private readonly journalDir: string,
     private readonly source?: MessageProjectionSource
@@ -58,7 +59,6 @@ export class NcpAgentSessionMessageProjectionStore {
         !Number.isSafeInteger(parsed.total) ||
         !Number.isSafeInteger(parsed.projectedJournalOffset) ||
         !Number.isSafeInteger(parsed.dataBytes) ||
-        (parsed.lastMessageId !== null && typeof parsed.lastMessageId !== "string") ||
         (parsed.contextWindow !== null && !isRecord(parsed.contextWindow))
       ) {
         return null;
@@ -89,7 +89,8 @@ export class NcpAgentSessionMessageProjectionStore {
     projectedJournalOffset: number;
     contextWindow?: Record<string, unknown> | null;
   }): Promise<void> => {
-    const { contextWindow, messages, projectedJournalOffset, sessionId } = params;
+    const { contextWindow, messages: sourceMessages, projectedJournalOffset, sessionId } = params;
+    const messages = deduplicateNcpAgentSessionTailMessages(sourceMessages);
     const projectionPath = this.projectionPath(sessionId);
     const projectionRoot = dirname(projectionPath);
     await mkdir(projectionRoot, { recursive: true });
@@ -122,7 +123,6 @@ export class NcpAgentSessionMessageProjectionStore {
         version: PROJECTION_VERSION,
         sessionId,
         total: messages.length,
-        lastMessageId: messages.at(-1)?.id ?? null,
         projectedJournalOffset,
         dataBytes,
         contextWindow: contextWindow ? structuredClone(contextWindow) : null
@@ -130,6 +130,10 @@ export class NcpAgentSessionMessageProjectionStore {
       await writeFile(join(temporaryPath, "meta.json"), `${JSON.stringify(meta)}\n`, "utf-8");
       await rm(projectionPath, { recursive: true, force: true });
       await rename(temporaryPath, projectionPath);
+      this.messageOrdinals.set(
+        sessionId,
+        new Map(messages.map((message, index) => [message.id, index + 1])),
+      );
     } catch (error) {
       await rm(temporaryPath, { recursive: true, force: true });
       throw error;
@@ -147,6 +151,7 @@ export class NcpAgentSessionMessageProjectionStore {
       return false;
     }
     const messages = deduplicateNcpAgentSessionTailMessages(sourceMessages);
+    const messageOrdinals = await this.readMessageOrdinals(sessionId, meta);
     const dataFile = await open(this.dataPath(sessionId), "r+");
     const offsetsFile = await open(this.offsetsPath(sessionId), "r+");
     try {
@@ -156,12 +161,13 @@ export class NcpAgentSessionMessageProjectionStore {
         const serializedLocation = Buffer.from(serializeNcpAgentSessionMessageLocation(location), "utf-8");
         await dataFile.write(serialized, 0, serialized.length, meta.dataBytes);
         meta.dataBytes += serialized.length;
-        if (message.id === meta.lastMessageId && meta.total > 0) {
+        const ordinal = messageOrdinals.get(message.id);
+        if (ordinal) {
           await offsetsFile.write(
             serializedLocation,
             0,
             MESSAGE_PROJECTION_OFFSET_RECORD_BYTES,
-            (meta.total - 1) * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES
+            (ordinal - 1) * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES
           );
           continue;
         }
@@ -172,7 +178,7 @@ export class NcpAgentSessionMessageProjectionStore {
           meta.total * MESSAGE_PROJECTION_OFFSET_RECORD_BYTES
         );
         meta.total += 1;
-        meta.lastMessageId = message.id;
+        messageOrdinals.set(message.id, meta.total);
       }
       await Promise.all([dataFile.sync(), offsetsFile.sync()]);
     } finally {
@@ -237,7 +243,8 @@ export class NcpAgentSessionMessageProjectionStore {
     }
     const uniqueTailMessages = deduplicateNcpAgentSessionTailMessages(tailMessages ?? []);
     const tailById = new Map(uniqueTailMessages.map((message) => [message.id, message]));
-    const additionalTailMessages = uniqueTailMessages.filter((message) => message.id !== meta.lastMessageId);
+    const messageOrdinals = await this.readMessageOrdinals(sessionId, meta);
+    const additionalTailMessages = uniqueTailMessages.filter((message) => !messageOrdinals.has(message.id));
     const limit = Number.isFinite(requestedLimit) ? Math.min(200, Math.max(1, Math.trunc(requestedLimit))) : 80;
     const boundary = cursor ? decodeNcpAgentSessionMessageCursor(cursor, meta.total + 1) : meta.total + 1;
     const includeTail = !cursor;
@@ -279,7 +286,22 @@ export class NcpAgentSessionMessageProjectionStore {
   };
 
   delete = async (sessionId: string): Promise<void> => {
+    this.messageOrdinals.delete(sessionId);
     await rm(this.projectionPath(sessionId), { recursive: true, force: true });
+  };
+
+  private readMessageOrdinals = async (
+    sessionId: string,
+    meta: MessageProjectionMeta,
+  ): Promise<Map<string, number>> => {
+    const cached = this.messageOrdinals.get(sessionId);
+    if (cached) {
+      return cached;
+    }
+    const messages = meta.total > 0 ? await this.readMessages(sessionId, 1, meta.total) : [];
+    const ordinals = new Map(messages.map((message, index) => [message.id, index + 1]));
+    this.messageOrdinals.set(sessionId, ordinals);
+    return ordinals;
   };
 
   private readMessages = async (sessionId: string, startOrdinal: number, endOrdinal: number): Promise<NcpMessage[]> => {

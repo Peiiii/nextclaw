@@ -22,6 +22,10 @@ import {
   type CompactTabStripAction,
   type CompactTabStripTab,
 } from "@/shared/components/ui/tab-strip/compact-tab-strip";
+import type {
+  ContextMenuGroup,
+  ContextMenuItem,
+} from "@/shared/components/ui/context-menu/context-menu";
 import { t } from "@/shared/lib/i18n";
 
 function WorkspaceTabIcon({
@@ -62,6 +66,49 @@ function WorkspaceTabIcon({
   return <MessageSquareText className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
 }
 
+function buildWorkspaceFileMenuGroups(
+  tab: WorkspaceTabViewModel,
+): ContextMenuGroup[] | undefined {
+  if (tab.kind !== "file") {
+    return undefined;
+  }
+
+  const fileActions: ContextMenuItem[] = [
+    ...(tab.onAddToChat
+      ? [{
+          key: "add-to-chat",
+          icon: <MessageSquarePlus className="h-4 w-4" />,
+          label: t("chatWorkspaceAddToChat"),
+          restoreFocus: false,
+          onSelect: tab.onAddToChat,
+        }]
+      : []),
+    ...(tab.alternateViewerAction
+      ? [{
+          key: `viewer:${tab.alternateViewerAction.viewer}`,
+          icon: tab.alternateViewerAction.viewer === "rendered"
+            ? <Eye className="h-4 w-4" />
+            : <Code2 className="h-4 w-4" />,
+          label: tab.alternateViewerAction.label,
+          onSelect: tab.alternateViewerAction.onSelect,
+        }]
+      : []),
+  ];
+  const tabActions: ContextMenuItem[] = tab.onClose
+    ? [{
+        key: "close",
+        icon: <X className="h-4 w-4" />,
+        label: t("chatWorkspaceCloseFile"),
+        onSelect: tab.onClose,
+      }]
+    : [];
+
+  return [
+    { key: "file", items: fileActions },
+    { key: "tab", items: tabActions },
+  ];
+}
+
 function buildCompactWorkspaceTabs(
   tabs: readonly WorkspaceTabViewModel[],
 ): CompactTabStripTab[] {
@@ -93,28 +140,7 @@ function buildCompactWorkspaceTabs(
     onSelect: tab.onSelect,
     onClose: tab.onClose,
     menuLabel: t("chatWorkspaceFileMoreActions"),
-    menuActions: tab.kind === "file"
-      ? [
-          ...(tab.alternateViewerAction
-            ? [{
-                key: `viewer:${tab.alternateViewerAction.viewer}`,
-                icon: tab.alternateViewerAction.viewer === "rendered"
-                  ? <Eye className="h-3.5 w-3.5" />
-                  : <Code2 className="h-3.5 w-3.5" />,
-                label: tab.alternateViewerAction.label,
-                onClick: tab.alternateViewerAction.onSelect,
-              }]
-            : []),
-          ...(tab.onClose
-            ? [{
-                key: "close",
-                icon: <X className="h-3.5 w-3.5" />,
-                label: t("chatWorkspaceCloseFile"),
-                onClick: tab.onClose,
-              }]
-            : []),
-        ]
-      : undefined,
+    menuGroups: buildWorkspaceFileMenuGroups(tab),
   }));
 }
 

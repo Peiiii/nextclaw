@@ -7,6 +7,12 @@ import {
   type Config,
   type ProviderConfig
 } from "@core/features/config/configs/config-schema.config.js";
+import {
+  OPENCODE_ZEN_DEFAULT_MODEL,
+  OPENCODE_ZEN_FRESH_INSTALL_PROVIDER_CONFIG,
+  OPENCODE_ZEN_PROVIDER_ID,
+  OPENCODE_ZEN_UNAVAILABLE_FREE_MODELS
+} from "@core/features/config/configs/opencode-zen.config.js";
 import { getDataPath } from "@core/shared/lib/core-utils/index.js";
 import { normalizeInlineSecretRefs } from "@core/features/config/services/config-secrets.service.js";
 
@@ -44,7 +50,16 @@ export function loadConfig(configPath?: string): Config {
       console.warn(`Warning: Failed to load config from ${path}: ${message}`);
     }
   }
-  const config = ConfigSchema.parse({});
+  const config = ConfigSchema.parse(fileExists ? {} : {
+    agents: {
+      defaults: {
+        model: OPENCODE_ZEN_DEFAULT_MODEL
+      }
+    },
+    providers: {
+      [OPENCODE_ZEN_PROVIDER_ID]: OPENCODE_ZEN_FRESH_INSTALL_PROVIDER_CONFIG
+    }
+  });
   if (ensureBuiltinNextclawKey(config) && !encounteredLoadError) {
     persistConfigSafely(config, path);
   }
@@ -92,6 +107,16 @@ function migrateProviderModelConfig(provider: Record<string, unknown>): boolean 
     provider.modelConfig = modelConfig;
   }
   return changed;
+}
+
+function filterUnavailableOpenCodeZenModels(input: unknown): string[] | null {
+  const models = collectStringArray(input);
+  const unavailableModels = new Set<string>(OPENCODE_ZEN_UNAVAILABLE_FREE_MODELS);
+  const availableModels = models.filter((model) => !unavailableModels.has(model));
+  if (availableModels.length === models.length) {
+    return null;
+  }
+  return availableModels;
 }
 
 function migrateSearchConfig(params: {
@@ -169,9 +194,17 @@ function migrateConfig(data: Record<string, unknown>): { config: Record<string, 
   }
   const providers = (data.providers ?? {}) as Record<string, unknown>;
   const nextclawProvider = (providers.nextclaw ?? {}) as Record<string, unknown>;
-  for (const provider of Object.values(providers)) {
+  for (const [providerId, provider] of Object.entries(providers)) {
     if (provider && typeof provider === "object" && !Array.isArray(provider)) {
-      changed = migrateProviderModelConfig(provider as Record<string, unknown>) || changed;
+      const providerConfig = provider as Record<string, unknown>;
+      changed = migrateProviderModelConfig(providerConfig) || changed;
+      if (providerId === OPENCODE_ZEN_PROVIDER_ID || providerConfig.providerType === OPENCODE_ZEN_PROVIDER_ID) {
+        const availableModels = filterUnavailableOpenCodeZenModels(providerConfig.models);
+        if (availableModels) {
+          providerConfig.models = availableModels;
+          changed = true;
+        }
+      }
     }
   }
   const nextclawApiBase = typeof nextclawProvider.apiBase === "string" ? nextclawProvider.apiBase.trim() : "";

@@ -1,4 +1,10 @@
-import type { LandingCopy } from "./landing-content.types";
+import "@/proactive-delivery-showcase.css";
+
+import type {
+  LandingCopy,
+  Locale,
+  ProactiveDeliveryShowcase,
+} from "./landing-content.types";
 import {
   renderComparisonSection,
   renderEcosystemGroups,
@@ -6,11 +12,64 @@ import {
   renderRuntimeShowcase,
   renderShowcaseCards,
 } from "./landing-route-pages.utils";
+import { PROACTIVE_DELIVERY_COPY } from "./landing-proactive-delivery.config";
 import { LINKS } from "./landing-route.utils";
+
+function renderProactiveDeliveryShowcase(
+  showcase: ProactiveDeliveryShowcase,
+  docsLink: string,
+): string {
+  return `
+    <section class="proactive-delivery-section">
+      <div class="proactive-delivery-inner">
+        <div class="proactive-delivery-header">
+          <p class="proactive-delivery-eyebrow">
+            <i data-lucide="inbox" aria-hidden="true"></i>
+            ${showcase.eyebrow}
+          </p>
+          <h2 class="proactive-delivery-title">${showcase.title}</h2>
+          <p class="proactive-delivery-description">${showcase.description}</p>
+          <a
+            href="${docsLink}guide/background-results"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="proactive-delivery-link"
+          >
+            ${showcase.guideLabel}
+            <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+          </a>
+        </div>
+
+        <div class="proactive-delivery-grid">
+          <figure class="proactive-delivery-card proactive-delivery-card--inbox">
+            <figcaption>
+              <span>${showcase.inboxLabel}</span>
+              <strong>${showcase.inboxTitle}</strong>
+            </figcaption>
+            <div class="proactive-delivery-media proactive-delivery-media--inbox">
+              <img src="${showcase.inboxImageSrc}" alt="${showcase.inboxImageAlt}" loading="lazy" />
+            </div>
+          </figure>
+
+          <figure class="proactive-delivery-card proactive-delivery-card--notification">
+            <figcaption>
+              <span>${showcase.notificationLabel}</span>
+              <strong>${showcase.notificationTitle}</strong>
+            </figcaption>
+            <div class="proactive-delivery-media proactive-delivery-media--notification">
+              <img src="${showcase.notificationImageSrc}" alt="${showcase.notificationImageAlt}" loading="lazy" />
+            </div>
+          </figure>
+        </div>
+      </div>
+    </section>
+  `;
+}
 
 export function renderHomeSections(
   copy: LandingCopy,
   docsLink: string,
+  locale: Locale,
 ): string {
   return `
     <section id="features" class="py-16 px-6 z-10 w-full max-w-7xl mx-auto">
@@ -22,6 +81,8 @@ export function renderHomeSections(
     </section>
 
     ${renderRuntimeShowcase(copy.runtimeShowcase)}
+
+    ${renderProactiveDeliveryShowcase(PROACTIVE_DELIVERY_COPY[locale], docsLink)}
 
     <section class="app-surface-section">
       <div class="w-full max-w-7xl mx-auto">

@@ -47,6 +47,7 @@ export type ChatComposerTokenNode = {
   tokenKind: ChatComposerTokenKind;
   tokenKey: string;
   label: string;
+  previewUrl?: string;
 };
 
 export type ChatComposerNode = ChatComposerTextNode | ChatComposerTokenNode;
@@ -57,8 +58,6 @@ export type ChatComposerSelection = {
 };
 
 export type ChatToolbarIcon = "sparkles" | "brain";
-
-export type ChatToolbarAccessoryIcon = ChatToolbarIcon | "paperclip";
 
 export type ChatToolbarSelectOption = {
   value: string;
@@ -85,6 +84,18 @@ export type ChatToolbarSelectOptionAction = {
   onToggle: (value: string, active: boolean) => void;
 };
 
+export type ChatToolbarSelectDiscovery = {
+  summaryLabel: string;
+  viewLabel: string;
+  groupLabel: string;
+  allGroupLabel: string;
+  actionLabel: string;
+  dismissLabel: string;
+  groups: ChatToolbarSelectGroup[];
+  onDismiss: () => void;
+  onSelect: (value: string) => Promise<void> | void;
+};
+
 export type ChatToolbarSelect = {
   key: string;
   value?: string;
@@ -98,16 +109,20 @@ export type ChatToolbarSelect = {
   emptyLabel?: string;
   search?: ChatToolbarSelectSearch;
   optionAction?: ChatToolbarSelectOptionAction;
+  discovery?: ChatToolbarSelectDiscovery;
+  manageLabel?: string;
+  manageHref?: string;
+  onOpen?: () => void;
   onValueChange: (value: string) => void;
 };
+
+export type ChatToolbarAccessoryIcon = "paperclip";
 
 export type ChatToolbarAccessory = {
   key: string;
   label: string;
   icon?: ChatToolbarAccessoryIcon;
-  iconOnly?: boolean;
   disabled?: boolean;
-  tooltip?: string;
   onClick?: () => void;
 };
 
@@ -126,7 +141,6 @@ export type ChatSkillPickerOptionGroup = {
 
 export type ChatSkillPickerProps = {
   title: string;
-  allGroupsLabel: string;
   searchPlaceholder: string;
   emptyLabel: string;
   loadingLabel: string;
@@ -146,6 +160,7 @@ export type ChatInputBarActionsProps = {
   stopDisabled: boolean;
   stopHint: string;
   sendButtonLabel: string;
+  sendIcon?: "send" | "continue";
   stopButtonLabel: string;
   contextWindow?: ChatContextWindowIndicator | null;
   onSend: () => Promise<void> | void;
@@ -161,6 +176,7 @@ export type ChatContextWindowIndicator = {
 };
 
 export type ChatInputBarToolbarProps = {
+  addMenuLabel?: string;
   selects: ChatToolbarSelect[];
   trailingSelects?: ChatToolbarSelect[];
   accessories?: ChatToolbarAccessory[];
@@ -464,6 +480,13 @@ export type ChatMessageMoreActionsViewModel = {
   items: ChatMessageDetailActionViewModel[];
 };
 
+export type ChatMessageActionViewModel = {
+  disabled?: boolean;
+  icon: "continue" | "edit";
+  key: string;
+  label: string;
+};
+
 export type ChatMessageViewModel = {
   id: string;
   role: ChatMessageRole;
@@ -473,6 +496,7 @@ export type ChatMessageViewModel = {
   status?: string;
   processSummary?: ChatMessageProcessSummaryViewModel;
   executionSummaryLabel?: string;
+  actions?: ChatMessageActionViewModel[];
   moreActions?: ChatMessageMoreActionsViewModel;
 };
 

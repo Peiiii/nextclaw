@@ -1,4 +1,5 @@
-import type { NcpMessage } from "@nextclaw/ncp";
+import { isHiddenNcpMessage, type NcpMessage } from "@nextclaw/ncp";
+import { isSilentReplyNcpMessage } from "@nextclaw/shared";
 import type { ChatMessageViewModel } from "@nextclaw/agent-chat-ui";
 import {
   readContextCompactionTimeline,
@@ -48,6 +49,8 @@ function readInheritedSourceSessionId(message: NcpMessage): string | null {
 
 export function isVisibleChatMessage(message: NcpMessage): boolean {
   return (
+    !isHiddenNcpMessage(message) &&
+    !isSilentReplyNcpMessage(message) &&
     !readContextCompactionTimeline(message) &&
     !readInheritedSourceSessionId(message)
   );

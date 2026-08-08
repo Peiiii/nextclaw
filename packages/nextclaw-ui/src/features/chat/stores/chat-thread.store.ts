@@ -79,8 +79,7 @@ export type ChatThreadSnapshot = {
   sessionKey: string | null;
   agentId?: string | null;
   sessionDisplayName?: string;
-  sessionProjectRoot?: string | null;
-  sessionWorkingDir?: string | null;
+  draftProjectRoot: string | null;
   sessionProjectName?: string | null;
   canDeleteSession: boolean;
   isDeletePending: boolean;
@@ -149,8 +148,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   sessionKey: null,
   agentId: null,
   sessionDisplayName: undefined,
-  sessionProjectRoot: null,
-  sessionWorkingDir: null,
+  draftProjectRoot: null,
   sessionProjectName: null,
   canDeleteSession: false,
   isDeletePending: false,

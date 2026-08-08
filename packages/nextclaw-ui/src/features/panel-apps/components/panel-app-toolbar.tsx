@@ -17,7 +17,7 @@ export function PanelAppToolbar({
       <button
         type="button"
         onClick={onOpenApps}
-        className="inline-flex shrink-0 items-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        className="inline-flex shrink-0 items-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
         title={t('appsTitle')}
         aria-label={t('appsTitle')}
       >
@@ -32,7 +32,7 @@ export function PanelAppToolbar({
       <button
         type="button"
         onClick={onRefresh}
-        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
         title={t('panelAppsRefreshCurrent')}
         aria-label={t('panelAppsRefreshCurrent')}
       >

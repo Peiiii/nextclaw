@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildProviderModelDiscoveryPayload,
   buildProviderSavePayload,
   resolveEditableModels,
   serializeModelsForSave
 } from '@/features/settings/utils/provider-form-support.utils';
 import {
   addProviderLocalModel,
+  findProviderModelSuggestions,
+  mergeProviderLocalModels,
   setModelThinkingDefaultInConfig,
   toggleModelThinkingLevelInConfig
 } from '@/features/settings/utils/provider-form-model.utils';
@@ -65,6 +68,45 @@ describe('provider form model defaults', () => {
       models: ['bedrock/claude-fable-5'],
       draft: ''
     });
+  });
+
+  it('builds discovery credentials from the unsaved provider draft', () => {
+    expect(buildProviderModelDiscoveryPayload({
+      apiKey: ' draft-key ',
+      apiBase: ' https://api.example.com/v1 ',
+      extraHeaders: { ' X-Tenant ': 'team-a' }
+    })).toEqual({
+      apiKey: 'draft-key',
+      apiBase: 'https://api.example.com/v1',
+      extraHeaders: { 'X-Tenant': 'team-a' }
+    });
+    expect(buildProviderModelDiscoveryPayload({
+      apiKey: '',
+      apiBase: 'https://opencode.ai/zen/v1',
+      extraHeaders: null
+    })).toEqual({
+      apiBase: 'https://opencode.ai/zen/v1',
+      extraHeaders: null
+    });
+  });
+
+  it('keeps current ordering and appends only new provider-local discoveries', () => {
+    expect(mergeProviderLocalModels(
+      ['gpt-5', 'vendor/existing'],
+      ['openrouter/gpt-5', 'openrouter/vendor/new', 'vendor/existing', 'vendor/new'],
+      ['openrouter']
+    )).toEqual({
+      models: ['gpt-5', 'vendor/existing', 'vendor/new'],
+      addedCount: 1
+    });
+  });
+
+  it('derives provider catalog suggestions in remote order without configured aliases', () => {
+    expect(findProviderModelSuggestions(
+      ['gpt-5'],
+      ['openrouter/gpt-5', 'openrouter/meta/muse-spark-1.2', 'meta/muse-spark-1.2', 'qwen/qwen3.8-max'],
+      ['openrouter']
+    )).toEqual(['meta/muse-spark-1.2', 'qwen/qwen3.8-max']);
   });
 
   it('keeps model thinking defaults inside the supported level set', () => {

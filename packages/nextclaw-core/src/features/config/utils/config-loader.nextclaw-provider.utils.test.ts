@@ -2,6 +2,10 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
+import {
+  OPENCODE_ZEN_DEFAULT_MODEL,
+  OPENCODE_ZEN_FREE_MODELS
+} from "@core/features/config/configs/opencode-zen.config.js";
 import { loadConfig } from "./config-loader.utils.js";
 
 describe("loadConfig nextclaw built-in provider bootstrap", () => {
@@ -14,8 +18,74 @@ describe("loadConfig nextclaw built-in provider bootstrap", () => {
 
     expect(first.providers.nextclaw.enabled).toBe(false);
     expect(first.providers.nextclaw.apiKey).toMatch(/^nc_free_/);
+    expect(first.agents.defaults.model).toBe(OPENCODE_ZEN_DEFAULT_MODEL);
+    expect(first.providers.opencode).toMatchObject({
+      enabled: true,
+      providerType: "opencode",
+      apiKey: "",
+      apiBase: "https://opencode.ai/zen/v1",
+      wireApi: "chat",
+      models: OPENCODE_ZEN_FREE_MODELS
+    });
     expect(second.providers.nextclaw.enabled).toBe(false);
     expect(second.providers.nextclaw.apiKey).toBe(first.providers.nextclaw.apiKey);
+    expect(second.agents.defaults.model).toBe(OPENCODE_ZEN_DEFAULT_MODEL);
+    expect(second.providers.opencode.models).toEqual(OPENCODE_ZEN_FREE_MODELS);
+  });
+
+  it("does not add OpenCode Zen to an existing user config", () => {
+    const dir = mkdtempSync(join(tmpdir(), "nextclaw-config-existing-provider-"));
+    const configPath = join(dir, "config.json");
+
+    writeFileSync(configPath, JSON.stringify({
+      agents: {
+        defaults: {
+          model: "deepseek/deepseek-chat"
+        }
+      },
+      providers: {
+        deepseek: {
+          apiKey: "sk-existing"
+        }
+      }
+    }, null, 2));
+
+    const config = loadConfig(configPath);
+
+    expect(config.agents.defaults.model).toBe("deepseek/deepseek-chat");
+    expect(config.providers).not.toHaveProperty("opencode");
+  });
+
+  it("removes an unavailable OpenCode Zen free model without deleting custom models", () => {
+    const dir = mkdtempSync(join(tmpdir(), "nextclaw-config-opencode-model-migration-"));
+    const configPath = join(dir, "config.json");
+
+    writeFileSync(configPath, JSON.stringify({
+      agents: { defaults: { model: "opencode/big-pickle" } },
+      providers: {
+        "opencode-2": {
+          providerType: "opencode",
+          enabled: true,
+          apiKey: "",
+          models: [
+            "opencode/big-pickle",
+            "opencode/ling-3.0-flash-free",
+            "opencode/custom-free"
+          ]
+        }
+      }
+    }, null, 2));
+
+    const config = loadConfig(configPath);
+
+    expect(config.providers["opencode-2"].models).toEqual([
+      "opencode/big-pickle",
+      "opencode/custom-free"
+    ]);
+    expect(JSON.parse(readFileSync(configPath, "utf-8")).providers["opencode-2"].models).toEqual([
+      "opencode/big-pickle",
+      "opencode/custom-free"
+    ]);
   });
 
   it("migrates legacy brave web search config into the new search config", () => {
@@ -148,6 +218,7 @@ describe("loadConfig nextclaw built-in provider bootstrap", () => {
     const rawAfterLoad = readFileSync(configPath, "utf-8");
 
     expect(config.search.provider).toBe("bocha");
+    expect(config.providers).not.toHaveProperty("opencode");
     expect(JSON.parse(rawAfterLoad)).toEqual(invalidConfig);
   });
 });

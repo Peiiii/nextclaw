@@ -31,7 +31,7 @@ const SIZE_CLASS: Record<IconActionButtonSize, string> = {
 
 const TONE_CLASS: Record<IconActionButtonTone, string> = {
   default:
-    'text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
+    'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
   strong:
     'text-muted-foreground hover:bg-black/10 hover:text-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
 };

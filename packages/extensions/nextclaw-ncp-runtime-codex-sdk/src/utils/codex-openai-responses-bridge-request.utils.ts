@@ -272,15 +272,11 @@ export async function callOpenAiCompatibleUpstream(params: {
   try {
     parsed = JSON.parse(rawText) as OpenAiChatCompletionResponse;
   } catch {
-    throw new Error(`Bridge upstream returned invalid JSON: ${rawText.slice(0, 240)}`);
+    throw new Error(`Bridge upstream returned invalid JSON: ${rawText}`);
   }
 
   if (!upstreamResponse.ok) {
-    throw new Error(
-      readString(parsed.error?.message) ??
-        rawText.slice(0, 240) ??
-        `HTTP ${upstreamResponse.status}`,
-    );
+    throw new Error(rawText || `HTTP ${upstreamResponse.status}`);
   }
 
   return {

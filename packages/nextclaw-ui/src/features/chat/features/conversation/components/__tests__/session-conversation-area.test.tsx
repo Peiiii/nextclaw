@@ -39,7 +39,7 @@ const mocks = vi.hoisted(() => {
     selectedSessionType: "default",
     pendingProjectRoot: null,
     composerFocusRequestId: 0,
-    sendError: null,
+    sendError: null as string | null,
   };
   const inputQuery = {
     defaultModel: undefined as string | undefined,
@@ -86,11 +86,11 @@ const mocks = vi.hoisted(() => {
     isHydrating: false,
     isRunning: true,
     isSending: true,
-    hydrateError: null,
+    hydrateError: null as Error | null,
     snapshot: {
       activeRun: null,
       contextWindow: null,
-      error: null,
+      error: null as { message: string } | null,
     },
     send: vi.fn(),
     abort: vi.fn(),
@@ -265,7 +265,10 @@ describe("SessionConversationArea input boundary", () => {
     mocks.agent.isHydrating = false;
     mocks.agent.isRunning = true;
     mocks.agent.isSending = true;
+    mocks.agent.hydrateError = null;
     mocks.agent.snapshot.contextWindow = null;
+    mocks.agent.snapshot.error = null;
+    mocks.inputSnapshot.sendError = null;
     mocks.inputQuery.defaultModel = undefined;
     mocks.inputQuery.fallbackPreferredModel = undefined;
     mocks.inputQuery.selectedSession = null;
@@ -380,7 +383,7 @@ describe("SessionConversationArea input boundary", () => {
     mocks.inputQuery.selectedSession = {
       activityPreview: {
         state: "failed",
-        statusText: "Run failed: Invalid API Key",
+        statusText: "Invalid API Key",
       },
       status: "idle",
     };
@@ -388,8 +391,31 @@ describe("SessionConversationArea input boundary", () => {
     renderArea("session-1");
 
     expect(screen.getByTestId("conversation-bottom-slot")).toBeTruthy();
-    expect(screen.getByText(/出错了|Something went wrong/)).toBeTruthy();
-    expect(screen.getByText("Run failed: Invalid API Key")).toBeTruthy();
+    expect(screen.getByText("Invalid API Key")).toBeTruthy();
+  });
+
+  it("renders overlapping runtime failures once with a subdued diagnostic surface", () => {
+    const providerError = `Chat Completions API failed (402): {\n  "error": "${"x".repeat(240)} END_OF_PROVIDER_ERROR"\n}`;
+    mocks.inputSnapshot.sendError = providerError;
+    mocks.agent.snapshot.error = { message: providerError };
+    mocks.inputQuery.selectedSession = {
+      activityPreview: {
+        state: "failed",
+        statusText: providerError,
+      },
+      status: "idle",
+    };
+
+    renderArea("session-1");
+
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    const failureStatus = screen.getByRole("status");
+    expect(failureStatus.className).toContain("bg-muted/45");
+    expect(failureStatus.className).not.toContain("bg-red");
+    const errorDetail = failureStatus.querySelector("pre");
+    expect(errorDetail?.className).toContain("max-h-32");
+    expect(errorDetail?.className).toContain("overflow-auto");
+    expect(errorDetail?.textContent).toBe(providerError);
   });
 
   it("does not surface user-cancelled previews as conversation errors", () => {

@@ -12,14 +12,12 @@ import {
   type ConfigUiHints,
   type ProviderConfig,
   buildConfigSchema,
-  getProviderName,
   getPackageVersion,
   hasSecretRef,
   isSensitiveConfigPath,
   type ProviderSpec,
   normalizeProviderModelConfig
 } from "@nextclaw/core";
-import type { LlmProviderManager } from "@nextclaw/kernel";
 import {
   buildExtensionChannelUiHints,
   buildProjectedChannelMeta,
@@ -40,8 +38,6 @@ import type {
   ConfigView,
   ProviderCreateRequest,
   ProviderConfigUpdate,
-  ProviderConnectionTestRequest,
-  ProviderConnectionTestResult,
   ProviderConfigView,
   ProviderInstanceView,
   ProvidersView,
@@ -64,9 +60,7 @@ const PREFERRED_PROVIDER_ORDER_INDEX: Map<string, number> = new Map(
   PREFERRED_PROVIDER_ORDER.map((name, index) => [name, index])
 );
 const BUILTIN_PROVIDERS = listServerBuiltinProviders();
-const BUILTIN_PROVIDER_NAMES = new Set(BUILTIN_PROVIDERS.map((spec) => spec.name));
 const CUSTOM_PROVIDER_PREFIX = "custom-";
-const PROVIDER_TEST_MAX_TOKENS = 16;
 
 function normalizeOptionalDisplayName(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -74,10 +68,6 @@ function normalizeOptionalDisplayName(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function isCustomProviderName(name: string): boolean {
-  return name.trim().length > 0 && !BUILTIN_PROVIDER_NAMES.has(name);
 }
 
 function resolveCustomProviderFallbackDisplayName(name: string): string {
@@ -440,25 +430,23 @@ function toProviderView(
           uiHints
         ) as Record<string, string>)
       : null;
-  const view: ProviderInstanceView = {
+  const supportsWireApi = Boolean(spec?.supportsWireApi) || providerType === null;
+  return {
     providerId,
     providerType,
     isBuiltInType: providerType !== null,
     isCustom: providerType === null,
     enabled: provider.enabled !== false,
     displayName: resolveProviderInstanceDisplayName(providerId, provider, spec),
+    apiKeyRequired: !spec?.anonymousApiKey,
     apiKeySet: masked.apiKeySet || apiKeyRefSet,
     apiKeyMasked: masked.apiKeyMasked ?? (apiKeyRefSet ? "****" : undefined),
     apiBase: provider.apiBase ?? null,
     extraHeaders: extraHeaders && Object.keys(extraHeaders).length > 0 ? extraHeaders : null,
     models: normalizeModelList(provider.models ?? []),
-    modelConfig: normalizeProviderModelConfig(provider.modelConfig ?? {})
+    modelConfig: normalizeProviderModelConfig(provider.modelConfig ?? {}),
+    wireApi: supportsWireApi ? provider.wireApi ?? spec?.defaultWireApi ?? "auto" : undefined
   };
-  const supportsWireApi = Boolean(spec?.supportsWireApi) || providerType === null;
-  if (supportsWireApi) {
-    view.wireApi = provider.wireApi ?? spec?.defaultWireApi ?? "auto";
-  }
-  return view;
 }
 
 export function buildConfigView(config: Config, options?: ExtensionConfigProjectionOptions): ConfigView {
@@ -570,6 +558,7 @@ export function buildProviderTemplatesView(): ProviderTemplatesView {
       envKey: spec.envKey,
       isGateway: spec.isGateway,
       isLocal: spec.isLocal,
+      apiKeyRequired: !spec.anonymousApiKey,
       defaultApiBase: spec.defaultApiBase,
       logo: spec.logo,
       apiBaseHelp: spec.apiBaseHelp,
@@ -588,6 +577,7 @@ export function buildProviderTemplatesView(): ProviderTemplatesView {
           }
         : undefined,
       defaultModels: normalizeModelList(spec.defaultModels ?? []),
+      supportsModelDiscovery: Boolean(spec.modelDiscovery),
       modelConfig: normalizeProviderModelConfig(spec.modelConfig ?? {}),
       supportsWireApi: spec.supportsWireApi,
       wireApiOptions: spec.wireApiOptions,
@@ -845,172 +835,6 @@ function normalizeHeaders(input: Record<string, string> | null | undefined): Rec
     return null;
   }
   return Object.fromEntries(entries);
-}
-
-function buildScopedProviderModel(
-  providerName: string,
-  model: string,
-  spec?: ProviderSpec
-): string {
-  const trimmed = model.trim();
-  if (!trimmed) {
-    return "";
-  }
-  if (trimmed.includes("/")) {
-    return trimmed;
-  }
-  if (isCustomProviderName(providerName)) {
-    return trimmed;
-  }
-  const prefix = (spec?.modelPrefix ?? providerName).trim();
-  if (!prefix) {
-    return trimmed;
-  }
-  return `${prefix}/${trimmed}`;
-}
-
-function rewriteProviderRoutePrefix(providerId: string, targetPrefix: string | null, model: string): string {
-  const prefix = `${providerId}/`;
-  if (!model.startsWith(prefix)) {
-    return model;
-  }
-  const stripped = model.slice(prefix.length).trim();
-  return stripped ? (targetPrefix ? `${targetPrefix}/${stripped}` : stripped) : model;
-}
-
-function resolveTestModel(
-  config: Config,
-  providerId: string,
-  requestedModel: string | null,
-  provider: ProviderConfig,
-  spec?: ProviderSpec
-): string | null {
-  if (requestedModel) {
-    return rewriteProviderRoutePrefix(providerId, spec?.name ?? null, requestedModel);
-  }
-
-  const providerModels = normalizeModelList(provider.models ?? [])
-    .map((modelId) => {
-      const providerModel = rewriteProviderRoutePrefix(providerId, null, modelId);
-      return spec ? buildScopedProviderModel(spec.name, providerModel, spec) : providerModel;
-    })
-    .filter((modelId) => modelId.length > 0);
-  if (providerModels.length > 0) {
-    return providerModels[0];
-  }
-
-  const defaultModel = normalizeOptionalString(config.agents.defaults.model);
-  if (defaultModel) {
-    const routedProvider = getProviderName(config, defaultModel);
-    if (!routedProvider || routedProvider === providerId) {
-      return rewriteProviderRoutePrefix(providerId, spec?.name ?? null, defaultModel);
-    }
-  }
-
-  if (!spec) {
-    return null;
-  }
-  const specDefaultModel = normalizeModelList(spec?.defaultModels ?? [])[0] ?? null;
-  return specDefaultModel ?? defaultModel ?? null;
-}
-
-function stringifyError(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error);
-  return raw.replace(/\s+/g, " ").trim();
-}
-
-export async function testProviderConnection(
-  configPath: string,
-  providerId: string,
-  patch: ProviderConnectionTestRequest,
-  providerManager?: LlmProviderManager
-): Promise<ProviderConnectionTestResult | null> {
-  const config = loadConfigOrDefault(configPath);
-  const provider = (config.providers as Record<string, ProviderConfig>)[providerId];
-  if (!provider) {
-    return null;
-  }
-
-  const providerType = resolveProviderType(providerId, provider);
-  const spec = findServerBuiltinProviderByName(providerType ?? "");
-  const hasApiKeyPatch = Object.prototype.hasOwnProperty.call(patch, "apiKey");
-  const providedApiKey = normalizeOptionalString(patch.apiKey);
-  const currentApiKey = normalizeOptionalString(provider.apiKey);
-  const apiKey = hasApiKeyPatch ? providedApiKey : currentApiKey;
-
-  const hasApiBasePatch = Object.prototype.hasOwnProperty.call(patch, "apiBase");
-  const patchedApiBase = normalizeOptionalString(patch.apiBase);
-  const currentApiBase = normalizeOptionalString(provider.apiBase);
-  const apiBase = hasApiBasePatch
-    ? patchedApiBase ?? spec?.defaultApiBase ?? null
-    : currentApiBase ?? spec?.defaultApiBase ?? null;
-
-  const hasHeadersPatch = Object.prototype.hasOwnProperty.call(patch, "extraHeaders");
-  const extraHeaders = hasHeadersPatch
-    ? normalizeHeaders(patch.extraHeaders ?? null)
-    : normalizeHeaders(provider.extraHeaders ?? null);
-
-  const wireApi = (spec?.supportsWireApi || !spec)
-    ? patch.wireApi ?? provider.wireApi ?? spec?.defaultWireApi ?? "auto"
-    : null;
-
-  if (!apiKey && !spec?.isLocal) {
-    return {
-      success: false,
-      provider: providerId,
-      latencyMs: 0,
-      message: "API key is required before testing the connection."
-    };
-  }
-
-  const requestedModel = normalizeOptionalString(patch.model);
-  const model = resolveTestModel(config, providerId, requestedModel, provider, spec ?? undefined);
-  if (!model) {
-    return {
-      success: false,
-      provider: providerId,
-      latencyMs: 0,
-      message: "No test model found. Configure provider models or set a default model for this provider, then try again."
-    };
-  }
-
-  const startedAtMs = Date.now();
-  if (!providerManager) {
-    return {
-      success: false,
-      provider: providerId,
-      model,
-      latencyMs: Date.now() - startedAtMs,
-      message: "Provider manager is unavailable."
-    };
-  }
-  try {
-    await providerManager.testConnection({
-      providerName: providerType,
-      apiKey,
-      apiBase,
-      defaultModel: model,
-      extraHeaders,
-      wireApi,
-      messages: [{ role: "user", content: "ping" }],
-      maxTokens: PROVIDER_TEST_MAX_TOKENS
-    });
-    return {
-      success: true,
-      provider: providerId,
-      model,
-      latencyMs: Date.now() - startedAtMs,
-      message: "Connection test passed."
-    };
-  } catch (error) {
-    return {
-      success: false,
-      provider: providerId,
-      model,
-      latencyMs: Date.now() - startedAtMs,
-      message: stringifyError(error) || "Connection test failed."
-    };
-  }
 }
 
 export function updateChannel(

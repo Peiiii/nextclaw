@@ -13,10 +13,12 @@ import {
 } from "@/features/chat/features/message/components/chat-message-list.container";
 import { ChatConversationTrack } from "@/features/chat/components/conversation/chat-conversation-track";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { t } from "@/shared/lib/i18n";
 
 type ChatConversationContentProps = {
   bottomSlot?: ReactNode;
+  canContinue?: boolean;
   isAwaitingAssistantOutput: boolean;
   isHistoryLoading: boolean;
   hasPreviousMessages: boolean;
@@ -24,15 +26,22 @@ type ChatConversationContentProps = {
   isLoadingPreviousMessages: boolean;
   isContextCompacting?: boolean;
   isSending: boolean;
+  messageActionsDisabled?: boolean;
   messages: readonly NcpMessage[];
   sessionKey: string | null;
   showWelcome: boolean;
   onLoadPreviousMessages: () => Promise<void>;
+  onContinueRun?: () => Promise<void> | void;
+  onEditMessage?: (payload: {
+    readonly message: NcpMessage;
+    readonly messageId: string;
+  }) => Promise<void> | void;
   welcomeSlot?: ReactNode;
 };
 
 export function ChatConversationContent({
   bottomSlot,
+  canContinue = false,
   isAwaitingAssistantOutput,
   isHistoryLoading,
   hasPreviousMessages,
@@ -40,10 +49,13 @@ export function ChatConversationContent({
   isLoadingPreviousMessages,
   isContextCompacting = false,
   isSending,
+  messageActionsDisabled = false,
   messages,
   sessionKey,
   showWelcome,
   onLoadPreviousMessages,
+  onContinueRun,
+  onEditMessage,
   welcomeSlot,
 }: ChatConversationContentProps) {
   const threadRef = useRef<HTMLDivElement | null>(null);
@@ -81,13 +93,13 @@ export function ChatConversationContent({
         ref={threadRef}
         onScroll={handleScroll}
         data-chat-scroll-container="true"
-        className="h-full overflow-y-auto custom-scrollbar"
+        className={showWelcome ? "h-full overflow-y-auto custom-scrollbar" : `h-full overflow-y-auto custom-scrollbar ${SCROLL_BOTTOM_EDGE_FADE_CLASS}`}
         style={{ overflowAnchor: "none" }}
       >
         {showWelcome ? (
           (welcomeSlot ?? null)
         ) : (
-          <div ref={contentRef}>
+          <div ref={contentRef} className="pb-7">
             {hasMessages ? (
               <ChatConversationTrack className="relative py-4 sm:py-5">
                 {historyError ? (
@@ -108,10 +120,12 @@ export function ChatConversationContent({
                   />
                 ) : null}
                 <ChatMessageListContainer
+                  canContinue={canContinue}
                   messages={messages}
-                  isSending={
-                    hasMessages && isSending && isAwaitingAssistantOutput
-                  }
+                  isSending={isSending && isAwaitingAssistantOutput}
+                  messageActionsDisabled={messageActionsDisabled}
+                  onContinueRun={onContinueRun}
+                  onEditMessage={onEditMessage}
                   scrollRef={threadRef}
                   sessionKey={sessionKey}
                 />
@@ -132,7 +146,7 @@ export function ChatConversationContent({
           label={t("chatScrollToBottom")}
           onClick={scrollToBottom}
           tooltipSide="top"
-          className="absolute bottom-4 left-1/2 z-10 h-9 w-9 -translate-x-1/2 rounded-full border border-border bg-background/90 text-foreground shadow-lg backdrop-blur hover:bg-accent hover:text-accent-foreground"
+          className="absolute bottom-4 left-1/2 z-10 h-9 w-9 -translate-x-1/2 rounded-full border border-border bg-background/90 text-foreground shadow-lg backdrop-blur hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
         />
       ) : null}
     </div>

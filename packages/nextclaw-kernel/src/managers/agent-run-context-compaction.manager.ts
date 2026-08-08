@@ -1,6 +1,7 @@
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type { ContextCompactionPhase } from "@nextclaw/core";
 import {
   ContextCompactionPreflightService,
   type ContextCompactionPreflightResult,
@@ -18,6 +19,7 @@ export type AgentRunContextCompactionInput = {
   messages: readonly NcpMessage[];
   metadata: Record<string, unknown>;
   model: string;
+  phase?: ContextCompactionPhase;
 };
 
 export class AgentRunContextCompactionManager {
@@ -34,23 +36,25 @@ export class AgentRunContextCompactionManager {
   runPreflight = async (
     input: AgentRunContextCompactionInput,
   ): Promise<readonly NcpEndpointEvent[]> => {
-    return await this.run(input, "automatic");
+    return await this.run(input, "automatic", input.phase ?? "pre-run");
   };
 
   runManual = async (
     input: AgentRunContextCompactionInput,
   ): Promise<readonly NcpEndpointEvent[]> => {
-    return await this.run(input, "manual");
+    return await this.run(input, "manual", "pre-run");
   };
 
   private run = async (
     input: AgentRunContextCompactionInput,
     trigger: "automatic" | "manual",
+    phase: ContextCompactionPhase,
   ): Promise<readonly NcpEndpointEvent[]> => {
     const beginResult = this.preflightService.begin({
       contextBlocks: input.contextBlocks,
       inputMessages: [],
       model: input.model,
+      phase,
       requestMetadata: input.metadata,
       sessionId: input.sessionId,
       sessionMessages: input.messages,

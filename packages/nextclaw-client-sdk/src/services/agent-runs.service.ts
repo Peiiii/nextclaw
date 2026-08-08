@@ -4,7 +4,11 @@ import type {
   NcpRunHandle,
   NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
-import type { AgentRunSendIngressPayload } from "@nextclaw/shared";
+import type {
+  AgentRunContinueIngressPayload,
+  AgentRunEditMessageIngressPayload,
+  AgentRunSendIngressPayload,
+} from "@nextclaw/shared";
 import type { NextClawClientOptions } from "../types/nextclaw-request.types.js";
 import { resolveFetchImpl } from "../utils/fetch.utils.js";
 import { resolveApiUrl } from "../utils/url.utils.js";
@@ -80,6 +84,18 @@ export class AgentRunsService {
 
   send = async (payload: AgentRunSendIngressPayload): Promise<NcpRunHandle> => {
     return await this.requestService.post<NcpRunHandle>("/api/agent-runs/send", payload);
+  };
+
+  editMessage = async (
+    payload: AgentRunEditMessageIngressPayload,
+  ): Promise<NcpRunHandle> => {
+    return await this.requestService.post<NcpRunHandle>("/api/agent-runs/edit-message", payload);
+  };
+
+  continue = async (
+    payload: AgentRunContinueIngressPayload,
+  ): Promise<NcpRunHandle> => {
+    return await this.requestService.post<NcpRunHandle>("/api/agent-runs/continue", payload);
   };
 
   abort = async (

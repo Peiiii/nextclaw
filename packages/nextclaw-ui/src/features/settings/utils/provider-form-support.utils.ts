@@ -4,6 +4,7 @@ import type {
   ProviderConfigUpdate,
   ProviderConfigView,
   ProviderConnectionTestRequest,
+  ProviderModelDiscoveryRequest,
   ThinkingLevel
 } from '@/shared/lib/api';
 import {
@@ -47,6 +48,11 @@ type ProviderConnectionTestPayloadInput = {
   wireApi: WireApiType;
   models: string[];
   providerModelAliases: string[];
+};
+type ProviderModelDiscoveryPayloadInput = {
+  apiKey: string;
+  apiBase: string;
+  extraHeaders: Record<string, string> | null;
 };
 
 const EMPTY_PROVIDER_CONFIG: ProviderConfigView = {
@@ -281,15 +287,24 @@ function buildProviderConnectionTestPayload(input: ProviderConnectionTestPayload
   const preferredModel = input.models.find((modelName) => modelName.trim().length > 0) ?? '';
   const testModel = toProviderLocalModelId(preferredModel, input.providerModelAliases);
   const payload: ProviderConnectionTestRequest = {
-    apiBase: input.apiBase.trim(),
-    extraHeaders: normalizeHeaders(input.extraHeaders),
+    ...buildProviderModelDiscoveryPayload(input),
     model: testModel || null
+  };
+  if (input.supportsWireApi) {
+    payload.wireApi = input.wireApi;
+  }
+  return payload;
+}
+
+function buildProviderModelDiscoveryPayload(
+  input: ProviderModelDiscoveryPayloadInput
+): ProviderModelDiscoveryRequest {
+  const payload: ProviderModelDiscoveryRequest = {
+    apiBase: input.apiBase.trim(),
+    extraHeaders: normalizeHeaders(input.extraHeaders)
   };
   if (input.apiKey.trim().length > 0) {
     payload.apiKey = input.apiKey.trim();
-  }
-  if (input.supportsWireApi) {
-    payload.wireApi = input.wireApi;
   }
   return payload;
 }
@@ -384,6 +399,7 @@ function shouldUsePillSelector(params: {
 export type { ModelConfig, ProviderAuthMethodOption, WireApiType };
 export {
   buildProviderConnectionTestPayload,
+  buildProviderModelDiscoveryPayload,
   buildProviderSavePayload,
   EMPTY_PROVIDER_CONFIG,
   formatThinkingLevelLabel,

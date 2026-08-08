@@ -81,6 +81,9 @@ function expectCodexSelectedInSessionTypeMenu() {
     screen.getByRole("button", { name: /Codex/i }).getAttribute("aria-pressed"),
   ).toBe("true");
 }
+function expectSessionCreated(sessionType: string, projectRoot?: string) {
+  expect(mocks.createSession).toHaveBeenCalledWith({ projectRoot, sessionType });
+}
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
@@ -249,7 +252,7 @@ describe("ChatSidebar create and list basics", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "New Task" }));
 
-    expect(mocks.createSession).toHaveBeenCalledWith("codex", undefined);
+    expectSessionCreated("codex");
   });
 
   it("hydrates the desktop new-session type from stored preferences", async () => {
@@ -265,7 +268,7 @@ describe("ChatSidebar create and list basics", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "New Task" }));
 
-    expect(mocks.createSession).toHaveBeenCalledWith("codex", undefined);
+    expectSessionCreated("codex");
   });
 
   it("does not animate the desktop create task button width during runtime option hydration", () => {
@@ -311,7 +314,7 @@ describe("ChatSidebar create and list basics", () => {
   it("renders the lightweight list mode switch in the session header row and toggles to project view", () => {
     renderSidebar();
 
-    expect(screen.getByText("Sessions")).not.toBeNull();
+    expect(screen.queryByText("Sessions")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Project" }));
 
     expect(mocks.setListMode).toHaveBeenCalledWith("project-first");
@@ -332,7 +335,7 @@ describe("ChatSidebar create and list basics", () => {
     fireEvent.click(screen.getByText("Codex"));
 
     expect(mocks.setQuery).toHaveBeenCalledWith("release notes");
-    expect(mocks.createSession).toHaveBeenCalledWith("codex", undefined);
+    expectSessionCreated("codex");
     expect(mocks.goToChatRoot).not.toHaveBeenCalled();
   });
 
@@ -377,7 +380,7 @@ describe("ChatSidebar create and list basics", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "New Task" }));
 
-    expect(mocks.createSession).toHaveBeenCalledWith("native", undefined);
+    expectSessionCreated("native");
     expect(mocks.goToChatRoot).not.toHaveBeenCalled();
   });
 
@@ -582,10 +585,7 @@ describe("ChatSidebar project-first mode", () => {
     );
     fireEvent.click(screen.getByText("Codex"));
 
-    expect(mocks.createSession).toHaveBeenCalledWith(
-      "codex",
-      "/tmp/project-beta",
-    );
+    expectSessionCreated("codex", "/tmp/project-beta");
     expect(mocks.goToSession).not.toHaveBeenCalled();
   });
 
@@ -617,10 +617,7 @@ describe("ChatSidebar project-first mode", () => {
       screen.getByRole("button", { name: "New Task · project-gamma" }),
     );
 
-    expect(mocks.createSession).toHaveBeenCalledWith(
-      "native",
-      "/tmp/project-gamma",
-    );
+    expectSessionCreated("native", "/tmp/project-gamma");
     expect(mocks.goToSession).not.toHaveBeenCalled();
   });
 
@@ -652,10 +649,7 @@ describe("ChatSidebar project-first mode", () => {
     );
     fireEvent.click(screen.getByText("Codex"));
 
-    expect(mocks.createSession).toHaveBeenCalledWith(
-      "codex",
-      "/tmp/project-mobile",
-    );
+    expectSessionCreated("codex", "/tmp/project-mobile");
     expect(mocks.goToChatRoot).not.toHaveBeenCalled();
   });
 });

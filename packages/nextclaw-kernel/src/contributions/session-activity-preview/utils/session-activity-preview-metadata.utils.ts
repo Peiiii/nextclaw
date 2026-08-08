@@ -2,6 +2,7 @@ import type {
   SessionActivityPreviewMetadata,
   SessionActivityPreviewProjection,
   SessionActivityPreviewState,
+  SessionActivityPreviewStatusKind,
 } from "@kernel/contributions/session-activity-preview/types/session-activity-preview.types.js";
 
 export const SESSION_ACTIVITY_PREVIEW_METADATA_KEY = "last_activity_preview";
@@ -12,6 +13,13 @@ const SESSION_ACTIVITY_PREVIEW_STATES = new Set<SessionActivityPreviewState>([
   "failed",
   "cancelled",
   "idle",
+]);
+const SESSION_ACTIVITY_PREVIEW_STATUS_KINDS = new Set<SessionActivityPreviewStatusKind>([
+  "thinking",
+  "tool-running",
+  "tool-completed",
+  "run-failed",
+  "run-interrupted",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -35,11 +43,15 @@ function readSessionActivityPreviewMetadata(value: unknown): SessionActivityPrev
   if (!SESSION_ACTIVITY_PREVIEW_STATES.has(state as SessionActivityPreviewState) || !timestamp) {
     return null;
   }
+  const statusKind = readOptionalString(value.statusKind);
   return {
     state: state as SessionActivityPreviewState,
     timestamp,
-    ...(readOptionalString(value.statusText) ? { statusText: readOptionalString(value.statusText) } : {}),
-    ...(readOptionalString(value.replyText) ? { replyText: readOptionalString(value.replyText) } : {}),
+    statusKind: SESSION_ACTIVITY_PREVIEW_STATUS_KINDS.has(statusKind as SessionActivityPreviewStatusKind)
+      ? statusKind as SessionActivityPreviewStatusKind
+      : undefined,
+    statusText: readOptionalString(value.statusText),
+    replyText: readOptionalString(value.replyText),
   };
 }
 
@@ -62,12 +74,9 @@ function mergeSessionActivityPreview(
   return {
     state: incoming.state,
     timestamp: incoming.timestamp,
-    ...(incoming.statusText ?? (incoming.state === "completed" ? current?.statusText : undefined)
-      ? { statusText: incoming.statusText ?? current?.statusText }
-      : {}),
-    ...(incoming.replyText ?? (incoming.state === "completed" ? current?.replyText : undefined)
-      ? { replyText: incoming.replyText ?? current?.replyText }
-      : {}),
+    statusKind: incoming.statusKind ?? (incoming.state === "completed" ? current?.statusKind : undefined),
+    statusText: incoming.statusText ?? (incoming.state === "completed" ? current?.statusText : undefined),
+    replyText: incoming.replyText ?? (incoming.state === "completed" ? current?.replyText : undefined),
   };
 }
 
@@ -78,6 +87,7 @@ function areSessionActivityPreviewsEqual(
   return Boolean(left) &&
     left?.state === right.state &&
     left.timestamp === right.timestamp &&
+    left.statusKind === right.statusKind &&
     left.statusText === right.statusText &&
     left.replyText === right.replyText;
 }

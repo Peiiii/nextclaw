@@ -836,7 +836,7 @@ describe('ChatThreadManager visible workspace selection', () => {
 });
 
 describe('ChatThreadManager deletion', () => {
-  it('clears the selected thread state after deleting the current session', async () => {
+  it('clears thread state while leaving route-derived selection to navigation', async () => {
     const removeQueries = vi.spyOn(appQueryClient, 'removeQueries').mockImplementation(async () => undefined);
     const uiManager = {
       goToSession: vi.fn(),
@@ -844,13 +844,7 @@ describe('ChatThreadManager deletion', () => {
       goToProviders: vi.fn(),
       confirm: vi.fn(async () => true),
     } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
-    const sessionListManager = {
-      setSelectedSessionKey: vi.fn((value: string | null) => {
-        useChatSessionListStore.getState().setSnapshot({
-          selectedSessionKey: value,
-        });
-      }),
-    } as unknown as ConstructorParameters<typeof ChatThreadManager>[1];
+    const sessionListManager = {} as ConstructorParameters<typeof ChatThreadManager>[1];
     const manager = new ChatThreadManager(
       uiManager,
       sessionListManager,
@@ -858,8 +852,7 @@ describe('ChatThreadManager deletion', () => {
 
     await manager.deleteSession();
 
-    expect(sessionListManager.setSelectedSessionKey).toHaveBeenCalledWith(null);
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('parent-session-1');
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       sessionKey: null,
       canDeleteSession: false,

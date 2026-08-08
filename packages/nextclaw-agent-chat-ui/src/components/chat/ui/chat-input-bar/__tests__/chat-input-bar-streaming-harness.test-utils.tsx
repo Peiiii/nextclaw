@@ -30,6 +30,7 @@ function createStreamingInputBarProps(params: {
     },
     hint: null,
     toolbar: {
+      addMenuLabel: 'Add content',
       selects: [],
       actions: {
         isSending: true,

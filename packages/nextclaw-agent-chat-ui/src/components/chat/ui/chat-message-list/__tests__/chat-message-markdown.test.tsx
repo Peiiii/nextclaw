@@ -679,6 +679,29 @@ it("renders inline tokens from normal markdown text", () => {
   expect(screen.getByText("Task Board")).toBeTruthy();
 });
 
+it("keeps adjacent message text outside a workspace file token", () => {
+  render(
+    <ChatMessageMarkdown
+      text="@file:AGENTS.md这里面有啥"
+      role="user"
+      texts={defaultTexts}
+      inlineTokens={[
+        {
+          kind: "workspace_file",
+          key: "AGENTS.md",
+          label: "AGENTS.md",
+          rawText: "@file:AGENTS.md",
+        },
+      ]}
+    />,
+  );
+
+  expect(
+    screen.getByText("AGENTS.md").closest(".nextclaw-chat-inline-token"),
+  ).toBeTruthy();
+  expect(screen.getByText("这里面有啥")).toBeTruthy();
+});
+
 it("leaves inline token protocols literal inside inline code", () => {
   const { container } = render(
     <ChatMessageMarkdown

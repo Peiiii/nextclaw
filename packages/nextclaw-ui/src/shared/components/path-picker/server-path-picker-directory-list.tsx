@@ -63,7 +63,7 @@ export function ServerPathPickerDirectoryList({
                     'grid w-full grid-cols-[minmax(0,1fr)_8rem] items-center rounded-sm border border-transparent px-2 py-1.5 text-left text-sm text-foreground outline-none transition-colors',
                     selected
                       ? 'border-primary/25 bg-primary/15'
-                      : 'hover:bg-accent/70 focus-visible:border-primary/35 focus-visible:bg-accent/70',
+                      : 'hover:bg-[var(--interaction-hover)] focus-visible:border-primary/35 focus-visible:bg-accent/70',
                   )}
                   onClick={() => onSelect(entry.path)}
                   onDoubleClick={() => onOpen(entry.path)}

@@ -127,7 +127,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   hydrate = (payload: NcpAgentConversationHydrationParams): void => {
-    this.messages = payload.messages.map((message: NcpMessage) => normalizeConversationMessage(message));
+    this.messages = [...new Map(payload.messages.map((message) => [message.id, normalizeConversationMessage(message)])).values()];
     this.streamingMessage = null;
     this.error = null;
     this.contextWindow = payload.contextWindow ? { ...payload.contextWindow } : null;
@@ -254,11 +254,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         )
       );
       this.replaceStreamingMessage(null);
-      if (targetMessageId) {
-        this.toolCalls.clearByMessageId(targetMessageId);
-      } else {
-        this.toolCalls.clearByMessageId(streamingMessageId);
-      }
+      this.toolCalls.clearByMessageId(targetMessageId || streamingMessageId);
       this.toolCalls.markAborted(toolCallIds);
     }
   };
@@ -373,6 +369,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   handleRunStarted = (payload: NcpRunStartedPayload): void => {
     if (this.isSettledRunId(payload.runId)) return;
+    if (this.streamingMessage && this.activeRun?.runId !== payload.runId) {
+      this.handleMessageAbort({ sessionId: this.streamingMessage.sessionId, messageId: this.streamingMessage.id });
+    }
     this.runExecution.clear();
     this.setError(null);
     this.activeRun = {

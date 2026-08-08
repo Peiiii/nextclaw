@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.28.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-07",
+  "title": {
+    "zh-CN": "NextClaw v0.28.1",
+    "en-US": "NextClaw v0.28.1"
+  },
+  "summary": {
+    "zh-CN": "全新安装无需 API Key 即可开始聊天，同时改进聊天输入、侧栏导航与消息显示体验。",
+    "en-US": "Fresh installations can start chatting without an API key, with improved chat input, sidebar navigation, and message rendering."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-07-nextclaw-v0-28-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-07-nextclaw-v0-28-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "安装后直接开始聊天",
+            "en-US": "Start chatting after installation"
+          },
+          "body": {
+            "zh-CN": "全新安装默认启用 OpenCode Zen Free Trial 和 big-pickle，无需先填写 API Key。",
+            "en-US": "Fresh installations enable OpenCode Zen Free Trial and big-pickle without requiring an API key first."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "七个免费试用模型",
+            "en-US": "Seven free-trial models"
+          },
+          "body": {
+            "zh-CN": "模型选择器提供当前验证可用的七个免费试用模型，同时保留已有提供商配置。",
+            "en-US": "The model selector includes seven currently verified free-trial models while preserving existing provider configuration."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更简洁的聊天输入",
+            "en-US": "Simpler chat input"
+          },
+          "body": {
+            "zh-CN": "欢迎页和输入工具栏更简洁，技能、模型、图片附件与富文本操作反馈更加一致。",
+            "en-US": "The welcome screen and input toolbar are simpler, with more consistent feedback for skills, models, image attachments, and rich text."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更稳定的侧栏导航",
+            "en-US": "More stable sidebar navigation"
+          },
+          "body": {
+            "zh-CN": "时间、项目和其他页面之间切换时不再残留错误选中状态，添加项目操作也更容易识别。",
+            "en-US": "Switching across time, project, and other views no longer leaves a stale selection, and adding a project is easier to recognize."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "活动预览跟随界面语言",
+            "en-US": "Localized activity previews"
+          },
+          "body": {
+            "zh-CN": "思考、工具调用、运行失败和意外中断预览会按当前界面语言显示。",
+            "en-US": "Reasoning, tool-call, run-failure, and interruption previews now follow the interface language."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "稳定的并发消息记录",
+            "en-US": "Stable concurrent message history"
+          },
+          "body": {
+            "zh-CN": "并发消息完成时不再偶尔重叠或重复显示，静默回复也不会留下异常文本。",
+            "en-US": "Concurrent messages no longer occasionally overlap or duplicate when they finish, and silent replies no longer leave stray text."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更清楚的边缘与通知",
+            "en-US": "Clearer edges and notifications"
+          },
+          "body": {
+            "zh-CN": "输入框上方内容使用自然渐隐，全局完成通知在悬停时保持清晰不透明。",
+            "en-US": "Content fades naturally above the composer, and global completion notifications remain fully opaque on hover."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "已有配置保持不变",
+            "en-US": "Existing configuration is preserved"
+          },
+          "body": {
+            "zh-CN": "升级无需迁移已有配置；免费试用模型与额度可能变化，公共网关不适合敏感或机密信息。",
+            "en-US": "Upgrading requires no configuration migration; free-trial models and quotas may change, and the public gateway is not intended for sensitive or confidential information."
+          }
+        }
+      ]
+    }
+  ]
+}

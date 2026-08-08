@@ -1,7 +1,7 @@
 import {
   type AgentSessionEventRecord,
   type AgentSessionRecord,
-  DefaultNcpAgentConversationStateManager
+  DefaultNcpAgentConversationStateManager, insertMessageByTimeline
 } from "@nextclaw/ncp-toolkit";
 import { type NcpEndpointEvent, NcpEventType, type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
 import { AGENT_RUN_PEER_ID_METADATA_KEY } from "./agent-peer-session.utils.js";
@@ -188,10 +188,10 @@ export async function replayNcpAgentSessionEvents(
     }
   }
   const snapshot = stateManager.getSnapshot();
-  return [
-    ...snapshot.messages.map((message) => structuredClone(message)),
-    ...(snapshot.streamingMessage ? [structuredClone(snapshot.streamingMessage)] : [])
-  ];
+  const messages = snapshot.streamingMessage
+    ? insertMessageByTimeline(snapshot.messages, snapshot.streamingMessage)
+    : snapshot.messages;
+  return messages.map((message) => structuredClone(message));
 }
 
 function createReplayEvent(

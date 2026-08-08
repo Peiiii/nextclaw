@@ -43,16 +43,17 @@ export function normalizeChatCompletionsResponse(
   const responseAny = response as ChatCompletionsResponseLike;
   const upstreamError = extractUpstreamErrorMessage(responseAny.error);
   if (upstreamError) {
+    const errorPayload = serializePayload(responseAny.error);
     throw new ChatCompletionsPayloadError(
       "UPSTREAM_CHAT_COMPLETIONS_ERROR",
-      `Chat Completions API returned error payload: ${upstreamError}`
+      `Chat Completions API returned error payload: ${errorPayload || upstreamError}`
     );
   }
   if (!Array.isArray(responseAny.choices) || responseAny.choices.length === 0) {
-    const preview = toPayloadPreview(responseAny);
+    const payloadText = serializePayload(responseAny);
     throw new ChatCompletionsPayloadError(
       "INVALID_CHAT_COMPLETIONS_PAYLOAD",
-      `Chat Completions API returned invalid payload: missing choices[0]${preview ? ` | payload=${preview}` : ""}`
+      `Chat Completions API returned invalid payload: missing choices[0]${payloadText ? ` | payload=${payloadText}` : ""}`
     );
   }
 
@@ -265,10 +266,10 @@ function extractUpstreamErrorMessage(errorPayload: unknown): string | null {
   return null;
 }
 
-function toPayloadPreview(payload: unknown): string {
+function serializePayload(payload: unknown): string {
   try {
-    return JSON.stringify(payload).slice(0, 240);
+    return JSON.stringify(payload);
   } catch {
-    return String(payload ?? "").slice(0, 240);
+    return String(payload ?? "");
   }
 }

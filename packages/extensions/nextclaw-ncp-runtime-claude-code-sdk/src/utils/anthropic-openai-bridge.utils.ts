@@ -49,7 +49,7 @@ async function readJsonBody(request: IncomingMessage): Promise<Record<string, un
   }
 }
 
-async function callOpenAiCompatibleUpstream(params: {
+export async function callOpenAiCompatibleUpstream(params: {
   config: ClaudeCodeSdkAnthropicGatewayConfig;
   body: AnthropicMessagesRequest;
 }): Promise<OpenAiChatCompletionsResponse> {
@@ -65,16 +65,11 @@ async function callOpenAiCompatibleUpstream(params: {
   try {
     parsed = JSON.parse(rawText) as OpenAiChatCompletionsResponse;
   } catch {
-    throw new Error(`Gateway upstream returned invalid JSON: ${rawText.slice(0, 240)}`);
+    throw new Error(`Gateway upstream returned invalid JSON: ${rawText}`);
   }
 
   if (!response.ok) {
-    const upstreamMessage =
-      readString(parsed.error?.message) ??
-      readString((readRecord(parsed.error) ?? {}).message) ??
-      rawText.slice(0, 240) ??
-      `HTTP ${response.status}`;
-    throw new Error(upstreamMessage);
+    throw new Error(rawText || `HTTP ${response.status}`);
   }
 
   return parsed;
@@ -101,7 +96,8 @@ async function handleMessagesRequest(
       });
       const upstreamResponse = await fetch(request.url, request.init);
       if (!upstreamResponse.ok) {
-        throw new Error((await upstreamResponse.text()).slice(0, 240));
+        const rawText = await upstreamResponse.text();
+        throw new Error(rawText || `HTTP ${upstreamResponse.status}`);
       }
       await writeAnthropicOpenAiUpstreamStream({
         response,

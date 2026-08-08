@@ -446,7 +446,7 @@ describe("SessionManager activity previews", () => {
         metadata: {
           last_activity_preview: {
             state: "running",
-            statusText: "Tool call completed: read_file",
+            statusText: "read_file",
           },
         },
       });
@@ -560,6 +560,55 @@ describe("SessionManager journal-backed session creation", () => {
     expect(record?.messages.map((message) => message.parts)).not.toContainEqual(
       [{ type: "text", text: "锚点之后不应继承" }],
     );
+  });
+
+  it("rewrites the current session history strictly before the edited message", async () => {
+    const fixture = await createFixture([
+      createRecord({
+        sessionId: "parent-session",
+        agentId: "main",
+        messages: [
+          createMessage({
+            id: "user-before",
+            sessionId: "parent-session",
+            text: "保留的背景",
+          }),
+          createMessage({
+            id: "assistant-before",
+            role: "assistant",
+            sessionId: "parent-session",
+            text: "保留的回答",
+            timestamp: "2026-05-12T00:00:01.000Z",
+          }),
+          createMessage({
+            id: "user-edit-anchor",
+            sessionId: "parent-session",
+            text: "待编辑的原消息",
+            timestamp: "2026-05-12T00:00:02.000Z",
+          }),
+          createMessage({
+            id: "assistant-after",
+            role: "assistant",
+            sessionId: "parent-session",
+            text: "旧分支回答",
+            timestamp: "2026-05-12T00:00:03.000Z",
+          }),
+        ],
+      }),
+    ]);
+
+    const rewound = await fixture.manager.rewindSessionBeforeMessage(
+      "parent-session",
+      "user-edit-anchor",
+    );
+    const persisted = await fixture.journalStore.getSession("parent-session");
+
+    expect(rewound.sessionId).toBe("parent-session");
+    expect(persisted?.messages.map((message) => message.id)).toEqual([
+      "user-before",
+      "assistant-before",
+    ]);
+    expect(persisted?.agentId).toBe("main");
   });
 
   it("rejects context inheritance without a child parent", async () => {

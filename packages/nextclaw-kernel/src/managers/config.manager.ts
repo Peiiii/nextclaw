@@ -16,6 +16,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import type { ChannelManager } from "./channel.manager.js";
 import type { LlmProviderManager } from "./llm-provider.manager.js";
+import type { ProviderModelCatalogManager } from "./provider-model-catalog.manager.js";
 
 export type ConfigManagerRuntimeHooks = {
   resolveChannelConfig?: (config: Config) => Config;
@@ -30,6 +31,7 @@ export type ConfigManagerOptions = {
   configPath?: string;
   channels: ChannelManager;
   providerManager: LlmProviderManager;
+  providerModelCatalogManager?: Pick<ProviderModelCatalogManager, "load">;
 };
 
 export type ConfigMutationResult = Record<string, unknown> & { ok: boolean; error?: string };
@@ -68,6 +70,7 @@ export class ConfigManager {
     this.configPath = options.configPath ?? getConfigPath();
     this.currentConfig = this.loadConfig();
     this.options.providerManager.load(this.currentConfig);
+    this.options.providerModelCatalogManager?.load(this.currentConfig);
     this.options.channels.load({
       channelConfig: this.resolveChannelConfig(this.currentConfig),
       extensionChannels: this.resolveExtensionChannels(),
@@ -229,6 +232,7 @@ export class ConfigManager {
     }
     this.providerReloadTask = (async () => {
       this.options.providerManager.load(nextConfig);
+      this.options.providerModelCatalogManager?.load(nextConfig);
     })();
     try {
       await this.providerReloadTask;

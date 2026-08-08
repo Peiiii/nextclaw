@@ -2,11 +2,12 @@ import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import type {
   ChatInputBarProps,
   ChatInputSurfaceConfig,
+  ChatComposerTokenKind,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ChatInputSurfaceHost } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
 import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import { ChatInputBarToolbar } from './chat-input-bar-toolbar';
-import { ChatInputBarTokenizedComposer, type ChatInputBarTokenizedComposerHandle } from './chat-input-bar-tokenized-composer';
+import { ChatComposerEditor, type ChatComposerEditorHandle } from './chat-composer-editor';
 
 const SEND_ERROR_PREVIEW_MAX_CHARS = 120;
 
@@ -98,8 +99,13 @@ function ChatInputBarSendError({ sendError, sendErrorDetailsLabel }: Pick<ChatIn
 }
 
 export type ChatInputBarHandle = {
-  insertFileToken: (tokenKey: string, label: string) => void;
-  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
+  insertToken: (token: {
+    tokenKind: ChatComposerTokenKind;
+    tokenKey: string;
+    label: string;
+  }) => void;
+  insertFileToken: (tokenKey: string, label: string, previewUrl?: string) => void;
+  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string; previewUrl?: string }>) => void;
   focusComposer: () => void;
   focusComposerAtEnd: (nodes?: ChatInputBarProps['composer']['nodes']) => void;
 };
@@ -108,7 +114,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   { composer, hint, inputSurface, sendError, sendErrorDetailsLabel, slashMenu, surface, toolbar: toolbarProps, topSlot },
   ref
 ) {
-  const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
+  const composerRef = useRef<ChatComposerEditorHandle | null>(null);
   const resolvedInputSurface: ChatInputSurfaceConfig | null = inputSurface ?? (slashMenu
       ? {
         isLoading: slashMenu.isLoading,
@@ -142,7 +148,8 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   }, [toolbarProps]);
 
   useImperativeHandle(ref, () => ({
-    insertFileToken: (tokenKey, label) => composerRef.current?.insertFileToken(tokenKey, label),
+    insertToken: (token) => composerRef.current?.insertToken(token),
+    insertFileToken: (tokenKey, label, previewUrl) => composerRef.current?.insertFileToken(tokenKey, label, previewUrl),
     insertFileTokens: (tokens) => composerRef.current?.insertFileTokens(tokens),
     focusComposer: () => composerRef.current?.focusComposer(),
     focusComposerAtEnd: (nodes) => composerRef.current?.focusComposerAtEnd(nodes),
@@ -179,7 +186,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
                 onInputSurfaceOpenChange,
                 onInputSurfaceSnapshotChange,
               }) => (
-                <ChatInputBarTokenizedComposer
+                <ChatComposerEditor
                   ref={composerRef}
                   nodes={composer.nodes}
                   placeholder={composer.placeholder}

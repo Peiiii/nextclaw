@@ -13,14 +13,14 @@
 
 - `pnpm -C packages/nextclaw-core tsc`、`pnpm -C packages/nextclaw-kernel tsc`、`pnpm -C packages/nextclaw-server tsc`、`pnpm -C packages/nextclaw-ui tsc` 均通过。
 - PR 分支定向测试通过：core 8 条、kernel 4 条、server 1 条、UI 2 条；覆盖 Exa 请求与结果归一化、配置保留、工具 readiness、配置 API view/update，以及设置页渲染和提交。
-- 在 `origin/master@100283d82` 的临时调和态中，四个包的 TypeScript 检查与 17 条定向测试再次通过。当前 PR 分支与最新主干在 UI 公共 API 类型文件存在一处文本冲突；实际提交前需要合入最新主干并保留 provider model discovery 类型与 Exa union，两者组合后的验证已通过。
+- 已将 `origin/master@100283d82` 合入 PR 分支；UI 公共 API 类型文件的一处冲突已明确保留 provider model discovery 类型与 Exa union。真实合并态下四个包的 TypeScript 检查与 17 条定向测试再次通过。
 - 四个 package lint 均为零错误；core 的 24 条 warning 与 server 的 8 条 warning 均位于本次未触达文件，kernel 与 UI 无 warning；本次触达文件 targeted ESLint 为零问题。
 - 全 PR diff 的 governance、backlog ratchet、release summary 与 generated-artifact clean 检查均通过。
 - 未使用真实 Exa API Key 执行外部网络搜索，也未重启当前 NextClaw 实例；真实凭据搜索与运行中设置页的最终人工验收仍待合并后执行。
 
 ## 发布/部署方式
 
-- 本轮仅在隔离工作树中优化 PR，尚未提交、推送、合并、发布或部署，也未重启任何 NextClaw 实例。
+- 本轮在隔离工作树完成优化提交 `e30947079`，并合入当时最新的 `origin/master`；交付 owner 为贡献者的 [PR #23](https://github.com/Peiiii/nextclaw/pull/23)，由该 PR 进入远端主干。
 - 已添加 changeset；后续由统一 patch 发布流程发布相关 workspace 包与 `nextclaw`。
 - 最终 changelog 与中英文 release note 需要公开感谢 [@suantea](https://github.com/suantea)，并链接 [PR #23](https://github.com/Peiiii/nextclaw/pull/23)；本轮尚未进入统一发版，因此不提前创建具体版本的 release note 文档。
 - 数据库 migration、线上 API smoke、desktop/runtime update manifest：不适用；本次是本地搜索提供商配置与调用能力扩展。

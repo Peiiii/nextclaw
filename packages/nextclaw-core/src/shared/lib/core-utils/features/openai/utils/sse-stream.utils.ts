@@ -44,7 +44,7 @@ export async function executeOpenAiStreamRequest(params: {
   if (!attempt.ok) {
     const text = await attempt.text();
     const preview = text.slice(0, 200);
-    const error = new Error(`${errorLabel} failed (${attempt.status}): ${preview}`) as OpenAiStreamRequestError;
+    const error = new Error(`${errorLabel} failed (${attempt.status}): ${text}`) as OpenAiStreamRequestError;
     error.status = attempt.status;
     error.responseUrl = url;
     error.bodyPreview = preview;

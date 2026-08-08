@@ -48,6 +48,7 @@ export type UiKernelHost = Pick<
   | "listSessionTypes"
   | "agentRunRequestManager"
   | "llmProviders"
+  | "providerModelCatalog"
   | "sessionManager"
   | "sessionRunManager"
   | "panelAppManager"

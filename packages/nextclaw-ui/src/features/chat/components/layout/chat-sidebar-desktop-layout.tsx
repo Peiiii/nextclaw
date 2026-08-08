@@ -12,6 +12,7 @@ import { t, type I18nLanguage } from "@/shared/lib/i18n";
 import type { UiTheme } from "@/shared/lib/theme";
 import { SidebarNavLinkItem } from "@/app/components/layout/sidebar-items";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import {
   AlarmClock,
   Bot,
@@ -19,7 +20,7 @@ import {
   Inbox,
   PanelLeftClose,
   PanelLeftOpen,
-  Plus,
+  FolderPlus,
 } from "lucide-react";
 import { useInboxUnreadCount } from "@/features/inbox";
 import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
@@ -32,7 +33,6 @@ import {
   SIDEBAR_RAIL_PADDING_X_CLASS,
   SIDEBAR_RAIL_STACK_CLASS,
   SIDEBAR_RAIL_SURFACE_CLASS,
-  SIDEBAR_SCROLL_EDGE_FADE_CLASS,
 } from "@/app/components/layout/sidebar-rail.styles";
 
 const navItems = [
@@ -86,7 +86,7 @@ export function ChatSidebarDesktopHeader({
           ? "justify-center px-2 py-1.5"
           : isWindowsHost
             ? "justify-end px-3 py-1.5"
-            : "gap-2 px-5 py-2",
+            : "gap-2 px-4 py-2",
         isCollapsed && shouldReserveMacWindowControls ? "pt-8" : null,
       )}
     >
@@ -108,36 +108,29 @@ export function ChatSidebarDesktopNav({
 }) {
   const unreadCount = useInboxUnreadCount();
   return (
-    <>
-      <div className={cn("pb-2", isCollapsed ? "px-0" : "px-3")}>
-        <ul className={isCollapsed ? SIDEBAR_RAIL_STACK_CLASS : "space-y-0.5"}>
-          {navItems.map((item) => (
-            <li
-              key={item.target}
-              className={isCollapsed ? "flex justify-center" : undefined}
-            >
-              <SidebarNavLinkItem
-                to={item.target}
-                label={item.label()}
-                icon={item.icon}
-                density="compact"
-                collapsed={isCollapsed}
-                indicator={item.target === "/inbox" && unreadCount > 0}
-                trailing={item.target === "/inbox" && unreadCount > 0
-                  ? unreadCount > 99 ? "99+" : unreadCount
-                  : undefined}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div
-        className={cn(
-          "border-t border-border/70",
-          isCollapsed ? "mx-2 my-1.5" : "mx-4",
-        )}
-      />
-    </>
+    <div className={cn("pb-1", isCollapsed ? "px-0" : "px-3")}>
+      <ul className={isCollapsed ? SIDEBAR_RAIL_STACK_CLASS : "space-y-0.5"}>
+        {navItems.map((item) => (
+          <li
+            key={item.target}
+            className={isCollapsed ? "flex justify-center" : undefined}
+          >
+            <SidebarNavLinkItem
+              to={item.target}
+              label={item.label()}
+              icon={item.icon}
+              density="compact"
+              collapsed={isCollapsed}
+              indicator={item.target === "/inbox" && unreadCount > 0}
+              trailing={item.target === "/inbox" && unreadCount > 0
+                ? unreadCount > 99 ? "99+" : unreadCount
+                : undefined}
+              className={isCollapsed ? undefined : "rounded-lg px-2.5 py-1.5"}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -172,14 +165,11 @@ export function ChatSidebarSessionArea({
 
   return (
     <>
-      <div className="flex items-center justify-between px-5 pb-2 pt-3">
-        <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/75">
-          {t("chatSidebarTaskRecords")}
-        </div>
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-end px-4 pb-1 pt-2">
+        <div className="flex h-7 items-center gap-1.5">
           {isProjectFirstView ? (
             <IconActionButton
-              icon={<Plus className="h-3.5 w-3.5" />}
+              icon={<FolderPlus className="h-3.5 w-3.5" />}
               label={t("chatProjectAdd")}
               onClick={onAddProject}
             />
@@ -193,8 +183,8 @@ export function ChatSidebarSessionArea({
 
       <div
         className={cn(
-          "custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-7 pt-2",
-          SIDEBAR_SCROLL_EDGE_FADE_CLASS,
+          "custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1",
+          SCROLL_BOTTOM_EDGE_FADE_CLASS,
         )}
       >
         <ChatSidebarSessionList
@@ -246,7 +236,7 @@ export function ChatSidebarDesktopFooter({
   return (
     <div
       className={cn(
-        "py-3",
+        "py-2",
         isCollapsed
           ? cn("flex justify-center", SIDEBAR_RAIL_PADDING_X_CLASS)
           : "px-3",

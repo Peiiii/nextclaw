@@ -14,6 +14,7 @@ const PWA_SHELL_THEME_COLORS: Record<UiTheme, string> = {
   dawn: '#FAF7F4',
   graphite: '#F8F8F7',
   night: '#101318',
+  charcoal: '#1C1C1C',
   probe: '#FEFCF6',
 };
 

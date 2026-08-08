@@ -508,6 +508,29 @@ export class SessionManager implements NcpSessionApi {
     return record.messages.length;
   };
 
+  rewindSessionBeforeMessage = async (
+    sessionId: string,
+    messageId: string,
+  ): Promise<AgentSessionRecord> => {
+    const record = await this.getSessionRecord(sessionId);
+    if (!record) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    const anchorIndex = record.messages.findIndex((message) => message.id === messageId);
+    if (anchorIndex < 0) {
+      throw new Error(`Session message not found: ${messageId}`);
+    }
+    const nextRecord: AgentSessionRecord = {
+      ...record,
+      messages: structuredClone(record.messages.slice(0, anchorIndex)),
+      updatedAt: new Date().toISOString(),
+      metadata: structuredClone(record.metadata ?? {}),
+    };
+    await this.options.journalStore.importSessionSnapshot(nextRecord);
+    await this.publishSessionChange(record.sessionId);
+    return structuredClone(nextRecord);
+  };
+
   publishSessionChange = async (sessionKey: string): Promise<void> => {
     const normalizedSessionKey = normalizeSessionId(sessionKey);
     if (!normalizedSessionKey) {

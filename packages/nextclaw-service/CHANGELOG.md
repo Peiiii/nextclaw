@@ -1,5 +1,41 @@
 # @nextclaw/service
 
+## 0.3.22
+
+### Patch Changes
+
+- 817f30a: Make fresh installs truly ready to use: initialize the packaged workspace templates correctly and tell users that the built-in OpenCode Zen model can be used without an API key.
+
+## 0.3.21
+
+### Patch Changes
+
+- 43b0e1d: 让全新安装的 NextClaw 默认接入 OpenCode Zen 当前可调用的七个免费试用模型，无需填写 API Key 即可在模型选择器中直接选择并开始聊天；已有其他提供商配置保持不变，已失效的 Ling 免费模型会从 OpenCode 配置中移除，并明确提示公共网关的限额、模型变化与数据隐私边界。
+- Updated dependencies [dbececb]
+- Updated dependencies [43b0e1d]
+- Updated dependencies [14f321a]
+  - @nextclaw/shared@0.4.18
+  - @nextclaw/core@0.15.19
+  - @nextclaw/ncp-toolkit@0.6.17
+  - @nextclaw/kernel@0.6.21
+  - @nextclaw/runtime@0.4.19
+  - @nextclaw/server@0.15.21
+  - @nextclaw/client-sdk@0.5.21
+  - @nextclaw/channel-extension-dingtalk@0.2.19
+  - @nextclaw/channel-extension-discord@0.2.19
+  - @nextclaw/channel-extension-email@0.2.19
+  - @nextclaw/channel-extension-slack@0.2.19
+  - @nextclaw/channel-extension-telegram@0.2.19
+  - @nextclaw/channel-extension-wecom@0.2.19
+  - @nextclaw/channel-extension-whatsapp@0.2.19
+  - @nextclaw/mcp@0.3.19
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.20
+  - @nextclaw/remote@0.3.21
+  - @nextclaw/channel-extension-feishu@0.2.19
+  - @nextclaw/channel-extension-weixin@0.2.19
+  - @nextclaw/channel-extension-qq@0.2.18
+  - @nextclaw/ncp-mcp@0.2.19
+
 ## 0.3.20
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LiteLLMProvider } from "./litellm.provider.js";
 import type { LLMResponse } from "./base.provider.js";
-import { configureProviderCatalog } from "./registry.js";
+import { configureProviderCatalog } from "./provider-registry.provider.js";
 
 beforeEach(() => {
   configureProviderCatalog([

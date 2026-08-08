@@ -12,6 +12,7 @@ import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
 import type {
   ChatComposerNode,
   ChatComposerSelection,
+  ChatComposerTokenKind,
   ChatInputSurfaceItem,
   ChatInputSurfaceTriggerChangeReason,
   ChatInputSurfaceTriggerSpec,
@@ -27,19 +28,24 @@ import { ChatComposerBindingsPlugin } from './chat-composer-plugins';
 import { ChatComposerTokenNode } from './chat-composer-token-node';
 
 export type ChatInputBarTokenizedComposerHandle = {
+  insertToken: (token: {
+    tokenKind: ChatComposerTokenKind;
+    tokenKey: string;
+    label: string;
+  }) => void;
   insertInputSurfaceItem: (
     item: ChatInputSurfaceItem,
     triggerSpecs?: readonly ChatInputSurfaceTriggerSpec[],
   ) => void;
   insertSlashItem: (item: ChatSlashItem) => void;
-  insertFileToken: (tokenKey: string, label: string) => void;
-  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
+  insertFileToken: (tokenKey: string, label: string, previewUrl?: string) => void;
+  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string; previewUrl?: string }>) => void;
   focusComposer: () => void;
   focusComposerAtEnd: (nodes?: ChatComposerNode[]) => void;
   syncSelectedSkills: (nextKeys: string[], options: ChatSkillPickerOption[]) => void;
 };
 
-type ChatInputBarTokenizedComposerProps = {
+export type ChatInputBarTokenizedComposerProps = {
   nodes: ChatComposerNode[];
   placeholder: string;
   disabled: boolean;
@@ -126,7 +132,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
           <PlainTextPlugin
             contentEditable={
               <ContentEditable
-                className="min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none"
+                className="nextclaw-chat-composer min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none selection:bg-[var(--interaction-selection,Highlight)] selection:text-current"
                 onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
                   const files = Array.from(event.clipboardData.files ?? []);
                   if (files.length > 0 && onFilesAdd) {

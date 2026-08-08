@@ -91,6 +91,15 @@ describe('PwaShellThemeManager', () => {
     expect(document.documentElement.style.colorScheme).toBe('dark');
   });
 
+  it('applies charcoal shell colors and dark color scheme', () => {
+    pwaShellThemeManager.syncTheme('charcoal');
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+    expect(meta?.getAttribute('content')).toBe('#1C1C1C');
+    expect(document.body.style.backgroundColor).toBe('rgb(28, 28, 28)');
+    expect(document.documentElement.style.colorScheme).toBe('dark');
+  });
+
   it('maps the legacy leaf theme to warm shell colors', () => {
     document.documentElement.setAttribute('data-theme', 'leaf');
 

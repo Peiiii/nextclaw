@@ -5,6 +5,7 @@ import type {
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { ChatQueryManager } from '@/features/chat/managers/chat-query.manager';
 import type { ChatThreadManager } from '@/features/chat/managers/chat-thread.manager';
+import type { ChatComposerIntentManager } from '@/features/chat/managers/chat-composer-intent.manager';
 
 type PublicManager<T extends object> = Pick<T, keyof T>;
 
@@ -15,6 +16,7 @@ export type ChatPresenterLike = {
   chatQueryManager: ChatQueryManager;
   chatSessionListManager: ChatSessionListManager;
   chatThreadManager: ChatThreadManagerLike;
+  chatComposerIntentManager: ChatComposerIntentManager;
 };
 
 const ChatPresenterContext = createContext<ChatPresenterLike | null>(null);

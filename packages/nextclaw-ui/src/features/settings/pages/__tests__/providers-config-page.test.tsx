@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
       providers: {
         openai: { enabled: true, apiKeySet: true },
         anthropic: { enabled: true, apiKeySet: true },
+        opencode: { enabled: true, apiKeyRequired: false, apiKeySet: false },
         nextclaw: { enabled: true, apiKeySet: true },
       },
     },
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => ({
         { name: 'nextclaw', displayName: 'NextClaw Builtin', defaultApiBase: 'https://ai-gateway-api.nextclaw.io/v1' },
         { name: 'openai', displayName: 'OpenAI', defaultApiBase: 'https://api.openai.com/v1' },
         { name: 'anthropic', displayName: 'Anthropic', defaultApiBase: 'https://api.anthropic.com/v1' },
+        { name: 'opencode', displayName: 'OpenCode Zen Free Trial', defaultApiBase: 'https://opencode.ai/zen/v1' },
       ],
     },
   },
@@ -46,6 +48,7 @@ vi.mock('@/shared/hooks/use-config', () => ({
             isBuiltInType: providerId === 'nextclaw',
             isCustom: false,
             enabled: provider.enabled,
+            apiKeyRequired: 'apiKeyRequired' in provider ? provider.apiKeyRequired : undefined,
             apiKeySet: provider.apiKeySet,
           },
         ]),
@@ -107,5 +110,14 @@ describe('ProvidersConfigPage', () => {
       expect.stringContaining('Anthropic'),
       expect.stringContaining('NextClaw Builtin'),
     ]);
+  });
+
+  it('shows an enabled provider without a required API key as ready', () => {
+    const { container } = render(<ProvidersConfigPage />);
+    const opencodeCard = Array.from(container.querySelectorAll('[role="button"]'))
+      .find((element) => element.textContent?.includes('OpenCode Zen Free Trial'));
+
+    expect(opencodeCard?.textContent).toContain('Ready');
+    expect(opencodeCard?.textContent).not.toContain('Setup');
   });
 });

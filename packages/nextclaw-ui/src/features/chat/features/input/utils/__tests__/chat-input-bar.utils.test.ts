@@ -22,6 +22,12 @@ function createModelTexts() {
     favoriteModelsLabel: 'Favorites',
     favoriteModelLabel: 'Favorite model',
     unfavoriteModelLabel: 'Remove favorite',
+    manageModelsLabel: 'Manage models and providers',
+    discoveredModelsSummaryLabel: '{count} new models available',
+    discoveredModelsViewLabel: 'View',
+    discoveredModelsGroupLabel: 'New models',
+    discoveredModelAddLabel: 'Add',
+    discoveredModelsDismissLabel: "Don't remind me about these",
     recentModelsLabel: 'Recent',
     allModelsLabel: 'All models'
   };
@@ -238,6 +244,71 @@ describe('buildSkillPickerModel', () => {
 });
 
 describe('buildModelToolbarSelect', () => {
+  it('exposes discovered models through an expanded-panel contract without changing the selected label', () => {
+    const onDiscoveredModelsDismiss = vi.fn();
+    const onDiscoveredModelSelect = vi.fn();
+    const onOpen = vi.fn();
+    const select = buildModelToolbarSelect({
+      modelOptions: [{
+        value: 'opencode/big-pickle',
+        modelLabel: 'big-pickle',
+        providerLabel: 'OpenCode',
+      }],
+      discoveredModelOptions: [
+        {
+          value: 'opencode/deepseek-v4-flash-free',
+          modelLabel: 'deepseek-v4-flash-free',
+          providerLabel: 'OpenCode',
+        },
+        {
+          value: 'openrouter/inclusionai/ling-3.0-tiny:free',
+          modelLabel: 'inclusionai/ling-3.0-tiny:free',
+          providerLabel: 'OpenRouter',
+        },
+      ],
+      recentModelValues: [],
+      selectedModel: 'opencode/big-pickle',
+      isModelOptionsLoading: false,
+      hasModelOptions: true,
+      onDiscoveredModelSelect,
+      onDiscoveredModelsDismiss,
+      onOpen,
+      onValueChange: vi.fn(),
+      texts: createModelTexts(),
+    });
+
+    expect(select.selectedLabel).toBe('OpenCode/big-pickle');
+    expect(select.discovery).toEqual({
+      summaryLabel: '2 new models available',
+      viewLabel: 'View',
+      groupLabel: 'New models',
+      allGroupLabel: 'All models',
+      actionLabel: 'Add',
+      dismissLabel: "Don't remind me about these",
+      groups: [
+        {
+          key: 'opencode',
+          label: 'OpenCode',
+          options: [{
+            value: 'opencode/deepseek-v4-flash-free',
+            label: 'deepseek-v4-flash-free',
+          }],
+        },
+        {
+          key: 'openrouter',
+          label: 'OpenRouter',
+          options: [{
+            value: 'openrouter/inclusionai/ling-3.0-tiny:free',
+            label: 'inclusionai/ling-3.0-tiny:free',
+          }],
+        },
+      ],
+      onDismiss: onDiscoveredModelsDismiss,
+      onSelect: onDiscoveredModelSelect,
+    });
+    expect(select.onOpen).toBe(onOpen);
+  });
+
   it('falls back to the first available option when the selected model is missing', () => {
     const onValueChange = vi.fn();
     const select = buildModelToolbarSelect({
@@ -262,6 +333,8 @@ describe('buildModelToolbarSelect', () => {
       value: 'minimax/MiniMax-M2.7',
       label: 'MiniMax/MiniMax-M2.7'
     });
+    expect(select.manageLabel).toBe('Manage models and providers');
+    expect(select.manageHref).toBe('/providers');
   });
 
   it('keeps the full provider/model label in shared state while exposing a compact mobile label', () => {

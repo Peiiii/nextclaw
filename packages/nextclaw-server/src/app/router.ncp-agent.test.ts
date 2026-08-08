@@ -60,6 +60,8 @@ class StubNcpAgent implements NcpSessionApi {
     }
   >();
   readonly abortCalls: Array<{ sessionId: string; messageId?: string }> = [];
+  readonly continueCalls: Array<Record<string, unknown>> = [];
+  readonly editMessageCalls: Array<Record<string, unknown>> = [];
   readonly runningSessionIds = new Set<string>();
   readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
   readonly sessionMetadata = new Map<string, Record<string, unknown>>();
@@ -263,6 +265,12 @@ function createTestKernel(agent: StubNcpAgent): UiKernelHost {
           case getKeyId(ingressKeys.agentRun.abort):
             await agent.abort(envelope.payload as { sessionId: string; messageId?: string });
             return undefined;
+          case getKeyId(ingressKeys.agentRun.editMessage):
+            agent.editMessageCalls.push(envelope.payload as Record<string, unknown>);
+            return await agent.send();
+          case getKeyId(ingressKeys.agentRun.continue):
+            agent.continueCalls.push(envelope.payload as Record<string, unknown>);
+            return await agent.send();
           default:
             throw new Error(`Unsupported test ingress type: ${getKeyId(envelope.type)}`);
         }
@@ -544,7 +552,7 @@ it("serves uploaded ncp assets through node http without duplicate content-lengt
   expect(contentLengthHeaderCount).toBe(1);
 });
 
-it("proxies ncp send, patch, and abort flows", async () => {
+it("proxies ncp send, edit, continue, patch, and abort flows", async () => {
   const { app, agent } = createTestApp();
   const validProjectRoot = realpathSync(createTempDir("nextclaw-ui-ncp-project-root-"));
 
@@ -615,6 +623,38 @@ it("proxies ncp send, patch, and abort flows", async () => {
   });
   expect(abortResponse.status).toBe(200);
   expect(agent.abortCalls).toEqual([{ sessionId: "session-1" }]);
+
+  const editedMessage = {
+    id: "edited-user-message-1",
+    sessionId: "session-1",
+    role: "user",
+    status: "final",
+    timestamp: "2026-03-17T00:01:00.000Z",
+    parts: [{ type: "text", text: "edited hello" }]
+  };
+  const editResponse = await app.request("http://localhost/api/agent-runs/edit-message", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      sessionId: "session-1",
+      messageId: "user-message-1",
+      message: editedMessage
+    })
+  });
+  expect(editResponse.status).toBe(200);
+  expect(agent.editMessageCalls).toEqual([{
+    sessionId: "session-1",
+    messageId: "user-message-1",
+    message: editedMessage
+  }]);
+
+  const continueResponse = await app.request("http://localhost/api/agent-runs/continue", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ sessionId: "session-1" })
+  });
+  expect(continueResponse.status).toBe(200);
+  expect(agent.continueCalls).toEqual([{ sessionId: "session-1" }]);
 });
 
 it("rejects invalid session project roots during patch", async () => {

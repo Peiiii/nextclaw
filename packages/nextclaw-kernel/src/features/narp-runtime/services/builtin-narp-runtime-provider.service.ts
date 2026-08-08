@@ -447,6 +447,7 @@ export class BuiltinNarpRuntimeProviderService {
     const resolvedConfig = resolver.resolve();
     return new StdioRuntimeNcpAgentRuntime({
       ...resolvedConfig,
+      resolveAssetContentPath: runtimeParams.resolveAssetContentPath,
       resolveTools: runtimeParams.resolveTools,
       stateManager: runtimeParams.stateManager,
       resolveProviderRoute: (input: NcpAgentRunInput) =>

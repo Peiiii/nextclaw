@@ -30,6 +30,18 @@ export type AgentRunAbortRequest = {
   reason?: NcpError;
 };
 
+export type AgentRunEditMessageRequest = {
+  correlationId?: string;
+  message: NcpMessage;
+  messageId: string;
+  sessionId: string;
+};
+
+export type AgentRunContinueRequest = {
+  correlationId?: string;
+  sessionId: string;
+};
+
 export type AgentRunAccepted = {
   sessionId: string;
   userMessageId: string;

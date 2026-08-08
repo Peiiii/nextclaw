@@ -5,7 +5,7 @@ import {
   type NcpEndpointEvent,
   type NcpMessage,
 } from "@nextclaw/ncp";
-import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
+import { DefaultNcpAgentConversationStateManager, insertMessageByTimeline } from "@nextclaw/ncp-toolkit";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
@@ -63,7 +63,7 @@ export class SessionRun {
   getSnapshot = (): { messages: readonly NcpMessage[] } => {
     const snapshot = this.stateManager.getSnapshot();
     return {
-      messages: snapshot.streamingMessage ? [...snapshot.messages, snapshot.streamingMessage] : snapshot.messages,
+      messages: snapshot.streamingMessage ? insertMessageByTimeline(snapshot.messages, snapshot.streamingMessage) : snapshot.messages,
     };
   };
 
@@ -73,6 +73,16 @@ export class SessionRun {
     if (conversationEvents.length > 0) {
       await this.stateManager.dispatchBatch(conversationEvents);
     }
+  };
+
+  replaceMessages = (messages: readonly NcpMessage[]): void => {
+    if (this.isBusy()) {
+      throw new Error(`Cannot replace messages while session is running: ${this.sessionId}`);
+    }
+    this.stateManager.hydrate({
+      sessionId: this.sessionId,
+      messages,
+    });
   };
 
   onStatusChange = (

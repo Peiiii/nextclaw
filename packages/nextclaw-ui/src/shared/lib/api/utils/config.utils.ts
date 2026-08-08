@@ -17,6 +17,9 @@ import type {
   ProviderConfigUpdate,
   ProviderConnectionTestRequest,
   ProviderConnectionTestResult,
+  ProviderModelDiscoveryRequest,
+  ProviderModelDiscoveryResult,
+  ProviderModelCatalogView,
   ProviderAuthStartRequest,
   ProviderAuthStartResult,
   ProviderAuthPollRequest,
@@ -90,6 +93,10 @@ export async function fetchProviderTemplates(): Promise<ProviderTemplatesView> {
   return await nextclawClient.providers.listTemplates();
 }
 
+export async function fetchProviderModelCatalog(): Promise<ProviderModelCatalogView> {
+  return await nextclawClient.providers.listModelCatalog();
+}
+
 export async function fetchConfigSchema(): Promise<ConfigSchemaResponse> {
   return await nextclawClient.config.fetchSchema();
 }
@@ -119,6 +126,13 @@ export async function testProviderConnection(
   data: ProviderConnectionTestRequest
 ): Promise<ProviderConnectionTestResult> {
   return await nextclawClient.providers.testConnection(provider, data);
+}
+
+export async function discoverProviderModels(
+  provider: string,
+  data: ProviderModelDiscoveryRequest
+): Promise<ProviderModelDiscoveryResult> {
+  return await nextclawClient.providers.discoverModels(provider, data);
 }
 
 export async function startProviderAuth(

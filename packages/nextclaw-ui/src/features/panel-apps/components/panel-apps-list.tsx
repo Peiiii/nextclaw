@@ -104,7 +104,7 @@ export function PanelAppsList({
             <TooltipProvider delayDuration={250}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <button type="button" className="rounded p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-accent-foreground" aria-label={t('panelAppsTitle')}><HelpCircle className="h-3.5 w-3.5" /></button>
+                  <button type="button" className="rounded p-0.5 text-muted-foreground/70 transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground" aria-label={t('panelAppsTitle')}><HelpCircle className="h-3.5 w-3.5" /></button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[320px] break-all font-mono text-xs">{panelApps.data.panelsPath}</TooltipContent>
               </Tooltip>
@@ -114,7 +114,7 @@ export function PanelAppsList({
         <button
           type="button"
           onClick={() => void panelApps.refetch()}
-          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
           title={t('panelAppsRefresh')}
           aria-label={t('panelAppsRefresh')}
         >
@@ -204,7 +204,7 @@ function PanelAppsEmptyGuide({
         <button
           type="button"
           onClick={onRefresh}
-          className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+          className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           {t('panelAppsRefresh')}
@@ -245,7 +245,7 @@ function PanelAppsEmptyGuideStep({
       <button
         type="button"
         onClick={onAction}
-        className="flex w-full gap-2 rounded-md bg-muted/60 px-3 py-2.5 text-left transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+        className="flex w-full gap-2 rounded-md bg-muted/60 px-3 py-2.5 text-left transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
       >
         {content}
       </button>

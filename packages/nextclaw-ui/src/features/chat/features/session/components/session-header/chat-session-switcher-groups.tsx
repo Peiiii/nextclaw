@@ -69,7 +69,7 @@ function ChatSessionSwitchItem({
         "flex w-full min-w-0 items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
         active
           ? "bg-accent text-accent-foreground"
-          : "text-foreground hover:bg-accent/65 hover:text-accent-foreground",
+          : "text-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground",
       )}
       onClick={() => onSelect(session.key)}
     >

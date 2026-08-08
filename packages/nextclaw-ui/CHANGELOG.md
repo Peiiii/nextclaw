@@ -1,5 +1,25 @@
 # @nextclaw/ui
 
+## 0.15.22
+
+### Patch Changes
+
+- dbececb: 修复并发消息完成时聊天记录偶发重叠的问题，并隐藏静默回复遗留的异常文本。
+- 8b7a24c: 普通会话内容会在输入框上方柔和渐隐，同时保留末条内容的完整可读性，并与左侧会话列表使用一致的边缘过渡。
+- c569770: Keep global completion notifications fully opaque when hovered.
+- 43b0e1d: 让全新安装的 NextClaw 默认接入 OpenCode Zen 当前可调用的七个免费试用模型，无需填写 API Key 即可在模型选择器中直接选择并开始聊天；已有其他提供商配置保持不变，已失效的 Ling 免费模型会从 OpenCode 配置中移除，并明确提示公共网关的限额、模型变化与数据隐私边界。
+- 9c6abce: 简化聊天侧边栏的视觉层级与间距，并修复切换到定时任务等非会话页面后仍保留会话选中态的问题。
+- 9506f3b: 简化聊天欢迎页和输入工具栏，统一轻量 hover 与无边框聚焦反馈，改进技能和模型选择，并为图片附件、内嵌 token 与富文本选区提供更紧凑一致的交互。
+- 14f321a: 会话列表中的思考、工具调用、运行失败与意外中断预览会跟随界面语言显示；已有会话中保存的英文活动预览也会按当前语言呈现。
+- 9c453a1: 修复会话侧栏在时间与项目视图之间切换时控制区上下跳动的问题，并用文件夹加号明确“添加项目”操作。
+- Updated dependencies [dbececb]
+- Updated dependencies [9506f3b]
+  - @nextclaw/shared@0.4.18
+  - @nextclaw/ncp-toolkit@0.6.17
+  - @nextclaw/agent-chat-ui@0.6.20
+  - @nextclaw/client-sdk@0.5.21
+  - @nextclaw/ncp-react@0.5.19
+
 ## 0.15.21
 
 ### Patch Changes

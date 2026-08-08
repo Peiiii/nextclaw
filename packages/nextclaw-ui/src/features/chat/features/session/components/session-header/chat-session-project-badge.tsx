@@ -57,7 +57,7 @@ export function ChatSessionProjectBadge({
           <button
             type="button"
             title={projectRoot ?? undefined}
-            className="min-w-0 max-w-[320px] shrink rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/35 hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-w-0 max-w-[320px] shrink rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/35 hover:bg-[var(--interaction-hover)] hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
             aria-label={t('chatSessionSetProject')}
             disabled={isProjectPending}
           >

@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DiagnosticsCommands } from "./diagnostics-commands.service.js";
 import type { RuntimeStatusReport } from "@nextclaw-service/types/cli.types.js";
+import { ConfigSchema } from "@nextclaw/core";
 
 type DiagnosticsCommandsStatusProbe = {
   collectRuntimeStatus: (params: { verbose: boolean; fix: boolean }) => Promise<RuntimeStatusReport>;
+  listProviderStatuses: (config: ReturnType<typeof ConfigSchema.parse>) => RuntimeStatusReport["providers"];
 };
 
 describe("DiagnosticsCommands status", () => {
@@ -65,5 +67,27 @@ describe("DiagnosticsCommands status", () => {
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('"level": "stopped"'));
     expect(process.exitCode).toBe(0);
+  });
+
+  it("reports OpenCode Zen as configured when it uses anonymous access", () => {
+    const commands = new DiagnosticsCommands({ logo: "🤖" });
+    const probe = commands as unknown as DiagnosticsCommandsStatusProbe;
+    const statuses = probe.listProviderStatuses(ConfigSchema.parse({
+      providers: {
+        opencode: {
+          providerType: "opencode",
+          enabled: true,
+          apiKey: "",
+          apiBase: "https://opencode.ai/zen/v1",
+          models: ["opencode/big-pickle"]
+        }
+      }
+    }));
+
+    expect(statuses).toContainEqual(expect.objectContaining({
+      name: "OpenCode Zen Free Trial",
+      configured: true,
+      detail: "anonymous access"
+    }));
   });
 });

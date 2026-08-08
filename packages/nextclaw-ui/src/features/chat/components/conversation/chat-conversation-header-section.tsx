@@ -89,14 +89,10 @@ export function ChatConversationHeaderSection({
   const shouldShowHeaderAgentAvatar =
     normalizedAgentId.length > 0 && normalizedAgentId.toLowerCase() !== "main";
   const isWorkspaceOpen = Boolean(
-    sessionKey &&
-      snapshot.workspacePanelParentKey === sessionKey &&
+    snapshot.workspacePanelParentKey === sessionKey &&
       snapshot.activeWorkspacePanelKind,
   );
   const toggleWorkspace = () => {
-    if (!sessionKey) {
-      return;
-    }
     presenter.chatThreadManager.toggleWorkspacePanel(sessionKey);
   };
 
@@ -154,33 +150,36 @@ export function ChatConversationHeaderSection({
         ) : null
       }
       actions={
-        sessionKey ? (
-          <div className="flex shrink-0 items-center gap-1.5">
-            {layoutMode === "mobile" ? (
-              <IconActionButton
-                icon={<SquarePen className="h-4 w-4" />}
-                label={t("chatSidebarNewTask")}
-                tooltip={false}
-                onClick={() =>
-                  presenter.chatSessionListManager.createSession({
-                    sessionType: newSessionTypePreference.selectedSessionType,
-                  })
-                }
-              />
-            ) : null}
-            <ChatSessionHeaderActions
-              sessionKey={sessionKey}
-              canDeleteSession={canDeleteSession}
-              isDeletePending={snapshot.isDeletePending}
-              currentPath={sessionProjectRoot ?? selectedSession?.workingDir ?? null}
-              defaultWorkspacePath={defaultWorkspacePath}
-              metadata={selectedSession?.metadata ?? null}
-              isWorkspaceOpen={isWorkspaceOpen}
-              onToggleWorkspace={toggleWorkspace}
-              onDeleteSession={presenter.chatThreadManager.deleteSession}
+        <div className="flex shrink-0 items-center gap-1.5">
+          {layoutMode === "mobile" && sessionKey ? (
+            <IconActionButton
+              icon={<SquarePen className="h-4 w-4" />}
+              label={t("chatSidebarNewTask")}
+              tooltip={false}
+              onClick={() =>
+                presenter.chatSessionListManager.createSession({
+                  sessionType: newSessionTypePreference.selectedSessionType,
+                })
+              }
             />
-          </div>
-        ) : null
+          ) : null}
+          <ChatSessionHeaderActions
+            sessionKey={sessionKey}
+            canDeleteSession={canDeleteSession}
+            isDeletePending={snapshot.isDeletePending}
+            currentPath={
+              sessionProjectRoot ??
+              selectedSession?.workingDir ??
+              snapshot.draftProjectRoot ??
+              defaultWorkspacePath
+            }
+            defaultWorkspacePath={defaultWorkspacePath}
+            metadata={selectedSession?.metadata ?? null}
+            isWorkspaceOpen={isWorkspaceOpen}
+            onToggleWorkspace={toggleWorkspace}
+            onDeleteSession={presenter.chatThreadManager.deleteSession}
+          />
+        </div>
       }
     />
   );

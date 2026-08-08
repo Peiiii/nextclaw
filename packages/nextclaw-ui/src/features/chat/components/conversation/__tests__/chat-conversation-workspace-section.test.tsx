@@ -90,8 +90,7 @@ describe("ChatConversationWorkspaceSection", () => {
         activeChildSessionKey: null,
         workspaceNavigationHistory: [],
         workspaceNavigationHistoryIndex: 0,
-        sessionProjectRoot: null,
-        sessionWorkingDir: null,
+        draftProjectRoot: null,
         workspacePanelWidth: 620,
       },
     });
@@ -155,5 +154,29 @@ describe("ChatConversationWorkspaceSection", () => {
     );
 
     expect(screen.getByTestId("workspace-panel")).toBeTruthy();
+  });
+
+  it("uses the selected draft project before the first message creates a session", () => {
+    useChatThreadStore.getState().setSnapshot({
+      draftProjectRoot: "/Users/peiwang/Projects/draft-project",
+      workspacePanelParentKey: null,
+      activeWorkspacePanelKind: "project-files",
+      workspaceFileTabs: [],
+      activeWorkspaceFileKey: null,
+    });
+
+    render(
+      <ChatConversationWorkspaceSection
+        layoutMode="desktop"
+        sessionKey={null}
+      />,
+    );
+
+    expect(mocks.panelProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionProjectRoot: "/Users/peiwang/Projects/draft-project",
+        sessionWorkingDir: "/Users/peiwang/Projects/draft-project",
+      }),
+    );
   });
 });

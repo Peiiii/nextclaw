@@ -60,6 +60,7 @@ function renderContent(
     isContextCompacting?: boolean;
     isLoadingPreviousMessages?: boolean;
     onLoadPreviousMessages?: () => Promise<void>;
+    showWelcome?: boolean;
   } = {},
 ) {
   return render(
@@ -74,8 +75,9 @@ function renderContent(
       isSending={false}
       messages={messages}
       sessionKey="session-1"
-      showWelcome={false}
+      showWelcome={options.showWelcome ?? false}
       onLoadPreviousMessages={options.onLoadPreviousMessages ?? vi.fn()}
+      welcomeSlot={<div data-testid="conversation-welcome" />}
     />,
   );
 }
@@ -92,6 +94,22 @@ it("renders manual context compaction feedback after the message list", () => {
   renderContent({ isContextCompacting: true });
 
   expect(screen.getByTestId("context-compaction-pending")).toBeTruthy();
+});
+
+it("fades the conversation into the docked input without obscuring the final message", () => {
+  const { container } = renderContent();
+  const scrollContainer = container.querySelector<HTMLElement>(
+    '[data-chat-scroll-container="true"]',
+  );
+  expect(scrollContainer?.className).toContain("[mask-image:linear-gradient");
+  expect(scrollContainer?.className).toContain("[-webkit-mask-image:linear-gradient");
+  expect(scrollContainer?.firstElementChild?.className).toContain("pb-7");
+
+  const { container: welcomeContainer } = renderContent({ showWelcome: true });
+  const welcomeScrollContainer = welcomeContainer.querySelector<HTMLElement>(
+    '[data-chat-scroll-container="true"]',
+  );
+  expect(welcomeScrollContainer?.className).not.toContain("[mask-image:linear-gradient");
 });
 
 it("uses the centered reading track in flat message layout", () => {

@@ -16,6 +16,7 @@ import { resolveRecentSessionPreferredValue } from '@/features/chat/features/ses
 import { useChatSessionTypeState } from '@/features/chat/features/session-type/hooks/use-chat-session-type-state';
 import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';
 import { useChatQueryStore } from '@/features/chat/stores/ncp-chat-query.store';
+import { useSessionProviderModelCatalog } from './use-session-provider-model-catalog';
 
 import type { SessionConversationInputSnapshot } from './use-session-conversation-input-state';
 
@@ -38,6 +39,8 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
   const isProviderStateResolved = useNcpChatProviderStateResolved();
   const querySnapshot = useChatQueryStore((state) => state.snapshot);
   const config = querySnapshot.configQuery?.data ?? null;
+  const providersView = querySnapshot.providersQuery?.data ?? null;
+  const templatesView = querySnapshot.providerTemplatesQuery?.data ?? null;
   const sessionSummaries =
     querySnapshot.sessionsQuery?.data?.sessions ?? EMPTY_NCP_SESSION_SUMMARIES;
   const sessionSkillsQuery = useNcpSessionSkills({
@@ -68,10 +71,10 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
     () =>
       buildNcpChatProviderModelOptions({
         config,
-        providersView: querySnapshot.providersQuery?.data ?? null,
-        templatesView: querySnapshot.providerTemplatesQuery?.data ?? null,
+        providersView,
+        templatesView,
       }),
-    [config, querySnapshot.providerTemplatesQuery?.data, querySnapshot.providersQuery?.data],
+    [config, providersView, templatesView],
   );
   const modelOptions = useMemo(
     () =>
@@ -90,6 +93,18 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
       sessionTypeState.selectedSessionTypeOption?.supportedModels,
     ],
   );
+  const {
+    addDiscoveredModel,
+    dismissDiscoveredModels,
+    discoveredModelOptions,
+    refreshProviderModelCatalog,
+  } = useSessionProviderModelCatalog({
+    config,
+    providersView,
+    templatesView,
+    modelSelectionMode: sessionTypeState.selectedSessionTypeOption?.modelSelectionMode,
+    supportedModels: sessionTypeState.selectedSessionTypeOption?.supportedModels,
+  });
   const availableModelValueSet = useMemo(
     () => new Set(modelOptions.map((option) => option.value)),
     [modelOptions],
@@ -124,13 +139,18 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
   );
 
   return useMemo(() => ({
+    addDiscoveredModel,
     defaultModel: sessionTypeState.selectedSessionTypeOption?.recommendedModel ?? config?.agents.defaults.model,
     defaultProjectRoot,
+    dismissDiscoveredModels,
+    discoveredModelOptions,
     fallbackPreferredModel,
     fallbackPreferredThinking,
     isProviderStateResolved,
     isSkillsLoading,
     modelOptions,
+    providersView,
+    refreshProviderModelCatalog,
     selectedSession,
     selectedSessionKey,
     sessionTypeState,
@@ -143,6 +163,11 @@ export function useSessionConversationInputQuery(params: UseSessionConversationI
     isProviderStateResolved,
     isSkillsLoading,
     modelOptions,
+    addDiscoveredModel,
+    dismissDiscoveredModels,
+    discoveredModelOptions,
+    refreshProviderModelCatalog,
+    providersView,
     selectedSession,
     selectedSessionKey,
     sessionTypeState,

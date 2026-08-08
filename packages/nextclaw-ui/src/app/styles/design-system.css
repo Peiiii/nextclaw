@@ -5,6 +5,12 @@
  */
 
 @layer base {
+   input:focus,
+   textarea:focus {
+      outline: none;
+      box-shadow: none;
+   }
+
    :root {
       color-scheme: light;
 
@@ -70,6 +76,9 @@
       /* Accent */
       --accent: var(--brand-50);
       --accent-foreground: var(--brand-700);
+      --interaction-hover: hsl(0 0% 96%);
+      --interaction-selection: hsl(211 100% 92%);
+      --interaction-selection-border: hsl(211 75% 84%);
 
       /* Muted */
       --muted: var(--gray-100);
@@ -717,6 +726,9 @@
       --secondary-foreground: var(--gray-800);
       --accent: 151 32% 18%;
       --accent-foreground: 148 34% 84%;
+      --interaction-hover: hsl(var(--gray-200));
+      --interaction-selection: hsl(211 48% 30%);
+      --interaction-selection-border: hsl(211 48% 42%);
       --muted: var(--gray-100);
       --muted-foreground: var(--gray-500);
       --destructive: 0 70% 52%;

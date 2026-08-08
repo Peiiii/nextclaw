@@ -22,6 +22,8 @@ describe("ContextProviderManager", () => {
 
     expect(blocks).toHaveLength(2);
     expect(blocks.join("\n")).toContain("base context");
-    expect(blocks.join("\n")).toContain("[AGENTS.md](AGENTS.md)");
+    expect(blocks.join("\n")).toContain(
+      "## Agent Output & Reply Formatting Contract",
+    );
   });
 });

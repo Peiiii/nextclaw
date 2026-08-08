@@ -65,3 +65,19 @@ export function upsertWorkspaceFileTab(
     ...tabs.slice(adjacentIndex + 1),
   ];
 }
+
+export function reparentWorkspaceFileTab(
+  tab: ChatWorkspaceFileTab,
+  parentSessionKey: string,
+): ChatWorkspaceFileTab {
+  const normalizedParentSessionKey = parentSessionKey.trim();
+  const identitySeparatorIndex = tab.key.indexOf('::');
+  const tabIdentity = identitySeparatorIndex >= 0
+    ? tab.key.slice(identitySeparatorIndex)
+    : `::${tab.key}`;
+  return {
+    ...tab,
+    key: `${normalizedParentSessionKey}${tabIdentity}`,
+    parentSessionKey: normalizedParentSessionKey,
+  };
+}

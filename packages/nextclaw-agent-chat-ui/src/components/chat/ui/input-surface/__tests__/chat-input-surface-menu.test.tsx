@@ -16,7 +16,8 @@ it('renders the semantic icon assigned to each input-surface item', () => {
       isOpen
       isLoading={false}
       items={[
-        { key: 'command', icon: 'command', title: 'Command', subtitle: '', description: '', detailLines: [] },
+        { key: 'side-chat', icon: 'message-square-plus', title: 'Side chat', subtitle: '', description: '', detailLines: [] },
+        { key: 'compact-context', icon: 'list-collapse', title: 'Compact context', subtitle: '', description: '', detailLines: [] },
         { key: 'panel-app', icon: 'panel-app', title: 'Panel app', subtitle: '', description: '', detailLines: [] },
         { key: 'skill', icon: 'skill', title: 'Skill', subtitle: '', description: '', detailLines: [] },
       ]}
@@ -26,7 +27,8 @@ it('renders the semantic icon assigned to each input-surface item', () => {
     />,
   );
 
-  expect(document.querySelectorAll('[data-input-surface-icon="command"]')).toHaveLength(1);
+  expect(document.querySelectorAll('[data-input-surface-icon="message-square-plus"]')).toHaveLength(1);
+  expect(document.querySelectorAll('[data-input-surface-icon="list-collapse"]')).toHaveLength(1);
   expect(document.querySelectorAll('[data-input-surface-icon="panel-app"]')).toHaveLength(1);
   expect(document.querySelectorAll('[data-input-surface-icon="skill"]')).toHaveLength(1);
 });

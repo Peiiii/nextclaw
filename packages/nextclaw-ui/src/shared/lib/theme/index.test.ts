@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_UI_THEME,
+  getThemeAppearance,
+  normalizeTheme,
   resolveInitialTheme,
   THEME_OPTIONS,
 } from './index';
@@ -17,5 +19,14 @@ describe('ui theme defaults', () => {
 
   it('lists the default theme first', () => {
     expect(THEME_OPTIONS[0]?.value).toBe(DEFAULT_UI_THEME);
+  });
+
+  it('recognizes charcoal as a dark theme', () => {
+    expect(normalizeTheme('charcoal')).toBe('charcoal');
+    expect(getThemeAppearance('charcoal')).toBe('dark');
+    expect(THEME_OPTIONS).toContainEqual({
+      value: 'charcoal',
+      labelKey: 'themeCharcoal',
+    });
   });
 });

@@ -38,6 +38,15 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       removeQueuedInput: () => null,
     } as never,
     llmProviders: {} as never,
+    providerModelCatalog: {
+      getSnapshot: () => ({
+        refreshIntervalMs: 43_200_000,
+        refreshing: false,
+        lastRefreshStartedAt: null,
+        lastRefreshCompletedAt: null,
+        providers: {},
+      }),
+    } as never,
     sessionManager: {
       listSessions: async () => [],
       listSessionMessages: async () => [],

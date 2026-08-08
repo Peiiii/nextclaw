@@ -32,10 +32,13 @@ import {
   resolveWorkspaceReferencePath,
 } from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import { adaptNcpMessageToUiMessage } from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
-import { type ContextCompactionTimelineView } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { ChatInlineFilePreview } from "@/features/chat/features/message/components/chat-inline-file-preview";
 import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
+import {
+  ChatContextCompactionDivider,
+  ChatContextInheritanceDivider,
+} from "@/features/chat/features/message/components/chat-message-timeline-dividers";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
 import { useChatMessageLayoutStore } from "@/features/chat/stores/chat-message-layout.store";
 import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
@@ -51,15 +54,22 @@ import {
   buildChatMessageTimelineItems,
   isVisibleChatMessage,
   type ChatTimelineItem,
-  type ContextInheritanceTimelineView,
 } from "@/features/chat/features/message/utils/chat-message-timeline.utils";
+import { useChatMessageActions } from "@/features/chat/features/message/hooks/use-chat-message-actions";
 import { buildServerPathContentUrl, fetchNcpSessionSkills } from "@/shared/lib/api";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 type ChatMessageListContainerProps = {
+  canContinue?: boolean;
   messages: readonly NcpMessage[];
   isSending: boolean;
+  messageActionsDisabled?: boolean;
+  onContinueRun?: () => Promise<void> | void;
+  onEditMessage?: (payload: {
+    readonly message: NcpMessage;
+    readonly messageId: string;
+  }) => Promise<void> | void;
   sessionKey: string | null;
   scrollRef: RefObject<HTMLDivElement | null>;
   className?: string;
@@ -161,69 +171,15 @@ const renderChatPanelAppCard = (panelApp: ChatPanelAppCardViewModel) => (
   <ChatInlinePanelAppCard panelApp={panelApp} />
 );
 
-export function ChatContextCompactionDivider({
-  checkpoint,
-}: {
-  checkpoint?: ContextCompactionTimelineView;
-}) {
-  const isCompacting = !checkpoint || checkpoint.status === "compressing";
-  const title = checkpoint
-    ? [
-        `${t("chatContextCompactionCoveredMessages")}: ${checkpoint.coveredSessionMessageCount}`,
-        `${t("chatContextCompactionOriginalTokens")}: ${checkpoint.originalEstimatedTokens}`,
-        `${t("chatContextCompactionProjectedTokens")}: ${checkpoint.projectedEstimatedTokens}`,
-      ].join("\n")
-    : undefined;
-  return (
-    <div
-      className="my-4 flex items-center gap-3 text-[11px] text-muted-foreground"
-      title={title}
-    >
-      <div className="h-px flex-1 bg-border" />
-      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1">
-        {isCompacting ? (
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
-        ) : (
-          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/45" />
-        )}
-        <span>
-          {isCompacting
-            ? t("chatContextCompactionCompressing")
-            : t("chatContextCompactionCompressed")}
-        </span>
-      </div>
-      <div className="h-px flex-1 bg-border" />
-    </div>
-  );
-}
-
-function ChatContextInheritanceDivider({
-  inheritance,
-}: {
-  inheritance: ContextInheritanceTimelineView;
-}) {
-  const title = [
-    `${t("chatContextInheritanceSourceSession")}: ${inheritance.sourceSessionId}`,
-    `${t("chatContextInheritanceMessages")}: ${inheritance.inheritedMessageCount}`,
-  ].join("\n");
-  return (
-    <div
-      className="my-4 flex items-center gap-3 text-[11px] text-emerald-700"
-      title={title}
-    >
-      <div className="h-px flex-1 bg-emerald-100" />
-      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-        <span>{t("chatContextInheritanceInherited")}</span>
-      </div>
-      <div className="h-px flex-1 bg-emerald-100" />
-    </div>
-  );
-}
+export { ChatContextCompactionDivider } from "@/features/chat/features/message/components/chat-message-timeline-dividers";
 
 export function ChatMessageListContainer({
+  canContinue = false,
   messages: rawMessages,
   isSending,
+  messageActionsDisabled = false,
+  onContinueRun,
+  onEditMessage,
   scrollRef,
   sessionKey,
   className,
@@ -296,7 +252,7 @@ export function ChatMessageListContainer({
     [language],
   );
 
-  const messages = useMemo(
+  const adaptedMessages = useMemo(
     () =>
       chatMessageViewModelAdapter.adapt({
         executionLabels,
@@ -307,6 +263,15 @@ export function ChatMessageListContainer({
       }),
     [executionLabels, language, rawMessages, texts],
   );
+  const { handleMessageAction, messages, renderMessageContent } =
+    useChatMessageActions({
+      adaptedMessages,
+      canContinue,
+      disabled: messageActionsDisabled,
+      onContinueRun,
+      onEditMessage,
+      rawMessages,
+    });
 
   const activeAssistantMessage = messages.findLast(
     (message) =>
@@ -354,7 +319,8 @@ export function ChatMessageListContainer({
         const path = token.kind === CHAT_PROJECT_TOKEN_KIND
           ? token.key
           : resolveWorkspaceReferencePath({
-              projectRoot: selectedSession?.projectRoot,
+              projectRoot:
+                selectedSession?.projectRoot ?? selectedSession?.workingDir,
               relativePath: token.key,
             });
         if (path) {
@@ -404,6 +370,7 @@ export function ChatMessageListContainer({
       presenter.chatThreadManager,
       presenter.chatUiManager,
       selectedSession?.projectRoot,
+      selectedSession?.workingDir,
       sessionKey,
     ],
   );
@@ -468,8 +435,10 @@ export function ChatMessageListContainer({
                   onFileOpen={presenter.chatThreadManager.openFilePreview}
                   onAttachmentOpen={handleAttachmentOpen}
                   onInlineTokenClick={handleInlineTokenClick}
+                  onMessageAction={handleMessageAction}
                   resolveFileContentUrl={resolveFileContentUrl}
                   renderInlineDisplay={renderInlineDisplayWithFiles}
+                  renderMessageContent={renderMessageContent}
                   renderToolAgent={renderChatToolAgent}
                   renderPanelAppCard={renderChatPanelAppCard}
                 />

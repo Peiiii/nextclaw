@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NcpHttpAgentClientEndpoint } from "@nextclaw/ncp-http-agent-client";
 import { useHydratedNcpAgent } from "@nextclaw/ncp-react";
+import type {
+  AgentRunContinueIngressPayload,
+  AgentRunEditMessageIngressPayload,
+} from "@nextclaw/shared";
 import { API_BASE } from "@/shared/lib/api";
 import { createNcpAppClientFetch } from "@/features/chat/features/runtime/utils/ncp-app-client-fetch.utils";
 import {
@@ -8,6 +12,7 @@ import {
   useNcpSessionMessageHistory,
 } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
 import { useSystemStatus } from "@/features/system-status";
+import { nextclawClient } from "@/shared/lib/api";
 
 const NCP_AGENT_UNAVAILABLE_DURING_STARTUP =
   "ncp agent unavailable during startup";
@@ -69,6 +74,8 @@ export function useNcpSessionConversation(
   const [client] = useState(() => createNcpSessionConversationClient());
   const systemStatus = useSystemStatus();
   const [hydrationRetryVersion, setHydrationRetryVersion] = useState(0);
+  const [pendingCommandSessionId, setPendingCommandSessionId] = useState<string | null>(null);
+  const pendingCommandSessionIdRef = useRef<string | null>(null);
   const {
     loadSeed,
     loadPreviousMessages: loadPreviousHistory,
@@ -83,6 +90,70 @@ export function useNcpSessionConversation(
     client,
     loadSeed,
   });
+  const runCommand = useCallback(async <T,>(
+    commandSessionId: string,
+    command: () => Promise<T>,
+  ): Promise<T> => {
+    if (pendingCommandSessionIdRef.current) {
+      throw new Error("A session command is already in progress.");
+    }
+    pendingCommandSessionIdRef.current = commandSessionId;
+    setPendingCommandSessionId(commandSessionId);
+    try {
+      return await command();
+    } finally {
+      if (pendingCommandSessionIdRef.current === commandSessionId) {
+        pendingCommandSessionIdRef.current = null;
+      }
+      setPendingCommandSessionId((current) =>
+        current === commandSessionId ? null : current,
+      );
+    }
+  }, []);
+  const editMessage = useCallback(
+    async (payload: AgentRunEditMessageIngressPayload) =>
+      await runCommand(payload.sessionId, async () => {
+        const previousSeed = {
+          messages: agent.visibleMessages,
+          status: agent.isRunning ? "running" as const : "idle" as const,
+        };
+        const anchorIndex = agent.visibleMessages.findIndex(
+          (message) => message.id === payload.messageId,
+        );
+        if (anchorIndex < 0) {
+          throw new Error("The message being edited is no longer in the current session history.");
+        }
+        agent.replaceHistory({
+          messages: [
+            ...agent.visibleMessages.slice(0, anchorIndex),
+            { ...payload.message, sessionId: payload.sessionId },
+          ],
+          status: "idle",
+        });
+        try {
+          return await nextclawClient.agentRuns.editMessage(payload);
+        } catch (error) {
+          agent.replaceHistory(previousSeed);
+          try {
+            const controller = new AbortController();
+            agent.replaceHistory(
+              await loadSeed(payload.sessionId, controller.signal),
+            );
+          } catch {
+            // The previous in-memory snapshot remains available when recovery hydration fails.
+          }
+          throw error;
+        }
+      }),
+    [agent, loadSeed, runCommand],
+  );
+  const continueRun = useCallback(
+    async (payload: AgentRunContinueIngressPayload) =>
+      await runCommand(payload.sessionId, () =>
+        nextclawClient.agentRuns.continue(payload),
+      ),
+    [runCommand],
+  );
   const loadPreviousMessages = useCallback(
     async (): Promise<void> =>
       await loadPreviousHistory(agent.prependHistory),
@@ -102,6 +173,10 @@ export function useNcpSessionConversation(
   return useMemo(
     () => ({
       ...agent,
+      isSending:
+        agent.isSending || pendingCommandSessionId === sessionId,
+      editMessage,
+      continueRun,
       snapshot: {
         ...agent.snapshot,
         contextWindow:
@@ -113,6 +188,14 @@ export function useNcpSessionConversation(
       loadPreviousMessages,
       messageTotal: visibleHistoryState.total,
     }),
-    [agent, loadPreviousMessages, visibleHistoryState],
+    [
+      agent,
+      continueRun,
+      editMessage,
+      loadPreviousMessages,
+      pendingCommandSessionId,
+      sessionId,
+      visibleHistoryState,
+    ],
   );
 }

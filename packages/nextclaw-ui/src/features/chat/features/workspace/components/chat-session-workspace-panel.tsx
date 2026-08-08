@@ -95,12 +95,21 @@ export function ChatSessionWorkspacePanel({
   const workspaceTabs = useMemo<WorkspaceTabViewModel[]>(
     () =>
       buildWorkspaceTabsViewModel({
+        hasSession: Boolean(sessionKey),
         resolvedChildTabs,
         activeSideChatDraft,
         closedWorkspaceTabEntries,
         workspaceFileTabs,
         activeSelection,
         optimisticReadAtBySessionKey,
+        sessionProjectRoot: sessionProjectRoot ?? sessionWorkingDir,
+        onAddFileToChat: ({ label, tokenKey }) => {
+          presenter.chatComposerIntentManager.requestFileReference({
+            targetSessionKey: sessionKey,
+            tokenKey,
+            label,
+          });
+        },
         onSelectSession: presenter.chatThreadManager.selectChildSessionDetail,
         onSelectFile: presenter.chatThreadManager.selectWorkspaceFile,
         onOpenFileViewer: presenter.chatThreadManager.openWorkspaceFileViewer,
@@ -114,8 +123,7 @@ export function ChatSessionWorkspacePanel({
             presenter.chatThreadManager.openChildSessions(sessionKey);
         },
         onSelectProjectFiles: () => {
-          if (sessionKey)
-            presenter.chatThreadManager.openProjectFiles(sessionKey);
+          presenter.chatThreadManager.openProjectFiles(sessionKey);
         },
         onSelectCronJobs: () => {
           if (sessionKey)
@@ -128,8 +136,11 @@ export function ChatSessionWorkspacePanel({
       closedWorkspaceTabEntries,
       optimisticReadAtBySessionKey,
       presenter.chatThreadManager,
+      presenter.chatComposerIntentManager,
       resolvedChildTabs,
       sessionKey,
+      sessionProjectRoot,
+      sessionWorkingDir,
       workspaceFileTabs,
     ],
   );

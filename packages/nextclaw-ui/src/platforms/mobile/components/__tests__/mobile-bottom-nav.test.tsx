@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/app/components/i18n-provider";
@@ -11,15 +12,24 @@ vi.mock("@/shared/components/doc-browser", () => ({
   useDocBrowser: () => ({ open: vi.fn() }),
 }));
 
-describe("MobileBottomNav", () => {
-  it("highlights the settings tab for nested settings routes", () => {
-    render(
+function renderBottomNav(pathname: string) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
       <I18nProvider>
-        <MemoryRouter initialEntries={["/providers"]}>
+        <MemoryRouter initialEntries={[pathname]}>
           <MobileBottomNav />
         </MemoryRouter>
-      </I18nProvider>,
-    );
+      </I18nProvider>
+    </QueryClientProvider>,
+  );
+}
+
+describe("MobileBottomNav", () => {
+  it("highlights the settings tab for nested settings routes", () => {
+    renderBottomNav("/providers");
 
     expect(
       screen.getByRole("link", { name: /settings/i }).getAttribute("aria-current"),
@@ -37,13 +47,7 @@ describe("MobileBottomNav", () => {
   });
 
   it("highlights the chat tab for chat routes", () => {
-    render(
-      <I18nProvider>
-        <MemoryRouter initialEntries={["/chat/demo-session"]}>
-          <MobileBottomNav />
-        </MemoryRouter>
-      </I18nProvider>,
-    );
+    renderBottomNav("/chat/demo-session");
 
     expect(
       screen.getByRole("link", { name: /chat/i }).getAttribute("aria-current"),
@@ -51,13 +55,7 @@ describe("MobileBottomNav", () => {
   });
 
   it("opens the apps panel from the mobile navigation", () => {
-    render(
-      <I18nProvider>
-        <MemoryRouter initialEntries={["/chat"]}>
-          <MobileBottomNav />
-        </MemoryRouter>
-      </I18nProvider>,
-    );
+    renderBottomNav("/chat");
 
     fireEvent.click(screen.getByRole("button", { name: "Apps" }));
 

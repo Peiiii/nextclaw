@@ -4,6 +4,7 @@ import type {
   ChatInlineDisplayViewModel,
   ChatInlineTokenViewModel,
   ChatMessageLayout,
+  ChatMessageActionViewModel,
   ChatMessageTexts,
   ChatMessageViewModel,
   ChatPanelAppCardViewModel,
@@ -71,6 +72,10 @@ export type ChatMessageListProps = {
   texts: ChatMessageTexts;
   className?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
+  onMessageAction?: (
+    message: ChatMessageViewModel,
+    action: ChatMessageActionViewModel,
+  ) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   resolveFileContentUrl?: (action: ChatFileOpenActionViewModel) => string | null;
   onAttachmentOpen?: (
@@ -82,6 +87,7 @@ export type ChatMessageListProps = {
   ) => ReactNode | undefined;
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
+  renderMessageContent?: (message: ChatMessageViewModel) => ReactNode | undefined;
 };
 
 function hasRenderableMessageContent(message: ChatMessageViewModel): boolean {
@@ -137,8 +143,10 @@ export function ChatMessageList({
   onAttachmentOpen,
   onFileOpen,
   onInlineTokenClick,
+  onMessageAction,
   onToolAction,
   renderInlineDisplay,
+  renderMessageContent,
   renderPanelAppCard,
   renderToolAgent,
   resolveFileContentUrl,
@@ -156,7 +164,7 @@ export function ChatMessageList({
       {visibleMessages.map((message) => {
         const isUser = message.role === 'user';
         const isGenerating = !isUser && (message.status === 'streaming' || message.status === 'pending');
-        const content = (
+        const defaultContent = (
           <ChatMessage
             layout={layout}
             message={message}
@@ -171,6 +179,7 @@ export function ChatMessageList({
             renderPanelAppCard={renderPanelAppCard}
           />
         );
+        const content = renderMessageContent?.(message) ?? defaultContent;
 
         if (layout === "flat" && !isUser) {
           return (
@@ -198,7 +207,11 @@ export function ChatMessageList({
                     {message.timestampLabel}
                     {message.executionSummaryLabel ? ` · ${message.executionSummaryLabel}` : null}
                   </span>
-                  <ChatMessageActions message={message} texts={texts} />
+                  <ChatMessageActions
+                    message={message}
+                    onAction={(action) => onMessageAction?.(message, action)}
+                    texts={texts}
+                  />
                 </div>
               )}
             </article>
@@ -233,7 +246,11 @@ export function ChatMessageList({
                       {message.roleLabel} · {message.timestampLabel}
                       {message.executionSummaryLabel ? ` · ${message.executionSummaryLabel}` : null}
                     </div>
-                    <ChatMessageActions message={message} texts={texts} />
+                    <ChatMessageActions
+                      message={message}
+                      onAction={(action) => onMessageAction?.(message, action)}
+                      texts={texts}
+                    />
                   </>
                 )}
               </div>

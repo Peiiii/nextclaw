@@ -34,6 +34,8 @@ export type ChatInputSurfaceItemIcon =
   | 'file'
   | 'files'
   | 'folder'
+  | 'list-collapse'
+  | 'message-square-plus'
   | 'panel-app'
   | 'project'
   | 'skill';

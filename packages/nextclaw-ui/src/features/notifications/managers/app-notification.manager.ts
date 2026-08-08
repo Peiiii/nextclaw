@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { toast } from "sonner";
 import { AppNotificationToast } from "@/features/notifications/components/app-notification-toast";
+import { t } from "@/shared/lib/i18n";
 
 export type AppNotification = {
   id?: string | number;
@@ -9,6 +10,7 @@ export type AppNotification = {
   href?: string;
   iconSrc?: string;
   ariaLabel?: string;
+  dismissLabel?: string;
   durationMs?: number;
 };
 
@@ -24,6 +26,7 @@ export class AppNotificationManager {
           href: notification.href,
           iconSrc: notification.iconSrc,
           ariaLabel: notification.ariaLabel,
+          dismissLabel: notification.dismissLabel ?? t("notificationDismiss"),
           onDismiss: () => {
             toast.dismiss(toastId);
           },

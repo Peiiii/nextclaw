@@ -21,17 +21,12 @@ import {
   useChatInputSurfaceState,
 } from '@/features/chat/features/input/hooks/use-chat-input-surface-state';
 import { useChatModelFavorites } from '@/features/chat/features/input/hooks/use-chat-model-favorites';
-import {
-  deriveChatComposerDraft,
-  deriveSelectedSkillsFromComposer,
-  pruneComposerAttachments,
-  syncComposerSkills,
-} from '@/features/chat/features/input/utils/chat-composer-state.utils';
+import { syncComposerSkills } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import {
   buildModelStateHint,
-  type ChatModelRecord,
   type ChatSkillRecord,
   type ChatThinkingLevel,
+  toChatModelRecords,
 } from '@/features/chat/features/input/utils/chat-input-bar.utils';
 import {
   hasNcpChatModelOptions,
@@ -49,6 +44,8 @@ import {
 } from '@/features/chat/managers/chat-recent-skills.manager';
 
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
+import { useChatComposerFileReferenceIntent } from '@/features/chat/features/conversation/hooks/use-chat-composer-file-reference-intent';
+import { useSessionConversationComposerNodes } from '@/features/chat/features/conversation/hooks/use-session-conversation-composer-nodes';
 import { useSessionConversationSlashCommands } from '@/features/chat/features/conversation/hooks/use-session-conversation-slash-commands';
 import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
@@ -66,6 +63,7 @@ import {
   resolveThinkingForConversationModel,
 } from '@/features/chat/features/conversation/utils/session-conversation-input-toolbar.utils';
 import { SessionQueuedInputRows } from './session-queued-input-rows';
+import { toast } from 'sonner';
 
 type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInputQuery>;
 type SkillSource = SessionSkillEntryView['source'];
@@ -76,6 +74,7 @@ export type SessionConversationInputController = {
   readonly editQueuedInput: (id: string) => void;
   readonly isSending: boolean;
   readonly queuedInputs: readonly SessionConversationQueuedInput[];
+  readonly primaryAction: 'continue' | 'send';
   readonly sendDisabled: boolean;
   readonly stopDisabled: boolean;
   readonly send: () => Promise<void> | void;
@@ -96,20 +95,6 @@ function toSkillRecords(
     description: record.description,
     descriptionZh: record.descriptionZh,
     badgeLabel: scopeLabels[record.source],
-  }));
-}
-
-function toModelRecords(snapshotModels: SessionConversationInputQuery['modelOptions']): ChatModelRecord[] {
-  return snapshotModels.map((model) => ({
-    value: model.value,
-    modelLabel: model.modelLabel,
-    providerLabel: model.providerLabel,
-    thinkingCapability: model.thinkingCapability
-      ? {
-          supported: model.thinkingCapability.supported as ChatThinkingLevel[],
-          default: (model.thinkingCapability.default as ChatThinkingLevel | null | undefined) ?? null,
-        }
-      : null,
   }));
 }
 
@@ -167,7 +152,7 @@ function useSessionConversationInputCollections(params: {
     () => toSkillRecords(sourceSkillRecords, skillScopeLabels, skillGroupLabels),
     [skillGroupLabels, skillScopeLabels, sourceSkillRecords],
   );
-  const modelRecords = useMemo(() => toModelRecords(modelOptions), [modelOptions]);
+  const modelRecords = useMemo(() => toChatModelRecords(modelOptions), [modelOptions]);
   return {
     skillRecords,
     modelRecords,
@@ -193,6 +178,7 @@ type SessionConversationInputProps = {
   readonly inputQuery: SessionConversationInputQuery;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly onContextCompactingChange?: (sessionId: string, isCompacting: boolean) => void;
+  readonly placeholder?: string;
   readonly surface?: 'default' | 'embedded';
 };
 
@@ -204,6 +190,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     inputQuery,
     inputSnapshot,
     onContextCompactingChange,
+    placeholder,
     surface = 'default',
   } = props;
   const presenter = usePresenter();
@@ -225,6 +212,10 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     skillGroupLabels: labels.skillGroupLabels,
     skillScopeLabels: labels.skillScopeLabels,
   });
+  const discoveredModelRecords = useMemo(
+    () => toChatModelRecords(inputQuery.discoveredModelOptions),
+    [inputQuery.discoveredModelOptions],
+  );
   const slashCommands = useSessionConversationSlashCommands({
     language,
     onContextCompactingChange,
@@ -277,7 +268,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   const attachmentSupported = true;
   const textareaPlaceholder = isModelOptionsEmpty
     ? t('chatModelNoOptions')
-    : t(isMobile ? 'chatInputPlaceholderCompact' : 'chatInputPlaceholder');
+    : placeholder ?? t(isMobile ? 'chatInputPlaceholderCompact' : 'chatInputPlaceholder');
   const selectedModelOption = modelRecords.find((option) => option.value === selectedModel);
   const thinkingSupportedLevels = selectedModelOption?.thinkingCapability?.supported ?? [];
   const { handleFilesAdd, handleFileInputChange } = useSessionConversationInputAttachments({
@@ -294,19 +285,18 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     }
     void updateNcpSession(inputQuery.selectedSessionKey, patch).catch(() => undefined);
   }, [inputQuery.selectedSession, inputQuery.selectedSessionKey]);
-  const handleNodesChange = useCallback((nodes: SessionConversationInputSnapshot['nodes']) => {
-    const nextNodes = [...nodes];
-    inputActions.update((current) => ({
-      nodes: nextNodes,
-      attachments: pruneComposerAttachments(nextNodes, current.attachments),
-      text: deriveChatComposerDraft(nextNodes),
-      selectedSkills: deriveSelectedSkillsFromComposer(nextNodes),
-      sendError: null,
-    }));
-  }, [inputActions]);
+  const handleNodesChange = useSessionConversationComposerNodes(inputActions);
+
+  useChatComposerFileReferenceIntent({
+    inputBarRef,
+    intentManager: presenter.chatComposerIntentManager,
+    selectedSessionKey: inputQuery.selectedSessionKey,
+  });
+
   const handleModelChange = useCallback((value: string) => {
     const nextThinkingLevel = resolveThinkingForConversationModel(
-      modelRecords.find((option) => option.value === value),
+      modelRecords.find((option) => option.value === value) ??
+        discoveredModelRecords.find((option) => option.value === value),
       selectedThinkingLevel,
     );
     inputActions.update({
@@ -326,10 +316,21 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     });
   }, [
     inputActions,
+    discoveredModelRecords,
     inputQuery.sessionTypeState.selectedSessionType,
     modelRecords,
     selectedThinkingLevel,
     syncSessionPreferences,
+  ]);
+  const handleDiscoveredModelSelect = useCallback(async (value: string) => {
+    const option = await inputQuery.addDiscoveredModel(value);
+    if (!option) {
+      toast.error(t('chatDiscoveredModelUnavailable'));
+      throw new Error('Discovered provider model is no longer available.');
+    }
+    toast.success(t('chatDiscoveredModelAdded').replace('{model}', option.modelLabel));
+  }, [
+    inputQuery,
   ]);
   const handleThinkingChange = useCallback((value: ChatThinkingLevel | null) => {
     inputActions.setSelectedThinkingLevel(value);
@@ -370,10 +371,16 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     favoriteModelsLabel: labels.favoriteModelsLabel,
     hasModelOptions,
     isModelOptionsLoading,
+    discoveredModelRecords,
     modelRecords,
     modelSearchEmptyLabel: labels.modelSearchEmptyLabel,
     modelSearchPlaceholder: labels.modelSearchPlaceholder,
     onFavoriteModelToggle: setModelFavorite,
+    onDiscoveredModelSelect: handleDiscoveredModelSelect,
+    onDiscoveredModelsDismiss: inputQuery.dismissDiscoveredModels,
+    onModelSelectOpen: () => {
+      void inputQuery.refreshProviderModelCatalog();
+    },
     onModelChange: handleModelChange,
     onThinkingChange: handleThinkingChange,
     recentModelValues,
@@ -401,8 +408,6 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     <ChatInputBar
       ref={inputBarRef}
       surface={useReadingTrack ? 'embedded' : surface}
-      sendError={inputSnapshot.sendError}
-      sendErrorDetailsLabel={t('chatErrorDetails', language)}
       topSlot={controller.queuedInputs.length > 0
         ? <SessionQueuedInputRows controller={controller} />
         : null}
@@ -426,6 +431,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
         },
       })}
       toolbar={{
+        addMenuLabel: t('chatInputAdd'),
         selects: [],
         trailingSelects: toolbarSelects,
         accessories: [
@@ -433,7 +439,6 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
             key: 'attach',
             label: t('chatInputAttach'),
             icon: 'paperclip' as const,
-            iconOnly: true,
             disabled: !attachmentSupported || inputDisabled,
             onClick: () => fileInputRef.current?.click(),
           },
@@ -445,7 +450,12 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
           sendDisabled: controller.sendDisabled,
           stopDisabled: controller.stopDisabled,
           stopHint: t('chatStopUnavailable'),
-          sendButtonLabel: controller.isSending ? t('chatQueueSend') : t('chatSend'),
+          sendButtonLabel: controller.primaryAction === 'continue'
+            ? t('chatContinueRun')
+            : controller.isSending
+              ? t('chatQueueSend')
+              : t('chatSend'),
+          sendIcon: controller.primaryAction,
           stopButtonLabel: t('chatStop'),
           contextWindow,
           onSend: controller.send,

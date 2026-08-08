@@ -50,21 +50,24 @@ describe('ChatWelcome', () => {
     expect(screen.queryByText('Current Agent:')).toBeNull();
   });
 
-  it('uses an adaptive capability grid for narrow docked layouts', () => {
+  it('renders a single-purpose welcome surface with compact prompt suggestions', () => {
     renderWelcome({ agents: [{ id: 'main', displayName: 'Main' }] });
 
-    expect(
-      screen.getByRole('button', { name: /Smart Conversations/ }).parentElement
-        ?.className,
-    ).toContain('auto-fit');
+    expect(screen.getByRole('heading', { name: 'What would you like to get done?' })).toBeTruthy();
+    expect(screen.queryByText(/Describe the goal/)).toBeNull();
+    expect(screen.getByRole('group', { name: 'Task context' })).toBeTruthy();
+    const suggestion = screen.getByRole('button', { name: 'Review this project' });
+    expect(suggestion.className).toContain('rounded-full');
+    expect(suggestion.className).not.toContain('border');
+    expect(suggestion.parentElement?.className).toContain('flex-wrap');
   });
 
-  it('fills the composer with a prompt suggestion when clicking a capability card', () => {
+  it('fills the composer with a prompt suggestion when clicking a suggestion', () => {
     const onSelectPrompt = vi.fn();
 
     renderWelcome({ onSelectPrompt });
 
-    fireEvent.click(screen.getByRole('button', { name: /Smart Conversations/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Review this project' }));
 
     expect(onSelectPrompt).toHaveBeenCalledWith(
       expect.stringContaining('next three concrete things'),
@@ -90,9 +93,16 @@ describe('ChatWelcome', () => {
       onSelectProjectRoot,
       projectOptions: [
         {
+          projectRoot: '/Users/demo/.nextclaw/workspace',
+          projectName: 'workspace',
+          sessionCount: 0,
+          isDefault: true,
+        },
+        {
           projectRoot: '/tmp/project-alpha',
           projectName: 'project-alpha',
           sessionCount: 3,
+          isDefault: false,
         },
       ],
     });
@@ -100,7 +110,8 @@ describe('ChatWelcome', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Choose working directory' }),
     );
-    expect(screen.getByText('Recent projects')).toBeTruthy();
+    expect(screen.getByText('Working directories')).toBeTruthy();
+    expect(screen.getByText('Default')).toBeTruthy();
     expect(screen.getByText('/tmp/project-alpha')).toBeTruthy();
     expect(screen.getByText('Open folder')).toBeTruthy();
     expect(screen.getByText('/tmp/project-alpha').closest('.overflow-y-auto'))
@@ -110,7 +121,14 @@ describe('ChatWelcome', () => {
 
     expect(onSelectProjectRoot).toHaveBeenCalledWith('/tmp/project-alpha');
     await waitFor(() => {
-      expect(screen.queryByText('Recent projects')).toBeNull();
+      expect(screen.queryByText('Working directories')).toBeNull();
     });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose working directory' }),
+    );
+    fireEvent.click(screen.getByText('/Users/demo/.nextclaw/workspace'));
+
+    expect(onSelectProjectRoot).toHaveBeenLastCalledWith(null);
   });
 });

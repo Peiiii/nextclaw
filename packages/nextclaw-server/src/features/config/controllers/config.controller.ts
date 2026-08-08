@@ -13,10 +13,10 @@ import {
   createProvider,
   deleteProvider,
   updateProvider,
-  testProviderConnection,
   updateSecrets,
   updateRuntime
 } from "@nextclaw-server/features/config/index.js";
+import { ProviderConnectivityService } from "@nextclaw-server/features/config/services/provider-connectivity.service.js";
 import { connectChannelAuth, pollChannelAuth, startChannelAuth } from "@nextclaw-server/features/config/utils/channel-auth.utils.js";
 import { importProviderAuthFromCli, pollProviderAuth, startProviderAuth } from "@nextclaw-server/features/config/utils/provider-auth.utils.js";
 import type {
@@ -27,6 +27,7 @@ import type {
   ChannelAuthStartResult,
   ConfigActionExecuteRequest,
   ProviderConnectionTestRequest,
+  ProviderModelDiscoveryRequest,
   ProviderAuthStartRequest,
   ProviderAuthPollResult,
   ProviderAuthImportResult,
@@ -45,8 +46,11 @@ import { emitChannelConfigApplyStatus, emitConfigUpdated, emitUiError } from "@n
 
 export class ConfigRoutesController {
   private readonly channelConfigApplyTasks = new Map<string, Promise<void>>();
+  private readonly providerConnectivity: ProviderConnectivityService;
 
-  constructor(private readonly options: UiRouterOptions) {}
+  constructor(private readonly options: UiRouterOptions) {
+    this.providerConnectivity = new ProviderConnectivityService(options.configPath, options.kernel.llmProviders);
+  }
 
   private readonly getExtensionConfigProjectionOptions = () => {
     return {
@@ -129,6 +133,10 @@ export class ConfigRoutesController {
 
   readonly listProviderTemplates = (c: Context) => {
     return c.json(ok(buildProviderTemplatesView()));
+  };
+
+  readonly listProviderModelCatalog = (c: Context) => {
+    return c.json(ok(this.options.kernel.providerModelCatalog.getSnapshot()));
   };
 
   readonly getConfigSchema = (c: Context) => {
@@ -229,16 +237,29 @@ export class ConfigRoutesController {
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
-    const result = await testProviderConnection(
-      this.options.configPath,
-      provider,
-      body.data as ProviderConnectionTestRequest,
-      this.options.kernel.llmProviders
-    );
+    const result = await this.providerConnectivity.testConnection(provider, body.data as ProviderConnectionTestRequest);
     if (!result) {
       return c.json(err("NOT_FOUND", `unknown provider: ${provider}`), 404);
     }
     return c.json(ok(result));
+  };
+
+  discoverProviderModels = async (c: Context) => {
+    const provider = c.req.param("providerId");
+    const body = await readJson<Record<string, unknown>>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    try {
+      const result = await this.providerConnectivity.discoverModels(provider, body.data as ProviderModelDiscoveryRequest);
+      if (!result) {
+        return c.json(err("NOT_FOUND", `unknown provider: ${provider}`), 404);
+      }
+      return c.json(ok(result));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return c.json(err("PROVIDER_MODEL_DISCOVERY_FAILED", message), 502);
+    }
   };
 
   readonly startProviderAuth = async (c: Context) => {

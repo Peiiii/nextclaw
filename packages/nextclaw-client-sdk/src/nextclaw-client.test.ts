@@ -212,10 +212,14 @@ it("uses the durable inbox delivery API for list, state, and continue actions", 
     );
   });
 
-  it("maps agent run send and abort to the standard agent-runs api", async () => {
+  it("maps agent run send, edit, continue, and abort to the standard agent-runs api", async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : input.toString();
-      if (url.endsWith("/api/agent-runs/send")) {
+      if (
+        url.endsWith("/api/agent-runs/send") ||
+        url.endsWith("/api/agent-runs/edit-message") ||
+        url.endsWith("/api/agent-runs/continue")
+      ) {
         return new Response(
           JSON.stringify({
             ok: true,
@@ -251,6 +255,20 @@ it("uses the durable inbox delivery API for list, state, and continue actions", 
     });
     await expect(client.agentRuns.abort({ sessionId: "session-1" }))
       .resolves.toEqual({ accepted: true });
+    await expect(client.agentRuns.editMessage({
+      sessionId: "session-1",
+      messageId: "user-1",
+      message: {
+        id: "edited-user-1",
+        sessionId: "session-1",
+        role: "user",
+        status: "final",
+        timestamp: "2026-08-08T10:00:00.000Z",
+        parts: [{ type: "text", text: "edited" }],
+      },
+    })).resolves.toMatchObject({ sessionId: "session-1" });
+    await expect(client.agentRuns.continue({ sessionId: "session-1" }))
+      .resolves.toMatchObject({ sessionId: "session-1" });
 
     expect(fetchImpl).toHaveBeenNthCalledWith(
       1,
@@ -260,6 +278,16 @@ it("uses the durable inbox delivery API for list, state, and continue actions", 
     expect(fetchImpl).toHaveBeenNthCalledWith(
       2,
       "http://127.0.0.1:55667/api/agent-runs/abort",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      3,
+      "http://127.0.0.1:55667/api/agent-runs/edit-message",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      4,
+      "http://127.0.0.1:55667/api/agent-runs/continue",
       expect.objectContaining({ method: "POST" })
     );
   });

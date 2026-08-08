@@ -79,7 +79,7 @@ function InboxHtmlContent({
           ? "h-full min-h-0 border-0"
           : "h-[min(60vh,680px)] min-h-[360px] border border-border/70",
       )}
-      sandbox=""
+      sandbox="allow-popups allow-popups-to-escape-sandbox"
       srcDoc={document}
       title={title}
     />

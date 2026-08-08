@@ -127,6 +127,29 @@ function readRelativeSegments(params: {
   return normalizedPath.slice(rootPrefix.length).split("/").filter(Boolean);
 }
 
+export function resolveWorkspaceRelativePath(params: {
+  path: string;
+  sessionProjectRoot: string | null;
+}): string | null {
+  const projectRoot = params.sessionProjectRoot?.trim();
+  if (!projectRoot) {
+    return null;
+  }
+
+  const segments = readRelativeSegments({
+    path: params.path,
+    sessionProjectRoot: projectRoot,
+  });
+  if (
+    !segments?.length ||
+    segments.some((segment) => segment === "." || segment === "..")
+  ) {
+    return null;
+  }
+
+  return segments.join("/");
+}
+
 function buildSegmentsFromLabels(params: {
   labels: string[];
   basePath?: string | null;

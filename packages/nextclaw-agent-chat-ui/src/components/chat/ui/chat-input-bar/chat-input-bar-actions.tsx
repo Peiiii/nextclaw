@@ -1,7 +1,8 @@
 import { ChatButton } from '@agent-chat-ui/components/chat/default-skin/button';
 import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import type { ChatContextWindowIndicator, ChatInputBarActionsProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Play } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 function StopIcon() {
   return (
@@ -25,7 +26,7 @@ function ContextWindowIndicator({ contextWindow }: { contextWindow: ChatContextW
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
             aria-label={contextWindow.label}
             title={contextWindow.label}
           >
@@ -56,6 +57,29 @@ function ContextWindowIndicator({ contextWindow }: { contextWindow: ChatContextW
   );
 }
 
+function ActionTooltip({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } =
+    ChatUiPrimitives;
+  return (
+    <TooltipProvider delayDuration={250}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex">{children}</span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function ChatInputBarActions({
   isSending,
   canStopGeneration,
@@ -63,64 +87,58 @@ export function ChatInputBarActions({
   stopDisabled,
   stopHint,
   sendButtonLabel,
+  sendIcon = "send",
   stopButtonLabel,
   contextWindow,
   onSend,
   onStop
 }: ChatInputBarActionsProps) {
-  const {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger
-  } = ChatUiPrimitives;
   const showSendButton = !isSending || !sendDisabled;
 
   return (
     <div className="flex shrink-0 items-center gap-2">
       {contextWindow ? <ContextWindowIndicator contextWindow={contextWindow} /> : null}
       {showSendButton ? (
-        <ChatButton
-          size="icon"
-          className="h-8 w-8 rounded-full"
-          aria-label={sendButtonLabel}
-          onClick={() => void onSend()}
-          disabled={sendDisabled}
-        >
-          <ArrowUp className="h-5 w-5" />
-        </ChatButton>
+        <ActionTooltip label={sendButtonLabel}>
+          <ChatButton
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            aria-label={sendButtonLabel}
+            onClick={() => void onSend()}
+            disabled={sendDisabled}
+          >
+            {sendIcon === "continue" ? (
+              <Play data-testid="chat-continue-input-icon" className="h-4 w-4" />
+            ) : (
+              <ArrowUp className="h-5 w-5" />
+            )}
+          </ChatButton>
+        </ActionTooltip>
       ) : canStopGeneration ? (
-        <ChatButton
-          size="icon"
-          variant="outline"
-          className="h-8 w-8 rounded-full"
-          aria-label={stopButtonLabel}
-          onClick={() => void onStop()}
-          disabled={stopDisabled}
-        >
-          <StopIcon />
-        </ChatButton>
+        <ActionTooltip label={stopButtonLabel}>
+          <ChatButton
+            size="icon"
+            variant="outline"
+            className="h-8 w-8 rounded-full"
+            aria-label={stopButtonLabel}
+            onClick={() => void onStop()}
+            disabled={stopDisabled}
+          >
+            <StopIcon />
+          </ChatButton>
+        </ActionTooltip>
       ) : (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <ChatButton
-                  size="icon"
-                  variant="outline"
-                  className="h-8 w-8 rounded-full"
-                  aria-label={stopButtonLabel}
-                  disabled
-                >
-                  <StopIcon />
-                </ChatButton>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p className="text-xs">{stopHint}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <ActionTooltip label={stopHint}>
+          <ChatButton
+            size="icon"
+            variant="outline"
+            className="h-8 w-8 rounded-full"
+            aria-label={stopButtonLabel}
+            disabled
+          >
+            <StopIcon />
+          </ChatButton>
+        </ActionTooltip>
       )}
     </div>
   );

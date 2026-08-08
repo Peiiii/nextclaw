@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
-import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
+import type { NcpAgentSendEnvelope, NcpMessage, NcpRunHandle } from '@nextclaw/ncp';
 
 import { useSessionConversationController } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
 
@@ -54,12 +54,16 @@ function createControllerParams(params: {
 }) {
   const { isRunning, queuedInputs = [], send: requestedSend } = params;
   const send = requestedSend ?? createSendMock();
+  const continueRun = vi.fn(async () => createRunHandle());
+  const editMessage = vi.fn(async () => createRunHandle({ sessionId: 'edited-session' }));
   const removeQueuedInput = vi.fn(async (id: string) =>
     queuedInputs.find((item) => item.id === id) ?? null,
   );
   return {
     agent: {
       abort: vi.fn(),
+      continueRun,
+      editMessage,
       isHydrating: false,
       isRunning,
       isSending: false,
@@ -70,13 +74,18 @@ function createControllerParams(params: {
       visibleMessages: [],
     },
     inputQuery: {
+      addDiscoveredModel: vi.fn(async () => null),
       defaultModel: 'test-model',
       defaultProjectRoot: null,
+      dismissDiscoveredModels: vi.fn(),
+      discoveredModelOptions: [],
       fallbackPreferredModel: undefined,
       fallbackPreferredThinking: undefined,
       isProviderStateResolved: true,
       isSkillsLoading: false,
       modelOptions: [],
+      providersView: null,
+      refreshProviderModelCatalog: vi.fn(),
       selectedSession: null,
       selectedSessionKey: 'session-1',
       sessionTypeState: {
@@ -113,6 +122,7 @@ function createControllerParams(params: {
     sessionKey: 'session-1',
     resetComposer: vi.fn(),
     restoreComposer: vi.fn(),
+    onSessionMaterialized: vi.fn(),
     setSendError: vi.fn(),
   };
 }
@@ -169,5 +179,68 @@ describe('useSessionConversationController backend run queue', () => {
 
     await waitFor(() => expect(params.runQueue.removeQueuedInput).toHaveBeenCalledWith(queuedInput.id));
     expect(params.restoreComposer).not.toHaveBeenCalled();
+  });
+
+  it('continues a cancelled session from the primary action when the composer is empty', async () => {
+    const params = createControllerParams({ isRunning: false });
+    params.inputSnapshot.nodes = [];
+    params.inputSnapshot.text = '';
+    const controllerParams = {
+      ...params,
+      inputQuery: {
+        ...params.inputQuery,
+        selectedSession: { activityPreview: { state: 'cancelled' } },
+      },
+    } as unknown as Parameters<typeof useSessionConversationController>[0];
+    const { result } = renderHook(() => useSessionConversationController(controllerParams));
+
+    expect(result.current.primaryAction).toBe('continue');
+    expect(result.current.canContinue).toBe(true);
+    await act(async () => {
+      await result.current.send();
+    });
+
+    expect(params.agent.continueRun).toHaveBeenCalledWith({ sessionId: 'session-1' });
+    expect(params.agent.send).not.toHaveBeenCalled();
+    expect(params.resetComposer).not.toHaveBeenCalled();
+  });
+
+  it('keeps continuation available but restores send as primary when the user types', () => {
+    const params = createControllerParams({ isRunning: false });
+    const controllerParams = {
+      ...params,
+      inputQuery: {
+        ...params.inputQuery,
+        selectedSession: { activityPreview: { state: 'failed' } },
+      },
+    } as unknown as Parameters<typeof useSessionConversationController>[0];
+    const { result } = renderHook(() => useSessionConversationController(controllerParams));
+
+    expect(result.current.canContinue).toBe(true);
+    expect(result.current.primaryAction).toBe('send');
+  });
+
+  it('edits inside the current session without materializing or navigating to another session', async () => {
+    const params = createControllerParams({ isRunning: false });
+    const message = {
+      id: 'edited-user-message',
+      sessionId: 'session-1',
+      role: 'user',
+      status: 'final',
+      timestamp: '2026-08-08T10:00:00.000Z',
+      parts: [{ type: 'text', text: 'updated request' }],
+    } satisfies NcpMessage;
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    await act(async () => {
+      await result.current.editMessage({ messageId: 'user-message-1', message });
+    });
+
+    expect(params.agent.editMessage).toHaveBeenCalledWith({
+      message,
+      messageId: 'user-message-1',
+      sessionId: 'session-1',
+    });
+    expect(params.onSessionMaterialized).not.toHaveBeenCalled();
   });
 });

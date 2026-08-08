@@ -56,6 +56,23 @@ describe("SkillsLoader visualization builtin", () => {
   });
 });
 
+describe("SkillsLoader result delivery policy", () => {
+  it("routes durable results to the inbox without guessing an external channel", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const skill = loader.loadSkill("cross-channel-messaging");
+    const entry = loader.listSkills(false).find(({ name }) => name === "cross-channel-messaging");
+    const metadata = entry ? loader.getSkillMetadata(entry) : null;
+
+    expect(metadata?.description).toContain("put durable news, reports, recommendations, or articles");
+    expect(metadata?.description_zh).toContain("投递到 NextClaw 收件箱");
+    expect(skill).toContain("Use `deliver_to_inbox` for news digests");
+    expect(skill).toContain('"Send it to me" or "notify me" alone is not an external route');
+    expect(skill).toContain("Do not infer Weixin");
+    expect(skill).toContain("normal reply, `deliver_to_inbox`, and `message`");
+  });
+});
+
 describe("SkillsLoader skill sources", () => {
   it("loads and groups project, NextClaw workspace, and global Agent Skills", () => {
     const workspace = createWorkspace();

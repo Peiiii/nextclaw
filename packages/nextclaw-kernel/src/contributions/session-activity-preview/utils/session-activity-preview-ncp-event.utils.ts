@@ -1,4 +1,9 @@
-import { NcpEventType, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
+import {
+  isHiddenNcpMessage,
+  NcpEventType,
+  type NcpEndpointEvent,
+  type NcpMessage,
+} from "@nextclaw/ncp";
 import type {
   SessionActivityPreviewMetadata,
   SessionActivityPreviewProjection,
@@ -51,17 +56,17 @@ function createProjection(
   return { sessionId, preview };
 }
 
-function formatErrorStatus(error: unknown): string {
+function readErrorDetail(error: unknown): string | undefined {
   if (typeof error === "string" && error.trim()) {
-    return `Run failed: ${truncatePreviewText(error)}`;
+    return error.trim();
   }
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) {
-      return `Run failed: ${truncatePreviewText(message)}`;
+      return message.trim();
     }
   }
-  return "Run failed";
+  return undefined;
 }
 
 function readToolCallId(value: unknown): string | null {
@@ -70,10 +75,6 @@ function readToolCallId(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function formatToolDoneStatus(toolName: string | null): string {
-  return toolName ? `Tool call completed: ${toolName}` : "Tool call completed";
 }
 
 export function createSessionActivityPreviewFromNcpEvent(
@@ -85,7 +86,7 @@ export function createSessionActivityPreviewFromNcpEvent(
     case NcpEventType.RunStarted:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "running",
-        statusText: "Thinking",
+        statusKind: "thinking",
         timestamp,
       });
     case NcpEventType.RunFinished:
@@ -96,10 +97,14 @@ export function createSessionActivityPreviewFromNcpEvent(
     case NcpEventType.RunError:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "failed",
-        statusText: formatErrorStatus(event.payload.error),
+        statusKind: "run-failed",
+        statusText: readErrorDetail(event.payload.error),
         timestamp,
       });
     case NcpEventType.MessageSent: {
+      if (isHiddenNcpMessage(event.payload.message)) {
+        return null;
+      }
       const text = readSessionActivityPreviewText(event.payload.message);
       if (!text || event.payload.message.role !== "user") {
         return null;
@@ -124,7 +129,8 @@ export function createSessionActivityPreviewFromNcpEvent(
     case NcpEventType.MessageFailed:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "failed",
-        statusText: formatErrorStatus(event.payload.error),
+        statusKind: "run-failed",
+        statusText: readErrorDetail(event.payload.error),
         timestamp,
       });
     case NcpEventType.MessageAbort:
@@ -135,7 +141,8 @@ export function createSessionActivityPreviewFromNcpEvent(
     case NcpEventType.MessageToolCallStart:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "running",
-        statusText: `Calling tool: ${event.payload.toolName}`,
+        statusKind: "tool-running",
+        statusText: event.payload.toolName,
         timestamp,
       });
     case NcpEventType.MessageToolCallEnd:
@@ -144,9 +151,10 @@ export function createSessionActivityPreviewFromNcpEvent(
       const toolCallId = readToolCallId(event.payload.toolCallId);
       return createProjection(sessionId, {
         state: "running",
-        statusText: formatToolDoneStatus(
-          sessionId && toolCallId ? options.readToolName?.(sessionId, toolCallId) ?? null : null,
-        ),
+        statusKind: "tool-completed",
+        statusText: sessionId && toolCallId
+          ? options.readToolName?.(sessionId, toolCallId) ?? undefined
+          : undefined,
         timestamp,
       });
     }

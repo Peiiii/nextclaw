@@ -46,6 +46,7 @@ export function useSessionConversationInputAttachments(params: UseSessionConvers
           insertedAttachments.map((attachment) => ({
             tokenKey: attachment.id,
             label: attachment.name,
+            previewUrl: attachment.mimeType.startsWith('image/') ? attachment.url : undefined,
           })),
         );
       }
