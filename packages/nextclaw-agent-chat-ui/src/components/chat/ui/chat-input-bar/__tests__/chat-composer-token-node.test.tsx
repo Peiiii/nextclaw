@@ -216,14 +216,21 @@ it('renders a workspace excerpt as a compact source-aware token with on-demand p
   expect(removeButton.className).toContain('rounded-full');
   expect(removeButton.className).toContain('border-border/70');
   expect(removeButton.className).toContain('bg-transparent');
-  expect(removeButton.className).toContain('group-hover/composer-token:opacity-100');
   expect(removeButton.className).toContain('hover:bg-[var(--interaction-hover)]');
-  expect(removeButton.className).not.toContain('group-hover/composer-token:bg-[var(--interaction-hover)]');
   expect(removeButton.parentElement?.className).toContain('relative');
   expect(removeButton.parentElement?.className).toContain('-mx-1.5');
   expect(removeButton.parentElement?.className).toContain('px-1.5');
   const tokenContent = token?.querySelector('[data-composer-token-content="true"]');
+  expect(tokenContent?.className).not.toContain('mask-image:linear-gradient');
+
+  fireEvent.mouseEnter(removeButton.parentElement!);
+  expect(removeButton.className).toContain('pointer-events-auto');
+  expect(removeButton.className).toContain('opacity-100');
   expect(tokenContent?.className).toContain('mask-image:linear-gradient');
+
+  fireEvent.mouseLeave(removeButton.parentElement!);
+  expect(removeButton.className).toContain('pointer-events-none');
+  expect(removeButton.className).toContain('opacity-0');
 
   fireEvent.pointerMove(screen.getByText('guide.md'), { pointerType: 'mouse' });
   const preview = await screen.findByRole('tooltip');

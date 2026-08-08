@@ -13,6 +13,7 @@
 - 新任务首条消息物化为正式会话时，已打开的工作台保持同一个 React/DOM 实例，不再先关闭再重新打开。根因是旧流程先改绑 `workspacePanelParentKey`，随后才由路由布局同步 `selectedSessionKey`，两者短暂不一致触发工作台返回 `null`；现已将 session 选择、工作台改绑和路由替换收敛到 `ChatThreadManager` 的单一物化动作。
 - 文本型工作台预览新增“片段引用”：用户划选 Markdown 渲染、Markdown 源码、普通文本、代码、JSON、YAML、配置或日志内容后，可从选区浮层添加到聊天。输入框和已发送消息均显示带文件来源、可靠行号、字符度量和片段指纹的紧凑原子 Tag，完整快照按需浮层预览；kernel 只注入选中时的快照，不再为片段读取整份文件。点击消息 Tag 可回到源文件起始行；重复文本或渲染映射不可靠时不伪造位置。
 - 聊天结构化内容展示收敛为统一 Reference Tag 系统：Skill、Panel App、项目、工作区文件、目录、片段与未来扩展引用在输入框和用户消息中共享高度、边框、色调、信息顺序与预览骨架，发送后不再退化为另一套下划线链接。图标由单一语义 owner 选择：Skill、应用、项目、目录、片段各用对应图标，工作区文件和附件按常见扩展名区分 JSON、代码、图片、音视频、表格、压缩包和文档，未知引用使用中性链接图标；composer 只额外提供不占宽度的 hover 移除操作，消息只额外提供打开/回源行为。
+- 编辑区 Reference Tag 的删除叉号可见性不再依赖 Lexical 外层 Decorator DOM 的命名 `group-hover` 样式传播，改由 Tag 自身统一拥有 hover 与 focus-within 状态；默认仍为零视觉、零命中，进入 Tag 后稳定显示，且不改变标签宽度。用户真实界面暴露了原实现“按钮节点存在但始终保持 `opacity: 0`”，代码链路确认唯一显示条件位于外层样式选择器，因此修复收敛在编辑区 Tag 交互 owner，而不是给页面宿主补 CSS。
 - 根因：入口实现把项目文件引用调用到了上传附件的 `insertFileToken`，而发送器会丢弃没有上传实体的附件 token；同时协议序列化没有为结构化 token 和相邻正文建立边界。通过追踪“右键意图 → 编辑器节点 → NCP envelope → 持久化消息 → 消息渲染”确认两个首个错误跳点，修复落在 token 语义 owner 和发送序列化 owner，而不是只给渲染器打补丁。
 
 ## 测试/验证/验收方式
@@ -32,6 +33,7 @@
 - 片段 Tag 交互 follow-up：首次挂载与 JSON 首次划选 3 条定向测试通过；Tag 展示、消息预览与结构化剪贴板 13 条定向测试通过，覆盖无布局占位的 hover 移除入口、内容渐隐、视口约束、混合复制粘贴、剪切失败不删除和非法私有数据回退。`@nextclaw/agent-chat-ui`、`@nextclaw/ui` TypeScript 与触达文件 ESLint 通过；clipboard command 已拆到专职 owner，maintainability guard 从 1 个越界错误收敛为 0 错误。
 - 结构化内容统一展示 follow-up：`@nextclaw/agent-chat-ui` 4 个文件 55 条定向测试通过，覆盖 composer/message 配对视觉、Skill/Panel App/项目/目录/JSON/代码/图片/未知引用语义图标、片段预览和消息 Markdown 恢复；`@nextclaw/ui` 5 个文件 36 条上层链路测试通过，覆盖新会话输入、消息回源、工作台划选浮窗和 composer intent。两个 package TypeScript、触达文件 ESLint、`git diff --check` 与 Vite 源码加载检查通过。
 - 真实页面视觉验收补充：在 `http://127.0.0.1:5174/chat/sid_bmNwLW1zajhrcnp3LWIyYWM1Mzkz` 对照已发送文件引用与 composer Skill Tag，确认两者计算后的高度 24px、字号 11px、圆角 7px、gap 6px、背景 `rgba(255,255,255,0.8)`、边框 `rgba(230,230,230,0.7)`、文字 `rgb(33,33,33)` 完全一致。根因是 work theme 曾显式把用户消息引用覆盖成蓝色透明链接，已删除该平行样式合同。composer hover 前后宽度均为 163.859px；关闭按钮默认隐藏，Tag hover 后只显示透明圆框，按钮自身 hover 才出现操作背景。验收草稿已清理。
+- 删除叉号可见性回归：`@nextclaw/agent-chat-ui` 组件测试 4 条、`@nextclaw/ui` 上层输入装配测试 8 条通过，覆盖 hover 前不可命中、hover 后显示并可命中、离开后恢复隐藏，以及产品层删除文案装配；`@nextclaw/agent-chat-ui` TypeScript、触达文件 ESLint、`git diff --check` 与 scoped maintainability guard 通过，guard 无错误和警告。
 
 ## 发布/部署方式
 
@@ -65,12 +67,14 @@
 - 最终暂存范围共 58 个文件，`+1806/-232`（净增 1574 行）；排除测试、文档、changeset 与 skill 后，生产代码 `+1018/-211`（净增 807 行）。本轮属于新增用户能力，增长主要来自通用右键菜单、草稿工作台链路、文件引用 owner 与对应桌面能力；未通过压行或转移复杂度伪造减债。
 - 文本片段引用 follow-up 沿既有 composer token、inline-token metadata、workspace context provider 与文件打开 owner 扩展，没有新增第二套输入框、发送通道或文件读取路径。通用聊天 UI 只增加 JSON-safe token data 往返和展示能力，NextClaw 业务字段仍由产品 UI/shared contract 拥有；消息点击路由从超长容器收敛到专用 hook，文件预览复用单一 preview body，避免复制 JSX。自动 guard 的提醒均为接近预算但未越界的既有文件/目录；其中预览文件已主动消除重复增长，`chat-inline-token.utils.ts` 仍接近 400 行预算，后续若继续增加新 token schema，应按 metadata protocol 职责拆分，而不是继续堆分支。
 - 结构化内容视觉只保留一个 Reference 展示 owner，删除 message renderer 的本地图标表、下划线链接样式和片段专属平行组件；composer/message adapter 分别只拥有编辑与导航行为。首次 guard 暴露 Lexical node 混入 136 行视觉职责后，已将稳定纯展示拆到 `chat-composer-token-view.tsx`，node 回到序列化、DOM 身份和原子删除职责；最终 guard 0 错误，剩余两条提示均为未新增/未恶化的既有目录与文件预算提醒，未触发额外目录重构。
+- 删除叉号回归修复只修改既有编辑区 Tag 交互 owner 与对应测试，没有新增组件、wrapper 或页面 CSS；按钮可见性与正文渐隐共享同一局部状态，避免再次形成跨容器隐式合同。scoped guard 无本次新增可维护性问题，未触发主观复核。
 
 ## NPM 包发布记录
 
 - 本轮不直接发布 NPM 包。
 - `@nextclaw/ui`：需要 patch，changeset 已添加，状态为待统一发布。
 - `@nextclaw/agent-chat-ui`：需要 patch，changeset 已添加，状态为待统一发布。
+- `@nextclaw/agent-chat-ui` 删除叉号可见性回归新增独立 patch changeset，状态为待统一发布。
 - `@nextclaw/shared`：需要 patch，changeset 已添加，状态为待统一发布。
 - `@nextclaw/kernel`：需要 patch，changeset 已添加，状态为待统一发布。
 - `@nextclaw/desktop` 为私有桌面应用包，本轮不单独发布。

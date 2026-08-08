@@ -98,14 +98,29 @@ function ComposerTokenHoverActions({ children, onRemove }: {
   onRemove: () => void;
 }) {
   const { removeTokenLabel } = useContext(ChatComposerTokenUiContext);
+  const [hasFocusWithin, setHasFocusWithin] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   if (!removeTokenLabel) {
     return children;
   }
+  const showRemoveAction = hasFocusWithin || isHovered;
   const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
   return (
-    <span className="relative -mx-1.5 inline-flex h-full min-w-0 items-center px-1.5">
+    <span
+      className="relative -mx-1.5 inline-flex h-full min-w-0 items-center px-1.5"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setHasFocusWithin(false);
+        }
+      }}
+      onFocus={() => setHasFocusWithin(true)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <span
-        className="inline-flex h-full min-w-0 items-center gap-1.5 group-hover/composer-token:[mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent_calc(100%_-_1.25rem))] group-hover/composer-token:[-webkit-mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent_calc(100%_-_1.25rem))] group-focus-within/composer-token:[mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent_calc(100%_-_1.25rem))] group-focus-within/composer-token:[-webkit-mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent_calc(100%_-_1.25rem))]"
+        className={`inline-flex h-full min-w-0 items-center gap-1.5 ${showRemoveAction
+          ? '[mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent_calc(100%_-_1.25rem))] [-webkit-mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent_calc(100%_-_1.25rem))]'
+          : ''}`}
         data-composer-token-content="true"
       >
         {children}
@@ -116,7 +131,7 @@ function ComposerTokenHoverActions({ children, onRemove }: {
             <button
               type="button"
               aria-label={removeTokenLabel}
-              className="pointer-events-none absolute right-0.5 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-transparent text-muted-foreground opacity-0 transition-[background-color,border-color,color,opacity] group-hover/composer-token:pointer-events-auto group-hover/composer-token:opacity-100 group-focus-within/composer-token:pointer-events-auto group-focus-within/composer-token:opacity-100 hover:border-border hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+              className={`${showRemoveAction ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'} absolute right-0.5 top-1/2 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-border/70 bg-transparent text-muted-foreground transition-[background-color,border-color,color,opacity] hover:border-border hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35`}
               onMouseDown={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
