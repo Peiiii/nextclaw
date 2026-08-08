@@ -89,7 +89,7 @@ export function InboxReaderDialog() {
     });
   };
 
-  const positionControls = (
+  const positionControls = unreadDeliveries.length > 1 ? (
     <div className="flex shrink-0 items-center gap-1 pr-1">
       <span className="mr-1 text-[11px] tabular-nums text-muted-foreground">
         {formatPosition(activeIndex + 1, unreadDeliveries.length)}
@@ -107,7 +107,7 @@ export function InboxReaderDialog() {
         onClick={() => selectAt(activeIndex + 1)}
       />
     </div>
-  );
+  ) : null;
 
   return (
     <Dialog
@@ -127,64 +127,40 @@ export function InboxReaderDialog() {
       >
         {activeDelivery ? (
           <>
-            {isHtml ? (
-              <header className="shrink-0 border-b border-border/60 px-6 py-3 pr-14 sm:px-8">
-                <div className="flex min-h-8 items-center justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <Inbox className="h-3.5 w-3.5" />
-                    </span>
-                    <DialogTitle
-                      ref={titleRef}
-                      tabIndex={-1}
-                      className="truncate text-sm font-semibold text-foreground outline-none"
-                    >
-                      {activeDelivery.title}
-                    </DialogTitle>
-                    <span aria-hidden="true">·</span>
-                    <time className="shrink-0" dateTime={activeDelivery.createdAt}>
-                      {formatDateTime(activeDelivery.createdAt)}
-                    </time>
-                  </div>
-                  {positionControls}
+            <header className="shrink-0 border-b border-border/50 px-5 py-3 pr-14 sm:px-6">
+              <div className="flex min-h-7 items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground">
+                    <Inbox className="h-3.5 w-3.5" />
+                  </span>
+                  <DialogTitle
+                    ref={titleRef}
+                    tabIndex={-1}
+                    title={activeDelivery.title}
+                    className="min-w-0 truncate text-sm font-medium text-foreground outline-none"
+                  >
+                    {activeDelivery.title}
+                  </DialogTitle>
+                  <span className="hidden shrink-0 text-muted-foreground sm:inline" aria-hidden="true">·</span>
+                  <time
+                    className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground sm:block"
+                    dateTime={activeDelivery.createdAt}
+                  >
+                    {formatDateTime(activeDelivery.createdAt)}
+                  </time>
                 </div>
-                <DialogDescription className="sr-only">
-                  {activeDelivery.summary ?? t("inboxNoSummary")}
-                </DialogDescription>
-              </header>
-            ) : (
-              <header className="shrink-0 border-b border-border/60 px-6 pb-4 pt-5 pr-14 sm:px-8 sm:pb-5 sm:pt-6">
-                <div className="mb-5 flex min-h-8 items-center justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <Inbox className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="truncate">{t("inboxDeliveredBy")}</span>
-                    <span aria-hidden="true">·</span>
-                    <time dateTime={activeDelivery.createdAt}>
-                      {formatDateTime(activeDelivery.createdAt)}
-                    </time>
-                  </div>
-                  {positionControls}
-                </div>
-                <DialogTitle
-                  ref={titleRef}
-                  tabIndex={-1}
-                  className="max-w-[680px] text-balance text-2xl font-semibold leading-tight tracking-[-0.02em] outline-none sm:text-[28px]"
-                >
-                  {activeDelivery.title}
-                </DialogTitle>
-                <DialogDescription className="mt-2 max-w-[680px] text-sm leading-6 text-muted-foreground">
-                  {activeDelivery.summary ?? t("inboxNoSummary")}
-                </DialogDescription>
-              </header>
-            )}
+                {positionControls}
+              </div>
+              <DialogDescription className="sr-only">
+                {activeDelivery.summary ?? t("inboxNoSummary")}
+              </DialogDescription>
+            </header>
 
             <div className={cn(
               "min-h-0 flex-1",
               isHtml
-                ? "p-4 sm:p-5"
-                : "custom-scrollbar overflow-y-auto px-6 py-6 sm:px-8 sm:py-7",
+                ? "p-3 sm:p-4"
+                : "custom-scrollbar overflow-y-auto px-6 py-5 sm:px-8 sm:py-6",
             )}>
               <InboxDeliveryContent
                 className={isHtml ? "h-full" : undefined}
@@ -195,23 +171,23 @@ export function InboxReaderDialog() {
               />
             </div>
 
-            <footer className="shrink-0 border-t border-border/60 bg-background/95 px-6 py-4 backdrop-blur sm:px-8">
+            <footer className="shrink-0 border-t border-border/50 bg-background px-5 py-3 sm:px-6">
               {error ? (
                 <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>
               ) : null}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col-reverse gap-2 sm:flex-row">
-                  <Button variant="ghost" onClick={inboxManager.closeReader}>
+                <div className="flex flex-col-reverse gap-1 sm:flex-row sm:flex-wrap">
+                  <Button size="sm" variant="ghost" onClick={inboxManager.closeReader}>
                     {t("inboxReadLater")}
                   </Button>
-                  <Button variant="outline" disabled={pendingAction !== null} onClick={markRead}>
+                  <Button size="sm" variant="outline" disabled={pendingAction !== null} onClick={markRead}>
                     {t("inboxMarkRead")}
                   </Button>
-                  <Button variant="outline" disabled={pendingAction !== null} onClick={openInbox}>
+                  <Button size="sm" variant="ghost" disabled={pendingAction !== null} onClick={openInbox}>
                     {t("inboxOpenInbox")}
                   </Button>
                 </div>
-                <Button disabled={pendingAction !== null} onClick={continueInChat}>
+                <Button size="sm" disabled={pendingAction !== null} onClick={continueInChat}>
                   {t("inboxContinueChat")}
                 </Button>
               </div>

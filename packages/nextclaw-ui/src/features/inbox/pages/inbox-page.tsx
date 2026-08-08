@@ -8,7 +8,7 @@ import { InboxDeliveryContent } from "@/features/inbox/components/inbox-delivery
 import { useInboxDeliveries } from "@/features/inbox/hooks/use-inbox-deliveries";
 import { Button } from "@/shared/components/ui/button";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
-import { formatDateTime, t } from "@/shared/lib/i18n";
+import { formatDateShort, formatDateTime, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 type InboxFilter = "unread" | "all" | "archived";
@@ -53,14 +53,11 @@ function InboxEmptyState({ selection = false }: { selection?: boolean }) {
 
 function InboxPageHeader({ unreadCount }: { unreadCount: number }) {
   return (
-    <header className="shrink-0 px-4 pb-4 pt-1 sm:px-0">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-            {t("inboxTitle")}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("inboxDescription")}</p>
-        </div>
+    <header className="shrink-0 px-4 pb-3 pt-1 sm:px-0">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          {t("inboxTitle")}
+        </h1>
         {unreadCount > 0 ? (
           <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
             {t("inboxUnreadCount").replace("{count}", String(unreadCount))}
@@ -82,69 +79,76 @@ function InboxListPane({
   filter: InboxFilter;
   onFilterChange: (filter: InboxFilter) => void;
 }) {
-  const filterItems: Array<{ id: InboxFilter; label: string }> = [
-    { id: "unread", label: t("inboxUnread") },
-    { id: "all", label: t("inboxAll") },
-    { id: "archived", label: t("inboxArchived") },
+  const filterItems: Array<{ id: InboxFilter; label: string; count: number }> = [
+    {
+      id: "unread",
+      label: t("inboxUnread"),
+      count: filterDeliveries(deliveries, "unread").length,
+    },
+    { id: "all", label: t("inboxAll"), count: filterDeliveries(deliveries, "all").length },
+    {
+      id: "archived",
+      label: t("inboxArchived"),
+      count: filterDeliveries(deliveries, "archived").length,
+    },
   ];
   const filteredDeliveries = filterDeliveries(deliveries, filter);
   return (
-    <aside className="flex min-h-0 flex-col border-border/60 md:border-r">
-      <div className="flex shrink-0 gap-1 border-b border-border/60 p-3">
+    <aside className="flex min-h-0 flex-col border-border/60 bg-muted/20 md:border-r">
+      <div className="flex shrink-0 gap-1 border-b border-border/50 px-3 py-2">
         {filterItems.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => onFilterChange(item.id)}
             className={cn(
-              "rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+              "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
               filter === item.id
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-[var(--interaction-selection)] text-foreground"
+                : "text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-foreground",
             )}
           >
             {item.label}
+            <span aria-hidden="true" className="text-[10px] font-normal tabular-nums opacity-60">
+              {item.count}
+            </span>
           </button>
         ))}
       </div>
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2">
         {filteredDeliveries.length > 0 ? (
-          <ul className="space-y-1">
+          <ul className="space-y-0.5">
             {filteredDeliveries.map((delivery) => (
               <li key={delivery.id}>
                 <Link
                   to={`/inbox/${encodeURIComponent(delivery.id)}`}
                   className={cn(
-                    "block rounded-xl px-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
-                    activeDeliveryId === delivery.id ? "bg-muted" : "hover:bg-muted/70",
+                    "block rounded-lg px-2.5 py-2 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+                    activeDeliveryId === delivery.id
+                      ? "bg-[var(--interaction-selection)] text-foreground"
+                      : "text-foreground/80 hover:bg-[var(--interaction-hover)] hover:text-foreground",
                   )}
                 >
-                  <div className="flex items-start gap-2">
-                    <span
-                      className={cn(
-                        "mt-1.5 h-2 w-2 shrink-0 rounded-full",
-                        !delivery.readAt && "bg-primary",
-                      )}
-                      aria-label={!delivery.readAt ? t("inboxUnread") : undefined}
-                      aria-hidden={delivery.readAt ? "true" : undefined}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <h2 className={cn(
-                        "line-clamp-2 text-sm leading-5 text-foreground",
-                        !delivery.readAt && "font-semibold",
-                      )}>
-                        {delivery.title}
-                      </h2>
-                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                        {delivery.summary ?? t("inboxNoSummary")}
-                      </p>
-                      <time
-                        className="mt-2 block text-[11px] text-muted-foreground/80"
-                        dateTime={delivery.createdAt}
-                      >
-                        {formatDateTime(delivery.createdAt)}
+                  <h2 className={cn(
+                    "truncate font-medium leading-5",
+                    !delivery.readAt && "font-semibold text-foreground",
+                  )}>
+                    {delivery.title}
+                  </h2>
+                  <div className="mt-0.5 flex items-center gap-2 text-[11px] leading-4 text-muted-foreground/65">
+                    <p className="min-w-0 flex-1 truncate">
+                      {delivery.summary ?? t("inboxNoSummary")}
+                    </p>
+                    {!delivery.readAt ? (
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full bg-primary"
+                        aria-label={t("inboxUnread")}
+                      />
+                    ) : (
+                      <time className="shrink-0 tabular-nums" dateTime={delivery.createdAt}>
+                        {formatDateShort(delivery.createdAt)}
                       </time>
-                    </div>
+                    )}
                   </div>
                 </Link>
               </li>
@@ -183,42 +187,40 @@ function InboxDetailPane({
   const isHtml = delivery.contentType === "html";
   return (
     <main className="flex min-h-0 flex-col">
-      <div className={cn(
-        "shrink-0 border-b border-border/60 px-5 sm:px-8",
-        isHtml ? "py-3 sm:py-4" : "py-4 sm:py-6",
-      )}>
+      <div className="shrink-0 border-b border-border/50 px-5 py-3 sm:px-6">
         {isMobile ? (
           <button
             type="button"
             onClick={onBack}
-            className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            className="mb-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("inboxTitle")}
           </button>
         ) : null}
-        <div className="text-xs text-muted-foreground">
-          {t("inboxDeliveredBy")} · {formatDateTime(delivery.createdAt)}
+        <div className="flex min-h-7 min-w-0 items-center gap-2">
+          <h2
+            title={delivery.title}
+            className="min-w-0 truncate text-sm font-medium text-foreground"
+          >
+            {delivery.title}
+          </h2>
+          <span className="hidden shrink-0 text-muted-foreground sm:inline" aria-hidden="true">·</span>
+          <time
+            className="hidden shrink-0 text-[11px] tabular-nums text-muted-foreground sm:block"
+            dateTime={delivery.createdAt}
+          >
+            {formatDateTime(delivery.createdAt)}
+          </time>
         </div>
-        <h2 className={cn(
-          "text-balance font-semibold leading-tight tracking-[-0.02em] text-foreground",
-          isHtml ? "mt-2 text-lg sm:text-xl" : "mt-3 text-2xl",
-        )}>
-          {delivery.title}
-        </h2>
-        {delivery.summary && !isHtml ? (
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            {delivery.summary}
-          </p>
-        ) : null}
       </div>
       <div className={cn(
         "min-h-0 flex-1",
         isHtml
-          ? "p-4 sm:p-5"
-          : "custom-scrollbar overflow-y-auto px-5 py-6 sm:px-8 sm:py-8",
+          ? "p-3 sm:p-4"
+          : "custom-scrollbar overflow-y-auto px-5 py-5 sm:px-6 sm:py-6",
       )}>
-        <div className={cn("mx-auto", isHtml ? "h-full max-w-5xl" : "max-w-3xl")}>
+        <div className={cn("mx-auto max-w-5xl", isHtml && "h-full")}>
           <InboxDeliveryContent
             className={isHtml ? "h-full" : undefined}
             content={delivery.content}
@@ -228,25 +230,27 @@ function InboxDetailPane({
           />
         </div>
       </div>
-      <div className="shrink-0 border-t border-border/60 px-5 py-3 sm:px-8">
+      <div className="shrink-0 border-t border-border/50 px-5 py-3 sm:px-6">
         {error ? <p role="alert" className="mb-2 text-sm text-destructive">{error}</p> : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={pending} onClick={onContinue}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-1">
+            <Button size="sm" variant="outline" disabled={pending} onClick={onReadToggle}>
+              {delivery.readAt ? t("inboxMarkUnread") : t("inboxMarkRead")}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={pending} onClick={onArchiveToggle}>
+              {delivery.archivedAt
+                ? <RotateCcw className="mr-2 h-4 w-4" />
+                : <Archive className="mr-2 h-4 w-4" />}
+              {delivery.archivedAt ? t("inboxRestore") : t("inboxArchive")}
+            </Button>
+            <Button size="sm" variant="ghost" disabled={pending} onClick={onDelete}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              {t("inboxDelete")}
+            </Button>
+          </div>
+          <Button size="sm" disabled={pending} onClick={onContinue}>
             <MessageCircle className="mr-2 h-4 w-4" />
             {t("inboxContinueChat")}
-          </Button>
-          <Button variant="outline" disabled={pending} onClick={onReadToggle}>
-            {delivery.readAt ? t("inboxMarkUnread") : t("inboxMarkRead")}
-          </Button>
-          <Button variant="ghost" disabled={pending} onClick={onArchiveToggle}>
-            {delivery.archivedAt
-              ? <RotateCcw className="mr-2 h-4 w-4" />
-              : <Archive className="mr-2 h-4 w-4" />}
-            {delivery.archivedAt ? t("inboxRestore") : t("inboxArchive")}
-          </Button>
-          <Button variant="ghost" disabled={pending} onClick={onDelete}>
-            <Trash2 className="mr-2 h-4 w-4" />
-            {t("inboxDelete")}
           </Button>
         </div>
       </div>
@@ -358,7 +362,7 @@ export function InboxPage() {
         {deliveriesQuery.isError ? (
           <div role="alert" className="p-6 text-sm text-destructive">{t("inboxLoadError")}</div>
         ) : (
-          <div className="grid h-full min-h-0 grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="grid h-full min-h-0 grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]">
             {showList ? <InboxListPane
               activeDeliveryId={activeDelivery?.id ?? null}
               deliveries={deliveries}

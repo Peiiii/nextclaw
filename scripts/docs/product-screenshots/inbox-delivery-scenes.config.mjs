@@ -6,7 +6,8 @@ const deliveryId = "screenshot-project-brief";
 
 const deliveryProfiles = {
   en: {
-    title: "Daily AI & Tech Brief · 2026-08-06 (HTML)",
+    title: "Daily AI & Tech Brief · 2026-08-06",
+    htmlTitle: "Daily AI & Tech Brief · 2026-08-06 (HTML)",
     summary: "A daily briefing of AI and technology stories collected by a background Agent.",
     markdownContent: `## Today's priorities
 
@@ -45,7 +46,8 @@ AI reviewed the project status and collected the three decisions that matter mos
     outputSuffix: "en",
   },
   zh: {
-    title: "每日 AI 与科技简报 · 2026-08-06（HTML）",
+    title: "每日 AI 与科技简报 · 2026-08-06",
+    htmlTitle: "每日 AI 与科技简报 · 2026-08-06（HTML）",
     summary: "后台 Agent 每日整理 AI、科技与开源社区热点。",
     markdownContent: `## 今日重点
 
@@ -164,7 +166,7 @@ function createDelivery(profile, sceneId, overrides = {}) {
   const page = isInboxPageScene(sceneId);
   return {
     id: overrides.id ?? deliveryId,
-    title: overrides.title ?? profile.title,
+    title: overrides.title ?? (html ? profile.htmlTitle : profile.title),
     summary: overrides.summary ?? profile.summary,
     content: overrides.content ?? (html ? createHtmlReport(profile) : profile.markdownContent),
     contentType: overrides.contentType ?? (html ? "html" : "markdown"),
@@ -237,15 +239,16 @@ export function resolveInboxDeliveryScreenshotMock({ method, pathname, sceneId }
 function createReaderScene(language, profile, html) {
   const kind = html ? "inbox-html-delivery" : "inbox-delivery";
   const asset = html ? "nextclaw-ai-delivery-html" : "nextclaw-ai-delivery-inbox";
+  const title = html ? profile.htmlTitle : profile.title;
   return {
     id: `${kind}-${language}`,
     route: "/chat",
     language,
-    waitText: profile.title,
+    waitText: title,
     afterLoad: async ({ page }) => {
       await page.getByRole("dialog").waitFor({ state: "visible", timeout: 20_000 });
       if (html) {
-        await page.getByTitle(profile.title).waitFor({ state: "visible", timeout: 20_000 });
+        await page.locator("iframe").waitFor({ state: "visible", timeout: 20_000 });
       }
       await page.waitForTimeout(500);
     },
@@ -261,10 +264,10 @@ function createInboxPageScene(language, profile) {
     id: `inbox-page-${language}`,
     route: `/inbox/${deliveryId}`,
     language,
-    waitText: profile.title,
+    waitText: profile.htmlTitle,
     afterLoad: async ({ page }) => {
       await page.getByRole("button", { name: profile.labels.all, exact: true }).click();
-      await page.getByTitle(profile.title).waitFor({ state: "visible", timeout: 20_000 });
+      await page.locator("iframe").waitFor({ state: "visible", timeout: 20_000 });
       await page.waitForTimeout(500);
     },
     outputs: [
