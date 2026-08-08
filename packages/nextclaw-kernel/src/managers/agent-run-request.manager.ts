@@ -18,13 +18,13 @@ import {
 } from "@nextclaw/ncp";
 import { catchError, filter, from, lastValueFrom, tap } from "rxjs";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
+import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type {
   AgentRuntime,
   AgentRuntimeManager,
   AgentRuntimeRunOptions,
 } from "./agent-runtime.manager.js";
-import type { ContextProviderManager } from "./context-provider.manager.js";
 import { AgentRunSessionCommandManager } from "./agent-run-session-command.manager.js";
 import type {
   SessionRun,
@@ -32,7 +32,6 @@ import type {
   SessionRunManager,
   SessionRunQueuedRequest,
 } from "./session-run.manager.js";
-import type { ToolProviderManager } from "./tool-provider.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type {
   AgentRunAbortRequest,
@@ -70,12 +69,11 @@ export class AgentRunRequestManager {
     private readonly agentRuntimeManager: AgentRuntimeManager,
     private readonly agentManager: AgentManager,
     private readonly configManager: ConfigManager,
-    private readonly contextProviderManager: ContextProviderManager,
+    private readonly agentContextWindowManager: AgentContextWindowManager,
     private readonly eventBus: EventBus,
     private readonly ingress: Ingress,
     private readonly sessionManager: SessionManager,
     private readonly sessionRunManager: SessionRunManager,
-    private readonly toolProviderManager: ToolProviderManager,
   ) {
     this.sessionCommandManager = new AgentRunSessionCommandManager(
       sessionManager,
@@ -261,6 +259,7 @@ export class AgentRunRequestManager {
     });
     const providerRequest: AgentRunRequest = {
       ...request,
+      agentId: spec.agentId,
       sessionId: session.sessionId,
       message,
     };
@@ -277,9 +276,8 @@ export class AgentRunRequestManager {
         session,
         sessionRun,
       });
-      const contextBlocks =
-        await this.contextProviderManager.buildContext(providerRequest);
-      const tools = await this.toolProviderManager.buildTools(providerRequest);
+      const { contextBlocks, tools } =
+        await this.agentContextWindowManager.resolveRunSurface(providerRequest);
       sessionRun.inbox.enqueue(message);
       this.startRuntimeRun({
         options: {
@@ -321,7 +319,9 @@ export class AgentRunRequestManager {
       from(
         runtime.run(spec, options),
       ).pipe(
-        filter((event) => event.type !== NcpEventType.MessageSent),
+        filter((event) =>
+          event.type !== NcpEventType.MessageSent || event.payload.message.role !== "user",
+        ),
         tap((event) => {
           const eventsToPublish: NcpEndpointEvent[] = [];
           if (event.type === NcpEventType.RunError) {

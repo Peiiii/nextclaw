@@ -1,4 +1,5 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
+import { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
@@ -160,6 +161,7 @@ export class NextclawKernel {
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager = new AgentRuntimeManager();
+  readonly agentContextWindowManager: AgentContextWindowManager;
   readonly contextCompactionManager: AgentRunContextCompactionManager;
   readonly contextProviderManager = new ContextProviderManager();
   readonly sessionRunManager: SessionRunManager;
@@ -200,6 +202,11 @@ export class NextclawKernel {
       providerModelCatalogManager: this.providerModelCatalog,
     });
     this.agents = new AgentManager(this.configManager);
+    this.agentContextWindowManager = new AgentContextWindowManager(
+      this.agents,
+      this.contextProviderManager,
+      this.toolProviderManager,
+    );
     this.accessManager = new AccessManager({
       configManager: this.configManager,
       homeDir: options.homeDir,
@@ -211,6 +218,7 @@ export class NextclawKernel {
       ),
     });
     this.sessionManager = new SessionManager({
+      agentContextWindowManager: this.agentContextWindowManager,
       agentManager: this.agents,
       configManager: this.configManager,
       eventBus: this.eventBus,
@@ -264,7 +272,6 @@ export class NextclawKernel {
     this.contextCompactionManager = new AgentRunContextCompactionManager(
       this.agents,
       this.llmProviders,
-      this.sessionManager,
     );
     this.sessionRunManager = new SessionRunManager(this.sessionManager);
     this.sessionContextCompactionManager = new SessionContextCompactionManager(
@@ -277,12 +284,11 @@ export class NextclawKernel {
       this.agentRuntimeManager,
       this.agents,
       this.configManager,
-      this.contextProviderManager,
+      this.agentContextWindowManager,
       this.eventBus,
       this.ingress,
       this.sessionManager,
       this.sessionRunManager,
-      this.toolProviderManager,
     );
     this.contributions = [
       new ToolProviderContribution(this),
@@ -315,7 +321,7 @@ export class NextclawKernel {
         readProjectRoot(session.metadata)
       ),
     );
-    this.sessionManager.start();
+    await this.sessionManager.start();
     for (const contribution of this.contributions) {
       contribution.start();
     }

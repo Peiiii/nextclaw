@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NcpHttpAgentClientEndpoint } from "@nextclaw/ncp-http-agent-client";
 import { useHydratedNcpAgent } from "@nextclaw/ncp-react";
 import type {
+  NcpRunHandle,
+} from "@nextclaw/ncp";
+import type {
   AgentRunContinueIngressPayload,
   AgentRunEditMessageIngressPayload,
 } from "@nextclaw/shared";
@@ -90,17 +93,20 @@ export function useNcpSessionConversation(
     client,
     loadSeed,
   });
-  const runCommand = useCallback(async <T,>(
+  const { acceptRun } = agent;
+  const executeAcceptedRunCommand = useCallback(async (
     commandSessionId: string,
-    command: () => Promise<T>,
-  ): Promise<T> => {
+    command: () => Promise<NcpRunHandle>,
+  ): Promise<NcpRunHandle> => {
     if (pendingCommandSessionIdRef.current) {
       throw new Error("A session command is already in progress.");
     }
     pendingCommandSessionIdRef.current = commandSessionId;
     setPendingCommandSessionId(commandSessionId);
     try {
-      return await command();
+      const handle = await command();
+      await acceptRun(handle);
+      return handle;
     } finally {
       if (pendingCommandSessionIdRef.current === commandSessionId) {
         pendingCommandSessionIdRef.current = null;
@@ -109,10 +115,10 @@ export function useNcpSessionConversation(
         current === commandSessionId ? null : current,
       );
     }
-  }, []);
+  }, [acceptRun]);
   const editMessage = useCallback(
     async (payload: AgentRunEditMessageIngressPayload) =>
-      await runCommand(payload.sessionId, async () => {
+      await executeAcceptedRunCommand(payload.sessionId, async () => {
         const previousSeed = {
           messages: agent.visibleMessages,
           status: agent.isRunning ? "running" as const : "idle" as const,
@@ -145,14 +151,14 @@ export function useNcpSessionConversation(
           throw error;
         }
       }),
-    [agent, loadSeed, runCommand],
+    [agent, executeAcceptedRunCommand, loadSeed],
   );
   const continueRun = useCallback(
     async (payload: AgentRunContinueIngressPayload) =>
-      await runCommand(payload.sessionId, () =>
+      await executeAcceptedRunCommand(payload.sessionId, () =>
         nextclawClient.agentRuns.continue(payload),
       ),
-    [runCommand],
+    [executeAcceptedRunCommand],
   );
   const loadPreviousMessages = useCallback(
     async (): Promise<void> =>

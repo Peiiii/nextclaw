@@ -12,7 +12,10 @@ import { AgentRunModelInputBuilder } from "@kernel/services/agent-run-model-inpu
 import { NcpAgentRuntimeWrapper } from "@kernel/services/ncp-agent-runtime-wrapper.service.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import type { Config } from "@nextclaw/core";
-import { DefaultNcpAgentRuntime } from "@nextclaw/ncp-agent-runtime-next";
+import {
+  DefaultNcpAgentRuntime,
+  type AgentRunPreflight,
+} from "@nextclaw/ncp-agent-runtime-next";
 
 export class AgentRunRuntimeContribution implements KernelContribution {
   private readonly cleanups: Array<() => Promise<void>> = [];
@@ -64,18 +67,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
         const runtime = new DefaultNcpAgentRuntime({
           llmApi: new ProviderManagerNcpLLMApi(this.kernel.llmProviders),
           modelInputBuilder: this.modelInputBuilder,
-          runPreflight: async ({ contextBlocks, phase, spec, sessionRun }) => {
-            const session = await this.kernel.sessionManager.getAgentRunSession(sessionRun.sessionId);
-            return await this.kernel.contextCompactionManager.runPreflight({
-              agentId: spec.agentId,
-              contextBlocks,
-              messages: sessionRun.getSnapshot().messages,
-              metadata: session.metadata,
-              model: spec.model,
-              phase,
-              sessionId: sessionRun.sessionId,
-            });
-          },
+          runPreflight: this.runNativePreflight,
         });
         return {
           run: (spec, options) =>
@@ -105,6 +97,25 @@ export class AgentRunRuntimeContribution implements KernelContribution {
         };
       },
     });
+
+  private readonly runNativePreflight: AgentRunPreflight = async function* (
+    this: AgentRunRuntimeContribution,
+    input: Parameters<AgentRunPreflight>[0],
+  ) {
+    const { contextBlocks, phase, signal, spec, sessionRun, tools } = input;
+    const session = await this.kernel.sessionManager.getAgentRunSession(sessionRun.sessionId);
+    yield* this.kernel.contextCompactionManager.runPreflight({
+      agentId: spec.agentId,
+      contextBlocks,
+      messages: sessionRun.getSnapshot().messages,
+      metadata: session.metadata,
+      model: spec.model,
+      phase,
+      signal,
+      sessionId: sessionRun.sessionId,
+      tools,
+    });
+  }.bind(this);
 
   private registerNarpRuntime = (
     provider: AgentRuntimeProviderRegistration,

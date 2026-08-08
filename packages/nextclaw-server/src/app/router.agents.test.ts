@@ -233,6 +233,89 @@ describe("agent update and list routes", () => {
     );
   });
 
+});
+
+describe("agent context window save validation", () => {
+  it("rejects an agent context window before persisting when its runtime input cannot fit", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          list: [{ id: "researcher", contextTokens: 64_000 }],
+        },
+      }),
+      configPath,
+    );
+    const app = createUiRouter({
+      kernel: createRouterTestKernel({
+        agentContextWindowManager: {
+          assertCanSave: async () => {
+            throw new Error(
+              'Agent "researcher" needs at least 9124 context tokens with its current instructions, tools, and output reserve; received 3000.',
+            );
+          },
+          assertDefaultCanSave: async () => [],
+        } as never,
+      }),
+      configPath,
+      appEventBus: new EventBus(),
+    });
+
+    const response = await app.request("http://localhost/api/agents/researcher", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ contextTokens: 3_000 }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: {
+        code: "AGENT_UPDATE_FAILED",
+        message: expect.stringContaining("needs at least 9124 context tokens"),
+      },
+    });
+    expect(loadConfig(configPath).agents.list[0]?.contextTokens).toBe(64_000);
+  });
+
+  it("rejects an undersized inherited default before persisting it", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const app = createUiRouter({
+      kernel: createRouterTestKernel({
+        agentContextWindowManager: {
+          assertCanSave: async () => {
+            throw new Error("not used");
+          },
+          assertDefaultCanSave: async () => {
+            throw new Error('Agent "main" needs at least 8400 context tokens; received 3000.');
+          },
+        } as never,
+      }),
+      configPath,
+      appEventBus: new EventBus(),
+    });
+
+    const response = await app.request("http://localhost/api/config/runtime", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ agents: { defaults: { contextTokens: 3_000 } } }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: {
+        code: "RUNTIME_CONFIG_UPDATE_FAILED",
+        message: expect.stringContaining("needs at least 8400 context tokens"),
+      },
+    });
+    expect(loadConfig(configPath).agents.defaults.contextTokens).toBe(200_000);
+  });
+
+});
+
+describe("agent list routes", () => {
   it("lists the inferred nested home for extra agents without explicit workspace", async () => {
     const configPath = createTempConfigPath();
     const homeDir = join(dirname(configPath), "workspace");

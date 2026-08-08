@@ -23,6 +23,9 @@ type InputBudgetPruneState = {
   work: RuntimeMessage[];
   contextTokens: number;
   budgetTokens: number;
+  fixedInputTokens: number;
+  protectedPrefixMessageCount: number;
+  protectedSystemContentChars: number;
   droppedHistoryCount: number;
   truncatedToolResultCount: number;
   truncatedSystemPrompt: boolean;
@@ -45,11 +48,12 @@ export class InputBudgetPruner {
   estimate = (params: {
     messages: RuntimeMessage[];
     contextTokens?: number | null;
+    fixedInputTokens?: number;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
   }): InputBudgetEstimate => {
     return {
-      estimatedTokens: estimateTokens(params.messages),
+      estimatedTokens: estimateTokens(params.messages) + resolveFixedInputTokens(params.fixedInputTokens),
       budgetTokens: this.resolveBudgetTokens(params),
     };
   };
@@ -57,6 +61,7 @@ export class InputBudgetPruner {
   prepareForBudget = (params: {
     messages: RuntimeMessage[];
     contextTokens?: number | null;
+    fixedInputTokens?: number;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
   }): InputBudgetPrepareResult => {
@@ -68,10 +73,14 @@ export class InputBudgetPruner {
   prune = (params: {
     messages: RuntimeMessage[];
     contextTokens?: number | null;
+    fixedInputTokens?: number;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
+    protectedPrefixMessageCount?: number;
+    protectedSystemContentChars?: number;
   }): InputBudgetPruneResult => {
     const state = this.createPruneState(params);
+    this.stabilizeProtectedPrefix(state);
     this.prepareStateForBudget(state);
     this.dropOldHistoryUntilWithinBudget(state);
     this.truncateBoundaryMessagesUntilWithinBudget(state);
@@ -81,7 +90,7 @@ export class InputBudgetPruner {
   private toPruneResult = (state: InputBudgetPruneState): InputBudgetPruneResult => {
     return {
       messages: state.work,
-      estimatedTokens: estimateTokens(state.work),
+      estimatedTokens: estimateStateTokens(state),
       budgetTokens: state.budgetTokens,
       droppedHistoryCount: state.droppedHistoryCount,
       truncatedToolResultCount: state.truncatedToolResultCount,
@@ -93,14 +102,28 @@ export class InputBudgetPruner {
   private createPruneState = (params: {
     messages: RuntimeMessage[];
     contextTokens?: number | null;
+    fixedInputTokens?: number;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
+    protectedPrefixMessageCount?: number;
+    protectedSystemContentChars?: number;
   }): InputBudgetPruneState => {
+    const {
+      messages,
+      protectedPrefixMessageCount,
+      protectedSystemContentChars,
+    } = params;
     const contextTokens = this.resolveContextTokens(params.contextTokens);
     return {
-      work: params.messages.map((message) => structuredClone(message)),
+      work: messages.map((message) => structuredClone(message)),
       contextTokens,
       budgetTokens: this.resolveBudgetTokens(params),
+      fixedInputTokens: resolveFixedInputTokens(params.fixedInputTokens),
+      protectedPrefixMessageCount: Math.min(
+        messages.length,
+        sanitizeInt(protectedPrefixMessageCount, 0) ?? 0,
+      ),
+      protectedSystemContentChars: sanitizeInt(protectedSystemContentChars, 0) ?? 0,
       droppedHistoryCount: 0,
       truncatedToolResultCount: 0,
       truncatedSystemPrompt: false,
@@ -114,7 +137,7 @@ export class InputBudgetPruner {
       Math.max(2_000, Math.floor(state.contextTokens * MAX_TOOL_RESULT_CONTEXT_SHARE * DEFAULT_CHARS_PER_TOKEN))
     );
 
-    for (let index = 0; index < state.work.length; index += 1) {
+    for (let index = state.protectedPrefixMessageCount; index < state.work.length; index += 1) {
       const message = state.work[index];
       const content = typeof message.content === "string" ? message.content : "";
       if (message.role !== "tool" || !content || content.length <= maxToolResultChars) {
@@ -134,8 +157,10 @@ export class InputBudgetPruner {
   };
 
   private pruneToolPairsUntilWithinBudget = (state: InputBudgetPruneState): void => {
-    while (estimateTokens(state.work) > state.budgetTokens) {
-      const assistantIndex = state.work.findIndex(hasToolCalls);
+    while (estimateStateTokens(state) > state.budgetTokens) {
+      const assistantIndex = state.work.findIndex((message, index) =>
+        index >= state.protectedPrefixMessageCount && hasToolCalls(message),
+      );
       if (assistantIndex < 0) {
         break;
       }
@@ -145,8 +170,10 @@ export class InputBudgetPruner {
 
   private dropOldHistoryUntilWithinBudget = (state: InputBudgetPruneState): void => {
     this.pruneToolPairsUntilWithinBudget(state);
-    while (estimateTokens(state.work) > state.budgetTokens && state.work.length > 2) {
-      state.work.splice(1, 1);
+    const dropIndex = Math.max(1, state.protectedPrefixMessageCount);
+    const minimumMessageCount = Math.max(2, state.protectedPrefixMessageCount + 1);
+    while (estimateStateTokens(state) > state.budgetTokens && state.work.length > minimumMessageCount) {
+      state.work.splice(dropIndex, 1);
       state.droppedHistoryCount += 1;
     }
     this.dropOrphanToolResults(state);
@@ -155,6 +182,9 @@ export class InputBudgetPruner {
   private removeAssistantToolProtocol = (state: InputBudgetPruneState, index: number): void => {
     const toolCallIds = getToolCallIds(state.work[index]);
     for (let resultIndex = state.work.length - 1; resultIndex >= 0; resultIndex -= 1) {
+      if (resultIndex < state.protectedPrefixMessageCount) {
+        continue;
+      }
       const resultToolCallId = readToolCallId(state.work[resultIndex]);
       if (resultToolCallId && toolCallIds.includes(resultToolCallId)) {
         state.work.splice(resultIndex, 1);
@@ -176,6 +206,9 @@ export class InputBudgetPruner {
     for (let index = state.work.length - 1; index >= 0; index -= 1) {
       const toolCallId = readToolCallId(state.work[index]);
       if (state.work[index].role === "tool" && (!toolCallId || !toolCallIds.has(toolCallId))) {
+        if (index < state.protectedPrefixMessageCount) {
+          continue;
+        }
         state.work.splice(index, 1);
         state.droppedHistoryCount += 1;
         continue;
@@ -186,6 +219,9 @@ export class InputBudgetPruner {
     }
 
     for (let index = state.work.length - 1; index >= 0; index -= 1) {
+      if (index < state.protectedPrefixMessageCount) {
+        continue;
+      }
       const missingToolCallIds = getToolCallIds(state.work[index]).filter((id) => !toolResultIds.has(id));
       if (missingToolCallIds.length === 0) {
         continue;
@@ -205,9 +241,9 @@ export class InputBudgetPruner {
 
   private truncateBoundaryMessagesUntilWithinBudget = (state: InputBudgetPruneState): void => {
     let guard = 0;
-    while (estimateTokens(state.work) > state.budgetTokens && guard < 8) {
+    while (estimateStateTokens(state) > state.budgetTokens && guard < 8) {
       guard += 1;
-      if (this.truncateSystemPrompt(state)) {
+      if (state.protectedPrefixMessageCount === 0 && this.truncateSystemPrompt(state)) {
         continue;
       }
       if (this.truncateLastUserMessage(state)) {
@@ -217,18 +253,59 @@ export class InputBudgetPruner {
     }
   };
 
-  private truncateSystemPrompt = (state: InputBudgetPruneState): boolean => {
+  private stabilizeProtectedPrefix = (state: InputBudgetPruneState): void => {
+    if (state.protectedPrefixMessageCount === 0) {
+      return;
+    }
+    const dynamicInputReserveTokens = estimateTokens([
+      { role: "user", content: "x".repeat(MIN_USER_KEEP_CHARS) },
+    ]);
+    const protectedBudgetTokens = Math.max(
+      1,
+      state.budgetTokens - dynamicInputReserveTokens,
+    );
+    let protectedTokens = estimateTokens(state.work.slice(0, state.protectedPrefixMessageCount))
+      + state.fixedInputTokens;
+    let guard = 0;
+    while (protectedTokens > protectedBudgetTokens && guard < 8) {
+      guard += 1;
+      if (!this.truncateSystemPrompt(state, protectedTokens, protectedBudgetTokens)) {
+        break;
+      }
+      protectedTokens = estimateTokens(state.work.slice(0, state.protectedPrefixMessageCount))
+        + state.fixedInputTokens;
+    }
+  };
+
+  private truncateSystemPrompt = (
+    state: InputBudgetPruneState,
+    estimatedTokens = estimateStateTokens(state),
+    budgetTokens = state.budgetTokens,
+  ): boolean => {
     const systemIndex = state.work.findIndex((message) => message.role === "system");
     if (systemIndex < 0) {
       return false;
     }
     const systemContent = typeof state.work[systemIndex].content === "string" ? state.work[systemIndex].content : "";
-    if (systemContent.length <= MIN_SYSTEM_KEEP_CHARS) {
+    const protectedChars = Math.min(systemContent.length, state.protectedSystemContentChars);
+    const minimumKeepChars = Math.max(MIN_SYSTEM_KEEP_CHARS, protectedChars);
+    if (systemContent.length <= minimumKeepChars) {
       return false;
     }
+    const excessChars = Math.max(
+      DEFAULT_CHARS_PER_TOKEN,
+      (estimatedTokens - budgetTokens) * DEFAULT_CHARS_PER_TOKEN,
+    );
+    const maxChars = Math.max(
+      minimumKeepChars,
+      Math.min(
+        Math.floor(systemContent.length * 0.8),
+        systemContent.length - excessChars,
+      ),
+    );
     state.work[systemIndex] = {
       ...state.work[systemIndex],
-      content: truncateText(systemContent, Math.max(MIN_SYSTEM_KEEP_CHARS, Math.floor(systemContent.length * 0.8)))
+      content: truncateTextAfterProtectedPrefix(systemContent, protectedChars, maxChars),
     };
     state.truncatedSystemPrompt = true;
     return true;
@@ -236,7 +313,7 @@ export class InputBudgetPruner {
 
   private truncateLastUserMessage = (state: InputBudgetPruneState): boolean => {
     const userIndex = findLastIndex(state.work, (message) => message.role === "user");
-    if (userIndex < 0) {
+    if (userIndex < state.protectedPrefixMessageCount) {
       return false;
     }
     const userContent = typeof state.work[userIndex].content === "string" ? state.work[userIndex].content : "";
@@ -314,8 +391,19 @@ function hasRenderableContent(content: unknown): boolean {
 }
 
 function estimateTokens(messages: RuntimeMessage[]): number {
-  const totalChars = messages.reduce((sum, message) => sum + estimateChars(message), 0);
-  return Math.ceil(totalChars / DEFAULT_CHARS_PER_TOKEN);
+  return estimateInputTokens(messages);
+}
+
+export function estimateInputTokens(value: unknown): number {
+  return Math.ceil(estimateChars(value) / DEFAULT_CHARS_PER_TOKEN);
+}
+
+function estimateStateTokens(state: InputBudgetPruneState): number {
+  return estimateTokens(state.work) + state.fixedInputTokens;
+}
+
+function resolveFixedInputTokens(value: unknown): number {
+  return sanitizeInt(value, 0) ?? 0;
 }
 
 function estimateChars(value: unknown): number {
@@ -417,6 +505,23 @@ function truncateText(text: string, maxChars: number, suffix = CONTEXT_TRUNCATIO
   }
   const keep = safeMax - suffix.length;
   return `${text.slice(0, keep).trimEnd()}${suffix}`;
+}
+
+function truncateTextAfterProtectedPrefix(text: string, protectedChars: number, maxChars: number): string {
+  if (text.length <= maxChars) {
+    return text;
+  }
+  const prefix = text.slice(0, protectedChars);
+  const suffixBudget = Math.max(0, maxChars - prefix.length);
+  if (suffixBudget === 0) {
+    return prefix;
+  }
+  const suffix = text.slice(protectedChars);
+  if (suffixBudget <= CONTEXT_TRUNCATION_SUFFIX.length + 16) {
+    return `${prefix}${suffix.slice(0, suffixBudget)}`;
+  }
+  const keep = suffixBudget - CONTEXT_TRUNCATION_SUFFIX.length;
+  return `${prefix}${suffix.slice(0, keep).trimEnd()}${CONTEXT_TRUNCATION_SUFFIX}`;
 }
 
 function findLastIndex<T>(items: T[], predicate: (item: T) => boolean): number {

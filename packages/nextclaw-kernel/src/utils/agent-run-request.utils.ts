@@ -243,7 +243,7 @@ export function resolveRunSpec(params: {
     spec: {
       runId,
       runtimeId: session.agentRuntimeId,
-      agentId: request.agentId ?? session.agentId ?? defaultAgentId,
+      agentId: session.agentId ?? request.agentId ?? defaultAgentId,
       model,
       requestedModel: request.model ?? null,
       maxTokens: request.maxTokens ?? modelMaxTokens,

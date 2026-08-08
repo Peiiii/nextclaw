@@ -1,6 +1,11 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
-import { LLMProvider, type LLMResponse, type LLMStreamEvent } from "./base.provider.js";
+import {
+  LLMProvider,
+  type LLMResponse,
+  type LLMStreamEvent,
+  type ProviderChatParams,
+} from "./base.provider.js";
 import {
   ChatCompletionsPayloadError,
   normalizeChatCompletionsResponse,
@@ -60,14 +65,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     return this.defaultModel;
   };
 
-  chat = async (params: {
-    messages: Array<Record<string, unknown>>;
-    tools?: Array<Record<string, unknown>>;
-    model?: string | null;
-    maxTokens?: number;
-    thinkingLevel?: ThinkingLevel | null;
-    signal?: AbortSignal;
-  }): Promise<LLMResponse> => {
+  chat = async (params: ProviderChatParams): Promise<LLMResponse> => {
     if (this.wireApi === "chat") {
       return this.chatCompletions(params);
     }
@@ -84,14 +82,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     }
   };
 
-  chatStream = (params: {
-    messages: Array<Record<string, unknown>>;
-    tools?: Array<Record<string, unknown>>;
-    model?: string | null;
-    maxTokens?: number;
-    thinkingLevel?: ThinkingLevel | null;
-    signal?: AbortSignal;
-  }): AsyncGenerator<LLMStreamEvent> => {
+  chatStream = (params: ProviderChatParams): AsyncGenerator<LLMStreamEvent> => {
     return (async function* (provider: OpenAICompatibleProvider): AsyncGenerator<LLMStreamEvent> {
       if (provider.wireApi === "chat") {
         for await (const event of provider.chatCompletionsStream(params)) {
@@ -120,14 +111,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     })(this);
   };
 
-  private chatCompletions = async (params: {
-    messages: Array<Record<string, unknown>>;
-    tools?: Array<Record<string, unknown>>;
-    model?: string | null;
-    maxTokens?: number;
-    thinkingLevel?: ThinkingLevel | null;
-    signal?: AbortSignal;
-  }): Promise<LLMResponse> => {
+  private chatCompletions = async (params: ProviderChatParams): Promise<LLMResponse> => {
     const model = params.model ?? this.defaultModel;
     let lastError: unknown = null;
 
@@ -139,6 +123,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
             messages: params.messages as unknown as ChatCompletionMessageParam[],
             tools: params.tools as ChatCompletionTool[] | undefined,
             tool_choice: params.tools?.length ? "auto" : undefined,
+            ...this.buildChatCompletionsThinking(model, params.thinkingLevel),
             ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {})
           }, params.signal ? { signal: params.signal } : undefined)
         );
@@ -159,14 +144,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     throw lastError ?? createEmptyChatCompletionsPayloadError(this.apiBaseCandidates.at(-1) ?? null);
   };
 
-  private chatCompletionsStream = (params: {
-    messages: Array<Record<string, unknown>>;
-    tools?: Array<Record<string, unknown>>;
-    model?: string | null;
-    maxTokens?: number;
-    thinkingLevel?: ThinkingLevel | null;
-    signal?: AbortSignal;
-  }): AsyncGenerator<LLMStreamEvent> => {
+  private chatCompletionsStream = (params: ProviderChatParams): AsyncGenerator<LLMStreamEvent> => {
     return (async function* (provider: OpenAICompatibleProvider): AsyncGenerator<LLMStreamEvent> {
       const model = params.model ?? provider.defaultModel;
       let lastError: unknown = null;
@@ -187,6 +165,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
                 messages: params.messages as unknown as ChatCompletionMessageParam[],
                 tools: params.tools as ChatCompletionTool[] | undefined,
                 tool_choice: params.tools?.length ? "auto" : undefined,
+                ...provider.buildChatCompletionsThinking(model, params.thinkingLevel),
                 ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {}),
               },
               signal: params.signal,
@@ -214,20 +193,14 @@ export class OpenAICompatibleProvider extends LLMProvider {
     })(this);
   };
 
-  private chatResponses = async (params: {
-    messages: Array<Record<string, unknown>>;
-    tools?: Array<Record<string, unknown>>;
-    model?: string | null;
-    maxTokens?: number;
-    thinkingLevel?: ThinkingLevel | null;
-    signal?: AbortSignal;
-  }): Promise<LLMResponse> => {
+  private chatResponses = async (params: ProviderChatParams): Promise<LLMResponse> => {
+    const { maxTokens, messages, model, thinkingLevel, tools } = params;
     const body = this.buildResponsesRequestBody({
-      model: params.model ?? this.defaultModel,
-      messages: params.messages,
-      tools: params.tools,
-      maxTokens: params.maxTokens,
-      thinkingLevel: params.thinkingLevel,
+      model: model ?? this.defaultModel,
+      messages,
+      tools,
+      maxTokens,
+      thinkingLevel,
     });
 
     let finalResponse: LLMResponse | null = null;
@@ -244,14 +217,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
   };
 
   private chatResponsesStream = (
-    params: {
-      messages: Array<Record<string, unknown>>;
-      tools?: Array<Record<string, unknown>>;
-      model?: string | null;
-      maxTokens?: number;
-      thinkingLevel?: ThinkingLevel | null;
-      signal?: AbortSignal;
-    },
+    params: ProviderChatParams,
     preparedBody?: Record<string, unknown>,
   ): AsyncGenerator<LLMStreamEvent> => {
     return (async function* (provider: OpenAICompatibleProvider): AsyncGenerator<LLMStreamEvent> {
@@ -348,6 +314,20 @@ export class OpenAICompatibleProvider extends LLMProvider {
       body.max_output_tokens = params.maxTokens;
     }
     return body;
+  };
+
+  private buildChatCompletionsThinking = (
+    model: string,
+    thinkingLevel: ThinkingLevel | null | undefined,
+  ): Record<string, unknown> => {
+    if (model.trim().toLowerCase() !== "minimax-m3" || thinkingLevel !== "off") {
+      return {};
+    }
+    return {
+      thinking: {
+        type: "disabled",
+      },
+    };
   };
 
   private shouldFallbackToResponses = (error: unknown): boolean => {

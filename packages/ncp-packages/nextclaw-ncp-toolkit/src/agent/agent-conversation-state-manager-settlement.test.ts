@@ -215,4 +215,60 @@ describe("DefaultNcpAgentConversationStateManager settlement", () => {
       },
     });
   });
+
+});
+
+describe("DefaultNcpAgentConversationStateManager error settlement", () => {
+  it("keeps recovered runtime interruption typed instead of exposing it as a task failure", () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+
+    manager.dispatch({
+      type: NcpEventType.RunError,
+      payload: {
+        error: "Run interrupted: internal recovery detail.",
+        interrupted: true,
+        runId: "run-interrupted-1",
+        sessionId: "session-1",
+      },
+    });
+
+    expect(manager.getSnapshot().error).toMatchObject({
+      code: "run-interrupted",
+      message: "Run interrupted: internal recovery detail.",
+    });
+  });
+
+  it("cancels unfinished tool calls when a run settles with an error", () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    manager.dispatch({
+      type: NcpEventType.MessageTextDelta,
+      payload: { sessionId: "session-1", messageId: "assistant-error", delta: "partial" },
+    });
+    manager.dispatch({
+      type: NcpEventType.MessageToolCallStart,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-error",
+        toolCallId: "tool-interrupted",
+        toolName: "command_execution",
+      },
+    });
+    manager.dispatch({
+      type: NcpEventType.MessageToolCallEnd,
+      payload: { sessionId: "session-1", toolCallId: "tool-interrupted" },
+    });
+    manager.dispatch({
+      type: NcpEventType.RunError,
+      payload: { sessionId: "session-1", error: "interrupted" },
+    });
+
+    expect(manager.getSnapshot().messages[0]).toMatchObject({
+      id: "assistant-error",
+      status: "error",
+      parts: [
+        { type: "text", text: "partial" },
+        { type: "tool-invocation", toolCallId: "tool-interrupted", state: "cancelled" },
+      ],
+    });
+  });
 });

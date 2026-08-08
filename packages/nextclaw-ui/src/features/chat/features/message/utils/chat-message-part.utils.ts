@@ -27,6 +27,10 @@ import type {
   ChatMessageAdapterTexts,
   ChatMessagePartSource,
 } from "@/features/chat/types/chat-message.types";
+import {
+  CONTEXT_COMPACTION_PART_EXTENSION_TYPE,
+  type ContextCompactionPartData,
+} from "@/features/chat/features/message/utils/chat-message-timeline.utils";
 
 export type {
   ChatMessageAdapterTexts,
@@ -241,6 +245,37 @@ function isToolInvocationPart(
   );
 }
 
+function buildExtensionPart(
+  part: Extract<ChatMessagePartSource, { type: "extension" }>,
+): Extract<ChatMessagePartViewModel, { type: "custom" }> | null {
+  if (part.extensionType !== CONTEXT_COMPACTION_PART_EXTENSION_TYPE) {
+    return null;
+  }
+  const data = part.data as Partial<ContextCompactionPartData> | null;
+  if (!data || typeof data.id !== "string" || !data.checkpoint) {
+    return null;
+  }
+  return {
+    type: "custom",
+    id: data.id,
+    customType: part.extensionType,
+    data: {
+      id: data.id,
+      checkpoint: data.checkpoint,
+    } satisfies ContextCompactionPartData,
+    process: true,
+  };
+}
+
+function isExtensionPart(
+  part: ChatMessagePartSource,
+): part is Extract<ChatMessagePartSource, { type: "extension" }> {
+  return part.type === "extension" &&
+    "extensionType" in part &&
+    typeof part.extensionType === "string" &&
+    "data" in part;
+}
+
 export function adaptChatMessagePart(
   params: ChatMessagePartAdapterParams,
 ): ChatMessagePartViewModel | null {
@@ -256,6 +291,9 @@ export function adaptChatMessagePart(
   }
   if (isToolInvocationPart(part)) {
     return buildToolInvocationPart(part, texts);
+  }
+  if (isExtensionPart(part)) {
+    return buildExtensionPart(part);
   }
   return buildUnknownPart(part, texts);
 }

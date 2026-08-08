@@ -1,5 +1,5 @@
 import { useRef, useState, type MutableRefObject } from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import {
   ChatInputBar,
   type ChatInputBarHandle,
@@ -877,14 +877,12 @@ it('reveals the original send error on hover even when the summary stays on one 
     sendError: hoverError,
     sendErrorDetailsLabel: 'View details',
   });
-
   expect(screen.getByRole('button', { name: 'View details' })).toBeTruthy();
   expect(
     screen.getByRole('status').querySelector('span[title]')?.getAttribute('title')
   ).toBe(hoverError);
 });
-
-it('renders a subtle context window indicator without persistent percent text', () => {
+it('renders a subtle context window indicator and separates secondary details without a heading', async () => {
   renderInputBar({
     toolbar: {
       actions: {
@@ -895,17 +893,19 @@ it('renders a subtle context window indicator without persistent percent text', 
           tone: 'neutral',
           details: [
             { label: 'Used', value: '76k' },
-            { label: 'Total', value: '200k' },
-            { label: 'Available', value: '124k' }
+            { label: 'Available', value: '124k' },
+            { label: 'Total', value: '200k', dividerBefore: true }
           ]
         },
       }
     }
   });
-
   const indicator = screen.getByRole('button', { name: 'Context window' });
-  expect(indicator).toBeTruthy();
   expect(indicator.className).toContain('rounded-lg');
   expect(indicator.querySelector('span')?.getAttribute('style')).toContain('hsl(var(--muted-foreground))');
   expect(screen.queryByText('38%')).toBeNull();
+  fireEvent.focus(indicator);
+  const tooltip = await screen.findByRole('tooltip');
+  expect(within(tooltip).getByTestId('context-window-detail-divider')).toBeTruthy();
+  expect(within(tooltip).getByText('Total')).toBeTruthy();
 });

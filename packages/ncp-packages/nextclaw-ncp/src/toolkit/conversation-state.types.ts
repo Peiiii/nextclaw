@@ -1,6 +1,6 @@
 import type { NcpEndpointEvent } from "../types/events.types.js";
 import type { NcpRunContext } from "../types/run.types.js";
-import type { NcpError } from "../types/errors.js";
+import type { NcpError } from "../types/errors.types.js";
 import type { NcpMessage } from "../types/message.js";
 
 /**

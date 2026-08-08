@@ -3,21 +3,32 @@ import {
   CONTEXT_COMPACTION_METADATA_KEY,
   type ContextCompactionCheckpoint,
 } from "@nextclaw/core";
-import type { NcpMessage } from "@nextclaw/ncp";
+import type { NcpEndpointEvent, NcpMessage } from "@nextclaw/ncp";
 import { buildContextCompactionTimelineNcpMessage } from "@kernel/features/context-compaction/index.js";
 import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 
 const SESSION_ID = "session-context-compaction";
+const VALID_SUMMARY = "# Compressed Working Context\n\n## Recent High-Fidelity Context\nThe active task continues.\n\n## Continuation Contract\nContinue the active task.";
 
-function createAgentManager(): AgentManager {
+function createSummaryResponse(content = VALID_SUMMARY) {
+  return {
+    content,
+    finishReason: "stop",
+    reasoningContent: null,
+    toolCalls: [],
+    usage: {},
+  };
+}
+
+function createAgentManager(contextTokens = 1_000): AgentManager {
   return {
     resolveAgentProfileForRun: () => ({
       id: "main",
       default: true,
       workspace: "",
       model: "agent-default-model",
-      contextTokens: 1_000,
+      contextTokens,
       reservedContextTokens: 0,
       displayName: "Main",
       builtIn: true,
@@ -75,23 +86,32 @@ function createExistingCheckpoint(): ContextCompactionCheckpoint {
   };
 }
 
-function createManager(providerManager: object, patchSessionMetadata = vi.fn()) {
-  return {
-    manager: new AgentRunContextCompactionManager(
-      createAgentManager(),
-      providerManager as never,
-      { patchSessionMetadata } as never,
-    ),
-    patchSessionMetadata,
-  };
+function createManager(
+  providerManager: object,
+  contextTokens = 1_000,
+) {
+  return new AgentRunContextCompactionManager(
+    createAgentManager(contextTokens),
+    providerManager as never,
+  );
+}
+
+async function collectEvents(
+  events: AsyncIterable<NcpEndpointEvent>,
+): Promise<NcpEndpointEvent[]> {
+  const collected: NcpEndpointEvent[] = [];
+  for await (const event of events) {
+    collected.push(event);
+  }
+  return collected;
 }
 
 describe("AgentRunContextCompactionManager", () => {
   it("manually compacts history below the automatic budget threshold", async () => {
     const providerManager = {
-      chat: vi.fn(async () => ({ content: "# Compressed Working Context\n\nManual." })),
+      chat: vi.fn(async () => createSummaryResponse()),
     };
-    const { manager } = createManager(providerManager);
+    const manager = createManager(providerManager);
     const messages = [
       createMessage({
         id: "older-message",
@@ -107,14 +127,14 @@ describe("AgentRunContextCompactionManager", () => {
       }),
     ];
 
-    await expect(manager.runPreflight({
+    await expect(collectEvents(manager.runPreflight({
       agentId: "main",
       contextBlocks: [],
       messages,
       metadata: {},
       model: "run-selected-model",
       sessionId: SESSION_ID,
-    })).resolves.toEqual([]);
+    }))).resolves.toEqual([]);
     await expect(manager.runManual({
       agentId: "main",
       contextBlocks: [],
@@ -122,42 +142,103 @@ describe("AgentRunContextCompactionManager", () => {
       metadata: {},
       model: "run-selected-model",
       sessionId: SESSION_ID,
-    })).resolves.toHaveLength(1);
+    })).resolves.toHaveLength(2);
   });
 
-  it("uses the run-selected model and only persists the completed checkpoint", async () => {
+  it("publishes compressing before summary work and completes the same marker", async () => {
+    let resolveSummary: ((value: ReturnType<typeof createSummaryResponse>) => void) | undefined;
+    const summary = new Promise<ReturnType<typeof createSummaryResponse>>((resolve) => {
+      resolveSummary = resolve;
+    });
     const providerManager = {
-      chat: vi.fn(async () => ({ content: "# Compressed Working Context\n\nContinue." })),
+      chat: vi.fn(async () => await summary),
     };
-    const { manager, patchSessionMetadata } = createManager(providerManager);
+    const manager = createManager(providerManager, 20_000);
 
-    const events = await manager.runPreflight({
+    const events = manager.runPreflight({
       agentId: "main",
       contextBlocks: ["runtime context ".repeat(4_000)],
       messages: createFirstCompactionMessages(),
       metadata: {},
       model: "run-selected-model",
       sessionId: SESSION_ID,
+    })[Symbol.asyncIterator]();
+    const compressing = await events.next();
+
+    expect(providerManager.chat).not.toHaveBeenCalled();
+    expect(compressing.value?.payload).toMatchObject({
+      message: {
+        metadata: {
+          checkpoint: { status: "compressing" },
+        },
+      },
     });
 
-    expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
+    const completedPromise = events.next();
+    await vi.waitFor(() => expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
       model: "run-selected-model",
-    }));
-    expect(patchSessionMetadata).toHaveBeenCalledOnce();
-    expect(patchSessionMetadata).toHaveBeenCalledWith(
-      SESSION_ID,
-      expect.objectContaining({
-        [CONTEXT_COMPACTION_METADATA_KEY]: expect.objectContaining({ status: "compressed" }),
-      }),
-    );
-    expect(events).toHaveLength(1);
-    expect(events[0]?.payload).toMatchObject({
+    })));
+    resolveSummary?.(createSummaryResponse());
+    const completed = await completedPromise;
+
+    expect(completed.value?.payload).toMatchObject({
       message: {
         metadata: {
           checkpoint: { status: "compressed" },
         },
       },
     });
+    const compressingMessage = "message" in compressing.value.payload
+      ? compressing.value.payload.message
+      : null;
+    const completedMessage = "message" in completed.value.payload
+      ? completed.value.payload.message
+      : null;
+    expect(completedMessage?.id).toBe(compressingMessage?.id);
+    await expect(events.next()).resolves.toEqual({ done: true, value: undefined });
+  });
+
+  it("cancels an in-flight summary and terminalizes the same marker", async () => {
+    const controller = new AbortController();
+    const providerManager = {
+      chat: vi.fn(async ({ signal }: { signal?: AbortSignal }) =>
+        await new Promise<never>((_resolve, reject) => {
+          signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
+            once: true,
+          });
+        })),
+    };
+    const manager = createManager(providerManager, 20_000);
+    const events = manager.runPreflight({
+      agentId: "main",
+      contextBlocks: ["runtime context ".repeat(4_000)],
+      messages: createFirstCompactionMessages(),
+      metadata: {},
+      model: "run-selected-model",
+      sessionId: SESSION_ID,
+      signal: controller.signal,
+    })[Symbol.asyncIterator]();
+    const compressing = await events.next();
+    const cancelledPromise = events.next();
+
+    await vi.waitFor(() => expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
+      signal: controller.signal,
+    })));
+    controller.abort();
+    const cancelled = await cancelledPromise;
+    const compressingMessageId = compressing.value && "message" in compressing.value.payload
+      ? compressing.value.payload.message.id
+      : undefined;
+
+    expect(cancelled.value?.payload).toMatchObject({
+      message: {
+        id: compressingMessageId,
+        metadata: {
+          checkpoint: { status: "cancelled" },
+        },
+      },
+    });
+    await expect(events.next()).resolves.toEqual({ done: true, value: undefined });
   });
 
   it("does not persist a checkpoint when the first compaction fails", async () => {
@@ -166,18 +247,16 @@ describe("AgentRunContextCompactionManager", () => {
         throw new Error("provider failed");
       }),
     };
-    const { manager, patchSessionMetadata } = createManager(providerManager);
+    const manager = createManager(providerManager, 20_000);
 
-    await expect(manager.runPreflight({
+    await expect(collectEvents(manager.runPreflight({
       agentId: "main",
       contextBlocks: ["runtime context ".repeat(4_000)],
       messages: createFirstCompactionMessages(),
       metadata: {},
       model: "run-selected-model",
       sessionId: SESSION_ID,
-    })).rejects.toThrow("provider failed");
-
-    expect(patchSessionMetadata).not.toHaveBeenCalled();
+    }))).rejects.toThrow("provider failed");
   });
 
   it("preserves the previous checkpoint when rolling compaction fails", async () => {
@@ -188,7 +267,7 @@ describe("AgentRunContextCompactionManager", () => {
         throw new Error("provider failed");
       }),
     };
-    const { manager, patchSessionMetadata } = createManager(providerManager);
+    const manager = createManager(providerManager);
     const messages = [
       buildContextCompactionTimelineNcpMessage({
         checkpoint,
@@ -203,16 +282,14 @@ describe("AgentRunContextCompactionManager", () => {
       })),
     ];
 
-    await expect(manager.runPreflight({
+    await expect(collectEvents(manager.runPreflight({
       agentId: "main",
       contextBlocks: [],
       messages,
       metadata,
       model: "run-selected-model",
       sessionId: SESSION_ID,
-    })).rejects.toThrow("provider failed");
-
-    expect(patchSessionMetadata).not.toHaveBeenCalled();
+    }))).rejects.toThrow("provider failed");
     expect(metadata[CONTEXT_COMPACTION_METADATA_KEY]).toEqual(checkpoint);
   });
 
@@ -220,9 +297,9 @@ describe("AgentRunContextCompactionManager", () => {
     const providerManager = {
       chat: vi.fn()
         .mockRejectedValueOnce(new Error("provider failed"))
-        .mockResolvedValueOnce({ content: "# Compressed Working Context\n\nRecovered." }),
+        .mockResolvedValueOnce(createSummaryResponse()),
     };
-    const { manager, patchSessionMetadata } = createManager(providerManager);
+    const manager = createManager(providerManager, 20_000);
     const input = {
       agentId: "main",
       contextBlocks: ["runtime context ".repeat(4_000)],
@@ -232,15 +309,7 @@ describe("AgentRunContextCompactionManager", () => {
       sessionId: SESSION_ID,
     };
 
-    await expect(manager.runPreflight(input)).rejects.toThrow("provider failed");
-    await expect(manager.runPreflight(input)).resolves.toHaveLength(1);
-
-    expect(patchSessionMetadata).toHaveBeenCalledOnce();
-    expect(patchSessionMetadata).toHaveBeenCalledWith(
-      SESSION_ID,
-      expect.objectContaining({
-        [CONTEXT_COMPACTION_METADATA_KEY]: expect.objectContaining({ status: "compressed" }),
-      }),
-    );
+    await expect(collectEvents(manager.runPreflight(input))).rejects.toThrow("provider failed");
+    await expect(collectEvents(manager.runPreflight(input))).resolves.toHaveLength(2);
   });
 });

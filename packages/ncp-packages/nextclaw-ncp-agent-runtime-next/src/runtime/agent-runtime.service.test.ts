@@ -372,9 +372,9 @@ describe("DefaultNcpAgentRuntime preflight", () => {
     const runtime = new DefaultNcpAgentRuntime({
       llmApi,
       modelInputBuilder,
-      runPreflight: async (input) => {
+      runPreflight: async function* (input) {
         phases.push(input.phase);
-        return [];
+        yield* [];
       },
     });
     const { sessionRun } = createSessionRun();
@@ -389,6 +389,80 @@ describe("DefaultNcpAgentRuntime preflight", () => {
 
     expect(phases).toEqual(["pre-run", "mid-run"]);
     expect(generateRound).toBe(2);
+  });
+
+  it("publishes the preflight cancellation terminal before aborting the run", async () => {
+    const controller = new AbortController();
+    const compressingSeen = deferred();
+    const runtime = new DefaultNcpAgentRuntime({
+      llmApi: createLlmApi([finishChunk("stop")]),
+      modelInputBuilder,
+      runPreflight: async function* ({ signal }) {
+        yield {
+          type: NcpEventType.MessageSent,
+          payload: {
+            sessionId: "session-1",
+            message: {
+              id: "compaction-marker",
+              sessionId: "session-1",
+              role: "service",
+              status: "final",
+              timestamp: "2026-08-08T00:00:00.000Z",
+              parts: [{ type: "text", text: "compressing" }],
+              metadata: { checkpoint: { status: "compressing" } },
+            },
+          },
+        };
+        compressingSeen.resolve();
+        await new Promise<void>((resolve) => signal?.addEventListener("abort", () => resolve(), {
+          once: true,
+        }));
+        yield {
+          type: NcpEventType.MessageSent,
+          payload: {
+            sessionId: "session-1",
+            message: {
+              id: "compaction-marker",
+              sessionId: "session-1",
+              role: "service",
+              status: "final",
+              timestamp: "2026-08-08T00:00:01.000Z",
+              parts: [{ type: "text", text: "cancelled" }],
+              metadata: { checkpoint: { status: "cancelled" } },
+            },
+          },
+        };
+      },
+    });
+    const { sessionRun } = createSessionRun();
+    const eventsPromise = (async () => {
+      const events: NcpEndpointEvent[] = [];
+      for await (const event of runtime.run(spec, {
+        contextBlocks: [],
+        sessionRun,
+        signal: controller.signal,
+        tools: [],
+      })) {
+        events.push(event);
+      }
+      return events;
+    })();
+
+    await compressingSeen.promise;
+    controller.abort();
+    const events = await eventsPromise;
+    const compactionEvents = events.filter((event) => event.type === NcpEventType.MessageSent);
+    const abortIndex = events.findIndex((event) => event.type === NcpEventType.MessageAbort);
+
+    expect(compactionEvents.map((event) =>
+      event.type === NcpEventType.MessageSent
+        ? (event.payload.message.metadata?.checkpoint as { status?: string })?.status
+        : undefined,
+    )).toEqual(["compressing", "cancelled"]);
+    expect(events.findIndex((event) =>
+      event.type === NcpEventType.MessageSent &&
+      (event.payload.message.metadata?.checkpoint as { status?: string })?.status === "cancelled",
+    )).toBeLessThan(abortIndex);
   });
 });
 

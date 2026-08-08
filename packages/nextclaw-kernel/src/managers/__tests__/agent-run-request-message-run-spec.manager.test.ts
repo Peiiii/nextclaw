@@ -31,6 +31,7 @@ describe("AgentRunRequestManager message run spec metadata", () => {
     const ingress = new Ingress();
     const queuedMessages: NcpMessage[] = [];
     const runtimeSpecs: AgentRunSpec[] = [];
+    const surfaceAgentIds: Array<string | undefined> = [];
     const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
     sessionRun.inbox.enqueue = (message: NcpMessage) => {
       queuedMessages.push(structuredClone(message));
@@ -57,13 +58,18 @@ describe("AgentRunRequestManager message run spec metadata", () => {
         getModelMaxTokens: () => 8192,
         loadConfig: () => ({}),
       } as never,
-      { buildContext: async () => [] } as never,
+      {
+        resolveRunSurface: async (request: { agentId?: string }) => {
+          surfaceAgentIds.push(request.agentId);
+          return { contextBlocks: [], tools: [] };
+        },
+      } as never,
       new EventBus(),
       ingress,
       {
         getOrCreateAgentRunSession: async () => ({
           sessionId: "session-1",
-          agentId: undefined,
+          agentId: "researcher",
           agentRuntimeId: "native",
           metadata: {},
           model: undefined,
@@ -76,7 +82,6 @@ describe("AgentRunRequestManager message run spec metadata", () => {
         getSessionRun: () => null,
         getOrCreateSessionRun: async () => sessionRun,
       } as never,
-      { buildTools: async () => [] } as never,
     );
     manager.start();
 
@@ -86,6 +91,8 @@ describe("AgentRunRequestManager message run spec metadata", () => {
         content: [{ type: "text", text: "翻译这一段" }],
         correlationId: "corr-1",
         metadata: {
+          agentId: "main",
+          agent_id: "main",
           kind: "novel-reader-translation",
         },
       },
@@ -108,7 +115,7 @@ describe("AgentRunRequestManager message run spec metadata", () => {
       runId: runtimeSpecs[0]?.runId,
       sessionId: "session-1",
       agentRuntimeId: "native",
-      agentId: "main",
+      agentId: "researcher",
       model: "custom-3/mimo-v2.5-pro",
       modelSource: "default",
       requestedModel: null,
@@ -145,13 +152,14 @@ describe("AgentRunRequestManager message run spec metadata", () => {
     expect(runtimeSpecs[0]).toMatchObject({
       runId: runtimeSpecs[0]?.runId,
       runtimeId: "native",
-      agentId: "main",
+      agentId: "researcher",
       model: "custom-3/mimo-v2.5-pro",
       requestedModel: null,
       maxTokens: 8192,
       thinkingEffort: null,
       correlationId: "corr-1",
     });
+    expect(surfaceAgentIds).toEqual(["researcher"]);
     manager.dispose();
   });
 

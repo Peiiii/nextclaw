@@ -2,7 +2,7 @@ import { ChatButton } from '@agent-chat-ui/components/chat/default-skin/button';
 import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
 import type { ChatContextWindowIndicator, ChatInputBarActionsProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ArrowUp, Play } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
 function StopIcon() {
   return (
@@ -45,10 +45,19 @@ function ContextWindowIndicator({ contextWindow }: { contextWindow: ChatContextW
               <span>{contextWindow.percentLabel}</span>
             </div>
             {contextWindow.details.map((detail) => (
-              <div key={detail.label} className="flex items-center justify-between gap-5 text-muted-foreground">
-                <span>{detail.label}</span>
-                <span className="font-medium text-foreground">{detail.value}</span>
-              </div>
+              <Fragment key={detail.label}>
+                {detail.dividerBefore ? (
+                  <div
+                    aria-hidden="true"
+                    className="my-2 border-t border-border/70"
+                    data-testid="context-window-detail-divider"
+                  />
+                ) : null}
+                <div className="flex items-center justify-between gap-5 text-muted-foreground">
+                  <span>{detail.label}</span>
+                  <span className="font-medium text-foreground">{detail.value}</span>
+                </div>
+              </Fragment>
             ))}
           </div>
         </TooltipContent>

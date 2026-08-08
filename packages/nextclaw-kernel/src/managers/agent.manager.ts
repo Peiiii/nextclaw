@@ -45,6 +45,16 @@ export class AgentManager {
   resolveAgentProfile = (agentId?: string | null): ResolvedAgentProfile =>
     this.resolveAgentProfileFromConfig(this.loadConfig(), agentId);
 
+  resolveAgentProfileForContextWindow = (params: {
+    agentId: string;
+    contextTokens: number;
+  }): ResolvedAgentProfile =>
+    this.resolveAgentProfileFromConfig(
+      this.loadConfig(),
+      params.agentId,
+      params.contextTokens,
+    );
+
   resolveAgentProfileForRun = (params: {
     agentId?: string | null;
     requestMetadata?: Record<string, unknown>;
@@ -91,7 +101,11 @@ export class AgentManager {
     await this.configManager?.applyLiveConfigReload();
   };
 
-  private resolveAgentProfileFromConfig = (config: Config, agentId?: string | null): ResolvedAgentProfile => {
+  private resolveAgentProfileFromConfig = (
+    config: Config,
+    agentId?: string | null,
+    contextTokensOverride?: number,
+  ): ResolvedAgentProfile => {
     const candidateAgentId = normalizeAgentProfileId(agentId) || resolveDefaultAgentProfileId(config);
     const profile =
       findEffectiveAgentProfile(config, candidateAgentId) ??
@@ -99,7 +113,9 @@ export class AgentManager {
     if (!profile) {
       throw new Error(`default agent profile not found: ${BUILTIN_MAIN_AGENT_ID}`);
     }
-    const contextTokens = profile.contextTokens ?? config.agents.defaults.contextTokens;
+    const contextTokens = contextTokensOverride
+      ?? profile.contextTokens
+      ?? config.agents.defaults.contextTokens;
     return {
       ...profile,
       contextTokens,

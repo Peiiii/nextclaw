@@ -8,6 +8,7 @@ export type NcpErrorCode =
   | "config-error"
   | "auth-error"
   | "runtime-error"
+  | "run-interrupted"
   | "timeout-error"
   | "abort-error";
 

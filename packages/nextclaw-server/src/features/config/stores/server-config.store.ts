@@ -884,7 +884,7 @@ function applyRuntimeAgentDefaultsPatch(defaults: Config["agents"]["defaults"], 
   let next = defaults;
   if (Object.prototype.hasOwnProperty.call(defaultsPatch, "contextTokens")) {
     const nextContextTokens = defaultsPatch.contextTokens;
-    if (typeof nextContextTokens === "number" && Number.isFinite(nextContextTokens)) next = { ...next, contextTokens: Math.max(1000, Math.trunc(nextContextTokens)) };
+    if (typeof nextContextTokens === "number" && Number.isFinite(nextContextTokens)) next = { ...next, contextTokens: Math.trunc(nextContextTokens) };
   }
   if (Object.prototype.hasOwnProperty.call(defaultsPatch, "engine")) next = { ...next, engine: normalizeOptionalString(defaultsPatch.engine) ?? "native" };
   if (Object.prototype.hasOwnProperty.call(defaultsPatch, "engineConfig")) {

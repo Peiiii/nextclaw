@@ -457,26 +457,37 @@ export class ConfigRoutesController {
     if (!body.ok || !body.data || typeof body.data !== "object") {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
-    const result = updateRuntime(this.options.configPath, body.data);
-    const changedPaths: string[] = [];
-    if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "contextTokens")) {
-      changedPaths.push("agents.defaults.contextTokens");
+    try {
+      const contextTokens = body.data.agents?.defaults?.contextTokens;
+      if (typeof contextTokens === "number") {
+        await this.options.kernel.agentContextWindowManager.assertDefaultCanSave(contextTokens);
+      }
+      const result = updateRuntime(this.options.configPath, body.data);
+      const changedPaths: string[] = [];
+      if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "contextTokens")) {
+        changedPaths.push("agents.defaults.contextTokens");
+      }
+      if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "engine")) {
+        changedPaths.push("agents.defaults.engine");
+      }
+      if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "engineConfig")) {
+        changedPaths.push("agents.defaults.engineConfig");
+      }
+      if (body.data.agents?.runtimes && Object.prototype.hasOwnProperty.call(body.data.agents.runtimes, "entries")) {
+        changedPaths.push("agents.runtimes.entries");
+      }
+      if (body.data.companion && Object.prototype.hasOwnProperty.call(body.data.companion, "enabled")) {
+        changedPaths.push("companion.enabled");
+      }
+      changedPaths.push("agents.list", "bindings", "session");
+      await this.publishConfigUpdates(changedPaths);
+      return c.json(ok(result));
+    } catch (error) {
+      return c.json(err(
+        "RUNTIME_CONFIG_UPDATE_FAILED",
+        error instanceof Error ? error.message : String(error),
+      ), 400);
     }
-    if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "engine")) {
-      changedPaths.push("agents.defaults.engine");
-    }
-    if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "engineConfig")) {
-      changedPaths.push("agents.defaults.engineConfig");
-    }
-    if (body.data.agents?.runtimes && Object.prototype.hasOwnProperty.call(body.data.agents.runtimes, "entries")) {
-      changedPaths.push("agents.runtimes.entries");
-    }
-    if (body.data.companion && Object.prototype.hasOwnProperty.call(body.data.companion, "enabled")) {
-      changedPaths.push("companion.enabled");
-    }
-    changedPaths.push("agents.list", "bindings", "session");
-    await this.publishConfigUpdates(changedPaths);
-    return c.json(ok(result));
   };
 
   readonly executeAction = async (c: Context) => {

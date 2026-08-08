@@ -33,6 +33,10 @@ function createFixture() {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-command-registry-"));
   tempDirs.push(dir);
   const sessionManager = new SessionManager({
+    agentContextWindowManager: {
+      forgetSession: () => undefined,
+      previewSession: async () => null,
+    } as never,
     agentManager: {
       resolveAgentProfile: () => ({ workspace: dir }),
       resolveAgentProfileForRun: () => ({

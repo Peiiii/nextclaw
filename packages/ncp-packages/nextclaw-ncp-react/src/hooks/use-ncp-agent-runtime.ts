@@ -20,6 +20,7 @@ export type UseNcpAgentResult = {
   activeRunId: string | null;
   isRunning: boolean;
   isSending: boolean;
+  acceptRun: (handle: NcpRunHandle) => Promise<void>;
   send: (input: NcpAgentSendInput) => Promise<NcpRunHandle | null>;
   abort: () => Promise<void>;
   streamRun: () => Promise<void>;
@@ -250,6 +251,28 @@ export function useNcpAgentRuntime({
   const isRunning = !!snapshot.activeRun;
   const isSending = sendingSessionId === sessionId;
 
+  const acceptRun = async (
+    handle: NcpRunHandle,
+    acceptedMessage?: NcpMessage,
+  ): Promise<void> => {
+    if (handle.runId === null) {
+      return;
+    }
+    manager.clearError();
+    await manager.dispatchBatch([
+      ...(acceptedMessage
+        ? [{
+            type: NcpEventType.MessageSent as const,
+            payload: { sessionId: handle.sessionId, message: acceptedMessage },
+          }]
+        : []),
+      {
+        type: NcpEventType.RunStarted,
+        payload: { sessionId: handle.sessionId, runId: handle.runId },
+      },
+    ]);
+  };
+
   const send = async (input: NcpAgentSendInput) => {
     if (isSending) {
       return null;
@@ -288,16 +311,7 @@ export function useNcpAgentRuntime({
         setOptimisticMessage(null);
       } else {
         const acceptedMessage = createSessionMessage(envelope, handle.sessionId);
-        await manager.dispatchBatch([
-          {
-            type: NcpEventType.MessageSent,
-            payload: { sessionId: handle.sessionId, message: acceptedMessage },
-          },
-          {
-            type: NcpEventType.RunStarted,
-            payload: { sessionId: handle.sessionId, runId: handle.runId },
-          },
-        ]);
+        await acceptRun(handle, acceptedMessage);
         setOptimisticMessage(null);
       }
       return handle;
@@ -335,6 +349,7 @@ export function useNcpAgentRuntime({
     snapshot,
     visibleMessages,
     activeRunId,
+    acceptRun,
     isRunning,
     isSending,
     send,

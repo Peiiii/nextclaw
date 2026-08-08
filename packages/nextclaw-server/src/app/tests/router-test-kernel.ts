@@ -37,6 +37,16 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       listQueuedInputs: () => [],
       removeQueuedInput: () => null,
     } as never,
+    agentContextWindowManager: {
+      assertCanSave: async (params: { agentId: string; contextTokens: number }) => ({
+        agentId: params.agentId,
+        contextTokens: params.contextTokens,
+        fixedInputTokens: 0,
+        minimumContextTokens: 1_000,
+        reservedContextTokens: Math.floor(params.contextTokens * 0.2),
+      }),
+      assertDefaultCanSave: async () => [],
+    } as never,
     llmProviders: {} as never,
     providerModelCatalog: {
       getSnapshot: () => ({

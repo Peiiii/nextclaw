@@ -113,6 +113,22 @@ describe("createSessionActivityPreviewFromNcpEvent", () => {
     });
   });
 
+  it("projects recovered runtime interruptions separately from provider failures", () => {
+    expect(createSessionActivityPreviewFromNcpEvent({
+      type: NcpEventType.RunError,
+      payload: {
+        sessionId: "session-1",
+        error: "previous runtime stopped",
+        interrupted: true,
+      },
+    }, TIMESTAMP)).toMatchObject({
+      preview: {
+        state: "failed",
+        statusKind: "run-interrupted",
+      },
+    });
+  });
+
   it("projects user message aborts into metadata-only cancelled previews", () => {
     expect(
       createSessionActivityPreviewFromNcpEvent({

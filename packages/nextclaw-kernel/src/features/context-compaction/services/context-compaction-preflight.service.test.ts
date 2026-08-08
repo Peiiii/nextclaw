@@ -1,27 +1,39 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CONTEXT_COMPACTION_METADATA_KEY,
+  estimateInputTokens,
   type ContextCompactionCheckpoint,
 } from "@nextclaw/core";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
-  buildContextCompactionModelInput,
+  buildContextCompactionModelProjection,
   buildContextCompactionTimelineNcpMessage,
 } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 
 const SESSION_ID = "session-rolling-compaction";
+const VALID_SUMMARY = "# Compressed Working Context\n\n## Recent High-Fidelity Context\nThe active task continues.\n\n## Continuation Contract\nContinue the active task.";
 
-function createAgentManager(): AgentManager {
+function createSummaryResponse(content: string | null = VALID_SUMMARY) {
+  return {
+    content,
+    finishReason: "stop",
+    reasoningContent: null,
+    toolCalls: [],
+    usage: {},
+  };
+}
+
+function createAgentManager(contextTokens = 1_000, reservedContextTokens = 0): AgentManager {
   return {
     resolveAgentProfileForRun: () => ({
       id: "main",
       default: true,
       workspace: "",
       model: "test-model",
-      contextTokens: 1_000,
-      reservedContextTokens: 0,
+      contextTokens,
+      reservedContextTokens,
       displayName: "Main",
       builtIn: true,
     }),
@@ -78,6 +90,42 @@ function createAssistantMessage(params: {
 }
 
 describe("ContextCompactionPreflightService", () => {
+  it("does not call the summary provider when tool schemas already exhaust the compacted input budget", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => createSummaryResponse()),
+    };
+    const service = new ContextCompactionPreflightService(
+      createAgentManager(),
+      providerManager as never,
+    );
+    const begin = service.begin({
+      inputMessages: [],
+      model: "test-model",
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        createAssistantMessage({
+          id: "large-history",
+          text: "history ".repeat(1_000),
+          timestamp: "2026-06-05T17:12:18.000Z",
+        }),
+        createUserMessage(1),
+      ],
+      storedAgentId: "main",
+      storedMetadata: {},
+      tools: [{
+        name: "large_tool",
+        description: "schema ".repeat(1_000),
+        parameters: { type: "object", properties: {} },
+      }] as never,
+    });
+
+    await expect(service.finish(begin.pendingCompaction!)).rejects.toThrow(
+      "cannot fit a usable summary",
+    );
+    expect(providerManager.chat).not.toHaveBeenCalled();
+  });
+
   it("creates a compaction plan for short history only when manually triggered", () => {
     const service = new ContextCompactionPreflightService(createAgentManager());
     const sessionMessages = [
@@ -174,7 +222,7 @@ describe("ContextCompactionPreflightService", () => {
       updatedAt: "2026-06-05T17:13:00.000Z",
     };
 
-    const projectedMessages = buildContextCompactionModelInput({
+    const { messages: projectedMessages } = buildContextCompactionModelProjection({
       sessionId: SESSION_ID,
       sessionMessages: [
         ...Array.from({ length: 8 }, (_, index) => createAssistantMessage({
@@ -220,7 +268,7 @@ describe("ContextCompactionPreflightService", () => {
       updatedAt: "2026-06-05T17:13:00.000Z",
     };
 
-    const projectedMessages = buildContextCompactionModelInput({
+    const { messages: projectedMessages } = buildContextCompactionModelProjection({
       sessionId: SESSION_ID,
       sessionMessages: [
         createAssistantMessage({
@@ -242,6 +290,44 @@ describe("ContextCompactionPreflightService", () => {
 
     expect(projectedMessages.map((message) => message.id)).not.toContain("covered-old");
     expect(projectedMessages.map((message) => message.id)).toContain("current-user");
+  });
+
+});
+
+describe("ContextCompactionPreflightService fixed input", () => {
+  it("keeps runtime and session-preview budget snapshots identical", () => {
+    const service = new ContextCompactionPreflightService(createAgentManager(35_000));
+    const sessionMessages = [createUserMessage(1)];
+    const runtimeSnapshot = service.preview({
+      contextBlocks: ["system context ".repeat(2_000)],
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages,
+      storedAgentId: "main",
+      storedMetadata: {},
+      tools: [{
+        name: "lookup",
+        description: "lookup schema ".repeat(500),
+        parameters: { type: "object", properties: {} },
+      }],
+    });
+    const sessionSnapshot = service.preview({
+      fixedInputTokens: runtimeSnapshot!.fixedInputTokens,
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages,
+      storedAgentId: "main",
+      storedMetadata: {},
+    });
+
+    expect(sessionSnapshot).toMatchObject({
+      usedContextTokens: runtimeSnapshot?.usedContextTokens,
+      fixedInputTokens: runtimeSnapshot?.fixedInputTokens,
+      dynamicInputTokens: runtimeSnapshot?.dynamicInputTokens,
+      reservedContextTokens: runtimeSnapshot?.reservedContextTokens,
+      triggerContextTokens: runtimeSnapshot?.triggerContextTokens,
+      availableBeforeCompactionTokens: runtimeSnapshot?.availableBeforeCompactionTokens,
+    });
   });
 
   it("compacts short sessions when context blocks push the run over budget", () => {
@@ -284,17 +370,118 @@ describe("ContextCompactionPreflightService", () => {
 
 });
 
+describe("context compaction preserved-user projection", () => {
+  it("reprojects checkpoint-preserved user messages and applies the boundary truncation", () => {
+    const checkpoint: ContextCompactionCheckpoint = {
+      ...createCheckpoint(),
+      coveredUntil: "2026-06-05T17:12:30.000Z",
+      preservedUserMessageIds: ["preserved-full", "preserved-truncated"],
+      truncatedPreservedUserMessage: {
+        messageId: "preserved-truncated",
+        text: "TRUNCATED_HEAD…80 tokens truncated…TRUNCATED_TAIL",
+      },
+    };
+    const preservedFull: NcpMessage = {
+      id: "preserved-full",
+      sessionId: SESSION_ID,
+      role: "user",
+      status: "final",
+      timestamp: "2026-06-05T17:12:00.000Z",
+      parts: [{ type: "text", text: "FULL_EXACT_USER_CONSTRAINT" }],
+    };
+    const preservedTruncated: NcpMessage = {
+      ...preservedFull,
+      id: "preserved-truncated",
+      timestamp: "2026-06-05T17:12:10.000Z",
+      parts: [{ type: "text", text: `TRUNCATED_HEAD${"x".repeat(2_000)}TRUNCATED_TAIL` }],
+    };
+
+    const { messages: projectedMessages } = buildContextCompactionModelProjection({
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        preservedFull,
+        preservedTruncated,
+        createAssistantMessage({
+          id: "covered-assistant",
+          text: "do not replay this",
+          timestamp: "2026-06-05T17:12:20.000Z",
+        }),
+        createTimelineMessage(checkpoint),
+      ],
+    });
+
+    expect(projectedMessages.map((message) => message.id)).toEqual([
+      expect.stringContaining("context-compaction-summary"),
+      "preserved-full",
+      "preserved-truncated",
+    ]);
+    expect(projectedMessages[1]?.parts).toEqual([
+      { type: "text", text: "FULL_EXACT_USER_CONSTRAINT" },
+    ]);
+    expect(projectedMessages[2]?.parts).toEqual([
+      { type: "text", text: "TRUNCATED_HEAD…80 tokens truncated…TRUNCATED_TAIL" },
+    ]);
+  });
+
+  it("keeps the checkpoint stable prefix identical while later messages append", () => {
+    const checkpoint: ContextCompactionCheckpoint = {
+      ...createCheckpoint(),
+      coveredUntil: "2026-06-05T17:12:30.000Z",
+      preservedUserMessageIds: ["preserved-user"],
+      retainedMessageIds: ["retained-current-user"],
+      updatedAt: "2026-06-05T17:13:00.000Z",
+    };
+    const preservedUser: NcpMessage = {
+      id: "preserved-user",
+      sessionId: SESSION_ID,
+      role: "user",
+      status: "final",
+      timestamp: "2026-06-05T17:12:00.000Z",
+      parts: [{ type: "text", text: "PRESERVED_EXACT_USER_CONSTRAINT" }],
+    };
+    const retainedUser: NcpMessage = {
+      ...preservedUser,
+      id: "retained-current-user",
+      timestamp: "2026-06-05T17:12:59.000Z",
+      parts: [{ type: "text", text: "CURRENT_EXACT_USER_REQUEST" }],
+    };
+    const timeline = createTimelineMessage(checkpoint);
+    const firstProjection = buildContextCompactionModelProjection({
+      sessionId: SESSION_ID,
+      sessionMessages: [preservedUser, retainedUser, timeline],
+    });
+    const secondProjection = buildContextCompactionModelProjection({
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        preservedUser,
+        retainedUser,
+        timeline,
+        createAssistantMessage({
+          id: "dynamic-assistant",
+          text: "new output after checkpoint",
+          timestamp: "2026-06-05T17:13:01.000Z",
+        }),
+      ],
+    });
+
+    expect(firstProjection.stablePrefixMessageCount).toBe(3);
+    expect(secondProjection.stablePrefixMessageCount).toBe(3);
+    expect(
+      secondProjection.messages.slice(0, secondProjection.stablePrefixMessageCount),
+    ).toEqual(firstProjection.messages);
+    expect(secondProjection.messages.at(-1)?.id).toBe("dynamic-assistant");
+  });
+});
+
 describe("ContextCompactionPreflightService mid-run compaction", () => {
   it("records a part boundary and keeps only later parts after mid-run compaction", async () => {
     const providerManager = {
-      chat: vi.fn(async () => ({
-        content: "# Compressed Working Context\n\nThe lookup completed.\n\n## Continuation Contract\nContinue after the lookup.",
+      chat: vi.fn(async (request: { maxTokens: number }) => ({
+        ...createSummaryResponse("# Compressed Working Context\n\nThe lookup completed.\n\n## Continuation Contract\nContinue after the lookup."),
+        finishReason: request.maxTokens < 8_000 ? "length" : "stop",
       })),
     };
-    const service = new ContextCompactionPreflightService(
-      createAgentManager(),
-      providerManager as never,
-    );
+    const service = new ContextCompactionPreflightService(createAgentManager(35_000, 7_000), providerManager as never);
     const activeAssistant: NcpMessage = {
       id: "active-assistant",
       sessionId: SESSION_ID,
@@ -302,7 +489,7 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
       status: "streaming",
       timestamp: "2026-06-05T17:14:00.000Z",
       parts: [
-        { type: "text", text: "Working. ".repeat(2_000) },
+        { type: "text", text: "Working. ".repeat(12_000) },
         {
           type: "tool-invocation",
           toolName: "lookup",
@@ -313,29 +500,41 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
         },
       ],
     };
+    const activeUser: NcpMessage = {
+      id: "active-user",
+      sessionId: SESSION_ID,
+      role: "user",
+      status: "final",
+      timestamp: "2026-06-05T17:13:59.000Z",
+      parts: [{ type: "text", text: "Keep this exact user constraint." }],
+    };
     const beginResult = service.begin({
+      contextBlocks: ["fixed context ".repeat(7_200)],
       inputMessages: [],
       model: "run-selected-model",
       phase: "mid-run",
       requestMetadata: {},
       sessionId: SESSION_ID,
-      sessionMessages: [activeAssistant],
+      sessionMessages: [activeUser, activeAssistant],
       storedAgentId: "main",
       storedMetadata: {},
     });
 
     expect(beginResult.pendingCompaction?.plan.retainedMessages).toEqual([]);
+    expect(beginResult.pendingCompaction?.checkpoint).toMatchObject({ status: "compressing", phase: "mid-run", continuationMessageId: "active-assistant", continuationMessageCoveredPartCount: 2 });
     const finishResult = await service.finish(beginResult.pendingCompaction!);
-    const checkpoint = finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY] as ContextCompactionCheckpoint;
+    const checkpoint = finishResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
     expect(checkpoint).toMatchObject({
       phase: "mid-run",
       continuationMessageId: "active-assistant",
       continuationMessageCoveredPartCount: 2,
+      preservedUserMessageIds: ["active-user"],
     });
 
-    const projectedMessages = buildContextCompactionModelInput({
+    const { messages: projectedMessages } = buildContextCompactionModelProjection({
       sessionId: SESSION_ID,
       sessionMessages: [
+        activeUser,
         {
           ...activeAssistant,
           parts: [
@@ -349,10 +548,15 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
 
     expect(projectedMessages[0]).toMatchObject({ role: "service" });
     expect(projectedMessages[1]).toMatchObject({
+      id: "active-user",
+      role: "user",
+      parts: [{ type: "text", text: "Keep this exact user constraint." }],
+    });
+    expect(projectedMessages[2]).toMatchObject({
       role: "user",
       parts: [{ type: "text", text: expect.stringContaining("Continue the active run") }],
     });
-    expect(projectedMessages[2]).toMatchObject({
+    expect(projectedMessages[3]).toMatchObject({
       id: "active-assistant",
       parts: [{ type: "text", text: "New model output after compaction." }],
     });
@@ -361,16 +565,17 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
       ...activeAssistant,
       parts: [
         ...activeAssistant.parts,
-        { type: "text", text: `SECOND_ROUND_CANARY ${"next ".repeat(2_000)}` },
+        { type: "text", text: `SECOND_ROUND_CANARY ${"next ".repeat(25_000)}` },
       ],
     };
     const rollingBeginResult = service.begin({
+      contextBlocks: ["fixed context ".repeat(7_200)],
       inputMessages: [],
       model: "run-selected-model",
       phase: "mid-run",
       requestMetadata: {},
       sessionId: SESSION_ID,
-      sessionMessages: [rollingAssistant, finishResult.timelineMessage!],
+      sessionMessages: [activeUser, rollingAssistant, finishResult.timelineMessage!],
       storedAgentId: "main",
       storedMetadata: {
         [CONTEXT_COMPACTION_METADATA_KEY]: checkpoint,
@@ -378,7 +583,7 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
     });
 
     const rollingFinishResult = await service.finish(rollingBeginResult.pendingCompaction!);
-    const rollingCheckpoint = rollingFinishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY] as ContextCompactionCheckpoint;
+    const rollingCheckpoint = rollingFinishResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
     const rollingSummaryRequest = providerManager.chat.mock.calls[1]?.[0].messages[1]?.content ?? "";
     expect(rollingSummaryRequest).toContain("The lookup completed.");
     expect(rollingSummaryRequest).toContain("SECOND_ROUND_CANARY");
@@ -392,13 +597,74 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
 });
 
 describe("ContextCompactionPreflightService rolling source", () => {
-  it("strips reasoning tags before storing generated summaries", async () => {
+  it.each([
+    {
+      name: "truncated non-empty content",
+      response: createSummaryResponse("# Compressed Working Context\n\nPartial"),
+      finishReason: "length",
+      expectedError: "summary was truncated",
+    },
+    {
+      name: "structurally incomplete content",
+      response: createSummaryResponse("# Compressed Working Context\n\nPartial"),
+      finishReason: "stop",
+      expectedError: "summary is incomplete",
+    },
+    {
+      name: "reasoning-only content",
+      response: createSummaryResponse(null),
+      finishReason: "stop",
+      expectedError: "summary is empty",
+    },
+  ])("rejects $name without installing a checkpoint", async ({ response, finishReason, expectedError }) => {
     const providerManager = {
       chat: vi.fn(async () => ({
-        content: "<think>hidden compaction reasoning</think>\n\n# Compressed Working Context\n\n## Continuation Contract\nKeep continuing 《天脊书》.",
+        ...response,
+        finishReason,
+        reasoningContent: "internal reasoning without a usable summary",
       })),
     };
-    const service = new ContextCompactionPreflightService(createAgentManager(), providerManager as never);
+    const service = new ContextCompactionPreflightService(
+      createAgentManager(20_000),
+      providerManager as never,
+    );
+    const beginResult = service.begin({
+      inputMessages: [],
+      model: "run-selected-model",
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages: [
+        createAssistantMessage({
+          id: "large-previous-reply",
+          text: "chapter ".repeat(12_000),
+          timestamp: "2026-06-05T17:13:00.000Z",
+        }),
+        createAssistantMessage({
+          id: "latest-reply",
+          text: "Keep going.",
+          timestamp: "2026-06-05T17:14:00.000Z",
+        }),
+      ],
+      storedAgentId: "main",
+      storedMetadata: {},
+      trigger: "manual",
+    });
+
+    await expect(service.finish(beginResult.pendingCompaction!)).rejects.toThrow(expectedError);
+    expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
+      thinkingLevel: "off",
+    }));
+  });
+});
+
+describe("ContextCompactionPreflightService summary projection", () => {
+  it("strips reasoning tags before storing generated summaries", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => createSummaryResponse(
+        "<think>hidden compaction reasoning</think>\n\n# Compressed Working Context\n\n## Continuation Contract\nKeep continuing 《天脊书》.",
+      )),
+    };
+    const service = new ContextCompactionPreflightService(createAgentManager(20_000), providerManager as never);
     const beginResult = service.begin({
       contextBlocks: ["context ".repeat(4_000)],
       inputMessages: [],
@@ -419,19 +685,21 @@ describe("ContextCompactionPreflightService rolling source", () => {
       ],
       storedAgentId: "main",
       storedMetadata: {},
+      trigger: "manual",
     });
 
     const finishResult = await service.finish(beginResult.pendingCompaction!);
-    const checkpoint = finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY] as ContextCompactionCheckpoint;
+    const checkpoint = finishResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
     expect(checkpoint.summary).toBe("# Compressed Working Context\n\n## Continuation Contract\nKeep continuing 《天脊书》.");
     expect(checkpoint.summary).not.toContain("<think>");
   });
-
   it("keeps recent covered message heads when summary source is truncated", async () => {
     const providerManager = {
-      chat: vi.fn(async () => ({ content: "# Compressed Working Context\n\nKept source canaries." })),
+      chat: vi.fn(async () => createSummaryResponse(
+        "# Compressed Working Context\n\nKept source canaries.\n\n## Continuation Contract\nContinue.",
+      )),
     };
-    const service = new ContextCompactionPreflightService(createAgentManager(), providerManager as never);
+    const service = new ContextCompactionPreflightService(createAgentManager(20_000), providerManager as never);
     const sessionMessages = Array.from({ length: 12 }, (_, index) =>
       createAssistantMessage({
         id: `large-history-${index}`,
@@ -443,7 +711,6 @@ describe("ContextCompactionPreflightService rolling source", () => {
         timestamp: `2026-06-05T17:${String(12 + index).padStart(2, "0")}:00.000Z`,
       }),
     );
-
     const beginResult = service.begin({
       inputMessages: [],
       model: "run-selected-model",
@@ -453,27 +720,38 @@ describe("ContextCompactionPreflightService rolling source", () => {
       storedAgentId: "main",
       storedMetadata: {},
     });
-
     await service.finish(beginResult.pendingCompaction!);
-
     const summaryRequest = providerManager.chat.mock.calls[0]?.[0].messages[1]?.content ?? "";
     const summarySystemPrompt = providerManager.chat.mock.calls[0]?.[0].messages[0]?.content ?? "";
+    const providerRequest = providerManager.chat.mock.calls[0]?.[0];
     expect(summarySystemPrompt).toContain("Continuation Contract");
     expect(summarySystemPrompt).toContain("does not restart as a fresh session");
     expect(summaryRequest).toContain("Continuation Contract");
     expect(summaryRequest).toContain("CANARY_ALPHA_731");
     expect(summaryRequest).toContain("CANARY_RECENT_842");
+    expect(
+      estimateInputTokens(providerRequest?.messages ?? [])
+      + (providerRequest?.maxTokens ?? 0),
+    ).toBeLessThanOrEqual(20_000);
   });
 
   it("creates a new compaction plan when a compressed session exceeds the context window again", async () => {
     const existingCheckpoint = createCheckpoint();
     const providerManager = {
-      chat: vi.fn(async () => ({ content: "# Compressed Earlier Context\n\nRolled forward." })),
+      chat: vi.fn(async () => createSummaryResponse(
+        "# Compressed Working Context\n\nRolled forward.\n\n## Continuation Contract\nContinue.",
+      )),
     };
-    const service = new ContextCompactionPreflightService(createAgentManager(), providerManager as never);
+    const service = new ContextCompactionPreflightService(createAgentManager(20_000), providerManager as never);
     const sessionMessages = [
       createTimelineMessage(existingCheckpoint),
-      ...Array.from({ length: 16 }, (_, index) => createUserMessage(index)),
+      ...Array.from({ length: 16 }, (_, index) => ({
+        ...createUserMessage(index),
+        parts: [{
+          type: "text" as const,
+          text: `after checkpoint ${index} ${"x".repeat(6_000)}`,
+        }],
+      })),
     ];
 
     const beginResult = service.begin({
@@ -508,15 +786,15 @@ describe("ContextCompactionPreflightService rolling source", () => {
     expect(summaryRequest).toContain("after checkpoint 14");
     expect(summaryRequest).not.toContain("after checkpoint 15");
     expect(finishResult.timelineMessage?.id).toBe(pendingCompaction.serviceMessageId);
-    expect(finishResult.metadataPatch[CONTEXT_COMPACTION_METADATA_KEY]).toMatchObject({
+    expect(finishResult.timelineMessage?.metadata?.checkpoint).toMatchObject({
       coveredMessageCount: compressingCheckpoint.coveredMessageCount,
       coveredSessionMessageCount: compressingCheckpoint.coveredSessionMessageCount,
       coveredUntil: "2026-06-05T17:34:00.000Z",
       id: existingCheckpoint.id,
       status: "compressed",
-      summary: "# Compressed Earlier Context\n\nRolled forward.",
+      summary: "# Compressed Working Context\n\nRolled forward.\n\n## Continuation Contract\nContinue.",
     });
-    const projectedAfterFinish = buildContextCompactionModelInput({
+    const { messages: projectedAfterFinish } = buildContextCompactionModelProjection({
       sessionId: SESSION_ID,
       sessionMessages: [
         ...sessionMessages,
@@ -524,7 +802,8 @@ describe("ContextCompactionPreflightService rolling source", () => {
       ],
     });
     expect(projectedAfterFinish.map((message) => message.id)).toContain("message-after-15");
-    expect(projectedAfterFinish.map((message) => message.id)).not.toContain("message-after-14");
+    expect(projectedAfterFinish.map((message) => message.id)).toContain("message-after-14");
+    expect(projectedAfterFinish.map((message) => message.id)).not.toContain("message-after-0");
     expect(finishResult.contextWindow.usedContextTokens).toBeLessThan(beginResult.contextWindow.usedContextTokens);
   });
 });

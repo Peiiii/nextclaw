@@ -58,6 +58,11 @@ export type ChatMessagePartSource =
       };
     }
   | {
+      type: "extension";
+      extensionType: string;
+      data: unknown;
+    }
+  | {
       type: string;
       [key: string]: unknown;
     };

@@ -28,6 +28,7 @@ function createProviderProbeApp(configPath: string) {
       ingress: {} as never,
       inboxDeliveryManager: {} as never,
       agentRunRequestManager: {} as never,
+      agentContextWindowManager: {} as never,
       isSessionRunning: () => false,
       listSessionTypes: async () => ({ defaultType: "native", options: [] }),
       sessionManager: {} as never,

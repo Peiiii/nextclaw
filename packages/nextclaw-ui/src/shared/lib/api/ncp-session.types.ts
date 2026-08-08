@@ -21,8 +21,14 @@ export type RuntimeEntryView = {
 };
 
 export type SessionContextWindowView = {
+  completeInputBudget?: boolean;
   usedContextTokens: number;
   totalContextTokens: number;
+  fixedInputTokens?: number;
+  dynamicInputTokens?: number;
+  reservedContextTokens?: number;
+  triggerContextTokens?: number;
+  availableBeforeCompactionTokens?: number;
   prunedUsedContextTokens: number;
   availableContextTokens: number;
   droppedHistoryCount: number;

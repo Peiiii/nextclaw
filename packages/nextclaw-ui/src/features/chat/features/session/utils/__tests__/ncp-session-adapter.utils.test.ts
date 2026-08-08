@@ -1,4 +1,5 @@
 import {
+  adaptNcpMessagePartsForChat,
   adaptNcpMessageToUiMessage,
   adaptNcpSessionSummary,
   readNcpSessionPreferredThinking
@@ -15,6 +16,24 @@ function createSummary(partial: Partial<NcpSessionSummaryView> = {}): NcpSession
     ...partial
   };
 }
+
+it('preserves NCP extension parts for the chat presentation adapter', () => {
+  const extension = {
+    type: 'extension' as const,
+    extensionType: 'nextclaw.context-compaction',
+    data: { id: 'context-compaction-message-1' },
+  };
+
+  expect(adaptNcpMessagePartsForChat([
+    { type: 'text', text: 'before' },
+    extension,
+    { type: 'text', text: 'after' },
+  ])).toEqual([
+    { type: 'text', text: 'before' },
+    extension,
+    { type: 'text', text: 'after' },
+  ]);
+});
 
 describe('adaptNcpSessionSummary', () => {
   it('maps session metadata into shared session entry fields', () => {

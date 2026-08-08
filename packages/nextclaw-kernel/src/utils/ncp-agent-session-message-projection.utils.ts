@@ -3,7 +3,19 @@ import { SessionMessageCursorError } from "@kernel/types/session.types.js";
 
 const OFFSET_FIELD_WIDTH = 20;
 
+export const NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION = 6;
 export const MESSAGE_PROJECTION_OFFSET_RECORD_BYTES = OFFSET_FIELD_WIDTH * 2 + 2;
+
+export type NcpAgentSessionMessageProjectionMeta = {
+  version: typeof NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION;
+  sessionId: string;
+  total: number;
+  projectedJournalOffset: number;
+  dataBytes: number;
+  contextWindow: Record<string, unknown> | null;
+  activeMessageId: string | null;
+  pendingCompactionMessageIds: string[];
+};
 
 export type NcpAgentSessionMessageLocation = {
   offset: number;
@@ -59,4 +71,83 @@ export function deduplicateNcpAgentSessionTailMessages(messages: readonly NcpMes
     byId.set(message.id, structuredClone(message));
   }
   return [...byId.values()];
+}
+
+export function isNcpAgentSessionMessageProjectionMeta(
+  value: unknown,
+  sessionId: string,
+): value is NcpAgentSessionMessageProjectionMeta {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const meta = value as Partial<NcpAgentSessionMessageProjectionMeta>;
+  return (
+    meta.version === NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION &&
+    meta.sessionId === sessionId &&
+    Number.isSafeInteger(meta.total) &&
+    Number.isSafeInteger(meta.projectedJournalOffset) &&
+    Number.isSafeInteger(meta.dataBytes) &&
+    (meta.activeMessageId === null || typeof meta.activeMessageId === "string") &&
+    Array.isArray(meta.pendingCompactionMessageIds) &&
+    meta.pendingCompactionMessageIds.every((id) => typeof id === "string") &&
+    (meta.contextWindow === null || isRecord(meta.contextWindow))
+  );
+}
+
+export function readActiveAssistantMessageId(
+  messages: readonly NcpMessage[],
+): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (
+      message?.role === "assistant" &&
+      (message.status === "pending" || message.status === "streaming")
+    ) {
+      return message.id;
+    }
+  }
+  return null;
+}
+
+export function readPendingCompactionMessageIds(
+  messages: readonly NcpMessage[],
+): string[] {
+  const pending = new Set<string>();
+  for (const message of messages) {
+    if (readCompactionStatus(message) === "compressing") {
+      pending.add(message.id);
+    }
+  }
+  return [...pending];
+}
+
+export function mergePendingCompactionMessageIds(
+  current: readonly string[],
+  messages: readonly NcpMessage[],
+): Set<string> {
+  const pending = new Set(current);
+  for (const message of messages) {
+    const status = readCompactionStatus(message);
+    if (status === "compressing") {
+      pending.add(message.id);
+    } else if (status) {
+      pending.delete(message.id);
+    }
+  }
+  return pending;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readCompactionStatus(message: NcpMessage): string | null {
+  const checkpoint = message.metadata?.checkpoint;
+  if (
+    message.metadata?.nextclaw_timeline_kind !== "context_compaction" ||
+    !isRecord(checkpoint)
+  ) {
+    return null;
+  }
+  return typeof checkpoint.status === "string" ? checkpoint.status : null;
 }

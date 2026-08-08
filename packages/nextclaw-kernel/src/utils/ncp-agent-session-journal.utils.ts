@@ -4,12 +4,12 @@ import {
   DefaultNcpAgentConversationStateManager, insertMessageByTimeline
 } from "@nextclaw/ncp-toolkit";
 import { type NcpEndpointEvent, NcpEventType, type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
+import { ContextCompactionJournalRecoveryService } from "@kernel/features/context-compaction/index.js";
 import { AGENT_RUN_PEER_ID_METADATA_KEY } from "./agent-peer-session.utils.js";
+import { resolveNcpAgentSessionLabel } from "./ncp-agent-session-label.utils.js";
 
 export const NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION = 1;
 export const NCP_AGENT_SESSION_JOURNAL_INDEX_FILE = ".ncp-agent-session-index.json";
-
-const AUTO_SESSION_LABEL_MAX_LENGTH = 64;
 
 export type NcpAgentSessionJournalMetadataEntry = {
   _type: "metadata";
@@ -69,6 +69,7 @@ export type NcpAgentSessionJournalIndex = {
 export type LoadedNcpAgentJournalSession = {
   record: AgentSessionRecord;
   nextSeq: number;
+  journalOffset: number;
   projectedJournalOffset: number;
 };
 
@@ -95,7 +96,7 @@ export function toIsoString(value: unknown, fallback: string): string {
 
 export function createNcpAgentSessionSummary(record: AgentSessionRecord): NcpSessionSummary {
   const metadata = structuredClone(record.metadata ?? {});
-  const label = readOptionalText(metadata.label) ?? resolveAutoSessionLabel(record.messages);
+  const label = readOptionalText(metadata.label) ?? resolveNcpAgentSessionLabel(record.messages);
   const peerId = readNcpAgentSessionPeerId(metadata);
   if (label) {
     metadata.label = label;
@@ -157,7 +158,8 @@ export function upsertNcpAgentSessionSummaryEvent(params: {
 
 export async function replayNcpAgentSessionEvents(
   events: readonly NcpAgentSessionJournalReplayEvent[],
-  seedMessages: readonly NcpMessage[] = []
+  seedMessages: readonly NcpMessage[] = [],
+  activeMessageId?: string | null,
 ): Promise<NcpMessage[]> {
   const stateManager = new DefaultNcpAgentConversationStateManager();
   if (seedMessages.length > 0) {
@@ -166,13 +168,29 @@ export async function replayNcpAgentSessionEvents(
       messages: seedMessages
     });
   }
+  const activeMessage = activeMessageId
+    ? seedMessages.find((message) => message.id === activeMessageId)
+    : undefined;
+  if (activeMessage) {
+    await stateManager.dispatch({
+      occurredAt: activeMessage.timestamp,
+      type: NcpEventType.MessageReasoningStart,
+      payload: {
+        sessionId: activeMessage.sessionId,
+        messageId: activeMessage.id,
+      },
+    });
+  }
   const knownMessageIds = new Set(seedMessages.map((message) => message.id));
   const toolResultsByCallId = new Map<string, NcpToolCallResultReplayPayload>();
+  const compactionRecovery = new ContextCompactionJournalRecoveryService();
+  compactionRecovery.seed(seedMessages);
   for (const event of events) {
     if (isJournalOnlyEvent(event)) {
       continue;
     }
     const replayEvent = createReplayEvent(event, toolResultsByCallId);
+    compactionRecovery.track(replayEvent);
     const bootstrap = createReplayStreamingBootstrapEvent(replayEvent, knownMessageIds);
     if (bootstrap) {
       knownMessageIds.add(bootstrap.messageId);
@@ -191,7 +209,7 @@ export async function replayNcpAgentSessionEvents(
   const messages = snapshot.streamingMessage
     ? insertMessageByTimeline(snapshot.messages, snapshot.streamingMessage)
     : snapshot.messages;
-  return messages.map((message) => structuredClone(message));
+  return messages.map(compactionRecovery.terminalize);
 }
 
 function createReplayEvent(
@@ -341,33 +359,9 @@ function readMessageTimestamp(message: NcpMessage | undefined): string | undefin
   return message?.status === "final" ? toIsoString(message.timestamp, "") || undefined : undefined;
 }
 
-function truncateLabel(value: string): string {
-  const chars = Array.from(value);
-  return chars.length <= AUTO_SESSION_LABEL_MAX_LENGTH
-    ? value
-    : `${chars.slice(0, AUTO_SESSION_LABEL_MAX_LENGTH).join("")}...`;
-}
-
 function readOptionalText(value: unknown): string | null {
   const trimmed = typeof value === "string" ? value.trim() : "";
   return trimmed || null;
-}
-
-function resolveAutoSessionLabel(messages: readonly NcpMessage[]): string | null {
-  for (const message of messages) {
-    if (message.role !== "user") {
-      continue;
-    }
-    for (const part of message.parts) {
-      if (part.type === "text" || part.type === "rich-text") {
-        const text = readOptionalText(part.text);
-        if (text) {
-          return truncateLabel(text);
-        }
-      }
-    }
-  }
-  return null;
 }
 
 function readMessageFromSummaryEvent(event: NcpAgentSessionJournalReplayEvent): NcpMessage | undefined {

@@ -4,10 +4,14 @@ import type { ContextInheritanceTimelineView } from "@/features/chat/features/me
 
 export function ChatContextCompactionDivider({
   checkpoint,
+  inline = false,
 }: {
   checkpoint?: ContextCompactionTimelineView;
+  inline?: boolean;
 }) {
   const isCompacting = !checkpoint || checkpoint.status === "compressing";
+  const isFailed = checkpoint?.status === "failed";
+  const isCancelled = checkpoint?.status === "cancelled";
   const title = checkpoint
     ? [
         `${t("chatContextCompactionCoveredMessages")}: ${checkpoint.coveredSessionMessageCount}`,
@@ -17,7 +21,11 @@ export function ChatContextCompactionDivider({
     : undefined;
   return (
     <div
-      className="my-4 flex items-center gap-3 text-[11px] text-muted-foreground"
+      data-context-compaction-placement={inline ? "assistant" : "timeline"}
+      className={inline
+        ? "my-3 flex items-center gap-3 text-[11px] text-muted-foreground"
+        : "my-4 flex items-center gap-3 text-[11px] text-muted-foreground"}
+      aria-live="polite"
       title={title}
     >
       <div className="h-px flex-1 bg-border" />
@@ -30,7 +38,11 @@ export function ChatContextCompactionDivider({
         <span>
           {isCompacting
             ? t("chatContextCompactionCompressing")
-            : t("chatContextCompactionCompressed")}
+            : isCancelled
+              ? t("chatContextCompactionCancelled")
+              : isFailed
+                ? t("chatContextCompactionFailed")
+                : t("chatContextCompactionCompressed")}
         </span>
       </div>
       <div className="h-px flex-1 bg-border" />

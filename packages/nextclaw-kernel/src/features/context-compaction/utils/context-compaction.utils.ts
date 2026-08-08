@@ -10,25 +10,32 @@ export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
 export const CONTEXT_COMPACTION_TIMELINE_KIND = "context_compaction";
 export const CONTEXT_COMPACTION_PROJECTION_METADATA_KEY = "nextclaw_context_projection";
 export const CONTEXT_COMPACTION_PROJECTION_KIND = "compressed_context";
+export const CONTEXT_COMPACTION_CONTINUATION_TEXT = "Continue the active run from the compressed working context. Do not repeat completed tool calls; proceed with the next required action.";
+export const CONTEXT_COMPACTION_SYSTEM_PREAMBLE = [
+  "Authoritative compressed prior conversation context for this session.",
+  "Continue from this context and any following messages. Do not restart onboarding or treat missing profile fields as a new-session trigger unless the compressed context says onboarding is the active user task.",
+].join("\n");
 
 export type ContextCompactionTimelineCheckpoint = ContextCompactionCheckpoint;
 
 function readCheckpointTimelineText(checkpoint: ContextCompactionTimelineCheckpoint): string {
-  return checkpoint.status === "compressing"
-    ? "Compressing earlier context"
-    : "Earlier context was auto-compacted";
+  if (checkpoint.status === "compressing") {
+    return "Compressing earlier context";
+  }
+  return checkpoint.status === "compressed"
+    ? "Earlier context was auto-compacted"
+    : "Context compaction failed";
 }
 
 function buildCompressedContextSystemText(checkpoint: ContextCompactionCheckpoint): string {
   return [
-    "Authoritative compressed prior conversation context for this session.",
-    "Continue from this context and any following messages. Do not restart onboarding or treat missing profile fields as a new-session trigger unless the compressed context says onboarding is the active user task.",
+    CONTEXT_COMPACTION_SYSTEM_PREAMBLE,
     "",
     checkpoint.summary,
   ].join("\n");
 }
 
-function readContextCompactionCheckpoint(message: NcpMessage): ContextCompactionCheckpoint | null {
+export function readContextCompactionCheckpoint(message: NcpMessage): ContextCompactionCheckpoint | null {
   const metadata = message.metadata;
   return metadata?.[NEXTCLAW_TIMELINE_KIND_METADATA_KEY] === CONTEXT_COMPACTION_TIMELINE_KIND
     ? readCompressedContextCompactionCheckpoint(metadata.checkpoint)
@@ -75,7 +82,7 @@ function buildMidRunContinuationMessage(params: {
     timestamp: checkpoint.updatedAt,
     parts: [{
       type: "text",
-      text: "Continue the active run from the compressed working context. Do not repeat completed tool calls; proceed with the next required action.",
+      text: CONTEXT_COMPACTION_CONTINUATION_TEXT,
     }],
   };
 }
@@ -99,6 +106,34 @@ function projectMessageAfterCheckpoint(
   return Date.parse(message.timestamp) > Date.parse(readCheckpointCoveredUntil(checkpoint))
     ? structuredClone(message)
     : null;
+}
+
+function readCheckpointMessageIds(value: unknown): Set<string> {
+  return new Set(
+    Array.isArray(value)
+      ? value.filter((messageId): messageId is string =>
+          typeof messageId === "string" && messageId.length > 0,
+        )
+      : [],
+  );
+}
+
+function projectPreservedUserMessage(
+  message: NcpMessage,
+  checkpoint: ContextCompactionCheckpoint,
+): NcpMessage {
+  const truncated = checkpoint.truncatedPreservedUserMessage;
+  if (
+    truncated?.messageId === message.id &&
+    typeof truncated.text === "string" &&
+    truncated.text.length > 0
+  ) {
+    return {
+      ...structuredClone(message),
+      parts: [{ type: "text", text: truncated.text }],
+    };
+  }
+  return structuredClone(message);
 }
 
 function readCheckpointCoveredUntil(checkpoint: ContextCompactionCheckpoint): string {
@@ -142,28 +177,57 @@ export function readLatestContextCompactionCheckpoint(sessionMessages: readonly 
   return readLatestContextCompactionMarker(sessionMessages)?.checkpoint ?? null;
 }
 
-export function buildContextCompactionModelInput(params: {
+export type ContextCompactionModelProjection = {
+  messages: NcpMessage[];
+  stablePrefixMessageCount: number;
+};
+
+export function buildContextCompactionModelProjection(params: {
   sessionId: string;
   sessionMessages: readonly NcpMessage[];
-}): NcpMessage[] {
+}): ContextCompactionModelProjection {
   const { sessionId, sessionMessages } = params;
   const marker = readLatestContextCompactionMarker(sessionMessages);
   const regularMessages = sessionMessages.filter((message) => !readContextCompactionCheckpoint(message));
   if (!marker) {
-    return regularMessages.map((message) => structuredClone(message));
+    return {
+      messages: regularMessages.map((message) => structuredClone(message)),
+      stablePrefixMessageCount: 0,
+    };
   }
   const { checkpoint } = marker;
+  const preservedUserMessageIds = readCheckpointMessageIds(checkpoint.preservedUserMessageIds);
+  const retainedMessageIds = readCheckpointMessageIds(checkpoint.retainedMessageIds);
+  const preservedUserMessages = regularMessages
+    .filter((message) => message.role === "user" && preservedUserMessageIds.has(message.id))
+    .map((message) => projectPreservedUserMessage(message, checkpoint))
+    .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
+  const retainedMessages = regularMessages
+    .filter((message) => retainedMessageIds.has(message.id))
+    .map((message) => structuredClone(message))
+    .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   const projectedRegularMessages = regularMessages
+    .filter((message) =>
+      !preservedUserMessageIds.has(message.id) && !retainedMessageIds.has(message.id),
+    )
     .map((message) => projectMessageAfterCheckpoint(message, checkpoint))
     .filter((message): message is NcpMessage => Boolean(message))
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
-  return [
+  const stablePrefixMessages = [
     buildContextCompactionSummaryMessage({ checkpoint, sessionId }),
+    ...preservedUserMessages,
     ...(checkpoint.phase === "mid-run"
       ? [buildMidRunContinuationMessage({ checkpoint, sessionId })]
       : []),
-    ...projectedRegularMessages,
+    ...retainedMessages,
   ].map((message) => structuredClone(message));
+  return {
+    messages: [
+      ...stablePrefixMessages,
+      ...projectedRegularMessages.map((message) => structuredClone(message)),
+    ],
+    stablePrefixMessageCount: stablePrefixMessages.length,
+  };
 }
 
 export function readContextWindowEventSessionId(event: NcpEndpointEvent): string | null {

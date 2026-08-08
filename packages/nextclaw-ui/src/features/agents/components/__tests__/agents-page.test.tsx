@@ -438,6 +438,24 @@ describe("AgentsPage", () => {
     });
   });
 
+  it("does not silently clamp an undersized context window before saving", async () => {
+    const user = userEvent.setup();
+    renderAgentsPage();
+
+    await user.click(screen.getAllByRole("button", { name: "更多操作" })[1]);
+    await user.click(screen.getByRole("button", { name: "编辑" }));
+    await user.click(screen.getByText("高级配置"));
+    fireEvent.change(screen.getByLabelText("上下文窗口大小"), {
+      target: { value: "100" },
+    });
+    await user.click(screen.getByRole("button", { name: "保存编辑" }));
+
+    expect(mocks.updateAgent).toHaveBeenCalledWith({
+      agentId: "researcher",
+      data: expect.objectContaining({ contextTokens: 100 }),
+    });
+  });
+
   it("starts a draft chat with the agent selected through the session list owner", async () => {
     const user = userEvent.setup();
 

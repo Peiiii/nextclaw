@@ -178,6 +178,29 @@ describe('useSessionConversationController backend run queue', () => {
     expect(params.resetComposer).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps an existing session bound to its agent instead of the global draft selection', async () => {
+    const send = createSendMock();
+    const params = createControllerParams({ isRunning: false, send });
+    const controllerParams = {
+      ...params,
+      inputQuery: {
+        ...params.inputQuery,
+        selectedSession: { agentId: 'researcher' },
+      },
+      selectedAgentId: 'main',
+    } as unknown as Parameters<typeof useSessionConversationController>[0];
+    const { result } = renderHook(() => useSessionConversationController(controllerParams));
+
+    await act(async () => {
+      await result.current.send();
+    });
+
+    expect(send.mock.calls[0]?.[0].message.metadata).toMatchObject({
+      agentId: 'researcher',
+      agent_id: 'researcher',
+    });
+  });
+
   it('projects the backend queue and returns a removed item to the composer for editing', async () => {
     const queuedInput = createQueuedInput();
     const params = createControllerParams({ isRunning: true, queuedInputs: [queuedInput] });

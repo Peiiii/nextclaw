@@ -259,8 +259,10 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   const isRuntimeBlocked = isNcpChatRuntimeBlocked(systemStatus);
   const currentSessionRunning =
     agent.isRunning || inputQuery.selectedSession?.status === "running";
-  const rawLastSendError =
-    agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
+  const runtimeError = agent.snapshot.error;
+  const rawLastSendError = agent.hydrateError?.message
+    ?? (runtimeError?.code === "run-interrupted" ? null : runtimeError?.message)
+    ?? null;
   const filteredLastSendError =
     systemStatus.phase === "ready" &&
     isNcpAgentStartupUnavailableErrorMessage(rawLastSendError)
@@ -335,7 +337,8 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   const conversationFailureMessage =
     inputSnapshot.sendError?.trim() ||
     lastSendError?.trim() ||
-    (selectedSession?.activityPreview?.state === "failed"
+    (selectedSession?.activityPreview?.state === "failed" &&
+      selectedSession.activityPreview.statusKind !== "run-interrupted"
       ? selectedSession.activityPreview.statusText?.trim()
       : null) ||
     null;

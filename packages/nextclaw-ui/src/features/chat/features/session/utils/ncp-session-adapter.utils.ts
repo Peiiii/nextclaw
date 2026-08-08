@@ -292,6 +292,16 @@ function toUiParts(parts: NcpMessagePart[]): UIMessage['parts'] {
   return uiParts;
 }
 
+export type NcpChatMessagePart =
+  | UIMessage['parts'][number]
+  | Extract<NcpMessagePart, { type: 'extension' }>;
+
+export function adaptNcpMessagePartsForChat(parts: NcpMessagePart[]): NcpChatMessagePart[] {
+  return parts.flatMap<NcpChatMessagePart>((part) =>
+    part.type === 'extension' ? [part] : toUiParts([part]),
+  );
+}
+
 function normalizeRole(role: NcpMessageView['role']): UIMessage['role'] {
   if (role === 'service') {
     return 'system';

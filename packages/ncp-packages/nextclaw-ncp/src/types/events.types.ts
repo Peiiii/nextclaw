@@ -1,5 +1,5 @@
 import type { OpenAITool } from "./agent-runtime.types.js";
-import type { NcpError } from "./errors.js";
+import type { NcpError } from "./errors.types.js";
 import type { NcpMessage, NcpToolOutputContentItem } from "./message.js";
 
 /**
@@ -177,6 +177,7 @@ export type NcpRunErrorPayload = {
   sessionId?: string;
   messageId?: string;
   error?: string;
+  interrupted?: boolean;
   threadId?: string;
   runId?: string;
   startedAt?: string;

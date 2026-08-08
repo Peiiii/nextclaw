@@ -169,6 +169,86 @@ describe("InputBudgetPruner", () => {
     });
     expect(String(result.messages[1].content)).toContain("interrupted");
   });
+
+  it("keeps a declared stable prefix unchanged while pruning its dynamic suffix", () => {
+    const pruner = new InputBudgetPruner();
+    const stablePrefix = [
+      { role: "system", content: "compressed summary" },
+      { role: "user", content: "exact preserved user constraint" },
+      { role: "user", content: "continue the active run" },
+    ];
+    const result = pruner.prune({
+      contextTokens: 100,
+      reserveTokensFloor: 0,
+      softThresholdTokens: 0,
+      protectedPrefixMessageCount: stablePrefix.length,
+      messages: [
+        ...stablePrefix,
+        { role: "assistant", content: "old dynamic output ".repeat(100) },
+        { role: "user", content: "latest suffix input" },
+      ],
+    });
+
+    expect(result.messages.slice(0, stablePrefix.length)).toEqual(stablePrefix);
+    expect(result.messages.at(-1)).toEqual({ role: "user", content: "latest suffix input" });
+    expect(result.estimatedTokens).toBeLessThanOrEqual(result.budgetTokens);
+  });
+
+  it("counts fixed provider input such as tool schemas in the hard budget", () => {
+    const pruner = new InputBudgetPruner();
+    const result = pruner.prune({
+      contextTokens: 300,
+      fixedInputTokens: 40,
+      reserveTokensFloor: 0,
+      softThresholdTokens: 0,
+      messages: [{ role: "user", content: "x".repeat(2_000) }],
+    });
+
+    expect(result.estimatedTokens).toBeGreaterThanOrEqual(40);
+    expect(result.estimatedTokens).toBeLessThanOrEqual(result.budgetTokens);
+    expect(result.truncatedUserMessage).toBe(true);
+  });
+
+});
+
+describe("InputBudgetPruner protected system context", () => {
+  it("truncates only the system tail after a protected compressed-context prefix", () => {
+    const pruner = new InputBudgetPruner();
+    const compressedContext = "authoritative compressed checkpoint";
+    const stablePrefix = [
+      {
+        role: "system",
+        content: `${compressedContext}\n\n${"dynamic bootstrap context ".repeat(400)}`,
+      },
+      { role: "user", content: "exact preserved user constraint" },
+    ];
+    const prune = (dynamicSuffix: Record<string, unknown>[]) => pruner.prune({
+      contextTokens: 700,
+      reserveTokensFloor: 0,
+      softThresholdTokens: 0,
+      protectedPrefixMessageCount: stablePrefix.length,
+      protectedSystemContentChars: compressedContext.length,
+      messages: [...stablePrefix, ...dynamicSuffix],
+    });
+    const result = prune([]);
+    const resultWithLargerSuffix = prune([
+      { role: "assistant", content: "growing dynamic suffix ".repeat(200) },
+      { role: "user", content: "new request" },
+    ]);
+
+    expect(result.messages[0]?.content).toMatch(new RegExp(`^${compressedContext}`));
+    expect(String(result.messages[0]?.content).length).toBeLessThan(
+      `${compressedContext}\n\n${"dynamic bootstrap context ".repeat(400)}`.length,
+    );
+    expect(result.messages[1]).toEqual({ role: "user", content: "exact preserved user constraint" });
+    expect(resultWithLargerSuffix.messages.slice(0, stablePrefix.length)).toEqual(
+      result.messages.slice(0, stablePrefix.length),
+    );
+    expect(result.estimatedTokens).toBeLessThanOrEqual(result.budgetTokens);
+    expect(resultWithLargerSuffix.estimatedTokens).toBeLessThanOrEqual(
+      resultWithLargerSuffix.budgetTokens,
+    );
+  });
 });
 
 describe("InputBudgetPruner visual inputs", () => {

@@ -9,12 +9,6 @@ import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-jo
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { ProjectManager } from "@kernel/managers/project.manager.js";
 
-vi.mock("@kernel/features/context-compaction/index.js", () => ({
-  ContextWindowPreviewManager: class {
-    preview = () => null;
-  },
-}));
-
 const tempDirs: string[] = [];
 
 function createTempDir(): string {
@@ -106,6 +100,10 @@ async function createFixture(
     await journalStore.importSessionSnapshot(record);
   }
   const manager = new SessionManager({
+    agentContextWindowManager: {
+      forgetSession: () => undefined,
+      previewSession: async () => null,
+    } as never,
     agentManager: {
       resolveAgentProfile: () => ({
         workspace: (config as { agents: { defaults: { workspace: string } } }).agents.defaults.workspace,
@@ -322,6 +320,70 @@ describe("SessionManager", () => {
 });
 
 describe("SessionManager activity previews", () => {
+  it("appends one canonical run.error on startup for an unfinished run", async () => {
+    const fixture = await createFixture([
+      createRecord({ sessionId: "session-1" }),
+    ]);
+    await fixture.journalStore.appendSessionEvent({
+      sessionId: "session-1",
+      event: {
+        type: NcpEventType.RunStarted,
+        payload: {
+          sessionId: "session-1",
+          messageId: "assistant-interrupted",
+          runId: "run-interrupted",
+          startedAt: "2026-05-21T00:00:00.000Z",
+        },
+      },
+    });
+    await fixture.journalStore.appendSessionEvent({
+      sessionId: "session-1",
+      event: {
+        type: NcpEventType.MessageToolCallStart,
+        payload: {
+          sessionId: "session-1",
+          messageId: "assistant-interrupted",
+          toolCallId: "tool-interrupted",
+          toolName: "command_execution",
+        },
+      },
+    });
+    await fixture.journalStore.appendSessionEvent({
+      sessionId: "session-1",
+      event: {
+        type: NcpEventType.MessageToolCallEnd,
+        payload: {
+          sessionId: "session-1",
+          toolCallId: "tool-interrupted",
+        },
+      },
+    });
+
+    await fixture.manager.start();
+
+    await expect(fixture.journalStore.listUnfinishedRuns()).resolves.toEqual([]);
+    await expect(fixture.manager.getSessionRecord("session-1")).resolves.toMatchObject({
+      messages: [{
+        id: "assistant-interrupted",
+        status: "error",
+        parts: [{
+          type: "tool-invocation",
+          toolCallId: "tool-interrupted",
+          state: "cancelled",
+        }],
+      }],
+      metadata: {
+        last_activity_preview: {
+          state: "failed",
+          statusKind: "run-interrupted",
+        },
+      },
+    });
+    await fixture.manager.start();
+    await expect(fixture.journalStore.listUnfinishedRuns()).resolves.toEqual([]);
+    fixture.manager.dispose();
+  });
+
   it("updates activity preview from appended run events", async () => {
     const fixture = await createFixture([
       createRecord({

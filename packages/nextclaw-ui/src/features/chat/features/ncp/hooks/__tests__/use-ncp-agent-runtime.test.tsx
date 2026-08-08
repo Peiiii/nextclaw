@@ -487,6 +487,32 @@ describe("useNcpAgentRuntime commands and live stream", () => {
     });
   });
 
+  it("adopts an accepted run before persisted run.started arrives", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const { result } = renderHook(() =>
+      useNcpAgentRuntime({ sessionId: "session-running", client, manager: manager as never }),
+    );
+
+    await act(async () => {
+      await result.current.acceptRun({
+        assistantMessageId: null,
+        sessionId: "session-running",
+        userMessageId: "continuation-user-1",
+        runId: "run-accepted-1",
+      });
+    });
+
+    expect(result.current.activeRunId).toBe("run-accepted-1");
+    expect(result.current.isRunning).toBe(true);
+    await act(async () => {
+      await result.current.abort();
+    });
+    expect(client.abort).toHaveBeenCalledWith(expect.objectContaining({
+      runId: "run-accepted-1",
+    }));
+  });
+
   it("clears the local running state when the live stream publishes message.abort", async () => {
     const client = new DeferredSendClient();
     const manager = new DefaultNcpAgentConversationStateManager();

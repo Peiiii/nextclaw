@@ -12,7 +12,6 @@ import type {
 import { NcpEventType } from "@nextclaw/ncp";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { DEFAULT_AGENT_RUNTIME_ENTRY_ID } from "@kernel/configs/agent-runtime.config.js";
-import { ContextWindowPreviewManager } from "@kernel/features/context-compaction/index.js";
 import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import type {
   AgentRunSession,
@@ -47,6 +46,7 @@ import {
 import { createSessionContextInheritance } from "@kernel/utils/session-context-inheritance.utils.js";
 import { eventKeys, type EventBus } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
+import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { ProjectManager } from "@kernel/managers/project.manager.js";
 import { SessionEventIngestionService } from "@kernel/services/session-event-ingestion.service.js";
@@ -57,6 +57,7 @@ type CreateNcpSessionInput = CreateSessionInput & {
 };
 
 export type SessionManagerOptions = {
+  agentContextWindowManager: AgentContextWindowManager;
   agentManager: AgentManager;
   configManager: ConfigManager;
   eventBus: EventBus;
@@ -83,41 +84,27 @@ function isSessionSummaryRefreshEvent(event: NcpAgentSessionJournalReplayEvent):
 }
 
 export class SessionManager implements NcpSessionApi {
-  readonly cleanups: Array<() => void> = [];
-  private readonly contextWindowPreview: ContextWindowPreviewManager;
   private readonly eventIngestion: SessionEventIngestionService;
   private readonly workingDirResolver: SessionWorkingDirResolver;
-  private started = false;
 
   constructor(private readonly options: SessionManagerOptions) {
     this.eventIngestion = new SessionEventIngestionService({
       appendSessionEvent: (params) => this.appendSessionEvent(params),
       getSessionRecord: (sessionId) => this.getSessionRecord(sessionId),
+      listUnfinishedRuns: () => this.options.journalStore.listUnfinishedRuns(),
       onError: (sessionId, error) => {
         const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
         console.error(`[session-manager] failed to handle ncp event for ${sessionId}: ${message}`);
       },
-      updateSessionMetadata: (sessionId, metadata) => this.updateSessionMetadata(sessionId, metadata)
+      subscribe: (handler) => this.options.eventBus.on(eventKeys.ncpEvent, handler),
+      updateSessionMetadata: (sessionId, metadata) => this.updateSessionMetadata(sessionId, metadata),
     });
-    this.contextWindowPreview = new ContextWindowPreviewManager(options.agentManager);
     this.workingDirResolver = new SessionWorkingDirResolver(options.agentManager);
   }
 
-  start = (): void => {
-    if (this.started) {
-      return;
-    }
-    this.started = true;
-    this.cleanups.push(this.options.eventBus.on(eventKeys.ncpEvent, this.eventIngestion.handleEvent));
-  };
+  start = async (): Promise<void> => await this.eventIngestion.start();
 
-  dispose = (): void => {
-    while (this.cleanups.length > 0) {
-      this.cleanups.pop()?.();
-    }
-    this.eventIngestion.clear();
-    this.started = false;
-  };
+  dispose = (): void => this.eventIngestion.dispose();
 
   createSession = async (params: CreateNcpSessionInput): Promise<CreatedSession> => {
     const {
@@ -297,6 +284,7 @@ export class SessionManager implements NcpSessionApi {
       return;
     }
     await this.options.journalStore.deleteSession(normalizedSessionId);
+    this.options.agentContextWindowManager.forgetSession(normalizedSessionId);
     await this.publishSessionChange(normalizedSessionId);
   };
 
@@ -348,14 +336,14 @@ export class SessionManager implements NcpSessionApi {
       limit,
       ...(cursor ? { cursor } : {})
     });
-    if (!page || page.contextWindow) {
+    if (!page) {
       return page;
     }
     const record = await this.options.journalStore.getSession(normalizedSessionId);
     if (!record) {
       return page;
     }
-    const contextWindow = this.createSummaryFromRecord(record, true).contextWindow ?? null;
+    const contextWindow = (await this.createSummaryWithContextWindow(record)).contextWindow ?? null;
     await this.options.journalStore.updateSessionMessageProjectionContextWindow(normalizedSessionId, contextWindow);
     return {
       ...page,
@@ -368,7 +356,7 @@ export class SessionManager implements NcpSessionApi {
     if (!record) {
       return null;
     }
-    const summary = this.createSummaryFromRecord(record, true);
+    const summary = await this.createSummaryWithContextWindow(record);
     await this.options.journalStore.updateSessionMessageProjectionContextWindow(
       record.sessionId,
       summary.contextWindow ?? null
@@ -380,7 +368,9 @@ export class SessionManager implements NcpSessionApi {
     sessionId: string,
     liveRecord?: AgentSessionRecord | null
   ): Promise<Record<string, unknown> | null> => {
-    const summary = liveRecord ? this.createSummaryFromRecord(liveRecord, true) : await this.getSession(sessionId);
+    const summary = liveRecord
+      ? await this.createSummaryWithContextWindow(liveRecord)
+      : await this.getSession(sessionId);
     return summary?.contextWindow ?? null;
   };
 
@@ -555,17 +545,20 @@ export class SessionManager implements NcpSessionApi {
     });
   };
 
-  private createSummaryFromRecord = (record: AgentSessionRecord, includeContextWindow = false): NcpSessionSummary => {
-    const summary = this.workingDirResolver.withWorkingDir(createNcpAgentSessionSummary(record));
-    const contextWindow = includeContextWindow
-      ? this.contextWindowPreview.preview({
-          requestMetadata: record.metadata ?? {},
-          sessionId: record.sessionId,
-          sessionMessages: record.messages,
-          storedAgentId: record.agentId,
-          storedMetadata: record.metadata ?? {}
-        })
-      : undefined;
+  private createSummaryFromRecord = (record: AgentSessionRecord): NcpSessionSummary =>
+    this.workingDirResolver.withWorkingDir(createNcpAgentSessionSummary(record));
+
+  private createSummaryWithContextWindow = async (
+    record: AgentSessionRecord,
+  ): Promise<NcpSessionSummary> => {
+    const summary = this.createSummaryFromRecord(record);
+    const contextWindow = await this.options.agentContextWindowManager.previewSession({
+      requestMetadata: record.metadata ?? {},
+      sessionId: record.sessionId,
+      sessionMessages: record.messages,
+      storedAgentId: record.agentId,
+      storedMetadata: record.metadata ?? {},
+    });
     return contextWindow ? { ...summary, contextWindow } : summary;
   };
 

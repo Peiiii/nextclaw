@@ -59,7 +59,7 @@ function createSessionCommandFixture(params: {
       getModelMaxTokens: () => 12000,
       loadConfig: () => ({}),
     } as never,
-    { buildContext: async () => [] } as never,
+    { resolveRunSurface: async () => ({ contextBlocks: [], tools: [] }) } as never,
     new EventBus(),
     ingress,
     {
@@ -100,7 +100,6 @@ function createSessionCommandFixture(params: {
       getOrCreateSessionRun: async () => sessionRun,
       isSessionRunning: () => false,
     } as never,
-    { buildTools: async () => [] } as never,
   );
   manager.start();
   return {

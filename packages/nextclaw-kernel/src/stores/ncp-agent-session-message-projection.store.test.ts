@@ -199,4 +199,23 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
 
     await expect(store.readMeta(sessionId)).resolves.toBeNull();
   });
+
+  it("uses independent atomic temp files for concurrent metadata writes", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
+    const store = new NcpAgentSessionMessageProjectionStore(tempDir);
+    await store.rebuild({
+      sessionId,
+      messages: [message(1)],
+      projectedJournalOffset: 100,
+    });
+
+    await expect(Promise.all([
+      store.updateContextWindow(sessionId, { usedContextTokens: 10 }),
+      store.updateContextWindow(sessionId, { usedContextTokens: 20 }),
+    ])).resolves.toEqual([undefined, undefined]);
+    await expect(store.readMeta(sessionId)).resolves.toMatchObject({
+      sessionId,
+      total: 1,
+    });
+  });
 });

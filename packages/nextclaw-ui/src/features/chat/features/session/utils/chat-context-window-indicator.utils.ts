@@ -15,19 +15,58 @@ function formatTokenCount(value: number): string {
 export function buildChatContextWindowIndicator(
   contextWindow: SessionContextWindowView | null | undefined
 ): ChatContextWindowIndicator | null {
-  if (!contextWindow || contextWindow.totalContextTokens <= 0) {
+  if (
+    !contextWindow ||
+    contextWindow.completeInputBudget !== true ||
+    !contextWindow.fixedInputTokens ||
+    contextWindow.totalContextTokens <= 0
+  ) {
     return null;
   }
-  const ratio = contextWindow.usedContextTokens / contextWindow.totalContextTokens;
+  const triggerContextTokens = contextWindow.triggerContextTokens ?? contextWindow.totalContextTokens;
+  const ratio = contextWindow.usedContextTokens / Math.max(1, triggerContextTokens);
   const clampedRatio = Math.max(0, Math.min(1, ratio));
   const percentLabel = `${Math.round(clampedRatio * 100)}%`;
   const tone: ChatContextWindowIndicator['tone'] =
     clampedRatio >= 0.9 ? 'danger' : clampedRatio >= 0.75 ? 'warning' : 'neutral';
   const details: ChatContextWindowIndicator['details'] = [
-    { label: t('chatContextWindowUsed'), value: formatTokenCount(contextWindow.usedContextTokens) },
-    { label: t('chatContextWindowTotal'), value: formatTokenCount(contextWindow.totalContextTokens) },
-    { label: t('chatContextWindowAvailable'), value: formatTokenCount(contextWindow.availableContextTokens) }
+    { label: t('chatContextWindowUsed'), value: formatTokenCount(contextWindow.usedContextTokens) }
   ];
+  if (contextWindow.triggerContextTokens !== undefined) {
+    details.push({
+      label: t('chatContextWindowTrigger'),
+      value: formatTokenCount(contextWindow.triggerContextTokens)
+    });
+  }
+  details.push(contextWindow.availableBeforeCompactionTokens === undefined
+    ? { label: t('chatContextWindowAvailable'), value: formatTokenCount(contextWindow.availableContextTokens) }
+    : {
+        label: t('chatContextWindowAvailableBeforeCompaction'),
+        value: formatTokenCount(contextWindow.availableBeforeCompactionTokens)
+      });
+  if (contextWindow.fixedInputTokens !== undefined) {
+    details.push({
+      label: t('chatContextWindowFixed'),
+      value: formatTokenCount(contextWindow.fixedInputTokens),
+      dividerBefore: true
+    });
+  }
+  if (contextWindow.dynamicInputTokens !== undefined) {
+    details.push({
+      label: t('chatContextWindowDynamic'),
+      value: formatTokenCount(contextWindow.dynamicInputTokens)
+    });
+  }
+  if (contextWindow.reservedContextTokens !== undefined) {
+    details.push({
+      label: t('chatContextWindowReserve'),
+      value: formatTokenCount(contextWindow.reservedContextTokens)
+    });
+  }
+  details.push({
+    label: t('chatContextWindowTotal'),
+    value: formatTokenCount(contextWindow.totalContextTokens)
+  });
   if (contextWindow.prunedUsedContextTokens !== contextWindow.usedContextTokens) {
     details.push({
       label: t('chatContextWindowPruned'),

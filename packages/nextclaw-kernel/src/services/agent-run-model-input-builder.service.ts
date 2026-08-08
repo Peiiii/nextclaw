@@ -1,8 +1,5 @@
-import {
-  buildOpenAiFunctionTool,
-  ncpMessageToOpenAiMessages,
-  type LocalAssetStore,
-} from "@nextclaw/ncp-agent-runtime";
+import { ncpMessageToOpenAiMessages, type LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
+import { estimateInputTokens } from "@nextclaw/core";
 import type {
   AgentModelInputBuildRequest,
   AgentModelInputBuilder,
@@ -10,14 +7,13 @@ import type {
 import type {
   NcpLLMApiInput,
   NcpMessage,
-  NcpToolDefinition,
   OpenAIChatMessage,
-  OpenAITool,
 } from "@nextclaw/ncp";
 import { isContextCompactionProjectionMessage } from "@kernel/features/context-compaction/index.js";
 import { stripCompactedSessionOnboardingSections } from "@kernel/utils/agent-onboarding-context.utils.js";
 import type { AgentRunMessageProjector } from "./agent-run-message-projector.service.js";
 import type { AgentRunModelInputBudgeter } from "./agent-run-model-input-budgeter.service.js";
+import { buildProviderTools } from "@kernel/utils/agent-model-input-budget.utils.js";
 
 function readSystemContent(messages: OpenAIChatMessage[]): string[] {
   return messages
@@ -52,14 +48,24 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
   ) {}
 
   build = async (request: AgentModelInputBuildRequest): Promise<NcpLLMApiInput> => {
-    const projectedMessages = this.messageProjector.project({
+    const projection = this.messageProjector.project({
       sessionId: request.sessionId,
       messages: request.messages,
     });
-    const {
-      compressedContextBlocks,
-      conversationMessages: projectedConversationMessages,
-    } = partitionProjectedMessages(projectedMessages);
+    const stableProjection = partitionProjectedMessages(
+      projection.messages.slice(0, projection.stablePrefixMessageCount),
+    );
+    const dynamicProjection = partitionProjectedMessages(
+      projection.messages.slice(projection.stablePrefixMessageCount),
+    );
+    const compressedContextBlocks = [
+      ...stableProjection.compressedContextBlocks,
+      ...dynamicProjection.compressedContextBlocks,
+    ];
+    const protectedSystemContent = stableProjection.compressedContextBlocks
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .join("\n\n");
     const contextBlocks = compressedContextBlocks.length > 0
       ? request.contextBlocks.map(stripCompactedSessionOnboardingSections)
       : request.contextBlocks;
@@ -73,23 +79,31 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
     const contextMessages: OpenAIChatMessage[] = contextContent
       ? [{ role: "system", content: contextContent }]
       : [];
-    const conversationMessages = projectedConversationMessages.flatMap((message) =>
+    const stableConversationMessages = stableProjection.conversationMessages.flatMap((message) =>
       ncpMessageToOpenAiMessages(message, {
         assetStore: this.assetStore,
       }),
     );
+    const dynamicConversationMessages = dynamicProjection.conversationMessages.flatMap((message) =>
+      ncpMessageToOpenAiMessages(message, {
+        assetStore: this.assetStore,
+      }),
+    );
+    const protectedPrefixMessageCount = projection.stablePrefixMessageCount > 0
+      ? contextMessages.length + stableConversationMessages.length
+      : 0;
+    const tools = buildProviderTools(request.tools);
     const pruned = await this.modelInputBudgeter.prune({
       spec: request.spec,
-      messages: [...contextMessages, ...conversationMessages],
+      fixedInputTokens: estimateInputTokens(tools),
+      messages: [
+        ...contextMessages,
+        ...stableConversationMessages,
+        ...dynamicConversationMessages,
+      ],
+      protectedPrefixMessageCount,
+      protectedSystemContentChars: protectedSystemContent.length,
     });
-    const tools = request.tools.map((tool): OpenAITool =>
-      buildOpenAiFunctionTool({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      } satisfies NcpToolDefinition),
-    );
-
     return {
       messages: pruned.messages,
       tools: tools.length > 0 ? tools : undefined,

@@ -1,8 +1,8 @@
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { ContextCompactionPhase } from "@nextclaw/core";
 import {
+  buildContextCompactionTimelineNcpMessage,
   ContextCompactionPreflightService,
   type ContextCompactionPreflightResult,
 } from "@kernel/features/context-compaction/index.js";
@@ -10,6 +10,7 @@ import {
   NcpEventType,
   type NcpEndpointEvent,
   type NcpMessage,
+  type NcpTool,
 } from "@nextclaw/ncp";
 
 export type AgentRunContextCompactionInput = {
@@ -20,6 +21,8 @@ export type AgentRunContextCompactionInput = {
   metadata: Record<string, unknown>;
   model: string;
   phase?: ContextCompactionPhase;
+  signal?: AbortSignal;
+  tools?: readonly NcpTool[];
 };
 
 export class AgentRunContextCompactionManager {
@@ -28,28 +31,32 @@ export class AgentRunContextCompactionManager {
   constructor(
     agentManager: AgentManager,
     providerManager: LlmProviderRuntime,
-    private readonly sessionManager: SessionManager,
   ) {
     this.preflightService = new ContextCompactionPreflightService(agentManager, providerManager);
   }
 
-  runPreflight = async (
+  runPreflight = (
     input: AgentRunContextCompactionInput,
-  ): Promise<readonly NcpEndpointEvent[]> => {
-    return await this.run(input, "automatic", input.phase ?? "pre-run");
+  ): AsyncIterable<NcpEndpointEvent> => {
+    return this.run(input, "automatic", input.phase ?? "pre-run");
   };
 
   runManual = async (
     input: AgentRunContextCompactionInput,
   ): Promise<readonly NcpEndpointEvent[]> => {
-    return await this.run(input, "manual", "pre-run");
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of this.run(input, "manual", "pre-run")) {
+      events.push(event);
+    }
+    return events;
   };
 
-  private run = async (
+  private run = async function* (
+    this: AgentRunContextCompactionManager,
     input: AgentRunContextCompactionInput,
     trigger: "automatic" | "manual",
     phase: ContextCompactionPhase,
-  ): Promise<readonly NcpEndpointEvent[]> => {
+  ): AsyncIterable<NcpEndpointEvent> {
     const beginResult = this.preflightService.begin({
       contextBlocks: input.contextBlocks,
       inputMessages: [],
@@ -60,34 +67,49 @@ export class AgentRunContextCompactionManager {
       sessionMessages: input.messages,
       storedAgentId: input.agentId,
       storedMetadata: input.metadata,
+      tools: input.tools,
       trigger,
     });
     if (!beginResult.pendingCompaction) {
-      return [];
+      return;
     }
-    const finishResult = await this.preflightService.finish(beginResult.pendingCompaction);
-    return await this.toEvents(input.sessionId, finishResult);
+    const pending = beginResult.pendingCompaction;
+    yield this.toEvent(input.sessionId, buildContextCompactionTimelineNcpMessage({
+      checkpoint: pending.checkpoint,
+      messageId: pending.serviceMessageId,
+      sessionId: input.sessionId,
+    }));
+    try {
+      const finishResult = await this.preflightService.finish(pending, input.signal);
+      if (finishResult.timelineMessage) {
+        yield this.toEvent(input.sessionId, finishResult.timelineMessage);
+      }
+    } catch (error) {
+      yield this.toEvent(input.sessionId, buildContextCompactionTimelineNcpMessage({
+        checkpoint: {
+          ...pending.checkpoint,
+          status: input.signal?.aborted ? "cancelled" : "failed",
+          updatedAt: new Date().toISOString(),
+        },
+        messageId: pending.serviceMessageId,
+        sessionId: input.sessionId,
+      }));
+      if (input.signal?.aborted) {
+        return;
+      }
+      throw error;
+    }
   };
 
-  private toEvents = async (
+  private toEvent = (
     sessionId: string,
-    result: ContextCompactionPreflightResult,
-  ): Promise<NcpEndpointEvent[]> => {
-    if (Object.keys(result.metadataPatch).length > 0) {
-      await this.sessionManager.patchSessionMetadata(sessionId, result.metadataPatch);
-    }
-    if (!result.timelineMessage) {
-      return [];
-    }
-    return [
-      {
-        occurredAt: new Date().toISOString(),
-        type: NcpEventType.MessageSent,
-        payload: {
-          sessionId,
-          message: result.timelineMessage,
-        },
-      },
-    ];
-  };
+    message: NonNullable<ContextCompactionPreflightResult["timelineMessage"]>,
+  ): NcpEndpointEvent => ({
+    occurredAt: new Date().toISOString(),
+    type: NcpEventType.MessageSent,
+    payload: {
+      sessionId,
+      message,
+    },
+  });
 }

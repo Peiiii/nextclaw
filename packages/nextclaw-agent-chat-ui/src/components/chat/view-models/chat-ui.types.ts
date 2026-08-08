@@ -172,7 +172,7 @@ export type ChatContextWindowIndicator = {
   percentLabel: string;
   ratio: number;
   tone: "neutral" | "warning" | "danger";
-  details: Array<{ label: string; value: string }>;
+  details: Array<{ label: string; value: string; dividerBefore?: boolean }>;
 };
 
 export type ChatInputBarToolbarProps = {
@@ -452,6 +452,13 @@ export type ChatMessagePartViewModel =
         sizeBytes?: number;
         isImage: boolean;
       };
+    }
+  | {
+      type: "custom";
+      id: string;
+      customType: string;
+      data: unknown;
+      process?: boolean;
     }
   | {
       type: "unknown";

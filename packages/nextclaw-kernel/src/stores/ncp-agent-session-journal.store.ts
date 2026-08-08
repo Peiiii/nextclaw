@@ -12,8 +12,10 @@ import {
   normalizeNcpSessionId,
   readNcpAgentSessionPeerId,
   replayNcpAgentSessionEvents,
-  safeNcpSessionFilename
+  safeNcpSessionFilename,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+import type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
+import { NcpAgentUnfinishedRunStore } from "@kernel/stores/ncp-agent-unfinished-run.store.js";
 import {
   isNcpAgentSessionMessageProjectionBoundaryEvent,
   parseNcpAgentSessionJournal,
@@ -30,6 +32,7 @@ export class NcpAgentSessionJournalStore {
   private readonly writeChains = new Map<string, Promise<void>>();
   private readonly metadataStore: NcpAgentSessionMetadataStore;
   private readonly messageProjectionStore: NcpAgentSessionMessageProjectionStore;
+  private readonly unfinishedRunStore: NcpAgentUnfinishedRunStore;
   private readonly summaryIndexStore: NcpAgentSessionSummaryIndexStore;
 
   constructor(private readonly journalDir: string) {
@@ -45,6 +48,10 @@ export class NcpAgentSessionJournalStore {
     });
     this.summaryIndexStore = new NcpAgentSessionSummaryIndexStore(journalDir, async (sessionId) =>
       this.loadSession(sessionId)
+    );
+    this.unfinishedRunStore = new NcpAgentUnfinishedRunStore(
+      journalDir,
+      async () => (await this.summaryIndexStore.list()).map(({ sessionId }) => sessionId),
     );
   }
 
@@ -91,6 +98,9 @@ export class NcpAgentSessionJournalStore {
     const summaries = await this.summaryIndexStore.list();
     return await Promise.all(summaries.map(this.withMetadata));
   };
+
+  listUnfinishedRuns = (): Promise<UnfinishedNcpAgentRun[]> =>
+    this.unfinishedRunStore.list();
 
   listSessionMessages = async (sessionId: string): Promise<NcpMessage[]> => {
     const session = await this.getSession(sessionId);
@@ -188,6 +198,7 @@ export class NcpAgentSessionJournalStore {
     this.sessions.set(sessionId, {
       record: nextRecord,
       nextSeq: loaded.nextSeq,
+      journalOffset: loaded.journalOffset,
       projectedJournalOffset: loaded.projectedJournalOffset
     });
     this.nextSeqBySession.set(sessionId, loaded.nextSeq);
@@ -245,6 +256,7 @@ export class NcpAgentSessionJournalStore {
     this.sessions.set(sessionId, {
       record: nextRecord,
       nextSeq,
+      journalOffset: journalStat.size,
       projectedJournalOffset: journalStat.size
     });
     this.nextSeqBySession.set(sessionId, nextSeq);
@@ -306,18 +318,10 @@ export class NcpAgentSessionJournalStore {
     this.sessions.delete(sessionId);
     if (isNcpAgentSessionMessageProjectionBoundaryEvent(event)) {
       const journalStat = await stat(path);
-      const projectionMeta = await this.messageProjectionStore.readMeta(sessionId);
-      if (projectionMeta) {
-        const projectionTail = await this.messageProjectionStore.readJournalTailMessages(
-          sessionId,
-          projectionMeta.projectedJournalOffset
-        );
-        await this.messageProjectionStore.synchronize({
-          sessionId,
-          messages: projectionTail,
-          projectedJournalOffset: journalStat.size
-        });
-      }
+      await this.messageProjectionStore.synchronizeJournalTail({
+        sessionId,
+        journalOffset: journalStat.size,
+      });
     }
     await this.summaryIndexStore.upsertForEvent({
       sessionId,
@@ -367,6 +371,7 @@ export class NcpAgentSessionJournalStore {
     return {
       record,
       nextSeq,
+      journalOffset: Buffer.byteLength(raw, "utf-8"),
       projectedJournalOffset
     };
   };

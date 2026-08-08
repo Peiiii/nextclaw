@@ -6,7 +6,7 @@ export const ABORTED_TOOL_CALL_SENTINEL = "__nextclaw_aborted_tool_call__";
 export function buildRuntimeError(payload: NcpRunErrorPayload): NcpError {
   const message = payload.error?.trim();
   return {
-    code: "runtime-error",
+    code: payload.interrupted ? "run-interrupted" : "runtime-error",
     message: message && message.length > 0 ? message : "Agent run failed.",
     details: {
       sessionId: payload.sessionId,
@@ -34,15 +34,20 @@ export function settleMessageWithLifecycle(
   status: Extract<NcpMessageStatus, "final" | "error">,
   lifecycle?: NcpMessage["lifecycle"]
 ): NcpMessage {
+  const parts = status === "error"
+    ? cancelInFlightToolInvocations(message.parts).parts
+    : message.parts;
   return lifecycle
     ? {
         ...message,
         status,
+        parts,
         lifecycle
       }
     : {
         ...message,
-        status
+        status,
+        parts
       };
 }
 

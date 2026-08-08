@@ -49,7 +49,7 @@ import { toast } from "sonner";
 const AGENT_CREATION_PROMPT =
   "请直接创建一个默认示例 Agent，不要问我问题。创建完成后，简单告诉我它能做什么。";
 
-function parseOptionalIntegerField(value: string, min: number): number | null {
+function parseOptionalIntegerField(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) {
     return null;
@@ -58,7 +58,7 @@ function parseOptionalIntegerField(value: string, min: number): number | null {
   if (!Number.isFinite(parsed)) {
     throw new Error(t("agentsAdvancedInvalidNumberError"));
   }
-  return Math.max(min, Math.trunc(parsed));
+  return Math.trunc(parsed);
 }
 
 function buildAgentUpdateRequest(
@@ -72,7 +72,7 @@ function buildAgentUpdateRequest(
     ...(form.runtime.trim()
       ? { runtime: form.runtime.trim() }
       : { runtime: "" }),
-    contextTokens: parseOptionalIntegerField(form.contextTokens, 1000),
+    contextTokens: parseOptionalIntegerField(form.contextTokens),
   };
 }
 

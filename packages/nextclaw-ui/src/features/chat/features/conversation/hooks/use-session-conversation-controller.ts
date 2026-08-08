@@ -135,7 +135,9 @@ function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDra
   return {
     composerSnapshot,
     metadata: buildChatRunMetadata({
-      agentId: materializationContext ? undefined : selectedAgentId,
+      agentId: materializationContext
+        ? undefined
+        : inputQuery.selectedSession?.agentId?.trim() || selectedAgentId,
       model: materializationContext
         ? resolveModelForSend(inputSnapshot.selectedModel)
         : resolveModelForSend(

@@ -1,6 +1,5 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import {
-  ContextCompactionPreflightService,
   createContextWindowSignature,
   isContextWindowSnapshot,
   readContextWindowEventSessionId,
@@ -27,15 +26,12 @@ function formatBackgroundError(error: unknown): string {
 }
 
 export class ContextWindowContribution implements KernelContribution {
-  private readonly contextWindowPreview: ContextCompactionPreflightService;
   private readonly lastPublishedSignatureBySession = new Map<string, string>();
   private readonly pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private stopped = true;
   private unsubscribeNcpEvent: Unsubscribe | null = null;
 
-  constructor(private readonly kernel: NextclawKernel) {
-    this.contextWindowPreview = new ContextCompactionPreflightService(kernel.agents);
-  }
+  constructor(private readonly kernel: NextclawKernel) {}
 
   start = (): void => {
     if (this.unsubscribeNcpEvent) {
@@ -105,7 +101,7 @@ export class ContextWindowContribution implements KernelContribution {
       return;
     }
     const session = await this.kernel.sessionManager.getAgentRunSession(sessionId);
-    const contextWindow = this.contextWindowPreview.preview({
+    const contextWindow = await this.kernel.agentContextWindowManager.previewSession({
       requestMetadata: session.metadata,
       sessionId,
       sessionMessages: sessionRun.getSnapshot().messages,

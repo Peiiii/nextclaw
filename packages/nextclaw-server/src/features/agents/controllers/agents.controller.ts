@@ -25,6 +25,12 @@ export class AgentsRoutesController {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
     try {
+      if (typeof body.data.contextTokens === "number") {
+        await this.options.kernel.agentContextWindowManager.assertCanSave({
+          agentId: body.data.id,
+          contextTokens: body.data.contextTokens,
+        });
+      }
       const agent = createAgent(this.options.configPath, body.data, {
         initializeAgentHomeDirectory: this.options.initializeAgentHomeDirectory
       });
@@ -42,6 +48,12 @@ export class AgentsRoutesController {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
     try {
+      if (typeof body.data.contextTokens === "number") {
+        await this.options.kernel.agentContextWindowManager.assertCanSave({
+          agentId,
+          contextTokens: body.data.contextTokens,
+        });
+      }
       const agent = updateAgent(this.options.configPath, agentId, body.data);
       await this.publishAgentUpdates(["agents.list"]);
       return c.json(ok(agent));

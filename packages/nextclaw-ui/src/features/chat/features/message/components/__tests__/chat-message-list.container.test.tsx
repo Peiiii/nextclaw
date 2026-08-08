@@ -810,60 +810,6 @@ it("keeps inline panel app displays expandable from the card header", () => {
   expect(rendered.props.showExpandAction).toBeUndefined();
 });
 
-it("renders context compaction as an in-flow divider instead of a chat message", () => {
-  const beforeMessage = {
-    id: "message-before",
-    sessionId: "session-1",
-    role: "user",
-    status: "final",
-    timestamp: "2026-05-05T11:59:00.000Z",
-    parts: [{ type: "text", text: "before" }],
-  } satisfies NcpMessage;
-  const afterMessage = {
-    id: "message-after",
-    sessionId: "session-1",
-    role: "assistant",
-    status: "final",
-    timestamp: "2026-05-05T12:01:00.000Z",
-    parts: [{ type: "text", text: "after" }],
-  } satisfies NcpMessage;
-  const compactionMessage = {
-    id: "ctx-message",
-    sessionId: "session-1",
-    role: "service",
-    status: "final",
-    timestamp: "2026-05-05T12:00:00.000Z",
-    metadata: {
-      nextclaw_timeline_kind: "context_compaction",
-      checkpoint: {
-        id: "ctx-1",
-        status: "compressed",
-        summary: "Compressed Earlier Context",
-        coveredMessageCount: 8,
-        coveredSessionMessageCount: 8,
-        originalEstimatedTokens: 76000,
-        projectedEstimatedTokens: 51000,
-        createdAt: "2026-05-05T11:59:50.000Z",
-        updatedAt: "2026-05-05T12:00:00.000Z",
-      },
-    },
-    parts: [{ type: "text", text: "Earlier context was auto-compacted" }],
-  } satisfies NcpMessage;
-
-  const { getByText } = render(
-    <ChatMessageListContainer
-      messages={[beforeMessage, compactionMessage, afterMessage]}
-      isSending={false}
-    />,
-  );
-
-  expect(getByText("chatContextCompactionCompressed")).toBeTruthy();
-  const renderedGroups = captures.renders.map((rendered) => rendered.messages);
-  expect(renderedGroups).toHaveLength(2);
-  expect(renderedGroups[0]).toMatchObject([{ id: "message-before" }]);
-  expect(renderedGroups[1]).toMatchObject([{ id: "message-after" }]);
-});
-
 it("shows edit only while the latest user message is actually editable", () => {
   const userMessage = {
     id: "user-editable",

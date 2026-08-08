@@ -31,6 +31,10 @@ function createFixture() {
     }) as never,
   };
   const sessionManager = new SessionManager({
+    agentContextWindowManager: {
+      forgetSession: () => undefined,
+      previewSession: async () => null,
+    } as never,
     agentManager: {
       resolveAgentProfile: () => ({ workspace: "" }),
       resolveAgentProfileForRun: () => ({

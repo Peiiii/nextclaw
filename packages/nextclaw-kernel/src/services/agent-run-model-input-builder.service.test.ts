@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import type { ContextCompactionCheckpoint } from "@nextclaw/core";
+import {
+  estimateInputTokens,
+  type ContextCompactionCheckpoint,
+} from "@nextclaw/core";
 import type { NcpMessage, OpenAIChatMessage } from "@nextclaw/ncp";
 import {
-  buildContextCompactionModelInput,
+  buildContextCompactionModelProjection,
   buildContextCompactionTimelineNcpMessage,
   ContextCompactionPreflightService,
 } from "@kernel/features/context-compaction/index.js";
@@ -96,11 +99,11 @@ function createFinalImageToolMessage(): NcpMessage {
   };
 }
 
-function createAgentManager(contextTokens: number): AgentManager {
+function createAgentManager(contextTokens: number, reservedContextTokens = 0): AgentManager {
   return {
     resolveAgentProfile: () => ({
       contextTokens,
-      reservedContextTokens: 0,
+      reservedContextTokens,
     }),
     resolveAgentProfileForRun: () => ({
       id: "researcher",
@@ -108,7 +111,7 @@ function createAgentManager(contextTokens: number): AgentManager {
       workspace: "",
       model: "test-model",
       contextTokens,
-      reservedContextTokens: 0,
+      reservedContextTokens,
       displayName: "Researcher",
       builtIn: true,
     }),
@@ -124,7 +127,7 @@ describe("AgentRunModelInputBuilder", () => {
     ];
     const messageProjector = {
       project: vi.fn(() =>
-        buildContextCompactionModelInput({
+        buildContextCompactionModelProjection({
           sessionId: SESSION_ID,
           sessionMessages: sourceMessages,
         }),
@@ -199,8 +202,15 @@ describe("AgentRunModelInputBuilder mid-run continuation", () => {
       phase: "mid-run",
       continuationMessageId: "active-assistant",
       continuationMessageCoveredPartCount: 1,
+      preservedUserMessageIds: ["active-user"],
     };
     const sourceMessages: NcpMessage[] = [
+      createSessionMessage({
+        id: "active-user",
+        role: "user",
+        text: "PRESERVED_EXACT_USER_CONSTRAINT",
+        timestamp: "2026-06-05T17:11:59.000Z",
+      }),
       {
         id: "active-assistant",
         sessionId: SESSION_ID,
@@ -223,7 +233,7 @@ describe("AgentRunModelInputBuilder mid-run continuation", () => {
     ];
     const messageProjector = {
       project: vi.fn(() =>
-        buildContextCompactionModelInput({
+        buildContextCompactionModelProjection({
           sessionId: SESSION_ID,
           sessionMessages: sourceMessages,
         }),
@@ -253,6 +263,10 @@ describe("AgentRunModelInputBuilder mid-run continuation", () => {
     expect(input.messages).toEqual(expect.arrayContaining([
       expect.objectContaining({
         role: "user",
+        content: "PRESERVED_EXACT_USER_CONSTRAINT",
+      }),
+      expect.objectContaining({
+        role: "user",
         content: expect.stringContaining("Continue the active run"),
       }),
       expect.objectContaining({
@@ -262,6 +276,10 @@ describe("AgentRunModelInputBuilder mid-run continuation", () => {
     ]));
     expect(input.messages.some((message) => message.role === "tool")).toBe(false);
     expect(JSON.stringify(input.messages)).not.toContain("COVERED_TOOL_RESULT");
+    expect(modelInputBudgeter.prune).toHaveBeenCalledWith(expect.objectContaining({
+      protectedPrefixMessageCount: 3,
+      protectedSystemContentChars: expect.any(Number),
+    }));
   });
 });
 
@@ -274,7 +292,7 @@ describe("AgentRunModelInputBuilder budget pruning", () => {
     ];
     const messageProjector = {
       project: vi.fn(() =>
-        buildContextCompactionModelInput({
+        buildContextCompactionModelProjection({
           sessionId: SESSION_ID,
           sessionMessages: sourceMessages,
         }),
@@ -353,7 +371,10 @@ describe("AgentRunModelInputBuilder budget pruning", () => {
       }),
     ];
     const messageProjector = {
-      project: vi.fn(() => sourceMessages),
+      project: vi.fn(() => ({
+        messages: sourceMessages,
+        stablePrefixMessageCount: 0,
+      })),
     } as unknown as AgentRunMessageProjector;
 
     const input = await new AgentRunModelInputBuilder(
@@ -389,10 +410,72 @@ describe("AgentRunModelInputBuilder budget pruning", () => {
     );
     expect(JSON.stringify(input.messages)).not.toContain("data:image/png;base64");
   });
+
+  it("fails explicitly when a compressed stable prefix cannot fit the provider budget", async () => {
+    const budgeter = new AgentRunModelInputBudgeter(createAgentManager(100));
+
+    await expect(budgeter.prune({
+      spec: {
+        runId: "run-1",
+        agentId: "researcher",
+        model: "test-model",
+      },
+      messages: [
+        { role: "system", content: "compressed summary ".repeat(100) },
+        { role: "user", content: "exact preserved user constraint" },
+      ],
+      protectedPrefixMessageCount: 2,
+      protectedSystemContentChars: "compressed summary ".repeat(100).length,
+    })).rejects.toThrow("compressed-context stable prefix");
+  });
+
+  it("includes tool schemas when enforcing the compressed stable-prefix budget", async () => {
+    const checkpoint = createCheckpoint();
+    const messages = [createTimelineMessage(checkpoint), createUserMessage("continue")];
+    const builder = new AgentRunModelInputBuilder(
+      {
+        project: vi.fn(() => buildContextCompactionModelProjection({
+          sessionId: SESSION_ID,
+          sessionMessages: messages,
+        })),
+      } as unknown as AgentRunMessageProjector,
+      new AgentRunModelInputBudgeter(createAgentManager(1_000)),
+    );
+
+    await expect(builder.build({
+      spec: {
+        runId: "run-1",
+        agentId: "researcher",
+        model: "test-model",
+      },
+      sessionId: SESSION_ID,
+      messages,
+      contextBlocks: [],
+      tools: [{
+        name: "large_tool",
+        description: "schema ".repeat(1_000),
+        parameters: { type: "object", properties: {} },
+      }] as never,
+    })).rejects.toThrow("compressed-context stable prefix");
+  });
+
+  it("fails explicitly when tool schemas and the latest input cannot fit before any checkpoint exists", async () => {
+    const budgeter = new AgentRunModelInputBudgeter(createAgentManager(300));
+
+    await expect(budgeter.prune({
+      spec: {
+        runId: "run-1",
+        agentId: "researcher",
+        model: "test-model",
+      },
+      fixedInputTokens: 400,
+      messages: [{ role: "user", content: "latest input" }],
+    })).rejects.toThrow("configured context window");
+  });
 });
 
 describe("AgentRunModelInputBuilder deterministic compaction integration", () => {
-  it("builds a continuation-safe final input after deterministic preflight compaction", async () => {
+  it("installs a soft-target overshoot and builds the continuation-safe final provider input", async () => {
     const contextBlocks = [
       [
         "# Agent Bootstrap Context",
@@ -409,14 +492,14 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
         "",
         "## AGENTS.md",
         "",
-        `Durable project rules. ${"static context ".repeat(1_500)}`,
+        `Durable project rules. ${"static context ".repeat(6_800)}`,
       ].join("\n"),
     ];
     const sessionMessages = [
       createSessionMessage({
         id: "old-user",
         role: "user",
-        text: `《天脊书》第一卷前八章已经完成，下一步继续第九章。${"novel context ".repeat(10_000)}`,
+        text: `《天脊书》第一卷前八章已经完成，下一步继续第九章。${"novel context ".repeat(5_000)}`,
         timestamp: "2026-06-05T17:12:00.000Z",
       }),
       createSessionMessage({
@@ -432,16 +515,29 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
         timestamp: "2026-06-05T17:12:02.000Z",
       }),
     ];
-    const agentManager = createAgentManager(10_000);
+    const agentManager = createAgentManager(35_000, 7_000);
+    let targetSummaryTokens = 0;
     const providerManager = {
-      chat: vi.fn(async () => ({
-        content: [
+      chat: vi.fn(async (request: { messages: Array<{ content?: string }> }) => {
+        const prompt = request.messages[1]?.content ?? "";
+        targetSummaryTokens = Number(prompt.match(/within (\d+) tokens/)?.[1] ?? 0);
+        let content = [
           "# Compressed Working Context",
           "",
           "## Continuation Contract",
           "When the user says 你好, continue 《天脊书》 and ask whether to write Chapter 9 or Volume 2.",
-        ].join("\n"),
-      })),
+        ].join("\n");
+        while (estimateInputTokens(content) <= Math.floor(targetSummaryTokens * 1.2)) {
+          content += "\nPreserved working context.";
+        }
+        return {
+          content,
+          finishReason: "stop",
+          reasoningContent: null,
+          toolCalls: [],
+          usage: {},
+        };
+      }),
     };
     const preflight = new ContextCompactionPreflightService(agentManager, providerManager as never);
     const begin = preflight.begin({
@@ -456,10 +552,13 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
     });
     expect(begin.pendingCompaction).not.toBeNull();
     const finish = await preflight.finish(begin.pendingCompaction!);
+    const checkpoint = finish.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
+    expect(targetSummaryTokens).toBeGreaterThan(0);
+    expect(estimateInputTokens(checkpoint.summary)).toBeGreaterThan(targetSummaryTokens);
     const modelInput = await new AgentRunModelInputBuilder(
       {
         project: vi.fn(() =>
-          buildContextCompactionModelInput({
+          buildContextCompactionModelProjection({
             sessionId: SESSION_ID,
             sessionMessages: [
               ...sessionMessages,
@@ -498,5 +597,6 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
         }),
       ]),
     );
+    expect(finish.contextWindow.usedContextTokens).toBeLessThanOrEqual(28_000);
   });
 });

@@ -52,6 +52,7 @@ const mocks = vi.hoisted(() => {
     selectedSession: null as null | {
       activityPreview?: {
         state: "running" | "completed" | "failed" | "cancelled" | "idle";
+        statusKind?: "run-failed" | "run-interrupted";
         statusText?: string;
         replyText?: string;
       };
@@ -90,7 +91,7 @@ const mocks = vi.hoisted(() => {
     snapshot: {
       activeRun: null,
       contextWindow: null,
-      error: null as { message: string } | null,
+      error: null as { code?: string; message: string } | null,
     },
     send: vi.fn(),
     abort: vi.fn(),
@@ -455,5 +456,26 @@ describe("SessionConversationArea input boundary", () => {
 
     expect(screen.queryByTestId("conversation-bottom-slot")).toBeNull();
     expect(screen.queryByText(/出错了|Something went wrong/)).toBeNull();
+  });
+
+  it("does not expose recovered runtime interruption diagnostics as task errors", () => {
+    const recoveryDetail = "Run interrupted: internal recovery detail.";
+    mocks.agent.snapshot.error = {
+      code: "run-interrupted",
+      message: recoveryDetail,
+    };
+    mocks.inputQuery.selectedSession = {
+      activityPreview: {
+        state: "failed",
+        statusKind: "run-interrupted",
+        statusText: recoveryDetail,
+      },
+      status: "idle",
+    };
+
+    renderArea("session-1");
+
+    expect(screen.queryByTestId("conversation-bottom-slot")).toBeNull();
+    expect(screen.queryByText(recoveryDetail)).toBeNull();
   });
 });

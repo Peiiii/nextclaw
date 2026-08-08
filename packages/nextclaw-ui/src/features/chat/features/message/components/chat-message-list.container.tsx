@@ -31,7 +31,10 @@ import {
   readInlineTokensFromMetadata,
   resolveWorkspaceReferencePath,
 } from "@/features/chat/features/input/utils/chat-inline-token.utils";
-import { adaptNcpMessageToUiMessage } from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
+import {
+  adaptNcpMessagePartsForChat,
+  adaptNcpMessageToUiMessage,
+} from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { ChatInlineFilePreview } from "@/features/chat/features/message/components/chat-inline-file-preview";
 import { ChatInlinePanelAppCard } from "@/features/chat/features/message/components/chat-inline-panel-app-card";
@@ -53,7 +56,9 @@ import { useI18n } from "@/app/components/i18n-provider";
 import { useChatMessageVirtualizer } from "@/features/chat/features/message/hooks/use-chat-message-virtualizer";
 import {
   buildChatMessageTimelineItems,
+  CONTEXT_COMPACTION_PART_EXTENSION_TYPE,
   projectVisibleChatMessages,
+  type ContextCompactionPartData,
   type ChatTimelineItem,
 } from "@/features/chat/features/message/utils/chat-message-timeline.utils";
 import { useChatMessageActions } from "@/features/chat/features/message/hooks/use-chat-message-actions";
@@ -131,7 +136,7 @@ class ChatMessageViewModelAdapter {
           executionSummaryLabel: executionPresentation?.summaryLabel,
           moreActions: executionPresentation?.moreActions,
         },
-        parts: uiMessage.parts as unknown as ChatMessageSource["parts"],
+        parts: adaptNcpMessagePartsForChat(message.parts) as ChatMessageSource["parts"],
       };
       const viewModel = adaptChatMessage(sourceMessage, {
         formatTimestamp: (value) => formatDateTime(value, language),
@@ -416,6 +421,21 @@ export function ChatMessageListContainer({
       setFocusedRowKey(null);
     }
   }, []);
+  const renderCustomPart = useCallback(
+    (part: Extract<ChatMessageViewModel["parts"][number], { type: "custom" }>) => {
+      if (part.customType !== CONTEXT_COMPACTION_PART_EXTENSION_TYPE) {
+        return undefined;
+      }
+      const data = part.data as ContextCompactionPartData;
+      return (
+        <ChatContextCompactionDivider
+          checkpoint={data.checkpoint}
+          inline
+        />
+      );
+    },
+    [],
+  );
   return (
     <div className={cn("relative", className)} ref={containerRef}>
       {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -452,6 +472,7 @@ export function ChatMessageListContainer({
                   onInlineTokenClick={handleInlineTokenClick}
                   onMessageAction={handleMessageAction}
                   resolveFileContentUrl={resolveFileContentUrl}
+                  renderCustomPart={renderCustomPart}
                   renderInlineDisplay={renderInlineDisplayWithFiles}
                   renderMessageContent={renderMessageContent}
                   renderToolAgent={renderChatToolAgent}

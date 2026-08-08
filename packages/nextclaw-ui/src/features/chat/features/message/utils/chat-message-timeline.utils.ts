@@ -10,6 +10,13 @@ import {
 } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
 
 const INHERITED_FROM_SESSION_METADATA_KEY = "inherited_from_session_id";
+export const CONTEXT_COMPACTION_PART_EXTENSION_TYPE =
+  "nextclaw.context-compaction";
+
+export type ContextCompactionPartData = {
+  id: string;
+  checkpoint: ContextCompactionTimelineView;
+};
 
 export type ContextInheritanceTimelineView = {
   sourceSessionId: string;
@@ -69,22 +76,7 @@ function appendContinuationParts(
   targetParts: NcpMessage["parts"],
   continuationParts: NcpMessage["parts"],
 ): NcpMessage["parts"] {
-  const parts = [...targetParts];
-  const firstContinuationPart = continuationParts[0];
-  const lastTargetPart = parts.at(-1);
-  if (
-    lastTargetPart?.type === "text" &&
-    firstContinuationPart?.type === "text"
-  ) {
-    parts[parts.length - 1] = {
-      ...lastTargetPart,
-      text: `${lastTargetPart.text}${firstContinuationPart.text}`,
-    };
-    parts.push(...continuationParts.slice(1));
-    return parts;
-  }
-  parts.push(...continuationParts);
-  return parts;
+  return [...targetParts, ...continuationParts];
 }
 
 function mergeAssistantContinuation(
@@ -105,38 +97,136 @@ function mergeAssistantContinuation(
   };
 }
 
-export function projectVisibleChatMessages(
+type VisibleChatMessageProjection = {
+  messages: NcpMessage[];
+  inlineCompactionMessageIds: Set<string>;
+};
+
+type ProjectedMessagePartAnchor = {
+  messageIndex: number;
+  partOffset: number;
+};
+
+type InlineCompactionPlacement = {
+  boundaryIndex: number;
+  checkpoint: ContextCompactionTimelineView;
+  messageIndex: number;
+  rawOrder: number;
+  serviceMessageId: string;
+};
+
+function projectVisibleChatMessageState(
   rawMessages: readonly NcpMessage[],
   options: { continuationRunning?: boolean } = {},
-): NcpMessage[] {
+): VisibleChatMessageProjection {
   const messages: NcpMessage[] = [];
   const projectedIndexByMessageId = new Map<string, number>();
+  const partAnchorByMessageId = new Map<string, ProjectedMessagePartAnchor>();
+  const partCountByMessageId = new Map(
+    rawMessages.map((message) => [message.id, message.parts.length]),
+  );
+  const inlineCompactions: InlineCompactionPlacement[] = [];
+  const inlineCompactionMessageIds = new Set<string>();
   let pendingContinuationTargetId: string | null = null;
 
-  for (const message of rawMessages) {
+  rawMessages.forEach((message, rawOrder) => {
+    const checkpoint = readContextCompactionTimeline(message);
+    const explicitMessageId = checkpoint?.continuationMessageId;
+    const legacyPreRunMessageId = checkpoint?.phase === "pre-run"
+      ? pendingContinuationTargetId
+      : null;
+    const placementMessageId = explicitMessageId ?? legacyPreRunMessageId;
+    const coveredPartCount = checkpoint?.continuationMessageCoveredPartCount
+      ?? (legacyPreRunMessageId
+        ? partCountByMessageId.get(legacyPreRunMessageId)
+        : undefined);
+    const anchor = placementMessageId
+      ? partAnchorByMessageId.get(placementMessageId)
+      : undefined;
+    if (
+      (checkpoint?.phase === "mid-run" || checkpoint?.phase === "pre-run") &&
+      anchor &&
+      coveredPartCount !== undefined
+    ) {
+      inlineCompactions.push({
+        boundaryIndex: anchor.partOffset + coveredPartCount,
+        checkpoint,
+        messageIndex: anchor.messageIndex,
+        rawOrder,
+        serviceMessageId: message.id,
+      });
+      inlineCompactionMessageIds.add(message.id);
+      return;
+    }
     const continuationTargetId = readContinuationTargetMessageId(message);
     if (continuationTargetId && isHiddenNcpMessage(message)) {
       pendingContinuationTargetId = continuationTargetId;
-      continue;
+      return;
     }
     if (!isVisibleChatMessage(message)) {
-      continue;
+      return;
     }
     const targetIndex = pendingContinuationTargetId && message.role === "assistant"
       ? projectedIndexByMessageId.get(pendingContinuationTargetId)
       : undefined;
     if (targetIndex !== undefined && messages[targetIndex]?.role === "assistant") {
+      const partOffset = messages[targetIndex]!.parts.length;
       messages[targetIndex] = mergeAssistantContinuation(
         messages[targetIndex]!,
         message,
       );
       projectedIndexByMessageId.set(message.id, targetIndex);
+      partAnchorByMessageId.set(message.id, {
+        messageIndex: targetIndex,
+        partOffset,
+      });
       pendingContinuationTargetId = null;
-      continue;
+      return;
     }
     pendingContinuationTargetId = null;
     projectedIndexByMessageId.set(message.id, messages.length);
+    partAnchorByMessageId.set(message.id, {
+      messageIndex: messages.length,
+      partOffset: 0,
+    });
     messages.push(message);
+  });
+
+  const placementsByMessageIndex = new Map<number, InlineCompactionPlacement[]>();
+  for (const placement of inlineCompactions) {
+    const placements = placementsByMessageIndex.get(placement.messageIndex) ?? [];
+    placements.push(placement);
+    placementsByMessageIndex.set(placement.messageIndex, placements);
+  }
+  for (const [messageIndex, placements] of placementsByMessageIndex) {
+    const message = messages[messageIndex];
+    if (!message) continue;
+    const parts = [...message.parts];
+    let insertedCount = 0;
+    placements
+      .sort((left, right) =>
+        left.boundaryIndex - right.boundaryIndex || left.rawOrder - right.rawOrder,
+      )
+      .forEach((placement) => {
+        if (
+          !Number.isSafeInteger(placement.boundaryIndex) ||
+          placement.boundaryIndex < 0 ||
+          placement.boundaryIndex > message.parts.length
+        ) {
+          inlineCompactionMessageIds.delete(placement.serviceMessageId);
+          return;
+        }
+        parts.splice(placement.boundaryIndex + insertedCount, 0, {
+          type: "extension",
+          extensionType: CONTEXT_COMPACTION_PART_EXTENSION_TYPE,
+          data: {
+            id: placement.serviceMessageId,
+            checkpoint: placement.checkpoint,
+          } satisfies ContextCompactionPartData,
+        });
+        insertedCount += 1;
+      });
+    messages[messageIndex] = { ...message, parts };
   }
 
   const pendingTargetIndex = pendingContinuationTargetId
@@ -148,7 +238,14 @@ export function projectVisibleChatMessages(
       status: "pending",
     };
   }
-  return messages;
+  return { messages, inlineCompactionMessageIds };
+}
+
+export function projectVisibleChatMessages(
+  rawMessages: readonly NcpMessage[],
+  options: { continuationRunning?: boolean } = {},
+): NcpMessage[] {
+  return projectVisibleChatMessageState(rawMessages, options).messages;
 }
 
 function resolveCompactionBoundaryIndex(params: {
@@ -193,7 +290,8 @@ export function buildChatMessageTimelineItems(params: {
   rawMessages: readonly NcpMessage[];
   messages: ChatMessageViewModel[];
 }): ChatTimelineItem[] {
-  const visibleRawMessages = projectVisibleChatMessages(params.rawMessages);
+  const projection = projectVisibleChatMessageState(params.rawMessages);
+  const visibleRawMessages = projection.messages;
   const checkpoints = params.rawMessages
     .map((message) => ({
       rawMessageId: message.id,
@@ -205,7 +303,10 @@ export function buildChatMessageTimelineItems(params: {
       ): entry is {
         rawMessageId: string;
         checkpoint: ContextCompactionTimelineView;
-      } => Boolean(entry.checkpoint),
+      } => Boolean(
+        entry.checkpoint &&
+        !projection.inlineCompactionMessageIds.has(entry.rawMessageId),
+      ),
     )
     .map((entry) => ({
       key: `compaction:${entry.rawMessageId}`,

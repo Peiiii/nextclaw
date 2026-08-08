@@ -61,6 +61,40 @@ afterEach(async () => {
 });
 
 describe("NcpAgentSessionJournalStore", () => {
+  it("reports only runs whose append-only lifecycle has no terminal event", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot(createRecord([userMessage]));
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.RunStarted,
+        payload: {
+          sessionId,
+          messageId: "assistant-interrupted",
+          runId: "run-interrupted",
+          startedAt: "2026-05-14T00:00:02.000Z",
+        },
+      },
+    });
+
+    await expect(store.listUnfinishedRuns()).resolves.toEqual([{
+      sessionId,
+      messageId: "assistant-interrupted",
+      runId: "run-interrupted",
+      startedAt: "2026-05-14T00:00:02.000Z",
+    }]);
+
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.RunError,
+        payload: { sessionId, runId: "run-interrupted", error: "interrupted" },
+      },
+    });
+    await expect(store.listUnfinishedRuns()).resolves.toEqual([]);
+  });
+
   it("paginates newest-first while preserving chronological order within each page", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
@@ -425,7 +459,9 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
       `${legacyMessageId}:20`,
     ]);
   });
+});
 
+describe("NcpAgentSessionJournalStore corrupted entry recovery", () => {
   it("skips corrupted journal lines without losing later valid events", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);

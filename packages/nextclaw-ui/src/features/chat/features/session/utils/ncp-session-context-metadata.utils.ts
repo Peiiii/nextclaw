@@ -37,11 +37,24 @@ export function readNcpContextWindowValue(value: unknown): SessionContextWindowV
     return null;
   }
   const compactedUsedContextTokens = readNonNegativeInteger(contextWindow.compactedUsedContextTokens);
+  const fixedInputTokens = readNonNegativeInteger(contextWindow.fixedInputTokens);
+  const dynamicInputTokens = readNonNegativeInteger(contextWindow.dynamicInputTokens);
+  const reservedContextTokens = readNonNegativeInteger(contextWindow.reservedContextTokens);
+  const triggerContextTokens = readNonNegativeInteger(contextWindow.triggerContextTokens);
+  const availableBeforeCompactionTokens = readNonNegativeInteger(
+    contextWindow.availableBeforeCompactionTokens,
+  );
   return {
+    completeInputBudget: readBoolean(contextWindow.completeInputBudget),
     usedContextTokens,
     totalContextTokens,
     prunedUsedContextTokens,
     availableContextTokens: readNonNegativeInteger(contextWindow.availableContextTokens) ?? Math.max(0, totalContextTokens - usedContextTokens),
+    ...(fixedInputTokens !== null ? { fixedInputTokens } : {}),
+    ...(dynamicInputTokens !== null ? { dynamicInputTokens } : {}),
+    ...(reservedContextTokens !== null ? { reservedContextTokens } : {}),
+    ...(triggerContextTokens !== null ? { triggerContextTokens } : {}),
+    ...(availableBeforeCompactionTokens !== null ? { availableBeforeCompactionTokens } : {}),
     droppedHistoryCount: readNonNegativeInteger(contextWindow.droppedHistoryCount) ?? 0,
     truncatedToolResultCount: readNonNegativeInteger(contextWindow.truncatedToolResultCount) ?? 0,
     truncatedSystemPrompt: readBoolean(contextWindow.truncatedSystemPrompt),
@@ -63,7 +76,10 @@ export const CONTEXT_COMPACTION_TIMELINE_KIND = 'context_compaction';
 
 export type ContextCompactionTimelineView = {
   id: string;
-  status: 'compressing' | 'compressed';
+  status: 'compressing' | 'compressed' | 'failed' | 'cancelled';
+  phase?: 'pre-run' | 'mid-run';
+  continuationMessageId?: string;
+  continuationMessageCoveredPartCount?: number;
   summary: string;
   coveredMessageCount: number;
   coveredSessionMessageCount: number;
@@ -86,8 +102,25 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
     return null;
   }
   const id = readOptionalString(rawCheckpoint.id);
-  const status = rawCheckpoint.status === 'compressing' ? 'compressing' : rawCheckpoint.status === 'compressed' ? 'compressed' : null;
-  const summary = readOptionalString(rawCheckpoint.summary);
+  const status = rawCheckpoint.status === 'compressing'
+    ? 'compressing'
+    : rawCheckpoint.status === 'compressed'
+      ? 'compressed'
+      : rawCheckpoint.status === 'failed'
+        ? 'failed'
+        : rawCheckpoint.status === 'cancelled'
+          ? 'cancelled'
+          : null;
+  const phase = rawCheckpoint.phase === 'pre-run'
+    ? 'pre-run'
+    : rawCheckpoint.phase === 'mid-run'
+      ? 'mid-run'
+      : null;
+  const continuationMessageId = readOptionalString(rawCheckpoint.continuationMessageId);
+  const continuationMessageCoveredPartCount = readNonNegativeInteger(
+    rawCheckpoint.continuationMessageCoveredPartCount,
+  );
+  const summary = typeof rawCheckpoint.summary === 'string' ? rawCheckpoint.summary : null;
   const coveredMessageCount = readNonNegativeInteger(rawCheckpoint.coveredMessageCount);
   const coveredSessionMessageCount = readNonNegativeInteger(rawCheckpoint.coveredSessionMessageCount);
   const originalEstimatedTokens = readNonNegativeInteger(rawCheckpoint.originalEstimatedTokens);
@@ -97,7 +130,7 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
   if (
     !id ||
     !status ||
-    !summary ||
+    summary === null ||
     coveredMessageCount === null ||
     coveredSessionMessageCount === null ||
     originalEstimatedTokens === null ||
@@ -110,6 +143,11 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
   return {
     id,
     status,
+    ...(phase ? { phase } : {}),
+    ...(continuationMessageId ? { continuationMessageId } : {}),
+    ...(continuationMessageCoveredPartCount !== null
+      ? { continuationMessageCoveredPartCount }
+      : {}),
     summary,
     coveredMessageCount,
     coveredSessionMessageCount,

@@ -22,6 +22,7 @@ description: 当用户要求先研究代码、排查代码、看清楚现状、�
 4. 沿相关事实走一段完整链路：`producer -> owner/state -> adapter/container -> UI/consumer`。只查到局部时，结论必须标注为阶段性。
 5. 扫同一文件、同一 owner、同一责任链中的相邻同类问题；用户点名的问题通常只是入口，不是边界。若当前实现是 registry / catalog / capability list 的投影，必须对照 canonical 事实源审计完整覆盖面，不能只补用户点名的单项。移植外部视觉或内容集合时，还要固定源版本并建立逐项对照表，核对当前与历史名称、真实素材路径、可直接使用还是仅概念预览、最高辨识度元素和许可边界；未经用户明确同意，不得把人物、角色、核心交互或其它高辨识度内容降级成“灵感配色”或抽象替代。
    外部协议或厂商兼容性必须按具体操作和端点逐项取证；端点 A 成功、SDK 宣称兼容或共享同一个 Base URL，都不能证明端点 B 也受支持。未证实的能力不得外推成 UI 操作，应由 capability 合同显式控制展示与调用。
+   对齐外部有状态机制时，必须建立语义对照矩阵，分别核对触发/阈值、输入选择、输出或 replacement state、角色级保留与截断、持久化/恢复、失败/重试和测试证据。触发时机相同不能证明状态替换语义已经对齐。
 6. 再加载专项 skill 做规范判断：
    - 代码审美、拆不拆、抽象力度：`writing-beautiful-code`。
    - 前端 MVP、business/UI 边界、store/manager/presenter：`mvp-view-logic-decoupling`。

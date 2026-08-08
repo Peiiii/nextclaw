@@ -23,6 +23,17 @@ const assistantMessage: NcpMessage = {
   timestamp: "2026-05-14T00:00:02.000Z"
 };
 
+function createBoundaryMessage(id: string, timestamp: string): NcpMessage {
+  return {
+    id,
+    sessionId,
+    role: "service",
+    status: "final",
+    parts: [{ type: "text", text: id }],
+    timestamp,
+  };
+}
+
 let tempDir: string | null = null;
 
 afterEach(async () => {
@@ -31,6 +42,84 @@ afterEach(async () => {
 });
 
 describe("NCP agent session timeline recovery", () => {
+  it("keeps incremental projection equivalent to full replay across repeated boundaries", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot({
+      sessionId,
+      messages: [userMessage],
+      createdAt: userMessage.timestamp,
+      updatedAt: userMessage.timestamp,
+      metadata: {},
+    });
+
+    const append = async (event: Parameters<typeof store.appendSessionEvent>[0]["event"]) => {
+      await store.appendSessionEvent({ sessionId, event });
+    };
+    await append({
+      type: NcpEventType.MessageTextStart,
+      payload: { sessionId, messageId: "assistant-rolling" },
+    });
+    await append({
+      type: NcpEventType.MessageTextDelta,
+      payload: { sessionId, messageId: "assistant-rolling", delta: "first" },
+    });
+    await append({
+      type: NcpEventType.MessageSent,
+      payload: {
+        sessionId,
+        message: createBoundaryMessage("boundary-1", "2099-05-14T00:00:03.000Z"),
+      },
+    });
+    await append({
+      type: NcpEventType.MessageReasoningDelta,
+      payload: { sessionId, messageId: "assistant-rolling", delta: "second" },
+    });
+    await append({
+      type: NcpEventType.MessageSent,
+      payload: {
+        sessionId,
+        message: createBoundaryMessage("boundary-2", "2099-05-14T00:00:04.000Z"),
+      },
+    });
+    await append({
+      type: NcpEventType.MessageTextStart,
+      payload: { sessionId, messageId: "assistant-rolling" },
+    });
+    await append({
+      type: NcpEventType.MessageTextDelta,
+      payload: { sessionId, messageId: "assistant-rolling", delta: "third" },
+    });
+    await append({
+      type: NcpEventType.MessageSent,
+      payload: {
+        sessionId,
+        message: createBoundaryMessage("boundary-3", "2099-05-14T00:00:05.000Z"),
+      },
+    });
+    await append({
+      type: NcpEventType.MessageAbort,
+      payload: { sessionId, messageId: "assistant-rolling" },
+    });
+
+    const canonicalMessages = await store.listSessionMessages(sessionId);
+    const reloadedPage = await new NcpAgentSessionJournalStore(tempDir)
+      .listSessionMessagePage({ sessionId, limit: 10 });
+
+    expect(reloadedPage?.messages).toEqual(
+      JSON.parse(JSON.stringify(canonicalMessages)) as NcpMessage[],
+    );
+    expect(reloadedPage?.messages.find(({ id }) => id === "assistant-rolling"))
+      .toMatchObject({
+        status: "final",
+        parts: [
+          { type: "text", text: "first" },
+          { type: "reasoning", text: "second" },
+          { type: "text", text: "third" },
+        ],
+      });
+  });
+
   it("projects an orphaned streaming assistant before a later user boundary", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
@@ -97,7 +186,7 @@ describe("NCP agent session timeline recovery", () => {
       total: 2,
       messages: [{ id: "user-1" }, { id: "assistant-1" }]
     });
-    expect(JSON.parse(await readFile(metaPath, "utf-8"))).toMatchObject({ version: 3 });
+    expect(JSON.parse(await readFile(metaPath, "utf-8"))).toMatchObject({ version: 6 });
   });
 
   it("preserves an orphaned assistant when a different run starts after restart", async () => {

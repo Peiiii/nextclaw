@@ -88,6 +88,9 @@ export type ChatMessageListProps = {
   ) => ReactNode | undefined;
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
+  renderCustomPart?: (
+    part: Extract<ChatMessageViewModel["parts"][number], { type: "custom" }>,
+  ) => ReactNode | undefined;
   renderMessageContent?: (message: ChatMessageViewModel) => ReactNode | undefined;
 };
 
@@ -154,6 +157,7 @@ export function ChatMessageList({
   onInlineTokenClick,
   onMessageAction,
   onToolAction,
+  renderCustomPart,
   renderInlineDisplay,
   renderMessageContent,
   renderPanelAppCard,
@@ -187,6 +191,7 @@ export function ChatMessageList({
             onAttachmentOpen={onAttachmentOpen}
             onInlineTokenClick={onInlineTokenClick}
             resolveFileContentUrl={resolveFileContentUrl}
+            renderCustomPart={renderCustomPart}
             renderInlineDisplay={renderInlineDisplay}
             renderToolAgent={renderToolAgent}
             renderPanelAppCard={renderPanelAppCard}

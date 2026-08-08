@@ -5,6 +5,7 @@ import {
 } from "@nextclaw/ncp";
 import { CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY } from "@nextclaw/shared";
 import {
+  buildChatMessageTimelineItems,
   isVisibleChatMessage,
   projectVisibleChatMessages,
 } from "@/features/chat/features/message/utils/chat-message-timeline.utils";
@@ -19,6 +20,48 @@ const visibleMessage = {
 } satisfies NcpMessage;
 
 describe("chat message timeline visibility", () => {
+  it("places context compaction between surrounding visible messages", () => {
+    const afterMessage = {
+      ...visibleMessage,
+      id: "assistant-after",
+      timestamp: "2026-08-07T00:02:00.000Z",
+    };
+    const compactionMessage = {
+      ...visibleMessage,
+      id: "context-compaction-1",
+      role: "service" as const,
+      timestamp: "2026-08-07T00:01:00.000Z",
+      metadata: {
+        nextclaw_timeline_kind: "context_compaction",
+        checkpoint: {
+          id: "ctx-1",
+          status: "compressed",
+          summary: "Compressed earlier context",
+          coveredMessageCount: 8,
+          coveredSessionMessageCount: 8,
+          originalEstimatedTokens: 76_000,
+          projectedEstimatedTokens: 51_000,
+          createdAt: "2026-08-07T00:00:50.000Z",
+          updatedAt: "2026-08-07T00:01:00.000Z",
+        },
+      },
+    } satisfies NcpMessage;
+
+    const items = buildChatMessageTimelineItems({
+      rawMessages: [visibleMessage, compactionMessage, afterMessage],
+      messages: [
+        { id: visibleMessage.id } as never,
+        { id: afterMessage.id } as never,
+      ],
+    });
+
+    expect(items.map((item) => item.kind)).toEqual([
+      "message",
+      "compaction",
+      "message",
+    ]);
+  });
+
   it("hides internal and legacy silent messages", () => {
     expect(isVisibleChatMessage({
       ...visibleMessage,
@@ -64,7 +107,10 @@ describe("chat message timeline visibility", () => {
       expect.objectContaining({
         id: "assistant-visible",
         status: "final",
-        parts: [{ type: "text", text: "half done" }],
+        parts: [
+          { type: "text", text: "half" },
+          { type: "text", text: " done" },
+        ],
         lifecycle: {
           startedAt: "2026-08-07T00:00:01.000Z",
           endedAt: "2026-08-07T00:02:00.000Z",
@@ -97,7 +143,11 @@ describe("chat message timeline visibility", () => {
     expect(messages).toHaveLength(1);
     expect(messages[0]).toMatchObject({
       id: "assistant-visible",
-      parts: [{ type: "text", text: "one two three" }],
+      parts: [
+        { type: "text", text: "one" },
+        { type: "text", text: " two" },
+        { type: "text", text: " three" },
+      ],
     });
   });
 

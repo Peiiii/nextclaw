@@ -97,7 +97,7 @@ export function createSessionActivityPreviewFromNcpEvent(
     case NcpEventType.RunError:
       return createProjection(readSessionId(event.payload.sessionId), {
         state: "failed",
-        statusKind: "run-failed",
+        statusKind: event.payload.interrupted ? "run-interrupted" : "run-failed",
         statusText: readErrorDetail(event.payload.error),
         timestamp,
       });

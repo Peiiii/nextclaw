@@ -2,8 +2,14 @@ import type { ContextCompactionCheckpoint } from "@core/features/runtime-context
 
 export type ContextWindowSnapshot = {
   version: 1;
+  completeInputBudget: boolean;
   usedContextTokens: number;
   totalContextTokens: number;
+  fixedInputTokens: number;
+  dynamicInputTokens: number;
+  reservedContextTokens: number;
+  triggerContextTokens: number;
+  availableBeforeCompactionTokens: number;
   prunedUsedContextTokens: number;
   availableContextTokens: number;
   droppedHistoryCount: number;
@@ -18,8 +24,12 @@ export type ContextWindowSnapshot = {
 };
 
 export function buildContextWindowSnapshot(params: {
+  completeInputBudget: boolean;
   usedContextTokens: number;
   totalContextTokens: number;
+  fixedInputTokens: number;
+  reservedContextTokens: number;
+  triggerContextTokens: number;
   prunedUsedContextTokens: number;
   droppedHistoryCount: number;
   truncatedToolResultCount: number;
@@ -31,10 +41,14 @@ export function buildContextWindowSnapshot(params: {
 }): ContextWindowSnapshot {
   const {
     checkpoint,
+    completeInputBudget,
     compactedUsedContextTokens,
     droppedHistoryCount,
+    fixedInputTokens,
     prunedUsedContextTokens,
+    reservedContextTokens,
     totalContextTokens,
+    triggerContextTokens,
     truncatedSystemPrompt,
     truncatedToolResultCount,
     truncatedUserMessage,
@@ -42,8 +56,14 @@ export function buildContextWindowSnapshot(params: {
   } = params;
   return {
     version: 1,
+    completeInputBudget,
     usedContextTokens,
     totalContextTokens,
+    fixedInputTokens,
+    dynamicInputTokens: Math.max(0, usedContextTokens - fixedInputTokens),
+    reservedContextTokens,
+    triggerContextTokens,
+    availableBeforeCompactionTokens: Math.max(0, triggerContextTokens - usedContextTokens),
     prunedUsedContextTokens,
     availableContextTokens: Math.max(0, totalContextTokens - usedContextTokens),
     droppedHistoryCount,

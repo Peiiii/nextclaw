@@ -55,6 +55,7 @@ export class ContextWindowBudgetService {
 
   evaluate = (params: {
     contextTokens: number;
+    fixedInputTokens?: number;
     messages: RuntimeMessage[];
     reservedContextTokens: number;
   }): ContextWindowBudgetEvaluation => {
@@ -63,6 +64,7 @@ export class ContextWindowBudgetService {
     const prepared = this.inputBudgetPruner.prepareForBudget({
       messages: params.messages.map(stripToModelInputMessage),
       contextTokens,
+      fixedInputTokens: params.fixedInputTokens,
       reserveTokensFloor: reservedContextTokens,
       softThresholdTokens: 0,
     });

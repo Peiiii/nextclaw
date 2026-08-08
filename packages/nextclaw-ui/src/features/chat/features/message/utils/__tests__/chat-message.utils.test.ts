@@ -90,6 +90,32 @@ it("preserves the prepared execution summary on the message view model", () => {
   });
 });
 
+it("maps context compaction extensions into stable process parts", () => {
+  const adapted = adapt([{
+    id: "assistant-compaction",
+    role: "assistant",
+    parts: [{
+      type: "extension",
+      extensionType: "nextclaw.context-compaction",
+      data: {
+        id: "context-compaction-message-1",
+        checkpoint: { id: "checkpoint-1", status: "compressed" },
+      },
+    }],
+  }]);
+
+  expect(adapted[0]?.parts).toEqual([{
+    type: "custom",
+    id: "context-compaction-message-1",
+    customType: "nextclaw.context-compaction",
+    data: {
+      id: "context-compaction-message-1",
+      checkpoint: { id: "checkpoint-1", status: "compressed" },
+    },
+    process: true,
+  }]);
+});
+
 it("maps tool lifecycle statuses into visible card state feedback", () => {
   const adapted = adapt([
     {

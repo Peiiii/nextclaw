@@ -103,7 +103,7 @@ function createQueueManager(params: {
       getDefaultModel: () => "test-model",
       getModelMaxTokens: () => 12000,
     } as never,
-    { buildContext: async () => [] } as never,
+    { resolveRunSurface: async () => ({ contextBlocks: [], tools: [] }) } as never,
     eventBus,
     ingress,
     {
@@ -124,7 +124,6 @@ function createQueueManager(params: {
         return run;
       },
     } as never,
-    { buildTools: async () => [] } as never,
   );
 }
 

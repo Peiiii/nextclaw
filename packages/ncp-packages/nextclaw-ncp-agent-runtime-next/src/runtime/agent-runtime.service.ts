@@ -53,9 +53,11 @@ export type DefaultNcpAgentRuntimeRunOptions = {
 export type AgentRunPreflight = (input: {
   contextBlocks: readonly string[];
   phase: AgentRunPreflightPhase;
+  signal?: AbortSignal;
   spec: DefaultNcpAgentRunSpec;
   sessionRun: AgentRuntimeSessionState;
-}) => Promise<readonly NcpEndpointEvent[]>;
+  tools: readonly NcpTool[];
+}) => AsyncIterable<NcpEndpointEvent>;
 
 export type DefaultNcpAgentRuntimeConfig = {
   llmApi: NcpLLMApi;
@@ -216,7 +218,7 @@ export class DefaultNcpAgentRuntime {
         yield await this.applyEvent(sessionRun, event);
       }
       yield* this.runPreflightPhase(
-        { contextBlocks, phase: "pre-run", sessionRun, spec },
+        { contextBlocks, phase: "pre-run", sessionRun, spec, tools },
         signal,
       );
       runStartedAt = new Date().toISOString();
@@ -282,7 +284,7 @@ export class DefaultNcpAgentRuntime {
         }
         if (toolExecutor.hasStartedToolCalls() || drainedInbox.drained) {
           yield* this.runPreflightPhase(
-            { contextBlocks, phase: "mid-run", sessionRun, spec },
+            { contextBlocks, phase: "mid-run", sessionRun, spec, tools },
             signal,
           );
           continue;
@@ -347,11 +349,7 @@ export class DefaultNcpAgentRuntime {
     if (!this.runPreflight) {
       return;
     }
-    const events = await this.runPreflight(input);
-    for (const event of events) {
-      if (this.isAbortRequested(signal)) {
-        break;
-      }
+    for await (const event of this.runPreflight({ ...input, signal })) {
       yield await this.applyEvent(input.sessionRun, event);
     }
   }
