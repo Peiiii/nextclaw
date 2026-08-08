@@ -1,7 +1,10 @@
-import { ExternalLink, Play, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
+import { Play, Trash2 } from "lucide-react";
 
+import { buildSessionPath } from "@/features/chat";
 import type { CronJobView } from "@/shared/lib/api";
-import { Button } from "@/shared/components/ui/button";
+import { NavigationLink } from "@/shared/components/actions/navigation-link";
+import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +15,7 @@ import {
 } from "@/shared/components/ui/overlays/sheet";
 import { Switch } from "@/shared/components/ui/switch";
 import {
+  canOpenCronSession,
   describeCronSchedule,
   describeCronSession,
   formatCronDate,
@@ -24,7 +28,7 @@ function DetailRow({
   value,
 }: {
   readonly label: string;
-  readonly value: string;
+  readonly value: ReactNode;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-border/50 py-3 last:border-b-0">
@@ -41,7 +45,6 @@ type CronJobDetailDialogProps = {
   readonly open: boolean;
   readonly onDelete: (job: CronJobView) => void;
   readonly onOpenChange: (open: boolean) => void;
-  readonly onOpenSession: (job: CronJobView) => void;
   readonly onRun: (job: CronJobView) => void;
   readonly onToggle: (job: CronJobView, enabled: boolean) => void;
 };
@@ -51,7 +54,6 @@ export function CronJobDetailDialog({
   open,
   onDelete,
   onOpenChange,
-  onOpenSession,
   onRun,
   onToggle,
 }: CronJobDetailDialogProps) {
@@ -61,7 +63,9 @@ export function CronJobDetailDialog({
 
   const sessionKey = describeCronSession(job);
   const isBound = Boolean(job.payload.sessionId?.trim());
-  const canOpenSession = isBound || Boolean(job.state.lastRunAt);
+  const sessionHref = canOpenCronSession(job)
+    ? buildSessionPath(sessionKey)
+    : null;
   const status = job.state.lastStatus
     ? t(
         `cronLastStatus${job.state.lastStatus[0].toUpperCase()}${job.state.lastStatus.slice(1)}`,
@@ -114,7 +118,22 @@ export function CronJobDetailDialog({
                 label={t("cronAgentLabel")}
                 value={job.payload.agentId?.trim() || "main"}
               />
-              <DetailRow label={t("cronSessionLabel")} value={sessionKey} />
+              <DetailRow
+                label={t("cronSessionLabel")}
+                value={
+                  sessionHref ? (
+                    <NavigationLink
+                      href={sessionHref}
+                      size="xs"
+                      className="text-[hsl(var(--link-foreground))] underline decoration-[1.2px] underline-offset-2 hover:text-[hsl(var(--link-foreground-hover))]"
+                    >
+                      {sessionKey}
+                    </NavigationLink>
+                  ) : (
+                    sessionKey
+                  )
+                }
+              />
               <DetailRow
                 label={t("cronCreatedAt")}
                 value={formatCronDate(job.createdAt)}
@@ -175,7 +194,7 @@ export function CronJobDetailDialog({
             />
           </section>
 
-          {!canOpenSession ? (
+          {!sessionHref ? (
             <p className="text-xs text-muted-foreground">
               {t("cronSessionAvailableAfterRun")}
             </p>
@@ -191,14 +210,21 @@ export function CronJobDetailDialog({
             <Trash2 className="mr-2 h-4 w-4" />
             {t("delete")}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onOpenSession(job)}
-            disabled={!canOpenSession}
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            {t("cronOpenSession")}
-          </Button>
+          {sessionHref ? (
+            <NavigationLink
+              href={sessionHref}
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "hover:no-underline",
+              )}
+            >
+              {t("cronOpenSession")}
+            </NavigationLink>
+          ) : (
+            <Button variant="outline" disabled>
+              {t("cronOpenSession")}
+            </Button>
+          )}
           <Button onClick={() => onRun(job)}>
             <Play className="mr-2 h-4 w-4" />
             {t("cronRunNow")}

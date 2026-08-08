@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NavigationLink } from "@/shared/components/actions/navigation-link";
 
@@ -37,11 +38,21 @@ describe("NavigationLink", () => {
     );
   });
 
-  it("keeps same-page links on the browser navigation path", () => {
-    render(<NavigationLink href="/settings">Settings</NavigationLink>);
+  it("navigates internal destinations through the app router", () => {
+    render(
+      <MemoryRouter initialEntries={["/cron"]}>
+        <NavigationLink href="/chat/session-1">Open session</NavigationLink>
+        <Routes>
+          <Route path="/chat/:sessionId" element={<p>Session route</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
-    const link = screen.getByRole("link", { name: "Settings" });
+    const link = screen.getByRole("link", { name: "Open session" });
     expect(link.getAttribute("target")).toBeNull();
+    fireEvent.click(link);
+
+    expect(screen.getByText("Session route")).toBeTruthy();
     expect(mocks.openExternalUrl).not.toHaveBeenCalled();
   });
 });

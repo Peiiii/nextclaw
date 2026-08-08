@@ -156,6 +156,10 @@ export function describeCronSession(job: CronJobView): string {
   return job.payload.sessionId?.trim() || `cron:${job.id}`;
 }
 
+export function canOpenCronSession(job: CronJobView): boolean {
+  return Boolean(job.payload.sessionId?.trim() || job.state.lastRunAt);
+}
+
 export function isCronJobForSession(
   job: CronJobView,
   sessionKey: string | null | undefined,

@@ -4,6 +4,7 @@ import type {
   ReactNode,
 } from "react";
 import { ExternalLink as ExternalLinkIcon, type LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 import { hostCapabilityManager } from "@/shared/lib/host-capabilities";
 import { cn } from "@/shared/lib/utils";
 
@@ -58,8 +59,8 @@ function resolveExternalHttpUrl(href: string): string | null {
 
 /**
  * Shared navigation primitive for visible URL destinations.
- * External links retain native link semantics while delegating ordinary clicks
- * to the desktop host when one is available.
+ * Internal links use client-side routing; external links delegate ordinary
+ * clicks to the desktop host when one is available.
  */
 export function NavigationLink({
   children,
@@ -75,29 +76,50 @@ export function NavigationLink({
   ...props
 }: NavigationLinkProps) {
   const Icon = icon === undefined && external ? ExternalLinkIcon : icon;
+  const linkClassName = cn(
+    "inline-flex items-center rounded-sm font-medium text-primary underline-offset-4 transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
+    LINK_SIZE_CLASS[size],
+    className,
+  );
   const linkIcon = Icon ? (
     <Icon
       aria-hidden="true"
       className={cn("shrink-0", LINK_ICON_SIZE_CLASS[size])}
     />
   ) : null;
+  const content = (
+    <>
+      {iconPosition === "leading" ? linkIcon : null}
+      {children}
+      {iconPosition === "trailing" ? linkIcon : null}
+    </>
+  );
+
+  if (!external) {
+    return (
+      <Link
+        {...props}
+        to={href}
+        target={target}
+        rel={rel}
+        className={linkClassName}
+        onClick={onClick}
+      >
+        {content}
+      </Link>
+    );
+  }
 
   return (
     <a
       {...props}
       href={href}
-      target={external ? target ?? "_blank" : target}
-      rel={external ? resolveExternalRel(rel) : rel}
-      className={cn(
-        "inline-flex items-center rounded-sm font-medium text-primary underline-offset-4 transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
-        LINK_SIZE_CLASS[size],
-        className,
-      )}
+      target={target ?? "_blank"}
+      rel={resolveExternalRel(rel)}
+      className={linkClassName}
       onClick={(event) => {
         onClick?.(event);
-        const externalHttpUrl = external
-          ? resolveExternalHttpUrl(href)
-          : null;
+        const externalHttpUrl = resolveExternalHttpUrl(href);
         if (
           externalHttpUrl &&
           !event.defaultPrevented &&
@@ -108,9 +130,7 @@ export function NavigationLink({
         }
       }}
     >
-      {iconPosition === "leading" ? linkIcon : null}
-      {children}
-      {iconPosition === "trailing" ? linkIcon : null}
+      {content}
     </a>
   );
 }

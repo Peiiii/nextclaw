@@ -30,7 +30,6 @@ import type {
   CronListStatus,
   CronListSummaryView,
 } from "@/shared/lib/api";
-import { describeCronSession } from "@/shared/lib/cron";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
@@ -230,10 +229,6 @@ export function CronConfig() {
       }
     }
     runCronJob.mutate({ id: job.id, force });
-  };
-
-  const handleOpenSession = (job: CronJobView) => {
-    presenter.chatSessionListManager.selectSession(describeCronSession(job));
   };
 
   const handlePageChange = (nextPage: number) => {
@@ -456,7 +451,6 @@ export function CronConfig() {
           }
         }}
         onDelete={handleDelete}
-        onOpenSession={handleOpenSession}
         onRun={handleRun}
         onToggle={handleToggle}
       />

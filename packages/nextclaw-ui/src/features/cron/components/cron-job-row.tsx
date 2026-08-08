@@ -10,7 +10,9 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
+import { buildSessionPath } from "@/features/chat";
 import type { CronJobView } from "@/shared/lib/api";
+import { NavigationLink } from "@/shared/components/actions/navigation-link";
 import { Button } from "@/shared/components/ui/button";
 import {
   Popover,
@@ -25,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
 import {
+  canOpenCronSession,
   describeCronSchedule,
   describeCronSession,
   formatCronDate,
@@ -92,6 +95,10 @@ export function CronJobRow({
   const StatusIcon = needsAttention ? TriangleAlert : Check;
   const jobLabel = job.name || job.id;
   const previewId = `cron-job-preview-${job.id}`;
+  const sessionKey = describeCronSession(job);
+  const sessionHref = canOpenCronSession(job)
+    ? buildSessionPath(sessionKey)
+    : null;
 
   return (
     <div
@@ -248,7 +255,17 @@ export function CronJobRow({
                   {t("cronSessionLabel")}
                 </dt>
                 <dd className="mt-0.5 truncate font-medium text-foreground">
-                  {describeCronSession(job)}
+                  {sessionHref ? (
+                    <NavigationLink
+                      href={sessionHref}
+                      size="xs"
+                      className="max-w-full truncate text-[11px] text-[hsl(var(--link-foreground))] underline decoration-[1.2px] underline-offset-2 hover:text-[hsl(var(--link-foreground-hover))]"
+                    >
+                      {sessionKey}
+                    </NavigationLink>
+                  ) : (
+                    sessionKey
+                  )}
                 </dd>
               </div>
               <div className="min-w-0">

@@ -62,6 +62,10 @@
       --foreground-tertiary: var(--gray-500);
       --foreground-muted: var(--gray-400);
 
+      /* Links */
+      --link-foreground: 211 73% 45%;
+      --link-foreground-hover: 211 73% 38%;
+
       /* Primary (Brand) */
       --primary: var(--brand-500);
       --primary-hover: var(--brand-600);
@@ -832,6 +836,13 @@
       --shadow-lg: 0 10px 15px -3px rgb(34 49 61 / 0.06), 0 4px 6px -4px rgb(34 49 61 / 0.04);
       --shadow-xl: 0 20px 25px -5px rgb(34 49 61 / 0.08), 0 8px 10px -6px rgb(34 49 61 / 0.04);
       --shadow-2xl: 0 25px 50px -12px rgb(34 49 61 / 0.14);
+   }
+}
+
+@layer base {
+   :root[data-theme-appearance="dark"] {
+      --link-foreground: 213 94% 68%;
+      --link-foreground-hover: 213 97% 79%;
    }
 }
 
