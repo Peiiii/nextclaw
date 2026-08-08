@@ -35,6 +35,12 @@ const mocks = vi.hoisted(() => ({
             enabled: false,
             apiKeySet: false,
             baseUrl: 'https://api.search.brave.com/res/v1/web/search'
+          },
+          exa: {
+            enabled: false,
+            apiKeySet: false,
+            baseUrl: 'https://api.exa.ai/search',
+            docsUrl: 'https://exa.ai/docs/reference/search'
           }
         }
       }
@@ -63,6 +69,13 @@ const mocks = vi.hoisted(() => ({
           displayName: 'Brave Search',
           description: 'Brave web search API kept as an optional provider.',
           supportsSummary: false
+        },
+        {
+          name: 'exa',
+          displayName: 'Exa Search',
+          description: 'Semantic web search with extracted page content.',
+          docsUrl: 'https://exa.ai/docs/reference/search',
+          supportsSummary: true
         }
       ]
     }
@@ -150,9 +163,44 @@ describe('SearchConfigPage', () => {
           brave: {
             apiKey: undefined,
             baseUrl: 'https://api.search.brave.com/res/v1/web/search'
+          },
+          exa: {
+            apiKey: undefined,
+            baseUrl: 'https://api.exa.ai/search'
           }
         }
       }
+    });
+  });
+
+  it('renders and submits Exa configuration through the shared provider fields', async () => {
+    const user = userEvent.setup();
+
+    render(<SearchConfigPage />);
+
+    await user.click(screen.getByRole('button', { name: /Exa Search/ }));
+
+    expect(screen.getByRole('heading', { name: 'Exa Search' })).toBeTruthy();
+    expect(screen.getAllByText('语义搜索并提取网页正文，适合调研和资料发现。').length).toBeGreaterThan(0);
+    expect(screen.getByDisplayValue('https://api.exa.ai/search')).toBeTruthy();
+
+    const docsLink = screen.getByRole('link', { name: '查看文档' });
+    expect(docsLink.getAttribute('href')).toBe('https://exa.ai/docs/reference/search');
+
+    const apiKeyInput = document.querySelector('input[type="password"]');
+    expect(apiKeyInput).toBeTruthy();
+    await user.type(apiKeyInput as HTMLInputElement, 'exa_test_key');
+    await user.click(screen.getByRole('button', { name: '保存变更' }));
+
+    expect(mocks.mutate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        providers: expect.objectContaining({
+          exa: {
+            apiKey: 'exa_test_key',
+            baseUrl: 'https://api.exa.ai/search'
+          }
+        })
+      })
     });
   });
 });

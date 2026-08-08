@@ -1057,15 +1057,15 @@ After changing channel config, NextClaw hot-reloads channel runtime automaticall
 
 ## Tools
 
-### Web search (Bocha default, Tavily and Brave optional)
+### Web search (Bocha default; Tavily, Brave, and Exa optional)
 
-Configure the active search provider under `search`. Bocha is the default and is recommended for mainland China users. Tavily is a good fit for research-heavy tasks when you want configurable retrieval depth and optional synthesized answers:
+Configure the active search provider under `search`. Bocha is the default and is recommended for mainland China users. Tavily supports configurable retrieval depth and optional synthesized answers. Exa provides semantic web search with extracted page content:
 
 ```json
 {
   "search": {
-    "provider": "tavily",
-    "enabledProviders": ["bocha", "tavily"],
+    "provider": "exa",
+    "enabledProviders": ["bocha", "tavily", "brave", "exa"],
     "defaults": {
       "maxResults": 10
     },
@@ -1082,6 +1082,9 @@ Configure the active search provider under `search`. Bocha is the default and is
       },
       "brave": {
         "apiKey": "YOUR_BRAVE_KEY"
+      },
+      "exa": {
+        "apiKey": "YOUR_EXA_KEY"
       }
     }
   }

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ToolingContextProvider } from "../tooling-context.provider.js";
+import { ToolingContextProvider } from "@kernel/contributions/context-provider/providers/tooling-context.provider.js";
 
 function createContext(params: {
   apiKey?: string;
   includeWebSearch?: boolean;
-  provider?: "bocha" | "tavily" | "brave";
+  provider?: "bocha" | "tavily" | "brave" | "exa";
 }) {
   const provider = params.provider ?? "bocha";
   return {
@@ -18,6 +18,7 @@ function createContext(params: {
               bocha: { apiKey: provider === "bocha" ? params.apiKey ?? "" : "" },
               tavily: { apiKey: provider === "tavily" ? params.apiKey ?? "" : "" },
               brave: { apiKey: provider === "brave" ? params.apiKey ?? "" : "" },
+              exa: { apiKey: provider === "exa" ? params.apiKey ?? "" : "" },
             },
           },
         },
@@ -44,15 +45,15 @@ describe("ToolingContextProvider web access policy", () => {
     expect(context).toContain("do not silently install its external CLI");
   });
 
-  it("marks a configured provider as ready", async () => {
+  it.each(["tavily", "exa"] as const)("marks configured %s search as ready", async (providerName) => {
     const provider = new ToolingContextProvider(createContext({
-      apiKey: "tvly_test_key",
-      provider: "tavily",
+      apiKey: "search_test_key",
+      provider: providerName,
     }) as never);
 
     const blocks = await provider.provide({} as never);
 
-    expect(blocks.join("\n")).toContain("web_search is ready with provider tavily.");
+    expect(blocks.join("\n")).toContain(`web_search is ready with provider ${providerName}.`);
   });
 
   it("does not claim readiness when web_search is absent from the turn", async () => {

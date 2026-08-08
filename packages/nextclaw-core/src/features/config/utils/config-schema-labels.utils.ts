@@ -73,7 +73,6 @@ export const FIELD_LABELS: Record<string, string> = {
   "search.providers.exa": "Exa Search",
   "search.providers.exa.apiKey": "Exa API Key",
   "search.providers.exa.baseUrl": "Exa API Base URL",
-  "search.providers.exa.numResults": "Num Results",
   channels: "Channels",
   gateway: "Gateway",
   "gateway.host": "Gateway Host",

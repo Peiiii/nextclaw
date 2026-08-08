@@ -10,13 +10,7 @@ function readSearchApiKey(
   searchConfig: SearchConfig | undefined,
   provider: SearchProviderName,
 ): string {
-  if (provider === "bocha") {
-    return searchConfig?.providers?.bocha?.apiKey?.trim() ?? "";
-  }
-  if (provider === "tavily") {
-    return searchConfig?.providers?.tavily?.apiKey?.trim() ?? "";
-  }
-  return searchConfig?.providers?.brave?.apiKey?.trim() ?? "";
+  return searchConfig?.providers?.[provider]?.apiKey?.trim() ?? "";
 }
 
 function renderWebSearchReadiness(params: {

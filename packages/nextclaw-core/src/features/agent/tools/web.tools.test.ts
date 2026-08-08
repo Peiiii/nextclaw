@@ -37,8 +37,7 @@ function createSearchConfig(): SearchConfig {
       },
       exa: {
         apiKey: "exa_test_key",
-        baseUrl: "https://api.exa.ai/search",
-        numResults: 5
+        baseUrl: "https://api.exa.ai/search"
       }
     }
   };
@@ -71,8 +70,7 @@ function createExaSearchConfig(): SearchConfig {
       },
       exa: {
         apiKey: "exa_test_key",
-        baseUrl: "https://api.exa.ai/search",
-        numResults: 5
+        baseUrl: "https://api.exa.ai/search"
       }
     }
   };

@@ -450,8 +450,7 @@ export const TavilySearchProviderConfigSchema = z.object({
 
 export const ExaSearchProviderConfigSchema = z.object({
   apiKey: z.string().default(""),
-  baseUrl: z.string().default("https://api.exa.ai/search"),
-  numResults: z.number().int().min(1).max(50).default(5)
+  baseUrl: z.string().default("https://api.exa.ai/search")
 });
 
 export const SearchConfigSchema = z.object({

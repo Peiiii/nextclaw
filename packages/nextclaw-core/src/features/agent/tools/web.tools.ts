@@ -130,7 +130,15 @@ function normalizeBochaResults(payload: unknown): SearchResultSet {
   return { results };
 }
 
-function normalizeTavilyResults(payload: unknown): SearchResultSet {
+function normalizeListResults(
+  payload: unknown,
+  fields: {
+    summary: string[];
+    siteName: string[];
+    publishedAt: string[];
+    answer: string[];
+  }
+): SearchResultSet {
   if (!isRecord(payload) || !Array.isArray(payload.results)) {
     return { results: [] };
   }
@@ -147,54 +155,16 @@ function normalizeTavilyResults(payload: unknown): SearchResultSet {
     const item: SearchResultItem = {
       title,
       url,
-      summary: getStringByKeys(entry, ["content", "snippet"]) ?? ""
+      summary: getStringByKeys(entry, fields.summary) ?? "",
+      siteName: getStringByKeys(entry, fields.siteName) ?? undefined,
+      publishedAt: getStringByKeys(entry, fields.publishedAt) ?? undefined
     };
-    const siteName = getStringByKeys(entry, ["source", "domain"]);
-    const publishedAt = getStringByKeys(entry, ["published_date"]);
-    if (siteName) {
-      item.siteName = siteName;
-    }
-    if (publishedAt) {
-      item.publishedAt = publishedAt;
-    }
     results.push(item);
   }
   return {
-    answer: getStringByKeys(payload, ["answer"]) ?? undefined,
+    answer: getStringByKeys(payload, fields.answer) ?? undefined,
     results
   };
-}
-
-function normalizeExaResults(payload: unknown): SearchResultSet {
-  if (!isRecord(payload) || !Array.isArray(payload.results)) {
-    return { results: [] };
-  }
-  const results: SearchResultItem[] = [];
-  for (const entry of payload.results) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-    const title = getStringByKeys(entry, ["title"]);
-    const url = getStringByKeys(entry, ["url"]);
-    if (!title || !url) {
-      continue;
-    }
-    const item: SearchResultItem = {
-      title,
-      url,
-      summary: getStringByKeys(entry, ["text", "snippet"]) ?? ""
-    };
-    const siteName = getStringByKeys(entry, ["author", "domain"]);
-    const publishedAt = getStringByKeys(entry, ["publishedDate", "published_date"]);
-    if (siteName) {
-      item.siteName = siteName;
-    }
-    if (publishedAt) {
-      item.publishedAt = publishedAt;
-    }
-    results.push(item);
-  }
-  return { results };
 }
 
 function formatResults(resultSet: SearchResultSet): string {
@@ -227,10 +197,20 @@ function normalizeSearchResults(provider: SearchProviderName, payload: unknown):
     return normalizeBochaResults(payload);
   }
   if (provider === "tavily") {
-    return normalizeTavilyResults(payload);
+    return normalizeListResults(payload, {
+      summary: ["content", "snippet"],
+      siteName: ["source", "domain"],
+      publishedAt: ["published_date"],
+      answer: ["answer"]
+    });
   }
   if (provider === "exa") {
-    return normalizeExaResults(payload);
+    return normalizeListResults(payload, {
+      summary: ["text", "snippet"],
+      siteName: ["author", "domain"],
+      publishedAt: ["publishedDate", "published_date"],
+      answer: []
+    });
   }
   return normalizeBraveResults(payload);
 }
