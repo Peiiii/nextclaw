@@ -1,6 +1,6 @@
 ---
 name: nextclaw-iteration-log-governance
-description: Use when deciding, creating, or updating docs/logs iteration records; when the user asks to commit/提交/收尾 after changes; when changes touch code, scripts, tests, runtime config, large non-code governance/docs rewrites, NPM release records, root-cause fix notes, red-zone touch records, work notes, or goal-progress anchors.
+description: Use when deciding, creating, or updating docs/logs iteration records for a commit/release, cross-module or long-running delivery batch, important root-cause fix, red-zone touch, large governance rewrite, NPM release record, work note, or goal-progress anchor; ordinary local code edits and small fixes do not trigger it.
 ---
 
 # NextClaw Iteration Log Governance
@@ -13,20 +13,23 @@ Do not create an iteration directory at task start only for note-taking unless t
 
 ## Decision Rules
 
-Create or update an iteration record when any of these is true:
+Create or update an iteration record when the work has independent delivery or traceability value:
 
-- project code changed,
-- scripts or tests changed,
-- runtime-path config changed,
+- a commit or release batch is being closed,
+- code/runtime changes span modules or a long-running delivery,
+- an important root-cause fix or red-zone touch needs durable evidence,
 - non-code content changed at large scale, such as governance/rule-system restructure,
 - historical iteration records are being materially corrected or expanded,
 - release or NPM package state must be recorded.
 
-Do not automatically create an iteration record when all of these are true:
+Do not automatically create an iteration record for:
 
-- no code/runtime path changed,
-- the change is a small metadata, wording, index, thought, plan, design, PRD, or discussion-doc update,
-- the user did not explicitly request iteration logging.
+- uncommitted local edits,
+- a small isolated bugfix, test adjustment, style change or refactor with no red-zone/release significance,
+- metadata, wording, index, thought, plan, design, PRD or discussion-doc updates,
+- work that already belongs to an active related iteration and only needs a later batch-level update.
+
+The user can explicitly request logging at any time. Otherwise, prefer one batch record over one record per task or correction.
 
 Thought/design/plan/PRD documents normally belong under `docs/thoughts`, `docs/plans`, `docs/designs`, or `docs/prd`, not `docs/logs`.
 
@@ -107,7 +110,7 @@ Cover:
 - whether code/branch/function/file/directory sprawl decreased or at least did not worsen,
 - whether abstractions and owner boundaries became clearer,
 - whether directory/file organization satisfies current governance,
-- whether `post-edit-maintainability-review` was used when code maintainability was evaluated,
+- whether the automatic guard found anything and whether its result triggered `post-edit-maintainability-review`,
 - or `不适用` with reason when no code maintainability evaluation applies.
 
 ## Work Notes

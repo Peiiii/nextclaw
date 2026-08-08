@@ -1,6 +1,6 @@
 ---
 name: frontend-code-optimization
-description: 当用户要求前端代码优化、前端可维护性治理、组件拆分、逻辑拆分、视图逻辑解耦、MVP / presenter-manager-store 落地、prop 透传改造、页面/组件代码爆炸 review、React 组件职责收敛、前端重构优先级排序，或指出某个前端 Page/Component 可维护性爆炸时使用。用于把前端优化任务先诊断、排序，再按非新增功能净减约束实施。
+description: 当用户要求前端代码优化、前端可维护性治理、组件拆分、逻辑拆分、视图逻辑解耦、MVP / presenter-manager-store 落地、prop 透传改造、页面/组件代码爆炸 review、React 组件职责收敛或前端重构优先级排序时使用。用于先诊断和排序，再以最小清晰改动实施。
 ---
 
 # Frontend Code Optimization
@@ -21,13 +21,13 @@ description: 当用户要求前端代码优化、前端可维护性治理、组�
 - 交互语义、tooltip、键盘可达性、loading/disabled/empty/error 反馈：涉及时读取并引用 [frontend-interaction-quality](../frontend-interaction-quality/SKILL.md)。
 - React 组件类型、key、streaming DOM 连续性、焦点/选区或 iframe/editor 实例保持：涉及时读取并引用 [react-rendering-lifecycle-safety](../react-rendering-lifecycle-safety/SKILL.md)。
 - 文件新增、移动、命名、目录落位：涉及时读取并引用 [file-naming-convention](../file-naming-convention/SKILL.md)、[role-first-file-organization](../role-first-file-organization/SKILL.md)、[collapsible-feature-root-architecture](../collapsible-feature-root-architecture/SKILL.md)。
-- 验证与收尾：实现后读取并引用 [nextclaw-validation-workflow](../nextclaw-validation-workflow/SKILL.md)、[post-edit-maintainability-guard](../post-edit-maintainability-guard/SKILL.md)、[post-edit-maintainability-review](../post-edit-maintainability-review/SKILL.md)。
+- 验证与收尾：实现后读取 [nextclaw-validation-workflow](../nextclaw-validation-workflow/SKILL.md) 并运行一次 [post-edit-maintainability-guard](../post-edit-maintainability-guard/SKILL.md)；只有 guard 告警、结构边界明显变化、跨模块大改或用户要求时才读取 [post-edit-maintainability-review](../post-edit-maintainability-review/SKILL.md)。
 
 引用方式要求：不要只写“按规范”；必须写出命中的 skill 名称和该 skill 中支撑判断的原则或规则名，例如 `mvp-view-logic-decoupling: layout/page 不要组装宽 child prop bag`。
 
 ## 核心原则
 
-- 非新增用户能力时，排除纯格式化噪音后的非测试语义代码默认只能净减少；做不到就先说明无收益或申请豁免。
+- 非新增用户能力时优先删除和复用，避免无必要增长；最小、清晰、安全的必要增长可以接受，不为抵消行数扩大无关改动。
 - 先删重复、合并链路、收敛 owner，再考虑新增抽象。
 - 不因为文件长就机械拆分；只按变化原因、状态归属、生命周期、不变量和复用边界拆。
 - 不新增 `ViewModel`、`Presenter`、`Manager`、`Hook`、`Context` 来包装混乱；新 owner 必须减少真实复杂度，并删除更多旧代码或更宽的 prop 面。
@@ -97,13 +97,13 @@ description: 当用户要求前端代码优化、前端可维护性治理、组�
 
 ## 实施规则
 
-1. 一次只做一个可验证 vertical slice；每做完一个 slice 先自 review。
+1. 一次只做一个可验证 vertical slice；迭代中只跑能指导下一步的定向检查，稳定后统一收尾。
 2. 动手前写出“删除点 / 收敛点 / 正确 owner / 验收方式”。
 3. 新增文件或抽象前，必须证明它比留在原处更少、更清楚，并且不是空心中转。
 4. 优先删除重复计算、重复 target id、重复 entry 构造、重复 loading/empty/error 骨架。
 5. 优先把宽 props 改成更小的语义对象或让业务 container 直接连接 owner。
 6. 保留可读性，不靠缩短命名、合并语句、折叠分支来凑净减。
-7. 修改用户可见 UI 行为时，必须有定向测试或浏览器/DOM 验证。
+7. 修改 UI 时按风险验证：纯视觉证明页面生效并交给用户确认审美；交互、状态和数据行为由定向测试或一条真实浏览器/DOM 路径证明。
 
 ## 输出合同
 
@@ -112,12 +112,11 @@ description: 当用户要求前端代码优化、前端可维护性治理、组�
 - findings-first，按 P0/P1/P2/P3 排序。
 - 每条包含文件证据、风险、引用的 skill/规则、正确 owner、最小修复方向。
 - 给出按优先级排序的实施计划。
-- 明确哪些项如果无法净减则不做。
+- 明确哪些建议收益不足、会扩大范围，因此本轮不做。
 
 做实现时输出：
 
 - 本次 slice 引用了哪些 skill、命中了哪些规则、owner 判断是什么。
-- 代码增减与非测试语义代码增减。
-- 正向减债动作：删除 / 简化 / 复用 / 职责收敛 / 必要解耦抽象。
-- 定向验证、`tsc`、governance、maintainability guard/review 结果。
-- 若没有新增用户能力但非测试语义代码净增为正，结论必须是未通过，除非有明确豁免。
+- 只报告影响判断的代码增减和删减/复用动作。
+- 按风险选择的主要验证及结果。
+- maintainability guard 结果，以及是否触发了主观 review。

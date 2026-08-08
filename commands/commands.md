@@ -62,7 +62,7 @@
 
 - 用途：按改动影响范围执行最小充分验证。
 - 输入格式：`/validate`，可附验证范围。
-- 输出/期望行为：使用 `nextclaw-validation-workflow`；若触达 TypeScript 源码、类型声明、导入导出边界或运行链路，必须包含实际执行的 `tsc` 命令；代码改动需覆盖 maintainability guard、governance ratchet、主观可维护性复核和必要冒烟。
+- 输出/期望行为：使用 `nextclaw-validation-workflow` 按 L0-L4 风险分级选择最小充分验证；TypeScript/运行链路触达时执行匹配范围的 `tsc`，源码类改动运行一次 maintainability guard。governance ratchet、主观可维护性复核和真实冒烟仅在对应风险触发时追加，不组成默认全家桶。
 
 ## `/release-frontend`
 

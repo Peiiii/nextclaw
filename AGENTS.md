@@ -64,7 +64,7 @@
 - 涉及前端交互体验、操作含义、tooltip/popover、键盘可达性、状态反馈或紧凑模式下的操作可理解性时，使用 `frontend-interaction-quality`。
 - 涉及 React 组件类型、key、动态 renderer、streaming 重渲染、DOM 身份连续性，或焦点/选区/iframe/editor 等实例状态保持时，使用 `react-rendering-lifecycle-safety`。
 - 涉及 kernel 主干/分支、manager/service/store/presenter owner 依赖、稳定业务 owner 是否直连、factory/create/registry 是否过度抽象、prop 透传或链路过长时，必须使用 `kernel-branch-owner-architecture`。
-- 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
+- 改完源码、脚本、测试或运行链路配置后，运行一次 `post-edit-maintainability-guard`；只有 guard 告警、结构/owner/抽象发生明显变化、改动范围较大或用户明确要求时，才继续使用 `post-edit-maintainability-review`。
 - 创建、拆分、移动文件/模块/目录前，必须先判断并读取命名、角色、目录组织相关 skill，再按其规则实现。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 涉及桌面端 installer、DMG、desktop beta preview、`desktop-release` workflow、update manifest 或检查更新发布时，必须使用 `desktop-release-contract-guard`。
@@ -101,8 +101,8 @@
 - 标准开发流程编排：使用 [nextclaw-delivery-workflow](.agents/skills/nextclaw-delivery-workflow/SKILL.md)，把方案、实现、修复、重构或验证串成目标对齐、方案阶段门、实现前删减、验证闭环、可维护性披露、复盘和最终汇报流程。
 - Linear 委派交付：使用 [delivering-delegated-linear-issues](.agents/skills/delivering-delegated-linear-issues/SKILL.md)，处理人工触发或定时扫描的 `Delegated to Agent` issue，并约束持久 Agent 状态标签、隔离开发、PR / 本地 `master` 交付与评论回写。
 - 验证闭环判断：使用 [nextclaw-validation-workflow](.agents/skills/nextclaw-validation-workflow/SKILL.md)，证明改动行为正确、类型安全、治理通过，并覆盖 tsc、定向测试、冒烟和运行链路验收。
-- 可维护性自动守卫：使用 [post-edit-maintainability-guard](.agents/skills/post-edit-maintainability-guard/SKILL.md)，检查代码增减、热点、目录膨胀和非功能改动净增长约束。
-- 可维护性主观复核：使用 [post-edit-maintainability-review](.agents/skills/post-edit-maintainability-review/SKILL.md)，复核抽象、owner、文件边界和长期维护成本是否真的改善。
+- 可维护性自动守卫：使用 [post-edit-maintainability-guard](.agents/skills/post-edit-maintainability-guard/SKILL.md)，一次性检查本次 diff 是否新增文件、目录、复杂度或红区债务。
+- 可维护性主观复核：仅在自动 guard 告警、结构/owner/抽象明显变化、改动范围较大或用户明确要求时，使用 [post-edit-maintainability-review](.agents/skills/post-edit-maintainability-review/SKILL.md) 做第二遍判断。
 
 知识与元规则：负责把想法、设计、计划、迭代记录、发布记录和规则改动放到正确长期层级。
 - 用户可见内容边界：使用 [user-facing-content-boundary](.agents/skills/user-facing-content-boundary/SKILL.md)，在官网、UI 文案、用户文档、更新提示、发布说明和社交元信息中隔离内部讨论过程与最终用户结果表达。
@@ -113,32 +113,19 @@
 ## 标准开发流程
 
 - 适用范围：源码、脚本、测试、运行链路配置和方案到实现相关任务，默认都按这条标准流程推进；`nextclaw-delivery-workflow` 负责条件细节、阶段门和收尾强制检查。
-- 第一步：先对齐目标与成功标准，明确这是新增用户能力还是非功能改动，并先定义可观察验收条件。
-  默认联动：`nextclaw-delivery-workflow`。
-  条件联动：复杂 debug 用 `long-chain-debugging`；复杂跨轮或易漂移任务用 `iteration-work-notes`，必要时加 `goal-progress-anchor`。
-- 第二步：若任务涉及新能力、架构边界、交互结构、目录组织、跨模块 owner、持久化合同、运行链路或用户要求方案/设计文档，先使用 `nextclaw-solution-design` 完成方案设计阶段门；小型局部修复可跳过设计文档，但必须说清 owner 与验证标准。
-- 第三步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是排除纯格式化噪音后的 `非测试语义代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；完成标准是系统确实变得更好，不能靠 hack、强行压行或牺牲可读性硬过线；若找不到无争议的正向改动，必须停止压缩并申请豁免。
-  首次实质编辑前，必须列出计划新增、重命名、移动和触达的 governed paths，运行 `pnpm preflight:governance -- <path...>`；过程中出现计划外路径时先补跑，禁止等 diff 形成后才发现命名、角色或模块层级违约。
-  默认联动：`nextclaw-clean-implementation`。
-  条件联动：涉及 fallback / compatibility / rescue path 用 `predictable-behavior-first`；涉及命名、目录、文件组织时按场景用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
-- 第四步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。
-  默认联动：继续遵守 `nextclaw-clean-implementation` 的 owner / 删减 / 单路径约束。
-  条件联动：触达 NextClaw 自管理命令语义时，同步维护 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 与 `nextclaw-self-manage` skill，并说明是否运行 `sync-usage-resource`。
-- 第五步：改完后做最小充分验证；触达 TypeScript 源码、类型边界或运行链路时 `tsc` 必跑；用户可见或可运行行为必须有冒烟或最贴近链路的定向验收。
-  默认联动：`nextclaw-validation-workflow`。
-  条件联动：代码改动收尾默认再跑 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review`；发布闭环场景继续按发布原则执行 migration / deploy / smoke / NPM release 判断。
-- 第六步：收尾时必须主动披露可维护性结果，包括总代码增减、非测试代码增减、是否满足非功能改动行数门槛，以及本次正向减债动作。
-  默认联动：`post-edit-maintainability-review`。
-  条件联动：若非功能改动排除纯格式化噪音后的非测试语义代码净增大于 `0`，不得收尾，必须继续简化或删除。
-- 第七步：最后做复盘，判断是否要改进规则、skill、命令、自动化或文档，并决定是否需要 `docs/logs` 留痕、发布闭环说明和最终汇报中的不适用项说明。
-  默认联动：`nextclaw-iteration-log-governance`。
-  条件联动：若复盘结论涉及 `AGENTS.md`、命令机制、Rulebook、skill 分层或治理脚本，必须用 `nextclaw-agent-instructions-governance` 落实；若是长期自治推进类任务，再考虑 `goal-mode`。
+- 第一步：用 `nextclaw-delivery-workflow` 对齐一个可观察结果、风险等级和最小验证标准；复杂 debug、跨轮任务或明确设计诉求再加载对应专项 skill。
+- 第二步：只有新能力、跨 owner/运行链路、持久化合同、交互结构或用户明确要求时才进入方案设计；局部低风险修改直接调查最近链路。
+- 第三步：实现前判断能删、能复用和正确 owner；必要的清晰代码增长允许存在，禁止为了抵消行数扩大到无关范围或压缩可读性。只有新增/重命名/移动文件、改变角色或目录边界时，才需要 planned-path governance preflight。
+- 第四步：沿单一主路径实现，专项 skill 按真实触达面加载一次，不因进入新阶段重复读取未变化的规则。
+- 第五步：按风险选择最少充分验证。迭代中只跑最快的定向证据，稳定后统一收尾；每增加一项测试、冒烟或截图，都必须排除一类尚未覆盖的风险。
+- 第六步：源码类改动收尾运行一次 maintainability guard；主观 review、完整 governance、发布验证和用户验收都按触发条件追加，不组成默认全家桶。
+- 第七步：做一次极短流程复盘，主动判断本轮是否存在重复读取、低信息工具调用、重复验证或可条件化步骤；只有发现可复用、高影响的改进时才更新规则/skill/自动化。迭代留痕与发布记录同样按需触发。
 
 ## 实现常驻原则
 
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
 - 单一链路优先是核心编码理念：同一事实、事件、状态变更或传输语义默认只能有一条标准主链路；发现平行通道、双写路径、重复 publisher、重复 facade 或多套入口时，优先删除并收敛到唯一 owner / 唯一总线 / 唯一 mutation API。
-- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免排除纯格式化噪音后的生产语义代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但只接受让系统更清晰、更少或更可预测的真实改善；若只能靠 hack、把复杂度外移、缩短命名/折叠语句等方式伪造净减，必须申请豁免而不是继续压缩。
+- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动应避免无必要的生产语义增长，但清晰、安全、最小的修复允许净增长。禁止为了抵消行数扩大到无关模块、削弱类型/协议保护、压缩可读性或制造额外重构。
 - 新增 resolver、factory、adapter、wrapper、service、manager 等抽象前，必须证明它减少真实复杂度、表达稳定语义或隔离真实变化点；不得用新抽象掩盖 owner 误判、参数搬运或依赖违规。
 - 命名默认遵循快手最佳实践进行规范化；文件、class、函数、字段等名称必须语义化、无歧义、清晰简洁，并能直接识别其主要职责。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
@@ -164,19 +151,19 @@
 
 ## 验证常驻原则
 
-- 每个开发阶段结束必须做与改动相关的最小充分验证；纯文档/措辞/元信息微调可跳过 build/lint/tsc，但必须说明不适用理由。
-- 对用户说“验证通过”时，默认必须包含功能验证；若只跑了编译、类型、lint、单测或治理检查，必须明确说“功能未验证”或列出剩余功能验收缺口。
+- 验证按风险、影响面和不确定性分级；迭代中用最快的定向证据，代码稳定后再做一次收尾验证，同一风险不重复堆测试、冒烟和截图。纯文档/措辞/元信息微调只做匹配其风险的结构检查。
+- 纯视觉、间距、颜色或审美调整只需证明页面正常渲染并把主观验收交给用户；交互、状态、数据、协议和持久化行为必须由 AI 用最贴近链路的证据验证，不能把技术正确性推给用户。
+- 对用户说“验证通过”时，只覆盖实际已证明的范围；功能未验证或仍需用户做主观验收时明确披露。
 - 只要改动触达 TypeScript 源码、类型声明、导入导出边界或运行链路，`tsc` 必跑，不能被测试、eslint 或 governance 命令替代。
-- 用户可见或可运行行为改动必须有冒烟测试；冒烟默认使用非 local / 非仓库目录环境，避免测试数据写进仓库。
 - 修复问题、排查原因或声称解决异常时，必须做定向验证：先定义可观察判定条件，再按真实复现、贴近链路冒烟、最小可证明替代验证的优先级验收。
-- 代码改动收尾默认运行 maintainability guard、`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`，再做主观可维护性复核；具体命令和例外走 `nextclaw-validation-workflow`。
-- 每次解决完一个问题、修复一个异常或完成一次发布闭环后，必须做复盘：判断是否需要完善规则、skill、自动化、验证入口或文档，并把必要改进直接落实到合适层级。
+- 源码类改动收尾默认运行一次 targeted lint 与 maintainability guard；完整 package lint、governance/backlog ratchet、主观可维护性 review、真实环境冒烟和发布验证仅在改动范围或风险触发时追加，具体走 `nextclaw-validation-workflow`。
+- 每次开发收尾都内部判断流程能否更少、更直接；只有出现重复、高成本或高影响缺口时才持久化机制改进，禁止为了完成复盘机械新增规则。
 
 ## 迭代留痕常驻原则
 
 - 不要在改动开始前为了记笔记而自动新建迭代目录；默认改动完成后的收尾阶段再判断是否需要 `docs/logs` 留痕。
 - 迭代机制中的思考、设计和计划沉淀必须带日期锚点和点分角色后缀：`docs/thoughts/`、`docs/designs/`、`docs/plans/` 下的文档默认分别使用 `YYYY-MM-DD-<topic>.thought.md`、`YYYY-MM-DD-<topic>.design.md`、`YYYY-MM-DD-<topic>.plan.md`。
-- 触达项目代码、脚本、测试、影响运行链路的配置，或进行大规模非代码规则/文档重构时，通常必须有迭代记录。
+- 迭代记录用于有独立交付意义的批次：提交/发布、跨模块或长链路改动、重要根因修复、红区触达、大规模治理重构。未提交的局部微调、简单样式或小修复默认不单独建记录。
 - 最近一次相关迭代的同批次微调、补丁、验收修正，默认合并更新该迭代 `README.md`，不要拆出细碎新目录。
 - 纯计划、方案、设计、PRD、讨论记录默认写入对应 docs 目录，不因这类设计文档自动创建 `docs/logs`，除非用户明确要求留痕。
 - 迭代目录命名为 `docs/logs/v<semver>-<slug>`，版本号必须严格大于当前有效最大版本；详细 README 六段、NPM 发布记录、根因记录、红区触达、work/ 与 goal-progress 规则走 `nextclaw-iteration-log-governance`。

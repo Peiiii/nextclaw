@@ -1,209 +1,83 @@
 ---
 name: nextclaw-validation-workflow
-description: Use when running /validate, choosing validation commands after changes, closing code work, checking TypeScript/build/lint requirements, doing bugfix resolution verification, smoke testing, runtime startup/status log verification, maintainability guard/review, governance ratchets, release validation, or evaluating automated/unattended deployment credentials and production deploy paths.
+description: 用于选择和执行 NextClaw 改动后的最小充分验证；当用户要求 /validate、bugfix 验收、冒烟、收尾、发布验证，或讨论验证成本、过度验证与按风险分级时使用。
 ---
 
-# NextClaw Validation Workflow
+# NextClaw 验证流程
 
-## Classify The Change
+## 目标
 
-First classify the touched surface:
+验证要覆盖真实风险，不追求命令数量。每个风险优先选择一份最有证明力的证据；新增验证只有在能排除不同失败类型时才成立。
 
-- pure docs / wording / metadata,
-- source code,
-- TypeScript types or import/export boundaries,
-- scripts or tests,
-- runtime-path config,
-- user-visible or runnable behavior,
-- bugfix / root-cause fix,
-- release or deployment path.
+## 风险分级
 
-## Required Baseline
+### L0：文档与元信息
 
-- 验证强度必须与风险、影响面和根因不确定性成比例。低风险、局部、合同清晰的简单改动，选择一个信息增益最高的功能证据并配合该文件类型的强制静态检查即可；同一权威信号已经证明结果后，不得为了“看起来更完整”重复跑等价测试、浏览器路径或截图。
-- 只有跨 owner、跨 transport、状态迁移、兼容 fallback、用户已报告真实失败或高回归影响面时，才逐级增加 assembled test、真实链路冒烟和更大范围回归；每增加一层都要能排除新的风险，而不是机械叠加命令。
+适用：文档、措辞、注释、普通元信息。
 
-Pure docs, wording, or trivial metadata:
+- 只做链接、标题、格式、结构或 diff 检查。
+- build、lint、tsc、单测和冒烟默认不适用，不逐项执行来证明“不适用”。
 
-- build/lint/tsc not required,
-- say why they are not applicable,
-- still do structural checks that match the edit, such as links, headings, or size stats.
+### L1：局部低风险
 
-Generated artifacts after validation/build:
+适用：合同清晰的局部代码、纯样式、颜色、间距、文案展示。
 
-- If local validation or build dirties generated frontend/package artifacts, run `pnpm clean:generated` before closeout unless the task explicitly requires committing refreshed artifacts.
-- Use `pnpm check:generated-clean` when you only need to assert the generated-artifact allowlist is clean.
-- `packages/nextclaw/ui-dist` is treated as generated package payload: normal source/UI work must not commit its hash churn; release/package flows may generate it in an isolated worktree for npm packaging, then clean it before final status review.
-- If generated artifacts are intentionally committed, state why they are part of the deliverable and keep them separate from unrelated source WIP.
+- TypeScript/TSX 触达时运行最窄可覆盖改动的 tsc。
+- 源码触达时最终运行一次 targeted ESLint；没有必要先跑已知会被无关债务阻塞的全 package lint。
+- 纯视觉修改只需证明目标页面能加载、目标样式已生效；审美偏好可交给用户确认。除非同时改变交互或数据语义，不增加组件测试、全链路冒烟或多张截图。
 
-TypeScript source, type declarations, import/export boundaries, or runtime path:
+### L2：局部行为与 bugfix
 
-- `tsc` is required,
-- tests, eslint, and governance commands do not replace `tsc`.
-- If the reported issue is an editor/tsserver unused-symbol diagnostic such as `ts(6133)`, or a change removes/moves imports and exported types across package boundaries, first run ESLint autofix on the touched files or package so `unused-imports/no-unused-imports` can remove stale imports automatically. Then run a validation path that can surface unused locals for the touched package or touched files. If the stricter unused check is blocked by unrelated existing diagnostics, report those blockers and still prove the touched symbol no longer appears or is no longer unused.
+适用：点击、焦点、状态变化、局部业务规则、明确异常修复。
 
-Source code, scripts, tests, or runtime-path config:
+- 选择一份最贴近风险的定向测试。
+- 再选择一条功能证据：真实用户路径、最贴近链路的冒烟、assembled boundary test 三者中优先级最高且成本合理的一项。
+- 根因不确定、用户已报告真实失败或复现便宜时，保留修前失败证据，并用同一入口和观察指标复验；静态证据已充分或复现成本明显过高时，可以说明理由后使用替代证明。
 
-- ESLint is required before closeout or commit.
-- Prefer the package-level lint command for the touched package, for example `pnpm --filter nextclaw lint`.
-- If package-level lint is already blocked by unrelated existing errors, run ESLint on every file touched by the current change and report:
-  - the exact targeted ESLint command,
-  - whether targeted lint has errors or only warnings,
-  - the package-level lint command attempted,
-  - the unrelated existing package-level errors that still block full lint.
-- Governance commands do not replace ESLint. `pnpm lint:new-code:governance` catches repository governance rules, but it is not a substitute for `@typescript-eslint` / ESLint checks.
-- Cross-workspace package import boundary changes must pass `pnpm lint:new-code:package-public-imports` directly or through `pnpm lint:new-code:governance`.
-- Agent execution path changes must keep live code on the NCP agent-run main chain. `pnpm lint:new-code:governance` performs a live-code scan and fails if `AgentLoop`, `NativeAgentEngine`, `runtimePool`, `GatewayAgentRuntimePool`, or `processDirect(...)` reappears under `packages/`, `apps/`, or `workers/`.
-- Do not commit code after touching source files unless package-level lint passed, or targeted ESLint for all touched files passed and the full package lint failure is explicitly identified as unrelated existing debt.
+### L3：跨边界与高影响
 
-User-visible or runnable behavior:
+适用：跨 owner/transport、状态持久化、共享 contract、兼容路径、运行链路、高回归影响。
 
-- “验证通过”不是只指编译、类型、lint、单测或治理检查通过；只要改动有可运行行为、用户路径、API/transport 行为或功能语义变化，就必须包含功能验证。
-- 功能验证优先级：真实用户路径 / 真实复现路径 > 最贴近链路的冒烟或 assembled boundary test > 最小可证明替代验证。
-- 如果功能验证没有执行、只能执行替代验证，或仍有路径没覆盖，最终回复不得笼统说“验证通过”；必须明确写出“功能未验证”或“剩余功能验收缺口”。
-- 外部渠道送达类冒烟必须按用户可见结果判定；HTTP 200、队列入队、extension accepted、工具结果 accepted 只能算系统侧信号。渠道没有送达回执时，必须要求用户确认收到 trace 文本，或明确标为“用户可见送达未验证/失败”。
-- run a smoke test close to the real workflow,
-- use a non-repo isolated location for smoke data when possible.
-- If a workspace UI/runtime package is consumed from source by another local app, package-level `tsc`/tests are not enough. Verify the consuming app path too, either by loading the app in the dev server or by directly requesting the transformed Vite `@fs` module for the touched source file. This catches alias/import-resolution failures that the edited package can miss.
-- If the user reported a specific local command, URL, endpoint, port, or desktop/dev entrypoint, run that exact path after the fix whenever it is safe; package tests or route-level substitutes are not enough to claim the user-visible issue is fixed.
-- 对可见 UI 源码改动，必须先让当前运行实例消费最新产物，再从用户报告的入口实际打开并操作目标控件；组件测试、静态源码检查或旧实例截图不能证明当前面板已修复。若实例依赖预构建静态资源，先核对运行进程与资源新鲜度，必要时完整构建并重启，然后在同一路径重新验收。
-- 可见 UI 验收证据必须同时记录精确 URL/端口、触发手势和目标控件身份；同一数据出现在多个 consumer 时，必须列出用户点名的 consumer 并只在该表面验收，附近页面、相邻弹层或另一入口的同名列表不能替代。例如“聊天框输入 `/` 打开的统一选择器”不能用“点击底部技能按钮打开的技能选择器”代验。
-- 用户要求“对齐、复刻、移植”指定外部仓库、主题目录或视觉集合时，验收必须记录固定源版本和逐项 fidelity matrix，至少核对 canonical 名称、历史重命名、真实素材、最高辨识度元素、原样使用/适配/仅概念三种状态及所有遗漏；人物、角色、品牌图形或核心交互被抽象替代时，只有用户事先明确接受才算通过。主题类任务还必须逐款做真实整页截图，不能用目录数量或配色近似代替视觉验收。
-- 分页、无限滚动或懒加载问题必须在用户点名的真实列表上持续加载到终态，记录 `hasMore=false`、最终已加载数量、展示总数和末页错误状态；只验证首屏、第一页或接口单页不算功能验收。
-- 虚拟列表、滚动闪烁和动态高度回归不能用最终静态截图收口；必须分别覆盖首次进入或 reload、普通滚动、大跨度滚动、分页前插和可见内容展开/收起，并用连续帧或逐帧 DOM 覆盖率证明没有空视口、错误抢滚动或短暂错位。一个手势通过不能代替其他瞬态路径。
-- editor/IME/选区类修复必须在最终 consumer 增加 assembled boundary test，覆盖实际 `beforeinput` / `input` / composition 事件类别与目标平台顺序，并直接断言正文 DOM 身份和 caret；只在组件包模拟 `compositionEnd(data)`、只断言文本、或只跑 editor owner 单测均不足以关闭问题。
-- 附件、文件引用、技能、项目或 mention 等结构化输入不得只验证输入框里出现了 token；至少要用 assembled boundary test 覆盖“语义节点 → outgoing message parts / metadata → 持久化用户消息展示”，若该输入还应进入 Agent 上下文，必须断言实际 send envelope 中的精确协议载荷。入口视觉测试不能替代下游语义保真验证。
-- 可点击的附件、文件引用、技能、项目或 mention 还必须验证消费闭环：assembled boundary test 至少覆盖“持久化 token → 用户点击 → 目标 owner 收到准确 action / 用户目标表面打开”，并覆盖项目根、工作目录或兼容根目录的真实可选状态。只断言 token 渲染成按钮、局部 `onClick` 被调用或理想 root 存在时能解析，不能证明用户点击链路成立。
-- If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
-- For runtime startup or status-log fixes, assert the visible log/status wording matches the intended state. Cooldown, disabled, degraded, or externally rate-limited states must not be reported as generic startup failure when the system is intentionally waiting or skipping work.
+- tsc、targeted lint 和相关定向测试必需。
+- 增加 assembled boundary test 或真实链路冒烟；两者都跑时必须分别证明不同风险。
+- 只有影响面确实扩大时才增加 package/full regression。
+- HTTP/API/transport 变更应在组装后的真实边界断言精确 contract，不只检查状态码或方法被调用。
 
-Runtime update 本地人工验收：
+### L4：发布与不可逆变更
 
-- 触达 runtime update builder/source/host、download/apply、launcher 选包、managed service relaunch、restart 或更新后版本展示时，默认运行 `pnpm dev:verify-update`，不能只用单测或等待下一次真实发版。
-- `dev:verify-update` 默认按源码指纹复用已签名 fixture；触达 builder、打包输入、fixture 指纹或缓存机制时，至少有一轮必须使用 `pnpm dev:verify-update -- --rebuild`，并同时记录冷启动与缓存命中的准备耗时。
-- 该命令必须使用当前工作树构造隔离 baseline/candidate；不得命中全局 `nextclaw`，不得读写真实 `~/.nextclaw`。
-- 验收至少观察 baseline `/api/app/meta`、check、download、apply、旧/新 PID、candidate `/api/app/meta`、`current.json` 和 `Ctrl+C` 清理；人工验收时从 `/updates` 页面执行相同动作。
-- 若因平台、依赖或构建条件无法运行，最终回复必须明确列出本地更新功能未验证及剩余缺口，不能用类型检查或 updater 单测代替。
+适用：生产发布、迁移、更新器、凭证、不可逆操作。
 
-HTTP/API/transport contract changes:
+读取 [发布与不可逆变更验证](references/release-validation.md)；涉及 runtime update 时同时读取 [Runtime Update 验证](references/runtime-update-validation.md)。
 
-- isolated client/controller unit tests are not enough,
-- add an interface-level test at the assembled API boundary that exercises the real route/controller plus the wrapper or adapter layers used in the product path,
-- assert the exact response/event contract shape, not only status codes or that a method was called,
-- for command/handle APIs, include a negative guard against returning legacy acknowledgements such as `{ ok: true }` without the required `data` payload.
+## 复杂 UI 专项
 
-Bugfix or abnormal behavior fix:
+只有任务涉及分页/懒加载、虚拟列表瞬态、IME/选区、结构化输入、附件消费闭环、外部主题复刻等复杂 UI 风险时，才读取 [复杂 UI 验证](references/ui-validation.md)。普通 CSS、布局和审美修改不得加载该参考。
 
-- record the pre-fix failure baseline from a real reproduction, boundary replay, minimal failing test, or existing real failure artifact,
-- if active pre-fix reproduction was skipped, record why its cost or risk exceeded the expected information gain and what substitute evidence was used,
-- define the observable success condition before closing,
-- verify the fix with the same entrypoint, input class, configuration, and observation metric whenever safe.
-- When the real path fails, treat that failure as the current reproduction result and continue fixing the chain until the same path passes or a concrete external blocker is identified.
+## 执行节奏
 
-## Maintainability Closure
+- 调查和实现阶段：只跑能指导下一步的最快定向检查。
+- 实现稳定后：统一执行一次收尾验证。
+- 相关实现没有变化时，不重复运行已经通过的同一验证。
+- 长日志只保留结论、失败切片和 artifact 路径；不要把完整成功日志反复送回模型。
 
-For source, scripts, tests, or runtime-path config:
+## 静态与治理检查
 
-1. Run maintainability guard:
+- TypeScript 源码、类型声明、导入导出或运行链路触达时，tsc 必跑，测试和 lint 不能替代。
+- 源码、脚本、测试或运行链路配置触达时，targeted ESLint 默认必跑；package lint 只在跨文件/跨 package 影响、提交前合同或 targeted lint 无法覆盖时追加。
+- lint:new-code:governance 只在新增/移动/重命名文件、改变 owner/目录/跨包依赖、触达治理敏感规则或提交前运行。
+- check:governance-backlog-ratchet 只在治理规则、baseline、相关脚本变化或提交/发布闭环时运行。
+- 源码类改动最终运行一次 post-edit-maintainability-guard；主观 post-edit-maintainability-review 仅按其触发条件追加。
 
-```bash
-node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs
-```
+## 生成产物
 
-For pure bugfix, pure refactor, structure cleanup, naming cleanup, or other non-feature changes:
+本地验证产生 ui-dist 等非交付产物时，在收尾前使用现有 clean:generated / check:generated-clean 入口恢复或确认干净。只有发布、打包或用户明确要求刷新产物时才保留，并与无关源码 WIP 分开。
 
-```bash
-node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature
-```
+## 结果表述
 
-You may add `--paths <touched-files...>` when narrowing to touched scope is appropriate.
+最终只汇报：
 
-2. Run governance:
+- 验证了什么风险、使用了什么主要证据、结果如何；
+- 哪些技术路径仍未验证；
+- 哪些纯视觉或主观结果需要用户确认。
 
-```bash
-pnpm lint:new-code:governance
-pnpm check:governance-backlog-ratchet
-```
-
-3. Run `post-edit-maintainability-review`.
-
-For non-feature changes, the review fails if non-test code net growth is positive.
-
-## Code Structure Precheck
-
-Before code edits, use `nextclaw-clean-implementation` and explicitly check:
-
-- whether this is a new user capability,
-- what can be deleted first,
-- owner class / manager / service / presenter boundary,
-- no function sprawl,
-- ordinary functions do not mutate inputs,
-- class instance methods use arrow fields when applicable,
-- React effects only sync external systems,
-- no duplicate functionality,
-- smallest credible validation.
-
-## Bugfix Resolution Verification
-
-For fixes, record:
-
-- `修前基线 / 复现成本判断`,
-- `验证场景`,
-- `观察指标`,
-- `结果`,
-- `剩余未验证缺口`.
-
-Priority order:
-
-1. Real reproduction path.
-2. Targeted smoke close to the chain.
-3. Minimal proof substitute.
-
-If real verification is blocked, say why and what the next smallest proof would be.
-
-## Release Validation
-
-For release or deployment:
-
-- migration is required only when backend/database changes require it,
-- online smoke is required for affected critical APIs or UI paths,
-- NPM release must list exact packages and dependent packages,
-- docs review is part of release closure,
-- skipped steps must be marked `不适用` with reason.
-
-### Unattended Deployment Contract
-
-Routine production deployment is automated only when all of these are true:
-
-- the repository CI workflow is the deploy owner and can run from a clean, non-interactive runner;
-- authentication does not read stdin, require a TTY, prompt for a password, or depend on a developer machine's login state;
-- cloud access uses workload identity federation and short-lived, least-privilege credentials when the provider supports it; otherwise use a narrowly scoped environment secret with an explicit rotation owner;
-- every target consumes the same immutable build artifact and exposes a release identifier that post-deploy verification can compare;
-- credential preflight happens before remote mutation, deployment failures remain visible, and the verification path stays pure read and repeat-safe;
-- rollback uses a previously verified artifact instead of rebuilding an old source state or asking for an operator password.
-
-If any production step prompts for a password or needs a personal CLI login, label the run as a manual release. A routine path with that dependency is an automation defect: stop calling it automatic and design the non-interactive owner path instead of normalizing repeated human credential entry.
-
-For Cloudflare Pages, prefer a repository workflow with an environment-scoped Pages token. An already installed and logged-in local `wrangler` may be used only as an explicitly declared emergency/manual fallback; in that case run `command -v wrangler` and `wrangler whoami`, do not substitute a transient `pnpm dlx` binary, and do not present the result as unattended deployment.
-
-## Retrospective Closure
-
-After a bugfix, abnormal-behavior fix, or release closure, do a short retrospective before the final answer:
-
-- name the workflow gap or repeated friction, if any,
-- decide whether the improvement belongs in `AGENTS.md`, an existing skill, a new skill, automation, validation command, or ordinary docs,
-- directly apply small rule or skill improvements when they are clearly needed,
-- create a follow-up only when the improvement is larger than the current safe scope,
-- say when no mechanism change is needed and why.
-
-## Final Response Checklist
-
-Include only the relevant items:
-
-- commands run and outcomes,
-- exact `tsc` command if TypeScript path was touched,
-- smoke scenario and observation,
-- maintainability guard/review outcome,
-- retrospective result and any mechanism/skill improvement,
-- release/deploy/NPM state,
-- skipped validation with `不适用` reason.
+不要罗列所有未触发的验证项，不要把 tsc/lint 通过写成未验证功能的“功能验证通过”。
