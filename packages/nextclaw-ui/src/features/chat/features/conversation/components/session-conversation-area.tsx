@@ -84,11 +84,13 @@ function readChatDraftRouteState(value: unknown): ChatDraftRouteState | null {
 }
 
 function useSessionConversationDraftRouteState(params: {
+  readonly applyPromptSuggestion: (prompt: string) => void;
   readonly sessionKey: string | null;
   readonly setPendingProjectRoot: (projectRoot: string | null) => void;
   readonly setPendingSessionType: (sessionType: string) => void;
 }) {
   const {
+    applyPromptSuggestion,
     sessionKey,
     setPendingProjectRoot,
     setPendingSessionType,
@@ -119,6 +121,9 @@ function useSessionConversationDraftRouteState(params: {
     ) {
       setPendingSessionType(draftState.sessionType);
     }
+    if (typeof draftState.prompt === "string" && draftState.prompt.trim()) {
+      applyPromptSuggestion(draftState.prompt);
+    }
     setPendingProjectRoot(
       typeof draftState.projectRoot === "string" &&
         draftState.projectRoot.trim()
@@ -126,6 +131,7 @@ function useSessionConversationDraftRouteState(params: {
         : null,
     );
   }, [
+    applyPromptSuggestion,
     location.key,
     location.state,
     sessionKey,
@@ -194,7 +200,10 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   );
   const agent = useNcpSessionConversation(sessionKey ?? undefined);
   const runQueue = useSessionRunQueue(sessionKey);
-  const { inputActions, inputSnapshot } = useSessionConversationInputState(initialPrompt);
+  const { inputActions, inputSnapshot } = useSessionConversationInputState(
+    initialPrompt,
+    sessionKey,
+  );
   const inputQuery = useSessionConversationInputQuery({
     sessionKey,
     inputSnapshot,
@@ -242,6 +251,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     inputQuery.sessionTypeState.selectedSessionType,
   ]);
   useSessionConversationDraftRouteState({
+    applyPromptSuggestion: inputActions.applyPromptSuggestion,
     sessionKey,
     setPendingProjectRoot: inputActions.setPendingProjectRoot,
     setPendingSessionType: inputActions.setPendingSessionType,

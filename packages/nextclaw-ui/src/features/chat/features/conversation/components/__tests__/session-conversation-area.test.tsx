@@ -206,8 +206,11 @@ vi.mock(
 vi.mock(
   "@/features/chat/features/conversation/hooks/use-session-conversation-input-state",
   () => ({
-    useSessionConversationInputState: (initialPrompt?: string | null) => {
-      mocks.initialPromptSpy(initialPrompt);
+    useSessionConversationInputState: (
+      initialPrompt?: string | null,
+      sessionKey?: string | null,
+    ) => {
+      mocks.initialPromptSpy(initialPrompt, sessionKey);
       return {
         inputActions: mocks.inputActions,
         inputSnapshot: mocks.inputSnapshot,
@@ -367,7 +370,13 @@ describe("SessionConversationArea input boundary", () => {
       </MemoryRouter>,
     );
 
-    expect(mocks.initialPromptSpy).toHaveBeenCalledWith("每天整理项目风险");
+    expect(mocks.initialPromptSpy).toHaveBeenCalledWith(
+      "每天整理项目风险",
+      null,
+    );
+    expect(mocks.inputActions.applyPromptSuggestion).toHaveBeenCalledWith(
+      "每天整理项目风险",
+    );
   });
 
   it("syncs draft preferences with the selected runtime context", () => {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, type SetStateAction } from 'react';
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 
@@ -6,6 +6,11 @@ import type { ThinkingLevel } from '@/shared/lib/api';
 import { DEFAULT_SESSION_TYPE } from '@/features/chat/features/session-type/utils/chat-session-type.utils';
 import { createChatComposerNodesFromDraft } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import {
+  resolveChatComposerDraftKey,
+  useChatComposerDraftStore,
+  type ChatComposerDraftSnapshot,
+} from '@/features/chat/stores/chat-composer-draft.store';
 import {
   useSessionConversationPreferenceActions,
   type SessionConversationPreferenceSyncParams,
@@ -35,10 +40,7 @@ export type SessionConversationInputSnapshot = SessionConversationComposerState 
   readonly sendError: string | null;
 };
 
-type SessionConversationOwnedInputSnapshot = Omit<
-  SessionConversationInputSnapshot,
-  'pendingProjectRoot'
->;
+type SessionConversationOwnedInputSnapshot = ChatComposerDraftSnapshot;
 
 export type SessionConversationInputPatch =
   Partial<SessionConversationOwnedInputSnapshot> |
@@ -162,14 +164,25 @@ function useSessionConversationAttachmentActions(params: {
   return { addAttachments, removeAttachment, setAttachments };
 }
 
-export const useSessionConversationInputState = (initialPrompt?: string | null) => {
-  const pendingProjectRoot = useChatThreadStore((state) => state.snapshot.draftProjectRoot);
-  const [snapshot, setSnapshot] = useState<SessionConversationOwnedInputSnapshot>(
+function usePersistedConversationInputSnapshot(
+  initialPrompt: string | null | undefined,
+  sessionKey: string | null,
+) {
+  const draftKey = resolveChatComposerDraftKey(sessionKey);
+  const initialSnapshot = useMemo(
     () => createInitialInputSnapshot(initialPrompt),
+    [initialPrompt],
+  );
+  const snapshot = useChatComposerDraftStore(
+    (state) => state.drafts[draftKey] ?? initialSnapshot,
   );
 
+  useEffect(() => {
+    useChatComposerDraftStore.getState().ensureDraft(draftKey, initialSnapshot);
+  }, [draftKey, initialSnapshot]);
+
   const update = useCallback((patch: SessionConversationInputPatch) => {
-    setSnapshot((current) => {
+    useChatComposerDraftStore.getState().updateDraft(draftKey, initialSnapshot, (current) => {
       const resolvedPatch = typeof patch === 'function'
         ? patch({
             ...current,
@@ -181,7 +194,20 @@ export const useSessionConversationInputState = (initialPrompt?: string | null) 
         ...resolvedPatch,
       };
     });
-  }, []);
+  }, [draftKey, initialSnapshot]);
+
+  return { snapshot, update };
+}
+
+export const useSessionConversationInputState = (
+  initialPrompt?: string | null,
+  sessionKey: string | null = null,
+) => {
+  const pendingProjectRoot = useChatThreadStore((state) => state.snapshot.draftProjectRoot);
+  const { snapshot, update } = usePersistedConversationInputSnapshot(
+    initialPrompt,
+    sessionKey,
+  );
 
   const syncComposer = useCallback((composer: SessionConversationComposerState) => {
     update({
