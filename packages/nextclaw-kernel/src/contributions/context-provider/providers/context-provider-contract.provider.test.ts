@@ -38,7 +38,7 @@ function createConfig(workspace: string) {
     agents: {
       defaults: {
         workspace,
-        model: "openai/gpt-5",
+        model: "minimax/MiniMax-M3",
         engine: "native",
         engineConfig: {},
         thinkingDefault: "off",
@@ -178,7 +178,7 @@ describe("ContextProviderContribution native prompt contract", () => {
           default: true,
           displayName: "Main",
           id: "main",
-          model: "openai/gpt-5",
+          model: "minimax/MiniMax-M3",
           reservedContextTokens: 0,
           workspace: hostWorkspace,
         }),
@@ -289,7 +289,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## Session Orchestration",
       "## Tool Use Enforcement",
       "## OpenAI/Codex Execution Discipline",
-      "## Current Session",
+      "## Current Session\nChannel: ui\nChat ID: web-ui\nSession: session-1\nModel: openai/gpt-5",
       "## Agent Output & Reply Formatting Contract",
       "Content after the last tool call remains directly visible",
       "fenced `mermaid` block",

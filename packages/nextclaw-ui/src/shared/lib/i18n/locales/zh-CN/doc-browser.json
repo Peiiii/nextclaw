@@ -68,6 +68,7 @@
   "serviceAppsEmptyTitle": "暂无服务应用",
   "serviceAppsEmptyDescription": "服务应用提供本地运行时与动作，供面板应用调用。",
   "serviceAppsRefresh": "刷新服务应用",
+  "serviceAppsConnect": "连接",
   "serviceAppsDiscoverActions": "连接并发现动作",
   "serviceAppsDiscoverActionsHint": "连接服务应用运行时，并发现它当前可用的动作。",
   "serviceAppsDisconnectRuntime": "断开连接",

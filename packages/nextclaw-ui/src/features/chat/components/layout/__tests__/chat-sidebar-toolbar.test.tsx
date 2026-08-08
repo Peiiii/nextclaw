@@ -37,11 +37,17 @@ describe("ChatSidebarToolbar", () => {
     render(<ChatSidebarDesktopToolbar {...toolbarProps} />);
 
     expect(searchIconClassName()).toContain("pointer-events-none");
+    expect(
+      screen.getByPlaceholderText("Search conversations...").className,
+    ).toContain("border-0");
   });
 
   it("keeps mobile search icon transparent to pointer input", () => {
     render(<ChatSidebarMobileToolbar {...toolbarProps} />);
 
     expect(searchIconClassName()).toContain("pointer-events-none");
+    expect(
+      screen.getByPlaceholderText("Search conversations...").className,
+    ).toContain("border-0");
   });
 });

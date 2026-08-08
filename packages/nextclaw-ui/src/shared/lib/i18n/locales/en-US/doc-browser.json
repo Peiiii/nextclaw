@@ -68,6 +68,7 @@
   "serviceAppsEmptyTitle": "No service apps",
   "serviceAppsEmptyDescription": "Service apps expose local runtimes and actions that panel apps can call.",
   "serviceAppsRefresh": "Refresh service apps",
+  "serviceAppsConnect": "Connect",
   "serviceAppsDiscoverActions": "Connect and discover actions",
   "serviceAppsDiscoverActionsHint": "Connect to the service app runtime and discover its available actions.",
   "serviceAppsDisconnectRuntime": "Disconnect runtime",

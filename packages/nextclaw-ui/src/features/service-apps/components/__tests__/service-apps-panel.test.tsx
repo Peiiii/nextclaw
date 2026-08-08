@@ -62,7 +62,7 @@ vi.mock('@/features/service-apps/hooks/use-service-apps', () => ({
 }));
 
 describe('ServiceAppsPanel', () => {
-  it('labels service app icon actions and deletes through a confirm dialog', async () => {
+  it('keeps service actions progressive and deletes through a confirm dialog', async () => {
     const user = userEvent.setup();
 
     render(<ServiceAppsPanel />);
@@ -71,15 +71,16 @@ describe('ServiceAppsPanel', () => {
     expect(screen.queryByText('idle')).toBeNull();
     const discoverButton = screen.getByRole('button', { name: 'Connect and discover actions' });
     expect(discoverButton).toBeTruthy();
-    const disconnectButton = screen.getByRole('button', { name: 'Disconnect runtime' });
-    expect(disconnectButton).toBeTruthy();
-    expect((disconnectButton as HTMLButtonElement).disabled).toBe(true);
     await user.hover(discoverButton);
     await waitFor(() => {
       expect(screen.queryAllByText('Connect to the service app runtime and discover its available actions.').length).toBeGreaterThan(0);
     });
 
+    await user.click(discoverButton);
+    expect(discoverServiceAppActionsMutateAsync).toHaveBeenCalledWith('notes');
+
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect((screen.getByRole('button', { name: 'Disconnect runtime' }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Delete service app' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 

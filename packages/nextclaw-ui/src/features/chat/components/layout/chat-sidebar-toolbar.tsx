@@ -197,7 +197,7 @@ export function ChatSidebarDesktopToolbar(props: ChatSidebarToolbarProps) {
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={t("chatSidebarSearchPlaceholder")}
-            className="h-8 rounded-lg border-transparent bg-background/55 pl-8 text-xs shadow-none hover:bg-background/75"
+            className="h-8 rounded-lg border-0 bg-background/55 pl-8 text-xs shadow-none hover:bg-background/75"
           />
         </div>
       </div>
@@ -226,7 +226,7 @@ export function ChatSidebarMobileToolbar(props: ChatSidebarToolbarProps) {
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={t("chatSidebarSearchPlaceholder")}
-            className="h-9 rounded-full border-transparent bg-muted pl-9 pr-3 text-[13px] shadow-none"
+            className="h-9 rounded-full border-0 bg-muted pl-9 pr-3 text-[13px] shadow-none"
           />
         </div>
 

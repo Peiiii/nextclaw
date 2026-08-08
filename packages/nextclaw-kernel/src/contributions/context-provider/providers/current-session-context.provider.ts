@@ -17,10 +17,9 @@ export class CurrentSessionContextProvider implements ContextProvider {
       `Channel: ${runContext.channel}`,
       `Chat ID: ${runContext.chatId}`,
       `Session: ${runContext.sessionKey}`,
+      `Model: ${runContext.effectiveModel}`,
+      ...(runContext.runtimeThinking ? [`Thinking policy: ${runContext.runtimeThinking}`] : []),
     ];
-    if (runContext.runtimeThinking) {
-      lines.push(`Thinking policy: ${runContext.runtimeThinking}`);
-    }
     return [lines.join("\n")];
   };
 }
