@@ -26,7 +26,9 @@
 
 以字节数近似衡量规则输入体积：高频流程规则包由约 110 KB 降至 48 KB，减少约 56%；包含条件复核、留痕与延迟参考的完整相关规则包由约 127 KB 降至 60 KB，减少约 53%。这不是模型实际 token 的精确换算，但能稳定反映默认上下文负担的下降。
 
-第二阶段完成后，项目 skill 数由 56 降至 44，全部 `SKILL.md` 入口正文由约 466 KB 降至约 211 KB，description 总字符由 9610 降至 6035；`AGENTS.md` 由约 31 KB 降至 8814 字节。静态依赖循环由 4 个组件降至 0。包括 references 在内的全部 skill Markdown 也从 489907 字节降至 284775 字节，减少 41.9%，说明本轮不是把长文机械藏到 reference；其中 feature-root 合同由 705 行重写为 108 行。references 中保留的低频合同只有对应分支成立时才读取。
+上一轮结构审计后，项目 skill 数由 56 降至 44，全部 `SKILL.md` 入口正文由约 466 KB 降至约 211 KB，description 总字符由 9610 降至 6035；`AGENTS.md` 由约 31 KB 降至 8814 字节。静态依赖循环由 4 个组件降至 0。包括 references 在内的全部 skill Markdown 也从 489907 字节降至 284775 字节，减少 41.9%。
+
+本次续审按“一个标准开发流程 + 按需复杂阶段 + 完整场景流程 + 条件工艺/场景规范”重新分类，又把 11 个没有独立任务或阶段价值的入口并入所属 owner。最终 skill 数为 33，`SKILL.md` 总量 122098 字节，description 总字符 3830，全部 skill Markdown 217539 字节，最大入口 7459 字节，依赖循环仍为 0。入口正文较上一轮再下降 42.1%，且迁入的 reference 均删除重复触发、上游流程复述和互相回链，不是机械搬家。
 
 ## 测试/验证/验收方式
 
@@ -34,7 +36,7 @@
 - 校验所有改写 skill 的 frontmatter，以及验证 skill 新增延迟参考链接均可解析。
 - `pnpm check:governance-backlog-ratchet`：验证治理基线没有因规则重构发生非预期回退。
 - `node --test scripts/governance/checks/skill-progressive-loading.test.mjs`：验证新检查能识别循环、失效链接、重复名称和退役引用。
-- `pnpm check:skill-progressive-loading`：验证 44 个 skill 的 frontmatter、链接、引用图与体积预算，输出结果为 0 个违规。
+- `pnpm check:skill-progressive-loading`：验证 33 个 skill 的 frontmatter、链接、引用图、退役名称与收紧后的体积/数量预算，输出结果为 0 个违规。
 - 人工一致性检查 `AGENTS.md`、`commands/commands.md` 与各流程 skill，确认默认路径、风险分级、条件 review 和留痕边界没有互相冲突。
 - 搜索非历史规则、设计和计划中的退役 skill 名称，仅剩普通文档 `file-naming-convention.md` 文件名引用，不再存在已删除 skill 或脚本路径引用。
 
@@ -57,9 +59,9 @@
 - 本轮主要是删除、合并和条件化重复规则，没有新增平行流程 owner。
 - 高频规则输入体积减少约 56%，完整相关规则包减少约 53%。
 - 新增的三个参考文件只承载低频复杂场景，避免默认 skill 继续膨胀。
-- 第二阶段进一步把 12 个冗余入口删除或合并，低频细节保存在 27 个条件 reference 中，没有以丢失合同换取入口缩短。
+- 上一轮合并 12 个冗余入口，本次续审再合并 11 个；当前低频细节保存在 42 个条件 reference 中，没有以丢失合同换取入口缩短。
 - 可维护性 guard 与主观 review 的职责已分开：guard 提供低成本客观信号，review 只处理需要判断的风险。
-- 新检查为 `AGENTS.md`、单个/全部 skill 入口和 description 设预算，并阻止依赖回路；预算留有增长余量，skill 数量只报告、不作为机械 KPI。
+- 新检查为 `AGENTS.md`、单个/全部 skill 入口、入口数量和 description 设预算，并阻止依赖回路与 reference 伪装 skill frontmatter；数量预算用于阻止无审计增长，不替代新入口的职责判断。
 - 本轮属于大型治理重构，因此创建一次迭代记录；没有为过程中每个细小修正分别留痕。
 
 ## NPM 包发布记录

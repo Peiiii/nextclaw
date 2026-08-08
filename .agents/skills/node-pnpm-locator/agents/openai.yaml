@@ -1,4 +1,0 @@
-interface:
-  display_name: "Node & pnpm Locator"
-  short_description: "Find Node.js/pnpm binaries and PATH hints"
-  default_prompt: "Locate node/pnpm/npx/corepack on this machine and show the PATH fix or command prefix to use them."

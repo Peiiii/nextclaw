@@ -1,64 +1,43 @@
 ---
 name: frontend-style-encapsulation
-description: 当修改前端样式、基础组件、展示组件、设置界面、设置行/分组表单、列表-详情设置页、响应式布局、紧凑模式、低边框视觉、文本输入框聚焦视觉、配色与前景/背景搭配、Tailwind/CSS/container query、组件视觉状态，或用户质疑样式是否内聚、可移植、自洽时使用；尤其适用于 reusable UI package、shared component、跨宿主复用组件的样式 owner 判断。
+description: 当修改前端样式、shared UI、设置界面、响应式/紧凑布局、输入焦点、配色、Tailwind/CSS/container query，或裁决 reusable component 的样式 owner 时使用。
 ---
 
-# 前端样式内聚规则
+# 前端样式内聚
 
-## 目标
+样式是组件合同的一部分。先判断视觉状态属于组件、组件 variant、主题、宿主布局还是一次性页面编排；固有状态和容器响应默认归组件，宿主只负责位置、token 和业务数据。全局 CSS 只承载主题、reset、字体、scrollbar、token 等基础设施。
 
-让前端样式成为组件合同的一部分，而不是散落在宿主全局 CSS、页面外壳或临时覆盖里。样式修复要提升组件自洽性、可移植性和长期可维护性。
+## Shared UI 边界
 
-## 修改前判断
+- 基础组件纯展示、业务无关，只处理样式、布局、状态、可访问性和通用交互；不读业务 store/query、路由和业务文案，也不理解 marketplace/provider/agent/session。
+- props 使用 `variant/size/tone/isActive/isLoading/disabled/label` 等 UI 语义；业务实体、业务 action 和状态机留在 feature component。
+- 重复按钮、链接、标签、空态、提示、列表骨架、卡片壳和工具栏动作优先进入 shared UI owner，再由业务层取数、翻译、权限判断和编排。
+- 颜色表达稳定语义：primary、destructive、muted 等；背景与前景成对验收，不以单个低饱和色值证明协调。
 
-- 先确认样式 owner：这个视觉状态属于组件自身、组件变体、宿主页面、主题系统，还是一次性页面编排。
-- 如果样式描述的是组件在不同容器宽度、状态或密度下的固有表现，默认归组件 owner，不归宿主全局 CSS。
-- 如果组件来自 reusable package 或 shared component，默认要求样式合同随组件一起走；宿主只负责布局位置、主题 token 和业务数据。
-- 使用全局 CSS 前先证明它是全局主题、reset、字体、scrollbar、design token 或跨组件基础设施；否则优先回到组件 class、组件局部样式、variant API 或包内样式入口。
-- 响应式判断优先基于真实约束容器，而不是整屏 viewport；右侧面板、dock、sidebar、split pane 都可能让组件进入窄容器。
+## 实现合同
 
-## 基础组件规范
+- 响应式优先依据真实约束容器，而非 viewport；正常、窄和极窄状态按任务相关子集验证。
+- 紧凑模式依次保留核心动作、收起次要文字、隐藏低频控制；文字收起后仍有图标、aria-label、tooltip 或 popover 表达含义/当前值。
+- 文本输入容器聚焦前后 border width/color、background、shadow 和 ring 完全不变。填充型输入使用 `border-0`，不以透明边框占位；描边型保持静态描边。
+- 不用宿主全局 selector 反向依赖 reusable component 内部 DOM；局部状态用组件 class、variant、container query 或包内样式入口。
+- 新样式贴近 DOM owner。必须全局化时说明原因，并只依赖稳定语义类/主题层，不依赖临时 DOM 层级。
 
-- 基础组件必须纯展示、业务无关：只承接样式、布局、状态、可访问性和通用交互语义，不读取业务数据、不发业务请求、不访问路由、不内嵌业务文案、不知道 marketplace/provider/agent/session 等领域概念。
-- 基础组件 props 应描述通用 UI 语义，例如 `variant`、`size`、`tone`、`isActive`、`isLoading`、`disabled`、`label`、`onClick`；不要把业务实体、业务 action 名或安装/登录/发布等领域流程塞进基础组件。
-- 重复出现的按钮、链接、标签、空态、提示、列表项骨架、卡片壳、工具栏动作等 UI 骨架，默认先沉到 shared UI owner，再由业务组件组合使用；业务组件只负责取数、翻译、权限判断和回调编排。
-- 若一个组件需要读业务 store/query、调用业务 manager、拼业务 i18n key、或理解业务状态机，它就不是基础组件，应留在 feature 组件层，并继续复用基础组件。
-- 颜色应表达稳定 UI 语义：primary 用于主要行动、可跳转链接和可发现入口；destructive 用于危险动作；muted/gray 用于次要信息。不要为单个业务场景临时发明颜色语义。
-- 配色必须把表面背景与前景文字/图标作为一对判断，不能只看单个色值是否低饱和；暖中性背景优先搭配干净的中性石墨或明确暖向前景，避免相邻黄绿、橄榄灰叠加形成浑浊脏感。
+## 设置界面
 
-## 实现规则
+触达设置/配置页时以 `docs/designs/2026-07-18-settings-visual-system.design.md` 为视觉合同：
 
-- 紧凑模式应有明确阈值和取舍：先保留核心操作，再收起次要文字，最后才隐藏低频控制；不要过早牺牲可读信息。
-- 收起文字时必须保留可理解入口：图标、`aria-label`、tooltip、popover/select content 等要能表达当前含义或当前值；纯图标操作的体验细则走 `frontend-interaction-quality`，不要只依赖浏览器原生 `title`。
-- 文本输入框的容器视觉在聚焦前后必须保持不变：不得改变边框颜色或宽度、背景色、阴影，也不得新增 ring；光标和选区已经是输入焦点反馈。
-- 填充型输入框由背景区分边界，必须使用 `border-0`，不能用透明边框占位后再在 focus 态显色；描边型输入框只在确有边界需要时保留静态描边，focus 态仍不得改变它。
-- 不要用宿主全局 CSS 反向选择 reusable 组件内部结构；这会制造隐式依赖，让组件离开当前 app 后行为丢失。
-- 不要把一次 bugfix 写成硬编码覆盖。优先用组件已有设计体系、Tailwind container variant、CSS container query、组件 variant 或局部 class 表达稳定语义。
-- 样式新增应贴近 DOM owner，不为了一个局部状态新建远距离 CSS 文件、全局选择器或页面级 wrapper。
-- 如果必须新增全局样式，说明为什么组件 owner 不合适，并把 selector 限制在稳定语义类或主题层，不依赖临时 DOM 层级。
-
-## 设置界面视觉合同
-
-涉及设置页、配置页或控制面时，先读 `docs/designs/2026-07-18-settings-visual-system.design.md`，并执行以下强制规则：
-
-- 普通设置页使用 shared settings primitives 表达“分区 -> 分组 -> 设置行”，禁止默认用独立 `Card` 包装每个设置项。
-- 所有设置路由必须复用 `SettingsPage` 作为页面画布 owner，业务页不得自行拼接 `max-w-*`、`mx-auto`、根级 `space-y-*` 或分栏高度类；普通页与列表—详情页只能通过组件变体表达结构差异，并保持相同左右起止线与标题节奏。
-- 一行只表达一个设置意图：左侧标题/说明，右侧控件；窄容器改为上下布局。
-- 页面画布不描边；设置分组用浅色背景和圆角，不默认描外框；相邻设置行最多保留一条低对比度分隔线；真实控件保留自身边界。
-- 页面、分区、设置行和控件的视觉容器嵌套默认不超过两层；选中态优先使用填充，不再叠加描边。
-- 提供商、渠道、搜索等列表-详情设置页必须复用 `ConfigSplitPage` 组件族：整体最多一个外边界，列表与详情最多一条分隔线，列表项默认无边框。
-- shared settings primitives 只使用设计 token，保持纯展示、业务无关，不读取 store/query/manager、路由或业务 i18n key。
-- 业务页面传入共享组件的用户可见标题和说明必须来自 i18n；中文语言包不得用英文原文充当设置标题占位，品牌、协议和正式工具名除外。
-- 设置页消费后端 Schema / uiHint 时，必须同时审计运行时派生文案；Schema 标签不得直接覆盖前端 i18n 的用户可见标题，静态 locale 扫描不能替代真实页面 DOM 验收。
-- MCP 商品卡片、更新日志、警告/错误、代码块等具有独立内容或反馈语义的表面可以例外，但例外不能反向成为普通设置项的默认样式。
-- 真实验收至少覆盖常规桌面、窄桌面、侧面板打开后的窄容器和移动端相关子集，并检查边框预算、信息层级和操作可达性。
+- 统一使用 shared settings primitives 和 `SettingsPage` 画布，业务页不自拼根级宽度、居中、间距或分栏高度；结构差异用组件 variant。
+- 普通结构是“分区 -> 分组 -> 设置行”，不为每项套 Card。一行一个意图：左侧标题/说明、右侧控件，窄容器转上下。
+- 页面画布无描边；分组用浅背景和圆角，行间最多一条低对比分隔；容器嵌套不超过两层，选中优先填充。
+- 列表—详情页复用 `ConfigSplitPage`：整体最多一条外边界，列表与详情最多一条分隔，列表项默认无边框。
+- shared primitive 只用 token，保持业务无关；业务标题和说明走 i18n。后端 schema/uiHint 的派生标签不得覆盖前端用户文案，静态 locale 扫描不能替代 DOM 验收。
+- MCP 商品、release notes、警告/错误和代码块可有独立语义表面，但不反向成为普通设置项默认样式。
 
 ## 验证
 
-- 对响应式布局，至少验证正常宽度、窄容器、极窄容器三个状态中的相关子集。
-- 触达文本输入框视觉时，必须在真实 DOM 中分别记录未聚焦与聚焦后的 `border-width`、`border-color`、`background-color` 和 `box-shadow` 计算值；四项完全一致才算通过，填充型输入框还必须确认边框宽度为 `0px`。
-- 已有用户认可的 HTML/Figma/截图原型时，原型就是视觉验收基线，不只是信息架构参考。真实实现交付前必须在相同关键视口做整页截图对照，检查层级、间距、尺寸、容器边界、滚动 owner 和 hover/focus/打开态；存在可感知偏差时先收敛实现或明确说明有意取舍，不能只凭组件测试或主观判断宣称一致。
-- 新增或修改主题能力时，交付预览前必须在真实整页逐一切换所有支持主题，并截图检查 shell、header、navigation、content surface、文字与控件；只验证根 class、token 值或局部组件不算完成。发现固定颜色与主题 token 混用时，先收敛主题 owner，再交付链接。
-- 用户可见布局修复不能只靠单测；需要浏览器截图、Vite build、或最贴近真实链路的 DOM/CSS 验证之一。
-- 触达配色时，必须在真实 DOM 同时记录背景与前景计算值，并在相关明暗主题中检查组合后的实际画面；两个色值各自低饱和不能代替成对视觉验收。
-- 如果真实登录态或真实页面被阻塞，明确说明阻塞点，并用同一构建管线的最小替代验证补足。
+- 文本输入：真实 DOM 比较聚焦前后 border/background/shadow；填充型 border width 为 `0px`。
+- 已有用户认可原型：相同关键视口整页截图对照层级、间距、尺寸、边界、滚动 owner 和交互态；偏差要收敛或明确有意取舍。
+- 主题：真实整页逐一切换，检查 shell、header、navigation、content、文字和控件；先消除固定色与 token 的 owner 冲突。
+- 设置页：覆盖桌面、窄桌面、侧面板后的窄容器和相关移动端，检查边框预算、信息层级与操作可达。
+- 配色：在相关明暗主题记录背景/前景计算值并看实际组合。
+- 用户可见布局不能只靠单测；使用浏览器截图、真实 DOM/CSS 或最贴近链路的构建证据。真实页面阻塞时说明缺口和替代证据。

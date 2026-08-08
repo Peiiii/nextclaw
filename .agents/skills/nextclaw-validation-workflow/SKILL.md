@@ -65,6 +65,12 @@ description: 用于选择和执行 NextClaw 改动后的最小充分验证；当
 
 只有用户已在真实实例复现，或任务触达热更新/冷启动、重复状态转换、journal/projection/hydrate、accepted run handle、启动恢复等运行态风险时，才读取 [真实运行实例验证](references/runtime-instance-validation.md)。普通局部测试不加载该参考。
 
+具体运行环境再按风险只选一个参考：
+
+- 验证当前仓库源码构建实例且需隔离全局安装版：读取[本地源码运行验证](references/local-source-runtime.md)；
+- 验证 `packages/extensions/*` 未发布源码，避免误跑旧 dist：读取[本地 Extension 源码验证](references/local-extension-source.md)；
+- 对指定 session/model 执行真实 NCP chat：读取[NCP Chat 冒烟](references/ncp-chat-smoke.md)。
+
 ## 静态与治理检查
 
 - TypeScript 源码、类型声明、导入导出或运行链路触达时，tsc 必跑，测试和 lint 不能替代。

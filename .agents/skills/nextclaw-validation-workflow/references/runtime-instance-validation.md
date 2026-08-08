@@ -8,4 +8,4 @@
 - 同一实体跨边界重复更新时，fixture 包含同 ID 多段增量和无新增内容的终止事件；已有故障 journal 优先复制到隔离目录冷重建。
 - send/continue/edit/retry 等入口若都返回 accepted run handle，应逐入口验证持久化 `run.started` 前已进入同一 active-run owner并可立即停止。
 - error-shaped terminal 启动恢复要同时验证 typed interruption reason 与用户可见错误边界，并用同文本非 interruption 错误做反例。
-- 只有用户明确要求安装态近似，或当前开发链路无法覆盖风险时，才转用 `local-source-runtime-validation`，并说明替代与缺口。
+- 只有用户明确要求安装态近似，或当前开发链路无法覆盖风险时，才读取[本地源码运行验证](local-source-runtime.md)，并说明替代与缺口。

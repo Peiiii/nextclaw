@@ -28,14 +28,14 @@ description: 当用户明确要求技术方案、设计文档、架构方案或�
 
 每个设计决策最多选择一个当前 owner：
 
-- 通用 owner、生命周期、抽象力度：`classic-software-design-principles`；
-- kernel/manager/store/presenter 主干依赖：`kernel-branch-owner-architecture`；
+- 通用 owner、生命周期、不变量、职责边界或抽象力度：读取[架构设计原则](references/architecture-principles.md)；
+- kernel/runtime host/manager/store/presenter 主干依赖：读取[Kernel Owner 架构](references/kernel-owner-architecture.md)；
 - 前端状态和 view logic：`mvp-view-logic-decoupling`；
 - 目录、角色、命名：`file-organization-governance`；
 - fallback/兼容/恢复：`predictable-behavior-first`；
 - 样式或交互：选择对应一个 frontend skill。
 
-只在用户明确讨论代码审美、拆分收益或过度抽象时使用 `writing-beautiful-code`，不得把它作为所有方案的默认前置。
+前两项是本阶段的条件参考，不是平行 workflow；普通局部方案不读取。实现工艺由标准开发流程拥有，不在设计阶段预读。
 
 ## 阶段门
 

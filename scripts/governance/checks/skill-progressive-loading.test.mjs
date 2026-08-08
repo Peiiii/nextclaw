@@ -11,6 +11,7 @@ const generousBudgets = {
   descriptionChars: 1_000,
   descriptionTotalChars: 10_000,
   skillBytes: 10_000,
+  skillCount: 10,
   skillTotalBytes: 20_000
 };
 
@@ -82,4 +83,24 @@ test("reports duplicate names and retired references", (t) => {
 
   assert.ok(result.violations.some((violation) => violation.includes("duplicate skill name")));
   assert.ok(result.violations.some((violation) => violation.includes("retired skill")));
+});
+
+test("reports reference skill frontmatter and catalog count overflow", (t) => {
+  const repoRoot = createFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const referencePath = path.join(repoRoot, ".agents/skills/alpha/references/policy.md");
+  fs.mkdirSync(path.dirname(referencePath), { recursive: true });
+  fs.writeFileSync(
+    referencePath,
+    "---\nname: hidden-skill\ndescription: Must not be indexed.\n---\n\n# Policy\n"
+  );
+
+  const result = auditSkillProgressiveLoading({
+    budgets: { ...generousBudgets, skillCount: 1 },
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.ok(result.violations.some((violation) => violation.includes("skill frontmatter")));
+  assert.ok(result.violations.some((violation) => violation.includes("skill count")));
 });

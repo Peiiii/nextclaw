@@ -8,11 +8,12 @@ const scriptPath = fileURLToPath(import.meta.url);
 const defaultRepoRoot = path.resolve(path.dirname(scriptPath), "../../..");
 
 export const defaultSkillBudgets = Object.freeze({
-  agentsBytes: 16_000,
+  agentsBytes: 12_000,
   descriptionChars: 260,
-  descriptionTotalChars: 7_500,
-  skillBytes: 12_000,
-  skillTotalBytes: 240_000
+  descriptionTotalChars: 6_000,
+  skillBytes: 8_000,
+  skillCount: 36,
+  skillTotalBytes: 160_000
 });
 
 export const retiredSkillNames = Object.freeze([
@@ -21,12 +22,23 @@ export const retiredSkillNames = Object.freeze([
   "directory-structure-governance-overview",
   "file-naming-convention",
   "goal-progress-anchor",
+  "isolated-npm-release-worktree",
+  "kernel-branch-owner-architecture",
+  "layered-root-cause-analysis",
+  "local-source-runtime-validation",
+  "long-chain-debugging",
   "marketplace-skill-publisher",
   "nextclaw-clean-implementation",
+  "node-pnpm-locator",
+  "npm-beta-release",
   "post-edit-maintainability-review",
   "proactive-work-continuation",
   "project-os",
   "role-first-file-organization",
+  "smoke-testing-ncp-chat",
+  "testing-local-extension-development-source",
+  "classic-software-design-principles",
+  "writing-beautiful-code",
   "unsigned-desktop-release-playbook"
 ]);
 
@@ -201,6 +213,10 @@ const validateActiveMarkdown = ({ repoRoot, retiredNames, skillsRoot, violations
   for (const markdownPath of activeMarkdownPaths) {
     const text = fs.readFileSync(markdownPath, "utf8");
     const file = relativeToRepo(repoRoot, markdownPath);
+    const frontmatter = parseFrontmatter(text);
+    if (path.basename(markdownPath) !== "SKILL.md" && frontmatter?.has("name")) {
+      violations.push(`${file}: reference Markdown must not declare skill frontmatter`);
+    }
     for (const target of markdownTargets(text).filter(isLocalMarkdownTarget)) {
       const resolvedTarget = resolveMarkdownTarget(markdownPath, target);
       if (!fs.existsSync(resolvedTarget)) {
@@ -262,6 +278,9 @@ const validateAggregateBudgets = (metrics, budgets, violations) => {
     violations.push(
       `SKILL.md total: ${metrics.skillTotalBytes} bytes exceeds budget ${budgets.skillTotalBytes}`
     );
+  }
+  if (metrics.skillCount > budgets.skillCount) {
+    violations.push(`skill count: ${metrics.skillCount} exceeds budget ${budgets.skillCount}`);
   }
   if (metrics.descriptionTotalChars > budgets.descriptionTotalChars) {
     violations.push(

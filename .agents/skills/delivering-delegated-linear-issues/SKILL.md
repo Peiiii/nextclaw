@@ -12,7 +12,7 @@ description: 当用户明确要求领取、处理、批量清空或定时扫描 
 - 隔离开发、ready PR 或本地 master：读取 [交付路径](references/delivery-paths.md)。
 - Delivered/Blocked、评论、恢复异常：读取 [收尾与恢复](references/closure.md)。
 
-一次只读取当前阶段；进入实现后由 `nextclaw-delivery-workflow` 接管代码交付，不在本 skill 复制项目开发规范。
+一次只读取当前阶段；进入实现后遵循项目标准开发合同，不重新加载上游 workflow，也不在本 skill 复制开发规范。
 
 ## 永久合同
 

@@ -1,0 +1,19 @@
+# 架构设计原则
+
+用以下原则裁决 owner、状态、生命周期和抽象力度，只展开与当前决策直接相关的项：
+
+- `information-expert`：职责归拥有所需事实和不变量的对象。
+- `single-complete-owner`：同一事实、状态变化和生命周期只有一个权威且完整的 owner；owner 覆盖创建、状态、不变量、生命周期和对外语义。
+- `minimal-responsibility-surface`：上层只提供 owner 无法自知的外部事实、用户选择或真实策略点。
+- `high-cohesion-low-coupling`：一起变化且必须同步的状态放在一起；调用方不依赖内部细节。
+- `tell-dont-ask`：调用业务意图，不读散字段后在 owner 外拼流程。
+- `simple-structure-first`：对象、数组、局部函数或现有 owner 足够时，不升级为新 service、manager 或 context。
+- `abstractions-pay-rent`：抽象必须消除真实重复、保护不变量或隔离稳定变化点，收益大于名字、文件、跳转和合同成本。
+- `constructor-builds-graph`：constructor 只建立同步确定的长期对象图；load/start/reload/stop/dispose 承担副作用。
+- `cqs-pure-read`：read/get/list/status 不暗中改变状态；mutation 表达业务意图。
+- `no-compatibility-by-default`：内部重构直接迁移并删除旧入口；临时兼容必须有外部必要性、边界和删除点。
+- `deletion-first`：新增前先删除重复入口、平行 owner、无语义 wrapper 和过期兼容；不为行数指标损害可读性和合同安全。
+
+判断顺序：写出事实、不变量与生命周期；找到 information expert；删除重复 owner 和透传层；确认上层没有代替 owner 决策；比较简单结构与新抽象的总成本；冻结迁移和删除点。
+
+输出命中的原则、当前违反点、推荐 owner、可删除路径、生命周期边界，以及为什么这个抽象力度刚好。

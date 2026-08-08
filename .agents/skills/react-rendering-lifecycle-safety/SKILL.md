@@ -77,9 +77,11 @@ React 数据更新不应自动等价为结构重建。除非产品明确要求�
 
 ## 与其他 Skill 的关系
 
+以下是超出本合同后的单一路由，不是并行依赖；一次只选择当前需要的一个 owner：
+
 - 状态、query/store、streaming flow owner：联动 `mvp-view-logic-decoupling`。
 - Popover、焦点、键盘和交互反馈：联动 `frontend-interaction-quality`。
-- 组件拆分与抽象必要性：联动 `writing-beautiful-code`。
+- 组件拆分与抽象必要性：由标准开发流程按需读取实现工艺 reference。
 - bugfix 验证与浏览器验收：联动 `nextclaw-validation-workflow`。
 
 ## 输出要求

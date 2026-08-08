@@ -1,6 +1,6 @@
 ---
 name: npm-release-contract-guard
-description: 当发布 NextClaw NPM packages 或 NPM runtime update channel 时使用；先选择 package 发布、runtime channel、published install 验证或分支回流一个阶段并读取对应 reference。
+description: NextClaw NPM package 与 runtime channel 发布的唯一流程 owner；覆盖 beta/stable、隔离 worktree、真实安装验证和分支回流，并按当前阶段读取一个 reference。
 ---
 
 # NPM Release Contract Guard
@@ -11,6 +11,8 @@ description: 当发布 NextClaw NPM packages 或 NPM runtime update channel 时�
 - beta/stable runtime bundle、manifest、Pages：读取 [Runtime channel](references/runtime-channel.md)。
 - 验证真实 `nextclaw@beta/latest` 安装与 update：读取 [Published install](references/published-install-validation.md)。
 - 隔离 worktree、release branch 与 master 回流：读取 [分支闭合](references/branch-closure.md)。
+- 用户要求统一 beta 发布闭环：读取 [Beta 发布](references/beta-release.md)。
+- 已提交发布范围必须与当前 WIP 隔离：读取 [隔离 Worktree](references/isolated-worktree.md)。
 
 一次只读取当前阶段。Desktop installer/DMG 由 desktop release skill 拥有。
 

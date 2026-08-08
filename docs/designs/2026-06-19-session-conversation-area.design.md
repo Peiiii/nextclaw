@@ -581,10 +581,10 @@ ChatSessionWorkspacePanelContent
 
 ## 设计原则依据
 
-- `classic-software-design-principles: information-expert`：消息、运行态和输入状态应归具体 `SessionConversationArea` 实例，而不是由路过的主页面或全局 manager 代持。
-- `classic-software-design-principles: single-domain-owner`：避免主会话一套输入链路、子会话另一套临时输入链路。
+- `architecture-principles: information-expert`：消息、运行态和输入状态应归具体 `SessionConversationArea` 实例，而不是由路过的主页面或全局 manager 代持。
+- `architecture-principles: single-complete-owner`：避免主会话一套输入链路、子会话另一套临时输入链路。
 - `mvp-view-logic-decoupling`：页面/layout 只组合区域，业务组件直接连接 query 和局部 controller；不要让 page 继续组装宽 prop bag。
-- `writing-beautiful-code: semantic-responsibility-names`：使用 `SessionConversationArea` 表达真实业务职责，避免 `Surface` 这类过虚命名。
-- `writing-beautiful-code: simplest-shape-first`：外部不传 `areaKey`，不新增全局多实例 registry；组件内部闭合状态和行为。
-- `kernel-branch-owner-architecture: responsibility-closure`：`SessionConversationArea` 需要覆盖自己的消息、输入、发送、停止闭环，不能只是包装全局 manager 的空心 UI。
+- `implementation-craft: semantic-names`：使用 `SessionConversationArea` 表达真实业务职责，避免 `Surface` 这类过虚命名。
+- `implementation-craft: simplest-shape-first`：外部不传 `areaKey`，不新增全局多实例 registry；组件内部闭合状态和行为。
+- `kernel-owner-architecture: responsibility-closure`：`SessionConversationArea` 需要覆盖自己的消息、输入、发送、停止闭环，不能只是包装全局 manager 的空心 UI。
 - `file-organization-governance/references/feature-root.md`：会话区域已经拥有组件、hooks、utils 和复用边界，适合成为 `chat/features/conversation` 子 feature。

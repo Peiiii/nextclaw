@@ -74,19 +74,19 @@
 
 - 用途：执行 NextClaw NPM beta 一键发布闭环。
 - 输入格式：`/release-beta`，可附 `--skip-runtime-channel`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-release-notes-automation`、`npm-beta-release` 与 `npm-release-contract-guard`；先汇总未发布 `.changeset` 生成用户可读变更摘要，再默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
+- 输出/期望行为：使用 `nextclaw-release-notes-automation` 与 `npm-release-contract-guard`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
 
 ## `/release-beta-npm`
 
 - 用途：只发布 NextClaw NPM beta 包，不触发 runtime update channel。
 - 输入格式：`/release-beta-npm`，可附 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-release-notes-automation`、`npm-beta-release` 与 `npm-release-contract-guard`；先汇总未发布 `.changeset` 生成用户可读变更摘要，再执行 `pnpm release:beta:npm`。适用于“先把 npm beta 包发出去，但暂时不开放自动更新通道”的场景。
+- 输出/期望行为：使用 `nextclaw-release-notes-automation` 与 `npm-release-contract-guard`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再执行 `pnpm release:beta:npm`。适用于“先把 npm beta 包发出去，但暂时不开放自动更新通道”的场景。
 
 ## `/release-beta-runtime`
 
 - 用途：只发布 NextClaw beta runtime update channel，不重复发 npm 包。
 - 输入格式：`/release-beta-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `npm-beta-release` 与 `npm-release-contract-guard`；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
+- 输出/期望行为：使用 `npm-release-contract-guard` 并读取 Beta 发布 reference；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
 
 ## `/release-stable-runtime`
 

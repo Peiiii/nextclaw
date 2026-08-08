@@ -4,7 +4,7 @@
 
 桌面 command surface 已经跑通，但上一轮为压住 `main.ts` 体积引入了 `DesktopBundleServicesFactory`，并保留了 `createDesktopCommandSurfaceService()` 这种 create wrapper。它们解决了局部行数问题，却没有符合 kernel 主干/分支架构：主干应该直接持有稳定业务分支，分支应是有闭环的 manager，细分 service/store 由 manager 自己创建和管理。
 
-本轮目标是按 `kernel-branch-owner-architecture` skill，把 desktop 主入口收敛成更像 kernel 的结构，并删除无语义装配壳。
+本轮目标是按 `nextclaw-solution-design` 的 Kernel Owner reference，把 desktop 主入口收敛成更像 kernel 的结构，并删除无语义装配壳。
 
 ## 成功标准
 

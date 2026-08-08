@@ -10,8 +10,8 @@
 
 - `docs/VISION.md`
 - `.agents/skills/nextclaw-delivery-workflow/SKILL.md`
-- `.agents/skills/writing-beautiful-code/SKILL.md`
-- `.agents/skills/classic-software-design-principles/SKILL.md`
+- `.agents/skills/nextclaw-delivery-workflow/references/implementation-craft.md`
+- `.agents/skills/nextclaw-solution-design/references/architecture-principles.md`
 - `.agents/skills/code-investigation-workflow/SKILL.md`
 - `.agents/skills/project-knowledge-governance/SKILL.md`
 - `.agents/skills/nextclaw-iteration-log-governance/SKILL.md`

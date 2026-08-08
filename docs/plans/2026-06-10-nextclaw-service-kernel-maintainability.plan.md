@@ -4,7 +4,7 @@
 
 **架构方向：** `nextclaw` 保持 CLI/bin facade；`@nextclaw/service` 承担长期服务宿主、CLI runtime 与发布/启动控制；`@nextclaw/kernel` 承担产品 kernel 主干 owner。优化重点不是重新分层造概念，而是把已经漂移的职责收回真实 owner，收窄公共 export，把内置扩展、service app、runtime restart 等链路变成单一事实源。
 
-**适用规范：** 以 `nextclaw-delivery-workflow` 为唯一默认入口；涉及 kernel 主干/owner 时使用 `kernel-branch-owner-architecture`，涉及目录/命名时由 `file-organization-governance` 选择一个条件 reference，涉及死代码时使用 `nextclaw-dead-code-governance`。实现稳定后再进入 `nextclaw-validation-workflow` 和一次 `post-edit-maintainability-guard`；只有 guard 告警或结构风险成立时做主观复核，迭代记录按交付意义判断。
+**适用规范：** 以 `nextclaw-delivery-workflow` 为唯一默认入口；涉及 kernel 主干/owner 时由 `nextclaw-solution-design` 读取 Kernel Owner reference，涉及目录/命名时由 `file-organization-governance` 选择一个条件 reference，涉及死代码时使用 `nextclaw-dead-code-governance`。实现稳定后再进入 `nextclaw-validation-workflow` 和一次 `post-edit-maintainability-guard`；只有 guard 告警或结构风险成立时做主观复核，迭代记录按交付意义判断。
 
 ---
 

@@ -1,153 +1,45 @@
 ---
 name: predictable-behavior-first
-description: Use when a task actually adds or changes fallback, compatibility, graceful degradation, rescue paths, or legacy retention; ordinary implementation without those branches does not trigger it.
+description: 仅当任务实际新增或改变 fallback、兼容、降级、救援路径、重试、默认值或 legacy 保留时使用；普通实现没有这些分支时不触发。
 ---
 
-# Predictable Behavior First
+# 可预测行为优先
 
-## Overview
+目标是同一输入与安装状态产生同一行为：不靠隐藏环境状态意外成功，也不把发布、配置或协议缺陷伪装成健康。
 
-Use this skill to keep system behavior explicit, clear, and predictable.
+## 默认立场
 
-The product principle behind this skill is simple:
+- fail-fast 优于静默救援，单一事实源优于多级 fallback。
+- dev convenience 必须显式开启；发布产物不得借用 cwd、源码 checkout 或本机偶然资源。
+- 内部重构迁移所有已知调用方并删除旧入口，不为方便保留 alias、proxy、adapter 或双 manager。
+- 未发布中间态不是兼容合同；旧 route/API 只有在承载持久用户数据、已证明外部合同或不可避免的分阶段 rollout 时才保留。
+- 无效的 prompt、schema、协议或上游值应修 producer 并显式拒绝，不在下游用别名或归一化悄悄接受。
+- read/get/list/status/discover/report 必须纯读、可重复且无副作用；加载、注册、授权、写入和外部调用使用显式 action。
+- schema/tool 只表达自身合同，不承载动态 catalog、CLI 教程和 AI 工作流；发现与操作流程归对应 owner。
 
-- We do not want surprise success.
-- We do not want surprise failure.
-- We do not want behavior that changes because of hidden environment state.
+## 决策流程
 
-Use it to prevent "helpful" compatibility logic from hiding broken packaging, broken config, or broken runtime contracts.
+1. 写出主合同：发布包、桌面产物、公共 API、配置 schema、持久数据或 transport。
+2. 区分 shipped runtime 与显式 dev mode。
+3. 判断 fallback 是否掩盖 packaging/config/release/runtime 缺陷；若是，修源合同并增加相应交付 guard。
+4. 判断错误是否来自上游意图或协议；若是，修 producer，不在 consumer 宽容化。
+5. 判断 read-shaped path 是否会被页面加载、路由、轮询、重试、重连或 focus-refetch 自动调用；任何执行副作用都应拆成显式 action。
+6. 协议模式已知时第一次请求就使用正确 contract，不先发错误模式再按错误文本切换。
+7. 仍需兼容时，读取[例外政策](references/predictable-behavior-policy.md)，证明外部必要性，并冻结触发、范围、信号、owner 和退出条件。
 
-Default stance:
+## 禁止的运行时补丁
 
-- Prefer fail-fast over silent rescue.
-- Prefer one clear source of truth over multiple fallback sources.
-- Prefer explicit dev-only switches over automatic environment sniffing.
-- Prefer fixing release/build/deploy contracts at the source over teaching shipped runtime to recognize incident signatures.
-- Compatibility is not the default for internal refactors. If a new owner or primary path is chosen, migrate callers to it and delete the old path instead of keeping aliases, adapters, proxies, or `asXxx()` bridges for convenience.
-- Do not add compatibility for unpublished, unreleased, or developer-only intermediate states. If no external user, released artifact, persisted production data, or documented public contract could have depended on the old shape, delete the old shape instead of reading both.
-- API compatibility is not a data migration. When an old route or public method does not own persisted user data, external protocol obligations, or state handoff, do not keep a bridge merely because callers once used it; migrate known callers and delete the old API surface.
-- Do not repair bad upstream intent, prompt, skill, schema, or protocol output by silently normalizing it downstream. Fix the contract that produced the bad value, and make invalid values fail visibly.
-- Do not couple operation workflows into low-level schemas. A schema or tool contract must not become a discovery guide, runtime catalog, or CLI instruction carrier; put discovery in an explicit command/owner and put AI procedure in the relevant skill.
+除非用户明确授权短期事故止血且有删除条件，不得在 shipped runtime 中加入：
 
-## When To Use
+- 用 `stderr/stdout.includes(...)` 识别当前坏版本、打包事故或临时上游故障；
+- “latest release 已坏”等版本/事故签名特判；
+- 扫描多个无关目录直到找到可用资源；
+- 先发送错误 transport，再根据上游报错文本重试真实模式；
+- 自动触发的前端 read path 隐藏 load/register/install/write/external call；
+- 没有真实外部合同的旧 API 转发、双实现或永久 mode flag。
 
-Trigger this skill when work includes any of these patterns:
+## 输出
 
-- Adding or changing fallback paths.
-- Keeping old and new implementations alive at the same time.
-- Backward compatibility requests without a clearly proven need.
-- Keeping an old manager, registry, factory, getter, or adapter after a new owner has been chosen.
-- Runtime behavior that depends on `cwd`, local repo files, or ambient machine state.
-- Graceful degradation that can turn a broken release into a "works on my machine" illusion.
-- "Just in case" retries, defaults, silent recovery, or legacy code preservation.
-- Protocol or transport mismatches such as `stream` vs non-stream, SSE vs JSON, long-poll vs evented delivery, or request/response shape drift.
-- A proposal to inspect stderr/stdout text, broken-version markers, or current incident signatures inside runtime code to explain or route around a release accident.
-- A `read/get/list/status/discover/report` path that may import modules, register capabilities, write state, or call external systems.
-- Frontend page-load, polling, or focus-refetch behavior that might automatically trigger anything beyond pure data reads.
+说明主合同、观察/执行属性、自动调用副作用、fallback 是否掩盖缺陷、旧路径是否拥有持久数据或外部合同，以及结论属于：删除、fail-fast、显式 dev-only、或有退出条件的临时兼容。
 
-## Workflow
-
-1. Identify the primary contract.
-   For example: published npm package, packaged desktop app, public API, config schema, persisted data contract.
-2. Separate shipped-runtime behavior from dev-only behavior.
-   A globally installed CLI must not silently depend on repo-local artifacts unless dev mode is explicit.
-3. Ask the masking question.
-   Would this fallback make system behavior less predictable by hiding a packaging, config, release, or runtime bug that should fail loudly?
-4. Ask the upstream-contract question.
-   Did this bad value come from a prompt/skill/schema/contract/validation gap? If yes, fix that source first and reject the bad value instead of accepting it through an alias or normalization layer.
-5. Ask the coupling question.
-   Am I putting discovery steps, dynamic runtime lists, command usage, or product workflow guidance into a lower-level schema/tool/API that should only express a contract? If yes, move that knowledge to the workflow owner and keep the lower layer strict.
-6. If yes, remove the fallback or gate it behind an explicit dev-only switch.
-   If the failure is a protocol mismatch, fix the primary contract from the first request instead of probing one mode and switching after an error.
-6. If compatibility still seems necessary, apply the exception bar from [references/predictable-behavior-policy.md](references/predictable-behavior-policy.md).
-7. When keeping any compatibility path, record its trigger, scope, owner, and removal condition in the change summary.
-8. For internal owner migrations, prefer editing all known callers in the same change. If a temporary bridge is unavoidable, it must have a named deletion point and must not become a second public entry.
-9. For old APIs/routes, ask whether there is persisted user data, external clients with a documented contract, or an unavoidable staged rollout that the old API must serve. If not, delete the old API instead of forwarding it to the new owner.
-
-## Read vs Action Checklist
-
-Use this checklist whenever a request path, hook, controller, or helper may be auto-triggered.
-
-1. Decide whether the path is observation or execution.
-   Observation means reading state for display, sync, or validation.
-   Execution means loading, registering, mutating, authorizing, installing, enabling, disabling, or calling external systems.
-2. If the name suggests observation, require pure-read behavior.
-   Names like `read`, `get`, `list`, `status`, `discover`, and `report` must be repeat-safe and side-effect-free.
-3. If the path can be triggered automatically by frontend lifecycle behavior, raise the bar further.
-   Page-load, route-enter, polling, retry, reconnect, and focus-refetch paths must never hide execution behind a read shape.
-4. If observation and execution are mixed, split them.
-   Preferred shape:
-   - one explicit read/discovery path for UI and monitoring
-   - one explicit action/load path for runtime or user-triggered actions
-5. Check that displayed labels match certainty.
-   Do not label a lightweight discovery result as `loaded`, `running`, or `active` unless real execution has actually happened.
-
-## Review Questions
-
-Before accepting a design, answer these:
-
-- Is this path pure-read, or is it secretly executing work?
-- If the frontend auto-triggers this path three times, is that still harmless?
-- Does the name honestly match the behavior?
-- Should this be split into observation and execution instead of adding a mode flag?
-- If a mode flag is temporarily kept, is it only an internal transition aid rather than the long-term API shape?
-
-## Forbidden Patch Patterns
-
-Do not add these to shipped runtime unless the user explicitly asks for a temporary incident stopgap and you record a removal condition:
-
-- `stderr.includes(...)` / `stdout.includes(...)` checks that recognize a current packaging, release, deploy, or upstream outage signature.
-- hardcoded references to "latest release is broken", a currently bad version, or a known temporary registry accident.
-- runtime branches whose only purpose is to explain, soften, or route around a broken artifact that should have been blocked by release validation.
-- request one transport mode first, then inspect upstream error text to switch to the real required mode on retry, when the correct primary contract could have been sent immediately.
-
-If the problem is a broken published package, broken installer, broken deploy, or bad config contract, the default fix is:
-
-1. fix the source contract,
-2. add a guard/check in release/build/deploy flow,
-3. keep runtime behavior generic and truthful.
-
-## Decision Rules
-
-- Behavior should be explicit, clear, and predictable.
-- Do not let "works on my machine" paths redefine shipped behavior.
-- Do not let production/runtime correctness depend on `cwd`.
-- Do not let published artifacts borrow missing resources from source checkouts.
-- Do not add silent fallbacks that turn release defects into environment-specific behavior.
-- Do not add silent aliases or normalization that make an invalid internal contract look valid; update the producer contract, schema, skill, prompt, or validator instead.
-- Do not add dynamic enums, command hints, route catalogs, or workflow instructions to a low-level tool schema unless that schema owner is explicitly responsible for that discovery contract.
-- Do not encode one-off incident knowledge into runtime conditionals just because the current failure is easy to pattern-match.
-- Do not keep dual paths unless the old path has a real, current, externally constrained purpose.
-- Do not keep internal compatibility bridges merely to avoid updating callers.
-- Do not preserve compatibility for temporary names, files, routes, or schemas created and changed within the same unreleased development window; those are work-in-progress artifacts, not user contracts.
-- Do not keep old API routes, endpoint aliases, SDK methods, or controller wrappers when the old surface has no persisted state to migrate and no proven external contract. A route is code, not user data.
-- Do not preserve two managers/registries that can both mutate or resolve the same domain.
-- If a fallback is only for development, require an explicit switch or explicit environment variable.
-- Do not let read-shaped APIs hide load/register/write/execute behavior.
-- Do not let frontend automatic requests trigger side effects.
-- If a compatibility path stays, it must have:
-  - a concrete necessity,
-  - a bounded scope,
-  - observable signaling,
-  - an exit condition.
-
-## Output Requirements
-
-When this skill is used, the answer should state:
-
-- what the primary contract is,
-- whether the path is observation or execution,
-- whether any auto-triggered caller could hit side effects,
-- whether the proposed fallback makes behavior less predictable or masks a real defect,
-- whether the proposal is actually an incident-specific runtime patch that should be rejected,
-- whether the old path owns persisted data or a proven external contract, or is just code that should be deleted,
-- whether the path is forbidden, dev-only, or temporarily allowed,
-- and, if allowed, what removes it later.
-
-## Reference
-
-Read [references/predictable-behavior-policy.md](references/predictable-behavior-policy.md) when you need:
-
-- the exception bar for allowing compatibility,
-- concrete examples of allowed vs forbidden fallback logic,
-- a compact review checklist for fallback-heavy changes.
+允许兼容必须同时具备具体必要性、窄范围、可观察信号、cleanup owner 和明确退出事件；缺一项就不保留。

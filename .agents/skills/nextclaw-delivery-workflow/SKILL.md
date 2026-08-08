@@ -30,6 +30,8 @@ description: NextClaw 普通源码、脚本、测试、运行链路和从方案�
 
 每次新增调查必须改变一个实现或验证决策。已经确认且未变化的长文件、skill、日志和命令输出不得重读。
 
+只有 `node/pnpm/npx/corepack` 确实无法从 PATH 解析时，才读取[Node/pnpm 环境恢复](references/node-pnpm-environment.md)；命令正常时不读取。
+
 ## 3. 实现前检查
 
 源码修改前直接回答，不再加载独立 clean implementation skill：
@@ -41,6 +43,8 @@ description: NextClaw 普通源码、脚本、测试、运行链路和从方案�
 5. 是否新增、移动、重命名文件或改变目录角色？只有命中时才加载 `file-organization-governance` 并运行 preflight。
 
 实现保持单一路径、稳定合同和可见主流程。必要、安全、清晰的最小增长允许存在；禁止向无关模块找行数抵消。
+
+只有用户明确讨论简单性、拆分收益、过度防卫、过度抽象或代码审美，且当前确实要裁决“保留、拆分还是抽象”时，才读取[实现工艺](references/implementation-craft.md)。普通实现不读取。
 
 只有当前决策确实涉及架构 owner、kernel 主干、前端状态、React 生命周期、交互、样式或兼容策略时，才加载对应的一个专项 skill；不要因泛化的“写代码/重构”同时加载多项原则 skill。
 

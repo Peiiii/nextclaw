@@ -171,3 +171,58 @@ AGENTS 常驻内核
 - 删除入口对应的有效合同已合并到现有 owner 或条件 references；历史日志与本设计保留迁移名称，不属于运行期规则面。
 - `pnpm check:skill-progressive-loading` 已建立 16 KB `AGENTS.md`、12 KB 单入口、240 KB 总入口、260 字符单 description 和 7500 字符 description 总量预算，并检查 frontmatter、唯一名称、相对链接、退役引用与循环依赖。
 - 该检查只由 `/check-meta` 和元规则治理触发，不加入普通源码任务的 maintainability guard。
+
+## 第二阶段：流程、工艺与场景分层
+
+第一阶段解决了默认全家桶和循环依赖，但进一步审计发现：44 个入口中仍有一批内容虽然触发面已收窄，本质上仍只是标准开发流程某个阶段的方法或规范，不需要继续占用独立 skill description。
+
+项目 skill 统一分成四类：
+
+1. **标准流程 owner**：普通开发只保留 `nextclaw-delivery-workflow` 一个总 owner。
+2. **复杂阶段 owner**：调查、方案、验证、guard 分别由 `code-investigation-workflow`、`nextclaw-solution-design`、`nextclaw-validation-workflow`、`post-edit-maintainability-guard` 承担；它们只在进入对应阶段时加载。
+3. **场景流程 owner**：发布、Linear、marketplace、长期治理、内容生产等有独立用户意图和完整闭环的流程保留独立 skill。
+4. **工艺/场景规范**：通用架构原则、代码审美、Kernel owner、长链路 Debug 方法、具体运行验证方法等不再作为平行流程入口，而是归所属阶段的条件 reference。
+
+判断标准：能独立回答“用户要完成哪个完整任务”的内容才是 skill；只回答“当前阶段该怎样判断或验证”的内容默认是 reference。
+
+### 第二阶段合并映射
+
+- `long-chain-debugging`、`layered-root-cause-analysis` -> `code-investigation-workflow/references/`。
+- `classic-software-design-principles`、`kernel-branch-owner-architecture` -> `nextclaw-solution-design/references/`。
+- `writing-beautiful-code` -> `nextclaw-delivery-workflow/references/implementation-craft.md`；`code-review` 继续拥有 findings-first 的审查合同，不反向依赖上游 workflow。
+- `local-source-runtime-validation`、`testing-local-extension-development-source`、`smoke-testing-ncp-chat` -> `nextclaw-validation-workflow/references/`。
+- `npm-beta-release`、`isolated-npm-release-worktree` -> `npm-release-contract-guard/references/`，NPM 发布只保留一个 owner。
+
+目标项目 skill 数由 44 降至 34。合并后的 reference 保留原有确定性命令、关键合同和输出要求，但移除重复触发说明、上游流程复述和互相联动段落。
+
+### 入口简洁度
+
+- `SKILL.md` 只保留触发边界、最小决策树、永久合同和完成条件。
+- 示例、平台矩阵、命令全集和异常恢复细节只在存在独立子场景时进入 reference。
+- 单个 `SKILL.md` 硬预算由 12 KB 收紧为 8 KB；超过预算必须重写或证明所有内容每次触发都必需。
+- 不为了通过预算把每次必读正文机械搬入必读 reference；总 skill Markdown 仍需持续下降或保持有依据的稳定增长。
+
+### 第二阶段实施结果
+
+实际入口由 44 个收敛为 33 个：原计划的 10 个阶段方法全部转为条件 reference；复核剩余目录时又确认 `node-pnpm-locator` 只是默认开发流程的 PATH 故障恢复分支，因此一并归入 `nextclaw-delivery-workflow`。
+
+当前 33 个入口的具体分层：
+
+| 类型 | 当前入口 |
+|---|---|
+| 唯一标准流程 | `nextclaw-delivery-workflow` |
+| 复杂阶段 owner | `code-investigation-workflow`、`nextclaw-solution-design`、`nextclaw-validation-workflow`、`post-edit-maintainability-guard`、`code-review` |
+| 复杂场景规范 | `predictable-behavior-first`、`mvp-view-logic-decoupling`、`react-rendering-lifecycle-safety`、`frontend-interaction-quality`、`frontend-style-encapsulation`、`user-facing-content-boundary` |
+| 完整场景流程 | `autonomous-maintainability-campaign`、`delivering-delegated-linear-issues`、`desktop-release-contract-guard`、`file-organization-governance`、`frontend-code-optimization`、`goal-mode`、`integrating-http-agent-runtime`、`integrating-narp-stdio-runtime`、`iteration-work-notes`、`learning-from-failures`、`nextclaw-agent-instructions-governance`、`nextclaw-dead-code-governance`、`nextclaw-iteration-log-governance`、`nextclaw-marketplace-skill-integration`、`nextclaw-release-notes-automation`、`npm-release-contract-guard`、`product-blog-storytelling`、`project-knowledge-governance`、`refresh-product-visual-assets`、`replicating-reference-skins`、`x-twitter-bird` |
+
+复杂场景规范保留 skill 的条件是：真实触达面可独立判断，且一旦命中，入口中的合同整体适用；只在某个子分支才需要的方法仍下沉 reference。通用工艺如架构原则、实现审美不占入口；NextClaw 场景细节如 Kernel owner、本地源码实例、NCP chat、beta/worktree 和 Node/pnpm PATH 恢复也归所属阶段/流程 reference。
+
+最终指标：
+
+- `SKILL.md` 总量 122098 字节，较第一阶段 210699 字节再下降 42.1%，较治理前约 466 KB 下降约 73.8%。
+- description 总字符 3830，较第一阶段 6035 再下降 36.5%。
+- 全部 skill Markdown 217539 字节，低于第一阶段 284775 字节；10 个迁移合同与 1 个环境恢复合同都经过删重，未把旧入口原样隐藏。
+- 最大入口 7459 字节；全部入口低于 8 KB。
+- 静态 skill 依赖图保持 0 个循环。
+
+治理预算同步收紧为：`AGENTS.md` 12 KB、单入口 8 KB、入口总量 160 KB、入口数 36、单 description 260 字符、description 总量 6000 字符。reference 禁止声明 skill frontmatter，避免移动后的正文继续被发现为隐形入口；11 个退役名称进入活动规则面检查，防止旧入口复活。

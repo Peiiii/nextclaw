@@ -103,7 +103,7 @@ Docker 适合验证隔离发布态，但不是当前默认方案：
 新增 skill：
 
 ```text
-.agents/skills/local-source-runtime-validation/SKILL.md
+.agents/skills/nextclaw-validation-workflow/references/local-source-runtime.md
 ```
 
 当用户要求“本地验证当前源码构建出的产品实例 / restart / 避免全局安装版”时，AI 应优先读取该 skill，并使用 `pnpm local:runtime`。
