@@ -1,151 +1,47 @@
 ---
 name: nextclaw-agent-instructions-governance
-description: Use when editing AGENTS.md, commands/commands.md, Rulebook or Project Rulebook content, project AI instructions, or deciding whether a rule belongs in AGENTS.md, a skill, or ordinary docs. Also use when the user says to remember a rule/principle/norm, or for /config-meta, /check-meta, /new-rule, and AGENTS token optimization.
+description: 当确定要修改 AGENTS.md、commands、项目 AI 规则、skill/references 分层、治理脚本，或判断一条规则应放在哪一层时使用；普通规则讨论和一次性纠偏不提前触发。
 ---
 
-# NextClaw Agent Instructions Governance
+# AI 指令系统治理
 
-## Goal
+## 目标
 
-Keep agent instructions reliable without turning `AGENTS.md` or skills into giant prompts.
+保持规则可靠、单一 owner、渐进加载和低 token 成本。修改前先对齐 `docs/VISION.md`、检查工作区和当前规则体积，并识别真正根因是缺失、重复、过宽、过长、过期还是放错层。
 
-Token budget is an explicit governance goal:
+## 分层
 
-- Prefer deleting, merging, or moving details to lazy-loaded references before adding new instruction text.
-- A skill should stay short enough to guide action; long examples, recovery maps, and logs belong in scripts or focused references.
-- For long-running workflows, prefer compact automation and JSON summaries over transcript-scale manual polling.
+1. `AGENTS.md`：每轮必须知道的安全与高层边界。
+2. `SKILL.md`：一个明确意图的入口和每次命中都需要的决策。
+3. `references/`：仅在子场景成立时读取的长合同、平台细节和示例。
+4. `scripts/`：高信号、低误报、可确定执行的检查。
+5. `docs/`：人类背景、设计、计划和长期记录；除非入口明确链接，不承担自动硬规则。
 
-Default structure:
+如果一段内容每次触发 skill 都必需，保留在入口；不要拆成必读 reference。若只在一个分支需要，必须移出入口并写清加载条件。
 
-- `AGENTS.md`: always-on kernel that every reply must know.
-- `.agents/skills/*/SKILL.md`: scenario workflows that Codex can trigger by description.
-- `docs/*`: human-facing or long-lived references, only authoritative when a skill or AGENTS explicitly points to them.
+## 修改顺序
 
-For the full governance-system map, use:
+1. 找当前 owner 和相邻规则，先判断删除、合并、收窄、移动，再考虑新增。
+2. 普通开发只能有一个默认 workflow owner；专项 skill 不回链上游。
+3. description 只描述一个稳定意图，不堆“实现/方案/深入/最佳实践”等泛词抢占触发。
+4. 一个判断分支最多要求一个直接下游；不同阶段的 skill 到阶段再加载。
+5. 规则影响脚本或命令时同步更新；脚本变化也同步 owning 文本。
+6. 大型重构写设计并在同批迭代记录中留痕，小措辞不建日志。
 
-- `docs/internal/governance-system-sources-of-truth.md`
+## 创建 Skill 门槛
 
-## Before Editing
+只有同时满足才创建：
 
-1. Read `docs/VISION.md` enough to align with the product direction.
-2. Inspect current `AGENTS.md` size with `wc -c -m -w AGENTS.md`.
-3. Check worktree status and avoid overwriting unrelated user edits.
-4. Identify the root problem before adding text:
-   - missing always-on constraint,
-   - unclear skill trigger,
-   - repeated rule,
-   - stale command index,
-   - rule that belongs in a scenario skill,
-   - ordinary documentation that should not be a hard rule.
-5. Before changing any rule surface, choose the operation deliberately:
-   - add a new rule only when no existing rule owns the concern,
-   - merge when multiple rules describe the same concern,
-   - delete when the rule is obsolete, duplicated, too specific, or only names a symptom,
-   - rewrite or lift when a concrete rule should become a broader principle,
-   - move when the rule belongs in another skill, AGENTS, command, script, or ordinary docs.
-6. When the request changes project governance, inspect whether the change also touches:
-   - `commands/commands.md`,
-   - `scripts/governance/*`,
-   - governance baseline / test files,
-   - linked internal governance docs.
-7. Before adding a governance script, automation check, or mandatory validation entry, prove it addresses a reusable class of repeated, high-impact problems. Do not add narrow scripts for one-off corrections, tiny pattern smells, or low-leverage reminders; keep those in AGENTS / skill rules unless a broader executable rule is justified.
+- 没有现有 owner；
+- 有明确、可重复的用户意图；
+- 有独立流程或稳定合同，而不是原则换名；
+- description 能与相邻 skill 互斥；
+- 新入口比 reference 或扩展现有 owner更清晰。
 
-## Placement Decision
+否则合并、写 reference 或删除。
 
-Use this decision order:
+## 检查
 
-1. Put it in `AGENTS.md` only if every task and every reply must know it.
-2. Put it in an existing skill if it is scenario-specific and that skill already owns the workflow.
-3. Create a new skill if no existing skill has a clear trigger and the workflow is repeatable.
-4. Put it in `docs/` only if it is human reference, design background, examples, or long-form context that does not need automatic enforcement.
-5. Delete or merge it if it duplicates a stronger rule.
+完成前运行 `pnpm check:skill-progressive-loading`，确认 frontmatter、名称、链接、依赖循环、已删除引用和体积预算；再按改动风险运行治理 ratchet。纯指令 Markdown 不运行 build/tsc/产品冒烟。
 
-Do not move hard rules into ordinary docs unless a skill explicitly requires reading that doc at the right moment.
-
-## AI-Readable Guide Structure
-
-When updating AI-readable guides such as `USAGE.md`, avoid turning the top-level guide into a full reference dump.
-
-- Keep the top-level guide as an index plus high-frequency rules the AI must see early.
-- Move rarely needed payload contracts, long examples, parameter matrices, troubleshooting maps, and protocol details into focused linked files.
-- Ensure packaged runtime resources include the linked detail files; do not link from a packaged guide to repo-only docs unless the package sync path copies them too.
-- A detail page is appropriate when the AI only needs it after a specific intent is known, such as implementing a webhook caller or debugging one endpoint.
-
-## Remember Requests
-
-当用户说“记住”“以后都要”“这是规范/原则”时，不能只在回复里说已经记住。必须把它当成规则持久化请求处理：
-
-1. 先判断它是不是每轮都必须知道；是则写入 `AGENTS.md` 的高层规则。
-2. 如果只在特定场景需要，写入对应 skill，并确保 description 能触发。
-3. 如果会影响自动检查，更新对应治理脚本或说明为什么暂不需要脚本。
-4. 如果自动检查只能覆盖少量表层写法、一次性坏例子或低收益提醒，不要新增窄脚本；应写入对应规则/skill，并说明暂不适合脚本化。
-5. 如果不应落盘，必须明确说明原因，而不是口头承诺。
-
-## Governance System Scope
-
-When users say "规范", "治理规则", "规则系统", "调整元规范", or similar, do not assume they only mean prose documents.
-
-Treat the governance system as including at least:
-
-- `AGENTS.md`
-- `.agents/skills/*/SKILL.md`
-- `commands/commands.md`
-- relevant `docs/*` references
-- `scripts/governance/*`
-- related baselines, fixtures, and tests
-
-If a rule change affects executable behavior, do not stop at text edits. Update the corresponding script surface in the same change, or explicitly state why it is not applicable.
-
-Executable governance must be calibrated by leverage. A new script is appropriate only when it can enforce a broad, repeatable problem class with clear signal and low false-positive cost; otherwise prefer a concise always-on rule, a targeted skill step, or reuse/extension of an existing generic check.
-
-The reverse direction is also mandatory:
-
-- if a script/governance change introduces, removes, or relaxes a rule surface, do not stop at script edits;
-- update the owning skill / command / governance doc in the same change, or explicitly state why no owner text exists;
-- do not let executable governance drift ahead of the documented rule model.
-
-## AGENTS.md Rewrite Rules
-
-- Keep `AGENTS.md` concise and startup-oriented.
-- Prefer one high-signal bullet over example + counterexample + process blocks.
-- Preserve hard constraints for communication, git safety, validation, user-change protection, and skill routing.
-- Remove repeated command details when a skill or command file owns them.
-- Do not add a new top-level section unless it changes the kernel structure in a meaningful way.
-- If adding a new scenario rule, first try to add it to the appropriate skill description/body.
-
-## Skill Rules
-
-When creating or updating a skill:
-
-- 项目内 skill 默认使用中文；只有在 skill 明确面向外部英文受众、外部协议/字段强制要求英文，或用户明确要求英文时，才使用英文。
-- Make the YAML `description` explicit enough to trigger on real user requests.
-- 新增或重写 skill 不只创建文件，还必须同步维护触发索引：至少让 `description` 覆盖真实用户说法、任务类型和触达代码面；如果该 skill 是某类任务的入口规则，还要在 `AGENTS.md` 的 skill 路由、相关命令或治理说明中增加索引。
-- 修改 skill 前先查相邻 skill 的职责重叠；如果发现重复 owner、平行 workflow、过期规则或可合并内容，优先合并、改写或删除，不要只追加新段落。
-- Keep `SKILL.md` procedural and concise.
-- Do not create extra README/changelog files inside a skill.
-- Prefer direct checklists and commands over long philosophy.
-- If the body is getting large, split details into `references/` and link them from `SKILL.md` with clear loading conditions.
-- When updating a skill, treat token reduction as a success criterion: remove stale or duplicated guidance in the same pass when practical.
-
-## Command Rules
-
-- Project meta commands belong in `commands/commands.md`.
-- `AGENTS.md` should keep only command names and one-line meanings.
-- Do not mix package commands, product CLI usage, deployment scripts, or business execution commands into the meta command index.
-
-## Iteration Logging
-
-Instruction-system rewrites are non-code changes.
-
-- If the change is only a tiny wording or index fix, no iteration directory is needed.
-- If the change is a large rules restructure, token optimization, or skill migration, use `nextclaw-iteration-log-governance` at the end to decide whether to create or update a `docs/logs` entry.
-
-## Final Check
-
-Before finishing:
-
-1. Recount `AGENTS.md` size.
-2. Confirm details moved out of `AGENTS.md` are still reachable through skill descriptions.
-3. Confirm no hard rule was moved only to an ordinary doc.
-4. Confirm whether command entries, governance scripts, and baselines/tests were intentionally updated or intentionally left untouched with reason.
-5. State whether build/lint/tsc are not applicable because the change was instruction/skill text only.
+最终报告 AGENTS、skill 数、description 和入口体积变化，说明 command/script/baseline 是否适用，以及设计/迭代落点。

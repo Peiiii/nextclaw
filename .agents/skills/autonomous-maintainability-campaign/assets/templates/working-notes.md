@@ -11,7 +11,7 @@
 # 关键约束 / 不变量
 
 - 必须遵守 `docs/VISION.md`
-- 必须遵守 `AGENTS.md` 的 Rulebook / Project Rulebook 与 `docs/logs` 规则
+- 必须遵守 `AGENTS.md` 常驻规则与适用的 `docs/logs` 规则
 - 必须遵守 `commands/commands.md` 中与治理相关的执行入口
 - 仅在高置信时持续自治推进
 - 低置信决策必须停下并记录阻塞原因

@@ -1,6 +1,6 @@
 ---
 name: nextclaw-iteration-log-governance
-description: Use when deciding, creating, or updating docs/logs iteration records for a commit/release, cross-module or long-running delivery batch, important root-cause fix, red-zone touch, large governance rewrite, NPM release record, work note, or goal-progress anchor; ordinary local code edits and small fixes do not trigger it.
+description: Use when a commit/release, cross-module delivery, important root-cause fix, red-zone change, large governance rewrite, NPM release, work note, or goal anchor may require docs/logs; ordinary small edits do not trigger it.
 ---
 
 # NextClaw Iteration Log Governance
@@ -110,7 +110,7 @@ Cover:
 - whether code/branch/function/file/directory sprawl decreased or at least did not worsen,
 - whether abstractions and owner boundaries became clearer,
 - whether directory/file organization satisfies current governance,
-- whether the automatic guard found anything and whether its result triggered `post-edit-maintainability-review`,
+- whether the automatic guard found anything and whether its result triggered the subjective review reference,
 - or `不适用` with reason when no code maintainability evaluation applies.
 
 ## Work Notes
@@ -125,7 +125,7 @@ Reference work notes from the iteration `README.md`.
 
 ## Goal Progress Anchor
 
-Use `goal-progress-anchor` when the task may drift, spans many turns, or the user says not to forget the original goal.
+Use `goal-mode` and its progress-anchor reference when the user explicitly enables goal mode.
 
 Anchor file:
 

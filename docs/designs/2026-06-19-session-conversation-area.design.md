@@ -587,4 +587,4 @@ ChatSessionWorkspacePanelContent
 - `writing-beautiful-code: semantic-responsibility-names`：使用 `SessionConversationArea` 表达真实业务职责，避免 `Surface` 这类过虚命名。
 - `writing-beautiful-code: simplest-shape-first`：外部不传 `areaKey`，不新增全局多实例 registry；组件内部闭合状态和行为。
 - `kernel-branch-owner-architecture: responsibility-closure`：`SessionConversationArea` 需要覆盖自己的消息、输入、发送、停止闭环，不能只是包装全局 manager 的空心 UI。
-- `collapsible-feature-root-architecture`：会话区域已经拥有组件、hooks、utils 和复用边界，适合成为 `chat/features/conversation` 子 feature。
+- `file-organization-governance/references/feature-root.md`：会话区域已经拥有组件、hooks、utils 和复用边界，适合成为 `chat/features/conversation` 子 feature。

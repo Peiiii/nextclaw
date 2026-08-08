@@ -19,21 +19,30 @@
 - 可维护性 guard 默认只跑一次；主观 review 只在 guard 告警、结构/owner/抽象变化、大范围改动或用户明确要求时运行。
 - 将流程效率反思嵌入既有收尾，不新增独立仪式。AI 需要检查重复读取、重复验证、低信息量动作和可条件化的规则；只有可复用、反复发生或高影响的结论才持久化。
 - 普通局部修复和同批次微调不再自动创建独立迭代记录。
+- 对项目全部 skill 做了第二阶段结构审计：删除无独立价值或已被常驻规则覆盖的入口，将文件组织、goal、Marketplace、desktop release、release notes、NPM release、Linear 委派等分支型长流程收敛为小入口加条件 reference。
+- 普通开发只保留 `nextclaw-delivery-workflow` 一个默认流程 owner；调查、方案、验证和 maintainability guard 均在对应阶段按需进入，专项 skill 不再回链上游 workflow。
+- 新增 `pnpm check:skill-progressive-loading`，只在元规则或 skill 分层变化时检查 frontmatter、名称唯一性、相对链接、退役引用、依赖循环和体积预算，不进入普通开发默认验证链路。
+- 同步迁移仍可能被执行的 `docs/designs` / `docs/plans` 中旧 skill 名称与脚本路径；历史 `docs/logs` 保留当时事实，不作为运行期规则入口。
 
 以字节数近似衡量规则输入体积：高频流程规则包由约 110 KB 降至 48 KB，减少约 56%；包含条件复核、留痕与延迟参考的完整相关规则包由约 127 KB 降至 60 KB，减少约 53%。这不是模型实际 token 的精确换算，但能稳定反映默认上下文负担的下降。
+
+第二阶段完成后，项目 skill 数由 56 降至 44，全部 `SKILL.md` 入口正文由约 466 KB 降至约 211 KB，description 总字符由 9610 降至 6035；`AGENTS.md` 由约 31 KB 降至 8814 字节。静态依赖循环由 4 个组件降至 0。包括 references 在内的全部 skill Markdown 也从 489907 字节降至 284775 字节，减少 41.9%，说明本轮不是把长文机械藏到 reference；其中 feature-root 合同由 705 行重写为 108 行。references 中保留的低频合同只有对应分支成立时才读取。
 
 ## 测试/验证/验收方式
 
 - `git diff --check`：验证 Markdown 与规则改动不存在空白错误。
 - 校验所有改写 skill 的 frontmatter，以及验证 skill 新增延迟参考链接均可解析。
 - `pnpm check:governance-backlog-ratchet`：验证治理基线没有因规则重构发生非预期回退。
+- `node --test scripts/governance/checks/skill-progressive-loading.test.mjs`：验证新检查能识别循环、失效链接、重复名称和退役引用。
+- `pnpm check:skill-progressive-loading`：验证 44 个 skill 的 frontmatter、链接、引用图与体积预算，输出结果为 0 个违规。
 - 人工一致性检查 `AGENTS.md`、`commands/commands.md` 与各流程 skill，确认默认路径、风险分级、条件 review 和留痕边界没有互相冲突。
+- 搜索非历史规则、设计和计划中的退役 skill 名称，仅剩普通文档 `file-naming-convention.md` 文件名引用，不再存在已删除 skill 或脚本路径引用。
 
-本轮只修改 Markdown 指令与 skill，没有触达 TypeScript、运行链路或用户运行行为，因此 build、lint、tsc、单元测试和运行冒烟不适用。
+本轮没有触达 TypeScript、产品运行链路或用户运行行为，因此 build、tsc 和产品冒烟不适用；新增的治理脚本执行定向 lint 与 Node 回归测试。
 
 ## 发布/部署方式
 
-本轮按用户要求提交到当前本地分支；未推送、未部署、未发布。
+前一阶段与本次同批次 skill 治理均按用户要求提交到当前本地分支。未推送、未部署、未发布。
 
 ## 用户/产品视角的验收步骤
 
@@ -48,7 +57,9 @@
 - 本轮主要是删除、合并和条件化重复规则，没有新增平行流程 owner。
 - 高频规则输入体积减少约 56%，完整相关规则包减少约 53%。
 - 新增的三个参考文件只承载低频复杂场景，避免默认 skill 继续膨胀。
+- 第二阶段进一步把 12 个冗余入口删除或合并，低频细节保存在 27 个条件 reference 中，没有以丢失合同换取入口缩短。
 - 可维护性 guard 与主观 review 的职责已分开：guard 提供低成本客观信号，review 只处理需要判断的风险。
+- 新检查为 `AGENTS.md`、单个/全部 skill 入口和 description 设预算，并阻止依赖回路；预算留有增长余量，skill 数量只报告、不作为机械 KPI。
 - 本轮属于大型治理重构，因此创建一次迭代记录；没有为过程中每个细小修正分别留痕。
 
 ## NPM 包发布记录

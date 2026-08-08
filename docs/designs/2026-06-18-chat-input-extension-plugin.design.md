@@ -745,7 +745,7 @@ type InputPanelControl =
 
 ### 目录组织设计
 
-目录组织按 `nextclaw-solution-design`、`collapsible-feature-root-architecture`、`role-first-file-organization` 和 `file-naming-convention` 的规则切分：
+目录组织先由 `nextclaw-solution-design` 确认方案，再由 `file-organization-governance` 按当前决策读取 feature-root、文件角色或命名 reference，不一次加载全部目录规则：
 
 1. **跨项目可复用协议与函数式插件原语进入 `agent-chat-ui/src/lib/input-surface/`**。
    - `lib/` 是模块容器，不直接放文件；`input-surface/index.ts` 是该模块唯一公共出口。

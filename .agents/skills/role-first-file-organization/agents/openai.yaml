@@ -1,4 +1,0 @@
-interface:
-  display_name: "角色优先文件组织"
-  short_description: "先定角色，再定领域，并删除假层与无意义 barrel"
-  default_prompt: "按角色优先而不是按领域标签来组织文件。优先复用 service/store/utils/config/types 等已有角色，先删除假抽象层和无意义的 index.ts barrel，只有当现有角色体系真的表达不了文件职责时，才新增角色。"

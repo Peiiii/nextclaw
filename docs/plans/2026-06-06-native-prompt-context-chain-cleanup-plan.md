@@ -1,6 +1,6 @@
 # Native Prompt Context Chain Cleanup Plan
 
-> **For executor:** REQUIRED SKILLS: use `kernel-branch-owner-architecture`, `nextclaw-delivery-workflow`, `nextclaw-clean-implementation`, `nextclaw-validation-workflow`, `post-edit-maintainability-guard`, and `post-edit-maintainability-review`.
+> **For executor:** Start with `nextclaw-delivery-workflow`; use `kernel-branch-owner-architecture` for the owner decision, then load `nextclaw-validation-workflow` and one `post-edit-maintainability-guard` only at their stages.
 
 **Goal:** 清理 native 提示词主干链路中确定失效、未使用、或会干扰 owner 判断的旧 prompt/context 入口，让后续“本地文件 Markdown 链接”等提示词规则只能从 context provider 主干进入模型。
 

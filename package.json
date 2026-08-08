@@ -126,6 +126,7 @@
     "report:topology": "node scripts/governance/topology/topology-governance-report.mjs",
     "check:test-governance": "node scripts/governance/reports/test-governance-report.mjs --fail-on-thresholds",
     "check:topology": "node scripts/governance/topology/topology-governance-report.mjs --fail-on-violations",
+    "check:skill-progressive-loading": "node scripts/governance/checks/skill-progressive-loading.mjs",
     "check:governance-backlog-ratchet": "node scripts/governance/backlog/check-governance-backlog-ratchet.mjs",
     "metrics:repo": "node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume",
     "metrics:repo:local": "node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume --no-write --print-summary",

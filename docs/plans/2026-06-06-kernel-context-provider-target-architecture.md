@@ -1,6 +1,6 @@
 # Kernel Context Provider Target Architecture
 
-> **For executor:** REQUIRED SKILLS: use `kernel-branch-owner-architecture`, `nextclaw-delivery-workflow`, `nextclaw-clean-implementation`, `nextclaw-validation-workflow`, `post-edit-maintainability-guard`, and `post-edit-maintainability-review`.
+> **For executor:** Start with `nextclaw-delivery-workflow`; use `kernel-branch-owner-architecture` for the owner decision, then load `nextclaw-validation-workflow` and one `post-edit-maintainability-guard` only at their stages.
 
 **Goal:** 一次性消灭 core 中的业务提示词组装，让 native 模型输入只通过 kernel context providers 获得 NextClaw 产品语义。
 

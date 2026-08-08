@@ -99,7 +99,7 @@ test("allows date-prefixed thought, design, and plan docs with dotted role suffi
 test("allows SKILL docs under governed .agents roots", () => {
   const violations = collectDocFileNameDiffViolations([
     {
-      filePath: ".agents/skills/file-naming-convention/SKILL.md",
+      filePath: ".agents/skills/file-organization-governance/SKILL.md",
       status: "M"
     }
   ]);

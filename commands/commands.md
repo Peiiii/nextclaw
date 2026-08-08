@@ -32,7 +32,7 @@
 
 - 用途：检查 `AGENTS.md`、命令机制和 skill 分层是否自洽。
 - 输入格式：`/check-meta`，可附聚焦范围。
-- 输出/期望行为：必须使用 `nextclaw-agent-instructions-governance`；检查过度常驻、重复规则、普通文档承载强制流程、skill 触发描述缺失、命令索引漂移等问题，并给出修复建议或直接修复低风险问题。
+- 输出/期望行为：必须使用 `nextclaw-agent-instructions-governance`；检查过度常驻、重复规则、普通文档承载强制流程、skill 触发描述缺失、命令索引漂移等问题，并至少运行 `pnpm check:skill-progressive-loading`，给出修复建议或直接修复低风险问题。
 
 ## `/new-rule`
 
@@ -50,13 +50,13 @@
 
 - 用途：对当前任务执行标准交付收尾流程。
 - 输入格式：`/close-task`，可附聚焦范围或说明。
-- 输出/期望行为：使用 `nextclaw-delivery-workflow` 作为总流程 owner；统一检查是否完成实现前删减判断、定向验证、`tsc` 适用性、maintainability guard/review、用户 changelog / `.changeset` 适用性判断、总代码与非测试代码增减披露、复盘机制改进、迭代留痕决策与最终主动汇报。若相关项缺失，不得视为真正收尾完成。
+- 输出/期望行为：使用 `nextclaw-delivery-workflow` 作为唯一流程 owner，按任务风险检查当前实现、主要验证、guard、changeset/迭代适用性和未完成边界；不预读或罗列未触发的专项步骤。
 
 ## `/maintainability-review`
 
 - 用途：对本次代码相关改动执行独立于实现阶段的可维护性复核。
 - 输入格式：`/maintainability-review`，可附 `<paths...>` 聚焦范围。
-- 输出/期望行为：使用 `post-edit-maintainability-review`；输出固定模块 `长期目标对齐 / 可维护性推进`、`可维护性复核结论`、`本次顺手减债`、`代码增减报告`、`非测试代码增减报告` 与简短 `可维护性总结`。
+- 输出/期望行为：使用 `post-edit-maintainability-guard`；先运行自动检查，再按其 `references/subjective-review.md` 做用户明确要求的主观复核，只报告真实 findings、结论和最小修正方向。
 
 ## `/validate`
 

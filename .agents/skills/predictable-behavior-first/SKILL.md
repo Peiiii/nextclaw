@@ -1,6 +1,6 @@
 ---
 name: predictable-behavior-first
-description: Use when a task involves fallbacks, backward compatibility, graceful degradation, environment-specific rescue paths, legacy retention, or "just in case" compatibility logic. Prefer explicit, clear, predictable behavior over hidden rescue paths, and require strict necessity plus exit conditions for any compatibility path.
+description: Use when a task actually adds or changes fallback, compatibility, graceful degradation, rescue paths, or legacy retention; ordinary implementation without those branches does not trigger it.
 ---
 
 # Predictable Behavior First

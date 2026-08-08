@@ -63,16 +63,7 @@ description: 用于选择和执行 NextClaw 改动后的最小充分验证；当
 
 ## 真实运行实例校准
 
-- 用户已经在开发态或运行态复现时，先冻结其真实入口：页面 URL、前端进程、代理后端、端口与具体交互动作；修后必须沿同一入口复验。
-- 不得因为仓库里同时存在安装态、源码构建态、Vite 开发态或多个端口，就把另一个健康实例当成用户正在测试的实例。
-- 在没有验证当前开发链路是否支持热更新、是否已返回新源码前，不得推断需要重新构建、重启或发布。
-- 修改 constructor 创建的长期 owner、class-field 方法、内存字段形状或对象图依赖后，热更新实例不得作为功能验收依据；必须用冷启动对象图、隔离源码实例，或在用户知情授权后完整重启原实例，并确认 API/UI 不再混用旧实例与新合同。
-- 验证滚动压缩、重试、恢复、续跑、分页游标等可重复状态转换时，真实 smoke 必须至少跨越两次相同边界，并在第二次转换后继续完成一次下游用户可见动作；只证明第一次 checkpoint、第一次 retry 或第一次恢复成功，不得表述为完整能力已验证。
-- 触达流式状态、append-only journal、持久化投影或页面 hydrate 时，功能验收必须比较同一事实前缀的实时态与冷重载态；至少逐项核对稳定 ID、顺序、累计内容、终态和未完成子状态，不能只比较条数或“页面能打开”。
-- 若同一实体会跨边界重复更新，测试 fixture 必须包含同 ID 的多段增量和无新增内容的终止事件；用户已有故障 journal 时，优先复制到隔离目录做零外部副作用的冷重建复验，避免用不同数据形状的健康样本代替原故障。
-- 若 send / continue / edit / retry 等多个入口都会返回 accepted run handle，功能验收必须逐入口验证它们在持久化 `run.started` 到达前已经进入同一个 active-run owner，并能立即停止；不得只测普通 send 后假定其它命令共享了状态链路。
-- 若启动恢复使用 error-shaped terminal 闭合 journal，必须同时验证 typed interruption reason 与用户可见错误边界：状态、未完成工具和继续入口要收敛，但内部恢复诊断不得作为普通任务错误透出；用相同文本的非 interruption 错误做反例，禁止字符串隐藏。
-- 只有用户明确要求安装态近似验证，或当前开发链路无法覆盖目标风险时，才切换到 `local-source-runtime-validation`；切换时说明它替代了什么、仍未覆盖什么。
+只有用户已在真实实例复现，或任务触达热更新/冷启动、重复状态转换、journal/projection/hydrate、accepted run handle、启动恢复等运行态风险时，才读取 [真实运行实例验证](references/runtime-instance-validation.md)。普通局部测试不加载该参考。
 
 ## 静态与治理检查
 
@@ -80,7 +71,7 @@ description: 用于选择和执行 NextClaw 改动后的最小充分验证；当
 - 源码、脚本、测试或运行链路配置触达时，targeted ESLint 默认必跑；package lint 只在跨文件/跨 package 影响、提交前合同或 targeted lint 无法覆盖时追加。
 - lint:new-code:governance 只在新增/移动/重命名文件、改变 owner/目录/跨包依赖、触达治理敏感规则或提交前运行。
 - check:governance-backlog-ratchet 只在治理规则、baseline、相关脚本变化或提交/发布闭环时运行。
-- 源码类改动最终运行一次 post-edit-maintainability-guard；主观 post-edit-maintainability-review 仅按其触发条件追加。
+- 源码类改动最终运行一次 post-edit-maintainability-guard；主观复核仅按 guard 的条件 reference 追加。
 
 ## 生成产物
 

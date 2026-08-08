@@ -1,209 +1,27 @@
 ---
 name: npm-release-contract-guard
-description: Use when publishing NextClaw NPM packages or NPM runtime update channels, including beta/stable dist-tags, nextclaw@beta validation, runtime bundle manifests, packaged update public keys, and npm registry closure checks.
+description: 当发布 NextClaw NPM packages 或 NPM runtime update channel 时使用；先选择 package 发布、runtime channel、published install 验证或分支回流一个阶段并读取对应 reference。
 ---
 
 # NPM Release Contract Guard
 
-## Overview
-- Use this skill for NextClaw NPM package releases and NPM runtime update channel releases.
-- Keep desktop release work in `desktop-release-contract-guard`; do not add another release orchestration layer.
-- The goal is to prevent three mistakes:
-  - treating an NPM package publish as complete before registry verification
-  - publishing top-level `nextclaw` while leaving runtime workspace dependencies stale
-  - shipping `nextclaw` without the packaged runtime update public key
-  - treating an env-only runtime update test as a real user beta validation
+## 阶段路由
 
-## Scope
-- `nextclaw` NPM package publishing, including beta and stable dist-tags.
-- Workspace package release batches when they include NPM packages.
-- NPM runtime update bundles under `npm-runtime-updates/<channel>`.
-- User-facing validation of `nextclaw@beta` or stable NPM installs.
-- Not desktop DMG/installer/update-manifest publishing.
+- 版本范围、changeset、依赖闭包、registry 发布：读取 [Package 发布](references/package-release.md)。
+- beta/stable runtime bundle、manifest、Pages：读取 [Runtime channel](references/runtime-channel.md)。
+- 验证真实 `nextclaw@beta/latest` 安装与 update：读取 [Published install](references/published-install-validation.md)。
+- 隔离 worktree、release branch 与 master 回流：读取 [分支闭合](references/branch-closure.md)。
 
-## Primary Contracts
-- Prefer the repo release flow; do not publish from package folders with raw `npm publish`.
-- Treat a user-authorized NPM patch/stable release as one transaction across registry, audited source/tag push, GitHub Release assets, public release notes, and the stable runtime channel. Do not stop after registry publication or ask again for each GitHub metadata step unless the user explicitly requested NPM-only/no-push scope.
-- Before any publish attempt, verify npm auth with the same npm config source that the publish command will use. If publishing from a temp worktree or copied checkout, first check whether the project root has a private `.npmrc`; when it does, run publish and post-publish registry/install verification with `NPM_CONFIG_USERCONFIG=<project-root>/.npmrc` instead of assuming the user-level npm login is the source of truth.
-- A published `nextclaw` package must include `resources/update-bundle-public.pem`.
-- Publishing, build, and verification commands must not leave generated artifacts in the active worktree. After release commands finish, run `git status --short`; every generated change must either be intentionally committed as part of the release record or removed/restored before final response.
-- The published package must include both launcher and app runtime entries:
-  - `dist/cli/launcher/index.js`
-  - `dist/cli/app/index.js`
-- Do not treat `nextclaw` as a standalone CLI package. Its real installed behavior comes from the published dependency closure, especially runtime packages such as kernel, service, server, NCP packages, runtime adapters, and UI assets when applicable.
-- Treat `@nextclaw/ui -> nextclaw` as an artifact release dependency: `nextclaw` embeds the built UI under `ui-dist` and does not consume the published UI package at runtime. A batch containing `@nextclaw/ui` must therefore also bump and publish `nextclaw`. `pnpm release:check:groups` must block an incomplete product batch.
-- If `nextclaw` depends on a workspace package whose local source changed meaningfully, or whose local version has not been published, that package must be versioned and published in the same batch before `nextclaw`.
-- NPM runtime update manifests must use `hostKind: "npm-runtime-bundle"`.
-- NPM runtime update manifests must carry a meaningful `releaseNotesUrl` for user-visible release batches, following `nextclaw-release-notes-automation`; stable `nextclaw` minor releases must have docs-site product update notes before publishing, and if no user-facing version note is required for another batch, the release report must state why.
-- `minimumLauncherVersion` for NPM runtime bundles comes from `packages/nextclaw/npm-runtime-compatibility.json`.
-- Do not raise `minimumLauncherVersion` unless the launcher-side contract really broke.
+一次只读取当前阶段。Desktop installer/DMG 由 desktop release skill 拥有。
 
-## Release Range Decision
-Before deciding the package range, write down the release range and the reason. Do not infer it from the visible package name alone.
+## 永久合同
 
-1. Identify whether users install through `nextclaw`, a runtime update channel, or a lower-level `@nextclaw/*` package.
-2. If the release includes `nextclaw`, inspect `packages/nextclaw/package.json` runtime dependencies. Treat all `workspace:*` `@nextclaw/*` dependencies, plus any changed transitive runtime package they depend on, as the candidate release closure.
-3. Run the blocking health gate through the repo release flow. `pnpm release:check:health` must pass before versioning or publishing; any dependency with meaningful unpublished drift, or any local public package version behind the latest stable git tag, must either be included in the release batch or resolved before publish.
-4. If the user says "全部发布", "直接发布", "完成全部", or reports a hard-to-debug installed-version mismatch, prefer the full public workspace batch through the repo release flow. Do not hand-pick only `nextclaw`.
-5. A narrower-than-closure release is allowed only when all of these are true:
-   - the user explicitly wants a narrow release,
-   - every excluded workspace dependency is already published at the exact version referenced by the candidate package,
-   - a packed or temporary install proves the installed dependency closure contains the required runtime APIs/assets,
-   - the final answer names the intentionally excluded packages and why they are safe to exclude.
+- 使用仓库 release flow，不以包目录 raw `npm publish` 作为默认路径。
+- `nextclaw` 是已发布 workspace 依赖闭包和嵌入 UI/runtime 产物的产品包，不只看自身版本。
+- 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
+- NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。
+- Registry、runtime channel、release notes、分支/记录回流和生成物清理按用户授权范围形成一个闭环。
 
-Never justify a single-package `nextclaw` release only because `packages/nextclaw` contains copied `ui-dist` or because `nextclaw --version` will show the new version. The UI version label, CLI version, and actual runtime behavior can diverge when kernel/service/NCP/UI dependency packages remain stale.
+Beta 优先 `pnpm release:beta`；仅 NPM 用 `release:beta:npm`，仅 channel 用 `release:beta:runtime`；stable channel 用 `release:stable:runtime`。
 
-## Package Release Flow
-0. Prefer the reusable beta owner when the request is specifically "发布 beta / 统一 beta 发版":
-   - `pnpm release:beta`
-   - `pnpm release:beta:npm`
-   - `pnpm release:beta:runtime`
-   For stable NPM runtime-channel-only closure, use `pnpm release:stable:runtime`.
-1. Sync and check package README content:
-   - `pnpm release:sync-readmes`
-   - `pnpm release:check-readmes`
-2. Decide and prepare the release range:
-   - first run or rely on `pnpm release:check:health`; it is a blocking gate, not only an informational report
-   - for full public workspace release: `pnpm release:auto:changeset`
-   - for a narrow release: create or inspect the changeset and document why the excluded dependency closure is safe
-3. Prepare versions with the repo release flow:
-   - `pnpm release:version`
-4. Before publishing a user-visible batch, use `nextclaw-release-notes-automation` to create or verify the AI-authored product update note and the URL that runtime manifests / GitHub release notes will expose.
-5. For a release batch that includes `nextclaw`, make sure the packaged update public key exists before publish:
-   - `NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY=... pnpm -C packages/nextclaw runtime-update:build -- --channel beta --skip-build --output-dir tmp/npm-runtime-update-key-check`
-   - Use `--channel stable` for stable releases.
-6. Publish through the repo release flow:
-   - `pnpm release:publish`
-7. Verify the registry state:
-   - `pnpm release:verify:published`
-   - `npm view nextclaw dist-tags --json`
-   - For a first publish of a scoped standalone package, an immediate `npm view` or `npm install` may briefly return 404 after a successful publish. Retry with the same npm config used for publish before declaring failure; do not rerun publish unless registry verification proves the version is absent after propagation.
-8. If the stable release batch includes `nextclaw`, publish and verify the stable NPM runtime update channel before closing:
-   - `pnpm release:stable:runtime -- --version <published-nextclaw-version> --release-tag nextclaw@<published-nextclaw-version>`
-   - Then verify a real old NPM-installed instance or isolated `nextclaw update --check` sees the new `availableVersion`.
-   - Skipping this step means NPM-installed users may see "up to date" even after `nextclaw@latest` is published; only skip with an explicit user-approved reason.
-9. Close generated artifacts:
-   - Run `git status --short` in every worktree used for release or verification.
-   - If release commands refreshed tracked publish assets such as `packages/nextclaw/ui-dist`, decide explicitly whether they are part of the release record.
-   - Commit intended release artifacts before final response; restore tracked drift and remove untracked generated files when they are only local build hash churn.
-   - Never leave dirty generated publish assets for the user to notice after a claimed release closeout.
-
-## Branch And Source Closure
-- If publishing from a temporary worktree, release branch, detached HEAD, or any branch other than the user's current target branch, do not close after registry verification alone.
-- Run `pnpm release:check:branch-closure -- --target <target-branch> --release <release-ref>` before final closeout. It must pass, unless the final report explicitly says the release is published but target-branch closure is blocked and names the exact target-only / release-only delta.
-- Before the final answer, explicitly compare the target branch with the release branch and classify the remaining delta:
-  - source code needed for the user-visible fix,
-  - version / changelog / generated package artifacts,
-  - historical release baseline commits,
-  - unrelated changes.
-- If user-facing source code is missing from the target branch, merge or cherry-pick it before saying the task is done, unless the user explicitly rejects that.
-- If only release metadata or generated artifacts remain outside the target branch, say that plainly and name the exact follow-up: merge the release branch, cherry-pick the release commit, or intentionally leave release history separate.
-- The final release notes must answer: "Is the target branch missing functional code?" and "Is the target branch missing published release records/artifacts?" Avoid wording that makes the user infer this from branch names or commit hashes.
-
-## Beta Package Rule
-- Prefer the repo changeset/pre-release flow for beta releases.
-- Prefer `pnpm release:beta` for the full reusable closure when the batch may include `nextclaw`; by default this means one full public workspace beta batch, not a hand-picked subset.
-- Prefer `pnpm release:beta:npm` only when the need is “publish beta packages now, do not yet open the runtime update channel”; it still inherits the full-public-batch expectation unless the user explicitly asks for a narrower scope.
-- Prefer `pnpm release:beta:runtime` when `nextclaw@beta` is already published and the remaining work is only the runtime update channel.
-- Use a hand-authored changeset or dedicated one-off flow for narrower scope only after telling the user the release is not a full public beta batch.
-- If a single-package beta publish is unavoidable, use pnpm:
-  - `pnpm -C packages/nextclaw publish --tag beta`
-- After publish, verify the tag directly:
-  - `npm view nextclaw@beta version`
-  - `npm view nextclaw dist-tags --json`
-
-## Pre-Publish Blocker Scan
-Before publishing `nextclaw@beta`, run a blocker scan and resolve everything found:
-
-- workspace dependency closure: compare `nextclaw` imports against changed workspace packages; any package providing a new runtime API must get its own beta version and dist-tag,
-- for stable `nextclaw@latest`, prove any narrower-than-closure release with a packed install dependency check; otherwise use the affected public workspace batch,
-- packed API check: install the exact packed or published dependency closure in a temp prefix and verify critical APIs exist, especially recently added methods,
-- real install smoke: from a temp prefix, install `nextclaw@beta` or the candidate tarball and run at least `nextclaw --version` plus one minimal command path touching the changed runtime area,
-- for stable `nextclaw@latest` publishes, the real install smoke must include `nextclaw update --check` from an isolated `NEXTCLAW_HOME` without `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY` or `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH`; this proves the packaged public key is discoverable by the published package,
-- runtime update smoke: after channel publication, run check/download/apply/new-process from a temp `NEXTCLAW_HOME`.
-
-For the published beta install smoke, prefer the repo command:
-
-```bash
-pnpm -C packages/nextclaw validation:npm-update -- --published-beta
-```
-
-If a scan item would be slow manually, create or improve a script instead of skipping it. The goal of the retrospective loop is to turn slow release surprises into one-command preflight checks.
-
-## Retrospective Loop
-After every NPM beta/stable release attempt, record the blockers that consumed time and convert at least one repeated blocker into a concrete mechanism:
-
-- skill rule update,
-- release preflight script,
-- CI gate,
-- smoke command,
-- or explicit follow-up if the improvement is larger than the current release window.
-
-Do not close a release attempt with only a narrative retrospective when the blocker can be cheaply automated or encoded as a release gate.
-
-## Runtime Update Channel Flow
-1. Trigger `.github/workflows/npm-runtime-update-release.yml` for the target channel.
-   - Prefer reusable owner commands: `pnpm release:beta:runtime` for beta, `pnpm release:stable:runtime` for stable.
-2. Wait for the workflow conclusion to be `success`; dispatch alone is not a release.
-3. Verify `gh-pages` contains the channel files:
-   - `npm-runtime-updates/<channel>/manifest-<channel>-<platform>-<arch>.json`
-   - `npm-runtime-updates/<channel>/nextclaw-runtime-<platform>-<arch>-<version>.zip`
-   - `npm-runtime-updates/update-bundle-public.pem`
-4. Verify the public GitHub Pages URL reflects the same manifest version.
-5. Confirm the manifest has the expected `latestVersion`, `minimumLauncherVersion`, and `hostKind`.
-6. If `origin/gh-pages` contains the correct manifest but the public URL stays stale, classify the publishing surface before rerunning release:
-   - inspect the latest Pages build/deploy status and logs;
-   - check whether the generated Pages artifact is near or above the GitHub Pages size limit;
-   - inspect large historical directories such as `apt/` before assuming the runtime workflow is wrong.
-7. For Pages-only publish failures, fix or retry the Pages publishing surface for the existing release identity. Do not recreate the NPM release, runtime bundle, or tag when the already-published artifacts and `gh-pages` content are correct.
-
-## User-Facing Beta Validation
-- Validate the exact published package, not a workspace link or local source build. Install or reinstall the published version first:
-
-```bash
-npm install -g nextclaw@beta
-npm ls -g nextclaw --depth=0
-nextclaw --version
-```
-
-- Confirm the running non-dev service uses the global npm package path, for example `.../lib/node_modules/nextclaw/dist/...`, not `.../Projects/nextbot/packages/nextclaw/dist/...`.
-- Validate from an isolated home when testing update behavior so local development state is not involved:
-
-```bash
-export NEXTCLAW_HOME="$(mktemp -d)"
-nextclaw update --channel beta --check
-nextclaw update --channel beta --download-only
-nextclaw update --apply
-nextclaw --version
-```
-
-- Expected behavior:
-  - `--check` detects the beta update without downloading.
-  - `update --channel beta --download-only` downloads and verifies the runtime bundle without switching the active runtime.
-  - `update --apply` switches the active runtime pointer.
-  - the next `nextclaw` process runs the downloaded runtime version.
-
-For split download/apply smoke tests, do not run plain `nextclaw update --channel beta` before `--apply`: plain update may download and apply in one step, leaving no pending downloaded version for the later `--apply` command.
-
-## Completion Gate
-- The NPM registry shows the intended package version and dist-tag.
-- The published `nextclaw` dependency closure contains the runtime APIs used by the `nextclaw` package.
-- The runtime update workflow finished successfully.
-- The public manifest URL shows the expected version and compatibility floor.
-- For user-visible batches, the public manifest or GitHub release exposes a release notes URL backed by the current product update note.
-- A real `nextclaw@beta` or stable install can check, download, and apply without custom manifest URL or public key env vars.
-- Every release/target worktree used in the task is clean, or the final response explicitly names a user-owned WIP that was intentionally preserved. Generated artifacts from the release itself are never left dirty: they are either committed or cleaned.
-- Final release notes must include:
-  - NPM package version
-  - dist-tag
-  - workflow URL
-  - public manifest URL
-  - product update note path / URL, or why no user-facing note was required
-  - exact user-facing validation commands and result
-
-## Forbidden Shortcuts
-- Do not use raw `npm publish` as the default release path.
-- Do not publish `nextclaw` without `resources/update-bundle-public.pem`.
-- Do not claim release success after workflow dispatch only.
-- Do not count an env-only `NEXTCLAW_UPDATE_MANIFEST_URL` test as user beta validation.
-- Do not raise `minimumLauncherVersion` just because a new package version exists.
+最终报告 package/version/dist-tag、workflow、manifest、真实安装证据、分支闭合和残余 WIP。

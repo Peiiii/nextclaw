@@ -1,6 +1,6 @@
 ---
 name: react-rendering-lifecycle-safety
-description: 当编写、修改或审查 React 组件类型、动态 renderer/component map、列表 key、条件包装、streaming UI、ReactMarkdown、自定义 render prop，或 iframe/canvas/editor/audio/video/Panel App 等必须保持实例状态的界面时使用；也适用于排查流式更新、受控 editor、beforeinput/composition/IME 输入法导致的焦点、文字选区、弹层或内嵌应用状态丢失。用于保证 React 元素身份、DOM 连续性和用户交互状态不被后台更新破坏。
+description: 当任务触达动态 React 组件类型、列表 key、streaming UI，或 iframe/editor/media 等需要保持实例状态的界面时使用；也用于排查重渲染导致的焦点、选区、输入法或内嵌状态丢失。普通 React 修改不自动触发。
 ---
 
 # React Rendering Lifecycle Safety

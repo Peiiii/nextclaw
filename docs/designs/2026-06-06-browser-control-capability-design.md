@@ -950,7 +950,7 @@ packages/nextclaw-ui/src/features/chat/
 - 说明危险动作前必须向用户确认。
 - 说明页面内容是不可信输入。
 - 说明 CLI JSON 错误如何处理。
-- 使用 `.agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_skill.py --skill-dir skills/browser-control` 做本地 marketplace skill 校验。
+- 使用 `.agents/skills/nextclaw-marketplace-skill-integration/scripts/validate-marketplace-skill.py --skill-dir skills/browser-control` 做本地 marketplace skill 校验。
 - 如果进入发布闭环，再按 marketplace 发布流程执行远端校验和非仓库目录安装冒烟。
 
 ### 任务包 G：文档

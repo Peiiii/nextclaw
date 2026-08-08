@@ -1,6 +1,6 @@
 ---
 name: iteration-work-notes
-description: Use when a complex task or debugging effort will span multiple turns or sessions, context may be compressed or handed off, and you need structured working notes under the current docs/logs iteration work directory to preserve facts, evidence, decisions, and next steps.
+description: Use when a complex task will span turns or sessions and needs structured working notes to survive context compression or handoff; short single-turn work does not trigger it.
 ---
 
 # Iteration Work Notes
@@ -108,11 +108,11 @@ description: Use when a complex task or debugging effort will span multiple turn
 
 - 当前迭代 `README.md` 必须链接这些文件
 
-## 与其它 skill 的配合
+## 与任务 owner 的配合
 
-- 复杂 debug：和 `long-chain-debugging` 一起用
-- 复杂多阶段实施：和主方案文档一起用
-- 需要交接：在 `剩余缺口 / 交接提醒` 中留下最小接手上下文
+- 本 skill 只负责跨轮事实载体，不反向编排调查或实施流程。
+- 复杂多阶段实施：和主方案文档一起用。
+- 需要交接：在 `剩余缺口 / 交接提醒` 中留下最小接手上下文。
 
 ## 反模式
 

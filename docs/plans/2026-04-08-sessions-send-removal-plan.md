@@ -60,5 +60,5 @@
 1. Run targeted tests for the touched core-agent files.
 2. Run a repository search to confirm live code/prompt/active-doc references are gone.
 3. Run `post-edit-maintainability-guard`.
-4. Run `post-edit-maintainability-review`.
+4. Only when the guard reports findings or the owner change needs judgment, read its `references/subjective-review.md`.
 5. Record the deletion, validation, acceptance steps, and maintainability conclusion in the iteration log.

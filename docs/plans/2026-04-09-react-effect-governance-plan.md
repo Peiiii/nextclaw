@@ -4,10 +4,10 @@
 
 当前仓库已经有一套可维护性治理主链路：
 
-- Rulebook 负责高层行为约束
+- `AGENTS.md` 负责常驻高层约束
 - skill 负责实现与复核流程
 - `pnpm lint:new-code:governance` 负责 diff-only 新债阻断
-- `post-edit-maintainability-guard` / `post-edit-maintainability-review` 负责收尾自检与主观复核
+- `post-edit-maintainability-guard` 负责一次收尾自检，主观复核只在它的条件成立时读取 reference
 
 但在 React 场景里，还缺一条明确边界：
 

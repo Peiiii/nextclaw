@@ -10,16 +10,15 @@
 
 - `docs/VISION.md`
 - `.agents/skills/nextclaw-delivery-workflow/SKILL.md`
-- `.agents/skills/nextclaw-clean-implementation/SKILL.md`
 - `.agents/skills/writing-beautiful-code/SKILL.md`
 - `.agents/skills/classic-software-design-principles/SKILL.md`
 - `.agents/skills/code-investigation-workflow/SKILL.md`
 - `.agents/skills/project-knowledge-governance/SKILL.md`
 - `.agents/skills/nextclaw-iteration-log-governance/SKILL.md`
-- `.agents/skills/role-first-file-organization/SKILL.md`
-- `.agents/skills/file-naming-convention/SKILL.md`
-- `.agents/skills/collapsible-feature-root-architecture/SKILL.md`
 - `.agents/skills/file-organization-governance/SKILL.md`
+- `.agents/skills/file-organization-governance/references/file-roles.md`
+- `.agents/skills/file-organization-governance/references/naming.md`
+- `.agents/skills/file-organization-governance/references/feature-root.md`
 
 ## 审计范围与证据
 

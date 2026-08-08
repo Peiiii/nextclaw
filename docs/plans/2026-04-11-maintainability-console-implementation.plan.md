@@ -337,7 +337,7 @@
 3. 运行 `pnpm -C apps/maintainability-console tsc`
 4. 运行 `pnpm -C apps/maintainability-console smoke`
 5. 运行 `pnpm lint:maintainability:guard`
-6. 执行一次独立的 `post-edit-maintainability-review`
+6. 只有 guard 告警或结构/owner 风险成立时，按其 `references/subjective-review.md` 做主观复核
 7. 代码阶段完成后，再按 `docs/logs` 规则新建或更新迭代记录
 
 **建议提交点：**

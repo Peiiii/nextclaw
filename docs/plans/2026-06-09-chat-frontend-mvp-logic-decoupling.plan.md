@@ -96,7 +96,7 @@
 违反规范：
 
 - 违反 `high-cohesion-low-coupling`：一个 owner / 文件包含多个独立变化原因。
-- 违反 `role-first-file-organization` 思路：展示组件、业务容器、manager read model utility 的文件角色不够清晰。
+- 违反 `file-organization-governance/references/file-roles.md` 的角色边界：展示组件、业务容器、manager read model utility 的文件角色不够清晰。
 
 ## 目标架构
 

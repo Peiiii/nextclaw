@@ -1,6 +1,6 @@
 # Owner Dependency And Branch Consolidation Implementation Plan
 
-> **For Codex:** REQUIRED SUB-SKILL: Use `executing-plans` style task-by-task execution. Before code changes, also use `nextclaw-clean-implementation`, `classic-software-design-principles`, and `nextclaw-validation-workflow`.
+> **For Codex:** Use `executing-plans` style task-by-task execution with `nextclaw-delivery-workflow` as the default owner. Load `classic-software-design-principles` only for a current architecture tradeoff, and `nextclaw-validation-workflow` only after implementation is stable.
 
 **Goal:** 对 NextClaw 当前代码库做一次统一排查与改造，清理“没必要的可选分支”“没必要的回调函数切片”“假 owner / 空心 owner / 双链路 mutation”等结构性问题，让核心链路回到直接 owner 依赖和单一路径。
 

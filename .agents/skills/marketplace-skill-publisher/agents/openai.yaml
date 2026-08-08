@@ -1,7 +1,0 @@
-interface:
-  display_name: "Marketplace Skill 发布器"
-  short_description: "将本地 skill 发布到 NextClaw marketplace 并完成验证。"
-  default_prompt: "使用 $marketplace-skill-publisher 将本地 skill 发布或更新到本项目 marketplace，并完成远端校验与安装冒烟。"
-
-policy:
-  allow_implicit_invocation: true

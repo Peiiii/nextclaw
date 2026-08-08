@@ -13,18 +13,7 @@ description: 当用户要求扫描、识别、清理、常态化治理 NextClaw 
 
 ## 使用前提
 
-默认联动并遵守：
-
-- `nextclaw-delivery-workflow`
-- `nextclaw-clean-implementation`
-- `nextclaw-validation-workflow`
-- `post-edit-maintainability-guard`
-- `post-edit-maintainability-review`
-- `nextclaw-iteration-log-governance`
-
-如果触达 skill、AGENTS、命令或治理规则本身，同时联动：
-
-- `nextclaw-agent-instructions-governance`
+普通清理只从 `nextclaw-delivery-workflow` 开始；进入验证时再加载 validation，最终运行 guard。长期自治战役、迭代留痕或规则修改只有条件实际成立时才加载对应 owner。
 
 ## 核心判断
 

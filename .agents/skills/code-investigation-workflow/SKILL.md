@@ -1,54 +1,31 @@
 ---
 name: code-investigation-workflow
-description: 当用户要求先研究代码、排查代码、看清楚现状、判断某个组件/函数/manager/文件是什么性质、该不该改、该怎么改，要求移植/对齐外部仓库、目录、主题或内容集合，或指出“不要我说一下你才注意一下”“主动发现所有问题”“顺着代码查完整”时使用。该 skill 只规定调查方法，不承载具体架构、拆分、命名、MVP、UI 或 owner 规范；具体判断必须转交对应专项 skill。
+description: 当用户明确要求研究代码、查清现状、追完整链路、判断某对象性质，或局部证据不足以支持结论时使用；只负责证据调查，不负责同时加载和裁决所有架构、前端或目录规范。
 ---
 
-# Code Investigation Workflow
+# 代码调查流程
 
 ## 目标
 
-在给出代码判断或修改方案前，先把相关代码链路查完整，避免只看用户点名的一行、一个组件或一个调用点。
-
-本 skill 只管“怎么查”。它不定义“什么是好代码”。具体规范继续由 `writing-beautiful-code`、`mvp-view-logic-decoupling`、`classic-software-design-principles`、`kernel-branch-owner-architecture`、`frontend-interaction-quality`、`frontend-style-encapsulation`、文件组织类 skill 等承接。
+从用户指出的入口沿相关事实找到足够完整的证据，避免按文件名、单个调用点或局部截图外推系统结论。
 
 ## 调查顺序
 
-1. 明确用户问题的判断对象：组件、函数、文件、manager、状态、事件、工具链路，还是展示交互。
-2. 读取对象本体，标出它实际做了什么，而不是只按名字判断。
-3. 查所有调用方和被调用方，至少覆盖：
-   - 谁给它传数据和 action；
-   - 它把数据和 action 传给谁；
-   - 是否存在同类调用点、同类参数搬运或同类 owner 连接。
-4. 沿相关事实走一段完整链路：`producer -> owner/state -> adapter/container -> UI/consumer`。只查到局部时，结论必须标注为阶段性。
-5. 扫同一文件、同一 owner、同一责任链中的相邻同类问题；用户点名的问题通常只是入口，不是边界。若当前实现是 registry / catalog / capability list 的投影，必须对照 canonical 事实源审计完整覆盖面，不能只补用户点名的单项。移植外部视觉或内容集合时，还要固定源版本并建立逐项对照表，核对当前与历史名称、真实素材路径、可直接使用还是仅概念预览、最高辨识度元素和许可边界；未经用户明确同意，不得把人物、角色、核心交互或其它高辨识度内容降级成“灵感配色”或抽象替代。
-   外部协议或厂商兼容性必须按具体操作和端点逐项取证；端点 A 成功、SDK 宣称兼容或共享同一个 Base URL，都不能证明端点 B 也受支持。未证实的能力不得外推成 UI 操作，应由 capability 合同显式控制展示与调用。
-   对齐外部有状态机制时，必须建立语义对照矩阵，分别核对触发/阈值、输入选择、输出或 replacement state、角色级保留与截断、持久化/恢复、失败/重试和测试证据。触发时机相同不能证明状态替换语义已经对齐。
-6. 再加载专项 skill 做规范判断：
-   - 代码审美、拆不拆、抽象力度：`writing-beautiful-code`。
-   - 前端 MVP、business/UI 边界、store/manager/presenter：`mvp-view-logic-decoupling`。
-   - owner、生命周期、职责边界：`classic-software-design-principles`。
-   - kernel/branch、manager/presenter/store owner：`kernel-branch-owner-architecture`。
-   - 样式或交互：对应 frontend skill。
-7. 输出结论前说明：已查到哪些证据、还有哪些没有查、推荐改什么、不改什么。
+1. 明确判断对象和会改变的决策。
+2. 读取对象本体，记录它实际产生、保存、转换或消费的事实。
+3. 用 `rg` 查调用方、被调用方、同类入口和规范事实源。
+4. 沿最近完整链路核对 `producer -> owner/state -> boundary -> consumer`；只验证一段时明确剩余假设。
+5. 扫同 owner 或责任链的同类问题，但不无界扩张到全仓库。
+6. 输出证据、未验证边界和推荐的下一位决策 owner。
 
-## 主动发现检查
+外部协议按具体端点/操作逐项取证，不能用一个成功端点或“兼容”宣称外推其它能力。外部有状态机制要分别对照触发、输入、替换状态、持久化/恢复、失败重试和测试证据。registry/catalog 投影要对照 canonical 来源核对完整覆盖面。
 
-回答“它是什么组件/该不该改/该怎么改”前，至少问自己：
+## 输出
 
-- 这个对象是纯展示、业务容器、adapter，还是 owner？证据是什么？
-- 它的 props / 参数里有没有只是路过的业务 action 或 snapshot？
-- 相同 action、状态或转换逻辑是否在多个调用点重复出现？
-- 调用方是否只是 layout/page/中间层，却在组装业务字段？
-- 如果改这里，最近的真实 owner 是谁？是否应该直接连 owner？
-- 如果不改这里，是否有更近、更上游或更下游的同类问题需要一起处理？
+- 对象性质及代码证据；
+- 已查 producer、owner、boundary、consumer 范围；
+- 已确认事实与仍待验证假设；
+- 应进入哪个单一专项 owner，以及为什么；
+- 推荐改、不改或继续调查。
 
-## 输出要求
-
-给用户的结论必须包含：
-
-- 对象性质：用代码证据说明它实际是什么。
-- 链路范围：说明查了哪些调用方、被调用方或同类点。
-- 专项规则：说明最终判断由哪个专项 skill 或原则承接。
-- 当前建议：明确是改、不改、还是先补调查。
-
-如果用户已经指出我漏查同类问题，必须联动 `learning-from-failures` 判断是否需要补强触发词或执行步骤。
+调查结束后只选择一个与当前决策直接相关的专项 skill；不要在本 skill 内枚举并批量加载所有可能规则。

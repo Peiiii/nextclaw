@@ -1,6 +1,6 @@
 ---
 name: integrating-http-agent-runtime
-description: Use when connecting Hermes or another external HTTP-backed agent runtime into NextClaw, especially when the AI must wire agents.runtimes.entries config, expose a selectable session type, validate end-to-end runtime behavior, and debug readiness, streaming, or adapter issues.
+description: Use when integrating or debugging a Hermes-style external HTTP agent runtime in NextClaw, including runtime config, session selection, readiness, streaming, and adapter behavior.
 ---
 
 # Integrating HTTP Agent Runtime

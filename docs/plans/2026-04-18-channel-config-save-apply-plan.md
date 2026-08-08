@@ -220,9 +220,9 @@ pnpm check:governance-backlog-ratchet
   - apply event is emitted
   - no plugin registry reload is triggered for `channels.*`
 
-**Step 3: Run independent maintainability review**
+**Step 3: Run the maintainability guard**
 
-- Perform one pass using `post-edit-maintainability-review` guidance and summarize whether the final shape reduced coupling and hidden reload complexity.
+- Run `post-edit-maintainability-guard`; only if it reports findings or the final owner shape still needs judgment, use its `references/subjective-review.md` guidance.
 
 **Step 4: Update iteration record**
 

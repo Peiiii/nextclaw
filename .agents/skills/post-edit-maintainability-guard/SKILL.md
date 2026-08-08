@@ -1,6 +1,6 @@
 ---
 name: post-edit-maintainability-guard
-description: 在完成源码、脚本、测试或运行链路配置改动后运行一次自动可维护性检查；用于发现本次 diff 新增或恶化的文件、目录、复杂度、命名和红区债务，不负责所有任务的主观二次 Review。
+description: 源码、脚本、测试或运行链路配置改动完成后的唯一默认可维护性入口；先运行一次 diff-only 自动检查，仅在告警、结构大改或用户要求时按条件 reference 做主观复核。
 ---
 
 # Post Edit Maintainability Guard
@@ -44,9 +44,9 @@ description: 在完成源码、脚本、测试或运行链路配置改动后运�
 
 不要为了消除普通净增长而扩大到无关模块、压缩可读性、删除类型/协议保护或制造额外抽象。
 
-## 与主观 Review 的关系
+## 主观复核条件
 
-guard 通过后，普通局部改动直接收尾。只有以下情况才读取 post-edit-maintainability-review：
+guard 通过后，普通局部改动直接收尾。只有以下情况才读取 [主观可维护性复核](references/subjective-review.md)：
 
 - guard 告警需要主观判断；
 - 抽象、owner、文件或目录边界发生明显变化；

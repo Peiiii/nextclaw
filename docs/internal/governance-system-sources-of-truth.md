@@ -116,6 +116,7 @@
 
 - `lint-new-code-governance.mjs`
 - `check-governance-backlog-ratchet.mjs`
+- `checks/skill-progressive-loading.mjs`
 - 文件命名、目录命名、角色边界、平铺目录、module structure 等检查
 - 对应 shared helper、report、baseline、rule test
 
@@ -243,3 +244,5 @@
 4. 最后再决定只改文档，还是同时改脚本与入口说明
 
 这样做的目的不是增加流程，而是避免“文字上已经改了，系统实际还在按旧规则跑”的漂移。
+
+其中 skill 分层或路由发生变化时，运行 `pnpm check:skill-progressive-loading`；它只属于元规则治理，不进入普通源码改动的默认验证链路。
