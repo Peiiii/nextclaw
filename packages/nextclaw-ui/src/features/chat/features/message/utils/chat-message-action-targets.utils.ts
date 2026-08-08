@@ -1,6 +1,6 @@
 import type { NcpMessage } from '@nextclaw/ncp';
 
-import { isVisibleChatMessage } from '@/features/chat/features/message/utils/chat-message-timeline.utils';
+import { projectVisibleChatMessages } from '@/features/chat/features/message/utils/chat-message-timeline.utils';
 
 export type ChatMessageActionTargets = {
   readonly continuationAssistantMessageId: string | null;
@@ -12,7 +12,7 @@ export function resolveChatMessageActionTargets(params: {
   readonly isBusy: boolean;
   readonly messages: readonly NcpMessage[];
 }): ChatMessageActionTargets {
-  const visibleMessages = params.messages.filter(isVisibleChatMessage);
+  const visibleMessages = projectVisibleChatMessages(params.messages);
   const editableUserMessage = visibleMessages.findLast(
     (message) => message.role === 'user',
   );

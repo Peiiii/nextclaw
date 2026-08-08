@@ -16,6 +16,8 @@ NextClaw 补齐两个会话连续性能力：
 - AI 在同一个 session 中基于改写后的历史继续回复，当前 live stream 不切换、不丢事件。
 - 运行中完全不展示编辑图标；只有真正可以提交编辑时才显示。
 - 继续运行保留全部已有历史，只追加模型可见、UI 隐藏的 continuation 指令。
+- 若当前用户轮次已有中断 assistant 回复，继续输出在用户界面中续写该回复，不新增第二个消息气泡；原始协议历史仍保持真实 run/message 顺序。
+- 续写前后的工具执行结果逐条保持真实；同类工具只有全部失败或全部取消时才给整组标记终态，混合结果只展示异常项占比，不能用一次取消覆盖后续成功。
 - 原始供应商错误继续完整保留；不新增“重新运行”“重新生成”入口。
 
 ## 2. 已验证现状与约束
@@ -62,7 +64,7 @@ NextClaw 补齐两个会话连续性能力：
 
 ## 4. 继续运行合同
 
-“继续运行”是在同一 session 中追加一个新 run，不复活已经 terminal 的旧 run，也不删除半截回复。
+“继续运行”是在同一 session 中追加一个新 run，不复活已经 terminal 的旧 run，也不删除半截回复。新 run 在协议历史中仍产生独立 assistant 段，避免复用旧 message ID 后破坏隐藏继续指令与模型输出的真实时间顺序；聊天展示层则依据明确关联把该段投影为原回复的延续。
 
 只有 activity preview 为 `cancelled` / `failed` 且 session idle 时允许继续。Kernel 生成：
 
@@ -76,12 +78,14 @@ NextClaw 补齐两个会话连续性能力：
   }],
   metadata: {
     ncp_internal_visibility: "hidden",
-    nextclaw_run_intent: "continue"
+    chat_continuation_target_message_id: "<latest-assistant-message-id>"
   }
 }
 ```
 
-隐藏消息不进入消息列表、会话预览和用户通知，但进入模型上下文。
+只有最近一条用户可见对话消息是 assistant 时才写入 target；若用户消息发出后 AI 尚未产生任何回复，target 为空，新 run 自然创建第一条 assistant 消息。隐藏消息不进入消息列表、会话预览和用户通知，但进入模型上下文。
+
+聊天时间线投影按 target 做确定性合并：保留原 assistant ID 与时间位置，顺序追加 continuation parts，状态、结束时间和执行摘要取最新 continuation 段。重复继续形成 `A <- B <- C` 时递归归并到根消息 A；没有关联 metadata 的相邻 assistant 消息绝不猜测合并。
 
 ## 5. Transport 与前端同步
 
@@ -98,6 +102,8 @@ NextClaw ingress 与 `AgentRunsService` 提供：
 - 已删除的旧 assistant 仍残留；
 - AI 在后台回复但当前页面收不到；
 - 活跃会话被误判为后台会话并弹通知。
+
+继续运行不改写 NCP 原始 history。`ChatMessageListContainer` 在适配 UI view model 前统一调用时间线投影：隐藏继续指令已落盘但新 assistant 尚未输出时，原消息进入 pending 并承接思考反馈；首个 delta 到达后，新 assistant 段合并到同一行。实时流和刷新后的 hydration 使用同一投影函数，因此不会出现“运行时一条、刷新后两条”的漂移。
 
 ## 6. 交互设计
 
@@ -134,6 +140,7 @@ NextClaw ingress 与 `AgentRunsService` 提供：
 - journal、消息分页投影、SessionRun snapshot 三者一致。
 - 编辑更早 user、隐藏 user、busy session 均失败且历史完全不变。
 - continuation 保留 partial assistant/tool parts，只追加一条隐藏 user message。
+- continuation 隐藏消息只在本轮已有 assistant 时记录准确 target；最新可见消息仍是 user 时不得误指向更早轮次的 assistant。
 - 并发 edit / continue 不产生重复消息或重复 run。
 
 ### Transport / React / UI
@@ -143,5 +150,8 @@ NextClaw ingress 与 `AgentRunsService` 提供：
 - 当前 session stream 持续接收新 AI 回复，不触发后台完成通知。
 - 运行中不渲染编辑图标；idle 时只有最近 user 渲染一个编辑入口。
 - cancelled/failed + 空 composer 显示继续；输入后恢复发送；两个继续入口调用同一命令。
+- 首次继续、重复继续与刷新 hydration 均只显示一个 assistant 气泡，parts 顺序完整；等待首个 delta 时思考反馈附着于原气泡。
+- 中断前 1 条命令取消、继续后 2 条命令成功时，工具组显示“运行 3 条命令 · 1/3 已取消”，三条明细分别保留取消/成功状态。
+- 没有原 assistant 回复时创建第一条正常回复；无关联的相邻 assistant 消息保持独立，禁止启发式误合并。
 - 主继续按钮与消息继续/编辑图标 hover、键盘 focus 都能看到明确操作名。
 - 编辑器进入后自动聚焦到末尾；文本、token、附件 round-trip，取消/失败不丢内容。

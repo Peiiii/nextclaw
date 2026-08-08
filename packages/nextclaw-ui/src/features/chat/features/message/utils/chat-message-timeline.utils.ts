@@ -1,5 +1,8 @@
 import { isHiddenNcpMessage, type NcpMessage } from "@nextclaw/ncp";
-import { isSilentReplyNcpMessage } from "@nextclaw/shared";
+import {
+  CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY,
+  isSilentReplyNcpMessage,
+} from "@nextclaw/shared";
 import type { ChatMessageViewModel } from "@nextclaw/agent-chat-ui";
 import {
   readContextCompactionTimeline,
@@ -56,6 +59,98 @@ export function isVisibleChatMessage(message: NcpMessage): boolean {
   );
 }
 
+function readContinuationTargetMessageId(message: NcpMessage): string | null {
+  const value =
+    message.metadata?.[CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function appendContinuationParts(
+  targetParts: NcpMessage["parts"],
+  continuationParts: NcpMessage["parts"],
+): NcpMessage["parts"] {
+  const parts = [...targetParts];
+  const firstContinuationPart = continuationParts[0];
+  const lastTargetPart = parts.at(-1);
+  if (
+    lastTargetPart?.type === "text" &&
+    firstContinuationPart?.type === "text"
+  ) {
+    parts[parts.length - 1] = {
+      ...lastTargetPart,
+      text: `${lastTargetPart.text}${firstContinuationPart.text}`,
+    };
+    parts.push(...continuationParts.slice(1));
+    return parts;
+  }
+  parts.push(...continuationParts);
+  return parts;
+}
+
+function mergeAssistantContinuation(
+  target: NcpMessage,
+  continuation: NcpMessage,
+): NcpMessage {
+  const startedAt = target.lifecycle?.startedAt ?? continuation.lifecycle?.startedAt;
+  const endedAt = continuation.lifecycle?.endedAt ?? target.lifecycle?.endedAt;
+  return {
+    ...target,
+    status: continuation.status,
+    parts: appendContinuationParts(target.parts, continuation.parts),
+    lifecycle: startedAt || endedAt ? { startedAt, endedAt } : undefined,
+    metadata:
+      target.metadata || continuation.metadata
+        ? { ...target.metadata, ...continuation.metadata }
+        : undefined,
+  };
+}
+
+export function projectVisibleChatMessages(
+  rawMessages: readonly NcpMessage[],
+  options: { continuationRunning?: boolean } = {},
+): NcpMessage[] {
+  const messages: NcpMessage[] = [];
+  const projectedIndexByMessageId = new Map<string, number>();
+  let pendingContinuationTargetId: string | null = null;
+
+  for (const message of rawMessages) {
+    const continuationTargetId = readContinuationTargetMessageId(message);
+    if (continuationTargetId && isHiddenNcpMessage(message)) {
+      pendingContinuationTargetId = continuationTargetId;
+      continue;
+    }
+    if (!isVisibleChatMessage(message)) {
+      continue;
+    }
+    const targetIndex = pendingContinuationTargetId && message.role === "assistant"
+      ? projectedIndexByMessageId.get(pendingContinuationTargetId)
+      : undefined;
+    if (targetIndex !== undefined && messages[targetIndex]?.role === "assistant") {
+      messages[targetIndex] = mergeAssistantContinuation(
+        messages[targetIndex]!,
+        message,
+      );
+      projectedIndexByMessageId.set(message.id, targetIndex);
+      pendingContinuationTargetId = null;
+      continue;
+    }
+    pendingContinuationTargetId = null;
+    projectedIndexByMessageId.set(message.id, messages.length);
+    messages.push(message);
+  }
+
+  const pendingTargetIndex = pendingContinuationTargetId
+    ? projectedIndexByMessageId.get(pendingContinuationTargetId)
+    : undefined;
+  if (options.continuationRunning && pendingTargetIndex !== undefined) {
+    messages[pendingTargetIndex] = {
+      ...messages[pendingTargetIndex]!,
+      status: "pending",
+    };
+  }
+  return messages;
+}
+
 function resolveCompactionBoundaryIndex(params: {
   rawMessages: readonly NcpMessage[];
   visibleRawMessages: readonly NcpMessage[];
@@ -68,9 +163,7 @@ function resolveCompactionBoundaryIndex(params: {
   if (physicalIndex < 0) {
     return visibleRawMessages.length - 1;
   }
-  return (
-    rawMessages.slice(0, physicalIndex).filter(isVisibleChatMessage).length - 1
-  );
+  return projectVisibleChatMessages(rawMessages.slice(0, physicalIndex)).length - 1;
 }
 
 function resolveContextInheritanceBoundary(
@@ -87,7 +180,7 @@ function resolveContextInheritanceBoundary(
     return null;
   }
   return {
-    boundaryIndex: messages.slice(0, boundaryIndex).filter(isVisibleChatMessage)
+    boundaryIndex: projectVisibleChatMessages(messages.slice(0, boundaryIndex))
       .length,
     sourceSessionId,
     inheritedMessageCount: messages.filter(
@@ -100,7 +193,7 @@ export function buildChatMessageTimelineItems(params: {
   rawMessages: readonly NcpMessage[];
   messages: ChatMessageViewModel[];
 }): ChatTimelineItem[] {
-  const visibleRawMessages = params.rawMessages.filter(isVisibleChatMessage);
+  const visibleRawMessages = projectVisibleChatMessages(params.rawMessages);
   const checkpoints = params.rawMessages
     .map((message) => ({
       rawMessageId: message.id,

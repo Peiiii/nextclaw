@@ -23,9 +23,13 @@ export type ChatToolActivitySegment = {
   family: ChatToolActivityFamily;
   count: number;
   tone: ChatToolActivityTone;
+  exceptionCounts?: {
+    error: number;
+    cancelled: number;
+  };
 };
 
-type ActivityAccumulator = { units: Set<string>; tone: ChatToolActivityTone };
+type ActivityAccumulator = { unitTones: Map<string, ChatToolActivityTone> };
 
 export type ChatToolActivityGroupViewModel = {
   key: string;
@@ -170,14 +174,20 @@ function resolveActivityUnitKeys(
 function formatSegment(segment: ChatToolActivitySegment, labels: ChatToolActivityGroupLabels): string {
   const template = labels.segmentTemplates[segment.family];
   const body = segment.count === 1 ? template.one : template.other.split("{count}").join(String(segment.count));
+  const errorCount = segment.exceptionCounts?.error ?? (segment.tone === "error" ? segment.count : 0);
+  const cancelledCount = segment.exceptionCounts?.cancelled ?? (segment.tone === "cancelled" ? segment.count : 0);
 
-  if (segment.tone === "error") {
+  if (errorCount === segment.count) {
     return `${body} ${labels.failedLabel}`;
   }
-  if (segment.tone === "cancelled") {
+  if (cancelledCount === segment.count) {
     return `${body} ${labels.cancelledLabel}`;
   }
-  return body;
+  return [
+    body,
+    errorCount > 0 ? `${errorCount}/${segment.count} ${labels.failedLabel}` : null,
+    cancelledCount > 0 ? `${cancelledCount}/${segment.count} ${labels.cancelledLabel}` : null,
+  ].filter(Boolean).join(" · ");
 }
 
 export function buildToolActivitySegments(cards: ChatToolPartViewModel[]): ChatToolActivitySegment[] {
@@ -191,23 +201,28 @@ export function buildToolActivitySegments(cards: ChatToolPartViewModel[]): ChatT
     if (!existing) {
       order.push(family);
       byFamily.set(family, {
-        units: new Set(unitKeys),
-        tone: card.statusTone,
+        unitTones: new Map(unitKeys.map((unitKey) => [unitKey, card.statusTone])),
       });
       continue;
     }
-    unitKeys.forEach((unitKey) => existing.units.add(unitKey));
-    if (toneRank(card.statusTone) < toneRank(existing.tone)) {
-      existing.tone = card.statusTone;
-    }
+    unitKeys.forEach((unitKey) => existing.unitTones.set(unitKey, card.statusTone));
   }
 
   const segments = order.map((family) => {
     const entry = byFamily.get(family)!;
+    const unitTones = [...entry.unitTones.values()];
+    const tone = unitTones.reduce<ChatToolActivityTone>(
+      (current, candidate) => toneRank(candidate) < toneRank(current) ? candidate : current,
+      "success",
+    );
     return {
       family,
-      count: entry.units.size,
-      tone: entry.tone,
+      count: entry.unitTones.size,
+      tone,
+      exceptionCounts: {
+        error: unitTones.filter((unitTone) => unitTone === "error").length,
+        cancelled: unitTones.filter((unitTone) => unitTone === "cancelled").length,
+      },
     } satisfies ChatToolActivitySegment;
   });
 

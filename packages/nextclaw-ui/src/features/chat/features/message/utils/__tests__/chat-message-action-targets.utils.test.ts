@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { NcpMessage } from '@nextclaw/ncp';
+import {
+  NCP_INTERNAL_VISIBILITY_METADATA_KEY,
+  type NcpMessage,
+} from '@nextclaw/ncp';
+import { CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY } from '@nextclaw/shared';
 
 import { resolveChatMessageActionTargets } from '@/features/chat/features/message/utils/chat-message-action-targets.utils';
 
@@ -49,6 +53,28 @@ describe('resolveChatMessageActionTargets', () => {
       messages: [message('user-1', 'user')],
     })).toEqual({
       continuationAssistantMessageId: null,
+      editableUserMessageId: 'user-1',
+    });
+  });
+
+  it('places repeated continuation on the canonical interrupted message', () => {
+    expect(resolveChatMessageActionTargets({
+      canContinue: true,
+      isBusy: false,
+      messages: [
+        message('user-1', 'user'),
+        message('assistant-1', 'assistant'),
+        {
+          ...message('continue-1', 'user'),
+          metadata: {
+            [NCP_INTERNAL_VISIBILITY_METADATA_KEY]: 'hidden',
+            [CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY]: 'assistant-1',
+          },
+        },
+        message('assistant-2', 'assistant'),
+      ],
+    })).toEqual({
+      continuationAssistantMessageId: 'assistant-1',
       editableUserMessageId: 'user-1',
     });
   });

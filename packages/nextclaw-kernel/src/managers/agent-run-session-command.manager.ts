@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import {
+  CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY,
+  isSilentReplyNcpMessage,
+} from "@nextclaw/shared";
+import {
   isHiddenNcpMessage,
   NCP_INTERNAL_VISIBILITY_METADATA_KEY,
   type NcpMessage,
@@ -14,7 +18,6 @@ import type {
 import type { SessionManager } from "./session.manager.js";
 import type { SessionRunManager } from "./session-run.manager.js";
 
-const NEXTCLAW_RUN_INTENT_METADATA_KEY = "nextclaw_run_intent";
 const CONTINUATION_PROMPT =
   "Continue from where you stopped. Preserve completed work and avoid repeating it.";
 
@@ -145,6 +148,13 @@ export class AgentRunSessionCommandManager {
     if (activityState !== "cancelled" && activityState !== "failed") {
       throw new Error("Only a cancelled or failed session can continue running.");
     }
+    const latestVisibleConversationMessage = [...sourceRecord.messages]
+      .reverse()
+      .find((message) =>
+        (message.role === "user" || message.role === "assistant") &&
+        !isHiddenNcpMessage(message) &&
+        !isSilentReplyNcpMessage(message),
+      );
     return await this.send({
       correlationId: request.correlationId,
       sessionId: request.sessionId,
@@ -157,7 +167,10 @@ export class AgentRunSessionCommandManager {
         parts: [{ type: "text", text: CONTINUATION_PROMPT }],
         metadata: {
           [NCP_INTERNAL_VISIBILITY_METADATA_KEY]: "hidden",
-          [NEXTCLAW_RUN_INTENT_METADATA_KEY]: "continue",
+          [CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY]:
+            latestVisibleConversationMessage?.role === "assistant"
+              ? latestVisibleConversationMessage.id
+              : undefined,
         },
       },
     });

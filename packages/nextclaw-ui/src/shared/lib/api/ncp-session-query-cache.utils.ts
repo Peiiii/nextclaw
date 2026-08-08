@@ -5,20 +5,17 @@ function readSessionActivityAt(summary: NcpSessionSummaryView): string {
   return summary.lastMessageAt ?? summary.createdAt ?? summary.updatedAt;
 }
 
+function isSessionActivityRunning(summary: NcpSessionSummaryView): boolean {
+  return (summary.metadata?.last_activity_preview as { state?: unknown } | undefined)?.state === 'running';
+}
+
 function sortSessionSummaries(summaries: readonly NcpSessionSummaryView[]): NcpSessionSummaryView[] {
   return [...summaries].sort((left, right) => readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)));
 }
 
-function shouldReplaceSessionSummary(
-  current: NcpSessionSummaryView,
-  next: NcpSessionSummaryView
-): boolean {
+function shouldReplaceSessionSummary(current: NcpSessionSummaryView, next: NcpSessionSummaryView): boolean {
   const timeOrder = next.updatedAt.localeCompare(current.updatedAt);
-  if (timeOrder !== 0) {
-    return timeOrder > 0;
-  }
-
-  return current.status === next.status || next.status === 'idle';
+  return timeOrder === 0 ? current.status === next.status || next.status === 'idle' : timeOrder > 0;
 }
 
 function queryKeyAcceptsSessionSummary(queryKey: readonly unknown[], summary: NcpSessionSummaryView): boolean {
@@ -44,7 +41,7 @@ export function upsertNcpSessionSummaryList(
           index === existingIndex && shouldReplaceSessionSummary(session, summary)
             ? {
                 ...summary,
-                status: session.status === 'running' && summary.status === 'idle' ? 'running' : summary.status
+                status: summary.status === 'idle' && isSessionActivityRunning(summary) ? session.status : summary.status
               }
             : session
         )

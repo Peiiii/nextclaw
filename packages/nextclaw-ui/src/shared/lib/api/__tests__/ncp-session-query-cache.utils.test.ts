@@ -154,6 +154,32 @@ describe('ncp-session-query-cache', () => {
     });
   });
 
+  it.each(['cancelled', 'failed'] as const)(
+    'clears a stale running overlay when a newer %s summary arrives',
+    (state) => {
+      const current = updateNcpSessionRunStatusList(createSessionsList(), {
+        sessionKey: 'session-1',
+        status: 'running'
+      });
+
+      const updated = upsertNcpSessionSummaryList(current, {
+        sessionId: 'session-1',
+        messageCount: 2,
+        createdAt: '2026-03-29T08:00:00.000Z',
+        updatedAt: '2026-03-29T10:01:00.000Z',
+        lastMessageAt: '2026-03-29T10:01:00.000Z',
+        status: 'idle',
+        metadata: { last_activity_preview: { state } }
+      });
+
+      expect(updated?.sessions[0]).toMatchObject({
+        sessionId: 'session-1',
+        messageCount: 2,
+        status: 'idle'
+      });
+    }
+  );
+
   it('applies realtime upsert/delete events to every ncp-sessions query cache entry', () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(['ncp-sessions', 200], createSessionsList());

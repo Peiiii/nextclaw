@@ -108,6 +108,8 @@ export type AgentRunSessionMessageRequestPayload = {
 };
 
 export const CHAT_SESSION_MATERIALIZATION_METADATA_KEY = "session_materialization";
+export const CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY =
+  "chat_continuation_target_message_id";
 
 export type AgentRunSessionMaterializationMetadata = {
   kind: "child";

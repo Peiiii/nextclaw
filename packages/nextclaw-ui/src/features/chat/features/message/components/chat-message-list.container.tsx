@@ -53,7 +53,7 @@ import { useI18n } from "@/app/components/i18n-provider";
 import { useChatMessageVirtualizer } from "@/features/chat/features/message/hooks/use-chat-message-virtualizer";
 import {
   buildChatMessageTimelineItems,
-  isVisibleChatMessage,
+  projectVisibleChatMessages,
   type ChatTimelineItem,
 } from "@/features/chat/features/message/utils/chat-message-timeline.utils";
 import { useChatMessageActions } from "@/features/chat/features/message/hooks/use-chat-message-actions";
@@ -88,15 +88,17 @@ class ChatMessageViewModelAdapter {
   >();
 
   adapt = (params: {
+    continuationRunning: boolean;
     executionLabels: ReturnType<typeof buildChatMessageExecutionLabels>;
     language: Parameters<typeof formatDateTime>[1];
     processedLabel: string;
     rawMessages: readonly NcpMessage[];
     texts: ReturnType<typeof buildChatMessageAdapterTexts>;
   }): ChatMessageViewModel[] => {
-    const { executionLabels, language, processedLabel, rawMessages, texts } =
-      params;
-    return rawMessages.filter(isVisibleChatMessage).flatMap((message) => {
+    const {
+      continuationRunning, executionLabels, language, processedLabel, rawMessages, texts,
+    } = params;
+    return projectVisibleChatMessages(rawMessages, { continuationRunning }).map((message) => {
       const processSummary = buildChatMessageProcessSummary({
         message,
         processedLabel,
@@ -114,7 +116,7 @@ class ChatMessageViewModelAdapter {
         cached.processSummaryLabel === processSummaryLabel &&
         cached.executionPresentationKey === executionPresentationKey
       ) {
-        return [cached.viewModel];
+        return cached.viewModel;
       }
 
       const uiMessage = adaptNcpMessageToUiMessage(message);
@@ -142,7 +144,7 @@ class ChatMessageViewModelAdapter {
         executionPresentationKey,
         viewModel,
       });
-      return [viewModel];
+      return viewModel;
     });
   };
 }
@@ -263,17 +265,17 @@ export function ChatMessageListContainer({
     () => buildChatMessageExecutionLabels(language),
     [language],
   );
-
   const adaptedMessages = useMemo(
     () =>
       chatMessageViewModelAdapter.adapt({
+        continuationRunning: isSending,
         executionLabels,
         language,
         processedLabel: t("chatProcessSummaryProcessed"),
         rawMessages,
         texts,
       }),
-    [executionLabels, language, rawMessages, texts],
+    [executionLabels, isSending, language, rawMessages, texts],
   );
   const { handleMessageAction, messages, renderMessageContent } =
     useChatMessageActions({

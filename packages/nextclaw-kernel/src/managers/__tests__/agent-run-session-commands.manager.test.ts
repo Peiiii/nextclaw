@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY,
   EventBus,
   Ingress,
   ingressKeys,
@@ -224,6 +225,34 @@ describe('AgentRunRequestManager edit and continuation commands', () => {
     expect(messages.at(-1)).toSatisfy((message: NcpMessage | undefined) =>
       Boolean(message && isHiddenNcpMessage(message) && message.role === 'user')
     );
+    expect(messages.at(-1)?.metadata).toMatchObject({
+      [CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY]: 'assistant-partial',
+    });
+    fixture.manager.dispose();
+  });
+
+  it('does not attach continuation output to an assistant from an earlier user turn', async () => {
+    const fixture = createSessionCommandFixture({
+      messages: [
+        createMessage({ id: 'user-1', role: 'user', text: 'first task' }),
+        createMessage({ id: 'assistant-1', role: 'assistant', text: 'first answer' }),
+        createMessage({ id: 'user-2', role: 'user', text: 'second task' }),
+      ],
+      metadata: {
+        last_activity_preview: { state: 'cancelled' },
+      },
+    });
+
+    await fixture.ingress.handle<AgentRunContinueIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.continue,
+      payload: { sessionId: fixture.sourceSessionId },
+    }, { source: 'test' });
+
+    expect(
+      fixture.sessionRun.getSnapshot().messages.at(-1)?.metadata?.[
+        CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY
+      ],
+    ).toBeUndefined();
     fixture.manager.dispose();
   });
 

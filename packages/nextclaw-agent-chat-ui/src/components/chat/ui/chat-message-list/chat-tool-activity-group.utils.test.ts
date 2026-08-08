@@ -136,6 +136,37 @@ describe("groupConsecutiveToolParts", () => {
     );
   });
 
+  it("reports only the cancelled share when later commands succeed", () => {
+    const blocks = groupConsecutiveToolParts(
+      [
+        toolCard("exec_command", "command: first", "cancelled"),
+        toolCard("exec_command", "command: second", "success"),
+        toolCard("exec_command", "command: third", "success"),
+      ],
+      zhLabels,
+    );
+
+    expect(blocks[0]).toMatchObject({
+      kind: "tool-group",
+      group: { label: "运行 3 条命令 · 1/3 已取消" },
+    });
+  });
+
+  it("keeps a whole-group cancellation when every command is cancelled", () => {
+    const blocks = groupConsecutiveToolParts(
+      [
+        toolCard("exec_command", "command: first", "cancelled"),
+        toolCard("exec_command", "command: second", "cancelled"),
+      ],
+      zhLabels,
+    );
+
+    expect(blocks[0]).toMatchObject({
+      kind: "tool-group",
+      group: { label: "运行 2 条命令 已取消" },
+    });
+  });
+
   it("does not group a single tool card", () => {
     const parts: ChatMessagePartViewModel[] = [
       toolCard("read_file", "path: only.ts"),
