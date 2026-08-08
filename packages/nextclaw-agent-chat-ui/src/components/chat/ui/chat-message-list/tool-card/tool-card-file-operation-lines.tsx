@@ -50,7 +50,7 @@ function readLineNumberColumnWidth(
     }
     return Math.max(currentMax, readVisibleLineNumber(line).length);
   }, 0);
-  const width = Math.max(6.5, Math.min(8, maxDigits + 3.5));
+  const width = Math.max(6, Math.min(7.5, maxDigits + 3));
   return `${width}ch`;
 }
 

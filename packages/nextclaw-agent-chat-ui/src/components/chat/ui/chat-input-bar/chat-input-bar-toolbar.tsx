@@ -190,13 +190,13 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
         className={`flex flex-col overflow-hidden rounded-2xl border-border/80 p-0 shadow-md ${CONTENT_WIDTH_BY_KEY[item.key] ?? ""}`}
         style={{ maxHeight: TOOLBAR_POPOVER_MAX_HEIGHT }}
       >
-        <div className="relative shrink-0 p-2 pb-1.5">
+        <div className="relative shrink-0 px-2 pb-1 pt-1.5">
           <Search className="pointer-events-none absolute left-[18px] top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.currentTarget.value)}
             placeholder={item.search?.placeholder ?? item.placeholder}
-            className="h-7 rounded-lg border-transparent bg-muted/45 pl-7 text-xs shadow-none focus:border-border"
+            className="h-7 rounded-lg border-0 bg-muted/45 pl-7 text-xs shadow-none"
           />
         </div>
         <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -218,11 +218,11 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
               {item.search?.emptyLabel ?? item.emptyLabel}
             </div>
           ) : null}
-          <div className="px-1.5 pb-1">
+          <div className="px-1.5 pb-0.5">
             {filteredGroups.map((group) => (
               <div key={group.key}>
                 {group.label ? (
-                  <div className="px-2 pb-1 pt-2 text-[11px] font-medium text-muted-foreground/80">
+                  <div className="px-2 pb-0.5 pt-1.5 text-[11px] font-medium text-muted-foreground/80">
                     {group.label}
                   </div>
                 ) : null}
@@ -239,7 +239,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
                     >
                       <button
                         type="button"
-                        className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-left leading-4"
+                        className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-1 text-left leading-4"
                         onClick={() => {
                           item.onValueChange(option.value);
                           handleOpenChange(false);
@@ -294,10 +294,10 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
           ) : null}
         </div>
         {item.manageHref && item.manageLabel ? (
-          <div className="shrink-0 px-2 pb-2 pt-1">
+          <div className="shrink-0 px-1.5 pb-1.5 pt-0.5">
             <a
               href={item.manageHref}
-              className="inline-flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground"
+              className="inline-flex w-full items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-foreground"
             >
               {item.manageLabel}
               <ExternalLink className="h-3 w-3" />

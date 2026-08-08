@@ -75,7 +75,7 @@ describe("FileOperationCodeSurface", () => {
     expect(
       view.container.querySelector('[data-file-code-gutter="true"]'),
     ).toBeNull();
-    expect(stack?.style.minWidth).toBe("calc(6.5ch + calc(5ch + 1.25rem))");
+    expect(stack?.style.minWidth).toBe("calc(6ch + calc(5ch + 1.25rem))");
     expect(firstRow?.className).toContain("flex");
     expect(firstRow?.className).toContain("w-full");
     expect(firstCodeCell?.className).toContain("flex-1");
@@ -112,7 +112,7 @@ describe("FileOperationCodeSurface", () => {
     );
     expect(gutter).toBeTruthy();
     expect(canvas).toBeTruthy();
-    expect(gutter?.style.width).toBe("6.5ch");
+    expect(gutter?.style.width).toBe("6ch");
     expect(gutter?.className).toContain("font-mono");
     expect(gutter?.className).toContain("text-[11px]");
     expect(canvas?.className).toContain("flex-1");

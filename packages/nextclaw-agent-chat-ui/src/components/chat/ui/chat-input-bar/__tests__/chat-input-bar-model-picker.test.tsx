@@ -34,7 +34,10 @@ it('supports fuzzy model search and exposes provider management', () => {
   );
 
   fireEvent.click(screen.getByRole('button', { name: 'Select model: DeepSeek/deepseek-v4-flash' }));
-  fireEvent.change(screen.getByPlaceholderText('Search models'), { target: { value: 'dsv4' } });
+  const searchInput = screen.getByPlaceholderText('Search models');
+  expect(searchInput.className).toContain('border-0');
+  expect(searchInput.className).not.toContain('focus:border');
+  fireEvent.change(searchInput, { target: { value: 'dsv4' } });
 
   expect(screen.getByText('DeepSeek/deepseek-v4-flash')).toBeTruthy();
   expect(screen.queryByText('MiniMax/MiniMax-M3')).toBeNull();

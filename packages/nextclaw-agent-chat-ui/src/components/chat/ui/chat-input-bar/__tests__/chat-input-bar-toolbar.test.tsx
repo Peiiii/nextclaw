@@ -101,13 +101,14 @@ it("searches toolbar model options and toggles option favorites", async () => {
 
   const modelLabel = await screen.findByText("Anthropic/claude-sonnet-4");
   const modelOption = modelLabel.closest("button");
-  expect(modelOption?.className).toContain("py-1.5");
+  expect(modelOption?.className).toContain("py-1");
   expect(modelOption?.className).not.toContain("py-2");
   expect(modelOption?.className).toContain("leading-4");
   const searchInput = screen.getByPlaceholderText("Search models");
   expect(searchInput.className).toContain("h-7");
+  expect(searchInput.className).toContain("border-0");
   expect(searchInput.className).toContain("focus:ring-0");
-  expect(searchInput.className).toContain("focus:border-border");
+  expect(searchInput.className).not.toContain("focus:border");
   expect(searchInput.className).not.toContain("focus:ring-primary");
   expect(searchInput.className).not.toContain("focus:border-primary");
   expect(screen.queryByText("MiniMax/minimax-m2.7")).toBeNull();

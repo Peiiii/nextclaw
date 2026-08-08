@@ -203,7 +203,7 @@ it("renders completed file-change cards with an expandable diff view", () => {
   ]);
   const diffLineNumber = screen.getAllByText("109")[0] as HTMLElement;
   expect(diffLineNumber.className).toContain("justify-center");
-  expect(diffLineNumber.style.width).toBe("6.5ch");
+  expect(diffLineNumber.style.width).toBe("6ch");
   expect(
     view.container.querySelectorAll('[data-file-line-number-cell="true"]'),
   ).toHaveLength(2);
@@ -496,7 +496,7 @@ it("renders write previews with a single gutter and without repeating the file p
   expect(screen.getAllByText("src/game.html")).toHaveLength(2);
   const lineNumber = screen.getByText("109") as HTMLElement;
   expect(lineNumber.className).toContain("justify-center");
-  expect(lineNumber.style.width).toBe("6.5ch");
+  expect(lineNumber.style.width).toBe("6ch");
   const pathRow = screen.getByRole("button", { name: "src/game.html" });
   expect(pathRow.className).toContain("truncate");
   expect(pathRow.className).toContain("whitespace-nowrap");

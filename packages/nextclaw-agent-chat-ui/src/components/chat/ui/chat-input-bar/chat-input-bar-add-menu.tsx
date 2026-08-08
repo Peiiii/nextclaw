@@ -132,7 +132,7 @@ function ChatInputBarSkillPickerContent(props: { onBack: () => void; picker: Cha
             aria-activedescendant={visibleOptions[resolvedActiveIndex]
               ? `${listId}-option-${resolvedActiveIndex}`
               : undefined}
-            className="h-8 rounded-lg border-transparent bg-muted/45 pl-7 text-xs shadow-none"
+            className="h-8 rounded-lg border-0 bg-muted/45 pl-7 text-xs shadow-none"
           />
         </div>
       </div>

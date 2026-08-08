@@ -48,7 +48,10 @@ it('opens a compact action menu before the height-capped skill view', () => {
   expect(panelStyle).toContain('100vh');
   expect(panelStyle).toContain('2rem');
 
-  fireEvent.change(screen.getByPlaceholderText('Search skills'), { target: { value: 'summ' } });
+  const searchInput = screen.getByPlaceholderText('Search skills');
+  expect(searchInput.className).toContain('border-0');
+  expect(searchInput.className).not.toContain('border-transparent');
+  fireEvent.change(searchInput, { target: { value: 'summ' } });
   expect(screen.getByText('Summarize')).toBeTruthy();
   expect(screen.queryByText('Web Search')).toBeNull();
   expect(screen.queryByRole('button', { name: /built-in skills/i })).toBeNull();

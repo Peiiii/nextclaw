@@ -23,8 +23,9 @@ describe('AgentAvatar', () => {
     const avatar = screen.getByLabelText('Main');
     expect(avatar.querySelector('svg')).toBeTruthy();
     expect(avatar.textContent).not.toContain('M');
-    expect(avatar.className).toContain('bg-primary');
-    expect(avatar.className).toContain('text-primary-foreground');
+    expect(avatar.className).toContain('bg-[#ede7dc]');
+    expect(avatar.className).toContain('text-[#57534e]');
+    expect(avatar.className).not.toContain('primary');
   });
 
   it('keeps letter fallback avatars for specialist agents', () => {

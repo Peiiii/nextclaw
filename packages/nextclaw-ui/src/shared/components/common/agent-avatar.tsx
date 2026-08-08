@@ -29,9 +29,9 @@ function hashText(value: string): number {
 export function AgentAvatar({ agentId, displayName, avatarUrl, className }: AgentAvatarProps) {
   const seed = displayName?.trim() || agentId;
   const isMainAgent = agentId.trim().toLowerCase() === 'main';
-  const [paletteBgClass, paletteTextClass] = PALETTE[hashText(agentId) % PALETTE.length] ?? PALETTE[0];
-  const bgClass = isMainAgent ? 'bg-primary' : paletteBgClass;
-  const textClass = isMainAgent ? 'text-primary-foreground' : paletteTextClass;
+  const [bgClass, textClass] = isMainAgent
+    ? ['bg-[#ede7dc] [html[data-theme-appearance=dark]_&]:bg-[#373229]', 'text-[#57534e] [html[data-theme-appearance=dark]_&]:text-[#e2ded7]']
+    : PALETTE[hashText(agentId) % PALETTE.length] ?? PALETTE[0];
 
   if (avatarUrl?.trim()) {
     return (
