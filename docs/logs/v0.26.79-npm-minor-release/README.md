@@ -10,6 +10,8 @@
 
 发布后的文档复核补齐了长期使用入口：中英文“任务与会话”指南现在集中说明文件/目录/选中文本引用、编辑消息后重跑、中断后继续运行，以及自动与手动上下文压缩；“会话工作区”指南增加“添加到聊天”的就近说明，0.29.0 更新页也直接链接到这两份指南。
 
+同一发布批次已补齐桌面端：`@nextclaw/desktop` 内部版本 `0.0.240` 以 `v0.29.0-desktop.1` 发布，内嵌 stable runtime 为 `0.29.0`，最低 launcher 兼容版本为 `0.0.141`。桌面安装器、更新 manifest 与 Linux APT 仓库均已完成公网闭环；官网稳定下载兜底链接随后更新到该真实发布，避免在 GitHub Release 元数据读取失败时退回旧版本。
+
 ## 测试/验证/验收方式
 
 - NPM 身份：`peiiii`。
@@ -29,6 +31,8 @@
 - 真实安装更新：在隔离目录从公开 registry 安装 `nextclaw@0.28.1`，依次完成 `--check`、`--download-only`、`--apply`；下载阶段未切换 current pointer，应用后新进程 `nextclaw --version` 返回 `0.29.0`。
 - 公开文档：中英文更新页和结构化 JSON 均返回 HTTP 200。
 - `pnpm docs:i18n:check`：通过，98 组中英文 Markdown 页面保持镜像；定向内容检查确认两种语言都覆盖引用、编辑重跑、继续运行和 `/compact`。
+- Desktop stable release：[`v0.29.0-desktop.1`](https://github.com/Peiiii/nextclaw/releases/tag/v0.29.0-desktop.1) 已发布；macOS ARM/x64、Windows x64/ARM、Linux x64 的远程构建及资产发布均成功。
+- Desktop closure：GitHub Release 安装器和 portable 资产、stable 更新 manifest、公网 gh-pages manifest、稳定 APT 仓库均验证完成；公开 manifest 的 runtime 为 `0.29.0`，APT 包版本为 `0.0.240`。
 
 ## 发布/部署方式
 
@@ -36,7 +40,7 @@
 - Runtime update：已触发并完成 stable runtime `0.29.0`，四平台资产、GitHub Release 和 gh-pages channel 已闭合。
 - Docs：中英文说明和结构化 JSON 已随 `master` 发布并完成公网访问验证。
 - Docs follow-up：常驻聊天与工作区指南已补齐本次能力，并随发布后文档提交更新，不新增 package 版本或 changeset。
-- Desktop installer / manifest：不适用，本次不制作新的桌面安装包。
+- Desktop installer / manifest：已使用 `pnpm release:desktop:stable` 发布 `v0.29.0-desktop.1`，并由闭环脚本验证 GitHub 资产、stable manifest 与 Linux APT 仓库；官网稳定下载兜底版本已更新为 `0.0.240`。
 - 数据库 migration / 独立后端部署：不适用。
 
 ## 用户/产品视角的验收步骤
@@ -45,6 +49,7 @@
 2. 从 stable runtime manifest 检查四个平台资产、签名、兼容 floor 和 0.29.0 更新说明 URL。
 3. 在隔离 `NEXTCLAW_HOME` 中执行 update check，并从旧版本完成 download/apply 到 0.29.0。
 4. 打开中英文 0.29.0 产品更新页与结构化 JSON，确认公开可访问且内容一致。
+5. 打开官网下载页；在 GitHub Release API 暂不可用时，确认 macOS、Windows、Linux 的兜底下载链接仍指向 `v0.29.0-desktop.1` 的 `0.0.240` 资产。
 
 ## 可维护性总结汇总
 
@@ -98,4 +103,4 @@
 - `@nextclaw/ui@0.15.23`
 - `nextclaw@0.29.0`
 
-`@nextclaw/desktop` 是 private workspace package，只同步内部版本元数据，不进入 NPM publish。
+`@nextclaw/desktop` 是 private workspace package，只同步内部版本元数据，不进入 NPM publish；本次通过桌面发布通道交付 `0.0.240`。
