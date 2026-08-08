@@ -8,6 +8,8 @@
 
 中英文产品更新说明和结构化 JSON 已加入仓库，stable runtime 的 `releaseNotesUrl` 将指向 0.29.0 英文公开页面。
 
+发布后的文档复核补齐了长期使用入口：中英文“任务与会话”指南现在集中说明文件/目录/选中文本引用、编辑消息后重跑、中断后继续运行，以及自动与手动上下文压缩；“会话工作区”指南增加“添加到聊天”的就近说明，0.29.0 更新页也直接链接到这两份指南。
+
 ## 测试/验证/验收方式
 
 - NPM 身份：`peiiii`。
@@ -26,12 +28,14 @@
 - 公开 manifest：发布脚本完成 gh-pages 源与公共 URL 双面校验；真实 launcher 从公开 stable 通道读到 `availableVersion=0.29.0`、`minimumHostVersion=0.18.11` 和 0.29.0 英文更新说明 URL。
 - 真实安装更新：在隔离目录从公开 registry 安装 `nextclaw@0.28.1`，依次完成 `--check`、`--download-only`、`--apply`；下载阶段未切换 current pointer，应用后新进程 `nextclaw --version` 返回 `0.29.0`。
 - 公开文档：中英文更新页和结构化 JSON 均返回 HTTP 200。
+- `pnpm docs:i18n:check`：通过，98 组中英文 Markdown 页面保持镜像；定向内容检查确认两种语言都覆盖引用、编辑重跑、继续运行和 `/compact`。
 
 ## 发布/部署方式
 
 - NPM：已使用仓库标准 `pnpm release:publish` 发布完整公开依赖闭包，没有使用 raw `npm publish`。
 - Runtime update：已触发并完成 stable runtime `0.29.0`，四平台资产、GitHub Release 和 gh-pages channel 已闭合。
 - Docs：中英文说明和结构化 JSON 已随 `master` 发布并完成公网访问验证。
+- Docs follow-up：常驻聊天与工作区指南已补齐本次能力，并随发布后文档提交更新，不新增 package 版本或 changeset。
 - Desktop installer / manifest：不适用，本次不制作新的桌面安装包。
 - 数据库 migration / 独立后端部署：不适用。
 

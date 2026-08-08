@@ -19,8 +19,30 @@ NextClaw can host Native, Codex, Claude Code, Weixin, Feishu, and scheduled-task
 
 Name work so it is recognizable later. Prefer names such as “July sales analysis” or “Release verification” over a list of sessions called “Hello” or “Test.”
 
-## Long context
+## Add files and selected text to a message
 
-Sessions keep multi-turn context and can compact long histories. Keep critical paths, final criteria, and non-editable boundaries explicit near the work that depends on them.
+Type `@` to reference a file, folder, project, or Panel App. You can also open a file in the session workspace and choose **Add to chat** from its action menu. In a text file, select a passage first when only that excerpt should be included.
+
+References appear in the composer and are sent with the current message. They tell the agent exactly which material to use and retain a link back to the source. A folder reference defines a search scope for the task; it does not insert the entire folder into one message.
+
+## Edit and rerun
+
+If the latest request has a mistake or is missing a file or constraint, choose **Edit message** on the latest editable user message. After you update and send it, NextClaw reruns from that message instead of appending the change as a new follow-up.
+
+Use edit and rerun to correct the current branch. Send a normal new message when you want to build on the result that is already there.
+
+## Continue an interrupted run
+
+When a task is stopped, interrupted, or fails, a recoverable assistant reply shows **Continue**. NextClaw resumes the same task in the original reply position, so you do not need to copy the previous request or create an unrelated reply.
+
+Continue is available only for cancelled or failed tasks that the current runtime can resume. It is not shown while a task is still running.
+
+## Long tasks and context compaction
+
+Native Agents automatically compact earlier content when a long task approaches its context limit, then continue within the same task. The timeline shows when compaction starts and completes. The resulting context keeps a summary plus recent user messages so the resumed model can stay focused on the current request.
+
+The context-window indicator separates system and tools, conversation content, output reserve, and the automatic compaction threshold. Its percentage estimates the complete model input, not only the visible chat messages.
+
+You can also use `/compact` to compact earlier context on demand. For both automatic and manual compaction, keep critical paths, final criteria, and non-editable boundaries explicit near the work that depends on them.
 
 Inside a session you can open the [workspace](/en/guide/workspace), create subtasks, add a scheduled job, or reference a Panel App or skill.

@@ -14,6 +14,8 @@ Previews cover Markdown, code, HTML, common documents, spreadsheets, and present
 
 Open files stay available while you move between the conversation, source, and output. Reopen the real file after the agent changes it.
 
+To use a file in the current message, choose **Add to chat** from its action menu. In a text file, you can select a passage first and add only that excerpt. Files, folders, and selected text appear as visible references in the composer. See [Tasks and sessions](/en/guide/chat#add-files-and-selected-text-to-a-message) for the full workflow.
+
 ## Subtasks
 
 Split complex work into subtasks with explicit inputs and deliverables. A research task might separate source collection, data cleanup, and summary writing, while the parent session performs the final review.
@@ -29,4 +31,4 @@ Scheduled jobs connected to the current work can also appear in the workspace. R
 - Keep source files and write outputs to a separate directory.
 - Verify the real artifact, not just the chat summary.
 
-Related: [Inspect task results](/en/guide/results) and [Panel Apps](/en/guide/panel-apps).
+Related: [Tasks and sessions](/en/guide/chat), [Inspect task results](/en/guide/results), and [Panel Apps](/en/guide/panel-apps).
