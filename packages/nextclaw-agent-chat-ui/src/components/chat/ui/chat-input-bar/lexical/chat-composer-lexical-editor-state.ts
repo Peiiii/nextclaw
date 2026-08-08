@@ -288,6 +288,7 @@ function readNodesFromEditor(): ChatComposerNode[] {
     const tokenNode = descriptor.node as ChatComposerTokenNode;
     nextNodes.push({
       id: tokenNode.getComposerId(),
+      data: tokenNode.getData(),
       label: tokenNode.getLabel(),
       previewUrl: tokenNode.getPreviewUrl(),
       tokenKey: tokenNode.getTokenKey(),
@@ -324,6 +325,45 @@ export function readChatComposerSnapshotFromEditorState(
   });
 }
 
+export function insertChatComposerNodesAtSelection(
+  nodes: readonly ChatComposerNode[],
+): boolean {
+  const selection = $getSelection();
+  if (!$isRangeSelection(selection)) {
+    return false;
+  }
+  const lexicalNodes: LexicalNode[] = [];
+  for (const node of nodes) {
+    if (node.type === 'token') {
+      lexicalNodes.push(
+        $createChatComposerTokenNode({
+          composerId: node.id,
+          data: node.data,
+          label: node.label,
+          previewUrl: node.previewUrl,
+          tokenKey: node.tokenKey,
+          tokenKind: node.tokenKind,
+        }),
+      );
+      continue;
+    }
+    const parts = node.text.split('\n');
+    for (const [index, part] of parts.entries()) {
+      if (part) {
+        lexicalNodes.push($createTextNode(part));
+      }
+      if (index < parts.length - 1) {
+        lexicalNodes.push($createLineBreakNode());
+      }
+    }
+  }
+  if (lexicalNodes.length === 0) {
+    return false;
+  }
+  selection.insertNodes(lexicalNodes);
+  return true;
+}
+
 export function writeChatComposerStateToLexicalRoot(
   nodes: ChatComposerNode[],
   selection: ChatComposerSelection | null,
@@ -339,6 +379,7 @@ export function writeChatComposerStateToLexicalRoot(
       paragraph.append(
         $createChatComposerTokenNode({
           composerId: node.id,
+          data: node.data,
           label: node.label,
           previewUrl: node.previewUrl,
           tokenKey: node.tokenKey,

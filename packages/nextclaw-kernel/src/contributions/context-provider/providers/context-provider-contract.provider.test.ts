@@ -13,6 +13,7 @@ import {
   CHAT_INLINE_TOKENS_METADATA_KEY,
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_PROJECT_TOKEN_KIND,
+  CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   EventBus,
 } from "@nextclaw/shared";
@@ -231,6 +232,16 @@ describe("ContextProviderContribution native prompt contract", () => {
               rawText: "@file:reference.ts",
             },
             {
+              kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
+              key: "reference.ts#excerpt-contract",
+              path: "reference.ts",
+              label: "reference.ts",
+              excerpt: "selected contract snapshot",
+              startLine: 3,
+              endLine: 4,
+              rawText: "@excerpt:reference.ts%23excerpt-contract",
+            },
+            {
               kind: CHAT_PROJECT_TOKEN_KIND,
               key: referencedProjectRoot,
               label: "Referenced",
@@ -271,6 +282,8 @@ describe("ContextProviderContribution native prompt contract", () => {
       "# Project Context",
       "## Explicit Workspace References",
       "export const referenced = true;",
+      '<workspace_excerpt path="reference.ts" start_line="3" end_line="4">',
+      "selected contract snapshot",
       `<project_reference name="Referenced" root_path="${referencedProjectRoot}">`,
       "PROJECT.md",
       "# Agent Bootstrap Context",

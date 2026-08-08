@@ -70,6 +70,7 @@ export {
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_PROJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+  CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
@@ -94,6 +95,7 @@ export type {
   ChatSkillInlineTokenMetadata,
   ChatSkillSource,
   ChatWorkspaceInlineTokenMetadata,
+  ChatWorkspaceExcerptInlineTokenMetadata,
 } from "./configs/chat-composer-token.config.js";
 export type { RuntimeModelSelectionMode } from "./configs/runtime-model.config.js";
 export type {

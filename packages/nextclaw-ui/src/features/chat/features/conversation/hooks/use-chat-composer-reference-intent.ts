@@ -1,13 +1,13 @@
 import { useEffect, type RefObject } from 'react';
 import { type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
-import { CHAT_WORKSPACE_FILE_TOKEN_KIND } from '@nextclaw/shared';
+import { CHAT_WORKSPACE_EXCERPT_TOKEN_KIND } from '@nextclaw/shared';
 
 import type {
-  ChatComposerFileReferenceIntent,
   ChatComposerIntentManager,
+  ChatComposerReferenceIntent,
 } from '@/features/chat/managers/chat-composer-intent.manager';
 
-export function useChatComposerFileReferenceIntent(params: {
+export function useChatComposerReferenceIntent(params: {
   inputBarRef: RefObject<ChatInputBarHandle | null>;
   intentManager: ChatComposerIntentManager;
   selectedSessionKey: string | null | undefined;
@@ -16,15 +16,23 @@ export function useChatComposerFileReferenceIntent(params: {
 
   useEffect(() => {
     const targetSessionKey = selectedSessionKey?.trim() || null;
-    const applyIntent = (intent: ChatComposerFileReferenceIntent) => {
+    const applyIntent = (intent: ChatComposerReferenceIntent) => {
       const inputBar = inputBarRef.current;
       if (!inputBar) {
         return;
       }
       inputBar.insertToken({
-        tokenKind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
+        tokenKind: intent.kind,
         tokenKey: intent.tokenKey,
         label: intent.label,
+        data: intent.kind === CHAT_WORKSPACE_EXCERPT_TOKEN_KIND
+          ? {
+              path: intent.path,
+              excerpt: intent.excerpt,
+              startLine: intent.startLine,
+              endLine: intent.endLine,
+            }
+          : undefined,
       });
       intentManager.markConsumed(intent.id);
     };

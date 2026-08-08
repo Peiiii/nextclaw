@@ -52,6 +52,7 @@ export type {
   ChatSlashItem,
   ChatSelectedItem,
   ChatComposerTokenKind,
+  ChatComposerTokenData,
   ChatComposerTextNode,
   ChatComposerTokenNode,
   ChatComposerNode,

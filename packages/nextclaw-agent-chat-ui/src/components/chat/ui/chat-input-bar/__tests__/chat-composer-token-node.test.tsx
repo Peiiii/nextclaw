@@ -54,6 +54,8 @@ it('renders file composer tokens with theme-owned colors', async () => {
   expect(skillToken?.className).toContain('rounded-[7px]');
   expect(skillToken?.className).toContain('align-middle');
   expect(skillToken?.className).toContain('data-[composer-selected=true]:shadow-[0_0_0_2px_var(--interaction-selection,Highlight)]');
+  expect(skillToken?.querySelector('[data-reference-icon="skill"]')).toBeTruthy();
+  expect(token?.querySelector('[data-reference-icon="image-file"]')).toBeTruthy();
   const iconShell = token?.querySelector('svg')?.closest('span');
   expect(iconShell?.className).toContain('bg-card');
   expect(iconShell?.className).toContain('text-muted-foreground');
@@ -109,4 +111,130 @@ it('renders an uploaded image preview inside its file token', async () => {
   expect(preview.parentElement?.className).toContain('h-4');
   const token = screen.getByRole('textbox').querySelector('[data-composer-token-key="preview-image"]');
   expect(token?.className).toContain('h-6');
+  expect(token?.querySelector('[data-reference-icon="image-file"]')).toBeTruthy();
+});
+
+it('uses one semantic icon vocabulary for every composer reference kind', async () => {
+  render(
+    <ChatInputBar
+      composer={{
+        disabled: false,
+        nodes: [
+          createChatComposerTokenNode({ tokenKind: 'panel_app', tokenKey: 'tasks', label: 'Tasks' }),
+          createChatComposerTextNode(' '),
+          createChatComposerTokenNode({ tokenKind: 'project', tokenKey: '/repo', label: 'NextClaw' }),
+          createChatComposerTextNode(' '),
+          createChatComposerTokenNode({ tokenKind: 'workspace_directory', tokenKey: 'docs', label: 'docs' }),
+          createChatComposerTextNode(' '),
+          createChatComposerTokenNode({ tokenKind: 'workspace_file', tokenKey: 'config/settings.json', label: 'settings.json' }),
+          createChatComposerTextNode(' '),
+          createChatComposerTokenNode({ tokenKind: 'future_reference', tokenKey: 'future', label: 'Future' }),
+          createChatComposerTextNode(''),
+        ],
+        onNodesChange: vi.fn(),
+        placeholder: 'Type a message',
+      }}
+      hint={null}
+      toolbar={{
+        actions: {
+          canStopGeneration: false,
+          isSending: false,
+          onSend: vi.fn(),
+          onStop: vi.fn(),
+          sendButtonLabel: 'Send',
+          sendDisabled: false,
+          stopButtonLabel: 'Stop',
+          stopDisabled: true,
+          stopHint: 'Stop unavailable',
+        },
+        selects: [],
+      }}
+    />,
+  );
+
+  await waitFor(() => expect(screen.getByText('Future')).toBeTruthy());
+  const textbox = screen.getByRole('textbox');
+  expect(textbox.querySelector('[data-reference-icon="panel-app"]')).toBeTruthy();
+  expect(textbox.querySelector('[data-reference-icon="project"]')).toBeTruthy();
+  expect(textbox.querySelector('[data-reference-icon="directory"]')).toBeTruthy();
+  expect(textbox.querySelector('[data-reference-icon="data-file"]')).toBeTruthy();
+  expect(textbox.querySelector('[data-reference-icon="reference"]')).toBeTruthy();
+});
+
+it('renders a workspace excerpt as a compact source-aware token with on-demand preview', async () => {
+  const onNodesChange = vi.fn();
+  render(
+    <ChatInputBar
+      composer={{
+        disabled: false,
+        nodes: [
+          createChatComposerTokenNode({
+            tokenKind: 'workspace_excerpt',
+            tokenKey: 'docs/guide.md#excerpt-1',
+            label: 'guide.md',
+            data: {
+              path: 'docs/guide.md',
+              excerpt: 'Requests must include an authorization header.',
+              startLine: 32,
+              endLine: 34,
+            },
+          }),
+          createChatComposerTextNode(''),
+        ],
+        excerptCharacterCountTemplate: '{count} characters',
+        onNodesChange,
+        placeholder: 'Type a message',
+        removeTokenLabel: 'Remove reference',
+      }}
+      hint={null}
+      toolbar={{
+        actions: {
+          canStopGeneration: false,
+          isSending: false,
+          onSend: vi.fn(),
+          onStop: vi.fn(),
+          sendButtonLabel: 'Send',
+          sendDisabled: false,
+          stopButtonLabel: 'Stop',
+          stopDisabled: true,
+          stopHint: 'Stop unavailable',
+        },
+        selects: [],
+      }}
+    />,
+  );
+
+  expect(await screen.findByText('guide.md')).toBeTruthy();
+  expect(screen.getByText('L32–34')).toBeTruthy();
+  expect(screen.getByText('Requests must include an authorization header.')).toBeTruthy();
+  const token = screen.getByRole('textbox').querySelector('[data-composer-token-kind="workspace_excerpt"]');
+  expect(token?.className).toContain('h-6');
+  expect(token?.className).not.toContain('h-auto');
+  const removeButton = screen.getByRole('button', { name: 'Remove reference' });
+  expect(removeButton.className).toContain('absolute');
+  expect(removeButton.className).toContain('opacity-0');
+  expect(removeButton.className).toContain('rounded-full');
+  expect(removeButton.className).toContain('border-border/70');
+  expect(removeButton.className).toContain('bg-transparent');
+  expect(removeButton.className).toContain('group-hover/composer-token:opacity-100');
+  expect(removeButton.className).toContain('hover:bg-[var(--interaction-hover)]');
+  expect(removeButton.className).not.toContain('group-hover/composer-token:bg-[var(--interaction-hover)]');
+  expect(removeButton.parentElement?.className).toContain('relative');
+  expect(removeButton.parentElement?.className).toContain('-mx-1.5');
+  expect(removeButton.parentElement?.className).toContain('px-1.5');
+  const tokenContent = token?.querySelector('[data-composer-token-content="true"]');
+  expect(tokenContent?.className).toContain('mask-image:linear-gradient');
+
+  fireEvent.pointerMove(screen.getByText('guide.md'), { pointerType: 'mouse' });
+  const preview = await screen.findByRole('tooltip');
+  expect(preview.textContent).toContain('docs/guide.md');
+  expect(preview.textContent).toContain('Requests must include an authorization header.');
+
+  fireEvent.click(removeButton);
+  await waitFor(() => {
+    expect(
+      screen.getByRole('textbox').querySelector('[data-composer-token-kind="workspace_excerpt"]'),
+    ).toBeNull();
+  });
+  expect(onNodesChange).toHaveBeenCalled();
 });

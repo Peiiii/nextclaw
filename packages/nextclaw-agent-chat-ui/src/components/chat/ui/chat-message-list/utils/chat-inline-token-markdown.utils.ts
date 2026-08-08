@@ -8,6 +8,9 @@ const INLINE_TOKEN_SOURCE_ATTR = "data-chat-inline-token-source";
 const INLINE_TOKEN_PATH_ATTR = "data-chat-inline-token-path";
 const INLINE_TOKEN_LABEL_ATTR = "data-chat-inline-token-label";
 const INLINE_TOKEN_RAW_TEXT_ATTR = "data-chat-inline-token-raw-text";
+const INLINE_TOKEN_EXCERPT_ATTR = "data-chat-inline-token-excerpt";
+const INLINE_TOKEN_START_LINE_ATTR = "data-chat-inline-token-start-line";
+const INLINE_TOKEN_END_LINE_ATTR = "data-chat-inline-token-end-line";
 
 export type ChatMarkdownNode = {
   type?: string;
@@ -46,6 +49,16 @@ function createInlineTokenNode(token: ChatInlineTokenViewModel): ChatMarkdownNod
     }
   } else {
     hProperties[INLINE_TOKEN_KEY_ATTR] = token.key;
+    if (token.kind === "workspace_excerpt" && "excerpt" in token) {
+      hProperties[INLINE_TOKEN_PATH_ATTR] = token.path;
+      hProperties[INLINE_TOKEN_EXCERPT_ATTR] = token.excerpt;
+      if (token.startLine !== null) {
+        hProperties[INLINE_TOKEN_START_LINE_ATTR] = String(token.startLine);
+      }
+      if (token.endLine !== null) {
+        hProperties[INLINE_TOKEN_END_LINE_ATTR] = String(token.endLine);
+      }
+    }
   }
   return {
     type: "chatInlineToken",
@@ -156,6 +169,11 @@ function readSkillSourceProp(
     : null;
 }
 
+function readLineProp(props: Record<string, unknown>, key: string): number | null {
+  const value = Number(readStringProp(props, key));
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
 export function readChatInlineTokenFromMarkdownProps(
   props: Record<string, unknown>,
 ): ChatInlineTokenViewModel | null {
@@ -178,6 +196,22 @@ export function readChatInlineTokenFromMarkdownProps(
       : null;
   }
   const key = readStringProp(props, INLINE_TOKEN_KEY_ATTR);
+  if (kind === "workspace_excerpt" && key && label && rawText) {
+    const path = readStringProp(props, INLINE_TOKEN_PATH_ATTR);
+    const excerpt = readStringProp(props, INLINE_TOKEN_EXCERPT_ATTR);
+    return path && excerpt
+      ? {
+          kind,
+          key,
+          path,
+          label,
+          excerpt,
+          startLine: readLineProp(props, INLINE_TOKEN_START_LINE_ATTR),
+          endLine: readLineProp(props, INLINE_TOKEN_END_LINE_ATTR),
+          rawText,
+        }
+      : null;
+  }
   return kind && key && label && rawText
     ? { kind, key, label, rawText }
     : null;

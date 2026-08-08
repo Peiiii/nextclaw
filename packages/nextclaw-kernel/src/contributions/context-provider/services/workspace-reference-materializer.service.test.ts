@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   CHAT_PROJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+  CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "@nextclaw/shared";
 import { WorkspaceReferenceMaterializerService } from "./workspace-reference-materializer.service.js";
@@ -80,6 +81,28 @@ describe("WorkspaceReferenceMaterializerService", () => {
 
     expect(context).toContain('<workspace_file path="large.txt" truncated="true">');
     expect(context.length).toBeLessThan(34_000);
+  });
+
+  it("embeds only the immutable excerpt snapshot with its source location", async () => {
+    const projectRoot = createTempDirectory("nextclaw-workspace-excerpt-");
+    writeFileSync(join(projectRoot, "guide.md"), "whole file content that must not be embedded");
+
+    const context = await new WorkspaceReferenceMaterializerService().materialize({
+      projectRoot,
+      references: [{
+        kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
+        key: "guide.md#excerpt-1",
+        path: "guide.md",
+        label: "guide.md",
+        excerpt: "selected snapshot",
+        startLine: 12,
+        endLine: 13,
+      }],
+    });
+
+    expect(context).toContain('<workspace_excerpt path="guide.md" start_line="12" end_line="13">');
+    expect(context).toContain("selected snapshot");
+    expect(context).not.toContain("whole file content");
   });
 
   it("rejects references that resolve outside the active project", async () => {

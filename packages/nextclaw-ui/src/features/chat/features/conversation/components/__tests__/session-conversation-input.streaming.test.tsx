@@ -461,7 +461,10 @@ function AttachmentSubmitHarness({
   readonly initialPrompt?: string;
   readonly send: AttachmentSubmitAgentSend;
 }) {
-  const { inputActions, inputSnapshot } = useSessionConversationInputState(initialPrompt);
+  const { inputActions, inputSnapshot } = useSessionConversationInputState(
+    initialPrompt,
+    `attachment-test:${initialPrompt ?? 'empty'}`,
+  );
   const inputQuery = useMemo(() => ({
     addDiscoveredModel: vi.fn(async () => null),
     dismissDiscoveredModels: vi.fn(),
@@ -598,6 +601,66 @@ describe('SessionConversationInput attachment submit', () => {
         ],
       },
     });
+  });
+
+  it('preserves an exact workspace excerpt in the outgoing message metadata', async () => {
+    const send = vi.fn<AttachmentSubmitAgentSend>(async () => createAttachmentRunHandle());
+    render(<AttachmentSubmitHarness initialPrompt="解释一下" send={send} />);
+
+    const textbox = screen.getByRole('textbox');
+    await waitFor(() => expect(textbox.textContent).toBe('解释一下'));
+    fireEvent.focus(textbox);
+    const paragraph = textbox.querySelector('p');
+    const textNode = document.createTreeWalker(
+      paragraph!,
+      NodeFilter.SHOW_TEXT,
+    ).nextNode();
+    const range = document.createRange();
+    range.setStart(textNode!, '解释一下'.length);
+    range.collapse(true);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+    fireEvent(document, new Event('selectionchange'));
+    await act(async () => Promise.resolve());
+
+    act(() => {
+      chatComposerIntentManager.requestExcerptReference({
+        targetSessionKey: 'session-attachment',
+        path: 'docs/guide.md',
+        label: 'guide.md',
+        excerpt: 'Requests must include an authorization header.',
+        startLine: 32,
+        endLine: 34,
+      });
+    });
+
+    await waitFor(() => expect(document.querySelector(
+      '[data-composer-token-kind="workspace_excerpt"]',
+    )).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: /Send|发送/ }));
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+    const envelope = send.mock.calls[0]?.[0];
+    const metadata = envelope.message.metadata?.ui_inline_tokens as {
+      items: Array<Record<string, unknown>>;
+    };
+    expect(metadata.items).toEqual([
+      expect.objectContaining({
+        kind: 'workspace_excerpt',
+        path: 'docs/guide.md',
+        label: 'guide.md',
+        excerpt: 'Requests must include an authorization header.',
+        startLine: 32,
+        endLine: 34,
+        rawText: expect.stringMatching(/^@excerpt:/),
+      }),
+    ]);
+    expect(envelope.message.parts).toEqual([
+      {
+        type: 'text',
+        text: expect.stringMatching(/^解释一下 @excerpt:/),
+      },
+    ]);
   });
 
   it('keeps uploaded file attachments in the outgoing send envelope after token insertion', async () => {

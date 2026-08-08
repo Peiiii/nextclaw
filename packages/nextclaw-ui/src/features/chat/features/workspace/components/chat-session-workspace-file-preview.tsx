@@ -11,6 +11,8 @@ import {
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { ChatSessionWorkspaceDirectoryBrowser } from "./chat-session-workspace-directory-browser";
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./chat-session-workspace-file-breadcrumbs";
+import { WorkspaceTextSelectionMenu } from "./workspace-text-selection-menu";
+import type { WorkspaceTextExcerpt } from "@/features/chat/features/workspace/utils/workspace-text-excerpt.utils";
 import {
   resolveWorkspaceFileContentKind,
   WorkspaceFileContentPreview,
@@ -24,7 +26,10 @@ import {
   buildPreviewLines,
 } from "@/features/chat/features/message/utils/file-operation/line-builder.utils";
 import { t } from "@/shared/lib/i18n";
-import { buildWorkspaceFileBreadcrumb } from "@/shared/lib/session-project";
+import {
+  buildWorkspaceFileBreadcrumb,
+  resolveWorkspaceRelativePath,
+} from "@/shared/lib/session-project";
 import { cn } from "@/shared/lib/utils";
 import { resolveWorkspaceFileViewer } from "@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils";
 
@@ -303,6 +308,7 @@ type ChatSessionWorkspaceFilePreviewProps = {
   showBreadcrumbs?: boolean;
   onHtmlContentHeightChange?: (height: number) => void;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+  onTextExcerptAdd?: (excerpt: WorkspaceTextExcerpt) => void;
 };
 
 export function ChatSessionWorkspaceFilePreview({
@@ -313,6 +319,7 @@ export function ChatSessionWorkspaceFilePreview({
   showBreadcrumbs = true,
   onHtmlContentHeightChange,
   onFileOpen,
+  onTextExcerptAdd,
 }: ChatSessionWorkspaceFilePreviewProps) {
   const isPreviewMode = file.viewMode === "preview";
   const suppliedContentUrl = file.contentUrl?.trim() || null;
@@ -399,6 +406,10 @@ export function ChatSessionWorkspaceFilePreview({
   const isTextPreviewTruncated =
     !contentUrl && Boolean(previewQuery?.data?.truncated);
   const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;
+  const excerptPath = resolveWorkspaceRelativePath({
+    path: resolvedPath,
+    sessionProjectRoot: breadcrumbBasePath,
+  });
   const breadcrumb = useMemo(
     () =>
       buildWorkspaceFileBreadcrumb({
@@ -408,6 +419,25 @@ export function ChatSessionWorkspaceFilePreview({
         truncated: isTextPreviewTruncated,
       }),
     [breadcrumbBasePath, isTextPreviewTruncated, previewPathKind, resolvedPath],
+  );
+  const previewBody = (
+    <WorkspacePreviewBody
+      contentUrl={contentUrl}
+      contentUrlKind={contentUrlKind}
+      contentLabel={file.label?.trim() || resolvedPath}
+      contentParams={file.params}
+      directoryQuery={directoryQuery}
+      fileBasePath={sessionWorkingDir}
+      onFileOpen={onFileOpen}
+      onHtmlContentHeightChange={onHtmlContentHeightChange}
+      previewBlock={previewBlock}
+      previewKind={previewKind}
+      previewViewer={previewViewer}
+      previewQuery={previewQuery}
+      previewText={previewText}
+      targetColumn={file.column}
+      targetLine={file.line}
+    />
   );
 
   return (
@@ -422,24 +452,18 @@ export function ChatSessionWorkspaceFilePreview({
       <div className="flex-1 min-h-0 overflow-hidden">
         {file.viewMode === "diff" ? (
           <WorkspaceDiffBody diffBlock={diffBlock} />
+        ) : excerptPath && previewText ? (
+          <WorkspaceTextSelectionMenu
+            fileLabel={file.label?.trim() || excerptPath.split("/").at(-1) || excerptPath}
+            filePath={excerptPath}
+            sourceStartLine={previewQuery?.data?.startLine ?? 1}
+            sourceText={previewText}
+            onAddToChat={onTextExcerptAdd}
+          >
+            {previewBody}
+          </WorkspaceTextSelectionMenu>
         ) : (
-          <WorkspacePreviewBody
-            contentUrl={contentUrl}
-            contentUrlKind={contentUrlKind}
-            contentLabel={file.label?.trim() || resolvedPath}
-            contentParams={file.params}
-            directoryQuery={directoryQuery}
-            fileBasePath={sessionWorkingDir}
-            onFileOpen={onFileOpen}
-            onHtmlContentHeightChange={onHtmlContentHeightChange}
-            previewBlock={previewBlock}
-            previewKind={previewKind}
-            previewViewer={previewViewer}
-            previewQuery={previewQuery}
-            previewText={previewText}
-            targetColumn={file.column}
-            targetLine={file.line}
-          />
+          previewBody
         )}
       </div>
     </div>

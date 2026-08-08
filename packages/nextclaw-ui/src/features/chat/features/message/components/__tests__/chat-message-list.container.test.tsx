@@ -503,6 +503,32 @@ it("opens workspace and project reference tokens from the message", () => {
   });
 });
 
+it("opens a workspace excerpt at its captured start line", () => {
+  captures.selectedSession = {
+    projectRoot: "/tmp/project",
+    workingDir: "/tmp/project/packages/ui",
+  };
+  render(<ChatMessageListContainer messages={[]} isSending={false} />);
+
+  captures.renders[captures.renders.length - 1]?.onInlineTokenClick?.({
+    kind: "workspace_excerpt",
+    key: "docs/guide.md#excerpt-1",
+    path: "docs/guide.md",
+    label: "guide.md",
+    excerpt: "selected text",
+    startLine: 32,
+    endLine: 34,
+    rawText: "@excerpt:docs%2Fguide.md%23excerpt-1",
+  });
+
+  expect(captures.openFilePreview).toHaveBeenCalledWith({
+    path: "/tmp/project/docs/guide.md",
+    label: "guide.md",
+    line: 32,
+    viewMode: "preview",
+  });
+});
+
 it("opens panel app tokens through the existing content owner", () => {
   render(<ChatMessageListContainer messages={[]} isSending={false} />);
   captures.renders[captures.renders.length - 1]?.onInlineTokenClick?.({

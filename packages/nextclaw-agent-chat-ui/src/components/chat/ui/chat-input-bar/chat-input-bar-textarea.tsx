@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import type { KeyboardEventHandler } from 'react';
-import { Puzzle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import type { ChatSelectedItem } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 const CHAT_INPUT_MAX_HEIGHT = 188;
@@ -65,7 +65,7 @@ export function ChatInputBarTextarea({
             onClick={() => onRemoveSelectedItem(item.key)}
             className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-lg border border-primary/15 bg-primary/10 px-2 text-[11px] font-medium text-primary transition hover:bg-primary/15"
           >
-            <Puzzle aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+            <Sparkles aria-hidden className="h-3.5 w-3.5 shrink-0 text-primary/70" />
             <span className="truncate">{item.label}</span>
           </button>
         ))}

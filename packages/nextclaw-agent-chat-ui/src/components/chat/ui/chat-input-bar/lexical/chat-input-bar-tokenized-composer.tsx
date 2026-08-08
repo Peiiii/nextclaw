@@ -12,6 +12,7 @@ import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
 import type {
   ChatComposerNode,
   ChatComposerSelection,
+  ChatComposerTokenData,
   ChatComposerTokenKind,
   ChatInputSurfaceItem,
   ChatInputSurfaceTriggerChangeReason,
@@ -25,10 +26,14 @@ import {
 } from './chat-composer-lexical-adapter';
 import { ChatComposerLexicalOwner } from './owners/chat-composer-lexical-owner';
 import { ChatComposerBindingsPlugin } from './chat-composer-plugins';
-import { ChatComposerTokenNode } from './chat-composer-token-node';
+import {
+  ChatComposerTokenNode,
+} from './chat-composer-token-node';
+import { ChatComposerTokenUiProvider } from './views/chat-composer-token-view';
 
 export type ChatInputBarTokenizedComposerHandle = {
   insertToken: (token: {
+    data?: ChatComposerTokenData;
     tokenKind: ChatComposerTokenKind;
     tokenKey: string;
     label: string;
@@ -48,6 +53,8 @@ export type ChatInputBarTokenizedComposerHandle = {
 export type ChatInputBarTokenizedComposerProps = {
   nodes: ChatComposerNode[];
   placeholder: string;
+  excerptCharacterCountTemplate?: string;
+  removeTokenLabel?: string;
   disabled: boolean;
   onInputSurfaceItemSelect?: (item: ChatInputSurfaceItem) => void;
   actions: Pick<ChatInputBarActionsProps, 'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'>;
@@ -70,6 +77,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     actions,
     disabled,
     nodes,
+    excerptCharacterCountTemplate,
     onFilesAdd,
     onInputSurfaceItemSelect,
     onInputSurfaceKeyDown,
@@ -77,6 +85,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     onInputSurfaceSnapshotChange,
     onNodesChange,
     placeholder,
+    removeTokenLabel,
   },
   ref,
 ) {
@@ -127,35 +136,40 @@ export const ChatInputBarTokenizedComposer = forwardRef<
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="px-3 py-2 sm:px-4 sm:py-2.5">
-        <div className="min-h-11 sm:min-h-[60px]">
-          <PlainTextPlugin
-            contentEditable={
-              <ContentEditable
-                className="nextclaw-chat-composer min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none selection:bg-[var(--interaction-selection,Highlight)] selection:text-current"
-                onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
-                  const files = Array.from(event.clipboardData.files ?? []);
-                  if (files.length > 0 && onFilesAdd) {
-                    event.preventDefault();
-                    void onFilesAdd(files);
-                  }
-                }}
-              />
-            }
-            placeholder={
-              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-muted-foreground/60 sm:left-4 sm:top-2.5">
-                {placeholder}
-              </div>
-            }
-            ErrorBoundary={LexicalErrorBoundary}
-          />
+      <ChatComposerTokenUiProvider
+        excerptCharacterCountTemplate={excerptCharacterCountTemplate}
+        removeTokenLabel={removeTokenLabel}
+      >
+        <div className="px-3 py-2 sm:px-4 sm:py-2.5">
+          <div className="min-h-11 sm:min-h-[60px]">
+            <PlainTextPlugin
+              contentEditable={
+                <ContentEditable
+                  className="nextclaw-chat-composer min-h-7 max-h-[188px] w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent py-0.5 text-sm leading-6 text-foreground outline-none selection:bg-[var(--interaction-selection,Highlight)] selection:text-current"
+                  onPaste={(event: ClipboardEvent<HTMLDivElement>) => {
+                    const files = Array.from(event.clipboardData.files ?? []);
+                    if (files.length > 0 && onFilesAdd) {
+                      event.preventDefault();
+                      void onFilesAdd(files);
+                    }
+                  }}
+                />
+              }
+              placeholder={
+                <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-muted-foreground/60 sm:left-4 sm:top-2.5">
+                  {placeholder}
+                </div>
+              }
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+          </div>
         </div>
-      </div>
-      <ChatComposerBindingsPlugin
-        disabled={disabled}
-        nodes={nodes}
-        owner={owner}
-      />
+        <ChatComposerBindingsPlugin
+          disabled={disabled}
+          nodes={nodes}
+          owner={owner}
+        />
+      </ChatComposerTokenUiProvider>
     </LexicalComposer>
   );
 });

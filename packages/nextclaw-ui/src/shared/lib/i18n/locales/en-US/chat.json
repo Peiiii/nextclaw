@@ -75,6 +75,7 @@
   "chatWorkspaceDirectoryLoadFailed": "Failed to load directory",
   "chatWorkspaceFileContextMenu": "Project file actions",
   "chatWorkspaceAddToChat": "Add to chat",
+  "chatWorkspaceExcerptSelectionTooLong": "Selection is too long",
   "chatWorkspaceRevealInFileManager": "Reveal in file manager",
   "chatWorkspaceCopyPath": "Copy path",
   "chatWorkspaceCopyRelativePath": "Copy relative path",
@@ -474,6 +475,8 @@
   "chatSkillPreviewUnavailable": "This skill file is unavailable. It may have been moved or removed.",
   "chatInputAdd": "Add content",
   "chatInputAttach": "Attach file",
+  "chatInputRemoveReference": "Remove reference",
+  "chatWorkspaceExcerptCharacterCount": "{count} characters",
   "chatInputAttachmentUnsupported": "This file type is not supported in the current upload flow.",
   "chatInputAttachmentTooLarge": "Files must be {maxMb} MB or smaller.",
   "chatInputAttachmentReadFailed": "Failed to read the file. Please try again."

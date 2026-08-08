@@ -352,6 +352,12 @@ function WorkspaceSelectedContent({
         sessionProjectRoot={sessionProjectRoot}
         sessionWorkingDir={sessionWorkingDir}
         onFileOpen={presenter.chatThreadManager.openFilePreview}
+        onTextExcerptAdd={(excerpt) => {
+          presenter.chatComposerIntentManager.requestExcerptReference({
+            targetSessionKey: sessionKey,
+            ...excerpt,
+          });
+        }}
       />
     );
   }

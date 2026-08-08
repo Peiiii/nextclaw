@@ -3,6 +3,7 @@ export const CHAT_INLINE_TOKENS_SCHEMA_VERSION = 2;
 export const CHAT_PROJECT_TOKEN_KIND = "project";
 export const CHAT_WORKSPACE_FILE_TOKEN_KIND = "workspace_file";
 export const CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND = "workspace_directory";
+export const CHAT_WORKSPACE_EXCERPT_TOKEN_KIND = "workspace_excerpt";
 
 export type ChatSkillSource = "builtin" | "global" | "project" | "workspace";
 
@@ -25,6 +26,17 @@ export type ChatWorkspaceInlineTokenMetadata = {
   rawText: string;
 };
 
+export type ChatWorkspaceExcerptInlineTokenMetadata = {
+  kind: typeof CHAT_WORKSPACE_EXCERPT_TOKEN_KIND;
+  key: string;
+  path: string;
+  label: string;
+  excerpt: string;
+  startLine: number | null;
+  endLine: number | null;
+  rawText: string;
+};
+
 export type ChatProjectInlineTokenMetadata = {
   kind: typeof CHAT_PROJECT_TOKEN_KIND;
   key: string;
@@ -35,7 +47,8 @@ export type ChatProjectInlineTokenMetadata = {
 export type ChatInlineTokenMetadata =
   | ChatSkillInlineTokenMetadata
   | ChatProjectInlineTokenMetadata
-  | ChatWorkspaceInlineTokenMetadata;
+  | ChatWorkspaceInlineTokenMetadata
+  | ChatWorkspaceExcerptInlineTokenMetadata;
 
 export type ChatInlineTokensMetadata = {
   schemaVersion: typeof CHAT_INLINE_TOKENS_SCHEMA_VERSION;

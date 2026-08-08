@@ -44,7 +44,7 @@ import {
 } from '@/features/chat/managers/chat-recent-skills.manager';
 
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
-import { useChatComposerFileReferenceIntent } from '@/features/chat/features/conversation/hooks/use-chat-composer-file-reference-intent';
+import { useChatComposerReferenceIntent } from '@/features/chat/features/conversation/hooks/use-chat-composer-reference-intent';
 import { useSessionConversationComposerNodes } from '@/features/chat/features/conversation/hooks/use-session-conversation-composer-nodes';
 import { useSessionConversationSlashCommands } from '@/features/chat/features/conversation/hooks/use-session-conversation-slash-commands';
 import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
@@ -287,7 +287,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   }, [inputQuery.selectedSession, inputQuery.selectedSessionKey]);
   const handleNodesChange = useSessionConversationComposerNodes(inputActions);
 
-  useChatComposerFileReferenceIntent({
+  useChatComposerReferenceIntent({
     inputBarRef,
     intentManager: presenter.chatComposerIntentManager,
     selectedSessionKey: inputQuery.selectedSessionKey,
@@ -414,6 +414,8 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
       composer={{
         nodes: composerNodes,
         placeholder: textareaPlaceholder,
+        excerptCharacterCountTemplate: t('chatWorkspaceExcerptCharacterCount'),
+        removeTokenLabel: t('chatInputRemoveReference'),
         disabled: inputDisabled,
         onNodesChange: handleNodesChange,
         onFilesAdd: handleFilesAdd,

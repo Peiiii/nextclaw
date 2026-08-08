@@ -4,6 +4,7 @@ import {
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_PROJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+  CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   type ChatInlineTokenMetadata,
   type ChatInlineTokensMetadata,
@@ -33,6 +34,16 @@ export type ChatInlineTokenSource =
       source: ChatSkillSource | null;
       path: string | null;
       label: string;
+      rawText: string;
+    }
+  | {
+      kind: typeof CHAT_WORKSPACE_EXCERPT_TOKEN_KIND;
+      key: string;
+      path: string;
+      label: string;
+      excerpt: string;
+      startLine: number | null;
+      endLine: number | null;
       rawText: string;
     }
   | {
@@ -71,6 +82,12 @@ function readOptionalString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function readOptionalLine(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? value
+    : null;
+}
+
 function dedupeInlineTokens<T extends ChatInlineTokenSource>(tokens: readonly T[]): T[] {
   const seen = new Set<string>();
   const output: T[] = [];
@@ -100,7 +117,8 @@ export function buildInlineTokensFromComposer(
       node.tokenKind !== 'skill' &&
       node.tokenKind !== CHAT_PROJECT_TOKEN_KIND &&
       node.tokenKind !== CHAT_WORKSPACE_FILE_TOKEN_KIND &&
-      node.tokenKind !== CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND
+      node.tokenKind !== CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND &&
+      node.tokenKind !== CHAT_WORKSPACE_EXCERPT_TOKEN_KIND
     ) {
       continue;
     }
@@ -129,6 +147,24 @@ export function buildInlineTokensFromComposer(
         kind: CHAT_PROJECT_TOKEN_KIND,
         key: node.tokenKey,
         label: node.label,
+        rawText,
+      });
+      continue;
+    }
+    if (node.tokenKind === CHAT_WORKSPACE_EXCERPT_TOKEN_KIND) {
+      const path = readOptionalString(node.data?.path);
+      const excerpt = readOptionalString(node.data?.excerpt);
+      if (!path || !excerpt) {
+        continue;
+      }
+      tokens.push({
+        kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
+        key: node.tokenKey,
+        path,
+        label: node.label,
+        excerpt,
+        startLine: readOptionalLine(node.data?.startLine),
+        endLine: readOptionalLine(node.data?.endLine),
         rawText,
       });
       continue;
@@ -243,36 +279,8 @@ export function readInlineTokensFromMetadata(
 
   const tokens: ChatInlineTokenSource[] = [];
   for (const entry of raw.items) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-    const kind = readOptionalString(entry.kind);
-    const rawText = readOptionalString(entry.rawText);
-    const label = readOptionalString(entry.label);
-    if (!kind || !label || !rawText) {
-      continue;
-    }
-    if (kind === 'skill') {
-      const ref = readOptionalString(entry.ref);
-      const name = readOptionalString(entry.name);
-      const path = readOptionalString(entry.path);
-      const source = readSkillSource(entry.source);
-      if (!ref || !name || !path || !source) {
-        continue;
-      }
-      tokens.push({ kind, ref, name, source, path, label, rawText });
-      continue;
-    }
-    const key = readOptionalString(entry.key);
-    if (!key) {
-      continue;
-    }
-    tokens.push({
-      kind,
-      key,
-      rawText,
-      label,
-    });
+    const token = readInlineTokenEntry(entry);
+    if (token) tokens.push(token);
   }
 
   return dedupeInlineTokens(tokens);
@@ -281,6 +289,55 @@ export function readInlineTokensFromMetadata(
 function readSkillSource(value: unknown): ChatSkillSource | null {
   return value === 'builtin' || value === 'global' || value === 'project' || value === 'workspace'
     ? value
+    : null;
+}
+
+function readInlineTokenEntry(entry: unknown): ChatInlineTokenSource | null {
+  if (!isRecord(entry)) {
+    return null;
+  }
+  const kind = readOptionalString(entry.kind);
+  const rawText = readOptionalString(entry.rawText);
+  const label = readOptionalString(entry.label);
+  if (!kind || !label || !rawText) {
+    return null;
+  }
+  if (kind === 'skill') {
+    const ref = readOptionalString(entry.ref);
+    const name = readOptionalString(entry.name);
+    const path = readOptionalString(entry.path);
+    const source = readSkillSource(entry.source);
+    return ref && name && path && source
+      ? { kind, ref, name, source, path, label, rawText }
+      : null;
+  }
+  if (kind === CHAT_WORKSPACE_EXCERPT_TOKEN_KIND) {
+    return readWorkspaceExcerptInlineToken({ entry, label, rawText });
+  }
+  const key = readOptionalString(entry.key);
+  return key ? { kind, key, rawText, label } : null;
+}
+
+function readWorkspaceExcerptInlineToken(params: {
+  entry: Record<string, unknown>;
+  label: string;
+  rawText: string;
+}): ChatInlineTokenSource | null {
+  const { entry, label, rawText } = params;
+  const key = readOptionalString(entry.key);
+  const path = readOptionalString(entry.path);
+  const excerpt = readOptionalString(entry.excerpt);
+  return key && path && excerpt
+    ? {
+        kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
+        key,
+        path,
+        label,
+        excerpt,
+        startLine: readOptionalLine(entry.startLine),
+        endLine: readOptionalLine(entry.endLine),
+        rawText,
+      }
     : null;
 }
 

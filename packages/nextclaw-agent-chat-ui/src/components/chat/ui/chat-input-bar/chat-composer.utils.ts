@@ -3,6 +3,7 @@ import type {
   ChatComposerSelection,
   ChatComposerTextNode,
   ChatComposerTokenKind,
+  ChatComposerTokenData,
   ChatComposerTokenNode,
   ChatInputSurfaceTrigger,
   ChatInputSurfaceTriggerSpec,
@@ -31,8 +32,9 @@ export function createChatComposerTokenNode(params: {
   tokenKey: string;
   label: string;
   previewUrl?: string;
+  data?: ChatComposerTokenData;
 }): ChatComposerTokenNode {
-  const { label, previewUrl, tokenKey, tokenKind } = params;
+  const { data, label, previewUrl, tokenKey, tokenKind } = params;
   return {
     id: createComposerNodeId(),
     type: 'token',
@@ -40,6 +42,7 @@ export function createChatComposerTokenNode(params: {
     tokenKey,
     label,
     previewUrl,
+    data,
   };
 }
 

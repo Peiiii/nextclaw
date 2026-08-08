@@ -56,4 +56,51 @@ describe("ChatComposerIntentManager", () => {
     expect(listener).not.toHaveBeenCalled();
     expect(manager.consumePending(null)).toBeNull();
   });
+
+  it("publishes a source-aware excerpt with a stable content identity", () => {
+    const manager = new ChatComposerIntentManager();
+    const listener = vi.fn();
+    manager.subscribe("session-1", listener);
+
+    manager.requestExcerptReference({
+      targetSessionKey: "session-1",
+      path: "docs/guide.md",
+      label: "guide.md",
+      excerpt: "selected text",
+      startLine: 12,
+      endLine: 13,
+    });
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "workspace_excerpt",
+      path: "docs/guide.md",
+      label: "guide.md",
+      excerpt: "selected text",
+      startLine: 12,
+      endLine: 13,
+      tokenKey: expect.stringMatching(/^docs\/guide\.md#excerpt-/),
+    }));
+  });
+
+  it("delivers an excerpt to the unmaterialized new-chat composer", () => {
+    const manager = new ChatComposerIntentManager();
+    const draftListener = vi.fn();
+    manager.subscribe(null, draftListener);
+
+    manager.requestExcerptReference({
+      targetSessionKey: null,
+      path: "package.json",
+      label: "package.json",
+      excerpt: '"name": "nextclaw"',
+      startLine: 2,
+      endLine: 2,
+    });
+
+    expect(draftListener).toHaveBeenCalledWith(expect.objectContaining({
+      targetSessionKey: null,
+      kind: "workspace_excerpt",
+      path: "package.json",
+      excerpt: '"name": "nextclaw"',
+    }));
+  });
 });

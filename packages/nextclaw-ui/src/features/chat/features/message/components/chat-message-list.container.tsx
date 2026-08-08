@@ -6,11 +6,8 @@ import {
   type RefObject,
 } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
-import { CHAT_PROJECT_TOKEN_KIND } from "@nextclaw/shared";
-import { toast } from "sonner";
 import {
   type ChatInlineDisplayViewModel,
-  type ChatInlineTokenViewModel,
   type ChatMessageViewModel,
   type ChatPanelAppCardViewModel,
   ChatMessageList,
@@ -29,7 +26,6 @@ import {
 } from "@/features/chat/features/message/utils/chat-message-texts.utils";
 import {
   readInlineTokensFromMetadata,
-  resolveWorkspaceReferencePath,
 } from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import {
   adaptNcpMessagePartsForChat,
@@ -62,7 +58,8 @@ import {
   type ChatTimelineItem,
 } from "@/features/chat/features/message/utils/chat-message-timeline.utils";
 import { useChatMessageActions } from "@/features/chat/features/message/hooks/use-chat-message-actions";
-import { buildServerPathContentUrl, fetchNcpSessionSkills } from "@/shared/lib/api";
+import { useChatInlineTokenActions } from "@/features/chat/features/message/hooks/use-chat-inline-token-actions";
+import { buildServerPathContentUrl } from "@/shared/lib/api";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -321,101 +318,8 @@ export function ChatMessageListContainer({
     activeRowKey,
     focusedRowKey,
   });
-  const handleInlineTokenClick = useCallback(
-    (token: ChatInlineTokenViewModel) => {
-      if (token.kind === "panel_app" && "key" in token) {
-        void presenter.chatUiManager.showContent({
-          target: { type: "panel_app", payload: { appId: token.key } },
-        });
-        return;
-      }
-      if (
-        "key" in token &&
-        (token.kind === CHAT_PROJECT_TOKEN_KIND ||
-          token.kind === "workspace_file" ||
-          token.kind === "workspace_directory")
-      ) {
-        const path = token.kind === CHAT_PROJECT_TOKEN_KIND
-          ? token.key
-          : resolveWorkspaceReferencePath({
-              projectRoot:
-                selectedSession?.projectRoot ?? selectedSession?.workingDir,
-              relativePath: token.key,
-            });
-        if (path) {
-          presenter.chatThreadManager.openFilePreview({
-            path,
-            label: token.label,
-            viewMode: "preview",
-          });
-        }
-        return;
-      }
-      if (token.kind !== "skill" || !("ref" in token)) return;
-      const skillPath = token.path?.trim();
-      if (skillPath) {
-        presenter.chatThreadManager.openFilePreview({
-          path: skillPath,
-          label: token.label || token.name,
-          viewMode: "preview",
-          previewViewer: "rendered",
-        });
-        return;
-      }
-      if (!sessionKey) {
-        toast.error(t("chatSkillPreviewUnavailable"));
-        return;
-      }
-      void fetchNcpSessionSkills(sessionKey, {
-        projectRoot: selectedSession?.projectRoot ?? null,
-      }).then(({ records }) => {
-        const exact = records.find((record) => record.ref === token.ref);
-        const named = records.filter((record) => record.name === token.name);
-        const matched = exact ?? (named.length === 1 ? named[0] : null);
-        const legacyPath = matched?.path.trim();
-        if (!matched || !legacyPath) {
-          toast.error(t("chatSkillPreviewUnavailable"));
-          return;
-        }
-        presenter.chatThreadManager.openFilePreview({
-          path: legacyPath,
-          label: token.label || matched.name,
-          viewMode: "preview",
-          previewViewer: "rendered",
-        });
-      }).catch(() => toast.error(t("chatSkillPreviewUnavailable")));
-    },
-    [
-      presenter.chatThreadManager,
-      presenter.chatUiManager,
-      selectedSession?.projectRoot,
-      selectedSession?.workingDir,
-      sessionKey,
-    ],
-  );
-  const handleAttachmentOpen = useCallback(
-    (file: {
-      label: string;
-      mimeType: string;
-      dataUrl?: string;
-      sizeBytes?: number;
-      isImage: boolean;
-    }) => {
-      const contentUrl = file.dataUrl?.trim();
-      if (!contentUrl) {
-        return;
-      }
-      const label = file.label.trim() || "attachment";
-      presenter.chatThreadManager.openFilePreview({
-        path: label,
-        label,
-        viewMode: "preview",
-        contentUrl,
-        mimeType: file.mimeType,
-      });
-    },
-    [presenter.chatThreadManager],
-  );
+  const { handleAttachmentOpen, handleInlineTokenClick } =
+    useChatInlineTokenActions({ selectedSession, sessionKey });
   const handleRowBlur = useCallback((event: FocusEvent<HTMLDivElement>) => {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       setFocusedRowKey(null);

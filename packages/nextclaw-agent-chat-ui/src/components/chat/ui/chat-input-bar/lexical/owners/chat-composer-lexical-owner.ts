@@ -10,6 +10,7 @@ import {
 } from 'lexical';
 import type {
   ChatComposerNode,
+  ChatComposerTokenData,
   ChatComposerSelection,
   ChatComposerTokenKind,
   ChatInputBarActionsProps,
@@ -39,6 +40,7 @@ import {
   deleteAdjacentChatComposerToken,
   handleLexicalComposerKeyboardCommand,
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
+import { ChatComposerClipboardOwner } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-clipboard.owner';
 
 type ComposerActions = Pick<ChatInputBarActionsProps, 'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'>;
 
@@ -139,6 +141,7 @@ export class ChatComposerLexicalOwner {
         },
         COMMAND_PRIORITY_HIGH,
       ),
+      new ChatComposerClipboardOwner(editor).register(),
     );
   };
 
@@ -303,12 +306,14 @@ export class ChatComposerLexicalOwner {
 
     return {
       insertToken: (token: {
+        data?: ChatComposerTokenData;
         tokenKind: ChatComposerTokenKind;
         tokenKey: string;
         label: string;
       }): void => {
         this.publishRuntimeSnapshot(
           (snapshot) => insertChatComposerTokenIntoChatComposer({
+            data: token.data,
             label: token.label,
             nodes: snapshot.nodes,
             selection: snapshot.selection,

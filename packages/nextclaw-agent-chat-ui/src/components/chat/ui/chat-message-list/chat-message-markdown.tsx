@@ -19,6 +19,7 @@ import {
   isChatInlineDisplayLanguage,
   parseChatInlineDisplayDirective,
 } from "./utils/chat-inline-display.utils";
+import { countChatReferenceCharacters } from "@agent-chat-ui/components/chat/ui/chat-reference-tag";
 import {
   isExternalChatResourceHref,
   parseChatLocalFileAction,
@@ -49,6 +50,7 @@ type ChatMessageMarkdownProps = {
     | "copiedCodeLabel"
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
+    | "excerptCharacterCountTemplate"
     | "mermaidDiagramLabel"
     | "mermaidExpandLabel"
     | "mermaidLoadingLabel"
@@ -124,15 +126,28 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
   },
 
   span: function ChatMarkdownSpan({ node: _node, children, ...rest }) {
-    const { onInlineTokenClick } = useChatMessageMarkdownRuntime();
+    const { onInlineTokenClick, texts } = useChatMessageMarkdownRuntime();
     const token = readChatInlineTokenFromMarkdownProps(
       rest as Record<string, unknown>,
     );
     if (token) {
       return (
         <ChatInlineTokenBadge
+          characterCountLabel={"excerpt" in token
+            ? texts.excerptCharacterCountTemplate?.replace(
+                '{count}',
+                String(countChatReferenceCharacters(token.excerpt)),
+              )
+            : undefined}
+          excerpt={"excerpt" in token ? token.excerpt : undefined}
           kind={token.kind}
           label={token.label}
+          location={"excerpt" in token && token.startLine
+            ? token.startLine === token.endLine || !token.endLine
+              ? `L${token.startLine}`
+              : `L${token.startLine}–${token.endLine}`
+            : undefined}
+          path={"excerpt" in token ? token.path : undefined}
           tooltip={"ref" in token ? token.name : token.key}
           onClick={onInlineTokenClick ? () => onInlineTokenClick(token) : undefined}
         />

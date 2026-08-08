@@ -75,6 +75,7 @@
   "chatWorkspaceDirectoryLoadFailed": "读取目录失败",
   "chatWorkspaceFileContextMenu": "项目文件操作",
   "chatWorkspaceAddToChat": "添加到聊天",
+  "chatWorkspaceExcerptSelectionTooLong": "选择内容过长",
   "chatWorkspaceRevealInFileManager": "在文件管理器中显示",
   "chatWorkspaceCopyPath": "复制路径",
   "chatWorkspaceCopyRelativePath": "复制相对路径",
@@ -474,6 +475,8 @@
   "chatSkillPreviewUnavailable": "无法打开这个技能文件，它可能已被移动或删除。",
   "chatInputAdd": "添加内容",
   "chatInputAttach": "添加附件",
+  "chatInputRemoveReference": "移除引用",
+  "chatWorkspaceExcerptCharacterCount": "{count} 个字符",
   "chatInputAttachmentUnsupported": "当前上传流程不支持该文件类型。",
   "chatInputAttachmentTooLarge": "文件不能超过 {maxMb} MB。",
   "chatInputAttachmentReadFailed": "读取文件失败，请重试。"

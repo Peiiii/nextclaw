@@ -35,6 +35,8 @@ export type ChatSelectedItem = {
 
 export type ChatComposerTokenKind = "skill" | "file" | "panel_app" | (string & {});
 
+export type ChatComposerTokenData = Record<string, unknown>;
+
 export type ChatComposerTextNode = {
   id: string;
   type: "text";
@@ -48,6 +50,7 @@ export type ChatComposerTokenNode = {
   tokenKey: string;
   label: string;
   previewUrl?: string;
+  data?: ChatComposerTokenData;
 };
 
 export type ChatComposerNode = ChatComposerTextNode | ChatComposerTokenNode;
@@ -216,6 +219,8 @@ export type ChatInputBarProps = {
   composer: {
     nodes: ChatComposerNode[];
     placeholder: string;
+    excerptCharacterCountTemplate?: string;
+    removeTokenLabel?: string;
     disabled: boolean;
     onNodesChange: (nodes: ChatComposerNode[]) => void;
     onFilesAdd?: (files: File[]) => Promise<void> | void;
@@ -422,6 +427,16 @@ export type ChatInlineTokenViewModel =
       rawText: string;
     }
   | {
+      kind: "workspace_excerpt";
+      key: string;
+      path: string;
+      label: string;
+      excerpt: string;
+      startLine: number | null;
+      endLine: number | null;
+      rawText: string;
+    }
+  | {
       kind: string;
       key: string;
       label: string;
@@ -537,6 +552,7 @@ export type ChatMessageTexts = {
   copyMessageLabel: string;
   copiedMessageLabel: string;
   typingLabel: string;
+  excerptCharacterCountTemplate?: string;
   mermaidDiagramLabel?: string;
   mermaidExpandLabel?: string;
   mermaidLoadingLabel?: string;

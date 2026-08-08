@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import type {
   ChatInputBarProps,
   ChatInputSurfaceConfig,
+  ChatComposerTokenData,
   ChatComposerTokenKind,
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ChatInputSurfaceHost } from '@agent-chat-ui/components/chat/ui/input-surface/chat-input-surface-host';
@@ -100,6 +101,7 @@ function ChatInputBarSendError({ sendError, sendErrorDetailsLabel }: Pick<ChatIn
 
 export type ChatInputBarHandle = {
   insertToken: (token: {
+    data?: ChatComposerTokenData;
     tokenKind: ChatComposerTokenKind;
     tokenKey: string;
     label: string;
@@ -190,6 +192,8 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
                   ref={composerRef}
                   nodes={composer.nodes}
                   placeholder={composer.placeholder}
+                  excerptCharacterCountTemplate={composer.excerptCharacterCountTemplate}
+                  removeTokenLabel={composer.removeTokenLabel}
                   disabled={composer.disabled}
                   onInputSurfaceItemSelect={resolvedInputSurface?.onSelectItem}
                   actions={toolbarProps.actions}

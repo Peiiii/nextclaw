@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
-import { Check, ChevronLeft, ChevronRight, ExternalLink, Paperclip, Plus, Puzzle, Search } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, ExternalLink, Paperclip, Plus, Search, Sparkles } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import {
   ChatUiPrimitives,
@@ -282,7 +282,7 @@ export function ChatInputBarAddMenu(props: {
                 onClick={() => setView('skills')}
                 className={ADD_MENU_ACTION_CLASS_NAME}
               >
-                <Puzzle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate">{picker.title}</span>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
               </button>
