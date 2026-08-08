@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { NextClawClientError } from '@nextclaw/client-sdk';
 import { toast } from 'sonner';
 import { useDiscoverProviderModels, useTestProviderConnection } from '@/shared/hooks/use-config';
 import { t } from '@/shared/lib/i18n';
@@ -11,6 +12,8 @@ import {
 type UseProviderConnectivityParams = {
   providerName?: string;
   apiKey: string;
+  apiKeyRequired: boolean;
+  apiKeySet: boolean;
   apiBase: string;
   extraHeaders: Record<string, string> | null;
   supportsWireApi: boolean;
@@ -28,6 +31,8 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
   const {
     providerName,
     apiKey,
+    apiKeyRequired,
+    apiKeySet,
     apiBase,
     extraHeaders,
     supportsWireApi,
@@ -91,6 +96,10 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
     if (!providerName) {
       return null;
     }
+    if (apiKeyRequired && !apiKey.trim() && !apiKeySet) {
+      toast.error(t('providerModelsApiKeyRequired'));
+      return null;
+    }
     try {
       const result = await discoverProviderModels.mutateAsync({
         provider: providerName,
@@ -100,11 +109,18 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
       toast.success(t('providerModelsFetchSuccess'));
       return result.models;
     } catch (error) {
+      if (
+        error instanceof NextClawClientError &&
+        (error.details?.upstreamStatus === 401 || error.details?.upstreamStatus === 403)
+      ) {
+        toast.error(t('providerModelsAuthorizationFailed'));
+        return null;
+      }
       const message = error instanceof Error ? error.message : String(error);
       toast.error(`${t('providerModelsFetchFailed')}: ${message}`);
       return null;
     }
-  }, [apiBase, apiKey, discoverProviderModels, discoveryKey, extraHeaders, providerName]);
+  }, [apiBase, apiKey, apiKeyRequired, apiKeySet, discoverProviderModels, discoveryKey, extraHeaders, providerName]);
 
   return {
     discoverModels,

@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { ProviderModelDiscoveryHttpError } from "@nextclaw/core";
 import {
   buildConfigSchemaView,
   buildConfigMeta,
@@ -258,7 +259,10 @@ export class ConfigRoutesController {
       return c.json(ok(result));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return c.json(err("PROVIDER_MODEL_DISCOVERY_FAILED", message), 502);
+      const details = error instanceof ProviderModelDiscoveryHttpError
+        ? { upstreamStatus: error.upstreamStatus }
+        : undefined;
+      return c.json(err("PROVIDER_MODEL_DISCOVERY_FAILED", message, details), 502);
     }
   };
 

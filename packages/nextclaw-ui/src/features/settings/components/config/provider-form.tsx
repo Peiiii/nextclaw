@@ -136,6 +136,8 @@ function ProviderFormEditor({
   const connectivity = useProviderConnectivity({
     providerName,
     apiKey,
+    apiKeyRequired: resolvedProviderConfig.apiKeyRequired !== false,
+    apiKeySet: resolvedProviderConfig.apiKeySet,
     apiBase,
     extraHeaders,
     supportsWireApi,

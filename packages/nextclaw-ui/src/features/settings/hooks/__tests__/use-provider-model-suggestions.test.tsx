@@ -8,11 +8,17 @@ const catalogQuery = vi.hoisted(() => ({
     providers: {
       openrouter: {
         fetchedAt: '2026-08-07T00:00:00.000Z',
+        lastError: null,
         models: [
           'openrouter/gpt-5',
           'openrouter/inclusionai/ling-3.0-tiny:free',
           'openrouter/meta/muse-spark-1.2',
         ],
+      },
+      moonshot: {
+        fetchedAt: null,
+        lastError: null as { message: string; occurredAt: string } | null,
+        models: [],
       },
     },
   },
@@ -26,6 +32,7 @@ vi.mock('@/shared/hooks/use-config', () => ({
 describe('useProviderModelSuggestions', () => {
   beforeEach(() => {
     catalogQuery.data.refreshing = false;
+    catalogQuery.data.providers.moonshot.lastError = null;
     catalogQuery.isLoading = false;
   });
 
@@ -79,5 +86,22 @@ describe('useProviderModelSuggestions', () => {
 
     expect(result.current.isCheckingSuggestions).toBe(true);
     expect(result.current.suggestedModels).toEqual([]);
+  });
+
+  it('reports a provider failure instead of inheriting another provider loading state', () => {
+    catalogQuery.data.refreshing = true;
+    catalogQuery.data.providers.moonshot.lastError = {
+      message: 'Provider model discovery failed with HTTP 401 Unauthorized',
+      occurredAt: '2026-08-08T00:00:00.000Z',
+    };
+    const { result } = renderHook(() => useProviderModelSuggestions({
+      providerName: 'moonshot',
+      models: [],
+      aliases: ['moonshot'],
+      onModelsChange: vi.fn(),
+    }));
+
+    expect(result.current.isCheckingSuggestions).toBe(false);
+    expect(result.current.hasSuggestionError).toBe(true);
   });
 });

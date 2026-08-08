@@ -40,12 +40,12 @@ flowchart LR
 
 当前内建能力审计结果：
 
-- 已启用：NextClaw、OpenAI、Anthropic、OpenRouter、DeepSeek、MiniMax API、AiHubMix、Groq、OpenCode Zen、vLLM。
-- 未启用：Gemini、DashScope、DashScope Coding Plan、Kimi、Kimi Coding、Zhipu AI、Xiaomi MiMo、MiniMax Portal、Qwen Portal。
+- 已启用：NextClaw、OpenAI、Anthropic、OpenRouter、DeepSeek、MiniMax API、Kimi、AiHubMix、Groq、OpenCode Zen、vLLM。
+- 未启用：Gemini、DashScope、DashScope Coding Plan、Kimi Coding、Zhipu AI、Xiaomi MiMo、MiniMax Portal、Qwen Portal。
 
 这里的“未启用”只表示 NextClaw 尚未取得与当前 Base URL、认证方式完全匹配的模型目录证据，不代表这些 Provider 不能推理或永远不支持目录。后续只有补齐官方合同与回归测试后才能打开入口。
 
-能力审计以目标操作的第一方资料为准，当前主要依据包括：[OpenAI Models API](https://platform.openai.com/docs/api-reference/models/object?lang=curl)、[Anthropic List Models](https://platform.claude.com/docs/en/api/models/list)、[OpenRouter Models API](https://openrouter.ai/docs/guides/overview/models)、[DeepSeek List Models](https://api-docs.deepseek.com/api/list-models)、[Groq Models](https://console.groq.com/docs/models)、[MiniMax List Models（中国区）](https://platform.minimaxi.com/docs/api-reference/models/openai/list-models)、[AiHubMix Models API](https://docs.aihubmix.com/cn/api/Models-API)、[vLLM OpenAI-compatible server](https://docs.vllm.ai/en/latest/serving/openai_compatible_server/)，以及 OpenCode 实际使用的 [`models.dev` 目录代码](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/models-dev.ts)。阿里云 [DashScope OpenAI 兼容说明](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope) 与 [Coding Plan 文档](https://help.aliyun.com/en/model-studio/coding-plan) 没有被外推成当前认证合同下的动态目录能力。
+能力审计以目标操作的第一方资料为准，当前主要依据包括：[OpenAI Models API](https://platform.openai.com/docs/api-reference/models/object?lang=curl)、[Anthropic List Models](https://platform.claude.com/docs/en/api/models/list)、[OpenRouter Models API](https://openrouter.ai/docs/guides/overview/models)、[DeepSeek List Models](https://api-docs.deepseek.com/api/list-models)、[Kimi List Models](https://platform.kimi.ai/docs/api/list-models)、[Groq Models](https://console.groq.com/docs/models)、[MiniMax List Models（中国区）](https://platform.minimaxi.com/docs/api-reference/models/openai/list-models)、[AiHubMix Models API](https://docs.aihubmix.com/cn/api/Models-API)、[vLLM OpenAI-compatible server](https://docs.vllm.ai/en/latest/serving/openai_compatible_server/)，以及 OpenCode 实际使用的 [`models.dev` 目录代码](https://github.com/anomalyco/opencode/blob/dev/packages/core/src/models-dev.ts)。阿里云 [DashScope OpenAI 兼容说明](https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope) 与 [Coding Plan 文档](https://help.aliyun.com/en/model-studio/coding-plan) 没有被外推成当前认证合同下的动态目录能力。
 
 ## 数据、状态与安全边界
 

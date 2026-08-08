@@ -38,10 +38,11 @@ export function useProviderModelSuggestions(params: UseProviderModelSuggestionsP
 
   return {
     addSuggestedModels,
+    hasSuggestionError: Boolean(catalogEntry?.lastError && !catalogEntry.fetchedAt),
     isCheckingSuggestions: Boolean(
       providerName && (
         catalogQuery.isLoading ||
-        (catalogQuery.data?.refreshing && !catalogEntry?.fetchedAt)
+        (catalogQuery.data?.refreshing && !catalogEntry)
       )
     ),
     suggestedModels,

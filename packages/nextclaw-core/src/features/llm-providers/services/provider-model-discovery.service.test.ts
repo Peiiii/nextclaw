@@ -214,9 +214,10 @@ describe("ProviderModelDiscoveryService", () => {
         jsonResponse({ error: "bad key" }, 401),
       ) as typeof fetch,
     );
-    await expect(
-      failing.discover({ apiBase: "https://api.example.com/v1" }),
-    ).rejects.toThrow("HTTP 401 Unauthorized");
+    await expect(failing.discover({ apiBase: "https://api.example.com/v1" })).rejects.toMatchObject({
+      message: expect.stringContaining("HTTP 401 Unauthorized"),
+      upstreamStatus: 401,
+    });
 
     const empty = new ProviderModelDiscoveryService(
       vi.fn(async () => jsonResponse({ data: [] })) as typeof fetch,

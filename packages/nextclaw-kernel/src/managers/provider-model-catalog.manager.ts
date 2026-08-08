@@ -2,6 +2,7 @@ import type { Config, ProviderConfig } from "@nextclaw/core";
 import type { LlmProviderManager } from "./llm-provider.manager.js";
 
 export const PROVIDER_MODEL_CATALOG_REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const PROVIDER_MODEL_CATALOG_PROVIDER_TIMEOUT_MS = 45_000;
 
 export type ProviderModelCatalogEntry = {
   providerId: string;
@@ -24,12 +25,14 @@ export type ProviderModelCatalogSnapshot = {
 
 type ProviderModelCatalogManagerOptions = {
   refreshIntervalMs?: number;
+  providerTimeoutMs?: number;
   now?: () => Date;
 };
 
 export class ProviderModelCatalogManager {
   private config: Config | null = null;
   private readonly entries = new Map<string, ProviderModelCatalogEntry>();
+  private readonly providerTimeoutMs: number;
   private readonly refreshIntervalMs: number;
   private readonly now: () => Date;
   private refreshTask: Promise<void> | null = null;
@@ -44,6 +47,7 @@ export class ProviderModelCatalogManager {
     options: ProviderModelCatalogManagerOptions = {},
   ) {
     this.refreshIntervalMs = options.refreshIntervalMs ?? PROVIDER_MODEL_CATALOG_REFRESH_INTERVAL_MS;
+    this.providerTimeoutMs = options.providerTimeoutMs ?? PROVIDER_MODEL_CATALOG_PROVIDER_TIMEOUT_MS;
     this.now = options.now ?? (() => new Date());
   }
 
@@ -138,13 +142,24 @@ export class ProviderModelCatalogManager {
     providerId: string,
     provider: ProviderConfig,
   ): Promise<void> => {
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | null = null;
     try {
-      const result = await this.providerManager.discoverModels({
-        providerName: provider.providerType?.trim() || providerId,
-        apiKey: provider.apiKey,
-        apiBase: provider.apiBase,
-        extraHeaders: provider.extraHeaders,
-      });
+      const result = await Promise.race([
+        this.providerManager.discoverModels({
+          providerName: provider.providerType?.trim() || providerId,
+          apiKey: provider.apiKey,
+          apiBase: provider.apiBase,
+          extraHeaders: provider.extraHeaders,
+          signal: controller.signal,
+        }),
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => {
+            controller.abort();
+            reject(new Error(`Provider model catalog refresh timed out after ${this.providerTimeoutMs}ms.`));
+          }, this.providerTimeoutMs);
+        }),
+      ]);
       this.entries.set(providerId, {
         providerId,
         models: [...result.models],
@@ -164,6 +179,10 @@ export class ProviderModelCatalogManager {
           occurredAt: this.now().toISOString(),
         },
       });
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
     }
   };
 }

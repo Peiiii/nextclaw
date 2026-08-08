@@ -45,6 +45,17 @@ export type ProviderModelDiscoveryResult = {
   source: "provider" | "catalog";
 };
 
+export class ProviderModelDiscoveryHttpError extends Error {
+  constructor(
+    readonly upstreamStatus: number,
+    statusText: string,
+  ) {
+    super(
+      `Provider model discovery failed with HTTP ${upstreamStatus} ${statusText}`.trim(),
+    );
+  }
+}
+
 export class ProviderModelDiscoveryService {
   private readonly catalogCache = new Map<string, CachedModels>();
 
@@ -321,8 +332,9 @@ export class ProviderModelDiscoveryService {
         signal: controller.signal,
       });
       if (!response.ok) {
-        throw new Error(
-          `Provider model discovery failed with HTTP ${response.status} ${response.statusText}`.trim(),
+        throw new ProviderModelDiscoveryHttpError(
+          response.status,
+          response.statusText,
         );
       }
       const body = await response.text();

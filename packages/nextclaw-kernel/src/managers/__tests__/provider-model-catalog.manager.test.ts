@@ -41,6 +41,7 @@ describe("ProviderModelCatalogManager", () => {
       apiKey: "secret",
       apiBase: "https://api.openai.com/v1",
       extraHeaders: null,
+      signal: expect.any(AbortSignal),
     });
     expect(manager.getSnapshot()).toMatchObject({
       refreshIntervalMs: PROVIDER_MODEL_CATALOG_REFRESH_INTERVAL_MS,
@@ -114,6 +115,39 @@ describe("ProviderModelCatalogManager", () => {
       lastError: {
         message: "upstream unavailable",
         occurredAt: expect.any(String),
+      },
+    });
+  });
+
+  it("finishes a refresh when one provider discovery never settles", async () => {
+    vi.useFakeTimers();
+    const manager = new ProviderModelCatalogManager(
+      {
+        discoverModels: vi.fn(() => new Promise(() => {})),
+        supportsModelDiscovery: () => true,
+      },
+      { providerTimeoutMs: 1_000 },
+    );
+    manager.load(ConfigSchema.parse({
+      providers: {
+        openai: { providerType: "openai", apiKey: "secret" },
+      },
+    }));
+
+    const refresh = manager.refresh();
+    await vi.advanceTimersByTimeAsync(1_000);
+    await refresh;
+
+    expect(manager.getSnapshot()).toMatchObject({
+      refreshing: false,
+      lastRefreshCompletedAt: expect.any(String),
+      providers: {
+        openai: {
+          fetchedAt: null,
+          lastError: {
+            message: "Provider model catalog refresh timed out after 1000ms.",
+          },
+        },
       },
     });
   });

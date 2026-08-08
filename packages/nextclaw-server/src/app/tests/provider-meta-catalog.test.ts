@@ -150,6 +150,7 @@ describe("provider meta catalog", () => {
       "deepseek",
       "groq",
       "minimax",
+      "moonshot",
       "nextclaw",
       "openai",
       "opencode",
@@ -158,6 +159,7 @@ describe("provider meta catalog", () => {
     ]);
     expect(providers.find((provider) => provider.providerType === "dashscope")?.supportsModelDiscovery).toBe(false);
     expect(providers.find((provider) => provider.providerType === "dashscope-coding-plan")?.supportsModelDiscovery).toBe(false);
+    expect(providers.find((provider) => provider.providerType === "kimi-coding")?.supportsModelDiscovery).toBe(false);
   });
 
   it("exposes kimi coding as a dedicated provider in meta", async () => {

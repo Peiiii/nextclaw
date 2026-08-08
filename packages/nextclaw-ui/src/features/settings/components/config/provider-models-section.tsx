@@ -9,7 +9,7 @@ import {
   type ProviderModelConfig,
 } from "./provider-model-list";
 import { ProviderModelSuggestionsPanel } from "./provider-model-suggestions-panel";
-import { LoaderCircle, Plus, RefreshCw, X } from "lucide-react";
+import { AlertCircle, LoaderCircle, Plus, RefreshCw, X } from "lucide-react";
 import { useRef, useState } from "react";
 
 type ProviderModelsSectionProps = {
@@ -38,6 +38,26 @@ type ProviderModelsSectionProps = {
   formatThinkingLevelLabel: (level: ThinkingLevel) => string;
 };
 
+function ProviderModelCatalogError({
+  hasFetchedCatalog,
+  hasSuggestionError,
+  supportsModelDiscovery,
+}: {
+  hasFetchedCatalog: boolean;
+  hasSuggestionError: boolean;
+  supportsModelDiscovery: boolean;
+}) {
+  if (!supportsModelDiscovery || !hasSuggestionError || hasFetchedCatalog) {
+    return null;
+  }
+  return (
+    <div className="flex items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive">
+      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      {t("providerModelsSuggestionsFailed")}
+    </div>
+  );
+}
+
 export function ProviderModelsSection(props: ProviderModelsSectionProps) {
   const {
     providerName,
@@ -65,6 +85,7 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const {
     addSuggestedModels,
+    hasSuggestionError,
     isCheckingSuggestions,
     suggestedModels,
     suggestionSource,
@@ -163,6 +184,12 @@ export function ProviderModelsSection(props: ProviderModelsSectionProps) {
           </Button>
         </div>
       ) : null}
+
+      <ProviderModelCatalogError
+        hasFetchedCatalog={hasFetchedCatalog}
+        hasSuggestionError={hasSuggestionError}
+        supportsModelDiscovery={supportsModelDiscovery}
+      />
 
       {supportsModelDiscovery && isCheckingSuggestions && !hasFetchedCatalog ? (
         <div className="flex items-center gap-2 rounded-xl bg-muted/35 px-3 py-2 text-xs text-muted-foreground">

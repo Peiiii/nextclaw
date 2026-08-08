@@ -342,7 +342,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = {
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.moonshot.ai/v1",
       defaultModels: ["moonshot/kimi-k2.6", "moonshot/kimi-k2.5"],
-      modelDiscovery: false,
+      modelDiscovery: { kind: "openai-compatible" },
       modelConfig: {
         "moonshot/kimi-k2.6": { vision: true },
         "moonshot/kimi-k2.5": { vision: true },

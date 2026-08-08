@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ConfigSchema, saveConfig } from "@nextclaw/core";
+import { ConfigSchema, ProviderModelDiscoveryHttpError, saveConfig } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
@@ -166,7 +166,7 @@ describe("provider model discovery route", () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
     const discoverModels = vi.fn(async () => {
-      throw new Error("Provider model discovery failed with HTTP 401 Unauthorized");
+      throw new ProviderModelDiscoveryHttpError(401, "Unauthorized");
     });
     const app = createTestApp(configPath, discoverModels);
 
@@ -189,6 +189,7 @@ describe("provider model discovery route", () => {
       error: {
         code: "PROVIDER_MODEL_DISCOVERY_FAILED",
         message: "Provider model discovery failed with HTTP 401 Unauthorized",
+        details: { upstreamStatus: 401 },
       },
     });
   });

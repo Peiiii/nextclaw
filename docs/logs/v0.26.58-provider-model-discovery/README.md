@@ -7,6 +7,9 @@
 - Core 在目录进入缓存和前端前统一筛选聊天 LLM：显式输出模态只接受纯文本输出，元数据缺失时按模型类型与稳定 ID 族排除图像、视频、语音、Embedding、Rerank 与 Moderation；图像输入、文本输出的视觉理解 LLM 不受影响。
 - Server 只暴露一条 `POST /api/providers/:providerId/models/discover` 主链路；它复用连接测试的草稿配置解析，不持久化 API Key、API Base、请求头或获取结果。
 - 前端保留本地模型的原有顺序和配置，仅追加远端新 ID 并去重。远端失败时展示可行动错误，用户仍可继续手动添加与保存。
+- 获取模型前会检查当前草稿或已保存配置是否具备 API Key：未配置时直接提示先填写，不发送必然失败的请求；上游返回 401/403 时通过结构化状态显示本地化鉴权提示，不再把原始英文错误暴露给用户。
+- 后台目录状态按当前 Provider 自己的条目收口，不再被其他 Provider 的全局刷新状态长期拖成“正在读取”；当前 Provider 已失败且没有可用快照时会显示本地化失败提示，并保留手工添加入口。
+- 后台目录 Manager 对单个 Provider 设定 45 秒任务期限；即使底层请求或 Provider 实现没有响应取消信号，整轮刷新也会记录超时并结束 `refreshing`，前端轮询不会无限持续。
 - Kernel 启动后立即刷新已启用提供商的模型目录，此后每 12 小时刷新一次进程内快照；自动刷新只更新厂商事实，不会静默新增、删除、重排或切换用户模型。
 - 聊天模型选择器收起时不显示提醒；只有展开且存在候选时，才显示低优先级入口。候选默认显示“全部”，同时按提供商分段并支持提供商筛选；“添加”只补全配置，不切换当前会话模型。
 - 进入具体提供商详情页时会自动读取该提供商的后台目录快照；后台快照与显式获取复用同一选择面板，支持添加所选与全部添加。操作只进入表单草稿，用户点击“保存”后才持久化；未保存连接参数仍通过“获取模型列表”读取对应目录。
@@ -18,9 +21,10 @@
 ## 测试/验证/验收方式
 
 - Core 定向测试：覆盖 OpenAI 兼容响应、Anthropic 分页、OpenCode 免费筛选与缓存、HTTP/空响应/网络失败。
+- Kimi 能力补充验收：Provider meta 定向测试确认标准 `moonshot` 出现在发现白名单且 `kimi-coding` 继续禁用；Core OpenAI-compatible 目录协议测试、Runtime/Server TypeScript、包级 ESLint、全仓治理与 backlog ratchet 均通过。真实请求 `https://api.moonshot.ai/v1/models` 返回 Kimi 的规范鉴权错误，证明端点路径成立；本机未配置 Kimi API Key，因此未读取真实账号模型数组。
 - Server 组装路由测试：覆盖 OpenCode 无用户密钥、未保存草稿透传且不持久化、404 与上游错误合同。
 - 55 个定向测试通过：覆盖 Core 三类目录协议、Kernel 自动刷新、Server 路由合同、聊天选择器分组，以及设置页获取后不自动添加、添加所选和全部添加。
-- Provider 能力白名单纠偏后 31 个最新定向测试通过：覆盖 Core 要求内建 Provider 显式加入能力白名单、Kernel 跳过未审计 Provider、Server 精确投影 10 个支持与 9 个隐藏项，以及前端差集、全量已添加状态和隐藏入口。
+- Provider 能力白名单初次纠偏时 31 个定向测试通过：覆盖 Core 要求内建 Provider 显式加入能力白名单、Kernel 跳过未审计 Provider、Server 当时精确投影 10 个支持与 9 个隐藏项，以及前端差集、全量已添加状态和隐藏入口；后续 Kimi 补充验收将当前投影更新为 11 个支持与 8 个隐藏项。
 - 七个受影响包的 TypeScript 检查、完整源码构建、定向 lint、文档站构建和本次功能范围的仓库治理检查均通过。
 - 使用隔离临时 HOME 启动当前源码构建实例，并通过真实 HTTP 分别验证 OpenRouter、NextClaw 公共网关与 OpenCode Zen。
 - 使用真实浏览器点击“获取模型列表”：测试目录包含 8 个、当前草稿已有 4 个时，界面准确显示 4 个候选；勾选其中 2 个并“添加所选”后只把目标模型加入草稿，另 2 个继续保留为候选，保存按钮变为可用，而磁盘配置仍保持原来的 4 个。
@@ -29,8 +33,9 @@
 - 聊天 UI 定向测试覆盖收起无提醒、展开提示、“全部 / 提供商”分组、长模型 ID 弹性截断与固定操作列，以及添加动作不主动关闭面板。
 - 提供商设置 UI 定向测试覆盖后台首次检查、对应 provider 候选差集、显式获取不自动添加、添加所选 / 全部添加到草稿、长 ID 布局和保存提示。
 - 普通 DashScope 能力诊断：阿里云官方 OpenAI 兼容文档只承诺推理接口，并把可用模型引导到静态模型大全；未找到普通 DashScope `GET /models` 的官方合同，真实请求也返回 401。Coding Plan 端点返回 200 只能证明该独立端点响应，不能反向判断用户密钥类型；其官方页面给出的是专属 Base、专属 Key 与静态模型白名单，未形成与当前认证合同匹配的动态目录证据。因此 `dashscope` 与 `dashscope-coding-plan` 均关闭目录发现。
-- 内建 Provider 改为显式能力白名单。当前只开放 NextClaw、OpenAI、Anthropic、OpenRouter、DeepSeek、MiniMax API、AiHubMix、Groq、OpenCode Zen 与 vLLM；Gemini、DashScope、DashScope Coding Plan、Kimi、Kimi Coding、Zhipu AI、Xiaomi MiMo、MiniMax Portal 与 Qwen Portal 均隐藏入口并跳过后台刷新。自定义兼容 Provider 仍保留高级尝试入口。
-- 隔离临时 HOME 的当前源码真实验收：`/api/provider-templates` 精确返回上述 10 个 `supportsModelDiscovery=true` 与 9 个 `false`。真实浏览器新增普通 DashScope 和 DashScope Coding Plan 后，两者的模型区域都只有“添加模型”，没有“获取模型列表”、自动发现或批量添加；OpenCode 与 OpenRouter 则正常显示入口并取得目录。
+- 内建 Provider 改为显式能力白名单。当前开放 NextClaw、OpenAI、Anthropic、OpenRouter、DeepSeek、MiniMax API、Kimi、AiHubMix、Groq、OpenCode Zen 与 vLLM；Gemini、DashScope、DashScope Coding Plan、Kimi Coding、Zhipu AI、Xiaomi MiMo、MiniMax Portal 与 Qwen Portal 均隐藏入口并跳过后台刷新。自定义兼容 Provider 仍保留高级尝试入口。
+- Kimi 官方已明确提供与当前 `https://api.moonshot.ai/v1` Base URL、Bearer 认证及 OpenAI 列表响应兼容的 `GET /models` 合同，因此标准 `moonshot` Provider 接入既有 `openai-compatible` 目录发现主链路；`kimi-coding` 仍使用独立 Base URL 与 Anthropic Messages 协议，不随之开放。
+- 隔离临时 HOME 的当前源码真实验收：`/api/provider-templates` 精确返回上述 11 个 `supportsModelDiscovery=true` 与 8 个 `false`。真实浏览器新增普通 DashScope 和 DashScope Coding Plan 后，两者的模型区域都只有“添加模型”，没有“获取模型列表”、自动发现或批量添加；OpenCode 与 OpenRouter 则正常显示入口并取得目录。
 - 真实浏览器差集验收：全新实例的 OpenCode 默认已有 7 个模型，上游实时目录返回 8 个；点击“获取模型列表”后只显示唯一可添加项 `ling-3.0-tiny-free`，候选面板自动展开、滚动到 700px 视口内并获得焦点。点击“全部添加”后，界面立即变为“已获取 8 个模型，当前列表已全部包含”，不再显示空选择器或添加按钮；保存、强制刷新页面并再次获取后仍保持相同结果。
 - 显式获取的 toast 现在只说明“模型列表获取成功”，不再把上游总量当作可添加数量，也不再提示用户寻找不存在的选择入口；可添加数量与全量已包含状态统一由差集面板表达。
 - 大目录体验纠偏：完整目录改为浏览能力，更新提示只表示“上次已见之后新增”。单 Provider 首次候选超过 50 个时建立本机 UI 基线，不把数百项既有目录持续当作新模型；小批候选可通过“本批不再提醒”写入已见状态，Provider 配置不发生变化。
