@@ -369,7 +369,8 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     showWelcomeForDraft &&
     !sessionKey &&
     agent.visibleMessages.length === 0 &&
-    !agent.isHydrating;
+    !agent.isHydrating &&
+    !controller.isSending;
 
   return (
     <>
@@ -377,9 +378,6 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       <ChatConversationContent
         hasPreviousMessages={agent.hasPreviousMessages}
         historyError={agent.historyError}
-        isAwaitingAssistantOutput={
-          controller.isSending && currentSessionRunning
-        }
         isHistoryLoading={agent.isHydrating}
         isLoadingPreviousMessages={agent.isLoadingPreviousMessages}
         isSending={controller.isSending}

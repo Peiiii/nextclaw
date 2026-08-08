@@ -268,6 +268,7 @@ describe("SessionConversationArea input boundary", () => {
     mocks.agent.hydrateError = null;
     mocks.agent.snapshot.contextWindow = null;
     mocks.agent.snapshot.error = null;
+    mocks.controller.isSending = true;
     mocks.inputSnapshot.sendError = null;
     mocks.inputQuery.defaultModel = undefined;
     mocks.inputQuery.fallbackPreferredModel = undefined;
@@ -322,13 +323,27 @@ describe("SessionConversationArea input boundary", () => {
       .toBe("false");
   });
 
-  it("does not replace the welcome composer just because draft send starts", () => {
-    renderArea(null);
+  it("leaves the welcome surface on the first local sending render", () => {
+    mocks.agent.isRunning = false;
+    mocks.agent.isSending = false;
+    mocks.controller.isSending = false;
+    const rendered = renderArea(null);
 
     expect(screen.getByTestId("conversation-content").dataset.showWelcome).toBe(
       "true",
     );
-    expect(screen.getByTestId("welcome")).toBeTruthy();
+
+    mocks.controller.isSending = true;
+    rendered.rerender(
+      <MemoryRouter>
+        <SessionConversationArea sessionKey={null} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("conversation-content").dataset.showWelcome).toBe(
+      "false",
+    );
+    expect(screen.queryByTestId("welcome")).toBeNull();
     expect(screen.getByTestId("conversation-input")).toBeTruthy();
   });
 

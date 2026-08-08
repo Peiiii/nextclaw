@@ -7,6 +7,7 @@ import { useChatMessageLayoutStore } from "@/features/chat/stores/chat-message-l
 
 const captures = vi.hoisted(() => ({
   isAtBottom: true,
+  messageListIsSending: [] as boolean[],
   messageListSessionKeys: [] as Array<string | null>,
   onScroll: vi.fn(),
   scrollToBottom: vi.fn(),
@@ -24,10 +25,13 @@ vi.mock(
   "@/features/chat/features/message/components/chat-message-list.container",
   () => ({
     ChatMessageListContainer: ({
+      isSending,
       sessionKey,
     }: {
+      isSending: boolean;
       sessionKey: string | null;
     }) => {
+      captures.messageListIsSending.push(isSending);
       captures.messageListSessionKeys.push(sessionKey);
       return <div data-testid="chat-message-list" />;
     },
@@ -59,6 +63,8 @@ function renderContent(
     historyError?: Error | null;
     isContextCompacting?: boolean;
     isLoadingPreviousMessages?: boolean;
+    isSending?: boolean;
+    messages?: readonly NcpMessage[];
     onLoadPreviousMessages?: () => Promise<void>;
     showWelcome?: boolean;
   } = {},
@@ -68,12 +74,11 @@ function renderContent(
       bottomSlot={options.bottomSlot}
       hasPreviousMessages={options.hasPreviousMessages ?? false}
       historyError={options.historyError ?? null}
-      isAwaitingAssistantOutput={false}
       isHistoryLoading={false}
       isContextCompacting={options.isContextCompacting}
       isLoadingPreviousMessages={options.isLoadingPreviousMessages ?? false}
-      isSending={false}
-      messages={messages}
+      isSending={options.isSending ?? false}
+      messages={options.messages ?? messages}
       sessionKey="session-1"
       showWelcome={options.showWelcome ?? false}
       onLoadPreviousMessages={options.onLoadPreviousMessages ?? vi.fn()}
@@ -85,9 +90,28 @@ function renderContent(
 beforeEach(() => {
   useChatMessageLayoutStore.getState().setLayout("card");
   captures.isAtBottom = true;
+  captures.messageListIsSending = [];
   captures.messageListSessionKeys = [];
   captures.onScroll.mockReset();
   captures.scrollToBottom.mockReset();
+});
+
+it("shows the local optimistic loading state before backend running confirmation", () => {
+  renderContent({
+    isSending: true,
+  });
+
+  expect(captures.messageListIsSending).toEqual([true]);
+});
+
+it("mounts the optimistic loading surface before a new session has messages", () => {
+  renderContent({
+    isSending: true,
+    messages: [],
+  });
+
+  expect(screen.getByTestId("chat-message-list")).toBeTruthy();
+  expect(captures.messageListIsSending).toEqual([true]);
 });
 
 it("renders manual context compaction feedback after the message list", () => {

@@ -19,7 +19,6 @@ import { t } from "@/shared/lib/i18n";
 type ChatConversationContentProps = {
   bottomSlot?: ReactNode;
   canContinue?: boolean;
-  isAwaitingAssistantOutput: boolean;
   isHistoryLoading: boolean;
   hasPreviousMessages: boolean;
   historyError: Error | null;
@@ -42,7 +41,6 @@ type ChatConversationContentProps = {
 export function ChatConversationContent({
   bottomSlot,
   canContinue = false,
-  isAwaitingAssistantOutput,
   isHistoryLoading,
   hasPreviousMessages,
   historyError,
@@ -60,13 +58,14 @@ export function ChatConversationContent({
 }: ChatConversationContentProps) {
   const threadRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const hasConversationContent = messages.length > 0 || isSending;
   const { isAtBottom, onScroll, scrollToBottom } = useStickyBottomScroll({
     contentRef,
     scrollRef: threadRef,
     resetKey: sessionKey,
     isLoading: isHistoryLoading,
-    hasContent: messages.length > 0,
-    contentVersion: messages[messages.length - 1] ?? null,
+    hasContent: hasConversationContent,
+    contentVersion: messages[messages.length - 1] ?? isSending,
   });
   const hasMessages = messages.length > 0;
   const handleScroll = useCallback(
@@ -100,7 +99,7 @@ export function ChatConversationContent({
           (welcomeSlot ?? null)
         ) : (
           <div ref={contentRef} className="pb-7">
-            {hasMessages ? (
+            {hasConversationContent ? (
               <ChatConversationTrack className="relative py-4 sm:py-5">
                 {historyError ? (
                   <div role="alert" className="flex h-8 justify-center">
@@ -122,7 +121,7 @@ export function ChatConversationContent({
                 <ChatMessageListContainer
                   canContinue={canContinue}
                   messages={messages}
-                  isSending={isSending && isAwaitingAssistantOutput}
+                  isSending={isSending}
                   messageActionsDisabled={messageActionsDisabled}
                   onContinueRun={onContinueRun}
                   onEditMessage={onEditMessage}
