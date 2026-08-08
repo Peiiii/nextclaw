@@ -143,6 +143,35 @@ describe("loadConfig nextclaw built-in provider bootstrap", () => {
     expect(config.search.providers.tavily.includeAnswer).toBe(true);
   });
 
+  it("preserves exa as an enabled provider when loading persisted config", () => {
+    const dir = mkdtempSync(join(tmpdir(), "nextclaw-config-exa-"));
+    const configPath = join(dir, "config.json");
+
+    writeFileSync(configPath, JSON.stringify({
+      search: {
+        provider: "exa",
+        enabledProviders: ["exa"],
+        defaults: {
+          maxResults: 9
+        },
+        providers: {
+          exa: {
+            apiKey: "exa_test_key",
+            baseUrl: "https://api.exa.ai/search"
+          }
+        }
+      }
+    }, null, 2));
+
+    const config = loadConfig(configPath);
+
+    expect(config.search.provider).toBe("exa");
+    expect(config.search.enabledProviders).toEqual(["exa"]);
+    expect(config.search.defaults.maxResults).toBe(9);
+    expect(config.search.providers.exa.apiKey).toBe("exa_test_key");
+    expect(config.search.providers.exa.baseUrl).toBe("https://api.exa.ai/search");
+  });
+
   it("migrates provider modelThinking into modelConfig", () => {
     const dir = mkdtempSync(join(tmpdir(), "nextclaw-config-model-config-"));
     const configPath = join(dir, "config.json");

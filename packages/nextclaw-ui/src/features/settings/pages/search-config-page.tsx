@@ -43,7 +43,8 @@ const ENABLED_OPTIONS = [
 const SEARCH_PROVIDER_DESCRIPTION_KEYS: Record<SearchProviderName, string> = {
   bocha: 'searchProviderBochaDescription',
   tavily: 'searchProviderTavilyDescription',
-  brave: 'searchProviderBraveDescription'
+  brave: 'searchProviderBraveDescription',
+  exa: 'searchProviderExaDescription'
 };
 
 type SearchDraft = {
@@ -64,6 +65,7 @@ type SearchDraft = {
       includeAnswer: boolean;
     };
     brave: { apiKey: string; baseUrl: string };
+    exa: { apiKey: string; baseUrl: string };
   };
 };
 
@@ -92,7 +94,8 @@ function buildSearchDraft(search: SearchView): SearchDraft {
         searchDepth: search.providers.tavily.searchDepth ?? 'basic',
         includeAnswer: Boolean(search.providers.tavily.includeAnswer)
       },
-      brave: { apiKey: '', baseUrl: search.providers.brave.baseUrl }
+      brave: { apiKey: '', baseUrl: search.providers.brave.baseUrl },
+      exa: { apiKey: '', baseUrl: search.providers.exa.baseUrl }
     }
   };
 }
@@ -118,6 +121,10 @@ function buildSearchPayload(draft: SearchDraft): SearchConfigUpdate {
       brave: {
         apiKey: draft.providers.brave.apiKey || undefined,
         baseUrl: draft.providers.brave.baseUrl
+      },
+      exa: {
+        apiKey: draft.providers.exa.apiKey || undefined,
+        baseUrl: draft.providers.exa.baseUrl
       }
     }
   };
@@ -265,21 +272,23 @@ function SearchProviderFields(props: {
     );
   }
 
-  const { brave } = draft.providers;
+  const providerDraft = draft.providers[provider];
+  const providerView = search.providers[provider];
   return (
     <>
       <SearchTextField
         label={t('apiKey')}
-        value={brave.apiKey}
-        onChange={(apiKey) => updateProviderDraft('brave', { apiKey })}
-        placeholder={search.providers.brave.apiKeyMasked || t('enterApiKey')}
+        value={providerDraft.apiKey}
+        onChange={(apiKey) => updateProviderDraft(provider, { apiKey })}
+        placeholder={providerView.apiKeyMasked || t('enterApiKey')}
         type='password'
       />
       <SearchTextField
         label={t('searchProviderBaseUrl')}
-        value={brave.baseUrl}
-        onChange={(baseUrl) => updateProviderDraft('brave', { baseUrl })}
+        value={providerDraft.baseUrl}
+        onChange={(baseUrl) => updateProviderDraft(provider, { baseUrl })}
       />
+      <SearchDocsLink docsUrl={selectedDocsUrl} />
     </>
   );
 }

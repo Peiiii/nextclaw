@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("search config route", () => {
-  it("updates tavily config and exposes search metadata", async () => {
+  it("updates search provider configs and exposes complete search metadata", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
 
@@ -41,8 +41,8 @@ describe("search config route", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        provider: "tavily",
-        enabledProviders: ["tavily", "brave"],
+        provider: "exa",
+        enabledProviders: ["tavily", "brave", "exa"],
         defaults: {
           maxResults: 12
         },
@@ -51,6 +51,10 @@ describe("search config route", () => {
             apiKey: "tvly_test_key",
             searchDepth: "advanced",
             includeAnswer: true
+          },
+          exa: {
+            apiKey: "exa_test_key",
+            baseUrl: "https://api.exa.ai/search"
           }
         }
       })
@@ -66,11 +70,12 @@ describe("search config route", () => {
           bocha: { enabled: boolean };
           tavily: { apiKeySet: boolean; searchDepth?: string; includeAnswer?: boolean; enabled: boolean };
           brave: { enabled: boolean };
+          exa: { apiKeySet: boolean; baseUrl: string; enabled: boolean };
         };
       };
     };
-    expect(updatePayload.data.provider).toBe("tavily");
-    expect(updatePayload.data.enabledProviders).toEqual(["tavily", "brave"]);
+    expect(updatePayload.data.provider).toBe("exa");
+    expect(updatePayload.data.enabledProviders).toEqual(["tavily", "brave", "exa"]);
     expect(updatePayload.data.defaults.maxResults).toBe(12);
     expect(updatePayload.data.providers.tavily.apiKeySet).toBe(true);
     expect(updatePayload.data.providers.bocha.enabled).toBe(false);
@@ -78,6 +83,9 @@ describe("search config route", () => {
     expect(updatePayload.data.providers.brave.enabled).toBe(true);
     expect(updatePayload.data.providers.tavily.searchDepth).toBe("advanced");
     expect(updatePayload.data.providers.tavily.includeAnswer).toBe(true);
+    expect(updatePayload.data.providers.exa.apiKeySet).toBe(true);
+    expect(updatePayload.data.providers.exa.baseUrl).toBe("https://api.exa.ai/search");
+    expect(updatePayload.data.providers.exa.enabled).toBe(true);
 
     const configResponse = await app.request("http://localhost/api/config");
     expect(configResponse.status).toBe(200);
@@ -91,8 +99,8 @@ describe("search config route", () => {
         };
       };
     };
-    expect(configPayload.data.search.provider).toBe("tavily");
-    expect(configPayload.data.search.enabledProviders).toEqual(["tavily", "brave"]);
+    expect(configPayload.data.search.provider).toBe("exa");
+    expect(configPayload.data.search.enabledProviders).toEqual(["tavily", "brave", "exa"]);
     expect(configPayload.data.search.defaults.maxResults).toBe(12);
 
     const metaResponse = await app.request("http://localhost/api/config/meta");
@@ -103,6 +111,6 @@ describe("search config route", () => {
         search: Array<{ name: string }>;
       };
     };
-    expect(metaPayload.data.search.map((entry) => entry.name)).toEqual(["bocha", "tavily", "brave"]);
+    expect(metaPayload.data.search.map((entry) => entry.name)).toEqual(["bocha", "tavily", "brave", "exa"]);
   });
 });
