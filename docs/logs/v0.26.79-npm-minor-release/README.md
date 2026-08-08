@@ -33,6 +33,7 @@
 - `pnpm docs:i18n:check`：通过，98 组中英文 Markdown 页面保持镜像；定向内容检查确认两种语言都覆盖引用、编辑重跑、继续运行和 `/compact`。
 - Desktop stable release：[`v0.29.0-desktop.1`](https://github.com/Peiiii/nextclaw/releases/tag/v0.29.0-desktop.1) 已发布；macOS ARM/x64、Windows x64/ARM、Linux x64 的远程构建及资产发布均成功。
 - Desktop closure：GitHub Release 安装器和 portable 资产、stable 更新 manifest、公网 gh-pages manifest、稳定 APT 仓库均验证完成；公开 manifest 的 runtime 为 `0.29.0`，APT 包版本为 `0.0.240`。
+- Landing production：`pnpm deploy:landing` 已发布到 Cloudflare Pages；生产下载页加载的主 bundle 已直接核对包含 `v0.29.0-desktop.1` 与 `0.0.240`。
 
 ## 发布/部署方式
 
