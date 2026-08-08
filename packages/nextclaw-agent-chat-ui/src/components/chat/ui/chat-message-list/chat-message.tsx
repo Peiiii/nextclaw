@@ -1,5 +1,4 @@
 import { memo, useState, type ReactNode } from "react";
-import { ListChecks } from "lucide-react";
 import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
@@ -402,8 +401,6 @@ export const ChatMessage = memo(function ChatMessage({
                 <ChatCollapsibleMetaSummary
                   openGroup="process"
                   open={processOpen}
-                  icon={ListChecks}
-                  leadingIconClassName="bg-card"
                   label={message.processSummary?.label}
                   onClick={() => setProcessOpen((current) => !current)}
                 />

@@ -84,13 +84,23 @@ describe("ChatMessageList layout", () => {
     expect(screen.queryByText("Assistant · 10:01")).toBeNull();
   });
 
-  it("uses a flat typing indicator when no assistant draft exists", () => {
+  it("keeps the flat typing indicator until the assistant draft has content", () => {
     const { container } = render(
       <ChatMessageList
         layout="flat"
-        messages={[]}
+        messages={[
+          {
+            id: "assistant-pending",
+            role: "assistant",
+            roleLabel: "Assistant",
+            timestampLabel: "10:01",
+            status: "streaming",
+            parts: [{ type: "markdown", text: "" }],
+          },
+        ]}
         isSending
-        hasAssistantDraft={false}
+        hasAssistantDraft
+        showAssistantHeader={false}
         texts={texts}
       />,
     );
@@ -99,6 +109,79 @@ describe("ChatMessageList layout", () => {
       '[data-chat-message-surface="flat"]',
     );
     expect(typingSurface?.className).not.toContain("rounded-2xl");
+    expect(
+      container.querySelector('[data-testid="chat-message-avatar-assistant"]')
+        ?.parentElement?.className,
+    ).toContain("hidden");
     expect(screen.getByText("Typing...")).toBeTruthy();
+  });
+
+  it("hides the flat assistant header without remounting the message body", () => {
+    const message = {
+      id: "assistant",
+      role: "assistant" as const,
+      roleLabel: "Assistant",
+      timestampLabel: "10:01",
+      parts: [{ type: "markdown" as const, text: "Answer" }],
+    };
+    const { container, rerender } = render(
+      <ChatMessageList
+        layout="flat"
+        messages={[message]}
+        isSending={false}
+        hasAssistantDraft={false}
+        texts={texts}
+      />,
+    );
+    const body = container.querySelector('[data-chat-message-body="flat"]');
+    const answer = screen.getByText("Answer");
+
+    rerender(
+      <ChatMessageList
+        layout="flat"
+        messages={[message]}
+        isSending={false}
+        hasAssistantDraft={false}
+        showAssistantHeader={false}
+        texts={texts}
+      />,
+    );
+
+    const hiddenHeader = container.querySelector<HTMLElement>(
+      '[data-chat-message-header="flat"]',
+    );
+    expect(hiddenHeader?.hidden).toBe(true);
+    expect(hiddenHeader?.className).toContain("hidden");
+    expect(container.querySelector('[data-chat-message-body="flat"]')).toBe(body);
+    expect(screen.getByText("Answer")).toBe(answer);
+  });
+
+  it("hides the thinking label once a hidden-header reply starts streaming", () => {
+    const { container } = render(
+      <ChatMessageList
+        layout="flat"
+        messages={[
+          {
+            id: "assistant",
+            role: "assistant",
+            roleLabel: "Assistant",
+            timestampLabel: "10:01",
+            status: "streaming",
+            parts: [{ type: "markdown", text: "Partial answer" }],
+          },
+        ]}
+        isSending
+        hasAssistantDraft
+        showAssistantHeader={false}
+        texts={texts}
+      />,
+    );
+
+    expect(
+      container.querySelector<HTMLElement>('[data-chat-message-header="flat"]')
+        ?.hidden,
+    ).toBe(true);
+    expect(screen.getByText("Partial answer")).toBeTruthy();
+    expect(screen.queryByText("Typing...")).toBeNull();
   });
 });

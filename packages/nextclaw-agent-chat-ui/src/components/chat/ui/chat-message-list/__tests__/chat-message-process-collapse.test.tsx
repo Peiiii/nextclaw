@@ -184,6 +184,7 @@ it("collapses completed assistant process content without adding a nested card",
   );
 
   expect(screen.getByText("Processed")).toBeTruthy();
+  expect(screen.getByText("Processed").previousElementSibling).toBeNull();
   const processDivider = screen.getByText("Processed").closest("button")?.parentElement;
   expect(processDivider?.className).toContain("mb-2");
   expect(processDivider?.className).toContain("pb-2");

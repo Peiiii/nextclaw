@@ -40,6 +40,7 @@ import {
   ChatContextInheritanceDivider,
 } from "@/features/chat/features/message/components/chat-message-timeline-dividers";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatMessageLayoutStore } from "@/features/chat/stores/chat-message-layout.store";
 import { useNcpChatSelectedSession } from "@/features/chat/features/ncp/hooks/use-ncp-chat-derived-state";
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
@@ -173,6 +174,13 @@ const renderChatPanelAppCard = (panelApp: ChatPanelAppCardViewModel) => (
 
 export { ChatContextCompactionDivider } from "@/features/chat/features/message/components/chat-message-timeline-dividers";
 
+function isAwaitingAssistantOutputRow(
+  item: ChatTimelineItem,
+  activeRowKey: string | null,
+): boolean {
+  return item.kind === "typing" || item.key === activeRowKey;
+}
+
 export function ChatMessageListContainer({
   canContinue = false,
   messages: rawMessages,
@@ -188,14 +196,18 @@ export function ChatMessageListContainer({
   const { language } = useI18n();
   const messageLayout = useChatMessageLayoutStore((state) => state.layout);
   const selectedSession = useNcpChatSelectedSession(sessionKey);
+  const selectedAgentId = useChatSessionListStore(
+    (state) => state.snapshot.selectedAgentId,
+  );
   const sessionTypesData = useChatQueryStore(
     (state) => state.snapshot.sessionTypesQuery?.data ?? null,
   );
   const activeSessionType = normalizeSessionType(
-    selectedSession?.sessionType ??
-      sessionTypesData?.defaultType ??
-      DEFAULT_SESSION_TYPE,
+    selectedSession?.sessionType ?? sessionTypesData?.defaultType,
   );
+  const showAssistantHeader =
+    activeSessionType !== DEFAULT_SESSION_TYPE ||
+    (selectedSession?.agentId ?? selectedAgentId).trim().toLowerCase() !== "main";
   const sessionTypeOption = buildSessionTypeOptions(
     sessionTypesData?.options ?? [],
   ).find((option) => option.value === activeSessionType);
@@ -426,9 +438,10 @@ export function ChatMessageListContainer({
               <div className={item.kind === "message" ? "pb-5" : undefined}>
                 <ChatMessageList
                   assistantAvatarIcon={assistantAvatarIcon}
+                  showAssistantHeader={showAssistantHeader}
                   layout={messageLayout}
                   messages={item.kind === "message" ? [item.message] : []}
-                  isSending={item.kind === "typing"}
+                  isSending={isAwaitingAssistantOutputRow(item, activeRowKey)}
                   hasAssistantDraft={hasAssistantDraft}
                   texts={messageTexts}
                   onToolAction={presenter.chatThreadManager.handleToolAction}

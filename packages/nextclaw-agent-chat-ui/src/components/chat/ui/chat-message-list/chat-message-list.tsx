@@ -65,6 +65,7 @@ function hasRenderableText(value: string): boolean {
 
 export type ChatMessageListProps = {
   assistantAvatarIcon?: ReactNode;
+  showAssistantHeader?: boolean;
   layout?: ChatMessageLayout;
   messages: ChatMessageViewModel[];
   isSending: boolean;
@@ -97,6 +98,13 @@ function hasRenderableMessageContent(message: ChatMessageViewModel): boolean {
     }
     return true;
   });
+}
+
+function isFlatAssistantIdentityHidden(
+  layout: ChatMessageLayout,
+  showAssistantHeader: boolean,
+): boolean {
+  return layout === "flat" && !showAssistantHeader;
 }
 
 function ChatMessageTypingFooter() {
@@ -136,6 +144,7 @@ function ChatTypingIndicator({
 
 export function ChatMessageList({
   assistantAvatarIcon,
+  showAssistantHeader = true,
   className,
   isSending,
   layout = "card",
@@ -152,6 +161,10 @@ export function ChatMessageList({
   resolveFileContentUrl,
   texts,
 }: ChatMessageListProps) {
+  const flatAssistantIdentityHidden = isFlatAssistantIdentityHidden(
+    layout,
+    showAssistantHeader,
+  );
   const visibleMessages = messages.filter(hasRenderableMessageContent);
   const hasRenderableAssistantDraft = visibleMessages.some(
     (message) =>
@@ -184,7 +197,13 @@ export function ChatMessageList({
         if (layout === "flat" && !isUser) {
           return (
             <article key={message.id} data-chat-message-layout="flat" className="w-full min-w-0 space-y-2">
-              <div data-chat-message-header="flat" className="flex min-w-0 items-center gap-2.5">
+              <div
+                data-chat-message-header="flat"
+                hidden={flatAssistantIdentityHidden}
+                className={cn("flex min-w-0 items-center gap-2.5", {
+                  hidden: flatAssistantIdentityHidden,
+                })}
+              >
                 <ChatMessageAvatar
                   assistantIcon={assistantAvatarIcon}
                   role={message.role}
@@ -262,11 +281,16 @@ export function ChatMessageList({
 
       {isSending && !hasRenderableAssistantDraft ? (
         <div data-chat-message-layout={layout} className="flex justify-start gap-3">
-          <ChatMessageAvatar
-            assistantIcon={assistantAvatarIcon}
-            role="assistant"
-            size={layout === "flat" ? "compact" : "default"}
-          />
+          <div
+            hidden={flatAssistantIdentityHidden}
+            className={cn({ hidden: flatAssistantIdentityHidden })}
+          >
+            <ChatMessageAvatar
+              assistantIcon={assistantAvatarIcon}
+              role="assistant"
+              size={layout === "flat" ? "compact" : "default"}
+            />
+          </div>
           <ChatTypingIndicator label={texts.typingLabel} layout={layout} />
         </div>
       ) : null}
