@@ -58,7 +58,6 @@ function normalizeThinkingLevels(
 }
 
 export function buildModelStateHint(params: {
-  isModelOptionsLoading: boolean;
   isModelOptionsEmpty: boolean;
   onGoToProviders: () => void;
   texts: Pick<
@@ -68,18 +67,11 @@ export function buildModelStateHint(params: {
 }): ChatInlineHint | null {
   const {
     isModelOptionsEmpty,
-    isModelOptionsLoading,
     onGoToProviders,
     texts,
   } = params;
-  if (!isModelOptionsLoading && !isModelOptionsEmpty) {
+  if (!isModelOptionsEmpty) {
     return null;
-  }
-  if (isModelOptionsLoading) {
-    return {
-      tone: "neutral",
-      loading: true,
-    };
   }
   return {
     tone: "warning",

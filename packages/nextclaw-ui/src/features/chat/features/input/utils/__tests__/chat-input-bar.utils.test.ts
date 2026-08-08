@@ -1,5 +1,6 @@
 import {
   buildChatSlashItems,
+  buildModelStateHint,
   buildModelToolbarSelect,
   buildSkillPickerModel
 } from '@/features/chat/features/input/utils/chat-input-bar.utils';
@@ -32,6 +33,37 @@ function createModelTexts() {
     allModelsLabel: 'All models'
   };
 }
+
+describe('buildModelStateHint', () => {
+  it('keeps the input surface clear while model options are unresolved', () => {
+    expect(buildModelStateHint({
+      isModelOptionsEmpty: false,
+      onGoToProviders: vi.fn(),
+      texts: {
+        noModelOptionsLabel: 'No models',
+        configureProviderLabel: 'Configure provider'
+      }
+    })).toBeNull();
+  });
+
+  it('keeps the actionable warning when model loading resolves empty', () => {
+    const onGoToProviders = vi.fn();
+
+    expect(buildModelStateHint({
+      isModelOptionsEmpty: true,
+      onGoToProviders,
+      texts: {
+        noModelOptionsLabel: 'No models',
+        configureProviderLabel: 'Configure provider'
+      }
+    })).toEqual({
+      tone: 'warning',
+      text: 'No models',
+      actionLabel: 'Configure provider',
+      onAction: onGoToProviders
+    });
+  });
+});
 
 describe('buildChatSlashItems', () => {
   const texts = {

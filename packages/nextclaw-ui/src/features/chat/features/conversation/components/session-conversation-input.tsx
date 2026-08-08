@@ -422,7 +422,6 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
       }}
       inputSurface={inputSurfaceState.panel ?? undefined}
       hint={buildModelStateHint({
-        isModelOptionsLoading,
         isModelOptionsEmpty,
         onGoToProviders: presenter.chatUiManager.goToProviders,
         texts: {
