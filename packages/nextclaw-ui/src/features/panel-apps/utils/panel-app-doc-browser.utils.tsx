@@ -79,5 +79,6 @@ export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
         onRefresh={refreshIframe}
       />
     ),
+    supportsScrollRestoration: true,
   },
 };

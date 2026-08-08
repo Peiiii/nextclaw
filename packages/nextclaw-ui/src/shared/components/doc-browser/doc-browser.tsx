@@ -10,6 +10,7 @@ import {
 } from './doc-browser-context';
 import { normalizeDocUrl } from './utils/doc-browser-url.utils';
 import { DocBrowserHomePage } from './doc-browser-home-page';
+import { useDocBrowserScrollRestoration } from './hooks/use-doc-browser-scroll-restoration';
 import type { DocBrowserCustomTabRenderers } from './doc-browser-renderer.types';
 import {
   DocBrowserAddressToolbar,
@@ -200,6 +201,13 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
   const dockState = dockControls?.getDockState(currentTab);
   const isContentTab = currentTab?.kind === 'content';
   const isAddressToolbarTab = isDocsTab || isContentTab;
+  const supportsScrollRestoration = customRenderer?.supportsScrollRestoration === true;
+  const restoreScroll = useDocBrowserScrollRestoration({
+    currentTab,
+    iframeRef,
+    isEnabled: supportsScrollRestoration,
+    tabs,
+  });
   const { handleUrlSubmit, setUrlInput, urlInput } = useDocBrowserAddressBar({
     activeTabId,
     currentUrl,
@@ -381,6 +389,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
         iframeSandbox={iframeSandbox}
         isDragging={floatInteraction?.kind === 'drag'}
         isResizing={floatInteraction?.kind === 'resize'}
+        onIframeLoad={restoreScroll}
         onIframePointerOver={customRenderer?.onIframePointerOver}
       />
 

@@ -1,4 +1,4 @@
-import type { PointerEventHandler, ReactNode, Ref } from 'react';
+import type { PointerEventHandler, ReactNode, Ref, ReactEventHandler } from 'react';
 import {
   RefreshCw,
   Search,
@@ -30,6 +30,7 @@ type DocBrowserFrameContentProps = {
   iframeSandbox?: string;
   isDragging: boolean;
   isResizing: boolean;
+  onIframeLoad?: ReactEventHandler<HTMLIFrameElement>;
   onIframePointerOver?: PointerEventHandler<HTMLIFrameElement>;
 };
 
@@ -76,6 +77,7 @@ export function DocBrowserFrameContent({
   iframeSandbox,
   isDragging,
   isResizing,
+  onIframeLoad,
   onIframePointerOver,
 }: DocBrowserFrameContentProps) {
   return (
@@ -92,6 +94,7 @@ export function DocBrowserFrameContent({
           title={currentTab?.title || 'NextClaw Docs'}
           sandbox={iframeSandbox}
           tabIndex={onIframePointerOver ? 0 : undefined}
+          onLoad={onIframeLoad}
           onPointerOver={onIframePointerOver}
           allow="clipboard-read; clipboard-write"
           allowFullScreen

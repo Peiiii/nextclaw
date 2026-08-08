@@ -24,6 +24,7 @@ export type DocBrowserCustomTabRenderer = {
   renderContent?: (params: DocBrowserCustomTabRenderParams) => ReactNode;
   renderIcon?: (tab: DocBrowserTab) => ReactNode;
   renderToolbar?: (params: DocBrowserCustomTabRenderParams) => ReactNode;
+  supportsScrollRestoration?: boolean;
 };
 
 export type DocBrowserCustomTabRenderers = Record<string, DocBrowserCustomTabRenderer>;

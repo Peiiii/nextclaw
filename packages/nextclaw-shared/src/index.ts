@@ -73,6 +73,7 @@ export {
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
+export { PANEL_APP_SCROLL_RESTORATION_CONTRACT } from "./configs/panel-app-scroll-restoration.config.js";
 export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
 export {
   containsSilentReplyMarker,

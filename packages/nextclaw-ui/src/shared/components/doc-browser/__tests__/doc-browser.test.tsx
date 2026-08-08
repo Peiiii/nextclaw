@@ -8,6 +8,7 @@ import type {
   DocBrowserTab,
 } from "@/shared/components/doc-browser/doc-browser-context";
 import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
+import { PANEL_APP_SCROLL_RESTORATION_CONTRACT } from "@nextclaw/shared";
 
 const { navigateMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
@@ -460,7 +461,72 @@ describe("DocBrowser", () => {
 
     expect(screen.getByTitle("Local App").getAttribute("tabindex")).toBeNull();
   });
+});
 
+describe("DocBrowser scroll restoration", () => {
+  beforeEach(() => {
+    resetDocBrowserTestState();
+    installDocBrowserPointerTestEnvironment();
+  });
+
+  it("restores the active Panel App scroll surface after refresh", () => {
+    const panelAppTab: DocBrowserTab = {
+      id: "piano",
+      kind: "panel-app" as const,
+      title: "Piano",
+      currentUrl: "/api/panel-apps/piano/content",
+      history: ["/api/panel-apps/piano/content"],
+      historyIndex: 0,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [panelAppTab];
+    docBrowserState.activeTabId = panelAppTab.id;
+    docBrowserState.currentTab = panelAppTab;
+
+    const { container } = render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+
+    const initialIframe = container.querySelector('iframe[title="Piano"]') as HTMLIFrameElement;
+    const initialWindow = {} as Window;
+    Object.defineProperty(initialIframe, "contentWindow", {
+      configurable: true,
+      value: initialWindow,
+    });
+    window.dispatchEvent(new MessageEvent("message", {
+      data: {
+        type: PANEL_APP_SCROLL_RESTORATION_CONTRACT.scrollMessageType,
+        version: PANEL_APP_SCROLL_RESTORATION_CONTRACT.version,
+        target: {
+          kind: "element",
+          path: [{ index: 0, tagName: "main" }],
+        },
+        x: 24,
+        y: 360,
+      },
+      source: initialWindow,
+    }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh current panel app" }));
+
+    const refreshedIframe = container.querySelector('iframe[title="Piano"]') as HTMLIFrameElement;
+    const refreshedPostMessage = vi.fn();
+    Object.defineProperty(refreshedIframe, "contentWindow", {
+      configurable: true,
+      value: { postMessage: refreshedPostMessage },
+    });
+    fireEvent.load(refreshedIframe);
+
+    expect(refreshedIframe).not.toBe(initialIframe);
+    expect(refreshedPostMessage).toHaveBeenCalledWith({
+      type: PANEL_APP_SCROLL_RESTORATION_CONTRACT.restoreScrollMessageType,
+      version: PANEL_APP_SCROLL_RESTORATION_CONTRACT.version,
+      target: {
+        kind: "element",
+        path: [{ index: 0, tagName: "main" }],
+      },
+      x: 24,
+      y: 360,
+    }, "*");
+  });
 });
 
 describe("DocBrowser floating interactions", () => {

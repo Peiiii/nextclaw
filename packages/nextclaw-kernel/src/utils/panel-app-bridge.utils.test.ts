@@ -2,9 +2,178 @@ import { createContext, runInContext } from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 import {
   PANEL_APP_INLINE_HOST_CONTRACT,
+  PANEL_APP_SCROLL_RESTORATION_CONTRACT,
   createUiContentParamsWindowName,
 } from "@nextclaw/shared";
 import { getPanelAppBridgeScript } from "@kernel/utils/panel-app-bridge.utils.js";
+
+describe("panel app scroll restoration bridge", () => {
+  it("reports and restores the active Panel App scroll surface", () => {
+    const postMessage = vi.fn();
+    const scrollTo = vi.fn();
+    const listeners = new Map<string, Array<(event?: MessageEvent) => void>>();
+    const documentListeners = new Map<string, Array<(event?: MessageEvent) => void>>();
+    const parent = { postMessage };
+    const scrollSurface = {
+      children: [],
+      parentElement: null as unknown,
+      scrollLeft: 18,
+      scrollTop: 264,
+      scrollTo,
+      tagName: "DIV",
+    };
+    const body = { children: [scrollSurface] };
+    scrollSurface.parentElement = body;
+    const windowLike = {
+      addEventListener: vi.fn((type: string, listener: (event?: MessageEvent) => void) => {
+        listeners.set(type, [...(listeners.get(type) ?? []), listener]);
+      }),
+      document: {
+        addEventListener: vi.fn((type: string, listener: (event?: MessageEvent) => void) => {
+          documentListeners.set(type, [...(documentListeners.get(type) ?? []), listener]);
+        }),
+        body,
+        documentElement: {},
+        readyState: "complete",
+      },
+      location: { href: "http://localhost/panel", origin: "http://localhost", search: "" },
+      parent,
+      requestAnimationFrame: (callback: () => void) => {
+        callback();
+        return 1;
+      },
+      scrollTo,
+      scrollX: 0,
+      scrollY: 0,
+    };
+
+    runInContext(
+      getPanelAppBridgeScript(),
+      createContext({ Number, URLSearchParams, window: windowLike }),
+    );
+
+    expect(postMessage).not.toHaveBeenCalled();
+
+    documentListeners.get("scroll")?.forEach((listener) => listener({ target: scrollSurface } as MessageEvent));
+
+    expect(postMessage).toHaveBeenCalledWith({
+      type: PANEL_APP_SCROLL_RESTORATION_CONTRACT.scrollMessageType,
+      version: PANEL_APP_SCROLL_RESTORATION_CONTRACT.version,
+      target: {
+        kind: "element",
+        path: [{ index: 0, tagName: "div" }],
+      },
+      x: 18,
+      y: 264,
+    }, "*");
+
+    listeners.get("message")?.forEach((listener) => listener({
+      data: {
+        type: PANEL_APP_SCROLL_RESTORATION_CONTRACT.restoreScrollMessageType,
+        version: PANEL_APP_SCROLL_RESTORATION_CONTRACT.version,
+        target: {
+          kind: "element",
+          path: [{ index: 0, tagName: "div" }],
+        },
+        x: 36,
+        y: 528,
+      },
+      source: parent,
+    } as MessageEvent));
+
+    expect(scrollTo).toHaveBeenCalledWith(36, 528);
+  });
+
+  it("restores document scroll after asynchronous Panel App content renders", () => {
+    const postMessage = vi.fn();
+    const listeners = new Map<string, Array<(event?: MessageEvent) => void>>();
+    const documentListeners = new Map<string, Array<(event?: MessageEvent) => void>>();
+    const parent = { postMessage };
+    const body = { children: [] };
+    const documentElement = { clientHeight: 637, scrollHeight: 637 };
+    let viewportX = 12;
+    let viewportY = 432;
+    let notifyResize = () => undefined;
+    const scrollTo = vi.fn((x: number, y: number) => {
+      viewportX = x;
+      viewportY = Math.min(y, documentElement.scrollHeight - documentElement.clientHeight);
+    });
+    class PanelResizeObserver {
+      constructor(callback: () => void) {
+        notifyResize = callback;
+      }
+
+      disconnect = vi.fn();
+      observe = vi.fn();
+    }
+    const documentLike = {
+      addEventListener: vi.fn((type: string, listener: (event?: MessageEvent) => void) => {
+        documentListeners.set(type, [...(documentListeners.get(type) ?? []), listener]);
+      }),
+      body,
+      documentElement,
+      readyState: "complete",
+      scrollingElement: body,
+    };
+    const windowLike = {
+      addEventListener: vi.fn((type: string, listener: (event?: MessageEvent) => void) => {
+        listeners.set(type, [...(listeners.get(type) ?? []), listener]);
+      }),
+      document: documentLike,
+      location: { href: "http://localhost/panel", origin: "http://localhost", search: "" },
+      parent,
+      ResizeObserver: PanelResizeObserver,
+      requestAnimationFrame: (callback: () => void) => {
+        callback();
+        return 1;
+      },
+      scrollTo,
+      get scrollX() {
+        return viewportX;
+      },
+      get scrollY() {
+        return viewportY;
+      },
+    };
+
+    runInContext(
+      getPanelAppBridgeScript(),
+      createContext({ Number, URLSearchParams, window: windowLike }),
+    );
+
+    documentListeners.get("scroll")?.forEach((listener) => listener({ target: documentLike } as MessageEvent));
+
+    expect(postMessage).toHaveBeenCalledWith({
+      type: PANEL_APP_SCROLL_RESTORATION_CONTRACT.scrollMessageType,
+      version: PANEL_APP_SCROLL_RESTORATION_CONTRACT.version,
+      target: { kind: "document" },
+      x: 12,
+      y: 432,
+    }, "*");
+
+    viewportX = 0;
+    viewportY = 0;
+
+    listeners.get("message")?.forEach((listener) => listener({
+      data: {
+        type: PANEL_APP_SCROLL_RESTORATION_CONTRACT.restoreScrollMessageType,
+        version: PANEL_APP_SCROLL_RESTORATION_CONTRACT.version,
+        target: { kind: "document" },
+        x: 24,
+        y: 864,
+      },
+      source: parent,
+    } as MessageEvent));
+
+    expect(scrollTo).toHaveBeenCalledWith(24, 864);
+    expect(viewportY).toBe(0);
+
+    documentElement.scrollHeight = 1501;
+    notifyResize();
+
+    expect(viewportY).toBe(864);
+  });
+});
 
 describe("panel app inline host bridge", () => {
   it("preserves bootstrapped params when installing Panel App capabilities", () => {

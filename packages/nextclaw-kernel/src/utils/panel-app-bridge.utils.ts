@@ -1,5 +1,6 @@
 import {
   PANEL_APP_INLINE_HOST_CONTRACT,
+  PANEL_APP_SCROLL_RESTORATION_CONTRACT,
   readInlineContentHeight,
 } from "@nextclaw/shared";
 import { getUiContentParamsBootstrapScript } from "@kernel/utils/ui-content-params-injection.utils.js";
@@ -49,6 +50,215 @@ function getPanelAppInlineContentHeightReporterScript(): string {
       return;
     }
     start();
+  }`.trim();
+}
+
+function getPanelAppScrollSurfaceHelpersScript(): string {
+  return `
+    function readScrollPosition(element) {
+      const x = element ? element.scrollLeft : window.scrollX;
+      const y = element ? element.scrollTop : window.scrollY;
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0) {
+        return null;
+      }
+      return { x, y };
+    }
+
+    function getScrollSurface(target) {
+      const root = window.document.scrollingElement;
+      if (
+        !target ||
+        target === window.document ||
+        target === root ||
+        target === window.document.documentElement ||
+        target === window.document.body
+      ) {
+        return { kind: "document" };
+      }
+      if (!target.parentElement || !target.children || typeof target.scrollTop !== "number") {
+        return null;
+      }
+      const path = [];
+      let element = target;
+      while (element && element !== window.document.body) {
+        const parent = element.parentElement;
+        if (!parent || !parent.children) {
+          return null;
+        }
+        const index = Array.prototype.indexOf.call(parent.children, element);
+        const tagName = typeof element.tagName === "string" ? element.tagName.toLowerCase() : "";
+        if (index < 0 || !tagName) {
+          return null;
+        }
+        path.unshift({ index, tagName });
+        element = parent;
+      }
+      return element === window.document.body && path.length > 0 ? { kind: "element", path } : null;
+    }
+
+    function resolveScrollSurface(target) {
+      if (target.kind === "document") {
+        return null;
+      }
+      let element = window.document.body;
+      for (const segment of target.path) {
+        const child = element?.children?.[segment.index];
+        if (!child || child.tagName?.toLowerCase() !== segment.tagName) {
+          return undefined;
+        }
+        element = child;
+      }
+      return element;
+    }
+
+    function isScrollTarget(value) {
+      if (!value || typeof value !== "object") {
+        return false;
+      }
+      if (value.kind === "document") {
+        return true;
+      }
+      return value.kind === "element" &&
+        Array.isArray(value.path) &&
+        value.path.length > 0 &&
+        value.path.length <= 30 &&
+        value.path.every((segment) =>
+          segment &&
+          Number.isInteger(segment.index) &&
+          segment.index >= 0 &&
+          segment.index <= 1000 &&
+          typeof segment.tagName === "string" &&
+          segment.tagName.length > 0 &&
+          segment.tagName.length <= 32
+        );
+    }`.trim();
+}
+
+function getPanelAppScrollRestorationScript(): string {
+  return `
+  function installScrollRestoration() {
+    const scrollContract = ${JSON.stringify(PANEL_APP_SCROLL_RESTORATION_CONTRACT)};
+    const inlineHostContract = ${JSON.stringify(PANEL_APP_INLINE_HOST_CONTRACT)};
+    const searchParams = new URLSearchParams(window.location.search);
+    if (
+      searchParams.get(inlineHostContract.displayModeSearchParam) === inlineHostContract.displayMode &&
+      searchParams.get(inlineHostContract.placementSearchParam) === inlineHostContract.placement
+    ) {
+      return;
+    }
+    let isScrollReportScheduled = false;
+    let latestScrollSurface = null;
+
+    ${getPanelAppScrollSurfaceHelpersScript()}
+
+    function reportScroll() {
+      isScrollReportScheduled = false;
+      const surface = latestScrollSurface;
+      latestScrollSurface = null;
+      if (!surface) {
+        return;
+      }
+      const position = readScrollPosition(resolveScrollSurface(surface));
+      if (!position) {
+        return;
+      }
+      window.parent.postMessage({
+        type: scrollContract.scrollMessageType,
+        version: scrollContract.version,
+        target: surface,
+        ...position,
+      }, "*");
+    }
+
+    function scheduleScrollReport(event) {
+      const surface = getScrollSurface(event?.target);
+      if (!surface) {
+        return;
+      }
+      latestScrollSurface = surface;
+      if (isScrollReportScheduled) {
+        return;
+      }
+      isScrollReportScheduled = true;
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(reportScroll);
+        return;
+      }
+      reportScroll();
+    }
+
+    function applyScrollPosition(target, x, y) {
+      const element = resolveScrollSurface(target);
+      if (element === undefined) {
+        return false;
+      }
+      if (element && typeof element.scrollTo === "function") {
+        element.scrollTo(x, y);
+      } else if (element) {
+        element.scrollLeft = x;
+        element.scrollTop = y;
+      } else {
+        window.scrollTo(x, y);
+      }
+      const position = readScrollPosition(element);
+      return position && Math.abs(position.x - x) <= 1 && Math.abs(position.y - y) <= 1;
+    }
+
+    function restoreScroll(target, x, y) {
+      if (applyScrollPosition(target, x, y)) {
+        return;
+      }
+      let resizeObserver;
+      let mutationObserver;
+      let timeoutId;
+      const stop = () => {
+        resizeObserver?.disconnect();
+        mutationObserver?.disconnect();
+        if (timeoutId !== undefined && typeof window.clearTimeout === "function") {
+          window.clearTimeout(timeoutId);
+        }
+      };
+      const retry = () => {
+        if (applyScrollPosition(target, x, y)) {
+          stop();
+        }
+      };
+      if (typeof window.ResizeObserver === "function") {
+        resizeObserver = new window.ResizeObserver(retry);
+        resizeObserver.observe(window.document.documentElement);
+        if (window.document.body) {
+          resizeObserver.observe(window.document.body);
+        }
+      }
+      if (typeof window.MutationObserver === "function" && window.document.body) {
+        mutationObserver = new window.MutationObserver(retry);
+        mutationObserver.observe(window.document.body, { childList: true, subtree: true });
+      }
+      if (typeof window.setTimeout === "function") {
+        timeoutId = window.setTimeout(stop, 10000);
+      }
+    }
+
+    if (typeof window.document.addEventListener === "function") {
+      window.document.addEventListener("scroll", scheduleScrollReport, true);
+    }
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (
+        event.source !== window.parent ||
+        !data ||
+        data.type !== scrollContract.restoreScrollMessageType ||
+        data.version !== scrollContract.version ||
+        !isScrollTarget(data.target) ||
+        !Number.isFinite(data.x) ||
+        !Number.isFinite(data.y) ||
+        data.x < 0 ||
+        data.y < 0
+      ) {
+        return;
+      }
+      restoreScroll(data.target, data.x, data.y);
+    });
   }`.trim();
 }
 
@@ -103,6 +313,7 @@ ${getUiContentParamsBootstrapScript()}
   }
 
   ${getPanelAppInlineContentHeightReporterScript()}
+  ${getPanelAppScrollRestorationScript()}
 
   function resolveApiFetchUrl(input) {
     const raw = typeof input === "string" || input instanceof URL ? input.toString() : input?.url;
@@ -202,6 +413,7 @@ ${getUiContentParamsBootstrapScript()}
     }
   });
   installInlineContentHeightReporter();
+  installScrollRestoration();
 })();
 `.trim();
 }
