@@ -19,13 +19,19 @@
 - stdio runtime 附件输入定向测试：2/2 通过。
 - `NEXTCLAW_RELEASE_CHECK_RESET=1 pnpm release:check` 首轮捕获跨包路径别名缺陷；修复后从同一 checkpoint 继续，43/43 个公开包 build 与 TypeScript 全部通过。
 - `pnpm check:skill-progressive-loading`、`pnpm check:governance-backlog-ratchet`：通过。
-- Registry publish、stable runtime、公开 manifest、真实安装与 update 验证：待本次发布闭环完成后回填。
+- `pnpm release:publish`：43/43 个公开 package 已发布并经 registry 反查确认；`nextclaw@0.29.0` 为 npm `latest`。
+- Git tag：43 个 package tag 均已推送；`nextclaw@0.29.0^{}` 指向发布提交 `10b13b8bb39301b6748fb2ee7b890ef01c5f0ab2`。
+- Stable runtime workflow：[`31266314457`](https://github.com/Peiiii/nextclaw/actions/runs/31266314457) 成功，darwin-arm64、darwin-x64、linux-x64、win32-x64 四个平台资产均已发布。
+- GitHub Release：[`NextClaw v0.29.0`](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.29.0) 已发布，非 draft / prerelease。
+- 公开 manifest：发布脚本完成 gh-pages 源与公共 URL 双面校验；真实 launcher 从公开 stable 通道读到 `availableVersion=0.29.0`、`minimumHostVersion=0.18.11` 和 0.29.0 英文更新说明 URL。
+- 真实安装更新：在隔离目录从公开 registry 安装 `nextclaw@0.28.1`，依次完成 `--check`、`--download-only`、`--apply`；下载阶段未切换 current pointer，应用后新进程 `nextclaw --version` 返回 `0.29.0`。
+- 公开文档：中英文更新页和结构化 JSON 均返回 HTTP 200。
 
 ## 发布/部署方式
 
-- NPM：使用仓库标准 `pnpm release:publish` 发布完整公开依赖闭包，不使用 raw `npm publish`。
-- Runtime update：NPM 发布与 tag 推送完成后触发 stable runtime `0.29.0`。
-- Docs：随 `master` 推送发布中英文说明和结构化 JSON。
+- NPM：已使用仓库标准 `pnpm release:publish` 发布完整公开依赖闭包，没有使用 raw `npm publish`。
+- Runtime update：已触发并完成 stable runtime `0.29.0`，四平台资产、GitHub Release 和 gh-pages channel 已闭合。
+- Docs：中英文说明和结构化 JSON 已随 `master` 发布并完成公网访问验证。
 - Desktop installer / manifest：不适用，本次不制作新的桌面安装包。
 - 数据库 migration / 独立后端部署：不适用。
 
@@ -38,11 +44,11 @@
 
 ## 可维护性总结汇总
 
-发布版本只判断产品包 `nextclaw` 的整体 patch/minor 语义，其余 workspace package 交给 changeset 和依赖闭包统一处理，避免逐包重复裁决。发布检查发现的私有 alias 泄漏已通过删除跨边界隐含条件、改用包内相对导入修复，没有新增 adapter 或并行入口。版本说明、发布记录和生成产物沿用既有 owner 与目录；发布结束前还会运行 diff-only maintainability guard 并清理生成物漂移。
+发布版本只判断产品包 `nextclaw` 的整体 patch/minor 语义，其余 workspace package 交给 changeset 和依赖闭包统一处理，避免逐包重复裁决。发布检查发现的私有 alias 泄漏已通过删除跨边界隐含条件、改用包内相对导入修复，没有新增 adapter 或并行入口。版本说明、发布记录和生成产物沿用既有 owner 与目录；源码改动的 diff-only maintainability guard 已通过，发布构建重复产生的生成物空白漂移也已清理。
 
 ## NPM 包发布记录
 
-需要发布，原因是本批包含用户可见的新能力与修复。以下 43 个公开包已完成版本化和发布前验证，当前均为待统一发布：
+需要发布，原因是本批包含用户可见的新能力与修复。以下 43 个公开包均已完成版本化、发布和 registry 反查：
 
 - `@nextclaw/agent-chat-ui@0.6.21`
 - `@nextclaw/ncp@0.7.16`
