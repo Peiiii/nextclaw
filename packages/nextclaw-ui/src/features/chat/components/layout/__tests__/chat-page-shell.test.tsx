@@ -39,6 +39,29 @@ vi.mock("@/features/marketplace", () => ({
 }));
 
 describe("ChatPageLayout", () => {
+  it("uses the same canvas width for management pages", () => {
+    const agentsView = render(
+      <ChatPageLayout view="agents" confirmDialog={<div />} />,
+    );
+    const agentsCanvas = screen.getByText("Agents").parentElement;
+
+    expect(agentsCanvas?.className).toContain("max-w-[min(1180px,100%)]");
+    agentsView.unmount();
+
+    const cronView = render(
+      <ChatPageLayout view="cron" confirmDialog={<div />} />,
+    );
+    const cronCanvas = screen.getByText("Cron").parentElement;
+
+    expect(cronCanvas?.className).toContain("max-w-[min(1180px,100%)]");
+    cronView.unmount();
+
+    render(<ChatPageLayout view="skills" confirmDialog={<div />} />);
+    const skillsCanvas = screen.getByText("Marketplace").parentElement;
+
+    expect(skillsCanvas?.className).toContain("max-w-[min(1180px,100%)]");
+  });
+
   it("uses the dedicated mobile chat shell instead of the desktop split layout", () => {
     useViewportLayoutMock.mockReturnValue({
       mode: "mobile",

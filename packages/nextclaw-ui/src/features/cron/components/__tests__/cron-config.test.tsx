@@ -127,6 +127,10 @@ describe("CronConfig", () => {
   it("shows current task metrics and distinguishes bound and dedicated sessions", () => {
     renderCronConfig();
 
+    expect(
+      screen.getByRole("heading", { level: 1, name: "定时任务" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("自动化工作台")).toBeNull();
     expect(screen.getByText("全部任务")).toBeTruthy();
     expect(screen.getAllByText("运行中").length).toBeGreaterThan(0);
     expect(screen.getAllByText("需要关注").length).toBeGreaterThan(0);

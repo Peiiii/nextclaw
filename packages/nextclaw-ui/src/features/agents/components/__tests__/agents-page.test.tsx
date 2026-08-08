@@ -249,6 +249,9 @@ describe("AgentsPage", () => {
     renderAgentsPage();
 
     expect(screen.getByText("Agent 管理台")).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Agent 管理台" }),
+    ).toBeTruthy();
     expect(screen.getByText("~/.nextclaw/workspace")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "开始对话" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "更多操作" })).toHaveLength(2);

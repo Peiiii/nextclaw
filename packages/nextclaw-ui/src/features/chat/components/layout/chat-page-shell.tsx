@@ -11,6 +11,7 @@ export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox";
 export type ChatPageProps = {
   view: MainPanelView;
 };
+const MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS = "max-w-[min(1180px,100%)]";
 type UseChatSessionSyncParams = {
   routeSessionKey: string | null;
   syncRouteSessionSelection: (routeSessionKey: string | null) => void;
@@ -44,24 +45,24 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
       ) : (
         <section className="flex-1 min-h-0 overflow-hidden bg-background">
           {view === "inbox" ? (
-            <div className="mx-auto flex h-full min-h-0 w-full max-w-[min(1180px,100%)] flex-col py-4 sm:px-6 sm:py-5">
+            <div className={`mx-auto flex h-full min-h-0 w-full flex-col py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
               <InboxPage />
             </div>
           ) : view === "cron" ? (
             <div className="h-full overflow-auto custom-scrollbar">
-              <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
+              <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
                 <CronConfig />
               </div>
             </div>
           ) : view === "agents" ? (
             <div className="h-full overflow-auto custom-scrollbar">
-              <div className="mx-auto w-full max-w-[min(1180px,100%)] px-4 py-4 sm:px-6 sm:py-5">
+              <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
                 <AgentsPage />
               </div>
             </div>
           ) : (
             <div className="h-full overflow-hidden">
-              <div className="mx-auto flex h-full min-h-0 w-full max-w-[min(1120px,100%)] flex-col px-4 py-4 sm:px-6 sm:py-5">
+              <div className={`mx-auto flex h-full min-h-0 w-full flex-col px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
                 <MarketplacePage forcedType="skills" />
               </div>
             </div>

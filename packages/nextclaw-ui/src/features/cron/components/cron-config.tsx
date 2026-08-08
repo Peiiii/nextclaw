@@ -9,7 +9,7 @@ import {
   Search,
 } from "lucide-react";
 
-import { PageLayout } from "@/app/components/layout/page-layout";
+import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
 import { usePresenter } from "@/features/chat";
 import { CronJobDetailDialog } from "@/features/cron/components/cron-job-detail-dialog";
 import { CronJobRow } from "@/features/cron/components/cron-job-row";
@@ -24,6 +24,7 @@ import {
   useToggleCronJob,
 } from "@/features/cron/hooks/use-cron-jobs";
 import { Button } from "@/shared/components/ui/button";
+import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { Input } from "@/shared/components/ui/input";
 import type {
   CronJobView,
@@ -243,24 +244,20 @@ export function CronConfig() {
   const hasTasks = (summary?.total ?? 0) > 0;
 
   return (
-    <PageLayout className="space-y-7">
-      <header className="flex items-start justify-between gap-6 pt-2">
-        <div>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
-            {t("cronWorkspaceEyebrow")}
-          </div>
-          <h1 className="text-3xl font-semibold tracking-[-0.035em] text-foreground sm:text-4xl">
-            {t("cronPageTitle")}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t("cronPageDescription")}
-          </p>
-        </div>
-        <div className="pt-5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
+    <PageLayout className="space-y-6">
+      <PageHeader
+        headingLevel={1}
+        title={t("cronPageTitle")}
+        description={t("cronPageDescription")}
+        actions={(
+          <IconActionButton
+            size="lg"
+            label={t("refresh")}
+            icon={(
+              <RefreshCw
+                className={cn("h-4 w-4", cronQuery.isFetching && "animate-spin")}
+              />
+            )}
             onClick={() => {
               if (page === 0) {
                 setExpandedJobId(null);
@@ -269,14 +266,9 @@ export function CronConfig() {
                 handlePageChange(0);
               }
             }}
-            aria-label={t("refresh")}
-          >
-            <RefreshCw
-              className={cn("h-4 w-4", cronQuery.isFetching && "animate-spin")}
-            />
-          </Button>
-        </div>
-      </header>
+          />
+        )}
+      />
 
       {hasTasks ? (
         <CronTaskComposer

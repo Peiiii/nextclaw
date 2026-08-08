@@ -27,7 +27,7 @@ export function SettingsPage({
         className
       )}
     >
-      <PageHeader title={title} description={description} actions={actions} className='mb-0' />
+      <PageHeader title={title} description={description} actions={actions} />
       {children}
     </PageLayout>
   );

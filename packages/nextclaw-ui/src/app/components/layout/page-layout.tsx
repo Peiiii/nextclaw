@@ -36,20 +36,29 @@ interface PageHeaderProps {
     title: string;
     description?: string;
     actions?: React.ReactNode;
+    headingLevel?: 1 | 2;
     className?: string;
 }
 
-export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
+export function PageHeader({
+    title,
+    description,
+    actions,
+    headingLevel = 2,
+    className
+}: PageHeaderProps) {
+    const Heading = headingLevel === 1 ? 'h1' : 'h2';
+
     return (
-        <div className={cn('flex items-center justify-between mb-6 shrink-0', className)}>
-            <div>
-                <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+        <header className={cn('flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between', className)}>
+            <div className="min-w-0">
+                <Heading className="text-xl font-semibold tracking-tight text-foreground">{title}</Heading>
                 {description && (
-                    <p className="text-sm text-muted-foreground mt-1">{description}</p>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
                 )}
             </div>
             {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
-        </div>
+        </header>
     );
 }
 

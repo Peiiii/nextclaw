@@ -3,6 +3,7 @@ import type { InboxDelivery } from "@nextclaw/shared";
 import { Archive, ArrowLeft, Inbox, MessageCircle, RotateCcw, Trash2 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { PageHeader } from "@/app/components/layout/page-layout";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { InboxDeliveryContent } from "@/features/inbox/components/inbox-delivery-content";
 import { useInboxDeliveries } from "@/features/inbox/hooks/use-inbox-deliveries";
@@ -48,23 +49,6 @@ function InboxEmptyState({ selection = false }: { selection?: boolean }) {
         {t(selection ? "inboxSelectDescription" : "inboxEmptyDescription")}
       </p>
     </div>
-  );
-}
-
-function InboxPageHeader({ unreadCount }: { unreadCount: number }) {
-  return (
-    <header className="shrink-0 px-4 pb-3 pt-1 sm:px-0">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-          {t("inboxTitle")}
-        </h1>
-        {unreadCount > 0 ? (
-          <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-            {t("inboxUnreadCount").replace("{count}", String(unreadCount))}
-          </span>
-        ) : null}
-      </div>
-    </header>
   );
 }
 
@@ -355,8 +339,12 @@ export function InboxPage() {
   const showDetail = !isMobile || Boolean(activeDelivery);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <InboxPageHeader unreadCount={deliveriesQuery.data?.unreadCount ?? 0} />
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <PageHeader
+        headingLevel={1}
+        title={t("inboxTitle")}
+        className="px-4 sm:px-0"
+      />
 
       <div className="min-h-0 flex-1 overflow-hidden border-y border-border/60 bg-background sm:rounded-2xl sm:border">
         {deliveriesQuery.isError ? (

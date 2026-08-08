@@ -28,7 +28,7 @@ import {
   PopoverTrigger,
 } from "@/shared/components/ui/popover";
 import { TagChip } from "@/shared/components/tags/tag-chip";
-import { PageLayout } from "@/app/components/layout/page-layout";
+import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
 import { t } from "@/shared/lib/i18n";
 import { buildProviderModelCatalog } from "@/shared/lib/provider-models";
 import { cn } from "@/shared/lib/utils";
@@ -74,37 +74,6 @@ function buildAgentUpdateRequest(
       : { runtime: "" }),
     contextTokens: parseOptionalIntegerField(form.contextTokens, 1000),
   };
-}
-
-function AgentsHero(props: { agentCount: number; onCreate: () => void }) {
-  const { agentCount, onCreate } = props;
-
-  return (
-    <section className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold text-foreground">
-            {t("agentsHeroEyebrow")}
-          </h1>
-          <span className="rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            {agentCount}
-          </span>
-        </div>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          {t("agentsHeroDescription")}
-        </p>
-      </div>
-      <Button
-        type="button"
-        variant="primary"
-        className="h-9 shrink-0 rounded-xl px-4 text-sm font-semibold"
-        onClick={onCreate}
-      >
-        <Plus className="mr-2 h-4 w-4" />
-        {t("agentsCreateButton")}
-      </Button>
-    </section>
-  );
 }
 
 function AgentActionMenuItem(props: {
@@ -366,10 +335,22 @@ export function AgentsPage() {
   };
 
   return (
-    <PageLayout className="space-y-5">
-      <AgentsHero
-        agentCount={agents.length}
-        onCreate={requestAgentCreationDraft}
+    <PageLayout className="space-y-6">
+      <PageHeader
+        headingLevel={1}
+        title={t("agentsHeroEyebrow")}
+        description={t("agentsHeroDescription")}
+        actions={(
+          <Button
+            type="button"
+            variant="primary"
+            className="h-9 shrink-0 rounded-xl px-4 text-sm font-semibold"
+            onClick={requestAgentCreationDraft}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t("agentsCreateButton")}
+          </Button>
+        )}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
