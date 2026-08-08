@@ -6,6 +6,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import { realpath } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -407,7 +408,7 @@ describe("rendered HTML content params", () => {
 describe("server path project search", () => {
   it("searches project files and directories without traversing dependency folders", async () => {
     const app = createTestApp();
-    const root = realpathSync(createTempDir("nextclaw-ui-server-path-search-"));
+    const root = await realpath(createTempDir("nextclaw-ui-server-path-search-"));
     mkdirSync(join(root, "src", "shared"), { recursive: true });
     mkdirSync(join(root, "node_modules", "hidden-package"), { recursive: true });
     writeFileSync(join(root, "src", "server-path-search.ts"), "export {};");
