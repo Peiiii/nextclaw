@@ -1,5 +1,21 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.3.21
+
+### Patch Changes
+
+- 38e3e98: 修复通过 NARP stdio 运行时发送图片时附件被降级为纯文本的问题，保留附件顺序和文件元数据，并在本地资源无法解析时返回明确错误。
+- Updated dependencies [c3eb33c]
+- Updated dependencies [ae21568]
+- Updated dependencies [98c5b7f]
+- Updated dependencies [e309470]
+- Updated dependencies [31d5655]
+- Updated dependencies [8e53d92]
+- Updated dependencies [071c144]
+  - @nextclaw/core@0.15.20
+  - @nextclaw/ncp-toolkit@0.6.18
+  - @nextclaw/ncp@0.7.16
+
 ## 0.3.20
 
 ### Patch Changes

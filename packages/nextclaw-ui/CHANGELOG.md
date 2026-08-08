@@ -1,5 +1,54 @@
 # @nextclaw/ui
 
+## 0.15.23
+
+### Patch Changes
+
+- 825f589: 新增更柔和的“炭夜”深色主题，以中性炭灰表面和清晰层次减少深黑压迫感；用户消息保持安静的炭灰表面，清蓝色仅用于需要强调的操作。
+- c3eb33c: 修复聊天失败时同一供应商错误在对话区和输入框重复显示、视觉提示过强且原始响应被截断的问题；错误现在只在对话区以低干扰样式显示一次，正文保留供应商返回的完整内容，并在内容较长时通过限高滚动查看。
+- eb239c5: 聊天页加载模型时不再在输入框内部显示重复的脉冲骨架，输入区域保持干净稳定；模型不可用时仍会提供明确的配置入口。
+- 8049f49: 支持直接编辑当前会话最近一条用户消息并在同一会话继续执行；中断或失败后可从输入框或最近一条 AI 回复继续运行，后续输出会直接续写原回复而不是新增消息气泡，并准确区分续写前后成功与取消的工具操作。编辑器会自动聚焦到末尾，运行中隐藏编辑操作，所有纯图标入口均提供明确提示；切换模型时会继续保留可用的恢复入口。
+- ae21568: 修复运行中断或服务重启后，较早的助手回复偶尔排到后来用户消息之后的问题；聊天记录会按实际时间线稳定显示，并自动重建已有的错误消息索引。
+- b7ca1e2: 聊天输入界面进一步收紧模型选择与文件预览密度，搜索框聚焦不再跳变边框；默认 Main Agent 使用独立的柔和身份色，不再跟随主要操作色。
+- 49f826c: 定时任务的执行会话现在会以清晰的链接颜色和下划线显示，并通过站内导航直接打开对应会话，无需刷新整个页面。
+- 98c5b7f: 精简默认聊天消息的重复身份信息：Main Agent 使用 Native runtime 时，助手回复不再重复展示头像和名称；新会话发送后，首条用户消息与“Agent 正在思考...”会立即稳定显示，并在正式会话生成前后保持连续；编辑后重新执行或继续运行也无需等待后端 running 确认；首个可见回复出现后立即隐藏思考提示；已处理摘要移除无操作含义的前置图标。
+- af524e5: 全局通知新增始终可见的独立关闭按钮：用户可以直接忽略提醒而不进入对应会话；点击通知正文仍会打开目标内容。关闭操作支持键盘、触控与中英文无障碍提示。
+
+  <!-- release-note-image: zh-CN | images/screenshots/nextclaw-background-session-notification-cn.png | 可直接关闭或打开对应会话的 NextClaw 后台任务完成通知 -->
+  <!-- release-note-image: en-US | images/screenshots/nextclaw-background-session-notification-en.png | A dismissible NextClaw notification for a completed background task -->
+
+- ad02654: 斜杠命令列表会根据操作显示不同图标，让“侧边对话”和“压缩上下文”更容易区分。
+- e309470: 搜索设置新增 Exa 提供商：可配置 API Key 与自定义 Base URL，并使用统一的全局结果数量上限执行语义搜索和网页正文提取。感谢 [@suantea](https://github.com/suantea) 通过 [#23](https://github.com/Peiiii/nextclaw/pull/23) 贡献这项能力。
+- 55c489f: 修复收件箱静态 HTML 中的外部链接无法打开的问题；链接现在会在阅读器外打开，脚本、远程资源和表单等隔离限制保持不变。
+- f418af5: 修复 Agent 管理页暗色表面与创建草稿问题，并统一收件箱、Agent 管理、定时任务和技能市场的页面画布与标题区视觉规范。服务应用改用更紧凑的列表布局，连接操作直接可见，断开、删除、动作与诊断信息按需展开。
+- 8e53d92: Native 会话会在同一次长任务的工具调用轮次之间自动压缩上下文；压缩输入、输出和最终 checkpoint 使用包含工具 schema 与输出预留的同一动态预算，压缩后除完整摘要外还会按 token 预算保留最近的真实用户原文。上下文指示器会按完整输入显示系统与工具、会话内容、自动压缩线和输出预留。Agent 配置会按当前指令与全量工具动态拒绝不可用的小窗口；send、继续运行和编辑重跑共享同一运行状态入口，进程中断统一恢复为可继续的中性终态。运行中压缩与 continuation 前压缩会稳定显示在对应助手过程位置，刷新后不再堆到消息末尾。
+- bf3ff68: Panel App 在全局面板中刷新或重新挂载后会恢复到用户刚才阅读的滚动位置；异步加载内容时，会等页面布局就绪后再完成恢复。
+- 071c144: 增加提供商模型目录获取与后台自动刷新：Kimi 现在也能在提供商设置中获取当前模型列表，并参与每 12 小时的目录刷新；未填写 API Key 或上游拒绝鉴权时会直接给出可操作的本地化提示，不再展示原始英文 401，后台目录失败也不再被其他 Provider 的刷新状态拖成持续加载。其他尚未确认支持模型目录的提供商继续支持手工配置。候选只保留文本输出的聊天 LLM，图像、视频、语音、Embedding、Rerank 与 Moderation 模型不会进入聊天配置。聊天模型选择器只在展开后提示上次已见基线之后真正新增的模型，并支持“本批不再提醒”；首次大目录不会制造数百条提醒。具体提供商页会自动提示对应差集，超过 50 个候选时隐藏“全部添加”、支持搜索并只渲染前 50 个匹配项；已配置模型也可进入批量删除模式后全选或删除所选。显式获取、自动刷新和批量操作都只修改当前草稿或目录快照，不会绕过用户保存。
+- 3bca9fb: 优化 AI 收件箱的阅读层级：列表和正文现在通过轻量背景自然分区，筛选数量一目了然，明暗主题下的当前、未读与历史内容也更容易区分；紧凑的标题、摘要和操作区为 Markdown 与 HTML 正文留出更多空间。
+
+  <!-- release-note-image: zh-CN | images/screenshots/nextclaw-inbox-page-cn.png | 以紧凑列表和宽阔正文区域展示 AI 主动送达报告的 NextClaw 收件箱 -->
+  <!-- release-note-image: en-US | images/screenshots/nextclaw-inbox-page-en.png | The NextClaw inbox showing AI-delivered reports with a compact list and a spacious reading area -->
+
+- 3485009: 让聊天输入草稿按会话独立保存，切换会话或刷新页面后仍可恢复；未创建的新会话使用自己唯一的固定草稿区。
+- 08325d3: 新任务现在可以在发送首条消息前打开项目文件，并可随时切回默认工作目录；项目文件树与已打开文件页签共用统一操作菜单，可通过“更多操作”或右键添加到聊天，文件树的展开与滚动状态会在工作台切换后保留，首条消息创建正式会话时已打开的工作台也不会再关闭后闪回。文本型文件预览支持划选片段添加到聊天，引用会携带来源、位置、字符数量与选中快照，发送后可返回源文件，AI 也能准确读取该片段；输入框中的结构化引用支持复制、剪切和粘贴。文件、目录、项目、技能与文本片段在输入框和已发送消息中统一使用紧凑标签与语义图标。修复项目文件引用发送后丢失、AI 无法感知引用、引用后续正文被错误显示为链接，以及默认 workspace 会话中已发送文件引用点击无反应的问题。
+- Updated dependencies [825f589]
+- Updated dependencies [8049f49]
+- Updated dependencies [ae21568]
+- Updated dependencies [b7ca1e2]
+- Updated dependencies [98c5b7f]
+- Updated dependencies [ad02654]
+- Updated dependencies [8e53d92]
+- Updated dependencies [bf3ff68]
+- Updated dependencies [071c144]
+- Updated dependencies [08325d3]
+  - @nextclaw/agent-chat-ui@0.6.21
+  - @nextclaw/shared@0.4.19
+  - @nextclaw/ncp-react@0.5.20
+  - @nextclaw/client-sdk@0.5.22
+  - @nextclaw/ncp-toolkit@0.6.18
+  - @nextclaw/ncp@0.7.16
+  - @nextclaw/ncp-http-agent-client@0.4.16
+
 ## 0.15.22
 
 ### Patch Changes

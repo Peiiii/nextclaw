@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.29.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-08",
+  "title": {
+    "zh-CN": "NextClaw v0.29.0",
+    "en-US": "NextClaw v0.29.0"
+  },
+  "summary": {
+    "zh-CN": "长任务现在可以自动压缩上下文并继续执行，同时加入消息续跑、工作区文件引用和提供商模型发现。",
+    "en-US": "Long tasks can now compact context and continue automatically, with message continuation, workspace file references, and provider model discovery."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-08-nextclaw-v0-29-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-08-nextclaw-v0-29-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "长任务自动压缩上下文",
+            "en-US": "Automatic context compaction"
+          },
+          "body": {
+            "zh-CN": "Native Agent 会按完整模型预算压缩较早上下文，保留摘要与最近用户原文，并在同一次任务中继续执行。",
+            "en-US": "Native Agents compact earlier context against the full model budget, preserve a summary and recent user messages, and continue within the same task."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "编辑与继续运行",
+            "en-US": "Edit and continue"
+          },
+          "body": {
+            "zh-CN": "最近一条用户消息可以编辑后重跑，中断或失败的助手回复可以从原位置继续。",
+            "en-US": "The latest user message can be edited and rerun, while interrupted or failed replies can continue in place."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "工作区文件进入聊天",
+            "en-US": "Workspace files in chat"
+          },
+          "body": {
+            "zh-CN": "文件、目录和选中文本可以作为结构化引用发送，AI 能读取内容，用户也能返回源文件。",
+            "en-US": "Files, folders, and selected text can be sent as structured references that the AI can read and users can reopen."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "模型目录与 Exa 搜索",
+            "en-US": "Model catalogs and Exa search"
+          },
+          "body": {
+            "zh-CN": "Provider 设置支持发现和刷新聊天模型，搜索设置新增 Exa 提供商。",
+            "en-US": "Provider settings can discover and refresh chat models, and Search settings now support Exa."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更连续的工作界面",
+            "en-US": "More continuous workspace"
+          },
+          "body": {
+            "zh-CN": "会话草稿、Panel App 滚动位置和消息时间线在切换或刷新后保持稳定。",
+            "en-US": "Conversation drafts, Panel App scroll position, and message timelines remain stable across navigation and reloads."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "统一的阅读与管理体验",
+            "en-US": "Consistent reading and management"
+          },
+          "body": {
+            "zh-CN": "收件箱、通知、Agent 管理、定时任务和聊天界面更加一致，并新增炭夜深色主题。",
+            "en-US": "Inbox, notifications, Agent management, cron jobs, and chat surfaces are more consistent, with a new Charcoal Night theme."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "压缩与运行状态稳定",
+            "en-US": "Stable compaction and run state"
+          },
+          "body": {
+            "zh-CN": "压缩事件刷新后保持正确位置，继续运行和进程重启后的状态也会正确收敛。",
+            "en-US": "Compaction events keep their timeline position after reload, and run state now converges correctly after continuation or process restart."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "安装、附件与错误显示",
+            "en-US": "Install, attachments, and errors"
+          },
+          "body": {
+            "zh-CN": "修复全新安装模板、stdio 图片附件、重复聊天错误和部分消息顺序问题。",
+            "en-US": "Fixes cover fresh-install templates, stdio image attachments, duplicate chat errors, and message ordering."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移",
+            "en-US": "No migration required"
+          },
+          "body": {
+            "zh-CN": "已有配置保持不变；过小的 Agent 上下文窗口会在保存时明确拒绝。",
+            "en-US": "Existing configuration is preserved; Agent context windows that are too small are rejected when saved."
+          }
+        }
+      ]
+    }
+  ]
+}

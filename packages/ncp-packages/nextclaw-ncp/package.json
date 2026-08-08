@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp",
-  "version": "0.7.15",
+  "version": "0.7.16",
   "private": false,
   "description": "NextClaw Communication Protocol core abstractions and types.",
   "type": "module",

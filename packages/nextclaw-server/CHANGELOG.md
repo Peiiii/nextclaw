@@ -1,5 +1,31 @@
 # nextclaw-server
 
+## 0.15.22
+
+### Patch Changes
+
+- 8049f49: 支持直接编辑当前会话最近一条用户消息并在同一会话继续执行；中断或失败后可从输入框或最近一条 AI 回复继续运行，后续输出会直接续写原回复而不是新增消息气泡，并准确区分续写前后成功与取消的工具操作。编辑器会自动聚焦到末尾，运行中隐藏编辑操作，所有纯图标入口均提供明确提示；切换模型时会继续保留可用的恢复入口。
+- db9cab7: 定时任务列表现在优先展示最新创建的任务，新增任务无需翻页查找。
+- e309470: 搜索设置新增 Exa 提供商：可配置 API Key 与自定义 Base URL，并使用统一的全局结果数量上限执行语义搜索和网页正文提取。感谢 [@suantea](https://github.com/suantea) 通过 [#23](https://github.com/Peiiii/nextclaw/pull/23) 贡献这项能力。
+- 8e53d92: Native 会话会在同一次长任务的工具调用轮次之间自动压缩上下文；压缩输入、输出和最终 checkpoint 使用包含工具 schema 与输出预留的同一动态预算，压缩后除完整摘要外还会按 token 预算保留最近的真实用户原文。上下文指示器会按完整输入显示系统与工具、会话内容、自动压缩线和输出预留。Agent 配置会按当前指令与全量工具动态拒绝不可用的小窗口；send、继续运行和编辑重跑共享同一运行状态入口，进程中断统一恢复为可继续的中性终态。运行中压缩与 continuation 前压缩会稳定显示在对应助手过程位置，刷新后不再堆到消息末尾。
+- 071c144: 增加提供商模型目录获取与后台自动刷新：Kimi 现在也能在提供商设置中获取当前模型列表，并参与每 12 小时的目录刷新；未填写 API Key 或上游拒绝鉴权时会直接给出可操作的本地化提示，不再展示原始英文 401，后台目录失败也不再被其他 Provider 的刷新状态拖成持续加载。其他尚未确认支持模型目录的提供商继续支持手工配置。候选只保留文本输出的聊天 LLM，图像、视频、语音、Embedding、Rerank 与 Moderation 模型不会进入聊天配置。聊天模型选择器只在展开后提示上次已见基线之后真正新增的模型，并支持“本批不再提醒”；首次大目录不会制造数百条提醒。具体提供商页会自动提示对应差集，超过 50 个候选时隐藏“全部添加”、支持搜索并只渲染前 50 个匹配项；已配置模型也可进入批量删除模式后全选或删除所选。显式获取、自动刷新和批量操作都只修改当前草稿或目录快照，不会绕过用户保存。
+- Updated dependencies [c3eb33c]
+- Updated dependencies [8049f49]
+- Updated dependencies [ae21568]
+- Updated dependencies [38e3e98]
+- Updated dependencies [b507e1c]
+- Updated dependencies [e309470]
+- Updated dependencies [31d5655]
+- Updated dependencies [8e53d92]
+- Updated dependencies [bf3ff68]
+- Updated dependencies [071c144]
+- Updated dependencies [08325d3]
+  - @nextclaw/core@0.15.20
+  - @nextclaw/kernel@0.6.22
+  - @nextclaw/ncp@0.7.16
+  - @nextclaw/runtime@0.4.20
+  - @nextclaw/mcp@0.3.20
+
 ## 0.15.21
 
 ### Patch Changes

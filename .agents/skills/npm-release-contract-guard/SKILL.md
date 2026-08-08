@@ -22,6 +22,12 @@ description: 当发布 NextClaw NPM packages 或 NPM runtime update channel 时�
 - NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。
 - Registry、runtime channel、release notes、分支/记录回流和生成物清理按用户授权范围形成一个闭环。
 
+## 默认版本级别
+
+- 只判断产品包 `nextclaw` 的版本级别：用户明确指定时照做；未指定时由发布任务按完整未发布批次主动决定并说明，不反问用户。
+- 批次包含明显的向后兼容新能力时选择 `minor`，只有修复、润色和内部调整时选择 `patch`；现有 changeset 只是输入，不替代这个整体判断。
+- 其余 workspace package 不逐包做语义版本裁决，按依赖闭包和 changeset 跟随发布；确定 `minor` 后只需把一个代表性 changeset 中的 `nextclaw` bump 提升为 `minor`。
+
 Beta 优先 `pnpm release:beta`；仅 NPM 用 `release:beta:npm`，仅 channel 用 `release:beta:runtime`；stable channel 用 `release:stable:runtime`。
 
 最终报告 package/version/dist-tag、workflow、manifest、真实安装证据、分支闭合和残余 WIP。

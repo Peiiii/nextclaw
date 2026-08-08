@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-08T03:42:56.565Z",
+  "generatedAt": "2026-08-08T15:49:04.186Z",
   "hero": {
     "currentLoc": 224341,
     "testLoc": 85144,
     "trackedFiles": 2438,
-    "recentCommitCount": 364,
+    "recentCommitCount": 393,
     "activeDays30": 30,
     "recentReleaseCount": 50,
     "latestReleaseDate": "2026-08-07",
-    "latestNoteDate": "2026-08-07",
+    "latestNoteDate": "2026-08-08",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2445312,
     "basePercentOfBenchmark": 9.17,
@@ -1208,7 +1208,7 @@ export default {
       {
         "key": "2026-08-06",
         "label": "08-06",
-        "value": 9
+        "value": 10
       },
       {
         "key": "2026-08-07",
@@ -1218,7 +1218,7 @@ export default {
       {
         "key": "2026-08-08",
         "label": "08-08",
-        "value": 16
+        "value": 44
       }
     ],
     "commitWeekly": [
@@ -1280,7 +1280,7 @@ export default {
       {
         "key": "2026-08-03",
         "label": "08-03",
-        "value": 46
+        "value": 75
       }
     ],
     "releaseMonthly": [
@@ -1432,9 +1432,11 @@ export default {
       },
       {
         "date": "2026-07-31",
-        "tagCount": 1,
+        "tagCount": 6,
         "sampleTags": [
-          "v0.27.7-desktop.1"
+          "@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.2.17",
+          "@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.17",
+          "@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http@0.3.16"
         ]
       },
       {
@@ -1466,6 +1468,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-08-nextclaw-v0-29-0",
+        "date": "2026-08-08",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-08 · NextClaw v0.29.0",
+          "description": "NextClaw v0.29.0 keeps long tasks moving with automatic context compaction, message continuation, workspace file references, and provider model discovery.",
+          "href": "/en/notes/2026-08-08-nextclaw-v0-29-0"
+        },
+        "zh": {
+          "title": "2026-08-08 · NextClaw v0.29.0",
+          "description": "NextClaw v0.29.0 让长任务可以自动压缩上下文并继续执行，同时加入消息续跑、工作区文件引用和提供商模型发现。",
+          "href": "/zh/notes/2026-08-08-nextclaw-v0-29-0"
+        }
+      },
       {
         "slug": "2026-08-07-nextclaw-v0-28-2",
         "date": "2026-08-07",
@@ -2105,7 +2126,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-08T03:42:54.685Z",
     "sourceCount": {
-      "notes": 29,
+      "notes": 30,
       "scopes": 8
     }
   }

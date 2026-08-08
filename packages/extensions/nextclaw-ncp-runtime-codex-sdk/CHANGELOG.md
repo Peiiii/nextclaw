@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.2.17
+
+### Patch Changes
+
+- c3eb33c: 修复聊天失败时同一供应商错误在对话区和输入框重复显示、视觉提示过强且原始响应被截断的问题；错误现在只在对话区以低干扰样式显示一次，正文保留供应商返回的完整内容，并在内容较长时通过限高滚动查看。
+- Updated dependencies [8e53d92]
+  - @nextclaw/ncp@0.7.16
+
 ## 0.2.16
 
 ### Patch Changes
