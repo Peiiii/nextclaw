@@ -3,9 +3,11 @@ import { ChatThreadManager } from '@/features/chat/managers/chat-thread.manager'
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
-function createUiManager(): ConstructorParameters<typeof ChatThreadManager>[0] {
+function createUiManager(overrides: Record<string, unknown> = {}): ConstructorParameters<typeof ChatThreadManager>[0] {
   return {
     goToSession: vi.fn(),
+    isAtChatRoot: vi.fn(() => true),
+    ...overrides,
   } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
 }
 
@@ -92,7 +94,7 @@ describe('ChatThreadManager workspace pages', () => {
     });
   });
 
-  it('reparents an open draft workspace and its file tabs after materialization', () => {
+  it('materializes the draft selection, workspace, and route as one owner action', () => {
     useChatThreadStore.setState({
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
@@ -115,13 +117,18 @@ describe('ChatThreadManager workspace pages', () => {
         workspaceNavigationHistoryIndex: 1,
       },
     });
-    const manager = new ChatThreadManager(
-      createUiManager(),
-      {} as ConstructorParameters<typeof ChatThreadManager>[1],
-    );
+    const uiManager = createUiManager();
+    const syncRouteSessionSelection = vi.fn((sessionKey: string) => {
+      useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: sessionKey });
+      useChatThreadStore.getState().setSnapshot({ draftProjectRoot: null });
+    });
+    const manager = new ChatThreadManager(uiManager, {
+      syncRouteSessionSelection,
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[1]);
 
-    manager.materializeDraftWorkspace('materialized-session');
+    manager.materializeRootDraftSession('materialized-session');
 
+    expect(syncRouteSessionSelection).toHaveBeenCalledWith('materialized-session');
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
       draftProjectRoot: null,
       workspacePanelParentKey: 'materialized-session',
@@ -142,6 +149,22 @@ describe('ChatThreadManager workspace pages', () => {
         },
       ],
     });
+    expect(uiManager.goToSession).toHaveBeenCalledWith('materialized-session', {
+      replace: true,
+    });
+  });
+
+  it('ignores draft materialization after leaving the root route', () => {
+    const uiManager = createUiManager({ isAtChatRoot: vi.fn(() => false) });
+    const syncRouteSessionSelection = vi.fn();
+    const manager = new ChatThreadManager(uiManager, {
+      syncRouteSessionSelection,
+    } as unknown as ConstructorParameters<typeof ChatThreadManager>[1]);
+
+    manager.materializeRootDraftSession('materialized-session');
+
+    expect(syncRouteSessionSelection).not.toHaveBeenCalled();
+    expect(uiManager.goToSession).not.toHaveBeenCalled();
   });
 
   it('does not close fixed workspace pages', () => {

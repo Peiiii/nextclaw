@@ -231,7 +231,11 @@ export class ChatThreadManager {
     this.openWorkspacePage(sessionKey, 'project-files');
   };
 
-  materializeDraftWorkspace = (sessionKey: string) => {
+  materializeRootDraftSession = (rawSessionKey: string) => {
+    const sessionKey = rawSessionKey.trim();
+    if (!sessionKey || !this.uiManager.isAtChatRoot()) {
+      return;
+    }
     const patch = materializeDraftWorkspaceSnapshot(
       useChatThreadStore.getState().snapshot,
       sessionKey,
@@ -239,7 +243,9 @@ export class ChatThreadManager {
     if (!patch) {
       return;
     }
+    this.sessionListManager.syncRouteSessionSelection(sessionKey);
     useChatThreadStore.getState().setSnapshot(patch);
+    this.uiManager.goToSession(sessionKey, { replace: true });
   };
 
   openChildSessionPanel = (params: {

@@ -10,6 +10,7 @@
 - 项目文件引用现在使用专属 `workspace_file` token，不再误用上传附件 token；发送时会同时进入 NCP 用户消息正文和 inline-token metadata，用户消息可见且 Agent 能读取。
 - 文件引用协议在相邻正文之间自动补充分隔；对已经持久化的连写消息，准确 metadata 优先于贪婪文本推断，避免后续整句话被渲染成文件链接。
 - 已发送的 workspace 文件引用可以重新点击打开对应文件；默认 workspace 会话没有 `projectRoot` 时，使用 `workingDir` 还原相对路径，不再静默无响应。
+- 新任务首条消息物化为正式会话时，已打开的工作台保持同一个 React/DOM 实例，不再先关闭再重新打开。根因是旧流程先改绑 `workspacePanelParentKey`，随后才由路由布局同步 `selectedSessionKey`，两者短暂不一致触发工作台返回 `null`；现已将 session 选择、工作台改绑和路由替换收敛到 `ChatThreadManager` 的单一物化动作。
 - 根因：入口实现把项目文件引用调用到了上传附件的 `insertFileToken`，而发送器会丢弃没有上传实体的附件 token；同时协议序列化没有为结构化 token 和相邻正文建立边界。通过追踪“右键意图 → 编辑器节点 → NCP envelope → 持久化消息 → 消息渲染”确认两个首个错误跳点，修复落在 token 语义 owner 和发送序列化 owner，而不是只给渲染器打补丁。
 
 ## 测试/验证/验收方式
@@ -22,6 +23,8 @@
 - 本地运行实例 `http://127.0.0.1:5174/chat` 实测：默认 workspace 在切换到 `nextbot` 后仍可见、可用并可切回；新任务未发送消息时可打开工作台，项目文件树成功加载 130 个 treeitem。
 - 本次追加验证：`@nextclaw/ui` TypeScript 检查通过；8 个相关测试文件共 81 条通过，最终持久化文件引用组装测试文件 20 条通过；本轮触达文件定向 ESLint 无错误，既有超长测试文件仅保留 `max-lines` 告警。
 - 用户报告的精确 URL `http://127.0.0.1:5174/chat/sid_bmNwLW1zajhrcnp3LWIyYWM1Mzkz` 实测：关闭工作台后点击最后一条用户消息中的 `fish.js`，工作台从关闭状态重新打开并出现唯一 `fish.js` 页签；右键该页签显示“添加到聊天”和“关闭文件”。
+- 首发物化闪烁定向回归：3 个测试文件、12 条测试通过；组装测试直接断言物化前后的工作台 DOM 节点引用相同。`@nextclaw/ui` TypeScript 检查和本轮 5 个触达文件定向 ESLint 通过。
+- 本轮 scoped non-feature maintainability guard 通过：总计 `+87/-46`，非测试代码 `+8/-10`（净减 2 行）；新代码 governance 与 backlog ratchet 通过。
 - `pnpm release:summary -- --json`、maintainability guard、`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet` 与 `git diff --check` 通过。
 
 ## 发布/部署方式
@@ -39,6 +42,7 @@
 5. 在已有正文的光标位置添加文件引用并发送，确认用户消息只把文件名显示为引用，后续正文保持普通文本；Agent 能依据引用读取对应项目文件。
 6. 打开任意项目文件，分别点击页签“更多操作”和右键页签，确认菜单分组与操作一致，并可添加到聊天。
 7. 在默认 workspace 会话中点击已发送消息里的文件引用，确认工作台直接打开相对路径对应的文件。
+8. 新建任务并先打开右侧工作台，发送首条消息，确认进入正式会话的过程中工作台持续可见，宽度、打开内容和组件内部状态不被重置。
 
 ## 可维护性总结汇总
 
@@ -47,6 +51,7 @@
 - 项目文件与上传附件使用不同 token 语义，删除了隐式复用带来的下游丢失路径；右键菜单为业务无关共享组件，文件业务只提供菜单项配置。
 - 页签操作删除了独立 Popover 状态、样式和 action 映射，收敛到共享 `ContextMenuGroup[]`；组件类型、tab key 与文件预览父级保持稳定，菜单不会重挂载预览正文、iframe 或编辑器。
 - 重复失败复盘已补强验证 skill：结构化引用除了发送保真，还必须覆盖“持久化 token → 用户点击 → 目标 owner / 目标表面”消费闭环及 root 可选状态；同时明确低风险简单改动只选最小充分证据，权威信号通过后停止等价复验。
+- 首发物化 follow-up 删除了页面层 `useCallback` 与分步 manager 调用，把跨 session/workspace/route 的状态转移收敛到现有 `ChatThreadManager`；没有新增 transition flag、effect、延时、CSS 兜底或平行状态路径。该 follow-up 生产代码净减 2 行，工作台组件类型、key、父级位置与 DOM 身份均保持稳定。
 - 本次 follow-up 提交范围共 18 个文件，`+479/-156`（净增 323 行）；scoped maintainability guard 报告生产代码 `+195/-94`（净增 101 行），无错误。主要正向减债是删除旧页签 Popover 平行实现；消息列表测试文件仍有超长告警，本轮通过合并既有 metadata 测试承载点击闭环，避免再新增平行测试文件或重复 case。
 - 已使用 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review` 完成收尾；无新增红区文件，目录和文件命名通过 preflight governance。
 - 最终暂存范围共 58 个文件，`+1806/-232`（净增 1574 行）；排除测试、文档、changeset 与 skill 后，生产代码 `+1018/-211`（净增 807 行）。本轮属于新增用户能力，增长主要来自通用右键菜单、草稿工作台链路、文件引用 owner 与对应桌面能力；未通过压行或转移复杂度伪造减债。

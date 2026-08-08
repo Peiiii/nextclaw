@@ -5,9 +5,7 @@ import { ChatConversationPanel } from "@/features/chat/components/conversation/c
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 
 const mocks = vi.hoisted(() => ({
-  goToSession: vi.fn(),
-  isAtChatRoot: vi.fn(() => true),
-  materializeDraftWorkspace: vi.fn(),
+  materializeRootDraftSession: vi.fn(),
 }));
 const persistStorage = new Map<string, unknown>();
 
@@ -25,12 +23,8 @@ function createPersistStorage() {
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
-    chatUiManager: {
-      goToSession: mocks.goToSession,
-      isAtChatRoot: mocks.isAtChatRoot,
-    },
     chatThreadManager: {
-      materializeDraftWorkspace: mocks.materializeDraftWorkspace,
+      materializeRootDraftSession: mocks.materializeRootDraftSession,
     },
   }),
 }));
@@ -75,10 +69,7 @@ describe("ChatConversationPanel", () => {
   beforeEach(() => {
     persistStorage.clear();
     useChatSessionListStore.persist.setOptions({ storage: createPersistStorage() as never });
-    mocks.goToSession.mockReset();
-    mocks.materializeDraftWorkspace.mockReset();
-    mocks.isAtChatRoot.mockReset();
-    mocks.isAtChatRoot.mockReturnValue(true);
+    mocks.materializeRootDraftSession.mockReset();
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
@@ -105,28 +96,14 @@ describe("ChatConversationPanel", () => {
     expect(screen.getByTestId("workspace-section").dataset.sessionKey).toBe("session-1");
   });
 
-  it("materializes root draft sessions through the UI manager route owner", async () => {
+  it("delegates root draft materialization to the thread owner", async () => {
     const user = userEvent.setup();
 
     render(<ChatConversationPanel />);
     await user.click(screen.getByTestId("session-conversation-area"));
 
-    expect(mocks.materializeDraftWorkspace).toHaveBeenCalledWith(
+    expect(mocks.materializeRootDraftSession).toHaveBeenCalledWith(
       "materialized-session",
     );
-    expect(mocks.goToSession).toHaveBeenCalledWith("materialized-session", {
-      replace: true,
-    });
-  });
-
-  it("does not materialize through the root route callback outside chat root", async () => {
-    const user = userEvent.setup();
-    mocks.isAtChatRoot.mockReturnValue(false);
-
-    render(<ChatConversationPanel />);
-    await user.click(screen.getByTestId("session-conversation-area"));
-
-    expect(mocks.materializeDraftWorkspace).not.toHaveBeenCalled();
-    expect(mocks.goToSession).not.toHaveBeenCalled();
   });
 });
