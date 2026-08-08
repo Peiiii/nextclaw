@@ -74,7 +74,7 @@ export function AgentDetailsDialog({
 
   return (
     <Dialog open={agent !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-white p-0 sm:max-h-[720px] sm:max-w-2xl">
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-popover p-0 sm:max-h-[720px] sm:max-w-2xl">
         <div className="shrink-0 px-5 pb-3 pt-5">
           <DialogHeader className="text-left">
             <div className="flex min-w-0 items-center gap-3">
@@ -321,9 +321,9 @@ function DetailSection(props: {
   const { icon: Icon, title, children } = props;
 
   return (
-    <section className="space-y-2 border-t border-gray-100 pt-3 first:border-t-0 first:pt-0">
-      <h3 className="flex items-center gap-1.5 text-xs font-semibold leading-5 text-gray-900">
-        <Icon className="h-3.5 w-3.5 text-gray-400" />
+    <section className="space-y-2 border-t border-border/60 pt-3 first:border-t-0 first:pt-0">
+      <h3 className="flex items-center gap-1.5 text-xs font-semibold leading-5 text-foreground">
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
         {title}
       </h3>
       <dl className="grid min-w-0 gap-x-6 gap-y-2.5 pl-5 sm:grid-cols-2">
@@ -361,15 +361,15 @@ function DetailItem(props: {
       )}
     >
       <dt className="flex min-w-0 items-baseline leading-5">
-        <span className="whitespace-nowrap text-xs font-medium text-gray-500">
+        <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">
           {label}
         </span>
       </dt>
       <dd
         className={cn(
-          "min-w-0 break-words text-xs leading-5 text-gray-900",
+          "min-w-0 break-words text-xs leading-5 text-foreground",
           isStructuredValue
-            ? "max-h-28 overflow-auto whitespace-pre-wrap rounded bg-gray-50/70 px-2 py-1.5 text-left"
+            ? "max-h-28 overflow-auto whitespace-pre-wrap rounded bg-muted/50 px-2 py-1.5 text-left"
             : "",
         )}
       >
@@ -387,7 +387,7 @@ function SourceBadge({ source }: { source: DetailSource }) {
     <span
       className={cn(
         "ml-1 whitespace-nowrap text-xs font-normal leading-5",
-        source === "override" ? "text-blue-500" : "text-gray-400",
+        source === "override" ? "text-blue-500" : "text-muted-foreground",
       )}
     >
       （{source === "override"

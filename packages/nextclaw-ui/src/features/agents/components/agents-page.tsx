@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   useDeleteAgent,
   useAgents,
@@ -20,7 +19,6 @@ import {
   usePresenter,
   useNcpChatSessionTypes,
 } from "@/features/chat";
-import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { AgentAvatar } from "@/shared/components/common/agent-avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
@@ -82,17 +80,17 @@ function AgentsHero(props: { agentCount: number; onCreate: () => void }) {
   const { agentCount, onCreate } = props;
 
   return (
-    <section className="flex flex-col gap-3 border-b border-gray-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+    <section className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold text-gray-950">
+          <h1 className="text-xl font-semibold text-foreground">
             {t("agentsHeroEyebrow")}
           </h1>
-          <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-500">
+          <span className="rounded-full border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground">
             {agentCount}
           </span>
         </div>
-        <p className="max-w-2xl text-sm leading-6 text-gray-500">
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
           {t("agentsHeroDescription")}
         </p>
       </div>
@@ -131,7 +129,7 @@ function AgentActionMenuItem(props: {
         "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         destructive
           ? "text-destructive hover:bg-destructive/10"
-          : "text-gray-700 hover:bg-gray-100",
+          : "text-foreground hover:bg-muted",
       )}
       onClick={onClick}
       disabled={disabled}
@@ -172,7 +170,7 @@ function AgentListCard(props: {
     : defaultRuntimeLabel;
 
   return (
-    <Card className="group overflow-hidden border border-gray-200 bg-white shadow-none transition-colors duration-200 hover:border-gray-300">
+    <Card className="group overflow-hidden border border-border bg-card shadow-none transition-colors duration-200 hover:border-border/80">
       <CardContent className="relative flex h-full flex-col gap-3 px-3.5 py-3.5">
         <div className="flex items-start gap-2.5 pr-16">
           <AgentAvatar
@@ -183,7 +181,7 @@ function AgentListCard(props: {
           />
           <div className="min-w-0 flex-1 space-y-0.5">
             <div className="flex min-w-0 items-center gap-2">
-              <div className="truncate text-sm font-semibold text-gray-950">
+              <div className="truncate text-sm font-semibold text-foreground">
                 {agent.displayName?.trim() || agent.id}
               </div>
               {agent.builtIn ? (
@@ -196,7 +194,7 @@ function AgentListCard(props: {
                 </TagChip>
               ) : null}
             </div>
-            <div className="truncate text-xs text-gray-400">@{agent.id}</div>
+            <div className="truncate text-xs text-muted-foreground">@{agent.id}</div>
           </div>
         </div>
 
@@ -205,7 +203,7 @@ function AgentListCard(props: {
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-800"
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
             aria-label={t("agentsCardStartChat")}
             title={t("agentsCardStartChat")}
             onClick={onStartChat}
@@ -218,7 +216,7 @@ function AgentListCard(props: {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-800"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground"
                 aria-label={t("chatSessionMoreActions")}
                 title={t("chatSessionMoreActions")}
               >
@@ -250,20 +248,20 @@ function AgentListCard(props: {
           </Popover>
         </div>
 
-        <p className="line-clamp-2 min-h-10 text-sm leading-5 text-gray-600">
+        <p className="line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
           {agent.description?.trim() ||
             (agent.builtIn
               ? t("agentsCardBuiltInSummary")
               : t("agentsCardCustomSummary"))}
         </p>
 
-        <div className="mt-auto grid gap-2 border-t border-gray-100 pt-2 text-xs text-gray-500">
+        <div className="mt-auto grid gap-2 border-t border-border/60 pt-2 text-xs text-muted-foreground">
           <div className="flex min-w-0 items-center gap-2">
-            <Sparkles className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
             <span className="truncate">{runtimeLabel}</span>
           </div>
           <div className="flex min-w-0 items-center gap-2">
-            <House className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+            <House className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
             <span className="truncate">{agent.workspace ?? "-"}</span>
           </div>
         </div>
@@ -274,8 +272,6 @@ function AgentListCard(props: {
 
 export function AgentsPage() {
   const presenter = usePresenter();
-  const appPresenter = useAppPresenter();
-  const navigate = useNavigate();
   const agentsQuery = useAgents();
   const configQuery = useConfig();
   const providersQuery = useProviders();
@@ -362,8 +358,11 @@ export function AgentsPage() {
     );
   };
   const requestAgentCreationDraft = () => {
-    navigate("/chat");
-    appPresenter.chatDraftIntentManager.requestDraft(AGENT_CREATION_PROMPT);
+    presenter.chatSessionListManager.startAgentDraftChat(
+      "main",
+      defaultRuntime,
+      AGENT_CREATION_PROMPT,
+    );
   };
 
   return (
@@ -375,21 +374,21 @@ export function AgentsPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {agentsQuery.isLoading ? (
-          <Card className="md:col-span-2 xl:col-span-3 border-dashed border-[#d9dce3] bg-white/70">
-            <CardContent className="py-14 text-center text-sm text-gray-500">
+          <Card className="md:col-span-2 xl:col-span-3 border-dashed border-border bg-card/70">
+            <CardContent className="py-14 text-center text-sm text-muted-foreground">
               {t("agentsLoading")}
             </CardContent>
           </Card>
         ) : sortedAgents.length === 0 ? (
-          <Card className="md:col-span-2 xl:col-span-3 overflow-hidden border-dashed border-[#d9dce3] bg-[linear-gradient(135deg,#fff7ea_0%,#f4fbff_100%)]">
+          <Card className="md:col-span-2 xl:col-span-3 overflow-hidden border-dashed border-border bg-gradient-subtle">
             <CardContent className="flex min-h-[240px] flex-col items-center justify-center px-6 py-14 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/80 shadow-[0_18px_44px_rgba(0,0,0,0.08)]">
-                <Bot className="h-8 w-8 text-[#d39a3b]" />
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-card/80 shadow-[0_18px_44px_rgba(0,0,0,0.08)]">
+                <Bot className="h-8 w-8 text-warning" />
               </div>
-              <div className="text-lg font-semibold text-[#2f2212]">
+              <div className="text-lg font-semibold text-foreground">
                 {t("agentsEmpty")}
               </div>
-              <p className="mt-2 max-w-md text-sm leading-6 text-[#78644d]">
+              <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                 {t("agentsEmptyDescription")}
               </p>
               <Button

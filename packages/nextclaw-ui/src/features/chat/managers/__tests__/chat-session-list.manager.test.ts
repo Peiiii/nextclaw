@@ -122,7 +122,7 @@ describe("ChatSessionListManager draft and selection flow", () => {
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
 
     const manager = new ChatSessionListManager(uiManager);
-    manager.startAgentDraftChat("researcher", "codex");
+    manager.startAgentDraftChat("researcher", "codex", "Create an agent");
 
     expect(uiManager.navigateTo).toHaveBeenCalledWith("/chat/draft", {
       replace: true,
@@ -130,7 +130,7 @@ describe("ChatSessionListManager draft and selection flow", () => {
         chatDraft: {
           sessionType: "codex",
           projectRoot: null,
-          prompt: null,
+          prompt: "Create an agent",
         },
       },
     });

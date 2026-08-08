@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import type * as ReactRouterDom from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentsPage } from "@/features/agents";
 import {
@@ -14,8 +13,7 @@ const mocks = vi.hoisted(() => ({
   createAgent: vi.fn(),
   updateAgent: vi.fn(),
   deleteAgent: vi.fn(),
-  navigate: vi.fn(),
-  requestDraft: vi.fn(),
+  startAgentDraftChat: vi.fn(),
   sessionTypesQuery: {
     data: {
       defaultType: "native",
@@ -117,22 +115,6 @@ function createPersistStorage() {
   };
 }
 
-vi.mock("react-router-dom", async (importOriginal) => {
-  const actual = await importOriginal<typeof ReactRouterDom>();
-  return {
-    ...actual,
-    useNavigate: () => mocks.navigate,
-  };
-});
-
-vi.mock("@/app/components/app-presenter-provider", () => ({
-  useAppPresenter: () => ({
-    chatDraftIntentManager: {
-      requestDraft: mocks.requestDraft,
-    },
-  }),
-}));
-
 vi.mock("@/shared/hooks/use-agents", () => ({
   useAgents: () => mocks.agentsQuery,
   useCreateAgent: () => ({
@@ -197,7 +179,12 @@ vi.mock("@/features/chat", async () => {
     ...sessionTypeUtils,
     usePresenter: () => ({
       chatSessionListManager: {
-        startAgentDraftChat: (agentId: string) => {
+        startAgentDraftChat: (
+          agentId: string,
+          sessionType: string,
+          prompt?: string,
+        ) => {
+          mocks.startAgentDraftChat(agentId, sessionType, prompt);
           sessionListStore.useChatSessionListStore.getState().setSnapshot({
             selectedAgentId: agentId,
             selectedSessionKey: null,
@@ -231,8 +218,7 @@ describe("AgentsPage", () => {
     mocks.createAgent.mockReset();
     mocks.updateAgent.mockReset();
     mocks.deleteAgent.mockReset();
-    mocks.navigate.mockReset();
-    mocks.requestDraft.mockReset();
+    mocks.startAgentDraftChat.mockReset();
     if (!HTMLElement.prototype.hasPointerCapture) {
       HTMLElement.prototype.hasPointerCapture = () => false;
     }
@@ -276,8 +262,9 @@ describe("AgentsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "新增 Agent" }));
 
-    expect(mocks.navigate).toHaveBeenCalledWith("/chat");
-    expect(mocks.requestDraft).toHaveBeenCalledWith(
+    expect(mocks.startAgentDraftChat).toHaveBeenCalledWith(
+      "main",
+      "native",
       expect.stringContaining("请直接创建一个默认示例 Agent，不要问我问题"),
     );
     expect(mocks.createAgent).not.toHaveBeenCalled();
@@ -288,6 +275,9 @@ describe("AgentsPage", () => {
     await user.click(detailsEditButtons[detailsEditButtons.length - 1]);
 
     expect(screen.getByText("编辑 Agent 身份")).toBeTruthy();
+    const editDialog = screen.getByText("编辑 Agent 身份").closest("[role='dialog']");
+    expect(editDialog?.className).toContain("bg-popover");
+    expect(editDialog?.className).not.toContain("linear-gradient");
     expect(screen.getByText("主目录保持不变")).toBeTruthy();
     expect(screen.getByDisplayValue("Researcher")).toBeTruthy();
     expect(
@@ -310,6 +300,7 @@ describe("AgentsPage", () => {
     expect(screen.queryByRole("button", { name: "保存编辑" })).toBeNull();
     const detailsDialog = screen.getByText("身份").closest("[role='dialog']");
     expect(detailsDialog?.className).toContain("sm:max-w-2xl");
+    expect(detailsDialog?.className).toContain("bg-popover");
     const detailLists = Array.from(detailsDialog?.querySelectorAll("dl") ?? []);
     expect(detailLists.length).toBeGreaterThan(0);
     expect(

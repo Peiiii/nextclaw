@@ -15,16 +15,16 @@ export function AgentAdvancedConfigFields({
   onChange,
 }: AgentAdvancedConfigFieldsProps) {
   return (
-    <details className="group rounded-2xl border border-gray-200 bg-white">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-gray-800 [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-2xl border border-border bg-card">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 items-center gap-2">
-          <Settings2 className="h-4 w-4 shrink-0 text-gray-400" />
+          <Settings2 className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="truncate">{t("agentsAdvancedConfigToggle")}</span>
         </span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <div className="space-y-4 border-t border-gray-100 px-4 py-4">
-        <p className="text-xs leading-5 text-gray-500">
+      <div className="space-y-4 border-t border-border/60 px-4 py-4">
+        <p className="text-xs leading-5 text-muted-foreground">
           {t("agentsAdvancedConfigDescription")}
         </p>
         <div className="grid gap-4 md:grid-cols-2">
@@ -53,7 +53,7 @@ function AgentNumberField(props: {
   const { label, value, min, step, disabled, onChange } = props;
 
   return (
-    <label className="space-y-2 text-sm font-medium text-gray-700">
+    <label className="space-y-2 text-sm font-medium text-foreground">
       <span>{label}</span>
       <Input
         type="number"

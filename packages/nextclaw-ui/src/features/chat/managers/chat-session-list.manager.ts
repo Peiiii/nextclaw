@@ -212,9 +212,9 @@ export class ChatSessionListManager {
     });
   };
 
-  startAgentDraftChat = (agentId: string, sessionType: string): void => {
+  startAgentDraftChat = (agentId: string, sessionType: string, prompt?: string): void => {
     const normalizedAgentId = agentId.trim() || "main";
-    this.createSession({ sessionType });
+    this.createSession({ prompt, sessionType });
     this.setSelectedAgentId(normalizedAgentId);
   };
 

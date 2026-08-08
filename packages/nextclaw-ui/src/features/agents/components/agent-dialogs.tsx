@@ -138,7 +138,7 @@ function AgentRuntimeSelectField({
         </SelectContent>
       </Select>
       {helperText ? (
-        <p className="text-xs text-gray-500">{helperText}</p>
+        <p className="text-xs text-muted-foreground">{helperText}</p>
       ) : null}
     </div>
   );
@@ -238,8 +238,8 @@ function AgentCreateDialogContent(props: {
   );
 
   return (
-    <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-[linear-gradient(180deg,#fff9f1_0%,#ffffff_24%)] p-0 sm:max-h-[760px] sm:max-w-xl">
-      <div className="shrink-0 border-b border-[#f0e2c8] px-6 py-6">
+    <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-popover p-0 sm:max-h-[760px] sm:max-w-xl">
+      <div className="shrink-0 border-b border-border px-6 py-6">
         <DialogHeader className="text-left">
           <DialogTitle>{t("agentsCreateDialogTitle")}</DialogTitle>
           <DialogDescription>
@@ -319,7 +319,7 @@ function AgentCreateDialogContent(props: {
           />
         </div>
       </div>
-      <DialogFooter className="shrink-0 border-t border-[#f1e7d4] px-6 py-5">
+      <DialogFooter className="shrink-0 border-t border-border px-6 py-5">
         <Button
           type="button"
           variant="ghost"
@@ -366,8 +366,8 @@ function AgentEditDialogContent(props: {
   );
 
   return (
-    <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-[linear-gradient(180deg,#fff9f1_0%,#ffffff_24%)] p-0 sm:max-h-[760px] sm:max-w-xl">
-      <div className="shrink-0 border-b border-[#f0e2c8] px-6 py-6">
+    <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col overflow-hidden border-none bg-popover p-0 sm:max-h-[760px] sm:max-w-xl">
+      <div className="shrink-0 border-b border-border px-6 py-6">
         <DialogHeader className="text-left">
           <DialogTitle>{t("agentsEditDialogTitle")}</DialogTitle>
           <DialogDescription>
@@ -447,7 +447,7 @@ function AgentEditDialogContent(props: {
           />
         </div>
       </div>
-      <DialogFooter className="shrink-0 border-t border-[#f1e7d4] px-6 py-5">
+      <DialogFooter className="shrink-0 border-t border-border px-6 py-5">
         <Button
           type="button"
           variant="ghost"
