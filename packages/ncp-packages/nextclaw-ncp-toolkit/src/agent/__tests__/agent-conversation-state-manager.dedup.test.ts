@@ -12,6 +12,20 @@ const createFinalAssistantMessage = (): NcpMessage => ({
 });
 
 describe("DefaultNcpAgentConversationStateManager message deduplication", () => {
+  it("treats a repeated start for the active run as idempotent", async () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const event = {
+      type: NcpEventType.RunStarted,
+      payload: { sessionId: "session-1", runId: "run-1" },
+    } as const;
+
+    await manager.dispatch(event);
+    const acceptedSnapshot = manager.getSnapshot();
+    await manager.dispatch(event);
+
+    expect(manager.getSnapshot()).toBe(acceptedSnapshot);
+  });
+
   it("clears a streaming duplicate when the final message is upserted by id", async () => {
     const manager = new DefaultNcpAgentConversationStateManager();
 

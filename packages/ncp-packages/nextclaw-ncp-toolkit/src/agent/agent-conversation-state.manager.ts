@@ -368,7 +368,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   handleRunStarted = (payload: NcpRunStartedPayload): void => {
-    if (this.isSettledRunId(payload.runId)) return;
+    if (this.isSettledRunId(payload.runId) || (payload.runId && this.activeRun?.runId === payload.runId)) return;
     if (this.streamingMessage && this.activeRun?.runId !== payload.runId) {
       this.handleMessageAbort({ sessionId: this.streamingMessage.sessionId, messageId: this.streamingMessage.id });
     }

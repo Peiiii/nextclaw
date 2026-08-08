@@ -6,6 +6,7 @@ import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
 import { deriveNcpMessagePartsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
 import { buildChatRunMetadata } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
+import { createNcpSessionId } from '@/features/chat/features/session/utils/ncp-session-adapter.utils';
 import {
   buildSessionQueuedInputComposerSnapshot,
   buildSessionQueuedInputPreview,
@@ -246,7 +247,9 @@ export function useSessionConversationController(params: UseSessionConversationC
     if (!draft) {
       return;
     }
-    const envelope = buildSubmissionEnvelope(draft, sessionKey);
+    const submissionSessionKey =
+      sessionKey ?? (materializationContext ? null : createNcpSessionId());
+    const envelope = buildSubmissionEnvelope(draft, submissionSessionKey);
     if (!envelope) {
       return;
     }

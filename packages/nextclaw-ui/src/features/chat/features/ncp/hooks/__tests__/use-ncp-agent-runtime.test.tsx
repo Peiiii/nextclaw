@@ -171,7 +171,7 @@ describe("useNcpAgentRuntime", () => {
     vi.clearAllMocks();
   });
 
-  it("returns a command handle when a new root chat materializes a session id", async () => {
+  it("keeps an accepted run active while a new root chat materializes", async () => {
     const client = new DeferredSendClient();
     const manager = new DefaultNcpAgentConversationStateManager();
     const envelope: NcpAgentSendEnvelope = {
@@ -206,9 +206,102 @@ describe("useNcpAgentRuntime", () => {
         sessionId: "session-created",
       }),
     ]);
+    expect(result.current.isRunning).toBe(true);
     expect(client.stop).not.toHaveBeenCalled();
 
     rerender({ sessionId: "session-created" });
+    expect(result.current.isRunning).toBe(true);
+
+    await act(async () => {
+      await client.emit({
+        type: NcpEventType.RunStarted,
+        payload: {
+          sessionId: "session-created",
+          runId: "run-1",
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(result.current.isRunning).toBe(true);
+    });
+
+    await act(async () => {
+      await client.emit({
+        type: NcpEventType.RunFinished,
+        payload: {
+          sessionId: "session-created",
+          runId: "run-1",
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(result.current.isRunning).toBe(false);
+    });
+  });
+
+  it("shows a preallocated draft message before send returns and keeps it through materialization", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const envelope: NcpAgentSendEnvelope = {
+      sessionId: "session-preallocated",
+      message: {
+        id: "user-preallocated",
+        sessionId: "session-preallocated",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "show immediately" }],
+        timestamp: now,
+      },
+    };
+    let releaseSend = () => {};
+    client.send.mockImplementationOnce(
+      (pendingEnvelope) =>
+        new Promise((resolve) => {
+          releaseSend = () => resolve({
+            sessionId: "session-preallocated",
+            userMessageId: pendingEnvelope.message.id,
+            assistantMessageId: "assistant-1",
+            runId: "run-1",
+          });
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ sessionId }: { sessionId?: string }) =>
+        useNcpAgentRuntime({ sessionId, client, manager: manager as never }),
+      { initialProps: { sessionId: undefined as string | undefined } },
+    );
+
+    let sendPromise!: ReturnType<typeof result.current.send>;
+    act(() => {
+      sendPromise = result.current.send(envelope);
+    });
+
+    await waitFor(() => {
+      expect(result.current.visibleMessages).toEqual([envelope.message]);
+    });
+    expect(result.current.isSending).toBe(true);
+
+    await act(async () => {
+      releaseSend();
+      await sendPromise;
+    });
+    rerender({ sessionId: "session-preallocated" });
+
+    expect(result.current.visibleMessages).toEqual([envelope.message]);
+    expect(result.current.isRunning).toBe(true);
+
+    await act(async () => {
+      await client.emit({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: "session-preallocated",
+          message: envelope.message as NcpMessage,
+        },
+      });
+    });
+    await waitFor(() => {
+      expect(result.current.visibleMessages).toEqual([envelope.message]);
+    });
   });
 
   it("shows an existing-session user message before send returns and deduplicates the server event", async () => {
@@ -326,6 +419,13 @@ describe("useNcpAgentRuntime", () => {
       "assistant-old",
       "user-later",
     ]);
+  });
+
+});
+
+describe("useNcpAgentRuntime commands and live stream", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it("marks an optimistic user message as failed when send fails", async () => {

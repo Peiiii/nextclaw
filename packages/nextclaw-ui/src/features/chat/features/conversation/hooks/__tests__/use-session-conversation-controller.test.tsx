@@ -128,6 +128,37 @@ function createControllerParams(params: {
 }
 
 describe('useSessionConversationController backend run queue', () => {
+  it('preallocates one stable session identity for the first root message', async () => {
+    const send = vi.fn<TestAgentSend>(async (envelope) => {
+      if (!envelope.sessionId) {
+        throw new Error('Expected a preallocated session id.');
+      }
+      return createRunHandle({
+        sessionId: envelope.sessionId,
+        userMessageId: envelope.message.id,
+      });
+    });
+    const params = createControllerParams({ isRunning: false, send });
+    const draftParams = {
+      ...params,
+      inputQuery: {
+        ...params.inputQuery,
+        selectedSessionKey: null,
+      },
+      sessionKey: null,
+    } as unknown as Parameters<typeof useSessionConversationController>[0];
+    const { result } = renderHook(() => useSessionConversationController(draftParams));
+
+    await act(async () => {
+      await result.current.send();
+    });
+
+    const envelope = send.mock.calls[0]?.[0];
+    expect(envelope?.sessionId).toMatch(/^ncp-/);
+    expect(envelope?.message.sessionId).toBe(envelope?.sessionId);
+    expect(params.onSessionMaterialized).toHaveBeenCalledWith(envelope?.sessionId);
+  });
+
   it('submits immediately while the session is running so the backend can enqueue it', async () => {
     const send = createSendMock(createRunHandle({ runId: null }));
     const params = createControllerParams({ isRunning: true, send });

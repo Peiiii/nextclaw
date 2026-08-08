@@ -222,16 +222,7 @@ export function useNcpAgentRuntime({
   }, [sessionId]);
 
   useEffect(() => {
-    const eventBatcher = new NcpEventDispatchBatcher(async (events) => {
-      await manager.dispatchBatch(events);
-      events.forEach((event) => {
-        if (event.type === NcpEventType.MessageSent) {
-          setOptimisticMessage((message) =>
-            message?.id === event.payload.message.id ? null : message,
-          );
-        }
-      });
-    });
+    const eventBatcher = new NcpEventDispatchBatcher(manager.dispatchBatch);
     const unsubscribeClient = client.subscribe((event) => {
       if (!shouldDispatchEventToSession(event, sessionIdRef.current)) {
         return;
@@ -247,7 +238,7 @@ export function useNcpAgentRuntime({
   }, [client, manager]);
 
   const messagesWithOptimistic = optimisticMessage &&
-    optimisticMessage.sessionId === sessionId &&
+    (!sessionId || optimisticMessage.sessionId === sessionId) &&
     !snapshot.messages.some((message) => message.id === optimisticMessage.id)
     ? insertMessageByTimeline(snapshot.messages, optimisticMessage)
     : snapshot.messages;
@@ -274,10 +265,10 @@ export function useNcpAgentRuntime({
       ? createSessionMessage(envelope, envelope.sessionId)
       : null;
     const failOptimisticMessage = async () => {
+      setOptimisticMessage(null);
       if (!pendingMessage) {
         return;
       }
-      setOptimisticMessage(null);
       await manager.dispatch({
         type: NcpEventType.MessageSent,
         payload: {
@@ -295,14 +286,19 @@ export function useNcpAgentRuntime({
       }
       if (handle.runId === null) {
         setOptimisticMessage(null);
-      } else if (!envelope.sessionId) {
-        await manager.dispatch({
-          type: NcpEventType.MessageSent,
-          payload: {
-            sessionId: handle.sessionId,
-            message: createSessionMessage(envelope, handle.sessionId),
+      } else {
+        const acceptedMessage = createSessionMessage(envelope, handle.sessionId);
+        await manager.dispatchBatch([
+          {
+            type: NcpEventType.MessageSent,
+            payload: { sessionId: handle.sessionId, message: acceptedMessage },
           },
-        });
+          {
+            type: NcpEventType.RunStarted,
+            payload: { sessionId: handle.sessionId, runId: handle.runId },
+          },
+        ]);
+        setOptimisticMessage(null);
       }
       return handle;
     } catch (error) {

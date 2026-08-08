@@ -1,13 +1,18 @@
 # v0.26.72 默认聊天消息身份精简
 
+复杂 materialization 排查的事实、假设与决策见 [工作笔记](work/working-notes.md)。
+
 ## 迭代完成说明
 
 - Main Agent 使用 Native runtime 时，平铺助手消息不再重复展示头像与名称；其他 Agent 或非 Native runtime 仍保留身份行，便于用户识别消息来源。
 - 身份行只做视觉隐藏并保持稳定 DOM 结构，运行时条件变化不会重挂载消息正文、编辑器或其他状态型内容。
 - 发送消息、编辑后重新执行或继续运行时，直接复用前端动作发起时已建立的本地 `isSending` 状态，立即展示“Agent 正在思考...”，不再等待后端 `activeRun` 或 session `running` 确认。
+- 根新会话在提交首条消息时预分配稳定 session 身份，用户消息立即进入前端时间线；正式会话生成前后复用同一 message/session 身份，不再延迟插入并推动思考提示跳位。
+- `/send` 返回 accepted handle 后，在路由切换前把同一 run 投影为标准 `RunStarted` 事件；后续 SSE 重复到达同一事件时保持幂等，思考提示不会在 draft → 正式 session 交接时闪退。
 - 新会话发送第一条消息后，即使 session 尚未 materialize、消息数组仍为空，也会先挂载对话加载表面；assistant 正文、推理或工具过程一开始就隐藏该文字状态，避免提前消失或贯穿整段回复。
 - 新会话尚未 materialize 或正式 session 元数据尚未进入缓存时，消息容器沿用草稿期已选择的 Agent；默认 Main Agent 不会因为短暂缺少 session summary 而闪现头像。
 - “已处理”保留文本、耗时和展开入口，移除没有独立操作含义的前置列表图标。
+- 本次 materialization 异常的根因是：根新会话首发没有预分配 session 身份，导致用户消息无法乐观进入时间线；handle 返回后又在正式 SSE 订阅建立前清除了 draft sending，而 live stream 不回放已经发生的 `run.started`，因此思考态会闪退且无法恢复。失败测试和真实 20ms 采样共同确认了这两个首个违约点；修复直接稳定首发身份并把 accepted handle 交给同一个 conversation manager，而不是延长动画或增加组件占位。
 
 ## 测试/验证/验收方式
 
@@ -21,6 +26,10 @@
 - `pnpm --filter @nextclaw/agent-chat-ui lint`：0 个错误；保留 1 个与本轮无关的既有测试文件长度警告。`pnpm --filter @nextclaw/ui lint`：0 个错误；保留 3 个与本轮无关的既有测试文件长度警告。
 - 在 `http://127.0.0.1:5174` 的现有本地源码实例中打开真实 Native 会话验收：5 条助手身份行均同时满足 `hidden=true` 与计算样式 `display: none`；5 个“已处理”摘要均无前置图标，耗时和展开入口保留。没有代发新的真实 Agent 消息，以免额外触发运行和资源消耗；新会话空 draft 到可见回复的状态交接由容器与共享组件的连续失败样本测试验收。
 - 乐观加载态 follow-up 在现有 `127.0.0.1:5174` 源码实例中完成两个修改模块的 Vite transform 验证，均返回 200；没有擅自重启宿主，也没有代发真实消息或执行真实编辑重跑，交互链路由上述组件测试与状态 owner 测试组合验收。
+- materialization 连续性 follow-up 先建立两个失败样本：根新会话没有预分配 session 身份、预分配消息在请求返回前仍未进入时间线；修复后两个样本转绿，并覆盖正式路由切换、重复 `run.started` 与 terminal event 清理。
+- materialization 相关回归集：NextClaw UI 7 个测试文件、56 个测试通过；共享消息表面 2 个测试文件、9 个测试通过；NCP toolkit 3 个测试文件、24 个测试通过。
+- `pnpm --filter @nextclaw/ncp-react tsc`、`pnpm --filter @nextclaw/ncp-toolkit tsc` 与 `pnpm --filter @nextclaw/ui tsc`：通过。
+- 在现有 `127.0.0.1:5174` 源码实例真实发送新会话首条消息并以 20ms 间隔采样消息列表：`1ms` 时用户消息已在思考提示上方；约 `293ms` 路由从 `/chat/draft` 切换为正式 session 后，两者纵向坐标保持 `83px / 175px` 不变；约 `1.87s` 首个回复出现后思考提示正常消失。全程未出现用户消息缺席、思考提示消失后不恢复或列表顺序跳变。
 - maintainability guard 检查 6 个源码与测试文件：0 个错误、3 个既有预算警告；总代码新增 284 行、删除 16 行、净增 268 行，排除测试后新增 47 行、删除 13 行、净增 34 行。
 - 乐观加载态 follow-up 的 non-feature maintainability guard：0 个错误、1 个既有文件预算警告；总代码新增 52 行、删除 16 行、净增 36 行，排除测试后新增 7 行、删除 10 行、净减 3 行。`session-conversation-area.tsx` 从 419 行降至 417 行，没有扩大既有预算压力。
 - `pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`pnpm check:generated-clean` 与 `git diff --check`：全部通过。
@@ -28,14 +37,14 @@
 
 ## 发布/部署方式
 
-- 首批身份精简改动已本地提交为 `98c5b7fdc`；本次乐观加载态 follow-up 随本次本地提交闭合。两批改动均未推送、发布或部署。
+- 首批身份精简改动已本地提交为 `98c5b7fdc`，乐观加载态 follow-up 已本地提交为 `8add5da74`；本次 materialization 连续性修复随当前本地提交闭合。所有改动均未推送、发布或部署。
 - 不涉及数据库迁移、服务端部署、宿主重启或 runtime 更新；本地源码实例通过 Vite 热更新完成界面验收。
 - 后续随 `@nextclaw/agent-chat-ui` 与 `@nextclaw/ui` 的 patch 版本统一发布进入产品。
 
 ## 用户/产品视角的验收步骤
 
 1. 打开 Main Agent 的 Native 会话，确认已完成的助手回复直接展示内容，不再重复出现机器人头像与“助手”名称。
-2. 在新会话发送第一条消息，确认点击发送后无需等待后端响应就立即显示“Agent 正在思考...”；Main Agent 使用 Native runtime 时旁边没有头像，正文、推理或工具过程出现后，该文字状态立即消失。
+2. 在新会话发送第一条消息，确认用户消息和“Agent 正在思考...”立即同时出现，用户消息始终在上、思考提示始终在下；正式会话生成时两者不闪烁、不换位。Main Agent 使用 Native runtime 时思考提示旁边没有头像，正文、推理或工具过程出现后，该文字状态立即消失。
 3. 编辑一条用户消息并重新执行，确认提交编辑后同样立即进入“Agent 正在思考...”状态，不等待后端 running 确认。
 4. 切换到其他 Agent 的 Native 会话，确认头像与 Agent 名称仍显示。
 5. 切换 Main Agent 到 Codex 等非 Native runtime，确认身份行仍显示。
@@ -51,8 +60,14 @@
 - maintainability guard 结果为 0 个错误、3 个警告：消息目录为已有例外且文件数无增长；`chat-message.tsx` 从 475 行降至 472 行；容器从 453 行增至 466 行。
 - 已按 `post-edit-maintainability-review` 复核：owner、数据流和 DOM 生命周期边界清晰，没有发现需要阻断交付的可维护性问题。生产代码净增 34 行用于身份条件、草稿 Agent fallback、等待态连续性与稳定隐藏结构，属于本次新增用户可见行为，不适用非功能改动净增不大于 0 的门槛。
 - follow-up 属于已有加载行为的 bugfix，生产代码净减 3 行，满足非功能改动净增不大于 0 的门槛；正向减债是移除后端派生门控和重复 prop，让普通发送、编辑重跑与继续运行共用同一前端乐观状态链路。
+- materialization 连续性修复继续复用既有 conversation manager、NCP 标准事件与现有 session ID 生成器，没有增加 store、effect、计时器或组件特判；跨路由状态由 accepted handle 和 manager 之间的单一路径交接。
+- materialization follow-up 的 non-feature maintainability guard 在 5 个可独立归属文件上 0 错误、0 警告：总代码新增 165 行、删除 21 行、净增 144 行；排除测试后新增 19 行、删除 20 行、净减 1 行。正向减债是删除 SSE 与 accepted handle 对同一乐观消息的重复清理，让 accepted handle 成为唯一状态交接点。
+- `agent-conversation-state.manager.ts` 本轮幂等改动为 1 行替换 1 行、净增 0；该文件同时存在另一批尚未提交的 7 行 `run.error` 工具调用收尾改动，整文件 guard 因此报告跨越 600 行预算。该 7 行不属于本轮，已保留且未计入本轮净增结论。
+- 已按 `post-edit-maintainability-review` 复核：本轮没有新增状态 owner、effect、计时器或协议旁路；生产代码净减 1 行，测试按 materialization、命令和去重行为域拆分后不再新增函数/文件预算违规。no maintainability findings。
 
 ## NPM 包发布记录
 
 - `@nextclaw/agent-chat-ui`：需要 patch 发布，changeset 已添加，当前待后续统一发布。
+- `@nextclaw/ncp-react`：需要 patch 发布，changeset 已添加，当前待后续统一发布。
+- `@nextclaw/ncp-toolkit`：需要 patch 发布，changeset 已添加，当前待后续统一发布。
 - `@nextclaw/ui`：需要 patch 发布，changeset 已添加，当前待后续统一发布。
