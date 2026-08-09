@@ -1,5 +1,6 @@
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import {
+  CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_INLINE_TOKENS_METADATA_KEY,
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_PROJECT_TOKEN_KIND,
@@ -11,6 +12,7 @@ import {
   type ChatSkillSource,
 } from '@nextclaw/shared';
 import { serializeChatComposerTokenText } from './chat-composer-token-protocol.utils';
+import { buildConversationExcerptInlineToken, readConversationExcerptInlineToken } from './chat-conversation-excerpt-token.utils';
 
 export { CHAT_INLINE_TOKENS_METADATA_KEY };
 const CHAT_PANEL_APP_TOKEN_PREFIX = '@panel-app:';
@@ -34,6 +36,15 @@ export type ChatInlineTokenSource =
       source: ChatSkillSource | null;
       path: string | null;
       label: string;
+      rawText: string;
+    }
+  | {
+      kind: typeof CHAT_CONVERSATION_EXCERPT_TOKEN_KIND;
+      key: string;
+      messageId: string;
+      role: 'assistant' | 'user';
+      label: string;
+      excerpt: string;
       rawText: string;
     }
   | {
@@ -103,6 +114,26 @@ function dedupeInlineTokens<T extends ChatInlineTokenSource>(tokens: readonly T[
   return output;
 }
 
+function appendWorkspaceExcerptToken(
+  tokens: ChatInlineTokenMetadata[],
+  node: Extract<ChatComposerNode, { type: 'token' }>,
+  rawText: string,
+): void {
+  const path = readOptionalString(node.data?.path);
+  const excerpt = readOptionalString(node.data?.excerpt);
+  if (!path || !excerpt) return;
+  tokens.push({
+    kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
+    key: node.tokenKey,
+    path,
+    label: node.label,
+    excerpt,
+    startLine: readOptionalLine(node.data?.startLine),
+    endLine: readOptionalLine(node.data?.endLine),
+    rawText,
+  });
+}
+
 export function buildInlineTokensFromComposer(
   nodes: readonly ChatComposerNode[],
   skillRecords: readonly ChatSkillReferenceSnapshot[] = [],
@@ -118,7 +149,8 @@ export function buildInlineTokensFromComposer(
       node.tokenKind !== CHAT_PROJECT_TOKEN_KIND &&
       node.tokenKind !== CHAT_WORKSPACE_FILE_TOKEN_KIND &&
       node.tokenKind !== CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND &&
-      node.tokenKind !== CHAT_WORKSPACE_EXCERPT_TOKEN_KIND
+      node.tokenKind !== CHAT_WORKSPACE_EXCERPT_TOKEN_KIND &&
+      node.tokenKind !== CHAT_CONVERSATION_EXCERPT_TOKEN_KIND
     ) {
       continue;
     }
@@ -152,21 +184,12 @@ export function buildInlineTokensFromComposer(
       continue;
     }
     if (node.tokenKind === CHAT_WORKSPACE_EXCERPT_TOKEN_KIND) {
-      const path = readOptionalString(node.data?.path);
-      const excerpt = readOptionalString(node.data?.excerpt);
-      if (!path || !excerpt) {
-        continue;
-      }
-      tokens.push({
-        kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
-        key: node.tokenKey,
-        path,
-        label: node.label,
-        excerpt,
-        startLine: readOptionalLine(node.data?.startLine),
-        endLine: readOptionalLine(node.data?.endLine),
-        rawText,
-      });
+      appendWorkspaceExcerptToken(tokens, node, rawText);
+      continue;
+    }
+    if (node.tokenKind === CHAT_CONVERSATION_EXCERPT_TOKEN_KIND) {
+      const token = buildConversationExcerptInlineToken(node, rawText);
+      if (token) tokens.push(token);
       continue;
     }
     const workspaceKind = node.tokenKind === CHAT_WORKSPACE_FILE_TOKEN_KIND
@@ -313,6 +336,9 @@ function readInlineTokenEntry(entry: unknown): ChatInlineTokenSource | null {
   }
   if (kind === CHAT_WORKSPACE_EXCERPT_TOKEN_KIND) {
     return readWorkspaceExcerptInlineToken({ entry, label, rawText });
+  }
+  if (kind === CHAT_CONVERSATION_EXCERPT_TOKEN_KIND) {
+    return readConversationExcerptInlineToken({ entry, label, rawText });
   }
   const key = readOptionalString(entry.key);
   return key ? { kind, key, rawText, label } : null;

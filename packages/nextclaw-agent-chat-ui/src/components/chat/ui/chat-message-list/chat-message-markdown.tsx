@@ -131,25 +131,30 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
       rest as Record<string, unknown>,
     );
     if (token) {
+      const excerptToken = "excerpt" in token ? token : null;
+      const workspaceExcerptToken =
+        token.kind === "workspace_excerpt" && "path" in token ? token : null;
       return (
         <ChatInlineTokenBadge
-          characterCountLabel={"excerpt" in token
+          characterCountLabel={workspaceExcerptToken
             ? texts.excerptCharacterCountTemplate?.replace(
                 '{count}',
-                String(countChatReferenceCharacters(token.excerpt)),
+                String(countChatReferenceCharacters(workspaceExcerptToken.excerpt)),
               )
             : undefined}
-          excerpt={"excerpt" in token ? token.excerpt : undefined}
+          excerpt={excerptToken?.excerpt}
           kind={token.kind}
           label={token.label}
-          location={"excerpt" in token && token.startLine
-            ? token.startLine === token.endLine || !token.endLine
-              ? `L${token.startLine}`
-              : `L${token.startLine}–${token.endLine}`
+          location={workspaceExcerptToken?.startLine
+            ? workspaceExcerptToken.startLine === workspaceExcerptToken.endLine || !workspaceExcerptToken.endLine
+              ? `L${workspaceExcerptToken.startLine}`
+              : `L${workspaceExcerptToken.startLine}–${workspaceExcerptToken.endLine}`
             : undefined}
-          path={"excerpt" in token ? token.path : undefined}
+          path={workspaceExcerptToken?.path}
           tooltip={"ref" in token ? token.name : token.key}
-          onClick={onInlineTokenClick ? () => onInlineTokenClick(token) : undefined}
+          onClick={onInlineTokenClick && token.kind !== "conversation_excerpt"
+            ? () => onInlineTokenClick(token)
+            : undefined}
         />
       );
     }

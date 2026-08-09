@@ -189,6 +189,12 @@ function serializeWorkspaceExcerptToken(node: ChatComposerTokenNode): string | n
   return `[${node.label}${location}]\n${node.data.excerpt}`;
 }
 
+function serializeConversationExcerptToken(node: ChatComposerTokenNode): string | null {
+  return node.tokenKind === 'conversation_excerpt' && typeof node.data?.excerpt === 'string'
+    ? `[${node.label}]\n${node.data.excerpt}`
+    : null;
+}
+
 export function serializeChatComposerClipboardPlainText(
   nodes: readonly ChatComposerNode[],
 ): string {
@@ -196,6 +202,8 @@ export function serializeChatComposerClipboardPlainText(
     if (node.type === 'text') {
       return node.text;
     }
-    return serializeWorkspaceExcerptToken(node) ?? `@${node.label}`;
+    return serializeWorkspaceExcerptToken(node) ??
+      serializeConversationExcerptToken(node) ??
+      `@${node.label}`;
   }).join('');
 }

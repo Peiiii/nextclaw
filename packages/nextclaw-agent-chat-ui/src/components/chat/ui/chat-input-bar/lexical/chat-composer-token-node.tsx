@@ -90,7 +90,10 @@ export class ChatComposerTokenNode extends DecoratorNode<ReactElement> {
     element.dataset.composerTokenKind = this.__tokenKind;
     element.dataset.composerTokenKey = this.__tokenKey;
     element.dataset.composerLabel = this.__label;
-    if (this.__tokenKind === 'workspace_excerpt') {
+    if (
+      this.__tokenKind === 'workspace_excerpt' ||
+      this.__tokenKind === 'conversation_excerpt'
+    ) {
       element.removeAttribute('title');
     } else {
       element.title = this.__label;

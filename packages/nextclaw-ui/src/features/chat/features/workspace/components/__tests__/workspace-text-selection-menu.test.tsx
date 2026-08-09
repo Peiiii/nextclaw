@@ -17,7 +17,9 @@ describe("WorkspaceTextSelectionMenu", () => {
       </WorkspaceTextSelectionMenu>,
     );
 
-    const textNode = screen.getByText("selected text").firstChild;
+    const selectedText = screen.getByText("selected text");
+    fireEvent.pointerDown(selectedText);
+    const textNode = selectedText.firstChild;
     expect(textNode).toBeTruthy();
     const range = document.createRange();
     range.selectNodeContents(textNode!);
@@ -34,9 +36,14 @@ describe("WorkspaceTextSelectionMenu", () => {
     });
     window.getSelection()?.removeAllRanges();
     window.getSelection()?.addRange(range);
+    document.dispatchEvent(new Event("selectionchange"));
+    expect(screen.queryByRole("button", { name: /Add to chat|添加到聊天/ })).toBeNull();
 
-    fireEvent.mouseUp(screen.getByText("selected text"));
-    fireEvent.click(await screen.findByRole("button", { name: /Add to chat|添加到聊天/ }));
+    fireEvent.pointerUp(selectedText);
+    const menu = await screen.findByRole("button", { name: /Add to chat|添加到聊天/ });
+    await waitFor(() => expect(menu.style.visibility).toBe("visible"));
+    expect(menu.style.top).toBe("50px");
+    fireEvent.click(menu);
 
     expect(onAddToChat).toHaveBeenCalledWith({
       path: "docs/guide.md",
@@ -91,7 +98,7 @@ describe("WorkspaceTextSelectionMenu", () => {
 
     const menu = await screen.findByRole("button", { name: /Add to chat|添加到聊天/ });
     await waitFor(() => expect(menu.style.visibility).toBe("visible"));
-    expect(menu.style.left).toBe("188px");
+    expect(menu.style.left).toBe("110px");
     expect(menu.style.top).toBe("130px");
     expect(menu.className).toContain("whitespace-nowrap");
 

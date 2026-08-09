@@ -3,6 +3,7 @@ import {
   buildInlineTokensFromTextProtocol,
   buildInlineTokensFromComposer,
   CHAT_INLINE_TOKENS_METADATA_KEY,
+  createInlineTokensMetadata,
   readInlineTokensFromMetadata,
   resolveInlineTokensForText,
   resolveWorkspaceReferencePath,
@@ -276,6 +277,34 @@ describe('chat inline token workspace references', () => {
         rawText: '@project:%2Ftmp%2FNextClaw%20Project',
       },
     ]);
+  });
+
+  it('round-trips conversation excerpts with their immutable snapshot', () => {
+    const tokens = buildInlineTokensFromComposer([
+      createChatComposerTokenNode({
+        tokenKind: 'conversation_excerpt',
+        tokenKey: 'assistant-1#excerpt-demo',
+        label: 'AI reply',
+        data: {
+          messageId: 'assistant-1',
+          role: 'assistant',
+          excerpt: 'Keep the visible tag concise.',
+        },
+      }),
+    ]);
+
+    expect(tokens).toEqual([{
+      kind: 'conversation_excerpt',
+      key: 'assistant-1#excerpt-demo',
+      messageId: 'assistant-1',
+      role: 'assistant',
+      label: 'AI reply',
+      excerpt: 'Keep the visible tag concise.',
+      rawText: '@message-excerpt:assistant-1%23excerpt-demo',
+    }]);
+    expect(readInlineTokensFromMetadata({
+      ui_inline_tokens: createInlineTokensMetadata(tokens),
+    })).toEqual(tokens);
   });
 
   it('resolves workspace token paths inside POSIX and Windows project roots', () => {

@@ -63,6 +63,24 @@ function hasRenderableText(value: string): boolean {
   return trimmed.replace(INVISIBLE_ONLY_TEXT_PATTERN, '').trim().length > 0;
 }
 
+function isTextSelectionReferenceAllowed(message: ChatMessageViewModel): boolean {
+  return (message.role === 'assistant' || message.role === 'user') &&
+    message.status !== 'streaming' &&
+    message.status !== 'pending';
+}
+
+function isGeneratingAssistantMessage(message: ChatMessageViewModel): boolean {
+  return message.role !== 'user' &&
+    (message.status === 'streaming' || message.status === 'pending');
+}
+
+function hasRenderableAssistantDraft(messages: readonly ChatMessageViewModel[]): boolean {
+  return messages.some((message) =>
+    message.role === 'assistant' &&
+    (message.status === 'streaming' || message.status === 'pending')
+  );
+}
+
 export type ChatMessageListProps = {
   assistantAvatarIcon?: ReactNode;
   showAssistantHeader?: boolean;
@@ -170,17 +188,14 @@ export function ChatMessageList({
     showAssistantHeader,
   );
   const visibleMessages = messages.filter(hasRenderableMessageContent);
-  const hasRenderableAssistantDraft = visibleMessages.some(
-    (message) =>
-      message.role === 'assistant' &&
-      (message.status === 'streaming' || message.status === 'pending')
-  );
+  const hasAssistantDraftContent = hasRenderableAssistantDraft(visibleMessages);
 
   return (
     <div className={cn('space-y-5', className)}>
       {visibleMessages.map((message) => {
         const isUser = message.role === 'user';
-        const isGenerating = !isUser && (message.status === 'streaming' || message.status === 'pending');
+        const isGenerating = isGeneratingAssistantMessage(message);
+        const isTextSelectionReferenceEnabled = isTextSelectionReferenceAllowed(message);
         const defaultContent = (
           <ChatMessage
             layout={layout}
@@ -201,7 +216,15 @@ export function ChatMessageList({
 
         if (layout === "flat" && !isUser) {
           return (
-            <article key={message.id} data-chat-message-layout="flat" className="w-full min-w-0 space-y-2">
+            <article
+              key={message.id}
+              data-chat-message-id={message.id}
+              data-chat-message-layout="flat"
+              data-chat-message-role={message.role}
+              data-chat-message-role-label={message.roleLabel}
+              data-chat-message-selectable={String(isTextSelectionReferenceEnabled)}
+              className="w-full min-w-0 space-y-2"
+            >
               <div
                 data-chat-message-header="flat"
                 hidden={flatAssistantIdentityHidden}
@@ -245,7 +268,11 @@ export function ChatMessageList({
         return (
           <div
             key={message.id}
+            data-chat-message-id={message.id}
             data-chat-message-layout="card"
+            data-chat-message-role={message.role}
+            data-chat-message-role-label={message.roleLabel}
+            data-chat-message-selectable={String(isTextSelectionReferenceEnabled)}
             className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}
           >
             {!isUser ? (
@@ -284,7 +311,7 @@ export function ChatMessageList({
         );
       })}
 
-      {isSending && !hasRenderableAssistantDraft ? (
+      {isSending && !hasAssistantDraftContent ? (
         <div data-chat-message-layout={layout} className="flex justify-start gap-3">
           <div
             hidden={flatAssistantIdentityHidden}

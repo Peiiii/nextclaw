@@ -1,4 +1,5 @@
 import {
+  CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "@nextclaw/shared";
@@ -22,13 +23,31 @@ export type ChatComposerExcerptReferenceIntent = ChatComposerReferenceIntentBase
   endLine: number | null;
 };
 
+export type ChatComposerConversationExcerptIntent = ChatComposerReferenceIntentBase & {
+  kind: typeof CHAT_CONVERSATION_EXCERPT_TOKEN_KIND;
+  messageId: string;
+  role: "assistant" | "user";
+  excerpt: string;
+};
+
 export type ChatComposerReferenceIntent =
   | ChatComposerFileReferenceIntent
-  | ChatComposerExcerptReferenceIntent;
+  | ChatComposerExcerptReferenceIntent
+  | ChatComposerConversationExcerptIntent;
 
 type ChatComposerReferenceRequest =
   | Omit<ChatComposerFileReferenceIntent, "id">
-  | Omit<ChatComposerExcerptReferenceIntent, "id">;
+  | Omit<ChatComposerExcerptReferenceIntent, "id">
+  | Omit<ChatComposerConversationExcerptIntent, "id">;
+
+function createExcerptTokenKey(prefix: string, identity: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < identity.length; index += 1) {
+    hash ^= identity.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${prefix}#excerpt-${(hash >>> 0).toString(36)}`;
+}
 
 type ChatComposerIntentListener = (intent: ChatComposerReferenceIntent) => void;
 
@@ -97,21 +116,47 @@ export class ChatComposerIntentManager {
     if (!path || !label || !excerpt) {
       return;
     }
-    const identity = `${path}:${startLine ?? "x"}:${endLine ?? "x"}:${excerpt}`;
-    let hash = 2166136261;
-    for (let index = 0; index < identity.length; index += 1) {
-      hash ^= identity.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
-    }
     this.publish({
       kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
       targetSessionKey,
-      tokenKey: `${path}#excerpt-${(hash >>> 0).toString(36)}`,
+      tokenKey: createExcerptTokenKey(
+        path,
+        `${path}:${startLine ?? "x"}:${endLine ?? "x"}:${excerpt}`,
+      ),
       path,
       label,
       excerpt,
       startLine,
       endLine,
+    });
+  };
+
+  requestConversationExcerptReference = (params: {
+    targetSessionKey: string | null;
+    messageId: string;
+    role: "assistant" | "user";
+    label: string;
+    excerpt: string;
+  }) => {
+    const {
+      targetSessionKey,
+      messageId: requestedMessageId,
+      role,
+      label: requestedLabel,
+      excerpt: requestedExcerpt,
+    } = params;
+    const messageId = requestedMessageId.trim();
+    const label = requestedLabel.trim();
+    const excerpt = requestedExcerpt.trim();
+    if (!messageId || !label || !excerpt) return;
+    this.publish({
+      kind: CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
+      targetSessionKey,
+      tokenKey: createExcerptTokenKey(messageId, `${messageId}:${excerpt}`),
+      messageId,
+      role,
+      label,
+      excerpt,
     });
   };
 

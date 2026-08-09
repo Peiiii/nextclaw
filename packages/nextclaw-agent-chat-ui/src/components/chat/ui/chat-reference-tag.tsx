@@ -13,6 +13,7 @@ import {
   Folder,
   FolderKanban,
   Link2,
+  MessageSquareQuote,
   Sparkles,
   TextQuote,
   type LucideIcon,
@@ -66,6 +67,7 @@ type ChatReferenceTagPreviewProps = {
   characterCountLabel?: string | null;
   children: ReactElement;
   excerpt: string;
+  kind?: string;
   label: string;
   location?: string | null;
   path?: string | null;
@@ -124,6 +126,9 @@ function resolveReferenceIconDescriptor(kind: string, source: string): ChatRefer
   }
   if (kind === "workspace_excerpt") {
     return { icon: TextQuote, name: "excerpt" };
+  }
+  if (kind === "conversation_excerpt") {
+    return { icon: MessageSquareQuote, name: "conversation-excerpt" };
   }
   if (kind === "workspace_file" || kind === "file") {
     return resolveFileIconDescriptor(source);
@@ -222,6 +227,7 @@ export function ChatReferenceTagPreview({
   children,
   characterCountLabel,
   excerpt,
+  kind = "workspace_file",
   label,
   location,
   path,
@@ -240,7 +246,7 @@ export function ChatReferenceTagPreview({
           <span className="flex min-w-0 items-center gap-2 border-b border-border/70 px-3 py-2">
             <ChatReferenceIcon
               className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
-              kind="workspace_file"
+              kind={kind}
               source={path ?? label}
             />
             <span className="min-w-0 flex-1 truncate text-xs font-medium">

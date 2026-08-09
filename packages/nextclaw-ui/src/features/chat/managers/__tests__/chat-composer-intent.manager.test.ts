@@ -103,4 +103,27 @@ describe("ChatComposerIntentManager", () => {
       excerpt: '"name": "nextclaw"',
     }));
   });
+
+  it("publishes a conversation excerpt with its source message identity", () => {
+    const manager = new ChatComposerIntentManager();
+    const listener = vi.fn();
+    manager.subscribe("session-1", listener);
+
+    manager.requestConversationExcerptReference({
+      targetSessionKey: "session-1",
+      messageId: "assistant-message-1",
+      role: "assistant",
+      label: "AI reply",
+      excerpt: "Keep the visible tag concise.",
+    });
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+      kind: "conversation_excerpt",
+      messageId: "assistant-message-1",
+      role: "assistant",
+      label: "AI reply",
+      excerpt: "Keep the visible tag concise.",
+      tokenKey: expect.stringMatching(/^assistant-message-1#excerpt-/),
+    }));
+  });
 });

@@ -8,6 +8,8 @@ export type {
 export { ChatMessageList } from './ui/chat-message-list/chat-message-list';
 export type { ChatMessageListProps } from './ui/chat-message-list/chat-message-list';
 export { ChatMessageMarkdown } from './ui/chat-message-list/chat-message-markdown';
+export { ChatTextSelectionAction } from './ui/chat-text-selection-action';
+export type { ChatTextSelectionSnapshot } from './ui/chat-text-selection-action';
 export {
   FileOperationCodeSurface,
   FileOperationLinesGrid

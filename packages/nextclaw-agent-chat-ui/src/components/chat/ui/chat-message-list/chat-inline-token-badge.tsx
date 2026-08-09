@@ -60,11 +60,12 @@ export function ChatInlineTokenBadge({
     <span className={className}>{content}</span>
   );
 
-  if (kind === "workspace_excerpt" && excerpt) {
+  if ((kind === "workspace_excerpt" || kind === "conversation_excerpt") && excerpt) {
     return (
       <ChatReferenceTagPreview
         characterCountLabel={characterCountLabel}
         excerpt={excerpt}
+        kind={kind === "conversation_excerpt" ? kind : "workspace_file"}
         label={label}
         location={location}
         path={source}

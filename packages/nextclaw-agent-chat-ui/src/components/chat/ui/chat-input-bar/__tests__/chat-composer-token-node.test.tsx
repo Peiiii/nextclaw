@@ -245,3 +245,49 @@ it('renders a workspace excerpt as a compact source-aware token with on-demand p
   });
   expect(onNodesChange).toHaveBeenCalled();
 });
+
+it('renders a conversation excerpt as a concise removable reference', async () => {
+  render(
+    <ChatInputBar
+      composer={{
+        disabled: false,
+        nodes: [
+          createChatComposerTokenNode({
+            tokenKind: 'conversation_excerpt',
+            tokenKey: 'assistant-1#excerpt-demo',
+            label: 'AI reply',
+            data: {
+              messageId: 'assistant-1',
+              role: 'assistant',
+              excerpt: 'Keep the visible tag concise.',
+            },
+          }),
+          createChatComposerTextNode(''),
+        ],
+        onNodesChange: vi.fn(),
+        placeholder: 'Type a message',
+        removeTokenLabel: 'Remove reference',
+      }}
+      hint={null}
+      toolbar={{
+        actions: {
+          canStopGeneration: false,
+          isSending: false,
+          onSend: vi.fn(),
+          onStop: vi.fn(),
+          sendButtonLabel: 'Send',
+          sendDisabled: false,
+          stopButtonLabel: 'Stop',
+          stopDisabled: true,
+          stopHint: 'Stop unavailable',
+        },
+        selects: [],
+      }}
+    />,
+  );
+
+  const token = await screen.findByText('AI reply');
+  expect(token.parentElement?.textContent).toContain('Keep the visible tag concise.');
+  expect(screen.getByRole('textbox').querySelector('[data-reference-icon="conversation-excerpt"]')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Remove reference' })).toBeTruthy();
+});

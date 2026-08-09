@@ -2,6 +2,7 @@ import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { AgentBootstrapContextProvider } from "./providers/agent-bootstrap-context.provider.js";
 import { CurrentSessionContextProvider } from "./providers/current-session-context.provider.js";
+import { ConversationExcerptContextProvider } from "./providers/conversation-excerpt-context.provider.js";
 import { InboxDeliveryContextProvider } from "./providers/inbox-delivery-context.provider.js";
 import { ExecutionPolicyContextProvider } from "./providers/execution-policy-context.provider.js";
 import {
@@ -58,6 +59,7 @@ export class ContextProviderContribution implements KernelContribution {
       createRuntimeContextProvider(),
       createSelfManagementContextProvider(),
       new ProjectContextProvider(context),
+      new ConversationExcerptContextProvider(),
       new WorkspaceReferenceContextProvider(context, this.kernel.projectManager),
       new AgentBootstrapContextProvider(context),
       new WorkspaceMemoryContextProvider(context),

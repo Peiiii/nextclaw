@@ -145,6 +145,8 @@ export function buildChatMessageTexts(
 ): ChatMessageTexts {
   void language;
   return {
+    addSelectionToChatLabel: t("chatWorkspaceAddToChat"),
+    selectionTooLongLabel: t("chatWorkspaceExcerptSelectionTooLong"),
     copyCodeLabel: t("chatCodeCopy"),
     copiedCodeLabel: t("chatCodeCopied"),
     copyMessageLabel: t("chatMessageCopy"),

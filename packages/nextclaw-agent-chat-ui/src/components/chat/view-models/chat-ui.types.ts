@@ -437,6 +437,15 @@ export type ChatInlineTokenViewModel =
       rawText: string;
     }
   | {
+      kind: "conversation_excerpt";
+      key: string;
+      messageId: string;
+      role: "assistant" | "user";
+      label: string;
+      excerpt: string;
+      rawText: string;
+    }
+  | {
       kind: string;
       key: string;
       label: string;
@@ -547,6 +556,8 @@ export type ChatBuiltInToolStatusKind =
   | "display";
 
 export type ChatMessageTexts = {
+  addSelectionToChatLabel?: string;
+  selectionTooLongLabel?: string;
   copyCodeLabel: string;
   copiedCodeLabel: string;
   copyMessageLabel: string;

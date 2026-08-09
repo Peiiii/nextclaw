@@ -9,6 +9,8 @@ const INLINE_TOKEN_PATH_ATTR = "data-chat-inline-token-path";
 const INLINE_TOKEN_LABEL_ATTR = "data-chat-inline-token-label";
 const INLINE_TOKEN_RAW_TEXT_ATTR = "data-chat-inline-token-raw-text";
 const INLINE_TOKEN_EXCERPT_ATTR = "data-chat-inline-token-excerpt";
+const INLINE_TOKEN_MESSAGE_ID_ATTR = "data-chat-inline-token-message-id";
+const INLINE_TOKEN_ROLE_ATTR = "data-chat-inline-token-role";
 const INLINE_TOKEN_START_LINE_ATTR = "data-chat-inline-token-start-line";
 const INLINE_TOKEN_END_LINE_ATTR = "data-chat-inline-token-end-line";
 
@@ -49,7 +51,7 @@ function createInlineTokenNode(token: ChatInlineTokenViewModel): ChatMarkdownNod
     }
   } else {
     hProperties[INLINE_TOKEN_KEY_ATTR] = token.key;
-    if (token.kind === "workspace_excerpt" && "excerpt" in token) {
+    if (token.kind === "workspace_excerpt" && "path" in token) {
       hProperties[INLINE_TOKEN_PATH_ATTR] = token.path;
       hProperties[INLINE_TOKEN_EXCERPT_ATTR] = token.excerpt;
       if (token.startLine !== null) {
@@ -58,6 +60,10 @@ function createInlineTokenNode(token: ChatInlineTokenViewModel): ChatMarkdownNod
       if (token.endLine !== null) {
         hProperties[INLINE_TOKEN_END_LINE_ATTR] = String(token.endLine);
       }
+    } else if (token.kind === "conversation_excerpt" && "messageId" in token) {
+      hProperties[INLINE_TOKEN_EXCERPT_ATTR] = token.excerpt;
+      hProperties[INLINE_TOKEN_MESSAGE_ID_ATTR] = token.messageId;
+      hProperties[INLINE_TOKEN_ROLE_ATTR] = token.role;
     }
   }
   return {
@@ -210,6 +216,14 @@ export function readChatInlineTokenFromMarkdownProps(
           endLine: readLineProp(props, INLINE_TOKEN_END_LINE_ATTR),
           rawText,
         }
+      : null;
+  }
+  if (kind === "conversation_excerpt" && key && label && rawText) {
+    const excerpt = readStringProp(props, INLINE_TOKEN_EXCERPT_ATTR);
+    const messageId = readStringProp(props, INLINE_TOKEN_MESSAGE_ID_ATTR);
+    const role = readStringProp(props, INLINE_TOKEN_ROLE_ATTR);
+    return excerpt && messageId && (role === "assistant" || role === "user")
+      ? { kind, key, messageId, role, label, excerpt, rawText }
       : null;
   }
   return kind && key && label && rawText

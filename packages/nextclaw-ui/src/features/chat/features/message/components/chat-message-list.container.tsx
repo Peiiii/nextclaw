@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
+  ChatTextSelectionAction,
   type ChatInlineDisplayViewModel,
   type ChatMessageViewModel,
   type ChatPanelAppCardViewModel,
@@ -176,6 +177,16 @@ const renderChatPanelAppCard = (panelApp: ChatPanelAppCardViewModel) => (
   <ChatInlinePanelAppCard panelApp={panelApp} />
 );
 
+const CONVERSATION_EXCERPT_MAX_CHARACTERS = 8_000;
+
+function findSelectableMessageElement(range: Range): HTMLElement | null {
+  const commonAncestor = range.commonAncestorContainer;
+  const element = commonAncestor instanceof Element
+    ? commonAncestor
+    : commonAncestor.parentElement;
+  return element?.closest<HTMLElement>('[data-chat-message-selectable="true"]') ?? null;
+}
+
 export { ChatContextCompactionDivider } from "@/features/chat/features/message/components/chat-message-timeline-dividers";
 
 function isAwaitingAssistantOutputRow(
@@ -299,6 +310,27 @@ export function ChatMessageListContainer({
     () => buildChatMessageTexts(language),
     [language],
   );
+  const isConversationSelectionAllowed = useCallback(
+    ({ range }: { range: Range }) => Boolean(findSelectableMessageElement(range)),
+    [],
+  );
+  const handleConversationSelectionAdd = useCallback(
+    ({ range, text }: { range: Range; text: string }) => {
+      const messageElement = findSelectableMessageElement(range);
+      const messageId = messageElement?.dataset.chatMessageId?.trim();
+      const role = messageElement?.dataset.chatMessageRole;
+      const label = messageElement?.dataset.chatMessageRoleLabel?.trim();
+      if (!messageId || !label || (role !== "assistant" && role !== "user")) return;
+      presenter.chatComposerIntentManager.requestConversationExcerptReference({
+        targetSessionKey: sessionKey,
+        messageId,
+        role,
+        label,
+        excerpt: text,
+      });
+    },
+    [presenter.chatComposerIntentManager, sessionKey],
+  );
   const timelineItems = useMemo(
     () => buildChatMessageTimelineItems({ rawMessages, messages }),
     [messages, rawMessages],
@@ -341,6 +373,13 @@ export function ChatMessageListContainer({
     [],
   );
   return (
+    <ChatTextSelectionAction
+      actionLabel={messageTexts.addSelectionToChatLabel ?? t("chatWorkspaceAddToChat")}
+      isSelectionAllowed={isConversationSelectionAllowed}
+      maxCharacters={CONVERSATION_EXCERPT_MAX_CHARACTERS}
+      onAddToChat={handleConversationSelectionAdd}
+      selectionTooLongLabel={messageTexts.selectionTooLongLabel ?? t("chatWorkspaceExcerptSelectionTooLong")}
+    >
     <div className={cn("relative", className)} ref={containerRef}>
       {virtualizer.getVirtualItems().map((virtualRow) => {
         const item = virtualRows[virtualRow.index];
@@ -388,5 +427,6 @@ export function ChatMessageListContainer({
         );
       })}
     </div>
+    </ChatTextSelectionAction>
   );
 }

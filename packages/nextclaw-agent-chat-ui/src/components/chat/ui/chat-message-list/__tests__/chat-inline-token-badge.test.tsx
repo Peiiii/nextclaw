@@ -35,6 +35,26 @@ it("renders a workspace excerpt as a compact token with a source preview", async
   expect(onClick).toHaveBeenCalledOnce();
 });
 
+it("renders a conversation excerpt with only its role and content fingerprint", async () => {
+  const excerpt = "Keep the visible tag concise and reveal details only on demand.";
+  const { container } = render(
+    <ChatInlineTokenBadge
+      excerpt={excerpt}
+      kind="conversation_excerpt"
+      label="AI reply"
+      tooltip="assistant-message-1#excerpt"
+    />,
+  );
+
+  expect(screen.getByText("AI reply")).toBeTruthy();
+  expect(screen.getByText(excerpt)).toBeTruthy();
+  expect(container.querySelector('[data-reference-icon="conversation-excerpt"]')).toBeTruthy();
+  expect(container.textContent).not.toContain("characters");
+
+  fireEvent.pointerMove(screen.getByText("AI reply"), { pointerType: "mouse" });
+  expect((await screen.findByRole("tooltip")).textContent).toContain(excerpt);
+});
+
 it.each([
   ["skill", "Review", "skill"],
   ["panel_app", "Task board", "panel-app"],

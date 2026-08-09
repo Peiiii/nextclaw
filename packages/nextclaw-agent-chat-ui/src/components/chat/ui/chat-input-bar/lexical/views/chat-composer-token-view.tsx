@@ -93,6 +93,31 @@ function WorkspaceExcerptComposerContent({ data, label }: {
   ) : previewTrigger;
 }
 
+function ConversationExcerptComposerContent({ data, label }: {
+  data?: ChatComposerTokenData;
+  label: string;
+}) {
+  const excerpt = typeof data?.excerpt === 'string' ? data.excerpt : '';
+  const previewTrigger = (
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <ChatReferenceTagContent
+        excerpt={excerpt}
+        kind="conversation_excerpt"
+        label={label}
+      />
+    </span>
+  );
+  return excerpt ? (
+    <ChatReferenceTagPreview
+      excerpt={excerpt}
+      kind="conversation_excerpt"
+      label={label}
+    >
+      {previewTrigger}
+    </ChatReferenceTagPreview>
+  ) : previewTrigger;
+}
+
 function ComposerTokenHoverActions({ children, onRemove }: {
   children: ReactElement;
   onRemove: () => void;
@@ -173,6 +198,8 @@ export function ChatComposerTokenView({
   let content: ReactElement;
   if (tokenKind === 'workspace_excerpt') {
     content = <WorkspaceExcerptComposerContent data={data} label={label} />;
+  } else if (tokenKind === 'conversation_excerpt') {
+    content = <ConversationExcerptComposerContent data={data} label={label} />;
   } else if (tokenKind !== 'file') {
     const source = typeof data?.path === 'string' ? data.path : tokenKey;
     content = <ChatReferenceTagContent kind={tokenKind} label={label} source={source} />;
