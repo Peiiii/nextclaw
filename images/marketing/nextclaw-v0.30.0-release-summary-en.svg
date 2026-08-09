@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">NextClaw v0.30.0 idle memory benchmark summary</title>
+  <desc id="description">Unused messaging channels now start on demand. ARM64 Linux empty-configuration idle working set averages 164.94 MiB, about 81 percent lower than the previous eager-start runtime.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="0.55" stop-color="#0b1b32"/>
+      <stop offset="1" stop-color="#102846"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" rx="48" fill="url(#background)"/>
+  <circle cx="1430" cy="100" r="230" fill="#2563eb" opacity="0.18" filter="url(#glow)"/>
+  <circle cx="180" cy="820" r="260" fill="#14b8a6" opacity="0.12" filter="url(#glow)"/>
+
+  <g font-family="Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="96" y="108" fill="#f8fafc" font-size="42" font-weight="750" letter-spacing="-1">NextClaw</text>
+    <rect x="318" y="70" width="178" height="54" rx="27" fill="#173456" stroke="#4f779f"/>
+    <text x="407" y="106" fill="#cbe7ff" font-size="25" font-weight="650" text-anchor="middle">v0.30.0</text>
+
+    <text x="96" y="216" fill="#f8fafc" font-size="66" font-weight="760" letter-spacing="-2">Run what you use.</text>
+    <text x="96" y="286" fill="#9fb5cb" font-size="34" font-weight="480">Unused messaging channels now start on demand.</text>
+
+    <rect x="96" y="350" width="1408" height="326" rx="34" fill="#0c1a2b" stroke="#29435f" stroke-width="2"/>
+    <text x="150" y="418" fill="#8fa8c1" font-size="24" font-weight="650" letter-spacing="2">IDLE WORKING SET</text>
+    <text x="150" y="540" fill="url(#accent)" font-size="118" font-weight="800" letter-spacing="-5">164.94 MiB</text>
+    <text x="150" y="604" fill="#d6e7f8" font-size="30" font-weight="620">~81% lower</text>
+
+    <line x1="790" y1="408" x2="790" y2="620" stroke="#29435f" stroke-width="2"/>
+    <text x="850" y="438" fill="#8fa8c1" font-size="24" font-weight="650" letter-spacing="2">SAME MEASUREMENT APPROACH</text>
+    <text x="850" y="500" fill="#f8fafc" font-size="35" font-weight="680">Before: about 865–885 MiB</text>
+    <rect x="850" y="540" width="540" height="24" rx="12" fill="#27384b"/>
+    <rect x="850" y="540" width="102" height="24" rx="12" fill="url(#accent)"/>
+    <text x="850" y="614" fill="#9fb5cb" font-size="23">ARM64 Linux · 2 vCPU / 2 GiB · empty config</text>
+
+    <text x="96" y="744" fill="#8fa8c1" font-size="23" font-weight="650" letter-spacing="2">ALSO IN THIS RELEASE</text>
+    <g font-size="25" font-weight="590">
+      <rect x="96" y="777" width="410" height="64" rx="20" fill="#112a3f" stroke="#254d68"/>
+      <circle cx="134" cy="809" r="8" fill="#5eead4"/>
+      <text x="158" y="818" fill="#dbeafe">Message excerpt references</text>
+
+      <rect x="530" y="777" width="300" height="64" rx="20" fill="#112a3f" stroke="#254d68"/>
+      <circle cx="568" cy="809" r="8" fill="#5eead4"/>
+      <text x="592" y="818" fill="#dbeafe">Richer media preview</text>
+
+      <rect x="854" y="777" width="310" height="64" rx="20" fill="#112a3f" stroke="#254d68"/>
+      <circle cx="892" cy="809" r="8" fill="#5eead4"/>
+      <text x="916" y="818" fill="#dbeafe">Model discovery</text>
+    </g>
+
+    <text x="1504" y="821" fill="#6f8ca8" font-size="21" text-anchor="end">Active workloads vary.</text>
+  </g>
+</svg>

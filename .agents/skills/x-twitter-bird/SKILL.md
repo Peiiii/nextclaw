@@ -73,6 +73,8 @@ node .agents/skills/x-twitter-bird/scripts/x-bird.mjs reply <tweet-id-or-url> 't
 
 - Treat `auth_token` and `ct0` as full login credentials
 - Never write them into repo files, docs, tests, or iteration logs
-- Before posting, confirm the exact text or use the user-provided text verbatim
+- Before posting, confirm the exact text or use the user-provided text verbatim. If the user has explicitly granted standing authorization for stable minor release posts, do not request confirmation again; publish the release-validated draft directly after its public link returns 200.
+- Stable minor release posts should include one public-safe, high-information image by default: prefer a real product screenshot that proves the main value, otherwise use a clearly labeled benchmark/release summary card. Patch releases do not post unless the user explicitly overrides this rule.
+- When `HTTP_PROXY`/`HTTPS_PROXY` is required, invoke this wrapper with a Node version that supports environment proxies (for example `NODE_USE_ENV_PROXY=1 <node-24+> scripts/x-bird.mjs ...`). The wrapper launches `bird` with the same Node executable so the proxy setting reaches X requests.
 - Prefer `--json` for read/search workflows so downstream analysis stays structured
 - If the user asks for only reading, do not post, like, follow, or unbookmark anything

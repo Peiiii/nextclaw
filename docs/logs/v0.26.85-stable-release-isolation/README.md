@@ -14,11 +14,11 @@
 - 所有触达的 release 脚本通过 `node --check`，`git diff --check` 通过。
 - 真实未发布批次的 `NEXTCLAW_RELEASE_CHECK_RESET=1 pnpm release:check:strict` 通过；17 个 workspace 构建前置先于 18 个 Changesets 发布包运行，原 `@nextclaw/ncp` 缺失错误未复现。
 - checkpoint `381c5317a7a91425` 精确包含 18 个发布包，没有任何构建前置包。
-- 最终 `v0.30.0` 发布仍需在包含本修复的全新隔离 worktree 中完成 28 包严格检查、registry/runtime/真实安装和分支回流验收；完成后更新本记录。
+- `v0.30.0` 已在包含本修复的全新隔离 worktree 中完成严格检查、registry/runtime、真实安装升级和分支回流验收。严格检查识别 28 个 Changesets release entries，并额外构建 11 个不参与 publish/checkpoint/tag 的 workspace 前置；最终 release checkpoint/tag 集合包含 27 个实际发布包。
 
 ## 发布/部署方式
 
-本提交只先回流稳定发布脚本、测试、设计与 owning skill reference，不发布 NPM、不创建 package tag、不触发 runtime channel。随后从该提交创建新的 release branch/worktree，按完整 `release:stable` 合同发布 `v0.30.0`，不续跑已产生版本文件的失败 worktree。
+流程修复提交 `61f86e43f` 先回流 master；随后从该提交创建全新 release branch/worktree，并由 `release:stable` 生成发布提交 `bd531a2f1`。该提交与 27 个 package tags 已推送，release branch 已 fast-forward 回流 `master`。
 
 ## 用户/产品视角的验收步骤
 
@@ -26,7 +26,7 @@
 2. 在链接 worktree 执行 stable dry-run 或正式命令，确认日志显示自动使用主 worktree npm config，`npm whoami` 不再假 401。
 3. 在没有 workspace `dist` 的新 worktree 中执行严格检查，确认日志先列出并构建 `build prerequisites`。
 4. 检查 release checkpoint、tag 和 registry 计划，确认它们只包含真实发布包，不包含未升版本的构建前置。
-5. 完成 NPM/runtime/真实安装后验证 `nextclaw@latest`、公开 manifest 和从上一 stable 的升级路径。
+5. 完成 NPM/runtime/真实安装后验证 `nextclaw@latest`、公开 manifest 和从上一 stable 的升级路径。若当前机器的 GitHub Pages 出网依赖代理，使用嵌入式 Node 的环境代理支持，不改 manifest URL 或公钥。
 
 ## 可维护性总结汇总
 
@@ -36,4 +36,9 @@
 
 ## NPM 包发布记录
 
-流程修复本身属于内部发布可靠性改进，不添加用户 changeset。`v0.30.0` 的用户可见 changeset 与结构化发布说明保持原批次；最终 package 数、release commit、tags、runtime workflow、真实安装结果与 X 帖子 URL 将在发布闭环后补充。
+- stable 主包：`nextclaw@0.30.0`，`latest` 已反查为 `0.30.0`。
+- 发布提交：`bd531a2f1`；27 个实际 package tags 与该提交一致，已回流并推送 `master`。
+- runtime workflow：`https://github.com/Peiiii/nextclaw/actions/runs/31326191760`，darwin x64/arm64、linux x64、win32 x64 和 update channel 全部成功。
+- 真实安装：从 registry 全新安装 `0.30.0` 后，版本、app、launcher、public key、embedded UI 均通过；从 `0.29.0` 完成 `check -> download-only -> apply -> 新进程 0.30.0`。
+- 公开说明：`https://docs.nextclaw.io/en/notes/2026-08-10-nextclaw-v0-30-0` 返回 200。
+- X：stable minor 已获长期直接发布授权，摘要图为 `images/marketing/nextclaw-v0.30.0-release-summary-en.png`。2026-08-10 首次带图发布被 X 以错误 344（达到当日 Tweets/messages 上限）拒绝，确认没有生成重复文字帖；额度恢复后自动重试并补记帖子 URL。

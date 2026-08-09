@@ -9,4 +9,8 @@
 
 完整 stable NPM 闭环使用 `pnpm release:stable`：它在不可逆 publish 前冻结 release plan、验证 auth/branch/release notes/public key，随后串联严格检查、registry、release commit/tag/push、stable runtime 和真实安装升级。先用 `--dry-run` 审计；发布后失败按输出的 `--resume-from git|runtime|install` 精确续跑，不重新执行 package publish。
 
+Agent 执行正式发布时默认把完整 stdout/stderr 写入临时日志，只向会话回传阶段、耗时、包数、最终摘要和失败附近的有限行；禁止把数万行 build/lint 输出整体送入上下文。日志保留到闭环完成，失败恢复仍使用原 checkpoint，不靠截断输出猜阶段。
+
+真实升级验证若 `curl` 可访问公开 manifest、Node `fetch` 却持续 `ECONNRESET`，先检查运行环境是否依赖 `HTTP_PROXY`/`HTTPS_PROXY`。嵌入式 Node 24+ 使用 `NODE_USE_ENV_PROXY=1` 重跑 install checkpoint；这只让真实用户链路采用既有出网代理，不替换 manifest、公钥或发布物。
+
 `nextclaw` 的 workspace runtime API、UI 产物或公共 package 有未发布语义变化时，必须纳入同批；不能用 CLI 版本号或复制的 ui-dist 证明运行依赖闭包正确。

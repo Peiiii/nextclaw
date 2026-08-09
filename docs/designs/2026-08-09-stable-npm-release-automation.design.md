@@ -18,6 +18,10 @@
 6. 复用 `packages/nextclaw` 的 smoke，从真实 registry 安装精确 stable 版本，并从发布前 stable 完成 `check -> download-only -> apply -> 新进程版本`。
 7. 汇总 package/version/dist-tag、commit、runtime URL、公开安装证据和明确跳过项。
 
+发布任务的外部闭环在上述技术合同成功后继续执行：stable minor 等待公开 release note URL 返回 200，按版本主价值选择真实功能截图或明确标注口径的摘要图，然后通过本机已授权 X 账号直接发布并记录 URL。Patch 不发，major 另行确认宣发范围。用户已授予 stable minor 长期发布授权，因此不再逐次等待文案确认。
+
+为控制 agent 上下文成本，正式命令的完整 build/lint 输出写入临时日志；会话只消费阶段状态、耗时、数量、失败附近有限行和最终摘要。该策略不减少验证项，也不改变 checkpoint/恢复语义。
+
 严格发布检查维护两个不同集合：Changesets 决定的“发布包闭包”拥有 version、checkpoint、tag 和 registry 语义；这些包的完整 workspace 依赖闭包属于“构建前置集合”，只按拓扑顺序生成干净环境需要的 `dist`，不进入发布数量、checkpoint、tag 或 publish。禁止依赖主工作区残留构建产物让隔离验证偶然通过。
 
 `release:beta`、`release:publish`、runtime workflow 和 Changesets 继续是原有 owner；stable 脚本不得 raw `npm publish`，不得另写 manifest 或直接上传 release assets。
@@ -49,6 +53,9 @@ NPM publish 是首个不可逆点。因此 release plan、版本级别、release
 - 新建链接 worktree 不复制 `.npmrc` 时，stable 脚本仍能自动使用主 worktree 的项目级 npm config；显式 `NPM_CONFIG_USERCONFIG` 和当前 worktree 自有 `.npmrc` 优先，不被覆盖。
 - 删除所有 workspace `dist` 的干净环境中，严格检查先构建未发布的 workspace 依赖闭包，再验证发布包；构建前置不得出现在 release checkpoint 和 package tags 中。
 - stable published smoke 验证精确包版本、app/launcher/public key/UI 载荷；升级验证不设置自定义 manifest 或 public key。
+- 需要本机出网代理时，published smoke 以 `NODE_USE_ENV_PROXY=1` 使用同一公开 manifest 和签名链完成上一 stable 到目标版本的真实升级。
+- stable minor 的公开 release note 返回 200 后发布带图 X 帖并保存帖子 URL；patch 不触发 X。
+- Agent 侧正式发布日志不整体进入会话上下文；失败时只读取阶段摘要和错误附近有限行。
 - 现有 beta、`release:publish` 和 `release:stable:runtime` 命令保持原行为。
 - 修改的脚本通过 Node 语法检查、定向测试、ESLint/治理检查和 maintainability guard。
 
