@@ -75,9 +75,20 @@ class BirdCommandRunner {
   run = (args) => {
     const credentials = this.store.load();
     const birdEntry = resolveBirdEntry();
+    const credentialArgs = ["--auth-token", credentials.authToken, "--ct0", credentials.ct0];
+    if (args.includes("tweet") || args.includes("reply")) {
+      const refreshResult = spawnSync(
+        process.execPath,
+        [birdEntry, ...credentialArgs, "query-ids", "--fresh"],
+        { stdio: "inherit" },
+      );
+      if (refreshResult.status !== 0) {
+        throw refreshResult.error ?? new Error("Could not refresh X query IDs before posting");
+      }
+    }
     const result = spawnSync(
       process.execPath,
-      [birdEntry, "--auth-token", credentials.authToken, "--ct0", credentials.ct0, ...args],
+      [birdEntry, ...credentialArgs, ...args],
       {
         stdio: "inherit",
       },
