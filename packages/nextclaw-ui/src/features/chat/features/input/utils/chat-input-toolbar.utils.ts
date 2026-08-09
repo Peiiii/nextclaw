@@ -14,7 +14,6 @@ function formatModelOptionLabel(option: ChatModelRecord): string {
   const providerLabel = option.providerLabel.trim();
   return providerLabel ? `${providerLabel}/${modelLabel}` : modelLabel;
 }
-
 function buildDiscoveredModelGroups(options: ChatModelRecord[]) {
   const groups = new Map<string, { key: string; label: string; options: Array<{ value: string; label: string }> }>();
   for (const option of options) {
@@ -81,6 +80,47 @@ export function buildModelStateHint(params: {
   };
 }
 
+function buildModelDiscovery(params: {
+  options: ChatModelRecord[];
+  onDismiss?: () => void;
+  onSelect?: (value: string) => Promise<void> | void;
+  texts: Pick<
+    ChatInputBarAdapterTexts,
+    | "allModelsLabel"
+    | "discoveredModelAddLabel"
+    | "discoveredModelAddedLabel"
+    | "discoveredModelsCloseLabel"
+    | "discoveredModelsDismissLabel"
+    | "discoveredModelsDoneLabel"
+    | "discoveredModelsGroupLabel"
+    | "discoveredModelsSummaryLabel"
+    | "discoveredModelsViewLabel"
+    | "modelSearchEmptyLabel"
+    | "modelSearchPlaceholder"
+  >;
+}): ChatToolbarSelect["discovery"] {
+  const { onDismiss, onSelect, options, texts } = params;
+  if (!onDismiss || !onSelect || options.length === 0) {
+    return undefined;
+  }
+  return {
+    summaryLabel: texts.discoveredModelsSummaryLabel.replace('{count}', String(options.length)),
+    viewLabel: texts.discoveredModelsViewLabel,
+    groupLabel: texts.discoveredModelsGroupLabel,
+    allGroupLabel: texts.allModelsLabel,
+    actionLabel: texts.discoveredModelAddLabel,
+    addedLabel: texts.discoveredModelAddedLabel,
+    dismissLabel: texts.discoveredModelsDismissLabel,
+    doneLabel: texts.discoveredModelsDoneLabel,
+    closeLabel: texts.discoveredModelsCloseLabel,
+    searchPlaceholder: texts.modelSearchPlaceholder,
+    searchEmptyLabel: texts.modelSearchEmptyLabel,
+    groups: buildDiscoveredModelGroups(options),
+    onDismiss,
+    onSelect,
+  };
+}
+
 export function buildModelToolbarSelect({
   modelOptions,
   discoveredModelOptions,
@@ -122,7 +162,10 @@ export function buildModelToolbarSelect({
     | "discoveredModelsViewLabel"
     | "discoveredModelsGroupLabel"
     | "discoveredModelAddLabel"
+    | "discoveredModelAddedLabel"
     | "discoveredModelsDismissLabel"
+    | "discoveredModelsDoneLabel"
+    | "discoveredModelsCloseLabel"
     | "recentModelsLabel"
     | "allModelsLabel"
   >;
@@ -210,19 +253,12 @@ export function buildModelToolbarSelect({
           onToggle: onFavoriteToggle,
         }
       : undefined,
-    discovery: onDiscoveredModelSelect && onDiscoveredModelsDismiss && discoveryOptions.length > 0
-      ? {
-          summaryLabel: texts.discoveredModelsSummaryLabel.replace('{count}', String(discoveryOptions.length)),
-          viewLabel: texts.discoveredModelsViewLabel,
-          groupLabel: texts.discoveredModelsGroupLabel,
-          allGroupLabel: texts.allModelsLabel,
-          actionLabel: texts.discoveredModelAddLabel,
-          dismissLabel: texts.discoveredModelsDismissLabel,
-          groups: buildDiscoveredModelGroups(discoveryOptions),
-          onDismiss: onDiscoveredModelsDismiss,
-          onSelect: onDiscoveredModelSelect,
-        }
-      : undefined,
+    discovery: buildModelDiscovery({
+      options: discoveryOptions,
+      onDismiss: onDiscoveredModelsDismiss,
+      onSelect: onDiscoveredModelSelect,
+      texts,
+    }),
     manageLabel: texts.manageModelsLabel,
     manageHref: "/providers",
     onOpen,

@@ -138,7 +138,12 @@ it("shows model discovery only inside the expanded selector and runs the explici
             groupLabel: "New models",
             allGroupLabel: "All",
             actionLabel: "Add",
-            dismissLabel: "Don't remind me about these",
+            addedLabel: "Added",
+            dismissLabel: "Dismiss this batch",
+            doneLabel: "Done",
+            closeLabel: "Close new models",
+            searchPlaceholder: "Search new models",
+            searchEmptyLabel: "No new models found",
             groups: [
               {
                 key: "opencode",
@@ -185,9 +190,22 @@ it("shows model discovery only inside the expanded selector and runs the explici
   expect(await screen.findByText("2 new models available")).toBeTruthy();
   expect(onOpen).toHaveBeenCalledTimes(1);
   expect(screen.queryByText("deepseek-v4-flash-free")).toBeNull();
-  fireEvent.click(
-    screen.getByRole("button", { name: /2 new models available/i }),
+  const discoveryNotice = screen.getByRole("button", {
+    name: /2 new models available/i,
+  });
+  const manageLink = screen.getByRole("link", {
+    name: "Manage models and providers",
+  });
+  const configuredModelsScrollRegion = screen
+    .getByText("Anthropic/claude-sonnet-4")
+    .closest(".overflow-y-auto");
+  expect(discoveryNotice.parentElement?.className).toContain("shrink-0");
+  expect(configuredModelsScrollRegion?.contains(discoveryNotice)).toBe(false);
+  expect(discoveryNotice.parentElement?.nextElementSibling).toBe(
+    manageLink.parentElement,
   );
+
+  fireEvent.click(discoveryNotice);
   const longModelLabel = await screen.findByText(
     "inclusionai/ling-3.0-tiny:free",
   );
@@ -196,25 +214,22 @@ it("shows model discovery only inside the expanded selector and runs the explici
   expect(longModelLabel.closest(".grid")?.className).toContain(
     "grid-cols-[minmax(0,1fr)_auto]",
   );
-  const manageLink = screen.getByRole("link", {
-    name: "Manage models and providers",
-  });
-  const sharedScrollRegion = longModelLabel.closest(".overflow-y-auto");
-  expect(sharedScrollRegion).toBe(
-    manageLink.parentElement?.previousElementSibling,
-  );
-  expect(sharedScrollRegion?.className).toContain("min-h-0");
-  expect(sharedScrollRegion?.className).toContain("flex-1");
-  expect(manageLink.parentElement?.className).toContain("shrink-0");
+  const discoveryScrollRegion = longModelLabel.closest(".overflow-y-auto");
+  expect(discoveryScrollRegion?.className).toContain("min-h-0");
+  expect(discoveryScrollRegion?.className).toContain("flex-1");
+  const dialog = screen.getByRole("dialog");
+  expect(dialog.className).toContain("max-w-2xl");
+  expect(dialog.className).toContain("overflow-hidden");
+  expect(
+    screen.queryByRole("link", {
+      name: "Manage models and providers",
+    }),
+  ).toBeNull();
   expect(
     screen.getByRole("tab", { name: "All" }).getAttribute("aria-selected"),
   ).toBe("true");
   expect(screen.getAllByText("OpenCode")).toHaveLength(2);
   expect(screen.getAllByText("OpenRouter")).toHaveLength(2);
-  fireEvent.click(
-    screen.getByRole("button", { name: "Don't remind me about these" }),
-  );
-  expect(onDismiss).toHaveBeenCalledOnce();
 
   fireEvent.click(screen.getByRole("tab", { name: "OpenRouter" }));
   expect(
@@ -224,11 +239,6 @@ it("shows model discovery only inside the expanded selector and runs the explici
   ).toBe("true");
   expect(screen.queryByText("deepseek-v4-flash-free")).toBeNull();
   expect(screen.getByText("inclusionai/ling-3.0-tiny:free")).toBeTruthy();
-  expect(
-    screen
-      .getByText("2 new models available")
-      .compareDocumentPosition(manageLink) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
 
   fireEvent.click(screen.getAllByRole("button", { name: "Add" })[0]!);
 
@@ -236,8 +246,18 @@ it("shows model discovery only inside the expanded selector and runs the explici
     expect(onSelect).toHaveBeenCalledWith(
       "openrouter/inclusionai/ling-3.0-tiny:free",
     );
-    expect(screen.getByText("2 new models available")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Added" }).hasAttribute("disabled"),
+    ).toBe(true);
   });
+
+  fireEvent.change(screen.getByPlaceholderText("Search new models"), {
+    target: { value: "missing" },
+  });
+  expect(screen.getByText("No new models found")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss this batch" }));
+  expect(onDismiss).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 it("marks active toolbar option actions as pressed", async () => {

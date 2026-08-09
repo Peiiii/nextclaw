@@ -1,6 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSessionProviderModelCatalog } from '@/features/chat/features/conversation/hooks/use-session-provider-model-catalog';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildProviderModelDiscoveryPreviewOptions,
+  useSessionProviderModelCatalog,
+} from '@/features/chat/features/conversation/hooks/use-session-provider-model-catalog';
 
 const mocks = vi.hoisted(() => ({
   refetch: vi.fn(),
@@ -57,6 +60,11 @@ const templatesView = {
   }],
 };
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  window.history.replaceState({}, '', '/');
+});
+
 describe('useSessionProviderModelCatalog', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -105,5 +113,49 @@ describe('useSessionProviderModelCatalog', () => {
     act(() => result.current.dismissDiscoveredModels());
     expect(result.current.discoveredModelOptions).toEqual([]);
     expect(mocks.updateProvider).not.toHaveBeenCalled();
+  });
+
+  it('simulates preview add and dismiss without updating providers or notice storage', async () => {
+    vi.stubEnv('DEV', true);
+    vi.stubEnv('VITEST', '');
+    window.history.replaceState({}, '', '/chat?preview=model-discovery');
+    const { result } = renderHook(() => useSessionProviderModelCatalog({
+      config: null,
+      providersView,
+      templatesView,
+      modelSelectionMode: 'nextclaw',
+    }));
+
+    expect(result.current.discoveredModelOptions).toHaveLength(15);
+    await act(async () => {
+      await result.current.addDiscoveredModel(result.current.discoveredModelOptions[0]!.value);
+    });
+    expect(mocks.updateProvider).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem('nextclaw.chat.provider-model-catalog-notices')).toBeNull();
+
+    act(() => result.current.dismissDiscoveredModels());
+    expect(result.current.discoveredModelOptions.map((option) => option.value)).toEqual([
+      'opencode/deepseek-v4-flash-free',
+    ]);
+    expect(result.current.discoveredModelOptions.some((option) => option.providerId.startsWith('__nextclaw-preview__')))
+      .toBe(false);
+    expect(window.localStorage.getItem('nextclaw.chat.provider-model-catalog-notices')).toBeNull();
+  });
+});
+
+describe('model discovery preview', () => {
+  it('only creates a non-persistent 15-model catalog for the explicit development preview URL', () => {
+    expect(buildProviderModelDiscoveryPreviewOptions({ enabled: false, search: '?preview=model-discovery' })).toEqual([]);
+    expect(buildProviderModelDiscoveryPreviewOptions({ enabled: true, search: '?preview=other' })).toEqual([]);
+
+    const options = buildProviderModelDiscoveryPreviewOptions({
+      enabled: true,
+      search: '?preview=model-discovery',
+    });
+    expect(options).toHaveLength(15);
+    expect(new Set(options.map((option) => option.providerLabel))).toEqual(
+      new Set(['OpenCode Zen Free Trial', 'OpenRouter', 'Kimi']),
+    );
+    expect(options.every((option) => option.providerId.startsWith('__nextclaw-preview__'))).toBe(true);
   });
 });

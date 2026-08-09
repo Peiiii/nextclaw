@@ -46,7 +46,9 @@ type ToolbarSelectBuildParams = {
   readonly unfavoriteModelLabel: string;
 };
 
-export function buildSessionConversationToolbarSelects(params: ToolbarSelectBuildParams) {
+export function buildSessionConversationToolbarSelects(
+  params: ToolbarSelectBuildParams,
+) {
   const {
     allModelsLabel,
     favoriteModelLabel,
@@ -99,7 +101,10 @@ export function buildSessionConversationToolbarSelects(params: ToolbarSelectBuil
         discoveredModelsViewLabel: t('chatDiscoveredModelsView'),
         discoveredModelsGroupLabel: t('chatDiscoveredModelsGroup'),
         discoveredModelAddLabel: t('chatDiscoveredModelAdd'),
+        discoveredModelAddedLabel: t('chatDiscoveredModelAddedShort'),
         discoveredModelsDismissLabel: t('chatDiscoveredModelsDismiss'),
+        discoveredModelsDoneLabel: t('chatDiscoveredModelsDone'),
+        discoveredModelsCloseLabel: t('chatDiscoveredModelsClose'),
         recentModelsLabel,
         allModelsLabel,
       },

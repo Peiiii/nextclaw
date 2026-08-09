@@ -28,7 +28,10 @@ function createModelTexts() {
     discoveredModelsViewLabel: 'View',
     discoveredModelsGroupLabel: 'New models',
     discoveredModelAddLabel: 'Add',
-    discoveredModelsDismissLabel: "Don't remind me about these",
+    discoveredModelAddedLabel: 'Added',
+    discoveredModelsDismissLabel: 'Dismiss this batch',
+    discoveredModelsDoneLabel: 'Done',
+    discoveredModelsCloseLabel: 'Close new models',
     recentModelsLabel: 'Recent',
     allModelsLabel: 'All models'
   };
@@ -64,7 +67,6 @@ describe('buildModelStateHint', () => {
     });
   });
 });
-
 describe('buildChatSlashItems', () => {
   const texts = {
     slashSkillSubtitle: 'Skill',
@@ -316,7 +318,12 @@ describe('buildModelToolbarSelect', () => {
       groupLabel: 'New models',
       allGroupLabel: 'All models',
       actionLabel: 'Add',
-      dismissLabel: "Don't remind me about these",
+      addedLabel: 'Added',
+      dismissLabel: 'Dismiss this batch',
+      doneLabel: 'Done',
+      closeLabel: 'Close new models',
+      searchPlaceholder: 'Search models',
+      searchEmptyLabel: 'No matching models',
       groups: [
         {
           key: 'opencode',
@@ -340,7 +347,9 @@ describe('buildModelToolbarSelect', () => {
     });
     expect(select.onOpen).toBe(onOpen);
   });
+});
 
+describe('buildModelToolbarSelect selection', () => {
   it('falls back to the first available option when the selected model is missing', () => {
     const onValueChange = vi.fn();
     const select = buildModelToolbarSelect({

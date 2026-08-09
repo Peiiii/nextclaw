@@ -17,11 +17,14 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ChatInputBarActions } from "./chat-input-bar-actions";
 import { ChatInputBarAddMenu } from "./chat-input-bar-add-menu";
 import { matchesChatInputBarSearch } from "./chat-input-bar-search.utils";
-import { ChatInputBarModelDiscovery } from "./model-discovery/chat-input-bar-model-discovery";
+import {
+  ChatInputBarModelDiscoveryDialog,
+  ChatInputBarModelDiscoveryNotice,
+} from "./model-discovery/chat-input-bar-model-discovery";
 
 function ToolbarIcon({
   icon,
@@ -134,7 +137,9 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
     TooltipTrigger,
   } = ChatUiPrimitives;
   const [open, setOpen] = useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const groups = buildSelectGroups(item);
   const filteredGroups = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -173,6 +178,7 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           aria-label={
             item.selectedLabel
@@ -283,16 +289,16 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
               </div>
             ))}
           </div>
-          {discovery ? (
-            <ChatInputBarModelDiscovery
-              discovery={discovery}
-              query={query}
-              renderOption={(option) => (
-                <ToolbarSelectOptionContent option={option} />
-              )}
-            />
-          ) : null}
         </div>
+        {discovery ? (
+          <ChatInputBarModelDiscoveryNotice
+            discovery={discovery}
+            onOpen={() => {
+              handleOpenChange(false);
+              setDiscoveryOpen(true);
+            }}
+          />
+        ) : null}
         {item.manageHref && item.manageLabel ? (
           <div className="shrink-0 px-1.5 pb-1.5 pt-0.5">
             <a
@@ -305,6 +311,17 @@ function ToolbarSearchableSelect({ item }: { item: ChatToolbarSelect }) {
           </div>
         ) : null}
       </PopoverContent>
+      {discovery ? (
+        <ChatInputBarModelDiscoveryDialog
+          discovery={discovery}
+          open={discoveryOpen}
+          onOpenChange={setDiscoveryOpen}
+          restoreFocusRef={triggerRef}
+          renderOption={(option) => (
+            <ToolbarSelectOptionContent option={option} />
+          )}
+        />
+      ) : null}
     </Popover>
   );
 }

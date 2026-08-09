@@ -32,7 +32,6 @@ export type ChatSelectedItem = {
   key: string;
   label: string;
 };
-
 export type ChatComposerTokenKind = "skill" | "file" | "panel_app" | (string & {});
 
 export type ChatComposerTokenData = Record<string, unknown>;
@@ -93,7 +92,12 @@ export type ChatToolbarSelectDiscovery = {
   groupLabel: string;
   allGroupLabel: string;
   actionLabel: string;
+  addedLabel: string;
   dismissLabel: string;
+  doneLabel: string;
+  closeLabel: string;
+  searchPlaceholder: string;
+  searchEmptyLabel: string;
   groups: ChatToolbarSelectGroup[];
   onDismiss: () => void;
   onSelect: (value: string) => Promise<void> | void;
