@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.30.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-10",
+  "title": {
+    "zh-CN": "NextClaw v0.30.0",
+    "en-US": "NextClaw v0.30.0"
+  },
+  "summary": {
+    "zh-CN": "未启用的消息渠道现在按需运行，显著降低空闲内存；聊天同时加入消息片段引用、更完整的媒体预览和模型发现体验。",
+    "en-US": "Unused messaging channels now run on demand to reduce idle memory, with conversation excerpt references, richer media previews, and better model discovery."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-10-nextclaw-v0-30-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-10-nextclaw-v0-30-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "消息渠道按需运行",
+            "en-US": "On-demand messaging channels"
+          },
+          "body": {
+            "zh-CN": "未启用的消息渠道不再常驻独立进程；运行中启用、禁用或发起授权时，对应运行时会自动启动或回收。",
+            "en-US": "Unused messaging channels no longer keep separate processes resident; enabling, disabling, or authorizing a channel starts or releases its runtime automatically."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更低的空闲内存",
+            "en-US": "Lower idle memory"
+          },
+          "body": {
+            "zh-CN": "ARM64 Linux 空配置三轮平均 working set 从旧版本约 865～885 MiB 降至 164.94 MiB，下降约 81%；其他架构和活跃任务会随实际工作变化。",
+            "en-US": "The three-run ARM64 Linux empty-configuration average fell from about 865–885 MiB to 164.94 MiB, about 81% lower; other architectures and active workloads will vary."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "引用历史消息片段",
+            "en-US": "Reference earlier message excerpts"
+          },
+          "body": {
+            "zh-CN": "用户或 AI 历史消息中的选中文本可以作为结构化引用发送，AI 会收到选中时的精确快照。",
+            "en-US": "Selected text from earlier user or AI messages can be sent as a structured reference containing the exact captured snapshot."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "统一媒体预览",
+            "en-US": "Unified media preview"
+          },
+          "body": {
+            "zh-CN": "图片与 Mermaid 图表支持全屏、适应窗口、缩放、拖拽、复位，以及复制图片或源码。",
+            "en-US": "Images and Mermaid diagrams support full-screen viewing, fit-to-window, zoom, pan, reset, and copy actions."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更清楚的模型发现",
+            "en-US": "Clearer model discovery"
+          },
+          "body": {
+            "zh-CN": "新模型提醒保持可见，模型目录支持搜索、提供商筛选、逐项添加和忽略当前提醒。",
+            "en-US": "New-model notices remain visible, while the model catalog supports search, provider filters, individual additions, and dismissing the current notice."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更精简的快捷栏",
+            "en-US": "A simpler side dock"
+          },
+          "body": {
+            "zh-CN": "右侧快捷栏移除低频服务应用默认入口；服务应用仍可从应用页面访问并按需固定。",
+            "en-US": "The low-frequency Service Apps shortcut is removed from the right dock; Service Apps remain available from the Apps page and can be pinned when needed."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "引用与划选操作稳定",
+            "en-US": "Stable reference and selection controls"
+          },
+          "body": {
+            "zh-CN": "结构化引用的删除按钮会稳定出现；文件和消息划选浮层在选择完成后及时显示并避让视口。",
+            "en-US": "Structured-reference removal stays available, and selection controls for files and messages appear after selection while remaining within the viewport."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无需迁移现有配置",
+            "en-US": "No configuration migration"
+          },
+          "body": {
+            "zh-CN": "已有 enabled 渠道继续正常启动；未启用或没有配置的渠道默认保持停止。",
+            "en-US": "Existing enabled channels continue to start normally, while disabled or unconfigured channels remain stopped by default."
+          }
+        }
+      ]
+    }
+  ]
+}
