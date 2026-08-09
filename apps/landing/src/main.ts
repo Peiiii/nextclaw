@@ -47,7 +47,7 @@ const COPY: Record<Locale, LandingCopy> = {
     navCompare: 'Distinct value',
     navIntegrations: 'Integrations',
     navDocs: 'Docs',
-    heroTitleLine1: 'NextClaw',
+    heroTitleLine1: 'NextClaw, your long-term personal AI partner.',
     heroEyebrow: 'From a request to usable results',
     heroDescription:
       'Tell NextClaw what you want done. New installations include OpenCode Zen free-trial models, so you can send the first message without adding an API key.',
@@ -396,7 +396,7 @@ const COPY: Record<Locale, LandingCopy> = {
     navCompare: '独特价值',
     navIntegrations: '集成',
     navDocs: '文档',
-    heroTitleLine1: 'NextClaw',
+    heroTitleLine1: 'NextClaw，你的长期个人智能搭档。',
     heroEyebrow: '从一句话到可用结果',
     heroDescription:
       '说出你要做什么。全新安装已带 OpenCode Zen 免费试用模型，不填 API Key 也能直接发送第一条消息。',

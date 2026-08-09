@@ -1,5 +1,7 @@
 # NextClaw Vision
 
+**NextClaw, your long-term personal AI partner.**
+
 NextClaw's long-term vision is to become the personal operating layer for the AI era.
 
 It is not a traditional operating system kernel. It is the default entry point through which users interact with software, the internet, systems, services, and cloud computing.

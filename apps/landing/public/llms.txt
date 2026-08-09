@@ -6,7 +6,7 @@ Repository: https://github.com/Peiiii/nextclaw
 NPM Package: https://www.npmjs.com/package/nextclaw
 
 Summary:
-NextClaw is a local AI workbench and personal operating layer for agents, model providers, message channels, skills, files, automations, and desktop tools.
+NextClaw is your long-term personal AI partner and a local AI workbench for agents, model providers, message channels, skills, files, automations, and desktop tools.
 It helps users start from a task, bring in the right capabilities, and keep work moving inside one workspace.
 Fresh installations include OpenCode Zen free-trial models, so the first task can start without an API key. Limits and models may change, and sensitive data should not be sent through the public gateway.
 
@@ -32,4 +32,4 @@ Key capabilities:
 - Message channels including Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, email, and WhatsApp.
 - Skills, MCP, CLI tools, scheduled work, local files, panel apps, file previews, HTML previews, and image generation.
 
-Last updated: 2026-08-07
+Last updated: 2026-08-09

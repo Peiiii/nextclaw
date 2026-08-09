@@ -2,8 +2,8 @@
 layout: home
 
 hero:
-  name: NextClaw Docs
-  text: Give an agent a task. Inspect a real result.
+  name: NextClaw
+  text: Your long-term personal AI partner
   tagline: Install and start with built-in free-trial models—no API key required. NextClaw can read source material, use tools, work with local files, and create documents, charts, code, and apps on a machine you control.
   actions:
     - theme: brand

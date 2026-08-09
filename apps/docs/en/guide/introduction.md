@@ -1,5 +1,7 @@
 # What is NextClaw?
 
+**NextClaw, your long-term personal AI partner.**
+
 NextClaw is a local-first AI agent workspace. Give it an outcome, source material, and a working directory. It can use models, skills, a browser, the terminal, and local files in one task until it delivers something you can inspect: a response, document, chart, code change, or small app.
 
 A chat assistant usually stops at telling you what to do. NextClaw is designed for work that requires opening material, taking actions, creating artifacts, and refining the result.

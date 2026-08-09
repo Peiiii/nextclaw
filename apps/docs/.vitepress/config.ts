@@ -104,7 +104,7 @@ export default defineConfig({
       lang: 'en-US',
       link: '/en/',
       title: 'NextClaw',
-      description: 'Documentation for the local-first NextClaw AI agent workspace',
+      description: 'NextClaw, your long-term personal AI partner. Read the installation, task, feature, and configuration documentation.',
       themeConfig: {
         nav: enNav,
         sidebar: enSidebar,
@@ -120,7 +120,7 @@ export default defineConfig({
       lang: 'zh-CN',
       link: '/zh/',
       title: 'NextClaw',
-      description: '本地优先的 NextClaw AI Agent 工作台文档',
+      description: 'NextClaw，你的长期个人智能搭档。查看安装、任务、功能与配置文档。',
       themeConfig: {
         nav: zhNav,
         sidebar: zhSidebar,

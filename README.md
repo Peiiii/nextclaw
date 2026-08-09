@@ -6,7 +6,7 @@
 
 # NextClaw
 
-**Get real work done with AI on the computer you control.**
+**Your long-term personal AI partner.**
 
 Tell NextClaw what you want done. It brings files, models, agents, skills, browser tools, local apps, automations, and messaging channels into one task, then keeps working toward a usable result.
 

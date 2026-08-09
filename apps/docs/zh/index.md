@@ -2,8 +2,8 @@
 layout: home
 
 hero:
-  name: NextClaw 文档
-  text: 让 Agent 把任务做成真实结果
+  name: NextClaw
+  text: 你的长期个人智能搭档
   tagline: 安装后直接使用内置免费试用模型，无需 API Key。NextClaw 可以在你自己的设备上读取资料、使用工具、操作文件，并生成可检查的文档、图表、代码和应用。
   actions:
     - theme: brand
