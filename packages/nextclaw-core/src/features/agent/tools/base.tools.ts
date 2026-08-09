@@ -56,6 +56,7 @@ export abstract class Tool {
   abstract get name(): string;
   abstract get description(): string;
   abstract get parameters(): Record<string, unknown>;
+  readonly supportsParallelToolCalls: boolean = false;
 
   abstract execute(params: unknown, context?: ToolExecutionContext): Promise<unknown>;
 

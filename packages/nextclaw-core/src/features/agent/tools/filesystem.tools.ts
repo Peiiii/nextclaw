@@ -91,6 +91,8 @@ function formatPagedFileRead(path: string, file: PagedReadResult): string {
 }
 
 export class ReadFileTool extends Tool {
+  readonly supportsParallelToolCalls = true;
+
   constructor(private allowedDir?: string) {
     super();
   }
@@ -221,6 +223,8 @@ export class EditFileTool extends Tool {
 }
 
 export class ListDirTool extends Tool {
+  readonly supportsParallelToolCalls = true;
+
   constructor(private allowedDir?: string) {
     super();
   }

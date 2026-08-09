@@ -21,8 +21,11 @@ export type RuntimeToolCallExecutorInput = {
     toolCall: CollectedToolCall,
     publishToolResult: (event: NcpEndpointEvent) => Promise<void>,
   ): Promise<NcpEndpointEvent>;
+  supportsParallelToolCalls(toolCall: CollectedToolCall): boolean;
   toRunErrorEvent(error: unknown): NcpEndpointEvent;
 };
+
+const MAX_PARALLEL_TOOL_CALLS = 8;
 
 class RuntimeEventQueue {
   private readonly buffered: RuntimeQueuedEvent[] = [];
@@ -71,8 +74,9 @@ export class RuntimeToolCallExecutor {
   private readonly calls = new Map<string, RuntimeToolCallDraft>();
   private readonly queue = new RuntimeEventQueue();
   private readonly readyToolCalls: CollectedToolCall[] = [];
-  private isRunningTool = false;
   private isCanceled = false;
+  private isRunningExclusiveTool = false;
+  private runningParallelToolCount = 0;
   private startedToolCount = 0;
 
   constructor(private readonly input: RuntimeToolCallExecutorInput) {}
@@ -102,7 +106,7 @@ export class RuntimeToolCallExecutor {
   };
 
   hasPendingEvents = (): boolean =>
-    this.isRunningTool || this.readyToolCalls.length > 0 || this.queue.hasBuffered();
+    this.hasRunningToolCalls() || this.readyToolCalls.length > 0 || this.queue.hasBuffered();
 
   hasStartedToolCalls = (): boolean => this.startedToolCount > 0;
 
@@ -138,23 +142,40 @@ export class RuntimeToolCallExecutor {
   };
 
   private drainReadyToolCalls = (): void => {
-    if (this.isRunningTool || this.isCanceled) return;
-    this.isRunningTool = true;
-    void this.runReadyToolCalls().finally(() => {
-      this.isRunningTool = false;
-      if (!this.isCanceled && this.readyToolCalls.length > 0) {
-        this.drainReadyToolCalls();
+    if (this.isCanceled || this.isRunningExclusiveTool) return;
+
+    while (this.readyToolCalls.length > 0) {
+      const toolCall = this.readyToolCalls[0];
+      if (!toolCall) return;
+      if (!this.input.supportsParallelToolCalls(toolCall)) {
+        if (this.runningParallelToolCount > 0) return;
+        this.readyToolCalls.shift();
+        this.runExclusiveToolCall(toolCall);
+        return;
       }
+      if (this.runningParallelToolCount >= MAX_PARALLEL_TOOL_CALLS) return;
+      this.readyToolCalls.shift();
+      this.runParallelToolCall(toolCall);
+    }
+  };
+
+  private hasRunningToolCalls = (): boolean =>
+    this.isRunningExclusiveTool || this.runningParallelToolCount > 0;
+
+  private runExclusiveToolCall = (toolCall: CollectedToolCall): void => {
+    this.isRunningExclusiveTool = true;
+    void this.runToolCall(toolCall).finally(() => {
+      this.isRunningExclusiveTool = false;
+      this.drainReadyToolCalls();
     });
   };
 
-  private runReadyToolCalls = async (): Promise<void> => {
-    while (!this.isCanceled && this.readyToolCalls.length > 0) {
-      const toolCall = this.readyToolCalls.shift();
-      if (toolCall) {
-        await this.runToolCall(toolCall);
-      }
-    }
+  private runParallelToolCall = (toolCall: CollectedToolCall): void => {
+    this.runningParallelToolCount += 1;
+    void this.runToolCall(toolCall).finally(() => {
+      this.runningParallelToolCount -= 1;
+      this.drainReadyToolCalls();
+    });
   };
 
   private runToolCall = async (toolCall: CollectedToolCall): Promise<void> => {

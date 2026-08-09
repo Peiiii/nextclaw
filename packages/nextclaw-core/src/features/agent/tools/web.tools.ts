@@ -230,6 +230,8 @@ async function readSearchErrorDetails(response: Response): Promise<string> {
 }
 
 export class WebSearchTool extends Tool {
+  readonly supportsParallelToolCalls = true;
+
   constructor(private readonly config?: SearchConfig | null) {
     super();
   }
@@ -362,6 +364,8 @@ export class WebSearchTool extends Tool {
 }
 
 export class WebFetchTool extends Tool {
+  readonly supportsParallelToolCalls = true;
+
   get name(): string {
     return "web_fetch";
   }

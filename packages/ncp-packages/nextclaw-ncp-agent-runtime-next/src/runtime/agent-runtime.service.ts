@@ -256,6 +256,8 @@ export class DefaultNcpAgentRuntime {
             this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal),
           executeToolCall: (toolCall, publishToolResult) =>
             this.executeToolCall(tools, sessionId, spec, toolCall, publishToolResult, signal),
+          supportsParallelToolCalls: (toolCall) =>
+            tools.find((tool) => tool.name === toolCall.toolName)?.supportsParallelToolCalls === true,
           executionManager,
           llmApi: this.llmApi,
           messageId,

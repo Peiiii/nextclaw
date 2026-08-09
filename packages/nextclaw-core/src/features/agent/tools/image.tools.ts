@@ -15,6 +15,7 @@ export type ViewImageToolOptions = {
 };
 
 export class ViewImageTool extends Tool {
+  readonly supportsParallelToolCalls = true;
   private readonly allowedDir: string | null;
   private readonly maxBytes: number;
   private readonly workingDir: string;

@@ -24,6 +24,32 @@ afterEach(() => {
 });
 
 describe("CoreToolProvider", () => {
+  it("opts only read-only built-in tools into parallel execution", async () => {
+    const workspace = makeTempDir();
+    const provider = new CoreToolProvider(
+      createRunContextService({ restrictToWorkspace: true, workspace }),
+      () => undefined,
+    );
+
+    const tools = await provider.provide(createRequest());
+    const parallelToolNames = tools
+      .filter((tool) => tool.supportsParallelToolCalls === true)
+      .map((tool) => tool.name);
+
+    expect(parallelToolNames).toEqual([
+      "read_file",
+      "list_dir",
+      "view_image",
+      "web_search",
+      "web_fetch",
+      "memory_search",
+      "memory_get",
+    ]);
+    expect(readExecutableTool(tools, "write_file").supportsParallelToolCalls).toBe(false);
+    expect(readExecutableTool(tools, "edit_file").supportsParallelToolCalls).toBe(false);
+    expect(readExecutableTool(tools, "exec").supportsParallelToolCalls).toBe(false);
+  });
+
   it("provides view_image without a workspace read limit when restrictToWorkspace is false", async () => {
     const workspace = makeTempDir();
     const outsideImagePath = writePng(makeTempDir(), "outside.png");

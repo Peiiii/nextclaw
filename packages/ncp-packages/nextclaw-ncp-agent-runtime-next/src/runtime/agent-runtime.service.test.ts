@@ -680,6 +680,61 @@ describe("DefaultNcpAgentRuntime tool call scheduling", () => {
   });
 });
 
+describe("DefaultNcpAgentRuntime parallel tool call scheduling", () => {
+  it("executes explicitly parallel-safe tool calls concurrently", async () => {
+    const bothCallsStarted = deferred();
+    const markers: string[] = [];
+    let startedCount = 0;
+    let generateRound = 0;
+    const llmApi: NcpLLMApi = {
+      generate: async function* () {
+        generateRound += 1;
+        if (generateRound === 1) {
+          yield toolCallChunk(0, "call-1", "lookup", "{\"value\":1}");
+          yield toolCallChunk(1, "call-2", "lookup", "{\"value\":2}");
+          yield finishChunk("tool_calls");
+          return;
+        }
+        yield finishChunk("stop");
+      },
+    };
+    const tool: NcpTool = {
+      execute: async (_args, context) => {
+        const toolCallId = context?.toolCallId ?? "missing-tool-call-id";
+        markers.push(`start:${toolCallId}`);
+        startedCount += 1;
+        if (startedCount === 2) bothCallsStarted.resolve();
+        await bothCallsStarted.promise;
+        markers.push(`finish:${toolCallId}`);
+        return { ok: true, toolCallId };
+      },
+      name: "lookup",
+      supportsParallelToolCalls: true,
+    };
+    const runtime = new DefaultNcpAgentRuntime({ llmApi, modelInputBuilder });
+    const { sessionRun } = createSessionRun();
+    const events: NcpEndpointEvent[] = [];
+
+    await Promise.race([
+      (async () => {
+        for await (const event of runtime.run(spec, {
+          contextBlocks: [],
+          sessionRun,
+          tools: [tool],
+        })) {
+          events.push(event);
+        }
+      })(),
+      rejectAfter(1_000, "timed out waiting for parallel tool calls"),
+    ]);
+
+    expect(markers.slice(0, 2)).toEqual(["start:call-1", "start:call-2"]);
+    expect(
+      events.filter((event) => event.type === NcpEventType.MessageToolCallResult),
+    ).toHaveLength(2);
+  });
+});
+
 describe("DefaultNcpAgentRuntime aborting tool calls", () => {
   it("emits abort promptly while a tool call is still running", async () => {
     const toolStarted = deferred<string | undefined>();

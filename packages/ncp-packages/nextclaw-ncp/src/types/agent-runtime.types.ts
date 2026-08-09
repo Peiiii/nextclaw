@@ -135,6 +135,7 @@ export interface NcpTool {
   readonly name: string;
   readonly description?: string;
   readonly parameters?: Record<string, unknown>;
+  readonly supportsParallelToolCalls?: boolean;
   validateArgs?(args: Record<string, unknown>): string[];
   execute(args: unknown, context?: NcpToolExecutionContext): Promise<unknown>;
 }

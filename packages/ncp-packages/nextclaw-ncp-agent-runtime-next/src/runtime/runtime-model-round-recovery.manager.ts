@@ -38,6 +38,7 @@ export type RuntimeModelRoundRecoveryManagerInput = {
     toolCall: CollectedToolCall,
     publishToolResult: (event: NcpEndpointEvent) => Promise<void>,
   ) => Promise<NcpEndpointEvent>;
+  supportsParallelToolCalls: (toolCall: CollectedToolCall) => boolean;
   executionManager: AgentRunExecutionManager;
   llmApi: NcpLLMApi;
   messageId: string;
@@ -61,6 +62,7 @@ export async function* runModelRoundWithRecovery(
     };
     const toolExecutor = new RuntimeToolCallExecutor({
       executeToolCall: input.executeToolCall,
+      supportsParallelToolCalls: input.supportsParallelToolCalls,
       toRunErrorEvent: (error) => input.toRunErrorEvent(error, input.runStartedAt),
     });
     try {

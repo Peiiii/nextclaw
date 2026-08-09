@@ -38,6 +38,8 @@ const getMemoryFiles = (workspace: string): string[] => {
 };
 
 export class MemorySearchTool extends Tool {
+  readonly supportsParallelToolCalls = true;
+
   constructor(private workspace: string) {
     super();
   }
@@ -101,6 +103,8 @@ export class MemorySearchTool extends Tool {
 }
 
 export class MemoryGetTool extends Tool {
+  readonly supportsParallelToolCalls = true;
+
   constructor(private workspace: string) {
     super();
   }
