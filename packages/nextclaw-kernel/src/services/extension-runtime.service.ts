@@ -5,6 +5,7 @@ import {
   type ExtensionChannelCommandListIngressPayload,
   type ExtensionChannelConfigGetIngressPayload,
   type ExtensionChannelMessageSubmitIngressPayload,
+  type ExtensionRuntimeReadyIngressPayload,
   type ExtensionResponseIngressPayload,
   type IngressContext,
   type IngressEnvelope,
@@ -13,24 +14,30 @@ import { AgentRouteResolver } from "@nextclaw/core";
 import { CommandRegistry } from "@kernel/services/command-registry.service.js";
 import type {
   ExtensionChannelAuthConnectResult,
-  ExtensionChannelAuthLoginResult,
-  ExtensionChannelAuthPollResult,
   ExtensionChannelAuthStartResult,
   ExtensionChannelBinding,
   ExtensionUiMetadata,
 } from "@nextclaw/core";
 import {
+  ExtensionAuthLeaseService,
   ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
+  normalizeAuthLoginResult,
+  normalizeAuthPollResult,
+  readOptionalNumber,
+  readRecord,
+  readRequiredString,
+  readString,
   resolveExtensionManifestRoots,
+  toInboundMessage,
   type Config,
+  type ExtensionLease,
   type ExtensionChannelRequestKind,
   type ExtensionManifest,
+  type ExtensionProcessExitEvent,
   type ExtensionRequestSender,
   type ExtensionRuntimeContributions,
   type ExtensionRuntimeServiceOptions,
-  type InboundAttachment,
-  type InboundMessage,
   type PendingExtensionRequest,
 } from "@kernel/features/extension-runtime/index.js";
 
@@ -39,101 +46,6 @@ const EXTENSION_REQUEST_TIMEOUT_MS = 60_000;
 
 type ExtensionChannelAuthClient = NonNullable<ExtensionChannelBinding["channel"]["auth"]>;
 type ExtensionChannelOutbound = NonNullable<ExtensionChannelBinding["channel"]["outbound"]>;
-
-function readString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
-
-function readRequiredString(value: unknown, name: string): string {
-  const trimmed = readString(value);
-  if (!trimmed) {
-    throw new Error(`${name} is required`);
-  }
-  return trimmed;
-}
-
-function readTextContent(value: unknown): string {
-  const content = readRecord(value);
-  if (content.type !== "text" || typeof content.text !== "string") {
-    throw new Error("only text channel messages are supported by the first ingress bridge");
-  }
-  return content.text;
-}
-
-function readOptionalNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function readInboundAttachments(value: unknown): InboundAttachment[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .filter((entry): entry is Record<string, unknown> =>
-      Boolean(entry && typeof entry === "object" && !Array.isArray(entry))
-    )
-    .map((entry) => ({
-      ...(readString(entry.id) ? { id: readString(entry.id) } : {}),
-      ...(readString(entry.name) ? { name: readString(entry.name) } : {}),
-      ...(readString(entry.path) ? { path: readString(entry.path) } : {}),
-      ...(readString(entry.url) ? { url: readString(entry.url) } : {}),
-      ...(readString(entry.assetUri) ? { assetUri: readString(entry.assetUri) } : {}),
-      ...(readString(entry.mimeType) ? { mimeType: readString(entry.mimeType) } : {}),
-      ...(readOptionalNumber(entry.size) !== undefined ? { size: readOptionalNumber(entry.size) } : {}),
-      ...(readString(entry.source) ? { source: readString(entry.source) } : {}),
-      ...(entry.status === "ready" || entry.status === "remote-only" ? { status: entry.status } : {}),
-      ...(readString(entry.errorCode) ? { errorCode: readString(entry.errorCode) as InboundAttachment["errorCode"] } : {}),
-    }));
-}
-
-function toInboundMessage(value: unknown): InboundMessage {
-  const payload = readRecord(value);
-  return {
-    channel: readRequiredString(payload.channelId, "channelId"),
-    chatId: readRequiredString(payload.conversationId, "conversationId"),
-    senderId: readRequiredString(payload.senderId, "senderId"),
-    content: readTextContent(payload.content),
-    timestamp: new Date(),
-    attachments: readInboundAttachments(payload.attachments),
-    metadata: readRecord(payload.metadata),
-  };
-}
-
-function normalizeChannelConfigResult(value: unknown): Record<string, unknown> {
-  const record = readRecord(value);
-  return readRecord(record.channelConfig);
-}
-
-function normalizeAuthLoginResult(value: unknown): ExtensionChannelAuthLoginResult {
-  const record = readRecord(value);
-  return {
-    channelConfig: normalizeChannelConfigResult(record),
-    accountId: typeof record.accountId === "string" ? record.accountId : null,
-    notes: Array.isArray(record.notes) ? record.notes.filter((note): note is string => typeof note === "string") : [],
-  };
-}
-
-function normalizeAuthPollResult(value: unknown): ExtensionChannelAuthPollResult | null {
-  if (!value) {
-    return null;
-  }
-  const record = readRecord(value);
-  return {
-    channel: readRequiredString(record.channel, "channel"),
-    status: record.status as ExtensionChannelAuthPollResult["status"],
-    message: readString(record.message),
-    nextPollMs: readOptionalNumber(record.nextPollMs),
-    accountId: typeof record.accountId === "string" ? record.accountId : null,
-    notes: Array.isArray(record.notes) ? record.notes.filter((note): note is string => typeof note === "string") : [],
-    channelConfig: normalizeChannelConfigResult(record),
-  };
-}
 
 class ExtensionChannelClient implements ExtensionChannelAuthClient, ExtensionChannelOutbound {
   constructor(
@@ -207,12 +119,25 @@ class ExtensionChannelClient implements ExtensionChannelAuthClient, ExtensionCha
 }
 
 export class ExtensionRuntimeService {
-  private readonly lifecycle = new ExtensionLifecycleService();
-  private readonly extensionTokens = new Map<string, string>();
+  private readonly authLeases: ExtensionAuthLeaseService;
+  private readonly lifecycle: ExtensionLifecycleService;
   private readonly pendingRequests = new Map<string, PendingExtensionRequest>();
+  private readonly persistentLeases = new Map<string, ExtensionLease>();
+  private endpoint: string | null = null;
   private manifests: ExtensionManifest[] = [];
 
-  constructor(private readonly options: ExtensionRuntimeServiceOptions) {}
+  constructor(private readonly options: ExtensionRuntimeServiceOptions) {
+    this.lifecycle = new ExtensionLifecycleService({
+      onProcessExit: this.handleProcessExit,
+    });
+    this.authLeases = new ExtensionAuthLeaseService({
+      lifecycle: this.lifecycle,
+      findManifest: this.findManifest,
+      getEndpoint: () => this.endpoint,
+      hasPersistentLease: (extensionId, channelId) =>
+        this.persistentLeases.has(this.persistentLeaseKey(extensionId, channelId)),
+    });
+  }
 
   readonly registerIngressHandlers = (): void => {
     this.options.ingress.addHandler(
@@ -232,6 +157,10 @@ export class ExtensionRuntimeService {
       this.handleChannelCommandExecute,
     );
     this.options.ingress.addHandler(
+      ingressKeys.extension.runtimeReady,
+      this.handleRuntimeReady,
+    );
+    this.options.ingress.addHandler(
       ingressKeys.extension.response,
       this.handleExtensionResponse,
     );
@@ -242,6 +171,9 @@ export class ExtensionRuntimeService {
     workspace: string;
   }): Promise<ExtensionRuntimeContributions> => {
     this.manifests = await this.discoverManifests(params);
+    if (this.endpoint) {
+      await this.reconcilePersistentDemand(params.config);
+    }
     return this.toContributions(this.manifests);
   };
 
@@ -250,51 +182,101 @@ export class ExtensionRuntimeService {
     if (!endpoint) {
       return;
     }
-    const manifests = this.manifests.length > 0
-      ? this.manifests
-      : await this.discoverManifests({
-          config: this.options.getConfig(),
-          workspace: this.options.getWorkspace(),
-        });
-    const running = this.lifecycle.startAll(manifests, {
-      endpoint,
-      tokenForExtension: this.getExtensionProcessToken,
-    });
-    if (running.length > 0) {
-      console.log(`✓ Extensions started: ${running.map((entry) => entry.manifest.id).join(", ")}`);
+    this.endpoint = endpoint;
+    const config = this.options.getConfig();
+    if (this.manifests.length === 0) {
+      this.manifests = await this.discoverManifests({
+        config,
+        workspace: this.options.getWorkspace(),
+      });
     }
-  };
-
-  getExtensionProcessToken = (extensionId: string): string => {
-    const id = readRequiredString(extensionId, "extensionId");
-    const current = this.extensionTokens.get(id);
-    if (current) {
-      return current;
-    }
-    const token = randomUUID();
-    this.extensionTokens.set(id, token);
-    return token;
+    await this.reconcilePersistentDemand(config);
   };
 
   authenticateEventStreamCredential = (input: {
     extensionId: string | null;
+    generation: string | null;
     token: string | null;
-  }): { extensionId: string } | null => {
-    const extensionId = readString(input.extensionId);
-    const token = readString(input.token);
-    if (!extensionId || !token || token !== this.extensionTokens.get(extensionId)) {
-      return null;
-    }
-    return { extensionId };
-  };
+  }): { extensionId: string; generation: string } | null =>
+    this.lifecycle.authenticateCredential(input);
+
+  getStatus = () => this.lifecycle.getStatus();
 
   readonly stop = async (): Promise<void> => {
-    await this.lifecycle.stopAll();
+    this.endpoint = null;
+    this.releaseTrackedLeases();
+    this.authLeases.releaseAll();
     for (const [requestId, request] of this.pendingRequests) {
       clearTimeout(request.timeout);
       request.reject(new Error(`Extension request cancelled: ${requestId}`));
     }
     this.pendingRequests.clear();
+    await this.lifecycle.stopAll();
+  };
+
+  private readonly reconcilePersistentDemand = async (config: Config): Promise<void> => {
+    const endpoint = this.endpoint;
+    if (!endpoint) {
+      return;
+    }
+    const desired = new Map<string, { manifest: ExtensionManifest; channelId: string }>();
+    const channelConfig = readRecord(config.channels);
+    for (const manifest of this.manifests) {
+      for (const channel of manifest.contributes?.channels ?? []) {
+        const channelId = readString(channel.id);
+        if (!channelId || readRecord(channelConfig[channelId]).enabled !== true) {
+          continue;
+        }
+        desired.set(this.persistentLeaseKey(manifest.id, channelId), { manifest, channelId });
+      }
+    }
+
+    for (const [key, demand] of desired) {
+      if (this.persistentLeases.has(key)) {
+        this.authLeases.releaseHandoff(demand.manifest.id, demand.channelId);
+        continue;
+      }
+      try {
+        const lease = await this.lifecycle.acquire(demand.manifest, {
+          endpoint,
+          reason: { kind: "enabled-channel", channelId: demand.channelId },
+        });
+        this.persistentLeases.set(key, lease);
+        this.authLeases.releaseHandoff(demand.manifest.id, demand.channelId);
+      } catch (error) {
+        console.warn(
+          `Extension ${demand.manifest.id} failed to satisfy enabled channel ${demand.channelId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    for (const [key, lease] of this.persistentLeases) {
+      if (desired.has(key)) {
+        continue;
+      }
+      this.persistentLeases.delete(key);
+      lease.release();
+    }
+  };
+
+  private readonly releaseTrackedLeases = (): void => {
+    for (const lease of this.persistentLeases.values()) {
+      lease.release();
+    }
+    this.persistentLeases.clear();
+  };
+
+  private readonly persistentLeaseKey = (extensionId: string, channelId: string): string =>
+    `${extensionId}:${channelId}`;
+
+  private readonly findManifest = (extensionId: string): ExtensionManifest => {
+    const manifest = this.manifests.find((entry) => entry.id === extensionId);
+    if (!manifest) {
+      throw new Error(`Extension not found: ${extensionId}`);
+    }
+    return manifest;
   };
 
   private readonly discoverManifests = async (params: {
@@ -432,11 +414,15 @@ export class ExtensionRuntimeService {
     envelope: IngressEnvelope<ExtensionResponseIngressPayload>,
     context: IngressContext,
   ) => {
-    this.assertAuthorized(envelope, context);
+    const credential = this.assertAuthorized(envelope, context);
     const payload = readRecord(envelope.payload);
     const requestId = readRequiredString(payload.requestId, "requestId");
     const pending = this.pendingRequests.get(requestId);
-    if (!pending) {
+    if (
+      !pending ||
+      pending.extensionId !== credential.extensionId ||
+      pending.generation !== credential.generation
+    ) {
       return { accepted: false };
     }
     this.pendingRequests.delete(requestId);
@@ -448,6 +434,25 @@ export class ExtensionRuntimeService {
       return { accepted: true };
     }
     pending.resolve(payload.data);
+    return { accepted: true };
+  };
+
+  private readonly handleRuntimeReady = (
+    envelope: IngressEnvelope<ExtensionRuntimeReadyIngressPayload>,
+    context: IngressContext,
+  ) => {
+    const credential = this.assertAuthorized(envelope, context);
+    const payload = readRecord(envelope.payload);
+    const generation = readRequiredString(payload.generation, "generation");
+    const pid = readOptionalNumber(payload.pid);
+    if (generation !== credential.generation || pid === undefined || !Number.isInteger(pid) || pid <= 0) {
+      throw new Error("Invalid extension runtime ready payload");
+    }
+    this.lifecycle.markReady({
+      extensionId: credential.extensionId,
+      generation,
+      pid,
+    });
     return { accepted: true };
   };
 
@@ -484,36 +489,95 @@ export class ExtensionRuntimeService {
     kind: ExtensionChannelRequestKind;
     payload: Record<string, unknown>;
   }): Promise<T> => {
+    const { extensionId, kind, payload } = params;
+    const endpoint = this.endpoint;
+    if (!endpoint) {
+      throw new Error("Extension runtime is not started");
+    }
+    const channelId = readRequiredString(payload.channelId, "channelId");
+    if (kind === "channel.outbound.sendText" && !this.isChannelEnabled(channelId)) {
+      throw new Error(`Channel is disabled: ${channelId}`);
+    }
+    const manifest = this.findManifest(extensionId);
     const requestId = randomUUID();
-    const result = new Promise<T>((resolvePromise, rejectPromise) => {
+    const authSession = kind === "channel.auth.poll"
+      ? this.authLeases.requireSession(
+        extensionId,
+        readRequiredString(payload.sessionId, "sessionId"),
+      )
+      : null;
+    const requestLease = await this.lifecycle.acquire(manifest, {
+      endpoint,
+      ...(authSession ? { expectedGeneration: authSession.generation } : {}),
+      reason: { kind: "request", requestId },
+    });
+    const result = new Promise<unknown>((resolvePromise, rejectPromise) => {
       const timeout = setTimeout(() => {
         this.pendingRequests.delete(requestId);
-        rejectPromise(new Error(`Extension request timed out: ${params.kind}`));
+        rejectPromise(new Error(`Extension request timed out: ${kind}`));
       }, EXTENSION_REQUEST_TIMEOUT_MS);
+      timeout.unref?.();
       this.pendingRequests.set(requestId, {
-        resolve: (value) => resolvePromise(value as T),
+        extensionId,
+        generation: requestLease.generation,
+        resolve: resolvePromise,
         reject: rejectPromise,
         timeout,
       });
     });
-    this.options.eventBus.emitEnvelope({
-      type: EXTENSION_REQUEST_EVENT_TYPE,
-      payload: {
-        requestId,
-        extensionId: params.extensionId,
-        kind: params.kind,
-        payload: params.payload,
-      },
-      emittedAt: new Date().toISOString(),
-      source: "backend",
-    });
-    return await result;
+    try {
+      this.options.eventBus.emitEnvelope({
+        type: EXTENSION_REQUEST_EVENT_TYPE,
+        payload: {
+          requestId,
+          extensionId,
+          generation: requestLease.generation,
+          kind,
+          payload,
+        },
+        emittedAt: new Date().toISOString(),
+        source: "backend",
+      });
+      const value = await result;
+      await this.authLeases.updateAfterRequest(params, value, requestLease.generation);
+      return value as T;
+    } finally {
+      const pending = this.pendingRequests.get(requestId);
+      if (pending) {
+        this.pendingRequests.delete(requestId);
+        clearTimeout(pending.timeout);
+      }
+      requestLease.release();
+    }
   };
 
-  private readonly assertAuthorized = (envelope: IngressEnvelope<unknown>, context: IngressContext): void => {
-    const extensionId = readString(envelope.extensionId);
-    if (!extensionId || context.token !== this.extensionTokens.get(extensionId)) {
+  private readonly isChannelEnabled = (channelId: string): boolean =>
+    readRecord(readRecord(this.options.getConfig().channels)[channelId]).enabled === true;
+
+  private readonly handleProcessExit = (event: ExtensionProcessExitEvent): void => {
+    for (const [requestId, pending] of this.pendingRequests) {
+      if (pending.extensionId !== event.extensionId || pending.generation !== event.generation) {
+        continue;
+      }
+      this.pendingRequests.delete(requestId);
+      clearTimeout(pending.timeout);
+      pending.reject(new Error(`Extension ${event.extensionId} exited during request ${requestId}.`));
+    }
+    this.authLeases.handleProcessExit(event);
+  };
+
+  private readonly assertAuthorized = (
+    envelope: IngressEnvelope<unknown>,
+    context: IngressContext,
+  ): { extensionId: string; generation: string } => {
+    const credential = this.lifecycle.authenticateCredential({
+      extensionId: readString(envelope.extensionId) ?? null,
+      generation: readString(envelope.generation) ?? null,
+      token: readString(context.token) ?? null,
+    });
+    if (!credential) {
       throw new Error("Unauthorized ingress token");
     }
+    return credential;
   };
 }

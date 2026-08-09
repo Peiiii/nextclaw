@@ -51,6 +51,11 @@ describe("DiagnosticsCommands status", () => {
         managed: { state: "unreachable", detail: "service not running" },
         configured: { state: "unreachable", detail: "fetch failed" }
       },
+      extensions: {
+        state: "unavailable",
+        detail: "service not running",
+        runtimes: []
+      },
       issues: [],
       recommendations: ["Run nextclaw start to launch the service."],
       logTail: [],

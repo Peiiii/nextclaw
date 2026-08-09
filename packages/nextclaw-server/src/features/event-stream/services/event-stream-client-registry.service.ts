@@ -12,6 +12,15 @@ export class EventStreamClientRegistry {
   private readonly clients = new Set<EventStreamClient>();
 
   add = (socket: WebSocket, principal: EventStreamPrincipal): void => {
+    const extensionId = principal.extension?.id;
+    if (extensionId) {
+      for (const existing of this.clients) {
+        if (existing.principal.extension?.id === extensionId) {
+          this.clients.delete(existing);
+          existing.socket.close();
+        }
+      }
+    }
     const client = { socket, principal };
     this.clients.add(client);
     socket.on("close", () => this.clients.delete(client));

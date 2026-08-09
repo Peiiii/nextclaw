@@ -91,8 +91,12 @@ async function startEventStreamTestServer(params: {
     kernel: createRouterTestKernel(),
     extensions: {
       authenticateEventStreamCredential: (input) =>
-        input.extensionId === "fake-extension" && input.token === "secret"
-          ? { extensionId: "fake-extension" }
+        input.extensionId === "fake-extension" &&
+        (
+          (input.generation === "generation-1" && input.token === "secret") ||
+          (input.generation === "generation-2" && input.token === "secret-2")
+        )
+          ? { extensionId: "fake-extension", generation: input.generation }
           : null,
       getChannelBindings: () => bindings,
       getUiMetadata: () => [],
@@ -154,6 +158,7 @@ describe("ui server event stream principal auth", () => {
     const socket = await openSocket(`ws://127.0.0.1:${port}/ws`, {
       authorization: "Bearer secret",
       "x-nextclaw-extension-id": "fake-extension",
+      "x-nextclaw-extension-generation": "generation-1",
     });
     sockets.push(socket);
 
@@ -163,6 +168,7 @@ describe("ui server event stream principal auth", () => {
       payload: {
         requestId: "request-1",
         extensionId: "fake-extension",
+        generation: "generation-1",
         kind: "channel.auth.start",
       },
       emittedAt: new Date().toISOString(),
@@ -189,6 +195,7 @@ describe("ui server event stream principal auth", () => {
     const socket = await openSocket(`ws://127.0.0.1:${port}/ws`, {
       authorization: "Bearer secret",
       "x-nextclaw-extension-id": "fake-extension",
+      "x-nextclaw-extension-generation": "generation-1",
     });
     sockets.push(socket);
 
@@ -244,5 +251,65 @@ describe("ui server event stream principal auth", () => {
       type: "config.updated",
       payload: { path: "channels.fake-channel" },
     }));
+  });
+
+  it("replaces the old extension socket and only streams requests to the target generation", async () => {
+    const port = await reservePort();
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const appEventBus = new EventBus();
+    const handle = await startEventStreamTestServer({ configPath, port, appEventBus });
+    handles.push(handle);
+    await setupUiAuth(`http://127.0.0.1:${port}`);
+
+    const first = await openSocket(`ws://127.0.0.1:${port}/ws`, {
+      authorization: "Bearer secret",
+      "x-nextclaw-extension-id": "fake-extension",
+      "x-nextclaw-extension-generation": "generation-1",
+    });
+    sockets.push(first);
+    const firstClosed = new Promise<void>((resolve) => first.once("close", () => resolve()));
+    const second = await openSocket(`ws://127.0.0.1:${port}/ws`, {
+      authorization: "Bearer secret-2",
+      "x-nextclaw-extension-id": "fake-extension",
+      "x-nextclaw-extension-generation": "generation-2",
+    });
+    sockets.push(second);
+    await firstClosed;
+
+    const messagePromise = waitForMessage(second);
+    appEventBus.emitEnvelope({
+      type: "extension.request",
+      payload: {
+        requestId: "request-new",
+        extensionId: "fake-extension",
+        generation: "generation-2",
+        kind: "channel.auth.start",
+      },
+      emittedAt: new Date().toISOString(),
+      source: "test",
+    });
+    await expect(messagePromise).resolves.toEqual(expect.objectContaining({
+      payload: expect.objectContaining({
+        requestId: "request-new",
+        generation: "generation-2",
+      }),
+    }));
+
+    const unexpected: unknown[] = [];
+    second.on("message", (data) => unexpected.push(JSON.parse(data.toString()) as unknown));
+    appEventBus.emitEnvelope({
+      type: "extension.request",
+      payload: {
+        requestId: "request-stale",
+        extensionId: "fake-extension",
+        generation: "generation-1",
+        kind: "channel.auth.start",
+      },
+      emittedAt: new Date().toISOString(),
+      source: "test",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(unexpected).toEqual([]);
   });
 });

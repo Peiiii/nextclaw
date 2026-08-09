@@ -9,7 +9,7 @@ import { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { createUiRouter } from "./router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 import { EventBus } from "@nextclaw/shared";
-import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
+import type { UiExtensionHost, UiKernelHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -31,11 +31,16 @@ function useIsolatedHome(): string {
   return homeDir;
 }
 
-function createApp(configPath: string, kernelOverrides: Partial<UiKernelHost> = {}) {
+function createApp(
+  configPath: string,
+  kernelOverrides: Partial<UiKernelHost> = {},
+  extensions?: UiExtensionHost,
+) {
   return createUiRouter({
     kernel: createRouterTestKernel(kernelOverrides),
     configPath,
     appEventBus: new EventBus(),
+    ...(extensions ? { extensions } : {}),
   });
 }
 
@@ -87,6 +92,37 @@ describe("ui auth config", () => {
 });
 
 describe("ui auth routes", () => {
+  it("exposes extension lifecycle diagnostics through the runtime status route", async () => {
+    useIsolatedHome();
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const runtimeStatus = [{
+      extensionId: "nextclaw-channel-extension-weixin",
+      generation: "generation-1",
+      lastExit: null,
+      leaseReasons: [{ kind: "enabled-channel" as const, channelId: "weixin" }],
+      memory: { rssBytes: 80 * 1024 * 1024, pssBytes: 60 * 1024 * 1024 },
+      pid: 123,
+      startedAt: "2026-08-09T00:00:00.000Z",
+      state: "running" as const,
+      startupDurationMs: 120,
+    }];
+    const app = createApp(configPath, {}, {
+      authenticateEventStreamCredential: () => null,
+      getChannelBindings: () => [],
+      getRuntimeStatus: () => runtimeStatus,
+      getUiMetadata: () => [],
+    });
+
+    const response = await app.request("http://localhost/api/runtime/extensions");
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      ok: true,
+      data: runtimeStatus,
+    });
+  });
+
   it("keeps config routes public when auth is disabled", async () => {
     useIsolatedHome();
     const configPath = createTempConfigPath();

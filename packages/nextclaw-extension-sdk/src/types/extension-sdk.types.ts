@@ -27,6 +27,7 @@ export type NextClawExtensionOptions = {
   endpoint?: string;
   token?: string;
   extensionId?: string;
+  generation?: string;
   fetch?: typeof fetch;
   webSocketFactory?: (
     url: string,
@@ -49,6 +50,7 @@ export type NextClawExtensionWebSocketLike = {
 export type ExtensionTransportEnvelope<TPayload = unknown> = {
   type: string;
   extensionId: string;
+  generation: string;
   payload: TPayload;
   emittedAt?: string;
   source?: string;
@@ -57,6 +59,7 @@ export type ExtensionTransportEnvelope<TPayload = unknown> = {
 export type ExtensionRequest = {
   requestId: string;
   extensionId: string;
+  generation: string;
   kind: string;
   payload?: Record<string, unknown>;
 };

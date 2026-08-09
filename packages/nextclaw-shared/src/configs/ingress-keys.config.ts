@@ -101,6 +101,11 @@ export type ExtensionResponseIngressPayload =
       };
     };
 
+export type ExtensionRuntimeReadyIngressPayload = {
+  generation: string;
+  pid: number;
+};
+
 export type AgentRunSessionMessageRequestPayload = {
   message: NcpMessage;
   requestId: string;
@@ -174,6 +179,9 @@ export const ingressKeys = {
       createTypedKey<ExtensionChannelCommandExecuteIngressPayload>(
         "extension.channel.command.execute",
       ),
+    runtimeReady: createTypedKey<ExtensionRuntimeReadyIngressPayload>(
+      "extension.runtime.ready",
+    ),
     response: createTypedKey<ExtensionResponseIngressPayload>("extension.response"),
   },
   agentRun: {

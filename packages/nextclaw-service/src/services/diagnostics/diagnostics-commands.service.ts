@@ -100,6 +100,7 @@ export class DiagnosticsCommands {
     checkPort: { available: boolean; detail: string }
   ): DoctorCheck[] => {
     const providerConfigured = report.providers.some((provider) => provider.configured);
+    const failedExtensions = report.extensions.runtimes.filter((runtime) => runtime.state === "failed");
     return [
       {
         name: "config-file",
@@ -146,6 +147,17 @@ export class DiagnosticsCommands {
         name: "provider-config",
         status: providerConfigured ? "pass" : "warn",
         detail: providerConfigured ? "at least one provider configured" : "no provider api key configured"
+      },
+      {
+        name: "extension-runtime",
+        status: report.extensions.state !== "ok"
+          ? "warn"
+          : failedExtensions.length > 0
+            ? "fail"
+            : "pass",
+        detail: report.extensions.state !== "ok"
+          ? report.extensions.detail
+          : `${report.extensions.runtimes.length} tracked, ${failedExtensions.length} failed`
       }
     ] as const;
   };
@@ -183,6 +195,9 @@ export class DiagnosticsCommands {
     const managedHealth: HealthProbe = running && managedApiUrl
       ? await this.probeApiHealth(`${managedApiUrl}/health`)
       : { state: "unreachable", detail: "service not running" };
+    const extensions = running && managedApiUrl
+      ? await this.probeExtensionRuntimes(`${managedApiUrl}/runtime/extensions`)
+      : { state: "unavailable" as const, detail: "service not running", runtimes: [] };
 
     const configuredHealth = await this.probeApiHealth(`${configuredApiUrl}/health`, 900);
     const remote = resolveNextclawRemoteStatusSnapshot(config);
@@ -257,6 +272,7 @@ export class DiagnosticsCommands {
         managed: managedHealth,
         configured: configuredHealth
       },
+      extensions,
       issues,
       recommendations,
       logTail,
@@ -307,6 +323,39 @@ export class DiagnosticsCommands {
       return { state: "invalid-response", detail: "unexpected health payload", payload };
     } catch (error) {
       return { state: "unreachable", detail: String(error) };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  private readonly probeExtensionRuntimes = async (
+    url: string,
+    timeoutMs = 1500
+  ): Promise<RuntimeStatusReport["extensions"]> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        return { state: "unavailable", detail: `HTTP ${response.status}`, runtimes: [] };
+      }
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        data?: RuntimeStatusReport["extensions"]["runtimes"];
+      };
+      if (payload.ok !== true || !Array.isArray(payload.data)) {
+        return { state: "invalid-response", detail: "unexpected extension status payload", runtimes: [] };
+      }
+      return {
+        state: "ok",
+        detail: `${payload.data.length} extension runtimes tracked`,
+        runtimes: payload.data,
+      };
+    } catch (error) {
+      return { state: "unavailable", detail: String(error), runtimes: [] };
     } finally {
       clearTimeout(timer);
     }

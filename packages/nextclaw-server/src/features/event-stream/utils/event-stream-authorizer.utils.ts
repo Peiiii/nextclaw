@@ -30,8 +30,15 @@ function hasScopeValue(principal: EventStreamPrincipal, key: string, value: stri
   return Boolean(value && scopeValues(principal, key).includes(value));
 }
 
-function readExtensionRequestTarget(event: AppEventEnvelope): string | null {
-  return readString(readRecord(event.payload).extensionId);
+function readExtensionRequestTarget(event: AppEventEnvelope): {
+  extensionId: string | null;
+  generation: string | null;
+} {
+  const payload = readRecord(event.payload);
+  return {
+    extensionId: readString(payload.extensionId),
+    generation: readString(payload.generation),
+  };
 }
 
 function parseAgentSessionChannel(sessionId: string | null): string | null {
@@ -59,8 +66,14 @@ export function canStreamAppEventToPrincipal(
   event: AppEventEnvelope,
 ): boolean {
   if (event.type === "extension.request") {
+    const target = readExtensionRequestTarget(event);
     return hasGrant(principal, "event-stream:extension-requests") &&
-      hasScopeValue(principal, "extensionIds", readExtensionRequestTarget(event));
+      hasScopeValue(principal, "extensionIds", target.extensionId) &&
+      hasScopeValue(
+        principal,
+        "extensionGenerations",
+        target.extensionId && target.generation ? `${target.extensionId}:${target.generation}` : null,
+      );
   }
 
   if (event.type === "ncp.event") {

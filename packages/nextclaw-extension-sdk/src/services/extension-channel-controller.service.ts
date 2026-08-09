@@ -106,7 +106,9 @@ export type BusChannelCreateContext<TConfig, TBus = BusChannelMessageBus> = {
 
 export type BusChannelExtensionDefinition<TConfig, TBus = BusChannelMessageBus> = {
   channelId: string;
-  createChannel: (context: BusChannelCreateContext<TConfig, TBus>) => BusChannelRuntime;
+  createChannel: (
+    context: BusChannelCreateContext<TConfig, TBus>,
+  ) => BusChannelRuntime | Promise<BusChannelRuntime>;
   mapInbound?: ExtensionChannelInboundMapper<BusChannelInboundMessage>;
   onChannelStartError?: (error: unknown) => void | Promise<void>;
 };
@@ -127,19 +129,90 @@ export type ChannelExtensionContext = {
 
 export type ChannelExtensionDefinition<TConfig, TInbound> = {
   channelId: string;
-  createAdapter: (context: ChannelExtensionContext) => ExtensionChannelAdapter<TConfig, TInbound>;
+  createAdapter: (
+    context: ChannelExtensionContext,
+  ) => ExtensionChannelAdapter<TConfig, TInbound> | Promise<ExtensionChannelAdapter<TConfig, TInbound>>;
   mapInbound: ExtensionChannelInboundMapper<TInbound>;
   createAuthCapability?: (context: ChannelExtensionContext) => object;
   onNcpEventError?: (error: unknown, event: NcpEndpointEvent) => void | Promise<void>;
 };
 
-function defaultChannelEnabled(config: unknown): boolean {
-  return !(
+function isChannelEnabled(config: unknown): boolean {
+  return Boolean(
     config &&
     typeof config === "object" &&
     !Array.isArray(config) &&
-    (config as { enabled?: unknown }).enabled === false
+    (config as { enabled?: unknown }).enabled === true
   );
+}
+
+class LazyExtensionChannelAdapter<TConfig, TInbound> implements ExtensionChannelAdapter<TConfig, TInbound> {
+  private adapterCleanup: (() => void) | null = null;
+  private adapterPromise: Promise<ExtensionChannelAdapter<TConfig, TInbound>> | null = null;
+  private messageHandler: ((message: TInbound) => void | Promise<void>) | null = null;
+
+  constructor(
+    private readonly createAdapter: () =>
+      ExtensionChannelAdapter<TConfig, TInbound> | Promise<ExtensionChannelAdapter<TConfig, TInbound>>,
+  ) {}
+
+  configure = async (config: TConfig): Promise<void> => {
+    await (await this.getAdapter()).configure(config);
+  };
+
+  start = async (): Promise<void> => {
+    await (await this.getAdapter()).start();
+  };
+
+  stop = async (): Promise<void> => {
+    if (this.adapterPromise) {
+      await (await this.adapterPromise).stop();
+    }
+  };
+
+  onMessage = (handler: (message: TInbound) => void | Promise<void>): (() => void) => {
+    this.messageHandler = handler;
+    if (this.adapterPromise) {
+      void this.adapterPromise.then((adapter) => this.attachMessageHandler(adapter)).catch(() => undefined);
+    }
+    return () => {
+      if (this.messageHandler === handler) {
+        this.messageHandler = null;
+        this.adapterCleanup?.();
+        this.adapterCleanup = null;
+      }
+    };
+  };
+
+  sendNcpEvent = async (event: NcpEndpointEvent): Promise<void> => {
+    if (this.adapterPromise) {
+      await (await this.adapterPromise).sendNcpEvent(event);
+    }
+  };
+
+  sendOutboundText = async (params: {
+    to: string;
+    text: string;
+    accountId?: string | null;
+    replyTo?: string | null;
+    media?: string[];
+    metadata?: Record<string, unknown>;
+  }): Promise<void> => {
+    await (await this.getAdapter()).sendOutboundText(params);
+  };
+
+  private getAdapter = async (): Promise<ExtensionChannelAdapter<TConfig, TInbound>> => {
+    this.adapterPromise ??= Promise.resolve(this.createAdapter()).then((adapter) => {
+      this.attachMessageHandler(adapter);
+      return adapter;
+    });
+    return await this.adapterPromise;
+  };
+
+  private attachMessageHandler = (adapter: ExtensionChannelAdapter<TConfig, TInbound>): void => {
+    this.adapterCleanup?.();
+    this.adapterCleanup = this.messageHandler ? adapter.onMessage(this.messageHandler) : null;
+  };
 }
 
 export class ExtensionChannelController<TConfig, TInbound> {
@@ -186,11 +259,11 @@ export class ExtensionChannelController<TConfig, TInbound> {
 
   private applyConfig = async (): Promise<void> => {
     const config = await this.options.channel.config.get<TConfig>();
-    await this.options.adapter.configure(config);
-    if (defaultChannelEnabled(config) === false) {
+    if (!isChannelEnabled(config)) {
       await this.options.adapter.stop();
       return;
     }
+    await this.options.adapter.configure(config);
     await this.options.adapter.start();
   };
 
@@ -224,7 +297,7 @@ class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfi
 
   configure = async (config: TConfig): Promise<void> => {
     await this.stop();
-    this.channel = this.definition.createChannel({
+    this.channel = await this.definition.createChannel({
       config,
       bus: {
         publishInbound: async (message: BusChannelInboundMessage) => {
@@ -324,7 +397,7 @@ export async function startChannelExtension<TConfig, TInbound>(
 ): Promise<void> {
   const extension = new NextClawExtension(options);
   const channel = extension.channels.use(definition.channelId);
-  const adapter = definition.createAdapter({ channel });
+  const adapter = new LazyExtensionChannelAdapter(() => definition.createAdapter({ channel }));
   const controller = new ExtensionChannelController({
     channel,
     adapter,
@@ -345,6 +418,7 @@ export async function startChannelExtension<TConfig, TInbound>(
     }),
   );
   await controller.start();
+  await extension.ready();
 }
 
 export async function startBusChannelExtension<TConfig, TBus = BusChannelMessageBus>(

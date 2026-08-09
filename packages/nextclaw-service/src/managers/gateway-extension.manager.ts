@@ -1,3 +1,4 @@
+import type { ExtensionRuntimeStatus } from "@nextclaw/kernel";
 import type { Config, ExtensionChannelBinding, ExtensionUiMetadata } from "@nextclaw/core";
 import { eventKeys } from "@nextclaw/shared";
 import type { ServiceGatewayManager } from "@nextclaw-service/managers/service-gateway.manager.js";
@@ -9,10 +10,13 @@ export class GatewayExtensionManager {
 
   getUiMetadata = (): ExtensionUiMetadata[] => this.gateway.kernel.extensions.getUiMetadata();
 
+  getRuntimeStatus = (): ExtensionRuntimeStatus[] => this.gateway.kernel.extensions.getRuntimeStatus();
+
   authenticateEventStreamCredential = (input: {
     extensionId: string | null;
+    generation: string | null;
     token: string | null;
-  }): { extensionId: string } | null =>
+  }): { extensionId: string; generation: string } | null =>
     this.gateway.kernel.extensions.authenticateEventStreamCredential(input);
 
   load = async (): Promise<void> => {

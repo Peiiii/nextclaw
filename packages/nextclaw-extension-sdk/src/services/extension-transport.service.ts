@@ -13,6 +13,7 @@ type EventStreamHandler = (event: ExtensionTransportEnvelope) => void;
 
 type RuntimeEnv = {
   NEXTCLAW_EXTENSION_ENDPOINT?: string;
+  NEXTCLAW_EXTENSION_GENERATION?: string;
   NEXTCLAW_EXTENSION_TOKEN?: string;
   NEXTCLAW_EXTENSION_ID?: string;
 };
@@ -32,6 +33,7 @@ function requireRuntimeValue(value: string | undefined, name: string): string {
 }
 
 export class ExtensionTransportService {
+  readonly generation: string;
   readonly token: string;
   readonly extensionId: string;
   private readonly endpoint: string;
@@ -49,6 +51,8 @@ export class ExtensionTransportService {
     this.token = options.token ?? requireRuntimeValue(env.NEXTCLAW_EXTENSION_TOKEN, "NEXTCLAW_EXTENSION_TOKEN");
     this.extensionId =
       options.extensionId ?? requireRuntimeValue(env.NEXTCLAW_EXTENSION_ID, "NEXTCLAW_EXTENSION_ID");
+    this.generation =
+      options.generation ?? requireRuntimeValue(env.NEXTCLAW_EXTENSION_GENERATION, "NEXTCLAW_EXTENSION_GENERATION");
     this.fetchImpl = options.fetch ?? globalThis.fetch;
     this.webSocketFactory = options.webSocketFactory;
     if (typeof this.fetchImpl !== "function") {
@@ -63,6 +67,7 @@ export class ExtensionTransportService {
     const envelope: ExtensionTransportEnvelope = {
       type,
       extensionId: this.extensionId,
+      generation: this.generation,
       payload,
       emittedAt: new Date().toISOString(),
       source: "extension-sdk",
@@ -86,13 +91,43 @@ export class ExtensionTransportService {
     await this.postIngress(getKeyId(ingressKeys.extension.response), response);
   };
 
-  readonly subscribe = (handler: EventStreamHandler): { close: () => void } => {
+  readonly reportReady = async (pid: number): Promise<void> => {
+    await this.postIngress(getKeyId(ingressKeys.extension.runtimeReady), {
+      generation: this.generation,
+      pid,
+    });
+  };
+
+  readonly subscribe = (handler: EventStreamHandler): { close: () => void; ready: Promise<void> } => {
     const socket = this.createSocket(resolveWebSocketUrl(this.endpoint, "/ws"), {
       headers: {
         authorization: `Bearer ${this.token}`,
         "x-nextclaw-extension-id": this.extensionId,
+        "x-nextclaw-extension-generation": this.generation,
       },
     });
+    let opened = false;
+    let resolveReady!: () => void;
+    let rejectReady!: (error: Error) => void;
+    const ready = new Promise<void>((resolve, reject) => {
+      resolveReady = resolve;
+      rejectReady = reject;
+    });
+    void ready.catch(() => undefined);
+    socket.onopen = () => {
+      opened = true;
+      resolveReady();
+    };
+    socket.onerror = () => {
+      if (!opened) {
+        rejectReady(new Error(`Extension ${this.extensionId} event stream failed before opening.`));
+      }
+    };
+    socket.onclose = () => {
+      if (!opened) {
+        rejectReady(new Error(`Extension ${this.extensionId} event stream closed before opening.`));
+      }
+    };
     socket.onmessage = (event) => {
       const envelope = this.parseEnvelope(event.data);
       if (envelope) {
@@ -101,6 +136,7 @@ export class ExtensionTransportService {
     };
     return {
       close: () => socket.close(),
+      ready,
     };
   };
 

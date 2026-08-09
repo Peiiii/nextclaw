@@ -40,6 +40,7 @@ function createTestSocketFactory(sockets: TestSocket[] = []) {
       close: vi.fn(),
     };
     sockets.push(socket);
+    queueMicrotask(() => socket.onopen?.());
     return socket;
   };
 }
@@ -54,6 +55,7 @@ function createExtensionHarness(responseData?: unknown): {
   const extension = new NextClawExtension({
     endpoint: "http://127.0.0.1:55667",
     extensionId: "fake-extension",
+    generation: "generation-1",
     token: "secret",
     fetch: fetchImpl,
     webSocketFactory: (url, options) => {
@@ -67,6 +69,7 @@ function createExtensionHarness(responseData?: unknown): {
         close: vi.fn(),
       };
       sockets.push(socket);
+      queueMicrotask(() => socket.onopen?.());
       return socket;
     },
   });
@@ -167,6 +170,7 @@ describe("@nextclaw/extension-sdk", () => {
     const extension = new NextClawExtension({
       endpoint: "http://127.0.0.1:55667",
       extensionId: "fake-extension",
+      generation: "generation-1",
       token: "secret",
       fetch: fetchImpl,
     });
@@ -195,6 +199,7 @@ describe("@nextclaw/extension-sdk", () => {
       expect.objectContaining({
         type: "extension.channel.message.submit",
         extensionId: "fake-extension",
+        generation: "generation-1",
         payload: expect.objectContaining({
           channelId: "fake",
           conversationId: "conversation-1",
@@ -256,6 +261,7 @@ describe("@nextclaw/extension-sdk", () => {
     expect(sockets[0]?.options?.headers).toEqual({
       authorization: "Bearer secret",
       "x-nextclaw-extension-id": "fake-extension",
+      "x-nextclaw-extension-generation": "generation-1",
     });
     expect(ncpHandler).toHaveBeenCalledWith(
       {
@@ -281,6 +287,7 @@ describe("@nextclaw/extension-sdk", () => {
     emitSocketEvent(sockets[0], "extension.request", {
       requestId: "request-1",
       extensionId: "fake-extension",
+      generation: "generation-1",
       kind: "channel.auth.start",
       payload: {
         channelId: "fake",
@@ -311,6 +318,7 @@ describe("@nextclaw/extension-sdk", () => {
     emitSocketEvent(sockets[0], "extension.request", {
       requestId: "request-start",
       extensionId: "fake-extension",
+      generation: "generation-1",
       kind: "channel.auth.start",
       payload: {
         channelId: "fake",
@@ -354,6 +362,7 @@ describe("@nextclaw/extension-sdk", () => {
     emitSocketEvent(sockets[0], "extension.request", {
       requestId: "request-health",
       extensionId: "fake-extension",
+      generation: "generation-1",
       kind: "channel.health.check",
       payload: {
         channelId: "fake",
@@ -412,6 +421,7 @@ describe("channel extension bootstrap", () => {
       {
         endpoint: "http://127.0.0.1:55667",
         extensionId: "fake-extension",
+        generation: "generation-1",
         token: "secret",
         fetch: fetchImpl,
         webSocketFactory: (url) => {
@@ -424,6 +434,7 @@ describe("channel extension bootstrap", () => {
             close: vi.fn(),
           };
           sockets.push(socket);
+          queueMicrotask(() => socket.onopen?.());
           return socket;
         },
       },
@@ -433,6 +444,7 @@ describe("channel extension bootstrap", () => {
     emitSocketEvent(sockets[0], "extension.request", {
       requestId: "request-outbound",
       extensionId: "fake-extension",
+      generation: "generation-1",
       kind: "channel.outbound.sendText",
       payload: {
         to: "user-1",
@@ -442,6 +454,7 @@ describe("channel extension bootstrap", () => {
     emitSocketEvent(sockets[0], "extension.request", {
       requestId: "request-auth",
       extensionId: "fake-extension",
+      generation: "generation-1",
       kind: "channel.auth.start",
       payload: {
         channelId: "fake",
@@ -485,6 +498,7 @@ describe("bus channel extension bootstrap", () => {
       {
         endpoint: "http://127.0.0.1:55667",
         extensionId: "fake-extension",
+        generation: "generation-1",
         token: "secret",
         fetch: fetchImpl,
         webSocketFactory: createTestSocketFactory(),
@@ -528,14 +542,19 @@ describe("bus channel extension bootstrap", () => {
       {
         endpoint: "http://127.0.0.1:55667",
         extensionId: "fake-extension",
+        generation: "generation-1",
         token: "secret",
         fetch: fetchImpl,
         webSocketFactory: createTestSocketFactory(),
       },
     );
-    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(3));
 
-    const [, init] = fetchImpl.mock.calls[1] ?? [];
+    const submittedCall = fetchImpl.mock.calls.find(([, init]) => {
+      const body = JSON.parse(String(init?.body)) as { type?: string };
+      return body.type === "extension.channel.message.submit";
+    });
+    const [, init] = submittedCall ?? [];
     expect(JSON.parse(String(init?.body))).toEqual(expect.objectContaining({
       type: "extension.channel.message.submit",
       payload: {
@@ -565,6 +584,7 @@ describe("bus channel extension bootstrap", () => {
       {
         endpoint: "http://127.0.0.1:55667",
         extensionId: "fake-extension",
+        generation: "generation-1",
         token: "secret",
         fetch: fetchImpl,
         webSocketFactory: (url) => {
@@ -577,6 +597,7 @@ describe("bus channel extension bootstrap", () => {
             close: vi.fn(),
           };
           sockets.push(socket);
+          queueMicrotask(() => socket.onopen?.());
           return socket;
         },
       },
@@ -584,6 +605,7 @@ describe("bus channel extension bootstrap", () => {
     emitSocketEvent(sockets[0], "extension.request", {
       requestId: "request-outbound",
       extensionId: "fake-extension",
+      generation: "generation-1",
       kind: "channel.outbound.sendText",
       payload: {
         to: "chat-1",
@@ -694,9 +716,28 @@ describe("ExtensionChannelController", () => {
     await controller.start();
     await harness.configChangeHandler?.({ enabled: false });
 
-    expect(harness.adapter.configure).toHaveBeenNthCalledWith(1, { enabled: true });
-    expect(harness.adapter.configure).toHaveBeenNthCalledWith(2, { enabled: false });
+    expect(harness.adapter.configure).toHaveBeenCalledTimes(1);
+    expect(harness.adapter.configure).toHaveBeenCalledWith({ enabled: true });
     expect(harness.adapter.start).toHaveBeenCalledTimes(1);
+    expect(harness.adapter.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("treats a missing enabled flag as disabled without configuring the adapter", async () => {
+    const harness = createControllerHarness([{}]);
+    const controller = new ExtensionChannelController({
+      channel: harness.channel,
+      adapter: harness.adapter,
+      mapInbound: (message: FakeInbound) => ({
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: { type: "text", text: message.text },
+      }),
+    });
+
+    await controller.start();
+
+    expect(harness.adapter.configure).not.toHaveBeenCalled();
+    expect(harness.adapter.start).not.toHaveBeenCalled();
     expect(harness.adapter.stop).toHaveBeenCalledTimes(1);
   });
 

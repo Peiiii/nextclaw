@@ -22,6 +22,7 @@ export type ConfigManagerRuntimeHooks = {
   resolveChannelConfig?: (config: Config) => Config;
   getExtensionChannels?: () => ExtensionRegistry["channels"];
   applyAgentRuntimeConfig?: (config: Config) => void;
+  reloadExtensions?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
   reloadCompanion?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
   reloadMcp?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
   onRestartRequired?: (paths: string[]) => void;
@@ -123,6 +124,10 @@ export class ConfigManager {
       console.log("Config reload: companion setting applied.");
     }
     if (plan.restartChannels) {
+      await this.hooks.reloadExtensions?.({
+        config: nextConfig,
+        changedPaths,
+      });
       await this.rebuildChannels(nextConfig, { start: true });
       console.log("Config reload: channels restarted.");
     }

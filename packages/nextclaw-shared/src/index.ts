@@ -120,6 +120,7 @@ export type {
   ExtensionChannelMessageSubmitIngressPayload,
   ExtensionChannelSubmittedAttachment,
   ExtensionChannelTextContent,
+  ExtensionRuntimeReadyIngressPayload,
   ExtensionResponseIngressPayload,
 } from "./configs/ingress-keys.config.js";
 export type {

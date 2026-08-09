@@ -259,6 +259,12 @@ export class NextclawKernel {
       resolveChannelConfig: this.extensions.toConfigView,
       getExtensionChannels: () =>
         this.extensions.getExtensionRegistry().channels,
+      reloadExtensions: async ({ config, changedPaths }) => {
+        await this.extensions.reloadForConfigChange({
+          config,
+          changedPaths,
+        });
+      },
       reloadMcp: async ({ config }) =>
         await this.mcpManager.applyConfig(config),
     });

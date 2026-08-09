@@ -10,15 +10,21 @@ export type EventStreamPrincipal = {
   principalId: string;
   grants: EventStreamGrant[];
   scopes: Record<string, EventStreamScopeValue>;
+  extension?: {
+    id: string;
+    generation: string;
+  };
 };
 
 export type ExtensionEventStreamCredential = {
   extensionId: string | null;
+  generation: string | null;
   token: string | null;
 };
 
 export type ExtensionEventStreamAuthResult = {
   extensionId: string;
+  generation: string;
 };
 
 export type ExtensionEventStreamAuthenticator = {

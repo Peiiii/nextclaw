@@ -39,6 +39,7 @@ function createTestSocketFactory(sockets: TestSocket[]) {
       close: vi.fn(),
     };
     sockets.push(socket);
+    queueMicrotask(() => socket.onopen?.());
     return socket;
   };
 }
@@ -69,6 +70,7 @@ describe("bus channel extension replies", () => {
       {
         endpoint: "http://127.0.0.1:55667",
         extensionId: "fake-extension",
+        generation: "generation-1",
         token: "secret",
         fetch: fetchImpl,
         webSocketFactory: createTestSocketFactory(sockets),
@@ -126,6 +128,7 @@ describe("bus channel extension replies", () => {
       {
         endpoint: "http://127.0.0.1:55667",
         extensionId: "fake-extension",
+        generation: "generation-1",
         token: "secret",
         fetch: fetchImpl,
         webSocketFactory: createTestSocketFactory(sockets),
@@ -172,6 +175,7 @@ describe("bus channel extension replies", () => {
       {
         endpoint: "http://127.0.0.1:55667",
         extensionId: "fake-extension",
+        generation: "generation-1",
         token: "secret",
         fetch: fetchImpl,
         webSocketFactory: createTestSocketFactory([]),
@@ -179,6 +183,6 @@ describe("bus channel extension replies", () => {
     );
 
     expect(channel.start).not.toHaveBeenCalled();
-    expect(channel.stop).toHaveBeenCalledTimes(1);
+    expect(channel.stop).not.toHaveBeenCalled();
   });
 });

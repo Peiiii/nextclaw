@@ -32,9 +32,11 @@ export type UiBootstrapStatusHost = {
 export type UiExtensionHost = {
   authenticateEventStreamCredential: (input: {
     extensionId: string | null;
+    generation: string | null;
     token: string | null;
-  }) => { extensionId: string } | null;
+  }) => { extensionId: string; generation: string } | null;
   getChannelBindings: () => ExtensionChannelBinding[];
+  getRuntimeStatus?: () => ReturnType<NextclawKernel["extensions"]["getRuntimeStatus"]>;
   getUiMetadata: () => ExtensionUiMetadata[];
 };
 

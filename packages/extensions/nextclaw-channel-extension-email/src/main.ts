@@ -1,9 +1,11 @@
 import type { Config, MessageBus } from "@nextclaw/core";
 import { startBusChannelExtension, warnNcpEventError } from "@nextclaw/extension-sdk";
-import { EmailChannel } from "./services/email-channel.service.js";
 
 await startBusChannelExtension<Config["channels"]["email"], MessageBus>({
   channelId: "email",
-  createChannel: ({ config, bus }) => new EmailChannel(config, bus),
+  createChannel: async ({ config, bus }) => {
+    const { EmailChannel } = await import("./services/email-channel.service.js");
+    return new EmailChannel(config, bus);
+  },
   onChannelStartError: warnNcpEventError("email"),
 });

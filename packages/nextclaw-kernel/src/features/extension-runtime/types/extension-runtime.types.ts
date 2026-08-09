@@ -49,9 +49,54 @@ export type ExtensionRuntimeContributions = {
 export type RunningExtensionProcess = {
   manifest: ExtensionManifest;
   process: ChildProcess;
+  generation: string;
+};
+
+export type ExtensionProcessState = "stopped" | "starting" | "running" | "stopping" | "failed";
+
+export type ExtensionLeaseReason =
+  | { kind: "enabled-channel"; channelId: string }
+  | { kind: "auth-session"; sessionId: string; expiresAt: string }
+  | { kind: "auth-handoff"; channelId: string; expiresAt: string }
+  | { kind: "request"; requestId: string };
+
+export type ExtensionLease = {
+  extensionId: string;
+  generation: string;
+  id: string;
+  reason: ExtensionLeaseReason;
+  release: () => void;
+};
+
+export type ExtensionRuntimeStatus = {
+  extensionId: string;
+  generation: string | null;
+  lastExit: {
+    at: string;
+    code: number | null;
+    expected: boolean;
+    signal: string | null;
+  } | null;
+  leaseReasons: ExtensionLeaseReason[];
+  memory: {
+    pssBytes: number | null;
+    rssBytes: number | null;
+  } | null;
+  pid: number | null;
+  startedAt: string | null;
+  state: ExtensionProcessState;
+  startupDurationMs: number | null;
+};
+
+export type ExtensionProcessExitEvent = {
+  extensionId: string;
+  generation: string;
+  expected: boolean;
 };
 
 export type PendingExtensionRequest = {
+  extensionId: string;
+  generation: string;
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
   timeout: NodeJS.Timeout;

@@ -3,6 +3,7 @@ import { getKeyId, type Key } from "../types/typed-key.types.js";
 export type IngressEnvelope<TPayload = unknown> = {
   type: Key<TPayload>;
   extensionId?: string;
+  generation?: string;
   payload?: TPayload;
   source?: string;
 };

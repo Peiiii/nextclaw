@@ -66,4 +66,43 @@ describe("ConfigManager", () => {
       start: false,
     });
   });
+
+  it("reconciles extension demand before rebuilding channels on channel config changes", async () => {
+    const callOrder: string[] = [];
+    const channels = {
+      load: vi.fn(),
+      reload: vi.fn(async () => {
+        callOrder.push("channels");
+      }),
+    };
+    const manager = new ConfigManager({
+      configPath: join(createTempDir(), "config.json"),
+      channels: channels as never,
+      providerManager: {
+        load: vi.fn(),
+      } as never,
+    });
+    const reloadExtensions = vi.fn(async () => {
+      callOrder.push("extensions");
+    });
+    manager.installRuntimeHooks({ reloadExtensions });
+    const nextConfig: Config = {
+      ...manager.config,
+      channels: {
+        ...manager.config.channels,
+        weixin: {
+          ...manager.config.channels.weixin,
+          enabled: true,
+        },
+      },
+    };
+
+    await manager.applyReloadPlan(nextConfig);
+
+    expect(reloadExtensions).toHaveBeenCalledWith({
+      config: nextConfig,
+      changedPaths: ["channels.weixin.enabled"],
+    });
+    expect(callOrder).toEqual(["extensions", "channels"]);
+  });
 });

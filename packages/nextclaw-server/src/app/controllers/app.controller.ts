@@ -50,4 +50,7 @@ export class AppRoutesController {
 
   readonly bootstrapStatus = (c: Context) =>
     c.json(ok(this.options.bootstrapStatus?.getStatus() ?? buildFallbackBootstrapStatus()));
+
+  readonly extensionRuntimeStatus = (c: Context) =>
+    c.json(ok(this.options.extensions?.getRuntimeStatus?.() ?? []));
 }

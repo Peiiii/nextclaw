@@ -50,6 +50,7 @@ function readRequest(payload: unknown): ExtensionRequest | null {
   if (
     typeof record.requestId !== "string" ||
     typeof record.extensionId !== "string" ||
+    typeof record.generation !== "string" ||
     typeof record.kind !== "string"
   ) {
     return null;
@@ -57,6 +58,7 @@ function readRequest(payload: unknown): ExtensionRequest | null {
   return {
     requestId: record.requestId,
     extensionId: record.extensionId,
+    generation: record.generation,
     kind: record.kind,
     payload: record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
       ? record.payload as Record<string, unknown>
@@ -144,7 +146,12 @@ class ExtensionCapabilityRegistry implements ExtensionCapabilities {
         return;
       }
       const request = readRequest(event.payload);
-      if (!request || request.extensionId !== this.params.extensionId || request.kind !== normalizedKind) {
+      if (
+        !request ||
+        request.extensionId !== this.params.extensionId ||
+        request.generation !== this.params.transport.generation ||
+        request.kind !== normalizedKind
+      ) {
         return;
       }
       void handleRequest(this.params.transport, request, async (matchedRequest) =>
@@ -164,13 +171,15 @@ export class NextClawExtension {
   readonly channels: ExtensionChannels;
   readonly capabilities: ExtensionCapabilities;
   readonly extensionId: string;
+  readonly generation: string;
   private readonly transport: ExtensionTransportService;
-  private eventStreamSubscription: { close: () => void } | null = null;
+  private eventStreamSubscription: { close: () => void; ready: Promise<void> } | null = null;
   private parentProcessWatcher: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: NextClawExtensionOptions = {}) {
     this.transport = new ExtensionTransportService(options);
     this.extensionId = this.transport.extensionId;
+    this.generation = this.transport.generation;
     this.eventBus = new EventBus({
       onFirstSubscriber: () => {
         this.eventStreamSubscription ??= this.transport.subscribe((event) => {
@@ -203,13 +212,22 @@ export class NextClawExtension {
     this.eventStreamSubscription = null;
   };
 
+  readonly ready = async (): Promise<void> => {
+    const subscription = this.eventStreamSubscription;
+    if (!subscription) {
+      throw new Error(`Extension ${this.extensionId} has no event-stream subscription.`);
+    }
+    await subscription.ready;
+    await this.transport.reportReady(process.pid);
+  };
+
   readonly onRequest = (handler: ExtensionRequestHandler): (() => void) =>
     this.eventBus.subscribeAll((event) => {
       if (event.type !== "extension.request") {
         return;
       }
       const request = readRequest(event.payload);
-      if (!request || request.extensionId !== this.extensionId) {
+      if (!request || request.extensionId !== this.extensionId || request.generation !== this.generation) {
         return;
       }
       void handleRequest(this.transport, request, handler);

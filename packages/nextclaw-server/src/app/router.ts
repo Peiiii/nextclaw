@@ -336,6 +336,7 @@ class UiRouteRegistry {
       ["get", "/api/health", app.health],
       ["get", "/api/app/meta", app.appMeta],
       ["get", "/api/runtime/bootstrap-status", app.bootstrapStatus],
+      ["get", "/api/runtime/extensions", app.extensionRuntimeStatus],
       ["get", "/api/auth/status", auth.getStatus],
       ["post", "/api/auth/setup", auth.setup],
       ["post", "/api/auth/login", auth.login],

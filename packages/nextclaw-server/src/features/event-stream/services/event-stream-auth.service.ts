@@ -34,15 +34,17 @@ export class EventStreamAuthService {
   private readonly authenticateExtension = (request: IncomingMessage): EventStreamPrincipal | null => {
     const token = readBearerToken(readHeaderValue(request.headers.authorization));
     const extensionId = readHeaderValue(request.headers["x-nextclaw-extension-id"]);
+    const generation = readHeaderValue(request.headers["x-nextclaw-extension-generation"]);
     const result = this.deps.extensionAuth?.authenticateEventStreamCredential({
       extensionId,
+      generation,
       token,
     });
     if (!result) {
       return null;
     }
     return {
-      principalId: `extension:${result.extensionId}`,
+      principalId: `extension:${result.extensionId}:${result.generation}`,
       grants: [
         "event-stream:extension-requests",
         "event-stream:ncp-events",
@@ -50,7 +52,12 @@ export class EventStreamAuthService {
       ],
       scopes: {
         extensionIds: [result.extensionId],
+        extensionGenerations: [`${result.extensionId}:${result.generation}`],
         channelIds: this.getExtensionChannelIds(result.extensionId),
+      },
+      extension: {
+        id: result.extensionId,
+        generation: result.generation,
       },
     };
   };

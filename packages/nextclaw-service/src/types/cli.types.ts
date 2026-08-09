@@ -1,4 +1,5 @@
 import type { RestartStrategy } from "@nextclaw-service/services/restart/restart-coordinator.service.js";
+import type { ExtensionRuntimeStatus } from "@nextclaw/kernel";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 
 export type {
@@ -328,6 +329,11 @@ export type RuntimeStatusReport = {
   health: {
     managed: HealthProbe;
     configured: HealthProbe;
+  };
+  extensions: {
+    detail: string;
+    runtimes: ExtensionRuntimeStatus[];
+    state: "ok" | "unavailable" | "invalid-response";
   };
   issues: string[];
   recommendations: string[];

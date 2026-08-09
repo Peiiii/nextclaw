@@ -41,15 +41,15 @@ describe("ExtensionTransportService", () => {
     const port = await listenOnLocalhost(server);
     const headersPromise = new Promise<IncomingHttpHeaders>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error("extension websocket did not connect")), 1000);
-      wss.once("connection", (socket, request) => {
+      wss.once("connection", (_socket, request) => {
         clearTimeout(timeout);
-        socket.close();
         resolve(request.headers);
       });
     });
     const extension = new NextClawExtension({
       endpoint: `http://127.0.0.1:${port}`,
       extensionId: "fake-extension",
+      generation: "generation-1",
       token: "secret",
       fetch: createFetchImpl(),
     });
@@ -57,9 +57,11 @@ describe("ExtensionTransportService", () => {
 
     try {
       const headers = await headersPromise;
+      await extension.ready();
 
       expect(headers.authorization).toBe("Bearer secret");
       expect(headers["x-nextclaw-extension-id"]).toBe("fake-extension");
+      expect(headers["x-nextclaw-extension-generation"]).toBe("generation-1");
     } finally {
       unsubscribe();
       extension.close();

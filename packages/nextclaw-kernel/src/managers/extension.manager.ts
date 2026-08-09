@@ -211,10 +211,13 @@ export class ExtensionManager {
 
   getUiMetadata = (): ExtensionUiMetadata[] => this.snapshot.uiMetadata;
 
+  getRuntimeStatus = () => this.runtime.getStatus();
+
   authenticateEventStreamCredential = (input: {
     extensionId: string | null;
+    generation: string | null;
     token: string | null;
-  }): { extensionId: string } | null =>
+  }): { extensionId: string; generation: string } | null =>
     this.runtime.authenticateEventStreamCredential(input);
 
   toConfigView = (config: Config): Config =>
