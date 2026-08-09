@@ -30,6 +30,6 @@ description: NextClaw NPM package 与 runtime channel 发布的唯一流程 owne
 - 批次包含明显的向后兼容新能力时选择 `minor`，只有修复、润色和内部调整时选择 `patch`；现有 changeset 只是输入，不替代这个整体判断。
 - 其余 workspace package 不逐包做语义版本裁决，按依赖闭包和 changeset 跟随发布；确定 `minor` 后只需把一个代表性 changeset 中的 `nextclaw` bump 提升为 `minor`。
 
-Beta 优先 `pnpm release:beta`；仅 NPM 用 `release:beta:npm`，仅 channel 用 `release:beta:runtime`；stable channel 用 `release:stable:runtime`。
+Stable 完整闭环优先 `pnpm release:stable`；Beta 优先 `pnpm release:beta`。仅 beta NPM 用 `release:beta:npm`，仅 channel 用 `release:beta:runtime` / `release:stable:runtime`。恢复已发布 stable 时使用 `release:stable -- --resume-from <git|runtime|install> --version <version>`，不得重复 publish。
 
 最终报告 package/version/dist-tag、workflow、manifest、真实安装证据、分支闭合和残余 WIP。

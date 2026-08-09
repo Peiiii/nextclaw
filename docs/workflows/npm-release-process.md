@@ -118,6 +118,42 @@ Behavior is intentionally explicit:
 - only packages with real post-version drift are auto-added to the new changeset;
 - existing pending changesets are reused instead of duplicated.
 
+## Stable closure shortcut
+
+For a complete stable NPM release, use the root owner command after the release task has selected
+the semantic version and prepared structured release notes:
+
+```bash
+pnpm release:stable -- --dry-run
+pnpm release:stable
+```
+
+The default command performs one guarded closure:
+
+1. freeze the Changesets plan and verify stable mode, a clean/synchronized branch, NPM auth,
+   packaged update public key, and structured release notes;
+2. run auto prepare, versioning, strict build/typecheck/lint, publish, and exact registry verification;
+3. commit generated version/changelog artifacts, retarget every package tag to that commit, then push
+   the branch and tags;
+4. trigger and wait for the stable runtime workflow, then verify the GitHub Release assets,
+   `gh-pages`, and public manifests;
+5. install the exact package from the public registry and upgrade from the previous stable through
+   `--check`, `--download-only`, `--apply`, and a new process version check.
+
+Publishing is the first irreversible step, so missing release notes or branch/auth drift fail before
+it. Recovery never repeats a successful publish. Resume from the failed boundary with the exact
+versions printed by the command:
+
+```bash
+pnpm release:stable -- --resume-from git --version 0.30.0 --previous-version 0.29.0
+pnpm release:stable -- --resume-from runtime --version 0.30.0 --previous-version 0.29.0
+pnpm release:stable -- --resume-from install --version 0.30.0 --previous-version 0.29.0
+```
+
+`--skip-runtime-channel` and `--skip-published-install` are explicit recorded exceptions. They are
+not part of the default stable closure. Pure package batches that do not include `nextclaw` skip
+those two product-runtime stages automatically.
+
 ## Beta closure shortcut
 
 If you want the reusable "one command" beta flow for NPM packages, use:
