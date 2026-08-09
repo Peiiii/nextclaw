@@ -13,8 +13,8 @@
 
    不用 detached HEAD；version、build、pack 和 publish 全部在隔离 worktree 执行。
 3. **检查健康与范围**：version/publish 前运行 `pnpm release:check:health`。用户说“全部发布”时使用 full public workspace batch：`release:auto:changeset -> release:version -> release:publish`；只有用户同意或存在已说明的真实阻塞时才缩窄。窄发布仍使用 `pnpm publish`，禁止 raw `npm publish`。
-4. **统一 registry 身份**：若主仓库有私有 `.npmrc`，所有 `npm whoami/view/install`、`pnpm pack/publish` 和 registry 验证都使用同一个 `NPM_CONFIG_USERCONFIG=<project>/.npmrc`，避免不同配置造成假 401/404。
-5. **发布前验证**：运行被发布包匹配的 test/tsc/lint/build；用 `pnpm pack` 检查 tarball、launcher/assets 和 `workspace:*` 转换；对关键依赖闭包做临时安装。
+4. **统一 registry 身份**：若主仓库有私有 `.npmrc`，所有 `npm whoami/view/install`、`pnpm pack/publish` 和 registry 验证都使用同一个 `NPM_CONFIG_USERCONFIG=<project>/.npmrc`，避免不同配置造成假 401/404。`release:stable` 在链接 worktree 缺少 `.npmrc` 时会自动引用主 worktree 配置；其它命令仍需显式传入。出现 401 时先对比配置来源，禁止直接推断 token 失效或要求重新登录。
+5. **发布前验证**：运行被发布包匹配的 test/tsc/lint/build；严格检查必须在干净 worktree 中先构建发布包的完整 workspace 依赖闭包，未升版本的构建前置不得进入 checkpoint、tag 或 publish 范围。用 `pnpm pack` 检查 tarball、launcher/assets 和 `workspace:*` 转换；对关键依赖闭包做临时安装。
 6. **发布与 registry 验证**：底层依赖先发。全量优先 `pnpm release:publish`，并确保 tag 指向包含 version/changelog 的提交；窄发布在 release branch 使用 `pnpm publish --publish-branch <branch>`。逐包用相同 npm config 验证 version、dist-tags 和 dependencies；首次 scoped 包短暂 404 只做有限重试，不重复 publish。
 7. **回流目标分支**：发布后运行 `pnpm release:check:branch-closure -- --target <target> --release <ref>`，默认 `git merge --ff-only <release-branch>`。WIP 不重叠且能 fast-forward 才回流；否则停止，不 stash、不强制 merge。未回流时必须明确“registry 已发布，但本地目标分支尚未闭合”。
 8. **收尾**：release worktree 与目标工作区分别检查 status；发布产生的版本、changelog 和必要产物应提交回流，临时构建物清理。报告包、版本、dist-tag、安装证据、release commit、tags、目标分支闭合和残余 WIP。

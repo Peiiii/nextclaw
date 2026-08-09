@@ -47,8 +47,7 @@ function readNumericArg(flag, fallback) {
   return parsed;
 }
 
-function resolveBatchPackages() {
-  const workspacePackages = collectWorkspacePackages();
+function resolveBatchPackages(workspacePackages) {
   const pendingChangesetPackages = readPendingChangesetPackages();
   const explicitBatchPackages = resolveExplicitReleaseBatchPackages(
     workspacePackages,
@@ -143,7 +142,8 @@ async function main() {
       Number(process.env.NEXTCLAW_RELEASE_CHECK_LINT_CONCURRENCY) || DEFAULT_STEP_CONCURRENCY.lint
     )
   };
-  const batchPackages = resolveBatchPackages();
+  const workspacePackages = collectWorkspacePackages();
+  const batchPackages = resolveBatchPackages(workspacePackages);
 
   if (batchPackages.length === 0) {
     console.error(
@@ -154,23 +154,30 @@ async function main() {
 
   const {
     batchId,
+    batchPackageNames,
     dependencyMap,
     fingerprints,
     orderedBatchPackages,
-    priorityScores
-  } = planReleaseCheckBatch(batchPackages);
+    orderedValidationPackages,
+    priorityScores,
+    supportPackages
+  } = planReleaseCheckBatch(batchPackages, workspacePackages);
   const { checkpointPath, checkpoint } = readCheckpoint(batchId, orderedBatchPackages, resetCheckpoint);
   const packageStates = createPackageStates({
     checkpoint,
+    batchPackageNames,
     dependencyMap,
     fingerprints,
     includeLint,
-    orderedBatchPackages,
+    orderedValidationPackages,
     priorityScores
   });
 
   console.log(
     `[release:check] batch packages: ${orderedBatchPackages.map((entry) => entry.pkg.name).join(", ")}`
+  );
+  console.log(
+    `[release:check] build prerequisites: ${supportPackages.length > 0 ? supportPackages.map((entry) => entry.pkg.name).join(", ") : "none"}`
   );
   console.log(`[release:check] checkpoint: ${relative(ROOT_DIR, checkpointPath).replaceAll("\\", "/")}`);
   console.log(`[release:check] concurrency: ${concurrency}`);

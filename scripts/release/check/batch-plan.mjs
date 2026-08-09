@@ -39,6 +39,45 @@ function collectInternalDependencies(entry, batchPackageNames) {
   return dependencies;
 }
 
+function collectWorkspaceDependencyClosure(batchPackages, workspacePackages) {
+  const workspacePackageByName = new Map(
+    workspacePackages.map((entry) => [entry.pkg.name, entry])
+  );
+  const selectedPackageByName = new Map(
+    batchPackages.map((entry) => [entry.pkg.name, entry])
+  );
+  const pendingPackageNames = [...selectedPackageByName.keys()];
+
+  while (pendingPackageNames.length > 0) {
+    const packageName = pendingPackageNames.shift();
+    const entry = workspacePackageByName.get(packageName);
+    if (!entry) {
+      continue;
+    }
+    const dependencyFields = [
+      entry.pkg.dependencies,
+      entry.pkg.devDependencies,
+      entry.pkg.optionalDependencies,
+      entry.pkg.peerDependencies
+    ];
+    for (const field of dependencyFields) {
+      if (!field || typeof field !== "object") {
+        continue;
+      }
+      for (const dependencyName of Object.keys(field)) {
+        const dependencyEntry = workspacePackageByName.get(dependencyName);
+        if (!dependencyEntry || selectedPackageByName.has(dependencyName)) {
+          continue;
+        }
+        selectedPackageByName.set(dependencyName, dependencyEntry);
+        pendingPackageNames.push(dependencyName);
+      }
+    }
+  }
+
+  return [...selectedPackageByName.values()];
+}
+
 function sortBatchPackages(batchPackages) {
   const batchPackageNames = new Set(batchPackages.map((entry) => entry.pkg.name));
   const packageByName = new Map(batchPackages.map((entry) => [entry.pkg.name, entry]));
@@ -191,18 +230,32 @@ function buildBatchId(orderedBatchPackages) {
   ).slice(0, 16);
 }
 
-export function planReleaseCheckBatch(batchPackages) {
+export function planReleaseCheckBatch(batchPackages, workspacePackages = batchPackages) {
+  const batchPackageNames = new Set(batchPackages.map((entry) => entry.pkg.name));
+  const validationPackages = collectWorkspaceDependencyClosure(
+    batchPackages,
+    workspacePackages
+  );
   const {
-    ordered: orderedBatchPackages,
+    ordered: orderedValidationPackages,
     dependencyMap,
     dependentsMap
-  } = sortBatchPackages(batchPackages);
+  } = sortBatchPackages(validationPackages);
+  const orderedBatchPackages = orderedValidationPackages.filter((entry) =>
+    batchPackageNames.has(entry.pkg.name)
+  );
+  const supportPackages = orderedValidationPackages.filter(
+    (entry) => !batchPackageNames.has(entry.pkg.name)
+  );
 
   return {
     batchId: buildBatchId(orderedBatchPackages),
+    batchPackageNames,
     dependencyMap,
-    fingerprints: buildPackageFingerprints(orderedBatchPackages, dependencyMap),
+    fingerprints: buildPackageFingerprints(orderedValidationPackages, dependencyMap),
     orderedBatchPackages,
-    priorityScores: buildPackagePriorityScores(orderedBatchPackages, dependentsMap)
+    orderedValidationPackages,
+    priorityScores: buildPackagePriorityScores(orderedValidationPackages, dependentsMap),
+    supportPackages
   };
 }

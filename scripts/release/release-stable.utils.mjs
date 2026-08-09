@@ -1,3 +1,5 @@
+import { basename, dirname, join, resolve } from "node:path";
+
 export const STABLE_RELEASE_STAGES = ["packages", "git", "runtime", "install"];
 export const STABLE_RELEASE_HELP = `
 Usage:
@@ -112,6 +114,31 @@ export function resolveStableReleasePlan(changesetStatus) {
     previousVersion: nextclawRelease?.oldVersion ?? null,
     targetVersion: nextclawRelease?.newVersion ?? null
   };
+}
+
+export function resolveLinkedWorktreeNpmUserconfig({
+  commonGitDir,
+  configuredUserconfig,
+  currentWorktree,
+  pathExists
+}) {
+  if (configuredUserconfig?.trim()) {
+    return null;
+  }
+  const resolvedCurrentWorktree = resolve(currentWorktree);
+  if (pathExists(join(resolvedCurrentWorktree, ".npmrc"))) {
+    return null;
+  }
+  const resolvedCommonGitDir = resolve(commonGitDir);
+  if (basename(resolvedCommonGitDir) !== ".git") {
+    return null;
+  }
+  const primaryWorktree = dirname(resolvedCommonGitDir);
+  if (primaryWorktree === resolvedCurrentWorktree) {
+    return null;
+  }
+  const candidate = join(primaryWorktree, ".npmrc");
+  return pathExists(candidate) ? candidate : null;
 }
 
 export function validateStableResumeOptions(options) {

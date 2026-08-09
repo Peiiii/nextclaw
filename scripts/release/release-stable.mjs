@@ -15,6 +15,7 @@ import {
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
   parseStableReleaseArgs,
+  resolveLinkedWorktreeNpmUserconfig,
   resolveStableReleasePlan,
   validateStableResumeOptions
 } from "./release-stable.utils.mjs";
@@ -156,6 +157,20 @@ function ensurePackageReleasePrerequisites(branch) {
   ensureCleanWorktree();
   ensureRemoteSync(branch);
   run("npm", ["whoami"], { capture: true });
+}
+
+function configureLinkedWorktreeNpmUserconfig() {
+  const npmUserconfig = resolveLinkedWorktreeNpmUserconfig({
+    commonGitDir: git(["rev-parse", "--path-format=absolute", "--git-common-dir"]),
+    configuredUserconfig: process.env.NPM_CONFIG_USERCONFIG,
+    currentWorktree: ROOT_DIR,
+    pathExists: existsSync
+  });
+  if (!npmUserconfig) {
+    return;
+  }
+  process.env.NPM_CONFIG_USERCONFIG = npmUserconfig;
+  console.log(`[release:stable] using npm config from primary worktree: ${npmUserconfig}`);
 }
 
 function runPackageRelease(expectedTargetVersion) {
@@ -356,6 +371,7 @@ function printStableCompletion(options, context, checkpoint, gitSummary) {
 
 function runStableRelease(options) {
   const { dryRun } = options;
+  configureLinkedWorktreeNpmUserconfig();
   const context = resolveStableExecutionContext(options);
   if (dryRun) {
     printStableDryRun(options, context);

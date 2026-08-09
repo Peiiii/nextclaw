@@ -1,8 +1,8 @@
 # NPM Package 发布
 
-1. 用与发布命令相同的 npm config 验证 auth；项目私有 `.npmrc` 存在时显式设置 `NPM_CONFIG_USERCONFIG`。
+1. 用与发布命令相同的 npm config 验证 auth；项目私有 `.npmrc` 存在时显式设置 `NPM_CONFIG_USERCONFIG`。隔离 worktree 的 401 必须先核对主/隔离配置来源，不把“配置未继承”误判为 token 失效。
 2. `pnpm release:sync-readmes`、`release:check-readmes`、`release:check:health`。
-3. 根据用户安装入口和 workspace 依赖确定闭包；`@nextclaw/ui` 变化会影响 `nextclaw` 嵌入产物。窄发布必须证明排除依赖已按精确版本发布并通过 packed install。
+3. 根据用户安装入口和 workspace 依赖确定闭包；`@nextclaw/ui` 变化会影响 `nextclaw` 嵌入产物。严格检查在干净环境构建发布包的完整 workspace 依赖闭包，但只把 Changesets 发布包写入 checkpoint/tag/publish。窄发布必须证明排除依赖已按精确版本发布并通过 packed install。
 4. 使用 `release:auto:changeset`/changeset、`release:version`、release notes owner，再 `release:publish`。
 5. `pnpm release:verify:published` 和 `npm view ... dist-tags --json` 验证 registry；首发短暂 404 先按同一 npm config 重试。
 6. 发布后检查每个 worktree 的 generated artifacts；应提交的进入发布记录，其余恢复/清理，不把 hash churn 留给用户。

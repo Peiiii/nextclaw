@@ -11,12 +11,14 @@
 `scripts/release/release-stable.mjs` 是唯一编排 owner，只负责阶段顺序、前置门禁、release commit/tag 指向和结果汇总；参数解析、dry-run 计划与恢复命令格式化下沉到无副作用的 `release-stable.utils.mjs`，不复制底层发布实现：
 
 1. 读取 Changesets release plan，冻结目标版本和发布 package 闭包。
-2. 验证 stable 模式、干净工作树、当前分支/远端同步、NPM/GitHub 身份、结构化 release notes 和 packaged public key。
+2. 验证 stable 模式、干净工作树、当前分支/远端同步、NPM/GitHub 身份、结构化 release notes 和 packaged public key。链接 worktree 缺少项目级 `.npmrc` 时，自动引用主 worktree 的本机配置作为 `NPM_CONFIG_USERCONFIG`；只传路径，不复制、提交或输出凭据。
 3. 复用 `release:auto:prepare -> release:version -> release:check:strict -> release:publish` 完成版本化和 registry 发布。
 4. 创建 release commit，把本批 package tags 统一指向该 commit，再推送 branch 和 tags。
 5. 复用 `release:stable:runtime` 等待 runtime workflow、GitHub Release、四平台 assets、gh-pages 和公开 manifest 全部通过。
 6. 复用 `packages/nextclaw` 的 smoke，从真实 registry 安装精确 stable 版本，并从发布前 stable 完成 `check -> download-only -> apply -> 新进程版本`。
 7. 汇总 package/version/dist-tag、commit、runtime URL、公开安装证据和明确跳过项。
+
+严格发布检查维护两个不同集合：Changesets 决定的“发布包闭包”拥有 version、checkpoint、tag 和 registry 语义；这些包的完整 workspace 依赖闭包属于“构建前置集合”，只按拓扑顺序生成干净环境需要的 `dist`，不进入发布数量、checkpoint、tag 或 publish。禁止依赖主工作区残留构建产物让隔离验证偶然通过。
 
 `release:beta`、`release:publish`、runtime workflow 和 Changesets 继续是原有 owner；stable 脚本不得 raw `npm publish`，不得另写 manifest 或直接上传 release assets。
 
@@ -44,13 +46,15 @@ NPM publish 是首个不可逆点。因此 release plan、版本级别、release
 
 - 参数和 plan 单元测试覆盖默认、dry-run、skip、resume、缺失恢复版本和非法阶段。
 - dry-run 在真实仓库输出 previous/target version、branch、package 数和完整阶段，不产生 git diff/tag/远端变化。
+- 新建链接 worktree 不复制 `.npmrc` 时，stable 脚本仍能自动使用主 worktree 的项目级 npm config；显式 `NPM_CONFIG_USERCONFIG` 和当前 worktree 自有 `.npmrc` 优先，不被覆盖。
+- 删除所有 workspace `dist` 的干净环境中，严格检查先构建未发布的 workspace 依赖闭包，再验证发布包；构建前置不得出现在 release checkpoint 和 package tags 中。
 - stable published smoke 验证精确包版本、app/launcher/public key/UI 载荷；升级验证不设置自定义 manifest 或 public key。
 - 现有 beta、`release:publish` 和 `release:stable:runtime` 命令保持原行为。
 - 修改的脚本通过 Node 语法检查、定向测试、ESLint/治理检查和 maintainability guard。
 
 ## 非目标
 
-- 本次不执行真实发布，不创建 tag，不推送，不触发 runtime workflow。
+- 设计本身不授权真实发布；实际发布、tag、推送和 runtime workflow 仍以用户当次明确授权为准。
 - 不用确定性脚本替代 AI 编写高质量 release notes 或版本语义判断。
 - 不自动绕过真实 VPS、签名密钥、NPM 权限或其它批次特有的发布验收门槛。
 - 不覆盖 desktop、docs、landing 或后端部署；它们继续由各自发布合同拥有。

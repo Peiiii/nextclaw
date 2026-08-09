@@ -7,6 +7,7 @@ import {
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
   parseStableReleaseArgs,
+  resolveLinkedWorktreeNpmUserconfig,
   resolveStableReleasePlan,
   validateStableResumeOptions
 } from "./release-stable.utils.mjs";
@@ -91,6 +92,39 @@ test("resolves nextclaw versions from the changeset release plan", () => {
   assert.throws(
     () => resolveStableReleasePlan({ preState: { mode: "pre" }, releases: [] }),
     /pre mode is active/
+  );
+});
+
+test("inherits a primary worktree npm config only when the linked worktree has none", () => {
+  const existingPaths = new Set(["/repo/.npmrc"]);
+  const pathExists = (filePath) => existingPaths.has(filePath);
+  assert.equal(
+    resolveLinkedWorktreeNpmUserconfig({
+      commonGitDir: "/repo/.git",
+      configuredUserconfig: null,
+      currentWorktree: "/tmp/release",
+      pathExists
+    }),
+    "/repo/.npmrc"
+  );
+  assert.equal(
+    resolveLinkedWorktreeNpmUserconfig({
+      commonGitDir: "/repo/.git",
+      configuredUserconfig: "/custom/.npmrc",
+      currentWorktree: "/tmp/release",
+      pathExists
+    }),
+    null
+  );
+  existingPaths.add("/tmp/release/.npmrc");
+  assert.equal(
+    resolveLinkedWorktreeNpmUserconfig({
+      commonGitDir: "/repo/.git",
+      configuredUserconfig: null,
+      currentWorktree: "/tmp/release",
+      pathExists
+    }),
+    null
   );
 });
 
