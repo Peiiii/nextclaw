@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { StrictMode } from "react";
 import { ChatMessageMarkdown } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-markdown";
 
@@ -18,9 +25,16 @@ const texts = {
   mermaidLoadingLabel: "Rendering diagram…",
   mermaidRenderErrorLabel: "Diagram could not be rendered; showing source instead",
   attachmentCloseLabel: "Close preview",
+  previewZoomInLabel: "Zoom in",
+  previewZoomOutLabel: "Zoom out",
+  previewResetZoomLabel: "Reset zoom",
 };
 
 beforeEach(() => {
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+  });
   document.documentElement.removeAttribute("data-theme-appearance");
   document.documentElement.classList.remove("dark");
   mermaidMock.initialize.mockClear();
@@ -59,6 +73,16 @@ it("renders fenced Mermaid blocks as strict SVG diagrams", async () => {
   expect(
     container.querySelector("figure[data-chat-mermaid-diagram=true]")?.className,
   ).not.toContain("border");
+  const toolbar = container.querySelector(
+    '[data-chat-message-preview-toolbar="true"]',
+  );
+  expect(toolbar).toBeTruthy();
+  expect(within(toolbar as HTMLElement).getByRole("button", { name: "Copy" })).toBeTruthy();
+  expect(
+    within(toolbar as HTMLElement).getByRole("button", {
+      name: "Expand diagram",
+    }),
+  ).toBeTruthy();
 });
 
 it("opens rendered Mermaid diagrams in a dismissible lightbox", async () => {
@@ -71,24 +95,66 @@ it("opens rendered Mermaid diagrams in a dismissible lightbox", async () => {
   );
 
   await screen.findByTestId("mermaid-svg");
-  fireEvent.click(screen.getByRole("button", { name: "Expand diagram" }));
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Expand diagram" })[1]!,
+  );
 
   const dialog = screen.getByRole("dialog", { name: "Diagram" });
   const expandedDiagram = dialog.querySelector('[data-testid="mermaid-svg"]');
+  const expandedCanvas = dialog.querySelector(
+    '[data-chat-mermaid-expanded-canvas="true"]',
+  );
   expect(expandedDiagram).toBeTruthy();
+  expect(expandedCanvas?.className).toContain("w-full");
+  expect(expandedCanvas?.className).toContain("[&_svg]:!w-full");
+  const transformedContent = dialog.querySelector(
+    '[data-chat-message-lightbox-content="true"]',
+  ) as HTMLElement;
+  expect(transformedContent.style.transform).toContain("scale(1)");
+  fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+  expect(transformedContent.style.transform).toContain("scale(1.25)");
+  expect(screen.getByLabelText("125%")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Reset zoom" }));
+  expect(transformedContent.style.transform).toContain("scale(1)");
+  expect(
+    within(dialog).getByRole("button", { name: "Copy" }),
+  ).toBeTruthy();
   fireEvent.click(expandedDiagram!);
   expect(screen.getByRole("dialog", { name: "Diagram" })).toBeTruthy();
 
   fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
   expect(screen.queryByRole("dialog", { name: "Diagram" })).toBeNull();
 
-  fireEvent.click(screen.getByRole("button", { name: "Expand diagram" }));
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Expand diagram" })[1]!,
+  );
   fireEvent.click(screen.getByRole("dialog", { name: "Diagram" }));
   expect(screen.queryByRole("dialog", { name: "Diagram" })).toBeNull();
 
-  fireEvent.click(screen.getByRole("button", { name: "Expand diagram" }));
+  fireEvent.click(
+    screen.getAllByRole("button", { name: "Expand diagram" })[1]!,
+  );
   fireEvent.keyDown(window, { key: "Escape" });
   expect(screen.queryByRole("dialog", { name: "Diagram" })).toBeNull();
+});
+
+it("copies the original Mermaid source from the rendered diagram", async () => {
+  const source = "flowchart LR\n  A --> B";
+  render(
+    <ChatMessageMarkdown
+      text={`\`\`\`mermaid\n${source}\n\`\`\``}
+      role="assistant"
+      texts={texts}
+    />,
+  );
+
+  await screen.findByTestId("mermaid-svg");
+  fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+
+  await waitFor(() => {
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(source);
+    expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy();
+  });
 });
 
 it("keeps Mermaid source hidden behind a stable surface during the first render", async () => {

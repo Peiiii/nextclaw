@@ -156,6 +156,9 @@ export function buildChatMessageTexts(
     mermaidExpandLabel: t("chatMermaidExpand"),
     mermaidLoadingLabel: t("chatMermaidLoading"),
     mermaidRenderErrorLabel: t("chatMermaidRenderError"),
+    previewZoomInLabel: t("chatPreviewZoomIn"),
+    previewZoomOutLabel: t("chatPreviewZoomOut"),
+    previewResetZoomLabel: t("chatPreviewResetZoom"),
     typingLabel: t("chatTyping"),
     reasoningCharacterCountTemplates: {
       inProgress: t("chatReasoningInProgressCharacterCount"),

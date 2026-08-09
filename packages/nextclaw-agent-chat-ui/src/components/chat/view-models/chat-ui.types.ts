@@ -568,6 +568,9 @@ export type ChatMessageTexts = {
   mermaidExpandLabel?: string;
   mermaidLoadingLabel?: string;
   mermaidRenderErrorLabel?: string;
+  previewZoomInLabel?: string;
+  previewZoomOutLabel?: string;
+  previewResetZoomLabel?: string;
   attachmentOpenLabel?: string;
   attachmentAttachedLabel?: string;
   attachmentExpandLabel?: string;

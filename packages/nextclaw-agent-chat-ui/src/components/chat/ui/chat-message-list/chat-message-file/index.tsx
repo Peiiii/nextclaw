@@ -31,6 +31,9 @@ type ChatMessageFileProps = {
     | "attachmentAttachedLabel"
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
+    | "previewZoomInLabel"
+    | "previewZoomOutLabel"
+    | "previewResetZoomLabel"
     | "attachmentCategoryLabels"
   >;
   onOpen?: (file: ChatMessageFileView) => void;
@@ -330,8 +333,11 @@ export function ChatMessageFile({
         alt={file.label}
         expandLabel={expandLabel}
         closeLabel={closeLabel}
+        resetZoomLabel={texts?.previewResetZoomLabel}
         sizeLabel={sizeLabel}
         src={file.dataUrl}
+        zoomInLabel={texts?.previewZoomInLabel}
+        zoomOutLabel={texts?.previewZoomOutLabel}
       />
     );
   }

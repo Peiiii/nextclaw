@@ -15,6 +15,9 @@ type ChatMessageImageRowProps = {
     | "attachmentAttachedLabel"
     | "attachmentExpandLabel"
     | "attachmentCloseLabel"
+    | "previewZoomInLabel"
+    | "previewZoomOutLabel"
+    | "previewResetZoomLabel"
     | "attachmentCategoryLabels"
   >;
   onOpen?: (

@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Expand, Loader2 } from "lucide-react";
+import { Check, Copy, Expand, Loader2 } from "lucide-react";
 import type { Mermaid } from "mermaid";
+import { useCopyFeedback } from "@agent-chat-ui/components/chat/hooks/use-copy-feedback";
 import { ChatCodeBlock } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-code-block";
-import { ChatMessageLightbox } from "@agent-chat-ui/components/chat/ui/chat-message-lightbox";
+import {
+  ChatMessageLightbox,
+  ChatMessagePreviewToolbar,
+} from "@agent-chat-ui/components/chat/ui/chat-message-lightbox";
 import type { ChatMessageTexts } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 
 type MermaidTheme = "default" | "dark";
@@ -70,6 +74,9 @@ export function ChatMermaidDiagram({
     | "mermaidLoadingLabel"
     | "mermaidRenderErrorLabel"
     | "attachmentCloseLabel"
+    | "previewZoomInLabel"
+    | "previewZoomOutLabel"
+    | "previewResetZoomLabel"
   >;
 }) {
   const reactId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -97,6 +104,8 @@ export function ChatMermaidDiagram({
   const loadingLabel = texts.mermaidLoadingLabel ?? "Rendering diagram…";
   const errorLabel =
     texts.mermaidRenderErrorLabel ?? "Diagram could not be rendered";
+  const { copied, copy } = useCopyFeedback({ text: normalizedSource });
+  const copyLabel = copied ? texts.copiedCodeLabel : texts.copyCodeLabel;
 
   const scheduleLatestRender = useCallback((immediate: boolean) => {
     if (!mounted.current || renderInProgress.current) {
@@ -241,20 +250,40 @@ export function ChatMermaidDiagram({
         }
       >
         {renderedState ? (
-          <button
-            type="button"
-            aria-label={expandLabel}
-            className="relative block min-w-full cursor-zoom-in border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
-            onClick={() => setIsExpanded(true)}
-          >
-            <span
-              className="block min-w-fit [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
-              dangerouslySetInnerHTML={{ __html: renderedState.svg }}
+          <>
+            <button
+              type="button"
+              aria-label={expandLabel}
+              title={expandLabel}
+              className="relative block min-w-full cursor-zoom-in border-0 bg-transparent p-0 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+              onClick={() => setIsExpanded(true)}
+            >
+              <span
+                className="block min-w-fit [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+                dangerouslySetInnerHTML={{ __html: renderedState.svg }}
+              />
+            </button>
+            <ChatMessagePreviewToolbar
+              actions={[
+                {
+                  id: "copy-source",
+                  label: copyLabel,
+                  icon: copied ? (
+                    <Check className="h-4 w-4" strokeWidth={2} />
+                  ) : (
+                    <Copy className="h-4 w-4" strokeWidth={2} />
+                  ),
+                  onSelect: () => void copy(),
+                },
+                {
+                  id: "expand",
+                  label: expandLabel,
+                  icon: <Expand className="h-4 w-4" strokeWidth={2} />,
+                  onSelect: () => setIsExpanded(true),
+                },
+              ]}
             />
-            <span className="pointer-events-none absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-black/45 text-white opacity-0 transition-opacity duration-150 group-hover/mermaid:opacity-100 group-focus-within/mermaid:opacity-100">
-              <Expand className="h-3.5 w-3.5" strokeWidth={2} />
-            </span>
-          </button>
+          </>
         ) : (
           <div
             role="status"
@@ -273,9 +302,25 @@ export function ChatMermaidDiagram({
           closeLabel={closeLabel}
           label={diagramLabel}
           onClose={() => setIsExpanded(false)}
+          zoomInLabel={texts.previewZoomInLabel}
+          zoomOutLabel={texts.previewZoomOutLabel}
+          resetZoomLabel={texts.previewResetZoomLabel}
+          actions={[
+            {
+              id: "copy-source",
+              label: copyLabel,
+              icon: copied ? (
+                <Check className="h-4 w-4" strokeWidth={2} />
+              ) : (
+                <Copy className="h-4 w-4" strokeWidth={2} />
+              ),
+              onSelect: () => void copy(),
+            },
+          ]}
         >
           <div
-            className="max-h-[92vh] max-w-[96vw] overflow-auto rounded-xl bg-background p-4 shadow-2xl [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:!max-w-none"
+            data-chat-mermaid-expanded-canvas="true"
+            className="h-full w-full overflow-hidden rounded-xl bg-background p-4 shadow-2xl [&_svg]:mx-auto [&_svg]:!h-full [&_svg]:!w-full [&_svg]:!max-w-none"
             dangerouslySetInnerHTML={{ __html: renderedState.svg }}
           />
         </ChatMessageLightbox>

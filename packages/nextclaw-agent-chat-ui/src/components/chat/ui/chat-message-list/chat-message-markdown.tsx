@@ -55,6 +55,9 @@ type ChatMessageMarkdownProps = {
     | "mermaidExpandLabel"
     | "mermaidLoadingLabel"
     | "mermaidRenderErrorLabel"
+    | "previewZoomInLabel"
+    | "previewZoomOutLabel"
+    | "previewResetZoomLabel"
   >;
   inline?: boolean;
   isStreaming?: boolean;
@@ -249,8 +252,11 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         alt={alt || ""}
         closeLabel={texts.attachmentCloseLabel ?? "Close preview"}
         expandLabel={texts.attachmentExpandLabel ?? "Expand image"}
+        resetZoomLabel={texts.previewResetZoomLabel}
         sizeLabel={null}
         src={resolvedSrc}
+        zoomInLabel={texts.previewZoomInLabel}
+        zoomOutLabel={texts.previewZoomOutLabel}
       />
     );
   },

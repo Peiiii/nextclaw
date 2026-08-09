@@ -10,6 +10,9 @@ const defaultTexts = {
   typingLabel: "Typing...",
   attachmentExpandLabel: "Expand image",
   attachmentCloseLabel: "Close preview",
+  previewZoomInLabel: "Zoom in",
+  previewZoomOutLabel: "Zoom out",
+  previewResetZoomLabel: "Reset zoom",
 };
 
 function createImagePart(label: string) {
@@ -174,8 +177,18 @@ it("opens a fullscreen lightbox when expanding a message image", () => {
   );
 
   fireEvent.click(screen.getAllByLabelText("Expand image")[0]!);
-  expect(screen.getByRole("dialog", { name: "hero.png" })).toBeTruthy();
+  const dialog = screen.getByRole("dialog", { name: "hero.png" });
+  expect(dialog).toBeTruthy();
   expect(screen.getAllByRole("img", { name: "hero.png" }).length).toBeGreaterThan(1);
+  const transformedContent = dialog.querySelector(
+    '[data-chat-message-lightbox-content="true"]',
+  ) as HTMLElement;
+  fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+  expect(transformedContent.style.transform).toContain("scale(1.25)");
+  fireEvent.doubleClick(
+    dialog.querySelector('[data-chat-message-lightbox-viewport="true"]')!,
+  );
+  expect(transformedContent.style.transform).toContain("scale(1)");
 
   fireEvent.click(screen.getByLabelText("Close preview"));
   expect(screen.queryByRole("dialog", { name: "hero.png" })).toBeNull();

@@ -1,19 +1,28 @@
 import { useState } from "react";
 import { Expand } from "lucide-react";
-import { ChatMessageLightbox } from "@agent-chat-ui/components/chat/ui/chat-message-lightbox";
+import {
+  ChatMessageLightbox,
+  ChatMessagePreviewToolbar,
+} from "@agent-chat-ui/components/chat/ui/chat-message-lightbox";
 
 export function ChatMessageImagePreview({
   alt,
   expandLabel,
   closeLabel,
+  resetZoomLabel,
   sizeLabel,
   src,
+  zoomInLabel,
+  zoomOutLabel,
 }: {
   alt: string;
   expandLabel: string;
   closeLabel: string;
+  resetZoomLabel?: string;
   sizeLabel: string | null;
   src: string;
+  zoomInLabel?: string;
+  zoomOutLabel?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const openLightbox = () => setIsExpanded(true);
@@ -40,18 +49,16 @@ export function ChatMessageImagePreview({
             className="block h-auto w-auto max-h-[26rem] max-w-full rounded-lg bg-transparent object-contain"
           />
         </button>
-        <button
-          type="button"
-          aria-label={expandLabel}
-          className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-black/45 text-white opacity-0 transition-opacity duration-150 hover:bg-black/60 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70 group-hover/image:opacity-100"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            openLightbox();
-          }}
-        >
-          <Expand className="h-3.5 w-3.5" strokeWidth={2} />
-        </button>
+        <ChatMessagePreviewToolbar
+          actions={[
+            {
+              id: "expand",
+              label: expandLabel,
+              icon: <Expand className="h-4 w-4" strokeWidth={2} />,
+              onSelect: openLightbox,
+            },
+          ]}
+        />
         {sizeLabel ? (
           <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-start bg-gradient-to-t from-black/50 via-black/15 to-transparent px-2.5 pb-2 pt-8 opacity-0 transition-opacity duration-150 group-hover/image:opacity-100 group-focus-within/image:opacity-100">
             <span className="inline-flex items-center rounded-md bg-black/40 px-1.5 py-0.5 text-[10px] font-medium text-white/95 backdrop-blur-sm">
@@ -65,11 +72,14 @@ export function ChatMessageImagePreview({
           closeLabel={closeLabel}
           label={alt}
           onClose={() => setIsExpanded(false)}
+          resetZoomLabel={resetZoomLabel}
+          zoomInLabel={zoomInLabel}
+          zoomOutLabel={zoomOutLabel}
         >
           <img
             src={src}
             alt={alt}
-            className="max-h-[min(92vh,100%)] max-w-[min(96vw,100%)] object-contain shadow-2xl"
+            className="max-h-full max-w-full object-contain shadow-2xl"
           />
         </ChatMessageLightbox>
       ) : null}
