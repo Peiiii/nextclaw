@@ -108,6 +108,33 @@ export function getPageSubtitle(route: PageRoute, copy: LandingCopy): string {
   }
 }
 
+export function renderHomeHeroActions(
+  copy: LandingCopy,
+  downloadRoute: string,
+  docsLink: string,
+  installRoute: string
+): string {
+  return `
+    <div class="flex flex-col sm:flex-row flex-wrap gap-4 mb-3 animate-slide-up opacity-0" style="animation-delay: 0.4s">
+      <a href="${downloadRoute}" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md shadow-primary/20 focus:ring-2 focus:ring-primary focus:outline-none text-base">
+        <i data-lucide="download" class="w-5 h-5"></i>
+        ${copy.heroDownloadButton}
+      </a>
+      <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold bg-background/85 text-foreground border border-border hover:bg-secondary transition-colors shadow-sm focus:ring-2 focus:ring-foreground focus:outline-none text-base">
+        <i data-lucide="book-open" class="w-5 h-5"></i>
+        ${copy.docsButton}
+      </a>
+      <a href="${installRoute}" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold bg-background/85 text-foreground border border-border hover:bg-secondary transition-colors shadow-sm focus:ring-2 focus:ring-foreground focus:outline-none text-base">
+        <i data-lucide="list" class="w-5 h-5"></i>
+        ${copy.heroInstallButton}
+      </a>
+    </div>
+    <p class="mb-8 max-w-3xl text-sm text-muted-foreground animate-slide-up opacity-0" style="animation-delay: 0.44s">
+      ${copy.heroInstallDescription}
+    </p>
+  `;
+}
+
 export function renderFeatureCards(items: FeatureItem[]): string {
   return items.map((item) => `
     <article class="rounded-lg border border-border/70 bg-white p-5 shadow-sm">

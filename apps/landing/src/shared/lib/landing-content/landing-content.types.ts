@@ -108,6 +108,7 @@ export type LandingCopy = {
   heroDescription: string;
   heroDownloadButton: string;
   heroInstallButton: string;
+  heroInstallDescription: string;
   downloadTitle: string;
   downloadSubtitle: string;
   downloadVersionLabel: string;

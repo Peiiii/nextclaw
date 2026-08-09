@@ -16,6 +16,7 @@ import {
   LINKS,
   LOCALE_OPTIONS,
   persistLocale,
+  renderHomeHeroActions,
   renderHomeSections,
   renderIntegrationsPage,
   renderLandingFooter,
@@ -52,7 +53,9 @@ const COPY: Record<Locale, LandingCopy> = {
     heroDescription:
       'Tell NextClaw what you want done. New installations include OpenCode Zen free-trial models, so you can send the first message without adding an API key.',
     heroDownloadButton: 'Download Desktop',
-    heroInstallButton: 'Install options',
+    heroInstallButton: 'View all install options',
+    heroInstallDescription:
+      'Use the desktop app, npm, or Docker on a personal computer, NAS, or cloud server.',
     downloadTitle: 'Download NextClaw Desktop',
     downloadSubtitle: 'Official installer assets from the latest stable desktop release (macOS + Windows + Linux).',
     downloadVersionLabel: 'Current desktop version',
@@ -401,7 +404,8 @@ const COPY: Record<Locale, LandingCopy> = {
     heroDescription:
       '说出你要做什么。全新安装已带 OpenCode Zen 免费试用模型，不填 API Key 也能直接发送第一条消息。',
     heroDownloadButton: '下载桌面版',
-    heroInstallButton: '安装方式',
+    heroInstallButton: '查看全部安装方式',
+    heroInstallDescription: '支持桌面版、npm 和 Docker，可运行在个人电脑、NAS 或云服务器上。',
     downloadTitle: '下载 NextClaw Desktop',
     downloadSubtitle: '从官网下载最新稳定版，支持 macOS、Windows 和 Linux。',
     downloadVersionLabel: '当前桌面端版本',
@@ -1008,20 +1012,7 @@ class LandingPage {
           ${this.route === 'releases' ? renderReleasesPage(this.copy, downloadRoute) : ''}
 
           ${this.route === 'home' ? `
-          <div class="flex flex-col sm:flex-row flex-wrap gap-4 mb-8 animate-slide-up opacity-0" style="animation-delay: 0.4s">
-            <a href="${downloadRoute}" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md shadow-primary/20 focus:ring-2 focus:ring-primary focus:outline-none text-base">
-              <i data-lucide="download" class="w-5 h-5"></i>
-              ${this.copy.heroDownloadButton}
-            </a>
-            <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold bg-background/85 text-foreground border border-border hover:bg-secondary transition-colors shadow-sm focus:ring-2 focus:ring-foreground focus:outline-none text-base">
-              <i data-lucide="book-open" class="w-5 h-5"></i>
-              ${this.copy.docsButton}
-            </a>
-            <a href="${installRoute}" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold bg-background/85 text-foreground border border-border hover:bg-secondary transition-colors shadow-sm focus:ring-2 focus:ring-foreground focus:outline-none text-base">
-              <i data-lucide="terminal" class="w-5 h-5"></i>
-              ${this.copy.heroInstallButton}
-            </a>
-          </div>
+          ${renderHomeHeroActions(this.copy, downloadRoute, docsLink, installRoute)}
 
           <a href="${this.copy.screenshotChatSrc}" target="_blank" rel="noopener noreferrer" class="mt-8 block overflow-hidden rounded-lg border border-border/70 bg-white shadow-2xl shadow-primary/10 animate-slide-up opacity-0" style="animation-delay: 0.48s">
             <img
