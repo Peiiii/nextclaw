@@ -36,6 +36,7 @@ describe('SideDock', () => {
     builtInItems.forEach((item) => {
       expect(document.querySelector(`[data-side-dock-item-id="${item.id}"]`)).toBeTruthy();
     });
+    expect(document.querySelector('[data-side-dock-item-id="service-apps"]')).toBeNull();
 
     const appsButton = document.querySelector('[data-side-dock-item-id="apps"]');
     expect(appsButton).toBeTruthy();
