@@ -1,5 +1,25 @@
 # @nextclaw/kernel
 
+## 0.6.23
+
+### Patch Changes
+
+- 4ab158d: 渠道扩展改为按需启动：未启用渠道不再常驻独立 Node 进程，运行中启用或禁用渠道会自动创建或回收对应扩展；同时增加 ready/generation 隔离、鉴权会话租约、有限故障恢复和扩展进程内存诊断。
+
+  在 ARM64 Linux、2 vCPU / 2 GiB 限制和无活跃任务的空配置基准中，三轮平均 working set 从旧版本约 865～885 MiB 降至 164.94 MiB，下降约 81%。活跃 Agent runtime、浏览器、MCP、本地模型和已启用渠道仍会按实际工作增加内存占用。
+
+- c54a1d9: 支持划选稳定的 AI 或用户历史消息并作为结构化片段添加到聊天；输入框与发送后保持一致的紧凑引用展示，AI 会收到选中时的精确快照。文件预览和会话消息共用新的划选浮层：拖选期间不追随鼠标，松手后下一帧立即出现并自动避让视口边界。
+- Updated dependencies [4ab158d]
+- Updated dependencies [c54a1d9]
+  - @nextclaw/shared@0.4.20
+  - @nextclaw/channel-extension-feishu@0.2.21
+  - @nextclaw/channel-extension-weixin@0.2.21
+  - @nextclaw/core@0.15.21
+  - @nextclaw/mcp@0.3.21
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.22
+  - @nextclaw/runtime@0.4.21
+  - @nextclaw/ncp-mcp@0.2.21
+
 ## 0.6.22
 
 ### Patch Changes

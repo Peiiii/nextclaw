@@ -1,0 +1,1 @@
+import{A as e,N as t}from"./react-BC_orpAj.js";var n=t();function r({className:t,...r}){return(0,n.jsx)(`div`,{className:e(`animate-pulse rounded-md bg-slate-200`,t),...r})}export{r as t};

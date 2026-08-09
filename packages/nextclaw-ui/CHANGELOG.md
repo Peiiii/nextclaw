@@ -1,5 +1,22 @@
 # @nextclaw/ui
 
+## 0.15.24
+
+### Patch Changes
+
+- eee4271: 统一聊天图片与 Mermaid 图表的全屏预览体验：媒体现在支持适应窗口、缩放、拖拽和明确复位；Mermaid 的复制与放大操作共用对齐的工具栏，并可在全屏中继续复制源码。
+- 688ed04: 优化聊天模型选择器的新模型提醒：摘要固定显示在弹层底部，不再随模型列表滚走；查看新增模型时改用更大的模型目录窗口，支持搜索、按提供商筛选、逐项添加和明确忽略本批提醒。开发环境可通过 `?preview=model-discovery` 安全预览完整状态，不修改提供商配置或提醒存储。
+- 221eede: 精简右侧快捷栏：移除低频的服务应用默认入口，应用入口保持不变；服务应用仍可从应用页面访问并按需固定。
+- c54a1d9: 支持划选稳定的 AI 或用户历史消息并作为结构化片段添加到聊天；输入框与发送后保持一致的紧凑引用展示，AI 会收到选中时的精确快照。文件预览和会话消息共用新的划选浮层：拖选期间不追随鼠标，松手后下一帧立即出现并自动避让视口边界。
+- Updated dependencies [eee4271]
+- Updated dependencies [688ed04]
+- Updated dependencies [4ab158d]
+- Updated dependencies [a33d09f]
+- Updated dependencies [c54a1d9]
+  - @nextclaw/agent-chat-ui@0.6.22
+  - @nextclaw/shared@0.4.20
+  - @nextclaw/client-sdk@0.5.23
+
 ## 0.15.23
 
 ### Patch Changes

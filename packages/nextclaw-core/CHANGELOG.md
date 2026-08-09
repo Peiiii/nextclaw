@@ -1,5 +1,13 @@
 # nextclaw-core
 
+## 0.15.21
+
+### Patch Changes
+
+- Updated dependencies [4ab158d]
+- Updated dependencies [c54a1d9]
+  - @nextclaw/shared@0.4.20
+
 ## 0.15.20
 
 ### Patch Changes
