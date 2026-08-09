@@ -81,7 +81,7 @@ export class ConfigCommands {
       prevConfig,
       nextConfig: nextConfig as Config,
       reason: `config.set ${pathExpr}`,
-      manualMessage: `Updated ${pathExpr}. Restart the gateway to apply.`,
+      manualMessage: `Updated ${pathExpr}. Run nextclaw restart in an external terminal to apply.`,
       silentRestartNotice: opts.silentRestartNotice,
     });
   };
@@ -111,7 +111,7 @@ export class ConfigCommands {
       prevConfig,
       nextConfig: nextConfig as Config,
       reason: `config.unset ${pathExpr}`,
-      manualMessage: `Removed ${pathExpr}. Restart the gateway to apply.`
+      manualMessage: `Removed ${pathExpr}. Run nextclaw restart in an external terminal to apply.`
     });
   };
 

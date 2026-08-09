@@ -384,7 +384,7 @@ export class ConfigManager {
             required: true as const,
             automatic: false as const,
             changedPaths: [...plan.restartRequired],
-            message: `Config saved. Restart manually to apply: ${plan.restartRequired.join(", ")}.`,
+            message: `Config saved. Run nextclaw restart in an external terminal to apply: ${plan.restartRequired.join(", ")}.`,
           }
         : null;
     const message =
@@ -392,8 +392,8 @@ export class ConfigManager {
         ? "Config already matched the requested state."
         : pendingRestart
           ? changedPaths.length > plan.restartRequired.length
-            ? "Config saved. Supported changes were applied immediately; restart manually to apply the rest."
-            : "Config saved. Restart manually to apply changes."
+            ? "Config saved. Supported changes were applied immediately; run nextclaw restart in an external terminal to apply the rest."
+            : "Config saved. Run nextclaw restart in an external terminal to apply changes."
           : "Config saved and applied.";
 
     return {

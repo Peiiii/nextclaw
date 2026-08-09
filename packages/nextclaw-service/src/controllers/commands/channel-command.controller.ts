@@ -107,7 +107,7 @@ export class ChannelCommands {
     await this.deps.requestRestart({
       mode: "notify",
       reason: `channel configured: ${channelId}`,
-      manualMessage: "渠道配置已保存，等待你手动重启后生效。"
+      manualMessage: "渠道配置已保存，请在外部终端运行 nextclaw restart 后生效。"
     });
   };
 

@@ -50,12 +50,13 @@ export const createCliQuickReferenceContextProvider = (): ContextProvider => {
   return staticBlock([
     `## ${APP_NAME} CLI Quick Reference`,
     `${APP_NAME} is controlled via subcommands. Do not invent commands.`,
-    "To manage the Gateway daemon service (start/stop/restart):",
-    `- ${appLower} gateway status`,
-    `- ${appLower} gateway start`,
-    `- ${appLower} gateway stop`,
-    `- ${appLower} gateway restart`,
-    `If unsure, ask the user to run \`${appLower} help\` (or \`${appLower} gateway --help\`) and paste the output.`,
+    "To manage the background service:",
+    `- ${appLower} status`,
+    `- ${appLower} start`,
+    `- ${appLower} restart`,
+    `- ${appLower} stop`,
+    `The \`${appLower} gateway\` command starts a foreground gateway; it has no lifecycle subcommands.`,
+    `If unsure, ask the user to run \`${appLower} help\` and paste the output.`,
   ]);
 };
 
@@ -64,11 +65,11 @@ export const createSelfUpdateContextProvider = (): ContextProvider =>
     `## ${APP_NAME} Self-Update`,
     "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
     "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
-    "Actions: config.get, config.schema, config.apply (validate + write full config, then restart), config.patch (merge + restart), update.run (update deps or git, then restart).",
+    "Actions: config.get, config.schema, config.apply (validate + write full config), config.patch (merge config), update.run (update the runtime and relaunch the service).",
     "When patching config, copy enum values exactly from config.schema; never invent new variants.",
     "session.dmScope legal values are exactly: main | per-peer | per-channel-peer | per-account-channel-peer.",
     "If an enum/path is uncertain, stop and call config.schema first; do not guess.",
-    `After restart, ${APP_NAME} pings the last active session automatically.`,
+    `If a config change requires restart, tell the user to run \`${APP_NAME.toLowerCase()} restart\` in an external terminal. Do not run it from the active agent session.`,
   ]);
 
 export const createReplyTagsContextProvider = (): ContextProvider =>

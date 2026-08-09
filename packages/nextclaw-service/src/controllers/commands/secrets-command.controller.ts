@@ -232,7 +232,7 @@ export class SecretsCommands {
       prevConfig,
       nextConfig,
       reason: `secrets.configure ${alias}`,
-      manualMessage: "Secrets provider updated. Restart the gateway if required."
+      manualMessage: "Secrets provider updated. Run nextclaw restart in an external terminal if required."
     });
 
     if (opts.json) {
@@ -256,7 +256,7 @@ export class SecretsCommands {
       prevConfig,
       nextConfig,
       reason: "secrets.apply",
-      manualMessage: "Secrets updated. Restart the gateway if required."
+      manualMessage: "Secrets updated. Run nextclaw restart in an external terminal if required."
     });
 
     if (opts.json) {

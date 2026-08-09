@@ -78,7 +78,7 @@ export class RestartCoordinator {
 
     return {
       status: "manual-required",
-      message: request.manualMessage ?? "Restart the gateway to apply changes."
+      message: request.manualMessage ?? "Run nextclaw restart in an external terminal to apply changes."
     };
   };
 }

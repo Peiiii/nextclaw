@@ -321,13 +321,11 @@ export class ServiceGatewayManager {
       "service.gateway.gateway_controller",
       () => new GatewayControllerImpl({
         configManager: this.configManager,
-        channels: this.kernel.channels,
-        cron: this.automation,
         sessionManager: this.sessionManager,
         requestRestart: async (options) => {
           await this.deps.requestRestart({
-            reason: options?.reason ?? "gateway tool restart",
-            manualMessage: "Restart the gateway to apply changes.",
+            reason: options?.reason ?? "gateway update relaunch",
+            manualMessage: "Run nextclaw restart in an external terminal.",
             strategy: "background-service-or-exit",
             delayMs: options?.delayMs,
             silentOnServiceRestart: true,
@@ -361,7 +359,7 @@ export class ServiceGatewayManager {
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({
           changedPaths: paths,
-          manualMessage: `已保存以下改动，等待你手动重启后生效：${paths.join(", ")}`,
+          manualMessage: `已保存以下改动，请在外部终端运行 nextclaw restart 后生效：${paths.join(", ")}`,
           mode: "notify",
           reason: `config reload requires restart: ${paths.join(", ")}`,
           strategy: "background-service-or-manual",

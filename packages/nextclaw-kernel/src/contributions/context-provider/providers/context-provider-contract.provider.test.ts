@@ -19,7 +19,9 @@ import {
 } from "@nextclaw/shared";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
 import {
+  createCliQuickReferenceContextProvider,
   createMessagingContextProvider,
+  createSelfUpdateContextProvider,
   createSilentRepliesContextProvider,
 } from "@kernel/contributions/context-provider/providers/native-static-context.provider.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
@@ -131,6 +133,22 @@ describe("Messaging context delivery policy", () => {
     expect(context).toContain('✅ Right: "<noreply/>"');
     expect(context).not.toContain("two blank lines");
     expect(context).not.toContain("\\n\\n<noreply/>");
+  });
+});
+
+describe("NextClaw lifecycle command context", () => {
+  it("uses top-level service commands and delegates restart to an external terminal", async () => {
+    const workspace = createWorkspace();
+    const [quickReference] = await createCliQuickReferenceContextProvider().provide(createRequest(workspace));
+    const [selfUpdate] = await createSelfUpdateContextProvider().provide(createRequest(workspace));
+    const context = `${quickReference}\n${selfUpdate}`;
+
+    expect(context).toContain("nextclaw status");
+    expect(context).toContain("nextclaw start");
+    expect(context).toContain("nextclaw restart");
+    expect(context).toContain("nextclaw stop");
+    expect(context).toContain("run `nextclaw restart` in an external terminal");
+    expect(context).not.toContain("nextclaw gateway restart");
   });
 });
 

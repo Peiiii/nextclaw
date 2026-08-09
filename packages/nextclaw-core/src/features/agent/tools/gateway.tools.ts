@@ -11,24 +11,17 @@ export type GatewayConfigSnapshot = {
 };
 
 export type GatewayController = {
-  status?: () => Promise<Record<string, unknown> | string> | Record<string, unknown> | string;
-  reloadConfig?: (reason?: string) => Promise<string | void> | string | void;
-  restart?: (options?: { delayMs?: number; reason?: string; sessionKey?: string }) => Promise<string | void> | string | void;
   getConfig?: () => Promise<GatewayConfigSnapshot | string> | GatewayConfigSnapshot | string;
   getConfigSchema?: () => Promise<Record<string, unknown> | string> | Record<string, unknown> | string;
   applyConfig?: (params: {
     raw: string;
     baseHash?: string;
     note?: string;
-    restartDelayMs?: number;
-    sessionKey?: string;
   }) => Promise<Record<string, unknown> | string | void> | Record<string, unknown> | string | void;
   patchConfig?: (params: {
     raw: string;
     baseHash?: string;
     note?: string;
-    restartDelayMs?: number;
-    sessionKey?: string;
   }) => Promise<Record<string, unknown> | string | void> | Record<string, unknown> | string | void;
   updateRun?: (params: {
     note?: string;
@@ -60,7 +53,7 @@ export class GatewayTool extends Tool {
   }
 
   get description(): string {
-    return "Inspect gateway config, apply config changes, and request an explicit restart when needed.";
+    return "Inspect and apply gateway config changes, or run an explicitly requested runtime update.";
   }
 
   get parameters(): Record<string, unknown> {
@@ -70,7 +63,6 @@ export class GatewayTool extends Tool {
         action: {
           type: "string",
           enum: [
-            "restart",
             "config.get",
             "config.schema",
             "config.apply",
@@ -79,18 +71,14 @@ export class GatewayTool extends Tool {
           ],
           description: "Action to perform"
         },
-        delayMs: { type: "number", description: "Restart delay (ms)" },
-        reason: { type: "string", description: "Optional reason for the action" },
-        gatewayUrl: { type: "string", description: "Optional gateway url (unused in local runtime)" },
-        gatewayToken: { type: "string", description: "Optional gateway token (unused in local runtime)" },
         timeoutMs: { type: "number", description: "Optional timeout (ms)" },
         raw: { type: "string", description: "Raw config JSON string for apply/patch" },
         baseHash: { type: "string", description: "Config base hash (from config.get)" },
-        sessionKey: { type: "string", description: "Session key for restart notification" },
-        note: { type: "string", description: "Completion note for config apply/patch" },
+        sessionKey: { type: "string", description: "Session key for update completion notification" },
+        note: { type: "string", description: "Optional completion note" },
         restartDelayMs: {
           type: "number",
-          description: "Deprecated for config.apply/config.patch; config writes no longer auto-restart."
+          description: "Delay before the update relaunch (ms)"
         }
       },
       required: ["action"]
@@ -148,8 +136,6 @@ export class GatewayTool extends Tool {
 
     const note = typeof params.note === "string" ? params.note.trim() || undefined : undefined;
     const baseHash = await this.resolveBaseHash(params);
-    const sessionKey = this.resolveSessionKey(params);
-
     if (action === "config.apply") {
       if (!this.controller?.applyConfig) {
         return this.renderResult({ ok: false, error: "config.apply not supported" });
@@ -157,8 +143,7 @@ export class GatewayTool extends Tool {
       const result = await this.controller.applyConfig({
         raw,
         baseHash,
-        note,
-        sessionKey
+        note
       });
       return this.renderResult({ ok: true, result });
     }
@@ -169,25 +154,9 @@ export class GatewayTool extends Tool {
     const result = await this.controller.patchConfig({
       raw,
       baseHash,
-      note,
-      sessionKey
+      note
     });
     return this.renderResult({ ok: true, result });
-  };
-
-  private executeRestart = async (params: Record<string, unknown>): Promise<string> => {
-    if (!this.controller?.restart) {
-      return this.renderResult({ ok: false, error: "restart not supported" });
-    }
-    const { delayMs: rawDelayMs, reason: rawReason } = params;
-    const delayMs =
-      typeof rawDelayMs === "number" && Number.isFinite(rawDelayMs)
-        ? Math.floor(rawDelayMs)
-        : undefined;
-    const reason = typeof rawReason === "string" ? rawReason.trim() || undefined : undefined;
-    const sessionKey = this.resolveSessionKey(params);
-    const result = await this.controller.restart({ delayMs, reason, sessionKey });
-    return this.renderResult({ ok: true, result: result ?? "Restart scheduled" });
   };
 
   private executeUpdateRun = async (params: Record<string, unknown>): Promise<string> => {
@@ -224,9 +193,6 @@ export class GatewayTool extends Tool {
     }
     if (action === "config.apply" || action === "config.patch") {
       return this.executeConfigWrite(action, params);
-    }
-    if (action === "restart") {
-      return this.executeRestart(params);
     }
     if (action === "update.run") {
       return this.executeUpdateRun(params);

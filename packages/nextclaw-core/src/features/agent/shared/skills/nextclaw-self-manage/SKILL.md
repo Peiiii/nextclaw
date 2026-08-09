@@ -38,12 +38,13 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - After mutating operations, close the loop with:
   - `nextclaw status --json`
   - and `nextclaw doctor --json` when needed
-- Be explicit about restart semantics after changes.
+- Be explicit about restart semantics after changes. When a restart is required, ask the user to run `nextclaw restart` in an external terminal; do not invoke a restart from the active agent session.
+- `nextclaw gateway` starts a foreground gateway. It has no `start`, `status`, `restart`, or `stop` subcommands.
 - After modifying a running Service App, run `nextclaw app restart <app-id> --json` before validating through the live product UI or panel-to-service action calls.
 - For channel discovery before messaging, use `nextclaw channels list --json` and treat returned `channels[].id` values as authoritative.
 - For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
-- For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Restart the gateway after changing it.
+- For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Run `nextclaw restart` in an external terminal after changing it.
 - For project creation and discovery, use `nextclaw projects list|templates|create --json`; do not synthesize placeholder sessions or edit the project registry file directly.
 - For session naming and project binding, use `nextclaw sessions rename|set-project|clear-project --json`; do not edit session journal metadata directly.
 - Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.

@@ -78,7 +78,7 @@ describe("ServiceRestartManager self relaunch", () => {
     process.argv[1] = "/pkg/runtime-bundles/versions/0.22.4/runtime/dist/cli/app/index.js";
     await restartManager.requestRestart({
       reason: "runtime update apply",
-      manualMessage: "Restart the gateway to apply changes.",
+      manualMessage: "Run nextclaw restart in an external terminal to apply changes.",
       strategy: "background-service-or-exit",
       delayMs: 100_000
     });
@@ -98,7 +98,7 @@ describe("ServiceRestartManager self relaunch", () => {
     process.argv[1] = "/repo/packages/nextclaw/src/cli/app/index.ts";
     await restartManager.requestRestart({
       reason: "runtime update apply",
-      manualMessage: "Restart the gateway to apply changes.",
+      manualMessage: "Run nextclaw restart in an external terminal to apply changes.",
       strategy: "background-service-or-exit",
       delayMs: 100_000
     });
@@ -117,14 +117,14 @@ describe("ServiceRestartManager self relaunch", () => {
       changedPaths: ["agents.runtimes"],
       mode: "notify",
       reason: "agent runtime config changed",
-      manualMessage: "Restart the gateway to apply changes.",
+      manualMessage: "Run nextclaw restart in an external terminal to apply changes.",
       silentNotification: true,
     });
 
     expect(warnSpy).not.toHaveBeenCalled();
     expect(pendingRestartStore.read()).toMatchObject({
       changedPaths: ["agents.runtimes"],
-      message: "Restart the gateway to apply changes.",
+      message: "Run nextclaw restart in an external terminal to apply changes.",
       reasons: ["agent runtime config changed"],
     });
   });

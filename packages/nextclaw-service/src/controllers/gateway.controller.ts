@@ -1,8 +1,7 @@
 import {
   type GatewayController,
-  type CronService,
 } from "@nextclaw/core";
-import type { ChannelManager, ConfigManager, SessionManager } from "@nextclaw/kernel";
+import type { ConfigManager, SessionManager } from "@nextclaw/kernel";
 import { getPackageVersion } from "../utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/services/runtime/npm-runtime-update-command.service.js";
 import {
@@ -13,8 +12,6 @@ import {
 
 type ControllerDeps = {
   configManager: ConfigManager;
-  channels: ChannelManager;
-  cron: CronService;
   sessionManager?: SessionManager;
   requestRestart?: (options?: { delayMs?: number; reason?: string }) => Promise<void> | void;
 };
@@ -78,20 +75,19 @@ export class GatewayControllerImpl implements GatewayController {
     };
   };
 
-  private writeRestartSentinelPayload = async (params: {
-    kind: "config.apply" | "config.patch" | "update.run" | "restart";
+  private writeUpdateRestartSentinelPayload = async (params: {
     status: "ok" | "error" | "skipped";
     sessionKey?: string;
     note?: string;
     reason?: string;
     strategy?: string;
   }): Promise<string | null> => {
-    const { kind, note, reason, sessionKey: rawSessionKey, status, strategy } = params;
+    const { note, reason, sessionKey: rawSessionKey, status, strategy } = params;
     const sessionKey = this.normalizeOptionalString(rawSessionKey);
     const deliveryContext = await this.resolveDeliveryContext(sessionKey);
     try {
       return await writeRestartSentinel({
-        kind,
+        kind: "update.run",
         status,
         ts: Date.now(),
         sessionKey,
@@ -121,29 +117,6 @@ export class GatewayControllerImpl implements GatewayController {
     }, delay);
   };
 
-  status = (): Record<string, unknown> => {
-    return {
-      channels: this.deps.channels.enabledChannels,
-      cron: this.deps.cron.status(),
-      configPath: this.deps.configManager.configPath
-    };
-  };
-
-  reloadConfig = async (reason?: string): Promise<string> => {
-    return this.deps.configManager.reloadConfig(reason);
-  };
-
-  restart = async (options?: { delayMs?: number; reason?: string; sessionKey?: string }): Promise<string> => {
-    await this.writeRestartSentinelPayload({
-      kind: "restart",
-      status: "ok",
-      sessionKey: options?.sessionKey,
-      reason: options?.reason ?? "gateway.restart"
-    });
-    await this.requestRestart(options);
-    return "Restart scheduled";
-  };
-
   getConfig = async (): Promise<Record<string, unknown>> => {
     return this.deps.configManager.getConfigSnapshot({ version: getPackageVersion() });
   };
@@ -156,8 +129,6 @@ export class GatewayControllerImpl implements GatewayController {
     raw: string;
     baseHash?: string;
     note?: string;
-    restartDelayMs?: number;
-    sessionKey?: string;
   }): Promise<Record<string, unknown>> => {
     return this.deps.configManager.applyRawConfig({
       raw: params.raw,
@@ -171,8 +142,6 @@ export class GatewayControllerImpl implements GatewayController {
     raw: string;
     baseHash?: string;
     note?: string;
-    restartDelayMs?: number;
-    sessionKey?: string;
   }): Promise<Record<string, unknown>> => {
     return this.deps.configManager.patchRawConfig({
       raw: params.raw,
@@ -207,8 +176,7 @@ export class GatewayControllerImpl implements GatewayController {
 
     const versionAfter = getPackageVersion();
     const delayMs = restartDelayMs ?? 0;
-    const sentinelPath = await this.writeRestartSentinelPayload({
-      kind: "update.run",
+    const sentinelPath = await this.writeUpdateRestartSentinelPayload({
       status: "ok",
       sessionKey,
       note,

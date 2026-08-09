@@ -630,7 +630,7 @@ Agent management notes:
   - Without the injection option, the command shows the effective setting.
   - NextClaw context injection is enabled by default. It supplies product instructions, workspace/session context, and the available skill manifest to supported agent runtimes.
   - Codex keeps its native base instructions and receives NextClaw context as developer instructions. Claude Code keeps the `claude_code` preset and receives NextClaw context through the preset's append field.
-  - Changing this runtime setting is saved immediately and requires a gateway restart before new runtime processes use it.
+  - Changing this runtime setting is saved immediately. Run `nextclaw restart` in an external terminal before new runtime processes use it.
 - `nextclaw agents new <agent-id>` accepts:
   - `--name <display-name>`
   - `--description <description>`
@@ -703,7 +703,7 @@ Rules:
 - Do not try to create or remove the built-in `main` agent. `nextclaw agents update main` is allowed.
 - For normal Agent management, prefer `nextclaw agents list|new|update|remove --json` over direct `config.json` or `agents.list` edits.
 - For runtime discovery, prefer `nextclaw agents runtimes --json` over guessing enum values from memory or stale examples.
-- For runtime context injection, prefer `nextclaw agents runtime config <runtime-id>` over direct config edits. Restart the gateway after changing the setting.
+- For runtime context injection, prefer `nextclaw agents runtime config <runtime-id>` over direct config edits. Run `nextclaw restart` in an external terminal after changing the setting.
 - Direct `config.json` / `agents.list` edits are recovery-only: use them only for explicit operator-led disaster recovery, or when a documented CLI path still cannot express the requested change.
 - Humans should use the `Agents` page or the CLI for Agent identities. `Routing & Runtime` is not the identity-management entry point.
 - If the user asked AI to perform Agent CRUD, AI should run the command, not only describe it.
@@ -785,9 +785,9 @@ Behavior:
 - Use `nextclaw update --download-only` to stage an update without switching the active runtime. `nextclaw update --apply` applies an already staged runtime update.
 - If the background service is running, restart it after `nextclaw update` reports that the runtime update was applied.
 - When update is triggered from the running gateway (agent `update.run`), NextClaw arms a self-relaunch helper before exiting, so the service comes back automatically (like an OS reboot flow).
-- After restart, NextClaw automatically pings the last active session with restart/update status (including note when provided).
+- A restart interrupts active conversations. Confirm recovery with `nextclaw status --json` from an external terminal.
 
-If the gateway is running, you can also ask the agent to update; the agent will call the gateway update tool only when you explicitly request it, and restart/relaunch will be scheduled afterward.
+If the gateway is running, you can also ask the agent to update. The agent will call the gateway update tool only when you explicitly request it; the service relaunch is scheduled afterward, but the active conversation can disconnect.
 
 ---
 

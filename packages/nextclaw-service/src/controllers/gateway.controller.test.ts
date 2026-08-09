@@ -35,8 +35,6 @@ describe("GatewayControllerImpl", () => {
   const createController = (): GatewayControllerImpl => {
     return new GatewayControllerImpl({
       configManager,
-      channels: { enabledChannels: [] } as never,
-      cron: { status: () => ({ jobs: [] }) } as never,
       requestRestart
     });
   };
@@ -112,10 +110,10 @@ describe("GatewayControllerImpl", () => {
         required: true,
         automatic: false,
         changedPaths: ["remote.deviceName"],
-        message: "Config saved. Restart manually to apply: remote.deviceName."
+        message: "Config saved. Run nextclaw restart in an external terminal to apply: remote.deviceName."
       }
     });
-    expect((result as { message?: string }).message).toContain("Restart manually");
+    expect((result as { message?: string }).message).toContain("nextclaw restart");
     expect(applyReloadPlan).toHaveBeenCalledTimes(1);
     expect(requestRestart).not.toHaveBeenCalled();
     expect(mocks.writeRestartSentinel).not.toHaveBeenCalled();

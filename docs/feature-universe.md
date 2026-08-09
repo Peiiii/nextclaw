@@ -169,7 +169,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 | memory_search | 工作区 memory 检索 |
 | memory_get | 读取 memory 条目 |
 | subagents | 子代理能力查询/编排 |
-| gateway | 配置与运维：config.get / config.schema / config.apply / config.patch / restart / update.run |
+| gateway | 配置与运维：config.get / config.schema / config.apply / config.patch / update.run |
 | cron | 定时任务列表/添加/删除/启用/禁用/立即执行（依赖 cronService） |
 
 Extension 当前只通过 channel contribution 接入；旧的 `extensionRegistry.tools` / `ExtensionToolAdapter` 工具适配链路已删除。
