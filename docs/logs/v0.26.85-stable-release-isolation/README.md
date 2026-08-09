@@ -41,4 +41,4 @@
 - runtime workflow：`https://github.com/Peiiii/nextclaw/actions/runs/31326191760`，darwin x64/arm64、linux x64、win32 x64 和 update channel 全部成功。
 - 真实安装：从 registry 全新安装 `0.30.0` 后，版本、app、launcher、public key、embedded UI 均通过；从 `0.29.0` 完成 `check -> download-only -> apply -> 新进程 0.30.0`。
 - 公开说明：`https://docs.nextclaw.io/en/notes/2026-08-10-nextclaw-v0-30-0` 返回 200。
-- X：stable minor 已获长期直接发布授权，摘要图为 `images/marketing/nextclaw-v0.30.0-release-summary-en.png`，帖子为 `https://x.com/i/status/2086509424718610750`。首次写入使用 `bird 0.9.0` 内置的旧 `CreateTweet` query ID，被 X 误导性地返回错误 344；刷新当前 GraphQL query IDs 后同一账号、文案和图片立即发布成功。wrapper 现会在每次 `tweet/reply` 前刷新写入协议，并与代理使用同一 Node executable；临时重试 heartbeat 已删除。
+- X：stable minor 已获长期直接发布授权，摘要图为 `images/marketing/nextclaw-v0.30.0-release-summary-en.png`，帖子为 `https://x.com/i/status/2086509424718610750`。首次写入使用 `bird 0.9.0` 内置的旧 `CreateTweet` query ID，被 X 误导性地返回错误 344；刷新当前 GraphQL query IDs 后同一账号、文案和图片立即发布成功。帖子回读确认作者为 `@XiaotiaoWang`，正文包含发布说明链接，媒体为 1600×900 图片。wrapper 现会在每次 `tweet/reply` 前刷新写入协议，并与代理使用同一 Node executable；临时重试 heartbeat 已删除。
