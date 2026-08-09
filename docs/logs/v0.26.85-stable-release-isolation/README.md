@@ -41,4 +41,4 @@
 - runtime workflow：`https://github.com/Peiiii/nextclaw/actions/runs/31326191760`，darwin x64/arm64、linux x64、win32 x64 和 update channel 全部成功。
 - 真实安装：从 registry 全新安装 `0.30.0` 后，版本、app、launcher、public key、embedded UI 均通过；从 `0.29.0` 完成 `check -> download-only -> apply -> 新进程 0.30.0`。
 - 公开说明：`https://docs.nextclaw.io/en/notes/2026-08-10-nextclaw-v0-30-0` 返回 200。
-- X：stable minor 已获长期直接发布授权，摘要图为 `images/marketing/nextclaw-v0.30.0-release-summary-en.png`。2026-08-10 首次带图发布被 X 以错误 344（达到当日 Tweets/messages 上限）拒绝，确认没有生成重复文字帖；额度恢复后自动重试并补记帖子 URL。
+- X：stable minor 已获长期直接发布授权，摘要图为 `images/marketing/nextclaw-v0.30.0-release-summary-en.png`。2026-08-10 首次带图发布被 X 以错误 344（达到当日 Tweets/messages 上限）拒绝，确认没有生成重复文字帖；线程 heartbeat `nextclaw-v0-30-0-x` 每小时先查重再重试，成功后停用并补记帖子 URL。
