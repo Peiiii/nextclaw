@@ -16,12 +16,13 @@
 - 定向 ESLint 为 0 error；`apps/landing/src/main.ts` 仅保留既有文件与方法体积 warning，本次等量替换文案，没有增加行数。
 - 新文件治理、`git diff --check`、量化数字一致性和夸大主张红线扫描通过。
 - 文档构建产生的 Project Pulse 时间戳与仓库统计漂移已恢复，没有混入交付。
-- 生产验证结果将在完成 Cloudflare Pages 与双域文档部署后补记。
+- 官网生产构建和 Cloudflare Pages deployment `d896b61e` 通过；`nextclaw.io` 的中英文首页脚本和中文安装页 SEO 均命中新文案。
+- 文档工作流 [31322927614](https://github.com/Peiiii/nextclaw/actions/runs/31322927614) 通过 build、全球 Cloudflare、国内 OSS/CDN 和最终 verify。`docs.nextclaw.io` 与 `docs.nextclaw.net` 同时报告内容提交 `a905cc9dd6e58c8180739d874d36f36e53958088`、tree hash `e38629b2a5df1bf4c9d07585c08f75daa42c1ae78a6bd11921b7334a78c47017`；两域中英文资源页均返回目标量化内容。
 
 ## 发布/部署方式
 
-- 官网：通过根命令 `pnpm deploy:landing` 构建并部署到 Cloudflare Pages 的 `nextclaw-landing` production branch。
-- 文档站：内容提交进入 `origin/master` 后由 `docs-deploy.yml` 使用同一 artifact 部署到全球 Cloudflare Pages 和国内 OSS/CDN，并由 release manifest 校验两域身份一致。
+- 官网：已通过根命令 `pnpm deploy:landing` 构建并部署到 Cloudflare Pages 的 `nextclaw-landing` production branch，deployment URL 为 `https://d896b61e.nextclaw-landing.pages.dev`。
+- 文档站：内容提交进入 `origin/master` 后，已由 `docs-deploy.yml` 使用同一 artifact 部署到全球 Cloudflare Pages 和国内 OSS/CDN，并由 release manifest 校验两域身份一致。
 - 生产验证目标：`https://nextclaw.io`、`https://docs.nextclaw.io`、`https://docs.nextclaw.net`。
 - 本次不部署 NextClaw runtime，不发布 NPM 包或桌面安装包。
 
