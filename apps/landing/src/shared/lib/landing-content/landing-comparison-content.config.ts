@@ -8,11 +8,11 @@ export const COMPARISON_COPY: Record<Locale, ComparisonCopy> = {
     values: [
       {
         icon: 'server-cog',
-        title: 'Deploy to your own Linux device, NAS, or cloud server',
+        title: 'Keep NextClaw running on your own VPS, NAS, or Linux device',
         description:
-          'Run NextClaw directly or with Docker on infrastructure you control, keeping its data, configuration, apps, and runtime environment with you.',
-        linkLabel: 'Installation options',
-        href: 'https://docs.nextclaw.io/en/guide/install'
+          'Unused messaging channels do not keep separate processes resident. NextClaw stays lean while idle and starts channel runtimes only when you enable or use them.',
+        linkLabel: 'Deployment and resource usage',
+        href: 'https://docs.nextclaw.io/en/guide/resource-usage'
       },
       {
         icon: 'code-xml',
@@ -38,10 +38,10 @@ export const COMPARISON_COPY: Record<Locale, ComparisonCopy> = {
     values: [
       {
         icon: 'server-cog',
-        title: '部署到自己的 Linux 设备、NAS 或云服务器',
-        description: '可以直接运行或通过 Docker 部署，数据、配置、应用和运行环境都由自己掌控。',
-        linkLabel: '查看安装方式',
-        href: 'https://docs.nextclaw.io/zh/guide/install'
+        title: '让 NextClaw 在自己的 VPS、NAS 或 Linux 设备上长期运行',
+        description: '未启用的消息渠道不会常驻独立进程。空闲时保持轻量，需要启用或使用渠道时再按需启动。',
+        linkLabel: '查看部署与资源占用',
+        href: 'https://docs.nextclaw.io/zh/guide/resource-usage'
       },
       {
         icon: 'code-xml',

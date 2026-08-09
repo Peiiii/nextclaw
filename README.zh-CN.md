@@ -34,6 +34,8 @@ NextClaw 是一个本地优先的 AI 工作台，适合处理那些不只是“�
 
 **全新安装开箱即用：** NextClaw 已内置 OpenCode Zen 免费试用模型，不填写 API Key 也能直接开始第一个任务。免费试用由公共网关提供，限额和模型可能变化，请勿发送敏感或机密信息。
 
+**空闲时保持轻量：** 未启用的消息渠道不会常驻独立进程。当前已验证的 ARM64 Linux 基准中，空配置三轮平均 working set 约为 165 MiB，相比原先全部渠道进程一起启动的版本下降约 81%。查看[资源占用与测试条件](https://docs.nextclaw.io/zh/guide/resource-usage)。
+
 ## 可以用它做什么
 
 - **调研和对比** — 收集网页、笔记和参考资料，整理成简报、来源列表或对比表。
@@ -146,6 +148,8 @@ curl -fsSL https://nextclaw.io/install-docker.sh | bash
 ```
 
 反向代理、域名和远程访问设置请查看 [Docker 部署文档](https://docs.nextclaw.io/zh/guide/tutorials/docker-one-click)。所有支持的方式都可以在[安装方式页面](https://nextclaw.io/zh/install/)中对比。
+
+当前已验证的服务器配置、空闲内存数据，以及活跃任务可能增加的资源占用见[运行资源与内存基准](https://docs.nextclaw.io/zh/guide/resource-usage)。
 
 ## 模型、渠道与工具
 

@@ -19,6 +19,8 @@ This manual explains how NextClaw can stay available. Use it to choose between f
 - accessing it from phone or another device: remote access
 - hosting it on a server: Docker or a system-level service
 
+Unused messaging channels stay stopped and do not keep separate processes resident. For the current tested server baseline, three-run idle measurements, and active workloads that need more memory, see [Runtime Resource Usage](/en/guide/resource-usage).
+
 ## Important boundary
 
 `npm i -g nextclaw` does not register autostart.  
@@ -29,3 +31,4 @@ Installing the CLI and installing a host-managed service are separate actions.
 - [Background & Autostart](/en/guide/background-autostart)
 - [Remote Access](/en/guide/remote-access)
 - [Docker Deployment](/en/guide/tutorials/docker-one-click)
+- [Runtime Resource Usage](/en/guide/resource-usage)

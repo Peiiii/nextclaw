@@ -45,6 +45,8 @@ curl -fsSL https://nextclaw.io/install-docker.sh | bash
 
 Review remote scripts before running them on a server. See [Docker Deployment](/en/guide/tutorials/docker-one-click) for domains, ports, data paths, and reverse proxy setup.
 
+Unused messaging channels do not keep separate processes resident. The current verified ARM64 Linux empty-configuration benchmark averaged about 165 MiB of working set across three runs. This is an idle benchmark rather than a universal minimum; see [Runtime Resource Usage](/en/guide/resource-usage) for the tested server baseline and the workloads that add memory.
+
 ## Which one should you choose?
 
 | Your situation | Recommended path |

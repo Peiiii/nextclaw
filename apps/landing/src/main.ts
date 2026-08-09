@@ -120,7 +120,7 @@ const COPY: Record<Locale, LandingCopy> = {
     downloadInstallTeaserButton: 'View install options',
     installTitle: 'Choose your NextClaw install path.',
     installSubtitle:
-      'Desktop, npm, and Docker all start with OpenCode Zen free-trial models. No API key is required for the first task.',
+      'Desktop, npm, and Docker all start with OpenCode Zen free-trial models, with no API key required for the first task. Server deployments stay lean while idle by starting messaging channels only when needed.',
     installCopyLabel: 'Copy',
     installCopiedText: 'Copied',
     installMethods: [
@@ -144,7 +144,7 @@ const COPY: Record<Locale, LandingCopy> = {
         key: 'docker',
         icon: 'box',
         title: 'Docker deployment',
-        description: 'Use Docker for a repeatable server or cloud VM setup, reverse proxy, domain, or remote access path.',
+        description: 'Keep NextClaw available on a VPS, NAS, or cloud VM. Unused messaging channels do not keep separate processes resident.',
         buttonLabel: 'Docker guide', command: 'curl -fsSL https://nextclaw.io/install-docker.sh | bash',
         docsPath: 'guide/tutorials/docker-one-click'
       }
@@ -468,7 +468,7 @@ const COPY: Record<Locale, LandingCopy> = {
     downloadInstallTeaserDescription: '每种安装方式都自带首个任务可用的免费试用模型，也支持命令行和服务器部署。',
     downloadInstallTeaserButton: '查看安装方式',
     installTitle: '选择适合你的安装方式。',
-    installSubtitle: '桌面版、npm 和 Docker 都内置 OpenCode Zen 免费试用模型，第一个任务无需配置 API Key。',
+    installSubtitle: '桌面版、npm 和 Docker 都内置 OpenCode Zen 免费试用模型，第一个任务无需配置 API Key；服务器部署空闲时保持轻量，消息渠道按需启动。',
     installCopyLabel: '复制',
     installCopiedText: '已复制',
     installMethods: [
@@ -492,7 +492,7 @@ const COPY: Record<Locale, LandingCopy> = {
         key: 'docker',
         icon: 'box',
         title: 'Docker 部署',
-        description: '适合服务器或云主机长期在线部署，以及需要反向代理、域名或远程访问的环境。',
+        description: '适合在 VPS、NAS 或云主机上长期在线；未启用的消息渠道不会常驻独立进程。',
         buttonLabel: 'Docker 文档', command: 'curl -fsSL https://nextclaw.io/install-docker.sh | bash',
         docsPath: 'guide/tutorials/docker-one-click'
       }

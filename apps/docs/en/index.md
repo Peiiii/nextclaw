@@ -114,6 +114,7 @@ Scheduled tasks cover briefs, checks, and recurring summaries. Channels let requ
   <a class="nc-docs-link" href="/en/guide/security-and-permissions"><strong>Security and permissions</strong><span>Review directories, secrets, channels, and external tools.</span></a>
   <a class="nc-docs-link" href="/en/guide/troubleshooting"><strong>Troubleshooting</strong><span>Start with runtime status, logs, and connections.</span></a>
   <a class="nc-docs-link" href="/en/guide/configuration"><strong>Configuration</strong><span>Look up complete settings and runtime options.</span></a>
+  <a class="nc-docs-link" href="/en/guide/resource-usage"><strong>Runtime resource usage</strong><span>Review the tested VPS baseline, idle memory measurements, and workload boundaries.</span></a>
   <a class="nc-docs-link" href="/en/guide/commands"><strong>Command index</strong><span>Find terminal usage by command name.</span></a>
   <a class="nc-docs-link" href="/en/notes/"><strong>Product updates</strong><span>See what each version added, improved, and fixed.</span></a>
   <a class="nc-docs-link" href="/en/project/"><strong>Project and community</strong><span>Explore the vision, roadmap, activity, and community.</span></a>

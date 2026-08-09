@@ -34,6 +34,8 @@ NextClaw is a local-first AI workspace for tasks that need more than a single an
 
 **Ready on a fresh install:** NextClaw includes OpenCode Zen free-trial models, so you can start the first task without entering an API key. Free-trial access uses a public gateway; limits and models may change, and sensitive or confidential data should not be sent through it.
 
+**Lean while idle:** Unused messaging channels do not keep separate processes resident. In the current verified ARM64 Linux benchmark, an empty configuration averaged about 165 MiB of working set across three runs, down about 81% from the previous eager-start runtime. See the [resource usage and measurement conditions](https://docs.nextclaw.io/en/guide/resource-usage).
+
 ## What You Can Do
 
 - **Research and compare** — collect pages, notes, and references, then turn them into a brief, source list, or comparison table.
@@ -146,6 +148,8 @@ curl -fsSL https://nextclaw.io/install-docker.sh | bash
 ```
 
 See the [Docker deployment guide](https://docs.nextclaw.io/en/guide/tutorials/docker-one-click) for reverse proxy, domain, and remote access setup. You can compare every supported path on the [install options page](https://nextclaw.io/en/install/).
+
+For the current tested server baseline, idle measurements, and factors that increase memory during active work, see [Runtime Resource Usage](https://docs.nextclaw.io/en/guide/resource-usage).
 
 ## Models, Channels, and Tools
 

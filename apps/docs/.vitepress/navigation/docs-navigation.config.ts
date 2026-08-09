@@ -86,6 +86,7 @@ const enGuideSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Configuration', link: '/en/guide/configuration' },
       { text: 'Runtime and hosting', link: '/en/guide/runtime-hosting' },
+      { text: 'Runtime resource usage', link: '/en/guide/resource-usage' },
       { text: 'Troubleshooting', link: '/en/guide/troubleshooting' },
       { text: 'Core commands', link: '/en/guide/core-commands' },
       { text: 'Command index', link: '/en/guide/commands' },
@@ -160,6 +161,7 @@ const zhGuideSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: '配置手册', link: '/zh/guide/configuration' },
       { text: '运行与托管', link: '/zh/guide/runtime-hosting' },
+      { text: '运行资源与内存基准', link: '/zh/guide/resource-usage' },
       { text: '故障排查', link: '/zh/guide/troubleshooting' },
       { text: '核心命令', link: '/zh/guide/core-commands' },
       { text: '命令索引', link: '/zh/guide/commands' },

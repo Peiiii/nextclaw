@@ -19,6 +19,8 @@
 - 要给手机或其他设备访问：远程访问
 - 要放在服务器：Docker 或系统级服务
 
+未启用的消息渠道保持停止，不会常驻独立进程。当前已验证的服务器配置、三轮空闲数据和活跃工作负载的资源边界见[运行资源与内存基准](/zh/guide/resource-usage)。
+
 ## 关键边界
 
 `npm i -g nextclaw` 不会自动注册自启动。  
@@ -29,3 +31,4 @@
 - [后台运行与自启动](/zh/guide/background-autostart)
 - [远程访问](/zh/guide/remote-access)
 - [Docker 部署](/zh/guide/tutorials/docker-one-click)
+- [运行资源与内存基准](/zh/guide/resource-usage)

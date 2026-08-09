@@ -45,6 +45,8 @@ curl -fsSL https://nextclaw.io/install-docker.sh | bash
 
 在服务器执行远程脚本前，建议先打开脚本地址检查内容。域名、端口、数据目录和反向代理设置见 [Docker 部署](/zh/guide/tutorials/docker-one-click)。
 
+未启用的消息渠道不会常驻独立进程。当前已验证的 ARM64 Linux 空配置基准中，三轮平均 working set 约为 165 MiB。这个数字是空闲基准，不是所有机器的最低配置；当前服务器起步配置和会增加内存的工作负载见[运行资源与内存基准](/zh/guide/resource-usage)。
+
 ## 怎么选
 
 | 你的情况 | 推荐方式 |
