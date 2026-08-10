@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-08-09T03:52:39.680Z",
+  "generatedAt": "2026-08-10T04:05:39.237Z",
   "hero": {
-    "currentLoc": 228199,
-    "testLoc": 89768,
-    "trackedFiles": 2472,
-    "recentCommitCount": 399,
+    "currentLoc": 230210,
+    "testLoc": 90639,
+    "trackedFiles": 2480,
+    "recentCommitCount": 413,
     "activeDays30": 30,
-    "recentReleaseCount": 52,
-    "latestReleaseDate": "2026-08-09",
-    "latestNoteDate": "2026-08-08",
+    "recentReleaseCount": 53,
+    "latestReleaseDate": "2026-08-10",
+    "latestNoteDate": "2026-08-10",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2458478,
-    "basePercentOfBenchmark": 9.28,
-    "lighterByPercent": 90.72
+    "benchmarkCodeLines": 2470823,
+    "basePercentOfBenchmark": 9.32,
+    "lighterByPercent": 90.68
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-12",
-        "label": "04-12",
-        "value": 172377
-      },
       {
         "key": "2026-04-13",
         "label": "04-13",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-09",
         "label": "08-09",
         "value": 228199
+      },
+      {
+        "key": "2026-08-10",
+        "label": "08-10",
+        "value": 230210
       }
     ],
     "testLocDaily": [
@@ -1072,14 +1072,14 @@ export default {
         "key": "2026-08-09",
         "label": "08-09",
         "value": 89768
+      },
+      {
+        "key": "2026-08-10",
+        "label": "08-10",
+        "value": 90639
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-07-11",
-        "label": "07-11",
-        "value": 6
-      },
       {
         "key": "2026-07-12",
         "label": "07-12",
@@ -1223,15 +1223,15 @@ export default {
       {
         "key": "2026-08-09",
         "label": "08-09",
-        "value": 6
+        "value": 12
+      },
+      {
+        "key": "2026-08-10",
+        "label": "08-10",
+        "value": 14
       }
     ],
     "commitWeekly": [
-      {
-        "key": "2026-05-18",
-        "label": "05-18",
-        "value": 169
-      },
       {
         "key": "2026-05-25",
         "label": "05-25",
@@ -1285,7 +1285,12 @@ export default {
       {
         "key": "2026-08-03",
         "label": "08-03",
-        "value": 82
+        "value": 88
+      },
+      {
+        "key": "2026-08-10",
+        "label": "08-10",
+        "value": 14
       }
     ],
     "releaseMonthly": [
@@ -1347,7 +1352,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 4
+        "value": 5
       }
     ]
   },
@@ -1355,29 +1360,29 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 58609,
-        "testCodeLines": 30965,
-        "files": 719,
-        "sharePercent": 25.7
+        "codeLines": 58729,
+        "testCodeLines": 31076,
+        "files": 720,
+        "sharePercent": 25.5
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 22726,
-        "testCodeLines": 12028,
-        "files": 237,
-        "sharePercent": 10
+        "codeLines": 23600,
+        "testCodeLines": 12282,
+        "files": 242,
+        "sharePercent": 10.3
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 15422,
+        "codeLines": 15398,
         "testCodeLines": 5643,
         "files": 165,
-        "sharePercent": 6.8
+        "sharePercent": 6.7
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 15049,
-        "testCodeLines": 6863,
+        "codeLines": 15093,
+        "testCodeLines": 6828,
         "files": 163,
         "sharePercent": 6.6
       },
@@ -1386,19 +1391,19 @@ export default {
         "codeLines": 13897,
         "testCodeLines": 0,
         "files": 68,
-        "sharePercent": 6.1
+        "sharePercent": 6
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 12113,
-        "testCodeLines": 8113,
-        "files": 123,
-        "sharePercent": 5.3
+        "codeLines": 12868,
+        "testCodeLines": 8268,
+        "files": 124,
+        "sharePercent": 5.6
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 10589,
-        "testCodeLines": 8017,
+        "codeLines": 10629,
+        "testCodeLines": 8113,
         "files": 123,
         "sharePercent": 4.6
       },
@@ -1407,16 +1412,25 @@ export default {
         "codeLines": 5845,
         "testCodeLines": 1149,
         "files": 66,
-        "sharePercent": 2.6
+        "sharePercent": 2.5
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2458478,
-      "basePercentOfBenchmark": 9.28,
-      "lighterByPercent": 90.72
+      "benchmarkCodeLines": 2470823,
+      "basePercentOfBenchmark": 9.32,
+      "lighterByPercent": 90.68
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-08-10",
+        "tagCount": 27,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.6.22",
+          "@nextclaw/channel-extension-dingtalk@0.2.21",
+          "@nextclaw/channel-extension-discord@0.2.21"
+        ]
+      },
       {
         "date": "2026-08-09",
         "tagCount": 1,
@@ -1457,20 +1471,30 @@ export default {
         "sampleTags": [
           "v0.27.7-desktop.1"
         ]
-      },
-      {
-        "date": "2026-07-29",
-        "tagCount": 98,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.6.18",
-          "@nextclaw/agent-chat@0.3.12",
-          "@nextclaw/aigen@0.2.12"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-10-nextclaw-v0-30-0",
+        "date": "2026-08-10",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-10 · NextClaw v0.30.0",
+          "description": "NextClaw v0.30.0 starts unused messaging channels on demand to reduce idle memory, while adding conversation excerpt references, richer media previews, and better model discovery.",
+          "href": "/en/notes/2026-08-10-nextclaw-v0-30-0"
+        },
+        "zh": {
+          "title": "2026-08-10 · NextClaw v0.30.0",
+          "description": "NextClaw v0.30.0 让未启用的消息渠道按需运行，显著降低空闲内存，同时加入会话片段引用、更完整的媒体预览和模型发现体验。",
+          "href": "/zh/notes/2026-08-10-nextclaw-v0-30-0"
+        }
+      },
       {
         "slug": "2026-08-08-nextclaw-v0-29-0",
         "date": "2026-08-08",
@@ -2127,9 +2151,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-08-09T03:52:37.760Z",
+    "locGeneratedAt": "2026-08-10T04:05:37.698Z",
     "sourceCount": {
-      "notes": 30,
+      "notes": 31,
       "scopes": 8
     }
   }
