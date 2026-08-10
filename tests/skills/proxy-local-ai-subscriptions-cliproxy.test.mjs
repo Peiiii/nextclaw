@@ -28,6 +28,25 @@ function runScript(args) {
   });
 }
 
+function createFakeSystemctl(directory, { active = true } = {}) {
+  const systemctlPath = join(directory, "systemctl");
+  const logPath = join(directory, "systemctl.log");
+  writeFileSync(systemctlPath, `#!/bin/sh
+printf '%s\\n' "$*" >> "${logPath}"
+case "$1" in
+  is-enabled|is-active)
+    exit ${active ? 0 : 1}
+    ;;
+  show)
+    printf 'MainPID=4242\\nControlGroup=/system.slice/cliproxyapi.service\\n'
+    ;;
+esac
+exit 0
+`, "utf8");
+  chmodSync(systemctlPath, 0o700);
+  return { systemctlPath, logPath };
+}
+
 async function listen(handler) {
   const server = createServer(handler);
   servers.push(server);
@@ -103,6 +122,7 @@ test("check and Responses smoke validate a real compatible HTTP contract", async
   const binaryPath = join(directory, "cliproxyapi");
   writeFileSync(binaryPath, "#!/bin/sh\necho 'CLIProxyAPI Version: 7.2.90, Commit: test'\n", "utf8");
   chmodSync(binaryPath, 0o700);
+  const { systemctlPath } = createFakeSystemctl(directory);
   const configured = await runScript([
     "write-config", "--config", configPath, "--auth-dir", authDir, "--api-key-file", keyPath,
   ]);
@@ -131,9 +151,13 @@ test("check and Responses smoke validate a real compatible HTTP contract", async
   const checked = await runScript([
     "check", "--binary", binaryPath, "--config", configPath,
     "--endpoint", endpoint, "--api-key-file", keyPath,
+    "--service-manager", "systemd", "--systemctl", systemctlPath,
   ]);
   assert.equal(checked.code, 0, checked.stderr);
-  assert.deepEqual(JSON.parse(checked.stdout).models, ["gpt-5.4-codex"]);
+  const readiness = JSON.parse(checked.stdout);
+  assert.deepEqual(readiness.models, ["gpt-5.4-codex"]);
+  assert.equal(readiness.lifecycle.enabled, true);
+  assert.equal(readiness.lifecycle.independentFromNextclaw, true);
 
   const smoked = await runScript([
     "smoke", "--endpoint", endpoint, "--api-key-file", keyPath,
@@ -141,6 +165,72 @@ test("check and Responses smoke validate a real compatible HTTP contract", async
   ]);
   assert.equal(smoked.code, 0, smoked.stderr);
   assert.equal(JSON.parse(smoked.stdout).assistantText, "NEXTCLAW_PROXY_OK");
+
+  const restarted = await runScript([
+    "restart-smoke", "--binary", binaryPath, "--config", configPath,
+    "--endpoint", endpoint, "--api-key-file", keyPath,
+    "--service-manager", "systemd", "--systemctl", systemctlPath,
+    "--model", "gpt-5.4-codex",
+  ]);
+  assert.equal(restarted.code, 0, restarted.stderr);
+  assert.equal(JSON.parse(restarted.stdout).restartVerified, true);
+});
+
+test("install-systemd writes an independently supervised, enabled service", async () => {
+  const directory = createTempDirectory();
+  const configPath = join(directory, "config.yaml");
+  const authDir = join(directory, "auth");
+  const keyPath = join(authDir, "nextclaw-api-key");
+  const binaryPath = join(directory, "cliproxyapi");
+  const unitDir = join(directory, "systemd");
+  const { systemctlPath, logPath } = createFakeSystemctl(directory);
+  writeFileSync(binaryPath, "#!/bin/sh\necho 'CLIProxyAPI Version: 7.2.90, Commit: test'\n", "utf8");
+  chmodSync(binaryPath, 0o700);
+  const configured = await runScript([
+    "write-config", "--config", configPath, "--auth-dir", authDir, "--api-key-file", keyPath,
+  ]);
+  assert.equal(configured.code, 0, configured.stderr);
+
+  const installed = await runScript([
+    "install-systemd",
+    "--binary", binaryPath,
+    "--config", configPath,
+    "--auth-dir", authDir,
+    "--service-user", "nextclaw",
+    "--home", directory,
+    "--unit-dir", unitDir,
+    "--systemctl", systemctlPath,
+  ]);
+  assert.equal(installed.code, 0, installed.stderr);
+  const unit = readFileSync(join(unitDir, "cliproxyapi.service"), "utf8");
+  assert.match(unit, /^# Managed by NextClaw skill:/);
+  assert.match(unit, /^User=nextclaw$/m);
+  assert.match(unit, /^Restart=on-failure$/m);
+  assert.match(unit, /^WantedBy=multi-user\.target$/m);
+  assert.equal(statSync(join(unitDir, "cliproxyapi.service")).mode & 0o777, 0o644);
+  const systemctlLog = readFileSync(logPath, "utf8");
+  assert.match(systemctlLog, /daemon-reload/);
+  assert.match(systemctlLog, /enable --now cliproxyapi\.service/);
+});
+
+test("check rejects a reachable proxy that is not durably supervised", async () => {
+  const directory = createTempDirectory();
+  const configPath = join(directory, "config.yaml");
+  const authDir = join(directory, "auth");
+  const keyPath = join(authDir, "nextclaw-api-key");
+  const binaryPath = join(directory, "cliproxyapi");
+  const { systemctlPath } = createFakeSystemctl(directory, { active: false });
+  writeFileSync(binaryPath, "#!/bin/sh\necho 'CLIProxyAPI Version: 7.2.90, Commit: test'\n", "utf8");
+  chmodSync(binaryPath, 0o700);
+  await runScript(["write-config", "--config", configPath, "--auth-dir", authDir, "--api-key-file", keyPath]);
+
+  const result = await runScript([
+    "check", "--binary", binaryPath, "--config", configPath,
+    "--endpoint", "http://127.0.0.1:8317/v1", "--api-key-file", keyPath,
+    "--service-manager", "systemd", "--systemctl", systemctlPath,
+  ]);
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /not enabled/);
 });
 
 test("check blocks versions outside the audited family by default", async () => {
@@ -149,6 +239,7 @@ test("check blocks versions outside the audited family by default", async () => 
   const authDir = join(directory, "auth");
   const keyPath = join(authDir, "nextclaw-api-key");
   const binaryPath = join(directory, "cliproxyapi");
+  const { systemctlPath } = createFakeSystemctl(directory);
   writeFileSync(binaryPath, "#!/bin/sh\necho 'CLIProxyAPI Version: 8.0.0, Commit: test'\n", "utf8");
   chmodSync(binaryPath, 0o700);
   await runScript(["write-config", "--config", configPath, "--auth-dir", authDir, "--api-key-file", keyPath]);
@@ -156,6 +247,7 @@ test("check blocks versions outside the audited family by default", async () => 
   const result = await runScript([
     "check", "--binary", binaryPath, "--config", configPath,
     "--endpoint", "http://127.0.0.1:8317/v1", "--api-key-file", keyPath,
+    "--service-manager", "systemd", "--systemctl", systemctlPath,
   ]);
   assert.equal(result.code, 1);
   assert.match(result.stderr, /outside the audited 7\.2\.x family/);

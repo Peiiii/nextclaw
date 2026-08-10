@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -56,11 +56,30 @@ afterEach(async () => {
   }
 });
 
-async function createProviderHarness({ existing = null, testSuccess = true } = {}) {
+async function createProviderHarness({ existing = null, testSuccess = true, serviceActive = true } = {}) {
   const directory = createTempDirectory();
   const keyPath = join(directory, "proxy-key");
+  const configPath = join(directory, "cliproxyapi.yaml");
+  const binaryPath = join(directory, "cliproxyapi");
+  const systemctlPath = join(directory, "systemctl");
   const apiKey = "nc_local_test_secret";
   writeFileSync(keyPath, `${apiKey}\n`, { mode: 0o600 });
+  writeFileSync(configPath, `# Managed by NextClaw skill: proxy-local-ai-subscriptions
+host: "127.0.0.1"
+remote-management:
+  secret-key: ""
+  disable-control-panel: true
+`, { mode: 0o600 });
+  writeFileSync(binaryPath, "#!/bin/sh\necho 'CLIProxyAPI Version: 7.2.90, Commit: test'\n", "utf8");
+  chmodSync(binaryPath, 0o700);
+  writeFileSync(systemctlPath, `#!/bin/sh
+case "$1" in
+  is-enabled|is-active) exit ${serviceActive ? 0 : 1} ;;
+  show) printf 'MainPID=5151\\nControlGroup=/system.slice/cliproxyapi.service\\n' ;;
+esac
+exit 0
+`, "utf8");
+  chmodSync(systemctlPath, 0o700);
   const requests = [];
   let provider = existing;
   let port;
@@ -69,6 +88,10 @@ async function createProviderHarness({ existing = null, testSuccess = true } = {
     requests.push({ method: request.method, url: request.url, body });
     if (request.method === "GET" && request.url === "/v1/models") {
       sendJson(response, { data: [{ id: "gpt-5.4-codex" }, { id: "gpt-5.3-codex" }] });
+      return;
+    }
+    if (request.method === "POST" && request.url === "/v1/responses") {
+      sendJson(response, { output_text: "NEXTCLAW_PROXY_OK" });
       return;
     }
     if (request.method === "GET" && request.url === "/api/providers") {
@@ -110,6 +133,12 @@ async function createProviderHarness({ existing = null, testSuccess = true } = {
     requests,
     endpoint: `http://127.0.0.1:${port}/v1`,
     nextclawApi: `http://127.0.0.1:${port}/api`,
+    durableArgs: [
+      "--proxy-config", configPath,
+      "--proxy-binary", binaryPath,
+      "--service-manager", "systemd",
+      "--systemctl", systemctlPath,
+    ],
     provider: () => provider,
   };
 }
@@ -121,6 +150,7 @@ test("new provider is tested while disabled and enabled only after success", asy
     "--api-key-file", harness.keyPath,
     "--nextclaw-api", harness.nextclawApi,
     "--model", "gpt-5.4-codex",
+    ...harness.durableArgs,
   ]);
   assert.equal(result.code, 0, result.stderr);
   const payload = JSON.parse(result.stdout);
@@ -133,6 +163,8 @@ test("new provider is tested while disabled and enabled only after success", asy
   assert.equal(mutationRequests[2].body.model, "local-subscriptions/gpt-5.4-codex");
   assert.equal(mutationRequests[3].body.enabled, true);
   assert.equal(harness.provider().enabled, true);
+  assert.equal(payload.durableService.independentFromNextclaw, true);
+  assert.equal(payload.restartVerified, true);
   assert.equal(result.stdout.includes("nc_local_test_secret"), false);
 });
 
@@ -142,6 +174,7 @@ test("failed first-time provider test rolls creation back", async () => {
     "--endpoint", harness.endpoint,
     "--api-key-file", harness.keyPath,
     "--nextclaw-api", harness.nextclawApi,
+    ...harness.durableArgs,
   ]);
   assert.equal(result.code, 1);
   assert.match(result.stderr, /Provider connection test failed/);
@@ -165,12 +198,29 @@ test("existing provider remains unchanged when candidate test fails", async () =
     "--endpoint", harness.endpoint,
     "--api-key-file", harness.keyPath,
     "--nextclaw-api", harness.nextclawApi,
+    ...harness.durableArgs,
   ]);
   assert.equal(result.code, 1);
   assert.equal(harness.provider(), existing);
   assert.deepEqual(
     harness.requests.filter((request) => request.url.startsWith("/api/providers")).map((request) => request.method),
     ["GET", "POST"],
+  );
+});
+
+test("provider configuration is blocked before mutation when durable supervision is missing", async () => {
+  const harness = await createProviderHarness({ serviceActive: false });
+  const result = await runScript(providerScript, [
+    "--endpoint", harness.endpoint,
+    "--api-key-file", harness.keyPath,
+    "--nextclaw-api", harness.nextclawApi,
+    ...harness.durableArgs,
+  ]);
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /Durable CLIProxyAPI check failed/);
+  assert.deepEqual(
+    harness.requests.filter((request) => request.url.startsWith("/api/providers")),
+    [],
   );
 });
 

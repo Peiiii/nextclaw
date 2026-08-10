@@ -2,21 +2,21 @@
 
 import {
   chmodSync,
-  copyFileSync,
   existsSync,
-  lstatSync,
   mkdirSync,
   readFileSync,
-  renameSync,
-  unlinkSync,
-  writeFileSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import {
+  atomicWrite,
+  createBackup,
+  ensureRegularTarget,
   extractModelIds,
   fail,
+  inspectConfigSafety,
+  MANAGED_MARKER,
   normalizeOpenAiEndpoint,
   parseOptions,
   printJson,
@@ -24,15 +24,22 @@ import {
   requestJson,
   requireOption,
 } from "./local-subscription-proxy.utils.mjs";
+import {
+  inspectServiceLifecycle,
+  installSystemd,
+  restartManagedService,
+} from "./cliproxy-service.mjs";
 
-const MANAGED_MARKER = "# Managed by NextClaw skill: proxy-local-ai-subscriptions";
 const AUDITED_VERSION = "7.2.90";
+const DEFAULT_SERVICE_NAME = "cliproxyapi.service";
 
 function help() {
   process.stdout.write(`Usage:
   node scripts/cliproxy.mjs write-config --config <path> --auth-dir <path> [--api-key-file <path>] [--port 8317] [--force]
-  node scripts/cliproxy.mjs check --config <path> --endpoint <url> --api-key-file <path> [--binary cliproxyapi] [--allow-unaudited-version]
+  node scripts/cliproxy.mjs install-systemd --binary <path> --config <path> --auth-dir <path> --service-user <user> --home <path> [--service-name ${DEFAULT_SERVICE_NAME}] [--force]
+  node scripts/cliproxy.mjs check --config <path> --endpoint <url> --api-key-file <path> --service-manager <systemd|homebrew> [--binary cliproxyapi] [--service-name <name>] [--allow-unaudited-version]
   node scripts/cliproxy.mjs smoke --endpoint <url> --api-key-file <path> --model <id> [--wire responses|chat] [--prompt <text>] [--expect <text>]
+  node scripts/cliproxy.mjs restart-smoke --config <path> --endpoint <url> --api-key-file <path> --model <id> --service-manager <systemd|homebrew> [check and smoke options]
 `);
 }
 
@@ -46,34 +53,6 @@ function parsePort(rawPort) {
     throw new Error("--port must be an integer between 1024 and 65535");
   }
   return port;
-}
-
-function ensureRegularTarget(filePath, label) {
-  if (!existsSync(filePath)) return;
-  const stats = lstatSync(filePath);
-  if (!stats.isFile() || stats.isSymbolicLink()) {
-    throw new Error(`${label} must be a regular non-symlink file: ${filePath}`);
-  }
-}
-
-function atomicWrite(filePath, content, mode) {
-  mkdirSync(dirname(filePath), { recursive: true });
-  const tempPath = `${filePath}.tmp-${process.pid}-${randomBytes(4).toString("hex")}`;
-  try {
-    writeFileSync(tempPath, content, { encoding: "utf8", flag: "wx", mode });
-    renameSync(tempPath, filePath);
-    chmodSync(filePath, mode);
-  } finally {
-    if (existsSync(tempPath)) unlinkSync(tempPath);
-  }
-}
-
-function createBackup(filePath) {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const backupPath = `${filePath}.backup-${timestamp}`;
-  copyFileSync(filePath, backupPath);
-  chmodSync(backupPath, 0o600);
-  return backupPath;
 }
 
 function isFactoryTemplate(source) {
@@ -181,29 +160,7 @@ function inspectVersion(binary) {
   return version.replace(/^v/, "");
 }
 
-function inspectConfigSafety(configPath) {
-  ensureRegularTarget(configPath, "Config path");
-  if (!existsSync(configPath)) {
-    throw new Error(`Config file does not exist: ${configPath}`);
-  }
-  const source = readFileSync(configPath, "utf8");
-  const checks = {
-    localhostOnly: /^host:\s*["']?127\.0\.0\.1["']?\s*$/m.test(source),
-    managementDisabled: /^\s*secret-key:\s*(?:["']{2})?\s*$/m.test(source),
-    controlPanelDisabled: /^\s*disable-control-panel:\s*true\s*$/m.test(source),
-  };
-  const failed = Object.entries(checks).filter(([, passed]) => !passed).map(([name]) => name);
-  if (failed.length > 0) {
-    throw new Error(`Unsafe CLIProxyAPI config (${failed.join(", ")}): ${configPath}`);
-  }
-  return { ...checks, managed: source.startsWith(MANAGED_MARKER) };
-}
-
-async function check(argv) {
-  const options = parseOptions(argv, {
-    values: ["binary", "config", "endpoint", "api-key-file"],
-    booleans: ["allow-unaudited-version"],
-  });
+async function checkProxy(options) {
   const binary = options.binary || "cliproxyapi";
   const configPath = resolve(requireOption(options, "config"));
   const endpoint = normalizeOpenAiEndpoint(requireOption(options, "endpoint"));
@@ -214,13 +171,14 @@ async function check(argv) {
     throw new Error(`CLIProxyAPI ${version} is outside the audited 7.2.x family; re-audit before continuing`);
   }
   const configSafety = inspectConfigSafety(configPath);
+  const lifecycle = inspectServiceLifecycle(options);
   const apiKey = readApiKey(apiKeyFile);
   const payload = await requestJson(`${endpoint}/models`, { apiKey });
   const models = extractModelIds(payload);
   if (models.length === 0) {
     throw new Error("CLIProxyAPI returned no models; complete OAuth login before continuing");
   }
-  printJson({
+  return {
     ok: true,
     binary,
     version,
@@ -230,9 +188,27 @@ async function check(argv) {
     configSafety,
     endpoint,
     apiKeyFile,
+    lifecycle,
     modelCount: models.length,
     models,
+  };
+}
+
+async function check(argv) {
+  const options = parseOptions(argv, {
+    values: [
+      "binary",
+      "config",
+      "endpoint",
+      "api-key-file",
+      "service-manager",
+      "service-name",
+      "systemctl",
+      "brew",
+    ],
+    booleans: ["allow-unaudited-version"],
   });
+  printJson(await checkProxy(options));
 }
 
 function extractResponseText(payload, wire) {
@@ -248,10 +224,7 @@ function extractResponseText(payload, wire) {
   return texts.join("");
 }
 
-async function smoke(argv) {
-  const options = parseOptions(argv, {
-    values: ["endpoint", "api-key-file", "model", "wire", "prompt", "expect"],
-  });
+async function smokeProxy(options) {
   const endpoint = normalizeOpenAiEndpoint(requireOption(options, "endpoint"));
   const apiKey = readApiKey(resolve(requireOption(options, "api-key-file")));
   const model = requireOption(options, "model");
@@ -281,7 +254,7 @@ async function smoke(argv) {
   if (assistantText !== expected) {
     throw new Error(`Model reply did not exactly match the expected marker; received: ${assistantText || "(empty)"}`);
   }
-  printJson({
+  return {
     ok: true,
     endpoint,
     wire,
@@ -289,6 +262,71 @@ async function smoke(argv) {
     expected,
     assistantText,
     latencyMs: Date.now() - startedAt,
+  };
+}
+
+async function smoke(argv) {
+  const options = parseOptions(argv, {
+    values: ["endpoint", "api-key-file", "model", "wire", "prompt", "expect"],
+  });
+  printJson(await smokeProxy(options));
+}
+
+function wait(delayMs) {
+  return new Promise((resolveWait) => setTimeout(resolveWait, delayMs));
+}
+
+async function restartSmoke(argv) {
+  const options = parseOptions(argv, {
+    values: [
+      "binary",
+      "config",
+      "endpoint",
+      "api-key-file",
+      "model",
+      "wire",
+      "prompt",
+      "expect",
+      "service-manager",
+      "service-name",
+      "systemctl",
+      "brew",
+      "timeout-ms",
+    ],
+    booleans: ["allow-unaudited-version"],
+  });
+  requireOption(options, "model");
+  const timeoutMs = Number.parseInt(options["timeout-ms"] || "30000", 10);
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 300_000) {
+    throw new Error("--timeout-ms must be an integer between 1000 and 300000");
+  }
+  restartManagedService(options);
+  const deadline = Date.now() + timeoutMs;
+  let readiness = null;
+  let lastError = null;
+  while (Date.now() < deadline) {
+    try {
+      readiness = await checkProxy(options);
+      break;
+    } catch (error) {
+      lastError = error;
+      await wait(500);
+    }
+  }
+  if (!readiness) {
+    const detail = lastError instanceof Error ? lastError.message : String(lastError || "unknown error");
+    throw new Error(`CLIProxyAPI did not recover after managed restart: ${detail}`);
+  }
+  const smokeResult = await smokeProxy(options);
+  printJson({
+    ok: true,
+    restartVerified: true,
+    lifecycle: readiness.lifecycle,
+    readiness: {
+      version: readiness.version,
+      modelCount: readiness.modelCount,
+    },
+    smoke: smokeResult,
   });
 }
 
@@ -302,12 +340,20 @@ async function main() {
     writeConfig(argv);
     return;
   }
+  if (command === "install-systemd") {
+    installSystemd(argv);
+    return;
+  }
   if (command === "check") {
     await check(argv);
     return;
   }
   if (command === "smoke") {
     await smoke(argv);
+    return;
+  }
+  if (command === "restart-smoke") {
+    await restartSmoke(argv);
     return;
   }
   throw new Error(`Unknown command: ${command}`);

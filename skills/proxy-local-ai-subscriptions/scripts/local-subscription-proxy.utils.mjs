@@ -1,7 +1,67 @@
-import { readFileSync, statSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { randomBytes } from "node:crypto";
+import { dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+export const MANAGED_MARKER = "# Managed by NextClaw skill: proxy-local-ai-subscriptions";
+
+export function ensureRegularTarget(filePath, label) {
+  if (!existsSync(filePath)) return;
+  const stats = lstatSync(filePath);
+  if (!stats.isFile() || stats.isSymbolicLink()) {
+    throw new Error(`${label} must be a regular non-symlink file: ${filePath}`);
+  }
+}
+
+export function atomicWrite(filePath, content, mode) {
+  mkdirSync(dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.tmp-${process.pid}-${randomBytes(4).toString("hex")}`;
+  try {
+    writeFileSync(tempPath, content, { encoding: "utf8", flag: "wx", mode });
+    renameSync(tempPath, filePath);
+    chmodSync(filePath, mode);
+  } finally {
+    if (existsSync(tempPath)) unlinkSync(tempPath);
+  }
+}
+
+export function createBackup(filePath) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupPath = `${filePath}.backup-${timestamp}`;
+  copyFileSync(filePath, backupPath);
+  chmodSync(backupPath, 0o600);
+  return backupPath;
+}
+
+export function inspectConfigSafety(configPath) {
+  ensureRegularTarget(configPath, "Config path");
+  if (!existsSync(configPath)) {
+    throw new Error(`Config file does not exist: ${configPath}`);
+  }
+  const source = readFileSync(configPath, "utf8");
+  const checks = {
+    localhostOnly: /^host:\s*["']?127\.0\.0\.1["']?\s*$/m.test(source),
+    managementDisabled: /^\s*secret-key:\s*(?:["']{2})?\s*$/m.test(source),
+    controlPanelDisabled: /^\s*disable-control-panel:\s*true\s*$/m.test(source),
+  };
+  const failed = Object.entries(checks).filter(([, passed]) => !passed).map(([name]) => name);
+  if (failed.length > 0) {
+    throw new Error(`Unsafe CLIProxyAPI config (${failed.join(", ")}): ${configPath}`);
+  }
+  return { ...checks, managed: source.startsWith(MANAGED_MARKER) };
+}
 
 export function parseOptions(argv, { values = [], booleans = [] } = {}) {
   const valueNames = new Set(values);
