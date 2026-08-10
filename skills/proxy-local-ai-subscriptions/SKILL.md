@@ -1,6 +1,6 @@
 ---
 name: proxy-local-ai-subscriptions
-description: 当用户希望把本机 Codex、ChatGPT Codex 或 Claude Code 订阅通过 localhost 暴露为 OpenAI 兼容端点，或希望在代理验证成功后把它添加成 NextClaw 自定义 provider 时使用。负责 CLIProxyAPI 安装检查、安全配置、OAuth 登录、模型发现、真实回复冒烟、NextClaw provider 事务式写入与 NCP 真实对话验收；不用于公网共享、转售、绕过配额或多用户账号池。
+description: 当用户希望把本机 Codex、ChatGPT Codex 或 Claude Code 订阅通过 localhost 暴露为 OpenAI 兼容端点，或希望在代理验证成功后把它添加成 NextClaw 自定义 provider 时使用。负责 CLIProxyAPI 安装检查、安全配置、OAuth 登录、Homebrew/systemd 持久托管、重启存活验收、NextClaw provider 事务式写入与 NCP 真实对话验收；不用于公网共享、转售、绕过配额或多用户账号池。
 ---
 
 # Proxy Local AI Subscriptions
@@ -15,6 +15,7 @@ description: 当用户希望把本机 Codex、ChatGPT Codex 或 Claude Code 订�
 - 不在命令行参数、聊天回复或日志里展示 API key。所有 bundled scripts 通过 mode `0600` 的 key 文件交换密钥。
 - 当前审计与真实验收基线是 CLIProxyAPI `v7.2.90`。`check` 只自动接受 `7.2.x`；其他版本必须重新审计官方配置和登录合同后，才可用 `--allow-unaudited-version` 继续。
 - Marketplace 安装只复制 skill 文件，不代表代理已经安装或登录。必须完成下面的真实验证后才能宣告可用。
+- CLIProxyAPI 必须由 macOS Homebrew services 或 Linux systemd 独立托管。`nohup`、shell 后台 `&`、NextClaw 工具进程或一次端口可达都只能用于诊断，不能作为完成状态。
 
 ## 工作流
 
@@ -34,7 +35,7 @@ brew info cliproxyapi --json=v2
 brew install cliproxyapi
 ```
 
-Linux/Windows 必须使用 CLIProxyAPI 官方发布物或官方安装说明，并把真实二进制与配置路径显式传给 bundled scripts。本版只对 macOS Homebrew 持久服务路径做过端到端验收，不要把其他平台描述为已验证。
+Linux 必须使用 CLIProxyAPI 官方发布物或官方安装说明，并把真实二进制路径显式传给 bundled scripts；服务必须使用第 4 步生成的独立 systemd unit。Windows 尚无持久服务合同，不得在 Windows 上继续到 provider 写入或宣告完成。
 
 ### 2. 生成 localhost-only 配置
 
@@ -46,6 +47,17 @@ node scripts/cliproxy.mjs write-config \
   --auth-dir "$HOME/.cli-proxy-api" \
   --api-key-file "$HOME/.cli-proxy-api/nextclaw-api-key"
 ```
+
+Linux 把配置、API key 与 OAuth auth 目录放在将要运行服务的普通用户 home 内，并以该用户执行配置生成；不要让 root 创建 mode `0600` 文件后再让普通用户服务读取。例如：
+
+```bash
+sudo -u <service-user> -H node scripts/cliproxy.mjs write-config \
+  --config <service-home>/.cli-proxy-api/cliproxyapi.conf \
+  --auth-dir <service-home>/.cli-proxy-api \
+  --api-key-file <service-home>/.cli-proxy-api/nextclaw-api-key
+```
+
+`<service-user>` 与 `<service-home>` 必须来自机器上的真实账户信息，不得猜测；配置、OAuth 和 systemd unit 始终复用这一组值。
 
 脚本会生成本地 API key、把 key 与配置设为 `0600`、关闭管理 API/控制面板，并把 factory template 自动备份后替换。若配置属于用户已有环境，脚本会拒绝覆盖；先解释差异并取得明确同意，才可加 `--force`。不要手写 YAML，也不要绕过备份保护。
 
@@ -69,6 +81,14 @@ cliproxyapi \
   --claude-login
 ```
 
+Linux 登录命令也必须以同一个 `<service-user>` 执行，并使用上一步的配置路径：
+
+```bash
+sudo -u <service-user> -H cliproxyapi \
+  --config <service-home>/.cli-proxy-api/cliproxyapi.conf \
+  --codex-login
+```
+
 没有图形浏览器时加 `--no-browser`，把官方 OAuth URL 交给用户本人完成。不要读取、复制或展示 token 文件内容。默认只登录用户指定的一个账号；不要主动建立多账号轮询池。
 
 ### 4. 启动并验证代理
@@ -81,13 +101,40 @@ brew services start cliproxyapi
 
 如果服务已在运行且配置发生变化，先告知影响，再执行 `brew services restart cliproxyapi`。
 
-先做就绪检查：
+Linux systemd：创建或更新 unit、启动服务会改变系统运行状态；先向用户说明影响并获得同意，然后使用 bundled script，禁止手写 unit：
+
+```bash
+sudo node scripts/cliproxy.mjs install-systemd \
+  --binary <absolute-cliproxyapi-path> \
+  --config <service-home>/.cli-proxy-api/cliproxyapi.conf \
+  --auth-dir <service-home>/.cli-proxy-api \
+  --service-user <service-user> \
+  --home <service-home>
+```
+
+脚本只管理带有本 skill marker 的 `cliproxyapi.service`；遇到已有非托管 unit 时默认停止，只有解释差异并取得明确同意后才能使用 `--force`。unit 固定 `Restart=on-failure`、`WantedBy=multi-user.target`，并在安装后验证 active、enabled、MainPID 与独立 cgroup。
+
+先做就绪检查。macOS：
 
 ```bash
 node scripts/cliproxy.mjs check \
   --config "$(brew --prefix)/etc/cliproxyapi.conf" \
   --endpoint http://127.0.0.1:8317/v1 \
-  --api-key-file "$HOME/.cli-proxy-api/nextclaw-api-key"
+  --api-key-file "$HOME/.cli-proxy-api/nextclaw-api-key" \
+  --service-manager homebrew \
+  --service-name cliproxyapi
+```
+
+Linux：
+
+```bash
+node scripts/cliproxy.mjs check \
+  --config <service-home>/.cli-proxy-api/cliproxyapi.conf \
+  --endpoint http://127.0.0.1:8317/v1 \
+  --api-key-file <service-home>/.cli-proxy-api/nextclaw-api-key \
+  --binary <absolute-cliproxyapi-path> \
+  --service-manager systemd \
+  --service-name cliproxyapi.service
 ```
 
 从输出的 `models` 中选择真实存在的模型，再跑 Responses API 真实回复：
@@ -99,7 +146,20 @@ node scripts/cliproxy.mjs smoke \
   --model <raw-model-id>
 ```
 
-只有 `check.ok=true`、模型列表非空、`smoke.ok=true` 且回复精确命中 marker，才算代理可用。失败时按 `binary -> config safety -> OAuth model list -> Responses API` 顺序缩圈，不要跳过上游直连就改 NextClaw。
+首次 smoke 成功后，必须在用户已知会发生短暂中断的前提下执行一次托管重启验收。复用前述所有路径和 service 参数：
+
+```bash
+node scripts/cliproxy.mjs restart-smoke \
+  --config <config-path> \
+  --endpoint http://127.0.0.1:8317/v1 \
+  --api-key-file <api-key-file> \
+  --model <raw-model-id> \
+  --service-manager <homebrew-or-systemd> \
+  --service-name <service-name> \
+  --binary <cliproxyapi-path>
+```
+
+Homebrew 可省略 `--binary`；systemd 必须给绝对路径。只有 `check.ok=true`、`lifecycle.active=true`、`lifecycle.enabled=true`、模型列表非空，以及 `restart-smoke.restartVerified=true` 且回复精确命中 marker，才算代理可持续使用。Linux 还必须满足 `lifecycle.independentFromNextclaw=true`。失败时按 `binary -> config safety -> service manager -> OAuth model list -> Responses API` 顺序缩圈，不要跳过上游直连就改 NextClaw。
 
 ### 5. 询问是否接入 NextClaw
 
@@ -117,12 +177,16 @@ node scripts/cliproxy.mjs smoke \
 node scripts/nextclaw-provider.mjs \
   --endpoint http://127.0.0.1:8317/v1 \
   --api-key-file "$HOME/.cli-proxy-api/nextclaw-api-key" \
+  --proxy-config <config-path> \
+  --service-manager <homebrew-or-systemd> \
+  --service-name <service-name> \
+  --proxy-binary <cliproxyapi-path> \
   --provider-id <provider-id> \
   --display-name "<display-name>" \
   --model <raw-model-id>
 ```
 
-脚本默认从 `nextclaw status --json` 读取当前 API 地址，并使用 `wireApi=chat`。直接调用脚本且省略 `--provider-id` 时，为兼容既有用法仍默认 `local-subscriptions`；标准 skill 工作流必须显式传入上一步选定的 id，不能依赖该默认值。代理直连仍用 Responses API 证明 OpenAI 端点成立，但 NextClaw `native` 会携带工具定义；本次真实验收确认 Chat Completions wire 能保持工具 schema 兼容。脚本会发现模型、先对候选配置执行真实 provider test，成功后才启用；新建 provider 在失败时自动删除回滚。若同名 provider 已指向其他端点，必须先解释冲突并获得同意，才可加 `--replace-existing`。
+脚本默认从 `nextclaw status --json` 读取当前 API 地址，并使用 `wireApi=chat`。macOS Homebrew 可省略 `--proxy-binary`；Linux systemd 必须传绝对路径。脚本会先调用同包 `cliproxy.mjs check`，选择真实模型后再强制执行一次 `restart-smoke`；未证明服务 active、enabled、独立托管且重启后真实回复成功时，在任何 provider API 请求前停止，因此不能绕过持久服务门禁。直接调用脚本且省略 `--provider-id` 时，为兼容既有用法仍默认 `local-subscriptions`；标准 skill 工作流必须显式传入上一步选定的 id，不能依赖该默认值。代理直连仍用 Responses API 证明 OpenAI 端点成立，但 NextClaw `native` 会携带工具定义；本次真实验收确认 Chat Completions wire 能保持工具 schema 兼容。脚本会先对候选配置执行真实 provider test，成功后才启用；新建 provider 在失败时自动删除回滚。若同名 provider 已指向其他端点，必须先解释冲突并获得同意，才可加 `--replace-existing`。
 
 随后必须走 `native` session type 做一次 NCP 真实对话：
 
@@ -138,6 +202,7 @@ node scripts/nextclaw-smoke.mjs \
 报告以下事实，不输出任何 secret：
 
 - CLIProxyAPI 版本、配置路径、auth 目录、监听地址；
+- 服务管理器、服务名、active/enabled 状态；Linux 还要报告独立 cgroup 与重启存活验收；
 - OAuth 类型（Codex 或 Claude），不要输出账号 token；
 - 真实验证的 raw model id 与 OpenAI wire；
 - 实际创建/更新的 provider id 与 display name；
@@ -147,6 +212,8 @@ node scripts/nextclaw-smoke.mjs \
 ## 故障与退出
 
 - `check` 报非 localhost 配置：停止服务并修复绑定；不要带风险继续。
+- `check` 报服务未 active/enabled 或 cgroup 不独立：停止 provider 接入，使用对应服务管理器修复；不要用 `nohup` 临时补位。
+- `restart-smoke` 失败：保持或恢复代理服务，报告持久性验收未完成；不得创建 provider。
 - `/v1/models` 为空：重新执行对应 OAuth 登录并检查 auth 目录，不要猜模型名。
 - 代理直连成功但 provider test 失败：检查 `apiBase` 是否带 `/v1`、模型是否 provider-scoped、`wireApi` 是否为 `chat`。
 - provider test 成功但 NCP 失败：按 NextClaw NCP SSE 链路排查；不要把问题归因成 OAuth 已失效。

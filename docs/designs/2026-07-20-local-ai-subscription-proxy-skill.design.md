@@ -2,7 +2,7 @@
 
 ## 目标与成功标准
 
-把用户本人本机上的 Codex 或 Claude Code 订阅，通过一个 localhost-only 的 OpenAI 兼容端点提供给其他本地客户端；在代理真实回复通过后，再询问是否接入 NextClaw。首版以 Codex + macOS Homebrew 路径为真实验收范围。
+把用户本人本机上的 Codex 或 Claude Code 订阅，通过一个 localhost-only 的 OpenAI 兼容端点提供给其他本地客户端；在代理真实回复和持久服务验收通过后，再询问是否接入 NextClaw。当前持久服务合同覆盖 macOS Homebrew 与 Linux systemd；Codex + macOS 仍是已有真实端到端基线，Linux systemd 先以确定性脚本与隔离测试建立支持合同，发布前补真实 Linux 验收。
 
 完成必须同时满足：
 
@@ -13,6 +13,8 @@
 5. 新建 provider 的 test 或保存失败时自动删除回滚；已有 provider 在 test 成功前不发生写入。
 6. `native + <provider-id>/<model>` 的 NCP 对话复用用户选定的 provider id 并返回固定 marker。
 7. Marketplace 远端包可以安装，并包含全部运行脚本。
+8. CLIProxyAPI 必须由 Homebrew services 或独立 systemd unit 托管，处于开机/登录自启与 active 状态；Linux cgroup 不得属于 `nextclaw.service`。
+9. 托管服务重启后必须重新通过模型发现和真实 Responses marker；未通过时不得创建或更新 NextClaw provider。
 
 代理直连 smoke 固定使用 `/v1/responses`，用于证明通用 OpenAI Responses 端点成立；NextClaw provider 固定使用 `wireApi=chat`。真实 NCP 验收发现 `native` 注入的工具定义经 Responses wire 到 CLIProxyAPI 时会出现工具 schema 不兼容，而 Chat Completions wire 能完整通过工具上下文与最终回复，因此两层有意使用不同 wire，不做隐式 fallback。
 
@@ -20,7 +22,7 @@
 
 这项能力增强 NextClaw 的统一入口与生态扩展能力，但不把第三方代理实现塞进内核。
 
-- `single-domain-owner`：CLIProxyAPI 拥有 OAuth、模型路由和 OpenAI 协议；NextClaw 现有 provider owner 拥有 provider 持久化和模型路由；skill 只拥有接入编排。
+- `single-domain-owner`：CLIProxyAPI 拥有 OAuth、模型路由和 OpenAI 协议；Homebrew/systemd 拥有进程拉起、重启与开机自启；NextClaw 现有 provider owner 拥有 provider 持久化和模型路由；skill 只拥有接入编排与跨 owner 验收。
 - `single-source-of-truth`：provider id 在接入时只选择一次，配置、模型 route、NCP smoke 与完成报告都消费同一个值；不得在下游验收脚本重新写死实例名。
 - `cqs-pure-read`：版本、配置安全、模型发现属于只读检查；写代理配置、写 provider、真实模型 smoke 使用显式命令。
 - `boundary-only-defense`：版本、URL、文件权限、HTTP payload 和回滚只在外部边界校验；内部流程使用规范合同。
@@ -32,7 +34,8 @@
 ```mermaid
 flowchart LR
   U["用户确认与 OAuth"] --> S["Marketplace skill 编排"]
-  S --> C["CLIProxyAPI 配置与进程"]
+  S --> M["Homebrew services / systemd"]
+  M --> C["CLIProxyAPI 配置与进程"]
   C --> O["Codex / Claude OAuth owner"]
   C --> E["127.0.0.1:8317/v1"]
   S --> P["NextClaw provider API"]
@@ -41,15 +44,16 @@ flowchart LR
   N["NCP native session"] --> K
 ```
 
-标准顺序是：`只读检查 -> 安全配置 -> OAuth -> 代理模型发现 -> Responses 真实回复 -> 用户确认 -> provider 候选 test -> 保存启用 -> NCP 真实回复`。
+标准顺序是：`只读检查 -> 安全配置 -> OAuth -> 持久服务安装/启动 -> readiness -> Responses 真实回复 -> 托管重启 -> readiness + Responses 再验 -> 用户确认 -> provider 持久性门禁 -> 候选 test -> 保存启用 -> NCP 真实回复`。
 
 ## 文件与职责
 
 - `skills/proxy-local-ai-subscriptions/SKILL.md`：面向 agent 的完整安装、确认、安全和验收流程。
-- `scripts/cliproxy.mjs`：代理配置、只读 readiness 与 OpenAI Responses smoke。
-- `scripts/nextclaw-provider.mjs`：模型发现和 provider 事务式写入。
+- `scripts/cliproxy.mjs`：代理配置、readiness/托管重启命令编排与 OpenAI Responses smoke。
+- `scripts/cliproxy-service.mjs`：Linux systemd unit 安装以及 Homebrew/systemd 生命周期检查与重启的唯一 owner。
+- `scripts/nextclaw-provider.mjs`：先复用 `cliproxy.mjs check` 与 `restart-smoke` 做持久服务门禁，再执行 provider 事务式写入。
 - `scripts/nextclaw-smoke.mjs`：自包含 NCP SSE 真实对话验收。
-- `scripts/local-subscription-proxy.utils.mjs`：三个脚本真实复用的参数、localhost URL、密钥文件和 HTTP 边界工具。
+- `scripts/local-subscription-proxy.utils.mjs`：同包脚本真实复用的参数、localhost URL、安全文件写入、配置校验、密钥文件和 HTTP 边界工具。
 - `tests/skills/*`：配置保护、密钥脱敏、provider 回滚与 NCP SSE 协议测试；不会随 Marketplace 包安装。
 
 ## 安全合同
@@ -68,6 +72,9 @@ flowchart LR
 
 - 配置写入使用同目录临时文件 + rename；覆盖前保留时间戳备份。
 - readiness 任一安全断言失败都停止，不继续 OAuth/model smoke。
+- `check` 未证明托管服务 active + enabled 时失败；Linux unit 未处于独立 cgroup 时失败。
+- `restart-smoke` 重启后未恢复模型列表或 marker 时失败；`nohup`、shell `&`、单次端口可达都不构成完成状态。
+- provider 脚本在发出任何 NextClaw provider 请求前强制执行持久服务 readiness；失败时保持 provider 配置完全不变。
 - 新 provider 先以 `enabled=false` 创建；test 或最终 update 失败即 DELETE 回滚。
 - 已有 provider 使用 test API 验证候选 patch；通过前不执行 PUT。
 - provider 配置成功但 NCP smoke 失败时保留已验证 provider，报告 NCP 链路失败，不伪装成 OAuth 失败。
@@ -79,7 +86,8 @@ flowchart LR
 - 不支持公网/LAN/Docker 跨主机暴露、共享、转售或配额规避。
 - 不把 Codex/Claude 做成 NextClaw 内核 provider 特判。
 - 不替代 `codex-narp-runtime` / `claude-code-narp-runtime`；它们仍负责原生 agent session，本文能力是通用模型 gateway。
-- 首次交付不声称 Linux、Windows 或 Claude Code 路径已做端到端真实验收。
+- Windows 和 Claude Code 路径仍未做端到端真实验收。
+- 本设计不实现长期外部监控或 SLA；它保证进程托管、重启恢复和接入时的可观察门禁，OAuth 凭据被上游撤销时仍需用户重新授权。
 
 ## 验证矩阵
 
@@ -87,6 +95,7 @@ flowchart LR
 |---|---|
 | 静态 | Marketplace validator、Skill quick validator、ESLint/治理检查通过 |
 | 脚本 | 幂等写入、拒绝未知覆盖、备份、key 脱敏、模型发现、HTTP 错误可观察 |
+| 持久服务 | systemd unit 幂等安装、active/enabled、独立 cgroup、拒绝临时进程、托管重启后 readiness + marker |
 | provider | 新建成功、失败回滚、已有配置 test-before-write、冲突保护 |
 | 代理真实链路 | CLIProxyAPI v7.2.90 + Codex OAuth + `/v1/models` + `/v1/responses` marker |
 | NextClaw 真实链路 | 隔离源码实例 + provider test + `native` NCP SSE marker |

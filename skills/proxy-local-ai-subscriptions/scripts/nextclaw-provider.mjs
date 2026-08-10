@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   discoverNextclawApi,
-  extractModelIds,
   fail,
   normalizeNextclawApi,
   normalizeOpenAiEndpoint,
@@ -18,10 +19,11 @@ import {
 const DEFAULT_PROVIDER_ID = "local-subscriptions";
 const DEFAULT_DISPLAY_NAME = "Local AI Subscriptions";
 const PROVIDER_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const CLIPROXY_SCRIPT = resolve(dirname(fileURLToPath(import.meta.url)), "cliproxy.mjs");
 
 function help() {
   process.stdout.write(`Usage:
-  node scripts/nextclaw-provider.mjs --endpoint <url> --api-key-file <path> [options]
+  node scripts/nextclaw-provider.mjs --endpoint <url> --api-key-file <path> --proxy-config <path> --service-manager <systemd|homebrew> [options]
 
 Options:
   --nextclaw-api <url>       Explicit NextClaw API URL; otherwise use nextclaw status --json
@@ -30,8 +32,64 @@ Options:
   --display-name <name>      Provider display name (default: ${DEFAULT_DISPLAY_NAME})
   --model <raw-id>           Model used for connection test; defaults to a discovered Codex model
   --wire-api <wire>          chat, responses, or auto (default: chat)
+  --proxy-binary <path>      CLIProxyAPI binary used by the durable readiness gate
+  --service-name <name>      Managed service name (default: cliproxyapi.service/system formula)
+  --systemctl <path>         systemctl command override for systemd environments
+  --brew <path>              brew command override for Homebrew environments
   --replace-existing         Permit replacing a same-id provider that points elsewhere
 `);
+}
+
+function assertDurableProxy(options, restartModel = null) {
+  const command = restartModel ? "restart-smoke" : "check";
+  const args = [
+    CLIPROXY_SCRIPT,
+    command,
+    "--config", requireOption(options, "proxy-config"),
+    "--endpoint", requireOption(options, "endpoint"),
+    "--api-key-file", requireOption(options, "api-key-file"),
+    "--service-manager", requireOption(options, "service-manager"),
+  ];
+  if (restartModel) args.push("--model", restartModel);
+  const optionalMappings = [
+    ["proxy-binary", "binary"],
+    ["service-name", "service-name"],
+    ["systemctl", "systemctl"],
+    ["brew", "brew"],
+  ];
+  for (const [source, target] of optionalMappings) {
+    if (options[source]) args.push(`--${target}`, options[source]);
+  }
+  if (options["allow-unaudited-version"] === true) args.push("--allow-unaudited-version");
+  const result = spawnSync(process.execPath, args, {
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  if (result.error) {
+    throw new Error(`Durable CLIProxyAPI ${command} could not run: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    let detail = (result.stderr || result.stdout || "").trim();
+    try {
+      detail = JSON.parse(detail)?.error || detail;
+    } catch {
+      // Keep the original bounded diagnostic.
+    }
+    throw new Error(`Durable CLIProxyAPI ${command} failed: ${String(detail).slice(0, 1000)}`);
+  }
+  let readiness;
+  try {
+    readiness = JSON.parse(result.stdout);
+  } catch {
+    throw new Error(`Durable CLIProxyAPI ${command} returned invalid JSON`);
+  }
+  if (readiness?.ok !== true || readiness?.lifecycle?.active !== true || readiness?.lifecycle?.enabled !== true) {
+    throw new Error(`Durable CLIProxyAPI ${command} did not prove an active, enabled managed service`);
+  }
+  if (restartModel && (readiness?.restartVerified !== true || readiness?.smoke?.ok !== true)) {
+    throw new Error("Durable CLIProxyAPI restart-smoke did not prove restart survival and a real model reply");
+  }
+  return readiness;
 }
 
 function providerUrl(apiBase, providerId = "") {
@@ -87,15 +145,19 @@ async function main() {
       "display-name",
       "model",
       "wire-api",
+      "proxy-config",
+      "proxy-binary",
+      "service-manager",
+      "service-name",
+      "systemctl",
+      "brew",
     ],
-    booleans: ["replace-existing"],
+    booleans: ["replace-existing", "allow-unaudited-version"],
   });
   const endpoint = normalizeOpenAiEndpoint(requireOption(options, "endpoint"));
   const apiKeyFile = resolve(requireOption(options, "api-key-file"));
   const apiKey = readApiKey(apiKeyFile);
-  const nextclawApi = options["nextclaw-api"]
-    ? normalizeNextclawApi(options["nextclaw-api"])
-    : discoverNextclawApi(options["nextclaw-command"] || "nextclaw");
+  const readiness = assertDurableProxy(options);
   const providerId = options["provider-id"] || DEFAULT_PROVIDER_ID;
   if (!PROVIDER_ID_PATTERN.test(providerId)) {
     throw new Error("--provider-id must be a kebab-case identifier");
@@ -106,7 +168,7 @@ async function main() {
     throw new Error("--wire-api must be responses, chat, or auto");
   }
 
-  const proxyModels = extractModelIds(await requestJson(`${endpoint}/models`, { apiKey }));
+  const proxyModels = Array.isArray(readiness.models) ? readiness.models : [];
   if (proxyModels.length === 0) {
     throw new Error("CLIProxyAPI returned no models; provider configuration was not changed");
   }
@@ -114,6 +176,10 @@ async function main() {
   if (!rawModel) {
     throw new Error("Unable to choose a test model; provider configuration was not changed");
   }
+  const restartVerification = assertDurableProxy(options, rawModel);
+  const nextclawApi = options["nextclaw-api"]
+    ? normalizeNextclawApi(options["nextclaw-api"])
+    : discoverNextclawApi(options["nextclaw-command"] || "nextclaw");
   const scopedModels = proxyModels.map((model) => `${providerId}/${model}`);
   const scopedModel = `${providerId}/${rawModel}`;
   const candidate = {
@@ -180,6 +246,8 @@ async function main() {
       rawModel,
       scopedModel,
       modelCount: scopedModels.length,
+      durableService: readiness.lifecycle,
+      restartVerified: restartVerification.restartVerified,
       test: {
         success: true,
         latencyMs: testResult.latencyMs,
