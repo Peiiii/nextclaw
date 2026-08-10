@@ -33,7 +33,7 @@ Provide an outcome, source material, and a working directory. The agent can use 
 ## Start with one real task
 
 <div class="nc-docs-path-grid">
-  <a class="nc-docs-card" href="/en/guide/install"><span class="nc-docs-step">STEP ONE</span><strong>Install and start your first task</strong><span>Built-in OpenCode Zen free-trial models need no API key. You can switch to your own hosted or local model later.</span></a>
+  <a class="nc-docs-card" href="/en/guide/install"><span class="nc-docs-step">STEP ONE</span><strong>Install and start your first task</strong><span>The built-in free trial needs no API key. You can switch to your own hosted or local model later.</span></a>
   <a class="nc-docs-card" href="/en/guide/create-task"><span class="nc-docs-step">STEP TWO</span><strong>Choose a directory and outcome</strong><span>Bring real material and define the output, destination, and acceptance criteria.</span></a>
   <a class="nc-docs-card" href="/en/guide/results"><span class="nc-docs-step">STEP THREE</span><strong>Open the artifact and refine it</strong><span>Review the real file, chart, or page, then continue with the same context.</span></a>
 </div>

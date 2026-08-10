@@ -50,7 +50,7 @@ Open source · Local-first · macOS, Windows, Linux, Docker, and cloud VMs
   </tr>
 </table>
 
-New installations include OpenCode Zen free-trial models, so you can send the first message without entering an API key. Free-trial access uses a public gateway; limits and models may change, and sensitive or confidential data should not be sent through it.
+New installations are ready for the first task without entering an API key. The built-in free trial uses a public gateway; limits and models may change, and sensitive or confidential data should not be sent through it.
 
 ## What You Can Finish
 
@@ -169,7 +169,7 @@ For the current tested server baseline, idle measurements, and factors that incr
 
 ## Models, Channels, and Tools
 
-- **Models** — built-in OpenCode Zen free-trial access, plus OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, MiniMax, Moonshot, DashScope, Zhipu, AiHubMix, vLLM, and custom OpenAI-compatible endpoints.
+- **Models** — built-in free-trial access, plus OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, MiniMax, Moonshot, DashScope, Zhipu, AiHubMix, vLLM, and custom OpenAI-compatible endpoints.
 - **Messaging channels** — Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, WhatsApp, and email.
 - **Capabilities** — skills, MCP servers, CLI tools, browser control, local files, Panel Apps, and scheduled tasks.
 - **Local control** — configuration, conversations, and credentials stay in the environment you control. Connected providers and channels receive the data you send through them.
