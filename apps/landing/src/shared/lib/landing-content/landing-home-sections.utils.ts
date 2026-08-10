@@ -162,8 +162,8 @@ export function renderHomeSections(
       </div>
     </section>
 
-    <section class="py-24 px-6 z-10 w-full max-w-4xl mx-auto text-center">
-      <div class="glass-card rounded-[2rem] p-12 relative overflow-hidden">
+    <section class="landing-cta-section py-24 px-6 z-10 w-full max-w-4xl mx-auto text-center">
+      <div class="landing-cta-card glass-card rounded-[2rem] p-12 relative overflow-hidden">
         <div class="absolute inset-0 bg-primary/5"></div>
         <div class="relative z-10">
           <h2 class="text-3xl md:text-5xl font-bold mb-6">${copy.ctaTitle}</h2>
@@ -175,7 +175,7 @@ export function renderHomeSections(
       </div>
     </section>
 
-    <section id="community" class="py-20 px-6 z-10 w-full max-w-4xl mx-auto">
+    <section id="community" class="landing-community-section py-20 px-6 z-10 w-full max-w-4xl mx-auto">
       <div class="text-center mb-12">
         <h2 class="text-3xl md:text-4xl font-bold tracking-normal mb-3">${copy.communityTitle}</h2>
         <p class="text-muted-foreground text-lg">${copy.communitySubtitle}</p>

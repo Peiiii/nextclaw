@@ -10,15 +10,14 @@ import {
 } from '@/shared/lib/desktop-release';
 import {
   COMPARISON_COPY,
-  getPageSubtitle,
-  getPageTitle,
   isLocale,
   LINKS,
   LOCALE_OPTIONS,
   persistLocale,
-  renderHomeHeroActions,
   renderHomeSections,
   renderIntegrationsPage,
+  renderLandingHomeHero,
+  renderLandingRouteHero,
   renderLandingFooter,
   renderReleasesPage,
   renderUseCasesPage,
@@ -853,9 +852,9 @@ class LandingPage {
     const comparisonRoute = `${homeRoute}#compare`;
 
     this.root.innerHTML = `
-      <div class="relative min-h-screen flex flex-col bg-background overflow-hidden">
-        <header class="fixed top-0 w-full z-50 glass border-b transition-all duration-300">
-          <div class="container mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="landing-site relative min-h-screen flex flex-col bg-background overflow-hidden">
+        <header class="landing-header fixed top-0 w-full z-50 glass border-b transition-all duration-300">
+          <div class="landing-header__inner container mx-auto px-6 h-16 flex items-center justify-between">
             <a id="home-link" href="${homeRoute}" class="flex items-center gap-2 group cursor-pointer">
               <img src="/logo-phoenix.svg" alt="NextClaw" class="w-8 h-8 transition-transform group-hover:scale-105" />
               <span class="font-semibold text-lg tracking-normal">NextClaw</span>
@@ -901,27 +900,15 @@ class LandingPage {
           </div>
         </header>
 
-        <main class="${this.route === 'home'
-          ? 'relative flex flex-col overflow-hidden px-6 pt-28 pb-14 text-left z-10 sm:pt-32 sm:pb-16'
-          : 'flex-1 flex flex-col items-center text-center px-6 pt-32 pb-20 z-10'}">
-          <div class="${this.route === 'home' ? 'relative z-10 w-full max-w-6xl mx-auto' : 'contents'}">
+        <main class="landing-main ${this.route === 'home'
+          ? 'landing-main--home relative flex flex-col overflow-hidden px-6 pt-28 pb-14 text-left z-10 sm:pt-32 sm:pb-16'
+          : 'landing-main--route flex-1 flex flex-col items-center text-center px-6 pt-32 pb-20 z-10'}">
+          <div class="${this.route === 'home' ? 'relative z-10 w-full max-w-7xl mx-auto' : 'contents'}">
           ${this.route === 'home' ? `
-          <p class="mb-4 inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2 text-sm font-semibold text-primary animate-slide-up opacity-0" style="animation-delay: 0.12s">
-            <i data-lucide="sparkles" class="w-4 h-4"></i>
-            ${this.copy.heroEyebrow}
-          </p>
-          ` : ''}
-          <h1 class="${this.route === 'home'
-            ? 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-normal max-w-3xl mb-6 animate-slide-up opacity-0'
-            : 'text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-normal max-w-6xl mb-6 animate-slide-up opacity-0'}" style="animation-delay: 0.2s">
-            <span class="hero-brand">${getPageTitle(this.route, this.copy)}</span>
-          </h1>
-
-          <p class="${this.route === 'home'
-            ? 'text-lg md:text-xl text-muted-foreground max-w-2xl mb-8 animate-slide-up opacity-0'
-            : 'text-lg md:text-xl text-muted-foreground max-w-4xl mx-auto mb-10 animate-slide-up opacity-0'}" style="animation-delay: 0.3s">
-            ${getPageSubtitle(this.route, this.copy)}
-          </p>
+          ${renderLandingHomeHero(this.copy, downloadRoute, docsLink, installRoute)}
+          ` : `
+          ${renderLandingRouteHero(this.route, this.copy)}
+          `}
 
           ${this.route === 'download' ? `
           <section id="download" class="w-full max-w-5xl mx-auto mb-10 text-left animate-slide-up opacity-0" style="animation-delay: 0.35s">
@@ -1011,18 +998,6 @@ class LandingPage {
 
           ${this.route === 'releases' ? renderReleasesPage(this.copy, downloadRoute) : ''}
 
-          ${this.route === 'home' ? `
-          ${renderHomeHeroActions(this.copy, downloadRoute, docsLink, installRoute)}
-
-          <a href="${this.copy.screenshotChatSrc}" target="_blank" rel="noopener noreferrer" class="mt-8 block overflow-hidden rounded-lg border border-border/70 bg-white shadow-2xl shadow-primary/10 animate-slide-up opacity-0" style="animation-delay: 0.48s">
-            <img
-              src="${this.copy.screenshotChatSrc}"
-              alt="${this.copy.heroTitleLine1}"
-              class="block aspect-[1512/828] w-full object-contain object-top"
-              loading="eager"
-            />
-          </a>
-          ` : ''}
           </div>
         </main>
 

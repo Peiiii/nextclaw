@@ -115,7 +115,7 @@ export function renderHomeHeroActions(
   installRoute: string
 ): string {
   return `
-    <div class="flex flex-col sm:flex-row flex-wrap gap-4 mb-3 animate-slide-up opacity-0" style="animation-delay: 0.4s">
+    <div class="landing-hero__actions flex flex-col sm:flex-row flex-wrap gap-4 mb-3 animate-slide-up opacity-0" style="animation-delay: 0.4s">
       <a href="${downloadRoute}" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md shadow-primary/20 focus:ring-2 focus:ring-primary focus:outline-none text-base">
         <i data-lucide="download" class="w-5 h-5"></i>
         ${copy.heroDownloadButton}
@@ -129,9 +129,56 @@ export function renderHomeHeroActions(
         ${copy.heroInstallButton}
       </a>
     </div>
-    <p class="mb-8 max-w-3xl text-sm text-muted-foreground animate-slide-up opacity-0" style="animation-delay: 0.44s">
+    <p class="landing-hero__install-note mb-8 max-w-3xl text-sm text-muted-foreground animate-slide-up opacity-0" style="animation-delay: 0.44s">
       ${copy.heroInstallDescription}
     </p>
+  `;
+}
+
+export function renderLandingHomeHero(
+  copy: LandingCopy,
+  downloadRoute: string,
+  docsLink: string,
+  installRoute: string
+): string {
+  return `
+    <section class="landing-hero">
+      <div class="landing-hero__copy">
+        <p class="landing-hero__eyebrow mb-4 inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2 text-sm font-semibold text-primary animate-slide-up opacity-0" style="animation-delay: 0.12s">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          ${copy.heroEyebrow}
+        </p>
+        <h1 class="landing-hero__title text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-normal max-w-3xl mb-6 animate-slide-up opacity-0" style="animation-delay: 0.2s">
+          <span class="hero-brand">${getPageTitle('home', copy)}</span>
+        </h1>
+        <p class="landing-hero__description text-lg md:text-xl text-muted-foreground max-w-2xl mb-8 animate-slide-up opacity-0" style="animation-delay: 0.3s">
+          ${getPageSubtitle('home', copy)}
+        </p>
+        ${renderHomeHeroActions(copy, downloadRoute, docsLink, installRoute)}
+      </div>
+      <figure class="landing-hero__art animate-slide-up opacity-0" style="animation-delay: 0.3s">
+        <img src="/nextclaw-hero-atmosphere.webp" alt="" class="landing-hero__art-image" loading="eager" />
+      </figure>
+    </section>
+
+    <a href="${copy.screenshotChatSrc}" target="_blank" rel="noopener noreferrer" class="landing-product-proof animate-slide-up opacity-0" style="animation-delay: 0.48s">
+      <span class="landing-product-proof__label">NextClaw</span>
+      <img src="${copy.screenshotChatSrc}" alt="${copy.heroTitleLine1}" class="landing-product-proof__image" loading="eager" />
+    </a>
+  `;
+}
+
+export function renderLandingRouteHero(route: PageRoute, copy: LandingCopy): string {
+  return `
+    <section class="landing-route-hero">
+      <p class="landing-route-hero__eyebrow">NextClaw</p>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-normal max-w-6xl mb-6 animate-slide-up opacity-0" style="animation-delay: 0.2s">
+        <span class="hero-brand">${getPageTitle(route, copy)}</span>
+      </h1>
+      <p class="text-lg md:text-xl text-muted-foreground max-w-4xl mx-auto mb-10 animate-slide-up opacity-0" style="animation-delay: 0.3s">
+        ${getPageSubtitle(route, copy)}
+      </p>
+    </section>
   `;
 }
 
@@ -226,7 +273,7 @@ export function renderComparisonSection(copy: LandingCopy): string {
 
 export function renderLandingFooter(copy: LandingCopy, docsLink: string, releasesRoute: string): string {
   return `
-    <footer class="w-full border-t border-border/40 py-10 z-10 bg-background/50 backdrop-blur-sm mt-auto">
+    <footer class="landing-footer w-full border-t border-border/40 py-10 z-10 bg-background/50 backdrop-blur-sm mt-auto">
       <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex items-center gap-2 opacity-80">
           <img src="/logo-phoenix.svg" alt="NextClaw" class="w-6 h-6" />
