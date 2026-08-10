@@ -395,7 +395,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         isLoadingPreviousMessages={agent.isLoadingPreviousMessages}
         isSending={controller.isSending}
         canContinue={controller.canContinue}
-        messageActionsDisabled={controller.isSending}
+        messageActionsDisabled={controller.isSending || isRuntimeBlocked}
         isContextCompacting={Boolean(
           sessionKey && compactingSessionIds.has(sessionKey),
         )}

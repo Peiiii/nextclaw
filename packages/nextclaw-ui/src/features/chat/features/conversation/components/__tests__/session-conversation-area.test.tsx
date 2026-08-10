@@ -106,6 +106,7 @@ const mocks = vi.hoisted(() => {
     inputRenderSpy,
     initialPromptSpy,
     inputSnapshot,
+    runtimeBlocked: false,
     presenter: {
       chatUiManager: {
         goToProviders: vi.fn(),
@@ -139,12 +140,14 @@ vi.mock(
     ChatConversationContent: ({
       bottomSlot,
       isContextCompacting,
+      messageActionsDisabled,
       messages,
       showWelcome,
       welcomeSlot,
     }: {
       bottomSlot?: ReactNode;
       isContextCompacting?: boolean;
+      messageActionsDisabled?: boolean;
       messages: readonly unknown[];
       showWelcome: boolean;
       welcomeSlot?: ReactNode;
@@ -152,6 +155,7 @@ vi.mock(
       <div
         data-testid="conversation-content"
         data-context-compacting={String(Boolean(isContextCompacting))}
+        data-message-actions-disabled={String(Boolean(messageActionsDisabled))}
         data-show-welcome={String(showWelcome)}
       >
         {showWelcome ? (
@@ -198,7 +202,7 @@ vi.mock(
 vi.mock(
   "@/features/chat/features/runtime/utils/ncp-chat-runtime-availability.utils",
   () => ({
-    isNcpChatRuntimeBlocked: () => false,
+    isNcpChatRuntimeBlocked: () => mocks.runtimeBlocked,
     resolveNcpChatSendErrorMessage: ({ message }: { message: string | null }) =>
       message,
   }),
@@ -273,6 +277,7 @@ describe("SessionConversationArea input boundary", () => {
     mocks.agent.snapshot.contextWindow = null;
     mocks.agent.snapshot.error = null;
     mocks.controller.isSending = true;
+    mocks.runtimeBlocked = false;
     mocks.inputSnapshot.sendError = null;
     mocks.inputQuery.defaultModel = undefined;
     mocks.inputQuery.fallbackPreferredModel = undefined;
@@ -292,6 +297,30 @@ describe("SessionConversationArea input boundary", () => {
     };
     expect(params.agent.isRunning).toBe(true);
     expect(params.agent.isSending).toBe(false);
+  });
+
+  it("disables message recovery actions until the NCP agent is ready", () => {
+    mocks.agent.isRunning = false;
+    mocks.agent.isSending = false;
+    mocks.controller.isSending = false;
+    mocks.runtimeBlocked = true;
+
+    const rendered = renderArea("session-1");
+
+    expect(
+      screen.getByTestId("conversation-content").dataset.messageActionsDisabled,
+    ).toBe("true");
+
+    mocks.runtimeBlocked = false;
+    rendered.rerender(
+      <MemoryRouter>
+        <SessionConversationArea sessionKey="session-1" />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByTestId("conversation-content").dataset.messageActionsDisabled,
+    ).toBe("false");
   });
 
   it("keeps the composer input subtree stable when only streamed messages change", () => {
