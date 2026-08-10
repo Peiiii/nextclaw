@@ -1,4 +1,6 @@
 import importlib.util
+import json
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -72,6 +74,70 @@ class MarketplaceMirrorServerTest(unittest.TestCase):
         ):
             with self.assertRaises(URLError):
                 MIRROR.resolve_cached_response("/api/v1/skills/items?page=1")
+
+    def test_removed_skill_evicts_slug_package_and_file_cache(self):
+        previous_manifest = {
+            "skills": {
+                "slugs": ["bird", "weather"],
+                "packageNames": {
+                    "bird": "@nextclaw/bird",
+                    "weather": "@nextclaw/weather",
+                },
+            },
+        }
+        current_package_names = {"weather": "@nextclaw/weather"}
+        cached_paths = [
+            "/api/v1/skills/items/bird",
+            "/api/v1/skills/items/%40nextclaw%2Fbird",
+            "/api/v1/skills/items/bird/content",
+            "/api/v1/skills/items/bird/files",
+            "/api/v1/skills/items/bird/files/blob?path=SKILL.md",
+            "/api/v1/skills/items/weather",
+        ]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            responses_dir = Path(temp_dir) / "responses"
+            responses_dir.mkdir()
+            with patch.object(MIRROR, "RESPONSES_DIR", responses_dir):
+                for path in cached_paths:
+                    MIRROR.write_cache(path, {
+                        "status": 200,
+                        "contentType": "application/json",
+                        "contentDisposition": None,
+                        "skillFileSha256": None,
+                        "body": json.dumps({"path": path}).encode("utf-8"),
+                    })
+
+                evicted = MIRROR.evict_removed_skill_cache(
+                    previous_manifest,
+                    ["weather"],
+                    current_package_names,
+                )
+
+                self.assertEqual(evicted, {"slugs": ["bird"], "cacheEntries": 5})
+                for path in cached_paths[:-1]:
+                    self.assertIsNone(MIRROR.read_cache(path))
+                self.assertIsNotNone(MIRROR.read_cache("/api/v1/skills/items/weather"))
+
+    def test_old_manifest_still_evicts_legacy_official_package_selector(self):
+        previous_manifest = {"skills": {"slugs": ["bird"]}}
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            responses_dir = Path(temp_dir) / "responses"
+            responses_dir.mkdir()
+            with patch.object(MIRROR, "RESPONSES_DIR", responses_dir):
+                MIRROR.write_cache("/api/v1/skills/items/%40nextclaw%2Fbird/files", {
+                    "status": 200,
+                    "contentType": "application/json",
+                    "contentDisposition": None,
+                    "skillFileSha256": None,
+                    "body": b"{}",
+                })
+
+                evicted = MIRROR.evict_removed_skill_cache(previous_manifest, [], {})
+
+                self.assertEqual(evicted, {"slugs": ["bird"], "cacheEntries": 1})
+                self.assertIsNone(MIRROR.read_cache("/api/v1/skills/items/%40nextclaw%2Fbird/files"))
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "test": "vitest run",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src --max-warnings=0",
     "tsc": "tsc -p tsconfig.json --noEmit",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260218.0",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.2",
     "wrangler": "^4.45.0"
   }
 }

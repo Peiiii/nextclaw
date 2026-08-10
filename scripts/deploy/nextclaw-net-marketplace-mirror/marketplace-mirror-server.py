@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from socketserver import ThreadingMixIn
 from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qsl, urlencode, urlsplit
+from urllib.parse import parse_qsl, unquote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 
 SOURCE_BASE_URL = os.environ.get("NEXTCLAW_MARKETPLACE_SOURCE", "https://marketplace-api.nextclaw.io")
@@ -149,11 +149,20 @@ def cache_is_fresh(cached, now=None):
     if not cached_at:
         return False
     try:
-        timestamp = datetime.fromisoformat(cached_at.replace("Z", "+00:00")).timestamp()
+        timestamp = parse_utc_iso_timestamp(cached_at)
     except (TypeError, ValueError):
         return False
     current_time = time.time() if now is None else now
     return current_time - timestamp < DEFAULT_CACHE_TTL_SECONDS
+
+
+def parse_utc_iso_timestamp(value):
+    for pattern in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"):
+        try:
+            return datetime.strptime(value, pattern).replace(tzinfo=timezone.utc).timestamp()
+        except ValueError:
+            continue
+    raise ValueError(f"unsupported UTC timestamp: {value}")
 
 
 def resolve_cached_response(path_query):
@@ -187,13 +196,56 @@ def prewarm_path(path_query):
     return cached
 
 
+def evict_removed_skill_cache(previous_manifest, current_slugs, current_package_names):
+    previous_skills = previous_manifest.get("skills", {})
+    previous_slugs = set(previous_skills.get("slugs", []))
+    removed_slugs = sorted(previous_slugs - set(current_slugs))
+    previous_package_names = previous_skills.get("packageNames", {})
+    selectors = set(removed_slugs)
+    for slug in removed_slugs:
+        package_name = previous_package_names.get(slug)
+        if package_name:
+            selectors.add(package_name)
+        else:
+            selectors.add(f"@nextclaw/{slug}")
+
+    evicted_entries = 0
+    for meta_path in RESPONSES_DIR.glob("*.meta.json"):
+        meta = load_json(meta_path, {})
+        path_query = str(meta.get("path", ""))
+        if not any(cache_path_belongs_to_skill(path_query, selector) for selector in selectors):
+            continue
+        body_path = meta_path.with_name(meta_path.name[:-len(".meta.json")] + ".body")
+        if body_path.exists():
+            body_path.unlink()
+        if meta_path.exists():
+            meta_path.unlink()
+        evicted_entries += 1
+
+    return {
+        "slugs": removed_slugs,
+        "cacheEntries": evicted_entries,
+    }
+
+
+def cache_path_belongs_to_skill(path_query, selector):
+    item_prefix = "/api/v1/skills/items/"
+    parsed_path = urlsplit(path_query).path
+    if not parsed_path.startswith(item_prefix):
+        return False
+    item_path = unquote(parsed_path[len(item_prefix):])
+    return item_path == selector or item_path.startswith(f"{selector}/")
+
+
 def sync_snapshot():
     started_at = utc_now_iso()
+    previous_manifest = load_json(MANIFEST_PATH, {})
     prewarm_path("/health")
     scenes = prewarm_path("/api/v1/skills/scenes")
     recommendations = prewarm_path("/api/v1/skills/recommendations")
 
     slugs = []
+    package_names = {}
     failed = []
     total = 0
     total_pages = 1
@@ -209,8 +261,12 @@ def sync_snapshot():
             slug = item.get("slug")
             if slug:
                 slugs.append(slug)
+                package_name = item.get("packageName")
+                if package_name:
+                    package_names[slug] = package_name
         page += 1
 
+    evicted = evict_removed_skill_cache(previous_manifest, slugs, package_names)
     file_count = 0
     for slug in sorted(set(slugs)):
         try:
@@ -228,7 +284,7 @@ def sync_snapshot():
             print(f"sync warning: {slug}: {error}", file=sys.stderr)
 
     manifest = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "source": SOURCE_BASE_URL,
         "storage": "snapshot-mirror",
         "startedAt": started_at,
@@ -237,8 +293,11 @@ def sync_snapshot():
             "total": total,
             "pages": total_pages,
             "slugs": sorted(set(slugs)),
+            "packageNames": package_names,
             "fileCount": file_count,
             "failed": failed,
+            "evictedSlugs": evicted["slugs"],
+            "evictedCacheEntries": evicted["cacheEntries"],
         },
         "prewarmed": {
             "scenesBytes": scenes["meta"].get("sizeBytes", 0),
