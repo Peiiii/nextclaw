@@ -248,10 +248,9 @@ describe("useHydratedNcpAgent", () => {
       );
 
       await vi.waitFor(() => {
-        expect(result.current.hydrateError?.message).toBe(
-          "stream disconnected",
-        );
+        expect(mocks.stream).toHaveBeenCalledTimes(1);
       });
+      expect(result.current.hydrateError).toBeNull();
       await act(async () => {
         await vi.runOnlyPendingTimersAsync();
       });
@@ -264,6 +263,44 @@ describe("useHydratedNcpAgent", () => {
       expect(mocks.send).not.toHaveBeenCalled();
       expect(result.current.hydrateError).toBeNull();
       expect(result.current.isRunning).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports a stream error only after repeated immediate recovery failures", async () => {
+    vi.useFakeTimers();
+    try {
+      const client = {
+        stop: mocks.stop.mockResolvedValue(undefined),
+        stream: mocks.stream.mockRejectedValue(new Error("stream unavailable")),
+        subscribe: vi.fn(() => () => {}),
+        send: mocks.send,
+      } as unknown as NcpAgentClientEndpoint;
+      const loadSeed = vi.fn().mockResolvedValue({ messages: [], status: "idle" });
+      const { result } = renderHook(() =>
+        useHydratedNcpAgent({
+          sessionId: "session-offline",
+          client: client as never,
+          loadSeed,
+        }),
+      );
+
+      await vi.waitFor(() => expect(mocks.stream).toHaveBeenCalledTimes(1));
+      expect(result.current.hydrateError).toBeNull();
+
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+      await vi.waitFor(() => expect(mocks.stream).toHaveBeenCalledTimes(2));
+      expect(result.current.hydrateError).toBeNull();
+
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+      await vi.waitFor(() => {
+        expect(result.current.hydrateError?.message).toBe("stream unavailable");
+      });
     } finally {
       vi.useRealTimers();
     }

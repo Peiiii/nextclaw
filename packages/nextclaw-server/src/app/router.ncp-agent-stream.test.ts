@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { NcpEventType } from "@nextclaw/ncp";
 import { EventBus, eventKeys } from "@nextclaw/shared";
@@ -48,6 +48,7 @@ function createTestApp(eventBus: EventBus): ReturnType<typeof createUiRouter> {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
@@ -59,6 +60,27 @@ afterEach(() => {
   } else {
     delete process.env.NEXTCLAW_HOME;
   }
+});
+
+it("keeps an idle ncp agent SSE connection alive with comment frames", async () => {
+  vi.useFakeTimers();
+  const eventBus = new EventBus();
+  const app = createTestApp(eventBus);
+  const controller = new AbortController();
+  const response = await app.request(
+    new Request("http://localhost/api/ncp/agent/stream?sessionId=session-1", {
+      signal: controller.signal,
+    }),
+  );
+  const reader = response.body?.getReader();
+  const pendingChunk = reader?.read();
+
+  await vi.advanceTimersByTimeAsync(25_000);
+  const chunk = await pendingChunk;
+  controller.abort();
+  reader?.releaseLock();
+
+  expect(new TextDecoder().decode(chunk?.value)).toBe(": keepalive\n\n");
 });
 
 it("streams context-window updates through the ncp agent SSE route", async () => {
