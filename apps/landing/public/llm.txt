@@ -8,7 +8,7 @@ NPM Package: https://www.npmjs.com/package/nextclaw
 Summary:
 NextClaw is your long-term personal AI partner and a local AI workbench for agents, model providers, message channels, skills, files, automations, and desktop tools.
 It helps users start from a task, bring in the right capabilities, and keep work moving inside one workspace.
-Fresh installations include OpenCode Zen free-trial models, so the first task can start without an API key. Limits and models may change, and sensitive data should not be sent through the public gateway.
+Fresh installations are ready for the first task without an API key. The built-in free trial uses a public gateway; limits and models may change, and sensitive data should not be sent through it.
 
 Recommended entry points:
 - Landing (English): https://nextclaw.io/en/

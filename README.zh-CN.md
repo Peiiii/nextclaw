@@ -50,7 +50,7 @@
   </tr>
 </table>
 
-全新安装已带 OpenCode Zen 免费试用模型，不填写 API Key 也能直接开始第一个任务。免费试用由公共网关提供，限额和模型可能变化，请勿发送敏感或机密信息。
+全新安装无需填写 API Key，开箱即可开始第一个任务。内置免费试用由公共网关提供，限额和模型可能变化，请勿发送敏感或机密信息。
 
 ## 可以直接交给它的事
 
@@ -169,7 +169,7 @@ curl -fsSL https://nextclaw.io/install-docker.sh | bash
 
 ## 模型、渠道与工具
 
-- **模型** — 开箱即用的 OpenCode Zen 免费试用，以及 OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、MiniMax、Moonshot、通义千问、智谱、AiHubMix、vLLM 和自定义 OpenAI 兼容接口。
+- **模型** — 开箱即用的内置免费试用，以及 OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek、MiniMax、Moonshot、通义千问、智谱、AiHubMix、vLLM 和自定义 OpenAI 兼容接口。
 - **聊天渠道** — 微信、飞书/Lark、QQ、钉钉、企业微信、Telegram、Discord、Slack、WhatsApp 和邮箱。
 - **可扩展能力** — 技能、MCP、CLI 工具、浏览器操作、本地文件、面板应用和定时任务。
 - **本地可控** — 配置、会话和密钥保存在你控制的环境中。接入的模型和渠道会收到你通过它们发送的数据。

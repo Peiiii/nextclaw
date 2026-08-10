@@ -51,7 +51,7 @@ const COPY: Record<Locale, LandingCopy> = {
     heroTitleLine1: 'NextClaw, your long-term personal AI partner.',
     heroEyebrow: 'From a request to usable results',
     heroDescription:
-      'Tell NextClaw what you want done. New installations include OpenCode Zen free-trial models, so you can send the first message without adding an API key.',
+      'Tell NextClaw what you want done. New installations are ready for the first task with no API key or extra setup required.',
     heroDownloadButton: 'Download Desktop',
     heroInstallButton: 'View all install options',
     heroInstallDescription:
@@ -123,7 +123,7 @@ const COPY: Record<Locale, LandingCopy> = {
     downloadInstallTeaserButton: 'View install options',
     installTitle: 'Choose your NextClaw install path.',
     installSubtitle:
-      'Desktop, npm, and Docker all start with OpenCode Zen free-trial models, with no API key required for the first task. Server deployments stay lean while idle by starting messaging channels only when needed.',
+      'Desktop, npm, and Docker are all ready for the first task with no API key required. Server deployments stay lean while idle by starting messaging channels only when needed.',
     installCopyLabel: 'Copy',
     installCopiedText: 'Copied',
     installMethods: [
@@ -231,7 +231,7 @@ const COPY: Record<Locale, LandingCopy> = {
       {
         eyebrow: 'Model providers',
         title: 'Start free, or connect your own provider',
-        description: 'New installations include OpenCode Zen free-trial models with no API key required. You can also configure OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, and compatible services.',
+        description: 'New installations include free-trial models with no API key required. You can also configure OpenRouter, OpenAI, Anthropic, Gemini, DeepSeek, and compatible services.',
         imageSrc: '/nextclaw-providers-page-en.png',
         imageAlt: 'NextClaw model provider settings'
       },
@@ -402,7 +402,7 @@ const COPY: Record<Locale, LandingCopy> = {
     heroTitleLine1: 'NextClaw，你的长期个人智能搭档。',
     heroEyebrow: '从一句话到可用结果',
     heroDescription:
-      '说出你要做什么。全新安装已带 OpenCode Zen 免费试用模型，不填 API Key 也能直接发送第一条消息。',
+      '说出你要做什么。全新安装无需填写 API Key，开箱即可发送第一条消息。',
     heroDownloadButton: '下载桌面版',
     heroInstallButton: '查看全部安装方式',
     heroInstallDescription: '支持桌面版、npm 和 Docker，可运行在个人电脑、NAS 或云服务器上。',
@@ -472,7 +472,7 @@ const COPY: Record<Locale, LandingCopy> = {
     downloadInstallTeaserDescription: '每种安装方式都自带首个任务可用的免费试用模型，也支持命令行和服务器部署。',
     downloadInstallTeaserButton: '查看安装方式',
     installTitle: '选择适合你的安装方式。',
-    installSubtitle: '桌面版、npm 和 Docker 都内置 OpenCode Zen 免费试用模型，第一个任务无需配置 API Key；服务器部署空闲时保持轻量，消息渠道按需启动。',
+    installSubtitle: '桌面版、npm 和 Docker 都能开箱开始第一个任务，无需配置 API Key；服务器部署空闲时保持轻量，消息渠道按需启动。',
     installCopyLabel: '复制',
     installCopiedText: '已复制',
     installMethods: [
@@ -576,7 +576,7 @@ const COPY: Record<Locale, LandingCopy> = {
       {
         eyebrow: '模型提供商',
         title: '可以直接免费试用，也可以接自己的模型',
-        description: '全新安装无需 API Key 即可使用 OpenCode Zen 免费试用模型，也可以继续配置 OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek 和兼容服务。',
+        description: '全新安装无需 API Key 即可使用内置免费试用，也可以继续配置 OpenRouter、OpenAI、Anthropic、Gemini、DeepSeek 和兼容服务。',
         imageSrc: '/nextclaw-providers-page-cn.png',
         imageAlt: 'NextClaw 模型提供商设置'
       },

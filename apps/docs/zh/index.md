@@ -36,7 +36,7 @@ hero:
   <a class="nc-docs-card" href="/zh/guide/install">
     <span class="nc-docs-step">第一步</span>
     <strong>安装后直接开始第一个任务</strong>
-    <span>内置 OpenCode Zen 免费试用模型无需 API Key；也可以换成自己的云端或本地模型。</span>
+    <span>内置免费试用无需 API Key；也可以换成自己的云端或本地模型。</span>
   </a>
   <a class="nc-docs-card" href="/zh/guide/create-task">
     <span class="nc-docs-step">第二步</span>
