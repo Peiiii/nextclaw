@@ -28,6 +28,11 @@ import {
   type ExistingSkillRow,
   type MarketplaceResolvedSkillIdentity
 } from "./skills/marketplace-skill-payload";
+import {
+  formatMarketplaceSkillSecurityReviewNote,
+  type MarketplaceSkillSecurityScan
+} from "./skills/marketplace-skill-security.utils";
+import { MarketplaceSkillSecurityService } from "./skills/marketplace-skill-security.service";
 import { D1MarketplaceSkillPublicQueryService } from "./skills/d1-marketplace-skill-public-query.service";
 import type { MarketplaceSceneView } from "./skills/skill-scenes.config";
 import type {
@@ -58,6 +63,7 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
   private readonly adminSupport: D1MarketplaceSkillAdminSupport;
   private readonly ownerSupport: D1MarketplaceSkillOwnerSupport;
   private readonly publicQuerySupport: D1MarketplaceSkillPublicQueryService;
+  private readonly securityService: MarketplaceSkillSecurityService;
   constructor(
     db: D1Database,
     filesBucket: R2Bucket,
@@ -75,6 +81,10 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
       readSkillPublishStatus: this.readSkillPublishStatus,
       readSkillPublishedByType: this.readSkillPublishedByType
     });
+    this.securityService = new MarketplaceSkillSecurityService(
+      this.adminSupport,
+      (raw, path) => this.decodeBase64(raw, path)
+    );
     this.ownerSupport = new D1MarketplaceSkillOwnerSupport({
       db,
       mapInstall: (type, kind, spec, command, slug) => this.mapInstall(type, kind, spec, command, slug) as MarketplaceSkillInstallSpec,
@@ -154,15 +164,23 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     actor: MarketplaceSkillPublishActor
   ): Promise<{ created: boolean; item: MarketplaceItem; fileCount: number }> => {
     const input = parseSkillUpsertInput(rawInput, this.validationTools);
+    const securityScan = this.securityService.scanUploadedFiles(input.files);
+    this.securityService.assertAllowsStorage(securityScan);
     const resolvedIdentity = resolveSkillIdentity(input, actor);
-    const context = await this.resolveSkillUpsertContext(input, actor, resolvedIdentity);
+    const context = await this.resolveSkillUpsertContext(input, actor, resolvedIdentity, securityScan);
+    const stagedContext = context.publishStatus === "published"
+      ? { ...context, publishStatus: "pending" as const }
+      : context;
 
     await this.persistSkillItem({
       input,
       identity: resolvedIdentity,
-      context
+      context: stagedContext
     });
     await this.fileStore.replaceSkillFiles(context.itemId, input.files, context.updatedAt);
+    if (context.publishStatus === "published") {
+      await this.publishStagedMarketplaceSkill(context);
+    }
     await this.ensureDefaultSkillRecommendation(context.itemId);
 
     const item = await this.getSkillItemBySelector(resolvedIdentity.packageName, { includeUnpublished: true });
@@ -179,13 +197,17 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
 
   reviewSkill = async (rawInput: unknown): Promise<MarketplaceAdminSkillDetail> => {
     const input = parseSkillReviewInput(rawInput, this.validationTools);
+    if (input.publishStatus === "published") {
+      await this.securityService.assertStoredSkillCanPublish(input.selector);
+    }
     return await this.adminSupport.reviewSkill(input);
   };
 
   private resolveSkillUpsertContext = async (
     input: MarketplaceSkillUpsertInput,
     actor: MarketplaceSkillPublishActor,
-    identity: MarketplaceResolvedSkillIdentity
+    identity: MarketplaceResolvedSkillIdentity,
+    securityScan: MarketplaceSkillSecurityScan
   ): Promise<SkillUpsertContext> => {
     const existing = await this.db
       .prepare(`
@@ -208,7 +230,9 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     const itemId = existing?.id ?? input.id ?? `skill-${identity.ownerScope}-${identity.skillName}`;
     const publishedAt = input.publishedAt ?? existing?.published_at ?? nowIso;
     const updatedAt = input.updatedAt ?? nowIso;
-    const shouldAutoApprove = identity.ownerScope === "nextclaw" || this.autoApprovalMode === "all";
+    const requiresSecurityReview = securityScan.verdict === "manual-review";
+    const shouldAutoApprove = !requiresSecurityReview
+      && (identity.ownerScope === "nextclaw" || this.autoApprovalMode === "all");
     const userAutoApproved = shouldAutoApprove && identity.ownerScope !== "nextclaw";
     return {
       existing: existing ?? null,
@@ -217,7 +241,11 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
       updatedAt,
       publishStatus: shouldAutoApprove ? "published" : "pending",
       publishedByType: identity.ownerScope === "nextclaw" ? "admin" : "user",
-      reviewNote: userAutoApproved ? AUTO_APPROVED_REVIEW_NOTE : null,
+      reviewNote: requiresSecurityReview
+        ? formatMarketplaceSkillSecurityReviewNote(securityScan)
+        : userAutoApproved
+          ? AUTO_APPROVED_REVIEW_NOTE
+          : null,
       reviewedAt: userAutoApproved ? updatedAt : null,
       authorLabel: identity.ownerScope === "nextclaw" ? "NextClaw" : (actor.username ?? "unknown"),
       install: {
@@ -226,6 +254,17 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
         command: `nextclaw skills install ${identity.packageName}`
       }
     };
+  };
+
+  private publishStagedMarketplaceSkill = async (context: SkillUpsertContext): Promise<void> => {
+    await this.db
+      .prepare(`
+        UPDATE marketplace_skill_items
+        SET publish_status = 'published', updated_at = ?
+        WHERE id = ? AND publish_status = 'pending' AND updated_at = ?
+      `)
+      .bind(context.updatedAt, context.itemId, context.updatedAt)
+      .run();
   };
 
   private persistSkillItem = async (params: {

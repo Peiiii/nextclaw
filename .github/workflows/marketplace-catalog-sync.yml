@@ -42,8 +42,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate catalog schema
-        run: pnpm -C workers/marketplace-api validate:catalog
+      - name: Test
+        run: pnpm -C workers/marketplace-api test
 
       - name: Build
         run: pnpm -C workers/marketplace-api build
