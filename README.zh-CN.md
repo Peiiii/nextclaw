@@ -4,39 +4,55 @@
 
 <div align="center">
 
+<img src="apps/landing/public/logo.svg" width="72" alt="NextClaw 标志" />
+
 # NextClaw
 
 **你的长期个人智能搭档。**
 
-说出你要做什么。NextClaw 会把资料、模型、Agent、技能、浏览器、本机应用、自动化和聊天入口放进同一个任务里，一路推进到可用结果。
+说出你要完成的事。NextClaw 会把会话、文件、工具和生成结果放进同一个工作台，一路推进到真正可以交付的结果。
+
+</div>
+
+[![NextClaw 工作台同时展示会话、数据可视化结果和生成的文档](images/screenshots/nextclaw-hero-workbench-cn.png)](images/screenshots/nextclaw-hero-workbench-cn.png)
+
+<div align="center">
+
+**从一句话到可用结果，中间做过的事都不会散落。**
+
+[下载桌面版](https://nextclaw.io/zh/download/) · [安装 NextClaw](https://nextclaw.io/zh/install/) · [查看使用场景](https://nextclaw.io/zh/use-cases/) · [阅读文档](https://docs.nextclaw.io/zh/)
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![GitHub Release](https://img.shields.io/github/v/release/Peiiii/nextclaw?display_name=tag)](https://github.com/Peiiii/nextclaw/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Node.js LTS](https://img.shields.io/badge/Node.js-LTS-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Discord](https://img.shields.io/badge/Discord-NextClaw-5865F2?logo=discord&logoColor=white)](https://discord.gg/j4Skbgye)
 
-[官网](https://nextclaw.io/zh/) · [下载](https://nextclaw.io/zh/download/) · [安装方式](https://nextclaw.io/zh/install/) · [文档](https://docs.nextclaw.io/zh/) · [版本发布](https://github.com/Peiiii/nextclaw/releases)
-
-<p>
-  <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
-  <img src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS" />
-  <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/云服务器-4285F4?style=flat-square&logo=googlecloud&logoColor=white" alt="云服务器" />
-</p>
+开源 · 本地优先 · 支持 macOS、Windows、Linux、Docker 和云服务器
 
 </div>
 
-![NextClaw 会话中的数据分析结果与右侧 Markdown 文档预览](images/screenshots/nextclaw-hero-workbench-cn.png)
+## 为什么选择 NextClaw
 
-NextClaw 是一个本地优先的 AI 工作台，适合处理那些不只是“问一句、答一句”的任务。对话、资料、工具、生成结果和后续操作可以留在一起，不用每换一个软件就重新开始。
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>直接说目标</strong><br /><br />
+      无论是报告、数据分析、文件处理、小应用还是定时任务，NextClaw 都会组织背后的工具和步骤。
+    </td>
+    <td width="33%" valign="top">
+      <strong>过程和结果都留在一起</strong><br /><br />
+      会话、本地文件、网页资料、生成的文档和后续修改都在同一个任务里，不用反复切换和重来。
+    </td>
+    <td width="33%" valign="top">
+      <strong>自己选择怎么运行</strong><br /><br />
+      可使用 Native、Codex、Claude Code、OpenCode 或 Hermes，并运行在自己的电脑、NAS 或服务器上。
+    </td>
+  </tr>
+</table>
 
-**全新安装开箱即用：** NextClaw 已内置 OpenCode Zen 免费试用模型，不填写 API Key 也能直接开始第一个任务。免费试用由公共网关提供，限额和模型可能变化，请勿发送敏感或机密信息。
+全新安装已带 OpenCode Zen 免费试用模型，不填写 API Key 也能直接开始第一个任务。免费试用由公共网关提供，限额和模型可能变化，请勿发送敏感或机密信息。
 
-**空闲时保持轻量：** 未启用的消息渠道不会常驻独立进程。当前已验证的 ARM64 Linux 基准中，空配置三轮平均 working set 约为 165 MiB，相比原先全部渠道进程一起启动的版本下降约 81%。查看[资源占用与测试条件](https://docs.nextclaw.io/zh/guide/resource-usage)。
-
-## 可以用它做什么
+## 可以直接交给它的事
 
 - **调研和对比** — 收集网页、笔记和参考资料，整理成简报、来源列表或对比表。
 - **数据分析和可视化** — 从网页、CSV 或表格里整理数据，清洗、统计、画图，再写出结论。

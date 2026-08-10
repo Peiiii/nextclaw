@@ -4,39 +4,55 @@
 
 <div align="center">
 
+<img src="apps/landing/public/logo.svg" width="72" alt="NextClaw logo" />
+
 # NextClaw
 
 **Your long-term personal AI partner.**
 
-Tell NextClaw what you want done. It brings files, models, agents, skills, browser tools, local apps, automations, and messaging channels into one task, then keeps working toward a usable result.
+Tell NextClaw what you want done. It brings the conversation, files, tools, and generated results into one workspace—and keeps working until there is something useful to deliver.
+
+</div>
+
+[![NextClaw workspace with a conversation and an interactive piano Panel App](images/screenshots/nextclaw-hero-workbench-en.png)](images/screenshots/nextclaw-hero-workbench-en.png)
+
+<div align="center">
+
+**From one request to a usable result, without losing the work in between.**
+
+[Download Desktop](https://nextclaw.io/en/download/) · [Install NextClaw](https://nextclaw.io/en/install/) · [Explore Use Cases](https://nextclaw.io/en/use-cases/) · [Read the Docs](https://docs.nextclaw.io/en/)
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![GitHub Release](https://img.shields.io/github/v/release/Peiiii/nextclaw?display_name=tag)](https://github.com/Peiiii/nextclaw/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Node.js LTS](https://img.shields.io/badge/Node.js-LTS-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Discord](https://img.shields.io/badge/Discord-NextClaw-5865F2?logo=discord&logoColor=white)](https://discord.gg/j4Skbgye)
 
-[Website](https://nextclaw.io/en/) · [Download](https://nextclaw.io/en/download/) · [Install](https://nextclaw.io/en/install/) · [Documentation](https://docs.nextclaw.io/en/) · [Releases](https://github.com/Peiiii/nextclaw/releases)
-
-<p>
-  <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
-  <img src="https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS" />
-  <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
-  <img src="https://img.shields.io/badge/Cloud_VMs-4285F4?style=flat-square&logo=googlecloud&logoColor=white" alt="Cloud VMs" />
-</p>
+Open source · Local-first · macOS, Windows, Linux, Docker, and cloud VMs
 
 </div>
 
-![NextClaw showing a data visualization result with a Markdown document open beside it](images/screenshots/nextclaw-hero-workbench-cn.png)
+## Why NextClaw
 
-NextClaw is a local-first AI workspace for tasks that need more than a single answer. A conversation can keep its files, references, tools, generated results, and follow-up work together instead of making you restart in separate apps.
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>Start with the goal</strong><br /><br />
+      Ask for a report, analysis, file operation, small app, or recurring task. NextClaw organizes the tools and steps behind it.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Keep context and results together</strong><br /><br />
+      Conversations, local files, web research, generated documents, and follow-up work stay in the same task.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Choose how the work runs</strong><br /><br />
+      Use Native, Codex, Claude Code, OpenCode, or Hermes, then run locally, on a NAS, or on a server you control.
+    </td>
+  </tr>
+</table>
 
-**Ready on a fresh install:** NextClaw includes OpenCode Zen free-trial models, so you can start the first task without entering an API key. Free-trial access uses a public gateway; limits and models may change, and sensitive or confidential data should not be sent through it.
+New installations include OpenCode Zen free-trial models, so you can send the first message without entering an API key. Free-trial access uses a public gateway; limits and models may change, and sensitive or confidential data should not be sent through it.
 
-**Lean while idle:** Unused messaging channels do not keep separate processes resident. In the current verified ARM64 Linux benchmark, an empty configuration averaged about 165 MiB of working set across three runs, down about 81% from the previous eager-start runtime. See the [resource usage and measurement conditions](https://docs.nextclaw.io/en/guide/resource-usage).
-
-## What You Can Do
+## What You Can Finish
 
 - **Research and compare** — collect pages, notes, and references, then turn them into a brief, source list, or comparison table.
 - **Analyze and visualize data** — gather data from websites, CSV files, or spreadsheets, clean it, draw charts, and write the conclusion.
