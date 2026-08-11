@@ -139,6 +139,53 @@ class MarketplaceMirrorServerTest(unittest.TestCase):
                 self.assertEqual(evicted, {"slugs": ["bird"], "cacheEntries": 1})
                 self.assertIsNone(MIRROR.read_cache("/api/v1/skills/items/%40nextclaw%2Fbird/files"))
 
+    def test_sync_refreshes_file_manifest_before_prewarming_blobs(self):
+        def cached(body):
+            return {
+                "body": json.dumps(body).encode("utf-8"),
+                "meta": {"sizeBytes": 1},
+            }
+
+        def prewarm(path):
+            if path == "/api/v1/skills/items?page=1&pageSize=100":
+                return cached({
+                    "data": {
+                        "total": 1,
+                        "totalPages": 1,
+                        "items": [{
+                            "slug": "weather",
+                            "packageName": "@nextclaw/weather",
+                        }],
+                    },
+                })
+            if path == "/api/v1/skills/items/weather/files":
+                return cached({
+                    "data": {
+                        "files": [{
+                            "path": "scripts/new-file.mjs",
+                            "downloadPath": "/api/v1/skills/items/weather/files/blob?path=scripts%2Fnew-file.mjs",
+                        }],
+                    },
+                })
+            return cached({})
+
+        with tempfile.TemporaryDirectory() as temp_dir, patch.object(
+            MIRROR, "MANIFEST_PATH", Path(temp_dir) / "manifest.json"
+        ), patch.object(
+            MIRROR, "prewarm_path", side_effect=prewarm
+        ) as prewarm_path, patch.object(
+            MIRROR,
+            "evict_removed_skill_cache",
+            return_value={"slugs": [], "cacheEntries": 0},
+        ):
+            manifest = MIRROR.sync_snapshot()
+
+        self.assertEqual(manifest["skills"]["fileCount"], 1)
+        prewarm_path.assert_any_call("/api/v1/skills/items/weather/files")
+        prewarm_path.assert_any_call(
+            "/api/v1/skills/items/weather/files/blob?path=scripts%2Fnew-file.mjs"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
