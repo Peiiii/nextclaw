@@ -38,7 +38,8 @@
 - 文档站使用仓库 `docs-deploy.yml`，部署工作流 [31454054035](https://github.com/Peiiii/nextclaw/actions/runs/31454054035) 的全球 Cloudflare、国内 OSS/CDN 与 verify 均成功；中英文版本说明和公开截图 URL 已复验。
 - 官网已部署到 Cloudflare Pages `nextclaw-landing`；线上 `nextclaw.io` 的中英文 bundle、Explorer 文案和截图资源已复验。
 - Runtime 工作流 [31455107765](https://github.com/Peiiii/nextclaw/actions/runs/31455107765) 成功，正式 [NextClaw v0.31.0 GitHub Release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.31.0) 包含 darwin arm64/x64、linux x64、win32 x64 四个签名 bundle。
-- `minor` / `major` 新门禁要求 `docs/releases/nextclaw-v<version>.release-review.json` 同时审查文档站与官网，缺失或无理由的 `not-needed` 会在 publish 前阻断。
+- `minor` / `major` 新门禁要求 `docs/releases/nextclaw-v<version>.release-review.json` 同时审查文档站、官网与 X 宣发计划；缺失项会在 publish 前阻断。
+- X 宣发尚未闭合：原发布执行遗漏了 release notes automation 的社交阶段；补发时账号写入被 X 暂时阻断，因此当前不能记录帖子 URL，也不应把本次公开发布描述为全部完成。待阻断解除后继续使用已验证的 `x-bird` 单一路径补发并回读。
 
 ## 用户/产品视角的验收步骤
 
@@ -59,6 +60,7 @@
 - 已按告警做主观复核：tree 只拥有递归展示和行内状态，action hook 只拥有文件操作编排，layout hook 只拥有阈值/拖拽/持久化；没有重复 API 或第二套 Explorer 状态。复核中把同时提交文件/文件夹创建的误导性 `createDirectory` 名称改为 `submitCreate`，其余告警均保留明确拆分缝，不为本次功能扩大无关重构。
 - 首次正式 release check 暴露同一 package 的 build 与 tsc 被并发调度，`@nextclaw/companion` 的 tsc 在依赖产物生成前启动。task runner 已改为“包间并行、同包步骤串行”并增加回归测试；修复后的严格检查完整通过。
 - 真实升级验证首次在本机连续两次遇到 Node 22 `fetch` 直连 GitHub Pages 的 `ECONNRESET`。公开清单经 `curl` 可达，原因收敛为当前机器必须使用本地代理而 Node 22 内置 fetch 不自动读取代理环境变量；验收进程注入标准 Undici ProxyAgent 后，仍基于真实公开 manifest 与 release bundle 完成升级，临时注入文件已删除且未进入产品或提交。
+- 社交漏项的结构原因是 NPM release owner 只强制了 package/runtime/docs/website，没有要求开始时检索最近一次成功 stable minor 的 X 证据，也没有把 X 文案与图片放入 release review。现已把“最近成功路径优先”和“帖子 ID + 作者/正文/媒体回读才算闭合”写回 owning skill，并让 release review 在 publish 前确定性校验 X 计划。
 
 ## NPM 包发布记录
 

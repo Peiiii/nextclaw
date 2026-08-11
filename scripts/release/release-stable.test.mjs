@@ -124,7 +124,11 @@ test("classifies stable release levels and requires surface review for minor or 
 });
 
 test("accepts audited docs and website decisions for a minor release", () => {
-  const existingPaths = new Set(["apps/docs/guide.md", "apps/landing/src/main.ts"]);
+  const existingPaths = new Set([
+    "apps/docs/guide.md",
+    "apps/landing/src/main.ts",
+    "images/screenshots/release.png"
+  ]);
   const result = inspectStableSurfaceReview({
     pathExists: (path) => existingPaths.has(path),
     previousVersion: "0.30.0",
@@ -133,7 +137,16 @@ test("accepts audited docs and website decisions for a minor release", () => {
       releaseType: "minor",
       surfaces: {
         docsSite: { decision: "updated", paths: ["apps/docs/guide.md"] },
-        website: { decision: "updated", paths: ["apps/landing/src/main.ts"] }
+        website: { decision: "updated", paths: ["apps/landing/src/main.ts"] },
+        socialPost: {
+          account: "@nextclaw",
+          channel: "x",
+          decision: "publish",
+          imageAlt: "Release screenshot",
+          imagePath: "images/screenshots/release.png",
+          releaseNotesUrl: "https://docs.nextclaw.io/en/notes/v0-31-0",
+          text: "NextClaw v0.31.0 is out. https://docs.nextclaw.io/en/notes/v0-31-0"
+        }
       }
     },
     targetVersion: "0.31.0"
@@ -148,13 +161,38 @@ test("accepts audited docs and website decisions for a minor release", () => {
       releaseType: "minor",
       surfaces: {
         docsSite: { decision: "updated", paths: ["apps/docs/guide.md"] },
-        website: { decision: "not-needed" }
+        website: { decision: "not-needed" },
+        socialPost: {
+          account: "@nextclaw",
+          channel: "x",
+          decision: "publish",
+          imageAlt: "Release screenshot",
+          imagePath: "images/screenshots/release.png",
+          releaseNotesUrl: "https://docs.nextclaw.io/en/notes/v0-31-0",
+          text: "NextClaw v0.31.0 is out. https://docs.nextclaw.io/en/notes/v0-31-0"
+        }
       }
     },
     targetVersion: "0.31.0"
   });
   assert.equal(missingReason.ready, false);
   assert.match(missingReason.issues.join("\n"), /requires a reason/);
+
+  const missingSocialPost = inspectStableSurfaceReview({
+    pathExists: () => true,
+    previousVersion: "0.30.0",
+    review: {
+      version: "0.31.0",
+      releaseType: "minor",
+      surfaces: {
+        docsSite: { decision: "updated", paths: ["apps/docs/guide.md"] },
+        website: { decision: "updated", paths: ["apps/landing/src/main.ts"] }
+      }
+    },
+    targetVersion: "0.31.0"
+  });
+  assert.equal(missingSocialPost.ready, false);
+  assert.match(missingSocialPost.issues.join("\n"), /social post decision must be publish/);
 });
 
 test("inherits a primary worktree npm config only when the linked worktree has none", () => {

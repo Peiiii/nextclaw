@@ -23,7 +23,8 @@ description: NextClaw NPM package 与 runtime channel 发布的唯一流程 owne
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
 - NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。
 - Registry、runtime channel、release notes、分支/记录回流和生成物清理按用户授权范围形成一个闭环。
-- `nextclaw` 的 stable `minor` / `major` 发布必须在 `docs/releases/nextclaw-v<version>.release-review.json` 中分别审查文档站和官网：每个 surface 要么列出真实更新路径，要么明确记录 `not-needed` 原因；`release:stable` 在 publish 前做确定性校验。
+- `nextclaw` 的 stable `minor` / `major` 发布必须在 `docs/releases/nextclaw-v<version>.release-review.json` 中审查文档站、官网和 X 宣发：文档站/官网要么列出真实更新路径，要么明确记录 `not-needed` 原因；stable minor 必须提前冻结 X 账号、正文、release note URL、图片和 alt，`release:stable` 在 publish 前做确定性校验。
+- 执行 stable minor X 帖前，先查最近一次成功 stable minor 的迭代记录并复用已经验证的 `x-bird`、Node/代理参数和回读命令；不得在已有成功路径时从通用工具重新推演。只有帖子返回 ID，并回读确认作者、正文和媒体后才算发布闭合；X 阻断时必须明确标记 social 未完成，不得对用户报告“全部完成”。
 
 ## 默认版本级别
 

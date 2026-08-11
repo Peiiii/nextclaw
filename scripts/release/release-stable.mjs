@@ -176,7 +176,7 @@ function ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeCh
   const surfaceReview = inspectReleaseSurfaceReview(previousVersion, targetVersion);
   if (!surfaceReview.ready) {
     throw new Error(
-      `Stable ${surfaceReview.releaseLevel} release requires a valid docs/website review at ${resolveReleaseSurfaceReviewPath(targetVersion)}: ${surfaceReview.issues.join("; ")}`
+      `Stable ${surfaceReview.releaseLevel} release requires a valid docs/website/X plan at ${resolveReleaseSurfaceReviewPath(targetVersion)}: ${surfaceReview.issues.join("; ")}`
     );
   }
 }

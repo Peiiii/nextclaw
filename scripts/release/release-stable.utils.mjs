@@ -136,6 +136,49 @@ export function resolveStableReleaseLevel(previousVersion, targetVersion) {
   return "patch";
 }
 
+function collectSocialPostReviewIssues({ pathExists, releaseLevel, socialPost }) {
+  const issues = [];
+  const allowedDecisions = releaseLevel === "minor" ? ["publish"] : ["publish", "not-needed"];
+  if (!socialPost || !allowedDecisions.includes(socialPost.decision)) {
+    issues.push(`social post decision must be ${allowedDecisions.join(" or ")}`);
+    return issues;
+  }
+  if (socialPost.decision === "not-needed") {
+    if (typeof socialPost.reason !== "string" || !socialPost.reason.trim()) {
+      issues.push("social post not-needed decision requires a reason");
+    }
+    return issues;
+  }
+  for (const field of ["account", "text", "imagePath", "imageAlt", "releaseNotesUrl"]) {
+    if (typeof socialPost[field] !== "string" || !socialPost[field].trim()) {
+      issues.push(`social post ${field} is required`);
+    }
+  }
+  if (socialPost.channel !== "x") issues.push("social post channel must be x");
+  if (socialPost.account && !/^@[A-Za-z0-9_]{1,15}$/.test(socialPost.account)) {
+    issues.push("social post account must be an X handle");
+  }
+  if (socialPost.text?.length > 280) issues.push("social post text must be at most 280 characters");
+  if (socialPost.releaseNotesUrl && !socialPost.text?.includes(socialPost.releaseNotesUrl)) {
+    issues.push("social post text must include releaseNotesUrl");
+  }
+  if (socialPost.imagePath && !pathExists(socialPost.imagePath)) {
+    issues.push(`social post imagePath does not exist: ${socialPost.imagePath}`);
+  }
+  return issues;
+}
+
+function collectReleaseIdentityIssues({ releaseLevel, review, targetVersion }) {
+  const issues = [];
+  if (review.version !== targetVersion) {
+    issues.push(`review version must be ${targetVersion}`);
+  }
+  if (review.releaseType !== releaseLevel) {
+    issues.push(`review releaseType must be ${releaseLevel}`);
+  }
+  return issues;
+}
+
 export function inspectStableSurfaceReview({
   pathExists,
   previousVersion,
@@ -153,12 +196,7 @@ export function inspectStableSurfaceReview({
     issues.push("release review is missing");
     return { issues, ready: false, releaseLevel, required };
   }
-  if (review.version !== targetVersion) {
-    issues.push(`review version must be ${targetVersion}`);
-  }
-  if (review.releaseType !== releaseLevel) {
-    issues.push(`review releaseType must be ${releaseLevel}`);
-  }
+  issues.push(...collectReleaseIdentityIssues({ releaseLevel, review, targetVersion }));
 
   for (const [surfaceKey, label] of [
     ["docsSite", "docs site"],
@@ -188,6 +226,12 @@ export function inspectStableSurfaceReview({
       }
     }
   }
+
+  issues.push(...collectSocialPostReviewIssues({
+    pathExists,
+    releaseLevel,
+    socialPost: review.surfaces?.socialPost
+  }));
 
   return { issues, ready: issues.length === 0, releaseLevel, required };
 }
@@ -259,7 +303,7 @@ export function buildStableDryRunPlan({
     `- release packages: ${packageCount}`,
     `- nextclaw version: ${includesNextclaw ? `${previousVersion} -> ${targetVersion}` : "not in batch"}`,
     `- structured release notes: ${includesNextclaw ? (releaseNotesReady ? "ready" : "missing") : "not required"}`,
-    `- docs/website release review: ${
+    `- docs/website/X release plan: ${
       !includesNextclaw || !surfaceReviewRequired
         ? "not required"
         : surfaceReviewReady

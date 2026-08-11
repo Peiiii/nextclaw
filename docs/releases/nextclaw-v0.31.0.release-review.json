@@ -20,6 +20,15 @@
         "images/screenshots/nextclaw-workspace-explorer-cn.png",
         "images/screenshots/nextclaw-workspace-explorer-en.png"
       ]
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.31.0 is out.\n\nProject files and previews now stay together, with tabs, in-place actions, and remembered Explorer width.\n\nAlso: parallel tools and steadier long-running sessions.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-11-nextclaw-v0-31-0",
+      "imagePath": "images/screenshots/nextclaw-workspace-explorer-en.png",
+      "imageAlt": "NextClaw v0.31.0 project Explorer displayed beside a Markdown file preview",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-11-nextclaw-v0-31-0"
     }
   }
 }
