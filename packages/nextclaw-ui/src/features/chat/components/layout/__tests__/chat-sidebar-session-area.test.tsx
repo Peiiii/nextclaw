@@ -31,14 +31,26 @@ describe("ChatSidebarSessionArea", () => {
     const timeButton = screen.getByRole("button", { name: "Time" });
     const projectButton = screen.getByRole("button", { name: "Project" });
 
+    expect(modeGroup.className).toContain("h-7");
     expect(modeGroup.className).toContain("rounded-full");
-    expect(modeGroup.querySelector("span[aria-hidden='true']")?.className).toContain(
-      "transition-transform",
-    );
+    expect(modeGroup.className).toContain("bg-foreground/[0.04]");
+    expect(modeGroup.className).not.toContain("border");
+    expect(modeGroup.className).not.toContain("shadow-inner");
+    const modeIndicator = modeGroup.querySelector("span[aria-hidden='true']");
+    expect(modeIndicator?.className).toContain("rounded-full");
+    expect(modeIndicator?.className).toContain("bg-gray-200/70");
+    expect(modeIndicator?.className).not.toContain("shadow-");
+    expect(modeIndicator?.className).not.toContain("ring-");
+    expect(modeIndicator?.className).toContain("transition-transform");
     expect(timeButton.getAttribute("aria-pressed")).toBe("true");
     expect(projectButton.getAttribute("aria-pressed")).toBe("false");
+    expect(timeButton.className).toContain("rounded-full");
+    expect(projectButton.className).toContain("rounded-full");
     expect(timeButton.querySelector("svg")).not.toBeNull();
     expect(projectButton.querySelector("svg")).not.toBeNull();
+    expect(modeGroup.parentElement?.className).toContain("justify-end");
+    expect(modeGroup.parentElement?.className).toContain("h-8");
+    expect(modeGroup.parentElement?.lastElementChild).toBe(modeGroup);
 
     fireEvent.click(projectButton);
 
@@ -57,11 +69,13 @@ describe("ChatSidebarSessionArea", () => {
         .querySelector("svg")
         ?.classList.contains("lucide-folder-plus"),
     ).toBe(true);
+    expect(addProjectButton.className).toContain("hover:bg-gray-200/60");
     expect(modeIndicator?.className).toContain("translate-x-full");
     expect(modeIndicator?.className).toContain("motion-reduce:transition-none");
     expect(screen.getByRole("button", { name: "Project" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
+    expect(modeIndicator?.parentElement?.previousElementSibling).toBe(addProjectButton);
     fireEvent.click(addProjectButton);
 
     expect(onAddProject).toHaveBeenCalledOnce();

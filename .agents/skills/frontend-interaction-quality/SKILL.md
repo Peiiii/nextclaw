@@ -20,6 +20,8 @@ description: 当设计、修改或评估前端交互、链接/按钮语义、控
 - modal overlay/content 都高于触发面板，content 高于 overlay，不能只有遮罩可见。
 - 紧凑模式保留操作含义或当前值；直接动作优先 tooltip，选项/二级动作优先 popover/menu/select。
 - hover、focus-visible、active、disabled、selected 表达一致层级。文本输入框例外：光标和选区已表达焦点，聚焦前后容器背景、边框、阴影和 ring 不变。
+- Hover 反馈跟随承载 surface：同一背景、同一层级里的同级按钮、列表项和图标动作复用同一反馈色阶，默认在原 surface 上做轻微加深或提亮，不切换成 card、popover、background 等另一层实体表面。Shared primitive 用语义 tone 承载差异，宿主只选择 tone，不复制临时颜色；选中、危险和浮层状态按自身语义例外处理。
+- 状态强度匹配任务权重：次级视图切换、筛选和排序只在原 surface 内使用同色系 tonal fill，不获得 card/popover 级亮度、白色浮面或 elevation；只有主任务、需要持续定位的重要选择，或真实浮层对象才提升表面层级。
 - hover 浮动操作默认零视觉、零占位、零 hit target，显示后恢复命中；浮层在触发面外时提供不可见 hover bridge。
 - 危险、不可逆、跨系统或可能丢数据的操作有清晰文案、确认或撤销；普通导航不滥用确认。
 

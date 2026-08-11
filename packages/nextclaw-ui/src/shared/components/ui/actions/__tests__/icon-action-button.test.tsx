@@ -34,6 +34,21 @@ describe('IconActionButton', () => {
     expect(button.className).toContain('hover:bg-[var(--interaction-hover)]');
   });
 
+  it('uses surface-relative feedback without introducing a new surface', () => {
+    render(
+      <IconActionButton
+        tone="surface"
+        icon={<span data-testid="icon" />}
+        label="Add project"
+      />,
+    );
+
+    const button = screen.getByRole('button', { name: 'Add project' });
+    expect(button.className).toContain('hover:bg-gray-200/60');
+    expect(button.className).toContain('hover:text-gray-900');
+    expect(button.className).toContain('active:bg-gray-200/80');
+  });
+
   it('ignores restored pointer focus while preserving keyboard tooltip focus', () => {
     render(
       <IconActionButton

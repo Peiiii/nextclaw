@@ -8,7 +8,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 
 type IconActionButtonSize = 'sm' | 'md' | 'lg';
-type IconActionButtonTone = 'default' | 'strong';
+type IconActionButtonTone = 'default' | 'surface' | 'strong';
 
 type IconActionButtonProps = Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -17,7 +17,7 @@ type IconActionButtonProps = Omit<
   icon: React.ReactNode;
   label: string;
   size?: IconActionButtonSize;
-  /** default: soft accent hover. strong: denser gray hover for nested hover surfaces. */
+  /** default: global interaction hover. surface: relative feedback on the current surface. strong: denser feedback for nested hover surfaces. */
   tone?: IconActionButtonTone;
   tooltip?: string | false | null;
   tooltipSide?: 'top' | 'right' | 'bottom' | 'left';
@@ -32,6 +32,8 @@ const SIZE_CLASS: Record<IconActionButtonSize, string> = {
 const TONE_CLASS: Record<IconActionButtonTone, string> = {
   default:
     'text-muted-foreground hover:bg-[var(--interaction-hover)] hover:text-accent-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
+  surface:
+    'text-muted-foreground hover:bg-gray-200/60 hover:text-gray-900 active:bg-gray-200/80 disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
   strong:
     'text-muted-foreground hover:bg-black/10 hover:text-foreground disabled:text-muted-foreground/45 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/45',
 };

@@ -165,20 +165,19 @@ export function ChatSidebarSessionArea({
 
   return (
     <>
-      <div className="flex items-center justify-end px-4 pb-1 pt-2">
-        <div className="flex h-8 items-center gap-1.5">
-          {isProjectFirstView ? (
-            <IconActionButton
-              icon={<FolderPlus className="h-3.5 w-3.5" />}
-              label={t("chatProjectAdd")}
-              onClick={onAddProject}
-            />
-          ) : null}
-          <ChatSidebarListModeSwitch
-            isProjectFirstView={isProjectFirstView}
-            onSelectMode={onSelectMode}
+      <div className="flex h-8 items-center justify-end gap-1 px-3">
+        {isProjectFirstView ? (
+          <IconActionButton
+            icon={<FolderPlus className="h-3.5 w-3.5" />}
+            label={t("chatProjectAdd")}
+            tone="surface"
+            onClick={onAddProject}
           />
-        </div>
+        ) : null}
+        <ChatSidebarListModeSwitch
+          isProjectFirstView={isProjectFirstView}
+          onSelectMode={onSelectMode}
+        />
       </div>
 
       <div
