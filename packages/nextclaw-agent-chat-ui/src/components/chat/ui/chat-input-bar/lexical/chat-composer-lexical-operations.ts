@@ -129,6 +129,7 @@ export function insertInputSurfaceItemIntoChatComposer(params: {
   }
 
   return insertChatComposerTokenIntoChatComposer({
+    data: item.data,
     label: item.title,
     nodes,
     selection,

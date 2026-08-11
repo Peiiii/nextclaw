@@ -3,11 +3,16 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { InboxDelivery } from "@nextclaw/shared";
 
-const INBOX_DELIVERY_STORE_VERSION = 1;
+const INBOX_DELIVERY_STORE_VERSION = 2;
+const LEGACY_INBOX_DELIVERY_STORE_VERSION = 1;
 
 type InboxDeliveryStoreFile = {
   version: typeof INBOX_DELIVERY_STORE_VERSION;
   deliveries: InboxDelivery[];
+};
+
+type LegacyInboxDelivery = InboxDelivery & {
+  conversationSessionId: string | null;
 };
 
 export class InboxDeliveryStoreError extends Error {
@@ -54,19 +59,25 @@ export class InboxDeliveryStore {
     const value = JSON.parse(source) as unknown;
     if (
       !this.isRecord(value) ||
-      value.version !== INBOX_DELIVERY_STORE_VERSION ||
+      (value.version !== INBOX_DELIVERY_STORE_VERSION &&
+        value.version !== LEGACY_INBOX_DELIVERY_STORE_VERSION) ||
       !Array.isArray(value.deliveries) ||
-      !value.deliveries.every(this.isDelivery)
+      !value.deliveries.every((delivery) =>
+        this.isDelivery(delivery, value.version === LEGACY_INBOX_DELIVERY_STORE_VERSION)
+      )
     ) {
       throw new InboxDeliveryStoreError("inbox delivery store has an unsupported structure");
     }
     return {
       version: INBOX_DELIVERY_STORE_VERSION,
-      deliveries: value.deliveries.map((delivery) => structuredClone(delivery)),
+      deliveries: value.deliveries.map((delivery) => this.toCurrentDelivery(delivery)),
     };
   };
 
-  private isDelivery = (value: unknown): value is InboxDelivery => {
+  private isDelivery = (
+    value: unknown,
+    legacy: boolean,
+  ): value is InboxDelivery | LegacyInboxDelivery => {
     if (!this.isRecord(value) || !this.isSource(value.source)) {
       return false;
     }
@@ -81,8 +92,15 @@ export class InboxDeliveryStore {
       this.isOptionalTimestamp(value.presentedAt) &&
       this.isOptionalTimestamp(value.readAt) &&
       this.isOptionalTimestamp(value.archivedAt) &&
-      (value.conversationSessionId === null || typeof value.conversationSessionId === "string")
+      (!legacy || value.conversationSessionId === null || typeof value.conversationSessionId === "string")
     );
+  };
+
+  private toCurrentDelivery = (
+    delivery: InboxDelivery | LegacyInboxDelivery,
+  ): InboxDelivery => {
+    const { conversationSessionId: _legacySessionId, ...current } = delivery as LegacyInboxDelivery;
+    return structuredClone(current);
   };
 
   private isSource = (value: unknown): value is InboxDelivery["source"] =>

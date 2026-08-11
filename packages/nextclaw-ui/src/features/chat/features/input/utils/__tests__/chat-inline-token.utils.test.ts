@@ -194,6 +194,11 @@ describe('chat inline token workspace references', () => {
           tokenKey: 'docs/设计',
           label: '设计',
         }),
+        createChatComposerTokenNode({
+          tokenKind: 'workspace_directory',
+          tokenKey: '.',
+          label: 'project root',
+        }),
       ]),
     ).toEqual([
       {
@@ -208,9 +213,15 @@ describe('chat inline token workspace references', () => {
         label: '设计',
         rawText: '@folder:docs%2F%E8%AE%BE%E8%AE%A1',
       },
+      {
+        kind: 'workspace_directory',
+        key: '.',
+        label: 'project root',
+        rawText: '@folder:.',
+      },
     ]);
     expect(
-      buildInlineTokensFromTextProtocol('review @file:src%2Ffile%20name.ts and @folder:docs%2F%E8%AE%BE%E8%AE%A1'),
+      buildInlineTokensFromTextProtocol('review @file:src%2Ffile%20name.ts and @folder:docs%2F%E8%AE%BE%E8%AE%A1 plus @folder:.'),
     ).toEqual([
       {
         kind: 'workspace_file',
@@ -223,6 +234,12 @@ describe('chat inline token workspace references', () => {
         key: 'docs/设计',
         label: '设计',
         rawText: '@folder:docs%2F%E8%AE%BE%E8%AE%A1',
+      },
+      {
+        kind: 'workspace_directory',
+        key: '.',
+        label: '.',
+        rawText: '@folder:.'
       },
     ]);
   });
@@ -301,6 +318,41 @@ describe('chat inline token workspace references', () => {
       label: 'AI reply',
       excerpt: 'Keep the visible tag concise.',
       rawText: '@message-excerpt:assistant-1%23excerpt-demo',
+    }]);
+    expect(readInlineTokensFromMetadata({
+      ui_inline_tokens: createInlineTokensMetadata(tokens),
+    })).toEqual(tokens);
+  });
+
+  it('round-trips a visible system object token with its resolved snapshot', () => {
+    const reference = {
+      uri: 'nextclaw://objects/inbox-delivery/delivery-1',
+      objectType: 'inbox-delivery',
+      objectId: 'delivery-1',
+      label: 'OOM investigation report',
+      description: 'Root cause and mitigation',
+      updatedAt: '2026-08-11T00:00:00.000Z',
+      version: 'sha256-report',
+      assetUri: 'asset://store/report',
+      fileName: 'oom-investigation-report.md',
+      mimeType: 'text/markdown',
+      sizeBytes: 128,
+    };
+    const tokens = buildInlineTokensFromComposer([
+      createChatComposerTokenNode({
+        tokenKind: 'system_object',
+        tokenKey: reference.uri,
+        label: reference.label,
+        data: { reference },
+      }),
+    ]);
+
+    expect(tokens).toEqual([{
+      kind: 'system_object',
+      key: reference.uri,
+      label: reference.label,
+      rawText: `@object:${encodeURIComponent(reference.uri)}`,
+      reference,
     }]);
     expect(readInlineTokensFromMetadata({
       ui_inline_tokens: createInlineTokensMetadata(tokens),

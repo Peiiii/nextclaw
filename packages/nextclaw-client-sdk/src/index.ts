@@ -6,6 +6,7 @@ export {
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
+export { SystemObjectReferencesService } from "./services/system-object-references.service.js";
 export { eventKeys } from "@nextclaw/shared";
 export type {
   AgentRunSendIngressPayload,
@@ -179,10 +180,16 @@ export type {
 } from "@nextclaw/ncp";
 export type { UpdateSnapshot } from "@nextclaw/shared";
 export type {
+  SystemObjectReferenceDisplayText,
+  SystemObjectReferenceGroupDescriptor,
+  SystemObjectReferenceGroupIcon,
+  SystemObjectReferenceGroupView,
   InboxDelivery,
-  InboxDeliveryContinueResult,
   InboxDeliveryListView,
   InboxDeliveryStateAction,
+  SystemObjectReferenceItem,
+  SystemObjectReferenceListView,
+  SystemObjectResolvedReference,
 } from "@nextclaw/shared";
 export type ChannelConfigUpdate = Record<string, unknown>;
 export type PanelAppPreferencesUpdateView = { favorite?: boolean };

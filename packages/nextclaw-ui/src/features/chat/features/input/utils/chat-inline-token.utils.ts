@@ -1,18 +1,23 @@
-import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_INLINE_TOKENS_METADATA_KEY,
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_PROJECT_TOKEN_KIND,
+  CHAT_SYSTEM_OBJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   type ChatInlineTokenMetadata,
   type ChatInlineTokensMetadata,
   type ChatSkillSource,
+  type SystemObjectResolvedReference,
 } from '@nextclaw/shared';
-import { serializeChatComposerTokenText } from './chat-composer-token-protocol.utils';
-import { buildConversationExcerptInlineToken, readConversationExcerptInlineToken } from './chat-conversation-excerpt-token.utils';
+import { readConversationExcerptInlineToken } from './chat-conversation-excerpt-token.utils';
+import { readSystemObjectResolvedReference } from './chat-system-object-reference.utils';
+export {
+  buildInlineTokensFromComposer,
+  type ChatSkillReferenceSnapshot,
+} from './chat-inline-token-composer.utils';
 
 export { CHAT_INLINE_TOKENS_METADATA_KEY };
 const CHAT_PANEL_APP_TOKEN_PREFIX = '@panel-app:';
@@ -20,13 +25,7 @@ const CHAT_PANEL_APP_TOKEN_PATTERN = /@panel-app:([A-Za-z0-9_-]+)/g;
 const CHAT_PROJECT_TOKEN_PATTERN = /@project:([^\s]+)/g;
 const CHAT_WORKSPACE_FILE_TOKEN_PATTERN = /@file:([^\s]+)/g;
 const CHAT_WORKSPACE_DIRECTORY_TOKEN_PATTERN = /@folder:([^\s]+)/g;
-
-export type ChatSkillReferenceSnapshot = {
-  ref: string;
-  name: string;
-  source: ChatSkillSource;
-  path: string;
-};
+const CHAT_SYSTEM_OBJECT_TOKEN_PATTERN = /@object:([^\s]+)/g;
 
 export type ChatInlineTokenSource =
   | {
@@ -62,6 +61,13 @@ export type ChatInlineTokenSource =
       key: string;
       label: string;
       rawText: string;
+    }
+  | {
+      kind: typeof CHAT_SYSTEM_OBJECT_TOKEN_KIND;
+      key: string;
+      label: string;
+      rawText: string;
+      reference: SystemObjectResolvedReference;
     };
 
 export function resolveWorkspaceReferencePath(params: {
@@ -114,100 +120,10 @@ function dedupeInlineTokens<T extends ChatInlineTokenSource>(tokens: readonly T[
   return output;
 }
 
-function appendWorkspaceExcerptToken(
-  tokens: ChatInlineTokenMetadata[],
-  node: Extract<ChatComposerNode, { type: 'token' }>,
-  rawText: string,
-): void {
-  const path = readOptionalString(node.data?.path);
-  const excerpt = readOptionalString(node.data?.excerpt);
-  if (!path || !excerpt) return;
-  tokens.push({
-    kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
-    key: node.tokenKey,
-    path,
-    label: node.label,
-    excerpt,
-    startLine: readOptionalLine(node.data?.startLine),
-    endLine: readOptionalLine(node.data?.endLine),
-    rawText,
-  });
-}
-
-export function buildInlineTokensFromComposer(
-  nodes: readonly ChatComposerNode[],
-  skillRecords: readonly ChatSkillReferenceSnapshot[] = [],
-): ChatInlineTokenMetadata[] {
-  const skillByRef = new Map(skillRecords.map((record) => [record.ref, record]));
-  const tokens: ChatInlineTokenMetadata[] = [];
-  for (const node of nodes) {
-    if (node.type !== 'token') {
-      continue;
-    }
-    if (
-      node.tokenKind !== 'skill' &&
-      node.tokenKind !== CHAT_PROJECT_TOKEN_KIND &&
-      node.tokenKind !== CHAT_WORKSPACE_FILE_TOKEN_KIND &&
-      node.tokenKind !== CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND &&
-      node.tokenKind !== CHAT_WORKSPACE_EXCERPT_TOKEN_KIND &&
-      node.tokenKind !== CHAT_CONVERSATION_EXCERPT_TOKEN_KIND
-    ) {
-      continue;
-    }
-    const rawText = serializeChatComposerTokenText(node);
-    if (!rawText) {
-      continue;
-    }
-    if (node.tokenKind === 'skill') {
-      const skill = skillByRef.get(node.tokenKey);
-      if (!skill?.path.trim()) {
-        continue;
-      }
-      tokens.push({
-        kind: 'skill',
-        ref: skill.ref,
-        name: skill.name,
-        source: skill.source,
-        path: skill.path,
-        label: node.label,
-        rawText,
-      });
-      continue;
-    }
-    if (node.tokenKind === CHAT_PROJECT_TOKEN_KIND) {
-      tokens.push({
-        kind: CHAT_PROJECT_TOKEN_KIND,
-        key: node.tokenKey,
-        label: node.label,
-        rawText,
-      });
-      continue;
-    }
-    if (node.tokenKind === CHAT_WORKSPACE_EXCERPT_TOKEN_KIND) {
-      appendWorkspaceExcerptToken(tokens, node, rawText);
-      continue;
-    }
-    if (node.tokenKind === CHAT_CONVERSATION_EXCERPT_TOKEN_KIND) {
-      const token = buildConversationExcerptInlineToken(node, rawText);
-      if (token) tokens.push(token);
-      continue;
-    }
-    const workspaceKind = node.tokenKind === CHAT_WORKSPACE_FILE_TOKEN_KIND
-      ? CHAT_WORKSPACE_FILE_TOKEN_KIND
-      : CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
-    tokens.push({
-      kind: workspaceKind,
-      key: node.tokenKey,
-      label: node.label,
-      rawText,
-    });
-  }
-  return dedupeInlineTokens(tokens);
-}
-
 function appendEncodedKeyTokens(params: {
   kind:
     | typeof CHAT_PROJECT_TOKEN_KIND
+    | typeof CHAT_SYSTEM_OBJECT_TOKEN_KIND
     | typeof CHAT_WORKSPACE_FILE_TOKEN_KIND
     | typeof CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
   pattern: RegExp;
@@ -252,6 +168,12 @@ export function buildInlineTokensFromTextProtocol(text: string): ChatInlineToken
   appendEncodedKeyTokens({
     kind: CHAT_PROJECT_TOKEN_KIND,
     pattern: CHAT_PROJECT_TOKEN_PATTERN,
+    text,
+    tokens,
+  });
+  appendEncodedKeyTokens({
+    kind: CHAT_SYSTEM_OBJECT_TOKEN_KIND,
+    pattern: CHAT_SYSTEM_OBJECT_TOKEN_PATTERN,
     text,
     tokens,
   });
@@ -339,6 +261,13 @@ function readInlineTokenEntry(entry: unknown): ChatInlineTokenSource | null {
   }
   if (kind === CHAT_CONVERSATION_EXCERPT_TOKEN_KIND) {
     return readConversationExcerptInlineToken({ entry, label, rawText });
+  }
+  if (kind === CHAT_SYSTEM_OBJECT_TOKEN_KIND) {
+    const key = readOptionalString(entry.key);
+    const reference = readSystemObjectResolvedReference(entry.reference);
+    return key && reference && reference.uri === key
+      ? { kind, key, label, rawText, reference }
+      : null;
   }
   const key = readOptionalString(entry.key);
   return key ? { kind, key, rawText, label } : null;

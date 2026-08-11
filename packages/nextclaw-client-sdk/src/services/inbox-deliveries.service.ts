@@ -1,6 +1,5 @@
 import type {
   InboxDelivery,
-  InboxDeliveryContinueResult,
   InboxDeliveryListView,
   InboxDeliveryStateAction,
 } from "@nextclaw/shared";
@@ -29,13 +28,6 @@ export class InboxDeliveriesService {
     );
     return result.deleted;
   };
-
-  readonly continueInChat = async (
-    deliveryId: string,
-  ): Promise<InboxDeliveryContinueResult> =>
-    await this.requestService.post<InboxDeliveryContinueResult>(
-      `${this.deliveryPath(deliveryId)}/continue`,
-    );
 
   private deliveryPath = (deliveryId: string): string =>
     `/api/inbox/deliveries/${encodeURIComponent(deliveryId)}`;

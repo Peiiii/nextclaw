@@ -57,11 +57,6 @@ export class InboxDeliveriesRoutesController {
     return c.json(ok({ deleted: true, deliveryId }));
   };
 
-  readonly continueInChat = async (c: Context) =>
-    await this.handleManagerAction(c, () =>
-      this.manager.continueInChat(c.req.param("deliveryId"))
-    );
-
   private handleManagerAction = async (
     c: Context,
     action: () => Promise<unknown>,

@@ -30,10 +30,12 @@ export type ChatInputSurfaceMenuTexts = {
 
 export type ChatInputSurfaceItemIcon =
   | 'back'
+  | 'calendar-clock'
   | 'command'
   | 'file'
   | 'files'
   | 'folder'
+  | 'inbox'
   | 'list-collapse'
   | 'message-square-plus'
   | 'panel-app'
@@ -50,6 +52,7 @@ export type ChatInputSurfacePathPreview = {
 
 export type ChatInputSurfaceItem = {
   key: string;
+  data?: Record<string, unknown>;
   icon?: ChatInputSurfaceItemIcon;
   title: string;
   subtitle: string;
@@ -61,7 +64,7 @@ export type ChatInputSurfaceItem = {
   value?: string;
   tokenKind?: string;
   tokenKey?: string;
-  selectionBehavior?: 'insert' | 'navigate';
+  selectionBehavior?: 'action' | 'insert' | 'navigate';
   pathPreview?: ChatInputSurfacePathPreview;
 };
 

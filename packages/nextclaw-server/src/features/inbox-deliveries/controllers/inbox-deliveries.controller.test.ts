@@ -26,7 +26,6 @@ const delivery: InboxDelivery = {
   presentedAt: null,
   readAt: null,
   archivedAt: null,
-  conversationSessionId: null,
 };
 
 function createTestApp(
@@ -38,7 +37,6 @@ function createTestApp(
   app.get("/api/inbox/deliveries/:deliveryId", controller.get);
   app.patch("/api/inbox/deliveries/:deliveryId", controller.updateState);
   app.delete("/api/inbox/deliveries/:deliveryId", controller.delete);
-  app.post("/api/inbox/deliveries/:deliveryId/continue", controller.continueInChat);
   return app;
 }
 
@@ -62,7 +60,6 @@ describe("inbox delivery routes", () => {
       getDelivery: async () => delivery,
       updateDeliveryState,
       deleteDelivery: async () => true,
-      continueInChat: async () => ({ delivery, sessionId: "session-1", created: true }),
     } as never);
 
     const listResponse = await app.request("http://localhost/api/inbox/deliveries");
@@ -83,24 +80,13 @@ describe("inbox delivery routes", () => {
     expect(updateDeliveryState).toHaveBeenCalledWith("delivery-1", "present");
   });
 
-  it("continues in a linked chat and rejects invalid state actions", async () => {
-    const continueInChat = vi.fn(async () => ({
-      delivery: { ...delivery, readAt: "2026-08-06T01:00:00.000Z" },
-      sessionId: "session-1",
-      created: true,
-    }));
+  it("rejects invalid state actions", async () => {
     const app = createTestApp({
       listDeliveries: async () => ({ deliveries: [], total: 0, unreadCount: 0, unpresentedCount: 0 }),
       getDelivery: async () => delivery,
       updateDeliveryState: async () => delivery,
       deleteDelivery: async () => false,
-      continueInChat,
     } as never);
-
-    const continueResponse = await app.request(
-      "http://localhost/api/inbox/deliveries/delivery-1/continue",
-      { method: "POST" },
-    );
     const invalidResponse = await app.request(
       "http://localhost/api/inbox/deliveries/delivery-1",
       {
@@ -110,9 +96,6 @@ describe("inbox delivery routes", () => {
       },
     );
 
-    expect(continueResponse.status).toBe(200);
-    await expect(continueResponse.json()).resolves.toMatchObject({ data: { sessionId: "session-1" } });
-    expect(continueInChat).toHaveBeenCalledWith("delivery-1");
     expect(invalidResponse.status).toBe(400);
   });
 });

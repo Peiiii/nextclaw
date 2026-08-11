@@ -12,7 +12,7 @@ import type { ChatInputBarAdapterTexts } from '@/features/chat/types/chat-input-
 import {
   buildPanelAppInputSurfaceItems,
   type PanelAppInputSurfaceItemTexts,
-} from './context-reference-plugin.utils';
+} from './panel-app-input-surface-items.utils';
 import {
   resolveInputSurfaceMatchTier,
   scoreInputSurfaceSearchCandidate,

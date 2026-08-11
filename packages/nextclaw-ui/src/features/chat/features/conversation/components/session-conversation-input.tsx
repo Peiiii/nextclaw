@@ -47,6 +47,7 @@ import { useSessionConversationInputAttachments } from '@/features/chat/features
 import { useChatComposerReferenceIntent } from '@/features/chat/features/conversation/hooks/use-chat-composer-reference-intent';
 import { useSessionConversationComposerNodes } from '@/features/chat/features/conversation/hooks/use-session-conversation-composer-nodes';
 import { useSessionConversationSlashCommands } from '@/features/chat/features/conversation/hooks/use-session-conversation-slash-commands';
+import { useSystemObjectReferenceSelect } from '@/features/chat/features/conversation/hooks/use-system-object-reference-select';
 import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
 import type { useSessionConversationInputQuery } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-query';
@@ -231,6 +232,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   const contextReferenceProjectRoot = inputQuery.selectedSessionKey
     ? inputQuery.selectedSession?.projectRoot ?? inputQuery.defaultProjectRoot ?? ''
     : inputSnapshot.pendingProjectRoot ?? inputQuery.defaultProjectRoot ?? '';
+  const handleSystemObjectSelect = useSystemObjectReferenceSelect(inputBarRef);
   const { inputSurfaceState, setInputSurfaceTrigger } = useChatInputSurfaceState({
     commands: slashCommands,
     isSkillsLoading: inputQuery.isSkillsLoading,
@@ -240,6 +242,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     language,
     onSelectPanelApp: handleSlashPanelAppSelect,
     onSelectSkill: chatRecentSkillsManager.remember,
+    onSelectSystemObject: handleSystemObjectSelect,
     projectRoot: contextReferenceProjectRoot,
     recentSkillValues,
     skillRecords,

@@ -1,7 +1,11 @@
+import type { SystemObjectResolvedReference } from '@nextclaw/shared';
+
 export type ChatDraftIntent = {
   id: number;
-  prompt: string;
-};
+} & (
+  | { kind: 'prompt'; prompt: string }
+  | { kind: 'system-object-reference'; reference: SystemObjectResolvedReference }
+);
 
 type ChatDraftIntentListener = (intent: ChatDraftIntent) => void;
 
@@ -17,7 +21,19 @@ export class ChatDraftIntentManager {
     }
     const intent: ChatDraftIntent = {
       id: this.nextId + 1,
+      kind: 'prompt',
       prompt: normalizedPrompt,
+    };
+    this.nextId = intent.id;
+    this.pendingIntent = intent;
+    this.listeners.forEach((listener) => listener(intent));
+  };
+
+  requestSystemObjectReference = (reference: SystemObjectResolvedReference) => {
+    const intent: ChatDraftIntent = {
+      id: this.nextId + 1,
+      kind: 'system-object-reference',
+      reference: structuredClone(reference),
     };
     this.nextId = intent.id;
     this.pendingIntent = intent;

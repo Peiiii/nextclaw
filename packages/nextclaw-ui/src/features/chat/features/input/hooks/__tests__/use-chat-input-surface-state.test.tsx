@@ -42,6 +42,14 @@ const useServerPathBrowseMock = vi.hoisted(() =>
     isLoading: false,
   })),
 );
+const useSystemObjectReferencesMock = vi.hoisted(() =>
+  vi.fn(() => ({
+    data: { groups: [], total: 0 },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  })),
+);
 
 vi.mock('@/features/panel-apps', () => ({
   usePanelApps: usePanelAppsMock,
@@ -54,6 +62,9 @@ vi.mock('@/shared/hooks/use-server-path-search', () => ({
 }));
 vi.mock('@/shared/hooks/use-server-path-browse', () => ({
   useServerPathBrowse: useServerPathBrowseMock,
+}));
+vi.mock('@/shared/hooks/use-system-object-references', () => ({
+  useSystemObjectReferences: useSystemObjectReferencesMock,
 }));
 
 function createHookParams() {
@@ -71,6 +82,7 @@ function createHookParams() {
     language: 'zh' as const,
     onSelectPanelApp: vi.fn(),
     onSelectSkill: vi.fn(),
+    onSelectSystemObject: vi.fn(),
     projectRoot: '/tmp/project',
     recentSkillValues: [],
     skillRecords: [],
@@ -82,6 +94,62 @@ beforeEach(() => {
   useProjectsMock.mockClear();
   useServerPathBrowseMock.mockClear();
   useServerPathSearchMock.mockClear();
+  useSystemObjectReferencesMock.mockReset();
+  useSystemObjectReferencesMock.mockReturnValue({
+    data: { groups: [], total: 0 },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  } as never);
+});
+
+it('loads the catalog at root and scopes queries after entering a system object group', () => {
+  useSystemObjectReferencesMock.mockReturnValue({
+    data: {
+      groups: [{
+        objectType: 'cron-job',
+        label: { default: 'Scheduled Tasks', translations: { zh: '定时任务' } },
+        description: { default: 'Browse tasks', translations: { zh: '浏览定时任务' } },
+        icon: 'calendar-clock',
+        order: 200,
+        items: [],
+        total: 1,
+      }],
+      total: 1,
+    },
+    error: null,
+    isFetching: false,
+    isLoading: false,
+  } as never);
+  const { result } = renderHook(() => useChatInputSurfaceState(createHookParams()));
+
+  act(() => result.current.setInputSurfaceTrigger({
+    end: 1,
+    key: 'context-reference',
+    marker: '@',
+    query: '',
+    start: 0,
+  }));
+  expect(useSystemObjectReferencesMock).toHaveBeenLastCalledWith({
+    enabled: true,
+    query: '',
+    limit: 6,
+    objectType: undefined,
+  });
+  const groupItem = result.current.inputSurfaceState.panel?.items.find(
+    (item) => item.title === '定时任务',
+  );
+  act(() => result.current.inputSurfaceState.panel?.onSelectItem?.(groupItem!));
+
+  expect(useSystemObjectReferencesMock).toHaveBeenLastCalledWith({
+    enabled: true,
+    query: '',
+    limit: 20,
+    objectType: 'cron-job',
+  });
+  expect(useServerPathSearchMock).toHaveBeenLastCalledWith(expect.objectContaining({
+    enabled: false,
+  }));
 });
 
 it('browses nested folders while reserving search for project-wide queries', () => {
@@ -131,6 +199,40 @@ it('browses nested folders while reserving search for project-wide queries', () 
     query: 'needle',
     enabled: true,
   });
+});
+
+it('uses a folder-only browser and exposes the current folder as the selection', () => {
+  const { result } = renderHook(() => useChatInputSurfaceState(createHookParams()));
+
+  act(() => result.current.setInputSurfaceTrigger({
+    end: 1,
+    key: 'context-reference',
+    marker: '@',
+    query: '',
+    start: 0,
+  }));
+  const foldersItem = result.current.inputSurfaceState.panel?.items.find(
+    (item) => item.title === '文件夹',
+  );
+  act(() => result.current.inputSurfaceState.panel?.onSelectItem?.(foldersItem!));
+
+  expect(useServerPathBrowseMock).toHaveBeenLastCalledWith({
+    path: '.',
+    basePath: '/tmp/project',
+    includeFiles: false,
+    enabled: true,
+  });
+  expect(result.current.inputSurfaceState.panel?.items).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      title: '引用当前文件夹',
+      tokenKind: 'workspace_directory',
+      tokenKey: '.',
+    }),
+    expect.objectContaining({
+      title: 'src',
+      selectionBehavior: 'navigate',
+    }),
+  ]));
 });
 
 it('keeps equivalent input surface trigger updates from rerendering the composer owner', () => {

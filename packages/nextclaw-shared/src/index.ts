@@ -37,14 +37,10 @@ export type {
   UiShowContentPurpose,
   UiShowContentTarget,
 } from "./types/ui-show-content.types.js";
-export {
-  INBOX_DELIVERY_SESSION_METADATA_KEY,
-} from "./types/inbox-delivery.types.js";
 export type {
   InboxDelivery,
   InboxDeliveryChangedEventPayload,
   InboxDeliveryContentType,
-  InboxDeliveryContinueResult,
   InboxDeliveryListView,
   InboxDeliverySource,
   InboxDeliveryStateAction,
@@ -70,10 +66,22 @@ export {
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_PROJECT_TOKEN_KIND,
+  CHAT_SYSTEM_OBJECT_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
+export {
+  SYSTEM_OBJECT_REFERENCE_DEFAULT_LIMIT,
+  SYSTEM_OBJECT_REFERENCE_MAX_LIMIT,
+  SYSTEM_OBJECT_REFERENCE_URI_HOST,
+  SYSTEM_OBJECT_REFERENCE_URI_SCHEME,
+  SYSTEM_OBJECT_TYPE_CRON_JOB,
+  SYSTEM_OBJECT_TYPE_INBOX_DELIVERY,
+  createSystemObjectReferenceUri,
+  parseSystemObjectReferenceUri,
+  readSystemObjectResolvedReference,
+} from "./configs/system-object-reference.config.js";
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
 export { PANEL_APP_SCROLL_RESTORATION_CONTRACT } from "./configs/panel-app-scroll-restoration.config.js";
 export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
@@ -96,9 +104,20 @@ export type {
   ChatProjectInlineTokenMetadata,
   ChatSkillInlineTokenMetadata,
   ChatSkillSource,
+  ChatSystemObjectInlineTokenMetadata,
   ChatWorkspaceInlineTokenMetadata,
   ChatWorkspaceExcerptInlineTokenMetadata,
 } from "./configs/chat-composer-token.config.js";
+export type {
+  SystemObjectReferenceDisplayText,
+  SystemObjectReferenceGroupDescriptor,
+  SystemObjectReferenceGroupIcon,
+  SystemObjectReferenceGroupView,
+  SystemObjectReferenceItem,
+  SystemObjectReferenceListView,
+  SystemObjectReferenceResolveRequest,
+  SystemObjectResolvedReference,
+} from "./configs/system-object-reference.config.js";
 export type { RuntimeModelSelectionMode } from "./configs/runtime-model.config.js";
 export type {
   AgentRunContinueIngressPayload,

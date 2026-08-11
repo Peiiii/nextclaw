@@ -6,15 +6,13 @@ import {
   NextClawClientError,
 } from "./index.js";
 
-it("uses the durable inbox delivery API for list, state, and continue actions", async () => {
+it("uses durable inbox state APIs and the generic system object reference API", async () => {
   const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
-    const data = url.endsWith("/continue")
-      ? {
-          sessionId: "session-1",
-          created: true,
-          delivery: { id: "delivery-1" },
-        }
+    const data = url.endsWith("/system-object-references/resolve")
+      ? { uri: "nextclaw://objects/inbox-delivery/delivery-1" }
+      : url.includes("/system-object-references")
+        ? { groups: [], total: 0 }
       : url.endsWith("/api/inbox/deliveries")
         ? { deliveries: [], total: 0, unreadCount: 0, unpresentedCount: 0 }
         : { id: "delivery-1" };
@@ -30,7 +28,12 @@ it("uses the durable inbox delivery API for list, state, and continue actions", 
 
   await client.inboxDeliveries.list();
   await client.inboxDeliveries.updateState("delivery/1", "present");
-  await client.inboxDeliveries.continueInChat("delivery/1");
+  await client.systemObjectReferences.list({
+    query: "report",
+    limit: 10,
+    objectType: "inbox-delivery",
+  });
+  await client.systemObjectReferences.resolve("nextclaw://objects/inbox-delivery/delivery-1");
 
   expect(fetchImpl).toHaveBeenNthCalledWith(
     1,
@@ -47,7 +50,12 @@ it("uses the durable inbox delivery API for list, state, and continue actions", 
   );
   expect(fetchImpl).toHaveBeenNthCalledWith(
     3,
-    "http://127.0.0.1:55667/api/inbox/deliveries/delivery%2F1/continue",
+    "http://127.0.0.1:55667/api/system-object-references?query=report&limit=10&objectType=inbox-delivery",
+    expect.objectContaining({ method: "GET" }),
+  );
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    4,
+    "http://127.0.0.1:55667/api/system-object-references/resolve",
     expect.objectContaining({ method: "POST" }),
   );
 });

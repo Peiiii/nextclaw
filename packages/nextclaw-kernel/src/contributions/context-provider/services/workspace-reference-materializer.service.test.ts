@@ -83,6 +83,25 @@ describe("WorkspaceReferenceMaterializerService", () => {
     expect(context.length).toBeLessThan(34_000);
   });
 
+  it("materializes the active project root from the stable dot reference", async () => {
+    const projectRoot = createTempDirectory("nextclaw-workspace-reference-dot-");
+    mkdirSync(join(projectRoot, "docs"), { recursive: true });
+    writeFileSync(join(projectRoot, "README.md"), "# Root\n");
+
+    const context = await new WorkspaceReferenceMaterializerService().materialize({
+      projectRoot,
+      references: [{
+        kind: CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
+        key: ".",
+        label: "project root",
+      }],
+    });
+
+    expect(context).toContain('<workspace_directory path=".">');
+    expect(context).toContain("README.md");
+    expect(context).toContain("docs/");
+  });
+
   it("embeds only the immutable excerpt snapshot with its source location", async () => {
     const projectRoot = createTempDirectory("nextclaw-workspace-excerpt-");
     writeFileSync(join(projectRoot, "guide.md"), "whole file content that must not be embedded");

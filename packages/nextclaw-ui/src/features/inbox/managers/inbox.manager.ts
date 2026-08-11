@@ -5,6 +5,11 @@ import type {
   InboxDeliveryStateAction,
 } from "@nextclaw/shared";
 import { eventKeys } from "@nextclaw/shared";
+import {
+  createSystemObjectReferenceUri,
+  SYSTEM_OBJECT_TYPE_INBOX_DELIVERY,
+  type SystemObjectResolvedReference,
+} from "@nextclaw/shared";
 import { appQueryClient } from "@/app-query-client";
 import { useInboxStore } from "@/features/inbox/stores/inbox.store";
 import { nextclawClient } from "@/shared/lib/api";
@@ -104,11 +109,16 @@ export class InboxManager {
     return deleted;
   };
 
-  continueInChat = async (deliveryId: string) => {
-    const result = await nextclawClient.inboxDeliveries.continueInChat(deliveryId);
-    this.replaceCachedDelivery(result.delivery);
+  prepareChatReference = async (deliveryId: string): Promise<{
+    delivery: InboxDelivery;
+    reference: SystemObjectResolvedReference;
+  }> => {
+    const reference = await nextclawClient.systemObjectReferences.resolve(
+      createSystemObjectReferenceUri(SYSTEM_OBJECT_TYPE_INBOX_DELIVERY, deliveryId),
+    );
+    const delivery = await this.updateState(deliveryId, "read");
     this.closeReader();
-    return result;
+    return { delivery, reference };
   };
 
   private updateState = async (

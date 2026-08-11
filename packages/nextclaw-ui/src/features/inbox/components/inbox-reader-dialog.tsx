@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
 import { InboxDeliveryContent } from "@/features/inbox/components/inbox-delivery-content";
 import { useInboxDeliveries } from "@/features/inbox/hooks/use-inbox-deliveries";
 import { useInboxStore } from "@/features/inbox/stores/inbox.store";
@@ -25,7 +26,7 @@ function formatPosition(current: number, total: number): string {
 export function InboxReaderDialog() {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const navigate = useNavigate();
-  const { inboxManager } = useAppPresenter();
+  const { chatDraftIntentManager, inboxManager } = useAppPresenter();
   const { data } = useInboxDeliveries();
   const { activeDeliveryId, readerOpen } = useInboxStore((state) => state.snapshot);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
@@ -74,8 +75,9 @@ export function InboxReaderDialog() {
       return;
     }
     void runAction("continue", async () => {
-      const result = await inboxManager.continueInChat(activeDelivery.id);
-      navigate(`/chat/${encodeURIComponent(result.sessionId)}`);
+      const { reference } = await inboxManager.prepareChatReference(activeDelivery.id);
+      chatDraftIntentManager.requestSystemObjectReference(reference);
+      navigate(CHAT_DRAFT_SESSION_PATH);
     });
   };
 

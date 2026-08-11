@@ -54,4 +54,42 @@ describe('chat input bar context references', () => {
       }),
     ]);
   });
+
+  it('replaces an @ query with an asynchronously resolved system object token', () => {
+    const snapshot = insertInputSurfaceItemIntoChatComposer({
+      item: {
+        key: 'resolved-token:system_object:daily-review',
+        title: 'Daily review',
+        subtitle: '',
+        description: '',
+        detailLines: [],
+        tokenKind: 'system_object',
+        tokenKey: 'nextclaw://objects/cron-job/daily-review',
+        data: {
+          reference: {
+            uri: 'nextclaw://objects/cron-job/daily-review',
+            version: 'version-1',
+          },
+        },
+      },
+      nodes: [createChatComposerTextNode('@daily')],
+      selection: { start: 6, end: 6 },
+      triggerSpecs: [{ key: 'context-reference', marker: '@' }],
+    });
+
+    expect(snapshot.nodes).toEqual([
+      expect.objectContaining({
+        type: 'token',
+        tokenKind: 'system_object',
+        tokenKey: 'nextclaw://objects/cron-job/daily-review',
+        label: 'Daily review',
+        data: {
+          reference: {
+            uri: 'nextclaw://objects/cron-job/daily-review',
+            version: 'version-1',
+          },
+        },
+      }),
+    ]);
+  });
 });

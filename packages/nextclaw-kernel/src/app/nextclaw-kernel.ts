@@ -13,6 +13,11 @@ import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { ProviderModelCatalogManager } from "@kernel/managers/provider-model-catalog.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
+import {
+  createCronJobSystemObjectProvider,
+  createInboxDeliverySystemObjectProvider,
+  SystemObjectReferenceManager,
+} from "@kernel/managers/system-object-reference.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
@@ -155,6 +160,7 @@ export class NextclawKernel {
   readonly mcpManager: McpManager;
   readonly sessionManager: SessionManager;
   readonly inboxDeliveryManager: InboxDeliveryManager;
+  readonly systemObjectReferenceManager: SystemObjectReferenceManager;
   readonly panelAppManager: PanelAppManager;
   readonly preferenceManager: PreferenceManager;
   readonly projectManager: ProjectManager;
@@ -228,9 +234,15 @@ export class NextclawKernel {
     });
     this.inboxDeliveryManager = new InboxDeliveryManager({
       eventBus: this.eventBus,
-      sessionManager: this.sessionManager,
       storePath: resolveKernelInboxDeliveryStorePath(options),
     });
+    this.systemObjectReferenceManager = new SystemObjectReferenceManager(
+      this.assetStore,
+      [
+        createInboxDeliverySystemObjectProvider(this.inboxDeliveryManager),
+        createCronJobSystemObjectProvider(this.automation),
+      ],
+    );
     this.panelAppManager = new PanelAppManager({
       configManager: this.configManager,
       eventBus: this.eventBus,

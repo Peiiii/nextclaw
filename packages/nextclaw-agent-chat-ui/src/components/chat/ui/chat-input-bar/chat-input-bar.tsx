@@ -100,6 +100,12 @@ function ChatInputBarSendError({ sendError, sendErrorDetailsLabel }: Pick<ChatIn
 }
 
 export type ChatInputBarHandle = {
+  insertInputSurfaceToken: (token: {
+    data?: ChatComposerTokenData;
+    tokenKind: ChatComposerTokenKind;
+    tokenKey: string;
+    label: string;
+  }) => void;
   insertToken: (token: {
     data?: ChatComposerTokenData;
     tokenKind: ChatComposerTokenKind;
@@ -150,12 +156,22 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
   }, [toolbarProps]);
 
   useImperativeHandle(ref, () => ({
+    insertInputSurfaceToken: (token) => composerRef.current?.insertInputSurfaceItem({
+      key: `resolved-token:${token.tokenKind}:${token.tokenKey}`,
+      title: token.label,
+      subtitle: '',
+      description: '',
+      detailLines: [],
+      tokenKind: token.tokenKind,
+      tokenKey: token.tokenKey,
+      data: token.data,
+    }, composer.inputSurfaceTriggerSpecs),
     insertToken: (token) => composerRef.current?.insertToken(token),
     insertFileToken: (tokenKey, label, previewUrl) => composerRef.current?.insertFileToken(tokenKey, label, previewUrl),
     insertFileTokens: (tokens) => composerRef.current?.insertFileTokens(tokens),
     focusComposer: () => composerRef.current?.focusComposer(),
     focusComposerAtEnd: (nodes) => composerRef.current?.focusComposerAtEnd(nodes),
-  }), []);
+  }), [composer.inputSurfaceTriggerSpecs]);
   const surfaceClassName =
     surface === 'embedded'
       ? 'bg-transparent px-0 py-0'
@@ -175,7 +191,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
               inputSurface={resolvedInputSurface}
               onInputSurfaceTriggerChange={composer.onInputSurfaceTriggerChange}
               onSelectItem={(item) => {
-                if (item.selectionBehavior === 'navigate') {
+                if (item.selectionBehavior === 'navigate' || item.selectionBehavior === 'action') {
                   resolvedInputSurface?.onSelectItem?.(item);
                   return;
                 }

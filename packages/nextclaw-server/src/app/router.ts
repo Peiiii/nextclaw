@@ -10,6 +10,7 @@ import {
 } from "@nextclaw/shared";
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
+import { SystemObjectReferencesRoutesController } from "@nextclaw-server/app/controllers/system-object-references.controller.js";
 import { AuthRoutesController, UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { ConfigRoutesController } from "@nextclaw-server/features/config/index.js";
 import { CronRoutesController } from "@nextclaw-server/features/cron/index.js";
@@ -50,6 +51,9 @@ function createUiRouteControllers(
     config: new ConfigRoutesController(options),
     cron: new CronRoutesController(options),
     inboxDeliveries: new InboxDeliveriesRoutesController(kernel.inboxDeliveryManager),
+    systemObjectReferences: new SystemObjectReferencesRoutesController(
+      kernel.systemObjectReferenceManager,
+    ),
     ncpSession: new NcpSessionRoutesController(options),
     ncpAsset: new NcpAssetRoutesController(options),
     panelApps: new PanelAppsRoutesController(kernel.panelAppManager, {
@@ -239,7 +243,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const { ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath } = this.controllers;
+    const { ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath, systemObjectReferences } = this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -255,7 +259,8 @@ class UiRouteRegistry {
       ["get", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.get],
       ["patch", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.updateState],
       ["delete", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.delete],
-      ["post", "/api/inbox/deliveries/:deliveryId/continue", inboxDeliveries.continueInChat],
+      ["get", "/api/system-object-references", systemObjectReferences.list],
+      ["post", "/api/system-object-references/resolve", systemObjectReferences.resolve],
       ["get", "/api/panel-apps", panelApps.list],
       ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
       ["get", "/api/panel-app-client-sdk.js", panelApps.getPanelAppClientSdkScript],

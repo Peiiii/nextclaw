@@ -30,8 +30,10 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       updateDeliveryState: async () =>
         unavailable("inboxDeliveryManager.updateDeliveryState"),
       deleteDelivery: async () => false,
-      continueInChat: async () =>
-        unavailable("inboxDeliveryManager.continueInChat"),
+    } as never,
+    systemObjectReferenceManager: {
+      listReferences: async () => ({ groups: [], total: 0 }),
+      resolveReference: async () => unavailable("systemObjectReferenceManager.resolveReference"),
     } as never,
     agentRunRequestManager: {
       listQueuedInputs: () => [],

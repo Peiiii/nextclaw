@@ -30,7 +30,7 @@ description: NextClaw 普通源码、脚本、测试、运行链路和从方案�
   - 不把变量命名、等价语法和没有真实取舍的微小差异包装成“多方案”，也不让简单修复承担仪式化设计成本。
 - L0-L1：调查最近链路，不写设计。
 - L2：确认 producer、owner、consumer 和成功条件；根因不确定时保留修前证据。
-- L3-L4 或用户明确要求设计：此时才加载 `nextclaw-solution-design`。
+- L3-L4、用户明确要求设计，或 L2 用户可见功能存在真实的信息架构/工作流设计空间：加载 `nextclaw-solution-design`；路径唯一的局部交互修复不升级为设计仪式。
 - 用户明确要求系统性调查，或局部证据不足：加载 `code-investigation-workflow`。
 - 跨多轮需要保存事实时才加载 `iteration-work-notes`；用户明确启动目标模式时由 `goal-mode` 管理锚点。
 

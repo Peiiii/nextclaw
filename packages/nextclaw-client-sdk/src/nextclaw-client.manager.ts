@@ -22,6 +22,7 @@ import { RuntimeUpdateService } from "./services/runtime-update.service.js";
 import { ServerPathsService } from "./services/server-paths.service.js";
 import { ServiceAppsClientService } from "./services/service-apps.service.js";
 import { SessionsService } from "./services/sessions.service.js";
+import { SystemObjectReferencesService } from "./services/system-object-references.service.js";
 
 export class NextClawClient {
   readonly baseUrl: string;
@@ -45,6 +46,7 @@ export class NextClawClient {
   readonly serverPaths: ServerPathsService;
   readonly serviceApps: ServiceAppsClientService;
   readonly sessions: SessionsService;
+  readonly systemObjectReferences: SystemObjectReferencesService;
 
   constructor(options: NextClawClientOptions) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl);
@@ -89,5 +91,6 @@ export class NextClawClient {
     this.serverPaths = new ServerPathsService(requestService);
     this.serviceApps = new ServiceAppsClientService(requestService);
     this.sessions = new SessionsService(requestService, this.eventBus);
+    this.systemObjectReferences = new SystemObjectReferencesService(requestService);
   }
 }

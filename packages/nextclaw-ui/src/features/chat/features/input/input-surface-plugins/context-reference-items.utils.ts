@@ -4,7 +4,13 @@ import {
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from '@nextclaw/shared';
-import type { ProjectView, ServerPathSearchEntryView } from '@/shared/lib/api';
+import type { I18nLanguage } from '@/shared/lib/i18n';
+import type {
+  ProjectView,
+  ServerPathSearchEntryView,
+  SystemObjectReferenceDisplayText,
+  SystemObjectReferenceGroupView,
+} from '@/shared/lib/api';
 import type { ContextReferenceLocation } from './chat-input-product-plugin-adapters.types';
 import {
   resolveInputSurfaceMatchTier,
@@ -12,10 +18,14 @@ import {
 } from './input-surface-search.utils';
 
 export const FILES_NAVIGATION_ITEM_KEY = 'context-reference:navigate:files';
+export const FOLDERS_NAVIGATION_ITEM_KEY = 'context-reference:navigate:folders';
 export const PROJECTS_NAVIGATION_ITEM_KEY = 'context-reference:navigate:projects';
 export const ROOT_NAVIGATION_ITEM_KEY = 'context-reference:navigate:root';
+export const SYSTEM_OBJECT_GROUP_ITEM_KEY_PREFIX = 'context-reference:navigate:system-object-group:';
+export const SYSTEM_OBJECT_ITEM_KEY_PREFIX = 'context-reference:system-object:';
 
-const WORKSPACE_SECTION_KEY = 'workspace';
+export const FILES_SECTION_KEY = 'workspace-files';
+export const FOLDERS_SECTION_KEY = 'workspace-folders';
 const PROJECT_SECTION_KEY = 'projects';
 
 export type ContextReferenceInputSurfaceTexts = {
@@ -29,6 +39,10 @@ export type ContextReferenceInputSurfaceTexts = {
   filesHintLabel: string;
   filesLabel: string;
   filesSubtitle: string;
+  foldersDescription: string;
+  foldersHintLabel: string;
+  foldersLabel: string;
+  foldersSubtitle: string;
   panelAppSectionLabel: string;
   parentLabel: string;
   parentDescription: string;
@@ -44,8 +58,58 @@ export type ContextReferenceInputSurfaceTexts = {
   projectsSubtitle: string;
   projectRootLabel: string;
   searchFailedLabel: string;
-  workspaceSectionLabel: string;
+  systemObjectGroupHintLabel: string;
+  systemObjectSectionLabel: string;
 };
+
+function resolveSystemObjectDisplayText(
+  text: SystemObjectReferenceDisplayText,
+  language: I18nLanguage,
+): string {
+  return text.translations?.[language] ?? text.default;
+}
+
+export function buildSystemObjectGroupNavigationItems(params: {
+  groups: readonly SystemObjectReferenceGroupView[];
+  language: I18nLanguage;
+  texts: ContextReferenceInputSurfaceTexts;
+}): ChatInputSurfaceItem[] {
+  return params.groups.map((group) => ({
+    key: `${SYSTEM_OBJECT_GROUP_ITEM_KEY_PREFIX}${group.objectType}`,
+    icon: group.icon,
+    title: resolveSystemObjectDisplayText(group.label, params.language),
+    subtitle: params.texts.systemObjectSectionLabel,
+    description: resolveSystemObjectDisplayText(group.description, params.language),
+    detailLines: [],
+    hintLabel: params.texts.systemObjectGroupHintLabel,
+    sectionKey: 'system-object-groups',
+    sectionLabel: params.texts.systemObjectSectionLabel,
+    selectionBehavior: 'navigate',
+    value: group.objectType,
+  }));
+}
+
+export function buildSystemObjectReferenceItems(params: {
+  groups: readonly SystemObjectReferenceGroupView[];
+  language: I18nLanguage;
+  texts: ContextReferenceInputSurfaceTexts;
+}): ChatInputSurfaceItem[] {
+  return params.groups.flatMap((group) => {
+    const groupLabel = resolveSystemObjectDisplayText(group.label, params.language);
+    return group.items.map((item) => ({
+      key: `${SYSTEM_OBJECT_ITEM_KEY_PREFIX}${item.uri}`,
+      icon: group.icon,
+      title: item.label,
+      subtitle: groupLabel,
+      description: item.description ?? item.objectId,
+      detailLines: [item.uri],
+      sectionKey: `system-objects:${group.objectType}`,
+      sectionLabel: groupLabel,
+      selectionBehavior: 'action',
+      value: item.uri,
+    }));
+  });
+}
 
 function resolveProjectLabel(projectRoot: string): string {
   return projectRoot.split(/[\\/]+/).filter(Boolean).at(-1) ?? projectRoot;
@@ -118,6 +182,8 @@ export function buildWorkspaceReferenceItems(params: {
   entries: readonly ServerPathSearchEntryView[];
   navigateDirectories: boolean;
   projectRoot: string;
+  sectionKey: string;
+  sectionLabel: string;
   texts: ContextReferenceInputSurfaceTexts;
 }): ChatInputSurfaceItem[] {
   const projectLabel = resolveProjectLabel(params.projectRoot);
@@ -135,8 +201,8 @@ export function buildWorkspaceReferenceItems(params: {
         `${params.texts.projectRootLabel}: ${params.projectRoot}`,
         entry.relativePath,
       ],
-      sectionKey: WORKSPACE_SECTION_KEY,
-      sectionLabel: params.texts.workspaceSectionLabel,
+      sectionKey: params.sectionKey,
+      sectionLabel: params.sectionLabel,
       value: entry.relativePath,
       tokenKind: navigates
         ? undefined
@@ -160,26 +226,28 @@ export function buildCurrentDirectoryReferenceItem(params: {
   texts: ContextReferenceInputSurfaceTexts;
 }): ChatInputSurfaceItem {
   const { projectRoot, referencePath, texts } = params;
-  const title = referencePath.split('/').filter(Boolean).at(-1) ?? referencePath;
+  const normalizedPath = referencePath.split('/').filter(Boolean).join('/');
+  const tokenKey = normalizedPath || '.';
+  const title = normalizedPath.split('/').filter(Boolean).at(-1) ?? resolveProjectLabel(projectRoot);
   return {
-    key: `context-reference:current-directory:${referencePath}`,
+    key: `context-reference:current-directory:${tokenKey}`,
     icon: 'folder',
     title: texts.currentDirectoryLabel,
     subtitle: title,
     description: texts.directoryDescription,
     detailLines: [
       `${texts.projectRootLabel}: ${projectRoot}`,
-      referencePath,
+      tokenKey,
     ],
-    sectionKey: WORKSPACE_SECTION_KEY,
-    sectionLabel: texts.workspaceSectionLabel,
-    value: referencePath,
+    sectionKey: FOLDERS_SECTION_KEY,
+    sectionLabel: texts.foldersLabel,
+    value: tokenKey,
     tokenKind: CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
-    tokenKey: referencePath,
+    tokenKey,
     pathPreview: buildPathPreview({
       kind: 'directory',
       projectRoot,
-      relativePath: referencePath,
+      relativePath: normalizedPath,
     }),
   };
 }
@@ -195,6 +263,21 @@ export function buildFilesNavigationItem(
     description: texts.filesDescription,
     detailLines: [],
     hintLabel: texts.filesHintLabel,
+    selectionBehavior: 'navigate',
+  };
+}
+
+export function buildFoldersNavigationItem(
+  texts: ContextReferenceInputSurfaceTexts,
+): ChatInputSurfaceItem {
+  return {
+    key: FOLDERS_NAVIGATION_ITEM_KEY,
+    icon: 'folder',
+    title: texts.foldersLabel,
+    subtitle: texts.foldersSubtitle,
+    description: texts.foldersDescription,
+    detailLines: [],
+    hintLabel: texts.foldersHintLabel,
     selectionBehavior: 'navigate',
   };
 }
@@ -224,8 +307,9 @@ export function buildBackNavigationItem(params: {
   texts: ContextReferenceInputSurfaceTexts;
 }): ChatInputSurfaceItem {
   const { location, texts } = params;
-  const referencePath = location.view === 'files' ? location.path : '';
-  const isRootView = location.view !== 'files' || !referencePath;
+  const isWorkspaceView = location.view === 'files' || location.view === 'folders';
+  const referencePath = isWorkspaceView ? location.path : '';
+  const isRootView = !isWorkspaceView || !referencePath;
   return {
     key: ROOT_NAVIGATION_ITEM_KEY,
     icon: 'back',

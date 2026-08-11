@@ -3,7 +3,7 @@ import type { KernelContribution } from "@kernel/types/kernel-contribution.types
 import { AgentBootstrapContextProvider } from "./providers/agent-bootstrap-context.provider.js";
 import { CurrentSessionContextProvider } from "./providers/current-session-context.provider.js";
 import { ConversationExcerptContextProvider } from "./providers/conversation-excerpt-context.provider.js";
-import { InboxDeliveryContextProvider } from "./providers/inbox-delivery-context.provider.js";
+import { SystemObjectReferenceContextProvider } from "./providers/system-object-reference-context.provider.js";
 import { ExecutionPolicyContextProvider } from "./providers/execution-policy-context.provider.js";
 import {
   createAssistantIdentityContextProvider,
@@ -30,7 +30,7 @@ import { WorkspaceReferenceContextProvider } from "./providers/workspace-referen
 import { ContextProviderRunContextService } from "./services/context-provider-run-context.service.js";
 
 export { ReplyFormatContextProvider } from "./providers/reply-format-context.provider.js";
-export { InboxDeliveryContextProvider } from "./providers/inbox-delivery-context.provider.js";
+export { SystemObjectReferenceContextProvider } from "./providers/system-object-reference-context.provider.js";
 
 export class ContextProviderContribution implements KernelContribution {
   private readonly cleanups: Array<() => void> = [];
@@ -66,10 +66,7 @@ export class ContextProviderContribution implements KernelContribution {
       new SkillsContextProvider(context),
       createSessionOrchestrationContextProvider(),
       new ExecutionPolicyContextProvider(context),
-      new InboxDeliveryContextProvider(
-        this.kernel.inboxDeliveryManager,
-        this.kernel.sessionManager,
-      ),
+      new SystemObjectReferenceContextProvider(this.kernel.assetStore),
       new CurrentSessionContextProvider(context),
       new ReplyFormatContextProvider(),
     ]) {

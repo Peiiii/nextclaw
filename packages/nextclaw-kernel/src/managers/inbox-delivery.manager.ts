@@ -1,13 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { InboxDeliveryStore } from "@kernel/stores/inbox-delivery.store.js";
-import type { SessionManager } from "@kernel/managers/session.manager.js";
 import {
-  INBOX_DELIVERY_SESSION_METADATA_KEY,
   eventKeys,
   type EventBus,
   type InboxDelivery,
   type InboxDeliveryContentType,
-  type InboxDeliveryContinueResult,
   type InboxDeliveryListView,
   type InboxDeliverySource,
   type InboxDeliveryStateAction,
@@ -27,7 +24,6 @@ export type CreateInboxDeliveryInput = {
 
 export type InboxDeliveryManagerOptions = {
   eventBus: Pick<EventBus, "emit">;
-  sessionManager: Pick<SessionManager, "createSession" | "getSessionRecord">;
   storePath: string;
 };
 
@@ -99,7 +95,6 @@ export class InboxDeliveryManager {
         presentedAt: null,
         readAt: null,
         archivedAt: null,
-        conversationSessionId: null,
       };
       const deliveries = await this.store.list();
       await this.store.save([delivery, ...deliveries]);
@@ -135,46 +130,6 @@ export class InboxDeliveryManager {
       await this.store.save(remaining);
       this.publishChange(deliveryId, "delete");
       return true;
-    });
-
-  continueInChat = async (deliveryId: string): Promise<InboxDeliveryContinueResult> =>
-    await this.mutate(async () => {
-      const deliveries = await this.store.list();
-      const index = deliveries.findIndex(({ id }) => id === deliveryId);
-      if (index < 0) {
-        throw this.notFound(deliveryId);
-      }
-      const current = deliveries[index];
-      const existingSession = current.conversationSessionId
-        ? await this.options.sessionManager.getSessionRecord(current.conversationSessionId)
-        : null;
-      let sessionId = current.conversationSessionId;
-      let created = false;
-      if (!sessionId || !existingSession) {
-        const session = await this.options.sessionManager.createSession({
-          sourceSessionMetadata: {},
-          metadataOverrides: {
-            [INBOX_DELIVERY_SESSION_METADATA_KEY]: current.id,
-          },
-          task: `Continue discussing inbox delivery: ${current.title}`,
-          title: current.title,
-          agentId: current.source.agentId ?? undefined,
-        });
-        sessionId = session.sessionId;
-        created = true;
-      }
-      const now = new Date().toISOString();
-      const delivery: InboxDelivery = {
-        ...current,
-        updatedAt: now,
-        presentedAt: current.presentedAt ?? now,
-        readAt: current.readAt ?? now,
-        conversationSessionId: sessionId,
-      };
-      deliveries[index] = delivery;
-      await this.store.save(deliveries);
-      this.publishChange(deliveryId, "upsert");
-      return { delivery: structuredClone(delivery), sessionId, created };
     });
 
   private applyStateAction = (

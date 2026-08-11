@@ -27,6 +27,7 @@ function createProviderProbeApp(configPath: string) {
       eventBus: new EventBus(),
       ingress: {} as never,
       inboxDeliveryManager: {} as never,
+      systemObjectReferenceManager: {} as never,
       agentRunRequestManager: {} as never,
       agentContextWindowManager: {} as never,
       isSessionRunning: () => false,

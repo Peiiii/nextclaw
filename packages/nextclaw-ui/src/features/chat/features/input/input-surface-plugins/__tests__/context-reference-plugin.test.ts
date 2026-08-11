@@ -4,8 +4,11 @@ import {
   CONTEXT_REFERENCE_TRIGGER_SPEC,
   createContextReferenceInputSurfacePlugin,
 } from '@/features/chat/features/input/input-surface-plugins/context-reference-plugin.utils';
-import type { ContextReferenceLocation } from '@/features/chat/features/input/input-surface-plugins/chat-input-product-plugin-adapters.types';
-import type { PanelAppEntryView, ProjectView } from '@/shared/lib/api';
+import type {
+  ChatInputProductPluginData,
+  ContextReferenceLocation,
+} from '@/features/chat/features/input/input-surface-plugins/chat-input-product-plugin-adapters.types';
+import type { PanelAppEntryView, ProjectView, SystemObjectReferenceGroupView } from '@/shared/lib/api';
 
 function createPanelApp(): PanelAppEntryView {
   return {
@@ -35,7 +38,30 @@ function createProject(): ProjectView {
   };
 }
 
-function createPlugin(onNavigate = vi.fn()) {
+function createSystemObjectGroup(
+  items: SystemObjectReferenceGroupView['items'] = [],
+): SystemObjectReferenceGroupView {
+  return {
+    objectType: 'cron-job',
+    label: {
+      default: 'Scheduled Tasks',
+      translations: { zh: '定时任务' },
+    },
+    description: {
+      default: 'Reference task schedules and instructions.',
+      translations: { zh: '引用任务计划和指令。' },
+    },
+    icon: 'calendar-clock',
+    order: 200,
+    items,
+    total: items.length,
+  };
+}
+
+function createPlugin(
+  onNavigate = vi.fn(),
+  onSelectSystemObject = vi.fn(),
+) {
   return createContextReferenceInputSurfacePlugin({
     itemTexts: {
       context: {
@@ -47,8 +73,12 @@ function createPlugin(onNavigate = vi.fn()) {
         fileDescription: 'File context',
         filesDescription: 'Browse project files',
         filesHintLabel: 'Enter to browse',
-        filesLabel: 'Files & Folders',
+        filesLabel: 'Files',
         filesSubtitle: 'Project Context',
+        foldersDescription: 'Browse project folders',
+        foldersHintLabel: 'Enter to browse folders',
+        foldersLabel: 'Folders',
+        foldersSubtitle: 'Project Context',
         panelAppSectionLabel: 'Panel Apps',
         parentLabel: 'Up one folder',
         parentDescription: 'Browse parent',
@@ -64,7 +94,8 @@ function createPlugin(onNavigate = vi.fn()) {
         projectsSubtitle: 'Project Context',
         projectRootLabel: 'Project directory',
         searchFailedLabel: 'Search failed',
-        workspaceSectionLabel: 'Files & Folders',
+        systemObjectGroupHintLabel: 'Browse category',
+        systemObjectSectionLabel: 'System Objects',
       },
       panelApp: {
         appIdLabel: 'App ID',
@@ -80,11 +111,15 @@ function createPlugin(onNavigate = vi.fn()) {
       hintLabel: 'Type @',
       itemHintLabel: 'Enter to reference',
     },
+    language: 'en',
     onNavigate,
+    onSelectSystemObject,
   });
 }
 
-function createData(referenceLocation: ContextReferenceLocation = { view: 'root' }) {
+function createData(
+  referenceLocation: ContextReferenceLocation = { view: 'root' },
+): ChatInputProductPluginData {
   return {
     isPanelAppsLoading: false,
     isProjectsLoading: false,
@@ -116,11 +151,14 @@ function createData(referenceLocation: ContextReferenceLocation = { view: 'root'
     ],
     serverPathSearchError: null,
     skillRecords: [],
+    systemObjectGroups: [createSystemObjectGroup()],
+    systemObjectsError: null,
+    isSystemObjectsLoading: false,
   };
 }
 
 describe('context reference input surface plugin', () => {
-  it('shows Files & Folders, Projects, and panel apps in the root @ menu', () => {
+  it('shows separate file, folder, project, and system-object entries in the root @ menu', () => {
     const state = resolveChatInputSurfaceState({
       plugins: [createPlugin()],
       trigger: {
@@ -134,14 +172,25 @@ describe('context reference input surface plugin', () => {
 
     expect(state.panel?.items).toEqual([
       expect.objectContaining({
-        title: 'Files & Folders',
+        title: 'Files',
         icon: 'files',
+        selectionBehavior: 'navigate',
+      }),
+      expect.objectContaining({
+        title: 'Folders',
+        icon: 'folder',
         selectionBehavior: 'navigate',
       }),
       expect.objectContaining({
         title: 'Projects',
         icon: 'project',
         selectionBehavior: 'navigate',
+      }),
+      expect.objectContaining({
+        title: 'Scheduled Tasks',
+        icon: 'calendar-clock',
+        selectionBehavior: 'navigate',
+        value: 'cron-job',
       }),
       expect.objectContaining({
         key: 'panel-app:task-board',
@@ -151,7 +200,55 @@ describe('context reference input surface plugin', () => {
     ]);
   });
 
-  it('builds file and directory tokens with path previews in files mode', () => {
+  it('navigates into a provider group and browses only that group', () => {
+    const onNavigate = vi.fn();
+    const rootData = createData();
+    const rootState = resolveChatInputSurfaceState({
+      plugins: [createPlugin(onNavigate)],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: '',
+        start: 0,
+        end: 1,
+      },
+      data: rootData,
+    });
+    const groupItem = rootState.panel?.items.find(({ value }) => value === 'cron-job');
+
+    rootState.panel?.onSelectItem?.(groupItem!);
+    expect(onNavigate).toHaveBeenCalledWith({ view: 'system-objects', objectType: 'cron-job' });
+
+    const groupData = createData({ view: 'system-objects', objectType: 'cron-job' });
+    groupData.systemObjectGroups = [createSystemObjectGroup([{
+      uri: 'nextclaw://objects/cron-job/daily-review',
+      objectType: 'cron-job',
+      objectId: 'daily-review',
+      label: 'Daily review',
+      description: 'Review project risks',
+      updatedAt: '2026-08-11T00:00:00.000Z',
+    }])];
+    const groupState = resolveChatInputSurfaceState({
+      plugins: [createPlugin(onNavigate)],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: '',
+        start: 0,
+        end: 1,
+      },
+      data: groupData,
+    });
+
+    expect(groupState.panel?.items).toEqual([
+      expect.objectContaining({ title: 'Back', selectionBehavior: 'navigate' }),
+      expect.objectContaining({
+        title: 'Daily review',
+        sectionKey: 'system-objects:cron-job',
+        sectionLabel: 'Scheduled Tasks',
+      }),
+    ]);
+  });
+
+  it('returns only file tokens when searching in files mode', () => {
     const state = resolveChatInputSurfaceState({
       plugins: [createPlugin()],
       trigger: {
@@ -176,11 +273,6 @@ describe('context reference input surface plugin', () => {
           ],
         },
       }),
-      expect.objectContaining({
-        title: 'docs',
-        tokenKind: 'workspace_directory',
-        tokenKey: 'docs',
-      }),
     ]);
   });
 
@@ -204,7 +296,154 @@ describe('context reference input surface plugin', () => {
     expect(item).not.toHaveProperty('tokenKind');
   });
 
-  it('opens browsed directories and offers the current folder as a token', () => {
+  it('resolves system objects through an explicit selection action', () => {
+    const onSelectSystemObject = vi.fn();
+    const data = createData();
+    data.systemObjectGroups = [createSystemObjectGroup([{
+      uri: 'nextclaw://objects/cron-job/daily-review',
+      objectType: 'cron-job',
+      objectId: 'daily-review',
+      label: 'Daily review',
+      description: 'Summarize project risks every day',
+      updatedAt: '2026-08-11T00:00:00.000Z',
+    }])];
+    const state = resolveChatInputSurfaceState({
+      plugins: [createPlugin(vi.fn(), onSelectSystemObject)],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: 'daily',
+        start: 0,
+        end: 6,
+      },
+      data,
+    });
+    const item = state.panel?.items.find(({ title }) => title === 'Daily review');
+
+    expect(item).toMatchObject({
+      icon: 'calendar-clock',
+      selectionBehavior: 'action',
+      subtitle: 'Scheduled Tasks',
+    });
+    state.panel?.onSelectItem?.(item!);
+
+    expect(onSelectSystemObject).toHaveBeenCalledWith(
+      'nextclaw://objects/cron-job/daily-review',
+    );
+    expect(item).not.toHaveProperty('tokenKind');
+  });
+});
+
+describe('context reference item behavior', () => {
+  it('separates file and folder search results at root and inside each entry', () => {
+    const plugin = createPlugin();
+    const rootState = resolveChatInputSurfaceState({
+      plugins: [plugin],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: 'project',
+        start: 0,
+        end: 8,
+      },
+      data: createData(),
+    });
+    const rootWorkspaceItems = rootState.panel?.items.filter(
+      ({ key }) => key.startsWith('workspace:'),
+    );
+    expect(rootWorkspaceItems).toEqual([
+      expect.objectContaining({
+        title: 'server-path.ts',
+        sectionKey: 'workspace-files',
+        sectionLabel: 'Files',
+        tokenKind: 'workspace_file',
+      }),
+      expect.objectContaining({
+        title: 'docs',
+        sectionKey: 'workspace-folders',
+        sectionLabel: 'Folders',
+        tokenKind: 'workspace_directory',
+      }),
+    ]);
+
+    const filesState = resolveChatInputSurfaceState({
+      plugins: [plugin],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: 'project',
+        start: 0,
+        end: 8,
+      },
+      data: createData({ view: 'files', path: '' }),
+    });
+    expect(filesState.panel?.items.slice(1)).toEqual([
+      expect.objectContaining({ title: 'server-path.ts', tokenKind: 'workspace_file' }),
+    ]);
+
+    const foldersState = resolveChatInputSurfaceState({
+      plugins: [plugin],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: 'project',
+        start: 0,
+        end: 8,
+      },
+      data: createData({ view: 'folders', path: '' }),
+    });
+    expect(foldersState.panel?.items.slice(1)).toEqual([
+      expect.objectContaining({ title: 'docs', tokenKind: 'workspace_directory' }),
+    ]);
+  });
+
+  it('keeps provider sections separate during global system object search', () => {
+    const data = createData();
+    const cronGroup = createSystemObjectGroup([{
+      uri: 'nextclaw://objects/cron-job/daily-review',
+      objectType: 'cron-job',
+      objectId: 'daily-review',
+      label: 'Daily review',
+      description: 'Daily task',
+      updatedAt: '2026-08-11T00:00:00.000Z',
+    }]);
+    data.systemObjectGroups = [{
+      ...createSystemObjectGroup([{
+        uri: 'nextclaw://objects/inbox-delivery/report-1',
+        objectType: 'inbox-delivery',
+        objectId: 'report-1',
+        label: 'Daily report',
+        description: 'Daily inbox report',
+        updatedAt: '2026-08-11T01:00:00.000Z',
+      }]),
+      objectType: 'inbox-delivery',
+      label: { default: 'Inbox Reports' },
+      icon: 'inbox',
+      order: 100,
+    }, cronGroup];
+    const state = resolveChatInputSurfaceState({
+      plugins: [createPlugin()],
+      trigger: {
+        ...CONTEXT_REFERENCE_TRIGGER_SPEC,
+        query: 'daily',
+        start: 0,
+        end: 6,
+      },
+      data,
+    });
+
+    expect(state.panel?.items.filter(({ key }) => key.startsWith('context-reference:system-object:')))
+      .toEqual([
+        expect.objectContaining({
+          title: 'Daily report',
+          sectionKey: 'system-objects:inbox-delivery',
+          sectionLabel: 'Inbox Reports',
+        }),
+        expect.objectContaining({
+          title: 'Daily review',
+          sectionKey: 'system-objects:cron-job',
+          sectionLabel: 'Scheduled Tasks',
+        }),
+      ]);
+  });
+
+  it('opens browsed folders and offers the current folder as a token', () => {
     const onNavigate = vi.fn();
     const rootState = resolveChatInputSurfaceState({
       plugins: [createPlugin(onNavigate)],
@@ -214,17 +453,25 @@ describe('context reference input surface plugin', () => {
         start: 0,
         end: 1,
       },
-      data: createData({ view: 'files', path: '' }),
+      data: createData({ view: 'folders', path: '' }),
     });
     const directoryItem = rootState.panel?.items.find((item) => item.title === 'docs');
 
+    expect(rootState.panel?.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        title: 'Reference current folder',
+        subtitle: 'project',
+        tokenKind: 'workspace_directory',
+        tokenKey: '.',
+      }),
+    ]));
     expect(directoryItem).toMatchObject({
       selectionBehavior: 'navigate',
       value: 'docs',
     });
     expect(directoryItem?.tokenKind).toBeUndefined();
     rootState.panel?.onSelectItem?.(directoryItem!);
-    expect(onNavigate).toHaveBeenCalledWith({ view: 'files', path: 'docs' });
+    expect(onNavigate).toHaveBeenCalledWith({ view: 'folders', path: 'docs' });
 
     const nestedState = resolveChatInputSurfaceState({
       plugins: [createPlugin(onNavigate)],
@@ -234,7 +481,7 @@ describe('context reference input surface plugin', () => {
         start: 0,
         end: 1,
       },
-      data: createData({ view: 'files', path: 'docs' }),
+      data: createData({ view: 'folders', path: 'docs' }),
     });
     expect(nestedState.panel?.items).toEqual(expect.arrayContaining([
       expect.objectContaining({

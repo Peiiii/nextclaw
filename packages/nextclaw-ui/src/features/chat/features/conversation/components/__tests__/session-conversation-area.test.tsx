@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { SessionConversationArea } from "@/features/chat/features/conversation/components/session-conversation-area";
+import type { ChatDraftIntent } from "@/features/chat/managers/chat-draft-intent.manager";
 
 const mocks = vi.hoisted(() => {
   const inputRenderSpy = vi.fn();
@@ -118,7 +119,7 @@ const mocks = vi.hoisted(() => {
     },
     appPresenter: {
       chatDraftIntentManager: {
-        consumePending: vi.fn(() => null),
+        consumePending: vi.fn<() => ChatDraftIntent | null>(() => null),
         markConsumed: vi.fn(),
         subscribe: vi.fn(() => vi.fn()),
       },
@@ -407,6 +408,53 @@ describe("SessionConversationArea input boundary", () => {
     expect(mocks.inputActions.applyPromptSuggestion).toHaveBeenCalledWith(
       "每天整理项目风险",
     );
+  });
+
+  it("consumes a system object draft intent as a visible composer token", () => {
+    const reference = {
+      uri: "nextclaw://objects/inbox-delivery/delivery-1",
+      objectType: "inbox-delivery",
+      objectId: "delivery-1",
+      label: "OOM investigation report",
+      description: "Root cause and mitigation",
+      updatedAt: "2026-08-11T00:00:00.000Z",
+      version: "sha256-report",
+      assetUri: "asset://store/report",
+      fileName: "oom-investigation-report.md",
+      mimeType: "text/markdown",
+      sizeBytes: 128,
+    };
+    mocks.appPresenter.chatDraftIntentManager.consumePending.mockReturnValueOnce({
+      id: 1,
+      kind: "system-object-reference",
+      reference,
+    });
+
+    render(
+      <MemoryRouter>
+        <SessionConversationArea
+          consumeDraftIntent
+          sessionKey={null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(mocks.presenter.chatSessionListManager.createSession).toHaveBeenCalledOnce();
+    expect(mocks.appPresenter.chatDraftIntentManager.markConsumed).toHaveBeenCalledWith(1);
+    const update = mocks.inputActions.update.mock.calls.at(-1)?.[0] as (
+      current: { nodes: []; text: string },
+    ) => { nodes: Array<Record<string, unknown>>; text: string };
+    const next = update({ nodes: [], text: "" });
+    expect(next.nodes).toEqual([
+      expect.objectContaining({
+        type: "token",
+        tokenKind: "system_object",
+        tokenKey: reference.uri,
+        label: reference.label,
+        data: { reference },
+      }),
+    ]);
+    expect(next.text).toBe("");
   });
 
   it("syncs draft preferences with the selected runtime context", () => {

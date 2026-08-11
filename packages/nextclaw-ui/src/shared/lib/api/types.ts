@@ -6,6 +6,13 @@ export type {
   ProjectListView,
   ProjectTemplateView,
   ProjectView,
+  SystemObjectReferenceDisplayText,
+  SystemObjectReferenceGroupDescriptor,
+  SystemObjectReferenceGroupIcon,
+  SystemObjectReferenceGroupView,
+  SystemObjectReferenceItem,
+  SystemObjectReferenceListView,
+  SystemObjectResolvedReference,
 } from '@nextclaw/client-sdk';
 export type {
   SessionEntryView,

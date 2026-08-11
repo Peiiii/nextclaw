@@ -5,26 +5,22 @@ import {
   type ChatInputSurfaceTrigger,
 } from '@nextclaw/agent-chat-ui';
 import { usePanelApps } from '@/features/panel-apps';
-import { t, type I18nLanguage } from '@/shared/lib/i18n';
+import type { I18nLanguage } from '@/shared/lib/i18n';
 import {
   CONTEXT_REFERENCE_TRIGGER_SPEC,
-  createContextReferenceInputSurfacePlugin,
 } from '@/features/chat/features/input/input-surface-plugins/context-reference-plugin.utils';
 import type { ContextReferenceLocation } from '@/features/chat/features/input/input-surface-plugins/chat-input-product-plugin-adapters.types';
 import {
-  createSlashCommandInputSurfacePlugin,
-  type ChatSlashCommandDescriptor,
-} from '@/features/chat/features/input/input-surface-plugins/slash-command-plugin.utils';
-import type { ChatInputBarAdapterTexts, ChatSkillRecord } from '@/features/chat/types/chat-input-bar.types';
+  buildChatInputProductPlugins,
+  type ChatInputSurfaceSlashTexts,
+} from '@/features/chat/features/input/input-surface-plugins/chat-input-product-plugin-adapters.utils';
+import type { ChatSlashCommandDescriptor } from '@/features/chat/features/input/input-surface-plugins/slash-command-plugin.utils';
+import type { ChatSkillRecord } from '@/features/chat/types/chat-input-bar.types';
 import { useProjects } from '@/shared/hooks/use-projects';
 import { useServerPathBrowse } from '@/shared/hooks/use-server-path-browse';
 import { useServerPathSearch } from '@/shared/hooks/use-server-path-search';
+import { useSystemObjectReferences } from '@/shared/hooks/use-system-object-references';
 import type { ServerPathEntryView, ServerPathSearchEntryView } from '@/shared/lib/api';
-
-type ChatInputSurfaceSlashTexts = Pick<
-  ChatInputBarAdapterTexts,
-  'slashSkillSubtitle' | 'slashSkillSpecLabel' | 'slashSkillScopeLabel' | 'noSkillDescription'
->;
 
 type UseChatInputSurfaceStateParams = {
   commands: readonly ChatSlashCommandDescriptor[];
@@ -33,106 +29,11 @@ type UseChatInputSurfaceStateParams = {
   language: I18nLanguage;
   onSelectPanelApp: (appId: string) => void;
   onSelectSkill: (skillRef: string) => void;
+  onSelectSystemObject: (uri: string) => void;
   projectRoot: string;
   recentSkillValues: readonly string[];
   skillRecords: readonly ChatSkillRecord[];
 };
-
-function buildChatInputSurfacePlugins(params: {
-  commands: readonly ChatSlashCommandDescriptor[];
-  language: I18nLanguage;
-  onNavigate: (location: ContextReferenceLocation) => void;
-  onSelectPanelApp: (appId: string) => void;
-  onSelectSkill: (skillRef: string) => void;
-  slashTexts: ChatInputSurfaceSlashTexts;
-}) {
-  const {
-    commands,
-    language,
-    onNavigate,
-    onSelectPanelApp,
-    onSelectSkill,
-    slashTexts,
-  } = params;
-  const panelAppTexts = {
-    appIdLabel: t('chatPanelAppReferenceAppId', language),
-    fileLabel: t('chatPanelAppReferenceFile', language),
-    noDescriptionLabel: t('chatPanelAppReferenceNoDescription', language),
-    subtitle: t('chatPanelAppReferenceType', language),
-  };
-  return [
-    createSlashCommandInputSurfacePlugin({
-      commands,
-      itemTexts: {
-        panelAppTexts,
-        skillTexts: slashTexts,
-      },
-      menuTexts: {
-        loadingLabel: t('chatSlashLoading', language),
-        sectionLabel: t('chatSlashSection', language),
-        emptyLabel: t('chatSlashNoResult', language),
-        hintLabel: t('chatSlashHint', language),
-        itemHintLabel: t('chatSlashSkillHint', language),
-      },
-      labels: {
-        commandHintLabel: t('chatSlashCommandHint', language),
-        commandSectionLabel: t('chatSlashSectionCommands', language),
-        commandSubtitle: t('chatSlashTypeCommand', language),
-        filterAllLabel: t('chatSlashFilterAll', language),
-        filterCommandsLabel: t('chatSlashFilterCommands', language),
-        filterPanelAppsLabel: t('chatSlashFilterPanelApps', language),
-        filterSkillsLabel: t('chatSlashFilterSkills', language),
-        panelAppHintLabel: t('chatSlashPanelAppHint', language),
-        panelAppSectionLabel: t('chatPanelAppReferenceSection', language),
-        skillHintLabel: t('chatSlashSkillHint', language),
-        skillSectionLabel: t('chatSlashSectionSkills', language),
-      },
-      onSelectPanelApp,
-      onSelectSkill,
-    }),
-    createContextReferenceInputSurfacePlugin({
-      itemTexts: {
-        context: {
-          backLabel: t('chatContextReferenceBack', language),
-          backDescription: t('chatContextReferenceBackDescription', language),
-          backHintLabel: t('chatContextReferenceBackHint', language),
-          currentDirectoryLabel: t('chatContextReferenceCurrentDirectory', language),
-          directoryDescription: t('chatContextReferenceDirectoryDescription', language),
-          fileDescription: t('chatContextReferenceFileDescription', language),
-          filesDescription: t('chatContextReferenceFilesDescription', language),
-          filesHintLabel: t('chatContextReferenceFilesHint', language),
-          filesLabel: t('chatContextReferenceFilesLabel', language),
-          filesSubtitle: t('chatContextReferenceFilesType', language),
-          panelAppSectionLabel: t('chatPanelAppReferenceSection', language),
-          parentLabel: t('chatContextReferenceParent', language),
-          parentDescription: t('chatContextReferenceParentDescription', language),
-          parentHintLabel: t('chatContextReferenceParentHint', language),
-          projectDescription: t('chatContextReferenceProjectDescription', language),
-          projectPathLabel: t('chatContextReferenceProjectPath', language),
-          projectSectionLabel: t('chatContextReferenceProjectSection', language),
-          projectSubtitle: t('chatContextReferenceProjectType', language),
-          projectsDescription: t('chatContextReferenceProjectsDescription', language),
-          projectsHintLabel: t('chatContextReferenceProjectsHint', language),
-          projectsLabel: t('chatContextReferenceProjectsLabel', language),
-          projectsLoadFailedLabel: t('chatContextReferenceProjectsLoadFailed', language),
-          projectsSubtitle: t('chatContextReferenceProjectsType', language),
-          projectRootLabel: t('chatContextReferenceProjectRoot', language),
-          searchFailedLabel: t('chatContextReferenceSearchFailed', language),
-          workspaceSectionLabel: t('chatContextReferenceWorkspaceSection', language),
-        },
-        panelApp: panelAppTexts,
-      },
-      menuTexts: {
-        loadingLabel: t('chatContextReferenceLoading', language),
-        sectionLabel: t('chatContextReferenceSection', language),
-        emptyLabel: t('chatContextReferenceNoResult', language),
-        hintLabel: t('chatContextReferenceHint', language),
-        itemHintLabel: t('chatContextReferenceItemHint', language),
-      },
-      onNavigate,
-    }),
-  ];
-}
 
 function buildBrowsedReferenceEntries(params: {
   entries: readonly ServerPathEntryView[];
@@ -149,6 +50,43 @@ function buildBrowsedReferenceEntries(params: {
   }));
 }
 
+function useContextReferenceCatalogQueries(params: {
+  inputSurfaceTrigger: ChatInputSurfaceTrigger | null;
+  isContextReferenceTrigger: boolean;
+  query: string;
+  referenceLocation: ContextReferenceLocation;
+}) {
+  const {
+    inputSurfaceTrigger,
+    isContextReferenceTrigger,
+    query,
+    referenceLocation,
+  } = params;
+  const shouldLoadPanelApps =
+    (isContextReferenceTrigger && referenceLocation.view === 'root') ||
+    inputSurfaceTrigger?.key === CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC.key;
+  const panelApps = usePanelApps({ enabled: shouldLoadPanelApps });
+  const projects = useProjects({
+    enabled: Boolean(
+      isContextReferenceTrigger &&
+      (referenceLocation.view === 'root' || referenceLocation.view === 'projects'),
+    ),
+  });
+  const objectType = referenceLocation.view === 'system-objects'
+    ? referenceLocation.objectType
+    : undefined;
+  const systemObjects = useSystemObjectReferences({
+    enabled: Boolean(
+      isContextReferenceTrigger &&
+      (referenceLocation.view === 'root' || referenceLocation.view === 'system-objects'),
+    ),
+    query,
+    limit: objectType ? 20 : 6,
+    objectType,
+  });
+  return { panelApps, projects, systemObjects };
+}
+
 export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams) {
   const {
     isSkillsLoading,
@@ -156,6 +94,7 @@ export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams)
     language,
     onSelectPanelApp,
     onSelectSkill,
+    onSelectSystemObject,
     projectRoot,
     recentSkillValues,
     skillRecords,
@@ -176,26 +115,28 @@ export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams)
     setInputSurfaceTriggerState(nextTrigger);
   }, []);
   const isContextReferenceTrigger = inputSurfaceTrigger?.key === CONTEXT_REFERENCE_TRIGGER_SPEC.key;
-  const referencePath = referenceLocation.view === 'files' ? referenceLocation.path : '';
+  const isWorkspaceReferenceView =
+    referenceLocation.view === 'files' || referenceLocation.view === 'folders';
+  const referencePath = isWorkspaceReferenceView ? referenceLocation.path : '';
   const deferredReferenceQuery = useDeferredValue(
     isContextReferenceTrigger ? inputSurfaceTrigger.query : '',
   );
   const isBrowsingServerPaths = Boolean(
     isContextReferenceTrigger &&
     projectRoot &&
-    referenceLocation.view === 'files' &&
+    isWorkspaceReferenceView &&
     !deferredReferenceQuery.trim(),
   );
   const shouldSearchServerPaths = Boolean(
     isContextReferenceTrigger &&
     projectRoot &&
-    referenceLocation.view !== 'projects' &&
+    (referenceLocation.view === 'root' || isWorkspaceReferenceView) &&
     deferredReferenceQuery.trim(),
   );
   const serverPathBrowse = useServerPathBrowse({
     path: referencePath || '.',
     basePath: projectRoot,
-    includeFiles: true,
+    includeFiles: referenceLocation.view === 'files',
     enabled: isBrowsingServerPaths,
   });
   const serverPathSearch = useServerPathSearch({
@@ -218,19 +159,21 @@ export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams)
       serverPathSearch.data?.entries,
     ],
   );
-  const shouldLoadPanelApps =
-    isContextReferenceTrigger ||
-    inputSurfaceTrigger?.key === CHAT_INPUT_SURFACE_SLASH_TRIGGER_SPEC.key;
-  const panelApps = usePanelApps({ enabled: shouldLoadPanelApps });
-  const projects = useProjects({ enabled: isContextReferenceTrigger });
+  const { panelApps, projects, systemObjects } = useContextReferenceCatalogQueries({
+    inputSurfaceTrigger,
+    isContextReferenceTrigger,
+    query: deferredReferenceQuery,
+    referenceLocation,
+  });
 
   const inputSurfacePlugins = useMemo(
-    () => buildChatInputSurfacePlugins({
+    () => buildChatInputProductPlugins({
       commands,
       language,
       onNavigate: setReferenceLocation,
       onSelectPanelApp,
       onSelectSkill,
+      onSelectSystemObject,
       slashTexts: itemTexts.slashTexts,
     }),
     [
@@ -238,7 +181,8 @@ export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams)
       itemTexts.slashTexts,
       language,
       onSelectPanelApp,
-      onSelectSkill
+      onSelectSkill,
+      onSelectSystemObject,
     ]
   );
   const inputSurfaceState = useMemo(
@@ -248,6 +192,7 @@ export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams)
         isProjectsLoading: projects.isLoading || projects.isFetching,
         isServerPathSearchLoading: activeServerPathQuery.isLoading || activeServerPathQuery.isFetching,
         isSkillsLoading,
+        isSystemObjectsLoading: systemObjects.isLoading || systemObjects.isFetching,
         panelApps: panelApps.data?.entries ?? [],
         projectRoot,
         projects: projects.data?.projects ?? [],
@@ -258,7 +203,9 @@ export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams)
         serverPathSearchError: activeServerPathQuery.error instanceof Error
           ? activeServerPathQuery.error.message
           : null,
-        skillRecords
+        skillRecords,
+        systemObjectGroups: systemObjects.data?.groups ?? [],
+        systemObjectsError: systemObjects.error instanceof Error ? systemObjects.error.message : null,
       },
       plugins: inputSurfacePlugins,
       trigger: inputSurfaceTrigger
@@ -281,7 +228,11 @@ export function useChatInputSurfaceState(params: UseChatInputSurfaceStateParams)
       serverPathEntries,
       isSkillsLoading,
       recentSkillValues,
-      skillRecords
+      skillRecords,
+      systemObjects.data?.groups,
+      systemObjects.error,
+      systemObjects.isFetching,
+      systemObjects.isLoading,
     ]
   );
 

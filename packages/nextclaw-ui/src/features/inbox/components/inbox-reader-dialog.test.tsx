@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
 import { InboxReaderDialog } from "@/features/inbox/components/inbox-reader-dialog";
 import { useInboxStore } from "@/features/inbox/stores/inbox.store";
 import { t } from "@/shared/lib/i18n";
@@ -8,13 +9,17 @@ import { t } from "@/shared/lib/i18n";
 const mocks = vi.hoisted(() => ({
   closeReader: vi.fn(),
   contentType: "markdown",
-  continueInChat: vi.fn(),
+  prepareChatReference: vi.fn(),
+  requestSystemObjectReference: vi.fn(),
   markRead: vi.fn(),
   selectInReader: vi.fn(),
 }));
 
 vi.mock("@/app/components/app-presenter-provider", () => ({
-  useAppPresenter: () => ({ inboxManager: mocks }),
+  useAppPresenter: () => ({
+    inboxManager: mocks,
+    chatDraftIntentManager: { requestSystemObjectReference: mocks.requestSystemObjectReference },
+  }),
 }));
 
 vi.mock("@/features/inbox/hooks/use-inbox-deliveries", () => ({
@@ -34,7 +39,6 @@ vi.mock("@/features/inbox/hooks/use-inbox-deliveries", () => ({
         presentedAt: "2026-08-06T00:01:00.000Z",
         readAt: null,
         archivedAt: null,
-        conversationSessionId: null,
       }],
     },
   }),
@@ -46,10 +50,20 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
   ),
 }));
 
+function CurrentPath() {
+  return <span data-testid="current-path">{useLocation().pathname}</span>;
+}
+
 describe("InboxReaderDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.contentType = "markdown";
+    mocks.prepareChatReference.mockResolvedValue({
+      reference: {
+        uri: "nextclaw://objects/inbox-delivery/delivery-1",
+        label: "A considered report",
+      },
+    });
     useInboxStore.setState({
       snapshot: { readerOpen: true, activeDeliveryId: "delivery-1" },
     });
@@ -79,5 +93,24 @@ describe("InboxReaderDialog", () => {
     const htmlPreview = screen.getAllByTitle("A considered report")
       .find((element) => element.tagName === "IFRAME");
     expect(htmlPreview?.className).toContain("h-full");
+  });
+
+  it("opens a draft with a visible system object reference intent", async () => {
+    render(
+      <MemoryRouter initialEntries={["/inbox"]}>
+        <InboxReaderDialog />
+        <CurrentPath />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: t("inboxContinueChat") }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("current-path").textContent).toBe(CHAT_DRAFT_SESSION_PATH);
+    });
+    expect(mocks.prepareChatReference).toHaveBeenCalledWith("delivery-1");
+    expect(mocks.requestSystemObjectReference).toHaveBeenCalledWith(
+      expect.objectContaining({ uri: "nextclaw://objects/inbox-delivery/delivery-1" }),
+    );
   });
 });

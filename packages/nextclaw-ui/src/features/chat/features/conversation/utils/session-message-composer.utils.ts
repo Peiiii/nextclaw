@@ -6,6 +6,7 @@ import {
 } from '@nextclaw/agent-chat-ui';
 import type { NcpMessage } from '@nextclaw/ncp';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
+import { CHAT_SYSTEM_OBJECT_TOKEN_KIND } from '@nextclaw/shared';
 
 import { deriveChatComposerDraft } from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import {
@@ -44,6 +45,10 @@ function buildTextNodes(
       tokenKind: nextToken.token.kind,
       tokenKey: 'ref' in nextToken.token ? nextToken.token.ref : nextToken.token.key,
       label: nextToken.token.label,
+      data: nextToken.token.kind === CHAT_SYSTEM_OBJECT_TOKEN_KIND &&
+        'reference' in nextToken.token
+        ? { reference: nextToken.token.reference }
+        : undefined,
     }));
     offset = nextToken.index + nextToken.token.rawText.length;
   }

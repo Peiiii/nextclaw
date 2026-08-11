@@ -46,6 +46,7 @@ export type UiKernelHost = Pick<
   | "eventBus"
   | "ingress"
   | "inboxDeliveryManager"
+  | "systemObjectReferenceManager"
   | "isSessionRunning"
   | "listSessionTypes"
   | "agentRunRequestManager"

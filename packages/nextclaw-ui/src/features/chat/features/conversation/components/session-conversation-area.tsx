@@ -18,6 +18,10 @@ import { ChatConversationWelcome } from "@/features/chat/features/welcome/compon
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useSystemStatus } from "@/features/system-status";
 import { t } from "@/shared/lib/i18n";
+import type { SystemObjectResolvedReference } from "@nextclaw/shared";
+import { deriveChatComposerDraft } from "@/features/chat/features/input/utils/chat-composer-state.utils";
+import { appendSystemObjectReferenceToken } from "@/features/chat/features/input/utils/chat-system-object-reference.utils";
+import type { ChatDraftIntent } from "@/features/chat/managers/chat-draft-intent.manager";
 
 import {
   useSessionConversationController,
@@ -42,18 +46,23 @@ type SessionConversationAreaProps = {
 function useSessionConversationDraftIntent(params: {
   readonly consumeDraftIntent: boolean;
   readonly applyPromptSuggestion: (prompt: string) => void;
+  readonly applySystemObjectReference: (reference: SystemObjectResolvedReference) => void;
 }) {
-  const { applyPromptSuggestion, consumeDraftIntent } = params;
+  const { applyPromptSuggestion, applySystemObjectReference, consumeDraftIntent } = params;
   const appPresenter = useAppPresenter();
   const presenter = usePresenter();
   useEffect(() => {
     if (!consumeDraftIntent) {
       return undefined;
     }
-    const applyIntent = (intent: { id: number; prompt: string }) => {
+    const applyIntent = (intent: ChatDraftIntent) => {
       presenter.chatSessionListManager.createSession();
       presenter.chatSessionListManager.setSelectedAgentId("main");
-      applyPromptSuggestion(intent.prompt);
+      if (intent.kind === 'prompt') {
+        applyPromptSuggestion(intent.prompt);
+      } else {
+        applySystemObjectReference(intent.reference);
+      }
       appPresenter.chatDraftIntentManager.markConsumed(intent.id);
     };
     const unsubscribe =
@@ -63,7 +72,7 @@ function useSessionConversationDraftIntent(params: {
       applyIntent(pendingIntent);
     }
     return unsubscribe;
-  }, [appPresenter, applyPromptSuggestion, consumeDraftIntent, presenter]);
+  }, [appPresenter, applyPromptSuggestion, applySystemObjectReference, consumeDraftIntent, presenter]);
 }
 
 type ChatDraftRouteState = {
@@ -204,6 +213,17 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     initialPrompt,
     sessionKey,
   );
+  const applySystemObjectReference = useCallback((reference: SystemObjectResolvedReference) => {
+    inputActions.update((current) => {
+      const nodes = appendSystemObjectReferenceToken(current.nodes, reference);
+      return {
+        nodes,
+        text: deriveChatComposerDraft(nodes),
+        composerFocusRequestId: Date.now(),
+        sendError: null,
+      };
+    });
+  }, [inputActions]);
   const inputQuery = useSessionConversationInputQuery({
     sessionKey,
     inputSnapshot,
@@ -355,6 +375,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   useSessionConversationDraftIntent({
     consumeDraftIntent,
     applyPromptSuggestion: inputActions.applyPromptSuggestion,
+    applySystemObjectReference,
   });
   const renderInput = useCallback(
     (surface: "default" | "embedded", placeholder?: string) => (

@@ -5,7 +5,8 @@ import {
   type ChatInputSurfacePlugin,
   type ChatInputSurfaceTriggerSpec,
 } from '@nextclaw/agent-chat-ui';
-import type { PanelAppEntryView } from '@/shared/lib/api';
+import type { ServerPathSearchEntryView } from '@/shared/lib/api';
+import type { I18nLanguage } from '@/shared/lib/i18n';
 import type {
   ChatInputProductPluginData,
   ContextReferenceLocation,
@@ -14,129 +15,94 @@ import {
   buildBackNavigationItem,
   buildCurrentDirectoryReferenceItem,
   buildFilesNavigationItem,
+  buildFoldersNavigationItem,
   buildProjectReferenceItems,
   buildProjectsNavigationItem,
+  buildSystemObjectGroupNavigationItems,
   buildWorkspaceReferenceItems,
+  buildSystemObjectReferenceItems,
+  FILES_SECTION_KEY,
   FILES_NAVIGATION_ITEM_KEY,
+  FOLDERS_NAVIGATION_ITEM_KEY,
+  FOLDERS_SECTION_KEY,
   PROJECTS_NAVIGATION_ITEM_KEY,
   ROOT_NAVIGATION_ITEM_KEY,
+  SYSTEM_OBJECT_GROUP_ITEM_KEY_PREFIX,
+  SYSTEM_OBJECT_ITEM_KEY_PREFIX,
   type ContextReferenceInputSurfaceTexts,
 } from './context-reference-items.utils';
 import {
-  scoreInputSurfaceSearchCandidate,
-  resolveInputSurfaceMatchTier,
-} from './input-surface-search.utils';
-
-const PANEL_APP_SECTION_KEY = 'panel-apps';
+  buildPanelAppReferenceItems,
+  type PanelAppInputSurfaceItemTexts,
+} from './panel-app-input-surface-items.utils';
 
 export const CONTEXT_REFERENCE_TRIGGER_SPEC: ChatInputSurfaceTriggerSpec = {
   key: 'context-reference',
   marker: '@',
 };
 
-export type PanelAppInputSurfaceItemTexts = {
-  appIdLabel: string;
-  fileLabel: string;
-  noDescriptionLabel: string;
-  subtitle: string;
-};
-
-function getPanelAppActivityTime(entry: PanelAppEntryView): number {
-  return Date.parse(entry.lastOpenedAt ?? entry.updatedAt) || 0;
+function buildWorkspaceItemSets(params: {
+  entries: readonly ServerPathSearchEntryView[];
+  isBrowsing: boolean;
+  isFoldersMode: boolean;
+  projectRoot: string;
+  texts: ContextReferenceInputSurfaceTexts;
+}) {
+  const { entries, isBrowsing, isFoldersMode, projectRoot, texts } = params;
+  const buildItems = (
+    itemEntries: readonly ServerPathSearchEntryView[],
+    kind: 'files' | 'folders',
+    navigateDirectories: boolean,
+  ) => buildWorkspaceReferenceItems({
+    entries: itemEntries,
+    navigateDirectories,
+    projectRoot,
+    sectionKey: kind === 'folders' ? FOLDERS_SECTION_KEY : FILES_SECTION_KEY,
+    sectionLabel: kind === 'folders' ? texts.foldersLabel : texts.filesLabel,
+    texts,
+  });
+  return {
+    browsedItems: buildItems(entries, isFoldersMode ? 'folders' : 'files', isBrowsing),
+    fileItems: buildItems(entries.filter(({ kind }) => kind === 'file'), 'files', false),
+    folderItems: buildItems(entries.filter(({ kind }) => kind === 'directory'), 'folders', false),
+  };
 }
 
-function resolvePanelAppInputSurfaceEntries(params: {
-  entries: readonly PanelAppEntryView[];
-  query: string;
-}): PanelAppEntryView[] {
-  const collator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
-  return params.entries
-    .map((entry, order) => ({
-      entry,
-      order,
-      score: scoreInputSurfaceSearchCandidate(
-        {
-          id: entry.appId,
-          label: entry.title || entry.appId,
-          description: entry.description,
-          aliases: [entry.id, entry.fileName],
-        },
-        params.query,
-      ),
-    }))
-    .filter((entry) => entry.score > 0)
-    .sort((left, right) => {
-      const leftTier = resolveInputSurfaceMatchTier(left.score);
-      const rightTier = resolveInputSurfaceMatchTier(right.score);
-      if (rightTier !== leftTier) {
-        return rightTier - leftTier;
-      }
-      if (left.entry.favorite !== right.entry.favorite) {
-        return left.entry.favorite ? -1 : 1;
-      }
-      const rightActivity = getPanelAppActivityTime(right.entry);
-      const leftActivity = getPanelAppActivityTime(left.entry);
-      if (rightActivity !== leftActivity) {
-        return rightActivity - leftActivity;
-      }
-      if (right.score !== left.score) {
-        return right.score - left.score;
-      }
-      const labelCompare = collator.compare(left.entry.title || left.entry.appId, right.entry.title || right.entry.appId);
-      return labelCompare || left.order - right.order;
-    })
-    .map(({ entry }) => entry);
-}
-
-function buildPanelAppInputSurfaceItemEntries(params: {
-  entries: readonly PanelAppEntryView[];
-  keyPrefix?: string;
-  query: string;
-  texts: PanelAppInputSurfaceItemTexts;
-}): Array<{ entry: PanelAppEntryView; item: ChatInputSurfaceItem }> {
-  const keyPrefix = params.keyPrefix ?? 'panel-app';
-  return resolvePanelAppInputSurfaceEntries({
-    entries: params.entries,
-    query: params.query,
-  }).map((entry) => ({
-    entry,
-    item: {
-      key: `${keyPrefix}:${entry.appId}`,
-      icon: 'panel-app',
-      title: entry.title || entry.appId,
-      subtitle: params.texts.subtitle,
-      description: (entry.description ?? '').trim() || params.texts.noDescriptionLabel,
-      detailLines: [
-        `${params.texts.appIdLabel}: ${entry.appId}`,
-        `${params.texts.fileLabel}: ${entry.fileName}`,
-      ],
-    },
-  }));
-}
-
-export function buildPanelAppInputSurfaceItems(params: {
-  entries: readonly PanelAppEntryView[];
-  keyPrefix?: string;
-  query: string;
-  texts: PanelAppInputSurfaceItemTexts;
-}): ChatInputSurfaceItem[] {
-  return buildPanelAppInputSurfaceItemEntries(params).map(({ item }) => item);
-}
-
-function buildPanelAppReferenceItems(params: {
-  entries: readonly PanelAppEntryView[];
-  query: string;
-  sectionLabel: string;
-  texts: PanelAppInputSurfaceItemTexts;
-}): ChatInputSurfaceItem[] {
-  return buildPanelAppInputSurfaceItemEntries(params).map(({ entry, item }) => ({
-    ...item,
-    sectionKey: PANEL_APP_SECTION_KEY,
-    sectionLabel: params.sectionLabel,
-    tokenKind: 'panel_app',
-    tokenKey: entry.appId,
-    value: entry.appId,
-  }));
+function handleContextReferenceItemSelect(params: {
+  isFoldersMode: boolean;
+  isWorkspaceMode: boolean;
+  item: ChatInputSurfaceItem;
+  onNavigate: (location: ContextReferenceLocation) => void;
+  onSelectSystemObject: (uri: string) => void;
+  referencePath: string;
+}): void {
+  const {
+    isFoldersMode,
+    isWorkspaceMode,
+    item,
+    onNavigate,
+    onSelectSystemObject,
+    referencePath,
+  } = params;
+  if (item.key === FILES_NAVIGATION_ITEM_KEY) {
+    onNavigate({ view: 'files', path: '' });
+  } else if (item.key === FOLDERS_NAVIGATION_ITEM_KEY) {
+    onNavigate({ view: 'folders', path: '' });
+  } else if (item.key === PROJECTS_NAVIGATION_ITEM_KEY) {
+    onNavigate({ view: 'projects' });
+  } else if (item.key === ROOT_NAVIGATION_ITEM_KEY) {
+    onNavigate(
+      isWorkspaceMode && referencePath
+        ? { view: isFoldersMode ? 'folders' : 'files', path: item.value ?? '' }
+        : { view: 'root' },
+    );
+  } else if (item.key.startsWith(SYSTEM_OBJECT_GROUP_ITEM_KEY_PREFIX) && item.value) {
+    onNavigate({ view: 'system-objects', objectType: item.value });
+  } else if (item.selectionBehavior === 'navigate' && item.value) {
+    onNavigate({ view: isFoldersMode ? 'folders' : 'files', path: item.value });
+  } else if (item.key.startsWith(SYSTEM_OBJECT_ITEM_KEY_PREFIX) && item.value) {
+    onSelectSystemObject(item.value);
+  }
 }
 
 export function createContextReferenceInputSurfacePlugin(params: {
@@ -145,21 +111,29 @@ export function createContextReferenceInputSurfacePlugin(params: {
     panelApp: PanelAppInputSurfaceItemTexts;
   };
   menuTexts: ChatInputSurfaceMenuTexts;
+  language: I18nLanguage;
   onNavigate: (location: ContextReferenceLocation) => void;
+  onSelectSystemObject: (uri: string) => void;
 }): ChatInputSurfacePlugin<ChatInputProductPluginData> {
   return createInputSurfaceTriggeredPanelPlugin({
     key: 'context-reference',
     trigger: CONTEXT_REFERENCE_TRIGGER_SPEC,
     resolvePanel: ({ data, trigger }) => {
       const isFilesMode = data.referenceLocation.view === 'files';
+      const isFoldersMode = data.referenceLocation.view === 'folders';
       const isProjectsMode = data.referenceLocation.view === 'projects';
-      const isBrowsing = isFilesMode && !trigger.query.trim();
-      const referencePath = data.referenceLocation.view === 'files'
+      const isSystemObjectsMode = data.referenceLocation.view === 'system-objects';
+      const isWorkspaceMode = isFilesMode || isFoldersMode;
+      const hasQuery = Boolean(trigger.query.trim());
+      const isBrowsing = isWorkspaceMode && !hasQuery;
+      const referencePath = data.referenceLocation.view === 'files' ||
+        data.referenceLocation.view === 'folders'
         ? data.referenceLocation.path
         : '';
-      const workspaceItems = buildWorkspaceReferenceItems({
+      const { browsedItems, fileItems, folderItems } = buildWorkspaceItemSets({
         entries: data.serverPathEntries,
-        navigateDirectories: isBrowsing,
+        isBrowsing,
+        isFoldersMode,
         projectRoot: data.projectRoot,
         texts: params.itemTexts.context,
       });
@@ -168,22 +142,36 @@ export function createContextReferenceInputSurfacePlugin(params: {
         query: trigger.query,
         texts: params.itemTexts.context,
       });
-      const currentDirectoryItem = isBrowsing && referencePath
+      const currentDirectoryItem = isFoldersMode && isBrowsing
         ? buildCurrentDirectoryReferenceItem({
             projectRoot: data.projectRoot,
             referencePath,
             texts: params.itemTexts.context,
           })
         : null;
+      const systemObjectGroups = data.systemObjectGroups ?? [];
+      const systemObjectItems = buildSystemObjectReferenceItems({
+        groups: systemObjectGroups,
+        language: params.language,
+        texts: params.itemTexts.context,
+      });
       const items = isFilesMode
         ? [
             buildBackNavigationItem({
               location: data.referenceLocation,
               texts: params.itemTexts.context,
             }),
-            ...(currentDirectoryItem ? [currentDirectoryItem] : []),
-            ...workspaceItems,
+            ...(isBrowsing ? browsedItems : fileItems),
           ]
+        : isFoldersMode
+          ? [
+              buildBackNavigationItem({
+                location: data.referenceLocation,
+                texts: params.itemTexts.context,
+              }),
+              ...(currentDirectoryItem ? [currentDirectoryItem] : []),
+              ...(isBrowsing ? browsedItems : folderItems),
+            ]
         : isProjectsMode
           ? [
               buildBackNavigationItem({
@@ -192,11 +180,28 @@ export function createContextReferenceInputSurfacePlugin(params: {
               }),
               ...projectItems,
             ]
+          : isSystemObjectsMode
+            ? [
+                buildBackNavigationItem({
+                  location: data.referenceLocation,
+                  texts: params.itemTexts.context,
+                }),
+                ...systemObjectItems,
+              ]
           : [
             buildFilesNavigationItem(params.itemTexts.context),
+            buildFoldersNavigationItem(params.itemTexts.context),
             buildProjectsNavigationItem(params.itemTexts.context),
-            ...(trigger.query ? workspaceItems : []),
-            ...(trigger.query ? projectItems : []),
+            ...(hasQuery ? fileItems : []),
+            ...(hasQuery ? folderItems : []),
+            ...(hasQuery ? projectItems : []),
+            ...(hasQuery
+              ? systemObjectItems
+              : buildSystemObjectGroupNavigationItems({
+                  groups: systemObjectGroups,
+                  language: params.language,
+                  texts: params.itemTexts.context,
+                })),
             ...buildPanelAppReferenceItems({
               entries: data.panelApps,
               query: trigger.query,
@@ -204,17 +209,23 @@ export function createContextReferenceInputSurfacePlugin(params: {
               texts: params.itemTexts.panelApp,
             }),
           ];
-      const relevantLoading = isFilesMode
+      const relevantLoading = isWorkspaceMode
         ? data.isServerPathSearchLoading
         : isProjectsMode
           ? data.isProjectsLoading
-          : data.isPanelAppsLoading ||
-            (Boolean(trigger.query) && (data.isProjectsLoading || data.isServerPathSearchLoading));
-      const errorMessage = isProjectsMode && data.projectsError
-        ? `${params.itemTexts.context.projectsLoadFailedLabel}: ${data.projectsError}`
-        : data.serverPathSearchError
-          ? `${params.itemTexts.context.searchFailedLabel}: ${data.serverPathSearchError}`
-          : null;
+          : isSystemObjectsMode
+            ? Boolean(data.isSystemObjectsLoading)
+            : data.isPanelAppsLoading || Boolean(data.isSystemObjectsLoading) ||
+              (hasQuery && (data.isProjectsLoading || data.isServerPathSearchLoading));
+      const isRootMode = !isWorkspaceMode && !isProjectsMode && !isSystemObjectsMode;
+      let errorMessage: string | null = null;
+      if (isProjectsMode && data.projectsError) {
+        errorMessage = `${params.itemTexts.context.projectsLoadFailedLabel}: ${data.projectsError}`;
+      } else if ((isSystemObjectsMode || isRootMode) && data.systemObjectsError) {
+        errorMessage = `${params.itemTexts.context.searchFailedLabel}: ${data.systemObjectsError}`;
+      } else if ((isWorkspaceMode || isRootMode) && data.serverPathSearchError) {
+        errorMessage = `${params.itemTexts.context.searchFailedLabel}: ${data.serverPathSearchError}`;
+      }
       return {
         isLoading: isProjectsMode ? relevantLoading : relevantLoading && items.length === 0,
         items,
@@ -224,21 +235,14 @@ export function createContextReferenceInputSurfacePlugin(params: {
               tone: 'error',
             }
           : undefined,
-        onSelectItem: (item) => {
-          if (item.key === FILES_NAVIGATION_ITEM_KEY) {
-            params.onNavigate({ view: 'files', path: '' });
-          } else if (item.key === PROJECTS_NAVIGATION_ITEM_KEY) {
-            params.onNavigate({ view: 'projects' });
-          } else if (item.key === ROOT_NAVIGATION_ITEM_KEY) {
-            params.onNavigate(
-              isFilesMode && referencePath
-                ? { view: 'files', path: item.value ?? '' }
-                : { view: 'root' },
-            );
-          } else if (item.selectionBehavior === 'navigate' && item.value) {
-            params.onNavigate({ view: 'files', path: item.value });
-          }
-        },
+        onSelectItem: (item) => handleContextReferenceItemSelect({
+          isFoldersMode,
+          isWorkspaceMode,
+          item,
+          onNavigate: params.onNavigate,
+          onSelectSystemObject: params.onSelectSystemObject,
+          referencePath,
+        }),
         texts: params.menuTexts,
       };
     },

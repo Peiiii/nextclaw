@@ -1,5 +1,3 @@
-export const INBOX_DELIVERY_SESSION_METADATA_KEY = "inbox_delivery_id";
-
 export type InboxDeliveryContentType = "markdown" | "html";
 
 export type InboxDeliverySource = {
@@ -22,7 +20,6 @@ export type InboxDelivery = {
   presentedAt: string | null;
   readAt: string | null;
   archivedAt: string | null;
-  conversationSessionId: string | null;
 };
 
 export type InboxDeliveryListView = {
@@ -41,12 +38,6 @@ export type InboxDeliveryStateAction =
 
 export type InboxDeliveryStateUpdate = {
   action: InboxDeliveryStateAction;
-};
-
-export type InboxDeliveryContinueResult = {
-  delivery: InboxDelivery;
-  sessionId: string;
-  created: boolean;
 };
 
 export type InboxDeliveryChangedEventPayload = {
