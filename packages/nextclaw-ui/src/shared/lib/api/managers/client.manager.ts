@@ -1,24 +1,33 @@
 import {
   NextClawClient,
+  NextClawClientError,
   type NextClawRealtimeEvent,
   type NextClawQueryParams,
   type NextClawTransport,
   type NextClawTransportRequestInput,
-  type NextClawTransportUploadInput
+  type NextClawTransportUploadInput,
 } from '@nextclaw/client-sdk';
 import { API_BASE } from '@/shared/lib/api/api-base';
 import { appClient } from '@/shared/lib/transport';
 import type { ApiResponse } from '@/shared/lib/api/types';
 
 const nextclawUiTransport: NextClawTransport = {
-  request: async <T>({ body, headers, method, path, query, signal, timeoutMs }: NextClawTransportRequestInput): Promise<T> => {
+  request: async <T>({
+    body,
+    headers,
+    method,
+    path,
+    query,
+    signal,
+    timeoutMs,
+  }: NextClawTransportRequestInput): Promise<T> => {
     return await appClient.request({
       method,
       path: appendQueryToPath(path, serializeQuery(query)),
       ...(body !== undefined ? { body } : {}),
       ...(headers ? { headers } : {}),
       ...(signal ? { signal } : {}),
-      ...(timeoutMs !== undefined ? { timeoutMs } : {})
+      ...(timeoutMs !== undefined ? { timeoutMs } : {}),
     });
   },
   upload: async <T>({ formData, headers, path, signal }: NextClawTransportUploadInput): Promise<T> => {
@@ -27,25 +36,30 @@ const nextclawUiTransport: NextClawTransport = {
       body: formData,
       credentials: 'include',
       ...(headers ? { headers } : {}),
-      ...(signal ? { signal } : {})
+      ...(signal ? { signal } : {}),
     });
     const payload = (await response.json()) as ApiResponse<unknown>;
     if (!response.ok || !payload.ok) {
-      throw new Error(readApiErrorMessage(payload, `Upload failed for ${path}`));
+      throw new NextClawClientError({
+        message: readApiErrorMessage(payload, `Upload failed for ${path}`),
+        status: response.status,
+        code: !payload.ok ? payload.error.code : undefined,
+        details: !payload.ok ? payload.error.details : undefined,
+      });
     }
     return payload.data as T;
   },
-  subscribe: (handler: (event: NextClawRealtimeEvent) => void) => appClient.subscribe(handler)
+  subscribe: (handler: (event: NextClawRealtimeEvent) => void) => appClient.subscribe(handler),
 };
 
 export const nextclawClient = new NextClawClient({
   baseUrl: API_BASE,
-  transport: nextclawUiTransport
+  transport: nextclawUiTransport,
 });
 
 export async function requestApiResponse<T>(
   endpoint: string,
-  options: RequestInit & { timeoutMs?: number } = {}
+  options: RequestInit & { timeoutMs?: number } = {},
 ): Promise<ApiResponse<T>> {
   const method = (options.method || 'GET').toUpperCase();
   try {
@@ -53,11 +67,11 @@ export async function requestApiResponse<T>(
       method: method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
       path: endpoint,
       ...(options.timeoutMs !== undefined ? { timeoutMs: options.timeoutMs } : {}),
-      ...(options.body !== undefined ? { body: parseRequestBody(options.body) } : {})
+      ...(options.body !== undefined ? { body: parseRequestBody(options.body) } : {}),
     });
     return {
       ok: true,
-      data
+      data,
     };
   } catch (error) {
     return {
@@ -67,9 +81,9 @@ export async function requestApiResponse<T>(
         message: error instanceof Error ? error.message : String(error),
         details: {
           method,
-          endpoint
-        }
-      }
+          endpoint,
+        },
+      },
     };
   }
 }
@@ -80,17 +94,17 @@ export const api = {
   put: <T>(path: string, body: unknown) =>
     requestApiResponse<T>(path, {
       method: 'PUT',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     }),
   post: <T>(path: string, body: unknown) =>
     requestApiResponse<T>(path, {
       method: 'POST',
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     }),
   delete: <T>(path: string) =>
     requestApiResponse<T>(path, {
-      method: 'DELETE'
-    })
+      method: 'DELETE',
+    }),
 };
 
 function parseRequestBody(body: BodyInit | null | undefined): unknown {

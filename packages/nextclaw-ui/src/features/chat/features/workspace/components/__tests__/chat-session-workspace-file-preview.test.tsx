@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   ChatFileOpenActionViewModel,
@@ -38,6 +39,7 @@ vi.mock("@/shared/hooks/use-server-path-browse", () => ({
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", () => ({
+  ChatTextSelectionAction: ({ children }: { children: ReactNode }) => children,
   ChatMessageMarkdown: ({ text }: { text: string }) => (
     <div data-testid="markdown-preview">{text}</div>
   ),
@@ -54,6 +56,16 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
       data-layout={layout ?? "compact"}
     />
   ),
+}));
+
+vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
+  usePresenter: () => ({
+    chatThreadManager: { removeWorkspacePath: vi.fn(), renameWorkspacePath: vi.fn() },
+    chatComposerIntentManager: {
+      requestDirectoryReference: vi.fn(),
+      requestFileReference: vi.fn(),
+    },
+  }),
 }));
 
 vi.mock("docx-preview", () => ({
@@ -787,7 +799,7 @@ describe("ChatSessionWorkspaceFilePreview breadcrumbs", () => {
       screen.getByTestId("workspace-file-breadcrumb-scroll").className,
     ).toContain("py-1.5");
     expect(
-      screen.getByTestId("workspace-file-breadcrumbs").className,
+      screen.getByTestId("workspace-file-breadcrumb-scroll").className,
     ).toContain("workspace-horizontal-scrollbar");
   });
 

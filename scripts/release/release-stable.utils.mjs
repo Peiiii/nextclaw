@@ -116,6 +116,82 @@ export function resolveStableReleasePlan(changesetStatus) {
   };
 }
 
+function parseStableVersion(version) {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version ?? "");
+  if (!match) {
+    throw new Error(`Expected a stable semantic version, received ${version ?? "<missing>"}.`);
+  }
+  return match.slice(1).map(Number);
+}
+
+export function resolveStableReleaseLevel(previousVersion, targetVersion) {
+  const [previousMajor, previousMinor] = parseStableVersion(previousVersion);
+  const [targetMajor, targetMinor] = parseStableVersion(targetVersion);
+  if (targetMajor > previousMajor) {
+    return "major";
+  }
+  if (targetMajor === previousMajor && targetMinor > previousMinor) {
+    return "minor";
+  }
+  return "patch";
+}
+
+export function inspectStableSurfaceReview({
+  pathExists,
+  previousVersion,
+  review,
+  targetVersion
+}) {
+  const releaseLevel = resolveStableReleaseLevel(previousVersion, targetVersion);
+  const required = releaseLevel === "major" || releaseLevel === "minor";
+  if (!required) {
+    return { issues: [], ready: true, releaseLevel, required };
+  }
+
+  const issues = [];
+  if (!review || typeof review !== "object") {
+    issues.push("release review is missing");
+    return { issues, ready: false, releaseLevel, required };
+  }
+  if (review.version !== targetVersion) {
+    issues.push(`review version must be ${targetVersion}`);
+  }
+  if (review.releaseType !== releaseLevel) {
+    issues.push(`review releaseType must be ${releaseLevel}`);
+  }
+
+  for (const [surfaceKey, label] of [
+    ["docsSite", "docs site"],
+    ["website", "website"]
+  ]) {
+    const surface = review.surfaces?.[surfaceKey];
+    if (!surface || !["updated", "not-needed"].includes(surface.decision)) {
+      issues.push(`${label} decision must be updated or not-needed`);
+      continue;
+    }
+    if (surface.decision === "not-needed") {
+      if (typeof surface.reason !== "string" || !surface.reason.trim()) {
+        issues.push(`${label} not-needed decision requires a reason`);
+      }
+      continue;
+    }
+    const paths = Array.isArray(surface.paths) ? surface.paths : [];
+    if (paths.length === 0) {
+      issues.push(`${label} updated decision requires at least one path`);
+      continue;
+    }
+    for (const path of paths) {
+      if (typeof path !== "string" || !path.trim() || path.startsWith("/") || path.includes("..")) {
+        issues.push(`${label} contains an invalid repository-relative path`);
+      } else if (!pathExists(path)) {
+        issues.push(`${label} path does not exist: ${path}`);
+      }
+    }
+  }
+
+  return { issues, ready: issues.length === 0, releaseLevel, required };
+}
+
 export function resolveLinkedWorktreeNpmUserconfig({
   commonGitDir,
   configuredUserconfig,
@@ -167,6 +243,8 @@ export function buildStableDryRunPlan({
   packageCount,
   previousVersion,
   releaseNotesReady,
+  surfaceReviewReady,
+  surfaceReviewRequired,
   resumeFrom,
   skipPublishedInstall,
   skipRuntimeChannel,
@@ -181,6 +259,13 @@ export function buildStableDryRunPlan({
     `- release packages: ${packageCount}`,
     `- nextclaw version: ${includesNextclaw ? `${previousVersion} -> ${targetVersion}` : "not in batch"}`,
     `- structured release notes: ${includesNextclaw ? (releaseNotesReady ? "ready" : "missing") : "not required"}`,
+    `- docs/website release review: ${
+      !includesNextclaw || !surfaceReviewRequired
+        ? "not required"
+        : surfaceReviewReady
+          ? "ready"
+          : "missing or invalid"
+    }`,
     resumeFrom === "packages"
       ? "- packages: auto prepare -> version -> strict check -> publish -> registry verify"
       : "- packages: already completed by recovery contract",

@@ -1,13 +1,13 @@
-import { useRef, useState, type ComponentPropsWithoutRef } from "react";
-import { cn } from "@/shared/lib/utils";
+import { useRef, useState, type ComponentPropsWithoutRef } from 'react';
+import { cn } from '@/shared/lib/utils';
 
-type ResizableRightPanelProps = ComponentPropsWithoutRef<"aside"> & {
+type ResizableRightPanelProps = ComponentPropsWithoutRef<'aside'> & {
   defaultWidth?: number;
   minWidth?: number;
   maxWidth?: number;
   onWidthCommit?: (width: number) => void;
   overlay?: boolean;
-  overlayScope?: "viewport" | "container";
+  overlayScope?: 'viewport' | 'container';
   width?: number;
 };
 
@@ -20,7 +20,7 @@ export function ResizableRightPanel({
   maxWidth = 860,
   onWidthCommit,
   overlay = false,
-  overlayScope = "viewport",
+  overlayScope = 'viewport',
   width: controlledWidth,
   ...props
 }: ResizableRightPanelProps) {
@@ -31,10 +31,10 @@ export function ResizableRightPanel({
   const [uncontrolledWidth, setUncontrolledWidth] = useState(defaultWidth);
   const width = dragWidth ?? controlledWidth ?? uncontrolledWidth;
   const overlayClassName = overlay
-    ? overlayScope === "container"
-      ? "absolute inset-0 z-30"
-      : "fixed inset-0 z-40"
-    : "border-l border-border";
+    ? overlayScope === 'container'
+      ? 'absolute inset-0 z-30'
+      : 'fixed inset-0 z-40'
+    : 'border-l border-border';
 
   const onResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
     if (overlay) return;
@@ -60,30 +60,36 @@ export function ResizableRightPanel({
       setDragWidth(null);
       setIsResizing(false);
       resizeRef.current = null;
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   return (
     <aside
       {...props}
       className={cn(
-        "relative flex h-full min-h-0 shrink-0 overflow-hidden bg-card text-card-foreground",
+        'relative flex h-full min-h-0 shrink-0 overflow-hidden bg-card text-card-foreground',
         overlayClassName,
         className,
       )}
       style={overlay ? style : { ...style, width }}
     >
-      {!overlay ? (
-        <div className="absolute left-0 top-0 z-20 h-full w-3 cursor-ew-resize transition-colors hover:bg-primary/10" data-testid="resizable-right-panel-handle" onPointerDown={onResizeStart} />
-      ) : null}
       <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">{children}</div>
-      {isResizing ? <div className="absolute inset-0 z-10 cursor-ew-resize" data-testid="resizable-right-panel-resize-shield" /> : null}
+      {!overlay ? (
+        <div
+          className="absolute left-0 top-0 z-30 h-full w-3 cursor-ew-resize transition-colors hover:bg-primary/10"
+          data-testid="resizable-right-panel-handle"
+          onPointerDown={onResizeStart}
+        />
+      ) : null}
+      {isResizing ? (
+        <div className="absolute inset-0 z-10 cursor-ew-resize" data-testid="resizable-right-panel-resize-shield" />
+      ) : null}
     </aside>
   );
 }

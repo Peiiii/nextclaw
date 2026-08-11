@@ -1,0 +1,2505 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NextClaw 共享 Workspace Explorer 交互原型</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #eef1f4;
+        --surface: #ffffff;
+        --surface-soft: #f6f7f8;
+        --surface-muted: #eceff1;
+        --text: #1e2429;
+        --muted: #69737d;
+        --faint: #919aa2;
+        --line: #e0e4e7;
+        --line-strong: #d3d9de;
+        --accent: #147d72;
+        --accent-soft: #e2f3ef;
+        --accent-strong: #0e655d;
+        --warning: #b66e1e;
+        --shadow: 0 24px 80px rgba(31, 42, 50, 0.13);
+        --radius-xl: 24px;
+        --radius-lg: 16px;
+        --radius-md: 11px;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        min-height: 100vh;
+        background:
+          radial-gradient(
+            circle at 15% 0%,
+            rgba(20, 125, 114, 0.08),
+            transparent 34%
+          ),
+          var(--canvas);
+        color: var(--text);
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid rgba(20, 125, 114, 0.22);
+        outline-offset: 2px;
+      }
+
+      .review-bar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        min-height: 72px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 12px 20px;
+        border-bottom: 1px solid rgba(211, 217, 222, 0.9);
+        background: rgba(247, 249, 250, 0.92);
+        backdrop-filter: blur(18px);
+      }
+
+      .review-title {
+        min-width: 260px;
+      }
+
+      .review-title strong {
+        display: block;
+        font-size: 14px;
+        letter-spacing: -0.01em;
+      }
+
+      .review-title span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .review-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .segmented {
+        display: inline-flex;
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #e9edef;
+      }
+
+      .segmented button,
+      .review-action {
+        min-height: 34px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        padding: 7px 12px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 680;
+      }
+
+      .segmented button[aria-selected="true"] {
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: 0 2px 8px rgba(30, 36, 41, 0.08);
+      }
+
+      .review-action {
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .prototype-shell {
+        width: min(1480px, calc(100vw - 32px));
+        margin: 16px auto;
+      }
+
+      .decision-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .decision-card {
+        min-height: 88px;
+        padding: 14px 15px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .decision-card b {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+      }
+
+      .decision-card b::before {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        content: attr(data-step);
+        font-size: 10px;
+      }
+
+      .decision-card p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .app-window {
+        display: grid;
+        height: min(790px, calc(100vh - 190px));
+        min-height: 620px;
+        overflow: hidden;
+        grid-template-columns: minmax(420px, 1fr) minmax(560px, 0.92fr);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-xl);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        transition: grid-template-columns 220ms ease;
+      }
+
+      .app-window.workspace-focus {
+        grid-template-columns: 300px minmax(720px, 1fr);
+      }
+
+      .conversation {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        border-right: 1px solid var(--line);
+        background: #fbfcfc;
+      }
+
+      .conversation-head {
+        display: flex;
+        height: 54px;
+        align-items: center;
+        gap: 10px;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .agent-avatar {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 10px;
+        background: #1e282d;
+        color: white;
+        font-size: 11px;
+        font-weight: 760;
+      }
+
+      .conversation-head strong {
+        display: block;
+        font-size: 13px;
+      }
+
+      .conversation-head small {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .messages {
+        display: flex;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+        gap: 18px;
+        overflow: auto;
+        padding: 28px 26px;
+      }
+
+      .message {
+        max-width: 84%;
+        border-radius: 16px;
+        padding: 12px 14px;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      .message.user {
+        align-self: flex-end;
+        background: #e8ecee;
+      }
+
+      .message.assistant {
+        border: 1px solid var(--line);
+        background: white;
+      }
+
+      .artifact-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        background: var(--surface-soft);
+      }
+
+      .artifact-card button {
+        margin-left: auto;
+        border: 0;
+        border-radius: 8px;
+        background: var(--accent-soft);
+        padding: 6px 9px;
+        color: var(--accent-strong);
+        cursor: pointer;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .composer {
+        margin: 0 20px 18px;
+        border: 1px solid var(--line-strong);
+        border-radius: 16px;
+        background: white;
+        padding: 14px;
+        color: var(--faint);
+        font-size: 12px;
+        box-shadow: 0 8px 30px rgba(30, 36, 41, 0.05);
+      }
+
+      .workspace {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        background: var(--surface);
+      }
+
+      .workspace-head {
+        display: flex;
+        height: 48px;
+        min-width: 0;
+        align-items: stretch;
+        border-bottom: 1px solid var(--line);
+        background: #fafbfb;
+      }
+
+      .icon-button {
+        display: grid;
+        width: 38px;
+        min-width: 38px;
+        place-items: center;
+        border: 0;
+        border-right: 1px solid var(--line);
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .icon-button:hover,
+      .icon-button[aria-pressed="true"] {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+      }
+
+      .tab-strip {
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+
+      .tab {
+        display: flex;
+        min-width: 112px;
+        max-width: 170px;
+        align-items: center;
+        gap: 7px;
+        border: 0;
+        border-right: 1px solid var(--line);
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        padding: 0 11px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 11px;
+      }
+
+      .tab.active {
+        border-bottom-color: var(--accent);
+        background: white;
+        color: var(--text);
+      }
+
+      .tab-label {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tab-close {
+        display: grid;
+        width: 17px;
+        height: 17px;
+        place-items: center;
+        border-radius: 5px;
+        color: var(--faint);
+        font-size: 13px;
+      }
+
+      .tab-close:hover {
+        background: var(--surface-muted);
+        color: var(--text);
+      }
+
+      .workspace-actions {
+        display: flex;
+        align-items: stretch;
+        border-left: 1px solid var(--line);
+      }
+
+      .workspace-nav {
+        display: flex;
+        align-items: stretch;
+        border-right: 1px solid var(--line);
+      }
+
+      .workspace-nav button,
+      .workspace-actions button {
+        width: 34px;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .workspace-nav button:hover,
+      .workspace-actions button:hover {
+        background: var(--surface-muted);
+        color: var(--text);
+      }
+
+      .workspace-nav button:disabled {
+        color: #c4c9cd;
+        cursor: default;
+      }
+
+      .workspace-body {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      .explorer {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        width: 238px;
+        min-width: 238px;
+        flex-direction: column;
+        border-right: 1px solid var(--line);
+        background: #fafbfb;
+        transition:
+          width 190ms ease,
+          min-width 190ms ease,
+          transform 190ms ease,
+          opacity 150ms ease;
+      }
+
+      .explorer.closed {
+        width: 0;
+        min-width: 0;
+        overflow: hidden;
+        border-right: 0;
+        opacity: 0;
+      }
+
+      .explorer.project-home {
+        width: 100%;
+        min-width: 100%;
+        border-right: 0;
+        opacity: 1;
+      }
+
+      .explorer.project-home .explorer-head {
+        min-height: 50px;
+        padding-right: 13px;
+      }
+
+      .explorer.project-home .tree {
+        padding-top: 12px;
+      }
+
+      .explorer-head {
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        gap: 5px;
+        padding: 0 9px 0 13px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .explorer-head strong {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .mini-button {
+        display: grid;
+        width: 26px;
+        height: 26px;
+        place-items: center;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .mini-button:hover {
+        background: var(--surface-muted);
+        color: var(--text);
+      }
+
+      .mini-button svg,
+      .icon-button svg {
+        width: 15px;
+        height: 15px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.8;
+      }
+
+      .context-menu {
+        position: fixed;
+        z-index: 100;
+        display: none;
+        min-width: 218px;
+        overflow: hidden;
+        border: 1px solid var(--line-strong);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.98);
+        padding: 5px;
+        box-shadow: 0 18px 50px rgba(30, 36, 41, 0.2);
+        backdrop-filter: blur(16px);
+      }
+
+      .context-menu.visible {
+        display: block;
+      }
+
+      .menu-group + .menu-group {
+        margin-top: 4px;
+        border-top: 1px solid var(--line);
+        padding-top: 4px;
+      }
+
+      .context-menu button {
+        display: flex;
+        width: 100%;
+        height: 31px;
+        align-items: center;
+        gap: 9px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        padding: 0 9px;
+        cursor: pointer;
+        text-align: left;
+        font-size: 11px;
+      }
+
+      .context-menu button:hover {
+        background: var(--surface-muted);
+      }
+
+      .context-menu button.danger {
+        color: #b34747;
+      }
+
+      .menu-icon {
+        display: inline-grid;
+        width: 16px;
+        place-items: center;
+        color: var(--muted);
+      }
+
+      .menu-shortcut {
+        margin-left: auto;
+        color: var(--faint);
+        font-size: 9px;
+      }
+
+      .prototype-toast {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 120;
+        max-width: 340px;
+        transform: translateY(18px);
+        border: 1px solid #cae2dd;
+        border-radius: 12px;
+        background: #f2faf8;
+        padding: 11px 14px;
+        color: #315e57;
+        box-shadow: 0 15px 40px rgba(30, 36, 41, 0.14);
+        font-size: 11px;
+        opacity: 0;
+        pointer-events: none;
+        transition: 180ms ease;
+      }
+
+      .prototype-toast.visible {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      .feature-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        border: 0;
+        background: rgba(27, 35, 41, 0.24);
+      }
+
+      .feature-scrim.visible {
+        display: block;
+      }
+
+      .feature-drawer {
+        position: fixed;
+        inset: 0 0 0 auto;
+        z-index: 90;
+        width: min(480px, 94vw);
+        overflow: auto;
+        transform: translateX(102%);
+        border-left: 1px solid var(--line);
+        background: #fbfcfc;
+        padding: 22px;
+        box-shadow: -24px 0 70px rgba(30, 36, 41, 0.18);
+        transition: transform 210ms ease;
+      }
+
+      .feature-drawer.visible {
+        transform: translateX(0);
+      }
+
+      .feature-drawer-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .feature-drawer h2 {
+        margin: 0;
+        font-size: 17px;
+      }
+
+      .feature-drawer h3 {
+        margin: 20px 0 9px;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .feature-drawer p {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .feature-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .feature-item {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: white;
+        padding: 9px 10px;
+        font-size: 11px;
+      }
+
+      .feature-check {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        font-weight: 800;
+      }
+
+      .feature-tag {
+        border-radius: 999px;
+        background: var(--surface-muted);
+        padding: 3px 7px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .feature-tag.nextclaw {
+        background: #fff0df;
+        color: #8a571f;
+      }
+
+      .tree {
+        min-height: 0;
+        flex: 1;
+        overflow: auto;
+        padding: 7px 0 18px;
+      }
+
+      .tree-row {
+        display: flex;
+        width: 100%;
+        height: 30px;
+        align-items: center;
+        gap: 6px;
+        border: 0;
+        background: transparent;
+        padding-right: 8px;
+        color: #3d464e;
+        cursor: pointer;
+        text-align: left;
+        font-size: 11px;
+      }
+
+      .tree-row:hover {
+        background: #edf0f2;
+      }
+
+      .tree-row.selected {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        font-weight: 680;
+      }
+
+      .tree-row.context-selected {
+        outline: 1px solid rgba(20, 125, 114, 0.42);
+        outline-offset: -1px;
+        background: #e9f0ef;
+      }
+
+      .tree-row.depth-0 {
+        padding-left: 9px;
+      }
+      .tree-row.depth-1 {
+        padding-left: 24px;
+      }
+      .tree-row.depth-2 {
+        padding-left: 39px;
+      }
+
+      .twisty {
+        display: inline-grid;
+        width: 12px;
+        place-items: center;
+        color: var(--faint);
+        font-size: 10px;
+      }
+
+      .file-badge {
+        display: inline-grid;
+        width: 17px;
+        height: 17px;
+        place-items: center;
+        border-radius: 5px;
+        background: #e7ebee;
+        color: #53606a;
+        font-size: 7px;
+        font-weight: 800;
+      }
+
+      .file-badge.md {
+        background: #e5f0fa;
+        color: #376c9c;
+      }
+      .file-badge.ts {
+        background: #e7ecfb;
+        color: #3f5ea7;
+      }
+      .file-badge.json {
+        background: #f6efd8;
+        color: #8c6c19;
+      }
+
+      .folder-icon {
+        color: #c68a29;
+        font-size: 14px;
+      }
+
+      .tree-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tree-group.hidden {
+        display: none;
+      }
+
+      .inline-create {
+        display: none;
+        align-items: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 2px 8px 2px 39px;
+        background: var(--accent-soft);
+      }
+
+      .inline-create.visible {
+        display: flex;
+      }
+
+      .inline-create input {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid var(--accent);
+        border-radius: 6px;
+        background: white;
+        padding: 4px 7px;
+        color: var(--text);
+        font-size: 11px;
+      }
+
+      .preview {
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+        flex: 1;
+        flex-direction: column;
+        background: white;
+      }
+
+      .preview.hidden {
+        display: none;
+      }
+
+      .preview-head {
+        display: flex;
+        min-height: 43px;
+        align-items: center;
+        gap: 9px;
+        padding: 0 15px;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .preview-head strong {
+        color: var(--text);
+        font-size: 11px;
+      }
+
+      .preview-explorer-toggle {
+        display: grid;
+        width: 26px;
+        height: 26px;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+      }
+
+      .preview-explorer-toggle:hover,
+      .preview-explorer-toggle[aria-pressed="true"] {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+      }
+
+      .workspace-page {
+        min-height: 0;
+        flex: 1;
+        overflow: auto;
+        background: #f8f9fa;
+        padding: 26px;
+      }
+
+      .workspace-page-inner {
+        width: min(560px, 100%);
+        margin: 0 auto;
+      }
+
+      .workspace-page h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .workspace-page-lead {
+        margin: 7px 0 18px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .overview-list,
+      .workspace-list {
+        display: grid;
+        gap: 9px;
+      }
+
+      .overview-entry,
+      .workspace-list-entry {
+        display: grid;
+        width: 100%;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        padding: 12px;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .overview-entry:hover,
+      .workspace-list-entry:hover {
+        border-color: #c9d0d5;
+        background: #fcfdfd;
+      }
+
+      .overview-entry-icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--surface-muted);
+        color: #56616a;
+        font-size: 15px;
+      }
+
+      .overview-entry strong,
+      .workspace-list-entry strong {
+        display: block;
+        font-size: 12px;
+      }
+
+      .overview-entry small,
+      .workspace-list-entry small {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.45;
+      }
+
+      .overview-count {
+        border-radius: 999px;
+        background: var(--surface-muted);
+        padding: 3px 7px;
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 740;
+      }
+
+      .child-session-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+      }
+
+      .child-session-meta span {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: white;
+        padding: 4px 7px;
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .child-message {
+        width: min(430px, 88%);
+        margin-top: 12px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: white;
+        padding: 12px;
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .preview-status {
+        margin-left: auto;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        padding: 4px 8px;
+        color: var(--accent-strong);
+        font-weight: 700;
+      }
+
+      .editor {
+        min-height: 0;
+        flex: 1;
+        overflow: auto;
+        padding: 25px 30px 70px;
+        background:
+          linear-gradient(90deg, #f7f8f8 0 42px, transparent 42px), white;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 11px;
+        line-height: 1.85;
+      }
+
+      .editor-line {
+        display: grid;
+        grid-template-columns: 27px minmax(0, 1fr);
+        gap: 17px;
+        white-space: pre-wrap;
+      }
+
+      .line-number {
+        color: #a0a8ae;
+        text-align: right;
+        user-select: none;
+      }
+
+      .token-key {
+        color: #8b4c9a;
+      }
+      .token-string {
+        color: #387b58;
+      }
+      .token-comment {
+        color: #8c969e;
+      }
+      .token-function {
+        color: #396ea4;
+      }
+
+      .empty-preview {
+        display: grid;
+        min-height: 0;
+        flex: 1;
+        place-items: center;
+        padding: 30px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .empty-preview strong {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .drawer-scrim {
+        position: absolute;
+        inset: 0;
+        z-index: 7;
+        display: none;
+        border: 0;
+        background: rgba(28, 36, 42, 0.2);
+      }
+
+      .app-window.narrow {
+        grid-template-columns: minmax(300px, 1fr) 430px;
+      }
+
+      .app-window.narrow .explorer {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: min(310px, 82%);
+        min-width: min(310px, 82%);
+        box-shadow: 18px 0 48px rgba(30, 36, 41, 0.18);
+      }
+
+      .app-window.narrow .explorer.closed {
+        transform: translateX(-104%);
+        opacity: 1;
+      }
+
+      .app-window.narrow .explorer.project-home {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        min-width: 100%;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .app-window.narrow .drawer-scrim.visible {
+        display: block;
+      }
+
+      .prototype-note {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 12px;
+        border: 1px solid #d9e6e3;
+        border-radius: 13px;
+        background: rgba(237, 247, 244, 0.8);
+        padding: 11px 13px;
+        color: #48625e;
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 980px) {
+        .decision-strip {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .app-window,
+        .app-window.workspace-focus,
+        .app-window.narrow {
+          grid-template-columns: 1fr;
+        }
+        .conversation {
+          display: none;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .review-bar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .review-controls {
+          justify-content: flex-start;
+        }
+        .prototype-shell {
+          width: calc(100vw - 16px);
+          margin: 8px auto;
+        }
+        .decision-strip {
+          grid-template-columns: 1fr;
+        }
+        .app-window {
+          height: 660px;
+          min-height: 0;
+          border-radius: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="review-bar">
+      <div class="review-title">
+        <strong>完整会话工作台 + 共享 Workspace Explorer · 讨论原型</strong>
+        <span
+          >真实工作台骨架：概览 / 子会话 / 定时任务 / 项目文件 / 动态文件
+          Tab</span
+        >
+      </div>
+      <div class="review-controls">
+        <div class="segmented" aria-label="工作区宽度模式">
+          <button type="button" data-mode="wide" aria-selected="true">
+            宽屏并列
+          </button>
+          <button type="button" data-mode="narrow" aria-selected="false">
+            窄屏抽屉
+          </button>
+        </div>
+        <button type="button" class="review-action" id="show-features">
+          功能清单
+        </button>
+        <button type="button" class="review-action" id="focus-workspace">
+          最大化工作区
+        </button>
+        <button type="button" class="review-action" id="reset-demo">
+          重置演示
+        </button>
+      </div>
+    </header>
+
+    <main class="prototype-shell">
+      <section class="decision-strip" aria-label="设计决策摘要">
+        <article class="decision-card">
+          <b data-step="1">进入工作台先到概览</b>
+          <p>
+            保留现有入口语义，先看到子会话、定时任务和项目文件，而不是直接进入编辑器。
+          </p>
+        </article>
+        <article class="decision-card">
+          <b data-step="2">项目文件是管理首页</b>
+          <p>固定“项目文件”页负责完整浏览与文件操作，不与某个文件 Tab 绑定。</p>
+        </article>
+        <article class="decision-card">
+          <b data-step="3">文件预览共享一个 Explorer</b>
+          <p>
+            从项目文件打开 Tab
+            后，同一目录树收为侧栏；展开、滚动、选中状态连续。
+          </p>
+        </article>
+        <article class="decision-card">
+          <b data-step="4">只在文件语境出现开关</b>
+          <p>
+            概览、子会话和定时任务不展示无关目录；文件预览可随时展开，窄屏使用抽屉。
+          </p>
+        </article>
+      </section>
+
+      <section class="app-window" id="app-window">
+        <aside class="conversation" aria-label="聊天区域示意">
+          <div class="conversation-head">
+            <span class="agent-avatar">NC</span>
+            <div>
+              <strong>NextClaw</strong><small>nextbot · 当前任务</small>
+            </div>
+          </div>
+          <div class="messages">
+            <div class="message user">
+              把工作区项目文件体验做得像成熟的 Explorer，但保留 NextClaw 的 AI
+              协作能力。
+            </div>
+            <div class="message assistant">
+              已生成一份交互设计，并更新了相关实现文件。
+              <div class="artifact-card">
+                <span class="file-badge md">MD</span>
+                <span>workspace-explorer.design.md</span>
+                <button
+                  type="button"
+                  data-open-file="workspace-explorer.design.md"
+                >
+                  打开
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="composer">输入消息，或从右侧目录树添加文件到聊天……</div>
+        </aside>
+
+        <section class="workspace" aria-label="共享文件工作台">
+          <header class="workspace-head">
+            <div class="workspace-nav">
+              <button
+                type="button"
+                id="workspace-back"
+                aria-label="工作区后退"
+                title="后退"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                id="workspace-forward"
+                aria-label="工作区前进"
+                title="前进"
+              >
+                →
+              </button>
+            </div>
+            <div
+              class="tab-strip"
+              id="tab-strip"
+              role="tablist"
+              aria-label="已打开文件"
+            ></div>
+            <div class="workspace-actions">
+              <button type="button" id="refresh-preview" title="刷新当前文件">
+                ↻
+              </button>
+              <button
+                type="button"
+                id="maximize-workspace"
+                title="最大化工作区"
+              >
+                □
+              </button>
+              <button type="button" id="close-workspace" title="关闭工作区">
+                ×
+              </button>
+            </div>
+          </header>
+
+          <div class="workspace-body">
+            <button
+              type="button"
+              class="drawer-scrim"
+              id="drawer-scrim"
+              aria-label="收起项目文件"
+            ></button>
+            <aside class="explorer" id="explorer" aria-label="共享项目文件">
+              <div class="explorer-head">
+                <strong>nextbot</strong>
+                <button
+                  class="mini-button"
+                  type="button"
+                  id="new-file"
+                  aria-label="新建文件"
+                  title="新建文件"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    />
+                    <path d="M14 2v6h6M12 12v6M9 15h6" />
+                  </svg>
+                </button>
+                <button
+                  class="mini-button"
+                  type="button"
+                  id="new-folder"
+                  aria-label="新建文件夹"
+                  title="新建文件夹"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 5h6l2 3h10v11H3z" />
+                    <path d="M12 11v6M9 14h6" />
+                  </svg>
+                </button>
+                <button
+                  class="mini-button"
+                  type="button"
+                  id="refresh-explorer"
+                  aria-label="刷新项目文件"
+                  title="刷新项目文件"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 6v5h-5M4 18v-5h5" />
+                    <path
+                      d="M6.1 9a7 7 0 0 1 11.5-2.3L20 11M4 13l2.4 4.3A7 7 0 0 0 18 15"
+                    />
+                  </svg>
+                </button>
+                <button
+                  class="mini-button"
+                  type="button"
+                  id="collapse-all"
+                  aria-label="全部折叠"
+                  title="全部折叠"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m7 15 5-5 5 5" />
+                    <path d="m7 20 5-5 5 5" />
+                    <path d="M5 4h14" />
+                  </svg>
+                </button>
+                <button
+                  class="mini-button"
+                  type="button"
+                  id="explorer-more"
+                  aria-label="更多项目文件操作"
+                  title="更多操作"
+                >
+                  •••
+                </button>
+              </div>
+              <div
+                class="tree"
+                id="project-tree"
+                role="tree"
+                aria-label="项目文件"
+              >
+                <button
+                  class="tree-row depth-0 folder-row"
+                  type="button"
+                  data-folder="docs"
+                  aria-expanded="true"
+                >
+                  <span class="twisty">▾</span><span class="folder-icon">▰</span
+                  ><span class="tree-label">docs</span>
+                </button>
+                <div class="tree-group" data-group="docs">
+                  <button
+                    class="tree-row depth-1 folder-row"
+                    type="button"
+                    data-folder="designs"
+                    aria-expanded="true"
+                  >
+                    <span class="twisty">▾</span
+                    ><span class="folder-icon">▰</span
+                    ><span class="tree-label">designs</span>
+                  </button>
+                  <div class="tree-group" data-group="designs">
+                    <button
+                      class="tree-row depth-2 file-row selected"
+                      type="button"
+                      data-file="workspace-explorer.design.md"
+                    >
+                      <span class="twisty"></span
+                      ><span class="file-badge md">MD</span
+                      ><span class="tree-label"
+                        >workspace-explorer.design.md</span
+                      >
+                    </button>
+                    <button
+                      class="tree-row depth-2 file-row"
+                      type="button"
+                      data-file="interaction-notes.md"
+                    >
+                      <span class="twisty"></span
+                      ><span class="file-badge md">MD</span
+                      ><span class="tree-label">interaction-notes.md</span>
+                    </button>
+                  </div>
+                </div>
+                <button
+                  class="tree-row depth-0 folder-row"
+                  type="button"
+                  data-folder="src"
+                  aria-expanded="true"
+                >
+                  <span class="twisty">▾</span><span class="folder-icon">▰</span
+                  ><span class="tree-label">src</span>
+                </button>
+                <div class="tree-group" data-group="src">
+                  <button
+                    class="tree-row depth-1 file-row"
+                    type="button"
+                    data-file="workspace-panel.tsx"
+                  >
+                    <span class="twisty"></span
+                    ><span class="file-badge ts">TS</span
+                    ><span class="tree-label">workspace-panel.tsx</span>
+                  </button>
+                  <button
+                    class="tree-row depth-1 file-row"
+                    type="button"
+                    data-file="workspace-store.ts"
+                  >
+                    <span class="twisty"></span
+                    ><span class="file-badge ts">TS</span
+                    ><span class="tree-label">workspace-store.ts</span>
+                  </button>
+                </div>
+                <div class="inline-create" id="inline-create">
+                  <span class="file-badge" id="create-kind-badge">FILE</span>
+                  <input
+                    id="new-file-name"
+                    aria-label="名称"
+                    placeholder="untitled.md"
+                  />
+                </div>
+                <button
+                  class="tree-row depth-0 file-row"
+                  type="button"
+                  data-file="package.json"
+                >
+                  <span class="twisty"></span
+                  ><span class="file-badge json">{ }</span
+                  ><span class="tree-label">package.json</span>
+                </button>
+              </div>
+            </aside>
+
+            <section class="preview" id="preview" aria-live="polite"></section>
+          </div>
+        </section>
+      </section>
+
+      <div class="prototype-note">
+        <strong>对齐重点：</strong>
+        请从“概览 → 项目文件 → 打开文件 → 切换多个文件 Tab →
+        收起/展开目录”完整体验。重点判断“项目文件管理首页”和“文件预览共享侧栏”是否清楚，而不是把工作台误解为只有文件编辑器。
+      </div>
+    </main>
+
+    <div
+      class="context-menu"
+      id="context-menu"
+      role="menu"
+      aria-label="项目文件操作"
+    ></div>
+    <div class="prototype-toast" id="prototype-toast" role="status"></div>
+    <button
+      type="button"
+      class="feature-scrim"
+      id="feature-scrim"
+      aria-label="关闭功能清单"
+    ></button>
+    <aside
+      class="feature-drawer"
+      id="feature-drawer"
+      aria-label="Explorer Core 功能清单"
+    >
+      <div class="feature-drawer-head">
+        <div>
+          <h2>Explorer Core 功能清单</h2>
+          <p>
+            没有必要不同的地方直接对齐 VS Code；NextClaw
+            只增加聊天与交付物相关能力。
+          </p>
+        </div>
+        <button
+          type="button"
+          class="mini-button"
+          id="close-features"
+          aria-label="关闭功能清单"
+        >
+          ×
+        </button>
+      </div>
+      <h3>会话工作台语义（保留现状）</h3>
+      <div class="feature-list">
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>打开会话工作台默认进入概览</span
+          ><span class="feature-tag">固定页</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>概览、子会话、定时任务、项目文件保持固定 Tab</span
+          ><span class="feature-tag">工作台导航</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>子会话和文件按需打开为可关闭的动态 Tab</span
+          ><span class="feature-tag">动态页</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>后退 / 前进、刷新文件、最大化、关闭属于工作台外壳</span
+          ><span class="feature-tag">外壳</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span
+            >项目文件是完整管理首页；文件预览复用同一 Explorer 作为侧栏</span
+          ><span class="feature-tag nextclaw">新组合</span>
+        </div>
+      </div>
+      <h3>直接对齐 VS Code</h3>
+      <div class="feature-list">
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>新建文件：独立图标、树内原位命名</span
+          ><span class="feature-tag">工具栏 / 右键</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>新建文件夹：独立图标、自动展开目标目录</span
+          ><span class="feature-tag">工具栏 / 右键</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>刷新 Explorer、全部折叠</span
+          ><span class="feature-tag">工具栏</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>根目录空白区、文件夹、文件分别提供上下文右键菜单</span
+          ><span class="feature-tag">右键</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>单选、右键选中、展开与滚动状态保持</span
+          ><span class="feature-tag">目录树</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>文件打开或激活已有 Tab，Tab 可关闭</span
+          ><span class="feature-tag">Tab</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span
+          ><span>重命名、删除、复制路径、复制相对路径</span
+          ><span class="feature-tag">右键</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span><span>在系统文件管理器中显示</span
+          ><span class="feature-tag">右键</span>
+        </div>
+      </div>
+      <h3>NextClaw 必要增强</h3>
+      <div class="feature-list">
+        <div class="feature-item">
+          <span class="feature-check">＋</span
+          ><span>添加文件或文件夹到聊天</span
+          ><span class="feature-tag nextclaw">AI 上下文</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">＋</span><span>上传文件到当前目录</span
+          ><span class="feature-tag nextclaw">交付物</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">＋</span><span>下载工作区文件</span
+          ><span class="feature-tag nextclaw">交付物</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">＋</span
+          ><span>窄工作区使用覆盖式抽屉，选中文件后收起</span
+          ><span class="feature-tag nextclaw">响应式</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">＋</span
+          ><span>永久删除前强确认；未来有恢复能力后再优化</span
+          ><span class="feature-tag nextclaw">安全差异</span>
+        </div>
+      </div>
+      <h3>不在本轮伪装完成</h3>
+      <p>
+        拖拽移动、多选、剪切/复制/粘贴、Undo/废纸篓、文件系统实时监听属于下一层文件生命周期合同，不混入本原型。
+      </p>
+    </aside>
+    <input type="file" id="prototype-upload" multiple hidden />
+
+    <script>
+      const files = {
+        "workspace-explorer.design.md": {
+          path: "docs / designs / workspace-explorer.design.md",
+          lines: [
+            "# 共享 Workspace Explorer",
+            "",
+            "## 核心判断",
+            "目录树属于工作区外壳，而不是某一个文件预览。",
+            "",
+            "- 同一项目只有一个 Explorer 实例",
+            "- 点击文件时打开或激活对应 Tab",
+            "- 宽屏并列，窄屏使用覆盖式抽屉",
+          ],
+        },
+        "interaction-notes.md": {
+          path: "docs / designs / interaction-notes.md",
+          lines: [
+            "# 交互讨论记录",
+            "",
+            "1. Explorer 开关由工作区外壳持有。",
+            "2. 文件已经打开时只激活已有 Tab。",
+            "3. 收起目录树不清理展开与滚动状态。",
+            "4. 窄屏点击文件后自动关闭抽屉。",
+          ],
+        },
+        "workspace-panel.tsx": {
+          path: "src / workspace-panel.tsx",
+          lines: [
+            "export function WorkspacePanel() {",
+            "  const explorer = useSharedWorkspaceExplorer();",
+            "",
+            "  return (",
+            "    <WorkspaceShell explorer={explorer}>",
+            "      <ActiveFilePreview />",
+            "    </WorkspaceShell>",
+            "  );",
+            "}",
+          ],
+        },
+        "workspace-store.ts": {
+          path: "src / workspace-store.ts",
+          lines: [
+            "export type ExplorerLayoutState = {",
+            "  open: boolean;",
+            "  width: number;",
+            "  selectedPath: string | null;",
+            "};",
+            "",
+            "// State is scoped to the active project, not to a file tab.",
+          ],
+        },
+        "package.json": {
+          path: "package.json",
+          lines: [
+            "{",
+            '  \"name\": \"nextclaw-workspace\",',
+            '  \"private\": true,',
+            '  \"scripts\": {',
+            '    \"dev\": \"pnpm --filter nextclaw dev\"',
+            "  }",
+            "}",
+          ],
+        },
+      };
+
+      const state = {
+        mode: "wide",
+        explorerOpen: true,
+        workspaceFocus: false,
+        activeKind: "overview",
+        activeFile: null,
+        activeChild: null,
+        tabs: ["workspace-explorer.design.md", "workspace-panel.tsx"],
+        childTabs: [],
+        history: [{ kind: "overview" }],
+        historyIndex: 0,
+        createKind: "file",
+        createParent: null,
+        contextTarget: { kind: "root", element: null, name: "nextbot" },
+      };
+
+      const workspacePages = [
+        { kind: "overview", label: "概览", icon: "▦" },
+        { kind: "child-sessions", label: "子会话", icon: "⑂" },
+        { kind: "cron", label: "定时任务", icon: "◷" },
+        { kind: "project-files", label: "项目文件", icon: "▰" },
+      ];
+
+      const appWindow = document.querySelector("#app-window");
+      const explorer = document.querySelector("#explorer");
+      const drawerScrim = document.querySelector("#drawer-scrim");
+      const tabStrip = document.querySelector("#tab-strip");
+      const preview = document.querySelector("#preview");
+      const projectTree = document.querySelector("#project-tree");
+      const inlineCreate = document.querySelector("#inline-create");
+      const createNameInput = document.querySelector("#new-file-name");
+      const createKindBadge = document.querySelector("#create-kind-badge");
+      const contextMenu = document.querySelector("#context-menu");
+      const prototypeToast = document.querySelector("#prototype-toast");
+      const featureDrawer = document.querySelector("#feature-drawer");
+      const featureScrim = document.querySelector("#feature-scrim");
+      const uploadInput = document.querySelector("#prototype-upload");
+      let toastTimer;
+
+      function escapeHtml(value) {
+        return value.replace(
+          /[&<>\"]/g,
+          (character) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '\"': "&quot;",
+            })[character],
+        );
+      }
+
+      function highlightLine(line) {
+        let content = escapeHtml(line);
+        if (line.trim().startsWith("//"))
+          return `<span class="token-comment">${content}</span>`;
+        if (line.trim().startsWith("#"))
+          return `<span class="token-function">${content}</span>`;
+        content = content.replace(
+          /(&quot;.*?&quot;)/g,
+          '<span class="token-string">$1</span>',
+        );
+        content = content.replace(
+          /\b(export|function|const|return|type|boolean|number|string|null)\b/g,
+          '<span class="token-key">$1</span>',
+        );
+        return content;
+      }
+
+      function renderTabs() {
+        const pageTabs = workspacePages
+          .map(
+            (page) => `
+          <button type="button" class="tab page-tab ${state.activeKind === page.kind ? "active" : ""}" role="tab" aria-selected="${state.activeKind === page.kind}" data-page-tab="${page.kind}">
+            <span aria-hidden="true">${page.icon}</span>
+            <span class="tab-label">${page.label}</span>
+          </button>
+        `,
+          )
+          .join("");
+        const childTabs = state.childTabs
+          .map(
+            (childName) => `
+          <button type="button" class="tab ${state.activeKind === "child-session" && state.activeChild === childName ? "active" : ""}" role="tab" aria-selected="${state.activeKind === "child-session" && state.activeChild === childName}" data-child-tab="${childName}">
+            <span aria-hidden="true">◉</span>
+            <span class="tab-label">${childName}</span>
+            <span class="tab-close" data-close-child="${childName}" title="关闭">×</span>
+          </button>
+        `,
+          )
+          .join("");
+        const fileTabs = state.tabs
+          .map(
+            (fileName) => `
+          <button type="button" class="tab ${state.activeKind === "file" && state.activeFile === fileName ? "active" : ""}" role="tab" aria-selected="${state.activeKind === "file" && state.activeFile === fileName}" data-file-tab="${fileName}">
+            <span class="file-badge ${fileName.endsWith(".md") ? "md" : fileName.endsWith(".json") ? "json" : "ts"}">${fileName.endsWith(".md") ? "MD" : fileName.endsWith(".json") ? "{}" : "TS"}</span>
+            <span class="tab-label">${fileName}</span>
+            <span class="tab-close" data-close-file="${fileName}" title="关闭">×</span>
+          </button>
+        `,
+          )
+          .join("");
+        tabStrip.innerHTML = pageTabs + childTabs + fileTabs;
+      }
+
+      function renderPreview() {
+        if (state.activeKind === "overview") {
+          preview.innerHTML = `
+            <div class="workspace-page"><div class="workspace-page-inner">
+              <h2>概览</h2>
+              <p class="workspace-page-lead">查看与当前会话相关的子会话、定时任务和项目文件。</p>
+              <div class="overview-list">
+                <button type="button" class="overview-entry" data-open-page="child-sessions"><span class="overview-entry-icon">⑂</span><span><strong>子会话</strong><small>查看从当前会话创建的子会话。</small></span><span class="overview-count">2</span></button>
+                <button type="button" class="overview-entry" data-open-page="cron"><span class="overview-entry-icon">◷</span><span><strong>定时任务</strong><small>查看与当前会话关联的定时任务。</small></span><span class="overview-count">1</span></button>
+                <button type="button" class="overview-entry" data-open-page="project-files"><span class="overview-entry-icon">▰</span><span><strong>项目文件</strong><small>浏览并管理已选项目目录中的文件。</small></span><span class="overview-count">nextbot</span></button>
+              </div>
+            </div></div>`;
+          return;
+        }
+
+        if (state.activeKind === "child-sessions") {
+          preview.innerHTML = `
+            <div class="workspace-page"><div class="workspace-page-inner">
+              <h2>子会话 <span class="overview-count">2</span></h2>
+              <p class="workspace-page-lead">点击后会像现有工作台一样打开一个可关闭的动态子会话 Tab。</p>
+              <div class="workspace-list">
+                <button type="button" class="workspace-list-entry" data-open-child="研究 VS Code Explorer"><span class="overview-entry-icon">◉</span><span><strong>研究 VS Code Explorer</strong><small>Codex · nextbot · 已完成</small></span><span>›</span></button>
+                <button type="button" class="workspace-list-entry" data-open-child="验证文件操作链路"><span class="overview-entry-icon">◉</span><span><strong>验证文件操作链路</strong><small>Codex · nextbot · 进行中</small></span><span>›</span></button>
+              </div>
+            </div></div>`;
+          return;
+        }
+
+        if (state.activeKind === "cron") {
+          preview.innerHTML = `
+            <div class="workspace-page"><div class="workspace-page-inner">
+              <h2>定时任务 <span class="overview-count">1</span></h2>
+              <p class="workspace-page-lead">与当前会话关联的自动执行任务。</p>
+              <div class="workspace-list"><div class="workspace-list-entry"><span class="overview-entry-icon">◷</span><span><strong>每日检查项目变更</strong><small>每天 09:00 · 下次运行：明天</small></span><span class="overview-count">已启用</span></div></div>
+            </div></div>`;
+          return;
+        }
+
+        if (state.activeKind === "child-session") {
+          preview.innerHTML = `
+            <div class="workspace-page"><div class="workspace-page-inner">
+              <div class="child-session-meta"><span>Codex</span><span>gpt-5</span><span>nextbot</span><span>/Projects/nextbot</span></div>
+              <h2>${escapeHtml(state.activeChild || "子会话")}</h2>
+              <div class="child-message">我已经完成资料与代码链路调查，结论会同步回当前任务。</div>
+              <div class="child-message" style="margin-left:auto;background:#eef1f3">继续验证交互细节。</div>
+            </div></div>`;
+          return;
+        }
+
+        if (!state.activeFile || !files[state.activeFile]) {
+          preview.innerHTML = `<div class="empty-preview"><div><strong>选择一个工作台页面</strong>从概览进入子会话、定时任务或项目文件。</div></div>`;
+          return;
+        }
+        const file = files[state.activeFile];
+        preview.innerHTML = `
+          <div class="preview-head">
+            <button type="button" class="preview-explorer-toggle" data-toggle-explorer aria-label="展开或收起项目文件" aria-pressed="${state.explorerOpen}" title="项目文件">☷</button>
+            <span>${file.path}</span>
+            <span class="preview-status">共享 Explorer 已连接</span>
+          </div>
+          <div class="editor">
+            ${file.lines.map((line, index) => `<div class="editor-line"><span class="line-number">${index + 1}</span><span>${highlightLine(line) || "&nbsp;"}</span></div>`).join("")}
+          </div>
+        `;
+      }
+
+      function syncTreeSelection() {
+        if (state.activeKind !== "file") return;
+        document.querySelectorAll("[data-file]").forEach((row) => {
+          row.classList.toggle(
+            "selected",
+            row.dataset.file === state.activeFile,
+          );
+        });
+      }
+
+      function renderLayout() {
+        const filePreviewActive = state.activeKind === "file";
+        const projectFilesActive = state.activeKind === "project-files";
+        appWindow.classList.toggle("narrow", state.mode === "narrow");
+        appWindow.classList.toggle("workspace-focus", state.workspaceFocus);
+        explorer.classList.toggle("project-home", projectFilesActive);
+        explorer.classList.toggle(
+          "closed",
+          !projectFilesActive && (!filePreviewActive || !state.explorerOpen),
+        );
+        preview.classList.toggle("hidden", projectFilesActive);
+        document
+          .querySelectorAll("[data-toggle-explorer]")
+          .forEach((button) =>
+            button.setAttribute("aria-pressed", String(state.explorerOpen)),
+          );
+        drawerScrim.classList.toggle(
+          "visible",
+          filePreviewActive && state.mode === "narrow" && state.explorerOpen,
+        );
+        document.querySelector("#refresh-preview").style.display =
+          filePreviewActive ? "" : "none";
+        document.querySelector("#workspace-back").disabled =
+          state.historyIndex <= 0;
+        document.querySelector("#workspace-forward").disabled =
+          state.historyIndex >= state.history.length - 1;
+        document.querySelectorAll("[data-mode]").forEach((button) => {
+          button.setAttribute(
+            "aria-selected",
+            String(button.dataset.mode === state.mode),
+          );
+        });
+        document.querySelector("#focus-workspace").textContent =
+          state.workspaceFocus ? "恢复对话 + 工作区" : "最大化工作区";
+      }
+
+      function currentSelection() {
+        if (state.activeKind === "file")
+          return { kind: "file", file: state.activeFile };
+        if (state.activeKind === "child-session")
+          return { kind: "child-session", child: state.activeChild };
+        return { kind: state.activeKind };
+      }
+
+      function applySelection(selection, record = true) {
+        state.activeKind = selection.kind;
+        state.activeFile = selection.kind === "file" ? selection.file : null;
+        state.activeChild =
+          selection.kind === "child-session" ? selection.child : null;
+        if (record) {
+          state.history = state.history.slice(0, state.historyIndex + 1);
+          const previous = state.history[state.history.length - 1];
+          if (JSON.stringify(previous) !== JSON.stringify(selection)) {
+            state.history.push(selection);
+            state.historyIndex = state.history.length - 1;
+          }
+        }
+        render();
+      }
+
+      function openWorkspacePage(kind) {
+        if (kind === "project-files") state.explorerOpen = true;
+        applySelection({ kind });
+      }
+
+      function openFile(fileName) {
+        if (!files[fileName]) return;
+        if (!state.tabs.includes(fileName)) state.tabs.push(fileName);
+        const openedFromProjectHome = state.activeKind === "project-files";
+        if (openedFromProjectHome) state.explorerOpen = true;
+        if (state.mode === "narrow") state.explorerOpen = false;
+        applySelection({ kind: "file", file: fileName });
+      }
+
+      function closeFileTab(fileName) {
+        const index = state.tabs.indexOf(fileName);
+        if (index === -1) return;
+        state.tabs.splice(index, 1);
+        if (state.activeKind === "file" && state.activeFile === fileName) {
+          const fallback = state.tabs[Math.min(index, state.tabs.length - 1)];
+          applySelection(
+            fallback
+              ? { kind: "file", file: fallback }
+              : { kind: "project-files" },
+          );
+          return;
+        }
+        render();
+      }
+
+      function openChildSession(childName) {
+        if (!state.childTabs.includes(childName))
+          state.childTabs.push(childName);
+        applySelection({ kind: "child-session", child: childName });
+      }
+
+      function closeChildTab(childName) {
+        state.childTabs = state.childTabs.filter((name) => name !== childName);
+        if (
+          state.activeKind === "child-session" &&
+          state.activeChild === childName
+        ) {
+          applySelection({ kind: "child-sessions" });
+          return;
+        }
+        render();
+      }
+
+      function render() {
+        renderTabs();
+        renderPreview();
+        syncTreeSelection();
+        renderLayout();
+      }
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        prototypeToast.textContent = message;
+        prototypeToast.classList.add("visible");
+        toastTimer = window.setTimeout(
+          () => prototypeToast.classList.remove("visible"),
+          1900,
+        );
+      }
+
+      function setFeatureDrawer(open) {
+        featureDrawer.classList.toggle("visible", open);
+        featureScrim.classList.toggle("visible", open);
+      }
+
+      function closeContextMenu() {
+        contextMenu.classList.remove("visible");
+        document
+          .querySelectorAll(".tree-row.context-selected")
+          .forEach((row) => row.classList.remove("context-selected"));
+      }
+
+      function folderDepth(folderRow) {
+        const depthClass = [...folderRow.classList].find((className) =>
+          className.startsWith("depth-"),
+        );
+        return Number(depthClass?.replace("depth-", "") || 0);
+      }
+
+      function expandFolder(folderRow) {
+        folderRow.setAttribute("aria-expanded", "true");
+        folderRow.querySelector(".twisty").textContent = "▾";
+        document
+          .querySelector(`[data-group="${folderRow.dataset.folder}"]`)
+          ?.classList.remove("hidden");
+      }
+
+      function selectTreeRow(row) {
+        document
+          .querySelectorAll(".tree-row.selected")
+          .forEach((item) => item.classList.remove("selected"));
+        row?.classList.add("selected");
+      }
+
+      function creationFolderFromSelection() {
+        const selected = projectTree.querySelector(".tree-row.selected");
+        if (!selected) return null;
+        if (selected.matches(".folder-row")) return selected;
+        const parentGroup = selected.parentElement?.closest(".tree-group");
+        if (!parentGroup) return null;
+        return projectTree.querySelector(
+          `[data-folder="${parentGroup.dataset.group}"]`,
+        );
+      }
+
+      function beginCreate(kind, folderRow = null) {
+        closeContextMenu();
+        state.createKind = kind;
+        state.createParent = folderRow;
+        const targetContainer = folderRow
+          ? document.querySelector(`[data-group="${folderRow.dataset.folder}"]`)
+          : projectTree;
+        if (folderRow) expandFolder(folderRow);
+        targetContainer.prepend(inlineCreate);
+        const depth = folderRow ? folderDepth(folderRow) + 1 : 0;
+        inlineCreate.style.paddingLeft = `${9 + depth * 15}px`;
+        createKindBadge.textContent = kind === "file" ? "FILE" : "DIR";
+        createKindBadge.className =
+          kind === "file" ? "file-badge" : "file-badge json";
+        createNameInput.placeholder =
+          kind === "file" ? "untitled.md" : "folder-name";
+        createNameInput.value = "";
+        inlineCreate.classList.add("visible");
+        inlineCreate.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        window.setTimeout(() => createNameInput.focus(), 120);
+      }
+
+      function collapseAll() {
+        document
+          .querySelectorAll(".tree-group")
+          .forEach((group) => group.classList.add("hidden"));
+        document.querySelectorAll(".folder-row").forEach((row) => {
+          row.setAttribute("aria-expanded", "false");
+          row.querySelector(".twisty").textContent = "▸";
+        });
+        showToast("已折叠所有文件夹");
+      }
+
+      function refreshExplorer() {
+        showToast("项目文件已刷新（交互原型）");
+      }
+
+      function nextNodeId(name) {
+        return `${name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, "-")}-${Date.now()}`;
+      }
+
+      function createTreeNode(name, kind) {
+        const parent = state.createParent;
+        const depth = parent ? folderDepth(parent) + 1 : 0;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.generated = "true";
+        button.className = `tree-row depth-${depth} ${kind === "file" ? "file-row" : "folder-row"}`;
+
+        if (kind === "file") {
+          button.dataset.file = name;
+          button.innerHTML = `<span class="twisty"></span><span class="file-badge">NEW</span><span class="tree-label">${escapeHtml(name)}</span>`;
+          files[name] = {
+            path: parent
+              ? `${parent.querySelector(".tree-label").textContent} / ${name}`
+              : name,
+            lines: [
+              "# 新文件",
+              "",
+              "这个临时文件用于验证创建后的 Tab 连续性。",
+            ],
+          };
+          inlineCreate.before(button);
+          selectTreeRow(button);
+          button.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          return button;
+        }
+
+        const folderId = nextNodeId(name);
+        button.dataset.folder = folderId;
+        button.setAttribute("aria-expanded", "true");
+        button.innerHTML = `<span class="twisty">▾</span><span class="folder-icon">▰</span><span class="tree-label">${escapeHtml(name)}</span>`;
+        const group = document.createElement("div");
+        group.className = "tree-group";
+        group.dataset.group = folderId;
+        group.dataset.generated = "true";
+        inlineCreate.before(button, group);
+        selectTreeRow(button);
+        button.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        return button;
+      }
+
+      function targetName(target = state.contextTarget) {
+        return (
+          target?.element?.querySelector(".tree-label")?.textContent ||
+          target?.name ||
+          "nextbot"
+        );
+      }
+
+      function menuButton(action, icon, label, shortcut = "", danger = false) {
+        return `<button type="button" role="menuitem" data-menu-action="${action}" class="${danger ? "danger" : ""}"><span class="menu-icon">${icon}</span><span>${label}</span>${shortcut ? `<span class="menu-shortcut">${shortcut}</span>` : ""}</button>`;
+      }
+
+      function menuGroup(items) {
+        return `<div class="menu-group">${items.join("")}</div>`;
+      }
+
+      function contextMenuMarkup(target) {
+        if (target.kind === "file") {
+          return [
+            menuGroup([menuButton("open", "↗", "打开")]),
+            menuGroup([
+              menuButton("add-chat", "＋", "添加文件到聊天"),
+              menuButton("download", "⇩", "下载文件"),
+            ]),
+            menuGroup([
+              menuButton("reveal", "⌕", "在 Finder 中显示"),
+              menuButton("copy-path", "⧉", "复制路径"),
+              menuButton("copy-relative-path", "⧉", "复制相对路径"),
+            ]),
+            menuGroup([
+              menuButton("rename", "✎", "重命名", "F2"),
+              menuButton("delete", "⌫", "删除", "⌘⌫", true),
+            ]),
+          ].join("");
+        }
+
+        if (target.kind === "folder") {
+          return [
+            menuGroup([menuButton("add-chat", "＋", "添加文件夹到聊天")]),
+            menuGroup([
+              menuButton("new-file", "◻", "新建文件"),
+              menuButton("new-folder", "▰", "新建文件夹"),
+              menuButton("upload", "⇧", "上传文件到此处"),
+            ]),
+            menuGroup([
+              menuButton("reveal", "⌕", "在 Finder 中显示"),
+              menuButton("copy-path", "⧉", "复制路径"),
+              menuButton("copy-relative-path", "⧉", "复制相对路径"),
+            ]),
+            menuGroup([
+              menuButton("rename", "✎", "重命名", "F2"),
+              menuButton("delete", "⌫", "删除", "⌘⌫", true),
+            ]),
+          ].join("");
+        }
+
+        return [
+          menuGroup([
+            menuButton("new-file", "◻", "新建文件"),
+            menuButton("new-folder", "▰", "新建文件夹"),
+            menuButton("upload", "⇧", "上传文件"),
+          ]),
+          menuGroup([
+            menuButton("refresh", "↻", "刷新 Explorer"),
+            menuButton("collapse", "⇈", "全部折叠"),
+          ]),
+          menuGroup([
+            menuButton("reveal", "⌕", "在 Finder 中显示"),
+            menuButton("copy-path", "⧉", "复制路径"),
+          ]),
+        ].join("");
+      }
+
+      function openContextMenu(event, target) {
+        event.preventDefault();
+        state.contextTarget = target;
+        selectTreeRow(target.element);
+        document
+          .querySelectorAll(".tree-row.context-selected")
+          .forEach((row) => row.classList.remove("context-selected"));
+        target.element?.classList.add("context-selected");
+        contextMenu.innerHTML = contextMenuMarkup(target);
+        contextMenu.classList.add("visible");
+        const width = 226;
+        const height = contextMenu.offsetHeight;
+        const left = Math.min(event.clientX, window.innerWidth - width - 8);
+        const top = Math.min(event.clientY, window.innerHeight - height - 8);
+        contextMenu.style.left = `${Math.max(8, left)}px`;
+        contextMenu.style.top = `${Math.max(8, top)}px`;
+      }
+
+      async function copyPath(relative = false) {
+        const name = targetName();
+        const value = relative ? name : `/Users/demo/Projects/nextbot/${name}`;
+        try {
+          await navigator.clipboard.writeText(value);
+          showToast(`已复制${relative ? "相对" : ""}路径：${value}`);
+        } catch {
+          showToast(`路径：${value}`);
+        }
+      }
+
+      function renameTarget() {
+        const target = state.contextTarget;
+        if (!target.element) return;
+        const oldName = targetName(target);
+        const newName = window.prompt("输入新名称", oldName)?.trim();
+        if (!newName || newName === oldName) return;
+        target.element.querySelector(".tree-label").textContent = newName;
+        if (target.kind === "file") {
+          files[newName] = {
+            ...files[oldName],
+            path: files[oldName]?.path.replace(oldName, newName) || newName,
+          };
+          delete files[oldName];
+          target.element.dataset.file = newName;
+          state.tabs = state.tabs.map((name) =>
+            name === oldName ? newName : name,
+          );
+          if (state.activeFile === oldName) state.activeFile = newName;
+          render();
+        }
+        showToast(`已重命名为 ${newName}`);
+      }
+
+      function deleteTarget() {
+        const target = state.contextTarget;
+        if (!target.element) return;
+        const name = targetName(target);
+        if (
+          !window.confirm(
+            `永久删除“${name}”？\n\n当前工作区尚未提供废纸篓或撤销能力。`,
+          )
+        )
+          return;
+        if (target.kind === "folder") {
+          document
+            .querySelector(`[data-group="${target.element.dataset.folder}"]`)
+            ?.remove();
+        } else {
+          delete files[name];
+          closeFileTab(name);
+        }
+        target.element.remove();
+        showToast(`已删除 ${name}（交互原型）`);
+      }
+
+      function downloadTarget() {
+        const name = targetName();
+        const body =
+          files[name]?.lines.join("\n") || `NextClaw 原型文件：${name}`;
+        const href = URL.createObjectURL(
+          new Blob([body], { type: "text/plain;charset=utf-8" }),
+        );
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.download = name;
+        anchor.click();
+        URL.revokeObjectURL(href);
+        showToast(`正在下载 ${name}`);
+      }
+
+      function handleMenuAction(action) {
+        const target = state.contextTarget;
+        const folder = target.kind === "folder" ? target.element : null;
+        if (action === "new-file") beginCreate("file", folder);
+        if (action === "new-folder") beginCreate("folder", folder);
+        if (action === "upload") {
+          state.createParent = folder;
+          const targetContainer = folder
+            ? document.querySelector(`[data-group="${folder.dataset.folder}"]`)
+            : projectTree;
+          if (folder) expandFolder(folder);
+          targetContainer.prepend(inlineCreate);
+          uploadInput.click();
+        }
+        if (action === "refresh") refreshExplorer();
+        if (action === "collapse") collapseAll();
+        if (action === "open" && target.kind === "file")
+          openFile(target.element.dataset.file);
+        if (action === "add-chat")
+          showToast(
+            `已将${target.kind === "folder" ? "文件夹" : "文件"}“${targetName()}”添加到聊天上下文`,
+          );
+        if (action === "download") downloadTarget();
+        if (action === "reveal")
+          showToast(`将在 Finder 中显示：${targetName()}（原型）`);
+        if (action === "copy-path") copyPath(false);
+        if (action === "copy-relative-path") copyPath(true);
+        if (action === "rename") renameTarget();
+        if (action === "delete") deleteTarget();
+        closeContextMenu();
+      }
+
+      drawerScrim.addEventListener("click", () => {
+        state.explorerOpen = false;
+        renderLayout();
+      });
+      document.querySelectorAll("[data-mode]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.mode = button.dataset.mode;
+          state.explorerOpen = true;
+          renderLayout();
+        });
+      });
+      document
+        .querySelector("#focus-workspace")
+        .addEventListener("click", () => {
+          state.workspaceFocus = !state.workspaceFocus;
+          renderLayout();
+        });
+      document
+        .querySelector("#maximize-workspace")
+        .addEventListener("click", () => {
+          state.workspaceFocus = !state.workspaceFocus;
+          renderLayout();
+        });
+      document
+        .querySelector("#workspace-back")
+        .addEventListener("click", () => {
+          if (state.historyIndex <= 0) return;
+          state.historyIndex -= 1;
+          applySelection(state.history[state.historyIndex], false);
+        });
+      document
+        .querySelector("#workspace-forward")
+        .addEventListener("click", () => {
+          if (state.historyIndex >= state.history.length - 1) return;
+          state.historyIndex += 1;
+          applySelection(state.history[state.historyIndex], false);
+        });
+      document.querySelector("#reset-demo").addEventListener("click", () => {
+        window.location.reload();
+      });
+      document.addEventListener("click", (event) => {
+        const menuAction = event.target.closest("[data-menu-action]");
+        if (menuAction) {
+          handleMenuAction(menuAction.dataset.menuAction);
+          return;
+        }
+        if (!event.target.closest("#context-menu")) closeContextMenu();
+        const explorerToggle = event.target.closest("[data-toggle-explorer]");
+        if (explorerToggle) {
+          state.explorerOpen = !state.explorerOpen;
+          renderLayout();
+          return;
+        }
+        const pageTrigger = event.target.closest(
+          "[data-page-tab], [data-open-page]",
+        );
+        if (pageTrigger) {
+          openWorkspacePage(
+            pageTrigger.dataset.pageTab || pageTrigger.dataset.openPage,
+          );
+          return;
+        }
+        const childTrigger = event.target.closest(
+          "[data-open-child], [data-child-tab]",
+        );
+        if (childTrigger && !event.target.closest("[data-close-child]")) {
+          openChildSession(
+            childTrigger.dataset.openChild || childTrigger.dataset.childTab,
+          );
+          return;
+        }
+        const closeChild = event.target.closest("[data-close-child]");
+        if (closeChild) {
+          event.stopPropagation();
+          closeChildTab(closeChild.dataset.closeChild);
+          return;
+        }
+        const fileTrigger = event.target.closest(
+          "[data-file], [data-open-file]",
+        );
+        if (fileTrigger) {
+          openFile(fileTrigger.dataset.file || fileTrigger.dataset.openFile);
+          return;
+        }
+        const fileTab = event.target.closest("[data-file-tab]");
+        if (fileTab && !event.target.closest("[data-close-file]")) {
+          openFile(fileTab.dataset.fileTab);
+          return;
+        }
+        const closeFile = event.target.closest("[data-close-file]");
+        if (closeFile) {
+          event.stopPropagation();
+          closeFileTab(closeFile.dataset.closeFile);
+          return;
+        }
+        const folder = event.target.closest("[data-folder]");
+        if (folder) {
+          selectTreeRow(folder);
+          const expanded = folder.getAttribute("aria-expanded") === "true";
+          folder.setAttribute("aria-expanded", String(!expanded));
+          folder.querySelector(".twisty").textContent = expanded ? "▸" : "▾";
+          document
+            .querySelector(`[data-group="${folder.dataset.folder}"]`)
+            ?.classList.toggle("hidden", expanded);
+        }
+      });
+      projectTree.addEventListener("contextmenu", (event) => {
+        const fileRow = event.target.closest(".file-row");
+        const folderRow = event.target.closest(".folder-row");
+        if (fileRow) {
+          openContextMenu(event, {
+            kind: "file",
+            element: fileRow,
+            name: fileRow.dataset.file,
+          });
+          return;
+        }
+        if (folderRow) {
+          openContextMenu(event, {
+            kind: "folder",
+            element: folderRow,
+            name: targetName({ element: folderRow }),
+          });
+          return;
+        }
+        openContextMenu(event, {
+          kind: "root",
+          element: null,
+          name: "nextbot",
+        });
+      });
+      document
+        .querySelector("#explorer-more")
+        .addEventListener("click", (event) => {
+          event.stopPropagation();
+          const rect = event.currentTarget.getBoundingClientRect();
+          openContextMenu(
+            {
+              preventDefault() {},
+              clientX: rect.right - 4,
+              clientY: rect.bottom + 4,
+            },
+            { kind: "root", element: null, name: "nextbot" },
+          );
+        });
+      document
+        .querySelector("#collapse-all")
+        .addEventListener("click", collapseAll);
+      document
+        .querySelector("#refresh-explorer")
+        .addEventListener("click", refreshExplorer);
+      document
+        .querySelector("#new-file")
+        .addEventListener("click", () =>
+          beginCreate("file", creationFolderFromSelection()),
+        );
+      document
+        .querySelector("#new-folder")
+        .addEventListener("click", () =>
+          beginCreate("folder", creationFolderFromSelection()),
+        );
+      createNameInput.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          event.currentTarget.value = "";
+          inlineCreate.classList.remove("visible");
+        }
+        if (event.key === "Enter" && event.currentTarget.value.trim()) {
+          const name = event.currentTarget.value.trim();
+          createTreeNode(name, state.createKind);
+          event.currentTarget.value = "";
+          inlineCreate.classList.remove("visible");
+          if (state.createKind === "file") openFile(name);
+          else showToast(`已新建文件夹 ${name}`);
+        }
+      });
+      uploadInput.addEventListener("change", () => {
+        const names = [...uploadInput.files].map((file) => file.name);
+        names.forEach((name) => createTreeNode(name, "file"));
+        if (names[0]) openFile(names[0]);
+        showToast(
+          `已上传 ${names.length} 个文件到 ${state.contextTarget.kind === "folder" ? targetName() : "项目根目录"}`,
+        );
+        uploadInput.value = "";
+      });
+      document
+        .querySelector("#show-features")
+        .addEventListener("click", () => setFeatureDrawer(true));
+      document
+        .querySelector("#close-features")
+        .addEventListener("click", () => setFeatureDrawer(false));
+      featureScrim.addEventListener("click", () => setFeatureDrawer(false));
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        closeContextMenu();
+        setFeatureDrawer(false);
+      });
+      document
+        .querySelector("#refresh-preview")
+        .addEventListener("click", () =>
+          showToast(`已刷新 ${state.activeFile || "当前文件"}`),
+        );
+      document
+        .querySelector("#close-workspace")
+        .addEventListener("click", () => {
+          showToast(
+            "真实产品中这里会收起整个会话工作台；原型保留画布便于继续讨论",
+          );
+        });
+
+      render();
+    </script>
+  </body>
+</html>

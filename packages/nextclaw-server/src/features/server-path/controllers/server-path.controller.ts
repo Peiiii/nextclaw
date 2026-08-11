@@ -27,11 +27,13 @@ import {
   ServerPathSearchService,
 } from "@nextclaw-server/features/server-path/services/server-path-search.service.js";
 import {
-  err,
-  isRecord,
-  ok,
-  readJson,
-} from "@nextclaw-server/shared/utils/http-response.utils.js";
+  createServerPathFile,
+  deleteServerPathEntry,
+  isServerPathMutationError,
+  renameServerPathEntry,
+  uploadServerPathFiles,
+} from "@nextclaw-server/features/server-path/utils/server-path-mutation.utils.js";
+import { err, isRecord, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 
 function readIncludeFilesFlag(value: string | undefined): boolean {
   return value === "1" || value === "true";
@@ -91,13 +93,123 @@ export class ServerPathRoutesController {
       return c.json(err("INVALID_SERVER_PATH_DIRECTORY", "directory input is required"), 400);
     }
     try {
-      return c.json(ok(await createServerPathDirectory({
-        parentPath: body.data.parentPath,
-        name: body.data.name,
-      })), 201);
+      return c.json(
+        ok(
+          await createServerPathDirectory({
+            basePath: body.data.basePath,
+            parentPath: body.data.parentPath,
+            name: body.data.name,
+          }),
+        ),
+        201,
+      );
     } catch (error) {
       if (isServerPathDirectoryCreateError(error)) {
         return c.json(err(error.code, error.message), 400);
+      }
+      throw error;
+    }
+  };
+
+  readonly uploadFiles = async (c: Context) => {
+    let formData: FormData;
+    try {
+      formData = await c.req.raw.formData();
+    } catch {
+      return c.json(err("INVALID_SERVER_PATH_UPLOAD", "multipart upload is required"), 400);
+    }
+    const files = formData
+      .getAll("files")
+      .flatMap((value) =>
+        typeof value === "string" ? [] : [{ name: value.name, arrayBuffer: () => value.arrayBuffer() }],
+      );
+    try {
+      return c.json(
+        ok(
+          await uploadServerPathFiles({
+            basePath: formData.get("basePath"),
+            targetPath: formData.get("targetPath"),
+            overwrite: formData.get("overwrite") === "true",
+            files,
+          }),
+        ),
+        201,
+      );
+    } catch (error) {
+      if (isServerPathMutationError(error)) {
+        return c.json(
+          err(error.code, error.message, error.details),
+          error.code === "SERVER_PATH_FILE_EXISTS" ? 409 : 400,
+        );
+      }
+      throw error;
+    }
+  };
+
+  readonly createFile = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    if (!body.ok || !isRecord(body.data)) {
+      return c.json(err("INVALID_SERVER_PATH_FILE", "file input is required"), 400);
+    }
+    try {
+      return c.json(
+        ok(
+          await createServerPathFile({
+            basePath: body.data.basePath,
+            parentPath: body.data.parentPath,
+            name: body.data.name,
+          }),
+        ),
+        201,
+      );
+    } catch (error) {
+      if (isServerPathMutationError(error))
+        return c.json(
+          err(error.code, error.message, error.details),
+          error.code === "SERVER_PATH_FILE_EXISTS" ? 409 : 400,
+        );
+      throw error;
+    }
+  };
+
+  readonly renameEntry = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    if (!body.ok || !isRecord(body.data)) {
+      return c.json(err("INVALID_SERVER_PATH_RENAME", "rename input is required"), 400);
+    }
+    try {
+      return c.json(
+        ok(
+          await renameServerPathEntry({
+            basePath: body.data.basePath,
+            path: body.data.path,
+            name: body.data.name,
+          }),
+        ),
+      );
+    } catch (error) {
+      if (isServerPathMutationError(error))
+        return c.json(
+          err(error.code, error.message, error.details),
+          error.code === "SERVER_PATH_FILE_EXISTS" ? 409 : 400,
+        );
+      throw error;
+    }
+  };
+
+  readonly deleteEntry = async (c: Context) => {
+    try {
+      return c.json(
+        ok(
+          await deleteServerPathEntry({
+            basePath: c.req.query("basePath"),
+            path: c.req.query("path"),
+          }),
+        ),
+      );
+    } catch (error) {
+      if (isServerPathMutationError(error)) {
+        return c.json(err(error.code, error.message, error.details), 400);
       }
       throw error;
     }
@@ -141,17 +253,13 @@ export class ServerPathRoutesController {
       });
     } catch (error) {
       if (isServerPathContentError(error)) {
-        return c.json(
-          err(error.code, error.message),
-          statusForServerPathContentError(error.code),
-        );
+        return c.json(err(error.code, error.message), statusForServerPathContentError(error.code));
       }
       throw error;
     }
   };
 
-  readonly content = async (c: Context): Promise<Response> =>
-    this.sendContent(c, { url: c.req.raw.url });
+  readonly content = async (c: Context): Promise<Response> => this.sendContent(c, { url: c.req.raw.url });
 
   readonly contentByPath = async (c: Context): Promise<Response> =>
     this.sendContent(c, {

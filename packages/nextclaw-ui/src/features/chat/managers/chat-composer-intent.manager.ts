@@ -1,8 +1,9 @@
 import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
+  CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
-} from "@nextclaw/shared";
+} from '@nextclaw/shared';
 
 type ChatComposerReferenceIntentBase = {
   id: number;
@@ -13,6 +14,10 @@ type ChatComposerReferenceIntentBase = {
 
 export type ChatComposerFileReferenceIntent = ChatComposerReferenceIntentBase & {
   kind: typeof CHAT_WORKSPACE_FILE_TOKEN_KIND;
+};
+
+export type ChatComposerDirectoryReferenceIntent = ChatComposerReferenceIntentBase & {
+  kind: typeof CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
 };
 
 export type ChatComposerExcerptReferenceIntent = ChatComposerReferenceIntentBase & {
@@ -26,19 +31,21 @@ export type ChatComposerExcerptReferenceIntent = ChatComposerReferenceIntentBase
 export type ChatComposerConversationExcerptIntent = ChatComposerReferenceIntentBase & {
   kind: typeof CHAT_CONVERSATION_EXCERPT_TOKEN_KIND;
   messageId: string;
-  role: "assistant" | "user";
+  role: 'assistant' | 'user';
   excerpt: string;
 };
 
 export type ChatComposerReferenceIntent =
   | ChatComposerFileReferenceIntent
+  | ChatComposerDirectoryReferenceIntent
   | ChatComposerExcerptReferenceIntent
   | ChatComposerConversationExcerptIntent;
 
 type ChatComposerReferenceRequest =
-  | Omit<ChatComposerFileReferenceIntent, "id">
-  | Omit<ChatComposerExcerptReferenceIntent, "id">
-  | Omit<ChatComposerConversationExcerptIntent, "id">;
+  | Omit<ChatComposerFileReferenceIntent, 'id'>
+  | Omit<ChatComposerDirectoryReferenceIntent, 'id'>
+  | Omit<ChatComposerExcerptReferenceIntent, 'id'>
+  | Omit<ChatComposerConversationExcerptIntent, 'id'>;
 
 function createExcerptTokenKey(prefix: string, identity: string): string {
   let hash = 2166136261;
@@ -64,9 +71,11 @@ export class ChatComposerIntentManager {
   private publish = (intent: ChatComposerReferenceRequest) => {
     const id = this.nextId + 1;
     const targetSessionKey = intent.targetSessionKey?.trim() || null;
-    const nextIntent: ChatComposerReferenceIntent = intent.kind === CHAT_WORKSPACE_FILE_TOKEN_KIND
-      ? { ...intent, id, targetSessionKey }
-      : { ...intent, id, targetSessionKey };
+    const nextIntent: ChatComposerReferenceIntent = {
+      ...intent,
+      id,
+      targetSessionKey,
+    };
     this.nextId = nextIntent.id;
     this.pendingIntent = nextIntent;
     this.subscriptions.forEach((subscription) => {
@@ -76,11 +85,7 @@ export class ChatComposerIntentManager {
     });
   };
 
-  requestFileReference = (params: {
-    targetSessionKey: string | null;
-    tokenKey: string;
-    label: string;
-  }) => {
+  requestFileReference = (params: { targetSessionKey: string | null; tokenKey: string; label: string }) => {
     const tokenKey = params.tokenKey.trim();
     const label = params.label.trim();
     if (!tokenKey || !label) {
@@ -88,6 +93,20 @@ export class ChatComposerIntentManager {
     }
     this.publish({
       kind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
+      targetSessionKey: params.targetSessionKey?.trim() || null,
+      tokenKey,
+      label,
+    });
+  };
+
+  requestDirectoryReference = (params: { targetSessionKey: string | null; tokenKey: string; label: string }) => {
+    const tokenKey = params.tokenKey.trim();
+    const label = params.label.trim();
+    if (!tokenKey || !label) {
+      return;
+    }
+    this.publish({
+      kind: CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
       targetSessionKey: params.targetSessionKey?.trim() || null,
       tokenKey,
       label,
@@ -102,14 +121,7 @@ export class ChatComposerIntentManager {
     startLine: number | null;
     endLine: number | null;
   }) => {
-    const {
-      endLine,
-      excerpt: rawExcerpt,
-      label: rawLabel,
-      path: rawPath,
-      startLine,
-      targetSessionKey,
-    } = params;
+    const { endLine, excerpt: rawExcerpt, label: rawLabel, path: rawPath, startLine, targetSessionKey } = params;
     const path = rawPath.trim();
     const label = rawLabel.trim();
     const excerpt = rawExcerpt.trim();
@@ -119,10 +131,7 @@ export class ChatComposerIntentManager {
     this.publish({
       kind: CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
       targetSessionKey,
-      tokenKey: createExcerptTokenKey(
-        path,
-        `${path}:${startLine ?? "x"}:${endLine ?? "x"}:${excerpt}`,
-      ),
+      tokenKey: createExcerptTokenKey(path, `${path}:${startLine ?? 'x'}:${endLine ?? 'x'}:${excerpt}`),
       path,
       label,
       excerpt,
@@ -134,7 +143,7 @@ export class ChatComposerIntentManager {
   requestConversationExcerptReference = (params: {
     targetSessionKey: string | null;
     messageId: string;
-    role: "assistant" | "user";
+    role: 'assistant' | 'user';
     label: string;
     excerpt: string;
   }) => {
@@ -160,9 +169,7 @@ export class ChatComposerIntentManager {
     });
   };
 
-  consumePending = (
-    targetSessionKey: string | null,
-  ): ChatComposerReferenceIntent | null => {
+  consumePending = (targetSessionKey: string | null): ChatComposerReferenceIntent | null => {
     if (this.pendingIntent?.targetSessionKey !== targetSessionKey) {
       return null;
     }
@@ -177,10 +184,7 @@ export class ChatComposerIntentManager {
     }
   };
 
-  subscribe = (
-    targetSessionKey: string | null,
-    listener: ChatComposerIntentListener,
-  ) => {
+  subscribe = (targetSessionKey: string | null, listener: ChatComposerIntentListener) => {
     const subscription = { targetSessionKey, listener };
     this.subscriptions.add(subscription);
     return () => {

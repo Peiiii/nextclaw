@@ -1,17 +1,22 @@
 export {
   createNextClawAppClient,
   type NextClawAppClient,
-  type NextClawPanelAppNamespace
+  type NextClawPanelAppNamespace,
 } from "./nextclaw-app-client.utils.js";
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
 export { eventKeys } from "@nextclaw/shared";
-export type { AgentRunSendIngressPayload, AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/shared";
+export type {
+  AgentRunSendIngressPayload,
+  AppEvent,
+  AppEventEnvelope,
+  AppEventKey,
+} from "@nextclaw/shared";
 export type {
   NextClawAgentRunStreamHandler,
   NextClawAgentRunStreamOptions,
-  NextClawAgentRunStreamSubscription
+  NextClawAgentRunStreamSubscription,
 } from "./services/agent-runs.service.js";
 export type { ListSessionMessagesParams } from "./services/sessions.service.js";
 export type {
@@ -19,12 +24,12 @@ export type {
   NextClawRealtimeHandler,
   NextClawRealtimeSubscribeOptions,
   NextClawRequestOptions,
-  NextClawUploadOptions
+  NextClawUploadOptions,
 } from "./types/nextclaw-request.types.js";
 export type {
   NextClawRealtimeEvent,
   NextClawRealtimeSubscription,
-  NextClawWebSocketLike
+  NextClawWebSocketLike,
 } from "./types/nextclaw-realtime.types.js";
 export type {
   NextClawQueryParams,
@@ -32,7 +37,7 @@ export type {
   NextClawRequestMethod,
   NextClawTransport,
   NextClawTransportRequestInput,
-  NextClawTransportUploadInput
+  NextClawTransportUploadInput,
 } from "./types/nextclaw-transport.types.js";
 export type {
   AgentBindingView,
@@ -148,6 +153,12 @@ export type {
   ServerPathBrowseView,
   ServerPathDirectoryCreateRequest,
   ServerPathDirectoryCreateView,
+  ServerPathEntryDeleteView,
+  ServerPathEntryRenameRequest,
+  ServerPathEntryRenameView,
+  ServerPathFileCreateRequest,
+  ServerPathFileCreateView,
+  ServerPathFilesUploadView,
   ServerPathReadView,
   ServerPathSearchEntryView,
   ServerPathSearchView,
@@ -157,14 +168,14 @@ export type {
   UiNcpSessionMessagesView,
   UiNcpSessionQueuedInputView,
   UiNcpSessionQueuedInputsView,
-  UiServerEvent
+  UiServerEvent,
 } from "@nextclaw/server";
 export type {
   NcpEndpointEvent,
   NcpMessageAbortPayload,
   NcpRunHandle,
   NcpSessionSummary,
-  NcpStreamRequestPayload
+  NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
 export type { UpdateSnapshot } from "@nextclaw/shared";
 export type {

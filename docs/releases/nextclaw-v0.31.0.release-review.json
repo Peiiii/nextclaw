@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.31.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/guide/workspace.md",
+        "apps/docs/en/guide/workspace.md",
+        "apps/docs/zh/notes/2026-08-11-nextclaw-v0-31-0.md",
+        "apps/docs/en/notes/2026-08-11-nextclaw-v0-31-0.md"
+      ]
+    },
+    "website": {
+      "decision": "updated",
+      "paths": [
+        "apps/landing/src/main.ts",
+        "images/screenshots/nextclaw-workspace-explorer-cn.png",
+        "images/screenshots/nextclaw-workspace-explorer-en.png"
+      ]
+    }
+  }
+}

@@ -1,9 +1,5 @@
 import { Hono, type Handler } from "hono";
-import type {
-  NcpMessageAbortPayload,
-  NcpRunHandle,
-  NcpStreamRequestPayload,
-} from "@nextclaw/ncp";
+import type { NcpMessageAbortPayload, NcpRunHandle, NcpStreamRequestPayload } from "@nextclaw/ncp";
 import { AccessManager } from "@nextclaw/kernel";
 import {
   ingressKeys,
@@ -24,7 +20,7 @@ import {
   McpMarketplaceController,
   mountMarketplaceRoutes,
   resolveMarketplaceBaseUrls,
-  SkillMarketplaceController
+  SkillMarketplaceController,
 } from "@nextclaw-server/features/marketplace/index.js";
 import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/index.js";
 import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
@@ -44,15 +40,9 @@ const AGENT_RUNS_BASE_PATH = "/api/agent-runs";
 function createUiRouteControllers(
   options: UiRouterOptions,
   authService: UiAuthService,
-  marketplaceBaseUrls: readonly string[]
+  marketplaceBaseUrls: readonly string[],
 ) {
-  const {
-    kernel,
-    panelAppClientSdkScript,
-    remoteAccess,
-    runtimeControl,
-    runtimeUpdate,
-  } = options;
+  const { kernel, panelAppClientSdkScript, remoteAccess, runtimeControl, runtimeUpdate } = options;
   return {
     app: new AppRoutesController(options),
     agents: new AgentsRoutesController(options),
@@ -76,7 +66,7 @@ function createUiRouteControllers(
     runtimeControl: runtimeControl ? new RuntimeControlRoutesController(runtimeControl) : null,
     runtimeUpdate: runtimeUpdate ? new RuntimeUpdateRoutesController(runtimeUpdate) : null,
     skillMarketplace: new SkillMarketplaceController(options, marketplaceBaseUrls),
-    mcpMarketplace: new McpMarketplaceController(options, marketplaceBaseUrls)
+    mcpMarketplace: new McpMarketplaceController(options, marketplaceBaseUrls),
   };
 }
 
@@ -171,10 +161,7 @@ class UiRouteRegistry {
     }
   };
 
-  private readonly mountAgentRunRoutes = (
-    basePath: string,
-    kernel: UiRouterOptions["kernel"],
-  ): void => {
+  private readonly mountAgentRunRoutes = (basePath: string, kernel: UiRouterOptions["kernel"]): void => {
     this.app.post(`${basePath}/send`, async (c) => {
       const body = await readJson<AgentRunSendIngressPayload>(c.req.raw);
       if (!body.ok || !isValidSendEnvelope(body.data)) {
@@ -252,15 +239,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const {
-      ncpSession,
-      inboxDeliveries,
-      panelApps,
-      preferences,
-      projects,
-      serviceApps,
-      serverPath,
-    } = this.controllers;
+    const { ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath } = this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -314,6 +293,10 @@ class UiRouteRegistry {
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/search", serverPath.search],
       ["post", "/api/server-paths/directory", serverPath.createDirectory],
+      ["post", "/api/server-paths/file", serverPath.createFile],
+      ["post", "/api/server-paths/files", serverPath.uploadFiles],
+      ["patch", "/api/server-paths/entry", serverPath.renameEntry],
+      ["delete", "/api/server-paths/entry", serverPath.deleteEntry],
       ["get", "/api/server-paths/read", serverPath.read],
       ["get", "/api/server-paths/content", serverPath.contentByPath],
       ["get", "/api/server-paths/content/*", serverPath.content],
@@ -321,17 +304,7 @@ class UiRouteRegistry {
   };
 
   readonly register = (): void => {
-    const {
-      agents,
-      app,
-      auth,
-      config,
-      cron,
-      ncpAsset,
-      remote,
-      runtimeControl,
-      runtimeUpdate,
-    } = this.controllers;
+    const { agents, app, auth, config, cron, ncpAsset, remote, runtimeControl, runtimeUpdate } = this.controllers;
     this.mountRoutes([
       ["get", "/api/health", app.health],
       ["get", "/api/app/meta", app.appMeta],
@@ -435,7 +408,7 @@ class UiRouteRegistry {
     });
     mountMarketplaceRoutes(this.app, {
       skill: this.controllers.skillMarketplace,
-      mcp: this.controllers.mcpMarketplace
+      mcp: this.controllers.mcpMarketplace,
     });
   };
 }
@@ -443,9 +416,10 @@ class UiRouteRegistry {
 export function createUiRouter(options: UiRouterOptions, authServiceOverride?: UiAuthService): Hono {
   const app = new Hono();
   const marketplaceBaseUrls = resolveMarketplaceBaseUrls(options);
-  const authService = authServiceOverride ?? options.authService ?? new UiAuthService(
-    options.kernel.accessManager ?? new AccessManager({ configPath: options.configPath }),
-  );
+  const authService =
+    authServiceOverride ??
+    options.authService ??
+    new UiAuthService(options.kernel.accessManager ?? new AccessManager({ configPath: options.configPath }));
   const controllers = createUiRouteControllers(options, authService, marketplaceBaseUrls);
 
   app.notFound((c) => c.json(err("NOT_FOUND", "endpoint not found"), 404));

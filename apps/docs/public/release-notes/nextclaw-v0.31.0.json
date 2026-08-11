@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.31.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-11",
+  "title": {
+    "zh-CN": "NextClaw v0.31.0",
+    "en-US": "NextClaw v0.31.0"
+  },
+  "summary": {
+    "zh-CN": "会话工作区加入与文件预览连续协作的项目文件 Explorer，并增强消息恢复、历史日志读取和启动阶段保护。",
+    "en-US": "The session workspace gains a project Explorer that stays beside file previews, with stronger message recovery, journal scanning, and startup guards."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-11-nextclaw-v0-31-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-11-nextclaw-v0-31-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "共享项目文件 Explorer",
+            "en-US": "Shared project Explorer"
+          },
+          "body": {
+            "zh-CN": "目录树和文件预览可以同时显示，连续打开的文件会保留在各自标签页。",
+            "en-US": "The directory tree stays beside the file preview, and files opened in sequence remain in their own tabs."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "完整的项目文件操作",
+            "en-US": "Complete project file actions"
+          },
+          "body": {
+            "zh-CN": "支持新建、上传、下载、重命名、删除、复制路径，以及把文件或文件夹添加到聊天。",
+            "en-US": "Create, upload, download, rename, delete, copy paths, or add files and folders to the conversation."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "可调整并记忆的侧栏",
+            "en-US": "Resizable, remembered sidebar"
+          },
+          "body": {
+            "zh-CN": "Explorer 宽度可以拖动并在刷新后保留，空间不足时才使用覆盖式侧栏。",
+            "en-US": "The Explorer width can be resized and persists after refresh, with an overlay reserved for narrow layouts."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "并行只读工具",
+            "en-US": "Parallel read-only tools"
+          },
+          "body": {
+            "zh-CN": "Native 会话可以并行执行同一轮中的只读文件、图片、网页和记忆查询，写操作和命令仍保持独占。",
+            "en-US": "Native sessions can run read-only file, image, web, and memory queries from the same turn concurrently, while writes and commands remain exclusive."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更连续的文件交互",
+            "en-US": "More continuous file interaction"
+          },
+          "body": {
+            "zh-CN": "右键菜单、新建定位和单行面包屑采用熟悉的代码编辑器习惯，文件夹不再出现含义不清的打开操作。",
+            "en-US": "Context menus, create-item reveal, and single-line breadcrumbs follow familiar editor conventions, without an ambiguous Open action on folders."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "稳定的划选操作",
+            "en-US": "Stable selection controls"
+          },
+          "body": {
+            "zh-CN": "文件和会话消息中的划选浮层会稳定显示，并与侧栏拖拽等操作正确协作。",
+            "en-US": "Selection controls in files and messages appear reliably and coexist correctly with sidebar resizing."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更稳的消息连接与恢复",
+            "en-US": "More resilient message connection and recovery"
+          },
+          "body": {
+            "zh-CN": "空闲 SSE 会主动保活，短暂断流可补齐会话并重连；启动恢复以流式方式读取历史日志。",
+            "en-US": "Idle SSE connections send keepalives, short interruptions can recover and reconnect, and startup recovery streams journal history."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "启动阶段编辑保护",
+            "en-US": "Startup editing guard"
+          },
+          "body": {
+            "zh-CN": "NCP 尚未就绪时暂时禁用消息编辑与继续运行，服务恢复后自动重新可用。",
+            "en-US": "Message editing and continuation pause while NCP is unavailable and resume automatically when the service is ready."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "项目边界内的安全文件操作",
+            "en-US": "Safe file actions inside the project boundary"
+          },
+          "body": {
+            "zh-CN": "所有写操作限制在当前项目根目录内；同名上传默认不覆盖，删除前会再次确认。",
+            "en-US": "All writes stay inside the current project root; uploads do not overwrite by default, and deletion asks for confirmation."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "统一的重启入口",
+            "en-US": "One restart entry point"
+          },
+          "body": {
+            "zh-CN": "不可靠的 Agent 内 gateway.restart 已移除；需要重启时从外部终端运行顶层 nextclaw restart。",
+            "en-US": "The unreliable in-agent gateway.restart action is removed; use top-level nextclaw restart from an external terminal when needed."
+          }
+        }
+      ]
+    }
+  ]
+}

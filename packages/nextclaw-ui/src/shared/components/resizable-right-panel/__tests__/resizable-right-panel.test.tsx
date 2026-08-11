@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ResizableRightPanel } from "@/shared/components/resizable-right-panel/resizable-right-panel";
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 
 function firePointerEvent(
   target: Window | Document | Node | Element,
@@ -15,12 +15,12 @@ function firePointerEvent(
   fireEvent(target, event);
 }
 
-describe("ResizableRightPanel", () => {
+describe('ResizableRightPanel', () => {
   beforeEach(() => {
     HTMLElement.prototype.setPointerCapture = vi.fn();
   });
 
-  it("resizes horizontally from the left handle and clamps to max width", () => {
+  it('resizes horizontally from the left handle and clamps to max width', () => {
     const onWidthCommit = vi.fn();
     render(
       <ResizableRightPanel
@@ -34,48 +34,51 @@ describe("ResizableRightPanel", () => {
       </ResizableRightPanel>,
     );
 
-    firePointerEvent(
-      screen.getByTestId("resizable-right-panel-handle"),
-      "pointerdown",
-      { clientX: 800, pointerId: 1 },
-    );
-    firePointerEvent(window, "pointermove", { clientX: 600, pointerId: 1 });
+    firePointerEvent(screen.getByTestId('resizable-right-panel-handle'), 'pointerdown', { clientX: 800, pointerId: 1 });
+    firePointerEvent(window, 'pointermove', { clientX: 600, pointerId: 1 });
 
-    expect(screen.getByTestId("right-panel").style.width).toBe("500px");
-    expect(
-      screen.getByTestId("resizable-right-panel-resize-shield"),
-    ).toBeTruthy();
+    expect(screen.getByTestId('right-panel').style.width).toBe('500px');
+    expect(screen.getByTestId('resizable-right-panel-resize-shield')).toBeTruthy();
 
-    firePointerEvent(window, "pointerup", { clientX: 600, pointerId: 1 });
+    firePointerEvent(window, 'pointerup', { clientX: 600, pointerId: 1 });
 
     expect(onWidthCommit).toHaveBeenCalledWith(500);
 
-    expect(
-      screen.queryByTestId("resizable-right-panel-resize-shield"),
-    ).toBeNull();
+    expect(screen.queryByTestId('resizable-right-panel-resize-shield')).toBeNull();
   });
 
-  it("does not render resize controls in overlay mode", () => {
+  it('does not render resize controls in overlay mode', () => {
     render(
       <ResizableRightPanel data-testid="right-panel" overlay>
         Content
       </ResizableRightPanel>,
     );
 
-    expect(
-      screen.queryByTestId("resizable-right-panel-handle"),
-    ).toBeNull();
-    expect(screen.getByTestId("right-panel").className).toContain("fixed");
+    expect(screen.queryByTestId('resizable-right-panel-handle')).toBeNull();
+    expect(screen.getByTestId('right-panel').className).toContain('fixed');
   });
 
-  it("applies a persisted controlled width after store rehydration", () => {
+  it('keeps the outer resize boundary above nested panel overlays', () => {
+    render(
+      <ResizableRightPanel data-testid="right-panel">
+        <div className="absolute inset-0 z-20" data-testid="nested-overlay" />
+      </ResizableRightPanel>,
+    );
+
+    const panel = screen.getByTestId('right-panel');
+    const handle = screen.getByTestId('resizable-right-panel-handle');
+    expect(handle.className).toContain('z-30');
+    expect(panel.compareDocumentPosition(handle) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('applies a persisted controlled width after store rehydration', () => {
     const view = render(
       <ResizableRightPanel data-testid="right-panel" width={480}>
         Content
       </ResizableRightPanel>,
     );
 
-    expect(screen.getByTestId("right-panel").style.width).toBe("480px");
+    expect(screen.getByTestId('right-panel').style.width).toBe('480px');
 
     view.rerender(
       <ResizableRightPanel data-testid="right-panel" width={620}>
@@ -83,24 +86,18 @@ describe("ResizableRightPanel", () => {
       </ResizableRightPanel>,
     );
 
-    expect(screen.getByTestId("right-panel").style.width).toBe("620px");
+    expect(screen.getByTestId('right-panel').style.width).toBe('620px');
   });
 
-  it("can scope overlay positioning to its container", () => {
+  it('can scope overlay positioning to its container', () => {
     render(
-      <ResizableRightPanel
-        data-testid="right-panel"
-        overlay
-        overlayScope="container"
-      >
+      <ResizableRightPanel data-testid="right-panel" overlay overlayScope="container">
         Content
       </ResizableRightPanel>,
     );
 
-    expect(
-      screen.queryByTestId("resizable-right-panel-handle"),
-    ).toBeNull();
-    expect(screen.getByTestId("right-panel").className).toContain("absolute");
-    expect(screen.getByTestId("right-panel").className).not.toContain("fixed");
+    expect(screen.queryByTestId('resizable-right-panel-handle')).toBeNull();
+    expect(screen.getByTestId('right-panel').className).toContain('absolute');
+    expect(screen.getByTestId('right-panel').className).not.toContain('fixed');
   });
 });

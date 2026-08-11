@@ -1,22 +1,31 @@
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
+import type { ChatFileOpenActionViewModel } from '@nextclaw/agent-chat-ui';
 import {
   AlarmClock,
   ChevronRight,
   FolderTree,
   GitBranch,
   MessageSquarePlus,
-} from "lucide-react";
-import type { CronJobView } from "@/shared/lib/api";
-import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
-import { SessionConversationArea } from "@/features/chat/features/conversation/components/session-conversation-area";
-import { ChatSessionWorkspaceFilePreview } from "@/features/chat/features/workspace/components/chat-session-workspace-file-preview";
-import { ChatSessionWorkspaceDirectoryBrowser } from "@/features/chat/features/workspace/components/chat-session-workspace-directory-browser";
-import { SessionCronJobContent } from "@/features/chat/features/workspace/components/session-cron-job-content";
-import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
-import type { WorkspaceSelection } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
-import { useServerPathBrowse } from "@/shared/hooks/use-server-path-browse";
-import { t } from "@/shared/lib/i18n";
-import { cn } from "@/shared/lib/utils";
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
+import type { CronJobView } from '@/shared/lib/api';
+import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
+import { SessionConversationArea } from '@/features/chat/features/conversation/components/session-conversation-area';
+import { ChatSessionWorkspaceFilePreview } from '@/features/chat/features/workspace/components/chat-session-workspace-file-preview';
+import { ChatSessionWorkspaceDirectoryBrowser } from '@/features/chat/features/workspace/components/chat-session-workspace-directory-browser';
+import { SessionCronJobContent } from '@/features/chat/features/workspace/components/session-cron-job-content';
+import type { ResolvedChildSessionTab } from '@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view';
+import type { WorkspaceSelection } from '@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils';
+import { useServerPathBrowse } from '@/shared/hooks/use-server-path-browse';
+import {
+  CHAT_WORKSPACE_EXPLORER_MAX_WIDTH,
+  CHAT_WORKSPACE_EXPLORER_MIN_WIDTH,
+} from '@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils';
+import { useWorkspaceExplorerLayout } from '@/features/chat/features/workspace/hooks/use-workspace-explorer-layout';
+import { t } from '@/shared/lib/i18n';
+import { cn } from '@/shared/lib/utils';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 
 type ChatSessionWorkspacePanelContentProps = {
   activeSelection: WorkspaceSelection;
@@ -53,15 +62,13 @@ function WorkspaceOverviewEntry({
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
           <span className="truncate">{title}</span>
-          {typeof count === "number" ? (
+          {typeof count === 'number' ? (
             <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-500">
               {count}
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 block text-xs leading-5 text-gray-500">
-          {description}
-        </span>
+        <span className="mt-0.5 block text-xs leading-5 text-gray-500">{description}</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500" />
     </button>
@@ -82,18 +89,14 @@ function WorkspaceOverview({
   return (
     <div className="h-full overflow-auto bg-gray-50/45 px-4 py-5 custom-scrollbar">
       <div className="mx-auto max-w-xl">
-        <h2 className="text-base font-semibold text-gray-900">
-          {t("chatWorkspaceOverview")}
-        </h2>
-        <p className="mt-1 text-xs leading-5 text-gray-500">
-          {t("chatWorkspaceOverviewDescription")}
-        </p>
+        <h2 className="text-base font-semibold text-gray-900">{t('chatWorkspaceOverview')}</h2>
+        <p className="mt-1 text-xs leading-5 text-gray-500">{t('chatWorkspaceOverviewDescription')}</p>
         <div className="mt-4 space-y-2">
           <WorkspaceOverviewEntry
             count={childSessionTabs.length}
-            description={t("chatWorkspaceChildSessionsDescription")}
+            description={t('chatWorkspaceChildSessionsDescription')}
             icon={<GitBranch className="h-4 w-4" />}
-            title={t("chatWorkspaceChildSessions")}
+            title={t('chatWorkspaceChildSessions')}
             onClick={() => {
               if (sessionKey) {
                 presenter.chatThreadManager.openChildSessions(sessionKey);
@@ -102,9 +105,9 @@ function WorkspaceOverview({
           />
           <WorkspaceOverviewEntry
             count={sessionCronJobs.length}
-            description={t("chatWorkspaceSessionCronJobsDescription")}
+            description={t('chatWorkspaceSessionCronJobsDescription')}
             icon={<AlarmClock className="h-4 w-4" />}
-            title={t("chatWorkspaceSessionCronJobs")}
+            title={t('chatWorkspaceSessionCronJobs')}
             onClick={() => {
               if (sessionKey) {
                 presenter.chatThreadManager.openSessionCronPanel(sessionKey);
@@ -112,9 +115,9 @@ function WorkspaceOverview({
             }}
           />
           <WorkspaceOverviewEntry
-            description={t("chatWorkspaceProjectFilesDescription")}
+            description={t('chatWorkspaceProjectFilesDescription')}
             icon={<FolderTree className="h-4 w-4" />}
-            title={t("chatWorkspaceProjectFiles")}
+            title={t('chatWorkspaceProjectFiles')}
             onClick={() => {
               if (sessionKey) {
                 presenter.chatThreadManager.openProjectFiles(sessionKey);
@@ -127,28 +130,20 @@ function WorkspaceOverview({
   );
 }
 
-function WorkspaceChildSessions({
-  childSessionTabs,
-}: {
-  childSessionTabs: readonly ResolvedChildSessionTab[];
-}) {
+function WorkspaceChildSessions({ childSessionTabs }: { childSessionTabs: readonly ResolvedChildSessionTab[] }) {
   const presenter = usePresenter();
 
   return (
     <div className="h-full overflow-auto bg-gray-50/45 px-4 py-5 custom-scrollbar">
       <div className="mx-auto max-w-xl">
         <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold text-gray-900">
-            {t("chatWorkspaceChildSessions")}
-          </h2>
+          <h2 className="text-base font-semibold text-gray-900">{t('chatWorkspaceChildSessions')}</h2>
           <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-500">
             {childSessionTabs.length}
           </span>
         </div>
         {childSessionTabs.length === 0 ? (
-          <div className="py-10 text-center text-sm text-gray-500">
-            {t("chatWorkspaceChildSessionsEmpty")}
-          </div>
+          <div className="py-10 text-center text-sm text-gray-500">{t('chatWorkspaceChildSessionsEmpty')}</div>
         ) : (
           <div className="mt-4 space-y-2">
             {childSessionTabs.map((tab) => (
@@ -156,24 +151,16 @@ function WorkspaceChildSessions({
                 key={tab.sessionKey}
                 type="button"
                 className="group flex w-full items-center gap-3 rounded-lg border border-gray-200/80 bg-white px-3 py-3 text-left transition-colors hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-                onClick={() =>
-                  presenter.chatThreadManager.selectChildSessionDetail(
-                    tab.sessionKey,
-                  )
-                }
+                onClick={() => presenter.chatThreadManager.selectChildSessionDetail(tab.sessionKey)}
               >
                 <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
                   <GitBranch className="h-4 w-4" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-gray-900">
-                    {tab.title}
-                  </span>
+                  <span className="block truncate text-sm font-medium text-gray-900">{tab.title}</span>
                   {tab.projectName || tab.sessionTypeLabel ? (
                     <span className="mt-0.5 block truncate text-xs text-gray-500">
-                      {[tab.sessionTypeLabel, tab.projectName]
-                        .filter(Boolean)
-                        .join(" · ")}
+                      {[tab.sessionTypeLabel, tab.projectName].filter(Boolean).join(' · ')}
                     </span>
                   ) : null}
                 </span>
@@ -188,10 +175,12 @@ function WorkspaceChildSessions({
 }
 
 function WorkspaceProjectFiles({
+  onFileOpen,
   projectRoot,
   sessionKey,
   workingDir,
 }: {
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   projectRoot: string | null;
   sessionKey: string | null;
   workingDir: string | null;
@@ -207,7 +196,7 @@ function WorkspaceProjectFiles({
   if (!rootPath) {
     return (
       <div className="flex h-full items-center justify-center px-6 text-center text-sm text-gray-500">
-        {t("chatWorkspaceProjectFilesUnavailable")}
+        {t('chatWorkspaceProjectFilesUnavailable')}
       </div>
     );
   }
@@ -216,13 +205,13 @@ function WorkspaceProjectFiles({
     <ChatSessionWorkspaceDirectoryBrowser
       key={rootPath}
       browseQuery={browseQuery}
-      onFileOpen={presenter.chatThreadManager.openFilePreview}
+      onFileOpen={onFileOpen ?? presenter.chatThreadManager.openFilePreview}
       sessionKey={sessionKey}
-      renderStatus={({ text, tone = "muted" }) => (
+      renderStatus={({ text, tone = 'muted' }) => (
         <div
           className={cn(
-            "flex h-full items-center justify-center px-6 text-center text-sm",
-            tone === "error" ? "text-rose-600" : "text-gray-500",
+            'flex h-full items-center justify-center px-6 text-center text-sm',
+            tone === 'error' ? 'text-rose-600' : 'text-gray-500',
           )}
         >
           {text}
@@ -242,11 +231,9 @@ function ChildSessionMetaChip({ value }: { value: string }) {
 }
 
 function ChildSessionMetaStrip({ tab }: { tab: ResolvedChildSessionTab }) {
-  const metaItems = [
-    tab.sessionTypeLabel,
-    tab.preferredModel,
-    tab.projectName,
-  ].filter((value): value is string => Boolean(value?.trim()));
+  const metaItems = [tab.sessionTypeLabel, tab.preferredModel, tab.projectName].filter((value): value is string =>
+    Boolean(value?.trim()),
+  );
 
   if (metaItems.length === 0 && !tab.projectRoot) {
     return null;
@@ -274,11 +261,9 @@ function WorkspaceSideChatDraftHeader() {
     <div className="border-b border-gray-200/70 px-4 py-3">
       <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-gray-900">
         <MessageSquarePlus className="h-4 w-4 shrink-0 text-primary" />
-        <span className="truncate">{t("chatWorkspaceSideChatDraftTitle")}</span>
+        <span className="truncate">{t('chatWorkspaceSideChatDraftTitle')}</span>
       </div>
-      <p className="mt-1 text-xs leading-5 text-gray-500">
-        {t("chatWorkspaceSideChatDraftSubtitle")}
-      </p>
+      <p className="mt-1 text-xs leading-5 text-gray-500">{t('chatWorkspaceSideChatDraftSubtitle')}</p>
     </div>
   );
 }
@@ -291,10 +276,13 @@ function WorkspaceSelectedContent({
   sessionCronJobs,
   sessionProjectRoot,
   sessionWorkingDir,
-}: ChatSessionWorkspacePanelContentProps) {
+  explorerControl,
+}: ChatSessionWorkspacePanelContentProps & {
+  explorerControl?: { open: boolean; onToggle: () => void };
+}) {
   const presenter = usePresenter();
 
-  if (activeSelection.kind === "overview") {
+  if (activeSelection.kind === 'overview') {
     return (
       <WorkspaceOverview
         childSessionTabs={childSessionTabs}
@@ -304,18 +292,18 @@ function WorkspaceSelectedContent({
     );
   }
 
-  if (activeSelection.kind === "child-sessions") {
+  if (activeSelection.kind === 'child-sessions') {
     return <WorkspaceChildSessions childSessionTabs={childSessionTabs} />;
   }
 
-  if (activeSelection.kind === "side-chat-draft") {
+  if (activeSelection.kind === 'side-chat-draft') {
     return (
       <>
         <WorkspaceSideChatDraftHeader />
         <div className="flex min-h-0 flex-1 flex-col">
           <SessionConversationArea
             materializationContext={{
-              kind: "child",
+              kind: 'child',
               parentSessionKey: activeSelection.draft.parentSessionKey,
               inheritContext: true,
             }}
@@ -333,7 +321,7 @@ function WorkspaceSelectedContent({
     );
   }
 
-  if (activeSelection.kind === "child-session") {
+  if (activeSelection.kind === 'child-session') {
     return (
       <>
         <ChildSessionMetaStrip tab={activeSelection.tab} />
@@ -344,9 +332,21 @@ function WorkspaceSelectedContent({
     );
   }
 
-  if (activeSelection.kind === "file") {
+  if (activeSelection.kind === 'file') {
     return (
       <ChatSessionWorkspaceFilePreview
+        breadcrumbLeading={
+          <IconActionButton
+            data-testid="workspace-explorer-toggle"
+            icon={
+              explorerControl?.open ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />
+            }
+            label={t(explorerControl?.open ? 'chatWorkspaceHideProjectFiles' : 'chatWorkspaceShowProjectFiles')}
+            size="sm"
+            tooltipSide="bottom"
+            onClick={explorerControl?.onToggle}
+          />
+        }
         file={activeSelection.file}
         refreshVersion={filePreviewRefreshVersion}
         sessionProjectRoot={sessionProjectRoot}
@@ -365,41 +365,96 @@ function WorkspaceSelectedContent({
   return <SessionCronJobContent jobs={sessionCronJobs} />;
 }
 
-export function ChatSessionWorkspacePanelContent(
-  {
-    activeSelection,
-    sessionKey,
-    sessionProjectRoot,
-    sessionWorkingDir,
-    ...selectedContentProps
-  }: ChatSessionWorkspacePanelContentProps,
-) {
-  const projectFilesActive = activeSelection.kind === "project-files";
+export function ChatSessionWorkspacePanelContent({
+  activeSelection,
+  sessionKey,
+  sessionProjectRoot,
+  sessionWorkingDir,
+  ...selectedContentProps
+}: ChatSessionWorkspacePanelContentProps) {
+  const projectFilesActive = activeSelection.kind === 'project-files';
+  const fileActive = activeSelection.kind === 'file';
+  const presenter = usePresenter();
+  const {
+    compact,
+    containerRef,
+    explorerOpen,
+    explorerOverlay,
+    explorerWidth,
+    onResizeStart,
+    setExplorerOpen,
+    showExplorer,
+  } = useWorkspaceExplorerLayout({ fileActive, projectFilesActive, sessionProjectRoot, sessionWorkingDir });
 
   return (
-    <>
+    <div
+      ref={containerRef}
+      data-testid="workspace-shared-explorer-layout"
+      className="relative flex h-full min-h-0 flex-1 overflow-hidden"
+    >
+      {explorerOverlay ? (
+        <button
+          data-testid="workspace-explorer-scrim"
+          type="button"
+          aria-label={t('chatWorkspaceHideProjectFiles')}
+          className="absolute inset-0 z-10 bg-black/15"
+          onClick={() => setExplorerOpen(false)}
+        />
+      ) : null}
       <div
+        data-testid="workspace-shared-explorer"
+        data-mode={projectFilesActive ? 'full' : explorerOverlay ? 'overlay' : 'side'}
         className={cn(
-          "min-h-0 flex-1 flex-col",
-          projectFilesActive ? "flex" : "hidden",
+          'relative min-h-0 shrink-0 flex-col border-r border-gray-200/80 bg-white',
+          showExplorer ? 'flex' : 'hidden',
+          projectFilesActive ? 'flex-1 border-r-0' : null,
+          explorerOverlay ? 'absolute inset-y-0 left-0 z-20 w-[min(320px,86%)] shadow-xl' : null,
         )}
-        aria-hidden={!projectFilesActive}
+        style={!projectFilesActive && !explorerOverlay ? { width: explorerWidth } : undefined}
+        aria-hidden={!showExplorer}
       >
         <WorkspaceProjectFiles
+          onFileOpen={(action) => {
+            if (compact) setExplorerOpen(false);
+            presenter.chatThreadManager.openFilePreview(action);
+          }}
           projectRoot={sessionProjectRoot}
           sessionKey={sessionKey}
           workingDir={sessionWorkingDir}
         />
+        {fileActive && !compact ? (
+          <div
+            data-testid="workspace-explorer-resize-handle"
+            aria-label={t('chatWorkspaceResizeProjectFiles')}
+            aria-orientation="vertical"
+            aria-valuemax={CHAT_WORKSPACE_EXPLORER_MAX_WIDTH}
+            aria-valuemin={CHAT_WORKSPACE_EXPLORER_MIN_WIDTH}
+            aria-valuenow={explorerWidth}
+            role="separator"
+            className="absolute inset-y-0 right-[-4px] z-20 w-2 cursor-ew-resize hover:bg-primary/10"
+            onPointerDown={onResizeStart}
+          />
+        ) : null}
       </div>
       {projectFilesActive ? null : (
-        <WorkspaceSelectedContent
-          {...selectedContentProps}
-          activeSelection={activeSelection}
-          sessionKey={sessionKey}
-          sessionProjectRoot={sessionProjectRoot}
-          sessionWorkingDir={sessionWorkingDir}
-        />
+        <div className="min-w-0 min-h-0 flex-1">
+          <WorkspaceSelectedContent
+            {...selectedContentProps}
+            activeSelection={activeSelection}
+            explorerControl={
+              fileActive
+                ? {
+                    open: explorerOpen,
+                    onToggle: () => setExplorerOpen((value) => !value),
+                  }
+                : undefined
+            }
+            sessionKey={sessionKey}
+            sessionProjectRoot={sessionProjectRoot}
+            sessionWorkingDir={sessionWorkingDir}
+          />
+        </div>
       )}
-    </>
+    </div>
   );
 }

@@ -194,10 +194,10 @@ const COPY: Record<Locale, LandingCopy> = {
         imageSrc: '/nextclaw-panel-app-running-en.png', imageAlt: 'A running NextClaw Panel App'
       },
       {
-        eyebrow: 'File preview',
-        title: 'Preview files beside the conversation',
-        description: 'Open code, Markdown, HTML, Word, Excel, and PowerPoint beside the conversation while you inspect data or revise a file.',
-        imageSrc: new URL('../../../images/screenshots/nextclaw-office-file-preview-en.png', import.meta.url).href, imageAlt: 'NextClaw conversation with an Excel file open in the workspace preview'
+        eyebrow: 'Project files',
+        title: 'Manage files without leaving the preview',
+        description: 'Keep the project tree beside code, Markdown, HTML, Word, Excel, and PowerPoint. Create, upload, rename, download, or add files to the conversation in place.',
+        imageSrc: new URL('../../../images/screenshots/nextclaw-workspace-explorer-en.png', import.meta.url).href, imageAlt: 'NextClaw project Explorer beside a Markdown file preview'
       },
       {
         eyebrow: 'Image generation',
@@ -327,32 +327,32 @@ const COPY: Record<Locale, LandingCopy> = {
     releaseNotes: [
       {
         category: 'New',
-        title: 'More complete product site pages',
-        description: 'The website now has dedicated pages for use cases, integrations, updates, downloads, and install paths.',
+        title: 'A project Explorer beside every file preview',
+        description: 'The session workspace now keeps the project tree and file preview together, so file work stays continuous.',
         items: [
-          'Use cases are grouped around real tasks such as data analysis, writing, research, file processing, and small personal tools.',
-          'Integrations have a clearer home for model providers, custom OpenAI-compatible endpoints, message channels, skills, MCP, CLI tools, and automations.',
-          'Updates have a stable public page that can be linked from product update prompts.'
+          'Open several files in tabs without switching back to a separate directory page.',
+          'Create files and folders, upload, download, rename, delete, copy paths, or add project items to the conversation.',
+          'Resize the Explorer and keep that width after a refresh; read-only tools from the same Native turn can also run concurrently.'
         ]
       },
       {
         category: 'Improved',
-        title: 'Stronger desktop and workbench presentation',
-        description: 'The homepage focuses more on the main workbench, agents, channels, panel apps, file preview, image generation, and side browser.',
+        title: 'File interactions follow familiar editor conventions',
+        description: 'Context menus, inline creation, breadcrumbs, and text selection stay compact and predictable.',
         items: [
-          'Screenshots use the current visual style and show richer local examples.',
-          'Download and install paths are separated so first-time visitors can understand the product before reading setup details.',
-          'npm and Docker remain discoverable from the install page and download flow.'
+          'Folders no longer expose an ambiguous Open action.',
+          'New items scroll into view, and breadcrumbs remain on one line when space is tight.',
+          'Selection controls coexist correctly with Explorer and workspace resizing.'
         ]
       },
       {
         category: 'Fixed',
-        title: 'More resilient model stream handling',
-        description: 'Runtime handling for interrupted model streams is being tightened so partial answers are not treated as successful runs.',
+        title: 'More resilient long-running conversations',
+        description: 'Message connections and startup recovery now handle interruptions and large histories more safely.',
         items: [
-          'Transient native model stream failures can be retried with clearer execution metadata.',
-          'Run specs record lightweight contracts that make debugging failed model output easier.',
-          'The update notes format separates features, enhancements, fixes, and release/install changes.'
+          'Idle SSE connections send keepalives and short interruptions can recover before reconnecting.',
+          'Large journals are scanned one session and one line at a time to reduce peak memory.',
+          'Message editing pauses while NCP starts and returns automatically when the service is ready.'
         ]
       }
     ],
@@ -541,10 +541,10 @@ const COPY: Record<Locale, LandingCopy> = {
         imageSrc: '/nextclaw-panel-app-running-cn.png', imageAlt: '正在运行的 NextClaw 面板应用'
       },
       {
-        eyebrow: '文件预览',
-        title: '代码和文档，右侧直接预览',
-        description: '代码、Markdown、HTML、Word、Excel 和 PowerPoint 都能在右侧直接打开，核数据、改文档时不用离开会话。',
-        imageSrc: new URL('../../../images/screenshots/nextclaw-office-file-preview-cn.png', import.meta.url).href, imageAlt: 'NextClaw 会话右侧打开 Excel 文件预览'
+        eyebrow: '项目文件',
+        title: '目录和预览同时留在工作区',
+        description: '项目目录可以和代码、Markdown、HTML、Word、Excel、PowerPoint 预览同时打开，并就地新建、上传、重命名、下载或添加到聊天。',
+        imageSrc: new URL('../../../images/screenshots/nextclaw-workspace-explorer-cn.png', import.meta.url).href, imageAlt: 'NextClaw 项目文件 Explorer 和 Markdown 预览同时打开'
       },
       {
         eyebrow: '图片生成',
@@ -669,32 +669,32 @@ const COPY: Record<Locale, LandingCopy> = {
     releaseNotes: [
       {
         category: '新增',
-        title: '官网补充更完整的产品页面',
-        description: '官网现在有独立的使用场景、集成、更新、下载和安装方式页面。',
+        title: '文件预览旁加入项目文件 Explorer',
+        description: '会话工作区现在可以同时保留项目目录和文件预览，处理文件时不再被不同页面打断。',
         items: [
-          '使用场景按真实任务组织，例如数据分析、写作、资料调研、文件处理和个人小工具。',
-          '集成页面集中展示模型提供商、自定义 OpenAI 兼容接口、消息渠道、技能、MCP、CLI 工具和自动化。',
-          '更新页面提供稳定公开入口，后续产品内检查更新时可以链接到对应版本说明。'
+          '连续打开多个文件时，每个文件保留在自己的标签页。',
+          '可以新建文件和文件夹、上传、下载、重命名、删除、复制路径或添加到聊天。',
+          'Explorer 宽度可以拖动并在刷新后保留；Native 会话同一轮的只读工具也可以并行执行。'
         ]
       },
       {
         category: '增强',
-        title: '更充分展示桌面端和工作台能力',
-        description: '首页更突出主工作台、Agent、消息渠道、面板应用、文件预览、图片生成和右侧文档浏览器。',
+        title: '文件交互对齐熟悉的编辑器习惯',
+        description: '右键菜单、行内新建、面包屑和划选操作保持紧凑、连续且可预期。',
         items: [
-          '截图使用当前界面风格，并尽量展示更有代表性的本地示例。',
-          '下载和安装方式分开呈现，让新用户先理解产品，再按需要查看安装细节。',
-          'npm 和 Docker 仍保留在安装方式页和下载页入口里。'
+          '文件夹不再显示含义不清的“打开”。',
+          '新建项目会滚动到输入位置，面包屑空间不足时仍保持单行。',
+          '文件和消息划选操作可以与 Explorer、工作区拖拽正确协作。'
         ]
       },
       {
         category: '修复',
-        title: '模型流式输出处理更稳',
-        description: '模型输出异常中断时，运行时会避免把不完整回答当成成功结果。',
+        title: '长时间会话更稳',
+        description: '消息连接和启动恢复现在能更安全地处理短暂中断和大型历史记录。',
         items: [
-          '临时性的原生模型流失败可以带着更清晰的执行信息重试。',
-          '消息运行记录会保留轻量调试信息，方便定位失败原因。',
-          '更新说明按新增、增强、修复和安装发布变化分组。'
+          '空闲 SSE 主动保活，短暂断流会先恢复会话再重连。',
+          '大型 journal 改为逐会话、逐行读取，降低峰值内存。',
+          'NCP 启动期间暂时禁用消息编辑，服务就绪后自动恢复。'
         ]
       }
     ],

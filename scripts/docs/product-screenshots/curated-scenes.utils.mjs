@@ -118,7 +118,7 @@ async function findRepresentativeImage(page) {
 }
 
 async function waitForCuratedSession(page, options) {
-  const { keepSidebar, sidebarSearch, targetSelector, targetText } = options;
+  const { keepSidebar, maximizeWorkspace, sidebarSearch, targetSelector, targetText } = options;
   await page.waitForFunction(() => {
     const hasInput = Boolean(document.querySelector('textarea, [contenteditable="true"]'));
     const hasLoadingSkeleton = Boolean(document.querySelector('[data-loading="true"], [aria-busy="true"]'));
@@ -130,6 +130,18 @@ async function waitForCuratedSession(page, options) {
     if (await collapseSidebar.isVisible()) {
       await collapseSidebar.click();
     }
+  }
+
+  if (maximizeWorkspace) {
+    const maximizeButton = page.getByRole('button', {
+      name: /^(最大化工作区侧栏|Maximize workspace panel)$/
+    }).first();
+    await maximizeButton.waitFor({ state: 'visible', timeout: 20_000 });
+    await maximizeButton.click();
+    await page.waitForFunction(() => {
+      const panel = document.querySelector('[data-testid="chat-session-workspace-panel"]');
+      return panel instanceof HTMLElement && panel.getBoundingClientRect().width >= window.innerWidth * 0.8;
+    }, undefined, { timeout: 20_000 });
   }
 
   const minimumTargetX = keepSidebar ? 275 : 56;
@@ -171,6 +183,7 @@ export function createCuratedScreenshotScenes(options) {
   const {
     assetName,
     keepSidebar,
+    maximizeWorkspace,
     sessionId,
     sidebarSearch,
     targetSelector,
@@ -189,6 +202,7 @@ export function createCuratedScreenshotScenes(options) {
     : undefined;
   const afterLoad = async ({ page }) => waitForCuratedSession(page, {
     keepSidebar,
+    maximizeWorkspace,
     sidebarSearch,
     targetSelector,
     targetText
@@ -218,6 +232,7 @@ export function createScreenshotModeState({ argv, env, sceneFilter, stableScenes
       ? createCuratedScreenshotScenes({
           assetName: String(env.SCREENSHOT_CURATED_ASSET || 'nextclaw-image-generation-result').trim(),
           keepSidebar: parseBooleanEnv(env.SCREENSHOT_KEEP_SIDEBAR),
+          maximizeWorkspace: parseBooleanEnv(env.SCREENSHOT_MAXIMIZE_WORKSPACE),
           sessionId: curatedSessionId,
           sidebarSearch: String(env.SCREENSHOT_SIDEBAR_SEARCH || '').trim(),
           targetSelector: String(env.SCREENSHOT_TARGET_SELECTOR || '').trim(),

@@ -14,6 +14,7 @@ import {
   buildStableReleaseTags,
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
+  inspectStableSurfaceReview,
   parseStableReleaseArgs,
   resolveLinkedWorktreeNpmUserconfig,
   resolveStableReleasePlan,
@@ -118,6 +119,31 @@ function resolveReleaseNotesPath(version) {
   return resolve(ROOT_DIR, `apps/docs/public/release-notes/nextclaw-v${version}.json`);
 }
 
+function resolveReleaseSurfaceReviewPath(version) {
+  return resolve(ROOT_DIR, `docs/releases/nextclaw-v${version}.release-review.json`);
+}
+
+function inspectReleaseSurfaceReview(previousVersion, targetVersion) {
+  if (!previousVersion || !targetVersion) {
+    return { issues: [], ready: true, releaseLevel: null, required: false };
+  }
+  const reviewPath = resolveReleaseSurfaceReviewPath(targetVersion);
+  let review = null;
+  if (existsSync(reviewPath)) {
+    try {
+      review = JSON.parse(readFileSync(reviewPath, "utf8"));
+    } catch {
+      review = null;
+    }
+  }
+  return inspectStableSurfaceReview({
+    pathExists: (path) => existsSync(resolve(ROOT_DIR, path)),
+    previousVersion,
+    review,
+    targetVersion
+  });
+}
+
 function hasStructuredReleaseNotes(version) {
   if (!version) {
     return false;
@@ -134,7 +160,7 @@ function hasStructuredReleaseNotes(version) {
   }
 }
 
-function ensurePrePublishArtifacts(targetVersion, skipRuntimeChannel) {
+function ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeChannel) {
   if (!targetVersion) {
     return;
   }
@@ -145,6 +171,12 @@ function ensurePrePublishArtifacts(targetVersion, skipRuntimeChannel) {
   if (!skipRuntimeChannel && !hasStructuredReleaseNotes(targetVersion)) {
     throw new Error(
       `Stable runtime release notes are missing or invalid: ${resolveReleaseNotesPath(targetVersion)}`
+    );
+  }
+  const surfaceReview = inspectReleaseSurfaceReview(previousVersion, targetVersion);
+  if (!surfaceReview.ready) {
+    throw new Error(
+      `Stable ${surfaceReview.releaseLevel} release requires a valid docs/website review at ${resolveReleaseSurfaceReviewPath(targetVersion)}: ${surfaceReview.issues.join("; ")}`
     );
   }
 }
@@ -290,14 +322,17 @@ function resolveStableExecutionContext(options) {
 }
 
 function printStableDryRun(options, context) {
-  const { targetVersion } = context;
+  const { previousVersion, targetVersion } = context;
   const releaseNotesReady = targetVersion ? hasStructuredReleaseNotes(targetVersion) : false;
+  const surfaceReview = inspectReleaseSurfaceReview(previousVersion, targetVersion);
   console.log("release:stable dry run");
   console.log(
     buildStableDryRunPlan({
       ...options,
       ...context,
       releaseNotesReady,
+      surfaceReviewReady: surfaceReview.ready,
+      surfaceReviewRequired: surfaceReview.required,
       worktreeClean: !readGitStatus()
     }).join("\n")
   );
@@ -309,7 +344,7 @@ function prepareStableCheckpoint(options, context) {
   const recoveryOptions = { ...options, previousVersion, version: targetVersion };
   if (startsAt === STABLE_RELEASE_STAGES.indexOf("packages")) {
     ensurePackageReleasePrerequisites(branch);
-    ensurePrePublishArtifacts(targetVersion, skipRuntimeChannel);
+    ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeChannel);
     runReleaseStage("packages", recoveryOptions, () => runPackageRelease(targetVersion));
     runReleaseStage("git", recoveryOptions, () => ensurePublishedStableTarget(targetVersion));
     return runReleaseStage("git", recoveryOptions, () => readReleaseCheckpoint(targetVersion));
@@ -347,7 +382,7 @@ function runStableRuntimeIfNeeded(options, context) {
   }
   const recoveryOptions = { ...options, previousVersion, version: targetVersion };
   runReleaseStage("runtime", recoveryOptions, () => {
-    ensurePrePublishArtifacts(targetVersion, skipRuntimeChannel);
+    ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeChannel);
     runStableRuntimeClosure(branch, targetVersion, options);
   });
 }

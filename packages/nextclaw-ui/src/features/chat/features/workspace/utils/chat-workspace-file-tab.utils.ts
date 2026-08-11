@@ -11,15 +11,12 @@ export function createWorkspaceFileTab(
     return null;
   }
   const normalizedParentSessionKey = parentSessionKey?.trim() || null;
-  const previewViewer = action.viewMode === 'preview'
-    ? normalizeWorkspaceFilePreviewViewer(
-        path,
-        action.previewViewer ?? (action.line ? 'source' : undefined),
-      )
-    : action.previewViewer ?? null;
-  const viewIdentity = action.viewMode === 'preview' && previewViewer === 'rendered'
-    ? 'preview:rendered'
-    : action.viewMode;
+  const previewViewer =
+    action.viewMode === 'preview'
+      ? normalizeWorkspaceFilePreviewViewer(path, action.previewViewer ?? (action.line ? 'source' : undefined))
+      : (action.previewViewer ?? null);
+  const viewIdentity =
+    action.viewMode === 'preview' && previewViewer === 'rendered' ? 'preview:rendered' : action.viewMode;
   return {
     key: `${normalizedParentSessionKey ?? 'draft'}::${viewIdentity}::${path}`,
     parentSessionKey: normalizedParentSessionKey,
@@ -53,28 +50,32 @@ export function upsertWorkspaceFileTab(
     nextTabs[existingIndex] = { ...tabs[existingIndex], ...nextTab };
     return nextTabs;
   }
-  const adjacentIndex = adjacentToKey
-    ? tabs.findIndex((tab) => tab.key === adjacentToKey)
-    : -1;
+  const adjacentIndex = adjacentToKey ? tabs.findIndex((tab) => tab.key === adjacentToKey) : -1;
   if (adjacentIndex === -1) {
     return [nextTab, ...tabs];
   }
-  return [
-    ...tabs.slice(0, adjacentIndex + 1),
-    nextTab,
-    ...tabs.slice(adjacentIndex + 1),
-  ];
+  return [...tabs.slice(0, adjacentIndex + 1), nextTab, ...tabs.slice(adjacentIndex + 1)];
 }
 
-export function reparentWorkspaceFileTab(
+export function replaceWorkspaceFileTabPath(
   tab: ChatWorkspaceFileTab,
-  parentSessionKey: string,
+  path: string,
+  label?: string | null,
 ): ChatWorkspaceFileTab {
+  const viewIdentity =
+    tab.viewMode === 'preview' && tab.previewViewer === 'rendered' ? 'preview:rendered' : tab.viewMode;
+  return {
+    ...tab,
+    key: `${tab.parentSessionKey ?? 'draft'}::${viewIdentity}::${path}`,
+    path,
+    label: label?.trim() || tab.label,
+  };
+}
+
+export function reparentWorkspaceFileTab(tab: ChatWorkspaceFileTab, parentSessionKey: string): ChatWorkspaceFileTab {
   const normalizedParentSessionKey = parentSessionKey.trim();
   const identitySeparatorIndex = tab.key.indexOf('::');
-  const tabIdentity = identitySeparatorIndex >= 0
-    ? tab.key.slice(identitySeparatorIndex)
-    : `::${tab.key}`;
+  const tabIdentity = identitySeparatorIndex >= 0 ? tab.key.slice(identitySeparatorIndex) : `::${tab.key}`;
   return {
     ...tab,
     key: `${normalizedParentSessionKey}${tabIdentity}`,

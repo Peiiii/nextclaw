@@ -86,6 +86,7 @@ pnpm run screenshots:capture-curated
 - `SCREENSHOT_SCENES=<asset-en,asset-zh>`：只生成一个语言版本。
 - `SCREENSHOT_UI_THEME=natural`：明确需要默认主题时覆盖雾蓝；同批次不得混用。
 - `SCREENSHOT_KEEP_SIDEBAR=1`：保留会话侧栏，适合展示完整工作台构图。
+- `SCREENSHOT_MAXIMIZE_WORKSPACE=1`：采集前最大化会话工作区，适合同时展示目录树与文件预览。
 - `SCREENSHOT_SIDEBAR_SEARCH=<text>`：只显示与宣传场景相关的真实会话，不改写会话数据。
 - `SCREENSHOT_WORKSPACE_PREVIEW_PATH=<absolute-path>`：在会话右侧打开真实 Markdown、HTML、DOCX、XLSX 或 PPTX 文件；HTML/Markdown 使用渲染模式，Office 文件使用内置预览器。
 

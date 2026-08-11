@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-10T04:05:39.237Z",
+  "generatedAt": "2026-08-11T02:46:05.492Z",
   "hero": {
     "currentLoc": 230210,
     "testLoc": 90639,
     "trackedFiles": 2480,
-    "recentCommitCount": 413,
+    "recentCommitCount": 411,
     "activeDays30": 30,
-    "recentReleaseCount": 53,
+    "recentReleaseCount": 52,
     "latestReleaseDate": "2026-08-10",
-    "latestNoteDate": "2026-08-10",
+    "latestNoteDate": "2026-08-11",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2470823,
     "basePercentOfBenchmark": 9.32,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-13",
-        "label": "04-13",
-        "value": 182741
-      },
       {
         "key": "2026-04-14",
         "label": "04-14",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-10",
         "label": "08-10",
         "value": 230210
+      },
+      {
+        "key": "2026-08-11",
+        "label": "08-11",
+        "value": 230210
       }
     ],
     "testLocDaily": [
@@ -1081,11 +1081,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-07-12",
-        "label": "07-12",
-        "value": 12
-      },
-      {
         "key": "2026-07-13",
         "label": "07-13",
         "value": 29
@@ -1228,7 +1223,12 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 14
+        "value": 18
+      },
+      {
+        "key": "2026-08-11",
+        "label": "08-11",
+        "value": 6
       }
     ],
     "commitWeekly": [
@@ -1290,7 +1290,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 14
+        "value": 24
       }
     ],
     "releaseMonthly": [
@@ -1467,15 +1467,36 @@ export default {
       },
       {
         "date": "2026-07-31",
-        "tagCount": 1,
+        "tagCount": 6,
         "sampleTags": [
-          "v0.27.7-desktop.1"
+          "@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.2.17",
+          "@nextclaw/nextclaw-narp-runtime-codex-sdk@0.2.17",
+          "@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http@0.3.16"
         ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-11-nextclaw-v0-31-0",
+        "date": "2026-08-11",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-11 · NextClaw v0.31.0",
+          "description": "NextClaw v0.31.0 adds a project Explorer that stays beside file previews, plus stronger message recovery, selection controls, and startup guards.",
+          "href": "/en/notes/2026-08-11-nextclaw-v0-31-0"
+        },
+        "zh": {
+          "title": "2026-08-11 · NextClaw v0.31.0",
+          "description": "NextClaw v0.31.0 加入与文件预览连续协作的项目文件 Explorer，并增强消息恢复、选择操作与启动阶段保护。",
+          "href": "/zh/notes/2026-08-11-nextclaw-v0-31-0"
+        }
+      },
       {
         "slug": "2026-08-10-nextclaw-v0-30-0",
         "date": "2026-08-10",
@@ -2153,7 +2174,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-10T04:05:37.698Z",
     "sourceCount": {
-      "notes": 31,
+      "notes": 32,
       "scopes": 8
     }
   }

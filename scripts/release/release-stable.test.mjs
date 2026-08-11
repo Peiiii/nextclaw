@@ -6,8 +6,10 @@ import {
   buildStableReleaseTags,
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
+  inspectStableSurfaceReview,
   parseStableReleaseArgs,
   resolveLinkedWorktreeNpmUserconfig,
+  resolveStableReleaseLevel,
   resolveStableReleasePlan,
   validateStableResumeOptions
 } from "./release-stable.utils.mjs";
@@ -95,6 +97,66 @@ test("resolves nextclaw versions from the changeset release plan", () => {
   );
 });
 
+test("classifies stable release levels and requires surface review for minor or major", () => {
+  assert.equal(resolveStableReleaseLevel("0.30.0", "0.30.1"), "patch");
+  assert.equal(resolveStableReleaseLevel("0.30.1", "0.31.0"), "minor");
+  assert.equal(resolveStableReleaseLevel("0.31.0", "1.0.0"), "major");
+
+  assert.deepEqual(
+    inspectStableSurfaceReview({
+      pathExists: () => false,
+      previousVersion: "0.30.0",
+      review: null,
+      targetVersion: "0.30.1"
+    }),
+    { issues: [], ready: true, releaseLevel: "patch", required: false }
+  );
+
+  const missing = inspectStableSurfaceReview({
+    pathExists: () => false,
+    previousVersion: "0.30.0",
+    review: null,
+    targetVersion: "0.31.0"
+  });
+  assert.equal(missing.required, true);
+  assert.equal(missing.ready, false);
+  assert.match(missing.issues.join("\n"), /release review is missing/);
+});
+
+test("accepts audited docs and website decisions for a minor release", () => {
+  const existingPaths = new Set(["apps/docs/guide.md", "apps/landing/src/main.ts"]);
+  const result = inspectStableSurfaceReview({
+    pathExists: (path) => existingPaths.has(path),
+    previousVersion: "0.30.0",
+    review: {
+      version: "0.31.0",
+      releaseType: "minor",
+      surfaces: {
+        docsSite: { decision: "updated", paths: ["apps/docs/guide.md"] },
+        website: { decision: "updated", paths: ["apps/landing/src/main.ts"] }
+      }
+    },
+    targetVersion: "0.31.0"
+  });
+  assert.deepEqual(result, { issues: [], ready: true, releaseLevel: "minor", required: true });
+
+  const missingReason = inspectStableSurfaceReview({
+    pathExists: () => true,
+    previousVersion: "0.30.0",
+    review: {
+      version: "0.31.0",
+      releaseType: "minor",
+      surfaces: {
+        docsSite: { decision: "updated", paths: ["apps/docs/guide.md"] },
+        website: { decision: "not-needed" }
+      }
+    },
+    targetVersion: "0.31.0"
+  });
+  assert.equal(missingReason.ready, false);
+  assert.match(missingReason.issues.join("\n"), /requires a reason/);
+});
+
 test("inherits a primary worktree npm config only when the linked worktree has none", () => {
   const existingPaths = new Set(["/repo/.npmrc"]);
   const pathExists = (filePath) => existingPaths.has(filePath);
@@ -134,6 +196,8 @@ test("dry run exposes every closure stage and explicit exceptions", () => {
     packageCount: 29,
     previousVersion: "0.29.0",
     releaseNotesReady: true,
+    surfaceReviewReady: true,
+    surfaceReviewRequired: true,
     resumeFrom: "packages",
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
@@ -150,6 +214,8 @@ test("dry run exposes every closure stage and explicit exceptions", () => {
     packageCount: 2,
     previousVersion: "0.29.0",
     releaseNotesReady: false,
+    surfaceReviewReady: true,
+    surfaceReviewRequired: false,
     resumeFrom: "packages",
     skipPublishedInstall: true,
     skipRuntimeChannel: true,
