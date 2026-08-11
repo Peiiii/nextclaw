@@ -1,5 +1,28 @@
 # @nextclaw/kernel
 
+## 0.6.24
+
+### Patch Changes
+
+- c783019: Native 会话现在会并行执行同一轮中的只读文件、图片、网页和记忆查询，同时让写入、命令和未明确声明安全的工具继续独占执行；多个查询可以更快返回，工具结果仍按原调用位置回填，后续模型回复不会因完成顺序不同而错位。
+- 0b7df97: 改善 Web Chat 长连接的稳定性：空闲 SSE 现在会主动保活，短暂断流可在后台补齐会话并重连，不再立即展示无意义的网络错误；持续连接失败仍会明确提示。启动恢复同时改为逐会话、逐行扫描历史日志，降低大 journal 场景的峰值内存和 OOM 风险。
+- 7786bdf: 移除无法可靠完成会话恢复的 agent `gateway.restart` 能力；需要重启时，现在统一提示用户在外部终端运行顶层 `nextclaw restart`，并明确 `nextclaw gateway` 仅用于启动前台 gateway、不提供生命周期子命令。
+- Updated dependencies [c783019]
+- Updated dependencies [7786bdf]
+  - @nextclaw/core@0.15.22
+  - @nextclaw/ncp-agent-runtime-next@0.1.17
+  - @nextclaw/ncp@0.7.17
+  - @nextclaw/mcp@0.3.22
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.23
+  - @nextclaw/runtime@0.4.22
+  - @nextclaw/channel-extension-feishu@0.2.22
+  - @nextclaw/channel-extension-weixin@0.2.22
+  - @nextclaw/ncp-agent-runtime@0.4.17
+  - @nextclaw/ncp-mcp@0.2.22
+  - @nextclaw/ncp-toolkit@0.6.19
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.17
+  - @nextclaw/shared@0.4.21
+
 ## 0.6.23
 
 ### Patch Changes

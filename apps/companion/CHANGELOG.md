@@ -1,5 +1,12 @@
 # @nextclaw/companion
 
+## 0.2.24
+
+### Patch Changes
+
+- Updated dependencies [ffb365c]
+  - @nextclaw/client-sdk@0.5.24
+
 ## 0.2.23
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { planReleaseCheckBatch } from "./batch-plan.mjs";
-import { createPackageStates, hydrateCachedSteps } from "./task-runner.mjs";
+import { canRunPackageStep, createPackageStates, hydrateCachedSteps } from "./task-runner.mjs";
 
 function workspaceEntry(name, dependencies = {}, scripts = { build: "build", tsc: "tsc" }) {
   return {
@@ -68,4 +68,13 @@ test("builds non-release workspace dependencies without adding them to the relea
   hydrateCachedSteps({ checkpoint, packageStates: states });
   assert.equal(states.get("@nextclaw/foundation").completedStepNames.has("build"), false);
   assert.equal(states.get("nextclaw").completedStepNames.has("build"), true);
+});
+
+test("serializes build, typecheck, and lint steps within one package", () => {
+  const packageState = {
+    activeStepNames: new Set(["build"])
+  };
+  assert.equal(canRunPackageStep(packageState), false);
+  packageState.activeStepNames.clear();
+  assert.equal(canRunPackageStep(packageState), true);
 });

@@ -1,5 +1,13 @@
 # nextclaw-core
 
+## 0.15.22
+
+### Patch Changes
+
+- c783019: Native 会话现在会并行执行同一轮中的只读文件、图片、网页和记忆查询，同时让写入、命令和未明确声明安全的工具继续独占执行；多个查询可以更快返回，工具结果仍按原调用位置回填，后续模型回复不会因完成顺序不同而错位。
+- 7786bdf: 移除无法可靠完成会话恢复的 agent `gateway.restart` 能力；需要重启时，现在统一提示用户在外部终端运行顶层 `nextclaw restart`，并明确 `nextclaw gateway` 仅用于启动前台 gateway、不提供生命周期子命令。
+  - @nextclaw/shared@0.4.21
+
 ## 0.15.21
 
 ### Patch Changes

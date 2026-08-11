@@ -1,5 +1,40 @@
 # @nextclaw/service
 
+## 0.3.25
+
+### Patch Changes
+
+- 7786bdf: 移除无法可靠完成会话恢复的 agent `gateway.restart` 能力；需要重启时，现在统一提示用户在外部终端运行顶层 `nextclaw restart`，并明确 `nextclaw gateway` 仅用于启动前台 gateway、不提供生命周期子命令。
+- Updated dependencies [ffb365c]
+- Updated dependencies [c783019]
+- Updated dependencies [0b7df97]
+- Updated dependencies [7786bdf]
+  - @nextclaw/server@0.15.24
+  - @nextclaw/client-sdk@0.5.24
+  - @nextclaw/core@0.15.22
+  - @nextclaw/kernel@0.6.24
+  - @nextclaw/ncp@0.7.17
+  - @nextclaw/remote@0.3.24
+  - @nextclaw/channel-extension-dingtalk@0.2.22
+  - @nextclaw/channel-extension-discord@0.2.22
+  - @nextclaw/channel-extension-email@0.2.22
+  - @nextclaw/channel-extension-slack@0.2.22
+  - @nextclaw/channel-extension-telegram@0.2.22
+  - @nextclaw/channel-extension-wecom@0.2.22
+  - @nextclaw/channel-extension-whatsapp@0.2.22
+  - @nextclaw/mcp@0.3.22
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.23
+  - @nextclaw/runtime@0.4.22
+  - @nextclaw/channel-extension-feishu@0.2.22
+  - @nextclaw/channel-extension-weixin@0.2.22
+  - @nextclaw/ncp-agent-runtime@0.4.17
+  - @nextclaw/ncp-mcp@0.2.22
+  - @nextclaw/ncp-toolkit@0.6.19
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.17
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.17
+  - @nextclaw/shared@0.4.21
+  - @nextclaw/channel-extension-qq@0.2.21
+
 ## 0.3.24
 
 ### Patch Changes

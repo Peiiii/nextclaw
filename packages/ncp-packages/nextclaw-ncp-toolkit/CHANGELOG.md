@@ -1,5 +1,12 @@
 # @nextclaw/ncp-toolkit
 
+## 0.6.19
+
+### Patch Changes
+
+- Updated dependencies [c783019]
+  - @nextclaw/ncp@0.7.17
+
 ## 0.6.18
 
 ### Patch Changes

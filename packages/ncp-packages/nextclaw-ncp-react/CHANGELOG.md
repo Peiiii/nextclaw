@@ -1,5 +1,14 @@
 # @nextclaw/ncp-react
 
+## 0.5.21
+
+### Patch Changes
+
+- 0b7df97: 改善 Web Chat 长连接的稳定性：空闲 SSE 现在会主动保活，短暂断流可在后台补齐会话并重连，不再立即展示无意义的网络错误；持续连接失败仍会明确提示。启动恢复同时改为逐会话、逐行扫描历史日志，降低大 journal 场景的峰值内存和 OOM 风险。
+- Updated dependencies [c783019]
+  - @nextclaw/ncp@0.7.17
+  - @nextclaw/ncp-toolkit@0.6.19
+
 ## 0.5.20
 
 ### Patch Changes

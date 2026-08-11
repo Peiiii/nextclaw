@@ -141,6 +141,10 @@ function canStartTask(taskDescriptor, activeStepCounts, stepConcurrency) {
   return activeCount < stepLimit;
 }
 
+export function canRunPackageStep(packageState) {
+  return packageState.activeStepNames.size === 0;
+}
+
 function findNextReadyTask(taskDescriptors, packageStates, activeStepCounts, stepConcurrency) {
   return taskDescriptors
     .filter((taskDescriptor) => {
@@ -151,7 +155,8 @@ function findNextReadyTask(taskDescriptors, packageStates, activeStepCounts, ste
       if (
         !packageState.pendingStepNames.has(taskDescriptor.stepSpec.stepName) ||
         packageState.activeStepNames.has(taskDescriptor.stepSpec.stepName) ||
-        packageState.completedStepNames.has(taskDescriptor.stepSpec.stepName)
+        packageState.completedStepNames.has(taskDescriptor.stepSpec.stepName) ||
+        !canRunPackageStep(packageState)
       ) {
         return false;
       }

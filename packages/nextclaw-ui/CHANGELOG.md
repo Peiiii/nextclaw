@@ -1,5 +1,26 @@
 # @nextclaw/ui
 
+## 0.15.25
+
+### Patch Changes
+
+- ffb365c: 会话工作区现在提供与文件预览连续协作的项目文件 Explorer：目录树和预览可同时显示，支持新建文件与文件夹、上传、下载、重命名、删除、路径复制以及将文件或文件夹添加到聊天。Explorer 宽度可拖动并记忆，空间不足时才切换为覆盖式侧栏；所有写操作均由服务端限制在当前项目根目录内，同名上传只有在用户明确确认后才会覆盖。
+
+  <!-- release-note-image: zh-CN | images/screenshots/nextclaw-workspace-explorer-cn.png | NextClaw 项目文件 Explorer 和 Markdown 预览同时打开 -->
+  <!-- release-note-image: en-US | images/screenshots/nextclaw-workspace-explorer-en.png | NextClaw project Explorer beside a Markdown file preview -->
+
+- deac28b: 修复 NCP 启动期间仍可编辑消息、导致保存请求无响应的问题；消息编辑和继续运行现在会与聊天输入共用运行时就绪状态，并在服务可用后自动恢复。
+- 0b7df97: 改善 Web Chat 长连接的稳定性：空闲 SSE 现在会主动保活，短暂断流可在后台补齐会话并重连，不再立即展示无意义的网络错误；持续连接失败仍会明确提示。启动恢复同时改为逐会话、逐行扫描历史日志，降低大 journal 场景的峰值内存和 OOM 风险。
+- Updated dependencies [ffb365c]
+- Updated dependencies [c783019]
+- Updated dependencies [0b7df97]
+  - @nextclaw/client-sdk@0.5.24
+  - @nextclaw/ncp@0.7.17
+  - @nextclaw/ncp-react@0.5.21
+  - @nextclaw/ncp-http-agent-client@0.4.17
+  - @nextclaw/ncp-toolkit@0.6.19
+  - @nextclaw/shared@0.4.21
+
 ## 0.15.24
 
 ### Patch Changes

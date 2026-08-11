@@ -1,5 +1,12 @@
 # @nextclaw/nextclaw-narp-stdio-runtime-wrapper
 
+## 0.3.18
+
+### Patch Changes
+
+- Updated dependencies [c783019]
+  - @nextclaw/ncp@0.7.17
+
 ## 0.3.17
 
 ### Patch Changes
