@@ -6,6 +6,7 @@ import { getDataDir } from "@nextclaw/core";
 type HostAutostartRuntimeServiceOptions = {
   nodePath?: string;
   argvEntry?: string;
+  env?: NodeJS.ProcessEnv;
   importMetaUrl?: string;
   getDataDir?: () => string;
 };
@@ -39,7 +40,10 @@ export class HostAutostartRuntimeService {
 
   constructor(options: HostAutostartRuntimeServiceOptions = {}) {
     this.nodePath = options.nodePath ?? process.execPath;
-    this.argvEntry = options.argvEntry ?? process.argv[1];
+    this.argvEntry = options.argvEntry
+      ?? options.env?.NEXTCLAW_NPM_LAUNCHER_ENTRYPOINT
+      ?? process.env.NEXTCLAW_NPM_LAUNCHER_ENTRYPOINT
+      ?? process.argv[1];
     this.importMetaUrl = options.importMetaUrl ?? import.meta.url;
     this.getResolvedDataDir = options.getDataDir ?? getDataDir;
   }

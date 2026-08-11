@@ -106,6 +106,7 @@ function createManager(params: {
   manifest: UpdateManifest;
   archiveBytes?: Buffer;
   launcherVersion?: string;
+  runningVersion?: string;
 }) {
   const {
     rootDir,
@@ -137,6 +138,7 @@ function createManager(params: {
       });
     }
   });
+  const runningVersion = params.runningVersion ?? stateStore.read().currentVersion ?? launcherVersion;
   const manager = new RuntimeUpdateManager({
     layout,
     stateStore,
@@ -144,6 +146,7 @@ function createManager(params: {
     updateService,
     resolveManifestUrl: () => "https://example.com/manifest.json",
     launcherVersion,
+    runningVersion,
     channel: "stable"
   });
   return {
@@ -216,6 +219,38 @@ describe("RuntimeUpdateManager", () => {
       expect(layout.readCurrentPointer()).toEqual({ version: "0.18.1" });
       expect(stateStore.read().downloadedVersion).toBeNull();
       expect(stateStore.read().candidateVersion).toBe("0.18.1");
+    }));
+
+  it("keeps an activated but not running bundle in restart-required state", async () =>
+    await withTempDir(async (rootDir) => {
+      const initialLayout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+      const initialStateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"));
+      initialLayout.ensureLauncherDirs();
+      writeBundleFixture(initialLayout.getVersionsDir(), "0.31.0");
+      initialLayout.writeCurrentPointer({ version: "0.31.0" });
+      initialStateStore.write({
+        ...initialStateStore.read(),
+        currentVersion: "0.31.0"
+      });
+      const manifest = createManifest({ latestVersion: "0.31.0" });
+      const { manager } = createManager({
+        rootDir,
+        manifest,
+        launcherVersion: "0.30.0",
+        runningVersion: "0.30.0"
+      });
+
+      expect(manager.getSnapshot()).toMatchObject({
+        status: "restart-required",
+        hostVersion: "0.30.0",
+        currentVersion: "0.30.0",
+        requiresRestart: true
+      });
+      await expect(manager.checkForUpdate()).resolves.toMatchObject({
+        status: "restart-required",
+        currentVersion: "0.30.0",
+        requiresRestart: true
+      });
     }));
 
   it("blocks when the npm launcher is older than minimumLauncherVersion", async () =>
@@ -339,7 +374,8 @@ describe("Npm runtime update defaults", () => {
       const { manager } = createManager({
         rootDir,
         manifest,
-        launcherVersion: "0.18.12-beta.7"
+        launcherVersion: "0.18.12-beta.7",
+        runningVersion: "0.18.12-beta.7"
       });
 
       expect(manager.getSnapshot().currentVersion).toBe("0.18.12-beta.7");

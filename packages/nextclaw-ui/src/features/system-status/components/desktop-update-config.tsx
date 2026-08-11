@@ -16,13 +16,15 @@ import {
   type ReleaseNotesLocale,
   type ReleaseNotesSection
 } from '@/features/system-status/utils/update-release-notes.utils';
-import { Download, RefreshCw, RotateCw } from 'lucide-react';
+import { RefreshCw, RotateCw } from 'lucide-react';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
   checking: 'desktopUpdatesStatusChecking',
   'update-available': 'desktopUpdatesStatusAvailable',
   downloading: 'desktopUpdatesStatusDownloading',
   downloaded: 'desktopUpdatesStatusDownloaded',
+  applying: 'desktopUpdatesStatusApplying',
+  'restart-required': 'desktopUpdatesStatusRestartRequired',
   'up-to-date': 'desktopUpdatesStatusUpToDate',
   blocked: 'desktopUpdatesStatusBlocked',
   failed: 'desktopUpdatesStatusFailed',
@@ -103,7 +105,7 @@ function getStatusLabel(snapshot: UpdateSnapshot): string {
   return t(STATUS_LABEL_KEYS[snapshot.status] ?? 'desktopUpdatesStatusIdle');
 }
 function getStatusTone(status: string): string {
-  if (status === 'downloaded') {
+  if (status === 'downloaded' || status === 'restart-required') {
     return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
   }
   if (status === 'update-available' || status === 'downloading' || status === 'checking') {
@@ -218,9 +220,12 @@ export function DesktopUpdateConfig() {
   const isChecking = busyAction === 'checking';
   const isDownloading = busyAction === 'downloading';
   const isApplying = busyAction === 'applying';
+  const isUpdating = busyAction === 'updating';
   const isSwitchingChannel = busyAction === 'switching-channel';
-  const canDownload = snapshot.status === 'update-available' && !isDownloading && !isApplying;
-  const canApply = snapshot.status === 'downloaded' && !isApplying;
+  const canUpdate = (snapshot.status === 'update-available' || snapshot.status === 'downloaded')
+    && !isDownloading
+    && !isApplying
+    && !isUpdating;
   const overviewStats = [
     [t('runtimeUpdatesHostVersion'), formatVersion(snapshot.hostVersion)],
     [t('desktopUpdatesCurrentBundleVersion'), formatVersion(snapshot.currentVersion)],
@@ -232,7 +237,7 @@ export function DesktopUpdateConfig() {
     <SettingsPage
       title={t('runtimeUpdatesPageTitle')}
       description={t('runtimeUpdatesPageDescription')}
-      actions={<Button variant='outline' onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}><RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />{t('desktopUpdatesCheckNow')}</Button>}
+      actions={<Button variant='outline' onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying || isUpdating}><RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />{t('desktopUpdatesCheckNow')}</Button>}
     >
       <SettingsSection title={t('desktopUpdatesOverviewTitle')} description={t('desktopUpdatesOverviewDescription')}>
         <SettingsGroup>
@@ -278,7 +283,7 @@ export function DesktopUpdateConfig() {
             layout='stacked'
           >
             <div className='space-y-2'>
-              <Select value={snapshot.channel} disabled={isSwitchingChannel || isChecking || isDownloading || isApplying} onValueChange={(value) => void runtimeUpdateManager.updateChannel(value as UpdateSnapshot['channel'])}>
+              <Select value={snapshot.channel} disabled={isSwitchingChannel || isChecking || isDownloading || isApplying || isUpdating} onValueChange={(value) => void runtimeUpdateManager.updateChannel(value as UpdateSnapshot['channel'])}>
                 <SelectTrigger className='w-full max-w-sm'>
                   <SelectValue placeholder={t('desktopUpdatesReleaseChannel')} />
                 </SelectTrigger>
@@ -295,16 +300,12 @@ export function DesktopUpdateConfig() {
       <SettingsSection title={t('desktopUpdatesActionsTitle')} description={t('runtimeUpdatesActionsDescription')}>
         <SettingsGroup>
           <div className='flex flex-wrap items-center gap-3 p-4'>
-            <Button variant='outline' onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}>
+            <Button variant='outline' onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying || isUpdating}>
               <RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />
               {t('desktopUpdatesCheckNow')}
             </Button>
-            <Button onClick={() => void runtimeUpdateManager.downloadUpdate()} disabled={!canDownload}>
-              <Download className={cn('mr-2 h-4 w-4', isDownloading && 'animate-bounce')} />
-              {t('desktopUpdatesDownloadNow')}
-            </Button>
-            <Button variant='secondary' onClick={() => void runtimeUpdateManager.applyDownloadedUpdate()} disabled={!canApply}>
-              <RotateCw className={cn('mr-2 h-4 w-4', isApplying && 'animate-spin')} />
+            <Button onClick={() => void runtimeUpdateManager.updateNow()} disabled={!canUpdate}>
+              <RotateCw className={cn('mr-2 h-4 w-4', isUpdating && 'animate-spin')} />
               {t('runtimeUpdatesApplyNow')}
             </Button>
           </div>

@@ -15,6 +15,7 @@ type RuntimeUpdateManagerOptions = {
   updateService: NpmRuntimeUpdateService;
   resolveManifestUrl: (channel: NpmRuntimeReleaseChannel) => string | null;
   launcherVersion?: string;
+  runningVersion?: string;
   channel: NpmRuntimeReleaseChannel;
   now?: () => Date;
 };
@@ -28,19 +29,29 @@ type NpmRuntimeUpdateActionOptions = {
 
 export class RuntimeUpdateManager {
   private readonly launcherVersion: string;
+  private readonly runningVersion: string;
   private readonly now: () => Date;
   private availableManifest: UpdateManifest | null = null;
 
   constructor(private readonly options: RuntimeUpdateManagerOptions) {
     this.launcherVersion = options.launcherVersion ?? getPackageVersion();
+    this.runningVersion = options.runningVersion ?? getPackageVersion();
     this.now = options.now ?? (() => new Date());
     this.options.layout.ensureLauncherDirs();
     this.syncStateFromCurrentPointer();
   }
 
-  getSnapshot = (): UpdateSnapshot => this.toSnapshotFromState(this.options.stateStore.read(), {
-    status: this.options.stateStore.read().downloadedVersion ? "downloaded" : "idle"
-  });
+  getSnapshot = (): UpdateSnapshot => {
+    const state = this.options.stateStore.read();
+    return this.toSnapshotFromState(state, {
+      status: state.downloadedVersion
+        ? "downloaded"
+        : this.requiresRunningVersionRestart(state)
+          ? "restart-required"
+          : "idle",
+      requiresRestart: this.requiresRunningVersionRestart(state)
+    });
+  };
 
   run = async (options: NpmRuntimeUpdateActionOptions = {}): Promise<UpdateSnapshot> => {
     if (options.apply) {
@@ -158,6 +169,17 @@ export class RuntimeUpdateManager {
         requiresRestart: false
       });
     }
+    if (this.requiresRunningVersionRestart(state)) {
+      this.availableManifest = availableUpdate?.kind === "runtime-bundle-update" ? availableUpdate.manifest : null;
+      return this.toSnapshotFromState(state, {
+        status: "restart-required",
+        availableVersion: availableUpdate?.manifest.latestVersion ?? null,
+        minimumHostVersion: availableUpdate?.manifest.minimumLauncherVersion ?? null,
+        releaseNotesUrl: availableUpdate?.manifest.releaseNotesUrl ?? null,
+        canApplyInApp: false,
+        requiresRestart: true
+      });
+    }
     if (!availableUpdate) {
       this.availableManifest = null;
       return this.toSnapshotFromState(state, {
@@ -223,7 +245,7 @@ export class RuntimeUpdateManager {
       installationKind: "npm-runtime-bundle",
       channel: state.channel,
       hostVersion: this.launcherVersion,
-      currentVersion: state.currentVersion,
+      currentVersion: this.runningVersion,
       availableVersion: null,
       downloadedVersion: state.downloadedVersion,
       minimumHostVersion: null,
@@ -240,5 +262,11 @@ export class RuntimeUpdateManager {
       ...patch,
       status
     };
+  };
+
+  private requiresRunningVersionRestart = (state: NpmRuntimeUpdateState): boolean => {
+    const targetVersion = state.currentVersion?.trim();
+    const runningVersion = this.runningVersion.trim();
+    return Boolean(targetVersion && runningVersion && targetVersion !== runningVersion);
   };
 }
