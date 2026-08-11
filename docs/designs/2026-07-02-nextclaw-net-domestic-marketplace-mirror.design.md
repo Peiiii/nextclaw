@@ -224,6 +224,8 @@ snapshot/
 7. 校验 snapshot 完整性。
 8. 原子切换 `current -> snapshot/<generatedAt>`。
 
+同步任务中的详情、content、files 列表和 files/blob 都必须强制刷新官方源；服务请求路径才允许按 TTL 命中已有缓存。尤其不能用旧 files 列表驱动 blob 预热，否则新增文件不会进入国内镜像，即使技能详情的 `updatedAt` 已变化。
+
 同步失败时保留上一版 snapshot，不让国内 API 因官方源短暂不可达而整体失败。
 
 ## 国内 API 设计

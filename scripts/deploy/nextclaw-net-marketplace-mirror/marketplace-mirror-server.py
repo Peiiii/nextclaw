@@ -272,7 +272,8 @@ def sync_snapshot():
         try:
             prewarm_path(f"/api/v1/skills/items/{slug}")
             prewarm_path(f"/api/v1/skills/items/{slug}/content")
-            files_payload = json_from_cached(f"/api/v1/skills/items/{slug}/files")
+            files_cached = prewarm_path(f"/api/v1/skills/items/{slug}/files")
+            files_payload = json.loads(files_cached["body"].decode("utf-8"))
             files_data = files_payload.get("data", {})
             for file_item in files_data.get("files", []):
                 download_path = file_item.get("downloadPath")
