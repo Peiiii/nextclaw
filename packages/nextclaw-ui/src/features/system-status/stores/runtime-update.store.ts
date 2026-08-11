@@ -5,6 +5,7 @@ export type RuntimeUpdateBusyAction =
   | 'checking'
   | 'downloading'
   | 'applying'
+  | 'updating'
   | 'switching-channel'
   | null;
 

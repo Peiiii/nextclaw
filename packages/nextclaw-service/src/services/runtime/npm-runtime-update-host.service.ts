@@ -30,14 +30,20 @@ type NpmRuntimeUpdateHostDeps = {
   logger?: Pick<AppLogger, "error">;
   requestRestart: (params: RequestRestartParams) => Promise<void>;
   uiConfig: Pick<Config["ui"], "port">;
-  applyRestartMode: "managed-service-restart" | "manual-process-restart";
+  applyRestartMode: NpmRuntimeUpdateApplyRestartMode;
   automaticCheckIntervalMs?: number;
 };
+
+export type NpmRuntimeUpdateApplyRestartMode =
+  | "managed-service-restart"
+  | "supervised-process-restart"
+  | "manual-process-restart";
 
 export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
   private readonly source: NpmRuntimeUpdateSourceService;
   private readonly layout: NpmRuntimeBundleLayoutStore;
   private readonly launcherVersion: string;
+  private readonly runningVersion: string;
   private readonly stateStore: NpmRuntimeUpdateStateStore;
   private readonly bundleService: NpmRuntimeBundleService;
   private readonly updateService: NpmRuntimeUpdateService;
@@ -54,7 +60,8 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       packagedPublicKeyPath: distribution.runtimeUpdatePublicKeyPath
     });
     this.layout = new NpmRuntimeBundleLayoutStore();
-    this.launcherVersion = distribution.version;
+    this.launcherVersion = process.env.NEXTCLAW_NPM_LAUNCHER_VERSION?.trim() || distribution.version;
+    this.runningVersion = distribution.version;
     this.stateStore = new NpmRuntimeUpdateStateStore(this.layout.getStatePath(), {
       defaultChannel: this.source.resolveChannel(undefined, this.launcherVersion)
     });
@@ -102,17 +109,25 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
     try {
       const snapshot = this.createManager().applyDownloadedUpdate();
       this.setSnapshot(
-        this.deps.applyRestartMode === "managed-service-restart"
-          ? snapshot
-          : {
+        this.deps.applyRestartMode === "manual-process-restart"
+          ? {
               ...snapshot,
               recoveryCommand: "Restart this NextClaw process to launch the downloaded runtime."
-            },
+            }
+          : snapshot,
       );
       if (this.deps.applyRestartMode === "managed-service-restart") {
         await requestManagedServiceRestart(this.deps.requestRestart, {
           reason: "runtime update apply",
           uiPort: this.deps.uiConfig.port
+        });
+      } else if (this.deps.applyRestartMode === "supervised-process-restart") {
+        await this.deps.requestRestart({
+          reason: "runtime update apply",
+          manualMessage: "Restart the supervised NextClaw process to apply the runtime update.",
+          strategy: "exit-process",
+          delayMs: 500,
+          silentNotification: true
         });
       }
       return this.snapshot;
@@ -245,6 +260,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       updateService: this.updateService,
       resolveManifestUrl: (resolvedChannel) => this.source.resolveManifestUrl(resolvedChannel),
       launcherVersion: this.launcherVersion,
+      runningVersion: this.runningVersion,
       channel
     });
   };

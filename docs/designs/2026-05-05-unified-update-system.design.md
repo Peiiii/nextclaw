@@ -6,7 +6,7 @@
 
 核心目标：
 
-- 用户体验统一：自动检查、用户点击后才下载、用户点击后才应用。
+- 用户体验统一：自动检查，用户一次确认后完成下载与应用。
 - 协议与字段统一：桌面版、npm 版和未来 host 必须共享同一套 update manifest、状态快照和版本兼容语义。
 - 壳层尽量稳定：优先更新产品内核，不频繁替换 desktop app 或 npm global package。
 - 兼容未签名桌面分发：不依赖 macOS / Windows 官方 app updater 作为主路径。
@@ -41,11 +41,11 @@ NextClaw 已经有一批桌面更新基础设施：
 
 ## 3. 核心原则
 
-### 3.1 自动检查，手动下载，手动应用
+### 3.1 自动检查，用户一次确认更新
 
-系统固定每两小时自动检查更新，不提供关闭配置。检查到新版本后停在 `update-available`，只有用户明确点击后才下载。
+系统固定每两小时自动检查更新，不提供关闭配置。检查到新版本后停在 `update-available`，只有用户明确点击“更新”后才开始下载。
 
-系统不自动下载、不自动应用、不自动重启，也不偷偷切换版本。
+系统不自动下载、不自动应用、不自动重启，也不偷偷切换版本。用户确认后，产品内部连续完成下载、校验和应用，不再要求用户为同一次更新确认第二次。
 
 用户点击“更新”之后，才允许执行版本切换。
 
@@ -705,7 +705,7 @@ NpmRuntimeBundleUpdateAdapter
 
 - 都读取同一语义的 update manifest。
 - 都使用 `latestVersion`、`minimumHostVersion`、bundle hash、bundle signature。
-- 都把下载完成和应用生效拆成两步。
+- 都在内部保留下载完成和应用生效两个可恢复阶段，但用户只需触发一次更新。
 - 都保留 current / previous / downloaded / candidate / lastKnownGood / badVersions 语义。
 - 都通过切 current pointer 让新产品内核生效。
 
@@ -990,8 +990,7 @@ nextclaw update:dev-smoke
 按钮策略：
 
 - `检查更新`：始终可见，忙碌时 disabled。
-- `下载更新`：有可用 bundle 且未下载时可点。
-- `更新` / `重启更新`：已下载后可点。
+- `立即更新`：有可用 bundle 或已有已下载 bundle 时可点；前者连续执行下载与应用，后者从应用阶段恢复。
 - `升级壳`：host 太旧时显示手动命令或下载入口。
 
 ## 14. 分阶段实现建议

@@ -208,6 +208,28 @@ export class RuntimeUpdateManager {
     }
   };
 
+  updateNow = async () => {
+    const initialSnapshot = useRuntimeUpdateStore.getState().snapshot;
+    if (initialSnapshot?.status !== 'update-available' && initialSnapshot?.status !== 'downloaded') {
+      return;
+    }
+
+    try {
+      await this.runSnapshotCommand('updating', t('runtimeUpdatesUpdateFailed'), async (source) => {
+        const downloadedSnapshot = initialSnapshot.status === 'downloaded'
+          ? initialSnapshot
+          : await source.downloadUpdate();
+        useRuntimeUpdateStore.setState({ snapshot: downloadedSnapshot });
+        if (downloadedSnapshot.status !== 'downloaded') {
+          return downloadedSnapshot;
+        }
+        return await source.applyDownloadedUpdate();
+      });
+    } catch {
+      return;
+    }
+  };
+
   updateChannel = async (channel: UpdateSnapshot['channel']) => {
     const currentChannel = useRuntimeUpdateStore.getState().snapshot?.channel;
     if (currentChannel === channel) {

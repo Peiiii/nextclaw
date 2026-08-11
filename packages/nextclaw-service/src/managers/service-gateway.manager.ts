@@ -30,7 +30,10 @@ import { NextclawDistributionService } from "@nextclaw-service/services/runtime/
 import { ServiceBootstrapStatusStore } from "@nextclaw-service/services/gateway/service-bootstrap-status.service.js";
 import { GatewayRuntimeSupportService, ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, watchServiceConfigFile } from "@nextclaw-service/services/gateway/service-startup-support.service.js";
 import { ServiceMarketplaceInstaller } from "@nextclaw-service/services/marketplace/service-marketplace-installer.service.js";
-import { NpmRuntimeUpdateHost } from "@nextclaw-service/services/runtime/npm-runtime-update-host.service.js";
+import {
+  NpmRuntimeUpdateHost,
+  type NpmRuntimeUpdateApplyRestartMode,
+} from "@nextclaw-service/services/runtime/npm-runtime-update-host.service.js";
 import { createRuntimeControlHost } from "@nextclaw-service/services/ui/runtime-control-host.service.js";
 import { localUiRuntimeStore } from "@nextclaw-service/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
@@ -45,7 +48,10 @@ const {
   getWorkspacePath,
 } = NextclawCore;
 
-function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "manual-process-restart" {
+function resolveApplyRestartMode(uiPort: number): NpmRuntimeUpdateApplyRestartMode {
+  if (process.env.NEXTCLAW_PROCESS_SUPERVISOR === "systemd") {
+    return "supervised-process-restart";
+  }
   const serviceState = managedServiceStateStore.read();
   if (serviceState?.pid === process.pid) {
     return "managed-service-restart";

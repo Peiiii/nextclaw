@@ -27,11 +27,15 @@ export class NpmRuntimeLauncher {
 
   run = (): never => {
     const runtimeScriptPath = this.resolveRuntimeScriptPath();
+    const launcherVersion = this.resolveLauncherVersion();
+    const launcherEntrypoint = this.options.argv[1]?.trim();
     const result = spawnSync(process.execPath, [runtimeScriptPath, ...this.options.argv.slice(2)], {
       stdio: "inherit",
       env: {
         ...createExternalCommandEnv(this.env),
-        NEXTCLAW_RUNTIME_BUNDLE_CHILD: "1"
+        NEXTCLAW_RUNTIME_BUNDLE_CHILD: "1",
+        NEXTCLAW_NPM_LAUNCHER_VERSION: launcherVersion,
+        ...(launcherEntrypoint ? { NEXTCLAW_NPM_LAUNCHER_ENTRYPOINT: launcherEntrypoint } : {})
       },
       windowsHide: true
     });

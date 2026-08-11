@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   start: vi.fn(),
   stop: vi.fn(),
   checkForUpdates: vi.fn(),
+  updateNow: vi.fn(),
   downloadUpdate: vi.fn(),
   applyDownloadedUpdate: vi.fn(),
   updateChannel: vi.fn()
@@ -48,6 +49,7 @@ describe('DesktopUpdateConfig', () => {
     mocks.start.mockReset();
     mocks.stop.mockReset();
     mocks.checkForUpdates.mockReset();
+    mocks.updateNow.mockReset();
     mocks.downloadUpdate.mockReset();
     mocks.applyDownloadedUpdate.mockReset();
     mocks.updateChannel.mockReset();
@@ -101,10 +103,27 @@ describe('DesktopUpdateConfig', () => {
     expect(screen.getByText('当前更新通道')).toBeTruthy();
     expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
     expect(screen.getByText('当前正在跟随 Beta 通道')).toBeTruthy();
-    expect(screen.getByText('系统每两小时自动检查更新，下载和应用都由你手动确认。')).toBeTruthy();
+    expect(screen.getByText('系统每两小时自动检查更新；是否开始更新由你确认。')).toBeTruthy();
     expect(screen.queryByText('自动检查更新')).toBeNull();
     expect(screen.queryByText('发现更新后自动后台下载')).toBeNull();
     expect(screen.getByText('切回 Stable 后不会立刻强制降级；只有当 Stable 追平或超过当前版本时，才会继续提供 Stable 更新。')).toBeTruthy();
+  });
+
+  it('uses one update action instead of separate download and apply actions', async () => {
+    const user = userEvent.setup();
+    useRuntimeUpdateStore.setState((state) => ({
+      ...state,
+      snapshot: state.snapshot ? { ...state.snapshot, status: 'update-available' } : null
+    }));
+
+    renderDesktopUpdateConfig();
+
+    expect(screen.queryByRole('button', { name: '下载更新' })).toBeNull();
+    const updateButton = screen.getByRole('button', { name: '立即更新' });
+    await user.click(updateButton);
+    expect(mocks.updateNow).toHaveBeenCalledTimes(1);
+    expect(mocks.downloadUpdate).not.toHaveBeenCalled();
+    expect(mocks.applyDownloadedUpdate).not.toHaveBeenCalled();
   });
 
   it('sends the newly selected release channel to the desktop update manager', async () => {
