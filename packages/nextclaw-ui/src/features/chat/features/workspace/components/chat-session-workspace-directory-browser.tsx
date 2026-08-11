@@ -24,6 +24,7 @@ import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 import { t } from '@/shared/lib/i18n';
 
 type ChatSessionWorkspaceDirectoryBrowserProps = {
+  activeRelativePath?: string | null;
   browseQuery: ReturnType<typeof useServerPathBrowse>;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   sessionKey?: string | null;
@@ -36,6 +37,7 @@ function readPathName(path: string): string {
 }
 
 function WorkspaceDirectoryEntries({
+  activeRelativePath,
   busy,
   collapseVersion,
   createTarget,
@@ -59,6 +61,7 @@ function WorkspaceDirectoryEntries({
   selectedPath,
   showRoot,
 }: {
+  activeRelativePath: string | null;
   busy: boolean;
   collapseVersion: number;
   createTarget: WorkspaceDirectoryActionTarget | null;
@@ -87,6 +90,7 @@ function WorkspaceDirectoryEntries({
   }
   return entries.map((entry) => (
     <WorkspaceDirectoryTreeEntry
+      activeRelativePath={activeRelativePath}
       key={entry.path}
       browseParentRefresh={refresh}
       busy={busy}
@@ -243,6 +247,7 @@ function WorkspaceProjectTree({
 }
 
 function WorkspaceDirectoryBrowserReady({
+  activeRelativePath,
   browseQuery,
   ConfirmDialog,
   controller,
@@ -254,6 +259,7 @@ function WorkspaceDirectoryBrowserReady({
   rootPath,
   showRoot,
 }: {
+  activeRelativePath: string | null;
   browseQuery: ReturnType<typeof useServerPathBrowse>;
   ConfirmDialog: () => ReactNode;
   controller: ReturnType<typeof useWorkspaceProjectFilesController>;
@@ -266,30 +272,32 @@ function WorkspaceDirectoryBrowserReady({
   showRoot: boolean;
 }) {
   const {
-    actions,
     cancelCreateFolder,
     clearSelection,
     completeReveal,
     submitCreate,
-    createError,
-    createKind,
-    createName,
-    createTarget,
     deleteEntry,
-    fileInputRef,
     openCreateFile,
     openCreateFolder,
     requestUpload,
     renameEntry,
-    revealPath,
     selectEntry,
-    selectedCreateTarget,
-    selectedPath,
     setCreateError,
     setCreateName,
     uploadFiles,
-  } = controller;
-  const busy = actions.pendingAction !== null;
+  } = controller.actions;
+  const { fileInputRef } = controller.refs;
+  const {
+    createError,
+    createKind,
+    createName,
+    createTarget,
+    pendingAction,
+    revealPath,
+    selectedCreateTarget,
+    selectedPath,
+  } = controller.state;
+  const busy = pendingAction !== null;
   const [collapseVersion, setCollapseVersion] = useState(0);
   const rootRefresh = () => browseQuery.refetch();
   const rootTarget: WorkspaceDirectoryActionTarget | null = rootPath
@@ -300,7 +308,7 @@ function WorkspaceDirectoryBrowserReady({
     <WorkspaceNewFolderTreeItem
       error={createError}
       kind={createKind}
-      isCreating={actions.pendingAction === 'create-directory' || actions.pendingAction === 'create-file'}
+      isCreating={pendingAction === 'create-directory' || pendingAction === 'create-file'}
       level={level}
       name={createName}
       onCancel={cancelCreateFolder}
@@ -318,6 +326,7 @@ function WorkspaceDirectoryBrowserReady({
   };
   const treeEntries = (
     <WorkspaceDirectoryEntries
+      activeRelativePath={activeRelativePath}
       busy={busy}
       collapseVersion={collapseVersion}
       createTarget={createTarget}
@@ -406,6 +415,7 @@ function WorkspaceDirectoryBrowserReady({
 }
 
 export function ChatSessionWorkspaceDirectoryBrowser({
+  activeRelativePath = null,
   browseQuery,
   onFileOpen,
   sessionKey,
@@ -419,6 +429,7 @@ export function ChatSessionWorkspaceDirectoryBrowser({
   const rootPath = showRoot ? (browseQuery.data?.currentPath ?? null) : null;
   const rootLabel = rootPath ? readPathName(rootPath) : '';
   const controller = useWorkspaceProjectFilesController({
+    activeRelativePath,
     confirm,
     onEntryDeleted: presenter.chatThreadManager.removeWorkspacePath,
     onEntryRenamed: presenter.chatThreadManager.renameWorkspacePath,
@@ -457,6 +468,7 @@ export function ChatSessionWorkspaceDirectoryBrowser({
   }
   return (
     <WorkspaceDirectoryBrowserReady
+      activeRelativePath={activeRelativePath}
       browseQuery={browseQuery}
       ConfirmDialog={ConfirmDialog}
       controller={controller}

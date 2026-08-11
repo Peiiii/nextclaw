@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { NextClawClientError } from '@nextclaw/client-sdk';
 import { toast } from 'sonner';
 import type { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
@@ -27,6 +27,11 @@ export type WorkspaceDirectoryActionTarget = {
 export type WorkspaceTreeSelection = {
   path: string;
   createTarget: WorkspaceDirectoryActionTarget;
+};
+
+type WorkspaceTreeSelectionState = {
+  activeRelativePath: string | null;
+  selection: WorkspaceTreeSelection;
 };
 
 function readErrorMessage(error: unknown): string {
@@ -193,6 +198,7 @@ async function createWorkspaceEntry({
 }
 
 type WorkspaceProjectFilesControllerOptions = {
+  activeRelativePath: string | null;
   confirm: Confirm;
   onEntryDeleted?: (path: string) => void;
   onEntryRenamed?: (params: { previousPath: string; path: string; label: string }) => void;
@@ -200,6 +206,7 @@ type WorkspaceProjectFilesControllerOptions = {
 };
 
 export function useWorkspaceProjectFilesController({
+  activeRelativePath,
   confirm,
   onEntryDeleted,
   onEntryRenamed,
@@ -211,18 +218,11 @@ export function useWorkspaceProjectFilesController({
   const [createName, setCreateName] = useState('');
   const [createKind, setCreateKind] = useState<'directory' | 'file'>('directory');
   const [createError, setCreateError] = useState<string | null>(null);
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [selectedCreateTarget, setSelectedCreateTarget] = useState<WorkspaceDirectoryActionTarget | null>(null);
+  const [selectionState, setSelectionState] = useState<WorkspaceTreeSelectionState | null>(null);
   const [revealPath, setRevealPath] = useState<string | null>(null);
   const [uploadTarget, setUploadTarget] = useState<WorkspaceDirectoryActionTarget | null>(null);
-
-  useEffect(() => {
-    setCreateTarget(null);
-    setSelectedPath(null);
-    setSelectedCreateTarget(null);
-    setRevealPath(null);
-    setUploadTarget(null);
-  }, [rootPath]);
+  const selectedEntry =
+    selectionState?.activeRelativePath === activeRelativePath ? selectionState.selection : null;
 
   const requestUpload = (target: WorkspaceDirectoryActionTarget) => {
     setUploadTarget(target);
@@ -231,8 +231,7 @@ export function useWorkspaceProjectFilesController({
     fileInputRef.current.click();
   };
   const selectEntry = (selection: WorkspaceTreeSelection) => {
-    setSelectedPath(selection.path);
-    setSelectedCreateTarget(selection.createTarget);
+    setSelectionState({ activeRelativePath, selection });
   };
   const openCreate = (kind: 'directory' | 'file', target: WorkspaceDirectoryActionTarget) => {
     target.expand?.();
@@ -275,7 +274,20 @@ export function useWorkspaceProjectFilesController({
       label: renamed.name,
     });
     await refresh();
-    setSelectedPath(renamed.path);
+    setSelectionState((state) =>
+      state?.activeRelativePath === activeRelativePath
+        ? {
+            activeRelativePath,
+            selection: {
+              path: renamed.path,
+              createTarget:
+                state.selection.createTarget.path === entry.path
+                  ? { ...state.selection.createTarget, label: renamed.name, path: renamed.path }
+                  : state.selection.createTarget,
+            },
+          }
+        : null,
+    );
     setRevealPath(renamed.path);
     toast.success(t('chatWorkspaceRenameSucceeded').replace('{name}', renamed.name));
     return renamed;
@@ -292,44 +304,54 @@ export function useWorkspaceProjectFilesController({
     });
     if (!created) return;
     setCreateTarget(null);
-    setSelectedPath(created.path);
-    setSelectedCreateTarget({
-      label: createName.trim(),
-      path: created.path,
-      refresh: createTarget.refresh,
+    setSelectionState({
+      activeRelativePath,
+      selection: {
+        path: created.path,
+        createTarget: {
+          label: createName.trim(),
+          path: created.path,
+          refresh: createTarget.refresh,
+        },
+      },
     });
     setRevealPath(created.path);
   };
 
   return {
-    actions,
-    cancelCreateFolder: () => {
-      setCreateTarget(null);
-      setCreateName('');
-      setCreateError(null);
+    actions: {
+      cancelCreateFolder: () => {
+        setCreateTarget(null);
+        setCreateName('');
+        setCreateError(null);
+      },
+      clearSelection: () => {
+        setSelectionState(null);
+      },
+      completeReveal: () => setRevealPath(null),
+      deleteEntry,
+      openCreateFile: (target: WorkspaceDirectoryActionTarget) => openCreate('file', target),
+      openCreateFolder: (target: WorkspaceDirectoryActionTarget) => openCreate('directory', target),
+      renameEntry,
+      requestUpload,
+      selectEntry,
+      setCreateError,
+      setCreateName,
+      submitCreate,
+      uploadFiles,
     },
-    clearSelection: () => {
-      setSelectedPath(null);
-      setSelectedCreateTarget(null);
+    refs: {
+      fileInputRef,
     },
-    completeReveal: () => setRevealPath(null),
-    submitCreate,
-    createError,
-    createName,
-    createKind,
-    createTarget,
-    deleteEntry,
-    fileInputRef,
-    openCreateFile: (target: WorkspaceDirectoryActionTarget) => openCreate('file', target),
-    openCreateFolder: (target: WorkspaceDirectoryActionTarget) => openCreate('directory', target),
-    requestUpload,
-    renameEntry,
-    revealPath,
-    selectEntry,
-    selectedCreateTarget,
-    selectedPath,
-    setCreateError,
-    setCreateName,
-    uploadFiles,
+    state: {
+      createError,
+      createKind,
+      createName,
+      createTarget,
+      pendingAction: actions.pendingAction,
+      revealPath,
+      selectedCreateTarget: selectedEntry?.createTarget ?? null,
+      selectedPath: selectedEntry?.path ?? null,
+    },
   };
 }

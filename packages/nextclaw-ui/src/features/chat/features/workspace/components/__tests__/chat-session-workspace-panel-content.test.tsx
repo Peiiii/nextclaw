@@ -627,6 +627,80 @@ it('preserves project tree expansion and scroll while visiting another workspace
   expect(tree.scrollTop).toBe(128);
 });
 
+it('selects and reveals the active file when it is opened outside the Explorer', async () => {
+  const user = userEvent.setup();
+  const projectFilesProps = {
+    activeSelection: { kind: 'project-files' as const },
+    childSessionTabs: [],
+    filePreviewRefreshVersion: 0,
+    sessionKey: 'parent-1',
+    sessionCronJobs: [],
+    sessionProjectRoot: '/Users/peiwang/Projects/nextbot',
+    sessionWorkingDir: '/Users/peiwang/Projects/nextbot',
+  };
+  const { rerender } = render(<ChatSessionWorkspacePanelContent {...projectFilesProps} />);
+  const sourceDirectory = screen.getByRole('treeitem', { name: 'Open directory: src' });
+  const packageEntry = screen.getByRole('treeitem', { name: 'Open file: package.json' });
+  await user.click(screen.getByRole('button', { name: 'src' }));
+  expect(sourceDirectory.getAttribute('aria-selected')).toBe('true');
+
+  rerender(
+    <ChatSessionWorkspacePanelContent
+      {...projectFilesProps}
+      activeSelection={{
+        kind: 'file',
+        file: {
+          key: 'parent-1::preview::package.json',
+          parentSessionKey: 'parent-1',
+          path: 'package.json',
+          label: 'package.json',
+          viewMode: 'preview',
+          previewViewer: 'source',
+        },
+      }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(packageEntry.getAttribute('aria-selected')).toBe('true');
+    expect(sourceDirectory.getAttribute('aria-selected')).toBe('false');
+  });
+  expect(mocks.scrollIntoView).toHaveBeenCalled();
+  expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'package.json' }));
+});
+
+it('expands active-file ancestors like an auto-revealing Explorer', async () => {
+  useChatThreadStore.getState().setSnapshot({ workspaceExplorerOpen: true });
+  render(
+    <ChatSessionWorkspacePanelContent
+      activeSelection={{
+        kind: 'file',
+        file: {
+          key: 'parent-1::preview::src/index.ts',
+          parentSessionKey: 'parent-1',
+          path: '/Users/peiwang/Projects/nextbot/src/index.ts',
+          label: 'index.ts',
+          viewMode: 'preview',
+          previewViewer: 'source',
+        },
+      }}
+      childSessionTabs={[]}
+      filePreviewRefreshVersion={0}
+      sessionKey="parent-1"
+      sessionCronJobs={[]}
+      sessionProjectRoot="/Users/peiwang/Projects/nextbot"
+      sessionWorkingDir="/Users/peiwang/Projects/nextbot"
+    />,
+  );
+
+  const sourceDirectory = within(screen.getByTestId('workspace-shared-explorer')).getAllByRole('treeitem', {
+    name: 'Open directory: src',
+  })[0];
+  await waitFor(() => {
+    expect(sourceDirectory.getAttribute('aria-expanded')).toBe('true');
+  });
+});
+
 it('keeps the file Explorer closed by default and reuses it after an explicit open', () => {
   const projectFilesProps = {
     activeSelection: { kind: 'project-files' as const },

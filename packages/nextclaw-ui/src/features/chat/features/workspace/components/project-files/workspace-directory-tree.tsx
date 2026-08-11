@@ -30,6 +30,7 @@ import { buildWorkspaceEntryContextMenuGroups } from '@/features/chat/features/w
 export { copyWorkspacePath } from '@/features/chat/features/workspace/components/project-files/workspace-directory-entry-menu';
 
 type WorkspaceDirectoryTreeActionProps = {
+  activeRelativePath: string | null;
   busy: boolean;
   collapseVersion: number;
   createTarget: WorkspaceDirectoryActionTarget | null;
@@ -182,7 +183,31 @@ function useWorkspaceEntryRename({
   return { active, cancel, error, name, start, submit, updateName };
 }
 
+function readWorkspaceTreeEntrySelection(
+  activeRelativePath: string | null,
+  relativePath: string | null,
+  selectedPath: string | null,
+  entryPath: string,
+): readonly [active: boolean, selected: boolean] {
+  const active = !selectedPath && activeRelativePath !== null && activeRelativePath === relativePath;
+  return [active, selectedPath === null ? active : selectedPath === entryPath];
+}
+
+function isWorkspaceTreeEntryExpanded(
+  manuallyExpanded: boolean,
+  isDirectory: boolean,
+  activeRelativePath: string | null,
+  relativePath: string | null,
+  selectedPath: string | null,
+): boolean {
+  return (
+    manuallyExpanded ||
+    Boolean(!selectedPath && isDirectory && relativePath && activeRelativePath?.startsWith(`${relativePath}/`))
+  );
+}
+
 export function WorkspaceDirectoryTreeEntry({
+  activeRelativePath,
   browseParentRefresh,
   busy,
   collapseVersion,
@@ -216,7 +241,14 @@ export function WorkspaceDirectoryTreeEntry({
   const rowRef = useRef<HTMLDivElement | null>(null);
   const entryButtonRef = useRef<HTMLButtonElement | null>(null);
   const isDirectory = entry.kind === 'directory';
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [manuallyExpanded, setIsExpanded] = useState(false);
+  const isExpanded = isWorkspaceTreeEntryExpanded(
+    manuallyExpanded,
+    isDirectory,
+    activeRelativePath,
+    relativePath,
+    selectedPath,
+  );
   const rename = useWorkspaceEntryRename({
     entry,
     onRename,
@@ -248,6 +280,16 @@ export function WorkspaceDirectoryTreeEntry({
     () => ({ path: entry.path, createTarget: ownCreateTarget }),
     [entry.path, ownCreateTarget],
   );
+  const [activeSelected, selected] = readWorkspaceTreeEntrySelection(
+    activeRelativePath,
+    relativePath,
+    selectedPath,
+    entry.path,
+  );
+
+  useLayoutEffect(() => {
+    if (activeSelected) rowRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [activeSelected]);
 
   useLayoutEffect(() => {
     if (revealPath !== entry.path) return;
@@ -259,7 +301,7 @@ export function WorkspaceDirectoryTreeEntry({
 
   const activateEntry = () => {
     onSelect(selection);
-    if (isDirectory) setIsExpanded((value) => !value);
+    if (isDirectory) setIsExpanded(!isExpanded);
     else onFileOpen({ path: entry.path, label: entry.name, viewMode: 'preview' });
   };
 
@@ -280,14 +322,19 @@ export function WorkspaceDirectoryTreeEntry({
     relativePath,
   });
   return (
-    <div role="treeitem" aria-expanded={isDirectory ? isExpanded : undefined} aria-label={buildEntryLabel(entry)}>
+    <div
+      role="treeitem"
+      aria-expanded={isDirectory ? isExpanded : undefined}
+      aria-label={buildEntryLabel(entry)}
+      aria-selected={selected}
+    >
       <ContextMenu groups={contextMenuGroups} label={t('chatWorkspaceFileContextMenu')}>
         <div
           ref={rowRef}
           data-workspace-tree-entry=""
           className={cn(
             'group flex h-[26px] w-full min-w-0 items-center text-gray-700 transition-colors hover:bg-gray-100 focus-within:bg-gray-100',
-            selectedPath === entry.path ? 'bg-primary/10' : null,
+            selected ? 'bg-primary/10' : null,
             entry.hidden ? 'opacity-65' : null,
           )}
           style={{ paddingLeft: `${6 + level * 12}px` }}
@@ -383,6 +430,7 @@ export function WorkspaceDirectoryTreeEntry({
         <div role="group">
           {createTarget?.path === entry.path ? renderCreateFolder(level + 1) : null}
           <WorkspaceDirectoryTreeChildren
+            activeRelativePath={activeRelativePath}
             browseQuery={browseQuery}
             busy={busy}
             collapseVersion={collapseVersion}

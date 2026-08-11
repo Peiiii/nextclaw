@@ -24,6 +24,7 @@ import {
 } from '@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils';
 import { useWorkspaceExplorerLayout } from '@/features/chat/features/workspace/hooks/use-workspace-explorer-layout';
 import { t } from '@/shared/lib/i18n';
+import { resolveWorkspaceRelativePath } from '@/shared/lib/session-project';
 import { cn } from '@/shared/lib/utils';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 
@@ -175,11 +176,13 @@ function WorkspaceChildSessions({ childSessionTabs }: { childSessionTabs: readon
 }
 
 function WorkspaceProjectFiles({
+  activePath,
   onFileOpen,
   projectRoot,
   sessionKey,
   workingDir,
 }: {
+  activePath: string | null;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   projectRoot: string | null;
   sessionKey: string | null;
@@ -203,6 +206,9 @@ function WorkspaceProjectFiles({
 
   return (
     <ChatSessionWorkspaceDirectoryBrowser
+      activeRelativePath={
+        activePath ? resolveWorkspaceRelativePath({ path: activePath, sessionProjectRoot: rootPath }) : null
+      }
       key={rootPath}
       browseQuery={browseQuery}
       onFileOpen={onFileOpen ?? presenter.chatThreadManager.openFilePreview}
@@ -414,6 +420,7 @@ export function ChatSessionWorkspacePanelContent({
         aria-hidden={!showExplorer}
       >
         <WorkspaceProjectFiles
+          activePath={fileActive ? activeSelection.file.path : null}
           onFileOpen={(action) => {
             if (compact) setExplorerOpen(false);
             presenter.chatThreadManager.openFilePreview(action);
