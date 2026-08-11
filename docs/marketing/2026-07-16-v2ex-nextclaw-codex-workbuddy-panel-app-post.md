@@ -40,6 +40,10 @@ Agent 会把它做成一个小应用，直接在聊天右侧打开。
 
 ![NextClaw 左侧继续与 Agent 修改唐诗卡片，右侧运行可随时使用的小应用](https://docs.nextclaw.io/product-screenshots/nextclaw-panel-app-running-cn.png)
 
+Panel App 也可以直接承载每天都会打开的信息和工具。下面是实际使用中的豆包日报：日报、服务器监控和其他常用应用都留在同一个工作台，需要时从顶部标签或右侧应用栏直接切换。
+
+![NextClaw 中打开豆包日报，并在顶部切换日报和服务器监控，右侧应用栏固定多个常用 Panel App](https://docs.nextclaw.io/product-screenshots/nextclaw-panel-app-daily-reader-cn.png)
+
 Panel App 做好以后会进入应用列表，也可以固定到右侧边栏，以后随时打开。
 
 哪里不好用，继续在聊天里改就行。
