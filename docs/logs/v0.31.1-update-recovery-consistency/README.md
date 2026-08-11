@@ -20,13 +20,14 @@
 - Marketplace 镜像 Python 测试 8 项通过，新增回归证明同步器先刷新 files 列表，再按新列表预热文件 blob。
 - `@nextclaw/service`、`@nextclaw/server`、`@nextclaw/ui` TypeScript 编译通过；触达文件定向 ESLint 和 `git diff --check` 通过。
 - 官方 Marketplace 与国内镜像均返回 8 文件，`updatedAt=2026-08-11T07:24:32.593Z`，全部 SHA-256 与仓库一致。
+- 修复后的国内镜像全量同步生成 `2026-08-11T07:56:05.411254Z` manifest，共预热 156 个文件且 `failed=[]`；相较旧 manifest 的 147 个文件，一并恢复了其它技能被旧 files 清单缓存遗漏的文件。
 - VPS 不指定源执行普通 Marketplace update，第一次返回 `updated: true`，第二次返回 `updated: false / up-to-date`；技能入口 `cliproxy.mjs --help` 成功。辅助文件 SHA-256 为 `d9d949a225d6becd768f156a8b46aaf377400b3deef5485213bde5f00697322b`，与仓库一致。
 
 ## 发布/部署方式
 
 - 已在 `8.219.57.52` 精确更新并修复 `proxy-local-ai-subscriptions` 技能目录，没有重启 NextClaw 宿主。
 - 已把 `@nextclaw/proxy-local-ai-subscriptions` 完整 8 文件发布到官方 Marketplace，并刷新国内镜像对应缓存。
-- 已更新备案 ECS `8.154.43.167` 的镜像同步脚本并启动新一轮同步；只读 Marketplace API 未重启，旧快照到新缓存的切换期间服务保持可用。
+- 已更新备案 ECS `8.154.43.167` 的镜像同步脚本并完成新一轮全量同步；只读 Marketplace API 未重启，旧快照到新缓存的切换期间服务保持可用。
 - 运行时更新与技能冲突 UI 的源码修复仅进入本地提交，尚未发布 NPM、runtime update channel 或 Desktop 包，因此 VPS 当前还不包含新的覆盖确认界面。
 
 ## 用户/产品视角的验收步骤
