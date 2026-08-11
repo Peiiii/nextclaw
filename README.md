@@ -14,7 +14,7 @@ Tell NextClaw what you want done. It brings the conversation, files, tools, and 
 
 </div>
 
-[![NextClaw workspace with a conversation and an interactive piano Panel App](images/screenshots/nextclaw-hero-workbench-en.png)](images/screenshots/nextclaw-hero-workbench-en.png)
+[![A personal workspace where tasks, files, tools, and results stay connected](apps/landing/public/nextclaw-hero-atmosphere.webp)](https://nextclaw.io/en/)
 
 <div align="center">
 
@@ -64,6 +64,12 @@ New installations are ready for the first task without entering an API key. The 
 [Explore more use cases](https://nextclaw.io/en/use-cases/)
 
 ## Product Tour
+
+### Keep the task and its result in one workspace
+
+Start with a request, use the tools the task needs, and keep the working result beside the conversation. This real task produced and ran an interactive piano without losing the discussion that shaped it.
+
+[![NextClaw workspace with a conversation and an interactive piano Panel App](images/screenshots/nextclaw-hero-workbench-en.png)](images/screenshots/nextclaw-hero-workbench-en.png)
 
 ### Let AI deliver important results to you
 

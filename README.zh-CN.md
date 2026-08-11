@@ -14,7 +14,7 @@
 
 </div>
 
-[![NextClaw 工作台同时展示会话、数据可视化结果和生成的文档](images/screenshots/nextclaw-hero-workbench-cn.png)](images/screenshots/nextclaw-hero-workbench-cn.png)
+[![任务、文件、工具和结果持续连接在一起的个人工作空间](apps/landing/public/nextclaw-hero-atmosphere.webp)](https://nextclaw.io/)
 
 <div align="center">
 
@@ -64,6 +64,12 @@
 [查看更多使用场景](https://nextclaw.io/zh/use-cases/)
 
 ## 产品导览
+
+### 任务和结果留在同一个工作台
+
+从一句需求开始，按任务需要调用工具，并把做出来的结果留在会话旁边。下面这个真实任务在对话中制作并运行了电子钢琴，讨论过程和可用结果都没有丢。
+
+[![NextClaw 会话中运行 Agent 制作的电子钢琴](images/screenshots/nextclaw-hero-workbench-cn.png)](images/screenshots/nextclaw-hero-workbench-cn.png)
 
 ### AI 主动把重要结果送到你面前
 
