@@ -4,6 +4,7 @@ import type {
   MarketplaceManageAction,
 } from "@/shared/lib/api";
 import {
+  isMarketplaceSkillLocalChangesError,
   useInstallMarketplaceItem,
   useManageMarketplaceItem,
 } from "@/features/marketplace/hooks/use-marketplace";
@@ -76,12 +77,32 @@ export function useMarketplaceItemActions() {
     setManagingTargets((previous) => new Map(previous).set(targetId, action));
 
     try {
-      await manageMutation.mutateAsync({
+      const request = {
         type: record.type,
         action,
         id: targetId,
         spec: record.spec,
-      });
+      } as const;
+      try {
+        await manageMutation.mutateAsync(request);
+      } catch (error) {
+        if (action !== "update" || !isMarketplaceSkillLocalChangesError(error)) {
+          return;
+        }
+        const confirmed = await confirm({
+          title: t("marketplaceUpdateConflictTitle"),
+          description: t("marketplaceUpdateConflictDescription"),
+          confirmLabel: t("marketplaceUpdateConflictConfirm"),
+          variant: "destructive",
+        });
+        if (!confirmed) {
+          return;
+        }
+        await manageMutation.mutateAsync({
+          ...request,
+          force: true,
+        });
+      }
     } finally {
       setManagingTargets((previous) => {
         const next = new Map(previous);

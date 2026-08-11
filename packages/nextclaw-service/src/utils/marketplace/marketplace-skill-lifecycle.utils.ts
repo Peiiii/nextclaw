@@ -22,6 +22,20 @@ import { validateSkillSelector } from "@nextclaw-service/utils/marketplace/marke
 
 type MarketplaceSkillInstallKind = "builtin" | "marketplace";
 
+export const MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE = "MARKETPLACE_SKILL_LOCAL_CHANGES";
+export const MARKETPLACE_SKILL_LOCAL_CHANGES_MESSAGE_PREFIX = "Local skill files changed since install:";
+
+export class MarketplaceSkillLocalChangesError extends Error {
+  readonly code = MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE;
+  readonly details: { slug: string };
+
+  constructor(slug: string) {
+    super(`${MARKETPLACE_SKILL_LOCAL_CHANGES_MESSAGE_PREFIX} ${slug}; use --force to overwrite local changes.`);
+    this.name = "MarketplaceSkillLocalChangesError";
+    this.details = { slug };
+  }
+}
+
 export type MarketplaceSkillInstallOptions = {
   slug: string;
   workdir: string;
@@ -129,7 +143,7 @@ export async function updateInstalledMarketplaceSkill(options: MarketplaceSkillI
   }
 
   if (!force && currentState && hasLocalMarketplaceSkillDrift(destinationDir, currentState)) {
-    throw new Error(`Local skill files changed since install: ${item.slug}; use --force to overwrite local changes.`);
+    throw new MarketplaceSkillLocalChangesError(item.slug);
   }
 
   const status = resolveMarketplaceSkillUpdateStatus(currentState, item.updatedAt);

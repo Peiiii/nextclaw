@@ -21,6 +21,9 @@ import {
 import { runWithMarketplaceNetworkRetry } from "@nextclaw-service/utils/marketplace/marketplace-network-retry.utils.js";
 export {
   installMarketplaceSkill,
+  MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE,
+  MARKETPLACE_SKILL_LOCAL_CHANGES_MESSAGE_PREFIX,
+  MarketplaceSkillLocalChangesError,
   updateInstalledMarketplaceSkill,
   type MarketplaceSkillInstallOptions
 } from "@nextclaw-service/utils/marketplace/marketplace-skill-lifecycle.utils.js";

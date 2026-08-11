@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MarketplacePage } from "@/features/marketplace";
+import { NextClawClientError } from "@nextclaw/client-sdk";
 import type {
   MarketplaceInstalledView,
   MarketplaceItemSummary,
@@ -82,6 +83,8 @@ vi.mock("@/shared/lib/host-capabilities", () => ({
 }));
 
 vi.mock("@/features/marketplace/hooks/use-marketplace", () => ({
+  isMarketplaceSkillLocalChangesError: (error: { code?: string }) =>
+    error?.code === "MARKETPLACE_SKILL_LOCAL_CHANGES",
   useMarketplaceItems: () => mocks.itemsQuery,
   useMarketplaceRecentItems: () => mocks.recentItemsQuery,
   useMarketplaceSkillScenes: () => ({
@@ -158,6 +161,43 @@ function createInstalledQuery(
     error: null,
     ...overrides,
   };
+}
+
+function prepareInstalledSkillUpdate() {
+  const item = createMarketplaceItem();
+  mocks.itemsQuery = createItemsQuery({
+    data: {
+      total: 1,
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+      sort: "relevance",
+      items: [item],
+    } satisfies MarketplaceListView,
+  });
+  mocks.installedQuery = createInstalledQuery({
+    data: {
+      type: "skill",
+      total: 1,
+      specs: [item.slug],
+      records: [{
+        type: "skill",
+        id: item.slug,
+        spec: item.slug,
+        source: "workspace",
+        origin: "marketplace",
+        catalogSlug: item.slug,
+        enabled: true,
+      }],
+    } satisfies MarketplaceInstalledView,
+  });
+  mocks.manageMutation.mutateAsync.mockRejectedValueOnce(
+    new NextClawClientError({
+      message: "Local skill files changed since install: web-search",
+      status: 409,
+      code: "MARKETPLACE_SKILL_LOCAL_CHANGES",
+    }),
+  );
 }
 
 describe("MarketplacePage", () => {
@@ -363,5 +403,49 @@ describe("MarketplacePage", () => {
     fireEvent.click(sourceLink);
 
     expect(mocks.openExternalUrl).toHaveBeenCalledWith("https://skillhub.cn/");
+  });
+
+  it("asks before overwriting local skill changes and retries the update with force", async () => {
+    prepareInstalledSkillUpdate();
+    mocks.manageMutation.mutateAsync.mockResolvedValueOnce({});
+    mocks.confirm.mockResolvedValueOnce(true);
+
+    render(<MarketplacePage forcedType="skills" />);
+    fireEvent.click(screen.getByRole("button", { name: "Update" }));
+
+    await waitFor(() => expect(mocks.confirm).toHaveBeenCalledWith({
+      title: "Overwrite local changes and update?",
+      description: "This skill was changed after installation. Continuing replaces local changes in its skill directory with the latest marketplace version. Canceling leaves the current files unchanged.",
+      confirmLabel: "Overwrite and Update",
+      variant: "destructive",
+    }));
+    await waitFor(() => expect(mocks.manageMutation.mutateAsync).toHaveBeenCalledTimes(2));
+    expect(mocks.manageMutation.mutateAsync).toHaveBeenNthCalledWith(1, {
+      type: "skill",
+      action: "update",
+      id: "web-search",
+      spec: "web-search",
+    });
+    expect(mocks.manageMutation.mutateAsync).toHaveBeenNthCalledWith(2, {
+      type: "skill",
+      action: "update",
+      id: "web-search",
+      spec: "web-search",
+      force: true,
+    });
+  });
+
+  it("keeps local skill changes untouched when overwrite is canceled", async () => {
+    prepareInstalledSkillUpdate();
+    mocks.confirm.mockResolvedValueOnce(false);
+
+    render(<MarketplacePage forcedType="skills" />);
+    fireEvent.click(screen.getByRole("button", { name: "Update" }));
+
+    await waitFor(() => expect(mocks.confirm).toHaveBeenCalledTimes(1));
+    expect(mocks.manageMutation.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(mocks.manageMutation.mutateAsync).not.toHaveBeenCalledWith(
+      expect.objectContaining({ force: true }),
+    );
   });
 });

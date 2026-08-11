@@ -1,14 +1,25 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import {
+  useManageMarketplaceItem,
   useMarketplaceItems,
   useMarketplaceRecentItems,
 } from "@/features/marketplace/hooks/use-marketplace";
+import { NextClawClientError } from "@nextclaw/client-sdk";
 import type { MarketplaceListView } from "@/shared/lib/api";
 
 const mocks = vi.hoisted(() => ({
   fetchMarketplaceItems: vi.fn(),
+  manageMarketplaceItem: vi.fn(),
+  toastError: vi.fn(),
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: mocks.toastError,
+    success: vi.fn(),
+  },
 }));
 
 vi.mock("@/shared/lib/api", async () => {
@@ -16,6 +27,7 @@ vi.mock("@/shared/lib/api", async () => {
   return {
     ...(actual as object),
     fetchMarketplaceItems: mocks.fetchMarketplaceItems,
+    manageMarketplaceItem: mocks.manageMarketplaceItem,
   };
 });
 
@@ -130,5 +142,36 @@ describe("useMarketplaceItems", () => {
       page: 1,
       pageSize: 6,
     });
+  });
+});
+
+describe("useManageMarketplaceItem", () => {
+  beforeEach(() => {
+    mocks.manageMarketplaceItem.mockReset();
+    mocks.toastError.mockReset();
+  });
+
+  it("leaves local-change conflicts for the explicit overwrite confirmation", async () => {
+    const conflict = new NextClawClientError({
+      message: "Local skill files changed since install: web-search",
+      status: 409,
+      code: "MARKETPLACE_SKILL_LOCAL_CHANGES",
+    });
+    mocks.manageMarketplaceItem.mockRejectedValueOnce(conflict);
+
+    const { result } = renderHook(() => useManageMarketplaceItem(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({
+        type: "skill",
+        action: "update",
+        id: "web-search",
+        spec: "web-search",
+      })).rejects.toBe(conflict);
+    });
+
+    expect(mocks.toastError).not.toHaveBeenCalled();
   });
 });
