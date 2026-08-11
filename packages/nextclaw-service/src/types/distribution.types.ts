@@ -5,4 +5,5 @@ export type NextclawDistribution = {
   templatesDir: string;
   uiDistDir: string;
   runtimeUpdatePublicKeyPath: string;
+  builtInAppsDirectory?: string;
 };

@@ -10,9 +10,9 @@
 - `napp build <app-dir> --install`：安装模板依赖并构建 TS/WASI HTTP 后端
 - `napp run <app-dir|app-id>`：启动本地宿主，支持目录运行和已安装应用运行
 - `napp dev <app-dir>`：当前等价于 `run`
-- `napp pack <app-dir>`：把应用目录打成 `.napp` 分发包，默认使用轻量 `source` 模式
+- `napp pack <app-dir>`：把应用目录打成 `.napp` 分发包；独立应用默认使用轻量 `source`，组合包默认使用安全的 `bundle`
 - `napp validate-publish <app-dir>`：本地做发布前校验并输出体积/包内容 warning
-- `napp publish <app-dir>`：把应用目录发布到官方 apps registry，默认发布轻量 `source` 分发包
+- `napp publish <app-dir>`：把应用目录发布到官方 apps registry；独立应用默认使用 `source`，组合包默认使用 `bundle`
 - `napp install <app-dir|bundle.napp|app-id[@version]>`：从本地或 registry 安装应用
 - `napp update <app-id>`：更新已安装应用
 - `napp uninstall <app-id>`：卸载已安装应用

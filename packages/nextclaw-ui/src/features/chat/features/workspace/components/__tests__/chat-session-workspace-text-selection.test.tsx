@@ -22,14 +22,18 @@ vi.mock("@/shared/hooks/use-server-path-browse", () => ({
   useServerPathBrowse: () => ({ data: null, error: null, isLoading: false }),
 }));
 
-vi.mock("@nextclaw/agent-chat-ui", () => ({
-  ChatMessageMarkdown: ({ text }: { text: string }) => <div>{text}</div>,
-  FileOperationCodeSurface: ({ block }: { block: ChatFileOperationBlockViewModel }) => (
-    <div data-testid="json-source-preview">
-      {block.lines.map(({ text }, index) => <span key={index}>{text}{"\n"}</span>)}
-    </div>
-  ),
-}));
+vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as object),
+    ChatMessageMarkdown: ({ text }: { text: string }) => <div>{text}</div>,
+    FileOperationCodeSurface: ({ block }: { block: ChatFileOperationBlockViewModel }) => (
+      <div data-testid="json-source-preview">
+        {block.lines.map(({ text }, index) => <span key={index}>{text}{"\n"}</span>)}
+      </div>
+    ),
+  };
+});
 
 it("supports the first text selection in a JSON preview", async () => {
   const onTextExcerptAdd = vi.fn();

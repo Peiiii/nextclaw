@@ -4,6 +4,10 @@ export {
   MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS,
 } from './components/marketplace-detail-doc';
 export {
+  buildLocaleFallbacks,
+  pickLocalizedText,
+} from './components/marketplace-localization';
+export {
   useInstallMarketplaceItem,
   useManageMarketplaceItem,
   useMarketplaceItem,

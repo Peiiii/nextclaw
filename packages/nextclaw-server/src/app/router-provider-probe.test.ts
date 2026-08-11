@@ -30,6 +30,9 @@ function createProviderProbeApp(configPath: string) {
       systemObjectReferenceManager: {} as never,
       agentRunRequestManager: {} as never,
       agentContextWindowManager: {} as never,
+      appPackageManager: {
+        listPackages: async () => ({ entries: [] }),
+      } as never,
       isSessionRunning: () => false,
       listSessionTypes: async () => ({ defaultType: "native", options: [] }),
       sessionManager: {} as never,

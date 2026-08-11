@@ -468,6 +468,9 @@ export type PanelAppEntryView = {
   clientGranted: boolean;
   lastOpenedAt?: string;
   openCount: number;
+  sourceKind?: 'workspace' | 'package';
+  packageId?: string;
+  packageVersion?: string;
 };
 
 export type PanelAppListView = {

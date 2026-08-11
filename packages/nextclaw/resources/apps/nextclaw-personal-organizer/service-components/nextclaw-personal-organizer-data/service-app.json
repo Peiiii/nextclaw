@@ -1,0 +1,35 @@
+{
+  "id": "nextclaw-personal-organizer-data",
+  "title": "个人空间数据服务",
+  "titleI18n": { "zh-CN": "个人空间数据服务", "en-US": "Personal Space Data" },
+  "description": "在本机稳定目录中管理待办、Markdown 笔记、收藏和日历。",
+  "descriptionI18n": {
+    "zh-CN": "在本机稳定目录中管理待办、Markdown 笔记、收藏和日历。",
+    "en-US": "Store todos, Markdown notes, favorites, and calendar data in a stable local directory."
+  },
+  "enabled": true,
+  "protocol": "mcp",
+  "command": "node",
+  "args": ["index.mjs"],
+  "actions": {
+    "todo_list": { "risk": "read", "title": "读取待办" },
+    "todo_create": { "risk": "write", "title": "创建待办" },
+    "todo_update": { "risk": "write", "title": "修改待办" },
+    "todo_delete": { "risk": "write", "title": "删除待办" },
+    "note_list": { "risk": "read", "title": "读取笔记列表" },
+    "note_read": { "risk": "read", "title": "读取笔记" },
+    "note_save": { "risk": "write", "title": "保存 Markdown 笔记" },
+    "note_delete": { "risk": "write", "title": "删除笔记" },
+    "favorite_list": { "risk": "read", "title": "读取收藏" },
+    "favorite_save": { "risk": "write", "title": "保存收藏" },
+    "favorite_update": { "risk": "write", "title": "修改收藏" },
+    "favorite_delete": { "risk": "write", "title": "删除收藏" },
+    "event_list": { "risk": "read", "title": "读取日程" },
+    "event_create": { "risk": "write", "title": "创建日程" },
+    "event_update": { "risk": "write", "title": "修改日程" },
+    "event_delete": { "risk": "write", "title": "删除日程" },
+    "calendar_subscribe": { "risk": "external", "title": "连接 ICS 日历" },
+    "calendar_sync": { "risk": "external", "title": "同步已连接日历" },
+    "calendar_unsubscribe": { "risk": "write", "title": "断开日历连接" }
+  }
+}

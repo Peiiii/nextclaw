@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.32.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-12-nextclaw-v0-32-0.md",
+        "apps/docs/en/notes/2026-08-12-nextclaw-v0-32-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.32.0.json"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "本次用户链路已由产品内 Apps 市场、双语版本页和 X 公告完整承载；官网首页定位不因本次版本单独改写。"
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.32.0 is out.\n\nApps are now discoverable, installable parts of your personal AI space. The first bundle adds Todos, Markdown Notes, Favorites, and Calendar, with stable local data across updates.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-12-nextclaw-v0-32-0",
+      "imagePath": "images/screenshots/nextclaw-personal-space-apps-en.png",
+      "imageAlt": "NextClaw Apps marketplace showing the Personal Space bundle with Todos, Markdown Notes, Favorites, and Calendar",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-12-nextclaw-v0-32-0"
+    }
+  }
+}

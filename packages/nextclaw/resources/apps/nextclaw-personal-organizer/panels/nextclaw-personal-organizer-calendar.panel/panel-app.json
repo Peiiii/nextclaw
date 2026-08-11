@@ -1,0 +1,21 @@
+{
+  "id": "nextclaw-personal-organizer-calendar",
+  "title": "日历",
+  "titleI18n": { "zh-CN": "日历", "en-US": "Calendar" },
+  "description": "查看本地日程，并优先连接已有 ICS 日历。",
+  "descriptionI18n": {
+    "zh-CN": "查看本地日程，并优先连接已有 ICS 日历。",
+    "en-US": "See local events alongside your existing ICS calendars."
+  },
+  "icon": "□",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-personal-organizer-data.event_list",
+    "nextclaw-personal-organizer-data.event_create",
+    "nextclaw-personal-organizer-data.event_update",
+    "nextclaw-personal-organizer-data.event_delete",
+    "nextclaw-personal-organizer-data.calendar_subscribe",
+    "nextclaw-personal-organizer-data.calendar_sync",
+    "nextclaw-personal-organizer-data.calendar_unsubscribe"
+  ]
+}

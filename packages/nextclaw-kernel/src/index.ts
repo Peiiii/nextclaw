@@ -1,5 +1,6 @@
 export * from "@kernel/app/nextclaw-kernel.js";
 export * from "@kernel/managers/agent.manager.js";
+export * from "@kernel/managers/app-package.manager.js";
 export * from "@kernel/managers/access.manager.js";
 export * from "@kernel/managers/skill.manager.js";
 export * from "@kernel/managers/llm-provider.manager.js";
@@ -66,6 +67,7 @@ export type { ExtensionRuntimeStatus } from "@kernel/features/extension-runtime/
 export * from "@kernel/utils/ncp-session-message-adapter.utils.js";
 export * from "@kernel/utils/ui-content-params-injection.utils.js";
 export * from "@kernel/types/access.types.js";
+export * from "@kernel/types/app-package.types.js";
 export * from "@kernel/types/llm-usage.types.js";
 export * from "@kernel/types/update.types.js";
 export * from "@kernel/types/update-manifest.types.js";

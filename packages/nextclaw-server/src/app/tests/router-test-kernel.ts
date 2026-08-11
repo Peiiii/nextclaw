@@ -49,6 +49,16 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       }),
       assertDefaultCanSave: async () => [],
     } as never,
+    appPackageManager: {
+      listPackages: async () => ({ entries: [] }),
+      getPackage: async () => unavailable("appPackageManager.getPackage"),
+      install: async () => unavailable("appPackageManager.install"),
+      enable: async () => unavailable("appPackageManager.enable"),
+      disable: async () => unavailable("appPackageManager.disable"),
+      update: async () => unavailable("appPackageManager.update"),
+      rollback: async () => unavailable("appPackageManager.rollback"),
+      uninstall: async () => unavailable("appPackageManager.uninstall"),
+    } as never,
     llmProviders: {} as never,
     providerModelCatalog: {
       getSnapshot: () => ({

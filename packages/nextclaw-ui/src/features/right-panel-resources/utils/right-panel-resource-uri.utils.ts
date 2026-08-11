@@ -6,19 +6,22 @@ export const RIGHT_PANEL_HOME_TAB_KIND = 'home';
 export const RIGHT_PANEL_HOME_URL = 'nextclaw://new-tab';
 export const RIGHT_PANEL_APPS_TAB_KIND = 'apps';
 export const RIGHT_PANEL_APPS_URL = 'nextclaw://apps';
+export const RIGHT_PANEL_PANEL_APPS_URL = `${RIGHT_PANEL_APPS_URL}?tab=panel-apps`;
 export const RIGHT_PANEL_SERVICE_APPS_URL = `${RIGHT_PANEL_APPS_URL}?tab=service-apps`;
 export const RIGHT_PANEL_PANEL_APP_TAB_KIND = 'panel-app';
 
-export type RightPanelAppsTab = 'panel-apps' | 'service-apps';
+export type RightPanelAppsTab = 'apps' | 'panel-apps' | 'service-apps';
 
-const DEFAULT_RIGHT_PANEL_APPS_TAB: RightPanelAppsTab = 'panel-apps';
+const DEFAULT_RIGHT_PANEL_APPS_TAB: RightPanelAppsTab = 'apps';
 
 function isRightPanelAppsTab(value: unknown): value is RightPanelAppsTab {
-  return value === 'panel-apps' || value === 'service-apps';
+  return value === 'apps' || value === 'panel-apps' || value === 'service-apps';
 }
 
 export function createRightPanelAppsUrl(tab: RightPanelAppsTab = DEFAULT_RIGHT_PANEL_APPS_TAB): string {
-  return tab === DEFAULT_RIGHT_PANEL_APPS_TAB ? RIGHT_PANEL_APPS_URL : RIGHT_PANEL_SERVICE_APPS_URL;
+  if (tab === 'panel-apps') return RIGHT_PANEL_PANEL_APPS_URL;
+  if (tab === 'service-apps') return RIGHT_PANEL_SERVICE_APPS_URL;
+  return RIGHT_PANEL_APPS_URL;
 }
 
 export function getRightPanelAppsTabFromUrl(url: string): RightPanelAppsTab {

@@ -5,6 +5,7 @@ export {
 } from "./nextclaw-app-client.utils.js";
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
+export { AppPackagesClientService } from "./services/app-packages.service.js";
 export { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
 export { SystemObjectReferencesService } from "./services/system-object-references.service.js";
 export { eventKeys } from "@nextclaw/shared";
@@ -41,6 +42,8 @@ export type {
   NextClawTransportUploadInput,
 } from "./types/nextclaw-transport.types.js";
 export type {
+  AppPackageList,
+  AppPackageView,
   AgentBindingView,
   AgentCreateRequest,
   AgentDeleteResult,

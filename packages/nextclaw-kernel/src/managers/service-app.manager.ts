@@ -5,6 +5,10 @@ import {
   getWorkspacePathFromConfig,
 } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import {
+  AppPackageError,
+  type AppPackageComponentSource,
+} from "@kernel/types/app-package.types.js";
 import { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
 import { ServiceActionGrantStore } from "@kernel/stores/service-action-grant.store.js";
 import type {
@@ -50,6 +54,7 @@ export type ServiceAppErrorCode =
   | "SERVICE_APP_INVALID_ACTION"
   | "SERVICE_APP_INVALID_CALLER"
   | "SERVICE_APP_INVALID_MANIFEST"
+  | "SERVICE_APP_MANAGED_SOURCE"
   | "SERVICE_APP_NOT_FOUND"
   | "SERVICE_APP_READ_FAILED"
   | "SERVICE_APP_RUNTIME_FAILED";
@@ -74,6 +79,7 @@ export class ServiceAppManager {
   constructor(private readonly params: {
     configManager: ConfigManager;
     runtimeService?: ServiceAppRuntime;
+    listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
   }) {
     this.runtimeService = params.runtimeService ?? new McpServiceAppRuntimeService({
       getConfig: () => params.configManager.config,
@@ -84,13 +90,18 @@ export class ServiceAppManager {
     const workspacePath = this.getWorkspacePath();
     const serviceAppsPath = this.getServiceAppsPath(workspacePath);
     const dirNames = await this.listServiceAppDirNames(serviceAppsPath);
-    const entries = await Promise.all(
+    const workspaceEntries = await Promise.all(
       dirNames.map((dirName) => this.buildServiceAppRecord(serviceAppsPath, dirName)),
+    );
+    const packageSources = (await this.listPackageComponentSources())
+      .filter((component) => component.kind === "service");
+    const packageEntries = await Promise.all(
+      packageSources.map((source) => this.buildServiceAppRecordFromPackage(source)),
     );
     return {
       workspacePath,
       serviceAppsPath,
-      entries: entries
+      entries: [...workspaceEntries, ...packageEntries]
         .filter((entry): entry is ServiceAppRecord => Boolean(entry))
         .sort((left, right) => left.title.localeCompare(right.title)),
     };
@@ -208,6 +219,12 @@ export class ServiceAppManager {
 
   deleteServiceApp = async (appId: string): Promise<ServiceAppDeleteResult> => {
     const { record } = await this.requireServiceApp(appId);
+    if (record.sourceKind === "package") {
+      throw new ServiceAppError(
+        "SERVICE_APP_MANAGED_SOURCE",
+        `package service must be managed through Apps: ${record.packageId}`,
+      );
+    }
     await this.runtimeService.restart(record.id);
     await rm(record.dirPath, { recursive: true });
     await this.createGrantStore().revokeActionsByPrefix(`${record.id}.`);
@@ -219,6 +236,59 @@ export class ServiceAppManager {
 
   dispose = async (): Promise<void> => {
     await this.runtimeService.dispose();
+  };
+
+  assertCanActivatePackageComponents = async (
+    components: AppPackageComponentSource[],
+  ): Promise<void> => {
+    const serviceComponents = components.filter((component) => component.kind === "service");
+    if (serviceComponents.length === 0) {
+      return;
+    }
+    const workspacePath = this.getServiceAppsPath(this.getWorkspacePath());
+    const workspaceIds = new Set<string>();
+    for (const dirName of await this.listServiceAppDirNames(workspacePath)) {
+      try {
+        workspaceIds.add((await readServiceAppManifest(join(workspacePath, dirName))).id);
+      } catch {
+        continue;
+      }
+    }
+    const activePackageSources = await this.listPackageComponentSources();
+    for (const component of serviceComponents) {
+      const conflictsWithPackage = activePackageSources.some((active) =>
+        active.kind === "service" &&
+        active.id === component.id &&
+        active.packageId !== component.packageId,
+      );
+      if (workspaceIds.has(component.id) || conflictsWithPackage) {
+        throw new AppPackageError(
+          "APP_PACKAGE_CONFLICT",
+          `Service component id 冲突：${component.id}`,
+        );
+      }
+    }
+  };
+
+  deactivatePackageComponents = async (
+    components: AppPackageComponentSource[],
+  ): Promise<void> => {
+    const serviceIds = components
+      .filter((component) => component.kind === "service")
+      .map((component) => component.id);
+    await Promise.all(serviceIds.map(async (serviceId) => await this.runtimeService.restart(serviceId)));
+  };
+
+  removePackageComponentGrants = async (
+    components: AppPackageComponentSource[],
+  ): Promise<void> => {
+    const serviceIds = components
+      .filter((component) => component.kind === "service")
+      .map((component) => component.id);
+    const grantStore = this.createGrantStore();
+    for (const serviceId of serviceIds) {
+      await grantStore.revokeActionsByPrefix(`${serviceId}.`);
+    }
   };
 
   private withGrantState = async (
@@ -266,7 +336,25 @@ export class ServiceAppManager {
     appId: string,
   ): Promise<{ manifest: ServiceAppManifest; record: ServiceAppRecord }> => {
     const serviceAppsPath = this.getServiceAppsPath(this.getWorkspacePath());
-    const dirPath = join(serviceAppsPath, appId);
+    let dirPath = join(serviceAppsPath, appId);
+    let packageSource: AppPackageComponentSource | undefined;
+    try {
+      const dirStat = await stat(dirPath);
+      if (!dirStat.isDirectory()) {
+        throw new ServiceAppError("SERVICE_APP_NOT_FOUND", "service app not found");
+      }
+    } catch (error) {
+      if (!this.isMissingFileError(error)) {
+        throw error;
+      }
+      packageSource = (await this.listPackageComponentSources()).find((component) =>
+        component.kind === "service" && component.id === appId,
+      );
+      if (!packageSource) {
+        throw new ServiceAppError("SERVICE_APP_NOT_FOUND", "service app not found");
+      }
+      dirPath = packageSource.sourcePath;
+    }
     try {
       const dirStat = await stat(dirPath);
       if (!dirStat.isDirectory()) {
@@ -281,7 +369,7 @@ export class ServiceAppManager {
       }
       return {
         manifest,
-        record: this.toServiceAppRecord(dirPath, manifest),
+        record: this.toServiceAppRecord(dirPath, manifest, packageSource),
       };
     } catch (error) {
       if (isServiceAppError(error)) {
@@ -304,7 +392,7 @@ export class ServiceAppManager {
     const workspacePath = this.getWorkspacePath();
     const serviceAppsPath = this.getServiceAppsPath(workspacePath);
     const dirNames = await this.listServiceAppDirNames(serviceAppsPath);
-    const entries = await Promise.all(
+    const workspaceEntries = await Promise.all(
       dirNames.map(async (dirName) => {
         const dirPath = join(serviceAppsPath, dirName);
         try {
@@ -318,7 +406,23 @@ export class ServiceAppManager {
         }
       }),
     );
-    return entries.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+    const packageEntries = await Promise.all(
+      (await this.listPackageComponentSources())
+        .filter((component) => component.kind === "service")
+        .map(async (component) => {
+          try {
+            const manifest = await readServiceAppManifest(component.sourcePath);
+            return {
+              manifest,
+              record: this.toServiceAppRecord(component.sourcePath, manifest, component),
+            };
+          } catch {
+            return null;
+          }
+        }),
+    );
+    return [...workspaceEntries, ...packageEntries]
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
   };
 
   private buildServiceAppRecord = async (
@@ -350,6 +454,7 @@ export class ServiceAppManager {
   private toServiceAppRecord = (
     dirPath: string,
     manifest: ServiceAppManifest,
+    packageSource?: AppPackageComponentSource,
   ): ServiceAppRecord => {
     const runtimeStatus = this.runtimeService.getStatus(manifest.id);
     return {
@@ -368,6 +473,11 @@ export class ServiceAppManager {
       lastStartedAt: runtimeStatus.lastStartedAt,
       lastReadyAt: runtimeStatus.lastReadyAt,
       lastFailedAt: runtimeStatus.lastFailedAt,
+      sourceKind: packageSource ? "package" : "workspace",
+      packageId: packageSource?.packageId,
+      packageVersion: packageSource?.packageVersion,
+      packageDirectory: packageSource ? join(packageSource.sourcePath, "..", "..") : undefined,
+      dataDirectory: packageSource?.dataDirectory,
     };
   };
 
@@ -406,6 +516,38 @@ export class ServiceAppManager {
     new ServiceActionGrantStore(
       join(this.getServiceAppsPath(this.getWorkspacePath()), SERVICE_ACTION_GRANTS_FILE_NAME),
     );
+
+  private listPackageComponentSources = async (): Promise<AppPackageComponentSource[]> =>
+    await this.params.listPackageComponentSources?.() ?? [];
+
+  private buildServiceAppRecordFromPackage = async (
+    source: AppPackageComponentSource,
+  ): Promise<ServiceAppRecord | null> => {
+    try {
+      const manifest = await readServiceAppManifest(source.sourcePath);
+      if (manifest.id !== source.id) {
+        throw new Error(`service component id mismatch: ${source.id}`);
+      }
+      return this.toServiceAppRecord(source.sourcePath, manifest, source);
+    } catch (error) {
+      return {
+        id: source.id,
+        title: toTitle(source.id),
+        dirPath: source.sourcePath,
+        manifestPath: source.manifestPath,
+        cwd: source.sourcePath,
+        enabled: false,
+        protocol: "mcp",
+        status: "failed",
+        lastError: error instanceof Error ? error.message : String(error),
+        sourceKind: "package",
+        packageId: source.packageId,
+        packageVersion: source.packageVersion,
+        packageDirectory: join(source.sourcePath, "..", ".."),
+        dataDirectory: source.dataDirectory,
+      };
+    }
+  };
 
   private listServiceAppDirNames = async (
     serviceAppsPath: string,

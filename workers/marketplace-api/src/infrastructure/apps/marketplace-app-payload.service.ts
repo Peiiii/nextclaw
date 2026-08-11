@@ -1,4 +1,4 @@
-import { DomainValidationError } from "../../domain/errors";
+import { DomainValidationError } from "@/domain/errors";
 import type {
   AppPublisher,
   MarketplaceAppFileInput,
@@ -14,12 +14,23 @@ export class MarketplaceAppPayloadParser {
     const candidate = rawInput as Record<string, unknown>;
     const summary = this.readString(candidate.summary, "summary");
     const description = this.readOptionalString(candidate.description, "description");
+    const appId = this.readString(candidate.appId, "appId");
+    const name = this.readString(candidate.name, "name");
+    const version = this.readString(candidate.version, "version");
+    const manifest = this.readManifest(candidate.manifest);
+    const distributionMode = this.readDistributionMode(candidate.distributionMode);
+    if (manifest.id !== appId || manifest.name !== name || manifest.version !== version) {
+      throw new DomainValidationError("manifest identity must match appId, name, and version");
+    }
+    if (manifest.schemaVersion === 2 && distributionMode !== "bundle") {
+      throw new DomainValidationError("schema v2 component apps must use bundle distribution");
+    }
     return {
       requireExisting: Boolean(candidate.requireExisting),
       slug: this.readSlug(candidate.slug, "slug"),
-      appId: this.readString(candidate.appId, "appId"),
-      name: this.readString(candidate.name, "name"),
-      version: this.readString(candidate.version, "version"),
+      appId,
+      name,
+      version,
       summary,
       summaryI18n: this.readLocalizedMap(candidate.summaryI18n, "summaryI18n", summary),
       description,
@@ -32,9 +43,9 @@ export class MarketplaceAppPayloadParser {
       homepage: this.readOptionalString(candidate.homepage, "homepage"),
       featured: this.readBoolean(candidate.featured, "featured"),
       publisher: this.readPublisherInput(candidate.publisher),
-      manifest: this.readManifest(candidate.manifest),
+      manifest,
       permissions: this.readPermissions(candidate.permissions),
-      distributionMode: this.readDistributionMode(candidate.distributionMode),
+      distributionMode,
       bundleBase64: this.readString(candidate.bundleBase64, "bundleBase64"),
       bundleSha256: this.readString(candidate.bundleSha256, "bundleSha256"),
       files: this.readFileInputs(candidate.files),
@@ -67,8 +78,11 @@ export class MarketplaceAppPayloadParser {
       throw new DomainValidationError("manifest must be an object");
     }
     const candidate = value as Record<string, unknown>;
+    if (candidate.schemaVersion === 2) {
+      return this.readComponentManifest(candidate);
+    }
     if (candidate.schemaVersion !== 1) {
-      throw new DomainValidationError("manifest.schemaVersion must be 1");
+      throw new DomainValidationError("manifest.schemaVersion must be 1 or 2");
     }
     const main = candidate.main;
     const ui = candidate.ui;
@@ -96,10 +110,58 @@ export class MarketplaceAppPayloadParser {
     };
   };
 
+  private readComponentManifest = (
+    candidate: Record<string, unknown>,
+  ): Extract<MarketplaceAppManifest, { schemaVersion: 2 }> => {
+    if (!Array.isArray(candidate.components) || candidate.components.length === 0) {
+      throw new DomainValidationError("manifest.components must be a non-empty array");
+    }
+    const paths = new Set<string>();
+    const components = candidate.components.map((rawComponent, index) => {
+      if (!rawComponent || typeof rawComponent !== "object" || Array.isArray(rawComponent)) {
+        throw new DomainValidationError(`manifest.components[${index}] must be an object`);
+      }
+      const component = rawComponent as Record<string, unknown>;
+      const kind = this.readString(component.kind, `manifest.components[${index}].kind`);
+      if (kind !== "panel" && kind !== "service") {
+        throw new DomainValidationError(`manifest.components[${index}].kind must be panel or service`);
+      }
+      const componentKind: "panel" | "service" = kind;
+      const componentPath = this.readRelativePath(
+        component.path,
+        `manifest.components[${index}].path`,
+      );
+      if (paths.has(componentPath)) {
+        throw new DomainValidationError(`manifest.components contains duplicate path: ${componentPath}`);
+      }
+      paths.add(componentPath);
+      return { kind: componentKind, path: componentPath };
+    });
+    const engines = this.readOptionalRecord(candidate.engines, "manifest.engines");
+    const presentation = this.readOptionalRecord(candidate.presentation, "manifest.presentation");
+    const nextclawEngine = engines
+      ? this.readOptionalString(engines.nextclaw, "manifest.engines.nextclaw")
+      : undefined;
+    const primaryPanel = presentation
+      ? this.readOptionalString(presentation.primaryPanel, "manifest.presentation.primaryPanel")
+      : undefined;
+    return {
+      schemaVersion: 2,
+      id: this.readString(candidate.id, "manifest.id"),
+      name: this.readString(candidate.name, "manifest.name"),
+      version: this.readString(candidate.version, "manifest.version"),
+      description: this.readOptionalString(candidate.description, "manifest.description"),
+      icon: this.readOptionalString(candidate.icon, "manifest.icon"),
+      engines: nextclawEngine ? { nextclaw: nextclawEngine } : undefined,
+      presentation: primaryPanel ? { primaryPanel } : undefined,
+      components,
+    };
+  };
+
   private readMainManifest = (
     kind: string,
     mainCandidate: Record<string, unknown>,
-  ): MarketplaceAppManifest["main"] => {
+  ): Extract<MarketplaceAppManifest, { schemaVersion: 1 }>["main"] => {
     if (kind === "wasm") {
       return {
         kind: "wasm",
@@ -125,6 +187,32 @@ export class MarketplaceAppPayloadParser {
       throw new DomainValidationError("permissions must be an object");
     }
     return value as NonNullable<MarketplaceAppManifest["permissions"]>;
+  };
+
+  private readOptionalRecord = (
+    value: unknown,
+    path: string,
+  ): Record<string, unknown> | undefined => {
+    if (value === undefined || value === null) {
+      return undefined;
+    }
+    if (typeof value !== "object" || Array.isArray(value)) {
+      throw new DomainValidationError(`${path} must be an object`);
+    }
+    return value as Record<string, unknown>;
+  };
+
+  private readRelativePath = (value: unknown, fieldPath: string): string => {
+    const relativePath = this.readString(value, fieldPath).replace(/\\/g, "/");
+    const segments = relativePath.split("/");
+    if (
+      relativePath.startsWith("/") ||
+      /^[A-Za-z]:/.test(relativePath) ||
+      segments.some((segment) => !segment || segment === "." || segment === "..")
+    ) {
+      throw new DomainValidationError(`${fieldPath} must be a safe relative path`);
+    }
+    return segments.join("/");
   };
 
   private readFileInputs = (value: unknown): MarketplaceAppFileInput[] => {

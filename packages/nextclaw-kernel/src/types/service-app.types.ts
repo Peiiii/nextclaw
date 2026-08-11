@@ -43,6 +43,11 @@ export type ServiceAppRecord = {
   lastStartedAt?: string;
   lastReadyAt?: string;
   lastFailedAt?: string;
+  sourceKind?: "workspace" | "package";
+  packageId?: string;
+  packageVersion?: string;
+  packageDirectory?: string;
+  dataDirectory?: string;
 };
 
 export type ServiceActionGrantState =

@@ -13,6 +13,7 @@ export function createNextclawDistribution(importMetaUrl: string): NextclawDistr
     launcherEntrypoint: resolve(dirname(entrypoint), "../launcher", basename(entrypoint)),
     templatesDir: resolve(packageRoot, "templates"),
     uiDistDir: resolve(packageRoot, "ui-dist"),
-    runtimeUpdatePublicKeyPath: resolve(packageRoot, "resources/update-bundle-public.pem")
+    runtimeUpdatePublicKeyPath: resolve(packageRoot, "resources/update-bundle-public.pem"),
+    builtInAppsDirectory: resolve(packageRoot, "resources/apps")
   };
 }

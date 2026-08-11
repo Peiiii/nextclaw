@@ -33,7 +33,7 @@ export type AppPermissions = {
   };
 };
 
-export type MarketplaceAppManifest = {
+export type MarketplaceAppStandaloneManifest = {
   schemaVersion: 1;
   id: string;
   name: string;
@@ -56,6 +56,30 @@ export type MarketplaceAppManifest = {
   icon?: string;
   permissions?: AppPermissions;
 };
+
+export type MarketplaceAppComponentManifest = {
+  schemaVersion: 2;
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  icon?: string;
+  engines?: {
+    nextclaw?: string;
+  };
+  presentation?: {
+    primaryPanel?: string;
+  };
+  components: Array<{
+    kind: "panel" | "service";
+    path: string;
+  }>;
+  permissions?: AppPermissions;
+};
+
+export type MarketplaceAppManifest =
+  | MarketplaceAppStandaloneManifest
+  | MarketplaceAppComponentManifest;
 
 export type MarketplaceAppFileInput = {
   path: string;

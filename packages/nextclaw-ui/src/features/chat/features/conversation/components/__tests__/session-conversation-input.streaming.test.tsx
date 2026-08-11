@@ -349,7 +349,7 @@ describe('SessionConversationInput streaming stability', () => {
 
   it('inserts a project file reference at the saved composer caret', async () => {
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
-    render(
+    renderInput(
       <StreamingSessionConversationInputHarness
         controlRef={controlRef}
         initialText="Hello"
@@ -431,7 +431,7 @@ describe('SessionConversationInput streaming stability', () => {
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
     const providerError = 'Chat Completions API failed (402): raw provider error';
 
-    render(
+    renderInput(
       <StreamingSessionConversationInputHarness
         controlRef={controlRef}
         sendError={providerError}
@@ -546,7 +546,7 @@ describe('SessionConversationInput attachment submit', () => {
   it('preserves a project file reference in the outgoing user message and AI context', async () => {
     const send = vi.fn<AttachmentSubmitAgentSend>(async () => createAttachmentRunHandle());
 
-    render(<AttachmentSubmitHarness initialPrompt="这里面有啥" send={send} />);
+    renderInput(<AttachmentSubmitHarness initialPrompt="这里面有啥" send={send} />);
 
     const textbox = screen.getByRole('textbox');
     fireEvent.focus(textbox);
@@ -605,7 +605,7 @@ describe('SessionConversationInput attachment submit', () => {
 
   it('preserves an exact workspace excerpt in the outgoing message metadata', async () => {
     const send = vi.fn<AttachmentSubmitAgentSend>(async () => createAttachmentRunHandle());
-    render(<AttachmentSubmitHarness initialPrompt="解释一下" send={send} />);
+    renderInput(<AttachmentSubmitHarness initialPrompt="解释一下" send={send} />);
 
     const textbox = screen.getByRole('textbox');
     await waitFor(() => expect(textbox.textContent).toBe('解释一下'));

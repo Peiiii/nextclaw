@@ -39,7 +39,7 @@ await writeFile(path.join(notesDirectory, "day-2.md"), "beta-gamma");
 const installedStarterChild = spawn(
   process.execPath,
   [
-    path.join(packageDirectory, "dist/main.js"),
+    path.join(packageDirectory, "dist/app/main.js"),
     "run",
     installResult.installation.appId,
     "--host",
@@ -77,7 +77,7 @@ await onceExit(installedStarterChild);
 const exampleRunChild = spawn(
   process.execPath,
   [
-    path.join(packageDirectory, "dist/main.js"),
+    path.join(packageDirectory, "dist/app/main.js"),
     "run",
     exampleAppDirectory,
     "--host",
@@ -201,6 +201,20 @@ if (!registryAddress || typeof registryAddress === "string") {
 const registryUrl = `http://127.0.0.1:${registryAddress.port}/`;
 const publishServer = createServer(async (request, response) => {
   const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
+  if (request.method === "GET" && requestUrl.pathname === "/platform/auth/me") {
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify({
+      ok: true,
+      data: {
+        user: {
+          id: "smoke-user",
+          username: "smoke-user",
+          role: "admin",
+        },
+      },
+    }));
+    return;
+  }
   if (request.method === "POST" && requestUrl.pathname === "/api/v1/apps/publish") {
     const chunks = [];
     for await (const chunk of request) {
@@ -251,6 +265,7 @@ try {
     ["publish", exampleAppDirectory, "--api-base", publishApiBase, "--token", "smoke-token", "--json"],
     {
       NEXTCLAW_APP_HOME: publishWorkspace,
+      NEXTCLAW_PLATFORM_API_BASE: publishApiBase,
     },
   );
   if (publishResult.publish.item.appId !== "nextclaw.hello-notes") {
@@ -308,7 +323,7 @@ try {
   const installedRegistryChild = spawn(
     process.execPath,
     [
-      path.join(packageDirectory, "dist/main.js"),
+      path.join(packageDirectory, "dist/app/main.js"),
       "run",
       "nextclaw.hello-notes",
       "--host",
@@ -408,7 +423,7 @@ if (uninstallResult.uninstall.removedVersions[0] !== installResult.installation.
 process.stdout.write(`[napp smoke] ok ${exampleHostInfo.host.url}\n`);
 
 async function runCli(args, extraEnv = {}) {
-  const childProcess = spawn(process.execPath, [path.join(packageDirectory, "dist/main.js"), ...args], {
+  const childProcess = spawn(process.execPath, [path.join(packageDirectory, "dist/app/main.js"), ...args], {
     cwd: packageDirectory,
     stdio: ["ignore", "pipe", "pipe"],
     env: {

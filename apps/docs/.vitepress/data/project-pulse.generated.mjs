@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-11T03:54:06.278Z",
+  "generatedAt": "2026-08-11T20:31:17.633Z",
   "hero": {
     "currentLoc": 232581,
     "testLoc": 91728,
     "trackedFiles": 2495,
-    "recentCommitCount": 415,
+    "recentCommitCount": 427,
     "activeDays30": 30,
     "recentReleaseCount": 53,
     "latestReleaseDate": "2026-08-11",
-    "latestNoteDate": "2026-08-11",
+    "latestNoteDate": "2026-08-12",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2476365,
     "basePercentOfBenchmark": 9.39,
@@ -1233,7 +1233,7 @@ export default {
       {
         "key": "2026-08-11",
         "label": "08-11",
-        "value": 10
+        "value": 22
       }
     ],
     "commitWeekly": [
@@ -1295,7 +1295,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 28
+        "value": 41
       }
     ],
     "releaseMonthly": [
@@ -1483,6 +1483,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-12-nextclaw-v0-32-0",
+        "date": "2026-08-12",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-12 · NextClaw v0.32.0",
+          "description": "NextClaw v0.32.0 introduces installable, manageable Mini Apps and the first Personal Space bundle with Todos, Markdown Notes, Favorites, and Calendar.",
+          "href": "/en/notes/2026-08-12-nextclaw-v0-32-0"
+        },
+        "zh": {
+          "title": "2026-08-12 · NextClaw v0.32.0",
+          "description": "NextClaw v0.32.0 推出可安装、可管理的 Mini App 体系，并首发包含待办、Markdown 笔记、收藏与日历的“个人空间”。",
+          "href": "/zh/notes/2026-08-12-nextclaw-v0-32-0"
+        }
+      },
       {
         "slug": "2026-08-11-nextclaw-v0-31-0",
         "date": "2026-08-11",
@@ -2179,7 +2198,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-11T03:54:04.280Z",
     "sourceCount": {
-      "notes": 32,
+      "notes": 33,
       "scopes": 8
     }
   }

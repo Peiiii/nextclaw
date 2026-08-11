@@ -22,7 +22,7 @@
     "cli"
   ],
   "bin": {
-    "napp": "dist/main.js"
+    "napp": "dist/app/main.js"
   },
   "publishConfig": {
     "access": "public"
@@ -34,12 +34,19 @@
       "default": "./dist/index.js"
     }
   },
+  "imports": {
+    "#app-runtime/*.js": {
+      "types": "./src/*.ts",
+      "development": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
   "files": [
     "dist",
     "README.md"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts src/main.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
+    "build": "tsdown src/index.ts src/app/main.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",

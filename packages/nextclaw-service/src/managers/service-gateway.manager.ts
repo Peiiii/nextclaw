@@ -121,6 +121,8 @@ export class ServiceGatewayManager {
       () => new NextclawKernel({
         homeDir: getDataDir(),
         configPath,
+        builtInAppsDirectory: this.distribution.builtInAppsDirectory,
+        productVersion: this.distribution.version,
       }),
     );
     this.configManager = this.kernel.configManager;

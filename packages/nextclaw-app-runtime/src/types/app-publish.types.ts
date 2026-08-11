@@ -1,0 +1,70 @@
+import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
+import type { AppManifest, AppPermissions } from "#app-runtime/types/app-manifest.types.js";
+import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
+
+export const DEFAULT_APP_MARKETPLACE_API_BASE = "https://apps-registry.nextclaw.io";
+
+export type AppMarketplaceMetadata = {
+  slug: string;
+  summary: string;
+  summaryI18n: Record<string, string>;
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  author: string;
+  tags: string[];
+  sourceRepo?: string;
+  homepage?: string;
+  featured?: boolean;
+  publisher?: AppPublisher;
+};
+
+export type AppPublishFile = {
+  path: string;
+  contentBase64: string;
+};
+
+export type AppPublishPayload = {
+  slug: string;
+  appId: string;
+  name: string;
+  version: string;
+  summary: string;
+  summaryI18n: Record<string, string>;
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  author: string;
+  tags: string[];
+  sourceRepo?: string;
+  homepage?: string;
+  featured: boolean;
+  publisher: AppPublisher;
+  distributionMode: AppDistributionMode;
+  manifest: AppManifest;
+  permissions: AppPermissions;
+  bundleBase64: string;
+  bundleSha256: string;
+  files: AppPublishFile[];
+};
+
+export type AppPublishResult = {
+  created: boolean;
+  item: {
+    slug: string;
+    appId: string;
+    name: string;
+    latestVersion: string;
+    webUrl?: string;
+    install: {
+      kind: "registry";
+      spec: string;
+      command: string;
+      registry: string;
+    };
+  };
+  distribution: {
+    path: string;
+    sha256: string;
+    mode: AppDistributionMode;
+  };
+  fileCount: number;
+};

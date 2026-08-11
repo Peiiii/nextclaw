@@ -10,6 +10,7 @@ import {
   RIGHT_PANEL_APPS_URL,
   RIGHT_PANEL_HOME_TAB_KIND,
   RIGHT_PANEL_PANEL_APP_TAB_KIND,
+  RIGHT_PANEL_PANEL_APPS_URL,
   RIGHT_PANEL_SERVICE_APPS_URL,
   RightPanelResourceHomePage,
 } from '@/features/right-panel-resources';
@@ -18,14 +19,16 @@ import { PANEL_APP_IFRAME_SANDBOX, focusPanelAppIframe } from './panel-app-ifram
 
 export const APPS_TAB_KIND = RIGHT_PANEL_APPS_TAB_KIND;
 export const PANEL_APP_TAB_KIND = RIGHT_PANEL_PANEL_APP_TAB_KIND;
-const DEFAULT_APPS_PANEL_TAB: AppsPanelTab = 'panel-apps';
+const DEFAULT_APPS_PANEL_TAB: AppsPanelTab = 'apps';
 
 function isAppsPanelTab(value: unknown): value is AppsPanelTab {
-  return value === 'panel-apps' || value === 'service-apps';
+  return value === 'apps' || value === 'panel-apps' || value === 'service-apps';
 }
 
 export function createAppsPanelUrl(tab: AppsPanelTab = DEFAULT_APPS_PANEL_TAB): string {
-  return tab === DEFAULT_APPS_PANEL_TAB ? RIGHT_PANEL_APPS_URL : RIGHT_PANEL_SERVICE_APPS_URL;
+  if (tab === 'panel-apps') return RIGHT_PANEL_PANEL_APPS_URL;
+  if (tab === 'service-apps') return RIGHT_PANEL_SERVICE_APPS_URL;
+  return RIGHT_PANEL_APPS_URL;
 }
 
 export function getAppsPanelTabFromUrl(url: string): AppsPanelTab {

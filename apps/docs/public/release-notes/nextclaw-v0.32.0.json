@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.32.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-12",
+  "title": {
+    "zh-CN": "NextClaw v0.32.0",
+    "en-US": "NextClaw v0.32.0"
+  },
+  "summary": {
+    "zh-CN": "推出可发现、安装和管理的 Mini App 体系，并首发包含待办、Markdown 笔记、收藏和日历的个人空间。",
+    "en-US": "Introduces discoverable, installable Mini Apps and the first Personal Space bundle with Todos, Markdown Notes, Favorites, and Calendar."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-12-nextclaw-v0-32-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-12-nextclaw-v0-32-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Mini App 市场与生命周期",
+            "en-US": "Mini App marketplace and lifecycle"
+          },
+          "body": {
+            "zh-CN": "在 Apps 中发现、安装、启用、打开、更新、回滚和卸载组合应用。",
+            "en-US": "Discover, install, enable, open, update, roll back, and uninstall composite apps from Apps."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "个人空间",
+            "en-US": "Personal Space"
+          },
+          "body": {
+            "zh-CN": "待办、Markdown 笔记、收藏和日历拥有独立入口，并共享稳定的本地数据服务。",
+            "en-US": "Todos, Markdown Notes, Favorites, and Calendar have dedicated entries backed by one stable local data service."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "统一系统对象引用",
+            "en-US": "Unified system object references"
+          },
+          "body": {
+            "zh-CN": "收件箱报告、定时任务、文件和文件夹可以通过 @ 面板搜索并带入会话。",
+            "en-US": "Inbox reports, scheduled tasks, files, and folders can be searched and added through the @ panel."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更完整的 Apps 体验",
+            "en-US": "A complete Apps experience"
+          },
+          "body": {
+            "zh-CN": "增加市场发现、已安装状态、权限确认、包级管理和窄面板适配。",
+            "en-US": "Adds marketplace discovery, installed state, permission confirmation, package-level controls, and narrow-panel support."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更连续的工作区",
+            "en-US": "A more continuous workspace"
+          },
+          "body": {
+            "zh-CN": "会话视图切换更紧凑，文件 Explorer 记住可见状态并同步外部选择。",
+            "en-US": "Session view switching is more compact, and the file Explorer remembers visibility while tracking external selections."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "一致的运行时更新",
+            "en-US": "Consistent runtime updates"
+          },
+          "body": {
+            "zh-CN": "稳定 launcher 会拉起刚安装的版本，使页面、内核和真实进程版本保持一致。",
+            "en-US": "The stable launcher starts the newly installed version so the UI, kernel, and actual process stay aligned."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更安全的应用边界",
+            "en-US": "Safer app boundaries"
+          },
+          "body": {
+            "zh-CN": "应用事务、完整性校验、下载预算、授权清理和日历订阅网络限制共同避免残留与越界。",
+            "en-US": "Atomic transactions, integrity checks, download budgets, grant cleanup, and calendar network restrictions prevent partial or unsafe state."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "代码版本与个人数据分离",
+            "en-US": "Versioned code, stable personal data"
+          },
+          "body": {
+            "zh-CN": "应用代码按版本不可变保存，个人数据跨升级、回滚和重装保持稳定。",
+            "en-US": "App code is immutable per version while personal data remains stable across upgrades, rollbacks, and reinstalls."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "兼容现有运行时",
+            "en-US": "Compatible with existing runtimes"
+          },
+          "body": {
+            "zh-CN": "既有 Panel、Service 和 .napp v1 路径保持可用，组合包使用 schema v2。",
+            "en-US": "Existing Panel, Service, and .napp v1 paths remain available, while composite packages use schema v2."
+          }
+        }
+      ]
+    }
+  ]
+}

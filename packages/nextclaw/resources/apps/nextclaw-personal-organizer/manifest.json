@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "id": "nextclaw.personal-organizer",
+  "name": "个人空间",
+  "nameI18n": {
+    "zh-CN": "个人空间",
+    "en-US": "Personal Space"
+  },
+  "version": "0.1.1",
+  "description": "待办、Markdown 笔记、收藏和日历组成的轻量个人上下文空间。",
+  "descriptionI18n": {
+    "zh-CN": "待办、Markdown 笔记、收藏和日历组成的轻量个人上下文空间。",
+    "en-US": "A lightweight personal space for todos, Markdown notes, favorites, and calendars."
+  },
+  "icon": "assets/icon.svg",
+  "engines": {
+    "nextclaw": ">=0.32.0"
+  },
+  "presentation": {
+    "primaryPanel": "nextclaw-personal-organizer-todos"
+  },
+  "components": [
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-personal-organizer-todos.panel"
+    },
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-personal-organizer-notes.panel"
+    },
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-personal-organizer-favorites.panel"
+    },
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-personal-organizer-calendar.panel"
+    },
+    {
+      "kind": "service",
+      "path": "service-components/nextclaw-personal-organizer-data"
+    }
+  ]
+}

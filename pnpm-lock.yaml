@@ -1412,6 +1412,9 @@ importers:
 
   packages/nextclaw-kernel:
     dependencies:
+      '@nextclaw/app-runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-app-runtime
       '@nextclaw/channel-extension-feishu':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-extension-feishu

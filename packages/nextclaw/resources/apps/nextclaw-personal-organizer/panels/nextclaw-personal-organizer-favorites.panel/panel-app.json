@@ -1,0 +1,18 @@
+{
+  "id": "nextclaw-personal-organizer-favorites",
+  "title": "收藏",
+  "titleI18n": { "zh-CN": "收藏", "en-US": "Favorites" },
+  "description": "轻量保存值得稍后回看的链接。",
+  "descriptionI18n": {
+    "zh-CN": "轻量保存值得稍后回看的链接。",
+    "en-US": "Save links that are worth coming back to."
+  },
+  "icon": "◇",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-personal-organizer-data.favorite_list",
+    "nextclaw-personal-organizer-data.favorite_save",
+    "nextclaw-personal-organizer-data.favorite_update",
+    "nextclaw-personal-organizer-data.favorite_delete"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "nextclaw-personal-organizer-notes",
+  "title": "笔记",
+  "titleI18n": { "zh-CN": "笔记", "en-US": "Notes" },
+  "description": "以 Markdown 文件沉淀想法和资料。",
+  "descriptionI18n": {
+    "zh-CN": "以 Markdown 文件沉淀想法和资料。",
+    "en-US": "Keep ideas and references in real Markdown files."
+  },
+  "icon": "✎",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-personal-organizer-data.note_list",
+    "nextclaw-personal-organizer-data.note_read",
+    "nextclaw-personal-organizer-data.note_save",
+    "nextclaw-personal-organizer-data.note_delete"
+  ]
+}

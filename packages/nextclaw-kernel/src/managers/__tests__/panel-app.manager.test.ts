@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { URLSearchParams } from "node:url";
 import { createContext, runInContext } from "node:vm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
@@ -61,28 +62,40 @@ async function runBridgeRequest<T>(
   call: (nextclaw: BridgeApi) => Promise<T>,
   data: unknown,
 ): Promise<T> {
-  let listener: ((event: { data: unknown }) => void) | undefined;
+  const listeners: Array<(event: { data: unknown }) => void> = [];
   let requestId = "";
   const windowLike = {
     addEventListener: (_type: string, handler: (event: { data: unknown }) => void) => {
-      listener = handler;
+      listeners.push(handler);
     },
     parent: {
       postMessage: (message: { requestId: string }) => {
         requestId = message.requestId;
       },
     },
+    location: {
+      search: "",
+    },
+    document: {
+      addEventListener: () => undefined,
+    },
   };
-  runInContext(getPanelAppBridgeScript(), createContext({ window: windowLike }));
+  runInContext(
+    getPanelAppBridgeScript(),
+    createContext({ URLSearchParams, window: windowLike }),
+  );
   const promise = call((windowLike as unknown as { nextclaw: BridgeApi }).nextclaw);
-  listener?.({
+  const responseEvent = {
     data: {
       data,
       ok: true,
       requestId,
       type: "nextclaw:panel-app-service-actions:response",
     },
-  });
+  };
+  for (const listener of listeners) {
+    listener(responseEvent);
+  }
   return await promise;
 }
 

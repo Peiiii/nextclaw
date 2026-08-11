@@ -3,13 +3,16 @@ import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_PANELS_DIR, getWorkspacePathFromConfig } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
+import { PanelAppPackageStateManager } from "@kernel/managers/panel-app-package-state.manager.js";
+import { PanelAppEntryPresenter } from "@kernel/presenters/panel-app-entry.presenter.js";
 import { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
 import { PanelAppStateStore } from "@kernel/stores/panel-app-state.store.js";
-import type { PanelAppPreferencesUpdate, PanelAppStateEntry } from "@kernel/stores/panel-app-state.store.js";
+import type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.store.js";
 import { PanelAppCapabilityGrantStore } from "@kernel/stores/panel-app-capability-grant.store.js";
 import { PanelAppClientGrantStore } from "@kernel/stores/panel-app-client-grant.store.js";
 import type { PanelAppClientGrant } from "@kernel/stores/panel-app-client-grant.store.js";
 import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
+import type { AppPackageComponentSource } from "@kernel/types/app-package.types.js";
 import type {
   PanelAppAgentCapability,
   PanelAppAgentGenerateObjectInput,
@@ -33,20 +36,12 @@ import { injectPanelAppClientScript } from "@kernel/utils/panel-app-client-injec
 import { parsePanelAppManifest } from "@kernel/utils/panel-app-manifest.utils.js";
 import {
   encodePanelAppId,
-  resolvePanelAppIconUrl,
-  toPanelAppTitle,
   type PanelAppAsset,
   type PanelAppSource,
 } from "@kernel/utils/panel-app-source.utils.js";
 import { PanelAppSourceService } from "@kernel/services/panel-app-source.service.js";
 import {
-  resolvePanelAppActivityMs,
-  resolvePanelAppCreatedAt,
-} from "@kernel/utils/panel-app-time.utils.js";
-import {
-  assertPanelAppDeclaresClient,
   readPanelAppContentSourceByIdOrPath,
-  readPanelAppContentSourceByIdOrAppId,
   resolvePanelAppAppId,
 } from "@kernel/utils/panel-app-content-source.utils.js";
 import type {
@@ -80,6 +75,9 @@ export type PanelAppEntry = {
   clientGranted: boolean;
   lastOpenedAt?: string;
   openCount: number;
+  sourceKind: "workspace" | "package";
+  packageId?: string;
+  packageVersion?: string;
 };
 
 export type PanelAppList = {
@@ -124,12 +122,15 @@ export class PanelAppManager {
   private readonly agentBridgeService: PanelAppAgentBridgeService;
   private readonly assetTokenService = new PanelAppAssetTokenService();
   private readonly sourceService = new PanelAppSourceService();
+  private readonly packageStateManager: PanelAppPackageStateManager;
+  private readonly entryPresenter: PanelAppEntryPresenter;
 
   constructor(private readonly params: {
     agentRunClient?: PanelAppAgentRunClient;
     configManager: ConfigManager;
     eventBus?: EventBus;
     ingress?: Ingress;
+    listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
   }) {
     this.agentRunClient = params.agentRunClient ??
       (params.eventBus && params.ingress
@@ -139,18 +140,34 @@ export class PanelAppManager {
       agentRunClient: this.agentRunClient,
       createCapabilityGrantStore: this.createCapabilityGrantStore,
     });
+    this.packageStateManager = new PanelAppPackageStateManager({
+      sourceService: this.sourceService,
+      getPanelsPath: () => this.getPanelsPath(this.getWorkspacePath()),
+      listPackageComponentSources: params.listPackageComponentSources,
+      createAssetBaseHref: this.createAssetBaseHref,
+      deleteBridgeSessions: this.deleteBridgeSessionsByPanelAppId,
+      createStateStore: this.createStateStore,
+      createCapabilityGrantStore: this.createCapabilityGrantStore,
+      createClientGrantStore: this.createClientGrantStore,
+    });
+    this.entryPresenter = new PanelAppEntryPresenter({
+      contentBasePath: PANEL_APP_CONTENT_BASE_PATH,
+      createAssetBaseHref: this.createAssetBaseHref,
+      isClientGranted: this.isPanelAppClientGranted,
+    });
   }
 
   listPanelApps = async (): Promise<PanelAppList> => {
     const workspacePath = this.getWorkspacePath();
     const panelsPath = this.getPanelsPath(workspacePath);
-    const sources = await this.sourceService.listSources(panelsPath);
+    const sources = await this.packageStateManager.listSources();
     const appState = await this.createStateStore(panelsPath).load();
     const entries = await Promise.all(
-      sources.map((source) =>
-        this.buildPanelAppEntry(
+      sources.map(({ source, packageSource }) =>
+        this.entryPresenter.build(
           source,
           appState[encodePanelAppId(source.sourceName)] ?? {},
+          packageSource,
         ),
       ),
     );
@@ -158,7 +175,7 @@ export class PanelAppManager {
     return {
       workspacePath,
       panelsPath,
-      entries: entries.sort(this.comparePanelApps),
+      entries: entries.sort(this.entryPresenter.compare),
     };
   };
 
@@ -269,12 +286,7 @@ export class PanelAppManager {
   createPanelAppBridgeSession = async (params: {
     id: string;
   }): Promise<PanelAppBridgeSession> => {
-    const resolved = await readPanelAppContentSourceByIdOrAppId({
-      appIdOrSourceId: params.id,
-      createAssetBaseHref: this.createAssetBaseHref,
-      panelsPath: this.getPanelsPath(this.getWorkspacePath()),
-      sourceService: this.sourceService,
-    });
+    const resolved = await this.packageStateManager.readContentSourceByIdOrAppId(params.id);
     return this.createPanelAppRuntimeTokenSession({
       appId: resolved.appId,
       clientDeclared: resolved.manifest.client,
@@ -284,11 +296,7 @@ export class PanelAppManager {
   };
 
   grantPanelAppClient = async (appId: string): Promise<PanelAppClientGrant> => {
-    await assertPanelAppDeclaresClient({
-      appId,
-      panelsPath: this.getPanelsPath(this.getWorkspacePath()),
-      sourceService: this.sourceService,
-    });
+    await this.packageStateManager.assertDeclaresClient(appId);
     return await this.createClientGrantStore().grant({
       appId,
       grantedAt: new Date().toISOString(),
@@ -349,9 +357,10 @@ export class PanelAppManager {
       encodePanelAppId(fileName),
       preferences,
     );
-    return await this.buildPanelAppEntry(
-      await this.sourceService.resolveSource(panelsPath, encodePanelAppId(fileName)),
+    return await this.entryPresenter.build(
+      await this.packageStateManager.resolveSource(encodePanelAppId(fileName)),
       state,
+      await this.packageStateManager.findPackageSourceBySourceName(fileName),
     );
   };
 
@@ -361,15 +370,25 @@ export class PanelAppManager {
     const state = await this.createStateStore(panelsPath).recordOpened(
       encodePanelAppId(fileName),
     );
-    return await this.buildPanelAppEntry(
-      await this.sourceService.resolveSource(panelsPath, encodePanelAppId(fileName)),
+    return await this.entryPresenter.build(
+      await this.packageStateManager.resolveSource(encodePanelAppId(fileName)),
       state,
+      await this.packageStateManager.findPackageSourceBySourceName(fileName),
     );
   };
 
   deletePanelApp = async (id: string): Promise<PanelAppDeleteResult> => {
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const source = await this.sourceService.resolveSource(panelsPath, id);
+    const source = await this.packageStateManager.resolveSource(id);
+    const packageSource = await this.packageStateManager.findPackageSourceBySourceName(
+      source.sourceName,
+    );
+    if (packageSource) {
+      throw new PanelAppError(
+        "PANEL_APP_MANAGED_SOURCE",
+        `package panel must be managed through Apps: ${packageSource.packageId}`,
+      );
+    }
     const panelAppId = encodePanelAppId(source.sourceName);
     const manifest = source.manifest ?? parsePanelAppManifest(await readFile(source.entryPath, "utf8"));
     const appId = resolvePanelAppAppId(source, manifest);
@@ -412,56 +431,22 @@ export class PanelAppManager {
       join(this.getPanelsPath(this.getWorkspacePath()), PANEL_APP_CLIENT_GRANTS_FILE_NAME),
     );
 
-  private buildPanelAppEntry = async (
-    source: PanelAppSource,
-    state: PanelAppStateEntry,
-  ): Promise<PanelAppEntry> => {
-    const manifest = source.manifest ?? parsePanelAppManifest(await readFile(source.entryPath, "utf8"));
-    const id = encodePanelAppId(source.sourceName);
-    const appId = resolvePanelAppAppId(source, manifest);
-    const createdAt = resolvePanelAppCreatedAt(source.sourceStat);
-    const updatedAt = source.sourceStat.mtime.toISOString();
-    const entry: PanelAppEntry = {
-      id,
-      appId,
-      fileName: source.sourceName,
-      kind: source.kind,
-      title: manifest.title ?? toPanelAppTitle(source.sourceName),
-      contentPath: `${PANEL_APP_CONTENT_BASE_PATH}/${encodeURIComponent(id)}/content`,
-      createdAt,
-      updatedAt,
-      sizeBytes: source.sourceStat.size,
-      favorite: state.favorite ?? false,
-      clientDeclared: manifest.client,
-      clientGranted: await this.isPanelAppClientGranted(appId, manifest.client),
-      openCount: state.openCount ?? 0,
-    };
-    if (manifest.description) {
-      entry.description = manifest.description;
-    }
-    if (manifest.icon) {
-      entry.icon = source.kind === "folder"
-        ? resolvePanelAppIconUrl(id, manifest.icon)
-        : manifest.icon;
-    }
-    if (state.lastOpenedAt) {
-      entry.lastOpenedAt = state.lastOpenedAt;
-    }
-    return entry;
-  };
-
   private resolvePanelAppFileName = async (id: string): Promise<string> => {
-    const source = await this.sourceService.resolveSource(
-      this.getPanelsPath(this.getWorkspacePath()),
-      id,
-    );
+    const source = await this.packageStateManager.resolveSource(id);
     return source.sourceName;
   };
 
-  private comparePanelApps = (left: PanelAppEntry, right: PanelAppEntry): number =>
-    resolvePanelAppActivityMs(right) - resolvePanelAppActivityMs(left) ||
-    Number(right.favorite) - Number(left.favorite) ||
-    left.title.localeCompare(right.title);
+  assertCanActivatePackageComponents = async (
+    components: AppPackageComponentSource[],
+  ): Promise<void> => await this.packageStateManager.assertCanActivate(components);
+
+  deactivatePackageComponents = (
+    components: AppPackageComponentSource[],
+  ): void => this.packageStateManager.deactivate(components);
+
+  removePackageComponentState = async (
+    components: AppPackageComponentSource[],
+  ): Promise<void> => await this.packageStateManager.removeState(components);
 
   private deleteExpiredBridgeSessions = (): void => {
     const now = Date.now();

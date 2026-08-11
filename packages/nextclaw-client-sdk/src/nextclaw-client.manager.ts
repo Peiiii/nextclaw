@@ -5,6 +5,7 @@ import { normalizeBaseUrl } from "./utils/url.utils.js";
 import { AgentRunsService } from "./services/agent-runs.service.js";
 import { AgentsService } from "./services/agents.service.js";
 import { AppService } from "./services/app.service.js";
+import { AppPackagesClientService } from "./services/app-packages.service.js";
 import { AuthService } from "./services/auth.service.js";
 import { ChannelAuthService } from "./services/channel-auth.service.js";
 import { ConfigService } from "./services/config.service.js";
@@ -28,6 +29,7 @@ export class NextClawClient {
   readonly baseUrl: string;
   readonly agentRuns: AgentRunsService;
   readonly app: AppService;
+  readonly appPackages: AppPackagesClientService;
   readonly agents: AgentsService;
   readonly auth: AuthService;
   readonly channelAuth: ChannelAuthService;
@@ -75,6 +77,7 @@ export class NextClawClient {
     });
     this.agentRuns = new AgentRunsService(requestService, normalizedOptions);
     this.app = new AppService(requestService);
+    this.appPackages = new AppPackagesClientService(requestService);
     this.agents = new AgentsService(requestService, this.baseUrl);
     this.auth = new AuthService(requestService);
     this.channelAuth = new ChannelAuthService(requestService);

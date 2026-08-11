@@ -1,0 +1,18 @@
+{
+  "slug": "personal-organizer",
+  "summary": "A calm home for todos, Markdown notes, favorites, and calendar.",
+  "summaryI18n": {
+    "zh-CN": "把待办、Markdown 笔记、收藏和日历放进一个安静的个人空间。",
+    "en-US": "A calm home for todos, Markdown notes, favorites, and calendar."
+  },
+  "description": "Four lightweight personal context apps backed by local, portable data.",
+  "descriptionI18n": {
+    "zh-CN": "四个轻量个人上下文应用，数据保存在本机稳定目录，可持续、可迁移。",
+    "en-US": "Four lightweight personal context apps backed by local, portable data."
+  },
+  "author": "NextClaw",
+  "tags": ["productivity", "personal", "notes", "calendar"],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://nextclaw.io",
+  "featured": true
+}

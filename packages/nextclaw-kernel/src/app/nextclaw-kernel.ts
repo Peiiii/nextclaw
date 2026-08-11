@@ -5,6 +5,7 @@ import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manag
 import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AccessManager } from "@kernel/managers/access.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
+import { AppPackageManager } from "@kernel/managers/app-package.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
@@ -58,7 +59,14 @@ import { readProjectRoot } from "@kernel/utils/session-creation.utils.js";
 export type NextclawKernelOptions = {
   homeDir?: string;
   configPath?: string;
+  builtInAppsDirectory?: string;
+  productVersion?: string;
 };
+
+function resolveKernelAppHomeDirectory(options: NextclawKernelOptions): string {
+  const homeDir = options.homeDir?.trim();
+  return resolve(homeDir ? expandHome(homeDir) : getDataDir(), "apps");
+}
 
 function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
   const homeDir = options.homeDir?.trim();
@@ -153,6 +161,7 @@ export class NextclawKernel {
   readonly control: NextclawKernelControlManager<unknown, unknown, unknown>;
   readonly skills: SkillManager;
   readonly automation: AutomationManager;
+  readonly appPackageManager: AppPackageManager;
   readonly channels: ChannelManager;
   readonly sessionRequests: SessionRequestManager;
   readonly sessionSearch: SessionSearchService;
@@ -243,17 +252,25 @@ export class NextclawKernel {
         createCronJobSystemObjectProvider(this.automation),
       ],
     );
+    this.appPackageManager = new AppPackageManager({
+      appHomeDirectory: resolveKernelAppHomeDirectory(options),
+      builtInAppsDirectory: options.builtInAppsDirectory,
+      productVersion: options.productVersion,
+    });
     this.panelAppManager = new PanelAppManager({
       configManager: this.configManager,
       eventBus: this.eventBus,
       ingress: this.ingress,
+      listPackageComponentSources: this.appPackageManager.listActiveComponentSources,
     });
     this.preferenceManager = new PreferenceManager({
       storePath: resolveKernelPreferenceStorePath(options),
     });
     this.serviceAppManager = new ServiceAppManager({
       configManager: this.configManager,
+      listPackageComponentSources: this.appPackageManager.listActiveComponentSources,
     });
+    this.installAppPackageRuntimeHooks();
     this.extensions = new ExtensionManager({
       configManager: this.configManager,
       eventBus: this.eventBus,
@@ -316,6 +333,23 @@ export class NextclawKernel {
       new ContextWindowContribution(this),
     ];
   }
+
+  private installAppPackageRuntimeHooks = (): void => {
+    this.appPackageManager.installRuntimeHooks({
+      assertCanActivate: async (sources) => {
+        await this.panelAppManager.assertCanActivatePackageComponents(sources);
+        await this.serviceAppManager.assertCanActivatePackageComponents(sources);
+      },
+      beforeDeactivate: async (sources) => {
+        this.panelAppManager.deactivatePackageComponents(sources);
+        await this.serviceAppManager.deactivatePackageComponents(sources);
+      },
+      beforeUninstall: async (sources) => {
+        await this.panelAppManager.removePackageComponentState(sources);
+        await this.serviceAppManager.removePackageComponentGrants(sources);
+      },
+    });
+  };
 
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
     this.agentRuntimeManager.listSessionTypes(params);

@@ -38,12 +38,25 @@ const activeServices: DevServiceHandle[] = [];
 let nextPort = 19100;
 let mockProviderApiBase = "";
 const mockProviderServer = createServer((request, response) => {
+  if (request.method === "GET" && request.url?.endsWith("/models")) {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({
+      object: "list",
+      data: [{ id: "mock", object: "model", created: 1, owned_by: "test" }],
+    }));
+    return;
+  }
   let body = "";
   request.setEncoding("utf8");
   request.on("data", (chunk) => {
     body += chunk;
   });
   request.on("end", () => {
+    if (!body.trim()) {
+      response.writeHead(400, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { message: "JSON request body is required" } }));
+      return;
+    }
     const payload = JSON.parse(body) as { model?: string; stream?: boolean };
     if (payload.stream) {
       response.writeHead(200, { "content-type": "text/event-stream" });
@@ -306,15 +319,17 @@ afterEach(async () => {
     if (!handle) {
       continue;
     }
-    if (handle.child.exitCode === null) {
-      handle.child.kill("SIGKILL");
-      await waitForChildExit(handle.child, 4_000);
-    }
+    await stopDevService(handle);
   }
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
-      rmSync(dir, { recursive: true, force: true });
+      rmSync(dir, {
+        recursive: true,
+        force: true,
+        maxRetries: 5,
+        retryDelay: 100,
+      });
     }
   }
 }, 20_000);

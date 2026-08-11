@@ -10,6 +10,7 @@ import {
 } from "@nextclaw/shared";
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
+import { AppPackagesRoutesController } from "@nextclaw-server/features/app-packages/index.js";
 import { SystemObjectReferencesRoutesController } from "@nextclaw-server/app/controllers/system-object-references.controller.js";
 import { AuthRoutesController, UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { ConfigRoutesController } from "@nextclaw-server/features/config/index.js";
@@ -46,6 +47,7 @@ function createUiRouteControllers(
   const { kernel, panelAppClientSdkScript, remoteAccess, runtimeControl, runtimeUpdate } = options;
   return {
     app: new AppRoutesController(options),
+    appPackages: new AppPackagesRoutesController(kernel.appPackageManager),
     agents: new AgentsRoutesController(options),
     auth: new AuthRoutesController(authService),
     config: new ConfigRoutesController(options),
@@ -243,7 +245,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const { ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath, systemObjectReferences } = this.controllers;
+    const { appPackages, ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath, systemObjectReferences } = this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -261,6 +263,14 @@ class UiRouteRegistry {
       ["delete", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.delete],
       ["get", "/api/system-object-references", systemObjectReferences.list],
       ["post", "/api/system-object-references/resolve", systemObjectReferences.resolve],
+      ["get", "/api/app-packages", appPackages.list],
+      ["post", "/api/app-packages/install", appPackages.install],
+      ["get", "/api/app-packages/:appId", appPackages.get],
+      ["post", "/api/app-packages/:appId/enable", appPackages.enable],
+      ["post", "/api/app-packages/:appId/disable", appPackages.disable],
+      ["post", "/api/app-packages/:appId/update", appPackages.update],
+      ["post", "/api/app-packages/:appId/rollback", appPackages.rollback],
+      ["delete", "/api/app-packages/:appId", appPackages.uninstall],
       ["get", "/api/panel-apps", panelApps.list],
       ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
       ["get", "/api/panel-app-client-sdk.js", panelApps.getPanelAppClientSdkScript],
