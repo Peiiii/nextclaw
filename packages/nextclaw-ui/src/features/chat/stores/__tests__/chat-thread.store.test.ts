@@ -32,6 +32,7 @@ function resetChatThreadStore() {
       closedWorkspaceTabEntries: [],
       workspaceNavigationHistory: [],
       workspaceNavigationHistoryIndex: 0,
+      workspaceExplorerOpen: false,
       workspaceExplorerWidth: CHAT_WORKSPACE_EXPLORER_DEFAULT_WIDTH,
       workspacePanelWidth: CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
     },
@@ -74,6 +75,7 @@ describe('chat thread workspace panel persistence', () => {
         { kind: 'file', key: 'session-1::preview::README.md' },
       ],
       workspaceNavigationHistoryIndex: 1,
+      workspaceExplorerOpen: true,
     });
 
     const persisted = JSON.parse(window.localStorage.getItem(chatThreadWorkspaceStorageKey) ?? '{}');
@@ -88,6 +90,7 @@ describe('chat thread workspace panel persistence', () => {
         { kind: 'file', key: 'session-1::preview::README.md' },
       ],
       workspaceNavigationHistoryIndex: 1,
+      workspaceExplorerOpen: true,
     });
     expect(persisted.state.snapshot.sessionKey).toBeUndefined();
     expect(persisted.state.snapshot.isSending).toBeUndefined();
@@ -131,6 +134,7 @@ describe('chat thread workspace panel persistence', () => {
       activeWorkspacePanelKind: 'project-files',
       workspaceNavigationHistory: [{ kind: 'overview' }, { kind: 'child-sessions' }, { kind: 'project-files' }],
       workspaceNavigationHistoryIndex: 2,
+      workspaceExplorerOpen: true,
       workspaceExplorerWidth: 318,
       workspacePanelWidth: 620,
     });
@@ -147,6 +151,7 @@ describe('chat thread workspace panel persistence', () => {
       activeWorkspacePanelKind: 'project-files',
       workspaceNavigationHistory: [{ kind: 'overview' }, { kind: 'child-sessions' }, { kind: 'project-files' }],
       workspaceNavigationHistoryIndex: 2,
+      workspaceExplorerOpen: true,
       workspaceExplorerWidth: 318,
       workspacePanelWidth: 620,
     });
@@ -234,6 +239,7 @@ describe('chat thread workspace panel persistence', () => {
       activeWorkspacePanelKind: 'file',
       activeWorkspaceFileKey: 'session-1::preview::README.md',
       workspaceExplorerWidth: 400,
+      workspaceExplorerOpen: false,
       activeChildSessionKey: 'child-session-1',
       workspaceNavigationHistory: [{ kind: 'file', key: 'session-1::preview::README.md' }],
       workspaceNavigationHistoryIndex: 0,

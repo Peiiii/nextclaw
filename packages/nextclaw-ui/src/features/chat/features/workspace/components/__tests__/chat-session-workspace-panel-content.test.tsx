@@ -169,6 +169,7 @@ beforeEach(() => {
   });
   mocks.refetchBrowse.mockResolvedValue(undefined);
   useChatThreadStore.getState().setSnapshot({
+    workspaceExplorerOpen: false,
     workspaceExplorerWidth: CHAT_WORKSPACE_EXPLORER_DEFAULT_WIDTH,
   });
 });
@@ -626,7 +627,7 @@ it('preserves project tree expansion and scroll while visiting another workspace
   expect(tree.scrollTop).toBe(128);
 });
 
-it('reuses the Explorer beside a file and persists a dragged compact width', () => {
+it('keeps the file Explorer closed by default and reuses it after an explicit open', () => {
   const projectFilesProps = {
     activeSelection: { kind: 'project-files' as const },
     childSessionTabs: [],
@@ -659,6 +660,9 @@ it('reuses the Explorer beside a file and persists a dragged compact width', () 
   const explorer = screen.getByTestId('workspace-shared-explorer');
   const breadcrumbs = screen.getByTestId('workspace-file-breadcrumbs');
   const toggle = screen.getByTestId('workspace-explorer-toggle');
+  expect(explorer.getAttribute('aria-hidden')).toBe('true');
+  fireEvent.click(toggle);
+  expect(useChatThreadStore.getState().snapshot.workspaceExplorerOpen).toBe(true);
   expect(screen.getByRole('tree', { name: 'Project files' })).toBe(tree);
   expect(explorer.getAttribute('data-mode')).toBe('side');
   expect(explorer.style.width).toBe('224px');
@@ -674,7 +678,7 @@ it('reuses the Explorer beside a file and persists a dragged compact width', () 
   expect(mocks.setWorkspaceExplorerWidth).toHaveBeenCalledWith(300);
 });
 
-it('uses an overlay only below the compact threshold and closes it without unmounting', () => {
+it('uses an overlay only below the compact threshold and persists closing it without unmounting', () => {
   HTMLElement.prototype.getBoundingClientRect = () => ({
     bottom: 600,
     height: 600,
@@ -686,6 +690,7 @@ it('uses an overlay only below the compact threshold and closes it without unmou
     y: 0,
     toJSON: () => ({}),
   });
+  useChatThreadStore.getState().setSnapshot({ workspaceExplorerOpen: true });
   render(
     <ChatSessionWorkspacePanelContent
       activeSelection={{
@@ -714,6 +719,7 @@ it('uses an overlay only below the compact threshold and closes it without unmou
   expect(screen.queryByTestId('workspace-explorer-resize-handle')).toBeNull();
 
   fireEvent.click(screen.getByTestId('workspace-explorer-scrim'));
+  expect(useChatThreadStore.getState().snapshot.workspaceExplorerOpen).toBe(false);
   expect(explorer.getAttribute('aria-hidden')).toBe('true');
   expect(tree.isConnected).toBe(true);
 });

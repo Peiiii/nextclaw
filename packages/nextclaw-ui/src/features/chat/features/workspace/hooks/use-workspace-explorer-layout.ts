@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import {
@@ -9,22 +9,23 @@ import {
 export function useWorkspaceExplorerLayout({
   fileActive,
   projectFilesActive,
-  sessionProjectRoot,
-  sessionWorkingDir,
 }: {
   fileActive: boolean;
   projectFilesActive: boolean;
-  sessionProjectRoot: string | null;
-  sessionWorkingDir: string | null;
 }) {
   const presenter = usePresenter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const resizeRef = useRef<{ startX: number; startWidth: number; width: number } | null>(null);
+  const explorerOpen = useChatThreadStore((state) => state.snapshot.workspaceExplorerOpen);
   const persistedExplorerWidth = useChatThreadStore((state) => state.snapshot.workspaceExplorerWidth);
+  const setSnapshot = useChatThreadStore((state) => state.setSnapshot);
   const [compact, setCompact] = useState(false);
   const [explorerDragWidth, setExplorerDragWidth] = useState<number | null>(null);
-  const [explorerOpen, setExplorerOpen] = useState(true);
   const explorerWidth = explorerDragWidth ?? persistedExplorerWidth;
+  const setExplorerOpen = useCallback(
+    (open: boolean) => setSnapshot({ workspaceExplorerOpen: open }),
+    [setSnapshot],
+  );
 
   useEffect(() => {
     const node = containerRef.current;
@@ -37,17 +38,13 @@ export function useWorkspaceExplorerLayout({
   }, []);
 
   useEffect(() => {
-    setExplorerOpen(true);
-  }, [sessionProjectRoot, sessionWorkingDir]);
-
-  useEffect(() => {
     if (!fileActive || !compact || !explorerOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setExplorerOpen(false);
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [compact, explorerOpen, fileActive]);
+  }, [compact, explorerOpen, fileActive, setExplorerOpen]);
 
   const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (compact || !fileActive) return;

@@ -384,7 +384,7 @@ export function ChatSessionWorkspacePanelContent({
     onResizeStart,
     setExplorerOpen,
     showExplorer,
-  } = useWorkspaceExplorerLayout({ fileActive, projectFilesActive, sessionProjectRoot, sessionWorkingDir });
+  } = useWorkspaceExplorerLayout({ fileActive, projectFilesActive });
 
   return (
     <div
@@ -445,7 +445,7 @@ export function ChatSessionWorkspacePanelContent({
               fileActive
                 ? {
                     open: explorerOpen,
-                    onToggle: () => setExplorerOpen((value) => !value),
+                    onToggle: () => setExplorerOpen(!explorerOpen),
                   }
                 : undefined
             }

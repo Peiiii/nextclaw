@@ -95,6 +95,7 @@ export type ChatThreadSnapshot = {
   closedWorkspaceTabEntries: ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistory: ChatWorkspaceNavigationEntry[];
   workspaceNavigationHistoryIndex: number;
+  workspaceExplorerOpen: boolean;
   workspaceExplorerWidth: number;
   workspacePanelWidth: number;
   contextWindow?: SessionContextWindowView | null;
@@ -119,6 +120,7 @@ type PersistedChatThreadStore = {
     closedWorkspaceTabEntries?: unknown;
     workspaceNavigationHistory?: unknown;
     workspaceNavigationHistoryIndex?: unknown;
+    workspaceExplorerOpen?: unknown;
     workspaceExplorerWidth?: unknown;
     workspacePanelWidth?: unknown;
   };
@@ -134,6 +136,7 @@ type PersistedChatWorkspaceSnapshot = Pick<
   | 'closedWorkspaceTabEntries'
   | 'workspaceNavigationHistory'
   | 'workspaceNavigationHistoryIndex'
+  | 'workspaceExplorerOpen'
   | 'workspaceExplorerWidth'
   | 'workspacePanelWidth'
 >;
@@ -167,6 +170,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   closedWorkspaceTabEntries: [],
   workspaceNavigationHistory: [],
   workspaceNavigationHistoryIndex: 0,
+  workspaceExplorerOpen: false,
   workspaceExplorerWidth: CHAT_WORKSPACE_EXPLORER_DEFAULT_WIDTH,
   workspacePanelWidth: CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
   contextWindow: null,
@@ -281,6 +285,7 @@ function normalizePersistedWorkspaceSnapshot(value: unknown): PersistedChatWorks
     closedWorkspaceTabEntries,
     workspaceNavigationHistory,
     workspaceNavigationHistoryIndex,
+    workspaceExplorerOpen: value.workspaceExplorerOpen === true,
     workspaceExplorerWidth: normalizeChatWorkspaceExplorerWidth(value.workspaceExplorerWidth),
     workspacePanelWidth: normalizeChatWorkspacePanelWidth(value.workspacePanelWidth),
   };
@@ -329,6 +334,7 @@ export const useChatThreadStore = create<ChatThreadStore>()(
             ),
             workspaceNavigationHistory,
             workspaceNavigationHistoryIndex,
+            workspaceExplorerOpen: state.snapshot.workspaceExplorerOpen,
             workspaceExplorerWidth: state.snapshot.workspaceExplorerWidth,
             workspacePanelWidth: state.snapshot.workspacePanelWidth,
           },
