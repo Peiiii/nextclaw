@@ -6,8 +6,8 @@
 
 ## 当前事实
 
-- 当前分支为 `master`，本迭代功能提交前基线为 `7179c7a18`。
-- 当前源码产品版本仍为 `0.31.0`；changeset 计划稳定版本 `0.32.0`，版本写入将在隔离 release worktree 完成。
+- 当前分支为 `master`，本迭代功能提交前基线为 `7179c7a18`；功能提交为 `6b3127f93`，版本提交为 `555566a9c`。
+- 当前源码与 NPM stable 产品版本均为 `0.32.0`，发布分支已 fast-forward 回流并推送 `master`。
 - 现有 `@nextclaw/app-runtime` 已有 schema v1 WASM NApp、`.napp`、registry 与本地生命周期。
 - Panel/Service runtime 已成立，但只扫描 workspace 本地目录。
 - Apps Registry 与公开 Apps Web 已存在，主产品 Marketplace 当前只支持 skill/mcp。
@@ -40,8 +40,9 @@
 - app-runtime 内部导入已切换为 Node 原生包级 `#app-runtime/*` imports，当前需要证明其在本包测试、kernel 与 server 源码消费三种环境下解析一致。
 - `#app-runtime/*` 已在 app-runtime 本包、kernel source consumer、server source consumer 与构建后 CLI smoke 中验证通过。
 - 完整包级验证矩阵、maintainability/new-code governance/backlog ratchet 均已通过；service 并行时序噪声已由定向与全量隔离复验证明。
-- `release:stable --dry-run` 已识别 29 个发布包和 `nextclaw 0.31.0 -> 0.32.0`，结构化说明与 docs/website/X review 均 ready。
-- kernel、server、client-sdk、service 与 nextclaw 包已分别通过 `tsc`；尚需在最终改动稳定后统一复验。
+- 正式 stable 发布实际发布 28 个包，NPM、package tags、GitHub Release、四平台 runtime channel、已发布冷装与 0.31.0 升级验证均完成。
+- kernel、server、client-sdk、service、UI、worker、app-runtime 与 nextclaw 的测试、`tsc`、lint 和 build 已完成最终复验；浏览器 CRUD、窄面板和公共 Registry 安装链路均通过。
+- 双域名文档、结构化 release JSON、Cloudflare Worker 与 X 公告均已上线并回读验证。
 
 ## 差距矩阵 / 交付顺序
 
@@ -68,9 +69,9 @@
 
 ## 下一步
 
-1. 精确 stage 并提交本迭代，排除 marketplace skill 与 v0.31.1 日志的其它 WIP。
-2. 从功能提交创建隔离 release worktree，执行 0.32.0 version、strict check、publish 与 Git 闭环。
-3. 完成 stable runtime channel、精确已发布安装/更新、线上文档与 X 公告验证。
+1. 本目标交付与发布已完成；主工作区保留 marketplace skill 与 v0.31.1 日志的其它 WIP，不纳入本迭代提交。
+2. 上线后按风险边界观察真实发现、启用、首次价值与复用数据，再决定更深度嵌入方式。
+3. 若后续开放 community Service，先设计可信 sandbox 与网络/文件强制边界，不沿用当前官方内置信任模型。
 
 ## 剩余缺口 / 交接提醒
 
@@ -78,5 +79,5 @@
 - 三轮迭代已经完成；最终门禁发现三个结构硬问题，需按真实职责拆分后复验。
 - 三个结构硬问题已经按安装源、Panel 包状态、Panel 条目呈现和日历订阅职责完成拆分；diff-only maintainability guard 已达到 0 error。
 - 官方 `0.1.0` 发布后本地仍有等价实现清理，最终应升级并发布 `0.1.1`，避免源码与线上 artifact 不一致。
-- 尚需完成隔离冷启动、changeset、精确提交、NPM/GitHub/产品发布与发布后线上冒烟。
-- 实际产品发布版本与 package 组合由发布合同在最终收口阶段确定，当前目标记录以 `v0.31.2` 组织。
+- 隔离冷启动、changeset、精确提交、NPM/GitHub/产品发布、双域名文档和发布后线上冒烟均已完成。
+- 实际产品发布版本为 `v0.32.0`；目录保留历史 `v0.31.2-mini-app-platform` 名称以避免发布阶段重命名扩大范围，文档标题与所有公开版本面均使用 `v0.32.0`。

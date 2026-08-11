@@ -46,11 +46,14 @@
 - 完成主产品从公共 Registry 安装、启用并投影四个 Panel 与一个 Service 的真实链路，跨卸载/重装的个人数据逐文件校验和保持一致。
 - 补齐主产品内 Marketplace 发现、搜索、详情、已安装识别与一键安装入口，并在 420px 窄面板完成真实视觉与交互验收。
 - 修复已发布 bundle v1 的兼容回归，并为公共 Registry 幂等 GET 增加有界瞬时重试和远程 bundle 下载预算。
+- 完成 app-runtime、kernel、server、client-sdk、service、UI、worker 与 nextclaw 的最终测试、类型检查、lint、build、真实浏览器和治理门禁。
+- 完成 `nextclaw@0.32.0` 与同批 27 个包的 NPM stable 发布、Git 标签、GitHub Release、四平台 stable runtime channel 和从 0.31.0 的真实更新验证。
+- 完成发布分支向 `master` 的 fast-forward 回流，双域名文档及结构化说明上线，Apps Registry/Worker 线上复验和 X 公告回读。
 
 ## 当前下一步
 
-完成精确范围审计和功能提交，在隔离 release worktree 执行 0.32.0 版本化、冷启动、NPM/GitHub/runtime channel/已发布安装与 X 公告闭环。
+验收条件已全部满足，发布证据已留存，master CI 与工作区范围审计通过；目标完成。
 
 ## 计数器
 
-14/20
+20/20（完成）

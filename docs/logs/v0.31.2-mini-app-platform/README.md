@@ -46,8 +46,15 @@ service 的 cron dev 集成在与 UI 全量测试并行时曾出现 2 个时序�
 
 - Cloudflare Worker 已部署至 `marketplace-api.nextclaw.io` / `apps-registry.nextclaw.io`，部署 ID：`30acfe09-9d34-4e3f-a831-7506866352c0`。
 - 官方应用 `nextclaw.personal-organizer@0.1.1` 已发布；公共 bundle 下载 hash 为 `e56825c9bf3ed9b2e7456db7b7e1a9268e1738e70fdab6f6cdb82dd722859fd5`，公共 Registry 精确安装通过。
-- `nextclaw 0.32.0` stable minor 的双语说明、结构化 release JSON、发布截图和 docs/website/X review 已通过 `release:stable --dry-run`。
-- NPM stable、GitHub tag/release、stable runtime channel、已发布安装和 X 公告将在本迭代最终发布阶段补齐，并在完成后更新本节。
+- `nextclaw@0.32.0` 与同批 27 个 `@nextclaw/*` 包已发布到 NPM，`nextclaw@latest` 已反查为 `0.32.0`；功能提交为 `6b3127f93`，版本提交为 `555566a9c`，发布分支已 fast-forward 回流并推送 `master`。
+- GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.32.0`；darwin arm64/x64、linux x64、win32 x64 四个 runtime bundle 均带 GitHub SHA-256，并由 `https://github.com/Peiiii/nextclaw/actions/runs/31534501777` 构建、上传和发布 stable channel。
+- 公网冷装 `nextclaw@0.32.0` 后，版本、app、launcher、公钥和 embedded UI 均存在；从 `0.31.0` 完成 `check -> download-only -> apply -> 新进程 0.32.0`，且 download-only 未提前切换 current pointer。
+- 四个平台公开 manifest 均返回 `latestVersion: 0.32.0`，指向本版本说明；darwin arm64/x64、linux x64、win32 x64 bundle SHA-256 分别为 `74a6fa…ed295`、`330cdc…44bab`、`fd4849…0d9ed`、`7ad0fb…f0594`。
+- 双语说明和结构化 release JSON 已上线；`docs.nextclaw.io` 与 `docs.nextclaw.net` 报告相同 commit/tree。Docs Deploy 初次验证曾因 GitHub runner 连接国内 CDN 超时而失败，但两个部署作业本身成功；本地同清单复验通过，失败作业重跑后全部转绿。
+- X 公告为 `https://x.com/i/status/2087283141228863765`；回读确认作者 `@XiaotiaoWang`、正文与 review 一致，并包含一张 1040×1100 产品截图。
+- `master@555566a9c` 的 ncp、Windows update、desktop runtime、Windows EXE/installer、Linux AppImage/deb/APT 与 macOS DMG smoke 均通过；仅有 GitHub Actions 对旧 Node action runtime 的弃用提示，无失败作业。
+
+发布后的两次网络异常均未通过盲目重跑扩大影响：NPM/runtime 安装验证只从 `install` 检查点恢复，并用 Node 25 的环境代理支持解决本机直连 `ECONNRESET`；Docs Deploy 只重跑失败的 verify 作业。没有重复发布 package、tag、release 或社交帖子。
 
 ## 风险边界与后续
 
