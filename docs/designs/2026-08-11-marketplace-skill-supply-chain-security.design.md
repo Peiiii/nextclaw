@@ -131,6 +131,32 @@ type MarketplaceSkillSecurityFinding = {
 
 NextClaw 必须自己拥有：服务端内容准入、官方 scope 策略、审核状态、撤销传播、镜像对账和事故证据。任何一个都不能外包给“用户点击前应该自己看懂”。
 
+## 客户端更新的本地修改保护
+
+Marketplace 技能安装后允许用户直接修改，因此普通更新不能静默覆盖技能目录。此前底层已经能检测本地漂移并支持 `force`，但 Web 链路把冲突压成通用 `MANAGE_FAILED`，设置页只能显示失败，用户既不知道原因，也没有安全的继续入口。
+
+标准更新链路冻结为：
+
+```text
+用户点击更新
+  -> 普通 update（不带 force）
+  -> 无本地漂移：直接完成
+  -> 有本地漂移：HTTP 409 + MARKETPLACE_SKILL_LOCAL_CHANGES
+  -> UI 展示破坏性确认
+  -> 取消：不再发请求，文件保持不变
+  -> 确认：仅对同一技能重试一次 force update
+```
+
+职责边界如下：
+
+- skill lifecycle 是本地文件漂移判定的唯一 owner，抛出具名且带稳定 code 的冲突错误。
+- service 的 CLI 子进程边界只恢复这一个确定性错误；其它失败继续保留原有通用错误路径。
+- server 将该错误映射为 `409`，并返回稳定 code 与技能 slug；UI 不解析堆栈文案。
+- UI 只对该 code 抑制普通错误 toast，并在用户明确确认后发送 `force: true`。正常更新、卸载、启停和其它错误不进入覆盖确认。
+- 不自动备份、不自动覆盖，也不把 `force` 设为更新默认值；未来若增加 diff/备份，应继续挂在同一冲突分支，而不是复制第二套漂移检测。
+
+这一附加交互可以独立演进或移除：删除确认 UI 后，底层默认仍是拒绝覆盖，不会改变 Marketplace 安装和更新的安全主语义。
+
 ## 可观察验收条件
 
 1. 两个公开域名的 `bird` slug、package selector、content、files 和 blob 均返回 `404`。
@@ -140,6 +166,7 @@ NextClaw 必须自己拥有：服务端内容准入、官方 scope 策略、审�
 5. 镜像测试证明上一版存在、最新版移除的 slug 会驱逐全部详情/文件缓存，未移除技能不受影响。
 6. 本地和远端迁移执行后，`bird` 最终状态为 `rejected`。
 7. 定向 TypeScript 编译、lint、Python 单测、真实线上读取复核和可维护性检查通过。
+8. 修改已安装技能后，普通更新返回 `409 / MARKETPLACE_SKILL_LOCAL_CHANGES`；确认后只追加一次 `force` 重试，取消时不产生第二次更新请求。
 
 ## 交付顺序
 

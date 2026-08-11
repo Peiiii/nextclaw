@@ -24,8 +24,15 @@ import type {
 } from '@/shared/lib/api';
 import { collapseMarketplaceListPages } from '@/features/marketplace/utils/marketplace-list-pages.utils';
 import { useMemo } from 'react';
+import { NextClawClientError } from '@nextclaw/client-sdk';
 
 const MARKETPLACE_BACKGROUND_REFRESH_MS = 30_000;
+export const MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE = 'MARKETPLACE_SKILL_LOCAL_CHANGES';
+
+export function isMarketplaceSkillLocalChangesError(error: unknown): boolean {
+  return error instanceof NextClawClientError
+    && error.code === MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE;
+}
 
 export function useMarketplaceItems(params: MarketplaceListParams) {
   const query = useInfiniteQuery({
@@ -209,6 +216,9 @@ export function useManageMarketplaceItem() {
       toast.success(result.message || fallback);
     },
     onError: (error: Error) => {
+      if (isMarketplaceSkillLocalChangesError(error)) {
+        return;
+      }
       toast.error(error.message || t('marketplaceOperationFailed'));
     }
   });

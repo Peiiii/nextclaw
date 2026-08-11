@@ -15,7 +15,7 @@ import {
 } from "@nextclaw/core";
 import { createUiRouter } from "@nextclaw/server";
 import { EventBus } from "@nextclaw/shared";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ServiceMarketplaceInstaller } from "@nextclaw-service/services/marketplace/service-marketplace-installer.service.js";
 
 const originalNextclawHome = process.env.NEXTCLAW_HOME;
@@ -32,7 +32,9 @@ afterEach(() => {
   }
 });
 
-function createMarketplaceApp(): {
+function createMarketplaceApp(options: {
+  runCliSubcommand?: (args: string[]) => Promise<string>;
+} = {}): {
   app: ReturnType<typeof createUiRouter>;
   workspace: string;
 } {
@@ -45,7 +47,7 @@ function createMarketplaceApp(): {
   const workspace = getWorkspacePath(config.agents.defaults.workspace);
   const installer = new ServiceMarketplaceInstaller({
     installBuiltinSkill: () => null,
-    runCliSubcommand: async () => "",
+    runCliSubcommand: options.runCliSubcommand ?? (async () => ""),
   }).createInstaller();
 
   return {
@@ -64,6 +66,23 @@ function createMarketplaceApp(): {
     }),
     workspace,
   };
+}
+
+async function updateSkill(
+  app: ReturnType<typeof createUiRouter>,
+  id: string,
+  force = false,
+): Promise<Response> {
+  return await app.request("http://localhost/api/marketplace/skills/manage", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      type: "skill",
+      action: "update",
+      id,
+      ...(force ? { force: true } : {}),
+    }),
+  });
 }
 
 async function uninstallSkill(
@@ -148,5 +167,36 @@ describe("ServiceMarketplaceInstaller skill uninstall", () => {
 
     expect(response.status).toBe(400);
     expect(existsSync(join(unmanagedDir, "proof.txt"))).toBe(true);
+  });
+});
+
+describe("ServiceMarketplaceInstaller skill update conflicts", () => {
+  it("preserves the local-change conflict across the CLI boundary and allows an explicit forced retry", async () => {
+    const runCliSubcommand = vi.fn(async (args: string[]) => {
+      if (!args.includes("--force")) {
+        throw new Error(
+          "MarketplaceSkillLocalChangesError: Local skill files changed since install: weather; use --force to overwrite local changes.",
+        );
+      }
+      return "✓ Updated @nextclaw/weather";
+    });
+    const { app } = createMarketplaceApp({ runCliSubcommand });
+
+    const conflictResponse = await updateSkill(app, "weather");
+
+    expect(conflictResponse.status).toBe(409);
+    expect(await conflictResponse.json()).toEqual({
+      ok: false,
+      error: {
+        code: "MARKETPLACE_SKILL_LOCAL_CHANGES",
+        message: "Local skill files changed since install: weather; use --force to overwrite local changes.",
+        details: { slug: "weather" },
+      },
+    });
+
+    const forcedResponse = await updateSkill(app, "weather", true);
+
+    expect(forcedResponse.status).toBe(200);
+    expect(runCliSubcommand).toHaveBeenLastCalledWith(expect.arrayContaining(["--force"]));
   });
 });

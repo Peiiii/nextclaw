@@ -28,6 +28,27 @@ type SupportedSkillMarketplaceListResult =
   | { ok: true; data: MarketplaceListView }
   | { ok: false; status: number; code: "MARKETPLACE_UNAVAILABLE" | "MARKETPLACE_CONTRACT_MISMATCH"; message: string };
 
+const MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE = "MARKETPLACE_SKILL_LOCAL_CHANGES";
+
+function readStructuredError(error: unknown): {
+  code?: string;
+  details?: Record<string, unknown>;
+  message: string;
+} {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!error || typeof error !== "object") {
+    return { message };
+  }
+  const value = error as { code?: unknown; details?: unknown };
+  return {
+    message,
+    code: typeof value.code === "string" ? value.code : undefined,
+    details: value.details && typeof value.details === "object" && !Array.isArray(value.details)
+      ? value.details as Record<string, unknown>
+      : undefined
+  };
+}
+
 async function installMarketplaceSkill(params: {
   options: UiRouterOptions;
   body: MarketplaceSkillInstallRequest;
@@ -296,12 +317,20 @@ export class SkillMarketplaceController {
       });
       return c.json(ok(payload));
     } catch (error) {
-      const message = String(error);
+      const structuredError = readStructuredError(error);
+      const message = structuredError.message;
       if (message.startsWith("INVALID_BODY:")) {
         return c.json(err("INVALID_BODY", message.slice("INVALID_BODY:".length)), 400);
       }
       if (message.startsWith("NOT_AVAILABLE:")) {
         return c.json(err("NOT_AVAILABLE", message.slice("NOT_AVAILABLE:".length)), 503);
+      }
+      if (structuredError.code === MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE) {
+        return c.json(err(
+          MARKETPLACE_SKILL_LOCAL_CHANGES_ERROR_CODE,
+          message,
+          structuredError.details
+        ), 409);
       }
       return c.json(err("MANAGE_FAILED", message), 400);
     }

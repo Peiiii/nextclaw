@@ -14,6 +14,10 @@ import {
 } from "@nextclaw-service/utils/marketplace/service-marketplace-helpers.utils.js";
 import { validateSkillSlug } from "@nextclaw-service/utils/marketplace/marketplace-identity.utils.js";
 import { ServiceMcpMarketplaceOps } from "@nextclaw-service/services/marketplace/service-mcp-marketplace-ops.service.js";
+import {
+  MARKETPLACE_SKILL_LOCAL_CHANGES_MESSAGE_PREFIX,
+  MarketplaceSkillLocalChangesError
+} from "@nextclaw-service/utils/marketplace/marketplace.utils.js";
 
 type UserFacingResult = {
   message: string;
@@ -83,13 +87,26 @@ export class ServiceMarketplaceInstaller {
   };
 
   private updateSkill = async (params: MarketplaceInstallSkillParams): Promise<UserFacingResult> => {
+    const { force, slug } = params;
     const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
-    const output = await this.deps.runCliSubcommand(buildMarketplaceSkillUpdateArgs({
-      slug: params.slug,
-      workspace,
-      force: params.force
-    }));
-    const summary = pickUserFacingCommandSummary(output, `Updated skill: ${params.slug}`);
+    let output: string;
+    try {
+      output = await this.deps.runCliSubcommand(buildMarketplaceSkillUpdateArgs({
+        slug,
+        workspace,
+        force
+      }));
+    } catch (error) {
+      if (
+        !force
+        && error instanceof Error
+        && error.message.includes(MARKETPLACE_SKILL_LOCAL_CHANGES_MESSAGE_PREFIX)
+      ) {
+        throw new MarketplaceSkillLocalChangesError(slug);
+      }
+      throw error;
+    }
+    const summary = pickUserFacingCommandSummary(output, `Updated skill: ${slug}`);
     return { message: summary, output };
   };
 
