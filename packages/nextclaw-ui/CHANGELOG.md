@@ -1,5 +1,23 @@
 # @nextclaw/ui
 
+## 0.15.26
+
+### Patch Changes
+
+- fb73f89: 改进 Marketplace 技能更新：检测到安装后的本地修改时返回明确冲突，并在用户确认后才覆盖更新；取消操作会保留现有技能文件。
+- 7179c7a: 新增统一的系统管理对象 `@` 引用协议，首批支持收件箱报告和定时任务的分类浏览、分组搜索、不可变快照与模型上下文；`@` 面板中的文件和文件夹现在拥有独立入口、搜索分组与选择语义；收件箱“继续聊”进入带可见报告引用的聊天草稿，不再创建隐藏关联会话。
+- 33eb6b2: 修复设置页更新后仍由 systemd 拉起旧运行时的问题。更新现在保持一键完成，并在切换运行时后由稳定 launcher 重新拉起新版本，页面版本、内核版本和实际进程保持一致。
+- 6b3127f: 新增完整的 Apps 与 Mini App 体验：可从内置市场发现、安装、启用、更新、回滚和卸载组合应用，并首发由待办、Markdown 笔记、收藏与日历组成的“个人空间”。应用代码按版本不可变安装，个人数据保存在稳定目录；安装事务、包完整性、运行时授权清理、远程下载预算与日历订阅网络边界也得到强化。
+- 8b191a0: 优化会话列表的时间/项目视图切换：改为带图标的分段控件，并在切换时平滑移动选中状态，同时保留键盘和减少动态效果的可访问性支持。
+- 4a2d937: Remember whether the file preview Explorer is open and keep it closed by default for new and existing workspaces.
+- dffa83e: Keep the workspace Explorer selection synchronized with files opened from outside the directory tree.
+- d573f31: The session list toolbar is now more compact and consistent, with a unified Time and Project switch and surface-matched action feedback.
+- Updated dependencies [7179c7a]
+- Updated dependencies [6b3127f]
+  - @nextclaw/shared@0.4.22
+  - @nextclaw/client-sdk@0.5.25
+  - @nextclaw/agent-chat-ui@0.6.23
+
 ## 0.15.25
 
 ### Patch Changes

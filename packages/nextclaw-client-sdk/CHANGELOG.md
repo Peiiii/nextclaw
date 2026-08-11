@@ -1,5 +1,17 @@
 # @nextclaw/client-sdk
 
+## 0.5.25
+
+### Patch Changes
+
+- 7179c7a: 新增统一的系统管理对象 `@` 引用协议，首批支持收件箱报告和定时任务的分类浏览、分组搜索、不可变快照与模型上下文；`@` 面板中的文件和文件夹现在拥有独立入口、搜索分组与选择语义；收件箱“继续聊”进入带可见报告引用的聊天草稿，不再创建隐藏关联会话。
+- 6b3127f: 新增完整的 Apps 与 Mini App 体验：可从内置市场发现、安装、启用、更新、回滚和卸载组合应用，并首发由待办、Markdown 笔记、收藏与日历组成的“个人空间”。应用代码按版本不可变安装，个人数据保存在稳定目录；安装事务、包完整性、运行时授权清理、远程下载预算与日历订阅网络边界也得到强化。
+- Updated dependencies [fb73f89]
+- Updated dependencies [7179c7a]
+- Updated dependencies [6b3127f]
+  - @nextclaw/server@0.15.25
+  - @nextclaw/shared@0.4.22
+
 ## 0.5.24
 
 ### Patch Changes

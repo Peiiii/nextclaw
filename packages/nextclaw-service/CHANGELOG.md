@@ -1,5 +1,36 @@
 # @nextclaw/service
 
+## 0.3.26
+
+### Patch Changes
+
+- fb73f89: 改进 Marketplace 技能更新：检测到安装后的本地修改时返回明确冲突，并在用户确认后才覆盖更新；取消操作会保留现有技能文件。
+- 33eb6b2: 修复设置页更新后仍由 systemd 拉起旧运行时的问题。更新现在保持一键完成，并在切换运行时后由稳定 launcher 重新拉起新版本，页面版本、内核版本和实际进程保持一致。
+- 6b3127f: 新增完整的 Apps 与 Mini App 体验：可从内置市场发现、安装、启用、更新、回滚和卸载组合应用，并首发由待办、Markdown 笔记、收藏与日历组成的“个人空间”。应用代码按版本不可变安装，个人数据保存在稳定目录；安装事务、包完整性、运行时授权清理、远程下载预算与日历订阅网络边界也得到强化。
+- Updated dependencies [fb73f89]
+- Updated dependencies [7179c7a]
+- Updated dependencies [6b3127f]
+  - @nextclaw/server@0.15.25
+  - @nextclaw/kernel@0.6.25
+  - @nextclaw/shared@0.4.22
+  - @nextclaw/client-sdk@0.5.25
+  - @nextclaw/remote@0.3.25
+  - @nextclaw/core@0.15.23
+  - @nextclaw/channel-extension-dingtalk@0.2.23
+  - @nextclaw/channel-extension-discord@0.2.23
+  - @nextclaw/channel-extension-email@0.2.23
+  - @nextclaw/channel-extension-slack@0.2.23
+  - @nextclaw/channel-extension-telegram@0.2.23
+  - @nextclaw/channel-extension-wecom@0.2.23
+  - @nextclaw/channel-extension-whatsapp@0.2.23
+  - @nextclaw/mcp@0.3.23
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.24
+  - @nextclaw/runtime@0.4.23
+  - @nextclaw/channel-extension-feishu@0.2.23
+  - @nextclaw/channel-extension-qq@0.2.22
+  - @nextclaw/channel-extension-weixin@0.2.23
+  - @nextclaw/ncp-mcp@0.2.23
+
 ## 0.3.25
 
 ### Patch Changes
