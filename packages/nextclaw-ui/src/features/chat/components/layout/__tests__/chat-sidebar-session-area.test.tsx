@@ -25,13 +25,22 @@ function renderSessionArea(isProjectFirstView: boolean) {
 }
 
 describe("ChatSidebarSessionArea", () => {
-  it("reserves the action-row height while switching list modes", () => {
+  it("renders an accessible animated segmented control for list modes", () => {
     const { onSelectMode } = renderSessionArea(false);
+    const modeGroup = screen.getByRole("group", { name: "Session list view" });
+    const timeButton = screen.getByRole("button", { name: "Time" });
+    const projectButton = screen.getByRole("button", { name: "Project" });
 
-    expect(
-      screen.getByRole("button", { name: "Time" }).parentElement?.parentElement?.className,
-    ).toContain("h-7");
-    fireEvent.click(screen.getByRole("button", { name: "Project" }));
+    expect(modeGroup.className).toContain("rounded-full");
+    expect(modeGroup.querySelector("span[aria-hidden='true']")?.className).toContain(
+      "transition-transform",
+    );
+    expect(timeButton.getAttribute("aria-pressed")).toBe("true");
+    expect(projectButton.getAttribute("aria-pressed")).toBe("false");
+    expect(timeButton.querySelector("svg")).not.toBeNull();
+    expect(projectButton.querySelector("svg")).not.toBeNull();
+
+    fireEvent.click(projectButton);
 
     expect(onSelectMode).toHaveBeenCalledWith("project-first");
   });
@@ -39,12 +48,20 @@ describe("ChatSidebarSessionArea", () => {
   it("uses a folder-plus icon for the add-project action", () => {
     const { onAddProject } = renderSessionArea(true);
     const addProjectButton = screen.getByRole("button", { name: "Add Project" });
+    const modeIndicator = screen
+      .getByRole("group", { name: "Session list view" })
+      .querySelector("span[aria-hidden='true']");
 
     expect(
       addProjectButton
         .querySelector("svg")
         ?.classList.contains("lucide-folder-plus"),
     ).toBe(true);
+    expect(modeIndicator?.className).toContain("translate-x-full");
+    expect(modeIndicator?.className).toContain("motion-reduce:transition-none");
+    expect(screen.getByRole("button", { name: "Project" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
     fireEvent.click(addProjectButton);
 
     expect(onAddProject).toHaveBeenCalledOnce();

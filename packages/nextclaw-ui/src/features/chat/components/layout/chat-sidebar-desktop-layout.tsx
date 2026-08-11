@@ -166,7 +166,7 @@ export function ChatSidebarSessionArea({
   return (
     <>
       <div className="flex items-center justify-end px-4 pb-1 pt-2">
-        <div className="flex h-7 items-center gap-1.5">
+        <div className="flex h-8 items-center gap-1.5">
           {isProjectFirstView ? (
             <IconActionButton
               icon={<FolderPlus className="h-3.5 w-3.5" />}
