@@ -1,5 +1,21 @@
 # @nextclaw/ui
 
+## 0.15.27
+
+### Patch Changes
+
+- 9b22a7d: 支持将文档浏览器中的文档、应用、Panel App 和网页标签添加到聊天。发送后仍可识别并重新打开对应资源，AI 也能获得当时的资源地址和页面信息。项目文件树现在会保留展开与滚动状态，刷新会覆盖全部展开目录，“全部折叠”可可靠生效，并通过低开销的按需文件监听自动反映可见目录变化。
+- 3e3a44c: AI 正在回复时发送下一条消息，现在会立即显示正在加入队列的反馈，并在服务器确认后无缝切换为可编辑的排队项。
+- efb52a7: 应用市场现在按页加载并支持服务端搜索，安装、更新、版本切换与卸载在后台持续执行；同时补齐应用图标、封面、详情与失败恢复体验，并允许用户卸载内置应用后按需重新安装。
+
+  <!-- release-note-image: en-US | images/screenshots/nextclaw-app-marketplace-en.png | NextClaw Add apps dialog showing Personal Space, Hello Notes, and Workspace Glance with their artwork and install state -->
+
+- Updated dependencies [9b22a7d]
+- Updated dependencies [efb52a7]
+  - @nextclaw/shared@0.4.23
+  - @nextclaw/agent-chat-ui@0.6.24
+  - @nextclaw/client-sdk@0.5.26
+
 ## 0.15.26
 
 ### Patch Changes

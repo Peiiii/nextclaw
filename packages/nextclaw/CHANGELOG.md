@@ -1,5 +1,27 @@
 # nextclaw
 
+## 0.33.0
+
+### Minor Changes
+
+- efb52a7: 应用市场现在按页加载并支持服务端搜索，安装、更新、版本切换与卸载在后台持续执行；同时补齐应用图标、封面、详情与失败恢复体验，并允许用户卸载内置应用后按需重新安装。
+
+  <!-- release-note-image: en-US | images/screenshots/nextclaw-app-marketplace-en.png | NextClaw Add apps dialog showing Personal Space, Hello Notes, and Workspace Glance with their artwork and install state -->
+
+### Patch Changes
+
+- Updated dependencies [9b22a7d]
+- Updated dependencies [efb52a7]
+  - @nextclaw/kernel@0.6.26
+  - @nextclaw/server@0.15.26
+  - @nextclaw/core@0.15.24
+  - @nextclaw/service@0.3.27
+  - @nextclaw/remote@0.3.26
+  - @nextclaw/mcp@0.3.24
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.25
+  - @nextclaw/runtime@0.4.24
+  - @nextclaw/ncp-mcp@0.2.24
+
 ## 0.32.0
 
 ### Minor Changes
