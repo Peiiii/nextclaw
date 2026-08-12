@@ -427,6 +427,26 @@ describe('SessionConversationInput streaming stability', () => {
     expect(deleteQueuedInput).toHaveBeenCalledWith('queued-2');
   });
 
+  it('renders a submitting queue row immediately without premature edit actions', () => {
+    const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
+    renderInput(
+      <StreamingSessionConversationInputHarness
+        controlRef={controlRef}
+        controllerOverride={{
+          ...controller,
+          queuedInputs: [
+            { id: 'submitting-1', isSubmitting: true, preview: '正在提交的任务' },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText('正在提交的任务')).toBeTruthy();
+    expect(screen.getByLabelText('Adding to queue…')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Edit queued input' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete queued input' })).toBeNull();
+  });
+
   it('leaves send-error rendering to the conversation surface', () => {
     const controlRef: MutableRefObject<StreamingInputControl | null> = { current: null };
     const providerError = 'Chat Completions API failed (402): raw provider error';
@@ -456,9 +476,13 @@ function createAttachmentRunHandle(): NcpRunHandle {
 
 function AttachmentSubmitHarness({
   initialPrompt,
+  isRunning = false,
+  refreshQueuedInputs = async () => [],
   send,
 }: {
   readonly initialPrompt?: string;
+  readonly isRunning?: boolean;
+  readonly refreshQueuedInputs?: () => Promise<readonly never[]>;
   readonly send: AttachmentSubmitAgentSend;
 }) {
   const { inputActions, inputSnapshot } = useSessionConversationInputState(
@@ -503,14 +527,14 @@ function AttachmentSubmitHarness({
     continueRun: vi.fn(),
     editMessage: vi.fn(),
     isHydrating: false,
-    isRunning: false,
+    isRunning,
     isSending: false,
     send,
     snapshot: {
-      activeRun: null,
+      activeRun: isRunning ? { sessionId: 'session-attachment' } : null,
     },
     visibleMessages: [],
-  }), [send]);
+  }), [isRunning, send]);
   const controller = useSessionConversationController({
     agent,
     inputSnapshot,
@@ -518,6 +542,7 @@ function AttachmentSubmitHarness({
     isRuntimeBlocked: false,
     runQueue: {
       inputs: [],
+      refreshQueuedInputs,
       removeQueuedInput: async () => null,
     },
     selectedAgentId: 'main',
@@ -543,6 +568,42 @@ function AttachmentSubmitHarness({
 }
 
 describe('SessionConversationInput attachment submit', () => {
+  it('shows immediate queue feedback from the real send button before backend acknowledgement', async () => {
+    let resolveSend!: (handle: NcpRunHandle) => void;
+    const send = vi.fn<AttachmentSubmitAgentSend>(() => new Promise((resolve) => {
+      resolveSend = resolve;
+    }));
+    const refreshQueuedInputs = vi.fn(async () => [] as const);
+
+    renderInput(
+      <AttachmentSubmitHarness
+        initialPrompt="稍后继续这个任务"
+        isRunning
+        refreshQueuedInputs={refreshQueuedInputs}
+        send={send}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Queue|排队发送/ }));
+      await Promise.resolve();
+    });
+
+    expect(send).toHaveBeenCalledTimes(1);
+    const submittingStatus = screen.getByLabelText('Adding to queue…');
+    expect(submittingStatus.parentElement?.textContent).toContain('稍后继续这个任务');
+    await waitFor(() => expect(screen.getByRole('textbox').textContent).toBe(''));
+    expect(refreshQueuedInputs).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveSend({ ...createAttachmentRunHandle(), runId: null });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(refreshQueuedInputs).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.queryByLabelText('Adding to queue…')).toBeNull());
+  });
+
   it('preserves a project file reference in the outgoing user message and AI context', async () => {
     const send = vi.fn<AttachmentSubmitAgentSend>(async () => createAttachmentRunHandle());
 

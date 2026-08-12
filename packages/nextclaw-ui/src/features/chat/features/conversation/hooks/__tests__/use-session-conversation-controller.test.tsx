@@ -59,6 +59,7 @@ function createControllerParams(params: {
   const removeQueuedInput = vi.fn(async (id: string) =>
     queuedInputs.find((item) => item.id === id) ?? null,
   );
+  const refreshQueuedInputs = vi.fn(async () => queuedInputs);
   return {
     agent: {
       abort: vi.fn(),
@@ -116,6 +117,7 @@ function createControllerParams(params: {
     isRuntimeBlocked: false,
     runQueue: {
       inputs: queuedInputs,
+      refreshQueuedInputs,
       removeQueuedInput,
     },
     selectedAgentId: 'main',
@@ -176,6 +178,57 @@ describe('useSessionConversationController backend run queue', () => {
       }),
     });
     expect(params.resetComposer).toHaveBeenCalledTimes(1);
+  });
+
+  it('projects a submitting queue row before the backend acknowledges the message', async () => {
+    let resolveSend!: (handle: NcpRunHandle) => void;
+    const send = vi.fn<TestAgentSend>(() => new Promise((resolve) => {
+      resolveSend = resolve;
+    }));
+    const params = createControllerParams({ isRunning: true, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
+    let submission!: Promise<void>;
+
+    act(() => {
+      submission = result.current.send();
+    });
+
+    expect(params.resetComposer).toHaveBeenCalledTimes(1);
+    expect(result.current.queuedInputs).toEqual([
+      expect.objectContaining({
+        isSubmitting: true,
+        preview: 'next task',
+      }),
+    ]);
+    expect(params.runQueue.refreshQueuedInputs).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveSend(createRunHandle({ runId: null }));
+      await submission;
+    });
+
+    expect(params.runQueue.refreshQueuedInputs).toHaveBeenCalledTimes(1);
+    expect(result.current.queuedInputs).toEqual([]);
+  });
+
+  it('removes the submitting queue row and restores the draft when submission fails', async () => {
+    const sendError = new Error('queue submission failed');
+    const send = vi.fn<TestAgentSend>(async () => {
+      throw sendError;
+    });
+    const params = createControllerParams({ isRunning: true, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    await act(async () => {
+      await expect(result.current.send()).rejects.toThrow(sendError);
+    });
+
+    expect(result.current.queuedInputs).toEqual([]);
+    expect(params.restoreComposer).toHaveBeenCalledWith(expect.objectContaining({
+      text: 'next task',
+    }));
+    expect(params.setSendError).toHaveBeenLastCalledWith(sendError.message);
+    expect(params.runQueue.refreshQueuedInputs).not.toHaveBeenCalled();
   });
 
   it('keeps an existing session bound to its agent instead of the global draft selection', async () => {

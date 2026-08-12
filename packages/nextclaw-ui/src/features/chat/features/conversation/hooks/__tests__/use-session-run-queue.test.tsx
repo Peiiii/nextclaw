@@ -83,6 +83,24 @@ describe('useSessionRunQueue', () => {
     unmount();
   });
 
+  it('refreshes the authoritative queue on demand after a submission is accepted', async () => {
+    const listQueuedInputs = vi.spyOn(nextclawClient.sessions, 'listQueuedInputs')
+      .mockResolvedValue(createQueue('session-1', 'queued'));
+    const { result } = renderHook(
+      () => useSessionRunQueue('session-1'),
+      { wrapper: createWrapper() },
+    );
+    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(1));
+
+    let refreshed: UiNcpSessionQueuedInputsView['inputs'] = [];
+    await act(async () => {
+      refreshed = [...await result.current.refreshQueuedInputs()];
+    });
+
+    expect(listQueuedInputs).toHaveBeenCalledTimes(2);
+    expect(refreshed[0]?.message.parts[0]).toMatchObject({ text: 'queued' });
+  });
+
   it('replaces an in-flight stale queue read after the queue changes', async () => {
     let resolveInitialRead!: (queue: UiNcpSessionQueuedInputsView) => void;
     const initialRead = new Promise<UiNcpSessionQueuedInputsView>((resolve) => {

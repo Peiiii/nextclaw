@@ -387,6 +387,7 @@
   "chatSending": "Sending...",
   "chatQueueSend": "Queue",
   "chatQueuedBannerAttachmentFallback": "Attachment message",
+  "chatQueuedSubmitting": "Adding to queue…",
   "chatQueuedEdit": "Edit queued input",
   "chatQueuedDelete": "Delete queued input",
   "chatDeleteSession": "Delete Session",

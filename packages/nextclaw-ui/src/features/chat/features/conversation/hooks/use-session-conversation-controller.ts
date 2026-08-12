@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { buildNcpRequestEnvelope } from '@nextclaw/ncp-react';
 import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
@@ -39,11 +39,13 @@ type SessionConversationAgent = SessionConversationRecoveryAgent & {
 
 export type SessionConversationQueuedInput = {
   readonly id: string;
+  readonly isSubmitting?: boolean;
   readonly preview: string;
 };
 
 type SessionRunQueue = {
   readonly inputs: readonly UiNcpSessionQueuedInputView[];
+  readonly refreshQueuedInputs: () => Promise<readonly UiNcpSessionQueuedInputView[]>;
   readonly removeQueuedInput: (
     queuedInputId: string,
   ) => Promise<UiNcpSessionQueuedInputView | null>;
@@ -83,6 +85,13 @@ type BuildSubmissionDraftParams = {
 type SubmissionDraft = {
   readonly composerSnapshot: ComposerDraftSnapshot;
   readonly metadata: Record<string, unknown>;
+};
+
+type SubmittingQueuedInput = {
+  readonly id: string;
+  readonly preview: string;
+  readonly sessionId: string;
+  readonly userMessageId: string;
 };
 
 const hasSendableMessagePart = (parts: ReturnType<typeof deriveNcpMessagePartsFromComposer>): boolean =>
@@ -188,6 +197,97 @@ function buildSubmissionEnvelope(
   });
 }
 
+function buildSubmittingQueuedInput(
+  envelope: NcpAgentSendEnvelope,
+): SubmittingQueuedInput | null {
+  const sessionId = envelope.sessionId?.trim();
+  if (!sessionId) {
+    return null;
+  }
+  const message = {
+    ...envelope.message,
+    sessionId,
+  };
+  const enqueuedAt = new Date().toISOString();
+  const input: UiNcpSessionQueuedInputView = {
+    id: `submitting-${message.id}`,
+    sessionId,
+    enqueuedAt,
+    message,
+    metadata: structuredClone(envelope.metadata ?? {}),
+  };
+  return {
+    id: input.id,
+    preview: buildSessionQueuedInputPreview(input),
+    sessionId,
+    userMessageId: message.id,
+  };
+}
+
+function useSubmittingQueuedInputProjection(
+  serverInputs: readonly UiNcpSessionQueuedInputView[],
+  sessionKey: string | null,
+) {
+  const [submittingInput, setSubmittingInput] =
+    useState<SubmittingQueuedInput | null>(null);
+  const stageSubmittingInput = useCallback((envelope: NcpAgentSendEnvelope) => {
+    const input = buildSubmittingQueuedInput(envelope);
+    if (input) {
+      setSubmittingInput(input);
+    }
+    return input;
+  }, []);
+  const clearSubmittingInput = useCallback((input: SubmittingQueuedInput) => {
+    setSubmittingInput((current) =>
+      current?.userMessageId === input.userMessageId ? null : current
+    );
+  }, []);
+  const queuedInputs = useMemo<SessionConversationQueuedInput[]>(() => {
+    const projected: SessionConversationQueuedInput[] = serverInputs.map((input) => ({
+      id: input.id,
+      preview: buildSessionQueuedInputPreview(input),
+    }));
+    if (
+      submittingInput?.sessionId === sessionKey &&
+      !serverInputs.some((input) => input.message.id === submittingInput.userMessageId)
+    ) {
+      projected.push({
+        id: submittingInput.id,
+        isSubmitting: true,
+        preview: submittingInput.preview,
+      });
+    }
+    return projected;
+  }, [serverInputs, sessionKey, submittingInput]);
+  return { clearSubmittingInput, queuedInputs, stageSubmittingInput };
+}
+
+function useQueuedInputActions(params: {
+  readonly availableSkills: readonly { ref: string; name: string }[];
+  readonly restoreComposer: (snapshot: ComposerDraftSnapshot) => void;
+  readonly runQueue: SessionRunQueue;
+  readonly setSendError: (message: string | null) => void;
+}) {
+  const { availableSkills, restoreComposer, runQueue, setSendError } = params;
+  const editQueuedInput = useCallback((id: string) => {
+    const input = runQueue.inputs.find((item) => item.id === id);
+    if (!input) return;
+    void runQueue.removeQueuedInput(id).then((removed) => {
+      if (!removed) return;
+      restoreComposer(buildSessionQueuedInputComposerSnapshot(removed, availableSkills));
+      setSendError(null);
+    }).catch((error) => {
+      setSendError(error instanceof Error ? error.message : String(error));
+    });
+  }, [availableSkills, restoreComposer, runQueue, setSendError]);
+  const deleteQueuedInput = useCallback((id: string) => {
+    void runQueue.removeQueuedInput(id).then(() => setSendError(null)).catch((error) => {
+      setSendError(error instanceof Error ? error.message : String(error));
+    });
+  }, [runQueue, setSendError]);
+  return { deleteQueuedInput, editQueuedInput };
+}
+
 export function useSessionConversationController(params: UseSessionConversationControllerParams) {
   const {
     agent,
@@ -203,6 +303,17 @@ export function useSessionConversationController(params: UseSessionConversationC
     restoreComposer,
     setSendError,
   } = params;
+  const {
+    clearSubmittingInput,
+    queuedInputs,
+    stageSubmittingInput,
+  } = useSubmittingQueuedInputProjection(runQueue.inputs, sessionKey);
+  const { deleteQueuedInput, editQueuedInput } = useQueuedInputActions({
+    availableSkills: inputQuery.skillRecords,
+    restoreComposer,
+    runQueue,
+    setSendError,
+  });
   const parts = useMemo(
     () => deriveNcpMessagePartsFromComposer([...inputSnapshot.nodes], inputSnapshot.attachments),
     [inputSnapshot.attachments, inputSnapshot.nodes],
@@ -255,10 +366,17 @@ export function useSessionConversationController(params: UseSessionConversationC
     if (!envelope) {
       return;
     }
+    const queuedSubmission = agent.isRunning ? stageSubmittingInput(envelope) : null;
     resetComposer();
     setSendError(null);
     try {
       const handle = await agent.send(envelope);
+      if (queuedSubmission && handle?.runId === null) {
+        await runQueue.refreshQueuedInputs().catch(() => undefined);
+      }
+      if (queuedSubmission) {
+        clearSubmittingInput(queuedSubmission);
+      }
       const materializedSessionKey =
         handle?.sessionId?.trim() ||
         agent.snapshot.activeRun?.sessionId?.trim() ||
@@ -267,12 +385,16 @@ export function useSessionConversationController(params: UseSessionConversationC
         onSessionMaterialized?.(materializedSessionKey);
       }
     } catch (error) {
+      if (queuedSubmission) {
+        clearSubmittingInput(queuedSubmission);
+      }
       restoreComposer(draft.composerSnapshot);
       setSendError(error instanceof Error ? error.message : String(error));
       throw error;
     }
   }, [
     agent,
+    clearSubmittingInput,
     continueRun,
     inputQuery,
     inputSnapshot,
@@ -284,35 +406,10 @@ export function useSessionConversationController(params: UseSessionConversationC
     selectedAgentId,
     sessionKey,
     setSendError,
+    stageSubmittingInput,
     primaryAction,
+    runQueue,
   ]);
-
-  const editQueuedInput = useCallback((id: string) => {
-    const input = runQueue.inputs.find((item) => item.id === id);
-    if (!input) {
-      return;
-    }
-    void runQueue.removeQueuedInput(id).then((removed) => {
-      if (!removed) {
-        return;
-      }
-      restoreComposer(buildSessionQueuedInputComposerSnapshot(
-        removed,
-        inputQuery.skillRecords,
-      ));
-      setSendError(null);
-    }).catch((error) => {
-      setSendError(error instanceof Error ? error.message : String(error));
-    });
-  }, [inputQuery.skillRecords, restoreComposer, runQueue, setSendError]);
-
-  const deleteQueuedInput = useCallback((id: string) => {
-    void runQueue.removeQueuedInput(id).then(() => {
-      setSendError(null);
-    }).catch((error) => {
-      setSendError(error instanceof Error ? error.message : String(error));
-    });
-  }, [runQueue, setSendError]);
 
   const stop = useCallback(async () => {
     await agent.abort();
@@ -327,10 +424,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     editQueuedInput,
     hasSendableDraft,
     isSending,
-    queuedInputs: runQueue.inputs.map((input) => ({
-      id: input.id,
-      preview: buildSessionQueuedInputPreview(input),
-    })),
+    queuedInputs,
     send,
     sendDisabled,
     primaryAction,

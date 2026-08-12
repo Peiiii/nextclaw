@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { CornerDownRight, Pencil, Trash2 } from 'lucide-react';
+import { CornerDownRight, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
 
 import {
   Tooltip,
@@ -74,20 +74,30 @@ export function SessionQueuedInputRows({
             <span className="min-w-0 flex-1 truncate font-medium text-foreground/80">
               {item.preview || t('chatQueuedBannerAttachmentFallback')}
             </span>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <QueuedInputIconButton
-                label={t('chatQueuedEdit')}
-                onClick={() => controller.editQueuedInput(item.id)}
+            {item.isSubmitting ? (
+              <span
+                aria-label={t('chatQueuedSubmitting')}
+                className="inline-flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
               >
-                <Pencil className="h-4 w-4" />
-              </QueuedInputIconButton>
-              <QueuedInputIconButton
-                label={t('chatQueuedDelete')}
-                onClick={() => controller.deleteQueuedInput(item.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </QueuedInputIconButton>
-            </div>
+                <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                {t('chatQueuedSubmitting')}
+              </span>
+            ) : (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <QueuedInputIconButton
+                  label={t('chatQueuedEdit')}
+                  onClick={() => controller.editQueuedInput(item.id)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </QueuedInputIconButton>
+                <QueuedInputIconButton
+                  label={t('chatQueuedDelete')}
+                  onClick={() => controller.deleteQueuedInput(item.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </QueuedInputIconButton>
+              </div>
+            )}
           </div>
         ))}
       </div>

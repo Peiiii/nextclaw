@@ -387,6 +387,7 @@
   "chatSending": "发送中...",
   "chatQueueSend": "排队发送",
   "chatQueuedBannerAttachmentFallback": "附件消息",
+  "chatQueuedSubmitting": "正在加入队列…",
   "chatQueuedEdit": "编辑排队输入",
   "chatQueuedDelete": "删除排队输入",
   "chatDeleteSession": "删除会话",

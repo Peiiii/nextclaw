@@ -16,6 +16,7 @@ export function useSessionRunQueue(sessionKey: string | null) {
     retry: false,
     staleTime: 5_000,
   });
+  const { data, isLoading, refetch } = query;
 
   useEffect(() => {
     if (!normalizedSessionKey) {
@@ -43,9 +44,18 @@ export function useSessionRunQueue(sessionKey: string | null) {
     );
   }, [normalizedSessionKey]);
 
+  const refreshQueuedInputs = useCallback(async (): Promise<readonly UiNcpSessionQueuedInputView[]> => {
+    if (!normalizedSessionKey) {
+      return [];
+    }
+    const result = await refetch();
+    return result.data?.inputs ?? [];
+  }, [normalizedSessionKey, refetch]);
+
   return {
-    inputs: query.data?.inputs ?? [],
-    isLoading: query.isLoading,
+    inputs: data?.inputs ?? [],
+    isLoading,
+    refreshQueuedInputs,
     removeQueuedInput,
   };
 }
