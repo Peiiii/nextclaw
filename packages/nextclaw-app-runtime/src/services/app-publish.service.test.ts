@@ -105,6 +105,9 @@ describe("AppPublishService", () => {
             path: "README.md",
             contentBase64: Buffer.from(readmeContent).toString("base64"),
           }),
+          expect.objectContaining({
+            path: "assets/icon.svg",
+          }),
         ],
       },
     });

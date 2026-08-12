@@ -26,10 +26,11 @@ export class AppMarketplaceMetadataService {
 
   collectPublishFiles = async (params: {
     appDirectory: string;
+    iconPath?: string;
     metadataPath?: string;
     visuals?: AppMarketplaceVisuals;
   }): Promise<Array<{ path: string; bytes: Buffer }>> => {
-    const { metadataPath: customMetadataPath, visuals } = params;
+    const { iconPath, metadataPath: customMetadataPath, visuals } = params;
     const appDirectory = path.resolve(params.appDirectory);
     const publishFiles: Array<{ path: string; bytes: Buffer }> = [];
     const metadataPath = customMetadataPath
@@ -44,6 +45,12 @@ export class AppMarketplaceMetadataService {
       publishFiles.push({
         path: "README.md",
         bytes: Buffer.from(await readFile(readmePath)),
+      });
+    }
+    if (iconPath) {
+      publishFiles.push({
+        path: iconPath,
+        bytes: Buffer.from(await readFile(path.join(appDirectory, iconPath))),
       });
     }
     if (visuals) {

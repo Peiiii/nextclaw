@@ -55,6 +55,7 @@ export class AppPublishService {
     const bundleSha256 = createHash("sha256").update(bundleBytes).digest("hex");
     const publishFiles = await this.metadataService.collectPublishFiles({
       appDirectory,
+      iconPath: manifestBundle.manifest.icon,
       metadataPath,
       visuals: metadata.visuals,
     });

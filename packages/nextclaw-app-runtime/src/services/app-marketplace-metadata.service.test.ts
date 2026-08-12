@@ -25,7 +25,9 @@ describe("AppMarketplaceMetadataService", () => {
     cleanupPaths.push(appDirectory);
     const metadataPath = path.join(appDirectory, "marketplace.json");
     const readmePath = path.join(appDirectory, "README.md");
+    const iconPath = path.join(appDirectory, "assets", "icon.svg");
     const coverPath = path.join(appDirectory, "marketplace-assets", "cover.webp");
+    await mkdir(path.dirname(iconPath), { recursive: true });
     await mkdir(path.dirname(coverPath), { recursive: true });
     await writeFile(
       metadataPath,
@@ -62,6 +64,7 @@ describe("AppMarketplaceMetadataService", () => {
       )}\n`,
     );
     await writeFile(readmePath, "# Hello Notes\n");
+    await writeFile(iconPath, "<svg />");
     await writeFile(coverPath, Buffer.from("cover"));
 
     const manifest: AppManifest = {
@@ -94,6 +97,7 @@ describe("AppMarketplaceMetadataService", () => {
     });
     await expect(service.collectPublishFiles({
       appDirectory,
+      iconPath: "assets/icon.svg",
       visuals: {
         cover: "marketplace-assets/cover.webp",
         accentColor: "#746D59",
@@ -104,6 +108,9 @@ describe("AppMarketplaceMetadataService", () => {
       }),
       expect.objectContaining({
         path: "README.md",
+      }),
+      expect.objectContaining({
+        path: "assets/icon.svg",
       }),
       expect.objectContaining({
         path: "marketplace-assets/cover.webp",

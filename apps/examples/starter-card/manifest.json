@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "nextclaw.starter-card",
   "name": "Starter Card",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A minimal starter app card that runs locally and demonstrates the host bridge action loop.",
   "icon": "assets/icon.svg",
   "main": {
