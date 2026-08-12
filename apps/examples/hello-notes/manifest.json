@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "nextclaw.hello-notes",
   "name": "Hello Notes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A tiny micro app that summarizes an authorized notes directory through a wasm main module.",
   "icon": "assets/icon.svg",
   "main": {

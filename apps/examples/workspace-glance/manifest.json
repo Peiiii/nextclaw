@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "nextclaw.workspace-glance",
   "name": "Workspace Glance",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A compact workspace pulse app that summarizes an authorized workspace directory through a wasm main module.",
   "icon": "assets/icon.svg",
   "main": {

@@ -315,7 +315,7 @@ function send(message) {
 }
 
 async function handle(request) {
-  if (request.method === "initialize") return { protocolVersion: request.params?.protocolVersion ?? "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "nextclaw-personal-organizer-data", version: "0.1.1" } };
+  if (request.method === "initialize") return { protocolVersion: request.params?.protocolVersion ?? "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "nextclaw-personal-organizer-data", version: "0.1.2" } };
   if (request.method === "ping") return {};
   if (request.method === "tools/list") return { tools };
   if (request.method === "tools/call") {
