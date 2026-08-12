@@ -24,7 +24,7 @@ export function AppCard({ item }: { item: AppItemSummary }) {
           )}
         </Link>
         <div className="app-card__header">
-          <h3><Link to={`/apps/${item.slug}`}>{item.name}</Link></h3>
+          <h2><Link to={`/apps/${item.slug}`}>{item.name}</Link></h2>
           <p className="app-card__publisher">
             <span className="verified-dot" aria-hidden="true">✓</span>
             {item.publisher.name}

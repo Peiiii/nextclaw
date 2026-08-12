@@ -27,7 +27,9 @@
       "text": "NextClaw v0.33.0 is out.\n\nThe app marketplace now scales with server-side discovery, real artwork, and background installs, updates, rollbacks, and uninstalls you can leave and revisit.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-0",
       "imagePath": "images/screenshots/nextclaw-app-marketplace-en.png",
       "imageAlt": "NextClaw Add apps dialog showing Personal Space, Hello Notes, and Workspace Glance with cover artwork and install states",
-      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-0"
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-0",
+      "status": "blocked",
+      "reason": "X rejected both current client attempts with automation error 226 and returned no post ID; no blind retry was performed."
     }
   }
 }

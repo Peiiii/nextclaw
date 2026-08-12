@@ -1,0 +1,7 @@
+# NextClaw Apps
+
+NextClaw Apps is the public catalog for applications that extend the NextClaw personal operating layer.
+
+- [Browse applications](https://apps.nextclaw.io/apps)
+- [NextClaw documentation](https://docs.nextclaw.io/)
+- [NextClaw source code](https://github.com/Peiiii/nextclaw)

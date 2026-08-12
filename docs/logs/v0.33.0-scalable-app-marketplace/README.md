@@ -36,17 +36,21 @@
 | Apps Web | tsc、lint、production build 通过 |
 | 规模验证 | 本地 D1 10 万应用：查询计划、游标、FTS/标签触发器增删改、缓存、ETag/304、静态资产 Range/HEAD 通过 |
 | 真实界面 | 1440×900 主产品：三类标签宽度稳定，弹窗 772×665 无溢出，三款应用图标与封面正常，版本菜单和卸载入口存在 |
+| 生产网站 | `apps.nextclaw.io/apps` 真实浏览器复验：目录与 6 个可见视觉资源全部 200 且解码完成，console 0 error/warning/issue；Lighthouse Accessibility、Best Practices、SEO、Agentic Browsing 均为 100 |
 | 可维护性 | diff-only maintainability 0 error；Worker 公共缓存职责与 UI marketplace service/types 已拆分 |
 
 上述“通过”只覆盖已经执行的自动化与真实浏览器证据；纯视觉取舍仍由用户在生产界面做最终偏好确认。
 
 ## 发布记录
 
-- 目标稳定版：`nextclaw@0.33.0`。
-- Registry：待依次完成远端 D1 migration、Worker 部署、官方应用视觉资产发布与公网探测。
-- Apps Web：待在 Registry 主链路上线后部署并验证 `apps.nextclaw.io`。
-- NPM/runtime：待发布脚本完成版本、包、tag、GitHub Release、runtime channel 与公网安装验证后回填。
-- Docs/X：待版本上线后验证双语说明、结构化 JSON 并发布 X 公告。
+- Registry 已应用 `0011_app_marketplace_visuals_20260812.sql` 与 `0012_scalable_app_catalog_20260813.sql` 两个远端 D1 migration，并部署 Worker `070bfb5e-b289-4edd-b03e-91dd11d1da80`；`marketplace-api.nextclaw.io` 与 `apps-registry.nextclaw.io` 的 v1/v2 公共入口均返回 200，ETag/304、缓存与不可变资产探测通过。
+- 四款官方应用已按不可变版本合同发布：Personal Space `0.1.3`，Hello Notes、Workspace Glance 与 Starter Card `0.1.2`；四组 icon/cover 公共地址均返回正确媒体类型，Registry 记录包含对应 SHA-256。
+- Apps Web 已部署到 Cloudflare Pages 生产环境，最终部署为 `https://3c7484b9.nextclaw-apps.pages.dev`，自定义域 `https://apps.nextclaw.io` 已切换到同一构建；同时补齐搜索框语义、标题层级、文字对比度、`robots.txt` 与 `llms.txt` 后完成真实浏览器复验。
+- `nextclaw@0.33.0` 与同批 27 个 `@nextclaw/*` 包已发布到 NPM，`nextclaw@latest` 已反查为 `0.33.0`；功能提交为 `efb52a723`，发布提交与 `nextclaw@0.33.0` tag 均为 `b80ab2115`，已推送 `origin/master`。
+- GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.33.0`；darwin arm64/x64、linux x64、win32 x64 四个 runtime bundle 均带 GitHub SHA-256，由 `https://github.com/Peiiii/nextclaw/actions/runs/31636763034` 构建并发布 stable channel，全部作业成功。
+- 四个平台公开 stable manifest 均返回 `latestVersion: 0.33.0`、`minimumLauncherVersion: 0.18.11` 与本版本说明地址；稳定版发布脚本的 NPM 包 tsc/lint/build 检查点全部通过，公网冷安装/更新验证完成。
+- 中英文版本说明与结构化 release JSON 已在 `docs.nextclaw.io` 返回 200。
+- X 公告未发布：旧客户端与刷新协议后的 `bird 0.9.0` 均被 X 以自动化风控错误 226 拒绝，且没有返回帖子 ID；后续检索也没有发现该正文。按照“写入后必须回读、禁止盲目重发”的合同，本轮停止重复尝试，因此不存在重复帖子。
 
 ## 风险与边界
 

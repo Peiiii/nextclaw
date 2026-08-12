@@ -32,6 +32,9 @@ export function AppsPage(props: {
             <span aria-hidden="true">⌕</span>
             <input
               aria-label="搜索应用"
+              id="app-catalog-search"
+              name="query"
+              type="search"
               value={props.query}
               onChange={(event) => props.onQueryChange(event.target.value)}
               placeholder="搜索应用、功能或标签"
