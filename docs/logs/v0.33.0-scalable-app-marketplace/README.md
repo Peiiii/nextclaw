@@ -48,6 +48,7 @@
 - Apps Web 已部署到 Cloudflare Pages 生产环境，最终部署为 `https://3c7484b9.nextclaw-apps.pages.dev`，自定义域 `https://apps.nextclaw.io` 已切换到同一构建；同时补齐搜索框语义、标题层级、文字对比度、`robots.txt` 与 `llms.txt` 后完成真实浏览器复验。
 - `nextclaw@0.33.0` 与同批 27 个 `@nextclaw/*` 包已发布到 NPM，`nextclaw@latest` 已反查为 `0.33.0`；功能提交为 `efb52a723`，发布提交与 `nextclaw@0.33.0` tag 均为 `b80ab2115`，已推送 `origin/master`。
 - GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.33.0`；darwin arm64/x64、linux x64、win32 x64 四个 runtime bundle 均带 GitHub SHA-256，由 `https://github.com/Peiiii/nextclaw/actions/runs/31636763034` 构建并发布 stable channel，全部作业成功。
+- `desktop-validate` 的 macOS DMG、Linux AppImage/deb/APT、Windows EXE/Portable、Windows NSIS installer 与 desktop runtime smoke 最终全部通过。Windows NSIS 首次下载 `nsis-resources` 遇到 GitHub 503，第二次 Electron 下载连接中断；仅重跑失败 job 后第三次完成构建、安装 smoke 与产物上传，没有改代码或重复发布。
 - 四个平台公开 stable manifest 均返回 `latestVersion: 0.33.0`、`minimumLauncherVersion: 0.18.11` 与本版本说明地址；稳定版发布脚本的 NPM 包 tsc/lint/build 检查点全部通过，公网冷安装/更新验证完成。
 - 中英文版本说明与结构化 release JSON 已在 `docs.nextclaw.io` 返回 200。
 - X 公告未发布：旧客户端与刷新协议后的 `bird 0.9.0` 均被 X 以自动化风控错误 226 拒绝，且没有返回帖子 ID；后续检索也没有发现该正文。按照“写入后必须回读、禁止盲目重发”的合同，本轮停止重复尝试，因此不存在重复帖子。
