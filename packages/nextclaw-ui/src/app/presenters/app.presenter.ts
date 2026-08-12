@@ -2,6 +2,7 @@ import { AccountManager } from '@/features/account';
 import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
 import {
   ChatCompletionNotificationManager,
+  ChatComposerIntentManager,
   ChatDraftIntentManager,
   useChatThreadStore,
 } from '@/features/chat';
@@ -43,6 +44,7 @@ export class AppPresenter {
     this.notifyRightPanelOpened,
   );
   sideDockManager = new SideDockManager(this.docBrowserManager);
+  chatComposerIntentManager = new ChatComposerIntentManager();
   chatDraftIntentManager = new ChatDraftIntentManager();
   serviceActionAuthorizationManager = new ServiceActionAuthorizationManager();
   panelAppBridgeManager = new PanelAppBridgeManager(this.serviceActionAuthorizationManager);

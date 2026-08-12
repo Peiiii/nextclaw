@@ -1,4 +1,5 @@
-import { useState, type MouseEventHandler, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ChatFileOpenActionViewModel } from '@nextclaw/agent-chat-ui';
 import { ChevronsUp, Copy, FilePlus2, FolderPlus, LocateFixed, Upload, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,6 +12,10 @@ import {
 import { WorkspaceNewFolderTreeItem } from '@/features/chat/features/workspace/components/project-files/workspace-new-folder-tree-item';
 import { WorkspaceProjectFilesToolbar } from '@/features/chat/features/workspace/components/project-files/workspace-project-files-toolbar';
 import {
+  isWorkspaceProjectBrowseQuery,
+  WorkspaceProjectTree,
+} from '@/features/chat/features/workspace/components/project-files/workspace-project-tree-view';
+import {
   useWorkspaceProjectFilesController,
   type RefreshDirectory,
   type WorkspaceDirectoryActionTarget,
@@ -18,10 +23,15 @@ import {
 } from '@/features/chat/features/workspace/hooks/use-workspace-file-actions';
 import { ContextMenu, type ContextMenuGroup } from '@/shared/components/ui/context-menu/context-menu';
 import { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
+import { useServerPathWatch } from '@/shared/hooks/use-server-path-watch';
 import type { useServerPathBrowse } from '@/shared/hooks/use-server-path-browse';
 import type { ServerPathEntryView } from '@/shared/lib/api';
 import { hostCapabilityManager } from '@/shared/lib/host-capabilities';
 import { t } from '@/shared/lib/i18n';
+import {
+  normalizeWorkspaceProjectTreeRootKey,
+  useWorkspaceProjectTreeStore,
+} from '@/features/chat/features/workspace/stores/workspace-project-tree.store';
 
 type ChatSessionWorkspaceDirectoryBrowserProps = {
   activeRelativePath?: string | null;
@@ -32,6 +42,8 @@ type ChatSessionWorkspaceDirectoryBrowserProps = {
   showRoot?: boolean;
 };
 
+const EMPTY_EXPANDED_PATHS: readonly string[] = [];
+
 function readPathName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
@@ -39,7 +51,6 @@ function readPathName(path: string): string {
 function WorkspaceDirectoryEntries({
   activeRelativePath,
   busy,
-  collapseVersion,
   createTarget,
   entries,
   fallbackParentTarget,
@@ -60,10 +71,10 @@ function WorkspaceDirectoryEntries({
   revealPath,
   selectedPath,
   showRoot,
+  treeRootKey,
 }: {
   activeRelativePath: string | null;
   busy: boolean;
-  collapseVersion: number;
   createTarget: WorkspaceDirectoryActionTarget | null;
   entries: readonly ServerPathEntryView[];
   fallbackParentTarget: WorkspaceDirectoryActionTarget;
@@ -84,6 +95,7 @@ function WorkspaceDirectoryEntries({
   revealPath: string | null;
   selectedPath: string | null;
   showRoot: boolean;
+  treeRootKey: string | null;
 }) {
   if (entries.length === 0) {
     return <div className="px-4 py-8 text-center text-xs text-gray-400">{t('chatWorkspaceDirectoryEmpty')}</div>;
@@ -94,7 +106,6 @@ function WorkspaceDirectoryEntries({
       key={entry.path}
       browseParentRefresh={refresh}
       busy={busy}
-      collapseVersion={collapseVersion}
       createTarget={createTarget}
       entry={entry}
       level={showRoot ? 1 : 0}
@@ -113,6 +124,7 @@ function WorkspaceDirectoryEntries({
       renderCreateFolder={renderCreateFolder}
       revealPath={revealPath}
       selectedPath={selectedPath}
+      treeRootKey={treeRootKey}
     />
   ));
 }
@@ -207,45 +219,6 @@ function buildRootContextMenuGroups({
   ];
 }
 
-function WorkspaceProjectTree({
-  children,
-  currentPath,
-  onBlankContext,
-  onContextMenu,
-  rootDraft,
-  showRoot,
-}: {
-  children: ReactNode;
-  currentPath: string | null;
-  onBlankContext: () => void;
-  onContextMenu?: MouseEventHandler<HTMLDivElement>;
-  rootDraft: ReactNode;
-  showRoot: boolean;
-}) {
-  return (
-    <div
-      data-testid="workspace-directory-browser"
-      role="tree"
-      tabIndex={-1}
-      aria-label={t('chatWorkspaceProjectFiles')}
-      className="min-h-0 flex-1 overflow-auto py-1 custom-scrollbar"
-      onContextMenu={(event) => {
-        if (!(event.target as HTMLElement).closest('[data-workspace-tree-entry]')) onBlankContext();
-        onContextMenu?.(event);
-      }}
-    >
-      {showRoot && currentPath ? (
-        <>
-          {rootDraft}
-          {children}
-        </>
-      ) : (
-        children
-      )}
-    </div>
-  );
-}
-
 function WorkspaceDirectoryBrowserReady({
   activeRelativePath,
   browseQuery,
@@ -271,6 +244,7 @@ function WorkspaceDirectoryBrowserReady({
   rootPath: string | null;
   showRoot: boolean;
 }) {
+  const queryClient = useQueryClient();
   const {
     cancelCreateFolder,
     clearSelection,
@@ -298,8 +272,15 @@ function WorkspaceDirectoryBrowserReady({
     selectedPath,
   } = controller.state;
   const busy = pendingAction !== null;
-  const [collapseVersion, setCollapseVersion] = useState(0);
-  const rootRefresh = () => browseQuery.refetch();
+  const treeRootKey = normalizeWorkspaceProjectTreeRootKey(rootPath);
+  const collapseAll = useWorkspaceProjectTreeStore((state) => state.collapseAll);
+  const rootRefresh = () =>
+    rootPath
+      ? queryClient.refetchQueries({
+          predicate: (query) => isWorkspaceProjectBrowseQuery(query.queryKey, rootPath),
+          type: 'active',
+        })
+      : browseQuery.refetch();
   const rootTarget: WorkspaceDirectoryActionTarget | null = rootPath
     ? { label: rootLabel, path: rootPath, refresh: rootRefresh }
     : null;
@@ -328,7 +309,6 @@ function WorkspaceDirectoryBrowserReady({
     <WorkspaceDirectoryEntries
       activeRelativePath={activeRelativePath}
       busy={busy}
-      collapseVersion={collapseVersion}
       createTarget={createTarget}
       entries={entries}
       fallbackParentTarget={fallbackParentTarget}
@@ -349,6 +329,7 @@ function WorkspaceDirectoryBrowserReady({
       revealPath={revealPath}
       selectedPath={selectedPath}
       showRoot={false}
+      treeRootKey={treeRootKey || null}
     />
   );
   const tree = (
@@ -364,10 +345,12 @@ function WorkspaceDirectoryBrowserReady({
   const rootMenuGroups = rootTarget
     ? buildRootContextMenuGroups({
         busy,
-        onCollapseAll: () => setCollapseVersion((value) => value + 1),
+        onCollapseAll: () => {
+          if (treeRootKey) collapseAll(treeRootKey);
+        },
         onCreateFile: () => openCreateFile(rootTarget),
         onCreateFolder: () => openCreateFolder(rootTarget),
-        onRefresh: () => void browseQuery.refetch(),
+        onRefresh: () => void rootRefresh(),
         onRevealPath,
         onUpload: () => requestUpload(rootTarget),
         target: rootTarget,
@@ -385,10 +368,12 @@ function WorkspaceDirectoryBrowserReady({
         <WorkspaceProjectFilesToolbar
           disabled={busy}
           rootLabel={rootLabel}
-          onCollapseAll={() => setCollapseVersion((value) => value + 1)}
+          onCollapseAll={() => {
+            if (treeRootKey) collapseAll(treeRootKey);
+          }}
           onNewFile={() => openCreateFile(toolbarTarget)}
           onNewFolder={() => openCreateFolder(toolbarTarget)}
-          onRefresh={() => void browseQuery.refetch()}
+          onRefresh={() => void rootRefresh()}
         />
       ) : null}
       {rootPath ? (
@@ -427,6 +412,27 @@ export function ChatSessionWorkspaceDirectoryBrowser({
   const entries = browseQuery.data?.entries ?? [];
   const errorMessage = readBrowseError(browseQuery);
   const rootPath = showRoot ? (browseQuery.data?.currentPath ?? null) : null;
+  const treeRootKey = normalizeWorkspaceProjectTreeRootKey(rootPath);
+  const expandedPaths = useWorkspaceProjectTreeStore((state) =>
+    treeRootKey ? (state.trees[treeRootKey]?.expandedPaths ?? EMPTY_EXPANDED_PATHS) : EMPTY_EXPANDED_PATHS,
+  );
+  const watchedDirectories = useMemo(() => {
+    if (!rootPath) return [];
+    const separator = rootPath.includes('\\') && !rootPath.includes('/') ? '\\' : '/';
+    const normalizedRoot = rootPath.replace(/[\\/]+$/g, '');
+    const expandedPathSet = new Set(expandedPaths);
+    const visibleExpandedPaths = expandedPaths.filter((relativePath) => {
+      const segments = relativePath.split('/');
+      return segments.slice(0, -1).every((_, index) => expandedPathSet.has(segments.slice(0, index + 1).join('/')));
+    });
+    return [
+      rootPath,
+      ...visibleExpandedPaths.map(
+        (relativePath) => `${normalizedRoot}${separator}${relativePath.replace(/[\\/]+/g, separator)}`,
+      ),
+    ];
+  }, [expandedPaths, rootPath]);
+  useServerPathWatch(watchedDirectories);
   const rootLabel = rootPath ? readPathName(rootPath) : '';
   const controller = useWorkspaceProjectFilesController({
     activeRelativePath,

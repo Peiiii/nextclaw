@@ -2,10 +2,12 @@ import { useCallback } from "react";
 import type { ChatInlineTokenViewModel } from "@nextclaw/agent-chat-ui";
 import {
   CHAT_PROJECT_TOKEN_KIND,
+  CHAT_UI_RESOURCE_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
 } from "@nextclaw/shared";
 import { toast } from "sonner";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
+import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { resolveWorkspaceReferencePath } from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import { fetchNcpSessionSkills } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
@@ -21,9 +23,14 @@ export function useChatInlineTokenActions(params: {
 }) {
   const { selectedSession, sessionKey } = params;
   const presenter = usePresenter();
+  const appPresenter = useAppPresenter();
   const projectRoot = selectedSession?.projectRoot ?? selectedSession?.workingDir;
 
   const handleInlineTokenClick = useCallback((token: ChatInlineTokenViewModel) => {
+    if (token.kind === CHAT_UI_RESOURCE_TOKEN_KIND && "key" in token) {
+      appPresenter.docBrowserManager.open(token.key);
+      return;
+    }
     if (token.kind === "panel_app" && "key" in token) {
       void presenter.chatUiManager.showContent({
         target: { type: "panel_app", payload: { appId: token.key } },
@@ -98,7 +105,7 @@ export function useChatInlineTokenActions(params: {
         previewViewer: "rendered",
       });
     }).catch(() => toast.error(t("chatSkillPreviewUnavailable")));
-  }, [presenter, projectRoot, selectedSession?.projectRoot, sessionKey]);
+  }, [appPresenter.docBrowserManager, presenter, projectRoot, selectedSession?.projectRoot, sessionKey]);
 
   const handleAttachmentOpen = useCallback((file: {
     label: string;

@@ -449,6 +449,8 @@ export type {
   ServerPathReadView,
   ServerPathSearchEntryView,
   ServerPathSearchView,
+  ServerPathWatchRequest,
+  ServerPathWatchView,
 } from './server-path/server-path.types';
 
 export type PanelAppEntryView = {
@@ -826,6 +828,7 @@ export type ConfigActionExecuteResult = {
 // WebSocket events
 export type WsEvent =
   | { type: 'config.updated'; payload: { path: string } }
+  | { type: 'server-path.changed'; payload: { directoryPath: string } }
   | {
       type: 'channel.config.apply-status';
       payload: {

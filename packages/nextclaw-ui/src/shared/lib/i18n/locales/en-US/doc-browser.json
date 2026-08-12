@@ -17,6 +17,8 @@
   "docBrowserHomeTitle": "Start Page",
   "docBrowserCloseTab": "Close Tab",
   "docBrowserTabUntitled": "Untitled",
+  "docBrowserTabMoreActions": "More tab actions",
+  "docBrowserAddToChat": "Add to Chat",
   "sideDockPinCurrent": "Pin to SideDock",
   "sideDockUnpinCurrent": "Remove from SideDock",
   "sideDockBuiltInDocked": "Built-in shortcut",

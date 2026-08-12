@@ -10,6 +10,8 @@ import type {
   ServerPathFilesUploadView,
   ServerPathReadView,
   ServerPathSearchView,
+  ServerPathWatchRequest,
+  ServerPathWatchView,
 } from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
@@ -34,6 +36,15 @@ export class ServerPathsService {
         },
       },
     );
+  };
+
+  readonly watch = async (input: ServerPathWatchRequest): Promise<ServerPathWatchView> =>
+    await this.requestService.post<ServerPathWatchView>("/api/server-paths/watch", input);
+
+  readonly unwatch = async (subscriptionId: string): Promise<void> => {
+    await this.requestService.delete<{ unsubscribed: boolean }>("/api/server-paths/watch", {
+      query: { subscriptionId: subscriptionId.trim() },
+    });
   };
 
   readonly createDirectory = async (

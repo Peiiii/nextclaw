@@ -2,6 +2,7 @@ import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_PROJECT_TOKEN_KIND,
   CHAT_SYSTEM_OBJECT_TOKEN_KIND,
+  CHAT_UI_RESOURCE_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
@@ -15,6 +16,7 @@ const CHAT_WORKSPACE_DIRECTORY_TOKEN_PREFIX = '@folder:';
 const CHAT_WORKSPACE_EXCERPT_TOKEN_PREFIX = '@excerpt:';
 const CHAT_CONVERSATION_EXCERPT_TOKEN_PREFIX = '@message-excerpt:';
 const CHAT_SYSTEM_OBJECT_TOKEN_PREFIX = '@object:';
+const CHAT_UI_RESOURCE_TOKEN_PREFIX = '@resource:';
 
 export function serializeChatComposerTokenText(params: {
   label?: string;
@@ -45,6 +47,9 @@ export function serializeChatComposerTokenText(params: {
   }
   if (tokenKind === CHAT_SYSTEM_OBJECT_TOKEN_KIND) {
     return `${CHAT_SYSTEM_OBJECT_TOKEN_PREFIX}${encodeURIComponent(tokenKey)}`;
+  }
+  if (tokenKind === CHAT_UI_RESOURCE_TOKEN_KIND) {
+    return `${CHAT_UI_RESOURCE_TOKEN_PREFIX}${encodeURIComponent(tokenKey)}`;
   }
   return null;
 }

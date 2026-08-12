@@ -12,6 +12,7 @@ import {
   EventStreamAuthService,
   EventStreamClientRegistry,
 } from "@nextclaw-server/features/event-stream/index.js";
+import { ServerPathWatchService } from "@nextclaw-server/features/server-path/index.js";
 import { createUiRouter } from "./router.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 import { serveStatic } from "hono/serve-static";
@@ -265,11 +266,12 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
     getChannelBindings: gateway.extensions?.getChannelBindings,
   });
   const eventStreamClients = new EventStreamClientRegistry();
+  const serverPathWatchService = new ServerPathWatchService(gateway.appEventBus);
   const unsubscribeEventBus = gateway.appEventBus.subscribeAll(eventStreamClients.publish);
 
   app.route(
     "/",
-    createUiRouter(gateway, authService)
+    createUiRouter(gateway, authService, { serverPathWatchService })
   );
 
   if (uiStaticDir) {
@@ -297,6 +299,7 @@ export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerH
     close: () =>
       new Promise((resolve) => {
         unsubscribeEventBus();
+        serverPathWatchService.close();
         eventStreamClients.closeAll();
         wss.close(() => {
           server.close(() => resolve());

@@ -28,9 +28,11 @@ Header 最右侧只表达“展开 / 收起会话工作台”这一项双向意�
    - 子会话：显示数量；进入子会话列表页，零数量时展示空状态，有内容时再进入具体子会话详情。
    - 会话定时任务：显示数量；始终可进入既有定时任务内容页，零数量时展示空状态。
    - 项目文件：始终可进入；没有可用项目路径时展示明确空态。
-4. 项目文件采用 VS Code 式层级树：目录在当前层级原地展开/收起，子目录首次展开时调用既有 browse query，文件点击后调用 `openFilePreview`。
-5. 侧栏会话行的选中态仅表达当前会话。置顶、编辑和子会话操作只在行 hover 或操作自身获得键盘焦点时显示，不由行按钮的残留 focus 触发常驻展示。
-6. 会话工作台宽度是跨会话的布局偏好：拖拽中只更新组件本地宽度，拖拽结束后由 `ChatThreadManager` 回写持久化 store；刷新后恢复上次宽度，并继续按 360–860px 边界归一化。
+4. 项目文件采用 VS Code 式层级树：目录在当前层级原地展开/收起，子目录首次展开时调用既有 browse query，文件点击后调用 `openFilePreview`。项目根路径作为视图状态 key，只持久化相对展开路径与滚动位置，不持久化目录条目；恢复时按展开路径直接加载当前文件系统事实，避免先展示旧目录快照再闪成新数据。
+5. 项目文件刷新不是只刷新根查询，而是重取该项目根目录下全部 active browse query，因此当前所有展开目录会一起更新。“全部折叠”由项目树 store 原子清空展开路径，不再广播版本号让每个节点自行清理本地状态。
+6. 项目文件自动同步复用现有 app event WebSocket，但新增显式 watch action 作为事件源。前端只订阅项目根目录和当前展开目录；服务端使用非递归浅层 watcher，80ms 内同目录事件合并为一次 `server-path.changed`，前端只失效对应目录 query。收起目录或卸载面板即释放订阅，同时以 5 分钟租约回收异常断开的客户端资源。
+7. 侧栏会话行的选中态仅表达当前会话。置顶、编辑和子会话操作只在行 hover 或操作自身获得键盘焦点时显示，不由行按钮的残留 focus 触发常驻展示。
+8. 会话工作台宽度是跨会话的布局偏好：拖拽中只更新组件本地宽度，拖拽结束后由 `ChatThreadManager` 回写持久化 store；刷新后恢复上次宽度，并继续按 360–860px 边界归一化。
 
 ## Owner 与数据流
 
@@ -50,13 +52,20 @@ projectRoot / workingDir
   -> 项目文件树
   -> ChatThreadManager.openFilePreview
   -> 既有文件预览 tab
+
+项目根 + 展开相对路径
+  -> workspace-project-tree.store（仅视图状态，localStorage）
+  -> 显式 server-path watch action（根目录 + 展开目录）
+  -> 浅层文件系统 watcher
+  -> app event WebSocket: server-path.changed
+  -> 精确 invalidate 对应 browse query
 ```
 
 状态转移只由 `ChatThreadManager` 执行；query hook 不镜像派生状态到 store，组件不直接拼写 workspace snapshot。
 
 ## 目录组织
 
-- 状态合同继续位于 `features/chat/stores/chat-thread.store.ts`。
+- workspace panel 导航状态合同继续位于 `features/chat/stores/chat-thread.store.ts`；跨会话共享、按项目根隔离的文件树视图状态由 workspace feature 内独立持久化 store 拥有，避免污染会话消息与导航快照。
 - workspace 导航派生继续位于现有 view-model utils。
 - 概览归现有 workspace panel content，因为它是该内容路由的稳定页面。
 - 现有 directory browser 改造成项目树展示，不并存第二套 flat browser。
@@ -78,6 +87,10 @@ projectRoot / workingDir
 - 即使当前没有子会话、定时任务和已打开文件，侧栏也能正常显示。
 - 概览展示子会话、会话定时任务、项目文件入口；数量来自真实会话数据，零数量入口不置灰且可进入对应空状态页。
 - 项目文件页以层级树展示目录，目录可原地展开/收起，点击文件复用现有预览。
+- 手动刷新会同时更新根目录和所有展开目录；新增、删除或重命名能立即出现在当前可见层级。
+- 目录展开与滚动位置在切换页面、组件重挂载和刷新后恢复；目录条目本身不写入 localStorage。
+- “全部折叠”一次操作收起所有手动展开目录，并同步更新持久化状态。
+- 外部文件系统变更通过浅层按需 watcher 自动更新对应可见目录；订阅异常时不伪装成功，用户仍可使用手动刷新。
 - 后退/前进能覆盖概览、项目文件和既有 workspace selection。
 - 刷新后仍能恢复新页面 selection，旧持久状态仍可读取。
 - 调整工作台宽度后刷新页面，宽度仍保持，并且非法持久值会回到安全边界。
@@ -88,6 +101,7 @@ projectRoot / workingDir
 
 - 不实现文件新建、重命名、删除、拖拽或右键菜单。
 - 不改变 server-path API 的权限和根路径合同。
+- 不递归监听整个项目，不监听未展开的深层目录，不持久化文件树数据，也不使用定时轮询替代实时事件。
 - 不重做文件预览器、cron 管理页或子会话详情。
 - 不把右侧工作台扩展成跨会话全局资源管理器。
 

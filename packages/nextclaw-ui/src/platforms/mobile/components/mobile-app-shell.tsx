@@ -7,6 +7,7 @@ import { MobileBottomNav } from "@/platforms/mobile/components/mobile-bottom-nav
 import { MobileTopbar } from "@/platforms/mobile/components/mobile-topbar";
 import type { DocBrowserCustomTabRenderers } from "@/shared/components/doc-browser/doc-browser-renderer.types";
 import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
+import type { DocBrowserTabMenuGroupsResolver } from "@/shared/components/doc-browser/doc-browser";
 
 const DocBrowser = lazy(async () => ({
   default: (await import("@/shared/components/doc-browser/doc-browser")).DocBrowser,
@@ -17,6 +18,7 @@ type MobileAppShellProps = {
   isDocBrowserOpen: boolean;
   docBrowserDockControls?: DocBrowserDockControls;
   docBrowserRenderers?: DocBrowserCustomTabRenderers;
+  docBrowserTabMenuGroups?: DocBrowserTabMenuGroupsResolver;
   topbarLeadingInset?: string;
   children: React.ReactNode;
 };
@@ -26,6 +28,7 @@ export function MobileAppShell({
   isDocBrowserOpen,
   docBrowserDockControls,
   docBrowserRenderers = {},
+  docBrowserTabMenuGroups,
   topbarLeadingInset,
   children,
 }: MobileAppShellProps) {
@@ -48,7 +51,12 @@ export function MobileAppShell({
       {showBottomNav ? <MobileBottomNav /> : null}
       {isDocBrowserOpen ? (
         <Suspense fallback={null}>
-          <DocBrowser customTabRenderers={docBrowserRenderers} displayMode="fullscreen" dockControls={docBrowserDockControls} />
+          <DocBrowser
+            customTabRenderers={docBrowserRenderers}
+            displayMode="fullscreen"
+            dockControls={docBrowserDockControls}
+            getTabMenuGroups={docBrowserTabMenuGroups}
+          />
         </Suspense>
       ) : null}
     </div>

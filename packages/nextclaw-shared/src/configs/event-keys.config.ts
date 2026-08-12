@@ -41,6 +41,9 @@ export const eventKeys = {
     "session.summary.delete",
   ),
   uiShowContent: createAppEventKey<UiShowContentEventPayload>("ui.show-content"),
+  serverPathChanged: createAppEventKey<{ directoryPath: string }>(
+    "server-path.changed",
+  ),
   inboxDeliveryChanged: createAppEventKey<InboxDeliveryChangedEventPayload>(
     "inbox.delivery.changed",
   ),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import {
+  createChatUiResourceReferenceFromTab,
   createPanelAppContentPath,
   createPanelAppResourceUri,
   createPanelAppRightPanelResourceTarget,
@@ -26,6 +27,39 @@ function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelA
 }
 
 describe('right-panel-resource uri utils', () => {
+  it('creates a stable chat reference for an addressable panel tab', () => {
+    expect(createChatUiResourceReferenceFromTab({
+      id: 'panel-demo',
+      kind: 'panel-app',
+      title: 'Demo App',
+      currentUrl: '/api/panel-apps/demo/content',
+      resourceUri: 'nextclaw://panel-app/demo',
+      contentParams: { itemId: 'note-1' },
+      history: ['/api/panel-apps/demo/content'],
+      historyIndex: 0,
+      navVersion: 0,
+    })).toEqual({
+      uri: 'nextclaw://panel-app/demo',
+      resourceKind: 'panel-app',
+      title: 'Demo App',
+      currentUrl: '/api/panel-apps/demo/content',
+      contentParams: { itemId: 'note-1' },
+    });
+  });
+
+  it('does not create chat references for empty browser tabs', () => {
+    expect(createChatUiResourceReferenceFromTab({
+      id: 'home',
+      kind: 'home',
+      title: 'Start Page',
+      currentUrl: 'nextclaw://new-tab',
+      resourceUri: 'nextclaw://new-tab',
+      history: ['nextclaw://new-tab'],
+      historyIndex: 0,
+      navVersion: 0,
+    })).toBeNull();
+  });
+
   it('builds matching external panel app resource and content URLs', () => {
     expect(createPanelAppResourceUri('demo', '/tmp/demo.panel')).toBe(
       'nextclaw://panel-app/demo?path=%2Ftmp%2Fdemo.panel',

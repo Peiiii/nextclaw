@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChatFileOpenActionViewModel } from '@nextclaw/agent-chat-ui';
 import {
   ChevronDown,
@@ -26,13 +26,16 @@ import { buildServerPathContentUrl, type ServerPathEntryView } from '@/shared/li
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 import { buildWorkspaceEntryContextMenuGroups } from '@/features/chat/features/workspace/components/project-files/workspace-directory-entry-menu';
+import {
+  normalizeWorkspaceProjectTreeRelativePath,
+  useWorkspaceProjectTreeStore,
+} from '@/features/chat/features/workspace/stores/workspace-project-tree.store';
 
 export { copyWorkspacePath } from '@/features/chat/features/workspace/components/project-files/workspace-directory-entry-menu';
 
 type WorkspaceDirectoryTreeActionProps = {
   activeRelativePath: string | null;
   busy: boolean;
-  collapseVersion: number;
   createTarget: WorkspaceDirectoryActionTarget | null;
   onAddToChat?: (entry: ServerPathEntryView, relativePath: string) => void;
   onCreateFolder?: (target: WorkspaceDirectoryActionTarget) => void;
@@ -45,6 +48,7 @@ type WorkspaceDirectoryTreeActionProps = {
   renderCreateFolder: (level: number) => ReactNode;
   revealPath: string | null;
   selectedPath: string | null;
+  treeRootKey: string | null;
 };
 
 function buildEntryLabel(entry: ServerPathEntryView): string {
@@ -206,11 +210,31 @@ function isWorkspaceTreeEntryExpanded(
   );
 }
 
+function useWorkspaceTreeEntryExpansion(treeRootKey: string | null, relativePath: string | null) {
+  const [locallyExpanded, setLocallyExpanded] = useState(false);
+  const relativePathKey = normalizeWorkspaceProjectTreeRelativePath(relativePath);
+  const persistedExpanded = useWorkspaceProjectTreeStore((state) =>
+    Boolean(treeRootKey && relativePathKey && state.trees[treeRootKey]?.expandedPaths.includes(relativePathKey)),
+  );
+  const setDirectoryExpanded = useWorkspaceProjectTreeStore((state) => state.setDirectoryExpanded);
+  const manuallyExpanded = treeRootKey && relativePathKey ? persistedExpanded : locallyExpanded;
+  const updateExpanded = useCallback(
+    (expanded: boolean) => {
+      if (treeRootKey && relativePathKey) {
+        setDirectoryExpanded(treeRootKey, relativePathKey, expanded);
+        return;
+      }
+      setLocallyExpanded(expanded);
+    },
+    [relativePathKey, setDirectoryExpanded, treeRootKey],
+  );
+  return { manuallyExpanded, updateExpanded };
+}
+
 export function WorkspaceDirectoryTreeEntry({
   activeRelativePath,
   browseParentRefresh,
   busy,
-  collapseVersion,
   createTarget,
   entry,
   level,
@@ -229,6 +253,7 @@ export function WorkspaceDirectoryTreeEntry({
   renderCreateFolder,
   revealPath,
   selectedPath,
+  treeRootKey,
 }: WorkspaceDirectoryTreeActionProps & {
   browseParentRefresh: RefreshDirectory;
   entry: ServerPathEntryView;
@@ -241,7 +266,7 @@ export function WorkspaceDirectoryTreeEntry({
   const rowRef = useRef<HTMLDivElement | null>(null);
   const entryButtonRef = useRef<HTMLButtonElement | null>(null);
   const isDirectory = entry.kind === 'directory';
-  const [manuallyExpanded, setIsExpanded] = useState(false);
+  const { manuallyExpanded, updateExpanded } = useWorkspaceTreeEntryExpansion(treeRootKey, relativePath);
   const isExpanded = isWorkspaceTreeEntryExpanded(
     manuallyExpanded,
     isDirectory,
@@ -254,9 +279,6 @@ export function WorkspaceDirectoryTreeEntry({
     onRename,
     refresh: browseParentRefresh,
   });
-  useEffect(() => {
-    if (collapseVersion > 0) setIsExpanded(false);
-  }, [collapseVersion]);
   const browseQuery = useServerPathBrowse({
     path: entry.path,
     includeFiles: true,
@@ -271,10 +293,10 @@ export function WorkspaceDirectoryTreeEntry({
             label: entry.name,
             path: entry.path,
             refresh: () => refreshDirectory(),
-            expand: () => setIsExpanded(true),
+            expand: () => updateExpanded(true),
           }
         : parentCreateTarget,
-    [entry.name, entry.path, isDirectory, parentCreateTarget, refreshDirectory],
+    [entry.name, entry.path, isDirectory, parentCreateTarget, refreshDirectory, updateExpanded],
   );
   const selection = useMemo<WorkspaceTreeSelection>(
     () => ({ path: entry.path, createTarget: ownCreateTarget }),
@@ -301,7 +323,7 @@ export function WorkspaceDirectoryTreeEntry({
 
   const activateEntry = () => {
     onSelect(selection);
-    if (isDirectory) setIsExpanded(!isExpanded);
+    if (isDirectory) updateExpanded(!isExpanded);
     else onFileOpen({ path: entry.path, label: entry.name, viewMode: 'preview' });
   };
 
@@ -433,7 +455,6 @@ export function WorkspaceDirectoryTreeEntry({
             activeRelativePath={activeRelativePath}
             browseQuery={browseQuery}
             busy={busy}
-            collapseVersion={collapseVersion}
             createTarget={createTarget}
             level={level}
             onAddToChat={onAddToChat}
@@ -451,6 +472,7 @@ export function WorkspaceDirectoryTreeEntry({
             renderCreateFolder={renderCreateFolder}
             revealPath={revealPath}
             selectedPath={selectedPath}
+            treeRootKey={treeRootKey}
           />
         </div>
       ) : null}

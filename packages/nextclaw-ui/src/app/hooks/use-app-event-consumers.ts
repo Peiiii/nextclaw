@@ -30,6 +30,22 @@ function handleConfigUpdatedEvent(queryClient: QueryClient | undefined, path: st
   invalidateMarketplaceQueries(queryClient, path);
 }
 
+function normalizeServerPath(path: string): string {
+  const normalized = path.trim().replace(/\\/g, '/').replace(/\/+$/g, '');
+  return /^[a-z]:/i.test(normalized) ? normalized.toLowerCase() : normalized;
+}
+
+export function invalidateChangedServerPath(queryClient: QueryClient | undefined, directoryPath: string): void {
+  if (!queryClient) return;
+  const changedDirectory = normalizeServerPath(directoryPath);
+  void queryClient.invalidateQueries({
+    predicate: (query) =>
+      query.queryKey[0] === 'server-path-browse' &&
+      typeof query.queryKey[1] === 'string' &&
+      normalizeServerPath(query.queryKey[1]) === changedDirectory,
+  });
+}
+
 export function useAppEventConsumers(queryClient?: QueryClient) {
   const shouldResyncSessionsRef = useRef(false);
 
@@ -53,6 +69,10 @@ export function useAppEventConsumers(queryClient?: QueryClient) {
     const unsubscribeConfigUpdated = nextclawClient.eventBus.on(eventKeys.configUpdated, ({ path }) => {
       handleConfigUpdatedEvent(queryClient, path);
     });
+    const unsubscribeServerPathChanged = nextclawClient.eventBus.on(
+      eventKeys.serverPathChanged,
+      ({ directoryPath }) => invalidateChangedServerPath(queryClient, directoryPath),
+    );
     const unsubscribeRuntimeUpdate = nextclawClient.eventBus.on(eventKeys.runtimeUpdateSnapshot, (snapshot) => {
       runtimeUpdateManager.reportSnapshot(snapshot);
     });
@@ -74,6 +94,7 @@ export function useAppEventConsumers(queryClient?: QueryClient) {
       unsubscribeConnectionClose();
       unsubscribeConnectionError();
       unsubscribeConfigUpdated();
+      unsubscribeServerPathChanged();
       unsubscribeRuntimeUpdate();
       unsubscribeSessionRunStatus();
       unsubscribeSessionSummaryUpsert();

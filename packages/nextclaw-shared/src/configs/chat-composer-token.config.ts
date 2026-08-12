@@ -1,3 +1,8 @@
+import type {
+  CHAT_UI_RESOURCE_TOKEN_KIND,
+  ChatUiResourceReference,
+} from "./chat-ui-resource-reference.config.js";
+
 export const CHAT_INLINE_TOKENS_METADATA_KEY = "ui_inline_tokens";
 export const CHAT_INLINE_TOKENS_SCHEMA_VERSION = 2;
 export const CHAT_PROJECT_TOKEN_KIND = "project";
@@ -76,12 +81,21 @@ export type ChatSystemObjectInlineTokenMetadata = {
   };
 };
 
+export type ChatUiResourceInlineTokenMetadata = {
+  kind: typeof CHAT_UI_RESOURCE_TOKEN_KIND;
+  key: string;
+  label: string;
+  rawText: string;
+  reference: ChatUiResourceReference;
+};
+
 export type ChatInlineTokenMetadata =
   | ChatSkillInlineTokenMetadata
   | ChatProjectInlineTokenMetadata
   | ChatWorkspaceInlineTokenMetadata
   | ChatWorkspaceExcerptInlineTokenMetadata
   | ChatConversationExcerptInlineTokenMetadata
+  | ChatUiResourceInlineTokenMetadata
   | ChatSystemObjectInlineTokenMetadata;
 
 export type ChatInlineTokensMetadata = {

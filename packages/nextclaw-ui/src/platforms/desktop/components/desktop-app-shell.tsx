@@ -10,6 +10,7 @@ import { isWindowsDesktopHost } from "@/platforms/desktop/utils/desktop-host.uti
 import { MobileBottomNav } from "@/platforms/mobile";
 import type { DocBrowserCustomTabRenderers } from "@/shared/components/doc-browser/doc-browser-renderer.types";
 import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
+import type { DocBrowserTabMenuGroupsResolver } from "@/shared/components/doc-browser/doc-browser";
 import { cn } from "@/shared/lib/utils";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styles";
@@ -26,6 +27,7 @@ type DesktopAppShellProps = {
   docBrowserMode: "floating" | "docked";
   docBrowserDockControls?: DocBrowserDockControls;
   docBrowserRenderers?: DocBrowserCustomTabRenderers;
+  docBrowserTabMenuGroups?: DocBrowserTabMenuGroupsResolver;
   sideDock?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -37,6 +39,7 @@ export function DesktopAppShell({
   docBrowserMode,
   docBrowserDockControls,
   docBrowserRenderers = {},
+  docBrowserTabMenuGroups,
   sideDock,
   children,
 }: DesktopAppShellProps) {
@@ -91,6 +94,7 @@ export function DesktopAppShell({
               <DocBrowser
                 customTabRenderers={docBrowserRenderers}
                 dockControls={docBrowserDockControls}
+                getTabMenuGroups={docBrowserTabMenuGroups}
               />
             </Suspense>
           ) : null}
@@ -103,6 +107,7 @@ export function DesktopAppShell({
           <DocBrowser
             customTabRenderers={docBrowserRenderers}
             dockControls={docBrowserDockControls}
+            getTabMenuGroups={docBrowserTabMenuGroups}
           />
         </Suspense>
       ) : null}

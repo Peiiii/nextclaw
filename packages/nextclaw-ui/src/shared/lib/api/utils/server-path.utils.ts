@@ -12,6 +12,8 @@ import type {
   ServerPathFilesUploadView,
   ServerPathReadView,
   ServerPathSearchView,
+  ServerPathWatchRequest,
+  ServerPathWatchView,
 } from '@/shared/lib/api/types';
 
 const SERVER_PATH_CONTENT_BASE_PATH = '/api/server-paths/content';
@@ -22,6 +24,14 @@ export async function fetchServerPathBrowse(params?: {
   includeFiles?: boolean;
 }): Promise<ServerPathBrowseView> {
   return await nextclawClient.serverPaths.browse(params);
+}
+
+export async function watchServerPaths(input: ServerPathWatchRequest): Promise<ServerPathWatchView> {
+  return await nextclawClient.serverPaths.watch(input);
+}
+
+export async function unwatchServerPaths(subscriptionId: string): Promise<void> {
+  await nextclawClient.serverPaths.unwatch(subscriptionId);
 }
 
 export async function createServerPathDirectory(

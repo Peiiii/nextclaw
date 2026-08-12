@@ -152,4 +152,33 @@ describe('ChatComposerIntentManager', () => {
       }),
     );
   });
+
+  it('publishes an immutable UI resource reference to the targeted composer', () => {
+    const manager = new ChatComposerIntentManager();
+    const listener = vi.fn();
+    manager.subscribe('session-1', listener);
+    const reference = {
+      uri: 'nextclaw://panel-app/task-board',
+      resourceKind: 'panel-app',
+      title: 'Task board',
+      currentUrl: '/api/panel-apps/task-board/content',
+      contentParams: { boardId: 'today' },
+    };
+
+    manager.requestUiResourceReference({
+      targetSessionKey: 'session-1',
+      reference,
+    });
+    reference.contentParams.boardId = 'mutated';
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({
+      kind: 'ui_resource',
+      targetSessionKey: 'session-1',
+      tokenKey: 'nextclaw://panel-app/task-board',
+      label: 'Task board',
+      reference: expect.objectContaining({
+        contentParams: { boardId: 'today' },
+      }),
+    }));
+  });
 });

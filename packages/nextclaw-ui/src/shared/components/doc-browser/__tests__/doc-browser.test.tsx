@@ -571,6 +571,40 @@ describe("DocBrowser floating interactions", () => {
     expect(onDragStart).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the same tab action from right click and the more button", () => {
+    const onAddToChat = vi.fn();
+
+    render(
+      <DocBrowserTabStrip
+        tabs={docBrowserState.tabs}
+        activeTabId="docs"
+        canGoBack={false}
+        canGoForward={false}
+        isDocked={true}
+        isFullscreen={false}
+        onGoBack={vi.fn()}
+        onGoForward={vi.fn()}
+        onOpenNewTab={vi.fn()}
+        onSetActiveTab={vi.fn()}
+        onCloseTab={vi.fn()}
+        onClose={vi.fn()}
+        onDragStart={vi.fn()}
+        onToggleMode={vi.fn()}
+        getTabMenuGroups={() => [{
+          key: "chat",
+          items: [{ key: "add", label: "Add to Chat", onSelect: onAddToChat }],
+        }]}
+      />,
+    );
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "Docs" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Add to Chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "More tab actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Add to Chat" }));
+
+    expect(onAddToChat).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps the floating panel left edge stable when resizing from the right", () => {
     docBrowserState.mode = "floating";
 

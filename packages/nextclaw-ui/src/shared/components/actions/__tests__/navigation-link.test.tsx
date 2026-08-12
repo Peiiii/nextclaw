@@ -1,3 +1,4 @@
+import { createRef } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -54,5 +55,16 @@ describe("NavigationLink", () => {
 
     expect(screen.getByText("Session route")).toBeTruthy();
     expect(mocks.openExternalUrl).not.toHaveBeenCalled();
+  });
+
+  it("forwards refs to the rendered anchor for asChild consumers", () => {
+    const ref = createRef<HTMLAnchorElement>();
+    render(
+      <NavigationLink ref={ref} href="https://docs.nextclaw.io/" external>
+        View docs
+      </NavigationLink>,
+    );
+
+    expect(ref.current).toBe(screen.getByRole("link", { name: "View docs" }));
   });
 });

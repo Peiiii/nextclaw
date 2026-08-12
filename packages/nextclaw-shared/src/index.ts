@@ -72,6 +72,10 @@ export {
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
 } from "./configs/chat-composer-token.config.js";
 export {
+  CHAT_UI_RESOURCE_TOKEN_KIND,
+  readChatUiResourceReference,
+} from "./configs/chat-ui-resource-reference.config.js";
+export {
   SYSTEM_OBJECT_REFERENCE_DEFAULT_LIMIT,
   SYSTEM_OBJECT_REFERENCE_MAX_LIMIT,
   SYSTEM_OBJECT_REFERENCE_URI_HOST,
@@ -105,9 +109,13 @@ export type {
   ChatSkillInlineTokenMetadata,
   ChatSkillSource,
   ChatSystemObjectInlineTokenMetadata,
+  ChatUiResourceInlineTokenMetadata,
   ChatWorkspaceInlineTokenMetadata,
   ChatWorkspaceExcerptInlineTokenMetadata,
 } from "./configs/chat-composer-token.config.js";
+export type {
+  ChatUiResourceReference,
+} from "./configs/chat-ui-resource-reference.config.js";
 export type {
   SystemObjectReferenceDisplayText,
   SystemObjectReferenceGroupDescriptor,

@@ -33,7 +33,10 @@ import { ProjectsRoutesController } from "@nextclaw-server/features/projects/ind
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
-import { ServerPathRoutesController } from "@nextclaw-server/features/server-path/index.js";
+import {
+  ServerPathRoutesController,
+  type ServerPathWatchService,
+} from "@nextclaw-server/features/server-path/index.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 const NCP_AGENT_BASE_PATH = "/api/ncp/agent";
@@ -43,6 +46,7 @@ function createUiRouteControllers(
   options: UiRouterOptions,
   authService: UiAuthService,
   marketplaceBaseUrls: readonly string[],
+  serverPathWatchService?: ServerPathWatchService,
 ) {
   const { kernel, panelAppClientSdkScript, remoteAccess, runtimeControl, runtimeUpdate } = options;
   return {
@@ -67,7 +71,7 @@ function createUiRouteControllers(
       panelAppManager: kernel.panelAppManager,
       serviceAppManager: kernel.serviceAppManager,
     }),
-    serverPath: new ServerPathRoutesController(),
+    serverPath: new ServerPathRoutesController(serverPathWatchService),
     remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
     runtimeControl: runtimeControl ? new RuntimeControlRoutesController(runtimeControl) : null,
     runtimeUpdate: runtimeUpdate ? new RuntimeUpdateRoutesController(runtimeUpdate) : null,
@@ -307,6 +311,8 @@ class UiRouteRegistry {
       ["delete", "/api/service-action-grants/:actionId", serviceApps.revokeServiceActionGrant],
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/search", serverPath.search],
+      ["post", "/api/server-paths/watch", serverPath.watch],
+      ["delete", "/api/server-paths/watch", serverPath.unwatch],
       ["post", "/api/server-paths/directory", serverPath.createDirectory],
       ["post", "/api/server-paths/file", serverPath.createFile],
       ["post", "/api/server-paths/files", serverPath.uploadFiles],
@@ -428,14 +434,23 @@ class UiRouteRegistry {
   };
 }
 
-export function createUiRouter(options: UiRouterOptions, authServiceOverride?: UiAuthService): Hono {
+export function createUiRouter(
+  options: UiRouterOptions,
+  authServiceOverride?: UiAuthService,
+  internal?: { serverPathWatchService?: ServerPathWatchService },
+): Hono {
   const app = new Hono();
   const marketplaceBaseUrls = resolveMarketplaceBaseUrls(options);
   const authService =
     authServiceOverride ??
     options.authService ??
     new UiAuthService(options.kernel.accessManager ?? new AccessManager({ configPath: options.configPath }));
-  const controllers = createUiRouteControllers(options, authService, marketplaceBaseUrls);
+  const controllers = createUiRouteControllers(
+    options,
+    authService,
+    marketplaceBaseUrls,
+    internal?.serverPathWatchService,
+  );
 
   app.notFound((c) => c.json(err("NOT_FOUND", "endpoint not found"), 404));
 

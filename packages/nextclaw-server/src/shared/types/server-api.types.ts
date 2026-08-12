@@ -481,6 +481,16 @@ export type ServerPathBrowseView = {
   locations: ServerPathLocationView[];
 };
 
+export type ServerPathWatchRequest = {
+  subscriptionId?: string | null;
+  directories: string[];
+};
+
+export type ServerPathWatchView = {
+  subscriptionId: string;
+  watchedDirectories: string[];
+};
+
 export type ServerPathSearchEntryView = {
   name: string;
   path: string;

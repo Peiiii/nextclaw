@@ -166,6 +166,8 @@ export type {
   ServerPathReadView,
   ServerPathSearchEntryView,
   ServerPathSearchView,
+  ServerPathWatchRequest,
+  ServerPathWatchView,
   SessionPatchUpdate,
   UiNcpAssetPutView as NcpAssetPutView,
   UiNcpSessionListView,

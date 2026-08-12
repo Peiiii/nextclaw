@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import type { DocBrowserDockState, DocBrowserTab } from "./doc-browser-context";
+import type { ContextMenuGroup } from "@/shared/components/ui/context-menu/context-menu";
 import {
   CompactTabStrip,
   type CompactTabStripAction,
@@ -35,6 +36,7 @@ type DocBrowserTabStripProps = {
   onClose: () => void;
   onDragStart: (event: PointerEvent<HTMLElement>) => void;
   onToggleMode: () => void;
+  getTabMenuGroups?: (tab: DocBrowserTab) => readonly ContextMenuGroup[] | undefined;
 };
 
 function shouldBlockHeaderDrag(target: EventTarget | null): boolean {
@@ -60,6 +62,7 @@ export function DocBrowserTabStrip({
   onClose,
   onDragStart,
   onToggleMode,
+  getTabMenuGroups,
 }: DocBrowserTabStripProps) {
   const backLabel = t("docBrowserBack");
   const closeLabel = t("docBrowserClose");
@@ -81,6 +84,8 @@ export function DocBrowserTabStrip({
     closePlacement: "trailing",
     onSelect: () => onSetActiveTab(tab.id),
     onClose: () => onCloseTab(tab.id),
+    menuLabel: t("docBrowserTabMoreActions"),
+    menuGroups: getTabMenuGroups?.(tab),
   }));
   const actions: CompactTabStripAction[] = [
     { key: "back", disabled: !canGoBack, icon: <ArrowLeft className="h-3.5 w-3.5" />, label: backLabel, onClick: onGoBack },

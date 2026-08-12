@@ -201,7 +201,14 @@ export function ChatComposerTokenView({
   } else if (tokenKind === 'conversation_excerpt') {
     content = <ConversationExcerptComposerContent data={data} label={label} />;
   } else if (tokenKind !== 'file') {
-    const source = typeof data?.path === 'string' ? data.path : tokenKey;
+    const resourceReference = data?.reference && typeof data.reference === 'object'
+      ? data.reference as Record<string, unknown>
+      : null;
+    const source = typeof data?.path === 'string'
+      ? data.path
+      : tokenKind === 'ui_resource' && typeof resourceReference?.uri === 'string'
+        ? resourceReference.uri
+        : tokenKey;
     content = <ChatReferenceTagContent kind={tokenKind} label={label} source={source} />;
   } else {
     content = (

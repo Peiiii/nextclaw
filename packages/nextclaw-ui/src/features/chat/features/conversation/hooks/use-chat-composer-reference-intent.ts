@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from 'react';
 import { type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
 import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
+  CHAT_UI_RESOURCE_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
 } from '@nextclaw/shared';
 
@@ -41,7 +42,9 @@ export function useChatComposerReferenceIntent(params: {
                 role: intent.role,
                 excerpt: intent.excerpt,
               }
-          : undefined,
+            : intent.kind === CHAT_UI_RESOURCE_TOKEN_KIND
+              ? { reference: intent.reference }
+              : undefined,
       });
       intentManager.markConsumed(intent.id);
     };

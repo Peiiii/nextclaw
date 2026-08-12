@@ -5,7 +5,10 @@ import type {
   ServerPathBrowseView,
   ServerPathReadView,
   ServerPathSearchView,
+  ServerPathWatchRequest,
+  ServerPathWatchView,
 } from "@nextclaw-server/shared/types/server-api.types.js";
+import type { ServerPathWatchService } from "@nextclaw-server/features/server-path/services/server-path-watch.service.js";
 import {
   browseServerPath,
   isServerPathBrowseError,
@@ -54,6 +57,43 @@ function statusForServerPathContentError(code: string): 400 | 404 {
 
 export class ServerPathRoutesController {
   private readonly searchService = new ServerPathSearchService();
+
+  constructor(private readonly watchService?: ServerPathWatchService) {}
+
+  readonly watch = async (c: Context) => {
+    if (!this.watchService) {
+      return c.json(err("SERVER_PATH_WATCH_UNAVAILABLE", "server path watch is unavailable"), 503);
+    }
+    const body = await readJson<unknown>(c.req.raw);
+    if (
+      !body.ok ||
+      !isRecord(body.data) ||
+      !Array.isArray(body.data.directories) ||
+      !body.data.directories.every((path) => typeof path === "string")
+    ) {
+      return c.json(err("INVALID_SERVER_PATH_WATCH", "directories are required"), 400);
+    }
+    try {
+      const request: ServerPathWatchRequest = {
+        directories: body.data.directories,
+        subscriptionId: typeof body.data.subscriptionId === "string" ? body.data.subscriptionId : null,
+      };
+      const payload: ServerPathWatchView = await this.watchService.subscribe(request);
+      return c.json(ok(payload));
+    } catch (error) {
+      return c.json(
+        err("SERVER_PATH_WATCH_FAILED", error instanceof Error ? error.message : String(error)),
+        400,
+      );
+    }
+  };
+
+  readonly unwatch = (c: Context) => {
+    const subscriptionId = c.req.query("subscriptionId")?.trim() ?? "";
+    if (!subscriptionId) return c.json(err("INVALID_SERVER_PATH_WATCH", "subscriptionId is required"), 400);
+    this.watchService?.unsubscribe(subscriptionId);
+    return c.json(ok({ unsubscribed: true }));
+  };
 
   readonly browse = async (c: Context) => {
     try {

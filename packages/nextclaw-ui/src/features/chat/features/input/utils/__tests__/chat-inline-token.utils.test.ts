@@ -374,3 +374,34 @@ describe('chat inline token workspace references', () => {
     })).toBeNull();
   });
 });
+
+describe('UI resource inline tokens', () => {
+  it('round-trips the visible token with its selection-time snapshot', () => {
+    const reference = {
+      uri: 'nextclaw://apps?tab=panel-apps',
+      resourceKind: 'apps',
+      title: 'Panel Apps',
+      currentUrl: 'nextclaw://apps?tab=panel-apps',
+      contentParams: { filter: 'installed' },
+    };
+    const tokens = buildInlineTokensFromComposer([
+      createChatComposerTokenNode({
+        tokenKind: 'ui_resource',
+        tokenKey: reference.uri,
+        label: reference.title,
+        data: { reference },
+      }),
+    ]);
+
+    expect(tokens).toEqual([{
+      kind: 'ui_resource',
+      key: reference.uri,
+      label: reference.title,
+      rawText: `@resource:${encodeURIComponent(reference.uri)}`,
+      reference,
+    }]);
+    expect(readInlineTokensFromMetadata({
+      ui_inline_tokens: createInlineTokensMetadata(tokens),
+    })).toEqual(tokens);
+  });
+});

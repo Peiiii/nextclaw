@@ -1,6 +1,8 @@
 import type { ReactElement } from "react";
 import {
   AppWindow,
+  Blocks,
+  BookOpenText,
   File,
   FileArchive,
   FileAudio2,
@@ -12,6 +14,7 @@ import {
   FileVideo2,
   Folder,
   FolderKanban,
+  Globe2,
   Link2,
   MessageSquareQuote,
   Sparkles,
@@ -117,6 +120,18 @@ function resolveReferenceIconDescriptor(kind: string, source: string): ChatRefer
   }
   if (kind === "panel_app") {
     return { icon: AppWindow, name: "panel-app" };
+  }
+  if (kind === "ui_resource") {
+    if (source.startsWith("nextclaw://panel-app")) {
+      return { icon: AppWindow, name: "panel-app" };
+    }
+    if (source.startsWith("nextclaw://docs")) {
+      return { icon: BookOpenText, name: "docs" };
+    }
+    if (source.startsWith("nextclaw://apps")) {
+      return { icon: Blocks, name: "apps" };
+    }
+    return { icon: Globe2, name: "web-resource" };
   }
   if (kind === "project") {
     return { icon: FolderKanban, name: "project" };

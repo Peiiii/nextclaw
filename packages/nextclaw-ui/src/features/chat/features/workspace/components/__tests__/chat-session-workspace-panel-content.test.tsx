@@ -5,6 +5,7 @@ import { ChatSessionWorkspacePanelContent } from '@/features/chat/features/works
 import type { ResolvedChildSessionTab } from '@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import { CHAT_WORKSPACE_EXPLORER_DEFAULT_WIDTH } from '@/features/chat/features/workspace/utils/chat-workspace-panel-layout.utils';
+import { useWorkspaceProjectTreeStore } from '@/features/chat/features/workspace/stores/workspace-project-tree.store';
 
 const mocks = vi.hoisted(() => ({
   browseEntries: [
@@ -27,7 +28,9 @@ const mocks = vi.hoisted(() => ({
   deleteServerPathEntry: vi.fn(),
   renameServerPathEntry: vi.fn(),
   uploadServerPathFiles: vi.fn(),
+  watchDirectories: vi.fn(),
   refetchBrowse: vi.fn(),
+  refetchQueries: vi.fn(),
   requestDirectoryReference: vi.fn(),
   requestFileReference: vi.fn(),
   openChildSessions: vi.fn(),
@@ -39,6 +42,15 @@ const mocks = vi.hoisted(() => ({
   selectChildSessionDetail: vi.fn(),
   setWorkspaceExplorerWidth: vi.fn(),
   scrollIntoView: vi.fn(),
+}));
+
+vi.mock('@/shared/hooks/use-server-path-watch', () => ({
+  useServerPathWatch: mocks.watchDirectories,
+}));
+
+vi.mock('@tanstack/react-query', async (importOriginal) => ({
+  ...(await importOriginal()),
+  useQueryClient: () => ({ refetchQueries: mocks.refetchQueries }),
 }));
 
 function firePointerEvent(
@@ -168,6 +180,8 @@ beforeEach(() => {
     overwritten: false,
   });
   mocks.refetchBrowse.mockResolvedValue(undefined);
+  mocks.refetchQueries.mockResolvedValue(undefined);
+  useWorkspaceProjectTreeStore.setState({ trees: {} });
   useChatThreadStore.getState().setSnapshot({
     workspaceExplorerOpen: false,
     workspaceExplorerWidth: CHAT_WORKSPACE_EXPLORER_DEFAULT_WIDTH,
@@ -475,7 +489,7 @@ it('creates a project folder from the root toolbar and refreshes the tree', asyn
       parentPath: '/Users/peiwang/Projects/nextbot',
       name: 'research',
     });
-    expect(mocks.refetchBrowse).toHaveBeenCalled();
+    expect(mocks.refetchQueries).toHaveBeenCalled();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'research' }));
     expect(mocks.scrollIntoView).toHaveBeenCalledTimes(2);
   });
@@ -564,7 +578,7 @@ it('uploads multiple project files from the root actions menu', async () => {
       files: [file],
       overwrite: undefined,
     });
-    expect(mocks.refetchBrowse).toHaveBeenCalled();
+    expect(mocks.refetchQueries).toHaveBeenCalled();
   });
 });
 
@@ -594,13 +608,62 @@ it('requires destructive confirmation before deleting a project file', async () 
       path: '/private/resolved-worktree/package.json',
     });
     expect(mocks.removeWorkspacePath).toHaveBeenCalledWith('/private/resolved-worktree/package.json');
-    expect(mocks.refetchBrowse).toHaveBeenCalled();
+    expect(mocks.refetchQueries).toHaveBeenCalled();
   });
 });
 
-it('preserves project tree expansion and scroll while visiting another workspace tab', async () => {
+it('refreshes the root and every active expanded directory query', async () => {
   const user = userEvent.setup();
-  const projectFilesProps = {
+  render(
+    <ChatSessionWorkspacePanelContent
+      activeSelection={{ kind: 'project-files' }}
+      childSessionTabs={[]}
+      filePreviewRefreshVersion={0}
+      sessionKey="parent-1"
+      sessionCronJobs={[]}
+      sessionProjectRoot="/Users/peiwang/Projects/nextbot"
+      sessionWorkingDir="/Users/peiwang/Projects/nextbot"
+    />,
+  );
+
+  await user.click(screen.getByRole('button', { name: 'src' }));
+  await user.click(screen.getByRole('button', { name: 'Refresh project files' }));
+
+  expect(mocks.refetchQueries).toHaveBeenCalledTimes(1);
+  const request = mocks.refetchQueries.mock.calls[0]?.[0] as {
+    predicate: (query: { queryKey: readonly unknown[] }) => boolean;
+    type: string;
+  };
+  expect(request.type).toBe('active');
+  expect(request.predicate({ queryKey: ['server-path-browse', '/Users/peiwang/Projects/nextbot', '', true] })).toBe(true);
+  expect(request.predicate({ queryKey: ['server-path-browse', '/Users/peiwang/Projects/nextbot/src', '', true] })).toBe(true);
+  expect(request.predicate({ queryKey: ['server-path-browse', '/tmp/another-project', '', true] })).toBe(false);
+});
+
+it('collapses all persisted directories in one action', async () => {
+  const user = userEvent.setup();
+  render(
+    <ChatSessionWorkspacePanelContent
+      activeSelection={{ kind: 'project-files' }}
+      childSessionTabs={[]}
+      filePreviewRefreshVersion={0}
+      sessionKey="parent-1"
+      sessionCronJobs={[]}
+      sessionProjectRoot="/Users/peiwang/Projects/nextbot"
+      sessionWorkingDir="/Users/peiwang/Projects/nextbot"
+    />,
+  );
+
+  const sourceDirectory = screen.getByRole('treeitem', { name: 'Open directory: src' });
+  await user.click(screen.getByRole('button', { name: 'src' }));
+  expect(sourceDirectory.getAttribute('aria-expanded')).toBe('true');
+  await user.click(screen.getByRole('button', { name: 'Collapse all' }));
+  expect(sourceDirectory.getAttribute('aria-expanded')).toBe('false');
+});
+
+it('restores expansion and scroll from project view state after remounting', async () => {
+  const user = userEvent.setup();
+  const props = {
     activeSelection: { kind: 'project-files' as const },
     childSessionTabs: [],
     filePreviewRefreshVersion: 0,
@@ -609,22 +672,16 @@ it('preserves project tree expansion and scroll while visiting another workspace
     sessionProjectRoot: '/Users/peiwang/Projects/nextbot',
     sessionWorkingDir: '/Users/peiwang/Projects/nextbot',
   };
-  const { rerender } = render(<ChatSessionWorkspacePanelContent {...projectFilesProps} />);
-  const tree = screen.getByRole('tree', { name: 'Project files' });
-  const sourceDirectory = screen.getByRole('treeitem', {
-    name: 'Open directory: src',
-  });
+  const first = render(<ChatSessionWorkspacePanelContent {...props} />);
   await user.click(screen.getByRole('button', { name: 'src' }));
-  tree.scrollTop = 128;
-  expect(sourceDirectory.getAttribute('aria-expanded')).toBe('true');
+  const firstTree = screen.getByRole('tree', { name: 'Project files' });
+  firstTree.scrollTop = 144;
+  fireEvent.scroll(firstTree);
+  first.unmount();
 
-  rerender(<ChatSessionWorkspacePanelContent {...projectFilesProps} activeSelection={{ kind: 'overview' }} />);
-  rerender(<ChatSessionWorkspacePanelContent {...projectFilesProps} />);
-
-  expect(screen.getByRole('tree', { name: 'Project files' })).toBe(tree);
-  expect(sourceDirectory.isConnected).toBe(true);
-  expect(sourceDirectory.getAttribute('aria-expanded')).toBe('true');
-  expect(tree.scrollTop).toBe(128);
+  render(<ChatSessionWorkspacePanelContent {...props} />);
+  expect(screen.getAllByRole('treeitem', { name: 'Open directory: src' })[0]?.getAttribute('aria-expanded')).toBe('true');
+  expect(screen.getByRole('tree', { name: 'Project files' }).scrollTop).toBe(144);
 });
 
 it('selects and reveals the active file when it is opened outside the Explorer', async () => {

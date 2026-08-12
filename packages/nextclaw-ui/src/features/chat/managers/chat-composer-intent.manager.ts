@@ -1,8 +1,11 @@
 import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
+  CHAT_UI_RESOURCE_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
+  readChatUiResourceReference,
+  type ChatUiResourceReference,
 } from '@nextclaw/shared';
 
 type ChatComposerReferenceIntentBase = {
@@ -35,17 +38,24 @@ export type ChatComposerConversationExcerptIntent = ChatComposerReferenceIntentB
   excerpt: string;
 };
 
+export type ChatComposerUiResourceReferenceIntent = ChatComposerReferenceIntentBase & {
+  kind: typeof CHAT_UI_RESOURCE_TOKEN_KIND;
+  reference: ChatUiResourceReference;
+};
+
 export type ChatComposerReferenceIntent =
   | ChatComposerFileReferenceIntent
   | ChatComposerDirectoryReferenceIntent
   | ChatComposerExcerptReferenceIntent
-  | ChatComposerConversationExcerptIntent;
+  | ChatComposerConversationExcerptIntent
+  | ChatComposerUiResourceReferenceIntent;
 
 type ChatComposerReferenceRequest =
   | Omit<ChatComposerFileReferenceIntent, 'id'>
   | Omit<ChatComposerDirectoryReferenceIntent, 'id'>
   | Omit<ChatComposerExcerptReferenceIntent, 'id'>
-  | Omit<ChatComposerConversationExcerptIntent, 'id'>;
+  | Omit<ChatComposerConversationExcerptIntent, 'id'>
+  | Omit<ChatComposerUiResourceReferenceIntent, 'id'>;
 
 function createExcerptTokenKey(prefix: string, identity: string): string {
   let hash = 2166136261;
@@ -166,6 +176,23 @@ export class ChatComposerIntentManager {
       role,
       label,
       excerpt,
+    });
+  };
+
+  requestUiResourceReference = (params: {
+    targetSessionKey: string | null;
+    reference: ChatUiResourceReference;
+  }) => {
+    const reference = readChatUiResourceReference(params.reference);
+    if (!reference) return;
+    const tokenKey = reference.uri.trim();
+    const label = reference.title.trim();
+    this.publish({
+      kind: CHAT_UI_RESOURCE_TOKEN_KIND,
+      targetSessionKey: params.targetSessionKey,
+      tokenKey,
+      label,
+      reference,
     });
   };
 

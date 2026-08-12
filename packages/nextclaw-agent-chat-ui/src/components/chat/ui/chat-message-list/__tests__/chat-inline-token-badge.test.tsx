@@ -80,6 +80,23 @@ it.each([
   expect(token?.className).not.toContain("underline");
 });
 
+it.each([
+  ["nextclaw://panel-app/task-board", "panel-app"],
+  ["nextclaw://docs/guide", "docs"],
+  ["nextclaw://apps", "apps"],
+  ["https://example.com/page", "web-resource"],
+])("uses a resource-specific icon for %s", (uri, icon) => {
+  const { container } = render(
+    <ChatInlineTokenBadge
+      kind="ui_resource"
+      label="Referenced tab"
+      tooltip={uri}
+    />,
+  );
+
+  expect(container.querySelector(`[data-reference-icon="${icon}"]`)).toBeTruthy();
+});
+
 it("keeps the same base token visual while changing only message behavior", () => {
   const { rerender } = render(
     <ChatInlineTokenBadge kind="skill" label="Review" tooltip="Review" />,

@@ -3,6 +3,7 @@ import type {
   MouseEvent,
   ReactNode,
 } from "react";
+import { forwardRef } from "react";
 import { ExternalLink as ExternalLinkIcon, type LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { hostCapabilityManager } from "@/shared/lib/host-capabilities";
@@ -62,7 +63,7 @@ function resolveExternalHttpUrl(href: string): string | null {
  * Internal links use client-side routing; external links delegate ordinary
  * clicks to the desktop host when one is available.
  */
-export function NavigationLink({
+export const NavigationLink = forwardRef<HTMLAnchorElement, NavigationLinkProps>(function NavigationLink({
   children,
   className,
   external = false,
@@ -74,7 +75,7 @@ export function NavigationLink({
   size = "sm",
   target,
   ...props
-}: NavigationLinkProps) {
+}, ref) {
   const Icon = icon === undefined && external ? ExternalLinkIcon : icon;
   const linkClassName = cn(
     "inline-flex items-center rounded-sm font-medium text-primary underline-offset-4 transition-colors hover:text-primary-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
@@ -98,6 +99,7 @@ export function NavigationLink({
   if (!external) {
     return (
       <Link
+        ref={ref}
         {...props}
         to={href}
         target={target}
@@ -112,6 +114,7 @@ export function NavigationLink({
 
   return (
     <a
+      ref={ref}
       {...props}
       href={href}
       target={target ?? "_blank"}
@@ -133,4 +136,4 @@ export function NavigationLink({
       {content}
     </a>
   );
-}
+});

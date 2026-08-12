@@ -4,6 +4,7 @@ import {
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_PROJECT_TOKEN_KIND,
   CHAT_SYSTEM_OBJECT_TOKEN_KIND,
+  CHAT_UI_RESOURCE_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
@@ -11,6 +12,8 @@ import {
   type ChatInlineTokensMetadata,
   type ChatSkillSource,
   type SystemObjectResolvedReference,
+  type ChatUiResourceReference,
+  readChatUiResourceReference,
 } from '@nextclaw/shared';
 import { readConversationExcerptInlineToken } from './chat-conversation-excerpt-token.utils';
 import { readSystemObjectResolvedReference } from './chat-system-object-reference.utils';
@@ -26,6 +29,7 @@ const CHAT_PROJECT_TOKEN_PATTERN = /@project:([^\s]+)/g;
 const CHAT_WORKSPACE_FILE_TOKEN_PATTERN = /@file:([^\s]+)/g;
 const CHAT_WORKSPACE_DIRECTORY_TOKEN_PATTERN = /@folder:([^\s]+)/g;
 const CHAT_SYSTEM_OBJECT_TOKEN_PATTERN = /@object:([^\s]+)/g;
+const CHAT_UI_RESOURCE_TOKEN_PATTERN = /@resource:([^\s]+)/g;
 
 export type ChatInlineTokenSource =
   | {
@@ -68,6 +72,13 @@ export type ChatInlineTokenSource =
       label: string;
       rawText: string;
       reference: SystemObjectResolvedReference;
+    }
+  | {
+      kind: typeof CHAT_UI_RESOURCE_TOKEN_KIND;
+      key: string;
+      label: string;
+      rawText: string;
+      reference: ChatUiResourceReference;
     };
 
 export function resolveWorkspaceReferencePath(params: {
@@ -124,6 +135,7 @@ function appendEncodedKeyTokens(params: {
   kind:
     | typeof CHAT_PROJECT_TOKEN_KIND
     | typeof CHAT_SYSTEM_OBJECT_TOKEN_KIND
+    | typeof CHAT_UI_RESOURCE_TOKEN_KIND
     | typeof CHAT_WORKSPACE_FILE_TOKEN_KIND
     | typeof CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND;
   pattern: RegExp;
@@ -174,6 +186,12 @@ export function buildInlineTokensFromTextProtocol(text: string): ChatInlineToken
   appendEncodedKeyTokens({
     kind: CHAT_SYSTEM_OBJECT_TOKEN_KIND,
     pattern: CHAT_SYSTEM_OBJECT_TOKEN_PATTERN,
+    text,
+    tokens,
+  });
+  appendEncodedKeyTokens({
+    kind: CHAT_UI_RESOURCE_TOKEN_KIND,
+    pattern: CHAT_UI_RESOURCE_TOKEN_PATTERN,
     text,
     tokens,
   });
@@ -265,6 +283,13 @@ function readInlineTokenEntry(entry: unknown): ChatInlineTokenSource | null {
   if (kind === CHAT_SYSTEM_OBJECT_TOKEN_KIND) {
     const key = readOptionalString(entry.key);
     const reference = readSystemObjectResolvedReference(entry.reference);
+    return key && reference && reference.uri === key
+      ? { kind, key, label, rawText, reference }
+      : null;
+  }
+  if (kind === CHAT_UI_RESOURCE_TOKEN_KIND) {
+    const key = readOptionalString(entry.key);
+    const reference = readChatUiResourceReference(entry.reference);
     return key && reference && reference.uri === key
       ? { kind, key, label, rawText, reference }
       : null;

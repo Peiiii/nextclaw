@@ -1,5 +1,10 @@
+import {
+  readChatUiResourceReference,
+  type ChatUiResourceReference,
+} from '@nextclaw/shared';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import type { DocBrowserDockIcon } from '@/shared/components/doc-browser';
+import type { DocBrowserTab } from '@/shared/components/doc-browser/doc-browser-context';
 import type { RightPanelResourceTarget } from '@/features/right-panel-resources/types/right-panel-resource.types';
 
 export const RIGHT_PANEL_HOME_TAB_KIND = 'home';
@@ -9,6 +14,30 @@ export const RIGHT_PANEL_APPS_URL = 'nextclaw://apps';
 export const RIGHT_PANEL_PANEL_APPS_URL = `${RIGHT_PANEL_APPS_URL}?tab=panel-apps`;
 export const RIGHT_PANEL_SERVICE_APPS_URL = `${RIGHT_PANEL_APPS_URL}?tab=service-apps`;
 export const RIGHT_PANEL_PANEL_APP_TAB_KIND = 'panel-app';
+
+const NON_REFERENCEABLE_RESOURCE_URIS = new Set([
+  RIGHT_PANEL_HOME_URL,
+  'about:blank',
+]);
+
+export function createChatUiResourceReferenceFromTab(
+  tab: DocBrowserTab,
+): ChatUiResourceReference | null {
+  const uri = tab.resourceUri?.trim() || tab.currentUrl.trim();
+  const currentUrl = tab.currentUrl.trim();
+  if (!uri || !currentUrl || NON_REFERENCEABLE_RESOURCE_URIS.has(uri)) {
+    return null;
+  }
+  return readChatUiResourceReference({
+    uri,
+    resourceKind: tab.kind,
+    title: tab.title.trim() || uri,
+    currentUrl,
+    ...(tab.contentParams
+      ? { contentParams: structuredClone(tab.contentParams) }
+      : {}),
+  });
+}
 
 export type RightPanelAppsTab = 'apps' | 'panel-apps' | 'service-apps';
 

@@ -4,6 +4,7 @@ import { AgentBootstrapContextProvider } from "./providers/agent-bootstrap-conte
 import { CurrentSessionContextProvider } from "./providers/current-session-context.provider.js";
 import { ConversationExcerptContextProvider } from "./providers/conversation-excerpt-context.provider.js";
 import { SystemObjectReferenceContextProvider } from "./providers/system-object-reference-context.provider.js";
+import { UiResourceReferenceContextProvider } from "./providers/ui-resource-reference-context.provider.js";
 import { ExecutionPolicyContextProvider } from "./providers/execution-policy-context.provider.js";
 import {
   createAssistantIdentityContextProvider,
@@ -31,6 +32,7 @@ import { ContextProviderRunContextService } from "./services/context-provider-ru
 
 export { ReplyFormatContextProvider } from "./providers/reply-format-context.provider.js";
 export { SystemObjectReferenceContextProvider } from "./providers/system-object-reference-context.provider.js";
+export { UiResourceReferenceContextProvider } from "./providers/ui-resource-reference-context.provider.js";
 
 export class ContextProviderContribution implements KernelContribution {
   private readonly cleanups: Array<() => void> = [];
@@ -67,6 +69,7 @@ export class ContextProviderContribution implements KernelContribution {
       createSessionOrchestrationContextProvider(),
       new ExecutionPolicyContextProvider(context),
       new SystemObjectReferenceContextProvider(this.kernel.assetStore),
+      new UiResourceReferenceContextProvider(),
       new CurrentSessionContextProvider(context),
       new ReplyFormatContextProvider(),
     ]) {

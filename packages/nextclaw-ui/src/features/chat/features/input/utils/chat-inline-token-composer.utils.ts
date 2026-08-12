@@ -3,11 +3,13 @@ import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_PROJECT_TOKEN_KIND,
   CHAT_SYSTEM_OBJECT_TOKEN_KIND,
+  CHAT_UI_RESOURCE_TOKEN_KIND,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   type ChatInlineTokenMetadata,
   type ChatSkillSource,
+  readChatUiResourceReference,
 } from '@nextclaw/shared';
 
 import { serializeChatComposerTokenText } from './chat-composer-token-protocol.utils';
@@ -81,6 +83,18 @@ function buildStructuredReferenceToken(
         rawText,
         reference,
       }
+      : null;
+  }
+  if (node.tokenKind === CHAT_UI_RESOURCE_TOKEN_KIND) {
+    const reference = readChatUiResourceReference(node.data?.reference);
+    return reference?.uri === node.tokenKey
+      ? {
+          kind: CHAT_UI_RESOURCE_TOKEN_KIND,
+          key: node.tokenKey,
+          label: node.label,
+          rawText,
+          reference,
+        }
       : null;
   }
   return undefined;

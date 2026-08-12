@@ -28,6 +28,7 @@ import {
 import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
+import type { ContextMenuGroup } from '@/shared/components/ui/context-menu/context-menu';
 import { GripVertical } from 'lucide-react';
 import {
   DOC_BROWSER_DOCKED_MAX_WIDTH,
@@ -38,7 +39,10 @@ type DocBrowserProps = {
   customTabRenderers?: DocBrowserCustomTabRenderers;
   displayMode?: 'desktop' | 'fullscreen';
   dockControls?: DocBrowserDockControls;
+  getTabMenuGroups?: (tab: DocBrowserTab) => readonly ContextMenuGroup[] | undefined;
 };
+
+export type DocBrowserTabMenuGroupsResolver = NonNullable<DocBrowserProps['getTabMenuGroups']>;
 
 type FloatingPanelInteraction = {
   startX: number;
@@ -160,7 +164,12 @@ function useDocBrowserAddressBar({
   };
 }
 
-export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', dockControls }: DocBrowserProps) {
+export function DocBrowser({
+  customTabRenderers = {},
+  displayMode = 'desktop',
+  dockControls,
+  getTabMenuGroups,
+}: DocBrowserProps) {
   const {
     isOpen,
     mode,
@@ -367,6 +376,7 @@ export function DocBrowser({ customTabRenderers = {}, displayMode = 'desktop', d
         onClose={close}
         onDragStart={startFloatDrag}
         onToggleMode={toggleMode}
+        getTabMenuGroups={getTabMenuGroups}
       />
 
       <DocBrowserAddressToolbar

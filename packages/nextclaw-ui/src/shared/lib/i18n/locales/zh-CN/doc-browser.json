@@ -17,6 +17,8 @@
   "docBrowserHomeTitle": "导航页",
   "docBrowserCloseTab": "关闭标签",
   "docBrowserTabUntitled": "未命名",
+  "docBrowserTabMoreActions": "更多标签操作",
+  "docBrowserAddToChat": "添加到聊天",
   "sideDockPinCurrent": "固定到快捷栏",
   "sideDockUnpinCurrent": "从快捷栏移除",
   "sideDockBuiltInDocked": "内置快捷入口",
