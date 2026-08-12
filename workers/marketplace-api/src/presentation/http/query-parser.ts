@@ -1,14 +1,34 @@
 import type { Context } from "hono";
 import { DomainValidationError } from "../../domain/errors";
-import type { MarketplaceListQuery, MarketplaceSort } from "../../domain/model";
+import type {
+  MarketplaceAppCatalogQuery,
+  MarketplaceAppCatalogSort,
+  MarketplaceListQuery,
+  MarketplaceSort,
+} from "../../domain/model";
 
 const SORT_VALUES: MarketplaceSort[] = ["relevance", "updated"];
+const APP_CATALOG_SORT_VALUES: MarketplaceAppCatalogSort[] = ["relevance", "featured", "updated"];
 const ADMIN_SKILL_PUBLISH_STATUS_VALUES = ["pending", "published", "rejected", "all"] as const;
 const ADMIN_APP_PUBLISH_STATUS_VALUES = ["pending", "published", "rejected", "all"] as const;
 type MarketplaceAdminSkillPublishStatus = typeof ADMIN_SKILL_PUBLISH_STATUS_VALUES[number];
 type MarketplaceAdminAppPublishStatus = typeof ADMIN_APP_PUBLISH_STATUS_VALUES[number];
 
 export class MarketplaceQueryParser {
+  parseAppCatalogQuery(c: Context): MarketplaceAppCatalogQuery {
+    const query = c.req.query();
+    return {
+      q: this.readBoundedOptionalString(query.q, "query.q", 120),
+      tag: this.readBoundedOptionalString(query.tag, "query.tag", 64)?.toLowerCase(),
+      tags: this.readAppCatalogTags(query.tags),
+      publisher: this.readBoundedOptionalString(query.publisher, "query.publisher", 128),
+      featured: this.readOptionalBoolean(query.featured, "query.featured"),
+      cursor: this.readBoundedOptionalString(query.cursor, "query.cursor", 2048),
+      limit: this.readCatalogLimit(query.limit),
+      sort: this.readAppCatalogSort(query.sort),
+    };
+  }
+
   parseListQuery(c: Context): MarketplaceListQuery {
     const query = c.req.query();
     const page = this.readPage(query.page);
@@ -108,6 +128,63 @@ export class MarketplaceQueryParser {
     }
 
     return rawSort as MarketplaceSort;
+  }
+
+  private readAppCatalogSort(rawSort: string | undefined): MarketplaceAppCatalogSort {
+    if (!rawSort) {
+      return "relevance";
+    }
+    if (!APP_CATALOG_SORT_VALUES.includes(rawSort as MarketplaceAppCatalogSort)) {
+      throw new DomainValidationError("query.sort is invalid");
+    }
+    return rawSort as MarketplaceAppCatalogSort;
+  }
+
+  private readCatalogLimit(rawLimit: string | undefined): number {
+    if (!rawLimit) {
+      return 24;
+    }
+    const parsed = Number.parseInt(rawLimit, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new DomainValidationError("query.limit must be a positive integer");
+    }
+    return Math.min(parsed, 50);
+  }
+
+  private readOptionalBoolean(value: string | undefined, field: string): boolean | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (value === "true") {
+      return true;
+    }
+    if (value === "false") {
+      return false;
+    }
+    throw new DomainValidationError(`${field} must be true or false`);
+  }
+
+  private readAppCatalogTags(value: string | undefined): string[] | undefined {
+    if (!value) {
+      return undefined;
+    }
+    const tags = [...new Set(value.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
+    if (tags.length === 0 || tags.length > 8 || tags.some((tag) => tag.length > 64)) {
+      throw new DomainValidationError("query.tags must contain 1 to 8 comma-separated tags");
+    }
+    return tags;
+  }
+
+  private readBoundedOptionalString(
+    value: string | undefined,
+    field: string,
+    maxLength: number,
+  ): string | undefined {
+    const normalized = this.readOptionalString(value);
+    if (normalized && normalized.length > maxLength) {
+      throw new DomainValidationError(`${field} must be at most ${maxLength} characters`);
+    }
+    return normalized;
   }
 
   private readAdminSkillPublishStatus(rawStatus: string | undefined): MarketplaceAdminSkillPublishStatus {

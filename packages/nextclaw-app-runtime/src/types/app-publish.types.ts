@@ -4,6 +4,11 @@ import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.
 
 export const DEFAULT_APP_MARKETPLACE_API_BASE = "https://apps-registry.nextclaw.io";
 
+export type AppMarketplaceVisuals = {
+  cover: string;
+  accentColor: string;
+};
+
 export type AppMarketplaceMetadata = {
   slug: string;
   summary: string;
@@ -16,6 +21,7 @@ export type AppMarketplaceMetadata = {
   homepage?: string;
   featured?: boolean;
   publisher?: AppPublisher;
+  visuals?: AppMarketplaceVisuals;
 };
 
 export type AppPublishFile = {
@@ -38,6 +44,7 @@ export type AppPublishPayload = {
   homepage?: string;
   featured: boolean;
   publisher: AppPublisher;
+  visuals?: AppMarketplaceVisuals;
   distributionMode: AppDistributionMode;
   manifest: AppManifest;
   permissions: AppPermissions;

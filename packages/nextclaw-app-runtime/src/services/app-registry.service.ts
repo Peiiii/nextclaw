@@ -22,7 +22,7 @@ export class AppRegistryService {
       return this.parseRegistry(JSON.parse(raw) as unknown);
     } catch (error) {
       if (this.isMissingFileError(error)) {
-        return { schemaVersion: 1, apps: {} };
+        return { schemaVersion: 1, apps: {}, suppressedBuiltIns: {} };
       }
       throw error;
     }
@@ -188,6 +188,23 @@ export class AppRegistryService {
     });
   };
 
+  isBuiltInSuppressed = async (appId: string): Promise<boolean> => {
+    const registry = await this.load();
+    return Boolean(registry.suppressedBuiltIns[appId]);
+  };
+
+  setBuiltInSuppressed = async (appId: string, suppressed: boolean): Promise<void> => {
+    await this.withMutation(async () => {
+      const registry = await this.load();
+      if (suppressed) {
+        registry.suppressedBuiltIns[appId] = { suppressedAt: new Date().toISOString() };
+      } else {
+        delete registry.suppressedBuiltIns[appId];
+      }
+      await this.saveUnlocked(registry);
+    });
+  };
+
   private updateApp = async (
     appId: string,
     update: (record: AppRegistryAppRecord) => AppRegistryAppRecord,
@@ -257,7 +274,18 @@ export class AppRegistryService {
         grants: app.grants && typeof app.grants === "object" ? app.grants : {},
       };
     }
-    return { schemaVersion: 1, apps };
+    const suppressedBuiltIns = candidate.suppressedBuiltIns &&
+      typeof candidate.suppressedBuiltIns === "object" &&
+      !Array.isArray(candidate.suppressedBuiltIns)
+      ? Object.fromEntries(Object.entries(candidate.suppressedBuiltIns).flatMap(([appId, raw]) => {
+          if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+            return [];
+          }
+          const suppressedAt = (raw as { suppressedAt?: unknown }).suppressedAt;
+          return typeof suppressedAt === "string" ? [[appId, { suppressedAt }]] : [];
+        }))
+      : {};
+    return { schemaVersion: 1, apps, suppressedBuiltIns };
   };
 
   private assertRecord = (value: unknown, field: string): Record<string, unknown> => {

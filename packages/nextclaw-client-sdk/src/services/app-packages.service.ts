@@ -1,4 +1,9 @@
-import type { AppPackageList, AppPackageView } from "@nextclaw/server";
+import type {
+  AppPackageList,
+  AppPackageOperationList,
+  AppPackageOperationView,
+  AppPackageView,
+} from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
 export class AppPackagesClientService {
@@ -10,6 +15,45 @@ export class AppPackagesClientService {
   readonly get = async (appId: string): Promise<AppPackageView> =>
     await this.requestService.get<AppPackageView>(
       `/api/app-packages/${encodeURIComponent(appId)}`,
+    );
+
+  readonly listOperations = async (): Promise<AppPackageOperationList> =>
+    await this.requestService.get<AppPackageOperationList>("/api/app-package-operations");
+
+  readonly startInstall = async (input: {
+    source: string;
+    registryUrl?: string;
+  }): Promise<AppPackageOperationView> =>
+    await this.requestService.post<AppPackageOperationView>(
+      "/api/app-package-operations/install",
+      input,
+    );
+
+  readonly startUpdate = async (
+    appId: string,
+    input: { version?: string; registryUrl?: string } = {},
+  ): Promise<AppPackageOperationView> =>
+    await this.requestService.post<AppPackageOperationView>(
+      `/api/app-package-operations/${encodeURIComponent(appId)}/update`,
+      input,
+    );
+
+  readonly startRollback = async (
+    appId: string,
+    version: string,
+  ): Promise<AppPackageOperationView> =>
+    await this.requestService.post<AppPackageOperationView>(
+      `/api/app-package-operations/${encodeURIComponent(appId)}/rollback`,
+      { version },
+    );
+
+  readonly startUninstall = async (
+    appId: string,
+    purgeData: boolean = false,
+  ): Promise<AppPackageOperationView> =>
+    await this.requestService.post<AppPackageOperationView>(
+      `/api/app-package-operations/${encodeURIComponent(appId)}/uninstall`,
+      { purgeData },
     );
 
   readonly install = async (input: {

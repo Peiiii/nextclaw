@@ -30,6 +30,10 @@ const MARKETPLACE_APP_ITEM_COLUMNS = `
   publisher_id,
   publisher_name,
   publisher_url,
+  cover_path,
+  accent_color,
+  icon_sha256,
+  cover_sha256,
   latest_version,
   manifest_json,
   permissions_json,
@@ -67,7 +71,7 @@ export class MarketplaceAppRecordRepository {
             FROM marketplace_app_items
             WHERE (slug = ? OR app_id = ?)
               AND publish_status = 'published'
-              AND COALESCE(owner_visibility, 'public') = 'public'
+              AND owner_visibility = 'public'
               AND owner_deleted_at IS NULL
             LIMIT 1
           `,
@@ -87,7 +91,7 @@ export class MarketplaceAppRecordRepository {
             FROM marketplace_app_items
             WHERE app_id = ?
               AND publish_status = 'published'
-              AND COALESCE(owner_visibility, 'public') = 'public'
+              AND owner_visibility = 'public'
               AND owner_deleted_at IS NULL
             LIMIT 1
           `,

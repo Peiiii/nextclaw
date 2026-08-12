@@ -14,5 +14,9 @@
   "tags": ["productivity", "personal", "notes", "calendar"],
   "sourceRepo": "https://github.com/Peiiii/nextclaw",
   "homepage": "https://nextclaw.io",
-  "featured": true
+  "featured": true,
+  "visuals": {
+    "cover": "marketplace-assets/cover.webp",
+    "accentColor": "#74816B"
+  }
 }

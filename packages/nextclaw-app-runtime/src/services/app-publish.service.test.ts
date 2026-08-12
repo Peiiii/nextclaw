@@ -319,6 +319,13 @@ describe("AppPublishService bundle mode", () => {
       payload: {
         appId: "nextclaw.personal-organizer",
         distributionMode: "bundle",
+        visuals: {
+          cover: "marketplace-assets/cover.webp",
+          accentColor: "#74816B",
+        },
+        files: expect.arrayContaining([
+          expect.objectContaining({ path: "marketplace-assets/cover.webp" }),
+        ]),
         manifest: {
           schemaVersion: 2,
           components: expect.arrayContaining([

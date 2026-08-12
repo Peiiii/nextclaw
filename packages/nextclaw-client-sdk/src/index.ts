@@ -43,6 +43,10 @@ export type {
 } from "./types/nextclaw-transport.types.js";
 export type {
   AppPackageList,
+  AppPackageOperationInput,
+  AppPackageOperationList,
+  AppPackageOperationStatus,
+  AppPackageOperationView,
   AppPackageView,
   AgentBindingView,
   AgentCreateRequest,

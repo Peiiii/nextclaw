@@ -57,9 +57,11 @@ export class PanelAppEntryPresenter {
     }
     if (manifest.icon) {
       entry.icon = source.kind === "folder"
-        ? packageSource
-          ? `${this.params.createAssetBaseHref(source)}${manifest.icon.replace(/^\/+/, "")}`
-          : resolvePanelAppIconUrl(id, manifest.icon)
+        ? resolvePanelAppIconUrl(
+            id,
+            manifest.icon,
+            packageSource ? this.params.createAssetBaseHref(source) : undefined,
+          )
         : manifest.icon;
     }
     if (state.lastOpenedAt) {

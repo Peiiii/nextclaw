@@ -267,6 +267,19 @@ export class DocBrowserManager {
     this.onRightPanelOpened?.();
   };
 
+  readonly reloadByDedupeKeys = (dedupeKeys: readonly string[]): void => {
+    const targets = new Set(dedupeKeys);
+    if (targets.size === 0) {
+      return;
+    }
+    this.setSnapshot((prev) => ({
+      ...prev,
+      tabs: prev.tabs.map((tab) => targets.has(tab.dedupeKey ?? "")
+        ? { ...tab, navVersion: tab.navVersion + 1 }
+        : tab),
+    }));
+  };
+
   readonly openNewTab = (): void => {
     this.open(undefined, { kind: DOC_BROWSER_HOME_TAB_KIND, newTab: true });
   };

@@ -94,6 +94,71 @@ it("lists registered projects from the project registry api", async () => {
   );
 });
 
+it("uses the asynchronous app package operation contract", async () => {
+  const operation = {
+    id: "operation-1",
+    action: "install",
+    source: "nextclaw.workspace-glance",
+    status: "queued",
+    completedSteps: 0,
+    totalSteps: 5,
+    createdAt: "2026-08-12T00:00:00.000Z",
+    updatedAt: "2026-08-12T00:00:00.000Z",
+  };
+  const fetchImpl = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ ok: true, data: operation }), {
+        status: 202,
+        headers: { "Content-Type": "application/json" },
+      }),
+  );
+  const client = new NextClawClient({
+    baseUrl: "http://127.0.0.1:55667",
+    fetchImpl,
+  });
+
+  await client.appPackages.startInstall({
+    source: "nextclaw.workspace-glance",
+    registryUrl: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
+  });
+  await client.appPackages.startUpdate("nextclaw.personal/organizer");
+  await client.appPackages.startRollback("nextclaw.personal/organizer", "0.1.0");
+  await client.appPackages.startUninstall("nextclaw.personal/organizer", true);
+
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    1,
+    "http://127.0.0.1:55667/api/app-package-operations/install",
+    expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        source: "nextclaw.workspace-glance",
+        registryUrl: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
+      }),
+    }),
+  );
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    2,
+    "http://127.0.0.1:55667/api/app-package-operations/nextclaw.personal%2Forganizer/update",
+    expect.objectContaining({ method: "POST", body: JSON.stringify({}) }),
+  );
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    3,
+    "http://127.0.0.1:55667/api/app-package-operations/nextclaw.personal%2Forganizer/rollback",
+    expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ version: "0.1.0" }),
+    }),
+  );
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    4,
+    "http://127.0.0.1:55667/api/app-package-operations/nextclaw.personal%2Forganizer/uninstall",
+    expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({ purgeData: true }),
+    }),
+  );
+});
+
 it("adds an existing project directory through its dedicated api", async () => {
   const fetchImpl = vi.fn(
     async () =>

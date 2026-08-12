@@ -14,7 +14,11 @@
   "tags": ["starter", "official", "local"],
   "sourceRepo": "https://github.com/Peiiii/nextclaw",
   "homepage": "https://nextclaw.io",
-  "featured": true,
+  "featured": false,
+  "visuals": {
+    "cover": "marketplace-assets/cover.webp",
+    "accentColor": "#C19A5B"
+  },
   "publisher": {
     "id": "nextclaw",
     "name": "NextClaw",

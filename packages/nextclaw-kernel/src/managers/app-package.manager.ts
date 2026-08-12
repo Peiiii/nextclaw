@@ -9,14 +9,21 @@ import {
 } from "@nextclaw/app-runtime";
 import type {
   AppInfoResult,
+  AppInstallProgressHandler,
   AppRollbackResult,
   AppUninstallResult,
   AppUpdateResult,
 } from "@nextclaw/app-runtime";
+import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
 import {
   AppPackageError,
   type AppPackageComponentSource,
   type AppPackageList,
+  type AppPackageOperationInput,
+  type AppPackageOperationList,
+  type AppPackageOperationResult,
+  type AppPackageOperationStatus,
+  type AppPackageOperationView,
   type AppPackageRuntimeHooks,
   type AppPackageView,
 } from "@kernel/types/app-package.types.js";
@@ -29,20 +36,30 @@ const EMPTY_RUNTIME_HOOKS: AppPackageRuntimeHooks = {
 };
 
 export class AppPackageManager {
+  private readonly appHomeService: AppHomeService;
   private readonly installationService: AppInstallationService;
   private readonly manifestService = new AppManifestService();
+  private readonly operationManager: AppPackageOperationManager;
   private readonly registryService: AppRegistryService;
   private runtimeHooks: AppPackageRuntimeHooks = EMPTY_RUNTIME_HOOKS;
   private builtInBootstrapPromise: Promise<void> | undefined;
+  private builtInDefinitionsPromise: Promise<Array<{
+    appDirectory: string;
+    manifest: Awaited<ReturnType<AppManifestService["load"]>>;
+  }>> | undefined;
 
   constructor(private readonly params: {
     appHomeDirectory: string;
     builtInAppsDirectory?: string;
     productVersion?: string;
   }) {
-    const appHomeService = new AppHomeService(params.appHomeDirectory);
-    this.installationService = new AppInstallationService(appHomeService);
-    this.registryService = new AppRegistryService(appHomeService);
+    this.appHomeService = new AppHomeService(params.appHomeDirectory);
+    this.installationService = new AppInstallationService(this.appHomeService);
+    this.registryService = new AppRegistryService(this.appHomeService);
+    this.operationManager = new AppPackageOperationManager({
+      storePath: this.appHomeService.getOperationsPath(),
+      execute: this.executeOperation,
+    });
   }
 
   installRuntimeHooks = (hooks: AppPackageRuntimeHooks): void => {
@@ -92,8 +109,25 @@ export class AppPackageManager {
       });
   };
 
-  install = async (source: string, registryUrl?: string): Promise<AppPackageView> => {
-    const result = await this.installationService.install(source, { registryUrl });
+  listOperations = async (): Promise<AppPackageOperationList> =>
+    await this.operationManager.list();
+
+  startOperation = async (
+    input: AppPackageOperationInput,
+  ): Promise<AppPackageOperationView> => {
+    await this.ensureBuiltInPackages();
+    return await this.operationManager.start(input);
+  };
+
+  install = async (
+    source: string,
+    registryUrl?: string,
+    onProgress?: AppInstallProgressHandler,
+  ): Promise<AppPackageView> => {
+    const result = await this.installationService.install(source, { registryUrl, onProgress });
+    if (await this.isBuiltInAppId(result.appId)) {
+      await this.registryService.setBuiltInSuppressed(result.appId, false);
+    }
     return await this.getPackage(result.appId);
   };
 
@@ -121,7 +155,11 @@ export class AppPackageManager {
 
   update = async (
     appId: string,
-    options: { version?: string; registryUrl?: string } = {},
+    options: {
+      version?: string;
+      registryUrl?: string;
+      onProgress?: AppInstallProgressHandler;
+    } = {},
   ): Promise<{ package: AppPackageView; result: AppUpdateResult }> => {
     const current = await this.getPackage(appId);
     if (current.enabled) {
@@ -172,36 +210,35 @@ export class AppPackageManager {
     purgeData: boolean,
   ): Promise<AppUninstallResult> => {
     const current = await this.getPackage(appId);
-    if (current.enabled) {
-      await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
+    if (current.builtIn) {
+      await this.registryService.setBuiltInSuppressed(appId, true);
     }
-    await this.runtimeHooks.beforeUninstall(this.toComponentSources(current));
-    return await this.installationService.uninstall(appId, purgeData);
+    try {
+      if (current.enabled) {
+        await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
+      }
+      await this.runtimeHooks.beforeUninstall(this.toComponentSources(current));
+      return await this.installationService.uninstall(appId, purgeData);
+    } catch (error) {
+      if (current.builtIn) {
+        await this.registryService.setBuiltInSuppressed(appId, false);
+      }
+      throw error;
+    }
   };
 
   private ensureBuiltInPackages = async (): Promise<void> => {
-    if (!this.params.builtInAppsDirectory) {
-      return;
-    }
     this.builtInBootstrapPromise ??= this.installBuiltInPackages();
     await this.builtInBootstrapPromise;
   };
 
   private installBuiltInPackages = async (): Promise<void> => {
-    const builtInDirectory = path.resolve(this.params.builtInAppsDirectory as string);
-    let entries;
-    try {
-      entries = await readdir(builtInDirectory, { withFileTypes: true });
-    } catch (error) {
-      if (this.isMissingFileError(error)) {
-        return;
-      }
-      throw error;
-    }
-    for (const entry of entries.filter((item) => item.isDirectory() && !item.name.startsWith("."))) {
-      const appDirectory = path.join(builtInDirectory, entry.name);
-      const manifest = await this.manifestService.load(appDirectory);
+    await this.installationService.reconcileFilesystem();
+    for (const { appDirectory, manifest } of await this.listBuiltInDefinitions()) {
       if (!isAppComponentManifestBundle(manifest)) {
+        continue;
+      }
+      if (await this.registryService.isBuiltInSuppressed(manifest.manifest.id)) {
         continue;
       }
       const existing = await this.registryService.getApp(manifest.manifest.id);
@@ -229,12 +266,13 @@ export class AppPackageManager {
       id: info.appId,
       name: info.name,
       description: info.description,
+      icon: packagePresentation.icon,
       nameI18n: packagePresentation.nameI18n,
       descriptionI18n: packagePresentation.descriptionI18n,
       activeVersion: info.activeVersion,
       installedVersions: info.installedVersions.map((version) => version.version),
       enabled: info.enabled,
-      builtIn: this.isBuiltInSource(activeVersion.sourceRef),
+      builtIn: await this.isBuiltInAppId(info.appId),
       primaryPanelId: activeVersion.primaryPanelId,
       components: await Promise.all((activeVersion.components ?? []).map(async (component) => ({
         kind: component.kind,
@@ -261,12 +299,13 @@ export class AppPackageManager {
     descriptionI18n?: Record<string, string>;
   }> => {
     const candidate = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    const rawIcon = typeof candidate.icon === "string" ? candidate.icon : undefined;
     return {
       ...(typeof candidate.title === "string" ? { title: candidate.title } : {}),
       ...(typeof candidate.description === "string"
         ? { description: candidate.description }
         : {}),
-      ...(typeof candidate.icon === "string" ? { icon: candidate.icon } : {}),
+      ...(rawIcon ? { icon: await this.resolvePresentationIcon(manifestPath, rawIcon) } : {}),
       ...this.readLocalizedField(candidate, "nameI18n"),
       ...this.readLocalizedField(candidate, "titleI18n"),
       ...this.readLocalizedField(candidate, "descriptionI18n"),
@@ -317,15 +356,129 @@ export class AppPackageManager {
     }
   };
 
-  private isBuiltInSource = (sourceRef: string): boolean => {
+  private listBuiltInDefinitions = async (): Promise<Array<{
+    appDirectory: string;
+    manifest: Awaited<ReturnType<AppManifestService["load"]>>;
+  }>> => {
     if (!this.params.builtInAppsDirectory) {
-      return false;
+      return [];
     }
-    const relative = path.relative(
-      path.resolve(this.params.builtInAppsDirectory),
-      path.resolve(sourceRef),
+    this.builtInDefinitionsPromise ??= (async () => {
+      const builtInDirectory = path.resolve(this.params.builtInAppsDirectory as string);
+      let entries;
+      try {
+        entries = await readdir(builtInDirectory, { withFileTypes: true });
+      } catch (error) {
+        if (this.isMissingFileError(error)) {
+          return [];
+        }
+        throw error;
+      }
+      return await Promise.all(entries
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+        .map(async (entry) => {
+          const appDirectory = path.join(builtInDirectory, entry.name);
+          return {
+            appDirectory,
+            manifest: await this.manifestService.load(appDirectory),
+          };
+        }));
+    })();
+    return await this.builtInDefinitionsPromise;
+  };
+
+  private isBuiltInAppId = async (appId: string): Promise<boolean> =>
+    (await this.listBuiltInDefinitions()).some(({ manifest }) => manifest.manifest.id === appId);
+
+  private resolvePresentationIcon = async (
+    manifestPath: string,
+    icon: string,
+  ): Promise<string> => {
+    if (
+      icon.startsWith("data:") ||
+      icon.startsWith("http://") ||
+      icon.startsWith("https://") ||
+      icon.startsWith("/") ||
+      (!icon.includes("/") && !icon.includes(".") && [...icon].length <= 8)
+    ) {
+      return icon;
+    }
+    const manifestDirectory = path.dirname(manifestPath);
+    const iconPath = path.resolve(manifestDirectory, icon);
+    const relative = path.relative(manifestDirectory, iconPath);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+      return icon;
+    }
+    const mimeType = this.iconMimeType(path.extname(iconPath));
+    if (!mimeType) {
+      return icon;
+    }
+    const bytes = await readFile(iconPath);
+    if (bytes.byteLength > 256 * 1024) {
+      return icon;
+    }
+    return `data:${mimeType};base64,${bytes.toString("base64")}`;
+  };
+
+  private iconMimeType = (extension: string): string | undefined => {
+    switch (extension.toLowerCase()) {
+      case ".svg": return "image/svg+xml";
+      case ".png": return "image/png";
+      case ".jpg":
+      case ".jpeg": return "image/jpeg";
+      case ".webp": return "image/webp";
+      case ".gif": return "image/gif";
+      default: return undefined;
+    }
+  };
+
+  private executeOperation = async (
+    input: AppPackageOperationInput,
+    report: (status: AppPackageOperationStatus) => Promise<void>,
+  ): Promise<AppPackageOperationResult> => {
+    if (input.action === "install") {
+      const installed = await this.install(
+        input.source,
+        input.registryUrl,
+        async (phase) => await report(phase),
+      );
+      return { appId: installed.id, activeVersion: installed.activeVersion };
+    }
+    if (input.action === "update") {
+      const updated = await this.update(input.appId, {
+        version: input.version,
+        registryUrl: input.registryUrl,
+        onProgress: async (phase) => await report(phase),
+      });
+      return {
+        appId: updated.package.id,
+        activeVersion: updated.package.activeVersion,
+        changed: updated.result.updated,
+      };
+    }
+    await report("resolving");
+    if (input.action === "rollback") {
+      await report("verifying");
+      await report("installing");
+      const rolledBack = await this.rollback(input.appId, input.version);
+      await report("finalizing");
+      return {
+        appId: rolledBack.package.id,
+        activeVersion: rolledBack.package.activeVersion,
+        changed: rolledBack.result.rolledBack,
+      };
+    }
+    await report("installing");
+    const uninstalled = await this.uninstall(
+      input.appId,
+      input.purgeData ?? false,
     );
-    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+    await report("finalizing");
+    return {
+      appId: uninstalled.appId,
+      removedVersions: uninstalled.removedVersions,
+      dataRemoved: uninstalled.dataRemoved,
+    };
   };
 
   private isMissingFileError = (error: unknown): boolean =>

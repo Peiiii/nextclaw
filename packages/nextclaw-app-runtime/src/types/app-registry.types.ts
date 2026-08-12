@@ -36,4 +36,7 @@ export type AppRegistryAppRecord = {
 export type AppRegistry = {
   schemaVersion: 1;
   apps: Record<string, AppRegistryAppRecord>;
+  suppressedBuiltIns: Record<string, {
+    suppressedAt: string;
+  }>;
 };

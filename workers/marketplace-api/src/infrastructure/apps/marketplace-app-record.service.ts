@@ -1,4 +1,4 @@
-import { DomainValidationError } from "../../domain/errors";
+import { DomainValidationError } from "@/domain/errors";
 import type {
   AppInstallSpec,
   AppPublisher,
@@ -17,11 +17,13 @@ import type {
 } from "./app-marketplace.types";
 import {
   OFFICIAL_APPS_REGISTRY_METADATA_URL,
+  OFFICIAL_APPS_REGISTRY_BASE_URL,
   OFFICIAL_APPS_WEB_BASE_URL,
 } from "./app-marketplace.types";
 
 export class MarketplaceAppRecordMapper {
   mapItemSummary = (row: MarketplaceAppItemRow): MarketplaceAppItemSummary => {
+    const manifest = this.parseManifest(row.manifest_json, `${row.slug}.manifest_json`);
     return {
       id: row.id,
       slug: row.slug,
@@ -29,6 +31,13 @@ export class MarketplaceAppRecordMapper {
       ownerScope: this.readOwnerScope(row),
       appName: this.readAppName(row),
       name: row.name,
+      iconUrl: manifest.icon
+        ? this.buildFileUrl(row.slug, manifest.icon, row.icon_sha256)
+        : undefined,
+      coverUrl: row.cover_path
+        ? this.buildFileUrl(row.slug, row.cover_path, row.cover_sha256)
+        : undefined,
+      accentColor: row.accent_color ?? undefined,
       summary: row.summary,
       summaryI18n: this.parseLocalizedMap(row.summary_i18n, `${row.slug}.summary_i18n`, row.summary),
       tags: this.parseStringArray(row.tags, `${row.slug}.tags`),
@@ -67,7 +76,7 @@ export class MarketplaceAppRecordMapper {
         updatedAt: versionRow.updated_at,
         distributionMode: versionRow.distribution_mode,
         bundleSha256: versionRow.bundle_sha256,
-        downloadPath: `/api/v1/apps/items/${encodeURIComponent(row.slug)}/bundles/${encodeURIComponent(versionRow.version)}`,
+        downloadPath: this.buildBundlePath(row.slug, versionRow.version, versionRow.bundle_sha256),
       })),
     };
   };
@@ -144,6 +153,17 @@ export class MarketplaceAppRecordMapper {
       command: `napp install ${appId}`,
       registry: OFFICIAL_APPS_REGISTRY_METADATA_URL,
     };
+  };
+
+  buildBundlePath = (slug: string, version: string, sha256: string): string =>
+    `/api/v1/apps/items/${encodeURIComponent(slug)}/bundles/${encodeURIComponent(version)}?sha256=${encodeURIComponent(sha256)}`;
+
+  private buildFileUrl = (slug: string, filePath: string, sha256: string | null): string => {
+    const search = new URLSearchParams({ path: filePath });
+    if (sha256) {
+      search.set("sha256", sha256);
+    }
+    return `${OFFICIAL_APPS_REGISTRY_BASE_URL}/api/v1/apps/items/${encodeURIComponent(slug)}/files/blob?${search.toString()}`;
   };
 
   readPublishStatus = (value: string | null | undefined): MarketplaceAppPublishStatus => {

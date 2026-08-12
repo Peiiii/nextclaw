@@ -1,6 +1,13 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="128" height="128" rx="32" fill="#10233E"/>
-  <path d="M34 34H94V48H34V34Z" fill="#FFF5D6"/>
-  <path d="M34 58H94V72H34V58Z" fill="#FFD86B"/>
-  <path d="M34 82H74V96H34V82Z" fill="#7FD1FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Hello Notes">
+  <defs>
+    <linearGradient id="paper" x1="30" y1="24" x2="99" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF8"/>
+      <stop offset="1" stop-color="#EEE8F2"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="30" fill="#E9E2D6"/>
+  <path d="M29 39c0-6.1 4.9-11 11-11h17l8 9h24c6.1 0 11 4.9 11 11v45c0 6.1-4.9 11-11 11H40c-6.1 0-11-4.9-11-11V39Z" fill="url(#paper)" stroke="#786F83" stroke-width="4"/>
+  <rect x="43" y="53" width="43" height="6" rx="3" fill="#C2A85C"/>
+  <rect x="43" y="67" width="35" height="6" rx="3" fill="#9B93B7"/>
+  <rect x="43" y="81" width="26" height="6" rx="3" fill="#8EA8AD"/>
 </svg>

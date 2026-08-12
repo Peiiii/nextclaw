@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { access, cp, mkdir, rename, rm } from "node:fs/promises";
+import { access, cp, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { AppBundleService } from "#app-runtime/services/app-bundle.service.js";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
@@ -17,6 +17,7 @@ import { AppRegistryService } from "#app-runtime/services/app-registry.service.j
 import { AppInstallSourceService } from "#app-runtime/services/app-install-source.service.js";
 import type {
   AppInfoResult,
+  AppInstallProgressHandler,
   AppActivationResult,
   AppInstallResult,
   AppLaunchResolution,
@@ -52,11 +53,17 @@ export class AppInstallationService {
     appSource: string,
     options?: {
       registryUrl?: string;
+      onProgress?: AppInstallProgressHandler;
     },
   ): Promise<AppInstallResult> => {
-    const source = await this.installSourceService.resolve(appSource, options?.registryUrl);
+    const { onProgress, registryUrl } = options ?? {};
+    await onProgress?.("resolving");
+    const source = await this.installSourceService.resolve(appSource, registryUrl);
     const tempDirectory = await this.appHomeService.createTemporaryDirectory("napp-install-");
     try {
+      if (source.kind === "registry") {
+        await onProgress?.("downloading");
+      }
       const bundlePath =
         source.kind === "directory"
           ? (await this.bundleService.packAppDirectory({
@@ -71,6 +78,7 @@ export class AppInstallationService {
                   targetDirectory: tempDirectory,
                 })
               ).bundlePath;
+      await onProgress?.("verifying");
       const extractedDirectory = path.join(tempDirectory, "bundle");
       const extractedMetadata = await this.bundleService.extractBundle({
         bundlePath,
@@ -93,6 +101,7 @@ export class AppInstallationService {
           `bundle manifest.appId 与 registry 请求不一致：期望 ${source.registryResolution.appId}，实际 ${manifestBundle.manifest.id}`,
         );
       }
+      await onProgress?.("installing");
       const dataDirectory = this.appHomeService.getAppDataDirectory(manifestBundle.manifest.id);
       await this.copyToImmutableInstallDirectory({
         appId: manifestBundle.manifest.id,
@@ -101,6 +110,7 @@ export class AppInstallationService {
         installDirectory,
       });
       await mkdir(dataDirectory, { recursive: true });
+      await onProgress?.("finalizing");
       let registryRecord;
       try {
         registryRecord = await this.registryService.upsertInstallation({
@@ -182,20 +192,23 @@ export class AppInstallationService {
     options?: {
       version?: string;
       registryUrl?: string;
+      onProgress?: AppInstallProgressHandler;
     },
   ): Promise<AppUpdateResult> => {
+    const { onProgress, registryUrl: requestedRegistryUrl, version } = options ?? {};
+    await onProgress?.("resolving");
     const appRecord = await this.registryService.getApp(appId);
     if (!appRecord) {
       throw new Error(`未找到已安装应用：${appId}`);
     }
     const activeVersionRecord = appRecord.installedVersions[appRecord.activeVersion];
     const registryUrl =
-      options?.registryUrl ??
+      requestedRegistryUrl ??
       activeVersionRecord?.registryUrl ??
       (await this.registryConfigService.getSnapshot()).currentUrl;
     const resolution = await this.remoteRegistryClient.resolve({
       appId,
-      version: options?.version,
+      version,
       registryUrl,
     });
     if (resolution.version === appRecord.activeVersion) {
@@ -223,8 +236,37 @@ export class AppInstallationService {
         updated: false,
       };
     }
+    const installedTarget = appRecord.installedVersions[resolution.version];
+    if (installedTarget) {
+      await onProgress?.("verifying");
+      await onProgress?.("installing");
+      await this.rollback(appId, resolution.version);
+      await onProgress?.("finalizing");
+      return {
+        appId: appRecord.appId,
+        name: appRecord.name,
+        version: resolution.version,
+        previousVersion: appRecord.activeVersion,
+        installDirectory: installedTarget.installDirectory,
+        dataDirectory: appRecord.dataDirectory,
+        sourceKind: installedTarget.sourceKind,
+        distributionMode: installedTarget.distributionMode,
+        sourceRef: installedTarget.sourceRef,
+        permissions: installedTarget.permissions,
+        registryUrl: installedTarget.registryUrl,
+        bundleUrl: installedTarget.bundleUrl,
+        sha256: installedTarget.sha256,
+        publisher: installedTarget.publisher,
+        enabled: appRecord.enabled,
+        manifestSchemaVersion: installedTarget.manifestSchemaVersion,
+        components: installedTarget.components,
+        primaryPanelId: installedTarget.primaryPanelId,
+        updated: true,
+      };
+    }
     const installResult = await this.install(`${appId}@${resolution.version}`, {
       registryUrl,
+      onProgress,
     });
     return {
       ...installResult,
@@ -308,6 +350,23 @@ export class AppInstallationService {
       primaryPanelId:
         appRecord.installedVersions[appRecord.activeVersion]?.primaryPanelId,
     }));
+  };
+
+  reconcileFilesystem = async (): Promise<void> => {
+    await this.appHomeService.ensureBaseDirectories();
+    const appRecords = await this.registryService.listApps();
+    const referencedInstallPaths = new Set(appRecords.flatMap((record) =>
+      Object.values(record.installedVersions).map((version) => path.resolve(version.installDirectory))));
+    const referencedDataPaths = new Set(appRecords.map((record) => path.resolve(record.dataDirectory)));
+
+    const packageDirectories = await this.readDirectories(this.appHomeService.getPackagesDirectory());
+    for (const appDirectory of packageDirectories) {
+      await this.reconcileGeneratedSiblings(appDirectory, referencedInstallPaths);
+    }
+    await this.reconcileGeneratedSiblings(
+      this.appHomeService.getDataDirectory(),
+      referencedDataPaths,
+    );
   };
 
   info = async (appId: string): Promise<AppInfoResult> => {
@@ -474,6 +533,44 @@ export class AppInstallationService {
     });
   };
 
+  private reconcileGeneratedSiblings = async (
+    parentDirectory: string,
+    referencedPaths: Set<string>,
+  ): Promise<void> => {
+    for (const entry of await this.readDirectories(parentDirectory)) {
+      const entryName = path.basename(entry);
+      const stagingMarker = ".staging-";
+      const uninstallingMarker = ".uninstalling-";
+      if (entryName.includes(stagingMarker)) {
+        await rm(entry, { recursive: true, force: true });
+        continue;
+      }
+      const markerIndex = entryName.indexOf(uninstallingMarker);
+      if (markerIndex < 0) {
+        continue;
+      }
+      const originalPath = path.join(parentDirectory, entryName.slice(0, markerIndex));
+      if (referencedPaths.has(path.resolve(originalPath)) && !await this.pathExists(originalPath)) {
+        await rename(entry, originalPath);
+      } else {
+        await rm(entry, { recursive: true, force: true });
+      }
+    }
+  };
+
+  private readDirectories = async (directory: string): Promise<string[]> => {
+    try {
+      return (await readdir(directory, { withFileTypes: true }))
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => path.join(directory, entry.name));
+    } catch (error) {
+      if (this.isMissingFileError(error)) {
+        return [];
+      }
+      throw error;
+    }
+  };
+
   private pathExists = async (targetPath: string): Promise<boolean> => {
     try {
       await access(targetPath);
@@ -482,4 +579,8 @@ export class AppInstallationService {
       return false;
     }
   };
+
+  private isMissingFileError = (error: unknown): boolean =>
+    typeof error === "object" && error !== null &&
+    "code" in error && (error as { code?: unknown }).code === "ENOENT";
 }

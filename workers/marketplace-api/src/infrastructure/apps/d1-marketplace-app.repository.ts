@@ -1,6 +1,7 @@
 import { DomainValidationError, ResourceNotFoundError } from "@/domain/errors";
-import type { MarketplaceListQuery } from "@/domain/model";
+import type { MarketplaceAppCatalogQuery, MarketplaceListQuery } from "@/domain/model";
 import {
+  type MarketplaceAppCatalogResult,
   type MarketplaceAppFileInput,
   type MarketplaceAppFileRow,
   type MarketplaceAdminAppDetailPayload,
@@ -62,6 +63,10 @@ export class D1MarketplaceAppDataSource {
     return this.publicReader.listApps(query);
   };
 
+  listCatalog = async (query: MarketplaceAppCatalogQuery): Promise<MarketplaceAppCatalogResult> => {
+    return this.publicReader.listCatalog(query);
+  };
+
   getAppDetail = async (selector: string): Promise<MarketplaceAppItemDetail | null> => {
     return this.publicReader.getAppDetail(selector);
   };
@@ -73,15 +78,17 @@ export class D1MarketplaceAppDataSource {
   getAppFileContent = async (
     selector: string,
     filePath: string,
+    sha256?: string,
   ): Promise<{ item: MarketplaceAppItemSummary; file: MarketplaceAppFileRow; object: R2ObjectBody } | null> => {
-    return this.publicReader.getAppFileContent(selector, filePath);
+    return this.publicReader.getAppFileContent(selector, filePath, sha256);
   };
 
   getBundle = async (
     selector: string,
     version: string,
+    range?: string,
   ): Promise<{ item: MarketplaceAppItemSummary; version: MarketplaceAppVersionRow; object: R2ObjectBody } | null> => {
-    return this.publicReader.getBundle(selector, version);
+    return this.publicReader.getBundle(selector, version, range);
   };
 
   getRegistryDocument = async (appId: string): Promise<Record<string, unknown> | null> => {
@@ -104,6 +111,11 @@ export class D1MarketplaceAppDataSource {
     const itemId = existingItem?.id ?? `app-${input.slug}`;
     const publishedAt = existingItem?.published_at ?? nowIso;
     const existingVersion = await this.recordRepository.getVersionRow(itemId, input.version);
+    if (existingVersion && existingVersion.bundle_sha256 !== input.bundleSha256) {
+      throw new DomainValidationError(
+        `app version is immutable: ${input.appId}@${input.version} already has a different bundle`,
+      );
+    }
     const versionPublishedAt = existingVersion?.published_at ?? nowIso;
     const bundleBytes = this.payloadParser.decodeBase64(input.bundleBase64, "bundleBase64");
     const bundleObject = await this.fileStore.putBundle({
@@ -123,7 +135,7 @@ export class D1MarketplaceAppDataSource {
       publishedAt: versionPublishedAt,
       updatedAt: nowIso,
     });
-    await this.replaceFiles(itemId, input.appId, input.files, nowIso);
+    const storedFiles = await this.replaceFiles(itemId, input.appId, input.files, nowIso);
 
     const latestVersion = this.querySupport.pickLatestVersion(existingItem?.latest_version, input.version);
     await this.persistence.persistItem({
@@ -135,6 +147,12 @@ export class D1MarketplaceAppDataSource {
       publishStatus: identity.ownerScope === "nextclaw" ? "published" : "pending",
       publishedByType: identity.ownerScope === "nextclaw" ? "admin" : "user",
       latestVersion,
+      iconSha256: input.manifest.icon
+        ? storedFiles.get(input.manifest.icon)?.sha256 ?? null
+        : null,
+      coverSha256: input.visuals?.cover
+        ? storedFiles.get(input.visuals.cover)?.sha256 ?? null
+        : null,
       publishedAt,
       updatedAt: nowIso,
     });
@@ -300,14 +318,21 @@ export class D1MarketplaceAppDataSource {
     appId: string,
     files: MarketplaceAppFileInput[],
     updatedAt: string,
-  ): Promise<void> => {
+  ): Promise<Map<string, { sha256: string; storageKey: string }>> => {
     const existingFiles = await this.recordRepository.listFileRows(itemId);
-    await this.fileStore.deleteObjects(existingFiles.map((row) => row.storage_key));
+    await Promise.all(existingFiles.map(async (file) => await this.fileStore.preserveFileRevision({
+      appId,
+      filePath: file.path,
+      storageKey: file.storage_key,
+      sha256: file.sha256,
+      contentType: file.content_type,
+    })));
     await this.db
       .prepare("DELETE FROM marketplace_app_files WHERE item_id = ?")
       .bind(itemId)
       .run();
 
+    const storedFiles = new Map<string, { sha256: string; storageKey: string }>();
     for (const file of files) {
       const bytes = this.payloadParser.decodeBase64(file.contentBase64, `files.${file.path}`);
       const contentType = this.querySupport.resolveContentType(file.path);
@@ -316,6 +341,10 @@ export class D1MarketplaceAppDataSource {
         filePath: file.path,
         bytes,
         contentType,
+      });
+      storedFiles.set(file.path, {
+        sha256: stored.sha256,
+        storageKey: stored.storageKey,
       });
       await this.db
         .prepare(
@@ -342,5 +371,6 @@ export class D1MarketplaceAppDataSource {
         )
         .run();
     }
+    return storedFiles;
   };
 }

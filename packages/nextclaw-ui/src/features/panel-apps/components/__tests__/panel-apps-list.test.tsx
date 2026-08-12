@@ -134,7 +134,7 @@ describe('PanelAppsList', () => {
 
     expect(screen.getByText('Demo Panel')).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: 'Favorites' }));
+    await user.click(screen.getByRole('tab', { name: 'Favorites' }));
 
     expect(screen.getByText('No panel apps in this view')).toBeTruthy();
     expect(screen.queryByText('Create your first panel app')).toBeNull();

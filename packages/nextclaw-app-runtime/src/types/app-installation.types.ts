@@ -4,6 +4,17 @@ import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js
 import type { AppInstallSourceKind } from "#app-runtime/types/app-registry.types.js";
 import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
 
+export type AppInstallProgressPhase =
+  | "resolving"
+  | "downloading"
+  | "verifying"
+  | "installing"
+  | "finalizing";
+
+export type AppInstallProgressHandler = (
+  phase: AppInstallProgressPhase,
+) => void | Promise<void>;
+
 export type AppInstallResult = {
   appId: string;
   name: string;

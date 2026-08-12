@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
+import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
 
 const tempDirectories: string[] = [];
 const builtInAppsDirectory = resolve(
@@ -17,8 +18,10 @@ function createTempDirectory(): string {
   return directory;
 }
 
-function createKernel(appsDirectory = builtInAppsDirectory): NextclawKernel {
-  const homeDirectory = createTempDirectory();
+function createKernel(
+  appsDirectory = builtInAppsDirectory,
+  homeDirectory = createTempDirectory(),
+): NextclawKernel {
   const workspaceDirectory = join(homeDirectory, "workspace");
   const configPath = join(homeDirectory, "config.json");
   saveConfig(
@@ -49,6 +52,107 @@ afterEach(() => {
 });
 
 describe("AppPackageManager runtime projection", () => {
+  it("marks persisted active operations as interrupted after process recovery", async () => {
+    const storeDirectory = createTempDirectory();
+    const storePath = join(storeDirectory, "operations.json");
+    writeFileSync(storePath, `${JSON.stringify({
+      schemaVersion: 1,
+      entries: [{
+        id: "operation-before-restart",
+        action: "install",
+        source: "nextclaw.example",
+        appId: "nextclaw.example",
+        status: "downloading",
+        completedSteps: 2,
+        totalSteps: 5,
+        createdAt: "2026-08-13T00:00:00.000Z",
+        updatedAt: "2026-08-13T00:00:01.000Z",
+      }],
+    }, null, 2)}\n`);
+    const manager = new AppPackageOperationManager({
+      storePath,
+      execute: async () => ({ appId: "nextclaw.example" }),
+    });
+
+    await expect(manager.list()).resolves.toMatchObject({
+      entries: [{
+        id: "operation-before-restart",
+        status: "interrupted",
+        error: "NextClaw 在操作完成前退出，请重试。",
+      }],
+    });
+    expect(JSON.parse(readFileSync(storePath, "utf8"))).toMatchObject({
+      entries: [{ status: "interrupted" }],
+    });
+  });
+
+  it("deduplicates concurrent write operations for the same app", async () => {
+    const storeDirectory = createTempDirectory();
+    let finishExecution: (() => void) | undefined;
+    const executionGate = new Promise<void>((resolveExecution) => {
+      finishExecution = resolveExecution;
+    });
+    const manager = new AppPackageOperationManager({
+      storePath: join(storeDirectory, "operations.json"),
+      execute: async (input) => {
+        await executionGate;
+        return {
+          appId: input.action === "install" ? input.source : input.appId,
+        };
+      },
+    });
+
+    const [first, duplicate] = await Promise.all([
+      manager.start({ action: "update", appId: "nextclaw.example" }),
+      manager.start({ action: "rollback", appId: "nextclaw.example", version: "0.1.0" }),
+    ]);
+
+    expect(duplicate.id).toBe(first.id);
+    expect((await manager.list()).entries).toHaveLength(1);
+    finishExecution?.();
+  });
+
+  it("runs uninstall asynchronously and keeps a built-in app suppressed after restart", async () => {
+    const homeDirectory = createTempDirectory();
+    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+
+    try {
+      await expect(kernel.appPackageManager.listPackages()).resolves.toMatchObject({
+        entries: [expect.objectContaining({ id: "nextclaw.personal-organizer" })],
+      });
+      const accepted = await kernel.appPackageManager.startOperation({
+        action: "uninstall",
+        appId: "nextclaw.personal-organizer",
+        purgeData: false,
+      });
+      expect(accepted.status).toBe("queued");
+
+      let completed = accepted;
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        completed = (await kernel.appPackageManager.listOperations()).entries
+          .find((entry) => entry.id === accepted.id) ?? completed;
+        if (completed.status === "succeeded" || completed.status === "failed") break;
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, 10));
+      }
+      expect(completed).toMatchObject({
+        action: "uninstall",
+        status: "succeeded",
+        result: { appId: "nextclaw.personal-organizer", dataRemoved: false },
+      });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+
+    const restartedKernel = createKernel(builtInAppsDirectory, homeDirectory);
+    try {
+      await expect(restartedKernel.appPackageManager.listPackages()).resolves.toEqual({
+        entries: [],
+      });
+    } finally {
+      await restartedKernel.serviceAppManager.dispose();
+    }
+  });
+
   it("rejects enabling a package that requires a newer NextClaw version", async () => {
     const incompatibleAppsDirectory = createTempDirectory();
     const packageDirectory = join(incompatibleAppsDirectory, "incompatible-organizer");
@@ -70,7 +174,9 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.serviceAppManager.dispose();
     }
   });
+});
 
+describe("AppPackageManager package projection lifecycle", () => {
   it("projects the official package into panel and service runtimes with stable data", async () => {
     const kernel = createKernel();
 
@@ -109,6 +215,12 @@ describe("AppPackageManager runtime projection", () => {
         "nextclaw-personal-organizer-notes",
         "nextclaw-personal-organizer-todos",
       ]);
+      expect(panels.entries.map((entry) => entry.icon).sort()).toEqual([
+        "✓",
+        "□",
+        "◇",
+        "✎",
+      ].sort());
       expect(panels.entries).toEqual(expect.arrayContaining([
         expect.objectContaining({
           packageId: "nextclaw.personal-organizer",
@@ -208,27 +320,46 @@ describe("AppPackageManager runtime projection", () => {
         panels.entries.find((entry) =>
           entry.appId === "nextclaw-personal-organizer-todos")?.id ?? "",
       );
-      expect(await kernel.serviceAppManager.listServiceActionGrants()).not.toHaveLength(0);
-      const uninstalled = await kernel.appPackageManager.uninstall(
-        "nextclaw.personal-organizer",
-        false,
-      );
-      expect(uninstalled).toMatchObject({
-        dataRemoved: false,
-        removedVersions: ["0.1.1"],
+      await assertUninstallCleanup({
+        dataDirectory: enabledPackage.dataDirectory,
+        kernel,
+        openedPanelId: openedPanel.id,
+        panelsPath: panels.panelsPath,
       });
-      await expect(kernel.serviceAppManager.listServiceActionGrants()).resolves.toEqual([]);
-      await expect(kernel.panelAppManager.listPanelApps()).resolves.toMatchObject({ entries: [] });
-      await expect(kernel.appPackageManager.getPackage("nextclaw.personal-organizer"))
-        .rejects.toMatchObject({ code: "APP_PACKAGE_NOT_FOUND" });
-      expect(existsSync(enabledPackage.dataDirectory)).toBe(true);
-      const storedPanelState = JSON.parse(readFileSync(
-        join(panels.panelsPath, ".panel-apps.state.json"),
-        "utf8",
-      )) as { apps: Record<string, unknown> };
-      expect(storedPanelState.apps).not.toHaveProperty(openedPanel.id);
     } finally {
       await kernel.serviceAppManager.dispose();
     }
   });
 });
+
+async function assertUninstallCleanup({
+  dataDirectory,
+  kernel,
+  openedPanelId,
+  panelsPath,
+}: {
+  dataDirectory: string;
+  kernel: NextclawKernel;
+  openedPanelId: string;
+  panelsPath: string;
+}): Promise<void> {
+  expect(await kernel.serviceAppManager.listServiceActionGrants()).not.toHaveLength(0);
+  const uninstalled = await kernel.appPackageManager.uninstall(
+    "nextclaw.personal-organizer",
+    false,
+  );
+  expect(uninstalled).toMatchObject({
+    dataRemoved: false,
+    removedVersions: ["0.1.1"],
+  });
+  await expect(kernel.serviceAppManager.listServiceActionGrants()).resolves.toEqual([]);
+  await expect(kernel.panelAppManager.listPanelApps()).resolves.toMatchObject({ entries: [] });
+  await expect(kernel.appPackageManager.getPackage("nextclaw.personal-organizer"))
+    .rejects.toMatchObject({ code: "APP_PACKAGE_NOT_FOUND" });
+  expect(existsSync(dataDirectory)).toBe(true);
+  const storedPanelState = JSON.parse(readFileSync(
+    join(panelsPath, ".panel-apps.state.json"),
+    "utf8",
+  )) as { apps: Record<string, unknown> };
+  expect(storedPanelState.apps).not.toHaveProperty(openedPanelId);
+}

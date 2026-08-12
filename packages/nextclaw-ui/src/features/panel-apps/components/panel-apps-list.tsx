@@ -14,10 +14,8 @@ import { t } from '@/shared/lib/i18n';
 const EMPTY_PANEL_APP_ENTRIES: PanelAppEntryView[] = [];
 
 export function PanelAppsList({
-  headerContent,
   onOpenPanelApp,
 }: {
-  headerContent?: ReactNode;
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
 }) {
   const panelApps = usePanelApps();
@@ -95,11 +93,8 @@ export function PanelAppsList({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
-      <div className="flex items-center justify-between gap-2 border-b border-border/70 px-4 py-3">
+      <div className="flex min-h-12 shrink-0 items-center justify-end gap-2 border-b border-border/70 px-4 py-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          {headerContent ?? (
-            <div className="truncate text-sm font-semibold text-foreground">{t('panelAppsTitle')}</div>
-          )}
           {panelApps.data?.panelsPath ? (
             <TooltipProvider delayDuration={250}>
               <Tooltip>

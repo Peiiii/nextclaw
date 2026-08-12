@@ -10,6 +10,10 @@ routes = [
 [observability]
 enabled = true
 
+# 公开应用目录已通过 D1 Sessions API 接入就近只读副本。生产发布前还需要在
+# nextclaw-marketplace-skills 的 Cloudflare D1 设置中启用 Read Replication；
+# 这是平台控制面状态，不能仅由 wrangler.toml 声明。
+
 [vars]
 MARKETPLACE_CACHE_TTL_SECONDS = "120"
 MARKETPLACE_SKILL_AUTO_APPROVE = "true"

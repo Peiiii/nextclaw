@@ -13,8 +13,8 @@ export class MarketplaceAppFileStore {
     bytes: Uint8Array;
   }): Promise<MarketplaceStoredObject> => {
     const { appId, version, bytes } = params;
-    const storageKey = `apps/${appId}/bundles/${version}/bundle.napp`;
     const sha256 = await this.sha256Hex(bytes);
+    const storageKey = `apps/${appId}/bundles/${version}/${sha256}.napp`;
     await this.bucket.put(storageKey, bytes, {
       httpMetadata: {
         contentType: "application/octet-stream",
@@ -34,8 +34,8 @@ export class MarketplaceAppFileStore {
     contentType: string;
   }): Promise<MarketplaceStoredObject> => {
     const { appId, filePath, bytes, contentType } = params;
-    const storageKey = `apps/${appId}/files/${filePath}`;
     const sha256 = await this.sha256Hex(bytes);
+    const storageKey = `apps/${appId}/files/${sha256}/${filePath}`;
     await this.bucket.put(storageKey, bytes, {
       httpMetadata: {
         contentType,
@@ -48,8 +48,40 @@ export class MarketplaceAppFileStore {
     };
   };
 
-  getObject = async (storageKey: string): Promise<R2ObjectBody | null> => {
+  getObject = async (storageKey: string, range?: string): Promise<R2ObjectBody | null> => {
+    return await this.bucket.get(storageKey, range ? { range: new Headers({ range }) } : undefined);
+  };
+
+  findContentAddressedObject = async (params: {
+    appId: string;
+    sha256: string;
+    filePath: string;
+  }): Promise<R2ObjectBody | null> => {
+    const storageKey = `apps/${params.appId}/files/${params.sha256}/${params.filePath}`;
     return await this.bucket.get(storageKey);
+  };
+
+  preserveFileRevision = async (params: {
+    appId: string;
+    filePath: string;
+    storageKey: string;
+    sha256: string;
+    contentType: string;
+  }): Promise<void> => {
+    const { appId, contentType, filePath, sha256, storageKey } = params;
+    const targetKey = `apps/${appId}/files/${sha256}/${filePath}`;
+    if (storageKey === targetKey || await this.bucket.head(targetKey)) {
+      return;
+    }
+    const current = await this.bucket.get(storageKey);
+    if (!current) {
+      return;
+    }
+    await this.bucket.put(targetKey, current.body, {
+      httpMetadata: {
+        contentType,
+      },
+    });
   };
 
   deleteObjects = async (storageKeys: string[]): Promise<void> => {

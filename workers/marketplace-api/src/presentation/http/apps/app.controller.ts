@@ -25,10 +25,16 @@ export function registerAppRoutes(
   app: Hono<{ Bindings: AppRouteBindings }>,
   getRuntime: (bindings: AppRouteBindings) => AppRouteRuntime,
 ): void {
+  app.get("/api/v2/apps/items", async (c) => {
+    const runtime = getRuntime(c.env);
+    const data = await runtime.appDataSource.listCatalog(runtime.parser.parseAppCatalogQuery(c));
+    return runtime.responses.publicOk(c, data);
+  });
+
   app.get("/api/v1/apps/items", async (c) => {
     const runtime = getRuntime(c.env);
     const data = await runtime.appDataSource.listApps(runtime.parser.parseListQuery(c));
-    return runtime.responses.ok(c, data);
+    return runtime.responses.publicOk(c, data);
   });
 
   app.get("/api/v1/apps/items/:selector", async (c) => {
@@ -38,7 +44,7 @@ export function registerAppRoutes(
     if (!data) {
       throw new ResourceNotFoundError(`app item not found: ${selector}`);
     }
-    return runtime.responses.ok(c, data);
+    return runtime.responses.publicOk(c, data);
   });
 
   app.get("/api/v1/apps/items/:selector/files", async (c) => {
@@ -58,15 +64,30 @@ export function registerAppRoutes(
     if (!filePath) {
       return runtime.responses.error(c, "INVALID_QUERY", "query.path is required", 400);
     }
-    const payload = await runtime.appDataSource.getAppFileContent(selector, filePath);
+    const expectedSha256 = c.req.query("sha256");
+    const payload = await runtime.appDataSource.getAppFileContent(selector, filePath, expectedSha256);
     if (!payload) {
       throw new ResourceNotFoundError(`app file not found: ${selector}/${filePath}`);
     }
-    return new Response(payload.object.body, {
+    const etag = `"sha256-${payload.file.sha256}"`;
+    if (c.req.header("if-none-match") === etag) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          "cache-control": "public, max-age=31536000, immutable",
+          etag,
+        },
+      });
+    }
+    return new Response(c.req.method === "HEAD" ? null : payload.object.body, {
       status: 200,
       headers: {
         "content-type": payload.file.content_type,
-        "cache-control": "public, max-age=300",
+        "content-length": String(payload.file.size_bytes),
+        "cache-control": expectedSha256
+          ? "public, max-age=31536000, immutable"
+          : "public, max-age=300, stale-while-revalidate=600",
+        etag,
         "x-app-file-sha256": payload.file.sha256,
       },
     });
@@ -76,16 +97,41 @@ export function registerAppRoutes(
     const runtime = getRuntime(c.env);
     const selector = c.req.param("selector");
     const version = c.req.param("version");
-    const payload = await runtime.appDataSource.getBundle(selector, version);
+    const requestedRange = c.req.header("range");
+    const payload = await runtime.appDataSource.getBundle(selector, version, requestedRange);
     if (!payload) {
       throw new ResourceNotFoundError(`app bundle not found: ${selector}@${version}`);
     }
-    return new Response(payload.object.body, {
-      status: 200,
+    const expectedSha256 = c.req.query("sha256");
+    if (expectedSha256 && expectedSha256 !== payload.version.bundle_sha256) {
+      throw new ResourceNotFoundError(`app bundle revision not found: ${selector}@${version}`);
+    }
+    const etag = `"sha256-${payload.version.bundle_sha256}"`;
+    if (c.req.header("if-none-match") === etag) {
+      return new Response(null, {
+        status: 304,
+        headers: {
+          "cache-control": "public, max-age=31536000, immutable",
+          etag,
+        },
+      });
+    }
+    const responseRange = resolveBundleResponseRange(payload.object, requestedRange);
+    const responseLength = responseRange?.length ?? payload.object.size;
+    return new Response(c.req.method === "HEAD" ? null : payload.object.body, {
+      status: responseRange ? 206 : 200,
       headers: {
         "content-type": "application/octet-stream",
+        "content-length": String(responseLength),
+        ...(responseRange
+          ? { "content-range": `bytes ${responseRange.offset}-${responseRange.offset + responseRange.length - 1}/${payload.object.size}` }
+          : {}),
+        "accept-ranges": "bytes",
         "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${payload.item.slug}-${version}.napp`)}`,
-        "cache-control": "public, max-age=300",
+        "cache-control": expectedSha256
+          ? "public, max-age=31536000, immutable"
+          : "public, max-age=300, stale-while-revalidate=600",
+        etag,
         "x-app-bundle-sha256": payload.version.bundle_sha256,
         "x-app-distribution-mode": payload.version.distribution_mode,
       },
@@ -99,7 +145,7 @@ export function registerAppRoutes(
     if (!data) {
       throw new ResourceNotFoundError(`app registry document not found: ${appId}`);
     }
-    return c.json(data);
+    return runtime.responses.publicOk(c, data);
   });
 
   app.post("/api/v1/apps/publish", async (c) => {
@@ -118,3 +164,24 @@ export function registerAppRoutes(
 }
 
 const runtimeResponseFactory = new ApiResponseFactory();
+
+function resolveBundleResponseRange(
+  object: R2ObjectBody,
+  requestedRange: string | undefined,
+): { offset: number; length: number } | undefined {
+  if (!requestedRange) {
+    return undefined;
+  }
+  const objectRange = object.range;
+  if (!objectRange) {
+    return undefined;
+  }
+  const isSuffixRange = "suffix" in objectRange;
+  const offset = isSuffixRange
+    ? Math.max(0, object.size - objectRange.suffix)
+    : objectRange.offset ?? 0;
+  const length = isSuffixRange
+    ? Math.min(objectRange.suffix, object.size)
+    : objectRange.length ?? object.size - offset;
+  return { length, offset };
+}

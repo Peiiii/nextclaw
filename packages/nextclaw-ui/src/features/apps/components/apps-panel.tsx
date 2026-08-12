@@ -17,34 +17,35 @@ export function AppsPanel({
   onActiveTabChange: (tab: AppsPanelTab) => void;
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
 }) {
-  const headerTabs = (
-    <Tabs value={activeTab} onValueChange={(value) => onActiveTabChange(value as AppsPanelTab)}>
-      <TabsList className="grid h-auto w-[min(390px,100%)] grid-cols-3 rounded-lg bg-muted/70 p-0.5">
-        <TabsTrigger value="apps" className="gap-1.5 px-2 py-1.5 text-xs">
-          <Boxes className="h-3.5 w-3.5" />
-          {t('appsTitle')}
-        </TabsTrigger>
-        <TabsTrigger value="panel-apps" className="gap-1.5 px-2 py-1.5 text-xs">
-          <AppWindow className="h-3.5 w-3.5" />
-          {t('panelAppsTitle')}
-        </TabsTrigger>
-        <TabsTrigger value="service-apps" className="gap-1.5 px-2 py-1.5 text-xs">
-          <Server className="h-3.5 w-3.5" />
-          {t('serviceAppsTitle')}
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
-  );
-
   return (
-    <div className="h-full min-h-0 bg-white">
-      {activeTab === 'apps' ? (
-        <AppPackagesPanel headerContent={headerTabs} onOpenPanelApp={onOpenPanelApp} />
-      ) : activeTab === 'panel-apps' ? (
-        <PanelAppsList headerContent={headerTabs} onOpenPanelApp={onOpenPanelApp} />
-      ) : (
-        <ServiceAppsPanel headerContent={headerTabs} />
-      )}
+    <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
+      <nav className="shrink-0 border-b border-border/70 px-4 py-3" aria-label={t('appsTitle')}>
+        <Tabs value={activeTab} onValueChange={(value) => onActiveTabChange(value as AppsPanelTab)}>
+          <TabsList className="grid h-auto w-full max-w-[390px] grid-cols-3 rounded-lg bg-muted/70 p-0.5">
+            <TabsTrigger value="apps" className="min-w-0 gap-1.5 px-2 py-1.5 text-xs">
+              <Boxes className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{t('appsTitle')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="panel-apps" className="min-w-0 gap-1.5 px-2 py-1.5 text-xs">
+              <AppWindow className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{t('panelAppsTitle')}</span>
+            </TabsTrigger>
+            <TabsTrigger value="service-apps" className="min-w-0 gap-1.5 px-2 py-1.5 text-xs">
+              <Server className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{t('serviceAppsTitle')}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </nav>
+      <div className="min-h-0 flex-1">
+        {activeTab === 'apps' ? (
+          <AppPackagesPanel onOpenPanelApp={onOpenPanelApp} />
+        ) : activeTab === 'panel-apps' ? (
+          <PanelAppsList onOpenPanelApp={onOpenPanelApp} />
+        ) : (
+          <ServiceAppsPanel />
+        )}
+      </div>
     </div>
   );
 }

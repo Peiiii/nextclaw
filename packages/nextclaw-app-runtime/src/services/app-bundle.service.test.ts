@@ -61,6 +61,26 @@ describe("AppBundleService", () => {
     expect(bundleJson.checksumsFile).toBe(".napp/checksums.json");
   });
 
+  it("keeps marketplace artwork out of install bundles", async () => {
+    const appDirectory = path.resolve(
+      import.meta.dirname,
+      "../../../nextclaw/resources/apps/nextclaw-personal-organizer",
+    );
+    const bundlePath = path.join(
+      tmpdir(),
+      `napp-marketplace-artwork-${Date.now()}-${Math.random().toString(16).slice(2)}.napp`,
+    );
+    cleanupPaths.push(bundlePath);
+
+    const packed = await new AppBundleService().packAppDirectory({
+      appDirectory,
+      outputPath: bundlePath,
+    });
+
+    expect(packed.filePaths).not.toContain("marketplace-assets/cover.webp");
+    expect(packed.filePaths).toContain("assets/icon.svg");
+  });
+
   it("treats a bundle v1 without distributionMode as a built bundle", async () => {
     const appDirectory = path.join(tmpdir(), `napp-legacy-app-${Date.now()}-${Math.random().toString(16).slice(2)}`);
     const bundlePath = path.join(tmpdir(), `napp-legacy-${Date.now()}-${Math.random().toString(16).slice(2)}.napp`);

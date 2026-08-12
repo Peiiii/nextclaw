@@ -9,7 +9,19 @@ const mocks = vi.hoisted(() => ({
   lifecycleMutate: vi.fn(),
   lifecycleReset: vi.fn(),
   onOpen: vi.fn(),
+  operations: [] as Array<{
+    id: string;
+    action: 'install';
+    appId: string;
+    source: string;
+    status: 'downloading';
+    completedSteps: number;
+    totalSteps: number;
+    createdAt: string;
+    updatedAt: string;
+  }>,
   recordOpened: vi.fn(),
+  refetchOperations: vi.fn(),
   refetchPackages: vi.fn(),
   refetchPanels: vi.fn(),
   requestAuthorization: vi.fn(async () => true),
@@ -17,6 +29,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/app/components/app-presenter-provider', () => ({
   useAppPresenter: () => ({
+    appPackageOperationSettlementManager: { settle: vi.fn() },
     serviceActionAuthorizationManager: {
       requestAuthorization: mocks.requestAuthorization,
     },
@@ -24,6 +37,14 @@ vi.mock('@/app/components/app-presenter-provider', () => ({
 }));
 
 vi.mock('@/features/apps/hooks/use-app-packages', () => ({
+  isAppPackageOperationActive: (status: string) => [
+    'queued',
+    'resolving',
+    'downloading',
+    'verifying',
+    'installing',
+    'finalizing',
+  ].includes(status),
   useAppPackageMutation: () => ({
     error: null,
     isError: false,
@@ -31,6 +52,11 @@ vi.mock('@/features/apps/hooks/use-app-packages', () => ({
     mutate: mocks.lifecycleMutate,
     reset: mocks.lifecycleReset,
     variables: undefined,
+  }),
+  useAppPackageOperationSettlement: () => undefined,
+  useAppPackageOperations: () => ({
+    data: { entries: mocks.operations },
+    refetch: mocks.refetchOperations,
   }),
   useAppPackages: () => ({
     data: {
@@ -101,27 +127,32 @@ vi.mock('@/features/apps/hooks/use-app-marketplace', () => ({
           webUrl: 'https://apps.nextclaw.io/apps/personal-organizer',
         },
         {
-          id: 'app-starter-card',
-          slug: 'starter-card',
-          appId: 'nextclaw.starter-card',
-          name: 'Starter Card',
-          summary: 'A tiny starter app.',
-          summaryI18n: { en: 'A tiny starter app.' },
-          tags: ['starter'],
+          id: 'app-workspace-glance',
+          slug: 'workspace-glance',
+          appId: 'nextclaw.workspace-glance',
+          name: 'Workspace Glance',
+          summary: 'A local workspace overview.',
+          summaryI18n: { en: 'A local workspace overview.' },
+          tags: ['workspace', 'local'],
           latestVersion: '0.1.0',
           featured: false,
           publisher: { id: 'nextclaw', name: 'NextClaw' },
           install: {
             kind: 'registry',
-            spec: 'nextclaw.starter-card',
+            spec: 'nextclaw.workspace-glance',
             registry: 'https://apps-registry.nextclaw.io/api/v1/apps/registry/',
           },
-          webUrl: 'https://apps.nextclaw.io/apps/starter-card',
+          webUrl: 'https://apps.nextclaw.io/apps/workspace-glance',
         },
       ],
     },
     error: null,
     isError: false,
+    isLoading: false,
+  }),
+  useAppMarketplaceDetail: () => ({
+    data: undefined,
+    error: null,
     isLoading: false,
   }),
 }));
@@ -164,8 +195,10 @@ describe('AppPackagesPanel', () => {
     mocks.lifecycleMutate.mockReset();
     mocks.lifecycleReset.mockReset();
     mocks.onOpen.mockReset();
+    mocks.operations = [];
     mocks.recordOpened.mockReset();
     mocks.refetchPackages.mockReset();
+    mocks.refetchOperations.mockReset();
     mocks.refetchPanels.mockReset();
     mocks.requestAuthorization.mockReset();
     mocks.requestAuthorization.mockResolvedValue(true);
@@ -211,10 +244,10 @@ describe('AppPackagesPanel', () => {
 
     render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
 
-    await user.click(screen.getByRole('button', { name: 'Browse apps' }));
+    await user.click(screen.getByRole('button', { name: 'Add apps' }));
 
-    expect(screen.getByRole('heading', { name: 'Browse Mini APPs' })).toBeTruthy();
-    expect(screen.getByText('Starter Card')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Add apps' })).toBeTruthy();
+    expect(screen.getByText('Workspace Glance')).toBeTruthy();
     expect(
       (screen.getByRole('button', { name: 'Installed' }) as HTMLButtonElement).disabled,
     ).toBe(true);
@@ -225,10 +258,55 @@ describe('AppPackagesPanel', () => {
     expect(mocks.lifecycleMutate).toHaveBeenCalledWith(
       {
         action: 'install',
-        source: 'nextclaw.starter-card',
+        source: 'nextclaw.workspace-glance',
         registryUrl: 'https://apps-registry.nextclaw.io/api/v1/apps/registry/',
       },
-      { onSuccess: expect.any(Function) },
+      { onSuccess: undefined },
     );
+  });
+
+  it('allows a built-in app to be uninstalled while keeping its data by default', async () => {
+    const user = userEvent.setup();
+
+    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+
+    await user.click(screen.getByRole('button', { name: 'More app actions' }));
+    await user.click(screen.getByRole('button', { name: 'Uninstall' }));
+    expect(screen.getByRole('heading', { name: 'Uninstall this app?' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Keep personal data/ }).getAttribute('aria-pressed'))
+      .toBe('true');
+
+    await user.click(screen.getByRole('button', { name: 'Uninstall' }));
+    expect(mocks.lifecycleMutate).toHaveBeenCalledWith(
+      { action: 'uninstall', appId: 'nextclaw.personal-organizer', purgeData: false },
+      { onSuccess: undefined },
+    );
+  });
+
+  it('keeps an accepted install visible in the library and marketplace while it runs', async () => {
+    const user = userEvent.setup();
+    mocks.operations = [{
+      id: 'operation-1',
+      action: 'install',
+      appId: 'nextclaw.workspace-glance',
+      source: 'nextclaw.workspace-glance',
+      status: 'downloading',
+      completedSteps: 2,
+      totalSteps: 5,
+      createdAt: '2026-08-12T00:00:00.000Z',
+      updatedAt: '2026-08-12T00:00:01.000Z',
+    }];
+
+    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+
+    expect(screen.getByRole('status').textContent).toContain('Downloading');
+    expect(screen.getByText('nextclaw.workspace-glance')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Add apps' }));
+
+    expect(screen.getByRole('heading', { name: 'Add apps' })).toBeTruthy();
+    expect(screen.getAllByText('Downloading')).not.toHaveLength(0);
+    expect((screen.getByRole('button', { name: 'Downloading' }) as HTMLButtonElement).disabled)
+      .toBe(true);
   });
 });

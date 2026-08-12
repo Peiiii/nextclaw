@@ -329,6 +329,7 @@ export class AppBundleService {
     return segments.some((segment) =>
       segment === "node_modules" ||
       segment === ".git" ||
+      segment === "marketplace-assets" ||
       segment === "coverage" ||
       segment === "tests" ||
       segment === "__tests__" ||

@@ -1,6 +1,14 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="128" height="128" rx="32" fill="#10233E"/>
-  <path d="M34 34H94V48H34V34Z" fill="#FFF5D6"/>
-  <path d="M34 58H94V72H34V58Z" fill="#FFD86B"/>
-  <path d="M34 82H74V96H34V82Z" fill="#7FD1FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Workspace Glance">
+  <defs>
+    <linearGradient id="grid" x1="27" y1="23" x2="104" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#284B49"/>
+      <stop offset="1" stop-color="#162927"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="30" fill="#E9E2D6"/>
+  <rect x="26" y="27" width="76" height="74" rx="17" fill="url(#grid)"/>
+  <rect x="38" y="39" width="20" height="20" rx="6" fill="#75B9AF"/>
+  <rect x="66" y="39" width="24" height="20" rx="6" fill="#D29A55"/>
+  <rect x="38" y="67" width="52" height="21" rx="7" fill="#F2EEE5" fill-opacity=".92"/>
+  <path d="M43 78c8-11 14 10 22-1s12 7 21-3" fill="none" stroke="#56D7C6" stroke-width="4" stroke-linecap="round"/>
 </svg>

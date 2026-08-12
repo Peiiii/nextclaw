@@ -1,4 +1,4 @@
-import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -90,6 +90,69 @@ describe("AppInstallationService", () => {
     } finally {
       await closeServer(registryFixture.server);
     }
+  });
+});
+
+describe("AppInstallationService updates and package lifecycle", () => {
+  it("reuses an already installed inactive version during update", async () => {
+    const appHomeDirectory = createTemporaryPath("napp-registry-reuse-home");
+    cleanupPaths.push(appHomeDirectory);
+    const registryFixture = await createRegistryFixture();
+    cleanupPaths.push(...registryFixture.cleanupPaths);
+    try {
+      const installationService = new AppInstallationService(
+        new AppHomeService(appHomeDirectory),
+      );
+      await installationService.install(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+      });
+      registryFixture.setLatestVersion("0.2.0");
+      await installationService.update(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+      });
+      await installationService.rollback(registryFixture.appId, "0.1.0");
+
+      const updated = await installationService.update(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+        version: "0.2.0",
+      });
+
+      expect(updated).toMatchObject({
+        previousVersion: "0.1.0",
+        updated: true,
+        version: "0.2.0",
+      });
+      await expect(installationService.info(registryFixture.appId)).resolves.toMatchObject({
+        activeVersion: "0.2.0",
+      });
+    } finally {
+      await closeServer(registryFixture.server);
+    }
+  });
+
+  it("restores referenced uninstall staging and removes abandoned install staging", async () => {
+    const appDirectory = createTemporaryPath("napp-reconcile-app");
+    const appHomeDirectory = createTemporaryPath("napp-reconcile-home");
+    cleanupPaths.push(appDirectory, appHomeDirectory);
+    await new AppScaffoldService().scaffold(appDirectory);
+    const installationService = new AppInstallationService(
+      new AppHomeService(appHomeDirectory),
+    );
+    const installed = await installationService.install(appDirectory);
+    const stagedInstall = `${installed.installDirectory}.uninstalling-test`;
+    const abandonedInstall = `${installed.installDirectory}.staging-test`;
+    const stagedData = `${installed.dataDirectory}.uninstalling-test`;
+    await rename(installed.installDirectory, stagedInstall);
+    await cp(stagedInstall, abandonedInstall, { recursive: true });
+    await rename(installed.dataDirectory, stagedData);
+
+    await installationService.reconcileFilesystem();
+
+    await expect(access(installed.installDirectory)).resolves.toBeUndefined();
+    await expect(access(installed.dataDirectory)).resolves.toBeUndefined();
+    await expect(access(stagedInstall)).rejects.toThrow();
+    await expect(access(stagedData)).rejects.toThrow();
+    await expect(access(abandonedInstall)).rejects.toThrow();
   });
 
   it("retries a transient registry connection reset before installing", async () => {

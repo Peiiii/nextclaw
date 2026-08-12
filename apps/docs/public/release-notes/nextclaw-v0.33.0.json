@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.33.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-13",
+  "title": {
+    "zh-CN": "NextClaw v0.33.0",
+    "en-US": "NextClaw v0.33.0"
+  },
+  "summary": {
+    "zh-CN": "应用市场现在可以随目录规模增长，并通过可离开的后台安装、更新、回滚和卸载提供完整生命周期。",
+    "en-US": "Scales app discovery and adds leave-behind background installs, updates, rollbacks, and uninstalls across the full app lifecycle."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-13-nextclaw-v0-33-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "可规模化的应用发现",
+            "en-US": "Scalable app discovery"
+          },
+          "body": {
+            "zh-CN": "按需加载应用页，并在 Registry 中完成搜索与分类，无需把完整目录下载到客户端。",
+            "en-US": "Loads app pages on demand and runs search and categories in the Registry instead of downloading the full catalog."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "后台应用操作",
+            "en-US": "Background app operations"
+          },
+          "body": {
+            "zh-CN": "安装、更新、回滚和卸载拥有统一进度；关闭弹窗或离开 Apps 不会中断操作。",
+            "en-US": "Installs, updates, rollbacks, and uninstalls share progress and continue after the dialog or Apps view is closed."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "完整应用生命周期",
+            "en-US": "Complete app lifecycle"
+          },
+          "body": {
+            "zh-CN": "内置应用可以卸载并从官方应用库重新安装，同时继续保留本地个人数据。",
+            "en-US": "Built-in apps can be uninstalled and reinstalled from the official library while personal data stays local."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "增强",
+        "en-US": "Enhancements"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更完整的应用视觉",
+            "en-US": "Complete app artwork"
+          },
+          "body": {
+            "zh-CN": "应用卡片和详情页使用真实图标与封面，并显示精选状态、来源和版本。",
+            "en-US": "Cards and detail views use real icons and covers alongside featured state, publisher, and version."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "更连续的会话反馈",
+            "en-US": "More continuous chat feedback"
+          },
+          "body": {
+            "zh-CN": "工作区文件上下文保持连续，排队发送的消息会立即确认。",
+            "en-US": "Workspace file context stays continuous, and queued messages acknowledge submission immediately."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "稳定的应用管理界面",
+            "en-US": "Stable app management UI"
+          },
+          "body": {
+            "zh-CN": "修复损坏图片、无反馈的版本切换、缺少卸载入口和分类切换布局跳动。",
+            "en-US": "Fixes broken artwork, silent version switching, missing uninstall actions, and layout shifts between categories."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "Registry 逐步升级",
+            "en-US": "Safe Registry rollout"
+          },
+          "body": {
+            "zh-CN": "新旧目录接口可以在升级期间协同工作，不再把可用市场误报为不可用。",
+            "en-US": "New and existing catalog endpoints work together during rollout without falsely reporting an unavailable marketplace."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "无迁移升级",
+            "en-US": "No-migration upgrade"
+          },
+          "body": {
+            "zh-CN": "既有 .napp 包、公开安装链接与本地应用数据继续可用。",
+            "en-US": "Existing .napp packages, public install links, and local app data remain usable."
+          }
+        }
+      ]
+    }
+  ]
+}

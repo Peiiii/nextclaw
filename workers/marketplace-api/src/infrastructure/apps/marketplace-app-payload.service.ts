@@ -43,6 +43,7 @@ export class MarketplaceAppPayloadParser {
       homepage: this.readOptionalString(candidate.homepage, "homepage"),
       featured: this.readBoolean(candidate.featured, "featured"),
       publisher: this.readPublisherInput(candidate.publisher),
+      visuals: this.readVisuals(candidate.visuals),
       manifest,
       permissions: this.readPermissions(candidate.permissions),
       distributionMode,
@@ -70,6 +71,26 @@ export class MarketplaceAppPayloadParser {
       id: this.readString(candidate.id, "publisher.id"),
       name: this.readString(candidate.name, "publisher.name"),
       url: this.readOptionalString(candidate.url, "publisher.url"),
+    };
+  };
+
+  private readVisuals = (
+    value: unknown,
+  ): MarketplaceAppPublishInput["visuals"] => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new DomainValidationError("visuals must be an object");
+    }
+    const candidate = value as Record<string, unknown>;
+    const accentColor = this.readString(candidate.accentColor, "visuals.accentColor");
+    if (!/^#[0-9a-f]{6}$/i.test(accentColor)) {
+      throw new DomainValidationError("visuals.accentColor must be a six-digit hex color");
+    }
+    return {
+      cover: this.readRelativePath(candidate.cover, "visuals.cover"),
+      accentColor: accentColor.toUpperCase(),
     };
   };
 

@@ -60,6 +60,8 @@ export class MarketplaceAppPersistence {
     publishStatus: "pending" | "published";
     publishedByType: "admin" | "user";
     latestVersion: string;
+    iconSha256: string | null;
+    coverSha256: string | null;
     publishedAt: string;
     updatedAt: string;
   }): Promise<void> => {
@@ -72,6 +74,8 @@ export class MarketplaceAppPersistence {
       publishStatus,
       publishedByType,
       latestVersion,
+      iconSha256,
+      coverSha256,
       publishedAt,
       updatedAt,
     } = params;
@@ -104,12 +108,16 @@ export class MarketplaceAppPersistence {
             publisher_id,
             publisher_name,
             publisher_url,
+            cover_path,
+            accent_color,
+            icon_sha256,
+            cover_sha256,
             latest_version,
             manifest_json,
             permissions_json,
             published_at,
             updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(app_id) DO UPDATE SET
             slug = excluded.slug,
             owner_scope = excluded.owner_scope,
@@ -134,6 +142,10 @@ export class MarketplaceAppPersistence {
             publisher_id = excluded.publisher_id,
             publisher_name = excluded.publisher_name,
             publisher_url = excluded.publisher_url,
+            cover_path = excluded.cover_path,
+            accent_color = excluded.accent_color,
+            icon_sha256 = excluded.icon_sha256,
+            cover_sha256 = excluded.cover_sha256,
             latest_version = excluded.latest_version,
             manifest_json = excluded.manifest_json,
             permissions_json = excluded.permissions_json,
@@ -166,6 +178,10 @@ export class MarketplaceAppPersistence {
         input.publisher.id,
         input.publisher.name,
         input.publisher.url ?? null,
+        input.visuals?.cover ?? null,
+        input.visuals?.accentColor ?? null,
+        iconSha256,
+        coverSha256,
         latestVersion,
         JSON.stringify(input.manifest),
         JSON.stringify(input.permissions ?? {}),

@@ -115,6 +115,19 @@ export type MarketplaceListQuery = {
   sort: MarketplaceSort;
 };
 
+export type MarketplaceAppCatalogSort = "relevance" | "featured" | "updated";
+
+export type MarketplaceAppCatalogQuery = {
+  q?: string;
+  tag?: string;
+  tags?: string[];
+  publisher?: string;
+  featured?: boolean;
+  cursor?: string;
+  limit: number;
+  sort: MarketplaceAppCatalogSort;
+};
+
 type MarketplaceItemSummaryBase = {
   id: string;
   slug: string;

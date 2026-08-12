@@ -56,6 +56,7 @@ export class AppPublishService {
     const publishFiles = await this.metadataService.collectPublishFiles({
       appDirectory,
       metadataPath,
+      visuals: metadata.visuals,
     });
     const payload: AppPublishPayload = {
       slug: metadata.slug,
@@ -72,6 +73,7 @@ export class AppPublishService {
       homepage: metadata.homepage,
       featured: metadata.featured ?? false,
       publisher: actor.publisher,
+      visuals: metadata.visuals,
       distributionMode,
       manifest: manifestBundle.manifest,
       permissions: manifestBundle.manifest.schemaVersion === 1

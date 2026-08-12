@@ -22,6 +22,7 @@ export type AppPackageView = {
   id: string;
   name: string;
   description?: string;
+  icon?: string;
   nameI18n?: Record<string, string>;
   descriptionI18n?: Record<string, string>;
   activeVersion: string;
@@ -35,6 +36,70 @@ export type AppPackageView = {
 
 export type AppPackageList = {
   entries: AppPackageView[];
+};
+
+export type AppPackageOperationAction = "install" | "rollback" | "uninstall" | "update";
+
+export type AppPackageOperationStatus =
+  | "queued"
+  | "resolving"
+  | "downloading"
+  | "verifying"
+  | "installing"
+  | "finalizing"
+  | "succeeded"
+  | "failed"
+  | "interrupted";
+
+export type AppPackageOperationInput =
+  | {
+      action: "install";
+      source: string;
+      registryUrl?: string;
+    }
+  | {
+      action: "update";
+      appId: string;
+      version?: string;
+      registryUrl?: string;
+    }
+  | {
+      action: "rollback";
+      appId: string;
+      version: string;
+    }
+  | {
+      action: "uninstall";
+      appId: string;
+      purgeData?: boolean;
+    };
+
+export type AppPackageOperationResult = {
+  appId: string;
+  activeVersion?: string;
+  changed?: boolean;
+  removedVersions?: string[];
+  dataRemoved?: boolean;
+};
+
+export type AppPackageOperationView = {
+  id: string;
+  action: AppPackageOperationAction;
+  appId?: string;
+  source?: string;
+  targetVersion?: string;
+  status: AppPackageOperationStatus;
+  completedSteps: number;
+  totalSteps: number;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  error?: string;
+  result?: AppPackageOperationResult;
+};
+
+export type AppPackageOperationList = {
+  entries: AppPackageOperationView[];
 };
 
 export type AppPackageConflict = {

@@ -86,6 +86,11 @@ export type MarketplaceAppFileInput = {
   contentBase64: string;
 };
 
+export type MarketplaceAppVisuals = {
+  cover: string;
+  accentColor: string;
+};
+
 export type MarketplaceAppPublishInput = {
   requireExisting?: boolean;
   slug: string;
@@ -102,6 +107,7 @@ export type MarketplaceAppPublishInput = {
   homepage?: string;
   featured: boolean;
   publisher: AppPublisher;
+  visuals?: MarketplaceAppVisuals;
   manifest: MarketplaceAppManifest;
   permissions: AppPermissions;
   distributionMode: AppDistributionMode;
@@ -117,6 +123,9 @@ export type MarketplaceAppItemSummary = {
   ownerScope: string;
   appName: string;
   name: string;
+  iconUrl?: string;
+  coverUrl?: string;
+  accentColor?: string;
   summary: string;
   summaryI18n: Record<string, string>;
   tags: string[];
@@ -159,6 +168,18 @@ export type MarketplaceAppListResult = {
   query?: string;
   tag?: string;
   items: MarketplaceAppItemSummary[];
+};
+
+export type MarketplaceAppCatalogResult = {
+  items: MarketplaceAppItemSummary[];
+  nextCursor?: string;
+  hasMore: boolean;
+  query?: string;
+  tag?: string;
+  tags?: string[];
+  publisher?: string;
+  featured?: boolean;
+  sort: "relevance" | "featured" | "updated";
 };
 
 export type MarketplaceAppFilesResult = {
@@ -217,6 +238,10 @@ export type MarketplaceAppItemRow = {
   publisher_id: string;
   publisher_name: string;
   publisher_url: string | null;
+  cover_path: string | null;
+  accent_color: string | null;
+  icon_sha256: string | null;
+  cover_sha256: string | null;
   latest_version: string;
   manifest_json: string;
   permissions_json: string;

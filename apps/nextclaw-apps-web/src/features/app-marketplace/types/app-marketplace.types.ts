@@ -1,6 +1,7 @@
 export type AppPublisher = {
   id: string;
   name: string;
+  iconUrl?: string;
   url?: string;
 };
 
@@ -16,6 +17,9 @@ export type AppItemSummary = {
   slug: string;
   appId: string;
   name: string;
+  iconUrl?: string;
+  coverUrl?: string;
+  accentColor?: string;
   summary: string;
   summaryI18n: Record<string, string>;
   tags: string[];
@@ -36,6 +40,9 @@ export type AppItemDetail = AppItemSummary & {
   manifest: {
     id: string;
     version: string;
+    icon?: string;
+    engines?: { nextclaw?: string };
+    components?: Array<{ kind: "panel" | "service"; path: string }>;
   };
   permissions: {
     documentAccess?: Array<{
@@ -62,12 +69,14 @@ export type AppItemDetail = AppItemSummary & {
 };
 
 export type AppListResult = {
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
+  nextCursor?: string;
+  hasMore: boolean;
   query?: string;
   tag?: string;
+  tags?: string[];
+  publisher?: string;
+  featured?: boolean;
+  sort: "relevance" | "featured" | "updated";
   items: AppItemSummary[];
 };
 

@@ -144,6 +144,7 @@ export function resolvePanelAppAssetContentType(path: string): PanelAppAssetCont
 export function resolvePanelAppIconUrl(
   id: string,
   icon: string | undefined,
+  assetBaseHref?: string,
 ): string | undefined {
   if (!icon) {
     return undefined;
@@ -157,7 +158,10 @@ export function resolvePanelAppIconUrl(
   ) {
     return icon;
   }
-  return `/api/panel-apps/${encodeURIComponent(id)}/assets/${encodePanelAppAssetPath(icon)}`;
+  const assetPath = encodePanelAppAssetPath(icon);
+  return assetBaseHref
+    ? `${assetBaseHref}${assetPath}`
+    : `/api/panel-apps/${encodeURIComponent(id)}/assets/${assetPath}`;
 }
 
 export function injectPanelAppAssetBase(html: string, baseHref: string): string {

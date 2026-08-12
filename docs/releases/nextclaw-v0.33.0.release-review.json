@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.33.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-13-nextclaw-v0-33-0.md",
+        "apps/docs/en/notes/2026-08-13-nextclaw-v0-33-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.33.0.json"
+      ]
+    },
+    "website": {
+      "decision": "updated",
+      "paths": [
+        "apps/nextclaw-apps-web/src/app/styles.css",
+        "apps/nextclaw-apps-web/src/features/app-marketplace/components/app-card.tsx",
+        "apps/nextclaw-apps-web/src/features/app-marketplace/pages/apps-page.tsx"
+      ]
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.33.0 is out.\n\nThe app marketplace now scales with server-side discovery, real artwork, and background installs, updates, rollbacks, and uninstalls you can leave and revisit.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-0",
+      "imagePath": "images/screenshots/nextclaw-app-marketplace-en.png",
+      "imageAlt": "NextClaw Add apps dialog showing Personal Space, Hello Notes, and Workspace Glance with cover artwork and install states",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-0"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import type {
   ServiceActionGrantView,
   ServiceActionListView,
@@ -25,11 +25,7 @@ import { t } from "@/shared/lib/i18n";
 
 type ServiceActionView = ServiceActionListView["actions"][number];
 
-export function ServiceAppsPanel({
-  headerContent,
-}: {
-  headerContent?: ReactNode;
-}) {
+export function ServiceAppsPanel() {
   const serviceApps = useServiceApps();
   const serviceActions = useServiceActions();
   const serviceActionGrants = useServiceActionGrants();
@@ -92,17 +88,7 @@ export function ServiceAppsPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
-      <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {headerContent ?? (
-            <>
-              <Server className="h-4 w-4 text-primary" />
-              <div className="truncate text-sm font-semibold text-foreground">
-                {t("serviceAppsTitle")}
-              </div>
-            </>
-          )}
-        </div>
+      <div className="flex min-h-12 shrink-0 items-center justify-end border-b border-border/60 px-4 py-2">
         <TooltipProvider delayDuration={250}>
           <Tooltip>
             <TooltipTrigger asChild>

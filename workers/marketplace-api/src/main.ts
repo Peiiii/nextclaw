@@ -18,6 +18,7 @@ import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes
 import { registerAppRoutes } from "./presentation/http/apps/app.controller";
 import { decodeUtf8, splitMarkdownFrontmatter } from "./presentation/http/marketplace-content";
 import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth.utils";
+import { registerMarketplacePublicHttpPolicies } from "./presentation/http/marketplace-public-cache.controller";
 import { MarketplaceQueryParser } from "./presentation/http/query-parser";
 import { ApiResponseFactory } from "./presentation/http/response";
 import { registerUserAppRoutes } from "./presentation/http/user-app-routes.controller";
@@ -121,25 +122,7 @@ function getRuntime(bindings: MarketplaceBindings): MarketplaceRuntime {
 }
 
 const app = new Hono<MarketplaceEnv>();
-const CORS_HEADERS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-methods": "GET,HEAD,POST,OPTIONS",
-  "access-control-allow-headers": "authorization, content-type",
-};
-
-app.use("*", async (c, next) => {
-  if (c.req.method.toUpperCase() === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: CORS_HEADERS,
-    });
-  }
-  await next();
-  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-    c.res.headers.set(key, value);
-  });
-  return c.res;
-});
+registerMarketplacePublicHttpPolicies(app);
 
 app.notFound((c) => responses.error(c, "NOT_FOUND", "endpoint not found", 404));
 

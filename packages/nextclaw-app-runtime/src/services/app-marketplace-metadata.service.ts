@@ -2,7 +2,13 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { AppManifest } from "#app-runtime/types/app-manifest.types.js";
-import type { AppMarketplaceMetadata } from "#app-runtime/types/app-publish.types.js";
+import type {
+  AppMarketplaceMetadata,
+  AppMarketplaceVisuals,
+} from "#app-runtime/types/app-publish.types.js";
+
+const COVER_EXTENSIONS = new Set([".avif", ".jpg", ".jpeg", ".png", ".webp"]);
+const MAX_COVER_BYTES = 512 * 1024;
 
 export class AppMarketplaceMetadataService {
   load = async (params: {
@@ -21,11 +27,13 @@ export class AppMarketplaceMetadataService {
   collectPublishFiles = async (params: {
     appDirectory: string;
     metadataPath?: string;
+    visuals?: AppMarketplaceVisuals;
   }): Promise<Array<{ path: string; bytes: Buffer }>> => {
+    const { metadataPath: customMetadataPath, visuals } = params;
     const appDirectory = path.resolve(params.appDirectory);
     const publishFiles: Array<{ path: string; bytes: Buffer }> = [];
-    const metadataPath = params.metadataPath
-      ? path.resolve(params.metadataPath)
+    const metadataPath = customMetadataPath
+      ? path.resolve(customMetadataPath)
       : path.join(appDirectory, "marketplace.json");
     publishFiles.push({
       path: "marketplace.json",
@@ -37,6 +45,14 @@ export class AppMarketplaceMetadataService {
         path: "README.md",
         bytes: Buffer.from(await readFile(readmePath)),
       });
+    }
+    if (visuals) {
+      const coverPath = path.join(appDirectory, visuals.cover);
+      const bytes = Buffer.from(await readFile(coverPath));
+      if (bytes.byteLength > MAX_COVER_BYTES) {
+        throw new Error(`visuals.cover 不能超过 ${MAX_COVER_BYTES} bytes。`);
+      }
+      publishFiles.push({ path: visuals.cover, bytes });
     }
     return publishFiles;
   };
@@ -69,7 +85,27 @@ export class AppMarketplaceMetadataService {
       homepage: this.readOptionalString(candidate.homepage, "homepage"),
       featured: this.readOptionalBoolean(candidate.featured, "featured") ?? false,
       publisher,
+      visuals: this.parseVisuals(candidate.visuals),
     };
+  };
+
+  private parseVisuals = (rawVisuals: unknown): AppMarketplaceVisuals | undefined => {
+    if (rawVisuals === undefined) {
+      return undefined;
+    }
+    if (!rawVisuals || typeof rawVisuals !== "object" || Array.isArray(rawVisuals)) {
+      throw new Error("visuals 必须是对象。");
+    }
+    const candidate = rawVisuals as Record<string, unknown>;
+    const cover = this.readSafeRelativePath(candidate.cover, "visuals.cover");
+    if (!COVER_EXTENSIONS.has(path.extname(cover).toLowerCase())) {
+      throw new Error("visuals.cover 必须是 AVIF、JPEG、PNG 或 WebP 图片。");
+    }
+    const accentColor = this.readRequiredString(candidate.accentColor, "visuals.accentColor");
+    if (!/^#[0-9a-f]{6}$/i.test(accentColor)) {
+      throw new Error("visuals.accentColor 必须是六位十六进制颜色。");
+    }
+    return { cover, accentColor: accentColor.toUpperCase() };
   };
 
   private parsePublisher = (
@@ -104,6 +140,19 @@ export class AppMarketplaceMetadataService {
       return undefined;
     }
     return this.readRequiredString(value, fieldName);
+  };
+
+  private readSafeRelativePath = (value: unknown, fieldName: string): string => {
+    const relativePath = this.readRequiredString(value, fieldName).replace(/\\/g, "/");
+    const segments = relativePath.split("/");
+    if (
+      relativePath.startsWith("/") ||
+      /^[A-Za-z]:/.test(relativePath) ||
+      segments.some((segment) => !segment || segment === "." || segment === "..")
+    ) {
+      throw new Error(`${fieldName} 必须是安全的相对路径。`);
+    }
+    return segments.join("/");
   };
 
   private readStringArray = (value: unknown, fieldName: string): string[] => {

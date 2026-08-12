@@ -9,6 +9,7 @@ import {
 import { AppNotificationManager } from '@/features/notifications';
 import { PanelAppBridgeManager } from '@/features/panel-apps';
 import { InboxManager } from '@/features/inbox';
+import { AppPackageOperationSettlementManager } from '@/features/apps';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 import { RemoteAccessManager } from '@/features/remote';
 import { ServiceActionAuthorizationManager } from '@/features/service-apps';
@@ -42,6 +43,9 @@ export class AppPresenter {
   docBrowserManager = new DocBrowserManager(
     this.rightPanelResourceRouteResolver,
     this.notifyRightPanelOpened,
+  );
+  appPackageOperationSettlementManager = new AppPackageOperationSettlementManager(
+    this.docBrowserManager,
   );
   sideDockManager = new SideDockManager(this.docBrowserManager);
   chatComposerIntentManager = new ChatComposerIntentManager();

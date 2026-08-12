@@ -15,6 +15,76 @@ export class AppPackagesRoutesController {
 
   readonly list = async (c: Context) => c.json(ok(await this.manager.listPackages()));
 
+  readonly listOperations = async (c: Context) =>
+    c.json(ok(await this.manager.listOperations()));
+
+  readonly startInstallOperation = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    if (!body.ok || !isRecord(body.data) || typeof body.data.source !== "string") {
+      return c.json(err("INVALID_APP_PACKAGE_INSTALL", "source is required"), 400);
+    }
+    try {
+      return c.json(ok(await this.manager.startOperation({
+        action: "install",
+        source: body.data.source,
+        registryUrl: typeof body.data.registryUrl === "string"
+          ? body.data.registryUrl
+          : undefined,
+      })), 202);
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly startUpdateOperation = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    if (!body.ok || !isRecord(body.data)) {
+      return c.json(err("INVALID_APP_PACKAGE_UPDATE", "invalid update request"), 400);
+    }
+    try {
+      return c.json(ok(await this.manager.startOperation({
+        action: "update",
+        appId: c.req.param("appId"),
+        version: typeof body.data.version === "string" ? body.data.version : undefined,
+        registryUrl: typeof body.data.registryUrl === "string"
+          ? body.data.registryUrl
+          : undefined,
+      })), 202);
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly startRollbackOperation = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    if (!body.ok || !isRecord(body.data) || typeof body.data.version !== "string") {
+      return c.json(err("INVALID_APP_PACKAGE_ROLLBACK", "version is required"), 400);
+    }
+    try {
+      return c.json(ok(await this.manager.startOperation({
+        action: "rollback",
+        appId: c.req.param("appId"),
+        version: body.data.version,
+      })), 202);
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly startUninstallOperation = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    const purgeData = body.ok && isRecord(body.data) && body.data.purgeData === true;
+    try {
+      return c.json(ok(await this.manager.startOperation({
+        action: "uninstall",
+        appId: c.req.param("appId"),
+        purgeData,
+      })), 202);
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
   readonly get = async (c: Context) => {
     try {
       return c.json(ok(await this.manager.getPackage(c.req.param("appId"))));
