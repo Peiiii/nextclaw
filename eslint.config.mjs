@@ -165,6 +165,7 @@ export default [
       "**/*.d.ts",
       "**/.wrangler/**",
       "apps/desktop/release/**",
+      "**/*.panel/assets/**",
       "packages/nextclaw/ui-dist/**"
     ]
   },
