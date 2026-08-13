@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.33.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-13",
+  "title": {
+    "zh-CN": "NextClaw v0.33.2",
+    "en-US": "NextClaw v0.33.2"
+  },
+  "summary": {
+    "zh-CN": "修复应用检查更新报错，并把个人空间的待办和日历升级为可日常使用的 Mini APP。",
+    "en-US": "Fixes app update checks and upgrades Personal Space todos and calendar into practical everyday Mini Apps."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-13-nextclaw-v0-33-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "个人空间",
+        "en-US": "Personal Space"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "可日常使用的待办和日历",
+            "en-US": "Everyday-ready todos and calendar"
+          },
+          "body": {
+            "zh-CN": "补齐待办和日历的新增、编辑、完成、删除、ICS 来源与响应式交互，数据继续保存在本机稳定目录。",
+            "en-US": "Adds complete todo and calendar editing, ICS sources, and responsive interactions while keeping data in a stable local directory."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "应用更新",
+        "en-US": "App Updates"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "可靠的检查更新",
+            "en-US": "Reliable update checks"
+          },
+          "body": {
+            "zh-CN": "修复 Registry 文档解析报错和成功重试后仍显示历史失败的问题。",
+            "en-US": "Fixes Registry document parsing and stale historical failures after a successful retry."
+          }
+        }
+      ]
+    }
+  ]
+}
