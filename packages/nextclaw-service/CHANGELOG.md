@@ -1,5 +1,18 @@
 # @nextclaw/service
 
+## 0.3.29
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [2542896]
+  - @nextclaw/mcp@0.3.25
+  - @nextclaw/kernel@0.6.27
+  - @nextclaw/ncp-mcp@0.2.25
+  - @nextclaw/server@0.15.27
+  - @nextclaw/remote@0.3.27
+  - @nextclaw/client-sdk@0.5.27
+
 ## 0.3.28
 
 ### Patch Changes

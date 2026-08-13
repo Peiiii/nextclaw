@@ -1,5 +1,14 @@
 # @nextclaw/mcp
 
+## 0.3.25
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/mcp
+
 ## 0.3.24
 
 ### Patch Changes
