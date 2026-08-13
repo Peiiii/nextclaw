@@ -7,15 +7,15 @@ function readOption(name) {
   return index === -1 ? undefined : process.argv[index + 1];
 }
 
-async function collectHtmlFiles(root, directory = root) {
+async function collectFiles(root, directory = root) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
 
   for (const entry of entries) {
     const path = join(directory, entry.name);
     if (entry.isDirectory()) {
-      files.push(...await collectHtmlFiles(root, path));
-    } else if (entry.isFile() && entry.name.endsWith('.html')) {
+      files.push(...await collectFiles(root, path));
+    } else if (entry.isFile()) {
       files.push(relative(root, path).split(sep).join('/'));
     }
   }
@@ -30,15 +30,22 @@ if (!dist || !domain) {
 }
 
 const paths = new Set(['/release-manifest.json']);
-for (const file of await collectHtmlFiles(dist)) {
+for (const file of await collectFiles(dist)) {
+  if (file.startsWith('assets/')) {
+    continue;
+  }
+
   if (file === 'index.html') {
     paths.add('/');
+    paths.add('/index.html');
   } else if (file.endsWith('/index.html')) {
     const directoryRoute = `/${file.slice(0, -'index.html'.length)}`;
     paths.add(directoryRoute);
     paths.add(`/${file}`);
-  } else {
+  } else if (file.endsWith('.html')) {
     paths.add(`/${file.slice(0, -'.html'.length)}`);
+    paths.add(`/${file}`);
+  } else {
     paths.add(`/${file}`);
   }
 }
