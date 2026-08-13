@@ -110,8 +110,14 @@ const getDirectorySegments = (filePath) => {
   return directoryPath.split("/").filter(Boolean);
 };
 
+const isPanelAppGeneratedAsset = (normalizedPath) => (
+  /(?:^|\/)[a-z0-9]+(?:-[a-z0-9]+)*\.panel\/assets\//.test(normalizedPath)
+);
+
 const shouldSkipRoleBoundaryCheck = (normalizedPath, segments) => (
-  [".agents/", "bridge/", "apps/docs/.vitepress/data/"].some((prefix) => normalizedPath.startsWith(prefix)) || segments.includes("scripts")
+  [".agents/", "bridge/", "apps/docs/.vitepress/data/"].some((prefix) => normalizedPath.startsWith(prefix)) ||
+  segments.includes("scripts") ||
+  isPanelAppGeneratedAsset(normalizedPath)
 );
 
 const getNearestDirectoryRule = (segments) => {

@@ -275,6 +275,13 @@ test("skips generated VitePress data files", () => {
   }), null);
 });
 
+test("skips generated assets inside a kebab-case Panel App package", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/nextclaw/resources/apps/personal-organizer/panels/personal-organizer-todos.panel/assets/app.js",
+    status: "A"
+  }), null);
+});
+
 test("requires use-* naming inside hooks directories", () => {
   const violation = inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/hooks/chat-session.ts",

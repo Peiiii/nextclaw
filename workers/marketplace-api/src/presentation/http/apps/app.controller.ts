@@ -3,7 +3,7 @@ import { ResourceNotFoundError } from "@/domain/errors";
 import type { D1MarketplaceAppDataSource } from "@/infrastructure/apps/d1-marketplace-app.repository";
 import { resolvePublishActor } from "@/presentation/http/marketplace-auth.utils";
 import type { MarketplaceQueryParser } from "@/presentation/http/query-parser";
-import { ApiResponseFactory } from "@/presentation/http/response";
+import { ApiResponseFactory } from "@/presentation/http/utils/api-response.utils";
 
 type AppRouteBindings = {
   MARKETPLACE_SKILLS_DB: D1Database;
@@ -145,7 +145,7 @@ export function registerAppRoutes(
     if (!data) {
       throw new ResourceNotFoundError(`app registry document not found: ${appId}`);
     }
-    return runtime.responses.publicOk(c, data);
+    return runtime.responses.publicDocument(c, data);
   });
 
   app.post("/api/v1/apps/publish", async (c) => {

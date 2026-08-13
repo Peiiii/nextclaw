@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MarketplaceAppQuerySupport } from "../marketplace-app-query.service";
+import { MarketplaceAppQuerySupport } from "@/infrastructure/apps/marketplace-app-query.service";
 import type { MarketplaceAppCatalogQuery } from "@/domain/model";
 
 describe("MarketplaceAppQuerySupport", () => {
@@ -50,6 +50,21 @@ describe("MarketplaceAppQuerySupport", () => {
   it("normalizes relevance without a query to the featured catalog order", () => {
     const support = new MarketplaceAppQuerySupport();
     expect(support.resolveCatalogSort(buildCatalogQuery())).toBe("featured");
+  });
+
+  it("keeps product catalog eligibility independent from install availability", () => {
+    const support = new MarketplaceAppQuerySupport();
+
+    expect(support.buildProductCatalogEligibilityFilters("items")).toEqual([
+      "items.publish_status = 'published'",
+      "items.owner_visibility = 'public'",
+      "items.owner_deleted_at IS NULL",
+      "items.catalog_visibility = 'listed'",
+      "items.manifest_schema_version = 2",
+    ]);
+    expect(support.buildPublicFilters({ page: 1, pageSize: 24, sort: "updated" }).whereClause).toContain(
+      "catalog_visibility = 'listed' AND manifest_schema_version = 2",
+    );
   });
 });
 

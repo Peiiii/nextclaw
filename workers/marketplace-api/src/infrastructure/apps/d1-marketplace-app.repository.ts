@@ -25,6 +25,7 @@ import {
   assertExistingAppOwnership,
   buildAppWebUrl,
   parseAppReviewInput,
+  resolveCatalogVisibility,
   resolveAppIdentity,
   type ExistingAppRow,
 } from "./marketplace-app-publish.utils";
@@ -147,6 +148,14 @@ export class D1MarketplaceAppDataSource {
       publishStatus: identity.ownerScope === "nextclaw" ? "published" : "pending",
       publishedByType: identity.ownerScope === "nextclaw" ? "admin" : "user",
       latestVersion,
+      manifestSchemaVersion: input.manifest.schemaVersion,
+      catalogVisibility: input.manifest.schemaVersion >= 2
+        ? resolveCatalogVisibility({
+            existing: existingItem?.catalog_visibility,
+            isNew: !existingItem,
+            ownerScope: identity.ownerScope,
+          })
+        : "unlisted",
       iconSha256: input.manifest.icon
         ? storedFiles.get(input.manifest.icon)?.sha256 ?? null
         : null,
@@ -280,10 +289,19 @@ export class D1MarketplaceAppDataSource {
     if (!itemRow) {
       throw new DomainValidationError(`app item not found: ${input.selector}`);
     }
+    if (input.catalogVisibility === "listed" && itemRow.manifest_schema_version < 2) {
+      throw new DomainValidationError("legacy schema v1 apps cannot be listed in the product catalog");
+    }
+    const catalogVisibility = input.catalogVisibility ?? (
+      input.publishStatus === "published"
+        ? itemRow.manifest_schema_version === 2 ? "listed" : "unlisted"
+        : undefined
+    );
     const updatedAt = new Date().toISOString();
     await this.recordRepository.updateReviewStatus({
       itemId: itemRow.id,
       publishStatus: input.publishStatus,
+      catalogVisibility,
       reviewNote: input.reviewNote ?? null,
       updatedAt,
     });

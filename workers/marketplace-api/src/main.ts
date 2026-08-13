@@ -20,7 +20,7 @@ import { decodeUtf8, splitMarkdownFrontmatter } from "./presentation/http/market
 import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth.utils";
 import { registerMarketplacePublicHttpPolicies } from "./presentation/http/marketplace-public-cache.controller";
 import { MarketplaceQueryParser } from "./presentation/http/query-parser";
-import { ApiResponseFactory } from "./presentation/http/response";
+import { ApiResponseFactory } from "./presentation/http/utils/api-response.utils";
 import { registerUserAppRoutes } from "./presentation/http/user-app-routes.controller";
 import { registerUserSkillRoutes } from "./presentation/http/user-skill-routes.controller";
 import {

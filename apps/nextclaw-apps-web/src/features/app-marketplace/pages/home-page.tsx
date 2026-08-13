@@ -13,7 +13,7 @@ export function HomePage({
   status: "loading" | "ready" | "error";
 }) {
   return (
-    <div className="page-stack">
+    <div className="page-stack page-stack--home">
       <section className="hero-section">
         <div className="hero-copy">
           <p className="hero-eyebrow"><span /> NextClaw 应用库</p>
@@ -63,6 +63,7 @@ function HeroShowcase({ app }: { app?: AppItemSummary }) {
         accentColor={app.accentColor}
         className="hero-showcase__cover"
         coverUrl={app.coverUrl}
+        loading="eager"
         name={app.name}
       />
       <span className="hero-showcase__scrim" />

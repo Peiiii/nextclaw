@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { ApiResponseFactory } from "../response";
+import { ApiResponseFactory } from "@/presentation/http/utils/api-response.utils";
 import { registerAppRoutes } from "./app.controller";
 
 describe("app bundle HTTP contract", () => {
@@ -41,5 +41,31 @@ describe("app bundle HTTP contract", () => {
     expect(partial.status).toBe(206);
     expect(partial.headers.get("content-range")).toBe("bytes 0-9/100");
     expect(partial.headers.get("content-length")).toBe("10");
+  });
+});
+
+describe("app registry HTTP contract", () => {
+  it("returns the NPM-style registry document at the response root", async () => {
+    const document = {
+      name: "nextclaw.personal-organizer",
+      "dist-tags": { latest: "0.1.3" },
+      versions: {},
+    };
+    const app = new Hono();
+    registerAppRoutes(app as never, () => ({
+      responses: new ApiResponseFactory(),
+      parser: {} as never,
+      appDataSource: {
+        getRegistryDocument: async () => document,
+      } as never,
+      invalidateCache: () => undefined,
+    }));
+
+    const response = await app.request(
+      "/api/v1/apps/registry/nextclaw.personal-organizer",
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(document);
   });
 });

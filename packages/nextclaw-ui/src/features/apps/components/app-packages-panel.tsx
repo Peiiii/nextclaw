@@ -299,34 +299,40 @@ function AppPackageLibrary({
       ).map((operation) => (
         <PendingInstallCard key={operation.id} operation={operation} />
       ))}
-      {packages.map((appPackage) => (
-        <AppPackageCard
-          key={appPackage.id}
-          appPackage={appPackage}
-          panelApps={panelApps.filter((entry) => entry.packageId === appPackage.id)}
-          isPending={isPending && mutationAppId === appPackage.id}
-          operation={operations.find((entry) =>
-            entry.appId === appPackage.id && (
-              isAppPackageOperationActive(entry.status) ||
-              entry.status === 'failed' ||
-              entry.status === 'interrupted'
-            ))}
-          onEnable={() => onMutate({ action: 'enable', appId: appPackage.id })}
-          onDisable={() => onMutate({ action: 'disable', appId: appPackage.id })}
-          onUpdate={() => onMutate({ action: 'update', appId: appPackage.id })}
-          onRollback={(version) => onMutate({
-            action: 'rollback',
-            appId: appPackage.id,
-            version,
-          })}
-          onUninstall={(purgeData) => onMutate({
-            action: 'uninstall',
-            appId: appPackage.id,
-            purgeData,
-          })}
-          onOpenPanelApp={onOpenPanelApp}
-        />
-      ))}
+      {packages.map((appPackage) => {
+        const latestOperation = operations.find((entry) => entry.appId === appPackage.id);
+        const visibleOperation = latestOperation && (
+          isAppPackageOperationActive(latestOperation.status) ||
+          latestOperation.status === 'failed' ||
+          latestOperation.status === 'interrupted'
+        )
+          ? latestOperation
+          : undefined;
+
+        return (
+          <AppPackageCard
+            key={appPackage.id}
+            appPackage={appPackage}
+            panelApps={panelApps.filter((entry) => entry.packageId === appPackage.id)}
+            isPending={isPending && mutationAppId === appPackage.id}
+            operation={visibleOperation}
+            onEnable={() => onMutate({ action: 'enable', appId: appPackage.id })}
+            onDisable={() => onMutate({ action: 'disable', appId: appPackage.id })}
+            onUpdate={() => onMutate({ action: 'update', appId: appPackage.id })}
+            onRollback={(version) => onMutate({
+              action: 'rollback',
+              appId: appPackage.id,
+              version,
+            })}
+            onUninstall={(purgeData) => onMutate({
+              action: 'uninstall',
+              appId: appPackage.id,
+              purgeData,
+            })}
+            onOpenPanelApp={onOpenPanelApp}
+          />
+        );
+      })}
     </div>
   );
 }

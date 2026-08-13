@@ -1,3 +1,5 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   getConfigPath,
@@ -49,13 +51,14 @@ export class ServiceAppDevService {
     }
 
     const runtime = this.createRuntimeService();
+    const dataDirectory = await this.createDevDataDirectory();
     try {
-      const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime);
+      const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
       const runtimeActions = await runtime.listActions({
         app: startRecord,
         manifest: loaded.manifest,
       });
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
       const actions = mergeServiceAppRuntimeActions({
         record,
         manifest: loaded.manifest,
@@ -64,7 +67,11 @@ export class ServiceAppDevService {
       this.collectRuntimeIssues(record, actions, issues);
       return this.buildDevReport(appPath, record, actions, issues);
     } finally {
-      await runtime.dispose();
+      try {
+        await runtime.dispose();
+      } finally {
+        await rm(dataDirectory, { recursive: true, force: true });
+      }
     }
   };
 
@@ -101,15 +108,16 @@ export class ServiceAppDevService {
     }
 
     const runtime = this.createRuntimeService();
+    const dataDirectory = await this.createDevDataDirectory();
     try {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
       const result = await runtime.invokeAction({
         app: record,
         manifest: loaded.manifest,
         actionName: action,
         input,
       });
-      const nextRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime);
+      const nextRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
       return this.buildCallReport(
         appPath,
         nextRecord,
@@ -118,7 +126,7 @@ export class ServiceAppDevService {
         issues,
       );
     } catch (error) {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
       issues.push({
         severity: "error",
         code: "service.runtime.callFailed",
@@ -132,7 +140,11 @@ export class ServiceAppDevService {
         issues,
       );
     } finally {
-      await runtime.dispose();
+      try {
+        await runtime.dispose();
+      } finally {
+        await rm(dataDirectory, { recursive: true, force: true });
+      }
     }
   };
 
@@ -181,10 +193,14 @@ export class ServiceAppDevService {
     getStatus: (): { status: "idle" } => ({ status: "idle" }),
   };
 
+  private createDevDataDirectory = async (): Promise<string> =>
+    await mkdtemp(path.join(tmpdir(), "nextclaw-service-app-dev-data-"));
+
   private toServiceAppRecord = (
     dirPath: string,
     manifest: ServiceAppManifest,
     runtime: Pick<RuntimeService, "getStatus">,
+    dataDirectory?: string,
   ): ServiceAppRecord => {
     const runtimeStatus = runtime.getStatus(manifest.id);
     const record: ServiceAppRecord = {
@@ -198,6 +214,7 @@ export class ServiceAppDevService {
       enabled: manifest.enabled,
       protocol: manifest.protocol,
       status: manifest.enabled ? runtimeStatus.status : "stopped",
+      dataDirectory,
     };
     if (manifest.description) {
       record.description = manifest.description;

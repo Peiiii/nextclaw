@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { AppPackageOperationView } from '@nextclaw/client-sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppPackagesPanel } from '@/features/apps/components/app-packages-panel';
 
@@ -9,17 +10,7 @@ const mocks = vi.hoisted(() => ({
   lifecycleMutate: vi.fn(),
   lifecycleReset: vi.fn(),
   onOpen: vi.fn(),
-  operations: [] as Array<{
-    id: string;
-    action: 'install';
-    appId: string;
-    source: string;
-    status: 'downloading';
-    completedSteps: number;
-    totalSteps: number;
-    createdAt: string;
-    updatedAt: string;
-  }>,
+  operations: [] as AppPackageOperationView[],
   recordOpened: vi.fn(),
   refetchOperations: vi.fn(),
   refetchPackages: vi.fn(),
@@ -308,5 +299,38 @@ describe('AppPackagesPanel', () => {
     expect(screen.getAllByText('Downloading')).not.toHaveLength(0);
     expect((screen.getByRole('button', { name: 'Downloading' }) as HTMLButtonElement).disabled)
       .toBe(true);
+  });
+
+  it('clears an earlier failure after a newer operation succeeds', () => {
+    mocks.operations = [
+      {
+        id: 'operation-succeeded',
+        action: 'update',
+        appId: 'nextclaw.personal-organizer',
+        status: 'succeeded',
+        completedSteps: 5,
+        totalSteps: 5,
+        createdAt: '2026-08-13T11:27:49.090Z',
+        updatedAt: '2026-08-13T11:27:50.627Z',
+        completedAt: '2026-08-13T11:27:50.627Z',
+      },
+      {
+        id: 'operation-failed',
+        action: 'update',
+        appId: 'nextclaw.personal-organizer',
+        status: 'failed',
+        completedSteps: 1,
+        totalSteps: 5,
+        createdAt: '2026-08-13T11:08:08.080Z',
+        updatedAt: '2026-08-13T11:08:10.316Z',
+        completedAt: '2026-08-13T11:08:10.316Z',
+        error: 'name 必须是非空字符串。',
+      },
+    ];
+
+    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText('name 必须是非空字符串。')).toBeNull();
   });
 });

@@ -143,21 +143,22 @@ export class McpServiceAppRuntimeService {
   });
 
   private createAppRuntimeEnv = (app: ServiceAppRecord): NodeJS.ProcessEnv => {
+    const env: NodeJS.ProcessEnv = {};
+    if (app.dataDirectory) {
+      env.NEXTCLAW_APP_DATA_DIR = app.dataDirectory;
+    }
     if (
       app.sourceKind !== "package" ||
       !app.packageId ||
       !app.packageVersion ||
-      !app.packageDirectory ||
-      !app.dataDirectory
+      !app.packageDirectory
     ) {
-      return {};
+      return env;
     }
-    return {
-      NEXTCLAW_APP_ID: app.packageId,
-      NEXTCLAW_APP_VERSION: app.packageVersion,
-      NEXTCLAW_APP_DATA_DIR: app.dataDirectory,
-      NEXTCLAW_APP_PACKAGE_DIR: app.packageDirectory,
-    };
+    env.NEXTCLAW_APP_ID = app.packageId;
+    env.NEXTCLAW_APP_VERSION = app.packageVersion;
+    env.NEXTCLAW_APP_PACKAGE_DIR = app.packageDirectory;
+    return env;
   };
 
   private toServiceAction = (

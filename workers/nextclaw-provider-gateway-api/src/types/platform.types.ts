@@ -377,8 +377,10 @@ export type AdminMarketplaceAppPublishStatus =
   | "rejected"
   | "all";
 export type AdminMarketplaceAppReviewStatus = "published" | "rejected";
+export type AdminMarketplaceAppCatalogVisibility = "listed" | "unlisted";
 export type OwnerMarketplaceAppVisibility = "public" | "hidden";
 export type OwnerMarketplaceAppManageAction = "hide" | "show" | "delete";
+export type OwnerMarketplaceAppCatalogVisibility = "listed" | "unlisted";
 
 export type MarketplaceAppInstallView = {
   kind: "registry";
@@ -403,21 +405,24 @@ export type MarketplaceAppPublisherView = {
 };
 
 export type MarketplaceAppManifestView = {
-  schemaVersion: 1;
+  schemaVersion: 1 | 2;
   id: string;
   name: string;
   version: string;
   description?: string;
   icon?: string;
-  main: {
+  main?: {
     kind: "wasm";
     entry: string;
     export: string;
     action: string;
   };
-  ui: {
+  ui?: {
     entry: string;
   };
+  engines?: { nextclaw?: string };
+  presentation?: { primaryPanel?: string };
+  components?: Array<{ kind: "panel" | "service"; path: string }>;
   permissions?: Record<string, unknown>;
 };
 
@@ -450,6 +455,8 @@ export type OwnerMarketplaceAppSummaryView = {
   author: string;
   updatedAt: string;
   latestVersion: string;
+  manifestSchemaVersion: 1 | 2;
+  catalogVisibility: OwnerMarketplaceAppCatalogVisibility;
   featured: boolean;
   publisher: MarketplaceAppPublisherView;
   install: MarketplaceAppInstallView;
@@ -493,6 +500,8 @@ export type AdminMarketplaceAppSummaryView = {
   author: string;
   updatedAt: string;
   latestVersion: string;
+  manifestSchemaVersion: 1 | 2;
+  catalogVisibility: AdminMarketplaceAppCatalogVisibility;
   featured: boolean;
   publisher: MarketplaceAppPublisherView;
   install: MarketplaceAppInstallView;

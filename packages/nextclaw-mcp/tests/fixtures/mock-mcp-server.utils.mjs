@@ -10,7 +10,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 const mode = process.argv[2] ?? "stdio";
 const requestedPort = Number(process.argv[3] ?? "0");
 
-function createEchoServer(name) {
+function createEchoServer(name, echoText = "echo:ok") {
   const server = new McpServer({
     name,
     version: "1.0.0"
@@ -22,7 +22,7 @@ function createEchoServer(name) {
     content: [
       {
         type: "text",
-        text: "echo:ok"
+        text: echoText
       }
     ]
   }));
@@ -45,7 +45,14 @@ async function readJsonBody(req) {
 }
 
 async function startStdio() {
-  const server = createEchoServer("mock-stdio-server");
+  const requiresDataDirectory = process.argv[3] === "require-data-dir";
+  if (requiresDataDirectory && !process.env.NEXTCLAW_APP_DATA_DIR) {
+    throw new Error("NEXTCLAW_APP_DATA_DIR is required");
+  }
+  const server = createEchoServer(
+    "mock-stdio-server",
+    requiresDataDirectory ? "data-dir:ok" : "echo:ok",
+  );
   const transport = new StdioServerTransport();
   transport.onclose = () => {
     process.exit(0);

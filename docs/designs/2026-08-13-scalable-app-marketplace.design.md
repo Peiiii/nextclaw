@@ -128,6 +128,29 @@ apps/{appId}/files/{sha256}/{relativePath}
 
 未来如果给 R2 配置独立自定义域名，只需要让映射器输出该域名，不改变 canonical 数据和安装协议。
 
+### 5.5 目录上架与安装可用性分离
+
+`published` 和 `owner_visibility` 只表达应用是否通过审核、发布者是否允许外部访问，不能继续兼任“是否出现在商城”的含义。否则从商城下架一个应用会同时切断已安装用户的更新、历史版本和 Registry metadata。
+
+应用条目增加两个 canonical 字段：
+
+- `manifest_schema_version = 1 | 2`：发布时从已校验 manifest 写入，供热路径直接索引，列表查询禁止逐行 `json_extract`；
+- `catalog_visibility = listed | unlisted`：运营审核决定是否进入发现目录。
+
+产品目录的统一准入条件是：
+
+```text
+published
+  + owner public
+  + not deleted
+  + catalog_visibility = listed
+  + manifest_schema_version = 当前产品支持的精确版本 2
+```
+
+这里使用精确版本而不是 `>= 2`，因为未来未知的 schema v3 不能在消费者尚未支持时被自动放行。旧 schema v1 在 migration 中统一转为 `unlisted`；v1/v2 的直接详情、Registry metadata、bundle 与文件读取仍沿原发布可见性工作，因此已经安装的兼容用户不会被误伤。
+
+官方新 v2 应用可随发布进入目录；社区新 v2 应用在待审核阶段保持 `unlisted`，管理员“通过审核”时转为 `listed`。管理员 API 也支持把已发布 v2 应用单独切换为 `unlisted`，并禁止把 v1 改为 `listed`。公开网站和 NextClaw 内置市场只消费 Registry 的统一结果，不再维护 slug 黑名单。
+
 ## 6. API 合同
 
 ### 6.1 v2 列表与搜索
@@ -230,18 +253,27 @@ publisher_name
 
 官网的搜索、分类和翻页使用同一 v2 API。发布者页改为服务端 `publisher` 过滤，而不是拉 100 条后在浏览器过滤。
 
+### 8.1 公开站点宽屏密度合同
+
+- 站点 header、正文和 footer 使用同一个 `1120px` 内容宽度 owner，超宽屏只增加外侧留白，不线性放大内容；
+- 目录页保持最多三列，卡片封面使用 `16:9`，单卡在桌面不靠增加图片高度填充空间；
+- 详情首屏采用“封面 + 应用身份/安装信息”双栏，封面不再作为整页宽横幅；桌面封面目标高度约 `390–430px`，而不是随容器放大到 `700px+`；
+- `820px` 以下详情首屏改为单列，`680px` 以下目录改为单列；布局重排不能产生横向滚动；
+- 详情首屏图片使用高优先级加载，目录卡片继续懒加载，避免同时争抢首屏带宽。
+
 ## 9. 状态与不变量
 
 必须长期成立：
 
-1. 公开列表只包含 `published + public + not deleted` 的应用；
-2. cursor 只在产生它的同一查询中有效；
-3. 每一页排序稳定，无重复或跳项；
-4. 搜索投影可从 canonical 表完全重建；
-5. 内容寻址 URL 的字节内容永不改变；
-6. list/detail/read 不产生隐藏写入；
-7. 安装任务不属于市场弹窗生命周期；
-8. 客户端缓存、Edge Cache 和 FTS 都不能成为事实 owner。
+1. 产品目录只包含 `published + public + not deleted + listed + schema v2` 的应用；
+2. `unlisted` 不进入任何商城列表或搜索，但仍可直达、安装和更新；
+3. cursor 只在产生它的同一查询中有效；
+4. 每一页排序稳定，无重复或跳项；
+5. 搜索投影可从 canonical 表完全重建；
+6. 内容寻址 URL 的字节内容永不改变；
+7. list/detail/read 不产生隐藏写入；
+8. 安装任务不属于市场弹窗生命周期；
+9. 客户端缓存、Edge Cache 和 FTS 都不能成为事实 owner。
 
 ## 10. 失败与恢复边界
 

@@ -1,9 +1,9 @@
-import { DomainValidationError } from "../../domain/errors";
+import { DomainValidationError } from "@/domain/errors";
 import type {
   MarketplaceAppCatalogQuery,
   MarketplaceAppCatalogSort,
   MarketplaceListQuery,
-} from "../../domain/model";
+} from "@/domain/model";
 
 type MarketplaceAppCatalogCursor = {
   version: 1;
@@ -16,6 +16,17 @@ type MarketplaceAppCatalogCursor = {
 };
 
 export class MarketplaceAppQuerySupport {
+  buildProductCatalogEligibilityFilters = (tableAlias?: string): string[] => {
+    const prefix = tableAlias ? `${tableAlias}.` : "";
+    return [
+      `${prefix}publish_status = 'published'`,
+      `${prefix}owner_visibility = 'public'`,
+      `${prefix}owner_deleted_at IS NULL`,
+      `${prefix}catalog_visibility = 'listed'`,
+      `${prefix}manifest_schema_version = 2`,
+    ];
+  };
+
   resolveCatalogSort = (query: MarketplaceAppCatalogQuery): MarketplaceAppCatalogSort =>
     query.sort === "relevance" && !query.q ? "featured" : query.sort;
 
@@ -91,11 +102,7 @@ export class MarketplaceAppQuerySupport {
   };
 
   buildPublicFilters = (query: MarketplaceListQuery): { whereClause: string; bindings: unknown[] } => {
-    const clauses: string[] = [
-      "publish_status = 'published'",
-      "owner_visibility = 'public'",
-      "owner_deleted_at IS NULL",
-    ];
+    const clauses = this.buildProductCatalogEligibilityFilters();
     const bindings: unknown[] = [];
     if (query.q) {
       const like = `%${query.q.toLowerCase()}%`;

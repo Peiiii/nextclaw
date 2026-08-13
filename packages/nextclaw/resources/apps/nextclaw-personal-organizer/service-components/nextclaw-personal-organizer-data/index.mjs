@@ -240,12 +240,28 @@ const actions = {
     const state = await readJson(files.calendar, { schemaVersion: 1, items: [], subscriptions: [] });
     const from = start ? new Date(start).getTime() : Number.NEGATIVE_INFINITY;
     const to = end ? new Date(end).getTime() : Number.POSITIVE_INFINITY;
-    return { items: state.items.filter((item) => new Date(item.start).getTime() >= from && new Date(item.start).getTime() <= to).sort((left, right) => left.start.localeCompare(right.start)), subscriptions: state.subscriptions };
+    return {
+      items: state.items
+        .filter((item) => {
+          const eventStart = new Date(item.start).getTime();
+          const eventEnd = Math.max(new Date(item.end || item.start).getTime(), eventStart + 1);
+          return eventStart < to && eventEnd > from;
+        })
+        .sort((left, right) => left.start.localeCompare(right.start)),
+      subscriptions: state.subscriptions,
+    };
   },
   event_create: async (input) => await mutateCalendar((state) => {
     const timestamp = now();
     const start = toIso(input.start, "start");
-    const item = { id: randomUUID(), title: requireText(input.title, "title"), start, end: input.end ? toIso(input.end, "end") : start, allDay: input.allDay === true, location: optionalText(input.location), notes: optionalText(input.notes), source: "local", createdAt: timestamp, updatedAt: timestamp };
+    const allDay = input.allDay === true;
+    const end = input.end
+      ? toIso(input.end, "end")
+      : allDay
+        ? start
+        : new Date(new Date(start).getTime() + 60 * 60 * 1000).toISOString();
+    assertEventRange(start, end, allDay);
+    const item = { id: randomUUID(), title: requireText(input.title, "title"), start, end, allDay, location: optionalText(input.location), notes: optionalText(input.notes), source: "local", createdAt: timestamp, updatedAt: timestamp };
     state.items.push(item);
     return { item };
   }),
@@ -258,6 +274,7 @@ const actions = {
     if (typeof input.allDay === "boolean") item.allDay = input.allDay;
     if (typeof input.location === "string") item.location = input.location.trim();
     if (typeof input.notes === "string") item.notes = input.notes.trim();
+    assertEventRange(item.start, item.end, item.allDay);
     item.updatedAt = now();
     return { item };
   }),
@@ -270,15 +287,25 @@ const actions = {
   calendar_subscribe: async ({ name, url }) => await mutateCalendar(async (state) => {
     const subscription = { id: randomUUID(), name: requireText(name, "name"), url: assertHttpUrl(url), lastSyncedAt: "", lastError: "" };
     state.subscriptions.push(subscription);
-    await calendarSubscriptionService.sync(state, subscription);
-    return { subscription, imported: state.items.filter((item) => item.subscriptionId === subscription.id).length };
+    try {
+      await calendarSubscriptionService.sync(state, subscription);
+      return { subscription, imported: state.items.filter((item) => item.subscriptionId === subscription.id).length, synced: true, error: "" };
+    } catch (error) {
+      return { subscription, imported: 0, synced: false, error: error instanceof Error ? error.message : String(error) };
+    }
   }),
   calendar_sync: async ({ id = "" }) => await mutateCalendar(async (state) => {
     const subscriptions = id ? state.subscriptions.filter((entry) => entry.id === id) : state.subscriptions;
+    const results = [];
     for (const subscription of subscriptions) {
-      await calendarSubscriptionService.sync(state, subscription);
+      try {
+        await calendarSubscriptionService.sync(state, subscription);
+        results.push({ id: subscription.id, synced: true, error: "" });
+      } catch (error) {
+        results.push({ id: subscription.id, synced: false, error: error instanceof Error ? error.message : String(error) });
+      }
     }
-    return { subscriptions, imported: state.items.filter((item) => item.source === "ics").length };
+    return { subscriptions, imported: state.items.filter((item) => item.source === "ics").length, results };
   }),
   calendar_unsubscribe: async ({ id }) => await mutateCalendar((state) => {
     const subscriptionId = requireId(id);
@@ -290,17 +317,16 @@ const actions = {
 
 async function mutateCalendar(callback) {
   const state = await readJson(files.calendar, { schemaVersion: 1, items: [], subscriptions: [] });
-  try {
-    const result = await callback(state);
-    await writeJson(files.calendar, state);
-    return result;
-  } catch (error) {
-    try {
-      await writeJson(files.calendar, state);
-    } catch (persistError) {
-      throw new AggregateError([error, persistError], "calendar operation failed and state could not be persisted");
-    }
-    throw error;
+  const result = await callback(state);
+  await writeJson(files.calendar, state);
+  return result;
+}
+
+function assertEventRange(start, end, allDay) {
+  const startTime = new Date(start).getTime();
+  const endTime = new Date(end).getTime();
+  if (endTime < startTime || (!allDay && endTime === startTime)) {
+    throw new Error("end must be after start");
   }
 }
 
@@ -315,7 +341,7 @@ function send(message) {
 }
 
 async function handle(request) {
-  if (request.method === "initialize") return { protocolVersion: request.params?.protocolVersion ?? "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "nextclaw-personal-organizer-data", version: "0.1.3" } };
+  if (request.method === "initialize") return { protocolVersion: request.params?.protocolVersion ?? "2025-03-26", capabilities: { tools: {} }, serverInfo: { name: "nextclaw-personal-organizer-data", version: "0.1.4" } };
   if (request.method === "ping") return {};
   if (request.method === "tools/list") return { tools };
   if (request.method === "tools/call") {

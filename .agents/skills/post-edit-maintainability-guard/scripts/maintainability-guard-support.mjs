@@ -117,6 +117,9 @@ export function isCodePath(pathText) {
   if (parts.some((part) => IGNORED_PARTS.has(part))) {
     return false;
   }
+  if (/(?:^|\/)[a-z0-9]+(?:-[a-z0-9]+)*\.panel\/assets\//.test(normalized)) {
+    return false;
+  }
   return CODE_EXTENSIONS.has(path.posix.extname(normalized).toLowerCase());
 }
 

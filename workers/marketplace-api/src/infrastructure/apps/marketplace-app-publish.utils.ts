@@ -1,7 +1,8 @@
-import { DomainValidationError } from "../../domain/errors";
-import type { MarketplaceSkillPublishActor } from "../skills/d1-section-types";
+import { DomainValidationError } from "@/domain/errors";
+import type { MarketplaceSkillPublishActor } from "@/infrastructure/skills/d1-section-types";
 import type {
   MarketplaceAdminAppReviewStatus,
+  MarketplaceAppCatalogVisibility,
   MarketplaceAppOwnerVisibility,
   MarketplaceAppPublishInput,
 } from "./app-marketplace.types";
@@ -28,6 +29,7 @@ export type MarketplaceResolvedAppIdentity = {
 export type MarketplaceAppReviewInput = {
   selector: string;
   publishStatus: MarketplaceAdminAppReviewStatus;
+  catalogVisibility?: MarketplaceAppCatalogVisibility;
   reviewNote?: string;
 };
 
@@ -90,6 +92,10 @@ export function parseAppReviewInput(rawInput: unknown): MarketplaceAppReviewInpu
   const candidate = rawInput as Record<string, unknown>;
   const selector = readString(candidate.selector, "body.selector");
   const publishStatus = readString(candidate.publishStatus, "body.publishStatus");
+  const catalogVisibility = readOptionalString(
+    candidate.catalogVisibility,
+    "body.catalogVisibility",
+  );
   const reviewNote = readOptionalString(candidate.reviewNote, "body.reviewNote")?.trim();
   if (publishStatus !== "published" && publishStatus !== "rejected") {
     throw new DomainValidationError("body.publishStatus must be published or rejected");
@@ -97,15 +103,35 @@ export function parseAppReviewInput(rawInput: unknown): MarketplaceAppReviewInpu
   if (publishStatus === "rejected" && !reviewNote) {
     throw new DomainValidationError("body.reviewNote is required when publishStatus is rejected");
   }
+  if (
+    catalogVisibility !== undefined &&
+    catalogVisibility !== "listed" &&
+    catalogVisibility !== "unlisted"
+  ) {
+    throw new DomainValidationError("body.catalogVisibility must be listed or unlisted");
+  }
   return {
     selector,
     publishStatus,
+    catalogVisibility,
     reviewNote,
   };
 }
 
 export function deriveOwnerVisibility(value: string | null | undefined): MarketplaceAppOwnerVisibility {
   return value === "hidden" ? "hidden" : "public";
+}
+
+export function resolveCatalogVisibility(params: {
+  existing: string | null | undefined;
+  isNew: boolean;
+  ownerScope: string;
+}): MarketplaceAppCatalogVisibility {
+  const { existing, isNew, ownerScope } = params;
+  if (existing === "listed" || existing === "unlisted") {
+    return existing;
+  }
+  return isNew && ownerScope !== "nextclaw" ? "unlisted" : "listed";
 }
 
 export function buildAppWebUrl(slug: string): string {

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
 import { McpRegistryService } from "../src/index.js";
 
-const fixturePath = resolve(import.meta.dirname, "fixtures/mock-mcp-server.mjs");
+const fixturePath = resolve(import.meta.dirname, "fixtures/mock-mcp-server.utils.mjs");
 type FixtureProcess = ChildProcessByStdio<null, Readable, Readable>;
 
 const childProcesses: FixtureProcess[] = [];

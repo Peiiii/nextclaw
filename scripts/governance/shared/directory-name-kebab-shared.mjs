@@ -30,6 +30,7 @@ const DIRECTORY_SEGMENT_ALLOWLIST = new Set([
 
 const VERSION_DIRECTORY_PATTERN = /^v\d+\.\d+\.\d+(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?$/;
 const DATE_DIRECTORY_PATTERN = /^\d{4}-\d{2}-\d{2}(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?$/;
+const PANEL_APP_DIRECTORY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*\.panel$/;
 
 const toPosixPath = (filePath) => filePath.split(path.sep).join(path.posix.sep);
 
@@ -43,7 +44,11 @@ export const isAllowedDirectorySegment = (segment, segmentIndex) => {
   if (DIRECTORY_SEGMENT_ALLOWLIST.has(segment)) {
     return true;
   }
-  if (VERSION_DIRECTORY_PATTERN.test(segment) || DATE_DIRECTORY_PATTERN.test(segment)) {
+  if (
+    VERSION_DIRECTORY_PATTERN.test(segment) ||
+    DATE_DIRECTORY_PATTERN.test(segment) ||
+    PANEL_APP_DIRECTORY_PATTERN.test(segment)
+  ) {
     return true;
   }
   return isKebabSegment(segment);

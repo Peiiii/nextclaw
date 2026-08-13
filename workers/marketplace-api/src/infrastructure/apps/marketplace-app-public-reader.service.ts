@@ -1,9 +1,9 @@
-import { ResourceNotFoundError } from "../../domain/errors";
+import { ResourceNotFoundError } from "@/domain/errors";
 import type {
   MarketplaceAppCatalogQuery,
   MarketplaceAppCatalogSort,
   MarketplaceListQuery,
-} from "../../domain/model";
+} from "@/domain/model";
 import type {
   MarketplaceAppCatalogResult,
   MarketplaceAppFileRow,
@@ -80,11 +80,7 @@ export class MarketplaceAppPublicReader {
     filters: string[];
     fromClause: string;
   } => {
-    const filters = [
-      "items.publish_status = 'published'",
-      "items.owner_visibility = 'public'",
-      "items.owner_deleted_at IS NULL",
-    ];
+    const filters = this.querySupport.buildProductCatalogEligibilityFilters("items");
     const bindings: unknown[] = [];
     const searchExpression = query.q
       ? this.querySupport.buildCatalogSearchExpression(query.q)
@@ -262,6 +258,8 @@ export class MarketplaceAppPublicReader {
             icon_sha256,
             cover_sha256,
             latest_version,
+            manifest_schema_version,
+            catalog_visibility,
             manifest_json,
             permissions_json,
             published_at,

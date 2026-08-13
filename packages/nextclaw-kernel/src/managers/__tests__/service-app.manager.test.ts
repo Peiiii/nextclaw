@@ -46,7 +46,7 @@ function createConfigManager(workspacePath: string): ConfigManager {
 
 const mcpFixturePath = resolve(
   import.meta.dirname,
-  "../../../../nextclaw-mcp/tests/fixtures/mock-mcp-server.mjs",
+  "../../../../nextclaw-mcp/tests/fixtures/mock-mcp-server.utils.mjs",
 );
 
 function writeServiceApp(

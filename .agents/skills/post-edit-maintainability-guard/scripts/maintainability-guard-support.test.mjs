@@ -2,6 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { summarizeRepoLineChanges } from "./maintainability-guard-line-changes.mjs";
+import { isCodePath } from "./maintainability-guard-support.mjs";
+
+test("isCodePath excludes generated Panel App assets but keeps Panel App source", () => {
+  assert.equal(isCodePath(
+    "packages/nextclaw/resources/apps/personal-organizer/panels/todos.panel/assets/app.js",
+  ), false);
+  assert.equal(isCodePath(
+    "apps/personal-organizer-panels/src/features/todos/components/todos-app.tsx",
+  ), true);
+});
 
 test("summarizeRepoLineChanges excludes test files from non-test totals", () => {
   const summary = summarizeRepoLineChanges({

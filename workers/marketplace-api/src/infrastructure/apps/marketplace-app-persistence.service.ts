@@ -60,6 +60,8 @@ export class MarketplaceAppPersistence {
     publishStatus: "pending" | "published";
     publishedByType: "admin" | "user";
     latestVersion: string;
+    manifestSchemaVersion: 1 | 2;
+    catalogVisibility: "listed" | "unlisted";
     iconSha256: string | null;
     coverSha256: string | null;
     publishedAt: string;
@@ -74,6 +76,8 @@ export class MarketplaceAppPersistence {
       publishStatus,
       publishedByType,
       latestVersion,
+      manifestSchemaVersion,
+      catalogVisibility,
       iconSha256,
       coverSha256,
       publishedAt,
@@ -113,11 +117,13 @@ export class MarketplaceAppPersistence {
             icon_sha256,
             cover_sha256,
             latest_version,
+            manifest_schema_version,
+            catalog_visibility,
             manifest_json,
             permissions_json,
             published_at,
             updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(app_id) DO UPDATE SET
             slug = excluded.slug,
             owner_scope = excluded.owner_scope,
@@ -147,6 +153,8 @@ export class MarketplaceAppPersistence {
             icon_sha256 = excluded.icon_sha256,
             cover_sha256 = excluded.cover_sha256,
             latest_version = excluded.latest_version,
+            manifest_schema_version = excluded.manifest_schema_version,
+            catalog_visibility = excluded.catalog_visibility,
             manifest_json = excluded.manifest_json,
             permissions_json = excluded.permissions_json,
             updated_at = excluded.updated_at
@@ -183,6 +191,8 @@ export class MarketplaceAppPersistence {
         iconSha256,
         coverSha256,
         latestVersion,
+        manifestSchemaVersion,
+        catalogVisibility,
         JSON.stringify(input.manifest),
         JSON.stringify(input.permissions ?? {}),
         publishedAt,

@@ -3,6 +3,7 @@ import { appendAuditLog } from "@/repositories/platform.repository";
 import { MarketplaceAdminAppService } from "@/services/marketplace-admin-app.service";
 import { ensurePlatformBootstrap, requireAdminUser } from "@/services/platform.service";
 import type {
+  AdminMarketplaceAppCatalogVisibility,
   AdminMarketplaceAppPublishStatus,
   AdminMarketplaceAppReviewStatus,
   Env,
@@ -11,6 +12,7 @@ import { apiError, parseBoundedInt, readJson, readString } from "@/utils/platfor
 
 const ADMIN_MARKETPLACE_APP_STATUS_VALUES = ["pending", "published", "rejected", "all"] as const;
 const ADMIN_MARKETPLACE_APP_REVIEW_STATUS_VALUES = ["published", "rejected"] as const;
+const ADMIN_MARKETPLACE_APP_CATALOG_VISIBILITY_VALUES = ["listed", "unlisted"] as const;
 
 export async function adminMarketplaceAppsHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);
@@ -67,6 +69,11 @@ export async function reviewAdminMarketplaceAppHandler(c: Context<{ Bindings: En
   }
   const body = await readJson(c);
   const publishStatus = readAdminMarketplaceReviewStatus(readString(body, "publishStatus"));
+  const rawCatalogVisibility = readString(body, "catalogVisibility");
+  const catalogVisibility = readAdminMarketplaceCatalogVisibility(rawCatalogVisibility);
+  if (rawCatalogVisibility && !catalogVisibility) {
+    return apiError(c, 400, "INVALID_CATALOG_VISIBILITY", "catalogVisibility must be listed or unlisted.");
+  }
   const reviewNote = readOptionalQueryString(readString(body, "reviewNote"));
   if (publishStatus === "rejected" && !reviewNote) {
     return apiError(c, 400, "REVIEW_NOTE_REQUIRED", "reviewNote is required when rejecting a marketplace app.");
@@ -74,6 +81,7 @@ export async function reviewAdminMarketplaceAppHandler(c: Context<{ Bindings: En
   const data = await service.reviewApp({
     selector,
     publishStatus,
+    catalogVisibility,
     reviewNote: reviewNote ?? undefined,
   });
   await appendAuditLog(c.env.NEXTCLAW_PLATFORM_DB, {
@@ -86,6 +94,7 @@ export async function reviewAdminMarketplaceAppHandler(c: Context<{ Bindings: En
     metadataJson: JSON.stringify({
       selector,
       publishStatus,
+      catalogVisibility: catalogVisibility ?? null,
       reviewNote: reviewNote ?? null,
     }),
   });
@@ -110,6 +119,17 @@ function readAdminMarketplaceReviewStatus(raw: string): AdminMarketplaceAppRevie
     return "published";
   }
   return raw as AdminMarketplaceAppReviewStatus;
+}
+
+function readAdminMarketplaceCatalogVisibility(
+  raw: string,
+): AdminMarketplaceAppCatalogVisibility | undefined {
+  if (!raw) {
+    return undefined;
+  }
+  return ADMIN_MARKETPLACE_APP_CATALOG_VISIBILITY_VALUES.includes(
+    raw as AdminMarketplaceAppCatalogVisibility,
+  ) ? raw as AdminMarketplaceAppCatalogVisibility : undefined;
 }
 
 function readOptionalQueryString(raw: string | undefined): string | null {

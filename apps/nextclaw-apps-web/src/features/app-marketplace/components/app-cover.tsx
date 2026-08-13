@@ -4,11 +4,13 @@ export function AppCover({
   accentColor,
   className = "",
   coverUrl,
+  loading = "lazy",
   name,
 }: {
   accentColor?: string;
   className?: string;
   coverUrl?: string;
+  loading?: "eager" | "lazy";
   name: string;
 }) {
   const [failedUrl, setFailedUrl] = useState<string>();
@@ -22,7 +24,8 @@ export function AppCover({
         <img
           src={visibleCover}
           alt={`${name} 应用封面`}
-          loading="lazy"
+          fetchPriority={loading === "eager" ? "high" : "auto"}
+          loading={loading}
           onError={() => setFailedUrl(visibleCover)}
         />
       ) : (

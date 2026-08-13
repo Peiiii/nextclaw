@@ -39,6 +39,8 @@ For this repository specifically:
 ## Decision Rules
 
 - Always use lowercase kebab-case for domain/subdomain segments.
+- NextClaw Panel App 的静态包目录允许使用 `<kebab-id>.panel/` 协议后缀；点号前的 app id 仍必须是 lowercase kebab-case。
+- `.panel/assets/` 内的 Vite 生成文件按静态包产物处理，不要求源码角色后缀；源码目录仍完整适用 role-boundary 规则。
 - Keep one file, one primary role.
 - `.service.ts` 只允许用于内部声明了 `class` 的服务 owner；没有 class 的纯函数、映射、解析、装配或导出聚合不得命名为 `.service.ts`，应改用 `.utils.ts`、`.manager.ts`、`.controller.ts` 或其它真实角色。
 - 不得为了通过 `.service.ts` 命名治理而新增空心 class；如果 class 只代理其它 owner、没有真实状态/生命周期/流程所有权，说明文件角色应改名，而不是把假 owner 塞进文件。

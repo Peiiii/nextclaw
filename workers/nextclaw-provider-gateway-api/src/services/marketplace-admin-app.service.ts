@@ -1,6 +1,7 @@
 import type {
   AdminMarketplaceAppDetailPayload,
   AdminMarketplaceAppDetailView,
+  AdminMarketplaceAppCatalogVisibility,
   AdminMarketplaceAppListView,
   AdminMarketplaceAppPublishStatus,
   AdminMarketplaceAppReviewStatus,
@@ -57,6 +58,7 @@ export class MarketplaceAdminAppService {
   reviewApp = async (payload: {
     selector: string;
     publishStatus: AdminMarketplaceAppReviewStatus;
+    catalogVisibility?: AdminMarketplaceAppCatalogVisibility;
     reviewNote?: string;
   }): Promise<{ item: AdminMarketplaceAppDetailView }> => {
     return await this.requestJson<{ item: AdminMarketplaceAppDetailView }>("/api/v1/admin/apps/review", {

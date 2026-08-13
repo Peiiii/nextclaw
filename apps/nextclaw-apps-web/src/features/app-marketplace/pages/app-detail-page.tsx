@@ -11,7 +11,7 @@ export function AppDetailPage(props: {
 }) {
   if (props.status === "loading") {
     return (
-      <div className="page-stack">
+      <div className="page-stack page-stack--detail">
         <section className="section-panel detail-loading">
           <div className="detail-loading__icon" />
           <div><span /><span /><span /></div>
@@ -20,31 +20,34 @@ export function AppDetailPage(props: {
     );
   }
   if (props.status === "error" || !props.app) {
-    return <div className="page-stack"><section className="notice-state"><b>无法打开这个应用</b><span>应用可能已下架，或网络暂时不可用。</span><button type="button" className="button-link button-link--ghost" onClick={props.onRetry}>重新载入</button><Link className="text-link" to="/apps">返回应用库 →</Link></section></div>;
+    return <div className="page-stack page-stack--detail"><section className="notice-state"><b>无法打开这个应用</b><span>应用可能已下架，或网络暂时不可用。</span><button type="button" className="button-link button-link--ghost" onClick={props.onRetry}>重新载入</button><Link className="text-link" to="/apps">返回应用库 →</Link></section></div>;
   }
 
   const { app } = props;
   const description = localized(app.descriptionI18n, app.description ?? app.summary);
   return (
-    <div className="page-stack">
+    <div className="page-stack page-stack--detail">
       <Link className="back-link" to="/apps">← 返回应用库</Link>
-      <AppCover
-        accentColor={app.accentColor}
-        className="detail-cover"
-        coverUrl={app.coverUrl}
-        name={app.name}
-      />
-      <section className="detail-hero">
-        <AppDetailArtwork app={app} />
-        <div className="detail-hero__copy">
-          <div className="detail-publisher"><span className="verified-dot">✓</span>{app.publisher.name}</div>
-          <h1>{app.name}</h1>
-          <p>{description}</p>
-          <div className="detail-meta">
-            <span>v{app.latestVersion}</span><span>本机安装</span><span>发布于 {formatDate(app.publishedAt)}</span>
+      <section className="detail-intro">
+        <AppCover
+          accentColor={app.accentColor}
+          className="detail-cover"
+          coverUrl={app.coverUrl}
+          loading="eager"
+          name={app.name}
+        />
+        <div className="detail-hero">
+          <AppDetailArtwork app={app} />
+          <div className="detail-hero__copy">
+            <div className="detail-publisher"><span className="verified-dot">✓</span>{app.publisher.name}</div>
+            <h1>{app.name}</h1>
+            <p>{description}</p>
+            <div className="detail-meta">
+              <span>v{app.latestVersion}</span><span>本机安装</span><span>发布于 {formatDate(app.publishedAt)}</span>
+            </div>
           </div>
+          <CopyInstallButton command={app.install.command} />
         </div>
-        <CopyInstallButton command={app.install.command} />
       </section>
 
       <div className="detail-layout">

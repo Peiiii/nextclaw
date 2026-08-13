@@ -35,6 +35,8 @@ const MARKETPLACE_APP_ITEM_COLUMNS = `
   icon_sha256,
   cover_sha256,
   latest_version,
+  manifest_schema_version,
+  catalog_visibility,
   manifest_json,
   permissions_json,
   published_at,
@@ -375,21 +377,23 @@ export class MarketplaceAppRecordRepository {
   };
 
   updateReviewStatus = async (params: {
-    itemId: string;
-    publishStatus: string;
-    reviewNote: string | null;
-    updatedAt: string;
+    itemId: string; publishStatus: string; catalogVisibility?: string;
+    reviewNote: string | null; updatedAt: string;
   }): Promise<void> => {
-    const { itemId, publishStatus, reviewNote, updatedAt } = params;
+    const { catalogVisibility, itemId, publishStatus, reviewNote, updatedAt } = params;
     await this.db
       .prepare(
         `
           UPDATE marketplace_app_items
-          SET publish_status = ?, review_note = ?, reviewed_at = ?, updated_at = ?
+          SET publish_status = ?,
+              catalog_visibility = COALESCE(?, catalog_visibility),
+              review_note = ?,
+              reviewed_at = ?,
+              updated_at = ?
           WHERE id = ?
         `,
       )
-      .bind(publishStatus, reviewNote, updatedAt, updatedAt, itemId)
+      .bind(publishStatus, catalogVisibility ?? null, reviewNote, updatedAt, updatedAt, itemId)
       .run();
   };
 }

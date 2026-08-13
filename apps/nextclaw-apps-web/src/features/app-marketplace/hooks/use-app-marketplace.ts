@@ -6,11 +6,8 @@ import {
 import { appsMarketplaceClient } from "@/features/app-marketplace/services/app-marketplace.service.js";
 import type {
   AppItemDetail,
-  AppItemSummary,
   AppListResult,
 } from "@/features/app-marketplace/types/app-marketplace.types.js";
-
-const HIDDEN_PRODUCT_SLUGS = new Set(["starter-card", "validation-task-board"]);
 
 export function useHomeMarketplace() {
   const loader = useCallback(async () => {
@@ -19,7 +16,7 @@ export function useHomeMarketplace() {
       limit: 6,
       sort: "featured",
     });
-    return productItems(result.items);
+    return result.items;
   }, []);
   return useMarketplaceResource("home", loader);
 }
@@ -34,8 +31,7 @@ export function useAppsMarketplace(query: string, tag: string, cursor?: string) 
       limit: 24,
       sort: query ? "relevance" : "featured",
     });
-    const items = productItems(result.items);
-    return { ...result, items };
+    return result;
   }, [cursor, query, tag]);
   return useMarketplaceResource<AppListResult>(key, loader);
 }
@@ -63,7 +59,7 @@ export function usePublisherMarketplace(publisherId: string, cursor?: string) {
       limit: 24,
       sort: "featured",
     });
-    return { ...result, items: productItems(result.items) };
+    return result;
   }, [cursor, publisherId]);
   return useMarketplaceResource<AppListResult>(
     `publisher:${publisherId}:${cursor ?? "first"}`,
@@ -93,8 +89,4 @@ function useMarketplaceResource<T>(
     if (enabled) void appMarketplaceResourceManager.reload(key, loader);
   }, [enabled, key, loader]);
   return { ...snapshot, retry };
-}
-
-function productItems(items: AppItemSummary[]): AppItemSummary[] {
-  return items.filter((item) => !HIDDEN_PRODUCT_SLUGS.has(item.slug));
 }

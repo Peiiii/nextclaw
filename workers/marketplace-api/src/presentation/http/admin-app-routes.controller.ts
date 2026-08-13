@@ -1,9 +1,9 @@
 import type { Hono } from "hono";
-import { ResourceNotFoundError } from "../../domain/errors";
-import type { D1MarketplaceAppDataSource } from "../../infrastructure/apps/d1-marketplace-app.repository";
+import { ResourceNotFoundError } from "@/domain/errors";
+import type { D1MarketplaceAppDataSource } from "@/infrastructure/apps/d1-marketplace-app.repository";
 import { requireMarketplaceAdminAccess } from "./marketplace-auth.utils";
 import type { MarketplaceQueryParser } from "./query-parser";
-import { ApiResponseFactory } from "./response";
+import { ApiResponseFactory } from "./utils/api-response.utils";
 
 type AdminAppRouteBindings = {
   MARKETPLACE_SKILLS_DB: D1Database;

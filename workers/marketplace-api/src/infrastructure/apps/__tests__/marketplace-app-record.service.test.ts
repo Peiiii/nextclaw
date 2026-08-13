@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MarketplaceAppRecordMapper } from "../marketplace-app-record.service";
-import type { MarketplaceAppItemRow } from "../app-marketplace.types";
+import type { MarketplaceAppItemRow } from "@/infrastructure/apps/app-marketplace.types";
+import { MarketplaceAppRecordMapper } from "@/infrastructure/apps/marketplace-app-record.service";
 
 describe("MarketplaceAppRecordMapper visuals", () => {
   it("projects icon and cover files into public asset URLs", () => {
@@ -46,6 +46,8 @@ function buildRow(): MarketplaceAppItemRow {
     icon_sha256: null,
     cover_sha256: null,
     latest_version: "0.1.1",
+    manifest_schema_version: 2,
+    catalog_visibility: "listed",
     manifest_json: '{"schemaVersion":2,"id":"nextclaw.personal-organizer","name":"Personal Space","version":"0.1.1","icon":"assets/icon.svg","components":[{"kind":"panel","path":"panels/todos.panel"}]}',
     permissions_json: "{}",
     published_at: "2026-08-12T00:00:00.000Z",

@@ -84,6 +84,8 @@ export class MarketplaceAppRecordMapper {
   mapOwnerSummary = (row: MarketplaceAppItemRow): MarketplaceOwnerAppSummary => {
     return {
       ...this.mapItemSummary(row),
+      manifestSchemaVersion: this.readManifestSchemaVersion(row.manifest_schema_version),
+      catalogVisibility: this.readCatalogVisibility(row.catalog_visibility),
       publishStatus: this.readPublishStatus(row.publish_status),
       publishedByType: this.readPublishedByType(row.published_by_type),
       ownerVisibility: this.readOwnerVisibility(row.owner_visibility),
@@ -102,6 +104,8 @@ export class MarketplaceAppRecordMapper {
     const isDeleted = Boolean(row.owner_deleted_at);
     return {
       ...detail,
+      manifestSchemaVersion: this.readManifestSchemaVersion(row.manifest_schema_version),
+      catalogVisibility: this.readCatalogVisibility(row.catalog_visibility),
       ownerVisibility,
       canShow: !isDeleted && ownerVisibility === "hidden",
       canHide: !isDeleted && ownerVisibility === "public",
@@ -112,6 +116,8 @@ export class MarketplaceAppRecordMapper {
   mapAdminSummary = (row: MarketplaceAppItemRow): MarketplaceAdminAppSummary => {
     return {
       ...this.mapItemSummary(row),
+      manifestSchemaVersion: this.readManifestSchemaVersion(row.manifest_schema_version),
+      catalogVisibility: this.readCatalogVisibility(row.catalog_visibility),
       publishStatus: this.readPublishStatus(row.publish_status),
       publishedByType: this.readPublishedByType(row.published_by_type),
       reviewNote: row.review_note ?? undefined,
@@ -124,7 +130,11 @@ export class MarketplaceAppRecordMapper {
     row: MarketplaceAppItemRow,
     versionRows: MarketplaceAppVersionRow[],
   ): MarketplaceAdminAppDetail => {
-    return this.mapItemDetail(row, versionRows);
+    return {
+      ...this.mapItemDetail(row, versionRows),
+      manifestSchemaVersion: this.readManifestSchemaVersion(row.manifest_schema_version),
+      catalogVisibility: this.readCatalogVisibility(row.catalog_visibility),
+    };
   };
 
   parseManifest = (raw: string, path: string): MarketplaceAppManifest => {
@@ -180,6 +190,12 @@ export class MarketplaceAppRecordMapper {
   readOwnerVisibility = (value: string | null | undefined): MarketplaceAppOwnerVisibility => {
     return value === "hidden" ? "hidden" : "public";
   };
+
+  private readManifestSchemaVersion = (value: number): 1 | 2 => value >= 2 ? 2 : 1;
+
+  private readCatalogVisibility = (
+    value: string | null | undefined,
+  ): "listed" | "unlisted" => value === "unlisted" ? "unlisted" : "listed";
 
   private parseLocalizedMap = (
     raw: string | null,

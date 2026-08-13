@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Context } from "hono";
-import { ApiResponseFactory } from "./response";
+import { ApiResponseFactory } from "./api-response.utils";
 
 describe("ApiResponseFactory.publicOk", () => {
   it("sets public edge cache headers and returns 304 for a matching ETag", async () => {
@@ -17,6 +17,18 @@ describe("ApiResponseFactory.publicOk", () => {
     });
     expect(conditional.status).toBe(304);
     expect(await conditional.text()).toBe("");
+  });
+});
+
+describe("ApiResponseFactory.publicDocument", () => {
+  it("keeps a public protocol document unwrapped while retaining cache semantics", async () => {
+    const factory = new ApiResponseFactory();
+    const document = { name: "nextclaw.personal-organizer" };
+    const response = factory.publicDocument(buildContext(), document);
+
+    expect(await response.json()).toEqual(document);
+    expect(response.headers.get("cache-control")).toContain("stale-while-revalidate=600");
+    expect(response.headers.get("etag")).toMatch(/^W\//);
   });
 });
 

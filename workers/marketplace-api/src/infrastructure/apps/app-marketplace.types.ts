@@ -116,6 +116,8 @@ export type MarketplaceAppPublishInput = {
   files: MarketplaceAppFileInput[];
 };
 
+export type MarketplaceAppCatalogVisibility = "listed" | "unlisted";
+
 export type MarketplaceAppItemSummary = {
   id: string;
   slug: string;
@@ -243,6 +245,8 @@ export type MarketplaceAppItemRow = {
   icon_sha256: string | null;
   cover_sha256: string | null;
   latest_version: string;
+  manifest_schema_version: number;
+  catalog_visibility: string;
   manifest_json: string;
   permissions_json: string;
   published_at: string;
@@ -287,6 +291,8 @@ export type MarketplaceAdminAppCounts = {
 };
 
 export type MarketplaceOwnerAppSummary = MarketplaceAppItemSummary & {
+  manifestSchemaVersion: 1 | 2;
+  catalogVisibility: MarketplaceAppCatalogVisibility;
   publishStatus: MarketplaceAppPublishStatus;
   publishedByType: MarketplaceAppPublishedByType;
   ownerVisibility: MarketplaceAppOwnerVisibility;
@@ -321,6 +327,8 @@ export type MarketplaceOwnerAppListResult = {
 };
 
 export type MarketplaceAdminAppSummary = MarketplaceAppItemSummary & {
+  manifestSchemaVersion: 1 | 2;
+  catalogVisibility: MarketplaceAppCatalogVisibility;
   publishStatus: MarketplaceAppPublishStatus;
   publishedByType: MarketplaceAppPublishedByType;
   reviewNote?: string;

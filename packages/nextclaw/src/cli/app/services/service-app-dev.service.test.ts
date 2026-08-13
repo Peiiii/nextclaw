@@ -8,10 +8,10 @@ import { ServiceAppDevService } from "./service-app-dev.service.js";
 const tempDirs: string[] = [];
 const mcpFixturePath = path.resolve(
   import.meta.dirname,
-  "../../../../../nextclaw-mcp/tests/fixtures/mock-mcp-server.mjs",
+  "../../../../../nextclaw-mcp/tests/fixtures/mock-mcp-server.utils.mjs",
 );
 
-async function createServiceApp(): Promise<string> {
+async function createServiceApp(options: { requiresDataDirectory?: boolean } = {}): Promise<string> {
   const root = path.join(
     tmpdir(),
     `nextclaw-service-app-dev-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -26,7 +26,11 @@ async function createServiceApp(): Promise<string> {
       title: "Notes",
       protocol: "mcp",
       command: process.execPath,
-      args: [mcpFixturePath, "stdio"],
+      args: [
+        mcpFixturePath,
+        "stdio",
+        ...(options.requiresDataDirectory ? ["require-data-dir"] : []),
+      ],
       actions: {
         echo: { risk: "read" },
       },
@@ -87,6 +91,19 @@ describe("ServiceAppDevService", () => {
     expect(report.actionId).toBe("notes.echo");
     expect(report.result).toEqual(expect.objectContaining({
       content: [expect.objectContaining({ text: "echo:ok" })],
+    }));
+  });
+
+  it("provides an isolated temporary data directory to the real MCP runtime", async () => {
+    const appPath = await createServiceApp({ requiresDataDirectory: true });
+
+    const report = await new ServiceAppDevService({
+      getConfig: createConfig,
+    }).call(appPath, "echo", {});
+
+    expect(report.ok).toBe(true);
+    expect(report.result).toEqual(expect.objectContaining({
+      content: [expect.objectContaining({ text: "data-dir:ok" })],
     }));
   });
 });

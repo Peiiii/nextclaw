@@ -29,3 +29,20 @@ test("allows approved hidden governance directories", () => {
 
   assert.deepEqual(violations, []);
 });
+
+test("allows kebab-case Panel App package directories", () => {
+  const violations = collectDirectoryNameViolations([
+    "packages/nextclaw/resources/apps/personal-organizer/panels/personal-organizer-todos.panel/index.html"
+  ]);
+
+  assert.deepEqual(violations, []);
+});
+
+test("still blocks non-kebab Panel App package directories", () => {
+  const violations = collectDirectoryNameViolations([
+    "packages/nextclaw/resources/apps/personal-organizer/panels/PersonalOrganizer.panel/index.html"
+  ]);
+
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /PersonalOrganizer\.panel/);
+});

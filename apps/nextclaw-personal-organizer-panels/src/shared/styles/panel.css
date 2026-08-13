@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+  --canvas: #f7f7f5;
+  --surface: #ffffff;
+  --surface-muted: #f0f0ed;
+  --surface-strong: #e7e7e3;
+  --text: #1f1f1d;
+  --muted: #73736f;
+  --faint: #a1a19b;
+  --line: rgba(31, 31, 29, 0.11);
+  --line-strong: rgba(31, 31, 29, 0.18);
+  --accent: #1f1f1d;
+  --accent-contrast: #ffffff;
+  --danger: #b8473d;
+  --danger-soft: #f8e8e5;
+  --warning: #a96820;
+  --warning-soft: #f7ecdc;
+  --success: #34745e;
+  --success-soft: #e5f1ec;
+  --external: #6f5f9d;
+  --external-soft: #eeeaf7;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 300px; background: var(--canvas); }
+body { margin: 0; min-height: 100vh; background: var(--canvas); color: var(--text); }
+button, input, textarea, select { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+::selection { background: rgba(31, 31, 29, 0.16); }
+
+.panel-shell {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1080px;
+  padding: 28px clamp(16px, 3vw, 36px) 72px;
+}
+
+.panel-surface {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: 0 18px 60px rgba(20, 20, 18, 0.055);
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-muted) 20%, var(--surface-strong) 48%, var(--surface-muted) 76%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+dialog.panel-dialog {
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(760px, calc(100vh - 32px));
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 30px 100px rgba(18, 18, 16, 0.22);
+}
+
+dialog.panel-dialog::backdrop {
+  background: rgba(20, 20, 18, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+.panel-dialog-scroll { max-height: calc(100vh - 32px); overflow-y: auto; }
+
+@media (max-width: 520px) {
+  .panel-shell { padding: 20px 14px 56px; }
+  .panel-surface { border-radius: 16px; }
+  dialog.panel-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    border-radius: 18px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #171716;
+    --surface: #20201f;
+    --surface-muted: #2a2a28;
+    --surface-strong: #343431;
+    --text: #f1f1ee;
+    --muted: #aaa9a3;
+    --faint: #787872;
+    --line: rgba(241, 241, 238, 0.11);
+    --line-strong: rgba(241, 241, 238, 0.2);
+    --accent: #f1f1ee;
+    --accent-contrast: #1f1f1d;
+    --danger: #e58479;
+    --danger-soft: #482b28;
+    --warning: #e0aa67;
+    --warning-soft: #443521;
+    --success: #78b99f;
+    --success-soft: #243b32;
+    --external: #c1b0ee;
+    --external-soft: #393249;
+  }
+}

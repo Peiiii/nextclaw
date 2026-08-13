@@ -15,7 +15,7 @@ export function AppsPage(props: {
   onTagChange: (value: string) => void;
 }) {
   return (
-    <div className="page-stack">
+    <div className="page-stack page-stack--catalog">
       <section className="section-panel">
         <div className="section-heading">
           <div>

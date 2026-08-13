@@ -12,7 +12,7 @@ export function PublisherPage(props: {
   status: "loading" | "ready" | "error";
 }) {
   return (
-    <div className="page-stack">
+    <div className="page-stack page-stack--catalog">
       <section className="section-panel">
         <div className="section-heading">
           <div>
