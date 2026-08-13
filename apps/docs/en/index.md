@@ -26,8 +26,8 @@ Provide an outcome, source material, and a working directory. The agent can use 
 </div>
 
 <figure class="nc-docs-product-shot nc-docs-product-shot--wide">
-  <img src="/product-screenshots/nextclaw-hero-workbench-en.png" alt="A NextClaw session with an interactive piano Panel App open beside it">
-  <figcaption>Conversation, execution, and an interactive result stay in one task.</figcaption>
+  <img src="/product-screenshots/nextclaw-hero-workbench-en.png" alt="A NextClaw task showing a data visualization beside a project document">
+  <figcaption>Conversation, generated results, and project documents stay in one task.</figcaption>
 </figure>
 
 ## Start with one real task

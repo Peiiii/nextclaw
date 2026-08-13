@@ -14,7 +14,7 @@
 
 </div>
 
-[![任务、文件、工具和结果持续连接在一起的个人工作空间](apps/landing/public/nextclaw-hero-atmosphere.webp)](https://nextclaw.io/)
+[![NextClaw 工作台在会话中展示数据可视化并打开项目文档](images/screenshots/nextclaw-hero-workbench-cn.png)](https://nextclaw.io/)
 
 <div align="center">
 
@@ -65,11 +65,11 @@
 
 ## 产品导览
 
-### 任务和结果留在同一个工作台
+### 从原始材料做到可以检查的结果
 
-从一句需求开始，按任务需要调用工具，并把做出来的结果留在会话旁边。下面这个真实任务在对话中制作并运行了电子钢琴，讨论过程和可用结果都没有丢。
+从一组原始材料开始，让 Agent 整理和可视化数据，再在会话旁检查结果。源文件和项目文档仍留在同一个工作区里，后续可以继续修改。
 
-[![NextClaw 会话中运行 Agent 制作的电子钢琴](images/screenshots/nextclaw-hero-workbench-cn.png)](images/screenshots/nextclaw-hero-workbench-cn.png)
+[![NextClaw 会话右侧打开数据分析仪表盘](images/screenshots/nextclaw-workspace-preview-cn.png)](images/screenshots/nextclaw-workspace-preview-cn.png)
 
 ### AI 主动把重要结果送到你面前
 
@@ -79,9 +79,9 @@
 
 ### 每次任务都可以选择 Agent Runtime
 
-Agent 保留自己的身份、主目录、记忆和技能，再由 Native、Codex、Claude Code、OpenCode 或 Hermes 执行当前任务。下面这个真实会话使用 Codex 完善项目架构，右侧同步查看生成的 Markdown 文档。
+Agent 保留自己的身份、主目录、记忆和技能，再由 Native、Codex、Claude Code、OpenCode 或 Hermes 执行当前任务。开始任务时选择 Runtime，其余工作区和任务上下文保持不变。
 
-[![NextClaw 使用 Codex 推进项目并在右侧预览 Markdown 架构文档](images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png)](images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png)
+[![NextClaw Runtime 选择器展示 Native、Claude Code、Codex、Hermes 和 OpenCode](images/screenshots/nextclaw-agent-runtime-picker-cn.png)](images/screenshots/nextclaw-agent-runtime-picker-cn.png)
 
 ### 真实文件可以直接放在会话旁边
 
@@ -93,7 +93,7 @@ Agent 保留自己的身份、主目录、记忆和技能，再由 Native、Code
 
 和 Agent 边聊边做页面，完成后可以直接运行，也可以保存为 Panel App，以后随时打开和继续修改。
 
-[![NextClaw 会话中运行 Agent 制作的电子钢琴](images/screenshots/nextclaw-panel-app-piano-cn.png)](images/screenshots/nextclaw-panel-app-piano-cn.png)
+[![NextClaw 会话右侧运行 Agent 制作的唐诗卡片应用](images/screenshots/nextclaw-panel-app-running-cn.png)](images/screenshots/nextclaw-panel-app-running-cn.png)
 
 ### 工作台里的更多界面
 

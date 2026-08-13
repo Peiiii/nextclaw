@@ -14,7 +14,7 @@ NextClaw 是一个本地优先的 AI Agent 工作台。你给出目标、材料�
 4. **检查交付物**：在会话和右侧工作区查看回复、文件、源码、Markdown、HTML 或 Panel App。
 5. **继续或复用**：要求修改结果，交给专用 Agent，保存成 Skill，或设为定时任务。
 
-![NextClaw 会话与本地应用同时打开](/product-screenshots/nextclaw-hero-workbench-cn.png)
+![NextClaw 在会话中展示数据可视化并打开项目文档](/product-screenshots/nextclaw-hero-workbench-cn.png)
 
 ## 它适合做什么
 

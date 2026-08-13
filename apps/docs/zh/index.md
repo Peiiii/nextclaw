@@ -26,8 +26,8 @@ hero:
 </div>
 
 <figure class="nc-docs-product-shot nc-docs-product-shot--wide">
-  <img src="/product-screenshots/nextclaw-hero-workbench-cn.png" alt="NextClaw 会话与电子钢琴 Panel App 同时打开">
-  <figcaption>对话、执行过程和可交互结果留在同一个任务里。</figcaption>
+  <img src="/product-screenshots/nextclaw-hero-workbench-cn.png" alt="NextClaw 在会话中展示数据可视化并打开项目文档">
+  <figcaption>对话、生成结果和项目文档留在同一个任务里。</figcaption>
 </figure>
 
 ## 从一个真实任务开始
@@ -68,11 +68,11 @@ hero:
 
 ## 用熟悉的 Agent Runtime 继续项目
 
-同一个任务可以选择 Native、Codex、Claude Code、OpenCode 或 Hermes 来执行。会话、项目目录和生成结果仍留在 NextClaw 里。下面这个真实任务使用 Codex 整理项目架构，右侧同步查看 Markdown 文档。
+同一个任务可以选择 Native、Codex、Claude Code、OpenCode 或 Hermes 来执行。会话、项目目录和生成结果仍留在 NextClaw 里，开始任务时可以直接选择需要的 Runtime。
 
 <figure class="nc-docs-product-shot nc-docs-product-shot--wide">
-  <img src="/product-screenshots/nextclaw-codex-runtime-markdown-preview-cn.png" alt="NextClaw 使用 Codex 推进项目并在右侧预览 Markdown 架构文档">
-  <figcaption>使用 Codex 推进项目，生成的文档可以直接在任务旁查看。</figcaption>
+  <img src="/product-screenshots/nextclaw-agent-runtime-picker-cn.png" alt="NextClaw Runtime 选择器展示 Native、Claude Code、Codex、Hermes 和 OpenCode">
+  <figcaption>开始任务时选择 Runtime，其余工作区和任务上下文保持不变。</figcaption>
 </figure>
 
 [查看 Claude Code、Codex 与 Hermes 集成](/zh/guide/tutorials/claude-codex-hermes)

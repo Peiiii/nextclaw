@@ -14,7 +14,7 @@ Tell NextClaw what you want done. It brings the conversation, files, tools, and 
 
 </div>
 
-[![A personal workspace where tasks, files, tools, and results stay connected](apps/landing/public/nextclaw-hero-atmosphere.webp)](https://nextclaw.io/en/)
+[![NextClaw workspace with a data visualization beside a project document](images/screenshots/nextclaw-hero-workbench-en.png)](https://nextclaw.io/en/)
 
 <div align="center">
 
@@ -65,11 +65,11 @@ New installations are ready for the first task without entering an API key. The 
 
 ## Product Tour
 
-### Keep the task and its result in one workspace
+### Turn source material into a result you can inspect
 
-Start with a request, use the tools the task needs, and keep the working result beside the conversation. This real task produced and ran an interactive piano without losing the discussion that shaped it.
+Start with source material, let the Agent organize and visualize it, then inspect the result beside the conversation. Source files and project documents remain available in the same workspace.
 
-[![NextClaw workspace with a conversation and an interactive piano Panel App](images/screenshots/nextclaw-hero-workbench-en.png)](images/screenshots/nextclaw-hero-workbench-en.png)
+[![A data dashboard open beside its NextClaw conversation](images/screenshots/nextclaw-workspace-preview-en.png)](images/screenshots/nextclaw-workspace-preview-en.png)
 
 ### Let AI deliver important results to you
 
@@ -79,9 +79,9 @@ When scheduled work, a background Agent, or a long-running monitor finishes, Nex
 
 ### Choose the Agent Runtime for each task
 
-Keep an Agent's identity, workspace, memory, and skills, then run the task with Native, Codex, Claude Code, OpenCode, or Hermes. The real task below uses Codex to refine a project architecture while the generated Markdown stays open beside the conversation.
+Keep an Agent's identity, workspace, memory, and skills, then run the task with Native, Codex, Claude Code, OpenCode, or Hermes. Choose the runtime when starting a task and keep the rest of the workspace unchanged.
 
-[![NextClaw uses Codex to work on a project with its Markdown architecture document open beside the conversation](images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png)](images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png)
+[![NextClaw runtime picker with Native, Claude Code, Codex, Hermes, and OpenCode](images/screenshots/nextclaw-agent-runtime-picker-en.png)](images/screenshots/nextclaw-agent-runtime-picker-en.png)
 
 ### Inspect real files beside the conversation
 

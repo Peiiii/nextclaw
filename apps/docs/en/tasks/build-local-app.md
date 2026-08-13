@@ -25,7 +25,7 @@ Ask NextClaw to restate the input, core action, output, and features that will n
 
 Keep the code in its own directory and document how to start it. Preview the page beside the conversation and switch to the source files when needed.
 
-![An interactive piano Panel App running inside a NextClaw conversation](/product-screenshots/nextclaw-panel-app-running-en.png)
+![A local card app running beside a NextClaw conversation](/product-screenshots/nextclaw-panel-app-running-en.png)
 
 ### 3. Test with realistic samples
 

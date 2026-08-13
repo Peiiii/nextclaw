@@ -14,7 +14,7 @@ A chat assistant usually stops at telling you what to do. NextClaw is designed f
 4. **Inspect the deliverables.** Open replies, files, source, Markdown, HTML, or a Panel App beside the conversation.
 5. **Continue or reuse the work.** Refine it, hand it to a dedicated agent, package it as a skill, or schedule it.
 
-![NextClaw running a local app beside a real session](/product-screenshots/nextclaw-hero-workbench-en.png)
+![A NextClaw task showing a data visualization beside a project document](/product-screenshots/nextclaw-hero-workbench-en.png)
 
 ## What you can do
 

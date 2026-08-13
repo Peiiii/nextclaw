@@ -190,7 +190,7 @@ const COPY: Record<Locale, LandingCopy> = {
       {
         eyebrow: 'Panel App',
         title: 'Run a small app while the chat stays open',
-        description: 'Use a piano, market board, Markdown editor, or generated page directly on the side.',
+        description: 'Use a reading card, market board, Markdown editor, or generated page directly on the side.',
         imageSrc: '/nextclaw-panel-app-running-en.png', imageAlt: 'A running NextClaw Panel App'
       },
       {
@@ -537,7 +537,7 @@ const COPY: Record<Locale, LandingCopy> = {
       {
         eyebrow: '面板应用',
         title: '小工具可以边聊边用',
-        description: '电子钢琴、行情看板、Markdown 编辑器或临时做出来的页面，可以直接放在右侧运行。',
+        description: '阅读卡片、行情看板、Markdown 编辑器或临时做出来的页面，可以直接放在右侧运行。',
         imageSrc: '/nextclaw-panel-app-running-cn.png', imageAlt: '正在运行的 NextClaw 面板应用'
       },
       {

@@ -13,10 +13,10 @@ const sideDockStateKey = 'nextclaw.side-dock.state';
 const viewportLayoutStateKey = 'nextclaw.app.viewport-layout';
 
 const preferredPanelOrder = [
-  'piano',
+  'novel-reader',
   'music-player',
   'translator',
-  'novel-reader',
+  'piano',
   'box-breathing',
   'solar-system',
   'agent-ecosystem-dashboard',
