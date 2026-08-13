@@ -1,5 +1,18 @@
 # @nextclaw/kernel
 
+## 0.6.28
+
+### Patch Changes
+
+- 4be6947: 加快长会话的打开和历史加载：默认每页读取 40 条消息，空闲会话不再为首屏分页扫描完整消息索引，向上加载旧消息时也不再重复计算整段会话的上下文窗口。
+- Updated dependencies [237a931]
+  - @nextclaw/core@0.16.0
+  - @nextclaw/app-runtime@0.10.0
+  - @nextclaw/mcp@0.3.26
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.26
+  - @nextclaw/runtime@0.4.25
+  - @nextclaw/ncp-mcp@0.2.26
+
 ## 0.6.27
 
 ### Patch Changes

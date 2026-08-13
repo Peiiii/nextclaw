@@ -1,5 +1,26 @@
 # nextclaw
 
+## 0.34.0
+
+### Minor Changes
+
+- 237a931: 新增 NextClaw 原生 Mini App 发布链路：AI 和用户可以用 `nextclaw app validate-publish / publish` 校验并提交 Panel App、Service App 或组合应用；个人应用进入审核队列后再公开。Marketplace 会在写入前校验完整制品，并保护已经发布的个人版本不被待审核更新覆盖。
+
+### Patch Changes
+
+- Updated dependencies [4be6947]
+- Updated dependencies [237a931]
+  - @nextclaw/kernel@0.6.28
+  - @nextclaw/server@0.15.28
+  - @nextclaw/core@0.16.0
+  - @nextclaw/app-runtime@0.10.0
+  - @nextclaw/remote@0.3.28
+  - @nextclaw/service@0.3.30
+  - @nextclaw/mcp@0.3.26
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.26
+  - @nextclaw/runtime@0.4.25
+  - @nextclaw/ncp-mcp@0.2.26
+
 ## 0.33.2
 
 ### Patch Changes
