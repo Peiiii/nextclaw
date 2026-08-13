@@ -1,0 +1,4 @@
+interface:
+  display_name: "Development Review"
+  short_description: "用 findings-first 和自动维护性检查判断改动是否可接受"
+  default_prompt: "使用 $development-review 评审给定代码或 diff：先运行适用的维护性自动检查，再以 findings-first 方式检查正确性、回归风险、契约、测试缺口和隐藏复杂度。"

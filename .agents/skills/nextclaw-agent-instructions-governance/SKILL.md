@@ -21,8 +21,8 @@ description: 当确定要修改 AGENTS.md、commands、项目 AI 规则、skill/
 
 ## 入口分类
 
-- **标准流程 owner**：普通开发只能有一个，当前是 `nextclaw-delivery-workflow`。
-- **复杂阶段 owner**：调查、设计、验证、guard 等阶段足够复杂时各有一个 owner，只在进入该阶段后加载。
+- **标准流程 owner**：普通开发只能有一个；具体入口由当前 `AGENTS.md` 的默认开发路由声明，本 skill 不重复写死名称。
+- **阶段 owner**：Discovery、Design、Implementation、Validation、Review、Delivery、Retrospective 各有一个 `development-*` owner，只在进入该阶段后加载。
 - **完整场景 owner**：发布、长期治理、外部系统交付等能独立回答“用户要完成什么任务”的闭环才保留入口。
 - **工艺与场景规范**：只回答“当前阶段怎样判断/实现/验证”的通用原则或项目细节进入所属 owner 的条件 reference，不占平行入口。
 
@@ -31,11 +31,12 @@ reference 也要区分通用工艺与项目场景，文件名和加载条件应�
 ## 修改顺序
 
 1. 找当前 owner 和相邻规则，先判断删除、合并、收窄、移动，再考虑新增。
-2. 普通开发只能有一个默认 workflow owner；专项 skill 不回链上游。
+2. 普通开发只能有一个 lifecycle owner；阶段不直接调用其它阶段或回链 lifecycle，专项 skill 不回链上游。
 3. description 只描述一个稳定意图，不堆“实现/方案/深入/最佳实践”等泛词抢占触发。
 4. 一个判断分支最多要求一个直接下游；不同阶段的 skill 到阶段再加载。
 5. 规则影响脚本或命令时同步更新；脚本变化也同步 owning 文本。
-6. 大型重构写设计并在同批迭代记录中留痕，小措辞不建日志。
+6. 核心阶段使用统一的 `development-<stage>` 命名；只有深度依赖 NextClaw 产品、NCP、Kernel、仓库命令或发布合同的 skill 使用 `nextclaw-` 前缀。
+7. 大型重构写设计并在同批迭代记录中留痕，小措辞不建日志。
 
 ## 创建 Skill 门槛
 
@@ -51,6 +52,6 @@ reference 也要区分通用工艺与项目场景，文件名和加载条件应�
 
 ## 检查
 
-完成前运行 `pnpm check:skill-progressive-loading`，确认 frontmatter、名称、链接、依赖循环、已删除引用和体积预算；再按改动风险运行治理 ratchet。纯指令 Markdown 不运行 build/tsc/产品冒烟。
+完成前运行 `pnpm check:skill-progressive-loading`，确认 frontmatter、名称、链接、生命周期拓扑、依赖循环、已删除引用和体积预算；再按改动风险运行治理 ratchet。纯指令 Markdown 不运行 build/tsc/产品冒烟。
 
 最终报告 AGENTS、skill 数、description 和入口体积变化，说明 command/script/baseline 是否适用，以及设计/迭代落点。

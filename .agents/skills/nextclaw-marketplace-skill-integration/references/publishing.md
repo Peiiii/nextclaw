@@ -143,7 +143,7 @@ rm -rf "$smoke_dir"
 - 若当前环境没有 `NEXTCLAW_MARKETPLACE_ADMIN_TOKEN`，也要先尝试发布；只有远端明确拒绝时再报告鉴权阻塞。
 - 不要在仓库目录内做安装冒烟。
 - 不要把 `--api-base https://marketplace-api.nextclaw.io` 用在最终用户路径冒烟；它只能用于 canonical 诊断。
-- 如果这次任务触达项目代码、脚本、测试或运行链路配置，收尾前记得执行 `post-edit-maintainability-guard`。
+- 如果这次任务触达项目代码、脚本、测试或运行链路配置，完成当前发布 slice 后返回生命周期，由独立 Review 阶段执行 maintainability 自动检查和 findings 关闭。
 
 ## 资源
 

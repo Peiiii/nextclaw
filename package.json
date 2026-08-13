@@ -53,7 +53,7 @@
     "lint:new-code:stateful-orchestrators": "node scripts/governance/checks/owners/lint-new-code-stateful-orchestrators.mjs",
     "lint:new-code:governance": "node scripts/governance/checks/lint-new-code-governance.mjs",
     "lint:maintainability": "pnpm lint:maintainability:guard && pnpm lint:maintainability:report && pnpm lint:maintainability:hotspots",
-    "lint:maintainability:guard": "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs && pnpm lint:new-code:governance && pnpm check:governance-backlog-ratchet",
+    "lint:maintainability:guard": "node .agents/skills/development-review/scripts/check-maintainability.mjs && pnpm lint:new-code:governance && pnpm check:governance-backlog-ratchet",
     "lint:maintainability:hotspots": "node scripts/governance/maintainability/maintainability-hotspots.mjs",
     "lint:maintainability:report": "node scripts/governance/maintainability/eslint-maintainability-report.mjs --fail-on-coverage-gaps",
     "lint:ui": "pnpm -C packages/nextclaw-ui lint",

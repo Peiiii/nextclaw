@@ -44,66 +44,66 @@
 
 - 用途：提交当前变更。
 - 输入格式：`/commit`，可附提交范围或说明。
-- 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；提交信息必须使用英文。提交前必须先使用 `nextclaw-release-notes-automation` 判断是否需要 `.changeset`，使用 `nextclaw-iteration-log-governance` 判断是否需要更新 `docs/logs` 与 NPM 发布记录；必要更新完成后再确认暂存范围，不纳入无关用户改动。
+- 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；由 `development-delivery` 编排，提交信息必须使用英文。提交前使用 `nextclaw-release-notes` 判断是否需要 `.changeset`，使用 `nextclaw-iteration-log-governance` 判断是否需要更新 `docs/logs` 与 NPM 发布记录；必要更新完成后再确认暂存范围，不纳入无关用户改动。
 
 ## `/close-task`
 
 - 用途：对当前任务执行标准交付收尾流程。
 - 输入格式：`/close-task`，可附聚焦范围或说明。
-- 输出/期望行为：使用 `nextclaw-delivery-workflow` 作为唯一流程 owner，按任务风险检查当前实现、主要验证、guard、changeset/迭代适用性和未完成边界；不预读或罗列未触发的专项步骤。
+- 输出/期望行为：使用 `development-lifecycle` 作为唯一流程 owner，确认当前适用阶段、有效验证、Review findings、Delivery、Retrospective 和未完成边界；只加载当前阶段，不预读或罗列未触发的专项步骤。
 
 ## `/maintainability-review`
 
 - 用途：对本次代码相关改动执行独立于实现阶段的可维护性复核。
 - 输入格式：`/maintainability-review`，可附 `<paths...>` 聚焦范围。
-- 输出/期望行为：使用 `post-edit-maintainability-guard`；先运行自动检查，再按其 `references/subjective-review.md` 做用户明确要求的主观复核，只报告真实 findings、结论和最小修正方向。
+- 输出/期望行为：使用 `development-review`；先运行其 diff-only maintainability 自动检查，再按 `references/subjective-review.md` 做用户明确要求的主观复核，只报告真实 findings、结论和最小修正方向。
 
 ## `/validate`
 
 - 用途：按改动影响范围执行最小充分验证。
 - 输入格式：`/validate`，可附验证范围。
-- 输出/期望行为：使用 `nextclaw-validation-workflow` 按 L0-L4 风险分级选择最小充分验证；TypeScript/运行链路触达时执行匹配范围的 `tsc`，源码类改动运行一次 maintainability guard。governance ratchet、主观可维护性复核和真实冒烟仅在对应风险触发时追加，不组成默认全家桶。
+- 输出/期望行为：使用 `development-validation` 按 L0-L4 风险分级选择最小充分验证；TypeScript/运行链路触达时执行匹配范围的 `tsc`。Review、maintainability guard、governance ratchet 和真实冒烟分别由对应阶段或风险触发，不组成 `/validate` 的默认全家桶。
 
 ## `/release-frontend`
 
 - 用途：前端一键发布，仅 UI 变更场景。
 - 输入格式：`/release-frontend`
-- 输出/期望行为：生成 UI changeset，并执行既有前端发布流程；最终说明发布包、版本、验证和不适用项。
+- 输出/期望行为：由 `development-delivery` 编排，使用 `nextclaw-release-notes` 生成 UI changeset，并执行既有前端发布流程；最终说明发布包、版本、验证和不适用项。
 
 ## `/release-beta`
 
 - 用途：执行 NextClaw NPM beta 一键发布闭环。
 - 输入格式：`/release-beta`，可附 `--skip-runtime-channel`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-release-notes-automation` 与 `npm-release-contract-guard`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
+- 输出/期望行为：使用 `nextclaw-release-notes` 与 `nextclaw-npm-release`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
 
 ## `/release-beta-npm`
 
 - 用途：只发布 NextClaw NPM beta 包，不触发 runtime update channel。
 - 输入格式：`/release-beta-npm`，可附 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-release-notes-automation` 与 `npm-release-contract-guard`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再执行 `pnpm release:beta:npm`。适用于“先把 npm beta 包发出去，但暂时不开放自动更新通道”的场景。
+- 输出/期望行为：使用 `nextclaw-release-notes` 与 `nextclaw-npm-release`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再执行 `pnpm release:beta:npm`。适用于“先把 npm beta 包发出去，但暂时不开放自动更新通道”的场景。
 
 ## `/release-beta-runtime`
 
 - 用途：只发布 NextClaw beta runtime update channel，不重复发 npm 包。
 - 输入格式：`/release-beta-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `npm-release-contract-guard` 并读取 Beta 发布 reference；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
+- 输出/期望行为：使用 `nextclaw-npm-release` 并读取 Beta 发布 reference；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
 
 ## `/release-stable-runtime`
 
 - 用途：只发布 NextClaw stable runtime update channel，不重复发 npm 包。
 - 输入格式：`/release-stable-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `npm-release-contract-guard`；执行 `pnpm release:stable:runtime`。默认读取已发布的 `nextclaw@latest` 版本，并闭合 workflow / release assets / `gh-pages` manifest / 公网 manifest / 旧 NPM 安装态检查更新验收。
+- 输出/期望行为：使用 `nextclaw-npm-release`；执行 `pnpm release:stable:runtime`。默认读取已发布的 `nextclaw@latest` 版本，并闭合 workflow / release assets / `gh-pages` manifest / 公网 manifest / 旧 NPM 安装态检查更新验收。
 
 ## `/release-desktop-beta`
 
 - 用途：发布桌面端 beta preview，包括 installer / portable / update bundle / update manifest 的完整闭环。
 - 输入格式：`/release-desktop-beta`，可附目标版本、tag 或 dry-run 说明。
-- 输出/期望行为：使用 `desktop-release-contract-guard`；默认执行 `pnpm release:desktop:beta`，先确认发布身份和桌面验证门禁，再创建 GitHub prerelease/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` beta manifest 与公网 beta manifest 全部闭合。不能把 `gh release create`、空 assets 页面或只完成部分平台 workflow 当成发布完成。
+- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:beta`，先确认发布身份和桌面验证门禁，再创建 GitHub prerelease/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` beta manifest 与公网 beta manifest 全部闭合。不能把 `gh release create`、空 assets 页面或只完成部分平台 workflow 当成发布完成。
 
 ## `/release-desktop-stable`
 
 - 用途：发布桌面端正式版，包括 installer / portable / update bundle / update manifest / stable APT repo 的完整闭环。
 - 输入格式：`/release-desktop-stable`，可附目标版本、tag、release notes 文件或 dry-run 说明。
-- 输出/期望行为：使用 `desktop-release-contract-guard`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和桌面验证门禁，再创建 GitHub release/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
+- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和桌面验证门禁，再创建 GitHub release/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
 
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。

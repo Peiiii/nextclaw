@@ -13,7 +13,7 @@ description: 当用户要求扫描、识别、清理、常态化治理 NextClaw 
 
 ## 使用前提
 
-本 skill 命中后拥有本次死代码扫描、删除和收尾闭环；进入验证时再加载 validation，最终运行 guard。长期自治战役、迭代留痕或规则修改只有条件实际成立时才加载对应 owner，不重新加载上游 workflow。
+本 skill 命中后拥有本次死代码扫描、删除与实现结果，不拥有阶段切换；完成当前 slice 后返回生命周期，由 Validation、Review、Delivery 和 Retrospective 各自处理后续合同。长期自治战役、迭代留痕或规则修改只有条件实际成立时才加载对应 owner，不重新加载上游 lifecycle。
 
 ## 核心判断
 
@@ -146,7 +146,7 @@ pnpm -C <package> exec vitest run <relevant-tests...>
 收尾必须跑：
 
 ```bash
-node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <touched-files...>
+node .agents/skills/development-review/scripts/check-maintainability.mjs --non-feature --paths <touched-files...>
 pnpm check:governance-backlog-ratchet
 ```
 

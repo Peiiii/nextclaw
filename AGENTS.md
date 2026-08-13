@@ -30,23 +30,23 @@
 - 未经用户明确要求，不得 commit、push、建 PR、发布、部署或执行破坏性 Git 操作。
 - 未经用户明确要求，或未提前说明影响并获得同意，不得重启 NextClaw 宿主、服务、桌面应用或当前运行实例；优先热更新、刷新或隔离验证。
 - 工作区可能有用户或其它任务的改动；不得覆盖、revert、格式化或混入无关改动。触达已修改文件前先读懂现状并做双向范围审计。
-- 用户要求提交时，先使用 `nextclaw-release-notes-automation` 和 `nextclaw-iteration-log-governance` 判断 changeset、迭代记录和 NPM 记录，再精确 stage/commit。
+- 用户要求提交时，由 `development-delivery` 编排，先使用 `nextclaw-release-notes` 和 `nextclaw-iteration-log-governance` 判断 changeset、迭代记录和 NPM 记录，再精确 stage/commit。
 - 面向 `master` 的交付默认先进入本地 `master`，再由本地 `master` 推送 `origin/master`；例外必须说明回流方案。
 - 成功执行提交、推送、建分支或 PR 后，最终回复输出 Codex app 对应 directive。
 - 搜索优先 `rg` / `rg --files`；手工编辑默认使用 `apply_patch`。
 
 ## Skill 渐进式加载
 
-- Skill 的目标是渐进加载，不是组成默认全家桶。普通源码、脚本、测试或运行链路任务开始时只加载 `nextclaw-delivery-workflow`；它在进入设计、验证、发布或专项风险阶段时再路由一个当前需要的下游。
-- 用户明确要求方案/功能设计/设计文档，或普通用户可见功能存在真实的信息架构或工作流设计空间时加载 `nextclaw-solution-design`；明确要求调查代码时加载 `code-investigation-workflow`；修改规则系统时加载 `nextclaw-agent-instructions-governance`。
+- Skill 的目标是渐进加载，不是组成默认全家桶。普通源码、脚本、测试或运行链路任务开始时只加载 `development-lifecycle`；它按 Discovery、Design、Implementation、Validation、Review、Delivery、Retrospective 顺序只路由当前阶段 owner，不预读未来阶段。
+- 用户明确只要求需求/代码调查、方案设计、验证、code review、交付发布或复盘时，可直接加载对应的 `development-discovery`、`development-design`、`development-validation`、`development-review`、`development-delivery`、`development-retrospective`；修改规则系统时加载 `nextclaw-agent-instructions-governance`。
 - 其它专项 skill 只按明确意图或真实触达面加载。不要因为未来阶段“可能会用”而预读，也不要因一个任务同时符合多个泛词就加载多个相邻原则 skill。
 - 同一逻辑任务内已经完整读取且未变化的 skill 不重复读取；skill 的 references 只在入口写明的条件成立时读取，禁止批量读取整个 references 目录。
-- Workflow 只能向下路由，专项 skill 不得回链上游 workflow。一个判断分支最多要求一个直接下游；若多个 skill 看似同时适用，优先选择拥有当前决策的单一 owner。
+- Lifecycle 只向当前阶段路由；阶段 owner 不得直接调用其它阶段或回链 lifecycle，专项 skill 不得回链上游。一个判断分支最多要求一个直接下游；多个 skill 看似同时适用时，选择拥有当前决策的单一 owner。
 - 新增或重写 skill 时，先查职责重叠；能删除、合并或改为 reference 时不新增独立入口。项目内 skill 和设计文档默认使用中文。
 
 ## 开发与实现边界
 
-- 默认开发流程由 `nextclaw-delivery-workflow` 单独编排：目标与风险、调查/设计、实现、验证、收尾和流程反思。不要在本文件复制阶段清单。
+- 默认开发流程由 `development-lifecycle` 单独编排；七个 `development-*` 阶段 owner 分别拥有本阶段的进入、决策、产物、证据和退出合同。不要在本文件复制阶段清单。
 - 实现优先单一路径、清晰 owner、删除或复用旧实现；必要且清晰的最小增长允许存在，禁止为抵消行数扩大无关范围或损害可读性、类型和协议安全。
 - 同一事实、事件、状态变化或传输语义只保留一个 owner 和一条标准主链路；新增 wrapper、adapter、factory、service、manager 前必须证明它减少真实复杂度或隔离真实变化点。
 - NextClaw 产品语义默认归 kernel owner；service 只承载宿主、进程、升级、远程访问、CLI/daemon 外壳和环境适配，触达产品语义时调用 kernel。
@@ -59,10 +59,10 @@
 
 ## 验证硬边界
 
-- 验证由 `nextclaw-validation-workflow` 在验证阶段按风险选择；迭代中用最快定向证据，稳定后统一收尾，同一风险不堆重复测试、冒烟和截图。
+- 验证由 `development-validation` 按风险选择；迭代中用最快定向证据，稳定后统一收尾，同一风险不堆重复测试、冒烟和截图。
 - 触达 TypeScript、类型声明、导入导出或运行链路时必须运行匹配范围的 `tsc`；测试和 lint 不能替代。
 - 修复异常必须先定义可观察判定条件，再优先沿真实复现或最近链路复验。纯视觉审美由 AI 证明正常渲染，用户确认偏好；交互、状态、数据、协议和持久化正确性由 AI 验证。
-- 源码类改动收尾运行 targeted lint 和一次 `post-edit-maintainability-guard`；完整 package lint、治理 ratchet、主观复核、真实冒烟和发布验证只在风险触发时追加。
+- 源码类改动完成验证后进入 `development-review`：先运行一次 diff-only maintainability 自动检查，再按 findings、结构风险或用户要求决定主观复核；完整 package lint、治理 ratchet、真实冒烟和发布验证只在风险触发时追加。
 - 对用户说“验证通过”只覆盖实际证明的范围；未验证功能和需要用户主观确认的部分必须披露。
 
 ## 知识、留痕与发布

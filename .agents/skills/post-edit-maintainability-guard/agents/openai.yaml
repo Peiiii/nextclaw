@@ -1,7 +1,0 @@
-interface:
-  display_name: "改后可维护性守卫"
-  short_description: "代码改完后检查文件膨胀与超长风险。"
-  default_prompt: "使用 $post-edit-maintainability-guard 在本仓库代码改动后做一次可维护性自检。"
-
-policy:
-  allow_implicit_invocation: true

@@ -16,24 +16,50 @@ export const defaultSkillBudgets = Object.freeze({
   skillTotalBytes: 160_000
 });
 
+export const developmentLifecycleSkillName = "development-lifecycle";
+
+export const developmentStageSkillNames = Object.freeze([
+  "development-discovery",
+  "development-design",
+  "development-implementation",
+  "development-validation",
+  "development-review",
+  "development-delivery",
+  "development-retrospective"
+]);
+
 export const retiredSkillNames = Object.freeze([
   "collapsible-feature-root-architecture",
+  "code-investigation-workflow",
+  "code-review",
   "contract-driven-delivery-campaign",
+  "desktop-release-contract-guard",
   "directory-structure-governance-overview",
   "file-naming-convention",
   "goal-progress-anchor",
+  "integrating-http-agent-runtime",
+  "integrating-narp-stdio-runtime",
   "isolated-npm-release-worktree",
   "kernel-branch-owner-architecture",
   "layered-root-cause-analysis",
+  "learning-from-failures",
   "local-source-runtime-validation",
   "long-chain-debugging",
   "marketplace-skill-publisher",
   "nextclaw-clean-implementation",
+  "nextclaw-delivery-workflow",
+  "nextclaw-release-notes-automation",
+  "nextclaw-solution-design",
+  "nextclaw-validation-workflow",
   "node-pnpm-locator",
   "npm-beta-release",
+  "npm-release-contract-guard",
+  "post-edit-maintainability-guard",
   "post-edit-maintainability-review",
   "proactive-work-continuation",
+  "product-blog-storytelling",
   "project-os",
+  "refresh-product-visual-assets",
   "role-first-file-organization",
   "smoke-testing-ncp-chat",
   "testing-local-extension-development-source",
@@ -41,6 +67,11 @@ export const retiredSkillNames = Object.freeze([
   "writing-beautiful-code",
   "unsigned-desktop-release-playbook"
 ]);
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const containsSkillName = (text, skillName) =>
+  new RegExp(`(^|[^a-z0-9-])${escapeRegExp(skillName)}(?=$|[^a-z0-9-])`).test(text);
 
 const walkFiles = (directoryPath, predicate) => {
   if (!fs.existsSync(directoryPath)) {
@@ -150,9 +181,10 @@ const findCycles = (edges) => {
   return cycles;
 };
 
-const collectSkillEntries = ({ budgets, repoRoot, skillsRoot, violations }) => {
+const collectSkillEntries = ({ budgets, repoRoot, skillsRoot }) => {
   const skillPaths = walkFiles(skillsRoot, (filePath) => path.basename(filePath) === "SKILL.md");
   const skillEntries = [];
+  const violations = [];
 
   for (const skillPath of skillPaths) {
     const text = fs.readFileSync(skillPath, "utf8");
@@ -171,6 +203,10 @@ const collectSkillEntries = ({ budgets, repoRoot, skillsRoot, violations }) => {
     if (!description) {
       violations.push(`${file}: missing frontmatter description`);
     }
+    const directoryName = path.basename(path.dirname(skillPath));
+    if (name && directoryName !== name) {
+      violations.push(`${file}: frontmatter name ${name} must match skill directory ${directoryName}`);
+    }
 
     const bytes = Buffer.byteLength(text);
     if (bytes > budgets.skillBytes) {
@@ -186,11 +222,12 @@ const collectSkillEntries = ({ budgets, repoRoot, skillsRoot, violations }) => {
       skillEntries.push({ bytes, description: description ?? "", file, name, path: skillPath, text });
     }
   }
-  return skillEntries;
+  return { skillEntries, violations };
 };
 
-const indexSkillEntries = (skillEntries, violations) => {
+const indexSkillEntries = (skillEntries) => {
   const entriesByName = new Map();
+  const violations = [];
   for (const entry of skillEntries) {
     const existing = entriesByName.get(entry.name);
     if (existing) {
@@ -199,12 +236,13 @@ const indexSkillEntries = (skillEntries, violations) => {
       entriesByName.set(entry.name, entry);
     }
   }
-  return entriesByName;
+  return { entriesByName, violations };
 };
 
-const validateActiveMarkdown = ({ repoRoot, retiredNames, skillsRoot, violations }) => {
+const validateActiveMarkdown = ({ repoRoot, retiredNames, skillsRoot }) => {
   const agentsPath = path.join(repoRoot, "AGENTS.md");
   const commandsPath = path.join(repoRoot, "commands/commands.md");
+  const violations = [];
   const skillMarkdownPaths = walkFiles(skillsRoot, (filePath) => filePath.endsWith(".md"));
   const activeMarkdownPaths = [agentsPath, commandsPath, ...skillMarkdownPaths].filter((filePath) =>
     fs.existsSync(filePath)
@@ -225,12 +263,12 @@ const validateActiveMarkdown = ({ repoRoot, retiredNames, skillsRoot, violations
     }
 
     for (const retiredName of retiredNames) {
-      if (text.includes(retiredName)) {
+      if (containsSkillName(text, retiredName)) {
         violations.push(`${file}: references retired skill ${retiredName}`);
       }
     }
   }
-  return agentsPath;
+  return { agentsPath, violations };
 };
 
 const createDependencyEdges = (skillEntries, entriesByName) => {
@@ -238,7 +276,7 @@ const createDependencyEdges = (skillEntries, entriesByName) => {
   for (const entry of skillEntries) {
     const dependencies = new Set();
     for (const candidateName of entriesByName.keys()) {
-      if (candidateName !== entry.name && entry.text.includes(candidateName)) {
+      if (candidateName !== entry.name && containsSkillName(entry.text, candidateName)) {
         dependencies.add(candidateName);
       }
     }
@@ -247,10 +285,36 @@ const createDependencyEdges = (skillEntries, entriesByName) => {
   return edges;
 };
 
-const validateDependencyCycles = (edges, violations) => {
-  for (const cycle of findCycles(edges)) {
-    violations.push(`skill dependency cycle: ${cycle.join(" -> ")}`);
+const validateDependencyCycles = (edges) =>
+  findCycles(edges).map((cycle) => `skill dependency cycle: ${cycle.join(" -> ")}`);
+
+const validateDevelopmentLifecycle = ({ edges, entriesByName }) => {
+  const requiredNames = [developmentLifecycleSkillName, ...developmentStageSkillNames];
+  const violations = [];
+  for (const requiredName of requiredNames) {
+    if (!entriesByName.has(requiredName)) {
+      violations.push(`development lifecycle: missing required owner ${requiredName}`);
+    }
   }
+
+  const lifecycleDependencies = edges.get(developmentLifecycleSkillName);
+  if (lifecycleDependencies) {
+    for (const stageName of developmentStageSkillNames) {
+      if (!lifecycleDependencies.has(stageName)) {
+        violations.push(`development lifecycle: ${developmentLifecycleSkillName} does not route ${stageName}`);
+      }
+    }
+  }
+
+  const coreNames = new Set(requiredNames);
+  for (const stageName of developmentStageSkillNames) {
+    for (const dependency of edges.get(stageName) ?? []) {
+      if (coreNames.has(dependency)) {
+        violations.push(`development lifecycle: stage ${stageName} must not route core owner ${dependency}`);
+      }
+    }
+  }
+  return violations;
 };
 
 const collectMetrics = ({ agentsPath, edges, skillEntries }) => {
@@ -270,7 +334,8 @@ const collectMetrics = ({ agentsPath, edges, skillEntries }) => {
   };
 };
 
-const validateAggregateBudgets = (metrics, budgets, violations) => {
+const validateAggregateBudgets = (metrics, budgets) => {
+  const violations = [];
   if (metrics.agentsBytes > budgets.agentsBytes) {
     violations.push(`AGENTS.md: ${metrics.agentsBytes} bytes exceeds budget ${budgets.agentsBytes}`);
   }
@@ -287,22 +352,36 @@ const validateAggregateBudgets = (metrics, budgets, violations) => {
       `description total: ${metrics.descriptionTotalChars} chars exceeds budget ${budgets.descriptionTotalChars}`
     );
   }
+  return violations;
 };
 
 export const auditSkillProgressiveLoading = ({
   repoRoot = defaultRepoRoot,
   budgets = defaultSkillBudgets,
-  retiredNames = retiredSkillNames
+  retiredNames = retiredSkillNames,
+  enforceDevelopmentLifecycle = true
 } = {}) => {
   const skillsRoot = path.join(repoRoot, ".agents/skills");
-  const violations = [];
-  const skillEntries = collectSkillEntries({ budgets, repoRoot, skillsRoot, violations });
-  const entriesByName = indexSkillEntries(skillEntries, violations);
-  const agentsPath = validateActiveMarkdown({ repoRoot, retiredNames, skillsRoot, violations });
+  const collectedSkills = collectSkillEntries({ budgets, repoRoot, skillsRoot });
+  const { skillEntries } = collectedSkills;
+  const indexedSkills = indexSkillEntries(skillEntries);
+  const { entriesByName } = indexedSkills;
+  const activeMarkdown = validateActiveMarkdown({ repoRoot, retiredNames, skillsRoot });
   const edges = createDependencyEdges(skillEntries, entriesByName);
-  validateDependencyCycles(edges, violations);
-  const metrics = collectMetrics({ agentsPath, edges, skillEntries });
-  validateAggregateBudgets(metrics, budgets, violations);
+  const lifecycleViolations = enforceDevelopmentLifecycle
+    ? validateDevelopmentLifecycle({ edges, entriesByName })
+    : [];
+  const dependencyViolations = validateDependencyCycles(edges);
+  const metrics = collectMetrics({ agentsPath: activeMarkdown.agentsPath, edges, skillEntries });
+  const budgetViolations = validateAggregateBudgets(metrics, budgets);
+  const violations = [
+    ...collectedSkills.violations,
+    ...indexedSkills.violations,
+    ...activeMarkdown.violations,
+    ...lifecycleViolations,
+    ...dependencyViolations,
+    ...budgetViolations
+  ];
 
   return {
     metrics,

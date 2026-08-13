@@ -24,7 +24,7 @@ test("allows versioned and dated docs directories", () => {
 
 test("allows approved hidden governance directories", () => {
   const violations = collectDirectoryNameViolations([
-    ".agents/skills/post-edit-maintainability-guard/SKILL.md"
+    ".agents/skills/development-review/SKILL.md"
   ]);
 
   assert.deepEqual(violations, []);

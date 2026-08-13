@@ -82,7 +82,7 @@ React 数据更新不应自动等价为结构重建。除非产品明确要求�
 - 状态、query/store、streaming flow owner：联动 `mvp-view-logic-decoupling`。
 - Popover、焦点、键盘和交互反馈：联动 `frontend-interaction-quality`。
 - 组件拆分与抽象必要性：由标准开发流程按需读取实现工艺 reference。
-- bugfix 验证与浏览器验收：联动 `nextclaw-validation-workflow`。
+- bugfix 验证与浏览器验收：返回当前生命周期，由 Validation 阶段负责。
 
 ## 输出要求
 

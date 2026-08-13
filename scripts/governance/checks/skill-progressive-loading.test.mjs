@@ -4,7 +4,12 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { auditSkillProgressiveLoading } from "./skill-progressive-loading.mjs";
+import {
+  auditSkillProgressiveLoading,
+  containsSkillName,
+  developmentLifecycleSkillName,
+  developmentStageSkillNames
+} from "./skill-progressive-loading.mjs";
 
 const generousBudgets = {
   agentsBytes: 10_000,
@@ -39,6 +44,7 @@ test("accepts a minimal acyclic skill catalog", (t) => {
 
   const result = auditSkillProgressiveLoading({
     budgets: generousBudgets,
+    enforceDevelopmentLifecycle: false,
     repoRoot,
     retiredNames: []
   });
@@ -58,6 +64,7 @@ test("reports dependency cycles and broken local links", (t) => {
 
   const result = auditSkillProgressiveLoading({
     budgets: generousBudgets,
+    enforceDevelopmentLifecycle: false,
     repoRoot,
     retiredNames: []
   });
@@ -77,11 +84,13 @@ test("reports duplicate names and retired references", (t) => {
 
   const result = auditSkillProgressiveLoading({
     budgets: generousBudgets,
+    enforceDevelopmentLifecycle: false,
     repoRoot,
     retiredNames: ["retired-skill"]
   });
 
   assert.ok(result.violations.some((violation) => violation.includes("duplicate skill name")));
+  assert.ok(result.violations.some((violation) => violation.includes("must match skill directory beta")));
   assert.ok(result.violations.some((violation) => violation.includes("retired skill")));
 });
 
@@ -97,10 +106,81 @@ test("reports reference skill frontmatter and catalog count overflow", (t) => {
 
   const result = auditSkillProgressiveLoading({
     budgets: { ...generousBudgets, skillCount: 1 },
+    enforceDevelopmentLifecycle: false,
     repoRoot,
     retiredNames: []
   });
 
   assert.ok(result.violations.some((violation) => violation.includes("skill frontmatter")));
   assert.ok(result.violations.some((violation) => violation.includes("skill count")));
+});
+
+test("matches retired skill names exactly instead of matching longer active names", () => {
+  assert.equal(containsSkillName("Use product-blog-storytelling.", "product-blog-storytelling"), true);
+  assert.equal(
+    containsSkillName("Use nextclaw-product-blog-storytelling.", "product-blog-storytelling"),
+    false
+  );
+});
+
+const createLifecycleFixture = () => {
+  const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nextclaw-lifecycle-audit-"));
+  fs.mkdirSync(path.join(repoRoot, "commands"), { recursive: true });
+  fs.writeFileSync(path.join(repoRoot, "AGENTS.md"), "# Rules\n");
+  fs.writeFileSync(path.join(repoRoot, "commands/commands.md"), "# Commands\n");
+
+  const coreNames = [developmentLifecycleSkillName, ...developmentStageSkillNames];
+  for (const name of coreNames) {
+    const directoryPath = path.join(repoRoot, ".agents/skills", name);
+    fs.mkdirSync(directoryPath, { recursive: true });
+    const routes = name === developmentLifecycleSkillName ? developmentStageSkillNames.join("\n") : "";
+    fs.writeFileSync(
+      path.join(directoryPath, "SKILL.md"),
+      `---\nname: ${name}\ndescription: ${name}.\n---\n\n# ${name}\n\n${routes}\n`
+    );
+  }
+  return repoRoot;
+};
+
+test("accepts the standard development lifecycle topology", (t) => {
+  const repoRoot = createLifecycleFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+
+  const result = auditSkillProgressiveLoading({
+    budgets: generousBudgets,
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.deepEqual(result.violations, []);
+});
+
+test("reports missing lifecycle owners and cross-stage routing", (t) => {
+  const repoRoot = createLifecycleFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  fs.rmSync(path.join(repoRoot, ".agents/skills/development-retrospective"), {
+    recursive: true,
+    force: true
+  });
+  fs.appendFileSync(
+    path.join(repoRoot, ".agents/skills/development-design/SKILL.md"),
+    "Route development-validation directly.\n"
+  );
+
+  const result = auditSkillProgressiveLoading({
+    budgets: generousBudgets,
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.ok(
+    result.violations.some((violation) =>
+      violation.includes("missing required owner development-retrospective")
+    )
+  );
+  assert.ok(
+    result.violations.some((violation) =>
+      violation.includes("stage development-design must not route core owner development-validation")
+    )
+  );
 });

@@ -258,7 +258,7 @@ test("allows hook files without extra .hook suffix when they still use use-* nam
 
 test("skips role-boundary enforcement for script support paths", () => {
   assert.equal(inspectFileRoleBoundaryEntry({
-    filePath: ".agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs",
+    filePath: ".agents/skills/development-review/scripts/check-maintainability.mjs",
     status: "M"
   }), null);
 
