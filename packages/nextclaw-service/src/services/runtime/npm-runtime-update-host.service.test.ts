@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextclawKernel } from "@nextclaw/kernel";
 import { eventKeys } from "@nextclaw/shared";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
-import { NpmRuntimeUpdateHost } from "./npm-runtime-update-host.service.js";
+import {
+  NpmRuntimeUpdateHost,
+  resolveNpmRuntimeUpdateApplyRestartMode,
+  SUPERVISED_RUNTIME_UPDATE_EXIT_CODE,
+} from "./npm-runtime-update-host.service.js";
 
 const mocks = vi.hoisted(() => {
   const state = {
@@ -143,6 +147,37 @@ const TEST_DISTRIBUTION = {
   runtimeUpdatePublicKeyPath: "/pkg/resources/update-bundle-public.pem"
 };
 
+describe("resolveNpmRuntimeUpdateApplyRestartMode", () => {
+  it("recognizes explicit and legacy systemd supervision before managed-service state", () => {
+    const serviceState = { pid: 1234, uiPort: 55667 };
+
+    expect(resolveNpmRuntimeUpdateApplyRestartMode({
+      currentPid: 1234,
+      env: { NEXTCLAW_PROCESS_SUPERVISOR: "systemd" },
+      serviceState,
+      uiPort: 55667,
+    })).toEqual({ mode: "supervised-process-restart", source: "configured-systemd" });
+    expect(resolveNpmRuntimeUpdateApplyRestartMode({
+      currentPid: 1234,
+      env: { INVOCATION_ID: "systemd-invocation-id" },
+      serviceState,
+      uiPort: 55667,
+    })).toEqual({ mode: "supervised-process-restart", source: "legacy-systemd-invocation" });
+  });
+
+  it("does not infer legacy systemd when an explicit non-systemd supervisor is configured", () => {
+    expect(resolveNpmRuntimeUpdateApplyRestartMode({
+      currentPid: 1234,
+      env: {
+        INVOCATION_ID: "ambient-systemd-invocation-id",
+        NEXTCLAW_PROCESS_SUPERVISOR: "external",
+      },
+      serviceState: null,
+      uiPort: 55667,
+    })).toEqual({ mode: "manual-process-restart", source: "manual-process" });
+  });
+});
+
 describe("NpmRuntimeUpdateHost", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -152,11 +187,7 @@ describe("NpmRuntimeUpdateHost", () => {
     mocks.state.lastUpdateCheckAt = null;
     NextclawDistributionService.configure(TEST_DISTRIBUTION);
   });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
+  afterEach(() => vi.unstubAllEnvs());
   it("uses distribution metadata when creating the runtime update source", () => {
     const eventBus = new NextclawKernel().eventBus;
     new NpmRuntimeUpdateHost({
@@ -333,6 +364,7 @@ describe("NpmRuntimeUpdateHost", () => {
       reason: "runtime update apply",
       manualMessage: "Restart the supervised NextClaw process to apply the runtime update.",
       strategy: "exit-process",
+      exitCode: SUPERVISED_RUNTIME_UPDATE_EXIT_CODE,
       delayMs: 500,
       silentNotification: true
     });

@@ -12,6 +12,8 @@ VPS `8.219.57.52` 在设置页完成更新操作后出现了三个互相冲突�
 
 因此这不是单一版本展示错误，而是三个 owner 漂移：设置页动作契约、运行版本事实源、systemd 启动入口。
 
+2026-08-13 的 `0.32.0 -> 0.33.0` 真实升级又暴露了一个自举缺口：`0.33.0` 已修正新生成的 unit，但升级动作仍由 `0.32.0` 进程和旧 unit 执行。旧 unit 使用 `Restart=on-failure` 且没有 `NEXTCLAW_PROCESS_SUPERVISOR=systemd`；应用更新后进程以 `0` 正常退出，systemd 因而不拉起新 pointer，页面持续显示旧运行版本和 `restart-required`。这证明“修正 unit 生成器”不能替代“兼容现存 unit 的重启合同”。
+
 ## 2. 目标
 
 - 设置页只提供一次“立即更新”操作；下载、验签、安装、切换与重启仍是可观察的内部阶段。
@@ -55,14 +57,16 @@ requiresRestart = true
 
 npm launcher 启动 runtime child 时传递稳定 launcher entrypoint 与 launcher version。常驻服务安装器优先使用该 entrypoint 生成启动项。
 
-Linux systemd unit 额外声明自身为 supervisor，并使用 `Restart=always`。该路径使用独立的 `supervised-process-restart` 语义，不复用 NextClaw 自管后台服务的重启语义。应用更新后 runtime child 延迟退出；launcher 继承退出码并结束，systemd 随即重新启动稳定 launcher。`systemctl stop` 仍属于 systemd 的显式停止，不会因 `Restart=always` 被重新拉起。
+Linux systemd unit 额外声明自身为 supervisor，并使用 `Restart=always`。该路径使用独立的 `supervised-process-restart` 语义，不复用 NextClaw 自管后台服务的重启语义，也不再启动同 cgroup 内的自拉起 helper。应用更新后 runtime child 以专用代码 `75` 延迟退出；launcher 原样传递退出码，`Restart=always` 与旧 unit 的 `Restart=on-failure` 都会重新启动稳定 launcher。`systemctl stop` 仍属于 systemd 的显式停止，不会被这个应用内退出路径混淆。
 
 普通终端中的 `nextclaw serve` 不声明 supervisor，仍返回持久的 `restart-required` 和手动恢复命令，避免进程自行退出后无人拉起。
 
 ## 4. 兼容与迁移
 
 - 旧 launcher 不会传递新增环境变量；runtime 必须回退到现有 distribution/version 与 argv 行为。
-- 已有错误 systemd unit 需要一次性把 `ExecStart` 改为稳定 launcher。迁移前备份 unit，启动或健康检查失败时回滚。
+- 显式的 `NEXTCLAW_PROCESS_SUPERVISOR=systemd` 是主路径。仅当它完全缺失时，runtime 才接受 systemd 提供的 `INVOCATION_ID` 作为旧 unit 兼容信号，并记录 legacy supervisor 日志；显式的其它 supervisor 值不会被覆盖。
+- 旧 unit 兼容只改变“应用更新”后的退出码，不自动写 unit、不执行 `systemctl`，也不影响普通启动、停止或终端 `serve`。owner 为 `@nextclaw/service` 的 runtime restart 合同；删除条件是所有受支持旧 unit 都已有可验证的一次性迁移，且最低受支持 host 不再可能生成旧 unit。
+- 已有错误 systemd unit 仍应在运维窗口一次性把 `ExecStart` 改为稳定 launcher、写入显式 supervisor 标记并切换为 `Restart=always`。迁移前备份 unit，启动或健康检查失败时回滚；兼容退出语义保证迁移前的页面更新也不会再次停机。
 - 新字段只通过进程环境在 host 与 child 间传递，不扩展用户配置，不写入会话或 workspace。
 - 设置页仍允许独立“检查更新”；自动检查策略不变，自动检查不会自动下载或切换版本。
 
@@ -76,6 +80,8 @@ Linux systemd unit 额外声明自身为 supervisor，并使用 `Restart=always`
 - launcher child 收到稳定 launcher entrypoint/version。
 - autostart 从 bundle child 安装时仍生成稳定 launcher 命令。
 - systemd unit 带 supervisor 标记并使用 `Restart=always`。
+- 旧 unit 只有 `INVOCATION_ID` 时仍选择 supervisor restart，应用更新后不启动 self-relaunch helper，并以 `75` 退出。
+- 显式非 systemd supervisor 即使带有环境中的 `INVOCATION_ID` 也不会误判为 systemd。
 
 ### 5.2 VPS 真实验证
 
@@ -83,4 +89,5 @@ Linux systemd unit 额外声明自身为 supervisor，并使用 `Restart=always`
 - 前端静态页返回 200，公网入口可访问。
 - 实际 runtime package、进程路径与页面产品版本一致。
 - 更新操作后 PID 发生切换，并从新的 current pointer 启动。
+- 在 `Restart=on-failure` 的隔离旧 unit 中执行同一更新入口，确认退出码触发重启且版本事实切换完成。
 - 执行一次真实任务，确认更新没有只修版本展示而破坏 agent 主链路。

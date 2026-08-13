@@ -21,7 +21,7 @@ export class ServiceRestartManager {
     isProcessRunning,
     currentPid: () => process.pid,
     restartBackgroundService: async (reason) => this.restartBackgroundService(reason),
-    scheduleProcessExit: (delayMs, reason) => this.scheduleProcessExit(delayMs, reason),
+    scheduleProcessExit: (delayMs, reason, exitCode) => this.scheduleProcessExit(delayMs, reason, exitCode),
   });
   private serviceRestartTask: Promise<boolean> | null = null;
   private selfRelaunchArmed = false;
@@ -32,6 +32,7 @@ export class ServiceRestartManager {
     const {
       changedPaths,
       delayMs,
+      exitCode,
       manualMessage,
       mode,
       reason,
@@ -60,6 +61,7 @@ export class ServiceRestartManager {
     const result = await this.restartCoordinator.requestRestart({
       reason,
       strategy,
+      exitCode,
       delayMs,
       manualMessage
     });
@@ -143,10 +145,10 @@ export class ServiceRestartManager {
     }
   };
 
-  private scheduleProcessExit = (delayMs: number, reason: string): void => {
+  private scheduleProcessExit = (delayMs: number, reason: string, exitCode: number): void => {
     console.warn(`Gateway restart requested (${reason}).`);
     setTimeout(() => {
-      process.exit(0);
+      process.exit(exitCode);
     }, delayMs);
   };
 
@@ -156,10 +158,7 @@ export class ServiceRestartManager {
     delayMs?: number;
   }): void => {
     const { delayMs: requestedDelayMs, reason, strategy = "background-service-or-manual" } = params;
-    if (
-      strategy !== "background-service-or-exit" &&
-      strategy !== "exit-process"
-    ) {
+    if (strategy !== "background-service-or-exit") {
       return;
     }
     if (this.selfRelaunchArmed) {

@@ -6,6 +6,7 @@ export type RestartRequest = {
   reason: string;
   strategy?: RestartStrategy;
   delayMs?: number;
+  exitCode?: number;
   manualMessage?: string;
 };
 
@@ -19,7 +20,7 @@ type RestartCoordinatorDeps = {
   isProcessRunning: (pid: number) => boolean;
   currentPid: () => number;
   restartBackgroundService: (reason: string) => Promise<boolean>;
-  scheduleProcessExit: (delayMs: number, reason: string) => void;
+  scheduleProcessExit: (delayMs: number, reason: string, exitCode: number) => void;
 };
 
 export class RestartCoordinator {
@@ -68,8 +69,12 @@ export class RestartCoordinator {
       }
       const delay =
         typeof request.delayMs === "number" && Number.isFinite(request.delayMs) ? Math.max(0, Math.floor(request.delayMs)) : 100;
+      const exitCode =
+        typeof request.exitCode === "number" && Number.isFinite(request.exitCode)
+          ? Math.min(255, Math.max(0, Math.floor(request.exitCode)))
+          : 0;
       this.exitScheduled = true;
-      this.deps.scheduleProcessExit(delay, reason);
+      this.deps.scheduleProcessExit(delay, reason, exitCode);
       return {
         status: "exit-scheduled",
         message: `Restart scheduled (${reason}).`

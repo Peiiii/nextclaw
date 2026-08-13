@@ -351,6 +351,7 @@ export type RequestRestartParams = {
   manualMessage: string;
   strategy?: RestartStrategy;
   delayMs?: number;
+  exitCode?: number;
   silentNotification?: boolean;
   silentOnServiceRestart?: boolean;
   changedPaths?: string[];

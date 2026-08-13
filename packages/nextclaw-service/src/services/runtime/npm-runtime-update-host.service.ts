@@ -17,6 +17,7 @@ import { NpmRuntimeUpdateSourceService } from "@nextclaw-service/services/runtim
 import { NpmRuntimeUpdateStateStore } from "@nextclaw-service/stores/npm-runtime-update-state.store.js";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { requestManagedServiceRestart } from "@nextclaw-service/services/ui/service-remote-access.service.js";
+import type { ManagedServiceState } from "@nextclaw-service/stores/managed-service-state.store.js";
 import type { RequestRestartParams } from "@nextclaw-service/types/cli.types.js";
 
 const INITIAL_DOWNLOAD_PROGRESS: UpdateProgress = {
@@ -38,6 +39,40 @@ export type NpmRuntimeUpdateApplyRestartMode =
   | "managed-service-restart"
   | "supervised-process-restart"
   | "manual-process-restart";
+
+export type NpmRuntimeUpdateApplyRestartResolution = {
+  mode: NpmRuntimeUpdateApplyRestartMode;
+  source: "configured-systemd" | "legacy-systemd-invocation" | "managed-service" | "manual-process";
+};
+
+export const SUPERVISED_RUNTIME_UPDATE_EXIT_CODE = 75;
+
+export function resolveNpmRuntimeUpdateApplyRestartMode(options: {
+  currentPid: number;
+  env: NodeJS.ProcessEnv;
+  serviceState: Pick<ManagedServiceState, "pid" | "uiPort"> | null;
+  uiPort: number;
+}): NpmRuntimeUpdateApplyRestartResolution {
+  const { currentPid, env, serviceState, uiPort } = options;
+  const configuredSupervisor = env.NEXTCLAW_PROCESS_SUPERVISOR?.trim();
+  if (configuredSupervisor === "systemd") {
+    return { mode: "supervised-process-restart", source: "configured-systemd" };
+  }
+  if (!configuredSupervisor && env.INVOCATION_ID?.trim()) {
+    return { mode: "supervised-process-restart", source: "legacy-systemd-invocation" };
+  }
+  if (serviceState?.pid === currentPid) {
+    return { mode: "managed-service-restart", source: "managed-service" };
+  }
+  if (
+    env.NEXTCLAW_RUNTIME_BUNDLE_CHILD === "1"
+    && typeof serviceState?.uiPort === "number"
+    && serviceState.uiPort === uiPort
+  ) {
+    return { mode: "managed-service-restart", source: "managed-service" };
+  }
+  return { mode: "manual-process-restart", source: "manual-process" };
+}
 
 export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
   private readonly source: NpmRuntimeUpdateSourceService;
@@ -126,6 +161,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
           reason: "runtime update apply",
           manualMessage: "Restart the supervised NextClaw process to apply the runtime update.",
           strategy: "exit-process",
+          exitCode: SUPERVISED_RUNTIME_UPDATE_EXIT_CODE,
           delayMs: 500,
           silentNotification: true
         });

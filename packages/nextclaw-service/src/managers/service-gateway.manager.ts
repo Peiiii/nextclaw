@@ -32,7 +32,7 @@ import { GatewayRuntimeSupportService, ServiceFileWatcherRegistry, markLocalUiRu
 import { ServiceMarketplaceInstaller } from "@nextclaw-service/services/marketplace/service-marketplace-installer.service.js";
 import {
   NpmRuntimeUpdateHost,
-  type NpmRuntimeUpdateApplyRestartMode,
+  resolveNpmRuntimeUpdateApplyRestartMode,
 } from "@nextclaw-service/services/runtime/npm-runtime-update-host.service.js";
 import { createRuntimeControlHost } from "@nextclaw-service/services/ui/runtime-control-host.service.js";
 import { localUiRuntimeStore } from "@nextclaw-service/stores/local-ui-runtime.store.js";
@@ -48,22 +48,19 @@ const {
   getWorkspacePath,
 } = NextclawCore;
 
-function resolveApplyRestartMode(uiPort: number): NpmRuntimeUpdateApplyRestartMode {
-  if (process.env.NEXTCLAW_PROCESS_SUPERVISOR === "systemd") {
-    return "supervised-process-restart";
+function resolveApplyRestartMode(uiPort: number) {
+  const resolution = resolveNpmRuntimeUpdateApplyRestartMode({
+    currentPid: process.pid,
+    env: process.env,
+    serviceState: managedServiceStateStore.read(),
+    uiPort,
+  });
+  if (resolution.source === "legacy-systemd-invocation") {
+    console.warn(
+      "Detected a legacy systemd service without NEXTCLAW_PROCESS_SUPERVISOR; runtime updates will use supervisor-owned relaunch.",
+    );
   }
-  const serviceState = managedServiceStateStore.read();
-  if (serviceState?.pid === process.pid) {
-    return "managed-service-restart";
-  }
-  if (
-    process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD === "1" &&
-    typeof serviceState?.uiPort === "number" &&
-    serviceState.uiPort === uiPort
-  ) {
-    return "managed-service-restart";
-  }
-  return "manual-process-restart";
+  return resolution.mode;
 }
 
 type Config = NextclawCore.Config;

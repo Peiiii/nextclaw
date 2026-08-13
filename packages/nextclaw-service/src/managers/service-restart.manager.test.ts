@@ -110,6 +110,22 @@ describe("ServiceRestartManager self relaunch", () => {
     expect(helperScript).toContain('"start","--ui-port","19199"');
   });
 
+  it("lets a supervisor own relaunch and exits with the requested code", async () => {
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+
+    await restartManager.requestRestart({
+      reason: "runtime update apply",
+      manualMessage: "Restart the supervised process.",
+      strategy: "exit-process",
+      exitCode: 75,
+      delayMs: 500,
+    });
+
+    expect(mocks.spawn).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(exitSpy).toHaveBeenCalledWith(75);
+  });
+
   it("records a pending restart without polluting machine-readable output", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
