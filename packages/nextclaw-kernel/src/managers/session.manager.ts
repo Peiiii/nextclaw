@@ -336,7 +336,7 @@ export class SessionManager implements NcpSessionApi {
       limit,
       ...(cursor ? { cursor } : {})
     });
-    if (!page) {
+    if (!page || cursor) {
       return page;
     }
     const record = await this.options.journalStore.getSession(normalizedSessionId);

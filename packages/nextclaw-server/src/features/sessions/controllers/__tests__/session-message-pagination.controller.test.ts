@@ -43,7 +43,7 @@ describe("NcpSessionRoutesController message pagination", () => {
       }
     });
     expect(boundedResponse.status).toBe(200);
-    expect(listSessionMessagePage).toHaveBeenNthCalledWith(1, "session-1", { limit: 80 });
+    expect(listSessionMessagePage).toHaveBeenNthCalledWith(1, "session-1", { limit: 40 });
     expect(listSessionMessagePage).toHaveBeenNthCalledWith(2, "session-1", {
       limit: 200,
       cursor: "cursor-1"

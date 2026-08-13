@@ -1,7 +1,7 @@
 import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { SessionMessageCursorError } from "@kernel/types/session.types.js";
 import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-message-projection.store.js";
@@ -63,6 +63,27 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
       messages: [{ id: "message-1" }],
       pageInfo: { hasPreviousPage: false },
     });
+  });
+
+  it("does not materialize all message ordinals for a stable page without journal tail", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
+    const store = new NcpAgentSessionMessageProjectionStore(tempDir);
+    await store.rebuild({
+      sessionId,
+      messages: [1, 2, 3, 4, 5].map((index) => message(index)),
+      projectedJournalOffset: 500,
+    });
+    const restartedStore = new NcpAgentSessionMessageProjectionStore(tempDir);
+    const privateStore = restartedStore as unknown as {
+      readMessageOrdinals: (...args: unknown[]) => Promise<Map<string, number>>;
+    };
+    const readMessageOrdinals = vi.spyOn(privateStore, "readMessageOrdinals");
+
+    await expect(restartedStore.readPage({ sessionId, limit: 2 })).resolves.toMatchObject({
+      messages: [{ id: "message-4" }, { id: "message-5" }],
+      total: 5,
+    });
+    expect(readMessageOrdinals).not.toHaveBeenCalled();
   });
 
   it("updates the latest snapshot and appends new messages without inflating total", async () => {

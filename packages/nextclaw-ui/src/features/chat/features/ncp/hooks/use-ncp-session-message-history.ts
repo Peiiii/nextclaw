@@ -6,7 +6,7 @@ import {
   type SessionContextWindowView,
 } from "@/shared/lib/api";
 
-export const DEFAULT_NCP_SESSION_MESSAGE_LIMIT = 80;
+export const DEFAULT_NCP_SESSION_MESSAGE_LIMIT = 40;
 
 type NcpConversationSeedWithContextWindow = NcpConversationSeed & {
   contextWindow?: SessionContextWindowView | null;

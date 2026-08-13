@@ -431,7 +431,7 @@ describe("useNcpSessionConversation history and hydration", () => {
     expect(mocks.fetchNcpSessionMessages).toHaveBeenLastCalledWith(
       "session-1",
       {
-        limit: 80,
+        limit: 40,
         cursor: "cursor-2",
         signal: expect.any(AbortSignal),
       },

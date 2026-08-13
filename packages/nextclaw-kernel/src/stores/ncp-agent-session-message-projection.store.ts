@@ -254,9 +254,9 @@ export class NcpAgentSessionMessageProjectionStore {
     }
     const uniqueTailMessages = deduplicateNcpAgentSessionTailMessages(tailMessages ?? []);
     const tailById = new Map(uniqueTailMessages.map((message) => [message.id, message]));
-    const messageOrdinals = await this.readMessageOrdinals(sessionId, meta);
-    const additionalTailMessages = uniqueTailMessages.filter((message) => !messageOrdinals.has(message.id));
-    const limit = Number.isFinite(requestedLimit) ? Math.min(200, Math.max(1, Math.trunc(requestedLimit))) : 80;
+    const messageOrdinals = uniqueTailMessages.length > 0 ? await this.readMessageOrdinals(sessionId, meta) : null;
+    const additionalTailMessages = messageOrdinals ? uniqueTailMessages.filter((message) => !messageOrdinals.has(message.id)) : [];
+    const limit = Number.isFinite(requestedLimit) ? Math.min(200, Math.max(1, Math.trunc(requestedLimit))) : 40;
     const boundary = cursor ? decodeNcpAgentSessionMessageCursor(cursor, meta.total + 1) : meta.total + 1;
     const includeTail = !cursor;
     const stableLimit = includeTail ? Math.max(0, limit - additionalTailMessages.length) : limit;

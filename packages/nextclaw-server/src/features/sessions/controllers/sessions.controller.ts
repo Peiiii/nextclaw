@@ -16,7 +16,7 @@ import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/ser
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
-const DEFAULT_SESSION_MESSAGE_PAGE_SIZE = 80;
+const DEFAULT_SESSION_MESSAGE_PAGE_SIZE = 40;
 const MAX_SESSION_MESSAGE_PAGE_SIZE = 200;
 
 function sessionProjectError(error: { code: string; message: string }): {
