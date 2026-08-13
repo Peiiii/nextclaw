@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.33.1
+
+### Patch Changes
+
+- 83c1949: Keep in-app runtime updates restartable on existing Linux systemd installations, including legacy units that still use `Restart=on-failure`.
+- Updated dependencies [83c1949]
+  - @nextclaw/service@0.3.28
+
 ## 0.33.0
 
 ### Minor Changes
