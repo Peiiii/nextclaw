@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-08-12T04:16:35.738Z",
+  "generatedAt": "2026-08-13T04:19:55.089Z",
   "hero": {
-    "currentLoc": 237050,
-    "testLoc": 94133,
-    "trackedFiles": 2528,
-    "recentCommitCount": 402,
+    "currentLoc": 241252,
+    "testLoc": 95645,
+    "trackedFiles": 2561,
+    "recentCommitCount": 397,
     "activeDays30": 30,
     "recentReleaseCount": 53,
-    "latestReleaseDate": "2026-08-12",
-    "latestNoteDate": "2026-08-12",
+    "latestReleaseDate": "2026-08-13",
+    "latestNoteDate": "2026-08-13",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2473641,
-    "basePercentOfBenchmark": 9.58,
-    "lighterByPercent": 90.42
+    "benchmarkCodeLines": 2502082,
+    "basePercentOfBenchmark": 9.64,
+    "lighterByPercent": 90.36
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-15",
-        "label": "04-15",
-        "value": 0
-      },
       {
         "key": "2026-04-16",
         "label": "04-16",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-12",
         "label": "08-12",
         "value": 237050
+      },
+      {
+        "key": "2026-08-13",
+        "label": "08-13",
+        "value": 241252
       }
     ],
     "testLocDaily": [
@@ -1087,14 +1087,14 @@ export default {
         "key": "2026-08-12",
         "label": "08-12",
         "value": 94133
+      },
+      {
+        "key": "2026-08-13",
+        "label": "08-13",
+        "value": 95645
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-07-14",
-        "label": "07-14",
-        "value": 19
-      },
       {
         "key": "2026-07-15",
         "label": "07-15",
@@ -1238,7 +1238,12 @@ export default {
       {
         "key": "2026-08-12",
         "label": "08-12",
-        "value": 4
+        "value": 5
+      },
+      {
+        "key": "2026-08-13",
+        "label": "08-13",
+        "value": 13
       }
     ],
     "commitWeekly": [
@@ -1300,7 +1305,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 44
+        "value": 58
       }
     ],
     "releaseMonthly": [
@@ -1362,7 +1367,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 7
+        "value": 8
       }
     ]
   },
@@ -1370,16 +1375,16 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 61835,
-        "testCodeLines": 32904,
-        "files": 744,
-        "sharePercent": 26.1
+        "codeLines": 63627,
+        "testCodeLines": 33564,
+        "files": 760,
+        "sharePercent": 26.4
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 25014,
-        "testCodeLines": 12745,
-        "files": 252,
+        "codeLines": 25580,
+        "testCodeLines": 12933,
+        "files": 255,
         "sharePercent": 10.6
       },
       {
@@ -1387,51 +1392,60 @@ export default {
         "codeLines": 15398,
         "testCodeLines": 5643,
         "files": 165,
-        "sharePercent": 6.5
+        "sharePercent": 6.4
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 15184,
-        "testCodeLines": 7025,
+        "codeLines": 15219,
+        "testCodeLines": 7069,
         "files": 164,
-        "sharePercent": 6.4
+        "sharePercent": 6.3
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
         "codeLines": 13897,
         "testCodeLines": 0,
         "files": 68,
-        "sharePercent": 5.9
+        "sharePercent": 5.8
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 12890,
-        "testCodeLines": 8304,
+        "codeLines": 12912,
+        "testCodeLines": 8319,
         "files": 124,
         "sharePercent": 5.4
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 11285,
-        "testCodeLines": 8320,
-        "files": 128,
+        "codeLines": 11559,
+        "testCodeLines": 8506,
+        "files": 131,
         "sharePercent": 4.8
       },
       {
         "name": "packages/nextclaw-app-runtime",
-        "codeLines": 6656,
-        "testCodeLines": 1590,
+        "codeLines": 6856,
+        "testCodeLines": 1725,
         "files": 67,
         "sharePercent": 2.8
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2473641,
-      "basePercentOfBenchmark": 9.58,
-      "lighterByPercent": 90.42
+      "benchmarkCodeLines": 2502082,
+      "basePercentOfBenchmark": 9.64,
+      "lighterByPercent": 90.36
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-08-13",
+        "tagCount": 30,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.6.24",
+          "@nextclaw/app-runtime@0.9.15",
+          "@nextclaw/channel-extension-dingtalk@0.2.24"
+        ]
+      },
       {
         "date": "2026-08-12",
         "tagCount": 28,
@@ -1474,20 +1488,49 @@ export default {
           "@nextclaw/channel-extension-dingtalk@0.2.20",
           "@nextclaw/channel-extension-discord@0.2.20"
         ]
-      },
-      {
-        "date": "2026-08-07",
-        "tagCount": 29,
-        "sampleTags": [
-          "@nextclaw/channel-extension-dingtalk@0.2.19",
-          "@nextclaw/channel-extension-discord@0.2.19",
-          "@nextclaw/channel-extension-email@0.2.19"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-13-nextclaw-v0-33-1",
+        "date": "2026-08-13",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-13 · NextClaw v0.33.1",
+          "description": "NextClaw v0.33.1 fixes Linux in-app updates that did not restart the service and left the running version unchanged.",
+          "href": "/en/notes/2026-08-13-nextclaw-v0-33-1"
+        },
+        "zh": {
+          "title": "2026-08-13 · NextClaw v0.33.1",
+          "description": "NextClaw v0.33.1 修复 Linux 服务器从页面更新后没有自动重新启动、版本仍停在旧版的问题。",
+          "href": "/zh/notes/2026-08-13-nextclaw-v0-33-1"
+        }
+      },
+      {
+        "slug": "2026-08-13-nextclaw-v0-33-0",
+        "date": "2026-08-13",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-13 · NextClaw v0.33.0",
+          "description": "NextClaw v0.33.0 scales app discovery and turns installs, updates, rollbacks, and uninstalls into background operations you can leave behind.",
+          "href": "/en/notes/2026-08-13-nextclaw-v0-33-0"
+        },
+        "zh": {
+          "title": "2026-08-13 · NextClaw v0.33.0",
+          "description": "NextClaw v0.33.0 让应用市场能够随生态规模增长，并把安装、更新、回滚和卸载变成可离开的后台操作。",
+          "href": "/zh/notes/2026-08-13-nextclaw-v0-33-0"
+        }
+      },
       {
         "slug": "2026-08-12-nextclaw-v0-32-0",
         "date": "2026-08-12",
@@ -2201,9 +2244,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-08-12T04:16:33.740Z",
+    "locGeneratedAt": "2026-08-13T04:19:53.173Z",
     "sourceCount": {
-      "notes": 33,
+      "notes": 35,
       "scopes": 8
     }
   }
