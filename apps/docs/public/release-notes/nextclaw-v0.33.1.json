@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.33.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-13",
+  "title": {
+    "zh-CN": "NextClaw v0.33.1",
+    "en-US": "NextClaw v0.33.1"
+  },
+  "summary": {
+    "zh-CN": "修复 Linux 服务器从页面更新后没有自动重新启动、版本仍停在旧版的问题。",
+    "en-US": "Fixes Linux in-app updates that did not restart the service and left the running version unchanged."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-13-nextclaw-v0-33-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-13-nextclaw-v0-33-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Linux 页面更新自动重启",
+            "en-US": "Automatic restart after Linux in-app updates"
+          },
+          "body": {
+            "zh-CN": "旧版 systemd 安装在应用更新后会重新启动并运行下载的新版本，不再停在等待重启状态。",
+            "en-US": "Older systemd installations restart into the downloaded version after an update instead of remaining at restart required."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "默认行为与兼容性",
+        "en-US": "Defaults and Compatibility"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "兼容既有服务器配置",
+            "en-US": "Compatible with existing server configurations"
+          },
+          "body": {
+            "zh-CN": "旧 systemd 配置无需先手工迁移；终端手动运行时仍保持手动重启。",
+            "en-US": "Older systemd configurations need no manual migration, while terminal-run instances keep manual restart behavior."
+          }
+        }
+      ]
+    }
+  ]
+}
