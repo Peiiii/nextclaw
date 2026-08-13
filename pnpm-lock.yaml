@@ -1120,6 +1120,9 @@ importers:
 
   packages/nextclaw:
     dependencies:
+      '@nextclaw/app-runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-app-runtime
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core
@@ -2004,6 +2007,9 @@ importers:
 
   workers/marketplace-api:
     dependencies:
+      '@nextclaw/app-runtime':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-app-runtime
       hono:
         specifier: ^4.9.8
         version: 4.11.9

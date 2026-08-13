@@ -33,6 +33,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 - [Multi-agent routing & session isolation](#multi-agent-routing--session-isolation-openclaw-aligned)
 - [Session management (UI)](#session-management-ui)
 - [Workspace](#workspace)
+- [Publishing Mini Apps](#publishing-mini-apps)
 - [Commands](#commands)
 - [Channels](#channels)
 - [Tools](#tools)
@@ -534,6 +535,29 @@ Skill loading contract:
 - If you want to install into a specific project workspace, pass `--workdir <workspace>`.
 - Upstream commands such as `npx skills add ... -g` remain separate from the NextClaw marketplace lifecycle. If they materialize a skill under `~/.agents/skills/`, NextClaw can select it as a global skill, but it is not installed or managed as a NextClaw workspace skill.
 
+## Publishing Mini Apps
+
+Panel Apps and Service Apps publish through NextClaw's native app commands. A publishable Mini App is a `schemaVersion: 2` package with a root `manifest.json`, a `marketplace.json`, and one or more referenced Panel or Service components.
+
+Check account readiness and validate the package before submitting it:
+
+```bash
+nextclaw account status --json
+nextclaw app validate-publish <mini-app-dir> --json
+```
+
+If the account is not ready, run `nextclaw login`. Personal apps use the account username as the app id scope, for example `alice.notes`. Do not pass marketplace tokens or registry URLs to the app commands.
+
+After validation succeeds, submit the package for review:
+
+```bash
+nextclaw app publish <mini-app-dir> --json
+```
+
+Personal submissions return `publishStatus: pending` and appear in the App Marketplace only after approval. Service Apps always require manual review because they can run local processes with the host environment. Pending or rejected submissions can be corrected and submitted again. Updating an already published personal app is intentionally blocked until version-level review is available, so the current public version remains online.
+
+Use `https://platform.nextclaw.io/apps` to review submission status. The built-in `nextclaw-app-publisher` skill lets NextClaw AI assemble a package from existing Panel/Service directories, run the checks, guide login, and submit it with the same native commands.
+
 
 ---
 
@@ -544,6 +568,11 @@ Skill loading contract:
 | `nextclaw start` | Start gateway + UI in the background |
 | `nextclaw restart` | Restart the background service with optional start flags |
 | `nextclaw stop` | Stop the background service |
+| `nextclaw app check <app-dir>` | Check a Panel App or Service App directory |
+| `nextclaw app dev <service-app-dir>` | Start a Service App in an isolated runtime and inspect its actions |
+| `nextclaw app call <service-app-dir> <action-name>` | Call a Service App action in an isolated runtime |
+| `nextclaw app validate-publish <mini-app-dir>` | Validate a schema v2 Mini App package before Marketplace submission |
+| `nextclaw app publish <mini-app-dir>` | Submit a validated Mini App to the App Marketplace for review |
 | `nextclaw app restart <app-id>` | Restart a live Service App runtime in the running UI before live retest |
 | `nextclaw service install-systemd --user` | Install a user-level Linux `systemd` service for NextClaw |
 | `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service for NextClaw |

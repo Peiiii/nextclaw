@@ -1,4 +1,5 @@
 export * from "./services/app-bundle.service.js";
+export * from "./services/app-artifact-validation.service.js";
 export * from "./types/app-bundle.types.js";
 export * from "./services/host-bridge.service.js";
 export * from "./services/app-runtime-cli.service.js";

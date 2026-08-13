@@ -67,6 +67,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
 - 不要为了“像应用工程”而给 Panel App 创建 Vite、后台 dev server 或无意义的 `package.json`；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。Service App 零依赖优先，能用 Node.js 内置模块手写最小 MCP stdio / JSON-RPC server 就不要引入包；确实 import 第三方包时，才在该 Service App 目录声明自己的 `package.json` 并安装依赖。
 - 创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主、server 或桌面应用；如果要验证 live 产品实例或 Panel-to-Service 调用，先运行 `nextclaw app restart <service-app-id> --json` 断开旧 Service App runtime，再刷新列表、重新打开 Panel App，或运行 `nextclaw app check/dev/call` 做验收。
+- 当用户进一步要求把完成的 Panel App、Service App 或组合应用发布到应用市场时，继续读取 `nextclaw-app-publisher`。发布 Mini App 只使用 `nextclaw app validate-publish / publish`，不要把用户路由到 `napp`。
 
 ## 实现顺序
 

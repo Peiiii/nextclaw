@@ -1,8 +1,12 @@
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
-import type { AppManifest, AppPermissions } from "#app-runtime/types/app-manifest.types.js";
+import type {
+  AppManifest,
+  AppPermissions,
+} from "#app-runtime/types/app-manifest.types.js";
 import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
 
-export const DEFAULT_APP_MARKETPLACE_API_BASE = "https://apps-registry.nextclaw.io";
+export const DEFAULT_APP_MARKETPLACE_API_BASE =
+  "https://apps-registry.nextclaw.io";
 
 export type AppMarketplaceVisuals = {
   cover: string;
@@ -58,6 +62,9 @@ export type AppPublishResult = {
   item: {
     slug: string;
     appId: string;
+    ownerScope: string;
+    appName: string;
+    publishStatus: "pending" | "published";
     name: string;
     latestVersion: string;
     webUrl?: string;

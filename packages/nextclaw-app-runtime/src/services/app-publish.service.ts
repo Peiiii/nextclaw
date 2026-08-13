@@ -28,11 +28,18 @@ export class AppPublishService {
   publish = async (params: {
     appDirectory: string;
     metadataPath?: string;
+    bundleOutputPath?: string;
     apiBaseUrl?: string;
     token?: string;
     mode?: AppDistributionMode;
   }): Promise<AppPublishResult> => {
-    const { appDirectory: inputAppDirectory, metadataPath, apiBaseUrl, token } = params;
+    const {
+      appDirectory: inputAppDirectory,
+      metadataPath,
+      bundleOutputPath,
+      apiBaseUrl,
+      token,
+    } = params;
     const appDirectory = path.resolve(inputAppDirectory);
     const manifestBundle = await this.manifestService.load(appDirectory);
     const distributionMode = params.mode ??
@@ -49,6 +56,7 @@ export class AppPublishService {
     });
     const bundle = await this.bundleService.packAppDirectory({
       appDirectory,
+      outputPath: bundleOutputPath,
       mode: distributionMode,
     });
     const bundleBytes = Buffer.from(await readFile(bundle.bundlePath));

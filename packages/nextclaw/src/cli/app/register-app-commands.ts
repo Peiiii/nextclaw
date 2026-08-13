@@ -3,13 +3,32 @@ import { AppCallCommandController } from "./controllers/app-call-command.control
 import { AppCheckCommandController } from "./controllers/app-check-command.controller.js";
 import { AppDevCommandController } from "./controllers/app-dev-command.controller.js";
 import { AppRestartCommandController } from "./controllers/app-restart-command.controller.js";
+import { AppPublishCommandController } from "./controllers/app-publish-command.controller.js";
+import { AppValidatePublishCommandController } from "./controllers/app-validate-publish-command.controller.js";
 
 export function registerAppCommands(program: Command): void {
-  const app = program.command("app").description("Inspect and validate lightweight NextClaw apps");
+  const app = program.command("app").description("Develop, validate, and publish NextClaw apps");
   const appCheck = new AppCheckCommandController();
   const appDev = new AppDevCommandController();
   const appCall = new AppCallCommandController();
   const appRestart = new AppRestartCommandController();
+  const appValidatePublish = new AppValidatePublishCommandController();
+  const appPublish = new AppPublishCommandController();
+
+  app
+    .command("validate-publish <app-dir>")
+    .description("Validate a NextClaw Mini App before Marketplace submission")
+    .option("--meta <path>", "Use a custom marketplace metadata file")
+    .option("--json", "Output JSON", false)
+    .action(async (target, opts) => appValidatePublish.validate(target, opts));
+
+  app
+    .command("publish <app-dir>")
+    .description("Submit a NextClaw Mini App to the App Marketplace")
+    .option("--meta <path>", "Use a custom marketplace metadata file")
+    .option("--allow-warnings", "Submit after reviewing validation warnings", false)
+    .option("--json", "Output JSON", false)
+    .action(async (target, opts) => appPublish.publish(target, opts));
 
   app
     .command("check <app-dir>")

@@ -1,9 +1,13 @@
 ---
 name: nextclaw-app-runtime
-description: Use when the user wants to create, preview, publish, install, run, or troubleshoot NextClaw Apps without needing to understand napp, WASI, Wasmtime, JCO, npm, registry, or marketplace details.
+description: Use only for legacy standalone schema v1 WASI NApps that need napp create, preview, install, run, or troubleshooting. Do not use for schema v2 Panel Apps, Service Apps, combined Mini Apps, or their Marketplace publishing flow; route those to NextClaw built-in app skills and commands.
 ---
 
 # NextClaw App Runtime
+
+## Routing Boundary
+
+This is the legacy standalone NApp workflow. If the app is a Panel App, Service App, combined Panel + Service package, or has `schemaVersion: 2`, stop and use the built-in `nextclaw-app-creator` / `nextclaw-app-publisher` skills with `nextclaw app ...` commands. Never publish those Mini Apps through `napp`.
 
 ## Product Promise
 

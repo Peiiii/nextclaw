@@ -19,10 +19,13 @@ import {
   type MarketplaceOwnerAppManageAction,
 } from "./app-marketplace.types";
 import { MarketplaceAppFileStore } from "./marketplace-app-file.store";
+import { MarketplaceAppArtifactValidationService } from "./marketplace-app-artifact-validation.service";
 import { MarketplaceAppPayloadParser } from "./marketplace-app-payload.service";
 import { MarketplaceAppPersistence } from "./marketplace-app-persistence.service";
 import {
+  assertAppVersionCanBeReplaced,
   assertExistingAppOwnership,
+  assertPersonalPublishedAppIsImmutable,
   buildAppWebUrl,
   parseAppReviewInput,
   resolveCatalogVisibility,
@@ -36,6 +39,7 @@ import { MarketplaceAppRecordRepository } from "./marketplace-app-record.reposit
 import type { MarketplaceSkillPublishActor } from "@/infrastructure/skills/d1-section-types";
 
 export class D1MarketplaceAppDataSource {
+  private readonly artifactValidator = new MarketplaceAppArtifactValidationService();
   private readonly fileStore: MarketplaceAppFileStore;
   private readonly payloadParser = new MarketplaceAppPayloadParser();
   private readonly persistence: MarketplaceAppPersistence;
@@ -107,28 +111,27 @@ export class D1MarketplaceAppDataSource {
     }
     if (existingItem) {
       assertExistingAppOwnership(existingItem, identity, actor);
+      assertPersonalPublishedAppIsImmutable(existingItem, identity, actor);
     }
     const nowIso = new Date().toISOString();
     const itemId = existingItem?.id ?? `app-${input.slug}`;
     const publishedAt = existingItem?.published_at ?? nowIso;
     const existingVersion = await this.recordRepository.getVersionRow(itemId, input.version);
-    if (existingVersion && existingVersion.bundle_sha256 !== input.bundleSha256) {
-      throw new DomainValidationError(
-        `app version is immutable: ${input.appId}@${input.version} already has a different bundle`,
-      );
-    }
+    assertAppVersionCanBeReplaced({
+      existingBundleSha256: existingVersion?.bundle_sha256,
+      nextBundleSha256: input.bundleSha256,
+      publishStatus: existingItem?.publish_status,
+      appId: input.appId,
+      version: input.version,
+    });
     const versionPublishedAt = existingVersion?.published_at ?? nowIso;
     const bundleBytes = this.payloadParser.decodeBase64(input.bundleBase64, "bundleBase64");
+    await this.artifactValidator.validate(bundleBytes, input);
     const bundleObject = await this.fileStore.putBundle({
       appId: input.appId,
       version: input.version,
       bytes: bundleBytes,
     });
-    if (bundleObject.sha256 !== input.bundleSha256) {
-      throw new DomainValidationError(
-        `bundleSha256 mismatch: expected ${input.bundleSha256}, actual ${bundleObject.sha256}`,
-      );
-    }
     await this.persistence.persistVersion({
       itemId,
       input,

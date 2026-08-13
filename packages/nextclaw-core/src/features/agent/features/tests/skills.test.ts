@@ -316,3 +316,21 @@ describe("SkillsLoader skill sources", () => {
     );
   });
 });
+
+describe("SkillsLoader Mini App publishing", () => {
+  it("loads the native NextClaw Mini App publisher skill", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const skill = loader.loadSkill("nextclaw-app-publisher");
+    const creator = loader.loadSkill("nextclaw-app-creator");
+
+    expect(skill).toContain("nextclaw account status --json");
+    expect(skill).toContain("nextclaw app validate-publish");
+    expect(skill).toContain("nextclaw app publish");
+    expect(skill).toContain("publishStatus: pending");
+    expect(skill).toContain("已提交审核，尚未出现在应用市场");
+    expect(skill).not.toContain("napp publish");
+    expect(creator).toContain("nextclaw-app-publisher");
+    expect(creator).toContain("nextclaw app validate-publish / publish");
+  });
+});

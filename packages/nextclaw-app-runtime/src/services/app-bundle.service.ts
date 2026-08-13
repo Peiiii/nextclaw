@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { access, lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { strToU8, unzipSync, zipSync } from "fflate";
+import { strToU8, zipSync } from "fflate";
+import { AppArtifactValidationService } from "#app-runtime/services/app-artifact-validation.service.js";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
 import {
   isAppComponentManifestBundle,
@@ -26,6 +27,7 @@ const BUNDLE_METADATA_PATH = ".napp/bundle.json";
 export class AppBundleService {
   constructor(
     private readonly manifestService: AppManifestService = new AppManifestService(),
+    private readonly artifactValidationService: AppArtifactValidationService = new AppArtifactValidationService(),
   ) {}
 
   packAppDirectory = async (params: {
@@ -102,29 +104,10 @@ export class AppBundleService {
     if (!bundleStats.isFile() || bundleStats.size > MAX_COMPRESSED_BYTES) {
       throw new Error(`bundle 压缩体积超过 ${MAX_COMPRESSED_BYTES} bytes 上限。`);
     }
-    let fileCount = 0;
-    let totalBytes = 0;
-    const archive = unzipSync(new Uint8Array(await readFile(bundlePath)), {
-      filter: (file) => {
-        fileCount += 1;
-        totalBytes += file.originalSize;
-        if (fileCount > MAX_FILE_COUNT) {
-          throw new Error(`bundle 文件数超过 ${MAX_FILE_COUNT} 上限。`);
-        }
-        if (file.originalSize > MAX_FILE_BYTES) {
-          throw new Error(`bundle 单文件超过 ${MAX_FILE_BYTES} bytes 上限：${file.name}`);
-        }
-        if (totalBytes > MAX_UNCOMPRESSED_BYTES) {
-          throw new Error(`bundle 解压后超过 ${MAX_UNCOMPRESSED_BYTES} bytes 上限。`);
-        }
-        return true;
-      },
+    const { archive, metadata, checksums } = await this.artifactValidationService.validate({
+      bytes: new Uint8Array(await readFile(bundlePath)),
     });
-    const normalizedArchive = this.normalizeArchive(archive);
-    const metadata = this.readMetadataFromArchive(normalizedArchive);
-    const checksums = this.readChecksumsFromArchive(normalizedArchive);
-    this.verifyArchiveChecksums(normalizedArchive, checksums);
-    return { archive: normalizedArchive, metadata, checksums };
+    return { archive, metadata, checksums };
   };
 
   private replaceTargetWithArchive = async (params: {
@@ -361,106 +344,6 @@ export class AppBundleService {
     }
   };
 
-  private normalizeArchive = (
-    archive: Record<string, Uint8Array>,
-  ): Record<string, Uint8Array> => {
-    const normalizedArchive: Record<string, Uint8Array> = {};
-    for (const [entryName, bytes] of Object.entries(archive)) {
-      const normalizedEntry = this.normalizeArchiveEntry(entryName);
-      if (Object.hasOwn(normalizedArchive, normalizedEntry)) {
-        throw new Error(`bundle 包含重复路径：${normalizedEntry}`);
-      }
-      normalizedArchive[normalizedEntry] = bytes;
-    }
-    return normalizedArchive;
-  };
-
-  private readMetadataFromArchive = (
-    archive: Record<string, Uint8Array>,
-  ): AppBundleMetadata => {
-    const raw = this.readJsonArchiveEntry<Partial<AppBundleMetadata>>(
-      archive,
-      BUNDLE_METADATA_PATH,
-      "bundle metadata",
-    );
-    const distributionMode = raw.distributionMode === undefined
-      ? "bundle"
-      : raw.distributionMode;
-    if (
-      raw.bundleFormatVersion !== 1 ||
-      (distributionMode !== "bundle" && distributionMode !== "source") ||
-      typeof raw.appId !== "string" || !raw.appId ||
-      typeof raw.name !== "string" || !raw.name ||
-      typeof raw.version !== "string" || !raw.version ||
-      raw.entryManifest !== "manifest.json" ||
-      raw.checksumsFile !== CHECKSUMS_PATH
-    ) {
-      throw new Error("bundle metadata 无效。");
-    }
-    return {
-      ...raw,
-      distributionMode,
-    } as AppBundleMetadata;
-  };
-
-  private readChecksumsFromArchive = (
-    archive: Record<string, Uint8Array>,
-  ): AppBundleChecksums => {
-    const raw = this.readJsonArchiveEntry<Partial<AppBundleChecksums>>(
-      archive,
-      CHECKSUMS_PATH,
-      "bundle checksums",
-    );
-    if (raw.algorithm !== "sha256" || !raw.files || typeof raw.files !== "object") {
-      throw new Error("bundle checksums 无效。");
-    }
-    return raw as AppBundleChecksums;
-  };
-
-  private verifyArchiveChecksums = (
-    archive: Record<string, Uint8Array>,
-    checksums: AppBundleChecksums,
-  ): void => {
-    const actualPaths = Object.keys(archive)
-      .filter((entry) => entry !== CHECKSUMS_PATH)
-      .sort((left, right) => left.localeCompare(right));
-    const checksumPaths = Object.keys(checksums.files)
-      .map((entry) => this.normalizeArchiveEntry(entry))
-      .sort((left, right) => left.localeCompare(right));
-    if (
-      actualPaths.length !== checksumPaths.length ||
-      actualPaths.some((entry, index) => entry !== checksumPaths[index])
-    ) {
-      throw new Error("bundle checksums 必须精确覆盖所有 artifact 文件。");
-    }
-    for (const relativePath of actualPaths) {
-      const expectedHash = checksums.files[relativePath];
-      if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash)) {
-        throw new Error(`bundle checksum 格式无效：${relativePath}`);
-      }
-      const actualHash = this.computeSha256(archive[relativePath] as Uint8Array);
-      if (actualHash !== expectedHash) {
-        throw new Error(`bundle checksum 校验失败：${relativePath}`);
-      }
-    }
-  };
-
-  private readJsonArchiveEntry = <T>(
-    archive: Record<string, Uint8Array>,
-    entryPath: string,
-    label: string,
-  ): T => {
-    const bytes = archive[entryPath];
-    if (!bytes) {
-      throw new Error(`bundle 缺少 ${label}。`);
-    }
-    try {
-      return JSON.parse(Buffer.from(bytes).toString("utf-8")) as T;
-    } catch (error) {
-      throw new Error(`无法读取 ${label}：${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
   private buildMetadata = (
     appId: string,
     name: string,
@@ -490,19 +373,6 @@ export class AppBundleService {
 
   private normalizeBundleFileName = (appId: string): string =>
     appId.replace(/[^a-zA-Z0-9._-]+/g, "-");
-
-  private normalizeArchiveEntry = (entryName: string): string => {
-    const normalized = entryName.replace(/\\/g, "/");
-    const segments = normalized.split("/");
-    if (
-      !normalized || normalized.startsWith("/") || normalized.includes("\0") ||
-      /^[A-Za-z]:/.test(normalized) ||
-      segments.some((segment) => !segment || segment === "." || segment === "..")
-    ) {
-      throw new Error(`bundle 内包含非法路径：${entryName}`);
-    }
-    return segments.join("/");
-  };
 
   private isMissingFileError = (error: unknown): boolean =>
     typeof error === "object" && error !== null &&

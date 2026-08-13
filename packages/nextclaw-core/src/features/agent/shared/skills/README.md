@@ -27,6 +27,7 @@ The skill format and metadata structure follow OpenClaw's conventions to maintai
 | `nextclaw-skill-resource-hub` | Curate NextClaw, OpenClaw, and community skill resources |
 | `visualize-output` | Present answers and results with focused Markdown, diagrams, images, or inline HTML |
 | `nextclaw-app-creator` | Create complete NextClaw lightweight apps by choosing Panel-only, Service-only, or Panel + Service |
+| `nextclaw-app-publisher` | Validate, package, and submit Panel/Service Mini Apps to the NextClaw App Marketplace for review |
 | `panel-app-creator` | Create the Panel App UI part of a NextClaw lightweight app |
 | `service-app-creator` | Create the Service App backend action part of a NextClaw lightweight app |
 | `cross-channel-messaging` | Choose between a current reply, durable inbox delivery, and an explicit cross-channel send |

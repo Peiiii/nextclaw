@@ -15,6 +15,7 @@ export type ExistingAppRow = {
   owner_scope: string | null;
   owner_user_id: string | null;
   app_name: string | null;
+  publish_status: string | null;
   published_at: string;
 };
 
@@ -82,6 +83,41 @@ export function assertExistingAppOwnership(
   }
   if (!actor.userId || existing.owner_user_id !== actor.userId) {
     throw new DomainValidationError("you can only update apps in your own scope");
+  }
+}
+
+export function assertPersonalPublishedAppIsImmutable(
+  existing: ExistingAppRow,
+  next: MarketplaceResolvedAppIdentity,
+  actor: MarketplaceSkillPublishActor,
+): void {
+  if (
+    existing.publish_status === "published" &&
+    next.ownerScope !== "nextclaw" &&
+    actor.role !== "admin"
+  ) {
+    throw new DomainValidationError(
+      "published personal apps cannot be updated until version-level review is available; the current published version remains available",
+    );
+  }
+}
+
+export function assertAppVersionCanBeReplaced(params: {
+  existingBundleSha256?: string;
+  nextBundleSha256: string;
+  publishStatus?: string | null;
+  appId: string;
+  version: string;
+}): void {
+  const { appId, existingBundleSha256, nextBundleSha256, publishStatus, version } = params;
+  if (
+    existingBundleSha256 &&
+    existingBundleSha256 !== nextBundleSha256 &&
+    publishStatus === "published"
+  ) {
+    throw new DomainValidationError(
+      `app version is immutable: ${appId}@${version} already has a different bundle`,
+    );
   }
 }
 

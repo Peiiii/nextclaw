@@ -26,6 +26,15 @@ export class PublishCommand {
       write(`${JSON.stringify({ ok: true, publish: result }, null, 2)}\n`);
       return;
     }
+    if (result.item.publishStatus === "pending") {
+      write(
+        `Submitted ${result.item.name} (${result.item.appId}) ${result.item.latestVersion} for review.\n`,
+      );
+      write("Status: pending\n");
+      write("The app will appear in the App Marketplace after approval.\n");
+      write("Manage submissions: https://platform.nextclaw.io/apps\n");
+      return;
+    }
     write(
       `${result.created ? "Published" : "Updated"} ${result.item.name} (${result.item.appId}) ${result.item.latestVersion}\n`,
     );
