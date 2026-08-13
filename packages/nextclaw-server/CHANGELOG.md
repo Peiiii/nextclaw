@@ -1,5 +1,12 @@
 # nextclaw-server
 
+## 0.15.29
+
+### Patch Changes
+
+- Updated dependencies [298233c]
+  - @nextclaw/kernel@0.7.0
+
 ## 0.15.28
 
 ### Patch Changes
