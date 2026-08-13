@@ -42,11 +42,13 @@ pnpm -C workers/marketplace-api run deploy
 curl -sS https://marketplace-api.nextclaw.io/health
 curl -sS 'https://marketplace-api.nextclaw.io/api/v1/plugins/items?page=1&pageSize=5'
 curl -sS 'https://marketplace-api.nextclaw.io/api/v1/skills/items?page=1&pageSize=5'
+curl -sS 'https://apps-registry.nextclaw.io/api/v2/apps/items?limit=24&sort=featured'
 ```
 
 预期：
-- `/health` 返回 `ok: true` 且 `storage: "d1+r2"`
-- `/api/v1/plugins/items` 返回 `ok: true`
-- `/api/v1/skills/items` 返回 `ok: true`
+- `/health` 返回 `ok: true` 且 `data.storage: "d1+r2"`
+- `/api/v1/plugins/items` 返回 `ok: true` 且 `data.items` 非空
+- `/api/v1/skills/items` 返回 `ok: true` 且 `data.items` 非空
 - `/api/v1/skills/items` 的 skill `install.kind` 只允许 `builtin | marketplace`（若出现 `git` 说明仍是旧 worker）
-- `/api/v1/skills/items` 中可见历史迁移条目（至少包含 `pdf/docx/pptx/xlsx/bird/cloudflare-deploy`）
+- `/api/v1/skills/items` 中可见历史迁移条目（至少包含 `pdf/docx/pptx/xlsx/cloudflare-deploy`）
+- `/api/v2/apps/items` 返回 `ok: true` 且 `data.items` 非空；新消费者以此 cursor 接口为主链

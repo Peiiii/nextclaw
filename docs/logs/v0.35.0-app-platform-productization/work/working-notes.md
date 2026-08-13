@@ -2,7 +2,7 @@
 
 ## 当前目标
 
-按已冻结设计完成 v0.35.0 的实现、验证、Review、提交和适用正式发布。
+按已冻结设计完成 v0.35.0 的实现、验证、Review、提交和适用正式发布；核心产品发布已完成，X 公告受外部日限额阻塞。
 
 ## 当前事实
 
@@ -67,9 +67,8 @@
 
 ## 下一步
 
-1. 进入 Review，运行一次 diff-only maintainability guard 并收敛 findings。
-2. 为用户可见变化生成 changeset，完成 v0.35.0 版本与发布批次检查。
-3. 精确提交、回流本地 `master`、推送并执行适用的 NPM/Marketplace/Desktop 发布闭环。
+1. X 写入限额恢复后，复用冻结文案和截图只发布一次，再按 post ID 回读作者、正文和媒体。
+2. 后续独立处理 GitHub Actions Node 20 action runtime 弃用提示，不与本次产品改动混合。
 
 ## Validation 证据（2026-08-14）
 
@@ -79,10 +78,20 @@
 - 新增真实 `.napp` 纵向验证：pack → artifact validate → registry install → Service probe/run → instance data 写入 → 故障候选更新恢复旧 runtime → 旧数据复读 → 卸载两版代码并保留数据。
 - 定向 ESLint、new-code governance、governance backlog ratchet 与 `git diff --check` 通过。
 - UI production build 和真实 jsdom DOM 断言通过；没有重启用户当前 NextClaw 实例，因此未把截图作为数据/协议正确性的替代证据。
-- `check:generated-clean` 在未提交阶段按预期报告 `packages/nextclaw/ui-dist` 有更新；这是本次用户可见 UI 的受管发布产物，提交后需再次验证工作树生成物干净。
+- `check:generated-clean` 在发布提交后通过，受管 `packages/nextclaw/ui-dist` 与源码构建结果一致。
+
+## Review 与 Delivery 证据（2026-08-14）
+
+- 首轮 diff-only maintainability guard 捕获 4 个文件预算错误；按职责拆分 installation lifecycle/filesystem、package presentation 与 Service record 后，终轮为 0 error、9 个近预算 warning，主观复核 no findings。
+- 三个提交已进入并推送 `master`：功能 `298233cac`、说明 `05b72ac1f`、stable batch `eab1f2614`；九个 NPM tag 已推送。
+- 公开 NPM registry 发布 9/9 成功；`nextclaw@0.35.0` 冷安装验证 version、App entry、launcher entry、public key 和 embedded UI。
+- stable runtime workflow `31737711368` 与四平台 bundle/channel publish 全部成功，GitHub Release 和公网 manifest 指向 `0.35.0`；从 `0.34.0` 的真实 check/download/apply/new-process 升级通过。
+- Marketplace Worker Version ID `54de726b-a835-4083-a8ed-195de68fad31`；双域名 health、plugins、skills、Apps v1/v2 冒烟通过。
+- Docs Deploy `31737092325` 成功，公开部署验证匹配说明提交 `05b72ac1f`。
+- X 冻结公告尝试一次后收到错误 344；当前 query ID 已刷新，账号时间线确认无隐藏帖，按发布安全合同停止重试。
 
 ## 剩余缺口 / 交接提醒
 
-- Implementation 与 L4 Validation 主链完成，尚未做 Review/Delivery。
-- worktree 已使用锁文件和本机 pnpm store 建立独立 node_modules；目录被 Git 忽略。
-- 原主工作区存在大量无关 WIP，所有操作继续限定在当前 worktree。
+- 核心产品 Delivery 已完成；仅 X 公告仍待外部限额恢复，不能报告 `NEXTCLAW_STABLE_READY` 全表面完成。
+- 任意 migration runner/checkpoint、SQLite、多实例 UI、secret broker、OS sandbox 与 WASI network broker 仍是设计中明确延期项，不把 native chmod 误称为 sandbox。
+- 原主工作区存在大量无关 WIP，本次全过程限定在隔离 worktree，未覆盖或混入原工作区改动。

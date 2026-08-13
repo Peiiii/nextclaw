@@ -27,4 +27,13 @@
 
 ## 发布
 
-目标版本为 v0.35.0。NPM/runtime、Marketplace Worker、提交与分支闭合状态在 Delivery 阶段更新；Desktop 不在本次授权范围。
+- 功能提交 `298233cac`、发布说明提交 `05b72ac1f` 和稳定版本提交 `eab1f2614` 已进入并推送 `master`；九个 package tag 与发布提交一致。
+- `nextclaw@0.35.0` 与同批八个 `@nextclaw/*` 包已发布到公开 NPM registry，精确版本冷安装验证了 CLI version、App/launcher entry、update public key 和 embedded UI。
+- stable runtime workflow [31737711368](https://github.com/Peiiii/nextclaw/actions/runs/31737711368) 的 darwin arm64/x64、linux x64、win32 x64 与 channel publish job 全部成功；[GitHub Release](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.35.0) 和四平台公开 manifest 已验证。
+- 从公开 registry 冷装 `nextclaw@0.34.0` 后，真实完成 `check -> download-only -> apply -> 新进程 0.35.0`；download-only 没有提前切换 current pointer，apply 返回 restart-required。
+- Marketplace Worker 已部署到 `marketplace-api.nextclaw.io` / `apps-registry.nextclaw.io`，Version ID 为 `54de726b-a835-4083-a8ed-195de68fad31`；health、plugins、skills、Apps v1/v2 线上冒烟通过。
+- 双语版本说明已由 Docs Deploy [31737092325](https://github.com/Peiiii/nextclaw/actions/runs/31737092325) 上线，公开部署 commit/tree 校验通过。
+- X 公告未完成：`@XiaotiaoWang` 写入前已刷新当前 GraphQL query ID，但 X 返回日发送限额错误 344；时间线回读确认没有隐藏落帖，因此没有盲目重试或制造重复帖。
+- Desktop 不属于本次常规 NextClaw stable 授权范围，未发布 installer/DMG/update channel。
+
+GitHub Actions 仅报告旧 Node 20 action runtime 的弃用提示，runner 已自动使用 Node 24；本次没有失败 job，该提示保留为后续 CI 基础设施债务。
