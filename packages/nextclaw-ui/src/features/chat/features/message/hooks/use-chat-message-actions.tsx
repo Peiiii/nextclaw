@@ -24,6 +24,10 @@ type EditingMessageState = {
   readonly snapshot: SessionMessageComposerSnapshot;
 };
 
+function createEditedMessageId(): string {
+  return `edited-message-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function hasSendableParts(parts: NcpMessage['parts']): boolean {
   return parts.some((part) =>
     part.type === 'text' || part.type === 'rich-text' || part.type === 'reasoning'
@@ -153,7 +157,7 @@ export function useChatMessageActions({
       messageId: editingMessage.message.id,
       message: {
         ...editingMessage.message,
-        id: `edited-message-${globalThis.crypto.randomUUID()}`,
+        id: createEditedMessageId(),
         metadata: buildEditedMessageMetadata(
           editingMessage.message,
           editingMessage.snapshot,
