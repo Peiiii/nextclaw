@@ -18,6 +18,7 @@ import {
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useUiShowContentEvent } from "@/features/chat/features/ncp/hooks/use-ui-show-content-event";
+import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 
 function useNcpChatRouteSelection() {
   const { sessionId: routeSessionIdParam } = useParams<{ sessionId?: string }>();
@@ -64,14 +65,28 @@ function NcpChatPageContent({ view }: ChatPageProps) {
   const confirmDialog = useNcpChatUiBindings();
   const routeSelection = useNcpChatRouteSelection();
   const { routeSessionKey, sessionKey } = routeSelection;
+  const visibleWorkspaceSessionKey = useChatThreadStore((state) => {
+    const { snapshot } = state;
+    if (
+      snapshot.workspacePanelParentKey !== (sessionKey ?? null) ||
+      snapshot.activeWorkspacePanelKind !== "child-session"
+    ) {
+      return null;
+    }
+    return snapshot.activeChildSessionKey?.trim() || null;
+  });
   useEffect(() => {
-    appPresenter.chatCompletionNotificationManager.syncActiveSession(
-      sessionKey ?? null,
+    appPresenter.chatCompletionNotificationManager.syncVisibleSessions(
+      [sessionKey, visibleWorkspaceSessionKey],
     );
     return () => {
-      appPresenter.chatCompletionNotificationManager.syncActiveSession(null);
+      appPresenter.chatCompletionNotificationManager.syncVisibleSessions([]);
     };
-  }, [appPresenter.chatCompletionNotificationManager, sessionKey]);
+  }, [
+    appPresenter.chatCompletionNotificationManager,
+    sessionKey,
+    visibleWorkspaceSessionKey,
+  ]);
   useChatQueryStoreSync({
     sessionKey: sessionKey ?? null,
   });

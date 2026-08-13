@@ -61,7 +61,7 @@ function readAssistantReplyPreview(message: NcpMessage): string {
 export class ChatCompletionNotificationManager {
   private readonly cleanups: Array<() => void> = [];
   private readonly handledMessageIds = new Set<string>();
-  private activeSessionId: string | null = null;
+  private visibleSessionIds = new Set<string>();
   private started = false;
 
   constructor(
@@ -88,8 +88,14 @@ export class ChatCompletionNotificationManager {
     }
   };
 
-  syncActiveSession = (sessionId: string | null): void => {
-    this.activeSessionId = sessionId?.trim() || null;
+  syncVisibleSessions = (
+    sessionIds: readonly (string | null | undefined)[],
+  ): void => {
+    this.visibleSessionIds = new Set(
+      sessionIds
+        .map((sessionId) => sessionId?.trim())
+        .filter((sessionId): sessionId is string => Boolean(sessionId)),
+    );
   };
 
   private readonly handleNcpEvent = (event: NcpEndpointEvent): void => {
@@ -109,7 +115,7 @@ export class ChatCompletionNotificationManager {
       return;
     }
     this.rememberHandledMessage(message.id);
-    if (sessionId === this.activeSessionId) {
+    if (this.visibleSessionIds.has(sessionId)) {
       return;
     }
 

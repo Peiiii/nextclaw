@@ -444,7 +444,7 @@ export function ChatSessionWorkspacePanelContent({
         ) : null}
       </div>
       {projectFilesActive ? null : (
-        <div className="min-w-0 min-h-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <WorkspaceSelectedContent
             {...selectedContentProps}
             activeSelection={activeSelection}

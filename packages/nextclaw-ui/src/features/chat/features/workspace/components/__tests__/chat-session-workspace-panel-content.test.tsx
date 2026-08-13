@@ -205,7 +205,7 @@ function createChildTab(): ResolvedChildSessionTab {
   };
 }
 
-it('shows compact child session metadata without repeating the tab title', () => {
+it('shows compact child session metadata in a full-height column layout', () => {
   render(
     <ChatSessionWorkspacePanelContent
       activeSelection={{
@@ -226,6 +226,11 @@ it('shows compact child session metadata without repeating the tab title', () =>
   expect(screen.getByText('minimax/MiniMax-M3')).toBeTruthy();
   expect(screen.getByText('nextbot')).toBeTruthy();
   expect(screen.getByTitle('/Users/peiwang/Projects/nextbot')).toBeTruthy();
+  const conversationArea = screen.getByTestId('session-conversation-area');
+  const selectedContentHost = conversationArea.parentElement?.parentElement;
+  expect(Array.from(selectedContentHost?.classList ?? [])).toEqual(
+    expect.arrayContaining(['flex', 'min-h-0', 'flex-1', 'flex-col']),
+  );
 });
 
 it('shows all session workspace entries in the overview', async () => {

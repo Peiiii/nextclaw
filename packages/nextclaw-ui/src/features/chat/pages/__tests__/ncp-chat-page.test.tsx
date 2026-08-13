@@ -1,17 +1,18 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppPresenterProvider } from '@/app/components/app-presenter-provider';
 import { NcpChatPage } from '@/features/chat/pages/ncp-chat-page';
 import { buildSessionPath } from '@/features/chat/features/session/utils/chat-session-route.utils';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
 const mocks = vi.hoisted(() => ({
   confirm: vi.fn(),
   consumePending: vi.fn(() => null),
   markConsumed: vi.fn(),
   subscribe: vi.fn(() => vi.fn()),
-  syncActiveSession: vi.fn(),
+  syncVisibleSessions: vi.fn(),
   useChatSessionSync: vi.fn(),
 }));
 
@@ -24,7 +25,7 @@ vi.mock('@/app/presenters/app.presenter', () => ({
       subscribe: mocks.subscribe,
     },
     chatCompletionNotificationManager: {
-      syncActiveSession: mocks.syncActiveSession,
+      syncVisibleSessions: mocks.syncVisibleSessions,
     },
   }),
 }));
@@ -57,8 +58,13 @@ vi.mock('@/features/chat/features/ncp/hooks/use-ui-show-content-event', () => ({
 
 describe('NcpChatPage render boundary', () => {
   beforeEach(() => {
-    mocks.syncActiveSession.mockReset();
+    mocks.syncVisibleSessions.mockReset();
     mocks.useChatSessionSync.mockReset();
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: null,
+      activeWorkspacePanelKind: null,
+      activeChildSessionKey: null,
+    });
   });
 
   it('creates its chat presenter from the global app presenter provider', () => {
@@ -74,8 +80,13 @@ describe('NcpChatPage render boundary', () => {
     expect(mocks.useChatSessionSync).toHaveBeenCalledOnce();
   });
 
-  it('syncs the active route session and clears it when chat unmounts', () => {
+  it('tracks visible route and workspace sessions, then clears them when chat unmounts', async () => {
     const sessionPath = buildSessionPath('session-background');
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: 'session-background',
+      activeWorkspacePanelKind: 'child-session',
+      activeChildSessionKey: 'session-child',
+    });
     const view = render(
       <MemoryRouter initialEntries={[sessionPath]}>
         <AppPresenterProvider>
@@ -86,8 +97,24 @@ describe('NcpChatPage render boundary', () => {
       </MemoryRouter>,
     );
 
-    expect(mocks.syncActiveSession).toHaveBeenCalledWith('session-background');
+    expect(mocks.syncVisibleSessions).toHaveBeenCalledWith([
+      'session-background',
+      'session-child',
+    ]);
+
+    act(() => {
+      useChatThreadStore.getState().setSnapshot({
+        activeWorkspacePanelKind: 'file',
+      });
+    });
+    await waitFor(() => {
+      expect(mocks.syncVisibleSessions).toHaveBeenLastCalledWith([
+        'session-background',
+        null,
+      ]);
+    });
+
     view.unmount();
-    expect(mocks.syncActiveSession).toHaveBeenLastCalledWith(null);
+    expect(mocks.syncVisibleSessions).toHaveBeenLastCalledWith([]);
   });
 });

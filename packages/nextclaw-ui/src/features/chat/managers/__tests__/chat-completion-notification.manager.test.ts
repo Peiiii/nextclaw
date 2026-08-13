@@ -101,13 +101,13 @@ describe("ChatCompletionNotificationManager", () => {
     });
   });
 
-  it("suppresses messages completed in the active session, including later replays", () => {
+  it("suppresses messages completed in any visible session, including later replays", () => {
     manager.start();
-    manager.syncActiveSession("session-background");
+    manager.syncVisibleSessions(["session-main", "session-background"]);
     emit(createCompletedEvent());
     expect(show).not.toHaveBeenCalled();
 
-    manager.syncActiveSession(null);
+    manager.syncVisibleSessions(["session-main"]);
     emit(createCompletedEvent());
     expect(show).not.toHaveBeenCalled();
 
