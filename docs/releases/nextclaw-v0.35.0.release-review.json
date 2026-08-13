@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.35.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-14-nextclaw-v0-35-0.md",
+        "apps/docs/en/notes/2026-08-14-nextclaw-v0-35-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.35.0.json"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "本次变化强化既有 Apps 的数据、更新与权限可靠性，不改变 NextClaw 官网首页的产品定位；双语版本页、产品内 Apps 管理面和 X 公告已经提供准确入口。"
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.35.0 is out.\n\nApps now separate code from data. Failed updates keep the current version running, and uninstall preserves personal data. Native Services show real full-user access.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-35-0",
+      "imagePath": "images/screenshots/nextclaw-personal-space-apps-en.png",
+      "imageAlt": "NextClaw Apps view showing the Personal Space app and its installed panels",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-35-0"
+    }
+  }
+}

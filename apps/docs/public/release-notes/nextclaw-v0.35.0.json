@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.35.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-14",
+  "title": {
+    "zh-CN": "NextClaw v0.35.0",
+    "en-US": "NextClaw v0.35.0"
+  },
+  "summary": {
+    "zh-CN": "通过独立 App Instance、候选版本探测、数据保留卸载和真实权限标识，让 Apps 成为可以长期使用的个人软件。",
+    "en-US": "Makes Apps dependable personal software with independent instances, candidate probing, data-preserving uninstall, and truthful permission labels."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-14-nextclaw-v0-35-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-35-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "独立 App Instance", "en-US": "Independent App Instances" },
+          "body": {
+            "zh-CN": "每个实例分别管理 data、config、state、cache、tmp 和 logs，应用代码与个人数据不再共用生命周期。",
+            "en-US": "Each instance separates data, config, state, cache, tmp, and logs so app code and personal data no longer share a lifecycle."
+          }
+        },
+        {
+          "title": { "zh-CN": "先探测、后更新", "en-US": "Probe before activation" },
+          "body": {
+            "zh-CN": "候选版本通过完整性、兼容性、数据 schema 和 Service 启动探测后才切换；失败时旧版本继续可用。",
+            "en-US": "Candidates become active only after integrity, compatibility, data-schema, and Service startup checks; failures leave the current version available."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "真实存储与权限信息", "en-US": "Truthful storage and access details" },
+          "body": {
+            "zh-CN": "Apps 显示数据位置、占用、runtime profile 与隔离等级，并把原生进程明确标记为当前用户完整权限。",
+            "en-US": "Apps shows data location, usage, runtime profile, and isolation, and labels native processes as full access under the current user."
+          }
+        },
+        {
+          "title": { "zh-CN": "更安全的公开目录", "en-US": "Safer public catalog" },
+          "body": {
+            "zh-CN": "Marketplace 从包内归一化能力，社区原生 Service App 不再直接进入公开目录。",
+            "en-US": "Marketplace derives capabilities from the package and prevents community native Service Apps from entering the public catalog directly."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "稳定的开发态数据", "en-US": "Stable development data" },
+          "body": {
+            "zh-CN": "开发态 Service 使用稳定实例目录，不再随临时运行目录删除数据。",
+            "en-US": "Development Services use stable instance directories instead of losing data with temporary runtime directories."
+          }
+        },
+        {
+          "title": { "zh-CN": "授权不跨风险升级", "en-US": "Grants do not cross risk escalation" },
+          "body": {
+            "zh-CN": "Service action 的风险提高后必须重新授权，旧 grant 不再自动匹配。",
+            "en-US": "A Service action requires a new grant after its risk is raised; the previous grant no longer matches."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "保留数据的兼容升级", "en-US": "Compatible, data-preserving upgrade" },
+          "body": {
+            "zh-CN": "既有 .napp 和 schema v1 应用继续可用；卸载默认保留数据，缺少迁移合同的 schema 变化会在激活前阻止。",
+            "en-US": "Existing .napp and schema v1 apps remain supported; uninstall keeps data by default, while schema changes without a migration contract are blocked before activation."
+          }
+        }
+      ]
+    }
+  ]
+}

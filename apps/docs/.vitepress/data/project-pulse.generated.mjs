@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-13T04:19:55.089Z",
+  "generatedAt": "2026-08-13T19:39:51.713Z",
   "hero": {
     "currentLoc": 241252,
     "testLoc": 95645,
     "trackedFiles": 2561,
-    "recentCommitCount": 397,
+    "recentCommitCount": 404,
     "activeDays30": 30,
     "recentReleaseCount": 53,
-    "latestReleaseDate": "2026-08-13",
-    "latestNoteDate": "2026-08-13",
+    "latestReleaseDate": "2026-08-14",
+    "latestNoteDate": "2026-08-14",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2502082,
     "basePercentOfBenchmark": 9.64,
@@ -1243,7 +1243,7 @@ export default {
       {
         "key": "2026-08-13",
         "label": "08-13",
-        "value": 13
+        "value": 20
       }
     ],
     "commitWeekly": [
@@ -1305,7 +1305,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 58
+        "value": 78
       }
     ],
     "releaseMonthly": [
@@ -1367,7 +1367,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 8
+        "value": 9
       }
     ]
   },
@@ -1438,8 +1438,17 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-08-14",
+        "tagCount": 22,
+        "sampleTags": [
+          "@nextclaw/app-runtime@0.10.0",
+          "@nextclaw/channel-extension-dingtalk@0.2.25",
+          "@nextclaw/channel-extension-discord@0.2.25"
+        ]
+      },
+      {
         "date": "2026-08-13",
-        "tagCount": 30,
+        "tagCount": 40,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.6.24",
           "@nextclaw/app-runtime@0.9.15",
@@ -1479,20 +1488,49 @@ export default {
         "sampleTags": [
           "v0.29.0-desktop.1"
         ]
-      },
-      {
-        "date": "2026-08-08",
-        "tagCount": 43,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.6.21",
-          "@nextclaw/channel-extension-dingtalk@0.2.20",
-          "@nextclaw/channel-extension-discord@0.2.20"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-14-nextclaw-v0-35-0",
+        "date": "2026-08-14",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-14 · NextClaw v0.35.0",
+          "description": "NextClaw v0.35.0 adds isolated app-instance storage, candidate probing, and truthful permission labels so installs, updates, and uninstalls are dependable over time.",
+          "href": "/en/notes/2026-08-14-nextclaw-v0-35-0"
+        },
+        "zh": {
+          "title": "2026-08-14 · NextClaw v0.35.0",
+          "description": "NextClaw v0.35.0 为 Apps 增加独立实例存储、候选版本探测和真实权限标识，让安装、更新与卸载达到长期可用级别。",
+          "href": "/zh/notes/2026-08-14-nextclaw-v0-35-0"
+        }
+      },
+      {
+        "slug": "2026-08-13-nextclaw-v0-33-2",
+        "date": "2026-08-13",
+        "tags": [
+          "release",
+          "apps",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-13 · NextClaw v0.33.2",
+          "description": "NextClaw v0.33.2 fixes app update errors and turns Personal Space todos and calendar into practical everyday Mini Apps.",
+          "href": "/en/notes/2026-08-13-nextclaw-v0-33-2"
+        },
+        "zh": {
+          "title": "2026-08-13 · NextClaw v0.33.2",
+          "description": "NextClaw v0.33.2 修复应用检查更新报错，并把个人空间的待办和日历升级为可日常使用的 Mini APP。",
+          "href": "/zh/notes/2026-08-13-nextclaw-v0-33-2"
+        }
+      },
       {
         "slug": "2026-08-13-nextclaw-v0-33-1",
         "date": "2026-08-13",
@@ -2246,7 +2284,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-13T04:19:53.173Z",
     "sourceCount": {
-      "notes": 35,
+      "notes": 37,
       "scopes": 8
     }
   }
