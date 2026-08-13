@@ -15,12 +15,20 @@
 - `@nextclaw/service` TypeScript 编译与触达文件定向 ESLint 通过，`git diff --check` 通过。
 - 使用已发布且 SHA-256 校验通过的 `0.33.0` 官方 runtime 包作为依赖底座，生成当前源码的本地签名更新通道。
 - 隔离实例从 `0.33.0-dev.0` 完成下载、验签、apply 和自动重连；PID 从 `42764` 切换为 `43627`，运行版本变为 `0.33.0`，current pointer 更新，18 个内置 skill 可读取。
-- 发布后还需在目标 VPS 上验证真实 systemd PID 切换、版本一致、公网入口和一次真实任务。
+- 已完成已发布包安装验证：全新安装 `nextclaw@0.33.1` 后，CLI、launcher、app、更新公钥和 UI 资源齐全；公开 stable 通道从 `0.33.0` 完成 check、download、apply 和重启后版本切换，download-only 不提前切换指针。
+- 已在目标 VPS `8.219.57.52` 完成真实部署验收：systemd MainPID 从 `994055` 切换为 `1002378`，`nextclaw --version`、全局 package 与 update check 的 host/current version 均为 `0.33.1`，页面显示 `v0.33.1 / 已连接`。
+- VPS 本机 `/` 与 `/api/health` 均返回 `200`，`18791` 正常监听；最近 20 分钟 journal 无 crash loop、未处理异常或连续重启。
+- 在升级后的实例内实际执行 agent 任务并运行 Node 命令，成功返回 `NEXTCLAW_VPS_0331_OK`，证明页面、模型、agent、工具执行与服务主链路可用。
+- 真实任务运行期间两个 NextClaw Node 进程 RSS 合计约 `482.7 MiB`，systemd cgroup `MemoryCurrent` 约 `625 MiB`（包含 page cache）；这是任务运行态采样，不作为空闲基线。
 
 ## 发布/部署方式
 
-- 计划以 `nextclaw@0.33.1` stable patch 发布 NPM package、runtime update channel、GitHub Release 与 release notes。
-- 发布后在 `8.219.57.52` 更新并迁移 systemd unit，启动服务并验证公网访问。
+- 已发布 `nextclaw@0.33.1` 与 `@nextclaw/service@0.3.28`，npm `latest`、stable runtime channel、GitHub Release 和 release notes 均完成。
+- stable release commit 为 `b4d29b67019c5d6908b57b2a86c87ff8d0f71215`；runtime workflow `31661406009` 的四个平台构建与 channel publish 全部通过。
+- 文档部署 workflow `31661954477` 首次因 Electron 下载 `socket hang up` 失败；对同一提交重跑后，构建、全球站、国内站和双站同产物验证全部通过。
+- VPS 已更新全局包、将 systemd unit 迁移为稳定 `/usr/bin/nextclaw serve` 入口，写入 `NEXTCLAW_PROCESS_SUPERVISOR=systemd` 与 `Restart=always`，并完成一次受控重启。
+- 旧 unit 已备份为 `/etc/systemd/system/nextclaw.service.bak-20260813-0331`；验收确认备份与当前 unit 不同且可用于人工追溯。
+- `/home/admin/.nextclaw/launcher/runtime-bundles/current.json` 仍保留旧 override 指针 `0.33.0`，但当前服务直接运行全局 `0.33.1` app，公开 update check 返回 `hostVersion=currentVersion=0.33.1`、`status=up-to-date`；该旧指针未参与当前运行版本选择。
 
 ## 用户/产品视角的验收步骤
 
@@ -37,5 +45,5 @@
 
 ## NPM 包发布记录
 
-- `nextclaw`：需要 patch，计划发布 `0.33.1`，当前状态为 `待统一发布`。
-- `@nextclaw/service`：需要 patch，当前版本 `0.3.27`，目标版本由 Changesets 发布闭包确定，当前状态为 `待统一发布`。
+- `nextclaw`：已发布 `0.33.1`，npm `latest` 与公开 stable runtime channel 均已验证。
+- `@nextclaw/service`：已发布 `0.3.28`，作为 `nextclaw@0.33.1` 发布闭包的一部分完成真实安装验证。
