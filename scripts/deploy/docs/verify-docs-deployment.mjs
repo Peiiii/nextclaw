@@ -6,6 +6,9 @@ const sites = [
   { domain: 'docs.nextclaw.net', name: 'domestic' },
 ];
 const routes = ['/', '/zh/', '/zh/guide/getting-started', '/en/', '/en/guide/getting-started'];
+const fetchAttempts = 4;
+const fetchRetryDelayMs = 5_000;
+const retryableHttpStatuses = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 function readOption(name) {
   const index = process.argv.indexOf(`--${name}`);
@@ -18,14 +21,40 @@ function requireCheck(condition, message) {
   }
 }
 
-async function fetchResponse(url) {
-  const response = await fetch(url, {
-    cache: 'no-store',
-    redirect: 'follow',
-    signal: globalThis.AbortSignal.timeout(20_000),
-  });
-  requireCheck(response.ok, `${url} returned ${response.status}`);
-  return response;
+function wait(durationMs) {
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
+async function fetchResponse(url, attempt = 1) {
+  let response;
+  try {
+    response = await fetch(url, {
+      cache: 'no-store',
+      redirect: 'follow',
+      signal: globalThis.AbortSignal.timeout(20_000),
+    });
+  } catch (error) {
+    if (attempt >= fetchAttempts) {
+      throw error;
+    }
+
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn(`[docs-verify] ${url} attempt ${attempt}/${fetchAttempts} failed: ${reason}; retrying`);
+    await wait(fetchRetryDelayMs);
+    return fetchResponse(url, attempt + 1);
+  }
+
+  if (response.ok) {
+    return response;
+  }
+
+  if (!retryableHttpStatuses.has(response.status) || attempt >= fetchAttempts) {
+    throw new Error(`${url} returned ${response.status}`);
+  }
+
+  console.warn(`[docs-verify] ${url} attempt ${attempt}/${fetchAttempts} returned ${response.status}; retrying`);
+  await wait(fetchRetryDelayMs);
+  return fetchResponse(url, attempt + 1);
 }
 
 async function verifySite(site, expectedCommit, expectedTree) {
