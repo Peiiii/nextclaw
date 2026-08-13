@@ -65,6 +65,10 @@ vi.mock('@/features/apps/hooks/use-app-packages', () => ({
             packageId: 'nextclaw.personal-organizer',
             packageVersion: '0.1.0',
             sourcePath: '/tmp/app/todos.panel',
+            instanceId: 'default',
+            isolation: 'full-user',
+            runtimeProfile: 'native-process',
+            storage: createStorageFixture(),
             title: 'Todos',
           },
           {
@@ -75,6 +79,10 @@ vi.mock('@/features/apps/hooks/use-app-packages', () => ({
             packageId: 'nextclaw.personal-organizer',
             packageVersion: '0.1.0',
             sourcePath: '/tmp/app/data',
+            instanceId: 'default',
+            isolation: 'full-user',
+            runtimeProfile: 'native-process',
+            storage: createStorageFixture(),
             title: 'Personal data',
           },
         ],
@@ -83,8 +91,21 @@ vi.mock('@/features/apps/hooks/use-app-packages', () => ({
         enabled: mocks.enabled,
         id: 'nextclaw.personal-organizer',
         installedVersions: ['0.1.0'],
+        instanceId: 'default',
+        isolation: 'full-user',
         name: 'Personal Space',
         primaryPanelId: 'nextclaw-personal-organizer-todos',
+        runtimeProfile: 'native-process',
+        storage: createStorageFixture(),
+        storageUsage: {
+          dataBytes: 128,
+          configBytes: 0,
+          stateBytes: 0,
+          cacheBytes: 0,
+          temporaryBytes: 0,
+          logsBytes: 0,
+          totalBytes: 128,
+        },
       }],
     },
     error: null,
@@ -93,6 +114,21 @@ vi.mock('@/features/apps/hooks/use-app-packages', () => ({
     refetch: mocks.refetchPackages,
   }),
 }));
+
+function createStorageFixture() {
+  return {
+    layout: 'instance-v1' as const,
+    layoutVersion: 1 as const,
+    instanceId: 'default',
+    instanceDirectory: '/tmp/instance',
+    dataDirectory: '/tmp/data',
+    configDirectory: '/tmp/config',
+    stateDirectory: '/tmp/state',
+    cacheDirectory: '/tmp/cache',
+    temporaryDirectory: '/tmp/tmp',
+    logsDirectory: '/tmp/logs',
+  };
+}
 
 vi.mock('@/features/apps/hooks/use-app-marketplace', () => ({
   useAppMarketplace: () => ({

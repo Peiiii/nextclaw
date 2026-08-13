@@ -3,6 +3,7 @@ import type { MarketplaceSkillPublishActor } from "@/infrastructure/skills/d1-se
 import { D1MarketplaceAppDataSource } from "@/infrastructure/apps/d1-marketplace-app.repository";
 import {
   assertAppVersionCanBeReplaced,
+  assertAppCanBePubliclyListed,
   assertPersonalPublishedAppIsImmutable,
   type ExistingAppRow,
   type MarketplaceResolvedAppIdentity,
@@ -93,6 +94,47 @@ describe("assertAppVersionCanBeReplaced", () => {
         version: "0.1.0",
       }),
     ).toThrow("app version is immutable");
+  });
+});
+
+describe("assertAppCanBePubliclyListed", () => {
+  it("blocks community native process apps from the public catalog", () => {
+    expect(() => assertAppCanBePubliclyListed({
+      ownerScope: "peiwang",
+      manifestJson: JSON.stringify({
+        schemaVersion: 2,
+        components: [{ kind: "service", path: "services/notes" }],
+      }),
+    })).toThrow("cannot be listed publicly");
+  });
+
+  it("allows community panel-only and WASI apps", () => {
+    expect(() => assertAppCanBePubliclyListed({
+      ownerScope: "peiwang",
+      manifestJson: JSON.stringify({
+        schemaVersion: 2,
+        runtime: { profile: "panel-only" },
+        components: [{ kind: "panel", path: "panels/notes.panel" }],
+      }),
+    })).not.toThrow();
+    expect(() => assertAppCanBePubliclyListed({
+      ownerScope: "peiwang",
+      manifestJson: JSON.stringify({
+        schemaVersion: 2,
+        runtime: { profile: "wasi" },
+        components: [{ kind: "service", path: "services/notes" }],
+      }),
+    })).not.toThrow();
+  });
+
+  it("allows official native process apps while keeping the risk visible", () => {
+    expect(() => assertAppCanBePubliclyListed({
+      ownerScope: "nextclaw",
+      manifestJson: JSON.stringify({
+        schemaVersion: 2,
+        components: [{ kind: "service", path: "services/notes" }],
+      }),
+    })).not.toThrow();
   });
 });
 

@@ -429,6 +429,38 @@ describe("ServiceAppManager batch action grants", () => {
 });
 
 describe("ServiceAppManager action catalog", () => {
+  it("requires a new grant when an update changes an action risk", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath, { actions: { read: { risk: "read" } } });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: createRuntime({
+        id: "notes.read",
+        appId: "notes",
+        name: "read",
+        risk: "read",
+      }),
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+    await manager.grantServiceAction("notes.read", {
+      caller,
+      declaredActions: ["notes.read"],
+    });
+
+    writeServiceApp(workspacePath, { actions: { read: { risk: "dangerous" } } });
+
+    await expect(manager.listServiceActions({
+      caller,
+      declaredActions: ["notes.read"],
+    })).resolves.toEqual([
+      expect.objectContaining({
+        id: "notes.read",
+        risk: "dangerous",
+        grantState: "not-granted",
+      }),
+    ]);
+  });
+
   it("marks grant state from the caller and panel declaration", async () => {
     const workspacePath = createTempDir();
     writeServiceApp(workspacePath);

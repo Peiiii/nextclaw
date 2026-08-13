@@ -9,6 +9,7 @@ import type {
   AppManifestBundle,
   AppManifestSummary,
   AppPermissions,
+  AppPlatformSecuritySummary,
   AppResolvedComponent,
   AppStandaloneManifest,
   AppStandaloneManifestBundle,
@@ -41,6 +42,7 @@ export class AppManifestService {
         iconPath: componentBundle.iconPath,
         primaryPanelId: componentBundle.primaryPanelId,
         components: componentBundle.components,
+        security: this.resolvePlatformSecurity(componentBundle.manifest),
       };
     }
     const standaloneBundle = bundle as AppStandaloneManifestBundle;
@@ -172,12 +174,52 @@ export class AppManifestService {
         permissions: this.parsePermissions(candidate.permissions),
       };
     }
+    const components = this.parseComponents(candidate.components);
+    const runtime = this.parseRuntime(candidate.runtime);
+    this.assertRuntimeMatchesComponents(runtime, components);
     return {
       schemaVersion: 2,
       ...common,
       engines: this.parseEngines(candidate.engines),
       presentation: this.parsePresentation(candidate.presentation),
-      components: this.parseComponents(candidate.components),
+      runtime,
+      storage: this.parseAppStorage(candidate.storage),
+      permissions: this.parsePermissions(candidate.permissions),
+      components,
+    };
+  };
+
+  resolvePlatformSecurity = (
+    manifest: AppComponentManifest,
+  ): AppPlatformSecuritySummary => {
+    const hasServiceComponents = manifest.components.some(
+      (component) => component.kind === "service",
+    );
+    const runtimeProfile = manifest.runtime?.profile ?? (
+      hasServiceComponents ? "native-process" : "panel-only"
+    );
+    const isolation = runtimeProfile === "panel-only"
+      ? "sandboxed"
+      : runtimeProfile === "wasi"
+        ? "host-mediated"
+        : "full-user";
+    const declaredPermissions = manifest.permissions ?? {};
+    const permissions: AppPermissions = runtimeProfile === "native-process"
+      ? {
+          ...declaredPermissions,
+          storage: declaredPermissions.storage ?? true,
+          capabilities: {
+            ...declaredPermissions.capabilities,
+            nativeProcess: true,
+          },
+        }
+      : declaredPermissions;
+    return {
+      runtimeProfile,
+      isolation,
+      hasServiceComponents,
+      inferred: manifest.runtime === undefined,
+      permissions,
     };
   };
 
@@ -276,6 +318,54 @@ export class AppManifestService {
     };
   };
 
+  private parseRuntime = (
+    rawRuntime: unknown,
+  ): AppComponentManifest["runtime"] => {
+    if (rawRuntime === undefined) {
+      return undefined;
+    }
+    const candidate = this.assertObject(rawRuntime, "runtime");
+    const profile = this.readRequiredString(candidate.profile, "runtime.profile");
+    if (profile !== "panel-only" && profile !== "wasi" && profile !== "native-process") {
+      throw new Error("runtime.profile 只支持 panel-only、wasi 或 native-process。");
+    }
+    return { profile };
+  };
+
+  private parseAppStorage = (
+    rawStorage: unknown,
+  ): AppComponentManifest["storage"] => {
+    if (rawStorage === undefined) {
+      return undefined;
+    }
+    const candidate = this.assertObject(rawStorage, "storage");
+    const scope = this.readRequiredString(candidate.scope, "storage.scope");
+    if (scope !== "global") {
+      throw new Error("当前 storage.scope 只支持 global。");
+    }
+    const schemaVersion = this.readNumber(candidate.schemaVersion, "storage.schemaVersion");
+    if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1) {
+      throw new Error("storage.schemaVersion 必须是正整数。");
+    }
+    return { scope, schemaVersion };
+  };
+
+  private assertRuntimeMatchesComponents = (
+    runtime: AppComponentManifest["runtime"],
+    components: AppComponentReference[],
+  ): void => {
+    if (!runtime) {
+      return;
+    }
+    const hasService = components.some((component) => component.kind === "service");
+    if (runtime.profile === "panel-only" && hasService) {
+      throw new Error("runtime.profile=panel-only 不能包含 Service component。");
+    }
+    if (runtime.profile !== "panel-only" && !hasService) {
+      throw new Error(`${runtime.profile} runtime 必须包含 Service component。`);
+    }
+  };
+
   private readComponentId = async (
     component: AppComponentReference,
     componentDirectory: string,
@@ -366,6 +456,9 @@ export class AppManifestService {
       hostBridge: candidate.hostBridge === undefined
         ? undefined
         : this.readBoolean(candidate.hostBridge, "permissions.capabilities.hostBridge"),
+      nativeProcess: candidate.nativeProcess === undefined
+        ? undefined
+        : this.readBoolean(candidate.nativeProcess, "permissions.capabilities.nativeProcess"),
     };
   };
 

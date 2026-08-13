@@ -45,7 +45,7 @@ export class MarketplaceAppPayloadParser {
       publisher: this.readPublisherInput(candidate.publisher),
       visuals: this.readVisuals(candidate.visuals),
       manifest,
-      permissions: this.readPermissions(candidate.permissions),
+      permissions: this.resolvePermissions(manifest, candidate.permissions),
       distributionMode,
       bundleBase64: this.readString(candidate.bundleBase64, "bundleBase64"),
       bundleSha256: this.readString(candidate.bundleSha256, "bundleSha256"),
@@ -134,30 +134,7 @@ export class MarketplaceAppPayloadParser {
   private readComponentManifest = (
     candidate: Record<string, unknown>,
   ): Extract<MarketplaceAppManifest, { schemaVersion: 2 }> => {
-    if (!Array.isArray(candidate.components) || candidate.components.length === 0) {
-      throw new DomainValidationError("manifest.components must be a non-empty array");
-    }
-    const paths = new Set<string>();
-    const components = candidate.components.map((rawComponent, index) => {
-      if (!rawComponent || typeof rawComponent !== "object" || Array.isArray(rawComponent)) {
-        throw new DomainValidationError(`manifest.components[${index}] must be an object`);
-      }
-      const component = rawComponent as Record<string, unknown>;
-      const kind = this.readString(component.kind, `manifest.components[${index}].kind`);
-      if (kind !== "panel" && kind !== "service") {
-        throw new DomainValidationError(`manifest.components[${index}].kind must be panel or service`);
-      }
-      const componentKind: "panel" | "service" = kind;
-      const componentPath = this.readRelativePath(
-        component.path,
-        `manifest.components[${index}].path`,
-      );
-      if (paths.has(componentPath)) {
-        throw new DomainValidationError(`manifest.components contains duplicate path: ${componentPath}`);
-      }
-      paths.add(componentPath);
-      return { kind: componentKind, path: componentPath };
-    });
+    const components = this.readComponentReferences(candidate.components);
     const engines = this.readOptionalRecord(candidate.engines, "manifest.engines");
     const presentation = this.readOptionalRecord(candidate.presentation, "manifest.presentation");
     const nextclawEngine = engines
@@ -166,6 +143,24 @@ export class MarketplaceAppPayloadParser {
     const primaryPanel = presentation
       ? this.readOptionalString(presentation.primaryPanel, "manifest.presentation.primaryPanel")
       : undefined;
+    const hasService = components.some((component) => component.kind === "service");
+    const runtimeProfile = this.readRuntimeProfile(candidate.runtime, hasService);
+    const storage = this.readOptionalRecord(candidate.storage, "manifest.storage");
+    const storageScope = storage
+      ? this.readString(storage.scope, "manifest.storage.scope")
+      : undefined;
+    const storageSchemaVersion = storage?.schemaVersion;
+    if (storageScope !== undefined && storageScope !== "global") {
+      throw new DomainValidationError("manifest.storage.scope must be global");
+    }
+    if (
+      storageSchemaVersion !== undefined &&
+      (typeof storageSchemaVersion !== "number" ||
+        !Number.isSafeInteger(storageSchemaVersion) ||
+        storageSchemaVersion < 1)
+    ) {
+      throw new DomainValidationError("manifest.storage.schemaVersion must be a positive integer");
+    }
     return {
       schemaVersion: 2,
       id: this.readString(candidate.id, "manifest.id"),
@@ -175,7 +170,108 @@ export class MarketplaceAppPayloadParser {
       icon: this.readOptionalString(candidate.icon, "manifest.icon"),
       engines: nextclawEngine ? { nextclaw: nextclawEngine } : undefined,
       presentation: primaryPanel ? { primaryPanel } : undefined,
+      runtime: runtimeProfile
+        ? { profile: runtimeProfile }
+        : undefined,
+      storage: storageScope && typeof storageSchemaVersion === "number"
+        ? { scope: storageScope, schemaVersion: storageSchemaVersion }
+        : undefined,
+      permissions: this.readPermissions(candidate.permissions),
       components,
+    };
+  };
+
+  private readRuntimeProfile = (
+    rawRuntime: unknown,
+    hasService: boolean,
+  ): "panel-only" | "wasi" | "native-process" | undefined => {
+    const runtime = this.readOptionalRecord(rawRuntime, "manifest.runtime");
+    const runtimeProfile = runtime
+      ? this.readString(runtime.profile, "manifest.runtime.profile")
+      : undefined;
+    if (
+      runtimeProfile !== undefined &&
+      runtimeProfile !== "panel-only" &&
+      runtimeProfile !== "wasi" &&
+      runtimeProfile !== "native-process"
+    ) {
+      throw new DomainValidationError(
+        "manifest.runtime.profile must be panel-only, wasi, or native-process",
+      );
+    }
+    if (runtimeProfile === "panel-only" && hasService) {
+      throw new DomainValidationError("panel-only apps cannot contain service components");
+    }
+    if (runtimeProfile && runtimeProfile !== "panel-only" && !hasService) {
+      throw new DomainValidationError(`${runtimeProfile} apps must contain a service component`);
+    }
+    return runtimeProfile;
+  };
+
+  private readComponentReferences = (
+    rawComponents: unknown,
+  ): Array<{ kind: "panel" | "service"; path: string }> => {
+    if (!Array.isArray(rawComponents) || rawComponents.length === 0) {
+      throw new DomainValidationError("manifest.components must be a non-empty array");
+    }
+    const paths = new Set<string>();
+    return rawComponents.map((rawComponent, index) => {
+      if (!rawComponent || typeof rawComponent !== "object" || Array.isArray(rawComponent)) {
+        throw new DomainValidationError(`manifest.components[${index}] must be an object`);
+      }
+      const component = rawComponent as Record<string, unknown>;
+      const kind = this.readString(component.kind, `manifest.components[${index}].kind`);
+      if (kind !== "panel" && kind !== "service") {
+        throw new DomainValidationError(
+          `manifest.components[${index}].kind must be panel or service`,
+        );
+      }
+      const componentPath = this.readRelativePath(
+        component.path,
+        `manifest.components[${index}].path`,
+      );
+      if (paths.has(componentPath)) {
+        throw new DomainValidationError(
+          `manifest.components contains duplicate path: ${componentPath}`,
+        );
+      }
+      paths.add(componentPath);
+      return { kind, path: componentPath };
+    });
+  };
+
+  private resolvePermissions = (
+    manifest: MarketplaceAppManifest,
+    rawPermissions: unknown,
+  ): NonNullable<MarketplaceAppManifest["permissions"]> => {
+    const submittedPermissions = this.readPermissions(rawPermissions);
+    const permissions = manifest.schemaVersion === 2
+      ? {
+          ...submittedPermissions,
+          ...manifest.permissions,
+          capabilities: {
+            ...submittedPermissions.capabilities,
+            ...manifest.permissions?.capabilities,
+          },
+        }
+      : submittedPermissions;
+    if (manifest.schemaVersion !== 2) {
+      return permissions;
+    }
+    const hasService = manifest.components.some((component) => component.kind === "service");
+    const runtimeProfile = manifest.runtime?.profile ?? (
+      hasService ? "native-process" : "panel-only"
+    );
+    if (runtimeProfile !== "native-process") {
+      return permissions;
+    }
+    return {
+      ...permissions,
+      storage: permissions.storage ?? true,
+      capabilities: {
+        ...permissions.capabilities,
+        nativeProcess: true,
+      },
     };
   };
 

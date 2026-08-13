@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MarketplaceAppPayloadParser } from "../marketplace-app-payload.service";
+import { MarketplaceAppPayloadParser } from "@/infrastructure/apps/marketplace-app-payload.service";
 
 describe("MarketplaceAppPayloadParser visuals", () => {
   it("accepts a safe cover path and normalizes the accent color", () => {
@@ -22,7 +22,48 @@ describe("MarketplaceAppPayloadParser visuals", () => {
   });
 });
 
-function buildInput(visuals: { cover: string; accentColor: string }) {
+describe("MarketplaceAppPayloadParser runtime risk", () => {
+  it("derives full-user native process permissions for legacy schema v2 services", () => {
+    const input = buildInput({
+      cover: "marketplace-assets/cover.webp",
+      accentColor: "#74816B",
+    });
+    input.manifest = {
+      schemaVersion: 2,
+      id: "nextclaw.hello-notes",
+      name: "Hello Notes",
+      version: "0.1.0",
+      components: [{ kind: "service", path: "services/notes" }],
+    };
+
+    const parsed = new MarketplaceAppPayloadParser().parsePublishInput(input);
+
+    expect(parsed.permissions).toMatchObject({
+      storage: true,
+      capabilities: { nativeProcess: true },
+    });
+  });
+
+  it("rejects a panel-only declaration that contains a service", () => {
+    const input = buildInput({
+      cover: "marketplace-assets/cover.webp",
+      accentColor: "#74816B",
+    });
+    input.manifest = {
+      schemaVersion: 2,
+      id: "nextclaw.hello-notes",
+      name: "Hello Notes",
+      version: "0.1.0",
+      runtime: { profile: "panel-only" },
+      components: [{ kind: "service", path: "services/notes" }],
+    };
+
+    expect(() => new MarketplaceAppPayloadParser().parsePublishInput(input))
+      .toThrow("panel-only apps cannot contain service components");
+  });
+});
+
+function buildInput(visuals: { cover: string; accentColor: string }): Record<string, unknown> {
   return {
     slug: "hello-notes",
     appId: "nextclaw.hello-notes",

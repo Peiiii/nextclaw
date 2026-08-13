@@ -1,1 +1,0 @@
-import{Ot as e}from"./api-a_GaOFc7.js";export{e as SecurityConfig};

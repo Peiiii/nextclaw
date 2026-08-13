@@ -1,20 +1,27 @@
-import { randomUUID } from "node:crypto";
-import { access, cp, mkdir, readdir, rename, rm } from "node:fs/promises";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { rm } from "node:fs/promises";
 import path from "node:path";
 import { AppBundleService } from "#app-runtime/services/app-bundle.service.js";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
-import {
-  isAppComponentManifestBundle,
-  isAppStandaloneManifestBundle,
-} from "#app-runtime/types/app-manifest.types.js";
+import { isAppComponentManifestBundle } from "#app-runtime/types/app-manifest.types.js";
+import type { AppManifestBundle } from "#app-runtime/types/app-manifest.types.js";
 import { AppHomeService } from "#app-runtime/services/app-home.service.js";
+import { AppInstanceStorageService } from "#app-runtime/services/app-instance-storage.service.js";
+import { AppInstallationIntegrityService } from "#app-runtime/services/app-installation-integrity.service.js";
+import { AppInstallationFilesystemService } from "#app-runtime/services/app-installation-filesystem.service.js";
+import { AppInstallationLifecycleService } from "#app-runtime/services/app-installation-lifecycle.service.js";
+import { FileLockService } from "#app-runtime/services/file-lock.service.js";
 import { AppBuildService } from "#app-runtime/services/app-build.service.js";
-import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
+import type { AppBundleExtractResult } from "#app-runtime/types/app-bundle.types.js";
 import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
+import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
 import { AppRegistryConfigService } from "#app-runtime/services/app-registry-config.service.js";
 import { AppRemoteRegistryClientService } from "#app-runtime/services/app-remote-registry-client.service.js";
 import { AppRegistryService } from "#app-runtime/services/app-registry.service.js";
-import { AppInstallSourceService } from "#app-runtime/services/app-install-source.service.js";
+import {
+  AppInstallSourceService,
+  type ResolvedAppInstallSource,
+} from "#app-runtime/services/app-install-source.service.js";
 import type {
   AppInfoResult,
   AppInstallProgressHandler,
@@ -27,8 +34,31 @@ import type {
   InstalledAppListItem,
 } from "#app-runtime/types/app-installation.types.js";
 
+const SAFE_APP_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+
+type AppInstallOptions = {
+  registryUrl?: string;
+  onProgress?: AppInstallProgressHandler;
+  activate?: boolean;
+  trustedPublisher?: AppPublisher;
+};
+
+type PreparedAppInstall = {
+  source: ResolvedAppInstallSource;
+  extractedDirectory: string;
+  extractedMetadata: AppBundleExtractResult;
+  manifestBundle: AppManifestBundle;
+  options: AppInstallOptions;
+};
+
 export class AppInstallationService {
   private readonly installSourceService: AppInstallSourceService;
+  private readonly instanceStorageService: AppInstanceStorageService;
+  private readonly fileLockService = new FileLockService();
+  private readonly integrityService: AppInstallationIntegrityService;
+  private readonly filesystemService: AppInstallationFilesystemService;
+  private readonly lifecycleService: AppInstallationLifecycleService;
+  private readonly appOperationContext = new AsyncLocalStorage<ReadonlySet<string>>();
 
   constructor(
     private readonly appHomeService: AppHomeService = new AppHomeService(),
@@ -42,149 +72,207 @@ export class AppInstallationService {
     private readonly remoteRegistryClient: AppRemoteRegistryClientService = new AppRemoteRegistryClientService(
       new AppRegistryConfigService(appHomeService),
     ),
+    instanceStorageService?: AppInstanceStorageService,
   ) {
     this.installSourceService = new AppInstallSourceService(
       this.manifestService,
       this.remoteRegistryClient,
+      this.bundleService,
     );
+    this.instanceStorageService = instanceStorageService ?? new AppInstanceStorageService(appHomeService);
+    this.integrityService = new AppInstallationIntegrityService(manifestService);
+    this.filesystemService = new AppInstallationFilesystemService({
+      buildService,
+      integrityService: this.integrityService,
+      manifestService,
+    });
+    this.lifecycleService = new AppInstallationLifecycleService({
+      registryService,
+      registryConfigService,
+      remoteRegistryClient,
+      instanceStorageService: this.instanceStorageService,
+      integrityService: this.integrityService,
+      install: this.install,
+      rollback: this.rollback,
+    });
   }
 
   install = async (
     appSource: string,
-    options?: {
-      registryUrl?: string;
-      onProgress?: AppInstallProgressHandler;
-    },
+    options: AppInstallOptions = {},
   ): Promise<AppInstallResult> => {
-    const { onProgress, registryUrl } = options ?? {};
+    const { onProgress, registryUrl } = options;
     await onProgress?.("resolving");
     const source = await this.installSourceService.resolve(appSource, registryUrl);
     const tempDirectory = await this.appHomeService.createTemporaryDirectory("napp-install-");
     try {
-      if (source.kind === "registry") {
-        await onProgress?.("downloading");
-      }
-      const bundlePath =
-        source.kind === "directory"
-          ? (await this.bundleService.packAppDirectory({
-              appDirectory: source.appDirectory,
-              outputPath: path.join(tempDirectory, "app.napp"),
-            })).bundlePath
-          : source.kind === "bundle"
-            ? source.bundlePath
-            : (
-                await this.remoteRegistryClient.downloadBundle({
-                  resolution: source.registryResolution,
-                  targetDirectory: tempDirectory,
-                })
-              ).bundlePath;
+      const bundlePath = await this.installSourceService.materializeBundle(
+        source,
+        tempDirectory,
+        onProgress,
+      );
       await onProgress?.("verifying");
       const extractedDirectory = path.join(tempDirectory, "bundle");
       const extractedMetadata = await this.bundleService.extractBundle({
         bundlePath,
         targetDirectory: extractedDirectory,
       });
-      await this.materializeDistribution({
+      await this.filesystemService.materializeDistribution({
         appDirectory: extractedDirectory,
         distributionMode: extractedMetadata.metadata.distributionMode,
       });
       const manifestBundle = await this.manifestService.load(extractedDirectory);
-      const installDirectory = this.appHomeService.getInstallDirectory(
-        manifestBundle.manifest.id,
-        manifestBundle.manifest.version,
-      );
-      if (
-        source.kind === "registry" &&
-        manifestBundle.manifest.id !== source.registryResolution.appId
-      ) {
-        throw new Error(
-          `bundle manifest.appId 与 registry 请求不一致：期望 ${source.registryResolution.appId}，实际 ${manifestBundle.manifest.id}`,
-        );
-      }
-      await onProgress?.("installing");
-      const dataDirectory = this.appHomeService.getAppDataDirectory(manifestBundle.manifest.id);
-      await this.copyToImmutableInstallDirectory({
-        appId: manifestBundle.manifest.id,
-        appVersion: manifestBundle.manifest.version,
+      return await this.installPreparedBundle({
+        source,
         extractedDirectory,
-        installDirectory,
+        extractedMetadata,
+        manifestBundle,
+        options,
       });
-      await mkdir(dataDirectory, { recursive: true });
-      await onProgress?.("finalizing");
-      let registryRecord;
-      try {
-        registryRecord = await this.registryService.upsertInstallation({
-          appId: manifestBundle.manifest.id,
-          name: manifestBundle.manifest.name,
-          description: manifestBundle.manifest.description,
-          version: manifestBundle.manifest.version,
-          installDirectory,
-          dataDirectory,
-          sourceKind: source.kind,
-          distributionMode:
-            source.kind === "registry"
-              ? source.registryResolution.distributionMode
-              : extractedMetadata.metadata.distributionMode,
-          sourceRef: source.sourceRef,
-          installedAt: new Date().toISOString(),
-          permissions: manifestBundle.manifest.schemaVersion === 1
-            ? manifestBundle.manifest.permissions ?? {}
-            : {},
-          registryUrl:
-            source.kind === "registry" ? source.registryResolution.registryUrl : undefined,
-          bundleUrl:
-            source.kind === "registry" ? source.registryResolution.bundleUrl : undefined,
-          sha256: source.kind === "registry" ? source.registryResolution.sha256 : undefined,
-          publisher:
-            source.kind === "registry" ? source.registryResolution.publisher : undefined,
-          manifestSchemaVersion: manifestBundle.manifest.schemaVersion,
-          components: isAppComponentManifestBundle(manifestBundle)
-            ? manifestBundle.components.map((component) => ({
-                ...component,
-                componentDirectory: path.join(installDirectory, component.path),
-                manifestPath: path.join(
-                  installDirectory,
-                  component.path,
-                  component.kind === "panel" ? "panel-app.json" : "service-app.json",
-                ),
-              }))
-            : undefined,
-          primaryPanelId: isAppComponentManifestBundle(manifestBundle)
-            ? manifestBundle.primaryPanelId
-            : undefined,
-        });
-      } catch (error) {
-        await rm(installDirectory, { recursive: true, force: true });
-        throw error;
-      }
-      const activeVersionRecord = registryRecord.installedVersions[registryRecord.activeVersion];
-      return {
-        appId: registryRecord.appId,
-        name: registryRecord.name,
-        version: registryRecord.activeVersion,
-        installDirectory,
-        dataDirectory,
-        sourceKind: source.kind,
-        sourceRef: source.sourceRef,
-        distributionMode:
-          registryRecord.installedVersions[registryRecord.activeVersion]?.distributionMode,
-        permissions:
-          registryRecord.installedVersions[registryRecord.activeVersion]?.permissions ?? {},
-        registryUrl:
-          registryRecord.installedVersions[registryRecord.activeVersion]?.registryUrl,
-        bundleUrl:
-          registryRecord.installedVersions[registryRecord.activeVersion]?.bundleUrl,
-        sha256: registryRecord.installedVersions[registryRecord.activeVersion]?.sha256,
-        publisher:
-          registryRecord.installedVersions[registryRecord.activeVersion]?.publisher,
-        enabled: registryRecord.enabled,
-        manifestSchemaVersion: activeVersionRecord?.manifestSchemaVersion ?? 1,
-        components: activeVersionRecord?.components,
-        primaryPanelId: activeVersionRecord?.primaryPanelId,
-      };
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
+  };
+
+  private installPreparedBundle = async (
+    prepared: PreparedAppInstall,
+  ): Promise<AppInstallResult> => {
+    const appId = prepared.manifestBundle.manifest.id;
+    return await this.withAppOperation(
+      appId,
+      async () => await this.commitPreparedInstall(prepared),
+    );
+  };
+
+  private commitPreparedInstall = async (
+    prepared: PreparedAppInstall,
+  ): Promise<AppInstallResult> => {
+    const { extractedDirectory, extractedMetadata, manifestBundle, options, source } = prepared;
+    const { onProgress } = options;
+    const { id: appId, version } = manifestBundle.manifest;
+    const installDirectory = this.appHomeService.getInstallDirectory(appId, version);
+    if (source.kind === "registry" && appId !== source.registryResolution.appId) {
+      throw new Error(
+        `bundle manifest.appId 与 registry 请求不一致：期望 ${source.registryResolution.appId}，实际 ${appId}`,
+      );
+    }
+    await onProgress?.("installing");
+    const existingRecord = await this.registryService.getApp(appId);
+    const publisher = source.kind === "registry"
+      ? source.registryResolution.publisher
+      : options.trustedPublisher;
+    const currentPublisher = existingRecord?.publisher ??
+      existingRecord?.installedVersions[existingRecord.activeVersion]?.publisher;
+    if (currentPublisher && currentPublisher.id !== publisher?.id) {
+      throw new Error(
+        `应用 ${appId} 已绑定发布者 ${currentPublisher.id}，拒绝由 ${publisher?.id ?? "未验证本地来源"} 覆盖。`,
+      );
+    }
+    const dataSchemaVersion = manifestBundle.manifest.schemaVersion === 2
+      ? manifestBundle.manifest.storage?.schemaVersion ?? 1
+      : 1;
+    if (existingRecord?.defaultInstance.dataSchemaVersion !== undefined &&
+      existingRecord.defaultInstance.dataSchemaVersion !== dataSchemaVersion) {
+      throw new Error(
+        `应用 ${appId} 数据 schema 从 ${existingRecord.defaultInstance.dataSchemaVersion} 升级到 ${dataSchemaVersion}，但包内没有受支持的迁移合同。更新已停止，现有数据和版本保持不变。`,
+      );
+    }
+    const instanceDirectory = this.appHomeService.getAppInstanceDirectory(appId, "default");
+    const instanceExisted = await this.integrityService.pathExists(instanceDirectory);
+    const contentSha256 = await this.filesystemService.copyToImmutableInstallDirectory({
+      appId,
+      appVersion: version,
+      extractedDirectory,
+      installDirectory,
+    });
+    const defaultInstance = await this.instanceStorageService.materializeDefaultInstance({
+      appId,
+      publisherId: (currentPublisher ?? publisher)?.id,
+      legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy"
+        ? existingRecord.dataDirectory
+        : undefined,
+      dataSchemaVersion,
+    });
+    await onProgress?.("finalizing");
+    let registryRecord;
+    try {
+      registryRecord = await this.registryService.upsertInstallation({
+        appId,
+        name: manifestBundle.manifest.name,
+        description: manifestBundle.manifest.description,
+        version,
+        installDirectory,
+        defaultInstance,
+        sourceKind: source.kind,
+        distributionMode: source.kind === "registry"
+          ? source.registryResolution.distributionMode
+          : extractedMetadata.metadata.distributionMode,
+        sourceRef: source.sourceRef,
+        installedAt: new Date().toISOString(),
+        permissions: manifestBundle.manifest.schemaVersion === 1
+          ? manifestBundle.manifest.permissions ?? {}
+          : this.manifestService.resolvePlatformSecurity(manifestBundle.manifest).permissions,
+        registryUrl: source.kind === "registry"
+          ? source.registryResolution.registryUrl
+          : undefined,
+        bundleUrl: source.kind === "registry" ? source.registryResolution.bundleUrl : undefined,
+        sha256: source.kind === "registry" ? source.registryResolution.sha256 : undefined,
+        publisher,
+        manifestSchemaVersion: manifestBundle.manifest.schemaVersion,
+        components: isAppComponentManifestBundle(manifestBundle)
+          ? manifestBundle.components.map((component) => ({
+              ...component,
+              componentDirectory: path.join(installDirectory, component.path),
+              manifestPath: path.join(
+                installDirectory,
+                component.path,
+                component.kind === "panel" ? "panel-app.json" : "service-app.json",
+              ),
+            }))
+          : undefined,
+        primaryPanelId: isAppComponentManifestBundle(manifestBundle)
+          ? manifestBundle.primaryPanelId
+          : undefined,
+        security: isAppComponentManifestBundle(manifestBundle)
+          ? this.manifestService.resolvePlatformSecurity(manifestBundle.manifest)
+          : undefined,
+        dataSchemaVersion,
+        contentSha256,
+        activate: options.activate,
+      });
+    } catch (error) {
+      await this.integrityService.removeDirectory(installDirectory);
+      if (!instanceExisted) {
+        await this.instanceStorageService.rollbackNewInstance({
+          instance: defaultInstance,
+          legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy"
+            ? existingRecord.dataDirectory
+            : undefined,
+        });
+      }
+      throw error;
+    }
+    const installedVersion = registryRecord.installedVersions[version];
+    return {
+      appId: registryRecord.appId,
+      name: registryRecord.name,
+      version,
+      installDirectory,
+      dataDirectory: defaultInstance.storage.dataDirectory,
+      instance: registryRecord.defaultInstance,
+      sourceKind: source.kind,
+      sourceRef: source.sourceRef,
+      distributionMode: installedVersion?.distributionMode,
+      permissions: installedVersion?.permissions ?? {},
+      registryUrl: installedVersion?.registryUrl,
+      bundleUrl: installedVersion?.bundleUrl,
+      sha256: installedVersion?.sha256,
+      publisher: installedVersion?.publisher,
+      enabled: registryRecord.enabled,
+      manifestSchemaVersion: installedVersion?.manifestSchemaVersion ?? 1,
+      components: installedVersion?.components,
+      primaryPanelId: installedVersion?.primaryPanelId,
+    };
   };
 
   update = async (
@@ -193,145 +281,23 @@ export class AppInstallationService {
       version?: string;
       registryUrl?: string;
       onProgress?: AppInstallProgressHandler;
+      activate?: boolean;
     },
   ): Promise<AppUpdateResult> => {
-    const { onProgress, registryUrl: requestedRegistryUrl, version } = options ?? {};
-    await onProgress?.("resolving");
-    const appRecord = await this.registryService.getApp(appId);
-    if (!appRecord) {
-      throw new Error(`未找到已安装应用：${appId}`);
-    }
-    const activeVersionRecord = appRecord.installedVersions[appRecord.activeVersion];
-    const registryUrl =
-      requestedRegistryUrl ??
-      activeVersionRecord?.registryUrl ??
-      (await this.registryConfigService.getSnapshot()).currentUrl;
-    const resolution = await this.remoteRegistryClient.resolve({
+    return await this.withAppOperation(
       appId,
-      version,
-      registryUrl,
-    });
-    if (resolution.version === appRecord.activeVersion) {
-      if (!activeVersionRecord) {
-        throw new Error(`已安装应用缺少激活版本：${appId}`);
-      }
-      return {
-        appId: appRecord.appId,
-        name: appRecord.name,
-        version: appRecord.activeVersion,
-        previousVersion: appRecord.activeVersion,
-        installDirectory: activeVersionRecord.installDirectory,
-        dataDirectory: appRecord.dataDirectory,
-        sourceKind: activeVersionRecord.sourceKind,
-        sourceRef: activeVersionRecord.sourceRef,
-        permissions: activeVersionRecord.permissions,
-        registryUrl: activeVersionRecord.registryUrl,
-        bundleUrl: activeVersionRecord.bundleUrl,
-        sha256: activeVersionRecord.sha256,
-        publisher: activeVersionRecord.publisher,
-        enabled: appRecord.enabled,
-        manifestSchemaVersion: activeVersionRecord.manifestSchemaVersion,
-        components: activeVersionRecord.components,
-        primaryPanelId: activeVersionRecord.primaryPanelId,
-        updated: false,
-      };
-    }
-    const installedTarget = appRecord.installedVersions[resolution.version];
-    if (installedTarget) {
-      await onProgress?.("verifying");
-      await onProgress?.("installing");
-      await this.rollback(appId, resolution.version);
-      await onProgress?.("finalizing");
-      return {
-        appId: appRecord.appId,
-        name: appRecord.name,
-        version: resolution.version,
-        previousVersion: appRecord.activeVersion,
-        installDirectory: installedTarget.installDirectory,
-        dataDirectory: appRecord.dataDirectory,
-        sourceKind: installedTarget.sourceKind,
-        distributionMode: installedTarget.distributionMode,
-        sourceRef: installedTarget.sourceRef,
-        permissions: installedTarget.permissions,
-        registryUrl: installedTarget.registryUrl,
-        bundleUrl: installedTarget.bundleUrl,
-        sha256: installedTarget.sha256,
-        publisher: installedTarget.publisher,
-        enabled: appRecord.enabled,
-        manifestSchemaVersion: installedTarget.manifestSchemaVersion,
-        components: installedTarget.components,
-        primaryPanelId: installedTarget.primaryPanelId,
-        updated: true,
-      };
-    }
-    const installResult = await this.install(`${appId}@${resolution.version}`, {
-      registryUrl,
-      onProgress,
-    });
-    return {
-      ...installResult,
-      previousVersion: appRecord.activeVersion,
-      updated: true,
-    };
+      async () => await this.lifecycleService.update(appId, options),
+    );
   };
 
   uninstall = async (
     appId: string,
     purgeData: boolean,
   ): Promise<AppUninstallResult> => {
-    const appRecord = await this.registryService.getApp(appId);
-    if (!appRecord) {
-      throw new Error(`未找到已安装应用：${appId}`);
-    }
-    const removedVersions = Object.keys(appRecord.installedVersions).sort((left, right) =>
-      left.localeCompare(right),
-    );
-    const stagedPaths: Array<{ originalPath: string; stagedPath: string }> = [];
-    const stagePath = async (originalPath: string): Promise<void> => {
-      if (!await this.pathExists(originalPath)) {
-        return;
-      }
-      const stagedPath = `${originalPath}.uninstalling-${randomUUID()}`;
-      await rename(originalPath, stagedPath);
-      stagedPaths.push({ originalPath, stagedPath });
-    };
-    const restoreStagedPaths = async (): Promise<void> => {
-      for (const entry of [...stagedPaths].reverse()) {
-        if (await this.pathExists(entry.stagedPath)) {
-          await rename(entry.stagedPath, entry.originalPath);
-        }
-      }
-    };
-    try {
-      for (const versionRecord of Object.values(appRecord.installedVersions)) {
-        await stagePath(versionRecord.installDirectory);
-      }
-      if (purgeData) {
-        await stagePath(appRecord.dataDirectory);
-      }
-      const removedRecord = await this.registryService.removeApp(appId);
-      if (!removedRecord) {
-        throw new Error(`卸载过程中应用记录已发生变化：${appId}`);
-      }
-    } catch (error) {
-      try {
-        await restoreStagedPaths();
-      } catch (restoreError) {
-        throw new AggregateError(
-          [error, restoreError],
-          `卸载 ${appId} 失败，且无法完全恢复已暂存文件。`,
-        );
-      }
-      throw error;
-    }
-    await Promise.all(stagedPaths.map((entry) =>
-      rm(entry.stagedPath, { recursive: true, force: true }),
-    ));
-    return {
+    return await this.withAppOperation(
       appId,
-      removedVersions,
-      dataRemoved: purgeData,
-    };
+      async () => await this.lifecycleService.uninstall(appId, purgeData),
+    );
   };
 
   list = async (): Promise<InstalledAppListItem[]> => {
@@ -354,19 +320,108 @@ export class AppInstallationService {
 
   reconcileFilesystem = async (): Promise<void> => {
     await this.appHomeService.ensureBaseDirectories();
-    const appRecords = await this.registryService.listApps();
+    let appRecords = await this.registryService.listApps();
+    for (const appRecord of appRecords) {
+      await this.withAppOperation(appRecord.appId, async () => {
+        for (const versionRecord of Object.values(appRecord.installedVersions)) {
+          if (!await this.integrityService.pathExists(versionRecord.installDirectory)) {
+            continue;
+          }
+          if (!versionRecord.contentSha256) {
+            const contentSha256 = await this.integrityService.calculateDigest(
+              versionRecord.installDirectory,
+            );
+            await this.registryService.setVersionContentDigest(
+              appRecord.appId,
+              versionRecord.version,
+              contentSha256,
+            );
+          }
+          await this.integrityService.protectDirectory(versionRecord.installDirectory);
+        }
+      });
+    }
+    appRecords = await this.registryService.listApps();
     const referencedInstallPaths = new Set(appRecords.flatMap((record) =>
       Object.values(record.installedVersions).map((version) => path.resolve(version.installDirectory))));
-    const referencedDataPaths = new Set(appRecords.map((record) => path.resolve(record.dataDirectory)));
+    const referencedDataPaths = new Set(appRecords.map((record) => path.resolve(
+      record.defaultInstance.storage.layout === "instance-v1"
+        ? record.defaultInstance.storage.instanceDirectory
+        : record.dataDirectory,
+    )));
 
-    const packageDirectories = await this.readDirectories(this.appHomeService.getPackagesDirectory());
+    const packageDirectories = await this.filesystemService.readDirectories(
+      this.appHomeService.getPackagesDirectory(),
+    );
     for (const appDirectory of packageDirectories) {
-      await this.reconcileGeneratedSiblings(appDirectory, referencedInstallPaths);
+      await this.filesystemService.reconcileGeneratedSiblings(appDirectory, referencedInstallPaths);
     }
-    await this.reconcileGeneratedSiblings(
+    await this.filesystemService.reconcileGeneratedSiblings(
       this.appHomeService.getDataDirectory(),
       referencedDataPaths,
     );
+    for (const appRecord of appRecords) {
+      if (appRecord.defaultInstance.storage.layout !== "instance-v1") {
+        continue;
+      }
+      await this.filesystemService.reconcileGeneratedSiblings(
+        appRecord.defaultInstance.storage.instanceDirectory,
+        new Set([path.resolve(appRecord.defaultInstance.storage.dataDirectory)]),
+      );
+    }
+    for (const appRecord of appRecords) {
+      if (appRecord.defaultInstance.storage.layout !== "legacy") {
+        continue;
+      }
+      await this.withAppOperation(appRecord.appId, async () => {
+        const currentRecord = await this.registryService.getApp(appRecord.appId);
+        if (!currentRecord || currentRecord.defaultInstance.storage.layout !== "legacy") {
+          return;
+        }
+        const activeVersion = currentRecord.installedVersions[currentRecord.activeVersion];
+        if (!activeVersion) {
+          throw new Error(`已安装应用缺少激活版本：${currentRecord.appId}`);
+        }
+        const instance = await this.instanceStorageService.materializeDefaultInstance({
+          appId: currentRecord.appId,
+          publisherId: currentRecord.publisher?.id,
+          legacyDataDirectory: currentRecord.dataDirectory,
+          dataSchemaVersion: currentRecord.defaultInstance.dataSchemaVersion,
+        });
+        try {
+          await this.registryService.upsertInstallation({
+            appId: currentRecord.appId,
+            name: currentRecord.name,
+            description: currentRecord.description,
+            version: currentRecord.activeVersion,
+            installDirectory: activeVersion.installDirectory,
+            defaultInstance: instance,
+            sourceKind: activeVersion.sourceKind,
+            sourceRef: activeVersion.sourceRef,
+            installedAt: activeVersion.installedAt,
+            distributionMode: activeVersion.distributionMode,
+            permissions: activeVersion.permissions,
+            registryUrl: activeVersion.registryUrl,
+            bundleUrl: activeVersion.bundleUrl,
+            sha256: activeVersion.sha256,
+            publisher: currentRecord.publisher ?? activeVersion.publisher,
+            manifestSchemaVersion: activeVersion.manifestSchemaVersion,
+            components: activeVersion.components,
+            primaryPanelId: activeVersion.primaryPanelId,
+            security: activeVersion.security,
+            dataSchemaVersion: activeVersion.dataSchemaVersion,
+            contentSha256: activeVersion.contentSha256,
+            enabled: currentRecord.enabled,
+          });
+        } catch (error) {
+          await this.instanceStorageService.rollbackNewInstance({
+            instance,
+            legacyDataDirectory: currentRecord.dataDirectory,
+          });
+          throw error;
+        }
+      });
+    }
   };
 
   info = async (appId: string): Promise<AppInfoResult> => {
@@ -384,6 +439,11 @@ export class AppInstallationService {
       activeVersion: appRecord.activeVersion,
       enabled: appRecord.enabled,
       dataDirectory: appRecord.dataDirectory,
+      instance: appRecord.defaultInstance,
+      storage: appRecord.defaultInstance.storage,
+      storageUsage: await this.instanceStorageService.measureUsage(
+        appRecord.defaultInstance.storage,
+      ),
       installedVersions: installedVersions.map((versionRecord) => ({
         version: versionRecord.version,
         installDirectory: versionRecord.installDirectory,
@@ -399,21 +459,25 @@ export class AppInstallationService {
         manifestSchemaVersion: versionRecord.manifestSchemaVersion,
         components: versionRecord.components,
         primaryPanelId: versionRecord.primaryPanelId,
+        contentSha256: versionRecord.contentSha256,
       })),
       grants: appRecord.grants,
     };
   };
 
   setEnabled = async (appId: string, enabled: boolean): Promise<AppActivationResult> => {
-    const appRecord = await this.registryService.setEnabled(appId, enabled);
-    return {
-      appId: appRecord.appId,
-      activeVersion: appRecord.activeVersion,
-      enabled: appRecord.enabled,
-    };
+    return await this.withAppOperation(appId, async () => {
+      const appRecord = await this.registryService.setEnabled(appId, enabled);
+      return {
+        appId: appRecord.appId,
+        activeVersion: appRecord.activeVersion,
+        enabled: appRecord.enabled,
+      };
+    });
   };
 
   rollback = async (appId: string, version: string): Promise<AppRollbackResult> => {
+    return await this.withAppOperation(appId, async () => {
     const currentRecord = await this.registryService.getApp(appId);
     if (!currentRecord) {
       throw new Error(`未找到已安装应用：${appId}`);
@@ -431,10 +495,12 @@ export class AppInstallationService {
     if (!targetVersion) {
       throw new Error(`应用 ${appId} 未安装版本 ${version}。`);
     }
-    const targetManifest = await this.manifestService.load(targetVersion.installDirectory);
-    if (targetManifest.manifest.id !== appId || targetManifest.manifest.version !== version) {
-      throw new Error(`回滚目标 ${appId}@${version} 校验失败。`);
+    if (targetVersion.dataSchemaVersion !== currentRecord.defaultInstance.dataSchemaVersion) {
+      throw new Error(
+        `应用 ${appId}@${version} 需要数据 schema ${targetVersion.dataSchemaVersion}，当前实例为 ${currentRecord.defaultInstance.dataSchemaVersion}。没有可用 checkpoint，已阻止回滚。`,
+      );
     }
+    await this.assertVersionIntegrity(appId, version);
     const appRecord = await this.registryService.activateVersion(appId, version);
     return {
       appId,
@@ -443,6 +509,44 @@ export class AppInstallationService {
       enabled: appRecord.enabled,
       rolledBack: true,
     };
+    });
+  };
+
+  assertVersionIntegrity = async (appId: string, version?: string): Promise<void> => {
+    const appRecord = await this.registryService.getApp(appId);
+    if (!appRecord) {
+      throw new Error(`未找到已安装应用：${appId}`);
+    }
+    const targetVersion = version ?? appRecord.activeVersion;
+    const versionRecord = appRecord.installedVersions[targetVersion];
+    if (!versionRecord) {
+      throw new Error(`应用 ${appId} 未安装版本 ${targetVersion}。`);
+    }
+    const contentSha256 = await this.integrityService.assertVersion({
+      appId,
+      version: targetVersion,
+      versionRecord,
+    });
+    if (!versionRecord.contentSha256) {
+      await this.registryService.setVersionContentDigest(appId, targetVersion, contentSha256);
+      await this.integrityService.protectDirectory(versionRecord.installDirectory);
+    }
+  };
+
+  withAppOperation = async <T>(appId: string, operation: () => Promise<T>): Promise<T> => {
+    if (!SAFE_APP_ID_PATTERN.test(appId)) {
+      throw new Error(`appId 不是安全的 App 操作标识：${appId}`);
+    }
+    const lockPath = path.resolve(this.appHomeService.getAppOperationLockPath(appId));
+    const activeLocks = this.appOperationContext.getStore();
+    if (activeLocks?.has(lockPath)) {
+      return await operation();
+    }
+    return await this.fileLockService.withLock(lockPath, async () => {
+      const nextLocks = new Set(activeLocks ?? []);
+      nextLocks.add(lockPath);
+      return await this.appOperationContext.run(nextLocks, operation);
+    });
   };
 
   resolveLaunch = async (
@@ -464,10 +568,12 @@ export class AppInstallationService {
     if (!activeVersion) {
       throw new Error(`已安装应用缺少激活版本：${appReference}`);
     }
+    await this.assertVersionIntegrity(appRecord.appId, appRecord.activeVersion);
     return {
       appDirectory: activeVersion.installDirectory,
       appId: appRecord.appId,
       dataDirectory: appRecord.dataDirectory,
+      storage: appRecord.defaultInstance.storage,
       documentGrantMap: {
         ...appRecord.grants,
         ...explicitDocumentGrantMap,
@@ -485,102 +591,4 @@ export class AppInstallationService {
     await this.registryService.updateGrants(appId, documentGrantMap);
   };
 
-  private copyToImmutableInstallDirectory = async (params: {
-    appId: string;
-    appVersion: string;
-    extractedDirectory: string;
-    installDirectory: string;
-  }): Promise<void> => {
-    const { appId, appVersion, extractedDirectory, installDirectory } = params;
-    if (await this.pathExists(installDirectory)) {
-      throw new Error(`应用版本目录已存在，不能覆盖不可变版本：${appId}@${appVersion}`);
-    }
-    await mkdir(path.dirname(installDirectory), { recursive: true });
-    const stagedInstallDirectory = `${installDirectory}.staging-${randomUUID()}`;
-    try {
-      await cp(extractedDirectory, stagedInstallDirectory, { recursive: true });
-      const stagedManifest = await this.manifestService.load(stagedInstallDirectory);
-      if (
-        stagedManifest.manifest.id !== appId ||
-        stagedManifest.manifest.version !== appVersion
-      ) {
-        throw new Error("staging manifest 与已验证 bundle 身份不一致。");
-      }
-      await rename(stagedInstallDirectory, installDirectory);
-    } catch (error) {
-      await rm(stagedInstallDirectory, { recursive: true, force: true });
-      throw error;
-    }
-  };
-
-  private materializeDistribution = async (params: {
-    appDirectory: string;
-    distributionMode: AppDistributionMode;
-  }): Promise<void> => {
-    if (params.distributionMode !== "source") {
-      return;
-    }
-    const manifestBundle = await this.manifestService.load(params.appDirectory);
-    if (!isAppStandaloneManifestBundle(manifestBundle)) {
-      throw new Error("schema v2 组合包不允许运行安装期 build。");
-    }
-    if (manifestBundle.manifest.main.kind !== "wasi-http-component") {
-      return;
-    }
-    await this.buildService.build({
-      appDirectory: params.appDirectory,
-      install: true,
-    });
-  };
-
-  private reconcileGeneratedSiblings = async (
-    parentDirectory: string,
-    referencedPaths: Set<string>,
-  ): Promise<void> => {
-    for (const entry of await this.readDirectories(parentDirectory)) {
-      const entryName = path.basename(entry);
-      const stagingMarker = ".staging-";
-      const uninstallingMarker = ".uninstalling-";
-      if (entryName.includes(stagingMarker)) {
-        await rm(entry, { recursive: true, force: true });
-        continue;
-      }
-      const markerIndex = entryName.indexOf(uninstallingMarker);
-      if (markerIndex < 0) {
-        continue;
-      }
-      const originalPath = path.join(parentDirectory, entryName.slice(0, markerIndex));
-      if (referencedPaths.has(path.resolve(originalPath)) && !await this.pathExists(originalPath)) {
-        await rename(entry, originalPath);
-      } else {
-        await rm(entry, { recursive: true, force: true });
-      }
-    }
-  };
-
-  private readDirectories = async (directory: string): Promise<string[]> => {
-    try {
-      return (await readdir(directory, { withFileTypes: true }))
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => path.join(directory, entry.name));
-    } catch (error) {
-      if (this.isMissingFileError(error)) {
-        return [];
-      }
-      throw error;
-    }
-  };
-
-  private pathExists = async (targetPath: string): Promise<boolean> => {
-    try {
-      await access(targetPath);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  private isMissingFileError = (error: unknown): boolean =>
-    typeof error === "object" && error !== null &&
-    "code" in error && (error as { code?: unknown }).code === "ENOENT";
 }

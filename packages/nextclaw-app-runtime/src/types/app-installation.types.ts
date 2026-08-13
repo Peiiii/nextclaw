@@ -3,6 +3,11 @@ import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.typ
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 import type { AppInstallSourceKind } from "#app-runtime/types/app-registry.types.js";
 import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
+import type {
+  AppInstanceRecord,
+  AppStorageContext,
+  AppStorageUsage,
+} from "#app-runtime/types/app-storage.types.js";
 
 export type AppInstallProgressPhase =
   | "resolving"
@@ -21,6 +26,7 @@ export type AppInstallResult = {
   version: string;
   installDirectory: string;
   dataDirectory: string;
+  instance: AppInstanceRecord;
   sourceKind: AppInstallSourceKind;
   distributionMode?: AppDistributionMode;
   sourceRef: string;
@@ -42,6 +48,9 @@ export type AppInfoResult = {
   activeVersion: string;
   enabled: boolean;
   dataDirectory: string;
+  instance: AppInstanceRecord;
+  storage: AppStorageContext;
+  storageUsage: AppStorageUsage;
   installedVersions: Array<{
     version: string;
     installDirectory: string;
@@ -57,6 +66,7 @@ export type AppInfoResult = {
     manifestSchemaVersion: 1 | 2;
     components?: AppResolvedComponent[];
     primaryPanelId?: string;
+    contentSha256?: string;
   }>;
   grants: AppDocumentGrantMap;
 };
@@ -82,6 +92,7 @@ export type AppLaunchResolution = {
   appDirectory: string;
   appId?: string;
   dataDirectory?: string;
+  storage?: AppStorageContext;
   documentGrantMap: AppDocumentGrantMap;
 };
 

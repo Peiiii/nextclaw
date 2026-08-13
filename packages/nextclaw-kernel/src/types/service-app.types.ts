@@ -1,3 +1,5 @@
+import type { AppRuntimeIsolation, AppStorageContext } from "@nextclaw/app-runtime";
+
 export type ServiceAppProtocol = "mcp";
 
 export type ServiceActionRisk = "read" | "write" | "external" | "dangerous";
@@ -48,6 +50,9 @@ export type ServiceAppRecord = {
   packageVersion?: string;
   packageDirectory?: string;
   dataDirectory?: string;
+  instanceId?: string;
+  storage?: AppStorageContext;
+  isolation?: AppRuntimeIsolation;
 };
 
 export type ServiceActionGrantState =

@@ -1,0 +1,1 @@
+import{Ot as e}from"./api-Dket1cmq.js";export{e as SecurityConfig};

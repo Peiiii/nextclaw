@@ -1,5 +1,5 @@
 import { readdir, rm, stat } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import {
   DEFAULT_SERVICE_APPS_DIR,
   getWorkspacePathFromConfig,
@@ -10,6 +10,7 @@ import {
   type AppPackageComponentSource,
 } from "@kernel/types/app-package.types.js";
 import { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
+import { ServiceAppRecordService } from "@kernel/services/service-app-record.service.js";
 import { ServiceActionGrantStore } from "@kernel/stores/service-action-grant.store.js";
 import type {
   ServiceAction,
@@ -21,11 +22,9 @@ import type {
   ServiceAppManifest,
   ServiceAppRecord,
 } from "@kernel/types/service-app.types.js";
+import { readServiceAppManifest } from "@kernel/utils/service-app-manifest.utils.js";
 import {
-  getServiceAppManifestPath,
-  readServiceAppManifest,
-} from "@kernel/utils/service-app-manifest.utils.js";
-import {
+  DEFAULT_SERVICE_ACTION_RISK,
   getServiceActionName,
   resolveServiceActionGrantState,
 } from "@kernel/utils/service-action.utils.js";
@@ -75,6 +74,7 @@ export function isServiceAppError(error: unknown): error is ServiceAppError {
 
 export class ServiceAppManager {
   private readonly runtimeService: ServiceAppRuntime;
+  private readonly recordService: ServiceAppRecordService;
 
   constructor(private readonly params: {
     configManager: ConfigManager;
@@ -84,6 +84,10 @@ export class ServiceAppManager {
     this.runtimeService = params.runtimeService ?? new McpServiceAppRuntimeService({
       getConfig: () => params.configManager.config,
     });
+    this.recordService = new ServiceAppRecordService({
+      getWorkspacePath: this.getWorkspacePath,
+      runtimeService: this.runtimeService,
+    });
   }
 
   listServiceApps = async (): Promise<ServiceAppList> => {
@@ -91,12 +95,12 @@ export class ServiceAppManager {
     const serviceAppsPath = this.getServiceAppsPath(workspacePath);
     const dirNames = await this.listServiceAppDirNames(serviceAppsPath);
     const workspaceEntries = await Promise.all(
-      dirNames.map((dirName) => this.buildServiceAppRecord(serviceAppsPath, dirName)),
+      dirNames.map((dirName) => this.recordService.buildWorkspaceRecord(serviceAppsPath, dirName)),
     );
     const packageSources = (await this.listPackageComponentSources())
       .filter((component) => component.kind === "service");
     const packageEntries = await Promise.all(
-      packageSources.map((source) => this.buildServiceAppRecordFromPackage(source)),
+      packageSources.map((source) => this.recordService.buildPackageRecord(source)),
     );
     return {
       workspacePath,
@@ -145,7 +149,8 @@ export class ServiceAppManager {
     if (!Object.hasOwn(manifest.actions, actionName)) {
       throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "service action not found");
     }
-    if (!await this.createGrantStore().isGranted(request.caller, actionId)) {
+    const declaredRisk = manifest.actions[actionName]?.risk ?? DEFAULT_SERVICE_ACTION_RISK;
+    if (!await this.createGrantStore().isGranted(request.caller, actionId, declaredRisk)) {
       throw new ServiceAppError(
         "AUTHORIZATION_REQUIRED",
         `This panel app needs permission to call ${actionId}.`,
@@ -268,6 +273,45 @@ export class ServiceAppManager {
         );
       }
     }
+    for (const component of serviceComponents) {
+      let manifest: ServiceAppManifest;
+      try {
+        manifest = await readServiceAppManifest(component.sourcePath);
+      } catch (error) {
+        throw new AppPackageError(
+          "APP_PACKAGE_OPERATION_FAILED",
+          `Service component ${component.id} manifest 无效：${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+      try {
+        const record = this.recordService.fromManifest(
+          component.sourcePath,
+          manifest,
+          component,
+          component.storage,
+        );
+        const runtimeActions = await this.runtimeService.listActions({ app: record, manifest });
+        const runtimeStatus = this.runtimeService.getStatus(component.id);
+        if (runtimeStatus.status === "failed") {
+          throw new AppPackageError(
+            "APP_PACKAGE_OPERATION_FAILED",
+            `Service component ${component.id} 启动探测失败：${runtimeStatus.lastError ?? "unknown error"}`,
+          );
+        }
+        const actions = mergeServiceAppRuntimeActions({ record, manifest, runtimeActions });
+        const invalidAction = actions.find(
+          (action) => action.runtimeState === "missing" || action.runtimeState === "undeclared",
+        );
+        if (invalidAction) {
+          throw new AppPackageError(
+            "APP_PACKAGE_OPERATION_FAILED",
+            `Service component ${component.id} action 合同不一致：${invalidAction.id} (${invalidAction.runtimeState})`,
+          );
+        }
+      } finally {
+        await this.runtimeService.restart(component.id);
+      }
+    }
   };
 
   deactivatePackageComponents = async (
@@ -301,7 +345,11 @@ export class ServiceAppManager {
     if (!params.caller) {
       return action;
     }
-    const granted = await this.createGrantStore().isGranted(params.caller, action.id);
+    const granted = await this.createGrantStore().isGranted(
+      params.caller,
+      action.id,
+      action.risk,
+    );
     return {
       ...action,
       grantState: resolveServiceActionGrantState({
@@ -369,7 +417,12 @@ export class ServiceAppManager {
       }
       return {
         manifest,
-        record: this.toServiceAppRecord(dirPath, manifest, packageSource),
+        record: this.recordService.fromManifest(
+          dirPath,
+          manifest,
+          packageSource,
+          packageSource?.storage ?? await this.recordService.materializeWorkspaceStorage(manifest.id),
+        ),
       };
     } catch (error) {
       if (isServiceAppError(error)) {
@@ -399,7 +452,12 @@ export class ServiceAppManager {
           const manifest = await readServiceAppManifest(dirPath);
           return {
             manifest,
-            record: this.toServiceAppRecord(dirPath, manifest),
+            record: this.recordService.fromManifest(
+              dirPath,
+              manifest,
+              undefined,
+              await this.recordService.materializeWorkspaceStorage(manifest.id),
+            ),
           };
         } catch {
           return null;
@@ -414,7 +472,12 @@ export class ServiceAppManager {
             const manifest = await readServiceAppManifest(component.sourcePath);
             return {
               manifest,
-              record: this.toServiceAppRecord(component.sourcePath, manifest, component),
+              record: this.recordService.fromManifest(
+                component.sourcePath,
+                manifest,
+                component,
+                component.storage,
+              ),
             };
           } catch {
             return null;
@@ -423,62 +486,6 @@ export class ServiceAppManager {
     );
     return [...workspaceEntries, ...packageEntries]
       .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
-  };
-
-  private buildServiceAppRecord = async (
-    serviceAppsPath: string,
-    dirName: string,
-  ): Promise<ServiceAppRecord | null> => {
-    const dirPath = join(serviceAppsPath, dirName);
-    try {
-      const manifest = await readServiceAppManifest(dirPath);
-      return this.toServiceAppRecord(dirPath, manifest);
-    } catch (error) {
-      if (this.isMissingFileError(error)) {
-        return null;
-      }
-      return {
-        id: dirName,
-        title: toTitle(dirName),
-        dirPath,
-        manifestPath: getServiceAppManifestPath(dirPath),
-        cwd: dirPath,
-        enabled: false,
-        protocol: "mcp",
-        status: "failed",
-        lastError: error instanceof Error ? error.message : String(error),
-      };
-    }
-  };
-
-  private toServiceAppRecord = (
-    dirPath: string,
-    manifest: ServiceAppManifest,
-    packageSource?: AppPackageComponentSource,
-  ): ServiceAppRecord => {
-    const runtimeStatus = this.runtimeService.getStatus(manifest.id);
-    return {
-      id: manifest.id,
-      title: manifest.title,
-      description: manifest.description,
-      dirPath,
-      manifestPath: getServiceAppManifestPath(dirPath),
-      command: manifest.command,
-      args: manifest.args,
-      cwd: dirPath,
-      enabled: manifest.enabled,
-      protocol: manifest.protocol,
-      status: manifest.enabled ? runtimeStatus.status : "stopped",
-      lastError: runtimeStatus.lastError,
-      lastStartedAt: runtimeStatus.lastStartedAt,
-      lastReadyAt: runtimeStatus.lastReadyAt,
-      lastFailedAt: runtimeStatus.lastFailedAt,
-      sourceKind: packageSource ? "package" : "workspace",
-      packageId: packageSource?.packageId,
-      packageVersion: packageSource?.packageVersion,
-      packageDirectory: packageSource ? join(packageSource.sourcePath, "..", "..") : undefined,
-      dataDirectory: packageSource?.dataDirectory,
-    };
   };
 
   private assertCaller = (caller: ServiceActionCaller): void => {
@@ -520,35 +527,6 @@ export class ServiceAppManager {
   private listPackageComponentSources = async (): Promise<AppPackageComponentSource[]> =>
     await this.params.listPackageComponentSources?.() ?? [];
 
-  private buildServiceAppRecordFromPackage = async (
-    source: AppPackageComponentSource,
-  ): Promise<ServiceAppRecord | null> => {
-    try {
-      const manifest = await readServiceAppManifest(source.sourcePath);
-      if (manifest.id !== source.id) {
-        throw new Error(`service component id mismatch: ${source.id}`);
-      }
-      return this.toServiceAppRecord(source.sourcePath, manifest, source);
-    } catch (error) {
-      return {
-        id: source.id,
-        title: toTitle(source.id),
-        dirPath: source.sourcePath,
-        manifestPath: source.manifestPath,
-        cwd: source.sourcePath,
-        enabled: false,
-        protocol: "mcp",
-        status: "failed",
-        lastError: error instanceof Error ? error.message : String(error),
-        sourceKind: "package",
-        packageId: source.packageId,
-        packageVersion: source.packageVersion,
-        packageDirectory: join(source.sourcePath, "..", ".."),
-        dataDirectory: source.dataDirectory,
-      };
-    }
-  };
-
   private listServiceAppDirNames = async (
     serviceAppsPath: string,
   ): Promise<string[]> => {
@@ -577,7 +555,3 @@ type ServiceAppRuntime = Pick<
   McpServiceAppRuntimeService,
   "dispose" | "getStatus" | "invokeAction" | "listActions" | "restart"
 >;
-
-function toTitle(value: string): string {
-  return basename(value).replace(/[-_]+/g, " ").trim() || value;
-}

@@ -25,11 +25,12 @@ export type AppPermissions = {
     description?: string;
   }>;
   allowedDomains?: string[];
-  storage?: {
+  storage?: boolean | {
     namespace?: string;
   };
   capabilities?: {
     hostBridge?: boolean;
+    nativeProcess?: boolean;
   };
 };
 
@@ -69,6 +70,13 @@ export type MarketplaceAppComponentManifest = {
   };
   presentation?: {
     primaryPanel?: string;
+  };
+  runtime?: {
+    profile: "panel-only" | "wasi" | "native-process";
+  };
+  storage?: {
+    scope: "global";
+    schemaVersion: number;
   };
   components: Array<{
     kind: "panel" | "service";

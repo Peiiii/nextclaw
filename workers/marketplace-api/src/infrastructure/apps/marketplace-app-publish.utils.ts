@@ -174,6 +174,74 @@ export function buildAppWebUrl(slug: string): string {
   return `${OFFICIAL_APPS_WEB_BASE_URL}/apps/${slug}`;
 }
 
+export function assertAppCanBePubliclyListed(params: {
+  manifestJson: string;
+  ownerScope: string | null | undefined;
+}): void {
+  if (normalizeScope(params.ownerScope) === "nextclaw") {
+    return;
+  }
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(params.manifestJson);
+  } catch {
+    throw new DomainValidationError("app manifest is not valid JSON");
+  }
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+    throw new DomainValidationError("app manifest must be an object");
+  }
+  const candidate = manifest as Record<string, unknown>;
+  if (candidate.schemaVersion !== 2 || !Array.isArray(candidate.components)) {
+    return;
+  }
+  const hasService = candidate.components.some((component) =>
+    Boolean(
+      component &&
+      typeof component === "object" &&
+      !Array.isArray(component) &&
+      (component as Record<string, unknown>).kind === "service",
+    ));
+  if (!hasService) {
+    return;
+  }
+  const runtime = candidate.runtime;
+  const runtimeProfile = runtime && typeof runtime === "object" && !Array.isArray(runtime)
+    ? (runtime as Record<string, unknown>).profile
+    : "native-process";
+  if (runtimeProfile === "native-process") {
+    throw new DomainValidationError(
+      "community native-process apps cannot be listed publicly; publish a panel-only or WASI app, or keep this app unlisted",
+    );
+  }
+}
+
+export function resolveAppReviewCatalogVisibility(
+  input: MarketplaceAppReviewInput,
+  item: {
+    manifestSchemaVersion: number;
+    manifestJson: string;
+    ownerScope: string | null | undefined;
+  },
+): MarketplaceAppCatalogVisibility | undefined {
+  if (input.catalogVisibility === "listed" && item.manifestSchemaVersion < 2) {
+    throw new DomainValidationError("legacy schema v1 apps cannot be listed in the product catalog");
+  }
+  if (
+    input.publishStatus === "published" &&
+    (input.catalogVisibility === "listed" || input.catalogVisibility === undefined)
+  ) {
+    assertAppCanBePubliclyListed({
+      manifestJson: item.manifestJson,
+      ownerScope: item.ownerScope,
+    });
+  }
+  return input.catalogVisibility ?? (
+    input.publishStatus === "published"
+      ? item.manifestSchemaVersion === 2 ? "listed" : "unlisted"
+      : undefined
+  );
+}
+
 function parseAppId(appId: string): { ownerScope: string; appName: string } {
   const match = appId.trim().match(/^([a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])?)\.([a-z0-9]+(?:-[a-z0-9]+)*)$/);
   if (!match) {

@@ -48,6 +48,7 @@ export type AppMarketplaceDetailView = AppMarketplaceItemView & {
     schemaVersion: 1 | 2;
     icon?: string;
     engines?: { nextclaw?: string };
+    runtime?: { profile: 'panel-only' | 'wasi' | 'native-process' };
     components?: Array<{
       kind: 'panel' | 'service';
       path: string;
@@ -60,8 +61,8 @@ export type AppMarketplaceDetailView = AppMarketplaceItemView & {
       description?: string;
     }>;
     allowedDomains?: string[];
-    storage?: { namespace?: string };
-    capabilities?: { hostBridge?: boolean };
+    storage?: boolean | { namespace?: string };
+    capabilities?: { hostBridge?: boolean; nativeProcess?: boolean };
   };
 };
 

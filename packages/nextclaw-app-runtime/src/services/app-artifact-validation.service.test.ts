@@ -46,7 +46,9 @@ describe("AppArtifactValidationService", () => {
     });
 
     expect(result.metadata).toEqual(packed.metadata);
-    expect(result.manifest).toMatchObject(manifest);
+    expect(result.manifest).toMatchObject(
+      JSON.parse(JSON.stringify(manifest)) as Record<string, unknown>,
+    );
     expect(result.artifactSha256).toMatch(/^[a-f0-9]{64}$/);
   });
 

@@ -87,7 +87,7 @@ export class AppPublishService {
       manifest: manifestBundle.manifest,
       permissions: manifestBundle.manifest.schemaVersion === 1
         ? manifestBundle.manifest.permissions ?? {}
-        : {},
+        : this.manifestService.resolvePlatformSecurity(manifestBundle.manifest).permissions,
       bundleBase64: bundleBytes.toString("base64"),
       bundleSha256,
       files: publishFiles.map((file) => ({

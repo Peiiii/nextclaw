@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 import {
   AppHomeService,
@@ -15,6 +15,7 @@ import type {
   AppUpdateResult,
 } from "@nextclaw/app-runtime";
 import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
+import { AppPackagePresentationService } from "@kernel/services/app-package-presentation.service.js";
 import {
   AppPackageError,
   type AppPackageComponentSource,
@@ -40,6 +41,7 @@ export class AppPackageManager {
   private readonly installationService: AppInstallationService;
   private readonly manifestService = new AppManifestService();
   private readonly operationManager: AppPackageOperationManager;
+  private readonly presentationService = new AppPackagePresentationService();
   private readonly registryService: AppRegistryService;
   private runtimeHooks: AppPackageRuntimeHooks = EMPTY_RUNTIME_HOOKS;
   private builtInBootstrapPromise: Promise<void> | undefined;
@@ -90,9 +92,13 @@ export class AppPackageManager {
   listActiveComponentSources = async (): Promise<AppPackageComponentSource[]> => {
     await this.ensureBuiltInPackages();
     const records = await this.registryService.listApps();
-    return records
+    return (await Promise.all(records
       .filter((record) => record.enabled)
-      .flatMap((record) => {
+      .map(async (record) => {
+        await this.installationService.assertVersionIntegrity(
+          record.appId,
+          record.activeVersion,
+        );
         const version = record.installedVersions[record.activeVersion];
         if (!version || version.manifestSchemaVersion !== 2) {
           return [];
@@ -105,8 +111,11 @@ export class AppPackageManager {
           sourcePath: component.componentDirectory,
           manifestPath: component.manifestPath,
           dataDirectory: record.dataDirectory,
+          instanceId: record.defaultInstance.id,
+          storage: record.defaultInstance.storage,
+          ...this.resolveSecurity(version, record.appId),
         }));
-      });
+      }))).flat();
   };
 
   listOperations = async (): Promise<AppPackageOperationList> =>
@@ -132,7 +141,9 @@ export class AppPackageManager {
   };
 
   enable = async (appId: string): Promise<AppPackageView> => {
+    return await this.installationService.withAppOperation(appId, async () => {
     const app = await this.getPackage(appId);
+    await this.installationService.assertVersionIntegrity(appId, app.activeVersion);
     if (app.enabled) {
       return app;
     }
@@ -141,9 +152,11 @@ export class AppPackageManager {
     await this.runtimeHooks.assertCanActivate(sources);
     await this.installationService.setEnabled(appId, true);
     return await this.getPackage(appId);
+    });
   };
 
   disable = async (appId: string): Promise<AppPackageView> => {
+    return await this.installationService.withAppOperation(appId, async () => {
     const app = await this.getPackage(appId);
     if (!app.enabled) {
       return app;
@@ -151,6 +164,7 @@ export class AppPackageManager {
     await this.runtimeHooks.beforeDeactivate(this.toComponentSources(app));
     await this.installationService.setEnabled(appId, false);
     return await this.getPackage(appId);
+    });
   };
 
   update = async (
@@ -161,54 +175,107 @@ export class AppPackageManager {
       onProgress?: AppInstallProgressHandler;
     } = {},
   ): Promise<{ package: AppPackageView; result: AppUpdateResult }> => {
+    return await this.installationService.withAppOperation(appId, async () => {
     const current = await this.getPackage(appId);
-    if (current.enabled) {
-      await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
+    const result = await this.installationService.update(appId, {
+      ...options,
+      activate: false,
+    });
+    if (!result.updated) {
+      return { package: current, result };
     }
-    const result = await this.installationService.update(appId, options);
+    let activated = false;
+    let deactivated = false;
     try {
-      await this.assertEngineCompatibility(appId);
-      const updated = await this.getPackage(appId);
-      if (updated.enabled) {
-        await this.runtimeHooks.assertCanActivate(this.toComponentSources(updated));
+      await this.assertEngineCompatibility(appId, result.version);
+      const candidate = await this.toPackageView(
+        await this.installationService.info(appId),
+        result.version,
+      );
+      if (current.enabled) {
+        await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
+        deactivated = true;
+        await this.runtimeHooks.assertCanActivate(this.toComponentSources(candidate));
       }
-      return { package: updated, result };
+      const activation = await this.installationService.rollback(appId, result.version);
+      activated = activation.rolledBack;
+      return { package: await this.getPackage(appId), result };
     } catch (error) {
-      if (result.updated) {
+      if (activated) {
         await this.installationService.rollback(appId, result.previousVersion);
+      }
+      if (deactivated) {
+        try {
+          await this.runtimeHooks.assertCanActivate(this.toComponentSources(current));
+        } catch (recoveryError) {
+          throw new AggregateError(
+            [error, recoveryError],
+            `应用 ${appId} 更新失败，且旧 runtime 恢复探测失败。`,
+          );
+        }
       }
       throw error;
     }
+    });
   };
 
   rollback = async (
     appId: string,
     version: string,
   ): Promise<{ package: AppPackageView; result: AppRollbackResult }> => {
+    return await this.installationService.withAppOperation(appId, async () => {
     const current = await this.getPackage(appId);
-    if (current.enabled) {
-      await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
+    if (current.activeVersion === version) {
+      return {
+        package: current,
+        result: {
+          appId,
+          activeVersion: version,
+          previousVersion: version,
+          enabled: current.enabled,
+          rolledBack: false,
+        },
+      };
     }
-    const result = await this.installationService.rollback(appId, version);
+    await this.assertEngineCompatibility(appId, version);
+    const candidate = await this.toPackageView(
+      await this.installationService.info(appId),
+      version,
+    );
+    let deactivated = false;
+    let result: AppRollbackResult | undefined;
     try {
-      await this.assertEngineCompatibility(appId);
-      const rolledBack = await this.getPackage(appId);
-      if (rolledBack.enabled) {
-        await this.runtimeHooks.assertCanActivate(this.toComponentSources(rolledBack));
+      if (current.enabled) {
+        await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
+        deactivated = true;
+        await this.runtimeHooks.assertCanActivate(this.toComponentSources(candidate));
       }
-      return { package: rolledBack, result };
+      result = await this.installationService.rollback(appId, version);
+      return { package: await this.getPackage(appId), result };
     } catch (error) {
-      if (result.rolledBack) {
+      if (result?.rolledBack) {
         await this.installationService.rollback(appId, result.previousVersion);
+      }
+      if (deactivated) {
+        try {
+          await this.runtimeHooks.assertCanActivate(this.toComponentSources(current));
+        } catch (recoveryError) {
+          throw new AggregateError(
+            [error, recoveryError],
+            `应用 ${appId} 回滚失败，且旧 runtime 恢复探测失败。`,
+          );
+        }
       }
       throw error;
     }
+    });
   };
 
   uninstall = async (
     appId: string,
     purgeData: boolean,
   ): Promise<AppUninstallResult> => {
+    return await this.installationService.withAppOperation(appId, async () => {
     const current = await this.getPackage(appId);
     if (current.builtIn) {
       await this.registryService.setBuiltInSuppressed(appId, true);
@@ -225,6 +292,7 @@ export class AppPackageManager {
       }
       throw error;
     }
+    });
   };
 
   private ensureBuiltInPackages = async (): Promise<void> => {
@@ -245,23 +313,41 @@ export class AppPackageManager {
       if (existing?.installedVersions[manifest.manifest.version]) {
         continue;
       }
-      await this.installationService.install(appDirectory);
+      await this.installationService.install(appDirectory, {
+        trustedPublisher: {
+          id: "nextclaw",
+          name: "NextClaw",
+          url: "https://nextclaw.io",
+        },
+      });
     }
   };
 
-  private toPackageView = async (info: AppInfoResult): Promise<AppPackageView> => {
+  private toPackageView = async (
+    info: AppInfoResult,
+    selectedVersion: string = info.activeVersion,
+  ): Promise<AppPackageView> => {
     const activeVersion = info.installedVersions.find(
-      (version) => version.version === info.activeVersion,
+      (version) => version.version === selectedVersion,
     );
     if (!activeVersion) {
       throw new AppPackageError(
         "APP_PACKAGE_OPERATION_FAILED",
-        `应用 ${info.appId} 缺少激活版本 ${info.activeVersion}。`,
+        `应用 ${info.appId} 缺少版本 ${selectedVersion}。`,
       );
     }
-    const packagePresentation = await this.readManifestPresentation(
+    const packagePresentation = await this.presentationService.readManifest(
       path.join(activeVersion.installDirectory, "manifest.json"),
     );
+    const manifestBundle = await this.manifestService.load(activeVersion.installDirectory);
+    const security = manifestBundle.manifest.schemaVersion === 2
+      ? this.manifestService.resolvePlatformSecurity(manifestBundle.manifest)
+      : {
+          runtimeProfile: "wasi" as const,
+          isolation: manifestBundle.manifest.main.kind === "wasi-http-component"
+            ? "host-mediated" as const
+            : "sandboxed" as const,
+        };
     return {
       id: info.appId,
       name: info.name,
@@ -269,7 +355,7 @@ export class AppPackageManager {
       icon: packagePresentation.icon,
       nameI18n: packagePresentation.nameI18n,
       descriptionI18n: packagePresentation.descriptionI18n,
-      activeVersion: info.activeVersion,
+      activeVersion: selectedVersion,
       installedVersions: info.installedVersions.map((version) => version.version),
       enabled: info.enabled,
       builtIn: await this.isBuiltInAppId(info.appId),
@@ -278,70 +364,67 @@ export class AppPackageManager {
         kind: component.kind,
         id: component.id,
         packageId: info.appId,
-        packageVersion: info.activeVersion,
+        packageVersion: selectedVersion,
         sourcePath: component.componentDirectory,
         manifestPath: component.manifestPath,
         dataDirectory: info.dataDirectory,
-        ...await this.readManifestPresentation(component.manifestPath),
+        instanceId: info.instance.id,
+        storage: info.storage,
+        runtimeProfile: security.runtimeProfile,
+        isolation: security.isolation,
+        ...await this.presentationService.readManifest(component.manifestPath),
       }))),
       dataDirectory: info.dataDirectory,
+      instanceId: info.instance.id,
+      storage: info.storage,
+      storageUsage: info.storageUsage,
+      runtimeProfile: security.runtimeProfile,
+      isolation: security.isolation,
     };
   };
 
-  private readManifestPresentation = async (
-    manifestPath: string,
-  ): Promise<{
-    title?: string;
-    description?: string;
-    icon?: string;
-    nameI18n?: Record<string, string>;
-    titleI18n?: Record<string, string>;
-    descriptionI18n?: Record<string, string>;
-  }> => {
-    const candidate = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
-    const rawIcon = typeof candidate.icon === "string" ? candidate.icon : undefined;
-    return {
-      ...(typeof candidate.title === "string" ? { title: candidate.title } : {}),
-      ...(typeof candidate.description === "string"
-        ? { description: candidate.description }
-        : {}),
-      ...(rawIcon ? { icon: await this.resolvePresentationIcon(manifestPath, rawIcon) } : {}),
-      ...this.readLocalizedField(candidate, "nameI18n"),
-      ...this.readLocalizedField(candidate, "titleI18n"),
-      ...this.readLocalizedField(candidate, "descriptionI18n"),
-    };
-  };
-
-  private readLocalizedField = (
-    candidate: Record<string, unknown>,
-    field: "nameI18n" | "titleI18n" | "descriptionI18n",
-  ): Partial<Record<typeof field, Record<string, string>>> => {
-    const value = candidate[field];
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return {};
+  private resolveSecurity = (
+    version: NonNullable<Awaited<ReturnType<AppRegistryService["getApp"]>>>["installedVersions"][string],
+    appId: string,
+  ): { runtimeProfile: "panel-only" | "wasi" | "native-process"; isolation: "sandboxed" | "host-mediated" | "full-user" } => {
+    if (version.security) {
+      return {
+        runtimeProfile: version.security.runtimeProfile,
+        isolation: version.security.isolation,
+      };
     }
-    const entries = Object.entries(value).filter(
-      (entry): entry is [string, string] => typeof entry[1] === "string",
-    );
-    return entries.length > 0 ? { [field]: Object.fromEntries(entries) } : {};
+    const hasService = version.components?.some((component) => component.kind === "service") ?? false;
+    if (version.manifestSchemaVersion !== 2) {
+      throw new AppPackageError(
+        "APP_PACKAGE_INCOMPATIBLE",
+        `应用 ${appId} 仍使用 legacy schema，不能投影组件。`,
+      );
+    }
+    return hasService
+      ? { runtimeProfile: "native-process", isolation: "full-user" }
+      : { runtimeProfile: "panel-only", isolation: "sandboxed" };
   };
 
   private toComponentSources = (app: AppPackageView): AppPackageComponentSource[] =>
     app.components.map((component) => ({ ...component }));
 
-  private assertEngineCompatibility = async (appId: string): Promise<void> => {
+  private assertEngineCompatibility = async (
+    appId: string,
+    selectedVersion?: string,
+  ): Promise<void> => {
     const productVersion = this.params.productVersion?.trim();
     if (!productVersion) {
       return;
     }
     const info = await this.installationService.info(appId);
+    const targetVersion = selectedVersion ?? info.activeVersion;
     const activeVersion = info.installedVersions.find(
-      (version) => version.version === info.activeVersion,
+      (version) => version.version === targetVersion,
     );
     if (!activeVersion) {
       throw new AppPackageError(
         "APP_PACKAGE_OPERATION_FAILED",
-        `应用 ${appId} 缺少激活版本 ${info.activeVersion}。`,
+        `应用 ${appId} 缺少版本 ${targetVersion}。`,
       );
     }
     const manifestBundle = await this.manifestService.load(activeVersion.installDirectory);
@@ -351,7 +434,7 @@ export class AppPackageManager {
     if (engineRange && !satisfiesAppEngineVersion(productVersion, engineRange)) {
       throw new AppPackageError(
         "APP_PACKAGE_INCOMPATIBLE",
-        `应用 ${appId}@${info.activeVersion} 要求 NextClaw ${engineRange}，当前版本为 ${productVersion}。`,
+        `应用 ${appId}@${targetVersion} 要求 NextClaw ${engineRange}，当前版本为 ${productVersion}。`,
       );
     }
   };
@@ -389,48 +472,6 @@ export class AppPackageManager {
 
   private isBuiltInAppId = async (appId: string): Promise<boolean> =>
     (await this.listBuiltInDefinitions()).some(({ manifest }) => manifest.manifest.id === appId);
-
-  private resolvePresentationIcon = async (
-    manifestPath: string,
-    icon: string,
-  ): Promise<string> => {
-    if (
-      icon.startsWith("data:") ||
-      icon.startsWith("http://") ||
-      icon.startsWith("https://") ||
-      icon.startsWith("/") ||
-      (!icon.includes("/") && !icon.includes(".") && [...icon].length <= 8)
-    ) {
-      return icon;
-    }
-    const manifestDirectory = path.dirname(manifestPath);
-    const iconPath = path.resolve(manifestDirectory, icon);
-    const relative = path.relative(manifestDirectory, iconPath);
-    if (relative.startsWith("..") || path.isAbsolute(relative)) {
-      return icon;
-    }
-    const mimeType = this.iconMimeType(path.extname(iconPath));
-    if (!mimeType) {
-      return icon;
-    }
-    const bytes = await readFile(iconPath);
-    if (bytes.byteLength > 256 * 1024) {
-      return icon;
-    }
-    return `data:${mimeType};base64,${bytes.toString("base64")}`;
-  };
-
-  private iconMimeType = (extension: string): string | undefined => {
-    switch (extension.toLowerCase()) {
-      case ".svg": return "image/svg+xml";
-      case ".png": return "image/png";
-      case ".jpg":
-      case ".jpeg": return "image/jpeg";
-      case ".webp": return "image/webp";
-      case ".gif": return "image/gif";
-      default: return undefined;
-    }
-  };
 
   private executeOperation = async (
     input: AppPackageOperationInput,

@@ -1,6 +1,10 @@
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
 import path from "node:path";
+import {
+  AppHomeService,
+  AppInstanceStorageService,
+  type AppStorageContext,
+} from "@nextclaw/app-runtime";
 import {
   getConfigPath,
   loadConfig,
@@ -29,6 +33,8 @@ type RuntimeService = Pick<
 >;
 
 export class ServiceAppDevService {
+  private readonly instanceStorageService = new AppInstanceStorageService();
+
   constructor(private readonly params: {
     getConfig?: () => Config;
     runtimeService?: RuntimeService;
@@ -51,14 +57,14 @@ export class ServiceAppDevService {
     }
 
     const runtime = this.createRuntimeService();
-    const dataDirectory = await this.createDevDataDirectory();
+    const storage = await this.createDevStorage(appPath, loaded.manifest.id);
     try {
-      const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
+      const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
       const runtimeActions = await runtime.listActions({
         app: startRecord,
         manifest: loaded.manifest,
       });
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
       const actions = mergeServiceAppRuntimeActions({
         record,
         manifest: loaded.manifest,
@@ -67,11 +73,7 @@ export class ServiceAppDevService {
       this.collectRuntimeIssues(record, actions, issues);
       return this.buildDevReport(appPath, record, actions, issues);
     } finally {
-      try {
-        await runtime.dispose();
-      } finally {
-        await rm(dataDirectory, { recursive: true, force: true });
-      }
+      await runtime.dispose();
     }
   };
 
@@ -108,16 +110,16 @@ export class ServiceAppDevService {
     }
 
     const runtime = this.createRuntimeService();
-    const dataDirectory = await this.createDevDataDirectory();
+    const storage = await this.createDevStorage(appPath, loaded.manifest.id);
     try {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
       const result = await runtime.invokeAction({
         app: record,
         manifest: loaded.manifest,
         actionName: action,
         input,
       });
-      const nextRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
+      const nextRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
       return this.buildCallReport(
         appPath,
         nextRecord,
@@ -126,7 +128,7 @@ export class ServiceAppDevService {
         issues,
       );
     } catch (error) {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, dataDirectory);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
       issues.push({
         severity: "error",
         code: "service.runtime.callFailed",
@@ -140,11 +142,7 @@ export class ServiceAppDevService {
         issues,
       );
     } finally {
-      try {
-        await runtime.dispose();
-      } finally {
-        await rm(dataDirectory, { recursive: true, force: true });
-      }
+      await runtime.dispose();
     }
   };
 
@@ -193,14 +191,30 @@ export class ServiceAppDevService {
     getStatus: (): { status: "idle" } => ({ status: "idle" }),
   };
 
-  private createDevDataDirectory = async (): Promise<string> =>
-    await mkdtemp(path.join(tmpdir(), "nextclaw-service-app-dev-data-"));
+  private createDevStorage = async (
+    appPath: string,
+    appId: string,
+  ): Promise<AppStorageContext> => {
+    const sourceId = createHash("sha256").update(appPath).digest("hex").slice(0, 16);
+    const instanceDirectory = path.join(
+      new AppHomeService().getAppHomeDirectory(),
+      "dev-instances",
+      appId,
+      sourceId,
+      "default",
+    );
+    return (await this.instanceStorageService.materialize({
+      appId,
+      instanceId: "default",
+      instanceDirectory,
+    })).storage;
+  };
 
   private toServiceAppRecord = (
     dirPath: string,
     manifest: ServiceAppManifest,
     runtime: Pick<RuntimeService, "getStatus">,
-    dataDirectory?: string,
+    storage?: AppStorageContext,
   ): ServiceAppRecord => {
     const runtimeStatus = runtime.getStatus(manifest.id);
     const record: ServiceAppRecord = {
@@ -214,7 +228,10 @@ export class ServiceAppDevService {
       enabled: manifest.enabled,
       protocol: manifest.protocol,
       status: manifest.enabled ? runtimeStatus.status : "stopped",
-      dataDirectory,
+      dataDirectory: storage?.dataDirectory,
+      instanceId: storage?.instanceId,
+      storage,
+      isolation: "full-user",
     };
     if (manifest.description) {
       record.description = manifest.description;

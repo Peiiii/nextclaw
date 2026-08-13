@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { AppManifestService } from "./app-manifest.service.js";
@@ -83,6 +83,16 @@ describe("AppManifestService", () => {
         ["service", "nextclaw-personal-organizer-data"],
       ]);
       expect(bundle.primaryPanelId).toBe("nextclaw-personal-organizer-todos");
+      expect(new AppManifestService().resolvePlatformSecurity(bundle.manifest)).toEqual({
+        runtimeProfile: "native-process",
+        isolation: "full-user",
+        hasServiceComponents: true,
+        inferred: true,
+        permissions: {
+          storage: true,
+          capabilities: { nativeProcess: true },
+        },
+      });
     } finally {
       await rm(appDirectory, { recursive: true, force: true });
     }
@@ -106,6 +116,22 @@ describe("AppManifestService", () => {
       );
       await expect(new AppManifestService().load(appDirectory)).rejects.toThrow(
         "不能重复或重叠",
+      );
+    } finally {
+      await rm(appDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a panel-only runtime declaration with a Service component", async () => {
+    const appDirectory = await createComponentPackage();
+    try {
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      manifest.runtime = { profile: "panel-only" };
+      await writeFile(manifestPath, JSON.stringify(manifest));
+
+      await expect(new AppManifestService().load(appDirectory)).rejects.toThrow(
+        "panel-only 不能包含 Service",
       );
     } finally {
       await rm(appDirectory, { recursive: true, force: true });

@@ -122,7 +122,7 @@ export class McpServiceAppRuntimeService {
   ): McpServerRecord => ({
     name: app.id,
     definition: {
-      enabled: manifest.enabled,
+      enabled: app.enabled,
       transport: {
         type: "stdio",
         command: manifest.command,
@@ -144,7 +144,16 @@ export class McpServiceAppRuntimeService {
 
   private createAppRuntimeEnv = (app: ServiceAppRecord): NodeJS.ProcessEnv => {
     const env: NodeJS.ProcessEnv = {};
-    if (app.dataDirectory) {
+    if (app.storage) {
+      env.NEXTCLAW_APP_INSTANCE_ID = app.storage.instanceId;
+      env.NEXTCLAW_APP_COMPONENT_ID = app.id;
+      env.NEXTCLAW_APP_DATA_DIR = app.storage.dataDirectory;
+      env.NEXTCLAW_APP_CONFIG_DIR = app.storage.configDirectory;
+      env.NEXTCLAW_APP_STATE_DIR = app.storage.stateDirectory;
+      env.NEXTCLAW_APP_CACHE_DIR = app.storage.cacheDirectory;
+      env.NEXTCLAW_APP_TMP_DIR = app.storage.temporaryDirectory;
+      env.NEXTCLAW_APP_LOG_DIR = app.storage.logsDirectory;
+    } else if (app.dataDirectory) {
       env.NEXTCLAW_APP_DATA_DIR = app.dataDirectory;
     }
     if (

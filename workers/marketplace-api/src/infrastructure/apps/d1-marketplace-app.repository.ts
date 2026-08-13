@@ -29,6 +29,7 @@ import {
   buildAppWebUrl,
   parseAppReviewInput,
   resolveCatalogVisibility,
+  resolveAppReviewCatalogVisibility,
   resolveAppIdentity,
   type ExistingAppRow,
 } from "./marketplace-app-publish.utils";
@@ -292,14 +293,11 @@ export class D1MarketplaceAppDataSource {
     if (!itemRow) {
       throw new DomainValidationError(`app item not found: ${input.selector}`);
     }
-    if (input.catalogVisibility === "listed" && itemRow.manifest_schema_version < 2) {
-      throw new DomainValidationError("legacy schema v1 apps cannot be listed in the product catalog");
-    }
-    const catalogVisibility = input.catalogVisibility ?? (
-      input.publishStatus === "published"
-        ? itemRow.manifest_schema_version === 2 ? "listed" : "unlisted"
-        : undefined
-    );
+    const catalogVisibility = resolveAppReviewCatalogVisibility(input, {
+      manifestSchemaVersion: itemRow.manifest_schema_version,
+      manifestJson: itemRow.manifest_json,
+      ownerScope: itemRow.owner_scope,
+    });
     const updatedAt = new Date().toISOString();
     await this.recordRepository.updateReviewStatus({
       itemId: itemRow.id,

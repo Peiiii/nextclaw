@@ -1,4 +1,4 @@
-import { access, cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { access, chmod, cp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -91,9 +91,77 @@ describe("AppInstallationService", () => {
       await closeServer(registryFixture.server);
     }
   });
+
+  it("preserves publisher-owned data on reinstall and rejects a different publisher", async () => {
+    const appHomeDirectory = createTemporaryPath("napp-publisher-owned-home");
+    cleanupPaths.push(appHomeDirectory);
+    const registryFixture = await createRegistryFixture();
+    cleanupPaths.push(...registryFixture.cleanupPaths);
+    try {
+      const installationService = new AppInstallationService(
+        new AppHomeService(appHomeDirectory),
+      );
+      const installed = await installationService.install(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+      });
+      const sentinelPath = path.join(installed.dataDirectory, "publisher-owned.json");
+      await writeFile(sentinelPath, "{}\n");
+      await installationService.uninstall(registryFixture.appId, false);
+
+      await installationService.install(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+      });
+      await expect(access(sentinelPath)).resolves.toBeUndefined();
+      await installationService.uninstall(registryFixture.appId, false);
+
+      registryFixture.setPublisher({ id: "attacker", name: "Different Publisher" });
+      await expect(installationService.install(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+      })).rejects.toThrow("已绑定发布者 nextclaw");
+      await expect(access(sentinelPath)).resolves.toBeUndefined();
+      await expect(installationService.list()).resolves.toEqual([]);
+    } finally {
+      await closeServer(registryFixture.server);
+    }
+  });
 });
 
 describe("AppInstallationService updates and package lifecycle", () => {
+  it("prepares an update without switching activeVersion when activation is deferred", async () => {
+    const appHomeDirectory = createTemporaryPath("napp-registry-prepare-home");
+    cleanupPaths.push(appHomeDirectory);
+    const registryFixture = await createRegistryFixture();
+    cleanupPaths.push(...registryFixture.cleanupPaths);
+    try {
+      const installationService = new AppInstallationService(
+        new AppHomeService(appHomeDirectory),
+      );
+      await installationService.install(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+      });
+      registryFixture.setLatestVersion("0.2.0");
+
+      const prepared = await installationService.update(registryFixture.appId, {
+        registryUrl: registryFixture.registryUrl,
+        activate: false,
+      });
+
+      expect(prepared).toMatchObject({
+        previousVersion: "0.1.0",
+        updated: true,
+        version: "0.2.0",
+      });
+      await expect(installationService.info(registryFixture.appId)).resolves.toMatchObject({
+        activeVersion: "0.1.0",
+        installedVersions: expect.arrayContaining([
+          expect.objectContaining({ version: "0.2.0" }),
+        ]),
+      });
+    } finally {
+      await closeServer(registryFixture.server);
+    }
+  });
+
   it("reuses an already installed inactive version during update", async () => {
     const appHomeDirectory = createTemporaryPath("napp-registry-reuse-home");
     cleanupPaths.push(appHomeDirectory);
@@ -195,7 +263,9 @@ describe("AppInstallationService updates and package lifecycle", () => {
       await closeServer(registryFixture.server);
     }
   });
+});
 
+describe("AppInstallationService artifact lifecycle", () => {
   it("materializes source distributions before installing", async () => {
     const appDirectory = createTemporaryPath("napp-source-install-app");
     const appHomeDirectory = createTemporaryPath("napp-source-install-home");
@@ -249,7 +319,7 @@ describe("AppInstallationService updates and package lifecycle", () => {
     await writeManifestVersion(version2Directory, appId, "0.2.0");
     const installationService = new AppInstallationService(new AppHomeService(appHomeDirectory));
 
-    await installationService.install(version1Directory);
+    const installedV1 = await installationService.install(version1Directory);
     await installationService.install(version2Directory);
     await expect(installationService.install(version2Directory)).rejects.toThrow("不能覆盖不可变版本");
     const rollback = await installationService.rollback(appId, "0.1.0");
@@ -260,6 +330,33 @@ describe("AppInstallationService updates and package lifecycle", () => {
       rolledBack: true,
     });
     expect((await installationService.info(appId)).activeVersion).toBe("0.1.0");
+    expect((await stat(path.join(installedV1.installDirectory, "manifest.json"))).mode & 0o222)
+      .toBe(0);
+  });
+
+  it("blocks activation when installed package contents were modified", async () => {
+    const version1Directory = createTemporaryPath("napp-integrity-v1");
+    const version2Directory = createTemporaryPath("napp-integrity-v2");
+    const appHomeDirectory = createTemporaryPath("napp-integrity-home");
+    cleanupPaths.push(version1Directory, version2Directory, appHomeDirectory);
+    await new AppScaffoldService().scaffold(version1Directory);
+    await cp(version1Directory, version2Directory, { recursive: true });
+    const appId = "nextclaw.integrity-demo";
+    await writeManifestVersion(version1Directory, appId, "0.1.0");
+    await writeManifestVersion(version2Directory, appId, "0.2.0");
+    const installationService = new AppInstallationService(new AppHomeService(appHomeDirectory));
+    const installedV1 = await installationService.install(version1Directory);
+    await installationService.install(version2Directory);
+    const installedManifestPath = path.join(installedV1.installDirectory, "manifest.json");
+    const originalManifest = await readFile(installedManifestPath, "utf8");
+    await chmod(installedManifestPath, 0o644);
+    await writeFile(installedManifestPath, `${originalManifest}\n`, "utf8");
+
+    await expect(installationService.rollback(appId, "0.1.0"))
+      .rejects.toThrow("完整性校验失败");
+    await expect(installationService.info(appId)).resolves.toMatchObject({
+      activeVersion: "0.2.0",
+    });
   });
 
   it("installs schema v2 packages disabled and enables them explicitly", async () => {
@@ -279,6 +376,22 @@ describe("AppInstallationService updates and package lifecycle", () => {
     expect(installed.components).toHaveLength(2);
     expect((await installationService.setEnabled(installed.appId, true)).enabled).toBe(true);
     expect((await installationService.list())[0]?.enabled).toBe(true);
+  });
+
+  it("blocks a data schema change when the package has no supported migration contract", async () => {
+    const version1Directory = createTemporaryPath("napp-schema-v1");
+    const version2Directory = createTemporaryPath("napp-schema-v2");
+    const appHomeDirectory = createTemporaryPath("napp-schema-home");
+    cleanupPaths.push(version1Directory, version2Directory, appHomeDirectory);
+    await createComponentPackage(version1Directory, { version: "0.1.0", dataSchemaVersion: 1 });
+    await createComponentPackage(version2Directory, { version: "0.2.0", dataSchemaVersion: 2 });
+    const installationService = new AppInstallationService(new AppHomeService(appHomeDirectory));
+    await installationService.install(version1Directory);
+
+    await expect(installationService.install(version2Directory))
+      .rejects.toThrow("没有受支持的迁移合同");
+    await expect(installationService.info("nextclaw.personal-organizer"))
+      .resolves.toMatchObject({ activeVersion: "0.1.0" });
   });
 
 });
@@ -344,16 +457,43 @@ function createTemporaryPath(prefix: string): string {
   );
 }
 
-async function createRegistryFixture(): Promise<{
-  appId: string;
-  registryUrl: string;
-  server: ReturnType<typeof createServer>;
-  setLatestVersion: (version: "0.1.0" | "0.2.0") => void;
-  failNextMetadataRequest: () => void;
-  getMetadataRequestCount: () => number;
-  reportOversizedBundle: () => void;
-  cleanupPaths: string[];
-}> {
+type RegistryFixtureState = {
+  latestVersion: "0.1.0" | "0.2.0";
+  metadataRequestCount: number;
+  metadataFailuresRemaining: number;
+  oversizedBundle: boolean;
+  publisher: { id: string; name: string; url?: string };
+};
+
+class RegistryFixture {
+  constructor(
+    readonly appId: string,
+    readonly registryUrl: string,
+    readonly server: ReturnType<typeof createServer>,
+    readonly cleanupPaths: string[],
+    private readonly state: RegistryFixtureState,
+  ) {}
+
+  setLatestVersion = (version: "0.1.0" | "0.2.0"): void => {
+    this.state.latestVersion = version;
+  };
+
+  setPublisher = (publisher: { id: string; name: string; url?: string }): void => {
+    this.state.publisher = publisher;
+  };
+
+  failNextMetadataRequest = (): void => {
+    this.state.metadataFailuresRemaining += 1;
+  };
+
+  getMetadataRequestCount = (): number => this.state.metadataRequestCount;
+
+  reportOversizedBundle = (): void => {
+    this.state.oversizedBundle = true;
+  };
+}
+
+async function createRegistryFixture(): Promise<RegistryFixture> {
   const version1Directory = createTemporaryPath("napp-registry-v1");
   const version2Directory = createTemporaryPath("napp-registry-v2");
   const version1BundlePath = createTemporaryPath("napp-registry-v1") + ".napp";
@@ -389,21 +529,23 @@ async function createRegistryFixture(): Promise<{
   const version2Sha256 = createHash("sha256")
     .update(version2BundleBytes)
     .digest("hex");
-  let latestVersion: "0.1.0" | "0.2.0" = "0.1.0";
-  let metadataRequestCount = 0;
-  let metadataFailuresRemaining = 0;
-  let oversizedBundle = false;
-  const publisher = {
-    id: "nextclaw",
-    name: "NextClaw Official",
-    url: "https://nextclaw.com",
+  const state: RegistryFixtureState = {
+    latestVersion: "0.1.0",
+    metadataRequestCount: 0,
+    metadataFailuresRemaining: 0,
+    oversizedBundle: false,
+    publisher: {
+      id: "nextclaw",
+      name: "NextClaw Official",
+      url: "https://nextclaw.com",
+    },
   };
   const server = createServer((request, response) => {
     const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
     if (requestUrl.pathname === `/${encodeURIComponent(appId)}`) {
-      metadataRequestCount += 1;
-      if (metadataFailuresRemaining > 0) {
-        metadataFailuresRemaining -= 1;
+      state.metadataRequestCount += 1;
+      if (state.metadataFailuresRemaining > 0) {
+        state.metadataFailuresRemaining -= 1;
         request.socket.destroy();
         return;
       }
@@ -413,14 +555,14 @@ async function createRegistryFixture(): Promise<{
           name: appId,
           description: "Registry Demo",
           "dist-tags": {
-            latest: latestVersion,
+            latest: state.latestVersion,
           },
           versions: {
             "0.1.0": {
               name: appId,
               version: "0.1.0",
               description: "Registry Demo",
-              publisher,
+              publisher: state.publisher,
               dist: {
                 kind: "bundle",
                 bundle: "./-/registry-demo-0.1.0.napp",
@@ -431,7 +573,7 @@ async function createRegistryFixture(): Promise<{
               name: appId,
               version: "0.2.0",
               description: "Registry Demo",
-              publisher,
+              publisher: state.publisher,
               dist: {
                 kind: "bundle",
                 bundle: "./-/registry-demo-0.2.0.napp",
@@ -445,7 +587,7 @@ async function createRegistryFixture(): Promise<{
     }
     if (requestUrl.pathname === "/-/registry-demo-0.1.0.napp") {
       response.setHeader("content-type", "application/octet-stream");
-      if (oversizedBundle) {
+      if (state.oversizedBundle) {
         response.setHeader("content-length", String(25 * 1024 * 1024 + 1));
       }
       response.end(version1BundleBytes);
@@ -468,22 +610,13 @@ async function createRegistryFixture(): Promise<{
   if (!address || typeof address === "string") {
     throw new Error("registry test server address unavailable");
   }
-  return {
+  return new RegistryFixture(
     appId,
-    registryUrl: `http://127.0.0.1:${address.port}/`,
+    `http://127.0.0.1:${address.port}/`,
     server,
-    setLatestVersion: (version) => {
-      latestVersion = version;
-    },
-    failNextMetadataRequest: () => {
-      metadataFailuresRemaining += 1;
-    },
-    getMetadataRequestCount: () => metadataRequestCount,
-    reportOversizedBundle: () => {
-      oversizedBundle = true;
-    },
     cleanupPaths,
-  };
+    state,
+  );
 }
 
 async function writeManifestVersion(
@@ -511,7 +644,10 @@ async function closeServer(server: ReturnType<typeof createServer>): Promise<voi
   });
 }
 
-async function createComponentPackage(appDirectory: string): Promise<void> {
+async function createComponentPackage(
+  appDirectory: string,
+  options: { version?: string; dataSchemaVersion?: number } = {},
+): Promise<void> {
   const panelDirectory = path.join(appDirectory, "panels", "nextclaw-personal-organizer-todos.panel");
   const serviceDirectory = path.join(appDirectory, "services", "nextclaw-personal-organizer-data");
   await mkdir(panelDirectory, { recursive: true });
@@ -535,11 +671,21 @@ async function createComponentPackage(appDirectory: string): Promise<void> {
     schemaVersion: 2,
     id: "nextclaw.personal-organizer",
     name: "Personal Organizer",
-    version: "0.1.0",
+    version: options.version ?? "0.1.0",
+    ...(options.dataSchemaVersion
+      ? { storage: { scope: "global", schemaVersion: options.dataSchemaVersion } }
+      : {}),
     presentation: { primaryPanel: "nextclaw-personal-organizer-todos" },
     components: [
       { kind: "panel", path: "panels/nextclaw-personal-organizer-todos.panel" },
       { kind: "service", path: "services/nextclaw-personal-organizer-data" },
     ],
+  }));
+  await writeFile(path.join(appDirectory, "marketplace.json"), JSON.stringify({
+    slug: "personal-organizer",
+    summary: "Personal organizer",
+    summaryI18n: { en: "Personal organizer" },
+    author: "NextClaw",
+    tags: ["personal"],
   }));
 }

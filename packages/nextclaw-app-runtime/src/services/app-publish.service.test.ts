@@ -274,6 +274,8 @@ describe("AppPublishService bundle mode", () => {
       import.meta.dirname,
       "../../../nextclaw/resources/apps/nextclaw-personal-organizer",
     );
+    const outputDirectory = await mkdtemp(path.join(tmpdir(), "napp-publish-component-app-"));
+    cleanupPaths.push(outputDirectory);
     const publish = vi.fn().mockResolvedValue({
       created: true,
       item: {
@@ -315,7 +317,10 @@ describe("AppPublishService bundle mode", () => {
       }),
     }));
 
-    const result = await service.publish({ appDirectory });
+    const result = await service.publish({
+      appDirectory,
+      bundleOutputPath: path.join(outputDirectory, "artifact.napp"),
+    });
 
     expect(result.distribution.mode).toBe("bundle");
     expect(publish.mock.calls[0]?.[0]).toMatchObject({

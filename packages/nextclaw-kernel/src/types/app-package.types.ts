@@ -1,3 +1,10 @@
+import type {
+  AppRuntimeIsolation,
+  AppRuntimeProfile,
+  AppStorageContext,
+  AppStorageUsage,
+} from "@nextclaw/app-runtime";
+
 export type AppPackageComponentKind = "panel" | "service";
 
 export type AppPackageComponentSource = {
@@ -8,6 +15,10 @@ export type AppPackageComponentSource = {
   sourcePath: string;
   manifestPath: string;
   dataDirectory: string;
+  instanceId: string;
+  storage: AppStorageContext;
+  runtimeProfile: AppRuntimeProfile;
+  isolation: AppRuntimeIsolation;
 };
 
 export type AppPackageComponentView = AppPackageComponentSource & {
@@ -32,6 +43,11 @@ export type AppPackageView = {
   primaryPanelId?: string;
   components: AppPackageComponentView[];
   dataDirectory: string;
+  instanceId: string;
+  storage: AppStorageContext;
+  storageUsage: AppStorageUsage;
+  runtimeProfile: AppRuntimeProfile;
+  isolation: AppRuntimeIsolation;
 };
 
 export type AppPackageList = {

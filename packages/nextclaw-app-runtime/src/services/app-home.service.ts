@@ -21,6 +21,14 @@ export class AppHomeService {
     return path.join(this.appHomeDirectory, "data");
   };
 
+  getInstancesDirectory = (): string => {
+    return path.join(this.appHomeDirectory, "instances");
+  };
+
+  getLocksDirectory = (): string => {
+    return path.join(this.appHomeDirectory, "locks");
+  };
+
   getRegistryPath = (): string => {
     return path.join(this.appHomeDirectory, "registry.json");
   };
@@ -41,11 +49,21 @@ export class AppHomeService {
     return path.join(this.getDataDirectory(), appId);
   };
 
+  getAppInstanceDirectory = (appId: string, instanceId: string): string => {
+    return path.join(this.getInstancesDirectory(), appId, instanceId);
+  };
+
+  getAppOperationLockPath = (appId: string): string => {
+    return path.join(this.getLocksDirectory(), "apps", `${appId}.lock`);
+  };
+
   ensureBaseDirectories = async (): Promise<void> => {
     await Promise.all([
       mkdir(this.appHomeDirectory, { recursive: true }),
       mkdir(this.getPackagesDirectory(), { recursive: true }),
       mkdir(this.getDataDirectory(), { recursive: true }),
+      mkdir(this.getInstancesDirectory(), { recursive: true }),
+      mkdir(this.getLocksDirectory(), { recursive: true }),
     ]);
   };
 

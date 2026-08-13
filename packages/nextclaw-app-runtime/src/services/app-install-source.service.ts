@@ -2,6 +2,8 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 import type { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
 import type { AppRemoteRegistryClientService } from "#app-runtime/services/app-remote-registry-client.service.js";
+import type { AppBundleService } from "#app-runtime/services/app-bundle.service.js";
+import type { AppInstallProgressHandler } from "#app-runtime/types/app-installation.types.js";
 
 type LocalAppSource =
   | { kind: "directory"; appDirectory: string }
@@ -29,7 +31,29 @@ export class AppInstallSourceService {
   constructor(
     private readonly manifestService: AppManifestService,
     private readonly remoteRegistryClient: AppRemoteRegistryClientService,
+    private readonly bundleService: AppBundleService,
   ) {}
+
+  materializeBundle = async (
+    source: ResolvedAppInstallSource,
+    tempDirectory: string,
+    onProgress?: AppInstallProgressHandler,
+  ): Promise<string> => {
+    if (source.kind === "directory") {
+      return (await this.bundleService.packAppDirectory({
+        appDirectory: source.appDirectory,
+        outputPath: path.join(tempDirectory, "app.napp"),
+      })).bundlePath;
+    }
+    if (source.kind === "bundle") {
+      return source.bundlePath;
+    }
+    await onProgress?.("downloading");
+    return (await this.remoteRegistryClient.downloadBundle({
+      resolution: source.registryResolution,
+      targetDirectory: tempDirectory,
+    })).bundlePath;
+  };
 
   resolve = async (
     appSource: string,

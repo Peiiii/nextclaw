@@ -1,5 +1,5 @@
 import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
-import { ExternalLink, FileText, Server, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { ExternalLink, FileText, Server, ShieldAlert, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import { AppMarketplaceCover } from '@/features/apps/components/app-marketplace-cover';
 import {
@@ -46,6 +46,8 @@ export function MarketplaceDetail({
   const components = detail.manifest.components ?? [];
   const panelCount = components.filter((entry) => entry.kind === 'panel').length;
   const serviceCount = components.filter((entry) => entry.kind === 'service').length;
+  const runtimeProfile = detail.manifest.runtime?.profile
+    ?? (serviceCount > 0 ? 'native-process' : 'panel-only');
   const canUpdate = Boolean(
     installedPackage && installedPackage.activeVersion !== detail.latestVersion,
   );
@@ -97,6 +99,15 @@ export function MarketplaceDetail({
             value={detail.manifest.engines.nextclaw}
           />
         ) : null}
+        <DetailFact
+          icon={runtimeProfile === 'native-process' ? ShieldAlert : ShieldCheck}
+          label={t('appPackagesIsolationLabel')}
+          value={runtimeProfile === 'native-process'
+            ? t('appPackagesIsolationFullUser')
+            : runtimeProfile === 'wasi'
+              ? t('appPackagesIsolationMediated')
+              : t('appPackagesIsolationPanel')}
+        />
       </div>
 
       <section className="mt-7 border-t border-border/60 pt-6">
@@ -154,7 +165,13 @@ function readPermissionRows(detail: AppMarketplaceDetailView): string[] {
   if (detail.permissions.capabilities?.hostBridge) {
     rows.push(t('appPackagesHostBridgeAccess'));
   }
-  if (detail.permissions.storage?.namespace) {
+  if (detail.permissions.capabilities?.nativeProcess) {
+    rows.push(t('appPackagesNativeProcessAccess'));
+  }
+  if (detail.permissions.storage === true || (
+    typeof detail.permissions.storage === 'object' &&
+    detail.permissions.storage?.namespace
+  )) {
     rows.push(t('appPackagesLocalStorageAccess'));
   }
   return rows.length > 0 ? rows : [t('appPackagesNoExtraAccess')];

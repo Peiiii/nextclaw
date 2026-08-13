@@ -15,6 +15,9 @@ import {
   Server,
   Trash2,
   LoaderCircle,
+  HardDrive,
+  ShieldAlert,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
@@ -103,6 +106,31 @@ export function AppPackageCard({
                 {t('appPackagesLocalService')}
               </span>
             ) : null}
+            <span className={cn(
+              'inline-flex items-center gap-1',
+              appPackage.isolation === 'full-user' && 'text-amber-700 dark:text-amber-300',
+            )}>
+              {appPackage.isolation === 'full-user'
+                ? <ShieldAlert className="h-3 w-3" />
+                : <ShieldCheck className="h-3 w-3" />}
+              {appPackage.isolation === 'full-user'
+                ? t('appPackagesIsolationFullUser')
+                : appPackage.isolation === 'host-mediated'
+                  ? t('appPackagesIsolationMediated')
+                  : t('appPackagesIsolationPanel')}
+            </span>
+          </div>
+          <div
+            className="mt-2 flex min-w-0 items-center gap-1.5 rounded-md bg-muted/35 px-2 py-1 text-[10px] text-muted-foreground"
+            title={appPackage.storage.dataDirectory}
+          >
+            <HardDrive className="h-3 w-3 shrink-0" />
+            <span className="shrink-0">
+              {t('appPackagesDataUsage')} {formatBytes(appPackage.storageUsage.totalBytes)}
+            </span>
+            <code className="min-w-0 truncate font-mono text-[10px]">
+              {appPackage.storage.dataDirectory}
+            </code>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -273,6 +301,13 @@ function renderPrimaryActionLabel({
   }
   if (isPending) return t('appPackagesWorking');
   return enabled ? t('appPackagesDisable') : t('appPackagesEnable');
+}
+
+function formatBytes(value: number): string {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
 function DataChoice({

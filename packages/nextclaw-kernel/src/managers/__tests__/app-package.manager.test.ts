@@ -1,8 +1,16 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
+import {
+  AppArtifactValidationService,
+  AppBundleService,
+  AppHomeService,
+  AppInstallationService,
+} from "@nextclaw/app-runtime";
 import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
 
@@ -11,6 +19,12 @@ const builtInAppsDirectory = resolve(
   import.meta.dirname,
   "../../../../nextclaw/resources/apps",
 );
+const builtInOrganizerVersion = (
+  JSON.parse(readFileSync(
+    join(builtInAppsDirectory, "nextclaw-personal-organizer", "manifest.json"),
+    "utf8",
+  )) as { version: string }
+).version;
 
 function createTempDirectory(): string {
   const directory = mkdtempSync(join(tmpdir(), "nextclaw-app-package-test-"));
@@ -174,6 +188,140 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.serviceAppManager.dispose();
     }
   });
+
+  it("blocks activation when installed package content has been modified", async () => {
+    const kernel = createKernel();
+    try {
+      const app = await kernel.appPackageManager.getPackage("nextclaw.personal-organizer");
+      const componentManifestPath = app.components[0]?.manifestPath;
+      expect(componentManifestPath).toBeTruthy();
+      chmodSync(componentManifestPath!, 0o600);
+      writeFileSync(
+        componentManifestPath!,
+        `${readFileSync(componentManifestPath!, "utf8")}\n`,
+      );
+
+      await expect(kernel.appPackageManager.enable("nextclaw.personal-organizer"))
+        .rejects.toThrow("代码完整性校验失败");
+      await expect(kernel.appPackageManager.getPackage("nextclaw.personal-organizer"))
+        .resolves.toMatchObject({ enabled: false });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  });
+
+  it("keeps the active version unchanged when a rollback candidate probe fails", async () => {
+    const homeDirectory = createTempDirectory();
+    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const candidateDirectory = createTempDirectory();
+    const packageDirectory = join(candidateDirectory, "personal-organizer-next");
+    cpSync(join(builtInAppsDirectory, "nextclaw-personal-organizer"), packageDirectory, {
+      recursive: true,
+    });
+    const manifestPath = join(packageDirectory, "manifest.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+    const candidateVersion = "0.1.99";
+    manifest.version = candidateVersion;
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    try {
+      await kernel.appPackageManager.listPackages();
+      await new AppInstallationService(new AppHomeService(join(homeDirectory, "apps"))).install(
+        packageDirectory,
+        {
+          trustedPublisher: {
+            id: "nextclaw",
+            name: "NextClaw",
+            url: "https://nextclaw.io",
+          },
+        },
+      );
+      await kernel.appPackageManager.enable("nextclaw.personal-organizer");
+      kernel.appPackageManager.installRuntimeHooks({
+        assertCanActivate: async (sources) => {
+          if (sources[0]?.packageVersion === builtInOrganizerVersion) {
+            throw new Error("candidate probe failed");
+          }
+        },
+        beforeDeactivate: async () => undefined,
+        beforeUninstall: async () => undefined,
+      });
+
+      await expect(kernel.appPackageManager.rollback(
+        "nextclaw.personal-organizer",
+        builtInOrganizerVersion,
+      )).rejects.toThrow("candidate probe failed");
+      await expect(kernel.appPackageManager.getPackage("nextclaw.personal-organizer"))
+        .resolves.toMatchObject({ activeVersion: candidateVersion });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  });
+});
+
+describe("AppPackageManager packed artifact lifecycle", () => {
+  it("runs a packed napp through failed update recovery and preserved-data uninstall", async () => {
+    const fixture = await PackedOrganizerRegistryFixture.create(createTempDirectory());
+    const kernel = createKernel(fixture.emptyBuiltInsDirectory);
+
+    try {
+      const installed = await kernel.appPackageManager.install(
+        "nextclaw.personal-organizer",
+        fixture.registryUrl,
+      );
+      expect(installed).toMatchObject({ activeVersion: "0.1.0", enabled: false });
+      const enabled = await kernel.appPackageManager.enable(installed.id);
+      const session = await kernel.panelAppManager.createPanelAppBridgeSession({
+        id: "nextclaw-personal-organizer-todos",
+      });
+      const createAction = "nextclaw-personal-organizer-data.todo_create";
+      const listAction = "nextclaw-personal-organizer-data.todo_list";
+      await kernel.serviceAppManager.grantServiceActions([createAction, listAction], {
+        caller: session.caller,
+        declaredActions: session.declaredActions,
+      });
+      await kernel.serviceAppManager.invokeServiceAction(createAction, {
+        caller: session.caller,
+        declaredActions: session.declaredActions,
+        input: { title: "真实 napp 生命周期" },
+      });
+      const dataDirectory = enabled.dataDirectory;
+      expect(existsSync(join(dataDirectory, "todos.json"))).toBe(true);
+
+      fixture.setLatestVersion("0.2.0");
+      await expect(kernel.appPackageManager.update(installed.id, {
+        registryUrl: fixture.registryUrl,
+      }))
+        .rejects.toThrow(/启动探测失败|missing-candidate-runtime/);
+      await expect(kernel.appPackageManager.getPackage(installed.id)).resolves.toMatchObject({
+        activeVersion: "0.1.0",
+        enabled: true,
+        installedVersions: expect.arrayContaining(["0.1.0", "0.2.0"]),
+      });
+      const restoredSession = await kernel.panelAppManager.createPanelAppBridgeSession({
+        id: "nextclaw-personal-organizer-todos",
+      });
+      const listed = await kernel.serviceAppManager.invokeServiceAction(listAction, {
+        caller: restoredSession.caller,
+        declaredActions: restoredSession.declaredActions,
+        input: { status: "all" },
+      });
+      expect(listed.result).toMatchObject({
+        structuredContent: {
+          items: [expect.objectContaining({ title: "真实 napp 生命周期" })],
+        },
+      });
+
+      await expect(kernel.appPackageManager.uninstall(installed.id, false)).resolves.toMatchObject({
+        dataRemoved: false,
+        removedVersions: expect.arrayContaining(["0.1.0", "0.2.0"]),
+      });
+      expect(existsSync(join(dataDirectory, "todos.json"))).toBe(true);
+    } finally {
+      await kernel.serviceAppManager.dispose();
+      await fixture.close();
+    }
+  }, 20_000);
 });
 
 describe("AppPackageManager package projection lifecycle", () => {
@@ -184,7 +332,7 @@ describe("AppPackageManager package projection lifecycle", () => {
       const initialPackages = await kernel.appPackageManager.listPackages();
       expect(initialPackages.entries).toEqual([
         expect.objectContaining({
-          activeVersion: "0.1.1",
+          activeVersion: builtInOrganizerVersion,
           builtIn: true,
           components: expect.arrayContaining([
             expect.objectContaining({ kind: "panel" }),
@@ -215,12 +363,9 @@ describe("AppPackageManager package projection lifecycle", () => {
         "nextclaw-personal-organizer-notes",
         "nextclaw-personal-organizer-todos",
       ]);
-      expect(panels.entries.map((entry) => entry.icon).sort()).toEqual([
-        "✓",
-        "□",
-        "◇",
-        "✎",
-      ].sort());
+      const panelIcons = panels.entries.map((entry) => entry.icon);
+      expect(panelIcons).toEqual(expect.arrayContaining(["◇", "✎"]));
+      expect(panelIcons.filter((icon) => icon?.includes("/assets/icon.svg"))).toHaveLength(2);
       expect(panels.entries).toEqual(expect.arrayContaining([
         expect.objectContaining({
           packageId: "nextclaw.personal-organizer",
@@ -332,6 +477,146 @@ describe("AppPackageManager package projection lifecycle", () => {
   });
 });
 
+type OrganizerFixtureVersion = "0.1.0" | "0.2.0";
+
+class PackedOrganizerRegistryFixture {
+  private latestVersion: OrganizerFixtureVersion = "0.1.0";
+  private readonly server: ReturnType<typeof createServer>;
+  private registryUrlValue = "";
+
+  private constructor(
+    readonly emptyBuiltInsDirectory: string,
+    private readonly bundles: Record<OrganizerFixtureVersion, Buffer>,
+  ) {
+    this.server = createServer((request, response) => this.handleRequest(request, response));
+  }
+
+  static create = async (fixtureDirectory: string): Promise<PackedOrganizerRegistryFixture> => {
+    const emptyBuiltInsDirectory = join(fixtureDirectory, "built-ins");
+    mkdirSync(emptyBuiltInsDirectory);
+    const bundles = {
+      "0.1.0": await packOrganizerVersion(fixtureDirectory, "0.1.0", false),
+      "0.2.0": await packOrganizerVersion(fixtureDirectory, "0.2.0", true),
+    };
+    await expect(new AppArtifactValidationService().validate({
+      bytes: new Uint8Array(bundles["0.1.0"]),
+    })).resolves.toMatchObject({
+      metadata: {
+        appId: "nextclaw.personal-organizer",
+        version: "0.1.0",
+      },
+    });
+    const fixture = new PackedOrganizerRegistryFixture(emptyBuiltInsDirectory, bundles);
+    await fixture.listen();
+    return fixture;
+  };
+
+  get registryUrl(): string {
+    return this.registryUrlValue;
+  }
+
+  setLatestVersion = (version: OrganizerFixtureVersion): void => {
+    this.latestVersion = version;
+  };
+
+  close = async (): Promise<void> => {
+    await new Promise<void>((resolveClose, rejectClose) => {
+      this.server.close((error) => error ? rejectClose(error) : resolveClose());
+    });
+  };
+
+  private listen = async (): Promise<void> => {
+    await new Promise<void>((resolveListen) => {
+      this.server.listen(0, "127.0.0.1", resolveListen);
+    });
+    const address = this.server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("test registry address unavailable");
+    }
+    this.registryUrlValue = `http://127.0.0.1:${address.port}/`;
+  };
+
+  private handleRequest = (request: IncomingMessage, response: ServerResponse): void => {
+    const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
+    if (requestUrl.pathname === "/nextclaw.personal-organizer") {
+      this.respondWithMetadata(response);
+      return;
+    }
+    const version = requestUrl.pathname.match(/^\/-\/organizer-(0\.[12]\.0)\.napp$/)?.[1];
+    const bundle = version
+      ? this.bundles[version as OrganizerFixtureVersion]
+      : undefined;
+    if (bundle) {
+      response.setHeader("content-type", "application/octet-stream");
+      response.end(bundle);
+      return;
+    }
+    response.writeHead(404).end();
+  };
+
+  private respondWithMetadata = (response: ServerResponse): void => {
+    response.setHeader("content-type", "application/json");
+    response.end(JSON.stringify({
+      name: "nextclaw.personal-organizer",
+      "dist-tags": { latest: this.latestVersion },
+      versions: {
+        "0.1.0": this.createVersionRecord("0.1.0"),
+        "0.2.0": this.createVersionRecord("0.2.0"),
+      },
+    }));
+  };
+
+  private createVersionRecord = (version: OrganizerFixtureVersion): Record<string, unknown> => ({
+    name: "nextclaw.personal-organizer",
+    version,
+    publisher: {
+      id: "nextclaw",
+      name: "NextClaw",
+      url: "https://nextclaw.io",
+    },
+    dist: {
+      kind: "bundle",
+      bundle: `./-/organizer-${version}.napp`,
+      sha256: createHash("sha256").update(this.bundles[version]).digest("hex"),
+    },
+  });
+}
+
+async function packOrganizerVersion(
+  fixtureDirectory: string,
+  version: OrganizerFixtureVersion,
+  brokenRuntime: boolean,
+): Promise<Buffer> {
+  const packageDirectory = join(fixtureDirectory, `source-${version}`);
+  const bundlePath = join(fixtureDirectory, `organizer-${version}.napp`);
+  cpSync(join(builtInAppsDirectory, "nextclaw-personal-organizer"), packageDirectory, {
+    recursive: true,
+  });
+  writePackageVersion(packageDirectory, version);
+  if (brokenRuntime) {
+    breakOrganizerRuntime(packageDirectory);
+  }
+  await new AppBundleService().packAppDirectory({ appDirectory: packageDirectory, outputPath: bundlePath });
+  return readFileSync(bundlePath);
+}
+
+function breakOrganizerRuntime(packageDirectory: string): void {
+  const manifestPath = join(
+    packageDirectory,
+    "service-components/nextclaw-personal-organizer-data/service-app.json",
+  );
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+  manifest.args = ["missing-candidate-runtime.mjs"];
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+function writePackageVersion(packageDirectory: string, version: string): void {
+  const manifestPath = join(packageDirectory, "manifest.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+  manifest.version = version;
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 async function assertUninstallCleanup({
   dataDirectory,
   kernel,
@@ -350,7 +635,7 @@ async function assertUninstallCleanup({
   );
   expect(uninstalled).toMatchObject({
     dataRemoved: false,
-    removedVersions: ["0.1.1"],
+    removedVersions: [builtInOrganizerVersion],
   });
   await expect(kernel.serviceAppManager.listServiceActionGrants()).resolves.toEqual([]);
   await expect(kernel.panelAppManager.listPanelApps()).resolves.toMatchObject({ entries: [] });

@@ -33,9 +33,11 @@ export class ServiceActionGrantStore {
   isGranted = async (
     caller: ServiceActionCaller,
     actionId: string,
+    currentRisk?: ServiceActionRisk,
   ): Promise<boolean> => {
     const data = await this.load();
-    return Boolean(data.grants[getServiceActionCallerKey(caller)]?.actions[actionId]);
+    const grant = data.grants[getServiceActionCallerKey(caller)]?.actions[actionId];
+    return Boolean(grant && (currentRisk === undefined || grant.risk === currentRisk));
   };
 
   grant = async ({

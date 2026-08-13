@@ -12,7 +12,28 @@ export type AppPermissions = {
   storage?: boolean | { namespace?: string };
   capabilities?: {
     hostBridge?: boolean;
+    nativeProcess?: boolean;
   };
+};
+
+export type AppRuntimeProfile = "panel-only" | "wasi" | "native-process";
+export type AppRuntimeIsolation = "sandboxed" | "host-mediated" | "full-user";
+
+export type AppRuntimeDeclaration = {
+  profile: AppRuntimeProfile;
+};
+
+export type AppStorageDeclaration = {
+  scope: "global";
+  schemaVersion: number;
+};
+
+export type AppPlatformSecuritySummary = {
+  runtimeProfile: AppRuntimeProfile;
+  isolation: AppRuntimeIsolation;
+  hasServiceComponents: boolean;
+  inferred: boolean;
+  permissions: AppPermissions;
 };
 
 export type AppCoreWasmMainManifest = {
@@ -65,6 +86,9 @@ export type AppComponentManifest = {
   presentation?: {
     primaryPanel?: string;
   };
+  runtime?: AppRuntimeDeclaration;
+  storage?: AppStorageDeclaration;
+  permissions?: AppPermissions;
   components: AppComponentReference[];
 };
 
@@ -124,6 +148,7 @@ export type AppComponentManifestSummary = {
   iconPath?: string;
   primaryPanelId?: string;
   components: AppResolvedComponent[];
+  security: AppPlatformSecuritySummary;
 };
 
 export type AppManifestSummary = AppStandaloneManifestSummary | AppComponentManifestSummary;
