@@ -64,6 +64,38 @@
 - 输入格式：`/validate`，可附验证范围。
 - 输出/期望行为：使用 `development-validation` 按 L0-L4 风险分级选择最小充分验证；TypeScript/运行链路触达时执行匹配范围的 `tsc`。Review、maintainability guard、governance ratchet 和真实冒烟分别由对应阶段或风险触发，不组成 `/validate` 的默认全家桶。
 
+## `/发布NPM`
+
+- 用途：尽快发布当前待发布的 stable NPM package batch。
+- 输入格式：`/发布NPM`，可附目标版本、版本级别或 dry-run 说明。
+- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 package 阶段，执行 `pnpm release:npm:stable`。只授权 NPM `latest`、registry 验证、精确版本冷安装和必要的 Git 版本闭合；不授权 runtime channel、desktop、文档站、官网或 X 写入。完成后明确报告 `NPM_READY`、实际上传包数、验证闭包、版本与排除项。
+
+## `/发布NPM测试版`
+
+- 用途：尽快发布当前待发布的 beta NPM package batch。
+- 输入格式：`/发布NPM测试版`，可附目标版本、版本级别或 dry-run 说明。
+- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 Beta package 阶段，执行 `pnpm release:npm:beta`。只授权 NPM `beta`、registry 验证、真实安装和必要的 Git 版本闭合；不授权 beta runtime channel、desktop 或正式版发布材料。完成后报告 `NPM_READY` 并显式标注 `channel: beta`。
+
+## `/发布NextClaw正式版`
+
+- 用途：发布 NextClaw 常规 stable 产品版本，明确不包含桌面端。
+- 输入格式：`/发布NextClaw正式版`，可附目标版本、版本级别或 dry-run 说明。
+- 输出/期望行为：由 `development-delivery` 先路由 `nextclaw-npm-release`，执行 `pnpm release:product:stable`。先闭合 NPM package 并立即报告 `NPM_READY`，再继续结构化 release notes、stable runtime channel、旧版本升级验证和适用的文档站/官网/X 合同；这些下游材料不得前置阻塞 NPM publish。最终报告 `NEXTCLAW_STABLE_READY`；不调用 desktop owner。
+
+## `/发布NextClaw桌面版`
+
+- 用途：基于已经发布的 NextClaw stable identity 发布桌面安装包与更新通道。
+- 输入格式：`/发布NextClaw桌面版`，可附 runtime 版本、desktop 版本、tag 或 dry-run 说明。
+- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-desktop-release`，执行 `pnpm release:desktop:stable`。只授权 desktop installer、portable artifacts、desktop update manifest 和适用的 APT/GitHub Release 闭环；不得发布或重发 NPM。若工作区包含尚未发布的 runtime 语义变化，停止并建议改用 `/发布NextClaw正式版` 或 `/发布NextClaw全平台版`。完成后报告 `DESKTOP_READY`。
+
+## `/发布NextClaw全平台版`
+
+- 用途：发布 NextClaw 常规 stable 产品与桌面端的完整组合。
+- 输入格式：`/发布NextClaw全平台版`，可附目标版本、版本级别、desktop 参数或 dry-run 说明。
+- 输出/期望行为：由 `development-delivery` 顺序编排，不并行扩大 owner：先按 `/发布NextClaw正式版` 达到 `NPM_READY` 与 `NEXTCLAW_STABLE_READY`，再以同一 stable identity 按 `/发布NextClaw桌面版` 达到 `DESKTOP_READY`，最终报告 `ALL_PLATFORMS_READY`。desktop 阶段失败不得回退或重复发布已完成的 NPM/runtime 阶段。
+
+以上五个命令的清晰自然语言等价表达具有相同语义；例如“发 NPM”只表示 `/发布NPM`，“发布 NextClaw 正式版”不包含 desktop，“全平台发布”才包含 desktop。上下文无法确定发布对象时只询问一次“NPM、NextClaw 常规正式版，还是桌面版？”，执行前用一句话复述包含项与排除项。
+
 ## `/release-frontend`
 
 - 用途：前端一键发布，仅 UI 变更场景。

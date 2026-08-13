@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 
 import { collectReleaseSummary } from "./release-summary.mjs";
+import { summarizeReleaseCheckBatch } from "./check/batch-plan.mjs";
 
 const ROOT_DIR = process.cwd();
 const WORKSPACE_ROOTS = ["packages", "apps", "workers"];
@@ -147,6 +148,23 @@ export function resolveExplicitReleaseBatchPackages(
   return workspacePackages.filter(
     (entry) => entry.private === false && batchPackageNames.has(entry.pkg.name)
   );
+}
+
+export function summarizeExplicitReleaseScope() {
+  const workspacePackages = collectWorkspacePackages();
+  const publishPackages = resolveExplicitReleaseBatchPackages(
+    workspacePackages,
+    readPendingChangesetPackages()
+  );
+  const releaseCheckSummary = summarizeReleaseCheckBatch(
+    publishPackages,
+    workspacePackages
+  );
+  return {
+    npmPublishPackageCount: releaseCheckSummary.orderedBatchPackages.length,
+    validationPackageCount: releaseCheckSummary.orderedValidationPackages.length,
+    validationSupportPackageCount: releaseCheckSummary.supportPackages.length
+  };
 }
 
 export function readNpmRegistry() {

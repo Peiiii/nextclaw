@@ -1,16 +1,18 @@
 #!/usr/bin/env node
-
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readLatestReleaseCheckpoint } from "./release-checkpoints.mjs";
+import { summarizeExplicitReleaseScope } from "./release-scope.mjs";
 import {
   STABLE_RELEASE_HELP,
   STABLE_RELEASE_STAGES,
   buildStableCompletionSummary,
   buildStableDryRunPlan,
+  buildStableNpmReadySummary,
   buildStablePublishedInstallArgs,
+  buildStablePublishedUpgradeArgs,
   buildStableReleaseTags,
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
@@ -160,7 +162,7 @@ function hasStructuredReleaseNotes(version) {
   }
 }
 
-function ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeChannel) {
+function ensureNpmPrePublishArtifacts(targetVersion) {
   if (!targetVersion) {
     return;
   }
@@ -168,7 +170,13 @@ function ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeCh
   if (!existsSync(publicKeyPath)) {
     throw new Error(`nextclaw package public key is missing: ${publicKeyPath}`);
   }
-  if (!skipRuntimeChannel && !hasStructuredReleaseNotes(targetVersion)) {
+}
+
+function ensureProductReleaseArtifacts(previousVersion, targetVersion) {
+  if (!targetVersion) {
+    return;
+  }
+  if (!hasStructuredReleaseNotes(targetVersion)) {
     throw new Error(
       `Stable runtime release notes are missing or invalid: ${resolveReleaseNotesPath(targetVersion)}`
     );
@@ -215,7 +223,7 @@ function runPackageRelease(expectedTargetVersion) {
   }
   run("pnpm", ["release:version"]);
   run("pnpm", ["release:check:strict"]);
-  run("pnpm", ["release:publish"]);
+  run("pnpm", ["release:publish:validated"]);
 }
 
 function readReleaseCheckpoint(targetVersion) {
@@ -264,8 +272,7 @@ function runStableRuntimeClosure(branch, targetVersion, options) {
   }
   run("pnpm", args);
 }
-function runPublishedInstallValidation(targetVersion, previousVersion, options) {
-  const args = buildStablePublishedInstallArgs(targetVersion, previousVersion, options);
+function runPublishedValidation(args) {
   if (!args) {
     return;
   }
@@ -283,49 +290,61 @@ function runReleaseStage(stage, recoveryOptions, callback) {
   }
 }
 
+function resolvePendingStableExecutionContext(startsAt) {
+  const plan = resolveStableReleasePlan(readChangesetStatus());
+  if (plan.packageCount === 0) {
+    throw new Error("release:stable found no pending release packages.");
+  }
+  const releaseScope = summarizeExplicitReleaseScope();
+  if (plan.targetVersion) {
+    const publishedStableVersion = readPublishedStableVersion();
+    if (plan.previousVersion !== publishedStableVersion) {
+      throw new Error(
+        `Changesets expects nextclaw ${plan.previousVersion}, but npm latest is ${publishedStableVersion}.`
+      );
+    }
+  }
+  return {
+    checkpoint: null,
+    npmPublishPackageCount: releaseScope.npmPublishPackageCount,
+    packageCount: plan.packageCount,
+    previousVersion: plan.previousVersion,
+    startsAt,
+    targetVersion: plan.targetVersion,
+    validationPackageCount: releaseScope.validationPackageCount,
+    validationSupportPackageCount: releaseScope.validationSupportPackageCount
+  };
+}
+
 function resolveStableExecutionContext(options) {
-  const {
-    dryRun,
-    previousVersion: requestedPreviousVersion,
-    resumeFrom,
-    version: requestedVersion
-  } = options;
+  const { dryRun, previousVersion, resumeFrom, version: targetVersion } = options;
   validateStableResumeOptions(options);
   const startsAt = STABLE_RELEASE_STAGES.indexOf(resumeFrom);
-  let packageCount = 0;
-  let previousVersion = requestedPreviousVersion;
-  let targetVersion = requestedVersion;
-  let checkpoint = null;
-
   if (resumeFrom === "packages") {
-    const plan = resolveStableReleasePlan(readChangesetStatus());
-    packageCount = plan.packageCount;
-    previousVersion = plan.previousVersion;
-    targetVersion = plan.targetVersion;
-    if (packageCount === 0) {
-      throw new Error("release:stable found no pending release packages.");
-    }
-    if (targetVersion) {
-      const publishedStableVersion = readPublishedStableVersion();
-      if (previousVersion !== publishedStableVersion) {
-        throw new Error(
-          `Changesets expects nextclaw ${previousVersion}, but npm latest is ${publishedStableVersion}.`
-        );
-      }
-    }
-  } else if (dryRun) {
-    checkpoint = readReleaseCheckpoint(targetVersion);
-    packageCount = Object.keys(checkpoint?.packages ?? {}).length;
+    return resolvePendingStableExecutionContext(startsAt);
   }
-
-  return { checkpoint, packageCount, previousVersion, startsAt, targetVersion };
+  const checkpoint = dryRun ? readReleaseCheckpoint(targetVersion) : null;
+  const npmPublishPackageCount = Object.keys(checkpoint?.packages ?? {}).length;
+  const validationSupportPackageCount = Object.keys(checkpoint?.validationSupport ?? {}).length;
+  return {
+    checkpoint,
+    npmPublishPackageCount,
+    packageCount: npmPublishPackageCount,
+    previousVersion,
+    startsAt,
+    targetVersion,
+    validationPackageCount: npmPublishPackageCount + validationSupportPackageCount,
+    validationSupportPackageCount
+  };
 }
 
 function printStableDryRun(options, context) {
   const { previousVersion, targetVersion } = context;
   const releaseNotesReady = targetVersion ? hasStructuredReleaseNotes(targetVersion) : false;
   const surfaceReview = inspectReleaseSurfaceReview(previousVersion, targetVersion);
-  console.log("release:stable dry run");
+  console.log(
+    `${options.skipRuntimeChannel ? "release:npm:stable" : "release:product:stable"} dry run`
+  );
   console.log(
     buildStableDryRunPlan({
       ...options,
@@ -339,12 +358,12 @@ function printStableDryRun(options, context) {
 }
 
 function prepareStableCheckpoint(options, context) {
-  const { branch, resumeFrom, skipRuntimeChannel } = options;
+  const { branch, resumeFrom } = options;
   const { previousVersion, startsAt, targetVersion } = context;
   const recoveryOptions = { ...options, previousVersion, version: targetVersion };
   if (startsAt === STABLE_RELEASE_STAGES.indexOf("packages")) {
     ensurePackageReleasePrerequisites(branch);
-    ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeChannel);
+    ensureNpmPrePublishArtifacts(targetVersion);
     runReleaseStage("packages", recoveryOptions, () => runPackageRelease(targetVersion));
     runReleaseStage("git", recoveryOptions, () => ensurePublishedStableTarget(targetVersion));
     return runReleaseStage("git", recoveryOptions, () => readReleaseCheckpoint(targetVersion));
@@ -382,20 +401,51 @@ function runStableRuntimeIfNeeded(options, context) {
   }
   const recoveryOptions = { ...options, previousVersion, version: targetVersion };
   runReleaseStage("runtime", recoveryOptions, () => {
-    ensurePrePublishArtifacts(previousVersion, targetVersion, skipRuntimeChannel);
+    if (!skipRuntimeChannel) {
+      ensureProductReleaseArtifacts(previousVersion, targetVersion);
+    }
     runStableRuntimeClosure(branch, targetVersion, options);
   });
 }
 
+function runStableNpmInstallIfNeeded(options, context, checkpoint) {
+  const { resumeFrom, skipPublishedInstall, skipRuntimeChannel } = options;
+  const { previousVersion, targetVersion } = context;
+  if (resumeFrom === "install") {
+    return;
+  }
+  if (!targetVersion) {
+    return;
+  }
+  if (skipPublishedInstall) {
+    return;
+  }
+  const recoveryOptions = { ...options, previousVersion, version: targetVersion };
+  runReleaseStage("runtime", recoveryOptions, () =>
+    runPublishedValidation(buildStablePublishedInstallArgs(targetVersion, null, options))
+  );
+  if (!skipRuntimeChannel) {
+    console.log(buildStableNpmReadySummary({ checkpoint, targetVersion }).join("\n"));
+  }
+}
+
 function runStableInstallIfNeeded(options, context) {
+  const { resumeFrom, skipRuntimeChannel } = options;
   const { previousVersion, startsAt, targetVersion } = context;
   if (!targetVersion || startsAt > STABLE_RELEASE_STAGES.indexOf("install")) {
     return;
   }
+  if (skipRuntimeChannel) {
+    return;
+  }
   const recoveryOptions = { ...options, previousVersion, version: targetVersion };
-  runReleaseStage("install", recoveryOptions, () =>
-    runPublishedInstallValidation(targetVersion, previousVersion, options)
-  );
+  runReleaseStage("install", recoveryOptions, () => {
+    const args =
+      resumeFrom === "install"
+        ? buildStablePublishedInstallArgs(targetVersion, previousVersion, options)
+        : buildStablePublishedUpgradeArgs(targetVersion, previousVersion, options);
+    runPublishedValidation(args);
+  });
 }
 
 function printStableCompletion(options, context, checkpoint, gitSummary) {
@@ -415,6 +465,7 @@ function runStableRelease(options) {
 
   const checkpoint = prepareStableCheckpoint(options, context);
   const gitSummary = closeStableGitIfNeeded(options, context, checkpoint);
+  runStableNpmInstallIfNeeded(options, context, checkpoint);
   runStableRuntimeIfNeeded(options, context);
   runStableInstallIfNeeded(options, context);
   printStableCompletion(options, context, checkpoint, gitSummary);
@@ -443,7 +494,6 @@ function main() {
   }
 }
 
-const entryPath = process.argv[1] ? resolve(process.argv[1]) : "";
-if (entryPath === fileURLToPath(import.meta.url)) {
+if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
   main();
 }

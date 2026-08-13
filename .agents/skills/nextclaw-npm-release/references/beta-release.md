@@ -12,10 +12,12 @@ pnpm release:beta
 
 ```bash
 pnpm release:beta:npm
+pnpm release:npm:beta
 pnpm release:beta:runtime
 ```
 
-- `release:beta:npm`：只发 npm 包，不开放 runtime channel。
+- `release:npm:beta`：面向清晰用户意图的 NPM-only 入口；只发 npm 包、做 registry/真实安装验证并报告 `NPM_READY (channel: beta)`。
+- `release:beta:npm`：上述入口的兼容命令；只发 npm 包，不开放 runtime channel。
 - `release:beta:runtime`：对已发布的 `nextclaw@beta` 闭合 runtime workflow、assets、Pages 与公网 manifest。
 
 常用参数：
@@ -48,4 +50,6 @@ nextclaw restart --ui-port <port> --start-timeout 45000
 
 确认 `npm ls -g nextclaw --depth=0`、运行进程路径和 `/api/app/meta.productVersion` 都指向刚发布的全局包；需要证明 UI 修复时检查实际页面及已发布 hashed assets。
 
-完成条件：registry 包和 dist-tag 正确；release commit/tags 已推送；batch 含 `nextclaw` 时 workflow 成功、四平台 runtime assets 完整、公网 beta manifest 指向本版本；最终报告 batch、入口、commit、workflow、manifest、更新笔记和真实安装证据。
+NPM-only 完成条件：registry 包和 `beta` dist-tag 正确，release commit/tags 已推送，batch 含 `nextclaw` 时真实 registry 安装通过；报告 `NPM_READY`，不得暗示 runtime channel 已开放。
+
+Full beta 完成条件：在 NPM-only 条件之外，batch 含 `nextclaw` 时 workflow 成功、四平台 runtime assets 完整、公网 beta manifest 指向本版本；最终报告 batch、入口、commit、workflow、manifest、更新笔记和真实安装证据。

@@ -15,10 +15,12 @@ const RUNTIME_MANIFEST_TARGETS = [
   { platform: "win32", arch: "x64" }
 ];
 
-function printHelp() {
+function printHelp(options = {}) {
+  const npmOnly = options.skipRuntimeChannel === true;
   console.log(`
 Usage:
   pnpm release:beta -- [options]
+  pnpm release:npm:beta -- [options]
 
 Options:
   --dry-run                             Print the intended closure without mutating anything
@@ -33,8 +35,8 @@ Default behavior:
   1. run pnpm release:auto for a full public workspace beta batch
   2. create a release commit if version/changelog files changed
   3. push the current branch and local tags
-  4. if nextclaw is in the batch, trigger the beta runtime update workflow
-  5. wait for workflow success and verify release assets + public beta manifests
+  4. verify the real nextclaw@beta registry install
+  ${npmOnly ? "5. report NPM_READY without opening runtime or desktop channels" : "5. report NPM_READY, then trigger and verify the beta runtime update closure"}
 `.trim());
 }
 
@@ -308,9 +310,11 @@ function buildDryRunPlan(branch, options) {
     `- command: pnpm release:auto (full public workspace beta batch)`,
     `- commit release artifacts if version/changelog files changed`,
     `- push branch and tags`,
+    `- NPM_READY gate: registry verification + real nextclaw@beta install`,
     options.skipRuntimeChannel
       ? "- runtime update channel: skipped by flag"
-      : "- runtime update channel: trigger workflow + wait + verify if nextclaw is in the batch"
+      : "- runtime update channel: trigger workflow + wait + verify if nextclaw is in the batch",
+    "- desktop: excluded"
   ];
 }
 
@@ -334,6 +338,26 @@ function runLocalBetaRelease(branch) {
     nextclawVersion,
     releaseCommit
   };
+}
+
+function runPublishedBetaInstall(nextclawVersion, announceReady) {
+  if (!nextclawVersion) {
+    return;
+  }
+  run("pnpm", [
+    "-C",
+    "packages/nextclaw",
+    "validation:npm-update",
+    "--",
+    "--published-beta"
+  ]);
+  if (announceReady) {
+    console.log("NPM_READY");
+    console.log("- channel: beta");
+    console.log(`- nextclaw version: ${nextclawVersion}`);
+    console.log("- registry install: verified");
+    console.log("- excluded at this point: runtime, desktop, docs, website, X");
+  }
 }
 
 async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
@@ -367,12 +391,14 @@ async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
 function printCompletionSummary({
   branch,
   nextclawVersion,
+  npmOnly,
   publicManifestSummary,
   releaseCommit,
   runtimeReleaseSummary,
   runtimeRunSummary
 }) {
-  console.log("release:beta completed");
+  console.log(npmOnly || !runtimeRunSummary ? "NPM_READY" : "release:beta completed");
+  console.log("- channel: beta");
   console.log(`- branch: ${branch}`);
   console.log(`- release commit: ${releaseCommit ?? "no local release artifact diff"}`);
   console.log(`- nextclaw in batch: ${nextclawVersion ? `yes (${nextclawVersion})` : "no"}`);
@@ -390,7 +416,7 @@ function printCompletionSummary({
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
-    printHelp();
+    printHelp(options);
     return;
   }
 
@@ -406,6 +432,7 @@ async function main() {
 
   ensureLocalReleaseCommandPrerequisites();
   const { nextclawVersion, releaseCommit } = runLocalBetaRelease(branch);
+  runPublishedBetaInstall(nextclawVersion, !options.skipRuntimeChannel);
   const { publicManifestSummary, runtimeReleaseSummary, runtimeRunSummary } = await runRuntimeReleaseClosure(
     branch,
     nextclawVersion,
@@ -415,6 +442,7 @@ async function main() {
   printCompletionSummary({
     branch,
     nextclawVersion,
+    npmOnly: options.skipRuntimeChannel,
     publicManifestSummary,
     releaseCommit,
     runtimeReleaseSummary,

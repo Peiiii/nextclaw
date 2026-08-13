@@ -15,6 +15,24 @@ function readJsonCommand(command, args) {
   return JSON.parse(run(command, args));
 }
 
+export function assertPublishedDesktopRuntimeIdentity(channel, runtimeVersion) {
+  const distTag = channel === "beta" ? "beta" : "latest";
+  const readPublishedVersion = (packageSpec) => {
+    try {
+      return run("npm", ["view", packageSpec, "version"]);
+    } catch {
+      return null;
+    }
+  };
+  const exactVersion = readPublishedVersion(`nextclaw@${runtimeVersion}`);
+  const channelVersion = readPublishedVersion(`nextclaw@${distTag}`);
+  if (exactVersion !== runtimeVersion || channelVersion !== runtimeVersion) {
+    throw new Error(
+      `Desktop release requires an already published nextclaw ${channel} identity: exact=${exactVersion || "<missing>"}, ${distTag}=${channelVersion || "<missing>"}, expected=${runtimeVersion}. Publish the NPM/runtime version first; desktop release never republishes NPM.`
+    );
+  }
+}
+
 function readWorkflowRun(repo, runId) {
   return readJsonCommand("gh", [
     "run",

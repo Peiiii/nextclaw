@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildStableCompletionSummary,
   buildStableDryRunPlan,
+  buildStableNpmReadySummary,
   buildStablePublishedInstallArgs,
+  buildStablePublishedUpgradeArgs,
   buildStableReleaseTags,
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
@@ -13,6 +16,7 @@ import {
   resolveStableReleasePlan,
   validateStableResumeOptions
 } from "./release-stable.utils.mjs";
+import { validateReusableReleaseBuilds } from "./ensure-pnpm-publish.mjs";
 
 test("parses the default full stable closure", () => {
   assert.deepEqual(parseStableReleaseArgs([]), {
@@ -231,6 +235,7 @@ test("inherits a primary worktree npm config only when the linked worktree has n
 test("dry run exposes every closure stage and explicit exceptions", () => {
   const plan = buildStableDryRunPlan({
     branch: "master",
+    npmPublishPackageCount: 6,
     packageCount: 29,
     previousVersion: "0.29.0",
     releaseNotesReady: true,
@@ -240,12 +245,17 @@ test("dry run exposes every closure stage and explicit exceptions", () => {
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
     targetVersion: "0.30.0",
+    validationPackageCount: 36,
+    validationSupportPackageCount: 30,
     worktreeClean: true
   });
   assert.match(plan.join("\n"), /strict check/);
   assert.match(plan.join("\n"), /release commit/);
   assert.match(plan.join("\n"), /public manifests/);
   assert.match(plan.join("\n"), /check\/download\/apply\/new process/);
+  assert.match(plan.join("\n"), /npm publish packages: 6/);
+  assert.match(plan.join("\n"), /validation closure: 36/);
+  assert.match(plan.join("\n"), /desktop: excluded/);
 
   const skipped = buildStableDryRunPlan({
     branch: "master",
@@ -260,8 +270,9 @@ test("dry run exposes every closure stage and explicit exceptions", () => {
     targetVersion: "0.29.1",
     worktreeClean: false
   });
-  assert.equal(skipped.at(-2), "- stable runtime channel: skipped");
-  assert.equal(skipped.at(-1), "- published install: skipped");
+  assert.equal(skipped.at(-3), "- stable runtime channel: skipped");
+  assert.equal(skipped.at(-2), "- published install: skipped");
+  assert.equal(skipped.at(-1), "- desktop: excluded");
 });
 
 test("formats an unambiguous recovery command", () => {
@@ -304,6 +315,18 @@ test("builds deterministic runtime, install, and package tag commands", () => {
     "--previous-version",
     "0.29.0"
   ]);
+  assert.deepEqual(buildStablePublishedUpgradeArgs("0.30.0", "0.29.0", options), [
+    "-C",
+    "packages/nextclaw",
+    "validation:npm-update",
+    "--",
+    "--published-stable",
+    "--expected-version",
+    "0.30.0",
+    "--previous-version",
+    "0.29.0",
+    "--update-only"
+  ]);
   assert.deepEqual(
     buildStableReleaseTags({
       packages: {
@@ -312,5 +335,62 @@ test("builds deterministic runtime, install, and package tag commands", () => {
       }
     }),
     ["@nextclaw/kernel@0.7.0", "nextclaw@0.30.0"]
+  );
+});
+
+test("reports the NPM_READY completion point explicitly", () => {
+  assert.deepEqual(
+    buildStableNpmReadySummary({
+      checkpoint: { packages: { nextclaw: {}, "@nextclaw/core": {} } },
+      targetVersion: "0.30.0"
+    }).slice(0, 4),
+    [
+      "NPM_READY",
+      "- channel: stable/latest",
+      "- package count: 2",
+      "- nextclaw version: 0.30.0"
+    ]
+  );
+});
+
+test("does not claim product-ready before docs, website, and X owner closure", () => {
+  const summary = buildStableCompletionSummary({
+    branch: "master",
+    checkpoint: { packages: { nextclaw: {} } },
+    releaseCommit: "abc123",
+    releaseTags: ["nextclaw@0.30.0"],
+    skipPublishedInstall: false,
+    skipRuntimeChannel: false,
+    targetVersion: "0.30.0"
+  });
+  assert.equal(summary[0], "release:product:stable core stages completed");
+  assert.match(summary.join("\n"), /NEXTCLAW_STABLE_READY: pending/);
+});
+
+test("only ignores publish lifecycle scripts backed by the release checkpoint", () => {
+  const checkpoint = {
+    packages: {
+      "@nextclaw/core": {
+        packageDir: "packages/nextclaw-core",
+        steps: { build: { status: "passed" } }
+      }
+    }
+  };
+  assert.deepEqual(
+    validateReusableReleaseBuilds(checkpoint, () => ({
+      name: "@nextclaw/core",
+      scripts: {
+        prepack: "pnpm run build",
+        prepublishOnly: "node ../../scripts/release/ensure-pnpm-publish.mjs"
+      }
+    })),
+    []
+  );
+  assert.match(
+    validateReusableReleaseBuilds(checkpoint, () => ({
+      name: "@nextclaw/core",
+      scripts: { prepack: "node generate-release-file.mjs" }
+    })).join("\n"),
+    /cannot reuse build while ignoring prepack/
   );
 });

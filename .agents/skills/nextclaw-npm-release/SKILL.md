@@ -1,6 +1,6 @@
 ---
 name: nextclaw-npm-release
-description: NextClaw NPM package 与 runtime channel 发布的专项流程 owner；覆盖 beta/stable、隔离 worktree、真实安装验证和分支回流，并按当前阶段读取一个 reference。
+description: NextClaw NPM package 与 runtime channel 发布的专项流程 owner；用于发布 NPM、NPM 测试版、NextClaw 常规正式版及其恢复，覆盖 beta/stable、真实安装和分支回流，并按当前阶段读取一个 reference。
 ---
 
 # NextClaw NPM Release
@@ -22,9 +22,19 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - `nextclaw` 是已发布 workspace 依赖闭包和嵌入 UI/runtime 产物的产品包，不只看自身版本。
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
 - NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。
-- Registry、runtime channel、release notes、分支/记录回流和生成物清理按用户授权范围形成一个闭环。
-- `nextclaw` 的 stable `minor` / `major` 发布必须在 `docs/releases/nextclaw-v<version>.release-review.json` 中审查文档站、官网和 X 宣发：文档站/官网要么列出真实更新路径，要么明确记录 `not-needed` 原因；stable minor 必须提前冻结 X 账号、正文、release note URL、图片和 alt，`release:stable` 在 publish 前做确定性校验。
+- 发布授权按对象严格分层：NPM-only 不授权 runtime、desktop、文档站、官网或 X；常规 NextClaw stable 包含 NPM 与 runtime/product closure，但不包含 desktop；全平台发布完成常规 stable 后才转交 desktop owner。
+- 结构化 release notes、文档站、官网和 X 不阻塞 NPM artifact publish。它们在常规产品 stable 的 runtime/product 阶段按版本级别校验；缺失时保留已经成立的 `NPM_READY`，从对应阶段恢复，不重复 publish。
+- `nextclaw` 的 stable `minor` / `major` 必须在 `docs/releases/nextclaw-v<version>.release-review.json` 中审查文档站、官网和 X 宣发：文档站/官网要么列出真实更新路径，要么明确记录 `not-needed` 原因；stable minor 必须冻结 X 账号、正文、release note URL、图片和 alt。该合同影响 `NEXTCLAW_STABLE_READY`，不影响 `NPM_READY`。
 - 执行 stable minor X 帖前，先查最近一次成功 stable minor 的迭代记录并复用已经验证的 `x-bird`、Node/代理参数和回读命令；不得在已有成功路径时从通用工具重新推演。只有帖子返回 ID，并回读确认作者、正文和媒体后才算发布闭合；X 阻断时必须明确标记 social 未完成，不得对用户报告“全部完成”。
+
+## 发布意图与完成点
+
+- “发 NPM”、`/发布NPM`：`pnpm release:npm:stable`，只闭合 stable NPM，完成点 `NPM_READY`。
+- “发 NPM beta”、`/发布NPM测试版`：`pnpm release:npm:beta`，只闭合 beta NPM，完成点 `NPM_READY (channel: beta)`。
+- “发布 NextClaw 正式版”、`/发布NextClaw正式版`：`pnpm release:product:stable`，先报告 `NPM_READY`，再闭合 runtime/product，完成点 `NEXTCLAW_STABLE_READY`；desktop 明确排除。
+- “发布 NextClaw 全平台版”先完成上述常规 stable，再由 Delivery 转交 desktop owner；本 skill 不直接拥有 desktop。
+
+发布开始先报告版本变化包数、实际 NPM 上传包数、验证闭包和排除表面。每个不可逆阶段使用 checkpoint；下游失败只恢复未完成阶段。
 
 ## 默认版本级别
 
@@ -32,6 +42,6 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - 批次包含明显的向后兼容新能力时选择 `minor`，只有修复、润色和内部调整时选择 `patch`；现有 changeset 只是输入，不替代这个整体判断。
 - 其余 workspace package 不逐包做语义版本裁决，按依赖闭包和 changeset 跟随发布；确定 `minor` 后只需把一个代表性 changeset 中的 `nextclaw` bump 提升为 `minor`。
 
-Stable 完整闭环优先 `pnpm release:stable`；Beta 优先 `pnpm release:beta`。仅 beta NPM 用 `release:beta:npm`，仅 channel 用 `release:beta:runtime` / `release:stable:runtime`。恢复已发布 stable 时使用 `release:stable -- --resume-from <git|runtime|install> --version <version>`，不得重复 publish。
+Stable NPM-only 优先 `pnpm release:npm:stable`；常规 stable 产品优先 `pnpm release:product:stable`；Beta NPM-only 优先 `pnpm release:npm:beta`。旧的 `release:stable`、`release:beta:npm` 与 full-beta `release:beta` 保留兼容；仅 channel 用 `release:beta:runtime` / `release:stable:runtime`。恢复已发布 stable 时使用 `release:stable -- --resume-from <git|runtime|install> --version <version>`，不得重复 publish。
 
 最终报告 package/version/dist-tag、workflow、manifest、真实安装证据、分支闭合和残余 WIP。

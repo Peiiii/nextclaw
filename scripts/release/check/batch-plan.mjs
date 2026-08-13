@@ -230,7 +230,7 @@ function buildBatchId(orderedBatchPackages) {
   ).slice(0, 16);
 }
 
-export function planReleaseCheckBatch(batchPackages, workspacePackages = batchPackages) {
+export function summarizeReleaseCheckBatch(batchPackages, workspacePackages = batchPackages) {
   const batchPackageNames = new Set(batchPackages.map((entry) => entry.pkg.name));
   const validationPackages = collectWorkspaceDependencyClosure(
     batchPackages,
@@ -252,10 +252,20 @@ export function planReleaseCheckBatch(batchPackages, workspacePackages = batchPa
     batchId: buildBatchId(orderedBatchPackages),
     batchPackageNames,
     dependencyMap,
-    fingerprints: buildPackageFingerprints(orderedValidationPackages, dependencyMap),
     orderedBatchPackages,
     orderedValidationPackages,
     priorityScores: buildPackagePriorityScores(orderedValidationPackages, dependentsMap),
     supportPackages
+  };
+}
+
+export function planReleaseCheckBatch(batchPackages, workspacePackages = batchPackages) {
+  const summary = summarizeReleaseCheckBatch(batchPackages, workspacePackages);
+  return {
+    ...summary,
+    fingerprints: buildPackageFingerprints(
+      summary.orderedValidationPackages,
+      summary.dependencyMap
+    )
   };
 }

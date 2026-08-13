@@ -70,7 +70,14 @@ async function verifyPublishedBetaRelease() {
 async function verifyPublishedStableRelease(argv) {
   const expectedVersion = readArgValue(argv, "--expected-version");
   const previousVersion = readArgValue(argv, "--previous-version");
+  const updateOnly = argv.includes("--update-only");
   assert(expectedVersion, "--published-stable requires --expected-version");
+  if (updateOnly) {
+    assert(previousVersion, "--update-only requires --previous-version");
+    await verifyPreviousStableUpdate(previousVersion, expectedVersion);
+    log("published stable update smoke passed");
+    return;
+  }
   const fixture = await createPublishedInstallFixture(
     `nextclaw@${expectedVersion}`,
     `stable-${expectedVersion}`

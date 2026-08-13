@@ -13,7 +13,11 @@ function parseReleaseCheckpoint(checkpointPath) {
   }
   return {
     batchId: parsed.batchId,
-    packages
+    packages,
+    validationSupport:
+      parsed?.validationSupport && typeof parsed.validationSupport === "object"
+        ? parsed.validationSupport
+        : {}
   };
 }
 

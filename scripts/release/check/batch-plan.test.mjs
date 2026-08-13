@@ -15,7 +15,7 @@ function workspaceEntry(name, dependencies = {}, scripts = { build: "build", tsc
   };
 }
 
-test("builds non-release workspace dependencies without adding them to the release checkpoint", () => {
+test("caches non-release workspace dependency builds outside the release package checkpoint", () => {
   const foundation = workspaceEntry("@nextclaw/foundation");
   const product = workspaceEntry("nextclaw", {
     "@nextclaw/foundation": "workspace:*"
@@ -31,7 +31,7 @@ test("builds non-release workspace dependencies without adding them to the relea
 
   const states = createPackageStates({
     batchPackageNames: plan.batchPackageNames,
-    checkpoint: { packages: {} },
+    checkpoint: { packages: {}, validationSupport: {} },
     dependencyMap: plan.dependencyMap,
     fingerprints: new Map([
       ["@nextclaw/foundation", "foundation"],
@@ -41,32 +41,35 @@ test("builds non-release workspace dependencies without adding them to the relea
     orderedValidationPackages: plan.orderedValidationPackages,
     priorityScores: plan.priorityScores
   });
-  assert.equal(states.get("@nextclaw/foundation").checkpointed, false);
+  assert.equal(states.get("@nextclaw/foundation").checkpointSection, "validationSupport");
   assert.deepEqual(
     states.get("@nextclaw/foundation").stepSpecs.map((step) => step.stepName),
     ["build"]
   );
-  assert.equal(states.get("nextclaw").checkpointed, true);
+  assert.equal(states.get("nextclaw").checkpointSection, "packages");
   assert.deepEqual(states.get("nextclaw").dependencyNames, ["@nextclaw/foundation"]);
 
   const checkpoint = {
     packages: {
-      "@nextclaw/foundation": {
-        version: "1.0.0",
-        steps: {
-          build: { status: "passed", command: "build", fingerprint: "foundation" }
-        }
-      },
       nextclaw: {
         version: "1.0.0",
         steps: {
           build: { status: "passed", command: "build", fingerprint: "product" }
         }
       }
+    },
+    validationSupport: {
+      "@nextclaw/foundation": {
+        version: "1.0.0",
+        steps: {
+          build: { status: "passed", command: "build", fingerprint: "foundation" }
+        }
+      }
     }
   };
-  hydrateCachedSteps({ checkpoint, packageStates: states });
-  assert.equal(states.get("@nextclaw/foundation").completedStepNames.has("build"), false);
+  const cacheSummary = hydrateCachedSteps({ checkpoint, packageStates: states });
+  assert.deepEqual(cacheSummary, { cachedPackageCount: 2, cachedStepCount: 2 });
+  assert.equal(states.get("@nextclaw/foundation").completedStepNames.has("build"), true);
   assert.equal(states.get("nextclaw").completedStepNames.has("build"), true);
 });
 

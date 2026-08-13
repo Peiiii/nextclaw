@@ -42,6 +42,13 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 专项 owner 可以被本阶段路由，也可以在用户明确提出完整场景时直接触发；它们不重新编排上游开发阶段。
 
+## 发布语义
+
+- 清晰自然语言与 `commands/commands.md` 中对应的中文发布命令等价；执行前用一句话复述包含项、排除项和第一个完成点。
+- “发布 NPM”只进入 NPM package owner；“发布 NextClaw 正式版”包含 NPM 与常规 runtime/product closure，但不包含 desktop；只有“桌面版”或“全平台版”才授权 desktop。
+- 全平台发布按阶段顺序路由：当前 owner 完成并形成状态后再进入下一个 owner，不同时加载或并行触发 NPM 与 desktop 发布。
+- 上下文不能确定对象时只问一个短问题；存在“只、仅、不包含”等限制词时以更窄授权为准。
+
 ## 外部动作
 
 - 未经用户明确要求，不 commit、push、建 PR、release、deploy 或执行不可逆操作。

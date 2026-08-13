@@ -118,31 +118,43 @@ Behavior is intentionally explicit:
 - only packages with real post-version drift are auto-added to the new changeset;
 - existing pending changesets are reused instead of duplicated.
 
-## Stable closure shortcut
+## Stable NPM and product shortcuts
 
-For a complete stable NPM release, use the root owner command after the release task has selected
-the semantic version and prepared structured release notes:
+Use the NPM-only owner when the goal is to make the stable package batch installable as early as
+possible:
 
 ```bash
-pnpm release:stable -- --dry-run
-pnpm release:stable
+pnpm release:npm:stable -- --dry-run
+pnpm release:npm:stable
 ```
 
-The default command performs one guarded closure:
+This command owns only NPM `latest`, exact registry verification, a real cold install, and the
+release commit/tags. It does not open the runtime or desktop channels and does not wait for docs,
+website, or social release material. Its completion marker is `NPM_READY`.
 
-1. freeze the Changesets plan and verify stable mode, a clean/synchronized branch, NPM auth,
-   packaged update public key, and structured release notes;
-2. run auto prepare, versioning, strict build/typecheck/lint, publish, and exact registry verification;
-3. commit generated version/changelog artifacts, retarget every package tag to that commit, then push
-   the branch and tags;
-4. trigger and wait for the stable runtime workflow, then verify the GitHub Release assets,
+For the conventional NextClaw stable product release, use:
+
+```bash
+pnpm release:product:stable -- --dry-run
+pnpm release:product:stable
+```
+
+The product command performs one staged closure:
+
+1. freeze the Changesets plan and report version-change, actual-upload, validation-closure, and
+   support-package counts separately;
+2. verify stable mode, branch/auth, public key, dependency closure, and package artifacts;
+3. run versioning, strict build/typecheck/lint, publish, exact registry verification, release
+   commit/tags, and a real cold install; then report `NPM_READY` immediately;
+4. validate structured release notes and the applicable docs/website/X release plan;
+5. trigger and wait for the stable runtime workflow, then verify the GitHub Release assets,
    `gh-pages`, and public manifests;
-5. install the exact package from the public registry and upgrade from the previous stable through
+6. upgrade from the previous stable through
    `--check`, `--download-only`, `--apply`, and a new process version check.
 
-Publishing is the first irreversible step, so missing release notes or branch/auth drift fail before
-it. Recovery never repeats a successful publish. Resume from the failed boundary with the exact
-versions printed by the command:
+Release notes and surface material can block the product/runtime closure, but they do not block the
+NPM package stage. Recovery never repeats a successful publish. Resume from the failed boundary with
+the exact versions printed by the command; `release:stable` remains the compatible internal owner:
 
 ```bash
 pnpm release:stable -- --resume-from git --version 0.30.0 --previous-version 0.29.0
@@ -150,9 +162,15 @@ pnpm release:stable -- --resume-from runtime --version 0.30.0 --previous-version
 pnpm release:stable -- --resume-from install --version 0.30.0 --previous-version 0.29.0
 ```
 
-`--skip-runtime-channel` and `--skip-published-install` are explicit recorded exceptions. They are
-not part of the default stable closure. Pure package batches that do not include `nextclaw` skip
-those two product-runtime stages automatically.
+The strict release checkpoint stores publish packages separately from validation-only support
+packages. Both can reuse successful fingerprinted builds, but only publish packages become tags or
+registry artifacts. The validated publish path also skips lifecycle rebuilds only when every
+ignored hook matches the repository contract and the checkpoint proves the build passed; any custom
+hook fails closed.
+
+`--skip-runtime-channel` and `--skip-published-install` remain explicit low-level exceptions. Prefer
+the named owner commands above for normal intent. Pure package batches that do not include
+`nextclaw` skip product-runtime stages automatically.
 
 ## Beta closure shortcut
 
@@ -189,7 +207,7 @@ Notes:
 If you only want to publish beta packages and do **not** want to open the auto-update channel yet, use:
 
 ```bash
-pnpm release:beta:npm
+pnpm release:npm:beta
 ```
 
 This is the fast path for:
@@ -198,7 +216,9 @@ This is the fast path for:
 - validating package install / manual upgrade first,
 - deferring the runtime workflow until later.
 
-It is equivalent to the full beta owner with `--skip-runtime-channel`, but the command name makes the intent explicit.
+It is equivalent to the full beta owner with `--skip-runtime-channel`, but the command name makes the
+intent explicit and verifies a real `nextclaw@beta` install before reporting `NPM_READY`. The older
+`pnpm release:beta:npm` entry remains compatible.
 
 If `nextclaw@beta` is already published and you later want to open or refresh the runtime update channel only, use:
 
@@ -226,5 +246,5 @@ pnpm release:beta:runtime -- --minimum-launcher-version-override 0.18.12-beta.3
 Recommended semantics:
 
 - `pnpm release:beta` = full closure, package + runtime channel
-- `pnpm release:beta:npm` = package only
+- `pnpm release:npm:beta` = package only (`release:beta:npm` remains compatible)
 - `pnpm release:beta:runtime` = runtime channel only

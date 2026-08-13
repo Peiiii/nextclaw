@@ -15,10 +15,7 @@ function formatDuration(ms) {
 
 function isStepCached(params) {
   const { checkpoint, entry, fingerprint, packageState, stepSpec } = params;
-  if (!packageState.checkpointed) {
-    return false;
-  }
-  const checkpointPackageState = checkpoint.packages[entry.pkg.name];
+  const checkpointPackageState = checkpoint[packageState.checkpointSection]?.[entry.pkg.name];
   const stepState = checkpointPackageState?.steps?.[stepSpec.stepName];
   return (
     stepState?.status === "passed" &&
@@ -30,12 +27,12 @@ function isStepCached(params) {
 
 function recordStepState(params) {
   const { checkpoint, entry, status, fingerprint, packageState, stepSpec, durationMs } = params;
-  if (!packageState.checkpointed) {
-    return;
-  }
+  const checkpointPackages =
+    checkpoint[packageState.checkpointSection] ??
+    (checkpoint[packageState.checkpointSection] = {});
   const checkpointPackageState =
-    checkpoint.packages[entry.pkg.name] ??
-    (checkpoint.packages[entry.pkg.name] = {
+    checkpointPackages[entry.pkg.name] ??
+    (checkpointPackages[entry.pkg.name] = {
       version: entry.pkg.version,
       packageDir: entry.packageDir,
       steps: {}
@@ -56,18 +53,18 @@ export function createPackageStates(params) {
   return new Map(
     params.orderedValidationPackages.map((entry) => {
       const dependencyNames = [...(params.dependencyMap.get(entry.pkg.name) ?? [])].sort();
-      const checkpointed = params.batchPackageNames.has(entry.pkg.name);
+      const releasePackage = params.batchPackageNames.has(entry.pkg.name);
       const allStepSpecs = resolveReleaseCheckStepSpecs(entry, {
         includeLint: params.includeLint
       });
-      const stepSpecs = checkpointed
+      const stepSpecs = releasePackage
         ? allStepSpecs
         : allStepSpecs.filter((stepSpec) => stepSpec.stepName === "build");
       const dependencyGateStepCount = stepSpecs.filter((stepSpec) => stepSpec.requiresDependencyGate).length;
       return [
         entry.pkg.name,
         {
-          checkpointed,
+          checkpointSection: releasePackage ? "packages" : "validationSupport",
           entry,
           dependencyNames,
           fingerprint: params.fingerprints.get(entry.pkg.name) ?? "",
@@ -260,6 +257,8 @@ function runStepTask(params) {
 }
 
 export function hydrateCachedSteps(params) {
+  const cachedPackageNames = new Set();
+  let cachedStepCount = 0;
   for (const packageState of params.packageStates.values()) {
     for (const stepSpec of packageState.stepSpecs) {
       if (
@@ -271,6 +270,8 @@ export function hydrateCachedSteps(params) {
           stepSpec
         })
       ) {
+        cachedPackageNames.add(packageState.entry.pkg.name);
+        cachedStepCount += 1;
         skipStep({
           entry: packageState.entry,
           packageState,
@@ -280,6 +281,10 @@ export function hydrateCachedSteps(params) {
       }
     }
   }
+  return {
+    cachedPackageCount: cachedPackageNames.size,
+    cachedStepCount
+  };
 }
 
 export async function runTaskScheduler(params) {

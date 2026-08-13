@@ -4,6 +4,8 @@ export const STABLE_RELEASE_STAGES = ["packages", "git", "runtime", "install"];
 export const STABLE_RELEASE_HELP = `
 Usage:
   pnpm release:stable -- [options]
+  pnpm release:npm:stable -- [options]
+  pnpm release:product:stable -- [options]
 
 Options:
   --dry-run                             Print the complete stable closure without mutation
@@ -19,7 +21,8 @@ Options:
   --help                                Show this help
 
 Default closure:
-  preflight -> strict package release -> release commit/tag/push -> stable runtime -> real install/update
+  preflight -> strict package release -> release commit/tag/push -> exact registry install
+  -> NPM_READY -> product materials -> stable runtime -> previous-version update
 `.trim();
 
 export function parseStableReleaseArgs(argv) {
@@ -284,6 +287,7 @@ export function validateStableResumeOptions(options) {
 
 export function buildStableDryRunPlan({
   branch,
+  npmPublishPackageCount = 0,
   packageCount,
   previousVersion,
   releaseNotesReady,
@@ -293,6 +297,8 @@ export function buildStableDryRunPlan({
   skipPublishedInstall,
   skipRuntimeChannel,
   targetVersion,
+  validationPackageCount = 0,
+  validationSupportPackageCount = 0,
   worktreeClean
 }) {
   const includesNextclaw = Boolean(targetVersion);
@@ -300,22 +306,36 @@ export function buildStableDryRunPlan({
     `- branch: ${branch}`,
     `- worktree clean: ${worktreeClean ? "yes" : "no"}`,
     `- resume from: ${resumeFrom}`,
-    `- release packages: ${packageCount}`,
+    `- version changes: ${packageCount}`,
+    `- npm publish packages: ${npmPublishPackageCount}`,
+    `- validation closure: ${validationPackageCount} workspace package(s)`,
+    `- validation support packages: ${validationSupportPackageCount}`,
     `- nextclaw version: ${includesNextclaw ? `${previousVersion} -> ${targetVersion}` : "not in batch"}`,
-    `- structured release notes: ${includesNextclaw ? (releaseNotesReady ? "ready" : "missing") : "not required"}`,
+    `- structured release notes: ${
+      !includesNextclaw || skipRuntimeChannel
+        ? "not in NPM scope"
+        : releaseNotesReady
+          ? "ready for runtime"
+          : "missing (blocks runtime, not NPM)"
+    }`,
     `- docs/website/X release plan: ${
-      !includesNextclaw || !surfaceReviewRequired
+      !includesNextclaw || skipRuntimeChannel
+        ? "not in NPM scope"
+        : !surfaceReviewRequired
         ? "not required"
         : surfaceReviewReady
-          ? "ready"
-          : "missing or invalid"
+          ? "ready for product closure"
+          : "missing or invalid (blocks product closure, not NPM)"
     }`,
     resumeFrom === "packages"
-      ? "- packages: auto prepare -> version -> strict check -> publish -> registry verify"
+      ? "- packages: auto prepare -> version -> strict check -> reuse validated builds -> publish -> registry verify"
       : "- packages: already completed by recovery contract",
     STABLE_RELEASE_STAGES.indexOf(resumeFrom) <= STABLE_RELEASE_STAGES.indexOf("git")
       ? "- git: release commit -> retarget package tags -> push branch/tags"
       : "- git: already completed by recovery contract",
+    !includesNextclaw || skipPublishedInstall
+      ? "- NPM_READY gate: registry package batch only; exact nextclaw install not applicable or skipped"
+      : "- NPM_READY gate: exact public-registry cold install before product materials/runtime",
     !includesNextclaw || skipRuntimeChannel
       ? "- stable runtime channel: skipped"
       : "- stable runtime channel: workflow -> release assets -> gh-pages/public manifests",
@@ -323,7 +343,20 @@ export function buildStableDryRunPlan({
       ? "- published install: skipped"
       : skipRuntimeChannel
         ? "- published install: exact registry package and payload only"
-        : "- published install: exact package + previous stable check/download/apply/new process"
+        : "- published update: previous stable check/download/apply/new process",
+    "- desktop: excluded"
+  ];
+}
+
+export function buildStableNpmReadySummary({ checkpoint, targetVersion }) {
+  return [
+    "NPM_READY",
+    `- channel: stable/latest`,
+    `- package count: ${Object.keys(checkpoint?.packages ?? {}).length}`,
+    `- nextclaw version: ${targetVersion ?? "not in batch"}`,
+    `- registry verification: passed`,
+    `- exact nextclaw install: ${targetVersion ? "passed" : "not applicable"}`,
+    `- remaining product stages: runtime, applicable docs/website/X; desktop excluded`
   ];
 }
 
@@ -336,15 +369,23 @@ export function buildStableCompletionSummary({
   skipRuntimeChannel,
   targetVersion
 }) {
+  const npmReady = !targetVersion || !skipPublishedInstall;
+  const productCoreReady = npmReady && Boolean(targetVersion) && !skipRuntimeChannel;
   return [
-    "release:stable completed",
+    productCoreReady
+      ? "release:product:stable core stages completed"
+      : npmReady
+        ? "NPM_READY"
+        : "RELEASE_PARTIAL",
     `- branch: ${branch}`,
     `- package count: ${Object.keys(checkpoint?.packages ?? {}).length}`,
     `- release commit: ${releaseCommit ?? "already closed"}`,
     `- package tags: ${releaseTags.length || "already closed"}`,
     `- nextclaw version: ${targetVersion ?? "not in batch"}`,
     `- stable runtime: ${!targetVersion || skipRuntimeChannel ? "skipped" : "verified"}`,
-    `- published install: ${!targetVersion || skipPublishedInstall ? "skipped" : "verified"}`
+    `- published install: ${!targetVersion || skipPublishedInstall ? "skipped" : "verified"}`,
+    `- NEXTCLAW_STABLE_READY: ${productCoreReady ? "pending applicable docs/website/X owner closure" : "not applicable"}`,
+    `- desktop: excluded`
   ];
 }
 
@@ -432,4 +473,23 @@ export function buildStablePublishedInstallArgs(targetVersion, previousVersion, 
     args.push("--previous-version", previousVersion);
   }
   return args;
+}
+
+export function buildStablePublishedUpgradeArgs(targetVersion, previousVersion, options) {
+  const { skipPublishedInstall, skipRuntimeChannel } = options;
+  if (!targetVersion || !previousVersion || skipPublishedInstall || skipRuntimeChannel) {
+    return null;
+  }
+  return [
+    "-C",
+    "packages/nextclaw",
+    "validation:npm-update",
+    "--",
+    "--published-stable",
+    "--expected-version",
+    targetVersion,
+    "--previous-version",
+    previousVersion,
+    "--update-only"
+  ];
 }

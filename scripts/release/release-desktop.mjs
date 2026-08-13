@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
 import { resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
-import { runRemotePreflight } from "./desktop-release-preflight.mjs";
+import { assertPublishedDesktopRuntimeIdentity, runRemotePreflight } from "./desktop-release-preflight.mjs";
 import {
   createReleaseWorktree,
   installReleaseWorktreeDependencies,
@@ -259,6 +259,7 @@ function assertCleanWorktree(options) {
 function ensureRequiredCommands() {
   run("git", ["--version"]);
   run("gh", ["--version"]);
+  run("npm", ["--version"]);
   run("pnpm", ["--version"]);
   run("curl", ["--version"]);
 }
@@ -441,7 +442,9 @@ function printPlan(options, aheadCount) {
       `branch=${branch}`,
       `target=${target}`,
       `ahead=${aheadCount}`,
-      `releaseWorktree=${releaseWorktree}`
+      `releaseWorktree=${releaseWorktree}`,
+      "npmPublish=excluded",
+      "publishedRuntimeIdentity=verified"
     ].join(" ")
   );
 }
@@ -460,6 +463,7 @@ async function main() {
   options.target ??= readHeadSha();
   options.desktopVersion ??= readPackageVersion("apps/desktop/package.json");
   options.runtimeVersion ??= readPackageVersion("packages/nextclaw/package.json");
+  assertPublishedDesktopRuntimeIdentity(options.channel, options.runtimeVersion);
   options.minimumLauncherVersion ??= readMinimumLauncherVersion(options.channel);
   options.tag ??= readNextTag(options.channel, options.runtimeVersion);
   options.releaseNotesUrl = resolveDesktopReleaseNotesUrl({
@@ -484,6 +488,7 @@ async function main() {
     createRelease(options);
   }
   await waitForDesktopReleaseClosure(options);
+  console.log(options.channel === "stable" ? "DESKTOP_READY" : "DESKTOP_BETA_READY");
 }
 
 try {
