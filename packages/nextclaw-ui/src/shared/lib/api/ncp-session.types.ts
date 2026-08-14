@@ -4,6 +4,7 @@ import type {
   NcpSessionStatus,
   NcpSessionSummary,
 } from "@nextclaw/ncp";
+import type { UiNcpSessionTokenUsageView } from "@nextclaw/client-sdk";
 import type { ThinkingLevel } from "./types";
 
 export type SessionTypeIconView = {
@@ -114,3 +115,5 @@ export type NcpSessionMessagesView = {
   total: number;
   pageInfo: NcpSessionMessagePageInfo;
 };
+
+export type NcpSessionTokenUsageView = UiNcpSessionTokenUsageView;

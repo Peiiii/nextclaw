@@ -9,6 +9,34 @@ export type SessionMessagePage = {
   contextWindow: Record<string, unknown> | null;
 };
 
+export type SessionTokenUsageStatus = "reported" | "partial" | "unavailable";
+
+export type SessionTokenUsageTotals = {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cachedInputTokens: number | null;
+  totalTokens: number | null;
+  cacheHitRate: number | null;
+};
+
+export type SessionModelTokenUsage = SessionTokenUsageTotals & {
+  model: string;
+  runCount: number;
+  modelCallCount: number | null;
+  reportedModelCallCount: number | null;
+  status: SessionTokenUsageStatus;
+};
+
+export type SessionTokenUsageSummary = {
+  sessionId: string;
+  totals: SessionTokenUsageTotals;
+  models: SessionModelTokenUsage[];
+  runCount: number;
+  modelCallCount: number | null;
+  reportedModelCallCount: number | null;
+  status: SessionTokenUsageStatus;
+};
+
 export class SessionMessageCursorError extends Error {
   constructor(message = "Invalid session message cursor.") {
     super(message);

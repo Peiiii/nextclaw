@@ -78,6 +78,10 @@ vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
   }),
 }));
 
+vi.mock('@/features/chat/features/workspace/components/overview/chat-session-token-usage', () => ({
+  ChatSessionTokenUsage: () => <section><h3>Token usage</h3></section>,
+}));
+
 vi.mock('@/shared/lib/api', async (importOriginal) => ({
   ...(await importOriginal()),
   createServerPathDirectory: mocks.createServerPathDirectory,
@@ -250,39 +254,27 @@ it('shows all session workspace entries in the overview', async () => {
   );
 
   expect(screen.getByText('Overview')).toBeTruthy();
+  expect(screen.getByText('Token usage')).toBeTruthy();
   const childSessionsButton = screen.getByRole('button', {
     name: /Child sessions/,
   });
   const cronJobsButton = screen.getByRole('button', {
     name: /Scheduled tasks/,
   });
+  const projectFilesButton = screen.getByRole('button', { name: /Project files/ });
 
   expect((childSessionsButton as HTMLButtonElement).disabled).toBe(false);
   expect((cronJobsButton as HTMLButtonElement).disabled).toBe(false);
+  expect(projectFilesButton.compareDocumentPosition(screen.getByText('Token usage')) & Node.DOCUMENT_POSITION_FOLLOWING)
+    .toBeTruthy();
 
   await user.click(childSessionsButton);
   await user.click(cronJobsButton);
-  await user.click(screen.getByRole('button', { name: /Project files/ }));
+  await user.click(projectFilesButton);
 
   expect(mocks.openChildSessions).toHaveBeenCalledWith('parent-1');
   expect(mocks.openSessionCronPanel).toHaveBeenCalledWith('parent-1');
   expect(mocks.openProjectFiles).toHaveBeenCalledWith('parent-1');
-});
-
-it('shows an empty child sessions page instead of disabling the entry', () => {
-  render(
-    <ChatSessionWorkspacePanelContent
-      activeSelection={{ kind: 'child-sessions' }}
-      childSessionTabs={[]}
-      filePreviewRefreshVersion={0}
-      sessionKey="parent-1"
-      sessionCronJobs={[]}
-      sessionProjectRoot={null}
-      sessionWorkingDir={null}
-    />,
-  );
-
-  expect(screen.getByText('No child sessions yet.')).toBeTruthy();
 });
 
 it('shows the selected session project as a hierarchical file tree', () => {

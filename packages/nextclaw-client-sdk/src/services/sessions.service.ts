@@ -7,6 +7,7 @@ import type {
   UiNcpSessionMessagesView,
   UiNcpSessionQueuedInputView,
   UiNcpSessionQueuedInputsView,
+  UiNcpSessionTokenUsageView,
 } from "@nextclaw/server";
 import type { EventBus } from "@nextclaw/shared";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
@@ -63,6 +64,12 @@ export class SessionsService {
         ...(query.size > 0 ? { query } : {}),
         ...(params.signal ? { signal: params.signal } : {})
       }
+    );
+  };
+
+  readonly getUsage = async (sessionId: string): Promise<UiNcpSessionTokenUsageView> => {
+    return await this.requestService.get<UiNcpSessionTokenUsageView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/usage`,
     );
   };
 

@@ -24,6 +24,7 @@ export type {
   NcpSessionsListView,
   NcpMessageView,
   NcpSessionMessagesView,
+  NcpSessionTokenUsageView,
   SessionContextWindowView,
 } from './ncp-session.types';
 

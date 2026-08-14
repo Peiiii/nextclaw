@@ -1,4 +1,5 @@
 import type { Config, ThinkingLevel } from "@nextclaw/core";
+import type { SessionTokenUsageSummary } from "@nextclaw/kernel";
 import type { AgentProfileView } from "./server-api-agent.types.js";
 import type { AppEvent } from "@nextclaw/shared";
 import type {
@@ -657,6 +658,8 @@ export type UiNcpSessionMessagesView = {
   total: number;
   pageInfo: NcpSessionMessagePageInfo;
 };
+
+export type UiNcpSessionTokenUsageView = SessionTokenUsageSummary;
 
 export type SessionTypeDescribeParams = {
   describeMode?: "observation" | "probe";

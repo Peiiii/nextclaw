@@ -107,4 +107,33 @@ describe("AgentRunExecutionManager", () => {
       status: "partial",
     });
   });
+
+  it("normalizes Anthropic cache-read usage as cached input", async () => {
+    const manager = new AgentRunExecutionManager({
+      spec: { ...spec, model: "anthropic/claude-sonnet-4" },
+      sessionId: "session-1",
+      messageId: "message-1",
+    });
+    await drain(
+      manager.observeModelCall(
+        (async function* () {
+          yield {
+            usage: {
+              input_tokens: 90,
+              output_tokens: 10,
+              cache_read_input_tokens: 40,
+              cache_creation_input_tokens: 12,
+            } as OpenAIChatChunk["usage"],
+          };
+        })(),
+      ),
+    );
+
+    expect(manager.buildMetadata("completed").usage).toMatchObject({
+      inputTokens: 142,
+      outputTokens: 10,
+      cachedInputTokens: 40,
+      totalTokens: 152,
+    });
+  });
 });

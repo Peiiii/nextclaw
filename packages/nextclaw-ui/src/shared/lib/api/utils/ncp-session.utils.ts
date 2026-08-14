@@ -1,6 +1,7 @@
 import { nextclawClient } from "@/shared/lib/api/managers/client.manager";
 import type {
   NcpSessionMessagesView,
+  NcpSessionTokenUsageView,
   NcpSessionSkillsView,
   NcpSessionsListView,
   NcpSessionSummaryView,
@@ -24,6 +25,13 @@ export async function fetchNcpSessionMessages(
     sessionId,
     options,
   )) as NcpSessionMessagesView;
+}
+
+// GET /api/ncp/sessions/:sessionId/usage
+export async function fetchNcpSessionTokenUsage(
+  sessionId: string,
+): Promise<NcpSessionTokenUsageView> {
+  return (await nextclawClient.sessions.getUsage(sessionId)) as NcpSessionTokenUsageView;
 }
 
 // GET /api/ncp/sessions/:sessionId/skills

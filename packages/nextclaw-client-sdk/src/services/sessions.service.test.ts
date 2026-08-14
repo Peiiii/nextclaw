@@ -1,6 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import { SessionsService } from "./sessions.service.js";
 
+describe("SessionsService.getUsage", () => {
+  it("gets the encoded session usage resource", async () => {
+    const get = vi.fn(async () => ({ sessionId: "session / 1", runCount: 0 }));
+    const service = new SessionsService(
+      { get } as never,
+      { subscribeAll: vi.fn() } as never,
+    );
+
+    await expect(service.getUsage("session / 1")).resolves.toMatchObject({
+      sessionId: "session / 1",
+      runCount: 0,
+    });
+    expect(get).toHaveBeenCalledWith("/api/ncp/sessions/session%20%2F%201/usage");
+  });
+});
+
 describe("SessionsService.compactContext", () => {
   it("posts to the encoded session context action", async () => {
     const post = vi.fn(async () => ({

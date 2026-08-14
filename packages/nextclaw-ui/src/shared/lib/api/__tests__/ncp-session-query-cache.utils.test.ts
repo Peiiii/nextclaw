@@ -183,6 +183,7 @@ describe('ncp-session-query-cache', () => {
   it('applies realtime upsert/delete events to every ncp-sessions query cache entry', () => {
     const queryClient = new QueryClient();
     queryClient.setQueryData(['ncp-sessions', 200], createSessionsList());
+    queryClient.setQueryData(['ncp-session-token-usage', 'session-3'], { runCount: 1 });
 
     applyNcpSessionRealtimeEvent(queryClient, {
       type: 'session.run-status',
@@ -212,6 +213,7 @@ describe('ncp-session-query-cache', () => {
     expect(
       queryClient.getQueryData<NcpSessionsListView>(['ncp-sessions', 200])?.sessions.map((session) => session.sessionId)
     ).toEqual(['session-3', 'session-1', 'session-2']);
+    expect(queryClient.getQueryState(['ncp-session-token-usage', 'session-3'])?.isInvalidated).toBe(true);
 
     applyNcpSessionRealtimeEvent(queryClient, {
       type: 'session.summary.delete',

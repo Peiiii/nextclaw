@@ -76,6 +76,49 @@ it("passes peerId filters through the ncp session list route", async () => {
   expect(listSessionCalls).toEqual([{ limit: 10, peerId: "peer-1" }]);
 });
 
+it("returns session token usage from the kernel owner", async () => {
+  const app = createUiRouter({
+    configPath: createConfigPath(),
+    appEventBus: new EventBus(),
+    kernel: createRouterTestKernel({
+      sessionManager: {
+        getSessionTokenUsage: async (sessionId: string) =>
+          sessionId === "session / 1"
+            ? {
+                sessionId,
+                totals: {
+                  inputTokens: 100,
+                  outputTokens: 20,
+                  cachedInputTokens: 40,
+                  totalTokens: 120,
+                  cacheHitRate: 0.4,
+                },
+                models: [],
+                runCount: 1,
+                modelCallCount: 1,
+                reportedModelCallCount: 1,
+                status: "reported",
+              }
+            : null,
+      } as never,
+    }),
+  });
+
+  const response = await app.request("http://localhost/api/ncp/sessions/session%20%2F%201/usage");
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toMatchObject({
+    ok: true,
+    data: {
+      sessionId: "session / 1",
+      totals: { totalTokens: 120, cachedInputTokens: 40 },
+      status: "reported",
+    },
+  });
+
+  const missingResponse = await app.request("http://localhost/api/ncp/sessions/missing/usage");
+  expect(missingResponse.status).toBe(404);
+});
+
 it("completes idle running previews that already have a final reply", async () => {
   const app = createUiRouter({
     configPath: createConfigPath(),

@@ -235,14 +235,24 @@ function buildAnthropicTools(tools: Array<Record<string, unknown>> | undefined):
 }
 
 function normalizeUsage(usage: Record<string, unknown> | null): Record<string, number> {
-  const inputTokens = typeof usage?.input_tokens === "number" ? usage.input_tokens : 0;
+  const baseInputTokens = typeof usage?.input_tokens === "number" ? usage.input_tokens : 0;
   const outputTokens = typeof usage?.output_tokens === "number" ? usage.output_tokens : 0;
+  const cacheReadInputTokens = typeof usage?.cache_read_input_tokens === "number"
+    ? usage.cache_read_input_tokens
+    : null;
+  const cacheCreationInputTokens = typeof usage?.cache_creation_input_tokens === "number"
+    ? usage.cache_creation_input_tokens
+    : null;
+  // Anthropic reports base input, cache reads, and cache writes as separate usage categories.
+  const inputTokens = baseInputTokens + (cacheReadInputTokens ?? 0) + (cacheCreationInputTokens ?? 0);
   return {
-    input_tokens: inputTokens,
+    input_tokens: baseInputTokens,
     output_tokens: outputTokens,
     prompt_tokens: inputTokens,
     completion_tokens: outputTokens,
-    total_tokens: inputTokens + outputTokens
+    total_tokens: inputTokens + outputTokens,
+    ...(cacheReadInputTokens === null ? {} : { cache_read_input_tokens: cacheReadInputTokens }),
+    ...(cacheCreationInputTokens === null ? {} : { cache_creation_input_tokens: cacheCreationInputTokens })
   };
 }
 

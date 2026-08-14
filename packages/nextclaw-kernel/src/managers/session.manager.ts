@@ -17,7 +17,8 @@ import type {
   AgentRunSession,
   CreateAgentRunSessionParams,
   SessionMessagePage,
-  SessionSettingsPatch
+  SessionSettingsPatch,
+  SessionTokenUsageSummary
 } from "@kernel/types/session.types.js";
 import {
   createNcpAgentSessionSummary,
@@ -49,6 +50,7 @@ import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { ProjectManager } from "@kernel/managers/project.manager.js";
+import { buildSessionTokenUsageSummary } from "@kernel/managers/session-token-usage.manager.js";
 import { SessionEventIngestionService } from "@kernel/services/session-event-ingestion.service.js";
 import { SessionWorkingDirResolver } from "@kernel/services/session-working-dir-resolver.service.js";
 
@@ -320,6 +322,11 @@ export class SessionManager implements NcpSessionApi {
       return page?.messages ?? [];
     }
     return await this.options.journalStore.listSessionMessages(normalizedSessionId);
+  };
+
+  getSessionTokenUsage = async (sessionId: string): Promise<SessionTokenUsageSummary | null> => {
+    const record = await this.getSessionRecord(sessionId);
+    return record ? buildSessionTokenUsageSummary({ sessionId: record.sessionId, messages: record.messages }) : null;
   };
 
   listSessionMessagePage = async (

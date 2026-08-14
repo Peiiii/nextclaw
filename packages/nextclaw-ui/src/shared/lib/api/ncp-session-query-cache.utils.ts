@@ -155,6 +155,10 @@ export function applyNcpSessionRealtimeEvent(
   }
   if (event.type === 'session.summary.upsert') {
     upsertNcpSessionSummaryInQueryClient(queryClient, event.payload.summary);
+    void queryClient?.invalidateQueries({
+      queryKey: ['ncp-session-token-usage', event.payload.summary.sessionId],
+      exact: true,
+    });
     return;
   }
 

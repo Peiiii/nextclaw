@@ -15,6 +15,8 @@ import { SessionConversationArea } from '@/features/chat/features/conversation/c
 import { ChatSessionWorkspaceFilePreview } from '@/features/chat/features/workspace/components/chat-session-workspace-file-preview';
 import { ChatSessionWorkspaceDirectoryBrowser } from '@/features/chat/features/workspace/components/chat-session-workspace-directory-browser';
 import { SessionCronJobContent } from '@/features/chat/features/workspace/components/session-cron-job-content';
+import { ChatSessionChildSessions } from '@/features/chat/features/workspace/components/child-sessions/chat-session-child-sessions';
+import { ChatSessionTokenUsage } from '@/features/chat/features/workspace/components/overview/chat-session-token-usage';
 import type { ResolvedChildSessionTab } from '@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view';
 import type { WorkspaceSelection } from '@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils';
 import { useServerPathBrowse } from '@/shared/hooks/use-server-path-browse';
@@ -126,50 +128,7 @@ function WorkspaceOverview({
             }}
           />
         </div>
-      </div>
-    </div>
-  );
-}
-
-function WorkspaceChildSessions({ childSessionTabs }: { childSessionTabs: readonly ResolvedChildSessionTab[] }) {
-  const presenter = usePresenter();
-
-  return (
-    <div className="h-full overflow-auto bg-gray-50/45 px-4 py-5 custom-scrollbar">
-      <div className="mx-auto max-w-xl">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base font-semibold text-gray-900">{t('chatWorkspaceChildSessions')}</h2>
-          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-gray-500">
-            {childSessionTabs.length}
-          </span>
-        </div>
-        {childSessionTabs.length === 0 ? (
-          <div className="py-10 text-center text-sm text-gray-500">{t('chatWorkspaceChildSessionsEmpty')}</div>
-        ) : (
-          <div className="mt-4 space-y-2">
-            {childSessionTabs.map((tab) => (
-              <button
-                key={tab.sessionKey}
-                type="button"
-                className="group flex w-full items-center gap-3 rounded-lg border border-gray-200/80 bg-white px-3 py-3 text-left transition-colors hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-                onClick={() => presenter.chatThreadManager.selectChildSessionDetail(tab.sessionKey)}
-              >
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                  <GitBranch className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-gray-900">{tab.title}</span>
-                  {tab.projectName || tab.sessionTypeLabel ? (
-                    <span className="mt-0.5 block truncate text-xs text-gray-500">
-                      {[tab.sessionTypeLabel, tab.projectName].filter(Boolean).join(' · ')}
-                    </span>
-                  ) : null}
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500" />
-              </button>
-            ))}
-          </div>
-        )}
+        <ChatSessionTokenUsage sessionKey={sessionKey} />
       </div>
     </div>
   );
@@ -299,7 +258,7 @@ function WorkspaceSelectedContent({
   }
 
   if (activeSelection.kind === 'child-sessions') {
-    return <WorkspaceChildSessions childSessionTabs={childSessionTabs} />;
+    return <ChatSessionChildSessions childSessionTabs={childSessionTabs} sessionKey={sessionKey} />;
   }
 
   if (activeSelection.kind === 'side-chat-draft') {

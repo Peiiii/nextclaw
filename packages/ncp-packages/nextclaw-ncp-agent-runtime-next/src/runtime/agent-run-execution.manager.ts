@@ -38,7 +38,7 @@ function normalizeUsage(
     return null;
   }
   const usage = rawUsage as Record<string, unknown>;
-  const inputTokens = readUsageTokenCount(
+  const normalizedInputTokens = readUsageTokenCount(
     usage,
     "prompt_tokens",
     "input_tokens",
@@ -49,8 +49,23 @@ function normalizeUsage(
     "output_tokens",
   );
   const explicitTotalTokens = readTokenCount(usage.total_tokens);
+  const cacheReadInputTokens =
+    readTokenCount(usage.cache_read_input_tokens) ??
+    readTokenCount(usage.cache_read_tokens);
+  const cacheCreationInputTokens = readTokenCount(usage.cache_creation_input_tokens);
+  // Raw Anthropic-compatible streams split cache reads and writes out of input_tokens.
+  const inputTokens =
+    readTokenCount(usage.prompt_tokens) ??
+    (normalizedInputTokens !== null &&
+    (cacheReadInputTokens !== null || cacheCreationInputTokens !== null)
+      ? normalizedInputTokens + (cacheReadInputTokens ?? 0) + (cacheCreationInputTokens ?? 0)
+      : normalizedInputTokens);
   const cachedInputTokens = Object.entries(usage)
-    .filter(([key]) => key.endsWith("cached_tokens"))
+    .filter(([key]) =>
+      key.endsWith("cached_tokens") ||
+      key === "cache_read_input_tokens" ||
+      key === "cache_read_tokens"
+    )
     .reduce<number | null>((maximum, [, value]) => {
       const count = readTokenCount(value);
       if (count === null) return maximum;

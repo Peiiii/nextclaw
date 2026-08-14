@@ -4,6 +4,7 @@ import type {
   SessionPatchUpdate,
   UiNcpSessionListView,
   UiNcpSessionQueuedInputsView,
+  UiNcpSessionTokenUsageView,
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
 import {
@@ -165,6 +166,16 @@ export class NcpSessionRoutesController {
       total: page.total,
       pageInfo: page.pageInfo
     };
+    return c.json(ok(payload));
+  };
+
+  readonly getSessionTokenUsage = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    const payload: UiNcpSessionTokenUsageView | null =
+      await this.options.kernel.sessionManager.getSessionTokenUsage(sessionId);
+    if (!payload) {
+      return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
+    }
     return c.json(ok(payload));
   };
 

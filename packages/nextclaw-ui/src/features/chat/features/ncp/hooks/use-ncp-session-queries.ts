@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   fetchNcpSessionSkills,
+  fetchNcpSessionTokenUsage,
   fetchNcpSessions
 } from '@/shared/lib/api';
 
@@ -27,6 +28,15 @@ export function useNcpSessionSkills(params: {
           : {})
     }),
     enabled: Boolean(params.sessionId),
+    ...ncpSessionQueryDefaults
+  });
+}
+
+export function useNcpSessionTokenUsage(sessionId: string | null) {
+  return useQuery({
+    queryKey: ['ncp-session-token-usage', sessionId],
+    queryFn: () => fetchNcpSessionTokenUsage(sessionId as string),
+    enabled: Boolean(sessionId),
     ...ncpSessionQueryDefaults
   });
 }

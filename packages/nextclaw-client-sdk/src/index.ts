@@ -182,6 +182,7 @@ export type {
   UiNcpSessionMessagesView,
   UiNcpSessionQueuedInputView,
   UiNcpSessionQueuedInputsView,
+  UiNcpSessionTokenUsageView,
   UiServerEvent,
 } from "@nextclaw/server";
 export type {
