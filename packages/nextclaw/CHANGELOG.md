@@ -1,5 +1,36 @@
 # nextclaw
 
+## 0.37.0
+
+### Minor Changes
+
+- 558e4c7: Auto-generated full public release batch.
+
+  Packages:
+  - nextclaw
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [ebbe1e0]
+- Updated dependencies [aa08a3f]
+- Updated dependencies [e2a7c8e]
+- Updated dependencies [004d51f]
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.18
+  - @nextclaw/service@0.3.35
+  - @nextclaw/ncp@0.8.0
+  - @nextclaw/ncp-toolkit@0.6.20
+  - @nextclaw/ncp-agent-runtime@0.4.18
+  - @nextclaw/core@0.17.1
+  - @nextclaw/kernel@0.8.2
+  - @nextclaw/server@0.16.2
+  - @nextclaw/ncp-mcp@0.2.28
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.18
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.28
+  - @nextclaw/mcp@0.3.28
+  - @nextclaw/remote@0.3.32
+  - @nextclaw/runtime@0.4.27
+
 ## 0.36.2
 
 ### Patch Changes
