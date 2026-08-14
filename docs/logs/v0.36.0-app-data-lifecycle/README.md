@@ -29,7 +29,7 @@
 
 ## 正式发布结果
 
-- 功能提交 `ca2c98ddc`、发布说明提交 `8d912b9d9`、稳定版提交 `26e1d3c7c` 均已推送到 `origin/master`；`master`、`origin/master` 和 `nextclaw@0.36.0` tag 指向同一提交，branch closure 无差异。
+- 功能提交 `ca2c98ddc`、发布说明提交 `8d912b9d9`、稳定版提交 `26e1d3c7c` 均已推送到 `origin/master`；`nextclaw@0.36.0` tag 固定指向稳定版提交。随后 `master` 只增加交付事实记录，最终 branch closure 仍确认没有功能源码或发布产物只留在 release ref。
 - `nextclaw@0.36.0` 已成为 NPM `latest`。7 个变更包之外，registry reconciliation 发现 15 个依赖闭包版本此前未发布，因此同一稳定批次实际补齐 22/22 个 package；没有额外版本 bump，也没有重复 publish。
 - stable runtime workflow `31765994085` 全绿，darwin arm64/x64、linux x64、win32 x64 四个平台 bundle、签名 manifest 和汇总发布任务均成功；GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.36.0`。
 - 四个平台公开 manifest 均为 `latestVersion: 0.36.0`、`minimumLauncherVersion: 0.18.11`、`hostKind: npm-runtime-bundle`，包含 bundle/manifest signature，并指向本版本英文说明。

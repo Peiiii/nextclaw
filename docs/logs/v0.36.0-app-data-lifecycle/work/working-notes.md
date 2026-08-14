@@ -31,7 +31,7 @@
 
 ## 正式发布证据
 
-- 功能提交 `ca2c98ddc`、发布说明提交 `8d912b9d9`、稳定版提交 `26e1d3c7c` 均已推送 `origin/master`；branch closure 证明 `master`、tag 与 release ref 相同。
+- 功能提交 `ca2c98ddc`、发布说明提交 `8d912b9d9`、稳定版提交 `26e1d3c7c` 均已推送 `origin/master`；tag 固定在稳定版提交，后续 `master` 仅增加交付记录，最终 branch closure 证明没有功能源码或发布产物只留在 release ref。
 - stable dry-run 根据 changeset 列出 7 个变更包；实际 registry reconciliation 发现 15 个依赖闭包版本缺失，最终一次性发布 22/22 个包。差异是已有本地版本的 registry 补齐，不是临时扩大版本变更。
 - `nextclaw@latest` 已反查为 `0.36.0`；7 个直接变更包均能按精确版本从 registry 查询。
 - runtime workflow `31765994085` 四个平台和汇总任务全绿；公开 manifest、GitHub Release 四个 bundle、签名字段和 release notes URL 已复核。
