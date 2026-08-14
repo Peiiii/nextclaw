@@ -19,7 +19,7 @@ type RuntimeToolCallDraft = CollectedToolCall & {
 export type RuntimeToolCallExecutorInput = {
   executeToolCall(
     toolCall: CollectedToolCall,
-    publishToolResult: (event: NcpEndpointEvent) => Promise<void>,
+    publishToolEvent: (event: NcpEndpointEvent) => Promise<void>,
   ): Promise<NcpEndpointEvent>;
   supportsParallelToolCalls(toolCall: CollectedToolCall): boolean;
   toRunErrorEvent(error: unknown): NcpEndpointEvent;

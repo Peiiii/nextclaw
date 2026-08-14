@@ -54,7 +54,11 @@ export function ChatToolActivityGroup({
             const isLast = index === group.parts.length - 1;
             return (
               <div
-                key={`tool-group-item-${group.startIndex + index}`}
+                key={
+                  part.type === "tool-card" && part.card.toolCallId
+                    ? `tool-group-call-${part.card.toolCallId}`
+                    : `tool-group-item-${group.startIndex + index}`
+                }
                 className="relative min-w-0"
               >
                 {showWorkflowRail ? (

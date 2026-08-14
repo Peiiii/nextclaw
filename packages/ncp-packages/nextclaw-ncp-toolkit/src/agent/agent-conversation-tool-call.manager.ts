@@ -5,14 +5,27 @@ import type {
   NcpToolCallEndPayload,
   NcpToolCallResultPayload,
   NcpToolCallStartPayload,
+  NcpToolExecutionStartedPayload,
 } from "@nextclaw/ncp";
 import {
   ABORTED_TOOL_CALL_SENTINEL,
   findToolNameByCallId,
+  mergeToolExecutionTiming,
+  normalizeToolExecutionTiming,
+  normalizeToolExecutionTimestamp,
   upsertToolInvocationPart,
 } from "./agent-conversation-state-manager.utils.js";
 
 type ToolCallPart = Extract<NcpMessage["parts"][number], { type: "tool-invocation" }>;
+
+function hasTerminalExecution(part: ToolCallPart): boolean {
+  return (
+    part.state === "result" ||
+    part.state === "cancelled" ||
+    Boolean(part.execution?.endedAt) ||
+    typeof part.execution?.durationMs === "number"
+  );
+}
 
 type AgentConversationToolCallManagerPort = {
   ensureStreamingMessage: (
@@ -136,20 +149,75 @@ export class AgentConversationToolCallManager {
     });
   };
 
-  handleToolCallResult = (payload: NcpToolCallResultPayload): void => {
+  handleToolExecutionStarted = (
+    payload: NcpToolExecutionStartedPayload,
+    occurredAt?: string,
+  ): void => {
     if (this.argsRawByCallId.get(payload.toolCallId) === ABORTED_TOOL_CALL_SENTINEL) return;
+    const startedAt = normalizeToolExecutionTimestamp(occurredAt);
+    if (!startedAt) return;
     const updated = this.port.updateMessageContainingToolCall(
       payload.toolCallId,
-      (targetMessage, existingPart) =>
-        upsertToolInvocationPart(targetMessage.parts, {
+      (targetMessage, existingPart) => {
+        if (hasTerminalExecution(existingPart)) return targetMessage.parts;
+        const currentStartedAt = normalizeToolExecutionTimestamp(existingPart.execution?.startedAt);
+        const earliestStartedAt =
+          currentStartedAt && Date.parse(currentStartedAt) <= Date.parse(startedAt)
+            ? currentStartedAt
+            : startedAt;
+        return upsertToolInvocationPart(targetMessage.parts, {
+          ...existingPart,
+          execution: {
+            ...existingPart.execution,
+            startedAt: earliestStartedAt,
+          },
+        });
+      },
+    );
+    if (updated) return;
+    const fallbackMessage = this.resolveToolCallTargetMessage(
+      payload.sessionId,
+      payload.toolCallId,
+      payload.messageId,
+    );
+    this.port.replaceStreamingMessage({
+      ...fallbackMessage,
+      parts: upsertToolInvocationPart(fallbackMessage.parts, {
+        type: "tool-invocation",
+        toolCallId: payload.toolCallId,
+        toolName: "unknown",
+        state: "call",
+        execution: { startedAt },
+      }),
+      status: "streaming",
+    });
+  };
+
+  handleToolCallResult = (payload: NcpToolCallResultPayload, occurredAt?: string): void => {
+    if (this.argsRawByCallId.get(payload.toolCallId) === ABORTED_TOOL_CALL_SENTINEL) return;
+    const isFinal = payload.final !== false;
+    const execution = normalizeToolExecutionTiming(
+      payload.execution,
+      isFinal ? occurredAt : undefined,
+    );
+    const updated = this.port.updateMessageContainingToolCall(
+      payload.toolCallId,
+      (targetMessage, existingPart) => {
+        if (existingPart.state === "cancelled") return targetMessage.parts;
+        if (!isFinal && hasTerminalExecution(existingPart)) return targetMessage.parts;
+        return upsertToolInvocationPart(targetMessage.parts, {
           type: "tool-invocation",
           toolCallId: payload.toolCallId,
           toolName: existingPart.toolName,
-          state: "result",
+          state: isFinal ? "result" : "call",
           args: existingPart.args,
           result: payload.content,
-          resultContentItems: payload.contentItems,
-        }),
+          ...(payload.contentItems ? { resultContentItems: payload.contentItems } : {}),
+          ...(execution
+            ? { execution: mergeToolExecutionTiming(existingPart.execution, execution) }
+            : {}),
+        });
+      },
     );
     if (updated) {
       return;
@@ -164,9 +232,10 @@ export class AgentConversationToolCallManager {
         type: "tool-invocation",
         toolCallId: payload.toolCallId,
         toolName: "unknown",
-        state: "result",
+        state: isFinal ? "result" : "call",
         result: payload.content,
-        resultContentItems: payload.contentItems,
+        ...(payload.contentItems ? { resultContentItems: payload.contentItems } : {}),
+        ...(execution ? { execution } : {}),
       }),
       status: "streaming",
     });

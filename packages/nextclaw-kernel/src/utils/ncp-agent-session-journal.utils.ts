@@ -1,9 +1,16 @@
 import {
   type AgentSessionEventRecord,
   type AgentSessionRecord,
-  DefaultNcpAgentConversationStateManager, insertMessageByTimeline
+  DefaultNcpAgentConversationStateManager,
+  insertMessageByTimeline,
+  mergeToolExecutionTiming
 } from "@nextclaw/ncp-toolkit";
-import { type NcpEndpointEvent, NcpEventType, type NcpMessage, type NcpSessionSummary } from "@nextclaw/ncp";
+import {
+  type NcpEndpointEvent,
+  NcpEventType,
+  type NcpMessage,
+  type NcpSessionSummary,
+} from "@nextclaw/ncp";
 import { ContextCompactionJournalRecoveryService } from "@kernel/features/context-compaction/index.js";
 import { AGENT_RUN_PEER_ID_METADATA_KEY } from "./agent-peer-session.utils.js";
 import { resolveNcpAgentSessionLabel } from "./ncp-agent-session-label.utils.js";
@@ -201,7 +208,10 @@ export async function replayNcpAgentSessionEvents(
       knownMessageIds.add(replayMessageId);
     }
     await stateManager.dispatch(replayEvent);
-    if (replayEvent.type === NcpEventType.MessageToolCallResult) {
+    if (
+      replayEvent.type === NcpEventType.MessageToolCallResult &&
+      replayEvent.payload.final !== false
+    ) {
       toolResultsByCallId.set(replayEvent.payload.toolCallId, replayEvent.payload);
     }
   }
@@ -256,7 +266,7 @@ function mergeReplayCompletedToolResults(
 ): NcpMessage {
   let changed = false;
   const parts = message.parts.map((part) => {
-    if (part.type !== "tool-invocation" || part.state === "result" || !part.toolCallId) {
+    if (part.type !== "tool-invocation" || !part.toolCallId) {
       return part;
     }
     const result = toolResultsByCallId.get(part.toolCallId);
@@ -268,7 +278,12 @@ function mergeReplayCompletedToolResults(
       ...part,
       state: "result" as const,
       result: result.content,
-      resultContentItems: result.contentItems
+      ...(result.contentItems ? { resultContentItems: result.contentItems } : {}),
+      ...(result.execution
+        ? {
+            execution: mergeToolExecutionTiming(result.execution, part.execution) ?? result.execution
+          }
+        : {})
     };
   });
   return changed ? { ...message, parts } : message;
@@ -337,6 +352,7 @@ function readStreamingMessageId(event: NcpEndpointEvent): string | null {
     case NcpEventType.MessageReasoningEnd:
     case NcpEventType.MessageToolCallStart:
     case NcpEventType.MessageToolCallArgsDelta:
+    case NcpEventType.MessageToolExecutionStarted:
       return event.payload.messageId?.trim() || null;
     default:
       return null;

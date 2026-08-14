@@ -14,8 +14,12 @@ describe("ExecTool", () => {
   it("returns structured success output with stdout and stderr preserved", async () => {
     const runner = vi.fn(async () => ({ stdout: "hello\n", stderr: "warn\n" }));
     const tool = new ExecTool({}, runner);
+    const reportExecutionStarted = vi.fn();
 
-    const result = await tool.execute({ command: "echo hello" });
+    const result = await tool.execute(
+      { command: "echo hello" },
+      { toolCallId: "exec-success", reportExecutionStarted },
+    );
 
     expect(result).toMatchObject({
       ok: true,
@@ -28,6 +32,10 @@ describe("ExecTool", () => {
       stdoutTruncated: false,
       stderrTruncated: false
     });
+    expect(reportExecutionStarted).toHaveBeenCalledOnce();
+    expect(reportExecutionStarted.mock.invocationCallOrder[0]).toBeLessThan(
+      runner.mock.invocationCallOrder[0]!,
+    );
   });
 
   it("returns structured failure output with stdout, stderr, and exit metadata preserved", async () => {
@@ -61,8 +69,12 @@ describe("ExecTool", () => {
   it("returns structured blocked results for safety guard failures", async () => {
     const runner = vi.fn(async () => ({ stdout: "ok", stderr: "" }));
     const tool = new ExecTool({}, runner);
+    const reportExecutionStarted = vi.fn();
 
-    const result = await tool.execute({ command: "rm -rf /tmp/demo" });
+    const result = await tool.execute(
+      { command: "rm -rf /tmp/demo" },
+      { toolCallId: "exec-blocked", reportExecutionStarted },
+    );
 
     expect(result).toEqual({
       ok: false,
@@ -83,6 +95,7 @@ describe("ExecTool", () => {
       blockedReason: "dangerous_pattern"
     });
     expect(runner).not.toHaveBeenCalled();
+    expect(reportExecutionStarted).not.toHaveBeenCalled();
   });
 
   it("removes development node conditions before launching external commands", async () => {

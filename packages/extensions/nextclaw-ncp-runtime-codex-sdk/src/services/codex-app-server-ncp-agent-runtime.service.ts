@@ -14,11 +14,11 @@ import {
 import {
   isAppServerToolLikeItem,
   readAppServerReasoningText,
-  readAppServerToolArgs,
-  readAppServerToolName,
-  readAppServerToolResult,
-  stringifyAppServerToolArgs,
 } from "@/utils/codex-app-server-item-mapper.utils.js";
+import {
+  createAppServerToolEvents,
+  type AppServerToolSnapshot,
+} from "@/utils/codex-app-server-tool-events.utils.js";
 import {
   compactObject,
   splitModelRoute,
@@ -66,7 +66,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     const textDeltaState = new Set<string>();
     const reasoningState = new Set<string>();
     const reasoningDeltaState = new Set<string>();
-    const toolState = new Set<string>();
+    const toolState = new Map<string, AppServerToolSnapshot>();
 
     yield* this.eventEmitter.emitRunStarted(input.sessionId, messageId, runId);
     yield* this.eventEmitter.emitReadyMetadata(input.sessionId, messageId, runId);
@@ -226,7 +226,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       textDeltaState: Set<string>;
       reasoningState: Set<string>;
       reasoningDeltaState: Set<string>;
-      toolState: Set<string>;
+      toolState: Map<string, AppServerToolSnapshot>;
     },
   ): AsyncGenerator<NcpEndpointEvent, boolean> {
     const {
@@ -378,7 +378,7 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       textDeltaState: Set<string>;
       reasoningState: Set<string>;
       reasoningDeltaState: Set<string>;
-      toolState: Set<string>;
+      toolState: Map<string, AppServerToolSnapshot>;
     },
   ): AsyncGenerator<NcpEndpointEvent> {
     const {
@@ -420,7 +420,16 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
     if (!isAppServerToolLikeItem(item.type)) {
       return;
     }
-    yield* this.handleToolItem({ eventType, item, itemId, messageId, sessionId, toolState });
+    for (const event of createAppServerToolEvents({
+      eventType,
+      item,
+      itemId,
+      messageId,
+      sessionId,
+      toolState,
+    })) {
+      yield* this.eventEmitter.emitEvent(event);
+    }
   };
 
   private handleAgentMessageItem = async function* (
@@ -491,45 +500,6 @@ export class CodexAppServerNcpAgentRuntime implements NcpAgentRuntime {
       yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
         type: NcpEventType.MessageReasoningEnd,
         payload: { sessionId, messageId },
-      }));
-    }
-  };
-
-  private handleToolItem = async function* (
-    this: CodexAppServerNcpAgentRuntime,
-    params: {
-      item: AppServerThreadItem;
-      itemId: string;
-      eventType: "item/started" | "item/completed";
-      sessionId: string;
-      messageId: string;
-      toolState: Set<string>;
-    },
-  ): AsyncGenerator<NcpEndpointEvent> {
-    const { eventType, item, itemId, messageId, sessionId, toolState } = params;
-    if (!toolState.has(itemId)) {
-      toolState.add(itemId);
-      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
-        type: NcpEventType.MessageToolCallStart,
-        payload: { sessionId, messageId, toolCallId: itemId, toolName: readAppServerToolName(item) },
-      }));
-      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
-        type: NcpEventType.MessageToolCallArgs,
-        payload: {
-          sessionId,
-          toolCallId: itemId,
-          args: stringifyAppServerToolArgs(readAppServerToolArgs(item)),
-        },
-      }));
-      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
-        type: NcpEventType.MessageToolCallEnd,
-        payload: { sessionId, toolCallId: itemId },
-      }));
-    }
-    if (eventType === "item/completed") {
-      yield* this.eventEmitter.emitEvent(createNcpEndpointEvent({
-        type: NcpEventType.MessageToolCallResult,
-        payload: { sessionId, toolCallId: itemId, content: readAppServerToolResult(item) },
       }));
     }
   };

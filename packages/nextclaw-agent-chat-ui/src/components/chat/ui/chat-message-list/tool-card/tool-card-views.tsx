@@ -8,6 +8,7 @@ import type {
 import { ToolCardRoot, ToolCardContent, ToolCardDetailSection } from './tool-card-root';
 import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
+import { ToolExecutionDuration } from './terminal/tool-execution-duration';
 import { ChatTerminalSurface } from './terminal/terminal-panes';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
@@ -232,6 +233,12 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
         icon={Terminal}
         expanded={expanded}
         canExpand={canExpand}
+        trailingMeta={(
+          <ToolExecutionDuration
+            execution={card.execution}
+            statusTone={card.statusTone}
+          />
+        )}
         onToggle={onToggle}
       />
       {expanded && (

@@ -115,6 +115,12 @@ export type NcpToolOutputContentItem =
   | NcpToolOutputTextItem
   | NcpToolOutputImageItem;
 
+export type NcpToolExecutionTiming = {
+  startedAt?: string;
+  endedAt?: string;
+  durationMs?: number;
+};
+
 /**
  * Represents a tool call and its lifecycle.
  *
@@ -135,6 +141,7 @@ export type NcpToolInvocationPart = {
   result?: unknown;
   /** Model-visible structured output items. Text is bounded; images remain image items. */
   resultContentItems?: NcpToolOutputContentItem[];
+  execution?: NcpToolExecutionTiming;
 };
 
 // ---------------------------------------------------------------------------

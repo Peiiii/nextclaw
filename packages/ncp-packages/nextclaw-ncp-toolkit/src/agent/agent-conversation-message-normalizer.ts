@@ -3,7 +3,14 @@ import { type NcpMessage, sanitizeAssistantReplyTags } from "@nextclaw/ncp";
 export function cloneConversationMessage(message: NcpMessage): NcpMessage {
   return {
     ...message,
-    parts: [...message.parts],
+    parts: message.parts.map((part) =>
+      part.type === "tool-invocation"
+        ? {
+            ...part,
+            ...(part.execution ? { execution: { ...part.execution } } : {}),
+          }
+        : part,
+    ),
     lifecycle: message.lifecycle ? { ...message.lifecycle } : undefined,
     metadata: message.metadata ? { ...message.metadata } : undefined,
   };

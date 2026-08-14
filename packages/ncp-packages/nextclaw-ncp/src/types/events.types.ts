@@ -1,6 +1,6 @@
 import type { OpenAITool } from "./agent-runtime.types.js";
 import type { NcpError } from "./errors.types.js";
-import type { NcpMessage, NcpToolOutputContentItem } from "./message.js";
+import type { NcpMessage, NcpToolExecutionTiming, NcpToolOutputContentItem } from "./message.js";
 
 /**
  * NCP event and payload definitions.
@@ -275,11 +275,20 @@ export type NcpToolCallEndPayload = {
   toolCallId: string;
 } & NcpCorrelationPayload;
 
+export type NcpToolExecutionStartedPayload = {
+  sessionId: string;
+  messageId?: string;
+  toolCallId: string;
+} & NcpCorrelationPayload;
+
 export type NcpToolCallResultPayload = {
   sessionId: string;
   toolCallId: string;
   content: unknown;
   contentItems?: NcpToolOutputContentItem[];
+  /** Defaults to true for backward compatibility. Progress snapshots set false. */
+  final?: boolean;
+  execution?: NcpToolExecutionTiming;
 } & NcpCorrelationPayload;
 
 // ---------------------------------------------------------------------------
@@ -308,6 +317,7 @@ export enum NcpEventType {
   MessageToolCallArgsDelta = "message.tool-call-args-delta",
   MessageToolCallOutputDelta = "message.tool-call-output-delta",
   MessageToolCallEnd = "message.tool-call-end",
+  MessageToolExecutionStarted = "message.tool-execution-started",
   MessageToolCallResult = "message.tool-call-result",
   MessageRead = "message.read",
   MessageDelivered = "message.delivered",
@@ -359,6 +369,7 @@ export type NcpEndpointEvent = NcpEventTiming & (
   | { type: NcpEventType.MessageToolCallArgsDelta; payload: NcpToolCallArgsDeltaPayload }
   | { type: NcpEventType.MessageToolCallOutputDelta; payload: NcpToolCallOutputDeltaPayload }
   | { type: NcpEventType.MessageToolCallEnd; payload: NcpToolCallEndPayload }
+  | { type: NcpEventType.MessageToolExecutionStarted; payload: NcpToolExecutionStartedPayload }
   | { type: NcpEventType.MessageToolCallResult; payload: NcpToolCallResultPayload }
   | { type: NcpEventType.TypingStart; payload: NcpTypingStartPayload }
   | { type: NcpEventType.TypingEnd; payload: NcpTypingEndPayload }

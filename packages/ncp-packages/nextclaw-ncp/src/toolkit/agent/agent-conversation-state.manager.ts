@@ -1,5 +1,6 @@
 import type {
   NcpContextWindowUpdatedPayload,
+  NcpFailedEnvelope,
   NcpMessageAbortPayload,
   NcpMessageSentPayload,
   NcpRunErrorPayload,
@@ -11,6 +12,7 @@ import type {
   NcpToolCallEndPayload,
   NcpToolCallResultPayload,
   NcpToolCallStartPayload,
+  NcpToolExecutionStartedPayload,
   NcpReasoningDeltaPayload,
   NcpReasoningEndPayload,
   NcpReasoningStartPayload,
@@ -48,7 +50,8 @@ export interface NcpAgentConversationStateManager extends NcpConversationStateMa
   prependHistory(messages: ReadonlyArray<NcpMessage>): void;
   /** Local peer sent a message (outbound); typically non-streaming. Add to messages. */
   handleMessageSent(payload: NcpMessageSentPayload): void;
-  handleMessageAbort(payload: NcpMessageAbortPayload): void;
+  handleMessageAbort(payload: NcpMessageAbortPayload, occurredAt?: string): void;
+  handleMessageFailed(payload: NcpFailedEnvelope, occurredAt?: string): void;
 
   handleMessageTextStart(payload: NcpTextStartPayload): void;
   handleMessageTextDelta(payload: NcpTextDeltaPayload): void;
@@ -62,13 +65,17 @@ export interface NcpAgentConversationStateManager extends NcpConversationStateMa
   handleMessageToolCallArgs(payload: NcpToolCallArgsPayload): void;
   handleMessageToolCallArgsDelta(payload: NcpToolCallArgsDeltaPayload): void;
   handleMessageToolCallEnd(payload: NcpToolCallEndPayload): void;
-  handleMessageToolCallResult(payload: NcpToolCallResultPayload): void;
+  handleMessageToolExecutionStarted(
+    payload: NcpToolExecutionStartedPayload,
+    occurredAt?: string,
+  ): void;
+  handleMessageToolCallResult(payload: NcpToolCallResultPayload, occurredAt?: string): void;
 
-  handleRunStarted(payload: NcpRunStartedPayload): void;
-  handleRunFinished(payload: NcpRunFinishedPayload): void;
-  handleRunError(payload: NcpRunErrorPayload): void;
+  handleRunStarted(payload: NcpRunStartedPayload, occurredAt?: string): void;
+  handleRunFinished(payload: NcpRunFinishedPayload, occurredAt?: string): void;
+  handleRunError(payload: NcpRunErrorPayload, occurredAt?: string): void;
   handleRunMetadata(payload: NcpRunMetadataPayload): void;
   handleContextWindowUpdated(payload: NcpContextWindowUpdatedPayload): void;
 
-  handleEndpointError(payload: NcpError): void;
+  handleEndpointError(payload: NcpError, occurredAt?: string): void;
 }

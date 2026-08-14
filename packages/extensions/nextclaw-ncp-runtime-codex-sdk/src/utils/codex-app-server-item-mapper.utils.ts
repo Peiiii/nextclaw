@@ -37,6 +37,9 @@ export function readAppServerToolName(item: AppServerThreadItem): string {
     const tool = readString(item.tool) ?? "tool";
     return namespace ? `${namespace}.${tool}` : tool;
   }
+  if (item.type === "commandExecution") {
+    return "command_execution";
+  }
   return readString(item.type) ?? "tool";
 }
 

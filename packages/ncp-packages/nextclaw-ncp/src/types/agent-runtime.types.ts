@@ -143,6 +143,8 @@ export interface NcpTool {
 export type NcpToolExecutionContext = {
   abortSignal?: AbortSignal;
   toolCallId: string;
+  /** Report once when the tool crosses into its real side-effect boundary. */
+  reportExecutionStarted?: () => void;
   updateToolCallResult?: (result: unknown) => Promise<void>;
 };
 
