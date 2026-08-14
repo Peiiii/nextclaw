@@ -17,12 +17,14 @@
 - `pnpm --filter nextclaw... build` 完成 36 个依赖项目构建；构建后的 app、launcher 和旧 launcher envelope 场景均返回当前版本。
 - `pnpm dev:verify-update` 真实执行 baseline 启动、自动发现、下载、验签、切换 pointer、重启与重连；PID `10984 -> 18542`，产品版本切换到 `0.36.0`。
 - 更新后的真实 Agent shell 执行 `nextclaw --version` 返回 `0.36.0`，四个 launcher 内部变量均为 `unset`，并完成 `REAL-UPDATE-SMOKE-OK` 任务。
+- VPS `8.219.57.52` 通过真实页面链路完成 `0.35.0 -> 0.36.1` 下载、应用、重启和自动重连；左上角宿主版本更新为 `0.36.1`，公网首页返回 `200`，bootstrap 状态为 `ready`。
+- VPS 更新后的真实 Agent shell 执行 `nextclaw --version` 返回 `0.36.1`，四个 launcher 内部变量均为 `unset`，`nextclaw update --check --json` 返回 `currentVersion: 0.36.1` 和 `status: up-to-date`，并完成 `VPS-0.36.1-SMOKE-OK` 任务。
 
 ## 发布/部署方式
 
 - 使用 NextClaw 稳定 NPM/runtime 正式发布流程发布 patch 版本；release commit 为 `4a877936b`，runtime workflow 为 `31772767810`。
 - NPM 冷安装、`0.36.0 -> 0.36.1` 公开 stable channel 分阶段升级、四平台 runtime bundle、GitHub Release、Pages manifest 和中英文版本笔记均已验证。
-- 发布后通过 VPS `8.219.57.52` 的产品更新入口应用新 runtime、等待重启，并复验公网、版本、Agent shell 与真实任务。
+- VPS `8.219.57.52` 已通过产品更新入口应用新 runtime 并完成重启；公网、宿主版本、Agent shell、更新检查与真实模型任务均已复验。
 
 ## 用户/产品视角的验收步骤
 
