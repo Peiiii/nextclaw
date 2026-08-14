@@ -19,7 +19,7 @@ export const defaultSkillBudgets = Object.freeze({
 export const developmentLifecycleSkillName = "development-lifecycle";
 
 export const developmentStageSkillNames = Object.freeze([
-  "development-discovery",
+  "development-task-understanding",
   "development-design",
   "development-implementation",
   "development-validation",
@@ -33,6 +33,7 @@ export const retiredSkillNames = Object.freeze([
   "code-investigation-workflow",
   "code-review",
   "contract-driven-delivery-campaign",
+  "development-discovery",
   "desktop-release-contract-guard",
   "directory-structure-governance-overview",
   "file-naming-convention",

@@ -1,6 +1,6 @@
 ---
 name: development-lifecycle
-description: 通用开发生命周期的唯一默认流程 owner；用于按风险编排 Discovery、Design、Implementation、Validation、Review、Delivery 与 Retrospective，只管理阶段推进、返工和完成判断，不复制阶段内部合同。
+description: 通用开发生命周期的唯一默认流程 owner；用于按风险编排 Task Understanding、Design、Implementation、Validation、Review、Delivery 与 Retrospective，只管理阶段推进、返工和完成判断，不复制阶段内部合同。
 ---
 
 # Development Lifecycle
@@ -33,7 +33,7 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 
 按当前阶段只选择一个 owner：
 
-1. 需求理解、现状取证、范围和成功条件：`development-discovery`。
+1. 任务理解、现状取证、范围和成功条件：`development-task-understanding`。
 2. 存在真实方案空间、用户明确要求设计或风险达到 L3-L4：`development-design`。
 3. 按已确认目标和设计修改产物：`development-implementation`。
 4. 证明行为、合同和运行链路：`development-validation`。
@@ -58,7 +58,7 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 
 ## 返工
 
-- 需求或现状证据不足：留在 Discovery。
+- 任务或现状证据不足：留在 Task Understanding。
 - 实现暴露模型缺口：回到 Design；只是编码偏差则回到 Implementation。
 - Validation 失败：按失败 owner 回到 Design 或 Implementation。
 - Review 有 finding：不得进入 Delivery；修改后重新经过 Validation 和 Review。

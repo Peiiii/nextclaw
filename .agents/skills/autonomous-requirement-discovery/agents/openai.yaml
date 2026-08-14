@@ -1,0 +1,7 @@
+interface:
+  display_name: "自主需求发现"
+  short_description: "从产品方向、真实现状与用户信号中主动发现并验证候选需求"
+  default_prompt: "使用 $autonomous-requirement-discovery 从当前产品方向、真实现状与用户信号中发现值得解决的问题，形成有证据、可验证的候选需求与成功标准。"
+
+policy:
+  allow_implicit_invocation: false

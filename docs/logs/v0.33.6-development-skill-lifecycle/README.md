@@ -18,6 +18,8 @@
 
 Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，已统一改为“完成当前领域 slice 后返回生命周期”，避免专项入口重新获得阶段切换权。
 
+同批次后续探索进一步校准了第一阶段的语义：原 `development-discovery` 更名为 `development-task-understanding`，明确它只理解已经进入任务上下文的用户输入并调查现状，不承担主动发现新需求。另新增两个暂不接入生命周期、禁止隐式触发的探索入口：`autonomous-requirement-discovery` 用于从愿景、产品现状和用户信号形成可验证需求假设，`iterative-quality-convergence` 用于观察真实产物并围绕最大质量差距持续改进。两者先独立验证，不提前冻结融合方案。
+
 设计依据：[`docs/designs/2026-08-14-development-skill-lifecycle.design.md`](../../designs/2026-08-14-development-skill-lifecycle.design.md)。
 
 ## 测试/验证/验收方式
@@ -31,12 +33,14 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 - `pnpm lint:new-code:doc-file-names -- docs/designs/2026-08-14-development-skill-lifecycle.design.md docs/logs/v0.33.6-development-skill-lifecycle/README.md`：文档命名检查通过。
 - `bash -n` 与真实执行 `development-implementation/scripts/locate-node-pnpm.sh`：迁移后的 Node/pnpm 恢复入口有效。
 - `git diff --check`：无空白错误。
+- 同批次探索后续的三个 skill 分别通过 `quick_validate.py`；`pnpm check:skill-progressive-loading` 更新为 36 个入口、137305 字节入口正文、4190 字符 description、9202 字节 AGENTS、32 条依赖边，结果仍通过且无循环。
+- 同批次探索后续再次运行 `skill-progressive-loading.test.mjs`，7 个测试通过；定向新代码治理与 backlog ratchet 均通过。
 
 本轮没有触达 TypeScript、产品运行链路或 UI 行为，因此 tsc、产品测试和真实产品冒烟不适用。
 
 ## 发布/部署方式
 
-不涉及产品发布或部署。本轮不添加 changeset，不执行 commit、push、PR、NPM/runtime/Desktop release，也不重启任何 NextClaw 实例。
+不涉及产品发布或部署。本轮不添加 changeset；原始重构与同批次探索后续分别通过本地提交闭合，不执行 push、PR、NPM/runtime/Desktop release，也不重启任何 NextClaw 实例。
 
 ## 用户/产品视角的验收步骤
 
@@ -45,6 +49,7 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 3. 查看 `commands/commands.md`，确认 `/close-task`、`/validate`、`/maintainability-review`、`/commit` 和 `/release-*` 已路由到新 owner。
 4. 运行 `pnpm check:skill-progressive-loading`，确认 1+7 核心完整、阶段无互相路由、旧名称无活动引用且依赖无环。
 5. 检查 NPM、Desktop、runtime integration、产品博客和产品视觉素材 skill，确认深耦合能力使用 `nextclaw-` 前缀。
+6. 检查 `autonomous-requirement-discovery` 与 `iterative-quality-convergence`，确认两者保持独立探索入口且 `allow_implicit_invocation: false`，生命周期只把 `development-task-understanding` 作为第一阶段 owner。
 
 ## 可维护性总结汇总
 
@@ -55,6 +60,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 完整新代码治理首次复验发现迁移后的既有脚本存在参数变异和重复上下文读取，已分别改为返回值式聚合和局部解构；同一入口复验后全部通过。主观 Review 最终为 `no findings`。
 
 目录和文件 planned-path preflight 已在首次编辑前执行；新增设计和迭代路径也分别补充预检。工作区原有 `packages/nextclaw/ui-dist` 生成物变动未触碰、未恢复、未纳入本轮范围。
+
+同批次探索后续没有增加 scripts、references 或 assets，只新增两个用户明确要求的独立 skill 与标准 UI 元信息；职责分别是需求发现与质量收敛，不复制任务理解、Validation 或 Review。自动 maintainability 检查仅提示 `skill-progressive-loading.mjs` 从 416 增至 417 行、接近 500 行预算；新增一行只用于阻止退役名称回流，当前拆分没有收益。条件主观复核结论为无可维护性发现。
 
 ## NPM 包发布记录
 
