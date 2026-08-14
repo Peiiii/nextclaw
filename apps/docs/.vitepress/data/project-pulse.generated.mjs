@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-14T06:11:19.153Z",
+  "generatedAt": "2026-08-14T16:18:14.748Z",
   "hero": {
     "currentLoc": 246846,
     "testLoc": 97779,
     "trackedFiles": 2630,
-    "recentCommitCount": 408,
+    "recentCommitCount": 425,
     "activeDays30": 30,
     "recentReleaseCount": 53,
     "latestReleaseDate": "2026-08-14",
-    "latestNoteDate": "2026-08-14",
+    "latestNoteDate": "2026-08-15",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2520216,
     "basePercentOfBenchmark": 9.79,
@@ -1248,7 +1248,7 @@ export default {
       {
         "key": "2026-08-14",
         "label": "08-14",
-        "value": 27
+        "value": 44
       }
     ],
     "commitWeekly": [
@@ -1310,7 +1310,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 92
+        "value": 110
       }
     ],
     "releaseMonthly": [
@@ -1444,7 +1444,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-14",
-        "tagCount": 53,
+        "tagCount": 107,
         "sampleTags": [
           "@nextclaw/app-runtime@0.10.0",
           "@nextclaw/channel-extension-dingtalk@0.2.25",
@@ -1498,6 +1498,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-15-nextclaw-v0-37-0",
+        "date": "2026-08-15",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-15 · NextClaw v0.37.0",
+          "description": "NextClaw v0.37.0 makes active sessions easier to understand while improving continuous input, network recovery, and embedded browser controls.",
+          "href": "/en/notes/2026-08-15-nextclaw-v0-37-0"
+        },
+        "zh": {
+          "title": "2026-08-15 · NextClaw v0.37.0",
+          "description": "NextClaw v0.37.0 让会话运行状态更清楚，并提升连续输入、网络恢复与内嵌浏览器操作的可靠性。",
+          "href": "/zh/notes/2026-08-15-nextclaw-v0-37-0"
+        }
+      },
       {
         "slug": "2026-08-14-nextclaw-v0-36-2",
         "date": "2026-08-14",
@@ -2346,7 +2365,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-14T04:17:39.675Z",
     "sourceCount": {
-      "notes": 40,
+      "notes": 41,
       "scopes": 8
     }
   }

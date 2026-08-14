@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.37.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-15",
+  "title": {
+    "zh-CN": "NextClaw v0.37.0",
+    "en-US": "NextClaw v0.37.0"
+  },
+  "summary": {
+    "zh-CN": "让会话运行状态更清楚，并提升连续输入、网络恢复与内嵌浏览器操作的可靠性。",
+    "en-US": "Makes active sessions easier to understand while improving continuous input, network recovery, and embedded browser controls."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-15-nextclaw-v0-37-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-15-nextclaw-v0-37-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "会话 Token 用量", "en-US": "Session token usage" },
+          "body": {
+            "zh-CN": "会话工作台会按模型显示输入、输出、缓存输入、总量和缓存命中率。",
+            "en-US": "The session workspace shows input, output, cached input, total tokens, and cache hit rate by model."
+          }
+        },
+        {
+          "title": { "zh-CN": "继承上下文的子会话", "en-US": "Context-aware child sessions" },
+          "body": {
+            "zh-CN": "可以从当前会话直接创建继承上下文的子会话，把并行工作拆开处理。",
+            "en-US": "You can create a child session that inherits the current context and separate parallel work."
+          }
+        },
+        {
+          "title": { "zh-CN": "命令执行耗时", "en-US": "Command execution duration" },
+          "body": {
+            "zh-CN": "命令运行时持续显示耗时，并在成功、失败、取消或刷新后保留最终时间。",
+            "en-US": "Commands show elapsed time while running and retain their final duration after completion, cancellation, or refresh."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "运行中继续输入", "en-US": "Input during active runs" },
+          "body": {
+            "zh-CN": "CLI Agent 执行期间可以继续提交输入，后续消息会按顺序进入既有队列。",
+            "en-US": "You can submit more CLI input during an active agent run, with follow-up messages joining the existing queue in order."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "网络中断后的会话恢复", "en-US": "Conversation recovery after network interruptions" },
+          "body": {
+            "zh-CN": "Web Chat 会恢复流式会话并继续同步服务端状态，减少重连后的旧状态。",
+            "en-US": "Web Chat recovers streaming conversations and resumes server-state synchronization after reconnection."
+          }
+        },
+        {
+          "title": { "zh-CN": "稳定的内嵌浏览器标签操作", "en-US": "Reliable embedded browser tab controls" },
+          "body": {
+            "zh-CN": "标签关闭按钮和紧凑标签操作不再因点击区域与覆盖层冲突而失效。",
+            "en-US": "Tab close buttons and compact tab actions no longer fail because click targets and overlays conflict."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "按模型数据展示", "en-US": "Model-provided usage details" },
+          "body": {
+            "zh-CN": "缓存命中率只在模型返回缓存输入信息时显示；运行中的 CLI 输入仍按顺序处理。",
+            "en-US": "Cache hit rates appear only when reported by the model, and CLI input submitted during a run remains ordered."
+          }
+        }
+      ]
+    }
+  ]
+}
