@@ -6,7 +6,7 @@
 
 ## Stable
 
-使用 `pnpm release:desktop:stable`。必须先证明目标 runtime identity 已经作为 stable NPM/runtime 发布且 release target 没有静默混入后续 package 源码，再闭合 clean/non-behind、签名 secret preflight、本地 package verify、GitHub release、workflow、assets、stable manifest 和 APT。正式发布优先 `--notes-file`；没有结构化 release notes JSON 或显式恢复 URL 时 fail closed。该入口不调用任何 NPM publish 命令。
+使用 `pnpm release:desktop:stable`。必须先证明目标 runtime identity 已经作为 stable NPM/runtime 发布且 release target 没有静默混入后续 package 源码，再闭合 clean/non-behind、签名 secret preflight、本地 package verify、GitHub release、workflow、assets、stable manifest 和 APT。正式发布必须提供 GitHub 专用的 `--notes-file`：中文在前、英文在后，且通过双语正文、绝对文档链接、无 frontmatter 和无自动生成提交噪音校验；禁止直接传入单一语言 docs 页面。没有结构化 release notes JSON 或显式恢复 URL 时同样 fail closed。该入口不调用任何 NPM publish 命令。
 
 ## 完成门
 

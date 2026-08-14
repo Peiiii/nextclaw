@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
-import { resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
+import { assertDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
 import { assertPublishedDesktopRuntimeIdentity, runRemotePreflight } from "./desktop-release-preflight.mjs";
 import {
   createReleaseWorktree,
@@ -50,7 +50,7 @@ Options:
   --preflight-workflow <file>     Desktop release preflight workflow. Defaults to ${DEFAULT_PREFLIGHT_WORKFLOW}
   --workflow <file>               Desktop release workflow. Defaults to ${DEFAULT_WORKFLOW}
   --target <git-ref>              Release target. Defaults to the current HEAD SHA
-  --notes-file <path>             Release notes body file
+  --notes-file <path>             GitHub-ready bilingual release body file (required for stable)
   --release-notes-url <url>       User-facing release notes URL expected in update manifests
   --run-id <id>                   Reuse a known desktop-release run
   --reuse-existing-release        Do not create the GitHub release; verify/close an existing tag
@@ -338,22 +338,7 @@ function buildReleaseNotes(options) {
       `- Minimum launcher version: ${minimumLauncherVersion}`
     ].join("\n");
   }
-
-  return [
-    "English Version",
-    "",
-    `NextClaw Desktop ${desktopVersion} stable release for runtime ${runtimeVersion}.`,
-    "",
-    "- Includes desktop installers, update bundles, stable update manifests, and Linux APT publishing.",
-    `- Minimum launcher version: ${minimumLauncherVersion}`,
-    "",
-    "中文版",
-    "",
-    `NextClaw Desktop ${desktopVersion} 正式版，运行时版本 ${runtimeVersion}。`,
-    "",
-    "- 包含桌面安装包、更新包、stable 更新 manifest 与 Linux APT 发布。",
-    `- 最低 launcher 版本：${minimumLauncherVersion}`
-  ].join("\n");
+  throw new Error("Stable desktop release requires --notes-file with a GitHub-ready bilingual release body.");
 }
 
 function runLocalVerify(options) {
@@ -394,7 +379,7 @@ function pushBranchIfNeeded(branch, aheadCount, options) {
 }
 
 function createRelease(options) {
-  const { channel, dryRun, repo, tag, target } = options;
+  const { channel, dryRun, releaseNotes, repo, tag, target } = options;
   const args = [
     "release",
     "create",
@@ -406,7 +391,7 @@ function createRelease(options) {
     "--title",
     buildReleaseTitle(options),
     "--notes",
-    buildReleaseNotes(options)
+    releaseNotes
   ];
   if (channel === "beta") {
     args.push("--prerelease");
@@ -470,6 +455,12 @@ async function main() {
     ...options,
     explicitReleaseNotesUrl: options.releaseNotesUrl,
     readTargetFile
+  });
+  options.releaseNotes = buildReleaseNotes(options);
+  assertDesktopGithubReleaseNotes({
+    channel: options.channel,
+    notes: options.releaseNotes,
+    notesFile: options.notesFile
   });
 
   fetchReleaseRefs(options.branch);

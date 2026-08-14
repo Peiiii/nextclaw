@@ -515,7 +515,7 @@ jobs:
           tag_name: ${{ github.event_name == 'release' && github.event.release.tag_name || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || github.event.inputs.release_tag }}
           overwrite_files: true
           fail_on_unmatched_files: true
-          generate_release_notes: true
+          generate_release_notes: false
           files: |
             dist/desktop-release/**/*.dmg
             dist/desktop-release/**/*-mac.zip

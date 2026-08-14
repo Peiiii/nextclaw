@@ -6,6 +6,8 @@
 
 发布前门禁发现 `0.37.0` 缺少 stable minor 必需的中英文产品更新说明和结构化 JSON，因此先由提交 `b58c97cff` 补齐双语页面、索引与 `apps/docs/public/release-notes/nextclaw-v0.37.0.json`。桌面发布完成后，官网动态获取 GitHub Release 的主链已经能识别新版本，但 GitHub API 不可用时的静态下载 fallback 仍停留在 `v0.29.0-desktop.1 / 0.0.240`；提交 `3cbfff112` 将该失败边界精确同步到本次 `v0.37.0-desktop.1 / 0.0.252`，没有新增第二套下载路径。
 
+首次 GitHub Release 正文错误地直接使用英文 docs 源文件，同时 asset workflow 的 `generate_release_notes` 又追加了与产品发布无关的 commit/PR 列表。补救批次将线上正文改为中文在前、英文在后的 GitHub 专用 Markdown，并把这一要求收敛为 stable 发布入口的 fail-closed 校验；workflow 不再二次生成正文。
+
 ## 测试/验证/验收方式
 
 - `PATH=/opt/homebrew/bin:$PATH pnpm release:desktop:stable -- --notes-file apps/docs/en/notes/2026-08-15-nextclaw-v0-37-0.md`
@@ -19,6 +21,9 @@
 - 公开 APT Packages：`nextclaw-desktop` 为 `0.0.252`，fresh install 与 upgrade 冒烟通过。
 - Landing fallback：`pnpm -C apps/landing tsc`、目标文件 ESLint、`pnpm -C apps/landing build` 和 diff-only maintainability 检查通过；构建产物包含新 tag/version，旧 fallback 不再存在。
 - Cloudflare Pages：部署 `https://b17df89b.nextclaw-landing.pages.dev` 与正式域名 `https://nextclaw.io/en/download/` 加载同一 `main-CsE7g_PN.js`，均包含 `v0.37.0-desktop.1 / 0.0.252`。
+- GitHub Release 正文补救：8 个定向测试覆盖双语顺序、frontmatter、相对链接、自动生成噪音和 workflow 配置；ESLint、skill progressive-loading、new-code governance 与 governance backlog ratchet 均通过。
+- 真实失败路径：把原英文 docs 文件传给 stable dry-run 会在远端动作前报错 `GitHub release notes must not include documentation YAML frontmatter.`。
+- 线上正文复读确认包含 `## 中文` 与 `## English`、双语绝对文档链接，且不再包含 `What's Changed` 或 `Full Changelog`。
 
 ## 发布/部署方式
 
