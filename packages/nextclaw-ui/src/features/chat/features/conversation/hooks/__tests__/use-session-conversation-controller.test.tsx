@@ -180,6 +180,52 @@ describe('useSessionConversationController backend run queue', () => {
     expect(params.resetComposer).toHaveBeenCalledTimes(1);
   });
 
+  it('sends a preset message without clearing the existing composer draft', async () => {
+    const send = createSendMock();
+    const params = createControllerParams({ isRunning: false, send });
+    const paramsWithSelectedSkill = {
+      ...params,
+      inputSnapshot: {
+        ...params.inputSnapshot,
+        selectedSkills: ['skill-ref'],
+        skillRecords: [{ ref: 'skill-ref', name: 'Selected skill' }],
+      },
+    } as unknown as Parameters<typeof useSessionConversationController>[0];
+    const { result } = renderHook(() => useSessionConversationController(paramsWithSelectedSkill));
+
+    await act(async () => {
+      await result.current.sendPresetMessage('Update this session title');
+    });
+
+    const envelope = send.mock.calls[0]?.[0];
+    expect(envelope).toMatchObject({
+      sessionId: 'session-1',
+      message: expect.objectContaining({
+        parts: [{ type: 'text', text: 'Update this session title' }],
+      }),
+    });
+    expect(envelope?.metadata).not.toHaveProperty('requested_skill_refs');
+    expect(params.resetComposer).not.toHaveBeenCalled();
+    expect(params.restoreComposer).not.toHaveBeenCalled();
+  });
+
+  it('keeps the existing composer draft untouched when a preset message fails', async () => {
+    const sendError = new Error('preset submission failed');
+    const send = vi.fn<TestAgentSend>(async () => {
+      throw sendError;
+    });
+    const params = createControllerParams({ isRunning: false, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    await act(async () => {
+      await expect(result.current.sendPresetMessage('Update title')).rejects.toThrow(sendError);
+    });
+
+    expect(params.resetComposer).not.toHaveBeenCalled();
+    expect(params.restoreComposer).not.toHaveBeenCalled();
+    expect(params.setSendError).toHaveBeenLastCalledWith(sendError.message);
+  });
+
   it('projects a submitting queue row before the backend acknowledges the message', async () => {
     let resolveSend!: (handle: NcpRunHandle) => void;
     const send = vi.fn<TestAgentSend>(() => new Promise((resolve) => {

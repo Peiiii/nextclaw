@@ -3,7 +3,10 @@ import { buildNcpRequestEnvelope } from '@nextclaw/ncp-react';
 import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope, NcpRunHandle } from '@nextclaw/ncp';
 
-import { deriveNcpMessagePartsFromComposer } from '@/features/chat/features/input/utils/chat-composer-state.utils';
+import {
+  createChatComposerNodesFromDraft,
+  deriveNcpMessagePartsFromComposer,
+} from '@/features/chat/features/input/utils/chat-composer-state.utils';
 import { isNcpChatSendDisabled } from '@/features/chat/features/input/utils/ncp-chat-input-availability.utils';
 import { buildChatRunMetadata } from '@/features/chat/features/session/utils/chat-run-metadata.utils';
 import { createNcpSessionId } from '@/features/chat/features/session/utils/ncp-session-adapter.utils';
@@ -74,6 +77,7 @@ type UseSessionConversationControllerParams = {
 
 type BuildSubmissionDraftParams = {
   readonly agentIsSending: boolean;
+  readonly composerSnapshot?: ComposerDraftSnapshot;
   readonly inputSnapshot: SessionConversationInputSnapshot;
   readonly inputQuery: SessionConversationInputQuery;
   readonly isRuntimeBlocked: boolean;
@@ -86,6 +90,8 @@ type SubmissionDraft = {
   readonly composerSnapshot: ComposerDraftSnapshot;
   readonly metadata: Record<string, unknown>;
 };
+
+type SubmissionComposerBehavior = 'preserve' | 'reset-and-restore';
 
 type SubmittingQueuedInput = {
   readonly id: string;
@@ -113,6 +119,7 @@ function buildInputAvailabilitySnapshot(inputQuery: SessionConversationInputQuer
 function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDraft | null {
   const {
     agentIsSending,
+    composerSnapshot: requestedComposerSnapshot,
     inputQuery,
     inputSnapshot,
     isRuntimeBlocked,
@@ -120,9 +127,16 @@ function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDra
     selectedAgentId,
     sessionKey,
   } = params;
+  const composerSnapshot: ComposerDraftSnapshot = requestedComposerSnapshot ?? {
+    text: inputSnapshot.text,
+    nodes: [...inputSnapshot.nodes],
+    selectedSkills: [...inputSnapshot.selectedSkills],
+    skillRecords: [...inputSnapshot.skillRecords],
+    attachments: [...inputSnapshot.attachments],
+  };
   const currentParts = deriveNcpMessagePartsFromComposer(
-    [...inputSnapshot.nodes],
-    inputSnapshot.attachments,
+    [...composerSnapshot.nodes],
+    composerSnapshot.attachments,
   );
   if (
     isNcpChatSendDisabled({
@@ -134,13 +148,6 @@ function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDra
   ) {
     return null;
   }
-  const composerSnapshot: ComposerDraftSnapshot = {
-    text: inputSnapshot.text,
-    nodes: [...inputSnapshot.nodes],
-    selectedSkills: [...inputSnapshot.selectedSkills],
-    skillRecords: [...inputSnapshot.skillRecords],
-    attachments: [...inputSnapshot.attachments],
-  };
   return {
     composerSnapshot,
     metadata: buildChatRunMetadata({
@@ -165,11 +172,11 @@ function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDra
         : sessionKey
           ? inputQuery.selectedSession?.projectRoot ?? null
           : inputSnapshot.pendingProjectRoot,
-      requestedSkills: [...inputSnapshot.selectedSkills],
+      requestedSkills: [...composerSnapshot.selectedSkills],
       skillRecords: inputQuery.skillRecords.filter((record) =>
-        inputSnapshot.selectedSkills.includes(record.ref)
+        composerSnapshot.selectedSkills.includes(record.ref)
       ),
-      composerNodes: [...inputSnapshot.nodes],
+      composerNodes: [...composerSnapshot.nodes],
       sessionMaterialization: materializationContext
         ? {
             kind: materializationContext.kind,
@@ -288,6 +295,72 @@ function useQueuedInputActions(params: {
   return { deleteQueuedInput, editQueuedInput };
 }
 
+function useSubmissionDraftRunner(params: {
+  readonly agent: SessionConversationAgent;
+  readonly clearSubmittingInput: (input: SubmittingQueuedInput) => void;
+  readonly materializationContext?: SessionConversationMaterializationContext | null;
+  readonly onSessionMaterialized?: (sessionKey: string) => void;
+  readonly resetComposer: () => void;
+  readonly restoreComposer: (snapshot: ComposerDraftSnapshot) => void;
+  readonly runQueue: SessionRunQueue;
+  readonly sessionKey: string | null;
+  readonly setSendError: (message: string | null) => void;
+  readonly stageSubmittingInput: (envelope: NcpAgentSendEnvelope) => SubmittingQueuedInput | null;
+}) {
+  const {
+    agent,
+    clearSubmittingInput,
+    materializationContext,
+    onSessionMaterialized,
+    resetComposer,
+    restoreComposer,
+    runQueue,
+    sessionKey,
+    setSendError,
+    stageSubmittingInput,
+  } = params;
+  return useCallback(async (
+    draft: SubmissionDraft,
+    composerBehavior: SubmissionComposerBehavior,
+  ) => {
+    const submissionSessionKey =
+      sessionKey ?? (materializationContext ? null : createNcpSessionId());
+    const envelope = buildSubmissionEnvelope(draft, submissionSessionKey);
+    if (!envelope) return;
+    const queuedSubmission = agent.isRunning ? stageSubmittingInput(envelope) : null;
+    if (composerBehavior === 'reset-and-restore') resetComposer();
+    setSendError(null);
+    try {
+      const handle = await agent.send(envelope);
+      if (queuedSubmission && handle?.runId === null) {
+        await runQueue.refreshQueuedInputs().catch(() => undefined);
+      }
+      if (queuedSubmission) clearSubmittingInput(queuedSubmission);
+      const materializedSessionKey =
+        handle?.sessionId?.trim() || agent.snapshot.activeRun?.sessionId?.trim() || null;
+      if (!sessionKey && materializedSessionKey) {
+        onSessionMaterialized?.(materializedSessionKey);
+      }
+    } catch (error) {
+      if (queuedSubmission) clearSubmittingInput(queuedSubmission);
+      if (composerBehavior === 'reset-and-restore') restoreComposer(draft.composerSnapshot);
+      setSendError(error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }, [
+    agent,
+    clearSubmittingInput,
+    materializationContext,
+    onSessionMaterialized,
+    resetComposer,
+    restoreComposer,
+    runQueue,
+    sessionKey,
+    setSendError,
+    stageSubmittingInput,
+  ]);
+}
+
 export function useSessionConversationController(params: UseSessionConversationControllerParams) {
   const {
     agent,
@@ -343,6 +416,19 @@ export function useSessionConversationController(params: UseSessionConversationC
     setSendError,
   });
 
+  const submitDraft = useSubmissionDraftRunner({
+    agent,
+    clearSubmittingInput,
+    materializationContext,
+    onSessionMaterialized,
+    resetComposer,
+    restoreComposer,
+    runQueue,
+    sessionKey,
+    setSendError,
+    stageSubmittingInput,
+  });
+
   const send = useCallback(async () => {
     if (primaryAction === 'continue') {
       await continueRun();
@@ -357,58 +443,55 @@ export function useSessionConversationController(params: UseSessionConversationC
       selectedAgentId,
       sessionKey,
     });
-    if (!draft) {
-      return;
-    }
-    const submissionSessionKey =
-      sessionKey ?? (materializationContext ? null : createNcpSessionId());
-    const envelope = buildSubmissionEnvelope(draft, submissionSessionKey);
-    if (!envelope) {
-      return;
-    }
-    const queuedSubmission = agent.isRunning ? stageSubmittingInput(envelope) : null;
-    resetComposer();
-    setSendError(null);
-    try {
-      const handle = await agent.send(envelope);
-      if (queuedSubmission && handle?.runId === null) {
-        await runQueue.refreshQueuedInputs().catch(() => undefined);
-      }
-      if (queuedSubmission) {
-        clearSubmittingInput(queuedSubmission);
-      }
-      const materializedSessionKey =
-        handle?.sessionId?.trim() ||
-        agent.snapshot.activeRun?.sessionId?.trim() ||
-        null;
-      if (!sessionKey && materializedSessionKey) {
-        onSessionMaterialized?.(materializedSessionKey);
-      }
-    } catch (error) {
-      if (queuedSubmission) {
-        clearSubmittingInput(queuedSubmission);
-      }
-      restoreComposer(draft.composerSnapshot);
-      setSendError(error instanceof Error ? error.message : String(error));
-      throw error;
+    if (draft) {
+      await submitDraft(draft, 'reset-and-restore');
     }
   }, [
-    agent,
-    clearSubmittingInput,
+    agent.isSending,
     continueRun,
     inputQuery,
     inputSnapshot,
     isRuntimeBlocked,
     materializationContext,
-    onSessionMaterialized,
-    resetComposer,
-    restoreComposer,
+    primaryAction,
     selectedAgentId,
     sessionKey,
-    setSendError,
-    stageSubmittingInput,
-    primaryAction,
-    runQueue,
+    submitDraft,
+  ]);
+
+  const sendPresetMessage = useCallback(async (message: string) => {
+    const text = message.trim();
+    if (!text) {
+      return;
+    }
+    const draft = buildSubmissionDraft({
+      agentIsSending: agent.isSending,
+      composerSnapshot: {
+        text,
+        nodes: createChatComposerNodesFromDraft(text),
+        selectedSkills: [],
+        skillRecords: [],
+        attachments: [],
+      },
+      inputSnapshot,
+      inputQuery,
+      isRuntimeBlocked,
+      materializationContext,
+      selectedAgentId,
+      sessionKey,
+    });
+    if (draft) {
+      await submitDraft(draft, 'preserve');
+    }
+  }, [
+    agent.isSending,
+    inputQuery,
+    inputSnapshot,
+    isRuntimeBlocked,
+    materializationContext,
+    selectedAgentId,
+    sessionKey,
+    submitDraft,
   ]);
 
   const stop = useCallback(async () => {
@@ -426,6 +509,7 @@ export function useSessionConversationController(params: UseSessionConversationC
     isSending,
     queuedInputs,
     send,
+    sendPresetMessage,
     sendDisabled,
     primaryAction,
     stop,

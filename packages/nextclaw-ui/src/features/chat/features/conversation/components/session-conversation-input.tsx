@@ -79,6 +79,7 @@ export type SessionConversationInputController = {
   readonly sendDisabled: boolean;
   readonly stopDisabled: boolean;
   readonly send: () => Promise<void> | void;
+  readonly sendPresetMessage: (message: string) => Promise<void> | void;
   readonly stop: () => Promise<void> | void;
 };
 
@@ -220,6 +221,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   const slashCommands = useSessionConversationSlashCommands({
     language,
     onContextCompactingChange,
+    onSendPresetMessage: controller.sendPresetMessage,
     selectedSessionKey: inputQuery.selectedSessionKey,
   });
   const handleSlashPanelAppSelect = useCallback(

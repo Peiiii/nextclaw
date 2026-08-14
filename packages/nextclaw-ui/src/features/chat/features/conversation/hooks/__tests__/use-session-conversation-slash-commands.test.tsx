@@ -7,6 +7,7 @@ import { useSessionConversationSlashCommands } from '@/features/chat/features/co
 const mocks = vi.hoisted(() => ({
   compactNcpSessionContext: vi.fn(),
   openSideChatDraft: vi.fn(),
+  sendPresetMessage: vi.fn(),
 }));
 
 vi.mock('sonner', () => ({
@@ -35,12 +36,14 @@ describe('useSessionConversationSlashCommands', () => {
   it('exposes the runtime compaction command for the selected session', async () => {
     const { result } = renderHook(() => useSessionConversationSlashCommands({
       language: 'en',
+      onSendPresetMessage: mocks.sendPresetMessage,
       selectedSessionKey: ' session-1 ',
     }));
     const command = result.current.find((entry) => entry.key === 'compact-context');
 
     expect(result.current.map(({ key, icon }) => ({ key, icon }))).toEqual([
       { key: 'side-chat', icon: 'message-square-plus' },
+      { key: 'update-session-title', icon: 'command' },
       { key: 'compact-context', icon: 'list-collapse' },
     ]);
     act(() => command?.onSelect());
@@ -56,6 +59,7 @@ describe('useSessionConversationSlashCommands', () => {
     }));
     const { result } = renderHook(() => useSessionConversationSlashCommands({
       language: 'en',
+      onSendPresetMessage: mocks.sendPresetMessage,
       selectedSessionKey: 'session-1',
     }));
     const command = result.current.find((entry) => entry.key === 'compact-context');
@@ -83,6 +87,7 @@ describe('useSessionConversationSlashCommands', () => {
     const onContextCompactingChange = vi.fn();
     const { result } = renderHook(() => useSessionConversationSlashCommands({
       language: 'en',
+      onSendPresetMessage: mocks.sendPresetMessage,
       selectedSessionKey: 'session-1',
       onContextCompactingChange,
     }));
@@ -100,9 +105,24 @@ describe('useSessionConversationSlashCommands', () => {
     ));
   });
 
+  it('sends the localized title update prompt through the conversation callback', () => {
+    const { result } = renderHook(() => useSessionConversationSlashCommands({
+      language: 'en',
+      onSendPresetMessage: mocks.sendPresetMessage,
+      selectedSessionKey: 'session-1',
+    }));
+
+    act(() => result.current.find((entry) => entry.key === 'update-session-title')?.onSelect());
+
+    expect(mocks.sendPresetMessage).toHaveBeenCalledWith(
+      expect.stringContaining('sessions_update'),
+    );
+  });
+
   it('does not expose session commands before a session exists', () => {
     const { result } = renderHook(() => useSessionConversationSlashCommands({
       language: 'en',
+      onSendPresetMessage: mocks.sendPresetMessage,
       selectedSessionKey: null,
     }));
 

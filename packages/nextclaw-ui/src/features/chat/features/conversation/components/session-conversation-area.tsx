@@ -333,6 +333,8 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       primaryAction: controller.primaryAction,
       queuedInputs: controller.queuedInputs,
       send: () => controllerRef.current.send(),
+      sendPresetMessage: (message: string) =>
+        controllerRef.current.sendPresetMessage(message).catch(() => undefined),
       sendDisabled: controller.sendDisabled,
       stop: () => controllerRef.current.stop(),
       stopDisabled: controller.stopDisabled,

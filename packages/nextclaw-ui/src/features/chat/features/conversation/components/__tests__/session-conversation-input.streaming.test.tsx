@@ -140,6 +140,7 @@ const controller: SessionConversationInputController = {
   primaryAction: 'send',
   queuedInputs: [],
   send: vi.fn(),
+  sendPresetMessage: vi.fn(),
   sendDisabled: true,
   stop: vi.fn(),
   stopDisabled: false,
@@ -460,6 +461,7 @@ describe('SessionConversationInput streaming stability', () => {
 
     expect(screen.queryByText(providerError)).toBeNull();
   });
+
 });
 
 type AttachmentSubmitAgentSend = (envelope: NcpAgentSendEnvelope) => Promise<NcpRunHandle | null>;
