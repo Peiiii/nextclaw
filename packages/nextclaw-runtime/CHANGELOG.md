@@ -1,5 +1,12 @@
 # @nextclaw/runtime
 
+## 0.4.26
+
+### Patch Changes
+
+- Updated dependencies [ca2c98d]
+  - @nextclaw/core@0.17.0
+
 ## 0.4.25
 
 ### Patch Changes

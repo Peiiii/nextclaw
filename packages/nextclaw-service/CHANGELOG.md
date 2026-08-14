@@ -1,5 +1,27 @@
 # @nextclaw/service
 
+## 0.3.32
+
+### Patch Changes
+
+- Updated dependencies [ca2c98d]
+  - @nextclaw/kernel@0.8.0
+  - @nextclaw/server@0.16.0
+  - @nextclaw/client-sdk@0.6.0
+  - @nextclaw/core@0.17.0
+  - @nextclaw/remote@0.3.30
+  - @nextclaw/channel-extension-dingtalk@0.2.26
+  - @nextclaw/channel-extension-discord@0.2.26
+  - @nextclaw/channel-extension-email@0.2.26
+  - @nextclaw/channel-extension-slack@0.2.26
+  - @nextclaw/channel-extension-telegram@0.2.26
+  - @nextclaw/channel-extension-wecom@0.2.26
+  - @nextclaw/channel-extension-whatsapp@0.2.26
+  - @nextclaw/mcp@0.3.27
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.27
+  - @nextclaw/runtime@0.4.26
+  - @nextclaw/ncp-mcp@0.2.27
+
 ## 0.3.31
 
 ### Patch Changes
