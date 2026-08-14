@@ -35,3 +35,34 @@ export type AppInstanceRecord = {
   migratedAt?: string;
   legacyDataDirectory?: string;
 };
+
+export type AppInstanceMetadata = {
+  schemaVersion: 1;
+  appId: string;
+  instanceId: string;
+  publisherId?: string;
+  layoutVersion: typeof APP_STORAGE_LAYOUT_VERSION;
+  createdAt: string;
+  migratedAt?: string;
+  legacyDataDirectory?: string;
+};
+
+export type AppInstanceInventoryEntry = {
+  appId: string;
+  instanceId: string;
+  publisherId?: string;
+  storage: AppStorageContext;
+  usage: AppStorageUsage;
+  createdAt: string;
+  migratedAt?: string;
+};
+
+export type AppInstanceInventoryDiagnostic = {
+  instanceDirectory: string;
+  message: string;
+};
+
+export type AppInstanceInventory = {
+  entries: AppInstanceInventoryEntry[];
+  diagnostics: AppInstanceInventoryDiagnostic[];
+};

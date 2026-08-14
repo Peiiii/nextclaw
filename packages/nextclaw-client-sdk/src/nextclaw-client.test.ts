@@ -159,6 +159,35 @@ it("uses the asynchronous app package operation contract", async () => {
   );
 });
 
+it("uses the App Data API for inventory and confirmed retained deletion", async () => {
+  const fetchImpl = vi.fn(async () =>
+    new Response(JSON.stringify({ ok: true, data: { entries: [], diagnostics: [] } }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+  const client = new NextClawClient({
+    baseUrl: "http://127.0.0.1:55667",
+    fetchImpl,
+  });
+
+  await client.appData.list();
+  await client.appData.deleteRetained("ad1.encoded", "example.notes");
+
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    1,
+    "http://127.0.0.1:55667/api/app-data",
+    expect.objectContaining({ method: "GET" }),
+  );
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    2,
+    "http://127.0.0.1:55667/api/app-data/ad1.encoded",
+    expect.objectContaining({
+      method: "DELETE",
+      body: JSON.stringify({ confirmAppId: "example.notes" }),
+    }),
+  );
+});
+
 it("adds an existing project directory through its dedicated api", async () => {
   const fetchImpl = vi.fn(
     async () =>

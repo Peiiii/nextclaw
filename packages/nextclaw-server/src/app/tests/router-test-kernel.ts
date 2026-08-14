@@ -59,6 +59,10 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       rollback: async () => unavailable("appPackageManager.rollback"),
       uninstall: async () => unavailable("appPackageManager.uninstall"),
     } as never,
+    appDataManager: {
+      list: async () => ({ entries: [], diagnostics: [] }),
+      deleteRetained: async () => unavailable("appDataManager.deleteRetained"),
+    } as never,
     llmProviders: {} as never,
     providerModelCatalog: {
       getSnapshot: () => ({

@@ -6,6 +6,7 @@ export {
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export { AppPackagesClientService } from "./services/app-packages.service.js";
+export { AppDataClientService } from "./services/app-data.service.js";
 export { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
 export { SystemObjectReferencesService } from "./services/system-object-references.service.js";
 export { eventKeys } from "@nextclaw/shared";
@@ -43,6 +44,9 @@ export type {
 } from "./types/nextclaw-transport.types.js";
 export type {
   AppPackageList,
+  AppDataDeleteResult,
+  AppDataEntry,
+  AppDataList,
   AppPackageOperationInput,
   AppPackageOperationList,
   AppPackageOperationStatus,

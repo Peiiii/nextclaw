@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
 import {
   AlertCircle,
   AppWindow,
   Bookmark,
   CalendarDays,
-  Check,
   CheckSquare2,
   ChevronRight,
   MoreHorizontal,
@@ -21,6 +20,11 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
+import {
+  AppDataRemovalChoice,
+  AppStorageUsageDetails,
+  formatBytes,
+} from '@/features/app-data';
 import { isAppPackageOperationActive } from '@/features/apps/hooks/use-app-packages';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { Button } from '@/shared/components/ui/button';
@@ -63,6 +67,8 @@ export function AppPackageCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const [uninstallOpen, setUninstallOpen] = useState(false);
   const [purgeData, setPurgeData] = useState(false);
+  const skipMenuFocusRestoreRef = useRef(false);
+  const uninstallCancelRef = useRef<HTMLButtonElement>(null);
   const panelComponents = appPackage.components.filter((component) => component.kind === 'panel');
   const serviceCount = appPackage.components.length - panelComponents.length;
   const rollbackVersions = appPackage.installedVersions.filter(
@@ -160,7 +166,16 @@ export function AppPackageCard({
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-52 rounded-xl p-1.5">
+              <PopoverContent
+                align="end"
+                className="w-52 rounded-xl p-1.5"
+                onCloseAutoFocus={(event) => {
+                  if (skipMenuFocusRestoreRef.current) {
+                    event.preventDefault();
+                    skipMenuFocusRestoreRef.current = false;
+                  }
+                }}
+              >
                 <AppPackageMenuItem
                   icon={RefreshCw}
                   label={t('appPackagesCheckUpdate')}
@@ -185,7 +200,9 @@ export function AppPackageCard({
                   icon={Trash2}
                   label={t('appPackagesUninstall')}
                   onClick={() => {
+                    skipMenuFocusRestoreRef.current = true;
                     setMenuOpen(false);
+                    setPurgeData(false);
                     setUninstallOpen(true);
                   }}
                 />
@@ -239,19 +256,25 @@ export function AppPackageCard({
       ) : null}
 
       <Dialog open={uninstallOpen} onOpenChange={setUninstallOpen}>
-        <DialogContent className="max-w-md [&>:last-child]:hidden">
+        <DialogContent
+          className="max-w-md [&>:last-child]:hidden"
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            uninstallCancelRef.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{t('appPackagesUninstallTitle')}</DialogTitle>
             <DialogDescription>{t('appPackagesUninstallDescription')}</DialogDescription>
           </DialogHeader>
           <div className="mt-4 grid gap-2">
-            <DataChoice
+            <AppDataRemovalChoice
               checked={!purgeData}
               description={t('appPackagesKeepDataDescription')}
               label={t('appPackagesKeepData')}
               onClick={() => setPurgeData(false)}
             />
-            <DataChoice
+            <AppDataRemovalChoice
               checked={purgeData}
               destructive
               description={t('appPackagesDeleteDataDescription')}
@@ -259,8 +282,20 @@ export function AppPackageCard({
               onClick={() => setPurgeData(true)}
             />
           </div>
+          <div className="mt-3">
+            <AppStorageUsageDetails
+              storage={appPackage.storage}
+              usage={appPackage.storageUsage}
+            />
+          </div>
           <DialogFooter className="mt-5 gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setUninstallOpen(false)}>
+            <Button
+              ref={uninstallCancelRef}
+              autoFocus
+              type="button"
+              variant="outline"
+              onClick={() => setUninstallOpen(false)}
+            >
               {t('cancel')}
             </Button>
             <Button
@@ -301,50 +336,6 @@ function renderPrimaryActionLabel({
   }
   if (isPending) return t('appPackagesWorking');
   return enabled ? t('appPackagesDisable') : t('appPackagesEnable');
-}
-
-function formatBytes(value: number): string {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  if (value < 1024 * 1024 * 1024) return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(value / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-}
-
-function DataChoice({
-  checked,
-  description,
-  destructive = false,
-  label,
-  onClick,
-}: {
-  checked: boolean;
-  description: string;
-  destructive?: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={checked}
-      onClick={onClick}
-      className={cn(
-        'flex items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border',
-        checked ? 'border-foreground/25 bg-muted/55' : 'border-border/60 hover:bg-muted/35',
-      )}
-    >
-      <span className={cn(
-        'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-        checked ? 'border-foreground bg-foreground text-background' : 'border-border',
-      )}>
-        {checked ? <Check className="h-2.5 w-2.5" /> : null}
-      </span>
-      <span>
-        <span className={cn('block text-sm font-medium', destructive ? 'text-destructive' : 'text-foreground')}>{label}</span>
-        <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">{description}</span>
-      </span>
-    </button>
-  );
 }
 
 function AppPackageMenuItem({

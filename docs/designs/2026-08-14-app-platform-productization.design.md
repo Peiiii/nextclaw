@@ -7,6 +7,8 @@
 - 产品 owner：`@nextclaw/kernel` 的 App Platform
 - 基础设施 owner：`@nextclaw/app-runtime`
 
+> App 数据保留、残留数据再发现/再删除、Workspace Service 数据处置和开发态重置的完整合同，见 [App 数据生命周期管理设计](./2026-08-14-app-data-lifecycle-management.design.md)。
+
 ## 1. 结论
 
 当前问题不是“少了一个数据目录规范”，而是 App Package、安装记录、运行实例、组件、权限和数据生命周期被压成了同一个 `appId`。这导致路径虽然存在，隔离、升级、回滚、审核和用户管理却没有形成同一份可验证合同。

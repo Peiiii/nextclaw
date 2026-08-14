@@ -42,9 +42,13 @@ export class ServiceAppsClientService {
     );
   };
 
-  readonly deleteServiceApp = async (appId: string): Promise<ServiceAppDeleteResultView> => {
-    return await this.requestService.delete<ServiceAppDeleteResultView>(
+  readonly deleteServiceApp = async (
+    appId: string,
+    purgeData = false,
+  ): Promise<ServiceAppDeleteResultView> => {
+    return await this.requestService.request<ServiceAppDeleteResultView>(
       `/api/service-apps/${encodeURIComponent(appId)}`,
+      { method: "DELETE", body: { purgeData } },
     );
   };
 

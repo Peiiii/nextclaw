@@ -77,6 +77,12 @@ export class AppPackageManager {
     };
   };
 
+  listInstalledDataOwners = async (): Promise<Array<{ id: string; name: string }>> =>
+    (await this.registryService.listApps()).map((record) => ({
+      id: record.appId,
+      name: record.name,
+    }));
+
   getPackage = async (appId: string): Promise<AppPackageView> => {
     await this.ensureBuiltInPackages();
     try {

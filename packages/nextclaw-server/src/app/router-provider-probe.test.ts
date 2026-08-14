@@ -33,6 +33,9 @@ function createProviderProbeApp(configPath: string) {
       appPackageManager: {
         listPackages: async () => ({ entries: [] }),
       } as never,
+      appDataManager: {
+        list: async () => ({ entries: [], diagnostics: [] }),
+      } as never,
       isSessionRunning: () => false,
       listSessionTypes: async () => ({ defaultType: "native", options: [] }),
       sessionManager: {} as never,

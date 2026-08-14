@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
+import { access } from "node:fs/promises";
 import path from "node:path";
 import {
   AppHomeService,
+  AppInstanceInventoryService,
   AppInstanceStorageService,
   type AppStorageContext,
 } from "@nextclaw/app-runtime";
@@ -33,6 +35,7 @@ type RuntimeService = Pick<
 >;
 
 export class ServiceAppDevService {
+  private readonly instanceInventoryService = new AppInstanceInventoryService();
   private readonly instanceStorageService = new AppInstanceStorageService();
 
   constructor(private readonly params: {
@@ -40,12 +43,22 @@ export class ServiceAppDevService {
     runtimeService?: RuntimeService;
   } = {}) {}
 
-  inspect = async (target: string): Promise<ServiceAppDevReport> => {
+  inspect = async (
+    target: string,
+    options: { resetData?: boolean; confirmAppId?: string } = {},
+  ): Promise<ServiceAppDevReport> => {
     const appPath = path.resolve(target);
     const issues: ServiceAppDevIssue[] = [];
     const loaded = await this.loadServiceApp(appPath, issues);
     if (!loaded) {
       return this.buildDevReport(appPath, undefined, [], issues);
+    }
+    if (options.resetData && options.confirmAppId?.trim() !== loaded.manifest.id) {
+      issues.push({
+        severity: "error",
+        code: "service.data.confirmationMismatch",
+        message: `--reset-data requires --confirm ${loaded.manifest.id}.`,
+      });
     }
     if (this.hasErrors(issues)) {
       return this.buildDevReport(
@@ -57,7 +70,11 @@ export class ServiceAppDevService {
     }
 
     const runtime = this.createRuntimeService();
-    const storage = await this.createDevStorage(appPath, loaded.manifest.id);
+    const storage = await this.createDevStorage(
+      appPath,
+      loaded.manifest.id,
+      options.resetData === true,
+    );
     try {
       const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
       const runtimeActions = await runtime.listActions({
@@ -194,20 +211,42 @@ export class ServiceAppDevService {
   private createDevStorage = async (
     appPath: string,
     appId: string,
+    resetData = false,
   ): Promise<AppStorageContext> => {
-    const sourceId = createHash("sha256").update(appPath).digest("hex").slice(0, 16);
+    const sourceId = this.getSourceId(appPath);
+    const appHomeDirectory = new AppHomeService().getAppHomeDirectory();
     const instanceDirectory = path.join(
-      new AppHomeService().getAppHomeDirectory(),
+      appHomeDirectory,
       "dev-instances",
       appId,
       sourceId,
       "default",
     );
+    if (resetData && await this.pathExists(instanceDirectory)) {
+      await this.instanceInventoryService.purgeNested({
+        instancesRoot: appHomeDirectory,
+        pathSegments: ["dev-instances", appId, sourceId, "default"],
+        appId,
+        instanceId: "default",
+      });
+    }
     return (await this.instanceStorageService.materialize({
       appId,
       instanceId: "default",
       instanceDirectory,
     })).storage;
+  };
+
+  private getSourceId = (appPath: string): string =>
+    createHash("sha256").update(appPath).digest("hex").slice(0, 16);
+
+  private pathExists = async (targetPath: string): Promise<boolean> => {
+    try {
+      await access(targetPath);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   private toServiceAppRecord = (

@@ -75,7 +75,7 @@ function writeServiceApp(
 }
 
 function createRuntime(
-  actions: ServiceAction | ServiceAction[],
+  actions: ServiceAction | ServiceAction[] = [],
   status: Pick<ServiceAppRecord, "lastFailedAt" | "lastReadyAt" | "lastStartedAt" | "status"> = { status: "idle" },
 ) {
   const actionList = Array.isArray(actions) ? actions : [actions];
@@ -321,6 +321,9 @@ describe("ServiceAppManager", () => {
     }));
   });
 
+});
+
+describe("ServiceAppManager deletion", () => {
   it("deletes a service app directory and clears its grants", async () => {
     const workspacePath = createTempDir();
     writeServiceApp(workspacePath);
@@ -346,14 +349,67 @@ describe("ServiceAppManager", () => {
     await expect(manager.deleteServiceApp("notes")).resolves.toEqual({
       deleted: true,
       id: "notes",
+      dataRemoved: false,
     });
 
     expect(existsSync(appPath)).toBe(false);
+    expect(existsSync(join(
+      workspacePath,
+      ".nextclaw",
+      "app-instances",
+      "notes",
+      "default",
+    ))).toBe(true);
     expect(runtime.restart).toHaveBeenCalledWith("notes");
     await expect(manager.listServiceActionGrants()).resolves.toEqual([]);
     await expect(manager.getServiceApp("notes")).rejects.toMatchObject({
       code: "SERVICE_APP_NOT_FOUND",
     } satisfies Partial<ServiceAppError>);
+  });
+
+  it("deletes the workspace instance only after explicit purge selection", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath);
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: createRuntime(),
+    });
+    const instancePath = join(
+      workspacePath,
+      ".nextclaw",
+      "app-instances",
+      "notes",
+      "default",
+    );
+    await manager.getServiceApp("notes");
+    expect(existsSync(instancePath)).toBe(true);
+
+    await expect(manager.deleteServiceApp("notes", true)).resolves.toEqual({
+      deleted: true,
+      id: "notes",
+      dataRemoved: true,
+    });
+
+    expect(existsSync(instancePath)).toBe(false);
+  });
+
+  it("rejects an unsafe service app id before resolving managed paths", async () => {
+    const workspacePath = createTempDir();
+    const outsidePath = join(workspacePath, "outside");
+    mkdirSync(outsidePath, { recursive: true });
+    writeFileSync(join(outsidePath, "sentinel.txt"), "keep");
+    const runtime = createRuntime([]);
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: runtime,
+    });
+
+    await expect(manager.deleteServiceApp("../outside", true)).rejects.toMatchObject({
+      code: "SERVICE_APP_INVALID_MANIFEST",
+    } satisfies Partial<ServiceAppError>);
+
+    expect(existsSync(join(outsidePath, "sentinel.txt"))).toBe(true);
+    expect(runtime.restart).not.toHaveBeenCalled();
   });
 });
 

@@ -149,7 +149,11 @@ describe("service apps routes", () => {
   });
 
   it("deletes service apps through the service app manager", async () => {
-    const deleteServiceApp = vi.fn(async (id: string) => ({ deleted: true as const, id }));
+    const deleteServiceApp = vi.fn(async (id: string, purgeData = false) => ({
+      deleted: true as const,
+      id,
+      dataRemoved: purgeData,
+    }));
     const app = createTestApp({
       panelAppManager: {},
       serviceAppManager: {
@@ -163,12 +167,12 @@ describe("service apps routes", () => {
     );
     const payload = await response.json() as {
       ok: true;
-      data: { deleted: true; id: string };
+      data: { deleted: true; id: string; dataRemoved: boolean };
     };
 
     expect(response.status).toBe(200);
-    expect(payload.data).toEqual({ deleted: true, id: "notes" });
-    expect(deleteServiceApp).toHaveBeenCalledWith("notes");
+    expect(payload.data).toEqual({ deleted: true, id: "notes", dataRemoved: false });
+    expect(deleteServiceApp).toHaveBeenCalledWith("notes", false);
   });
 
   it("passes optional app id filtering into action list queries", async () => {

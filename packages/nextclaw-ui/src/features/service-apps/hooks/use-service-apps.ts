@@ -4,6 +4,7 @@ import { nextclawClient } from '@/shared/lib/api';
 const SERVICE_APPS_QUERY_KEY = ['service-apps'] as const;
 const SERVICE_ACTIONS_QUERY_KEY = ['service-actions'] as const;
 const SERVICE_ACTION_GRANTS_QUERY_KEY = ['service-action-grants'] as const;
+const APP_DATA_QUERY_KEY = ['app-data'] as const;
 
 export function useServiceApps() {
   return useQuery({
@@ -42,12 +43,14 @@ export function useRestartServiceApp() {
 export function useDeleteServiceApp() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (appId: string) => nextclawClient.serviceApps.deleteServiceApp(appId),
+    mutationFn: (input: { appId: string; purgeData: boolean }) =>
+      nextclawClient.serviceApps.deleteServiceApp(input.appId, input.purgeData),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: SERVICE_APPS_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: SERVICE_ACTIONS_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: SERVICE_ACTION_GRANTS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: APP_DATA_QUERY_KEY }),
       ]);
     },
   });

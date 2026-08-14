@@ -6,6 +6,7 @@ import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AccessManager } from "@kernel/managers/access.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { AppPackageManager } from "@kernel/managers/app-package.manager.js";
+import { AppDataManager } from "@kernel/managers/app-data.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
@@ -43,18 +44,24 @@ import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/run
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
-  ensureDir,
-  expandHome,
   type GatewayController,
   getDataDir,
-  getSessionsPath,
   getWorkspacePath,
+  getWorkspacePathFromConfig,
   MessageBus,
   SessionSearchService,
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
 import { readProjectRoot } from "@kernel/utils/session-creation.utils.js";
+import {
+  resolveKernelAppHomeDirectory,
+  resolveKernelAutomationStorePath,
+  resolveKernelInboxDeliveryStorePath,
+  resolveKernelPreferenceStorePath,
+  resolveKernelProjectStorePath,
+  resolveKernelSessionsDir,
+} from "@kernel/app/kernel-storage-paths.js";
 
 export type NextclawKernelOptions = {
   homeDir?: string;
@@ -63,55 +70,28 @@ export type NextclawKernelOptions = {
   productVersion?: string;
 };
 
-function resolveKernelAppHomeDirectory(options: NextclawKernelOptions): string {
-  const homeDir = options.homeDir?.trim();
-  return resolve(homeDir ? expandHome(homeDir) : getDataDir(), "apps");
-}
-
-function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
-  const homeDir = options.homeDir?.trim();
-  if (homeDir) {
-    return ensureDir(resolve(expandHome(homeDir), "sessions"));
-  }
-  return getSessionsPath();
-}
-
-function resolveKernelAutomationStorePath(
-  options: NextclawKernelOptions,
-): string {
-  const homeDir = options.homeDir?.trim();
-  if (homeDir) {
-    return resolve(expandHome(homeDir), "cron", "jobs.json");
-  }
-  return resolve(getDataDir(), "cron", "jobs.json");
-}
-
-function resolveKernelPreferenceStorePath(
-  options: NextclawKernelOptions,
-): string {
-  const homeDir = options.homeDir?.trim();
-  if (homeDir) {
-    return resolve(expandHome(homeDir), "preferences", "preferences.json");
-  }
-  return resolve(getDataDir(), "preferences", "preferences.json");
-}
-
-function resolveKernelProjectStorePath(options: NextclawKernelOptions): string {
-  const homeDir = options.homeDir?.trim();
-  if (homeDir) {
-    return resolve(expandHome(homeDir), "projects", "projects.json");
-  }
-  return resolve(getDataDir(), "projects", "projects.json");
-}
-
-function resolveKernelInboxDeliveryStorePath(
-  options: NextclawKernelOptions,
-): string {
-  const homeDir = options.homeDir?.trim();
-  if (homeDir) {
-    return resolve(expandHome(homeDir), "inbox", "deliveries.json");
-  }
-  return resolve(getDataDir(), "inbox", "deliveries.json");
+function createKernelServiceAppManagers(params: {
+  appHomeDirectory: string;
+  appPackageManager: AppPackageManager;
+  configManager: ConfigManager;
+}): {
+  appDataManager: AppDataManager;
+  serviceAppManager: ServiceAppManager;
+} {
+  const { appHomeDirectory, appPackageManager, configManager } = params;
+  const serviceAppManager = new ServiceAppManager({
+    configManager,
+    listPackageComponentSources: appPackageManager.listActiveComponentSources,
+  });
+  return {
+    serviceAppManager,
+    appDataManager: new AppDataManager({
+      appHomeDirectory,
+      getWorkspacePath: () => getWorkspacePathFromConfig(configManager.config),
+      listInstalledPackageOwners: appPackageManager.listInstalledDataOwners,
+      listWorkspaceDataOwners: serviceAppManager.listWorkspaceDataOwners,
+    }),
+  };
 }
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -162,6 +142,7 @@ export class NextclawKernel {
   readonly skills: SkillManager;
   readonly automation: AutomationManager;
   readonly appPackageManager: AppPackageManager;
+  readonly appDataManager: AppDataManager;
   readonly channels: ChannelManager;
   readonly sessionRequests: SessionRequestManager;
   readonly sessionSearch: SessionSearchService;
@@ -266,10 +247,14 @@ export class NextclawKernel {
     this.preferenceManager = new PreferenceManager({
       storePath: resolveKernelPreferenceStorePath(options),
     });
-    this.serviceAppManager = new ServiceAppManager({
+    ({
+      appDataManager: this.appDataManager,
+      serviceAppManager: this.serviceAppManager,
+    } = createKernelServiceAppManagers({
+      appHomeDirectory: resolveKernelAppHomeDirectory(options),
+      appPackageManager: this.appPackageManager,
       configManager: this.configManager,
-      listPackageComponentSources: this.appPackageManager.listActiveComponentSources,
-    });
+    }));
     this.installAppPackageRuntimeHooks();
     this.extensions = new ExtensionManager({
       configManager: this.configManager,

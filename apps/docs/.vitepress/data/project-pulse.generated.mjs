@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-08-13T19:39:51.713Z",
+  "generatedAt": "2026-08-14T02:19:50.295Z",
   "hero": {
     "currentLoc": 241252,
     "testLoc": 95645,
     "trackedFiles": 2561,
-    "recentCommitCount": 404,
+    "recentCommitCount": 397,
     "activeDays30": 30,
     "recentReleaseCount": 53,
     "latestReleaseDate": "2026-08-14",
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-16",
-        "label": "04-16",
-        "value": 0
-      },
       {
         "key": "2026-04-17",
         "label": "04-17",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-13",
         "label": "08-13",
         "value": 241252
+      },
+      {
+        "key": "2026-08-14",
+        "label": "08-14",
+        "value": 241252
       }
     ],
     "testLocDaily": [
@@ -1096,11 +1096,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-07-15",
-        "label": "07-15",
-        "value": 23
-      },
-      {
         "key": "2026-07-16",
         "label": "07-16",
         "value": 16
@@ -1244,6 +1239,11 @@ export default {
         "key": "2026-08-13",
         "label": "08-13",
         "value": 20
+      },
+      {
+        "key": "2026-08-14",
+        "label": "08-14",
+        "value": 16
       }
     ],
     "commitWeekly": [
@@ -1305,7 +1305,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 78
+        "value": 81
       }
     ],
     "releaseMonthly": [
@@ -1439,7 +1439,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-14",
-        "tagCount": 22,
+        "tagCount": 31,
         "sampleTags": [
           "@nextclaw/app-runtime@0.10.0",
           "@nextclaw/channel-extension-dingtalk@0.2.25",

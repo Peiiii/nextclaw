@@ -6,21 +6,11 @@ import { FileLockService } from "#app-runtime/services/file-lock.service.js";
 import {
   APP_STORAGE_LAYOUT_VERSION,
   DEFAULT_APP_INSTANCE_ID,
+  type AppInstanceMetadata,
   type AppInstanceRecord,
   type AppStorageContext,
   type AppStorageUsage,
 } from "#app-runtime/types/app-storage.types.js";
-
-type StorageMetadata = {
-  schemaVersion: 1;
-  appId: string;
-  instanceId: string;
-  publisherId?: string;
-  layoutVersion: 1;
-  createdAt: string;
-  migratedAt?: string;
-  legacyDataDirectory?: string;
-};
 
 const STORAGE_METADATA_FILE = "metadata.json";
 const SAFE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
@@ -124,7 +114,7 @@ export class AppInstanceStorageService {
         movedLegacyData = true;
       }
       await this.ensureStorageDirectories(stagingStorage);
-      const metadata: StorageMetadata = {
+      const metadata: AppInstanceMetadata = {
         schemaVersion: 1,
         appId,
         instanceId,
@@ -216,6 +206,26 @@ export class AppInstanceStorageService {
     };
   };
 
+  inspect = async (params: {
+    appId: string;
+    instanceId: string;
+    instanceDirectory: string;
+  }): Promise<AppInstanceRecord> => {
+    const { appId, instanceId, instanceDirectory: instancePath } = params;
+    this.assertSafeId(appId, "appId");
+    this.assertSafeId(instanceId, "instanceId");
+    const instanceDirectory = path.resolve(instancePath);
+    const metadata = await this.readMetadata(instanceDirectory);
+    if (!metadata) {
+      throw new Error(`App Instance metadata 不存在：${instanceDirectory}`);
+    }
+    this.assertMetadataCoordinates(metadata, appId, instanceId);
+    return this.toInstanceRecord(
+      metadata,
+      this.buildContext(instanceDirectory, instanceId),
+    );
+  };
+
   rollbackNewInstance = async (params: {
     instance: AppInstanceRecord;
     legacyDataDirectory?: string;
@@ -288,11 +298,13 @@ export class AppInstanceStorageService {
     ]);
   };
 
-  private readMetadata = async (instanceDirectory: string): Promise<StorageMetadata | undefined> => {
+  private readMetadata = async (
+    instanceDirectory: string,
+  ): Promise<AppInstanceMetadata | undefined> => {
     try {
       const raw = JSON.parse(
         await readFile(path.join(instanceDirectory, STORAGE_METADATA_FILE), "utf8"),
-      ) as Partial<StorageMetadata>;
+      ) as Partial<AppInstanceMetadata>;
       if (
         raw.schemaVersion !== 1 ||
         raw.layoutVersion !== APP_STORAGE_LAYOUT_VERSION ||
@@ -303,7 +315,7 @@ export class AppInstanceStorageService {
       ) {
         throw new Error(`无效的 App Instance metadata：${instanceDirectory}`);
       }
-      return raw as StorageMetadata;
+      return raw as AppInstanceMetadata;
     } catch (error) {
       if (this.isMissingFileError(error)) {
         return undefined;
@@ -313,7 +325,7 @@ export class AppInstanceStorageService {
   };
 
   private toInstanceRecord = (
-    metadata: StorageMetadata,
+    metadata: AppInstanceMetadata,
     storage: AppStorageContext,
     dataSchemaVersion = 1,
   ): AppInstanceRecord => ({
@@ -327,16 +339,12 @@ export class AppInstanceStorageService {
   });
 
   private assertMetadataIdentity = (
-    metadata: StorageMetadata,
+    metadata: AppInstanceMetadata,
     appId: string,
     instanceId: string,
     publisherId?: string,
   ): void => {
-    if (metadata.appId !== appId || metadata.instanceId !== instanceId) {
-      throw new Error(
-        `App Instance identity 不匹配：期望 ${appId}/${instanceId}，实际 ${metadata.appId}/${metadata.instanceId}`,
-      );
-    }
+    this.assertMetadataCoordinates(metadata, appId, instanceId);
     if (metadata.publisherId && metadata.publisherId !== publisherId) {
       throw new Error(
         `App Instance ${appId}/${instanceId} 已绑定发布者 ${metadata.publisherId}，拒绝由 ${publisherId ?? "未验证本地来源"} 接管。`,
@@ -344,11 +352,23 @@ export class AppInstanceStorageService {
     }
   };
 
+  private assertMetadataCoordinates = (
+    metadata: AppInstanceMetadata,
+    appId: string,
+    instanceId: string,
+  ): void => {
+    if (metadata.appId !== appId || metadata.instanceId !== instanceId) {
+      throw new Error(
+        `App Instance identity 不匹配：期望 ${appId}/${instanceId}，实际 ${metadata.appId}/${metadata.instanceId}`,
+      );
+    }
+  };
+
   private bindPublisher = async (
     instanceDirectory: string,
-    metadata: StorageMetadata,
+    metadata: AppInstanceMetadata,
     publisherId: string,
-  ): Promise<StorageMetadata> => {
+  ): Promise<AppInstanceMetadata> => {
     const nextMetadata = { ...metadata, publisherId };
     const metadataPath = path.join(instanceDirectory, STORAGE_METADATA_FILE);
     const temporaryPath = `${metadataPath}.${randomUUID()}.tmp`;

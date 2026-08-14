@@ -30,3 +30,23 @@ Manage existing Panel Apps from the app list and reference one from the session 
 ## Service Apps
 
 When a Panel App needs a local runtime or controlled action, pair it with a Service App. Review every exposed action and permission, and grant only what the app needs.
+
+## App data and uninstall
+
+NextClaw keeps installable code separate from mutable App data. Updates replace code while preserving the managed App instance. Uninstalling an App or removing a workspace Service App also keeps that instance by default, so a later reinstall can continue with the same data.
+
+The removal dialog offers two explicit choices:
+
+- **Keep data** removes the App and keeps its managed instance.
+- **Delete app and data** removes both after destructive confirmation.
+
+Before confirming, NextClaw shows the exact managed path and storage used by data, config, state, cache, temporary files, and logs. Retained instances remain visible in the Apps page and can be deleted separately later. Files or folders that you granted to an App outside its managed instance are never deleted by either flow.
+
+For CLI inspection and cleanup, use the running NextClaw host:
+
+```bash
+nextclaw app data list --json
+nextclaw app data delete <data-id> --confirm <app-id> --json
+```
+
+The delete command accepts only retained data. Copy the opaque data id from the latest list output and confirm the exact App id; do not delete the storage directory manually.

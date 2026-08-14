@@ -2,9 +2,11 @@ import { useState } from "react";
 import type {
   ServiceActionGrantView,
   ServiceActionListView,
+  AppDataEntry,
   ServiceAppRecordView,
 } from "@nextclaw/client-sdk";
 import { RefreshCw, Server } from "lucide-react";
+import { useAppData } from "@/features/app-data";
 import { ServiceAppListItem } from "@/features/service-apps/components/service-app-list-item";
 import {
   useDeleteServiceApp,
@@ -27,6 +29,7 @@ type ServiceActionView = ServiceActionListView["actions"][number];
 
 export function ServiceAppsPanel() {
   const serviceApps = useServiceApps();
+  const appData = useAppData();
   const serviceActions = useServiceActions();
   const serviceActionGrants = useServiceActionGrants();
   const deleteServiceApp = useDeleteServiceApp();
@@ -44,6 +47,7 @@ export function ServiceAppsPanel() {
     void serviceApps.refetch();
     void serviceActions.refetch();
     void serviceActionGrants.refetch();
+    void appData.refetch();
   };
 
   if (
@@ -85,6 +89,9 @@ export function ServiceAppsPanel() {
       setExpandedActionsByApp((current) => ({ ...current, [appId]: true }));
     });
   };
+  const workspaceDataEntries = (appData.data?.entries ?? [])
+    .filter((entry): entry is AppDataEntry =>
+      entry.source === "workspace-service" && entry.lifecycle === "active");
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
@@ -136,6 +143,9 @@ export function ServiceAppsPanel() {
                 actionsOpen={Boolean(expandedActionsByApp[app.id])}
                 grants={grants}
                 deletePending={deleteServiceApp.isPending}
+                deleteError={deleteServiceApp.error}
+                dataEntry={workspaceDataEntries.find((entry) => entry.appId === app.id)}
+                dataLoading={appData.isLoading}
                 isDiscovering={discoverServiceAppActions.isPending}
                 onActionsOpenChange={(open) =>
                   setExpandedActionsByApp((current) => ({
@@ -144,7 +154,11 @@ export function ServiceAppsPanel() {
                   }))
                 }
                 onDiscover={discover}
-                onDelete={(appId) => void deleteServiceApp.mutate(appId)}
+                onDelete={(appId, purgeData, onSuccess) => void deleteServiceApp.mutate(
+                  { appId, purgeData },
+                  { onSuccess },
+                )}
+                onResetDelete={deleteServiceApp.reset}
                 onRestart={(appId) => void restartServiceApp.mutate(appId)}
                 onRevoke={(grant) =>
                   void revokeServiceActionGrant.mutate({

@@ -1,4 +1,4 @@
-import { readdir, rm, stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   DEFAULT_SERVICE_APPS_DIR,
@@ -11,6 +11,11 @@ import {
 } from "@kernel/types/app-package.types.js";
 import { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
 import { ServiceAppRecordService } from "@kernel/services/service-app-record.service.js";
+import type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
+import {
+  ServiceAppRemovalCleanupError,
+  ServiceAppRemovalService,
+} from "@kernel/services/service-app-removal.service.js";
 import { ServiceActionGrantStore } from "@kernel/stores/service-action-grant.store.js";
 import type {
   ServiceAction,
@@ -33,7 +38,10 @@ import {
   mergeServiceAppRuntimeActions,
 } from "@kernel/utils/service-app-runtime-action.utils.js";
 
+export type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
+
 const SERVICE_ACTION_GRANTS_FILE_NAME = ".service-action-grants.json";
+const SERVICE_APP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export type ServiceAppList = {
   workspacePath: string;
@@ -44,6 +52,7 @@ export type ServiceAppList = {
 export type ServiceAppDeleteResult = {
   deleted: true;
   id: string;
+  dataRemoved: boolean;
 };
 
 export type ServiceAppErrorCode =
@@ -73,6 +82,7 @@ export function isServiceAppError(error: unknown): error is ServiceAppError {
 }
 
 export class ServiceAppManager {
+  private readonly removalService = new ServiceAppRemovalService();
   private readonly runtimeService: ServiceAppRuntime;
   private readonly recordService: ServiceAppRecordService;
 
@@ -222,26 +232,57 @@ export class ServiceAppManager {
     return await this.getServiceApp(appId);
   };
 
-  deleteServiceApp = async (appId: string): Promise<ServiceAppDeleteResult> => {
-    const { record } = await this.requireServiceApp(appId);
-    if (record.sourceKind === "package") {
+  listWorkspaceDataOwners = async (): Promise<WorkspaceServiceDataOwner[]> =>
+    await this.recordService.listWorkspaceDataOwners(
+      this.getServiceAppsPath(this.getWorkspacePath()),
+      await this.listServiceAppDirNames(this.getServiceAppsPath(this.getWorkspacePath())),
+    );
+
+  deleteServiceApp = async (appId: string, purgeData = false): Promise<ServiceAppDeleteResult> => {
+    if (!SERVICE_APP_ID_PATTERN.test(appId)) {
       throw new ServiceAppError(
-        "SERVICE_APP_MANAGED_SOURCE",
-        `package service must be managed through Apps: ${record.packageId}`,
+        "SERVICE_APP_INVALID_MANIFEST",
+        "service app id must use kebab-case",
       );
     }
-    await this.runtimeService.restart(record.id);
-    await rm(record.dirPath, { recursive: true });
-    await this.createGrantStore().revokeActionsByPrefix(`${record.id}.`);
-    return {
-      deleted: true,
-      id: record.id,
-    };
+    const workspacePath = this.getWorkspacePath();
+    let record: ServiceAppRecord;
+    try {
+      record = await this.removalService.remove({
+        grantStore: this.createGrantStore(),
+        lockPath: join(workspacePath, ".nextclaw", "locks", "service-apps", `${appId}.lock`),
+        purgeData,
+        loadRecord: async () => {
+          const { record } = await this.requireServiceApp(appId);
+          if (record.sourceKind === "package") {
+            throw new ServiceAppError(
+              "SERVICE_APP_MANAGED_SOURCE",
+              `package service must be managed through Apps: ${record.packageId}`,
+            );
+          }
+          if (purgeData && !record.storage) {
+            throw new ServiceAppError(
+              "SERVICE_APP_READ_FAILED",
+              `Service App ${appId} 缺少受管数据目录，已停止删除。`,
+            );
+          }
+          return record;
+        },
+        stopRuntime: async (loaded) => await this.runtimeService.restart(loaded.id),
+      });
+    } catch (error) {
+      if (error instanceof ServiceAppRemovalCleanupError) {
+        throw new ServiceAppError(
+          "SERVICE_APP_RUNTIME_FAILED",
+          `Service App ${appId} 已从 workspace 移除，但${error.message}`,
+        );
+      }
+      throw error;
+    }
+    return { deleted: true, id: record.id, dataRemoved: purgeData };
   };
 
-  dispose = async (): Promise<void> => {
-    await this.runtimeService.dispose();
-  };
+  dispose = async (): Promise<void> => await this.runtimeService.dispose();
 
   assertCanActivatePackageComponents = async (
     components: AppPackageComponentSource[],

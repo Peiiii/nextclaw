@@ -2,6 +2,7 @@ import { useState } from "react";
 import type {
   ServiceActionGrantView,
   ServiceActionListView,
+  AppDataEntry,
   ServiceAppRecordView,
 } from "@nextclaw/client-sdk";
 import {
@@ -20,7 +21,7 @@ import {
   type LucideIcon,
   Wrench,
 } from "lucide-react";
-import { ConfirmDialog } from "@/shared/components/ui/confirm-dialog";
+import { ServiceAppDeleteDialog } from "@/features/service-apps/components/service-app-delete-dialog";
 import {
   Popover,
   PopoverContent,
@@ -44,10 +45,14 @@ export function ServiceAppListItem({
   actionsOpen,
   grants,
   deletePending,
+  deleteError,
+  dataEntry,
+  dataLoading,
   isDiscovering,
   onActionsOpenChange,
   onDiscover,
   onDelete,
+  onResetDelete,
   onRestart,
   onRevoke,
 }: {
@@ -56,16 +61,21 @@ export function ServiceAppListItem({
   actionsOpen: boolean;
   grants: ServiceActionGrantView[];
   deletePending: boolean;
+  deleteError: unknown;
+  dataEntry?: AppDataEntry;
+  dataLoading: boolean;
   isDiscovering: boolean;
   onActionsOpenChange: (open: boolean) => void;
   onDiscover: (appId: string) => void;
-  onDelete: (appId: string) => void;
+  onDelete: (appId: string, purgeData: boolean, onSuccess: () => void) => void;
+  onResetDelete: () => void;
   onRestart: (appId: string) => void;
   onRevoke: (grant: ServiceActionGrantView) => void;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+  const [purgeData, setPurgeData] = useState(false);
   const canConnectAndDiscover =
     app.status !== "starting" && app.status !== "stopped";
   const canDisconnectRuntime =
@@ -73,6 +83,8 @@ export function ServiceAppListItem({
   const diagnostics = getServiceAppDiagnostics(app);
   const openDeleteDialog = () => {
     setIsMenuOpen(false);
+    setPurgeData(false);
+    onResetDelete();
     setIsDeleteDialogOpen(true);
   };
 
@@ -233,15 +245,18 @@ export function ServiceAppListItem({
           ) : null}
         </div>
 
-        <ConfirmDialog
+        <ServiceAppDeleteDialog
+          appId={app.id}
+          appTitle={app.title}
+          dataEntry={dataEntry}
+          dataLoading={dataLoading}
+          deleteError={deleteError}
+          deletePending={deletePending}
           open={isDeleteDialogOpen}
+          purgeData={purgeData}
+          onDelete={onDelete}
           onOpenChange={setIsDeleteDialogOpen}
-          title={t("serviceAppsDeleteConfirmTitle")}
-          description={`${t("serviceAppsDeleteConfirmDescription")} ${app.title}`}
-          confirmLabel={t("delete")}
-          variant="destructive"
-          onConfirm={() => onDelete(app.id)}
-          onCancel={() => undefined}
+          onPurgeDataChange={setPurgeData}
         />
       </section>
     </TooltipProvider>

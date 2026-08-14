@@ -1,13 +1,13 @@
 ---
 name: nextclaw-self-manage
-description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/projects/sessions/cron/remote/update operations, and for discovering local HTTP/API/webhook addresses.
-description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、项目、会话、定时任务、远程访问、更新，以及本地 HTTP/API/webhook 地址发现。
+description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/projects/sessions/apps and App data/cron/remote/update operations, and for discovering local HTTP/API/webhook addresses.
+description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、项目、会话、应用及应用数据、定时任务、远程访问、更新，以及本地 HTTP/API/webhook 地址发现。
 metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
 ---
 
 # NextClaw Self-Management
 
-Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, channels, config, agents, projects, sessions, cron, remote, update, installed skills, marketplace skills, local HTTP/API/webhook addresses).
+Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, channels, config, agents, projects, sessions, apps and App data, cron, remote, update, installed skills, marketplace skills, local HTTP/API/webhook addresses).
 
 ## Source of Truth
 
@@ -41,6 +41,12 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - Be explicit about restart semantics after changes. When a restart is required, ask the user to run `nextclaw restart` in an external terminal; do not invoke a restart from the active agent session.
 - `nextclaw gateway` starts a foreground gateway. It has no `start`, `status`, `restart`, or `stop` subcommands.
 - After modifying a running Service App, run `nextclaw app restart <app-id> --json` before validating through the live product UI or panel-to-service action calls.
+- Treat App code and managed App data as separate lifecycles. Uninstall/removal keeps managed data by default; delete it only when the user explicitly chooses the destructive data-removal option.
+- For App data discovery, run `nextclaw app data list --json` against the running host. Treat the returned `id`, `appId`, `lifecycle`, usage breakdown, and instance path as authoritative.
+- Independently delete only an entry whose latest list result says `lifecycle: retained` and `actions.deleteRetainedData: true`. Use `nextclaw app data delete <data-id> --confirm <app-id> --json`, where the data id comes from that list result and the confirmation exactly matches its `appId`.
+- Never synthesize App data ids, delete an active entry through the retained-data command, or substitute direct recursive filesystem deletion for the managed API. After deletion, run `nextclaw app data list --json` again and verify the exact entry is absent.
+- Reset a Service App development instance only when explicitly requested, using `nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json`; the confirmation must match the manifest id.
+- App data removal never authorizes deletion of documents or directories separately granted to the App outside its managed instance.
 - For channel discovery before messaging, use `nextclaw channels list --json` and treat returned `channels[].id` values as authoritative.
 - For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
@@ -72,6 +78,9 @@ When user asks "what changed in version X", follow:
 - Local HTTP/API/webhook addresses: `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`
 - Lifecycle: `nextclaw start|restart|stop`
 - Service App live runtime: `nextclaw app restart <app-id> --json`
+- App data inventory: `nextclaw app data list --json`
+- Retained App data deletion: `nextclaw app data delete <data-id> --confirm <app-id> --json`
+- Service App development data reset: `nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json`
 - Channels: `nextclaw channels list --json|status|login`
 - Config: `nextclaw config get|set|unset`
 - Agents: `nextclaw agents list|runtimes|runtime config|new|update|remove`

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AppPackageOperationView } from '@nextclaw/client-sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,7 +15,27 @@ const mocks = vi.hoisted(() => ({
   refetchOperations: vi.fn(),
   refetchPackages: vi.fn(),
   refetchPanels: vi.fn(),
+  refetchAppData: vi.fn(),
+  deleteRetained: vi.fn(),
+  deleteRetainedReset: vi.fn(),
+  retainedEntries: [] as Array<Record<string, unknown>>,
   requestAuthorization: vi.fn(async () => true),
+}));
+
+vi.mock('@/features/app-data/hooks/use-app-data', () => ({
+  useAppData: () => ({
+    data: { entries: mocks.retainedEntries, diagnostics: [] },
+    error: null,
+    isLoading: false,
+    refetch: mocks.refetchAppData,
+  }),
+  useDeleteRetainedAppData: () => ({
+    error: null,
+    isError: false,
+    isPending: false,
+    mutate: mocks.deleteRetained,
+    reset: mocks.deleteRetainedReset,
+  }),
 }));
 
 vi.mock('@/app/components/app-presenter-provider', () => ({
@@ -227,6 +247,10 @@ describe('AppPackagesPanel', () => {
     mocks.refetchPackages.mockReset();
     mocks.refetchOperations.mockReset();
     mocks.refetchPanels.mockReset();
+    mocks.refetchAppData.mockReset();
+    mocks.deleteRetained.mockReset();
+    mocks.deleteRetainedReset.mockReset();
+    mocks.retainedEntries = [];
     mocks.requestAuthorization.mockReset();
     mocks.requestAuthorization.mockResolvedValue(true);
   });
@@ -300,14 +324,61 @@ describe('AppPackagesPanel', () => {
     await user.click(screen.getByRole('button', { name: 'More app actions' }));
     await user.click(screen.getByRole('button', { name: 'Uninstall' }));
     expect(screen.getByRole('heading', { name: 'Uninstall this app?' })).toBeTruthy();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }));
+    });
     expect(screen.getByRole('button', { name: /Keep personal data/ }).getAttribute('aria-pressed'))
       .toBe('true');
+    expect(screen.getByText('Total app data')).toBeTruthy();
+    expect(screen.getByText('Managed instance path')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Uninstall' }));
     expect(mocks.lifecycleMutate).toHaveBeenCalledWith(
       { action: 'uninstall', appId: 'nextclaw.personal-organizer', purgeData: false },
       { onSuccess: undefined },
     );
+  });
+
+  it('shows retained data and requires a dedicated permanent-delete confirmation', async () => {
+    const user = userEvent.setup();
+    mocks.retainedEntries = [{
+      id: 'ad1.encoded',
+      appId: 'example.notes',
+      instanceId: 'default',
+      displayName: 'Notes',
+      source: 'package',
+      lifecycle: 'retained',
+      storage: createStorageFixture(),
+      usage: {
+        dataBytes: 128,
+        configBytes: 3,
+        stateBytes: 2,
+        cacheBytes: 1,
+        temporaryBytes: 0,
+        logsBytes: 4,
+        totalBytes: 138,
+      },
+      createdAt: '2026-08-14T00:00:00.000Z',
+      actions: { deleteRetainedData: true },
+    }];
+    const view = render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+
+    expect(screen.getByRole('heading', { name: 'Saved app data' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Delete data' }));
+    expect(screen.getByRole('heading', { name: 'Permanently delete this app data?' })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Permanently delete data' }));
+    expect(mocks.deleteRetained).toHaveBeenCalledWith(
+      { dataId: 'ad1.encoded', confirmAppId: 'example.notes' },
+      { onSuccess: expect.any(Function) },
+    );
+    const onSuccess = mocks.deleteRetained.mock.calls[0]?.[1].onSuccess as () => void;
+    mocks.retainedEntries = [];
+    view.rerender(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    await act(async () => onSuccess());
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Your apps' }));
+    });
   });
 
   it('keeps an accepted install visible in the library and marketplace while it runs', async () => {

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppPackageOperationStatus, AppPackageOperationView } from '@nextclaw/client-sdk';
 import { nextclawClient } from '@/shared/lib/api';
 import type { AppPackageOperationSettlementManager } from '@/features/apps/managers/app-package-operation-settlement.manager';
+import { APP_DATA_QUERY_KEY } from '@/features/app-data';
 
 const APP_PACKAGES_QUERY_KEY = ['app-packages'] as const;
 const PANEL_APPS_QUERY_KEY = ['panel-apps'] as const;
@@ -108,6 +109,7 @@ export function useAppPackageMutation() {
         queryClient.invalidateQueries({ queryKey: SERVICE_APPS_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: SERVICE_ACTIONS_QUERY_KEY }),
         queryClient.invalidateQueries({ queryKey: APP_PACKAGE_OPERATIONS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: APP_DATA_QUERY_KEY }),
       ]);
     },
   });

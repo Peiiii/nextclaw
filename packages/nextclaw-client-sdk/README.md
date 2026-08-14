@@ -55,6 +55,8 @@ export function createNextClawAppClient(hostClient: NextClawClient) {
     },
     agentRuns: {
       send: hostClient.agentRuns.send,
+      editMessage: hostClient.agentRuns.editMessage,
+      continue: hostClient.agentRuns.continue,
       stream: hostClient.agentRuns.stream,
       abort: hostClient.agentRuns.abort,
     },
@@ -78,6 +80,8 @@ export function createNextClawAppClient(hostClient: NextClawClient) {
 - `agents.list()`
 - `agents.resolveAvatarUrl()`
 - `agentRuns.send()`
+- `agentRuns.editMessage()`
+- `agentRuns.continue()`
 - `agentRuns.stream()`
 - `agentRuns.abort()`
 - `serviceActions.list()`
@@ -92,6 +96,8 @@ export function createNextClawAppClient(hostClient: NextClawClient) {
 - `sessions.*` 读取 NextClaw 会话与消息事实源。页面刷新、流式事件丢失、或需要展示最终回复时，用 `sessions.listMessages(sessionId)` 恢复。
 - `agents.*` 读取 Agent 列表和头像资源地址。
 - `agentRuns.send()` 触发一次 Agent Run，返回 run handle；它不等价于“发送并直接返回完整回复文本”。
+- `agentRuns.editMessage()` 从指定用户消息重建会话分支并启动新的 Agent Run。
+- `agentRuns.continue()` 在已有会话上下文上继续一次中断或可恢复的 Agent Run。
 - `agentRuns.stream()` 监听指定会话的 NCP endpoint event。handler 收到的是原始 NCP event，事件名以 `@nextclaw/ncp` 类型声明为准，例如 `message.text-delta`、`message.completed`、`message.failed`、`run.finished`、`run.error`。
 - `agentRuns.abort()` 中止指定 run/session。
 - `events.subscribe()` 是全局 realtime 订阅，返回 `{ close() }`。它收到连接事件或 AppEvent；NCP 事件通常在 `event.type === "ncp.event"` 的 `event.payload` 里。不要把它和 `agentRuns.stream()` 混用。

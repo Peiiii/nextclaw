@@ -26,6 +26,7 @@ export * from "./services/app-manifest.service.js";
 export * from "./types/app-manifest.types.js";
 export * from "./services/app-home.service.js";
 export * from "./services/app-instance-storage.service.js";
+export * from "./services/app-instance-inventory.service.js";
 export * from "./services/file-lock.service.js";
 export * from "./services/app-grant.service.js";
 export * from "./services/app-permissions.service.js";

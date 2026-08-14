@@ -15,7 +15,7 @@
 - `napp publish <app-dir>`：把应用目录发布到官方 apps registry；独立应用默认使用 `source`，组合包默认使用 `bundle`
 - `napp install <app-dir|bundle.napp|app-id[@version]>`：从本地或 registry 安装应用
 - `napp update <app-id>`：更新已安装应用
-- `napp uninstall <app-id>`：卸载已安装应用
+- `napp uninstall <app-id>`：卸载已安装应用，默认保留受管实例数据；增加 `--purge-data` 才会同时删除
 - `napp list`：列出已安装应用
 - `napp info <app-id>`：查看已安装应用详情
 - `napp registry [get|set|reset]`：查看或切换 registry
@@ -61,7 +61,9 @@ assets/
 - 当前 Wasm 执行底座：Node 原生 `WebAssembly` 与 Wasmtime `serve`
 - 分发包形态：`.napp`（底层为 zip，支持 `source` / `bundle` 双模式）
 - 安装目录：`~/.nextclaw/apps/packages/<app-id>/<version>/`
-- 用户数据目录：`~/.nextclaw/apps/data/<app-id>/`
+- 受管实例目录：`~/.nextclaw/apps/instances/<app-id>/default/`
+- 受管实例分类：`data/`、`config/`、`state/`、`cache/`、`tmp/`、`logs/`，并由 `metadata.json` 记录稳定身份
+- 旧用户数据目录：`~/.nextclaw/apps/data/<app-id>/`（首次使用时原子迁移到受管实例）
 - 本地 registry：`~/.nextclaw/apps/registry.json`
 - 本地 config：`~/.nextclaw/apps/config.json`
 - 默认 registry：`https://apps-registry.nextclaw.io/api/v1/apps/registry/`
@@ -117,6 +119,21 @@ napp update nextclaw.hello-notes
 napp revoke nextclaw.my-first-napp --document notes
 napp uninstall nextclaw.my-first-napp
 napp uninstall nextclaw.my-first-napp --purge-data
+```
+
+不带 `--purge-data` 时只卸载应用代码和注册记录，受管实例会保留，以便重装后继续使用。带上该选项后，卸载事务才会同时移除该 App 的默认实例。宿主只管理上述实例目录；通过文档授权访问的外部文件或目录不属于 App 实例，卸载和清理数据都不会删除它们。
+
+运行中的 NextClaw 还提供统一的数据清单和残留数据清理入口：
+
+```bash
+nextclaw app data list --json
+nextclaw app data delete <data-id> --confirm <app-id> --json
+```
+
+`data-id` 必须取自最新的 `list` 结果；删除命令只接受已经卸载或已经从 workspace 移除的 `retained` 实例，并要求 `--confirm` 与目标 App id 完全一致。开发 Service App 时，可以显式重置隔离的开发实例：
+
+```bash
+nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json
 ```
 
 ## 示例

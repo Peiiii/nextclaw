@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
 import { LoaderCircle, PackagePlus, RefreshCw, ShieldCheck, Store } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
@@ -6,6 +6,7 @@ import type { PanelAppEntryView } from '@/shared/lib/api';
 import { useAppPresenter } from '@/app/components/app-presenter-provider';
 import { AppMarketplaceDialog } from '@/features/apps/components/app-marketplace-dialog';
 import { AppPackageCard } from '@/features/apps/components/app-package-card';
+import { AppRetainedDataSection, useAppData } from '@/features/app-data';
 import {
   useAppPackageMutation,
   useAppPackageOperationSettlement,
@@ -38,12 +39,14 @@ export function AppPackagesPanel({
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
 }) {
   const appPackages = useAppPackages();
+  const appData = useAppData();
   const appPackageOperations = useAppPackageOperations();
   const panelApps = usePanelApps();
   const lifecycle = useAppPackageMutation();
   const recordOpened = useRecordPanelAppOpened();
   const grantClient = useGrantPanelAppClient();
   const presenter = useAppPresenter();
+  const libraryTitleRef = useRef<HTMLHeadingElement>(null);
   const [installOpen, setInstallOpen] = useState(false);
   const [installSource, setInstallSource] = useState('');
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
@@ -101,6 +104,7 @@ export function AppPackagesPanel({
     void appPackages.refetch();
     void appPackageOperations.refetch();
     void panelApps.refetch();
+    void appData.refetch();
   };
 
   return (
@@ -144,7 +148,13 @@ export function AppPackagesPanel({
       <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-3xl p-3 sm:p-5">
           <div className="mb-4 px-1">
-            <h1 className="text-base font-semibold tracking-tight text-foreground">{t('appPackagesLibraryTitle')}</h1>
+            <h1
+              ref={libraryTitleRef}
+              tabIndex={-1}
+              className="text-base font-semibold tracking-tight text-foreground"
+            >
+              {t('appPackagesLibraryTitle')}
+            </h1>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
               {t('appPackagesLibraryDescription')}
             </p>
@@ -169,6 +179,13 @@ export function AppPackagesPanel({
             onInstall={() => setInstallOpen(true)}
             onMutate={runMutation}
             onOpenPanelApp={(entry) => void openPanelApp(entry)}
+          />
+          <AppRetainedDataSection
+            diagnostics={appData.data?.diagnostics ?? []}
+            entries={appData.data?.entries ?? []}
+            error={appData.error}
+            isLoading={appData.isLoading}
+            onDeletionFocusReturn={() => libraryTitleRef.current?.focus()}
           />
         </div>
       </div>

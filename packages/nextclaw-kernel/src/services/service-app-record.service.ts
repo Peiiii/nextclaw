@@ -11,6 +11,11 @@ import type { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-a
 
 type ServiceAppStatusReader = Pick<McpServiceAppRuntimeService, "getStatus">;
 
+export type WorkspaceServiceDataOwner = {
+  id: string;
+  title: string;
+};
+
 export class ServiceAppRecordService {
   private readonly instanceStorageService = new AppInstanceStorageService();
 
@@ -52,6 +57,23 @@ export class ServiceAppRecordService {
     } catch (error) {
       return this.failedPackageRecord(source, error);
     }
+  };
+
+  listWorkspaceDataOwners = async (
+    serviceAppsPath: string,
+    dirNames: string[],
+  ): Promise<WorkspaceServiceDataOwner[]> => {
+    const owners = await Promise.all(dirNames.map(async (dirName) => {
+      try {
+        const manifest = await readServiceAppManifest(join(serviceAppsPath, dirName));
+        return manifest.id === dirName
+          ? { id: manifest.id, title: manifest.title }
+          : null;
+      } catch {
+        return null;
+      }
+    }));
+    return owners.filter((entry): entry is WorkspaceServiceDataOwner => Boolean(entry));
   };
 
   materializeWorkspaceStorage = async (serviceId: string): Promise<AppStorageContext> => {

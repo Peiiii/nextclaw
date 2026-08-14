@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -105,5 +105,40 @@ describe("ServiceAppDevService", () => {
     expect(report.result).toEqual(expect.objectContaining({
       content: [expect.objectContaining({ text: "data-dir:ok" })],
     }));
+  });
+
+  it("resets only the confirmed development instance before starting", async () => {
+    const appPath = await createServiceApp();
+    const appHome = path.join(tempDirs[0]!, "app-home");
+    const previousAppHome = process.env.NEXTCLAW_APP_HOME;
+    process.env.NEXTCLAW_APP_HOME = appHome;
+    try {
+      const service = new ServiceAppDevService({ getConfig: createConfig });
+      const first = await service.inspect(appPath);
+      const sentinel = path.join(first.app!.storage!.dataDirectory, "sentinel.txt");
+      await writeFile(sentinel, "old", "utf8");
+
+      const rejected = await service.inspect(appPath, {
+        resetData: true,
+        confirmAppId: "wrong",
+      });
+      expect(rejected.ok).toBe(false);
+      expect(rejected.issues).toEqual([
+        expect.objectContaining({ code: "service.data.confirmationMismatch" }),
+      ]);
+      await expect(access(sentinel)).resolves.toBeUndefined();
+
+      const reset = await service.inspect(appPath, {
+        resetData: true,
+        confirmAppId: "notes",
+      });
+      expect(reset.ok).toBe(true);
+      await expect(access(sentinel)).rejects.toThrow();
+      expect(reset.app?.storage?.instanceDirectory)
+        .toBe(first.app?.storage?.instanceDirectory);
+    } finally {
+      if (previousAppHome === undefined) delete process.env.NEXTCLAW_APP_HOME;
+      else process.env.NEXTCLAW_APP_HOME = previousAppHome;
+    }
   });
 });

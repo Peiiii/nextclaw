@@ -181,8 +181,13 @@ export class ServiceAppsRoutesController {
   };
 
   readonly deleteServiceApp = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    const purgeData = body.ok && isRecord(body.data) && body.data.purgeData === true;
     try {
-      return c.json(ok(await this.params.serviceAppManager.deleteServiceApp(c.req.param("appId"))));
+      return c.json(ok(await this.params.serviceAppManager.deleteServiceApp(
+        c.req.param("appId"),
+        purgeData,
+      )));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }

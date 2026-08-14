@@ -11,6 +11,7 @@ import {
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
 import { AppPackagesRoutesController } from "@nextclaw-server/features/app-packages/index.js";
+import { AppDataRoutesController } from "@nextclaw-server/features/app-data/index.js";
 import { SystemObjectReferencesRoutesController } from "@nextclaw-server/app/controllers/system-object-references.controller.js";
 import { AuthRoutesController, UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { ConfigRoutesController } from "@nextclaw-server/features/config/index.js";
@@ -52,6 +53,7 @@ function createUiRouteControllers(
   return {
     app: new AppRoutesController(options),
     appPackages: new AppPackagesRoutesController(kernel.appPackageManager),
+    appData: new AppDataRoutesController(kernel.appDataManager),
     agents: new AgentsRoutesController(options),
     auth: new AuthRoutesController(authService),
     config: new ConfigRoutesController(options),
@@ -249,7 +251,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const { appPackages, ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath, systemObjectReferences } = this.controllers;
+    const { appData, appPackages, ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath, systemObjectReferences } = this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -268,6 +270,8 @@ class UiRouteRegistry {
       ["get", "/api/system-object-references", systemObjectReferences.list],
       ["post", "/api/system-object-references/resolve", systemObjectReferences.resolve],
       ["get", "/api/app-packages", appPackages.list],
+      ["get", "/api/app-data", appData.list],
+      ["delete", "/api/app-data/:dataId", appData.deleteRetained],
       ["get", "/api/app-package-operations", appPackages.listOperations],
       ["post", "/api/app-package-operations/install", appPackages.startInstallOperation],
       ["post", "/api/app-package-operations/:appId/update", appPackages.startUpdateOperation],

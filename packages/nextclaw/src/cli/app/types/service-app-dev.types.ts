@@ -36,6 +36,8 @@ export type ServiceAppRestartReport = {
 
 export type ServiceAppDevCommandOptions = {
   json?: boolean;
+  resetData?: boolean;
+  confirm?: string;
 };
 
 export type ServiceAppCallCommandOptions = {

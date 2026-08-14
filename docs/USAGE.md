@@ -6,7 +6,7 @@ This guide covers installation, configuration, channels, tools, automation, and 
 
 ## AI Self-Management Contract
 
-When NextClaw AI needs to operate the product itself (version/status/doctor/service/channels/config/agents/cron/remote/update), follow these rules:
+When NextClaw AI needs to operate the product itself (version/status/doctor/service/channels/config/agents/apps/cron/remote/update), follow these rules:
 
 1. **Read the built-in self-management guide first**. The packaged runtime copy lives at `packages/nextclaw/resources/USAGE.md`, and this repo page is kept aligned with it.
 2. **Use the exact command for the intent**: use `nextclaw --version` for version lookup; do not infer version from `status`.
@@ -17,6 +17,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 7. **Never invent commands**; use documented commands or `nextclaw --help` / `nextclaw <subcommand> --help`.
 8. **Desktop-installed AI uses the same command names**. When NextClaw Desktop launches the runtime, it exposes a managed `nextclaw` command surface to AI command tools, so self-management commands keep using `nextclaw ...` without requiring a global NPM install.
 9. **Restart live Service App runtimes before live retest**: after modifying a running Service App, use `nextclaw app restart <app-id> --json` before validating through the product UI or panel-to-service action calls.
+10. **Manage App data through the product contract**: list data with `nextclaw app data list --json`; delete only a `retained` entry with the returned data id and an exact `--confirm <app-id>`. Never replace this flow with a recursive filesystem deletion.
 
 ---
 
@@ -32,6 +33,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 - [Session management (UI)](#session-management-ui)
 - [Workspace](#workspace)
 - [Publishing Mini Apps](#publishing-mini-apps)
+- [App data and uninstall](#app-data-and-uninstall)
 - [Commands](#commands)
 - [Channels](#channels)
 - [Tools](#tools)
@@ -556,6 +558,63 @@ Personal submissions return `publishStatus: pending` and appear in the App Marke
 
 Use `https://platform.nextclaw.io/apps` to review submission status. The built-in `nextclaw-app-publisher` skill lets NextClaw AI assemble a package from existing Panel/Service directories, run the checks, guide login, and submit it with the same native commands.
 
+## App data and uninstall
+
+NextClaw separates installable code from mutable App data. Updating an App replaces versioned code without replacing its data. Uninstalling an App or removing a workspace Service App keeps its managed data by default, so reinstalling the same App can continue from the previous state. Choose **Delete app and data** only when the stored data is no longer needed.
+
+The Apps page shows the exact managed instance path and its usage in six categories: data, config, state, cache, temporary files, and logs. After an App is uninstalled, its entry remains available in **Retained App data**, where it can be reviewed and deleted independently.
+
+Default package App storage uses `NEXTCLAW_APP_HOME`, or `~/.nextclaw/apps` when the environment variable is unset:
+
+```text
+~/.nextclaw/apps/
+  packages/<app-id>/<version>/
+  instances/<app-id>/default/
+    metadata.json
+    data/
+    config/
+    state/
+    cache/
+    tmp/
+    logs/
+```
+
+A workspace Service App uses the same instance layout under the current workspace:
+
+```text
+<workspace>/.nextclaw/app-instances/<app-id>/default/
+```
+
+The managed instance is the deletion boundary. Files and directories that the user separately exposes through document permissions are external resources; uninstalling an App or deleting its retained data never deletes those external resources.
+
+To inspect the same inventory from the CLI, first make sure the NextClaw host is running, then request machine-readable output:
+
+```bash
+nextclaw status --json
+nextclaw app data list --json
+```
+
+The list contains both `active` and `retained` entries. Active data must be handled through the corresponding App uninstall or Service App removal flow. Only a retained entry can be deleted independently. Use the opaque data id returned by the latest list response and confirm the exact App id:
+
+```bash
+nextclaw app data delete <data-id> --confirm <app-id> --json
+nextclaw app data list --json
+```
+
+The second list verifies that the retained entry is gone. Do not build a data id manually and do not remove managed directories with `rm -rf`.
+
+For the low-level NApp runtime, uninstall keeps data unless `--purge-data` is present:
+
+```bash
+napp uninstall <app-id>
+napp uninstall <app-id> --purge-data
+```
+
+Service App development gets a separate, deterministic development instance. Resetting it is destructive and therefore requires both the reset flag and an exact manifest id confirmation:
+
+```bash
+nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json
+```
 
 ---
 
@@ -568,7 +627,10 @@ Use `https://platform.nextclaw.io/apps` to review submission status. The built-i
 | `nextclaw stop` | Stop the background service |
 | `nextclaw app check <app-dir>` | Check a Panel App or Service App directory |
 | `nextclaw app dev <service-app-dir>` | Start a Service App in an isolated runtime and inspect its actions |
+| `nextclaw app dev <service-app-dir> --reset-data --confirm <app-id>` | Reset that Service App's isolated development instance before starting |
 | `nextclaw app call <service-app-dir> <action-name>` | Call a Service App action in an isolated runtime |
+| `nextclaw app data list` | List active and retained App data through the running host |
+| `nextclaw app data delete <data-id> --confirm <app-id>` | Permanently delete one retained App data instance |
 | `nextclaw app validate-publish <mini-app-dir>` | Validate a schema v2 Mini App package before Marketplace submission |
 | `nextclaw app publish <mini-app-dir>` | Submit a validated Mini App to the App Marketplace for review |
 | `nextclaw app restart <app-id>` | Restart a live Service App runtime in the running UI before live retest |
