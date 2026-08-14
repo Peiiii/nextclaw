@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.36.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-14-nextclaw-v0-36-0.md",
+        "apps/docs/en/notes/2026-08-14-nextclaw-v0-36-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.36.0.json",
+        "apps/docs/zh/guide/panel-apps.md",
+        "apps/docs/en/guide/panel-apps.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "本次变化补齐既有 Apps 的数据管理和卸载闭环，不改变 NextClaw 官网首页的产品定位；双语版本页、App 指南和产品内 Apps 页面已经提供准确入口。"
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.36.0 is out.\n\nApp data now has a real lifecycle: see what each App stores, keep it safely on uninstall, restore it on reinstall, or delete it later with an explicit confirmation.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-36-0",
+      "imagePath": "images/screenshots/nextclaw-personal-space-apps-en.png",
+      "imageAlt": "NextClaw Apps view showing an installed personal app and its available panels",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-36-0"
+    }
+  }
+}

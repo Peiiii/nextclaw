@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-08-14T02:19:50.295Z",
+  "generatedAt": "2026-08-14T02:57:47.032Z",
   "hero": {
     "currentLoc": 241252,
     "testLoc": 95645,
     "trackedFiles": 2561,
-    "recentCommitCount": 397,
+    "recentCommitCount": 398,
     "activeDays30": 30,
     "recentReleaseCount": 53,
     "latestReleaseDate": "2026-08-14",
@@ -1243,7 +1243,7 @@ export default {
       {
         "key": "2026-08-14",
         "label": "08-14",
-        "value": 16
+        "value": 17
       }
     ],
     "commitWeekly": [
@@ -1305,7 +1305,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 81
+        "value": 82
       }
     ],
     "releaseMonthly": [
@@ -1493,6 +1493,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-14-nextclaw-v0-36-0",
+        "date": "2026-08-14",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-14 · NextClaw v0.36.0",
+          "description": "NextClaw v0.36.0 completes the app-data lifecycle with visible storage, data-preserving uninstall, recovery, and explicit permanent deletion.",
+          "href": "/en/notes/2026-08-14-nextclaw-v0-36-0"
+        },
+        "zh": {
+          "title": "2026-08-14 · NextClaw v0.36.0",
+          "description": "NextClaw v0.36.0 补齐 App 数据的查看、保留、恢复和永久删除，让卸载不再等于在文件系统里留下无法管理的目录。",
+          "href": "/zh/notes/2026-08-14-nextclaw-v0-36-0"
+        }
+      },
       {
         "slug": "2026-08-14-nextclaw-v0-35-0",
         "date": "2026-08-14",
@@ -2284,7 +2303,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-13T04:19:53.173Z",
     "sourceCount": {
-      "notes": 37,
+      "notes": 38,
       "scopes": 8
     }
   }

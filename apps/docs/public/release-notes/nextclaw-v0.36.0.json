@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.36.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-14",
+  "title": {
+    "zh-CN": "NextClaw v0.36.0",
+    "en-US": "NextClaw v0.36.0"
+  },
+  "summary": {
+    "zh-CN": "补齐 App 数据的查看、保留、恢复和永久删除，让卸载后的个人数据继续可见、可恢复、可管理。",
+    "en-US": "Completes the App-data lifecycle with visible storage, data-preserving uninstall, recovery, and explicit permanent deletion."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-14-nextclaw-v0-36-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-36-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "已保留的应用数据", "en-US": "Saved app data" },
+          "body": {
+            "zh-CN": "Apps 会列出卸载后保留的数据，并显示 App、受管路径、六类占用和独立永久删除入口。",
+            "en-US": "Apps lists data kept after uninstall with the App identity, managed path, six storage classes, and a dedicated permanent-delete action."
+          }
+        },
+        {
+          "title": { "zh-CN": "卸载时选择数据去留", "en-US": "Choose what uninstall removes" },
+          "body": {
+            "zh-CN": "App 与 Workspace Service 删除都默认保留个人数据，只有显式选择才会同时永久删除。",
+            "en-US": "App and Workspace Service removal keep personal data by default and delete it only after an explicit choice."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "安全的 CLI 数据管理", "en-US": "Safe CLI data management" },
+          "body": {
+            "zh-CN": "CLI 可以列出 active/retained 数据；永久删除必须同时匹配 data id 和确认的 App id。",
+            "en-US": "The CLI lists active and retained data, while permanent deletion requires both the data id and a matching App-id confirmation."
+          }
+        },
+        {
+          "title": { "zh-CN": "精确重置开发实例", "en-US": "Precise development-instance reset" },
+          "body": {
+            "zh-CN": "开发态 Service 可以带确认重置当前源码 identity 的实例，不影响同名 App 的其他数据。",
+            "en-US": "Development Services can reset the instance for the current source identity without touching other data for the same App name."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "Workspace Service 不再留下隐藏残留", "en-US": "No hidden Workspace Service leftovers" },
+          "body": {
+            "zh-CN": "保留的数据进入统一清单；source、数据和 grants 删除失败时会明确报告并尽可能恢复。",
+            "en-US": "Kept data enters the shared inventory, while failures removing source, data, or grants are reported and recovered whenever possible."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "稳定 instance，默认保留", "en-US": "Stable instances, retention by default" },
+          "body": {
+            "zh-CN": "更新、回滚和同一发布者重装继续复用现有 instance；外部授权文档从不随 App 数据删除。",
+            "en-US": "Updates, rollbacks, and same-publisher reinstalls reuse the existing instance, while externally granted documents are never deleted with App data."
+          }
+        }
+      ]
+    }
+  ]
+}
