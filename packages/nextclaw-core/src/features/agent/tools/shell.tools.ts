@@ -1,7 +1,7 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
-import { Tool, normalizeToolParams } from "./base.tools.js";
+import { Tool, normalizeToolParams, type ToolExecutionContext } from "./base.tools.js";
 import { createExternalCommandEnv } from "@core/shared/lib/core-utils/index.js";
 
 const execAsync = promisify(exec);
@@ -105,7 +105,7 @@ export class ExecTool extends Tool {
     };
   }
 
-  execute = async (args: unknown): Promise<ExecToolResult> => {
+  execute = async (args: unknown, context?: ToolExecutionContext): Promise<ExecToolResult> => {
     const params = normalizeToolParams(args);
     const command = String(params.command ?? "");
     const cwd = String(params.workingDir ?? this.options.workingDir ?? process.cwd());
@@ -119,6 +119,7 @@ export class ExecTool extends Tool {
       });
     }
 
+    context?.reportExecutionStarted?.();
     const startedAt = Date.now();
     try {
       const env = createExternalCommandEnv(process.env, {}, { cwd });

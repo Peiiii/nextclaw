@@ -55,6 +55,11 @@ export type ChatMessagePartSource =
         error?: string;
         cancelled?: boolean;
         toolCallId?: string;
+        execution?: {
+          startedAt?: string;
+          endedAt?: string;
+          durationMs?: number;
+        };
       };
     }
   | {

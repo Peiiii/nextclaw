@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   type NcpAgentServerEndpoint,
   type NcpEndpointEvent,
@@ -17,9 +17,10 @@ describe("createAgentClientFromServer", () => {
   it("routes send/stream/abort to server methods", async () => {
     const server = new FakeServerEndpoint();
     const client = createAgentClientFromServer(server);
+    const onOpen = vi.fn();
 
     await client.send(createEnvelope("hello"));
-    await client.stream({ sessionId: "session-1" });
+    await client.stream({ sessionId: "session-1" }, { onOpen });
     await client.abort({ sessionId: "session-1" });
 
     expect(server.sendCalls).toHaveLength(1);
@@ -27,6 +28,7 @@ describe("createAgentClientFromServer", () => {
     expect(server.abortCalls).toEqual([{ sessionId: "session-1" }]);
     expect(server.sendIteratorConsumed).toBe(1);
     expect(server.streamIteratorConsumed).toBe(1);
+    expect(onOpen).toHaveBeenCalledOnce();
   });
 
   it("routes request-like emit events to server request methods", async () => {

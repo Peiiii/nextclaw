@@ -1,0 +1,4 @@
+interface:
+  display_name: "Development Task Telemetry"
+  short_description: "Track task and phase token usage with portable markers"
+  default_prompt: "Use $development-task-telemetry to trace and report this development task phase by phase."

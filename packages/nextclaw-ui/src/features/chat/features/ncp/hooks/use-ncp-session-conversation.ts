@@ -19,6 +19,8 @@ import { nextclawClient } from "@/shared/lib/api";
 
 const NCP_AGENT_UNAVAILABLE_DURING_STARTUP =
   "ncp agent unavailable during startup";
+const NCP_AGENT_STREAM_OPEN_TIMEOUT_MS = 15_000;
+const NCP_AGENT_STREAM_IDLE_TIMEOUT_MS = 70_000;
 
 export { fetchNcpSessionConversationSeed } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
 
@@ -42,6 +44,8 @@ export function createNcpSessionConversationClient(): NcpHttpAgentClientEndpoint
     baseUrl: API_BASE,
     basePath: "/api/ncp/agent",
     fetchImpl: createNcpAppClientFetch(),
+    streamOpenTimeoutMs: NCP_AGENT_STREAM_OPEN_TIMEOUT_MS,
+    streamIdleTimeoutMs: NCP_AGENT_STREAM_IDLE_TIMEOUT_MS,
   });
 }
 

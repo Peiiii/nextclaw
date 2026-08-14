@@ -608,7 +608,25 @@ describe("NcpAgentSessionJournalStore tool result replay", () => {
         payload: {
           sessionId,
           toolCallId: "tool-1",
+          content: "still running",
+          final: false,
+        },
+      },
+    });
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageToolCallResult,
+        payload: {
+          sessionId,
+          toolCallId: "tool-1",
           content: "pwd output",
+          final: true,
+          execution: {
+            startedAt: "2026-05-14T00:00:00.250Z",
+            endedAt: "2026-05-14T00:00:01.500Z",
+            durationMs: 1240,
+          },
         },
       },
     });
@@ -629,8 +647,9 @@ describe("NcpAgentSessionJournalStore tool result replay", () => {
                 type: "tool-invocation",
                 toolCallId: "tool-1",
                 toolName: "Bash",
-                state: "call",
+                state: "result",
                 args: { command: "pwd" },
+                result: "stale snapshot",
               },
             ],
           },
@@ -664,6 +683,11 @@ describe("NcpAgentSessionJournalStore tool result replay", () => {
           state: "result",
           args: { command: "pwd" },
           result: "pwd output",
+          execution: {
+            startedAt: "2026-05-14T00:00:00.250Z",
+            endedAt: "2026-05-14T00:00:01.500Z",
+            durationMs: 1240,
+          },
         },
       ],
     });

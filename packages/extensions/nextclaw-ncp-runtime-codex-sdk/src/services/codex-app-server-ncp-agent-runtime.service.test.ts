@@ -1,12 +1,13 @@
 import { pathToFileURL } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NcpAgentRunInput } from "@nextclaw/ncp";
+import { NcpEventType, type NcpAgentRunInput, type NcpEndpointEvent } from "@nextclaw/ncp";
 
 const appServer = vi.hoisted(() => ({
   requests: [] as Array<{
     method: string;
     params: Record<string, unknown>;
   }>,
+  notifications: [] as Array<{ method: string; params: Record<string, unknown> }>,
 }));
 
 vi.mock("./codex-app-server-client.service.js", () => ({
@@ -32,7 +33,7 @@ vi.mock("./codex-app-server-client.service.js", () => ({
 
     nextNotification = async () => ({
       done: false as const,
-      value: {
+      value: appServer.notifications.shift() ?? {
         method: "turn/completed",
         params: {
           turn: {
@@ -65,7 +66,7 @@ const RUN_INPUT: NcpAgentRunInput = {
 async function runRuntime(
   threadId?: string,
   input: NcpAgentRunInput = RUN_INPUT,
-): Promise<void> {
+): Promise<NcpEndpointEvent[]> {
   const runtime = new CodexAppServerNcpAgentRuntime({
     sessionId: "session-1",
     apiKey: "",
@@ -80,14 +81,17 @@ async function runRuntime(
     },
     desktopThreadIndexSync: false,
   });
-  for await (const _event of runtime.run(input)) {
-    // Drain the runtime output.
+  const events: NcpEndpointEvent[] = [];
+  for await (const event of runtime.run(input)) {
+    events.push(event);
   }
+  return events;
 }
 
 describe("CodexAppServerNcpAgentRuntime NextClaw instructions", () => {
   beforeEach(() => {
     appServer.requests.length = 0;
+    appServer.notifications.length = 0;
   });
 
   it.each([
@@ -151,5 +155,55 @@ describe("CodexAppServerNcpAgentRuntime NextClaw instructions", () => {
       },
       { type: "localImage", path: imagePath },
     ]);
+  });
+
+  it("preserves commandExecution duration in the standard NCP timing contract", async () => {
+    appServer.notifications.push(
+      {
+        method: "item/started",
+        params: {
+          item: {
+            id: "command-1",
+            type: "commandExecution",
+            command: "pnpm test",
+            status: "inProgress",
+          },
+        },
+      },
+      {
+        method: "item/completed",
+        params: {
+          item: {
+            id: "command-1",
+            type: "commandExecution",
+            command: "pnpm test",
+            status: "failed",
+            exitCode: 1,
+            aggregatedOutput: "failed",
+            durationMs: 321,
+          },
+        },
+      },
+      {
+        method: "turn/completed",
+        params: { turn: { status: "completed" } },
+      },
+    );
+
+    const events = await runRuntime();
+    expect(events.find((event) => event.type === NcpEventType.MessageToolExecutionStarted)).toMatchObject({
+      payload: { messageId: expect.any(String), toolCallId: "command-1" },
+    });
+    expect(events.find((event) => event.type === NcpEventType.MessageToolCallResult)).toMatchObject({
+      payload: {
+        final: true,
+        content: { status: "failed", exit_code: 1 },
+        execution: {
+          startedAt: expect.any(String),
+          endedAt: expect.any(String),
+          durationMs: 321,
+        },
+      },
+    });
   });
 });

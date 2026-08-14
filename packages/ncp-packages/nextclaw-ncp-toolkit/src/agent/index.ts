@@ -1,5 +1,8 @@
 export { DefaultNcpAgentConversationStateManager } from "./agent-conversation-state.manager.js";
-export { insertMessageByTimeline } from "./agent-conversation-state-manager.utils.js";
+export {
+  insertMessageByTimeline,
+  mergeToolExecutionTiming,
+} from "./agent-conversation-state-manager.utils.js";
 export { createAgentClientFromServer } from "./agent-client-from-server.js";
 export {
   EventPublisher,

@@ -284,7 +284,8 @@ function toUiParts(parts: NcpMessagePart[]): UIMessage['parts'] {
           toolCallId: part.toolCallId ?? `${part.toolName}-${Math.random().toString(36).slice(2, 8)}`,
           toolName: part.toolName,
           args: stringifyUnknown(part.args),
-          result: part.result
+          result: part.result,
+          ...(part.execution ? { execution: { ...part.execution } } : {})
         }
       });
     }

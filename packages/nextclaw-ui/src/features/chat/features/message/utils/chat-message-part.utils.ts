@@ -179,6 +179,8 @@ function buildToolInvocationPart(
     text: shouldShowRawResult && rawResult ? rawResult : undefined,
     outputData: invocation.result,
     callId: invocation.toolCallId || undefined,
+    toolCallId: invocation.toolCallId || undefined,
+    ...(invocation.execution ? { execution: invocation.execution } : {}),
     hasResult: statusView.hasResult,
     statusTone: invalidArgsError ? "error" : statusView.statusTone,
     statusLabel: invalidArgsError ? texts.toolStatusFailedLabel : statusView.statusLabel,

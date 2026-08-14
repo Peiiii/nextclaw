@@ -5,6 +5,7 @@ import {
   type NcpContextWindowUpdatedPayload,
   type NcpEndpointEvent,
   type NcpError,
+  type NcpFailedEnvelope,
   type NcpMessage,
   type NcpMessageAbortPayload,
   type NcpMessageRole,
@@ -27,7 +28,7 @@ import {
   type NcpToolCallEndPayload,
   type NcpToolCallResultPayload,
   type NcpToolCallStartPayload,
-  NcpEventType
+  type NcpToolExecutionStartedPayload
 } from "@nextclaw/ncp";
 import { cloneConversationMessage, normalizeConversationMessage } from "./agent-conversation-message-normalizer.js";
 import { AgentRunExecutionMetadataManager } from "./agent-run-execution-metadata.manager.js";
@@ -39,6 +40,7 @@ import {
   insertMessageByTimeline,
   prependConversationHistory,
   readMessageLifecycleFromRunPayload,
+  routeAgentConversationEvent,
   settleMessageWithLifecycle,
   shouldPromoteStreamingMessageId
 } from "./agent-conversation-state-manager.utils.js";
@@ -161,72 +163,8 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   dispatchBatch = async (events: readonly NcpEndpointEvent[]): Promise<void> => {
     if (!events.length) return;
     const versionBeforeDispatch = this.stateVersion;
-    events.forEach(this.applyEvent);
+    events.forEach((event) => routeAgentConversationEvent(this, event));
     if (this.stateVersion !== versionBeforeDispatch) this.notifyListeners();
-  };
-
-  private applyEvent = (event: NcpEndpointEvent): void => {
-    switch (event.type) {
-      case NcpEventType.MessageSent:
-        this.handleMessageSent(event.payload);
-        break;
-      case NcpEventType.MessageAbort:
-        this.handleMessageAbort(event.payload);
-        break;
-      case NcpEventType.MessageTextStart:
-        this.handleMessageTextStart(event.payload);
-        break;
-      case NcpEventType.MessageTextDelta:
-        this.handleMessageTextDelta(event.payload);
-        break;
-      case NcpEventType.MessageTextEnd:
-        this.handleMessageTextEnd(event.payload);
-        break;
-      case NcpEventType.MessageReasoningStart:
-        this.handleMessageReasoningStart(event.payload);
-        break;
-      case NcpEventType.MessageReasoningDelta:
-        this.handleMessageReasoningDelta(event.payload);
-        break;
-      case NcpEventType.MessageReasoningEnd:
-        this.handleMessageReasoningEnd(event.payload);
-        break;
-      case NcpEventType.MessageToolCallStart:
-        this.handleMessageToolCallStart(event.payload);
-        break;
-      case NcpEventType.MessageToolCallArgs:
-        this.handleMessageToolCallArgs(event.payload);
-        break;
-      case NcpEventType.MessageToolCallArgsDelta:
-        this.handleMessageToolCallArgsDelta(event.payload);
-        break;
-      case NcpEventType.MessageToolCallEnd:
-        this.handleMessageToolCallEnd(event.payload);
-        break;
-      case NcpEventType.MessageToolCallResult:
-        this.handleMessageToolCallResult(event.payload);
-        break;
-      case NcpEventType.RunStarted:
-        this.handleRunStarted(event.payload);
-        break;
-      case NcpEventType.RunFinished:
-        this.handleRunFinished(event.payload);
-        break;
-      case NcpEventType.RunError:
-        this.handleRunError(event.payload);
-        break;
-      case NcpEventType.RunMetadata:
-        this.handleRunMetadata(event.payload);
-        break;
-      case NcpEventType.ContextWindowUpdated:
-        this.handleContextWindowUpdated(event.payload);
-        break;
-      case NcpEventType.EndpointError:
-        this.handleEndpointError(event.payload);
-        break;
-      default:
-        break;
-    }
   };
 
   handleMessageSent = (payload: NcpMessageSentPayload): void => {
@@ -234,7 +172,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.setError(null);
   };
 
-  handleMessageAbort = (payload: NcpMessageAbortPayload): void => {
+  handleMessageAbort = (payload: NcpMessageAbortPayload, occurredAt?: string): void => {
     const targetMessageId = payload.messageId?.trim();
     const execution = this.runExecution.take(payload.runId ?? this.activeRun?.runId);
     this.clearActiveRun();
@@ -242,7 +180,10 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
     if (this.streamingMessage && (!targetMessageId || this.streamingMessage.id === targetMessageId)) {
       const streamingMessageId = this.streamingMessage.id;
-      const { parts: nextParts, toolCallIds } = cancelInFlightToolInvocations(this.streamingMessage.parts);
+      const { parts: nextParts, toolCallIds } = cancelInFlightToolInvocations(
+        this.streamingMessage.parts,
+        occurredAt,
+      );
       this.upsertMessage(
         this.runExecution.attach(
           {
@@ -257,6 +198,18 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       this.toolCalls.clearByMessageId(targetMessageId || streamingMessageId);
       this.toolCalls.markAborted(toolCallIds);
     }
+  };
+
+  handleMessageFailed = (payload: NcpFailedEnvelope, occurredAt?: string): void => {
+    if (this.streamingMessage && (!payload.messageId || this.streamingMessage.id === payload.messageId)) {
+      this.settleStreamingMessage(
+        "error",
+        occurredAt ? { endedAt: occurredAt } : undefined,
+        this.activeRun?.runId,
+      );
+    }
+    this.clearActiveRun();
+    this.setError(payload.error);
   };
 
   handleMessageTextStart = (payload: NcpTextStartPayload): void => {
@@ -363,14 +316,24 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.toolCalls.handleToolCallEnd(payload);
   };
 
-  handleMessageToolCallResult = (payload: NcpToolCallResultPayload): void => {
-    this.toolCalls.handleToolCallResult(payload);
+  handleMessageToolExecutionStarted = (
+    payload: NcpToolExecutionStartedPayload,
+    occurredAt?: string,
+  ): void => {
+    this.toolCalls.handleToolExecutionStarted(payload, occurredAt);
   };
 
-  handleRunStarted = (payload: NcpRunStartedPayload): void => {
+  handleMessageToolCallResult = (payload: NcpToolCallResultPayload, occurredAt?: string): void => {
+    this.toolCalls.handleToolCallResult(payload, occurredAt);
+  };
+
+  handleRunStarted = (payload: NcpRunStartedPayload, occurredAt?: string): void => {
     if (this.isSettledRunId(payload.runId) || (payload.runId && this.activeRun?.runId === payload.runId)) return;
     if (this.streamingMessage && this.activeRun?.runId !== payload.runId) {
-      this.handleMessageAbort({ sessionId: this.streamingMessage.sessionId, messageId: this.streamingMessage.id });
+      this.handleMessageAbort(
+        { sessionId: this.streamingMessage.sessionId, messageId: this.streamingMessage.id },
+        occurredAt,
+      );
     }
     this.runExecution.clear();
     this.setError(null);
@@ -381,16 +344,30 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.stateVersion += 1;
   };
 
-  handleRunFinished = (payload: NcpRunFinishedPayload): void => {
+  handleRunFinished = (payload: NcpRunFinishedPayload, occurredAt?: string): void => {
     this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
-    this.settleStreamingMessage("final", readMessageLifecycleFromRunPayload(payload), payload.runId ?? this.activeRun?.runId);
+    this.settleStreamingMessage(
+      "final",
+      readMessageLifecycleFromRunPayload({
+        ...payload,
+        endedAt: payload.endedAt ?? occurredAt,
+      }),
+      payload.runId ?? this.activeRun?.runId,
+    );
     this.setError(null);
     this.clearActiveRun();
   };
 
-  handleRunError = (payload: NcpRunErrorPayload): void => {
+  handleRunError = (payload: NcpRunErrorPayload, occurredAt?: string): void => {
     this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
-    this.settleStreamingMessage("error", readMessageLifecycleFromRunPayload(payload), payload.runId ?? this.activeRun?.runId);
+    this.settleStreamingMessage(
+      "error",
+      readMessageLifecycleFromRunPayload({
+        ...payload,
+        endedAt: payload.endedAt ?? occurredAt,
+      }),
+      payload.runId ?? this.activeRun?.runId,
+    );
     this.setError(buildRuntimeError(payload));
     this.clearActiveRun();
   };
@@ -418,15 +395,15 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.stateVersion += 1;
   };
 
-  handleEndpointError = (payload: NcpError): void => {
+  handleEndpointError = (payload: NcpError, occurredAt?: string): void => {
     if (payload.code === "abort-error") {
       this.handleMessageAbort({
         sessionId: this.activeRun?.sessionId ?? this.streamingMessage?.sessionId ?? "",
         ...(this.streamingMessage?.id ? { messageId: this.streamingMessage.id } : {})
-      });
+      }, occurredAt);
       return;
     }
-    this.settleStreamingMessage("error");
+    this.settleStreamingMessage("error", occurredAt ? { endedAt: occurredAt } : undefined);
     this.clearActiveRun();
     this.setError(payload);
   };

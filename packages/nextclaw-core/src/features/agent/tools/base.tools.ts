@@ -14,6 +14,7 @@ export type ToolSchema = {
 
 export type ToolExecutionContext = {
   toolCallId: string;
+  reportExecutionStarted?: () => void;
   updateToolCallResult?: (result: unknown) => Promise<void>;
 };
 
@@ -22,6 +23,7 @@ export function createToolExecutionContext(
 ): ToolExecutionContext {
   return {
     toolCallId: context.toolCallId ?? "",
+    reportExecutionStarted: context.reportExecutionStarted,
     updateToolCallResult: context.updateToolCallResult,
   };
 }

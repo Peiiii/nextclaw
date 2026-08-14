@@ -37,8 +37,8 @@
 
 ## Skill 渐进式加载
 
-- Skill 的目标是渐进加载，不是组成默认全家桶。普通源码、脚本、测试或运行链路任务开始时只加载 `development-lifecycle`；它按 Discovery、Design、Implementation、Validation、Review、Delivery、Retrospective 顺序只路由当前阶段 owner，不预读未来阶段。
-- 用户明确只要求需求/代码调查、方案设计、验证、code review、交付发布或复盘时，可直接加载对应的 `development-discovery`、`development-design`、`development-validation`、`development-review`、`development-delivery`、`development-retrospective`；修改规则系统时加载 `nextclaw-agent-instructions-governance`。
+- Skill 的目标是渐进加载，不是组成默认全家桶。普通源码、脚本、测试或运行链路任务开始时只加载 `development-lifecycle`；它按 Task Understanding、Design、Implementation、Validation、Review、Delivery、Retrospective 顺序只路由当前阶段 owner，不预读未来阶段。
+- 用户明确只要求任务理解/代码调查、方案设计、验证、code review、交付发布或复盘时，可直接加载对应的 `development-task-understanding`、`development-design`、`development-validation`、`development-review`、`development-delivery`、`development-retrospective`；修改规则系统时加载 `nextclaw-agent-instructions-governance`。
 - 其它专项 skill 只按明确意图或真实触达面加载。不要因为未来阶段“可能会用”而预读，也不要因一个任务同时符合多个泛词就加载多个相邻原则 skill。
 - 同一逻辑任务内已经完整读取且未变化的 skill 不重复读取；skill 的 references 只在入口写明的条件成立时读取，禁止批量读取整个 references 目录。
 - Lifecycle 只向当前阶段路由；阶段 owner 不得直接调用其它阶段或回链 lifecycle，专项 skill 不得回链上游。一个判断分支最多要求一个直接下游；多个 skill 看似同时适用时，选择拥有当前决策的单一 owner。

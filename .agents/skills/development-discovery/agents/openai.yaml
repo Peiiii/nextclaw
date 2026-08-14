@@ -1,4 +1,0 @@
-interface:
-  display_name: "Development Discovery"
-  short_description: "明确需求、成功条件和完整代码证据链"
-  default_prompt: "使用 $development-discovery 明确目标、范围、成功条件与风险，并沿 producer、owner、boundary、consumer 调查足够完整的现状证据。"

@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import {
   createNcpEndpointEvent as createRuntimeEvent,
   type NcpAssistantReasoningNormalizationMode,
@@ -35,6 +36,64 @@ import {
 type RuntimeEncodeContext = NcpEncodeContext & {
   startedAt: string;
 };
+
+type RuntimeToolExecutionResult = {
+  result: NcpToolCallResult;
+  execution?: {
+    startedAt: string;
+    endedAt: string;
+    durationMs: number;
+  };
+};
+
+type RuntimeToolEventQueueItem = {
+  event: NcpEndpointEvent;
+  resolveApplied(): void;
+};
+
+class RuntimeToolEventQueue {
+  private readonly buffered: RuntimeToolEventQueueItem[] = [];
+  private readonly waiters: Array<(item: RuntimeToolEventQueueItem | null) => void> = [];
+  private closed = false;
+
+  publish = (event: NcpEndpointEvent): Promise<void> => {
+    if (this.closed) return Promise.reject(new Error("Tool event queue is closed."));
+    return new Promise((resolveApplied) => {
+      const item = { event, resolveApplied };
+      const waiter = this.waiters.shift();
+      if (waiter) {
+        waiter(item);
+        return;
+      }
+      this.buffered.push(item);
+    });
+  };
+
+  close = (): void => {
+    if (this.closed) return;
+    this.closed = true;
+    for (const waiter of this.waiters.splice(0)) waiter(null);
+  };
+
+  events = async function* (this: RuntimeToolEventQueue): AsyncGenerator<NcpEndpointEvent> {
+    while (true) {
+      const item = await this.next();
+      if (!item) return;
+      try {
+        yield item.event;
+      } finally {
+        item.resolveApplied();
+      }
+    }
+  };
+
+  private next = (): Promise<RuntimeToolEventQueueItem | null> => {
+    const item = this.buffered.shift();
+    if (item) return Promise.resolve(item);
+    if (this.closed) return Promise.resolve(null);
+    return new Promise((resolve) => this.waiters.push(resolve));
+  };
+}
 
 export type DefaultNcpAgentRuntimeConfig = {
   contextBuilder: NcpContextBuilder;
@@ -145,10 +204,26 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
 
       const toolResults: NcpToolCallResult[] = [];
       for (const toolCall of roundCollector.getToolCalls()) {
+        const toolEvents = new RuntimeToolEventQueue();
+        const executionOutcome = this.executeToolCall(
+          toolCall,
+          ctx,
+          toolEvents.publish,
+          options?.signal,
+        ).then(
+          (value) => ({ ok: true as const, value }),
+          (error: unknown) => ({ ok: false as const, error }),
+        ).finally(toolEvents.close);
+        for await (const event of toolEvents.events()) {
+          yield event;
+        }
+        const outcome = await executionOutcome;
+        if (!outcome.ok) throw outcome.error;
         const toolResult = this.toolResultContentManager.normalizeToolCallResult(
-          await this.executeToolCall(toolCall, ctx),
+          outcome.value.result,
         );
         toolResults.push(toolResult);
+        const endedAt = outcome.value.execution?.endedAt ?? new Date().toISOString();
         yield createRuntimeEvent({
           type: NcpEventType.MessageToolCallResult,
           payload: {
@@ -156,8 +231,10 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
             toolCallId: toolCall.toolCallId,
             content: toolResult.result,
             contentItems: toolResult.contentItems,
+            final: true,
+            ...(outcome.value.execution ? { execution: outcome.value.execution } : {}),
           },
-        });
+        }, endedAt);
       }
 
       if (toolResults.length === 0) {
@@ -190,11 +267,33 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
     this: DefaultNcpAgentRuntime,
     toolCall: CollectedToolCall,
     ctx: RuntimeEncodeContext,
-  ): Promise<NcpToolCallResult> {
-    return executeCollectedToolCall({
+    publishToolEvent: (event: NcpEndpointEvent) => Promise<void>,
+    signal?: AbortSignal,
+  ): Promise<RuntimeToolExecutionResult> {
+    let executionStartedAt: string | undefined;
+    let executionStartedMonotonic: number | undefined;
+    let executionStartedEventApplied: Promise<void> | undefined;
+    let executionStartedEventError: unknown;
+    const result = await executeCollectedToolCall({
       toolCall,
       tool: this.toolRegistry.getTool(toolCall.toolName),
       execute: async (tool, args) => {
+        const reportExecutionStarted = (): void => {
+          if (executionStartedAt) return;
+          executionStartedAt = new Date().toISOString();
+          executionStartedMonotonic = performance.now();
+          executionStartedEventApplied = publishToolEvent(createRuntimeEvent({
+            type: NcpEventType.MessageToolExecutionStarted,
+            payload: {
+              sessionId: ctx.sessionId,
+              messageId: ctx.messageId,
+              toolCallId: toolCall.toolCallId,
+              correlationId: ctx.correlationId,
+            },
+          }, executionStartedAt)).catch((error: unknown) => {
+            executionStartedEventError = error;
+          });
+        };
         const updateToolCallResult = async (updatedResult: unknown): Promise<void> => {
           const normalized = this.toolResultContentManager.normalizeToolCallResult({
             toolCallId: toolCall.toolCallId,
@@ -205,7 +304,7 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
             rawArgsText: toolCall.args,
             result: updatedResult,
           });
-          await this.stateManager.dispatch(createRuntimeEvent({
+          await publishToolEvent(createRuntimeEvent({
             type: NcpEventType.MessageToolCallResult,
             payload: {
               sessionId: ctx.sessionId,
@@ -213,17 +312,37 @@ export class DefaultNcpAgentRuntime implements NcpAgentRuntime {
               content: normalized.result,
               contentItems: normalized.contentItems,
               correlationId: ctx.correlationId,
+              final: false,
             },
           }));
         };
         return tool
           ? await tool.execute(args, {
+              abortSignal: signal,
               toolCallId: toolCall.toolCallId,
+              reportExecutionStarted,
               updateToolCallResult,
             })
           : undefined;
       },
     });
+    const endedAt = new Date().toISOString();
+    const durationMs = executionStartedMonotonic !== undefined
+      ? Math.max(0, performance.now() - executionStartedMonotonic)
+      : undefined;
+    await executionStartedEventApplied;
+    if (executionStartedEventError) throw executionStartedEventError;
+    if (!executionStartedAt || durationMs === undefined) {
+      return { result };
+    }
+    return {
+      result,
+      execution: {
+        startedAt: executionStartedAt,
+        endedAt,
+        durationMs,
+      },
+    };
   };
 
   private tapStream = async function* (

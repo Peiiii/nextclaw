@@ -16,6 +16,12 @@ type LanguageModelV1Source = {
   providerMetadata?: LanguageModelV1ProviderMetadata;
 };
 
+export type ToolExecutionTiming = {
+  startedAt?: string;
+  endedAt?: string;
+  durationMs?: number;
+};
+
 export interface ToolInvocation<ARGS = unknown, RESULT = unknown> {
   status: ToolInvocationStatus;
   toolCallId: string;
@@ -25,6 +31,7 @@ export interface ToolInvocation<ARGS = unknown, RESULT = unknown> {
   result?: RESULT;
   error?: string;
   cancelled?: boolean;
+  execution?: ToolExecutionTiming;
 }
 
 export interface UIMessage {

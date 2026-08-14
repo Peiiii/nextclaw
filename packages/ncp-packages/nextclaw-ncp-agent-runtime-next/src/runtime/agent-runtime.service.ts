@@ -2,8 +2,6 @@ import { randomUUID } from "node:crypto";
 import {
   defaultToolResultContentManager,
   DefaultNcpStreamEncoder,
-  executeCollectedToolCall,
-  type CollectedToolCall,
   type ToolResultContentManager,
 } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -27,6 +25,7 @@ import type {
 } from "./runtime-tool-call-executor.service.js";
 import { runModelRoundWithRecovery } from "./runtime-model-round-recovery.manager.js";
 import { AgentRunExecutionManager } from "./agent-run-execution.manager.js";
+import { RuntimeToolCallExecutionService } from "./runtime-tool-call-execution.service.js";
 
 export type AgentRuntimeSessionStateSnapshot = {
   messages: readonly NcpMessage[];
@@ -165,7 +164,7 @@ export class DefaultNcpAgentRuntime {
   private readonly runPreflight?: AgentRunPreflight;
   private readonly reasoningNormalizationMode: NcpAssistantReasoningNormalizationMode;
   private readonly streamEncoder: NcpStreamEncoder;
-  private readonly toolResultContentManager: ToolResultContentManager;
+  private readonly toolCallExecution: RuntimeToolCallExecutionService;
 
   constructor(config: DefaultNcpAgentRuntimeConfig) {
     const {
@@ -186,8 +185,9 @@ export class DefaultNcpAgentRuntime {
         reasoningNormalizationMode: this.reasoningNormalizationMode,
         toolCallEndMode: "sequential-index",
       });
-    this.toolResultContentManager =
-      toolResultContentManager ?? defaultToolResultContentManager;
+    this.toolCallExecution = new RuntimeToolCallExecutionService(
+      toolResultContentManager ?? defaultToolResultContentManager,
+    );
   }
 
   // eslint-disable-next-line max-statements
@@ -254,8 +254,8 @@ export class DefaultNcpAgentRuntime {
           applyEvent: this.applyEvent,
           drainRuntimeEvents: (encoded, toolExecutor) =>
             this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal),
-          executeToolCall: (toolCall, publishToolResult) =>
-            this.executeToolCall(tools, sessionId, spec, toolCall, publishToolResult, signal),
+          executeToolCall: (toolCall, publishToolEvent) =>
+            this.toolCallExecution.execute({ tools, sessionId, messageId, spec, toolCall, publishToolEvent, signal }),
           supportsParallelToolCalls: (toolCall) =>
             tools.find((tool) => tool.name === toolCall.toolName)?.supportsParallelToolCalls === true,
           executionManager,
@@ -525,62 +525,4 @@ export class DefaultNcpAgentRuntime {
     return event;
   };
 
-  private executeToolCall = async (
-    tools: readonly NcpTool[],
-    sessionId: string,
-    spec: DefaultNcpAgentRunSpec,
-    toolCall: CollectedToolCall,
-    publishToolResult: (event: NcpEndpointEvent) => Promise<void>,
-    signal?: AbortSignal,
-  ): Promise<NcpEndpointEvent> => {
-    const tool = tools.find((candidate) => candidate.name === toolCall.toolName);
-    const result = this.toolResultContentManager.normalizeToolCallResult(
-      await executeCollectedToolCall({
-        toolCall,
-        tool,
-        execute: (availableTool, args) => {
-          if (!availableTool) {
-            throw new Error("Tool is not available in this run.");
-          }
-          const updateToolCallResult = async (updatedResult: unknown): Promise<void> => {
-            const normalized = this.toolResultContentManager.normalizeToolCallResult({
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              args: typeof args === "object" && args !== null && !Array.isArray(args)
-                ? args as Record<string, unknown>
-                : null,
-              rawArgsText: toolCall.args,
-              result: updatedResult,
-            });
-            const event = createRuntimeEvent({
-              type: NcpEventType.MessageToolCallResult,
-              payload: {
-                sessionId,
-                toolCallId: toolCall.toolCallId,
-                correlationId: spec.correlationId,
-                content: normalized.result,
-                contentItems: normalized.contentItems,
-              },
-            });
-            await publishToolResult(event);
-          };
-          return availableTool.execute(args, {
-            abortSignal: signal,
-            toolCallId: toolCall.toolCallId,
-            updateToolCallResult,
-          });
-        },
-      }),
-    );
-    return createRuntimeEvent({
-      type: NcpEventType.MessageToolCallResult,
-      payload: {
-        sessionId,
-        toolCallId: toolCall.toolCallId,
-        correlationId: spec.correlationId,
-        content: result.result,
-        contentItems: result.contentItems,
-      },
-    });
-  };
 }

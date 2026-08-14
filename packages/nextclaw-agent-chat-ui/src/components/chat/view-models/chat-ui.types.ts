@@ -401,12 +401,18 @@ export type ChatInlineDisplayViewModel = {
 export type ChatToolPartViewModel = {
   kind: "call" | "result";
   toolName: string;
+  toolCallId?: string;
   agentId?: string;
   summary?: string;
   inputLabel?: string;
   input?: string;
   output?: string;
   outputData?: unknown;
+  execution?: {
+    startedAt?: string;
+    endedAt?: string;
+    durationMs?: number;
+  };
   hasResult: boolean;
   statusTone: "running" | "success" | "error" | "cancelled";
   statusLabel: string;

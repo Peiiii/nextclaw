@@ -1,7 +1,145 @@
-import type { NcpError, NcpMessage, NcpMessageStatus, NcpRunErrorPayload, NcpRunFinishedPayload } from "@nextclaw/ncp";
+import {
+  type NcpAgentConversationStateManager,
+  type NcpEndpointEvent,
+  type NcpError,
+  NcpEventType,
+  type NcpMessage,
+  type NcpMessageStatus,
+  type NcpRunErrorPayload,
+  type NcpRunFinishedPayload,
+  type NcpToolExecutionTiming,
+} from "@nextclaw/ncp";
 import { normalizeConversationMessage } from "./agent-conversation-message-normalizer.js";
 
 export const ABORTED_TOOL_CALL_SENTINEL = "__nextclaw_aborted_tool_call__";
+
+export function routeAgentConversationEvent(
+  manager: NcpAgentConversationStateManager,
+  event: NcpEndpointEvent,
+): void {
+  switch (event.type) {
+    case NcpEventType.MessageSent:
+      manager.handleMessageSent(event.payload);
+      break;
+    case NcpEventType.MessageAbort:
+      manager.handleMessageAbort(event.payload, event.occurredAt);
+      break;
+    case NcpEventType.MessageFailed:
+      manager.handleMessageFailed(event.payload, event.occurredAt);
+      break;
+    case NcpEventType.MessageTextStart:
+      manager.handleMessageTextStart(event.payload);
+      break;
+    case NcpEventType.MessageTextDelta:
+      manager.handleMessageTextDelta(event.payload);
+      break;
+    case NcpEventType.MessageTextEnd:
+      manager.handleMessageTextEnd(event.payload);
+      break;
+    case NcpEventType.MessageReasoningStart:
+      manager.handleMessageReasoningStart(event.payload);
+      break;
+    case NcpEventType.MessageReasoningDelta:
+      manager.handleMessageReasoningDelta(event.payload);
+      break;
+    case NcpEventType.MessageReasoningEnd:
+      manager.handleMessageReasoningEnd(event.payload);
+      break;
+    case NcpEventType.MessageToolCallStart:
+      manager.handleMessageToolCallStart(event.payload);
+      break;
+    case NcpEventType.MessageToolCallArgs:
+      manager.handleMessageToolCallArgs(event.payload);
+      break;
+    case NcpEventType.MessageToolCallArgsDelta:
+      manager.handleMessageToolCallArgsDelta(event.payload);
+      break;
+    case NcpEventType.MessageToolCallEnd:
+      manager.handleMessageToolCallEnd(event.payload);
+      break;
+    case NcpEventType.MessageToolExecutionStarted:
+      manager.handleMessageToolExecutionStarted(event.payload, event.occurredAt);
+      break;
+    case NcpEventType.MessageToolCallResult:
+      manager.handleMessageToolCallResult(event.payload, event.occurredAt);
+      break;
+    case NcpEventType.RunStarted:
+      manager.handleRunStarted(event.payload, event.occurredAt);
+      break;
+    case NcpEventType.RunFinished:
+      manager.handleRunFinished(event.payload, event.occurredAt);
+      break;
+    case NcpEventType.RunError:
+      manager.handleRunError(event.payload, event.occurredAt);
+      break;
+    case NcpEventType.RunMetadata:
+      manager.handleRunMetadata(event.payload);
+      break;
+    case NcpEventType.ContextWindowUpdated:
+      manager.handleContextWindowUpdated(event.payload);
+      break;
+    case NcpEventType.EndpointError:
+      manager.handleEndpointError(event.payload, event.occurredAt);
+      break;
+    default:
+      break;
+  }
+}
+
+export function normalizeToolExecutionTiming(
+  execution: NcpToolExecutionTiming | undefined,
+  fallbackEndedAt?: string,
+): NcpToolExecutionTiming | undefined {
+  const startedAt = normalizeToolExecutionTimestamp(execution?.startedAt);
+  const endedAt = normalizeToolExecutionTimestamp(execution?.endedAt ?? fallbackEndedAt);
+  const durationMs = execution?.durationMs;
+  const normalizedDurationMs =
+    typeof durationMs === "number" && Number.isFinite(durationMs) && durationMs >= 0
+      ? durationMs
+      : undefined;
+  if (!startedAt && !endedAt && normalizedDurationMs === undefined) return undefined;
+  return {
+    ...(startedAt ? { startedAt } : {}),
+    ...(endedAt ? { endedAt } : {}),
+    ...(normalizedDurationMs !== undefined ? { durationMs: normalizedDurationMs } : {}),
+  };
+}
+
+export function normalizeToolExecutionTimestamp(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : undefined;
+}
+
+export function mergeToolExecutionTiming(
+  current: NcpToolExecutionTiming | undefined,
+  incoming: NcpToolExecutionTiming | undefined,
+): NcpToolExecutionTiming | undefined {
+  if (!current) return incoming;
+  if (!incoming) return current;
+  const normalizedCurrent = normalizeToolExecutionTiming(current);
+  const normalizedIncoming = normalizeToolExecutionTiming(incoming);
+  const currentStartedAt = normalizedCurrent?.startedAt;
+  const incomingStartedAt = normalizedIncoming?.startedAt;
+  const startedAt = currentStartedAt && incomingStartedAt
+    ? Date.parse(currentStartedAt) <= Date.parse(incomingStartedAt)
+      ? currentStartedAt
+      : incomingStartedAt
+    : currentStartedAt ?? incomingStartedAt;
+  const currentDuration = normalizedCurrent?.durationMs;
+  const incomingDuration = normalizedIncoming?.durationMs;
+  const durationMs = currentDuration ?? incomingDuration;
+  const endedAt = currentDuration !== undefined
+    ? normalizedCurrent?.endedAt ?? normalizedIncoming?.endedAt
+    : incomingDuration !== undefined
+      ? normalizedIncoming?.endedAt ?? normalizedCurrent?.endedAt
+      : normalizedCurrent?.endedAt ?? normalizedIncoming?.endedAt;
+  return {
+    ...(startedAt ? { startedAt } : {}),
+    ...(endedAt ? { endedAt } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
+  };
+}
 
 export function buildRuntimeError(payload: NcpRunErrorPayload): NcpError {
   const message = payload.error?.trim();
@@ -34,8 +172,8 @@ export function settleMessageWithLifecycle(
   status: Extract<NcpMessageStatus, "final" | "error">,
   lifecycle?: NcpMessage["lifecycle"]
 ): NcpMessage {
-  const parts = status === "error"
-    ? cancelInFlightToolInvocations(message.parts).parts
+  const parts = status === "error" || lifecycle?.endedAt
+    ? cancelInFlightToolInvocations(message.parts, lifecycle?.endedAt).parts
     : message.parts;
   return lifecycle
     ? {
@@ -127,7 +265,12 @@ export function upsertToolInvocationPart(
     if (part.type === "tool-invocation" && part.toolCallId === toolPart.toolCallId) {
       nextParts[index] = {
         ...part,
-        ...toolPart
+        ...toolPart,
+        ...(
+          part.execution || toolPart.execution
+            ? { execution: { ...part.execution, ...toolPart.execution } }
+            : {}
+        ),
       };
       return nextParts;
     }
@@ -136,11 +279,18 @@ export function upsertToolInvocationPart(
   return nextParts;
 }
 
-export function cancelInFlightToolInvocations(parts: NcpMessage["parts"]): {
+export function cancelInFlightToolInvocations(
+  parts: NcpMessage["parts"],
+  endedAt?: string,
+): {
   parts: NcpMessage["parts"];
   toolCallIds: string[];
 } {
   const toolCallIds: string[] = [];
+  const parsedEndedAt = endedAt ? Date.parse(endedAt) : NaN;
+  const normalizedEndedAt = Number.isFinite(parsedEndedAt)
+    ? new Date(parsedEndedAt).toISOString()
+    : undefined;
   return {
     parts: parts.map((part) => {
       if (part.type !== "tool-invocation" || !part.toolCallId || part.state === "result" || part.state === "cancelled") {
@@ -149,7 +299,17 @@ export function cancelInFlightToolInvocations(parts: NcpMessage["parts"]): {
       toolCallIds.push(part.toolCallId);
       return {
         ...part,
-        state: "cancelled" as const
+        state: "cancelled" as const,
+        ...(
+          part.execution?.startedAt && !part.execution.endedAt
+            ? {
+                execution: {
+                  ...part.execution,
+                  ...(normalizedEndedAt ? { endedAt: normalizedEndedAt } : {}),
+                },
+              }
+            : {}
+        ),
       };
     }),
     toolCallIds

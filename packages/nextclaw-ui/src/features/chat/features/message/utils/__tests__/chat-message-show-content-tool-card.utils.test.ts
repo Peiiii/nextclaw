@@ -237,3 +237,49 @@ describe("buildShowContentToolCard", () => {
     });
   });
 });
+
+describe("buildToolCard terminal outcome and timing", () => {
+  it.each([
+    [{ command: "false", ok: false, exitCode: 1 }, "error", "Failed"],
+    [{ command: "rm -rf /", blocked: true, status: "blocked" }, "error", "Failed"],
+    [{ command: "sleep 5", status: "cancelled" }, "cancelled", "Cancelled"],
+    [{ command: "pwd", status: "completed", exit_code: 0 }, "success", "Completed"],
+  ] as const)("normalizes terminal result %o", (outputData, statusTone, statusLabel) => {
+    expect(buildToolCard({
+      kind: "result",
+      name: "commandExecution",
+      detail: "command: pwd",
+      hasResult: true,
+      statusTone: "success",
+      statusLabel: "Completed",
+      outputData,
+    }, TEXTS)).toMatchObject({ statusTone, statusLabel });
+  });
+
+  it("only exposes standard execution timing and preserves the stable tool call identity", () => {
+    const card = buildToolCard({
+      kind: "result",
+      name: "exec",
+      detail: "command: pnpm test",
+      hasResult: true,
+      statusTone: "success",
+      statusLabel: "Completed",
+      toolCallId: "tool-timing-1",
+      outputData: { command: "pnpm test", durationMs: 999_999 },
+      execution: { durationMs: 4270 },
+    }, TEXTS);
+    expect(card).toMatchObject({
+      toolCallId: "tool-timing-1",
+      execution: { durationMs: 4270 },
+    });
+    expect(buildToolCard({
+      kind: "result",
+      name: "exec",
+      detail: "command: pnpm test",
+      hasResult: true,
+      statusTone: "success",
+      statusLabel: "Completed",
+      outputData: { command: "pnpm test", durationMs: 999_999 },
+    }, TEXTS).execution).toBeUndefined();
+  });
+});

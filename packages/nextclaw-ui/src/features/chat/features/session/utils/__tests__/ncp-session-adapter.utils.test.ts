@@ -35,6 +35,33 @@ it('preserves NCP extension parts for the chat presentation adapter', () => {
   ]);
 });
 
+it('preserves standard tool execution timing without reading opaque result timing', () => {
+  const adapted = adaptNcpMessageToUiMessage({
+    id: 'ncp-message-timing-1',
+    sessionId: 'ncp-session-1',
+    role: 'assistant',
+    status: 'streaming',
+    timestamp: '2026-08-14T00:00:00.000Z',
+    parts: [{
+      type: 'tool-invocation',
+      toolCallId: 'tool-timing-1',
+      toolName: 'exec',
+      state: 'call',
+      args: { command: 'pnpm test' },
+      result: { durationMs: 999_999 },
+      execution: { startedAt: '2026-08-14T00:00:01.000Z' },
+    }],
+  });
+
+  expect(adapted.parts[0]).toMatchObject({
+    type: 'tool-invocation',
+    toolInvocation: {
+      toolCallId: 'tool-timing-1',
+      execution: { startedAt: '2026-08-14T00:00:01.000Z' },
+    },
+  });
+});
+
 describe('adaptNcpSessionSummary', () => {
   it('maps session metadata into shared session entry fields', () => {
     const adapted = adaptNcpSessionSummary(

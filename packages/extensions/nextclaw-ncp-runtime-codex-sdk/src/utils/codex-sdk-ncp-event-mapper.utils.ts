@@ -1,3 +1,4 @@
+import { performance } from "node:perf_hooks";
 import type { ThreadEvent, ThreadItem } from "@openai/codex-sdk";
 import { createNcpEndpointEvent, type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
 
@@ -15,6 +16,8 @@ export type ToolSnapshot = {
   started: boolean;
   argsEmitted: boolean;
   ended: boolean;
+  executionStartedAt?: string;
+  executionStartedMonotonic?: number;
 };
 
 const TEXT_DELTA_CHUNK_SIZE = 32;
@@ -84,6 +87,14 @@ function isToolLikeItem(item: ThreadItem): item is ToolLikeItem {
   return TOOL_LIKE_ITEM_TYPES.has(item.type);
 }
 
+function readCommandDurationMs(item: ToolLikeItem): number | undefined {
+  if (item.type !== "command_execution") return undefined;
+  const durationMs = (item as ToolLikeItem & { durationMs?: unknown }).durationMs;
+  return typeof durationMs === "number" && Number.isFinite(durationMs) && durationMs >= 0
+    ? durationMs
+    : undefined;
+}
+
 function splitTextDelta(delta: string): string[] {
   return Array.from(
     { length: Math.ceil(delta.length / TEXT_DELTA_CHUNK_SIZE) },
@@ -103,11 +114,21 @@ function* mapTextSnapshotDelta(params: {
   sessionId: string;
   startType: typeof NcpEventType.MessageTextStart | typeof NcpEventType.MessageReasoningStart;
 }): Generator<NcpEndpointEvent> {
-  const { currentText, itemId, itemTextById, messageId, sessionId } = params;
+  const {
+    currentText,
+    deltaType,
+    endType,
+    eventType,
+    itemId,
+    itemTextById,
+    messageId,
+    sessionId,
+    startType,
+  } = params;
   const previous = itemTextById.get(itemId) ?? { text: "", started: false };
   if (!previous.started) {
     yield createNcpEndpointEvent({
-      type: params.startType,
+      type: startType,
       payload: { sessionId, messageId },
     });
   }
@@ -115,15 +136,15 @@ function* mapTextSnapshotDelta(params: {
     const delta = currentText.slice(previous.text.length);
     for (const chunk of splitTextDelta(delta)) {
       yield createNcpEndpointEvent({
-        type: params.deltaType,
+        type: deltaType,
         payload: { sessionId, messageId, delta: chunk },
       });
     }
   }
   itemTextById.set(itemId, { text: currentText, started: true });
-  if (params.eventType === "item.completed") {
+  if (eventType === "item.completed") {
     yield createNcpEndpointEvent({
-      type: params.endType,
+      type: endType,
       payload: { sessionId, messageId },
     });
   }
@@ -206,15 +227,50 @@ export async function* mapCodexItemEvent(params: {
     previous.ended = true;
   }
 
+  if (
+    item.type === "command_execution" &&
+    event.type === "item.started" &&
+    !previous.executionStartedAt
+  ) {
+    previous.executionStartedAt = new Date().toISOString();
+    previous.executionStartedMonotonic = performance.now();
+    yield createNcpEndpointEvent({
+      type: NcpEventType.MessageToolExecutionStarted,
+      payload: {
+        sessionId,
+        messageId,
+        toolCallId: item.id,
+      },
+    }, previous.executionStartedAt);
+  }
+
   if (event.type === "item.updated" || event.type === "item.completed") {
+    const isFinal = event.type === "item.completed";
+    const endedAt = isFinal ? new Date().toISOString() : undefined;
+    const upstreamDurationMs = readCommandDurationMs(item);
     yield createNcpEndpointEvent({
       type: NcpEventType.MessageToolCallResult,
       payload: {
         sessionId,
         toolCallId: item.id,
         content: buildToolResult(item),
+        final: isFinal,
+        ...(isFinal &&
+        previous.executionStartedAt &&
+        previous.executionStartedMonotonic !== undefined &&
+        endedAt
+          ? {
+              execution: {
+                startedAt: previous.executionStartedAt,
+                endedAt,
+                durationMs: upstreamDurationMs ?? Math.max(0, performance.now() - previous.executionStartedMonotonic),
+              },
+            }
+          : isFinal && upstreamDurationMs !== undefined && endedAt
+            ? { execution: { endedAt, durationMs: upstreamDurationMs } }
+          : {}),
       },
-    });
+    }, endedAt);
   }
 
   toolStateById.set(item.id, previous);

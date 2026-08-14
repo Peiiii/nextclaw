@@ -1,0 +1,7 @@
+interface:
+  display_name: "迭代质量收敛"
+  short_description: "观察真实产物并围绕最大质量差距持续改进直到达到明确标准"
+  default_prompt: "使用 $iterative-quality-convergence 观察当前真实产物，对照任务目标与高标准找出最大质量差距，并持续执行最小改进与重新评估。"
+
+policy:
+  allow_implicit_invocation: false

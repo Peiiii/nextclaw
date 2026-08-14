@@ -179,6 +179,7 @@ export function ToolCardHeader({
   expanded,
   canExpand,
   hideSummary = false,
+  trailingMeta,
   actionSlot,
   onToggle,
 }: {
@@ -189,6 +190,7 @@ export function ToolCardHeader({
   expanded: boolean;
   canExpand: boolean;
   hideSummary?: boolean;
+  trailingMeta?: ReactNode;
   actionSlot?: ReactNode;
   onToggle: () => void;
 }) {
@@ -222,6 +224,7 @@ export function ToolCardHeader({
       <ToolHeaderSummary label={displayLabel} summary={summaryPart} />
       {changeSummary ? <ToolHeaderChangeSummary {...changeSummary} /> : null}
       <ToolStatusLabel card={card} iconOnly={Boolean(toolLabel)} />
+      {trailingMeta}
       {canExpand ? <ToolHeaderChevron expanded={expanded} /> : null}
       {actionSlot ? (
         <span className="inline-flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover/process-row:opacity-100 group-focus-within/process-row:opacity-100">
