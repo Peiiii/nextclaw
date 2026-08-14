@@ -21,7 +21,6 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/srv/nextclaw-home",
       }),
     });
@@ -55,9 +54,7 @@ describe("LinuxSystemdAutostartService", () => {
       runCommand,
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/bin/node",
-        env: {
-          NEXTCLAW_NPM_LAUNCHER_ENTRYPOINT: "/usr/lib/node_modules/nextclaw/dist/cli/launcher/index.js"
-        },
+        argvEntry: "/usr/lib/node_modules/nextclaw/dist/cli/launcher/index.js",
         getDataDir: () => "/home/alice/.nextclaw"
       })
     });
@@ -72,6 +69,9 @@ describe("LinuxSystemdAutostartService", () => {
   it("reports unsupported status outside linux", async () => {
     const service = new LinuxSystemdAutostartService({
       platform: "darwin",
+      runtimeService: new HostAutostartRuntimeService({
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
+      }),
     });
 
     const status = await service.status();
@@ -93,7 +93,6 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/home/alice/.nextclaw",
       }),
     });
@@ -133,7 +132,6 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/home/alice/.nextclaw",
       }),
     });
@@ -162,7 +160,6 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/srv/nextclaw-home",
       }),
     });

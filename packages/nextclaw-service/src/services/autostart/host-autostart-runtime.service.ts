@@ -1,13 +1,11 @@
 import { createRequire } from "node:module";
 import { extname, isAbsolute, resolve, win32 as windowsPath } from "node:path";
-import { fileURLToPath } from "node:url";
 import { getDataDir } from "@nextclaw/core";
+import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 
 type HostAutostartRuntimeServiceOptions = {
   nodePath?: string;
   argvEntry?: string;
-  env?: NodeJS.ProcessEnv;
-  importMetaUrl?: string;
   getDataDir?: () => string;
 };
 
@@ -20,31 +18,14 @@ export type HostAutostartLaunchPlan = {
 const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
 const require = createRequire(import.meta.url);
 
-const resolveCliAppEntryFromImportMeta = (importMetaUrl: string): string => {
-  const modulePath = fileURLToPath(importMetaUrl);
-  const normalizedPath = modulePath.replace(/\\/g, "/");
-  const cliRootIndex = normalizedPath.lastIndexOf("/cli/");
-  if (cliRootIndex === -1) {
-    return fileURLToPath(new URL("../../../app/index.js", importMetaUrl));
-  }
-  const extension = extname(modulePath) || ".js";
-  const cliRootPath = modulePath.slice(0, cliRootIndex + "/cli/".length);
-  return resolve(cliRootPath, "app", `index${extension}`);
-};
-
 export class HostAutostartRuntimeService {
   private readonly nodePath: string;
   private readonly argvEntry: string | undefined;
-  private readonly importMetaUrl: string;
   private readonly getResolvedDataDir: () => string;
 
   constructor(options: HostAutostartRuntimeServiceOptions = {}) {
     this.nodePath = options.nodePath ?? process.execPath;
-    this.argvEntry = options.argvEntry
-      ?? options.env?.NEXTCLAW_NPM_LAUNCHER_ENTRYPOINT
-      ?? process.env.NEXTCLAW_NPM_LAUNCHER_ENTRYPOINT
-      ?? process.argv[1];
-    this.importMetaUrl = options.importMetaUrl ?? import.meta.url;
+    this.argvEntry = options.argvEntry;
     this.getResolvedDataDir = options.getDataDir ?? getDataDir;
   }
 
@@ -60,13 +41,13 @@ export class HostAutostartRuntimeService {
   };
 
   private resolveCliEntry = (): string => {
-    const argvEntry = this.argvEntry?.trim();
+    const argvEntry = (this.argvEntry ?? NextclawDistributionService.get().launcherEntrypoint).trim();
     if (argvEntry) {
       if (isAbsolute(argvEntry) || windowsPath.isAbsolute(argvEntry)) {
         return argvEntry;
       }
       return resolve(argvEntry);
     }
-    return resolveCliAppEntryFromImportMeta(this.importMetaUrl);
+    throw new Error("NextClaw launcher entrypoint is not configured.");
   };
 }

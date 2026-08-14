@@ -25,7 +25,6 @@ describe("WindowsTaskAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "C:\\Program Files\\nodejs\\node.exe",
         argvEntry: "C:\\nextclaw\\dist\\cli\\index.js",
-        importMetaUrl: "file:///C:/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "C:\\Users\\alice\\AppData\\Roaming\\nextclaw",
       }),
     });
@@ -63,7 +62,6 @@ describe("WindowsTaskAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "C:\\Program Files\\nodejs\\node.exe",
         argvEntry: "C:\\nextclaw\\dist\\cli\\index.js",
-        importMetaUrl: "file:///C:/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "C:\\Users\\alice\\AppData\\Roaming\\nextclaw",
       }),
     });
@@ -80,6 +78,9 @@ describe("WindowsTaskAutostartService", () => {
   it("reports unsupported status outside Windows", async () => {
     const service = new WindowsTaskAutostartService({
       platform: "darwin",
+      runtimeService: new HostAutostartRuntimeService({
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
+      }),
     });
 
     const status = await service.status();

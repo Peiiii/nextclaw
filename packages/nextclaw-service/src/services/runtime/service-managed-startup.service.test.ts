@@ -22,6 +22,7 @@ vi.mock("@nextclaw-service/utils/runtime/service-remote-runtime.utils.js", () =>
 
 import { ManagedServiceSupervisor } from "./managed-service-supervisor.service.js";
 import { resolveManagedServiceReadySnapshot } from "./service-managed-startup.service.js";
+import { NextclawDistributionService } from "./nextclaw-distribution.service.js";
 
 function createStateStore(initialState: ManagedServiceState | null): ManagedServiceStateStore {
   let state = initialState;
@@ -74,15 +75,21 @@ describe("spawnManagedService", () => {
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "nextclaw-service-startup-"));
     originalArgv = [...process.argv];
-    process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD = "1";
-    process.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER = "1";
+    NextclawDistributionService.configure({
+      version: "0.35.0",
+      appEntrypoint: "/runtime/0.35.0/dist/cli/app/index.js",
+      launcherVersion: "0.34.0",
+      launcherEntrypoint: "/usr/lib/node_modules/nextclaw/dist/cli/launcher/index.js",
+      launchedByLauncher: true,
+      templatesDir: "/runtime/0.35.0/templates",
+      uiDistDir: "/runtime/0.35.0/ui-dist",
+      runtimeUpdatePublicKeyPath: "/runtime/0.35.0/resources/update-bundle-public.pem",
+    });
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     process.argv = originalArgv;
-    delete process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD;
-    delete process.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER;
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -119,7 +126,7 @@ describe("spawnManagedService", () => {
     expect(command).toBe(process.execPath);
     expect(args).toEqual(
       expect.arrayContaining([
-        "/tmp/dist/cli/app/index.js",
+        "/usr/lib/node_modules/nextclaw/dist/cli/launcher/index.js",
         "serve",
         "--ui-port",
         "18791"
@@ -139,7 +146,7 @@ describe("spawnManagedService", () => {
     expect((options.env as NodeJS.ProcessEnv).NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER).toBeUndefined();
     expect(appendStartupStage).toHaveBeenCalledWith(
       path.join(tempDir, "service.log"),
-      expect.stringMatching(/cli[/\\]app[/\\]index\.js serve --ui-port 18791/)
+      expect.stringMatching(/cli[/\\]launcher[/\\]index\.js serve --ui-port 18791/)
     );
     expect(writeInitialManagedServiceStateMock).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -31,7 +31,7 @@ export class NpmRuntimeUpdateCommandService {
     const source = new NpmRuntimeUpdateSourceService({
       packagedPublicKeyPath: distribution.runtimeUpdatePublicKeyPath,
     });
-    const launcherVersion = distribution.version;
+    const launcherVersion = distribution.launcherVersion;
     const channel = source.resolveChannel(opts.channel, launcherVersion);
     const manifestUrl = source.resolveManifestUrl(channel, opts.manifestUrl);
     const layout = new NpmRuntimeBundleLayoutStore();

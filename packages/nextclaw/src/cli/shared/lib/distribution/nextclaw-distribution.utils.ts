@@ -10,7 +10,9 @@ export function createNextclawDistribution(importMetaUrl: string): NextclawDistr
   return {
     version: typeof version === "string" ? version : "0.0.0",
     appEntrypoint: resolve(packageRoot, "dist/cli/app/index.js"),
+    launcherVersion: typeof version === "string" ? version : "0.0.0",
     launcherEntrypoint: resolve(dirname(entrypoint), "../launcher", basename(entrypoint)),
+    launchedByLauncher: false,
     templatesDir: resolve(packageRoot, "templates"),
     uiDistDir: resolve(packageRoot, "ui-dist"),
     runtimeUpdatePublicKeyPath: resolve(packageRoot, "resources/update-bundle-public.pem"),

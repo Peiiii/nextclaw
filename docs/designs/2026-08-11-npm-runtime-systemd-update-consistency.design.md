@@ -14,6 +14,8 @@ VPS `8.219.57.52` 在设置页完成更新操作后出现了三个互相冲突�
 
 2026-08-13 的 `0.32.0 -> 0.33.0` 真实升级又暴露了一个自举缺口：`0.33.0` 已修正新生成的 unit，但升级动作仍由 `0.32.0` 进程和旧 unit 执行。旧 unit 使用 `Restart=on-failure` 且没有 `NEXTCLAW_PROCESS_SUPERVISOR=systemd`；应用更新后进程以 `0` 正常退出，systemd 因而不拉起新 pointer，页面持续显示旧运行版本和 `restart-required`。这证明“修正 unit 生成器”不能替代“兼容现存 unit 的重启合同”。
 
+2026-08-14 的 `0.34.0 -> 0.35.0` 真实升级进一步暴露了命令面分裂：VPS 正在运行的 runtime bundle 已是 `0.35.0`，但 agent shell 继承了 launcher 注入的 `NEXTCLAW_RUNTIME_BUNDLE_CHILD=1`；它再次执行全局 `nextclaw` 时，稳定 launcher 因该内部标记而退回全局包内的 `0.34.0` app。只有手动删除该标记后，命令才重新选择 `current` bundle。局部清理某几个 spawn 点不能解决这个问题，因为任意业务子进程都可能成为新的泄漏 consumer；需要让 launcher envelope 在 runtime bootstrap 处一次性消费并失效。
+
 ## 2. 目标
 
 - 设置页只提供一次“立即更新”操作；下载、验签、安装、切换与重启仍是可观察的内部阶段。
@@ -21,6 +23,7 @@ VPS `8.219.57.52` 在设置页完成更新操作后出现了三个互相冲突�
 - pointer 与运行版本不一致时，更新状态必须持续为 `restart-required`，不能被下一次自动检查覆盖成 `up-to-date`。
 - systemd、launchd、Windows Task 等常驻入口始终经过稳定 npm launcher，不能固定到某个 runtime bundle 或全局包内的 app entry。
 - systemd 托管进程应用更新后由 systemd 重启，重新经过 launcher 选择新 pointer。
+- 更新后的 UI、agent shell、生命周期重入和新开的 CLI 在语义上等价：除显式回滚或不兼容 fallback 外，都只能进入 `current` runtime。
 - 不改变 bundle 下载、签名校验、previous/current/candidate、坏版本隔离与回滚合同。
 
 ## 3. 单一 owner
@@ -61,13 +64,28 @@ Linux systemd unit 额外声明自身为 supervisor，并使用 `Restart=always`
 
 普通终端中的 `nextclaw serve` 不声明 supervisor，仍返回持久的 `restart-required` 和手动恢复命令，避免进程自行退出后无人拉起。
 
+### 3.4 runtime bootstrap 与命令面等价 owner
+
+稳定 launcher 到 runtime child 的环境变量是一次性 bootstrap envelope，而不是业务环境。`NextclawDistributionService` 负责在 app 业务模块加载前完成唯一一次归一化：
+
+1. 读取并验证 launcher child 标记、稳定 launcher entrypoint 与 launcher version；
+2. 合并成当前进程唯一的 distribution context，明确区分 `runningVersion`、`launcherVersion`、`launcherEntrypoint` 和 `launchedByLauncher`；
+3. 立即从 `process.env` 删除全部 launcher 内部字段；
+4. 此后 runtime update、autostart、service restart、managed-service supervisor 与外部命令环境只读取 distribution context，不再解释 launcher envelope。
+
+app entrypoint 必须是两阶段 bootstrap：最小静态依赖先消费 envelope，再动态导入 CLI application graph。这样 ESM 静态模块初始化也无法在归一化前读取内部环境。
+
+需要重新进入 NextClaw 生命周期的路径统一执行 distribution context 中的稳定 launcher entrypoint；普通子进程只继承已经净化的外部环境。全局 npm 包内 app 不再是升级后的平行业务实现，只是 launcher 无有效 bundle、显式禁用 bundle 或兼容性检查失败时的受控 fallback。
+
+这使用 `equivalence-by-construction`：等价性来自所有入口收敛到同一 launcher、pointer 和 bootstrap owner；测试负责证明该机制及 fallback 边界，不靠枚举足够多的命令组合拼出等价性。
+
 ## 4. 兼容与迁移
 
 - 旧 launcher 不会传递新增环境变量；runtime 必须回退到现有 distribution/version 与 argv 行为。
 - 显式的 `NEXTCLAW_PROCESS_SUPERVISOR=systemd` 是主路径。仅当它完全缺失时，runtime 才接受 systemd 提供的 `INVOCATION_ID` 作为旧 unit 兼容信号，并记录 legacy supervisor 日志；显式的其它 supervisor 值不会被覆盖。
 - 旧 unit 兼容只改变“应用更新”后的退出码，不自动写 unit、不执行 `systemctl`，也不影响普通启动、停止或终端 `serve`。owner 为 `@nextclaw/service` 的 runtime restart 合同；删除条件是所有受支持旧 unit 都已有可验证的一次性迁移，且最低受支持 host 不再可能生成旧 unit。
 - 已有错误 systemd unit 仍应在运维窗口一次性把 `ExecStart` 改为稳定 launcher、写入显式 supervisor 标记并切换为 `Restart=always`。迁移前备份 unit，启动或健康检查失败时回滚；兼容退出语义保证迁移前的页面更新也不会再次停机。
-- 新字段只通过进程环境在 host 与 child 间传递，不扩展用户配置，不写入会话或 workspace。
+- 新字段只通过 launcher 的一次性 bootstrap envelope 传入 child，并在业务模块加载前删除；不扩展用户配置，不写入会话或 workspace，也不继续传播到 agent shell。
 - 设置页仍允许独立“检查更新”；自动检查策略不变，自动检查不会自动下载或切换版本。
 
 ## 5. 验收
@@ -82,6 +100,10 @@ Linux systemd unit 额外声明自身为 supervisor，并使用 `Restart=always`
 - systemd unit 带 supervisor 标记并使用 `Restart=always`。
 - 旧 unit 只有 `INVOCATION_ID` 时仍选择 supervisor restart，应用更新后不启动 self-relaunch helper，并以 `75` 退出。
 - 显式非 systemd supervisor 即使带有环境中的 `INVOCATION_ID` 也不会误判为 systemd。
+- bootstrap 只在有效 launcher child 标记存在时接受 launcher metadata，随后删除全部内部字段并保存规范 distribution context。
+- 无 child 标记的直接 app 启动忽略残留 launcher metadata，不允许其伪造 host 事实。
+- runtime update、autostart、service restart 与 managed-service supervisor 都读取同一 distribution context；源码中不再存在消费 launcher 内部环境的业务路径。
+- lifecycle 重入执行稳定 launcher，而普通 agent/工具子进程的环境不包含 launcher child 标记。
 
 ### 5.2 VPS 真实验证
 
@@ -89,5 +111,6 @@ Linux systemd unit 额外声明自身为 supervisor，并使用 `Restart=always`
 - 前端静态页返回 200，公网入口可访问。
 - 实际 runtime package、进程路径与页面产品版本一致。
 - 更新操作后 PID 发生切换，并从新的 current pointer 启动。
+- 更新后 agent shell 中 launcher 内部字段均不存在，直接执行 `nextclaw --version` 与运行版本一致，无需手动 `env -u`。
 - 在 `Restart=on-failure` 的隔离旧 unit 中执行同一更新入口，确认退出码触发重启且版本事实切换完成。
 - 执行一次真实任务，确认更新没有只修版本展示而破坏 agent 主链路。

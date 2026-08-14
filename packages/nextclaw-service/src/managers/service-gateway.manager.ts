@@ -49,9 +49,11 @@ const {
 } = NextclawCore;
 
 function resolveApplyRestartMode(uiPort: number) {
+  const distribution = NextclawDistributionService.get();
   const resolution = resolveNpmRuntimeUpdateApplyRestartMode({
     currentPid: process.pid,
     env: process.env,
+    launchedByLauncher: distribution.launchedByLauncher,
     serviceState: managedServiceStateStore.read(),
     uiPort,
   });

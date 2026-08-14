@@ -24,7 +24,6 @@ describe("MacosLaunchAgentAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/Users/alice/.nextclaw",
       }),
     });
@@ -69,7 +68,6 @@ describe("MacosLaunchAgentAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/Users/alice/.nextclaw",
       }),
     });
@@ -86,6 +84,9 @@ describe("MacosLaunchAgentAutostartService", () => {
   it("reports unsupported status outside macOS", async () => {
     const service = new MacosLaunchAgentAutostartService({
       platform: "linux",
+      runtimeService: new HostAutostartRuntimeService({
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
+      }),
     });
 
     const status = await service.status();

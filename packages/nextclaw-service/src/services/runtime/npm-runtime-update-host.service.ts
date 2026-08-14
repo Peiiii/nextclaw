@@ -50,10 +50,11 @@ export const SUPERVISED_RUNTIME_UPDATE_EXIT_CODE = 75;
 export function resolveNpmRuntimeUpdateApplyRestartMode(options: {
   currentPid: number;
   env: NodeJS.ProcessEnv;
+  launchedByLauncher: boolean;
   serviceState: Pick<ManagedServiceState, "pid" | "uiPort"> | null;
   uiPort: number;
 }): NpmRuntimeUpdateApplyRestartResolution {
-  const { currentPid, env, serviceState, uiPort } = options;
+  const { currentPid, env, launchedByLauncher, serviceState, uiPort } = options;
   const configuredSupervisor = env.NEXTCLAW_PROCESS_SUPERVISOR?.trim();
   if (configuredSupervisor === "systemd") {
     return { mode: "supervised-process-restart", source: "configured-systemd" };
@@ -65,7 +66,7 @@ export function resolveNpmRuntimeUpdateApplyRestartMode(options: {
     return { mode: "managed-service-restart", source: "managed-service" };
   }
   if (
-    env.NEXTCLAW_RUNTIME_BUNDLE_CHILD === "1"
+    launchedByLauncher
     && typeof serviceState?.uiPort === "number"
     && serviceState.uiPort === uiPort
   ) {
@@ -95,7 +96,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       packagedPublicKeyPath: distribution.runtimeUpdatePublicKeyPath
     });
     this.layout = new NpmRuntimeBundleLayoutStore();
-    this.launcherVersion = process.env.NEXTCLAW_NPM_LAUNCHER_VERSION?.trim() || distribution.version;
+    this.launcherVersion = distribution.launcherVersion;
     this.runningVersion = distribution.version;
     this.stateStore = new NpmRuntimeUpdateStateStore(this.layout.getStatePath(), {
       defaultChannel: this.source.resolveChannel(undefined, this.launcherVersion)

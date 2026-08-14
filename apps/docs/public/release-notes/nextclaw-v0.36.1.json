@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.36.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-14",
+  "title": {
+    "zh-CN": "NextClaw v0.36.1",
+    "en-US": "NextClaw v0.36.1"
+  },
+  "summary": {
+    "zh-CN": "修复更新后页面、Agent、服务重启和命令行仍可能使用不同 runtime 版本的问题。",
+    "en-US": "Keeps the UI, agents, service restarts, and CLI on the same runtime after an update."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-14-nextclaw-v0-36-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-36-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "更新后的命令保持一致", "en-US": "Commands stay aligned after updates" },
+          "body": {
+            "zh-CN": "页面重连后，Agent、服务重启和新开的 nextclaw 命令都会使用当前 runtime，不再回到旧版 app。",
+            "en-US": "After the page reconnects, agents, service restarts, and newly opened nextclaw commands use the current runtime instead of returning to the previous app."
+          }
+        },
+        {
+          "title": { "zh-CN": "一次更新即可生效", "en-US": "One update is enough" },
+          "body": {
+            "zh-CN": "继续从页面下载并应用更新即可，不需要在重连后再手动安装一次全局命令。",
+            "en-US": "Download and apply the update from the page as before; no second global installation is required after reconnecting."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "稳定 launcher 合同不变", "en-US": "Stable launcher contract is unchanged" },
+          "body": {
+            "zh-CN": "稳定 launcher 仍负责更新选择、回滚和兼容性保护；全局 npm 包可以低于当前 runtime。",
+            "en-US": "The stable launcher still selects updates, handles rollback, and protects compatibility; the global npm package may be older than the current runtime."
+          }
+        }
+      ]
+    }
+  ]
+}

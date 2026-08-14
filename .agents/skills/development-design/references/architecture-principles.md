@@ -11,9 +11,10 @@
 - `abstractions-pay-rent`：抽象必须消除真实重复、保护不变量或隔离稳定变化点，收益大于名字、文件、跳转和合同成本。
 - `constructor-builds-graph`：constructor 只建立同步确定的长期对象图；load/start/reload/stop/dispose 承担副作用。
 - `cqs-pure-read`：read/get/list/status 不暗中改变状态；mutation 表达业务意图。
+- `equivalence-by-construction`：当多个入口、宿主、实现或持久状态被要求语义等价时，让它们收敛到同一 owner、规范表示和状态迁移，并使旧路径在正常链路中不可达；测试只证明等价性，不负责用样例数量制造等价性。
 - `no-compatibility-by-default`：内部重构直接迁移并删除旧入口；临时兼容必须有外部必要性、边界和删除点。
 - `deletion-first`：新增前先删除重复入口、平行 owner、无语义 wrapper 和过期兼容；不为行数指标损害可读性和合同安全。
 
-判断顺序：写出事实、不变量与生命周期；找到 information expert；删除重复 owner 和透传层；确认上层没有代替 owner 决策；比较简单结构与新抽象的总成本；冻结迁移和删除点。
+判断顺序：写出事实、不变量与生命周期；找到 information expert；确认需要等价的入口是否收敛到同一生成机制；删除重复 owner 和透传层；确认上层没有代替 owner 决策；比较简单结构与新抽象的总成本；冻结迁移和删除点。
 
 输出命中的原则、当前违反点、推荐 owner、可删除路径、生命周期边界，以及为什么这个抽象力度刚好。

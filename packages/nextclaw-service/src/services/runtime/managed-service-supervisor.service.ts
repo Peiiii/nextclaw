@@ -13,7 +13,7 @@ import {
 import { writeInitialManagedServiceState, writeReadyManagedServiceState } from "@nextclaw-service/utils/runtime/service-remote-runtime.utils.js";
 import type { ManagedServiceSnapshot } from "@nextclaw-service/utils/runtime/managed-service-routing.utils.js";
 import { resolveCliSubcommandLaunch } from "@nextclaw-service/utils/marketplace/cli-subcommand-launch.utils.js";
-import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/utils/top-level-nextclaw-command-env.utils.js";
+import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { isProcessRunning, resolveServiceLogPath } from "@nextclaw-service/utils/cli.utils.js";
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 2_000;
@@ -130,7 +130,7 @@ export class ManagedServiceSupervisor {
     console.log(`Starting ${appName} background service (readiness timeout ${Math.ceil(readinessTimeoutMs / 1000)}s)...`);
 
     const cliLaunch = resolveCliSubcommandLaunch({
-      argvEntry: process.argv[1],
+      argvEntry: NextclawDistributionService.get().launcherEntrypoint,
       importMetaUrl: import.meta.url,
       cliArgs: ["serve", "--ui-port", String(uiConfig.port)],
       nodePath: process.execPath
@@ -138,7 +138,7 @@ export class ManagedServiceSupervisor {
     const childArgs = [...process.execArgv, ...cliLaunch.args];
     appendStartupStage(logPath, `spawning background process: ${cliLaunch.command} ${childArgs.join(" ")}`);
     const child = spawn(cliLaunch.command, childArgs, {
-      env: createTopLevelNextclawCommandEnv(process.env),
+      env: NextclawCore.createExternalCommandEnv(process.env),
       stdio: "ignore",
       detached: true,
       windowsHide: true

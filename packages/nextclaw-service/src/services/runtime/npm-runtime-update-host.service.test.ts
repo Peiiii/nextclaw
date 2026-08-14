@@ -141,7 +141,9 @@ vi.mock("@nextclaw-service/managers/runtime-update.manager.js", () => ({
 const TEST_DISTRIBUTION = {
   version: "0.18.12-beta.4",
   appEntrypoint: "/pkg/dist/cli/app/index.js",
+  launcherVersion: "0.30.0",
   launcherEntrypoint: "/pkg/dist/cli/launcher/index.js",
+  launchedByLauncher: true,
   templatesDir: "/pkg/templates",
   uiDistDir: "/pkg/ui-dist",
   runtimeUpdatePublicKeyPath: "/pkg/resources/update-bundle-public.pem"
@@ -154,12 +156,14 @@ describe("resolveNpmRuntimeUpdateApplyRestartMode", () => {
     expect(resolveNpmRuntimeUpdateApplyRestartMode({
       currentPid: 1234,
       env: { NEXTCLAW_PROCESS_SUPERVISOR: "systemd" },
+      launchedByLauncher: true,
       serviceState,
       uiPort: 55667,
     })).toEqual({ mode: "supervised-process-restart", source: "configured-systemd" });
     expect(resolveNpmRuntimeUpdateApplyRestartMode({
       currentPid: 1234,
       env: { INVOCATION_ID: "systemd-invocation-id" },
+      launchedByLauncher: true,
       serviceState,
       uiPort: 55667,
     })).toEqual({ mode: "supervised-process-restart", source: "legacy-systemd-invocation" });
@@ -172,6 +176,7 @@ describe("resolveNpmRuntimeUpdateApplyRestartMode", () => {
         INVOCATION_ID: "ambient-systemd-invocation-id",
         NEXTCLAW_PROCESS_SUPERVISOR: "external",
       },
+      launchedByLauncher: true,
       serviceState: null,
       uiPort: 55667,
     })).toEqual({ mode: "manual-process-restart", source: "manual-process" });
@@ -204,7 +209,6 @@ describe("NpmRuntimeUpdateHost", () => {
   });
 
   it("keeps stable launcher and running runtime versions as separate facts", () => {
-    vi.stubEnv("NEXTCLAW_NPM_LAUNCHER_VERSION", "0.30.0");
     new NpmRuntimeUpdateHost({
       eventBus: new NextclawKernel().eventBus,
       applyRestartMode: "manual-process-restart",

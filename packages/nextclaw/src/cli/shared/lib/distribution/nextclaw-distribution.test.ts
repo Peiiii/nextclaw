@@ -19,7 +19,9 @@ describe("createNextclawDistribution", () => {
       expect(distribution).toMatchObject({
         version: "0.19.4",
         appEntrypoint: resolve(packageRoot, "dist/cli/app/index.js"),
+        launcherVersion: "0.19.4",
         launcherEntrypoint: resolve(packageRoot, "dist/cli/launcher/index.js"),
+        launchedByLauncher: false,
         templatesDir: resolve(packageRoot, "templates"),
         uiDistDir: resolve(packageRoot, "ui-dist"),
         runtimeUpdatePublicKeyPath: resolve(packageRoot, "resources/update-bundle-public.pem"),
