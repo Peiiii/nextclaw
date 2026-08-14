@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.17.1
+
+### Patch Changes
+
+- 27d7293: Harden App, Panel App, and Service App data management with isolated instance storage, crash-safe deletion recovery, side-effect-free catalog reads, and explicit keep-or-delete uninstall controls.
+- Updated dependencies [27d7293]
+  - @nextclaw/client-sdk@0.6.1
+
 ## 0.17.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.12.1
+
+### Patch Changes
+
+- 27d7293: Harden App, Panel App, and Service App data management with isolated instance storage, crash-safe deletion recovery, side-effect-free catalog reads, and explicit keep-or-delete uninstall controls.
+
 ## 0.12.0
 
 ### Minor Changes
