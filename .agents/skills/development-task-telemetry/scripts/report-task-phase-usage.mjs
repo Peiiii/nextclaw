@@ -36,7 +36,8 @@ export function formatTextReport(report, taskId = null) {
   for (const task of selectedTasks) {
     lines.push(
       "",
-      `Task: ${task.id}`,
+      `Task: ${task.name ?? "Unnamed task"}`,
+      `Task ID: ${task.id}`,
       `Status: ${task.status}`,
       `Data quality: ${task.data_quality}`,
       `Mechanical coverage: ${percent(task.mechanical_coverage)}`,

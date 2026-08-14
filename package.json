@@ -120,6 +120,7 @@
     "changeset": "changeset",
     "metrics:loc": "node scripts/metrics/code-volume-metrics.mjs",
     "metrics:local": "node scripts/metrics/code-volume-metrics.mjs --no-write --print-summary",
+    "development-task-telemetry:dashboard": "node .agents/skills/development-task-telemetry/scripts/serve-task-telemetry-dashboard.mjs",
     "report:test-governance": "node scripts/governance/reports/test-governance-report.mjs",
     "report:file-naming": "node scripts/governance/reports/report-file-name-kebab-violations.mjs",
     "report:doc-file-naming": "node scripts/governance/reports/report-doc-file-name-violations.mjs",

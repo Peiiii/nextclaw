@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Development Task Telemetry</title>
+    <link rel="stylesheet" href="/task-telemetry-dashboard.css" />
+  </head>
+  <body>
+    <main class="dashboard-shell">
+      <header class="dashboard-header">
+        <div>
+          <p class="eyebrow">NEXTCLAW DEVELOPMENT SYSTEM</p>
+          <h1>Development Task Telemetry</h1>
+          <p class="header-description">
+            查看当前项目的任务消耗、阶段覆盖和模型使用情况。
+          </p>
+        </div>
+        <div class="header-actions">
+          <div class="refresh-state" role="status" aria-live="polite">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span id="refresh-state-text">正在读取数据…</span>
+          </div>
+          <button id="refresh-button" class="secondary-button" type="button">
+            立即刷新
+          </button>
+        </div>
+      </header>
+
+      <div id="notice" class="notice" role="status" hidden></div>
+      <div id="error" class="notice notice-error" role="alert" hidden></div>
+
+      <section aria-labelledby="overview-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">项目概览</p>
+            <h2 id="overview-title">当前统计</h2>
+          </div>
+          <p id="workspace-label" class="section-meta"></p>
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card">
+            <p class="metric-label">总 Token</p>
+            <p id="observed-tokens" class="metric-value">—</p>
+            <p id="observed-tokens-detail" class="metric-detail">正在计算</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">归因覆盖率</p>
+            <p id="coverage" class="metric-value">—</p>
+            <p id="coverage-detail" class="metric-detail">正在计算</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">开发任务</p>
+            <p id="task-count" class="metric-value">—</p>
+            <p id="task-count-detail" class="metric-detail">正在计算</p>
+          </article>
+          <article class="metric-card">
+            <p class="metric-label">缓存输入比例</p>
+            <p id="cache-ratio" class="metric-value">—</p>
+            <p id="cache-ratio-detail" class="metric-detail">正在计算</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="content-grid" aria-label="任务统计详情">
+        <article class="panel task-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">任务</p>
+              <h2>开发任务列表</h2>
+            </div>
+            <span id="task-list-count" class="count-badge">0</span>
+          </div>
+          <div class="table-scroll" tabindex="0">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">任务</th>
+                  <th scope="col">状态</th>
+                  <th scope="col">Token</th>
+                  <th scope="col">覆盖率</th>
+                  <th scope="col">耗时</th>
+                  <th scope="col">开始时间</th>
+                </tr>
+              </thead>
+              <tbody id="task-table-body"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel detail-panel" aria-labelledby="task-detail-title">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">任务详情</p>
+              <h2 id="task-detail-title">尚未选择任务</h2>
+              <code id="task-detail-id" class="task-detail-id">—</code>
+            </div>
+            <span id="task-quality" class="status-chip status-neutral">—</span>
+          </div>
+          <div id="task-detail-empty" class="empty-state">
+            有效的
+            <code>task=start</code> 标记出现后，这里会显示阶段和模型分布。
+          </div>
+          <div id="task-detail-content" hidden>
+            <dl class="task-facts">
+              <div>
+                <dt>模型调用</dt>
+                <dd id="task-model-calls">—</dd>
+              </div>
+              <div>
+                <dt>工具轮次</dt>
+                <dd id="task-tool-rounds">—</dd>
+              </div>
+              <div>
+                <dt>子线程</dt>
+                <dd id="task-child-lanes">—</dd>
+              </div>
+            </dl>
+            <div class="detail-section">
+              <h3>阶段分布</h3>
+              <div id="phase-list" class="bar-list"></div>
+            </div>
+            <div class="detail-section">
+              <h3>模型分布</h3>
+              <div id="model-list" class="model-list"></div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid lower-grid" aria-label="数据质量与消耗构成">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Token 构成</p>
+              <h2>会话输入与输出</h2>
+            </div>
+          </div>
+          <dl id="usage-breakdown" class="usage-list"></dl>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">数据质量</p>
+              <h2>警告</h2>
+            </div>
+            <span id="warning-count" class="count-badge">0</span>
+          </div>
+          <div id="warning-list" class="warning-list"></div>
+        </article>
+      </section>
+
+      <footer class="dashboard-footer">
+        <p id="source-summary">等待第一份报告。</p>
+        <p>页面每 15 秒自动刷新；统计服务只读取本地 rollout。</p>
+      </footer>
+    </main>
+    <script type="module" src="/task-telemetry-dashboard.js"></script>
+  </body>
+</html>

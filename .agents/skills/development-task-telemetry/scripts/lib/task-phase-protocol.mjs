@@ -19,6 +19,7 @@ export const USAGE_KEYS = [
 ];
 
 const TASK_ID_PATTERN = "[a-z0-9][a-z0-9_-]{5,31}";
+const TASK_NAME_PATTERN = '[^"\\r\\n\\]]{1,64}';
 const PHASE_PATTERN = PHASES.join("|");
 const STATUS_PATTERN = STATUSES.join("|");
 
@@ -26,8 +27,11 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-const START_OR_JOIN = new RegExp(
-  `^\\[${escapeRegExp(PROTOCOL)} task=(start|join) id=(${TASK_ID_PATTERN}) phase=(${PHASE_PATTERN})\\]$`,
+const START = new RegExp(
+  `^\\[${escapeRegExp(PROTOCOL)} task=start id=(${TASK_ID_PATTERN})(?: name="(${TASK_NAME_PATTERN})")? phase=(${PHASE_PATTERN})\\]$`,
+);
+const JOIN = new RegExp(
+  `^\\[${escapeRegExp(PROTOCOL)} task=join id=(${TASK_ID_PATTERN}) phase=(${PHASE_PATTERN})\\]$`,
 );
 const PHASE = new RegExp(
   `^\\[${escapeRegExp(PROTOCOL)} phase=(${PHASE_PATTERN})\\]$`,
@@ -72,13 +76,25 @@ function parseMarkerFromText(text) {
     return { kind: "invalid", code: "invalid_marker_position" };
   }
 
-  let match = raw.match(START_OR_JOIN);
+  let match = raw.match(START);
   if (match) {
     return {
       kind: "marker",
-      action: match[1],
-      taskId: match[2],
+      action: "start",
+      taskId: match[1],
+      taskName: match[2] ?? null,
       phase: match[3],
+      raw,
+    };
+  }
+
+  match = raw.match(JOIN);
+  if (match) {
+    return {
+      kind: "marker",
+      action: "join",
+      taskId: match[1],
+      phase: match[2],
       raw,
     };
   }

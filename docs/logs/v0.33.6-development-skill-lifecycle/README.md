@@ -22,6 +22,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 
 同批次继续增加了一个可空的 lifecycle observer 插槽，以及按需加载的 `development-task-telemetry` Skill。它用可见的 `nextclaw.dev/v1` 英文 marker 声明 task / phase 边界，确定性脚本再从 Codex rollout 的累计 usage 快照计算任务级、阶段级 Token、模型、effort、工具轮次和时间。禁用只需清空 observer；Skill 仍可被用户显式调用做历史报告，也不改变 lifecycle 的阶段判断和完成门。后续补齐 AI 查询 owner：用户只需在对话中要求查看，AI 自己定位并运行报告；显式要求收尾汇报时由根 AI 聚合一次，默认和子 Agent 均不额外刷屏。一级索引实测只增加 183 个 description 字符，正文保持条件加载，因此没有为了节省很小的常驻索引牺牲独立发现与管理。
 
+同批次收尾补齐了独立于 NextClaw 产品的本地开发任务大盘：根目录命令启动只绑定 `127.0.0.1` 的只读服务，按当前 Git workspace、协议启用日期和增量缓存筛选 Codex rollout，并展示任务、阶段、模型、Token、耗时和数据质量。任务协议新增可读的 `name` 字段，大盘与文本报告均以名称为主、稳定 ID 为辅；历史 marker 保持兼容并明确显示为未命名，不从聊天正文猜测标题。
+
 设计依据：[`docs/designs/2026-08-14-development-skill-lifecycle.design.md`](../../designs/2026-08-14-development-skill-lifecycle.design.md)。
 
 任务遥测设计依据：[`docs/designs/2026-08-14-development-task-phase-tracing.design.md`](../../designs/2026-08-14-development-task-phase-tracing.design.md)。
@@ -43,6 +45,9 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 - telemetry CLI 对真实 Codex rollout `01a00013-b70e-7ca0-976c-87ac852aeca1` 完成只读试算：识别 `46,009,846` 个已观测 Token；该历史任务没有 marker，因此正确输出 0 个 tracked task、0% coverage，没有通过自然语言猜测补标。
 - `pnpm check:skill-progressive-loading`：Skill 数预算按本次独立、可显式调用的 telemetry owner 从 36 调整为 37；AI 查询合同补齐后为 37 个 Skill、142571 字节入口正文、4373 字符 description、9202 字节 AGENTS、33 条依赖边，结果通过且 lifecycle 只单向引用 telemetry，不形成依赖环。
 - AI 行为前后复核：旧规则会让用户手动执行 CLI；新规则下 AI 自己按 task marker 或 thread/session ID 定位并运行报告，只有用户显式要求时才由根 AI 做一次收尾汇总。
+- `node --test .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.test.mjs .agents/skills/development-task-telemetry/scripts/serve-task-telemetry-dashboard.test.mjs`：10 个测试通过，新增覆盖任务名称、历史 marker 兼容、CLI 名称输出、workspace/日期过滤、HTTP 报告和缓存复用。
+- 真实运行 `pnpm development-task-telemetry:dashboard -- --no-open --port 4785`：同一 URL 冷启动成功；大盘在真实 Codex sessions 中匹配当前项目日志并正常刷新。浏览器验收确认名称为主信息、ID 为次级信息、旧任务回退可见、无错误态和横向溢出。
+- `pnpm lint:new-code:governance`、`pnpm check:skill-progressive-loading`、`pnpm check:governance-backlog-ratchet` 和定向 ESLint 全部通过；当前为 37 个 Skill、144775 字节入口正文、4392 字符 description、9202 字节 AGENTS、33 条依赖边。
 
 本轮没有触达 TypeScript、产品运行链路或 UI 行为，因此 tsc、产品测试和真实产品冒烟不适用。
 
@@ -59,6 +64,7 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 5. 检查 NPM、Desktop、runtime integration、产品博客和产品视觉素材 skill，确认深耦合能力使用 `nextclaw-` 前缀。
 6. 检查 `autonomous-requirement-discovery` 与 `iterative-quality-convergence`，确认两者保持独立探索入口且 `allow_implicit_invocation: false`，生命周期只把 `development-task-understanding` 作为第一阶段 owner。
 7. 检查 lifecycle 的 observer 路径和 telemetry Skill，确认清空 observer 即可停用；直接向 AI 询问任务统计，确认 AI 自己定位和运行报告；运行报告脚本的 `--help`，确认支持显式 rollout、跨线程日志发现、task 筛选以及 text/json 输出。
+8. 向 AI 说“打开开发任务统计大盘”，确认 AI 启动并返回本地链接；新任务在列表和详情中显示可读名称与次级 ID，旧任务显示“未命名任务”，刷新不会重新全量解析未变化日志。
 
 ## 可维护性总结汇总
 
@@ -73,6 +79,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 同批次探索后续没有增加 scripts、references 或 assets，只新增两个用户明确要求的独立 skill 与标准 UI 元信息；职责分别是需求发现与质量收敛，不复制任务理解、Validation 或 Review。自动 maintainability 检查仅提示 `skill-progressive-loading.mjs` 从 416 增至 417 行、接近 500 行预算；新增一行只用于阻止退役名称回流，当前拆分没有收益。条件主观复核结论为无可维护性发现。
 
 telemetry 首版的自动 maintainability 检查先发现单文件 885 行、超过 500 行预算，已按协议解析、Codex rollout adapter、任务聚合和薄 CLI 四个真实 owner 拆分；复验为 0 error。任务聚合文件 452/500 行仍收到接近预算 warning，但其内容是同一个 task/thread 状态机，继续拆分会引入状态搬运和第二 owner，因此本批不再为行数继续拆。其它 warning 来自工作区中未纳入本提交的并发改动。新增 Skill 只把数量预算从 36 精确增加到 37，没有扩大 description 或 AGENTS 常驻索引，也没有向 `AGENTS.md` 添加常驻协议；AI 查询合同只增加在命中 telemetry 后才加载的正文。
+
+大盘后续的 maintainability 检查为 0 error、2 warning：单页渲染脚本 393/400 行，任务聚合器 466/500 行。前者保持一个无框架页面的渲染与刷新 owner，拆成多个模块只会增加文件和跳转；后者本次只增加名称字段与解析后聚合主链。Review 删除了低价值的名称冲突专用 warning 分支，以首个名称为稳定 owner，避免为罕见 reopen 误用扩大状态机。最终主观复核为无 findings。
 
 ## NPM 包发布记录
 

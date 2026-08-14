@@ -34,6 +34,7 @@ function sortedWarningCounts(map) {
 class TaskAccumulator {
   constructor(taskId, rootThreadId) {
     this.id = taskId;
+    this.name = null;
     this.rootThreadId = rootThreadId;
     this.rootStartCount = 0;
     this.reopenCount = 0;
@@ -147,9 +148,12 @@ class TaskAccumulator {
 
     return {
       id: this.id,
+      name: this.name,
       status: this.status,
       requested_status: this.requestedStatus,
       data_quality: dataQuality,
+      started_at: this.startTimestamp,
+      ended_at: this.endTimestamp,
       root_thread_id: this.rootThreadId,
       child_lane_count: this.childThreads.size,
       reopen_count: this.reopenCount,
@@ -213,9 +217,18 @@ export async function analyzeRollouts(paths) {
   const rollouts = await Promise.all(
     paths.map((path, index) => parseRollout(resolve(path), index)),
   );
+  return analyzeParsedRollouts(rollouts);
+}
+
+export function analyzeParsedRollouts(rollouts) {
+  if (!Array.isArray(rollouts) || rollouts.length === 0) {
+    throw new Error("At least one parsed rollout is required");
+  }
   const globalWarnings = rollouts.flatMap((rollout) => rollout.warnings);
   const frames = rollouts
-    .flatMap((rollout) => rollout.frames)
+    .flatMap((rollout, fileOrder) =>
+      rollout.frames.map((frame) => ({ ...frame, fileOrder })),
+    )
     .sort(
       (left, right) =>
         timestampValue(left.timestamp) - timestampValue(right.timestamp) ||
@@ -306,6 +319,7 @@ export async function analyzeRollouts(paths) {
         );
       } else {
         task = ensureTask(marker.taskId);
+        task.name ??= marker.taskName;
         task.rootStartCount += 1;
         task.reopenCount = Math.max(0, task.rootStartCount - 1);
         task.status = "incomplete";
@@ -425,7 +439,7 @@ export async function analyzeRollouts(paths) {
 
   return {
     protocol: PROTOCOL,
-    generated_from: paths.map((path) => resolve(path)).sort(),
+    generated_from: rollouts.map((rollout) => resolve(rollout.path)).sort(),
     tasks: finalizedTasks,
     corpus: {
       observed_usage: corpusObserved,

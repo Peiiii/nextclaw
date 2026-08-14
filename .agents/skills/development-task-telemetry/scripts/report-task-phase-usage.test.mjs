@@ -108,7 +108,7 @@ test("attributes start, phase, end, model and tool rounds by response frame", as
     turn("2026-08-14T00:00:00.010Z"),
     assistant(
       "2026-08-14T00:00:01.000Z",
-      "[我严格遵守规则][nextclaw.dev/v1 task=start id=dt-aabbccdd phase=implementation] start",
+      '[我严格遵守规则][nextclaw.dev/v1 task=start id=dt-aabbccdd name="优化任务统计名称" phase=implementation] start',
     ),
     toolCall("2026-08-14T00:00:01.100Z"),
     tokenCount("2026-08-14T00:00:02.000Z", 100),
@@ -128,8 +128,11 @@ test("attributes start, phase, end, model and tool rounds by response frame", as
     const report = await analyzeRollouts(paths);
     const task = taskById(report, "dt-aabbccdd");
 
+    assert.equal(task.name, "优化任务统计名称");
     assert.equal(task.status, "completed");
     assert.equal(task.data_quality, "complete");
+    assert.equal(task.started_at, "2026-08-14T00:00:02.000Z");
+    assert.equal(task.ended_at, "2026-08-14T00:00:06.000Z");
     assert.equal(task.total_usage.total_tokens, 220);
     assert.equal(task.model_calls, 3);
     assert.equal(task.tool_call_rounds, 1);
@@ -367,7 +370,7 @@ test("runs the public CLI path with rollout and JSON options", async () => {
     turn("2026-08-14T06:00:00.010Z"),
     assistant(
       "2026-08-14T06:00:01.000Z",
-      "[nextclaw.dev/v1 task=start id=dt-cli00001 phase=validation] start",
+      '[nextclaw.dev/v1 task=start id=dt-cli00001 name="验证 CLI 统计" phase=validation] start',
     ),
     tokenCount("2026-08-14T06:00:02.000Z", 25),
   ];
@@ -378,5 +381,9 @@ test("runs the public CLI path with rollout and JSON options", async () => {
 
     assert.equal(result.exitCode, 0);
     assert.equal(taskById(report, "dt-cli00001").total_usage.total_tokens, 25);
+
+    const textResult = await runCli(["--rollout", path]);
+    assert.match(textResult.output, /Task: 验证 CLI 统计/);
+    assert.match(textResult.output, /Task ID: dt-cli00001/);
   });
 });
