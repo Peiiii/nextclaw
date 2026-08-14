@@ -83,4 +83,57 @@ describe("runCliAgentCommand", () => {
     expect(process.exitCode).toBeUndefined();
     expect(kernel.dispose).toHaveBeenCalledTimes(1);
   });
+
+  it("submits the next interactive prompt before the active run finishes", async () => {
+    let resolveFirstRun: ((value: string) => void) | undefined;
+    let resolveExitPrompt: ((value: string) => void) | undefined;
+    const firstRun = new Promise<string>((resolve) => {
+      resolveFirstRun = resolve;
+    });
+    const exitPrompt = new Promise<string>((resolve) => {
+      resolveExitPrompt = resolve;
+    });
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation((() => undefined) as never);
+    const kernel = {
+      extensions: { load: vi.fn() },
+      start: vi.fn(),
+      dispose: vi.fn(),
+      eventBus: {},
+      ingress: {}
+    };
+    mocks.getDataDirMock.mockReturnValue("/tmp/nextclaw-cli-agent-runner-test");
+    mocks.promptMock
+      .mockResolvedValueOnce("first")
+      .mockResolvedValueOnce("second")
+      .mockReturnValueOnce(exitPrompt);
+    mocks.dispatchPromptOverNcpMock
+      .mockReturnValueOnce(firstRun)
+      .mockResolvedValueOnce("second reply");
+
+    const command = runCliAgentCommand({
+      logo: "NextClaw",
+      opts: {},
+      config: {},
+      kernel
+    } as never);
+
+    await vi.waitFor(() => {
+      expect(mocks.dispatchPromptOverNcpMock).toHaveBeenCalledTimes(2);
+    });
+    expect(mocks.dispatchPromptOverNcpMock.mock.calls.map(([params]) => params.content)).toEqual([
+      "first",
+      "second"
+    ]);
+
+    resolveFirstRun?.("first reply");
+    resolveExitPrompt?.("exit");
+    await command;
+
+    expect(mocks.printAgentResponseMock).toHaveBeenCalledWith("first reply");
+    expect(mocks.printAgentResponseMock).toHaveBeenCalledWith("second reply");
+    expect(kernel.dispose).toHaveBeenCalledTimes(1);
+    exitSpy.mockRestore();
+  });
 });

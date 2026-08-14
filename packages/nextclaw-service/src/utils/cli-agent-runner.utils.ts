@@ -61,6 +61,7 @@ async function runCliInteractiveLoop(params: {
   const { agentRunClient, config, logo, metadata, sessionKey } = params;
   console.log(`${logo} Interactive mode (type exit or Ctrl+C to quit)\n`);
   const rl = createCliHistoryInterface();
+  let closed = false;
 
   while (true) {
     const line = await prompt(rl, "You: ");
@@ -69,15 +70,21 @@ async function runCliInteractiveLoop(params: {
       continue;
     }
     if (EXIT_COMMANDS.has(trimmed.toLowerCase())) {
+      closed = true;
       rl.close();
       break;
     }
-    await sendCliPrompt({
+    const request = sendCliPrompt({
       config,
       agentRunClient,
       sessionKey,
       content: trimmed,
       metadata,
+    });
+    void request.finally(() => {
+      if (!closed) {
+        rl.prompt(true);
+      }
     });
   }
 }
