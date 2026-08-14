@@ -1,13 +1,18 @@
-import type { PointerEvent } from "react";
+import { useState, type PointerEvent } from "react";
 import {
+  AppWindow,
   ArrowLeft,
   ArrowRight,
+  BookOpen,
+  Boxes,
+  Github,
   PanelRightOpen,
   PictureInPicture2,
   Pin,
   PinOff,
   Plus,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import type { DocBrowserDockState, DocBrowserTab } from "./doc-browser-context";
 import type { ContextMenuGroup } from "@/shared/components/ui/context-menu/context-menu";
@@ -38,6 +43,68 @@ type DocBrowserTabStripProps = {
   onToggleMode: () => void;
   getTabMenuGroups?: (tab: DocBrowserTab) => readonly ContextMenuGroup[] | undefined;
 };
+
+const DOC_BROWSER_BUILTIN_TAB_ICONS: Record<string, LucideIcon> = {
+  apps: Boxes,
+  docs: BookOpen,
+  github: Github,
+  "new-tab": Plus,
+  "panel-app": AppWindow,
+  "service-apps": AppWindow,
+};
+
+function DocBrowserUrlTabIcon({
+  fallbackIcon: FallbackIcon,
+  url,
+}: {
+  fallbackIcon: LucideIcon;
+  url: string;
+}) {
+  const [loadFailed, setLoadFailed] = useState(false);
+  return loadFailed ? (
+    <FallbackIcon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+  ) : (
+    <img
+      src={url}
+      alt=""
+      className="h-3.5 w-3.5 rounded-sm object-cover"
+      onError={() => setLoadFailed(true)}
+    />
+  );
+}
+
+function DocBrowserTabIcon({ tab }: { tab: DocBrowserTab }) {
+  const { dockIcon } = tab;
+  const fallbackIcon = tab.kind === "docs"
+    ? BookOpen
+    : tab.kind === "home"
+      ? Plus
+      : tab.kind === "apps"
+        ? Boxes
+        : AppWindow;
+  const Icon = dockIcon?.type === "builtin"
+    ? (DOC_BROWSER_BUILTIN_TAB_ICONS[dockIcon.name] ?? fallbackIcon)
+      : fallbackIcon;
+
+  if (dockIcon?.type === "url") {
+    return (
+      <DocBrowserUrlTabIcon
+        key={dockIcon.url}
+        fallbackIcon={fallbackIcon}
+        url={dockIcon.url}
+      />
+    );
+  }
+  if (dockIcon?.type === "text") {
+    return (
+      <span className="max-w-3.5 truncate text-[10px] font-semibold leading-none" aria-hidden="true">
+        {dockIcon.value}
+      </span>
+    );
+  }
+
+  return <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />;
+}
 
 function shouldBlockHeaderDrag(target: EventTarget | null): boolean {
   return target instanceof Element && Boolean(
@@ -80,8 +147,9 @@ export function DocBrowserTabStrip({
     label: tab.title || t("docBrowserTabUntitled"),
     active: tab.id === activeTabId,
     tooltip: tab.title,
+    leadingIcon: <DocBrowserTabIcon tab={tab} />,
     closeLabel: closeTabLabel,
-    closePlacement: "trailing",
+    closePlacement: "leading-hover",
     onSelect: () => onSetActiveTab(tab.id),
     onClose: () => onCloseTab(tab.id),
     menuLabel: t("docBrowserTabMoreActions"),
@@ -132,7 +200,7 @@ export function DocBrowserTabStrip({
       tabsClassName="items-center gap-0.5"
       actionsClassName="h-full items-center gap-0.5"
       actionButtonClassName="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
-      tabBaseClassName="group inline-flex min-w-0 cursor-pointer items-center gap-0.5 h-7 px-2 rounded-md text-xs max-w-[220px] shrink-0 transition-colors"
+      tabBaseClassName="inline-flex cursor-pointer items-center gap-0.5 h-7 px-2 rounded-md text-xs max-w-[220px] shrink-0 transition-colors"
       activeTabClassName="bg-muted/80 text-foreground"
       inactiveTabClassName="text-muted-foreground hover:bg-muted/45 hover:text-foreground"
       labelClassName="px-0.5 text-xs font-normal"

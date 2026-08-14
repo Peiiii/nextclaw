@@ -1,6 +1,9 @@
 import * as React from "react";
 import { MoreVertical, X } from "lucide-react";
-import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
+import {
+  IconActionButton,
+  type IconActionButtonProps,
+} from "@/shared/components/ui/actions/icon-action-button";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -63,6 +66,10 @@ function closeCompactTab(event: React.MouseEvent<HTMLButtonElement>, onClose: ()
   onClose();
 }
 
+function CompactTabActionButton(props: IconActionButtonProps) {
+  return <IconActionButton {...props} size="sm" tone="strong" />;
+}
+
 function CompactTabMenu({ tab }: { tab: CompactTabStripTab }) {
   if (!tab.menuGroups?.some((group) => group.items.length > 0)) {
     return null;
@@ -70,21 +77,83 @@ function CompactTabMenu({ tab }: { tab: CompactTabStripTab }) {
 
   const menuLabel = tab.menuLabel ?? tab.label;
   return (
+    <div className="flex shrink-0">
+      <ContextMenuTrigger>
+        <CompactTabActionButton
+          icon={<MoreVertical className="h-3.5 w-3.5" />}
+          label={menuLabel}
+        />
+      </ContextMenuTrigger>
+    </div>
+  );
+}
+
+function CompactTabTrailingActions({ tab }: { tab: CompactTabStripTab }) {
+  const hasMenu = tab.menuGroups?.some((group) => group.items.length > 0) ?? false;
+  const hasTrailingClose = Boolean(
+    tab.onClose && tab.closePlacement !== "leading-hover",
+  );
+  const close = hasTrailingClose ? (
+    <CompactTabActionButton
+      icon={<X className="h-3.5 w-3.5" />}
+      label={tab.closeLabel ?? ""}
+      tooltip={tab.closeLabel ?? null}
+      onClick={(event) => closeCompactTab(event, tab.onClose!)}
+    />
+  ) : null;
+
+  if (!hasMenu && !hasTrailingClose) {
+    return null;
+  }
+
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        data-compact-tab-trailing-spacer=""
+        className={cn(
+          "shrink-0",
+          hasMenu && hasTrailingClose
+            ? "w-[50px]"
+            : hasMenu
+              ? "w-6"
+              : "w-6",
+        )}
+      />
+      <div
+        data-compact-tab-trailing-actions=""
+        className={cn(
+          "pointer-events-none absolute inset-y-0 right-1 z-10 flex items-center gap-0.5 opacity-0",
+          "group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+          "group-data-[context-menu-open]:pointer-events-auto group-data-[context-menu-open]:opacity-100",
+        )}
+      >
+        {hasMenu ? <CompactTabMenu tab={tab} /> : null}
+        {close}
+      </div>
+    </>
+  );
+}
+
+function CompactTabLeadingCloseOverlay({ tab }: { tab: CompactTabStripTab }) {
+  if (!tab.onClose || tab.closePlacement !== "leading-hover") {
+    return null;
+  }
+
+  return (
     <div
+      data-compact-tab-leading-actions=""
       className={cn(
-        "-ml-1.5 flex w-0 shrink-0 overflow-hidden opacity-0 transition-[width,margin,opacity] group-hover:ml-0 group-hover:w-5 group-hover:opacity-100 group-focus-within:ml-0 group-focus-within:w-5 group-focus-within:opacity-100",
-        "group-data-[context-menu-open]:ml-0 group-data-[context-menu-open]:w-5 group-data-[context-menu-open]:opacity-100",
+        "pointer-events-none absolute inset-y-0 left-1 z-10 flex items-center opacity-0",
+        "group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
       )}
     >
-      <ContextMenuTrigger>
-        <button
-          type="button"
-          aria-label={menuLabel}
-          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus-visible:bg-gray-200 focus-visible:text-gray-700 focus-visible:outline-none"
-        >
-          <MoreVertical className="h-3.5 w-3.5" />
-        </button>
-      </ContextMenuTrigger>
+      <CompactTabActionButton
+        icon={<X className="h-3.5 w-3.5" />}
+        label={tab.closeLabel ?? ""}
+        tooltip={tab.closeLabel ?? null}
+        onClick={(event) => closeCompactTab(event, tab.onClose!)}
+      />
     </div>
   );
 }
@@ -96,9 +165,9 @@ function CompactTabLabelButton({
   labelClassName?: string;
   tab: CompactTabStripTab;
 }) {
-  const leadingIcon = tab.onClose && tab.closePlacement === "leading-hover"
-    ? null
-    : tab.leadingIcon;
+  const hasLeadingClose = Boolean(
+    tab.onClose && tab.closePlacement === "leading-hover",
+  );
   const button = (
     <button
       type="button"
@@ -106,9 +175,15 @@ function CompactTabLabelButton({
       aria-label={tab.label}
       className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
     >
-      {leadingIcon ? (
-        <span className="inline-flex shrink-0 items-center justify-center">
-          {leadingIcon}
+      {tab.leadingIcon || hasLeadingClose ? (
+        <span
+          data-compact-tab-leading-slot=""
+          className={cn(
+            "inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center",
+            hasLeadingClose && "group-hover:opacity-0 group-focus-within:opacity-0",
+          )}
+        >
+          {tab.leadingIcon}
         </span>
       ) : null}
       <span className={cn("min-w-0 truncate text-[12px] font-medium", labelClassName, tab.labelClassName)}>
@@ -150,7 +225,6 @@ function CompactTabItem({
   | "labelClassName"
   | "tabBaseClassName"
 > & { itemRef?: React.Ref<HTMLDivElement>; tab: CompactTabStripTab }) {
-  const leadingClose = tab.onClose && tab.closePlacement === "leading-hover";
   const item = (
     <div
       ref={itemRef}
@@ -158,38 +232,17 @@ function CompactTabItem({
       onClick={(event) => event.target === event.currentTarget && tab.onSelect()}
       className={cn(
         tabBaseClassName ??
-          "group flex max-w-[180px] min-w-0 cursor-pointer items-center gap-1.5 border-r border-gray-200/70 border-b-2 px-2.5 py-2 transition-colors",
+          "flex max-w-[180px] cursor-pointer items-center gap-1.5 border-r border-gray-200/70 border-b-2 px-2.5 py-2 transition-colors",
+        "group relative",
         tab.active
           ? (activeTabClassName ?? "border-b-primary bg-white text-gray-900")
           : (inactiveTabClassName ??
             "border-b-transparent bg-gray-50/85 text-gray-500 hover:bg-gray-100"),
       )}
     >
-      {leadingClose ? (
-        <button
-          type="button"
-          onClick={(event) => closeCompactTab(event, tab.onClose!)}
-          className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
-          aria-label={tab.closeLabel}
-        >
-          <span className="flex items-center justify-center group-hover:hidden">
-            {tab.leadingIcon}
-          </span>
-          <X className="hidden h-3.5 w-3.5 group-hover:block" />
-        </button>
-      ) : null}
       <CompactTabLabelButton tab={tab} labelClassName={labelClassName} />
-      <CompactTabMenu tab={tab} />
-      {tab.onClose && tab.closePlacement !== "leading-hover" ? (
-        <IconActionButton
-          size="sm"
-          tone="strong"
-          icon={<X className="h-3 w-3" />}
-          label={tab.closeLabel ?? ""}
-          tooltip={tab.closeLabel ?? null}
-          onClick={(event) => closeCompactTab(event, tab.onClose!)}
-        />
-      ) : null}
+      <CompactTabLeadingCloseOverlay tab={tab} />
+      <CompactTabTrailingActions tab={tab} />
     </div>
   );
 
