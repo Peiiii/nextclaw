@@ -12,7 +12,7 @@ export const defaultSkillBudgets = Object.freeze({
   descriptionChars: 260,
   descriptionTotalChars: 6_000,
   skillBytes: 8_000,
-  skillCount: 36,
+  skillCount: 37,
   skillTotalBytes: 160_000
 });
 

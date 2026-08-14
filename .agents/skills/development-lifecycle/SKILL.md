@@ -5,6 +5,16 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 
 # Development Lifecycle
 
+## Lifecycle observer
+
+当前 observer：[`development-task-telemetry`](../development-task-telemetry/SKILL.md)。
+
+- observer 路径存在时视为启用，进入本流程时只加载一次；阶段切换时不重复加载。
+- observer 只接收本流程已经决定的 task / phase 事实，不参与阶段路由、返工和完成门。
+- 子 Agent 由父任务传入 observer 名、task-id 和当前 phase，不自行扫描全局配置。
+- observer 缺失或加载失败时明确说明 unavailable 并继续任务。
+- 把“当前 observer”设为空即可停用；本节不复制 observer 的具体输出协议。
+
 ## 定位
 
 这是普通源码、脚本、测试、运行链路和从方案到实现任务的唯一默认流程 owner。开始时只加载本入口；进入某一阶段后才加载该阶段 owner，不预读未来阶段。
