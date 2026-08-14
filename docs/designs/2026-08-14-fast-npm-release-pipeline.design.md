@@ -3,7 +3,7 @@
 ## 文档状态
 
 - 日期：2026-08-14
-- 状态：设计已冻结，待实现
+- 状态：已被[一分钟 NPM 发布设计](./2026-08-14-one-minute-npm-prepared-publish.design.md)取代
 - 目标入口：`pnpm release:npm:stable`，并让可复用的 package publish 优化自然惠及 beta / product stable
 - 上游语义：[NextClaw 发布命令语义与快速完成点设计](./2026-08-14-nextclaw-release-command-semantics.design.md)
 - 既有生命周期：[Stable NPM 一键发布自动化设计](./2026-08-09-stable-npm-release-automation.design.md)

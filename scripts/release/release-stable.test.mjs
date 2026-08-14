@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  assertNpmReadyWithinBudget,
   buildStableCompletionSummary,
   buildStableDryRunPlan,
   buildStableNpmReadySummary,
@@ -11,26 +12,64 @@ import {
   formatStableRecoveryCommand,
   inspectStableSurfaceReview,
   parseStableReleaseArgs,
-  resolveLinkedWorktreeNpmUserconfig,
+  resolveReleaseNpmUserconfig,
   resolveStableReleaseLevel,
   resolveStableReleasePlan,
-  validateStableResumeOptions
+  validateStableResumeOptions,
 } from "./release-stable.utils.mjs";
 import { validateReusableReleaseBuilds } from "./ensure-pnpm-publish.mjs";
 
 test("parses the default full stable closure", () => {
   assert.deepEqual(parseStableReleaseArgs([]), {
+    artifactOutput: null,
     branch: "master",
     dryRun: false,
     help: false,
+    maxPublishSeconds: 60,
     minimumLauncherVersionOverride: null,
     previousVersion: null,
+    prepareOnly: false,
+    publishConcurrency: 12,
     releaseTag: null,
     resumeFrom: "packages",
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
-    version: null
+    targetBranch: "master",
+    verifyConcurrency: 8,
+    version: null,
   });
+});
+
+test("parses prepared publish performance controls", () => {
+  const options = parseStableReleaseArgs([
+    "--prepare-only",
+    "--target-branch",
+    "stable",
+    "--publish-concurrency",
+    "16",
+    "--verify-concurrency",
+    "6",
+    "--max-publish-seconds",
+    "55",
+  ]);
+  assert.equal(options.prepareOnly, true);
+  assert.equal(options.targetBranch, "stable");
+  assert.equal(options.publishConcurrency, 16);
+  assert.equal(options.verifyConcurrency, 6);
+  assert.equal(options.maxPublishSeconds, 55);
+});
+
+test("allows artifact export only during preparation", () => {
+  const options = parseStableReleaseArgs([
+    "--prepare-only",
+    "--artifact-output",
+    "/tmp/npm-prepared",
+  ]);
+  assert.equal(options.artifactOutput, "/tmp/npm-prepared");
+  assert.throws(
+    () => parseStableReleaseArgs(["--artifact-output", "/tmp/npm-prepared"]),
+    /requires --prepare-only/,
+  );
 });
 
 test("parses explicit recovery and exception flags", () => {
@@ -43,7 +82,7 @@ test("parses explicit recovery and exception flags", () => {
     "0.29.0",
     "--skip-published-install",
     "--branch",
-    "release/stable"
+    "release/stable",
   ]);
   assert.equal(options.resumeFrom, "runtime");
   assert.equal(options.version, "0.30.0");
@@ -55,21 +94,29 @@ test("parses explicit recovery and exception flags", () => {
 test("rejects unknown recovery stages", () => {
   assert.throws(
     () => parseStableReleaseArgs(["--resume-from", "publish-again"]),
-    /Unsupported --resume-from stage/
+    /Unsupported --resume-from stage/,
   );
 });
 
 test("requires an exact version for recovery", () => {
   assert.throws(
-    () => validateStableResumeOptions(parseStableReleaseArgs(["--resume-from", "runtime"])),
-    /requires --version/
+    () =>
+      validateStableResumeOptions(
+        parseStableReleaseArgs(["--resume-from", "runtime"]),
+      ),
+    /requires --version/,
   );
   assert.throws(
     () =>
       validateStableResumeOptions(
-        parseStableReleaseArgs(["--resume-from", "runtime", "--version", "0.30.0"])
+        parseStableReleaseArgs([
+          "--resume-from",
+          "runtime",
+          "--version",
+          "0.30.0",
+        ]),
       ),
-    /requires --previous-version/
+    /requires --previous-version/,
   );
   assert.doesNotThrow(() =>
     validateStableResumeOptions(
@@ -78,9 +125,9 @@ test("requires an exact version for recovery", () => {
         "runtime",
         "--version",
         "0.30.0",
-        "--skip-published-install"
-      ])
-    )
+        "--skip-published-install",
+      ]),
+    ),
   );
 });
 
@@ -89,15 +136,19 @@ test("resolves nextclaw versions from the changeset release plan", () => {
     resolveStableReleasePlan({
       preState: null,
       releases: [
-        { name: "@nextclaw/shared", oldVersion: "0.4.19", newVersion: "0.4.20" },
-        { name: "nextclaw", oldVersion: "0.29.0", newVersion: "0.30.0" }
-      ]
+        {
+          name: "@nextclaw/shared",
+          oldVersion: "0.4.19",
+          newVersion: "0.4.20",
+        },
+        { name: "nextclaw", oldVersion: "0.29.0", newVersion: "0.30.0" },
+      ],
     }),
-    { packageCount: 2, previousVersion: "0.29.0", targetVersion: "0.30.0" }
+    { packageCount: 2, previousVersion: "0.29.0", targetVersion: "0.30.0" },
   );
   assert.throws(
     () => resolveStableReleasePlan({ preState: { mode: "pre" }, releases: [] }),
-    /pre mode is active/
+    /pre mode is active/,
   );
 });
 
@@ -111,16 +162,16 @@ test("classifies stable release levels and requires surface review for minor or 
       pathExists: () => false,
       previousVersion: "0.30.0",
       review: null,
-      targetVersion: "0.30.1"
+      targetVersion: "0.30.1",
     }),
-    { issues: [], ready: true, releaseLevel: "patch", required: false }
+    { issues: [], ready: true, releaseLevel: "patch", required: false },
   );
 
   const missing = inspectStableSurfaceReview({
     pathExists: () => false,
     previousVersion: "0.30.0",
     review: null,
-    targetVersion: "0.31.0"
+    targetVersion: "0.31.0",
   });
   assert.equal(missing.required, true);
   assert.equal(missing.ready, false);
@@ -131,7 +182,7 @@ test("accepts audited docs and website decisions for a minor release", () => {
   const existingPaths = new Set([
     "apps/docs/guide.md",
     "apps/landing/src/main.ts",
-    "images/screenshots/release.png"
+    "images/screenshots/release.png",
   ]);
   const result = inspectStableSurfaceReview({
     pathExists: (path) => existingPaths.has(path),
@@ -149,13 +200,18 @@ test("accepts audited docs and website decisions for a minor release", () => {
           imageAlt: "Release screenshot",
           imagePath: "images/screenshots/release.png",
           releaseNotesUrl: "https://docs.nextclaw.io/en/notes/v0-31-0",
-          text: "NextClaw v0.31.0 is out. https://docs.nextclaw.io/en/notes/v0-31-0"
-        }
-      }
+          text: "NextClaw v0.31.0 is out. https://docs.nextclaw.io/en/notes/v0-31-0",
+        },
+      },
     },
-    targetVersion: "0.31.0"
+    targetVersion: "0.31.0",
   });
-  assert.deepEqual(result, { issues: [], ready: true, releaseLevel: "minor", required: true });
+  assert.deepEqual(result, {
+    issues: [],
+    ready: true,
+    releaseLevel: "minor",
+    required: true,
+  });
 
   const missingReason = inspectStableSurfaceReview({
     pathExists: () => true,
@@ -173,11 +229,11 @@ test("accepts audited docs and website decisions for a minor release", () => {
           imageAlt: "Release screenshot",
           imagePath: "images/screenshots/release.png",
           releaseNotesUrl: "https://docs.nextclaw.io/en/notes/v0-31-0",
-          text: "NextClaw v0.31.0 is out. https://docs.nextclaw.io/en/notes/v0-31-0"
-        }
-      }
+          text: "NextClaw v0.31.0 is out. https://docs.nextclaw.io/en/notes/v0-31-0",
+        },
+      },
     },
-    targetVersion: "0.31.0"
+    targetVersion: "0.31.0",
   });
   assert.equal(missingReason.ready, false);
   assert.match(missingReason.issues.join("\n"), /requires a reason/);
@@ -190,52 +246,66 @@ test("accepts audited docs and website decisions for a minor release", () => {
       releaseType: "minor",
       surfaces: {
         docsSite: { decision: "updated", paths: ["apps/docs/guide.md"] },
-        website: { decision: "updated", paths: ["apps/landing/src/main.ts"] }
-      }
+        website: { decision: "updated", paths: ["apps/landing/src/main.ts"] },
+      },
     },
-    targetVersion: "0.31.0"
+    targetVersion: "0.31.0",
   });
   assert.equal(missingSocialPost.ready, false);
-  assert.match(missingSocialPost.issues.join("\n"), /social post decision must be publish/);
+  assert.match(
+    missingSocialPost.issues.join("\n"),
+    /social post decision must be publish/,
+  );
 });
 
-test("inherits a primary worktree npm config only when the linked worktree has none", () => {
+test("resolves the effective project npm config before any auth conclusion", () => {
   const existingPaths = new Set(["/repo/.npmrc"]);
   const pathExists = (filePath) => existingPaths.has(filePath);
   assert.equal(
-    resolveLinkedWorktreeNpmUserconfig({
+    resolveReleaseNpmUserconfig({
       commonGitDir: "/repo/.git",
       configuredUserconfig: null,
       currentWorktree: "/tmp/release",
-      pathExists
+      pathExists,
     }),
-    "/repo/.npmrc"
+    "/repo/.npmrc",
   );
   assert.equal(
-    resolveLinkedWorktreeNpmUserconfig({
+    resolveReleaseNpmUserconfig({
       commonGitDir: "/repo/.git",
       configuredUserconfig: "/custom/.npmrc",
       currentWorktree: "/tmp/release",
-      pathExists
+      pathExists,
     }),
-    null
+    "/custom/.npmrc",
   );
   existingPaths.add("/tmp/release/.npmrc");
   assert.equal(
-    resolveLinkedWorktreeNpmUserconfig({
+    resolveReleaseNpmUserconfig({
       commonGitDir: "/repo/.git",
       configuredUserconfig: null,
       currentWorktree: "/tmp/release",
-      pathExists
+      pathExists,
     }),
-    null
+    "/tmp/release/.npmrc",
+  );
+  assert.throws(
+    () =>
+      resolveReleaseNpmUserconfig({
+        commonGitDir: "/repo/.git",
+        configuredUserconfig: null,
+        currentWorktree: "/repo",
+        pathExists: () => false,
+        required: true,
+      }),
+    /refusing ambient ~\/.npmrc/,
   );
 });
 
 test("dry run exposes every closure stage and explicit exceptions", () => {
   const plan = buildStableDryRunPlan({
     branch: "master",
-    npmPublishPackageCount: 6,
+    npmPublishPackageCount: 22,
     packageCount: 29,
     previousVersion: "0.29.0",
     releaseNotesReady: true,
@@ -245,16 +315,17 @@ test("dry run exposes every closure stage and explicit exceptions", () => {
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
     targetVersion: "0.30.0",
-    validationPackageCount: 36,
-    validationSupportPackageCount: 30,
-    worktreeClean: true
+    targetBranch: "master",
+    validationPackageCount: 39,
+    validationSupportPackageCount: 17,
+    worktreeClean: true,
   });
-  assert.match(plan.join("\n"), /strict check/);
+  assert.match(plan.join("\n"), /prepared tarball proof/);
   assert.match(plan.join("\n"), /release commit/);
   assert.match(plan.join("\n"), /public manifests/);
   assert.match(plan.join("\n"), /check\/download\/apply\/new process/);
-  assert.match(plan.join("\n"), /npm publish packages: 6/);
-  assert.match(plan.join("\n"), /validation closure: 36/);
+  assert.match(plan.join("\n"), /npm publish packages: 22/);
+  assert.match(plan.join("\n"), /validation closure: 39/);
   assert.match(plan.join("\n"), /desktop: excluded/);
 
   const skipped = buildStableDryRunPlan({
@@ -268,7 +339,7 @@ test("dry run exposes every closure stage and explicit exceptions", () => {
     skipPublishedInstall: true,
     skipRuntimeChannel: true,
     targetVersion: "0.29.1",
-    worktreeClean: false
+    worktreeClean: false,
   });
   assert.equal(skipped.at(-3), "- stable runtime channel: skipped");
   assert.equal(skipped.at(-2), "- published install: skipped");
@@ -281,11 +352,11 @@ test("formats an unambiguous recovery command", () => {
     previousVersion: "0.29.0",
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
-    version: "0.30.0"
+    version: "0.30.0",
   });
   assert.equal(
     command,
-    "pnpm release:stable -- --resume-from runtime --version 0.30.0 --previous-version 0.29.0"
+    "pnpm release:stable -- --resume-from runtime --version 0.30.0 --previous-version 0.29.0",
   );
 });
 
@@ -294,7 +365,7 @@ test("builds deterministic runtime, install, and package tag commands", () => {
     minimumLauncherVersionOverride: null,
     releaseTag: null,
     skipPublishedInstall: false,
-    skipRuntimeChannel: false
+    skipRuntimeChannel: false,
   };
   assert.deepEqual(buildStableRuntimeCommandArgs("master", "0.30.0", options), [
     "release:stable:runtime",
@@ -302,39 +373,46 @@ test("builds deterministic runtime, install, and package tag commands", () => {
     "--branch",
     "master",
     "--version",
-    "0.30.0"
-  ]);
-  assert.deepEqual(buildStablePublishedInstallArgs("0.30.0", "0.29.0", options), [
-    "-C",
-    "packages/nextclaw",
-    "validation:npm-update",
-    "--",
-    "--published-stable",
-    "--expected-version",
     "0.30.0",
-    "--previous-version",
-    "0.29.0"
   ]);
-  assert.deepEqual(buildStablePublishedUpgradeArgs("0.30.0", "0.29.0", options), [
-    "-C",
-    "packages/nextclaw",
-    "validation:npm-update",
-    "--",
-    "--published-stable",
-    "--expected-version",
-    "0.30.0",
-    "--previous-version",
-    "0.29.0",
-    "--update-only"
-  ]);
+  assert.deepEqual(
+    buildStablePublishedInstallArgs("0.30.0", "0.29.0", options),
+    [
+      "-C",
+      "packages/nextclaw",
+      "validation:npm-update",
+      "--",
+      "--published-stable",
+      "--expected-version",
+      "0.30.0",
+      "--previous-version",
+      "0.29.0",
+      "--package-only",
+    ],
+  );
+  assert.deepEqual(
+    buildStablePublishedUpgradeArgs("0.30.0", "0.29.0", options),
+    [
+      "-C",
+      "packages/nextclaw",
+      "validation:npm-update",
+      "--",
+      "--published-stable",
+      "--expected-version",
+      "0.30.0",
+      "--previous-version",
+      "0.29.0",
+      "--update-only",
+    ],
+  );
   assert.deepEqual(
     buildStableReleaseTags({
       packages: {
         nextclaw: { version: "0.30.0" },
-        "@nextclaw/kernel": { version: "0.7.0" }
-      }
+        "@nextclaw/kernel": { version: "0.7.0" },
+      },
     }),
-    ["@nextclaw/kernel@0.7.0", "nextclaw@0.30.0"]
+    ["@nextclaw/kernel@0.7.0", "nextclaw@0.30.0"],
   );
 });
 
@@ -342,14 +420,25 @@ test("reports the NPM_READY completion point explicitly", () => {
   assert.deepEqual(
     buildStableNpmReadySummary({
       checkpoint: { packages: { nextclaw: {}, "@nextclaw/core": {} } },
-      targetVersion: "0.30.0"
-    }).slice(0, 4),
+      publishSummary: { attemptsUsed: 1, publishedCount: 2, reusedCount: 0 },
+      targetVersion: "0.30.0",
+    }).slice(0, 6),
     [
       "NPM_READY",
       "- channel: stable/latest",
       "- package count: 2",
-      "- nextclaw version: 0.30.0"
-    ]
+      "- tarballs uploaded now: 2",
+      "- versions already visible: 0",
+      "- nextclaw version: 0.30.0",
+    ],
+  );
+});
+
+test("enforces the NPM_READY wall-clock budget", () => {
+  assert.doesNotThrow(() => assertNpmReadyWithinBudget(59_999, 60));
+  assert.throws(
+    () => assertNpmReadyWithinBudget(60_000, 60),
+    /exceeded the 60s completion budget/,
   );
 });
 
@@ -361,7 +450,7 @@ test("does not claim product-ready before docs, website, and X owner closure", (
     releaseTags: ["nextclaw@0.30.0"],
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
-    targetVersion: "0.30.0"
+    targetVersion: "0.30.0",
   });
   assert.equal(summary[0], "release:product:stable core stages completed");
   assert.match(summary.join("\n"), /NEXTCLAW_STABLE_READY: pending/);
@@ -372,25 +461,25 @@ test("only ignores publish lifecycle scripts backed by the release checkpoint", 
     packages: {
       "@nextclaw/core": {
         packageDir: "packages/nextclaw-core",
-        steps: { build: { status: "passed" } }
-      }
-    }
+        steps: { build: { status: "passed" } },
+      },
+    },
   };
   assert.deepEqual(
     validateReusableReleaseBuilds(checkpoint, () => ({
       name: "@nextclaw/core",
       scripts: {
         prepack: "pnpm run build",
-        prepublishOnly: "node ../../scripts/release/ensure-pnpm-publish.mjs"
-      }
+        prepublishOnly: "node ../../scripts/release/ensure-pnpm-publish.mjs",
+      },
     })),
-    []
+    [],
   );
   assert.match(
     validateReusableReleaseBuilds(checkpoint, () => ({
       name: "@nextclaw/core",
-      scripts: { prepack: "node generate-release-file.mjs" }
+      scripts: { prepack: "node generate-release-file.mjs" },
     })).join("\n"),
-    /cannot reuse build while ignoring prepack/
+    /cannot reuse build while ignoring prepack/,
   );
 });

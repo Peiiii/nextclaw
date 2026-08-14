@@ -167,6 +167,27 @@ export function summarizeExplicitReleaseScope() {
   };
 }
 
+export function summarizePlannedReleaseScope(changesetStatus) {
+  const plannedPackageNames = new Set(
+    (Array.isArray(changesetStatus?.releases) ? changesetStatus.releases : []).map(
+      (entry) => entry.name
+    )
+  );
+  const workspacePackages = collectWorkspacePackages();
+  const publishPackages = workspacePackages.filter(
+    (entry) => entry.private === false && plannedPackageNames.has(entry.pkg.name)
+  );
+  const releaseCheckSummary = summarizeReleaseCheckBatch(
+    publishPackages,
+    workspacePackages
+  );
+  return {
+    npmPublishPackageCount: releaseCheckSummary.orderedBatchPackages.length,
+    validationPackageCount: releaseCheckSummary.orderedValidationPackages.length,
+    validationSupportPackageCount: releaseCheckSummary.supportPackages.length
+  };
+}
+
 export function readNpmRegistry() {
   return execFileSync("npm", ["config", "get", "registry"], {
     cwd: ROOT_DIR,

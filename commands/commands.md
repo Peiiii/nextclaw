@@ -68,7 +68,7 @@
 
 - 用途：尽快发布当前待发布的 stable NPM package batch。
 - 输入格式：`/发布NPM`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 package 阶段，执行 `pnpm release:npm:stable`。只授权 NPM `latest`、registry 验证、精确版本冷安装和必要的 Git 版本闭合；不授权 runtime channel、desktop、文档站、官网或 X 写入。完成后明确报告 `NPM_READY`、实际上传包数、验证闭包、版本与排除项。
+- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 package 阶段。release-bearing `master` commit 的 version、strict check、artifact audit 和 tarball pack 必须已由 `npm-release-prepare` workflow 提前完成；用户无需知道或补说 prepare 命令。授权后直接执行 `pnpm release:npm:stable`，只定位/下载 HEAD 对应预制物、并发首次上传、逐包 version/integrity/latest registry 验证、空缓存公网精确 tarball/payload 审计和 Git 目标分支闭合；下载也计入 `NPM_READY` 的 60 秒硬目标。缺少有效预制物时快速失败，不在发布窗口重建。完整依赖安装/升级归产品正式版后续集成阶段。该命令只授权 NPM `latest` 及必要 Git 写入；不授权 runtime channel、desktop、文档站、官网或 X。完成后明确报告真实耗时、实际上传包数、验证闭包、版本与排除项。
 
 ## `/发布NPM测试版`
 

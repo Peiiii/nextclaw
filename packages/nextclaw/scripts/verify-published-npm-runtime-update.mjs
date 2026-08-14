@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { verifyPublishedNpmPackageArchive } from "./verify-published-npm-package.mjs";
+
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const workspaceRoot = resolve(packageRoot, "../..");
 
@@ -23,18 +25,22 @@ function run(command, args, options = {}) {
     cwd: options.cwd ?? workspaceRoot,
     env: {
       ...process.env,
-      ...options.env
+      ...options.env,
     },
     encoding: "utf8",
-    timeout: options.timeout ?? 120000
+    timeout: options.timeout ?? 120000,
   });
   if (result.status !== 0) {
-    throw new Error([
-      `command failed: ${command} ${args.join(" ")}`,
-      result.error ? String(result.error) : "",
-      result.stdout.trim(),
-      result.stderr.trim()
-    ].filter(Boolean).join("\n"));
+    throw new Error(
+      [
+        `command failed: ${command} ${args.join(" ")}`,
+        result.error ? String(result.error) : "",
+        result.stdout.trim(),
+        result.stderr.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    );
   }
   return result;
 }
@@ -70,8 +76,14 @@ async function verifyPublishedBetaRelease() {
 async function verifyPublishedStableRelease(argv) {
   const expectedVersion = readArgValue(argv, "--expected-version");
   const previousVersion = readArgValue(argv, "--previous-version");
+  const packageOnly = argv.includes("--package-only");
   const updateOnly = argv.includes("--update-only");
   assert(expectedVersion, "--published-stable requires --expected-version");
+  if (packageOnly) {
+    await verifyPublishedNpmPackageArchive({ expectedVersion, run });
+    log("published stable registry payload passed");
+    return;
+  }
   if (updateOnly) {
     assert(previousVersion, "--update-only requires --previous-version");
     await verifyPreviousStableUpdate(previousVersion, expectedVersion);
@@ -80,7 +92,7 @@ async function verifyPublishedStableRelease(argv) {
   }
   const fixture = await createPublishedInstallFixture(
     `nextclaw@${expectedVersion}`,
-    `stable-${expectedVersion}`
+    `stable-${expectedVersion}`,
   );
   try {
     verifyPublishedStableInstall(fixture, expectedVersion);
@@ -96,11 +108,11 @@ async function verifyPublishedStableRelease(argv) {
 async function verifyPreviousStableUpdate(previousVersion, expectedVersion) {
   assert(
     previousVersion !== expectedVersion,
-    "--previous-version must differ from --expected-version"
+    "--previous-version must differ from --expected-version",
   );
   const fixture = await createPublishedInstallFixture(
     `nextclaw@${previousVersion}`,
-    `stable-upgrade-${previousVersion}`
+    `stable-upgrade-${previousVersion}`,
   );
   try {
     verifyPublishedStableUpdate(fixture, previousVersion, expectedVersion);
@@ -110,27 +122,46 @@ async function verifyPreviousStableUpdate(previousVersion, expectedVersion) {
 }
 
 async function createPublishedInstallFixture(packageSpec, label) {
-  const tempRoot = await mkdtemp(join(tmpdir(), `nextclaw-published-${label}-smoke-`));
+  const tempRoot = await mkdtemp(
+    join(tmpdir(), `nextclaw-published-${label}-smoke-`),
+  );
   const prefix = join(tempRoot, "prefix");
   mkdirSync(prefix, { recursive: true });
-  run("npm", ["install", "-g", packageSpec, "--prefix", prefix], {
-    cwd: tempRoot,
-    timeout: 300000
-  });
+  run(
+    "npm",
+    [
+      "install",
+      "-g",
+      packageSpec,
+      "--prefix",
+      prefix,
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+      "--prefer-offline",
+    ],
+    {
+      cwd: tempRoot,
+      timeout: 300000,
+    },
+  );
   return {
     binaryPath: join(prefix, "bin/nextclaw"),
     packageDirectory: join(prefix, "lib/node_modules/nextclaw"),
     prefix,
     nextclawHome: join(tempRoot, "home"),
-    tempRoot
+    tempRoot,
   };
 }
 
 function verifyPublishedBetaInstall(fixture) {
   const expectedVersion = JSON.parse(
-    run("npm", ["view", "nextclaw@beta", "version", "--json"]).stdout.trim()
+    run("npm", ["view", "nextclaw@beta", "version", "--json"]).stdout.trim(),
   );
-  const installedVersion = verifyPublishedPackagePayload(fixture, expectedVersion);
+  const installedVersion = verifyPublishedPackagePayload(
+    fixture,
+    expectedVersion,
+  );
   const apiProbe = run(
     process.execPath,
     [
@@ -139,14 +170,20 @@ function verifyPublishedBetaInstall(fixture) {
       [
         "import { InputBudgetPruner } from '@nextclaw/core';",
         "const pruner = new InputBudgetPruner();",
-        "console.log(JSON.stringify({ estimateType: typeof pruner.estimate, pruneType: typeof pruner.prune }));"
-      ].join(" ")
+        "console.log(JSON.stringify({ estimateType: typeof pruner.estimate, pruneType: typeof pruner.prune }));",
+      ].join(" "),
     ],
-    { cwd: fixture.packageDirectory }
+    { cwd: fixture.packageDirectory },
   );
   const apiSnapshot = JSON.parse(apiProbe.stdout.trim());
-  assert(apiSnapshot.estimateType === "function", `expected estimate() to exist, got ${apiSnapshot.estimateType}`);
-  assert(apiSnapshot.pruneType === "function", `expected prune() to exist, got ${apiSnapshot.pruneType}`);
+  assert(
+    apiSnapshot.estimateType === "function",
+    `expected estimate() to exist, got ${apiSnapshot.estimateType}`,
+  );
+  assert(
+    apiSnapshot.pruneType === "function",
+    `expected prune() to exist, got ${apiSnapshot.pruneType}`,
+  );
 
   console.log(`
 [validation:npm-update --published-beta] Published beta install verified.
@@ -159,7 +196,10 @@ function verifyPublishedBetaInstall(fixture) {
 }
 
 function verifyPublishedStableInstall(fixture, expectedVersion) {
-  const installedVersion = verifyPublishedPackagePayload(fixture, expectedVersion);
+  const installedVersion = verifyPublishedPackagePayload(
+    fixture,
+    expectedVersion,
+  );
   console.log(`
 [validation:npm-update --published-stable] Published stable package verified.
 
@@ -174,18 +214,21 @@ function verifyPublishedStableInstall(fixture, expectedVersion) {
 
 function verifyPublishedPackagePayload(fixture, expectedVersion) {
   const installedVersion = run(fixture.binaryPath, ["--version"], {
-    cwd: fixture.packageDirectory
+    cwd: fixture.packageDirectory,
   }).stdout.trim();
-  assert(installedVersion === expectedVersion, `expected nextclaw ${expectedVersion}, got ${installedVersion}`);
+  assert(
+    installedVersion === expectedVersion,
+    `expected nextclaw ${expectedVersion}, got ${installedVersion}`,
+  );
   for (const relativePath of [
     "dist/cli/app/index.js",
     "dist/cli/launcher/index.js",
     "resources/update-bundle-public.pem",
-    "ui-dist/index.html"
+    "ui-dist/index.html",
   ]) {
     assert(
       existsSync(join(fixture.packageDirectory, relativePath)),
-      `published nextclaw is missing ${relativePath}`
+      `published nextclaw is missing ${relativePath}`,
     );
   }
   return installedVersion;
@@ -196,57 +239,88 @@ function parsePublishedLauncherJson(fixture, args) {
     cwd: fixture.packageDirectory,
     env: {
       NEXTCLAW_HOME: fixture.nextclawHome,
-      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`
+      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
     },
-    timeout: 300000
+    timeout: 300000,
   }).stdout.trim();
   try {
     return JSON.parse(stdout);
   } catch (error) {
-    throw new Error(`published launcher command did not print JSON:\n${stdout}\n${String(error)}`);
+    throw new Error(
+      `published launcher command did not print JSON:\n${stdout}\n${String(error)}`,
+    );
   }
 }
 
-function verifyPublishedStableUpdate(fixture, previousVersion, expectedVersion) {
+function verifyPublishedStableUpdate(
+  fixture,
+  previousVersion,
+  expectedVersion,
+) {
   const checkSnapshot = parsePublishedLauncherJson(fixture, [
     "update",
     "--channel",
     "stable",
     "--check",
-    "--json"
+    "--json",
   ]);
-  assert(checkSnapshot.status === "update-available", `expected update-available, got ${checkSnapshot.status}`);
-  assert(checkSnapshot.availableVersion === expectedVersion, `expected available version ${expectedVersion}`);
+  assert(
+    checkSnapshot.status === "update-available",
+    `expected update-available, got ${checkSnapshot.status}`,
+  );
+  assert(
+    checkSnapshot.availableVersion === expectedVersion,
+    `expected available version ${expectedVersion}`,
+  );
 
   const currentPointerPath = join(
     fixture.nextclawHome,
     "launcher",
     "runtime-bundles",
-    "current.json"
+    "current.json",
   );
   const downloadedSnapshot = parsePublishedLauncherJson(fixture, [
     "update",
     "--channel",
     "stable",
     "--download-only",
-    "--json"
+    "--json",
   ]);
-  assert(downloadedSnapshot.status === "downloaded", `expected downloaded, got ${downloadedSnapshot.status}`);
-  assert(!existsSync(currentPointerPath), "download-only unexpectedly switched the current runtime pointer");
+  assert(
+    downloadedSnapshot.status === "downloaded",
+    `expected downloaded, got ${downloadedSnapshot.status}`,
+  );
+  assert(
+    !existsSync(currentPointerPath),
+    "download-only unexpectedly switched the current runtime pointer",
+  );
 
-  const appliedSnapshot = parsePublishedLauncherJson(fixture, ["update", "--apply", "--json"]);
-  assert(appliedSnapshot.status === "restart-required", `expected restart-required, got ${appliedSnapshot.status}`);
-  assert(existsSync(currentPointerPath), "apply did not create the current runtime pointer");
+  const appliedSnapshot = parsePublishedLauncherJson(fixture, [
+    "update",
+    "--apply",
+    "--json",
+  ]);
+  assert(
+    appliedSnapshot.status === "restart-required",
+    `expected restart-required, got ${appliedSnapshot.status}`,
+  );
+  assert(
+    existsSync(currentPointerPath),
+    "apply did not create the current runtime pointer",
+  );
 
   const upgradedVersion = run(fixture.binaryPath, ["--version"], {
     cwd: fixture.packageDirectory,
     env: {
       NEXTCLAW_HOME: fixture.nextclawHome,
-      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`
+      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
     },
-    timeout: 300000
+    timeout: 300000,
   }).stdout.trim();
-  assert(upgradedVersion === expectedVersion, `expected upgraded runtime ${expectedVersion}, got ${upgradedVersion}`);
+  assert(
+    upgradedVersion === expectedVersion,
+    `expected upgraded runtime ${expectedVersion}, got ${upgradedVersion}`,
+  );
 
   console.log(`
 [validation:npm-update --published-stable] Published stable update verified.

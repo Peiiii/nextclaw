@@ -44,4 +44,8 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 
 Stable NPM-only 优先 `pnpm release:npm:stable`；常规 stable 产品优先 `pnpm release:product:stable`；Beta NPM-only 优先 `pnpm release:npm:beta`。旧的 `release:stable`、`release:beta:npm` 与 full-beta `release:beta` 保留兼容；仅 channel 用 `release:beta:runtime` / `release:stable:runtime`。恢复已发布 stable 时使用 `release:stable -- --resume-from <git|runtime|install> --version <version>`，不得重复 publish。
 
+Stable 正式发布采用 ahead-of-window prepare/publish 两阶段实现，但用户语义仍只有一个“发布 NPM”。release-bearing `master` push 后由 `npm-release-prepare` workflow 为 exact commit 自动执行 version、strict validation、pack 与 artifact 导出；delivery 在交付这类 commit 时等待 workflow artifact 成立，不能等用户发出发布命令后再做分钟级准备。用户授权发布后只执行 `pnpm release:npm:stable -- --branch <release-branch> --target-branch master`：它消费本地证明或下载 HEAD 对应成功 artifact，缺失/失效时快速失败，绝不回退旧慢链路。prepare 不写 NPM/Git；`NPM_READY` 计时包含 artifact 定位/下载、逐包 identity 验证、空缓存公网精确 payload 审计和 Git 闭环，必须真实小于 60 秒，任一分支失败都不报告完成。
+
+任何 NPM auth/permission 结论都必须先解析并报告正式命令实际使用的 userconfig，再用同一配置运行 `npm whoami`；项目根 `.npmrc` 存在时，默认 `~/.npmrc` 的 401/404 不是 token 失效证据，禁止据此要求用户重新登录。`release:stable` 必须直接输出有效 userconfig 路径和身份；正式发布找不到显式、当前 worktree 或主 worktree 的项目 `.npmrc` 时 fail closed，禁止退回环境默认 `~/.npmrc`。publish 成功能力与 dist-tag 删除等 package-setting 强认证能力分别判断，不得混为一个“没有 NPM 权限”。
+
 最终报告 package/version/dist-tag、workflow、manifest、真实安装证据、分支闭合和残余 WIP。

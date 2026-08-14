@@ -128,9 +128,18 @@ pnpm release:npm:stable -- --dry-run
 pnpm release:npm:stable
 ```
 
-This command owns only NPM `latest`, exact registry verification, a real cold install, and the
-release commit/tags. It does not open the runtime or desktop channels and does not wait for docs,
-website, or social release material. Its completion marker is `NPM_READY`.
+This command owns only NPM `latest`, exact per-package version/integrity/tag verification, a
+public-registry cold tarball payload audit, and the release commit/tags/target-branch closure. It
+does not open the runtime or desktop channels and does not wait for docs, website, social release
+material, or a full dependency install. Its completion marker is `NPM_READY`.
+
+Versioning, strict build/typecheck/lint, package audit, and tarball packing are prepared ahead of
+the user-triggered publish window by the exact-commit `npm-release-prepare` workflow. The formal
+command consumes only a matching immutable artifact and fails quickly if it is unavailable; it
+never falls back to rebuilding inside the publish window. The command resolves NPM credentials in
+this order: explicit `NPM_CONFIG_USERCONFIG`, current worktree `.npmrc`, primary worktree `.npmrc`.
+It prints the absolute config path and `npm whoami` identity, and refuses to fall back to ambient
+`~/.npmrc` for a formal publish.
 
 For the conventional NextClaw stable product release, use:
 
@@ -141,11 +150,13 @@ pnpm release:product:stable
 
 The product command performs one staged closure:
 
-1. freeze the Changesets plan and report version-change, actual-upload, validation-closure, and
-   support-package counts separately;
-2. verify stable mode, branch/auth, public key, dependency closure, and package artifacts;
-3. run versioning, strict build/typecheck/lint, publish, exact registry verification, release
-   commit/tags, and a real cold install; then report `NPM_READY` immediately;
+1. consume the exact-commit prepared Changesets batch and report version-change, actual-upload,
+   validation-closure, and support-package counts separately;
+2. verify stable mode, branch, project-scoped auth, public key, dependency closure, and prepared
+   package artifacts;
+3. publish immutable tarballs concurrently, verify every package identity/integrity/latest, close
+   release commit/tags and local/remote target branches, and run a public cold tarball payload audit;
+   then report `NPM_READY` only when the measured wall time remains below 60 seconds;
 4. validate structured release notes and the applicable docs/website/X release plan;
 5. trigger and wait for the stable runtime workflow, then verify the GitHub Release assets,
    `gh-pages`, and public manifests;

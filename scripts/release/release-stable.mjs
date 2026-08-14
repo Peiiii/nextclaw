@@ -1,26 +1,38 @@
 #!/usr/bin/env node
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { execFileSync, spawn } from "node:child_process";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readLatestReleaseCheckpoint } from "./release-checkpoints.mjs";
-import { summarizeExplicitReleaseScope } from "./release-scope.mjs";
+import { performance } from "node:perf_hooks";
+import { publishPreparedNpmRelease } from "./prepared-npm-release.mjs";
+import {
+  closeStableGitReleaseState,
+  ensureStableCleanWorktree,
+  ensureStableCurrentBranch,
+  ensureStableRemoteSync,
+  ensureStableTargetBranchAvailable,
+} from "./release-stable-git.mjs";
+import {
+  configureReleaseNpmUserconfig,
+  ensureProductReleaseArtifacts,
+  ensurePublishedStableTarget,
+  hasStructuredReleaseNotes,
+  inspectReleaseSurfaceReview,
+  prepareStableNpmBatch,
+  readReleaseCheckpoint,
+  resolveStableExecutionContext,
+} from "./release-stable-preparation.mjs";
 import {
   STABLE_RELEASE_HELP,
   STABLE_RELEASE_STAGES,
+  assertNpmReadyWithinBudget,
   buildStableCompletionSummary,
   buildStableDryRunPlan,
   buildStableNpmReadySummary,
   buildStablePublishedInstallArgs,
   buildStablePublishedUpgradeArgs,
-  buildStableReleaseTags,
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
-  inspectStableSurfaceReview,
   parseStableReleaseArgs,
-  resolveLinkedWorktreeNpmUserconfig,
-  resolveStableReleasePlan,
-  validateStableResumeOptions
 } from "./release-stable.utils.mjs";
 
 const ROOT_DIR = process.cwd();
@@ -30,7 +42,29 @@ function run(command, args, options = {}) {
   return execFileSync(command, args, {
     cwd: ROOT_DIR,
     encoding: capture ? "utf8" : undefined,
-    stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit"
+    stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit",
+  });
+}
+
+function runAsync(command, args) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(command, args, {
+      cwd: ROOT_DIR,
+      stdio: "inherit",
+      env: process.env,
+    });
+    child.on("error", rejectPromise);
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolvePromise();
+        return;
+      }
+      rejectPromise(
+        new Error(
+          `${command} ${args.join(" ")} failed with ${signal ? `signal ${signal}` : `exit ${code}`}`,
+        ),
+      );
+    });
   });
 }
 
@@ -48,221 +82,6 @@ function ensureCommandAvailable(command, args = ["--version"]) {
 
 function readGitStatus() {
   return git(["status", "--short"]);
-}
-function readCurrentBranch() {
-  return git(["rev-parse", "--abbrev-ref", "HEAD"]);
-}
-
-function ensureCurrentBranch(branch) {
-  const currentBranch = readCurrentBranch();
-  if (currentBranch !== branch) {
-    throw new Error(`release:stable requires branch ${branch}; current branch is ${currentBranch}.`);
-  }
-}
-
-function ensureCleanWorktree() {
-  if (readGitStatus()) {
-    throw new Error("release:stable requires a clean worktree before package publishing.");
-  }
-}
-
-function ensureRemoteSync(branch, { allowLocalAhead = false } = {}) {
-  run("git", ["fetch", "origin", branch]);
-  const counts = git(["rev-list", "--left-right", "--count", `origin/${branch}...HEAD`])
-    .split(/\s+/)
-    .map(Number);
-  const [remoteOnly, localOnly] = counts;
-  if (remoteOnly !== 0 || (!allowLocalAhead && localOnly !== 0)) {
-    throw new Error(
-      `release:stable branch is not synchronized with origin/${branch}: remote-only=${remoteOnly}, local-only=${localOnly}.`
-    );
-  }
-}
-
-function readChangesetStatus() {
-  const tempDirectory = join(ROOT_DIR, "tmp");
-  mkdirSync(tempDirectory, { recursive: true });
-  const outputPath = join(tempDirectory, `release-stable-plan-${process.pid}.json`);
-  try {
-    run("pnpm", [
-      "exec",
-      "changeset",
-      "status",
-      "--output",
-      relative(ROOT_DIR, outputPath)
-    ], { capture: true });
-    return JSON.parse(readFileSync(outputPath, "utf8"));
-  } finally {
-    rmSync(outputPath, { force: true });
-  }
-}
-
-function readPublishedStableVersion() {
-  return run("npm", ["view", "nextclaw@latest", "version"], { capture: true }).trim();
-}
-
-function ensurePublishedStableTarget(targetVersion) {
-  if (!targetVersion) {
-    return;
-  }
-  ensureCommandAvailable("npm");
-  const exactVersion = run("npm", ["view", `nextclaw@${targetVersion}`, "version"], {
-    capture: true
-  }).trim();
-  const latestVersion = readPublishedStableVersion();
-  if (exactVersion !== targetVersion || latestVersion !== targetVersion) {
-    throw new Error(
-      `Published stable identity mismatch: exact=${exactVersion || "<missing>"}, latest=${latestVersion || "<missing>"}, expected=${targetVersion}.`
-    );
-  }
-}
-
-function resolveReleaseNotesPath(version) {
-  return resolve(ROOT_DIR, `apps/docs/public/release-notes/nextclaw-v${version}.json`);
-}
-
-function resolveReleaseSurfaceReviewPath(version) {
-  return resolve(ROOT_DIR, `docs/releases/nextclaw-v${version}.release-review.json`);
-}
-
-function inspectReleaseSurfaceReview(previousVersion, targetVersion) {
-  if (!previousVersion || !targetVersion) {
-    return { issues: [], ready: true, releaseLevel: null, required: false };
-  }
-  const reviewPath = resolveReleaseSurfaceReviewPath(targetVersion);
-  let review = null;
-  if (existsSync(reviewPath)) {
-    try {
-      review = JSON.parse(readFileSync(reviewPath, "utf8"));
-    } catch {
-      review = null;
-    }
-  }
-  return inspectStableSurfaceReview({
-    pathExists: (path) => existsSync(resolve(ROOT_DIR, path)),
-    previousVersion,
-    review,
-    targetVersion
-  });
-}
-
-function hasStructuredReleaseNotes(version) {
-  if (!version) {
-    return false;
-  }
-  const releaseNotesPath = resolveReleaseNotesPath(version);
-  if (!existsSync(releaseNotesPath)) {
-    return false;
-  }
-  try {
-    const metadata = JSON.parse(readFileSync(releaseNotesPath, "utf8"));
-    return Boolean(metadata?.links?.html?.["en-US"] || metadata?.links?.html?.["zh-CN"]);
-  } catch {
-    return false;
-  }
-}
-
-function ensureNpmPrePublishArtifacts(targetVersion) {
-  if (!targetVersion) {
-    return;
-  }
-  const publicKeyPath = resolve(ROOT_DIR, "packages/nextclaw/resources/update-bundle-public.pem");
-  if (!existsSync(publicKeyPath)) {
-    throw new Error(`nextclaw package public key is missing: ${publicKeyPath}`);
-  }
-}
-
-function ensureProductReleaseArtifacts(previousVersion, targetVersion) {
-  if (!targetVersion) {
-    return;
-  }
-  if (!hasStructuredReleaseNotes(targetVersion)) {
-    throw new Error(
-      `Stable runtime release notes are missing or invalid: ${resolveReleaseNotesPath(targetVersion)}`
-    );
-  }
-  const surfaceReview = inspectReleaseSurfaceReview(previousVersion, targetVersion);
-  if (!surfaceReview.ready) {
-    throw new Error(
-      `Stable ${surfaceReview.releaseLevel} release requires a valid docs/website/X plan at ${resolveReleaseSurfaceReviewPath(targetVersion)}: ${surfaceReview.issues.join("; ")}`
-    );
-  }
-}
-
-function ensurePackageReleasePrerequisites(branch) {
-  ensureCommandAvailable("pnpm");
-  ensureCommandAvailable("git");
-  ensureCommandAvailable("npm");
-  ensureCurrentBranch(branch);
-  ensureCleanWorktree();
-  ensureRemoteSync(branch);
-  run("npm", ["whoami"], { capture: true });
-}
-
-function configureLinkedWorktreeNpmUserconfig() {
-  const npmUserconfig = resolveLinkedWorktreeNpmUserconfig({
-    commonGitDir: git(["rev-parse", "--path-format=absolute", "--git-common-dir"]),
-    configuredUserconfig: process.env.NPM_CONFIG_USERCONFIG,
-    currentWorktree: ROOT_DIR,
-    pathExists: existsSync
-  });
-  if (!npmUserconfig) {
-    return;
-  }
-  process.env.NPM_CONFIG_USERCONFIG = npmUserconfig;
-  console.log(`[release:stable] using npm config from primary worktree: ${npmUserconfig}`);
-}
-
-function runPackageRelease(expectedTargetVersion) {
-  run("pnpm", ["release:auto:prepare"]);
-  const preparedPlan = resolveStableReleasePlan(readChangesetStatus());
-  if (preparedPlan.targetVersion !== expectedTargetVersion) {
-    throw new Error(
-      `release:auto:prepare changed the planned nextclaw version from ${expectedTargetVersion ?? "<none>"} to ${preparedPlan.targetVersion ?? "<none>"}. Review the expanded batch before publishing.`
-    );
-  }
-  run("pnpm", ["release:version"]);
-  run("pnpm", ["release:check:strict"]);
-  run("pnpm", ["release:publish:validated"]);
-}
-
-function readReleaseCheckpoint(targetVersion) {
-  const checkpointRecord = readLatestReleaseCheckpoint();
-  if (!checkpointRecord) {
-    throw new Error("release:stable could not find the package release checkpoint.");
-  }
-  const checkpoint = checkpointRecord.checkpoint;
-  const checkpointVersion = checkpoint?.packages?.nextclaw?.version ?? null;
-  if (targetVersion && checkpointVersion !== targetVersion) {
-    throw new Error(
-      `Latest release checkpoint nextclaw version ${checkpointVersion ?? "<missing>"} does not match ${targetVersion}.`
-    );
-  }
-  return checkpoint;
-}
-
-function commitReleaseArtifactsIfNeeded() {
-  if (!readGitStatus()) {
-    return git(["rev-parse", "HEAD"]);
-  }
-  run("git", ["add", "-A"]);
-  run("git", ["commit", "-m", "chore: release stable batch"]);
-  return git(["rev-parse", "HEAD"]);
-}
-
-function closeGitReleaseState(branch, checkpoint) {
-  ensureCommandAvailable("git");
-  ensureCurrentBranch(branch);
-  const releaseCommit = commitReleaseArtifactsIfNeeded();
-  const releaseTags = buildStableReleaseTags(checkpoint);
-  for (const tag of releaseTags) {
-    run("git", ["tag", "-f", tag, releaseCommit]);
-  }
-  run("git", ["push", "origin", `HEAD:${branch}`]);
-  if (releaseTags.length > 0) {
-    run("git", ["push", "origin", ...releaseTags.map((tag) => `refs/tags/${tag}`)]);
-  }
-  return { releaseCommit, releaseTags };
 }
 
 function runStableRuntimeClosure(branch, targetVersion, options) {
@@ -290,60 +109,29 @@ function runReleaseStage(stage, recoveryOptions, callback) {
   }
 }
 
-function resolvePendingStableExecutionContext(startsAt) {
-  const plan = resolveStableReleasePlan(readChangesetStatus());
-  if (plan.packageCount === 0) {
-    throw new Error("release:stable found no pending release packages.");
-  }
-  const releaseScope = summarizeExplicitReleaseScope();
-  if (plan.targetVersion) {
-    const publishedStableVersion = readPublishedStableVersion();
-    if (plan.previousVersion !== publishedStableVersion) {
-      throw new Error(
-        `Changesets expects nextclaw ${plan.previousVersion}, but npm latest is ${publishedStableVersion}.`
-      );
+async function runReleaseStageAsync(stage, recoveryOptions, callback) {
+  try {
+    return await callback();
+  } catch (error) {
+    if (error && typeof error === "object") {
+      error.releaseStage = stage;
+      error.releaseOptions = recoveryOptions;
     }
+    throw error;
   }
-  return {
-    checkpoint: null,
-    npmPublishPackageCount: releaseScope.npmPublishPackageCount,
-    packageCount: plan.packageCount,
-    previousVersion: plan.previousVersion,
-    startsAt,
-    targetVersion: plan.targetVersion,
-    validationPackageCount: releaseScope.validationPackageCount,
-    validationSupportPackageCount: releaseScope.validationSupportPackageCount
-  };
-}
-
-function resolveStableExecutionContext(options) {
-  const { dryRun, previousVersion, resumeFrom, version: targetVersion } = options;
-  validateStableResumeOptions(options);
-  const startsAt = STABLE_RELEASE_STAGES.indexOf(resumeFrom);
-  if (resumeFrom === "packages") {
-    return resolvePendingStableExecutionContext(startsAt);
-  }
-  const checkpoint = dryRun ? readReleaseCheckpoint(targetVersion) : null;
-  const npmPublishPackageCount = Object.keys(checkpoint?.packages ?? {}).length;
-  const validationSupportPackageCount = Object.keys(checkpoint?.validationSupport ?? {}).length;
-  return {
-    checkpoint,
-    npmPublishPackageCount,
-    packageCount: npmPublishPackageCount,
-    previousVersion,
-    startsAt,
-    targetVersion,
-    validationPackageCount: npmPublishPackageCount + validationSupportPackageCount,
-    validationSupportPackageCount
-  };
 }
 
 function printStableDryRun(options, context) {
   const { previousVersion, targetVersion } = context;
-  const releaseNotesReady = targetVersion ? hasStructuredReleaseNotes(targetVersion) : false;
-  const surfaceReview = inspectReleaseSurfaceReview(previousVersion, targetVersion);
+  const releaseNotesReady = targetVersion
+    ? hasStructuredReleaseNotes(targetVersion)
+    : false;
+  const surfaceReview = inspectReleaseSurfaceReview(
+    previousVersion,
+    targetVersion,
+  );
   console.log(
-    `${options.skipRuntimeChannel ? "release:npm:stable" : "release:product:stable"} dry run`
+    `${options.skipRuntimeChannel ? "release:npm:stable" : "release:product:stable"} dry run`,
   );
   console.log(
     buildStableDryRunPlan({
@@ -352,44 +140,107 @@ function printStableDryRun(options, context) {
       releaseNotesReady,
       surfaceReviewReady: surfaceReview.ready,
       surfaceReviewRequired: surfaceReview.required,
-      worktreeClean: !readGitStatus()
-    }).join("\n")
+      worktreeClean: !readGitStatus(),
+    }).join("\n"),
   );
 }
 
-function prepareStableCheckpoint(options, context) {
+function ensurePreparedPublishPrerequisites(options) {
+  const { branch, targetBranch } = options;
+  ensureCommandAvailable("pnpm");
+  ensureCommandAvailable("git");
+  ensureCommandAvailable("npm");
+  ensureStableCurrentBranch(branch);
+  ensureStableRemoteSync(branch);
+  ensureStableTargetBranchAvailable(targetBranch);
+  if (targetBranch !== branch) {
+    run("git", ["fetch", "origin", targetBranch]);
+  }
+  if (branch !== targetBranch) {
+    run("pnpm", [
+      "release:check:branch-closure",
+      "--",
+      "--target",
+      `origin/${targetBranch}`,
+      "--release",
+      "HEAD",
+    ]);
+  }
+  const npmIdentity = run("npm", ["whoami"], { capture: true }).trim();
+  console.log(`[release:stable] npm identity: ${npmIdentity}`);
+}
+
+async function publishStablePackages(options, context) {
   const { branch, resumeFrom } = options;
   const { previousVersion, startsAt, targetVersion } = context;
-  const recoveryOptions = { ...options, previousVersion, version: targetVersion };
+  const recoveryOptions = {
+    ...options,
+    previousVersion,
+    version: targetVersion,
+  };
   if (startsAt === STABLE_RELEASE_STAGES.indexOf("packages")) {
-    ensurePackageReleasePrerequisites(branch);
-    ensureNpmPrePublishArtifacts(targetVersion);
-    runReleaseStage("packages", recoveryOptions, () => runPackageRelease(targetVersion));
-    runReleaseStage("git", recoveryOptions, () => ensurePublishedStableTarget(targetVersion));
-    return runReleaseStage("git", recoveryOptions, () => readReleaseCheckpoint(targetVersion));
+    ensurePreparedPublishPrerequisites(options);
+    const publishSummary = await runReleaseStageAsync(
+      "packages",
+      recoveryOptions,
+      () =>
+        publishPreparedNpmRelease({
+          onEvent: (event) => {
+            if (event.type === "publish-plan") {
+              console.log(
+                `[release:npm] publish plan: ${event.publishCount} upload(s), ${event.reuseCount} already visible`,
+              );
+            } else if (event.type === "publish-complete") {
+              console.log(
+                `[release:npm] uploaded ${event.package.name}@${event.package.version}`,
+              );
+            } else if (event.type === "registry-verified") {
+              console.log(
+                `[release:npm] registry verified ${event.packageCount} package(s) in ${event.attemptsUsed} attempt(s)`,
+              );
+            }
+          },
+          publishConcurrency: options.publishConcurrency,
+          record: context.preparedRecord,
+          verifyConcurrency: options.verifyConcurrency,
+        }),
+    );
+    return { checkpoint: context.checkpoint, publishSummary };
   }
 
-  ensureCurrentBranch(branch);
+  ensureStableCurrentBranch(branch);
   ensurePublishedStableTarget(targetVersion);
   const checkpoint = readReleaseCheckpoint(targetVersion);
   if (resumeFrom === "git") {
-    ensureRemoteSync(branch, { allowLocalAhead: true });
+    ensureStableRemoteSync(branch, { allowLocalAhead: true });
   } else {
-    ensureCleanWorktree();
-    ensureRemoteSync(branch);
+    ensureStableCleanWorktree();
+    ensureStableRemoteSync(branch);
   }
-  return checkpoint;
+  return {
+    checkpoint,
+    publishSummary: {
+      attemptsUsed: 1,
+      packageCount: Object.keys(checkpoint?.packages ?? {}).length,
+      publishedCount: 0,
+      reusedCount: Object.keys(checkpoint?.packages ?? {}).length,
+    },
+  };
 }
 
 function closeStableGitIfNeeded(options, context, checkpoint) {
-  const { branch } = options;
+  const { branch, targetBranch } = options;
   const { previousVersion, startsAt, targetVersion } = context;
   if (startsAt > STABLE_RELEASE_STAGES.indexOf("git")) {
     return { releaseCommit: null, releaseTags: [] };
   }
-  const recoveryOptions = { ...options, previousVersion, version: targetVersion };
+  const recoveryOptions = {
+    ...options,
+    previousVersion,
+    version: targetVersion,
+  };
   return runReleaseStage("git", recoveryOptions, () =>
-    closeGitReleaseState(branch, checkpoint)
+    closeStableGitReleaseState({ branch, checkpoint, targetBranch }),
   );
 }
 
@@ -399,7 +250,11 @@ function runStableRuntimeIfNeeded(options, context) {
   if (!targetVersion || startsAt > STABLE_RELEASE_STAGES.indexOf("runtime")) {
     return;
   }
-  const recoveryOptions = { ...options, previousVersion, version: targetVersion };
+  const recoveryOptions = {
+    ...options,
+    previousVersion,
+    version: targetVersion,
+  };
   runReleaseStage("runtime", recoveryOptions, () => {
     if (!skipRuntimeChannel) {
       ensureProductReleaseArtifacts(previousVersion, targetVersion);
@@ -408,25 +263,24 @@ function runStableRuntimeIfNeeded(options, context) {
   });
 }
 
-function runStableNpmInstallIfNeeded(options, context, checkpoint) {
-  const { resumeFrom, skipPublishedInstall, skipRuntimeChannel } = options;
+async function runStableNpmInstallIfNeeded(options, context) {
+  const { skipPublishedInstall } = options;
   const { previousVersion, targetVersion } = context;
-  if (resumeFrom === "install") {
-    return;
-  }
   if (!targetVersion) {
     return;
   }
   if (skipPublishedInstall) {
     return;
   }
-  const recoveryOptions = { ...options, previousVersion, version: targetVersion };
-  runReleaseStage("runtime", recoveryOptions, () =>
-    runPublishedValidation(buildStablePublishedInstallArgs(targetVersion, null, options))
+  const recoveryOptions = {
+    ...options,
+    previousVersion,
+    version: targetVersion,
+  };
+  const args = buildStablePublishedInstallArgs(targetVersion, null, options);
+  await runReleaseStageAsync("install", recoveryOptions, () =>
+    args ? runAsync("pnpm", args) : Promise.resolve(),
   );
-  if (!skipRuntimeChannel) {
-    console.log(buildStableNpmReadySummary({ checkpoint, targetVersion }).join("\n"));
-  }
 }
 
 function runStableInstallIfNeeded(options, context) {
@@ -438,62 +292,181 @@ function runStableInstallIfNeeded(options, context) {
   if (skipRuntimeChannel) {
     return;
   }
-  const recoveryOptions = { ...options, previousVersion, version: targetVersion };
+  const recoveryOptions = {
+    ...options,
+    previousVersion,
+    version: targetVersion,
+  };
   runReleaseStage("install", recoveryOptions, () => {
     const args =
       resumeFrom === "install"
-        ? buildStablePublishedInstallArgs(targetVersion, previousVersion, options)
-        : buildStablePublishedUpgradeArgs(targetVersion, previousVersion, options);
+        ? buildStablePublishedInstallArgs(
+            targetVersion,
+            previousVersion,
+            options,
+          )
+        : buildStablePublishedUpgradeArgs(
+            targetVersion,
+            previousVersion,
+            options,
+          );
     runPublishedValidation(args);
   });
 }
 
 function printStableCompletion(options, context, checkpoint, gitSummary) {
   console.log(
-    buildStableCompletionSummary({ ...options, ...context, ...gitSummary, checkpoint }).join("\n")
+    buildStableCompletionSummary({
+      ...options,
+      ...context,
+      ...gitSummary,
+      checkpoint,
+    }).join("\n"),
   );
 }
 
-function runStableRelease(options) {
-  const { dryRun } = options;
-  configureLinkedWorktreeNpmUserconfig();
+async function runNpmPostPublishClosure(options, context, checkpoint) {
+  const installPromise = runStableNpmInstallIfNeeded(options, context);
+  let gitSummary = null;
+  let gitError = null;
+  try {
+    gitSummary = closeStableGitIfNeeded(options, context, checkpoint);
+  } catch (error) {
+    gitError = error;
+  }
+  const installResult = await Promise.allSettled([installPromise]);
+  const installError =
+    installResult[0].status === "rejected" ? installResult[0].reason : null;
+  if (gitError || installError) {
+    const errors = [gitError, installError].filter(Boolean);
+    const aggregateError = new AggregateError(
+      errors,
+      "NPM post-publish closure failed",
+    );
+    const primaryError = gitError ?? installError;
+    aggregateError.releaseStage =
+      primaryError?.releaseStage ?? (gitError ? "git" : "install");
+    aggregateError.releaseOptions = primaryError?.releaseOptions;
+    throw aggregateError;
+  }
+  return gitSummary;
+}
+
+async function runStableRelease(options) {
+  const {
+    dryRun,
+    maxPublishSeconds,
+    prepareOnly,
+    skipPublishedInstall,
+    skipRuntimeChannel,
+    targetBranch,
+  } = options;
+  const publishStartedAt = dryRun || prepareOnly ? null : performance.now();
+  configureReleaseNpmUserconfig({ required: !dryRun && !prepareOnly });
+  if (prepareOnly && !dryRun) {
+    prepareStableNpmBatch(options);
+    return;
+  }
   const context = resolveStableExecutionContext(options);
+  const contextResolvedAt = dryRun || prepareOnly ? null : performance.now();
   if (dryRun) {
     printStableDryRun(options, context);
     return;
   }
-
-  const checkpoint = prepareStableCheckpoint(options, context);
-  const gitSummary = closeStableGitIfNeeded(options, context, checkpoint);
-  runStableNpmInstallIfNeeded(options, context, checkpoint);
+  const { checkpoint, publishSummary } = await publishStablePackages(
+    options,
+    context,
+  );
+  const packagesCompletedAt = performance.now();
+  const gitSummary = await runNpmPostPublishClosure(
+    options,
+    context,
+    checkpoint,
+  );
+  const closureCompletedAt = performance.now();
+  const publishDurationMs = closureCompletedAt - publishStartedAt;
+  assertNpmReadyWithinBudget(publishDurationMs, maxPublishSeconds);
+  console.log(
+    buildStableNpmReadySummary({
+      checkpoint,
+      durationMs: publishDurationMs,
+      phaseTimings: {
+        artifactResolutionMs: contextResolvedAt - publishStartedAt,
+        packagePhaseMs: packagesCompletedAt - contextResolvedAt,
+        postPublishClosureMs: closureCompletedAt - packagesCompletedAt,
+      },
+      publishSummary,
+      skipPublishedInstall,
+      targetBranch,
+      targetVersion: context.targetVersion,
+    }).join("\n"),
+  );
+  if (skipRuntimeChannel) {
+    return;
+  }
   runStableRuntimeIfNeeded(options, context);
   runStableInstallIfNeeded(options, context);
   printStableCompletion(options, context, checkpoint, gitSummary);
 }
 
-function main() {
+function collectReleaseErrorDetails(error) {
+  const output = [];
+  const seen = new Set();
+  function visit(currentError) {
+    if (!currentError || seen.has(currentError) || output.length >= 8) return;
+    seen.add(currentError);
+    if (currentError instanceof AggregateError) {
+      for (const nestedError of currentError.errors) visit(nestedError);
+      return;
+    }
+    const stderr =
+      typeof currentError.stderr === "string" ? currentError.stderr.trim() : "";
+    const message =
+      stderr ||
+      (currentError instanceof Error
+        ? currentError.message
+        : String(currentError));
+    if (message && !output.includes(message)) output.push(message);
+  }
+  visit(error);
+  return output;
+}
+
+async function main() {
   const options = parseStableReleaseArgs(process.argv.slice(2));
   if (options.help) {
     console.log(STABLE_RELEASE_HELP);
     return;
   }
+  const commandStartedAt = performance.now();
   try {
-    runStableRelease(options);
+    await runStableRelease(options);
   } catch (error) {
     const stage = error?.releaseStage ?? "preflight";
     const recoveryOptions = error?.releaseOptions ?? options;
-    console.error(`[release:stable] ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `[release:stable] ${error instanceof Error ? error.message : String(error)}`,
+    );
+    for (const detail of collectReleaseErrorDetails(error)) {
+      if (detail !== error?.message)
+        console.error(`[release:stable] cause: ${detail}`);
+    }
+    console.error(
+      `[release:stable] failed after ${((performance.now() - commandStartedAt) / 1000).toFixed(2)}s at stage ${stage}`,
+    );
     if (stage === "packages") {
       console.error(
-        "Recovery: do not rerun publish blindly. Inspect the release checkpoint and run pnpm release:verify:published before choosing --resume-from git."
+        "Recovery: do not rerun publish blindly. Inspect the release checkpoint and run pnpm release:verify:published before choosing --resume-from git.",
       );
     } else if (stage !== "preflight" && recoveryOptions.version) {
-      console.error(`Recovery: ${formatStableRecoveryCommand(stage, recoveryOptions)}`);
+      console.error(
+        `Recovery: ${formatStableRecoveryCommand(stage, recoveryOptions)}`,
+      );
     }
     process.exitCode = 1;
   }
 }
 
 if (resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
-  main();
+  await main();
 }

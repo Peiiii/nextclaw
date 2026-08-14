@@ -1,13 +1,13 @@
 # NPM Package 发布
 
-1. 用与发布命令相同的 npm config 验证 auth；项目私有 `.npmrc` 存在时显式设置 `NPM_CONFIG_USERCONFIG`。隔离 worktree 的 401 必须先核对主/隔离配置来源，不把“配置未继承”误判为 token 失效。
+1. 用与发布命令相同的 npm config 验证 auth；项目私有 `.npmrc` 存在时显式设置 `NPM_CONFIG_USERCONFIG`。正式 stable 入口会自动解析显式、当前 worktree 或主 worktree 的项目配置，找不到时拒绝使用环境默认 `~/.npmrc`。隔离 worktree 的 401 必须先核对主/隔离配置来源，不把“配置未继承”误判为 token 失效。
 2. `pnpm release:sync-readmes`、`release:check-readmes`、`release:check:health`。
 3. 根据用户安装入口和 workspace 依赖确定闭包；`@nextclaw/ui` 变化会影响 `nextclaw` 嵌入产物。严格检查在干净环境构建发布包的完整 workspace 依赖闭包，但只把 Changesets 发布包写入 checkpoint/tag/publish。窄发布必须证明排除依赖已按精确版本发布并通过 packed install。
 4. 使用 `release:auto:changeset`/changeset、`release:version` 与经过 strict checkpoint 的 publish；release notes owner 属于后续产品 closure，不是 NPM artifact 前置门禁。
 5. `pnpm release:verify:published` 和 `npm view ... dist-tags --json` 验证 registry；首发短暂 404 先按同一 npm config 重试。
 6. 发布后检查每个 worktree 的 generated artifacts；应提交的进入发布记录，其余恢复/清理，不把 hash churn 留给用户。
 
-stable NPM-only 使用 `pnpm release:npm:stable`：它在不可逆 publish 前冻结 release plan，验证 auth、branch、public key、依赖闭包和 artifact，随后完成 strict check、registry、release commit/tag/push 与精确版本冷安装；release notes、runtime、文档站、官网、X 和 desktop 不在该入口范围。达到后报告 `NPM_READY`。
+stable NPM-only 的用户入口仍是“发布 NPM”。分钟级 version、strict check、artifact audit 和不可变 tarball 准备由 `npm-release-prepare` workflow 在 release-bearing `master` push 后提前完成；delivery 交付该 commit 时等待 exact-commit artifact 成立。用户授权后直接运行 `pnpm release:npm:stable -- --branch <release-branch> --target-branch master`，正式阶段只定位/下载 HEAD 对应 artifact、并发首次上传、逐包 version/integrity/latest registry 验证、release commit/tag、release branch 与本地/远程目标分支闭合，以及空缓存公网精确 tarball/payload 审计。缺少或失效 artifact 时快速失败，不回退重建。release notes、runtime、完整依赖安装/升级、文档站、官网、X 和 desktop 不在 NPM-only 完成点范围。artifact 下载也计入 wall time；所有门禁通过且总计小于 60 秒后才报告 `NPM_READY`。
 
 常规 stable 产品使用 `pnpm release:product:stable`。它复用同一 package 主链路，在 `NPM_READY` 后才校验结构化 release notes 与 release surface review，再闭合 stable runtime 和旧版本升级。先用对应入口的 `--dry-run` 审计；发布后失败按输出的 `--resume-from git|runtime|install` 精确续跑，不重新执行 package publish。
 

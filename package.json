@@ -159,6 +159,7 @@
     "release:auto:prepare": "pnpm release:sync:published-tags:write && pnpm release:auto:changeset",
     "release:auto": "pnpm release:auto:prepare && pnpm release:version && pnpm release:publish:validated",
     "release:stable": "node scripts/release/release-stable.mjs",
+    "release:npm:prepare": "node scripts/release/release-stable.mjs --prepare-only --skip-runtime-channel",
     "release:npm:stable": "node scripts/release/release-stable.mjs --skip-runtime-channel",
     "release:product:stable": "node scripts/release/release-stable.mjs",
     "release:beta": "node scripts/release/release-beta.mjs",
