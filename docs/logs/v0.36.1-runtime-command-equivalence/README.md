@@ -20,7 +20,8 @@
 
 ## 发布/部署方式
 
-- 使用 NextClaw 稳定 NPM/runtime 正式发布流程发布 patch 版本。
+- 使用 NextClaw 稳定 NPM/runtime 正式发布流程发布 patch 版本；release commit 为 `4a877936b`，runtime workflow 为 `31772767810`。
+- NPM 冷安装、`0.36.0 -> 0.36.1` 公开 stable channel 分阶段升级、四平台 runtime bundle、GitHub Release、Pages manifest 和中英文版本笔记均已验证。
 - 发布后通过 VPS `8.219.57.52` 的产品更新入口应用新 runtime、等待重启，并复验公网、版本、Agent shell 与真实任务。
 
 ## 用户/产品视角的验收步骤
@@ -42,5 +43,6 @@
 ## NPM 包发布记录
 
 - 需要发布：修复直接影响页面更新后的 CLI、Agent 和服务生命周期行为。
-- `nextclaw`：当前 `0.36.0`，计划 patch 到 `0.36.1`，待统一发布。
-- `@nextclaw/service`：当前 `0.3.32`，计划 patch 到 `0.3.33`，待统一发布。
+- `nextclaw@0.36.1`：已发布到 `latest`，公开 registry 冷安装与 runtime 更新验证通过。
+- `@nextclaw/service@0.3.33`：已发布到 `latest`，registry 精确版本验证通过。
+- package tags：`nextclaw@0.36.1`、`@nextclaw/service@0.3.33` 已推送。
