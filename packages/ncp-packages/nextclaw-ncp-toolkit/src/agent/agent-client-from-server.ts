@@ -1,5 +1,6 @@
 import {
   type NcpAgentClientEndpoint,
+  type NcpAgentStreamObserver,
   type NcpAgentSendEnvelope,
   type NcpAgentServerEndpoint,
   type NcpEndpointEvent,
@@ -61,7 +62,11 @@ export function createAgentClientFromServer(
       assertMaterializedEnvelope(envelope);
       return await consumeNcpRunHandle(server.send(envelope), createNcpRunHandle(envelope));
     },
-    async stream(payload: NcpStreamRequestPayload): Promise<void> {
+    async stream(
+      payload: NcpStreamRequestPayload,
+      observer?: NcpAgentStreamObserver,
+    ): Promise<void> {
+      observer?.onOpen?.();
       await consume(server.stream(payload));
     },
     async abort(payload: NcpMessageAbortPayload): Promise<void> {

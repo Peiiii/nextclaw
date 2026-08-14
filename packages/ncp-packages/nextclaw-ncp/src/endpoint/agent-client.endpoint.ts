@@ -6,6 +6,11 @@ import type {
 import type { NcpEndpoint } from "../types/endpoint.types.js";
 import type { NcpRunHandle } from "../types/run.types.js";
 
+export type NcpAgentStreamObserver = {
+  /** Called after the transport has established the live stream. */
+  onOpen?: () => void;
+};
+
 /**
  * Client-side endpoint for agent chat: initiates requests and can cancel in-flight runs.
  *
@@ -17,7 +22,7 @@ export interface NcpAgentClientEndpoint extends NcpEndpoint {
   send(envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle>;
 
   /** Attaches to the live event stream of a session. Emits `message.stream-request`. */
-  stream(payload: NcpStreamRequestPayload): Promise<void>;
+  stream(payload: NcpStreamRequestPayload, observer?: NcpAgentStreamObserver): Promise<void>;
 
   /** Aborts the active execution of a session. Emits `message.abort`. */
   abort(payload: NcpMessageAbortPayload): Promise<void>;

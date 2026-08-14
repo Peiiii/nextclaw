@@ -1,6 +1,7 @@
 import {
   createNcpEndpointEvent as createClientEvent,
   type NcpAgentClientEndpoint,
+  type NcpAgentStreamObserver,
   type NcpAgentSendEnvelope,
   type NcpEndpointEvent,
   type NcpEndpointManifest,
@@ -43,6 +44,8 @@ export type NcpHttpAgentClientOptions = {
   endpointId?: string;
   headers?: Record<string, string>;
   fetchImpl?: FetchLike;
+  streamOpenTimeoutMs?: number;
+  streamIdleTimeoutMs?: number;
 };
 
 type StreamRequestOptions = {
@@ -51,6 +54,12 @@ type StreamRequestOptions = {
   body?: unknown;
 };
 
+function normalizeTimeoutMs(value: number | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.trunc(value)
+    : null;
+}
+
 export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
   readonly manifest: NcpEndpointManifest;
 
@@ -58,18 +67,31 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
   private readonly basePath: string;
   private readonly fetchImpl: FetchLike;
   private readonly defaultHeaders: Record<string, string>;
+  private readonly streamOpenTimeoutMs: number | null;
+  private readonly streamIdleTimeoutMs: number | null;
   private readonly subscribers = new Set<NcpEndpointSubscriber>();
   private readonly activeControllers = new Set<AbortController>();
   private started = false;
 
   constructor(options: NcpHttpAgentClientOptions) {
-    this.baseUrl = toBaseUrl(options.baseUrl);
-    this.basePath = normalizeBasePath(options.basePath);
-    this.fetchImpl = resolveFetchImpl(options.fetchImpl);
-    this.defaultHeaders = options.headers ?? {};
+    const {
+      basePath,
+      baseUrl,
+      endpointId,
+      fetchImpl,
+      headers,
+      streamIdleTimeoutMs,
+      streamOpenTimeoutMs,
+    } = options;
+    this.baseUrl = toBaseUrl(baseUrl);
+    this.basePath = normalizeBasePath(basePath);
+    this.fetchImpl = resolveFetchImpl(fetchImpl);
+    this.defaultHeaders = headers ?? {};
+    this.streamOpenTimeoutMs = normalizeTimeoutMs(streamOpenTimeoutMs);
+    this.streamIdleTimeoutMs = normalizeTimeoutMs(streamIdleTimeoutMs);
     this.manifest = {
       endpointKind: "custom",
-      endpointId: options.endpointId?.trim() || DEFAULT_ENDPOINT_ID,
+      endpointId: endpointId?.trim() || DEFAULT_ENDPOINT_ID,
       version: "0.1.0",
       supportsStreaming: true,
       supportsAbort: true,
@@ -164,7 +186,10 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     }
   }
 
-  async stream(payload: NcpStreamRequestPayload): Promise<void> {
+  async stream(
+    payload: NcpStreamRequestPayload,
+    observer?: NcpAgentStreamObserver,
+  ): Promise<void> {
     await this.ensureStarted();
     const query = new URLSearchParams({
       sessionId: payload.sessionId,
@@ -172,7 +197,7 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     await this.streamRequest({
       path: `/stream?${query.toString()}`,
       method: "GET",
-    });
+    }, observer);
   }
 
   async abort(payload: NcpMessageAbortPayload): Promise<void> {
@@ -223,22 +248,47 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     return new URL(`${this.basePath}${path}`, this.baseUrl);
   }
 
-  private async streamRequest(options: StreamRequestOptions): Promise<void> {
+  private async streamRequest(
+    options: StreamRequestOptions,
+    observer?: NcpAgentStreamObserver,
+  ): Promise<void> {
+    const { body, method, path } = options;
     const controller = new AbortController();
     this.activeControllers.add(controller);
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    let timeoutError: { code: "timeout-error"; message: string } | null = null;
+    const clearTimeoutTimer = () => {
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    };
+    const armTimeout = (timeoutMs: number | null, message: string) => {
+      clearTimeoutTimer();
+      if (!timeoutMs) {
+        return;
+      }
+      timeout = setTimeout(() => {
+        timeoutError = { code: "timeout-error", message };
+        controller.abort(timeoutError);
+      }, timeoutMs);
+    };
 
     try {
-      const response = await this.fetchImpl(this.resolveUrl(options.path), {
-        method: options.method,
+      armTimeout(
+        this.streamOpenTimeoutMs,
+        `NCP stream did not open within ${this.streamOpenTimeoutMs}ms.`,
+      );
+      const response = await this.fetchImpl(this.resolveUrl(path), {
+        method,
         headers: {
           ...this.defaultHeaders,
           accept: "text/event-stream",
-          ...(options.body !== undefined
+          ...(body !== undefined
             ? { "content-type": "application/json" }
             : {}),
         },
-        body:
-          options.body === undefined ? undefined : JSON.stringify(options.body),
+        body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
 
@@ -252,23 +302,36 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         throw new Error("NCP stream response has no body.");
       }
 
-      for await (const frame of consumeSseStream(response.body)) {
+      observer?.onOpen?.();
+      armTimeout(
+        this.streamIdleTimeoutMs,
+        `NCP stream received no data for ${this.streamIdleTimeoutMs}ms.`,
+      );
+      for await (const frame of consumeSseStream(response.body, {
+        onActivity: () => {
+          armTimeout(
+            this.streamIdleTimeoutMs,
+            `NCP stream received no data for ${this.streamIdleTimeoutMs}ms.`,
+          );
+        },
+      })) {
         if (controller.signal.aborted) {
           return;
         }
         this.handleSseFrame(frame);
       }
     } catch (error) {
-      if (controller.signal.aborted) {
+      if (controller.signal.aborted && !timeoutError) {
         return;
       }
       if (isNcpHttpAgentClientError(error)) {
         throw error;
       }
-      const ncpError = toNcpError(error);
+      const ncpError = timeoutError ?? toNcpError(error);
       this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: ncpError }));
       throw ncpErrorToError(ncpError);
     } finally {
+      clearTimeoutTimer();
       this.activeControllers.delete(controller);
     }
   }

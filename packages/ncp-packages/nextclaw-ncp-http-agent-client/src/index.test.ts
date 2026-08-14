@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   type NcpAgentSendEnvelope,
   type NcpEndpointEvent,
@@ -272,6 +272,116 @@ describe("createNcpHttpAgentClient stream and abort", () => {
 });
 
 describe("createNcpHttpAgentClient edge cases", () => {
+  it("fails a stream that never opens within the configured timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl = async (
+        _input: URL | string | Request,
+        init?: RequestInit,
+      ): Promise<Response> => await new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new Error("fetch aborted")), { once: true });
+      });
+      const client = new NcpHttpAgentClientEndpoint({
+        baseUrl: "https://api.example.com",
+        fetchImpl,
+        streamOpenTimeoutMs: 1_000,
+      });
+
+      const streamPromise = client.stream({ sessionId: "session-open-timeout" });
+      const rejection = expect(streamPromise).rejects.toThrow(
+        "NCP stream did not open within 1000ms.",
+      );
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      await rejection;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("fails a half-open stream after the configured idle timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchImpl = async (
+        _input: URL | string | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        let streamController!: ReadableStreamDefaultController<Uint8Array>;
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            streamController = controller;
+          },
+        });
+        init?.signal?.addEventListener("abort", () => {
+          streamController.error(new Error("stream aborted"));
+        }, { once: true });
+        return new Response(body, {
+          headers: { "content-type": "text/event-stream" },
+        });
+      };
+      const onOpen = vi.fn();
+      const client = new NcpHttpAgentClientEndpoint({
+        baseUrl: "https://api.example.com",
+        fetchImpl,
+        streamIdleTimeoutMs: 1_000,
+      });
+
+      const streamPromise = client.stream(
+        { sessionId: "session-idle-timeout" },
+        { onOpen },
+      );
+      const rejection = expect(streamPromise).rejects.toThrow(
+        "NCP stream received no data for 1000ms.",
+      );
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      expect(onOpen).toHaveBeenCalledOnce();
+      await rejection;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("treats SSE comment heartbeats as stream activity", async () => {
+    vi.useFakeTimers();
+    try {
+      let streamController!: ReadableStreamDefaultController<Uint8Array>;
+      const fetchImpl = async (
+        _input: URL | string | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        const body = new ReadableStream<Uint8Array>({
+          start(controller) {
+            streamController = controller;
+          },
+        });
+        init?.signal?.addEventListener("abort", () => streamController.close(), { once: true });
+        return new Response(body, {
+          headers: { "content-type": "text/event-stream" },
+        });
+      };
+      const client = new NcpHttpAgentClientEndpoint({
+        baseUrl: "https://api.example.com",
+        fetchImpl,
+        streamIdleTimeoutMs: 1_000,
+      });
+      const streamPromise = client.stream({ sessionId: "session-heartbeat" });
+      await Promise.resolve();
+      const encoder = new TextEncoder();
+
+      for (let index = 0; index < 3; index += 1) {
+        await vi.advanceTimersByTimeAsync(600);
+        streamController.enqueue(encoder.encode(": keepalive\n\n"));
+        await Promise.resolve();
+      }
+
+      await client.stop();
+      await expect(streamPromise).resolves.toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not publish endpoint.error when stop aborts in-flight abort request", async () => {
     const fetchImpl = async (
       _input: URL | string | Request,

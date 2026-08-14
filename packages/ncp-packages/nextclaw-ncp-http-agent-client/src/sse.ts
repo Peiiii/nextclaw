@@ -34,6 +34,7 @@ export function parseSseFrame(frameText: string): SseFrame | null {
 
 export async function* consumeSseStream(
   stream: ReadableStream<Uint8Array>,
+  options: { onActivity?: () => void } = {},
 ): AsyncGenerator<SseFrame> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -45,6 +46,7 @@ export async function* consumeSseStream(
       if (done) {
         break;
       }
+      options.onActivity?.();
       buffer += decoder.decode(value, { stream: true });
       const { frames, rest } = drainFrames(buffer);
       buffer = rest;
