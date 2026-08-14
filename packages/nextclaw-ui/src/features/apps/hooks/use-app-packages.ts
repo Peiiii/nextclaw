@@ -31,7 +31,7 @@ export type AppPackageMutationInput =
 export function useAppPackages() {
   return useQuery({
     queryKey: APP_PACKAGES_QUERY_KEY,
-    queryFn: () => nextclawClient.appPackages.list(),
+    queryFn: () => nextclawClient.appPackages.list({ includeStorageUsage: false }),
     staleTime: 0,
   });
 }
@@ -57,6 +57,7 @@ export function useAppPackageOperationSettlement({
   operations,
   refetchPackages,
   refetchPanels,
+  refetchAppData,
   settlementManager,
 }: {
   isLoaded: boolean;
@@ -65,6 +66,7 @@ export function useAppPackageOperationSettlement({
   refetchPanels: () => Promise<{
     data?: { entries: Array<{ id: string; packageId?: string }> };
   }>;
+  refetchAppData: () => Promise<unknown>;
   settlementManager: AppPackageOperationSettlementManager;
 }) {
   useEffect(() => {
@@ -73,8 +75,9 @@ export function useAppPackageOperationSettlement({
       operations,
       refetchPackages,
       refetchPanels,
+      refetchAppData,
     });
-  }, [isLoaded, operations, refetchPackages, refetchPanels, settlementManager]);
+  }, [isLoaded, operations, refetchPackages, refetchPanels, refetchAppData, settlementManager]);
 }
 
 export function useAppPackageMutation() {

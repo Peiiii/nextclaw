@@ -19,11 +19,13 @@ export class AppPackageOperationSettlementManager {
     operations,
     refetchPackages,
     refetchPanels,
+    refetchAppData,
   }: {
     isLoaded: boolean;
     operations: AppPackageOperationView[];
     refetchPackages: () => Promise<unknown>;
     refetchPanels: RefetchPanels;
+    refetchAppData: () => Promise<unknown>;
   }): void => {
     if (!isLoaded) return;
     const terminal = operations.filter(
@@ -37,7 +39,7 @@ export class AppPackageOperationSettlementManager {
     terminal.forEach((operation) => {
       if (this.knownTerminalOperationIds.has(operation.id)) return;
       this.knownTerminalOperationIds.add(operation.id);
-      this.settleOperation(operation, refetchPackages, refetchPanels);
+      this.settleOperation(operation, refetchPackages, refetchPanels, refetchAppData);
     });
   };
 
@@ -45,10 +47,13 @@ export class AppPackageOperationSettlementManager {
     operation: AppPackageOperationView,
     refetchPackages: () => Promise<unknown>,
     refetchPanels: RefetchPanels,
+    refetchAppData: () => Promise<unknown>,
   ): void => {
     if (operation.status === 'succeeded') {
       toast.success(operationSuccessLabel(operation));
-      void Promise.all([refetchPackages(), refetchPanels()]).then(([, panelsResult]) => {
+      void refetchPackages();
+      void refetchAppData();
+      void refetchPanels().then((panelsResult) => {
         if (operation.action !== 'rollback' && operation.action !== 'update') return;
         this.docBrowserManager.reloadByDedupeKeys(
           panelsResult.data?.entries
@@ -61,6 +66,7 @@ export class AppPackageOperationSettlementManager {
     if (operation.status === 'failed' || operation.status === 'interrupted') {
       void refetchPackages();
       void refetchPanels();
+      void refetchAppData();
       toast.error(operation.error ?? t('appPackagesActionFailed'));
     }
   };

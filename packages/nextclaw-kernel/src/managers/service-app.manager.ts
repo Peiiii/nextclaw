@@ -1,4 +1,4 @@
-import { readdir, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import {
   DEFAULT_SERVICE_APPS_DIR,
@@ -13,6 +13,7 @@ import { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-ru
 import { ServiceAppRecordService } from "@kernel/services/service-app-record.service.js";
 import type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
 import {
+  type ServiceAppRemovalDiagnostic,
   ServiceAppRemovalCleanupError,
   ServiceAppRemovalService,
 } from "@kernel/services/service-app-removal.service.js";
@@ -47,6 +48,7 @@ export type ServiceAppList = {
   workspacePath: string;
   serviceAppsPath: string;
   entries: ServiceAppRecord[];
+  diagnostics: ServiceAppRemovalDiagnostic[];
 };
 
 export type ServiceAppDeleteResult = {
@@ -77,14 +79,13 @@ export class ServiceAppError extends Error {
   }
 }
 
-export function isServiceAppError(error: unknown): error is ServiceAppError {
-  return error instanceof ServiceAppError;
-}
+export const isServiceAppError = (error: unknown): error is ServiceAppError => error instanceof ServiceAppError;
 
 export class ServiceAppManager {
   private readonly removalService = new ServiceAppRemovalService();
   private readonly runtimeService: ServiceAppRuntime;
   private readonly recordService: ServiceAppRecordService;
+  private reconciliationDiagnostics: ServiceAppRemovalDiagnostic[] = [];
 
   constructor(private readonly params: {
     configManager: ConfigManager;
@@ -99,6 +100,14 @@ export class ServiceAppManager {
       runtimeService: this.runtimeService,
     });
   }
+
+  start = async (): Promise<void> => {
+    this.reconciliationDiagnostics = await this.removalService.reconcile({
+      grantStore: this.createGrantStore(),
+      lockPathForAppId: (appId) => this.getServiceAppLockPath(this.getWorkspacePath(), appId),
+      serviceAppsPath: this.getServiceAppsPath(this.getWorkspacePath()),
+    });
+  };
 
   listServiceApps = async (): Promise<ServiceAppList> => {
     const workspacePath = this.getWorkspacePath();
@@ -115,6 +124,7 @@ export class ServiceAppManager {
     return {
       workspacePath,
       serviceAppsPath,
+      diagnostics: this.reconciliationDiagnostics,
       entries: [...workspaceEntries, ...packageEntries]
         .filter((entry): entry is ServiceAppRecord => Boolean(entry))
         .sort((left, right) => left.title.localeCompare(right.title)),
@@ -143,7 +153,7 @@ export class ServiceAppManager {
   };
 
   discoverServiceAppActions = async (appId: string): Promise<ServiceAction[]> => {
-    const { manifest, record } = await this.requireServiceApp(appId);
+    const { manifest, record } = await this.requireServiceApp(appId, true);
     const runtimeActions = await this.runtimeService.listActions({ app: record, manifest });
     return mergeServiceAppRuntimeActions({ record, manifest, runtimeActions });
   };
@@ -154,7 +164,7 @@ export class ServiceAppManager {
   ): Promise<ServiceActionInvokeResult> => {
     this.assertCaller(request.caller);
     this.assertDeclaredAction(actionId, request.declaredActions);
-    const { manifest, record } = await this.requireServiceAppForAction(actionId);
+    const { manifest, record } = await this.requireServiceAppForAction(actionId, true);
     const actionName = getServiceActionName(actionId, record.id);
     if (!Object.hasOwn(manifest.actions, actionName)) {
       throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "service action not found");
@@ -250,7 +260,7 @@ export class ServiceAppManager {
     try {
       record = await this.removalService.remove({
         grantStore: this.createGrantStore(),
-        lockPath: join(workspacePath, ".nextclaw", "locks", "service-apps", `${appId}.lock`),
+        lockPath: this.getServiceAppLockPath(workspacePath, appId),
         purgeData,
         loadRecord: async () => {
           const { record } = await this.requireServiceApp(appId);
@@ -258,12 +268,6 @@ export class ServiceAppManager {
             throw new ServiceAppError(
               "SERVICE_APP_MANAGED_SOURCE",
               `package service must be managed through Apps: ${record.packageId}`,
-            );
-          }
-          if (purgeData && !record.storage) {
-            throw new ServiceAppError(
-              "SERVICE_APP_READ_FAILED",
-              `Service App ${appId} 缺少受管数据目录，已停止删除。`,
             );
           }
           return record;
@@ -412,17 +416,17 @@ export class ServiceAppManager {
   };
 
   private requireServiceAppForAction = async (
-    actionId: string,
+    actionId: string, materializeStorage = false,
   ): Promise<{ manifest: ServiceAppManifest; record: ServiceAppRecord }> => {
     const appId = actionId.split(".")[0]?.trim();
     if (!appId) {
       throw new ServiceAppError("SERVICE_APP_INVALID_ACTION", "service action id is invalid");
     }
-    return await this.requireServiceApp(appId);
+    return await this.requireServiceApp(appId, materializeStorage);
   };
 
   private requireServiceApp = async (
-    appId: string,
+    appId: string, materializeStorage = false,
   ): Promise<{ manifest: ServiceAppManifest; record: ServiceAppRecord }> => {
     const serviceAppsPath = this.getServiceAppsPath(this.getWorkspacePath());
     let dirPath = join(serviceAppsPath, appId);
@@ -456,13 +460,16 @@ export class ServiceAppManager {
           "service app manifest id must match directory name",
         );
       }
+      const storage = packageSource?.storage ?? (materializeStorage
+        ? await this.recordService.materializeWorkspaceStorage(manifest.id)
+        : await this.recordService.inspectWorkspaceStorage(manifest.id));
       return {
         manifest,
         record: this.recordService.fromManifest(
           dirPath,
           manifest,
           packageSource,
-          packageSource?.storage ?? await this.recordService.materializeWorkspaceStorage(manifest.id),
+          storage,
         ),
       };
     } catch (error) {
@@ -497,7 +504,7 @@ export class ServiceAppManager {
               dirPath,
               manifest,
               undefined,
-              await this.recordService.materializeWorkspaceStorage(manifest.id),
+              await this.recordService.inspectWorkspaceStorage(manifest.id),
             ),
           };
         } catch {
@@ -554,11 +561,11 @@ export class ServiceAppManager {
         .filter((actionId) => actionId.length > 0),
     ));
 
-  private getWorkspacePath = (): string =>
-    getWorkspacePathFromConfig(this.params.configManager.config);
+  private getWorkspacePath = (): string => getWorkspacePathFromConfig(this.params.configManager.config);
 
-  private getServiceAppsPath = (workspacePath: string): string =>
-    join(workspacePath, DEFAULT_SERVICE_APPS_DIR);
+  private getServiceAppsPath = (workspacePath: string): string => join(workspacePath, DEFAULT_SERVICE_APPS_DIR);
+
+  private getServiceAppLockPath = (workspacePath: string, appId: string): string => join(workspacePath, ".nextclaw", "locks", "service-apps", `${appId}.lock`);
 
   private createGrantStore = (): ServiceActionGrantStore =>
     new ServiceActionGrantStore(
@@ -572,14 +579,8 @@ export class ServiceAppManager {
     serviceAppsPath: string,
   ): Promise<string[]> => {
     try {
-      const entries = await readdir(serviceAppsPath, { withFileTypes: true });
-      return entries
-        .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
-        .map((entry) => entry.name);
+      return await this.removalService.listCanonicalDirectoryNames(serviceAppsPath);
     } catch (error) {
-      if (this.isMissingFileError(error)) {
-        return [];
-      }
       throw new ServiceAppError(
         "SERVICE_APP_READ_FAILED",
         error instanceof Error ? error.message : String(error),

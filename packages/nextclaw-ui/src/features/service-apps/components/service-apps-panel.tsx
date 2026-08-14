@@ -27,7 +27,11 @@ import { t } from "@/shared/lib/i18n";
 
 type ServiceActionView = ServiceActionListView["actions"][number];
 
-export function ServiceAppsPanel() {
+export function ServiceAppsPanel({
+  onManagePackage,
+}: {
+  onManagePackage: (packageId: string) => void;
+}) {
   const serviceApps = useServiceApps();
   const appData = useAppData();
   const serviceActions = useServiceActions();
@@ -77,6 +81,7 @@ export function ServiceAppsPanel() {
   }
 
   const apps: ServiceAppRecordView[] = serviceApps.data?.entries ?? [];
+  const diagnostics = serviceApps.data?.diagnostics ?? [];
   const actions: ServiceActionView[] = serviceActions.data?.actions ?? [];
   const grants: ServiceActionGrantView[] =
     serviceActionGrants.data?.grants ?? [];
@@ -114,6 +119,22 @@ export function ServiceAppsPanel() {
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {diagnostics.length > 0 ? (
+        <div
+          role="alert"
+          className="mx-3 mt-3 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs text-destructive sm:mx-4"
+        >
+          <div className="font-medium">{t("serviceAppsLoadFailed")}</div>
+          <ul className="mt-1 space-y-1">
+            {diagnostics.map((diagnostic) => (
+              <li key={diagnostic.stagedPath} className="break-words">
+                {diagnostic.appId}: {diagnostic.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {apps.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-6 py-8 text-center">
@@ -154,6 +175,7 @@ export function ServiceAppsPanel() {
                   }))
                 }
                 onDiscover={discover}
+                onManagePackage={onManagePackage}
                 onDelete={(appId, purgeData, onSuccess) => void deleteServiceApp.mutate(
                   { appId, purgeData },
                   { onSuccess },

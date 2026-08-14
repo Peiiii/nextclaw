@@ -66,6 +66,31 @@ afterEach(() => {
 });
 
 describe("AppPackageManager runtime projection", () => {
+  it("keeps package reads pure until startup reconciles built-in packages", async () => {
+    const homeDirectory = createTempDirectory();
+    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    const appsPath = join(homeDirectory, "apps");
+    const packagePath = join(
+      appsPath,
+      "packages",
+      "nextclaw.personal-organizer",
+    );
+    try {
+      await expect(kernel.appPackageManager.listPackages()).resolves.toEqual({ entries: [] });
+      expect(existsSync(appsPath)).toBe(false);
+      expect(existsSync(packagePath)).toBe(false);
+
+      await kernel.appPackageManager.start();
+
+      await expect(kernel.appPackageManager.listPackages()).resolves.toMatchObject({
+        entries: [expect.objectContaining({ id: "nextclaw.personal-organizer" })],
+      });
+      expect(existsSync(packagePath)).toBe(true);
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  });
+
   it("marks persisted active operations as interrupted after process recovery", async () => {
     const storeDirectory = createTempDirectory();
     const storePath = join(storeDirectory, "operations.json");
@@ -131,6 +156,7 @@ describe("AppPackageManager runtime projection", () => {
     const kernel = createKernel(builtInAppsDirectory, homeDirectory);
 
     try {
+      await kernel.appPackageManager.start();
       await expect(kernel.appPackageManager.listPackages()).resolves.toMatchObject({
         entries: [expect.objectContaining({ id: "nextclaw.personal-organizer" })],
       });
@@ -159,6 +185,7 @@ describe("AppPackageManager runtime projection", () => {
 
     const restartedKernel = createKernel(builtInAppsDirectory, homeDirectory);
     try {
+      await restartedKernel.appPackageManager.start();
       await expect(restartedKernel.appPackageManager.listPackages()).resolves.toEqual({
         entries: [],
       });
@@ -180,6 +207,7 @@ describe("AppPackageManager runtime projection", () => {
     const kernel = createKernel(incompatibleAppsDirectory);
 
     try {
+      await kernel.appPackageManager.start();
       await expect(kernel.appPackageManager.enable("nextclaw.personal-organizer"))
         .rejects.toMatchObject({ code: "APP_PACKAGE_INCOMPATIBLE" });
       await expect(kernel.appPackageManager.getPackage("nextclaw.personal-organizer"))
@@ -192,6 +220,7 @@ describe("AppPackageManager runtime projection", () => {
   it("blocks activation when installed package content has been modified", async () => {
     const kernel = createKernel();
     try {
+      await kernel.appPackageManager.start();
       const app = await kernel.appPackageManager.getPackage("nextclaw.personal-organizer");
       const componentManifestPath = app.components[0]?.manifestPath;
       expect(componentManifestPath).toBeTruthy();
@@ -225,7 +254,7 @@ describe("AppPackageManager runtime projection", () => {
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
     try {
-      await kernel.appPackageManager.listPackages();
+      await kernel.appPackageManager.start();
       await new AppInstallationService(new AppHomeService(join(homeDirectory, "apps"))).install(
         packageDirectory,
         {
@@ -329,6 +358,7 @@ describe("AppPackageManager package projection lifecycle", () => {
     const kernel = createKernel();
 
     try {
+      await kernel.appPackageManager.start();
       const initialPackages = await kernel.appPackageManager.listPackages();
       expect(initialPackages.entries).toEqual([
         expect.objectContaining({

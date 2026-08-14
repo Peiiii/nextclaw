@@ -13,7 +13,9 @@ import {
 export class AppPackagesRoutesController {
   constructor(private readonly manager: AppPackageManager) {}
 
-  readonly list = async (c: Context) => c.json(ok(await this.manager.listPackages()));
+  readonly list = async (c: Context) => c.json(ok(await this.manager.listPackages({
+    includeStorageUsage: c.req.query("includeStorageUsage") !== "false",
+  })));
 
   readonly listOperations = async (c: Context) =>
     c.json(ok(await this.manager.listOperations()));

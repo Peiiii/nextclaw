@@ -1,3 +1,4 @@
+import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { AppInstanceStorageService } from "@nextclaw/app-runtime";
 import type { AppStorageContext } from "@nextclaw/app-runtime";
@@ -31,11 +32,14 @@ export class ServiceAppRecordService {
     const dirPath = join(serviceAppsPath, dirName);
     try {
       const manifest = await readServiceAppManifest(dirPath);
+      if (manifest.id !== dirName) {
+        throw new Error(`service app manifest id must match directory name: ${dirName}`);
+      }
       return this.fromManifest(
         dirPath,
         manifest,
         undefined,
-        await this.materializeWorkspaceStorage(manifest.id),
+        await this.inspectWorkspaceStorage(manifest.id),
       );
     } catch (error) {
       if (this.isMissingFileError(error)) {
@@ -77,14 +81,20 @@ export class ServiceAppRecordService {
   };
 
   materializeWorkspaceStorage = async (serviceId: string): Promise<AppStorageContext> => {
-    const instanceDirectory = join(
-      this.params.getWorkspacePath(),
-      ".nextclaw",
-      "app-instances",
-      serviceId,
-      "default",
-    );
+    const instanceDirectory = this.getWorkspaceInstanceDirectory(serviceId);
     return (await this.instanceStorageService.materialize({
+      appId: serviceId,
+      instanceId: "default",
+      instanceDirectory,
+    })).storage;
+  };
+
+  inspectWorkspaceStorage = async (serviceId: string): Promise<AppStorageContext | undefined> => {
+    const instanceDirectory = this.getWorkspaceInstanceDirectory(serviceId);
+    if (!await this.pathExists(instanceDirectory)) {
+      return undefined;
+    }
+    return (await this.instanceStorageService.inspect({
       appId: serviceId,
       instanceId: "default",
       instanceDirectory,
@@ -166,6 +176,26 @@ export class ServiceAppRecordService {
 
   private toTitle = (value: string): string =>
     basename(value).replace(/[-_]+/g, " ").trim() || value;
+
+  private getWorkspaceInstanceDirectory = (serviceId: string): string => join(
+    this.params.getWorkspacePath(),
+    ".nextclaw",
+    "app-instances",
+    serviceId,
+    "default",
+  );
+
+  private pathExists = async (targetPath: string): Promise<boolean> => {
+    try {
+      await access(targetPath);
+      return true;
+    } catch (error) {
+      if (this.isMissingFileError(error)) {
+        return false;
+      }
+      throw error;
+    }
+  };
 
   private isMissingFileError = (error: unknown): boolean =>
     typeof error === "object" && error !== null &&

@@ -35,6 +35,7 @@ export class AppDataManager {
   private readonly appHomeService: AppHomeService;
   private readonly fileLockService = new FileLockService();
   private readonly inventoryService = new AppInstanceInventoryService();
+  private reconciliationDiagnostics: AppDataList["diagnostics"] = [];
 
   constructor(private readonly params: {
     appHomeDirectory: string;
@@ -44,6 +45,21 @@ export class AppDataManager {
   }) {
     this.appHomeService = new AppHomeService(params.appHomeDirectory);
   }
+
+  start = async (): Promise<void> => {
+    const workspacePath = path.resolve(this.params.getWorkspacePath());
+    const [packageDiagnostics, workspaceDiagnostics] = await Promise.all([
+      this.inventoryService.reconcileDeletions(this.appHomeService.getInstancesDirectory()),
+      this.inventoryService.reconcileDeletions(this.getWorkspaceInstancesRoot(workspacePath)),
+    ]);
+    this.reconciliationDiagnostics = [
+      ...packageDiagnostics.map((entry) => ({ ...entry, source: "package" as const })),
+      ...workspaceDiagnostics.map((entry) => ({
+        ...entry,
+        source: "workspace-service" as const,
+      })),
+    ];
+  };
 
   list = async (): Promise<AppDataList> => {
     const workspacePath = path.resolve(this.params.getWorkspacePath());
@@ -74,18 +90,29 @@ export class AppDataManager {
       })),
     ].sort((left, right) =>
       left.displayName.localeCompare(right.displayName) || left.id.localeCompare(right.id));
+    const currentDiagnostics: AppDataList["diagnostics"] = [
+      ...packageInventory.diagnostics.map((diagnostic) => ({
+        ...diagnostic,
+        source: "package" as const,
+      })),
+      ...workspaceInventory.diagnostics.map((diagnostic) => ({
+        ...diagnostic,
+        source: "workspace-service" as const,
+      })),
+    ];
+    const currentDiagnosticKeys = new Set(currentDiagnostics.map((entry) =>
+      `${entry.source}:${entry.instanceDirectory}`));
+    const diagnostics = new Map<string, AppDataList["diagnostics"][number]>();
+    for (const entry of [
+      ...currentDiagnostics,
+      ...this.reconciliationDiagnostics.filter((diagnostic) =>
+        currentDiagnosticKeys.has(`${diagnostic.source}:${diagnostic.instanceDirectory}`)),
+    ]) {
+      diagnostics.set(`${entry.source}:${entry.instanceDirectory}`, entry);
+    }
     return {
       entries,
-      diagnostics: [
-        ...packageInventory.diagnostics.map((entry) => ({
-          ...entry,
-          source: "package" as const,
-        })),
-        ...workspaceInventory.diagnostics.map((entry) => ({
-          ...entry,
-          source: "workspace-service" as const,
-        })),
-      ],
+      diagnostics: Array.from(diagnostics.values()),
     };
   };
 

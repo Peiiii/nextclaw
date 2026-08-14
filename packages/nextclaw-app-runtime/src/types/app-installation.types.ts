@@ -50,7 +50,7 @@ export type AppInfoResult = {
   dataDirectory: string;
   instance: AppInstanceRecord;
   storage: AppStorageContext;
-  storageUsage: AppStorageUsage;
+  storageUsage?: AppStorageUsage;
   installedVersions: Array<{
     version: string;
     installDirectory: string;

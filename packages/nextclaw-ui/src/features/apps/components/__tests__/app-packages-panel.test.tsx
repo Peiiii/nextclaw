@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppPackagesPanel } from '@/features/apps/components/app-packages-panel';
 
 const mocks = vi.hoisted(() => ({
+  appDataError: false,
   enabled: false,
+  includePackageStorageUsage: true,
   grantClient: vi.fn(),
   lifecycleMutate: vi.fn(),
   lifecycleReset: vi.fn(),
@@ -25,7 +27,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/features/app-data/hooks/use-app-data', () => ({
   useAppData: () => ({
     data: { entries: mocks.retainedEntries, diagnostics: [] },
-    error: null,
+    error: mocks.appDataError ? new Error('App data unavailable') : null,
+    isError: mocks.appDataError,
     isLoading: false,
     refetch: mocks.refetchAppData,
   }),
@@ -117,15 +120,7 @@ vi.mock('@/features/apps/hooks/use-app-packages', () => ({
         primaryPanelId: 'nextclaw-personal-organizer-todos',
         runtimeProfile: 'native-process',
         storage: createStorageFixture(),
-        storageUsage: {
-          dataBytes: 128,
-          configBytes: 0,
-          stateBytes: 0,
-          cacheBytes: 0,
-          temporaryBytes: 0,
-          logsBytes: 0,
-          totalBytes: 128,
-        },
+        storageUsage: mocks.includePackageStorageUsage ? createUsageFixture() : undefined,
       }],
     },
     error: null,
@@ -147,6 +142,18 @@ function createStorageFixture() {
     cacheDirectory: '/tmp/cache',
     temporaryDirectory: '/tmp/tmp',
     logsDirectory: '/tmp/logs',
+  };
+}
+
+function createUsageFixture() {
+  return {
+    dataBytes: 128,
+    configBytes: 3,
+    stateBytes: 2,
+    cacheBytes: 1,
+    temporaryBytes: 0,
+    logsBytes: 4,
+    totalBytes: 138,
   };
 }
 
@@ -237,7 +244,9 @@ vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
 
 describe('AppPackagesPanel', () => {
   beforeEach(() => {
+    mocks.appDataError = false;
     mocks.enabled = false;
+    mocks.includePackageStorageUsage = true;
     mocks.grantClient.mockReset();
     mocks.lifecycleMutate.mockReset();
     mocks.lifecycleReset.mockReset();
@@ -270,6 +279,30 @@ describe('AppPackagesPanel', () => {
       { action: 'enable', appId: 'nextclaw.personal-organizer' },
       { onSuccess: undefined },
     );
+  });
+
+  it('scrolls and transfers focus to a package selected from Service Apps', async () => {
+    render(
+      <AppPackagesPanel
+        focusedPackageId="nextclaw.personal-organizer"
+        onOpenPanelApp={mocks.onOpen}
+      />,
+    );
+
+    const packageCard = screen.getByRole('region', { name: 'Personal Space' });
+    await waitFor(() => expect(document.activeElement).toBe(packageCard));
+    expect(packageCard.className).toContain('ring-2');
+  });
+
+  it('distinguishes an untouched app from an App Data query failure', () => {
+    mocks.includePackageStorageUsage = false;
+    const view = render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+    expect(screen.getByTitle('/tmp/data').textContent).toContain('No data yet');
+
+    mocks.appDataError = true;
+    view.rerender(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+
+    expect(screen.getByTitle('/tmp/data').textContent).toContain('Size unavailable');
   });
 
   it('opens an enabled package panel through the existing panel app chain', async () => {

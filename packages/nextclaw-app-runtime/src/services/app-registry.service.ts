@@ -30,7 +30,6 @@ export class AppRegistryService {
   }
 
   load = async (): Promise<AppRegistry> => {
-    await this.appHomeService.ensureBaseDirectories();
     try {
       const raw = await readFile(this.appHomeService.getRegistryPath(), "utf-8");
       return this.parseRegistry(JSON.parse(raw) as unknown);

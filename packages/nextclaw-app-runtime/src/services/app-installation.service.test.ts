@@ -56,6 +56,29 @@ describe("AppInstallationService", () => {
     expect(await installationService.list()).toHaveLength(0);
   });
 
+  it("skips recursive storage measurement when callers request metadata-only info", async () => {
+    const appDirectory = createTemporaryPath("napp-info-metadata-app");
+    const appHomeDirectory = createTemporaryPath("napp-info-metadata-home");
+    cleanupPaths.push(appDirectory, appHomeDirectory);
+    await new AppScaffoldService().scaffold(appDirectory);
+    const installationService = new AppInstallationService(
+      new AppHomeService(appHomeDirectory),
+    );
+    const installed = await installationService.install(appDirectory);
+
+    await expect(installationService.info(installed.appId, {
+      measureStorageUsage: false,
+    })).resolves.toMatchObject({
+      appId: installed.appId,
+      storageUsage: undefined,
+    });
+    await expect(installationService.info(installed.appId)).resolves.toEqual(
+      expect.objectContaining({
+        storageUsage: expect.objectContaining({ totalBytes: expect.any(Number) }),
+      }),
+    );
+  });
+
   it("installs and updates an app from registry metadata", async () => {
     const appHomeDirectory = createTemporaryPath("napp-registry-home");
     cleanupPaths.push(appHomeDirectory);

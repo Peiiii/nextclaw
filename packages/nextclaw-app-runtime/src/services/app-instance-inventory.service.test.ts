@@ -1,4 +1,4 @@
-import { access, mkdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -80,6 +80,47 @@ describe("AppInstanceInventoryService", () => {
       appId: "../escape",
       instanceId: "default",
     })).rejects.toThrow("安全");
+  });
+
+  it("reports committed deletion tombstones and removes them during explicit reconciliation", async () => {
+    const appHome = createTemporaryPath("nextclaw-app-inventory-reconcile");
+    cleanupPaths.push(appHome);
+    const homeService = new AppHomeService(appHome);
+    const storageService = new AppInstanceStorageService(homeService);
+    const instance = await storageService.materializeDefaultInstance({ appId: "example.notes" });
+    const stagedPath = `${instance.storage.instanceDirectory}.deleting-123e4567-e89b-42d3-a456-426614174000`;
+    await rename(instance.storage.instanceDirectory, stagedPath);
+    const service = new AppInstanceInventoryService(storageService);
+
+    await expect(service.list(homeService.getInstancesDirectory())).resolves.toMatchObject({
+      entries: [],
+      diagnostics: [{
+        instanceDirectory: stagedPath,
+        message: expect.stringContaining("等待启动恢复"),
+      }],
+    });
+    await expect(service.reconcileDeletions(homeService.getInstancesDirectory()))
+      .resolves.toEqual([]);
+    await expect(access(stagedPath)).rejects.toThrow();
+  });
+
+  it("keeps an unverifiable deletion tombstone and returns a diagnostic", async () => {
+    const instancesRoot = createTemporaryPath("nextclaw-app-inventory-reconcile-invalid");
+    cleanupPaths.push(instancesRoot);
+    const stagedPath = path.join(
+      instancesRoot,
+      "example.notes",
+      "default.deleting-123e4567-e89b-42d3-a456-426614174000",
+    );
+    await mkdir(stagedPath, { recursive: true });
+    await writeFile(path.join(stagedPath, "metadata.json"), "{}\n", "utf8");
+
+    await expect(new AppInstanceInventoryService().reconcileDeletions(instancesRoot))
+      .resolves.toEqual([expect.objectContaining({
+        instanceDirectory: stagedPath,
+        message: expect.stringContaining("恢复失败"),
+      })]);
+    await expect(access(stagedPath)).resolves.toBeUndefined();
   });
 });
 

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.36.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-14",
+  "title": {
+    "zh-CN": "NextClaw v0.36.2",
+    "en-US": "NextClaw v0.36.2"
+  },
+  "summary": {
+    "zh-CN": "加固 App 数据隔离与中断删除恢复，让应用列表保持轻量，package Service 回到唯一管理入口。",
+    "en-US": "Hardens App data isolation and interrupted-deletion recovery while keeping catalogs lightweight and package Service ownership clear."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-14-nextclaw-v0-36-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-36-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "唯一的 App 管理入口", "en-US": "One App management surface" },
+          "body": {
+            "zh-CN": "package 提供的 Service 会切换、定位并聚焦所属 App，不再显示第二套卸载入口。",
+            "en-US": "A package Service switches to and focuses its owning App instead of presenting a second uninstall path."
+          }
+        },
+        {
+          "title": { "zh-CN": "轻量且清楚的数据状态", "en-US": "Lighter catalogs with clearer data states" },
+          "body": {
+            "zh-CN": "应用目录保持只读，并区分尚无数据、统计中和大小不可用；磁盘占用统一由 App Data 提供。",
+            "en-US": "Catalogs stay read-only and distinguish no data, loading, and unavailable usage, with App Data owning disk measurement."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "中断删除自动收敛", "en-US": "Interrupted deletion recovery" },
+          "body": {
+            "zh-CN": "App instance 与 Workspace Service 的已提交删除会在下次启动完成，并保留无法安全处理时的诊断。",
+            "en-US": "Committed App-instance and Workspace-Service deletions finish on the next start and retain diagnostics when reconciliation is unsafe."
+          }
+        },
+        {
+          "title": { "zh-CN": "删除错误不再被隐藏", "en-US": "Removal errors stay visible" },
+          "body": {
+            "zh-CN": "只有路径不存在会被视为已经删除；权限等文件系统错误会明确报告，恢复的 Service 也不会被旧事务撤销授权。",
+            "en-US": "Only a missing path counts as already removed; filesystem failures are reported, and restored Services keep their grants."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "默认保留，布局兼容", "en-US": "Retention by default, compatible layout" },
+          "body": {
+            "zh-CN": "卸载仍默认保留个人数据；既有 instance-v1 数据和同一发布者重装恢复不需要迁移。",
+            "en-US": "Uninstall still keeps personal data by default, while existing instance-v1 data and same-publisher reinstall recovery need no migration."
+          }
+        }
+      ]
+    }
+  ]
+}

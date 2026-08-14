@@ -7,6 +7,7 @@ function createTestApp(
 ) {
   const app = new Hono();
   const controller = new AppPackagesRoutesController(manager);
+  app.get("/api/app-packages", controller.list);
   app.get("/api/app-package-operations", controller.listOperations);
   app.post("/api/app-package-operations/install", controller.startInstallOperation);
   app.post(
@@ -36,6 +37,23 @@ const operation = {
 };
 
 describe("app package operation routes", () => {
+  it("lets UI callers skip recursive storage measurement without changing the default", async () => {
+    const listPackages = vi.fn(async () => ({ entries: [] }));
+    const app = createTestApp({ listPackages } as never);
+
+    const response = await app.request(
+      "http://localhost/api/app-packages?includeStorageUsage=false",
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: { entries: [] },
+    });
+    await app.request("http://localhost/api/app-packages");
+
+    expect(listPackages).toHaveBeenNthCalledWith(1, { includeStorageUsage: false });
+    expect(listPackages).toHaveBeenNthCalledWith(2, { includeStorageUsage: true });
+  });
+
   it("accepts lifecycle requests without waiting for operation completion", async () => {
     const startOperation = vi.fn(async () => operation);
     const app = createTestApp({

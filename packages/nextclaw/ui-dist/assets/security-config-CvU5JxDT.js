@@ -1,1 +1,0 @@
-import{Ot as e}from"./api-CVjdSvJk.js";export{e as SecurityConfig};

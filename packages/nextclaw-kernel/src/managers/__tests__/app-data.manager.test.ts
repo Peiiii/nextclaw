@@ -1,4 +1,4 @@
-import { access, rm, writeFile } from "node:fs/promises";
+import { access, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -97,6 +97,18 @@ describe("AppDataManager", () => {
     )).rejects.toMatchObject({ code: "APP_DATA_INVALID_ID" });
 
     await expect(access(fixture.packageInstanceDirectory)).resolves.toBeUndefined();
+  });
+
+  it("reconciles committed package data tombstones during explicit startup", async () => {
+    const fixture = await createFixture();
+    const stagedPath = `${fixture.packageInstanceDirectory}.deleting-123e4567-e89b-42d3-a456-426614174000`;
+    await rename(fixture.packageInstanceDirectory, stagedPath);
+
+    await fixture.manager.start();
+
+    await expect(access(stagedPath)).rejects.toThrow();
+    expect((await fixture.manager.list()).entries.some((entry) =>
+      entry.source === "package" && entry.appId === "example.notes")).toBe(false);
   });
 });
 

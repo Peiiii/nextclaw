@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -223,6 +231,23 @@ describe("ServiceAppManager", () => {
       protocol: "mcp",
       status: "idle",
     }));
+    expect(existsSync(join(
+      workspacePath,
+      ".nextclaw",
+      "app-instances",
+      "notes",
+      "default",
+    ))).toBe(false);
+
+    await manager.discoverServiceAppActions("notes");
+
+    expect(existsSync(join(
+      workspacePath,
+      ".nextclaw",
+      "app-instances",
+      "notes",
+      "default",
+    ))).toBe(true);
   });
 
   it("skips directories that do not contain a service app manifest yet", async () => {
@@ -359,7 +384,7 @@ describe("ServiceAppManager deletion", () => {
       "app-instances",
       "notes",
       "default",
-    ))).toBe(true);
+    ))).toBe(false);
     expect(runtime.restart).toHaveBeenCalledWith("notes");
     await expect(manager.listServiceActionGrants()).resolves.toEqual([]);
     await expect(manager.getServiceApp("notes")).rejects.toMatchObject({
@@ -381,7 +406,7 @@ describe("ServiceAppManager deletion", () => {
       "notes",
       "default",
     );
-    await manager.getServiceApp("notes");
+    await manager.discoverServiceAppActions("notes");
     expect(existsSync(instancePath)).toBe(true);
 
     await expect(manager.deleteServiceApp("notes", true)).resolves.toEqual({
@@ -410,6 +435,95 @@ describe("ServiceAppManager deletion", () => {
 
     expect(existsSync(join(outsidePath, "sentinel.txt"))).toBe(true);
     expect(runtime.restart).not.toHaveBeenCalled();
+  });
+
+  it("completes a committed source deletion tombstone during startup", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath);
+    const appPath = join(workspacePath, "service-apps", "notes");
+    const stagedPath = join(
+      workspacePath,
+      "service-apps",
+      ".deleting-notes-123e4567-e89b-42d3-a456-426614174000",
+    );
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: createRuntime(),
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+    await manager.grantServiceAction("notes.read", {
+      caller,
+      declaredActions: ["notes.read"],
+    });
+    renameSync(appPath, stagedPath);
+
+    await manager.start();
+
+    expect(existsSync(stagedPath)).toBe(false);
+    await expect(manager.listServiceActionGrants()).resolves.toEqual([]);
+    await expect(manager.listServiceApps()).resolves.toMatchObject({
+      diagnostics: [],
+      entries: [],
+    });
+  });
+
+  it("keeps grants when a canonical source was restored before tombstone cleanup", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath);
+    const appPath = join(workspacePath, "service-apps", "notes");
+    const stagedPath = join(
+      workspacePath,
+      "service-apps",
+      ".deleting-notes-123e4567-e89b-42d3-a456-426614174000",
+    );
+    cpSync(appPath, stagedPath, { recursive: true });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: createRuntime(),
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+    await manager.grantServiceAction("notes.read", {
+      caller,
+      declaredActions: ["notes.read"],
+    });
+
+    await manager.start();
+
+    expect(existsSync(stagedPath)).toBe(false);
+    await expect(manager.listServiceActionGrants()).resolves.toEqual([
+      expect.objectContaining({ actionId: "notes.read", caller }),
+    ]);
+    await expect(manager.listServiceApps()).resolves.toMatchObject({
+      diagnostics: [],
+      entries: [expect.objectContaining({ id: "notes" })],
+    });
+  });
+
+  it("keeps an unverifiable source tombstone out of the app list and reports it", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath);
+    const stagedPath = join(
+      workspacePath,
+      "service-apps",
+      ".deleting-other-123e4567-e89b-42d3-a456-426614174000",
+    );
+    renameSync(join(workspacePath, "service-apps", "notes"), stagedPath);
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: createRuntime(),
+    });
+
+    await manager.start();
+
+    expect(existsSync(stagedPath)).toBe(true);
+    await expect(manager.listServiceApps()).resolves.toMatchObject({
+      diagnostics: [{
+        appId: "other",
+        stagedPath,
+        message: expect.stringContaining("identity 不匹配"),
+      }],
+      entries: [],
+    });
   });
 });
 

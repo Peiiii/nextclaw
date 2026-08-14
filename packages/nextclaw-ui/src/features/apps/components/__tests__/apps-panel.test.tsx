@@ -6,13 +6,19 @@ import { AppsPanel, type AppsPanelTab } from '@/features/apps/components/apps-pa
 
 vi.mock('@/shared/lib/i18n', () => ({ t: (key: string) => key }));
 vi.mock('@/features/apps/components/app-packages-panel', () => ({
-  AppPackagesPanel: () => <div>packages-content</div>,
+  AppPackagesPanel: ({ focusedPackageId }: { focusedPackageId?: string }) => (
+    <div>packages-content:{focusedPackageId ?? 'none'}</div>
+  ),
 }));
 vi.mock('@/features/panel-apps', () => ({
   PanelAppsList: () => <div>panel-apps-content</div>,
 }));
 vi.mock('@/features/service-apps', () => ({
-  ServiceAppsPanel: () => <div>service-apps-content</div>,
+  ServiceAppsPanel: ({ onManagePackage }: { onManagePackage: (packageId: string) => void }) => (
+    <button type="button" onClick={() => onManagePackage('nextclaw.personal-organizer')}>
+      service-apps-content
+    </button>
+  ),
 }));
 
 function AppsPanelHarness() {
@@ -54,5 +60,15 @@ describe('AppsPanel', () => {
 
     expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'panelAppsTitle' }));
     expect(screen.getByText('panel-apps-content')).toBeTruthy();
+  });
+
+  it('focuses the owning package when routing from a package-managed service', async () => {
+    const user = userEvent.setup();
+    render(<AppsPanelHarness />);
+
+    await user.click(screen.getByRole('tab', { name: 'serviceAppsTitle' }));
+    await user.click(screen.getByRole('button', { name: 'service-apps-content' }));
+
+    expect(screen.getByText('packages-content:nextclaw.personal-organizer')).toBeTruthy();
   });
 });

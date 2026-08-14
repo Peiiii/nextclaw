@@ -9,6 +9,7 @@ import type {
 } from "#app-runtime/types/app-storage.types.js";
 
 const SAFE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
+const DELETING_INSTANCE_PATTERN = /^(?<instanceId>[a-z0-9]+(?:[.-][a-z0-9]+)*)\.deleting-(?<transactionId>[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/;
 
 export class AppInstanceInventoryService {
   private readonly fileLockService = new FileLockService();
@@ -32,6 +33,14 @@ export class AppInstanceInventoryService {
         continue;
       }
       for (const instanceDirectory of await this.listDirectories(appPath)) {
+        const deletingInstanceId = this.parseDeletingInstanceId(instanceDirectory.name);
+        if (deletingInstanceId) {
+          diagnostics.push({
+            instanceDirectory: path.join(appPath, instanceDirectory.name),
+            message: `App Instance 删除清理等待启动恢复：${appId}/${deletingInstanceId}`,
+          });
+          continue;
+        }
         const instanceId = instanceDirectory.name;
         const instancePath = path.join(appPath, instanceId);
         if (!SAFE_ID_PATTERN.test(instanceId)) {
@@ -70,6 +79,45 @@ export class AppInstanceInventoryService {
     diagnostics.sort((left, right) =>
       left.instanceDirectory.localeCompare(right.instanceDirectory));
     return { entries, diagnostics };
+  };
+
+  reconcileDeletions = async (
+    instancesRoot: string,
+  ): Promise<AppInstanceInventory["diagnostics"]> => {
+    const root = path.resolve(instancesRoot);
+    const diagnostics: AppInstanceInventory["diagnostics"] = [];
+    for (const appDirectory of await this.listDirectories(root)) {
+      const appId = appDirectory.name;
+      if (!SAFE_ID_PATTERN.test(appId)) {
+        continue;
+      }
+      const appPath = path.join(root, appId);
+      for (const instanceDirectory of await this.listDirectories(appPath)) {
+        const instanceId = this.parseDeletingInstanceId(instanceDirectory.name);
+        if (!instanceId) {
+          continue;
+        }
+        const stagedPath = path.join(appPath, instanceDirectory.name);
+        const canonicalPath = path.join(appPath, instanceId);
+        try {
+          await this.fileLockService.withLock(`${canonicalPath}.lock`, async () => {
+            await this.storageService.inspect({
+              appId,
+              instanceId,
+              instanceDirectory: stagedPath,
+            });
+            await rm(stagedPath, { recursive: true });
+          });
+        } catch (error) {
+          diagnostics.push({
+            instanceDirectory: stagedPath,
+            message: `App Instance 删除清理恢复失败：${error instanceof Error ? error.message : String(error)}`,
+          });
+        }
+      }
+    }
+    return diagnostics.sort((left, right) =>
+      left.instanceDirectory.localeCompare(right.instanceDirectory));
   };
 
   purge = async (params: {
@@ -150,6 +198,9 @@ export class AppInstanceInventoryService {
       throw new Error(`${field} 不是安全的 App Instance 标识：${value}`);
     }
   };
+
+  private parseDeletingInstanceId = (directoryName: string): string | undefined =>
+    DELETING_INSTANCE_PATTERN.exec(directoryName)?.groups?.instanceId;
 
   private assertWithinRoot = (root: string, target: string): void => {
     const relative = path.relative(root, target);

@@ -68,12 +68,18 @@ export class AppPackageManager {
     this.runtimeHooks = hooks;
   };
 
-  listPackages = async (): Promise<AppPackageList> => {
-    await this.ensureBuiltInPackages();
+  start = async (): Promise<void> => await this.ensureBuiltInPackages();
+
+  listPackages = async (
+    options: { includeStorageUsage?: boolean } = {},
+  ): Promise<AppPackageList> => {
     const records = await this.registryService.listApps();
     return {
       entries: await Promise.all(records.map(async (record) =>
-        await this.toPackageView(await this.installationService.info(record.appId)))),
+        await this.toPackageView(await this.installationService.info(
+          record.appId,
+          { measureStorageUsage: options.includeStorageUsage !== false },
+        )))),
     };
   };
 
@@ -84,7 +90,6 @@ export class AppPackageManager {
     }));
 
   getPackage = async (appId: string): Promise<AppPackageView> => {
-    await this.ensureBuiltInPackages();
     try {
       return await this.toPackageView(await this.installationService.info(appId));
     } catch (error) {
@@ -96,7 +101,6 @@ export class AppPackageManager {
   };
 
   listActiveComponentSources = async (): Promise<AppPackageComponentSource[]> => {
-    await this.ensureBuiltInPackages();
     const records = await this.registryService.listApps();
     return (await Promise.all(records
       .filter((record) => record.enabled)

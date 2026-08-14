@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-08-14T04:17:41.615Z",
+  "generatedAt": "2026-08-14T06:11:19.153Z",
   "hero": {
     "currentLoc": 246846,
     "testLoc": 97779,
     "trackedFiles": 2630,
-    "recentCommitCount": 402,
+    "recentCommitCount": 408,
     "activeDays30": 30,
     "recentReleaseCount": 53,
     "latestReleaseDate": "2026-08-14",
@@ -1248,7 +1248,7 @@ export default {
       {
         "key": "2026-08-14",
         "label": "08-14",
-        "value": 21
+        "value": 27
       }
     ],
     "commitWeekly": [
@@ -1310,7 +1310,7 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 86
+        "value": 92
       }
     ],
     "releaseMonthly": [
@@ -1498,6 +1498,44 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-14-nextclaw-v0-36-2",
+        "date": "2026-08-14",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-14 · NextClaw v0.36.2",
+          "description": "NextClaw v0.36.2 hardens App data isolation and deletion recovery while keeping catalogs lightweight and management ownership clear.",
+          "href": "/en/notes/2026-08-14-nextclaw-v0-36-2"
+        },
+        "zh": {
+          "title": "2026-08-14 · NextClaw v0.36.2",
+          "description": "NextClaw v0.36.2 加固 App 数据隔离与删除恢复，让应用列表保持轻量，管理入口保持唯一。",
+          "href": "/zh/notes/2026-08-14-nextclaw-v0-36-2"
+        }
+      },
+      {
+        "slug": "2026-08-14-nextclaw-v0-36-1",
+        "date": "2026-08-14",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-14 · NextClaw v0.36.1",
+          "description": "NextClaw v0.36.1 keeps the UI, agents, and CLI on the same runtime after an update.",
+          "href": "/en/notes/2026-08-14-nextclaw-v0-36-1"
+        },
+        "zh": {
+          "title": "2026-08-14 · NextClaw v0.36.1",
+          "description": "NextClaw v0.36.1 修复更新后页面、Agent 和命令行版本不一致的问题。",
+          "href": "/zh/notes/2026-08-14-nextclaw-v0-36-1"
+        }
+      },
       {
         "slug": "2026-08-14-nextclaw-v0-36-0",
         "date": "2026-08-14",
@@ -2308,7 +2346,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-14T04:17:39.675Z",
     "sourceCount": {
-      "notes": 38,
+      "notes": 40,
       "scopes": 8
     }
   }

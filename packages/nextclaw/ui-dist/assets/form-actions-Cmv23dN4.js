@@ -1,1 +1,0 @@
-import{I as e,z as t}from"./react-BgRLh3ee.js";var n=t();function r({align:t=`end`,className:r,...i}){return(0,n.jsx)(`div`,{className:e(`flex flex-wrap items-center gap-2`,t===`start`&&`justify-start`,t===`end`&&`justify-end`,t===`between`&&`justify-between`,r),...i})}export{r as t};

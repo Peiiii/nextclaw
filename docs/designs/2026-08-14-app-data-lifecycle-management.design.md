@@ -1,9 +1,9 @@
 # NextClaw App 数据生命周期管理设计
 
 - 日期：2026-08-14
-- 状态：冻结，完成设计自审
+- 状态：冻结，完成二次设计与实现自审
 - 风险等级：L4
-- 目标版本：NextClaw v0.36.0
+- 目标版本：NextClaw v0.36.0；v0.36.2 完成纯读链路与崩溃恢复硬化
 - 产品 owner：`@nextclaw/kernel` App Data Manager
 - 文件事务 owner：`@nextclaw/app-runtime` App Instance Storage
 - 适用范围：正式 App Package、保留的 App Instance、Workspace Service App、开发态 Service App 的数据说明与清理入口
@@ -55,6 +55,8 @@ NextClaw 已经把正式 App 的代码和数据分开，并支持“卸载时保
 
 ## 4. 典型产品原则
 
+以下官方资料已于 2026-08-14 二次复核。
+
 ### 4.1 Android / Chrome：App 私有数据与用户资产分离
 
 Android 和 Chrome Extension 默认在卸载时移除 app-specific/local storage，但用户期望独立存在的共享文件不能放进 App 私有容器。可迁移原则是“删除范围必须由存储 owner 决定，用户资产不跟随私有容器删除”，不是照搬默认删除策略。
@@ -66,7 +68,7 @@ Android 和 Chrome Extension 默认在卸载时移除 app-specific/local storage
 
 Flatpak 普通卸载保留 `~/.var/app`，`--delete-data` 才删除 App 数据与 permission store。NextClaw 的个人笔记、待办和收藏具有较高误删成本，因此沿用“默认保留、显式 purge”，但补齐保留数据的后续管理入口。
 
-- https://manpages.debian.org/unstable/flatpak/flatpak-uninstall.1.en.html
+- https://docs.flatpak.org/en/latest/flatpak-command-reference.html
 
 ### 4.3 VS Code / XDG：按 scope 与生命周期分类
 
@@ -142,6 +144,7 @@ type AppDataEntry = {
 - 服务端解析 ID 后按受管 root 重新推导路径，并重新读取 metadata 验证 app/instance/publisher。
 - 客户端提交的 `storage.dataDirectory`、`instanceDirectory` 或任意绝对路径永远不参与删除。
 - 所有 list/get/status 纯读；App Data 清单直接读取已有 registry/source 快照，不触发 built-in bootstrap 或实例 materialize；materialize、purge、reset 是显式 action。
+- `.deleting-<uuid>` 是已经通过身份校验并越过 rename 提交点的受管删除墓碑。Kernel 启动阶段显式 reconcile：重新验证墓碑内 metadata 后完成删除；清理失败作为 inventory diagnostic 保留，list 只过滤并报告，不在读取链路重试写操作。
 
 ## 7. Owner 与依赖边界
 
@@ -154,6 +157,7 @@ type AppDataEntry = {
 - 返回 metadata、重新推导的 storage context 和 usage；
 - 对坏 metadata 返回可观察诊断，不静默跳成可删除 entry；
 - purge 使用 instance lock，先 rename 到 `.deleting-<uuid>`，完成上层状态确认后删除；失败恢复原路径。
+- 启动恢复与 purge 复用同一个 inventory owner、路径推导和 metadata identity 校验；不让 kernel 或 Service App manager 自己拼 App Instance 删除路径。
 
 现有 `AppInstanceStorageService` 继续拥有 materialize/migrate/usage；不把 inventory、purge 和 materialize 混成一个副作用不清的 read API。
 
@@ -167,6 +171,7 @@ type AppDataEntry = {
 
 职责：
 
+- Kernel 启动时先 reconcile 内建 Package，再恢复 App Instance 删除墓碑，最后恢复 Service source 删除墓碑；Package list/get/component catalog 不承担 bootstrap 写操作。
 - 合并并排序 AppDataEntry；
 - 根据 registry/source 快照计算 active/retained；
 - 只允许 retained entry 走独立 delete；
@@ -181,6 +186,8 @@ type AppDataEntry = {
 - 删除 body 必须带 `confirmAppId`；不匹配返回 409/400。
 - client SDK：`appData.list()`、`appData.deleteRetained(dataId, confirmAppId)`。
 - UI：独立 `features/app-data` 公共入口拥有 data query、usage 与 retained 管理组件；Apps 与 Service Apps 只消费该入口，避免反向依赖和循环；retained section 只显示 retained entries。
+- App Package 异步操作的 terminal settlement 同时刷新 package、panel 和 App Data；queued acknowledgement 不承担最终数据投影更新。
+- Package 列表不再重复递归测量目录；容量由 App Data inventory 单次投影。Package 卡片先展示代码与运行状态，容量查询完成后补齐大小和删除范围，避免大目录阻塞首屏。
 - CLI：`nextclaw app data list --json`、`nextclaw app data delete <data-id> --confirm <app-id> --json`，通过本地 API 使用同一 kernel owner。
 
 ## 8. 用户体验与功能地图
@@ -192,6 +199,7 @@ type AppDataEntry = {
 | 保留卸载完成 | App 从安装列表消失，残留条目出现 | 以后删除 | AppDataManager | 刷新/重启后结果一致 |
 | 删除残留 | App/publisher/path/分项大小、不可恢复提示 | 取消或永久删除 | AppDataManager | identity/状态变化时拒绝，不能删除新安装数据 |
 | Workspace Service 删除 | 保留/删除数据选择与分项大小 | 删除 source | ServiceAppManager | source/data 任一步失败按事务恢复或明确报告 |
+| Package Service 管理 | Service Apps 标明其 package 来源 | 前往 Apps 管理整个 Package | AppsPanel | 不显示必然被后端拒绝的单独删除动作 |
 | 空态 | 没有残留时不展示管理区 | 无 | UI | 不制造“0 B 数据”噪声 |
 | CLI/Agent | 机器可读 entry、allowed action、明确 confirm | list/delete | AppDataManager | status/API 不可用时 fail-fast，不猜端口和路径 |
 
@@ -206,6 +214,8 @@ type AppDataEntry = {
 - 删除失败时保留对话框、路径和大小上下文，聚焦错误摘要；成功后给出可感知反馈，并把焦点返回残留区标题或下一条记录。
 - 路径可选择、复制和查看，但不是删除参数；只读路径控件仍支持键盘访问。
 - 清单加载、局部错误和空态各自独立；清单失败不遮挡已安装 App，屏幕阅读器能感知删除成功与失败状态。
+- Package 尚未产生 Instance 时显示“尚无数据”，容量查询失败才显示“大小不可用”；两者不能混为同一错误态。
+- 从 Package Service 选择“在应用中管理”后，切换到 Apps 并滚动、聚焦且高亮 owning Package 卡片，不把 packageId 丢在标签切换层。
 
 ## 9. 生命周期与失败恢复
 
@@ -230,7 +240,8 @@ type AppDataEntry = {
 4. 验证 `confirmAppId`、metadata identity 与 publisher binding。
 5. rename 为 `.deleting-<uuid>`。
 6. rename 成功即让 canonical path 不可见，再递归删除 staging。
-7. 递归删除失败时优先把 staging 恢复成 canonical path；恢复也失败则抛出聚合错误，后续 inventory 把异常 staging 作为诊断暴露，不自动删除未知目录。
+7. 递归删除失败时优先把 staging 恢复成 canonical path；恢复也失败则抛出聚合错误，后续 inventory 把异常 staging 作为诊断暴露。
+8. 如果进程在 rename 后退出，下一次 Kernel 启动由 inventory owner 识别 `<instance-id>.deleting-<uuid>`，重新验证墓碑 metadata 后完成删除；无法验证或清理的目录只产生 diagnostic，不被当作正常 instance。
 
 不会为了“看起来成功”静默忽略删除错误；不会删除未知 metadata、未知布局或 root 外路径。
 
@@ -240,6 +251,8 @@ type AppDataEntry = {
 - 保留时先停止 runtime、删除 source、撤销 grants，instance 留在 workspace root 并投影为 retained。
 - 删除时 source 和 instance 都先 staging；任何 registry/source 操作失败时恢复。
 - Package-managed Service 继续拒绝从 Service Apps 单独删除，必须回到 Apps 管理整个 Package。
+- Service App list/get/action catalog 只解析 manifest 并 inspect 已存在的 instance；缺少 instance 时返回无 storage 的正常记录。只有 runtime discover/invoke 这类显式执行动作才 materialize 默认 instance。
+- source 墓碑使用 `.deleting-<service-id>-<uuid>` 受管命名并始终从枚举中排除。Kernel 启动时验证墓碑 manifest identity 后完成 source 删除并撤销对应 grants；旧版 `<service-id>.deleting-<uuid>` 同样只在这条恢复链路识别。
 
 ### 9.5 开发态
 

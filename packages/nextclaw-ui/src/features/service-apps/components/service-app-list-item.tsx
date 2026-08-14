@@ -7,6 +7,7 @@ import type {
 } from "@nextclaw/client-sdk";
 import {
   AlertTriangle,
+  Boxes,
   CheckCircle2,
   ChevronDown,
   CircleDashed,
@@ -51,6 +52,7 @@ export function ServiceAppListItem({
   isDiscovering,
   onActionsOpenChange,
   onDiscover,
+  onManagePackage,
   onDelete,
   onResetDelete,
   onRestart,
@@ -67,6 +69,7 @@ export function ServiceAppListItem({
   isDiscovering: boolean;
   onActionsOpenChange: (open: boolean) => void;
   onDiscover: (appId: string) => void;
+  onManagePackage: (packageId: string) => void;
   onDelete: (appId: string, purgeData: boolean, onSuccess: () => void) => void;
   onResetDelete: () => void;
   onRestart: (appId: string) => void;
@@ -76,10 +79,9 @@ export function ServiceAppListItem({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
   const [purgeData, setPurgeData] = useState(false);
-  const canConnectAndDiscover =
-    app.status !== "starting" && app.status !== "stopped";
-  const canDisconnectRuntime =
-    app.status === "running" || app.status === "failed";
+  const canConnectAndDiscover = app.status !== "starting" && app.status !== "stopped";
+  const canDisconnectRuntime = app.status === "running" || app.status === "failed";
+  const managedPackageId = app.sourceKind === "package" ? app.packageId : undefined;
   const diagnostics = getServiceAppDiagnostics(app);
   const openDeleteDialog = () => {
     setIsMenuOpen(false);
@@ -87,7 +89,6 @@ export function ServiceAppListItem({
     onResetDelete();
     setIsDeleteDialogOpen(true);
   };
-
   return (
     <TooltipProvider delayDuration={250}>
       <section className="group bg-card transition-colors hover:bg-muted/25">
@@ -168,13 +169,24 @@ export function ServiceAppListItem({
                     onRestart(app.id);
                   }}
                 />
-                <ServiceAppMenuItem
-                  destructive
-                  disabled={deletePending}
-                  icon={Trash2}
-                  label={t("serviceAppsDelete")}
-                  onClick={openDeleteDialog}
-                />
+                {managedPackageId ? (
+                  <ServiceAppMenuItem
+                    icon={Boxes}
+                    label={t("serviceAppsManagePackage")}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onManagePackage(managedPackageId);
+                    }}
+                  />
+                ) : (
+                  <ServiceAppMenuItem
+                    destructive
+                    disabled={deletePending}
+                    icon={Trash2}
+                    label={t("serviceAppsDelete")}
+                    onClick={openDeleteDialog}
+                  />
+                )}
               </PopoverContent>
             </Popover>
           </div>
@@ -245,6 +257,7 @@ export function ServiceAppListItem({
           ) : null}
         </div>
 
+      {app.sourceKind !== "package" ? (
         <ServiceAppDeleteDialog
           appId={app.id}
           appTitle={app.title}
@@ -258,6 +271,7 @@ export function ServiceAppListItem({
           onOpenChange={setIsDeleteDialogOpen}
           onPurgeDataChange={setPurgeData}
         />
+      ) : null}
       </section>
     </TooltipProvider>
   );

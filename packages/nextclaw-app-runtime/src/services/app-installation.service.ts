@@ -424,7 +424,10 @@ export class AppInstallationService {
     }
   };
 
-  info = async (appId: string): Promise<AppInfoResult> => {
+  info = async (
+    appId: string,
+    options: { measureStorageUsage?: boolean } = {},
+  ): Promise<AppInfoResult> => {
     const appRecord = await this.registryService.getApp(appId);
     if (!appRecord) {
       throw new Error(`未找到已安装应用：${appId}`);
@@ -432,6 +435,9 @@ export class AppInstallationService {
     const installedVersions = Object.values(appRecord.installedVersions).sort((left, right) =>
       left.version.localeCompare(right.version),
     );
+    const storageUsage = options.measureStorageUsage === false
+      ? undefined
+      : await this.instanceStorageService.measureUsage(appRecord.defaultInstance.storage);
     return {
       appId: appRecord.appId,
       name: appRecord.name,
@@ -441,9 +447,7 @@ export class AppInstallationService {
       dataDirectory: appRecord.dataDirectory,
       instance: appRecord.defaultInstance,
       storage: appRecord.defaultInstance.storage,
-      storageUsage: await this.instanceStorageService.measureUsage(
-        appRecord.defaultInstance.storage,
-      ),
+      storageUsage,
       installedVersions: installedVersions.map((versionRecord) => ({
         version: versionRecord.version,
         installDirectory: versionRecord.installDirectory,

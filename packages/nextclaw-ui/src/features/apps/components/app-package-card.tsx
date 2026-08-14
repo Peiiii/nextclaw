@@ -1,5 +1,9 @@
 import { useRef, useState } from 'react';
-import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
+import type {
+  AppDataEntry,
+  AppPackageOperationView,
+  AppPackageView,
+} from '@nextclaw/client-sdk';
 import {
   AlertCircle,
   AppWindow,
@@ -52,6 +56,9 @@ export function AppPackageCard({
   onUninstall,
   onUpdate,
   panelApps,
+  storageUsage,
+  storageUsageLoading,
+  storageUsageUnavailable,
 }: {
   appPackage: AppPackageView;
   isPending: boolean;
@@ -63,6 +70,9 @@ export function AppPackageCard({
   onUninstall: (purgeData: boolean) => void;
   onUpdate: () => void;
   panelApps: PanelAppEntryView[];
+  storageUsage?: AppDataEntry['usage'];
+  storageUsageLoading: boolean;
+  storageUsageUnavailable: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [uninstallOpen, setUninstallOpen] = useState(false);
@@ -81,6 +91,11 @@ export function AppPackageCard({
   );
   const operationActive = operation ? isAppPackageOperationActive(operation.status) : false;
   const pending = isPending || operationActive;
+  const storageUsageLabel = resolveStorageUsageLabel(
+    storageUsage,
+    storageUsageLoading,
+    storageUsageUnavailable,
+  );
 
   return (
     <Card surface="flat" hover={false} className="overflow-hidden border-border/60 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
@@ -132,7 +147,8 @@ export function AppPackageCard({
           >
             <HardDrive className="h-3 w-3 shrink-0" />
             <span className="shrink-0">
-              {t('appPackagesDataUsage')} {formatBytes(appPackage.storageUsage.totalBytes)}
+              {t('appPackagesDataUsage')}{' '}
+              {storageUsageLabel}
             </span>
             <code className="min-w-0 truncate font-mono text-[10px]">
               {appPackage.storage.dataDirectory}
@@ -283,9 +299,11 @@ export function AppPackageCard({
             />
           </div>
           <div className="mt-3">
-            <AppStorageUsageDetails
+            <AppPackageStorageUsage
+              loading={storageUsageLoading}
               storage={appPackage.storage}
-              usage={appPackage.storageUsage}
+              usage={storageUsage}
+              unavailable={storageUsageUnavailable}
             />
           </div>
           <DialogFooter className="mt-5 gap-2 sm:gap-0">
@@ -313,6 +331,42 @@ export function AppPackageCard({
       </Dialog>
     </Card>
   );
+}
+
+function AppPackageStorageUsage({
+  loading,
+  storage,
+  unavailable,
+  usage,
+}: {
+  loading: boolean;
+  storage: AppPackageView['storage'];
+  unavailable: boolean;
+  usage?: AppDataEntry['usage'];
+}) {
+  if (usage) {
+    return <AppStorageUsageDetails storage={storage} usage={usage} />;
+  }
+  return (
+    <div className="rounded-xl bg-muted/45 px-3 py-3 text-xs text-muted-foreground">
+      {loading ? (
+        <LoaderCircle className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />
+      ) : null}
+      {t(loading
+        ? 'appPackagesLoading'
+        : unavailable ? 'appPackagesDataUsageUnavailable' : 'appPackagesNoDataYet')}
+    </div>
+  );
+}
+
+function resolveStorageUsageLabel(
+  usage: AppDataEntry['usage'] | undefined,
+  loading: boolean,
+  unavailable: boolean,
+): string {
+  if (usage) return formatBytes(usage.totalBytes);
+  if (loading) return t('appPackagesLoading');
+  return t(unavailable ? 'appPackagesDataUsageUnavailable' : 'appPackagesNoDataYet');
 }
 
 function renderPrimaryActionLabel({

@@ -95,9 +95,24 @@ vi.mock('@/features/service-apps/hooks/use-service-apps', () => ({
         id: 'notes',
         manifestPath: '/workspace/service-apps/notes/service-app.json',
         protocol: 'mcp',
+        sourceKind: 'workspace',
         status: 'idle',
         title: 'Notes',
+      }, {
+        args: ['server.mjs'],
+        command: 'node',
+        cwd: '/apps/personal-organizer/service',
+        dirPath: '/apps/personal-organizer/service',
+        enabled: true,
+        id: 'organizer-service',
+        manifestPath: '/apps/personal-organizer/service/service-app.json',
+        packageId: 'nextclaw.personal-organizer',
+        protocol: 'mcp',
+        sourceKind: 'package',
+        status: 'idle',
+        title: 'Organizer Service',
       }],
+      diagnostics: [],
       serviceAppsPath: '/workspace/service-apps',
       workspacePath: '/workspace',
     },
@@ -111,11 +126,13 @@ describe('ServiceAppsPanel', () => {
   it('keeps service actions progressive and deletes through a confirm dialog', async () => {
     const user = userEvent.setup();
 
-    render(<ServiceAppsPanel />);
+    render(<ServiceAppsPanel onManagePackage={vi.fn()} />);
 
-    expect(screen.getByText('Not connected')).toBeTruthy();
+    expect(screen.getAllByText('Not connected')).toHaveLength(2);
     expect(screen.queryByText('idle')).toBeNull();
-    const discoverButton = screen.getByRole('button', { name: 'Connect and discover actions' });
+    const discoverButton = screen.getAllByRole('button', {
+      name: 'Connect and discover actions',
+    })[0]!;
     expect(discoverButton).toBeTruthy();
     await user.hover(discoverButton);
     await waitFor(() => {
@@ -125,7 +142,7 @@ describe('ServiceAppsPanel', () => {
     await user.click(discoverButton);
     expect(discoverServiceAppActionsMutateAsync).toHaveBeenCalledWith('notes');
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'More actions' })[0]!);
     expect((screen.getByRole('button', { name: 'Disconnect runtime' }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Delete service app' }));
     await waitFor(() => {
@@ -142,5 +159,16 @@ describe('ServiceAppsPanel', () => {
       { appId: 'notes', purgeData: false },
       { onSuccess: expect.any(Function) },
     );
+  });
+
+  it('routes package-managed services back to Apps without offering standalone deletion', () => {
+    const onManagePackage = vi.fn();
+    render(<ServiceAppsPanel onManagePackage={onManagePackage} />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'More actions' })[1]!);
+    expect(screen.queryByRole('button', { name: 'Delete service app' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Manage in Apps' }));
+
+    expect(onManagePackage).toHaveBeenCalledWith('nextclaw.personal-organizer');
   });
 });

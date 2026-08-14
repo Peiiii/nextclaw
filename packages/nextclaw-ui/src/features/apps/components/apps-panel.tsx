@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AppWindow, Boxes, Server } from 'lucide-react';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { AppPackagesPanel } from '@/features/apps/components/app-packages-panel';
@@ -17,10 +18,20 @@ export function AppsPanel({
   onActiveTabChange: (tab: AppsPanelTab) => void;
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
 }) {
+  const [focusedPackageId, setFocusedPackageId] = useState<string>();
+  const changeTab = (tab: AppsPanelTab) => {
+    setFocusedPackageId(undefined);
+    onActiveTabChange(tab);
+  };
+  const managePackage = (packageId: string) => {
+    setFocusedPackageId(packageId);
+    onActiveTabChange('apps');
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-card text-card-foreground">
       <nav className="shrink-0 border-b border-border/70 px-4 py-3" aria-label={t('appsTitle')}>
-        <Tabs value={activeTab} onValueChange={(value) => onActiveTabChange(value as AppsPanelTab)}>
+        <Tabs value={activeTab} onValueChange={(value) => changeTab(value as AppsPanelTab)}>
           <TabsList className="grid h-auto w-full max-w-[390px] grid-cols-3 rounded-lg bg-muted/70 p-0.5">
             <TabsTrigger value="apps" className="min-w-0 gap-1.5 px-2 py-1.5 text-xs">
               <Boxes className="h-3.5 w-3.5 shrink-0" />
@@ -39,11 +50,11 @@ export function AppsPanel({
       </nav>
       <div className="min-h-0 flex-1">
         {activeTab === 'apps' ? (
-          <AppPackagesPanel onOpenPanelApp={onOpenPanelApp} />
+          <AppPackagesPanel focusedPackageId={focusedPackageId} onOpenPanelApp={onOpenPanelApp} />
         ) : activeTab === 'panel-apps' ? (
           <PanelAppsList onOpenPanelApp={onOpenPanelApp} />
         ) : (
-          <ServiceAppsPanel />
+          <ServiceAppsPanel onManagePackage={managePackage} />
         )}
       </div>
     </div>

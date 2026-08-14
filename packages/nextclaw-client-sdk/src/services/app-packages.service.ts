@@ -9,8 +9,13 @@ import type { RequestService } from "./request.service.js";
 export class AppPackagesClientService {
   constructor(private readonly requestService: RequestService) {}
 
-  readonly list = async (): Promise<AppPackageList> =>
-    await this.requestService.get<AppPackageList>("/api/app-packages");
+  readonly list = async (
+    options: { includeStorageUsage?: boolean } = {},
+  ): Promise<AppPackageList> => await this.requestService.get<AppPackageList>(
+    options.includeStorageUsage === false
+      ? "/api/app-packages?includeStorageUsage=false"
+      : "/api/app-packages",
+  );
 
   readonly get = async (appId: string): Promise<AppPackageView> =>
     await this.requestService.get<AppPackageView>(

@@ -45,7 +45,7 @@ export type AppPackageView = {
   dataDirectory: string;
   instanceId: string;
   storage: AppStorageContext;
-  storageUsage: AppStorageUsage;
+  storageUsage?: AppStorageUsage;
   runtimeProfile: AppRuntimeProfile;
   isolation: AppRuntimeIsolation;
 };

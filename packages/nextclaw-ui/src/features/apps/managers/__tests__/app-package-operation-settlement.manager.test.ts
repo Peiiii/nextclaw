@@ -36,6 +36,7 @@ describe('AppPackageOperationSettlementManager', () => {
   it('ignores historical terminal operations and settles each new operation once', async () => {
     const reloadByDedupeKeys = vi.fn();
     const refetchPackages = vi.fn(async () => undefined);
+    const refetchAppData = vi.fn(async () => undefined);
     const refetchPanels = vi.fn(async () => ({
       data: {
         entries: [
@@ -54,6 +55,7 @@ describe('AppPackageOperationSettlementManager', () => {
       operations: [historical],
       refetchPackages,
       refetchPanels,
+      refetchAppData,
     });
     expect(mocks.success).not.toHaveBeenCalled();
 
@@ -63,17 +65,20 @@ describe('AppPackageOperationSettlementManager', () => {
       operations: [completed, historical],
       refetchPackages,
       refetchPanels,
+      refetchAppData,
     });
     manager.settle({
       isLoaded: true,
       operations: [completed, historical],
       refetchPackages,
       refetchPanels,
+      refetchAppData,
     });
 
     await vi.waitFor(() => {
       expect(refetchPackages).toHaveBeenCalledTimes(1);
       expect(refetchPanels).toHaveBeenCalledTimes(1);
+      expect(refetchAppData).toHaveBeenCalledTimes(1);
       expect(reloadByDedupeKeys).toHaveBeenCalledWith(['panel-app:todos']);
     });
     expect(mocks.success).toHaveBeenCalledTimes(1);

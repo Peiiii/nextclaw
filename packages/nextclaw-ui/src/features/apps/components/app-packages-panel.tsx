@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, type FormEvent } from 'react';
-import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import type { AppDataEntry, AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
 import { LoaderCircle, PackagePlus, RefreshCw, ShieldCheck, Store } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import type { PanelAppEntryView } from '@/shared/lib/api';
@@ -34,8 +34,10 @@ import { Skeleton } from '@/shared/components/ui/skeleton';
 import { t } from '@/shared/lib/i18n';
 
 export function AppPackagesPanel({
+  focusedPackageId,
   onOpenPanelApp,
 }: {
+  focusedPackageId?: string;
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
 }) {
   const appPackages = useAppPackages();
@@ -56,11 +58,19 @@ export function AppPackagesPanel({
     [appPackageOperations.data?.entries],
   );
 
+  useEffect(() => {
+    if (!focusedPackageId || appPackages.isLoading) return;
+    const target = document.getElementById(`app-package-${focusedPackageId}`);
+    target?.scrollIntoView({ block: 'nearest' });
+    target?.focus({ preventScroll: true });
+  }, [appPackages.data, appPackages.isLoading, focusedPackageId]);
+
   useAppPackageOperationSettlement({
     isLoaded: Boolean(appPackageOperations.data),
     operations,
     refetchPackages: appPackages.refetch,
     refetchPanels: panelApps.refetch,
+    refetchAppData: appData.refetch,
     settlementManager: presenter.appPackageOperationSettlementManager,
   });
 
@@ -167,7 +177,11 @@ export function AppPackagesPanel({
           ) : null}
 
           <AppPackageLibrary
+            appDataEntries={appData.data?.entries ?? []}
+            appDataLoading={appData.isLoading}
+            appDataUnavailable={appData.isError}
             error={getPackageLoadError(appPackages.error, panelApps.error)}
+            focusedPackageId={focusedPackageId}
             isLoading={appPackages.isLoading || panelApps.isLoading}
             isPending={lifecycle.isPending}
             mutationAppId={'appId' in (lifecycle.variables ?? {})
@@ -249,7 +263,11 @@ export function AppPackagesPanel({
 }
 
 function AppPackageLibrary({
+  appDataEntries,
+  appDataLoading,
+  appDataUnavailable,
   error,
+  focusedPackageId,
   isLoading,
   isPending,
   mutationAppId,
@@ -260,7 +278,11 @@ function AppPackageLibrary({
   panelApps,
   operations,
 }: {
+  appDataEntries: AppDataEntry[];
+  appDataLoading: boolean;
+  appDataUnavailable: boolean;
   error?: string;
+  focusedPackageId?: string;
   isLoading: boolean;
   isPending: boolean;
   mutationAppId?: string;
@@ -327,27 +349,43 @@ function AppPackageLibrary({
           : undefined;
 
         return (
-          <AppPackageCard
+          <section
             key={appPackage.id}
-            appPackage={appPackage}
-            panelApps={panelApps.filter((entry) => entry.packageId === appPackage.id)}
-            isPending={isPending && mutationAppId === appPackage.id}
-            operation={visibleOperation}
-            onEnable={() => onMutate({ action: 'enable', appId: appPackage.id })}
-            onDisable={() => onMutate({ action: 'disable', appId: appPackage.id })}
-            onUpdate={() => onMutate({ action: 'update', appId: appPackage.id })}
-            onRollback={(version) => onMutate({
-              action: 'rollback',
-              appId: appPackage.id,
-              version,
-            })}
-            onUninstall={(purgeData) => onMutate({
-              action: 'uninstall',
-              appId: appPackage.id,
-              purgeData,
-            })}
-            onOpenPanelApp={onOpenPanelApp}
-          />
+            id={`app-package-${appPackage.id}`}
+            aria-label={appPackage.name}
+            tabIndex={-1}
+            className={focusedPackageId === appPackage.id
+              ? 'rounded-xl outline-none ring-2 ring-primary/35 ring-offset-2 ring-offset-background'
+              : 'rounded-xl outline-none'}
+          >
+            <AppPackageCard
+              appPackage={appPackage}
+              storageUsage={appDataEntries.find((entry) =>
+                entry.source === 'package' &&
+                entry.lifecycle === 'active' &&
+                entry.appId === appPackage.id &&
+                entry.instanceId === appPackage.instanceId)?.usage ?? appPackage.storageUsage}
+              storageUsageLoading={appDataLoading}
+              storageUsageUnavailable={appDataUnavailable}
+              panelApps={panelApps.filter((entry) => entry.packageId === appPackage.id)}
+              isPending={isPending && mutationAppId === appPackage.id}
+              operation={visibleOperation}
+              onEnable={() => onMutate({ action: 'enable', appId: appPackage.id })}
+              onDisable={() => onMutate({ action: 'disable', appId: appPackage.id })}
+              onUpdate={() => onMutate({ action: 'update', appId: appPackage.id })}
+              onRollback={(version) => onMutate({
+                action: 'rollback',
+                appId: appPackage.id,
+                version,
+              })}
+              onUninstall={(purgeData) => onMutate({
+                action: 'uninstall',
+                appId: appPackage.id,
+                purgeData,
+              })}
+              onOpenPanelApp={onOpenPanelApp}
+            />
+          </section>
         );
       })}
     </div>

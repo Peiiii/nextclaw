@@ -124,6 +124,7 @@ it("uses the asynchronous app package operation contract", async () => {
   await client.appPackages.startUpdate("nextclaw.personal/organizer");
   await client.appPackages.startRollback("nextclaw.personal/organizer", "0.1.0");
   await client.appPackages.startUninstall("nextclaw.personal/organizer", true);
+  await client.appPackages.list({ includeStorageUsage: false });
 
   expect(fetchImpl).toHaveBeenNthCalledWith(
     1,
@@ -156,6 +157,11 @@ it("uses the asynchronous app package operation contract", async () => {
       method: "POST",
       body: JSON.stringify({ purgeData: true }),
     }),
+  );
+  expect(fetchImpl).toHaveBeenNthCalledWith(
+    5,
+    "http://127.0.0.1:55667/api/app-packages?includeStorageUsage=false",
+    expect.objectContaining({ method: "GET" }),
   );
 });
 

@@ -350,6 +350,9 @@ export class NextclawKernel {
     this.gatewayController;
 
   start = async (): Promise<void> => {
+    await this.appPackageManager.start();
+    await this.appDataManager.start();
+    await this.serviceAppManager.start();
     void this.sessionSearch.start();
     this.mcpManager.start();
     this.providerModelCatalog.start();
