@@ -1,5 +1,16 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.1.18
+
+### Patch Changes
+
+- aa08a3f: 命令工具卡新增实时执行计时：命令真正开始后持续显示已运行时长，并在成功、失败或取消后冻结并保留耗时；刷新会话后仍可从标准 NCP 执行时间恢复。内置命令运行时与 Codex command execution 统一使用同一条计时协议，不再把排队或参数生成时间算作命令执行耗时。
+- 004d51f: 增强会话工作台：概览底部新增当前会话的 Token 用量，支持按模型查看输入、输出、缓存输入、总量与缓存命中率；子会话管理页新增“新建子会话”入口，并复用侧边对话的上下文继承链路。
+- Updated dependencies [aa08a3f]
+- Updated dependencies [e2a7c8e]
+  - @nextclaw/ncp@0.8.0
+  - @nextclaw/ncp-agent-runtime@0.4.18
+
 ## 0.1.17
 
 ### Patch Changes

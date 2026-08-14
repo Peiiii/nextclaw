@@ -1,5 +1,19 @@
 # @nextclaw/nextclaw-ncp-runtime-http-client
 
+## 0.3.18
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+
+- Updated dependencies [aa08a3f]
+- Updated dependencies [e2a7c8e]
+  - @nextclaw/ncp@0.8.0
+  - @nextclaw/ncp-http-agent-client@0.4.18
+
 ## 0.3.17
 
 ### Patch Changes

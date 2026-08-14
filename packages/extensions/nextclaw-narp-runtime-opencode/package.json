@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-narp-runtime-opencode",
-  "version": "0.2.27",
+  "version": "0.2.28",
   "private": false,
   "description": "NARP stdio launcher for the OpenCode runtime.",
   "type": "module",

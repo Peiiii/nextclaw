@@ -1,5 +1,15 @@
 # @nextclaw/nextclaw-narp-runtime-opencode
 
+## 0.2.28
+
+### Patch Changes
+
+- Updated dependencies [aa08a3f]
+- Updated dependencies [e2a7c8e]
+  - @nextclaw/ncp@0.8.0
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper@0.3.19
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.28
+
 ## 0.2.27
 
 ### Patch Changes

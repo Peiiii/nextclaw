@@ -1,5 +1,14 @@
 # @nextclaw/ncp-http-agent-client
 
+## 0.4.18
+
+### Patch Changes
+
+- e2a7c8e: 提升 Web Chat 在普通网络抖动后的恢复稳定性：SSE 半开或长时间无数据时会主动判定失活并重连，连接恢复后重新补齐会话历史，同时保留更晚到达的实时完成事件，无需刷新页面即可继续看到最终回复。
+- Updated dependencies [aa08a3f]
+- Updated dependencies [e2a7c8e]
+  - @nextclaw/ncp@0.8.0
+
 ## 0.4.17
 
 ### Patch Changes

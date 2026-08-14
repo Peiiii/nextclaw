@@ -1,5 +1,19 @@
 # nextclaw-server
 
+## 0.16.2
+
+### Patch Changes
+
+- 004d51f: 增强会话工作台：概览底部新增当前会话的 Token 用量，支持按模型查看输入、输出、缓存输入、总量与缓存命中率；子会话管理页新增“新建子会话”入口，并复用侧边对话的上下文继承链路。
+- Updated dependencies [aa08a3f]
+- Updated dependencies [e2a7c8e]
+- Updated dependencies [004d51f]
+  - @nextclaw/ncp@0.8.0
+  - @nextclaw/core@0.17.1
+  - @nextclaw/kernel@0.8.2
+  - @nextclaw/mcp@0.3.28
+  - @nextclaw/runtime@0.4.27
+
 ## 0.16.1
 
 ### Patch Changes

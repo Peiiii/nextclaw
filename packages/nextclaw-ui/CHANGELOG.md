@@ -1,5 +1,25 @@
 # @nextclaw/ui
 
+## 0.17.2
+
+### Patch Changes
+
+- aa08a3f: 命令工具卡新增实时执行计时：命令真正开始后持续显示已运行时长，并在成功、失败或取消后冻结并保留耗时；刷新会话后仍可从标准 NCP 执行时间恢复。内置命令运行时与 Codex command execution 统一使用同一条计时协议，不再把排队或参数生成时间算作命令执行耗时。
+- e2a7c8e: 提升 Web Chat 在普通网络抖动后的恢复稳定性：SSE 半开或长时间无数据时会主动判定失活并重连，连接恢复后重新补齐会话历史，同时保留更晚到达的实时完成事件，无需刷新页面即可继续看到最终回复。
+- 03adeb6: 修复内嵌浏览器最右侧标签的关闭操作被横向边界裁切的问题：关闭按钮现在于标签开头悬浮显示，不再因鼠标悬停改变标签宽度。
+- 004d51f: 增强会话工作台：概览底部新增当前会话的 Token 用量，支持按模型查看输入、输出、缓存输入、总量与缓存命中率；子会话管理页新增“新建子会话”入口，并复用侧边对话的上下文继承链路。
+- Updated dependencies [aa08a3f]
+- Updated dependencies [e2a7c8e]
+- Updated dependencies [004d51f]
+  - @nextclaw/ncp@0.8.0
+  - @nextclaw/ncp-toolkit@0.6.20
+  - @nextclaw/agent-chat@0.3.14
+  - @nextclaw/agent-chat-ui@0.6.25
+  - @nextclaw/ncp-http-agent-client@0.4.18
+  - @nextclaw/ncp-react@0.5.22
+  - @nextclaw/client-sdk@0.6.2
+  - @nextclaw/shared@0.4.24
+
 ## 0.17.1
 
 ### Patch Changes
