@@ -9,6 +9,7 @@
 - 修复把副作用集中到显式启动、安装、启用、调用与删除动作；list/get/catalog 保持纯读。App 与 Workspace Service 的删除先进入可识别墓碑，启动时由各自 owner 完成幂等收敛并保留可诊断失败。
 - App Package 默认卸载保留个人数据，显式选择才永久删除；App Data 是 active/retained 及占用统计的唯一产品投影。package 管理的 Service App 统一跳转并聚焦到 Apps 中的所属 package，不再暴露第二个删除入口。
 - UI 区分“尚无数据”“统计中”“大小不可用”，后台 package 操作结束后同时刷新 Apps、App Data 与 Panel App，不阻塞已有 Panel 刷新链路。
+- `docs/USAGE.md` 与打包资源正文保持同步；`nextclaw-self-manage` Skill 已覆盖 `app data list/delete` 与开发实例 `reset-data`。本批没有新增自管理命令语义，因此无需制造重复 Skill 改动。
 
 完整架构、数据位置、删除协议、迁移策略、产品交互和顶级产品参考见 [App 数据生命周期管理设计](../../designs/2026-08-14-app-data-lifecycle-management.design.md)。
 
@@ -26,6 +27,16 @@
 - 目标稳定产品版本：`nextclaw@0.36.2`，按仓库 `release:product:stable` 主链路闭合 NPM、stable runtime、GitHub Release、用户更新说明和真实旧版升级。
 - Desktop installer/DMG 不属于本批授权范围；当前用户正在运行的宿主也不在隔离验证中重启。
 - 发布前先完成 changeset、release health、依赖闭包、认证和 dry-run；不可逆步骤用 checkpoint 续跑，禁止重复 publish。
+
+## 正式发布结果
+
+- 功能提交 `27d729375` 与稳定版提交 `bb4c95fa9` 均已推送 `origin/master`；`nextclaw@0.36.2` 及同批 8 个 package tag 固定指向稳定版提交。
+- 公共 NPM registry 已发布并反查 9/9 个 package，`nextclaw@latest` 为 `0.36.2`；精确冷安装确认 app/launcher 入口、更新公钥和嵌入 UI 完整。
+- stable runtime workflow [`31775823815`](https://github.com/Peiiii/nextclaw/actions/runs/31775823815) 全绿，darwin arm64/x64、linux x64、win32 x64 四个平台 bundle、签名 manifest 和汇总发布任务均成功；GitHub Release 为 [NextClaw v0.36.2](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.36.2)。
+- 四个平台公开 manifest 均为 `latestVersion: 0.36.2`、`minimumLauncherVersion: 0.18.11`、`hostKind: npm-runtime-bundle`，bundle/manifest signature 齐全并指向本版本英文说明。
+- 公网隔离升级从 `nextclaw@0.36.1` 完成 `check -> download-only -> apply -> 新进程 0.36.2`；download-only 未提前切换 current pointer。
+- Docs Deploy [`31775497769`](https://github.com/Peiiii/nextclaw/actions/runs/31775497769) 成功；[中文说明](https://docs.nextclaw.io/zh/notes/2026-08-14-nextclaw-v0-36-2)、[英文说明](https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-36-2) 与[结构化 JSON](https://docs.nextclaw.io/release-notes/nextclaw-v0.36.2.json) 均返回 200，内容和 manifest URL 对齐。
+- Desktop installer/DMG 未发布且不属于本批范围；release commit 自动触发的 desktop validation `31775781138` 通过，但不改变该排除边界。当前用户正在运行的宿主未被重启或升级。
 
 ## 用户/产品视角的验收步骤
 
@@ -48,13 +59,16 @@
 
 需要发布；本批改变用户可见的卸载/数据管理行为、公共 API 查询合同与嵌入 UI 产物，必须按依赖闭包统一进入稳定批次。
 
-| Package | 当前版本 | 目标版本 | 状态 |
+| Package | 原版本 | 发布版本 | 状态 |
 | --- | ---: | ---: | --- |
-| `nextclaw` | 0.36.1 | 0.36.2 | 待统一发布 |
-| `@nextclaw/app-runtime` | 0.12.0 | 0.12.1 | 待统一发布 |
-| `@nextclaw/kernel` | 0.8.0 | 0.8.1 | 待统一发布 |
-| `@nextclaw/server` | 0.16.0 | 0.16.1 | 待统一发布 |
-| `@nextclaw/client-sdk` | 0.6.0 | 0.6.1 | 待统一发布 |
-| `@nextclaw/ui` | 0.17.0 | 0.17.1 | 待统一发布 |
+| `nextclaw` | 0.36.1 | 0.36.2 | 已发布，`latest` 已反查 |
+| `@nextclaw/app-runtime` | 0.12.0 | 0.12.1 | 已发布 |
+| `@nextclaw/kernel` | 0.8.0 | 0.8.1 | 已发布 |
+| `@nextclaw/server` | 0.16.0 | 0.16.1 | 已发布 |
+| `@nextclaw/client-sdk` | 0.6.0 | 0.6.1 | 已发布 |
+| `@nextclaw/ui` | 0.17.0 | 0.17.1 | 已发布 |
+| `@nextclaw/companion` | 0.2.30 | 0.2.31 | 已发布（内部依赖传播） |
+| `@nextclaw/remote` | 0.3.30 | 0.3.31 | 已发布（内部依赖传播） |
+| `@nextclaw/service` | 0.3.33 | 0.3.34 | 已发布（内部依赖传播） |
 
-发布脚本可能因内部依赖精确版本传播纳入额外 workspace package；以冻结的 release plan、registry 反查和最终 checkpoint 为准，发布后在此更新真实结果。
+最终 checkpoint 为 `21a7a2f21fcabfac`。严格发布门禁验证 36 个 workspace package，其中 9 个进入 batch、其余仅作依赖闭包构建支持；registry reconciliation 后实际上传 9 个 package，全部成功。
