@@ -18,14 +18,25 @@
 - 跨层定向测试：91 个通过（app-runtime 23、kernel 19、server 13、Client SDK 20、UI 8、CLI 8）。
 - 真实 `.napp` 纵向测试覆盖 v0.1 安装、六类数据 27 bytes、v0.2 更新复用、默认卸载保留、重装恢复 sentinel、显式 purge 清空 inventory。
 - 生产构建：上述 6 个 package 全部成功；NextClaw 打包 UI 资产已重新生成。
-- 治理：`lint:new-code:governance`、backlog ratchet、Skill progressive loading、106 份双语文档镜像、14 项 App Client API 文档映射和 `git diff --check` 通过。
+- 治理：`lint:new-code:governance`、backlog ratchet、Skill progressive loading、107 份双语文档镜像、14 项 App Client API 文档映射和 `git diff --check` 通过。
 - CLI 构建产物实际运行 `app data --help`、`app data delete --help`、`app dev --help`，确认新命令和确认参数存在。
 
 ## 发布/部署方式
 
 - 目标稳定产品版本：`nextclaw@0.36.0`，不包含 Desktop/DMG 发布。
-- 使用仓库标准 stable NPM release flow 统一消费 changeset、发布 7 个 package、生成 runtime update channel、GitHub Release 与用户 release notes，并部署/验证文档站。
+- 使用仓库标准 stable NPM release flow 统一消费 changeset、发布 7 个变更包及 registry 中缺失的依赖闭包版本、生成 runtime update channel、GitHub Release 与用户 release notes，并部署/验证文档站。
 - 本地 `master` 提交后推送 `origin/master`；任何 registry、GitHub 或部署步骤失败时按专项 release recovery 续跑，不重复已经成功的不可逆发布步骤。
+
+## 正式发布结果
+
+- 功能提交 `ca2c98ddc`、发布说明提交 `8d912b9d9`、稳定版提交 `26e1d3c7c` 均已推送到 `origin/master`；`master`、`origin/master` 和 `nextclaw@0.36.0` tag 指向同一提交，branch closure 无差异。
+- `nextclaw@0.36.0` 已成为 NPM `latest`。7 个变更包之外，registry reconciliation 发现 15 个依赖闭包版本此前未发布，因此同一稳定批次实际补齐 22/22 个 package；没有额外版本 bump，也没有重复 publish。
+- stable runtime workflow `31765994085` 全绿，darwin arm64/x64、linux x64、win32 x64 四个平台 bundle、签名 manifest 和汇总发布任务均成功；GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.36.0`。
+- 四个平台公开 manifest 均为 `latestVersion: 0.36.0`、`minimumLauncherVersion: 0.18.11`、`hostKind: npm-runtime-bundle`，包含 bundle/manifest signature，并指向本版本英文说明。
+- 公网隔离升级从 `nextclaw@0.35.0` 完成 `check -> download-only -> apply -> 新进程 0.36.0`；download-only 未提前切换 current pointer。
+- 英文说明 `https://docs.nextclaw.io/en/notes/2026-08-14-nextclaw-v0-36-0` 与中文说明 `https://docs.nextclaw.io/zh/notes/2026-08-14-nextclaw-v0-36-0` 均已上线并返回 200；Docs Deploy `31765426169` 全绿。
+- Desktop 不属于本次发布表面。push 自动触发的 desktop validation 首次仅因 GitHub release asset 下载连接重置失败；只重跑失败 job 后，Linux AppImage/deb/APT、Windows EXE/installer、macOS DMG 与 desktop runtime 全部通过，workflow `31765930306` 最终全绿。
+- X 公告未完成：`@XiaotiaoWang` 的时间线排重无 v0.36.0；第一次写入在创建帖子前媒体上传网络失败，确认无隐藏落帖后只重试一次，第二次媒体成功但 X 以自动化风控错误 226 拒绝创建，且没有帖子 ID。按照回读与去重合同停止继续重试，因此不能报告 `NEXTCLAW_STABLE_READY` 全表面完成。
 
 ## 用户/产品视角的验收步骤
 
@@ -50,14 +61,14 @@
 
 需要发布；这是用户可见的新增能力和公共 API 扩展，必须随同底层包统一进入稳定批次。
 
-| Package | 当前版本 | 目标版本 | 状态 |
+| Package | 原版本 | 发布版本 | 状态 |
 | --- | ---: | ---: | --- |
-| `nextclaw` | 0.35.0 | 0.36.0 | 待统一发布 |
-| `@nextclaw/app-runtime` | 0.11.0 | 0.12.0 | 待统一发布 |
-| `@nextclaw/kernel` | 0.7.0 | 0.8.0 | 待统一发布 |
-| `@nextclaw/server` | 0.15.29 | 0.16.0 | 待统一发布 |
-| `@nextclaw/client-sdk` | 0.5.29 | 0.6.0 | 待统一发布 |
-| `@nextclaw/ui` | 0.16.0 | 0.17.0 | 待统一发布 |
-| `@nextclaw/core` | 0.16.0 | 0.17.0 | 待统一发布 |
+| `nextclaw` | 0.35.0 | 0.36.0 | 已发布，`latest` 已反查 |
+| `@nextclaw/app-runtime` | 0.11.0 | 0.12.0 | 已发布 |
+| `@nextclaw/kernel` | 0.7.0 | 0.8.0 | 已发布 |
+| `@nextclaw/server` | 0.15.29 | 0.16.0 | 已发布 |
+| `@nextclaw/client-sdk` | 0.5.29 | 0.6.0 | 已发布 |
+| `@nextclaw/ui` | 0.16.0 | 0.17.0 | 已发布 |
+| `@nextclaw/core` | 0.16.0 | 0.17.0 | 已发布 |
 
-发布后的 registry、runtime channel、GitHub Release、文档部署与真实安装结果将在同一记录内更新。
+依赖闭包另补齐 15 个已存在本地版本：`@nextclaw/companion@0.2.30`、7 个 channel extension `@0.2.26`、`@nextclaw/nextclaw-narp-runtime-opencode@0.2.27`、`@nextclaw/ncp-mcp@0.2.27`、`@nextclaw/mcp@0.3.27`、`@nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.27`、`@nextclaw/remote@0.3.30`、`@nextclaw/runtime@0.4.26`、`@nextclaw/service@0.3.32`，同批 package tags 均指向稳定版提交。
