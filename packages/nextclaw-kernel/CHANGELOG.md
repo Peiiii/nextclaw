@@ -1,5 +1,16 @@
 # @nextclaw/kernel
 
+## 0.8.4
+
+### Patch Changes
+
+- Updated dependencies [80f7660]
+  - @nextclaw/core@0.17.3
+  - @nextclaw/mcp@0.3.30
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.30
+  - @nextclaw/runtime@0.4.29
+  - @nextclaw/ncp-mcp@0.2.30
+
 ## 0.8.3
 
 ### Patch Changes

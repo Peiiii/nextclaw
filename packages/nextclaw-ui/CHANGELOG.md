@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.18.1
+
+### Patch Changes
+
+- 80f7660: Fix OpenAI Responses history encoding and keep explicit thinking-off selections stable across session preference hydration and persistence.
+  - @nextclaw/client-sdk@0.6.4
+
 ## 0.18.0
 
 ### Minor Changes

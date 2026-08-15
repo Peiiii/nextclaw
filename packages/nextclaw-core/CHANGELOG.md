@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.17.3
+
+### Patch Changes
+
+- 80f7660: Fix OpenAI Responses history encoding and keep explicit thinking-off selections stable across session preference hydration and persistence.
+
 ## 0.17.2
 
 ### Patch Changes

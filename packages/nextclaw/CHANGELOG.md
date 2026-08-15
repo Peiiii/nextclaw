@@ -1,5 +1,21 @@
 # nextclaw
 
+## 0.38.1
+
+### Patch Changes
+
+- 80f7660: Fix OpenAI Responses history encoding and keep explicit thinking-off selections stable across session preference hydration and persistence.
+- Updated dependencies [80f7660]
+  - @nextclaw/core@0.17.3
+  - @nextclaw/kernel@0.8.4
+  - @nextclaw/mcp@0.3.30
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.30
+  - @nextclaw/remote@0.3.34
+  - @nextclaw/runtime@0.4.29
+  - @nextclaw/server@0.16.4
+  - @nextclaw/service@0.3.37
+  - @nextclaw/ncp-mcp@0.2.30
+
 ## 0.38.0
 
 ### Minor Changes
