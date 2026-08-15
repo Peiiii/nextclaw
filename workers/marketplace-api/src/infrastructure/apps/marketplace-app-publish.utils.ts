@@ -4,6 +4,7 @@ import type {
   MarketplaceAdminAppReviewStatus,
   MarketplaceAppCatalogVisibility,
   MarketplaceAppOwnerVisibility,
+  MarketplaceAppPublicListingAssessment,
   MarketplaceAppPublishInput,
 } from "./app-marketplace.types";
 import { OFFICIAL_APPS_WEB_BASE_URL } from "./app-marketplace.types";
@@ -178,9 +179,20 @@ export function assertAppCanBePubliclyListed(params: {
   manifestJson: string;
   ownerScope: string | null | undefined;
 }): void {
-  if (normalizeScope(params.ownerScope) === "nextclaw") {
-    return;
+  const assessment = assessAppPublicListing(params);
+  if (assessment.eligible) return;
+  if (assessment.reason === "legacy-schema") {
+    throw new DomainValidationError("legacy schema v1 apps cannot be listed in the product catalog");
   }
+  throw new DomainValidationError(
+    "app runtime declaration does not match the schema v2 component execution contract",
+  );
+}
+
+export function assessAppPublicListing(params: {
+  manifestJson: string;
+  ownerScope: string | null | undefined;
+}): MarketplaceAppPublicListingAssessment {
   let manifest: unknown;
   try {
     manifest = JSON.parse(params.manifestJson);
@@ -191,8 +203,11 @@ export function assertAppCanBePubliclyListed(params: {
     throw new DomainValidationError("app manifest must be an object");
   }
   const candidate = manifest as Record<string, unknown>;
-  if (candidate.schemaVersion !== 2 || !Array.isArray(candidate.components)) {
-    return;
+  if (candidate.schemaVersion !== 2) {
+    return { eligible: false, reason: "legacy-schema" };
+  }
+  if (!Array.isArray(candidate.components)) {
+    throw new DomainValidationError("schema v2 app manifest components must be an array");
   }
   const hasService = candidate.components.some((component) =>
     Boolean(
@@ -201,18 +216,23 @@ export function assertAppCanBePubliclyListed(params: {
       !Array.isArray(component) &&
       (component as Record<string, unknown>).kind === "service",
     ));
-  if (!hasService) {
-    return;
-  }
   const runtime = candidate.runtime;
-  const runtimeProfile = runtime && typeof runtime === "object" && !Array.isArray(runtime)
+  const explicitProfile = runtime && typeof runtime === "object" && !Array.isArray(runtime)
     ? (runtime as Record<string, unknown>).profile
-    : "native-process";
-  if (runtimeProfile === "native-process") {
-    throw new DomainValidationError(
-      "community native-process apps cannot be listed publicly; publish a panel-only or WASI app, or keep this app unlisted",
-    );
+    : undefined;
+  const runtimeProfile = explicitProfile ?? (hasService ? "native-process" : "panel-only");
+  if (
+    (hasService && runtimeProfile !== "native-process") ||
+    (!hasService && runtimeProfile !== "panel-only")
+  ) {
+    return { eligible: false, reason: "invalid-runtime" };
   }
+  if (normalizeScope(params.ownerScope) === "nextclaw") {
+    return { eligible: true, reason: "official-scope" };
+  }
+  return hasService
+    ? { eligible: true, reason: "community-native-process" }
+    : { eligible: true, reason: "panel-only" };
 }
 
 export function resolveAppReviewCatalogVisibility(

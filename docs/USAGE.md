@@ -554,7 +554,7 @@ After validation succeeds, submit the package for review:
 nextclaw app publish <mini-app-dir> --json
 ```
 
-Personal submissions return `publishStatus: pending` and appear in the App Marketplace only after approval. Service Apps always require manual review because they can run local processes with the host environment. Pending or rejected submissions can be corrected and submitted again. Updating an already published personal app is intentionally blocked until version-level review is available, so the current public version remains online.
+Personal submissions return `publishStatus: pending` and appear in the public App Marketplace only after approval with `catalogVisibility: listed`. Community Panel-only Apps follow normal review. Schema v2 Service components currently launch host processes with the user's permissions, so their root manifest must declare `runtime.profile: native-process` and enter high-privilege manual review; an administrator may approve them as `listed` or `unlisted`. Installed schema v2 Apps remain disabled until the user explicitly enables them. Schema v2 WASI Service components are not supported yet—changing only the profile does not create a sandbox. Pending or rejected submissions can be corrected and submitted again. Updating an already published personal app is intentionally blocked until version-level review is available, so the current public version remains online.
 
 Use `https://platform.nextclaw.io/apps` to review submission status. The built-in `nextclaw-app-publisher` skill lets NextClaw AI assemble a package from existing Panel/Service directories, run the checks, guide login, and submit it with the same native commands.
 

@@ -12,6 +12,13 @@ Service App 只负责浏览器做不了或不该做的后端动作：本地文�
 
 本 skill 是 `service-app.json`、Service Action、`risk`、MCP stdio server、Service App command 和依赖安装的唯一专项规则源。只读 `nextclaw-app-creator` 或 `panel-app-creator` 时，不得编写或修改 Service App 后端细节。
 
+## 运行与发布边界
+
+- 当前 Service App 通过 `command` 和 `args` 启动宿主进程，继承当前用户可访问的环境；action grant 是调用授权，不是 OS 进程沙箱。
+- 把 Service App 组装进 schema v2 Mini App 时，根 manifest 必须声明 `runtime.profile: native-process` 和真实权限。当前没有 schema v2 WASI Service component 合同，禁止改成 `wasi` 规避审核。
+- 社区 Service App 可以提交公开上架，但必须进入高权限人工审核；管理员可以根据代码、权限和来源证据审核为 `listed` 或 `unlisted`。安装后默认停用，用户显式启用后才运行组件。
+- 如果用户要求社区公开上架，如实保留 Service 和 `native-process` 声明并准备审核证据；不能删除安全声明、伪造 profile 或承诺自动通过。
+
 ## 输出位置
 
 - Service App 必须写入 NextClaw workspace 的 `service-apps/<app-id>/` 目录。

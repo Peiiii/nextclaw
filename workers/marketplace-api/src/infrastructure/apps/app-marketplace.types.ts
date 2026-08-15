@@ -344,6 +344,16 @@ export type MarketplaceAdminAppSummary = MarketplaceAppItemSummary & {
   publishedAt: string;
 };
 
+export type MarketplaceAppPublicListingAssessment = {
+  eligible: boolean;
+  reason:
+    | "official-scope"
+    | "panel-only"
+    | "legacy-schema"
+    | "community-native-process"
+    | "invalid-runtime";
+};
+
 export type MarketplaceAdminAppDetail = MarketplaceAdminAppSummary & {
   description?: string;
   descriptionI18n?: Record<string, string>;
@@ -351,6 +361,7 @@ export type MarketplaceAdminAppDetail = MarketplaceAdminAppSummary & {
   homepage?: string;
   manifest: MarketplaceAppManifest;
   permissions: AppPermissions;
+  publicListing: MarketplaceAppPublicListingAssessment;
   versions: Array<{
     version: string;
     publishedAt: string;

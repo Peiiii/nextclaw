@@ -416,12 +416,17 @@ export type MarketplaceAppManifestView = {
     entry: string;
     export: string;
     action: string;
+  } | {
+    kind: "wasi-http-component";
+    entry: string;
   };
   ui?: {
     entry: string;
   };
   engines?: { nextclaw?: string };
   presentation?: { primaryPanel?: string };
+  runtime?: { profile: "panel-only" | "wasi" | "native-process" };
+  storage?: { scope: "global"; schemaVersion: number };
   components?: Array<{ kind: "panel" | "service"; path: string }>;
   permissions?: Record<string, unknown>;
 };
@@ -520,6 +525,10 @@ export type AdminMarketplaceAppDetailView = AdminMarketplaceAppSummaryView & {
   homepage?: string;
   manifest: MarketplaceAppManifestView;
   permissions: MarketplaceAppPermissionsView;
+  publicListing: {
+    eligible: boolean;
+    reason: "official-scope" | "panel-only" | "legacy-schema" | "community-native-process" | "invalid-runtime";
+  };
   versions: MarketplaceAppVersionView[];
 };
 

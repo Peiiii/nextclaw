@@ -5,6 +5,7 @@ import {
   assertAppVersionCanBeReplaced,
   assertAppCanBePubliclyListed,
   assertPersonalPublishedAppIsImmutable,
+  resolveAppReviewCatalogVisibility,
   type ExistingAppRow,
   type MarketplaceResolvedAppIdentity,
 } from "@/infrastructure/apps/marketplace-app-publish.utils";
@@ -98,17 +99,17 @@ describe("assertAppVersionCanBeReplaced", () => {
 });
 
 describe("assertAppCanBePubliclyListed", () => {
-  it("blocks community native process apps from the public catalog", () => {
+  it("allows reviewed community native process apps in the public catalog", () => {
     expect(() => assertAppCanBePubliclyListed({
       ownerScope: "peiwang",
       manifestJson: JSON.stringify({
         schemaVersion: 2,
         components: [{ kind: "service", path: "services/notes" }],
       }),
-    })).toThrow("cannot be listed publicly");
+    })).not.toThrow();
   });
 
-  it("allows community panel-only and WASI apps", () => {
+  it("allows community panel-only apps", () => {
     expect(() => assertAppCanBePubliclyListed({
       ownerScope: "peiwang",
       manifestJson: JSON.stringify({
@@ -117,6 +118,9 @@ describe("assertAppCanBePubliclyListed", () => {
         components: [{ kind: "panel", path: "panels/notes.panel" }],
       }),
     })).not.toThrow();
+  });
+
+  it("does not let a WASI profile label hide a community Service App", () => {
     expect(() => assertAppCanBePubliclyListed({
       ownerScope: "peiwang",
       manifestJson: JSON.stringify({
@@ -124,7 +128,7 @@ describe("assertAppCanBePubliclyListed", () => {
         runtime: { profile: "wasi" },
         components: [{ kind: "service", path: "services/notes" }],
       }),
-    })).not.toThrow();
+    })).toThrow("runtime declaration does not match");
   });
 
   it("allows official native process apps while keeping the risk visible", () => {
@@ -135,6 +139,41 @@ describe("assertAppCanBePubliclyListed", () => {
         components: [{ kind: "service", path: "services/notes" }],
       }),
     })).not.toThrow();
+  });
+});
+
+describe("resolveAppReviewCatalogVisibility", () => {
+  const communityServiceItem = {
+    manifestSchemaVersion: 2,
+    ownerScope: "peiwang",
+    manifestJson: JSON.stringify({
+      schemaVersion: 2,
+      runtime: { profile: "native-process" },
+      components: [{ kind: "service", path: "services/notes" }],
+    }),
+  };
+
+  it("allows a community Service App to pass review as unlisted", () => {
+    expect(resolveAppReviewCatalogVisibility({
+      selector: "peiwang.notes",
+      publishStatus: "published",
+      catalogVisibility: "unlisted",
+    }, communityServiceItem)).toBe("unlisted");
+  });
+
+  it("allows a community Service App to pass manual review as listed", () => {
+    expect(resolveAppReviewCatalogVisibility({
+      selector: "peiwang.notes",
+      publishStatus: "published",
+      catalogVisibility: "listed",
+    }, communityServiceItem)).toBe("listed");
+  });
+
+  it("defaults a reviewed schema v2 community Service App to listed", () => {
+    expect(resolveAppReviewCatalogVisibility({
+      selector: "peiwang.notes",
+      publishStatus: "published",
+    }, communityServiceItem)).toBe("listed");
   });
 });
 

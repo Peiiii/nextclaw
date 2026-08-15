@@ -22,7 +22,7 @@
 5. 所有持久化进入结构化 Storage Container；密钥只进入宿主 Secret Store。
 6. 所有外部能力先声明为 Capability，再由用户授权为 Grant。
 7. 更新必须经过兼容性、权限差异、数据版本和健康检查，成功后一次性切换。
-8. 第三方可公开发布的默认执行面是 Panel 与受限 WASI Service；任意原生进程不是社区 Marketplace 的安全默认能力。
+8. 第三方 Panel 可按普通审核公开；原生 Service 必须按 full-user 高权限执行面进入人工审核，审核通过后可以公开。受限 WASI Service 是目标态，必须等 schema、执行器和网络 broker 都真实闭环后才能声明。原生进程不是自动上架或无风险能力，但也不能用永久禁止公开代替审核与用户授权。
 
 本次 v0.35.0 不宣称已经获得跨平台 OS 级原生进程沙箱。产品级设计的关键是把可信边界说清并真正执行：无法隔离的能力必须分级、阻断或由用户显式信任，不能显示成“无额外权限”。
 
@@ -52,7 +52,7 @@
 | 数据 | `~/.nextclaw/apps/data/<app-id>` | 一包一目录；无 instance/component/config/state/cache/log/tmp/secrets 语义 |
 | Service | 注入 `NEXTCLAW_APP_DATA_DIR` | 环境变量是约定，不是隔离；原生子进程继承用户权限 |
 | Panel | opaque-origin iframe，禁用 Web Storage | 数据只能绕到 Service，但平台没有提供统一实例/存储合同 |
-| WASI | `/data` preopen | 网络直接 `inherit-network`，与声明的 allowed domains 脱节 |
+| WASI | schema v1 standalone 支持 `/data` preopen | schema v2 Service 尚无 WASI component 合同；不能靠 profile 标签获得隔离 |
 | 开发态 | Service dev 会创建临时 data dir | 正式 workspace Service 没有稳定 data dir，开发结束还会删除数据 |
 | 权限 | 文档 grant、Panel/Service action grant | grant 分散在多个 workspace JSON，只绑定组件 id，不绑定发布者/版本/能力指纹/实例 |
 | 更新 | 切 active pointer、失败时恢复 pointer、停止旧 runtime | 在切换后才做部分检查；无数据 schema、checkpoint、健康检查和 capability diff |
@@ -125,7 +125,7 @@ Apple 的核心原则是应用进入容器，越界文件与网络能力通过 e
 
 优点：边界最清楚。
 
-否决原因：现有官方 App 和开发者生态仍依赖 Node/MCP 进程；一次性切断会让平台从“不安全地可用”变成“安全但不可用”。WASI 是默认目标 profile，native-process 通过信任分级收缩，不做虚假兼容。
+否决原因：现有官方 App 和开发者生态仍依赖 Node/MCP 进程；一次性切断会让平台从“不安全地可用”变成“安全但不可用”。WASI 是目标 profile，但在 schema v2 Service 执行器落地前不得被接受为可运行声明；native-process 通过信任分级收缩，不做虚假兼容。
 
 ## 6. 统一领域模型
 
@@ -265,6 +265,8 @@ schema v2 保持 Package/Component 结构，本期以向后兼容字段扩展，
 
 `trust/isolation` 由平台根据 runtime profile 和真实执行器推导，发布者不能自行声明自己“已沙箱化”。
 
+当前可执行合同进一步收紧：schema v2 Service component 只有 `service-app.json command/args` 这一条宿主进程链路，因此只允许 `native-process`；`wasi` 保留为目标枚举，但发布校验和服务端 ingest 必须拒绝，直到真实 WASI Service component schema 与执行器同时落地。
+
 兼容规则：
 
 - 旧 schema v2 Panel-only 包推导为 `panel-only/sandboxed`。
@@ -277,8 +279,8 @@ schema v2 保持 Package/Component 结构，本期以向后兼容字段扩展，
 | profile | 文件边界 | 网络边界 | Marketplace 默认策略 |
 | --- | --- | --- | --- |
 | panel-only | 无宿主路径 | 仅 App Client/broker | 社区可发布 |
-| wasi | preopen namespace | host-mediated allowlist | 社区可发布 |
-| native-process | 当前等同用户权限 | 当前等同用户权限 | 仅官方/已验证；本地安装需显式信任 |
+| wasi | preopen namespace | host-mediated allowlist | 目标态；当前 schema v2 拒绝 |
+| native-process | 当前等同用户权限 | 当前等同用户权限 | 社区高权限人工审核后可公开；安装后默认停用并需显式启用 |
 
 `native-process` 的 package chmod 和路径注入是完整性/可用性措施，不在 UI 中称为 sandbox。
 
@@ -377,9 +379,10 @@ PanelAppManager 和 ServiceAppManager 只管理组件运行，不拥有安装、
 
 ### 11.2 列表与审核
 
-- 社区 `panel-only` 和 `wasi` 可进入审核。
-- 社区 `native-process` 默认保持 unlisted 并拒绝公开上架；管理员只能在发布者达到 verified 且完成专项审核后放行。
-- 官方包可使用 native-process，但详情页必须照实显示“以当前用户权限运行”。
+- 社区 `panel-only` 可按普通审核设为 listed 或 unlisted。
+- 社区含任意 Service component 的包必须按 `native-process/full-user` 提交并进入高权限人工审核；管理员核对源码、权限、网络目标、artifact digest 和发布者身份后，可选择“通过并公开”或“通过但不公开”。
+- schema v2 `wasi` Service 在真实执行合同落地前由本地校验和 Marketplace ingest 双端拒绝，不能用声明绕过 native-process 策略。
+- 官方与社区 native-process 包的详情页都必须照实显示“以当前用户权限运行”。
 - 审核页显示 component、runtime profile、storage schema、capability diff、migration 与 artifact digest。
 
 ### 11.3 安装体验
@@ -417,7 +420,7 @@ App 详情至少包括：
 - Service runtime view 和环境变量携带 instance/component identity。
 - 版本目录安装后做只读事故防护，并在启用/更新前校验 artifact integrity。
 - schema v2 生成 normalized runtime/storage/capability 摘要；旧 Service 明确归类 full-user。
-- Marketplace publish 不能再提交空的 schema v2 Service 权限摘要；社区 native Service 公开上架受阻。
+- Marketplace publish 不能再提交空的 schema v2 Service 权限摘要；社区 native Service 必须经过高权限人工审核才能公开上架。
 - 更新在 active pointer 切换前完成兼容性与 runtime probe；失败不污染 active state。
 - Apps 管理界面能看到 isolation level、数据位置/大小和关键风险。
 - 补齐迁移、dev/prod parity、权限摘要、更新失败回退和发布策略测试。
@@ -451,7 +454,7 @@ App 详情至少包括：
 ### 14.3 权限与发布
 
 - 含 Service 的 schema v2 在客户端、Worker 和 UI 得到同一 normalized risk summary。
-- 社区 native Service 不能进入 public listed catalog。
+- 社区 native Service 不能自动进入 public listed catalog，但完成人工审核后可以进入。
 - native-process 安装和启用页明确显示 full-user，不出现“无额外权限”。
 - capability 扩大时旧 grant 不自动覆盖新 fingerprint。
 

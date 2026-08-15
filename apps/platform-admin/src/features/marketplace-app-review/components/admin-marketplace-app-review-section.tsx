@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  fetchAdminMarketplaceAppDetail,
-  fetchAdminMarketplaceApps,
-  reviewAdminMarketplaceApp
-} from '@/api/client';
+import { fetchAdminMarketplaceApps } from '@/api/client';
 import type {
   AdminMarketplaceAppCountsView,
-  AdminMarketplaceAppDetailPayload,
   AdminMarketplaceAppPublishStatus,
   AdminMarketplaceAppReviewStatus,
   AdminMarketplaceAppSummaryView
@@ -17,6 +12,19 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TableWrap } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DetailMetaItem,
+  MarketplaceRuntimeReview,
+  MarketplaceStatusBadge,
+} from '@/features/marketplace-app-review/components/marketplace-app-review-evidence';
+import {
+  fetchAdminMarketplaceAppDetail,
+  reviewAdminMarketplaceApp,
+} from '@/features/marketplace-app-review/providers/marketplace-app-review.provider';
+import type {
+  AdminMarketplaceAppCatalogVisibility,
+  AdminMarketplaceAppDetailPayload,
+} from '@/features/marketplace-app-review/types/marketplace-app-review.types';
 
 type Props = {
   token: string;
@@ -30,6 +38,11 @@ const STATUS_OPTIONS: Array<{ value: AdminMarketplaceAppPublishStatus; label: st
   { value: 'rejected', label: '已拒绝' },
   { value: 'all', label: '全部' }
 ];
+
+type AppReviewRequest = {
+  publishStatus: AdminMarketplaceAppReviewStatus;
+  catalogVisibility?: AdminMarketplaceAppCatalogVisibility;
+};
 
 export function AdminMarketplaceAppReviewSection({ token, showHeader = true }: Props): JSX.Element {
   const queryClient = useQueryClient();
@@ -64,12 +77,12 @@ export function AdminMarketplaceAppReviewSection({ token, showHeader = true }: P
   const trimmedReviewDraft = reviewDraft.trim();
 
   const reviewMutation = useMutation({
-    mutationFn: async (nextStatus: AdminMarketplaceAppReviewStatus) => {
+    mutationFn: async (request: AppReviewRequest) => {
       if (!selectedSelector) {
         throw new Error('请先选择一个 app。');
       }
       return await reviewAdminMarketplaceApp(token, selectedSelector, {
-        publishStatus: nextStatus,
+        ...request,
         reviewNote: trimmedReviewDraft || undefined
       });
     },
@@ -141,8 +154,15 @@ export function AdminMarketplaceAppReviewSection({ token, showHeader = true }: P
             }
             setReviewDrafts((prev) => ({ ...prev, [selectedSelector]: value }));
           }}
-          onApprove={() => reviewMutation.mutate('published')}
-          onReject={() => reviewMutation.mutate('rejected')}
+          onApproveListed={() => reviewMutation.mutate({
+            publishStatus: 'published',
+            catalogVisibility: 'listed'
+          })}
+          onApproveUnlisted={() => reviewMutation.mutate({
+            publishStatus: 'published',
+            catalogVisibility: 'unlisted'
+          })}
+          onReject={() => reviewMutation.mutate({ publishStatus: 'rejected' })}
         />
       </div>
     </Card>
@@ -317,7 +337,8 @@ function MarketplaceDetailPanel(props: {
   isSubmitting: boolean;
   submitErrorMessage: string | null;
   onReviewDraftChange: (value: string) => void;
-  onApprove: () => void;
+  onApproveListed: () => void;
+  onApproveUnlisted: () => void;
   onReject: () => void;
 }): JSX.Element {
   if (props.isLoading) {
@@ -333,6 +354,7 @@ function MarketplaceDetailPanel(props: {
   }
 
   const { item, files, readmeRaw, marketplaceJsonRaw } = props.detail;
+  const listingEligibility = item.publicListing;
 
   return (
     <div className="space-y-4">
@@ -372,15 +394,33 @@ function MarketplaceDetailPanel(props: {
           ))}
         </div>
 
+        <MarketplaceRuntimeReview item={item} />
+
         <div>
           <p className="text-xs text-[#8f8a7d]">审核备注</p>
           <Textarea value={props.reviewDraft} onChange={(event) => props.onReviewDraftChange(event.target.value)} />
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button disabled={props.isSubmitting} onClick={props.onApprove}>通过</Button>
-          <Button variant="secondary" disabled={props.isSubmitting || !props.canReject} onClick={props.onReject}>拒绝</Button>
-          <Button variant="ghost" onClick={() => window.open(item.webUrl, '_blank', 'noopener,noreferrer')}>打开详情页</Button>
+          <Button
+            disabled={props.isSubmitting || !listingEligibility.eligible}
+            aria-describedby="public-listing-eligibility"
+            onClick={props.onApproveListed}
+          >
+            通过并公开
+          </Button>
+          <Button variant="secondary" disabled={props.isSubmitting} onClick={props.onApproveUnlisted}>
+            通过但不公开
+          </Button>
+          <Button variant="danger" disabled={props.isSubmitting || !props.canReject} onClick={props.onReject}>拒绝</Button>
+          <a
+            href={item.webUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-[#656561] transition-colors hover:bg-[#f3f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+          >
+            打开详情页
+          </a>
         </div>
 
         {props.submitErrorMessage ? <p className="text-sm text-rose-600">{props.submitErrorMessage}</p> : null}
@@ -425,25 +465,6 @@ function MarketplaceDetailPanel(props: {
       ) : null}
     </div>
   );
-}
-
-function DetailMetaItem(props: { label: string; value: string }): JSX.Element {
-  return (
-    <div className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
-      <p className="text-xs text-[#8f8a7d]">{props.label}</p>
-      <p className="mt-1 break-all text-sm text-[#1f1f1d]">{props.value}</p>
-    </div>
-  );
-}
-
-function MarketplaceStatusBadge(props: { status: AdminMarketplaceAppSummaryView['publishStatus'] }): JSX.Element {
-  const className = props.status === 'published'
-    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    : props.status === 'rejected'
-      ? 'border-rose-200 bg-rose-50 text-rose-700'
-      : 'border-amber-200 bg-amber-50 text-amber-700';
-  const label = props.status === 'published' ? '已发布' : props.status === 'rejected' ? '已拒绝' : '待审核';
-  return <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${className}`}>{label}</span>;
 }
 
 function resolveSelectedSelector(

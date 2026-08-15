@@ -98,6 +98,24 @@ describe("AppManifestService", () => {
     }
   });
 
+  it("rejects a schema v2 WASI label because Service components still launch host processes", async () => {
+    const appDirectory = await createComponentPackage();
+    try {
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      await writeFile(
+        manifestPath,
+        JSON.stringify({ ...manifest, runtime: { profile: "wasi" } }),
+      );
+
+      await expect(new AppManifestService().load(appDirectory)).rejects.toThrow(
+        "schema v2 Service component 尚不支持 WASI runtime",
+      );
+    } finally {
+      await rm(appDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("rejects overlapping schema v2 component paths", async () => {
     const appDirectory = await createComponentPackage();
     try {

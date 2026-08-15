@@ -202,6 +202,11 @@ export class MarketplaceAppPayloadParser {
     if (runtimeProfile === "panel-only" && hasService) {
       throw new DomainValidationError("panel-only apps cannot contain service components");
     }
+    if (runtimeProfile === "wasi") {
+      throw new DomainValidationError(
+        "schema v2 Service components do not support a WASI runtime yet; current Service Apps launch host processes, so use native-process or publish a panel-only app",
+      );
+    }
     if (runtimeProfile && runtimeProfile !== "panel-only" && !hasService) {
       throw new DomainValidationError(`${runtimeProfile} apps must contain a service component`);
     }

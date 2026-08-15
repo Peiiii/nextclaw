@@ -20,6 +20,7 @@ import {
   OFFICIAL_APPS_REGISTRY_BASE_URL,
   OFFICIAL_APPS_WEB_BASE_URL,
 } from "./app-marketplace.types";
+import { assessAppPublicListing } from "./marketplace-app-publish.utils";
 
 export class MarketplaceAppRecordMapper {
   mapItemSummary = (row: MarketplaceAppItemRow): MarketplaceAppItemSummary => {
@@ -134,6 +135,10 @@ export class MarketplaceAppRecordMapper {
       ...this.mapItemDetail(row, versionRows),
       manifestSchemaVersion: this.readManifestSchemaVersion(row.manifest_schema_version),
       catalogVisibility: this.readCatalogVisibility(row.catalog_visibility),
+      publicListing: assessAppPublicListing({
+        manifestJson: row.manifest_json,
+        ownerScope: row.owner_scope,
+      }),
     };
   };
 

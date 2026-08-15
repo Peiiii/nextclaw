@@ -361,6 +361,11 @@ export class AppManifestService {
     if (runtime.profile === "panel-only" && hasService) {
       throw new Error("runtime.profile=panel-only 不能包含 Service component。");
     }
+    if (runtime.profile === "wasi") {
+      throw new Error(
+        "schema v2 Service component 尚不支持 WASI runtime；当前 Service App 合同会启动宿主进程，请使用 native-process，或改为 panel-only App。",
+      );
+    }
     if (runtime.profile !== "panel-only" && !hasService) {
       throw new Error(`${runtime.profile} runtime 必须包含 Service component。`);
     }

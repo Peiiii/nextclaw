@@ -6,7 +6,7 @@ import {
   type AdminConsoleRouteKey
 } from '@/pages/admin-console-navigation';
 import { AdminMarketplaceReviewPage } from '@/pages/admin-marketplace-review-page';
-import { AdminMarketplaceAppReviewPage } from '@/pages/admin-marketplace-app-review-page';
+import { AdminMarketplaceAppReviewPage } from '@/features/marketplace-app-review';
 import { AdminOverviewPage } from '@/features/admin-overview';
 import { AdminUserQuotaPage } from '@/features/admin-users';
 import { AdminRechargeReviewPage } from '@/pages/admin-recharge-review-page';

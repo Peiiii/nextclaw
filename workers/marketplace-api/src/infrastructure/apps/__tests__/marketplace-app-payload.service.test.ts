@@ -61,6 +61,24 @@ describe("MarketplaceAppPayloadParser runtime risk", () => {
     expect(() => new MarketplaceAppPayloadParser().parsePublishInput(input))
       .toThrow("panel-only apps cannot contain service components");
   });
+
+  it("rejects a schema v2 WASI label until Service components have a WASI execution contract", () => {
+    const input = buildInput({
+      cover: "marketplace-assets/cover.webp",
+      accentColor: "#74816B",
+    });
+    input.manifest = {
+      schemaVersion: 2,
+      id: "nextclaw.hello-notes",
+      name: "Hello Notes",
+      version: "0.1.0",
+      runtime: { profile: "wasi" },
+      components: [{ kind: "service", path: "services/notes" }],
+    };
+
+    expect(() => new MarketplaceAppPayloadParser().parsePublishInput(input))
+      .toThrow("schema v2 Service components do not support a WASI runtime yet");
+  });
 });
 
 function buildInput(visuals: { cover: string; accentColor: string }): Record<string, unknown> {

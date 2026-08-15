@@ -49,6 +49,8 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 
 如果不确定是否需要后端，默认先做 **Panel-only**，但只能依赖页面内临时状态和手动导入/导出；不能依赖 `localStorage`、`sessionStorage`、cookie 或 IndexedDB。只要用户目标需要稳定持久化、文件、网络、命令或权限边界，就加入 Service App 或使用已授权的 App Client 能力。
 
+当前 schema v2 Service App 使用 `service-app.json` 的 `command/args` 启动宿主进程，安全分级是 `native-process/full-user`，不属于 WASI 或沙箱。组合包含任意 Service component 时，根 manifest 必须声明 `runtime.profile: native-process`；禁止仅把 profile 改成 `wasi`。社区 Service App 可以提交公开上架，但必须进入高权限人工审核；创建时如实声明能力和风险，不能为了降低审核等级改成 Panel-only 或伪造 WASI。
+
 完成 Panel/Service 形态判断后，再判断前端工程形态：
 
 - **工程化 React/Vite/TypeScript/Tailwind/pnpm**：适合 AI 应用、对话体验、需要 App Client 类型、多个视图/组件、列表筛选排序、图表、复杂表单、异步加载状态、错误/空状态较多，或后续会持续迭代的 Panel App。推荐栈必须作为一整套使用：`React + Vite + TypeScript + Tailwind CSS + pnpm`，不要只选其中一部分；最终仍交付静态 `.panel` 目录。
@@ -59,6 +61,7 @@ description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使
 - Panel App 是用户界面层，默认展示在右侧面板，必须窄侧栏优先。
 - 工程化 React/Vite/Tailwind Panel App 由 `panel-app-react-vite-creator` 负责；最终仍必须产出静态目录式 `.panel`，不要让宿主运行 Vite dev server。
 - Service App 是用户自定义后端扩展，提供可授权 actions；它不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
+- Service App 当前以宿主用户权限运行；权限确认约束 action 调用，不等于进程沙箱。社区组合包经高权限人工审核后可以进入公开目录，安装后默认停用，必须由用户显式启用。
 - Panel App 调用 Service App 时，当前推荐继续使用 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist；不要因为 App Client 里存在 `client.serviceActions.*` 就默认替代旧 bridge。
 - Panel App 如果已经声明 `"client": true`，触发标准 Agent Run 优先使用 `window.nextclaw.client.agentRuns.*`；未开启 App Client 或需要旧 bridge 独有高层能力时，才使用 `window.nextclaw.agent.*` 并声明 capability。
 - Panel App 只有确实需要 NextClaw App Client 时，才在 `panel-app.json` 声明 `client: true`，并在运行时使用宿主同步注入的 `window.nextclaw.client`；不要让 Panel App 自己 import、保存 token 或猜测 Client SDK 接口。需要接口形状时，从用户机器已安装的 `@nextclaw/client-sdk` NPM 包声明文件解析 `NextClawAppClient`。

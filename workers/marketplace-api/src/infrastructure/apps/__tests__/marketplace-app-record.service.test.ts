@@ -12,6 +12,21 @@ describe("MarketplaceAppRecordMapper visuals", () => {
       iconUrl: "https://apps-registry.nextclaw.io/api/v1/apps/items/personal-organizer/files/blob?path=assets%2Ficon.svg",
     });
   });
+
+  it("projects the canonical public-listing assessment for admin review", () => {
+    const row = buildRow();
+    row.owner_scope = "peiiii";
+    row.app_id = "peiiii.daily-feed";
+    row.manifest_json = JSON.stringify({
+      schemaVersion: 2,
+      components: [{ kind: "service", path: "components/daily-feed-service" }],
+    });
+
+    expect(new MarketplaceAppRecordMapper().mapAdminDetail(row, []).publicListing).toEqual({
+      eligible: true,
+      reason: "community-native-process",
+    });
+  });
 });
 
 function buildRow(): MarketplaceAppItemRow {
