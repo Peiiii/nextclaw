@@ -196,7 +196,7 @@ function usePersistedConversationInputSnapshot(
     });
   }, [draftKey, initialSnapshot]);
 
-  return { snapshot, update };
+  return { draftKey, snapshot, update };
 }
 
 export const useSessionConversationInputState = (
@@ -204,7 +204,7 @@ export const useSessionConversationInputState = (
   sessionKey: string | null = null,
 ) => {
   const pendingProjectRoot = useChatThreadStore((state) => state.snapshot.draftProjectRoot);
-  const { snapshot, update } = usePersistedConversationInputSnapshot(
+  const { draftKey, snapshot, update } = usePersistedConversationInputSnapshot(
     initialPrompt,
     sessionKey,
   );
@@ -268,6 +268,7 @@ export const useSessionConversationInputState = (
   });
 
   const preferenceActions = useSessionConversationPreferenceActions({
+    preferenceOwnerKey: draftKey,
     selectedModel: snapshot.selectedModel,
     selectedThinkingLevel: snapshot.selectedThinkingLevel,
     updatePreferences: update,

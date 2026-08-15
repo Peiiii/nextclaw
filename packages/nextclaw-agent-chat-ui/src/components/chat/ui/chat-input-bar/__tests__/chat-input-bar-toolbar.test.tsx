@@ -349,6 +349,28 @@ it("keeps non-search toolbar select menus constrained with an internal scroll re
   expect(scrollRegion?.className).toContain("overscroll-contain");
 });
 
+it("emits the explicit off value from the thinking select", async () => {
+  const onValueChange = vi.fn();
+  render(
+    <ChatInputBarToolbar
+      selects={[createThinkingSelect({
+        options: [
+          { value: "off", label: "Off" },
+          { value: "high", label: "High" },
+        ],
+        onValueChange,
+      })]}
+      actions={createActions()}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("combobox", { name: "Thinking: High" }));
+  fireEvent.click(await screen.findByRole("option", { name: "Off" }));
+
+  expect(onValueChange).toHaveBeenCalledOnce();
+  expect(onValueChange).toHaveBeenCalledWith("off");
+});
+
 it("keeps compact configuration selects before the context and send actions", () => {
   render(
     <ChatInputBarToolbar

@@ -22,6 +22,7 @@ export type SessionConversationPreferenceSyncParams = {
 };
 
 type SessionConversationPreferenceActionsParams = {
+  readonly preferenceOwnerKey: string;
   readonly selectedModel: ConversationPreferenceValue;
   readonly selectedThinkingLevel: ThinkingLevel | null;
   readonly updatePreferences: (patch: {
@@ -31,14 +32,23 @@ type SessionConversationPreferenceActionsParams = {
 };
 
 export const useSessionConversationPreferenceActions = ({
+  preferenceOwnerKey,
   selectedModel: currentSelectedModel,
   selectedThinkingLevel: currentSelectedThinkingLevel,
   updatePreferences,
 }: SessionConversationPreferenceActionsParams) => {
   const previousPreferenceContextRef = useRef<string | undefined>(undefined);
+  const localThinkingSelectionRef = useRef<{
+    readonly ownerKey: string;
+    readonly value: ThinkingLevel | null;
+  } | null>(null);
   const setSelectedThinkingLevel = useCallback((selectedThinkingLevel: ThinkingLevel | null) => {
+    localThinkingSelectionRef.current = {
+      ownerKey: preferenceOwnerKey,
+      value: selectedThinkingLevel,
+    };
     updatePreferences({ selectedThinkingLevel });
-  }, [updatePreferences]);
+  }, [preferenceOwnerKey, updatePreferences]);
   const syncSessionPreferences = useCallback(({
     defaultModel,
     fallbackPreferredModel,
@@ -54,6 +64,17 @@ export const useSessionConversationPreferenceActions = ({
     const preferenceContextKey = JSON.stringify([selectedSessionType, selectedSessionKey]);
     const preferenceContextChanged = previousPreferenceContextRef.current !== preferenceContextKey;
     const preserveCurrentPreference = preferenceContextChanged && Boolean(selectedSessionKey) && !selectedSessionExists;
+    const localThinkingSelection = localThinkingSelectionRef.current;
+    const localThinkingSelectionAcknowledged =
+      localThinkingSelection?.ownerKey === preferenceOwnerKey &&
+      selectedSessionExists &&
+      selectedSessionPreferredThinking === localThinkingSelection.value;
+    if (localThinkingSelectionAcknowledged) {
+      localThinkingSelectionRef.current = null;
+    }
+    const preserveLocalThinkingSelection =
+      localThinkingSelection?.ownerKey === preferenceOwnerKey &&
+      !localThinkingSelectionAcknowledged;
     const selectedModel = resolveSelectedModelValue({
       currentSelectedModel: currentSelectedModel ?? undefined,
       modelOptions,
@@ -73,7 +94,8 @@ export const useSessionConversationPreferenceActions = ({
       defaultThinkingLevel:
         (modelOption?.thinkingCapability?.default as ThinkingLevel | null | undefined) ?? null,
       preferSessionPreferredThinking: preferenceContextChanged,
-      preserveCurrentSelectedThinkingOnSessionChange: preserveCurrentPreference,
+      preserveCurrentSelectedThinkingOnSessionChange:
+        preserveCurrentPreference || preserveLocalThinkingSelection,
     });
     if (
       currentSelectedModel !== selectedModel ||
@@ -84,7 +106,12 @@ export const useSessionConversationPreferenceActions = ({
     if (!selectedSessionKey || selectedSessionExists) {
       previousPreferenceContextRef.current = preferenceContextKey;
     }
-  }, [currentSelectedModel, currentSelectedThinkingLevel, updatePreferences]);
+  }, [
+    currentSelectedModel,
+    currentSelectedThinkingLevel,
+    preferenceOwnerKey,
+    updatePreferences,
+  ]);
 
   return useMemo(() => ({
     setSelectedThinkingLevel,

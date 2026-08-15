@@ -21,6 +21,18 @@ const MODEL_OPTIONS: ChatModelOption[] = [
   },
 ];
 
+const THINKING_MODEL_OPTIONS: ChatModelOption[] = [
+  {
+    value: 'openai/gpt-5.6',
+    modelLabel: 'GPT-5.6',
+    providerLabel: 'OpenAI',
+    thinkingCapability: {
+      supported: ['off', 'low', 'medium', 'high'],
+      default: 'high',
+    },
+  },
+];
+
 describe('useSessionConversationInputState session preferences', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -34,6 +46,25 @@ describe('useSessionConversationInputState session preferences', () => {
     expect(result.current.inputSnapshot.text).toBe('每天整理项目风险');
     expect(result.current.inputSnapshot.nodes).not.toHaveLength(0);
     expect(result.current.inputSnapshot.composerFocusRequestId).toBe(1);
+  });
+
+  it('does not let first preference hydration overwrite an explicit off selection', () => {
+    const { result } = renderHook(() => useSessionConversationInputState());
+
+    act(() => {
+      result.current.inputActions.setSelectedThinkingLevel('off');
+    });
+    act(() => {
+      result.current.inputActions.syncSessionPreferences({
+        fallbackPreferredThinking: 'high',
+        modelOptions: THINKING_MODEL_OPTIONS,
+        selectedSessionExists: false,
+        selectedSessionKey: null,
+        selectedSessionType: 'native',
+      });
+    });
+
+    expect(result.current.inputSnapshot.selectedThinkingLevel).toBe('off');
   });
 
   it('restores the switched session model after its metadata becomes available', () => {

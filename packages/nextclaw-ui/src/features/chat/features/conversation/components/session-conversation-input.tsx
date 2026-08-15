@@ -14,7 +14,7 @@ import { isRuntimeDefaultModelValue } from '@nextclaw/shared';
 
 import { useI18n } from '@/app/components/i18n-provider';
 import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
-import { updateNcpSession, type SessionSkillEntryView, type ThinkingLevel } from '@/shared/lib/api';
+import { type SessionSkillEntryView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import {
@@ -46,6 +46,7 @@ import {
 import { useSessionConversationInputAttachments } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-attachments';
 import { useChatComposerReferenceIntent } from '@/features/chat/features/conversation/hooks/use-chat-composer-reference-intent';
 import { useSessionConversationComposerNodes } from '@/features/chat/features/conversation/hooks/use-session-conversation-composer-nodes';
+import { useSessionConversationPreferencePersistence } from '@/features/chat/features/conversation/hooks/use-session-conversation-preference-persistence';
 import { useSessionConversationSlashCommands } from '@/features/chat/features/conversation/hooks/use-session-conversation-slash-commands';
 import { useSystemObjectReferenceSelect } from '@/features/chat/features/conversation/hooks/use-system-object-reference-select';
 import { ChatConversationTrack } from '@/features/chat/components/conversation/chat-conversation-track';
@@ -281,15 +282,7 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     inputBarRef,
     addAttachments: inputActions.addAttachments,
   });
-  const syncSessionPreferences = useCallback((patch: {
-    preferredModel?: string | null;
-    preferredThinking?: ThinkingLevel | null;
-  }) => {
-    if (!inputQuery.selectedSessionKey || !inputQuery.selectedSession) {
-      return;
-    }
-    void updateNcpSession(inputQuery.selectedSessionKey, patch).catch(() => undefined);
-  }, [inputQuery.selectedSession, inputQuery.selectedSessionKey]);
+  const persistSessionPreferences = useSessionConversationPreferencePersistence({ inputActions, selectedSessionKey: inputQuery.selectedSessionKey });
   const handleNodesChange = useSessionConversationComposerNodes(inputActions);
 
   useChatComposerReferenceIntent({
@@ -315,17 +308,22 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     if (!isRuntimeDefaultModelValue(value)) {
       chatRecentModelsManager.remember(value);
     }
-    syncSessionPreferences({
-      preferredModel: isRuntimeDefaultModelValue(value) ? null : value,
-      preferredThinking: nextThinkingLevel,
-    });
+    persistSessionPreferences(
+      {
+        preferredModel: isRuntimeDefaultModelValue(value) ? null : value,
+        preferredThinking: nextThinkingLevel,
+      },
+      { selectedModel: value, selectedThinkingLevel: nextThinkingLevel },
+      { selectedModel, selectedThinkingLevel },
+    );
   }, [
     inputActions,
     discoveredModelRecords,
     inputQuery.sessionTypeState.selectedSessionType,
     modelRecords,
     selectedThinkingLevel,
-    syncSessionPreferences,
+    persistSessionPreferences,
+    selectedModel,
   ]);
   const handleDiscoveredModelSelect = useCallback(async (value: string) => {
     const option = await inputQuery.addDiscoveredModel(value);
@@ -339,8 +337,10 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   ]);
   const handleThinkingChange = useCallback((value: ChatThinkingLevel | null) => {
     inputActions.setSelectedThinkingLevel(value);
-    syncSessionPreferences({ preferredThinking: value });
-  }, [inputActions, syncSessionPreferences]);
+    persistSessionPreferences(
+      { preferredThinking: value }, { selectedThinkingLevel: value }, { selectedThinkingLevel },
+    );
+  }, [inputActions, persistSessionPreferences, selectedThinkingLevel]);
   const handleSelectedSkillsChange = useCallback((next: string[]) => {
     const previousSelection = inputSnapshot.selectedSkills;
     next

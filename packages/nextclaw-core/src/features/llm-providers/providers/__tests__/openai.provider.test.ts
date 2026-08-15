@@ -98,6 +98,71 @@ describe("OpenAICompatibleProvider responses payload parser", () => {
     expect(capturedBody).not.toHaveProperty("reasoning");
   });
 
+  it("encodes mixed Responses history with role-correct content and no message reasoning field", async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      capturedBody = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+      return new Response(
+        JSON.stringify({
+          status: "completed",
+          output: [{ type: "message", content: [{ type: "output_text", text: "ok" }] }],
+          usage: {}
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }) as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+    await responseProvider.chat({
+      messages: [
+        { role: "system", content: "Follow instructions." },
+        { role: "user", content: "hello" },
+        {
+          role: "assistant",
+          content: "Let me check.",
+          reasoning_content: "private provider reasoning",
+          tool_calls: [{
+            id: "call_1",
+            type: "function",
+            function: { name: "lookup", arguments: "{\"q\":\"hello\"}" }
+          }]
+        },
+        { role: "tool", tool_call_id: "call_1", content: "result" },
+        { role: "assistant", content: "Done." }
+      ],
+      thinkingLevel: "high"
+    });
+
+    expect(capturedBody).toMatchObject({
+      reasoning: { effort: "high" },
+      input: [
+        { role: "system", content: [{ type: "input_text", text: "Follow instructions." }] },
+        { role: "user", content: [{ type: "input_text", text: "hello" }] },
+        { role: "assistant", content: [{ type: "output_text", text: "Let me check." }] },
+        {
+          type: "function_call",
+          name: "lookup",
+          arguments: "{\"q\":\"hello\"}",
+          call_id: "call_1"
+        },
+        { type: "function_call_output", call_id: "call_1", output: "result" },
+        { role: "assistant", content: [{ type: "output_text", text: "Done." }] }
+      ]
+    });
+    expect(JSON.stringify(capturedBody)).not.toContain('"reasoning_content"');
+    const responseInput = ((capturedBody ?? {}) as Record<string, unknown>).input as
+      | Array<Record<string, unknown>>
+      | undefined;
+    expect(responseInput).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ reasoning: expect.anything() })])
+    );
+  });
+
   it("preserves nested cache usage details from responses API", async () => {
     globalThis.fetch = vi.fn(async () => new Response(
       JSON.stringify({

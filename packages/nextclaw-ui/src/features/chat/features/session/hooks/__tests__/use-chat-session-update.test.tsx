@@ -71,4 +71,31 @@ describe('useChatSessionUpdate', () => {
     });
     expect(toast.success).toHaveBeenCalledWith('Project directory updated');
   });
+
+  it('can update an inline preference without showing a success toast', async () => {
+    const queryClient = new QueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    mocks.updateNcpSession.mockResolvedValue({
+      sessionId: 'session-1',
+      updatedAt: '2026-08-15T00:00:00.000Z',
+      status: 'idle',
+      metadata: { preferred_thinking: 'off' },
+    });
+    const { result } = renderHook(() => useChatSessionUpdate(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current({
+        invalidateSessionSkills: false,
+        sessionKey: 'session-1',
+        patch: { preferredThinking: 'off' },
+        successMessage: null,
+      });
+    });
+
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(mocks.upsertNcpSessionSummaryInQueryClient).toHaveBeenCalledOnce();
+    expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+  });
 });

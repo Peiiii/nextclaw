@@ -488,92 +488,111 @@ export class OpenAICompatibleProvider extends LLMProvider {
       const role = String(msg.role ?? "user");
       const content = msg.content;
       if (role === "tool") {
-        const callId = typeof msg.tool_call_id === "string" ? msg.tool_call_id : "";
-        const outputText =
-          typeof content === "string"
-            ? content
-            : Array.isArray(content)
-              ? JSON.stringify(content)
-              : String(content ?? "");
-        input.push({
-          type: "function_call_output",
-          call_id: callId,
-          output: outputText
-        });
+        input.push(this.normalizeResponsesToolOutput(msg));
         continue;
       }
 
-      const output: Record<string, unknown> = { role };
-      output.content = this.normalizeResponsesContent(content);
-
-      if (typeof msg.reasoning_content === "string" && msg.reasoning_content) {
-        output.reasoning = msg.reasoning_content;
+      const normalizedContent = this.normalizeResponsesContent(content, role);
+      if (normalizedContent.length > 0) {
+        input.push({ role, content: normalizedContent });
       }
 
-      input.push(output);
-
-      if (Array.isArray(msg.tool_calls)) {
-        for (const call of msg.tool_calls as Array<Record<string, unknown>>) {
-          const callAny = call as Record<string, unknown>;
-          const functionAny = (callAny.function as Record<string, unknown> | undefined) ?? {};
-          const callId = String(callAny.id ?? callAny.call_id ?? "");
-          const name = String(functionAny.name ?? callAny.name ?? "");
-          const args = String(functionAny.arguments ?? callAny.arguments ?? "{}");
-          if (!callId || !name) {
-            continue;
-          }
-          input.push({
-            type: "function_call",
-            name,
-            arguments: args,
-            call_id: callId
-          });
-        }
-      }
+      input.push(...this.normalizeResponsesToolCalls(msg.tool_calls));
     }
 
     return input;
   };
 
-  private normalizeResponsesContent = (content: unknown): string | Array<Record<string, unknown>> => {
+  private normalizeResponsesToolOutput = (
+    message: Record<string, unknown>
+  ): Record<string, unknown> => {
+    const content = message.content;
+    const output = typeof content === "string"
+      ? content
+      : Array.isArray(content)
+        ? JSON.stringify(content)
+        : String(content ?? "");
+    return {
+      type: "function_call_output",
+      call_id: typeof message.tool_call_id === "string" ? message.tool_call_id : "",
+      output
+    };
+  };
+
+  private normalizeResponsesToolCalls = (toolCalls: unknown): Array<Record<string, unknown>> => {
+    if (!Array.isArray(toolCalls)) {
+      return [];
+    }
+    const output: Array<Record<string, unknown>> = [];
+    for (const call of toolCalls as Array<Record<string, unknown>>) {
+      const functionRecord = (call.function as Record<string, unknown> | undefined) ?? {};
+      const callId = String(call.id ?? call.call_id ?? "");
+      const name = String(functionRecord.name ?? call.name ?? "");
+      if (!callId || !name) {
+        continue;
+      }
+      output.push({
+        type: "function_call",
+        name,
+        arguments: String(functionRecord.arguments ?? call.arguments ?? "{}"),
+        call_id: callId
+      });
+    }
+    return output;
+  };
+
+  private normalizeResponsesContent = (
+    content: unknown,
+    role: string
+  ): Array<Record<string, unknown>> => {
+    const textType = role === "assistant" ? "output_text" : "input_text";
     if (typeof content === "string") {
-      return [{ type: "input_text", text: content }];
+      return content ? [{ type: textType, text: content }] : [];
     }
     if (!Array.isArray(content)) {
-      return String(content ?? "");
+      const text = String(content ?? "");
+      return text ? [{ type: textType, text }] : [];
     }
 
-    const blocks: Array<Record<string, unknown>> = [];
-    for (const part of content) {
-      if (!part || typeof part !== "object") {
-        continue;
-      }
-      const partAny = part as Record<string, unknown>;
-      const type = String(partAny.type ?? "");
-      if (type === "text" || type === "output_text" || type === "input_text") {
-        const textValue = typeof partAny.text === "string" ? partAny.text : "";
-        if (textValue) {
-          blocks.push({ type: "input_text", text: textValue });
-        }
-        continue;
-      }
-      if (type === "image_url" || type === "input_image") {
-        const imageValue = partAny.image_url as string | { url?: string } | undefined;
-        const imageUrl =
-          typeof imageValue === "string"
-            ? imageValue
-            : imageValue && typeof imageValue === "object" && typeof imageValue.url === "string"
-              ? imageValue.url
-              : undefined;
-        if (imageUrl) {
-          blocks.push({ type: "input_image", image_url: imageUrl });
-        }
-      }
-    }
+    return content
+      .map((part) => this.normalizeResponsesContentBlock(part, role, textType))
+      .filter((part): part is Record<string, unknown> => part !== null);
+  };
 
-    if (blocks.length > 0) {
-      return blocks;
+  private normalizeResponsesContentBlock = (
+    part: unknown,
+    role: string,
+    textType: "input_text" | "output_text"
+  ): Record<string, unknown> | null => {
+    if (!part || typeof part !== "object") {
+      return null;
     }
-    return String(content ?? "");
+    const record = part as Record<string, unknown>;
+    const type = String(record.type ?? "");
+    if (type === "text" || type === "output_text" || type === "input_text") {
+      return typeof record.text === "string" && record.text
+        ? { type: textType, text: record.text }
+        : null;
+    }
+    if (role === "assistant" && type === "refusal") {
+      return typeof record.refusal === "string" && record.refusal
+        ? { type: "refusal", refusal: record.refusal }
+        : null;
+    }
+    if (role !== "user" || (type !== "image_url" && type !== "input_image")) {
+      return null;
+    }
+    const imageUrl = this.readResponsesImageUrl(record.image_url);
+    return imageUrl ? { type: "input_image", image_url: imageUrl } : null;
+  };
+
+  private readResponsesImageUrl = (value: unknown): string | undefined => {
+    if (typeof value === "string") {
+      return value;
+    }
+    if (value && typeof value === "object" && typeof (value as { url?: unknown }).url === "string") {
+      return (value as { url: string }).url;
+    }
+    return undefined;
   };
 }

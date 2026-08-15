@@ -29,9 +29,12 @@ import type {
 } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
 import { useSessionConversationInputState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
+import { useChatComposerDraftStore } from '@/features/chat/stores/chat-composer-draft.store';
 import { ChatComposerIntentManager } from '@/features/chat/managers/chat-composer-intent.manager';
+import type { ThinkingLevel } from '@/shared/lib/api';
 
 const uploadNcpAssetsMock = vi.hoisted(() => vi.fn());
+const updateNcpSessionMock = vi.hoisted(() => vi.fn());
 
 function renderInput(input: ReactElement) {
   const queryClient = new QueryClient({
@@ -59,6 +62,7 @@ Object.defineProperty(Range.prototype, 'getBoundingClientRect', {
 
 afterEach(() => {
   useChatMessageLayoutStore.getState().setLayout('card');
+  updateNcpSessionMock.mockReset();
 });
 
 vi.mock('@/app/hooks/use-viewport-layout', () => ({
@@ -111,9 +115,104 @@ vi.mock('@/shared/lib/api', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as object),
-    updateNcpSession: vi.fn(),
+    updateNcpSession: updateNcpSessionMock,
     uploadNcpAssets: uploadNcpAssetsMock,
   };
+});
+
+function ThinkingPreferenceHarness() {
+  const { inputActions, inputSnapshot } = useSessionConversationInputState(
+    undefined,
+    'thinking-session',
+  );
+  const inputQuery = useMemo(() => ({
+    addDiscoveredModel: vi.fn(async () => null),
+    dismissDiscoveredModels: vi.fn(),
+    defaultModel: 'openai/gpt-5.6',
+    defaultProjectRoot: null,
+    discoveredModelOptions: [],
+    fallbackPreferredModel: undefined,
+    fallbackPreferredThinking: 'high' as const,
+    isProviderStateResolved: true,
+    isSkillsLoading: false,
+    modelOptions: [{
+      value: 'openai/gpt-5.6',
+      modelLabel: 'GPT-5.6',
+      providerLabel: 'OpenAI',
+      thinkingCapability: {
+        supported: ['off', 'low', 'medium', 'high'] as ThinkingLevel[],
+        default: 'high' as const,
+      },
+    }],
+    providersView: null,
+    refreshProviderModelCatalog: vi.fn(),
+    selectedSession: null,
+    selectedSessionKey: 'thinking-session',
+    sessionTypeState: {
+      canEditSessionType: true,
+      defaultSessionType: 'native',
+      selectedSessionType: 'native',
+      selectedSessionTypeOption: null,
+      sessionTypeOptions: [],
+      sessionTypeUnavailable: false,
+      sessionTypeUnavailableMessage: null,
+    },
+    skillRecords: [],
+  }), []);
+
+  return (
+    <I18nProvider>
+      <ChatPresenterProvider presenter={presenter}>
+        <SessionConversationInput
+          contextWindow={null}
+          controller={{ ...controller, isSending: false, sendDisabled: false }}
+          inputActions={inputActions}
+          inputQuery={inputQuery}
+          inputSnapshot={inputSnapshot}
+        />
+      </ChatPresenterProvider>
+    </I18nProvider>
+  );
+}
+
+describe('SessionConversationInput thinking preference', () => {
+  it('switches from high to explicit off and persists the same value', async () => {
+    useChatComposerDraftStore.setState({
+      drafts: {
+        'session:thinking-session': {
+          attachments: [],
+          composerFocusRequestId: 0,
+          nodes: [],
+          pendingSessionType: 'native',
+          selectedModel: 'openai/gpt-5.6',
+          selectedSessionType: 'native',
+          selectedSkills: [],
+          selectedThinkingLevel: 'high',
+          sendError: null,
+          skillRecords: [],
+          text: '',
+        },
+      },
+    });
+    updateNcpSessionMock.mockResolvedValue({
+      sessionId: 'thinking-session',
+      updatedAt: '2026-08-15T00:00:00.000Z',
+      status: 'idle',
+      metadata: { preferred_thinking: 'off' },
+    });
+    renderInput(<ThinkingPreferenceHarness />);
+
+    fireEvent.click(screen.getByRole('combobox', { name: /High/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /Off|关闭/ }));
+
+    await waitFor(() => expect(
+      screen.getByRole('combobox', { name: /Off|关闭/ }),
+    ).toBeTruthy());
+    await waitFor(() => expect(updateNcpSessionMock).toHaveBeenCalledWith(
+      'thinking-session',
+      { preferredThinking: 'off' },
+    ));
+  });
 });
 
 type StreamingInputControl = {
