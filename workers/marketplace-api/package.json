@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/marketplace-api-worker",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "type": "module",
   "scripts": {

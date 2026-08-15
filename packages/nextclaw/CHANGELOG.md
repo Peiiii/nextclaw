@@ -1,5 +1,26 @@
 # nextclaw
 
+## 0.38.0
+
+### Minor Changes
+
+- a6fd473: Add an Update session title command to the chat slash menu. The command asks AI to generate and apply a concise title from the current conversation without replacing the user's draft.
+
+### Patch Changes
+
+- 56ab5c2: 完善社区 App 的运行与公开上架合同：schema v2 Service App 必须如实声明为宿主原生进程并进入高权限人工审核，审核通过后可以公开上架；本地与市场服务端都会拒绝用 `wasi` 标签伪装沙箱。管理后台同步提供“通过并公开”和“通过但不公开”，并展示后端统一判定的运行方式、组件、权限与公开资格。
+- Updated dependencies [56ab5c2]
+  - @nextclaw/app-runtime@0.12.2
+  - @nextclaw/core@0.17.2
+  - @nextclaw/kernel@0.8.3
+  - @nextclaw/mcp@0.3.29
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.29
+  - @nextclaw/remote@0.3.33
+  - @nextclaw/runtime@0.4.28
+  - @nextclaw/server@0.16.3
+  - @nextclaw/service@0.3.36
+  - @nextclaw/ncp-mcp@0.2.29
+
 ## 0.37.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @nextclaw/channel-extension-email
 
+## 0.2.28
+
+### Patch Changes
+
+- Updated dependencies [56ab5c2]
+  - @nextclaw/core@0.17.2
+
 ## 0.2.27
 
 ### Patch Changes

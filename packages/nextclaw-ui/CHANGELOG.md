@@ -1,5 +1,15 @@
 # @nextclaw/ui
 
+## 0.18.0
+
+### Minor Changes
+
+- a6fd473: Add an Update session title command to the chat slash menu. The command asks AI to generate and apply a concise title from the current conversation without replacing the user's draft.
+
+### Patch Changes
+
+- @nextclaw/client-sdk@0.6.3
+
 ## 0.17.2
 
 ### Patch Changes
