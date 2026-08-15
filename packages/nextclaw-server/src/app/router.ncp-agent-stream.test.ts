@@ -62,7 +62,7 @@ afterEach(() => {
   }
 });
 
-it("keeps an idle ncp agent SSE connection alive with comment frames", async () => {
+it("opens an idle ncp agent SSE connection immediately and keeps it alive", async () => {
   vi.useFakeTimers();
   const eventBus = new EventBus();
   const app = createTestApp(eventBus);
@@ -73,14 +73,16 @@ it("keeps an idle ncp agent SSE connection alive with comment frames", async () 
     }),
   );
   const reader = response.body?.getReader();
+  const openChunk = await reader?.read();
   const pendingChunk = reader?.read();
 
   await vi.advanceTimersByTimeAsync(25_000);
-  const chunk = await pendingChunk;
+  const heartbeatChunk = await pendingChunk;
   controller.abort();
   reader?.releaseLock();
 
-  expect(new TextDecoder().decode(chunk?.value)).toBe(": keepalive\n\n");
+  expect(new TextDecoder().decode(openChunk?.value)).toBe(": keepalive\n\n");
+  expect(new TextDecoder().decode(heartbeatChunk?.value)).toBe(": keepalive\n\n");
 });
 
 it("streams context-window updates through the ncp agent SSE route", async () => {
@@ -93,6 +95,7 @@ it("streams context-window updates through the ncp agent SSE route", async () =>
     }),
   );
   const reader = response.body?.getReader();
+  const openChunk = await reader?.read();
   eventBus.emit(eventKeys.ncpEvent, {
     type: NcpEventType.ContextWindowUpdated,
     payload: {
@@ -110,6 +113,7 @@ it("streams context-window updates through the ncp agent SSE route", async () =>
 
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toContain("text/event-stream");
+  expect(new TextDecoder().decode(openChunk?.value)).toBe(": keepalive\n\n");
   expect(body).toContain("event: ncp-event");
   expect(body).toContain("\"type\":\"context-window.updated\"");
   expect(body).toContain("\"usedContextTokens\":12");
@@ -125,6 +129,7 @@ it("streams ncp events through the standard agent-runs SSE route", async () => {
     }),
   );
   const reader = response.body?.getReader();
+  const openChunk = await reader?.read();
   eventBus.emit(eventKeys.ncpEvent, {
     type: NcpEventType.RunStarted,
     payload: {
@@ -139,6 +144,7 @@ it("streams ncp events through the standard agent-runs SSE route", async () => {
 
   expect(response.status).toBe(200);
   expect(response.headers.get("content-type")).toContain("text/event-stream");
+  expect(new TextDecoder().decode(openChunk?.value)).toBe(": keepalive\n\n");
   expect(body).toContain("event: ncp-event");
   expect(body).toContain("\"type\":\"run.started\"");
   expect(body).toContain("\"runId\":\"run-1\"");

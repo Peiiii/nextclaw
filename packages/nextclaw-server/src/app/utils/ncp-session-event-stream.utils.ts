@@ -56,6 +56,7 @@ export function createNcpSessionEventStreamResponse(
     start: (streamController) => {
       controller = streamController;
       unsubscribe = eventBus.on(eventKeys.ncpEvent, push);
+      controller.enqueue(encoder.encode(NCP_SESSION_STREAM_HEARTBEAT_FRAME));
       heartbeat = setInterval(() => {
         if (!closed && !signal.aborted) {
           controller?.enqueue(encoder.encode(NCP_SESSION_STREAM_HEARTBEAT_FRAME));
