@@ -32,7 +32,7 @@
 ## 发布/部署方式
 
 - 本轮未提交、未发布、未部署，也未重启 VPS。
-- 发布时由常规 NPM/runtime 发布链路携带 `@nextclaw/core` 与 `@nextclaw/ui` patch 变更。
+- 发布时由常规 NPM 发布链路携带 `nextclaw`、`@nextclaw/core` 与 `@nextclaw/ui` patch 变更；本次仅授权 NPM，不更新 runtime channel。
 - 部署完成后必须使用原 VPS 公网页面和同一 OpenAI Responses provider 做两轮会话验证。
 
 ## 用户/产品视角的验收步骤
@@ -57,4 +57,5 @@
 - 需要发布：是，属于用户可见的 Core 协议修复与 UI 状态修复。
 - `@nextclaw/core`：patch changeset 已添加，尚未发布，待统一发布。
 - `@nextclaw/ui`：patch changeset 已添加，尚未发布，待统一发布。
+- `nextclaw`：因嵌入受影响的 UI 产物，patch changeset 已补齐，尚未发布，待统一发布。
 - 本轮未执行 NPM publish、tag、GitHub Release 或 runtime channel 更新。
