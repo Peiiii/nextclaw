@@ -9,7 +9,6 @@ import {
   ensureStableCleanWorktree,
   ensureStableCurrentBranch,
   ensureStableRemoteSync,
-  ensureStableTargetBranchAvailable,
 } from "./release-stable-git.mjs";
 import {
   configureReleaseNpmUserconfig,
@@ -152,7 +151,6 @@ function ensurePreparedPublishPrerequisites(options) {
   ensureCommandAvailable("npm");
   ensureStableCurrentBranch(branch);
   ensureStableRemoteSync(branch);
-  ensureStableTargetBranchAvailable(targetBranch);
   if (targetBranch !== branch) {
     run("git", ["fetch", "origin", targetBranch]);
   }

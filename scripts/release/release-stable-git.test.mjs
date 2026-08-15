@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -13,6 +13,36 @@ function git(rootDir, args) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
+}
+
+function createLinkedReleaseFixture(context) {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), "stable-git-worktree-test-"));
+  context.after(() => rmSync(fixtureRoot, { force: true, recursive: true }));
+  const remote = join(fixtureRoot, "remote.git");
+  const repository = join(fixtureRoot, "repository");
+  const releaseWorktree = join(fixtureRoot, "release");
+  execFileSync("git", ["init", "--bare", remote], { stdio: "ignore" });
+  execFileSync("git", ["init", "--initial-branch", "master", repository], {
+    stdio: "ignore",
+  });
+  git(repository, ["config", "user.name", "Stable Git Test"]);
+  git(repository, ["config", "user.email", "stable-git@example.test"]);
+  writeFileSync(join(repository, "release.txt"), "before\n");
+  writeFileSync(join(repository, "wip.txt"), "before\n");
+  git(repository, ["add", "."]);
+  git(repository, ["commit", "-m", "initial"]);
+  git(repository, ["remote", "add", "origin", remote]);
+  git(repository, ["push", "-u", "origin", "master"]);
+  git(repository, [
+    "worktree",
+    "add",
+    "-b",
+    "release/test",
+    releaseWorktree,
+    "master",
+  ]);
+  git(releaseWorktree, ["push", "-u", "origin", "release/test"]);
+  return { releaseWorktree, repository };
 }
 
 test("atomic Git closure updates the release branch and local/remote target", (context) => {
@@ -83,5 +113,56 @@ test("atomic Git closure updates the release branch and local/remote target", (c
   assert.equal(
     git(repository, ["rev-list", "-n", "1", "nextclaw@1.2.3"]),
     summary.releaseCommit,
+  );
+});
+
+test("atomic Git closure keeps the default worktree on master and preserves unrelated WIP", (context) => {
+  const { releaseWorktree, repository } = createLinkedReleaseFixture(context);
+  writeFileSync(join(releaseWorktree, "release.txt"), "after\n");
+  writeFileSync(join(repository, "wip.txt"), "local wip\n");
+
+  const summary = closeStableGitReleaseState({
+    branch: "release/test",
+    checkpoint: { packages: { nextclaw: { version: "1.2.3" } } },
+    rootDir: releaseWorktree,
+    runBranchClosure: () => {},
+    targetBranch: "master",
+  });
+
+  assert.equal(git(repository, ["branch", "--show-current"]), "master");
+  assert.equal(git(repository, ["rev-parse", "HEAD"]), summary.closureCommit);
+  assert.equal(
+    git(releaseWorktree, ["rev-parse", "origin/master"]),
+    summary.closureCommit,
+  );
+  assert.equal(
+    readFileSync(join(repository, "wip.txt"), "utf8"),
+    "local wip\n",
+  );
+  assert.equal(git(repository, ["status", "--short"]), "M wip.txt");
+  assert.equal(git(releaseWorktree, ["status", "--short"]), "");
+
+  writeFileSync(join(repository, "release.txt"), "local overlap\n");
+  writeFileSync(join(releaseWorktree, "release.txt"), "next release\n");
+  assert.throws(
+    () =>
+      closeStableGitReleaseState({
+        branch: "release/test",
+        checkpoint: { packages: { nextclaw: { version: "1.2.4" } } },
+        rootDir: releaseWorktree,
+        runBranchClosure: () => {},
+        targetBranch: "master",
+      }),
+    /Command failed: git merge --ff-only/,
+  );
+  assert.equal(git(repository, ["branch", "--show-current"]), "master");
+  assert.equal(git(repository, ["rev-parse", "HEAD"]), summary.closureCommit);
+  assert.equal(
+    git(releaseWorktree, ["rev-parse", "origin/master"]),
+    summary.closureCommit,
+  );
+  assert.equal(
+    readFileSync(join(repository, "release.txt"), "utf8"),
+    "local overlap\n",
   );
 });

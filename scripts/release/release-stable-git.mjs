@@ -103,7 +103,7 @@ export function ensureStableRemoteSync(
   }
 }
 
-export function ensureStableTargetBranchAvailable(
+export function resolveStableTargetBranchWorktree(
   targetBranch,
   rootDir = ROOT_DIR,
 ) {
@@ -120,11 +120,10 @@ export function ensureStableTargetBranchAvailable(
       branchLine === `branch refs/heads/${targetBranch}` &&
       worktreeLine.slice("worktree ".length) !== currentWorktree
     ) {
-      throw new Error(
-        `Target branch ${targetBranch} is checked out in another worktree: ${worktreeLine.slice("worktree ".length)}. Move that worktree to a protective branch before publishing.`,
-      );
+      return worktreeLine.slice("worktree ".length);
     }
   }
+  return null;
 }
 
 function commitReleaseArtifacts(rootDir) {
@@ -208,6 +207,23 @@ export function closeStableGitReleaseState(options) {
     });
   }
   const closureCommit = git(["rev-parse", "HEAD"], rootDir);
+  if (branch !== targetBranch) {
+    const targetWorktree = resolveStableTargetBranchWorktree(
+      targetBranch,
+      rootDir,
+    );
+    if (targetWorktree) {
+      run("git", ["merge", "--ff-only", closureCommit], {
+        rootDir: targetWorktree,
+        capture: false,
+      });
+    } else {
+      run("git", ["branch", "-f", targetBranch, closureCommit], {
+        rootDir,
+        capture: false,
+      });
+    }
+  }
   const branchRefspecs = new Set([`HEAD:${branch}`, `HEAD:${targetBranch}`]);
   run(
     "git",
@@ -220,12 +236,6 @@ export function closeStableGitReleaseState(options) {
     ],
     { rootDir, capture: false },
   );
-  if (branch !== targetBranch) {
-    run("git", ["branch", "-f", targetBranch, closureCommit], {
-      rootDir,
-      capture: false,
-    });
-  }
   const localTarget = git(["rev-parse", targetBranch], rootDir);
   const remoteTarget = git(["rev-parse", `origin/${targetBranch}`], rootDir);
   if (localTarget !== closureCommit || remoteTarget !== closureCommit) {

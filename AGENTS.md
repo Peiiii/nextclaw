@@ -30,6 +30,7 @@
 - 未经用户明确要求，不得 commit、push、建 PR、发布、部署或执行破坏性 Git 操作。
 - 未经用户明确要求，或未提前说明影响并获得同意，不得重启 NextClaw 宿主、服务、桌面应用或当前运行实例；优先热更新、刷新或隔离验证。
 - 工作区可能有用户或其它任务的改动；不得覆盖、revert、格式化或混入无关改动。触达已修改文件前先读懂现状并做双向范围审计。
+- 默认主工作区必须常驻本地 `master`；隔离开发或发布不得把它切到保护、功能或 release 分支。发布回流只能在该工作区保持 `master` 的前提下安全 fast-forward；无法 fast-forward 时停止并保留隔离分支。
 - 用户要求提交时，由 `development-delivery` 编排，先使用 `nextclaw-release-notes` 和 `nextclaw-iteration-log-governance` 判断 changeset、迭代记录和 NPM 记录，再精确 stage/commit。
 - 面向 `master` 的交付默认先进入本地 `master`，再由本地 `master` 推送 `origin/master`；例外必须说明回流方案。
 - 成功执行提交、推送、建分支或 PR 后，最终回复输出 Codex app 对应 directive。

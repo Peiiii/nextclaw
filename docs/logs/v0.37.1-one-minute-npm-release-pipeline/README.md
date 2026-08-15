@@ -10,9 +10,16 @@
 - 认证配置不再依赖模型或 shell 偶然继承：正式入口按“显式 `NPM_CONFIG_USERCONFIG` → 当前 worktree `./.npmrc` → 主 worktree `./.npmrc`”解析唯一配置，打印绝对路径，并用同一配置执行 `npm whoami`；找不到项目配置时拒绝回退 `~/.npmrc`。publish 与 dist-tag/package settings 强认证分别判定。
 - 恢复流程按 registry 已存在的精确版本继续，禁止重复发布已成功的包；Git tag 保持不可变，本地目标分支、远程目标分支和发布分支最终必须指向同一个 release commit。
 
+### 2026-08-15 默认工作区回流修正
+
+`nextclaw@0.38.0` 正式发布暴露了现有 Git 闭环的隐藏副作用：release worktree 发现 `master` 已在默认工作区检出时，要求先把默认工作区切到保护分支，发布器才能强制移动本地 `master` ref。该做法虽然保护了 WIP，却改变了默认工作区的常驻分支，并把恢复依赖留给人工收尾。
+
+修正继续沿用同一套 isolated-worktree 发布方法，不新增入口：release branch 仍在隔离 worktree 中生成 release commit、tag 和远端闭环；本地 `master` 已在默认工作区检出时，Git closure 改为直接在该工作区执行 `merge --ff-only <release-commit>`。默认工作区全程保持 `master`，不重置、不 stash，非重叠 WIP 原样保留；存在重叠而无法 fast-forward 时安全停止并保留 release branch。
+
 ## 测试/验证/验收方式
 
 - 发布合同与恢复语义：32 项 Node 测试全部通过，覆盖 prepared artifact 导入、精确 commit 工作流选择、部分发布恢复、逐包 latest/integrity 校验、原子 Git 闭环、60 秒预算和命令语义。
+- 默认工作区回流回归：真实创建检出 `master` 的默认工作区、独立 release worktree 和非重叠未提交 WIP；Git closure 后默认工作区仍为 `master`，WIP 内容与状态不变，本地/远端目标和 release branch 指向同一提交。
 - 定向静态检查：相关 release scripts 的 ESLint、Node syntax check、`git diff --check`、workflow YAML 解析与格式检查通过。
 - package 类型与构建：NextClaw package closure build 通过，`packages/nextclaw` 的 `tsc` 通过。
 - 治理检查：skill progressive loading、governance backlog ratchet、new-code governance 和 maintainability guard 通过。
