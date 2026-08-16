@@ -56,6 +56,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 发布使用仓库既有 release flow，不以零散原子命令伪装完整闭环。
 - 发布完成必须覆盖授权范围内适用的 artifact、manifest、update channel、release notes、部署后 smoke 和分支回流。
 - tag、release 页面、workflow 触发或 registry publish 只是中间状态，不自动等于交付完成。
+- 可恢复的分支分叉、并行 WIP 或暂存于隔离分支只是交付中间状态；不得据此收尾，必须主动完成安全集成与主线回流。只有真实外部依赖无法消除时才报告未完成，并给出恢复条件和可直接续跑的入口。
 - 部分发布或外部失败优先进入专项恢复分支；不得重复发布已经成功的不可逆步骤。
 
 ## 输出
