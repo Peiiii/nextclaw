@@ -38,7 +38,16 @@ const DEFAULT_ALLOWED_CORS_METHODS = "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS";
 const NULL_ORIGIN = "null";
 const PANEL_APP_RUNTIME_TOKEN_HEADER = "x-nextclaw-panel-bridge-session";
 const STALE_UI_ASSET_RELOAD_MODULE = "globalThis.location?.reload();\nexport {};\n";
+const NO_STORE_CACHE_CONTROL = "no-store";
+const IMMUTABLE_UI_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const CONTENT_HASHED_UI_ASSET_PATTERN = /-[A-Za-z0-9_-]{8}\.[^./]+$/;
 type CorsPolicy = string[] | "*" | typeof DEFAULT_CORS_ORIGINS;
+
+function resolveUiStaticCacheControl(pathname: string): string {
+  return pathname.startsWith("/assets/") && CONTENT_HASHED_UI_ASSET_PATTERN.test(pathname)
+    ? IMMUTABLE_UI_ASSET_CACHE_CONTROL
+    : NO_STORE_CACHE_CONTROL;
+}
 
 function buildVaryHeader(current: string | null, value: string): string {
   if (!current) {
@@ -140,7 +149,7 @@ function mountUiStaticAssets(app: Hono, staticDir: string): void {
         }
       },
       onFound: (_, c) => {
-        c.header("cache-control", "no-store");
+        c.header("cache-control", resolveUiStaticCacheControl(c.req.path));
       }
     })
   );
@@ -150,7 +159,7 @@ function mountUiStaticAssets(app: Hono, staticDir: string): void {
     }
     return c.body(STALE_UI_ASSET_RELOAD_MODULE, 200, {
       "content-type": "application/javascript; charset=utf-8",
-      "cache-control": "no-store"
+      "cache-control": NO_STORE_CACHE_CONTROL
     });
   });
   app.get("*", (c) => {
@@ -158,7 +167,7 @@ function mountUiStaticAssets(app: Hono, staticDir: string): void {
     if (path.startsWith("/api") || path.startsWith("/ws") || path.startsWith("/_remote") || path.startsWith("/webhook")) {
       return c.notFound();
     }
-    return c.html(indexHtml, 200, { "cache-control": "no-store" });
+    return c.html(indexHtml, 200, { "cache-control": NO_STORE_CACHE_CONTROL });
   });
 }
 

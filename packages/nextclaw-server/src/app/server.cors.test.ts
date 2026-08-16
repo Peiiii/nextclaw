@@ -293,13 +293,15 @@ describe("ui server api cors", () => {
     expect(await pageResponse.text()).toContain("ui shell");
   });
 
-  it("serves packaged ui assets without cache and recovers missing stale chunks", async () => {
+  it("caches hashed ui assets while keeping pages and stale chunk recovery uncached", async () => {
     const port = await reservePort();
     const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-server-ui-assets-"));
     const staticDir = join(rootDir, "ui-dist");
     const assetsDir = join(staticDir, "assets");
     mkdirSync(assetsDir, { recursive: true });
-    writeFileSync(join(staticDir, "index.html"), "<!doctype html><script type=\"module\" src=\"/assets/app.js\"></script>");
+    writeFileSync(join(staticDir, "index.html"), "<!doctype html><script type=\"module\" src=\"/assets/app-CONTENT1.js\"></script>");
+    writeFileSync(join(assetsDir, "app-CONTENT1.js"), "export const immutable = true;");
+    writeFileSync(join(assetsDir, "styles-CONTENT2.css"), "body { color: black; }");
     writeFileSync(join(assetsDir, "app.js"), "export const ok = true;");
     const configPath = join(rootDir, "config.json");
     const handle = await startUiServer(createTestGateway({
@@ -312,9 +314,21 @@ describe("ui server api cors", () => {
     const baseUrl = `http://127.0.0.1:${port}`;
     await waitForServer(baseUrl);
 
-    const assetResponse = await fetch(`${baseUrl}/assets/app.js`);
-    expect(assetResponse.status).toBe(200);
-    expect(assetResponse.headers.get("cache-control")).toBe("no-store");
+    const hashedAssetResponse = await fetch(`${baseUrl}/assets/app-CONTENT1.js`);
+    expect(hashedAssetResponse.status).toBe(200);
+    expect(hashedAssetResponse.headers.get("cache-control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
+
+    const hashedStyleResponse = await fetch(`${baseUrl}/assets/styles-CONTENT2.css`);
+    expect(hashedStyleResponse.status).toBe(200);
+    expect(hashedStyleResponse.headers.get("cache-control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
+
+    const unhashedAssetResponse = await fetch(`${baseUrl}/assets/app.js`);
+    expect(unhashedAssetResponse.status).toBe(200);
+    expect(unhashedAssetResponse.headers.get("cache-control")).toBe("no-store");
 
     const staleChunkResponse = await fetch(`${baseUrl}/assets/old-chunk.js`);
     expect(staleChunkResponse.status).toBe(200);
