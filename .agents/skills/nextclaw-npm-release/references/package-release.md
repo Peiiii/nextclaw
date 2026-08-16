@@ -6,6 +6,7 @@
 4. 使用 `release:auto:changeset`/changeset、`release:version` 与经过 strict checkpoint 的 publish；release notes owner 属于后续产品 closure，不是 NPM artifact 前置门禁。
 5. `pnpm release:verify:published` 和 `npm view ... dist-tags --json` 验证 registry；首发短暂 404 先按同一 npm config 重试。
 6. 发布后检查每个 worktree 的 generated artifacts；应提交的进入发布记录，其余恢复/清理，不把 hash churn 留给用户。
+7. 每次正式 stable 发布都保留命令输出的 artifact、package、Git/install 与 package 子阶段计时，并在对应迭代记录写入总耗时和最慢阶段；单次超过 60 秒或连续 3 次超过 45 秒时进入发布性能复盘。超时必须输出 `NPM_SLA_MISSED` 和同一份阶段摘要后返回非零，不能丢失计时或误报 `NPM_READY`。
 
 stable NPM-only 的用户入口仍是“发布 NPM”。分钟级 version、strict check、artifact audit 和不可变 tarball 准备由 `npm-release-prepare` workflow 在 release-bearing `master` push 后提前完成；delivery 交付该 commit 时等待 exact-commit artifact 成立。用户授权后直接运行 `pnpm release:npm:stable -- --branch <release-branch> --target-branch master`，正式阶段只定位/下载 HEAD 对应 artifact、并发首次上传、逐包 version/integrity/latest registry 验证、release commit/tag、release branch 与本地/远程目标分支闭合，以及空缓存公网精确 tarball/payload 审计。缺少或失效 artifact 时快速失败，不回退重建。release notes、runtime、完整依赖安装/升级、文档站、官网、X 和 desktop 不在 NPM-only 完成点范围。artifact 下载也计入 wall time；所有门禁通过且总计小于 60 秒后才报告 `NPM_READY`。
 

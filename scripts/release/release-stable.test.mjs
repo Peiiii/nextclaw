@@ -4,7 +4,7 @@ import {
   assertNpmReadyWithinBudget,
   buildStableCompletionSummary,
   buildStableDryRunPlan,
-  buildStableNpmReadySummary,
+  buildStableNpmTimingSummary,
   buildStablePublishedInstallArgs,
   buildStablePublishedUpgradeArgs,
   buildStableReleaseTags,
@@ -13,6 +13,7 @@ import {
   inspectStableSurfaceReview,
   parseStableReleaseArgs,
   resolveReleaseNpmUserconfig,
+  resolveNpmReadyStatus,
   resolveStableReleaseLevel,
   resolveStableReleasePlan,
   validateStableResumeOptions,
@@ -418,7 +419,7 @@ test("builds deterministic runtime, install, and package tag commands", () => {
 
 test("reports the NPM_READY completion point explicitly", () => {
   assert.deepEqual(
-    buildStableNpmReadySummary({
+    buildStableNpmTimingSummary({
       checkpoint: { packages: { nextclaw: {}, "@nextclaw/core": {} } },
       publishSummary: { attemptsUsed: 1, publishedCount: 2, reusedCount: 0 },
       targetVersion: "0.30.0",
@@ -435,11 +436,44 @@ test("reports the NPM_READY completion point explicitly", () => {
 });
 
 test("enforces the NPM_READY wall-clock budget", () => {
+  assert.equal(resolveNpmReadyStatus(59_999, 60), "NPM_READY");
+  assert.equal(resolveNpmReadyStatus(60_000, 60), "NPM_SLA_MISSED");
   assert.doesNotThrow(() => assertNpmReadyWithinBudget(59_999, 60));
   assert.throws(
     () => assertNpmReadyWithinBudget(60_000, 60),
     /exceeded the 60s completion budget/,
   );
+});
+
+test("reports the same phase timings when the NPM SLA is missed", () => {
+  const summary = buildStableNpmTimingSummary({
+    checkpoint: { packages: { nextclaw: {} } },
+    durationMs: 120_970,
+    phaseTimings: {
+      artifactResolutionMs: 10_000,
+      packagePhaseMs: 80_000,
+      postPublishClosureMs: 30_970,
+    },
+    publishSummary: {
+      attemptsUsed: 4,
+      publishedCount: 22,
+      reusedCount: 0,
+      timings: { precheckMs: 2_000, uploadMs: 60_000, verifyMs: 18_000 },
+    },
+    status: "NPM_SLA_MISSED",
+    targetVersion: "0.38.0",
+  }).join("\n");
+
+  assert.match(summary, /^NPM_SLA_MISSED/m);
+  assert.match(
+    summary,
+    /timing: artifact 10\.00s, package phase 80\.00s, Git\/install join 30\.97s/,
+  );
+  assert.match(
+    summary,
+    /package timing: precheck 2\.00s, upload 60\.00s, verify 18\.00s/,
+  );
+  assert.match(summary, /publish duration: 120\.97s/);
 });
 
 test("does not claim product-ready before docs, website, and X owner closure", () => {

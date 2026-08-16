@@ -279,17 +279,18 @@ export function buildStableDryRunPlan({
   ];
 }
 
-export function buildStableNpmReadySummary({
+export function buildStableNpmTimingSummary({
   checkpoint,
   durationMs,
   phaseTimings,
   publishSummary,
   skipPublishedInstall = false,
+  status = "NPM_READY",
   targetBranch,
   targetVersion,
 }) {
   return [
-    "NPM_READY",
+    status,
     `- channel: stable/latest`,
     `- package count: ${Object.keys(checkpoint?.packages ?? {}).length}`,
     `- tarballs uploaded now: ${publishSummary?.publishedCount ?? "not recorded"}`,
@@ -311,9 +312,14 @@ function formatDuration(durationMs) {
     : "not recorded";
 }
 
+export function resolveNpmReadyStatus(durationMs, maxPublishSeconds) {
+  return Number.isFinite(durationMs) && durationMs < maxPublishSeconds * 1000
+    ? "NPM_READY"
+    : "NPM_SLA_MISSED";
+}
+
 export function assertNpmReadyWithinBudget(durationMs, maxPublishSeconds) {
-  const limitMs = maxPublishSeconds * 1000;
-  if (!Number.isFinite(durationMs) || durationMs >= limitMs) {
+  if (resolveNpmReadyStatus(durationMs, maxPublishSeconds) !== "NPM_READY") {
     throw new Error(
       `NPM publish exceeded the ${maxPublishSeconds}s completion budget: ${(durationMs / 1000).toFixed(2)}s`,
     );

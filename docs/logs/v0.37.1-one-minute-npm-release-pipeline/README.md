@@ -16,10 +16,17 @@
 
 修正继续沿用同一套 isolated-worktree 发布方法，不新增入口：release branch 仍在隔离 worktree 中生成 release commit、tag 和远端闭环；本地 `master` 已在默认工作区检出时，Git closure 改为直接在该工作区执行 `merge --ff-only <release-commit>`。默认工作区全程保持 `master`，不重置、不 stash，非重叠 WIP 原样保留；存在重叠而无法 fast-forward 时安全停止并保留 release branch。
 
+### 2026-08-16 超时追踪修正
+
+`nextclaw@0.38.0` 正式发布完成 22 个包、4 轮 registry 验证、payload 与 Git 闭环，但总耗时 `120.97s`，未达到一分钟 SLA。旧实现先执行预算断言、再打印已经计算好的阶段摘要，导致超时路径只留下总耗时，无法继续判断瓶颈属于 artifact、package 还是 Git/install。
+
+现有 `release:npm:stable` 已调整为无论达标或超时都先输出同一份阶段计时；超时使用 `NPM_SLA_MISSED`，随后保持非零退出。后续每次 stable 发布只需把该摘要中的总耗时和最慢阶段写入对应迭代记录；单次超过 60 秒或连续 3 次超过 45 秒时复盘，不新增独立指标服务或第二套发布入口。
+
 ## 测试/验证/验收方式
 
 - 发布合同与恢复语义：32 项 Node 测试全部通过，覆盖 prepared artifact 导入、精确 commit 工作流选择、部分发布恢复、逐包 latest/integrity 校验、原子 Git 闭环、60 秒预算和命令语义。
 - 默认工作区回流回归：真实创建检出 `master` 的默认工作区、独立 release worktree 和非重叠未提交 WIP；Git closure 后默认工作区仍为 `master`，WIP 内容与状态不变，本地/远端目标和 release branch 指向同一提交。
+- 超时摘要回归：`120.97s` 样例输出 `NPM_SLA_MISSED`，同时保留 artifact、package、Git/install、precheck、upload 与 verify 计时，随后预算断言继续返回非零。
 - 定向静态检查：相关 release scripts 的 ESLint、Node syntax check、`git diff --check`、workflow YAML 解析与格式检查通过。
 - package 类型与构建：NextClaw package closure build 通过，`packages/nextclaw` 的 `tsc` 通过。
 - 治理检查：skill progressive loading、governance backlog ratchet、new-code governance 和 maintainability guard 通过。

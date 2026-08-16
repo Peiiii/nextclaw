@@ -26,12 +26,13 @@ import {
   assertNpmReadyWithinBudget,
   buildStableCompletionSummary,
   buildStableDryRunPlan,
-  buildStableNpmReadySummary,
+  buildStableNpmTimingSummary,
   buildStablePublishedInstallArgs,
   buildStablePublishedUpgradeArgs,
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
   parseStableReleaseArgs,
+  resolveNpmReadyStatus,
 } from "./release-stable.utils.mjs";
 
 const ROOT_DIR = process.cwd();
@@ -383,9 +384,12 @@ async function runStableRelease(options) {
   );
   const closureCompletedAt = performance.now();
   const publishDurationMs = closureCompletedAt - publishStartedAt;
-  assertNpmReadyWithinBudget(publishDurationMs, maxPublishSeconds);
+  const npmReadyStatus = resolveNpmReadyStatus(
+    publishDurationMs,
+    maxPublishSeconds,
+  );
   console.log(
-    buildStableNpmReadySummary({
+    buildStableNpmTimingSummary({
       checkpoint,
       durationMs: publishDurationMs,
       phaseTimings: {
@@ -395,10 +399,12 @@ async function runStableRelease(options) {
       },
       publishSummary,
       skipPublishedInstall,
+      status: npmReadyStatus,
       targetBranch,
       targetVersion: context.targetVersion,
     }).join("\n"),
   );
+  assertNpmReadyWithinBudget(publishDurationMs, maxPublishSeconds);
   if (skipRuntimeChannel) {
     return;
   }
