@@ -1,5 +1,6 @@
 import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
+import { resolveSelectableThinkingLevels } from '@/shared/lib/provider-models';
 
 function normalizeSessionType(value: string | null | undefined): string {
   return value?.trim().toLowerCase() || 'native';
@@ -115,13 +116,14 @@ export function resolveSelectedThinkingLevelValue(params: {
   if (supportedThinkingLevels.length === 0) {
     return null;
   }
+  const selectableThinkingLevels = resolveSelectableThinkingLevels(supportedThinkingLevels);
   return resolveSessionPreferenceValue<ThinkingLevel>({
     currentValue: currentSelectedThinkingLevel,
     selectedSessionPreferredValue: selectedSessionPreferredThinking,
     fallbackPreferredValue: fallbackPreferredThinking,
     defaultValue: defaultThinkingLevel,
-    isValueSupported: (value): value is ThinkingLevel => hasThinkingLevelOption(supportedThinkingLevels, value),
-    firstAvailableValue: resolveFallbackThinkingLevel(supportedThinkingLevels) ?? 'off',
+    isValueSupported: (value): value is ThinkingLevel => hasThinkingLevelOption(selectableThinkingLevels, value),
+    firstAvailableValue: resolveFallbackThinkingLevel(selectableThinkingLevels) ?? 'off',
     preferSessionPreferredValue: preferSessionPreferredThinking,
     preserveCurrentValueOnSessionChange: preserveCurrentSelectedThinkingOnSessionChange
   });

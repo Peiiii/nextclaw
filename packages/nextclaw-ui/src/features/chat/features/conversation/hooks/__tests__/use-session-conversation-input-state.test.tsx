@@ -27,7 +27,7 @@ const THINKING_MODEL_OPTIONS: ChatModelOption[] = [
     modelLabel: 'GPT-5.6',
     providerLabel: 'OpenAI',
     thinkingCapability: {
-      supported: ['off', 'low', 'medium', 'high'],
+      supported: ['low', 'medium', 'high'],
       default: 'high',
     },
   },
@@ -48,7 +48,7 @@ describe('useSessionConversationInputState session preferences', () => {
     expect(result.current.inputSnapshot.composerFocusRequestId).toBe(1);
   });
 
-  it('does not let first preference hydration overwrite an explicit off selection', () => {
+  it('does not let hydration overwrite explicit off when the provider only declares active levels', () => {
     const { result } = renderHook(() => useSessionConversationInputState());
 
     act(() => {

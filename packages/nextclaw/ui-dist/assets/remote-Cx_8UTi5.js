@@ -1,1 +1,0 @@
-import{Mt as e}from"./index-DotCWGD1.js";export{e as RemoteAccessPage};

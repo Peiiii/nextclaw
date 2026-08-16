@@ -11,6 +11,7 @@ import {
   normalizeChatCompletionsResponse,
   normalizeStructuredUsageCounters
 } from "@core/features/llm-providers/index.js";
+import { toOpenAiResponsesTools } from "@core/features/llm-providers/utils/openai-responses-tool.utils.js";
 import {
   buildOpenAiApiBaseCandidates,
   consumeOpenAiChatCompletionsStream,
@@ -307,9 +308,8 @@ export class OpenAICompatibleProvider extends LLMProvider {
     if (reasoningEffort) {
       body.reasoning = { effort: reasoningEffort };
     }
-    if (params.tools && params.tools.length) {
-      body.tools = params.tools as unknown;
-    }
+    const tools = toOpenAiResponsesTools(params.tools);
+    if (tools) body.tools = tools;
     if (typeof params.maxTokens === "number") {
       body.max_output_tokens = params.maxTokens;
     }

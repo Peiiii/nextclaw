@@ -8,6 +8,7 @@ import type {
   ChatThinkingLevel,
 } from "@/features/chat/types/chat-input-bar.types";
 import type { ChatModelOption } from "@/features/chat/types/chat-input.types";
+import { resolveSelectableThinkingLevels } from "@/shared/lib/provider-models";
 
 function formatModelOptionLabel(option: ChatModelRecord): string {
   const modelLabel = option.modelLabel.trim();
@@ -42,18 +43,6 @@ export function toChatModelRecords(snapshotModels: ChatModelOption[]): ChatModel
         }
       : null,
   }));
-}
-
-function normalizeThinkingLevels(
-  levels: ChatThinkingLevel[],
-): ChatThinkingLevel[] {
-  const deduped: ChatThinkingLevel[] = [];
-  for (const level of ["off", ...levels] as ChatThinkingLevel[]) {
-    if (!deduped.includes(level)) {
-      deduped.push(level);
-    }
-  }
-  return deduped;
 }
 
 export function buildModelStateHint(params: {
@@ -284,7 +273,7 @@ export function buildThinkingToolbarSelect(params: {
     return null;
   }
 
-  const options = normalizeThinkingLevels(supportedLevels);
+  const options = resolveSelectableThinkingLevels(supportedLevels);
   const fallback = options.includes("off") ? "off" : options[0];
   const resolvedValue =
     (selectedThinkingLevel &&
