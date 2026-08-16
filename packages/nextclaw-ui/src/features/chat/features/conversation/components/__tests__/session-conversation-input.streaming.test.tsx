@@ -140,8 +140,8 @@ function ThinkingPreferenceHarness() {
       modelLabel: 'GPT-5.6',
       providerLabel: 'OpenAI',
       thinkingCapability: {
-        supported: ['off', 'low', 'medium', 'high'] as ThinkingLevel[],
-        default: 'high' as const,
+        supported: ['low', 'medium', 'high'] as ThinkingLevel[],
+        default: 'medium' as const,
       },
     }],
     providersView: null,
@@ -176,7 +176,7 @@ function ThinkingPreferenceHarness() {
 }
 
 describe('SessionConversationInput thinking preference', () => {
-  it('switches from high to explicit off and persists the same value', async () => {
+  it('keeps explicit off when the provider only declares active thinking levels', async () => {
     useChatComposerDraftStore.setState({
       drafts: {
         'session:thinking-session': {

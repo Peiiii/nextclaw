@@ -5,7 +5,7 @@ import {
   type NcpRequestEnvelope,
   NcpEventType,
 } from "@nextclaw/ncp";
-import { NcpHttpAgentClientEndpoint } from "./index.js";
+import { NcpHttpAgentClientEndpoint } from "./ncp-http-agent-client.service.js";
 
 const now = "2026-03-12T00:00:00.000Z";
 
@@ -286,6 +286,8 @@ describe("createNcpHttpAgentClient edge cases", () => {
         fetchImpl,
         streamOpenTimeoutMs: 1_000,
       });
+      const received: NcpEndpointEvent[] = [];
+      client.subscribe((event) => received.push(event));
 
       const streamPromise = client.stream({ sessionId: "session-open-timeout" });
       const rejection = expect(streamPromise).rejects.toThrow(
@@ -294,6 +296,9 @@ describe("createNcpHttpAgentClient edge cases", () => {
       await vi.advanceTimersByTimeAsync(1_000);
 
       await rejection;
+      expect(received.map((event) => event.type)).not.toContain(
+        NcpEventType.EndpointError,
+      );
     } finally {
       vi.useRealTimers();
     }
@@ -308,7 +313,7 @@ describe("createNcpHttpAgentClient edge cases", () => {
       ): Promise<Response> => {
         let streamController!: ReadableStreamDefaultController<Uint8Array>;
         const body = new ReadableStream<Uint8Array>({
-          start(controller) {
+          start: (controller) => {
             streamController = controller;
           },
         });
@@ -325,6 +330,8 @@ describe("createNcpHttpAgentClient edge cases", () => {
         fetchImpl,
         streamIdleTimeoutMs: 1_000,
       });
+      const received: NcpEndpointEvent[] = [];
+      client.subscribe((event) => received.push(event));
 
       const streamPromise = client.stream(
         { sessionId: "session-idle-timeout" },
@@ -337,6 +344,9 @@ describe("createNcpHttpAgentClient edge cases", () => {
 
       expect(onOpen).toHaveBeenCalledOnce();
       await rejection;
+      expect(received.map((event) => event.type)).not.toContain(
+        NcpEventType.EndpointError,
+      );
     } finally {
       vi.useRealTimers();
     }
@@ -351,7 +361,7 @@ describe("createNcpHttpAgentClient edge cases", () => {
         init?: RequestInit,
       ): Promise<Response> => {
         const body = new ReadableStream<Uint8Array>({
-          start(controller) {
+          start: (controller) => {
             streamController = controller;
           },
         });
@@ -454,7 +464,7 @@ function createSseResponse(
   const first = bytes.slice(0, safeSplitAt);
   const second = bytes.slice(safeSplitAt);
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
+    start: (controller) => {
       controller.enqueue(first);
       controller.enqueue(second);
       controller.close();

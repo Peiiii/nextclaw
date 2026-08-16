@@ -539,6 +539,17 @@ describe('resolveRecentSessionPreferredModel', () => {
 });
 
 describe('resolveSelectedThinkingLevelValue', () => {
+  it('keeps explicit off when provider capabilities only declare active levels', () => {
+    expect(
+      resolveSelectedThinkingLevelValue({
+        currentSelectedThinkingLevel: 'off',
+        supportedThinkingLevels: ['low', 'medium', 'high'],
+        fallbackPreferredThinking: 'high',
+        defaultThinkingLevel: 'medium'
+      })
+    ).toBe('off');
+  });
+
   it('keeps the current selected thinking when it is still valid', () => {
     expect(
       resolveSelectedThinkingLevelValue({

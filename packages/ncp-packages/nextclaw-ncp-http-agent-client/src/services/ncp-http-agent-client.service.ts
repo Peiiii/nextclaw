@@ -11,8 +11,8 @@ import {
   type NcpStreamRequestPayload,
   NcpEventType,
 } from "@nextclaw/ncp";
-import { consumeSseStream } from "./sse.js";
-import { parseNcpEvent, parseNcpError } from "./parsers.js";
+import { consumeSseStream } from "../sse.js";
+import { parseNcpEvent, parseNcpError } from "../parsers.js";
 import {
   type FetchLike,
   DEFAULT_ENDPOINT_ID,
@@ -23,7 +23,7 @@ import {
   toNcpError,
   ncpErrorToError,
   isNcpHttpAgentClientError,
-} from "./utils.js";
+} from "../utils.js";
 
 const SUPPORTED_PART_TYPES: NcpEndpointManifest["supportedPartTypes"] = [
   "text",
@@ -103,15 +103,15 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     };
   }
 
-  async start(): Promise<void> {
+  start = async (): Promise<void> => {
     if (this.started) {
       return;
     }
     this.started = true;
     this.publish(createClientEvent({ type: NcpEventType.EndpointReady }));
-  }
+  };
 
-  async stop(): Promise<void> {
+  stop = async (): Promise<void> => {
     if (!this.started) {
       return;
     }
@@ -120,9 +120,9 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
       controller.abort();
     }
     this.activeControllers.clear();
-  }
+  };
 
-  async emit(event: NcpEndpointEvent): Promise<void> {
+  emit = async (event: NcpEndpointEvent): Promise<void> => {
     switch (event.type) {
       case "message.request":
         await this.send(event.payload);
@@ -137,16 +137,16 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         this.publish(event);
         return;
     }
-  }
+  };
 
-  subscribe(listener: NcpEndpointSubscriber): () => void {
+  subscribe = (listener: NcpEndpointSubscriber): (() => void) => {
     this.subscribers.add(listener);
     return () => {
       this.subscribers.delete(listener);
     };
-  }
+  };
 
-  async send(envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle> {
+  send = async (envelope: NcpAgentSendEnvelope): Promise<NcpRunHandle> => {
     await this.ensureStarted();
     const controller = new AbortController();
     this.activeControllers.add(controller);
@@ -184,12 +184,12 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     } finally {
       this.activeControllers.delete(controller);
     }
-  }
+  };
 
-  async stream(
+  stream = async (
     payload: NcpStreamRequestPayload,
     observer?: NcpAgentStreamObserver,
-  ): Promise<void> {
+  ): Promise<void> => {
     await this.ensureStarted();
     const query = new URLSearchParams({
       sessionId: payload.sessionId,
@@ -198,9 +198,9 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
       path: `/stream?${query.toString()}`,
       method: "GET",
     }, observer);
-  }
+  };
 
-  async abort(payload: NcpMessageAbortPayload): Promise<void> {
+  abort = async (payload: NcpMessageAbortPayload): Promise<void> => {
     await this.ensureStarted();
     const controller = new AbortController();
     this.activeControllers.add(controller);
@@ -230,28 +230,28 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     } finally {
       this.activeControllers.delete(controller);
     }
-  }
+  };
 
-  private async ensureStarted(): Promise<void> {
+  private ensureStarted = async (): Promise<void> => {
     if (!this.started) {
       await this.start();
     }
-  }
+  };
 
-  private publish(event: NcpEndpointEvent): void {
+  private publish = (event: NcpEndpointEvent): void => {
     for (const subscriber of this.subscribers) {
       subscriber(event);
     }
-  }
+  };
 
-  private resolveUrl(path: string): URL {
+  private resolveUrl = (path: string): URL => {
     return new URL(`${this.basePath}${path}`, this.baseUrl);
-  }
+  };
 
-  private async streamRequest(
+  private streamRequest = async (
     options: StreamRequestOptions,
     observer?: NcpAgentStreamObserver,
-  ): Promise<void> {
+  ): Promise<void> => {
     const { body, method, path } = options;
     const controller = new AbortController();
     this.activeControllers.add(controller);
@@ -328,15 +328,14 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
         throw error;
       }
       const ncpError = timeoutError ?? toNcpError(error);
-      this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: ncpError }));
       throw ncpErrorToError(ncpError);
     } finally {
       clearTimeoutTimer();
       this.activeControllers.delete(controller);
     }
-  }
+  };
 
-  private handleSseFrame(frame: { event: string; data: string }): void {
+  private handleSseFrame = (frame: { event: string; data: string }): void => {
     if (frame.event === "ncp-event") {
       const event = parseNcpEvent(frame.data);
       if (!event) {
@@ -358,5 +357,5 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
       this.publish(createClientEvent({ type: NcpEventType.EndpointError, payload: ncpError }));
       throw ncpErrorToError(ncpError, { alreadyPublished: true });
     }
-  }
+  };
 }

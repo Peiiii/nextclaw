@@ -108,6 +108,17 @@ export function normalizeThinkingLevels(values: unknown): ThinkingLevel[] {
   return deduped;
 }
 
+/**
+ * Provider capabilities describe active thinking efforts. NextClaw owns the
+ * explicit off state, so every declared thinking capability exposes it to chat
+ * consumers even when the provider does not repeat it in `supported`.
+ */
+export function resolveSelectableThinkingLevels(
+  supported: readonly ThinkingLevel[]
+): ThinkingLevel[] {
+  return supported.includes('off') ? [...supported] : ['off', ...supported];
+}
+
 export function normalizeModelConfigMap(
   input: ProviderConfigView['modelConfig'],
   aliases: string[]
