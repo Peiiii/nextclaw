@@ -9,6 +9,7 @@ import {
 } from '@/features/apps/components/app-marketplace-operation';
 import { isAppPackageOperationActive } from '@/features/apps/hooks/use-app-packages';
 import type { AppMarketplaceItemView } from '@/features/apps/types/app-marketplace.types';
+import { formatAppMarketplacePlatforms } from '@/features/apps/utils/app-marketplace-platform.utils';
 import { pickLocalizedText } from '@/features/marketplace';
 import {
   DialogDescription,
@@ -300,6 +301,8 @@ function MarketplaceCatalogCard({
               <span>{item.publisher.name}</span>
               <span aria-hidden="true">·</span>
               <span>v{item.latestVersion}</span>
+              <span aria-hidden="true">·</span>
+              <span>{formatAppMarketplacePlatforms(item.availability, t('appPackagesAllPlatforms'))}</span>
               <ChevronRight className="ml-0.5 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" />
             </span>
           </button>

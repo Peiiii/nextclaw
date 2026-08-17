@@ -6,12 +6,20 @@ import { registerAppRoutes } from "./app.controller";
 describe("app bundle HTTP contract", () => {
   it("returns 200 for a complete bundle and 206 only for a requested range", async () => {
     const dataSource = {
-      getBundle: async (_selector: string, _version: string, range?: string) => ({
+      getBundle: async (
+        _selector: string,
+        _version: string,
+        targetKey?: string,
+        range?: string,
+      ) => ({
         item: { slug: "probe" },
         version: {
           bundle_sha256: "bundle-sha",
           distribution_mode: "bundle",
         },
+        artifact: targetKey
+          ? { bundle_sha256: "target-sha" }
+          : undefined,
         object: {
           body: new Uint8Array(range ? 10 : 100),
           size: 100,
@@ -41,6 +49,13 @@ describe("app bundle HTTP contract", () => {
     expect(partial.status).toBe(206);
     expect(partial.headers.get("content-range")).toBe("bytes 0-9/100");
     expect(partial.headers.get("content-length")).toBe("10");
+
+    const targeted = await app.request(
+      "/api/v1/apps/items/probe/bundles/1.0.0?target=darwin-arm64&sha256=target-sha",
+    );
+    expect(targeted.status).toBe(200);
+    expect(targeted.headers.get("x-app-artifact-target")).toBe("darwin-arm64");
+    expect(targeted.headers.get("x-app-bundle-sha256")).toBe("target-sha");
   });
 });
 

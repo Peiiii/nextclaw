@@ -1,5 +1,5 @@
 import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
-import { ExternalLink, FileText, Server, ShieldAlert, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { ExternalLink, FileText, Monitor, Server, ShieldAlert, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import { AppMarketplaceCover } from '@/features/apps/components/app-marketplace-cover';
 import {
@@ -8,6 +8,7 @@ import {
 } from '@/features/apps/components/app-marketplace-operation';
 import { isAppPackageOperationActive } from '@/features/apps/hooks/use-app-packages';
 import type { AppMarketplaceDetailView } from '@/features/apps/types/app-marketplace.types';
+import { formatAppMarketplacePlatforms } from '@/features/apps/utils/app-marketplace-platform.utils';
 import { pickLocalizedText } from '@/features/marketplace';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { t } from '@/shared/lib/i18n';
@@ -90,6 +91,11 @@ export function MarketplaceDetail({
       </section>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <DetailFact
+          icon={Monitor}
+          label={t('appPackagesPlatformsLabel')}
+          value={formatAppMarketplacePlatforms(detail.availability, t('appPackagesAllPlatforms'))}
+        />
         <DetailFact icon={FileText} label={t('appPackagesPanelsAdded')} value={panelCount > 0 ? String(panelCount) : t('appPackagesNone')} />
         <DetailFact icon={Server} label={t('appPackagesServicesAdded')} value={serviceCount > 0 ? String(serviceCount) : t('appPackagesNone')} />
         {detail.manifest.engines?.nextclaw ? (

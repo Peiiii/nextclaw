@@ -1,4 +1,8 @@
-import type { AppPermissions, AppResolvedComponent } from "#app-runtime/types/app-manifest.types.js";
+import type {
+  AppArtifactTarget,
+  AppPermissions,
+  AppResolvedComponent,
+} from "#app-runtime/types/app-manifest.types.js";
 import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 import type { AppInstallSourceKind } from "#app-runtime/types/app-registry.types.js";
@@ -34,6 +38,7 @@ export type AppInstallResult = {
   registryUrl?: string;
   bundleUrl?: string;
   sha256?: string;
+  target?: AppArtifactTarget;
   publisher?: AppPublisher;
   enabled: boolean;
   manifestSchemaVersion: 1 | 2;
@@ -62,6 +67,7 @@ export type AppInfoResult = {
     registryUrl?: string;
     bundleUrl?: string;
     sha256?: string;
+    target?: AppArtifactTarget;
     publisher?: AppPublisher;
     manifestSchemaVersion: 1 | 2;
     components?: AppResolvedComponent[];

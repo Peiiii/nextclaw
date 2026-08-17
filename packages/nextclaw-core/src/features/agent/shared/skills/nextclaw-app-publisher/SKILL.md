@@ -16,6 +16,7 @@ description_zh: 使用 NextClaw 原生命令校验、组装并提交由 Panel Ap
 - 当前 schema v2 Service component 会在用户机器上启动本地进程并继承宿主环境，根 manifest 必须如实声明 `runtime.profile: native-process`；不要把它改成 `wasi`，因为当前没有 schema v2 WASI Service 执行合同。
 - 社区 Service App 可以提交公开上架，但必须进入高权限人工审核；管理员可审核为 `listed` 或 `unlisted`。不要承诺自动通过，也不要把人工审核说成平台不支持发布。
 - 不在 `~/.nextclaw/apps` 中创建开发源码。需要组包时写入当前 NextClaw workspace 的 `app-packages/<username>.<app-name>/`。
+- 原生 App 可只支持一个 target，也可支持多个 targets；root `distribution.targets` 是支持范围的唯一声明，`--artifacts` 目录中的 `<target-key>.napp` 必须与之精确一致。
 
 ## 上架资格门
 
@@ -61,7 +62,7 @@ description_zh: 使用 NextClaw 原生命令校验、组装并提交由 Panel Ap
 4. 校验完整发布包：
 
    ```bash
-   nextclaw app validate-publish <mini-app-dir> --json
+   nextclaw app validate-publish <mini-app-dir> [--artifacts <dir>] --json
    ```
 
    修复所有 error。`schema v2 Service components do not support a WASI runtime yet` 表示声明和真实执行方式冲突，必须恢复为 `native-process`，不能用 `--allow-warnings` 或删除权限声明绕过。出现其它 warning 时先用普通语言说明影响；只有用户确认后才在发布命令中加入 `--allow-warnings`。
@@ -69,7 +70,7 @@ description_zh: 使用 NextClaw 原生命令校验、组装并提交由 Panel Ap
 5. 用户已明确授权发布且校验通过后提交：
 
    ```bash
-   nextclaw app publish <mini-app-dir> --json
+   nextclaw app publish <mini-app-dir> [--artifacts <dir>] --json
    ```
 
    不传 `--token`、API base、registry 或分发 mode；这些由 NextClaw 登录态和内置发布链路负责。

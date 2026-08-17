@@ -15,11 +15,12 @@ export class AppPublishCommandController {
     target: string,
     options: AppPublishCommandOptions,
   ): Promise<void> => {
-    const { allowWarnings, json, meta } = options;
+    const { allowWarnings, artifacts, json, meta } = options;
     try {
       const result = await this.appPublishingService.publish({
         appDirectory: target,
         metadataPath: meta,
+        artifactsDirectory: artifacts,
         allowWarnings,
       });
       process.stdout.write(

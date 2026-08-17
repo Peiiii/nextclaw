@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { AppRegistryConfigService } from "./app-registry-config.service.js";
+import { AppPlatformTargetService } from "./app-platform-target.service.js";
 import type {
+  AppRemoteRegistryArtifact,
   AppRemoteRegistryDocument,
   AppRemoteRegistryResolution,
   AppRemoteRegistryVersion,
@@ -14,6 +16,7 @@ const MAX_REGISTRY_GET_ATTEMPTS = 3;
 export class AppRemoteRegistryClientService {
   constructor(
     private readonly configService: AppRegistryConfigService = new AppRegistryConfigService(),
+    private readonly platformTargetService: AppPlatformTargetService = new AppPlatformTargetService(),
   ) {}
 
   resolve = async (params: {
@@ -32,10 +35,29 @@ export class AppRemoteRegistryClientService {
       async (response) => await response.json(),
     );
     const document = this.parseDocument(rawDocument, appId);
-    const version = requestedVersion ?? document["dist-tags"].latest;
-    const versionRecord = document.versions[version];
-    if (!versionRecord) {
-      throw new Error(`registry ${registryUrl} 未提供 ${appId}@${version}。`);
+    const hostTarget = this.platformTargetService.readHostTarget();
+    const selectedVersion = requestedVersion
+      ? this.readRequestedVersion(document, requestedVersion, registryUrl, appId)
+      : this.selectDefaultVersion(document, hostTarget);
+    const versionRecord = selectedVersion
+      ? document.versions[selectedVersion.version]
+      : undefined;
+    if (!selectedVersion || !versionRecord) {
+      throw new Error(
+        requestedVersion
+          ? `registry ${registryUrl} 未提供 ${appId}@${requestedVersion}。`
+          : `registry ${registryUrl} 没有适用于当前 target ${this.platformTargetService.toTargetKey(hostTarget)} 的 ${appId} 版本。`,
+      );
+    }
+    const version = selectedVersion.version;
+    const artifact = this.platformTargetService.selectArtifact(
+      this.readVersionArtifacts(versionRecord),
+      hostTarget,
+    );
+    if (!artifact) {
+      throw new Error(
+        `${appId}@${version} 不支持当前 target ${this.platformTargetService.toTargetKey(hostTarget)}。`,
+      );
     }
     return {
       registryUrl,
@@ -45,14 +67,14 @@ export class AppRemoteRegistryClientService {
       description: versionRecord.description ?? document.description,
       publisher: versionRecord.publisher,
       permissions: versionRecord.permissions,
-      distributionMode: versionRecord.dist.kind === "source" ? "source" : "bundle",
+      distributionMode:
+        versionRecord.dist.kind === "source" ? "source" : "bundle",
+      target: artifact.target,
       bundleUrl: new URL(
-        versionRecord.dist.artifact ??
-          versionRecord.dist.source ??
-          versionRecord.dist.bundle,
+        artifact.bundle,
         metadataUrl,
       ).toString(),
-      sha256: versionRecord.dist.sha256,
+      sha256: artifact.sha256,
     };
   };
 
@@ -86,7 +108,7 @@ export class AppRemoteRegistryClientService {
     }
     const bundlePath = path.join(
       targetDirectory,
-      `${this.normalizeBundleFileName(resolution.appId)}-${resolution.version}.napp`,
+      `${this.normalizeBundleFileName(resolution.appId)}-${resolution.version}-${this.platformTargetService.toTargetKey(resolution.target)}.napp`,
     );
     await writeFile(bundlePath, bundleBytes);
     return {
@@ -154,6 +176,36 @@ export class AppRemoteRegistryClientService {
       throw new Error(`registry metadata 的 versions.${version}.dist 必须是对象。`);
     }
     const distCandidate = dist as Record<string, unknown>;
+    if (distCandidate.kind === "targeted-bundle") {
+      if (!Array.isArray(distCandidate.artifacts) || distCandidate.artifacts.length === 0) {
+        throw new Error(
+          `registry metadata 的 versions.${version}.dist.artifacts 必须是非空数组。`,
+        );
+      }
+      const artifacts = distCandidate.artifacts.map((artifact, index) =>
+        this.parseTargetedArtifact(artifact, version, index));
+      const targetKeys = artifacts.map((artifact) =>
+        this.platformTargetService.toTargetKey(artifact.target));
+      const duplicate = targetKeys.find(
+        (targetKey, index) => targetKeys.indexOf(targetKey) !== index,
+      );
+      if (duplicate) {
+        throw new Error(
+          `registry metadata 的 versions.${version}.dist.artifacts 包含重复 target：${duplicate}`,
+        );
+      }
+      return {
+        name,
+        version: parsedVersion,
+        description: this.readOptionalString(
+          candidate.description,
+          `versions.${version}.description`,
+        ),
+        publisher: this.parsePublisher(candidate.publisher, version),
+        permissions: candidate.permissions as AppRemoteRegistryVersion["permissions"],
+        dist: { kind: "targeted-bundle", artifacts },
+      };
+    }
     return {
       name,
       version: parsedVersion,
@@ -186,6 +238,98 @@ export class AppRemoteRegistryClientService {
         ),
       },
     };
+  };
+
+  private parseTargetedArtifact = (
+    rawArtifact: unknown,
+    version: string,
+    index: number,
+  ): AppRemoteRegistryArtifact => {
+    if (!rawArtifact || typeof rawArtifact !== "object" || Array.isArray(rawArtifact)) {
+      throw new Error(
+        `versions.${version}.dist.artifacts[${index}] 必须是对象。`,
+      );
+    }
+    const candidate = rawArtifact as Record<string, unknown>;
+    const sizeBytes = candidate.sizeBytes;
+    if (
+      sizeBytes !== undefined &&
+      (typeof sizeBytes !== "number" || !Number.isSafeInteger(sizeBytes) || sizeBytes < 1)
+    ) {
+      throw new Error(
+        `versions.${version}.dist.artifacts[${index}].sizeBytes 必须是正整数。`,
+      );
+    }
+    return {
+      target: this.platformTargetService.parseArtifactTarget(
+        candidate.target,
+        `versions.${version}.dist.artifacts[${index}].target`,
+      ),
+      bundle: this.readRequiredString(
+        candidate.bundle,
+        `versions.${version}.dist.artifacts[${index}].bundle`,
+      ),
+      sha256: this.readRequiredString(
+        candidate.sha256,
+        `versions.${version}.dist.artifacts[${index}].sha256`,
+      ),
+      sizeBytes: sizeBytes as number | undefined,
+    };
+  };
+
+  private readVersionArtifacts = (
+    version: AppRemoteRegistryVersion,
+  ): AppRemoteRegistryArtifact[] => {
+    if (version.dist.kind === "targeted-bundle") {
+      return version.dist.artifacts;
+    }
+    return [{
+      target: { kind: "universal" },
+      bundle:
+        version.dist.artifact ?? version.dist.source ?? version.dist.bundle,
+      sha256: version.dist.sha256,
+    }];
+  };
+
+  private readRequestedVersion = (
+    document: AppRemoteRegistryDocument,
+    version: string,
+    registryUrl: string,
+    appId: string,
+  ): { version: string; artifacts: AppRemoteRegistryArtifact[] } => {
+    const versionRecord = document.versions[version];
+    if (!versionRecord) {
+      throw new Error(`registry ${registryUrl} 未提供 ${appId}@${version}。`);
+    }
+    return { version, artifacts: this.readVersionArtifacts(versionRecord) };
+  };
+
+  private selectDefaultVersion = (
+    document: AppRemoteRegistryDocument,
+    hostTarget: ReturnType<AppPlatformTargetService["readHostTarget"]>,
+  ): { version: string; artifacts: AppRemoteRegistryArtifact[] } | undefined => {
+    const latestVersion = document["dist-tags"].latest;
+    const latestRecord = document.versions[latestVersion];
+    if (!latestRecord) {
+      throw new Error(`registry metadata 的 dist-tags.latest 指向不存在的版本 ${latestVersion}。`);
+    }
+    const latest = {
+      version: latestVersion,
+      artifacts: this.readVersionArtifacts(latestRecord),
+    };
+    if (this.platformTargetService.selectArtifact(latest.artifacts, hostTarget)) {
+      return latest;
+    }
+    return this.platformTargetService.selectLatestCompatibleVersion(
+      Object.entries(document.versions)
+        .filter(([version]) =>
+          this.platformTargetService.compareVersions(version, latestVersion) <= 0)
+        .map(([version, versionRecord]) => ({
+          version,
+          artifacts: this.readVersionArtifacts(versionRecord),
+        })),
+      hostTarget,
+    );
   };
 
   private parsePublisher = (

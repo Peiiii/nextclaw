@@ -12,6 +12,11 @@ export type AppMarketplaceItemView = {
   tags: string[];
   latestVersion: string;
   featured: boolean;
+  availability?: {
+    mode: 'universal' | 'targeted';
+    targets: string[];
+    operatingSystems: Array<'darwin' | 'linux' | 'win32'>;
+  };
   publisher: {
     id: string;
     name: string;

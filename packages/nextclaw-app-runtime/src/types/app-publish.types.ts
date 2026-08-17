@@ -1,5 +1,6 @@
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 import type {
+  AppArtifactTarget,
   AppManifest,
   AppPermissions,
 } from "#app-runtime/types/app-manifest.types.js";
@@ -33,7 +34,14 @@ export type AppPublishFile = {
   contentBase64: string;
 };
 
-export type AppPublishPayload = {
+export type AppPublishArtifact = {
+  target: AppArtifactTarget;
+  bundleBase64: string;
+  bundleSha256: string;
+  sizeBytes: number;
+};
+
+type AppPublishPayloadBase = {
   slug: string;
   appId: string;
   name: string;
@@ -52,10 +60,21 @@ export type AppPublishPayload = {
   distributionMode: AppDistributionMode;
   manifest: AppManifest;
   permissions: AppPermissions;
-  bundleBase64: string;
-  bundleSha256: string;
   files: AppPublishFile[];
 };
+
+export type AppPublishPayload = AppPublishPayloadBase & (
+  | {
+      bundleBase64: string;
+      bundleSha256: string;
+      artifacts?: never;
+    }
+  | {
+      bundleBase64?: never;
+      bundleSha256?: never;
+      artifacts: AppPublishArtifact[];
+    }
+);
 
 export type AppPublishResult = {
   created: boolean;
@@ -76,9 +95,15 @@ export type AppPublishResult = {
     };
   };
   distribution: {
-    path: string;
-    sha256: string;
+    path?: string;
+    sha256?: string;
     mode: AppDistributionMode;
+    artifacts?: Array<{
+      target: AppArtifactTarget;
+      path?: string;
+      sha256: string;
+      sizeBytes: number;
+    }>;
   };
   fileCount: number;
 };

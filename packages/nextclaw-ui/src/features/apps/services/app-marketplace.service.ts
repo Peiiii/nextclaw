@@ -206,12 +206,23 @@ function isAppMarketplaceItem(value: unknown): value is AppMarketplaceItemView {
     && value.tags.every((tag) => typeof tag === 'string')
     && typeof value.latestVersion === 'string'
     && typeof value.featured === 'boolean'
+    && (value.availability === undefined || isAppAvailability(value.availability))
     && typeof value.publisher.id === 'string'
     && typeof value.publisher.name === 'string'
     && value.install.kind === 'registry'
     && typeof value.install.spec === 'string'
     && typeof value.install.registry === 'string'
     && typeof value.webUrl === 'string';
+}
+
+function isAppAvailability(value: unknown): boolean {
+  if (!isRecord(value) || (value.mode !== 'universal' && value.mode !== 'targeted')) {
+    return false;
+  }
+  return Array.isArray(value.targets)
+    && value.targets.every((target) => typeof target === 'string')
+    && Array.isArray(value.operatingSystems)
+    && value.operatingSystems.every((os) => os === 'darwin' || os === 'linux' || os === 'win32');
 }
 
 function isStringRecord(value: unknown): value is Record<string, string> {

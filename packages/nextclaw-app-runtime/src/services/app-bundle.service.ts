@@ -4,9 +4,11 @@ import path from "node:path";
 import { strToU8, zipSync } from "fflate";
 import { AppArtifactValidationService } from "#app-runtime/services/app-artifact-validation.service.js";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
+import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
 import {
   isAppComponentManifestBundle,
   isAppStandaloneManifestBundle,
+  type AppArtifactTarget,
   type AppManifestBundle,
 } from "#app-runtime/types/app-manifest.types.js";
 import type {
@@ -25,6 +27,8 @@ const CHECKSUMS_PATH = ".napp/checksums.json";
 const BUNDLE_METADATA_PATH = ".napp/bundle.json";
 
 export class AppBundleService {
+  private readonly platformTargetService = new AppPlatformTargetService();
+
   constructor(
     private readonly manifestService: AppManifestService = new AppManifestService(),
     private readonly artifactValidationService: AppArtifactValidationService = new AppArtifactValidationService(),
@@ -34,13 +38,15 @@ export class AppBundleService {
     appDirectory: string;
     outputPath?: string;
     mode?: AppDistributionMode;
+    target?: AppArtifactTarget;
   }): Promise<AppBundlePackResult> => {
-    const { appDirectory, outputPath, mode: requestedMode } = params;
+    const { appDirectory, outputPath, mode: requestedMode, target } = params;
     const bundle = await this.manifestService.load(appDirectory);
     const mode = requestedMode ?? "bundle";
     if (isAppComponentManifestBundle(bundle) && mode !== "bundle") {
       throw new Error("schema v2 组合包只支持 bundle 分发，不允许运行安装脚本。");
     }
+    this.assertTargetAllowed(bundle, target);
     const { appFiles, filePaths } = mode === "source"
       ? await this.collectSourceFiles(bundle)
       : await this.collectRuntimeFiles(bundle);
@@ -50,6 +56,7 @@ export class AppBundleService {
       bundle.manifest.name,
       bundle.manifest.version,
       mode,
+      target,
     );
     const bundleJsonBytes = strToU8(`${JSON.stringify(metadata, null, 2)}\n`);
     const checksums = this.buildChecksums({
@@ -72,7 +79,9 @@ export class AppBundleService {
       ? path.resolve(outputPath)
       : path.join(
           path.dirname(bundle.appDirectory),
-          `${this.normalizeBundleFileName(bundle.manifest.id)}-${bundle.manifest.version}.napp`,
+          `${this.normalizeBundleFileName(bundle.manifest.id)}-${bundle.manifest.version}${
+            target ? `-${this.platformTargetService.toTargetKey(target)}` : ""
+          }.napp`,
         );
     await mkdir(path.dirname(resolvedOutputPath), { recursive: true });
     await writeFile(resolvedOutputPath, Buffer.from(archiveBytes));
@@ -349,15 +358,52 @@ export class AppBundleService {
     name: string,
     version: string,
     distributionMode: AppDistributionMode,
+    target?: AppArtifactTarget,
   ): AppBundleMetadata => ({
     bundleFormatVersion: 1,
     distributionMode,
     appId,
     name,
     version,
+    target,
     entryManifest: "manifest.json",
     checksumsFile: CHECKSUMS_PATH,
   });
+
+  private assertTargetAllowed = (
+    bundle: AppManifestBundle,
+    target: AppArtifactTarget | undefined,
+  ): void => {
+    if (!isAppComponentManifestBundle(bundle)) {
+      if (target && target.kind !== "universal") {
+        throw new Error("schema v1 artifact 只支持 universal target。");
+      }
+      return;
+    }
+    const distribution = this.platformTargetService.resolveDistribution(
+      bundle.manifest.distribution,
+    );
+    if (!target) {
+      if (distribution.mode === "targeted") {
+        throw new Error("targeted App 打包时必须指定 artifact target。");
+      }
+      return;
+    }
+    if (distribution.mode === "universal") {
+      if (target.kind !== "universal") {
+        throw new Error("universal App 不能打包为 native target artifact。");
+      }
+      return;
+    }
+    if (target.kind === "universal") {
+      throw new Error("targeted App 不能打包为 universal artifact。");
+    }
+    const targetKey = this.platformTargetService.toTargetKey(target);
+    if (!distribution.targets.some((entry) =>
+      this.platformTargetService.toTargetKey(entry) === targetKey)) {
+      throw new Error(`artifact target 未在 manifest distribution 中声明：${targetKey}`);
+    }
+  };
 
   private buildChecksums = (files: Record<string, Uint8Array>): AppBundleChecksums => ({
     algorithm: "sha256",

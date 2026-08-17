@@ -1,7 +1,14 @@
 import type { AppPublishValidationResult } from "@nextclaw/app-runtime";
 
+export type AppPackCommandOptions = {
+  out: string;
+  target: string;
+  json?: boolean;
+};
+
 export type AppPublishingCommandOptions = {
   meta?: string;
+  artifacts?: string;
   json?: boolean;
 };
 

@@ -5,11 +5,14 @@ import path from "node:path";
 import { AppBundleService } from "#app-runtime/services/app-bundle.service.js";
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
+import type { AppArtifactTarget } from "#app-runtime/types/app-manifest.types.js";
 import {
   isAppComponentManifestBundle,
   isAppStandaloneManifestBundle,
 } from "#app-runtime/types/app-manifest.types.js";
 import { AppMarketplaceMetadataService } from "./app-marketplace-metadata.service.js";
+import { AppPlatformTargetService } from "./app-platform-target.service.js";
+import { AppPublishArtifactService } from "./app-publish-artifact.service.js";
 
 const MAIN_ENTRY_WARN_BYTES = 10 * 1024 * 1024;
 const BUNDLE_WARN_BYTES = 5 * 1024 * 1024;
@@ -37,6 +40,14 @@ export type AppPublishValidationResult = {
   componentCount?: number;
   bundleSizeBytes: number;
   bundleFilePaths: string[];
+  artifacts?: Array<{
+    target: AppArtifactTarget;
+    targetKey: string;
+    path: string;
+    sha256: string;
+    sizeBytes: number;
+    filePaths: string[];
+  }>;
   warnings: AppPublishValidationWarning[];
 };
 
@@ -45,12 +56,15 @@ export class AppPublishValidationService {
     private readonly manifestService: AppManifestService = new AppManifestService(),
     private readonly metadataService: AppMarketplaceMetadataService = new AppMarketplaceMetadataService(),
     private readonly bundleService: AppBundleService = new AppBundleService(),
+    private readonly publishArtifactService: AppPublishArtifactService = new AppPublishArtifactService(),
+    private readonly platformTargetService: AppPlatformTargetService = new AppPlatformTargetService(),
   ) {}
 
   validate = async (params: {
     appDirectory: string;
     metadataPath?: string;
     mode?: AppDistributionMode;
+    artifactsDirectory?: string;
   }): Promise<AppPublishValidationResult> => {
     const {
       appDirectory: inputAppDirectory,
@@ -69,6 +83,52 @@ export class AppPublishValidationService {
       manifest: bundle.manifest,
       metadataPath,
     });
+    const distribution = bundle.manifest.schemaVersion === 2
+      ? this.platformTargetService.resolveDistribution(bundle.manifest.distribution)
+      : { mode: "universal" as const };
+    if (distribution.mode === "targeted") {
+      if (!params.artifactsDirectory?.trim()) {
+        throw new Error("targeted App 发布校验需要通过 --artifacts 指定平台 artifact 目录。");
+      }
+      if (!isAppComponentManifestBundle(bundle)) {
+        throw new Error("只有 schema v2 component App 支持 targeted artifacts。");
+      }
+      const artifacts = await this.publishArtifactService.collect({
+        manifest: bundle.manifest,
+        artifactsDirectory: params.artifactsDirectory,
+      });
+      const bundleSizeBytes = artifacts.reduce(
+        (total, artifact) => total + artifact.sizeBytes,
+        0,
+      );
+      const warnings = artifacts.flatMap((artifact) =>
+        this.buildWarnings({ bundleSizeBytes: artifact.sizeBytes }).map((warning) => ({
+          ...warning,
+          message: `${artifact.targetKey}: ${warning.message}`,
+        })),
+      );
+      return {
+        ok: true,
+        appDirectory,
+        metadataPath,
+        appId: bundle.manifest.id,
+        version: bundle.manifest.version,
+        distributionMode,
+        profile: "components",
+        componentCount: bundle.components.length,
+        bundleSizeBytes,
+        bundleFilePaths: [],
+        artifacts: artifacts.map((artifact) => ({
+          target: artifact.target,
+          targetKey: artifact.targetKey,
+          path: artifact.bundlePath,
+          sha256: artifact.sha256,
+          sizeBytes: artifact.sizeBytes,
+          filePaths: artifact.filePaths,
+        })),
+        warnings,
+      };
+    }
 
     const tempDirectory = await mkdtemp(path.join(tmpdir(), "napp-validate-publish-"));
     try {

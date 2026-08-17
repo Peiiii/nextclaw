@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AppCover } from "@/features/app-marketplace/components/app-cover.js";
 import type { AppItemSummary } from "@/features/app-marketplace/types/app-marketplace.types.js";
+import { formatAppPlatformLabel } from "@/features/app-marketplace/utils/app-platform-label.utils.js";
 
 export function AppCard({ item }: { item: AppItemSummary }) {
   const [iconFailed, setIconFailed] = useState(false);
@@ -34,7 +35,7 @@ export function AppCard({ item }: { item: AppItemSummary }) {
       </div>
       <p className="app-card__summary">{summary}</p>
       <div className="app-card__footer">
-        <span>{localizedTag(item.tags[0])}</span>
+        <span>{localizedTag(item.tags[0])} · {formatAppPlatformLabel(item.availability)}</span>
         <Link to={`/apps/${item.slug}`} aria-label={`查看 ${item.name} 详情`}>查看</Link>
       </div>
     </article>

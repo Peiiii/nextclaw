@@ -74,6 +74,7 @@ export type MarketplaceAppComponentManifest = {
   runtime?: {
     profile: "panel-only" | "wasi" | "native-process";
   };
+  distribution?: AppDistributionDeclaration;
   storage?: {
     scope: "global";
     schemaVersion: number;
@@ -94,12 +95,19 @@ export type MarketplaceAppFileInput = {
   contentBase64: string;
 };
 
+export type MarketplaceAppArtifactInput = {
+  target: AppArtifactTarget;
+  bundleBase64: string;
+  bundleSha256: string;
+  sizeBytes: number;
+};
+
 export type MarketplaceAppVisuals = {
   cover: string;
   accentColor: string;
 };
 
-export type MarketplaceAppPublishInput = {
+type MarketplaceAppPublishInputBase = {
   requireExisting?: boolean;
   slug: string;
   appId: string;
@@ -119,9 +127,26 @@ export type MarketplaceAppPublishInput = {
   manifest: MarketplaceAppManifest;
   permissions: AppPermissions;
   distributionMode: AppDistributionMode;
-  bundleBase64: string;
-  bundleSha256: string;
   files: MarketplaceAppFileInput[];
+};
+
+export type MarketplaceAppPublishInput = MarketplaceAppPublishInputBase & (
+  | {
+      bundleBase64: string;
+      bundleSha256: string;
+      artifacts?: never;
+    }
+  | {
+      bundleBase64?: never;
+      bundleSha256?: never;
+      artifacts: MarketplaceAppArtifactInput[];
+    }
+);
+
+export type MarketplaceAppAvailability = {
+  mode: "universal" | "targeted";
+  targets: string[];
+  operatingSystems: Array<"darwin" | "linux" | "win32">;
 };
 
 export type MarketplaceAppCatalogVisibility = "listed" | "unlisted";
@@ -146,6 +171,7 @@ export type MarketplaceAppItemSummary = {
   publisher: AppPublisher;
   install: AppInstallSpec;
   webUrl: string;
+  availability: MarketplaceAppAvailability;
 };
 
 export type MarketplaceAppItemDetail = MarketplaceAppItemSummary & {
@@ -165,8 +191,15 @@ export type MarketplaceAppItemDetail = MarketplaceAppItemSummary & {
     publishedAt: string;
     updatedAt: string;
     distributionMode: AppDistributionMode;
-    bundleSha256: string;
-    downloadPath: string;
+    bundleSha256?: string;
+    downloadPath?: string;
+    artifacts?: Array<{
+      target: AppArtifactTarget;
+      targetKey: string;
+      sha256: string;
+      sizeBytes: number;
+      downloadPath: string;
+    }>;
   }>;
 };
 
@@ -274,6 +307,19 @@ export type MarketplaceAppVersionRow = {
   updated_at: string;
 };
 
+export type MarketplaceAppArtifactRow = {
+  item_id: string;
+  version: string;
+  target_key: string;
+  target_json: string;
+  bundle_sha256: string;
+  size_bytes: number;
+  bundle_storage_key: string;
+  status: "active" | "blocked";
+  created_at: string;
+  updated_at: string;
+};
+
 export type MarketplaceAppFileRow = {
   item_id: string;
   path: string;
@@ -321,8 +367,15 @@ export type MarketplaceOwnerAppDetail = MarketplaceOwnerAppSummary & {
     publishedAt: string;
     updatedAt: string;
     distributionMode: AppDistributionMode;
-    bundleSha256: string;
-    downloadPath: string;
+    bundleSha256?: string;
+    downloadPath?: string;
+    artifacts?: Array<{
+      target: AppArtifactTarget;
+      targetKey: string;
+      sha256: string;
+      sizeBytes: number;
+      downloadPath: string;
+    }>;
   }>;
   canShow: boolean;
   canHide: boolean;
@@ -366,8 +419,15 @@ export type MarketplaceAdminAppDetail = MarketplaceAdminAppSummary & {
     version: string;
     publishedAt: string;
     updatedAt: string;
-    bundleSha256: string;
-    downloadPath: string;
+    bundleSha256?: string;
+    downloadPath?: string;
+    artifacts?: Array<{
+      target: AppArtifactTarget;
+      targetKey: string;
+      sha256: string;
+      sizeBytes: number;
+      downloadPath: string;
+    }>;
   }>;
 };
 
@@ -388,3 +448,7 @@ export type MarketplaceAdminAppListResult = {
   query?: string;
   items: MarketplaceAdminAppSummary[];
 };
+import type {
+  AppArtifactTarget,
+  AppDistributionDeclaration,
+} from "@nextclaw/app-runtime";

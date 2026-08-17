@@ -1,3 +1,5 @@
+import type { AppArtifactTarget } from "#app-runtime/types/app-manifest.types.js";
+
 export type AppDistributionMode = "bundle" | "source";
 
 export type AppBundleMetadata = {
@@ -6,6 +8,7 @@ export type AppBundleMetadata = {
   appId: string;
   name: string;
   version: string;
+  target?: AppArtifactTarget;
   entryManifest: "manifest.json";
   checksumsFile: ".napp/checksums.json";
 };

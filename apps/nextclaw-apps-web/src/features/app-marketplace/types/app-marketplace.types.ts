@@ -27,6 +27,11 @@ export type AppItemSummary = {
   updatedAt: string;
   latestVersion: string;
   featured: boolean;
+  availability?: {
+    mode: "universal" | "targeted";
+    targets: string[];
+    operatingSystems: Array<"darwin" | "linux" | "win32">;
+  };
   publisher: AppPublisher;
   install: AppInstallSpec;
   webUrl: string;

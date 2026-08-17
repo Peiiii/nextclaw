@@ -81,6 +81,82 @@ describe("MarketplaceAppPayloadParser runtime risk", () => {
   });
 });
 
+describe("MarketplaceAppPayloadParser platform artifacts", () => {
+  it("accepts one or multiple artifacts when they exactly match declared targets", () => {
+    const input = buildInput({
+      cover: "marketplace-assets/cover.webp",
+      accentColor: "#74816B",
+    });
+    input.manifest = {
+      schemaVersion: 2,
+      id: "nextclaw.hello-notes",
+      name: "Hello Notes",
+      version: "0.1.0",
+      runtime: { profile: "native-process" },
+      distribution: {
+        mode: "targeted",
+        targets: [
+          { kind: "native", os: "linux", arch: "x64", abi: "gnu" },
+          { kind: "native", os: "darwin", arch: "arm64" },
+        ],
+      },
+      components: [{ kind: "service", path: "services/notes" }],
+    };
+    delete input.bundleBase64;
+    delete input.bundleSha256;
+    input.artifacts = [
+      {
+        target: { kind: "native", os: "darwin", arch: "arm64" },
+        bundleBase64: "YXBw",
+        bundleSha256: "darwin-sha",
+        sizeBytes: 3,
+      },
+      {
+        target: { kind: "native", os: "linux", arch: "x64", abi: "gnu" },
+        bundleBase64: "YXBw",
+        bundleSha256: "linux-sha",
+        sizeBytes: 3,
+      },
+    ];
+
+    const parsed = new MarketplaceAppPayloadParser().parsePublishInput(input);
+
+    expect(parsed.artifacts).toHaveLength(2);
+  });
+
+  it("rejects a targeted release when a declared platform artifact is missing", () => {
+    const input = buildInput({
+      cover: "marketplace-assets/cover.webp",
+      accentColor: "#74816B",
+    });
+    input.manifest = {
+      schemaVersion: 2,
+      id: "nextclaw.hello-notes",
+      name: "Hello Notes",
+      version: "0.1.0",
+      distribution: {
+        mode: "targeted",
+        targets: [
+          { kind: "native", os: "linux", arch: "x64", abi: "gnu" },
+          { kind: "native", os: "darwin", arch: "arm64" },
+        ],
+      },
+      components: [{ kind: "service", path: "services/notes" }],
+    };
+    delete input.bundleBase64;
+    delete input.bundleSha256;
+    input.artifacts = [{
+      target: { kind: "native", os: "linux", arch: "x64", abi: "gnu" },
+      bundleBase64: "YXBw",
+      bundleSha256: "linux-sha",
+      sizeBytes: 3,
+    }];
+
+    expect(() => new MarketplaceAppPayloadParser().parsePublishInput(input))
+      .toThrow("声明 targets 与submitted artifacts 不一致");
+  });
+});
+
 function buildInput(visuals: { cover: string; accentColor: string }): Record<string, unknown> {
   return {
     slug: "hello-notes",

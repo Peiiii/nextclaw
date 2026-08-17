@@ -15,6 +15,7 @@ import { AppBuildService } from "#app-runtime/services/app-build.service.js";
 import type { AppBundleExtractResult } from "#app-runtime/types/app-bundle.types.js";
 import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
 import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
+import type { AppRegistryInstalledVersion } from "#app-runtime/types/app-registry.types.js";
 import { AppRegistryConfigService } from "#app-runtime/services/app-registry-config.service.js";
 import { AppRemoteRegistryClientService } from "#app-runtime/services/app-remote-registry-client.service.js";
 import { AppRegistryService } from "#app-runtime/services/app-registry.service.js";
@@ -50,6 +51,8 @@ type PreparedAppInstall = {
   manifestBundle: AppManifestBundle;
   options: AppInstallOptions;
 };
+
+type RemoteSourceFields = Pick<AppRegistryInstalledVersion, "registryUrl" | "bundleUrl" | "sha256" | "target">;
 
 export class AppInstallationService {
   private readonly installSourceService: AppInstallSourceService;
@@ -212,11 +215,7 @@ export class AppInstallationService {
         permissions: manifestBundle.manifest.schemaVersion === 1
           ? manifestBundle.manifest.permissions ?? {}
           : this.manifestService.resolvePlatformSecurity(manifestBundle.manifest).permissions,
-        registryUrl: source.kind === "registry"
-          ? source.registryResolution.registryUrl
-          : undefined,
-        bundleUrl: source.kind === "registry" ? source.registryResolution.bundleUrl : undefined,
-        sha256: source.kind === "registry" ? source.registryResolution.sha256 : undefined,
+        ...this.readRemoteSourceFields(source.kind === "registry" ? source.registryResolution : undefined),
         publisher,
         manifestSchemaVersion: manifestBundle.manifest.schemaVersion,
         components: isAppComponentManifestBundle(manifestBundle)
@@ -264,9 +263,7 @@ export class AppInstallationService {
       sourceRef: source.sourceRef,
       distributionMode: installedVersion?.distributionMode,
       permissions: installedVersion?.permissions ?? {},
-      registryUrl: installedVersion?.registryUrl,
-      bundleUrl: installedVersion?.bundleUrl,
-      sha256: installedVersion?.sha256,
+      ...this.readRemoteSourceFields(installedVersion),
       publisher: installedVersion?.publisher,
       enabled: registryRecord.enabled,
       manifestSchemaVersion: installedVersion?.manifestSchemaVersion ?? 1,
@@ -401,9 +398,7 @@ export class AppInstallationService {
             installedAt: activeVersion.installedAt,
             distributionMode: activeVersion.distributionMode,
             permissions: activeVersion.permissions,
-            registryUrl: activeVersion.registryUrl,
-            bundleUrl: activeVersion.bundleUrl,
-            sha256: activeVersion.sha256,
+            ...this.readRemoteSourceFields(activeVersion),
             publisher: currentRecord.publisher ?? activeVersion.publisher,
             manifestSchemaVersion: activeVersion.manifestSchemaVersion,
             components: activeVersion.components,
@@ -456,9 +451,7 @@ export class AppInstallationService {
         sourceRef: versionRecord.sourceRef,
         installedAt: versionRecord.installedAt,
         permissions: versionRecord.permissions,
-        registryUrl: versionRecord.registryUrl,
-        bundleUrl: versionRecord.bundleUrl,
-        sha256: versionRecord.sha256,
+        ...this.readRemoteSourceFields(versionRecord),
         publisher: versionRecord.publisher,
         manifestSchemaVersion: versionRecord.manifestSchemaVersion,
         components: versionRecord.components,
@@ -584,6 +577,13 @@ export class AppInstallationService {
       },
     };
   };
+
+  private readRemoteSourceFields = (source?: RemoteSourceFields): RemoteSourceFields => ({
+    registryUrl: source?.registryUrl,
+    bundleUrl: source?.bundleUrl,
+    sha256: source?.sha256,
+    target: source?.target,
+  });
 
   persistGrants = async (
     appId: string | undefined,

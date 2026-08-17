@@ -23,6 +23,48 @@ export type AppRuntimeDeclaration = {
   profile: AppRuntimeProfile;
 };
 
+export type AppArtifactArchitecture = "x64" | "arm64";
+
+export type AppDarwinArtifactTarget = {
+  kind: "native";
+  os: "darwin";
+  arch: AppArtifactArchitecture;
+};
+
+export type AppLinuxArtifactTarget = {
+  kind: "native";
+  os: "linux";
+  arch: AppArtifactArchitecture;
+  abi: "gnu" | "musl";
+};
+
+export type AppWindowsArtifactTarget = {
+  kind: "native";
+  os: "win32";
+  arch: AppArtifactArchitecture;
+  abi: "msvc";
+};
+
+export type AppNativeArtifactTarget =
+  | AppDarwinArtifactTarget
+  | AppLinuxArtifactTarget
+  | AppWindowsArtifactTarget;
+
+export type AppUniversalArtifactTarget = {
+  kind: "universal";
+};
+
+export type AppArtifactTarget =
+  | AppUniversalArtifactTarget
+  | AppNativeArtifactTarget;
+
+export type AppDistributionDeclaration =
+  | { mode: "universal" }
+  | {
+      mode: "targeted";
+      targets: AppNativeArtifactTarget[];
+    };
+
 export type AppStorageDeclaration = {
   scope: "global";
   schemaVersion: number;
@@ -87,6 +129,7 @@ export type AppComponentManifest = {
     primaryPanel?: string;
   };
   runtime?: AppRuntimeDeclaration;
+  distribution?: AppDistributionDeclaration;
   storage?: AppStorageDeclaration;
   permissions?: AppPermissions;
   components: AppComponentReference[];
@@ -148,6 +191,7 @@ export type AppComponentManifestSummary = {
   iconPath?: string;
   primaryPanelId?: string;
   components: AppResolvedComponent[];
+  distribution: AppDistributionDeclaration;
   security: AppPlatformSecuritySummary;
 };
 

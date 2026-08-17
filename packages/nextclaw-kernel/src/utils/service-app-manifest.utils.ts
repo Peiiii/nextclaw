@@ -1,5 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import {
+  AppPlatformTargetService,
+  AppServiceLaunchService,
+  type AppNativeArtifactTarget,
+} from "@nextclaw/app-runtime";
 import type {
   ServiceActionRisk,
   ServiceAppManifest,
@@ -22,13 +27,23 @@ export function getServiceAppManifestPath(dirPath: string): string {
 
 export async function readServiceAppManifest(
   dirPath: string,
+  options?: ServiceAppManifestParseOptions,
 ): Promise<ServiceAppManifest> {
   return parseServiceAppManifest(
     await readFile(getServiceAppManifestPath(dirPath), "utf8"),
+    options,
   );
 }
 
-export function parseServiceAppManifest(raw: string): ServiceAppManifest {
+type ServiceAppManifestParseOptions = {
+  target?: AppNativeArtifactTarget;
+  platformTargetService?: AppPlatformTargetService;
+};
+
+export function parseServiceAppManifest(
+  raw: string,
+  options: ServiceAppManifestParseOptions = {},
+): ServiceAppManifest {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -54,14 +69,17 @@ export function parseServiceAppManifest(raw: string): ServiceAppManifest {
     throw new Error("service app protocol must be mcp.");
   }
 
+  const launch = new AppServiceLaunchService(
+    options.platformTargetService,
+  ).resolve(parsed, options.target);
   return {
     id,
     title: readRequiredString(parsed, "title"),
     description: readOptionalString(parsed, "description"),
     enabled: readOptionalBoolean(parsed, "enabled") ?? true,
     protocol,
-    command: readRequiredString(parsed, "command"),
-    args: readStringArray(parsed.args, "args"),
+    command: launch.command,
+    args: launch.args,
     actions: readManifestActions(parsed.actions),
   };
 }
@@ -131,16 +149,6 @@ function readOptionalBoolean(
     throw new Error(`service app ${key} must be boolean.`);
   }
   return record[key];
-}
-
-function readStringArray(value: unknown, key: string): string[] {
-  if (value === undefined) {
-    return [];
-  }
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
-    throw new Error(`service app ${key} must be a string array.`);
-  }
-  return value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

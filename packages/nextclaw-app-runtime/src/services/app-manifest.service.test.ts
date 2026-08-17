@@ -155,6 +155,52 @@ describe("AppManifestService", () => {
       await rm(appDirectory, { recursive: true, force: true });
     }
   });
+
+  it("loads a schema v2 package that declares one supported target", async () => {
+    const appDirectory = await createComponentPackage();
+    try {
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      manifest.distribution = {
+        mode: "targeted",
+        targets: [
+          { kind: "native", os: "linux", arch: "x64", abi: "gnu" },
+        ],
+      };
+      await writeFile(manifestPath, JSON.stringify(manifest));
+
+      const bundle = await new AppManifestService().load(appDirectory);
+      expect(bundle.manifest.schemaVersion).toBe(2);
+      if (bundle.manifest.schemaVersion !== 2) {
+        throw new Error("Expected component manifest bundle.");
+      }
+      expect(bundle.manifest.distribution).toEqual(manifest.distribution);
+    } finally {
+      await rm(appDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects duplicate targets in a schema v2 package", async () => {
+    const appDirectory = await createComponentPackage();
+    try {
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      manifest.distribution = {
+        mode: "targeted",
+        targets: [
+          { kind: "native", os: "darwin", arch: "arm64" },
+          { kind: "native", os: "darwin", arch: "arm64" },
+        ],
+      };
+      await writeFile(manifestPath, JSON.stringify(manifest));
+
+      await expect(new AppManifestService().load(appDirectory)).rejects.toThrow(
+        "重复 target",
+      );
+    } finally {
+      await rm(appDirectory, { recursive: true, force: true });
+    }
+  });
 });
 
 async function createComponentPackage(): Promise<string> {

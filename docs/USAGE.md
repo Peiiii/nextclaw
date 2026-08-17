@@ -546,6 +546,17 @@ nextclaw account status --json
 nextclaw app validate-publish <mini-app-dir> --json
 ```
 
+Native-process Apps may support one target or multiple targets. Declare the exact set in root `manifest.json` under `distribution.targets`, build one self-contained artifact per target, and keep the canonical target key in the filename:
+
+```bash
+nextclaw app pack <mini-app-dir> --target linux-x64-gnu --out dist/linux-x64-gnu.napp --json
+nextclaw app pack <mini-app-dir> --target darwin-arm64 --out dist/darwin-arm64.napp --json
+nextclaw app validate-publish <mini-app-dir> --artifacts dist --json
+nextclaw app publish <mini-app-dir> --artifacts dist --json
+```
+
+The declared and uploaded target sets must match exactly. A single-platform App declares and uploads one target; a multi-platform App declares and uploads all supported targets. `.napp` is only the artifact file format—the public workflow remains under `nextclaw app ...`.
+
 If the account is not ready, run `nextclaw login`. Personal apps use the account username as the app id scope, for example `alice.notes`. Do not pass marketplace tokens or registry URLs to the app commands.
 
 After validation succeeds, submit the package for review:
@@ -631,6 +642,7 @@ nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json
 | `nextclaw app call <service-app-dir> <action-name>` | Call a Service App action in an isolated runtime |
 | `nextclaw app data list` | List active and retained App data through the running host |
 | `nextclaw app data delete <data-id> --confirm <app-id>` | Permanently delete one retained App data instance |
+| `nextclaw app pack <mini-app-dir> --target <target-key> --out <file>` | Pack one declared platform artifact for a schema v2 Mini App |
 | `nextclaw app validate-publish <mini-app-dir>` | Validate a schema v2 Mini App package before Marketplace submission |
 | `nextclaw app publish <mini-app-dir>` | Submit a validated Mini App to the App Marketplace for review |
 | `nextclaw app restart <app-id>` | Restart a live Service App runtime in the running UI before live retest |

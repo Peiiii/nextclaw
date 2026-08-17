@@ -97,16 +97,23 @@ export function registerAppRoutes(
     const runtime = getRuntime(c.env);
     const selector = c.req.param("selector");
     const version = c.req.param("version");
+    const targetKey = c.req.query("target");
     const requestedRange = c.req.header("range");
-    const payload = await runtime.appDataSource.getBundle(selector, version, requestedRange);
+    const payload = await runtime.appDataSource.getBundle(
+      selector,
+      version,
+      targetKey,
+      requestedRange,
+    );
     if (!payload) {
       throw new ResourceNotFoundError(`app bundle not found: ${selector}@${version}`);
     }
     const expectedSha256 = c.req.query("sha256");
-    if (expectedSha256 && expectedSha256 !== payload.version.bundle_sha256) {
+    const bundleSha256 = payload.artifact?.bundle_sha256 ?? payload.version.bundle_sha256;
+    if (expectedSha256 && expectedSha256 !== bundleSha256) {
       throw new ResourceNotFoundError(`app bundle revision not found: ${selector}@${version}`);
     }
-    const etag = `"sha256-${payload.version.bundle_sha256}"`;
+    const etag = `"sha256-${bundleSha256}"`;
     if (c.req.header("if-none-match") === etag) {
       return new Response(null, {
         status: 304,
@@ -127,13 +134,14 @@ export function registerAppRoutes(
           ? { "content-range": `bytes ${responseRange.offset}-${responseRange.offset + responseRange.length - 1}/${payload.object.size}` }
           : {}),
         "accept-ranges": "bytes",
-        "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${payload.item.slug}-${version}.napp`)}`,
+        "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${payload.item.slug}-${version}${targetKey ? `-${targetKey}` : ""}.napp`)}`,
         "cache-control": expectedSha256
           ? "public, max-age=31536000, immutable"
           : "public, max-age=300, stale-while-revalidate=600",
         etag,
-        "x-app-bundle-sha256": payload.version.bundle_sha256,
+        "x-app-bundle-sha256": bundleSha256,
         "x-app-distribution-mode": payload.version.distribution_mode,
+        ...(targetKey ? { "x-app-artifact-target": targetKey } : {}),
       },
     });
   });

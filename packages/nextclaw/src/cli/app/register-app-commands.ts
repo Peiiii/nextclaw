@@ -4,6 +4,7 @@ import { AppCheckCommandController } from "./controllers/app-check-command.contr
 import { AppDevCommandController } from "./controllers/app-dev-command.controller.js";
 import { AppDataCommandController } from "./controllers/app-data-command.controller.js";
 import { AppRestartCommandController } from "./controllers/app-restart-command.controller.js";
+import { AppPackCommandController } from "./controllers/app-pack-command.controller.js";
 import { AppPublishCommandController } from "./controllers/app-publish-command.controller.js";
 import { AppValidatePublishCommandController } from "./controllers/app-validate-publish-command.controller.js";
 
@@ -14,13 +15,23 @@ export function registerAppCommands(program: Command): void {
   const appData = new AppDataCommandController();
   const appCall = new AppCallCommandController();
   const appRestart = new AppRestartCommandController();
+  const appPack = new AppPackCommandController();
   const appValidatePublish = new AppValidatePublishCommandController();
   const appPublish = new AppPublishCommandController();
+
+  app
+    .command("pack <app-dir>")
+    .description("Pack one declared platform target as a NextClaw App artifact")
+    .requiredOption("--target <target-key>", "Pack a declared platform target")
+    .requiredOption("--out <path>", "Write the .napp artifact to a specific path")
+    .option("--json", "Output JSON", false)
+    .action(async (target, opts) => appPack.pack(target, opts));
 
   app
     .command("validate-publish <app-dir>")
     .description("Validate a NextClaw Mini App before Marketplace submission")
     .option("--meta <path>", "Use a custom marketplace metadata file")
+    .option("--artifacts <dir>", "Use target-keyed .napp artifacts from a directory")
     .option("--json", "Output JSON", false)
     .action(async (target, opts) => appValidatePublish.validate(target, opts));
 
@@ -28,6 +39,7 @@ export function registerAppCommands(program: Command): void {
     .command("publish <app-dir>")
     .description("Submit a NextClaw Mini App to the App Marketplace")
     .option("--meta <path>", "Use a custom marketplace metadata file")
+    .option("--artifacts <dir>", "Publish target-keyed .napp artifacts from a directory")
     .option("--allow-warnings", "Submit after reviewing validation warnings", false)
     .option("--json", "Output JSON", false)
     .action(async (target, opts) => appPublish.publish(target, opts));

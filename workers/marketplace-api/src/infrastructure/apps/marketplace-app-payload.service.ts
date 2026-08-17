@@ -1,5 +1,7 @@
 import { DomainValidationError } from "@/domain/errors";
+import { AppPlatformTargetService } from "@nextclaw/app-runtime";
 import type {
+  MarketplaceAppArtifactInput,
   AppPublisher,
   MarketplaceAppFileInput,
   MarketplaceAppManifest,
@@ -7,6 +9,12 @@ import type {
 } from "./app-marketplace.types";
 
 export class MarketplaceAppPayloadParser {
+  private readonly platformTargetService = new AppPlatformTargetService({
+    platform: "linux",
+    arch: "x64",
+    linuxAbi: "gnu",
+  });
+
   parsePublishInput = (rawInput: unknown): MarketplaceAppPublishInput => {
     if (!rawInput || typeof rawInput !== "object" || Array.isArray(rawInput)) {
       throw new DomainValidationError("body must be an object");
@@ -25,7 +33,7 @@ export class MarketplaceAppPayloadParser {
     if (manifest.schemaVersion === 2 && distributionMode !== "bundle") {
       throw new DomainValidationError("schema v2 component apps must use bundle distribution");
     }
-    return {
+    const baseInput = {
       requireExisting: Boolean(candidate.requireExisting),
       slug: this.readSlug(candidate.slug, "slug"),
       appId,
@@ -47,9 +55,34 @@ export class MarketplaceAppPayloadParser {
       manifest,
       permissions: this.resolvePermissions(manifest, candidate.permissions),
       distributionMode,
+      files: this.readFileInputs(candidate.files),
+    };
+    const distribution = manifest.schemaVersion === 2
+      ? this.platformTargetService.resolveDistribution(manifest.distribution)
+      : { mode: "universal" as const };
+    if (distribution.mode === "targeted") {
+      if (candidate.bundleBase64 !== undefined || candidate.bundleSha256 !== undefined) {
+        throw new DomainValidationError("targeted publish must use artifacts instead of bundleBase64");
+      }
+      const artifacts = this.readArtifacts(candidate.artifacts);
+      try {
+        this.platformTargetService.assertExactTargetSet({
+          declared: distribution.targets,
+          actual: artifacts.map((artifact) => artifact.target),
+          actualLabel: "submitted artifacts",
+        });
+      } catch (error) {
+        throw new DomainValidationError(error instanceof Error ? error.message : String(error));
+      }
+      return { ...baseInput, artifacts };
+    }
+    if (candidate.artifacts !== undefined) {
+      throw new DomainValidationError("universal publish must use bundleBase64 instead of artifacts");
+    }
+    return {
+      ...baseInput,
       bundleBase64: this.readString(candidate.bundleBase64, "bundleBase64"),
       bundleSha256: this.readString(candidate.bundleSha256, "bundleSha256"),
-      files: this.readFileInputs(candidate.files),
     };
   };
 
@@ -173,12 +206,59 @@ export class MarketplaceAppPayloadParser {
       runtime: runtimeProfile
         ? { profile: runtimeProfile }
         : undefined,
+      distribution: this.readDistribution(candidate.distribution),
       storage: storageScope && typeof storageSchemaVersion === "number"
         ? { scope: storageScope, schemaVersion: storageSchemaVersion }
         : undefined,
       permissions: this.readPermissions(candidate.permissions),
       components,
     };
+  };
+
+  private readDistribution = (
+    value: unknown,
+  ): Extract<MarketplaceAppManifest, { schemaVersion: 2 }>["distribution"] => {
+    try {
+      return this.platformTargetService.parseDistribution(value);
+    } catch (error) {
+      throw new DomainValidationError(
+        `manifest.distribution is invalid: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  };
+
+  private readArtifacts = (value: unknown): MarketplaceAppArtifactInput[] => {
+    if (!Array.isArray(value) || value.length === 0) {
+      throw new DomainValidationError("artifacts must be a non-empty array");
+    }
+    return value.map((rawArtifact, index) => {
+      if (!rawArtifact || typeof rawArtifact !== "object" || Array.isArray(rawArtifact)) {
+        throw new DomainValidationError(`artifacts[${index}] must be an object`);
+      }
+      const artifact = rawArtifact as Record<string, unknown>;
+      let target: MarketplaceAppArtifactInput["target"];
+      try {
+        target = this.platformTargetService.parseArtifactTarget(
+          artifact.target,
+          `artifacts[${index}].target`,
+        );
+      } catch (error) {
+        throw new DomainValidationError(error instanceof Error ? error.message : String(error));
+      }
+      if (target.kind === "universal") {
+        throw new DomainValidationError("targeted artifacts cannot include universal target");
+      }
+      const sizeBytes = artifact.sizeBytes;
+      if (typeof sizeBytes !== "number" || !Number.isSafeInteger(sizeBytes) || sizeBytes < 1) {
+        throw new DomainValidationError(`artifacts[${index}].sizeBytes must be a positive integer`);
+      }
+      return {
+        target,
+        bundleBase64: this.readString(artifact.bundleBase64, `artifacts[${index}].bundleBase64`),
+        bundleSha256: this.readString(artifact.bundleSha256, `artifacts[${index}].bundleSha256`),
+        sizeBytes,
+      };
+    });
   };
 
   private readRuntimeProfile = (

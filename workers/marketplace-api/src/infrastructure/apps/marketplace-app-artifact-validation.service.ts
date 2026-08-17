@@ -1,6 +1,9 @@
 import { DomainValidationError } from "@/domain/errors";
 import { AppArtifactValidationService } from "@nextclaw/app-runtime/artifact-validation";
-import type { MarketplaceAppPublishInput } from "./app-marketplace.types";
+import type {
+  MarketplaceAppArtifactInput,
+  MarketplaceAppPublishInput,
+} from "./app-marketplace.types";
 
 export class MarketplaceAppArtifactValidationService {
   constructor(
@@ -10,6 +13,7 @@ export class MarketplaceAppArtifactValidationService {
   validate = async (
     bundleBytes: Uint8Array,
     input: MarketplaceAppPublishInput,
+    submittedArtifact?: MarketplaceAppArtifactInput,
   ): Promise<void> => {
     try {
       const artifact = await this.artifactValidator.validate({
@@ -20,11 +24,22 @@ export class MarketplaceAppArtifactValidationService {
           version: input.version,
           distributionMode: input.distributionMode,
           manifest: input.manifest,
+          target: submittedArtifact?.target,
         },
       });
-      if (artifact.artifactSha256 !== input.bundleSha256) {
+      const expectedSha256 = submittedArtifact?.bundleSha256 ??
+        ("bundleSha256" in input ? input.bundleSha256 : undefined);
+      if (!expectedSha256) {
+        throw new DomainValidationError("artifact sha256 is missing");
+      }
+      if (submittedArtifact && bundleBytes.byteLength !== submittedArtifact.sizeBytes) {
         throw new DomainValidationError(
-          `bundleSha256 mismatch: expected ${input.bundleSha256}, actual ${artifact.artifactSha256}`,
+          `artifact size mismatch: expected ${submittedArtifact.sizeBytes}, actual ${bundleBytes.byteLength}`,
+        );
+      }
+      if (artifact.artifactSha256 !== expectedSha256) {
+        throw new DomainValidationError(
+          `bundleSha256 mismatch: expected ${expectedSha256}, actual ${artifact.artifactSha256}`,
         );
       }
     } catch (error) {

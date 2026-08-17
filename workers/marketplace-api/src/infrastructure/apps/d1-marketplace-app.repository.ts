@@ -13,13 +13,13 @@ import {
   type MarketplaceAppItemSummary,
   type MarketplaceAppListResult,
   type MarketplaceAppPublishResult,
-  type MarketplaceAppVersionRow,
   type MarketplaceOwnerAppDetail,
   type MarketplaceOwnerAppListResult,
   type MarketplaceOwnerAppManageAction,
 } from "./app-marketplace.types";
 import { MarketplaceAppFileStore } from "./marketplace-app-file.store";
 import { MarketplaceAppArtifactValidationService } from "./marketplace-app-artifact-validation.service";
+import { MarketplaceAppArtifactRepository } from "./artifacts/marketplace-app-artifact.repository";
 import { MarketplaceAppPayloadParser } from "./marketplace-app-payload.service";
 import { MarketplaceAppPersistence } from "./marketplace-app-persistence.service";
 import {
@@ -37,10 +37,11 @@ import { MarketplaceAppPublicReader } from "./marketplace-app-public-reader.serv
 import { MarketplaceAppQuerySupport } from "./marketplace-app-query.service";
 import { MarketplaceAppRecordMapper } from "./marketplace-app-record.service";
 import { MarketplaceAppRecordRepository } from "./marketplace-app-record.repository";
+import { MarketplaceAppReleaseArtifactService } from "./artifacts/marketplace-app-release-artifact.service";
 import type { MarketplaceSkillPublishActor } from "@/infrastructure/skills/d1-section-types";
 
 export class D1MarketplaceAppDataSource {
-  private readonly artifactValidator = new MarketplaceAppArtifactValidationService();
+  private readonly artifactRepository: MarketplaceAppArtifactRepository;
   private readonly fileStore: MarketplaceAppFileStore;
   private readonly payloadParser = new MarketplaceAppPayloadParser();
   private readonly persistence: MarketplaceAppPersistence;
@@ -48,12 +49,17 @@ export class D1MarketplaceAppDataSource {
   private readonly recordMapper = new MarketplaceAppRecordMapper();
   private readonly recordRepository: MarketplaceAppRecordRepository;
   private readonly publicReader: MarketplaceAppPublicReader;
+  private readonly releaseArtifactService: MarketplaceAppReleaseArtifactService;
 
   constructor(
     private readonly db: D1Database,
     filesBucket: R2Bucket,
   ) {
     this.fileStore = new MarketplaceAppFileStore(filesBucket);
+    this.artifactRepository = new MarketplaceAppArtifactRepository(db);
+    this.releaseArtifactService = new MarketplaceAppReleaseArtifactService(
+      this.payloadParser, new MarketplaceAppArtifactValidationService(), this.fileStore,
+    );
     this.persistence = new MarketplaceAppPersistence(db);
     this.recordRepository = new MarketplaceAppRecordRepository(db);
     this.publicReader = new MarketplaceAppPublicReader(
@@ -62,20 +68,19 @@ export class D1MarketplaceAppDataSource {
       this.querySupport,
       this.recordMapper,
       this.recordRepository,
+      this.artifactRepository,
     );
   }
 
-  listApps = async (query: MarketplaceListQuery): Promise<MarketplaceAppListResult> => {
-    return this.publicReader.listApps(query);
-  };
+  listApps = async (query: MarketplaceListQuery): Promise<MarketplaceAppListResult> =>
+    this.publicReader.listApps(query);
 
   listCatalog = async (query: MarketplaceAppCatalogQuery): Promise<MarketplaceAppCatalogResult> => {
     return this.publicReader.listCatalog(query);
   };
 
-  getAppDetail = async (selector: string): Promise<MarketplaceAppItemDetail | null> => {
-    return this.publicReader.getAppDetail(selector);
-  };
+  getAppDetail = async (selector: string): Promise<MarketplaceAppItemDetail | null> =>
+    this.publicReader.getAppDetail(selector);
 
   getAppFiles = async (selector: string): Promise<MarketplaceAppFilesResult | null> => {
     return this.publicReader.getAppFiles(selector);
@@ -92,10 +97,10 @@ export class D1MarketplaceAppDataSource {
   getBundle = async (
     selector: string,
     version: string,
+    targetKey?: string,
     range?: string,
-  ): Promise<{ item: MarketplaceAppItemSummary; version: MarketplaceAppVersionRow; object: R2ObjectBody } | null> => {
-    return this.publicReader.getBundle(selector, version, range);
-  };
+  ): ReturnType<MarketplaceAppPublicReader["getBundle"]> =>
+    this.publicReader.getBundle(selector, version, targetKey, range);
 
   getRegistryDocument = async (appId: string): Promise<Record<string, unknown> | null> => {
     return this.publicReader.getRegistryDocument(appId);
@@ -118,30 +123,25 @@ export class D1MarketplaceAppDataSource {
     const itemId = existingItem?.id ?? `app-${input.slug}`;
     const publishedAt = existingItem?.published_at ?? nowIso;
     const existingVersion = await this.recordRepository.getVersionRow(itemId, input.version);
-    assertAppVersionCanBeReplaced({
-      existingBundleSha256: existingVersion?.bundle_sha256,
-      nextBundleSha256: input.bundleSha256,
-      publishStatus: existingItem?.publish_status,
-      appId: input.appId,
-      version: input.version,
-    });
+    const preparedRelease = await this.releaseArtifactService.prepare(input,
+      (releaseSha256) => assertAppVersionCanBeReplaced({
+        existingBundleSha256: existingVersion?.bundle_sha256,
+        nextBundleSha256: releaseSha256,
+        publishStatus: existingItem?.publish_status,
+        appId: input.appId,
+        version: input.version,
+      }));
     const versionPublishedAt = existingVersion?.published_at ?? nowIso;
-    const bundleBytes = this.payloadParser.decodeBase64(input.bundleBase64, "bundleBase64");
-    await this.artifactValidator.validate(bundleBytes, input);
-    const bundleObject = await this.fileStore.putBundle({
-      appId: input.appId,
-      version: input.version,
-      bytes: bundleBytes,
-    });
     await this.persistence.persistVersion({
       itemId,
       input,
-      bundleStorageKey: bundleObject.storageKey,
+      bundleStorageKey: preparedRelease.bundleStorageKey,
+      bundleSha256: preparedRelease.releaseSha256,
+      artifacts: preparedRelease.artifacts,
       publishedAt: versionPublishedAt,
       updatedAt: nowIso,
     });
     const storedFiles = await this.replaceFiles(itemId, input.appId, input.files, nowIso);
-
     const latestVersion = this.querySupport.pickLatestVersion(existingItem?.latest_version, input.version);
     await this.persistence.persistItem({
       itemId,
@@ -206,7 +206,8 @@ export class D1MarketplaceAppDataSource {
       return null;
     }
     const versionRows = await this.recordRepository.listVersionRows(itemRow.id);
-    return this.recordMapper.mapOwnerDetail(itemRow, versionRows);
+    const artifactRows = await this.artifactRepository.listRows(itemRow.id);
+    return this.recordMapper.mapOwnerDetail(itemRow, versionRows, artifactRows);
   };
 
   manageOwnerApp = async (params: {
@@ -234,7 +235,8 @@ export class D1MarketplaceAppDataSource {
       throw new DomainValidationError(`app action succeeded but item not found: ${selector}`);
     }
     const versionRows = await this.recordRepository.listVersionRows(nextRow.id);
-    return this.recordMapper.mapOwnerDetail(nextRow, versionRows);
+    const artifactRows = await this.artifactRepository.listRows(nextRow.id);
+    return this.recordMapper.mapOwnerDetail(nextRow, versionRows, artifactRows);
   };
 
   listAdminApps = async (params: {
@@ -269,11 +271,12 @@ export class D1MarketplaceAppDataSource {
       return null;
     }
     const versionRows = await this.recordRepository.listVersionRows(itemRow.id);
+    const artifactRows = await this.artifactRepository.listRows(itemRow.id);
     const files = await this.recordRepository.listFileRows(itemRow.id);
     const readmePayload = await this.getAnyAppFileContent(itemRow.id, itemRow.slug, "README.md");
     const metadataPayload = await this.getAnyAppFileContent(itemRow.id, itemRow.slug, "marketplace.json");
     return {
-      item: this.recordMapper.mapAdminDetail(itemRow, versionRows),
+      item: this.recordMapper.mapAdminDetail(itemRow, versionRows, artifactRows),
       files: files.map((row) => ({
         path: row.path,
         contentType: row.content_type,

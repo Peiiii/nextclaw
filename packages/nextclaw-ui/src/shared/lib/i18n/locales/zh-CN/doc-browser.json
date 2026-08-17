@@ -66,6 +66,8 @@
   "appPackagesBuiltIn": "NextClaw 内置",
   "appPackagesLocalService": "本地数据服务",
   "appPackagesIsolationLabel": "运行隔离",
+  "appPackagesPlatformsLabel": "支持平台",
+  "appPackagesAllPlatforms": "全部平台",
   "appPackagesIsolationPanel": "隔离界面",
   "appPackagesIsolationMediated": "受限运行",
   "appPackagesIsolationFullUser": "以当前用户权限运行",

@@ -27,6 +27,30 @@ describe("MarketplaceAppRecordMapper visuals", () => {
       reason: "community-native-process",
     });
   });
+
+  it("projects one or multiple declared targets into Marketplace platform labels", () => {
+    const row = buildRow();
+    row.manifest_json = JSON.stringify({
+      schemaVersion: 2,
+      id: row.app_id,
+      name: row.name,
+      version: row.latest_version,
+      distribution: {
+        mode: "targeted",
+        targets: [
+          { kind: "native", os: "darwin", arch: "arm64" },
+          { kind: "native", os: "linux", arch: "x64", abi: "gnu" },
+        ],
+      },
+      components: [{ kind: "service", path: "services/data" }],
+    });
+
+    expect(new MarketplaceAppRecordMapper().mapItemSummary(row).availability).toEqual({
+      mode: "targeted",
+      targets: ["darwin-arm64", "linux-x64-gnu"],
+      operatingSystems: ["darwin", "linux"],
+    });
+  });
 });
 
 function buildRow(): MarketplaceAppItemRow {

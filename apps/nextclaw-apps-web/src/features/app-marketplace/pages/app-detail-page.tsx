@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AppCover } from "@/features/app-marketplace/components/app-cover.js";
 import type { AppItemDetail } from "@/features/app-marketplace/types/app-marketplace.types.js";
+import { formatAppPlatformLabel } from "@/features/app-marketplace/utils/app-platform-label.utils.js";
 
 export function AppDetailPage(props: {
   app: AppItemDetail | null;
@@ -69,6 +70,7 @@ export function AppDetailPage(props: {
             <dl className="app-facts">
               <div><dt>应用 ID</dt><dd>{app.appId}</dd></div>
               <div><dt>组件</dt><dd>{componentSummary(app)}</dd></div>
+              <div><dt>支持平台</dt><dd>{formatAppPlatformLabel(app.availability)}</dd></div>
               <div><dt>需要 NextClaw</dt><dd>{app.manifest.engines?.nextclaw ?? "未声明"}</dd></div>
               <div><dt>历史版本</dt><dd>{app.versions.length}</dd></div>
             </dl>

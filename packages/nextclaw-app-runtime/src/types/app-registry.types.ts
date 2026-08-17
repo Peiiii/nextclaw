@@ -1,4 +1,5 @@
 import type {
+  AppArtifactTarget,
   AppPermissions,
   AppPlatformSecuritySummary,
   AppResolvedComponent,
@@ -21,6 +22,7 @@ export type AppRegistryInstalledVersion = {
   registryUrl?: string;
   bundleUrl?: string;
   sha256?: string;
+  target?: AppArtifactTarget;
   publisher?: AppPublisher;
   manifestSchemaVersion: 1 | 2;
   components?: AppResolvedComponent[];

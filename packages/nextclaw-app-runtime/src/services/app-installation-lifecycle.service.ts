@@ -137,6 +137,7 @@ export class AppInstallationLifecycleService {
     registryUrl: versionRecord.registryUrl,
     bundleUrl: versionRecord.bundleUrl,
     sha256: versionRecord.sha256,
+    target: versionRecord.target,
     publisher: versionRecord.publisher,
     enabled: appRecord.enabled,
     manifestSchemaVersion: versionRecord.manifestSchemaVersion,

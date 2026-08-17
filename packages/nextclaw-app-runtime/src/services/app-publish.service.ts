@@ -6,6 +6,8 @@ import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
 import { AppMarketplaceClientService } from "./app-marketplace-client.service.js";
 import { AppMarketplaceMetadataService } from "./app-marketplace-metadata.service.js";
+import { AppPlatformTargetService } from "./app-platform-target.service.js";
+import { AppPublishArtifactService } from "./app-publish-artifact.service.js";
 import type { AppPublishPayload, AppPublishResult } from "#app-runtime/types/app-publish.types.js";
 import { PlatformAuthStateService } from "./platform-auth-state.service.js";
 
@@ -23,6 +25,8 @@ export class AppPublishService {
     private readonly metadataService: AppMarketplaceMetadataService = new AppMarketplaceMetadataService(),
     private readonly marketplaceClient: AppMarketplaceClientService = new AppMarketplaceClientService(),
     private readonly authStateService: PlatformAuthStateService = new PlatformAuthStateService(),
+    private readonly publishArtifactService: AppPublishArtifactService = new AppPublishArtifactService(),
+    private readonly platformTargetService: AppPlatformTargetService = new AppPlatformTargetService(),
   ) {}
 
   publish = async (params: {
@@ -32,6 +36,7 @@ export class AppPublishService {
     apiBaseUrl?: string;
     token?: string;
     mode?: AppDistributionMode;
+    artifactsDirectory?: string;
   }): Promise<AppPublishResult> => {
     const {
       appDirectory: inputAppDirectory,
@@ -54,20 +59,43 @@ export class AppPublishService {
       explicitToken: token,
       appId: manifestBundle.manifest.id,
     });
-    const bundle = await this.bundleService.packAppDirectory({
-      appDirectory,
-      outputPath: bundleOutputPath,
-      mode: distributionMode,
-    });
-    const bundleBytes = Buffer.from(await readFile(bundle.bundlePath));
-    const bundleSha256 = createHash("sha256").update(bundleBytes).digest("hex");
+    const componentManifest = manifestBundle.manifest.schemaVersion === 2
+      ? manifestBundle.manifest
+      : undefined;
+    const distribution = componentManifest
+      ? this.platformTargetService.resolveDistribution(
+          componentManifest.distribution,
+        )
+      : { mode: "universal" as const };
+    if (distribution.mode === "targeted" && !params.artifactsDirectory?.trim()) {
+      throw new Error("targeted App 发布需要通过 --artifacts 指定平台 artifact 目录。");
+    }
+    const preparedArtifacts = distribution.mode === "targeted" && componentManifest
+      ? await this.publishArtifactService.collect({
+          manifest: componentManifest,
+          artifactsDirectory: params.artifactsDirectory!,
+        })
+      : [];
+    const bundle = distribution.mode === "universal"
+      ? await this.bundleService.packAppDirectory({
+          appDirectory,
+          outputPath: bundleOutputPath,
+          mode: distributionMode,
+        })
+      : undefined;
+    const bundleBytes = bundle
+      ? Buffer.from(await readFile(bundle.bundlePath))
+      : undefined;
+    const bundleSha256 = bundleBytes
+      ? createHash("sha256").update(bundleBytes).digest("hex")
+      : undefined;
     const publishFiles = await this.metadataService.collectPublishFiles({
       appDirectory,
       iconPath: manifestBundle.manifest.icon,
       metadataPath,
       visuals: metadata.visuals,
     });
-    const payload: AppPublishPayload = {
+    const payloadBase = {
       slug: metadata.slug,
       appId: manifestBundle.manifest.id,
       name: manifestBundle.manifest.name,
@@ -88,13 +116,26 @@ export class AppPublishService {
       permissions: manifestBundle.manifest.schemaVersion === 1
         ? manifestBundle.manifest.permissions ?? {}
         : this.manifestService.resolvePlatformSecurity(manifestBundle.manifest).permissions,
-      bundleBase64: bundleBytes.toString("base64"),
-      bundleSha256,
       files: publishFiles.map((file) => ({
         path: file.path,
         contentBase64: file.bytes.toString("base64"),
       })),
     };
+    const payload: AppPublishPayload = bundleBytes && bundleSha256
+      ? {
+          ...payloadBase,
+          bundleBase64: bundleBytes.toString("base64"),
+          bundleSha256,
+        }
+      : {
+          ...payloadBase,
+          artifacts: preparedArtifacts.map((artifact) => ({
+            target: artifact.target,
+            bundleBase64: artifact.bytes.toString("base64"),
+            bundleSha256: artifact.sha256,
+            sizeBytes: artifact.sizeBytes,
+          })),
+        };
     const result = await this.marketplaceClient.publish({
       payload,
       apiBaseUrl,
@@ -103,9 +144,21 @@ export class AppPublishService {
     return {
       ...result,
       distribution: {
-        path: bundle.bundlePath,
-        sha256: bundleSha256,
         mode: distributionMode,
+        ...(bundle && bundleSha256
+          ? {
+              path: bundle.bundlePath,
+              sha256: bundleSha256,
+            }
+          : {
+              path: path.resolve(params.artifactsDirectory!),
+              artifacts: preparedArtifacts.map((artifact) => ({
+                target: artifact.target,
+                path: artifact.bundlePath,
+                sha256: artifact.sha256,
+                sizeBytes: artifact.sizeBytes,
+              })),
+            }),
       },
     };
   };

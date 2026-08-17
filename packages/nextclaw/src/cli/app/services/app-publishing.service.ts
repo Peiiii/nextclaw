@@ -2,6 +2,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+  AppBundleService,
+  AppPlatformTargetService,
   AppPublishService,
   AppPublishValidationService,
 } from "@nextclaw/app-runtime";
@@ -14,15 +16,30 @@ export class AppPublishingService {
   constructor(
     private readonly validationService: AppPublishValidationService = new AppPublishValidationService(),
     private readonly publishService: AppPublishService = new AppPublishService(),
+    private readonly bundleService: AppBundleService = new AppBundleService(),
+    private readonly platformTargetService: AppPlatformTargetService = new AppPlatformTargetService(),
   ) {}
+
+  pack = async (params: {
+    appDirectory: string;
+    outputPath: string;
+    target: string;
+  }) => this.bundleService.packAppDirectory({
+    appDirectory: params.appDirectory,
+    outputPath: params.outputPath,
+    mode: "bundle",
+    target: this.platformTargetService.parseTargetKey(params.target),
+  });
 
   validate = async (params: {
     appDirectory: string;
     metadataPath?: string;
+    artifactsDirectory?: string;
   }): Promise<NextClawAppPublishValidationResult> => {
     const result = await this.validationService.validate({
       appDirectory: params.appDirectory,
       metadataPath: params.metadataPath,
+      artifactsDirectory: params.artifactsDirectory,
       mode: "bundle",
     });
     if (result.profile !== "components") {
@@ -39,6 +56,7 @@ export class AppPublishingService {
   publish = async (params: {
     appDirectory: string;
     metadataPath?: string;
+    artifactsDirectory?: string;
     allowWarnings?: boolean;
   }): Promise<NextClawAppPublishResult> => {
     const validation = await this.validate(params);
@@ -57,6 +75,7 @@ export class AppPublishingService {
       const result = await this.publishService.publish({
         appDirectory: params.appDirectory,
         metadataPath: params.metadataPath,
+        artifactsDirectory: params.artifactsDirectory,
         bundleOutputPath: path.join(tempDirectory, "artifact.napp"),
         mode: "bundle",
       });

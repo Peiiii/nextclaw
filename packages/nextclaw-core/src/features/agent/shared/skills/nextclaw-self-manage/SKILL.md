@@ -78,6 +78,8 @@ When user asks "what changed in version X", follow:
 - Local HTTP/API/webhook addresses: `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`
 - Lifecycle: `nextclaw start|restart|stop`
 - Service App live runtime: `nextclaw app restart <app-id> --json`
+- Mini App platform artifact: `nextclaw app pack <mini-app-dir> --target <target-key> --out <target-key>.napp --json`
+- Mini App publish validation/submission: `nextclaw app validate-publish|publish <mini-app-dir> [--artifacts <dir>] --json`
 - App data inventory: `nextclaw app data list --json`
 - Retained App data deletion: `nextclaw app data delete <data-id> --confirm <app-id> --json`
 - Service App development data reset: `nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json`

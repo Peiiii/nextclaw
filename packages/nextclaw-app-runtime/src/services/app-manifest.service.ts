@@ -1,5 +1,6 @@
 import { access, lstat, readFile } from "node:fs/promises";
 import path from "node:path";
+import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
 import type {
   AppComponentManifest,
   AppComponentManifestBundle,
@@ -19,6 +20,10 @@ const PACKAGE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const COMPONENT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export class AppManifestService {
+  constructor(
+    private readonly platformTargetService = new AppPlatformTargetService(),
+  ) {}
+
   load = async (appDirectory: string): Promise<AppManifestBundle> => {
     const normalizedDirectory = path.resolve(appDirectory);
     const manifestPath = path.join(normalizedDirectory, "manifest.json");
@@ -42,6 +47,9 @@ export class AppManifestService {
         iconPath: componentBundle.iconPath,
         primaryPanelId: componentBundle.primaryPanelId,
         components: componentBundle.components,
+        distribution: this.platformTargetService.resolveDistribution(
+          componentBundle.manifest.distribution,
+        ),
         security: this.resolvePlatformSecurity(componentBundle.manifest),
       };
     }
@@ -183,6 +191,7 @@ export class AppManifestService {
       engines: this.parseEngines(candidate.engines),
       presentation: this.parsePresentation(candidate.presentation),
       runtime,
+      distribution: this.platformTargetService.parseDistribution(candidate.distribution),
       storage: this.parseAppStorage(candidate.storage),
       permissions: this.parsePermissions(candidate.permissions),
       components,

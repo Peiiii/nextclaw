@@ -1,4 +1,5 @@
 import type { MarketplaceAppPublishInput } from "./app-marketplace.types";
+import type { AppArtifactTarget } from "@nextclaw/app-runtime";
 
 export class MarketplaceAppPersistence {
   constructor(private readonly db: D1Database) {}
@@ -7,12 +8,19 @@ export class MarketplaceAppPersistence {
     itemId: string;
     input: MarketplaceAppPublishInput;
     bundleStorageKey: string;
+    bundleSha256: string;
+    artifacts: Array<{
+      target: AppArtifactTarget;
+      targetKey: string;
+      sha256: string;
+      sizeBytes: number;
+      storageKey: string;
+    }>;
     publishedAt: string;
     updatedAt: string;
   }): Promise<void> => {
-    const { itemId, input, bundleStorageKey, publishedAt, updatedAt } = params;
-    await this.db
-      .prepare(
+    const { artifacts, itemId, input, bundleSha256, bundleStorageKey, publishedAt, updatedAt } = params;
+    const versionStatement = this.db.prepare(
         `
           INSERT INTO marketplace_app_versions (
             item_id,
@@ -35,20 +43,51 @@ export class MarketplaceAppPersistence {
             bundle_storage_key = excluded.bundle_storage_key,
             updated_at = excluded.updated_at
         `,
-      )
-      .bind(
+      ).bind(
         itemId,
         input.version,
         JSON.stringify(input.manifest),
         JSON.stringify(input.permissions ?? {}),
         input.description ?? null,
         input.distributionMode,
-        input.bundleSha256,
+        bundleSha256,
         bundleStorageKey,
         publishedAt,
         updatedAt,
-      )
-      .run();
+      );
+    const statements = [
+      versionStatement,
+      this.db.prepare(
+        "DELETE FROM marketplace_app_artifacts WHERE item_id = ? AND version = ?",
+      ).bind(itemId, input.version),
+      ...artifacts.map((artifact) => this.db.prepare(
+        `
+          INSERT INTO marketplace_app_artifacts (
+            item_id,
+            version,
+            target_key,
+            target_json,
+            bundle_sha256,
+            size_bytes,
+            bundle_storage_key,
+            status,
+            created_at,
+            updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
+        `,
+      ).bind(
+        itemId,
+        input.version,
+        artifact.targetKey,
+        JSON.stringify(artifact.target),
+        artifact.sha256,
+        artifact.sizeBytes,
+        artifact.storageKey,
+        publishedAt,
+        updatedAt,
+      )),
+    ];
+    await this.db.batch(statements);
   };
 
   persistItem = async (params: {

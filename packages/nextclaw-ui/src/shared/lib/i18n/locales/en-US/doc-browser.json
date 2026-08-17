@@ -66,6 +66,8 @@
   "appPackagesBuiltIn": "Built into NextClaw",
   "appPackagesLocalService": "Local data service",
   "appPackagesIsolationLabel": "Runtime isolation",
+  "appPackagesPlatformsLabel": "Supported platforms",
+  "appPackagesAllPlatforms": "All platforms",
   "appPackagesIsolationPanel": "Isolated interface",
   "appPackagesIsolationMediated": "Host-mediated runtime",
   "appPackagesIsolationFullUser": "Runs with your user permissions",

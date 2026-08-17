@@ -1,7 +1,9 @@
 import { DomainValidationError } from "@/domain/errors";
+import { AppPlatformTargetService } from "@nextclaw/app-runtime";
 import type {
   AppInstallSpec,
   AppPublisher,
+  MarketplaceAppArtifactRow,
   MarketplaceAdminAppDetail,
   MarketplaceAdminAppSummary,
   MarketplaceAppItemDetail,
@@ -23,6 +25,12 @@ import {
 import { assessAppPublicListing } from "./marketplace-app-publish.utils";
 
 export class MarketplaceAppRecordMapper {
+  private readonly platformTargetService = new AppPlatformTargetService({
+    platform: "linux",
+    arch: "x64",
+    linuxAbi: "gnu",
+  });
+
   mapItemSummary = (row: MarketplaceAppItemRow): MarketplaceAppItemSummary => {
     const manifest = this.parseManifest(row.manifest_json, `${row.slug}.manifest_json`);
     return {
@@ -49,12 +57,36 @@ export class MarketplaceAppRecordMapper {
       publisher: this.readPublisher(row),
       install: this.buildInstallSpec(row.app_id),
       webUrl: `${OFFICIAL_APPS_WEB_BASE_URL}/apps/${row.slug}`,
+      availability: this.buildAvailability(manifest),
+    };
+  };
+
+  private buildAvailability = (
+    manifest: MarketplaceAppManifest,
+  ): MarketplaceAppItemSummary["availability"] => {
+    const distribution = manifest.schemaVersion === 2
+      ? this.platformTargetService.resolveDistribution(manifest.distribution)
+      : { mode: "universal" as const };
+    if (distribution.mode === "universal") {
+      return {
+        mode: "universal",
+        targets: ["universal"],
+        operatingSystems: ["darwin", "linux", "win32"],
+      };
+    }
+    return {
+      mode: "targeted",
+      targets: distribution.targets.map((target) =>
+        this.platformTargetService.toTargetKey(target),
+      ),
+      operatingSystems: [...new Set(distribution.targets.map((target) => target.os))],
     };
   };
 
   mapItemDetail = (
     row: MarketplaceAppItemRow,
     versionRows: MarketplaceAppVersionRow[],
+    artifactRows: MarketplaceAppArtifactRow[] = [],
   ): MarketplaceAppItemDetail => {
     return {
       ...this.mapItemSummary(row),
@@ -71,14 +103,40 @@ export class MarketplaceAppRecordMapper {
       manifest: this.parseManifest(row.manifest_json, `${row.slug}.manifest_json`),
       permissions: this.parsePermissions(row.permissions_json, `${row.slug}.permissions_json`),
       publishedAt: row.published_at,
-      versions: versionRows.map((versionRow) => ({
-        version: versionRow.version,
-        publishedAt: versionRow.published_at,
-        updatedAt: versionRow.updated_at,
-        distributionMode: versionRow.distribution_mode,
-        bundleSha256: versionRow.bundle_sha256,
-        downloadPath: this.buildBundlePath(row.slug, versionRow.version, versionRow.bundle_sha256),
-      })),
+      versions: versionRows.map((versionRow) => {
+        const versionArtifacts = artifactRows.filter((artifact) =>
+          artifact.version === versionRow.version && artifact.status === "active",
+        );
+        return {
+          version: versionRow.version,
+          publishedAt: versionRow.published_at,
+          updatedAt: versionRow.updated_at,
+          distributionMode: versionRow.distribution_mode,
+          ...(versionArtifacts.length > 0
+            ? {
+                artifacts: versionArtifacts.map((artifact) => ({
+                  target: this.parseArtifactTarget(artifact),
+                  targetKey: artifact.target_key,
+                  sha256: artifact.bundle_sha256,
+                  sizeBytes: artifact.size_bytes,
+                  downloadPath: this.buildArtifactBundlePath(
+                    row.slug,
+                    versionRow.version,
+                    artifact.target_key,
+                    artifact.bundle_sha256,
+                  ),
+                })),
+              }
+            : {
+                bundleSha256: versionRow.bundle_sha256,
+                downloadPath: this.buildBundlePath(
+                  row.slug,
+                  versionRow.version,
+                  versionRow.bundle_sha256,
+                ),
+              }),
+        };
+      }),
     };
   };
 
@@ -99,8 +157,9 @@ export class MarketplaceAppRecordMapper {
   mapOwnerDetail = (
     row: MarketplaceAppItemRow,
     versionRows: MarketplaceAppVersionRow[],
+    artifactRows: MarketplaceAppArtifactRow[] = [],
   ): MarketplaceOwnerAppDetail => {
-    const detail = this.mapItemDetail(row, versionRows);
+    const detail = this.mapItemDetail(row, versionRows, artifactRows);
     const ownerVisibility = this.readOwnerVisibility(row.owner_visibility);
     const isDeleted = Boolean(row.owner_deleted_at);
     return {
@@ -130,9 +189,10 @@ export class MarketplaceAppRecordMapper {
   mapAdminDetail = (
     row: MarketplaceAppItemRow,
     versionRows: MarketplaceAppVersionRow[],
+    artifactRows: MarketplaceAppArtifactRow[] = [],
   ): MarketplaceAdminAppDetail => {
     return {
-      ...this.mapItemDetail(row, versionRows),
+      ...this.mapItemDetail(row, versionRows, artifactRows),
       manifestSchemaVersion: this.readManifestSchemaVersion(row.manifest_schema_version),
       catalogVisibility: this.readCatalogVisibility(row.catalog_visibility),
       publicListing: assessAppPublicListing({
@@ -172,6 +232,29 @@ export class MarketplaceAppRecordMapper {
 
   buildBundlePath = (slug: string, version: string, sha256: string): string =>
     `/api/v1/apps/items/${encodeURIComponent(slug)}/bundles/${encodeURIComponent(version)}?sha256=${encodeURIComponent(sha256)}`;
+
+  buildArtifactBundlePath = (
+    slug: string,
+    version: string,
+    targetKey: string,
+    sha256: string,
+  ): string => {
+    const search = new URLSearchParams({ target: targetKey, sha256 });
+    return `/api/v1/apps/items/${encodeURIComponent(slug)}/bundles/${encodeURIComponent(version)}?${search.toString()}`;
+  };
+
+  private parseArtifactTarget = (row: MarketplaceAppArtifactRow) => {
+    try {
+      return this.platformTargetService.parseArtifactTarget(
+        JSON.parse(row.target_json),
+        `${row.item_id}@${row.version}.${row.target_key}`,
+      );
+    } catch (error) {
+      throw new DomainValidationError(
+        `invalid stored app artifact target: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  };
 
   private buildFileUrl = (slug: string, filePath: string, sha256: string | null): string => {
     const search = new URLSearchParams({ path: filePath });

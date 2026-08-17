@@ -1,4 +1,7 @@
-import type { AppPermissions } from "#app-runtime/types/app-manifest.types.js";
+import type {
+  AppArtifactTarget,
+  AppPermissions,
+} from "#app-runtime/types/app-manifest.types.js";
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 
 export const DEFAULT_APP_REGISTRY_URL =
@@ -29,13 +32,25 @@ export type AppRemoteRegistryVersion = {
   description?: string;
   publisher?: AppPublisher;
   permissions?: AppPermissions;
-  dist: {
-    kind?: AppDistributionMode;
-    artifact?: string;
-    bundle: string;
-    source?: string;
-    sha256: string;
-  };
+  dist:
+    | {
+        kind?: AppDistributionMode;
+        artifact?: string;
+        bundle: string;
+        source?: string;
+        sha256: string;
+      }
+    | {
+        kind: "targeted-bundle";
+        artifacts: AppRemoteRegistryArtifact[];
+      };
+};
+
+export type AppRemoteRegistryArtifact = {
+  target: AppArtifactTarget;
+  bundle: string;
+  sha256: string;
+  sizeBytes?: number;
 };
 
 export type AppRemoteRegistryDocument = {
@@ -56,6 +71,7 @@ export type AppRemoteRegistryResolution = {
   publisher?: AppPublisher;
   permissions?: AppPermissions;
   distributionMode: AppDistributionMode;
+  target: AppArtifactTarget;
   bundleUrl: string;
   sha256: string;
 };

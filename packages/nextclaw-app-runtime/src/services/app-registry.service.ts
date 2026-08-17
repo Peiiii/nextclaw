@@ -8,6 +8,7 @@ import type {
 import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
 import { AppHomeService } from "#app-runtime/services/app-home.service.js";
 import { AppInstanceStorageService } from "#app-runtime/services/app-instance-storage.service.js";
+import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
 import { FileLockService } from "#app-runtime/services/file-lock.service.js";
 import type { AppInstanceRecord } from "#app-runtime/types/app-storage.types.js";
 import type {
@@ -24,6 +25,7 @@ const SAFE_COMPONENT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export class AppRegistryService {
   private readonly instanceStorageService: AppInstanceStorageService;
   private readonly fileLockService = new FileLockService();
+  private readonly platformTargetService = new AppPlatformTargetService();
 
   constructor(private readonly appHomeService: AppHomeService = new AppHomeService()) {
     this.instanceStorageService = new AppInstanceStorageService(appHomeService);
@@ -97,6 +99,7 @@ export class AppRegistryService {
     registryUrl?: string;
     bundleUrl?: string;
     sha256?: string;
+    target?: AppRegistryInstalledVersion["target"];
     publisher?: AppRegistryInstalledVersion["publisher"];
     manifestSchemaVersion: 1 | 2;
     components?: AppResolvedComponent[];
@@ -141,6 +144,7 @@ export class AppRegistryService {
             registryUrl: params.registryUrl,
             bundleUrl: params.bundleUrl,
             sha256: params.sha256,
+            target: params.target,
             publisher: params.publisher,
             manifestSchemaVersion: params.manifestSchemaVersion,
             components: params.components,
@@ -320,6 +324,12 @@ export class AppRegistryService {
           version,
           installDirectory: path.resolve(installDirectory),
           manifestSchemaVersion: versionRecord.manifestSchemaVersion === 2 ? 2 : 1,
+          target: versionRecord.target === undefined
+            ? undefined
+            : this.platformTargetService.parseArtifactTarget(
+                versionRecord.target,
+                `registry.apps.${appId}.installedVersions.${version}.target`,
+              ),
           components: this.parseComponents(
             versionRecord.components,
             installDirectory,

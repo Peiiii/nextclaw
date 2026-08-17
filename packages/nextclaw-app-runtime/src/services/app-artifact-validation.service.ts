@@ -1,4 +1,7 @@
 import { strFromU8, unzipSync } from "fflate";
+import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
+import { AppServiceLaunchService } from "#app-runtime/services/app-service-launch.service.js";
+import type { AppArtifactTarget } from "#app-runtime/types/app-manifest.types.js";
 import type {
   AppBundleChecksums,
   AppBundleMetadata,
@@ -36,6 +39,7 @@ export type AppArtifactValidationExpectation = {
   version: string;
   distributionMode: AppDistributionMode;
   manifest?: unknown;
+  target?: AppArtifactTarget;
 };
 
 export type AppArtifactValidationResult = {
@@ -52,6 +56,11 @@ type ZipCentralEntry = {
 };
 
 export class AppArtifactValidationService {
+  private readonly platformTargetService = new AppPlatformTargetService();
+  private readonly serviceLaunchService = new AppServiceLaunchService(
+    this.platformTargetService,
+  );
+
   validate = async (params: {
     bytes: Uint8Array;
     expected?: AppArtifactValidationExpectation;
@@ -76,7 +85,7 @@ export class AppArtifactValidationService {
     );
     this.assertManifestContract({ archive, manifest, metadata });
     if (expected) {
-      this.assertExpectedContract({ expected, manifest, metadata });
+      this.assertExpectedContract({ archive, expected, manifest, metadata });
     }
     return { archive, artifactSha256, metadata, checksums, manifest };
   };
@@ -329,7 +338,16 @@ export class AppArtifactValidationService {
     ) {
       throw new Error("bundle metadata 无效。");
     }
-    return { ...raw, distributionMode } as AppBundleMetadata;
+    return {
+      ...raw,
+      distributionMode,
+      target: raw.target === undefined
+        ? undefined
+        : this.platformTargetService.parseArtifactTarget(
+            raw.target,
+            "bundle metadata.target",
+          ),
+    } as AppBundleMetadata;
   };
 
   private readChecksums = (
@@ -453,11 +471,12 @@ export class AppArtifactValidationService {
   };
 
   private assertExpectedContract = (params: {
+    archive: Record<string, Uint8Array>;
     expected: AppArtifactValidationExpectation;
     manifest: Record<string, unknown>;
     metadata: AppBundleMetadata;
   }): void => {
-    const { expected, manifest, metadata } = params;
+    const { archive, expected, manifest, metadata } = params;
     if (
       expected.appId !== metadata.appId ||
       expected.name !== metadata.name ||
@@ -467,12 +486,45 @@ export class AppArtifactValidationService {
       throw new Error("artifact metadata 与 publish payload 不一致。");
     }
     if (
+      expected.target !== undefined &&
+      (
+        metadata.target === undefined ||
+        this.platformTargetService.toTargetKey(expected.target) !==
+          this.platformTargetService.toTargetKey(metadata.target)
+      )
+    ) {
+      throw new Error("artifact target metadata 与 publish payload 不一致。");
+    }
+    if (
       expected.manifest !== undefined &&
       !this.isJsonSubset(this.toJsonValue(expected.manifest), manifest)
     ) {
       throw new Error(
         "artifact manifest.json 与 publish payload.manifest 不一致。",
       );
+    }
+    if (
+      expected.target?.kind === "native" &&
+      manifest.schemaVersion === 2 &&
+      Array.isArray(manifest.components)
+    ) {
+      for (const rawComponent of manifest.components) {
+        if (!this.isRecord(rawComponent) || rawComponent.kind !== "service") {
+          continue;
+        }
+        const componentPath = typeof rawComponent.path === "string"
+          ? this.normalizeEntry(rawComponent.path)
+          : undefined;
+        if (!componentPath) {
+          throw new Error("service component path 无效。");
+        }
+        const serviceManifest = this.readJsonEntry<Record<string, unknown>>(
+          archive,
+          `${componentPath}/service-app.json`,
+          `${componentPath}/service-app.json`,
+        );
+        this.serviceLaunchService.resolve(serviceManifest, expected.target);
+      }
     }
   };
 

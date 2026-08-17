@@ -23,6 +23,31 @@ afterEach(() => {
 });
 
 describe("AppPublishingService", () => {
+  it("packs a declared target through the NextClaw app command service", async () => {
+    const target = { kind: "native", os: "linux", arch: "x64", abi: "gnu" };
+    const packAppDirectory = vi.fn().mockResolvedValue({ bundlePath: "/tmp/dist/linux-x64-gnu.napp" });
+    const parseTargetKey = vi.fn().mockReturnValue(target);
+    const service = new AppPublishingService(
+      {} as never,
+      {} as never,
+      { packAppDirectory } as never,
+      { parseTargetKey } as never,
+    );
+
+    await expect(service.pack({
+      appDirectory: "/tmp/example",
+      outputPath: "/tmp/dist/linux-x64-gnu.napp",
+      target: "linux-x64-gnu",
+    })).resolves.toEqual({ bundlePath: "/tmp/dist/linux-x64-gnu.napp" });
+    expect(parseTargetKey).toHaveBeenCalledWith("linux-x64-gnu");
+    expect(packAppDirectory).toHaveBeenCalledWith({
+      appDirectory: "/tmp/example",
+      outputPath: "/tmp/dist/linux-x64-gnu.napp",
+      mode: "bundle",
+      target,
+    });
+  });
+
   it("pins native Mini App validation to schema v2 bundle publishing", async () => {
     const validate = vi.fn().mockResolvedValue(componentValidation);
     const service = new AppPublishingService(
@@ -36,6 +61,7 @@ describe("AppPublishingService", () => {
     expect(validate).toHaveBeenCalledWith({
       appDirectory: "/tmp/example",
       metadataPath: undefined,
+      artifactsDirectory: undefined,
       mode: "bundle",
     });
   });
@@ -106,6 +132,7 @@ describe("AppPublishingService", () => {
 
     const result = await service.publish({
       appDirectory: "/tmp/example",
+      artifactsDirectory: "/tmp/dist",
       allowWarnings: true,
     });
 
@@ -131,6 +158,7 @@ describe("AppPublishingService", () => {
     expect(publish).toHaveBeenCalledWith({
       appDirectory: "/tmp/example",
       metadataPath: undefined,
+      artifactsDirectory: "/tmp/dist",
       bundleOutputPath: expect.stringMatching(/nextclaw-app-publish-.+\/artifact\.napp$/),
       mode: "bundle",
     });

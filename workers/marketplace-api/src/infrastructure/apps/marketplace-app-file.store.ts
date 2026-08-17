@@ -11,10 +11,11 @@ export class MarketplaceAppFileStore {
     appId: string;
     version: string;
     bytes: Uint8Array;
+    targetKey?: string;
   }): Promise<MarketplaceStoredObject> => {
-    const { appId, version, bytes } = params;
+    const { appId, version, bytes, targetKey } = params;
     const sha256 = await this.sha256Hex(bytes);
-    const storageKey = `apps/${appId}/bundles/${version}/${sha256}.napp`;
+    const storageKey = `apps/${appId}/bundles/${version}/${targetKey ? `${targetKey}/` : ""}${sha256}.napp`;
     await this.bucket.put(storageKey, bytes, {
       httpMetadata: {
         contentType: "application/octet-stream",

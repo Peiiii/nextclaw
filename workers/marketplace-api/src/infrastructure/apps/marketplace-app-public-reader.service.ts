@@ -5,6 +5,7 @@ import type {
   MarketplaceListQuery,
 } from "@/domain/model";
 import type {
+  MarketplaceAppArtifactRow,
   MarketplaceAppCatalogResult,
   MarketplaceAppFileRow,
   MarketplaceAppFilesResult,
@@ -18,6 +19,7 @@ import type { MarketplaceAppFileStore } from "./marketplace-app-file.store";
 import type { MarketplaceAppQuerySupport } from "./marketplace-app-query.service";
 import type { MarketplaceAppRecordMapper } from "./marketplace-app-record.service";
 import type { MarketplaceAppRecordRepository } from "./marketplace-app-record.repository";
+import type { MarketplaceAppArtifactRepository } from "./artifacts/marketplace-app-artifact.repository";
 
 type MarketplaceAppCatalogRow = MarketplaceAppItemRow & {
   relevance?: number;
@@ -38,6 +40,7 @@ export class MarketplaceAppPublicReader {
     private readonly querySupport: MarketplaceAppQuerySupport,
     private readonly recordMapper: MarketplaceAppRecordMapper,
     private readonly recordRepository: MarketplaceAppRecordRepository,
+    private readonly artifactRepository: MarketplaceAppArtifactRepository,
   ) {}
 
   listCatalog = async (query: MarketplaceAppCatalogQuery): Promise<MarketplaceAppCatalogResult> => {
@@ -290,7 +293,8 @@ export class MarketplaceAppPublicReader {
       return null;
     }
     const versionRows = await this.recordRepository.listVersionRows(itemRow.id);
-    return this.recordMapper.mapItemDetail(itemRow, versionRows);
+    const artifactRows = await this.artifactRepository.listRows(itemRow.id);
+    return this.recordMapper.mapItemDetail(itemRow, versionRows, artifactRows);
   };
 
   getAppFiles = async (selector: string): Promise<MarketplaceAppFilesResult | null> => {
@@ -359,8 +363,14 @@ export class MarketplaceAppPublicReader {
   getBundle = async (
     selector: string,
     version: string,
+    targetKey?: string,
     range?: string,
-  ): Promise<{ item: MarketplaceAppItemSummary; version: MarketplaceAppVersionRow; object: R2ObjectBody } | null> => {
+  ): Promise<{
+    item: MarketplaceAppItemSummary;
+    version: MarketplaceAppVersionRow;
+    artifact?: MarketplaceAppArtifactRow;
+    object: R2ObjectBody;
+  } | null> => {
     const itemRow = await this.recordRepository.getPublishedPublicItemRow(selector);
     if (!itemRow) {
       return null;
@@ -369,13 +379,30 @@ export class MarketplaceAppPublicReader {
     if (!versionRow) {
       return null;
     }
-    const object = await this.fileStore.getObject(versionRow.bundle_storage_key, range);
+    const artifactRow = targetKey
+      ? await this.artifactRepository.getActiveRow({
+          itemId: itemRow.id,
+          version,
+          targetKey,
+        }) ?? undefined
+      : undefined;
+    if (targetKey && !artifactRow) {
+      return null;
+    }
+    if (!targetKey && !versionRow.bundle_storage_key) {
+      return null;
+    }
+    const object = await this.fileStore.getObject(
+      artifactRow?.bundle_storage_key ?? versionRow.bundle_storage_key,
+      range,
+    );
     if (!object) {
       throw new ResourceNotFoundError(`app bundle object missing: ${selector}@${version}`);
     }
     return {
       item: this.recordMapper.mapItemSummary(itemRow),
       version: versionRow,
+      artifact: artifactRow,
       object,
     };
   };
@@ -386,6 +413,7 @@ export class MarketplaceAppPublicReader {
       return null;
     }
     const versionRows = await this.recordRepository.listVersionRows(itemRow.id);
+    const artifactRows = await this.artifactRepository.listRows(itemRow.id);
     return {
       name: itemRow.app_id,
       description: itemRow.description ?? undefined,
@@ -393,22 +421,56 @@ export class MarketplaceAppPublicReader {
         latest: itemRow.latest_version,
       },
       versions: Object.fromEntries(
-        versionRows.map((row) => [
-          row.version,
-          {
+        versionRows.map((row) => {
+          const versionArtifacts = artifactRows.filter((artifact) =>
+            artifact.version === row.version && artifact.status === "active",
+          );
+          return [
+            row.version,
+            {
             name: itemRow.app_id,
             version: row.version,
             description: row.description ?? itemRow.description ?? undefined,
             publisher: this.recordMapper.readPublisher(itemRow),
             permissions: this.recordMapper.parsePermissions(row.permissions_json, `${itemRow.slug}.permissions_json`),
-            dist: {
-              kind: row.distribution_mode,
-              bundle: this.recordMapper.buildBundlePath(itemRow.slug, row.version, row.bundle_sha256),
-              sha256: row.bundle_sha256,
+              dist: versionArtifacts.length > 0
+                ? {
+                    kind: "targeted-bundle",
+                    artifacts: versionArtifacts.map((artifact) => ({
+                      target: this.parseStoredTarget(artifact),
+                      bundle: this.recordMapper.buildArtifactBundlePath(
+                        itemRow.slug,
+                        row.version,
+                        artifact.target_key,
+                        artifact.bundle_sha256,
+                      ),
+                      sha256: artifact.bundle_sha256,
+                      sizeBytes: artifact.size_bytes,
+                    })),
+                  }
+                : {
+                    kind: row.distribution_mode,
+                    bundle: this.recordMapper.buildBundlePath(
+                      itemRow.slug,
+                      row.version,
+                      row.bundle_sha256,
+                    ),
+                    sha256: row.bundle_sha256,
+                  },
             },
-          },
-        ]),
+          ];
+        }),
       ),
     };
+  };
+
+  private parseStoredTarget = (artifact: MarketplaceAppArtifactRow) => {
+    try {
+      return JSON.parse(artifact.target_json) as Record<string, unknown>;
+    } catch {
+      throw new ResourceNotFoundError(
+        `app artifact target metadata is invalid: ${artifact.item_id}@${artifact.version}/${artifact.target_key}`,
+      );
+    }
   };
 }

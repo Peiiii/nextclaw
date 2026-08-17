@@ -17,6 +17,7 @@ export class AppValidatePublishCommandController {
       const validation = await this.appPublishingService.validate({
         appDirectory: target,
         metadataPath: options.meta,
+        artifactsDirectory: options.artifacts,
       });
       process.stdout.write(
         options.json
@@ -36,6 +37,9 @@ export class AppValidatePublishCommandController {
       `Bundle size: ${validation.bundleSizeBytes} bytes`,
       `Metadata: ${validation.metadataPath}`,
     ];
+    for (const artifact of validation.artifacts ?? []) {
+      lines.push(`Artifact ${artifact.targetKey}: ${artifact.sizeBytes} bytes`);
+    }
     for (const warning of validation.warnings) {
       lines.push(`Warning [${warning.code}]: ${warning.message}`);
     }
