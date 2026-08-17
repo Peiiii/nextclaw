@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  AppPlatformTargetService,
   AppServiceLaunchService,
   type AppNativeArtifactTarget,
+  type AppPlatformTargetService,
 } from "@nextclaw/app-runtime";
 import type {
   ServiceActionRisk,
