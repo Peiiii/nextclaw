@@ -20,8 +20,8 @@
 
 ## 发布/部署方式
 
-- 本轮只完成本地源码、migration、文档与验证，没有 commit、push、远端 D1 migration、Worker deploy、NPM publish 或 Marketplace 正式发布。
-- 后续发布时先应用 skills D1 migration `0014`，再部署 Marketplace Worker，最后按 changeset 统一发布受影响的 NextClaw packages。
+- 已随完整 stable NPM 批次发布 `nextclaw@0.39.0` 与 24 个 workspace 依赖包，并完成版本提交、package tags、`master` 回流和公网精确 payload 审计。
+- 本轮仍未应用远端 D1 migration、部署 Marketplace Worker、打开 runtime channel 或发布 Desktop；这些表面不属于本次 NPM-only 授权。
 
 ## 用户/产品视角的验收步骤
 
@@ -41,5 +41,7 @@
 
 ## NPM 包发布记录
 
-- 需要后续统一发布：`@nextclaw/app-runtime`（minor）、`nextclaw`（minor）、`@nextclaw/core`（patch）、`@nextclaw/kernel`（patch）、`@nextclaw/ui`（patch）。
-- 当前状态：仅本地 changeset，未获得 NPM 发布授权，全部为`待统一发布`。
+- stable/latest：`nextclaw@0.39.0`、`@nextclaw/app-runtime@0.13.0`、`@nextclaw/core@0.17.4`、`@nextclaw/kernel@0.8.5`、`@nextclaw/ui@0.18.2`，连同完整批次共 25 个公开包。
+- exact-commit prepare workflow `32052866134` 用时 4 分 17 秒并通过；prepare 不计入 NPM_READY 窗口。
+- 首次正式发布尝试在上传、registry 验证和 Git/tag 闭合后，因隔离 worktree 缺少包级 `jszip` 链接而在 install 审计阶段失败，用时 84.87 秒，记为 `NPM_SLA_MISSED`；没有重复上传。
+- 从 `install` checkpoint 恢复后用时 15.08 秒，最慢阶段为 package/registry 复核 8.85 秒；公网空缓存下载、解包与 payload 审计通过，最终状态为 `NPM_READY (stable/latest)`。
