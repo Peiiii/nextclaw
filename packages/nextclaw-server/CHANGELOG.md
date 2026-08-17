@@ -1,5 +1,18 @@
 # nextclaw-server
 
+## 0.16.5
+
+### Patch Changes
+
+- 7da88a5: Reuse content-hashed UI assets across page reloads while keeping pages and stale chunk recovery uncached.
+- 65dc8fb: Open idle NCP event streams immediately through development proxies and keep retryable stream transport failures out of conversation error state.
+- Updated dependencies [ef5d9ae]
+- Updated dependencies [1df4217]
+  - @nextclaw/core@0.17.4
+  - @nextclaw/kernel@0.8.5
+  - @nextclaw/mcp@0.3.31
+  - @nextclaw/runtime@0.4.30
+
 ## 0.16.4
 
 ### Patch Changes

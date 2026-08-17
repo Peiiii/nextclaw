@@ -1,5 +1,11 @@
 # @nextclaw/ncp-http-agent-client
 
+## 0.4.19
+
+### Patch Changes
+
+- 65dc8fb: Open idle NCP event streams immediately through development proxies and keep retryable stream transport failures out of conversation error state.
+
 ## 0.4.18
 
 ### Patch Changes

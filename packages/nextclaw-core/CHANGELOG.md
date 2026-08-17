@@ -1,5 +1,12 @@
 # nextclaw-core
 
+## 0.17.4
+
+### Patch Changes
+
+- ef5d9ae: Convert function tools to the Responses API schema before sending model requests.
+- 1df4217: Support one or multiple native platform artifacts per Mini App version, select the compatible artifact during install, expose platform-aware NextClaw app publishing commands, and label supported platforms in the App Marketplace.
+
 ## 0.17.3
 
 ### Patch Changes

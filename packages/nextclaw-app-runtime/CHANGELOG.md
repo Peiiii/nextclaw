@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.13.0
+
+### Minor Changes
+
+- 1df4217: Support one or multiple native platform artifacts per Mini App version, select the compatible artifact during install, expose platform-aware NextClaw app publishing commands, and label supported platforms in the App Marketplace.
+
 ## 0.12.2
 
 ### Patch Changes

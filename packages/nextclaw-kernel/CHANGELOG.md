@@ -1,5 +1,20 @@
 # @nextclaw/kernel
 
+## 0.8.5
+
+### Patch Changes
+
+- 1df4217: Support one or multiple native platform artifacts per Mini App version, select the compatible artifact during install, expose platform-aware NextClaw app publishing commands, and label supported platforms in the App Marketplace.
+- Updated dependencies [ef5d9ae]
+- Updated dependencies [1df4217]
+  - @nextclaw/core@0.17.4
+  - @nextclaw/app-runtime@0.13.0
+  - @nextclaw/mcp@0.3.31
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.31
+  - @nextclaw/runtime@0.4.30
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.19
+  - @nextclaw/ncp-mcp@0.2.31
+
 ## 0.8.4
 
 ### Patch Changes

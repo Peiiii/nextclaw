@@ -1,5 +1,15 @@
 # @nextclaw/ui
 
+## 0.18.2
+
+### Patch Changes
+
+- ef5d9ae: Keep the universal thinking-off option selected even when a provider only declares active reasoning levels.
+- 1df4217: Support one or multiple native platform artifacts per Mini App version, select the compatible artifact during install, expose platform-aware NextClaw app publishing commands, and label supported platforms in the App Marketplace.
+- Updated dependencies [65dc8fb]
+  - @nextclaw/ncp-http-agent-client@0.4.19
+  - @nextclaw/client-sdk@0.6.5
+
 ## 0.18.1
 
 ### Patch Changes
