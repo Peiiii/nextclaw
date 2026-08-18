@@ -1,4 +1,5 @@
 import { access, chmod, cp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
@@ -400,6 +401,69 @@ describe("AppInstallationService artifact lifecycle", () => {
     expect((await installationService.setEnabled(installed.appId, true)).enabled).toBe(true);
     expect((await installationService.list())[0]?.enabled).toBe(true);
   });
+
+  it.skipIf(process.platform === "win32")(
+    "restores execute permission only for the selected package-relative native command",
+    async () => {
+      const appDirectory = createTemporaryPath("napp-native-command-install");
+      const appHomeDirectory = createTemporaryPath("napp-native-command-home");
+      const bundlePath = `${createTemporaryPath("napp-native-command")}.napp`;
+      cleanupPaths.push(appDirectory, appHomeDirectory, bundlePath);
+      await createComponentPackage(appDirectory);
+      const target = {
+        kind: "native" as const,
+        os: "linux" as const,
+        arch: "x64" as const,
+        abi: "gnu" as const,
+      };
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      manifest.runtime = { profile: "native-process" };
+      manifest.distribution = { mode: "targeted", targets: [target] };
+      await writeFile(manifestPath, JSON.stringify(manifest));
+      const serviceDirectory = path.join(
+        appDirectory,
+        "services",
+        "nextclaw-personal-organizer-data",
+      );
+      const commandPath = path.join(serviceDirectory, "bin", "rust-todo");
+      await mkdir(path.dirname(commandPath), { recursive: true });
+      await writeFile(commandPath, "#!/bin/sh\nexit 0\n");
+      await writeFile(path.join(serviceDirectory, "service-app.json"), JSON.stringify({
+        id: "nextclaw-personal-organizer-data",
+        title: "Personal Organizer Data",
+        launch: { targets: [{ target, command: "./bin/rust-todo", args: [] }] },
+        actions: { "todo-list": { risk: "read" } },
+      }));
+      await new AppBundleService().packAppDirectory({
+        appDirectory,
+        outputPath: bundlePath,
+        target,
+      });
+
+      const installed = await new AppInstallationService(
+        new AppHomeService(appHomeDirectory),
+      ).install(bundlePath);
+      const installedCommand = path.join(
+        installed.installDirectory,
+        "services",
+        "nextclaw-personal-organizer-data",
+        "bin",
+        "rust-todo",
+      );
+      const installedServiceManifest = path.join(
+        installed.installDirectory,
+        "services",
+        "nextclaw-personal-organizer-data",
+        "service-app.json",
+      );
+
+      expect((await stat(installedCommand)).mode & 0o100).toBe(0o100);
+      expect((await stat(installedCommand)).mode & 0o222).toBe(0);
+      await expect(access(installedCommand, constants.X_OK)).resolves.toBeUndefined();
+      expect((await stat(installedServiceManifest)).mode & 0o111).toBe(0);
+    },
+  );
 
   it("blocks a data schema change when the package has no supported migration contract", async () => {
     const version1Directory = createTemporaryPath("napp-schema-v1");

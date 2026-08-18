@@ -187,6 +187,7 @@ export class AppInstallationService {
       appVersion: version,
       extractedDirectory,
       installDirectory,
+      target: extractedMetadata.metadata.target?.kind === "native" ? extractedMetadata.metadata.target : undefined,
     });
     const defaultInstance = await this.instanceStorageService.materializeDefaultInstance({
       appId,

@@ -18,6 +18,7 @@
 - 本地 D1 从 `0001` 到 `0014_app_platform_artifacts_20260818.sql` 全量迁移成功。
 - `git diff --check`、文档命名治理和 diff-only maintainability review 通过。
 - Worker 缺省 manifest 修复后，18 个测试文件、83 条测试、tsc、lint 与 Wrangler production dry-run 通过；新增组装测试覆盖缺省 `permissions` 的 targeted artifact 发布边界。
+- native Service 权限修复新增真实 `.napp` 的 `pack -> install -> stat/X_OK` 回归测试；`@nextclaw/app-runtime` 全量 21 个测试文件、76 条测试、tsc、lint、build 通过，kernel 消费侧 2 个测试文件、13 条测试与 tsc 通过。diff-only maintainability 检查为 `0 errors`，仅保留已复核的文件预算 warning。
 
 ## 发布/部署方式
 
@@ -26,6 +27,7 @@
 - Apps Web 已部署到 Cloudflare Pages `https://e8cc688f.nextclaw-apps.pages.dev`，自定义域 `https://apps.nextclaw.io/apps` 返回 200，生产 bundle 包含平台标签。
 - Worker 首次部署暴露两层边缘兼容问题：root barrel 带入 Node-only 模块，以及 target service 构造时提前读取 `process`。前者通过公共 edge-safe subpath 收窄，后者改为宿主探测时延迟读取；修复后重新部署并通过线上 smoke。
 - Rust Todo 试投进一步暴露 Worker manifest parser 会把未声明的 `permissions` 改写为 `{}`，而 artifact validator 会区分“字段缺失”和“空对象”，因此目录与包内 manifest 完全一致仍被误判。修复让 manifest 保留 optional 字段缺失语义，同时继续在发布层推导 native-process 的有效权限；组装测试用真实 targeted `.napp` 贯穿 Worker parser 与 artifact validator，证明修复针对归一化根因而非绕过校验。生产 Worker 已更新为 `8ecae45a-77b3-42fe-83e8-393bdb2570b2`，health 与 Apps v2 catalog 公网 smoke 通过。
+- Linux VPS 的真实安装进一步确认 [Issue #26](https://github.com/Peiiii/nextclaw/issues/26)：原始 native Service 二进制为 `0755`，安装后变为 `0444` 并在启用时触发 `spawn EACCES`。根因是安装器从 ZIP 落盘后按不可变目录合同统一移除写权限，但没有依据已验证的 Service launch 为包内命令恢复执行位。修复在 staging 安装 owner 中复用统一 launch target 解析，只为当前平台、组件目录内且为普通文件的 package-relative command 增加 owner execute 位，再执行只读冻结；外部命令、绝对路径、目录穿越与符号链接不进入该路径，因而修复的是权限归属根因而非启动时临时 `chmod`。
 - stable runtime channel 已为 darwin arm64/x64、linux x64、win32 x64 构建并发布，四份公网 manifest 均返回 `0.39.0`；从 `0.38.1` 完成 `check -> download-only -> apply -> 新进程 0.39.0` 的真实升级验证。
 - 双语 release notes、结构化 release JSON、全球与国内 Docs、Apps Web 均已上线；X 公告使用冻结文案和产品截图单次写入时，被平台以当日发送额度已满（344）拒绝，未产生帖子，也未盲目重试。Desktop 明确排除。
 
@@ -36,6 +38,7 @@
 3. 删除任一已声明 artifact，确认发布前被“声明集合与实际集合不一致”阻止。
 4. 在不同宿主 target 安装同一 App ID，确认只下载精确匹配 artifact；不兼容的显式版本在下载前失败。
 5. 在内置 Marketplace 与公开 Apps Web 查看卡片和详情，确认显示 macOS、Linux、Windows 或“全部平台”。
+6. 在 Linux x64 VPS 安装带 `./bin/rust-todo` 的 targeted artifact，确认安装后的二进制具有 owner execute 位、目录仍保持不可写，并可完成 enable 与 `nextclaw app call`。
 
 ## 可维护性总结汇总
 
@@ -43,6 +46,7 @@
 - Artifact 查询与发布 artifact 准备分别下沉到 `apps/artifacts/` repository/service，Marketplace datasource 与 record repository 均回到文件预算内。
 - 安装服务复用远端来源字段映射，target 持久化没有复制四套字段拼装。
 - 自动维护性检查最终为 `0 errors`；容量 warning 经主观复核后无开放 finding。接近预算的既有文件保留清晰的后续拆分缝，不为压行牺牲协议和类型安全。
+- Issue #26 的修复复用了既有 Service launch target owner，没有复制平台选择逻辑；权限恢复只发生在 staging 到不可变安装目录的唯一边界，未增加启动时 fallback。测试文件增长用于覆盖真实归档安装边界，主观 Review 无开放 finding。
 - 本轮没有触达 maintainability hotspots 脚本登记的红区文件。
 
 ## NPM 包发布记录
@@ -53,3 +57,4 @@
 - 从 `install` checkpoint 恢复后用时 15.08 秒，最慢阶段为 package/registry 复核 8.85 秒；公网空缓存下载、解包与 payload 审计通过，最终状态为 `NPM_READY (stable/latest)`。
 - runtime workflow 为 `https://github.com/Peiiii/nextclaw/actions/runs/32109874103`，四个平台构建与 update channel 发布全部成功；GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.39.0`。
 - 全球与国内版本说明分别为 `https://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-0` 和 `https://docs.nextclaw.net/en/notes/2026-08-18-nextclaw-v0-39-0`，均返回 200。
+- Issue #26 需要发布 `@nextclaw/app-runtime` patch，并由精确依赖闭包带入 `nextclaw` stable patch；提交时状态为 `待统一发布`，发布完成后补记精确版本、registry、runtime channel 与 VPS 复验结果。

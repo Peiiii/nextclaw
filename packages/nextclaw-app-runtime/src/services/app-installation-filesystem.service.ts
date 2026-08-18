@@ -1,10 +1,16 @@
 import { randomUUID } from "node:crypto";
-import { cp, mkdir, readdir, rename, rm } from "node:fs/promises";
+import { chmod, cp, lstat, mkdir, readFile, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import type { AppBuildService } from "#app-runtime/services/app-build.service.js";
 import type { AppInstallationIntegrityService } from "#app-runtime/services/app-installation-integrity.service.js";
 import type { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
-import { isAppStandaloneManifestBundle } from "#app-runtime/types/app-manifest.types.js";
+import { AppServiceLaunchService } from "#app-runtime/services/app-service-launch.service.js";
+import {
+  isAppComponentManifestBundle,
+  isAppStandaloneManifestBundle,
+  type AppManifestBundle,
+  type AppNativeArtifactTarget,
+} from "#app-runtime/types/app-manifest.types.js";
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 
 export class AppInstallationFilesystemService {
@@ -19,8 +25,9 @@ export class AppInstallationFilesystemService {
     appVersion: string;
     extractedDirectory: string;
     installDirectory: string;
+    target?: AppNativeArtifactTarget;
   }): Promise<string> => {
-    const { appId, appVersion, extractedDirectory, installDirectory } = params;
+    const { appId, appVersion, extractedDirectory, installDirectory, target } = params;
     if (await this.params.integrityService.pathExists(installDirectory)) {
       throw new Error(`应用版本目录已存在，不能覆盖不可变版本：${appId}@${appVersion}`);
     }
@@ -35,6 +42,7 @@ export class AppInstallationFilesystemService {
       ) {
         throw new Error("staging manifest 与已验证 bundle 身份不一致。");
       }
+      await this.restoreServiceCommandPermissions(stagedManifest, target);
       const contentSha256 = await this.params.integrityService.calculateDigest(
         stagedInstallDirectory,
       );
@@ -44,6 +52,42 @@ export class AppInstallationFilesystemService {
     } catch (error) {
       await rm(stagedInstallDirectory, { recursive: true, force: true });
       throw error;
+    }
+  };
+
+  private restoreServiceCommandPermissions = async (
+    manifestBundle: AppManifestBundle,
+    target?: AppNativeArtifactTarget,
+  ): Promise<void> => {
+    if (!isAppComponentManifestBundle(manifestBundle)) {
+      return;
+    }
+    const launchService = new AppServiceLaunchService();
+    for (const component of manifestBundle.components) {
+      if (component.kind !== "service") {
+        continue;
+      }
+      const serviceManifest = JSON.parse(
+        await readFile(component.manifestPath, "utf8"),
+      ) as Record<string, unknown>;
+      const { command } = launchService.resolve(serviceManifest, target);
+      if (path.isAbsolute(command) || !command.includes("/")) {
+        continue;
+      }
+      const commandPath = path.resolve(component.componentDirectory, command);
+      const relativeCommandPath = path.relative(component.componentDirectory, commandPath);
+      if (
+        !relativeCommandPath ||
+        relativeCommandPath.startsWith("..") ||
+        path.isAbsolute(relativeCommandPath)
+      ) {
+        throw new Error(`service app command 必须位于组件目录内：${command}`);
+      }
+      const stats = await lstat(commandPath);
+      if (!stats.isFile()) {
+        throw new Error(`service app command 必须是普通文件：${command}`);
+      }
+      await chmod(commandPath, stats.mode | 0o100);
     }
   };
 
