@@ -21,7 +21,10 @@
 ## 发布/部署方式
 
 - 已随完整 stable NPM 批次发布 `nextclaw@0.39.0` 与 24 个 workspace 依赖包，并完成版本提交、package tags、`master` 回流和公网精确 payload 审计。
-- 本轮仍未应用远端 D1 migration、部署 Marketplace Worker、打开 runtime channel 或发布 Desktop；这些表面不属于本次 NPM-only 授权。
+- 生产 D1 已应用 `0014_app_platform_artifacts_20260818.sql`；Marketplace Worker 已部署为 `99938c65-c584-46a9-9d8b-1e0c6e3e0aa4`，health、plugins、skills 与 Apps v2 均通过公网 smoke，新 `availability` 字段在线可见。
+- Apps Web 已部署到 Cloudflare Pages `https://e8cc688f.nextclaw-apps.pages.dev`，自定义域 `https://apps.nextclaw.io/apps` 返回 200，生产 bundle 包含平台标签。
+- Worker 首次部署暴露两层边缘兼容问题：root barrel 带入 Node-only 模块，以及 target service 构造时提前读取 `process`。前者通过公共 edge-safe subpath 收窄，后者改为宿主探测时延迟读取；修复后重新部署并通过线上 smoke。
+- stable runtime channel、结构化 release notes、Docs 与 X 公告在本次产品发布闭环中继续执行；Desktop 明确排除。
 
 ## 用户/产品视角的验收步骤
 

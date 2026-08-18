@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.39.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-18",
+  "title": {
+    "zh-CN": "NextClaw v0.39.0",
+    "en-US": "NextClaw v0.39.0"
+  },
+  "summary": {
+    "zh-CN": "让原生 App 可以按平台发布和安装，并在应用市场中清楚显示支持范围。",
+    "en-US": "Adds platform-aware publishing and installation for native Apps, with clear compatibility labels in the Marketplace."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-18-nextclaw-v0-39-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "一个版本支持多个平台", "en-US": "Multiple platforms in one version" },
+          "body": {
+            "zh-CN": "原生 App 的一个版本可以提供一个或多个平台构建，不再需要拆成多个 App。",
+            "en-US": "A native App version can provide one or more platform builds without splitting into separate Apps."
+          }
+        },
+        {
+          "title": { "zh-CN": "按设备安装匹配构建", "en-US": "Device-matched installation" },
+          "body": {
+            "zh-CN": "NextClaw 只下载与当前系统、架构和 Linux ABI 精确匹配的 artifact，并校验文件完整性。",
+            "en-US": "NextClaw downloads only the artifact matching the current OS, architecture, and Linux ABI, then verifies its integrity."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "安装前查看支持平台", "en-US": "Compatibility before installation" },
+          "body": {
+            "zh-CN": "应用市场的卡片和详情页会显示 macOS、Linux、Windows 或全部平台。",
+            "en-US": "Marketplace cards and detail pages show macOS, Linux, Windows, or universal support."
+          }
+        },
+        {
+          "title": { "zh-CN": "选择最新兼容版本", "en-US": "Newest compatible version" },
+          "body": {
+            "zh-CN": "最新版本不支持当前设备时，安装器会选择最新的兼容版本。",
+            "en-US": "When the newest release does not support the current device, installation selects the newest compatible version."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "模型请求与思考设置", "en-US": "Model requests and thinking settings" },
+          "body": {
+            "zh-CN": "修正 OpenAI Responses 工具结构，并让关闭思考的选择在不同模型能力下保持稳定。",
+            "en-US": "Corrects OpenAI Responses tool schemas and keeps the thinking-off selection stable across model capabilities."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "通用 App 保持兼容", "en-US": "Universal Apps remain compatible" },
+          "body": {
+            "zh-CN": "现有通用 App 无需修改；原生 App 的声明平台与发布 artifact 必须完全一致。",
+            "en-US": "Existing universal Apps require no changes, while native Apps must publish the exact target set declared in their manifest."
+          }
+        }
+      ]
+    }
+  ]
+}
