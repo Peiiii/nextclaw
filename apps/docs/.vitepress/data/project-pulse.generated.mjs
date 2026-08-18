@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-08-18T06:54:48.003Z",
+  "generatedAt": "2026-08-18T15:18:30.685Z",
   "hero": {
     "currentLoc": 250702,
     "testLoc": 100841,
     "trackedFiles": 2667,
-    "recentCommitCount": 331,
+    "recentCommitCount": 345,
     "activeDays30": 30,
     "recentReleaseCount": 52,
     "latestReleaseDate": "2026-08-18",
@@ -1268,7 +1268,7 @@ export default {
       {
         "key": "2026-08-18",
         "label": "08-18",
-        "value": 7
+        "value": 21
       }
     ],
     "commitWeekly": [
@@ -1330,7 +1330,7 @@ export default {
       {
         "key": "2026-08-17",
         "label": "08-17",
-        "value": 9
+        "value": 23
       }
     ],
     "releaseMonthly": [
@@ -1464,7 +1464,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-18",
-        "tagCount": 25,
+        "tagCount": 43,
         "sampleTags": [
           "@nextclaw/app-runtime@0.13.0",
           "@nextclaw/channel-extension-dingtalk@0.2.30",
@@ -1520,6 +1520,44 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-18-nextclaw-v0-39-2",
+        "date": "2026-08-18",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-18 · NextClaw v0.39.2",
+          "description": "NextClaw v0.39.2 fixes Marketplace Panel Apps failing to reopen after being pinned to the right sidebar.",
+          "href": "/en/notes/2026-08-18-nextclaw-v0-39-2"
+        },
+        "zh": {
+          "title": "2026-08-18 · NextClaw v0.39.2",
+          "description": "NextClaw v0.39.2 修复 Marketplace Panel App 固定到右侧边栏后无法再次打开的问题。",
+          "href": "/zh/notes/2026-08-18-nextclaw-v0-39-2"
+        }
+      },
+      {
+        "slug": "2026-08-18-nextclaw-v0-39-1",
+        "date": "2026-08-18",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-18 · NextClaw v0.39.1",
+          "description": "NextClaw v0.39.1 fixes native Service Apps losing execute permission after installation on Linux.",
+          "href": "/en/notes/2026-08-18-nextclaw-v0-39-1"
+        },
+        "zh": {
+          "title": "2026-08-18 · NextClaw v0.39.1",
+          "description": "NextClaw v0.39.1 修复 Linux 上原生 Service App 安装后无法执行的问题。",
+          "href": "/zh/notes/2026-08-18-nextclaw-v0-39-1"
+        }
+      },
       {
         "slug": "2026-08-18-nextclaw-v0-39-0",
         "date": "2026-08-18",
@@ -2406,7 +2444,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-18T03:08:02.145Z",
     "sourceCount": {
-      "notes": 42,
+      "notes": 44,
       "scopes": 8
     }
   }

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.39.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-18",
+  "title": {
+    "zh-CN": "NextClaw v0.39.2",
+    "en-US": "NextClaw v0.39.2"
+  },
+  "summary": {
+    "zh-CN": "修复 Marketplace Panel App 固定到右侧边栏后无法再次打开的问题。",
+    "en-US": "Fixes Marketplace Panel Apps failing to reopen after being pinned to the right sidebar."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-18-nextclaw-v0-39-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "固定的 Panel App 可以稳定重开", "en-US": "Pinned Panel Apps reopen reliably" },
+          "body": {
+            "zh-CN": "右侧边栏固定入口使用稳定的 Panel App ID，并自动解析当前启用的 Marketplace 安装版本。",
+            "en-US": "Pinned right-sidebar entries use the stable Panel App ID and automatically resolve the currently enabled Marketplace installation."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "已有固定入口无需重建", "en-US": "Existing pinned entries keep working" },
+          "body": {
+            "zh-CN": "App 升级、回滚或重装后，已有固定入口会自动指向当前启用版本；禁用或卸载后不会运行残留文件。",
+            "en-US": "After an upgrade, rollback, or reinstall, existing pinned entries follow the active version; disabled or uninstalled Apps do not run leftover files."
+          }
+        }
+      ]
+    }
+  ]
+}
