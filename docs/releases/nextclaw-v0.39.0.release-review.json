@@ -26,7 +26,9 @@
       "text": "NextClaw v0.39.0 is out.\n\nNative Apps can now ship one or multiple platform-specific artifacts. Marketplace installs only the compatible build and shows supported platforms.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-0",
       "imagePath": "images/screenshots/nextclaw-app-marketplace-en.png",
       "imageAlt": "NextClaw App Marketplace showing available applications and their installation state",
-      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-0"
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-0",
+      "publicationStatus": "blocked",
+      "publicationBlocker": "X rejected the single write attempt with daily sending limit error 344; no post was created and no blind retry was made."
     }
   }
 }

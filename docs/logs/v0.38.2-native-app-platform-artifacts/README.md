@@ -24,7 +24,8 @@
 - 生产 D1 已应用 `0014_app_platform_artifacts_20260818.sql`；Marketplace Worker 已部署为 `99938c65-c584-46a9-9d8b-1e0c6e3e0aa4`，health、plugins、skills 与 Apps v2 均通过公网 smoke，新 `availability` 字段在线可见。
 - Apps Web 已部署到 Cloudflare Pages `https://e8cc688f.nextclaw-apps.pages.dev`，自定义域 `https://apps.nextclaw.io/apps` 返回 200，生产 bundle 包含平台标签。
 - Worker 首次部署暴露两层边缘兼容问题：root barrel 带入 Node-only 模块，以及 target service 构造时提前读取 `process`。前者通过公共 edge-safe subpath 收窄，后者改为宿主探测时延迟读取；修复后重新部署并通过线上 smoke。
-- stable runtime channel、结构化 release notes、Docs 与 X 公告在本次产品发布闭环中继续执行；Desktop 明确排除。
+- stable runtime channel 已为 darwin arm64/x64、linux x64、win32 x64 构建并发布，四份公网 manifest 均返回 `0.39.0`；从 `0.38.1` 完成 `check -> download-only -> apply -> 新进程 0.39.0` 的真实升级验证。
+- 双语 release notes、结构化 release JSON、全球与国内 Docs、Apps Web 均已上线；X 公告使用冻结文案和产品截图单次写入时，被平台以当日发送额度已满（344）拒绝，未产生帖子，也未盲目重试。Desktop 明确排除。
 
 ## 用户/产品视角的验收步骤
 
@@ -48,3 +49,5 @@
 - exact-commit prepare workflow `32052866134` 用时 4 分 17 秒并通过；prepare 不计入 NPM_READY 窗口。
 - 首次正式发布尝试在上传、registry 验证和 Git/tag 闭合后，因隔离 worktree 缺少包级 `jszip` 链接而在 install 审计阶段失败，用时 84.87 秒，记为 `NPM_SLA_MISSED`；没有重复上传。
 - 从 `install` checkpoint 恢复后用时 15.08 秒，最慢阶段为 package/registry 复核 8.85 秒；公网空缓存下载、解包与 payload 审计通过，最终状态为 `NPM_READY (stable/latest)`。
+- runtime workflow 为 `https://github.com/Peiiii/nextclaw/actions/runs/32109874103`，四个平台构建与 update channel 发布全部成功；GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.39.0`。
+- 全球与国内版本说明分别为 `https://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-0` 和 `https://docs.nextclaw.net/en/notes/2026-08-18-nextclaw-v0-39-0`，均返回 200。
