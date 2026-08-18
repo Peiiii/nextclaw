@@ -836,12 +836,12 @@ describe("PanelAppManager metadata and state", () => {
     } satisfies Partial<PanelAppError>);
   });
 
-  it("rejects invalid ids before reading from disk", async () => {
+  it("reports an unknown stable app id as not found", async () => {
     const workspacePath = createTempDir();
     const manager = createPanelAppManager(workspacePath);
 
     await expect(manager.getPanelAppContent("not-a-valid-id")).rejects.toMatchObject({
-      code: "PANEL_APP_INVALID_ID",
+      code: "PANEL_APP_NOT_FOUND",
     } satisfies Partial<PanelAppError>);
   });
 

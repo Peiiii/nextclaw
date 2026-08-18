@@ -181,13 +181,15 @@ export class PanelAppManager {
 
   getPanelAppContent = async (id: string, sourcePath?: string): Promise<PanelAppContent> => {
     try {
-      const resolved = await readPanelAppContentSourceByIdOrPath({
-        createAssetBaseHref: this.createAssetBaseHref,
-        id,
-        panelsPath: this.getPanelsPath(this.getWorkspacePath()),
-        sourcePath,
-        sourceService: this.sourceService,
-      });
+      const resolved = sourcePath
+        ? await readPanelAppContentSourceByIdOrPath({
+            createAssetBaseHref: this.createAssetBaseHref,
+            id,
+            panelsPath: this.getPanelsPath(this.getWorkspacePath()),
+            sourcePath,
+            sourceService: this.sourceService,
+          })
+        : await this.packageStateManager.readContentSourceByIdOrAppId(id);
       const clientGranted = await this.isPanelAppClientGranted(
         resolved.appId,
         resolved.manifest.client,

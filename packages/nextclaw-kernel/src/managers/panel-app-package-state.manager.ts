@@ -13,7 +13,6 @@ import {
   PanelAppError,
 } from "@kernel/types/panel-app.types.js";
 import {
-  readPanelAppContentSourceByIdOrAppId,
   readPanelAppContentSourceByIdOrPath,
   resolvePanelAppAppId,
 } from "@kernel/utils/panel-app-content-source.utils.js";
@@ -85,31 +84,26 @@ export class PanelAppPackageStateManager {
 
   readContentSourceByIdOrAppId = async (id: string) => {
     const panelsPath = this.params.getPanelsPath();
-    try {
-      return await readPanelAppContentSourceByIdOrAppId({
-        appIdOrSourceId: id,
+    for (const { source, packageSource } of await this.listSources()) {
+      const manifest = source.manifest ?? parsePanelAppManifest(
+        await readFile(source.entryPath, "utf8"),
+      );
+      if (
+        encodePanelAppId(source.sourceName) !== id &&
+        resolvePanelAppAppId(source, manifest) !== id &&
+        packageSource?.id !== id
+      ) {
+        continue;
+      }
+      return await readPanelAppContentSourceByIdOrPath({
         createAssetBaseHref: this.params.createAssetBaseHref,
+        id,
         panelsPath,
+        sourcePath: source.sourcePath,
         sourceService: this.params.sourceService,
       });
-    } catch (error) {
-      if (!isPanelAppError(error) || error.code !== "PANEL_APP_NOT_FOUND") {
-        throw error;
-      }
     }
-    const packageSource = (await this.listPackageComponentSources()).find((component) =>
-      component.kind === "panel" && component.id === id,
-    );
-    if (!packageSource) {
-      throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
-    }
-    return await readPanelAppContentSourceByIdOrPath({
-      createAssetBaseHref: this.params.createAssetBaseHref,
-      id,
-      panelsPath,
-      sourcePath: packageSource.sourcePath,
-      sourceService: this.params.sourceService,
-    });
+    throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
   };
 
   assertDeclaresClient = async (appId: string): Promise<void> => {

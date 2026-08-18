@@ -38,9 +38,7 @@ export class PanelAppEntryPresenter {
       fileName: source.sourceName,
       kind: source.kind,
       title: manifest.title ?? toPanelAppTitle(source.sourceName),
-      contentPath: packageSource
-        ? `${this.params.contentBasePath}/${encodeURIComponent(id)}/content?${new URLSearchParams({ path: source.sourcePath })}`
-        : `${this.params.contentBasePath}/${encodeURIComponent(id)}/content`,
+      contentPath: `${this.params.contentBasePath}/${encodeURIComponent(appId)}/content`,
       createdAt: resolvePanelAppCreatedAt(source.sourceStat),
       updatedAt: source.sourceStat.mtime.toISOString(),
       sizeBytes: source.sourceStat.size,

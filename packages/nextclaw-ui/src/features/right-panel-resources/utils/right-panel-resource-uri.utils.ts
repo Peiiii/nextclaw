@@ -99,11 +99,11 @@ function createPanelAppDockIcon(entry: PanelAppEntryView): DocBrowserDockIcon | 
 
 export function createPanelAppRightPanelResourceTarget(entry: PanelAppEntryView): RightPanelResourceTarget {
   return {
-    dedupeKey: `panel-app:${entry.id}`,
+    dedupeKey: `panel-app:${entry.appId}`,
     dockIcon: createPanelAppDockIcon(entry),
     historyPolicy: 'managed',
     kind: RIGHT_PANEL_PANEL_APP_TAB_KIND,
-    resourceUri: createPanelAppResourceUri(entry.id),
+    resourceUri: createPanelAppResourceUri(entry.appId),
     title: entry.title,
     url: entry.contentPath,
   };

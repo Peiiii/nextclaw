@@ -90,4 +90,17 @@ describe('right-panel-resource uri utils', () => {
       value: '🧭',
     });
   });
+
+  it('uses the stable app id for persistent panel app resources', () => {
+    const target = createPanelAppRightPanelResourceTarget(createPanelAppEntry({
+      id: 'installed-directory-name',
+      appId: 'publisher.stable-panel',
+      contentPath: '/api/panel-apps/publisher.stable-panel/content',
+    }));
+
+    expect(target).toEqual(expect.objectContaining({
+      dedupeKey: 'panel-app:publisher.stable-panel',
+      resourceUri: 'nextclaw://panel-app/publisher.stable-panel',
+    }));
+  });
 });
