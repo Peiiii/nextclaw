@@ -160,7 +160,7 @@ export class MarketplaceAppPayloadParser {
       ui: {
         entry: this.readString(uiCandidate.entry, "manifest.ui.entry"),
       },
-      permissions: this.readPermissions(candidate.permissions),
+      permissions: this.readOptionalPermissions(candidate.permissions),
     };
   };
 
@@ -210,7 +210,7 @@ export class MarketplaceAppPayloadParser {
       storage: storageScope && typeof storageSchemaVersion === "number"
         ? { scope: storageScope, schemaVersion: storageSchemaVersion }
         : undefined,
-      permissions: this.readPermissions(candidate.permissions),
+      permissions: this.readOptionalPermissions(candidate.permissions),
       components,
     };
   };
@@ -390,6 +390,12 @@ export class MarketplaceAppPayloadParser {
     }
     return value as NonNullable<MarketplaceAppManifest["permissions"]>;
   };
+
+  private readOptionalPermissions = (
+    value: unknown,
+  ): MarketplaceAppManifest["permissions"] => value === undefined
+    ? undefined
+    : this.readPermissions(value);
 
   private readOptionalRecord = (
     value: unknown,

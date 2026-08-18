@@ -17,6 +17,7 @@
 - `@nextclaw/ui` 与 `@nextclaw/apps-web` production build 通过。
 - 本地 D1 从 `0001` 到 `0014_app_platform_artifacts_20260818.sql` 全量迁移成功。
 - `git diff --check`、文档命名治理和 diff-only maintainability review 通过。
+- Worker 缺省 manifest 修复后，18 个测试文件、83 条测试、tsc、lint 与 Wrangler production dry-run 通过；新增组装测试覆盖缺省 `permissions` 的 targeted artifact 发布边界。
 
 ## 发布/部署方式
 
@@ -24,6 +25,7 @@
 - 生产 D1 已应用 `0014_app_platform_artifacts_20260818.sql`；Marketplace Worker 已部署为 `99938c65-c584-46a9-9d8b-1e0c6e3e0aa4`，health、plugins、skills 与 Apps v2 均通过公网 smoke，新 `availability` 字段在线可见。
 - Apps Web 已部署到 Cloudflare Pages `https://e8cc688f.nextclaw-apps.pages.dev`，自定义域 `https://apps.nextclaw.io/apps` 返回 200，生产 bundle 包含平台标签。
 - Worker 首次部署暴露两层边缘兼容问题：root barrel 带入 Node-only 模块，以及 target service 构造时提前读取 `process`。前者通过公共 edge-safe subpath 收窄，后者改为宿主探测时延迟读取；修复后重新部署并通过线上 smoke。
+- Rust Todo 试投进一步暴露 Worker manifest parser 会把未声明的 `permissions` 改写为 `{}`，而 artifact validator 会区分“字段缺失”和“空对象”，因此目录与包内 manifest 完全一致仍被误判。修复让 manifest 保留 optional 字段缺失语义，同时继续在发布层推导 native-process 的有效权限；组装测试用真实 targeted `.napp` 贯穿 Worker parser 与 artifact validator，证明修复针对归一化根因而非绕过校验。
 - stable runtime channel 已为 darwin arm64/x64、linux x64、win32 x64 构建并发布，四份公网 manifest 均返回 `0.39.0`；从 `0.38.1` 完成 `check -> download-only -> apply -> 新进程 0.39.0` 的真实升级验证。
 - 双语 release notes、结构化 release JSON、全球与国内 Docs、Apps Web 均已上线；X 公告使用冻结文案和产品截图单次写入时，被平台以当日发送额度已满（344）拒绝，未产生帖子，也未盲目重试。Desktop 明确排除。
 

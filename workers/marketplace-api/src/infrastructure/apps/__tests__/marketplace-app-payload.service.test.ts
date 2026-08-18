@@ -122,6 +122,12 @@ describe("MarketplaceAppPayloadParser platform artifacts", () => {
     const parsed = new MarketplaceAppPayloadParser().parsePublishInput(input);
 
     expect(parsed.artifacts).toHaveLength(2);
+    expect(parsed.manifest.permissions).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(parsed.manifest))).not.toHaveProperty("permissions");
+    expect(parsed.permissions).toMatchObject({
+      storage: true,
+      capabilities: { nativeProcess: true },
+    });
   });
 
   it("rejects a targeted release when a declared platform artifact is missing", () => {
