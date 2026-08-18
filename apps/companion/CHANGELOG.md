@@ -1,5 +1,11 @@
 # @nextclaw/companion
 
+## 0.2.37
+
+### Patch Changes
+
+- @nextclaw/client-sdk@0.6.7
+
 ## 0.2.36
 
 ### Patch Changes

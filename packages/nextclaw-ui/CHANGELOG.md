@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.18.4
+
+### Patch Changes
+
+- ae676ff: 修复 Marketplace Panel App 固定到右侧边栏后无法再次打开的问题。固定入口现在使用稳定的 Panel App ID，并在升级、重装或重新启用后自动解析当前安装版本，不再依赖历史安装路径。
+  - @nextclaw/client-sdk@0.6.7
+
 ## 0.18.3
 
 ### Patch Changes
