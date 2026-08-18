@@ -1,5 +1,11 @@
 # nextclaw-server
 
+## 0.16.6
+
+### Patch Changes
+
+- @nextclaw/kernel@0.8.6
+
 ## 0.16.5
 
 ### Patch Changes

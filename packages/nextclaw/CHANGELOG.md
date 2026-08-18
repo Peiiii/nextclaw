@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.39.1
+
+### Patch Changes
+
+- Updated dependencies [0fa2748]
+  - @nextclaw/app-runtime@0.13.1
+  - @nextclaw/kernel@0.8.6
+  - @nextclaw/remote@0.3.36
+  - @nextclaw/server@0.16.6
+  - @nextclaw/service@0.3.39
+
 ## 0.39.0
 
 ### Minor Changes

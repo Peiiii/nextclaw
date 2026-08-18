@@ -1,5 +1,12 @@
 # @nextclaw/kernel
 
+## 0.8.6
+
+### Patch Changes
+
+- Updated dependencies [0fa2748]
+  - @nextclaw/app-runtime@0.13.1
+
 ## 0.8.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.13.1
+
+### Patch Changes
+
+- 0fa2748: Expose the platform target contract through an edge-safe public entry, defer Node host detection until installation actually needs it, and preserve execute permission for validated package-relative native Service commands after installation.
+
 ## 0.13.0
 
 ### Minor Changes

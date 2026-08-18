@@ -1,5 +1,13 @@
 # @nextclaw/desktop
 
+## 0.0.256
+
+### Patch Changes
+
+- nextclaw@0.39.1
+- @nextclaw/kernel@0.8.6
+- @nextclaw/server@0.16.6
+
 ## 0.0.255
 
 ### Patch Changes
