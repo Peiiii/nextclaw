@@ -21,13 +21,13 @@ type AppPlatformTargetServiceOptions = {
 };
 
 export class AppPlatformTargetService {
-  private readonly platform: NodeJS.Platform;
-  private readonly arch: string;
+  private readonly platform?: NodeJS.Platform;
+  private readonly arch?: string;
   private readonly linuxAbi?: "gnu" | "musl";
 
   constructor(options: AppPlatformTargetServiceOptions = {}) {
-    this.platform = options.platform ?? process.platform;
-    this.arch = options.arch ?? process.arch;
+    this.platform = options.platform;
+    this.arch = options.arch;
     this.linuxAbi = options.linuxAbi;
   }
 
@@ -97,11 +97,12 @@ export class AppPlatformTargetService {
   };
 
   readHostTarget = (): AppNativeArtifactTarget => {
-    const arch = this.readArchitecture(this.arch, "host architecture");
-    if (this.platform === "darwin") {
+    const platform = this.readHostPlatform();
+    const arch = this.readArchitecture(this.readHostArchitecture(), "host architecture");
+    if (platform === "darwin") {
       return { kind: "native", os: "darwin", arch };
     }
-    if (this.platform === "linux") {
+    if (platform === "linux") {
       return {
         kind: "native",
         os: "linux",
@@ -109,10 +110,10 @@ export class AppPlatformTargetService {
         abi: this.linuxAbi ?? this.detectLinuxAbi(),
       };
     }
-    if (this.platform === "win32") {
+    if (platform === "win32") {
       return { kind: "native", os: "win32", arch, abi: "msvc" };
     }
-    throw new Error(`当前平台不支持原生 App artifact：${this.platform}-${this.arch}`);
+    throw new Error(`当前平台不支持原生 App artifact：${platform}-${arch}`);
   };
 
   selectArtifact = <TArtifact extends AppTargetArtifact>(
@@ -200,6 +201,9 @@ export class AppPlatformTargetService {
   };
 
   private detectLinuxAbi = (): "gnu" | "musl" => {
+    if (typeof process === "undefined") {
+      throw new Error("当前环境无法自动检测 Linux ABI，请显式提供 linuxAbi。");
+    }
     const report = process.report?.getReport() as {
       header?: { glibcVersionRuntime?: unknown };
     } | undefined;
@@ -207,6 +211,26 @@ export class AppPlatformTargetService {
       report.header.glibcVersionRuntime.trim()
       ? "gnu"
       : "musl";
+  };
+
+  private readHostPlatform = (): NodeJS.Platform => {
+    if (this.platform) {
+      return this.platform;
+    }
+    if (typeof process === "undefined") {
+      throw new Error("当前环境无法自动检测宿主平台，请显式提供 platform。");
+    }
+    return process.platform;
+  };
+
+  private readHostArchitecture = (): string => {
+    if (this.arch) {
+      return this.arch;
+    }
+    if (typeof process === "undefined") {
+      throw new Error("当前环境无法自动检测宿主架构，请显式提供 arch。");
+    }
+    return process.arch;
   };
 
   compareVersions = (left: string, right: string): number => {

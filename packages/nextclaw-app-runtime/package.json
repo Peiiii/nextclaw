@@ -37,6 +37,11 @@
       "development": "./src/services/app-artifact-validation.service.ts",
       "types": "./dist/services/app-artifact-validation.service.d.ts",
       "default": "./dist/services/app-artifact-validation.service.js"
+    },
+    "./platform-target": {
+      "development": "./src/services/app-platform-target.service.ts",
+      "types": "./dist/services/app-platform-target.service.d.ts",
+      "default": "./dist/services/app-platform-target.service.js"
     }
   },
   "imports": {

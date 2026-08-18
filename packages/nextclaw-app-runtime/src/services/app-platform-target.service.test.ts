@@ -2,6 +2,22 @@ import { describe, expect, it } from "vitest";
 import { AppPlatformTargetService } from "./app-platform-target.service.js";
 
 describe("AppPlatformTargetService", () => {
+  it("parses targets without eagerly reading the Node host environment", () => {
+    const originalProcess = globalThis.process;
+    Reflect.deleteProperty(globalThis, "process");
+    try {
+      const service = new AppPlatformTargetService();
+      expect(service.parseTargetKey("darwin-arm64")).toEqual({
+        kind: "native",
+        os: "darwin",
+        arch: "arm64",
+      });
+      expect(() => service.readHostTarget()).toThrow("无法自动检测宿主平台");
+    } finally {
+      globalThis.process = originalProcess;
+    }
+  });
+
   it("accepts a single declared target and preserves its canonical key", () => {
     const service = new AppPlatformTargetService();
     const distribution = service.parseDistribution({

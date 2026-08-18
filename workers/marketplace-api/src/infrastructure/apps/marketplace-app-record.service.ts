@@ -1,5 +1,5 @@
 import { DomainValidationError } from "@/domain/errors";
-import { AppPlatformTargetService } from "@nextclaw/app-runtime";
+import { AppPlatformTargetService } from "@nextclaw/app-runtime/platform-target";
 import type {
   AppInstallSpec,
   AppPublisher,
