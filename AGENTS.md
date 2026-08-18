@@ -34,6 +34,7 @@
 - 用户要求提交时，由 `development-delivery` 编排，先使用 `nextclaw-release-notes` 和 `nextclaw-iteration-log-governance` 判断 changeset、迭代记录和 NPM 记录，再精确 stage/commit。
 - 面向 `master` 的交付默认先进入本地 `master`，再由本地 `master` 推送 `origin/master`；例外必须说明回流方案。
 - 成功执行提交、推送、建分支或 PR 后，最终回复输出 Codex app 对应 directive。
+- 涉及用户私有远程主机、VPS、部署或线上诊断时，若 `.local/remote-environments.private.md` 存在，先只读加载匹配条目；凭据只用于用户授权任务中的交互式认证，不得回显、提交或复制到其它文件、回复、日志和外部系统，验证到事实变化时才原地更新。
 - 搜索优先 `rg` / `rg --files`；手工编辑默认使用 `apply_patch`。
 
 ## Skill 渐进式加载
