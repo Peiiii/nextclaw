@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-17T03:11:14.080Z",
+  "generatedAt": "2026-08-18T06:51:06.418Z",
   "hero": {
     "currentLoc": 249169,
     "testLoc": 100097,
     "trackedFiles": 2652,
-    "recentCommitCount": 333,
-    "activeDays30": 29,
-    "recentReleaseCount": 51,
-    "latestReleaseDate": "2026-08-15",
-    "latestNoteDate": "2026-08-15",
+    "recentCommitCount": 329,
+    "activeDays30": 30,
+    "recentReleaseCount": 52,
+    "latestReleaseDate": "2026-08-18",
+    "latestNoteDate": "2026-08-18",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2556199,
     "basePercentOfBenchmark": 9.75,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-20",
-        "label": "04-20",
-        "value": 0
-      },
       {
         "key": "2026-04-21",
         "label": "04-21",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-17",
         "label": "08-17",
         "value": 249169
+      },
+      {
+        "key": "2026-08-18",
+        "label": "08-18",
+        "value": 249169
       }
     ],
     "testLocDaily": [
@@ -1116,11 +1116,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-07-19",
-        "label": "07-19",
-        "value": 12
-      },
-      {
         "key": "2026-07-20",
         "label": "07-20",
         "value": 12
@@ -1258,12 +1253,17 @@ export default {
       {
         "key": "2026-08-16",
         "label": "08-16",
-        "value": 6
+        "value": 7
       },
       {
         "key": "2026-08-17",
         "label": "08-17",
-        "value": 0
+        "value": 2
+      },
+      {
+        "key": "2026-08-18",
+        "label": "08-18",
+        "value": 5
       }
     ],
     "commitWeekly": [
@@ -1320,12 +1320,12 @@ export default {
       {
         "key": "2026-08-10",
         "label": "08-10",
-        "value": 131
+        "value": 132
       },
       {
         "key": "2026-08-17",
         "label": "08-17",
-        "value": 0
+        "value": 7
       }
     ],
     "releaseMonthly": [
@@ -1387,7 +1387,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 10
+        "value": 11
       }
     ]
   },
@@ -1458,6 +1458,15 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-08-18",
+        "tagCount": 25,
+        "sampleTags": [
+          "@nextclaw/app-runtime@0.13.0",
+          "@nextclaw/channel-extension-dingtalk@0.2.30",
+          "@nextclaw/channel-extension-discord@0.2.30"
+        ]
+      },
+      {
         "date": "2026-08-15",
         "tagCount": 44,
         "sampleTags": [
@@ -1501,20 +1510,30 @@ export default {
           "@nextclaw/channel-extension-discord@0.2.22",
           "@nextclaw/channel-extension-email@0.2.22"
         ]
-      },
-      {
-        "date": "2026-08-10",
-        "tagCount": 27,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.6.22",
-          "@nextclaw/channel-extension-dingtalk@0.2.21",
-          "@nextclaw/channel-extension-discord@0.2.21"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-18-nextclaw-v0-39-0",
+        "date": "2026-08-18",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-18 · NextClaw v0.39.0",
+          "description": "NextClaw v0.39.0 adds platform-aware publishing and installation for native Apps, with clear compatibility labels in the Marketplace.",
+          "href": "/en/notes/2026-08-18-nextclaw-v0-39-0"
+        },
+        "zh": {
+          "title": "2026-08-18 · NextClaw v0.39.0",
+          "description": "NextClaw v0.39.0 让原生 App 可以按平台发布和安装，并在应用市场中清楚显示支持范围。",
+          "href": "/zh/notes/2026-08-18-nextclaw-v0-39-0"
+        }
+      },
       {
         "slug": "2026-08-15-nextclaw-v0-37-0",
         "date": "2026-08-15",
@@ -2382,7 +2401,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-17T03:11:12.829Z",
     "sourceCount": {
-      "notes": 41,
+      "notes": 42,
       "scopes": 8
     }
   }
