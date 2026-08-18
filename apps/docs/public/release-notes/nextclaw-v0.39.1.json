@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.39.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-18",
+  "title": {
+    "zh-CN": "NextClaw v0.39.1",
+    "en-US": "NextClaw v0.39.1"
+  },
+  "summary": {
+    "zh-CN": "修复 Linux 上原生 Service App 安装后无法执行的问题。",
+    "en-US": "Fixes native Service Apps losing execute permission after installation on Linux."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-18-nextclaw-v0-39-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-18-nextclaw-v0-39-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "原生 Service 执行权限", "en-US": "Native Service execute permission" },
+          "body": {
+            "zh-CN": "安装器会让当前平台已验证的包内 Service 命令保持可执行，同时继续把安装目录冻结为只读。",
+            "en-US": "Installation keeps the validated in-package Service command executable for the current platform while leaving the installed directory read-only."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "现有 App 无需改 manifest", "en-US": "No manifest changes required" },
+          "body": {
+            "zh-CN": "系统命令、绝对路径和普通资源文件保持原有行为；重新安装 App 即可应用修复。",
+            "en-US": "System commands, absolute paths, and ordinary resources keep their existing behavior; reinstall the App to apply the fix."
+          }
+        }
+      ]
+    }
+  ]
+}
