@@ -634,10 +634,39 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install APT repository toolchain
+      - name: Ensure APT repository toolchain
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y apt-utils dpkg-dev gnupg
+          set -euo pipefail
+          required_commands=(dpkg-deb dpkg-scanpackages apt-ftparchive gpg)
+          missing_commands=()
+          for required_command in "${required_commands[@]}"; do
+            if ! command -v "$required_command" >/dev/null 2>&1; then
+              missing_commands+=("$required_command")
+            fi
+          done
+          if [ "${#missing_commands[@]}" -eq 0 ]; then
+            echo "APT repository toolchain is already available."
+            exit 0
+          fi
+          printf 'Missing APT repository command(s): %s\n' "${missing_commands[*]}"
+          for attempt in 1 2 3; do
+            echo "Installing APT repository toolchain (attempt $attempt/3)."
+            if timeout 180s sudo apt-get update && timeout 180s sudo apt-get install -y apt-utils dpkg-dev gnupg; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "APT repository toolchain installation failed after 3 bounded attempts."
+              exit 1
+            fi
+            sleep "$((attempt * 5))"
+          done
+          for required_command in "${required_commands[@]}"; do
+            command -v "$required_command" >/dev/null 2>&1 || {
+              echo "APT repository toolchain command is still unavailable: $required_command"
+              exit 1
+            }
+          done
 
       - name: Download Linux desktop artifacts
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_linux_apt_only) }}
