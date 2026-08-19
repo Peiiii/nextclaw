@@ -30,10 +30,12 @@ export class QQChannel {
   private bot: QQBot | null = null;
   private processedIds: string[] = [];
   private processedSet: Set<string> = new Set();
+  private processingSet: Set<string> = new Set();
   private senderNameCache: Map<string, string> = new Map();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectTask: Promise<void> | null = null;
   private reconnectAttempt = 0;
+  private connectionGeneration = 0;
   private readonly reconnectBaseMs = 1000;
   private readonly reconnectMaxMs = 60000;
   protected readonly connectTimeoutMs: number = 90000;
@@ -64,8 +66,9 @@ export class QQChannel {
   };
 
   send: BusChannelRuntime["send"] = async (msg) => {
-    if (!this.bot) {
-      return;
+    const bot = this.bot;
+    if (!bot) {
+      throw new Error("QQ channel is not connected");
     }
 
     const qqMeta = (msg.metadata?.qq as Record<string, unknown> | undefined) ?? {};
@@ -75,32 +78,33 @@ export class QQChannel {
     const rawContent = msg.content;
 
     try {
-      await this.sendByMessageType({ messageType, qqMeta, msg, payload: rawContent, source });
+      await this.sendByMessageType({ bot, messageType, qqMeta, msg, payload: rawContent, source });
     } catch (error) {
       if (!this.isDisallowedUrlParamError(error)) {
         throw error;
       }
       const safeText = this.toQqSafeText(rawContent, error);
-      await this.sendByMessageType({ messageType, qqMeta, msg, payload: safeText, source });
+      await this.sendByMessageType({ bot, messageType, qqMeta, msg, payload: safeText, source });
     }
   };
 
   private sendByMessageType = async (params: {
+    bot: QQBot;
     messageType: QQMessageType;
     qqMeta: Record<string, unknown>;
     msg: Parameters<BusChannelRuntime["send"]>[0];
     payload: unknown;
     source: { id: string } | undefined;
   }): Promise<void> => {
-    const { messageType, qqMeta, msg, payload, source } = params;
+    const { bot, messageType, qqMeta, msg, payload, source } = params;
     if (messageType === "group") {
       const groupId = (qqMeta.groupId as string | undefined) ?? msg.chatId;
-      await this.sendWithTokenRetry(() => this.bot?.sendGroupMessage(groupId, payload, source));
+      await this.sendWithTokenRetry(bot, () => bot.sendGroupMessage(groupId, payload, source));
       return;
     }
 
     const userId = (qqMeta.userId as string | undefined) ?? msg.chatId;
-    await this.sendWithTokenRetry(() => this.bot?.sendPrivateMessage(userId, payload, source));
+    await this.sendWithTokenRetry(bot, () => bot.sendPrivateMessage(userId, payload, source));
   };
 
   private handleIncoming = async (event: QQMessageEvent): Promise<void> => {
@@ -114,27 +118,37 @@ export class QQChannel {
     if (!route.chatId || !this.isAllowed(identity.senderId)) {
       return;
     }
-    await this.bus.publishInbound({
-      channel: this.name,
-      senderId: identity.senderId,
-      chatId: route.chatId,
-      content: this.decorateSpeakerPrefix({
-        content,
+    if (!this.beginIncoming(identity.messageId)) {
+      return;
+    }
+    try {
+      await this.bus.publishInbound({
+        channel: this.name,
         senderId: identity.senderId,
-        senderName
-      }),
-      metadata: {
-        message_id: identity.messageId,
-        qq: route.metadata
-      }
-    });
+        chatId: route.chatId,
+        content: this.decorateSpeakerPrefix({
+          content,
+          senderId: identity.senderId,
+          senderName
+        }),
+        metadata: {
+          message_id: identity.messageId,
+          qq: route.metadata
+        }
+      });
+      this.commitIncoming(identity.messageId);
+    } catch (error) {
+      this.releaseIncoming(identity.messageId);
+      this.logDiagnostic("inbound.publish_failed", {
+        messageId: identity.messageId || "unavailable",
+        error: this.formatErrorMessage(error)
+      });
+      throw error;
+    }
   };
 
   private resolveIncomingIdentity = (event: QQMessageEvent): QQIncomingIdentity | null => {
     const messageId = event.message_id || event.id || "";
-    if (messageId && this.isDuplicate(messageId)) {
-      return null;
-    }
     const rawEvent = event as unknown as QQRawEvent;
     if (this.isSelfEvent(event)) {
       return null;
@@ -272,10 +286,22 @@ export class QQChannel {
     return null;
   };
 
-  private isDuplicate = (messageId: string): boolean => {
-    if (this.processedSet.has(messageId)) {
+  private beginIncoming = (messageId: string): boolean => {
+    if (!messageId) {
       return true;
     }
+    if (this.processedSet.has(messageId) || this.processingSet.has(messageId)) {
+      return false;
+    }
+    this.processingSet.add(messageId);
+    return true;
+  };
+
+  private commitIncoming = (messageId: string): void => {
+    if (!messageId) {
+      return;
+    }
+    this.processingSet.delete(messageId);
     this.processedSet.add(messageId);
     this.processedIds.push(messageId);
     if (this.processedIds.length > 1000) {
@@ -284,17 +310,22 @@ export class QQChannel {
         this.processedSet.delete(id);
       }
     }
-    return false;
   };
 
-  private sendWithTokenRetry = async (send: () => Promise<unknown> | undefined): Promise<void> => {
+  private releaseIncoming = (messageId: string): void => {
+    if (messageId) {
+      this.processingSet.delete(messageId);
+    }
+  };
+
+  private sendWithTokenRetry = async (bot: QQBot, send: () => Promise<unknown>): Promise<void> => {
     try {
       await send();
     } catch (error) {
-      if (!this.isTokenExpiredError(error) || !this.bot) {
+      if (!this.isTokenExpiredError(error)) {
         throw error;
       }
-      await this.bot.sessionManager.getAccessToken();
+      await bot.sessionManager.getAccessToken();
       await send();
     }
   };
@@ -377,11 +408,12 @@ export class QQChannel {
   };
 
   protected createBot = (): QQBot => {
+    const generation = ++this.connectionGeneration;
     const bot = new Bot({
       appid: this.config.appId!,
       secret: this.config.secret!,
       mode: ReceiverMode.WEBSOCKET,
-      intents: ["C2C_MESSAGE_CREATE", "GROUP_AT_MESSAGE_CREATE"],
+      intents: ["GROUP_AND_C2C_EVENT"],
       removeAt: true,
       logLevel: "info"
     });
@@ -395,7 +427,24 @@ export class QQChannel {
     });
 
     bot.sessionManager.on(SessionEvents.DEAD, () => {
-      void this.handleSessionDead(bot);
+      void this.handleSessionDead(bot, generation);
+    });
+
+    bot.sessionManager.on(SessionEvents.EVENT_WS, (data: unknown) => {
+      const event = data && typeof data === "object" ? data as Record<string, unknown> : {};
+      const eventType = typeof event.eventType === "string" ? event.eventType : "unknown";
+      if (
+        eventType !== SessionEvents.READY &&
+        eventType !== SessionEvents.RESUMED &&
+        eventType !== SessionEvents.DISCONNECT
+      ) {
+        return;
+      }
+      this.logDiagnostic("gateway.session", {
+        generation,
+        eventType,
+        ...(event.code !== undefined ? { code: String(event.code) } : {})
+      });
     });
 
     return bot;
@@ -408,7 +457,7 @@ export class QQChannel {
     }).verifySessionAvailable();
   };
 
-  private handleSessionDead = async (bot: QQBot): Promise<void> => {
+  private handleSessionDead = async (bot: QQBot, generation: number): Promise<void> => {
     if (!this.running || this.bot !== bot) {
       return;
     }
@@ -416,8 +465,7 @@ export class QQChannel {
     await this.safeStopBot(bot);
     this.reconnectAttempt += 1;
     const delayMs = this.getBackoffDelayMs(this.reconnectAttempt);
-    // eslint-disable-next-line no-console
-    console.error(`[qq] session dead, reconnect in ${delayMs}ms`);
+    this.logDiagnostic("gateway.session_dead", { generation, reconnectInMs: delayMs });
     this.scheduleReconnect(delayMs, "session-dead");
   };
 
@@ -453,6 +501,7 @@ export class QQChannel {
     bot.removeAllListeners("message.private");
     bot.removeAllListeners("message.group");
     bot.sessionManager.removeAllListeners(SessionEvents.DEAD);
+    bot.sessionManager.removeAllListeners(SessionEvents.EVENT_WS);
     try {
       await bot.stop();
     } catch {
@@ -550,6 +599,12 @@ export class QQChannel {
       }
     }
     return String(error);
+  };
+
+  private logDiagnostic = (event: string, details: Record<string, unknown>): void => {
+    // Diagnostic payloads deliberately exclude message content, user identity, and credentials.
+    // eslint-disable-next-line no-console
+    console.error(`[qq] ${JSON.stringify({ event, ...details })}`);
   };
 
   get isRunning(): boolean {

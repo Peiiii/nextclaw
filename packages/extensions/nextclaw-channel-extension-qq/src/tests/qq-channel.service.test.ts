@@ -304,4 +304,78 @@ describe("QQChannel startup lifecycle", () => {
 
     assert.equal(publishInbound.mock.callCount(), 0);
   });
+
+  it("allows the same message id to retry after inbound publication fails", async () => {
+    let attempts = 0;
+    const publishInbound = mock.fn(async () => {
+      attempts += 1;
+      if (attempts === 1) {
+        throw new Error("injected ingress failure");
+      }
+    });
+    const channel = new InboundTestQQChannel(publishInbound as BusChannelMessageBus["publishInbound"]);
+    const event = {
+      id: "message-retry",
+      message_id: "message-retry",
+      raw_message: "retry me",
+      sender: { user_openid: "user-openid-1" }
+    } as unknown as Partial<PrivateMessageEvent>;
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
+    try {
+      await assert.rejects(channel.handleTestIncoming(event), /injected ingress failure/);
+      await channel.handleTestIncoming(event);
+    } finally {
+      console.error = originalConsoleError;
+    }
+
+    assert.equal(publishInbound.mock.callCount(), 2);
+  });
+
+  it("suppresses concurrent and completed deliveries with the same message id", async () => {
+    let releasePublish!: () => void;
+    const publishGate = new Promise<void>((resolve) => {
+      releasePublish = resolve;
+    });
+    const publishInbound = mock.fn(async () => {
+      await publishGate;
+    });
+    const channel = new InboundTestQQChannel(publishInbound as BusChannelMessageBus["publishInbound"]);
+    const event = {
+      id: "message-duplicate",
+      message_id: "message-duplicate",
+      raw_message: "only once",
+      sender: { user_openid: "user-openid-1" }
+    } as unknown as Partial<PrivateMessageEvent>;
+
+    const first = channel.handleTestIncoming(event);
+    await new Promise((resolve) => setImmediate(resolve));
+    await channel.handleTestIncoming(event);
+    assert.equal(publishInbound.mock.callCount(), 1);
+
+    releasePublish();
+    await first;
+    await channel.handleTestIncoming(event);
+
+    assert.equal(publishInbound.mock.callCount(), 1);
+  });
+
+  it("fails explicitly when outbound delivery is attempted while disconnected", async () => {
+    const channel = new QQChannel(
+      { appId: "test-app", secret: "test-secret", allowFrom: [] },
+      { publishInbound: mock.fn(async () => {}) } as BusChannelMessageBus
+    );
+
+    await assert.rejects(
+      channel.send({
+        channel: "qq",
+        chatId: "user-openid-1",
+        content: "reply",
+        media: [],
+        metadata: {}
+      }),
+      /QQ channel is not connected/
+    );
+  });
 });
