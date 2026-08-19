@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Boxes, PanelRightOpen, RefreshCw, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
+import { Boxes, RotateCcw } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
-import { PanelAppIcon } from "@/features/panel-apps/components/panel-app-icon";
 import { usePanelAppMainRuntime } from "@/features/panel-apps/hooks/use-panel-app-main-runtime";
 import {
   usePanelApps,
@@ -12,9 +11,7 @@ import {
   focusPanelAppIframe,
 } from "@/features/panel-apps/utils/panel-app-iframe.utils";
 import { openApps } from "@/features/panel-apps/utils/panel-app-doc-browser.utils";
-import { createPanelAppRightPanelResourceTarget } from "@/features/right-panel-resources";
 import { useDocBrowser } from "@/shared/components/doc-browser";
-import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { t } from "@/shared/lib/i18n";
 
 export function PanelAppMainPage() {
@@ -23,7 +20,6 @@ export function PanelAppMainPage() {
   const docBrowser = useDocBrowser();
   const panelApps = usePanelApps();
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [refreshVersion, setRefreshVersion] = useState(0);
   const entry = useMemo(
     () => panelApps.data?.entries.find((candidate) => candidate.appId === appId),
     [appId, panelApps.data?.entries],
@@ -84,32 +80,14 @@ export function PanelAppMainPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <header className="flex min-h-12 shrink-0 items-center gap-3 border-b border-border/70 px-3 sm:px-4">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <PanelAppIcon icon={entry.icon} title={entry.title} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-sm font-semibold text-foreground">{entry.title}</h1>
-        </div>
-        <IconActionButton
-          icon={<PanelRightOpen className="h-4 w-4" />}
-          label={t("panelAppsOpenInRightPanel")}
-          onClick={() => docBrowser.openTarget(createPanelAppRightPanelResourceTarget(entry))}
-        />
-        <IconActionButton
-          icon={<RefreshCw className="h-4 w-4" />}
-          label={t("panelAppsRefreshCurrent")}
-          onClick={() => setRefreshVersion((value) => value + 1)}
-        />
-      </header>
+    <div className="h-full min-h-0 bg-background">
       <iframe
-        key={`${entry.appId}:${refreshVersion}`}
+        key={entry.appId}
         ref={iframeRef}
         src={entry.contentPath}
         title={entry.title}
         sandbox={PANEL_APP_IFRAME_SANDBOX}
-        className="min-h-0 flex-1 border-0 bg-background"
+        className="block h-full w-full border-0 bg-background"
         onPointerOver={(event) => focusPanelAppIframe(event.currentTarget)}
       />
     </div>

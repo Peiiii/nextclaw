@@ -130,17 +130,16 @@ describe("PanelAppMainPage", () => {
     }));
   });
 
-  it("keeps only the active-use actions in the main-page toolbar", async () => {
-    const user = userEvent.setup();
+  it("renders the app edge-to-edge without a duplicate host header", async () => {
     renderPage();
-    await screen.findByTitle("Rust Todo");
+    const iframe = await screen.findByTitle("Rust Todo");
 
-    await user.click(screen.getByRole("button", { name: "Open in right panel" }));
-    expect(mocks.openTarget).toHaveBeenCalledWith(expect.objectContaining({
-      dedupeKey: "panel-app:publisher.todo",
-    }));
-    expect(screen.queryByRole("button", { name: "Remove from main sidebar" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Add to main sidebar" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Rust Todo" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open in right panel" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Refresh current panel app" })).toBeNull();
+    expect(iframe.parentElement?.children).toHaveLength(1);
+    expect(iframe.className).toContain("h-full");
+    expect(iframe.className).toContain("w-full");
   });
 
   it("does not mount a client-enabled app when authorization is denied", async () => {

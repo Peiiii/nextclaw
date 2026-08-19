@@ -87,10 +87,21 @@ Kernel 保存按稳定 `appId` 排序的用户绑定，UI 从当前可用 Panel 
 ### 主内容页面
 
 - 路由使用 `/apps/panel/:appId`，URL 只包含稳定 App 身份。
-- 页面顶部是宿主工具栏：当前图标、标题、刷新、在右侧打开；不平铺低频布局管理动作。
-- iframe 填满剩余主内容区，并继续使用现有 sandbox、Bridge 消息验证、Client SDK 注入与 Service Action 授权。
+- 主侧栏入口已经承担 App 身份与选中态，进入后 iframe 从主内容区顶边开始铺满；宿主不再重复渲染图标、标题、刷新或“在右侧打开”的 Header。
+- Panel App 自己拥有页面内部的信息架构和 Header。宿主只负责路由、尺寸、sandbox、Bridge 消息验证、Client SDK 注入与 Service Action 授权，不给正常内容叠加第二层页面 chrome。
+- 加载、授权失败、App 不可用等尚无可渲染 iframe 的状态继续由宿主显示完整状态页；这些是运行边界反馈，不属于重复 Header。
 - 主页面和右侧面板是两个独立 iframe 实例；允许同时打开，不搬运 React/iframe 实例，也不共享临时 DOM 状态。
 - 页面刷新保持路由和 active 导航；浏览器返回遵循普通路由历史。
+
+#### 主页面 chrome 取舍
+
+| 候选 | 结果 | 判断 |
+| --- | --- | --- |
+| 固定宿主 Header | 宿主标题与 App 自有 Header 重复，占用主工作区并让生态 App 看起来仍像嵌套面板 | 不采用 |
+| 无宿主 Header、内容铺满 | 与 Skills、Agents 等一级页面保持“入口负责导航、页面负责内容”的层级，App 获得完整主工作区 | 采用 |
+| 悬浮或自动隐藏宿主控制 | 减少固定高度，但仍引入遮挡、发现性和移动端状态，且当前没有必须常驻的宿主动作 | 不采用 |
+
+右侧 Doc Browser 是资源容器，仍需要自己的 Tab、返回、固定、关闭及 Panel App 工具栏；该合同不因主页面去除 Header 而改变。两者差异来自容器语义，不要求视觉结构完全相同。
 
 ### 移动端
 
@@ -202,7 +213,7 @@ mainSidebarOrder?: number;
 ### UI
 
 - Apps Panel App 卡片的更多菜单提供添加/移除主侧栏；不增加卡片常驻按钮。
-- 右侧 Panel App 工具栏的更多菜单提供同一低频动作；主内容页面只保留在右侧打开和刷新。
+- 右侧 Panel App 工具栏的更多菜单提供同一低频动作；主内容页面不渲染宿主 Header 或宿主动作栏。
 - preferences mutation 乐观更新共享缓存，失败精确回滚，成功用 PATCH 返回值校准，避免紧随其后的全量重拉。
 - Panel Apps 列表先打开目标，再后台记录打开统计；主页面的统计记录也只回写单条缓存。
 - 删除 Panel App 内层“返回 Apps”动作，返回完全服从 Doc Browser 的标准 active history。
@@ -217,7 +228,7 @@ mainSidebarOrder?: number;
 2. Kernel 测试证明列表投影、稳定 appId 更新、workspace 删除清理、package disable/re-enable 保留。
 3. Controller 与 Client SDK 测试证明 `mainSidebar` 只接受布尔值并透传。
 4. UI 测试证明列表与右侧运行态只在更多菜单提供添加/移除，卡片和页面不出现平铺按钮；同时证明动态入口顺序/图标/收起态和 active route。
-5. Hook 测试证明持久化未完成时左侧缓存已经更新，失败时精确回滚；列表测试证明打开发生在统计记录之前；主页面测试证明加载、刷新、授权、不可用和右侧打开。
+5. Hook 测试证明持久化未完成时左侧缓存已经更新，失败时精确回滚；列表测试证明打开发生在统计记录之前；主页面测试证明 iframe 直接占满正常内容区且没有宿主 Header，同时覆盖加载、授权和不可用状态。
 6. iframe Bridge 测试证明主页面仍校验 `event.source` 并复用现有授权链。
 7. Doc Browser 回归测试证明 Panel App 不再渲染第二套返回动作，顶部返回按 active history 回到真实来源，无历史时禁用。
 8. Kernel、Server、Client SDK、UI TypeScript 检查通过；定向 lint、测试、build/真实浏览器交互按风险执行。
