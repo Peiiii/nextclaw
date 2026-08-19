@@ -21,6 +21,7 @@ import {
   resolveStableReleasePlan,
   validateStableResumeOptions,
 } from "./release-stable.utils.mjs";
+import { collectReleaseSummary } from "./release-summary.mjs";
 
 const ROOT_DIR = process.cwd();
 
@@ -153,6 +154,17 @@ export function hasStructuredReleaseNotes(version) {
   }
 }
 
+export function ensureReleaseBlogsReady(rootDir = ROOT_DIR) {
+  const releaseSummary = collectReleaseSummary(rootDir, {
+    requireReadyBlogs: true,
+  });
+  if (releaseSummary.errors.length > 0) {
+    throw new Error(
+      `Stable release blog preparation is incomplete: ${releaseSummary.errors.join("; ")}`,
+    );
+  }
+}
+
 function ensureNpmPrePublishArtifacts(targetVersion) {
   if (!targetVersion) {
     return;
@@ -175,6 +187,7 @@ export function ensureProductReleaseArtifacts(previousVersion, targetVersion) {
       `Stable runtime release notes are missing or invalid: ${resolveReleaseNotesPath(targetVersion)}`,
     );
   }
+  ensureReleaseBlogsReady();
   const surfaceReview = inspectReleaseSurfaceReview(
     previousVersion,
     targetVersion,

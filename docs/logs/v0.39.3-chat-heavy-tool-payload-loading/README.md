@@ -15,6 +15,8 @@
 - 会话列表先应用 `limit`，sidecar metadata 读取并发限制为 2；
 - 保留 `stress-tool-call-heavy-local` 本地压力数据、生成脚本和开发态压力页面；
 - 为开发生命周期增加强制设计门，并明确轻量设计与稳定设计文档的适用边界。
+- 提前完成结果型营销博客草稿，并通过 changeset 指针与持久草稿状态绑定下一次 stable 产品发布；
+- `release:summary` 自动聚合绑定博客，stable 产品闭环在 `NPM_READY` 后阻断未完成的中英文文章、index 或 sidebar，避免 release notes 静默遗漏博客且不前置阻塞 NPM。
 
 ## 测试/验证/验收方式
 
@@ -24,10 +26,11 @@
 - 真实冷启动浏览器验证中，最新消息从约 6.94 秒下降到 1.13–1.73 秒；历史请求约 219–281 ms；
 - 首屏历史响应由约 13 MB 降至约 262 KB，约 1450 个初始工具 part 降为 20 个聚合摘要；
 - 单条约 4.39 MB 详情约 433 ms 加载完成，折叠再展开没有重复请求。
+- release summary 9 项博客绑定测试和 stable release 18 项回归测试通过；真实严格检查能够发现当前草稿并按预期返回非零状态，ready 双语夹具可以通过。
 
 ## 发布/部署方式
 
-本次只完成本地源码提交，不执行 push、NPM 发布、runtime 发布、桌面发布或部署。后续随统一版本发布流程交付。
+本次只完成本地源码提交，不执行 push、NPM 发布、runtime 发布、桌面发布或部署。后续随统一版本发布流程交付；NPM 可以先达到 `NPM_READY`，博客必须在后续 runtime/docs 产品闭环前转为 `ready`。
 
 ## 用户/产品视角的验收步骤
 
@@ -36,10 +39,11 @@
 3. 确认最新消息先快速出现，重载历史消息显示真实工具调用总数和代表性工具名。
 4. 展开处理过程，确认完整参数与结果可见，先展示 40 项并可继续加载下一批。
 5. 折叠后重新展开，确认详情立即复用且不会重复请求。
+6. 运行 `pnpm release:summary -- --json`，确认 changeset 能发现绑定博客；严格模式在草稿未转成正式中英文文章时应明确阻断。
 
 ## 可维护性总结汇总
 
-本次把事实 owner 收敛为 projection 负责稳定游标、server 负责 UI 载荷预算、前端 history hook 负责详情状态与缓存；没有引入逐工具请求或平行 journal 事实源。新增文件均通过 planned-path preflight，未新增 barrel。自动检查最初发现函数复杂度与文件行数问题，拆出工具载荷 hook、summary read store 和局部纯函数后清零 error；三个现有热点文件保持在既定预算边界，没有扩大预算。
+本次把事实 owner 收敛为 projection 负责稳定游标、server 负责 UI 载荷预算、前端 history hook 负责详情状态与缓存；没有引入逐工具请求或平行 journal 事实源。博客发布继续复用 changeset、草稿 frontmatter 和既有 `release:summary`，没有新增平行 manifest 或发布阶段。新增文件均通过 planned-path preflight，未新增 barrel。自动检查最初发现函数复杂度与文件行数问题，拆出工具载荷 hook、summary read store 和局部纯函数后清零 error；release 脚本 scoped maintainability 检查也通过，三个现有热点文件保持在既定预算边界，没有扩大预算。
 
 ## 红区触达与减债记录
 
