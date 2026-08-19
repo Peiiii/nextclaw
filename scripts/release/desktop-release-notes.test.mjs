@@ -56,3 +56,20 @@ test("desktop asset upload does not append generated release notes", () => {
   assert.match(workflow, /generate_release_notes: false/);
   assert.doesNotMatch(workflow, /generate_release_notes: true/);
 });
+
+test("desktop workflow exposes an explicit APT-only recovery path", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/desktop-release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /publish_linux_apt_only:\n[\s\S]*?type: boolean/);
+  assert.match(
+    workflow,
+    /Download Linux package from existing release[\s\S]*?gh release download/,
+  );
+  assert.match(
+    workflow,
+    /dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme/,
+  );
+  assert.match(workflow, /github_file_limit=104857600/);
+});

@@ -11,6 +11,11 @@ on:
         description: "Optional user-facing release notes URL for update manifests"
         required: false
         type: string
+      publish_linux_apt_only:
+        description: "Recover the stable Linux APT repository from an existing desktop release"
+        required: false
+        default: false
+        type: boolean
   release:
     types:
       - published
@@ -20,6 +25,7 @@ permissions:
 
 jobs:
   build-desktop:
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_linux_apt_only) }}
     name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
@@ -498,7 +504,7 @@ jobs:
             apps/desktop/build/update-bundle-public.pem
 
   publish-release-assets:
-    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_linux_apt_only) && (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')) }}
     needs: [build-desktop]
     runs-on: ubuntu-latest
     steps:
@@ -531,7 +537,7 @@ jobs:
             dist/desktop-release/**/update-bundle-public.pem
 
   publish-desktop-update-channels:
-    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_linux_apt_only) && (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')) }}
     needs: [build-desktop, publish-release-assets]
     runs-on: ubuntu-latest
     steps:
@@ -610,9 +616,12 @@ jobs:
           git -C .tmp/gh-pages push origin HEAD:gh-pages
 
   publish-linux-apt-repo:
-    if: (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')) && !contains(github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name, 'desktop-beta')
-    needs: [build-desktop, publish-release-assets, publish-desktop-update-channels]
+    if: ${{ always() && (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')) && !contains(github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name, 'desktop-beta') && ((github.event_name == 'workflow_dispatch' && inputs.publish_linux_apt_only) || (needs.build-desktop.result == 'success' && needs.publish-release-assets.result == 'success' && needs.publish-desktop-update-channels.result == 'success')) }}
+    needs:
+      [build-desktop, publish-release-assets, publish-desktop-update-channels]
     runs-on: ubuntu-latest
+    env:
+      DESKTOP_RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -631,10 +640,24 @@ jobs:
           sudo apt-get install -y apt-utils dpkg-dev gnupg
 
       - name: Download Linux desktop artifacts
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.publish_linux_apt_only) }}
         uses: actions/download-artifact@v4
         with:
           name: desktop-release-linux-x64
           path: dist/desktop-release
+
+      - name: Download Linux package from existing release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_linux_apt_only }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/desktop-release
+          gh release download "$DESKTOP_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'nextclaw-desktop_*_amd64.deb' \
+            --dir dist/desktop-release
 
       - name: Prepare gh-pages worktree
         shell: bash
@@ -685,6 +708,25 @@ jobs:
               rm -f "$deb_file"
             done
           fi
+
+      - name: Repack Linux packages for GitHub Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          github_file_limit=104857600
+          while IFS= read -r deb_file; do
+            package_root="$(mktemp -d)"
+            repacked_file="${deb_file}.repacked"
+            dpkg-deb --raw-extract "$deb_file" "$package_root"
+            dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme "$package_root" "$repacked_file"
+            mv "$repacked_file" "$deb_file"
+            package_size="$(stat --format='%s' "$deb_file")"
+            printf '[desktop-release] repacked %s to %s bytes\n' "$deb_file" "$package_size"
+            if [ "$package_size" -ge "$github_file_limit" ]; then
+              echo "Repacked Linux package still exceeds the GitHub 100 MiB file limit: $package_size bytes"
+              exit 1
+            fi
+          done < <(find dist/linux-apt-input -maxdepth 1 -type f -name '*.deb' | sort)
 
       - name: Build signed Linux APT repo
         shell: bash
