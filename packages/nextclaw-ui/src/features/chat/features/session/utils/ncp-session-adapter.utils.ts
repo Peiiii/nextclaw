@@ -29,17 +29,6 @@ const SESSION_ACTIVITY_PREVIEW_STATUS_KIND_SET = new Set<NonNullable<SessionActi
   'run-interrupted'
 ]);
 
-function stringifyUnknown(value: unknown): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-  try {
-    return JSON.stringify(value ?? {});
-  } catch {
-    return String(value ?? '');
-  }
-}
-
 function buildNcpAssetContentUrl(assetUri: string): string {
   const query = new URLSearchParams({ uri: assetUri });
   return `${API_BASE}/api/ncp/assets/content?${query.toString()}`;

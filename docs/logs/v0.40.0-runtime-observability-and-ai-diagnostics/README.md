@@ -37,6 +37,7 @@
 - 先执行产品 stable，达到 `NPM_READY` 和 `NEXTCLAW_STABLE_READY`；随后以同一 stable identity 执行 Desktop stable，达到 `DESKTOP_READY`。
 - 发布必须使用仓库 `release:product:stable` 与 `release:desktop:stable` 流程，不手工拆散 registry、manifest、GitHub Release 或 APT 步骤。
 - 当前状态：待统一发布；发布 commit、版本、workflow、manifest、安装 smoke 与耗时将在闭环后更新本记录。
+- 首次 `npm-release-prepare` run `32286377385` 在任何包上传前被严格 lint 阻断：同批会话性能改动遗留零引用 `stringifyUnknown`。已删除该死代码，并以 targeted ESLint、14 个 session adapter tests、完整 UI tsc 和 diff-only maintainability 0 error 复验；后续从新 exact commit 重新 prepare。
 - 不涉及数据库 migration 或远程数据库 migration。
 
 ## 用户/产品视角的验收步骤
