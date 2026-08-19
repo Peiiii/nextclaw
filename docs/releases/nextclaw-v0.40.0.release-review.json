@@ -26,7 +26,17 @@
       "imagePath": "images/screenshots/nextclaw-tool-call-markdown-preview-cn.jpg",
       "imageAlt": "NextClaw conversation showing a collapsed tool-processing trace alongside a document preview",
       "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-20-nextclaw-v0-40-0",
-      "publicationStatus": "planned"
+      "publicationStatus": "published",
+      "publishedAt": "2026-08-20",
+      "postId": "2090153059779547217",
+      "postUrl": "https://x.com/i/status/2090153059779547217",
+      "readback": {
+        "author": "@XiaotiaoWang",
+        "textMatched": true,
+        "mediaCount": 1,
+        "mediaWidth": 1512,
+        "mediaHeight": 828
+      }
     }
   }
 }

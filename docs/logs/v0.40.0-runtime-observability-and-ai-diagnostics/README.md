@@ -36,7 +36,7 @@
 - 用户已授权包含 NPM/runtime 与 Desktop stable 的全平台正式发布。
 - 先执行产品 stable，达到 `NPM_READY` 和 `NEXTCLAW_STABLE_READY`；随后以同一 stable identity 执行 Desktop stable，达到 `DESKTOP_READY`。
 - 发布必须使用仓库 `release:product:stable` 与 `release:desktop:stable` 流程，不手工拆散 registry、manifest、GitHub Release 或 APT 步骤。
-- 当前状态：待统一发布；发布 commit、版本、workflow、manifest、安装 smoke 与耗时将在闭环后更新本记录。
+- 产品 stable 已闭合：27 个 NPM 包、27 个不可变标签、stable runtime 四平台 bundle、公开 manifest、从上一 stable 的真实更新链、双语发布页、性能博客与 X 公告均已验证。Desktop stable 继续使用同一 `0.40.0` identity 发布。
 - 首次 `npm-release-prepare` run `32286377385` 在任何包上传前被严格 lint 阻断：同批会话性能改动遗留零引用 `stringifyUnknown`。已删除该死代码，并以 targeted ESLint、14 个 session adapter tests、完整 UI tsc 和 diff-only maintainability 0 error 复验；后续从新 exact commit 重新 prepare。
 - 不涉及数据库 migration 或远程数据库 migration。
 
@@ -76,14 +76,15 @@
 
 需要发布，原因是本次改变公共诊断合同、Extension SDK、Kernel/Core/Service 运行行为、QQ 扩展与 `nextclaw` CLI。
 
-发布前状态：
+正式发布结果：
 
-- `@nextclaw/shared@0.4.24`：待统一发布。
-- `@nextclaw/extension-sdk@0.3.24`：待统一发布。
-- `@nextclaw/core@0.17.4`：待统一发布。
-- `@nextclaw/kernel@0.8.7`：待统一发布。
-- `@nextclaw/service@0.3.40`：待统一发布。
-- `@nextclaw/channel-extension-qq@0.2.24`：待统一发布。
-- `nextclaw@0.39.2`：待统一发布，完整未发布批次含向后兼容新能力，产品版本级别为 minor。
-
-正式发布完成后补充精确版本、dist-tag、实际上传包数、registry/安装验证、runtime workflow、阶段耗时和最慢阶段。
+- 产品版本：`nextclaw@0.40.0`，`latest` 已反查为 `0.40.0`；同批 27 个包全部上传并按 exact version/integrity 验证。
+- 本功能直接相关版本：`@nextclaw/shared@0.4.25`、`@nextclaw/extension-sdk@0.3.25`、`@nextclaw/core@0.17.5`、`@nextclaw/kernel@0.9.0`、`@nextclaw/service@0.3.41`、`@nextclaw/channel-extension-qq@0.2.25`。
+- 发布提交：`5b7f4d1048af9cff6d0218fe8c8c30de6c13da23`；release branch、远端 `master` 与 27 个 package tags 已原子闭合。
+- exact-commit prepare：workflow `32288695791`，提交 `2a60ce28de32e1cebde0c8260a0cb2dbadaa43dd`，耗时 9 分 59 秒。
+- NPM 正式命令在 47.63 秒内完成 27 包上传、registry 验证和公网 package payload 审计；随后本地主工作区的用户 `ui-dist` WIP 阻止本地 fast-forward。恢复过程未重发包，改由隔离 release branch 原子推送 release branch、远端 `master` 与全部标签，用户 WIP 保持不变。
+- stable runtime：workflow `32290195825` 成功；darwin arm64/x64、linux x64、win32 x64 四个平台 bundle、GitHub Release 和公开 manifest 均验证通过，release notes 指向本版本公开说明。
+- 真实更新：从 registry 安装 `nextclaw@0.39.2`，完成 `check -> download-only -> apply -> 新进程 0.40.0`；download-only 未提前切换 current pointer。
+- 公开说明：中英文版本页、结构化 release JSON 与中英文性能博客均返回 200。
+- X 公告：`https://x.com/i/status/2090153059779547217`；回读确认作者为 `@XiaotiaoWang`、正文匹配且包含一张 1512×828 真实产品截图。
+- Desktop stable：待同一发布任务的下一阶段闭合，完成后补充 workflow、安装资产、manifest、APT 与 smoke 证据。
