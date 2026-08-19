@@ -201,6 +201,62 @@ it("collapses completed assistant process content without adding a nested card",
   expect(screen.queryByText("I will inspect the project first.")).toBeNull();
 });
 
+it("loads deferred tool details before opening a completed process", () => {
+  const onRequest = vi.fn();
+  const renderMessage = (state: "summary" | "loading" | "ready") => (
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-deferred-process",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:12",
+          status: "final",
+          processSummary: { label: "Processed" },
+          parts: [
+            {
+              type: "tool-card",
+              card: {
+                kind: "result",
+                toolName: "exec_command",
+                summary: "command: pnpm test",
+                outputData: { output: "complete" },
+                hasResult: true,
+                statusTone: "success",
+                statusLabel: "Completed",
+                titleLabel: "Tool Result",
+                outputLabel: "View Output",
+                emptyLabel: "No output",
+              },
+            },
+            { type: "markdown", text: "Final answer." },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={{
+        ...defaultTexts,
+        toolPayloadLoadingLabel: "Loading details",
+      }}
+      resolveMessageToolPayloadState={() => state}
+      onMessageToolPayloadRequest={onRequest}
+    />
+  );
+  const view = render(renderMessage("summary"));
+
+  fireEvent.click(screen.getByRole("button", { name: "Processed" }));
+  expect(onRequest).toHaveBeenCalledWith("assistant-deferred-process");
+  expect(screen.getByRole("button", { name: "Processed" }).getAttribute("aria-expanded")).toBe("false");
+
+  view.rerender(renderMessage("loading"));
+  expect(screen.getByRole("button", { name: "Processed · Loading details" })).toBeTruthy();
+
+  view.rerender(renderMessage("ready"));
+  expect(screen.getByRole("button", { name: "Processed" }).getAttribute("aria-expanded")).toBe("true");
+  expect(screen.getByText("pnpm test")).toBeTruthy();
+});
+
 it("does not collapse in-progress assistant process content", () => {
   render(
     <ChatMessageList

@@ -1,0 +1,25 @@
+diff --git a/lib/receivers/websocket.js b/lib/receivers/websocket.js
+index d99aee24d137963f80191765bc9451ebbaddf956..733624a5dc5b3aeecd8c50834533fa89d0256da6 100644
+--- a/lib/receivers/websocket.js
++++ b/lib/receivers/websocket.js
+@@ -263,6 +263,9 @@ class WebSocketReceiver extends base_1.BaseReceiver {
+         this.isReconnect = false;
+         this.isClosed = false;
+         this.startHeartbeat();
++        this.session.emit(constants_1.SessionEvents.EVENT_WS, {
++            eventType: constants_1.SessionEvents.RESUMED
++        });
+         this.session.getBot().logger.info(`[WebSocketReceiver] 重连成功`);
+     }
+     /**
+@@ -395,7 +398,9 @@ class WebSocketReceiver extends base_1.BaseReceiver {
+             this.session.getBot().logger.warn(`[WebSocketReceiver] 连接关闭，未知错误代码: ${code}, 原因: ${reason.toString() || 'unknown'}`);
+             if (this.retryCount < this.config.maxRetries) {
+                 hasInternalReconnect = true;
+-                this.reconnect(false);
++                // INVALID_SESSION clears sessionID before closing. Other transport failures
++                // can resume from the last acknowledged sequence when session state survives.
++                this.reconnect(Boolean(this.session.sessionRecord.sessionID));
+             }
+             else {
+                 this.session.getBot().logger.error('[WebSocketReceiver] 重连次数过多，停止重连');

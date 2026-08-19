@@ -102,13 +102,11 @@ export function ChatInlinePanelAppCard({
       getPresenter().panelAppBridgeManager.handleIframeMessage({
         event,
         iframe: iframeRef.current,
-        iframeInstanceId,
-        tab,
       });
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [iframeInstanceId, tab, url]);
+  }, [url]);
 
   if (!url) {
     return (

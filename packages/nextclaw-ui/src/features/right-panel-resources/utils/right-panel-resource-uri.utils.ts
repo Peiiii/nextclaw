@@ -6,6 +6,7 @@ import type { PanelAppEntryView } from '@/shared/lib/api';
 import type { DocBrowserDockIcon } from '@/shared/components/doc-browser';
 import type { DocBrowserTab } from '@/shared/components/doc-browser/doc-browser-context';
 import type { RightPanelResourceTarget } from '@/features/right-panel-resources/types/right-panel-resource.types';
+import { parseResourceUri, type ParsedResourceUri } from '@/shared/lib/resource-uri';
 
 export const RIGHT_PANEL_HOME_TAB_KIND = 'home';
 export const RIGHT_PANEL_HOME_URL = 'nextclaw://new-tab';
@@ -76,6 +77,34 @@ export function createPanelAppContentPath(appId: string, sourcePath?: string): s
   const url = `/api/panel-apps/${encodeURIComponent(appId)}/content`;
   const path = sourcePath?.trim();
   return path ? `${url}?${new URLSearchParams({ path }).toString()}` : url;
+}
+
+export function readPanelAppIdFromParsedResourceUri(uri: ParsedResourceUri): string | null {
+  const encodedAppId = uri.scheme === 'nextclaw' && uri.authority === 'panel-app'
+    ? uri.pathSegments[0]
+    : (() => {
+        const [apiSegment, collectionSegment, appId, contentSegment] = uri.pathSegments;
+        return apiSegment === 'api'
+          && collectionSegment === 'panel-apps'
+          && contentSegment === 'content'
+          ? appId
+          : undefined;
+      })();
+  if (!encodedAppId) {
+    return null;
+  }
+  try {
+    return decodeURIComponent(encodedAppId);
+  } catch {
+    return null;
+  }
+}
+
+export function readPanelAppIdFromResourceUri(value: string): string | null {
+  const uri = parseResourceUri(value);
+  return uri.searchParams.has('path')
+    ? null
+    : readPanelAppIdFromParsedResourceUri(uri);
 }
 
 function isPanelAppImageIcon(icon: string): boolean {

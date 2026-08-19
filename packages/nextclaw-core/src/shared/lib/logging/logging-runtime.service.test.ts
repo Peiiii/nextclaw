@@ -2,7 +2,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { classifyDiagnosticError } from "@nextclaw/shared";
 import { FileLogSink } from "./file-log-sink.service.js";
+import { DiagnosticRuntime } from "./diagnostic-runtime.service.js";
 import { LoggingRuntime } from "./logging-runtime.service.js";
 
 describe("LoggingRuntime", () => {
@@ -55,6 +57,71 @@ describe("LoggingRuntime", () => {
     const serviceLog = fs.readFileSync(path.join(tempDir, "logs", "service.log"), "utf-8");
     expect(serviceLog).toContain("\"scope\":\"plugin.registry_loader\"");
     expect(serviceLog).toContain("\"message\":\"plugin discovered\"");
+  });
+
+  it("writes validated diagnostic events and rejects sensitive facts", () => {
+    const runtime = new LoggingRuntime({
+      startupId: "startup-diagnostics",
+      pid: 321,
+      sink: new FileLogSink({
+        serviceLogPath: path.join(tempDir, "logs", "service.log"),
+        crashLogPath: path.join(tempDir, "logs", "crash.log"),
+        archiveDirPath: path.join(tempDir, "logs", "archive"),
+      }),
+      now: () => new Date("2026-08-20T01:02:03.000Z"),
+    });
+    const diagnostics = new DiagnosticRuntime((scope) => runtime.getLogger(scope));
+
+    diagnostics.record({
+      domain: "channel.delivery",
+      event: "inbound.accepted",
+      component: "kernel.extension-runtime",
+      outcome: "accepted",
+      correlationId: "trace-1",
+      facts: { channel: "qq", stage: "kernel" },
+    });
+
+    const serviceLog = fs.readFileSync(path.join(tempDir, "logs", "service.log"), "utf-8");
+    expect(serviceLog).toContain('"scope":"diagnostics.channel.delivery"');
+    expect(serviceLog).toContain('"correlationId":"trace-1"');
+    expect(() => diagnostics.record({
+      domain: "channel.delivery",
+      event: "inbound.accepted",
+      component: "kernel.extension-runtime",
+      outcome: "accepted",
+      facts: { content: "must not be logged" },
+    })).toThrow("fact key is forbidden: content");
+    expect(() => diagnostics.record({
+      domain: "transport.request",
+      event: "request.failed",
+      component: "tests",
+      outcome: "failed",
+      providerCode: "Bearer private-token",
+    })).toThrow("providerCode is invalid");
+  });
+
+  it("classifies cancellation, network, HTTP, and unknown errors without copying messages", () => {
+    const refused = Object.assign(new Error("connect to secret.internal failed"), { code: "ECONNREFUSED" });
+    const http = Object.assign(new Error("response body must stay private"), { status: 429 });
+
+    expect(classifyDiagnosticError(new DOMException("private reason", "AbortError"))).toEqual({
+      outcome: "cancelled",
+      reasonCode: "operation_cancelled",
+    });
+    expect(classifyDiagnosticError(refused)).toEqual({
+      outcome: "failed",
+      reasonCode: "network_connection_refused",
+      providerCode: "econnrefused",
+    });
+    expect(classifyDiagnosticError(http)).toEqual({
+      outcome: "failed",
+      reasonCode: "http_rate_limited",
+      facts: { httpStatus: 429 },
+    });
+    expect(classifyDiagnosticError(new Error("private unknown details"))).toEqual({
+      outcome: "failed",
+      reasonCode: "unexpected_error",
+    });
   });
 
   it("captures unhandled rejections in the crash log when crash monitoring is enabled", async () => {

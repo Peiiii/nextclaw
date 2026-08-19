@@ -1,4 +1,10 @@
-import type { BusChannelMessageBus, BusChannelRuntime } from "@nextclaw/extension-sdk";
+import {
+  DIAGNOSTIC_CORRELATION_METADATA_KEY,
+  classifyDiagnosticError,
+  type BusChannelMessageBus,
+  type BusChannelRuntime,
+  type ExtensionDiagnostics,
+} from "@nextclaw/extension-sdk";
 import {
   Bot,
   ReceiverMode,
@@ -10,6 +16,8 @@ import {
   QQGatewaySessionLimitError,
   QQGatewayStartupProbeService
 } from "./qq-gateway-startup-probe.service.js";
+import { QQDiagnosticsService } from "./qq-diagnostics.service.js";
+import { QQOutboundDeliveryService } from "./qq-outbound-delivery.service.js";
 
 export type QQChannelConfig = { appId?: string; secret?: string; allowFrom?: string[] };
 
@@ -30,15 +38,26 @@ export class QQChannel {
   private bot: QQBot | null = null;
   private processedIds: string[] = [];
   private processedSet: Set<string> = new Set();
+  private processingSet: Set<string> = new Set();
   private senderNameCache: Map<string, string> = new Map();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectTask: Promise<void> | null = null;
   private reconnectAttempt = 0;
+  private connectionGeneration = 0;
+  private readonly diagnostics: QQDiagnosticsService;
+  private readonly outboundDelivery: QQOutboundDeliveryService;
   private readonly reconnectBaseMs = 1000;
   private readonly reconnectMaxMs = 60000;
   protected readonly connectTimeoutMs: number = 90000;
 
-  constructor(private readonly config: QQChannelConfig, private readonly bus: BusChannelMessageBus) {}
+  constructor(
+    private readonly config: QQChannelConfig,
+    private readonly bus: BusChannelMessageBus,
+    diagnostics?: ExtensionDiagnostics,
+  ) {
+    this.diagnostics = new QQDiagnosticsService(diagnostics);
+    this.outboundDelivery = new QQOutboundDeliveryService(() => this.bot, this.diagnostics);
+  }
 
   start = async (): Promise<void> => {
     if (!this.config.appId || !this.config.secret) {
@@ -63,78 +82,104 @@ export class QQChannel {
     }
   };
 
-  send: BusChannelRuntime["send"] = async (msg) => {
-    if (!this.bot) {
-      return;
-    }
-
-    const qqMeta = (msg.metadata?.qq as Record<string, unknown> | undefined) ?? {};
-    const messageType = (qqMeta.messageType as QQMessageType | undefined) ?? "private";
-    const replyTo = msg.replyTo ?? (msg.metadata?.message_id as string | undefined);
-    const source = replyTo ? { id: replyTo } : undefined;
-    const rawContent = msg.content;
-
-    try {
-      await this.sendByMessageType({ messageType, qqMeta, msg, payload: rawContent, source });
-    } catch (error) {
-      if (!this.isDisallowedUrlParamError(error)) {
-        throw error;
-      }
-      const safeText = this.toQqSafeText(rawContent, error);
-      await this.sendByMessageType({ messageType, qqMeta, msg, payload: safeText, source });
-    }
-  };
-
-  private sendByMessageType = async (params: {
-    messageType: QQMessageType;
-    qqMeta: Record<string, unknown>;
-    msg: Parameters<BusChannelRuntime["send"]>[0];
-    payload: unknown;
-    source: { id: string } | undefined;
-  }): Promise<void> => {
-    const { messageType, qqMeta, msg, payload, source } = params;
-    if (messageType === "group") {
-      const groupId = (qqMeta.groupId as string | undefined) ?? msg.chatId;
-      await this.sendWithTokenRetry(() => this.bot?.sendGroupMessage(groupId, payload, source));
-      return;
-    }
-
-    const userId = (qqMeta.userId as string | undefined) ?? msg.chatId;
-    await this.sendWithTokenRetry(() => this.bot?.sendPrivateMessage(userId, payload, source));
-  };
+  send: BusChannelRuntime["send"] = async (msg) => this.outboundDelivery.send(msg);
 
   private handleIncoming = async (event: QQMessageEvent): Promise<void> => {
-    const identity = this.resolveIncomingIdentity(event);
-    if (!identity) {
+    const correlationId = this.createInboundCorrelationId(event);
+    if (this.isSelfEvent(event)) {
+      await this.diagnostics.emitInboundRejected(correlationId, "self");
       return;
     }
+    const identity = this.resolveIncomingIdentity(event);
+    if (!identity) {
+      await this.diagnostics.emitInboundRejected(correlationId, "identity_missing");
+      return;
+    }
+    await this.diagnostics.emit({
+      domain: "channel.delivery",
+      event: "inbound.observed",
+      component: "extension.qq",
+      outcome: "observed",
+      correlationId,
+      facts: { channel: this.name, direction: "inbound", stage: "extension" },
+    });
     const content = event.raw_message?.trim() || "[empty message]";
     const senderName = this.resolveIncomingSenderName(identity.senderId, identity.rawEvent, content);
     const route = this.resolveIncomingRoute(event, identity.rawEvent, identity.senderId, senderName);
-    if (!route.chatId || !this.isAllowed(identity.senderId)) {
+    if (!route.chatId) {
+      await this.diagnostics.emitInboundRejected(correlationId, "route_missing");
       return;
     }
-    await this.bus.publishInbound({
-      channel: this.name,
-      senderId: identity.senderId,
-      chatId: route.chatId,
-      content: this.decorateSpeakerPrefix({
-        content,
-        senderId: identity.senderId,
-        senderName
-      }),
-      metadata: {
-        message_id: identity.messageId,
-        qq: route.metadata
-      }
+    if (!this.isAllowed(identity.senderId)) {
+      await this.diagnostics.emitInboundRejected(correlationId, "allowlist");
+      return;
+    }
+    if (!this.beginIncoming(identity.messageId)) {
+      await this.diagnostics.emitInboundRejected(correlationId, "duplicate");
+      return;
+    }
+    await this.diagnostics.emit({
+      domain: "channel.delivery",
+      event: "inbound.submit.started",
+      component: "extension.qq",
+      outcome: "started",
+      correlationId,
+      facts: { channel: this.name, direction: "inbound", stage: "extension" },
     });
+    try {
+      await this.bus.publishInbound({
+        channel: this.name,
+        senderId: identity.senderId,
+        chatId: route.chatId,
+        content: this.decorateSpeakerPrefix({
+          content,
+          senderId: identity.senderId,
+          senderName
+        }),
+        metadata: {
+          message_id: identity.messageId,
+          qq: route.metadata,
+          ...(correlationId ? { [DIAGNOSTIC_CORRELATION_METADATA_KEY]: correlationId } : {}),
+        }
+      });
+      this.commitIncoming(identity.messageId);
+      await this.diagnostics.emit({
+        domain: "channel.delivery",
+        event: "inbound.submit.succeeded",
+        component: "extension.qq",
+        outcome: "succeeded",
+        correlationId,
+        facts: { channel: this.name, direction: "inbound", stage: "extension" },
+      });
+    } catch (error) {
+      this.releaseIncoming(identity.messageId);
+      const classification = classifyDiagnosticError(error);
+      await this.diagnostics.emit({
+        domain: "channel.delivery",
+        event: classification.outcome === "cancelled" ? "inbound.submit.cancelled" : "inbound.submit.failed",
+        component: "extension.qq",
+        outcome: classification.outcome,
+        correlationId,
+        reasonCode: classification.reasonCode,
+        providerCode: classification.providerCode,
+        facts: {
+          channel: this.name,
+          direction: "inbound",
+          stage: "extension",
+          ...(classification.facts ?? {}),
+        },
+      });
+      throw error;
+    }
+  };
+
+  private createInboundCorrelationId = (event: QQMessageEvent): string | undefined => {
+    const providerMessageId = event.message_id || event.id || "";
+    return this.diagnostics.createInboundTraceId(providerMessageId);
   };
 
   private resolveIncomingIdentity = (event: QQMessageEvent): QQIncomingIdentity | null => {
     const messageId = event.message_id || event.id || "";
-    if (messageId && this.isDuplicate(messageId)) {
-      return null;
-    }
     const rawEvent = event as unknown as QQRawEvent;
     if (this.isSelfEvent(event)) {
       return null;
@@ -272,10 +317,22 @@ export class QQChannel {
     return null;
   };
 
-  private isDuplicate = (messageId: string): boolean => {
-    if (this.processedSet.has(messageId)) {
+  private beginIncoming = (messageId: string): boolean => {
+    if (!messageId) {
       return true;
     }
+    if (this.processedSet.has(messageId) || this.processingSet.has(messageId)) {
+      return false;
+    }
+    this.processingSet.add(messageId);
+    return true;
+  };
+
+  private commitIncoming = (messageId: string): void => {
+    if (!messageId) {
+      return;
+    }
+    this.processingSet.delete(messageId);
     this.processedSet.add(messageId);
     this.processedIds.push(messageId);
     if (this.processedIds.length > 1000) {
@@ -284,53 +341,12 @@ export class QQChannel {
         this.processedSet.delete(id);
       }
     }
-    return false;
   };
 
-  private sendWithTokenRetry = async (send: () => Promise<unknown> | undefined): Promise<void> => {
-    try {
-      await send();
-    } catch (error) {
-      if (!this.isTokenExpiredError(error) || !this.bot) {
-        throw error;
-      }
-      await this.bot.sessionManager.getAccessToken();
-      await send();
+  private releaseIncoming = (messageId: string): void => {
+    if (messageId) {
+      this.processingSet.delete(messageId);
     }
-  };
-
-  private isTokenExpiredError = (error: unknown): boolean => {
-    const message = error instanceof Error ? error.message : String(error);
-    return message.includes("code(11244)") || message.toLowerCase().includes("token not exist or expire");
-  };
-
-  private isDisallowedUrlParamError = (error: unknown): boolean => {
-    const message = error instanceof Error ? error.message : String(error);
-    return message.includes("code(40034028)") || message.includes("请求参数不允许包含url");
-  };
-
-  private toQqSafeText = (content: string, error: unknown): string => {
-    let safe = content
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
-      .replace(/https?:\/\/\S+/gi, "[link]")
-      .replace(/www\.\S+/gi, "[link]")
-      .replace(/\b[a-z0-9._/-]+\.md\b/gi, "[file]");
-
-    const blocked = this.extractBlockedUrlToken(error);
-    if (blocked) {
-      safe = safe.replaceAll(blocked, "[link]");
-    }
-    return safe;
-  };
-
-  private extractBlockedUrlToken = (error: unknown): string | null => {
-    const message = error instanceof Error ? error.message : String(error);
-    const match = message.match(/包含url\s+([^\s]+)/);
-    if (!match) {
-      return null;
-    }
-    const token = match[1].trim();
-    return token.length > 0 ? token : null;
   };
 
   private tryConnect = (trigger: string): void => {
@@ -344,6 +360,8 @@ export class QQChannel {
 
   private connect = async (trigger: string): Promise<void> => {
     let candidate: QQBot | null = null;
+    const startedAt = Date.now();
+    this.diagnostics.emitGatewayConnectStarted(trigger, this.reconnectAttempt + 1);
     try {
       await this.verifyGatewaySessionAvailability();
       candidate = this.createBot();
@@ -354,8 +372,7 @@ export class QQChannel {
       }
       this.bot = candidate;
       this.reconnectAttempt = 0;
-      // eslint-disable-next-line no-console
-      console.log("QQ bot connected");
+      this.diagnostics.emitGatewayConnectSucceeded(trigger, Date.now() - startedAt);
     } catch (error) {
       if (candidate) {
         await this.safeStopBot(candidate);
@@ -365,23 +382,25 @@ export class QQChannel {
       }
       this.reconnectAttempt += 1;
       const delayMs = this.getReconnectDelayMs(error, this.reconnectAttempt);
-      if (error instanceof QQGatewaySessionLimitError) {
-        // eslint-disable-next-line no-console
-        console.warn(`[qq] startup paused (${trigger}, attempt ${this.reconnectAttempt}); gateway session quota exhausted, retry in ${delayMs}ms: reset_after_ms=${error.resetAfterMs ?? "unknown"}, total=${error.total ?? "unknown"}, max_concurrency=${error.maxConcurrency ?? "unknown"}`);
-      } else {
-        // eslint-disable-next-line no-console
-        console.error(`[qq] start failed (${trigger}, attempt ${this.reconnectAttempt}), retry in ${delayMs}ms: ${this.formatErrorMessage(error)}`);
-      }
+      this.diagnostics.emitGatewayConnectFailed({
+        attempt: this.reconnectAttempt,
+        durationMs: Date.now() - startedAt,
+        error,
+        reconnectInMs: delayMs,
+        sessionLimit: error instanceof QQGatewaySessionLimitError,
+        trigger,
+      });
       this.scheduleReconnect(delayMs, `${trigger}-retry`);
     }
   };
 
   protected createBot = (): QQBot => {
+    const generation = ++this.connectionGeneration;
     const bot = new Bot({
       appid: this.config.appId!,
       secret: this.config.secret!,
       mode: ReceiverMode.WEBSOCKET,
-      intents: ["C2C_MESSAGE_CREATE", "GROUP_AT_MESSAGE_CREATE"],
+      intents: ["GROUP_AND_C2C_EVENT"],
       removeAt: true,
       logLevel: "info"
     });
@@ -395,7 +414,27 @@ export class QQChannel {
     });
 
     bot.sessionManager.on(SessionEvents.DEAD, () => {
-      void this.handleSessionDead(bot);
+      void this.handleSessionDead(bot, generation);
+    });
+
+    bot.sessionManager.on(SessionEvents.EVENT_WS, (data: unknown) => {
+      const event = data && typeof data === "object" ? data as Record<string, unknown> : {};
+      const eventType = typeof event.eventType === "string" ? event.eventType : "unknown";
+      if (
+        eventType !== SessionEvents.READY &&
+        eventType !== SessionEvents.RESUMED &&
+        eventType !== SessionEvents.DISCONNECT
+      ) {
+        return;
+      }
+      void this.diagnostics.emit({
+        domain: "extension.lifecycle",
+        event: `gateway.session.${eventType.toLowerCase()}`,
+        component: "extension.qq",
+        outcome: eventType === SessionEvents.DISCONNECT ? "unavailable" : "observed",
+        providerCode: this.diagnostics.normalizeProviderCode(event.code),
+        facts: { channel: this.name, generation },
+      });
     });
 
     return bot;
@@ -408,7 +447,7 @@ export class QQChannel {
     }).verifySessionAvailable();
   };
 
-  private handleSessionDead = async (bot: QQBot): Promise<void> => {
+  private handleSessionDead = async (bot: QQBot, generation: number): Promise<void> => {
     if (!this.running || this.bot !== bot) {
       return;
     }
@@ -416,8 +455,14 @@ export class QQChannel {
     await this.safeStopBot(bot);
     this.reconnectAttempt += 1;
     const delayMs = this.getBackoffDelayMs(this.reconnectAttempt);
-    // eslint-disable-next-line no-console
-    console.error(`[qq] session dead, reconnect in ${delayMs}ms`);
+    await this.diagnostics.emit({
+      domain: "extension.lifecycle",
+      event: "gateway.session.dead",
+      component: "extension.qq",
+      outcome: "unavailable",
+      attempt: this.reconnectAttempt,
+      facts: { channel: this.name, generation, reconnectInMs: delayMs },
+    });
     this.scheduleReconnect(delayMs, "session-dead");
   };
 
@@ -453,6 +498,7 @@ export class QQChannel {
     bot.removeAllListeners("message.private");
     bot.removeAllListeners("message.group");
     bot.sessionManager.removeAllListeners(SessionEvents.DEAD);
+    bot.sessionManager.removeAllListeners(SessionEvents.EVENT_WS);
     try {
       await bot.stop();
     } catch {

@@ -5,6 +5,7 @@ import {
   createPanelAppContentPath,
   createPanelAppResourceUri,
   createPanelAppRightPanelResourceTarget,
+  readPanelAppIdFromResourceUri,
 } from '@/features/right-panel-resources/utils/right-panel-resource-uri.utils';
 
 function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryView {
@@ -15,6 +16,7 @@ function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelA
     contentPath: '/api/panel-apps/demo/content',
     createdAt: '2026-06-02T00:00:00.000Z',
     favorite: false,
+    mainSidebar: false,
     fileName: 'demo.html',
     id: 'demo',
     kind: 'single-file',
@@ -67,6 +69,13 @@ describe('right-panel-resource uri utils', () => {
     expect(createPanelAppContentPath('demo', '/tmp/demo.panel')).toBe(
       '/api/panel-apps/demo/content?path=%2Ftmp%2Fdemo.panel',
     );
+  });
+
+  it('reads stable panel app ids from resource and content URLs', () => {
+    expect(readPanelAppIdFromResourceUri('nextclaw://panel-app/publisher.todo')).toBe('publisher.todo');
+    expect(readPanelAppIdFromResourceUri('/api/panel-apps/publisher.todo/content')).toBe('publisher.todo');
+    expect(readPanelAppIdFromResourceUri('nextclaw://panel-app/publisher.todo?path=%2Ftmp%2Ftodo.panel')).toBeNull();
+    expect(readPanelAppIdFromResourceUri('nextclaw://apps')).toBeNull();
   });
 
   it('keeps panel app image icons as dock image icons', () => {

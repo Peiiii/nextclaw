@@ -116,6 +116,7 @@ export type ExtensionRequestSender = <T>(params: {
 }) => Promise<T>;
 
 export type ExtensionRuntimeServiceOptions = {
+  diagnostics: NextclawCore.DiagnosticRuntime;
   eventBus: Pick<EventBus, "emitEnvelope">;
   getConfig: () => Config;
   getWorkspace: () => string;

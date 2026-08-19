@@ -1,8 +1,10 @@
-import { EventBus } from "@nextclaw/shared";
+import { EventBus, getKeyId, ingressKeys } from "@nextclaw/shared";
+import { createHash, randomUUID } from "node:crypto";
 import type {
   ExtensionCapabilities,
   ExtensionCapabilityHandler,
   ExtensionChannels,
+  ExtensionDiagnostics,
   ExtensionRequest,
   ExtensionRequestHandler,
   ExtensionTransportEnvelope,
@@ -12,6 +14,52 @@ import { ExtensionChannelService } from "./extension-channel.service.js";
 import { ExtensionTransportService } from "./extension-transport.service.js";
 
 const EXTENSION_PARENT_WATCH_INTERVAL_MS = 1000;
+
+class ExtensionDiagnosticClient implements ExtensionDiagnostics {
+  constructor(
+    private readonly transport: ExtensionTransportService,
+    private readonly timeoutMs: number,
+  ) {}
+
+  readonly createTraceId = (stableId?: string): string => {
+    const normalizedStableId = stableId?.trim();
+    if (!normalizedStableId) {
+      return randomUUID();
+    }
+    return createHash("sha256")
+      .update(normalizedStableId)
+      .digest("hex")
+      .slice(0, 24);
+  };
+
+  readonly emit: ExtensionDiagnostics["emit"] = async (input) => {
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        this.transport.postIngress(
+          getKeyId(ingressKeys.extension.diagnosticEmit),
+          input,
+          { signal: controller.signal },
+        ),
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => {
+            controller.abort();
+            reject(new Error("Extension diagnostic emission timed out."));
+          }, this.timeoutMs);
+          timeout.unref?.();
+        }),
+      ]);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
+  };
+}
 
 class ExtensionChannelRegistry implements ExtensionChannels {
   private readonly channels = new Map<string, ExtensionChannelService>();
@@ -170,6 +218,7 @@ export class NextClawExtension {
   readonly eventBus: EventBus;
   readonly channels: ExtensionChannels;
   readonly capabilities: ExtensionCapabilities;
+  readonly diagnostics: ExtensionDiagnostics;
   readonly extensionId: string;
   readonly generation: string;
   private readonly transport: ExtensionTransportService;
@@ -200,6 +249,10 @@ export class NextClawExtension {
       extensionId: this.extensionId,
       transport: this.transport,
     });
+    this.diagnostics = new ExtensionDiagnosticClient(
+      this.transport,
+      Math.max(50, options.diagnosticTimeoutMs ?? 2_000),
+    );
     this.parentProcessWatcher = this.startParentProcessWatcher();
   }
 

@@ -25,6 +25,7 @@ import {
 import { useInboxUnreadCount } from "@/features/inbox";
 import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
 import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-sidebar-utility-menu";
+import { PanelAppMainSidebarNav } from "@/features/panel-apps";
 import { isWindowsDesktopHost } from "@/platforms/desktop";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import {
@@ -108,28 +109,31 @@ export function ChatSidebarDesktopNav({
 }) {
   const unreadCount = useInboxUnreadCount();
   return (
-    <div className={cn("pb-1", isCollapsed ? "px-0" : "px-3")}>
-      <ul className={isCollapsed ? SIDEBAR_RAIL_STACK_CLASS : "space-y-0.5"}>
-        {navItems.map((item) => (
-          <li
-            key={item.target}
-            className={isCollapsed ? "flex justify-center" : undefined}
-          >
-            <SidebarNavLinkItem
-              to={item.target}
-              label={item.label()}
-              icon={item.icon}
-              density="compact"
-              collapsed={isCollapsed}
-              indicator={item.target === "/inbox" && unreadCount > 0}
-              trailing={item.target === "/inbox" && unreadCount > 0
-                ? unreadCount > 99 ? "99+" : unreadCount
-                : undefined}
-              className={isCollapsed ? undefined : "rounded-lg px-2.5 py-1.5"}
-            />
-          </li>
-        ))}
-      </ul>
+    <div className="pb-1">
+      <div className={isCollapsed ? "px-0" : "px-3"}>
+        <ul className={isCollapsed ? SIDEBAR_RAIL_STACK_CLASS : "space-y-0.5"}>
+          {navItems.map((item) => (
+            <li
+              key={item.target}
+              className={isCollapsed ? "flex justify-center" : undefined}
+            >
+              <SidebarNavLinkItem
+                to={item.target}
+                label={item.label()}
+                icon={item.icon}
+                density="compact"
+                collapsed={isCollapsed}
+                indicator={item.target === "/inbox" && unreadCount > 0}
+                trailing={item.target === "/inbox" && unreadCount > 0
+                  ? unreadCount > 99 ? "99+" : unreadCount
+                  : undefined}
+                className={isCollapsed ? undefined : "rounded-lg px-2.5 py-1.5"}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+      <PanelAppMainSidebarNav isCollapsed={isCollapsed} />
     </div>
   );
 }

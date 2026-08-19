@@ -262,6 +262,13 @@ Useful commands:
 - `nextclaw logs path`
 - `nextclaw logs tail`
 - `nextclaw logs tail --crash`
+- `nextclaw logs query --since 2h --json`
+- `nextclaw logs query --since 2h --domain channel.delivery --json`
+- `nextclaw logs query --correlation-id <id> --since 2h --json`
+
+`logs query` reads the current service log and matching archived service logs. It can filter by `--since`, `--until`, `--level`, `--scope`, `--domain`, `--event`, `--outcome`, `--reason-code`, and `--correlation-id`. JSON output includes `invalidLines` and `truncated`; check these before treating an empty result as proof that nothing happened.
+
+Structured diagnostic domains cover runtime and extension lifecycle, configuration apply, channel delivery, Agent runs, every kernel-provided tool execution, external transport requests, and automation execution. Terminal outcomes distinguish `succeeded`, `rejected`, `cancelled`, `failed`, `unavailable`, and `suppressed`. Errors are stored as safe categories such as timeout, DNS, connection, TLS, HTTP status/limit, or unexpected error; tool arguments/results, message content, complete URLs, request/response bodies, headers, and credentials are not diagnostic fields.
 
 UI note: **Model** page save persists `agents.defaults.model` only.
 
@@ -1318,7 +1325,7 @@ NextClaw binds UI to `0.0.0.0` by default and attempts to detect/print a public 
 |-------|----------------|
 | **401 / invalid API key** | Verify the provider `apiKey` and `apiBase` in config or UI. Ensure no extra spaces or wrong key. |
 | **Unknown model** | Confirm the model ID is supported by your provider (e.g. OpenRouter model list). |
-| **No replies on a channel** | Ensure the channel is `enabled`, `allowFrom` includes your user ID if set, and the gateway is running (`nextclaw start` or `nextclaw gateway`). Run `nextclaw channels status` to see channel status. |
+| **No replies on a channel** | Run `nextclaw status --json`, `nextclaw channels status`, and `nextclaw logs query --since 2h --domain channel.delivery --json`. Use the returned correlation id to query the full operation. If no inbound event exists, local logs cannot prove whether the external platform delivered the message; send a new unique test message and check again. |
 | **Port already in use** | Change `ui.port` in config or use `--ui-port` when starting. Default UI port is 55667, gateway 18790. |
 | **Port connects but the UI never responds** | This usually means the target port is occupied by a stale or wrong listener instead of a healthy NextClaw HTTP server. Newer `nextclaw start` now preflights the UI port and fails fast with diagnostics. On the server, run `ss -ltnp | grep 55667` or `lsof -iTCP:55667 -sTCP:LISTEN -n -P`, then free the port or restart with `--ui-port <port>`. |
 | **Public browser access returns 502** | First verify `curl http://127.0.0.1:55667/api/health` on the server. If it is `200`, your reverse proxy is misconfigured. Make sure it proxies to `http://127.0.0.1:55667` instead of `https://127.0.0.1:55667`, and that `443` is terminated by Nginx/Caddy rather than NextClaw itself. |

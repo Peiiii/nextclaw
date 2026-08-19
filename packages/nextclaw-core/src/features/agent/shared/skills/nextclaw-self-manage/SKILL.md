@@ -71,10 +71,19 @@ When user asks "what changed in version X", follow:
 - `references/release-notes-changelog.md`
 - Do not claim details without a traceable source path.
 
+## Runtime Incident Diagnosis
+
+When the user reports missing messages, missing replies, intermittent failures, extension exits, config apply failures, automation failures, or other runtime incidents, follow:
+
+- `references/runtime-diagnostics.md`
+- Collect status and structured log evidence before proposing a code change.
+- Keep proven facts, stage-level inference, and insufficient evidence separate.
+
 ## High-frequency Intents
 
 - Version lookup: `nextclaw --version`
 - Service health: `nextclaw status --json` / `nextclaw doctor --json`
+- Runtime incident logs: `nextclaw logs query --since 2h --json` and narrow by `--domain` / `--correlation-id`
 - Local HTTP/API/webhook addresses: `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`
 - Lifecycle: `nextclaw start|restart|stop`
 - Service App live runtime: `nextclaw app restart <app-id> --json`

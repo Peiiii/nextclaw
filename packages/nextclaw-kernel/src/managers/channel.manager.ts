@@ -1,5 +1,6 @@
 import { evaluateSilentReply, ExtensionChannelAdapter, isNextclawControlMessage, sanitizeOutboundAssistantContent } from "@nextclaw/core";
-import type { BaseChannel, Config, ExtensionRegistry, MessageBus, OutboundMessage } from "@nextclaw/core";
+import type { BaseChannel, Config, DiagnosticRuntime, ExtensionRegistry, MessageBus, OutboundMessage } from "@nextclaw/core";
+import { classifyDiagnosticError } from "@nextclaw/shared";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};
@@ -11,6 +12,7 @@ export class ChannelManager {
   constructor(
     private readonly deps: {
       bus: MessageBus;
+      diagnostics?: Pick<DiagnosticRuntime, "record" | "readCorrelationId">;
     },
   ) {}
 
@@ -89,6 +91,9 @@ export class ChannelManager {
   readonly deliver = async (message: OutboundMessage): Promise<boolean> => {
     const channel = this.channels[message.channel];
     if (!channel) {
+      this.recordDelivery(message, "outbound.send.rejected", "rejected", {
+        reasonCode: "channel_unavailable",
+      });
       return false;
     }
     if (isNextclawControlMessage(message)) {
@@ -97,10 +102,58 @@ export class ChannelManager {
     }
     const outbound = this.normalizeOutbound(message);
     if (!outbound) {
+      this.recordDelivery(message, "reply.suppressed", "suppressed", {
+        reasonCode: "silent_reply",
+      });
       return true;
     }
-    await channel.send(outbound);
-    return true;
+    const startedAt = Date.now();
+    this.recordDelivery(message, "outbound.send.started", "started");
+    try {
+      await channel.send(outbound);
+      this.recordDelivery(message, "outbound.send.succeeded", "succeeded", {
+        durationMs: Date.now() - startedAt,
+      });
+      return true;
+    } catch (error) {
+      const classification = classifyDiagnosticError(error);
+      this.recordDelivery(message, classification.outcome === "cancelled" ? "outbound.send.cancelled" : "outbound.send.failed", classification.outcome, {
+        durationMs: Date.now() - startedAt,
+        reasonCode: classification.reasonCode,
+        providerCode: classification.providerCode,
+        facts: classification.facts,
+      });
+      throw error;
+    }
+  };
+
+  private readonly recordDelivery = (
+    message: OutboundMessage,
+    event: string,
+    outcome: "started" | "succeeded" | "rejected" | "cancelled" | "failed" | "suppressed",
+    details: {
+      durationMs?: number;
+      reasonCode?: string;
+      providerCode?: string;
+      facts?: Record<string, string | number | boolean | null>;
+    } = {},
+  ): void => {
+    this.deps.diagnostics?.record({
+      domain: "channel.delivery",
+      event,
+      component: "kernel.channel-manager",
+      outcome,
+      correlationId: this.deps.diagnostics.readCorrelationId(message.metadata),
+      durationMs: details.durationMs,
+      reasonCode: details.reasonCode,
+      providerCode: details.providerCode,
+      facts: {
+        channel: message.channel,
+        direction: "outbound",
+        stage: "provider",
+        ...(details.facts ?? {}),
+      },
+    });
   };
 
   private readonly initChannels = (): void => {
@@ -154,8 +207,8 @@ export class ChannelManager {
       const message = await this.deps.bus.consumeOutbound();
       try {
         await this.deliver(message);
-      } catch (error) {
-        console.error(`Error sending to ${message.channel}: ${String(error)}`);
+      } catch {
+        // deliver() records the structured failure before keeping the dispatcher alive.
       }
     }
   };

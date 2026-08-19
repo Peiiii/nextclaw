@@ -283,7 +283,8 @@ function toUiParts(parts: NcpMessagePart[]): UIMessage['parts'] {
           status: mapToolStatus(part),
           toolCallId: part.toolCallId ?? `${part.toolName}-${Math.random().toString(36).slice(2, 8)}`,
           toolName: part.toolName,
-          args: stringifyUnknown(part.args),
+          args: typeof part.args === "string" ? part.args : "",
+          parsedArgs: part.args,
           result: part.result,
           ...(part.execution ? { execution: { ...part.execution } } : {})
         }

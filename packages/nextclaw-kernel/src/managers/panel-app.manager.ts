@@ -11,7 +11,6 @@ import type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.s
 import { PanelAppCapabilityGrantStore } from "@kernel/stores/panel-app-capability-grant.store.js";
 import { PanelAppClientGrantStore } from "@kernel/stores/panel-app-client-grant.store.js";
 import type { PanelAppClientGrant } from "@kernel/stores/panel-app-client-grant.store.js";
-import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
 import type { AppPackageComponentSource } from "@kernel/types/app-package.types.js";
 import type {
   PanelAppAgentCapability,
@@ -21,6 +20,11 @@ import type {
   PanelAppAgentSendPayload,
   PanelAppAgentSendResult,
   PanelAppCapabilityGrant,
+  PanelAppBridgeSession,
+  PanelAppContent,
+  PanelAppDeleteResult,
+  PanelAppEntry,
+  PanelAppList,
 } from "@kernel/types/panel-app.types.js";
 import {
   isPanelAppError,
@@ -57,64 +61,6 @@ const PANEL_APP_CONTENT_TYPE = "text/html; charset=utf-8" as const;
 const PANEL_APP_CAPABILITY_GRANTS_FILE_NAME = ".panel-app-capability-grants.json";
 const PANEL_APP_CLIENT_GRANTS_FILE_NAME = ".panel-app-client-grants.json";
 const PANEL_APP_RUNTIME_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
-
-export type PanelAppEntry = {
-  id: string;
-  appId: string;
-  fileName: string;
-  kind: "single-file" | "folder";
-  title: string;
-  description?: string;
-  icon?: string;
-  contentPath: string;
-  createdAt: string;
-  updatedAt: string;
-  sizeBytes: number;
-  favorite: boolean;
-  clientDeclared: boolean;
-  clientGranted: boolean;
-  lastOpenedAt?: string;
-  openCount: number;
-  sourceKind: "workspace" | "package";
-  packageId?: string;
-  packageVersion?: string;
-};
-
-export type PanelAppList = {
-  workspacePath: string;
-  panelsPath: string;
-  entries: PanelAppEntry[];
-};
-
-export type PanelAppContent = {
-  id: string;
-  appId: string;
-  fileName: string;
-  html: string;
-  contentType: typeof PANEL_APP_CONTENT_TYPE;
-  capabilities: string[];
-  clientDeclared: boolean;
-  clientGranted: boolean;
-  serviceActions: string[];
-};
-
-export type PanelAppDeleteResult = {
-  deleted: true;
-  fileName: string;
-  id: string;
-};
-
-export type PanelAppBridgeSession = {
-  id: string;
-  token: string;
-  appId: string;
-  caller: ServiceActionCaller;
-  declaredCapabilities: string[];
-  declaredActions: string[];
-  clientDeclared: boolean;
-  createdAt: string;
-  expiresAt: string;
-};
 
 export class PanelAppManager {
   private readonly bridgeSessions = new Map<string, PanelAppBridgeSession>();
@@ -166,8 +112,9 @@ export class PanelAppManager {
       sources.map(({ source, packageSource }) =>
         this.entryPresenter.build(
           source,
-          appState[encodePanelAppId(source.sourceName)] ?? {},
+          appState.apps[encodePanelAppId(source.sourceName)] ?? {},
           packageSource,
+          appState.mainSidebarAppIds,
         ),
       ),
     );
@@ -355,27 +302,29 @@ export class PanelAppManager {
   ): Promise<PanelAppEntry> => {
     const fileName = await this.resolvePanelAppFileName(id);
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const state = await this.createStateStore(panelsPath).updatePreferences(
-      encodePanelAppId(fileName),
-      preferences,
+    const source = await this.packageStateManager.resolveSource(encodePanelAppId(fileName));
+    const packageSource = await this.packageStateManager.findPackageSourceBySourceName(fileName);
+    const manifest = source.manifest ?? parsePanelAppManifest(await readFile(source.entryPath, "utf8"));
+    const appId = resolvePanelAppAppId(source, manifest);
+    const result = await this.createStateStore(panelsPath).updatePreferences(
+      encodePanelAppId(fileName), appId, preferences,
     );
     return await this.entryPresenter.build(
-      await this.packageStateManager.resolveSource(encodePanelAppId(fileName)),
-      state,
-      await this.packageStateManager.findPackageSourceBySourceName(fileName),
+      source, result.entry, packageSource, result.mainSidebarAppIds,
     );
   };
 
   recordPanelAppOpened = async (id: string): Promise<PanelAppEntry> => {
     const fileName = await this.resolvePanelAppFileName(id);
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const state = await this.createStateStore(panelsPath).recordOpened(
+    const result = await this.createStateStore(panelsPath).recordOpened(
       encodePanelAppId(fileName),
     );
     return await this.entryPresenter.build(
       await this.packageStateManager.resolveSource(encodePanelAppId(fileName)),
-      state,
+      result.entry,
       await this.packageStateManager.findPackageSourceBySourceName(fileName),
+      result.mainSidebarAppIds,
     );
   };
 
@@ -395,7 +344,7 @@ export class PanelAppManager {
     const manifest = source.manifest ?? parsePanelAppManifest(await readFile(source.entryPath, "utf8"));
     const appId = resolvePanelAppAppId(source, manifest);
     await rm(source.sourcePath, { recursive: source.kind === "folder" });
-    await this.createStateStore(panelsPath).deleteEntry(panelAppId);
+    await this.createStateStore(panelsPath).deleteEntry(panelAppId, appId);
     await this.createCapabilityGrantStore().deleteCaller({
       surface: "panel-app",
       appId,

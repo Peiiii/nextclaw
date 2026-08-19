@@ -29,6 +29,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 披露未验证技术路径、主观确认项和残余风险；
 - 判断生成物是否应保留；
 - 判断 changeset、release notes 和迭代记录是否适用；
+- 判断已经形成稳定证据的用户可见结果是否值得提前准备产品博客；
 - 明确 commit、push、release 和 deploy 已因未授权跳过。
 
 ## 专项路由
@@ -37,10 +38,17 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 - 提交范围、changeset、版本笔记和用户可见更新摘要：`nextclaw-release-notes`；
 - 重要交付、跨模块长链路、红区和发布留痕：`nextclaw-iteration-log-governance`；
+- 有独立用户任务、可核查证据和公开叙事价值的产品成果：`nextclaw-product-blog-storytelling`；
 - NextClaw NPM package、runtime channel、真实安装和分支闭环：`nextclaw-npm-release`；
 - NextClaw Desktop installer、DMG、update manifest、发布和恢复：`nextclaw-desktop-release`。
 
 专项 owner 可以被本阶段路由，也可以在用户明确提出完整场景时直接触发；它们不重新编排上游开发阶段。
+
+## 博客候选门
+
+博客候选在适用 Validation 和 Review 已形成稳定证据后判断，不等待 commit、release 或 deploy。明显改变具体用户任务、具备可解释的 before/after、解决可复用的 AI 原生产品问题，或有真实指标/界面支撑独立主题时，进入产品博客 owner；常规修复、内部重构、纯 changeset 或证据仍会变化的结果跳过。
+
+命中候选不等于发布。事实已经稳定且当前任务未明确排除内容产物时，可以提前形成内部草稿；若文章必须随当前产品变化发布，在对应 changeset 中写入博客绑定指令。文章上线、站点导航、配图公开和社交分发仍分别遵守明确授权与对应交付合同。
 
 ## 发布语义
 

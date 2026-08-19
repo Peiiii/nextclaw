@@ -247,5 +247,8 @@ export function buildChatMessageTexts(
     },
     toolActivityFailedLabel: t("chatProcessSummaryFailed"),
     toolActivityCancelledLabel: t("chatProcessSummaryCancelled"),
+    toolPayloadLoadingLabel: t("chatToolPayloadLoading"),
+    toolPayloadLoadFailedLabel: t("chatToolPayloadLoadFailed"),
+    toolActivityShowMoreTemplate: t("chatToolActivityShowMore"),
   };
 }

@@ -222,10 +222,10 @@ describe("CronService", () => {
     expect(statSync(storePath).mtimeMs).toBe(beforeReloadMtimeMs);
   });
 
-  it("logs unexpected timer failures and keeps the scheduler alive", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("records unexpected timer failures and keeps the scheduler alive", async () => {
+    const record = vi.fn((event) => event);
     const onJob = vi.fn().mockResolvedValue("ok");
-    const service = new CronService(storePath, onJob);
+    const service = new CronService(storePath, onJob, { record });
 
     await service.start();
     service.addJob({
@@ -250,8 +250,12 @@ describe("CronService", () => {
 
     await vi.advanceTimersByTimeAsync(1_000);
     expect(onJob).toHaveBeenCalledTimes(1);
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[cron] background timer failed:"));
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("persist boom"));
+    expect(record).toHaveBeenCalledWith(expect.objectContaining({
+      domain: "automation.execution",
+      event: "timer.failed",
+      outcome: "failed",
+      reasonCode: "unexpected_error",
+    }));
 
     await vi.advanceTimersByTimeAsync(1_000);
     service.stop();

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { URLSearchParams } from "node:url";
@@ -779,7 +779,7 @@ describe("PanelAppManager metadata and state", () => {
     const manager = createPanelAppManager(workspacePath);
     const [entry] = (await manager.listPanelApps()).entries;
 
-    await manager.updatePanelAppPreferences(entry.id, { favorite: true });
+    await manager.updatePanelAppPreferences(entry.id, { favorite: true, mainSidebar: true });
     const result = await manager.deletePanelApp(entry.id);
 
     expect(result).toEqual({
@@ -793,6 +793,8 @@ describe("PanelAppManager metadata and state", () => {
       panelsPath,
       entries: [],
     });
+    expect(JSON.parse(readFileSync(join(panelsPath, ".panel-apps.state.json"), "utf8")))
+      .toMatchObject({ mainSidebarAppIds: [] });
   });
 
   it("deletes folder panel apps and clears launcher state", async () => {

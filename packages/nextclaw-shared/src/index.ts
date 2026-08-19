@@ -56,6 +56,7 @@ export {
   CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
   ingressKeys,
 } from "./configs/ingress-keys.config.js";
+export { DIAGNOSTIC_CORRELATION_METADATA_KEY } from "./configs/ingress-keys.config.js";
 export {
   RUNTIME_DEFAULT_MODEL_VALUE,
   isRuntimeDefaultModelValue,
@@ -89,6 +90,8 @@ export {
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
 export { PANEL_APP_SCROLL_RESTORATION_CONTRACT } from "./configs/panel-app-scroll-restoration.config.js";
 export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
+export { classifyDiagnosticError } from "./utils/diagnostic-error.utils.js";
+export type { DiagnosticErrorClassification } from "./utils/diagnostic-error.utils.js";
 export {
   containsSilentReplyMarker,
   isSilentReplyNcpMessage,
@@ -145,6 +148,9 @@ export type {
   ExtensionChannelImageContent,
   ExtensionChannelMessageContent,
   ExtensionChannelMessageSubmitIngressPayload,
+  ExtensionDiagnosticIngressPayload,
+  DiagnosticFactValue,
+  DiagnosticOutcome,
   ExtensionChannelSubmittedAttachment,
   ExtensionChannelTextContent,
   ExtensionRuntimeReadyIngressPayload,

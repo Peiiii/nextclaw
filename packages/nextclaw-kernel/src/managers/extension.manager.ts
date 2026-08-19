@@ -3,6 +3,7 @@ import {
   mergeExtensionConfigView,
   toExtensionConfigView,
   type Config,
+  type DiagnosticRuntime,
   type ExtensionChannelBinding,
   type ExtensionDiagnostic,
   type ExtensionRegistry,
@@ -34,6 +35,7 @@ export type ExtensionLoadResult = {
 };
 
 type ExtensionManagerOptions = {
+  diagnostics: DiagnosticRuntime;
   configManager: Pick<ConfigManager, "loadConfig">;
   eventBus: Pick<EventBus, "emitEnvelope">;
   ingress: Pick<Ingress, "addHandler">;
@@ -148,6 +150,7 @@ export class ExtensionManager {
 
   constructor(private readonly options: ExtensionManagerOptions) {
     this.runtime = new ExtensionRuntimeService({
+      diagnostics: options.diagnostics,
       eventBus: options.eventBus,
       getConfig: options.configManager.loadConfig,
       getWorkspace: this.getWorkspace,

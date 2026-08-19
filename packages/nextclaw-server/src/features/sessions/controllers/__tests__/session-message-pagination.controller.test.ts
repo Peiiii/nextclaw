@@ -65,4 +65,55 @@ describe("NcpSessionRoutesController message pagination", () => {
       error: { code: "INVALID_CURSOR" }
     });
   });
+
+  it("only defers large tool payloads when the UI opts into summary mode", async () => {
+    const message = {
+      id: "assistant-large",
+      sessionId: "session-1",
+      role: "assistant",
+      status: "final",
+      timestamp: "2026-08-19T00:00:00.000Z",
+      parts: [{
+        type: "tool-invocation",
+        toolCallId: "tool-1",
+        toolName: "exec_command",
+        state: "result",
+        args: { command: "pnpm test", payload: "x".repeat(300_000) },
+        result: { output: "x".repeat(300_000) },
+      }],
+    };
+    const app = createMessagePageApp(vi.fn(async () => ({
+      messages: [message],
+      messageDetailCursors: { "assistant-large": "cursor-detail" },
+      total: 1,
+      pageInfo: { startCursor: "cursor-1", hasPreviousPage: false },
+      contextWindow: null,
+    })));
+
+    const summary = await app.request(
+      "http://localhost/api/ncp/sessions/session-1/messages?toolPayload=summary",
+    );
+    const full = await app.request(
+      "http://localhost/api/ncp/sessions/session-1/messages",
+    );
+    await expect(summary.json()).resolves.toMatchObject({
+      data: {
+        messages: [{
+          metadata: {
+            nextclawUiHistoryToolPayloadSummary: {
+              toolCallCount: 1,
+              toolNames: ["exec_command"],
+            },
+          },
+          parts: [{ type: "tool-invocation" }],
+        }],
+        deferredToolPayloads: { "assistant-large": { cursor: "cursor-detail" } },
+      },
+    });
+    await expect(full.json()).resolves.toMatchObject({
+      data: {
+        messages: [{ parts: [{ result: { output: expect.any(String) } }] }],
+      },
+    });
+  });
 });

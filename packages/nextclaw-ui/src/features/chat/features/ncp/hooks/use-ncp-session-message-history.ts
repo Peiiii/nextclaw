@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { NcpMessage, NcpSessionMessagePageInfo } from "@nextclaw/ncp";
 import type { NcpConversationSeed } from "@nextclaw/ncp-react";
 import {
+  fetchNcpSessionMessageDetail,
   fetchNcpSessionMessages,
   type SessionContextWindowView,
 } from "@/shared/lib/api";
@@ -10,9 +11,12 @@ export const DEFAULT_NCP_SESSION_MESSAGE_LIMIT = 40;
 
 type NcpConversationSeedWithContextWindow = NcpConversationSeed & {
   contextWindow?: SessionContextWindowView | null;
+  deferredToolPayloads: Record<string, { cursor: string }>;
   total: number;
   pageInfo: NcpSessionMessagePageInfo;
 };
+
+export type SessionMessageToolPayloadState = "summary" | "loading" | "ready" | "error";
 
 type SessionHistoryState = {
   sessionId: string | null;
@@ -22,6 +26,9 @@ type SessionHistoryState = {
   hasPreviousPage: boolean;
   isLoading: boolean;
   error: Error | null;
+  deferredToolPayloads: Record<string, { cursor: string }>;
+  messageDetails: Record<string, NcpMessage>;
+  messageDetailStates: Record<string, SessionMessageToolPayloadState>;
 };
 
 const EMPTY_SESSION_HISTORY_STATE: SessionHistoryState = {
@@ -32,6 +39,9 @@ const EMPTY_SESSION_HISTORY_STATE: SessionHistoryState = {
   hasPreviousPage: false,
   isLoading: false,
   error: null,
+  deferredToolPayloads: {},
+  messageDetails: {},
+  messageDetailStates: {},
 };
 
 function isMissingNcpSessionError(error: unknown): boolean {
@@ -49,6 +59,7 @@ export async function fetchNcpSessionConversationSeed(
   try {
     const response = await fetchNcpSessionMessages(sessionId, {
       limit: messageLimit,
+      toolPayload: "summary",
       signal,
     });
     signal.throwIfAborted();
@@ -56,6 +67,7 @@ export async function fetchNcpSessionConversationSeed(
       messages: response.messages,
       status: response.status ?? "idle",
       contextWindow: response.contextWindow ?? null,
+      deferredToolPayloads: response.deferredToolPayloads ?? {},
       total: response.total,
       pageInfo: response.pageInfo,
     };
@@ -68,9 +80,78 @@ export async function fetchNcpSessionConversationSeed(
       messages: [],
       status: "idle",
       total: 0,
+      deferredToolPayloads: {},
       pageInfo: { startCursor: null, hasPreviousPage: false },
     };
   }
+}
+
+type UpdateSessionHistoryState = (
+  sessionId: string,
+  update: (current: SessionHistoryState) => SessionHistoryState,
+) => void;
+
+function useSessionMessageDetailLoader(params: {
+  sessionId: string | undefined;
+  historyStateRef: { current: SessionHistoryState };
+  updateHistoryState: UpdateSessionHistoryState;
+}) {
+  const { historyStateRef, sessionId, updateHistoryState } = params;
+  const requestsRef = useRef(new Map<string, {
+    controller: AbortController;
+    promise: Promise<void>;
+  }>());
+  useEffect(() => {
+    const requests = requestsRef.current;
+    for (const request of requests.values()) request.controller.abort();
+    requests.clear();
+    return () => {
+      for (const request of requests.values()) request.controller.abort();
+      requests.clear();
+    };
+  }, [sessionId]);
+  return useCallback(async (messageId: string): Promise<void> => {
+    if (!sessionId) return;
+    const history = historyStateRef.current;
+    if (history.sessionId !== sessionId || history.messageDetails[messageId]) return;
+    const cursor = history.deferredToolPayloads[messageId]?.cursor;
+    if (!cursor) return;
+    const existing = requestsRef.current.get(messageId);
+    if (existing) return await existing.promise;
+    const controller = new AbortController();
+    updateHistoryState(sessionId, (current) => ({
+      ...current,
+      messageDetailStates: { ...current.messageDetailStates, [messageId]: "loading" },
+    }));
+    const promise = (async () => {
+      try {
+        const message = await fetchNcpSessionMessageDetail(
+          sessionId,
+          messageId,
+          cursor,
+          controller.signal,
+        );
+        if (controller.signal.aborted) return;
+        updateHistoryState(sessionId, (current) => ({
+          ...current,
+          messageDetails: { ...current.messageDetails, [messageId]: message },
+          messageDetailStates: { ...current.messageDetailStates, [messageId]: "ready" },
+        }));
+      } catch {
+        if (controller.signal.aborted) return;
+        updateHistoryState(sessionId, (current) => ({
+          ...current,
+          messageDetailStates: { ...current.messageDetailStates, [messageId]: "error" },
+        }));
+      } finally {
+        if (requestsRef.current.get(messageId)?.controller === controller) {
+          requestsRef.current.delete(messageId);
+        }
+      }
+    })();
+    requestsRef.current.set(messageId, { controller, promise });
+    await promise;
+  }, [historyStateRef, sessionId, updateHistoryState]);
 }
 
 export function useNcpSessionMessageHistory(params: {
@@ -104,8 +185,15 @@ export function useNcpSessionMessageHistory(params: {
   useEffect(() => {
     historyRequestRef.current?.abort();
     historyRequestRef.current = null;
-    return () => historyRequestRef.current?.abort();
+    return () => {
+      historyRequestRef.current?.abort();
+    };
   }, [sessionId]);
+  const loadMessageDetails = useSessionMessageDetailLoader({
+    historyStateRef,
+    sessionId,
+    updateHistoryState,
+  });
   const loadSeed = useCallback(
     async (targetSessionId: string, signal: AbortSignal) => {
       void hydrationRetryVersion;
@@ -118,6 +206,11 @@ export function useNcpSessionMessageHistory(params: {
         updateHistoryState(targetSessionId, (current) => ({
           ...current,
           contextWindow: seed.contextWindow ?? null,
+          deferredToolPayloads: seed.deferredToolPayloads,
+          messageDetails: {},
+          messageDetailStates: Object.fromEntries(
+            Object.keys(seed.deferredToolPayloads).map((messageId) => [messageId, "summary"]),
+          ),
           total: seed.total,
           cursor: seed.pageInfo.startCursor,
           hasPreviousPage: seed.pageInfo.hasPreviousPage,
@@ -151,6 +244,7 @@ export function useNcpSessionMessageHistory(params: {
         const response = await fetchNcpSessionMessages(sessionId, {
           limit: messageLimit,
           cursor: history.cursor,
+          toolPayload: "summary",
           signal: controller.signal,
         });
         if (
@@ -163,6 +257,16 @@ export function useNcpSessionMessageHistory(params: {
         updateHistoryState(sessionId, (current) => ({
           ...current,
           contextWindow: response.contextWindow ?? current.contextWindow,
+          deferredToolPayloads: {
+            ...current.deferredToolPayloads,
+            ...(response.deferredToolPayloads ?? {}),
+          },
+          messageDetailStates: {
+            ...Object.fromEntries(
+              Object.keys(response.deferredToolPayloads ?? {}).map((messageId) => [messageId, "summary"]),
+            ),
+            ...current.messageDetailStates,
+          },
           total: response.total,
           cursor: response.pageInfo.startCursor,
           hasPreviousPage: response.pageInfo.hasPreviousPage,
@@ -189,6 +293,7 @@ export function useNcpSessionMessageHistory(params: {
   return {
     loadSeed,
     loadPreviousMessages,
+    loadMessageDetails,
     state:
       historyState.sessionId === sessionId
         ? historyState

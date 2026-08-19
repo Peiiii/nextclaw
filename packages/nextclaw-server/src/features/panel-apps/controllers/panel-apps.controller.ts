@@ -69,10 +69,16 @@ export class PanelAppsRoutesController {
     if (!body.ok || !isRecord(body.data)) {
       return c.json(err("INVALID_PANEL_APP_PREFERENCES", "invalid panel app preferences"), 400);
     }
+    if (body.data.mainSidebar !== undefined && typeof body.data.mainSidebar !== "boolean") {
+      return c.json(err("INVALID_PANEL_APP_PREFERENCES", "mainSidebar must be boolean"), 400);
+    }
     try {
-      const preferences = typeof body.data.favorite === "boolean"
-        ? { favorite: body.data.favorite }
-        : {};
+      const preferences = {
+        ...(typeof body.data.favorite === "boolean" ? { favorite: body.data.favorite } : {}),
+        ...(typeof body.data.mainSidebar === "boolean"
+          ? { mainSidebar: body.data.mainSidebar }
+          : {}),
+      };
       const payload = await this.panelAppManager.updatePanelAppPreferences(
         c.req.param("id"),
         preferences,

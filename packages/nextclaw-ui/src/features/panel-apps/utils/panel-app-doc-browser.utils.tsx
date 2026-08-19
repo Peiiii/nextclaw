@@ -3,9 +3,10 @@ import type { DocBrowserContextValue } from '@/shared/components/doc-browser/doc
 import type { DocBrowserCustomTabRenderers } from '@/shared/components/doc-browser/doc-browser-renderer.types';
 import { getPresenter } from '@/app/presenters/app.presenter';
 import { AppsPanel, type AppsPanelTab } from '@/features/apps';
-import { PanelAppToolbar } from '@/features/panel-apps/components/panel-app-toolbar';
+import { PanelAppDocBrowserToolbar } from '@/features/panel-apps/components/panel-app-toolbar';
 import {
   createPanelAppRightPanelResourceTarget,
+  readPanelAppIdFromResourceUri,
   RIGHT_PANEL_APPS_TAB_KIND,
   RIGHT_PANEL_APPS_URL,
   RIGHT_PANEL_HOME_TAB_KIND,
@@ -75,10 +76,10 @@ export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
     onIframeMessage: (params) => getPresenter().panelAppBridgeManager.handleIframeMessage(params),
     onIframePointerOver: (event) => focusPanelAppIframe(event.currentTarget),
     renderIcon: () => <AppWindow className="w-4 h-4 text-primary shrink-0" />,
-    renderToolbar: ({ open, refreshIframe, tab }) => (
-      <PanelAppToolbar
+    renderToolbar: ({ refreshIframe, tab }) => (
+      <PanelAppDocBrowserToolbar
+        appId={readPanelAppIdFromResourceUri(tab.resourceUri ?? tab.currentUrl)}
         appTitle={tab.title || t('panelAppsTitle')}
-        onOpenApps={() => openApps({ open })}
         onRefresh={refreshIframe}
       />
     ),

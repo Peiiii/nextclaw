@@ -10,6 +10,7 @@ import {
 const mocks = vi.hoisted(() => ({
   acceptRun: vi.fn(),
   continueRun: vi.fn(),
+  fetchNcpSessionMessageDetail: vi.fn(),
   fetchNcpSessionMessages: vi.fn(),
   editMessage: vi.fn(),
   prependHistory: vi.fn(),
@@ -47,6 +48,7 @@ vi.mock("@/shared/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof SharedApi>();
   return {
     ...actual,
+    fetchNcpSessionMessageDetail: mocks.fetchNcpSessionMessageDetail,
     fetchNcpSessionMessages: mocks.fetchNcpSessionMessages,
     nextclawClient: {
       ...actual.nextclawClient,
@@ -89,6 +91,7 @@ vi.mock("@/features/system-status", () => ({
 function resetConversationMocks(): void {
   mocks.acceptRun.mockReset();
   mocks.continueRun.mockReset();
+  mocks.fetchNcpSessionMessageDetail.mockReset();
   mocks.fetchNcpSessionMessages.mockReset();
   mocks.editMessage.mockReset();
   mocks.prependHistory.mockReset();
@@ -134,6 +137,7 @@ describe("useNcpSessionConversation", () => {
 
     expect(mocks.fetchNcpSessionMessages).toHaveBeenCalledWith("session-1", {
       limit: 300,
+      toolPayload: "summary",
       signal: expect.any(AbortSignal),
     });
     expect(result).toEqual({
@@ -152,6 +156,7 @@ describe("useNcpSessionConversation", () => {
         compactedMessageCount: 0,
         updatedAt: "2026-05-05T00:00:00.000Z",
       },
+      deferredToolPayloads: {},
       total: 1,
       pageInfo: { startCursor: "cursor-1", hasPreviousPage: false },
     });
@@ -171,6 +176,7 @@ describe("useNcpSessionConversation", () => {
       messages: [],
       status: "idle",
       total: 0,
+      deferredToolPayloads: {},
       pageInfo: { startCursor: null, hasPreviousPage: false },
     });
   });
@@ -433,6 +439,7 @@ describe("useNcpSessionConversation history and hydration", () => {
       {
         limit: 40,
         cursor: "cursor-2",
+        toolPayload: "summary",
         signal: expect.any(AbortSignal),
       },
     );
@@ -446,6 +453,68 @@ describe("useNcpSessionConversation history and hydration", () => {
     ]);
     expect(result.current.hasPreviousMessages).toBe(false);
     expect(result.current.messageTotal).toBe(5);
+  });
+
+  it("loads and caches one complete message when deferred tool details are requested", async () => {
+    const summaryMessage: NcpMessage = {
+      id: "assistant-large",
+      sessionId: "session-1",
+      role: "assistant",
+      status: "final",
+      timestamp: "2026-08-19T00:00:00.000Z",
+      parts: [{
+        type: "tool-invocation",
+        toolCallId: "tool-1",
+        toolName: "exec_command",
+        state: "result",
+        args: { command: "pnpm test" },
+      }],
+    };
+    const fullMessage: NcpMessage = {
+      ...summaryMessage,
+      parts: [{
+        ...summaryMessage.parts[0] as Extract<NcpMessage["parts"][number], { type: "tool-invocation" }>,
+        result: { output: "complete output" },
+      }],
+    };
+    mocks.visibleMessages.push(summaryMessage);
+    mocks.fetchNcpSessionMessages
+      .mockResolvedValueOnce({
+        sessionId: "session-1",
+        status: "idle",
+        total: 1,
+        pageInfo: { startCursor: "cursor-1", hasPreviousPage: false },
+        messages: [summaryMessage],
+        deferredToolPayloads: { "assistant-large": { cursor: "cursor-detail" } },
+      });
+    mocks.fetchNcpSessionMessageDetail.mockResolvedValue(fullMessage);
+    const { result } = renderHook(() => useNcpSessionConversation("session-1"));
+    const loadSeed = mocks.hydratedCalls[0]?.loadSeed as (
+      sessionId: string,
+      signal: AbortSignal,
+    ) => Promise<{ messages: unknown[]; status: string }>;
+    await act(async () => {
+      await loadSeed("session-1", new AbortController().signal);
+    });
+    expect(result.current.messageDetailStates["assistant-large"]).toBe("summary");
+
+    await act(async () => {
+      await Promise.all([
+        result.current.loadMessageDetails("assistant-large"),
+        result.current.loadMessageDetails("assistant-large"),
+      ]);
+    });
+
+    expect(mocks.fetchNcpSessionMessageDetail).toHaveBeenCalledWith(
+      "session-1",
+      "assistant-large",
+      "cursor-detail",
+      expect.any(AbortSignal),
+    );
+    expect(mocks.fetchNcpSessionMessageDetail).toHaveBeenCalledTimes(1);
+    expect(mocks.fetchNcpSessionMessages).toHaveBeenCalledTimes(1);
+    expect(result.current.messageDetailStates["assistant-large"]).toBe("ready");
+    expect(result.current.visibleMessages[0]).toBe(fullMessage);
   });
 
   it("drops an in-flight history page when the viewer switches sessions", async () => {

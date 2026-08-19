@@ -1,6 +1,7 @@
 import * as NextclawCore from "@nextclaw/core";
 import { spawn } from "node:child_process";
 import { SkillManager } from "@nextclaw/kernel";
+import { classifyDiagnosticError } from "@nextclaw/shared";
 import type { RequestRestartParams } from "@nextclaw-service/types/cli.types.js";
 import { ManagedServiceCommandService, type StartServiceOptions } from "@nextclaw-service/services/runtime/service-managed-startup.service.js";
 import { ManagedServiceSupervisor } from "@nextclaw-service/services/runtime/managed-service-supervisor.service.js";
@@ -20,7 +21,7 @@ type Config = NextclawCore.Config;
 export class ManagedServiceManager {
   private loggingInstalled = false;
   private processExitLoggingInstalled = false;
-  private readonly runtimeLogger = NextclawCore.getAppLogger("service.runtime");
+  private readonly diagnostics = new NextclawCore.DiagnosticRuntime();
   private readonly managedServiceSupervisor = new ManagedServiceSupervisor();
   private readonly managedServiceCommandService = new ManagedServiceCommandService({
     startGateway: async (options) => await this.startGateway(options),
@@ -51,17 +52,42 @@ export class ManagedServiceManager {
     this.managedServiceSupervisor.installCurrentProcessLifecycleTracking({
       onSignal: async () => await gateway.stop(),
     });
-    this.runtimeLogger.info("runtime.process.started", {
-      runtimeKind: "serve-process",
-      pid: process.pid,
-      source: "ManagedServiceManager.startGateway"
+    const correlationId = `serve-${process.pid}`;
+    const startedAt = Date.now();
+    this.diagnostics.record({
+      domain: "runtime.lifecycle",
+      event: "process.started",
+      component: "service.managed-runtime",
+      outcome: "started",
+      correlationId,
+      facts: { runtimeKind: "serve-process", pid: process.pid },
     });
-    await gateway.start();
-    this.runtimeLogger.info("runtime.process.ready", {
-      runtimeKind: "serve-process",
-      pid: process.pid,
-      source: "ManagedServiceManager.startGateway"
-    });
+    try {
+      await gateway.start();
+      this.diagnostics.record({
+        domain: "runtime.lifecycle",
+        event: "process.ready",
+        component: "service.managed-runtime",
+        outcome: "succeeded",
+        correlationId,
+        durationMs: Date.now() - startedAt,
+        facts: { runtimeKind: "serve-process", pid: process.pid },
+      });
+    } catch (error) {
+      const classification = classifyDiagnosticError(error);
+      this.diagnostics.record({
+        domain: "runtime.lifecycle",
+        event: "process.start.failed",
+        component: "service.managed-runtime",
+        outcome: classification.outcome,
+        correlationId,
+        durationMs: Date.now() - startedAt,
+        reasonCode: classification.reasonCode,
+        providerCode: classification.providerCode,
+        facts: { runtimeKind: "serve-process", pid: process.pid, ...(classification.facts ?? {}) },
+      });
+      throw error;
+    }
   };
 
   startService = async (options: StartServiceOptions): Promise<void> => {
@@ -164,10 +190,14 @@ export class ManagedServiceManager {
     }
     this.processExitLoggingInstalled = true;
     process.once("exit", (code) => {
-      this.runtimeLogger.warn("runtime.process.exited", {
-        runtimeKind: "serve-process",
-        pid: process.pid,
-        code
+      this.diagnostics.record({
+        domain: "runtime.lifecycle",
+        event: "process.exited",
+        component: "service.managed-runtime",
+        outcome: code === 0 ? "succeeded" : "failed",
+        correlationId: `serve-${process.pid}`,
+        reasonCode: code === 0 ? undefined : "non_zero_exit",
+        facts: { runtimeKind: "serve-process", pid: process.pid, exitCode: code },
       });
     });
   };

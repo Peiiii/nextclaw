@@ -24,6 +24,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+export function formatToolCardPayload(rawText?: string, data?: unknown): string {
+  if (rawText?.trim()) return rawText.trim();
+  if (data === null || data === undefined) return '';
+  if (typeof data === 'string') return data.trim();
+  if (typeof data === 'number' || typeof data === 'boolean') return String(data);
+  try {
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return String(data);
+  }
+}
+
 function isStructuredTerminalRecord(record: Record<string, unknown>): boolean {
   return (
     'command' in record ||
@@ -211,10 +223,9 @@ function extractTerminalMeta(structuredOutput?: unknown): {
 }
 
 export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartViewModel; toolLabel?: string }) {
-  const output = normalizeTerminalOutput(card.output, card.outputData);
   const isRunning = card.statusTone === 'running';
   const commandPart = card.summary?.replace(/^(command|path|args|query|input):\s*/i, '');
-  const hasOutput = output.trim().length > 0;
+  const hasOutput = Boolean(card.output?.trim()) || card.outputData !== null && card.outputData !== undefined;
   const canExpand = isRunning || hasOutput || Boolean(commandPart?.trim());
   const meta = extractTerminalMeta(card.outputData);
   const { expanded, onToggle } = useToolCardExpandedState({
@@ -224,6 +235,9 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
     expandOnError: canExpand,
     statusTone: card.statusTone,
   });
+  const output = expanded
+    ? normalizeTerminalOutput(card.output, card.outputData) || formatToolCardPayload(undefined, card.outputData)
+    : '';
 
   return (
     <ToolCardRoot>
@@ -259,6 +273,42 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
   );
 }
 
+function hasToolCardPayload(text: string | undefined, data: unknown): boolean {
+  return Boolean(text?.trim()) || (data !== null && data !== undefined);
+}
+
+function measureFileOperationPreview(
+  blocks: NonNullable<ChatToolPartViewModel["fileOperation"]>["blocks"],
+) {
+  return {
+    previewLineCount: blocks.reduce((count, block) => count + block.lines.length, 0),
+    previewCharCount: blocks.reduce(
+      (count, block) => count + (
+        block.rawText?.length ??
+        block.lines.reduce((lineCount, line) => lineCount + line.text.length + 1, 0)
+      ),
+      0,
+    ),
+  };
+}
+
+function isFileEditTool(toolName: string): boolean {
+  return ["edit_file", "write_file", "apply_patch", "file_change"].includes(toolName);
+}
+
+function shouldAutoExpandFileOperation(params: {
+  card: ChatToolPartViewModel;
+  previewCharCount: number;
+  previewLineCount: number;
+}): boolean {
+  const { card, previewCharCount, previewLineCount } = params;
+  if (!shouldAutoExpandRunningFileOperation(card.toolName)) return false;
+  const isLargeRunningWrite = card.statusTone === "running" &&
+    card.toolName === "write_file" &&
+    (previewLineCount > 24 || previewCharCount > 1_200);
+  return !isLargeRunningWrite;
+}
+
 export function FileOperationView({
   card,
   toolLabel,
@@ -268,27 +318,19 @@ export function FileOperationView({
   toolLabel?: string;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 }) {
-  const input = card.input?.trim() ?? '';
-  const output = card.output?.trim() ?? '';
   const isRunning = card.statusTone === 'running';
   const hasStructuredPreview = Boolean(card.fileOperation?.blocks.length);
-  const showRawInput = Boolean(input) && !hasStructuredPreview;
-  const hasContent = hasStructuredPreview || Boolean(input) || Boolean(output);
+  const hasRawInput = hasToolCardPayload(card.input, card.inputData);
+  const hasRawOutput = hasToolCardPayload(card.output, card.outputData);
+  const showRawInput = hasRawInput && !hasStructuredPreview;
+  const hasContent = hasStructuredPreview || hasRawInput || hasRawOutput;
   const previewBlocks = card.fileOperation?.blocks ?? [];
-  const previewLineCount = previewBlocks.reduce((count, block) => count + block.lines.length, 0);
-  const previewCharCount = previewBlocks.reduce((count, block) => {
-    if (block.rawText) {
-      return count + block.rawText.length;
-    }
-    return count + block.lines.reduce((lineCount, line) => lineCount + line.text.length + 1, 0);
-  }, 0);
-  const shouldAutoExpandWhileRunning =
-    shouldAutoExpandRunningFileOperation(card.toolName) &&
-    !(
-      isRunning &&
-      card.toolName === 'write_file' &&
-      (previewLineCount > 24 || previewCharCount > 1_200)
-    );
+  const { previewCharCount, previewLineCount } = measureFileOperationPreview(previewBlocks);
+  const shouldAutoExpandWhileRunning = shouldAutoExpandFileOperation({
+    card,
+    previewCharCount,
+    previewLineCount,
+  });
   const { expanded, onToggle } = useToolCardExpandedState({
     canExpand: hasContent || isRunning,
     isRunning,
@@ -296,12 +338,10 @@ export function FileOperationView({
     expandOnError: hasContent,
     statusTone: card.statusTone,
   });
+  const input = expanded ? formatToolCardPayload(card.input, card.inputData) : '';
+  const output = expanded ? formatToolCardPayload(card.output, card.outputData) : '';
 
-  const isEdit =
-    card.toolName === 'edit_file' ||
-    card.toolName === 'write_file' ||
-    card.toolName === 'apply_patch' ||
-    card.toolName === 'file_change';
+  const isEdit = isFileEditTool(card.toolName);
   const changeSummary = isEdit
     ? countFileOperationChanges(previewBlocks)
     : undefined;
@@ -329,7 +369,7 @@ export function FileOperationView({
           {showRawInput && output ? <div className="h-2" /> : null}
           {hasStructuredPreview || output ? (
             <ToolCardFileOperationContent
-              card={card}
+              card={output && !card.output ? { ...card, output } : card}
               onFileOpen={onFileOpen}
               // Always show the path header in the content panel so users can
               // open the file and still see +N/-N captions (matches prior UX).
@@ -352,13 +392,14 @@ export function SearchSnippetView({
   icon?: LucideIcon;
 }) {
   const isRunning = card.statusTone === 'running';
-  const output = card.output?.trim() ?? '';
+  const hasOutput = Boolean(card.output?.trim()) || card.outputData !== null && card.outputData !== undefined;
   const { expanded, onToggle } = useToolCardExpandedState({
-    canExpand: !!output || isRunning,
+    canExpand: hasOutput || isRunning,
     isRunning,
     autoExpandWhileRunning: false,
     statusTone: card.statusTone,
   });
+  const output = expanded ? formatToolCardPayload(card.output, card.outputData) : '';
 
   return (
     <ToolCardRoot>
@@ -367,7 +408,7 @@ export function SearchSnippetView({
         toolLabel={toolLabel}
         icon={Icon}
         expanded={expanded} 
-        canExpand={!!output || isRunning} 
+        canExpand={hasOutput || isRunning}
         onToggle={onToggle} 
       />
       {expanded && output && (

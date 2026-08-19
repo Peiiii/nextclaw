@@ -63,6 +63,7 @@
     "tsc:desktop": "pnpm -C apps/desktop tsc",
     "tsc:companion": "pnpm -C apps/companion tsc",
     "dev": "node scripts/dev/dev-runner.mjs",
+    "stress:chat-tool-call-session": "pnpm -C packages/nextclaw exec tsx --tsconfig ../../scripts/dev/dev-runtime.tsconfig.json ../../scripts/stress/seed-chat-tool-call-session.mts",
     "dev:verify-update": "node scripts/dev/verify-update.mjs",
     "dev:claude": "node scripts/dev/dev-runner.mjs start --claude-runtime-source",
     "dev:status": "node scripts/dev/dev-process-status.mjs",
@@ -201,5 +202,10 @@
     "playwright": "^1.52.0",
     "tsdown": "^0.21.7",
     "ws": "^8.18.0"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "qq-official-bot@1.2.4": "patches/qq-official-bot@1.2.4.patch"
+    }
   }
 }

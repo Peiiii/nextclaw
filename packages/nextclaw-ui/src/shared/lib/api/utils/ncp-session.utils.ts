@@ -19,12 +19,35 @@ export async function fetchNcpSessions(params?: {
 // GET /api/ncp/sessions/:sessionId/messages
 export async function fetchNcpSessionMessages(
   sessionId: string,
-  options: { limit?: number; cursor?: string; signal?: AbortSignal } = {},
+  options: {
+    limit?: number;
+    cursor?: string;
+    toolPayload?: "summary";
+    signal?: AbortSignal;
+  } = {},
 ): Promise<NcpSessionMessagesView> {
   return (await nextclawClient.sessions.listMessages(
     sessionId,
     options,
   )) as NcpSessionMessagesView;
+}
+
+export async function fetchNcpSessionMessageDetail(
+  sessionId: string,
+  messageId: string,
+  cursor: string,
+  signal?: AbortSignal,
+): Promise<NcpSessionMessagesView["messages"][number]> {
+  const response = await fetchNcpSessionMessages(sessionId, {
+    cursor,
+    limit: 1,
+    ...(signal ? { signal } : {}),
+  });
+  const message = response.messages[0];
+  if (!message || message.id !== messageId) {
+    throw new Error(`Session message detail no longer matches ${messageId}.`);
+  }
+  return message;
 }
 
 // GET /api/ncp/sessions/:sessionId/usage

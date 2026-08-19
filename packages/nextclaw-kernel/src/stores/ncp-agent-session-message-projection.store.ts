@@ -202,7 +202,6 @@ export class NcpAgentSessionMessageProjectionStore {
       projectedJournalOffset: journalOffset,
     });
   };
-
   updateContextWindow = async (sessionId: string, contextWindow: Record<string, unknown> | null): Promise<void> => {
     const meta = await this.readMeta(sessionId);
     if (!meta) {
@@ -265,12 +264,17 @@ export class NcpAgentSessionMessageProjectionStore {
     const stableMessages =
       startOrdinal <= endOrdinal ? await this.readMessages(sessionId, startOrdinal, endOrdinal) : [];
     const messages = stableMessages.map((message) => tailById.get(message.id) ?? message);
+    const messageDetailCursors = Object.fromEntries(stableMessages.map((message, index) => [
+      message.id,
+      encodeNcpAgentSessionMessageCursor(startOrdinal + index + 1),
+    ]));
     if (includeTail) {
       messages.push(...additionalTailMessages);
     }
     const cursorOrdinal = stableMessages.length > 0 ? startOrdinal : meta.total + 1;
     return {
       messages,
+      messageDetailCursors,
       total: meta.total + additionalTailMessages.length,
       pageInfo: {
         startCursor: messages.length > 0 ? encodeNcpAgentSessionMessageCursor(cursorOrdinal) : null,
@@ -387,10 +391,8 @@ export class NcpAgentSessionMessageProjectionStore {
 
   private projectionPath = (sessionId: string): string =>
     join(this.journalDir, PROJECTION_ROOT_DIRECTORY, safeNcpSessionFilename(sessionId));
-
   private journalPath = (sessionId: string): string =>
     join(this.journalDir, `${safeNcpSessionFilename(sessionId)}.jsonl`);
-
   private metaPath = (sessionId: string): string => join(this.projectionPath(sessionId), "meta.json");
   private dataPath = (sessionId: string): string => join(this.projectionPath(sessionId), "messages.jsonl");
   private offsetsPath = (sessionId: string): string => join(this.projectionPath(sessionId), "offsets.idx");

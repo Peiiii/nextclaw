@@ -299,12 +299,17 @@ export class SessionManager implements NcpSessionApi {
   };
 
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
-    const peerId = readOptionalString(options?.peerId);
+    const { limit, peerId: rawPeerId } = options ?? {};
+    const { journalStore } = this.options;
+    const peerId = readOptionalString(rawPeerId);
+    const summaryReadOptions = !peerId && limit !== undefined
+      ? { limit }
+      : undefined;
     return applyLimit(
-      (await this.options.journalStore.listSessionSummaries())
+      (await journalStore.listSessionSummaries(summaryReadOptions))
         .filter((summary) => !peerId || summary.peerId === peerId)
         .map(this.workingDirResolver.withWorkingDir),
-      options?.limit
+      limit
     );
   };
 
@@ -338,37 +343,26 @@ export class SessionManager implements NcpSessionApi {
     if (!normalizedSessionId) {
       return null;
     }
-    const page = await this.options.journalStore.listSessionMessagePage({
+    return await this.options.journalStore.listSessionMessagePage({
       sessionId: normalizedSessionId,
       limit,
       ...(cursor ? { cursor } : {})
     });
-    if (!page || cursor) {
-      return page;
-    }
-    const record = await this.options.journalStore.getSession(normalizedSessionId);
-    if (!record) {
-      return page;
-    }
-    const contextWindow = (await this.createSummaryWithContextWindow(record)).contextWindow ?? null;
-    await this.options.journalStore.updateSessionMessageProjectionContextWindow(normalizedSessionId, contextWindow);
-    return {
-      ...page,
-      contextWindow
-    };
   };
 
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
-    const record = await this.getSessionRecord(sessionId);
-    if (!record) {
+    const normalizedSessionId = normalizeSessionId(sessionId);
+    if (!normalizedSessionId) {
       return null;
     }
-    const summary = await this.createSummaryWithContextWindow(record);
-    await this.options.journalStore.updateSessionMessageProjectionContextWindow(
-      record.sessionId,
-      summary.contextWindow ?? null
+    const summary = await this.options.journalStore.getSessionSummary(normalizedSessionId);
+    if (!summary) return null;
+    const contextWindow = await this.options.journalStore.getSessionMessageProjectionContextWindow(
+      normalizedSessionId,
     );
-    return summary;
+    return this.workingDirResolver.withWorkingDir(
+      contextWindow ? { ...summary, contextWindow } : summary,
+    );
   };
 
   getContextWindow = async (
@@ -542,8 +536,13 @@ export class SessionManager implements NcpSessionApi {
       }
     );
     await this.options.sessionSearch.handleSessionUpdated(normalizedSessionKey);
-    const summary = await this.getSession(normalizedSessionKey);
-    if (summary) {
+    const record = await this.getSessionRecord(normalizedSessionKey);
+    if (record) {
+      const summary = await this.createSummaryWithContextWindow(record);
+      await this.options.journalStore.updateSessionMessageProjectionContextWindow(
+        normalizedSessionKey,
+        summary.contextWindow ?? null,
+      );
       this.options.eventBus.emit(eventKeys.sessionSummaryUpsert, { summary });
       return;
     }

@@ -5,6 +5,67 @@ import type {
   NcpRunHandle,
 } from "@nextclaw/ncp";
 import type { AgentRunSendIngressPayload } from "@nextclaw/shared";
+import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
+
+export type PanelAppEntry = {
+  id: string;
+  appId: string;
+  fileName: string;
+  kind: "single-file" | "folder";
+  title: string;
+  description?: string;
+  icon?: string;
+  contentPath: string;
+  createdAt: string;
+  updatedAt: string;
+  sizeBytes: number;
+  favorite: boolean;
+  mainSidebar: boolean;
+  mainSidebarOrder?: number;
+  clientDeclared: boolean;
+  clientGranted: boolean;
+  lastOpenedAt?: string;
+  openCount: number;
+  sourceKind: "workspace" | "package";
+  packageId?: string;
+  packageVersion?: string;
+};
+
+export type PanelAppList = {
+  workspacePath: string;
+  panelsPath: string;
+  entries: PanelAppEntry[];
+};
+
+export type PanelAppContent = {
+  id: string;
+  appId: string;
+  fileName: string;
+  html: string;
+  contentType: "text/html; charset=utf-8";
+  capabilities: string[];
+  clientDeclared: boolean;
+  clientGranted: boolean;
+  serviceActions: string[];
+};
+
+export type PanelAppDeleteResult = {
+  deleted: true;
+  fileName: string;
+  id: string;
+};
+
+export type PanelAppBridgeSession = {
+  id: string;
+  token: string;
+  appId: string;
+  caller: ServiceActionCaller;
+  declaredCapabilities: string[];
+  declaredActions: string[];
+  clientDeclared: boolean;
+  createdAt: string;
+  expiresAt: string;
+};
 
 export type PanelAppErrorCode =
   | "AGENT_OBJECT_REQUEST_FAILED"

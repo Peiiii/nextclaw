@@ -23,6 +23,7 @@ function createPanelApp(): PanelAppEntryView {
     updatedAt: '2026-06-18T00:00:00.000Z',
     sizeBytes: 100,
     favorite: false,
+    mainSidebar: false,
     clientDeclared: false,
     clientGranted: false,
     openCount: 0,

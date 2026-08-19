@@ -48,10 +48,7 @@ function createIframeHarness(manager: PanelAppBridgeManager) {
   const iframe = { contentWindow } as HTMLIFrameElement;
   return {
     postMessage,
-    send: (
-      data: Record<string, unknown>,
-      iframeInstanceId = 'tab-1:0:0',
-    ) => manager.handleIframeMessage({
+    send: (data: Record<string, unknown>) => manager.handleIframeMessage({
       event: {
         data: {
           appId: 'mood-calendar',
@@ -61,16 +58,6 @@ function createIframeHarness(manager: PanelAppBridgeManager) {
         source: contentWindow,
       } as MessageEvent,
       iframe,
-      iframeInstanceId,
-      tab: {
-        currentUrl: '/api/panel-apps/mood-calendar/content',
-        history: [],
-        historyIndex: 0,
-        id: 'tab-1',
-        kind: 'content',
-        navVersion: 0,
-        title: 'Mood Calendar',
-      },
     }),
   };
 }

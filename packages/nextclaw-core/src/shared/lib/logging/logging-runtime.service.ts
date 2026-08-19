@@ -1,4 +1,4 @@
-import { FileLogSink, type AppLogKind, type AppLogPaths } from "./file-log-sink.service.js";
+import { FileLogSink, type AppLogKind, type AppLogPaths, type AppLogQuery, type AppLogQueryResult } from "./file-log-sink.service.js";
 import { ScopedAppLogger, type AppLogRecord, type AppLogWriter, type AppLogger } from "./app-logger.js";
 
 const CONSOLE_METHOD_NAMES = ["debug", "info", "log", "warn", "error"] as const;
@@ -58,6 +58,10 @@ export class LoggingRuntime implements AppLogWriter {
 
   tail = (kind: AppLogKind, lineCount: number): string[] => {
     return this.sink.tail(kind, lineCount);
+  };
+
+  query = (query: AppLogQuery): AppLogQueryResult => {
+    return this.sink.query(query);
   };
 
   resolveLogPath = (kind: AppLogKind): string => {

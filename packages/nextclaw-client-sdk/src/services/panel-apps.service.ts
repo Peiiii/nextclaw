@@ -18,6 +18,7 @@ const PANEL_BRIDGE_SESSION_HEADER = "x-nextclaw-panel-bridge-session";
 
 type PanelAppPreferencesUpdateView = {
   favorite?: boolean;
+  mainSidebar?: boolean;
 };
 
 type BridgeRequestOptions = {

@@ -467,6 +467,8 @@ export type PanelAppEntryView = {
   updatedAt: string;
   sizeBytes: number;
   favorite: boolean;
+  mainSidebar: boolean;
+  mainSidebarOrder?: number;
   clientDeclared: boolean;
   clientGranted: boolean;
   lastOpenedAt?: string;
@@ -484,6 +486,7 @@ export type PanelAppListView = {
 
 export type PanelAppPreferencesUpdateView = {
   favorite?: boolean;
+  mainSidebar?: boolean;
 };
 
 export type {

@@ -1,9 +1,10 @@
-import { memo, useState, type ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import type {
   ChatFileOpenActionViewModel,
   ChatInlineDisplayViewModel,
   ChatInlineTokenViewModel,
   ChatMessageLayout,
+  ChatMessageToolPayloadState,
   ChatPanelAppCardViewModel,
   ChatMessageTexts,
   ChatMessagePartViewModel,
@@ -24,6 +25,7 @@ import {
   groupConsecutiveToolParts,
   type ChatToolActivityGroupLabels,
 } from "./chat-tool-activity-group.utils";
+import { useChatMessageToolPayload } from "@agent-chat-ui/components/chat/hooks/use-chat-message-tool-payload";
 
 type ChatMessageProps = {
   layout: ChatMessageLayout;
@@ -47,10 +49,15 @@ type ChatMessageProps = {
     | "toolActivitySegmentTemplates"
     | "toolActivityFailedLabel"
     | "toolActivityCancelledLabel"
+    | "toolPayloadLoadingLabel"
+    | "toolPayloadLoadFailedLabel"
+    | "toolActivityShowMoreTemplate"
     | "reasoningCharacterCountTemplates"
     | "toolStatusLabels"
   >;
   onToolAction?: (action: ChatToolActionViewModel) => void;
+  toolPayloadState?: ChatMessageToolPayloadState;
+  onToolPayloadRequest?: (messageId: string) => Promise<void> | void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   resolveFileContentUrl?: (action: ChatFileOpenActionViewModel) => string | null;
   onAttachmentOpen?: (file: Extract<ChatMessagePartViewModel, { type: "file" }>["file"]) => void;
@@ -69,9 +76,7 @@ type ChatMessageProcessSplit = {
   processParts: ChatMessagePartViewModel[];
   finalParts: ChatMessagePartViewModel[];
 };
-
 type ToolActivityOpenChange = (groupKey: string, open: boolean) => void;
-
 type RenderChatMessagePartParams = {
   part: ChatMessagePartViewModel;
   index: number;
@@ -330,6 +335,7 @@ function renderMessageParts(params: {
           isUser={isUser}
           reasoningCharacterCountTemplates={texts.reasoningCharacterCountTemplates}
           toolStatusLabels={texts.toolStatusLabels}
+          showMoreTemplate={texts.toolActivityShowMoreTemplate}
           onToolAction={onToolAction}
           onFileOpen={onFileOpen}
           renderToolAgent={renderToolAgent}
@@ -359,12 +365,13 @@ function renderMessageParts(params: {
     });
   });
 }
-
 export const ChatMessage = memo(function ChatMessage({
   layout,
   message,
   texts,
   onToolAction,
+  toolPayloadState,
+  onToolPayloadRequest,
   onFileOpen,
   onAttachmentOpen,
   onInlineTokenClick,
@@ -379,26 +386,21 @@ export const ChatMessage = memo(function ChatMessage({
   const isFlat = layout === "flat" && !isUser;
   const isInProgress = isMessageInProgress(message.status);
   const processSplit = splitAssistantProcess(message);
-  // Controlled collapse avoids native <details>/<summary> UA labels like "详情".
-  const [processOpen, setProcessOpen] = useState(false);
-  const [openToolGroupKeys, setOpenToolGroupKeys] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
-
-  const handleToolActivityOpenChange: ToolActivityOpenChange = (groupKey, open) => {
-    setOpenToolGroupKeys((current) => {
-      const next = new Set(current);
-      if (open) {
-        next.add(groupKey);
-      } else {
-        next.delete(groupKey);
-      }
-      return next;
-    });
-    if (open) {
-      setProcessOpen(true);
-    }
-  };
+  const {
+    handleProcessToggle,
+    handleToolActivityOpenChange,
+    openToolGroupKeys,
+    processOpen,
+  } = useChatMessageToolPayload({
+    messageId: message.id,
+    state: toolPayloadState,
+    onRequest: onToolPayloadRequest,
+  });
+  const processSummaryLabel = toolPayloadState === "loading"
+    ? `${message.processSummary?.label ?? ""} · ${texts.toolPayloadLoadingLabel ?? "Loading details"}`
+    : toolPayloadState === "error"
+      ? `${message.processSummary?.label ?? ""} · ${texts.toolPayloadLoadFailedLabel ?? "Couldn’t load details. Try again"}`
+      : message.processSummary?.label;
 
   return (
     <div
@@ -424,8 +426,8 @@ export const ChatMessage = memo(function ChatMessage({
                 <ChatCollapsibleMetaSummary
                   openGroup="process"
                   open={processOpen}
-                  label={message.processSummary?.label}
-                  onClick={() => setProcessOpen((current) => !current)}
+                  label={processSummaryLabel}
+                  onClick={handleProcessToggle}
                 />
               </div>
               {processOpen ? (

@@ -111,6 +111,7 @@ export type NcpSessionMessagesView = {
   sessionId: string;
   status: NcpSessionStatus;
   messages: NcpMessageView[];
+  deferredToolPayloads?: Record<string, { cursor: string }>;
   contextWindow?: SessionContextWindowView | null;
   total: number;
   pageInfo: NcpSessionMessagePageInfo;

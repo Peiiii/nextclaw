@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { getLogsArchivePath, getLogsPath } from "../core-utils/utils/helpers.utils.js";
 import type { AppLogRecord } from "./app-logger.js";
@@ -12,6 +12,26 @@ export type AppLogPaths = {
   crashLogPath: string;
 };
 
+export type AppLogQuery = {
+  since?: Date;
+  until?: Date;
+  levels?: AppLogRecord["level"][];
+  scope?: string;
+  event?: string;
+  outcome?: string;
+  reasonCode?: string;
+  correlationId?: string;
+  limit?: number;
+};
+
+export type AppLogQueryResult = {
+  records: AppLogRecord[];
+  scannedFiles: string[];
+  invalidLines: number;
+  matchedRecords: number;
+  truncated: boolean;
+};
+
 type FileLogSinkOptions = {
   serviceLogPath?: string;
   crashLogPath?: string;
@@ -21,8 +41,55 @@ type FileLogSinkOptions = {
   now?: () => Date;
 };
 
+type NormalizedAppLogQuery = {
+  levels: Set<AppLogRecord["level"]> | null;
+  query: AppLogQuery;
+  sinceMs?: number;
+  untilMs?: number;
+};
+
 const DEFAULT_SERVICE_MAX_BYTES = 10 * 1024 * 1024;
 const DEFAULT_CRASH_MAX_BYTES = 5 * 1024 * 1024;
+
+function parseAppLogRecord(line: string): AppLogRecord | null {
+  try {
+    const record = JSON.parse(line) as AppLogRecord;
+    const timestamp = Date.parse(record.ts);
+    if (
+      !Number.isFinite(timestamp)
+      || typeof record.scope !== "string"
+      || typeof record.message !== "string"
+      || typeof record.level !== "string"
+    ) {
+      return null;
+    }
+    return record;
+  } catch {
+    return null;
+  }
+}
+
+function matchesAppLogQuery(
+  record: AppLogRecord,
+  normalized: NormalizedAppLogQuery,
+): boolean {
+  const { levels, query, sinceMs, untilMs } = normalized;
+  const timestamp = Date.parse(record.ts);
+  const context = record.context ?? {};
+  if (sinceMs !== undefined && timestamp < sinceMs) return false;
+  if (untilMs !== undefined && timestamp > untilMs) return false;
+  if (levels && !levels.has(record.level)) return false;
+  if (query.scope && record.scope !== query.scope) return false;
+  if (query.event && context.event !== query.event && record.message !== query.event) return false;
+  if (query.outcome && context.outcome !== query.outcome) return false;
+  if (query.reasonCode && context.reasonCode !== query.reasonCode) return false;
+  if (
+    query.correlationId
+    && context.correlationId !== query.correlationId
+    && context.parentCorrelationId !== query.correlationId
+  ) return false;
+  return true;
+}
 
 export class FileLogSink {
   private readonly serviceLogPath: string;
@@ -81,6 +148,52 @@ export class FileLogSink {
       .filter((line) => line.length > 0);
     const normalizedCount = Number.isFinite(lineCount) ? Math.max(1, Math.trunc(lineCount)) : 50;
     return lines.slice(-normalizedCount);
+  };
+
+  query = (query: AppLogQuery = {}): AppLogQueryResult => {
+    const paths = this.getPaths();
+    const archiveFiles = existsSync(paths.archiveDir)
+      ? readdirSync(paths.archiveDir)
+        .filter((name) => /^service-.*\.log$/.test(name))
+        .sort()
+        .map((name) => resolve(paths.archiveDir, name))
+      : [];
+    const scannedFiles = [...archiveFiles, paths.serviceLogPath].filter(existsSync);
+    const normalized: NormalizedAppLogQuery = {
+      levels: query.levels?.length ? new Set(query.levels) : null,
+      query,
+      sinceMs: query.since?.getTime(),
+      untilMs: query.until?.getTime(),
+    };
+    const matched: AppLogRecord[] = [];
+    let invalidLines = 0;
+    for (const path of scannedFiles) {
+      for (const line of readFileSync(path, "utf-8").split(/\r?\n/)) {
+        if (!line.trim()) {
+          continue;
+        }
+        const record = parseAppLogRecord(line);
+        if (!record) {
+          invalidLines += 1;
+          continue;
+        }
+        if (!matchesAppLogQuery(record, normalized)) {
+          continue;
+        }
+        matched.push(record);
+      }
+    }
+    matched.sort((left, right) => Date.parse(left.ts) - Date.parse(right.ts));
+    const limit = Number.isFinite(query.limit)
+      ? Math.min(5000, Math.max(1, Math.trunc(query.limit ?? 200)))
+      : 200;
+    return {
+      records: matched.slice(-limit),
+      scannedFiles,
+      invalidLines,
+      matchedRecords: matched.length,
+      truncated: matched.length > limit,
+    };
   };
 
   resolveLogPath = (kind: AppLogKind): string => (kind === "crash" ? this.crashLogPath : this.serviceLogPath);

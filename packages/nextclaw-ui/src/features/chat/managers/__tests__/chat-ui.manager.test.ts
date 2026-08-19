@@ -34,6 +34,7 @@ function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelA
     contentPath: '/api/panel-apps/encoded-reader/content',
     createdAt: '2026-06-09T00:00:00.000Z',
     favorite: false,
+    mainSidebar: false,
     fileName: 'reader.panel',
     id: 'encoded-reader',
     kind: 'folder',
@@ -97,13 +98,14 @@ describe('ChatUiManager content display', () => {
     });
 
     expect(docBrowserManager.openTarget).toHaveBeenCalledWith({
-      dedupeKey: 'panel-app:encoded-reader',
+      dedupeKey: 'panel-app:reader',
       contentParams: {
         file: { path: '/tmp/photo.png' },
       },
+      dockIcon: undefined,
       historyPolicy: 'managed',
       kind: 'panel-app',
-      resourceUri: 'nextclaw://panel-app/encoded-reader',
+      resourceUri: 'nextclaw://panel-app/reader',
       title: 'Reader',
       url: '/api/panel-apps/encoded-reader/content',
     }, {

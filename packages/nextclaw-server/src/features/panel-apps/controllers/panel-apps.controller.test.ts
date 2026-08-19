@@ -56,6 +56,7 @@ function createPanelAppEntry(overrides: Record<string, unknown> = {}) {
     updatedAt: "2026-05-26T00:00:00.000Z",
     sizeBytes: 12,
     favorite: false,
+    mainSidebar: false,
     clientDeclared: false,
     clientGranted: false,
     openCount: 0,
@@ -157,6 +158,61 @@ describe("panel apps routes", () => {
     expect(token).toBeTruthy();
     expect(assetResponse.status).toBe(200);
     expect(await assetResponse.text()).toBe("window.externalDemo = true;");
+  });
+
+  it("persists a manual main sidebar binding through the assembled API and a kernel restart", async () => {
+    const workspacePath = mkdtempSync(join(tmpdir(), "nextclaw-panel-main-sidebar-test-"));
+    const appPath = join(workspacePath, "panels", "assembled.panel");
+    tempDirs.push(workspacePath);
+    mkdirSync(appPath, { recursive: true });
+    writeFileSync(
+      join(appPath, "panel-app.json"),
+      JSON.stringify({ id: "assembled", title: "Assembled", entry: "index.html" }),
+    );
+    writeFileSync(join(appPath, "index.html"), "<!doctype html><h1>Assembled</h1>");
+    const app = createTestApp(createTestPanelAppManager(workspacePath));
+
+    const initialResponse = await app.request("http://localhost/api/panel-apps");
+    const initial = await initialResponse.json() as {
+      ok: true;
+      data: { entries: Array<{ id: string; mainSidebar: boolean }> };
+    };
+    const entry = initial.data.entries[0];
+    const updateResponse = await app.request(
+      `http://localhost/api/panel-apps/${encodeURIComponent(entry!.id)}/preferences`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mainSidebar: true }),
+      },
+    );
+    const updated = await updateResponse.json() as {
+      ok: true;
+      data: { appId: string; mainSidebar: boolean; mainSidebarOrder: number };
+    };
+
+    expect(initialResponse.status).toBe(200);
+    expect(entry?.mainSidebar).toBe(false);
+    expect(updateResponse.status).toBe(200);
+    expect(updated.data).toMatchObject({
+      appId: "assembled",
+      mainSidebar: true,
+      mainSidebarOrder: 0,
+    });
+
+    const restartedApp = createTestApp(createTestPanelAppManager(workspacePath));
+    const restartedResponse = await restartedApp.request("http://localhost/api/panel-apps");
+    const restarted = await restartedResponse.json() as {
+      ok: true;
+      data: { entries: Array<{ appId: string; mainSidebar: boolean; mainSidebarOrder: number }> };
+    };
+    expect(restarted.data.entries).toEqual([
+      expect.objectContaining({
+        appId: "assembled",
+        mainSidebar: true,
+        mainSidebarOrder: 0,
+      }),
+    ]);
   });
 
   it("serves the configured panel app client SDK browser script", async () => {
@@ -287,8 +343,14 @@ describe("panel app asset error routes", () => {
       getPanelAppContent: async () => {
         throw new Error("not used");
       },
-      updatePanelAppPreferences: async (id: string, preferences: { favorite?: boolean }) =>
-        createPanelAppEntry({ id, favorite: preferences.favorite }),
+      updatePanelAppPreferences: async (
+        id: string,
+        preferences: { favorite?: boolean; mainSidebar?: boolean },
+      ) => createPanelAppEntry({
+        id,
+        favorite: preferences.favorite,
+        mainSidebar: preferences.mainSidebar,
+      }),
       recordPanelAppOpened: async () => {
         throw new Error("not used");
       },
@@ -297,15 +359,38 @@ describe("panel app asset error routes", () => {
     const response = await app.request("http://localhost/api/panel-apps/demo/preferences", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ favorite: true }),
+      body: JSON.stringify({ favorite: true, mainSidebar: true }),
     });
     const payload = await response.json() as {
       ok: true;
-      data: { favorite: boolean };
+      data: { favorite: boolean; mainSidebar: boolean };
     };
 
     expect(response.status).toBe(200);
     expect(payload.data.favorite).toBe(true);
+    expect(payload.data.mainSidebar).toBe(true);
+  });
+
+  it("rejects a non-boolean main sidebar preference", async () => {
+    const app = createTestApp({
+      listPanelApps: async () => ({ workspacePath: "", panelsPath: "", entries: [] }),
+      getPanelAppContent: async () => {
+        throw new Error("not used");
+      },
+      updatePanelAppPreferences: async () => {
+        throw new Error("must not be called");
+      },
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-apps/demo/preferences", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mainSidebar: "yes" }),
+    });
+    const payload = await response.json() as { ok: false; error: { code: string } };
+
+    expect(response.status).toBe(400);
+    expect(payload.error.code).toBe("INVALID_PANEL_APP_PREFERENCES");
   });
 
   it("records panel app opens through the manager", async () => {

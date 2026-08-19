@@ -164,6 +164,58 @@ function createControllerHarness(configs: FakeConfig[]): FakeControllerHarness {
   };
 }
 
+describe("@nextclaw/extension-sdk diagnostics", () => {
+  it("submits generic diagnostic events and creates privacy-safe trace ids", async () => {
+    const { extension, fetchImpl } = createExtensionHarness();
+
+    const firstTrace = extension.diagnostics.createTraceId("qq:provider-message-1");
+    const secondTrace = extension.diagnostics.createTraceId("qq:provider-message-1");
+    const accepted = await extension.diagnostics.emit({
+      domain: "channel.delivery",
+      event: "inbound.observed",
+      component: "extension.qq",
+      outcome: "observed",
+      correlationId: firstTrace,
+      facts: { channel: "qq" },
+    });
+
+    expect(firstTrace).toBe(secondTrace);
+    expect(firstTrace).toHaveLength(24);
+    expect(accepted).toBe(true);
+    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body)) as {
+      type: string;
+      payload: Record<string, unknown>;
+    };
+    expect(body.type).toBe("extension.diagnostic.emit");
+    expect(body.payload).toEqual(expect.objectContaining({
+      domain: "channel.delivery",
+      correlationId: firstTrace,
+    }));
+    expect(JSON.stringify(body)).not.toContain("provider-message-1");
+  });
+
+  it("bounds diagnostic transport stalls without throwing into extension business logic", async () => {
+    const extension = new NextClawExtension({
+      endpoint: "http://127.0.0.1:55667",
+      extensionId: "fake-extension",
+      generation: "generation-1",
+      token: "secret",
+      diagnosticTimeoutMs: 50,
+      fetch: async () => await new Promise<Response>(() => {}),
+    });
+
+    const startedAt = Date.now();
+    await expect(extension.diagnostics.emit({
+      domain: "transport.request",
+      event: "request.started",
+      component: "tests",
+      outcome: "started",
+    })).resolves.toBe(false);
+    expect(Date.now() - startedAt).toBeLessThan(500);
+    extension.close();
+  });
+});
+
 describe("@nextclaw/extension-sdk", () => {
   it("submits channel messages through the ingress endpoint", async () => {
     const fetchImpl = createFetchImpl();

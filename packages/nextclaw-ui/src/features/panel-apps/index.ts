@@ -1,4 +1,6 @@
 export { PanelAppsList } from './components/panel-apps-list';
+export { PanelAppMainSidebarNav } from './components/panel-app-main-sidebar-nav';
+export { PanelAppMainPage } from './pages/panel-app-main-page';
 export {
   useGrantPanelAppClient,
   usePanelApps,

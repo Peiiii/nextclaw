@@ -206,4 +206,7 @@ export type {
   SystemObjectResolvedReference,
 } from "@nextclaw/shared";
 export type ChannelConfigUpdate = Record<string, unknown>;
-export type PanelAppPreferencesUpdateView = { favorite?: boolean };
+export type PanelAppPreferencesUpdateView = {
+  favorite?: boolean;
+  mainSidebar?: boolean;
+};

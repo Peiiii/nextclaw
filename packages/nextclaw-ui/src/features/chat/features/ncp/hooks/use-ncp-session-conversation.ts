@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NcpHttpAgentClientEndpoint } from "@nextclaw/ncp-http-agent-client";
 import { useHydratedNcpAgent } from "@nextclaw/ncp-react";
 import type {
+  NcpMessage,
   NcpRunHandle,
 } from "@nextclaw/ncp";
 import type {
@@ -74,6 +75,21 @@ function useSyncReadyRetryVersion(
   }, [readyRetrySignature, syncReadyRetryVersion]);
 }
 
+function overlaySessionMessageDetails(
+  messages: readonly NcpMessage[],
+  details: Readonly<Record<string, NcpMessage>>,
+) {
+  return messages.map((message) => {
+    const detail = details[message.id];
+    if (!detail) return message;
+    if (!message.metadata && !detail.metadata) return detail;
+    return {
+      ...detail,
+      metadata: { ...(message.metadata ?? {}), ...(detail.metadata ?? {}) },
+    };
+  });
+}
+
 export function useNcpSessionConversation(
   sessionId: string | undefined,
   options: UseNcpSessionConversationOptions = {},
@@ -85,6 +101,7 @@ export function useNcpSessionConversation(
   const pendingCommandSessionIdRef = useRef<string | null>(null);
   const {
     loadSeed,
+    loadMessageDetails,
     loadPreviousMessages: loadPreviousHistory,
     state: visibleHistoryState,
   } = useNcpSessionMessageHistory({
@@ -180,9 +197,17 @@ export function useNcpSessionConversation(
   useSyncReadyRetryVersion(readyRetrySignature, () => {
     setHydrationRetryVersion((current) => current + 1);
   });
+  const visibleMessages = useMemo(
+    () => overlaySessionMessageDetails(
+      agent.visibleMessages,
+      visibleHistoryState.messageDetails,
+    ),
+    [agent.visibleMessages, visibleHistoryState.messageDetails],
+  );
   return useMemo(
     () => ({
       ...agent,
+      visibleMessages,
       isSending:
         agent.isSending || pendingCommandSessionId === sessionId,
       editMessage,
@@ -196,16 +221,20 @@ export function useNcpSessionConversation(
       historyError: visibleHistoryState.error,
       isLoadingPreviousMessages: visibleHistoryState.isLoading,
       loadPreviousMessages,
+      loadMessageDetails,
+      messageDetailStates: visibleHistoryState.messageDetailStates,
       messageTotal: visibleHistoryState.total,
     }),
     [
       agent,
       continueRun,
       editMessage,
+      loadMessageDetails,
       loadPreviousMessages,
       pendingCommandSessionId,
       sessionId,
       visibleHistoryState,
+      visibleMessages,
     ],
   );
 }

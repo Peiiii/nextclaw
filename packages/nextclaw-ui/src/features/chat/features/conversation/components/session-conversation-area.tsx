@@ -424,9 +424,11 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
         )}
         bottomSlot={showWelcome ? null : conversationFailureSlot}
         messages={agent.visibleMessages}
+        messageDetailStates={agent.messageDetailStates}
         sessionKey={sessionKey}
         showWelcome={showWelcome}
         onLoadPreviousMessages={agent.loadPreviousMessages}
+        onLoadMessageDetails={agent.loadMessageDetails}
         onContinueRun={() => controllerRef.current.continueRun()}
         onEditMessage={(payload) => controllerRef.current.editMessage(payload)}
         welcomeSlot={
