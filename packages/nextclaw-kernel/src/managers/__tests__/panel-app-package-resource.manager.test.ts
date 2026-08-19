@@ -89,8 +89,10 @@ describe("PanelAppManager package resources", () => {
     expect(entry).toEqual(expect.objectContaining({
       appId: "stable-panel",
       contentPath: "/api/panel-apps/stable-panel/content",
+      mainSidebar: false,
       sourceKind: "package",
     }));
+    await manager.updatePanelAppPreferences(entry.id, { mainSidebar: true });
     expect(entry.contentPath).not.toContain("path=");
     await expect(manager.getPanelAppContent(entry.appId)).resolves.toEqual(expect.objectContaining({
       appId: "stable-panel",
@@ -101,13 +103,29 @@ describe("PanelAppManager package resources", () => {
     }));
 
     activeComponents = [];
+    await expect(manager.listPanelApps()).resolves.toMatchObject({ entries: [] });
     await expect(manager.getPanelAppContent(entry.appId)).rejects.toMatchObject({
       code: "PANEL_APP_NOT_FOUND",
     } satisfies Partial<PanelAppError>);
 
     activeComponents = [packageComponent];
+    await expect(manager.listPanelApps()).resolves.toMatchObject({
+      entries: [expect.objectContaining({
+        appId: "stable-panel",
+        mainSidebar: true,
+        mainSidebarOrder: 0,
+      })],
+    });
     await expect(manager.getPanelAppContent(entry.appId)).resolves.toEqual(expect.objectContaining({
       appId: "stable-panel",
     }));
+
+    await manager.removePackageComponentState([packageComponent]);
+    await expect(manager.listPanelApps()).resolves.toMatchObject({
+      entries: [expect.objectContaining({
+        appId: "stable-panel",
+        mainSidebar: false,
+      })],
+    });
   });
 });

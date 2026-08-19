@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
 
 const PANEL_APP_STATE_FILE = ".panel-apps.state.json";
-const PANEL_APP_STATE_VERSION = 1;
+const PANEL_APP_STATE_VERSION = 2;
 
 export type PanelAppStateEntry = {
   favorite?: boolean;
@@ -11,15 +11,25 @@ export type PanelAppStateEntry = {
   openCount?: number;
 };
 
-export type PanelAppStateSnapshot = Record<string, PanelAppStateEntry>;
+export type PanelAppStateSnapshot = {
+  apps: Record<string, PanelAppStateEntry>;
+  mainSidebarAppIds: string[];
+};
 
 type PanelAppStateFile = {
   version: typeof PANEL_APP_STATE_VERSION;
-  apps: PanelAppStateSnapshot;
+  apps: PanelAppStateSnapshot["apps"];
+  mainSidebarAppIds: string[];
 };
 
 export type PanelAppPreferencesUpdate = {
   favorite?: boolean;
+  mainSidebar?: boolean;
+};
+
+export type PanelAppPreferencesUpdateResult = {
+  entry: PanelAppStateEntry;
+  mainSidebarAppIds: string[];
 };
 
 export class PanelAppStateStore {
@@ -28,10 +38,10 @@ export class PanelAppStateStore {
   load = async (): Promise<PanelAppStateSnapshot> => {
     try {
       const parsed = JSON.parse(await readFile(this.getStatePath(), "utf8")) as unknown;
-      return this.normalizeStateFile(parsed).apps;
+      return this.normalizeStateFile(parsed);
     } catch (error) {
       if (this.isMissingFileError(error) || error instanceof SyntaxError) {
-        return {};
+        return { apps: {}, mainSidebarAppIds: [] };
       }
       throw error;
     }
@@ -39,47 +49,64 @@ export class PanelAppStateStore {
 
   updatePreferences = async (
     id: string,
+    appId: string,
     preferences: PanelAppPreferencesUpdate,
-  ): Promise<PanelAppStateEntry> => {
-    const apps = await this.load();
-    const current = apps[id] ?? {};
+  ): Promise<PanelAppPreferencesUpdateResult> => {
+    const state = await this.load();
+    const current = state.apps[id] ?? {};
     const next = { ...current };
     if (typeof preferences.favorite === "boolean") {
       next.favorite = preferences.favorite;
     }
-    apps[id] = next;
-    await this.persist(apps);
-    return next;
+    state.apps[id] = next;
+    if (typeof preferences.mainSidebar === "boolean") {
+      if (preferences.mainSidebar && !state.mainSidebarAppIds.includes(appId)) {
+        state.mainSidebarAppIds.push(appId);
+      } else if (!preferences.mainSidebar) {
+        state.mainSidebarAppIds = state.mainSidebarAppIds.filter((value) => value !== appId);
+      }
+    }
+    await this.persist(state);
+    return { entry: next, mainSidebarAppIds: state.mainSidebarAppIds };
   };
 
-  recordOpened = async (id: string, openedAt = new Date()): Promise<PanelAppStateEntry> => {
-    const apps = await this.load();
-    const current = apps[id] ?? {};
+  recordOpened = async (
+    id: string,
+    openedAt = new Date(),
+  ): Promise<PanelAppPreferencesUpdateResult> => {
+    const state = await this.load();
+    const current = state.apps[id] ?? {};
     const next = {
       ...current,
       lastOpenedAt: openedAt.toISOString(),
       openCount: Math.max(0, current.openCount ?? 0) + 1,
     };
-    apps[id] = next;
-    await this.persist(apps);
-    return next;
+    state.apps[id] = next;
+    await this.persist(state);
+    return { entry: next, mainSidebarAppIds: state.mainSidebarAppIds };
   };
 
-  deleteEntry = async (id: string): Promise<void> => {
-    const apps = await this.load();
-    if (!(id in apps)) {
+  deleteEntry = async (id: string, appId?: string): Promise<void> => {
+    const state = await this.load();
+    const hasEntry = id in state.apps;
+    const hasMainSidebarEntry = appId !== undefined && state.mainSidebarAppIds.includes(appId);
+    if (!hasEntry && !hasMainSidebarEntry) {
       return;
     }
-    delete apps[id];
-    await this.persist(apps);
+    delete state.apps[id];
+    if (appId !== undefined) {
+      state.mainSidebarAppIds = state.mainSidebarAppIds.filter((value) => value !== appId);
+    }
+    await this.persist(state);
   };
 
-  private persist = async (apps: PanelAppStateSnapshot): Promise<void> => {
+  private persist = async (state: PanelAppStateSnapshot): Promise<void> => {
     const statePath = this.getStatePath();
     const tempPath = `${statePath}.${randomUUID()}.tmp`;
     const stateFile: PanelAppStateFile = {
       version: PANEL_APP_STATE_VERSION,
-      apps,
+      apps: state.apps,
+      mainSidebarAppIds: state.mainSidebarAppIds,
     };
     await mkdir(dirname(statePath), { recursive: true });
     try {
@@ -93,9 +120,9 @@ export class PanelAppStateStore {
 
   private getStatePath = (): string => join(this.panelsPath, PANEL_APP_STATE_FILE);
 
-  private normalizeStateFile = (value: unknown): PanelAppStateFile => {
+  private normalizeStateFile = (value: unknown): PanelAppStateSnapshot => {
     if (!this.isRecord(value) || !this.isRecord(value.apps)) {
-      return { version: PANEL_APP_STATE_VERSION, apps: {} };
+      return { apps: {}, mainSidebarAppIds: [] };
     }
     const apps = Object.fromEntries(
       Object.entries(value.apps).flatMap(([id, entry]) => {
@@ -105,7 +132,20 @@ export class PanelAppStateStore {
         return [[id, this.normalizeStateEntry(entry)]];
       }),
     );
-    return { version: PANEL_APP_STATE_VERSION, apps };
+    return {
+      apps,
+      mainSidebarAppIds: this.normalizeMainSidebarAppIds(value.mainSidebarAppIds),
+    };
+  };
+
+  private normalizeMainSidebarAppIds = (value: unknown): string[] => {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return [...new Set(value.flatMap((item) => {
+      const normalized = typeof item === "string" ? item.trim() : "";
+      return normalized ? [normalized] : [];
+    }))];
   };
 
   private normalizeStateEntry = (entry: Record<string, unknown>): PanelAppStateEntry => {

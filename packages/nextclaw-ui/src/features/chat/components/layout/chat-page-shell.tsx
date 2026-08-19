@@ -7,7 +7,8 @@ import { MarketplacePage } from "@/features/marketplace";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { ChatMobileShell } from "@/platforms/mobile";
 import { InboxPage } from "@/features/inbox";
-export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox";
+import { PanelAppMainPage } from "@/features/panel-apps";
+export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox" | "panel-app";
 export type ChatPageProps = {
   view: MainPanelView;
 };
@@ -48,6 +49,8 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
             <div className={`mx-auto flex h-full min-h-0 w-full flex-col py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
               <InboxPage />
             </div>
+          ) : view === "panel-app" ? (
+            <PanelAppMainPage />
           ) : view === "cron" ? (
             <div className="h-full overflow-auto custom-scrollbar">
               <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>

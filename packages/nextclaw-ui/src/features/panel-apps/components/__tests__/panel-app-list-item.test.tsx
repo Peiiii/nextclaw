@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { PanelAppListItem } from '../panel-app-list-item';
+import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
 
 const baseEntry = {
   id: 'demo',
@@ -15,6 +15,7 @@ const baseEntry = {
   updatedAt: '2026-05-28T09:00:00.000Z',
   sizeBytes: 12,
   favorite: false,
+  mainSidebar: false,
   clientDeclared: false,
   clientGranted: false,
   openCount: 0,
@@ -27,9 +28,11 @@ describe('PanelAppListItem', () => {
         deletePending={false}
         entry={baseEntry}
         favoritePending={false}
+        mainSidebarPending={false}
         onDelete={vi.fn()}
         onOpen={vi.fn()}
         onToggleFavorite={vi.fn()}
+        onToggleMainSidebar={vi.fn()}
       />,
     );
 
@@ -45,9 +48,11 @@ describe('PanelAppListItem', () => {
         deletePending={false}
         entry={baseEntry}
         favoritePending={false}
+        mainSidebarPending={false}
         onDelete={onDelete}
         onOpen={vi.fn()}
         onToggleFavorite={vi.fn()}
+        onToggleMainSidebar={vi.fn()}
       />,
     );
 
@@ -60,5 +65,43 @@ describe('PanelAppListItem', () => {
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps main-sidebar placement in the low-frequency more-actions menu', async () => {
+    const user = userEvent.setup();
+    const onToggleMainSidebar = vi.fn();
+    const { rerender } = render(
+      <PanelAppListItem
+        deletePending={false}
+        entry={baseEntry}
+        favoritePending={false}
+        mainSidebarPending={false}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+        onToggleFavorite={vi.fn()}
+        onToggleMainSidebar={onToggleMainSidebar}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Add to main sidebar' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
+    await user.click(screen.getByRole('button', { name: 'Add to main sidebar' }));
+    expect(onToggleMainSidebar).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <PanelAppListItem
+        deletePending={false}
+        entry={{ ...baseEntry, mainSidebar: true }}
+        favoritePending={false}
+        mainSidebarPending={false}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+        onToggleFavorite={vi.fn()}
+        onToggleMainSidebar={onToggleMainSidebar}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Remove from main sidebar' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
+    expect(screen.getByRole('button', { name: 'Remove from main sidebar' })).toBeTruthy();
   });
 });

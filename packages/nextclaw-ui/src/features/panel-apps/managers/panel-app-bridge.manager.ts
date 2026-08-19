@@ -11,8 +11,12 @@ import type {
   ServiceActionListView,
 } from '@nextclaw/client-sdk';
 import type { ServiceActionAuthorizationManager } from '@/features/service-apps';
-import type { DocBrowserIframeMessageParams } from '@/shared/components/doc-browser/doc-browser-renderer.types';
 import { nextclawClient } from '@/shared/lib/api';
+
+export type PanelAppIframeMessageParams = {
+  event: MessageEvent;
+  iframe: HTMLIFrameElement | null;
+};
 
 type PanelAppBridgeRequest = {
   type: 'nextclaw:panel-app-service-actions:request';
@@ -59,18 +63,18 @@ type PanelAppBridgeResponse =
 export class PanelAppBridgeManager {
   constructor(private readonly authorizationManager: ServiceActionAuthorizationManager) {}
 
-  handleIframeMessage = ({ event, iframe, iframeInstanceId, tab }: DocBrowserIframeMessageParams): void => {
+  handleIframeMessage = ({ event, iframe }: PanelAppIframeMessageParams): void => {
     if (!this.isBridgeRequest(event.data)) {
       return;
     }
     if (!iframe?.contentWindow || event.source !== iframe.contentWindow) {
       return;
     }
-    void this.handleBridgeRequest({ event, iframe, iframeInstanceId, tab }, event.data);
+    void this.handleBridgeRequest({ event, iframe }, event.data);
   };
 
   private handleBridgeRequest = async (
-    params: DocBrowserIframeMessageParams,
+    params: PanelAppIframeMessageParams,
     request: PanelAppBridgeRequest,
   ): Promise<void> => {
     try {
@@ -340,7 +344,7 @@ export class PanelAppBridgeManager {
   };
 
   private postResponse = (
-    params: DocBrowserIframeMessageParams,
+    params: PanelAppIframeMessageParams,
     response: PanelAppBridgeResponse,
   ): void => {
     params.iframe?.contentWindow?.postMessage(response, '*');

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PanelAppEntryView } from '@/shared/lib/api';
-import { getPanelAppViewEntries } from '../panel-app-view.utils';
+import { getPanelAppViewEntries } from '@/features/panel-apps/utils/panel-app-view.utils';
 
 function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryView {
   const createdAt = overrides.createdAt ?? '2026-05-01T00:00:00.000Z';
@@ -16,6 +16,7 @@ function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelA
     updatedAt,
     sizeBytes: overrides.sizeBytes ?? 12,
     favorite: overrides.favorite ?? false,
+    mainSidebar: overrides.mainSidebar ?? false,
     clientDeclared: overrides.clientDeclared ?? false,
     clientGranted: overrides.clientGranted ?? false,
     openCount: overrides.openCount ?? 0,

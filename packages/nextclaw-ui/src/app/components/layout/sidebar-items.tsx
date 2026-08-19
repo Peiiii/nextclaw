@@ -96,7 +96,8 @@ function SidebarItemTooltip({
 type SidebarNavLinkItemProps = {
   to: string;
   label: string;
-  icon: SidebarIcon;
+  icon?: SidebarIcon;
+  iconNode?: ReactNode;
   density?: SidebarItemDensity;
   className?: string;
   collapsed?: boolean;
@@ -104,10 +105,49 @@ type SidebarNavLinkItemProps = {
   trailing?: ReactNode;
 };
 
+function SidebarNavIcon({
+  collapsed,
+  icon: Icon,
+  iconNode,
+  indicator,
+  isActive,
+  tone,
+}: {
+  collapsed: boolean;
+  icon?: SidebarIcon;
+  iconNode?: ReactNode;
+  indicator: boolean;
+  isActive: boolean;
+  tone: SidebarItemTone;
+}) {
+  const iconClassName = cn(
+    collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
+    "transition-colors",
+    isActive
+      ? "text-gray-700"
+      : "text-muted-foreground group-hover:text-gray-700",
+  );
+  return (
+    <span className="relative shrink-0">
+      {iconNode ? (
+        <span className={cn(iconClassName, "flex items-center justify-center overflow-hidden")}>
+          {iconNode}
+        </span>
+      ) : Icon ? (
+        <Icon className={cn(iconClassName, "block")} />
+      ) : null}
+      {indicator ? (
+        <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-background" />
+      ) : null}
+    </span>
+  );
+}
+
 export function SidebarNavLinkItem({
   to,
   label,
   icon: Icon,
+  iconNode,
   density = "default",
   className,
   collapsed = false,
@@ -137,20 +177,14 @@ export function SidebarNavLinkItem({
         className,
       )}
     >
-      <span className="relative shrink-0">
-        <Icon
-          className={cn(
-            collapsed ? SIDEBAR_RAIL_ICON_CLASS : tone.icon,
-            "block transition-colors",
-            isActive
-              ? "text-gray-700"
-              : "text-muted-foreground group-hover:text-gray-700",
-          )}
-        />
-        {indicator ? (
-          <span className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-primary ring-2 ring-background" />
-        ) : null}
-      </span>
+      <SidebarNavIcon
+        collapsed={collapsed}
+        icon={Icon}
+        iconNode={iconNode}
+        indicator={indicator}
+        isActive={isActive}
+        tone={tone}
+      />
       <span className={collapsed ? "sr-only" : "min-w-0 flex-1 text-left"}>
         {label}
       </span>

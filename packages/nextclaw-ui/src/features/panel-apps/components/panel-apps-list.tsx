@@ -3,7 +3,8 @@ import { AppWindow, FileCode2, HelpCircle, MessageSquarePlus, RefreshCw } from '
 import { useNavigate } from 'react-router-dom';
 import { useAppPresenter } from '@/app/components/app-presenter-provider';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
-import { useDeletePanelApp, useGrantPanelAppClient, usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
+import { usePanelAppClientGrant } from '@/features/panel-apps/hooks/use-panel-app-client-grant';
+import { useDeletePanelApp, usePanelApps, useRecordPanelAppOpened, useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
 import { getPanelAppViewEntries } from '@/features/panel-apps/utils/panel-app-view.utils';
 import type { PanelAppViewMode } from '@/features/panel-apps/utils/panel-app-view.utils';
 import type { PanelAppEntryView } from '@/shared/lib/api';
@@ -22,7 +23,7 @@ export function PanelAppsList({
   const deletePanelApp = useDeletePanelApp();
   const updatePreferences = useUpdatePanelAppPreferences();
   const recordOpened = useRecordPanelAppOpened();
-  const grantClient = useGrantPanelAppClient();
+  const { ensurePanelAppClientGrant } = usePanelAppClientGrant();
   const presenter = useAppPresenter();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<PanelAppViewMode>('smart');
@@ -36,37 +37,21 @@ export function PanelAppsList({
     if (!(await ensurePanelAppClientGrant(entry))) {
       return;
     }
-    try {
-      onOpenPanelApp(await recordOpened.mutateAsync(entry.id));
-    } catch {
-      onOpenPanelApp(entry);
-    }
-  };
-
-  const ensurePanelAppClientGrant = async (entry: PanelAppEntryView): Promise<boolean> => {
-    if (!entry.clientDeclared || entry.clientGranted) {
-      return true;
-    }
-    const allowed = await presenter.serviceActionAuthorizationManager.requestAuthorization({
-      panelAppId: entry.appId,
-      actions: [{
-        actionId: 'nextclaw.client',
-        actionTitle: t('panelAppsClientGrantTitle'),
-        actionDescription: t('panelAppsClientGrantDescription'),
-        risk: 'dangerous',
-      }],
-    });
-    if (!allowed) {
-      return false;
-    }
-    await grantClient.mutateAsync(entry.appId);
-    return true;
+    onOpenPanelApp(entry);
+    recordOpened.mutate(entry.id);
   };
 
   const toggleFavorite = (entry: PanelAppEntryView) => {
     updatePreferences.mutate({
       id: entry.id,
       preferences: { favorite: !entry.favorite },
+    });
+  };
+
+  const toggleMainSidebar = (entry: PanelAppEntryView) => {
+    updatePreferences.mutate({
+      id: entry.id,
+      preferences: { mainSidebar: !entry.mainSidebar },
     });
   };
 
@@ -144,9 +129,11 @@ export function PanelAppsList({
                 entry={entry}
                 deletePending={deletePanelApp.isPending}
                 favoritePending={updatePreferences.isPending}
+                mainSidebarPending={updatePreferences.isPending}
                 onDelete={() => deleteEntry(entry)}
                 onOpen={() => void openPanelApp(entry)}
                 onToggleFavorite={() => toggleFavorite(entry)}
+                onToggleMainSidebar={() => toggleMainSidebar(entry)}
               />
             ))}
           </div>

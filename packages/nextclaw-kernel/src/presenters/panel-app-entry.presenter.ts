@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import type { PanelAppEntry } from "@kernel/managers/panel-app.manager.js";
+import type { PanelAppEntry } from "@kernel/types/panel-app.types.js";
 import type { PanelAppStateEntry } from "@kernel/stores/panel-app-state.store.js";
 import type { AppPackageComponentSource } from "@kernel/types/app-package.types.js";
 import { resolvePanelAppAppId } from "@kernel/utils/panel-app-content-source.utils.js";
@@ -26,12 +26,14 @@ export class PanelAppEntryPresenter {
     source: PanelAppSource,
     state: PanelAppStateEntry,
     packageSource?: AppPackageComponentSource,
+    mainSidebarAppIds: readonly string[] = [],
   ): Promise<PanelAppEntry> => {
     const manifest = source.manifest ?? parsePanelAppManifest(
       await readFile(source.entryPath, "utf8"),
     );
     const id = encodePanelAppId(source.sourceName);
     const appId = resolvePanelAppAppId(source, manifest);
+    const mainSidebarOrder = mainSidebarAppIds.indexOf(appId);
     const entry: PanelAppEntry = {
       id,
       appId,
@@ -43,6 +45,7 @@ export class PanelAppEntryPresenter {
       updatedAt: source.sourceStat.mtime.toISOString(),
       sizeBytes: source.sourceStat.size,
       favorite: state.favorite ?? false,
+      mainSidebar: mainSidebarOrder >= 0,
       clientDeclared: manifest.client,
       clientGranted: await this.params.isClientGranted(appId, manifest.client),
       openCount: state.openCount ?? 0,
@@ -64,6 +67,9 @@ export class PanelAppEntryPresenter {
     }
     if (state.lastOpenedAt) {
       entry.lastOpenedAt = state.lastOpenedAt;
+    }
+    if (mainSidebarOrder >= 0) {
+      entry.mainSidebarOrder = mainSidebarOrder;
     }
     return entry;
   };

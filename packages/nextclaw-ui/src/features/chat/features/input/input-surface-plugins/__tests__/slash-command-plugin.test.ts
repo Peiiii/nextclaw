@@ -18,6 +18,7 @@ function createPanelApp(
     updatedAt: overrides.updatedAt ?? '2026-06-18T00:00:00.000Z',
     sizeBytes: overrides.sizeBytes ?? 100,
     favorite: overrides.favorite ?? false,
+    mainSidebar: overrides.mainSidebar ?? false,
     clientDeclared: overrides.clientDeclared ?? false,
     clientGranted: overrides.clientGranted ?? false,
     lastOpenedAt: overrides.lastOpenedAt,

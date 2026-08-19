@@ -14,9 +14,41 @@ const { navigateMock } = vi.hoisted(() => ({
   navigateMock: vi.fn(),
 }));
 
+const panelAppHooks = vi.hoisted(() => ({
+  mutate: vi.fn(),
+}));
+
 vi.mock("react-router-dom", async () => ({
   ...((await vi.importActual("react-router-dom")) as object),
   useNavigate: () => navigateMock,
+}));
+
+vi.mock("@/features/panel-apps/hooks/use-panel-apps", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  usePanelApps: () => ({
+    data: {
+      entries: [{
+        appId: "piano",
+        clientDeclared: false,
+        clientGranted: false,
+        contentPath: "/api/panel-apps/piano/content",
+        createdAt: "2026-08-19T00:00:00.000Z",
+        favorite: false,
+        fileName: "piano.panel.html",
+        id: "piano",
+        kind: "single-file",
+        mainSidebar: false,
+        openCount: 0,
+        sizeBytes: 10,
+        title: "Piano",
+        updatedAt: "2026-08-19T00:00:00.000Z",
+      }],
+    },
+  }),
+  useUpdatePanelAppPreferences: () => ({
+    isPending: false,
+    mutate: panelAppHooks.mutate,
+  }),
 }));
 
 const { docBrowserState } = vi.hoisted<{
@@ -460,6 +492,50 @@ describe("DocBrowser", () => {
     render(<DocBrowser />);
 
     expect(screen.getByTitle("Local App").getAttribute("tabindex")).toBeNull();
+  });
+});
+
+describe("DocBrowser panel app navigation", () => {
+  beforeEach(() => {
+    resetDocBrowserTestState();
+    installDocBrowserPointerTestEnvironment();
+  });
+
+  it("uses browser history as the only back contract for panel apps", async () => {
+    const user = userEvent.setup();
+    const panelAppTab: DocBrowserTab = {
+      id: "piano",
+      kind: "panel-app" as const,
+      title: "Piano",
+      currentUrl: "/api/panel-apps/piano/content",
+      resourceUri: "nextclaw://panel-app/piano",
+      history: ["/api/panel-apps/piano/content"],
+      historyIndex: 0,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [panelAppTab];
+    docBrowserState.activeTabId = panelAppTab.id;
+    docBrowserState.activeHistory = [
+      { kind: "apps", tabId: "apps", url: "nextclaw://apps?tab=panel-apps" },
+      { kind: "panel-app", tabId: "piano", resourceUri: "nextclaw://panel-app/piano", url: panelAppTab.currentUrl },
+    ];
+    docBrowserState.activeHistoryIndex = 1;
+    docBrowserState.currentTab = panelAppTab;
+
+    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+
+    expect(screen.getAllByRole("button", { name: "Back" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Apps" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Back" }));
+    expect(docBrowserState.goBack).toHaveBeenCalledTimes(1);
+
+    expect(screen.queryByRole("button", { name: "Add to main sidebar" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "More panel app actions" }));
+    await user.click(screen.getByRole("button", { name: "Add to main sidebar" }));
+    expect(panelAppHooks.mutate).toHaveBeenCalledWith({
+      id: "piano",
+      preferences: { mainSidebar: true },
+    });
   });
 });
 

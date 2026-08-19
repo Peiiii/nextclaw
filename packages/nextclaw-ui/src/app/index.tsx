@@ -127,6 +127,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
     element: createLazyElement(<ChatPage view="inbox" />),
   },
   {
+    path: "/apps/panel/:appId",
+    element: createLazyElement(<ChatPage view="panel-app" />),
+  },
+  {
     path: "/appearance",
     element: createLazyElement(<AppearanceSettingsPage />),
   },

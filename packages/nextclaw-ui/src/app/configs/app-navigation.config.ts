@@ -52,7 +52,8 @@ export function isMainWorkspaceRoute(pathname: string): boolean {
     normalized === "/cron" ||
     normalized.startsWith("/cron/") ||
     normalized === "/agents" ||
-    normalized.startsWith("/agents/")
+    normalized.startsWith("/agents/") ||
+    normalized.startsWith("/apps/panel/")
   );
 }
 
@@ -261,6 +262,14 @@ export function resolveMobileRouteMeta(
       title: translate("agentsPageTitle"),
       backTarget: null,
       backLabel: null,
+    };
+  }
+
+  if (normalized.startsWith("/apps/panel/")) {
+    return {
+      title: translate("panelAppsTitle"),
+      backTarget: "/chat",
+      backLabel: translate("chat"),
     };
   }
 

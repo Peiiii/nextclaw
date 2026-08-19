@@ -173,6 +173,7 @@ export class PanelAppPackageStateManager {
       this.params.deleteBridgeSessions(component.id);
       await this.params.createStateStore(panelsPath).deleteEntry(
         encodePanelAppId(basename(component.sourcePath)),
+        component.id,
       );
       await this.params.createCapabilityGrantStore().deleteCaller({
         surface: "panel-app",

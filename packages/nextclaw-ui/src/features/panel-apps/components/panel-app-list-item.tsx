@@ -1,6 +1,7 @@
 import { useState, type MouseEvent } from 'react';
-import { AppWindow, MoreVertical, Star, Trash2, type LucideIcon } from 'lucide-react';
+import { MoreVertical, PanelLeft, PanelLeftDashed, Star, Trash2, type LucideIcon } from 'lucide-react';
 import type { PanelAppEntryView } from '@/shared/lib/api';
+import { PanelAppIcon } from '@/features/panel-apps/components/panel-app-icon';
 import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { getLanguage, getLocale, t } from '@/shared/lib/i18n';
@@ -10,16 +11,20 @@ export function PanelAppListItem({
   deletePending,
   entry,
   favoritePending,
+  mainSidebarPending,
   onDelete,
   onOpen,
   onToggleFavorite,
+  onToggleMainSidebar,
 }: {
   deletePending: boolean;
   entry: PanelAppEntryView;
   favoritePending: boolean;
+  mainSidebarPending: boolean;
   onDelete: () => void;
   onOpen: () => void;
   onToggleFavorite: () => void;
+  onToggleMainSidebar: () => void;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -32,10 +37,17 @@ export function PanelAppListItem({
     event.stopPropagation();
     onToggleFavorite();
   };
+  const handleMainSidebar = () => {
+    setIsMenuOpen(false);
+    onToggleMainSidebar();
+  };
   const openDeleteDialog = () => {
     setIsMenuOpen(false);
     setIsDeleteDialogOpen(true);
   };
+  const mainSidebarLabel = entry.mainSidebar
+    ? t('panelAppsRemoveFromMainSidebar')
+    : t('panelAppsAddToMainSidebar');
 
   return (
     <div className="group w-full min-w-0 rounded-lg border border-border/60 bg-card px-2.5 py-2.5 transition-colors hover:bg-muted/40">
@@ -75,6 +87,12 @@ export function PanelAppListItem({
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
+              <PanelAppMenuItem
+                disabled={mainSidebarPending}
+                icon={entry.mainSidebar ? PanelLeftDashed : PanelLeft}
+                label={mainSidebarLabel}
+                onClick={handleMainSidebar}
+              />
               <PanelAppMenuItem
                 destructive
                 disabled={deletePending}
@@ -143,31 +161,4 @@ function formatPanelAppTime(value: string): string {
     return new Intl.DateTimeFormat(locale, { month: 'numeric', day: 'numeric' }).format(date);
   }
   return new Intl.DateTimeFormat(locale, { year: '2-digit', month: 'numeric', day: 'numeric' }).format(date);
-}
-
-function PanelAppIcon({ icon, title }: { icon?: string; title: string }) {
-  if (!icon) {
-    return <AppWindow className="h-4 w-4" />;
-  }
-  if (isImageIcon(icon)) {
-    return (
-      <img
-        src={icon}
-        alt=""
-        aria-hidden="true"
-        className="h-5 w-5 rounded-sm object-contain"
-        title={title}
-      />
-    );
-  }
-  return <span className="max-w-6 truncate text-center leading-none">{icon}</span>;
-}
-
-function isImageIcon(icon: string): boolean {
-  return (
-    icon.startsWith('data:image/') ||
-    icon.startsWith('http://') ||
-    icon.startsWith('https://') ||
-    icon.startsWith('/')
-  );
 }

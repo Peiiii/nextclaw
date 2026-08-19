@@ -14,6 +14,7 @@ import type {
 } from '@/features/right-panel-resources/types/right-panel-resource.types';
 import {
   createPanelAppContentPath,
+  readPanelAppIdFromParsedResourceUri,
   RIGHT_PANEL_APPS_URL,
   RIGHT_PANEL_APPS_TAB_KIND,
   RIGHT_PANEL_HOME_TAB_KIND,
@@ -58,39 +59,25 @@ function createDocsResourceUriFromUrl(url: string): string {
   return createDocsResourceUriFromSegments(pathname.split('/'));
 }
 
-function getPanelAppId(uri: ParsedResourceUri): string {
-  if (uri.scheme === 'nextclaw' && uri.authority === 'panel-app') {
-    return uri.pathSegments[0] ?? '';
-  }
-  const [apiSegment, collectionSegment, appId, contentSegment] = uri.pathSegments;
-  return apiSegment === 'api'
-    && collectionSegment === 'panel-apps'
-    && appId !== undefined
-    && appId.length > 0
-    && contentSegment === 'content'
-    ? appId
-    : '';
-}
-
 function isPanelAppContentUri(uri: ParsedResourceUri): boolean {
-  return getPanelAppId(uri).length > 0;
+  return readPanelAppIdFromParsedResourceUri(uri) !== null;
 }
 
 function resolvePanelAppPlaceholderUrl(uri: ParsedResourceUri): string {
-  const appId = getPanelAppId(uri);
+  const appId = readPanelAppIdFromParsedResourceUri(uri);
   if (!appId) {
     return 'nextclaw://panel-app';
   }
   const path = uri.searchParams.get('path')?.trim();
-  return createPanelAppContentPath(decodeURIComponent(appId), path);
+  return createPanelAppContentPath(appId, path);
 }
 
 function createPanelAppResourceUri(uri: ParsedResourceUri): string {
-  const appId = getPanelAppId(uri);
+  const appId = readPanelAppIdFromParsedResourceUri(uri);
   if (!appId) {
     return 'nextclaw://panel-app';
   }
-  const resourceUri = `nextclaw://panel-app/${encodeURIComponent(decodeURIComponent(appId))}`;
+  const resourceUri = `nextclaw://panel-app/${encodeURIComponent(appId)}`;
   const path = uri.searchParams.get('path')?.trim();
   return path ? `${resourceUri}?${new URLSearchParams({ path }).toString()}` : resourceUri;
 }
@@ -98,12 +85,12 @@ function createPanelAppResourceUri(uri: ParsedResourceUri): string {
 function arePanelAppUrlsEquivalent(left: string, right: string): boolean {
   const leftUri = parseResourceUri(left);
   const rightUri = parseResourceUri(right);
-  const leftAppId = getPanelAppId(leftUri);
-  const rightAppId = getPanelAppId(rightUri);
+  const leftAppId = readPanelAppIdFromParsedResourceUri(leftUri);
+  const rightAppId = readPanelAppIdFromParsedResourceUri(rightUri);
   const leftPath = leftUri.searchParams.get('path')?.trim() ?? '';
   const rightPath = rightUri.searchParams.get('path')?.trim() ?? '';
-  return leftAppId.length > 0 && rightAppId.length > 0
-    ? decodeURIComponent(leftAppId) === decodeURIComponent(rightAppId) && leftPath === rightPath
+  return leftAppId !== null && rightAppId !== null
+    ? leftAppId === rightAppId && leftPath === rightPath
     : left === right;
 }
 
@@ -181,10 +168,10 @@ export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefi
     match: (uri) => (uri.scheme === 'nextclaw' && uri.authority === 'panel-app') || isPanelAppContentUri(uri),
     resolve: (uri) => {
       const url = resolvePanelAppPlaceholderUrl(uri);
-      const appId = getPanelAppId(uri);
+      const appId = readPanelAppIdFromParsedResourceUri(uri);
       return {
         dedupeKey: appId
-          ? `panel-app:${uri.searchParams.get('path')?.trim() || decodeURIComponent(appId)}`
+          ? `panel-app:${uri.searchParams.get('path')?.trim() || appId}`
           : undefined,
         historyPolicy: 'managed',
         kind: RIGHT_PANEL_PANEL_APP_TAB_KIND,
