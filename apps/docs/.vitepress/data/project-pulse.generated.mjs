@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-19T03:09:18.627Z",
+  "generatedAt": "2026-08-19T18:40:08.713Z",
   "hero": {
     "currentLoc": 250767,
     "testLoc": 101102,
     "trackedFiles": 2668,
-    "recentCommitCount": 335,
-    "activeDays30": 29,
+    "recentCommitCount": 337,
+    "activeDays30": 30,
     "recentReleaseCount": 51,
     "latestReleaseDate": "2026-08-18",
-    "latestNoteDate": "2026-08-18",
+    "latestNoteDate": "2026-08-20",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2585149,
     "basePercentOfBenchmark": 9.7,
@@ -1273,7 +1273,7 @@ export default {
       {
         "key": "2026-08-19",
         "label": "08-19",
-        "value": 0
+        "value": 2
       }
     ],
     "commitWeekly": [
@@ -1335,7 +1335,7 @@ export default {
       {
         "key": "2026-08-17",
         "label": "08-17",
-        "value": 25
+        "value": 34
       }
     ],
     "releaseMonthly": [
@@ -1525,6 +1525,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-20-nextclaw-v0-40-0",
+        "date": "2026-08-20",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-20 · NextClaw v0.40.0",
+          "description": "Tool-heavy sessions reopen up to about 6× faster, Panel Apps can live in the main sidebar, QQ delivery is more resilient, and runtime failures are traceable.",
+          "href": "/en/notes/2026-08-20-nextclaw-v0-40-0"
+        },
+        "zh": {
+          "title": "2026-08-20 · NextClaw v0.40.0",
+          "description": "大型工具会话重载最快约 6 倍，Panel App 可加入主侧栏，QQ 投递更可靠，运行故障也能沿日志证据排查。",
+          "href": "/zh/notes/2026-08-20-nextclaw-v0-40-0"
+        }
+      },
       {
         "slug": "2026-08-18-nextclaw-v0-39-2",
         "date": "2026-08-18",
@@ -2449,7 +2468,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-19T03:09:16.617Z",
     "sourceCount": {
-      "notes": 44,
+      "notes": 45,
       "scopes": 8
     }
   }

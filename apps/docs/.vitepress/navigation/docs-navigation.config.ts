@@ -287,6 +287,7 @@ const enBlogSidebar: DefaultTheme.SidebarItem[] = [
     text: 'Blog',
     items: [
       { text: 'Overview', link: '/en/blog/' },
+      { text: 'Large sessions reopen about 6× faster', link: '/en/blog/2026-08-20-large-tool-session-performance' },
       { text: 'Access NextClaw from anywhere', link: '/en/blog/2026-07-18-remote-access-your-nextclaw' },
       { text: 'Self-hosting and mini apps', link: '/en/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps' },
       { text: 'Real-time agent progress', link: '/en/blog/2026-06-03-real-time-agent-progress' },
@@ -300,6 +301,7 @@ const zhBlogSidebar: DefaultTheme.SidebarItem[] = [
     text: '博客',
     items: [
       { text: '总览', link: '/zh/blog/' },
+      { text: '大型会话重载提速约 6 倍', link: '/zh/blog/2026-08-20-large-tool-session-performance' },
       { text: '远程访问你的 NextClaw', link: '/zh/blog/2026-07-18-remote-access-your-nextclaw' },
       { text: '自部署与小应用系统', link: '/zh/blog/2026-07-16-self-hosted-codex-workbuddy-panel-apps' },
       { text: '实时 Agent 进展', link: '/zh/blog/2026-06-03-real-time-agent-progress' },

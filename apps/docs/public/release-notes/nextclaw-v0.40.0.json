@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.40.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-20",
+  "title": {
+    "zh-CN": "NextClaw v0.40.0",
+    "en-US": "NextClaw v0.40.0"
+  },
+  "summary": {
+    "zh-CN": "大型工具会话重载最快约 6 倍，Panel App 可加入主侧栏，QQ 投递更可靠，运行故障也能沿日志证据排查。",
+    "en-US": "Tool-heavy sessions reopen up to about 6× faster, Panel Apps can live in the main sidebar, QQ delivery is more resilient, and runtime failures are traceable."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-20-nextclaw-v0-40-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-20-nextclaw-v0-40-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "大型工具会话最快约 6 倍", "en-US": "Large tool-heavy sessions reopen up to about 6× faster" },
+          "body": {
+            "zh-CN": "首屏先返回工具摘要，完整参数与结果在展开处理过程时按消息加载；44.5MB 压力会话的首屏响应从 12.96MB 降到 261.85KB。",
+            "en-US": "The first view returns tool summaries, while full arguments and results load per message on expansion; the initial response for a 44.5MB stress session fell from 12.96MB to 261.85KB."
+          }
+        },
+        {
+          "title": { "zh-CN": "Panel App 可以加入主侧栏", "en-US": "Panel Apps can live in the main sidebar" },
+          "body": {
+            "zh-CN": "从 Apps 列表或运行中 App 添加常用入口；禁用时隐藏、重新启用后恢复，卸载或删除时自动清理。",
+            "en-US": "Add frequently used entries from the Apps list or a running App; entries hide while disabled, return when re-enabled, and are removed on uninstall or deletion."
+          }
+        },
+        {
+          "title": { "zh-CN": "运行故障可以沿日志证据排查", "en-US": "Runtime failures are traceable through log evidence" },
+          "body": {
+            "zh-CN": "结构化诊断覆盖服务、扩展、配置、渠道、Agent、定时任务、工具和网络请求，内置 AI 可按时间、结果、原因码与关联 ID 查询。",
+            "en-US": "Structured diagnostics cover services, extensions, configuration, channels, Agents, scheduled work, tools, and network requests, with AI-assisted queries by time, outcome, reason code, and correlation ID."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "QQ 断线恢复和消息重试更可靠", "en-US": "More reliable QQ reconnects and message retries" },
+          "body": {
+            "zh-CN": "短暂网关断线后主动恢复连接；入站提交失败不会被误记为已处理，同一消息可以安全重试。",
+            "en-US": "QQ reconnects after short gateway interruptions, and failed inbound submissions are not marked as processed, allowing safe retries."
+          }
+        },
+        {
+          "title": { "zh-CN": "取消拥有独立终态", "en-US": "Cancellation has a distinct terminal state" },
+          "body": {
+            "zh-CN": "工具和 Agent 取消会记录为 cancelled，不再与成功或普通失败混淆。",
+            "en-US": "Cancelled tools and Agent runs are recorded as cancelled instead of being confused with success or a generic failure."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "小会话保持原有加载方式", "en-US": "Small sessions keep their existing loading behavior" },
+          "body": {
+            "zh-CN": "普通小会话仍一次加载完整内容；分级加载只用于大型工具历史。",
+            "en-US": "Small sessions still load complete content in one pass; tiered loading applies only to large tool histories."
+          }
+        },
+        {
+          "title": { "zh-CN": "诊断默认保护私密内容", "en-US": "Diagnostics protect private content by default" },
+          "body": {
+            "zh-CN": "诊断日志不记录消息正文、工具参数与结果、完整 URL、用户身份或凭据。",
+            "en-US": "Diagnostics omit message bodies, tool arguments and results, full URLs, user identities, and credentials."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -3,7 +3,9 @@ title: 从 6.94 秒到最快 1.13 秒：NextClaw 重载会话提速约 6 倍
 description: 44.5MB 压力会话也能快速打开：首屏响应缩小约 98%，500 次工具调用完整保留。
 releaseBlogTarget: next-stable
 releaseBlogChangeset: chat-heavy-tool-payload-loading
-releaseBlogState: draft
+releaseBlogState: ready
+releaseBlogZhPath: apps/docs/zh/blog/2026-08-20-large-tool-session-performance.md
+releaseBlogEnPath: apps/docs/en/blog/2026-08-20-large-tool-session-performance.md
 ---
 
 # 从 6.94 秒到最快 1.13 秒：NextClaw 重载会话提速约 6 倍
