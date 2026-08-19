@@ -1,7 +1,4 @@
-import {
-  stringifyUnknown,
-  type ToolCard,
-} from "@/features/chat/features/message/utils/chat-message-core.utils";
+import type { ToolCard } from "@/features/chat/features/message/utils/chat-message-core.utils";
 import type {
   ChatMessagePartViewModel,
   ChatToolPartViewModel,
@@ -14,6 +11,7 @@ export type ToolCardViewSource = ToolCard & {
   agentId?: string;
   action?: ChatToolPartViewModel["action"];
   fileOperation?: ChatToolPartViewModel["fileOperation"];
+  inputData?: unknown;
   outputData?: unknown;
   execution?: ChatToolPartViewModel["execution"];
   toolCallId?: string;
@@ -168,6 +166,7 @@ export function buildToolCard(
       "input" in toolCard && typeof toolCard.input === "string"
         ? toolCard.input
         : undefined,
+    inputData: toolCard.inputData,
     output: toolCard.text,
     outputData: toolCard.outputData,
     ...(toolCard.execution ? { execution: { ...toolCard.execution } } : {}),
@@ -244,28 +243,4 @@ export function resolveToolCardStatus(params: {
     statusTone: "running",
     statusLabel: texts.toolStatusRunningLabel,
   };
-}
-
-function parseStructuredValue(value: unknown): unknown {
-  if (typeof value !== "string") {
-    return value;
-  }
-  const trimmed = value.trim();
-  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
-    return value;
-  }
-  try {
-    return JSON.parse(trimmed) as unknown;
-  } catch {
-    return value;
-  }
-}
-
-export function buildToolInvocationInput(
-  args?: unknown,
-  parsedArgs?: unknown,
-): string | undefined {
-  const source = parsedArgs ?? parseStructuredValue(args);
-  const text = stringifyUnknown(source).trim();
-  return text || undefined;
 }

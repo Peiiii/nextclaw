@@ -6,6 +6,7 @@ import type {
   ChatMessageLayout,
   ChatMessageActionViewModel,
   ChatMessageTexts,
+  ChatMessageToolPayloadState,
   ChatMessageViewModel,
   ChatPanelAppCardViewModel,
   ChatToolActionViewModel,
@@ -91,6 +92,8 @@ export type ChatMessageListProps = {
   texts: ChatMessageTexts;
   className?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
+  resolveMessageToolPayloadState?: (messageId: string) => ChatMessageToolPayloadState | undefined;
+  onMessageToolPayloadRequest?: (messageId: string) => Promise<void> | void;
   onMessageAction?: (
     message: ChatMessageViewModel,
     action: ChatMessageActionViewModel,
@@ -175,6 +178,8 @@ export function ChatMessageList({
   onInlineTokenClick,
   onMessageAction,
   onToolAction,
+  resolveMessageToolPayloadState,
+  onMessageToolPayloadRequest,
   renderCustomPart,
   renderInlineDisplay,
   renderMessageContent,
@@ -202,6 +207,8 @@ export function ChatMessageList({
             message={message}
             texts={texts}
             onToolAction={onToolAction}
+            toolPayloadState={resolveMessageToolPayloadState?.(message.id)}
+            onToolPayloadRequest={onMessageToolPayloadRequest}
             onFileOpen={onFileOpen}
             onAttachmentOpen={onAttachmentOpen}
             onInlineTokenClick={onInlineTokenClick}

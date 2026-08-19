@@ -4,7 +4,25 @@ import type { ChatMessageProcessSummarySource } from "@/features/chat/types/chat
 type BuildChatMessageProcessSummaryParams = {
   message: NcpMessage;
   processedLabel: string;
+  formatDeferredToolSummary?: (toolCallCount: number, toolNames: readonly string[]) => string;
 };
+
+const UI_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY =
+  "nextclawUiHistoryToolPayloadSummary";
+
+function readDeferredToolSummary(
+  message: NcpMessage,
+): { toolCallCount: number; toolNames: string[] } | null {
+  const value = message.metadata?.[UI_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const { toolCallCount } = record;
+  if (!Number.isInteger(toolCallCount) || (toolCallCount as number) <= 0) return null;
+  const toolNames = Array.isArray(record.toolNames)
+    ? record.toolNames.filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+    : [];
+  return { toolCallCount: toolCallCount as number, toolNames };
+}
 
 function isAssistantProcessPart(part: NcpMessage["parts"][number]): boolean {
   return part.type === "reasoning" || part.type === "tool-invocation";
@@ -74,6 +92,7 @@ function formatLifecycleDuration(message: NcpMessage): string | null {
  * and must not be mixed into this summary.
  */
 export function buildChatMessageProcessSummary({
+  formatDeferredToolSummary,
   message,
   processedLabel,
 }: BuildChatMessageProcessSummaryParams): ChatMessageProcessSummarySource | undefined {
@@ -81,5 +100,14 @@ export function buildChatMessageProcessSummary({
     return undefined;
   }
   const duration = formatLifecycleDuration(message);
-  return { label: duration ? `${processedLabel} ${duration}` : processedLabel };
+  const baseLabel = duration ? `${processedLabel} ${duration}` : processedLabel;
+  const deferredToolSummary = readDeferredToolSummary(message);
+  return {
+    label: deferredToolSummary && formatDeferredToolSummary
+      ? `${baseLabel} · ${formatDeferredToolSummary(
+          deferredToolSummary.toolCallCount,
+          deferredToolSummary.toolNames,
+        )}`
+      : baseLabel,
+  };
 }

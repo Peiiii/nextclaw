@@ -1,7 +1,4 @@
-import {
-  stringifyUnknown,
-  summarizeToolArgs,
-} from "@/features/chat/features/message/utils/chat-message-core.utils";
+import { stringifyUnknown, summarizeToolArgs } from "@/features/chat/features/message/utils/chat-message-core.utils";
 import { type ChatInlineTokenSource } from "@/features/chat/features/input/utils/chat-inline-token.utils";
 import {
   buildRenderableText,
@@ -9,7 +6,6 @@ import {
 } from "./chat-message-markdown-part.utils";
 import {
   buildToolCard,
-  buildToolInvocationInput,
   extractAssetFileView,
   isTerminalResultRecord,
   readOptionalNumber,
@@ -155,15 +151,12 @@ function buildToolInvocationPart(
   const detail = invalidArgsIssue
     ? `Invalid arguments: ${invalidArgsIssue}`
     : fileOperationCardData?.summary ?? summarizeToolArgs(invocation.parsedArgs ?? invocation.args);
-  const input = fileOperationCardData ? undefined : buildToolInvocationInput(invocation.args, invocation.parsedArgs);
   const rawResult =
     invalidArgsIssue
       ? invalidArgsIssue
       : typeof invocation.error === "string" && invocation.error.trim()
       ? invocation.error.trim()
-      : invocation.result != null
-        ? stringifyUnknown(invocation.result).trim()
-        : "";
+      : "";
   const shouldHideStructuredTerminalJson =
     !invocation.error && isTerminalResultRecord(invocation.result);
   const shouldShowRawResult =
@@ -175,7 +168,7 @@ function buildToolInvocationPart(
     name: invocation.toolName,
     ...(agentId ? { agentId } : {}),
     detail,
-    ...(input ? { input } : {}),
+    inputData: fileOperationCardData ? undefined : invocation.parsedArgs ?? invocation.args,
     text: shouldShowRawResult && rawResult ? rawResult : undefined,
     outputData: invocation.result,
     callId: invocation.toolCallId || undefined,

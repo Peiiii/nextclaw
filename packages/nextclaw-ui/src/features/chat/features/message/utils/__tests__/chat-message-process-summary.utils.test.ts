@@ -66,4 +66,25 @@ describe("buildChatMessageProcessSummary", () => {
     expect(summary?.label.toLowerCase()).not.toContain("bash");
     expect(summary?.label.toLowerCase()).not.toContain("read");
   });
+
+  it("shows the bounded aggregate for a deferred history payload", () => {
+    const summary = buildChatMessageProcessSummary({
+      message: {
+        ...baseAssistantMessage,
+        metadata: {
+          nextclawUiHistoryToolPayloadSummary: {
+            toolCallCount: 500,
+            toolNames: ["exec_command", "read_file"],
+          },
+        },
+      },
+      processedLabel: "Processed",
+      formatDeferredToolSummary: (count, names) =>
+        `${count} tool calls · ${names.join(", ")}`,
+    });
+
+    expect(summary?.label).toBe(
+      "Processed · 500 tool calls · exec_command, read_file",
+    );
+  });
 });

@@ -18,6 +18,7 @@ import type { RequestService } from "./request.service.js";
 export type ListSessionMessagesParams = {
   limit?: number;
   cursor?: string;
+  toolPayload?: "summary";
   signal?: AbortSignal;
 };
 
@@ -57,6 +58,9 @@ export class SessionsService {
     }
     if (params.cursor?.trim()) {
       query.set("cursor", params.cursor.trim());
+    }
+    if (params.toolPayload === "summary") {
+      query.set("toolPayload", "summary");
     }
     return await this.requestService.get<UiNcpSessionMessagesView>(
       `/api/ncp/sessions/${encodeURIComponent(sessionId)}/messages`,

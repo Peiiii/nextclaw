@@ -93,6 +93,38 @@ it("keeps a manually expanded tool group open while more tools arrive", () => {
   ).toBe("true");
 });
 
+it("reveals very large tool groups in bounded batches", () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-large-tool-group",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:11",
+          parts: Array.from({ length: 100 }, (_, index) =>
+            toolCard("exec_command", `command: command-${index + 1}`),
+          ),
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={{
+        ...defaultTexts,
+        toolActivityShowMoreTemplate: "Show next {count} ({remaining} remaining)",
+      }}
+    />,
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Run 100 commands" }));
+  expect(screen.getByText("command-40")).toBeTruthy();
+  expect(screen.queryByText("command-41")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Show next 40 (60 remaining)" }));
+  expect(screen.getByText("command-80")).toBeTruthy();
+  expect(screen.queryByText("command-81")).toBeNull();
+});
+
 it("keeps a manually expanded tool group visible when the message completes", () => {
   const renderMessage = (completed: boolean) => (
     <ChatMessageList

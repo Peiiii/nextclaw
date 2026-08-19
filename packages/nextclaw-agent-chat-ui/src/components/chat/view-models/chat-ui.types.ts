@@ -406,6 +406,7 @@ export type ChatToolPartViewModel = {
   summary?: string;
   inputLabel?: string;
   input?: string;
+  inputData?: unknown;
   output?: string;
   outputData?: unknown;
   execution?: {
@@ -505,6 +506,8 @@ export type ChatMessageProcessSummaryViewModel = {
   label: string;
 };
 
+export type ChatMessageToolPayloadState = "summary" | "loading" | "ready" | "error";
+
 export type ChatMessageDetailActionViewModel = {
   key: string;
   label: string;
@@ -599,6 +602,9 @@ export type ChatMessageTexts = {
   };
   toolActivityFailedLabel?: string;
   toolActivityCancelledLabel?: string;
+  toolPayloadLoadingLabel?: string;
+  toolPayloadLoadFailedLabel?: string;
+  toolActivityShowMoreTemplate?: string;
   reasoningCharacterCountTemplates?: {
     inProgress: string;
     completed: string;

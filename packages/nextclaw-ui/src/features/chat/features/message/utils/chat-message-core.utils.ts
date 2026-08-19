@@ -93,7 +93,7 @@ export function summarizeToolArgs(args: unknown): string | undefined {
   if (items.length > 0) {
     return truncateInlineText(items.join(' · '), 120);
   }
-  return truncateInlineText(stringifyUnknown(parsed), 140);
+  return undefined;
 }
 
 function toToolName(value: unknown): string {

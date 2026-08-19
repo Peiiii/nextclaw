@@ -15,6 +15,7 @@ import { ChatConversationTrack } from "@/features/chat/components/conversation/c
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { t } from "@/shared/lib/i18n";
+import type { SessionMessageToolPayloadState } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
 
 type ChatConversationContentProps = {
   bottomSlot?: ReactNode;
@@ -27,9 +28,11 @@ type ChatConversationContentProps = {
   isSending: boolean;
   messageActionsDisabled?: boolean;
   messages: readonly NcpMessage[];
+  messageDetailStates?: Readonly<Record<string, SessionMessageToolPayloadState>>;
   sessionKey: string | null;
   showWelcome: boolean;
   onLoadPreviousMessages: () => Promise<void>;
+  onLoadMessageDetails?: (messageId: string) => Promise<void>;
   onContinueRun?: () => Promise<void> | void;
   onEditMessage?: (payload: {
     readonly message: NcpMessage;
@@ -49,9 +52,11 @@ export function ChatConversationContent({
   isSending,
   messageActionsDisabled = false,
   messages,
+  messageDetailStates,
   sessionKey,
   showWelcome,
   onLoadPreviousMessages,
+  onLoadMessageDetails,
   onContinueRun,
   onEditMessage,
   welcomeSlot,
@@ -121,10 +126,12 @@ export function ChatConversationContent({
                 <ChatMessageListContainer
                   canContinue={canContinue}
                   messages={messages}
+                  messageDetailStates={messageDetailStates}
                   isSending={isSending}
                   messageActionsDisabled={messageActionsDisabled}
                   onContinueRun={onContinueRun}
                   onEditMessage={onEditMessage}
+                  onLoadMessageDetails={onLoadMessageDetails}
                   scrollRef={threadRef}
                   sessionKey={sessionKey}
                 />

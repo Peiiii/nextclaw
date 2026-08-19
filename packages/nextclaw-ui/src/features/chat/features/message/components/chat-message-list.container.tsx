@@ -61,12 +61,14 @@ import {
 import { useChatMessageActions } from "@/features/chat/features/message/hooks/use-chat-message-actions";
 import { useChatInlineTokenActions } from "@/features/chat/features/message/hooks/use-chat-inline-token-actions";
 import { buildServerPathContentUrl } from "@/shared/lib/api";
-import { formatDateTime, t } from "@/shared/lib/i18n";
+import { formatDateTime, formatNumber, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
+import type { SessionMessageToolPayloadState } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
 
 type ChatMessageListContainerProps = {
   canContinue?: boolean;
   messages: readonly NcpMessage[];
+  messageDetailStates?: Readonly<Record<string, SessionMessageToolPayloadState>>;
   isSending: boolean;
   messageActionsDisabled?: boolean;
   onContinueRun?: () => Promise<void> | void;
@@ -74,6 +76,7 @@ type ChatMessageListContainerProps = {
     readonly message: NcpMessage;
     readonly messageId: string;
   }) => Promise<void> | void;
+  onLoadMessageDetails?: (messageId: string) => Promise<void>;
   sessionKey: string | null;
   scrollRef: RefObject<HTMLDivElement | null>;
   className?: string;
@@ -105,6 +108,13 @@ class ChatMessageViewModelAdapter {
       const processSummary = buildChatMessageProcessSummary({
         message,
         processedLabel,
+        formatDeferredToolSummary: (toolCallCount, toolNames) => {
+          const countLabel = t("chatProcessSummaryToolCalls", language)
+            .replace("{count}", formatNumber(toolCallCount, language));
+          if (toolNames.length === 0) return countLabel;
+          const separator = language === "zh" ? "、" : ", ";
+          return `${countLabel} · ${toolNames.join(separator)}`;
+        },
       });
       const processSummaryLabel = processSummary?.label ?? null;
       const executionPresentation = buildChatMessageExecutionPresentation({
@@ -199,10 +209,12 @@ function isAwaitingAssistantOutputRow(
 export function ChatMessageListContainer({
   canContinue = false,
   messages: rawMessages,
+  messageDetailStates,
   isSending,
   messageActionsDisabled = false,
   onContinueRun,
   onEditMessage,
+  onLoadMessageDetails,
   scrollRef,
   sessionKey,
   className,
@@ -414,6 +426,8 @@ export function ChatMessageListContainer({
                   onAttachmentOpen={handleAttachmentOpen}
                   onInlineTokenClick={handleInlineTokenClick}
                   onMessageAction={handleMessageAction}
+                  resolveMessageToolPayloadState={(messageId) => messageDetailStates?.[messageId]}
+                  onMessageToolPayloadRequest={onLoadMessageDetails}
                   resolveFileContentUrl={resolveFileContentUrl}
                   renderCustomPart={renderCustomPart}
                   renderInlineDisplay={renderInlineDisplayWithFiles}

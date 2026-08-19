@@ -4,7 +4,7 @@ import type {
   ChatToolActionViewModel,
   ChatMessageTexts,
 } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Workflow } from "lucide-react";
 import { ChatToolCard } from "./chat-tool-card";
 import { ChatCollapsibleMetaSummary } from "./chat-collapsible-meta-summary";
@@ -12,12 +12,15 @@ import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatProcessWorkflowRail } from "./chat-process-meta-row";
 import type { ChatToolActivityGroupViewModel } from "./chat-tool-activity-group.utils";
 
+const TOOL_ACTIVITY_INITIAL_VISIBLE_PARTS = 40;
+
 export function ChatToolActivityGroup({
   group,
   open,
   isUser,
   reasoningCharacterCountTemplates,
   toolStatusLabels,
+  showMoreTemplate,
   onToolAction,
   onFileOpen,
   renderToolAgent,
@@ -29,14 +32,25 @@ export function ChatToolActivityGroup({
   isUser: boolean;
   reasoningCharacterCountTemplates?: ChatMessageTexts["reasoningCharacterCountTemplates"];
   toolStatusLabels?: ChatMessageTexts["toolStatusLabels"];
+  showMoreTemplate?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
   renderPanelAppCard?: (panelApp: ChatPanelAppCardViewModel) => ReactNode;
   onOpenChange: (open: boolean) => void;
 }) {
+  const [visiblePartCount, setVisiblePartCount] = useState(TOOL_ACTIVITY_INITIAL_VISIBLE_PARTS);
+  useEffect(() => {
+    setVisiblePartCount(TOOL_ACTIVITY_INITIAL_VISIBLE_PARTS);
+  }, [group.key]);
   const toolCount = group.parts.filter((part) => part.type === "tool-card").length;
   const showWorkflowRail = open && toolCount > 1;
+  const visibleParts = group.parts.slice(0, visiblePartCount);
+  const remainingPartCount = Math.max(0, group.parts.length - visibleParts.length);
+  const nextPartCount = Math.min(TOOL_ACTIVITY_INITIAL_VISIBLE_PARTS, remainingPartCount);
+  const showMoreLabel = (showMoreTemplate ?? "Show next {count} ({remaining} remaining)")
+    .replace("{count}", String(nextPartCount))
+    .replace("{remaining}", String(remainingPartCount));
 
   return (
     <div className="group/tool-activity">
@@ -50,8 +64,8 @@ export function ChatToolActivityGroup({
       />
       {open ? (
         <div className="text-[0.925rem] leading-[1.72]">
-          {group.parts.map((part, index) => {
-            const isLast = index === group.parts.length - 1;
+          {visibleParts.map((part, index) => {
+            const isLast = index === visibleParts.length - 1;
             return (
               <div
                 key={
@@ -87,6 +101,15 @@ export function ChatToolActivityGroup({
               </div>
             );
           })}
+          {remainingPartCount > 0 ? (
+            <button
+              type="button"
+              className="ml-6 mt-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+              onClick={() => setVisiblePartCount((current) => current + TOOL_ACTIVITY_INITIAL_VISIBLE_PARTS)}
+            >
+              {showMoreLabel}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

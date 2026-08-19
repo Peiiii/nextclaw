@@ -6,7 +6,7 @@ import type {
 } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 import { ToolCardRoot, ToolCardContent, ToolCardDetailSection } from './tool-card-root';
 import { ToolCardHeader, ToolCardHeaderAction } from './tool-card-header';
-import { useToolCardExpandedState } from './tool-card-views';
+import { formatToolCardPayload, useToolCardExpandedState } from './tool-card-views';
 
 function buildToolActionSlot(
   card: ChatToolPartViewModel,
@@ -35,11 +35,9 @@ export function GenericToolCard({
   onToolAction?: (action: ChatToolActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
 }) {
-  const input = card.input?.trim() ?? '';
-  const output = card.output?.trim() ?? '';
   const isRunning = card.statusTone === 'running';
-  const hasInputSection = input.length > 0;
-  const hasOutputSection = output.length > 0;
+  const hasInputSection = Boolean(card.input?.trim()) || card.inputData !== null && card.inputData !== undefined;
+  const hasOutputSection = Boolean(card.output?.trim()) || card.outputData !== null && card.outputData !== undefined;
   const hasContent = hasInputSection || hasOutputSection;
   const actionSlot = buildToolActionSlot(card, onToolAction, renderToolAgent);
   const { expanded, onToggle } = useToolCardExpandedState({
@@ -48,6 +46,8 @@ export function GenericToolCard({
     autoExpandWhileRunning: false,
     statusTone: card.statusTone,
   });
+  const input = expanded ? formatToolCardPayload(card.input, card.inputData) : '';
+  const output = expanded ? formatToolCardPayload(card.output, card.outputData) : '';
 
   return (
     <ToolCardRoot>

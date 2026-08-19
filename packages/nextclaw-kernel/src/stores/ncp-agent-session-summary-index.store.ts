@@ -28,6 +28,11 @@ export class NcpAgentSessionSummaryIndexStore {
 
   has = async (sessionId: string): Promise<boolean> => (await this.load()).has(sessionId);
 
+  get = async (sessionId: string): Promise<NcpSessionSummary | null> => {
+    const summary = (await this.load()).get(sessionId);
+    return summary ? structuredClone(summary) : null;
+  };
+
   list = async (): Promise<NcpSessionSummary[]> => {
     const index = await this.load();
     return [...index.values()]

@@ -4,6 +4,7 @@ import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
 
 export type SessionMessagePage = {
   messages: NcpMessage[];
+  messageDetailCursors: Record<string, string>;
   total: number;
   pageInfo: NcpSessionMessagePageInfo;
   contextWindow: Record<string, unknown> | null;
