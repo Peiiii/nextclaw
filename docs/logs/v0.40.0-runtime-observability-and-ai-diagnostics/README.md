@@ -36,7 +36,7 @@
 - 用户已授权包含 NPM/runtime 与 Desktop stable 的全平台正式发布。
 - 先执行产品 stable，达到 `NPM_READY` 和 `NEXTCLAW_STABLE_READY`；随后以同一 stable identity 执行 Desktop stable，达到 `DESKTOP_READY`。
 - 发布必须使用仓库 `release:product:stable` 与 `release:desktop:stable` 流程，不手工拆散 registry、manifest、GitHub Release 或 APT 步骤。
-- 产品 stable 已闭合：27 个 NPM 包、27 个不可变标签、stable runtime 四平台 bundle、公开 manifest、从上一 stable 的真实更新链、双语发布页、性能博客与 X 公告均已验证。Desktop stable 继续使用同一 `0.40.0` identity 发布。
+- 产品与 Desktop stable 均已闭合：27 个 NPM 包、27 个不可变标签、stable runtime 四平台 bundle、Desktop 五个平台/架构安装资产、公开 manifest、stable APT、从上一 stable 的真实更新链、双语发布页、性能博客与 X 公告均已验证。
 - 首次 `npm-release-prepare` run `32286377385` 在任何包上传前被严格 lint 阻断：同批会话性能改动遗留零引用 `stringifyUnknown`。已删除该死代码，并以 targeted ESLint、14 个 session adapter tests、完整 UI tsc 和 diff-only maintainability 0 error 复验；后续从新 exact commit 重新 prepare。
 - 不涉及数据库 migration 或远程数据库 migration。
 
@@ -87,4 +87,7 @@
 - 真实更新：从 registry 安装 `nextclaw@0.39.2`，完成 `check -> download-only -> apply -> 新进程 0.40.0`；download-only 未提前切换 current pointer。
 - 公开说明：中英文版本页、结构化 release JSON 与中英文性能博客均返回 200。
 - X 公告：`https://x.com/i/status/2090153059779547217`；回读确认作者为 `@XiaotiaoWang`、正文匹配且包含一张 1512×828 真实产品截图。
-- Desktop stable：待同一发布任务的下一阶段闭合，完成后补充 workflow、安装资产、manifest、APT 与 smoke 证据。
+- Desktop stable：`v0.40.0-desktop.1`，桌面壳 `0.0.258`，内置 runtime `0.40.0`；GitHub Release 为 `https://github.com/Peiiii/nextclaw/releases/tag/v0.40.0-desktop.1`。
+- Desktop 构建：原 workflow `32291984443` 的 darwin arm64/x64、linux x64、win32 x64/arm64 五个矩阵 job、release assets 与 update channels 均成功；macOS arm64 本地 DMG 真实 GUI smoke 通过，验证窗口 ready、页面加载、动态端口 API health、内置 runtime 与 channel 状态，且使用隔离 profile，未重启用户正式实例。
+- APT 恢复：原 `.deb` 为 `104897240` 字节，超过 GitHub 单文件 `104857600` 字节限制。提交 `48f6e3fd7` 增加显式 APT-only 恢复与 xz extreme 重打包，提交 `e6c2cd187` 增加工具链复用、180 秒超时和三次有限重试；恢复 workflow `32297782490` 将包压缩到 `104504952` 字节，并通过签名、新装、升级和 `gh-pages` 推送。
+- Desktop 闭环：正式 closure 已验证 Release 必需资产、`gh-pages` 与公开 Pages stable manifest 的 runtime 均为 `0.40.0`、`gh-pages` 与公开 stable APT 的桌面版本均为 `0.0.258`，最终输出 `DESKTOP_READY`。
