@@ -2,16 +2,11 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import cronParser from "cron-parser";
+import { classifyDiagnosticError } from "@nextclaw/shared";
 import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from "@core/features/cron/types/cron.types.js";
+import type { DiagnosticRuntime } from "@core/shared/lib/logging/index.js";
 
 const nowMs = () => Date.now();
-
-function formatBackgroundTaskError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.stack ?? error.message;
-  }
-  return String(error);
-}
 
 function normalizeFiniteMs(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -76,7 +71,11 @@ export class CronService {
   private storeExistsOnDisk = false;
   onJob?: (job: CronJob) => Promise<string | null>;
 
-  constructor(readonly storePath: string, onJob?: (job: CronJob) => Promise<string | null>) {
+  constructor(
+    readonly storePath: string,
+    onJob?: (job: CronJob) => Promise<string | null>,
+    private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
+  ) {
     this.onJob = onJob;
   }
 
@@ -240,7 +239,16 @@ export class CronService {
     try {
       await this.onTimer();
     } catch (error) {
-      console.error(`[cron] background timer failed: ${formatBackgroundTaskError(error)}`);
+      const classification = classifyDiagnosticError(error);
+      this.diagnostics?.record({
+        domain: "automation.execution",
+        event: "timer.failed",
+        component: "core.cron-service",
+        outcome: classification.outcome,
+        reasonCode: classification.reasonCode,
+        providerCode: classification.providerCode,
+        facts: classification.facts,
+      });
       this.armTimer();
     }
   };
@@ -265,15 +273,44 @@ export class CronService {
   private readonly executeJob = async (job: CronJob): Promise<void> => {
     const start = nowMs();
     const previousNextRunAtMs = normalizeFiniteMs(job.state.nextRunAtMs);
+    this.diagnostics?.record({
+      domain: "automation.execution",
+      event: "job.started",
+      component: "core.cron-service",
+      outcome: "started",
+      correlationId: job.id,
+      facts: { scheduleKind: job.schedule.kind },
+    });
     try {
       if (this.onJob) {
         await this.onJob(job);
       }
       job.state.lastStatus = "ok";
       job.state.lastError = null;
+      this.diagnostics?.record({
+        domain: "automation.execution",
+        event: "job.completed",
+        component: "core.cron-service",
+        outcome: "succeeded",
+        correlationId: job.id,
+        durationMs: nowMs() - start,
+        facts: { scheduleKind: job.schedule.kind },
+      });
     } catch (err) {
+      const classification = classifyDiagnosticError(err);
       job.state.lastStatus = "error";
       job.state.lastError = String(err);
+      this.diagnostics?.record({
+        domain: "automation.execution",
+        event: "job.failed",
+        component: "core.cron-service",
+        outcome: classification.outcome,
+        correlationId: job.id,
+        durationMs: nowMs() - start,
+        reasonCode: classification.reasonCode,
+        providerCode: classification.providerCode,
+        facts: { scheduleKind: job.schedule.kind, ...(classification.facts ?? {}) },
+      });
     }
     job.state.lastRunAtMs = start;
     job.updatedAtMs = nowMs();

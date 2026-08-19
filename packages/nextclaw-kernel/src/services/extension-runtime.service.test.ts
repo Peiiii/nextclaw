@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Ingress } from "@nextclaw/shared";
+import type { DiagnosticRuntime } from "@nextclaw/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ExtensionLifecycleService,
@@ -29,6 +30,13 @@ vi.mock("node:child_process", async (importOriginal) => {
 const tempDirs: string[] = [];
 
 const sessionManager = {} as never;
+
+function createDiagnostics(): DiagnosticRuntime {
+  return {
+    record: vi.fn((event) => event),
+    readCorrelationId: vi.fn(() => undefined),
+  } as unknown as DiagnosticRuntime;
+}
 
 type FakeChildProcess = EventEmitter & {
   pid: number;
@@ -373,6 +381,7 @@ describe("ExtensionRuntimeService", () => {
     const ingress = new Ingress();
     let config = { channels: { "fake-channel": { enabled: false } } } as never;
     const runtime = new ExtensionRuntimeService({
+      diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,
       getWorkspace: () => workspace,
@@ -467,6 +476,7 @@ describe("ExtensionRuntimeService", () => {
     const ingress = new Ingress();
     let config = { channels: { "fake-channel": { enabled: false } } } as never;
     const runtime = new ExtensionRuntimeService({
+      diagnostics: createDiagnostics(),
       eventBus: { emitEnvelope: vi.fn() },
       getConfig: () => config,
       getWorkspace: () => workspace,
@@ -504,6 +514,7 @@ describe("ExtensionRuntimeService", () => {
     const ingress = new Ingress();
     const config = { channels: { "fake-channel": { enabled: true } } } as never;
     const runtime = new ExtensionRuntimeService({
+      diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,
       getWorkspace: () => workspace,
@@ -564,7 +575,9 @@ describe("ExtensionRuntimeService event stream credentials", () => {
     writeExtensionManifest(root);
     const ingress = new Ingress();
     const config = { channels: { "fake-channel": { enabled: true } } } as never;
+    const diagnostics = createDiagnostics();
     const runtime = new ExtensionRuntimeService({
+      diagnostics,
       eventBus: { emitEnvelope: vi.fn() },
       getConfig: () => config,
       getWorkspace: () => workspace,
@@ -599,5 +612,27 @@ describe("ExtensionRuntimeService event stream credentials", () => {
     })).rejects.toThrow("Unauthorized ingress token");
     await markSpawnedExtensionReady(ingress);
     await started;
+    vi.mocked(diagnostics.record).mockClear();
+    await ingress.handle({
+      type: "extension.diagnostic.emit",
+      extensionId: "fake-extension",
+      generation: spawned.generation,
+      payload: {
+        domain: "channel.delivery",
+        event: "inbound.observed",
+        component: "extension.fake",
+        outcome: "observed",
+        correlationId: "trace-1",
+        facts: { channel: "fake-channel" },
+      },
+    }, { source: "test", token: spawned.token });
+    expect(diagnostics.record).toHaveBeenCalledWith(expect.objectContaining({
+      domain: "channel.delivery",
+      correlationId: "trace-1",
+      facts: expect.objectContaining({
+        extensionId: "fake-extension",
+        generation: spawned.generation,
+      }),
+    }));
   });
 });

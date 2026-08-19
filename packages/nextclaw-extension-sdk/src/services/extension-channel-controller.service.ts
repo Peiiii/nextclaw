@@ -3,6 +3,7 @@ import type {
   ChannelSubmittedMessage,
   ChannelSubmittedAttachment,
   ExtensionChannel,
+  ExtensionDiagnostics,
   NextClawExtensionOptions,
 } from "../types/extension-sdk.types.js";
 import { NextClawExtension } from "./extension-client.service.js";
@@ -102,6 +103,7 @@ export type BusChannelCreateContext<TConfig, TBus = BusChannelMessageBus> = {
   config: TConfig;
   bus: TBus;
   channel: ExtensionChannel;
+  diagnostics: ExtensionDiagnostics;
 };
 
 export type BusChannelExtensionDefinition<TConfig, TBus = BusChannelMessageBus> = {
@@ -125,6 +127,7 @@ type ExtensionChannelControllerOptions<TConfig, TInbound> = {
 
 export type ChannelExtensionContext = {
   channel: ExtensionChannel;
+  diagnostics: ExtensionDiagnostics;
 };
 
 export type ChannelExtensionDefinition<TConfig, TInbound> = {
@@ -289,11 +292,19 @@ export class ExtensionChannelController<TConfig, TInbound> {
 class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfig, BusChannelInboundMessage> {
   private channel: BusChannelRuntime | null = null;
   private messageHandler: ((message: BusChannelInboundMessage) => void | Promise<void>) | null = null;
+  private readonly definition: BusChannelExtensionDefinition<TConfig, TBus>;
+  private readonly diagnostics: ExtensionDiagnostics;
+  private readonly extensionChannel: ExtensionChannel;
 
-  constructor(
-    private readonly definition: BusChannelExtensionDefinition<TConfig, TBus>,
-    private readonly extensionChannel: ExtensionChannel,
-  ) {}
+  constructor(params: {
+    definition: BusChannelExtensionDefinition<TConfig, TBus>;
+    diagnostics: ExtensionDiagnostics;
+    extensionChannel: ExtensionChannel;
+  }) {
+    this.definition = params.definition;
+    this.diagnostics = params.diagnostics;
+    this.extensionChannel = params.extensionChannel;
+  }
 
   configure = async (config: TConfig): Promise<void> => {
     await this.stop();
@@ -305,6 +316,7 @@ class BusChannelAdapter<TConfig, TBus> implements ExtensionChannelAdapter<TConfi
         },
       } as TBus,
       channel: this.extensionChannel,
+      diagnostics: this.diagnostics,
     });
   };
 
@@ -397,7 +409,10 @@ export async function startChannelExtension<TConfig, TInbound>(
 ): Promise<void> {
   const extension = new NextClawExtension(options);
   const channel = extension.channels.use(definition.channelId);
-  const adapter = new LazyExtensionChannelAdapter(() => definition.createAdapter({ channel }));
+  const adapter = new LazyExtensionChannelAdapter(() => definition.createAdapter({
+    channel,
+    diagnostics: extension.diagnostics,
+  }));
   const controller = new ExtensionChannelController({
     channel,
     adapter,
@@ -405,7 +420,10 @@ export async function startChannelExtension<TConfig, TInbound>(
     onNcpEventError: definition.onNcpEventError,
   });
   if (definition.createAuthCapability) {
-    extension.capabilities.provide("channel.auth", definition.createAuthCapability({ channel }));
+    extension.capabilities.provide("channel.auth", definition.createAuthCapability({
+      channel,
+      diagnostics: extension.diagnostics,
+    }));
   }
   extension.capabilities.provideHandler("channel.outbound.sendText", async (payload) =>
     await controller.sendOutboundText({
@@ -428,7 +446,11 @@ export async function startBusChannelExtension<TConfig, TBus = BusChannelMessage
   await startChannelExtension(
     {
       channelId: definition.channelId,
-      createAdapter: ({ channel }) => new BusChannelAdapter(definition, channel),
+      createAdapter: ({ channel, diagnostics }) => new BusChannelAdapter({
+        definition,
+        diagnostics,
+        extensionChannel: channel,
+      }),
       mapInbound: definition.mapInbound ?? toSubmittedTextMessage,
     },
     options,

@@ -63,6 +63,7 @@ export class ExtensionTransportService {
   readonly postIngress = async <TResponse = unknown>(
     type: string,
     payload: unknown,
+    options: { signal?: AbortSignal } = {},
   ): Promise<TResponse> => {
     const envelope: ExtensionTransportEnvelope = {
       type,
@@ -79,10 +80,13 @@ export class ExtensionTransportService {
         authorization: `Bearer ${this.token}`,
       },
       body: JSON.stringify(envelope),
+      signal: options.signal,
     });
     const body = (await response.json().catch(() => null)) as unknown;
     if (!response.ok) {
-      throw new Error(this.readErrorMessage(body, `NextClaw ingress failed with ${response.status}`));
+      const error = new Error(this.readErrorMessage(body, `NextClaw ingress failed with ${response.status}`));
+      Object.assign(error, { status: response.status });
+      throw error;
     }
     return this.readResponseData<TResponse>(body);
   };

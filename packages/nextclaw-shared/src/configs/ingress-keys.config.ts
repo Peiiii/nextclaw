@@ -6,6 +6,8 @@ import type {
 } from "@nextclaw/ncp";
 import { createTypedKey } from "../types/typed-key.types.js";
 
+export const DIAGNOSTIC_CORRELATION_METADATA_KEY = "nextclaw_diagnostic_correlation_id";
+
 export type ExtensionChannelTextContent = {
   type: "text";
   text: string;
@@ -47,6 +49,33 @@ export type ExtensionChannelMessageSubmitIngressPayload = {
   content: ExtensionChannelMessageContent;
   attachments?: ExtensionChannelSubmittedAttachment[];
   metadata?: Record<string, unknown>;
+};
+
+export type DiagnosticOutcome =
+  | "observed"
+  | "started"
+  | "accepted"
+  | "succeeded"
+  | "rejected"
+  | "cancelled"
+  | "failed"
+  | "unavailable"
+  | "suppressed";
+
+export type DiagnosticFactValue = string | number | boolean | null;
+
+export type ExtensionDiagnosticIngressPayload = {
+  domain: string;
+  event: string;
+  component: string;
+  outcome: DiagnosticOutcome;
+  correlationId?: string;
+  parentCorrelationId?: string;
+  reasonCode?: string;
+  providerCode?: string;
+  durationMs?: number;
+  attempt?: number;
+  facts?: Record<string, DiagnosticFactValue>;
 };
 
 export type ExtensionChannelCommandOptionType = "string" | "boolean" | "number";
@@ -171,6 +200,10 @@ export const ingressKeys = {
     channelMessageSubmit:
       createTypedKey<ExtensionChannelMessageSubmitIngressPayload>(
         "extension.channel.message.submit",
+      ),
+    diagnosticEmit:
+      createTypedKey<ExtensionDiagnosticIngressPayload>(
+        "extension.diagnostic.emit",
       ),
     channelCommandList: createTypedKey<ExtensionChannelCommandListIngressPayload>(
       "extension.channel.command.list",

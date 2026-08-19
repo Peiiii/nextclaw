@@ -1,6 +1,8 @@
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import type {
+  DiagnosticOutcome,
   ExtensionChannelCommandExecuteResponse,
+  ExtensionDiagnosticIngressPayload,
   ExtensionChannelCommandSpec,
   ExtensionChannelMessageSubmitIngressPayload,
   Unsubscribe,
@@ -28,6 +30,7 @@ export type NextClawExtensionOptions = {
   token?: string;
   extensionId?: string;
   generation?: string;
+  diagnosticTimeoutMs?: number;
   fetch?: typeof fetch;
   webSocketFactory?: (
     url: string,
@@ -92,6 +95,11 @@ export type ExtensionChannelCommands = {
   }) => Promise<ExtensionChannelCommandExecuteResponse | null>;
 };
 
+export type ExtensionDiagnostics = {
+  createTraceId: (providerMessageId?: string) => string;
+  emit: (input: ExtensionDiagnosticIngressPayload) => Promise<boolean>;
+};
+
 export type ExtensionChannel = {
   id: string;
   submitMessage: (input: Omit<ExtensionChannelMessageSubmitIngressPayload, "channelId">) => Promise<void>;
@@ -99,6 +107,8 @@ export type ExtensionChannel = {
   config: ExtensionChannelConfig;
   commands: ExtensionChannelCommands;
 };
+
+export type { DiagnosticOutcome };
 
 export type ExtensionChannels = {
   use: (channelId: string) => ExtensionChannel;

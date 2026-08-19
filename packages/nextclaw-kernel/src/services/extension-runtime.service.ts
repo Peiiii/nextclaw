@@ -5,6 +5,7 @@ import {
   type ExtensionChannelCommandListIngressPayload,
   type ExtensionChannelConfigGetIngressPayload,
   type ExtensionChannelMessageSubmitIngressPayload,
+  type ExtensionDiagnosticIngressPayload,
   type ExtensionRuntimeReadyIngressPayload,
   type ExtensionResponseIngressPayload,
   type IngressContext,
@@ -13,17 +14,15 @@ import {
 import { AgentRouteResolver } from "@nextclaw/core";
 import { CommandRegistry } from "@kernel/services/command-registry.service.js";
 import type {
-  ExtensionChannelAuthConnectResult,
-  ExtensionChannelAuthStartResult,
   ExtensionChannelBinding,
   ExtensionUiMetadata,
 } from "@nextclaw/core";
 import {
   ExtensionAuthLeaseService,
+  ExtensionChannelClient,
+  ExtensionIngressDiagnosticsService,
   ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
-  normalizeAuthLoginResult,
-  normalizeAuthPollResult,
   readOptionalNumber,
   readRecord,
   readRequiredString,
@@ -35,7 +34,6 @@ import {
   type ExtensionChannelRequestKind,
   type ExtensionManifest,
   type ExtensionProcessExitEvent,
-  type ExtensionRequestSender,
   type ExtensionRuntimeContributions,
   type ExtensionRuntimeServiceOptions,
   type PendingExtensionRequest,
@@ -44,90 +42,19 @@ import {
 const EXTENSION_REQUEST_EVENT_TYPE = "extension.request";
 const EXTENSION_REQUEST_TIMEOUT_MS = 60_000;
 
-type ExtensionChannelAuthClient = NonNullable<ExtensionChannelBinding["channel"]["auth"]>;
-type ExtensionChannelOutbound = NonNullable<ExtensionChannelBinding["channel"]["outbound"]>;
-
-class ExtensionChannelClient implements ExtensionChannelAuthClient, ExtensionChannelOutbound {
-  constructor(
-    private readonly params: {
-      extensionId: string;
-      channelId: string;
-      request: ExtensionRequestSender;
-    },
-  ) {}
-
-  readonly login: ExtensionChannelAuthClient["login"] = async ({ accountId, baseUrl, verbose }) =>
-    normalizeAuthLoginResult(await this.params.request({
-      extensionId: this.params.extensionId,
-      kind: "channel.auth.login",
-      payload: {
-        channelId: this.params.channelId,
-        accountId,
-        baseUrl,
-        verbose,
-      },
-    }));
-
-  readonly start: ExtensionChannelAuthClient["start"] = async (params) =>
-    await this.params.request<ExtensionChannelAuthStartResult>({
-      extensionId: this.params.extensionId,
-      kind: "channel.auth.start",
-      payload: {
-        channelId: this.params.channelId,
-        accountId: params.accountId,
-        baseUrl: params.baseUrl,
-        domain: (params as { domain?: string | null }).domain,
-      },
-    });
-
-  readonly connect: ExtensionChannelAuthClient["connect"] = async (params) =>
-    normalizeAuthPollResult(await this.params.request<ExtensionChannelAuthConnectResult>({
-      extensionId: this.params.extensionId,
-      kind: "channel.auth.connect",
-      payload: {
-        channelId: this.params.channelId,
-        accountId: params.accountId,
-        domain: params.domain,
-        fields: params.fields,
-      },
-    })) as ExtensionChannelAuthConnectResult;
-
-  readonly poll: ExtensionChannelAuthClient["poll"] = async ({ sessionId }) =>
-    normalizeAuthPollResult(await this.params.request({
-      extensionId: this.params.extensionId,
-      kind: "channel.auth.poll",
-      payload: {
-        channelId: this.params.channelId,
-        sessionId,
-      },
-    }));
-
-  readonly sendText: ExtensionChannelOutbound["sendText"] = async ({ to, text, accountId, replyTo, media, metadata }) =>
-    await this.params.request({
-      extensionId: this.params.extensionId,
-      kind: "channel.outbound.sendText",
-      payload: {
-        channelId: this.params.channelId,
-        to,
-        text,
-        accountId,
-        replyTo,
-        media,
-        metadata,
-      },
-    });
-}
-
 export class ExtensionRuntimeService {
   private readonly authLeases: ExtensionAuthLeaseService;
   private readonly lifecycle: ExtensionLifecycleService;
+  private readonly ingressDiagnostics: ExtensionIngressDiagnosticsService;
   private readonly pendingRequests = new Map<string, PendingExtensionRequest>();
   private readonly persistentLeases = new Map<string, ExtensionLease>();
   private endpoint: string | null = null;
   private manifests: ExtensionManifest[] = [];
 
   constructor(private readonly options: ExtensionRuntimeServiceOptions) {
+    this.ingressDiagnostics = new ExtensionIngressDiagnosticsService(options.diagnostics);
     this.lifecycle = new ExtensionLifecycleService({
+      diagnostics: this.options.diagnostics,
       onProcessExit: this.handleProcessExit,
     });
     this.authLeases = new ExtensionAuthLeaseService({
@@ -147,6 +74,10 @@ export class ExtensionRuntimeService {
     this.options.ingress.addHandler(
       ingressKeys.extension.channelMessageSubmit,
       this.handleChannelMessageSubmit,
+    );
+    this.options.ingress.addHandler(
+      ingressKeys.extension.diagnosticEmit,
+      this.handleDiagnosticEmit,
     );
     this.options.ingress.addHandler(
       ingressKeys.extension.channelCommandList,
@@ -345,7 +276,18 @@ export class ExtensionRuntimeService {
     context: IngressContext,
   ) => {
     this.assertAuthorized(envelope, context);
-    await this.options.messageBus.publishInbound(toInboundMessage(envelope.payload));
+    const message = toInboundMessage(envelope.payload);
+    await this.options.messageBus.publishInbound(message);
+    this.ingressDiagnostics.recordChannelMessageAccepted(message);
+    return { accepted: true };
+  };
+
+  private readonly handleDiagnosticEmit = (
+    envelope: IngressEnvelope<ExtensionDiagnosticIngressPayload>,
+    context: IngressContext,
+  ) => {
+    const credential = this.assertAuthorized(envelope, context);
+    this.ingressDiagnostics.recordExtensionEvent(envelope.payload, credential);
     return { accepted: true };
   };
 
@@ -467,7 +409,7 @@ export class ExtensionRuntimeService {
   private readonly createChannelAuth = (
     extensionId: string,
     channelId: string,
-  ): ExtensionChannelAuthClient =>
+  ): NonNullable<ExtensionChannelBinding["channel"]["auth"]> =>
     new ExtensionChannelClient({
       extensionId,
       channelId,
@@ -477,7 +419,7 @@ export class ExtensionRuntimeService {
   private readonly createChannelOutbound = (
     extensionId: string,
     channelId: string,
-  ): ExtensionChannelOutbound =>
+  ): NonNullable<ExtensionChannelBinding["channel"]["outbound"]> =>
     new ExtensionChannelClient({
       extensionId,
       channelId,

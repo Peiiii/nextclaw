@@ -1,4 +1,5 @@
 import {
+  classifyDiagnosticError,
   eventKeys,
   ingressKeys,
   type AgentRunContinueIngressPayload,
@@ -17,6 +18,8 @@ import {
   type NcpRunHandle,
 } from "@nextclaw/ncp";
 import { catchError, filter, from, lastValueFrom, tap } from "rxjs";
+import type { DiagnosticRuntime } from "@nextclaw/core";
+import { DIAGNOSTIC_CORRELATION_METADATA_KEY } from "@nextclaw/core";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
@@ -74,6 +77,7 @@ export class AgentRunRequestManager {
     private readonly ingress: Ingress,
     private readonly sessionManager: SessionManager,
     private readonly sessionRunManager: SessionRunManager,
+    private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
   ) {
     this.sessionCommandManager = new AgentRunSessionCommandManager(
       sessionManager,
@@ -263,6 +267,22 @@ export class AgentRunRequestManager {
       sessionId: session.sessionId,
       message,
     };
+    const correlationId = request.correlationId ?? activeRequest.runId;
+    const parentCorrelationId = typeof request.metadata?.[DIAGNOSTIC_CORRELATION_METADATA_KEY] === "string"
+      ? request.metadata[DIAGNOSTIC_CORRELATION_METADATA_KEY]
+      : undefined;
+    this.diagnostics?.record({
+      domain: "agent.run",
+      event: "run.started",
+      component: "kernel.agent-run-request",
+      outcome: "started",
+      correlationId,
+      parentCorrelationId,
+      facts: {
+        source: request.channel ? "channel" : "direct",
+        ...(request.channel ? { channel: request.channel } : {}),
+      },
+    });
     const messageSentEvent = createMessageSentEvent({
       sessionId: session.sessionId,
       message,
@@ -290,8 +310,22 @@ export class AgentRunRequestManager {
         requestRunStartedAt,
         runtime,
         spec,
+        parentCorrelationId,
       });
     } catch (error) {
+      const classification = classifyDiagnosticError(error, activeRequest.signal);
+      this.diagnostics?.record({
+        domain: "agent.run",
+        event: classification.outcome === "cancelled" ? "run.start.cancelled" : "run.start.failed",
+        component: "kernel.agent-run-request",
+        outcome: classification.outcome,
+        correlationId,
+        parentCorrelationId,
+        durationMs: Date.now() - Date.parse(requestRunStartedAt),
+        reasonCode: classification.reasonCode,
+        providerCode: classification.providerCode,
+        facts: classification.facts,
+      });
       await this.publishRunStartupFailure({
         error,
         requestRunStartedAt,
@@ -308,12 +342,18 @@ export class AgentRunRequestManager {
     requestRunStartedAt: string;
     runtime: AgentRuntime;
     spec: AgentRunSpec;
+    parentCorrelationId?: string;
   }): void => {
-    const { options, requestRunStartedAt, runtime, spec } = params;
+    const { options, parentCorrelationId, requestRunStartedAt, runtime, spec } = params;
     const { session, sessionRun } = options;
     let messageCompletedSeen = false;
     let executionMetadataSeen = false;
     let runtimeFailed = false;
+    let runtimeCancelled = false;
+    let failureOutcome: "cancelled" | "failed" = "failed";
+    let failureReason = "runtime_error";
+    let failureProviderCode: string | undefined;
+    let failureFacts: Record<string, string | number | boolean | null> | undefined;
     let runStartedAt = requestRunStartedAt;
     void lastValueFrom(
       from(
@@ -325,13 +365,25 @@ export class AgentRunRequestManager {
         tap((event) => {
           const eventsToPublish: NcpEndpointEvent[] = [];
           if (event.type === NcpEventType.RunError) {
+            const classification = classifyDiagnosticError(event.payload.error, options.signal);
             runtimeFailed = true;
+            failureOutcome = classification.outcome;
+            failureReason = classification.reasonCode === "non_error_thrown"
+              || classification.reasonCode === "unexpected_error"
+              ? "run_error_event"
+              : classification.reasonCode;
+            failureProviderCode = classification.providerCode;
+            failureFacts = classification.facts;
+          }
+          if (event.type === NcpEventType.MessageAbort) {
+            runtimeCancelled = true;
           }
           if (hasAiExecutionMetadata(event)) {
             executionMetadataSeen = true;
           }
           runStartedAt = readAgentRunStartedAt(event, runStartedAt);
           if (event.type === NcpEventType.MessageCompleted) {
+            runtimeCancelled = false;
             messageCompletedSeen = true;
           }
           if (
@@ -358,7 +410,12 @@ export class AgentRunRequestManager {
           eventsToPublish.forEach(this.publishNcpEvent);
         }),
         catchError(async (error) => {
+          const classification = classifyDiagnosticError(error, options.signal);
           runtimeFailed = true;
+          failureOutcome = classification.outcome;
+          failureReason = classification.reasonCode;
+          failureProviderCode = classification.providerCode;
+          failureFacts = classification.facts;
           if (!executionMetadataSeen) {
             const metadataEvent = createUnavailableAiExecutionMetadataEvent({
               spec,
@@ -380,6 +437,22 @@ export class AgentRunRequestManager {
       ),
       { defaultValue: undefined },
     ).finally(async () => {
+      this.diagnostics?.record({
+        domain: "agent.run",
+        event: runtimeFailed
+          ? (failureOutcome === "cancelled" ? "run.cancelled" : "run.failed")
+          : (runtimeCancelled ? "run.cancelled" : "run.completed"),
+        component: "kernel.agent-run-request",
+        outcome: runtimeFailed ? failureOutcome : (runtimeCancelled ? "cancelled" : "succeeded"),
+        correlationId: spec.correlationId ?? spec.runId,
+        parentCorrelationId,
+        durationMs: Math.max(0, Date.now() - Date.parse(runStartedAt)),
+        reasonCode: runtimeFailed
+          ? failureReason
+          : (runtimeCancelled ? "operation_cancelled" : undefined),
+        providerCode: runtimeFailed ? failureProviderCode : undefined,
+        facts: { runtime: session.agentRuntimeId, ...(failureFacts ?? {}) },
+      });
       if (runtimeFailed) {
         await this.agentRuntimeManager.disposeRuntime({
           agentRuntimeId: session.agentRuntimeId,
@@ -504,6 +577,15 @@ export class AgentRunRequestManager {
 
   private abort = async (request: AgentRunAbortRequest): Promise<void> => {
     const sessionRun = this.sessionRunManager.getSessionRun(request.sessionId);
-    sessionRun?.abortRun(request.runId, request.reason);
+    const aborted = sessionRun?.abortRun(request.runId, request.reason) ?? false;
+    this.diagnostics?.record({
+      domain: "agent.run",
+      event: "abort.requested",
+      component: "kernel.agent-run-request",
+      outcome: aborted ? "accepted" : "rejected",
+      correlationId: request.runId ?? request.correlationId,
+      parentCorrelationId: request.correlationId,
+      reasonCode: aborted ? undefined : "active_run_not_found",
+    });
   };
 }

@@ -1,5 +1,10 @@
 export { NextClawExtension } from "./services/extension-client.service.js";
 export {
+  DIAGNOSTIC_CORRELATION_METADATA_KEY,
+  classifyDiagnosticError,
+} from "@nextclaw/shared";
+export type { DiagnosticErrorClassification } from "@nextclaw/shared";
+export {
   ChannelTypingController,
 } from "./services/channel-typing-controller.service.js";
 export type {
@@ -44,6 +49,7 @@ export type {
   ExtensionChannel,
   ExtensionChannelCommands,
   ExtensionChannelConfig,
+  ExtensionDiagnostics,
   ExtensionChannels,
   ExtensionRequest,
   ExtensionRequestHandler,

@@ -338,6 +338,20 @@ program.command("doctor").description(`Run ${APP_NAME} diagnostics`).option("--j
 const logs = program.command("logs").description("Inspect local runtime logs");
 logs.command("path").description("Show local log file paths").action(() => runtime.commands.logs.path());
 logs.command("tail").description("Show recent local log entries").option("--lines <n>", "Number of lines to show", "40").option("--crash", "Tail crash.log instead of service.log", false).action((opts) => runtime.commands.logs.tail(opts));
+logs.command("query")
+  .description("Query structured runtime logs")
+  .option("--since <time>", "ISO timestamp or duration such as 30m, 2h, 7d")
+  .option("--until <time>", "ISO timestamp")
+  .option("--level <levels>", "Comma-separated log levels")
+  .option("--scope <scope>", "Exact log scope")
+  .option("--domain <domain>", "Diagnostic domain, for example channel.delivery")
+  .option("--event <event>", "Diagnostic event")
+  .option("--outcome <outcome>", "Diagnostic outcome, for example failed or cancelled")
+  .option("--reason-code <code>", "Diagnostic reason code, for example network_timeout")
+  .option("--correlation-id <id>", "Diagnostic correlation id")
+  .option("--limit <n>", "Maximum records", "200")
+  .option("--json", "Print a JSON result", false)
+  .action((opts) => runtime.commands.logs.query(opts));
 program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => runtime.commands.usage.show(opts));
 
 await program.parseAsync(process.argv);

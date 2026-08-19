@@ -274,6 +274,20 @@ export type LogsTailCommandOptions = {
   lines?: string | number;
 };
 
+export type LogsQueryCommandOptions = {
+  since?: string;
+  until?: string;
+  level?: string;
+  scope?: string;
+  domain?: string;
+  event?: string;
+  outcome?: string;
+  reasonCode?: string;
+  correlationId?: string;
+  limit?: string | number;
+  json?: boolean;
+};
+
 export type UsageCommandOptions = {
   json?: boolean;
   history?: boolean;

@@ -11,10 +11,12 @@ import type {
   ExtensionProcessState,
   ExtensionRuntimeStatus,
 } from "@kernel/features/extension-runtime/index.js";
-import { createRuntimeChildEnv } from "@nextclaw/core";
+import { createRuntimeChildEnv, type DiagnosticRuntime } from "@nextclaw/core";
+import { classifyDiagnosticError } from "@nextclaw/shared";
 
 type ExtensionLifecycleServiceOptions = {
   cleanupOrphanProcesses?: (manifests: ExtensionManifest[]) => void;
+  diagnostics?: Pick<DiagnosticRuntime, "record">;
   onProcessExit?: (event: ExtensionProcessExitEvent) => void;
   restartDelaysMs?: readonly number[];
   startupTimeoutMs?: number;
@@ -150,6 +152,10 @@ export class ExtensionLifecycleService {
     this.clearStartupTimer(record);
     record.state = "running";
     record.startupDurationMs = record.startedAtMs === null ? null : Date.now() - record.startedAtMs;
+    this.recordLifecycle(record, "process.ready", "succeeded", {
+      durationMs: record.startupDurationMs ?? undefined,
+      facts: { pid: input.pid },
+    });
     record.ready.resolve();
     this.clearStableTimer(record);
     record.stableTimer = setTimeout(() => {
@@ -243,6 +249,7 @@ export class ExtensionLifecycleService {
       return;
     }
     const { generation, manifest, ready, token } = this.prepareStart(record);
+    this.recordLifecycle(record, "process.spawn.started", "started");
     const command = manifest.server.command === "node" || manifest.server.command === "node.exe"
       ? process.execPath
       : manifest.server.command;
@@ -265,6 +272,10 @@ export class ExtensionLifecycleService {
         return;
       }
       ready.reject(new Error(`Extension ${manifest.id} failed to become ready within ${this.startupTimeoutMs}ms.`));
+      this.recordLifecycle(record, "process.ready.failed", "failed", {
+        durationMs: this.startupTimeoutMs,
+        reasonCode: "startup_timeout",
+      });
       child.kill();
     }, this.startupTimeoutMs);
     record.startupTimer.unref?.();
@@ -276,7 +287,17 @@ export class ExtensionLifecycleService {
         ready.reject(error);
         this.handleProcessExit(record, child, generation, null, null);
       }
-      console.warn(`Extension ${manifest.id} failed: ${error.message}`);
+      const classification = classifyDiagnosticError(error);
+      this.recordLifecycle(
+        record,
+        classification.outcome === "cancelled" ? "process.spawn.cancelled" : "process.spawn.failed",
+        classification.outcome,
+        {
+          reasonCode: classification.reasonCode,
+          providerCode: classification.providerCode,
+          facts: classification.facts,
+        },
+      );
     });
     try {
       await ready.promise;
@@ -315,6 +336,19 @@ export class ExtensionLifecycleService {
       expected,
       signal,
     };
+    this.recordLifecycle(
+      record,
+      "process.exited",
+      expected ? "succeeded" : "failed",
+      {
+        reasonCode: expected ? undefined : signal ? "signal_exit" : "unexpected_exit",
+        facts: {
+          expected,
+          ...(code !== null ? { exitCode: code } : {}),
+          ...(signal ? { signal } : {}),
+        },
+      },
+    );
     record.exit?.resolve();
     record.exit = null;
     this.options.onProcessExit?.({
@@ -327,7 +361,6 @@ export class ExtensionLifecycleService {
     } else if (record.leases.size === 0) {
       record.restartAttempts = 0;
     }
-    console.warn(`Extension ${record.manifest.id} exited (${expected ? "expected" : "unexpected"}).`);
   };
 
   private scheduleRestart = (record: ExtensionLifecycleRecord): void => {
@@ -336,21 +369,64 @@ export class ExtensionLifecycleService {
     }
     const delay = this.restartDelaysMs[record.restartAttempts];
     if (delay === undefined) {
-      console.warn(`Extension ${record.manifest.id} restart limit reached.`);
+      this.recordLifecycle(record, "restart.limit-reached", "failed", {
+        attempt: record.restartAttempts,
+        reasonCode: "restart_limit",
+      });
       return;
     }
     record.restartAttempts += 1;
+    this.recordLifecycle(record, "restart.scheduled", "started", {
+      attempt: record.restartAttempts,
+      facts: { delayMs: delay },
+    });
     record.restartTimer = setTimeout(() => {
       record.restartTimer = null;
       if (!this.hasPersistentLease(record) || this.shuttingDown) {
         return;
       }
       void this.ensureRunning(record).catch((error) => {
-        console.warn(`Extension ${record.manifest.id} restart failed: ${error instanceof Error ? error.message : String(error)}`);
+        const classification = classifyDiagnosticError(error);
+        this.recordLifecycle(record, classification.outcome === "cancelled" ? "restart.cancelled" : "restart.failed", classification.outcome, {
+          attempt: record.restartAttempts,
+          reasonCode: classification.reasonCode,
+          providerCode: classification.providerCode,
+          facts: classification.facts,
+        });
         this.scheduleRestart(record);
       });
     }, delay);
     record.restartTimer.unref?.();
+  };
+
+  private readonly recordLifecycle = (
+    record: ExtensionLifecycleRecord,
+    event: string,
+    outcome: "started" | "succeeded" | "cancelled" | "failed",
+    details: {
+      durationMs?: number;
+      attempt?: number;
+      reasonCode?: string;
+      providerCode?: string;
+      facts?: Record<string, string | number | boolean | null>;
+    } = {},
+  ): void => {
+    this.options.diagnostics?.record({
+      domain: "extension.lifecycle",
+      event,
+      component: "kernel.extension-lifecycle",
+      outcome,
+      correlationId: record.generation ?? undefined,
+      durationMs: details.durationMs,
+      attempt: details.attempt,
+      reasonCode: details.reasonCode,
+      providerCode: details.providerCode,
+      facts: {
+        extensionId: record.manifest.id,
+        generation: record.generation ?? "pending",
+        ...(details.facts ?? {}),
+      },
+    });
   };
 
   private releaseLease = (extensionId: string, leaseId: string): void => {
