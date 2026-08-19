@@ -1,5 +1,24 @@
 # @nextclaw/ui
 
+## 0.19.0
+
+### Minor Changes
+
+- c19ae8f: 大工具调用历史会话改为按预算分级加载：首屏显示真实工具调用数量和类型，只有展开处理过程时才按消息读取完整参数与结果，并对超大工具组分批展示。历史分页与会话摘要改走有界投影读模型，避免打开会话时扫描完整 journal；会话列表先限量并限制 metadata 读取并发，减少首屏请求之间的 I/O 争用。
+
+  <!-- release-note-blog: docs/blog-drafts/2026-08-20-heavy-tool-call-session-performance.blog-draft.md -->
+
+- e8d725a: 支持用户从 Panel Apps 列表或运行中 App 的更多菜单手动添加主侧栏入口，并在主内容区无重复宿主 Header 地完整使用。安装不会自动占用主侧栏；禁用后入口暂时隐藏并可在重新启用后恢复，卸载或删除则会清理入口。添加/移除即时反馈，打开 App 不再等待活动统计写盘；右侧 Panel App 移除重复的“返回应用”动作，统一遵循资源浏览器历史。
+
+### Patch Changes
+
+- Updated dependencies [c19ae8f]
+- Updated dependencies [e8d725a]
+- Updated dependencies [c10dcaa]
+  - @nextclaw/client-sdk@0.7.0
+  - @nextclaw/agent-chat-ui@0.7.0
+  - @nextclaw/shared@0.4.25
+
 ## 0.18.4
 
 ### Patch Changes

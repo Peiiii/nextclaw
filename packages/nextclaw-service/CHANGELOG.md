@@ -1,5 +1,35 @@
 # @nextclaw/service
 
+## 0.3.41
+
+### Patch Changes
+
+- c10dcaa: 新增统一的结构化运行诊断事件、安全错误分类和日志查询命令，覆盖 Service、扩展、配置、渠道、Agent、全部 kernel 工具、外部 transport 与定时任务关键链路；取消、网络与未知异常都有独立可查询终态。内置 AI 现在可以按时间窗和关联 ID 从日志证据排查运行故障。QQ 渠道首先接入完整投递链路，并默认不记录消息正文、工具参数/结果、完整 URL、用户身份或凭据。
+- Updated dependencies [c19ae8f]
+- Updated dependencies [e8d725a]
+- Updated dependencies [256e2cb]
+- Updated dependencies [c10dcaa]
+  - @nextclaw/kernel@0.9.0
+  - @nextclaw/server@0.17.0
+  - @nextclaw/client-sdk@0.7.0
+  - @nextclaw/channel-extension-qq@0.2.25
+  - @nextclaw/shared@0.4.25
+  - @nextclaw/core@0.17.5
+  - @nextclaw/remote@0.3.38
+  - @nextclaw/channel-extension-dingtalk@0.2.31
+  - @nextclaw/channel-extension-discord@0.2.31
+  - @nextclaw/channel-extension-email@0.2.31
+  - @nextclaw/channel-extension-feishu@0.2.26
+  - @nextclaw/channel-extension-slack@0.2.31
+  - @nextclaw/channel-extension-telegram@0.2.31
+  - @nextclaw/channel-extension-wecom@0.2.31
+  - @nextclaw/channel-extension-weixin@0.2.26
+  - @nextclaw/channel-extension-whatsapp@0.2.31
+  - @nextclaw/mcp@0.3.32
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.32
+  - @nextclaw/runtime@0.4.31
+  - @nextclaw/ncp-mcp@0.2.32
+
 ## 0.3.40
 
 ### Patch Changes

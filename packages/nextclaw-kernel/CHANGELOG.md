@@ -1,5 +1,27 @@
 # @nextclaw/kernel
 
+## 0.9.0
+
+### Minor Changes
+
+- c19ae8f: 大工具调用历史会话改为按预算分级加载：首屏显示真实工具调用数量和类型，只有展开处理过程时才按消息读取完整参数与结果，并对超大工具组分批展示。历史分页与会话摘要改走有界投影读模型，避免打开会话时扫描完整 journal；会话列表先限量并限制 metadata 读取并发，减少首屏请求之间的 I/O 争用。
+
+  <!-- release-note-blog: docs/blog-drafts/2026-08-20-heavy-tool-call-session-performance.blog-draft.md -->
+
+### Patch Changes
+
+- e8d725a: 支持用户从 Panel Apps 列表或运行中 App 的更多菜单手动添加主侧栏入口，并在主内容区无重复宿主 Header 地完整使用。安装不会自动占用主侧栏；禁用后入口暂时隐藏并可在重新启用后恢复，卸载或删除则会清理入口。添加/移除即时反馈，打开 App 不再等待活动统计写盘；右侧 Panel App 移除重复的“返回应用”动作，统一遵循资源浏览器历史。
+- c10dcaa: 新增统一的结构化运行诊断事件、安全错误分类和日志查询命令，覆盖 Service、扩展、配置、渠道、Agent、全部 kernel 工具、外部 transport 与定时任务关键链路；取消、网络与未知异常都有独立可查询终态。内置 AI 现在可以按时间窗和关联 ID 从日志证据排查运行故障。QQ 渠道首先接入完整投递链路，并默认不记录消息正文、工具参数/结果、完整 URL、用户身份或凭据。
+- Updated dependencies [c10dcaa]
+  - @nextclaw/shared@0.4.25
+  - @nextclaw/core@0.17.5
+  - @nextclaw/channel-extension-feishu@0.2.26
+  - @nextclaw/channel-extension-weixin@0.2.26
+  - @nextclaw/mcp@0.3.32
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.32
+  - @nextclaw/runtime@0.4.31
+  - @nextclaw/ncp-mcp@0.2.32
+
 ## 0.8.7
 
 ### Patch Changes

@@ -1,0 +1,1 @@
+import{B as e,L as t}from"./react-B7Paq2b3.js";var n=e();function r({className:e,...r}){return(0,n.jsx)(`div`,{className:t(`animate-pulse rounded-md bg-slate-200`,e),...r})}export{r as t};

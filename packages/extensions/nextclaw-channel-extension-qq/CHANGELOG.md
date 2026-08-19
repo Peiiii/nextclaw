@@ -1,5 +1,14 @@
 # @nextclaw/channel-extension-qq
 
+## 0.2.25
+
+### Patch Changes
+
+- 256e2cb: 修复 QQ 网关短暂断线后错过消息的问题，并避免入站提交失败被误记为已处理。
+- c10dcaa: 新增统一的结构化运行诊断事件、安全错误分类和日志查询命令，覆盖 Service、扩展、配置、渠道、Agent、全部 kernel 工具、外部 transport 与定时任务关键链路；取消、网络与未知异常都有独立可查询终态。内置 AI 现在可以按时间窗和关联 ID 从日志证据排查运行故障。QQ 渠道首先接入完整投递链路，并默认不记录消息正文、工具参数/结果、完整 URL、用户身份或凭据。
+- Updated dependencies [c10dcaa]
+  - @nextclaw/extension-sdk@0.3.25
+
 ## 0.2.24
 
 ### Patch Changes
