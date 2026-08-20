@@ -744,17 +744,22 @@ jobs:
           set -euo pipefail
           github_file_limit=104857600
           while IFS= read -r deb_file; do
+            original_size="$(stat --format='%s' "$deb_file")"
+            if [ "$original_size" -lt "$github_file_limit" ]; then
+              printf '[desktop-release] keeping %s at %s bytes; below GitHub limit\n' "$deb_file" "$original_size"
+              continue
+            fi
             package_root="$(mktemp -d)"
             repacked_file="${deb_file}.repacked"
             dpkg-deb --raw-extract "$deb_file" "$package_root"
             dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme "$package_root" "$repacked_file"
-            mv "$repacked_file" "$deb_file"
-            package_size="$(stat --format='%s' "$deb_file")"
-            printf '[desktop-release] repacked %s to %s bytes\n' "$deb_file" "$package_size"
+            package_size="$(stat --format='%s' "$repacked_file")"
+            printf '[desktop-release] repacked %s from %s to %s bytes\n' "$deb_file" "$original_size" "$package_size"
             if [ "$package_size" -ge "$github_file_limit" ]; then
               echo "Repacked Linux package still exceeds the GitHub 100 MiB file limit: $package_size bytes"
               exit 1
             fi
+            mv "$repacked_file" "$deb_file"
           done < <(find dist/linux-apt-input -maxdepth 1 -type f -name '*.deb' | sort)
 
       - name: Build signed Linux APT repo
