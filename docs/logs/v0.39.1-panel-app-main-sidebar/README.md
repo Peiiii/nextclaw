@@ -33,7 +33,7 @@
 
 ## 发布/部署方式
 
-本批已获得 0.40.1 稳定 patch 发布授权。先提交并推送 release-bearing `master`，由 `npm-release-prepare` 为精确 commit 生成不可变发布 artifact；再通过常规 stable product 流程发布 `@nextclaw/ui`、`nextclaw` 及实际依赖传播闭包、stable runtime channel、GitHub Release 和结构化更新说明，并完成公开安装/升级 smoke。Desktop installer 不在本批范围。
+本批已按 0.40.1 稳定 patch 合同完成发布和部署。`npm-release-prepare` 为精确提交生成不可变 artifact，正式流程随后发布 NPM 包、四平台 stable runtime channel、GitHub Release 和结构化更新说明，并完成公开安装/升级 smoke。Desktop installer 不在本批范围。
 
 ## 用户/产品视角的验收步骤
 
@@ -55,10 +55,10 @@
 
 ## NPM 包发布记录
 
-基础合同涉及的 `@nextclaw/kernel`、`@nextclaw/server` 和 `@nextclaw/client-sdk` 已随 NextClaw 0.40.0 发布。本次补丁发布前状态如下：
+基础合同涉及的 `@nextclaw/kernel`、`@nextclaw/server` 和 `@nextclaw/client-sdk` 已随 NextClaw 0.40.0 发布。本次补丁实际发布闭包如下：
 
-- `@nextclaw/ui`：待从 0.19.0 发布至 0.19.1。
-- `nextclaw`：待发布 0.40.1。
-- 其余包：仅在正式发布脚本判定存在内部依赖传播时纳入闭包。
+- `@nextclaw/ui@0.19.1`：已发布到 NPM `latest`。
+- `nextclaw@0.40.1`：已发布到 NPM `latest`。
+- 其余公开包：无必要的依赖传播，不重复发布；Desktop installer 明确排除。
 
-用户已明确授权正式 NPM/runtime product stable 发布，最终版本、dist-tag、runtime manifest、真实安装和分支闭合结果将在发布完成后回填。
+NPM registry 精确 tarball 校验通过；从干净临时前缀安装 `nextclaw@0.40.0` 后，stable 更新检查识别到 0.40.1，只下载不切换 current pointer，应用后新进程版本为 0.40.1。Linux x64、Windows x64、macOS x64 和 macOS arm64 的签名 runtime 产物、GitHub Release 资源及公开 stable manifest 全部发布并验证。中英文发布说明已部署至文档站。发布提交 `5eb4bae96fa4696929762fc64865ebf82094b9b2`、`master`、release 分支和两个 package tag 已完成远端闭合。
