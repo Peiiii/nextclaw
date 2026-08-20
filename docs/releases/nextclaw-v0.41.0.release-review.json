@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.41.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-20-nextclaw-v0-41-0.md",
+        "apps/docs/en/notes/2026-08-20-nextclaw-v0-41-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.41.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "This release changes installed runtime behavior and an in-product privacy setting; existing website pages do not contain version-specific claims that require an update."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.41.0 is out.\n\nProduct analytics are off by default and can exclude team/QA traffic. Desktop Service Apps now use NextClaw’s bundled Node, so Favorites and Calendar work without a system Node install.\n\nhttps://docs.nextclaw.io/en/notes/2026-08-20-nextclaw-v0-41-0",
+      "imagePath": "images/screenshots/nextclaw-personal-space-apps-en.png",
+      "imageAlt": "NextClaw Personal Space showing the built-in Todo, Markdown Notes, Favorites, and Calendar apps",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-20-nextclaw-v0-41-0"
+    }
+  }
+}

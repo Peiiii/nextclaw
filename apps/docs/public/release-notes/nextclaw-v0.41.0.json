@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.41.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-20",
+  "title": {
+    "zh-CN": "NextClaw v0.41.0",
+    "en-US": "NextClaw v0.41.0"
+  },
+  "summary": {
+    "zh-CN": "新增默认关闭的隐私友好型产品活跃统计，并让桌面端内置应用无需系统 Node 也能可靠运行。",
+    "en-US": "Adds opt-in, privacy-minimized product activity reporting and makes bundled Desktop apps reliable without a system Node installation."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-20-nextclaw-v0-41-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-20-nextclaw-v0-41-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "可控的产品活跃统计", "en-US": "Controlled product activity reporting" },
+          "body": {
+            "zh-CN": "在“隐私与统计”中手动开启最小化的产品活跃数据分享；默认保持关闭。",
+            "en-US": "Enable privacy-minimized product activity sharing from Privacy & Analytics when you choose; it remains off by default."
+          }
+        },
+        {
+          "title": { "zh-CN": "团队和 QA 流量单独分类", "en-US": "Separate team and QA traffic" },
+          "body": {
+            "zh-CN": "将当前安装标记为外部用户、团队 / 自用或 QA 测试，避免内部设备进入外部用户指标。",
+            "en-US": "Classify an installation as external, team/internal, or QA testing so internal devices stay out of external-user metrics."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "桌面端 Service App 不再依赖系统 Node", "en-US": "Desktop Service Apps no longer require system Node" },
+          "body": {
+            "zh-CN": "声明 node 或 node.exe 的应用使用 NextClaw 自带 runtime；内置收藏和日历可在未安装系统 Node 的机器上继续读取原有本地数据。",
+            "en-US": "Apps declaring node or node.exe use the runtime bundled with NextClaw. Built-in Favorites and Calendar continue reading existing local data even when system Node is not installed."
+          }
+        },
+        {
+          "title": { "zh-CN": "失败信息保持结构化", "en-US": "Failures stay structured" },
+          "body": {
+            "zh-CN": "Service App 启动失败不再把 HTML、裸 500 或内部 endpoint 当作应用内容展示。",
+            "en-US": "Service App startup failures no longer expose HTML, raw 500 responses, or internal endpoints as app content."
+          }
+        }
+      ]
+    }
+  ]
+}
