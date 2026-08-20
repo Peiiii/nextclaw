@@ -132,6 +132,54 @@
   </script>
   <script>
     (() => {
+      if ('%MODE%' === 'development') {
+        return;
+      }
+      const routeMatch = window.location.pathname.match(/^\/chat\/([^/]+)$/);
+      const routeValue = routeMatch?.[1];
+      if (!routeValue || routeValue === 'draft' || !routeValue.startsWith('sid_')) {
+        return;
+      }
+      const encoded = routeValue.slice(4).replace(/-/g, '+').replace(/_/g, '/');
+      const padding = '='.repeat((4 - (encoded.length % 4)) % 4);
+      let sessionId;
+      try {
+        const binary = window.atob(encoded + padding);
+        const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+        sessionId = new TextDecoder().decode(bytes);
+      } catch {
+        return;
+      }
+      if (!sessionId) {
+        return;
+      }
+      const limit = 20;
+      const query = new URLSearchParams({
+        limit: String(limit),
+        toolPayload: 'summary',
+        initialPayload: 'compact'
+      });
+      const promise = window.fetch(
+        `/api/ncp/sessions/${encodeURIComponent(sessionId)}/messages?${query}`,
+        {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          priority: 'high'
+        }
+      ).then(async (response) => ({
+        responseOk: response.ok,
+        payload: await response.json()
+      })).catch(() => null);
+      window.__NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__ = {
+        consumed: false,
+        limit,
+        promise,
+        sessionId
+      };
+    })();
+  </script>
+  <script>
+    (() => {
       const isViteDevServer = '%MODE%' === 'development';
       if (!isViteDevServer || !('serviceWorker' in navigator)) {
         return;
@@ -193,13 +241,13 @@
       });
     })();
   </script>
+  <script type="module" src="/src/main.tsx"></script>
   <title>NextClaw</title>
 </head>
 
 <body>
   <div id="root"></div>
   <script vite-ignore src="/api/ui-inject.js"></script>
-  <script type="module" src="/src/main.tsx"></script>
 </body>
 
 </html>

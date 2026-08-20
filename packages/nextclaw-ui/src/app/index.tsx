@@ -10,6 +10,7 @@ import { AppLayout } from "@/app/components/layout/app-layout";
 import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styles";
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
+import { ChatPage } from "@/components/chat/chat-page";
 import { AccountPanel } from "@/features/account";
 import { InboxRuntime } from "@/features/inbox";
 import { ServiceActionAuthorizationDialog } from "@/features/service-apps";
@@ -33,9 +34,6 @@ const ModelConfigPage = lazy(async () => ({
 const AppearanceSettingsPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/appearance-settings-page"))
     .AppearanceSettingsPage,
-}));
-const ChatPage = lazy(async () => ({
-  default: (await import("@/components/chat/chat-page")).ChatPage,
 }));
 const SearchConfigPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/search-config-page"))

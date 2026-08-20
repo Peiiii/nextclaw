@@ -329,6 +329,108 @@ describe("useHydratedNcpAgent", () => {
 });
 
 describe("useHydratedNcpAgent stream reconciliation", () => {
+  it("keeps the rendered message snapshot stable when reconciliation data is unchanged", async () => {
+    let resolveReconcile: ((seed: { messages: readonly NcpMessage[]; status: "idle" }) => void) | null = null;
+    const reconcileSeed = new Promise<{ messages: readonly NcpMessage[]; status: "idle" }>((resolve) => {
+      resolveReconcile = resolve;
+    });
+    const client = {
+      stop: mocks.stop.mockResolvedValue(undefined),
+      stream: mocks.stream.mockImplementation((_payload, observer) => {
+        observer?.onOpen?.();
+        return new Promise<void>(() => {});
+      }),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as NcpAgentClientEndpoint;
+    const historyMessage: NcpMessage = {
+      id: "message-stable",
+      sessionId: "session-stable",
+      role: "assistant",
+      status: "final",
+      parts: [{ type: "text", text: "Already rendered" }],
+      timestamp: "2026-08-20T00:00:00.000Z",
+    };
+    const loadSeed = vi
+      .fn()
+      .mockResolvedValueOnce({ messages: [historyMessage], status: "idle" })
+      .mockImplementationOnce(() => reconcileSeed);
+    const { result } = renderHook(() =>
+      useHydratedNcpAgent({
+        sessionId: "session-stable",
+        client,
+        loadSeed,
+      }),
+    );
+
+    await waitFor(() => expect(loadSeed).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.visibleMessages).toEqual([historyMessage]));
+    const renderedMessages = result.current.visibleMessages;
+
+    await act(async () => {
+      resolveReconcile?.({ messages: [{ ...historyMessage }], status: "idle" });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.visibleMessages).toBe(renderedMessages);
+  });
+
+  it("rehydrates when reconciliation changes the content of an existing message", async () => {
+    let resolveReconcile: ((seed: { messages: readonly NcpMessage[]; status: "idle" }) => void) | null = null;
+    const reconcileSeed = new Promise<{ messages: readonly NcpMessage[]; status: "idle" }>((resolve) => {
+      resolveReconcile = resolve;
+    });
+    const client = {
+      stop: mocks.stop.mockResolvedValue(undefined),
+      stream: mocks.stream.mockImplementation((_payload, observer) => {
+        observer?.onOpen?.();
+        return new Promise<void>(() => {});
+      }),
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as NcpAgentClientEndpoint;
+    const historyMessage: NcpMessage = {
+      id: "message-changed",
+      sessionId: "session-changed",
+      role: "assistant",
+      status: "final",
+      parts: [{ type: "text", text: "Before reconciliation" }],
+      timestamp: "2026-08-20T00:00:00.000Z",
+    };
+    const loadSeed = vi
+      .fn()
+      .mockResolvedValueOnce({ messages: [historyMessage], status: "idle" })
+      .mockImplementationOnce(() => reconcileSeed);
+    const { result } = renderHook(() =>
+      useHydratedNcpAgent({
+        sessionId: "session-changed",
+        client,
+        loadSeed,
+      }),
+    );
+
+    await waitFor(() => expect(loadSeed).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.visibleMessages).toEqual([historyMessage]));
+    const renderedMessages = result.current.visibleMessages;
+
+    await act(async () => {
+      resolveReconcile?.({
+        messages: [{
+          ...historyMessage,
+          parts: [{ type: "text", text: "After reconciliation" }],
+        }],
+        status: "idle",
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.visibleMessages).not.toBe(renderedMessages);
+      expect(result.current.visibleMessages[0]?.parts).toEqual([
+        { type: "text", text: "After reconciliation" },
+      ]);
+    });
+  });
+
   it("reconciles history after the stream opens without overwriting newer live completion", async () => {
     let subscriber: NcpEndpointSubscriber | null = null;
     let resolveReconcile: ((seed: { messages: readonly NcpMessage[]; status: "running" }) => void) | null = null;

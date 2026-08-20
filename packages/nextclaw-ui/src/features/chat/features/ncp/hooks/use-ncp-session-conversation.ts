@@ -12,9 +12,9 @@ import type {
 import { API_BASE } from "@/shared/lib/api";
 import { createNcpAppClientFetch } from "@/features/chat/features/runtime/utils/ncp-app-client-fetch.utils";
 import {
-  DEFAULT_NCP_SESSION_MESSAGE_LIMIT,
   useNcpSessionMessageHistory,
 } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
+import { DEFAULT_NCP_SESSION_MESSAGE_LIMIT } from "@/features/chat/features/ncp/hooks/use-ncp-session-seed-loader";
 import { useSystemStatus } from "@/features/system-status";
 import { nextclawClient } from "@/shared/lib/api";
 
@@ -23,7 +23,7 @@ const NCP_AGENT_UNAVAILABLE_DURING_STARTUP =
 const NCP_AGENT_STREAM_OPEN_TIMEOUT_MS = 15_000;
 const NCP_AGENT_STREAM_IDLE_TIMEOUT_MS = 70_000;
 
-export { fetchNcpSessionConversationSeed } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
+export { fetchNcpSessionConversationSeed } from "@/features/chat/features/ncp/hooks/use-ncp-session-seed-loader";
 
 type UseNcpSessionConversationOptions = {
   messageLimit?: number;

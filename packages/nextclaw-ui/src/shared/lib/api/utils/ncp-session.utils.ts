@@ -23,6 +23,7 @@ export async function fetchNcpSessionMessages(
     limit?: number;
     cursor?: string;
     toolPayload?: "summary";
+    initialPayload?: "compact";
     signal?: AbortSignal;
   } = {},
 ): Promise<NcpSessionMessagesView> {

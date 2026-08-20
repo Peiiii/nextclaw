@@ -15,7 +15,10 @@ import {
   isSessionSettingsError,
 } from "@nextclaw/kernel";
 import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/services/session-skills-view.service.js";
-import { buildSessionMessageHistoryPayloadView } from "@nextclaw-server/features/sessions/utils/session-message-history-payload.utils.js";
+import {
+  buildSessionMessageHistoryPayloadView,
+  compactSessionMessageHistoryPayloadView,
+} from "@nextclaw-server/features/sessions/utils/session-message-history-payload.utils.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
@@ -160,22 +163,35 @@ export class NcpSessionRoutesController {
     if (!page) {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }
-    const historyPayload = c.req.query("toolPayload") === "summary"
+    const useSummaryPayload = c.req.query("toolPayload") === "summary";
+    const historyPayload = useSummaryPayload
       ? buildSessionMessageHistoryPayloadView({
           messages: page.messages,
           messageDetailCursors: page.messageDetailCursors,
         })
       : { messages: page.messages, deferredToolPayloads: {} };
+    const compactHistoryPayload = useSummaryPayload &&
+      !c.req.query("cursor") &&
+      c.req.query("initialPayload") === "compact"
+      ? compactSessionMessageHistoryPayloadView({ view: historyPayload })
+      : { ...historyPayload, startIndex: 0 };
+    const compactStartCursor = compactHistoryPayload.startIndex > 0
+      ? page.messageDetailCursors[page.messages[compactHistoryPayload.startIndex - 1]?.id ?? ""]
+        ?? page.pageInfo.startCursor
+      : page.pageInfo.startCursor;
     const payload = {
       sessionId,
       status: this.options.kernel.isSessionRunning(sessionId) ? ("running" as const) : ("idle" as const),
-      messages: historyPayload.messages,
-      ...(Object.keys(historyPayload.deferredToolPayloads).length > 0
-        ? { deferredToolPayloads: historyPayload.deferredToolPayloads }
+      messages: compactHistoryPayload.messages,
+      ...(Object.keys(compactHistoryPayload.deferredToolPayloads).length > 0
+        ? { deferredToolPayloads: compactHistoryPayload.deferredToolPayloads }
         : {}),
       ...(page.contextWindow ? { contextWindow: page.contextWindow } : {}),
       total: page.total,
-      pageInfo: page.pageInfo
+      pageInfo: {
+        startCursor: compactStartCursor,
+        hasPreviousPage: page.pageInfo.hasPreviousPage || compactHistoryPayload.startIndex > 0,
+      }
     };
     return c.json(ok(payload));
   };

@@ -1,20 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { NcpMessage, NcpSessionMessagePageInfo } from "@nextclaw/ncp";
-import type { NcpConversationSeed } from "@nextclaw/ncp-react";
+import type { NcpMessage } from "@nextclaw/ncp";
 import {
   fetchNcpSessionMessageDetail,
   fetchNcpSessionMessages,
   type SessionContextWindowView,
 } from "@/shared/lib/api";
-
-export const DEFAULT_NCP_SESSION_MESSAGE_LIMIT = 40;
-
-type NcpConversationSeedWithContextWindow = NcpConversationSeed & {
-  contextWindow?: SessionContextWindowView | null;
-  deferredToolPayloads: Record<string, { cursor: string }>;
-  total: number;
-  pageInfo: NcpSessionMessagePageInfo;
-};
+import {
+  useNcpSessionSeedLoader,
+  type NcpConversationSeedWithContextWindow,
+} from "@/features/chat/features/ncp/hooks/use-ncp-session-seed-loader";
 
 export type SessionMessageToolPayloadState = "summary" | "loading" | "ready" | "error";
 
@@ -43,48 +37,6 @@ const EMPTY_SESSION_HISTORY_STATE: SessionHistoryState = {
   messageDetails: {},
   messageDetailStates: {},
 };
-
-function isMissingNcpSessionError(error: unknown): boolean {
-  return (
-    error instanceof Error && error.message.includes("ncp session not found:")
-  );
-}
-
-export async function fetchNcpSessionConversationSeed(
-  sessionId: string,
-  signal: AbortSignal,
-  messageLimit = DEFAULT_NCP_SESSION_MESSAGE_LIMIT,
-): Promise<NcpConversationSeedWithContextWindow> {
-  signal.throwIfAborted();
-  try {
-    const response = await fetchNcpSessionMessages(sessionId, {
-      limit: messageLimit,
-      toolPayload: "summary",
-      signal,
-    });
-    signal.throwIfAborted();
-    return {
-      messages: response.messages,
-      status: response.status ?? "idle",
-      contextWindow: response.contextWindow ?? null,
-      deferredToolPayloads: response.deferredToolPayloads ?? {},
-      total: response.total,
-      pageInfo: response.pageInfo,
-    };
-  } catch (error) {
-    signal.throwIfAborted();
-    if (!isMissingNcpSessionError(error)) {
-      throw error;
-    }
-    return {
-      messages: [],
-      status: "idle",
-      total: 0,
-      deferredToolPayloads: {},
-      pageInfo: { startCursor: null, hasPreviousPage: false },
-    };
-  }
-}
 
 type UpdateSessionHistoryState = (
   sessionId: string,
@@ -194,35 +146,33 @@ export function useNcpSessionMessageHistory(params: {
     sessionId,
     updateHistoryState,
   });
-  const loadSeed = useCallback(
-    async (targetSessionId: string, signal: AbortSignal) => {
-      void hydrationRetryVersion;
-      const seed = await fetchNcpSessionConversationSeed(
-        targetSessionId,
-        signal,
-        messageLimit,
-      );
-      if (!signal.aborted) {
-        updateHistoryState(targetSessionId, (current) => ({
-          ...current,
-          contextWindow: seed.contextWindow ?? null,
-          deferredToolPayloads: seed.deferredToolPayloads,
-          messageDetails: {},
-          messageDetailStates: Object.fromEntries(
-            Object.keys(seed.deferredToolPayloads).map((messageId) => [messageId, "summary"]),
-          ),
-          total: seed.total,
-          cursor: seed.pageInfo.startCursor,
-          hasPreviousPage: seed.pageInfo.hasPreviousPage,
-          error: null,
-        }));
-      }
-      return { messages: seed.messages, status: seed.status };
-    },
-    [hydrationRetryVersion, messageLimit, updateHistoryState],
-  );
+  const onSeedLoaded = useCallback((
+    targetSessionId: string,
+    seed: NcpConversationSeedWithContextWindow,
+  ) => {
+    updateHistoryState(targetSessionId, (current) => ({
+      ...current,
+      contextWindow: seed.contextWindow ?? null,
+      deferredToolPayloads: seed.deferredToolPayloads,
+      messageDetails: {},
+      messageDetailStates: Object.fromEntries(
+        Object.keys(seed.deferredToolPayloads).map((messageId) => [messageId, "summary"]),
+      ),
+      total: seed.total,
+      cursor: seed.pageInfo.startCursor,
+      hasPreviousPage: seed.pageInfo.hasPreviousPage,
+      error: null,
+    }));
+  }, [updateHistoryState]);
+  const loadSeed = useNcpSessionSeedLoader({
+    hydrationRetryVersion,
+    messageLimit,
+    onSeedLoaded,
+  });
   const loadPreviousMessages = useCallback(
-    async (prependHistory: (messages: ReadonlyArray<NcpMessage>) => void) => {
+    async (
+      prependHistory: (messages: ReadonlyArray<NcpMessage>) => void,
+    ) => {
       const history = historyStateRef.current;
       if (
         !sessionId ||

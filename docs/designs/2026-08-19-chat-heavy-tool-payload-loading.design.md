@@ -15,6 +15,7 @@
 - 去掉隐藏全量计算后，接口首字节已降到冷次 125ms、热态 48–62ms，但隔离浏览器的最近消息可见仍为 4.9–5.6 秒。页面响应虽然只有约 456KB，40 条消息中仍包含约 1,450 个逐调用摘要 part，前端必须逐个适配成 tool-card view model；折叠态没有挂载卡片，却仍支付了线性对象构造成本。
 - 聚合工具摘要后，历史响应进一步降到约 262KB、工具 part 从约 1,450 个降到 20 个，但浏览器仍出现 2.9–9.3 秒波动。网络时间线显示历史请求约 604ms 发出、约 4.43s 才收到，而相同接口单独请求只需约 59ms；同期 `skills`、`queued-inputs` 等接口都调用 `SessionManager.getSession`，分别加载完整 journal、预览 context window 并写 projection，串行阻塞同一服务事件循环。根因从单个分页方法扩大为 read-shaped session summary API 的 owner 错位。
 - `getSession` 改为投影读取后，直接 session/queued-inputs 请求已降到约 4–6ms，但冷页面仍约 2.5–3.2 秒。并发时间线显示 `list sessions?limit=200` 先对全部约 705 条 summary 发起 metadata sidecar 读取，再在 manager 层截到 200 条；大量并发文件读取占满 I/O 队列，历史 projection 的少量读取被排队约 1.2–1.7 秒。这是全局列表读模型的 limit 下推和背压缺失。
+- 线上 `0.40.1` 的真实 68 MB 会话进一步证明，字节预算不能代表浏览器对象成本：最近 40 条消息的 projection 读取与 JSON 解析仅 25ms，但现有摘要仍返回约 1.88 MB、420 个工具调用 part，只有 2 条消息因超过字节阈值被延迟；同一 Chrome 热刷新直到最后消息可见约 18.3 秒。工具载荷分散在许多低于 256 KiB 的消息时，2 MiB 页面字节预算无法约束 tool-card view model 数量。第一次数量预算部署后还发现，一条已有 `endedAt` 的 `status="error"` 历史 assistant 消息含 27 个工具调用、约 273 KiB，却因候选只接受 `final` 而完整下发；错误终态同样是可稳定读取详情的已结算历史，不能与 `pending` / `streaming` 混为一类。补齐数量与错误终态预算后，线上 summary 发送量已降到约 77 KiB，但 40 条消息仍会在首次 hydrate 和 stream-open reconcile 中各适配一次，连续热刷新仍为 5.84–7.52 秒；此时瓶颈已经从载荷体积转为前端每轮 hydrate 的消息对象窗口。首屏收敛到 20 条后发送量约 26 KiB，warm 刷新仍为 4.09–5.70 秒，且每次 stream open 都会在约 3 秒内取得第二份相同 seed 并再次提交 manager；继续缩短窗口不能关闭重复状态提交这一生命周期问题。
 
 因此这是跨 message projection、HTTP view、前端历史状态和折叠交互的 L3 合同缺口，不是单纯调小消息条数或增加列表虚拟化可以关闭的问题。
 
@@ -24,8 +25,9 @@
 
 成功标准：
 
-- 普通小会话保持一次请求拿到完整历史，不引入额外交互；
+- 不超过首屏窗口的普通小会话保持一次请求拿到完整历史；更长会话向上滚动时沿现有分页自动补齐，不新增按钮或丢失历史；
 - 大载荷会话的首屏响应受明确字节预算约束，不能由工具调用累计体积无限增长；
+- 大载荷会话的首屏工具 part 数量同样受明确预算约束，不能因大量小参数调用绕过字节预算；
 - 工具名称、数量、状态、耗时以及可安全提取的命令/路径/查询摘要在首屏可见；
 - 展开一条延迟消息时按消息一次加载完整工具载荷，不按工具调用制造 N+1 请求；
 - 同一消息加载成功后在当前会话生命周期内缓存，折叠、重开和查看不同工具卡不重复请求；
@@ -66,11 +68,13 @@
 
 ## 关键决策与理由
 
-### 1. 预算是页面级和消息级，不是单字段阈值
+### 1. 预算同时约束字节和工具调用数量，并且都有页面级与消息级上界
 
-单次调用的 4 KiB 参数看似不大，但 50 或 500 次累计后仍会压垮首屏。服务端先计算 finalized assistant message 的工具 args/result 累计体积：单消息超过预算，或整页工具载荷超过预算时，将最大的候选消息按消息整体延迟，直到页面回到预算内。
+单次调用的 4 KiB 参数看似不大，但 50 或 500 次累计后仍会压垮首屏。服务端为已结算的 assistant message（`final` 或 `error`）同时计算工具 args/result 累计体积与工具 part 数量：单消息超过任一预算，或整页仍超过任一预算时，将候选消息按消息整体延迟，直到字节和调用数量都回到预算内。`pending` / `streaming` 仍保持完整实时表示。
 
-初始常量建议为单消息 256 KiB、整页 2 MiB。它们是可由压力基准调整的性能预算，不是外部协议；实现后必须用当前夹具校准。如果 2 MiB 仍不能满足首屏目标，优先收紧预算而不是改交互合同。
+字节预算保留单消息 256 KiB、整页 2 MiB；工具数量预算采用单消息 12 次、整页 80 次。它们是可由压力基准调整的性能预算，不是外部协议。选择 12/80 的依据是：线上真实页会把 420 个首屏工具 part 收敛到 19 个、估算响应约 533 KiB，同时普通的短工具过程仍一次完整返回；若只放宽到单消息 20 次、整页 100 次，该页仍会返回 100 个工具 part 和约 923 KiB，不能为 2 秒目标留出足够余量。
+
+算法先延迟超过单消息字节或数量上界的消息，再分别按工具载荷字节和调用数量从大到小收敛页面预算。延迟集合是两种压力的并集；不能用一个混合分数掩盖任一硬上界，也不能按工具调用拆分同一消息。
 
 ### 2. 延迟单位是整条消息，不是单个工具调用
 
@@ -131,22 +135,77 @@ Summary index 已按最近活动排序，未按 peer 过滤的列表请求可以
 
 peer 过滤可能依赖 metadata 中的 peer 信息，不能在过滤前盲目截断；该路径保留全量候选，但同样受并发上界约束。这里不通过减少 UI 的 200 条产品上限来换性能，也不改变排序或列表内容合同，只把 limit 推到已有有序 read model 的正确位置。
 
+### 11. 近期上下文目标采用 20 条，更早历史继续按滚动位置自动分页
+
+在摘要字节与工具数量都已受控后，首屏消息对象仍会被初始 hydrate 与 stream-open reconcile 各处理一次。线上 2 核 VPS 与真实 Chrome 证明 40 条窗口不能满足可见时间目标，因此 UI 把近期上下文目标从 40 条收敛到 20 条；约等于最近 10 轮用户/assistant 对话，足以建立进入上下文。这里的 20 条是页面稳定后的近期上下文目标，不要求极重会话必须等 20 条全部下载完才首次显示。第 21 条及更早历史仍在用户向上滚动到现有 320px 边界时，由 history manager 使用 projection cursor 自动 prepend，数据、顺序和入口不变。
+
+20 是 consumer 请求的最大上下文窗口，不再被解释为任何数据形态都必须返回 20 条。普通短消息应尽量一次返回 20 条；极重摘要页允许按显式 compact 首屏合同缩小实际窗口，具体规则见决策 13。full API、普通 summary API 和带 cursor 的前页请求仍严格遵守调用方 limit，不暗中截断。
+
+### 12. Stream-gap reconcile 保留读取，但相同 snapshot 不重复 hydrate
+
+`useHydratedNcpAgent` 首先 hydrate 历史 seed，随后在 live stream `onOpen` 后再次读取 seed，用来覆盖“第一次历史读取完成到 stream 建立之间”的事件缺口。第二次读取是正确性边界，不能为了速度直接删除或用短时缓存复用旧响应；否则其它客户端或并发 run 在 gap 中落盘而未被当前 stream 观察到时会丢消息。
+
+reconcile owner 在合并 seed 与 stream 期间 live snapshot 后，先比较目标 messages 与 active-run 是否和 manager 当前 snapshot 完全相同。相同时直接完成 reconcile，不调用 `manager.hydrate`；不相同时仍走现有合并与 hydrate。比较必须覆盖完整消息内容和 active-run，而不能只看 ID/status，否则同 ID streaming part 增量或 gap 中的运行状态变化会被误判为相同。这样保留第二次网络正确性校验，但消除相同 20 条消息的第二次 adapter、store publish、虚拟列表测量和滚动复位。
+
+### 13. 首屏 compact 以摘要字节预算动态决定消息数，不给所有会话固定砍条数
+
+VPS 真实会话证明消息条数不是可靠成本：同一页 gzip 后 20 条为 26.3KB，10 条仍有 19.2KB，5 条才降到 4.4KB；浏览器单次 seed 在公网波动下耗时 2.1–6.8 秒，而 VPS 内部相同 20 条读取仅 25–94ms。继续从 20 猜到 10 既不能建立网络上界，也会无差别损害普通会话。
+
+UI 只在无 cursor 的首次 summary 请求上显式发送 `initialPayload=compact`。Server 先按既有工具预算生成摘要，再从最新消息向前累计序列化字节：最多保留请求的 20 条，默认预算 24KiB，且无论是否超预算至少保留最新 5 条。普通短页在预算内仍返回 20 条；极重页自动返回 5 条或预算允许的更多条。被省略消息不删除，Server 把 `pageInfo.startCursor` 移到实际首条之前，`hasPreviousPage` 置真。
+
+首批消息 hydrate 完成后，复用既有且不可删除的 stream-gap reconcile 读取作为后台补齐：同一 viewer 对每个 session 只让第一次 seed 请求携带 compact，随后 stream 建立时的 reconcile seed 恢复普通 20 条合同。这样极重页先快速显示最近 5 条，再由既有生命周期自动替换为完整的最近 20 条；普通页首批已经返回 20 条时，幂等 reconcile 不发布第二份 manager snapshot。这个选择没有新增第二套预取状态机、timer 或 cursor 竞态，首屏预算仍归 Server，seed 阶段选择归 history loader，stream 正确性仍归 NCP React。若 stream 首次连接失败，重连前的恢复 seed 同样使用普通 20 条合同；首批内容在此期间仍可阅读。第 21 条及更早历史才要求滚动触发。
+
+compact 是显式 UI 表示合同，不能影响 full response、普通 summary consumer、详情请求或带 cursor 的前页。预算作用于完成工具摘要后的完整 message JSON，而不只计算 args/result；这样 reasoning、长文本和摘要 metadata 也进入首屏网络成本。最小 5 条是极端网络预算与最近交互可读性的底线，不是新的全局分页大小。
+
+### 14. 会话详情的 compact seed 在 HTML 解析阶段抢跑，React 只消费同一只读结果
+
+VPS 浏览器在静态资源压缩后连续 5 次热刷新仍为 3.04–5.21 秒，中位 3.62 秒；同一 compact API 在 VPS 内部只需约 0.11 秒、gzip 5.7KiB。Nginx 日志证明浏览器同时发起十余项全局启动请求时，关键 history GET 会在 HTTP/1.1 连接队列中等待 2–4 秒。继续缩消息或压 Server CPU 都无法消除这段排队。
+
+生产 HTML 在解析到 `/chat/:sessionRouteId` 时立即解码既有 `sid_` 路由 token，并启动与 UI 首次请求完全相同的只读 compact GET；结果只保存在当前 document 的一次性内存槽，不写 storage、不跨 session、不发布 UI 状态。history seed loader 只在 session、limit 和 compact 合同完全匹配时消费一次，随后仍按决策 13 使用普通 reconcile seed。预取是同一 canonical API 的传输抢跑，不是第二个数据 owner。
+
+预取成功时复用其标准 API envelope；预取缺失、合同不匹配、网络失败、非 2xx 或响应结构无效时，清空一次性槽并执行原有 SDK 请求。调用方已经 abort 时必须立即退出，不能借 fallback 复活旧 session 请求；标准请求的失败仍按原错误链路暴露，不能被预取吞掉。开发模式、draft route、非 chat route 和无法解析的 route 不预取。这个 fallback 只保护可选性能缓存，不掩盖发布、协议或认证缺陷，canonical API 始终是唯一事实源。
+
+### 15. 主 module 在 head 提前发现，UI injection 保持同步执行顺序
+
+单独部署决策 14 后，真实浏览器首次 5.67 秒、后续 5 次 4.08–6.33 秒，证明 history 请求抢跑没有解除 UI 启动阻塞。HTML 当前在 body 中先同步加载 `/api/ui-inject.js`，之后才声明 Vite module entry；公网往返期间浏览器无法发现约 416KiB gzip 的主模块，形成 document → injection → module graph 的硬串行。
+
+把 `type="module"` 的 Vite entry 移到 head：module 下载会与后续 HTML 解析、history 预取和 UI injection 并行，但 module 的默认 defer 语义仍要等文档完成后执行；body 中既有同步 injection 仍在解析完成前执行，因此“用户注入先于应用模块求值”的兼容合同不变。不能简单给 injection 加 `async/defer`，也不能只等待 render，因为静态 import 的模块求值可能已经读取注入配置。这个改动只调整资源发现时机，不新增状态 owner 或 fallback。
+
+### 16. Chat 作为主工作区静态进入首包，次要设置页继续按路由懒加载
+
+决策 15 上线后的真实浏览器 5 次热刷新为 3.33–4.17 秒，中位 3.74 秒。HTML 已经提前发现主 module 和它的静态依赖，compact history 也在 React 之前完成；剩余启动链路仍要等主 module 求值后，React Router 才触发 `chat-page` 动态 import。Chat 是 NextClaw 的默认入口和绝大多数启动落点，这个额外 route chunk 往返属于主路径上的人为瀑布，不应和低频设置页采用相同懒加载策略。
+
+将 `ChatPage` 改为普通静态 import，使 Vite 在 HTML 中直接生成它及共享依赖的 module preload，并让 Router 首次 render 不再经过 route Suspense。模型、外观、搜索、渠道、安全等低频页面仍保留 lazy boundary，避免把所有功能无差别塞进首包。这个取舍允许主入口首包小幅增加，换取消除一次公网往返和一段路由占位；构建后必须记录 entry gzip 增量并用真实 VPS 复测，若首包增量抵消了瀑布收益则回退，而不是仅凭结构推断保留。
+
+### 17. VPS 静态 assets 由 Nginx 直接发送，HTML 与 API 继续归 NextClaw
+
+登录态恢复后的真实浏览器热刷新为 0.57–1.38 秒、中位 1.13 秒；强制绕过浏览器缓存的冷进入为 19.96 秒，其中 420KiB gzip 主 entry 从公网下载本身占 19.44 秒。此时 compact history 已在 2 秒附近完成，不能再通过减少消息或延迟 UI 修复。当前 `/assets/` 仍经 Nginx 反代到 Node，响应使用 chunked 传输；静态资源没有业务鉴权和运行时注入需要，多一层应用代理只增加传输与故障面。
+
+VPS Nginx 为 `/assets/` 建立只读 alias，直接指向已安装 NextClaw 的 `ui-dist/assets`，保留内容哈希资源的一年 immutable 缓存与 gzip；HTML、`/api`、`/ws`、manifest、logo 和其它运行时路径继续走 NextClaw，避免绕过动态注入、认证或未来语义。发布或热修仍原子替换同一 `ui-dist` owner，Nginx 配置不复制构建产物。变更必须先备份完整 server 配置、通过 `nginx -t`，再 reload；回归要证明入口 asset 为正确 MIME、gzip 与 immutable，未知 asset 返回 404，页面认证和消息读取不变。若真实冷测没有收益则恢复原代理路径，不因“静态直出通常更快”而保留无证据配置。
+
+### 18. 拒绝仅按 feature/package 边界强制拆主包
+
+Nginx 静态直出把强制冷进入从 19.96 秒降到 6.33 秒，但 420KiB gzip 的主 entry 仍在一条 HTTP/1.1 连接上耗时 5.92 秒。曾在隔离构建中评估按现有 UI Chat feature 与 NCP/agent-chat package 边界拆成两个稳定 chunk，以利用并行连接并提高跨版本缓存命中。
+
+结果不接受：原 entry 为约 420KiB gzip；强拆后 `chat-workspace` 为 376KiB、`chat-runtime` 为 270KiB，首屏压缩总量增加约 226KiB，最大单 chunk 只减少约 44KiB。目录边界在运行时存在大量交叉引用，强制分块破坏压缩局部性，却没有形成足够均衡的并行块。该实验未进入主工作区、未部署；后续若治理首包，必须先沿真实 import owner 解耦低频能力或引入 HTTP/2/CDN，不能用 manualChunks 掩盖耦合。
+
 ## 数据与事件主链路
 
 1. 会话发生标准变更时，`publishSessionChange` 读取 canonical record、计算 context window、写入 message projection 并发布 session summary。
 2. Projection 按游标纯读 canonical message page 及已物化的 context window。
 3. Server history view 评估工具载荷预算；小消息原样返回，大消息改为 O(1) 聚合摘要、附 detail cursor，并保留真实调用数量与有界工具名称。
 4. 前端 history manager hydrate 轻量页，消息 adapter 只处理有界摘要，外层 virtualizer 挂载首屏行。
-5. 用户展开延迟消息，消息组件发送 messageId 意图给 history manager。
-6. history manager 使用 detail cursor 请求一条完整 canonical message；并发点击复用同一 promise。
-7. 成功后完整消息 overlay 原位替换摘要；消息过程打开，工具活动组按批次挂载卡片。
-8. 工具卡真正展开时才格式化该调用的 raw input/output。
+5. stream 建立时复用既有 gap reconcile 普通 seed，将极重会话从轻量首批自动补齐到 20 条；相同普通页由幂等比较跳过重复状态发布。
+6. 用户展开延迟消息，消息组件发送 messageId 意图给 history manager。
+7. history manager 使用 detail cursor 请求一条完整 canonical message；并发点击复用同一 promise。
+8. 成功后完整消息 overlay 原位替换摘要；消息过程打开，工具活动组按批次挂载卡片。
+9. 工具卡真正展开时才格式化该调用的 raw input/output。
 
 ## 不变量
 
 - `messageId`、工具调用顺序、状态和最终文本在轻量 view 与完整消息之间一致；详情响应不一致时拒绝覆盖并报错。
 - 一个 session/message 同时最多一个详情请求；成功缓存不重复加载，失败不写入 ready cache。
-- 预算算法只处理 finalized 历史工具载荷；pending/streaming/cancelled 的实时状态仍走现有主链路。
+- 预算算法只处理 `final` / `error` 的已结算历史工具载荷；`pending` / `streaming` 的实时状态仍走现有主链路，错误状态、错误文本和生命周期字段在摘要 view 中保持不变。
 - 轻量 view 不能用于 edit/continue 的 canonical 输入；需要完整历史的业务动作必须使用 runtime/server owner。
 - 工具批次只改变 DOM 展示数量，不改变数据、排序或工具活动统计。
 - 切换 session 后旧请求即使完成也不能覆盖新会话。
@@ -155,6 +214,11 @@ peer 过滤可能依赖 metadata 中的 peer 信息，不能在过滤前盲目�
 - summary index 缺项的兼容恢复只能读取 projection meta、metadata sidecar 和 journal stat；不能退回 replay journal，也不能在读请求内偷偷修写 index。
 - 无 peer 过滤的 session list 必须在 metadata hydration 前应用 limit；sidecar hydration 的同时在途读取不得超过固定上界。
 - 延迟消息无论包含 50、500 还是更多工具调用，首屏最多保留一个工具 part；metadata 中的真实计数必须等于 canonical message 的工具 part 数量。
+- summary 页中未延迟消息的工具 part 总数不得超过页面工具数量预算；任一已结算 assistant 消息超过单消息工具数量预算时必须整体延迟，即使它的 args/result 字节很小。
+- UI 首次 history 请求默认最多 20 条；显式 compact 响应可按 24KiB 预算缩到最少 5 条，但必须返回指向实际首条之前的稳定 cursor。首次 compact seed 成功后，同一 viewer 对该 session 的所有恢复/reconcile seed 必须回到普通 20 条合同，自动补足到 20 条或会话实际总量，不能要求用户滚动才能恢复近期上下文；后续向上滚动必须保持稳定 ID、顺序和当前滚动位置，不能跳过或重复任何消息。
+- Stream-open reconcile 读取到与当前 manager 完全相同的 messages/active-run 时不得发布新 snapshot；任一消息内容、顺序、streaming part 或 active-run 变化时必须继续 hydrate，不能用幂等优化吞掉 gap 恢复。
+- HTML 抢跑只允许消费一次且必须匹配 session、limit 与 compact 合同；成功后不能再发重复 compact GET。失败 fallback 必须走原 SDK 主链路，session abort 后不得 fallback。
+- 生产 HTML 必须在 head 声明 module entry，同时保留 body 同步 UI injection；构建产物中 entry 只能出现一次，且 injection 在 DOM 顺序上仍位于 body 结束前。
 
 ## 兼容、迁移与恢复
 
@@ -180,16 +244,21 @@ peer 过滤可能依赖 metadata 中的 peer 信息，不能在过滤前盲目�
 
 ## 验证标准
 
-- 单元：预算边界、累计小调用、最大消息优先延迟、摘要字段、cursor/messageId 一致性、失败不缓存。
+- 单元：字节与工具数量的单消息/页面预算边界、累计小调用、`final` / `error` 终态与 `pending` / `streaming` 反例、按各自压力最大的消息优先延迟、摘要字段、cursor/messageId 一致性、失败不缓存。
+- NCP React：相同 stream reconcile 保持现有 visibleMessages/snapshot 引用；同 ID 新 part、状态变化、新消息和 active-run 变化仍提交，现有“live completion 不被旧 seed 覆盖”测试继续通过。
 - 单元：延迟消息的聚合计数、distinct 工具名称上界和单个代表性工具 part；500 调用不能生成 500 个前端 tool-card view model。
 - 类型：触达 package 的 TypeScript 编译全部通过。
 - 组件：小消息无详情请求；大消息首次展开一次请求，成功后自动打开，重开不请求；失败可重试；工具组默认最多挂载 40 张卡。
-- API：现有 full response 合同不变；summary response 在当前 40 条夹具上不超过 2 MiB；detail 精确返回目标完整消息。
+- API：现有 full response、普通 summary 和 cursor page 合同不变；compact initial summary 在预算内尽量保留最多消息、至少保留 5 条，并把 pagination cursor 调整到实际首条；detail 精确返回目标完整消息。
+- 体验：compact 首批为 5 条时先完成首批 hydrate，stream-gap reconcile 随后以普通 seed 自动恢复最近 20 条；首批已经为 20 条或会话不足 20 条时 reconcile 不得重复发布相同 snapshot。stream 首次连接失败不能遮住首批内容，恢复 seed 仍必须自动回到 20 条合同。
+- 抢跑：匹配的 HTML 预取成功时 history loader 不重复请求 compact API；不匹配 session、错误 envelope、reject 和 abort 分别证明标准 fallback 或立即退出。VPS 日志中 compact GET 应在其它全局 API fan-out 之前开始，热刷新消息行首次可见目标稳定在 2 秒附近。
+- 资源发现：生产构建的 hashed module entry 位于 head，`/api/ui-inject.js` 仍为 body 同步脚本且不重复；浏览器验证注入能力、登录态与会话页均正常。
 - Kernel：最新页和前序页都只访问 message projection；测试锁定不读取完整 session、不预览 context window、不写 projection。
 - Kernel：`getSession` 的测试锁定 summary read model，`publishSessionChange` 的测试锁定 canonical 计算与 projection 更新；旁路摘要请求并发时不触发重复 preview。
 - 性能：当前 44 MB 压力会话的 summary 接口首字节应由约 1.45 秒降到 200ms 内；若冷态 projection 首次重建不满足此目标，单独记录为一次性重建路径，不能混入稳定热路径结论。
 - 并发首屏：在 200 条 session list、skills、queued-inputs 等正常请求同时发起时，历史 summary 请求不能因 metadata I/O 饥饿超过 300ms。
 - 浏览器：同一 URL 冷进入时最近消息出现目标先定为 2 秒内，且首屏阶段无超过 200ms 的长任务；展开最后一条时有即时 loading，加载后可查看完整 500 个调用并逐批显示。
+- 线上复现：68 MB 会话最近消息首次可见从约 18.3 秒降到 2 秒目标附近，随后无需用户操作自动补齐最近 20 条；summary view 不超过 80 个未延迟工具 part，并分别记录首批响应字节数、服务器投影读取时间、浏览器首次可见时间和后台补齐完成时间；向上滚动后能连续补回第 21–40 条。
 - 回归：普通会话、历史向前分页、刷新、session 切换、流式消息和旧服务端兼容路径保持可用。
 
 如果实现测量证明 2 MiB 预算仍无法达到 2 秒目标，返回 Design 调整预算或 summary 表示；不能靠隐藏 loading、减少历史条数或放宽验收掩盖失败。
@@ -201,3 +270,8 @@ peer 过滤可能依赖 metadata 中的 peer 信息，不能在过滤前盲目�
 - 首次展开最后一条时观察到 loading label，完整 4.39 MB detail 约 433ms 后自动打开；过程折叠再打开不产生第二次请求。
 - 500 调用工具组首次只显示 40 项，入口显示“继续显示 40 项（剩余 460 项）”。
 - 定向回归覆盖 kernel projection/summary owner、server 预算与 controller、UI history 状态和 agent chat 交互；受影响 package TypeScript、ESLint、skill progressive-loading 和 diff-only maintainability 检查通过。
+- VPS 真实 68 MB 会话最终 compact 首批返回 6 条：JSON 15,741 字节、gzip 5,739 字节，Server 读取约 109ms；普通 20 条后台补齐为 JSON 85,097 字节、gzip 25,969 字节，前页 cursor 与首批无缺口。
+- 浏览器确认每次刷新只有一项 compact GET，随后既有 stream-gap reconcile 自动读取普通 20 条；首批消息无需等补齐即可阅读，未删除数据、未改变向上滚动入口。
+- gzip、HTML module 提前发现、Chat 主路径静态进入和 Nginx `/assets/` 直出全部生效后，已登录热刷新 5 次为 0.565–1.384 秒，中位 1.130 秒；初始约 18.3 秒的大会话进入问题在日常缓存路径上已消除。
+- 完全绕过浏览器缓存时，Nginx 直出把单次冷测从 19.96 秒降到 6.33 秒；后续 3 次公网波动样本为 10.14–13.86 秒，中位 12.57 秒，主 entry 下载占 9.61–13.27 秒。该剩余瓶颈是 IP HTTP/1.1 公网静态传输，不是会话读取；不能宣称冷启动已达到 5 秒内。
+- 按 feature/package 强制拆 chunk 的隔离实验使首屏 gzip 总量从约 420KiB 增至约 646KiB，已撤销且未部署。history hook 则按真实职责拆为 252 行交互状态 owner 与 134 行 seed/prefetch owner，定向 17 项测试、UI TypeScript、ESLint 与 diff check 通过。

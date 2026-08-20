@@ -27,5 +27,14 @@ declare global {
 
   interface Window {
     nextclawDesktop?: NextClawDesktopBridge;
+    __NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__?: {
+      consumed: boolean;
+      limit: number;
+      promise: Promise<{
+        responseOk: boolean;
+        payload: unknown;
+      } | null>;
+      sessionId: string;
+    };
   }
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
   buildSessionMessageHistoryPayloadView,
+  compactSessionMessageHistoryPayloadView,
   SESSION_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY,
 } from "./session-message-history-payload.utils.js";
 
@@ -22,6 +23,23 @@ function assistantMessage(id: string, payload: string): NcpMessage {
         result: { output: payload },
       },
       { type: "text", text: "done" },
+    ],
+  };
+}
+
+function withToolCalls(message: NcpMessage, count: number): NcpMessage {
+  return {
+    ...message,
+    parts: [
+      ...Array.from({ length: count }, (_, index) => ({
+        type: "tool-invocation" as const,
+        toolCallId: `${message.id}-tool-${index}`,
+        toolName: "write_file",
+        state: "result" as const,
+        args: { index },
+        result: { ok: true },
+      })),
+      { type: "text" as const, text: "done" },
     ],
   };
 }
@@ -83,6 +101,70 @@ describe("buildSessionMessageHistoryPayloadView", () => {
     expect(view.messages[2]).toBe(small);
   });
 
+  it("defers a settled error message whose tool call count exceeds its budget", () => {
+    const message = withToolCalls({
+      ...assistantMessage("many-tools", "small"),
+      status: "error",
+    }, 13);
+    const view = buildSessionMessageHistoryPayloadView({
+      messages: [message],
+      messageDetailCursors: { "many-tools": "cursor-many-tools" },
+      messageBudgetBytes: 100_000,
+      pageBudgetBytes: 100_000,
+      messageToolCallBudget: 12,
+      pageToolCallBudget: 100,
+    });
+
+    expect(view.deferredToolPayloads).toEqual({
+      "many-tools": { cursor: "cursor-many-tools" },
+    });
+    expect(view.messages[0]?.parts.filter((part) => part.type === "tool-invocation")).toHaveLength(1);
+    expect(view.messages[0]?.metadata?.[SESSION_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY]).toEqual({
+      toolCallCount: 13,
+      toolNames: ["write_file"],
+    });
+  });
+
+  it("keeps streaming tool calls complete even when they exceed history budgets", () => {
+    const message = withToolCalls({
+      ...assistantMessage("streaming-tools", "small"),
+      status: "streaming",
+    }, 13);
+    const view = buildSessionMessageHistoryPayloadView({
+      messages: [message],
+      messageDetailCursors: { "streaming-tools": "cursor-streaming-tools" },
+      messageBudgetBytes: 1,
+      pageBudgetBytes: 1,
+      messageToolCallBudget: 1,
+      pageToolCallBudget: 1,
+    });
+
+    expect(view.messages[0]).toBe(message);
+    expect(view.deferredToolPayloads).toEqual({});
+  });
+
+  it("defers the largest tool groups until the page call count returns to budget", () => {
+    const largest = withToolCalls(assistantMessage("largest-tools", "small"), 6);
+    const medium = withToolCalls(assistantMessage("medium-tools", "small"), 5);
+    const small = withToolCalls(assistantMessage("small-tools", "small"), 4);
+    const view = buildSessionMessageHistoryPayloadView({
+      messages: [largest, medium, small],
+      messageDetailCursors: {
+        "largest-tools": "cursor-largest-tools",
+        "medium-tools": "cursor-medium-tools",
+        "small-tools": "cursor-small-tools",
+      },
+      messageBudgetBytes: 100_000,
+      pageBudgetBytes: 100_000,
+      messageToolCallBudget: 100,
+      pageToolCallBudget: 10,
+    });
+
+    expect(Object.keys(view.deferredToolPayloads)).toEqual(["largest-tools"]);
+    expect(view.messages[1]).toBe(medium);
+    expect(view.messages[2]).toBe(small);
+  });
+
   it("never defers a message without a stable detail cursor", () => {
     const message = assistantMessage("tail", "x".repeat(500));
     const view = buildSessionMessageHistoryPayloadView({
@@ -132,5 +214,46 @@ describe("buildSessionMessageHistoryPayloadView", () => {
       toolCallCount: 500,
       toolNames: ["exec_command"],
     });
+  });
+});
+
+describe("compactSessionMessageHistoryPayloadView", () => {
+  it("keeps a minimum recent window and filters deferred cursors with it", () => {
+    const messages = Array.from({ length: 8 }, (_, index) =>
+      assistantMessage(`message-${index}`, "small"));
+    const view = compactSessionMessageHistoryPayloadView({
+      view: {
+        messages,
+        deferredToolPayloads: Object.fromEntries(
+          messages.map((message) => [message.id, { cursor: `cursor-${message.id}` }]),
+        ),
+      },
+      budgetBytes: 1,
+      minimumMessages: 5,
+    });
+
+    expect(view.startIndex).toBe(3);
+    expect(view.messages.map((message) => message.id)).toEqual([
+      "message-3",
+      "message-4",
+      "message-5",
+      "message-6",
+      "message-7",
+    ]);
+    expect(Object.keys(view.deferredToolPayloads)).toEqual(
+      view.messages.map((message) => message.id),
+    );
+  });
+
+  it("keeps the requested page intact when it fits the byte budget", () => {
+    const messages = [assistantMessage("first", "small"), assistantMessage("second", "small")];
+    const view = compactSessionMessageHistoryPayloadView({
+      view: { messages, deferredToolPayloads: {} },
+      budgetBytes: 100_000,
+      minimumMessages: 1,
+    });
+
+    expect(view.startIndex).toBe(0);
+    expect(view.messages).toEqual(messages);
   });
 });

@@ -84,6 +84,28 @@ function settleStreamDisconnect(
   return { ...state, consecutiveFailures: 0 };
 }
 
+function collectSnapshotMessages(snapshot: NcpAgentConversationSnapshot): readonly NcpMessage[] {
+  return [
+    ...snapshot.messages,
+    ...(snapshot.streamingMessage ? [snapshot.streamingMessage] : []),
+  ];
+}
+
+function hasSameConversationState(params: {
+  current: NcpAgentConversationSnapshot;
+  messages: readonly NcpMessage[];
+  activeRun: NcpAgentConversationSnapshot["activeRun"];
+}): boolean {
+  const { current, messages, activeRun } = params;
+  const currentMessages = collectSnapshotMessages(current);
+  if (currentMessages.length !== messages.length) return false;
+  if (JSON.stringify(current.activeRun) !== JSON.stringify(activeRun)) return false;
+  return currentMessages.every((message, index) => (
+    message === messages[index]
+    || JSON.stringify(message) === JSON.stringify(messages[index])
+  ));
+}
+
 async function hydrateConversationSeed(params: {
   loadSeed: NcpConversationSeedLoader;
   manager: DefaultNcpAgentConversationStateManager;
@@ -99,14 +121,16 @@ async function hydrateConversationSeed(params: {
   const messages = hasLiveUpdates
     ? reconcileConversationMessages(seed, current)
     : seed.messages;
+  const activeRun = hasLiveUpdates
+    ? current.activeRun
+    : seed.status === "running"
+      ? { runId: null, sessionId, abortDisabledReason: null }
+      : null;
+  if (hasSameConversationState({ current, messages, activeRun })) return;
   manager.hydrate({
     sessionId,
     messages,
-    activeRun: hasLiveUpdates
-      ? current.activeRun
-      : seed.status === "running"
-        ? { runId: null, sessionId, abortDisabledReason: null }
-        : null,
+    activeRun,
   });
 }
 
@@ -114,10 +138,7 @@ function reconcileConversationMessages(
   seed: NcpConversationSeed,
   current: NcpAgentConversationSnapshot,
 ): readonly NcpMessage[] {
-  const currentMessages = [
-    ...current.messages,
-    ...(current.streamingMessage ? [current.streamingMessage] : []),
-  ];
+  const currentMessages = collectSnapshotMessages(current);
   const currentById = new Map(currentMessages.map((message) => [message.id, message]));
   const merged = seed.messages.map((message) => {
     const liveMessage = currentById.get(message.id);

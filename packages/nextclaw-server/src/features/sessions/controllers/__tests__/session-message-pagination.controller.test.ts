@@ -116,4 +116,40 @@ describe("NcpSessionRoutesController message pagination", () => {
       },
     });
   });
+
+  it("compacts only the initial summary page and preserves a cursor to omitted messages", async () => {
+    const messages = Array.from({ length: 8 }, (_, index) => ({
+      id: `message-${index}`,
+      sessionId: "session-1",
+      role: "assistant" as const,
+      status: "final" as const,
+      timestamp: "2026-08-20T00:00:00.000Z",
+      parts: [{ type: "text" as const, text: "x".repeat(10_000) }],
+    }));
+    const app = createMessagePageApp(vi.fn(async () => ({
+      messages,
+      messageDetailCursors: Object.fromEntries(
+        messages.map((message, index) => [message.id, `cursor-after-${index}`]),
+      ),
+      total: messages.length,
+      pageInfo: { startCursor: "cursor-start", hasPreviousPage: false },
+      contextWindow: null,
+    })));
+
+    const response = await app.request(
+      "http://localhost/api/ncp/sessions/session-1/messages?limit=20&toolPayload=summary&initialPayload=compact",
+    );
+    const payload = await response.json();
+
+    expect(payload).toMatchObject({
+      data: {
+        messages: messages.slice(3),
+        total: 8,
+        pageInfo: {
+          startCursor: "cursor-after-2",
+          hasPreviousPage: true,
+        },
+      },
+    });
+  });
 });

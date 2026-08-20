@@ -102,6 +102,7 @@ function resetConversationMocks(): void {
   mocks.runtimeAvailability.phase = "cold-starting";
   mocks.runtimeAvailability.lastReadyAt = null;
   mocks.visibleMessages.length = 0;
+  delete window.__NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__;
 }
 
 describe("useNcpSessionConversation", () => {
@@ -138,6 +139,7 @@ describe("useNcpSessionConversation", () => {
     expect(mocks.fetchNcpSessionMessages).toHaveBeenCalledWith("session-1", {
       limit: 300,
       toolPayload: "summary",
+      initialPayload: "compact",
       signal: expect.any(AbortSignal),
     });
     expect(result).toEqual({
@@ -160,6 +162,79 @@ describe("useNcpSessionConversation", () => {
       total: 1,
       pageInfo: { startCursor: "cursor-1", hasPreviousPage: false },
     });
+  });
+
+  it("consumes a matching HTML history prefetch without repeating the compact request", async () => {
+    window.__NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__ = {
+      consumed: false,
+      limit: 20,
+      sessionId: "session-1",
+      promise: Promise.resolve({
+        responseOk: true,
+        payload: {
+          ok: true,
+          data: {
+            sessionId: "session-1",
+            status: "idle",
+            total: 1,
+            pageInfo: { startCursor: "cursor-1", hasPreviousPage: false },
+            messages: [{ id: "message-1" }],
+          },
+        },
+      }),
+    };
+
+    await expect(fetchNcpSessionConversationSeed(
+      "session-1",
+      new AbortController().signal,
+      20,
+    )).resolves.toMatchObject({
+      messages: [{ id: "message-1" }],
+      total: 1,
+    });
+
+    expect(mocks.fetchNcpSessionMessages).not.toHaveBeenCalled();
+    expect(window.__NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__?.consumed).toBe(true);
+  });
+
+  it("falls back to the canonical request when the HTML history prefetch is invalid", async () => {
+    window.__NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__ = {
+      consumed: false,
+      limit: 20,
+      sessionId: "session-1",
+      promise: Promise.resolve({ responseOk: true, payload: { ok: true } }),
+    };
+    mocks.fetchNcpSessionMessages.mockResolvedValue({
+      sessionId: "session-1",
+      status: "idle",
+      total: 1,
+      pageInfo: { startCursor: "cursor-1", hasPreviousPage: false },
+      messages: [{ id: "message-1" }],
+    });
+
+    await fetchNcpSessionConversationSeed(
+      "session-1",
+      new AbortController().signal,
+      20,
+    );
+
+    expect(mocks.fetchNcpSessionMessages).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not revive an aborted session through the history prefetch fallback", async () => {
+    window.__NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__ = {
+      consumed: false,
+      limit: 20,
+      sessionId: "session-1",
+      promise: new Promise(() => undefined),
+    };
+    const controller = new AbortController();
+    const seed = fetchNcpSessionConversationSeed("session-1", controller.signal, 20);
+
+    controller.abort();
+
+    await expect(seed).rejects.toMatchObject({ name: "AbortError" });
+    expect(mocks.fetchNcpSessionMessages).not.toHaveBeenCalled();
   });
 
   it("treats a missing session as an empty idle draft seed", async () => {
@@ -437,7 +512,7 @@ describe("useNcpSessionConversation history and hydration", () => {
     expect(mocks.fetchNcpSessionMessages).toHaveBeenLastCalledWith(
       "session-1",
       {
-        limit: 40,
+        limit: 20,
         cursor: "cursor-2",
         toolPayload: "summary",
         signal: expect.any(AbortSignal),
@@ -453,6 +528,47 @@ describe("useNcpSessionConversation history and hydration", () => {
     ]);
     expect(result.current.hasPreviousMessages).toBe(false);
     expect(result.current.messageTotal).toBe(5);
+  });
+
+  it("uses the compact payload only for the first seed and restores the full recent window during reconciliation", async () => {
+    mocks.fetchNcpSessionMessages
+      .mockResolvedValueOnce({
+        sessionId: "session-1",
+        status: "idle",
+        total: 20,
+        pageInfo: { startCursor: "cursor-16", hasPreviousPage: true },
+        messages: Array.from({ length: 5 }, (_, index) => ({ id: `message-${index + 16}` })),
+      })
+      .mockResolvedValueOnce({
+        sessionId: "session-1",
+        status: "idle",
+        total: 20,
+        pageInfo: { startCursor: "cursor-1", hasPreviousPage: false },
+        messages: Array.from({ length: 20 }, (_, index) => ({ id: `message-${index + 1}` })),
+      });
+    renderHook(() => useNcpSessionConversation("session-1"));
+    const loadSeed = mocks.hydratedCalls[0]?.loadSeed as (
+      sessionId: string,
+      signal: AbortSignal,
+    ) => Promise<{ messages: unknown[]; status: string }>;
+
+    await act(async () => {
+      await loadSeed("session-1", new AbortController().signal);
+      await loadSeed("session-1", new AbortController().signal);
+    });
+
+    expect(mocks.fetchNcpSessionMessages).toHaveBeenNthCalledWith(1, "session-1", {
+      limit: 20,
+      toolPayload: "summary",
+      initialPayload: "compact",
+      signal: expect.any(AbortSignal),
+    });
+    expect(mocks.fetchNcpSessionMessages).toHaveBeenNthCalledWith(2, "session-1", {
+      limit: 20,
+      toolPayload: "summary",
+      initialPayload: undefined,
+      signal: expect.any(AbortSignal),
+    });
   });
 
   it("loads and caches one complete message when deferred tool details are requested", async () => {
