@@ -762,7 +762,8 @@ jobs:
               "$apt_package_root/LICENSE.electron.txt" \
               "$apt_package_root/chrome_crashpad_handler" \
               "$apt_package_root/libvk_swiftshader.so" \
-              "$apt_package_root/vk_swiftshader_icd.json"
+              "$apt_package_root/vk_swiftshader_icd.json" \
+              "$apt_package_root/locales/zh-TW.pak"
             find "$apt_package_root/resources/app.asar.unpacked/node_modules" \
               -type f \
               \( -name '*.md' -o -name '*.markdown' -o -name '*.svg' -o -name '.jekyll-metadata' -o -name 'fsevents.node' -o -name 'jszip.min.js' -o -path '*/jszip/vendor/FileSaver.js' \) \
