@@ -765,7 +765,7 @@ jobs:
               "$apt_package_root/vk_swiftshader_icd.json"
             find "$apt_package_root/resources/app.asar.unpacked/node_modules" \
               -type f \
-              \( -name '*.md' -o -name '*.markdown' -o -name '*.svg' -o -name '.jekyll-metadata' -o -name 'fsevents.node' \) \
+              \( -name '*.md' -o -name '*.markdown' -o -name '*.svg' -o -name '.jekyll-metadata' -o -name 'fsevents.node' -o -name 'jszip.min.js' -o -path '*/jszip/vendor/FileSaver.js' \) \
               -delete
             dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme "$package_root" "$repacked_file"
             package_size="$(stat --format='%s' "$repacked_file")"
