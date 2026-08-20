@@ -752,6 +752,21 @@ jobs:
             package_root="$(mktemp -d)"
             repacked_file="${deb_file}.repacked"
             dpkg-deb --raw-extract "$deb_file" "$package_root"
+            # The desktop release package intentionally keeps optional Chromium
+            # diagnostics/Vulkan fallback files for standalone installs. The
+            # APT mirror has GitHub's 100 MiB per-file limit, so omit only files
+            # that are not part of the desktop process' Linux runtime path.
+            apt_package_root="$package_root/opt/NextClaw Desktop"
+            rm -f \
+              "$apt_package_root/LICENSES.chromium.html" \
+              "$apt_package_root/LICENSE.electron.txt" \
+              "$apt_package_root/chrome_crashpad_handler" \
+              "$apt_package_root/libvk_swiftshader.so" \
+              "$apt_package_root/vk_swiftshader_icd.json"
+            find "$apt_package_root/resources/app.asar.unpacked/node_modules" \
+              -type f \
+              \( -name '*.md' -o -name '*.markdown' -o -name '*.svg' -o -name '.jekyll-metadata' -o -name 'fsevents.node' \) \
+              -delete
             dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme "$package_root" "$repacked_file"
             package_size="$(stat --format='%s' "$repacked_file")"
             printf '[desktop-release] repacked %s from %s to %s bytes\n' "$deb_file" "$original_size" "$package_size"
