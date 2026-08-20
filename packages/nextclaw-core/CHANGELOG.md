@@ -1,5 +1,13 @@
 # nextclaw-core
 
+## 0.17.6
+
+### Patch Changes
+
+- 6587602: 新增默认关闭的产品活跃统计与隐私设置：未登录安装使用随机匿名标识，登录后按账号归并，并可将团队和 QA 测试流量从外部 DAU、WAU、MAU 中分开。
+- 0f0753a: 修复桌面端 Service App 启动：声明 `node` 或 `node.exe` 的应用现在统一使用 NextClaw 宿主内置 Node，不再要求 Windows、macOS 或 Linux 额外安装系统 Node；运行失败也会返回结构化错误。
+  - @nextclaw/shared@0.4.26
+
 ## 0.17.5
 
 ### Patch Changes

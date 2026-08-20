@@ -1,5 +1,24 @@
 # nextclaw-server
 
+## 0.17.1
+
+### Patch Changes
+
+- 1d63057: 重载工具调用会话现在会先显示受预算保护的最近内容，再自动补齐近期上下文，并减少重复 hydrate 与首屏资源串行等待；发布包同时内置经过校验的预压缩 UI 资产，外部静态服务器升级后不再丢失快速传输路径。真实 VPS 已登录热刷新中位约 1.13 秒，同时保留完整工具详情和更早历史。
+- 3e6da7e: 应用市场现在使用 NextClaw 提供的真实宿主 target 判断兼容性：不支持当前设备的应用会被明确标注并禁用安装，同时仍可查看详情；历史安装失败不再跨页面刷新持续显示为错误和“重试”。
+- 6587602: 新增默认关闭的产品活跃统计与隐私设置：未登录安装使用随机匿名标识，登录后按账号归并，并可将团队和 QA 测试流量从外部 DAU、WAU、MAU 中分开。
+- 0f0753a: 修复桌面端 Service App 启动：声明 `node` 或 `node.exe` 的应用现在统一使用 NextClaw 宿主内置 Node，不再要求 Windows、macOS 或 Linux 额外安装系统 Node；运行失败也会返回结构化错误。
+- 7cc703c: 新增会话插话能力：AI 运行中普通发送继续自动排队，使用 Command/Ctrl + Enter 可在下一安全步骤插入完整消息；排队内容也可直接转为插话，并以独立用户消息和后续 AI 消息呈现在会话中。排队区域会保留并展示图片缩略图和文件摘要，编辑时仍可完整恢复富内容。
+- Updated dependencies [3e6da7e]
+- Updated dependencies [6587602]
+- Updated dependencies [0f0753a]
+- Updated dependencies [7cc703c]
+  - @nextclaw/kernel@0.9.1
+  - @nextclaw/core@0.17.6
+  - @nextclaw/ncp@0.8.1
+  - @nextclaw/mcp@0.3.33
+  - @nextclaw/runtime@0.4.32
+
 ## 0.17.0
 
 ### Minor Changes

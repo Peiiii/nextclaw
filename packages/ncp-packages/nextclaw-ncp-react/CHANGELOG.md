@@ -1,5 +1,14 @@
 # @nextclaw/ncp-react
 
+## 0.5.23
+
+### Patch Changes
+
+- 1d63057: 重载工具调用会话现在会先显示受预算保护的最近内容，再自动补齐近期上下文，并减少重复 hydrate 与首屏资源串行等待；发布包同时内置经过校验的预压缩 UI 资产，外部静态服务器升级后不再丢失快速传输路径。真实 VPS 已登录热刷新中位约 1.13 秒，同时保留完整工具详情和更早历史。
+- Updated dependencies [7cc703c]
+  - @nextclaw/ncp@0.8.1
+  - @nextclaw/ncp-toolkit@0.6.21
+
 ## 0.5.22
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @nextclaw/nextclaw-hermes-acp-bridge
 
+## 0.3.19
+
+### Patch Changes
+
+- Updated dependencies [7cc703c]
+  - @nextclaw/ncp@0.8.1
+
 ## 0.3.18
 
 ### Patch Changes

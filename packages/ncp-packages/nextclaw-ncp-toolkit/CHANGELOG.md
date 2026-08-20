@@ -1,5 +1,13 @@
 # @nextclaw/ncp-toolkit
 
+## 0.6.21
+
+### Patch Changes
+
+- 7cc703c: 新增会话插话能力：AI 运行中普通发送继续自动排队，使用 Command/Ctrl + Enter 可在下一安全步骤插入完整消息；排队内容也可直接转为插话，并以独立用户消息和后续 AI 消息呈现在会话中。排队区域会保留并展示图片缩略图和文件摘要，编辑时仍可完整恢复富内容。
+- Updated dependencies [7cc703c]
+  - @nextclaw/ncp@0.8.1
+
 ## 0.6.20
 
 ### Patch Changes

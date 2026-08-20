@@ -1,5 +1,14 @@
 # @nextclaw/channel-extension-feishu
 
+## 0.2.27
+
+### Patch Changes
+
+- Updated dependencies [7cc703c]
+  - @nextclaw/ncp@0.8.1
+  - @nextclaw/ncp-toolkit@0.6.21
+  - @nextclaw/extension-sdk@0.3.26
+
 ## 0.2.26
 
 ### Patch Changes

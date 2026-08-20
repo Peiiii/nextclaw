@@ -1,5 +1,41 @@
 # @nextclaw/service
 
+## 0.3.42
+
+### Patch Changes
+
+- 6587602: 新增默认关闭的产品活跃统计与隐私设置：未登录安装使用随机匿名标识，登录后按账号归并，并可将团队和 QA 测试流量从外部 DAU、WAU、MAU 中分开。
+- Updated dependencies [1d63057]
+- Updated dependencies [3e6da7e]
+- Updated dependencies [6587602]
+- Updated dependencies [0f0753a]
+- Updated dependencies [7cc703c]
+  - @nextclaw/server@0.17.1
+  - @nextclaw/kernel@0.9.1
+  - @nextclaw/client-sdk@0.7.1
+  - @nextclaw/core@0.17.6
+  - @nextclaw/ncp@0.8.1
+  - @nextclaw/ncp-toolkit@0.6.21
+  - @nextclaw/remote@0.3.39
+  - @nextclaw/channel-extension-dingtalk@0.2.32
+  - @nextclaw/channel-extension-discord@0.2.32
+  - @nextclaw/channel-extension-email@0.2.32
+  - @nextclaw/channel-extension-slack@0.2.32
+  - @nextclaw/channel-extension-telegram@0.2.32
+  - @nextclaw/channel-extension-wecom@0.2.32
+  - @nextclaw/channel-extension-whatsapp@0.2.32
+  - @nextclaw/mcp@0.3.33
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.33
+  - @nextclaw/runtime@0.4.32
+  - @nextclaw/channel-extension-feishu@0.2.27
+  - @nextclaw/channel-extension-weixin@0.2.27
+  - @nextclaw/ncp-agent-runtime@0.4.19
+  - @nextclaw/ncp-mcp@0.2.33
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.19
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.20
+  - @nextclaw/shared@0.4.26
+  - @nextclaw/channel-extension-qq@0.2.26
+
 ## 0.3.41
 
 ### Patch Changes

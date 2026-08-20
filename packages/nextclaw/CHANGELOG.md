@@ -1,5 +1,34 @@
 # nextclaw
 
+## 0.42.0
+
+### Minor Changes
+
+- 6587602: 新增默认关闭的产品活跃统计与隐私设置：未登录安装使用随机匿名标识，登录后按账号归并，并可将团队和 QA 测试流量从外部 DAU、WAU、MAU 中分开。
+
+### Patch Changes
+
+- 1d63057: 重载工具调用会话现在会先显示受预算保护的最近内容，再自动补齐近期上下文，并减少重复 hydrate 与首屏资源串行等待；发布包同时内置经过校验的预压缩 UI 资产，外部静态服务器升级后不再丢失快速传输路径。真实 VPS 已登录热刷新中位约 1.13 秒，同时保留完整工具详情和更早历史。
+- Updated dependencies [1d63057]
+- Updated dependencies [3e6da7e]
+- Updated dependencies [6587602]
+- Updated dependencies [0f0753a]
+- Updated dependencies [7cc703c]
+  - @nextclaw/server@0.17.1
+  - @nextclaw/kernel@0.9.1
+  - @nextclaw/core@0.17.6
+  - @nextclaw/service@0.3.42
+  - @nextclaw/ncp@0.8.1
+  - @nextclaw/ncp-toolkit@0.6.21
+  - @nextclaw/remote@0.3.39
+  - @nextclaw/mcp@0.3.33
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.33
+  - @nextclaw/runtime@0.4.32
+  - @nextclaw/ncp-agent-runtime@0.4.19
+  - @nextclaw/ncp-mcp@0.2.33
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.19
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.20
+
 ## 0.40.1
 
 ### Patch Changes
