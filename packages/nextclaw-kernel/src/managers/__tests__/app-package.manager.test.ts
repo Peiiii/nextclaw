@@ -138,7 +138,13 @@ describe("AppPackageManager runtime projection", () => {
       "nextclaw.personal-organizer",
     );
     try {
-      await expect(kernel.appPackageManager.listPackages()).resolves.toEqual({ entries: [] });
+      await expect(kernel.appPackageManager.listPackages()).resolves.toMatchObject({
+        entries: [],
+        hostTarget: expect.objectContaining({
+          key: expect.any(String),
+          operatingSystem: expect.stringMatching(/^(darwin|linux|win32)$/),
+        }),
+      });
       expect(existsSync(appsPath)).toBe(false);
       expect(existsSync(packagePath)).toBe(false);
 
@@ -248,7 +254,7 @@ describe("AppPackageManager runtime projection", () => {
     const restartedKernel = createKernel(builtInAppsDirectory, homeDirectory);
     try {
       await restartedKernel.appPackageManager.start();
-      await expect(restartedKernel.appPackageManager.listPackages()).resolves.toEqual({
+      await expect(restartedKernel.appPackageManager.listPackages()).resolves.toMatchObject({
         entries: [],
       });
     } finally {

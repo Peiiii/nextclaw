@@ -531,6 +531,43 @@ type AppMarketplaceInstallability =
 
 公开 Web 不使用浏览器 user agent 猜架构或 Linux ABI。它展示发布事实；只有能取得可靠宿主 target 时才显示“适用于此设备”。
 
+### 8.5 安装型目录的兼容性展示与动作合同
+
+内置“添加应用”弹窗的首要任务是让用户安装当前设备可运行的 App，不是平权陈列所有生态条目。平台不兼容项也不能彻底隐藏，否则用户通过搜索、分享链接或跨设备规划时会误以为 App 不存在。采用“**兼容项优先、非兼容项可发现、安装动作不可触发**”的统一策略：
+
+1. 默认浏览先展示 `compatible` 与 universal App；不兼容 App 排在其后，并在列表较长时归入“其他平台应用”分组。
+2. 搜索必须返回命中的不兼容 App，不制造假空态；分类、精选和作者页也可以展示，但不得与可安装项使用相同动作强度。
+3. 公开 Apps 网站继续展示全部发布事实，只显示“支持 Linux / macOS / Windows”，不根据浏览器 user agent 猜测当前设备。
+4. App 卡片与详情页都可继续打开，用户仍能查看说明、权限和支持范围；只有安装、更新等会改变本机状态的动作被阻止。
+5. 暂不新增顶层“平台”Tab。现有分类已经承担内容筛选，平台兼容性是当前宿主派生状态，先通过排序、分组与动作状态表达；数据量证明有必要后再增加“仅看适用于本机”的次级筛选。
+
+卡片不能只在灰色元数据中写一个“Linux”。当 App 与当前宿主不兼容时，同时提供三层信息：
+
+- 标题附近显示醒目的范围标签，例如“仅支持 Linux”，使用中性或提醒色，不使用安装失败的红色；
+- 操作区显示设备结论，例如“这台 Mac 无法安装”；
+- 安装按钮保持真实 disabled 语义，文案改为“无法安装”，可聚焦 wrapper 的 tooltip 进一步说明精确原因，例如“此版本仅提供 Linux x64 构建；当前设备是 macOS arm64”。
+
+不通过降低整张卡片透明度表达不兼容，以免说明文字和详情入口一起失去可读性。卡片仍是可访问的详情导航，disabled 安装控件不能吞掉卡片导航，也不能在 disabled 状态下发送安装请求。
+
+动作矩阵冻结如下：
+
+| `installability` / 生命周期 | 卡片主要反馈 | 动作 |
+| --- | --- | --- |
+| `compatible`、未安装 | 支持平台摘要；必要时显示“适用于此设备” | `安装` |
+| `compatible`、已安装 | 当前安装版本 | disabled `已安装` |
+| `incompatible: unsupported-os/arch/abi` | “仅支持 …”与当前设备不匹配原因 | disabled `无法安装` |
+| `incompatible: nextclaw-version` | “需要更新 NextClaw” | 导航到版本更新；不发送 App 安装请求 |
+| `unknown` | “暂时无法确认设备兼容性” | disabled `暂无法安装` |
+| artifact `blocked` | “此平台版本暂不可用” | disabled `暂不可安装` |
+| 安装请求的瞬时网络/服务错误 | 当前页面生命周期内用 toast 告知；卡片恢复兼容态 | `安装` |
+| 安装请求返回确定性不兼容 | 刷新 canonical installability，转为对应不兼容态 | disabled；不显示 `重试` |
+
+App operation journal 为安装中断恢复、并发去重和有限诊断保留 operation 结果，但它不是 Marketplace 卡片的持久化展示状态。活动 operation 可以持续投影进度；终态失败只在本次运行中触发一次 toast，并刷新本机应用投影。页面刷新或重新进入后，不得把 journal 中的历史失败重新显示成红色错误条或“重试”按钮。用户再次点击“安装”会创建新的 operation；平台不匹配则转为确定性 disabled 状态，不得先允许安装、再用 registry URL 或底层 target 错误教育用户。
+
+Kernel 是 Host Target 的唯一 owner，通过应用列表合同返回 canonical target snapshot；UI presenter 只能用该 snapshot 与 Marketplace availability 的 canonical target key 做严格集合匹配，不能读取 `navigator.platform`，也不能从 `supportedPlatforms`、卡片标签或 target 字符串拆分猜测平台。Marketplace 读取链路后续移入 Kernel 时，`AppMarketplaceInstallability` 派生也随 read model 一并下沉，UI 合同保持不变。安装 API 仍必须在下载前重新解析 Host Target 与 active artifact，防止缓存过期、旧 UI 或直接调用绕过；返回结构化不兼容原因，由 UI 映射成设备级文案，不暴露 registry URL、artifact key 或底层字段错误。
+
+候选方案中，彻底隐藏不兼容 App 会损害搜索、分享和跨设备发现；保持混排、只把按钮置灰仍会让用户先读到弱平台标记再猜原因。兼容优先分组加显式 disabled 原因多一层目录编排，但能同时保留生态发现与安装任务确定性，因此作为内置 Marketplace 的主链路。
+
 ## 九、发布合同
 
 ### 9.1 聚合发布

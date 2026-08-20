@@ -1,14 +1,20 @@
-import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
+import type { AppPackageHostTarget, AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
 import { ExternalLink, FileText, Monitor, Server, ShieldAlert, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import { AppMarketplaceCover } from '@/features/apps/components/app-marketplace-cover';
 import {
+  MarketplaceCompatibilityBadge,
+  MarketplaceCompatibilityStatus,
   MarketplaceInstallButton,
   OperationProgress,
+  readMarketplaceCompatibilityPresentation,
 } from '@/features/apps/components/app-marketplace-operation';
 import { isAppPackageOperationActive } from '@/features/apps/hooks/use-app-packages';
 import type { AppMarketplaceDetailView } from '@/features/apps/types/app-marketplace.types';
-import { formatAppMarketplacePlatforms } from '@/features/apps/utils/app-marketplace-platform.utils';
+import {
+  formatAppMarketplacePlatforms,
+  resolveAppMarketplaceInstallability,
+} from '@/features/apps/utils/app-marketplace-platform.utils';
 import { pickLocalizedText } from '@/features/marketplace';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { t } from '@/shared/lib/i18n';
@@ -16,6 +22,7 @@ import { t } from '@/shared/lib/i18n';
 export function MarketplaceDetail({
   detail,
   error,
+  hostTarget,
   installedPackage,
   isLoading,
   isStarting,
@@ -26,6 +33,7 @@ export function MarketplaceDetail({
 }: {
   detail?: AppMarketplaceDetailView;
   error: Error | null;
+  hostTarget?: AppPackageHostTarget;
   installedPackage?: AppPackageView;
   isLoading: boolean;
   isStarting: boolean;
@@ -43,7 +51,6 @@ export function MarketplaceDetail({
   const summary = pickLocalizedText(detail.summaryI18n, detail.summary, localeFallbacks);
   const description = pickLocalizedText(detail.descriptionI18n, detail.description ?? summary, localeFallbacks);
   const active = operation ? isAppPackageOperationActive(operation.status) : false;
-  const failed = operation?.status === 'failed' || operation?.status === 'interrupted';
   const components = detail.manifest.components ?? [];
   const panelCount = components.filter((entry) => entry.kind === 'panel').length;
   const serviceCount = components.filter((entry) => entry.kind === 'service').length;
@@ -52,6 +59,15 @@ export function MarketplaceDetail({
   const canUpdate = Boolean(
     installedPackage && installedPackage.activeVersion !== detail.latestVersion,
   );
+  const supportedPlatforms = formatAppMarketplacePlatforms(
+    detail.availability,
+    t('appPackagesAllPlatforms'),
+  );
+  const compatibility = readMarketplaceCompatibilityPresentation(
+    resolveAppMarketplaceInstallability(detail.availability, hostTarget),
+    supportedPlatforms,
+  );
+  const blockAction = Boolean(compatibility && (!installedPackage || canUpdate));
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-5 sm:px-7 sm:py-6">
       <div className="grid items-stretch gap-5 sm:grid-cols-[minmax(0,1.18fr)_minmax(240px,0.82fr)]">
@@ -61,6 +77,7 @@ export function MarketplaceDetail({
             <AppArtwork icon={detail.iconUrl ?? installedPackage?.icon} name={detail.name} className="h-14 w-14 rounded-2xl" />
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold tracking-tight text-foreground">{detail.name}</h2>
+              <MarketplaceCompatibilityBadge presentation={compatibility} />
               <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1"><ShieldCheck className="h-3.5 w-3.5" />{detail.publisher.name}</span>
                 <span>v{detail.latestVersion}</span>
@@ -69,21 +86,27 @@ export function MarketplaceDetail({
           </div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">{summary}</p>
           <div className="mt-auto pt-4">
+            <MarketplaceCompatibilityStatus
+              blocked={blockAction}
+              presentation={compatibility}
+              className="mb-2 text-xs font-medium text-muted-foreground"
+            />
             <MarketplaceInstallButton
               active={active}
               canUpdate={canUpdate}
-              failed={failed}
               installed={Boolean(installedPackage)}
               isStarting={isStarting}
               onAction={() => canUpdate
                 ? onUpdate(detail.appId)
                 : onInstall(detail.install.spec, detail.install.registry)}
               operation={operation}
+              unavailableLabel={blockAction ? compatibility?.actionLabel : undefined}
+              unavailableReason={blockAction ? compatibility?.reason : undefined}
             />
           </div>
         </div>
       </div>
-      {operation && (active || failed) ? <OperationProgress operation={operation} /> : null}
+      {operation && !blockAction && active ? <OperationProgress operation={operation} /> : null}
 
       <section className="mt-7">
         <h3 className="text-sm font-semibold text-foreground">{t('appPackagesAboutApp')}</h3>
@@ -94,7 +117,7 @@ export function MarketplaceDetail({
         <DetailFact
           icon={Monitor}
           label={t('appPackagesPlatformsLabel')}
-          value={formatAppMarketplacePlatforms(detail.availability, t('appPackagesAllPlatforms'))}
+          value={supportedPlatforms}
         />
         <DetailFact icon={FileText} label={t('appPackagesPanelsAdded')} value={panelCount > 0 ? String(panelCount) : t('appPackagesNone')} />
         <DetailFact icon={Server} label={t('appPackagesServicesAdded')} value={serviceCount > 0 ? String(serviceCount) : t('appPackagesNone')} />

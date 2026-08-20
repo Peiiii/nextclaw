@@ -4,6 +4,7 @@ import {
   AppHomeService,
   AppInstallationService,
   AppManifestService,
+  AppPlatformTargetService,
   AppRegistryService,
   isAppComponentManifestBundle,
 } from "@nextclaw/app-runtime";
@@ -19,6 +20,7 @@ import { AppPackagePresentationService } from "@kernel/services/app-package-pres
 import {
   AppPackageError,
   type AppPackageComponentSource,
+  type AppPackageHostTarget,
   type AppPackageList,
   type AppPackageOperationInput,
   type AppPackageOperationList,
@@ -41,6 +43,7 @@ export class AppPackageManager {
   private readonly installationService: AppInstallationService;
   private readonly manifestService = new AppManifestService();
   private readonly operationManager: AppPackageOperationManager;
+  private readonly platformTargetService = new AppPlatformTargetService();
   private readonly presentationService = new AppPackagePresentationService();
   private readonly registryService: AppRegistryService;
   private runtimeHooks: AppPackageRuntimeHooks = EMPTY_RUNTIME_HOOKS;
@@ -75,12 +78,27 @@ export class AppPackageManager {
   ): Promise<AppPackageList> => {
     const records = await this.registryService.listApps();
     return {
+      hostTarget: this.readHostTarget(),
       entries: await Promise.all(records.map(async (record) =>
         await this.toPackageView(await this.installationService.info(
           record.appId,
           { measureStorageUsage: options.includeStorageUsage !== false },
         )))),
     };
+  };
+
+  private readHostTarget = (): AppPackageHostTarget | undefined => {
+    try {
+      const target = this.platformTargetService.readHostTarget();
+      return {
+        key: this.platformTargetService.toTargetKey(target),
+        operatingSystem: target.os,
+        architecture: target.arch,
+        ...(target.os === "darwin" ? {} : { abi: target.abi }),
+      };
+    } catch {
+      return undefined;
+    }
   };
 
   listInstalledDataOwners = async (): Promise<Array<{ id: string; name: string }>> =>

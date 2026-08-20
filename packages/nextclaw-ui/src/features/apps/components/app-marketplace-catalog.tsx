@@ -1,15 +1,21 @@
-import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
+import type { AppPackageHostTarget, AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
 import { ChevronRight, Search, Sparkles } from 'lucide-react';
 import { AppArtwork } from '@/features/apps/components/app-artwork';
 import { AppMarketplaceCover } from '@/features/apps/components/app-marketplace-cover';
 import {
   findLatestAppPackageOperation,
+  MarketplaceCompatibilityBadge,
+  MarketplaceCompatibilityStatus,
   MarketplaceInstallButton,
   OperationProgress,
+  readMarketplaceCompatibilityPresentation,
 } from '@/features/apps/components/app-marketplace-operation';
 import { isAppPackageOperationActive } from '@/features/apps/hooks/use-app-packages';
 import type { AppMarketplaceItemView } from '@/features/apps/types/app-marketplace.types';
-import { formatAppMarketplacePlatforms } from '@/features/apps/utils/app-marketplace-platform.utils';
+import {
+  formatAppMarketplacePlatforms,
+  resolveAppMarketplaceInstallability,
+} from '@/features/apps/utils/app-marketplace-platform.utils';
 import { pickLocalizedText } from '@/features/marketplace';
 import {
   DialogDescription,
@@ -26,6 +32,7 @@ export type MarketplaceFilter = 'all' | 'featured' | 'personal' | 'local';
 export function AppMarketplaceCatalog({
   error,
   filter,
+  hostTarget,
   installedById,
   isError,
   isFetchingNextPage,
@@ -46,6 +53,7 @@ export function AppMarketplaceCatalog({
 }: {
   error: Error | null;
   filter: MarketplaceFilter;
+  hostTarget?: AppPackageHostTarget;
   installedById: Map<string, AppPackageView>;
   isError: boolean;
   isFetchingNextPage: boolean;
@@ -80,6 +88,7 @@ export function AppMarketplaceCatalog({
         ) : null}
         <MarketplaceCatalogContent
           installedById={installedById}
+          hostTarget={hostTarget}
           isError={isError}
           isFetchingNextPage={isFetchingNextPage}
           isLoading={isLoading}
@@ -158,6 +167,7 @@ function MarketplaceCatalogHeader({
 
 function MarketplaceCatalogContent({
   installedById,
+  hostTarget,
   isError,
   isFetchingNextPage,
   isLoading,
@@ -173,6 +183,7 @@ function MarketplaceCatalogContent({
   startingSource,
 }: {
   installedById: Map<string, AppPackageView>;
+  hostTarget?: AppPackageHostTarget;
   isError: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
@@ -221,6 +232,7 @@ function MarketplaceCatalogContent({
           <MarketplaceCatalogCard
             key={item.id}
             installedPackage={installedById.get(item.appId)}
+            hostTarget={hostTarget}
             isStarting={isStarting && startingSource === item.install.spec}
             item={item}
             localeFallbacks={localeFallbacks}
@@ -249,6 +261,7 @@ function MarketplaceCatalogContent({
 
 function MarketplaceCatalogCard({
   installedPackage,
+  hostTarget,
   isStarting,
   item,
   localeFallbacks,
@@ -258,6 +271,7 @@ function MarketplaceCatalogCard({
   operation,
 }: {
   installedPackage?: AppPackageView;
+  hostTarget?: AppPackageHostTarget;
   isStarting: boolean;
   item: AppMarketplaceItemView;
   localeFallbacks: string[];
@@ -271,10 +285,18 @@ function MarketplaceCatalogCard({
     : item.name;
   const summary = pickLocalizedText(item.summaryI18n, item.summary, localeFallbacks);
   const active = operation ? isAppPackageOperationActive(operation.status) : false;
-  const failed = operation?.status === 'failed' || operation?.status === 'interrupted';
   const canUpdate = Boolean(
     installedPackage && installedPackage.activeVersion !== item.latestVersion,
   );
+  const supportedPlatforms = formatAppMarketplacePlatforms(
+    item.availability,
+    t('appPackagesAllPlatforms'),
+  );
+  const compatibility = readMarketplaceCompatibilityPresentation(
+    resolveAppMarketplaceInstallability(item.availability, hostTarget),
+    supportedPlatforms,
+  );
+  const blockAction = Boolean(compatibility && (!installedPackage || canUpdate));
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-border hover:shadow-lg">
       <button
@@ -296,32 +318,39 @@ function MarketplaceCatalogCard({
               <span className="truncate text-sm font-semibold text-foreground">{displayName}</span>
               {item.featured ? <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label={t('appPackagesMarketplaceFeatured')} /> : null}
             </span>
+            <MarketplaceCompatibilityBadge presentation={compatibility} />
             <span className="mt-1 line-clamp-2 block min-h-10 text-xs leading-5 text-muted-foreground">{summary}</span>
             <span className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground/75">
               <span>{item.publisher.name}</span>
               <span aria-hidden="true">·</span>
               <span>v{item.latestVersion}</span>
               <span aria-hidden="true">·</span>
-              <span>{formatAppMarketplacePlatforms(item.availability, t('appPackagesAllPlatforms'))}</span>
+              <span>{supportedPlatforms}</span>
               <ChevronRight className="ml-0.5 h-3 w-3 opacity-0 transition-opacity group-hover:opacity-60" />
             </span>
           </button>
         </div>
-        <div className="mt-3 flex items-center justify-end border-t border-border/50 pt-3">
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/50 pt-3">
+          <MarketplaceCompatibilityStatus
+            blocked={blockAction}
+            presentation={compatibility}
+            className="min-w-0 text-[11px] font-medium text-muted-foreground"
+          />
           <MarketplaceInstallButton
             active={active}
             canUpdate={canUpdate}
-            failed={failed}
             installed={Boolean(installedPackage)}
             isStarting={isStarting}
             onAction={() => canUpdate
               ? onUpdate(item.appId)
               : onInstall(item.install.spec, item.install.registry)}
             operation={operation}
+            unavailableLabel={blockAction ? compatibility?.actionLabel : undefined}
+            unavailableReason={blockAction ? compatibility?.reason : undefined}
           />
         </div>
       </div>
-      {operation && (active || failed) ? <div className="px-4 pb-4"><OperationProgress operation={operation} /></div> : null}
+      {operation && !blockAction && active ? <div className="px-4 pb-4"><OperationProgress operation={operation} /></div> : null}
     </article>
   );
 }

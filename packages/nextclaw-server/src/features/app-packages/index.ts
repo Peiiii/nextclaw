@@ -1,5 +1,6 @@
 export * from "@nextclaw-server/features/app-packages/controllers/app-packages.controller.js";
 export type {
+  AppPackageHostTarget,
   AppPackageList,
   AppPackageOperationInput,
   AppPackageOperationList,

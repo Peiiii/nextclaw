@@ -206,6 +206,7 @@ export function AppPackagesPanel({
 
       <AppMarketplaceDialog
         error={lifecycle.error instanceof Error ? lifecycle.error : null}
+        hostTarget={appPackages.data?.hostTarget}
         installedPackages={appPackages.data?.entries ?? []}
         startingSource={lifecycle.variables?.action === 'install'
           ? lifecycle.variables.source

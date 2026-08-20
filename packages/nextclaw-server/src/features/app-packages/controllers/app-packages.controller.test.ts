@@ -38,7 +38,12 @@ const operation = {
 
 describe("app package operation routes", () => {
   it("lets UI callers skip recursive storage measurement without changing the default", async () => {
-    const listPackages = vi.fn(async () => ({ entries: [] }));
+    const hostTarget = {
+      key: "darwin-arm64",
+      operatingSystem: "darwin" as const,
+      architecture: "arm64" as const,
+    };
+    const listPackages = vi.fn(async () => ({ entries: [], hostTarget }));
     const app = createTestApp({ listPackages } as never);
 
     const response = await app.request(
@@ -46,7 +51,7 @@ describe("app package operation routes", () => {
     );
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
-      data: { entries: [] },
+      data: { entries: [], hostTarget },
     });
     await app.request("http://localhost/api/app-packages");
 

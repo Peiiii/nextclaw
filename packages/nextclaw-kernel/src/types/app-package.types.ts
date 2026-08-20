@@ -50,8 +50,16 @@ export type AppPackageView = {
   isolation: AppRuntimeIsolation;
 };
 
+export type AppPackageHostTarget = {
+  key: string;
+  operatingSystem: "darwin" | "linux" | "win32";
+  architecture: "x64" | "arm64";
+  abi?: "gnu" | "musl" | "msvc";
+};
+
 export type AppPackageList = {
   entries: AppPackageView[];
+  hostTarget?: AppPackageHostTarget;
 };
 
 export type AppPackageOperationAction = "install" | "rollback" | "uninstall" | "update";

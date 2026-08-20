@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
+import type { AppPackageHostTarget, AppPackageOperationView, AppPackageView } from '@nextclaw/client-sdk';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import {
   AppMarketplaceCatalog,
@@ -13,9 +13,14 @@ import {
 } from '@/features/apps/hooks/use-app-marketplace';
 import { buildLocaleFallbacks } from '@/features/marketplace';
 import {
+  getAppMarketplaceInstallabilityRank,
+  resolveAppMarketplaceInstallability,
+} from '@/features/apps/utils/app-marketplace-platform.utils';
+import {
   Dialog,
   DialogContent,
 } from '@/shared/components/ui/dialog';
+import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { getLanguage, t } from '@/shared/lib/i18n';
 
 const HIDDEN_ENGINEERING_APPS = new Set([
@@ -25,6 +30,7 @@ const HIDDEN_ENGINEERING_APPS = new Set([
 
 export function AppMarketplaceDialog({
   error,
+  hostTarget,
   installedPackages,
   isStarting,
   onInstall,
@@ -35,6 +41,7 @@ export function AppMarketplaceDialog({
   startingSource,
 }: {
   error: Error | null;
+  hostTarget?: AppPackageHostTarget;
   installedPackages: AppPackageView[];
   isStarting: boolean;
   onInstall: (source: string, registryUrl: string) => void;
@@ -70,12 +77,17 @@ export function AppMarketplaceDialog({
     [installedPackages],
   );
   const localeFallbacks = buildLocaleFallbacks(getLanguage() === 'zh' ? 'zh-CN' : 'en-US');
-  const items = useMemo(
-    () => (marketplace.data?.items ?? []).filter(
-      (item) => !HIDDEN_ENGINEERING_APPS.has(item.appId),
-    ),
-    [marketplace.data?.items],
-  );
+  const items = useMemo(() => (marketplace.data?.items ?? [])
+    .filter((item) => !HIDDEN_ENGINEERING_APPS.has(item.appId))
+    .map((item, index) => ({
+      item,
+      index,
+      rank: getAppMarketplaceInstallabilityRank(
+        resolveAppMarketplaceInstallability(item.availability, hostTarget),
+      ),
+    }))
+    .sort((left, right) => left.rank - right.rank || left.index - right.index)
+    .map(({ item }) => item), [hostTarget, marketplace.data?.items]);
 
   const closeDialog = (nextOpen: boolean) => {
     if (!nextOpen) setSelectedSlug(null);
@@ -84,54 +96,58 @@ export function AppMarketplaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={closeDialog}>
-      <DialogContent className="flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background/95 p-0 shadow-[0_32px_100px_rgba(0,0,0,0.24)] backdrop-blur-xl [&>button.absolute]:top-[max(1rem,env(safe-area-inset-top))] sm:h-[min(680px,calc(100dvh-4rem))] sm:w-[min(920px,calc(100vw-3rem))] sm:max-w-none sm:rounded-2xl sm:border sm:border-border/55">
-        {selectedSlug ? (
-          <>
-            <MarketplaceDetailHeader onBack={() => setSelectedSlug(null)} />
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-background">
-              <MarketplaceDetail
-                detail={detail.data}
-                error={detail.error instanceof Error ? detail.error : null}
-                installedPackage={detail.data ? installedById.get(detail.data.appId) : undefined}
-                isLoading={detail.isLoading}
-                isStarting={isStarting && detail.data?.install.spec === startingSource}
-                localeFallbacks={localeFallbacks}
-                onInstall={onInstall}
-                onUpdate={onUpdate}
-                operation={detail.data
-                  ? findLatestAppPackageOperation(operations, detail.data.appId, detail.data.install.spec)
-                  : undefined}
-              />
-            </div>
-          </>
-        ) : (
-          <AppMarketplaceCatalog
-            error={error}
-            filter={filter}
-            installedById={installedById}
-            isError={marketplace.isError}
-            isFetchingNextPage={marketplace.isFetchingNextPage}
-            isLoading={marketplace.isLoading}
-            isStarting={isStarting}
-            items={items}
-            localeFallbacks={localeFallbacks}
-            onFilterChange={setFilter}
-            onInstall={onInstall}
-            onLoadMore={() => void marketplace.fetchNextPage()}
-            onSearchChange={setSearch}
-            onSelect={setSelectedSlug}
-            onUpdate={onUpdate}
-            operations={operations}
-            hasNextPage={marketplace.hasNextPage}
-            search={search}
-            startingSource={startingSource}
-          />
-        )}
-        <div className="flex items-start gap-2 border-t border-border/60 bg-muted/25 px-5 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 text-[11px] leading-4 text-muted-foreground sm:px-6 sm:pb-3">
-          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>{t('appPackagesMarketplaceTrustHint')}</span>
-        </div>
-      </DialogContent>
+      <TooltipProvider>
+        <DialogContent className="flex h-dvh w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background/95 p-0 shadow-[0_32px_100px_rgba(0,0,0,0.24)] backdrop-blur-xl [&>button.absolute]:top-[max(1rem,env(safe-area-inset-top))] sm:h-[min(680px,calc(100dvh-4rem))] sm:w-[min(920px,calc(100vw-3rem))] sm:max-w-none sm:rounded-2xl sm:border sm:border-border/55">
+          {selectedSlug ? (
+            <>
+              <MarketplaceDetailHeader onBack={() => setSelectedSlug(null)} />
+              <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto bg-background">
+                <MarketplaceDetail
+                  detail={detail.data}
+                  error={detail.error instanceof Error ? detail.error : null}
+                  installedPackage={detail.data ? installedById.get(detail.data.appId) : undefined}
+                  hostTarget={hostTarget}
+                  isLoading={detail.isLoading}
+                  isStarting={isStarting && detail.data?.install.spec === startingSource}
+                  localeFallbacks={localeFallbacks}
+                  onInstall={onInstall}
+                  onUpdate={onUpdate}
+                  operation={detail.data
+                    ? findLatestAppPackageOperation(operations, detail.data.appId, detail.data.install.spec)
+                    : undefined}
+                />
+              </div>
+            </>
+          ) : (
+            <AppMarketplaceCatalog
+              error={error}
+              filter={filter}
+              installedById={installedById}
+              hostTarget={hostTarget}
+              isError={marketplace.isError}
+              isFetchingNextPage={marketplace.isFetchingNextPage}
+              isLoading={marketplace.isLoading}
+              isStarting={isStarting}
+              items={items}
+              localeFallbacks={localeFallbacks}
+              onFilterChange={setFilter}
+              onInstall={onInstall}
+              onLoadMore={() => void marketplace.fetchNextPage()}
+              onSearchChange={setSearch}
+              onSelect={setSelectedSlug}
+              onUpdate={onUpdate}
+              operations={operations}
+              hasNextPage={marketplace.hasNextPage}
+              search={search}
+              startingSource={startingSource}
+            />
+          )}
+          <div className="flex items-start gap-2 border-t border-border/60 bg-muted/25 px-5 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-3 text-[11px] leading-4 text-muted-foreground sm:px-6 sm:pb-3">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{t('appPackagesMarketplaceTrustHint')}</span>
+          </div>
+        </DialogContent>
+      </TooltipProvider>
     </Dialog>
   );
 }
