@@ -6,7 +6,6 @@ import { AppsPanel, type AppsPanelTab } from '@/features/apps';
 import { PanelAppDocBrowserToolbar } from '@/features/panel-apps/components/panel-app-toolbar';
 import {
   createPanelAppRightPanelResourceTarget,
-  readPanelAppIdFromResourceUri,
   RIGHT_PANEL_APPS_TAB_KIND,
   RIGHT_PANEL_APPS_URL,
   RIGHT_PANEL_HOME_TAB_KIND,
@@ -78,9 +77,10 @@ export const PANEL_APPS_DOC_BROWSER_RENDERERS: DocBrowserCustomTabRenderers = {
     renderIcon: () => <AppWindow className="w-4 h-4 text-primary shrink-0" />,
     renderToolbar: ({ refreshIframe, tab }) => (
       <PanelAppDocBrowserToolbar
-        appId={readPanelAppIdFromResourceUri(tab.resourceUri ?? tab.currentUrl)}
         appTitle={tab.title || t('panelAppsTitle')}
+        currentUrl={tab.currentUrl}
         onRefresh={refreshIframe}
+        resourceUri={tab.resourceUri}
       />
     ),
     supportsScrollRestoration: true,

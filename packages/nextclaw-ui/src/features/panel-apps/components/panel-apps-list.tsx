@@ -48,13 +48,6 @@ export function PanelAppsList({
     });
   };
 
-  const toggleMainSidebar = (entry: PanelAppEntryView) => {
-    updatePreferences.mutate({
-      id: entry.id,
-      preferences: { mainSidebar: !entry.mainSidebar },
-    });
-  };
-
   const deleteEntry = (entry: PanelAppEntryView) => {
     deletePanelApp.mutate(entry.id);
   };
@@ -129,11 +122,9 @@ export function PanelAppsList({
                 entry={entry}
                 deletePending={deletePanelApp.isPending}
                 favoritePending={updatePreferences.isPending}
-                mainSidebarPending={updatePreferences.isPending}
                 onDelete={() => deleteEntry(entry)}
                 onOpen={() => void openPanelApp(entry)}
                 onToggleFavorite={() => toggleFavorite(entry)}
-                onToggleMainSidebar={() => toggleMainSidebar(entry)}
               />
             ))}
           </div>

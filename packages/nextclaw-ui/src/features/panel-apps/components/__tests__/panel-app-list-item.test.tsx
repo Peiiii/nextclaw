@@ -1,7 +1,16 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
+
+const mainSidebarMutation = vi.hoisted(() => ({
+  isPending: false,
+  mutate: vi.fn(),
+}));
+
+vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
+  useUpdatePanelAppPreferences: () => mainSidebarMutation,
+}));
 
 const baseEntry = {
   id: 'demo',
@@ -22,17 +31,20 @@ const baseEntry = {
 };
 
 describe('PanelAppListItem', () => {
+  beforeEach(() => {
+    mainSidebarMutation.isPending = false;
+    mainSidebarMutation.mutate.mockReset();
+  });
+
   it('keeps panel app metadata compact below the icon-title row', () => {
     const { container } = render(
       <PanelAppListItem
         deletePending={false}
         entry={baseEntry}
         favoritePending={false}
-        mainSidebarPending={false}
         onDelete={vi.fn()}
         onOpen={vi.fn()}
         onToggleFavorite={vi.fn()}
-        onToggleMainSidebar={vi.fn()}
       />,
     );
 
@@ -48,11 +60,9 @@ describe('PanelAppListItem', () => {
         deletePending={false}
         entry={baseEntry}
         favoritePending={false}
-        mainSidebarPending={false}
         onDelete={onDelete}
         onOpen={vi.fn()}
         onToggleFavorite={vi.fn()}
-        onToggleMainSidebar={vi.fn()}
       />,
     );
 
@@ -69,39 +79,41 @@ describe('PanelAppListItem', () => {
 
   it('keeps main-sidebar placement in the low-frequency more-actions menu', async () => {
     const user = userEvent.setup();
-    const onToggleMainSidebar = vi.fn();
     const { rerender } = render(
       <PanelAppListItem
         deletePending={false}
         entry={baseEntry}
         favoritePending={false}
-        mainSidebarPending={false}
         onDelete={vi.fn()}
         onOpen={vi.fn()}
         onToggleFavorite={vi.fn()}
-        onToggleMainSidebar={onToggleMainSidebar}
       />,
     );
 
     expect(screen.queryByRole('button', { name: 'Add to main sidebar' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
     await user.click(screen.getByRole('button', { name: 'Add to main sidebar' }));
-    expect(onToggleMainSidebar).toHaveBeenCalledTimes(1);
+    expect(mainSidebarMutation.mutate).toHaveBeenCalledWith({
+      id: 'demo',
+      preferences: { mainSidebar: true },
+    });
 
     rerender(
       <PanelAppListItem
         deletePending={false}
         entry={{ ...baseEntry, mainSidebar: true }}
         favoritePending={false}
-        mainSidebarPending={false}
         onDelete={vi.fn()}
         onOpen={vi.fn()}
         onToggleFavorite={vi.fn()}
-        onToggleMainSidebar={onToggleMainSidebar}
       />,
     );
     expect(screen.queryByRole('button', { name: 'Remove from main sidebar' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
-    expect(screen.getByRole('button', { name: 'Remove from main sidebar' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Remove from main sidebar' }));
+    expect(mainSidebarMutation.mutate).toHaveBeenLastCalledWith({
+      id: 'demo',
+      preferences: { mainSidebar: false },
+    });
   });
 });

@@ -1,7 +1,8 @@
 import { useState, type MouseEvent } from 'react';
-import { MoreVertical, PanelLeft, PanelLeftDashed, Star, Trash2, type LucideIcon } from 'lucide-react';
+import { MoreVertical, Star, Trash2, type LucideIcon } from 'lucide-react';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { PanelAppIcon } from '@/features/panel-apps/components/panel-app-icon';
+import { PanelAppMainSidebarMenuItem } from '@/features/panel-apps/components/panel-app-main-sidebar-menu-item';
 import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { getLanguage, getLocale, t } from '@/shared/lib/i18n';
@@ -11,20 +12,16 @@ export function PanelAppListItem({
   deletePending,
   entry,
   favoritePending,
-  mainSidebarPending,
   onDelete,
   onOpen,
   onToggleFavorite,
-  onToggleMainSidebar,
 }: {
   deletePending: boolean;
   entry: PanelAppEntryView;
   favoritePending: boolean;
-  mainSidebarPending: boolean;
   onDelete: () => void;
   onOpen: () => void;
   onToggleFavorite: () => void;
-  onToggleMainSidebar: () => void;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -37,18 +34,10 @@ export function PanelAppListItem({
     event.stopPropagation();
     onToggleFavorite();
   };
-  const handleMainSidebar = () => {
-    setIsMenuOpen(false);
-    onToggleMainSidebar();
-  };
   const openDeleteDialog = () => {
     setIsMenuOpen(false);
     setIsDeleteDialogOpen(true);
   };
-  const mainSidebarLabel = entry.mainSidebar
-    ? t('panelAppsRemoveFromMainSidebar')
-    : t('panelAppsAddToMainSidebar');
-
   return (
     <div className="group w-full min-w-0 rounded-lg border border-border/60 bg-card px-2.5 py-2.5 transition-colors hover:bg-muted/40">
       <div className="flex min-w-0 items-start gap-2">
@@ -87,11 +76,9 @@ export function PanelAppListItem({
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
-              <PanelAppMenuItem
-                disabled={mainSidebarPending}
-                icon={entry.mainSidebar ? PanelLeftDashed : PanelLeft}
-                label={mainSidebarLabel}
-                onClick={handleMainSidebar}
+              <PanelAppMainSidebarMenuItem
+                entry={entry}
+                onSelect={() => setIsMenuOpen(false)}
               />
               <PanelAppMenuItem
                 destructive

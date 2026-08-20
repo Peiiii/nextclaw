@@ -6,6 +6,7 @@ import {
   createPanelAppResourceUri,
   createPanelAppRightPanelResourceTarget,
   readPanelAppIdFromResourceUri,
+  readPanelAppIdFromTab,
 } from '@/features/right-panel-resources/utils/right-panel-resource-uri.utils';
 
 function createPanelAppEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryView {
@@ -76,6 +77,17 @@ describe('right-panel-resource uri utils', () => {
     expect(readPanelAppIdFromResourceUri('/api/panel-apps/publisher.todo/content')).toBe('publisher.todo');
     expect(readPanelAppIdFromResourceUri('nextclaw://panel-app/publisher.todo?path=%2Ftmp%2Ftodo.panel')).toBeNull();
     expect(readPanelAppIdFromResourceUri('nextclaw://apps')).toBeNull();
+  });
+
+  it('falls back to the stable current URL for restored panel app shortcuts', () => {
+    expect(readPanelAppIdFromTab({
+      currentUrl: '/api/panel-apps/publisher.todo/content',
+      resourceUri: 'nextclaw://panel-app',
+    })).toBe('publisher.todo');
+    expect(readPanelAppIdFromTab({
+      currentUrl: '/api/panel-apps/publisher.todo/content?path=%2Ftmp%2Ftodo.panel',
+      resourceUri: 'nextclaw://panel-app/publisher.todo?path=%2Ftmp%2Ftodo.panel',
+    })).toBeNull();
   });
 
   it('keeps panel app image icons as dock image icons', () => {

@@ -11,6 +11,7 @@ export {
   createPanelAppResourceUri,
   createPanelAppRightPanelResourceTarget,
   readPanelAppIdFromResourceUri,
+  readPanelAppIdFromTab,
   RIGHT_PANEL_APPS_TAB_KIND,
   RIGHT_PANEL_APPS_URL,
   RIGHT_PANEL_HOME_TAB_KIND,

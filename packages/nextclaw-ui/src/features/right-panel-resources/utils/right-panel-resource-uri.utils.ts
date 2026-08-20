@@ -107,6 +107,14 @@ export function readPanelAppIdFromResourceUri(value: string): string | null {
     : readPanelAppIdFromParsedResourceUri(uri);
 }
 
+export function readPanelAppIdFromTab(
+  tab: Pick<DocBrowserTab, 'currentUrl' | 'resourceUri'>,
+): string | null {
+  return (tab.resourceUri
+    ? readPanelAppIdFromResourceUri(tab.resourceUri)
+    : null) ?? readPanelAppIdFromResourceUri(tab.currentUrl);
+}
+
 function isPanelAppImageIcon(icon: string): boolean {
   return (
     icon.startsWith('data:image/') ||

@@ -537,6 +537,32 @@ describe("DocBrowser panel app navigation", () => {
       preferences: { mainSidebar: true },
     });
   });
+
+  it("keeps placement actions when a restored shortcut only has a stable current URL", async () => {
+    const user = userEvent.setup();
+    const panelAppTab: DocBrowserTab = {
+      id: "piano",
+      kind: "panel-app",
+      title: "Piano",
+      currentUrl: "/api/panel-apps/piano/content",
+      resourceUri: "nextclaw://panel-app",
+      history: ["/api/panel-apps/piano/content"],
+      historyIndex: 0,
+      navVersion: 0,
+    };
+    docBrowserState.tabs = [panelAppTab];
+    docBrowserState.activeTabId = panelAppTab.id;
+    docBrowserState.currentTab = panelAppTab;
+
+    render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
+
+    await user.click(screen.getByRole("button", { name: "More panel app actions" }));
+    await user.click(screen.getByRole("button", { name: "Add to main sidebar" }));
+    expect(panelAppHooks.mutate).toHaveBeenCalledWith({
+      id: "piano",
+      preferences: { mainSidebar: true },
+    });
+  });
 });
 
 describe("DocBrowser scroll restoration", () => {

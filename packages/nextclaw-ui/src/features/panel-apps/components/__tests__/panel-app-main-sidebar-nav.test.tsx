@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -9,10 +10,15 @@ import type { PanelAppEntryView } from "@/shared/lib/api";
 
 const mocks = vi.hoisted(() => ({
   entries: [] as PanelAppEntryView[],
+  mutate: vi.fn(),
 }));
 
 vi.mock("@/features/panel-apps/hooks/use-panel-apps", () => ({
   usePanelApps: () => ({ data: { entries: mocks.entries } }),
+  useUpdatePanelAppPreferences: () => ({
+    isPending: false,
+    mutate: mocks.mutate,
+  }),
 }));
 
 function createEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryView {
@@ -38,6 +44,7 @@ function createEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryV
 describe("PanelAppMainSidebarNav", () => {
   beforeEach(() => {
     mocks.entries = [];
+    mocks.mutate.mockReset();
   });
 
   it("projects only manually added apps in persisted order", () => {
@@ -69,6 +76,50 @@ describe("PanelAppMainSidebarNav", () => {
     expect(link.getAttribute("href")).toBe("/apps/panel/publisher.todo");
     expect(link.getAttribute("aria-current")).toBe("page");
     expect(screen.queryByText("Hidden")).toBeNull();
+  });
+
+  it("removes an expanded entry from its hover actions without nesting the button in the link", async () => {
+    const user = userEvent.setup();
+    mocks.entries = [
+      createEntry({ appId: "publisher.todo", mainSidebar: true, title: "Todo" }),
+    ];
+
+    render(
+      <MemoryRouter initialEntries={["/apps/panel/publisher.todo"]}>
+        <PanelAppMainSidebarNav isCollapsed={false} />
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole("link", { name: "Todo" });
+    const menuButton = screen.getByRole("button", {
+      name: "More panel app actions: Todo",
+    });
+    expect(link.contains(menuButton)).toBe(false);
+    expect(menuButton.className).toContain("group-hover/panel-app:opacity-100");
+
+    await user.click(menuButton);
+    await user.click(screen.getByRole("button", { name: "Remove from main sidebar" }));
+
+    expect(mocks.mutate).toHaveBeenCalledWith({
+      id: "demo",
+      preferences: { mainSidebar: false },
+    });
+    expect(link.getAttribute("aria-current")).toBe("page");
+  });
+
+  it("keeps the collapsed rail as one navigation target", () => {
+    mocks.entries = [
+      createEntry({ appId: "publisher.todo", mainSidebar: true, title: "Todo" }),
+    ];
+
+    render(
+      <MemoryRouter>
+        <PanelAppMainSidebarNav isCollapsed />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Todo" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "More panel app actions: Todo" })).toBeNull();
   });
 
   it("renders no section when no app was manually added", () => {
