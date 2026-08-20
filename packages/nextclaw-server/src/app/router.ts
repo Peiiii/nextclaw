@@ -378,8 +378,8 @@ class UiRouteRegistry {
       ["post", "/api/config/channels/:channel/auth/connect", config.connectChannelAuth],
       ["post", "/api/config/channels/:channel/auth/poll", config.pollChannelAuth],
       ["put", "/api/config/secrets", config.updateSecrets],
-      ["put", "/api/config/runtime", config.updateRuntime],
       ["put", "/api/config/product-analytics", config.updateProductAnalytics],
+      ["put", "/api/config/runtime", config.updateRuntime],
       ["post", "/api/config/actions/:actionId/execute", config.executeAction],
     ]);
     this.mountResourceRoutes();
