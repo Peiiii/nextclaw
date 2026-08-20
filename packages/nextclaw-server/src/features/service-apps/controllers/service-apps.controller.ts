@@ -18,7 +18,7 @@ import type {
 
 const PANEL_BRIDGE_SESSION_HEADER = "x-nextclaw-panel-bridge-session";
 
-function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 {
+function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 502 {
   switch (code) {
     case "AUTHORIZATION_REQUIRED":
       return 401;
@@ -27,6 +27,8 @@ function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 {
     case "SERVICE_APP_ACTION_NOT_FOUND":
     case "SERVICE_APP_NOT_FOUND":
       return 404;
+    case "SERVICE_APP_RUNTIME_FAILED":
+      return 502;
     default:
       return 400;
   }

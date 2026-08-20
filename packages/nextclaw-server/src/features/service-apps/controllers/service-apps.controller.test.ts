@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import type { PanelAppBridgeSession, ServiceActionCaller } from "@nextclaw/kernel";
+import {
+  ServiceAppError,
+  type PanelAppBridgeSession,
+  type ServiceActionCaller,
+} from "@nextclaw/kernel";
 import { EventBus } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
@@ -49,6 +53,45 @@ function createBridgeSession(): PanelAppBridgeSession {
     createdAt: "2026-05-27T00:00:00.000Z",
     expiresAt: "2026-05-27T01:00:00.000Z",
   };
+}
+
+async function assertStructuredRuntimeFailureResponse(): Promise<void> {
+  const bridgeSession = createBridgeSession();
+  const app = createTestApp({
+    panelAppManager: {
+      resolvePanelAppBridgeSession: () => bridgeSession,
+    },
+    serviceAppManager: {
+      invokeServiceAction: async () => {
+        throw new ServiceAppError(
+          "SERVICE_APP_RUNTIME_FAILED",
+          "Service App notes failed to start.",
+        );
+      },
+    },
+  });
+
+  const response = await app.request("http://localhost/api/service-actions/notes.read/invoke", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-nextclaw-panel-bridge-session": "bridge-token",
+    },
+    body: JSON.stringify({ input: {} }),
+  });
+  const payload = await response.json() as {
+    ok: false;
+    error: { code: string; message: string };
+  };
+
+  expect(response.status).toBe(502);
+  expect(payload).toEqual({
+    ok: false,
+    error: {
+      code: "SERVICE_APP_RUNTIME_FAILED",
+      message: "Service App notes failed to start.",
+    },
+  });
 }
 
 afterEach(() => {
@@ -114,6 +157,10 @@ describe("service apps routes", () => {
       declaredActions: bridgeSession.declaredActions,
       input: { path: "memory.md" },
     });
+  });
+
+  it("returns structured JSON when a Service App runtime fails", async () => {
+    await assertStructuredRuntimeFailureResponse();
   });
 
   it("uses POST for explicit service action discovery", async () => {

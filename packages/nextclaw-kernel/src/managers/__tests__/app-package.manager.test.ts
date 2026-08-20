@@ -56,6 +56,68 @@ function createKernel(
   });
 }
 
+async function assertFavoritesServiceActions(kernel: NextclawKernel): Promise<void> {
+  const session = await kernel.panelAppManager.createPanelAppBridgeSession({
+    id: "nextclaw-personal-organizer-favorites",
+  });
+  const saveAction = "nextclaw-personal-organizer-data.favorite_save";
+  const listAction = "nextclaw-personal-organizer-data.favorite_list";
+  await kernel.serviceAppManager.grantServiceActions([saveAction, listAction], {
+    caller: session.caller,
+    declaredActions: session.declaredActions,
+  });
+  await kernel.serviceAppManager.invokeServiceAction(saveAction, {
+    caller: session.caller,
+    declaredActions: session.declaredActions,
+    input: { title: "NextClaw", url: "https://nextclaw.io" },
+  });
+  await expect(kernel.serviceAppManager.invokeServiceAction(listAction, {
+    caller: session.caller,
+    declaredActions: session.declaredActions,
+    input: {},
+  })).resolves.toMatchObject({
+    result: {
+      structuredContent: {
+        items: [expect.objectContaining({ title: "NextClaw" })],
+      },
+    },
+  });
+}
+
+async function assertCalendarServiceActions(kernel: NextclawKernel): Promise<void> {
+  const session = await kernel.panelAppManager.createPanelAppBridgeSession({
+    id: "nextclaw-personal-organizer-calendar",
+  });
+  const createAction = "nextclaw-personal-organizer-data.event_create";
+  const listAction = "nextclaw-personal-organizer-data.event_list";
+  await kernel.serviceAppManager.grantServiceActions([createAction, listAction], {
+    caller: session.caller,
+    declaredActions: session.declaredActions,
+  });
+  await kernel.serviceAppManager.invokeServiceAction(createAction, {
+    caller: session.caller,
+    declaredActions: session.declaredActions,
+    input: {
+      start: "2026-08-20T09:00:00.000Z",
+      title: "验证日历纵向链路",
+    },
+  });
+  await expect(kernel.serviceAppManager.invokeServiceAction(listAction, {
+    caller: session.caller,
+    declaredActions: session.declaredActions,
+    input: {
+      start: "2026-08-20T00:00:00.000Z",
+      end: "2026-08-21T00:00:00.000Z",
+    },
+  })).resolves.toMatchObject({
+    result: {
+      structuredContent: {
+        items: [expect.objectContaining({ title: "验证日历纵向链路" })],
+      },
+    },
+  });
+}
+
 afterEach(() => {
   while (tempDirectories.length > 0) {
     const directory = tempDirectories.pop();
@@ -440,6 +502,9 @@ describe("AppPackageManager package projection lifecycle", () => {
         },
       });
       expect(existsSync(join(enabledPackage.dataDirectory, "todos.json"))).toBe(true);
+
+      await assertFavoritesServiceActions(kernel);
+      await assertCalendarServiceActions(kernel);
 
       await kernel.appPackageManager.disable("nextclaw.personal-organizer");
       expect(() => kernel.panelAppManager.resolvePanelAppBridgeSession(session.token))

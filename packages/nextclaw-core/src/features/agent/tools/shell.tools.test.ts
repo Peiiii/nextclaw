@@ -7,6 +7,7 @@ import {
   createExternalCommandEnv,
   createRuntimeChildEnv,
   NEXTCLAW_COMMAND_SURFACE_BIN_ENV,
+  resolveRuntimeCommandLaunch,
   sanitizeNodeOptionsForExternalCommand
 } from "@core/shared/lib/core-utils/index.js";
 
@@ -297,5 +298,37 @@ describe("createRuntimeChildEnv", () => {
     );
 
     expect(env.NODE_OPTIONS).toBeUndefined();
+  });
+});
+
+describe("resolveRuntimeCommandLaunch", () => {
+  it.each(["node", "node.exe"])("resolves %s to the host node executable", (command) => {
+    expect(resolveRuntimeCommandLaunch(command, {
+      execPath: "C:\\Program Files\\NextClaw\\NextClaw.exe",
+      electronRunAsNode: true,
+    })).toEqual({
+      command: "C:\\Program Files\\NextClaw\\NextClaw.exe",
+      envPatch: { ELECTRON_RUN_AS_NODE: "1" },
+    });
+  });
+
+  it("uses the host node without an Electron env patch in a regular Node runtime", () => {
+    expect(resolveRuntimeCommandLaunch("node", {
+      execPath: "/opt/nextclaw/node",
+      electronRunAsNode: false,
+    })).toEqual({
+      command: "/opt/nextclaw/node",
+      envPatch: {},
+    });
+  });
+
+  it("preserves custom process commands", () => {
+    expect(resolveRuntimeCommandLaunch("./bin/service", {
+      execPath: "/opt/nextclaw/node",
+      electronRunAsNode: true,
+    })).toEqual({
+      command: "./bin/service",
+      envPatch: {},
+    });
   });
 });

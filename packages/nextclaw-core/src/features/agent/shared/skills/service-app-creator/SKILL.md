@@ -15,6 +15,7 @@ Service App 只负责浏览器做不了或不该做的后端动作：本地文�
 ## 运行与发布边界
 
 - 当前 Service App 通过 `command` 和 `args` 启动宿主进程，继承当前用户可访问的环境；action grant 是调用授权，不是 OS 进程沙箱。
+- `command: "node"` 或 `command: "node.exe"` 是 NextClaw 宿主 Node 的保留别名：NPM/CLI 使用当前 Node executable，Desktop 使用 Electron 内置 Node；不得依赖、优先探测或回退到用户系统 PATH 中的另一套 Node。Rust、Go 等原生进程和 `python3`、`git` 等显式系统命令仍按各自 command 启动。
 - 把 Service App 组装进 schema v2 Mini App 时，根 manifest 必须声明 `runtime.profile: native-process` 和真实权限。当前没有 schema v2 WASI Service component 合同，禁止改成 `wasi` 规避审核。
 - 社区 Service App 可以提交公开上架，但必须进入高权限人工审核；管理员可以根据代码、权限和来源证据审核为 `listed` 或 `unlisted`。安装后默认停用，用户显式启用后才运行组件。
 - 如果用户要求社区公开上架，如实保留 Service 和 `native-process` 声明并准备审核证据；不能删除安全声明、伪造 profile 或承诺自动通过。
@@ -102,7 +103,7 @@ service-apps/
 ```
 
 - 创建或改动依赖后，必须在该 Service App 目录运行安装命令；优先用当前环境可用的 `pnpm install`，不可用时用 `npm install`。不要假设用户已经手动装过。
-- `service-app.json.command` 继续使用 `node`、`args` 指向 `server.mjs`；安装后的 `node_modules` 由 Node.js 按 Service App 目录解析。
+- `service-app.json.command` 继续使用宿主 Node 别名 `node`、`args` 指向 `server.mjs`；安装后的 `node_modules` 由宿主 Node 按 Service App 目录解析。不要用绝对 Node 路径，也不要要求用户额外安装系统 Node。
 - 验收时除了检查 manifest，还要验证依赖可解析：最小可用 `node -e "import('@modelcontextprotocol/sdk/server/mcp.js').then(() => console.log('ok'))"`，更完整的是通过“服务应用”面板 discovery 确认 MCP tools 能列出。
 
 ## 配套 Panel App

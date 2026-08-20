@@ -11,7 +11,7 @@ import type {
   ExtensionProcessState,
   ExtensionRuntimeStatus,
 } from "@kernel/features/extension-runtime/index.js";
-import { createRuntimeChildEnv, type DiagnosticRuntime } from "@nextclaw/core";
+import { createRuntimeChildEnv, resolveRuntimeCommandLaunch, type DiagnosticRuntime } from "@nextclaw/core";
 import { classifyDiagnosticError } from "@nextclaw/shared";
 
 type ExtensionLifecycleServiceOptions = {
@@ -250,13 +250,12 @@ export class ExtensionLifecycleService {
     }
     const { generation, manifest, ready, token } = this.prepareStart(record);
     this.recordLifecycle(record, "process.spawn.started", "started");
-    const command = manifest.server.command === "node" || manifest.server.command === "node.exe"
-      ? process.execPath
-      : manifest.server.command;
-    const child = spawn(command, manifest.server.args ?? [], {
+    const launch = resolveRuntimeCommandLaunch(manifest.server.command);
+    const child = spawn(launch.command, manifest.server.args ?? [], {
       cwd: manifest.rootDir,
       env: createRuntimeChildEnv(process.env, {
         ...manifest.server.env,
+        ...launch.envPatch,
         NEXTCLAW_EXTENSION_ID: manifest.id,
         NEXTCLAW_EXTENSION_ENDPOINT: record.endpoint,
         NEXTCLAW_EXTENSION_GENERATION: generation,

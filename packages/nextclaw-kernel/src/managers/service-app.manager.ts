@@ -38,8 +38,17 @@ import {
   listServiceAppManifestActions,
   mergeServiceAppRuntimeActions,
 } from "@kernel/utils/service-app-runtime-action.utils.js";
+import {
+  isServiceAppError,
+  ServiceAppError,
+} from "@kernel/utils/service-app-error.utils.js";
 
 export type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
+export {
+  isServiceAppError,
+  ServiceAppError,
+  type ServiceAppErrorCode,
+} from "@kernel/utils/service-app-error.utils.js";
 
 const SERVICE_ACTION_GRANTS_FILE_NAME = ".service-action-grants.json";
 const SERVICE_APP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -56,30 +65,6 @@ export type ServiceAppDeleteResult = {
   id: string;
   dataRemoved: boolean;
 };
-
-export type ServiceAppErrorCode =
-  | "AUTHORIZATION_REQUIRED"
-  | "SERVICE_APP_ACTION_NOT_DECLARED"
-  | "SERVICE_APP_ACTION_NOT_FOUND"
-  | "SERVICE_APP_INVALID_ACTION"
-  | "SERVICE_APP_INVALID_CALLER"
-  | "SERVICE_APP_INVALID_MANIFEST"
-  | "SERVICE_APP_MANAGED_SOURCE"
-  | "SERVICE_APP_NOT_FOUND"
-  | "SERVICE_APP_READ_FAILED"
-  | "SERVICE_APP_RUNTIME_FAILED";
-
-export class ServiceAppError extends Error {
-  constructor(
-    readonly code: ServiceAppErrorCode,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ServiceAppError";
-  }
-}
-
-export const isServiceAppError = (error: unknown): error is ServiceAppError => error instanceof ServiceAppError;
 
 export class ServiceAppManager {
   private readonly removalService = new ServiceAppRemovalService();
@@ -176,13 +161,22 @@ export class ServiceAppManager {
         `This panel app needs permission to call ${actionId}.`,
       );
     }
-    const result = await this.runtimeService.invokeAction({
-      app: record,
-      manifest,
-      actionName,
-      input: request.input ?? {},
-    });
-    return { actionId, result };
+    try {
+      const result = await this.runtimeService.invokeAction({
+        app: record,
+        manifest,
+        actionName,
+        input: request.input ?? {},
+      });
+      return { actionId, result };
+    } catch (error) {
+      throw new ServiceAppError(
+        "SERVICE_APP_RUNTIME_FAILED",
+        `Service App ${record.id} action ${actionName} failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   };
 
   grantServiceAction = async (

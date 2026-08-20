@@ -1,5 +1,8 @@
 import type { Config } from "@nextclaw/core";
-import { createRuntimeChildEnv } from "@nextclaw/core";
+import {
+  createRuntimeChildEnv,
+  resolveRuntimeCommandLaunch,
+} from "@nextclaw/core";
 import { McpServerLifecycleManager } from "@nextclaw/mcp";
 import type { McpServerRecord, McpToolCatalogEntry } from "@nextclaw/mcp";
 import type {
@@ -119,28 +122,34 @@ export class McpServiceAppRuntimeService {
   private toMcpServerRecord = (
     app: ServiceAppRecord,
     manifest: ServiceAppManifest,
-  ): McpServerRecord => ({
-    name: app.id,
-    definition: {
-      enabled: app.enabled,
-      transport: {
-        type: "stdio",
-        command: manifest.command,
-        args: manifest.args,
-        cwd: app.dirPath,
-        env: createRuntimeChildEnv(process.env, this.createAppRuntimeEnv(app)),
-        stderr: "pipe",
+  ): McpServerRecord => {
+    const launch = resolveRuntimeCommandLaunch(manifest.command);
+    return {
+      name: app.id,
+      definition: {
+        enabled: app.enabled,
+        transport: {
+          type: "stdio",
+          command: launch.command,
+          args: manifest.args,
+          cwd: app.dirPath,
+          env: createRuntimeChildEnv(process.env, {
+            ...this.createAppRuntimeEnv(app),
+            ...launch.envPatch,
+          }),
+          stderr: "pipe",
+        },
+        scope: {
+          allAgents: false,
+          agents: [],
+        },
+        policy: {
+          trust: "explicit",
+          start: "eager",
+        },
       },
-      scope: {
-        allAgents: false,
-        agents: [],
-      },
-      policy: {
-        trust: "explicit",
-        start: "eager",
-      },
-    },
-  });
+    };
+  };
 
   private createAppRuntimeEnv = (app: ServiceAppRecord): NodeJS.ProcessEnv => {
     const env: NodeJS.ProcessEnv = {};

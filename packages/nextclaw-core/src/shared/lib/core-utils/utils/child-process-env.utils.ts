@@ -32,6 +32,31 @@ export type RuntimeChildEnvOptions = {
   inheritBaseEnv?: boolean;
 };
 
+export type RuntimeCommandLaunchOptions = {
+  execPath?: string;
+  electronRunAsNode?: boolean;
+};
+
+export type RuntimeCommandLaunch = {
+  command: string;
+  envPatch: Record<string, string>;
+};
+
+export function resolveRuntimeCommandLaunch(
+  command: string,
+  options: RuntimeCommandLaunchOptions = {},
+): RuntimeCommandLaunch {
+  if (command !== "node" && command !== "node.exe") {
+    return { command, envPatch: {} };
+  }
+  const electronRunAsNode = options.electronRunAsNode ??
+    typeof (process.versions as Record<string, string | undefined>).electron === "string";
+  return {
+    command: options.execPath ?? process.execPath,
+    envPatch: electronRunAsNode ? { ELECTRON_RUN_AS_NODE: "1" } : {},
+  };
+}
+
 function collectNodeModulesBinDirs(cwd: string): string[] {
   const entries: string[] = [];
   let current = resolve(cwd);

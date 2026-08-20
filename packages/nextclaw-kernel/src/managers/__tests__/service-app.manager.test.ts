@@ -346,6 +346,35 @@ describe("ServiceAppManager", () => {
     }));
   });
 
+  it("maps runtime invocation failures to a Service App domain error", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath);
+    const runtime = createRuntime({
+      id: "notes.read",
+      appId: "notes",
+      name: "read",
+      risk: "read",
+    });
+    runtime.invokeAction.mockRejectedValueOnce(new Error("spawn node ENOENT"));
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      runtimeService: runtime,
+    });
+    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
+
+    await manager.grantServiceAction("notes.read", {
+      caller,
+      declaredActions: ["notes.read"],
+    });
+    await expect(manager.invokeServiceAction("notes.read", {
+      caller,
+      declaredActions: ["notes.read"],
+    })).rejects.toMatchObject({
+      code: "SERVICE_APP_RUNTIME_FAILED",
+      message: expect.stringContaining("spawn node ENOENT"),
+    } satisfies Partial<ServiceAppError>);
+  });
+
 });
 
 describe("ServiceAppManager deletion", () => {
