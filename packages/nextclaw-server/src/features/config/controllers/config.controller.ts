@@ -14,6 +14,7 @@ import {
   createProvider,
   deleteProvider,
   updateProvider,
+  updateProductAnalytics,
   updateSecrets,
   updateRuntime
 } from "@nextclaw-server/features/config/index.js";
@@ -36,6 +37,7 @@ import type {
   ProviderCreateRequest,
   ProviderCreateResult,
   ProviderDeleteResult,
+  ProductAnalyticsConfigUpdate,
   ProviderConfigUpdate,
   SearchConfigUpdate,
   SecretsConfigUpdate,
@@ -449,6 +451,19 @@ export class ConfigRoutesController {
     }
     const result = updateSecrets(this.options.configPath, body.data as SecretsConfigUpdate);
     await this.publishConfigUpdates(["secrets"]);
+    return c.json(ok(result));
+  };
+
+  readonly updateProductAnalytics = async (c: Context) => {
+    const body = await readJson<Record<string, unknown>>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const result = updateProductAnalytics(
+      this.options.configPath,
+      body.data as ProductAnalyticsConfigUpdate,
+    );
+    await this.publishConfigUpdates(["productAnalytics"]);
     return c.json(ok(result));
   };
 

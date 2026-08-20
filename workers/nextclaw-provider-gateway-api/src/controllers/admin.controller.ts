@@ -6,7 +6,10 @@ import type {
   Env,
   RechargeIntentRow,
 } from "@/types/platform";
-import { listAdminUsers } from "@/repositories/admin-user.repository";
+import {
+  listAdminUsers,
+  updateAdminUserAnalyticsAudience,
+} from "@/repositories/admin-user.repository";
 import {
   appendAuditLog,
   createProviderAccount,
@@ -22,7 +25,6 @@ import {
   toModelCatalogView,
   toProviderAccountView,
   toRechargeIntentView,
-  toUserPublicView,
   upsertModelCatalog,
   writePlatformNumberSetting
 } from "@/repositories/platform.repository";
@@ -47,6 +49,7 @@ import {
   readUnknown,
   roundUsd
 } from "@/utils/platform.utils";
+import { toUserPublicView } from "@/utils/platform-user-view.utils";
 
 export async function adminOverviewHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);
@@ -386,6 +389,7 @@ export async function patchAdminUserHandler(c: Context<{ Bindings: Env }>): Prom
   const body = await readJson(c);
   const freeLimitUsdRaw = readUnknown(body, "freeLimitUsd");
   const paidBalanceDeltaUsdRaw = readUnknown(body, "paidBalanceDeltaUsd");
+  const analyticsAudienceRaw = readUnknown(body, "analyticsAudience");
 
   let changed = false;
   const now = new Date().toISOString();
@@ -410,6 +414,20 @@ export async function patchAdminUserHandler(c: Context<{ Bindings: Env }>): Prom
       })) || changed;
   }
 
+  if (
+    analyticsAudienceRaw === "external"
+    || analyticsAudienceRaw === "internal"
+    || analyticsAudienceRaw === "qa"
+  ) {
+    changed =
+      (await updateAdminUserAnalyticsAudience({
+        db: c.env.NEXTCLAW_PLATFORM_DB,
+        userId,
+        audience: analyticsAudienceRaw,
+        now,
+      })) || changed;
+  }
+
   const userAfter = await getUserById(c.env.NEXTCLAW_PLATFORM_DB, userId);
   if (!userAfter) {
     return apiError(c, 500, "USER_NOT_FOUND_AFTER_UPDATE", "User cannot be loaded after update.");
@@ -418,14 +436,15 @@ export async function patchAdminUserHandler(c: Context<{ Bindings: Env }>): Prom
   if (changed) {
     await appendAuditLog(c.env.NEXTCLAW_PLATFORM_DB, {
       actorUserId: admin.user.id,
-      action: "admin.user.quota.update",
+      action: "admin.user.update",
       targetType: "user",
       targetId: userId,
       beforeJson: JSON.stringify(toUserPublicView(userBefore)),
       afterJson: JSON.stringify(toUserPublicView(userAfter)),
       metadataJson: JSON.stringify({
         freeLimitUsd: typeof freeLimitUsdRaw === "number" ? roundUsd(freeLimitUsdRaw) : null,
-        paidBalanceDeltaUsd: typeof paidBalanceDeltaUsdRaw === "number" ? roundUsd(paidBalanceDeltaUsdRaw) : null
+        paidBalanceDeltaUsd: typeof paidBalanceDeltaUsdRaw === "number" ? roundUsd(paidBalanceDeltaUsdRaw) : null,
+        analyticsAudience: typeof analyticsAudienceRaw === "string" ? analyticsAudienceRaw : null
       })
     });
   }

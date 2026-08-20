@@ -18,6 +18,32 @@ export const PLATFORM_ADMIN_SMOKE_FIXTURES = {
     userCount: 24,
     pendingRechargeIntents: 2
   },
+  productActivity: {
+    timezone: "Asia/Shanghai",
+    asOfDate: "2026-08-20",
+    filters: {
+      audience: "external",
+      environment: "production",
+      releaseChannel: "stable",
+      trendDays: 30
+    },
+    metrics: {
+      dau: 18,
+      wau: 64,
+      mau: 143,
+      successfulDau: 16,
+      successfulWau: 58,
+      successfulMau: 130,
+      wauAnonymousInstallations: 22,
+      wauIdentifiedUsers: 42,
+      wauIdentificationRate: 0.6563
+    },
+    trend: Array.from({ length: 30 }, (_, index) => ({
+      date: `2026-08-${String(index + 1).padStart(2, "0")}`,
+      active: 8 + (index % 11),
+      successful: 6 + (index % 9)
+    }))
+  },
   remoteQuota: {
     costModel: {
       version: 2,

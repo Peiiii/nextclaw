@@ -629,12 +629,25 @@ export type SecretsConfigUpdate = {
   refs?: Record<string, SecretRefView> | null;
 };
 
+export type ProductAnalyticsAudience = 'external' | 'internal' | 'qa';
+
+export type ProductAnalyticsView = {
+  enabled: boolean;
+  audience: ProductAnalyticsAudience;
+};
+
+export type ProductAnalyticsConfigUpdate = {
+  enabled?: boolean;
+  audience?: ProductAnalyticsAudience;
+};
+
 export type ChannelConfigUpdate = Record<string, unknown>;
 
 export type ConfigView = {
   companion?: {
     enabled?: boolean;
   };
+  productAnalytics: ProductAnalyticsView;
   agents: {
     defaults: {
       model: string;

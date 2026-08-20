@@ -58,7 +58,7 @@ export async function listAdminUsers(
       .bind(...searchBindings)
       .first<{ all_count: number; admin_count: number; user_count: number }>(),
     db.prepare(
-      `SELECT id, email, username, password_hash, password_salt, role,
+      `SELECT id, email, username, password_hash, password_salt, role, analytics_audience,
               free_limit_usd, free_used_usd, paid_balance_usd,
               created_at, updated_at
          FROM users
@@ -80,4 +80,18 @@ export async function listAdminUsers(
     counts,
     total: query.role === "all" ? counts.all : counts[query.role],
   };
+}
+
+export async function updateAdminUserAnalyticsAudience(params: {
+  db: D1Database;
+  userId: string;
+  audience: "external" | "internal" | "qa";
+  now: string;
+}): Promise<boolean> {
+  const { db, userId, audience, now } = params;
+  const changed = await db
+    .prepare("UPDATE users SET analytics_audience = ?, updated_at = ? WHERE id = ?")
+    .bind(audience, now, userId)
+    .run();
+  return changed.success && (changed.meta.changes ?? 0) > 0;
 }

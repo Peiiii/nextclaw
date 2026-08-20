@@ -18,12 +18,13 @@ import {
   importProviderAuthFromCli,
   updateChannel,
   updateRuntime,
+  updateProductAnalytics,
   updateSecrets,
   executeConfigAction
 } from '@/shared/lib/api';
 import { toast } from 'sonner';
 import { t } from '@/shared/lib/i18n';
-import type { ProvidersView } from '@/shared/lib/api';
+import type { ConfigView, ProvidersView } from '@/shared/lib/api';
 
 export function useConfig() {
   return useQuery({
@@ -92,6 +93,25 @@ export function useUpdateModel() {
     },
     onError: (error: Error) => {
       toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useUpdateProductAnalytics() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ data }: {
+      data: Parameters<typeof updateProductAnalytics>[0];
+    }) => updateProductAnalytics(data),
+    onSuccess: (productAnalytics) => {
+      queryClient.setQueryData<ConfigView>(['config'], (current) => current
+        ? { ...current, productAnalytics }
+        : current);
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(`${t('configSaveFailed')}: ${error.message}`);
     }
   });
 }

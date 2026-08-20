@@ -7,8 +7,7 @@ import {
   getUserById,
   getUserByUsername,
   registerUserLoginFailure,
-  resetUserLoginSecurity,
-  toUserPublicView
+  resetUserLoginSecurity
 } from "@/repositories/platform.repository";
 import {
   ACCOUNT_LOCK_MINUTES,
@@ -29,6 +28,7 @@ import {
   verifyPassword
 } from "@/utils/platform.utils";
 import { normalizePlatformUsername, validatePlatformUsername } from "@/utils/platform-username";
+import { toUserPublicView } from "@/utils/platform-user-view.utils";
 
 export class PlatformAuthServiceError extends Error {
   constructor(

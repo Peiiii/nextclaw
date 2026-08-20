@@ -91,6 +91,20 @@ export async function requireAuthUser(c: { env: Env; req: { header: (name: strin
   return { ok: true, user };
 }
 
+export class PlatformRequestAuthService {
+  constructor(private readonly env: Env) {}
+
+  resolveOptional = async (authorization: string | undefined) => {
+    if (!parseBearerToken(authorization)) {
+      return { ok: true as const, user: null };
+    }
+    return await requireAuthUser({
+      env: this.env,
+      req: { header: () => authorization },
+    });
+  };
+}
+
 export async function requireAdminUser(c: { env: Env; req: { header: (name: string) => string | undefined } }): Promise<
   | { ok: true; user: UserRow }
   | { ok: false; response: Response }
@@ -318,6 +332,7 @@ function buildEmptyBillingSnapshot(userId: string): BillingSnapshot {
       password_hash: "",
       password_salt: "",
       role: "user",
+      analytics_audience: "external",
       free_limit_usd: 0,
       free_used_usd: 0,
       paid_balance_usd: 0,

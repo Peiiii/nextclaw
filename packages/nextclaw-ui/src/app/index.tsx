@@ -62,6 +62,10 @@ const SecretsConfigPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/secrets-config-page"))
     .SecretsConfigPage,
 }));
+const PrivacySettingsPage = lazy(async () => ({
+  default: (await import("@/features/settings/pages/privacy-settings-page"))
+    .PrivacySettingsPage,
+}));
 const RemoteAccessPage = lazy(async () => ({
   default: (await import("@/features/remote")).RemoteAccessPage,
 }));
@@ -165,6 +169,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/security",
     element: createLazyElement(<SecurityConfigPage />),
+  },
+  {
+    path: "/privacy",
+    element: createLazyElement(<PrivacySettingsPage />),
   },
   {
     path: "/secrets",

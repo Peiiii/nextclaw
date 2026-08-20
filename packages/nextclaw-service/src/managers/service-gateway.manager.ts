@@ -30,6 +30,7 @@ import { NextclawDistributionService } from "@nextclaw-service/services/runtime/
 import { ServiceBootstrapStatusStore } from "@nextclaw-service/services/gateway/service-bootstrap-status.service.js";
 import { GatewayRuntimeSupportService, ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, watchServiceConfigFile } from "@nextclaw-service/services/gateway/service-startup-support.service.js";
 import { ServiceMarketplaceInstaller } from "@nextclaw-service/services/marketplace/service-marketplace-installer.service.js";
+import { ProductActivityReporter } from "@nextclaw-service/services/product-activity/product-activity-reporter.service.js";
 import {
   NpmRuntimeUpdateHost,
   resolveNpmRuntimeUpdateApplyRestartMode,
@@ -115,13 +116,20 @@ export class ServiceGatewayManager {
     private readonly options: GatewayRuntimeOptions,
   ) {
     const configPath = getConfigPath();
+    const homeDir = getDataDir();
+    const productActivityReporter = new ProductActivityReporter({
+      homeDir,
+      productVersion: this.distribution.version,
+      loadConfig: () => NextclawCore.loadConfig(configPath),
+    });
     this.kernel = measureStartupSync(
       "service.gateway.kernel",
       () => new NextclawKernel({
-        homeDir: getDataDir(),
+        homeDir,
         configPath,
         builtInAppsDirectory: this.distribution.builtInAppsDirectory,
         productVersion: this.distribution.version,
+        productActivitySink: productActivityReporter,
       }),
     );
     this.configManager = this.kernel.configManager;

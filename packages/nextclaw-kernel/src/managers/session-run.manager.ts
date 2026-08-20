@@ -9,6 +9,14 @@ import { DefaultNcpAgentConversationStateManager, insertMessageByTimeline } from
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
+import type {
+  ProductActivitySink,
+  ProductActivitySource,
+} from "@kernel/types/product-activity.types.js";
+import {
+  recordProductActivityBestEffort,
+  resolveHumanProductActivitySource,
+} from "@kernel/utils/product-activity.utils.js";
 
 export type SessionRunQueuedRequest = {
   id: string;
@@ -45,6 +53,7 @@ export class SessionRun {
   private readonly queuedRequests: SessionRunQueuedRequest[] = [];
   private activeRunId: string | null = null;
   private activeRunController: AbortController | null = null;
+  private activeProductActivitySource: ProductActivitySource | null = null;
 
   constructor(
     seed: {
@@ -52,6 +61,7 @@ export class SessionRun {
       messages: readonly NcpMessage[];
     },
     private readonly stateManager: NcpAgentConversationStateManager = new DefaultNcpAgentConversationStateManager(),
+    private readonly productActivitySink?: ProductActivitySink,
   ) {
     this.sessionId = seed.sessionId;
     this.stateManager.hydrate({
@@ -137,6 +147,14 @@ export class SessionRun {
     const controller = new AbortController();
     this.activeRunId = queuedRequest.runId;
     this.activeRunController = controller;
+    this.activeProductActivitySource = resolveHumanProductActivitySource(queuedRequest.request);
+    if (this.activeProductActivitySource) {
+      recordProductActivityBestEffort(this.productActivitySink, {
+        kind: "intent_accepted",
+        occurredAt: new Date().toISOString(),
+        source: this.activeProductActivitySource,
+      });
+    }
     this.emitStatusChangeIfNeeded(wasBusy);
     return {
       ...structuredClone(queuedRequest),
@@ -168,6 +186,7 @@ export class SessionRun {
     });
     this.activeRunController = null;
     this.activeRunId = null;
+    this.activeProductActivitySource = null;
     this.queuedRequests.length = 0;
     this.emitStatusChangeIfNeeded(wasBusy);
     this.statusListeners.clear();
@@ -185,8 +204,19 @@ export class SessionRun {
           event.type === NcpEventType.RunError) &&
         (!event.payload.runId || event.payload.runId === this.activeRunId)
       ) {
+        if (
+          event.type === NcpEventType.RunFinished
+          && this.activeProductActivitySource
+        ) {
+          recordProductActivityBestEffort(this.productActivitySink, {
+            kind: "run_succeeded",
+            occurredAt: new Date().toISOString(),
+            source: this.activeProductActivitySource,
+          });
+        }
         this.activeRunId = null;
         this.activeRunController = null;
+        this.activeProductActivitySource = null;
       }
     }
     this.emitStatusChangeIfNeeded(wasBusy);
@@ -209,7 +239,10 @@ export class SessionRunManager {
   private readonly runs = new Map<string, SessionRun>();
   private readonly pendingCreations = new Map<string, Promise<SessionRun>>();
 
-  constructor(private readonly sessionManager: SessionManager) {}
+  constructor(
+    private readonly sessionManager: SessionManager,
+    private readonly productActivitySink?: ProductActivitySink,
+  ) {}
 
   getSessionRun = (sessionId: string): SessionRun | null =>
     this.runs.get(sessionId) ?? null;
@@ -241,7 +274,7 @@ export class SessionRunManager {
       messages,
       sessionId,
     };
-    const run = new SessionRun(seed);
+    const run = new SessionRun(seed, undefined, this.productActivitySink);
     this.runs.set(sessionId, run);
     return run;
   };

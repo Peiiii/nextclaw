@@ -24,6 +24,9 @@ async function installRoutes(page, fixtures) {
   await page.route("**/platform/admin/overview", async (route) => {
     await fulfillJson(route, fixtures.overview);
   });
+  await page.route("**/platform/admin/analytics/activity?**", async (route) => {
+    await fulfillJson(route, fixtures.productActivity);
+  });
   await page.route("**/platform/admin/remote/quota/v2", async (route) => {
     await fulfillJson(route, fixtures.remoteQuota);
   });
@@ -242,6 +245,9 @@ async function assertConsoleShell(browser) {
     "充值审核",
     "PLATFORM GOVERNANCE",
     "平台治理入口与关键运行状态",
+    "产品活跃",
+    "核心 DAU",
+    "匿名安装是随机安装标识，不等于精确人数",
     "营收与上游治理",
     "Cloudflare 套餐档案",
     "仅观察，不限制正常使用"
@@ -251,6 +257,14 @@ async function assertConsoleShell(browser) {
       throw new Error(`控制台首页缺少预期文案: ${value}`);
     }
   }
+
+  const qaActivityRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname.endsWith("/platform/admin/analytics/activity")
+      && url.searchParams.get("audience") === "qa";
+  });
+  await page.getByLabel("统计人群").selectOption("qa");
+  await qaActivityRequest;
 
   await page.getByRole("link", { name: /Marketplace 审核/ }).first().click();
   await page.waitForFunction(() => document.body.innerText.includes("审核队列"));

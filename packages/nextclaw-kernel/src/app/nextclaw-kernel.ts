@@ -66,12 +66,14 @@ import {
   createKernelOperationalManagers,
   createKernelServiceAppManagers,
 } from "@kernel/app/kernel-manager.factory.js";
+import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
 
 export type NextclawKernelOptions = {
   homeDir?: string;
   configPath?: string;
   builtInAppsDirectory?: string;
   productVersion?: string;
+  productActivitySink?: ProductActivitySink;
 };
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -271,7 +273,7 @@ export class NextclawKernel {
       this.agents,
       this.llmProviders,
     );
-    this.sessionRunManager = new SessionRunManager(this.sessionManager);
+    this.sessionRunManager = new SessionRunManager(this.sessionManager, options.productActivitySink);
     this.sessionContextCompactionManager = new SessionContextCompactionManager(
       this.agentRuntimeManager,
       this.eventBus,

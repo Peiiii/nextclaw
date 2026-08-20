@@ -9,6 +9,7 @@ import { NpmRuntimeLauncher } from "@nextclaw-service/launcher/npm-runtime-launc
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/services/runtime/npm-runtime-update-command.service.js";
 import { initializeConfigIfMissing } from "@nextclaw-service/services/runtime/runtime-config-init.service.js";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
+import { ProductActivityReporter } from "@nextclaw-service/services/product-activity/product-activity-reporter.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
 import type { AgentCommandOptions, LoginCommandOptions, UpdateCommandOptions } from "@nextclaw-service/types/cli.types.js";
 import { isProcessRunning } from "@nextclaw-service/utils/cli.utils.js";
@@ -139,9 +140,17 @@ export class NextclawServiceRuntime {
 
   agent = async (opts: AgentCommandOptions): Promise<void> => {
     const configPath = getConfigPath();
+    const distribution = NextclawDistributionService.get();
+    const productActivityReporter = new ProductActivityReporter({
+      homeDir: getDataDir(),
+      productVersion: distribution.version,
+      loadConfig: () => loadConfig(configPath),
+    });
     const kernel = new NextclawKernel({
       homeDir: getDataDir(),
       configPath,
+      productVersion: distribution.version,
+      productActivitySink: productActivityReporter,
     });
     const config = kernel.configManager.config;
 

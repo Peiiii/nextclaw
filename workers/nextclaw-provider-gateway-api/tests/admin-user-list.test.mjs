@@ -35,6 +35,7 @@ database.exec(`
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
     role TEXT NOT NULL,
+    analytics_audience TEXT NOT NULL DEFAULT 'external',
     free_limit_usd REAL NOT NULL,
     free_used_usd REAL NOT NULL,
     paid_balance_usd REAL NOT NULL,
@@ -44,9 +45,9 @@ database.exec(`
 `);
 const insert = database.prepare(`
   INSERT INTO users (
-    id, email, username, password_hash, password_salt, role,
+    id, email, username, password_hash, password_salt, role, analytics_audience,
     free_limit_usd, free_used_usd, paid_balance_usd, created_at, updated_at
-  ) VALUES (?, ?, ?, 'hash', 'salt', ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, 'hash', 'salt', ?, 'external', ?, ?, ?, ?, ?)
 `);
 
 for (let index = 1; index <= 13; index += 1) {

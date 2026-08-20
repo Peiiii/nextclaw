@@ -632,6 +632,10 @@ export type SecretsConfigUpdate = {
   refs?: Record<string, SecretRefView> | null;
 };
 
+export type ProductAnalyticsView = Config["productAnalytics"];
+export type ProductAnalyticsAudience = ProductAnalyticsView["audience"];
+export type ProductAnalyticsConfigUpdate = Partial<ProductAnalyticsView>;
+
 export type UiNcpSessionListView = {
   sessions: NcpSessionSummary[];
   total: number;
@@ -681,6 +685,7 @@ export type UiNcpAssetService = {
 
 export type ConfigView = {
   companion?: { enabled?: boolean };
+  productAnalytics: ProductAnalyticsView;
   agents: {
     defaults: {
       model: string;

@@ -10,6 +10,8 @@ import type {
   CronListQuery,
   CronListView,
   CronRunRequest,
+  ProductAnalyticsConfigUpdate,
+  ProductAnalyticsView,
   RuntimeConfigUpdate,
   SearchConfigUpdate,
   SearchConfigView,
@@ -62,6 +64,15 @@ export class ConfigService {
 
   readonly updateSecrets = async (data: SecretsConfigUpdate): Promise<SecretsView> => {
     return await this.requestService.put<SecretsView>("/api/config/secrets", data);
+  };
+
+  readonly updateProductAnalytics = async (
+    data: ProductAnalyticsConfigUpdate,
+  ): Promise<ProductAnalyticsView> => {
+    return await this.requestService.put<ProductAnalyticsView>(
+      "/api/config/product-analytics",
+      data,
+    );
   };
 
   readonly executeAction = async (

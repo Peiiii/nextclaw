@@ -97,6 +97,10 @@ import {
   remoteQuotaSummaryV2Handler,
 } from "@/controllers/remote-quota.controller.js";
 import type { Env } from "@/types/platform";
+import {
+  adminProductActivityOverviewHandler,
+  productActivityIngestHandler,
+} from "@/controllers/product-activity.controller.js";
 
 function registerPlatformAuthRoutes(app: Hono<{ Bindings: Env }>): void {
   app.post("/platform/auth/login", loginHandler);
@@ -184,6 +188,7 @@ function registerPublicRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/v1/models", modelsHandler);
   app.get("/v1/usage", usageHandler);
   app.post("/v1/chat/completions", chatCompletionsHandler);
+  app.post("/platform/analytics/activity", productActivityIngestHandler);
 }
 
 function registerBillingRoutes(app: Hono<{ Bindings: Env }>): void {
@@ -216,6 +221,7 @@ function registerUserMarketplaceRoutes(app: Hono<{ Bindings: Env }>): void {
 
 function registerAdminRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/admin/overview", adminOverviewHandler);
+  app.get("/platform/admin/analytics/activity", adminProductActivityOverviewHandler);
   app.get("/platform/admin/remote/quota/v2", adminRemoteQuotaSummaryV2Handler);
   app.get("/platform/admin/profit/overview", adminProfitOverviewHandler);
   app.get("/platform/admin/marketplace/skills", adminMarketplaceSkillsHandler);

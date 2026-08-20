@@ -1,7 +1,5 @@
 import type { Context } from "hono";
-import {
-  toUserPublicView
-} from "@/repositories/platform.repository";
+import { toUserPublicView } from "@/utils/platform-user-view.utils";
 import {
   type Env
 } from "@/types/platform";

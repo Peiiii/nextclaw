@@ -52,6 +52,7 @@ export type UsageCounters = {
 export type ProviderAuthType = "oauth" | "api_key";
 
 export type UserRole = "admin" | "user";
+export type UserAnalyticsAudience = "external" | "internal" | "qa";
 
 export type SessionTokenPayload = {
   sub: string;
@@ -69,6 +70,7 @@ export type UserRow = {
   password_hash: string;
   password_salt: string;
   role: UserRole;
+  analytics_audience: UserAnalyticsAudience;
   free_limit_usd: number;
   free_used_usd: number;
   paid_balance_usd: number;
@@ -88,6 +90,7 @@ export type UserPublicView = {
   email: string;
   username: string | null;
   role: UserRole;
+  analyticsAudience: UserAnalyticsAudience;
   freeLimitUsd: number;
   freeUsedUsd: number;
   freeRemainingUsd: number;

@@ -13,6 +13,7 @@ import {
   type UserSecurityRow
 } from "@/types/platform";
 import { normalizeNonNegativeInteger, roundUsd } from "@/utils/platform.utils";
+import { toUserPublicView } from "@/utils/platform-user-view.utils";
 
 export async function appendLedger(
   db: D1Database,
@@ -103,7 +104,7 @@ export async function appendAuditLog(
     .run();
 }
 
-const USER_ROW_SELECT_SQL = `SELECT id, email, username, password_hash, password_salt, role,
+const USER_ROW_SELECT_SQL = `SELECT id, email, username, password_hash, password_salt, role, analytics_audience,
         free_limit_usd, free_used_usd, paid_balance_usd,
         created_at, updated_at
    FROM users`;
@@ -592,21 +593,6 @@ export async function readBillingSnapshot(db: D1Database, userId: string): Promi
     user,
     globalFreeLimitUsd,
     globalFreeUsedUsd
-  };
-}
-
-export function toUserPublicView(user: UserRow): UserPublicView {
-  return {
-    id: user.id,
-    email: user.email,
-    username: user.username,
-    role: user.role,
-    freeLimitUsd: roundUsd(user.free_limit_usd),
-    freeUsedUsd: roundUsd(user.free_used_usd),
-    freeRemainingUsd: roundUsd(Math.max(0, user.free_limit_usd - user.free_used_usd)),
-    paidBalanceUsd: roundUsd(user.paid_balance_usd),
-    createdAt: user.created_at,
-    updatedAt: user.updated_at
   };
 }
 

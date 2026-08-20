@@ -42,6 +42,8 @@ import type {
   ProviderInstanceView,
   ProvidersView,
   ProviderTemplatesView,
+  ProductAnalyticsConfigUpdate,
+  ProductAnalyticsView,
   SecretsConfigUpdate,
   SecretsView
 } from "@nextclaw-server/shared/types/server-api.types.js";
@@ -460,6 +462,7 @@ export function buildConfigView(config: Config, options?: ExtensionConfigProject
   }
   return {
     companion: sanitizePublicConfigValue(config.companion, "companion", uiHints),
+    productAnalytics: { ...config.productAnalytics },
     agents: sanitizePublicConfigValue(config.agents, "agents", uiHints),
     providers,
     search: buildSearchView(config),
@@ -984,4 +987,24 @@ export function updateSecrets(
     providers: { ...next.secrets.providers },
     refs: { ...next.secrets.refs }
   };
+}
+
+export function updateProductAnalytics(
+  configPath: string,
+  patch: ProductAnalyticsConfigUpdate,
+): ProductAnalyticsView {
+  const config = loadConfigOrDefault(configPath);
+  if (Object.prototype.hasOwnProperty.call(patch, "enabled")) {
+    config.productAnalytics.enabled = Boolean(patch.enabled);
+  }
+  if (
+    patch.audience === "external"
+    || patch.audience === "internal"
+    || patch.audience === "qa"
+  ) {
+    config.productAnalytics.audience = patch.audience;
+  }
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  return { ...next.productAnalytics };
 }

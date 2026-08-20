@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   Bot,
   BrainCircuit,
   AlarmClock,
@@ -154,6 +155,11 @@ export function getSettingsNavItems(
       target: "/security",
       label: translate("security"),
       icon: Shield,
+    },
+    {
+      target: "/privacy",
+      label: translate("privacy"),
+      icon: Activity,
     },
     {
       target: "/search",

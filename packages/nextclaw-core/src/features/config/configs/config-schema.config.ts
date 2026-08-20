@@ -341,6 +341,11 @@ export const CompanionConfigSchema = z.object({
   enabled: z.boolean().default(false)
 });
 
+export const ProductAnalyticsConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  audience: z.enum(["external", "internal", "qa"]).default("external")
+});
+
 const mcpNamedStringSchema = z.string().trim().min(1);
 
 export const McpServerScopeSchema = z.object({
@@ -539,6 +544,7 @@ export const ConfigSchema = z.object({
   ui: UiConfigSchema.default({}),
   remote: RemoteConfigSchema.default({}),
   companion: CompanionConfigSchema.default({}),
+  productAnalytics: ProductAnalyticsConfigSchema.default({}),
   tools: ToolsConfigSchema.default({}),
   secrets: SecretsConfigSchema.default({})
 });
