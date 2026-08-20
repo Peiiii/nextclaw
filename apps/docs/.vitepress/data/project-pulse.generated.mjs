@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-08-19T18:40:08.713Z",
+  "generatedAt": "2026-08-20T03:08:46.157Z",
   "hero": {
-    "currentLoc": 250767,
-    "testLoc": 101102,
-    "trackedFiles": 2668,
-    "recentCommitCount": 337,
+    "currentLoc": 253889,
+    "testLoc": 103000,
+    "trackedFiles": 2695,
+    "recentCommitCount": 347,
     "activeDays30": 30,
     "recentReleaseCount": 51,
-    "latestReleaseDate": "2026-08-18",
+    "latestReleaseDate": "2026-08-20",
     "latestNoteDate": "2026-08-20",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2585149,
-    "basePercentOfBenchmark": 9.7,
-    "lighterByPercent": 90.3
+    "benchmarkCodeLines": 2601723,
+    "basePercentOfBenchmark": 9.76,
+    "lighterByPercent": 90.24
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-22",
-        "label": "04-22",
-        "value": 0
-      },
       {
         "key": "2026-04-23",
         "label": "04-23",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-19",
         "label": "08-19",
         "value": 250767
+      },
+      {
+        "key": "2026-08-20",
+        "label": "08-20",
+        "value": 253889
       }
     ],
     "testLocDaily": [
@@ -1122,14 +1122,14 @@ export default {
         "key": "2026-08-19",
         "label": "08-19",
         "value": 101102
+      },
+      {
+        "key": "2026-08-20",
+        "label": "08-20",
+        "value": 103000
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-07-21",
-        "label": "07-21",
-        "value": 5
-      },
       {
         "key": "2026-07-22",
         "label": "07-22",
@@ -1274,6 +1274,11 @@ export default {
         "key": "2026-08-19",
         "label": "08-19",
         "value": 2
+      },
+      {
+        "key": "2026-08-20",
+        "label": "08-20",
+        "value": 15
       }
     ],
     "commitWeekly": [
@@ -1335,7 +1340,7 @@ export default {
       {
         "key": "2026-08-17",
         "label": "08-17",
-        "value": 34
+        "value": 42
       }
     ],
     "releaseMonthly": [
@@ -1397,7 +1402,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 11
+        "value": 12
       }
     ]
   },
@@ -1405,51 +1410,51 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 64963,
-        "testCodeLines": 34637,
-        "files": 775,
-        "sharePercent": 25.9
+        "codeLines": 66014,
+        "testCodeLines": 35372,
+        "files": 788,
+        "sharePercent": 26
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 26638,
-        "testCodeLines": 14018,
-        "files": 267,
-        "sharePercent": 10.6
+        "codeLines": 27337,
+        "testCodeLines": 14492,
+        "files": 274,
+        "sharePercent": 10.8
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 15465,
-        "testCodeLines": 5764,
-        "files": 167,
+        "codeLines": 15789,
+        "testCodeLines": 5908,
+        "files": 168,
         "sharePercent": 6.2
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 15224,
-        "testCodeLines": 7214,
+        "codeLines": 15327,
+        "testCodeLines": 7257,
         "files": 163,
-        "sharePercent": 6.1
+        "sharePercent": 6
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
         "codeLines": 13936,
         "testCodeLines": 0,
         "files": 68,
-        "sharePercent": 5.6
+        "sharePercent": 5.5
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 13071,
-        "testCodeLines": 8403,
-        "files": 126,
+        "codeLines": 13205,
+        "testCodeLines": 8484,
+        "files": 127,
         "sharePercent": 5.2
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 11647,
-        "testCodeLines": 8654,
-        "files": 134,
+        "codeLines": 11775,
+        "testCodeLines": 8906,
+        "files": 136,
         "sharePercent": 4.6
       },
       {
@@ -1457,16 +1462,25 @@ export default {
         "codeLines": 9926,
         "testCodeLines": 2938,
         "files": 88,
-        "sharePercent": 4
+        "sharePercent": 3.9
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2585149,
-      "basePercentOfBenchmark": 9.7,
-      "lighterByPercent": 90.3
+      "benchmarkCodeLines": 2601723,
+      "basePercentOfBenchmark": 9.76,
+      "lighterByPercent": 90.24
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-08-20",
+        "tagCount": 28,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.7.0",
+          "@nextclaw/channel-extension-dingtalk@0.2.31",
+          "@nextclaw/channel-extension-discord@0.2.31"
+        ]
+      },
       {
         "date": "2026-08-18",
         "tagCount": 43,
@@ -1511,20 +1525,30 @@ export default {
           "@nextclaw/app-runtime@0.9.14",
           "@nextclaw/channel-extension-dingtalk@0.2.23"
         ]
-      },
-      {
-        "date": "2026-08-11",
-        "tagCount": 42,
-        "sampleTags": [
-          "@nextclaw/channel-extension-dingtalk@0.2.22",
-          "@nextclaw/channel-extension-discord@0.2.22",
-          "@nextclaw/channel-extension-email@0.2.22"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-20-nextclaw-v0-40-1",
+        "date": "2026-08-20",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-20 · NextClaw v0.40.1",
+          "description": "Panel App main-sidebar management is now consistent across the list, running view, and pinned entry, with direct removal from the left sidebar.",
+          "href": "/en/notes/2026-08-20-nextclaw-v0-40-1"
+        },
+        "zh": {
+          "title": "2026-08-20 · NextClaw v0.40.1",
+          "description": "Panel App 的主侧栏管理现在在列表、运行态和左侧入口中保持一致，并可直接从左侧移除。",
+          "href": "/zh/notes/2026-08-20-nextclaw-v0-40-1"
+        }
+      },
       {
         "slug": "2026-08-20-nextclaw-v0-40-0",
         "date": "2026-08-20",
@@ -2466,9 +2490,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-08-19T03:09:16.617Z",
+    "locGeneratedAt": "2026-08-20T03:08:44.537Z",
     "sourceCount": {
-      "notes": 45,
+      "notes": 46,
       "scopes": 8
     }
   }
