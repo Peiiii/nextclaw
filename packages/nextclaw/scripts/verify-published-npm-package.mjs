@@ -2,6 +2,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { UiDistPrecompressionManager } from "./managers/ui-dist-precompression.manager.mjs";
 
 function assert(condition, message) {
   if (!condition) {
@@ -60,6 +61,9 @@ export async function verifyPublishedNpmPackageArchive(options) {
         `published nextclaw is missing ${relativePath}`,
       );
     }
+    new UiDistPrecompressionManager({
+      rootDir: join(packageDirectory, "ui-dist"),
+    }).verify();
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

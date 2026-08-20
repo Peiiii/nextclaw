@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { verifyPublishedNpmPackageArchive } from "./verify-published-npm-package.mjs";
+import { UiDistPrecompressionManager } from "./managers/ui-dist-precompression.manager.mjs";
 
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const workspaceRoot = resolve(packageRoot, "../..");
@@ -231,6 +232,9 @@ function verifyPublishedPackagePayload(fixture, expectedVersion) {
       `published nextclaw is missing ${relativePath}`,
     );
   }
+  new UiDistPrecompressionManager({
+    rootDir: join(fixture.packageDirectory, "ui-dist"),
+  }).verify();
   return installedVersion;
 }
 

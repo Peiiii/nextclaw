@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { UiDistPrecompressionManager } from "../../packages/nextclaw/scripts/managers/ui-dist-precompression.manager.mjs";
 
 const packageDir = process.cwd();
 const packageJsonPath = join(packageDir, "package.json");
@@ -33,6 +34,7 @@ const assertNextclawArtifacts = () => {
     throw new Error(`${pkg.name}: ui-dist is stale. Run \`pnpm -C packages/nextclaw-ui build && pnpm -C packages/nextclaw build\` before publishing.`);
   }
   assertDirectoryHasEntries("ui-dist/assets");
+  new UiDistPrecompressionManager({ rootDir: resolve(packageDir, "ui-dist") }).verify();
 };
 
 switch (pkg.name) {

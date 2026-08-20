@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.42.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-21-nextclaw-v0-42-0.md",
+        "apps/docs/en/notes/2026-08-21-nextclaw-v0-42-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.42.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "This release focuses on runtime and in-app behavior; no dedicated website marketing pages were prepared for this patch window."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.42.0 is out.\n\nMain sidebar pinned apps are now grouped, marketplace clearly shows platform compatibility, and stable release packages ship validated precompressed UI assets.\nhttps://docs.nextclaw.io/en/notes/2026-08-21-nextclaw-v0-42-0",
+      "imagePath": "images/screenshots/nextclaw-personal-space-apps-en.png",
+      "imageAlt": "NextClaw main sidebar and marketplace updates in action",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-21-nextclaw-v0-42-0"
+    }
+  }
+}

@@ -132,6 +132,54 @@
   </script>
   <script>
     (() => {
+      if ('production' === 'development') {
+        return;
+      }
+      const routeMatch = window.location.pathname.match(/^\/chat\/([^/]+)$/);
+      const routeValue = routeMatch?.[1];
+      if (!routeValue || routeValue === 'draft' || !routeValue.startsWith('sid_')) {
+        return;
+      }
+      const encoded = routeValue.slice(4).replace(/-/g, '+').replace(/_/g, '/');
+      const padding = '='.repeat((4 - (encoded.length % 4)) % 4);
+      let sessionId;
+      try {
+        const binary = window.atob(encoded + padding);
+        const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+        sessionId = new TextDecoder().decode(bytes);
+      } catch {
+        return;
+      }
+      if (!sessionId) {
+        return;
+      }
+      const limit = 20;
+      const query = new URLSearchParams({
+        limit: String(limit),
+        toolPayload: 'summary',
+        initialPayload: 'compact'
+      });
+      const promise = window.fetch(
+        `/api/ncp/sessions/${encodeURIComponent(sessionId)}/messages?${query}`,
+        {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          priority: 'high'
+        }
+      ).then(async (response) => ({
+        responseOk: response.ok,
+        payload: await response.json()
+      })).catch(() => null);
+      window.__NEXTCLAW_INITIAL_SESSION_MESSAGES_PREFETCH__ = {
+        consumed: false,
+        limit,
+        promise,
+        sessionId
+      };
+    })();
+  </script>
+  <script>
+    (() => {
       const isViteDevServer = 'production' === 'development';
       if (!isViteDevServer || !('serviceWorker' in navigator)) {
         return;
@@ -194,30 +242,30 @@
     })();
   </script>
   <title>NextClaw</title>
-  <script type="module" crossorigin src="/assets/index-Bfr0I0Ga.js"></script>
+  <script type="module" crossorigin src="/assets/index-DdYOaKm7.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/chunk-DseTPa7n.js">
   <link rel="modulepreload" crossorigin href="/assets/preload-helper-D4M6sveU.js">
-  <link rel="modulepreload" crossorigin href="/assets/react-B7Paq2b3.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-HFDWY6-K.js">
-  <link rel="modulepreload" crossorigin href="/assets/select-BZHvnwQB.js">
-  <link rel="modulepreload" crossorigin href="/assets/dist-CDPl8mm7.js">
-  <link rel="modulepreload" crossorigin href="/assets/api-Cyxp93Fn.js">
-  <link rel="modulepreload" crossorigin href="/assets/x-CCjWN5ys.js">
-  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-Bz3ieDQ5.js">
-  <link rel="modulepreload" crossorigin href="/assets/search-0OTHFRMx.js">
-  <link rel="modulepreload" crossorigin href="/assets/book-open-Cl5CzL0g.js">
-  <link rel="modulepreload" crossorigin href="/assets/host-capabilities-D9C4CBK5.js">
-  <link rel="modulepreload" crossorigin href="/assets/navigation-link-CDMYpkVv.js">
-  <link rel="modulepreload" crossorigin href="/assets/plus-XDIkqpkt.js">
-  <link rel="modulepreload" crossorigin href="/assets/refresh-cw-XrnNVwuQ.js">
-  <link rel="modulepreload" crossorigin href="/assets/middleware-B3k-TSmZ.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-BKwz_j44.js">
-  <link rel="modulepreload" crossorigin href="/assets/doc-browser-D6H_nPzO.js">
-  <link rel="modulepreload" crossorigin href="/assets/loader-circle-s65a4ZzL.js">
-  <link rel="modulepreload" crossorigin href="/assets/tag-chip-Ce53PMTL.js">
-  <link rel="modulepreload" crossorigin href="/assets/skeleton-Bv4MMbH7.js">
-  <link rel="modulepreload" crossorigin href="/assets/mcp-marketplace-page-BJvzGt7h.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-DcqrfCMy.css">
+  <link rel="modulepreload" crossorigin href="/assets/react-Dlz_IxoP.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-1N9UpL3c.js">
+  <link rel="modulepreload" crossorigin href="/assets/select-BACzapV3.js">
+  <link rel="modulepreload" crossorigin href="/assets/dist-C-2H76Cv.js">
+  <link rel="modulepreload" crossorigin href="/assets/api-CUSlBpt_.js">
+  <link rel="modulepreload" crossorigin href="/assets/x-BzYEzkLA.js">
+  <link rel="modulepreload" crossorigin href="/assets/confirm-dialog-CCae9Fr4.js">
+  <link rel="modulepreload" crossorigin href="/assets/search-CZiEm7YD.js">
+  <link rel="modulepreload" crossorigin href="/assets/book-open-BJ-xAIp9.js">
+  <link rel="modulepreload" crossorigin href="/assets/host-capabilities-DPNRAjIj.js">
+  <link rel="modulepreload" crossorigin href="/assets/navigation-link-v3FaWcIr.js">
+  <link rel="modulepreload" crossorigin href="/assets/plus-Dw9QFnKr.js">
+  <link rel="modulepreload" crossorigin href="/assets/refresh-cw-CK4I5UFv.js">
+  <link rel="modulepreload" crossorigin href="/assets/middleware-D05fK5Sb.js">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-context-C0Bns1J6.js">
+  <link rel="modulepreload" crossorigin href="/assets/doc-browser-CRlpqMwH.js">
+  <link rel="modulepreload" crossorigin href="/assets/loader-circle-B-UdXjl4.js">
+  <link rel="modulepreload" crossorigin href="/assets/tag-chip-BnamTQVX.js">
+  <link rel="modulepreload" crossorigin href="/assets/skeleton-B2PCAZJG.js">
+  <link rel="modulepreload" crossorigin href="/assets/mcp-marketplace-page-CStb8ml2.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-DxCGKhAw.css">
 </head>
 
 <body>

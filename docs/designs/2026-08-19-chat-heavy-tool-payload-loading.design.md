@@ -189,6 +189,18 @@ Nginx 静态直出把强制冷进入从 19.96 秒降到 6.33 秒，但 420KiB gz
 
 结果不接受：原 entry 为约 420KiB gzip；强拆后 `chat-workspace` 为 376KiB、`chat-runtime` 为 270KiB，首屏压缩总量增加约 226KiB，最大单 chunk 只减少约 44KiB。目录边界在运行时存在大量交叉引用，强制分块破坏压缩局部性，却没有形成足够均衡的并行块。该实验未进入主工作区、未部署；后续若治理首包，必须先沿真实 import owner 解耦低频能力或引入 HTTP/2/CDN，不能用 manualChunks 掩盖耦合。
 
+### 19. 预压缩静态资产属于 `nextclaw` 发布包合同，不属于单机部署补丁
+
+VPS 验收通过时，`/assets/` 目录包含 318 个原文件和 318 个手工生成的 `.gz` sidecar，Nginx 使用 `gzip_static on` 直接发送它们；但 `npm install -g nextclaw` 会整体替换安装包内的 `ui-dist`，现有发布构建只复制原文件，不会重建 sidecar。于是源码优化已经进入版本，最快的静态传输路径却仍会在升级后丢失。这不是 Nginx 单点配置错误，而是安装、升级和外部静态 consumer 共同依赖的发布能力面缺失。
+
+主合同由 `nextclaw` distribution owner 承担：`copy-ui-dist` 在把 `@nextclaw/ui/dist` 复制到发布包后，为不少于 1 KiB 的可压缩文本资产生成确定性 gzip sidecar；候选限定为 HTML、JavaScript、CSS、JSON、SVG、XML、文本和 source map，不重复压缩图片、字体、归档等已经压缩的二进制资源。当前 UI 约有 115 个候选，原始总量约 7.16 MiB，sidecar 约增加 2.08 MiB 安装体积，换取约 5.08 MiB 的每次冷传输节省。`ui-dist` 原文件仍是 canonical asset，`.gz` 只是同内容的发布表示，不形成第二份业务事实。
+
+发布前验证必须逐个确认所有候选 sidecar 存在且 gunzip 后与原文件字节完全一致；registry 发布后的 tarball 验证重复同一合同。缺失或陈旧时 fail-fast，不能因为 NextClaw 内置 Hono server 仍能动态 gzip 就放过坏包。NPM runtime update 和 Desktop 都消费同一个 `nextclaw` 包，因此不各自生成第三套压缩资产。
+
+NextClaw 内置 HTTP server 继续使用现有动态 `compress()` 和 immutable cache，不要求 `.gz` 才能启动，也不在每次请求中扫描多级目录。外部 Nginx/Caddy 是否直出静态文件仍由部署者显式选择，NextClaw 不修改未知用户的系统配置。对于已经采用 `gzip_static on` 的部署，发布包 sidecar 会在升级后自动继续生效；当前 VPS 同时允许 Nginx 在 sidecar 暂缺时回退动态 gzip，保护非原子安装窗口或自定义构建，但该 fallback 不能替代发布包 guard。响应的 `Content-Encoding` 与静态来源 header 是可观察信号，删除条件是部署者不再由外部 server 直出 `/assets/`。
+
+不采用两条备选：只在当前 VPS 的升级脚本里重新运行 `gzip` 会继续制造单机隐式状态，不能覆盖 runtime update、Desktop 或其它 self-hosted 安装；把预压缩放进 `postinstall` 会依赖安装目录写权限和生命周期脚本未被禁用，且 registry 验证看不到最终资产。也不把 Nginx alias 自动写入用户系统，因为安装路径、TLS、权限和代理拓扑不是 NextClaw 可以安全猜测的产品状态。
+
 ## 数据与事件主链路
 
 1. 会话发生标准变更时，`publishSessionChange` 读取 canonical record、计算 context window、写入 message projection 并发布 session summary。
@@ -219,6 +231,7 @@ Nginx 静态直出把强制冷进入从 19.96 秒降到 6.33 秒，但 420KiB gz
 - Stream-open reconcile 读取到与当前 manager 完全相同的 messages/active-run 时不得发布新 snapshot；任一消息内容、顺序、streaming part 或 active-run 变化时必须继续 hydrate，不能用幂等优化吞掉 gap 恢复。
 - HTML 抢跑只允许消费一次且必须匹配 session、limit 与 compact 合同；成功后不能再发重复 compact GET。失败 fallback 必须走原 SDK 主链路，session abort 后不得 fallback。
 - 生产 HTML 必须在 head 声明 module entry，同时保留 body 同步 UI injection；构建产物中 entry 只能出现一次，且 injection 在 DOM 顺序上仍位于 body 结束前。
+- `nextclaw` 发布包中每个符合扩展名与最小体积条件的 UI 原文件必须存在同路径 `.gz` sidecar，gunzip 后字节完全一致；发布构建重复执行必须得到相同 sidecar，旧 sidecar 不能从源目录或上次构建泄漏。
 
 ## 兼容、迁移与恢复
 
@@ -253,6 +266,8 @@ Nginx 静态直出把强制冷进入从 19.96 秒降到 6.33 秒，但 420KiB gz
 - 体验：compact 首批为 5 条时先完成首批 hydrate，stream-gap reconcile 随后以普通 seed 自动恢复最近 20 条；首批已经为 20 条或会话不足 20 条时 reconcile 不得重复发布相同 snapshot。stream 首次连接失败不能遮住首批内容，恢复 seed 仍必须自动回到 20 条合同。
 - 抢跑：匹配的 HTML 预取成功时 history loader 不重复请求 compact API；不匹配 session、错误 envelope、reject 和 abort 分别证明标准 fallback 或立即退出。VPS 日志中 compact GET 应在其它全局 API fan-out 之前开始，热刷新消息行首次可见目标稳定在 2 秒附近。
 - 资源发现：生产构建的 hashed module entry 位于 head，`/api/ui-inject.js` 仍为 body 同步脚本且不重复；浏览器验证注入能力、登录态与会话页均正常。
+- 发布资产：隔离构建验证候选筛选、最小体积、确定性 gzip 和损坏检测；`nextclaw` prepack 与已发布 tarball 验证必须覆盖全部候选，不只检查“至少存在一个 `.gz`”。
+- 升级恢复：在当前 VPS 用缺失 sidecar 的隔离静态样本证明动态 gzip fallback 生效，再用正式 sidecar 证明 `gzip_static` 优先；实际升级后新 hash entry 仍返回 gzip、immutable 和 Nginx 静态来源标记。
 - Kernel：最新页和前序页都只访问 message projection；测试锁定不读取完整 session、不预览 context window、不写 projection。
 - Kernel：`getSession` 的测试锁定 summary read model，`publishSessionChange` 的测试锁定 canonical 计算与 projection 更新；旁路摘要请求并发时不触发重复 preview。
 - 性能：当前 44 MB 压力会话的 summary 接口首字节应由约 1.45 秒降到 200ms 内；若冷态 projection 首次重建不满足此目标，单独记录为一次性重建路径，不能混入稳定热路径结论。

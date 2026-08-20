@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.42.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-21",
+  "title": {
+    "zh-CN": "NextClaw v0.42.0",
+    "en-US": "NextClaw v0.42.0"
+  },
+  "summary": {
+    "zh-CN": "增强主侧栏固定入口与市场兼容提示，并对发布产物补充可校验的 UI 压缩副本，降低首次更新后的首屏压力。",
+    "en-US": "Refine main sidebar pinned entries and marketplace compatibility feedback, and publish validated compressed UI assets as part of stable runtime packages."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-21-nextclaw-v0-42-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-21-nextclaw-v0-42-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "功能",
+        "en-US": "Features"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "主侧栏分组",
+            "en-US": "Main sidebar grouping"
+          },
+          "body": {
+            "zh-CN": "固定到主侧栏的应用现在可以按分组展示，提升窄栏使用下的可达性。",
+            "en-US": "Pinned Panel Apps can now be grouped in the main sidebar for better discoverability in narrow layouts."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "市场兼容性可见",
+            "en-US": "Marketplace compatibility visibility"
+          },
+          "body": {
+            "zh-CN": "市场应用列表会显示当前设备是否支持该应用以及不支持原因，避免误点和重复重试。",
+            "en-US": "Marketplace listings now expose whether an app is supported on the current device and the specific unsupported reason."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "统一服务应用启动路径",
+            "en-US": "Unified Service App startup path"
+          },
+          "body": {
+            "zh-CN": "桌面端声明 `node` / `node.exe` 的应用统一使用 NextClaw 内置 Node，降低系统环境差异导致的启动失败概率。",
+            "en-US": "Desktop Service Apps that declare `node` or `node.exe` now run on the Node runtime bundled with NextClaw."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "安装失败状态范围化",
+            "en-US": "Scoped install-failure state"
+          },
+          "body": {
+            "zh-CN": "不再将历史安装失败作为全局持续错误显示，避免在其他操作中反复展示。",
+            "en-US": "Incompatible install failures are now scoped to the app card instead of becoming a global sticky error state."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "发布包预压缩校验",
+            "en-US": "Validated packaged precompression"
+          },
+          "body": {
+            "zh-CN": "`ui-dist` 发布构建会生成并校验 gzip sidecar，以便静态部署层直接复用压缩资产。",
+            "en-US": "`ui-dist` packaging now generates and validates gzip sidecars so static deployment layers can serve precompressed assets directly."
+          }
+        }
+      ]
+    }
+  ]
+}

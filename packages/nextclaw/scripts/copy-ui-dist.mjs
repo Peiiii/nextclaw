@@ -1,6 +1,7 @@
 import { cpSync, existsSync, readdirSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { UiDistPrecompressionManager } from "./managers/ui-dist-precompression.manager.mjs";
 
 const scriptDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
 const pkgRoot = resolve(scriptDir, "..");
@@ -27,4 +28,8 @@ if (!existsSync(source)) {
 assertUiDistReady(source, "Source UI dist");
 cpSync(source, target, { recursive: true });
 assertUiDistReady(target, "Copied UI dist");
-console.log(`✓ UI dist copied to ${target}`);
+const precompression = new UiDistPrecompressionManager({ rootDir: target }).prepare();
+console.log(
+  `✓ UI dist copied to ${target}; generated ${precompression.fileCount} gzip sidecars ` +
+    `(${precompression.rawBytes} raw bytes -> ${precompression.gzipBytes} gzip bytes)`,
+);

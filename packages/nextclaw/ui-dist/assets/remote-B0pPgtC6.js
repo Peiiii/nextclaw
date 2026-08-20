@@ -1,0 +1,1 @@
+import{ot as e}from"./index-DdYOaKm7.js";export{e as RemoteAccessPage};
