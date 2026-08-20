@@ -60,6 +60,7 @@ function createControllerParams(params: {
     queuedInputs.find((item) => item.id === id) ?? null,
   );
   const refreshQueuedInputs = vi.fn(async () => queuedInputs);
+  const steerQueuedInput = vi.fn(async () => null);
   return {
     agent: {
       abort: vi.fn(),
@@ -119,6 +120,7 @@ function createControllerParams(params: {
       inputs: queuedInputs,
       refreshQueuedInputs,
       removeQueuedInput,
+      steerQueuedInput,
     },
     selectedAgentId: 'main',
     sessionKey: 'session-1',
@@ -172,12 +174,29 @@ describe('useSessionConversationController backend run queue', () => {
 
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0]?.[0]).toMatchObject({
+      delivery: 'queue',
       sessionId: 'session-1',
       message: expect.objectContaining({
         parts: [{ type: 'text', text: 'next task' }],
       }),
     });
     expect(params.resetComposer).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses prefer-steer for command/control-enter submission without changing the send button path', async () => {
+    const send = createSendMock(createRunHandle({ delivery: 'steered' }));
+    const params = createControllerParams({ isRunning: true, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    await act(async () => {
+      await result.current.sendSteering();
+    });
+
+    expect(send.mock.calls[0]?.[0]).toMatchObject({
+      delivery: 'prefer-steer',
+      message: { parts: [{ type: 'text', text: 'next task' }] },
+    });
+    expect(result.current.queuedInputs).toEqual([]);
   });
 
   it('sends a preset message without clearing the existing composer draft', async () => {
@@ -249,7 +268,7 @@ describe('useSessionConversationController backend run queue', () => {
     expect(params.runQueue.refreshQueuedInputs).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveSend(createRunHandle({ runId: null }));
+      resolveSend(createRunHandle({ delivery: 'queued', runId: null }));
       await submission;
     });
 
@@ -303,6 +322,8 @@ describe('useSessionConversationController backend run queue', () => {
   it('projects the backend queue and returns a removed item to the composer for editing', async () => {
     const queuedInput = createQueuedInput();
     const params = createControllerParams({ isRunning: true, queuedInputs: [queuedInput] });
+    params.inputSnapshot.nodes = [];
+    params.inputSnapshot.text = '';
     const { result } = renderHook(() => useSessionConversationController(params));
 
     expect(result.current.queuedInputs).toEqual([
@@ -319,6 +340,19 @@ describe('useSessionConversationController backend run queue', () => {
       skillRecords: [],
       text: 'queued task',
     }));
+  });
+
+  it('keeps the queued item unchanged when the composer already contains a draft', () => {
+    const queuedInput = createQueuedInput();
+    const params = createControllerParams({ isRunning: true, queuedInputs: [queuedInput] });
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    act(() => result.current.editQueuedInput(queuedInput.id));
+
+    expect(result.current.canEditQueuedInput).toBe(false);
+    expect(params.runQueue.removeQueuedInput).not.toHaveBeenCalled();
+    expect(params.restoreComposer).not.toHaveBeenCalled();
+    expect(params.setSendError).toHaveBeenCalledWith(expect.any(String));
   });
 
   it('deletes through the backend queue owner without restoring the composer', async () => {

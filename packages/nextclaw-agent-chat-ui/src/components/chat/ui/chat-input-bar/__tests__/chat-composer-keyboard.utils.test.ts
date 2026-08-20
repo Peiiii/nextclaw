@@ -54,6 +54,32 @@ describe('chat composer keyboard utils', () => {
     });
   });
 
+  it('routes command/control enter to the alternate steering send', () => {
+    expect(resolveLexicalComposerKeyboardAction({
+      key: 'Enter',
+      metaKey: true,
+      shiftKey: false,
+      isComposing: false,
+      isSending: true,
+      canStopGeneration: true,
+    })).toEqual({ type: 'send-alternate' });
+
+    const onAlternateSend = vi.fn();
+    const nativeEvent = new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true });
+    expect(handleLexicalComposerKeyboardCommand({
+      actions: {
+        canStopGeneration: true,
+        isSending: true,
+        onAlternateSend,
+        onSend: vi.fn(),
+        onStop: vi.fn(),
+      },
+      isComposing: false,
+      nativeEvent,
+    })).toBe(true);
+    expect(onAlternateSend).toHaveBeenCalledTimes(1);
+  });
+
   it('does not handle Escape when no response stop action is available', () => {
     const nativeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
     const preventDefault = vi.spyOn(nativeEvent, 'preventDefault');

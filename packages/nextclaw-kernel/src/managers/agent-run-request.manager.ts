@@ -33,15 +33,14 @@ import type {
   SessionRun,
   SessionRunActiveRequest,
   SessionRunManager,
-  SessionRunQueuedRequest,
 } from "./session-run.manager.js";
+import { AgentRunInputDeliveryService } from "@kernel/services/agent-run-input-delivery.service.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type {
   AgentRunAbortRequest,
   AgentRunAccepted,
   AgentRunRequest,
   AgentRunSpec,
-  SessionQueuedInput,
 } from "@kernel/types/agent-run.types.js";
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import {
@@ -66,6 +65,7 @@ export class AgentRunRequestManager {
   readonly cleanups: Array<() => void> = [];
   private readonly observedSessionRuns = new Set<SessionRun>();
   private readonly sessionCommandManager: AgentRunSessionCommandManager;
+  readonly pendingInputs: AgentRunInputDeliveryService;
   private started = false;
 
   constructor(
@@ -79,6 +79,12 @@ export class AgentRunRequestManager {
     private readonly sessionRunManager: SessionRunManager,
     private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
   ) {
+    this.pendingInputs = new AgentRunInputDeliveryService(
+      agentRuntimeManager,
+      sessionManager,
+      sessionRunManager,
+      this.publishRunQueueUpdated,
+    );
     this.sessionCommandManager = new AgentRunSessionCommandManager(
       sessionManager,
       sessionRunManager,
@@ -122,24 +128,6 @@ export class AgentRunRequestManager {
     this.observedSessionRuns.clear();
     this.sessionCommandManager.dispose();
     this.started = false;
-  };
-
-  listQueuedInputs = (sessionId: string): readonly SessionQueuedInput[] => {
-    const sessionRun = this.sessionRunManager.getSessionRun(sessionId);
-    return sessionRun?.listQueuedRequests().map(this.toQueuedInput) ?? [];
-  };
-
-  removeQueuedInput = (
-    sessionId: string,
-    queuedInputId: string,
-  ): SessionQueuedInput | null => {
-    const sessionRun = this.sessionRunManager.getSessionRun(sessionId);
-    const removed = sessionRun?.removeQueuedRequest(queuedInputId) ?? null;
-    if (!removed) {
-      return null;
-    }
-    this.publishRunQueueUpdated(sessionId);
-    return this.toQueuedInput(removed);
   };
 
   private handleSendRequest = async (
@@ -213,11 +201,25 @@ export class AgentRunRequestManager {
       ...request.message,
       sessionId: session.sessionId,
     };
-    const queuedRequest = sessionRun.enqueueRequest({
+    const normalizedRequest: AgentRunRequest = {
       ...request,
       sessionId: session.sessionId,
       message: baseMessage,
-    }, session);
+    };
+    const steeringRequest = request.delivery === "prefer-steer" && sessionRun.isRunning()
+      ? this.pendingInputs.enqueuePreferredSteeringInput(sessionRun, normalizedRequest, session)
+      : null;
+    if (steeringRequest) {
+      this.publishRunQueueUpdated(session.sessionId);
+      return {
+        sessionId: session.sessionId,
+        userMessageId: steeringRequest.request.message.id,
+        runId: steeringRequest.intendedRunId,
+        correlationId: request.correlationId,
+        delivery: "steered",
+      };
+    }
+    const queuedRequest = sessionRun.enqueueRequest(normalizedRequest, session);
     const activeRequest = sessionRun.beginNextRun();
     this.publishRunQueueUpdated(session.sessionId);
     if (activeRequest?.id === queuedRequest.id) {
@@ -231,6 +233,7 @@ export class AgentRunRequestManager {
       userMessageId: queuedRequest.request.message.id,
       runId: activeRequest?.id === queuedRequest.id ? activeRequest.runId : null,
       correlationId: request.correlationId,
+      delivery: activeRequest?.id === queuedRequest.id ? "started" : "queued",
     };
   };
 
@@ -298,10 +301,10 @@ export class AgentRunRequestManager {
       });
       const { contextBlocks, tools } =
         await this.agentContextWindowManager.resolveRunSurface(providerRequest);
-      sessionRun.inbox.enqueue(message);
       this.startRuntimeRun({
         options: {
           contextBlocks,
+          initialMessages: [message],
           session,
           sessionRun,
           signal: activeRequest.signal,
@@ -344,9 +347,16 @@ export class AgentRunRequestManager {
     spec: AgentRunSpec;
     parentCorrelationId?: string;
   }): void => {
-    const { options, parentCorrelationId, requestRunStartedAt, runtime, spec } = params;
+    const {
+      options,
+      parentCorrelationId,
+      requestRunStartedAt,
+      runtime,
+      spec,
+    } = params;
     const { session, sessionRun } = options;
     let messageCompletedSeen = false;
+    const initialMessageIds = new Set(options.initialMessages.map(({ id }) => id));
     let executionMetadataSeen = false;
     let runtimeFailed = false;
     let runtimeCancelled = false;
@@ -359,11 +369,11 @@ export class AgentRunRequestManager {
       from(
         runtime.run(spec, options),
       ).pipe(
-        filter((event) =>
-          event.type !== NcpEventType.MessageSent || event.payload.message.role !== "user",
-        ),
+        filter((event) => event.type !== NcpEventType.MessageSent || !initialMessageIds.has(event.payload.message.id)),
         tap((event) => {
           const eventsToPublish: NcpEndpointEvent[] = [];
+          const consumedSteeringInput =
+            event.type === NcpEventType.MessageSent && event.payload.message.role === "user";
           if (event.type === NcpEventType.RunError) {
             const classification = classifyDiagnosticError(event.payload.error, options.signal);
             runtimeFailed = true;
@@ -408,6 +418,7 @@ export class AgentRunRequestManager {
           }
           eventsToPublish.push(event);
           eventsToPublish.forEach(this.publishNcpEvent);
+          if (consumedSteeringInput) this.publishRunQueueUpdated(session.sessionId);
         }),
         catchError(async (error) => {
           const classification = classifyDiagnosticError(error, options.signal);
@@ -536,16 +547,6 @@ export class AgentRunRequestManager {
       source: "agent-run-request",
     });
   };
-
-  private toQueuedInput = (
-    queuedRequest: Pick<SessionRunQueuedRequest, "id" | "enqueuedAt" | "request">,
-  ): SessionQueuedInput => ({
-    id: queuedRequest.id,
-    sessionId: queuedRequest.request.message.sessionId,
-    enqueuedAt: queuedRequest.enqueuedAt,
-    message: structuredClone(queuedRequest.request.message),
-    metadata: structuredClone(queuedRequest.request.metadata ?? {}),
-  });
 
   private getOrCreateSessionForRequest = async (
     request: AgentRunRequest,

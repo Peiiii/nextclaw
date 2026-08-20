@@ -160,6 +160,7 @@ export function buildChatMessageTexts(
     previewZoomOutLabel: t("chatPreviewZoomOut"),
     previewResetZoomLabel: t("chatPreviewResetZoom"),
     typingLabel: t("chatTyping"),
+    pendingInputLabel: t("chatSteeringPending"),
     reasoningCharacterCountTemplates: {
       inProgress: t("chatReasoningInProgressCharacterCount"),
       completed: t("chatReasoningCompletedCharacterCount"),

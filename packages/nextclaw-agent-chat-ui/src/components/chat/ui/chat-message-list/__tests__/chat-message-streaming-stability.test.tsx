@@ -108,6 +108,24 @@ it("preserves a historical user message DOM node and selection while the assista
   expect(selection.toString()).toBe("Keep this selected");
 });
 
+it("preserves the steering user bubble DOM node when pending becomes durable", () => {
+  const pending: ChatMessageViewModel = {
+    id: "user-steering-1",
+    role: "user",
+    roleLabel: "You",
+    timestampLabel: "10:01",
+    status: "pending",
+    parts: [{ type: "markdown", text: "Change direction" }],
+  };
+  const view = render(renderMessages([pending]));
+  const pendingBubble = document.querySelector('[data-chat-message-id="user-steering-1"]');
+  expect(pendingBubble).not.toBeNull();
+
+  view.rerender(renderMessages([{ ...pending, status: "final" }]));
+
+  expect(document.querySelector('[data-chat-message-id="user-steering-1"]')).toBe(pendingBubble);
+});
+
 it("preserves an inline panel app when later process parts arrive", () => {
   const panelApp: ChatPanelAppCardViewModel = {
     appId: "piano",

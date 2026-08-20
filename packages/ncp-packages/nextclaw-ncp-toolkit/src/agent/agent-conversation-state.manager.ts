@@ -6,6 +6,7 @@ import {
   type NcpEndpointEvent,
   type NcpError,
   type NcpFailedEnvelope,
+  type NcpCompletedEnvelope,
   type NcpMessage,
   type NcpMessageAbortPayload,
   type NcpMessageRole,
@@ -170,6 +171,23 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   handleMessageSent = (payload: NcpMessageSentPayload): void => {
     this.upsertMessage(payload.message);
     this.setError(null);
+  };
+
+  handleMessageCompleted = (payload: NcpCompletedEnvelope): void => {
+    const execution = this.runExecution.take(this.activeRun?.runId);
+    const message = this.runExecution.attach(
+      normalizeConversationMessage({
+        ...payload.message,
+        status: "final"
+      }),
+      execution,
+    );
+    if (this.streamingMessage?.id === message.id) {
+      this.upsertMessage(message);
+      this.toolCalls.clearByMessageId(message.id);
+      return;
+    }
+    this.upsertMessage(message);
   };
 
   handleMessageAbort = (payload: NcpMessageAbortPayload, occurredAt?: string): void => {

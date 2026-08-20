@@ -39,6 +39,19 @@ function createApp() {
   const removeQueuedInput = vi.fn((sessionId: string, queuedInputId: string) =>
     sessionId === "session-1" && queuedInputId === queuedInput.id ? queuedInput : null,
   );
+  const pendingInput = {
+    ...queuedInput,
+    placement: "steering" as const,
+    intendedRunId: "run-1",
+  };
+  const listPendingInputs = vi.fn((sessionId: string) =>
+    sessionId === "session-1" ? [pendingInput] : [],
+  );
+  const steerQueuedInput = vi.fn(async (sessionId: string, queuedInputId: string) =>
+    sessionId === "session-1" && queuedInputId === queuedInput.id
+      ? { ok: true as const, input: pendingInput }
+      : { ok: false as const, reason: "unavailable" as const },
+  );
   const configDir = mkdtempSync(join(tmpdir(), "nextclaw-session-queued-inputs-"));
   tempDirs.push(configDir);
   const configPath = join(configDir, "config.json");
@@ -47,13 +60,20 @@ function createApp() {
     configPath,
     appEventBus: new EventBus(),
     kernel: createRouterTestKernel({
-      agentRunRequestManager: { listQueuedInputs, removeQueuedInput } as never,
+      agentRunRequestManager: {
+        pendingInputs: {
+          listPendingInputs,
+          listQueuedInputs,
+          removeQueuedInput,
+          steerQueuedInput,
+        },
+      } as never,
       sessionManager: {
         getSession: async (sessionId: string) => sessionId === "missing" ? null : { sessionId },
       } as never,
     }),
   });
-  return { app, listQueuedInputs, removeQueuedInput };
+  return { app, listPendingInputs, listQueuedInputs, removeQueuedInput, steerQueuedInput };
 }
 
 describe("NcpSessionRoutesController queued inputs", () => {
@@ -94,5 +114,26 @@ describe("NcpSessionRoutesController queued inputs", () => {
     expect(missingItem.status).toBe(404);
     expect(missingSession.status).toBe(404);
     expect(removeQueuedInput).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists unified pending inputs and atomically steers a queued row", async () => {
+    const { app, listPendingInputs, steerQueuedInput } = createApp();
+
+    const pendingResponse = await app.request(
+      "http://localhost/api/ncp/sessions/session-1/pending-inputs",
+    );
+    const steerResponse = await app.request(
+      "http://localhost/api/ncp/sessions/session-1/queued-inputs/queued-1/steer",
+      { method: "POST" },
+    );
+
+    expect(pendingResponse.status).toBe(200);
+    await expect(pendingResponse.json()).resolves.toMatchObject({
+      data: { inputs: [{ id: "queued-1", placement: "steering", intendedRunId: "run-1" }] },
+      ok: true,
+    });
+    expect(steerResponse.status).toBe(200);
+    expect(listPendingInputs).toHaveBeenCalledWith("session-1");
+    expect(steerQueuedInput).toHaveBeenCalledWith("session-1", "queued-1");
   });
 });

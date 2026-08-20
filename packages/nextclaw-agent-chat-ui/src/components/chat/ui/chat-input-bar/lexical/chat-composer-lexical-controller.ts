@@ -11,12 +11,13 @@ import { $isChatComposerTokenNode } from './chat-composer-token-node';
 
 type ComposerActions = Pick<
   ChatInputBarActionsProps,
-  'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'
+  'onSend' | 'onAlternateSend' | 'onStop' | 'isSending' | 'canStopGeneration'
 >;
 
 type ChatComposerKeyboardAction =
   | { type: 'noop' }
   | { type: 'send-message' }
+  | { type: 'send-alternate' }
   | { type: 'stop-generation' };
 
 export function deleteAdjacentChatComposerToken(event: KeyboardEvent): boolean {
@@ -65,6 +66,8 @@ export function resolveLexicalComposerKeyboardAction(params: {
   isComposing: boolean;
   isSending: boolean;
   key: string;
+  metaKey?: boolean;
+  ctrlKey?: boolean;
   shiftKey: boolean;
 }): ChatComposerKeyboardAction {
   const {
@@ -72,6 +75,8 @@ export function resolveLexicalComposerKeyboardAction(params: {
     isComposing,
     isSending,
     key,
+    metaKey = false,
+    ctrlKey = false,
     shiftKey,
   } = params;
 
@@ -86,6 +91,7 @@ export function resolveLexicalComposerKeyboardAction(params: {
   }
 
   if (key === 'Enter' && !shiftKey) {
+    if (metaKey || ctrlKey) return { type: 'send-alternate' };
     return { type: 'send-message' };
   }
 
@@ -103,6 +109,8 @@ export function handleLexicalComposerKeyboardCommand(params: {
     isComposing,
     isSending: actions.isSending,
     key: nativeEvent.key,
+    metaKey: nativeEvent.metaKey,
+    ctrlKey: nativeEvent.ctrlKey,
     shiftKey: nativeEvent.shiftKey,
   });
 
@@ -116,6 +124,9 @@ export function handleLexicalComposerKeyboardCommand(params: {
       return true;
     case 'send-message':
       void actions.onSend();
+      return true;
+    case 'send-alternate':
+      void (actions.onAlternateSend ?? actions.onSend)();
       return true;
     case 'noop':
       return false;

@@ -654,6 +654,16 @@ export type UiNcpSessionQueuedInputView = {
   metadata: Record<string, unknown>;
 };
 
+export type UiNcpSessionPendingInputsView = {
+  sessionId: string;
+  inputs: UiNcpSessionPendingInputView[];
+};
+
+export type UiNcpSessionPendingInputView = UiNcpSessionQueuedInputView & {
+  placement: "queued" | "steering";
+  intendedRunId: string | null;
+};
+
 export type UiNcpSessionMessagesView = {
   sessionId: string;
   status: NcpSessionStatus;

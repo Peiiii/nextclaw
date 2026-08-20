@@ -2,6 +2,7 @@
  * Run-related types: snapshot state and run.metadata schema conventions.
  * Not event payloads — event payloads live in events.types.ts.
  */
+import type { NcpResolvedInputDelivery } from "./events.types.js";
 
 /** Current run state for agent snapshot. Used by UI for run status and abort. */
 export type NcpRunContext = {
@@ -17,6 +18,8 @@ export type NcpRunHandle = {
   assistantMessageId: string | null;
   runId: string | null;
   correlationId?: string;
+  /** How the accepted input was actually scheduled. */
+  delivery?: NcpResolvedInputDelivery;
 };
 
 /** Schema for run.metadata.metadata when kind is "ready" (run started, backend ready). */

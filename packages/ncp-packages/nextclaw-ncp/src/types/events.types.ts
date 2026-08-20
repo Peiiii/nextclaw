@@ -34,7 +34,13 @@ export type NcpOutboundMessageDraft = Omit<NcpMessage, "sessionId"> & {
 export type NcpAgentSendEnvelope = Omit<NcpRequestEnvelope, "sessionId" | "message"> & {
   sessionId?: string;
   message: NcpMessage | NcpOutboundMessageDraft;
+  /** Prefer delivery at the next safe step of the active run; unsupported runtimes queue it. */
+  delivery?: NcpInputDelivery;
 };
+
+export type NcpInputDelivery = "queue" | "prefer-steer";
+
+export type NcpResolvedInputDelivery = "started" | "queued" | "steered";
 
 export type NcpProviderRuntimeRoute = {
   model: string;

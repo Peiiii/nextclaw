@@ -3,7 +3,7 @@ import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
 
 import {
   buildSessionQueuedInputComposerSnapshot,
-  buildSessionQueuedInputPreview,
+  buildSessionQueuedInputPresentation,
 } from '@/features/chat/features/conversation/utils/session-queued-input.utils';
 
 describe('session queued input utils', () => {
@@ -58,6 +58,56 @@ describe('session queued input utils', () => {
       mimeType: 'text/markdown',
       assetUri: 'asset://spec',
     }]);
-    expect(buildSessionQueuedInputPreview(input)).toBe('please');
+    expect(buildSessionQueuedInputPresentation(input)).toEqual({
+      attachments: [{
+        mimeType: 'text/markdown',
+        name: 'spec.md',
+      }],
+      preview: 'please',
+    });
+  });
+
+  it('keeps image content available to the compact queue presentation', () => {
+    const input: UiNcpSessionQueuedInputView = {
+      id: 'queued-image',
+      sessionId: 'session-1',
+      enqueuedAt: '2026-07-22T10:00:00.000Z',
+      metadata: {},
+      message: {
+        id: 'message-image',
+        sessionId: 'session-1',
+        role: 'user',
+        status: 'final',
+        timestamp: '2026-07-22T10:00:00.000Z',
+        parts: [
+          {
+            type: 'file',
+            name: 'inline.png',
+            mimeType: 'image/png',
+            contentBase64: 'aW1hZ2U=',
+          },
+          {
+            type: 'file',
+            name: 'stored.png',
+            mimeType: 'image/png',
+            assetUri: 'asset://store/stored.png',
+          },
+        ],
+      },
+    };
+
+    const presentation = buildSessionQueuedInputPresentation(input);
+
+    expect(presentation.preview).toBe('');
+    expect(presentation.attachments[0]).toEqual({
+      mimeType: 'image/png',
+      name: 'inline.png',
+      previewUrl: 'data:image/png;base64,aW1hZ2U=',
+    });
+    expect(presentation.attachments[1]).toMatchObject({
+      mimeType: 'image/png',
+      name: 'stored.png',
+      previewUrl: expect.stringContaining('/api/ncp/assets/content?uri=asset%3A%2F%2Fstore%2Fstored.png'),
+    });
   });
 });

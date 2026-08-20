@@ -43,15 +43,14 @@ export class NcpAgentRuntimeWrapper implements AgentRuntime {
     spec: AgentRunSpec,
     options: AgentRuntimeRunOptions,
   ): AsyncIterable<NcpEndpointEvent> {
-    const { contextBlocks, session, sessionRun, signal, tools } = options;
+    const { contextBlocks, initialMessages, session, sessionRun, signal, tools } = options;
     this.currentTools = tools.map(this.toOpenAiTool);
-    const messages = sessionRun.inbox.drain();
     let executionMetadataSeen = false;
     try {
       const input: NcpAgentRunInput & { runId?: string } = {
         sessionId: sessionRun.sessionId,
         runId: spec.runId,
-        messages,
+        messages: initialMessages,
         contextBlocks: this.params.injectNextclawContext
           ? contextBlocks
           : undefined,

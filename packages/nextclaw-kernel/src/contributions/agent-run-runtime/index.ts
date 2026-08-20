@@ -70,6 +70,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
           runPreflight: this.runNativePreflight,
         });
         return {
+          capabilities: { nextStepInput: true },
           run: (spec, options) =>
             runtime.run(spec, {
               ...options,

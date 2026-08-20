@@ -22,11 +22,9 @@ function createMessage(id: string): NcpMessage {
 }
 
 function createSessionRun(message: NcpMessage): SessionRun {
+  void message;
   return {
     sessionId: "session-1",
-    inbox: {
-      drain: () => [message],
-    },
     applyEvents: async () => undefined,
   } as unknown as SessionRun;
 }
@@ -56,6 +54,7 @@ async function collectWrapperEvents(
   const events: NcpEndpointEvent[] = [];
   for await (const event of wrapper.run(SPEC, {
     contextBlocks: [],
+    initialMessages: [createMessage("user-1")],
     session: {
       sessionId: "session-1",
       agentRuntimeId: "codex",
@@ -152,6 +151,7 @@ describe("NcpAgentRuntimeWrapper", () => {
 
     for await (const _event of wrapper.run(SPEC, {
       contextBlocks: [],
+      initialMessages: [createMessage("user-1")],
       session: {
         sessionId: "session-1",
         agentRuntimeId: "codex",
@@ -167,6 +167,7 @@ describe("NcpAgentRuntimeWrapper", () => {
     }
     for await (const _event of wrapper.run(SPEC, {
       contextBlocks: [],
+      initialMessages: [createMessage("user-2")],
       session: {
         sessionId: "session-1",
         agentRuntimeId: "codex",
@@ -202,6 +203,7 @@ describe("NcpAgentRuntimeWrapper", () => {
 
     for await (const _event of wrapper.run(SPEC, {
       contextBlocks: ["NextClaw instructions", "Available skills"],
+      initialMessages: [createMessage("user-1")],
       session: {
         sessionId: "session-1",
         agentRuntimeId: "codex",
@@ -234,6 +236,7 @@ describe("NcpAgentRuntimeWrapper", () => {
 
     for await (const _event of wrapper.run(SPEC, {
       contextBlocks: ["must not be forwarded"],
+      initialMessages: [createMessage("user-1")],
       session: {
         sessionId: "session-1",
         agentRuntimeId: "claude-code",
@@ -251,7 +254,6 @@ describe("NcpAgentRuntimeWrapper", () => {
 
   it("forwards external runtime stream failures without adding a wrapper retry layer", async () => {
     const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
-    sessionRun.inbox.enqueue(createMessage("user-1"));
     let runtimeCreations = 0;
     const wrapper = new NcpAgentRuntimeWrapper({
       injectNextclawContext: true,

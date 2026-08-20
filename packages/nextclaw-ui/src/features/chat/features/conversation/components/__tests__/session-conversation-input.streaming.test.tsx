@@ -232,6 +232,7 @@ const presenter = {
 } as unknown as ChatPresenterLike;
 
 const controller: SessionConversationInputController = {
+  canEditQueuedInput: true,
   canStopGeneration: true,
   deleteQueuedInput: vi.fn(),
   editQueuedInput: vi.fn(),
@@ -239,10 +240,12 @@ const controller: SessionConversationInputController = {
   primaryAction: 'send',
   queuedInputs: [],
   send: vi.fn(),
+  sendSteering: vi.fn(),
   sendPresetMessage: vi.fn(),
   sendDisabled: true,
   stop: vi.fn(),
   stopDisabled: false,
+  steerQueuedInput: vi.fn(),
 };
 
 function createStreamingInputSnapshot(
@@ -645,6 +648,7 @@ function AttachmentSubmitHarness({
       inputs: [],
       refreshQueuedInputs,
       removeQueuedInput: async () => null,
+      steerQueuedInput: async () => null,
     },
     selectedAgentId: 'main',
     sessionKey: 'session-attachment',
@@ -686,7 +690,7 @@ describe('SessionConversationInput attachment submit', () => {
     );
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Queue|排队发送/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Send|发送/ }));
       await Promise.resolve();
     });
 
@@ -697,7 +701,7 @@ describe('SessionConversationInput attachment submit', () => {
     expect(refreshQueuedInputs).not.toHaveBeenCalled();
 
     await act(async () => {
-      resolveSend({ ...createAttachmentRunHandle(), runId: null });
+      resolveSend({ ...createAttachmentRunHandle(), delivery: 'queued', runId: null });
       await Promise.resolve();
     });
 

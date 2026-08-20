@@ -4,6 +4,7 @@ import type {
   SessionPatchUpdate,
   UiNcpSessionListView,
   UiNcpSessionQueuedInputsView,
+  UiNcpSessionPendingInputsView,
   UiNcpSessionTokenUsageView,
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
@@ -233,9 +234,45 @@ export class NcpSessionRoutesController {
     }
     const payload: UiNcpSessionQueuedInputsView = {
       sessionId,
-      inputs: [...this.options.kernel.agentRunRequestManager.listQueuedInputs(sessionId)],
+      inputs: [...this.options.kernel.agentRunRequestManager.pendingInputs.listQueuedInputs(sessionId)],
     };
     return c.json(ok(payload));
+  };
+
+  readonly listSessionPendingInputs = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    const existing = await this.options.kernel.sessionManager.getSession(sessionId);
+    if (!existing) {
+      return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
+    }
+    const payload: UiNcpSessionPendingInputsView = {
+      sessionId,
+      inputs: [...this.options.kernel.agentRunRequestManager.pendingInputs.listPendingInputs(sessionId)],
+    };
+    return c.json(ok(payload));
+  };
+
+  readonly steerSessionQueuedInput = async (c: Context) => {
+    const sessionId = decodeURIComponent(c.req.param("sessionId"));
+    const queuedInputId = decodeURIComponent(c.req.param("queuedInputId"));
+    const existing = await this.options.kernel.sessionManager.getSession(sessionId);
+    if (!existing) {
+      return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
+    }
+    const result = await this.options.kernel.agentRunRequestManager.pendingInputs.steerQueuedInput(
+      sessionId,
+      queuedInputId,
+    );
+    if (!result.ok) {
+      if (result.reason === "not-found") {
+        return c.json(err("NOT_FOUND", `queued input not found in session ${sessionId}: ${queuedInputId}`), 404);
+      }
+      return c.json(err(
+        "STEER_UNAVAILABLE",
+        "The active runtime cannot accept this input at the next safe step.",
+      ), 409);
+    }
+    return c.json(ok(result.input));
   };
 
   readonly deleteSessionQueuedInput = async (c: Context) => {
@@ -245,7 +282,7 @@ export class NcpSessionRoutesController {
     if (!existing) {
       return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
     }
-    const removed = this.options.kernel.agentRunRequestManager.removeQueuedInput(
+    const removed = this.options.kernel.agentRunRequestManager.pendingInputs.removeQueuedInput(
       sessionId,
       queuedInputId,
     );

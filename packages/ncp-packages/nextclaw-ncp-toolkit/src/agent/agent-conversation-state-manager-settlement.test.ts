@@ -13,6 +13,34 @@ const createMessage = (overrides: Partial<NcpMessage> = {}): NcpMessage => ({
 });
 
 describe("DefaultNcpAgentConversationStateManager settlement", () => {
+  it("finalizes one assistant message without settling the active run", async () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    await manager.dispatch({
+      type: NcpEventType.RunStarted,
+      payload: { sessionId: "session-1", runId: "run-1" },
+    });
+    await manager.dispatch({
+      type: NcpEventType.MessageTextDelta,
+      payload: { sessionId: "session-1", messageId: "assistant-1", delta: "first" },
+    });
+    await manager.dispatch({
+      type: NcpEventType.MessageCompleted,
+      payload: {
+        sessionId: "session-1",
+        message: createMessage({
+          id: "assistant-1",
+          parts: [{ type: "text", text: "first" }],
+        }),
+      },
+    });
+
+    expect(manager.getSnapshot()).toMatchObject({
+      activeRun: { runId: "run-1" },
+      messages: [{ id: "assistant-1", status: "final" }],
+      streamingMessage: null,
+    });
+  });
+
   it("settles replayed assistant in its timeline position when later user messages arrive", () => {
     const manager = new DefaultNcpAgentConversationStateManager();
 

@@ -33,11 +33,13 @@ export type AgentRuntimeSessionStateSnapshot = {
 
 export type AgentRuntimeSessionState = {
   readonly sessionId: string;
-  readonly inbox: {
-    drain(): NcpMessage[];
-  };
   getSnapshot(): AgentRuntimeSessionStateSnapshot;
   applyEvents(events: readonly NcpEndpointEvent[]): Promise<void>;
+  claimNextStepRequests?(runId: string): readonly {
+    id: string;
+    request: { message: NcpMessage };
+  }[];
+  acknowledgeNextStepRequests?(requestIds: readonly string[]): void;
 };
 
 export type AgentRunPreflightPhase = "pre-run" | "mid-run";
@@ -45,6 +47,7 @@ export type AgentRunPreflightPhase = "pre-run" | "mid-run";
 export type DefaultNcpAgentRuntimeRunOptions = {
   sessionRun: AgentRuntimeSessionState;
   contextBlocks: readonly string[];
+  initialMessages?: readonly NcpMessage[];
   tools: readonly NcpTool[];
   signal?: AbortSignal;
 };
@@ -65,11 +68,6 @@ export type DefaultNcpAgentRuntimeConfig = {
   reasoningNormalizationMode?: NcpAssistantReasoningNormalizationMode;
   streamEncoder?: NcpStreamEncoder;
   toolResultContentManager?: ToolResultContentManager;
-};
-
-type InboxDrainResult = {
-  drained: boolean;
-  events: NcpEndpointEvent[];
 };
 
 type RuntimeDrainReady =
@@ -202,7 +200,7 @@ export class DefaultNcpAgentRuntime {
       tools,
     } = options;
     const sessionId = sessionRun.sessionId;
-    const messageId = `assistant-message-${randomUUID()}`;
+    let messageId = `assistant-message-${randomUUID()}`;
     const executionManager = new AgentRunExecutionManager({
       spec,
       sessionId,
@@ -211,7 +209,7 @@ export class DefaultNcpAgentRuntime {
     let runStartedAt: string | undefined;
 
     try {
-      for (const event of this.drainInbox(sessionRun, spec).events) {
+      for (const event of this.toMessageSentEvents(options.initialMessages ?? [], sessionRun, spec)) {
         if (this.isAbortRequested(signal)) {
           break;
         }
@@ -233,7 +231,7 @@ export class DefaultNcpAgentRuntime {
         },
       }, runStartedAt));
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted" }));
+        yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted", messageId }));
         yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
         return;
       }
@@ -250,17 +248,18 @@ export class DefaultNcpAgentRuntime {
           break;
         }
 
+        const roundMessageId = messageId;
         const toolExecutor = yield* runModelRoundWithRecovery({
           applyEvent: this.applyEvent,
           drainRuntimeEvents: (encoded, toolExecutor) =>
             this.drainRuntimeEvents(sessionRun, encoded, toolExecutor, signal),
           executeToolCall: (toolCall, publishToolEvent) =>
-            this.toolCallExecution.execute({ tools, sessionId, messageId, spec, toolCall, publishToolEvent, signal }),
+            this.toolCallExecution.execute({ tools, sessionId, messageId: roundMessageId, spec, toolCall, publishToolEvent, signal }),
           supportsParallelToolCalls: (toolCall) =>
             tools.find((tool) => tool.name === toolCall.toolName)?.supportsParallelToolCalls === true,
           executionManager,
           llmApi: this.llmApi,
-          messageId,
+          messageId: roundMessageId,
           modelInput,
           runStartedAt,
           sessionId,
@@ -274,17 +273,14 @@ export class DefaultNcpAgentRuntime {
           break;
         }
 
-        const drainedInbox = this.drainInbox(sessionRun, spec);
-        for (const event of drainedInbox.events) {
-          if (this.isAbortRequested(signal)) {
-            break;
-          }
-          yield await this.applyEvent(sessionRun, event);
-        }
+        const nextStep = await this.consumeNextStepInputs(sessionRun, roundMessageId, spec);
+        if (nextStep.completedAssistantEvent) yield nextStep.completedAssistantEvent;
+        for (const event of nextStep.messageSentEvents) yield event;
+        if (nextStep.consumed) messageId = `assistant-message-${randomUUID()}`;
         if (this.isAbortRequested(signal)) {
           break;
         }
-        if (toolExecutor.hasStartedToolCalls() || drainedInbox.drained) {
+        if (toolExecutor.hasStartedToolCalls() || nextStep.consumed) {
           yield* this.runPreflightPhase(
             { contextBlocks, phase: "mid-run", sessionRun, spec, tools },
             signal,
@@ -298,8 +294,10 @@ export class DefaultNcpAgentRuntime {
           executionManager.createMetadataEvent({
             outcome: "completed",
             occurredAt: endedAt,
+            messageId,
           }),
         );
+        yield await this.completeAssistantStep(sessionRun, messageId, spec);
         yield await this.applyEvent(sessionRun, createRuntimeEvent({
           type: NcpEventType.RunFinished,
           payload: {
@@ -314,11 +312,11 @@ export class DefaultNcpAgentRuntime {
         return;
       }
 
-      yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted" }));
+      yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted", messageId }));
       yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
     } catch (error) {
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted" }));
+        yield await this.applyEvent(sessionRun, executionManager.createMetadataEvent({ outcome: "aborted", messageId }));
         yield await this.applyEvent(sessionRun, this.toAbortEvent(sessionId, messageId, spec, signal));
         return;
       }
@@ -328,6 +326,7 @@ export class DefaultNcpAgentRuntime {
         executionManager.createMetadataEvent({
           outcome: "failed",
           occurredAt: endedAt,
+          messageId,
         }),
       );
       yield await this.applyEvent(sessionRun, createRuntimeEvent({
@@ -460,23 +459,61 @@ export class DefaultNcpAgentRuntime {
     }
   };
 
-  private drainInbox = (
+  private toMessageSentEvents = (
+    messages: readonly NcpMessage[],
     sessionRun: AgentRuntimeSessionState,
     spec: DefaultNcpAgentRunSpec,
-  ): InboxDrainResult => {
-    const messages = sessionRun.inbox.drain();
-    return {
-      drained: messages.length > 0,
-      events: messages.map((message) => ({
-        occurredAt: new Date().toISOString(),
-        type: NcpEventType.MessageSent,
-        payload: {
-          sessionId: sessionRun.sessionId,
-          message,
-          correlationId: spec.correlationId,
-        },
-      })),
-    };
+  ): NcpEndpointEvent[] => messages.map((message) => ({
+    occurredAt: new Date().toISOString(),
+    type: NcpEventType.MessageSent,
+    payload: {
+      sessionId: sessionRun.sessionId,
+      message,
+      correlationId: spec.correlationId,
+    },
+  }));
+
+  private consumeNextStepInputs = async (
+    sessionRun: AgentRuntimeSessionState,
+    messageId: string,
+    spec: DefaultNcpAgentRunSpec,
+  ): Promise<{
+    completedAssistantEvent: NcpEndpointEvent | null;
+    consumed: boolean;
+    messageSentEvents: NcpEndpointEvent[];
+  }> => {
+    const claimedInputs = sessionRun.claimNextStepRequests?.(spec.runId) ?? [];
+    if (claimedInputs.length === 0) {
+      return { completedAssistantEvent: null, consumed: false, messageSentEvents: [] };
+    }
+    const completedAssistantEvent = await this.completeAssistantStep(sessionRun, messageId, spec);
+    const messageSentEvents = this.toMessageSentEvents(
+      claimedInputs.map(({ request }) => request.message),
+      sessionRun,
+      spec,
+    );
+    await sessionRun.applyEvents(messageSentEvents);
+    sessionRun.acknowledgeNextStepRequests?.(claimedInputs.map(({ id }) => id));
+    return { completedAssistantEvent, consumed: true, messageSentEvents };
+  };
+
+  private completeAssistantStep = async (
+    sessionRun: AgentRuntimeSessionState,
+    messageId: string,
+    spec: DefaultNcpAgentRunSpec,
+  ): Promise<NcpEndpointEvent> => {
+    const message = sessionRun.getSnapshot().messages.find((candidate) => candidate.id === messageId);
+    if (!message) {
+      throw new Error(`Assistant step completed without message ${messageId}.`);
+    }
+    return await this.applyEvent(sessionRun, createRuntimeEvent({
+      type: NcpEventType.MessageCompleted,
+      payload: {
+        sessionId: sessionRun.sessionId,
+        correlationId: spec.correlationId,
+        message: { ...message, status: "final" },
+      },
+    }));
   };
 
   private isAbortRequested = (signal?: AbortSignal): boolean => signal?.aborted ?? false;

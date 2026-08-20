@@ -165,9 +165,11 @@ export class AgentRunExecutionManager {
   createMetadataEvent = (params: {
     outcome: NcpAiExecutionOutcome;
     occurredAt?: string;
+    messageId?: string;
   }): NcpEndpointEvent => {
     const { occurredAt, outcome } = params;
-    const { messageId, sessionId, spec } = this.run;
+    const { sessionId, spec } = this.run;
+    const messageId = params.messageId ?? this.run.messageId;
     return createNcpEndpointEvent(
       {
         type: NcpEventType.RunMetadata,

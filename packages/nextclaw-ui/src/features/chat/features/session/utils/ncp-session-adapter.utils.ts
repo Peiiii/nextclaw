@@ -7,7 +7,7 @@ import type {
   SessionEntryView,
   ThinkingLevel
 } from '@/shared/lib/api';
-import { API_BASE } from '@/shared/lib/api';
+import { buildNcpAssetContentUrl } from '@/shared/lib/api';
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
@@ -28,11 +28,6 @@ const SESSION_ACTIVITY_PREVIEW_STATUS_KIND_SET = new Set<NonNullable<SessionActi
   'run-failed',
   'run-interrupted'
 ]);
-
-function buildNcpAssetContentUrl(assetUri: string): string {
-  const query = new URLSearchParams({ uri: assetUri });
-  return `${API_BASE}/api/ncp/assets/content?${query.toString()}`;
-}
 
 function readOptionalString(value: unknown): string | null {
   if (typeof value !== 'string') {

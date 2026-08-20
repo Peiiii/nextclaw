@@ -318,12 +318,22 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     restoreComposer: inputActions.restoreComposer,
     setSendError: inputActions.setSendError,
   });
+  const conversationMessages = useMemo(() => {
+    const durableMessageIds = new Set(agent.visibleMessages.map(({ id }) => id));
+    const pendingSteeringMessages = runQueue.pendingInputs.flatMap((input) =>
+      input.placement === "steering" && !durableMessageIds.has(input.message.id)
+        ? [{ ...input.message, status: "pending" as const }]
+        : []
+    );
+    return [...agent.visibleMessages, ...pendingSteeringMessages];
+  }, [agent.visibleMessages, runQueue.pendingInputs]);
   const controllerRef = useRef(controller);
   useEffect(() => {
     controllerRef.current = controller;
   }, [controller]);
   const inputController = useMemo<SessionConversationInputController>(
     () => ({
+      canEditQueuedInput: controller.canEditQueuedInput,
       canStopGeneration: controller.canStopGeneration,
       deleteQueuedInput: (id: string) =>
         controllerRef.current.deleteQueuedInput(id),
@@ -333,14 +343,17 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
       primaryAction: controller.primaryAction,
       queuedInputs: controller.queuedInputs,
       send: () => controllerRef.current.send(),
+      sendSteering: () => controllerRef.current.sendSteering(),
       sendPresetMessage: (message: string) =>
         controllerRef.current.sendPresetMessage(message).catch(() => undefined),
       sendDisabled: controller.sendDisabled,
       stop: () => controllerRef.current.stop(),
       stopDisabled: controller.stopDisabled,
+      steerQueuedInput: (id: string) => controllerRef.current.steerQueuedInput(id),
     }),
     [
       controller.canStopGeneration,
+      controller.canEditQueuedInput,
       controller.isSending,
       controller.primaryAction,
       controller.queuedInputs,
@@ -404,7 +417,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
   const showWelcome =
     showWelcomeForDraft &&
     !sessionKey &&
-    agent.visibleMessages.length === 0 &&
+    conversationMessages.length === 0 &&
     !agent.isHydrating &&
     !controller.isSending;
 
@@ -423,7 +436,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
           sessionKey && compactingSessionIds.has(sessionKey),
         )}
         bottomSlot={showWelcome ? null : conversationFailureSlot}
-        messages={agent.visibleMessages}
+        messages={conversationMessages}
         messageDetailStates={agent.messageDetailStates}
         sessionKey={sessionKey}
         showWelcome={showWelcome}

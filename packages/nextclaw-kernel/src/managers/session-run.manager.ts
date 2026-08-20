@@ -30,16 +30,108 @@ export type SessionRunActiveRequest = SessionRunQueuedRequest & {
   signal: AbortSignal;
 };
 
-export class MessageInbox<T> {
-  private readonly messages: T[] = [];
+export type SessionRunPendingRequest = SessionRunQueuedRequest & {
+  placement: "queued" | "steering";
+  intendedRunId: string | null;
+};
 
-  enqueue = (message: T): void => {
-    this.messages.push(message);
+type ClaimedNextStepRequest = SessionRunQueuedRequest & {
+  intendedRunId: string;
+};
+
+/** Single owner for inputs waiting for either the next run or the next safe step. */
+class SessionPendingInputs {
+  private readonly nextRun: SessionRunQueuedRequest[] = [];
+  private readonly nextStep: ClaimedNextStepRequest[] = [];
+  private readonly claimedNextStep = new Map<string, ClaimedNextStepRequest>();
+
+  enqueueNextRun = (request: SessionRunQueuedRequest): void => {
+    this.nextRun.push(request);
   };
 
-  drain = (): T[] => {
-    return this.messages.splice(0, this.messages.length);
+  enqueueNextStep = (request: SessionRunQueuedRequest, intendedRunId: string): void => {
+    this.nextStep.push({ ...request, intendedRunId });
   };
+
+  moveNextRunToNextStep = (
+    requestId: string,
+    intendedRunId: string,
+  ): SessionRunPendingRequest | null => {
+    const index = this.nextRun.findIndex(({ id }) => id === requestId);
+    if (index < 0) return null;
+    const [request] = this.nextRun.splice(index, 1);
+    if (!request) return null;
+    this.enqueueNextStep(request, intendedRunId);
+    return this.toPendingRequest(request, "steering", intendedRunId);
+  };
+
+  list = (): readonly SessionRunPendingRequest[] => [
+    ...this.nextStep.map((request) => this.toPendingRequest(
+      request,
+      "steering",
+      request.intendedRunId,
+    )),
+    ...this.nextRun.map((request) => this.toPendingRequest(request, "queued", null)),
+  ];
+
+  listNextRun = (): readonly SessionRunQueuedRequest[] => structuredClone(this.nextRun);
+
+  removeNextRun = (requestId: string): SessionRunQueuedRequest | null => {
+    const index = this.nextRun.findIndex(({ id }) => id === requestId);
+    if (index < 0) return null;
+    const [removed] = this.nextRun.splice(index, 1);
+    return removed ? structuredClone(removed) : null;
+  };
+
+  shiftNextRun = (): SessionRunQueuedRequest | null => {
+    const request = this.nextRun.shift();
+    return request ? structuredClone(request) : null;
+  };
+
+  claimNextStep = (runId: string): readonly ClaimedNextStepRequest[] => {
+    const claimed: ClaimedNextStepRequest[] = [];
+    for (let index = this.nextStep.length - 1; index >= 0; index -= 1) {
+      const request = this.nextStep[index];
+      if (request?.intendedRunId !== runId) continue;
+      this.nextStep.splice(index, 1);
+      claimed.unshift(request);
+    }
+    for (const request of claimed) this.claimedNextStep.set(request.id, request);
+    return structuredClone(claimed);
+  };
+
+  acknowledgeNextStep = (requestIds: readonly string[]): void => {
+    for (const requestId of requestIds) this.claimedNextStep.delete(requestId);
+  };
+
+  restoreNextStep = (runId: string): void => {
+    const restored = [
+      ...this.nextStep.filter(({ intendedRunId }) => intendedRunId === runId),
+      ...[...this.claimedNextStep.values()].filter(({ intendedRunId }) => intendedRunId === runId),
+    ].sort((left, right) => left.enqueuedAt.localeCompare(right.enqueuedAt));
+    if (restored.length === 0) return;
+    for (let index = this.nextStep.length - 1; index >= 0; index -= 1) {
+      if (this.nextStep[index]?.intendedRunId === runId) this.nextStep.splice(index, 1);
+    }
+    for (const request of restored) this.claimedNextStep.delete(request.id);
+    this.nextRun.unshift(...restored.map(({ intendedRunId: _intendedRunId, ...request }) => request));
+  };
+
+  get hasNextRun(): boolean {
+    return this.nextRun.length > 0;
+  }
+
+  clear = (): void => {
+    this.nextRun.length = 0;
+    this.nextStep.length = 0;
+    this.claimedNextStep.clear();
+  };
+
+  private toPendingRequest = (
+    request: SessionRunQueuedRequest,
+    placement: SessionRunPendingRequest["placement"],
+    intendedRunId: string | null,
+  ): SessionRunPendingRequest => structuredClone({ ...request, placement, intendedRunId });
 }
 
 function isConversationStateEvent(event: NcpEndpointEvent): boolean {
@@ -47,10 +139,9 @@ function isConversationStateEvent(event: NcpEndpointEvent): boolean {
 }
 
 export class SessionRun {
-  readonly inbox = new MessageInbox<NcpMessage>();
   readonly sessionId: string;
   private readonly statusListeners = new Set<(status: "idle" | "running") => void>();
-  private readonly queuedRequests: SessionRunQueuedRequest[] = [];
+  private readonly pendingInputs = new SessionPendingInputs();
   private activeRunId: string | null = null;
   private activeRunController: AbortController | null = null;
   private activeProductActivitySource: ProductActivitySource | null = null;
@@ -116,31 +207,68 @@ export class SessionRun {
       request: structuredClone(request),
       session: structuredClone(session),
     };
-    this.queuedRequests.push(queuedRequest);
+    this.pendingInputs.enqueueNextRun(queuedRequest);
     this.emitStatusChangeIfNeeded(wasBusy);
     return structuredClone(queuedRequest);
   };
 
   listQueuedRequests = (): readonly SessionRunQueuedRequest[] =>
-    structuredClone(this.queuedRequests);
+    this.pendingInputs.listNextRun();
+
+  listPendingRequests = (): readonly SessionRunPendingRequest[] =>
+    this.pendingInputs.list();
 
   removeQueuedRequest = (queuedRequestId: string): SessionRunQueuedRequest | null => {
-    const index = this.queuedRequests.findIndex(({ id }) => id === queuedRequestId);
-    if (index < 0) {
-      return null;
-    }
     const wasBusy = this.isBusy();
-    const [removed] = this.queuedRequests.splice(index, 1);
+    const removed = this.pendingInputs.removeNextRun(queuedRequestId);
     this.emitStatusChangeIfNeeded(wasBusy);
-    return removed ? structuredClone(removed) : null;
+    return removed;
   };
+
+  moveQueuedRequestToNextStep = (queuedRequestId: string): SessionRunPendingRequest | null => {
+    if (!this.activeRunId) return null;
+    return this.pendingInputs.moveNextRunToNextStep(queuedRequestId, this.activeRunId);
+  };
+
+  enqueueNextStepRequest = (
+    request: AgentRunRequest,
+    session: AgentRunSession,
+  ): SessionRunPendingRequest | null => {
+    if (!this.activeRunId) return null;
+    const pendingRequest: SessionRunQueuedRequest = {
+      id: `pending-input-${randomUUID()}`,
+      runId: `agent-run-${randomUUID()}`,
+      enqueuedAt: new Date().toISOString(),
+      request: structuredClone(request),
+      session: structuredClone(session),
+    };
+    this.pendingInputs.enqueueNextStep(pendingRequest, this.activeRunId);
+    return structuredClone({
+      ...pendingRequest,
+      placement: "steering",
+      intendedRunId: this.activeRunId,
+    });
+  };
+
+  claimNextStepRequests = (runId: string): readonly SessionRunPendingRequest[] =>
+    this.pendingInputs.claimNextStep(runId).map((request) => ({
+      ...request,
+      placement: "steering" as const,
+      intendedRunId: runId,
+    }));
+
+  acknowledgeNextStepRequests = (requestIds: readonly string[]): void => {
+    this.pendingInputs.acknowledgeNextStep(requestIds);
+  };
+
+  getActiveRunId = (): string | null => this.activeRunId;
 
   beginNextRun = (): SessionRunActiveRequest | null => {
     if (this.activeRunId) {
       return null;
     }
     const wasBusy = this.isBusy();
-    const queuedRequest = this.queuedRequests.shift();
+    const queuedRequest = this.pendingInputs.shiftNextRun();
     if (!queuedRequest) {
       return null;
     }
@@ -175,7 +303,7 @@ export class SessionRun {
 
   isRunning = (): boolean => this.activeRunId !== null;
 
-  isBusy = (): boolean => this.isRunning() || this.queuedRequests.length > 0;
+  isBusy = (): boolean => this.isRunning() || this.pendingInputs.hasNextRun;
 
   dispose = (): void => {
     const wasBusy = this.isBusy();
@@ -187,7 +315,7 @@ export class SessionRun {
     this.activeRunController = null;
     this.activeRunId = null;
     this.activeProductActivitySource = null;
-    this.queuedRequests.length = 0;
+    this.pendingInputs.clear();
     this.emitStatusChangeIfNeeded(wasBusy);
     this.statusListeners.clear();
   };
@@ -214,6 +342,7 @@ export class SessionRun {
             source: this.activeProductActivitySource,
           });
         }
+        if (this.activeRunId) this.pendingInputs.restoreNextStep(this.activeRunId);
         this.activeRunId = null;
         this.activeRunController = null;
         this.activeProductActivitySource = null;

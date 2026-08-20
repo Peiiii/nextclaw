@@ -43,6 +43,7 @@ export type {
   NextClawTransportUploadInput,
 } from "./types/nextclaw-transport.types.js";
 export type {
+  AppPackageHostTarget,
   AppPackageList,
   AppDataDeleteResult,
   AppDataEntry,
@@ -182,6 +183,8 @@ export type {
   UiNcpSessionMessagesView,
   UiNcpSessionQueuedInputView,
   UiNcpSessionQueuedInputsView,
+  UiNcpSessionPendingInputView,
+  UiNcpSessionPendingInputsView,
   UiNcpSessionTokenUsageView,
   UiServerEvent,
 } from "@nextclaw/server";

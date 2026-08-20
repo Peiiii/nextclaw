@@ -171,6 +171,8 @@ export type ChatInputBarActionsProps = {
   stopButtonLabel: string;
   contextWindow?: ChatContextWindowIndicator | null;
   onSend: () => Promise<void> | void;
+  /** Alternate keyboard-only send, used for next-step steering. */
+  onAlternateSend?: () => Promise<void> | void;
   onStop: () => Promise<void> | void;
 };
 
@@ -576,6 +578,7 @@ export type ChatMessageTexts = {
   copyMessageLabel: string;
   copiedMessageLabel: string;
   typingLabel: string;
+  pendingInputLabel?: string;
   excerptCharacterCountTemplate?: string;
   mermaidDiagramLabel?: string;
   mermaidExpandLabel?: string;

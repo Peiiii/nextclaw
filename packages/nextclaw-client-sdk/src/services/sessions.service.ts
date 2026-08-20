@@ -7,6 +7,8 @@ import type {
   UiNcpSessionMessagesView,
   UiNcpSessionQueuedInputView,
   UiNcpSessionQueuedInputsView,
+  UiNcpSessionPendingInputView,
+  UiNcpSessionPendingInputsView,
   UiNcpSessionTokenUsageView,
 } from "@nextclaw/server";
 import type { EventBus } from "@nextclaw/shared";
@@ -19,6 +21,7 @@ export type ListSessionMessagesParams = {
   limit?: number;
   cursor?: string;
   toolPayload?: "summary";
+  initialPayload?: "compact";
   signal?: AbortSignal;
 };
 
@@ -62,6 +65,9 @@ export class SessionsService {
     if (params.toolPayload === "summary") {
       query.set("toolPayload", "summary");
     }
+    if (params.initialPayload === "compact") {
+      query.set("initialPayload", "compact");
+    }
     return await this.requestService.get<UiNcpSessionMessagesView>(
       `/api/ncp/sessions/${encodeURIComponent(sessionId)}/messages`,
       {
@@ -103,6 +109,23 @@ export class SessionsService {
   ): Promise<UiNcpSessionQueuedInputView> => {
     return await this.requestService.delete<UiNcpSessionQueuedInputView>(
       `/api/ncp/sessions/${encodeURIComponent(sessionId)}/queued-inputs/${encodeURIComponent(queuedInputId)}`,
+    );
+  };
+
+  readonly listPendingInputs = async (
+    sessionId: string,
+  ): Promise<UiNcpSessionPendingInputsView> => {
+    return await this.requestService.get<UiNcpSessionPendingInputsView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/pending-inputs`,
+    );
+  };
+
+  readonly steerQueuedInput = async (
+    sessionId: string,
+    queuedInputId: string,
+  ): Promise<UiNcpSessionPendingInputView> => {
+    return await this.requestService.post<UiNcpSessionPendingInputView>(
+      `/api/ncp/sessions/${encodeURIComponent(sessionId)}/queued-inputs/${encodeURIComponent(queuedInputId)}/steer`,
     );
   };
 

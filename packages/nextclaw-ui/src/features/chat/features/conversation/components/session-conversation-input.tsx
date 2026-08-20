@@ -71,6 +71,7 @@ type SessionConversationInputQuery = ReturnType<typeof useSessionConversationInp
 type SkillSource = SessionSkillEntryView['source'];
 
 export type SessionConversationInputController = {
+  readonly canEditQueuedInput: boolean;
   readonly canStopGeneration: boolean;
   readonly deleteQueuedInput: (id: string) => void;
   readonly editQueuedInput: (id: string) => void;
@@ -80,8 +81,10 @@ export type SessionConversationInputController = {
   readonly sendDisabled: boolean;
   readonly stopDisabled: boolean;
   readonly send: () => Promise<void> | void;
+  readonly sendSteering: () => Promise<void> | void;
   readonly sendPresetMessage: (message: string) => Promise<void> | void;
   readonly stop: () => Promise<void> | void;
+  readonly steerQueuedInput: (id: string) => void;
 };
 
 function toSkillRecords(
@@ -458,13 +461,12 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
           stopHint: t('chatStopUnavailable'),
           sendButtonLabel: controller.primaryAction === 'continue'
             ? t('chatContinueRun')
-            : controller.isSending
-              ? t('chatQueueSend')
-              : t('chatSend'),
+            : t('chatSend'),
           sendIcon: controller.primaryAction,
           stopButtonLabel: t('chatStop'),
           contextWindow,
           onSend: controller.send,
+          onAlternateSend: controller.sendSteering,
           onStop: controller.stop,
         },
       }}

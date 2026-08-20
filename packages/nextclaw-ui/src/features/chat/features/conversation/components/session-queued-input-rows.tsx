@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { CornerDownRight, LoaderCircle, Pencil, Trash2 } from 'lucide-react';
+import {
+  CornerDownRight,
+  Forward,
+  LoaderCircle,
+  Paperclip,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 
 import {
   Tooltip,
@@ -13,9 +20,11 @@ import type {
 } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
 
 type SessionQueuedInputRowsController = {
+  readonly canEditQueuedInput: boolean;
   readonly deleteQueuedInput: (id: string) => void;
   readonly editQueuedInput: (id: string) => void;
   readonly queuedInputs: readonly SessionConversationQueuedInput[];
+  readonly steerQueuedInput: (id: string) => void;
 };
 
 type SessionQueuedInputRowsProps = {
@@ -28,6 +37,44 @@ type QueuedInputIconButtonProps = {
   readonly label: string;
   readonly onClick: () => void;
 };
+
+function QueuedInputContent({ item }: { readonly item: SessionConversationQueuedInput }) {
+  const attachments = item.attachments ?? [];
+  const visibleAttachments = attachments.slice(0, 3);
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      {visibleAttachments.map((attachment, index) => attachment.previewUrl ? (
+        <img
+          key={`${attachment.name}-${index}`}
+          alt={attachment.name}
+          loading="lazy"
+          src={attachment.previewUrl}
+          title={attachment.name}
+          className="h-9 w-9 shrink-0 rounded-md border border-border/70 object-cover"
+        />
+      ) : (
+        <span
+          key={`${attachment.name}-${index}`}
+          title={attachment.name}
+          className="inline-flex min-w-0 max-w-36 shrink items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
+        >
+          <Paperclip className="h-3 w-3 shrink-0" />
+          <span className="truncate">{attachment.name}</span>
+        </span>
+      ))}
+      {attachments.length > visibleAttachments.length ? (
+        <span className="shrink-0 text-xs text-muted-foreground">
+          +{attachments.length - visibleAttachments.length}
+        </span>
+      ) : null}
+      {item.preview || attachments.length === 0 ? (
+        <span className="min-w-0 flex-1 truncate font-medium text-foreground/80">
+          {item.preview || t('chatQueuedBannerAttachmentFallback')}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function QueuedInputIconButton({
   children,
@@ -71,9 +118,7 @@ export function SessionQueuedInputRows({
             className="flex min-h-8 min-w-0 items-center gap-2 text-sm"
           >
             <CornerDownRight className="h-4 w-4 shrink-0 text-muted-foreground/70" />
-            <span className="min-w-0 flex-1 truncate font-medium text-foreground/80">
-              {item.preview || t('chatQueuedBannerAttachmentFallback')}
-            </span>
+            <QueuedInputContent item={item} />
             {item.isSubmitting ? (
               <span
                 aria-label={t('chatQueuedSubmitting')}
@@ -85,10 +130,19 @@ export function SessionQueuedInputRows({
             ) : (
               <div className="flex shrink-0 items-center gap-1.5">
                 <QueuedInputIconButton
-                  label={t('chatQueuedEdit')}
+                  disabled={!controller.canEditQueuedInput}
+                  label={controller.canEditQueuedInput
+                    ? t('chatQueuedEdit')
+                    : t('chatQueuedEditComposerNotEmpty')}
                   onClick={() => controller.editQueuedInput(item.id)}
                 >
                   <Pencil className="h-4 w-4" />
+                </QueuedInputIconButton>
+                <QueuedInputIconButton
+                  label={t('chatQueuedSteer')}
+                  onClick={() => controller.steerQueuedInput(item.id)}
+                >
+                  <Forward className="h-4 w-4" />
                 </QueuedInputIconButton>
                 <QueuedInputIconButton
                   label={t('chatQueuedDelete')}

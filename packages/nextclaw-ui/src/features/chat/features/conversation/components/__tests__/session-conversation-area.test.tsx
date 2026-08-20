@@ -72,6 +72,7 @@ const mocks = vi.hoisted(() => {
     skillRecords: [],
   };
   const controller = {
+    canEditQueuedInput: true,
     canStopGeneration: true,
     deleteQueuedInput: vi.fn(),
     editQueuedInput: vi.fn(),
@@ -79,9 +80,11 @@ const mocks = vi.hoisted(() => {
     isSending: true,
     queuedInputs: [],
     send: vi.fn(),
+    sendSteering: vi.fn(),
     sendDisabled: true,
     stop: vi.fn(),
     stopDisabled: false,
+    steerQueuedInput: vi.fn(),
   };
   const agent = {
     visibleMessages: [] as unknown[],
@@ -194,8 +197,11 @@ vi.mock(
   () => ({
     useSessionRunQueue: () => ({
       inputs: [],
+      pendingInputs: [],
       isLoading: false,
+      refreshQueuedInputs: vi.fn(async () => []),
       removeQueuedInput: vi.fn(async () => null),
+      steerQueuedInput: vi.fn(async () => null),
     }),
   }),
 );

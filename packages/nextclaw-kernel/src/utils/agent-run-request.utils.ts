@@ -46,6 +46,7 @@ export function toAgentRunRequest(
     model: metadata.model,
     maxTokens: metadata.maxTokens,
     thinkingEffort: metadata.thinkingEffort,
+    delivery: envelope.delivery,
   };
   if (Array.isArray(envelope.content)) {
     const sessionId = readOptionalString(envelope.sessionId);
@@ -185,6 +186,7 @@ export function toRunHandle(accepted: AgentRunAccepted): NcpRunHandle {
     assistantMessageId: null,
     runId: accepted.runId,
     correlationId: accepted.correlationId,
+    delivery: accepted.delivery,
   };
 }
 

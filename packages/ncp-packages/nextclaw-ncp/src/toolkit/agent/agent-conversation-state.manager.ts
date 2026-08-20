@@ -1,6 +1,7 @@
 import type {
   NcpContextWindowUpdatedPayload,
   NcpFailedEnvelope,
+  NcpCompletedEnvelope,
   NcpMessageAbortPayload,
   NcpMessageSentPayload,
   NcpRunErrorPayload,
@@ -50,6 +51,8 @@ export interface NcpAgentConversationStateManager extends NcpConversationStateMa
   prependHistory(messages: ReadonlyArray<NcpMessage>): void;
   /** Local peer sent a message (outbound); typically non-streaming. Add to messages. */
   handleMessageSent(payload: NcpMessageSentPayload): void;
+  /** Finalize one assistant step without settling the enclosing run. */
+  handleMessageCompleted(payload: NcpCompletedEnvelope): void;
   handleMessageAbort(payload: NcpMessageAbortPayload, occurredAt?: string): void;
   handleMessageFailed(payload: NcpFailedEnvelope, occurredAt?: string): void;
 

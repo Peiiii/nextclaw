@@ -2,19 +2,25 @@ import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { eventKeys, type UiNcpSessionQueuedInputsView } from '@nextclaw/client-sdk';
+import {
+  eventKeys,
+  type UiNcpSessionPendingInputsView,
+  type UiNcpSessionQueuedInputView,
+} from '@nextclaw/client-sdk';
 
 import { useSessionRunQueue } from '@/features/chat/features/conversation/hooks/use-session-run-queue';
 import { nextclawClient } from '@/shared/lib/api';
 
-function createQueue(sessionId: string, text: string): UiNcpSessionQueuedInputsView {
+function createQueue(sessionId: string, text: string): UiNcpSessionPendingInputsView {
   return {
     sessionId,
     inputs: [{
       id: `queued-${sessionId}`,
   sessionId,
   enqueuedAt: '2026-07-22T10:00:00.000Z',
-  metadata: {},
+      metadata: {},
+      placement: 'queued',
+      intendedRunId: null,
   message: {
         id: `message-${sessionId}`,
         sessionId,
@@ -42,7 +48,7 @@ describe('useSessionRunQueue', () => {
   });
 
   it('keys backend queue data by session instead of sharing one frontend queue', async () => {
-    vi.spyOn(nextclawClient.sessions, 'listQueuedInputs').mockImplementation(async (sessionId) =>
+    vi.spyOn(nextclawClient.sessions, 'listPendingInputs').mockImplementation(async (sessionId) =>
       createQueue(sessionId, sessionId === 'session-1' ? 'first session' : 'second session'),
     );
     const { result, rerender } = renderHook(
@@ -53,18 +59,18 @@ describe('useSessionRunQueue', () => {
     await waitFor(() => expect(result.current.inputs[0]?.message.parts[0]).toMatchObject({ text: 'first session' }));
     rerender({ sessionKey: 'session-2' });
     await waitFor(() => expect(result.current.inputs[0]?.message.parts[0]).toMatchObject({ text: 'second session' }));
-    expect(nextclawClient.sessions.listQueuedInputs).toHaveBeenCalledWith('session-1');
-    expect(nextclawClient.sessions.listQueuedInputs).toHaveBeenCalledWith('session-2');
+    expect(nextclawClient.sessions.listPendingInputs).toHaveBeenCalledWith('session-1');
+    expect(nextclawClient.sessions.listPendingInputs).toHaveBeenCalledWith('session-2');
   });
 
   it('refetches only when the matching session queue changes', async () => {
-    const listQueuedInputs = vi.spyOn(nextclawClient.sessions, 'listQueuedInputs')
+    const listPendingInputs = vi.spyOn(nextclawClient.sessions, 'listPendingInputs')
       .mockResolvedValue(createQueue('session-1', 'queued'));
     const { unmount } = renderHook(
       () => useSessionRunQueue('session-1'),
       { wrapper: createWrapper() },
     );
-    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listPendingInputs).toHaveBeenCalledTimes(1));
 
     act(() => {
       nextclawClient.eventBus.emit(eventKeys.sessionRunQueueUpdated, {
@@ -72,55 +78,55 @@ describe('useSessionRunQueue', () => {
       });
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(listQueuedInputs).toHaveBeenCalledTimes(1);
+    expect(listPendingInputs).toHaveBeenCalledTimes(1);
 
     act(() => {
       nextclawClient.eventBus.emit(eventKeys.sessionRunQueueUpdated, {
         sessionKey: 'session-1',
       });
     });
-    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listPendingInputs).toHaveBeenCalledTimes(2));
     unmount();
   });
 
   it('refreshes the authoritative queue on demand after a submission is accepted', async () => {
-    const listQueuedInputs = vi.spyOn(nextclawClient.sessions, 'listQueuedInputs')
+    const listPendingInputs = vi.spyOn(nextclawClient.sessions, 'listPendingInputs')
       .mockResolvedValue(createQueue('session-1', 'queued'));
     const { result } = renderHook(
       () => useSessionRunQueue('session-1'),
       { wrapper: createWrapper() },
     );
-    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listPendingInputs).toHaveBeenCalledTimes(1));
 
-    let refreshed: UiNcpSessionQueuedInputsView['inputs'] = [];
+    let refreshed: UiNcpSessionQueuedInputView[] = [];
     await act(async () => {
       refreshed = [...await result.current.refreshQueuedInputs()];
     });
 
-    expect(listQueuedInputs).toHaveBeenCalledTimes(2);
+    expect(listPendingInputs).toHaveBeenCalledTimes(2);
     expect(refreshed[0]?.message.parts[0]).toMatchObject({ text: 'queued' });
   });
 
   it('replaces an in-flight stale queue read after the queue changes', async () => {
-    let resolveInitialRead!: (queue: UiNcpSessionQueuedInputsView) => void;
-    const initialRead = new Promise<UiNcpSessionQueuedInputsView>((resolve) => {
+    let resolveInitialRead!: (queue: UiNcpSessionPendingInputsView) => void;
+    const initialRead = new Promise<UiNcpSessionPendingInputsView>((resolve) => {
       resolveInitialRead = resolve;
     });
-    const listQueuedInputs = vi.spyOn(nextclawClient.sessions, 'listQueuedInputs')
+    const listPendingInputs = vi.spyOn(nextclawClient.sessions, 'listPendingInputs')
       .mockImplementationOnce(async () => await initialRead)
       .mockResolvedValue({ sessionId: 'session-1', inputs: [] });
     const { result } = renderHook(
       () => useSessionRunQueue('session-1'),
       { wrapper: createWrapper() },
     );
-    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listPendingInputs).toHaveBeenCalledTimes(1));
 
     act(() => {
       nextclawClient.eventBus.emit(eventKeys.sessionRunQueueUpdated, {
         sessionKey: 'session-1',
       });
     });
-    await waitFor(() => expect(listQueuedInputs).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(listPendingInputs).toHaveBeenCalledTimes(2));
 
     await act(async () => {
       resolveInitialRead(createQueue('session-1', 'stale queued input'));

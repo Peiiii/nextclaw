@@ -33,13 +33,11 @@ describe("AgentRunRequestManager message run spec metadata", () => {
     const runtimeSpecs: AgentRunSpec[] = [];
     const surfaceAgentIds: Array<string | undefined> = [];
     const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
-    sessionRun.inbox.enqueue = (message: NcpMessage) => {
-      queuedMessages.push(structuredClone(message));
-    };
     const manager = new AgentRunRequestManager(
       {
         getOrCreate: () => ({
-          run: async function* (spec: AgentRunSpec): AsyncGenerator<NcpEndpointEvent> {
+          run: async function* (spec: AgentRunSpec, options): AsyncGenerator<NcpEndpointEvent> {
+            queuedMessages.push(...options.initialMessages.map((message: NcpMessage) => structuredClone(message)));
             runtimeSpecs.push(structuredClone(spec));
             yield {
               type: NcpEventType.RunStarted,

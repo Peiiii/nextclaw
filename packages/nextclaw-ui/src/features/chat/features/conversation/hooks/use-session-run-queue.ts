@@ -1,6 +1,10 @@
 import { useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { eventKeys, type UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
+import {
+  eventKeys,
+  type UiNcpSessionPendingInputView,
+  type UiNcpSessionQueuedInputView,
+} from '@nextclaw/client-sdk';
 
 import { nextclawClient } from '@/shared/lib/api';
 
@@ -11,7 +15,7 @@ export function useSessionRunQueue(sessionKey: string | null) {
   const normalizedSessionKey = sessionKey?.trim() || null;
   const query = useQuery({
     queryKey: [SESSION_RUN_QUEUE_QUERY_KEY, normalizedSessionKey],
-    queryFn: () => nextclawClient.sessions.listQueuedInputs(normalizedSessionKey as string),
+    queryFn: () => nextclawClient.sessions.listPendingInputs(normalizedSessionKey as string),
     enabled: Boolean(normalizedSessionKey),
     retry: false,
     staleTime: 5_000,
@@ -49,13 +53,24 @@ export function useSessionRunQueue(sessionKey: string | null) {
       return [];
     }
     const result = await refetch();
-    return result.data?.inputs ?? [];
+    return result.data?.inputs.filter(({ placement }) => placement === 'queued') ?? [];
   }, [normalizedSessionKey, refetch]);
 
+  const steerQueuedInput = useCallback(async (
+    queuedInputId: string,
+  ): Promise<UiNcpSessionPendingInputView | null> => {
+    if (!normalizedSessionKey) return null;
+    return await nextclawClient.sessions.steerQueuedInput(normalizedSessionKey, queuedInputId);
+  }, [normalizedSessionKey]);
+
+  const inputs = data?.inputs ?? [];
+
   return {
-    inputs: data?.inputs ?? [],
+    inputs: inputs.filter(({ placement }) => placement === 'queued'),
+    pendingInputs: inputs,
     isLoading,
     refreshQueuedInputs,
     removeQueuedInput,
+    steerQueuedInput,
   };
 }

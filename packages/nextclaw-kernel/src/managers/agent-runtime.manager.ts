@@ -1,4 +1,4 @@
-import type { NcpEndpointEvent, NcpTool } from "@nextclaw/ncp";
+import type { NcpEndpointEvent, NcpMessage, NcpTool } from "@nextclaw/ncp";
 import type { SessionRun } from "./session-run.manager.js";
 import type {
   AgentRunSpec,
@@ -17,6 +17,7 @@ export type AgentRuntimeRunOptions = {
   sessionRun: SessionRun;
   contextBlocks: readonly ContextBlock[];
   tools: readonly NcpTool[];
+  initialMessages: readonly NcpMessage[];
   signal?: AbortSignal;
 };
 
@@ -32,6 +33,9 @@ export type AgentRuntimeContextCompactionResult = {
 };
 
 export type AgentRuntime = {
+  capabilities?: {
+    nextStepInput?: boolean;
+  };
   run: (
     spec: AgentRunSpec,
     options: AgentRuntimeRunOptions,

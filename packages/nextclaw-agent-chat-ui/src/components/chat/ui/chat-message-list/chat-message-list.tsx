@@ -75,6 +75,16 @@ function isGeneratingAssistantMessage(message: ChatMessageViewModel): boolean {
     (message.status === 'streaming' || message.status === 'pending');
 }
 
+function resolveMessageMetaPresentation(
+  message: ChatMessageViewModel,
+  texts: ChatMessageTexts,
+): { label: string; role?: 'status' } {
+  if (message.role === 'user' && message.status === 'pending') {
+    return { label: texts.pendingInputLabel ?? 'Waiting for the next step', role: 'status' };
+  }
+  return { label: `${message.roleLabel} · ${message.timestampLabel}` };
+}
+
 function hasRenderableAssistantDraft(messages: readonly ChatMessageViewModel[]): boolean {
   return messages.some((message) =>
     message.role === 'assistant' &&
@@ -200,6 +210,7 @@ export function ChatMessageList({
       {visibleMessages.map((message) => {
         const isUser = message.role === 'user';
         const isGenerating = isGeneratingAssistantMessage(message);
+        const meta = resolveMessageMetaPresentation(message, texts);
         const isTextSelectionReferenceEnabled = isTextSelectionReferenceAllowed(message);
         const defaultContent = (
           <ChatMessage
@@ -296,12 +307,13 @@ export function ChatMessageList({
                 ) : (
                   <>
                     <div
+                      role={meta.role}
                       className={cn(
                         'px-1 text-[11px] leading-4 text-muted-foreground',
                         isUser ? 'text-right' : 'text-left'
                       )}
                     >
-                      {message.roleLabel} · {message.timestampLabel}
+                      {meta.label}
                       {message.executionSummaryLabel ? ` · ${message.executionSummaryLabel}` : null}
                     </div>
                     <ChatMessageActions

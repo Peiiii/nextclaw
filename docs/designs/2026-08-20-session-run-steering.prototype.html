@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NextClaw 排队与插话统一交互原型</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #eef1f3;
+        --surface: #ffffff;
+        --surface-soft: #f6f7f8;
+        --surface-warm: #f5f2ec;
+        --text: #1f2529;
+        --muted: #6e777e;
+        --faint: #929aa0;
+        --line: #dfe3e5;
+        --line-strong: #cfd5d8;
+        --accent: #186f67;
+        --accent-soft: #e2f1ee;
+        --accent-hover: #d6ebe7;
+        --danger: #b14c4c;
+        --shadow: 0 22px 70px rgba(31, 40, 46, 0.13);
+        --composer-shadow: 0 10px 34px rgba(31, 40, 46, 0.1);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 340px;
+        min-height: 100vh;
+        margin: 0;
+        background:
+          radial-gradient(circle at 14% -8%, rgba(24, 111, 103, 0.09), transparent 33%),
+          var(--canvas);
+        color: var(--text);
+      }
+
+      button,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+      }
+
+      button:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid rgba(24, 111, 103, 0.22);
+        outline-offset: 2px;
+      }
+
+      .review-bar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        display: flex;
+        min-height: 70px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 11px 20px;
+        border-bottom: 1px solid rgba(207, 213, 216, 0.88);
+        background: rgba(247, 249, 250, 0.92);
+        backdrop-filter: blur(18px);
+      }
+
+      .review-title strong {
+        display: block;
+        font-size: 14px;
+        letter-spacing: -0.01em;
+      }
+
+      .review-title span {
+        display: block;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .review-controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .segmented {
+        display: inline-flex;
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #e9edef;
+      }
+
+      .segmented button,
+      .review-action {
+        min-height: 33px;
+        padding: 6px 11px;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .segmented button[aria-selected="true"] {
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: 0 2px 8px rgba(30, 36, 41, 0.08);
+      }
+
+      .review-action {
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .prototype-shell {
+        width: min(1220px, calc(100vw - 32px));
+        margin: 16px auto 32px;
+      }
+
+      .decision-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .decision-card {
+        min-height: 86px;
+        padding: 13px 15px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.74);
+      }
+
+      .decision-card b {
+        display: block;
+        font-size: 12px;
+      }
+
+      .decision-card p {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.55;
+      }
+
+      .app-window {
+        display: grid;
+        grid-template-columns: 218px minmax(0, 1fr);
+        min-height: 720px;
+        overflow: hidden;
+        border: 1px solid var(--line-strong);
+        border-radius: 20px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar {
+        padding: 15px 11px;
+        border-right: 1px solid var(--line);
+        background: #f5f7f7;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 4px 7px 16px;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 25px;
+        height: 25px;
+        place-items: center;
+        border-radius: 8px;
+        background: var(--text);
+        color: white;
+        font-size: 12px;
+      }
+
+      .new-task {
+        width: 100%;
+        padding: 9px 11px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        text-align: left;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .nav-label {
+        margin: 20px 8px 7px;
+        color: var(--faint);
+        font-size: 10px;
+        font-weight: 750;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .task-row {
+        display: block;
+        width: 100%;
+        overflow: hidden;
+        padding: 9px 10px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--muted);
+        text-align: left;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+
+      .task-row.active {
+        background: #e8ecec;
+        color: var(--text);
+        font-weight: 650;
+      }
+
+      .conversation {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        min-width: 0;
+        background: #fbfcfc;
+      }
+
+      .conversation-header {
+        display: flex;
+        height: 56px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 22px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.88);
+      }
+
+      .conversation-header h1 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 720;
+      }
+
+      .runtime-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .runtime-state::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        content: "";
+      }
+
+      .runtime-state.idle::before {
+        background: var(--faint);
+      }
+
+      .messages {
+        overflow: auto;
+        padding: 34px max(28px, calc((100% - 720px) / 2)) 24px;
+      }
+
+      .message {
+        max-width: 680px;
+        margin-bottom: 24px;
+      }
+
+      .message.user {
+        width: fit-content;
+        max-width: min(72%, 580px);
+        margin-left: auto;
+        padding: 11px 14px;
+        border-radius: 16px 16px 5px 16px;
+        background: #e9edee;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .assistant-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 680;
+      }
+
+      .assistant-avatar {
+        display: grid;
+        width: 22px;
+        height: 22px;
+        place-items: center;
+        border-radius: 7px;
+        background: var(--text);
+        color: white;
+        font-size: 9px;
+      }
+
+      .assistant-copy {
+        font-size: 13px;
+        line-height: 1.7;
+      }
+
+      .streaming-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        color: var(--accent);
+        font-size: 11px;
+      }
+
+      .streaming-line[hidden] {
+        display: none;
+      }
+
+      .streaming-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulse 1.25s ease-in-out infinite;
+      }
+
+      .pending-steering {
+        position: relative;
+        width: fit-content;
+        max-width: min(72%, 580px);
+        margin: -5px 0 24px auto;
+        padding: 11px 14px;
+        border: 1px dashed #b9cbc8;
+        border-radius: 16px 16px 5px 16px;
+        background: var(--accent-soft);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .pending-steering small {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 5px;
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 680;
+      }
+
+      .pending-steering small::before {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+        animation: pulse 1.25s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 0.35; }
+        50% { opacity: 1; }
+      }
+
+      .input-zone {
+        padding: 0 max(22px, calc((100% - 760px) / 2)) 21px;
+        background: linear-gradient(transparent, #fbfcfc 22%);
+      }
+
+      .pending-dock {
+        position: relative;
+        z-index: 1;
+        width: calc(100% - 24px);
+        margin: 0 auto -3px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-bottom: 0;
+        border-radius: 13px 13px 0 0;
+        background: var(--surface-warm);
+      }
+
+      .pending-header {
+        display: flex;
+        width: 100%;
+        height: 35px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 11px;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .pending-header strong {
+        flex: 1;
+        font-size: 11px;
+        font-weight: 720;
+      }
+
+      .pending-header span {
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .queue-list {
+        max-height: 145px;
+        overflow: auto;
+        padding: 0 5px 4px;
+      }
+
+      .queue-row {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr) auto;
+        min-height: 38px;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 5px 4px 7px;
+        border-top: 1px solid rgba(207, 213, 216, 0.72);
+      }
+
+      .queue-icon {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .queue-copy {
+        min-width: 0;
+      }
+
+      .queue-copy strong {
+        display: block;
+        overflow: hidden;
+        color: #3b4247;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 590;
+      }
+
+      .queue-copy small {
+        display: block;
+        overflow: hidden;
+        margin-top: 1px;
+        color: var(--muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 9px;
+      }
+
+      .row-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .icon-button {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .icon-button:hover:not([aria-disabled="true"]) {
+        background: rgba(255, 255, 255, 0.72);
+        color: var(--text);
+      }
+
+      .icon-button.steer:hover:not([aria-disabled="true"]) {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .icon-button.danger:hover:not([aria-disabled="true"]) {
+        color: var(--danger);
+      }
+
+      .icon-button[aria-disabled="true"] {
+        cursor: not-allowed;
+        opacity: 0.35;
+      }
+
+      .composer {
+        position: relative;
+        z-index: 2;
+        border: 1px solid var(--line-strong);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--composer-shadow);
+      }
+
+      .composer textarea {
+        display: block;
+        width: 100%;
+        min-height: 76px;
+        max-height: 180px;
+        resize: vertical;
+        padding: 15px 16px 8px;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .composer textarea::placeholder {
+        color: var(--faint);
+      }
+
+      .composer-context {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        padding: 11px 13px 0;
+      }
+
+      .composer-context[hidden] {
+        display: none;
+      }
+
+      .composer-token {
+        padding: 4px 7px;
+        border: 1px solid #c9dcda;
+        border-radius: 7px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 9px;
+        font-weight: 650;
+      }
+
+      .composer-footer {
+        display: flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 5px 7px 7px 11px;
+      }
+
+      .composer-tools,
+      .composer-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .tool-chip {
+        padding: 5px 7px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .stop-button {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: white;
+        cursor: pointer;
+        font-size: 11px;
+      }
+
+      .send-button {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        padding: 0;
+        border: 0;
+        border-radius: 10px;
+        background: var(--text);
+        color: white;
+        cursor: pointer;
+        font-size: 17px;
+        font-weight: 720;
+      }
+
+      .input-hint {
+        min-height: 19px;
+        padding: 5px 8px 0;
+        color: var(--muted);
+        text-align: center;
+        font-size: 9px;
+      }
+
+      .toast {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 100;
+        max-width: 330px;
+        padding: 10px 13px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: rgba(31, 37, 41, 0.94);
+        color: white;
+        box-shadow: 0 12px 34px rgba(31, 37, 41, 0.22);
+        font-size: 11px;
+        transition: opacity 150ms ease, transform 150ms ease;
+      }
+
+      .toast[hidden] {
+        display: block;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+      }
+
+      .prototype-tooltip {
+        position: fixed;
+        z-index: 200;
+        max-width: 280px;
+        padding: 6px 8px;
+        border-radius: 7px;
+        background: rgba(31, 37, 41, 0.96);
+        color: white;
+        pointer-events: none;
+        font-size: 10px;
+        line-height: 1.4;
+        box-shadow: 0 8px 22px rgba(31, 37, 41, 0.2);
+      }
+
+      .prototype-tooltip[hidden] {
+        display: none;
+      }
+
+      @media (max-width: 820px) {
+        .review-bar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .review-controls {
+          justify-content: flex-start;
+        }
+
+        .decision-strip {
+          grid-template-columns: 1fr;
+        }
+
+        .app-window {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          display: none;
+        }
+
+        .messages {
+          padding-inline: 18px;
+        }
+
+        .input-zone {
+          padding-inline: 12px;
+        }
+
+      }
+    </style>
+  </head>
+  <body>
+    <header class="review-bar">
+      <div class="review-title">
+        <strong>排队与插话统一交互原型</strong>
+        <span>推荐：扩展现有输入卡片，不重做聊天页；切换状态并实际发送体验各条路径。</span>
+      </div>
+      <div class="review-controls">
+        <div class="segmented" aria-label="运行状态">
+          <button type="button" data-runtime="supported" aria-selected="true">运行中 · 支持插话</button>
+          <button type="button" data-runtime="unsupported" aria-selected="false">运行中 · 仅排队</button>
+          <button type="button" data-runtime="idle" aria-selected="false">空闲</button>
+        </div>
+        <button type="button" class="review-action" id="consumeButton">一键演示：插话生效</button>
+        <button type="button" class="review-action" id="resetButton">重置场景</button>
+      </div>
+    </header>
+
+    <main class="prototype-shell">
+      <section class="decision-strip" aria-label="设计决策">
+        <article class="decision-card">
+          <b>保留现有骨架</b>
+          <p>继续使用输入卡片的 top slot 展示等待下一轮的内容，不增加第二张浮动卡片。</p>
+        </article>
+        <article class="decision-card">
+          <b>一个投递入口，两种明确动作</b>
+          <p>发送按钮保持不变：空闲时立即发送，运行中自动排队；Cmd/Ctrl+Enter 提供“插入当前回复”。</p>
+        </article>
+        <article class="decision-card">
+          <b>同一 owner，不同落点</b>
+          <p>排队内容留在输入区；待插话内容进入消息流末尾，让用户看到它会影响当前回复。</p>
+        </article>
+      </section>
+
+      <section class="app-window">
+        <aside class="sidebar" aria-label="任务导航示意">
+          <div class="brand"><span class="brand-mark">N</span> NextClaw</div>
+          <button type="button" class="new-task">＋ 新任务</button>
+          <div class="nav-label">最近任务</div>
+          <button type="button" class="task-row active">设计插话与排队体验</button>
+          <button type="button" class="task-row">整理运行时接入方案</button>
+          <button type="button" class="task-row">完善共享工作区</button>
+        </aside>
+
+        <section class="conversation">
+          <header class="conversation-header">
+            <h1>设计插话与排队体验</h1>
+            <span class="runtime-state" id="runtimeLabel">正在回复 · 可插话</span>
+          </header>
+
+          <div class="messages" id="messages" aria-live="polite">
+            <div class="message user">请先分析现有的 session run 调度，再给出改造建议。</div>
+            <div class="message assistant">
+              <div class="assistant-label"><span class="assistant-avatar">N</span> NextClaw</div>
+              <div class="assistant-copy">
+                当前队列由 SessionRun 持有，每条排队输入会在当前运行结束后启动一个新的物理 Run。
+                下一步我会继续对照 Native Runtime 的 step boundary，判断插话输入应该在哪个时点被接收。
+              </div>
+              <div class="streaming-line" id="streamingLine"><span class="streaming-dot"></span>正在继续处理</div>
+            </div>
+            <div id="steeringMessages"></div>
+          </div>
+
+          <div class="input-zone">
+            <section class="pending-dock" id="pendingDock" aria-label="等待下一轮的输入">
+              <button type="button" class="pending-header" id="pendingToggle" aria-expanded="true">
+                <span aria-hidden="true">↳</span>
+                <strong id="pendingCount">等待下一轮 · 2</strong>
+                <span id="pendingChevron">收起⌃</span>
+              </button>
+              <div class="queue-list" id="queueList"></div>
+            </section>
+
+            <section class="composer" aria-label="消息输入框">
+              <div class="composer-context" id="composerContext" hidden></div>
+              <textarea id="composer" placeholder="继续输入消息…" aria-label="消息"></textarea>
+              <footer class="composer-footer">
+                <div class="composer-tools">
+                  <button type="button" class="tool-chip">＋</button>
+                  <button type="button" class="tool-chip">GPT-5.6 ▾</button>
+                  <button type="button" class="tool-chip">思考：高 ▾</button>
+                </div>
+                <div class="composer-actions">
+                  <button type="button" class="stop-button" id="stopButton" data-tooltip="停止当前回复" aria-label="停止当前回复">■</button>
+                  <button type="button" class="send-button" id="sendButton" data-tooltip="发送；AI 运行中会自动排队" aria-label="发送">↑</button>
+                </div>
+              </footer>
+            </section>
+            <div class="input-hint" id="inputHint">Enter 排队 · ⌘/Ctrl+Enter 插入当前回复 · Shift+Enter 换行</div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+    <div class="prototype-tooltip" id="prototypeTooltip" role="tooltip" hidden></div>
+
+    <script>
+      const initialQueue = [
+        {
+          id: "q1",
+          text: "顺便对比一下 DeepSeek Harness 的 next-turn 实现",
+          tokens: ["引用：deepseek-harness", "Skill：development-design"],
+        },
+        {
+          id: "q2",
+          text: "最后给出迁移风险和分阶段计划",
+          tokens: ["附件：风险清单.md"],
+        },
+      ];
+
+      let runtime = "supported";
+      let queue = structuredClone(initialQueue);
+      let steering = [];
+      let durableSteering = [];
+      let collapsed = false;
+      let composerTokens = [];
+      let toastTimer = null;
+
+      const composer = document.querySelector("#composer");
+      const queueList = document.querySelector("#queueList");
+      const pendingDock = document.querySelector("#pendingDock");
+      const pendingCount = document.querySelector("#pendingCount");
+      const pendingToggle = document.querySelector("#pendingToggle");
+      const pendingChevron = document.querySelector("#pendingChevron");
+      const steeringMessages = document.querySelector("#steeringMessages");
+      const runtimeLabel = document.querySelector("#runtimeLabel");
+      const streamingLine = document.querySelector("#streamingLine");
+      const stopButton = document.querySelector("#stopButton");
+      const sendButton = document.querySelector("#sendButton");
+      const composerContext = document.querySelector("#composerContext");
+      const inputHint = document.querySelector("#inputHint");
+      const toast = document.querySelector("#toast");
+      const prototypeTooltip = document.querySelector("#prototypeTooltip");
+      const consumeButton = document.querySelector("#consumeButton");
+
+      function escapeHtml(value) {
+        return value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function notify(message) {
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.hidden = false;
+        toastTimer = setTimeout(() => {
+          toast.hidden = true;
+        }, 2400);
+      }
+
+      function isRunning() {
+        return runtime !== "idle";
+      }
+
+      function supportsSteering() {
+        return runtime === "supported";
+      }
+
+      function renderRuntime() {
+        document.querySelectorAll("[data-runtime]").forEach((button) => {
+          button.setAttribute("aria-selected", String(button.dataset.runtime === runtime));
+        });
+
+        runtimeLabel.classList.toggle("idle", runtime === "idle");
+        runtimeLabel.textContent = runtime === "supported"
+          ? "正在回复 · 可插话"
+          : runtime === "unsupported"
+            ? "正在回复 · 仅排队"
+            : "当前空闲";
+        streamingLine.hidden = runtime === "idle" || durableSteering.length > 0;
+        stopButton.hidden = runtime === "idle";
+        sendButton.dataset.tooltip = runtime === "supported"
+          ? "发送；AI 运行中会自动排队。⌘/Ctrl+Enter 插入当前回复"
+          : runtime === "unsupported"
+            ? "发送；AI 运行中会自动排队"
+            : "发送并开始新的 Run";
+        inputHint.textContent = runtime === "supported"
+          ? "Enter 排队 · ⌘/Ctrl+Enter 插入当前回复 · Shift+Enter 换行"
+          : runtime === "unsupported"
+            ? "当前 Runtime 仅支持排队发送 · Enter 发送 · Shift+Enter 换行"
+            : "Enter 发送 · Shift+Enter 换行";
+      }
+
+      function renderQueue() {
+        pendingDock.hidden = queue.length === 0;
+        pendingCount.textContent = `等待下一轮 · ${queue.length}`;
+        pendingToggle.setAttribute("aria-expanded", String(!collapsed));
+        pendingChevron.textContent = collapsed ? "展开⌄" : "收起⌃";
+        queueList.hidden = collapsed;
+        queueList.innerHTML = queue.map((item) => {
+          const metadata = item.tokens.length > 0
+            ? `<small>${escapeHtml(item.tokens.join(" · "))}</small>`
+            : "";
+          const steerTooltip = supportsSteering()
+            ? "插入当前回复，沿用当前运行设置"
+            : "当前状态不可插话；内容仍会保留在队列中";
+          return `<div class="queue-row">
+            <span class="queue-icon" aria-hidden="true">↳</span>
+            <div class="queue-copy"><strong>${escapeHtml(item.text)}</strong>${metadata}</div>
+            <div class="row-actions">
+              <button class="icon-button steer" data-action="steer" data-id="${item.id}" data-tooltip="${steerTooltip}" aria-label="插入当前回复" aria-disabled="${String(!supportsSteering())}">↗</button>
+              <button class="icon-button" data-action="edit" data-id="${item.id}" data-tooltip="退回输入框编辑完整内容" aria-label="退回输入框编辑">✎</button>
+              <button class="icon-button danger" data-action="delete" data-id="${item.id}" data-tooltip="删除排队内容" aria-label="删除排队内容">⌫</button>
+            </div>
+          </div>`;
+        }).join("");
+      }
+
+      function renderComposerContext() {
+        composerContext.hidden = composerTokens.length === 0;
+        composerContext.innerHTML = composerTokens
+          .map((token) => `<span class="composer-token">${escapeHtml(token)}</span>`)
+          .join("");
+      }
+
+      function renderSteering() {
+        const durable = durableSteering.map((item) => `
+          <div class="message user">${escapeHtml(item.text)}</div>
+        `).join("");
+        const followup = durableSteering.length > 0
+          ? `<div class="message assistant">
+              <div class="assistant-label"><span class="assistant-avatar">N</span> NextClaw</div>
+              <div class="assistant-copy">收到补充。我会保留前面的分析，并从这个新方向继续处理，而不是改写已经完成的上一条消息。</div>
+              ${isRunning() ? `<div class="streaming-line"><span class="streaming-dot"></span>正在根据插话继续处理</div>` : ""}
+            </div>`
+          : "";
+        const pending = steering.map((item) => `
+          <div class="pending-steering" aria-label="等待插入当前回复">
+            ${escapeHtml(item.text)}
+            <small>等待进入当前回复的下一步</small>
+          </div>
+        `).join("");
+        steeringMessages.innerHTML = `${durable}${followup}${pending}`;
+      }
+
+      function consumeSteering() {
+        if (!isRunning() || !supportsSteering()) {
+          runtime = "supported";
+        }
+        if (steering.length === 0) {
+          if (queue.length > 0) {
+            const [example] = queue.splice(0, 1);
+            steering.push(example);
+            renderQueue();
+          } else {
+            steering.push({
+              id: crypto.randomUUID(),
+              text: "补充一个约束：请保留前面的分析，并从这个方向继续。",
+              tokens: [],
+            });
+          }
+        }
+        durableSteering.push(...steering);
+        steering = [];
+        renderRuntime();
+        renderSteering();
+        notify("当前 AI 消息已完成；插话成为独立用户消息，并开始新的 AI 消息");
+      }
+
+      function queueDraft() {
+        const text = composer.value.trim();
+        if (!text) {
+          notify("请先输入内容");
+          composer.focus();
+          return;
+        }
+
+        if (!isRunning()) {
+          runtime = "supported";
+          composer.value = "";
+          renderRuntime();
+          notify("已开始新的 Run");
+          return;
+        }
+
+        queue.push({ id: crypto.randomUUID(), text, tokens: [...composerTokens] });
+        composer.value = "";
+        composerTokens = [];
+        collapsed = false;
+        renderQueue();
+        renderComposerContext();
+        notify("已加入“等待下一轮”");
+      }
+
+      function steerDraft() {
+        const text = composer.value.trim();
+        if (!text) {
+          notify("请先输入内容");
+          composer.focus();
+          return;
+        }
+
+        if (!isRunning()) {
+          queueDraft();
+          return;
+        }
+
+        if (!supportsSteering()) {
+          queueDraft();
+          notify("当前 Runtime 不支持插话，已明确转为排队发送");
+          return;
+        }
+
+        steering.push({ id: crypto.randomUUID(), text, tokens: [...composerTokens] });
+        composer.value = "";
+        composerTokens = [];
+        renderComposerContext();
+        renderSteering();
+        notify("已接纳，将插入当前回复");
+      }
+
+      function promoteQueued(id) {
+        if (!supportsSteering()) {
+          notify("当前状态不可插话，原内容仍保留在队列中");
+          return;
+        }
+        const index = queue.findIndex((item) => item.id === id);
+        if (index < 0) return;
+        const [item] = queue.splice(index, 1);
+        steering.push(item);
+        renderQueue();
+        renderSteering();
+        notify("已从队列原子移动到当前回复");
+      }
+
+      function restoreQueuedToComposer(id) {
+        if (composer.value.trim() || composerTokens.length > 0) {
+          notify("请先发送或清空当前输入，再编辑排队内容");
+          composer.focus();
+          return;
+        }
+        const index = queue.findIndex((item) => item.id === id);
+        if (index < 0) return;
+        const [item] = queue.splice(index, 1);
+        composer.value = item.text;
+        composerTokens = [...item.tokens];
+        renderQueue();
+        renderComposerContext();
+        composer.focus();
+        composer.setSelectionRange(composer.value.length, composer.value.length);
+        notify("已退回输入框，并恢复完整 composer 内容");
+      }
+
+      queueList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        const { action, id } = button.dataset;
+        if (action === "steer") promoteQueued(id);
+        if (action === "edit") restoreQueuedToComposer(id);
+        if (action === "delete") {
+          queue = queue.filter((item) => item.id !== id);
+          renderQueue();
+          notify("已从等待队列删除");
+        }
+      });
+
+      pendingToggle.addEventListener("click", () => {
+        collapsed = !collapsed;
+        renderQueue();
+      });
+
+      document.querySelectorAll("[data-runtime]").forEach((button) => {
+        button.addEventListener("click", () => {
+          runtime = button.dataset.runtime;
+          renderRuntime();
+          renderQueue();
+        });
+      });
+
+      document.querySelector("#resetButton").addEventListener("click", () => {
+        runtime = "supported";
+        queue = structuredClone(initialQueue);
+        steering = [];
+        durableSteering = [];
+        composerTokens = [];
+        collapsed = false;
+        composer.value = "";
+        renderRuntime();
+        renderQueue();
+        renderSteering();
+        renderComposerContext();
+        notify("场景已重置");
+      });
+
+      stopButton.addEventListener("click", () => {
+        if (steering.length > 0) {
+          queue = [...steering, ...queue];
+          steering = [];
+          notify("已停止；尚未处理的插话已回到队首");
+        } else {
+          notify("已停止当前回复");
+        }
+        runtime = "idle";
+        renderRuntime();
+        renderQueue();
+        renderSteering();
+      });
+
+      sendButton.addEventListener("click", queueDraft);
+      consumeButton.addEventListener("click", consumeSteering);
+
+      function showTooltip(anchor) {
+        const label = anchor.dataset.tooltip;
+        if (!label) return;
+        prototypeTooltip.textContent = label;
+        prototypeTooltip.hidden = false;
+        const anchorRect = anchor.getBoundingClientRect();
+        const tipRect = prototypeTooltip.getBoundingClientRect();
+        const left = Math.min(
+          window.innerWidth - tipRect.width - 8,
+          Math.max(8, anchorRect.left + anchorRect.width / 2 - tipRect.width / 2),
+        );
+        const top = Math.max(8, anchorRect.top - tipRect.height - 7);
+        prototypeTooltip.style.left = `${left}px`;
+        prototypeTooltip.style.top = `${top}px`;
+      }
+
+      function hideTooltip() {
+        prototypeTooltip.hidden = true;
+      }
+
+      document.addEventListener("pointerover", (event) => {
+        const anchor = event.target.closest("[data-tooltip]");
+        if (anchor) showTooltip(anchor);
+      });
+      document.addEventListener("pointerout", (event) => {
+        if (event.target.closest("[data-tooltip]")) hideTooltip();
+      });
+      document.addEventListener("focusin", (event) => {
+        const anchor = event.target.closest("[data-tooltip]");
+        if (anchor) showTooltip(anchor);
+      });
+      document.addEventListener("focusout", (event) => {
+        if (event.target.closest("[data-tooltip]")) hideTooltip();
+      });
+
+      composer.addEventListener("keydown", (event) => {
+        if (event.isComposing || event.key !== "Enter" || event.shiftKey) return;
+        event.preventDefault();
+        if (event.metaKey || event.ctrlKey) steerDraft();
+        else queueDraft();
+      });
+
+      renderRuntime();
+      renderQueue();
+      renderSteering();
+      renderComposerContext();
+    </script>
+  </body>
+</html>

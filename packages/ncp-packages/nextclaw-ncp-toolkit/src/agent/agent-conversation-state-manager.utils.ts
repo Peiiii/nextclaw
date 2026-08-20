@@ -21,6 +21,9 @@ export function routeAgentConversationEvent(
     case NcpEventType.MessageSent:
       manager.handleMessageSent(event.payload);
       break;
+    case NcpEventType.MessageCompleted:
+      manager.handleMessageCompleted(event.payload);
+      break;
     case NcpEventType.MessageAbort:
       manager.handleMessageAbort(event.payload, event.occurredAt);
       break;
