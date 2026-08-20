@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.40.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-20",
+  "title": {
+    "zh-CN": "NextClaw v0.40.1",
+    "en-US": "NextClaw v0.40.1"
+  },
+  "summary": {
+    "zh-CN": "Panel App 的主侧栏管理现在在列表、运行态和左侧入口中保持一致，并可直接从左侧移除。",
+    "en-US": "Panel App main-sidebar management is now consistent across the list, running view, and pinned entry, with direct removal from the left sidebar."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-20-nextclaw-v0-40-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-20-nextclaw-v0-40-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "Panel App 入口可以就近管理", "en-US": "Manage Panel App entries where you use them" },
+          "body": {
+            "zh-CN": "在 Panel Apps 列表、右侧运行态或左侧主侧栏中都能使用同一组添加与移除操作；左侧入口悬停后可以直接移除，当前 App 页面不会被关闭。",
+            "en-US": "Use the same add and remove action from the Panel Apps list, the running view, or the left main sidebar. Hover a pinned entry to remove it without closing the current App page."
+          }
+        },
+        {
+          "title": { "zh-CN": "恢复的快捷入口仍可管理", "en-US": "Restored shortcuts remain manageable" },
+          "body": {
+            "zh-CN": "从旧会话或恢复状态打开的 Panel App 也会正确识别应用身份并显示主侧栏操作。",
+            "en-US": "Panel Apps reopened from older sessions or restored state now resolve their identity correctly and expose the main-sidebar action."
+          }
+        }
+      ]
+    }
+  ]
+}
