@@ -56,4 +56,16 @@ describe("ViewportLayoutManager dense right panels", () => {
     });
     expect(useViewportLayoutStore.getState().isSidebarCollapsed).toBe(false);
   });
+
+  it("owns the persisted main-sidebar app group presentation state", () => {
+    viewportLayoutManager.setMainSidebarAppGroupCollapsed(true);
+    expect(
+      useViewportLayoutStore.getState().isMainSidebarAppGroupCollapsed,
+    ).toBe(true);
+
+    viewportLayoutManager.toggleMainSidebarAppGroupCollapsed();
+    expect(
+      useViewportLayoutStore.getState().isMainSidebarAppGroupCollapsed,
+    ).toBe(false);
+  });
 });

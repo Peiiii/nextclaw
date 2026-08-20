@@ -1,4 +1,5 @@
 import { PanelLeft, PanelLeftDashed } from 'lucide-react';
+import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
 import { useUpdatePanelAppPreferences } from '@/features/panel-apps/hooks/use-panel-apps';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
@@ -24,6 +25,9 @@ export function PanelAppMainSidebarMenuItem({
       className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
       onClick={() => {
         onSelect?.();
+        if (!entry.mainSidebar) {
+          viewportLayoutManager.setMainSidebarAppGroupCollapsed(false);
+        }
         updatePreferences.mutate({
           id: entry.id,
           preferences: { mainSidebar: !entry.mainSidebar },

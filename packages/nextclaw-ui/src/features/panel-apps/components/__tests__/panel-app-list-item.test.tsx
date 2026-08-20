@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
+import { useViewportLayoutStore } from '@/app/stores/viewport-layout.store';
 import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-list-item';
 
 const mainSidebarMutation = vi.hoisted(() => ({
@@ -32,6 +34,8 @@ const baseEntry = {
 
 describe('PanelAppListItem', () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    viewportLayoutManager.resetForTests();
     mainSidebarMutation.isPending = false;
     mainSidebarMutation.mutate.mockReset();
   });
@@ -79,6 +83,7 @@ describe('PanelAppListItem', () => {
 
   it('keeps main-sidebar placement in the low-frequency more-actions menu', async () => {
     const user = userEvent.setup();
+    viewportLayoutManager.setMainSidebarAppGroupCollapsed(true);
     const { rerender } = render(
       <PanelAppListItem
         deletePending={false}
@@ -97,6 +102,9 @@ describe('PanelAppListItem', () => {
       id: 'demo',
       preferences: { mainSidebar: true },
     });
+    expect(
+      useViewportLayoutStore.getState().isMainSidebarAppGroupCollapsed,
+    ).toBe(false);
 
     rerender(
       <PanelAppListItem

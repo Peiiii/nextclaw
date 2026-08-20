@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
+import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import {
   getMainSidebarPanelApps,
   PanelAppMainSidebarNav,
@@ -21,7 +23,9 @@ vi.mock("@/features/panel-apps/hooks/use-panel-apps", () => ({
   }),
 }));
 
-function createEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryView {
+function createEntry(
+  overrides: Partial<PanelAppEntryView> = {},
+): PanelAppEntryView {
   return {
     appId: "demo",
     clientDeclared: false,
@@ -43,6 +47,8 @@ function createEntry(overrides: Partial<PanelAppEntryView> = {}): PanelAppEntryV
 
 describe("PanelAppMainSidebarNav", () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    viewportLayoutManager.resetForTests();
     mocks.entries = [];
     mocks.mutate.mockReset();
   });
@@ -50,19 +56,32 @@ describe("PanelAppMainSidebarNav", () => {
   it("projects only manually added apps in persisted order", () => {
     const entries = [
       createEntry({ appId: "hidden", title: "Hidden" }),
-      createEntry({ appId: "second", mainSidebar: true, mainSidebarOrder: 1, title: "Second" }),
-      createEntry({ appId: "first", mainSidebar: true, mainSidebarOrder: 0, title: "First" }),
+      createEntry({
+        appId: "second",
+        mainSidebar: true,
+        mainSidebarOrder: 1,
+        title: "Second",
+      }),
+      createEntry({
+        appId: "first",
+        mainSidebar: true,
+        mainSidebarOrder: 0,
+        title: "First",
+      }),
     ];
 
-    expect(getMainSidebarPanelApps(entries).map((entry) => entry.appId)).toEqual([
-      "first",
-      "second",
-    ]);
+    expect(
+      getMainSidebarPanelApps(entries).map((entry) => entry.appId),
+    ).toEqual(["first", "second"]);
   });
 
   it("renders stable app routes and hides unbound apps", () => {
     mocks.entries = [
-      createEntry({ appId: "publisher.todo", mainSidebar: true, title: "Todo" }),
+      createEntry({
+        appId: "publisher.todo",
+        mainSidebar: true,
+        title: "Todo",
+      }),
       createEntry({ appId: "hidden", title: "Hidden" }),
     ];
 
@@ -76,12 +95,62 @@ describe("PanelAppMainSidebarNav", () => {
     expect(link.getAttribute("href")).toBe("/apps/panel/publisher.todo");
     expect(link.getAttribute("aria-current")).toBe("page");
     expect(screen.queryByText("Hidden")).toBeNull();
+    const groupButton = screen.getByRole("button", { name: "Collapse apps" });
+    expect(groupButton.getAttribute("aria-expanded")).toBe("true");
+    expect(groupButton.className).toContain("text-[13px]");
+    expect(groupButton.className).toContain("font-medium");
+    expect(groupButton.className).not.toContain("text-[11px]");
+  });
+
+  it("collapses the ordered app group and persists the device layout preference", async () => {
+    const user = userEvent.setup();
+    mocks.entries = [
+      createEntry({
+        appId: "first",
+        mainSidebar: true,
+        mainSidebarOrder: 0,
+        title: "First",
+      }),
+      createEntry({
+        appId: "second",
+        mainSidebar: true,
+        mainSidebarOrder: 1,
+        title: "Second",
+      }),
+    ];
+
+    render(
+      <MemoryRouter>
+        <PanelAppMainSidebarNav isCollapsed={false} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Collapse apps" }));
+
+    expect(screen.queryByRole("link", { name: "First" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Second" })).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Expand apps" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+    expect(
+      useViewportLayoutStore.getState().isMainSidebarAppGroupCollapsed,
+    ).toBe(true);
+    const persisted = JSON.parse(
+      window.localStorage.getItem("nextclaw.app.viewport-layout") ?? "{}",
+    ) as { state?: { isMainSidebarAppGroupCollapsed?: boolean } };
+    expect(persisted.state?.isMainSidebarAppGroupCollapsed).toBe(true);
   });
 
   it("removes an expanded entry from its hover actions without nesting the button in the link", async () => {
     const user = userEvent.setup();
     mocks.entries = [
-      createEntry({ appId: "publisher.todo", mainSidebar: true, title: "Todo" }),
+      createEntry({
+        appId: "publisher.todo",
+        mainSidebar: true,
+        title: "Todo",
+      }),
     ];
 
     render(
@@ -98,7 +167,9 @@ describe("PanelAppMainSidebarNav", () => {
     expect(menuButton.className).toContain("group-hover/panel-app:opacity-100");
 
     await user.click(menuButton);
-    await user.click(screen.getByRole("button", { name: "Remove from main sidebar" }));
+    await user.click(
+      screen.getByRole("button", { name: "Remove from main sidebar" }),
+    );
 
     expect(mocks.mutate).toHaveBeenCalledWith({
       id: "demo",
@@ -107,9 +178,19 @@ describe("PanelAppMainSidebarNav", () => {
     expect(link.getAttribute("aria-current")).toBe("page");
   });
 
-  it("keeps the collapsed rail as one navigation target", () => {
+  it("aggregates collapsed-rail apps behind one navigation menu", async () => {
+    const user = userEvent.setup();
     mocks.entries = [
-      createEntry({ appId: "publisher.todo", mainSidebar: true, title: "Todo" }),
+      createEntry({
+        appId: "publisher.todo",
+        mainSidebar: true,
+        title: "Todo",
+      }),
+      createEntry({
+        appId: "publisher.notes",
+        mainSidebar: true,
+        title: "Notes",
+      }),
     ];
 
     render(
@@ -118,8 +199,13 @@ describe("PanelAppMainSidebarNav", () => {
       </MemoryRouter>,
     );
 
+    expect(screen.queryByRole("link", { name: "Todo" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "More panel app actions: Todo" }),
+    ).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Apps" }));
     expect(screen.getByRole("link", { name: "Todo" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "More panel app actions: Todo" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Notes" })).toBeTruthy();
   });
 
   it("renders no section when no app was manually added", () => {

@@ -59,6 +59,12 @@ export class ViewportLayoutManager {
     useViewportLayoutStore.setState({ isSidebarCollapsed });
   };
 
+  setMainSidebarAppGroupCollapsed = (
+    isMainSidebarAppGroupCollapsed: boolean,
+  ) => {
+    useViewportLayoutStore.setState({ isMainSidebarAppGroupCollapsed });
+  };
+
   collapseSidebarForDenseRightPanels = (layout: DenseRightPanelsLayout) => {
     if (
       !layout.isDocBrowserOpen ||
@@ -93,6 +99,12 @@ export class ViewportLayoutManager {
   toggleSidebarCollapsed = () => {
     useViewportLayoutStore.setState((state) => ({
       isSidebarCollapsed: !state.isSidebarCollapsed,
+    }));
+  };
+
+  toggleMainSidebarAppGroupCollapsed = () => {
+    useViewportLayoutStore.setState((state) => ({
+      isMainSidebarAppGroupCollapsed: !state.isMainSidebarAppGroupCollapsed,
     }));
   };
 

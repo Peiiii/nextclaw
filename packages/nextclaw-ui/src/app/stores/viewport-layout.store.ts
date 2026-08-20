@@ -7,6 +7,7 @@ export type ViewportLayoutSnapshot = {
   mode: ViewportLayoutMode;
   width: number | null;
   isSidebarCollapsed: boolean;
+  isMainSidebarAppGroupCollapsed: boolean;
 };
 
 export const MOBILE_VIEWPORT_MAX_WIDTH = 767;
@@ -15,6 +16,7 @@ const VIEWPORT_LAYOUT_STORAGE_VERSION = 1;
 
 type PersistedViewportLayoutStore = {
   isSidebarCollapsed?: unknown;
+  isMainSidebarAppGroupCollapsed?: unknown;
 };
 
 export function resolveViewportLayoutMode(
@@ -33,17 +35,19 @@ export function createInitialViewportLayoutSnapshot(): ViewportLayoutSnapshot {
     mode: resolveViewportLayoutMode(width),
     width,
     isSidebarCollapsed: false,
+    isMainSidebarAppGroupCollapsed: false,
   };
 }
 
-function resolvePersistedSidebarCollapsed(
+function resolvePersistedBoolean(
   persistedState: unknown,
+  key: keyof PersistedViewportLayoutStore,
 ): boolean | null {
   if (!persistedState || typeof persistedState !== "object") {
     return null;
   }
-  const { isSidebarCollapsed } = persistedState as PersistedViewportLayoutStore;
-  return typeof isSidebarCollapsed === "boolean" ? isSidebarCollapsed : null;
+  const value = (persistedState as PersistedViewportLayoutStore)[key];
+  return typeof value === "boolean" ? value : null;
 }
 
 export const useViewportLayoutStore = create<ViewportLayoutSnapshot>()(
@@ -53,16 +57,24 @@ export const useViewportLayoutStore = create<ViewportLayoutSnapshot>()(
     storage: createJSONStorage(() => window.localStorage),
     partialize: (state): PersistedViewportLayoutStore => ({
       isSidebarCollapsed: state.isSidebarCollapsed,
+      isMainSidebarAppGroupCollapsed: state.isMainSidebarAppGroupCollapsed,
     }),
     merge: (persistedState, currentState) => {
-      const isSidebarCollapsed =
-        resolvePersistedSidebarCollapsed(persistedState);
-      return isSidebarCollapsed === null
-        ? currentState
-        : {
-            ...currentState,
-            isSidebarCollapsed,
-          };
+      const isSidebarCollapsed = resolvePersistedBoolean(
+        persistedState,
+        "isSidebarCollapsed",
+      );
+      const isMainSidebarAppGroupCollapsed = resolvePersistedBoolean(
+        persistedState,
+        "isMainSidebarAppGroupCollapsed",
+      );
+      return {
+        ...currentState,
+        ...(isSidebarCollapsed === null ? {} : { isSidebarCollapsed }),
+        ...(isMainSidebarAppGroupCollapsed === null
+          ? {}
+          : { isMainSidebarAppGroupCollapsed }),
+      };
     },
   }),
 );
