@@ -763,6 +763,7 @@ jobs:
               "$apt_package_root/chrome_crashpad_handler" \
               "$apt_package_root/libvk_swiftshader.so" \
               "$apt_package_root/vk_swiftshader_icd.json" \
+              "$apt_package_root/chrome_200_percent.pak" \
               "$apt_package_root/locales/zh-TW.pak"
             find "$apt_package_root/resources/app.asar.unpacked/node_modules" \
               -type f \
