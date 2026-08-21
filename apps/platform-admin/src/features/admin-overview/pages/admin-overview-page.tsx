@@ -36,7 +36,9 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
     pageSize: 10,
     query: '',
     artifactKind: null,
-    platform: null
+    platform: null,
+    sortBy: 'default',
+    sortDirection: 'desc'
   });
   const queryClient = useQueryClient();
   const remoteQuotaApi = new AdminRemoteQuotaApiService(token);

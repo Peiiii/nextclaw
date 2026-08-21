@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {
   parseGithubReleaseAssets,
   parseNpmDailyDownloads,
-  selectDistributionAssetRows,
+  selectDistributionOverviewAssets,
   shouldSnapshotPreviousDay,
 } from "../dist/services/distribution-adoption.service.js";
 
@@ -40,40 +40,55 @@ assert.equal(shouldSnapshotPreviousDay(new Date("2026-08-20T15:05:00.000Z")), fa
 
 const pagedAssets = Array.from({ length: 25 }, (_, index) => ({
   source: "github_release",
-  asset_key: String(index),
-  release_tag: `v0.${index}`,
-  asset_name: `nextclaw-desktop-${index}.dmg`,
-  artifact_kind: "desktop_installer",
+  assetKey: String(index),
+  releaseTag: `v0.${index}`,
+  assetName: `nextclaw-desktop-${index}.dmg`,
+  artifactKind: "desktop_installer",
   platform: index % 2 === 0 ? "macOS" : "Windows",
   architecture: "x64",
-  latest_download_count: index,
-  first_observed_at: "2026-08-21T00:00:00.000Z",
-  last_synced_at: "2026-08-21T00:00:00.000Z",
+  downloadCount: index,
+  firstObservedAt: "2026-08-21T00:00:00.000Z",
+  lastSyncedAt: "2026-08-21T00:00:00.000Z",
+  todayDownloads: index,
+  yesterdayDownloads: index - 1,
 }));
 
-assert.deepEqual(selectDistributionAssetRows(pagedAssets, {
+assert.deepEqual(selectDistributionOverviewAssets(pagedAssets, {
   page: 2,
   pageSize: 10,
   query: "",
   artifactKind: null,
   platform: null,
+  sortBy: "default",
+  sortDirection: "desc",
 }), {
   items: pagedAssets.slice(10, 20),
   page: 2,
   total: 25,
   totalPages: 3,
 });
-assert.deepEqual(selectDistributionAssetRows(pagedAssets, {
+assert.deepEqual(selectDistributionOverviewAssets(pagedAssets, {
   page: 9,
   pageSize: 20,
   query: "v0.24",
   artifactKind: "desktop_installer",
   platform: "macOS",
+  sortBy: "default",
+  sortDirection: "desc",
 }), {
   items: [pagedAssets[24]],
   page: 1,
   total: 1,
   totalPages: 1,
 });
+assert.deepEqual(selectDistributionOverviewAssets(pagedAssets, {
+  page: 1,
+  pageSize: 10,
+  query: "",
+  artifactKind: null,
+  platform: null,
+  sortBy: "download_count",
+  sortDirection: "desc",
+}).items.map((asset) => asset.downloadCount), [24, 23, 22, 21, 20, 19, 18, 17, 16, 15]);
 
 console.log("[distribution-adoption] passed");

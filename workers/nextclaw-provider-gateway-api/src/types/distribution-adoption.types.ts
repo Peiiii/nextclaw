@@ -39,7 +39,20 @@ export type DistributionAssetListQuery = {
   query: string;
   artifactKind: DistributionArtifactKind | null;
   platform: string | null;
+  sortBy: DistributionAssetSortBy;
+  sortDirection: DistributionSortDirection;
 };
+
+export type DistributionAssetSortBy =
+  | "default"
+  | "asset_name"
+  | "artifact_kind"
+  | "platform"
+  | "download_count"
+  | "today_downloads"
+  | "yesterday_downloads";
+
+export type DistributionSortDirection = "asc" | "desc";
 
 export type DistributionAssetList = {
   items: Array<DistributionAssetRecord & {

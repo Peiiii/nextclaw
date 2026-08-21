@@ -19,7 +19,9 @@ export class AdminDistributionAdoptionApiService {
   fetchOverview = async (query: AdminDistributionAssetListQuery): Promise<AdminDistributionAdoptionOverview> => {
     const search = new URLSearchParams({
       page: String(query.page),
-      pageSize: String(query.pageSize)
+      pageSize: String(query.pageSize),
+      sortBy: query.sortBy,
+      sortDirection: query.sortDirection
     });
     if (query.query) search.set('q', query.query);
     if (query.artifactKind) search.set('artifactKind', query.artifactKind);

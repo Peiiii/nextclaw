@@ -7,6 +7,8 @@ import {
 import type {
   DistributionArtifactKind,
   DistributionAssetListQuery,
+  DistributionAssetSortBy,
+  DistributionSortDirection,
 } from "@/types/distribution-adoption.types";
 import type { Env } from "@/types/platform";
 
@@ -17,6 +19,15 @@ const ARTIFACT_KINDS = new Set<DistributionArtifactKind>([
   "desktop_runtime_bundle",
   "update_metadata",
   "other",
+]);
+const ASSET_SORT_FIELDS = new Set<DistributionAssetSortBy>([
+  "default",
+  "asset_name",
+  "artifact_kind",
+  "platform",
+  "download_count",
+  "today_downloads",
+  "yesterday_downloads",
 ]);
 
 export async function adminDistributionAdoptionOverviewHandler(
@@ -33,6 +44,8 @@ function parseAssetListQuery(c: Context<{ Bindings: Env }>): DistributionAssetLi
   const pageSize = c.req.query("pageSize") === "20" ? 20 : 10;
   const artifactKind = c.req.query("artifactKind");
   const platform = c.req.query("platform")?.trim() ?? "";
+  const sortBy = c.req.query("sortBy");
+  const sortDirection = c.req.query("sortDirection");
   return {
     page: Math.max(1, Number.parseInt(c.req.query("page") ?? "1", 10) || 1),
     pageSize,
@@ -41,6 +54,10 @@ function parseAssetListQuery(c: Context<{ Bindings: Env }>): DistributionAssetLi
       ? artifactKind as DistributionArtifactKind
       : null,
     platform: platform ? platform.slice(0, 64) : null,
+    sortBy: sortBy && ASSET_SORT_FIELDS.has(sortBy as DistributionAssetSortBy)
+      ? sortBy as DistributionAssetSortBy
+      : "default",
+    sortDirection: sortDirection === "asc" ? "asc" : "desc" as DistributionSortDirection,
   };
 }
 

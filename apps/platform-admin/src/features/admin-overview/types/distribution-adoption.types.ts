@@ -12,7 +12,20 @@ export type AdminDistributionAssetListQuery = {
   query: string;
   artifactKind: DistributionArtifactKind | null;
   platform: string | null;
+  sortBy: AdminDistributionAssetSortBy;
+  sortDirection: AdminDistributionSortDirection;
 };
+
+export type AdminDistributionAssetSortBy =
+  | 'default'
+  | 'asset_name'
+  | 'artifact_kind'
+  | 'platform'
+  | 'download_count'
+  | 'today_downloads'
+  | 'yesterday_downloads';
+
+export type AdminDistributionSortDirection = 'asc' | 'desc';
 
 export type AdminDistributionAdoptionOverview = {
   timezone: 'Asia/Shanghai';

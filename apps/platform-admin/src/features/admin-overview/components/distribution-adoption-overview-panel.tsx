@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type {
   AdminDistributionAdoptionOverview,
-  AdminDistributionAssetListQuery
+  AdminDistributionAssetListQuery,
+  AdminDistributionAssetSortBy
 } from '@/features/admin-overview/types/distribution-adoption.types';
 
 type Props = {
@@ -46,7 +47,9 @@ export function DistributionAdoptionOverviewPanel(props: Props): JSX.Element {
       pageSize: props.assetListQuery.pageSize,
       query: '',
       artifactKind: null,
-      platform: null
+      platform: null,
+      sortBy: props.assetListQuery.sortBy,
+      sortDirection: props.assetListQuery.sortDirection
     });
   }
 
@@ -108,7 +111,16 @@ export function DistributionAdoptionOverviewPanel(props: Props): JSX.Element {
           </div>
         </div>
 
-        {assetList.total > 0 ? <DistributionAssetTable assets={assetList.items} /> : (
+        {assetList.total > 0 ? <DistributionAssetTable
+          assets={assetList.items}
+          sortBy={props.assetListQuery.sortBy}
+          sortDirection={props.assetListQuery.sortDirection}
+          onSort={(sortBy) => updateAssetListQuery({
+            page: 1,
+            sortBy,
+            sortDirection: props.assetListQuery.sortBy === sortBy && props.assetListQuery.sortDirection === 'asc' ? 'desc' : 'asc'
+          })}
+        /> : (
           <div className="rounded-xl border border-dashed border-[#ddd8cd] px-4 py-10 text-center text-sm text-[#8f8a7d]" role="status">当前筛选条件下没有发布物。</div>
         )}
 
@@ -125,12 +137,22 @@ export function DistributionAdoptionOverviewPanel(props: Props): JSX.Element {
   );
 }
 
-function DistributionAssetTable(props: { assets: AdminDistributionAdoptionOverview['assets']['items'] }): JSX.Element {
+function DistributionAssetTable(props: {
+  assets: AdminDistributionAdoptionOverview['assets']['items'];
+  sortBy: AdminDistributionAssetListQuery['sortBy'];
+  sortDirection: AdminDistributionAssetListQuery['sortDirection'];
+  onSort: (sortBy: AdminDistributionAssetSortBy) => void;
+}): JSX.Element {
   return (
     <div className="overflow-x-auto rounded-xl border border-[#e8e3d8]">
       <table className="min-w-[820px] w-full text-left text-sm">
         <thead className="border-b border-[#e8e3d8] bg-[#faf8f3] text-xs text-[#656561]"><tr>
-          <th className="px-4 py-3 font-medium">发布物</th><th className="px-4 py-3 font-medium">类别</th><th className="px-4 py-3 font-medium">平台</th><th className="px-4 py-3 text-right font-medium">累计</th><th className="px-4 py-3 text-right font-medium">今日</th><th className="px-4 py-3 text-right font-medium">昨日</th>
+          <SortableHeader label="发布物" sortBy="asset_name" currentSortBy={props.sortBy} sortDirection={props.sortDirection} onSort={props.onSort} />
+          <SortableHeader label="类别" sortBy="artifact_kind" currentSortBy={props.sortBy} sortDirection={props.sortDirection} onSort={props.onSort} />
+          <SortableHeader label="平台" sortBy="platform" currentSortBy={props.sortBy} sortDirection={props.sortDirection} onSort={props.onSort} />
+          <SortableHeader label="累计" sortBy="download_count" align="right" currentSortBy={props.sortBy} sortDirection={props.sortDirection} onSort={props.onSort} />
+          <SortableHeader label="今日" sortBy="today_downloads" align="right" currentSortBy={props.sortBy} sortDirection={props.sortDirection} onSort={props.onSort} />
+          <SortableHeader label="昨日" sortBy="yesterday_downloads" align="right" currentSortBy={props.sortBy} sortDirection={props.sortDirection} onSort={props.onSort} />
         </tr></thead>
         <tbody className="divide-y divide-[#eee9df] text-[#1f1f1d]">
           {props.assets.map((asset) => <tr key={`${asset.source}:${asset.assetKey}`}>
@@ -144,6 +166,31 @@ function DistributionAssetTable(props: { assets: AdminDistributionAdoptionOvervi
         </tbody>
       </table>
     </div>
+  );
+}
+
+function SortableHeader(props: {
+  label: string;
+  sortBy: AdminDistributionAssetSortBy;
+  currentSortBy: AdminDistributionAssetListQuery['sortBy'];
+  sortDirection: AdminDistributionAssetListQuery['sortDirection'];
+  align?: 'left' | 'right';
+  onSort: (sortBy: AdminDistributionAssetSortBy) => void;
+}): JSX.Element {
+  const isActive = props.currentSortBy === props.sortBy;
+  const ariaSort = isActive ? (props.sortDirection === 'asc' ? 'ascending' : 'descending') : 'none';
+  return (
+    <th className={`px-4 py-3 font-medium ${props.align === 'right' ? 'text-right' : 'text-left'}`} aria-sort={ariaSort}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 rounded px-0.5 py-0.5 transition-colors hover:text-[#1f1f1d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-100"
+        onClick={() => props.onSort(props.sortBy)}
+      >
+        {props.label}
+        <span aria-hidden="true" className={isActive ? 'text-[#1f1f1d]' : 'text-[#aaa394]'}>{isActive ? (props.sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+        <span className="sr-only">{isActive ? `，当前${props.sortDirection === 'asc' ? '升序' : '降序'}` : '，点击排序'}</span>
+      </button>
+    </th>
   );
 }
 

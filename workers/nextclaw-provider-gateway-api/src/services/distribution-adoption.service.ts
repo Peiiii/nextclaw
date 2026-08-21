@@ -28,6 +28,8 @@ const DEFAULT_ASSET_LIST_QUERY: DistributionAssetListQuery = {
   query: "",
   artifactKind: null,
   platform: null,
+  sortBy: "default",
+  sortDirection: "desc",
 };
 
 type GitHubRelease = {
@@ -336,10 +338,10 @@ function toAssetList(
   twoDaysAgo: string,
   query: DistributionAssetListQuery,
 ): DistributionAdoptionOverview["assets"] {
-  const selection = selectDistributionAssetRows(assets, query);
+  const overviewAssets = assets.map((asset) => toOverviewAsset(asset, daily, today, yesterday, twoDaysAgo));
+  const selection = selectDistributionOverviewAssets(overviewAssets, query);
   return {
-    items: selection.items
-      .map((asset) => toOverviewAsset(asset, daily, today, yesterday, twoDaysAgo)),
+    items: selection.items,
     page: selection.page,
     pageSize: query.pageSize,
     total: selection.total,
@@ -349,24 +351,63 @@ function toAssetList(
   };
 }
 
-export function selectDistributionAssetRows(
-  assets: readonly DistributionAssetRow[],
+export function selectDistributionOverviewAssets(
+  assets: readonly DistributionAdoptionOverview["assets"]["items"][number][],
   query: DistributionAssetListQuery,
-): { items: DistributionAssetRow[]; page: number; total: number; totalPages: number } {
+): {
+  items: DistributionAdoptionOverview["assets"]["items"];
+  page: number;
+  total: number;
+  totalPages: number;
+} {
   const normalizedQuery = query.query.trim().toLocaleLowerCase();
   const filtered = assets.filter((asset) => {
-    if (query.artifactKind && asset.artifact_kind !== query.artifactKind) return false;
+    if (query.artifactKind && asset.artifactKind !== query.artifactKind) return false;
     if (query.platform && asset.platform !== query.platform) return false;
     if (!normalizedQuery) return true;
-    return [asset.asset_name, asset.release_tag]
+    return [asset.assetName, asset.releaseTag]
       .filter((value): value is string => Boolean(value))
       .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
   });
-  const total = filtered.length;
+  const sorted = query.sortBy === "default"
+    ? filtered
+    : [...filtered].sort((left, right) => compareOverviewAssets(left, right, query));
+  const total = sorted.length;
   const totalPages = Math.ceil(total / query.pageSize);
   const page = totalPages === 0 ? 1 : Math.min(query.page, totalPages);
   const start = (page - 1) * query.pageSize;
-  return { items: filtered.slice(start, start + query.pageSize), page, total, totalPages };
+  return { items: sorted.slice(start, start + query.pageSize), page, total, totalPages };
+}
+
+function compareOverviewAssets(
+  left: DistributionAdoptionOverview["assets"]["items"][number],
+  right: DistributionAdoptionOverview["assets"]["items"][number],
+  query: DistributionAssetListQuery,
+): number {
+  const sortBy = query.sortBy as Exclude<DistributionAssetListQuery["sortBy"], "default">;
+  const leftValue = sortableAssetValue(left, sortBy);
+  const rightValue = sortableAssetValue(right, sortBy);
+  if (leftValue === null) return rightValue === null ? left.assetName.localeCompare(right.assetName) : 1;
+  if (rightValue === null) return -1;
+  const comparison = typeof leftValue === "number" && typeof rightValue === "number"
+    ? leftValue - rightValue
+    : String(leftValue).localeCompare(String(rightValue));
+  if (comparison === 0) return left.assetName.localeCompare(right.assetName);
+  return query.sortDirection === "asc" ? comparison : -comparison;
+}
+
+function sortableAssetValue(
+  asset: DistributionAdoptionOverview["assets"]["items"][number],
+  sortBy: Exclude<DistributionAssetListQuery["sortBy"], "default">,
+): number | string | null {
+  return {
+    asset_name: asset.assetName,
+    artifact_kind: asset.artifactKind,
+    platform: asset.platform,
+    download_count: asset.downloadCount,
+    today_downloads: asset.todayDownloads,
+    yesterday_downloads: asset.yesterdayDownloads,
+  }[sortBy];
 }
 
 function sumGithubDailyByDate(entries: readonly DistributionDailyRow[]): Map<string, number> {
