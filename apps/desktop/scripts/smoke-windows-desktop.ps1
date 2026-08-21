@@ -186,7 +186,10 @@ function Invoke-DesktopServiceAppProbe {
   $results = New-Object System.Collections.Generic.List[object]
   function Invoke-JsonRequest {
     param([string]$Name, [string]$Method, [string]$Path, [object]$Body = $null, [hashtable]$Headers = @{})
-    $args = @{ Uri = "$RuntimeBaseUrl$Path"; Method = $Method; TimeoutSec = 20; SkipHttpErrorCheck = $true; Headers = $Headers }
+    $args = @{ Uri = "$RuntimeBaseUrl$Path"; Method = $Method; TimeoutSec = 20; Headers = $Headers }
+    if ((Get-Command Invoke-WebRequest).Parameters.ContainsKey("SkipHttpErrorCheck")) {
+      $args.SkipHttpErrorCheck = $true
+    }
     if ($null -ne $Body) { $args.ContentType = "application/json"; $args.Body = ($Body | ConvertTo-Json -Depth 12 -Compress) }
     $response = Invoke-WebRequest @args
     $payload = if ([string]::IsNullOrWhiteSpace($response.Content)) { $null } else { $response.Content | ConvertFrom-Json }
