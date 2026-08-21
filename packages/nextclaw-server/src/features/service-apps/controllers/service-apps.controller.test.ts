@@ -94,6 +94,31 @@ async function assertStructuredRuntimeFailureResponse(): Promise<void> {
   });
 }
 
+async function assertStructuredForeignRuntimeFailureResponse(): Promise<void> {
+  const bridgeSession = createBridgeSession();
+  const app = createTestApp({
+    panelAppManager: { resolvePanelAppBridgeSession: () => bridgeSession },
+    serviceAppManager: {
+      invokeServiceAction: async () => {
+        throw Object.assign(new Error("Service App notes failed to start."), {
+          name: "ServiceAppError",
+          code: "SERVICE_APP_RUNTIME_FAILED",
+        });
+      },
+    },
+  });
+  const response = await app.request("http://localhost/api/service-actions/notes.read/invoke", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-nextclaw-panel-bridge-session": "bridge-token" },
+    body: JSON.stringify({ input: {} }),
+  });
+  expect(response.status).toBe(502);
+  await expect(response.json()).resolves.toMatchObject({
+    ok: false,
+    error: { code: "SERVICE_APP_RUNTIME_FAILED", message: "Service App notes failed to start." },
+  });
+}
+
 async function assertStructuredUnexpectedFailureResponse(): Promise<void> {
   const bridgeSession = createBridgeSession();
   const app = createTestApp({
@@ -198,6 +223,10 @@ describe("service apps routes", () => {
 
   it("returns structured JSON when a Service App runtime fails", async () => {
     await assertStructuredRuntimeFailureResponse();
+  });
+
+  it("keeps a Service App runtime error structured across package copies", async () => {
+    await assertStructuredForeignRuntimeFailureResponse();
   });
 
   it("returns structured JSON when a Service App request fails unexpectedly", async () => {

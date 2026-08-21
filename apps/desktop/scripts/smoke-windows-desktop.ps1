@@ -128,6 +128,10 @@ function Write-SmokeDiagnostics {
   if (Test-Path $apiProbeLog) {
     Get-Content -Path $apiProbeLog -Tail 120
   }
+  Write-Host "[desktop-smoke] Service App probes: $script:ServiceAppProbeLog"
+  if (Test-Path $script:ServiceAppProbeLog) {
+    Get-Content -Path $script:ServiceAppProbeLog -Tail 160
+  }
 }
 
 function Invoke-DesktopApiProbe {
@@ -174,6 +178,45 @@ function Invoke-DesktopApiProbe {
 
   $results | ConvertTo-Json -Depth 20 | Set-Content -Path $apiProbeLog
   return $allPassed
+}
+
+function Invoke-DesktopServiceAppProbe {
+  param([string]$RuntimeBaseUrl)
+
+  $results = New-Object System.Collections.Generic.List[object]
+  function Invoke-JsonRequest {
+    param([string]$Name, [string]$Method, [string]$Path, [object]$Body = $null, [hashtable]$Headers = @{})
+    $args = @{ Uri = "$RuntimeBaseUrl$Path"; Method = $Method; TimeoutSec = 20; SkipHttpErrorCheck = $true; Headers = $Headers }
+    if ($null -ne $Body) { $args.ContentType = "application/json"; $args.Body = ($Body | ConvertTo-Json -Depth 12 -Compress) }
+    $response = Invoke-WebRequest @args
+    $payload = if ([string]::IsNullOrWhiteSpace($response.Content)) { $null } else { $response.Content | ConvertFrom-Json }
+    $results.Add([pscustomobject]@{ name = $Name; status = $response.StatusCode; payload = $payload })
+    if ($response.StatusCode -lt 200 -or $response.StatusCode -ge 300 -or $payload.ok -ne $true) {
+      throw "$Name failed: HTTP $($response.StatusCode) $($response.Content)"
+    }
+    return $payload.data
+  }
+
+  try {
+    [void](Invoke-JsonRequest "enable-personal-organizer" "POST" "/api/app-packages/nextclaw.personal-organizer/enable")
+    $favoriteSession = Invoke-JsonRequest "create-favorites-session" "POST" "/api/panel-app-bridge-sessions" @{ panelAppId = "nextclaw-personal-organizer-favorites" }
+    $favoriteHeaders = @{ "x-nextclaw-panel-bridge-session" = $favoriteSession.token }
+    [void](Invoke-JsonRequest "grant-favorite-save" "POST" "/api/service-actions/nextclaw-personal-organizer-data.favorite_save/grant" $null $favoriteHeaders)
+    [void](Invoke-JsonRequest "favorite-save" "POST" "/api/service-actions/nextclaw-personal-organizer-data.favorite_save/invoke" @{ input = @{ title = "Windows packaged smoke"; url = "https://nextclaw.io" } } $favoriteHeaders)
+    $favorites = Invoke-JsonRequest "favorite-list" "POST" "/api/service-actions/nextclaw-personal-organizer-data.favorite_list/invoke" @{ input = @{} } $favoriteHeaders
+    $favoriteItems = @($favorites.result.structuredContent.items)
+    if ($favoriteItems.Count -ne 1 -or $favoriteItems[0].title -ne "Windows packaged smoke") { throw "favorite result is invalid" }
+    $calendarSession = Invoke-JsonRequest "create-calendar-session" "POST" "/api/panel-app-bridge-sessions" @{ panelAppId = "nextclaw-personal-organizer-calendar" }
+    $calendarHeaders = @{ "x-nextclaw-panel-bridge-session" = $calendarSession.token }
+    [void](Invoke-JsonRequest "grant-event-create" "POST" "/api/service-actions/nextclaw-personal-organizer-data.event_create/grant" $null $calendarHeaders)
+    [void](Invoke-JsonRequest "event-create" "POST" "/api/service-actions/nextclaw-personal-organizer-data.event_create/invoke" @{ input = @{ title = "Windows packaged smoke"; start = "2026-08-22T09:00:00.000Z" } } $calendarHeaders)
+    $events = Invoke-JsonRequest "event-list" "POST" "/api/service-actions/nextclaw-personal-organizer-data.event_list/invoke" @{ input = @{ start = "2026-08-22T00:00:00.000Z"; end = "2026-08-23T00:00:00.000Z" } } $calendarHeaders
+    $eventItems = @($events.result.structuredContent.items)
+    if ($eventItems.Count -ne 1 -or $eventItems[0].title -ne "Windows packaged smoke") { throw "calendar result is invalid" }
+    Write-Host "[desktop-smoke] packaged Service App probe passed"
+  } finally {
+    $results | ConvertTo-Json -Depth 20 | Set-Content -Path $script:ServiceAppProbeLog
+  }
 }
 
 function Test-RendererTitlebarDragRegionConfirmed {
@@ -593,6 +636,7 @@ $logRoot = Join-Path $tempRoot "nextclaw-desktop-smoke-logs"
 $appStdoutLog = Join-Path $logRoot "app-stdout.log"
 $appStderrLog = Join-Path $logRoot "app-stderr.log"
 $apiProbeLog = Join-Path $logRoot "api-probes.json"
+$script:ServiceAppProbeLog = Join-Path $logRoot "service-app-probes.json"
 $script:MainLog = Join-Path $smokeHome "launcher\\main.log"
 $script:ServiceLog = Join-Path $portableRuntimeHome "service.log"
 $script:MainLogStartLine = 1
@@ -671,6 +715,7 @@ try {
       $elapsedMs = [int]((Get-Date) - $startedAt).TotalMilliseconds
       Write-Host "[desktop-smoke] GUI smoke passed in ${elapsedMs}ms"
       Write-Host "[desktop-smoke] API probes passed: $runtimeBaseUrl"
+      Invoke-DesktopServiceAppProbe -RuntimeBaseUrl $runtimeBaseUrl
       Invoke-DesktopTitlebarDragProbe -RootPid $appProc.Id
       Write-Host "[desktop-smoke] main log: $script:MainLog"
       if (Test-Path $script:MainLog) {
