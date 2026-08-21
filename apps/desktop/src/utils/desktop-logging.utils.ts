@@ -66,16 +66,6 @@ export function createDesktopLogger(): DesktopLogger {
   };
 }
 
-export function installDesktopProcessErrorLogging(logger: DesktopLogger): void {
-  process.on("uncaughtException", (error) => {
-    logger.error(`uncaughtException: ${error.stack ?? String(error)}`);
-  });
-
-  process.on("unhandledRejection", (reason) => {
-    logger.error(`unhandledRejection: ${String(reason)}`);
-  });
-}
-
 export function logDesktopMainEntryLoaded(logger: DesktopLogger, profile?: DesktopInstallationProfile): void {
   logger.info(
     [

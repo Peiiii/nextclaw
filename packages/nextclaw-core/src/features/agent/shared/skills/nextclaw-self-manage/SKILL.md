@@ -1,7 +1,7 @@
 ---
 name: nextclaw-self-manage
-description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/projects/sessions/apps and App data/cron/remote/update operations, and for discovering local HTTP/API/webhook addresses.
-description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、项目、会话、应用及应用数据、定时任务、远程访问、更新，以及本地 HTTP/API/webhook 地址发现。
+description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/projects/sessions/apps and App data/cron/remote/update operations, discovering local HTTP/API/webhook addresses, and diagnosing a NextClaw Desktop background exit, crash, restart, or suspected external termination.
+description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、项目、会话、应用及应用数据、定时任务、远程访问、更新、本地 HTTP/API/webhook 地址发现，以及 Windows Desktop 后台退出、崩溃、重启或疑似外部终止的自助排查。
 metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
 ---
 
@@ -73,7 +73,7 @@ When user asks "what changed in version X", follow:
 
 ## Runtime Incident Diagnosis
 
-When the user reports missing messages, missing replies, intermittent failures, extension exits, config apply failures, automation failures, or other runtime incidents, follow:
+When the user reports missing messages, missing replies, intermittent failures, extension exits, config apply failures, automation failures, a Desktop window/background suddenly disappearing, a crash, restart, or suspected external termination, follow:
 
 - `references/runtime-diagnostics.md`
 - Collect status and structured log evidence before proposing a code change.

@@ -2,6 +2,18 @@
 
 当用户反馈消息未收到、Agent 未回复、扩展退出、配置未生效、定时任务未执行或其他“偶发”运行问题时，按本流程排查。不要先猜根因或直接修改代码。
 
+## Desktop 异常退出与外因排查
+
+当用户说“刚才怎么没了”“后台挂了”“是不是崩了”“是不是被杀了”“帮我查上次为什么退出”时，按 Desktop host incident 排查，不要求用户知道日志、PID、发生时间、Windows 事件或命令。
+
+1. 先运行 `nextclaw doctor --json`，读取 `status.hostIncident.latest`。
+2. 若存在 incident，先用 `reasonCode`、`confidence`、`recovery` 和 `evidence` 回答发生了什么、是否已自动恢复；默认目标是最近未解决 incident。
+3. `controlled-exit` 表示 NextClaw 记录了自己的退出意图；`electron-native-crash`、`main-js-uncaught`、`renderer-crash`、`gpu-process-crash` 是内部直接证据；`system-shutdown`、`resource-exhaustion`、`security-remediation` 是 Windows 外部证据。
+4. `external-termination-suspected` 只表示 guardian 看到主进程消失而没有匹配 crash/system/security 证据；`unknown-unclean-exit` 表示连外部观察证据也不足。两者不得断言具体外部 killer。
+5. 若用户要求“到底是谁终止”，而当前结论不是 confirmed，说明默认 Windows 证据无法保证记录任意终止调用者；只在产品提供增强取证授权入口后请求一次系统授权，不让用户手工配置 Sysmon、注册表或事件查看器。
+
+回答先说自然语言结论和恢复状态，再给出证据与置信度。不要让用户执行 `nextclaw doctor`、PowerShell 或自行寻找 dump；这些均由 AI 自己完成。若没有 incident，再走下面的通用运行故障流程。
+
 ## 1. 确认实例和当前状态
 
 ```bash

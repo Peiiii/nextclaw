@@ -6,6 +6,7 @@ import { ConfigSchema } from "@nextclaw/core";
 type DiagnosticsCommandsStatusProbe = {
   collectRuntimeStatus: (params: { verbose: boolean; fix: boolean }) => Promise<RuntimeStatusReport>;
   listProviderStatuses: (config: ReturnType<typeof ConfigSchema.parse>) => RuntimeStatusReport["providers"];
+  buildDoctorChecks: (report: RuntimeStatusReport, checkPort: { available: boolean; detail: string }) => Array<{ name: string; status: string; detail: string }>;
 };
 
 describe("DiagnosticsCommands status", () => {
@@ -63,6 +64,9 @@ describe("DiagnosticsCommands status", () => {
         configuredEnabled: false,
         runtime: null
       },
+      hostIncident: {
+        latest: null
+      },
       level: "stopped",
       exitCode: 0
     });
@@ -94,5 +98,41 @@ describe("DiagnosticsCommands status", () => {
       configured: true,
       detail: "anonymous access"
     }));
+  });
+
+  it("surfaces unresolved Desktop host incidents through doctor checks", () => {
+    const commands = new DiagnosticsCommands({ logo: "🤖" });
+    const probe = commands as unknown as DiagnosticsCommandsStatusProbe;
+    const checks = probe.buildDoctorChecks({
+      configExists: true,
+      configPath: "/tmp/config.json",
+      extensions: { detail: "ok", runtimes: [], state: "ok" },
+      health: { configured: { detail: "ok", state: "ok" }, managed: { detail: "ok", state: "ok" } },
+      hostIncident: {
+        latest: {
+          confidence: "confirmed",
+          evidence: [],
+          expected: false,
+          incidentId: "incident-1",
+          observedEndedAt: "2026-08-22T10:00:00.000Z",
+          reasonCode: "electron-native-crash",
+          recovery: { attempts: 1, status: "restarted" },
+          resolution: { status: "unresolved" },
+          runId: "run-1",
+          schemaVersion: 1,
+          startedAt: "2026-08-22T09:59:00.000Z"
+        }
+      },
+      providers: [],
+      process: { running: false, staleReason: null, staleState: false },
+      workspaceExists: true,
+      workspacePath: "/tmp/workspace"
+    } as unknown as RuntimeStatusReport, { available: true, detail: "available" });
+
+    expect(checks).toContainEqual({
+      name: "desktop-host-incident",
+      status: "warn",
+      detail: "electron-native-crash (confirmed) at 2026-08-22T10:00:00.000Z"
+    });
   });
 });

@@ -14,6 +14,7 @@ type RuntimeServiceOptions = {
   runtimeEnv: NodeJS.ProcessEnv;
   startupTimeoutMs?: number;
   healthPath?: string;
+  onExit?: (input: { childPid: number | null | undefined; code: number | null; signal: string | null; expected: boolean }) => void;
 };
 
 type RuntimeProcessExitInfo = {
@@ -190,6 +191,12 @@ export class RuntimeServiceProcess {
     if (suppressRestart) {
       this.suppressedRestartChild = null;
     }
+    this.options.onExit?.({
+      childPid: child.pid,
+      code: info.code,
+      signal: info.signal,
+      expected: this.stopping
+    });
     const outputSummary = formatRecentRuntimeOutput(info.outputLines);
     if (outputSummary) {
       this.options.logger.warn(

@@ -5,6 +5,7 @@ import {
   getConfigPath,
   getWorkspacePath,
   hasSecretRef,
+  HostIncidentStore,
   loadConfig,
   resolveAppLogPath
 } from "@nextclaw/core";
@@ -158,6 +159,13 @@ export class DiagnosticsCommands {
         detail: report.extensions.state !== "ok"
           ? report.extensions.detail
           : `${report.extensions.runtimes.length} tracked, ${failedExtensions.length} failed`
+      },
+      {
+        name: "desktop-host-incident",
+        status: report.hostIncident.latest?.resolution.status === "unresolved" ? "warn" : "pass",
+        detail: report.hostIncident.latest
+          ? `${report.hostIncident.latest.reasonCode} (${report.hostIncident.latest.confidence}) at ${report.hostIncident.latest.observedEndedAt ?? report.hostIncident.latest.startedAt}`
+          : "no unresolved Desktop incident"
       }
     ] as const;
   };
@@ -203,6 +211,7 @@ export class DiagnosticsCommands {
     const remote = resolveNextclawRemoteStatusSnapshot(config);
     const orphanSuspected = !running && configuredHealth.state === "ok";
     const providers = this.listProviderStatuses(config);
+    const latestHostIncident = new HostIncidentStore().getLatestIncident({ unresolvedOnly: true });
 
     const issues: string[] = [];
     const recommendations: string[] = [];
@@ -216,6 +225,7 @@ export class DiagnosticsCommands {
       serviceState,
       orphanSuspected,
       providers,
+      latestHostIncident,
       issues,
       recommendations
     });
@@ -277,6 +287,7 @@ export class DiagnosticsCommands {
       recommendations,
       logTail,
       remote,
+      hostIncident: { latest: latestHostIncident },
       level,
       exitCode
     };
@@ -402,6 +413,7 @@ export class DiagnosticsCommands {
     serviceState: ManagedServiceState | null;
     orphanSuspected: boolean;
     providers: RuntimeStatusReport["providers"];
+    latestHostIncident: RuntimeStatusReport["hostIncident"]["latest"];
     issues: string[];
     recommendations: string[];
   }): void => {
@@ -411,6 +423,7 @@ export class DiagnosticsCommands {
       managedHealth,
       orphanSuspected,
       providers,
+      latestHostIncident,
       recommendations,
       running,
       serviceState,
@@ -459,6 +472,20 @@ export class DiagnosticsCommands {
     if (!providers.some((provider) => provider.configured)) {
       recommendations.push("Configure at least one provider API key in UI or config before expecting agent replies.");
     }
+    this.appendLatestHostIncidentIssue({ latestHostIncident, issues, recommendations });
+  };
+
+  private readonly appendLatestHostIncidentIssue = (params: {
+    latestHostIncident: RuntimeStatusReport["hostIncident"]["latest"];
+    issues: string[];
+    recommendations: string[];
+  }): void => {
+    const { latestHostIncident, issues, recommendations } = params;
+    if (!latestHostIncident) {
+      return;
+    }
+    issues.push(`Latest Desktop incident: ${latestHostIncident.reasonCode} (${latestHostIncident.confidence}).`);
+    recommendations.push("Ask NextClaw to inspect the latest Desktop incident for the recovered run and supporting evidence.");
   };
 
   private readonly readLogTail = (path: string, maxLines = 25): string[] => {

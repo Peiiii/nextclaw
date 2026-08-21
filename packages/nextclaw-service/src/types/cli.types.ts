@@ -1,6 +1,7 @@
 import type { RestartStrategy } from "@nextclaw-service/services/restart/restart-coordinator.service.js";
 import type { ExtensionRuntimeStatus } from "@nextclaw/kernel";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
+import type { HostIncident } from "@nextclaw/core";
 
 export type {
   RemoteConnectCommandOptions,
@@ -355,6 +356,9 @@ export type RuntimeStatusReport = {
   remote: {
     configuredEnabled: boolean;
     runtime: RemoteRuntimeState | null;
+  };
+  hostIncident: {
+    latest: HostIncident | null;
   };
   level: "healthy" | "degraded" | "stopped";
   exitCode: 0 | 1 | 2;

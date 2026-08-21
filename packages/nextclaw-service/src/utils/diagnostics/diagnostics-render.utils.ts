@@ -78,6 +78,10 @@ function printProcessSection(report: RuntimeStatusReport): void {
   if (!report.process.running) {
     console.log(`Configured health: ${report.health.configured.state} (${report.health.configured.detail})`);
   }
+  if (report.hostIncident.latest) {
+    const incident = report.hostIncident.latest;
+    console.log(`Latest Desktop incident: ${incident.reasonCode} (${incident.confidence}) at ${incident.observedEndedAt ?? incident.startedAt}`);
+  }
 }
 
 function printEndpointSection(report: RuntimeStatusReport): void {

@@ -864,6 +864,8 @@ Status/diagnostics tips:
 - Use `nextclaw status --json` as the source of truth for local HTTP addresses. `endpoints.uiUrl` is the base for `/webhook`; `endpoints.apiUrl` is the base for `/api/*` calls.
 - `nextclaw status --fix` safely clears stale service state if PID is dead.
 - `nextclaw doctor` runs additional checks (state coherence, health, port availability, provider readiness).
+- Windows Desktop writes a local host-incident journal, observes unexpected main-process exits, and keeps local Crashpad dumps without uploading them. `nextclaw status --json` and `nextclaw doctor --json` expose the latest unresolved incident at `hostIncident.latest`, including its reason, confidence, recovery result, safe evidence metadata, and evidence gaps.
+- When a user says that the Desktop “just disappeared”, “background hung”, “crashed”, or “may have been killed”, NextClaw AI must inspect `hostIncident.latest` itself. Do not ask the user to find logs, run commands, open Event Viewer, or identify a crash category. A suspected external termination is not proof of which process performed it.
 - `nextclaw usage` shows the latest observed LLM usage snapshot from recent CLI agent runs or the local UI/NCP runtime.
 - `nextclaw usage --history --limit 20` shows recent local usage records in reverse chronological order.
 - `nextclaw usage --stats` aggregates the current local usage history into quick CLI-readable totals and cache-hit counts.
