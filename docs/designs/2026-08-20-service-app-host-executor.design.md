@@ -220,3 +220,25 @@ Panel 可以展示简洁的可恢复状态和“重试/检查服务”，不得�
 - 不重做 Marketplace 多平台 artifact 模型。
 - 不迁移个人空间数据格式。
 - 不在本次强制引入新的 typed executor manifest；只冻结未来演进方向。
+
+## 十二、发布后验证补充（2026-08-21）
+
+### 12.1 新证据与范围判定
+
+线上 Windows/Linux 用户仍报告 Panel action POST 显示非 JSON `500`。源码审计确认 `node` 宿主别名、runtime 错误归一化和 HTTP `502` JSON 映射已经进入 `nextclaw@0.42.0`；但此前的验证只在普通 Node 进程中调用了内置个人空间，未以 Electron Node-mode 作为真实父进程运行它。
+
+这是既有设计第九节第 7 项未被实现的 **实现与验证偏差（设计缺失范围 0）**，不改变 Service App 的 owner、manifest 合同或错误模型。最小修复是补足该条验证，而不是新增第二个宿主、把内置应用改成原生二进制，或在 Panel 添加环境相关 fallback。
+
+### 12.2 冻结的回归合同
+
+新增 `apps/desktop/scripts/smoke/service-app-host.smoke.mjs`，由实际 Electron executable 在 `ELECTRON_RUN_AS_NODE=1` 模式执行。该 smoke：
+
+1. 将 `PATH` 收紧为没有外部 `node` 的临时目录；
+2. 启动内置个人空间并通过真实 Panel bridge session 授权；
+3. 以 HTTP router POST 依次完成收藏保存/读取、日历创建/读取；
+4. 断言每次响应为 JSON `200`，并验证写入内容；
+5. 在 `desktop-validate` 的 Linux 与 Windows GitHub Actions runner 中执行。
+
+所有 Service App route 的异常出口也必须返回 JSON；领域已知的运行时错误继续映射为 `SERVICE_APP_RUNTIME_FAILED` / `502`，未知错误返回不泄露内部细节的 `SERVICE_APP_REQUEST_FAILED` / `500`。因此 Panel 永远可以按 API 错误协议展示失败，而不会收到框架生成的非 JSON 响应。
+
+该脚本是现有 Desktop 验证域的一次性可执行 smoke，不拥有产品状态、不新增 runtime wrapper，也不替代安装器/更新包验证。若未来 packaged installer 需要执行同一 action 断言，应由安装器 smoke 调用这份脚本或共享其最小断言，不能重写另一套 Service App 启动逻辑。

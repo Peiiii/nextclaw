@@ -9,6 +9,7 @@ on:
       - "packages/nextclaw-server/**"
       - "packages/nextclaw-openclaw-compat/**"
       - "packages/nextclaw-core/**"
+      - "packages/nextclaw-kernel/**"
       - "packages/nextclaw-runtime/**"
       - "packages/ncp-packages/**"
       - "packages/extensions/**"
@@ -28,6 +29,7 @@ on:
       - "packages/nextclaw-server/**"
       - "packages/nextclaw-openclaw-compat/**"
       - "packages/nextclaw-core/**"
+      - "packages/nextclaw-kernel/**"
       - "packages/nextclaw-runtime/**"
       - "packages/ncp-packages/**"
       - "packages/extensions/**"
@@ -74,6 +76,7 @@ jobs:
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop smoke
+          ELECTRON_RUN_AS_NODE=1 pnpm -C apps/desktop exec electron scripts/smoke/service-app-host.smoke.mjs
 
       - name: Build product bundle + signed manifest smoke
         shell: bash
@@ -252,6 +255,13 @@ jobs:
           $ErrorActionPreference = "Stop"
           pnpm -r --filter @nextclaw/desktop... build
           pnpm --filter @nextclaw/server exec vitest run src/features/server-path/controllers/server-path.controller.test.ts
+
+      - name: Smoke Service Apps with Electron host Node
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:ELECTRON_RUN_AS_NODE = "1"
+          pnpm -C apps/desktop exec electron scripts/smoke/service-app-host.smoke.mjs
 
       - name: Minimal Electron app-region smoke
         shell: pwsh

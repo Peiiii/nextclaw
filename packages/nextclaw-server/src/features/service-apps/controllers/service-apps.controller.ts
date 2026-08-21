@@ -232,6 +232,6 @@ export class ServiceAppsRoutesController {
     if (error instanceof Error && error.message === "panel app bridge session is required") {
       return c.json(err("PANEL_APP_BRIDGE_SESSION_REQUIRED", error.message), 401);
     }
-    throw error;
+    return c.json(err("SERVICE_APP_REQUEST_FAILED", "The Service App request failed. Please retry."), 500);
   };
 }

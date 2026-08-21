@@ -94,6 +94,43 @@ async function assertStructuredRuntimeFailureResponse(): Promise<void> {
   });
 }
 
+async function assertStructuredUnexpectedFailureResponse(): Promise<void> {
+  const bridgeSession = createBridgeSession();
+  const app = createTestApp({
+    panelAppManager: {
+      resolvePanelAppBridgeSession: () => bridgeSession,
+    },
+    serviceAppManager: {
+      invokeServiceAction: async () => {
+        throw new Error("unexpected runtime transport error");
+      },
+    },
+  });
+
+  const response = await app.request("http://localhost/api/service-actions/notes.read/invoke", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-nextclaw-panel-bridge-session": "bridge-token",
+    },
+    body: JSON.stringify({ input: {} }),
+  });
+  const payload = await response.json() as {
+    ok: false;
+    error: { code: string; message: string };
+  };
+
+  expect(response.status).toBe(500);
+  expect(response.headers.get("content-type")).toContain("application/json");
+  expect(payload).toEqual({
+    ok: false,
+    error: {
+      code: "SERVICE_APP_REQUEST_FAILED",
+      message: "The Service App request failed. Please retry.",
+    },
+  });
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   while (tempDirs.length > 0) {
@@ -161,6 +198,10 @@ describe("service apps routes", () => {
 
   it("returns structured JSON when a Service App runtime fails", async () => {
     await assertStructuredRuntimeFailureResponse();
+  });
+
+  it("returns structured JSON when a Service App request fails unexpectedly", async () => {
+    await assertStructuredUnexpectedFailureResponse();
   });
 
   it("uses POST for explicit service action discovery", async () => {
