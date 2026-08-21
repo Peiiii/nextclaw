@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AdminMetricCard,
   AdminMetricGrid,
@@ -58,7 +58,8 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
   });
   const distributionAdoptionQuery = useQuery({
     queryKey: ['admin-distribution-adoption', distributionAssetListQuery],
-    queryFn: async () => await distributionAdoptionApi.fetchOverview(distributionAssetListQuery)
+    queryFn: async () => await distributionAdoptionApi.fetchOverview(distributionAssetListQuery),
+    placeholderData: keepPreviousData
   });
   const refreshDistributionMutation = useMutation({
     mutationFn: distributionAdoptionApi.refresh,
@@ -133,6 +134,7 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
           overview={distributionAdoptionQuery.data}
           assetListQuery={distributionAssetListQuery}
           isLoading={distributionAdoptionQuery.isLoading}
+          isRefreshing={distributionAdoptionQuery.isFetching}
           errorMessage={distributionAdoptionQuery.error instanceof Error
             ? distributionAdoptionQuery.error.message
             : refreshDistributionMutation.error instanceof Error

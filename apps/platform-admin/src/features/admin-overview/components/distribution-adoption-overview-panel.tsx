@@ -16,6 +16,7 @@ type Props = {
   overview: AdminDistributionAdoptionOverview | undefined;
   assetListQuery: AdminDistributionAssetListQuery;
   isLoading: boolean;
+  isRefreshing: boolean;
   errorMessage: string | null;
   onAssetListQueryChange: (query: AdminDistributionAssetListQuery) => void;
 };
@@ -55,6 +56,7 @@ export function DistributionAdoptionOverviewPanel(props: Props): JSX.Element {
 
   return (
     <div className="space-y-4">
+      {props.isRefreshing ? <p className="sr-only" role="status">正在更新发布物列表。</p> : null}
       <AdminMetricGrid>
         <AdminMetricCard label="GitHub 资产累计下载" value={formatCount(props.overview.github.totalDownloads)} hint="所有已采集 Release 文件累计" />
         <AdminMetricCard label="GitHub 今日新增" value={formatNullableCount(props.overview.github.todayDownloads)} hint="相对最近日快照" />
