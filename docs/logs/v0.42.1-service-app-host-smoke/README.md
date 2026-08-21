@@ -17,8 +17,9 @@
 ## 发布/部署方式
 
 - 发布 `nextclaw@0.42.1` 与 `@nextclaw/server` patch，并构建 stable NPM runtime update channel。
-- 现有 Desktop launcher 通过 runtime update 获取修复；本次不重发 Desktop installer，除非更新通道验证显示 launcher 不能取得新 runtime。
-- 发布后执行 Windows runtime update 检查与 runtime bundle smoke。
+- 发布正式 Desktop patch：[NextClaw Desktop 0.0.261](https://github.com/Peiiii/nextclaw/releases/tag/v0.42.1-desktop.1)。它携带 `0.42.1` runtime，包含 Windows x64 安装包与 portable 包、Windows ARM64 portable 包、macOS DMG、Linux AppImage/`.deb` 与 stable APT 仓库。
+- 首次 Windows x64 安装器 smoke 遇到 GitHub runner 的 NSIS `System.dll` 瞬态 `0xC0000005`，同一 release 身份重跑后通过；五平台构建、资产发布、desktop update channel 和 APT 发布均成功：[workflow](https://github.com/Peiiii/nextclaw/actions/runs/32498442207)。
+- 公开 Windows update manifest 已验证为 `latestVersion=0.42.1`、`minimumLauncherVersion=0.0.141`，并指向本次 release 的签名 bundle；公开 APT 索引已验证 `nextclaw-desktop 0.0.261`。
 
 ## 用户/产品视角的验收步骤
 
