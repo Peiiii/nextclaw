@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.42.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-22",
+  "title": {
+    "zh-CN": "NextClaw v0.42.2",
+    "en-US": "NextClaw v0.42.2"
+  },
+  "summary": {
+    "zh-CN": "修复 Windows 桌面端内置服务应用请求，并让已知运行错误保留具体类型。",
+    "en-US": "Fixes built-in Service App requests on Windows Desktop and preserves classified runtime errors."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-22-nextclaw-v0-42-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-22-nextclaw-v0-42-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "Windows 内置应用请求",
+            "en-US": "Windows built-in app requests"
+          },
+          "body": {
+            "zh-CN": "收藏和日历可在 Windows 安装版、直接运行版和便携版中使用 NextClaw 自带运行时完成数据读写。",
+            "en-US": "Favorites and Calendar complete data reads and writes with the runtime shipped by NextClaw in Windows installed, unpacked, and portable editions."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "服务应用错误信息",
+            "en-US": "Service App error reporting"
+          },
+          "body": {
+            "zh-CN": "已知的服务应用运行错误会保留具体错误类型，不再一律显示通用重试提示。",
+            "en-US": "Known Service App runtime errors retain their specific error type instead of always appearing as a generic retry prompt."
+          }
+        }
+      ]
+    }
+  ]
+}
