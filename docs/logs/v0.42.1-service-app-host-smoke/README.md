@@ -35,5 +35,8 @@
 ## NPM 包发布记录
 
 - 需要发布：是。`nextclaw` 用于向 Desktop runtime update 分发修复；`@nextclaw/server` 覆盖直接消费 server 包的调用方。
-- 发布前状态：待统一发布。
-- 发布后状态：待补充实际 NPM 版本、runtime channel 与 smoke 证据。
+- 发布版本：`nextclaw@0.42.1`、`@nextclaw/server@0.17.2`，以及同批依赖的 `@nextclaw/{service,ui,client-sdk,remote,companion}` patch。
+- NPM 精确 tarball 验证：7 个包的 registry identity 与已准备 artifact 一致；`nextclaw@0.42.1` 的空缓存 pack/extract payload audit 通过。
+- stable runtime：四个平台的签名 bundle、GitHub Release 与 `gh-pages` manifest 已发布；[runtime workflow](https://github.com/Peiiii/nextclaw/actions/runs/32439586770) 通过，Windows `win32-x64` bundle 已包含。
+- 发布后更新 smoke：隔离安装的 `0.42.0` 可发现 `0.42.1`，download-only 不切换指针，apply 后新进程报告 `0.42.1`。
+- 用户更新说明：[中文](https://docs.nextclaw.io/zh/notes/2026-08-21-nextclaw-v0-42-1) / [English](https://docs.nextclaw.io/en/notes/2026-08-21-nextclaw-v0-42-1)。
