@@ -8,6 +8,10 @@ import {
 import { NextclawRemoteRelayDurableObject } from "@/controllers/remote-relay-durable-object.controller.js";
 import { registerAppRoutes } from "@/routes/app.route.js";
 import { remoteInstanceDomainRoutes } from "@/routes/remote-instance-domain.route.js";
+import {
+  DistributionAdoptionService,
+  shouldSnapshotPreviousDay,
+} from "@/services/distribution-adoption.service.js";
 import type { Env } from "@/types/platform.js";
 import { openaiError } from "@/utils/platform.utils.js";
 
@@ -47,4 +51,13 @@ export {
   NextclawRemoteQuotaDurableObject,
   NextclawQuotaDurableObject,
 };
-export default app;
+export default {
+  fetch: app.fetch,
+  scheduled: (_controller: ScheduledController, env: Env, executionContext: ExecutionContext) => {
+    const now = new Date();
+    executionContext.waitUntil(new DistributionAdoptionService(env, () => now).sync({
+      snapshotPreviousDay: shouldSnapshotPreviousDay(now),
+      force: true,
+    }));
+  },
+};

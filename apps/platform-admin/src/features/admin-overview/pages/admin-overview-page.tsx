@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AdminMetricCard,
   AdminMetricGrid,
@@ -7,12 +7,15 @@ import {
   AdminSection,
   AdminSurface
 } from '@/components/admin/admin-page';
+import { Button } from '@/components/ui/button';
+import { DistributionAdoptionOverviewPanel } from '@/features/admin-overview/components/distribution-adoption-overview-panel';
 import {
   fetchAdminMarketplaceSkills,
   fetchAdminOverview
 } from '@/api/client';
 import { AdminRemoteQuotaApiService } from '@/features/admin-overview/services/remote-quota-api.service';
 import { AdminProductActivityApiService } from '@/features/admin-overview/services/product-activity-api.service';
+import { AdminDistributionAdoptionApiService } from '@/features/admin-overview/services/distribution-adoption-api.service';
 import type {
   AdminProductActivityOverview,
   ProductActivityAudience
@@ -27,8 +30,10 @@ type Props = {
 
 export function AdminOverviewPage({ token }: Props): JSX.Element {
   const [productActivityAudience, setProductActivityAudience] = useState<ProductActivityAudience>('external');
+  const queryClient = useQueryClient();
   const remoteQuotaApi = new AdminRemoteQuotaApiService(token);
   const productActivityApi = new AdminProductActivityApiService(token);
+  const distributionAdoptionApi = new AdminDistributionAdoptionApiService(token);
   const overviewQuery = useQuery({
     queryKey: ['admin-overview'],
     queryFn: async () => await fetchAdminOverview(token)
@@ -40,6 +45,16 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
   const productActivityQuery = useQuery({
     queryKey: ['admin-product-activity', productActivityAudience, 'production', 'stable', 30],
     queryFn: async () => await productActivityApi.fetchOverview(productActivityAudience)
+  });
+  const distributionAdoptionQuery = useQuery({
+    queryKey: ['admin-distribution-adoption'],
+    queryFn: distributionAdoptionApi.fetchOverview
+  });
+  const refreshDistributionMutation = useMutation({
+    mutationFn: distributionAdoptionApi.refresh,
+    onSuccess: (overview) => {
+      queryClient.setQueryData(['admin-distribution-adoption'], overview);
+    }
   });
   const marketplaceCountsQuery = useQuery({
     queryKey: ['admin-marketplace-skills', 'pending', '', 1, 'overview-counts'],
@@ -86,6 +101,32 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
           overview={productActivityQuery.data}
           isLoading={productActivityQuery.isLoading}
           errorMessage={productActivityQuery.error instanceof Error ? productActivityQuery.error.message : null}
+        />
+      </AdminSection>
+
+      <AdminSection
+        title="发行与采用"
+        description="GitHub Release 资产与 npm 包的公开聚合下载数据。下载不等于独立用户、安装成功或产品活跃。"
+        actions={(
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-9 shrink-0 px-3"
+            disabled={refreshDistributionMutation.isPending}
+            onClick={() => refreshDistributionMutation.mutate()}
+          >
+            {refreshDistributionMutation.isPending ? '刷新中…' : '刷新实时数据'}
+          </Button>
+        )}
+      >
+        <DistributionAdoptionOverviewPanel
+          overview={distributionAdoptionQuery.data}
+          isLoading={distributionAdoptionQuery.isLoading}
+          errorMessage={distributionAdoptionQuery.error instanceof Error
+            ? distributionAdoptionQuery.error.message
+            : refreshDistributionMutation.error instanceof Error
+              ? refreshDistributionMutation.error.message
+              : null}
         />
       </AdminSection>
 

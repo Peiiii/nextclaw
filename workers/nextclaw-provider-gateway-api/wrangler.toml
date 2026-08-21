@@ -9,6 +9,9 @@ routes = [
 [observability]
 enabled = true
 
+[triggers]
+crons = ["5 */2 * * *"]
+
 [[d1_databases]]
 binding = "NEXTCLAW_PLATFORM_DB"
 database_name = "nextclaw-platform"
