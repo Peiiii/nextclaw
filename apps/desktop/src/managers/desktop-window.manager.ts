@@ -1,4 +1,9 @@
-import { BrowserWindow, ipcMain, type Event as ElectronEvent } from "electron";
+import {
+  BrowserWindow,
+  ipcMain,
+  type Event as ElectronEvent,
+  type WebContents
+} from "electron";
 import { join } from "node:path";
 import type { DesktopLogger } from "../utils/desktop-logging.utils";
 import { createDesktopWindowOptions } from "../utils/desktop-window-options.utils";
@@ -21,6 +26,10 @@ type DesktopWindowManagerOptions = {
   logger: DesktopLogger;
   compiledMainDir: string;
   handleWindowClose: (event: ElectronEvent) => void;
+  attachExternalNavigation: (
+    webContents: WebContents,
+    isAllowedInAppNavigation: (url: string) => boolean
+  ) => void;
 };
 
 export class DesktopWindowManager {
@@ -100,6 +109,7 @@ export class DesktopWindowManager {
       return this.window;
     }
     const window = new BrowserWindow(createDesktopWindowOptions(join(this.options.compiledMainDir, "preload.js")));
+    this.options.attachExternalNavigation(window.webContents, this.isAllowedInAppNavigation);
     this.attachWindow(window);
     attachWindowDiagnostics(window, this.options.logger);
     window.on("close", this.options.handleWindowClose);
@@ -121,6 +131,17 @@ export class DesktopWindowManager {
       window.removeListener("maximize", emitWindowState);
       window.removeListener("unmaximize", emitWindowState);
     });
+  };
+
+  private isAllowedInAppNavigation = (url: string): boolean => {
+    if (!this.runtimeWindowUrl) {
+      return false;
+    }
+    try {
+      return new URL(url).origin === new URL(this.runtimeWindowUrl).origin;
+    } catch {
+      return false;
+    }
   };
 
   private applyWindowAction = (window: BrowserWindow, action: DesktopWindowControlAction): void => {

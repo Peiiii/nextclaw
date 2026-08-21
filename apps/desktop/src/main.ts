@@ -56,10 +56,15 @@ class DesktopApplication {
       resourcesPath: process.resourcesPath,
       publishTarget: resolveDesktopGitHubPublishTarget(desktopPackageJson)
     });
+    this.desktopHostCapabilityService = new DesktopHostCapabilityService({
+      ipcMain,
+      shell
+    });
     this.windowManager = new DesktopWindowManager({
       logger,
       compiledMainDir: __dirname,
-      handleWindowClose: this.handleWindowClose
+      handleWindowClose: this.handleWindowClose,
+      attachExternalNavigation: this.desktopHostCapabilityService.attachExternalNavigation
     });
     this.desktopPresenceService = new DesktopPresenceService({
       logger,
@@ -67,10 +72,6 @@ class DesktopApplication {
       launcherStateStore: this.bundleManager.launcherStateStore
     });
     this.runtimeCommandService = new DesktopRuntimeCommandService(logger, this.bundleManager);
-    this.desktopHostCapabilityService = new DesktopHostCapabilityService({
-      ipcMain,
-      shell
-    });
     this.desktopRuntimeControlService = new DesktopRuntimeControlService({
       logger,
       restartRuntime: this.restartRuntime,

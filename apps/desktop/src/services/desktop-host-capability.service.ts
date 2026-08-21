@@ -1,4 +1,5 @@
 import { isAbsolute } from "node:path";
+import type { WebContents } from "electron";
 import {
   DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL,
   DESKTOP_HOST_REVEAL_PATH_CHANNEL
@@ -40,7 +41,7 @@ export class DesktopHostCapabilityService {
     this.dispose();
     this.options.ipcMain.handle(
       DESKTOP_HOST_OPEN_EXTERNAL_URL_CHANNEL,
-      this.handleOpenExternalUrl
+      (_event, rawUrl) => this.openExternalUrl(rawUrl)
     );
     this.options.ipcMain.handle(
       DESKTOP_HOST_REVEAL_PATH_CHANNEL,
@@ -53,10 +54,26 @@ export class DesktopHostCapabilityService {
     this.options.ipcMain.removeHandler(DESKTOP_HOST_REVEAL_PATH_CHANNEL);
   };
 
-  private handleOpenExternalUrl = async (
-    _event: unknown,
-    rawUrl: unknown
-  ): Promise<DesktopOpenExternalUrlResult> => {
+  attachExternalNavigation = (
+    webContents: WebContents,
+    isAllowedInAppNavigation: (url: string) => boolean
+  ): void => {
+    webContents.setWindowOpenHandler(({ url }) => {
+      setImmediate(() => {
+        void this.openExternalUrl(url);
+      });
+      return { action: "deny" };
+    });
+    webContents.on("will-navigate", (event) => {
+      if (isAllowedInAppNavigation(event.url)) {
+        return;
+      }
+      event.preventDefault();
+      void this.openExternalUrl(event.url);
+    });
+  };
+
+  openExternalUrl = async (rawUrl: unknown): Promise<DesktopOpenExternalUrlResult> => {
     if (typeof rawUrl !== "string") {
       return { opened: false, reason: "unsupported-url" };
     }
