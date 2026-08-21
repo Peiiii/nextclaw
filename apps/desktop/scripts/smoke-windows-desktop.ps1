@@ -202,6 +202,7 @@ function Invoke-DesktopServiceAppProbe {
     $favoriteSession = Invoke-JsonRequest "create-favorites-session" "POST" "/api/panel-app-bridge-sessions" @{ panelAppId = "nextclaw-personal-organizer-favorites" }
     $favoriteHeaders = @{ "x-nextclaw-panel-bridge-session" = $favoriteSession.token }
     [void](Invoke-JsonRequest "grant-favorite-save" "POST" "/api/service-actions/nextclaw-personal-organizer-data.favorite_save/grant" $null $favoriteHeaders)
+    [void](Invoke-JsonRequest "grant-favorite-list" "POST" "/api/service-actions/nextclaw-personal-organizer-data.favorite_list/grant" $null $favoriteHeaders)
     [void](Invoke-JsonRequest "favorite-save" "POST" "/api/service-actions/nextclaw-personal-organizer-data.favorite_save/invoke" @{ input = @{ title = "Windows packaged smoke"; url = "https://nextclaw.io" } } $favoriteHeaders)
     $favorites = Invoke-JsonRequest "favorite-list" "POST" "/api/service-actions/nextclaw-personal-organizer-data.favorite_list/invoke" @{ input = @{} } $favoriteHeaders
     $favoriteItems = @($favorites.result.structuredContent.items)
@@ -209,6 +210,7 @@ function Invoke-DesktopServiceAppProbe {
     $calendarSession = Invoke-JsonRequest "create-calendar-session" "POST" "/api/panel-app-bridge-sessions" @{ panelAppId = "nextclaw-personal-organizer-calendar" }
     $calendarHeaders = @{ "x-nextclaw-panel-bridge-session" = $calendarSession.token }
     [void](Invoke-JsonRequest "grant-event-create" "POST" "/api/service-actions/nextclaw-personal-organizer-data.event_create/grant" $null $calendarHeaders)
+    [void](Invoke-JsonRequest "grant-event-list" "POST" "/api/service-actions/nextclaw-personal-organizer-data.event_list/grant" $null $calendarHeaders)
     [void](Invoke-JsonRequest "event-create" "POST" "/api/service-actions/nextclaw-personal-organizer-data.event_create/invoke" @{ input = @{ title = "Windows packaged smoke"; start = "2026-08-22T09:00:00.000Z" } } $calendarHeaders)
     $events = Invoke-JsonRequest "event-list" "POST" "/api/service-actions/nextclaw-personal-organizer-data.event_list/invoke" @{ input = @{ start = "2026-08-22T00:00:00.000Z"; end = "2026-08-23T00:00:00.000Z" } } $calendarHeaders
     $eventItems = @($events.result.structuredContent.items)
