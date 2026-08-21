@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.42.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-21",
+  "title": {
+    "zh-CN": "NextClaw v0.42.1",
+    "en-US": "NextClaw v0.42.1"
+  },
+  "summary": {
+    "zh-CN": "修复桌面内置服务应用对系统 Node.js 的隐式依赖，并让失败请求保持结构化可识别。",
+    "en-US": "Fixes built-in desktop Service App reliance on a system Node.js installation and keeps failed requests structured."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-21-nextclaw-v0-42-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-21-nextclaw-v0-42-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "修复",
+        "en-US": "Fixes"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "内置服务应用运行时",
+            "en-US": "Built-in Service App runtime"
+          },
+          "body": {
+            "zh-CN": "收藏、日历等内置应用会使用 NextClaw 随桌面端提供的运行时，不再依赖系统单独安装 Node.js。",
+            "en-US": "Favorites, Calendar, and similar built-in apps use the runtime shipped by NextClaw instead of requiring a separate system Node.js installation."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "可识别的失败响应",
+            "en-US": "Machine-readable failure responses"
+          },
+          "body": {
+            "zh-CN": "服务应用发生未预期异常时，界面会收到结构化错误，不再显示无法解析的服务器响应。",
+            "en-US": "Unexpected Service App failures now return structured errors instead of unparseable server responses."
+          }
+        }
+      ]
+    }
+  ]
+}
