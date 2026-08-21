@@ -33,5 +33,6 @@
 
 ## NPM 包发布记录
 
-- 需要发布：`@nextclaw/kernel`、`@nextclaw/server`、`nextclaw`，原因是运行时错误合同和 Windows Desktop 所用 runtime bundle 发生用户可见修复。
-- 发布前状态：待统一发布为 v0.42.2 stable batch。
+- 已作为 `v0.42.2` stable batch 发布；`nextclaw@0.42.2` 为 npm `latest`，同批 8 个公开包均已完成 registry 校验。
+- Stable runtime 已构建并发布 darwin arm64/x64、linux x64、win32 x64 update bundle，GitHub Release、gh-pages 和公开 manifest 验证通过。
+- 已从发布的 `0.42.1` 执行 `check`、`download-only`、`apply` 和新进程版本验证，最终确认升级为 `0.42.2`。
