@@ -11,6 +11,7 @@ import {
 import type {
   DistributionAdoptionOverview,
   DistributionArtifactKind,
+  DistributionAssetListQuery,
   DistributionAssetRecord,
   DistributionAssetRow,
   DistributionDailyRow,
@@ -21,6 +22,13 @@ const GITHUB_RELEASES_URL = "https://api.github.com/repos/Peiiii/nextclaw/releas
 const NPM_DOWNLOADS_URL = "https://api.npmjs.org/downloads/range/last-month/nextclaw";
 const TIMEZONE = "Asia/Shanghai" as const;
 const MANUAL_REFRESH_COOLDOWN_MS = 5 * 60 * 1_000;
+const DEFAULT_ASSET_LIST_QUERY: DistributionAssetListQuery = {
+  page: 1,
+  pageSize: 10,
+  query: "",
+  artifactKind: null,
+  platform: null,
+};
 
 type GitHubRelease = {
   tag_name?: unknown;
@@ -71,7 +79,9 @@ export class DistributionAdoptionService {
     return { github, npm };
   };
 
-  readOverview = async (): Promise<DistributionAdoptionOverview> => {
+  readOverview = async (
+    assetListQuery: DistributionAssetListQuery = DEFAULT_ASSET_LIST_QUERY,
+  ): Promise<DistributionAdoptionOverview> => {
     const [assets, githubDaily, npmDaily, syncStates] = await Promise.all([
       readDistributionAssets(this.env.NEXTCLAW_PLATFORM_DB),
       readDistributionDailyCounts(this.env.NEXTCLAW_PLATFORM_DB, "github_release"),
@@ -116,7 +126,7 @@ export class DistributionAdoptionService {
           lastError: state?.last_error ?? null,
         };
       }),
-      assets: githubCurrent.map((asset) => toOverviewAsset(asset, githubDaily, today, yesterday, twoDaysAgo)),
+      assets: toAssetList(githubCurrent, githubDaily, today, yesterday, twoDaysAgo, assetListQuery),
     };
   };
 
@@ -298,7 +308,7 @@ function toOverviewAsset(
   today: string,
   yesterday: string,
   twoDaysAgo: string,
-): DistributionAdoptionOverview["assets"][number] {
+): DistributionAdoptionOverview["assets"]["items"][number] {
   const counts = new Map(daily
     .filter((entry) => entry.asset_key === asset.asset_key)
     .map((entry) => [entry.business_date, entry.download_count]));
@@ -316,6 +326,47 @@ function toOverviewAsset(
     todayDownloads: githubTodayDownloads([asset], counts.get(today), counts.get(yesterday)),
     yesterdayDownloads: githubDelta(counts.get(yesterday), counts.get(twoDaysAgo)),
   };
+}
+
+function toAssetList(
+  assets: readonly DistributionAssetRow[],
+  daily: readonly DistributionDailyRow[],
+  today: string,
+  yesterday: string,
+  twoDaysAgo: string,
+  query: DistributionAssetListQuery,
+): DistributionAdoptionOverview["assets"] {
+  const selection = selectDistributionAssetRows(assets, query);
+  return {
+    items: selection.items
+      .map((asset) => toOverviewAsset(asset, daily, today, yesterday, twoDaysAgo)),
+    page: selection.page,
+    pageSize: query.pageSize,
+    total: selection.total,
+    totalPages: selection.totalPages,
+    artifactKinds: Array.from(new Set(assets.map((asset) => asset.artifact_kind))).sort(),
+    platforms: Array.from(new Set(assets.flatMap((asset) => asset.platform ? [asset.platform] : []))).sort(),
+  };
+}
+
+export function selectDistributionAssetRows(
+  assets: readonly DistributionAssetRow[],
+  query: DistributionAssetListQuery,
+): { items: DistributionAssetRow[]; page: number; total: number; totalPages: number } {
+  const normalizedQuery = query.query.trim().toLocaleLowerCase();
+  const filtered = assets.filter((asset) => {
+    if (query.artifactKind && asset.artifact_kind !== query.artifactKind) return false;
+    if (query.platform && asset.platform !== query.platform) return false;
+    if (!normalizedQuery) return true;
+    return [asset.asset_name, asset.release_tag]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+  });
+  const total = filtered.length;
+  const totalPages = Math.ceil(total / query.pageSize);
+  const page = totalPages === 0 ? 1 : Math.min(query.page, totalPages);
+  const start = (page - 1) * query.pageSize;
+  return { items: filtered.slice(start, start + query.pageSize), page, total, totalPages };
 }
 
 function sumGithubDailyByDate(entries: readonly DistributionDailyRow[]): Map<string, number> {

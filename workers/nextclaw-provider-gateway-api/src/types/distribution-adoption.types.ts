@@ -33,6 +33,29 @@ export type DistributionAssetRow = {
   last_synced_at: string;
 };
 
+export type DistributionAssetListQuery = {
+  page: number;
+  pageSize: 10 | 20;
+  query: string;
+  artifactKind: DistributionArtifactKind | null;
+  platform: string | null;
+};
+
+export type DistributionAssetList = {
+  items: Array<DistributionAssetRecord & {
+    firstObservedAt: string;
+    lastSyncedAt: string;
+    todayDownloads: number | null;
+    yesterdayDownloads: number | null;
+  }>;
+  page: number;
+  pageSize: 10 | 20;
+  total: number;
+  totalPages: number;
+  artifactKinds: DistributionArtifactKind[];
+  platforms: string[];
+};
+
 export type DistributionDailyRow = {
   source: DistributionSource;
   asset_key: string;
@@ -67,10 +90,5 @@ export type DistributionAdoptionOverview = {
     lastSuccessAt: string | null;
     lastError: string | null;
   }>;
-  assets: Array<DistributionAssetRecord & {
-    firstObservedAt: string;
-    lastSyncedAt: string;
-    todayDownloads: number | null;
-    yesterdayDownloads: number | null;
-  }>;
+  assets: DistributionAssetList;
 };

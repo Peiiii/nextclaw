@@ -4,7 +4,20 @@ import {
   ensurePlatformBootstrap,
   requireAdminUser,
 } from "@/services/platform.service";
+import type {
+  DistributionArtifactKind,
+  DistributionAssetListQuery,
+} from "@/types/distribution-adoption.types";
 import type { Env } from "@/types/platform";
+
+const ARTIFACT_KINDS = new Set<DistributionArtifactKind>([
+  "npm_runtime_bundle",
+  "desktop_installer",
+  "desktop_portable",
+  "desktop_runtime_bundle",
+  "update_metadata",
+  "other",
+]);
 
 export async function adminDistributionAdoptionOverviewHandler(
   c: Context<{ Bindings: Env }>,
@@ -12,8 +25,23 @@ export async function adminDistributionAdoptionOverviewHandler(
   await ensurePlatformBootstrap(c.env);
   const admin = await requireAdminUser(c);
   if (!admin.ok) return admin.response;
-  const overview = await new DistributionAdoptionService(c.env).readOverview();
+  const overview = await new DistributionAdoptionService(c.env).readOverview(parseAssetListQuery(c));
   return c.json({ ok: true, data: overview });
+}
+
+function parseAssetListQuery(c: Context<{ Bindings: Env }>): DistributionAssetListQuery {
+  const pageSize = c.req.query("pageSize") === "20" ? 20 : 10;
+  const artifactKind = c.req.query("artifactKind");
+  const platform = c.req.query("platform")?.trim() ?? "";
+  return {
+    page: Math.max(1, Number.parseInt(c.req.query("page") ?? "1", 10) || 1),
+    pageSize,
+    query: (c.req.query("q") ?? "").trim().slice(0, 120),
+    artifactKind: artifactKind && ARTIFACT_KINDS.has(artifactKind as DistributionArtifactKind)
+      ? artifactKind as DistributionArtifactKind
+      : null,
+    platform: platform ? platform.slice(0, 64) : null,
+  };
 }
 
 export async function refreshAdminDistributionAdoptionHandler(

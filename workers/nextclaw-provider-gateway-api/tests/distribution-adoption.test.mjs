@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   parseGithubReleaseAssets,
   parseNpmDailyDownloads,
+  selectDistributionAssetRows,
   shouldSnapshotPreviousDay,
 } from "../dist/services/distribution-adoption.service.js";
 
@@ -36,5 +37,43 @@ assert.deepEqual(parseNpmDailyDownloads({ downloads: [
 ]);
 assert.equal(shouldSnapshotPreviousDay(new Date("2026-08-20T16:05:00.000Z")), true);
 assert.equal(shouldSnapshotPreviousDay(new Date("2026-08-20T15:05:00.000Z")), false);
+
+const pagedAssets = Array.from({ length: 25 }, (_, index) => ({
+  source: "github_release",
+  asset_key: String(index),
+  release_tag: `v0.${index}`,
+  asset_name: `nextclaw-desktop-${index}.dmg`,
+  artifact_kind: "desktop_installer",
+  platform: index % 2 === 0 ? "macOS" : "Windows",
+  architecture: "x64",
+  latest_download_count: index,
+  first_observed_at: "2026-08-21T00:00:00.000Z",
+  last_synced_at: "2026-08-21T00:00:00.000Z",
+}));
+
+assert.deepEqual(selectDistributionAssetRows(pagedAssets, {
+  page: 2,
+  pageSize: 10,
+  query: "",
+  artifactKind: null,
+  platform: null,
+}), {
+  items: pagedAssets.slice(10, 20),
+  page: 2,
+  total: 25,
+  totalPages: 3,
+});
+assert.deepEqual(selectDistributionAssetRows(pagedAssets, {
+  page: 9,
+  pageSize: 20,
+  query: "v0.24",
+  artifactKind: "desktop_installer",
+  platform: "macOS",
+}), {
+  items: [pagedAssets[24]],
+  page: 1,
+  total: 1,
+  totalPages: 1,
+});
 
 console.log("[distribution-adoption] passed");

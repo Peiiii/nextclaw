@@ -20,6 +20,7 @@ import type {
   AdminProductActivityOverview,
   ProductActivityAudience
 } from '@/features/admin-overview/types/product-activity.types';
+import type { AdminDistributionAssetListQuery } from '@/features/admin-overview/types/distribution-adoption.types';
 import type { AdminRemoteQuotaSummary } from '@/features/admin-overview/types/remote-quota.types';
 import { formatUsd } from '@/lib/utils';
 import { GatewayBusinessLoopSection } from '@/pages/admin-gateway-business-loop';
@@ -30,6 +31,13 @@ type Props = {
 
 export function AdminOverviewPage({ token }: Props): JSX.Element {
   const [productActivityAudience, setProductActivityAudience] = useState<ProductActivityAudience>('external');
+  const [distributionAssetListQuery, setDistributionAssetListQuery] = useState<AdminDistributionAssetListQuery>({
+    page: 1,
+    pageSize: 10,
+    query: '',
+    artifactKind: null,
+    platform: null
+  });
   const queryClient = useQueryClient();
   const remoteQuotaApi = new AdminRemoteQuotaApiService(token);
   const productActivityApi = new AdminProductActivityApiService(token);
@@ -47,13 +55,13 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
     queryFn: async () => await productActivityApi.fetchOverview(productActivityAudience)
   });
   const distributionAdoptionQuery = useQuery({
-    queryKey: ['admin-distribution-adoption'],
-    queryFn: distributionAdoptionApi.fetchOverview
+    queryKey: ['admin-distribution-adoption', distributionAssetListQuery],
+    queryFn: async () => await distributionAdoptionApi.fetchOverview(distributionAssetListQuery)
   });
   const refreshDistributionMutation = useMutation({
     mutationFn: distributionAdoptionApi.refresh,
-    onSuccess: (overview) => {
-      queryClient.setQueryData(['admin-distribution-adoption'], overview);
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin-distribution-adoption'] });
     }
   });
   const marketplaceCountsQuery = useQuery({
@@ -121,12 +129,14 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
       >
         <DistributionAdoptionOverviewPanel
           overview={distributionAdoptionQuery.data}
+          assetListQuery={distributionAssetListQuery}
           isLoading={distributionAdoptionQuery.isLoading}
           errorMessage={distributionAdoptionQuery.error instanceof Error
             ? distributionAdoptionQuery.error.message
             : refreshDistributionMutation.error instanceof Error
               ? refreshDistributionMutation.error.message
               : null}
+          onAssetListQueryChange={setDistributionAssetListQuery}
         />
       </AdminSection>
 

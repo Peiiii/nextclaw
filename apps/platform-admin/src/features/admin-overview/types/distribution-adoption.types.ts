@@ -6,6 +6,14 @@ export type DistributionArtifactKind =
   | 'update_metadata'
   | 'other';
 
+export type AdminDistributionAssetListQuery = {
+  page: number;
+  pageSize: 10 | 20;
+  query: string;
+  artifactKind: DistributionArtifactKind | null;
+  platform: string | null;
+};
+
 export type AdminDistributionAdoptionOverview = {
   timezone: 'Asia/Shanghai';
   fetchedAt: string | null;
@@ -26,18 +34,26 @@ export type AdminDistributionAdoptionOverview = {
     lastSuccessAt: string | null;
     lastError: string | null;
   }>;
-  assets: Array<{
-    source: 'github_release';
-    assetKey: string;
-    releaseTag: string | null;
-    assetName: string;
-    artifactKind: DistributionArtifactKind;
-    platform: string | null;
-    architecture: string | null;
-    downloadCount: number;
-    firstObservedAt: string;
-    lastSyncedAt: string;
-    todayDownloads: number | null;
-    yesterdayDownloads: number | null;
-  }>;
+  assets: {
+    items: Array<{
+      source: 'github_release';
+      assetKey: string;
+      releaseTag: string | null;
+      assetName: string;
+      artifactKind: DistributionArtifactKind;
+      platform: string | null;
+      architecture: string | null;
+      downloadCount: number;
+      firstObservedAt: string;
+      lastSyncedAt: string;
+      todayDownloads: number | null;
+      yesterdayDownloads: number | null;
+    }>;
+    page: number;
+    pageSize: 10 | 20;
+    total: number;
+    totalPages: number;
+    artifactKinds: DistributionArtifactKind[];
+    platforms: string[];
+  };
 };
