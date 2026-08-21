@@ -36,3 +36,9 @@
 - 已作为 `v0.42.2` stable batch 发布；`nextclaw@0.42.2` 为 npm `latest`，同批 8 个公开包均已完成 registry 校验。
 - Stable runtime 已构建并发布 darwin arm64/x64、linux x64、win32 x64 update bundle，GitHub Release、gh-pages 和公开 manifest 验证通过。
 - 已从发布的 `0.42.1` 执行 `check`、`download-only`、`apply` 和新进程版本验证，最终确认升级为 `0.42.2`。
+
+## Desktop 发布记录
+
+- 已发布 [NextClaw Desktop 0.0.262](https://github.com/Peiiii/nextclaw/releases/tag/v0.42.2-desktop.1)，桌面 runtime 为 `0.42.2`。
+- `desktop-release` workflow `32512855395` 的 8 个 jobs 全部成功：macOS arm64/x64、Windows x64/arm64、Linux x64、release assets、stable 更新通道与 APT。
+- 闭环已验证 Windows 安装器、Windows x64/arm64 portable、Windows bundle/manifest、公钥和 Linux `.deb`；`gh-pages`、公开 Pages stable manifest 和 APT 均指向正确版本。
