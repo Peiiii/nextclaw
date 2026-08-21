@@ -19,9 +19,9 @@
 - `release:summary` 自动聚合绑定博客，stable 产品闭环在 `NPM_READY` 后阻断未完成的中英文文章、index 或 sidebar，避免 release notes 静默遗漏博客且不前置阻塞 NPM。
 - 针对真实 VPS 上约 68 MB、工具调用分散在大量消息中的会话，补充单消息/整页工具调用数量预算；`final` 与 `error` 终态都可按整条消息延迟加载，`pending` / `streaming` 保持完整实时表示；
 - 首次进入只对显式 compact 请求按 24 KiB 预算返回最近至少 5 条，随后复用 stream-gap reconcile 自动补齐近期 20 条；相同 snapshot 不再重复 hydrate，更早历史继续沿原滚动分页加载；
-- 生产 HTML 在解析阶段抢跑同一 canonical compact API、提前发现 module entry，Chat 主工作区进入首包；VPS Nginx 仅对内容哈希 `/assets/` 静态直出，HTML、API、WebSocket 与运行时注入仍由 NextClaw owner 处理；
+- 生产 HTML 在解析阶段抢跑同一 canonical compact API、提前发现 module entry，Chat 主工作区进入首包；VPS 当前把 HTML、`/assets/`、API、WebSocket 与运行时注入一并代理给 active NextClaw runtime，已撤销固定指向全局 npm 安装目录的 Nginx 静态 alias；
 - history hook 按职责拆分为交互状态 owner 与 seed/prefetch owner；拒绝会使首屏 gzip 总量从约 420 KiB 增至约 646 KiB 的强制 manual chunk 方案。
-- `nextclaw` 发布构建现在为符合条件的 UI 文本资产生成确定性 `.gz` sidecar，prepack、registry tarball 和真实安装验证共用同一逐文件完整性检查；外部 `gzip_static` 部署升级后不再依赖手工重新压缩。
+- `nextclaw` 发布构建现在为符合条件的 UI 文本资产生成确定性 `.gz` sidecar，prepack、registry tarball 和真实安装验证共用同一逐文件完整性检查；它只证明发布包完整性，不能授权外部 `gzip_static` 以固定全局安装目录提供 runtime asset。
 
 ## 测试/验证/验收方式
 
@@ -37,11 +37,11 @@
 - 完全绕过缓存的公网样本仍为 10.14–13.86 秒，中位 12.57 秒，主 entry 下载占 9.61–13.27 秒；该剩余瓶颈属于 IP HTTP/1.1 静态传输，不纳入“热刷新 1.13 秒”的结论；
 - 后续定向 server 14 项、UI conversation 17 项、NCP React 4 项与应用 4 项测试通过；受影响 TypeScript、目标 ESLint、planned-path preflight、`git diff --check` 通过，diff-only 可维护性检查保持 0 error。
 - 真实 7.8 MB UI 产物识别 115 个不少于 1 KiB 的可压缩文件，原始 7,506,103 字节生成 2,176,872 字节 sidecar；重复生成结果一致，缺失、损坏、陈旧和孤立 sidecar 测试均能明确失败。
-- VPS `/assets/` 已删除局部 `gzip off` 并通过 `nginx -t` 后无中断 reload：已有 sidecar 的主 entry 继续由 `gzip_static` 返回 419,171 字节 gzip；无 sidecar 的 8 KB 隔离 JavaScript 探针也返回动态 gzip 与 `Vary: Accept-Encoding`。探针已删除，Nginx、NextClaw 和 health 均正常。
+- 2026-08-21 runtime update 后，公网 HTML 来自 active `0.42.1` runtime，但固定 Nginx alias 仍从旧全局 `0.40.1` 包取 `/assets/`，新 hash 的 24 个资源全部 404，因而前端无法启动。已禁用该 alias，通过 `nginx -t` 后无中断 reload；公网 HTML 与 runtime 本地 HTML 的哈希一致，HTML 引用的 24 个 asset 均成功返回，Nginx、NextClaw 和 health 均正常。
 
 ## 发布/部署方式
 
-原迭代源码已本地提交；本轮在用户授权的真实 VPS 上完成 server/UI 热修和 Nginx 静态资源直出验收，本次源码跟进把预压缩资产纳入正式 `nextclaw` 发布包，不执行 push、NPM 发布、runtime 发布或桌面发布。VPS 热修仍会被正式安装替换，但新包会自带匹配新 hash 的 sidecar；NPM 可以先达到 `NPM_READY`，博客必须在后续 runtime/docs 产品闭环前转为 `ready`。
+原迭代源码与预压缩资产已进入 `nextclaw@0.42.1`；本次线上事故修复是服务器配置止血：禁用把 `/assets/` 固定映射到全局 npm 安装目录的 Nginx alias，回到同一 active runtime 的代理主链路。该动作不改变 npm 包，也不创建新的 runtime/桌面发布；后续若要再次引入外部静态直出，必须先由 runtime updater 提供与 runtime 切换同一原子操作的稳定静态目录。
 
 ## 用户/产品视角的验收步骤
 
@@ -55,7 +55,7 @@
 
 ## 可维护性总结汇总
 
-本次把事实 owner 收敛为 projection 负责稳定游标、server 负责 UI 载荷预算、前端 history hook 负责详情状态与缓存；没有引入逐工具请求或平行 journal 事实源。compact 只是同一 history API 的显式表示合同，HTML prefetch 只消费一次且失败回到 canonical SDK 路径。history hook 进一步拆为 252 行交互状态 owner 与 134 行 seed/prefetch owner；没有为了指标增加 wrapper。发布资产由单一 `UiDistPrecompressionManager` 负责生成和验证，copy、prepack、tarball 与安装检查复用同一候选规则，不把逻辑复制到 Nginx 或 postinstall。博客发布继续复用 changeset、草稿 frontmatter 和既有 `release:summary`，没有新增平行 manifest 或发布阶段。新增文件均通过 planned-path preflight，未新增 barrel。自动检查最初发现函数复杂度与文件行数问题，拆出工具载荷 hook、summary read store 和局部纯函数后清零 error；release 脚本 scoped maintainability 检查也通过，三个现有热点文件保持在既定预算边界，没有扩大预算。
+本次把事实 owner 收敛为 projection 负责稳定游标、server 负责 UI 载荷预算、前端 history hook 负责详情状态与缓存；没有引入逐工具请求或平行 journal 事实源。compact 只是同一 history API 的显式表示合同，HTML prefetch 只消费一次且失败回到 canonical SDK 路径。history hook 进一步拆为 252 行交互状态 owner 与 134 行 seed/prefetch owner；没有为了指标增加 wrapper。发布资产由单一 `UiDistPrecompressionManager` 负责生成和验证，copy、prepack、tarball 与安装检查复用同一候选规则。事故复盘进一步收敛了运行时 asset owner：sidecar 完整性与运行时路由是两个合同，不能让 Nginx 以固定全局安装目录绕开 active runtime。博客发布继续复用 changeset、草稿 frontmatter 和既有 `release:summary`，没有新增平行 manifest 或发布阶段。新增文件均通过 planned-path preflight，未新增 barrel。自动检查最初发现函数复杂度与文件行数问题，拆出工具载荷 hook、summary read store 和局部纯函数后清零 error；release 脚本 scoped maintainability 检查也通过，三个现有热点文件保持在既定预算边界，没有扩大预算。
 
 ## 红区触达与减债记录
 

@@ -177,29 +177,27 @@ VPS 浏览器在静态资源压缩后连续 5 次热刷新仍为 3.04–5.21 秒
 
 将 `ChatPage` 改为普通静态 import，使 Vite 在 HTML 中直接生成它及共享依赖的 module preload，并让 Router 首次 render 不再经过 route Suspense。模型、外观、搜索、渠道、安全等低频页面仍保留 lazy boundary，避免把所有功能无差别塞进首包。这个取舍允许主入口首包小幅增加，换取消除一次公网往返和一段路由占位；构建后必须记录 entry gzip 增量并用真实 VPS 复测，若首包增量抵消了瀑布收益则回退，而不是仅凭结构推断保留。
 
-### 17. VPS 静态 assets 由 Nginx 直接发送，HTML 与 API 继续归 NextClaw
+### 17. 已撤销：Nginx 不能把 `/assets/` 固定指向全局 npm 安装目录
 
-登录态恢复后的真实浏览器热刷新为 0.57–1.38 秒、中位 1.13 秒；强制绕过浏览器缓存的冷进入为 19.96 秒，其中 420KiB gzip 主 entry 从公网下载本身占 19.44 秒。此时 compact history 已在 2 秒附近完成，不能再通过减少消息或延迟 UI 修复。当前 `/assets/` 仍经 Nginx 反代到 Node，响应使用 chunked 传输；静态资源没有业务鉴权和运行时注入需要，多一层应用代理只增加传输与故障面。
+此前实验曾在登录态恢复后测得 0.57–1.38 秒、中位 1.13 秒的热刷新，并把 `/assets/` alias 到全局 `nextclaw` 包的 `ui-dist/assets`。该数字只说明当时那一组 HTML 与 asset 恰好来自同一构建时，静态直出可以加快传输；它不构成可跨 runtime update 保持正确的部署方案。
 
-VPS Nginx 为 `/assets/` 建立只读 alias，直接指向已安装 NextClaw 的 `ui-dist/assets`，保留内容哈希资源的一年 immutable 缓存与 gzip；HTML、`/api`、`/ws`、manifest、logo 和其它运行时路径继续走 NextClaw，避免绕过动态注入、认证或未来语义。发布或热修仍原子替换同一 `ui-dist` owner，Nginx 配置不复制构建产物。变更必须先备份完整 server 配置、通过 `nginx -t`，再 reload；回归要证明入口 asset 为正确 MIME、gzip 与 immutable，未知 asset 返回 404，页面认证和消息读取不变。若真实冷测没有收益则恢复原代理路径，不因“静态直出通常更快”而保留无证据配置。
+2026-08-21 的线上故障证明了这个边界：runtime update 实际启动的是 `NEXTCLAW_HOME/launcher/runtime-bundles/versions/<version>/runtime` 中的当前 bundle，而全局 npm 安装包仍可能停留在旧版本。HTML 因此引用新 hash（例如 `index-DdYOaKm7.js`），Nginx 却到旧目录寻找同名文件，所有关键 asset 返回 404，前端无法启动。这不是缓存或单个 gzip sidecar 缺失，而是一个 URL 被两个版本 owner 分别解释的合同破坏。
+
+当前恢复路径是让 Nginx 将 HTML、`/assets/`、API、WebSocket 与运行时注入都代理给同一个 active runtime；NextClaw 内置服务继续负责动态 gzip 和 immutable asset cache。除非 runtime updater 提供一个由它原子切换、且 HTML 与 `/assets/` 永远同版本的稳定静态目录，任何 Nginx 配置都不得把 `/assets/` 写死到全局 npm 路径、某个 version bundle 或发布目录。未来若建设该能力，必须把“切换 active runtime 与切换静态目录”为同一原子操作，并在每次升级后验证 HTML 引用的全部 asset 均从该 owner 返回 200；在此之前，用户可用性优先于绕过 Node 的潜在传输收益。
 
 ### 18. 拒绝仅按 feature/package 边界强制拆主包
 
-Nginx 静态直出把强制冷进入从 19.96 秒降到 6.33 秒，但 420KiB gzip 的主 entry 仍在一条 HTTP/1.1 连接上耗时 5.92 秒。曾在隔离构建中评估按现有 UI Chat feature 与 NCP/agent-chat package 边界拆成两个稳定 chunk，以利用并行连接并提高跨版本缓存命中。
+在已撤销的 Nginx 静态直出实验中，强制冷进入曾从 19.96 秒降到 6.33 秒，但 420KiB gzip 的主 entry 仍在一条 HTTP/1.1 连接上耗时 5.92 秒。曾在隔离构建中评估按现有 UI Chat feature 与 NCP/agent-chat package 边界拆成两个稳定 chunk，以利用并行连接并提高跨版本缓存命中。该测量保留为性能诊断证据，不是当前线上架构承诺。
 
 结果不接受：原 entry 为约 420KiB gzip；强拆后 `chat-workspace` 为 376KiB、`chat-runtime` 为 270KiB，首屏压缩总量增加约 226KiB，最大单 chunk 只减少约 44KiB。目录边界在运行时存在大量交叉引用，强制分块破坏压缩局部性，却没有形成足够均衡的并行块。该实验未进入主工作区、未部署；后续若治理首包，必须先沿真实 import owner 解耦低频能力或引入 HTTP/2/CDN，不能用 manualChunks 掩盖耦合。
 
-### 19. 预压缩静态资产属于 `nextclaw` 发布包合同，不属于单机部署补丁
+### 19. 预压缩 UI 资产是发布包完整性合同，不是 runtime 静态路由合同
 
-VPS 验收通过时，`/assets/` 目录包含 318 个原文件和 318 个手工生成的 `.gz` sidecar，Nginx 使用 `gzip_static on` 直接发送它们；但 `npm install -g nextclaw` 会整体替换安装包内的 `ui-dist`，现有发布构建只复制原文件，不会重建 sidecar。于是源码优化已经进入版本，最快的静态传输路径却仍会在升级后丢失。这不是 Nginx 单点配置错误，而是安装、升级和外部静态 consumer 共同依赖的发布能力面缺失。
+`copy-ui-dist` 仍会在把 `@nextclaw/ui/dist` 复制到 `nextclaw` 发布包后，为不少于 1 KiB 的可压缩文本资产生成确定性 gzip sidecar；候选限定为 HTML、JavaScript、CSS、JSON、SVG、XML、文本和 source map，不重复压缩图片、字体、归档等已经压缩的二进制资源。当前 UI 约有 115 个候选，原始总量约 7.16 MiB，sidecar 约增加 2.08 MiB 安装体积。`ui-dist` 原文件仍是 canonical asset，`.gz` 只是同内容的发布表示，不形成第二份业务事实。
 
-主合同由 `nextclaw` distribution owner 承担：`copy-ui-dist` 在把 `@nextclaw/ui/dist` 复制到发布包后，为不少于 1 KiB 的可压缩文本资产生成确定性 gzip sidecar；候选限定为 HTML、JavaScript、CSS、JSON、SVG、XML、文本和 source map，不重复压缩图片、字体、归档等已经压缩的二进制资源。当前 UI 约有 115 个候选，原始总量约 7.16 MiB，sidecar 约增加 2.08 MiB 安装体积，换取约 5.08 MiB 的每次冷传输节省。`ui-dist` 原文件仍是 canonical asset，`.gz` 只是同内容的发布表示，不形成第二份业务事实。
+发布前与 registry tarball 验证仍逐个确认候选 sidecar 存在且 gunzip 后与原文件字节完全一致；这能证明包内资产没有遗漏或陈旧，不能证明任一外部 Web server 正在从该包的正确 runtime 目录发送它们。NPM runtime update 和 Desktop 虽消费同一个 `nextclaw` 包，却会选择各自的 active runtime；因此不得从“sidecar 已发布”推导出可以为 `/assets/` 配置一个固定文件系统 alias。
 
-发布前验证必须逐个确认所有候选 sidecar 存在且 gunzip 后与原文件字节完全一致；registry 发布后的 tarball 验证重复同一合同。缺失或陈旧时 fail-fast，不能因为 NextClaw 内置 Hono server 仍能动态 gzip 就放过坏包。NPM runtime update 和 Desktop 都消费同一个 `nextclaw` 包，因此不各自生成第三套压缩资产。
-
-NextClaw 内置 HTTP server 继续使用现有动态 `compress()` 和 immutable cache，不要求 `.gz` 才能启动，也不在每次请求中扫描多级目录。外部 Nginx/Caddy 是否直出静态文件仍由部署者显式选择，NextClaw 不修改未知用户的系统配置。对于已经采用 `gzip_static on` 的部署，发布包 sidecar 会在升级后自动继续生效；当前 VPS 同时允许 Nginx 在 sidecar 暂缺时回退动态 gzip，保护非原子安装窗口或自定义构建，但该 fallback 不能替代发布包 guard。响应的 `Content-Encoding` 与静态来源 header 是可观察信号，删除条件是部署者不再由外部 server 直出 `/assets/`。
-
-不采用两条备选：只在当前 VPS 的升级脚本里重新运行 `gzip` 会继续制造单机隐式状态，不能覆盖 runtime update、Desktop 或其它 self-hosted 安装；把预压缩放进 `postinstall` 会依赖安装目录写权限和生命周期脚本未被禁用，且 registry 验证看不到最终资产。也不把 Nginx alias 自动写入用户系统，因为安装路径、TLS、权限和代理拓扑不是 NextClaw 可以安全猜测的产品状态。
+NextClaw 内置 HTTP server 继续使用动态 `compress()` 和 immutable cache，不要求 `.gz` 才能启动，也不在每次请求中扫描多级目录。只有部署环境显式提供“随 active runtime 原子切换”的静态 asset owner 后，外部 Nginx/Caddy 才可评估 `gzip_static`；该能力不能由 `postinstall`、单机升级脚本或指向全局 npm 安装目录的 alias 伪造。当前 VPS 不启用这类直出，响应正确性以 HTML 和其所有 hash asset 由同一 runtime 返回为准。
 
 ## 数据与事件主链路
 
@@ -267,7 +265,7 @@ NextClaw 内置 HTTP server 继续使用现有动态 `compress()` 和 immutable 
 - 抢跑：匹配的 HTML 预取成功时 history loader 不重复请求 compact API；不匹配 session、错误 envelope、reject 和 abort 分别证明标准 fallback 或立即退出。VPS 日志中 compact GET 应在其它全局 API fan-out 之前开始，热刷新消息行首次可见目标稳定在 2 秒附近。
 - 资源发现：生产构建的 hashed module entry 位于 head，`/api/ui-inject.js` 仍为 body 同步脚本且不重复；浏览器验证注入能力、登录态与会话页均正常。
 - 发布资产：隔离构建验证候选筛选、最小体积、确定性 gzip 和损坏检测；`nextclaw` prepack 与已发布 tarball 验证必须覆盖全部候选，不只检查“至少存在一个 `.gz`”。
-- 升级恢复：在当前 VPS 用缺失 sidecar 的隔离静态样本证明动态 gzip fallback 生效，再用正式 sidecar 证明 `gzip_static` 优先；实际升级后新 hash entry 仍返回 gzip、immutable 和 Nginx 静态来源标记。
+- 升级恢复：每次 runtime update 后，从公网入口读取 HTML 并逐一请求其中声明的 hash asset，确认均由同一个 active runtime 返回 200；当前 VPS 走 Nginx 反代与内置动态 gzip，不以 `gzip_static` 或某个固定磁盘路径作为验收条件。
 - Kernel：最新页和前序页都只访问 message projection；测试锁定不读取完整 session、不预览 context window、不写 projection。
 - Kernel：`getSession` 的测试锁定 summary read model，`publishSessionChange` 的测试锁定 canonical 计算与 projection 更新；旁路摘要请求并发时不触发重复 preview。
 - 性能：当前 44 MB 压力会话的 summary 接口首字节应由约 1.45 秒降到 200ms 内；若冷态 projection 首次重建不满足此目标，单独记录为一次性重建路径，不能混入稳定热路径结论。
@@ -287,6 +285,6 @@ NextClaw 内置 HTTP server 继续使用现有动态 `compress()` 和 immutable 
 - 定向回归覆盖 kernel projection/summary owner、server 预算与 controller、UI history 状态和 agent chat 交互；受影响 package TypeScript、ESLint、skill progressive-loading 和 diff-only maintainability 检查通过。
 - VPS 真实 68 MB 会话最终 compact 首批返回 6 条：JSON 15,741 字节、gzip 5,739 字节，Server 读取约 109ms；普通 20 条后台补齐为 JSON 85,097 字节、gzip 25,969 字节，前页 cursor 与首批无缺口。
 - 浏览器确认每次刷新只有一项 compact GET，随后既有 stream-gap reconcile 自动读取普通 20 条；首批消息无需等补齐即可阅读，未删除数据、未改变向上滚动入口。
-- gzip、HTML module 提前发现、Chat 主路径静态进入和 Nginx `/assets/` 直出全部生效后，已登录热刷新 5 次为 0.565–1.384 秒，中位 1.130 秒；初始约 18.3 秒的大会话进入问题在日常缓存路径上已消除。
-- 完全绕过浏览器缓存时，Nginx 直出把单次冷测从 19.96 秒降到 6.33 秒；后续 3 次公网波动样本为 10.14–13.86 秒，中位 12.57 秒，主 entry 下载占 9.61–13.27 秒。该剩余瓶颈是 IP HTTP/1.1 公网静态传输，不是会话读取；不能宣称冷启动已达到 5 秒内。
+- gzip、HTML module 提前发现、Chat 主路径静态进入和当时的 Nginx `/assets/` 直出实验同时存在时，已登录热刷新 5 次为 0.565–1.384 秒，中位 1.130 秒。2026-08-21 发现该 alias 无法随 runtime update 原子切换后已撤销，故这些数值仅是历史实验测量，不能作为当前 VPS 或发布版本的性能承诺。
+- 完全绕过浏览器缓存时，已撤销的 Nginx 直出实验把单次冷测从 19.96 秒降到 6.33 秒；后续 3 次公网波动样本为 10.14–13.86 秒，中位 12.57 秒，主 entry 下载占 9.61–13.27 秒。这解释了当时的传输瓶颈，但不能越过 HTML/asset 同一 runtime owner 的正确性约束；重新测量当前代理路径前，不宣称冷启动已达到 5 秒内。
 - 按 feature/package 强制拆 chunk 的隔离实验使首屏 gzip 总量从约 420KiB 增至约 646KiB，已撤销且未部署。history hook 则按真实职责拆为 252 行交互状态 owner 与 134 行 seed/prefetch owner，定向 17 项测试、UI TypeScript、ESLint 与 diff check 通过。
