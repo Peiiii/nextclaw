@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.42.1
+
+### Patch Changes
+
+- 82e8b03: Built-in Service Apps now keep a structured error response when a request fails, instead of showing a non-JSON server error. Desktop releases also verify Favorites and Calendar on Linux and Windows without a system Node.js installation.
+- Updated dependencies [82e8b03]
+  - @nextclaw/server@0.17.2
+  - @nextclaw/remote@0.3.40
+  - @nextclaw/service@0.3.43
+
 ## 0.42.0
 
 ### Minor Changes
