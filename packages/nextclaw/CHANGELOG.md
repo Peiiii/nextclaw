@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.42.2
+
+### Patch Changes
+
+- 9816eaf: Fix Windows Desktop Service App requests so packaged runtimes retain classified errors across package boundaries, and verify Favorites and Calendar actions in the real packaged desktop runtime.
+- Updated dependencies [9816eaf]
+  - @nextclaw/kernel@0.9.2
+  - @nextclaw/server@0.17.3
+  - @nextclaw/remote@0.3.41
+  - @nextclaw/service@0.3.44
+
 ## 0.42.1
 
 ### Patch Changes
