@@ -59,6 +59,7 @@ function createControllerParams(params: {
   const removeQueuedInput = vi.fn(async (id: string) =>
     queuedInputs.find((item) => item.id === id) ?? null,
   );
+  const refreshPendingInputs = vi.fn(async () => []);
   const refreshQueuedInputs = vi.fn(async () => queuedInputs);
   const steerQueuedInput = vi.fn(async () => null);
   return {
@@ -118,6 +119,7 @@ function createControllerParams(params: {
     isRuntimeBlocked: false,
     runQueue: {
       inputs: queuedInputs,
+      refreshPendingInputs,
       refreshQueuedInputs,
       removeQueuedInput,
       steerQueuedInput,
@@ -197,6 +199,21 @@ describe('useSessionConversationController backend run queue', () => {
       message: { parts: [{ type: 'text', text: 'next task' }] },
     });
     expect(result.current.queuedInputs).toEqual([]);
+    expect(params.runQueue.refreshPendingInputs).toHaveBeenCalledTimes(1);
+    expect(params.runQueue.refreshQueuedInputs).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the queue when direct steering falls back to queued delivery', async () => {
+    const send = createSendMock(createRunHandle({ delivery: 'queued', runId: null }));
+    const params = createControllerParams({ isRunning: true, send });
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    await act(async () => {
+      await result.current.sendSteering();
+    });
+
+    expect(params.runQueue.refreshPendingInputs).not.toHaveBeenCalled();
+    expect(params.runQueue.refreshQueuedInputs).toHaveBeenCalledTimes(1);
   });
 
   it('sends a preset message without clearing the existing composer draft', async () => {
@@ -327,7 +344,7 @@ describe('useSessionConversationController backend run queue', () => {
     const { result } = renderHook(() => useSessionConversationController(params));
 
     expect(result.current.queuedInputs).toEqual([
-      { id: queuedInput.id, preview: 'queued task' },
+      expect.objectContaining({ id: queuedInput.id, preview: 'queued task' }),
     ]);
     act(() => {
       result.current.editQueuedInput(queuedInput.id);

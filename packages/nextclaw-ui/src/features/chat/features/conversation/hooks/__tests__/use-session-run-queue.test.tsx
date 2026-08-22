@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   eventKeys,
+  type UiNcpSessionPendingInputView,
   type UiNcpSessionPendingInputsView,
   type UiNcpSessionQueuedInputView,
 } from '@nextclaw/client-sdk';
@@ -105,6 +106,31 @@ describe('useSessionRunQueue', () => {
 
     expect(listPendingInputs).toHaveBeenCalledTimes(2);
     expect(refreshed[0]?.message.parts[0]).toMatchObject({ text: 'queued' });
+  });
+
+  it('refreshes steering inputs without filtering them out of the pending snapshot', async () => {
+    const steeringQueue: UiNcpSessionPendingInputsView = {
+      ...createQueue('session-1', 'change direction'),
+      inputs: [{
+        ...createQueue('session-1', 'change direction').inputs[0]!,
+        intendedRunId: 'run-1',
+        placement: 'steering',
+      }],
+    };
+    vi.spyOn(nextclawClient.sessions, 'listPendingInputs').mockResolvedValue(steeringQueue);
+    const { result } = renderHook(
+      () => useSessionRunQueue('session-1'),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.pendingInputs).toHaveLength(1));
+    let refreshed: readonly UiNcpSessionPendingInputView[] = [];
+    await act(async () => {
+      refreshed = await result.current.refreshPendingInputs();
+    });
+
+    expect(refreshed).toMatchObject([{ placement: 'steering', intendedRunId: 'run-1' }]);
+    expect(result.current.inputs).toEqual([]);
   });
 
   it('replaces an in-flight stale queue read after the queue changes', async () => {

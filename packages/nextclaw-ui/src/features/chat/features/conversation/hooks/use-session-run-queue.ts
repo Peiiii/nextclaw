@@ -48,13 +48,18 @@ export function useSessionRunQueue(sessionKey: string | null) {
     );
   }, [normalizedSessionKey]);
 
-  const refreshQueuedInputs = useCallback(async (): Promise<readonly UiNcpSessionQueuedInputView[]> => {
+  const refreshPendingInputs = useCallback(async (): Promise<readonly UiNcpSessionPendingInputView[]> => {
     if (!normalizedSessionKey) {
       return [];
     }
     const result = await refetch();
-    return result.data?.inputs.filter(({ placement }) => placement === 'queued') ?? [];
+    return result.data?.inputs ?? [];
   }, [normalizedSessionKey, refetch]);
+
+  const refreshQueuedInputs = useCallback(async (): Promise<readonly UiNcpSessionQueuedInputView[]> => {
+    const inputs = await refreshPendingInputs();
+    return inputs.filter(({ placement }) => placement === 'queued');
+  }, [refreshPendingInputs]);
 
   const steerQueuedInput = useCallback(async (
     queuedInputId: string,
@@ -69,6 +74,7 @@ export function useSessionRunQueue(sessionKey: string | null) {
     inputs: inputs.filter(({ placement }) => placement === 'queued'),
     pendingInputs: inputs,
     isLoading,
+    refreshPendingInputs,
     refreshQueuedInputs,
     removeQueuedInput,
     steerQueuedInput,

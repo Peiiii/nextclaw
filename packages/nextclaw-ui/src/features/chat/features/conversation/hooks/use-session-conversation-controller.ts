@@ -54,6 +54,7 @@ export type SessionConversationQueuedInput = {
 
 type SessionRunQueue = {
   readonly inputs: readonly UiNcpSessionQueuedInputView[];
+  readonly refreshPendingInputs: () => Promise<readonly UiNcpSessionPendingInputView[]>;
   readonly refreshQueuedInputs: () => Promise<readonly UiNcpSessionQueuedInputView[]>;
   readonly removeQueuedInput: (
     queuedInputId: string,
@@ -248,7 +249,9 @@ function useSubmissionDraftRunner(params: {
     setSendError(null);
     try {
       const handle = await agent.send(envelope);
-      if (queuedSubmission && handle?.delivery === 'queued') {
+      if (handle?.delivery === 'steered') {
+        await runQueue.refreshPendingInputs().catch(() => undefined);
+      } else if (handle?.delivery === 'queued') {
         await runQueue.refreshQueuedInputs().catch(() => undefined);
       }
       if (queuedSubmission) clearSubmittingInput(queuedSubmission);

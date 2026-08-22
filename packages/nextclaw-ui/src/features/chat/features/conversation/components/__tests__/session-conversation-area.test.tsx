@@ -110,6 +110,7 @@ const mocks = vi.hoisted(() => {
     inputRenderSpy,
     initialPromptSpy,
     inputSnapshot,
+    pendingInputs: [] as unknown[],
     runtimeBlocked: false,
     presenter: {
       chatUiManager: {
@@ -197,8 +198,9 @@ vi.mock(
   () => ({
     useSessionRunQueue: () => ({
       inputs: [],
-      pendingInputs: [],
+      pendingInputs: mocks.pendingInputs,
       isLoading: false,
+      refreshPendingInputs: vi.fn(async () => []),
       refreshQueuedInputs: vi.fn(async () => []),
       removeQueuedInput: vi.fn(async () => null),
       steerQueuedInput: vi.fn(async () => null),
@@ -277,6 +279,7 @@ describe("SessionConversationArea input boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.agent.visibleMessages = [];
+    mocks.pendingInputs = [];
     mocks.agent.isHydrating = false;
     mocks.agent.isRunning = true;
     mocks.agent.isSending = true;
@@ -344,6 +347,35 @@ describe("SessionConversationArea input boundary", () => {
 
     expect(screen.getByTestId("message-count").textContent).toBe("1");
     expect(mocks.inputRenderSpy).toHaveBeenCalledOnce();
+  });
+
+  it("projects a steering input as one pending user message until its durable message arrives", () => {
+    const message = {
+      id: "steering-message-1",
+      sessionId: "session-1",
+      role: "user",
+      status: "final",
+      timestamp: "2026-08-22T00:00:00.000Z",
+      parts: [{ type: "text", text: "改变方向" }],
+    };
+    mocks.pendingInputs = [{
+      id: "pending-input-1",
+      intendedRunId: "run-1",
+      placement: "steering",
+      message,
+    }];
+    const rendered = renderArea("session-1");
+
+    expect(screen.getByTestId("message-count").textContent).toBe("1");
+
+    mocks.agent.visibleMessages = [message];
+    rendered.rerender(
+      <MemoryRouter>
+        <SessionConversationArea sessionKey="session-1" />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("message-count").textContent).toBe("1");
   });
 
   it("shows compaction feedback only for the active session", () => {
