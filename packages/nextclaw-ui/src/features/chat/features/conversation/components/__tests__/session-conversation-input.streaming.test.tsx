@@ -646,6 +646,7 @@ function AttachmentSubmitHarness({
     isRuntimeBlocked: false,
     runQueue: {
       inputs: [],
+      refreshPendingInputs: async () => [],
       refreshQueuedInputs,
       removeQueuedInput: async () => null,
       steerQueuedInput: async () => null,

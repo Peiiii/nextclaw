@@ -10,6 +10,7 @@ import { SessionToolProvider } from "./providers/session-tool.provider.js";
 import { ShowContentToolProvider } from "./providers/show-content-tool.provider.js";
 import { InboxDeliveryToolProvider } from "./providers/inbox-delivery-tool.provider.js";
 import { StructuredResultToolProvider } from "./providers/structured-result-tool.provider.js";
+import { ObservationToolProvider } from "./providers/observation-tool.provider.js";
 import { ToolProviderRunContextService } from "./services/tool-provider-run-context.service.js";
 
 export { ShowContentToolProvider };
@@ -35,6 +36,7 @@ export class ToolProviderContribution extends Contribution {
       new StructuredResultToolProvider(),
       new ShowContentToolProvider(this.kernel.eventBus),
       new InboxDeliveryToolProvider(this.kernel.inboxDeliveryManager),
+      new ObservationToolProvider(this.kernel.observations),
       new CoreToolProvider(runContextService, this.kernel.getGatewayController),
       new MessagingToolProvider(
         runContextService,

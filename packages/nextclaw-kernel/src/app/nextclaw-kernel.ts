@@ -21,16 +21,16 @@ import {
   SystemObjectReferenceManager,
 } from "@kernel/managers/system-object-reference.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
-import { SessionManager } from "@kernel/managers/session.manager.js";
+import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { PreferenceManager } from "@kernel/managers/preference.manager.js";
-import { ProjectManager } from "@kernel/managers/project.manager.js";
+import type { ProjectManager } from "@kernel/managers/project.manager.js";
 import type { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { ToolProviderManager } from "@kernel/managers/tool-provider.manager.js";
-import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
+import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
   createAgentRuntimeSessionRequestDispatcher,
   SessionRequestManager,
@@ -41,6 +41,7 @@ import { ContextWindowContribution } from "@kernel/contributions/context-window/
 import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
 import { ToolProviderContribution } from "@kernel/contributions/tool-provider/index.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
+import type { ObservationManager } from "@kernel/features/observation/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -49,7 +50,7 @@ import {
   getWorkspacePath,
   MessageBus,
   DiagnosticRuntime,
-  SessionSearchService,
+  type SessionSearchService,
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
@@ -58,12 +59,14 @@ import {
   resolveKernelAppHomeDirectory,
   resolveKernelAutomationStorePath,
   resolveKernelInboxDeliveryStorePath,
+  resolveKernelObservationStorePath,
   resolveKernelPreferenceStorePath,
   resolveKernelProjectStorePath,
   resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
   createKernelOperationalManagers,
+  createKernelSessionManagers,
   createKernelServiceAppManagers,
 } from "@kernel/app/kernel-manager.factory.js";
 import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
@@ -116,7 +119,9 @@ export class NextclawKernel {
   readonly messageBus: MessageBus = new MessageBus();
   readonly diagnostics = new DiagnosticRuntime();
   readonly llmProviders: LlmProviderManager = new LlmProviderManager();
-  readonly providerModelCatalog = new ProviderModelCatalogManager(this.llmProviders);
+  readonly providerModelCatalog = new ProviderModelCatalogManager(
+    this.llmProviders,
+  );
   readonly llmUsage: LlmUsageManager = new LlmUsageManager();
   readonly configManager: ConfigManager;
   readonly accessManager: AccessManager;
@@ -147,19 +152,13 @@ export class NextclawKernel {
   readonly sessionContextCompactionManager: SessionContextCompactionManager;
   readonly toolProviderManager = new ToolProviderManager(this.diagnostics);
   readonly agentRunRequestManager: AgentRunRequestManager;
+  readonly observations: ObservationManager;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
 
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
-    this.sessionSearch = new SessionSearchService({
-      databasePath: resolve(getDataDir(), "session-search.db"),
-      sessionsDir,
-    });
-    this.ncpAgentSessionJournalStore = new NcpAgentSessionJournalStore(
-      resolve(sessionsDir, ".ncp-agent-journal"),
-    );
     ({
       automation: this.automation,
       channels: this.channels,
@@ -175,7 +174,11 @@ export class NextclawKernel {
     this.assetStore = new LocalAssetStore({
       rootDir: resolve(getDataDir(), "assets"),
     });
-    this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
+    this.control = new NextclawKernelControlManager<
+      unknown,
+      unknown,
+      unknown
+    >();
     this.agents = new AgentManager(this.configManager);
     this.agentContextWindowManager = new AgentContextWindowManager(
       this.agents,
@@ -186,21 +189,22 @@ export class NextclawKernel {
       configManager: this.configManager,
       homeDir: options.homeDir,
     });
-    this.projectManager = new ProjectManager({
-      storePath: resolveKernelProjectStorePath(options),
-      getDefaultWorkspacePath: () => getWorkspacePath(
-        this.configManager.config.agents.defaults.workspace,
-      ),
-    });
-    this.sessionManager = new SessionManager({
+    ({
+      journalStore: this.ncpAgentSessionJournalStore,
+      observations: this.observations,
+      projectManager: this.projectManager,
+      sessionManager: this.sessionManager,
+      sessionSearch: this.sessionSearch,
+    } = createKernelSessionManagers({
       agentContextWindowManager: this.agentContextWindowManager,
       agentManager: this.agents,
       configManager: this.configManager,
       eventBus: this.eventBus,
-      journalStore: this.ncpAgentSessionJournalStore,
-      projectManager: this.projectManager,
-      sessionSearch: this.sessionSearch,
-    });
+      ingress: this.ingress,
+      observationStorePath: resolveKernelObservationStorePath(options),
+      projectStorePath: resolveKernelProjectStorePath(options),
+      sessionsDir,
+    }));
     this.inboxDeliveryManager = new InboxDeliveryManager({
       eventBus: this.eventBus,
       storePath: resolveKernelInboxDeliveryStorePath(options),
@@ -221,7 +225,8 @@ export class NextclawKernel {
       configManager: this.configManager,
       eventBus: this.eventBus,
       ingress: this.ingress,
-      listPackageComponentSources: this.appPackageManager.listActiveComponentSources,
+      listPackageComponentSources:
+        this.appPackageManager.listActiveComponentSources,
     });
     this.preferenceManager = new PreferenceManager({
       storePath: resolveKernelPreferenceStorePath(options),
@@ -242,6 +247,7 @@ export class NextclawKernel {
       ingress: this.ingress,
       messageBus: this.messageBus,
       sessionManager: this.sessionManager,
+      observations: this.observations,
     });
     this.skills = new SkillManager({
       workspace: getWorkspacePath(
@@ -273,7 +279,10 @@ export class NextclawKernel {
       this.agents,
       this.llmProviders,
     );
-    this.sessionRunManager = new SessionRunManager(this.sessionManager, options.productActivitySink);
+    this.sessionRunManager = new SessionRunManager(
+      this.sessionManager,
+      options.productActivitySink,
+    );
     this.sessionContextCompactionManager = new SessionContextCompactionManager(
       this.agentRuntimeManager,
       this.eventBus,
@@ -291,20 +300,24 @@ export class NextclawKernel {
       this.sessionRunManager,
       this.diagnostics,
     );
-    this.contributions = [
-      new ToolProviderContribution(this),
-      new LearningLoopContribution(this),
-      new ContextProviderContribution(this),
-      new AgentRunRuntimeContribution(this),
-      new ContextWindowContribution(this),
-    ];
+    this.contributions = this.createContributions();
   }
+
+  private createContributions = (): KernelContribution[] => [
+    new ToolProviderContribution(this),
+    new LearningLoopContribution(this),
+    new ContextProviderContribution(this),
+    new AgentRunRuntimeContribution(this),
+    new ContextWindowContribution(this),
+  ];
 
   private installAppPackageRuntimeHooks = (): void => {
     this.appPackageManager.installRuntimeHooks({
       assertCanActivate: async (sources) => {
         await this.panelAppManager.assertCanActivatePackageComponents(sources);
-        await this.serviceAppManager.assertCanActivatePackageComponents(sources);
+        await this.serviceAppManager.assertCanActivatePackageComponents(
+          sources,
+        );
       },
       beforeDeactivate: async (sources) => {
         this.panelAppManager.deactivatePackageComponents(sources);
@@ -341,7 +354,7 @@ export class NextclawKernel {
       this.providerModelCatalog.start();
       await this.projectManager.importSessionProjects(
         (await this.sessionManager.listSessions()).map((session) =>
-          readProjectRoot(session.metadata)
+          readProjectRoot(session.metadata),
         ),
       );
       await this.sessionManager.start();
@@ -349,6 +362,7 @@ export class NextclawKernel {
         await contribution.start();
       }
       this.agentRunRequestManager.start();
+      await this.observations.start();
     } catch (error) {
       await this.ncpAgentSessionJournalStore.dispose();
       throw error;
@@ -358,6 +372,7 @@ export class NextclawKernel {
   dispose = async (): Promise<void> => {
     try {
       this.providerModelCatalog.dispose();
+      await this.observations.dispose();
       this.agentRunRequestManager.dispose();
       for (const contribution of [...this.contributions].reverse()) {
         await contribution.dispose();

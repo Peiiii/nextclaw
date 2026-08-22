@@ -122,9 +122,7 @@ export type {
   ChatWorkspaceInlineTokenMetadata,
   ChatWorkspaceExcerptInlineTokenMetadata,
 } from "./configs/chat-composer-token.config.js";
-export type {
-  ChatUiResourceReference,
-} from "./configs/chat-ui-resource-reference.config.js";
+export type { ChatUiResourceReference } from "./configs/chat-ui-resource-reference.config.js";
 export type {
   SystemObjectReferenceDisplayText,
   SystemObjectReferenceGroupDescriptor,
@@ -160,6 +158,7 @@ export type {
   ExtensionChannelSubmittedAttachment,
   ExtensionChannelTextContent,
   ExtensionRuntimeReadyIngressPayload,
+  ExtensionObservationEventIngressPayload,
   ExtensionResponseIngressPayload,
 } from "./configs/ingress-keys.config.js";
 export type {

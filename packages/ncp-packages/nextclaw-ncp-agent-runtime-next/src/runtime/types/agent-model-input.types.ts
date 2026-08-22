@@ -1,8 +1,4 @@
-import type {
-  NcpLLMApiInput,
-  NcpMessage,
-  NcpTool,
-} from "@nextclaw/ncp";
+import type { NcpLLMApiInput, NcpMessage, NcpTool } from "@nextclaw/ncp";
 
 export type DefaultNcpAgentRunSpec = {
   runId: string;
@@ -21,6 +17,7 @@ export type AgentModelInputBuildRequest = {
   messages: readonly NcpMessage[];
   contextBlocks: readonly string[];
   tools: readonly NcpTool[];
+  signal?: AbortSignal;
 };
 
 export interface AgentModelInputBuilder {

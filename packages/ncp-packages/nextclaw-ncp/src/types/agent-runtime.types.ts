@@ -1,8 +1,5 @@
 import type { NcpEndpointEvent } from "./events.types.js";
-import type {
-  NcpMessage,
-  NcpToolOutputContentItem,
-} from "./message.js";
+import type { NcpMessage, NcpToolOutputContentItem } from "./message.js";
 
 export type NcpAgentRunInput = {
   sessionId: string;
@@ -40,12 +37,18 @@ export type NcpContextPrepareOptions = {
 };
 
 export interface NcpContextBuilder {
-  prepare(input: NcpAgentRunInput, options?: NcpContextPrepareOptions): NcpLLMApiInput;
+  prepare(
+    input: NcpAgentRunInput,
+    options?: NcpContextPrepareOptions,
+  ): NcpLLMApiInput;
 }
 
 export type OpenAIContentPart =
   | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+  | {
+      type: "image_url";
+      image_url: { url: string; detail?: "low" | "high" | "auto" };
+    };
 
 export type OpenAIToolCall = {
   id: string;
@@ -66,7 +69,31 @@ export type OpenAIChatMessage =
 
 export type OpenAITool = {
   type: "function";
-  function: { name: string; description?: string; parameters?: Record<string, unknown> };
+  function: {
+    name: string;
+    description?: string;
+    parameters?: Record<string, unknown>;
+  };
+};
+
+export type NcpJsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | NcpJsonValue[]
+  | { [key: string]: NcpJsonValue };
+
+export type NcpContextTail = {
+  kind: "context_tail";
+  entries: ReadonlyArray<{
+    bindingId: string;
+    extensionId: string;
+    snapshotId?: string;
+    freshness: "fresh" | "stale" | "unknown" | "unavailable";
+    observedAt?: string;
+    payload: NcpJsonValue;
+  }>;
 };
 
 export type OpenAIToolCallDelta = {
@@ -88,11 +115,16 @@ export type OpenAIChatChunk = {
     };
     finish_reason?: string | null;
   }>;
-  usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
 };
 
 export type NcpLLMApiInput = {
   messages: OpenAIChatMessage[];
+  contextTail?: NcpContextTail;
   tools?: OpenAITool[];
   model?: string;
   thinkingLevel?: string | null;

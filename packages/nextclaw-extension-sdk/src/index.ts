@@ -4,12 +4,8 @@ export {
   classifyDiagnosticError,
 } from "@nextclaw/shared";
 export type { DiagnosticErrorClassification } from "@nextclaw/shared";
-export {
-  ChannelTypingController,
-} from "./services/channel-typing-controller.service.js";
-export type {
-  ChannelTypingControllerOptions,
-} from "./services/channel-typing-controller.service.js";
+export { ChannelTypingController } from "./services/channel-typing-controller.service.js";
+export type { ChannelTypingControllerOptions } from "./services/channel-typing-controller.service.js";
 export {
   ExtensionChannelController,
   startBusChannelExtension,
@@ -44,6 +40,9 @@ export type {
   ChannelSubmittedAttachment,
   ChannelTextContent,
   ExtensionCapabilities,
+  ExtensionObservations,
+  ExtensionObservationHandlers,
+  ExtensionObservationEmitInput,
   ExtensionCapabilityHandler,
   ExtensionCapabilityPayload,
   ExtensionChannel,

@@ -12,6 +12,7 @@ import {
 } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type { ObservationManager } from "@kernel/features/observation/index.js";
 import { ExtensionRuntimeService } from "@kernel/services/extension-runtime.service.js";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 
@@ -41,6 +42,7 @@ type ExtensionManagerOptions = {
   ingress: Pick<Ingress, "addHandler">;
   messageBus: Pick<MessageBus, "publishInbound">;
   sessionManager: SessionManager;
+  observations: ObservationManager;
 };
 
 type ExtensionLoadParams = {
@@ -57,19 +59,33 @@ function createEmptyExtensionRegistry(): ExtensionRegistry {
   };
 }
 
-function buildSortedBindingSignatures(bindings: readonly ExtensionChannelBinding[]): `${string}:${string}`[] {
-  return bindings.map((binding) => `${binding.extensionId}:${binding.channelId}` as const).sort();
-}
-
-function buildSortedExtensionChannelIds(channels: readonly ExtensionRegistry["channels"][number][]): string[] {
-  return channels
-    .map((registration) => registration.channel.id)
-    .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+function buildSortedBindingSignatures(
+  bindings: readonly ExtensionChannelBinding[],
+): `${string}:${string}`[] {
+  return bindings
+    .map((binding) => `${binding.extensionId}:${binding.channelId}` as const)
     .sort();
 }
 
-function areSortedStringListsEqual(left: readonly string[], right: readonly string[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+function buildSortedExtensionChannelIds(
+  channels: readonly ExtensionRegistry["channels"][number][],
+): string[] {
+  return channels
+    .map((registration) => registration.channel.id)
+    .filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0,
+    )
+    .sort();
+}
+
+function areSortedStringListsEqual(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
 }
 
 function readConfigPathSegment(path: string, prefix: string): string | null {
@@ -104,20 +120,38 @@ function shouldRestartChannelsForExtensionReload(params: {
   nextSnapshot: ExtensionSnapshot;
 }): boolean {
   const { changedPaths, currentSnapshot, nextSnapshot } = params;
-  const currentBindingSignatures = buildSortedBindingSignatures(currentSnapshot.channelBindings);
-  const nextBindingSignatures = buildSortedBindingSignatures(nextSnapshot.channelBindings);
-  if (!areSortedStringListsEqual(currentBindingSignatures, nextBindingSignatures)) {
+  const currentBindingSignatures = buildSortedBindingSignatures(
+    currentSnapshot.channelBindings,
+  );
+  const nextBindingSignatures = buildSortedBindingSignatures(
+    nextSnapshot.channelBindings,
+  );
+  if (
+    !areSortedStringListsEqual(currentBindingSignatures, nextBindingSignatures)
+  ) {
     return true;
   }
 
-  const currentExtensionChannelIds = buildSortedExtensionChannelIds(currentSnapshot.extensionRegistry.channels);
-  const nextExtensionChannelIds = buildSortedExtensionChannelIds(nextSnapshot.extensionRegistry.channels);
-  if (!areSortedStringListsEqual(currentExtensionChannelIds, nextExtensionChannelIds)) {
+  const currentExtensionChannelIds = buildSortedExtensionChannelIds(
+    currentSnapshot.extensionRegistry.channels,
+  );
+  const nextExtensionChannelIds = buildSortedExtensionChannelIds(
+    nextSnapshot.extensionRegistry.channels,
+  );
+  if (
+    !areSortedStringListsEqual(
+      currentExtensionChannelIds,
+      nextExtensionChannelIds,
+    )
+  ) {
     return true;
   }
 
   const channelIds = new Set<string>();
-  for (const binding of [...currentSnapshot.channelBindings, ...nextSnapshot.channelBindings]) {
+  for (const binding of [
+    ...currentSnapshot.channelBindings,
+    ...nextSnapshot.channelBindings,
+  ]) {
     channelIds.add(binding.channelId);
   }
 
@@ -134,7 +168,10 @@ function shouldRestartChannelsForExtensionReload(params: {
   return false;
 }
 
-function countExtensionIds(bindings: readonly ExtensionChannelBinding[], metadata: readonly ExtensionUiMetadata[]): number {
+function countExtensionIds(
+  bindings: readonly ExtensionChannelBinding[],
+  metadata: readonly ExtensionUiMetadata[],
+): number {
   return new Set([
     ...bindings.map((binding) => binding.extensionId),
     ...metadata.map((item) => item.id),
@@ -157,10 +194,18 @@ export class ExtensionManager {
       ingress: options.ingress,
       messageBus: options.messageBus,
       sessionManager: options.sessionManager,
+      onObservationEvent: options.observations.acceptExtensionEvent,
+      onObservationRuntimeExited:
+        options.observations.onExtensionObservationRuntimeExited,
+      onObservationRuntimeReady:
+        options.observations.onExtensionObservationRuntimeReady,
     });
+    options.observations.setExtensionRuntime(this.runtime.observations);
   }
 
-  load = async (params: ExtensionLoadParams = {}): Promise<ExtensionLoadResult> => {
+  load = async (
+    params: ExtensionLoadParams = {},
+  ): Promise<ExtensionLoadResult> => {
     const { changedPaths = [], onLoadStart, onExtensionProcessed } = params;
     const config = params.config ?? this.options.configManager.loadConfig();
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
@@ -168,7 +213,10 @@ export class ExtensionManager {
       config,
       workspace,
     });
-    const totalExtensionCount = countExtensionIds(contributions.channelBindings, contributions.uiMetadata);
+    const totalExtensionCount = countExtensionIds(
+      contributions.channelBindings,
+      contributions.uiMetadata,
+    );
     onLoadStart?.({ totalExtensionCount });
     for (const [index, binding] of contributions.channelBindings.entries()) {
       onExtensionProcessed?.({
@@ -192,9 +240,11 @@ export class ExtensionManager {
     };
   };
 
-  reloadForConfigChange = async (params: ExtensionLoadParams & {
-    changedPaths: readonly string[];
-  }): Promise<ExtensionLoadResult> => await this.load(params);
+  reloadForConfigChange = async (
+    params: ExtensionLoadParams & {
+      changedPaths: readonly string[];
+    },
+  ): Promise<ExtensionLoadResult> => await this.load(params);
 
   registerIngressHandlers = (): void => {
     this.runtime.registerIngressHandlers();
@@ -202,15 +252,18 @@ export class ExtensionManager {
 
   start = async (params: { endpoint: string | null }): Promise<void> => {
     await this.runtime.start(params);
+    this.options.observations.setExtensionRuntime(this.runtime.observations);
   };
 
   stop = async (): Promise<void> => {
     await this.runtime.stop();
   };
 
-  getExtensionRegistry = (): ExtensionRegistry => this.snapshot.extensionRegistry;
+  getExtensionRegistry = (): ExtensionRegistry =>
+    this.snapshot.extensionRegistry;
 
-  getChannelBindings = (): ExtensionChannelBinding[] => this.snapshot.channelBindings;
+  getChannelBindings = (): ExtensionChannelBinding[] =>
+    this.snapshot.channelBindings;
 
   getUiMetadata = (): ExtensionUiMetadata[] => this.snapshot.uiMetadata;
 
@@ -226,9 +279,13 @@ export class ExtensionManager {
   toConfigView = (config: Config): Config =>
     toExtensionConfigView(config) as Config;
 
-  mergeConfigView = (current: Config, nextConfigView: Record<string, unknown>): Config =>
-    mergeExtensionConfigView(current, nextConfigView);
+  mergeConfigView = (
+    current: Config,
+    nextConfigView: Record<string, unknown>,
+  ): Config => mergeExtensionConfigView(current, nextConfigView);
 
   private readonly getWorkspace = (): string =>
-    getWorkspacePath(this.options.configManager.loadConfig().agents.defaults.workspace);
+    getWorkspacePath(
+      this.options.configManager.loadConfig().agents.defaults.workspace,
+    );
 }

@@ -2,6 +2,7 @@ export * from "./types/extension-runtime.types.js";
 export * from "./services/extension-lifecycle.service.js";
 export * from "./services/extension-ingress-diagnostics.service.js";
 export * from "./services/extension-channel-client.service.js";
+export * from "./services/extension-contributions.service.js";
 export * from "./services/extension-auth-lease.service.js";
 export * from "./services/extension-manifest-discovery.service.js";
 export * from "./utils/extension-channel-catalog.utils.js";

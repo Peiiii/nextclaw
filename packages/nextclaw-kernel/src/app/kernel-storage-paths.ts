@@ -38,6 +38,10 @@ export function resolveKernelInboxDeliveryStorePath(options: KernelStoragePathOp
   return resolveKernelDataPath(options, "inbox", "deliveries.json");
 }
 
+export function resolveKernelObservationStorePath(options: KernelStoragePathOptions): string {
+  return resolveKernelDataPath(options, "observations", "state.json");
+}
+
 function resolveKernelDataPath(
   options: KernelStoragePathOptions,
   ...segments: string[]

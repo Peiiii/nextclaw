@@ -31,7 +31,6 @@ export type ReadProjectionPageParams = {
 };
 export class NcpAgentSessionMessageProjectionPersistenceStore {
   private readonly messageOrdinals = new Map<string, Map<string, number>>();
-
   constructor(private readonly journalDir: string) {}  readMeta = async (sessionId: string): Promise<NcpAgentSessionMessageProjectionMeta | null> => {
     try {
       const parsed = JSON.parse(await readFile(this.metaPath(sessionId), "utf-8")) as unknown;

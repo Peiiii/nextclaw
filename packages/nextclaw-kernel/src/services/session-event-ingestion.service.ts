@@ -103,6 +103,10 @@ export class SessionEventIngestionService {
     await next;
   };
 
+  flushSession = async (sessionId: string): Promise<void> => {
+    await this.chains.get(sessionId);
+  };
+
   dispose = (): void => {
     this.cleanup?.();
     this.cleanup = null;

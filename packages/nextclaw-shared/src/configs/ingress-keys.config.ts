@@ -6,7 +6,8 @@ import type {
 } from "@nextclaw/ncp";
 import { createTypedKey } from "../types/typed-key.types.js";
 
-export const DIAGNOSTIC_CORRELATION_METADATA_KEY = "nextclaw_diagnostic_correlation_id";
+export const DIAGNOSTIC_CORRELATION_METADATA_KEY =
+  "nextclaw_diagnostic_correlation_id";
 
 export type ExtensionChannelTextContent = {
   type: "text";
@@ -20,23 +21,32 @@ type ExtensionChannelResourceRef = {
   name?: string;
 };
 
-export type ExtensionChannelImageContent = ExtensionChannelResourceRef & { type: "image" };
+export type ExtensionChannelImageContent = ExtensionChannelResourceRef & {
+  type: "image";
+};
 
-export type ExtensionChannelFileContent = ExtensionChannelResourceRef & { type: "file" };
+export type ExtensionChannelFileContent = ExtensionChannelResourceRef & {
+  type: "file";
+};
 
 export type ExtensionChannelMessageContent =
   | ExtensionChannelTextContent
   | ExtensionChannelImageContent
   | ExtensionChannelFileContent;
 
-export type ExtensionChannelSubmittedAttachment = ExtensionChannelResourceRef & {
-  id?: string;
-  path?: string;
-  size?: number;
-  source?: string;
-  status?: "ready" | "remote-only";
-  errorCode?: "too_large" | "download_failed" | "http_error" | "invalid_payload";
-};
+export type ExtensionChannelSubmittedAttachment =
+  ExtensionChannelResourceRef & {
+    id?: string;
+    path?: string;
+    size?: number;
+    source?: string;
+    status?: "ready" | "remote-only";
+    errorCode?:
+      | "too_large"
+      | "download_failed"
+      | "http_error"
+      | "invalid_payload";
+  };
 
 export type ExtensionChannelConfigGetIngressPayload = {
   channelId: string;
@@ -135,13 +145,30 @@ export type ExtensionRuntimeReadyIngressPayload = {
   pid: number;
 };
 
+export type ExtensionObservationEventIngressPayload = {
+  subscriptionId: string;
+  event: {
+    eventId: string;
+    eventType: string;
+    occurredAt: string;
+    observedAt?: string;
+    cursor?: string;
+    dedupeKey?: string;
+    payload: unknown;
+    sourceRefs?: string[];
+    causationId?: string;
+    correlationId?: string;
+  };
+};
+
 export type AgentRunSessionMessageRequestPayload = {
   message: NcpMessage;
   requestId: string;
   sessionId: string;
 };
 
-export const CHAT_SESSION_MATERIALIZATION_METADATA_KEY = "session_materialization";
+export const CHAT_SESSION_MATERIALIZATION_METADATA_KEY =
+  "session_materialization";
 export const CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY =
   "chat_continuation_target_message_id";
 
@@ -201,13 +228,13 @@ export const ingressKeys = {
       createTypedKey<ExtensionChannelMessageSubmitIngressPayload>(
         "extension.channel.message.submit",
       ),
-    diagnosticEmit:
-      createTypedKey<ExtensionDiagnosticIngressPayload>(
-        "extension.diagnostic.emit",
-      ),
-    channelCommandList: createTypedKey<ExtensionChannelCommandListIngressPayload>(
-      "extension.channel.command.list",
+    diagnosticEmit: createTypedKey<ExtensionDiagnosticIngressPayload>(
+      "extension.diagnostic.emit",
     ),
+    channelCommandList:
+      createTypedKey<ExtensionChannelCommandListIngressPayload>(
+        "extension.channel.command.list",
+      ),
     channelCommandExecute:
       createTypedKey<ExtensionChannelCommandExecuteIngressPayload>(
         "extension.channel.command.execute",
@@ -215,7 +242,11 @@ export const ingressKeys = {
     runtimeReady: createTypedKey<ExtensionRuntimeReadyIngressPayload>(
       "extension.runtime.ready",
     ),
-    response: createTypedKey<ExtensionResponseIngressPayload>("extension.response"),
+    response:
+      createTypedKey<ExtensionResponseIngressPayload>("extension.response"),
+    observationEvent: createTypedKey<ExtensionObservationEventIngressPayload>(
+      "extension.observation.event",
+    ),
   },
   agentRun: {
     send: createTypedKey<AgentRunSendIngressPayload>("agent-run.send"),
@@ -223,12 +254,10 @@ export const ingressKeys = {
     editMessage: createTypedKey<AgentRunEditMessageIngressPayload>(
       "agent-run.edit-message",
     ),
-    continue: createTypedKey<AgentRunContinueIngressPayload>(
-      "agent-run.continue",
+    continue:
+      createTypedKey<AgentRunContinueIngressPayload>("agent-run.continue"),
+    sessionMessageRequest: createTypedKey<AgentRunSessionMessageRequestPayload>(
+      "agent-run.session-message.request",
     ),
-    sessionMessageRequest:
-      createTypedKey<AgentRunSessionMessageRequestPayload>(
-        "agent-run.session-message.request",
-      ),
   },
 } as const;

@@ -64,6 +64,7 @@ export type {
 export * from "@kernel/features/context-compaction/index.js";
 export * from "@kernel/features/native-runtime/index.js";
 export * from "@kernel/features/session-request/index.js";
+export * from "@kernel/features/observation/index.js";
 export { listExtensionChannelIds } from "@kernel/features/extension-runtime/index.js";
 export type { ExtensionRuntimeStatus } from "@kernel/features/extension-runtime/index.js";
 export * from "@kernel/utils/ncp-session-message-adapter.utils.js";

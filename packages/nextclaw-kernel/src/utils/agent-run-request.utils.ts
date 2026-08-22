@@ -47,6 +47,7 @@ export function toAgentRunRequest(
     maxTokens: metadata.maxTokens,
     thinkingEffort: metadata.thinkingEffort,
     delivery: envelope.delivery,
+    idempotencyKey: readOptionalString(envelope.idempotencyKey),
   };
   if (Array.isArray(envelope.content)) {
     const sessionId = readOptionalString(envelope.sessionId);

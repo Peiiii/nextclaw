@@ -474,6 +474,11 @@ describe("AgentRunRequestManager event publication", () => {
         payload: expect.objectContaining({ message: expect.objectContaining({ role: "user" }) }),
       }),
       expect.objectContaining({
+        payload: expect.objectContaining({
+          message: expect.objectContaining({ id: "runtime-user-message", role: "user" }),
+        }),
+      }),
+      expect.objectContaining({
         payload: expect.objectContaining({ message: expect.objectContaining({ role: "service" }) }),
       }),
     ]);

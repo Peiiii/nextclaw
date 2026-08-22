@@ -5,8 +5,14 @@ import type {
   NcpLLMApiInput,
   NcpLLMApiOptions,
 } from "@nextclaw/ncp";
-import { parseThinkingLevel, type LLMResponse, type ThinkingLevel, type ToolCallRequest } from "@nextclaw/core";
+import {
+  parseThinkingLevel,
+  type LLMResponse,
+  type ThinkingLevel,
+  type ToolCallRequest,
+} from "@nextclaw/core";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
+import { serializeContextTail } from "@kernel/features/observation/index.js";
 
 function normalizeModel(value: string | undefined): string | null {
   if (typeof value !== "string") {
@@ -16,7 +22,9 @@ function normalizeModel(value: string | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function normalizeThinkingLevel(value: string | null | undefined): ThinkingLevel | null {
+function normalizeThinkingLevel(
+  value: string | null | undefined,
+): ThinkingLevel | null {
   return parseThinkingLevel(value);
 }
 
@@ -35,8 +43,8 @@ function toToolCallDelta(toolCall: ToolCallRequest, index: number) {
     type: "function" as const,
     function: {
       name: toolCall.name,
-      arguments: JSON.stringify(toolCall.arguments ?? {})
-    }
+      arguments: JSON.stringify(toolCall.arguments ?? {}),
+    },
   };
 }
 
@@ -49,7 +57,11 @@ function toFinalChunk(
   },
 ): OpenAIChatChunk {
   const delta: NonNullable<OpenAIChatChunk["choices"]>[number]["delta"] = {};
-  if (options.includeText && typeof response.content === "string" && response.content.length > 0) {
+  if (
+    options.includeText &&
+    typeof response.content === "string" &&
+    response.content.length > 0
+  ) {
     delta.content = response.content;
   }
   if (
@@ -60,17 +72,19 @@ function toFinalChunk(
     delta.reasoning_content = response.reasoningContent;
   }
   if (options.includeToolCalls && response.toolCalls.length > 0) {
-    delta.tool_calls = response.toolCalls.map((toolCall, index) => toToolCallDelta(toolCall, index));
+    delta.tool_calls = response.toolCalls.map((toolCall, index) =>
+      toToolCallDelta(toolCall, index),
+    );
   }
 
   return {
     choices: [
       {
         delta,
-        finish_reason: normalizeFinishReason(response.finishReason)
-      }
+        finish_reason: normalizeFinishReason(response.finishReason),
+      },
     ],
-    usage: response.usage
+    usage: response.usage,
   };
 }
 
@@ -80,21 +94,32 @@ export class ProviderManagerNcpLLMApi implements NcpLLMApi {
   readonly generate = async function* (
     this: ProviderManagerNcpLLMApi,
     input: NcpLLMApiInput,
-    options?: NcpLLMApiOptions
+    options?: NcpLLMApiOptions,
   ): AsyncGenerator<OpenAIChatChunk> {
-    const model = normalizeModel(input.model) ?? this.providerManager.get(null).getDefaultModel();
+    const model =
+      normalizeModel(input.model) ??
+      this.providerManager.get(null).getDefaultModel();
     const thinkingLevel = normalizeThinkingLevel(input.thinkingLevel);
     let sawTextDelta = false;
     let sawReasoningDelta = false;
     let sawToolCallDelta = false;
 
+    const messages = input.contextTail
+      ? [
+          ...input.messages,
+          {
+            role: "user" as const,
+            content: serializeContextTail(input.contextTail),
+          },
+        ]
+      : input.messages;
     for await (const event of this.providerManager.chatStream({
-      messages: input.messages as Array<Record<string, unknown>>,
+      messages: messages as Array<Record<string, unknown>>,
       tools: input.tools as Array<Record<string, unknown>> | undefined,
       model,
       ...(thinkingLevel ? { thinkingLevel } : {}),
       maxTokens: input.max_tokens,
-      signal: options?.signal
+      signal: options?.signal,
     })) {
       if (event.type === "delta") {
         sawTextDelta = true;
@@ -102,10 +127,10 @@ export class ProviderManagerNcpLLMApi implements NcpLLMApi {
           choices: [
             {
               delta: {
-                content: event.delta
-              }
-            }
-          ]
+                content: event.delta,
+              },
+            },
+          ],
         };
         continue;
       }

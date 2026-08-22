@@ -1,4 +1,7 @@
-import { ncpMessageToOpenAiMessages, type LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
+import {
+  ncpMessageToOpenAiMessages,
+  type LocalAssetStore,
+} from "@nextclaw/ncp-agent-runtime";
 import { estimateInputTokens } from "@nextclaw/core";
 import type {
   AgentModelInputBuildRequest,
@@ -14,10 +17,18 @@ import { stripCompactedSessionOnboardingSections } from "@kernel/utils/agent-onb
 import type { AgentRunMessageProjector } from "./agent-run-message-projector.service.js";
 import type { AgentRunModelInputBudgeter } from "./agent-run-model-input-budgeter.service.js";
 import { buildProviderTools } from "@kernel/utils/agent-model-input-budget.utils.js";
+import {
+  buildObservationEventModelMessage,
+  serializeContextTail,
+  type ObservationManager,
+} from "@kernel/features/observation/index.js";
 
 function readSystemContent(messages: OpenAIChatMessage[]): string[] {
   return messages
-    .filter((message): message is Extract<OpenAIChatMessage, { role: "system" }> => message.role === "system")
+    .filter(
+      (message): message is Extract<OpenAIChatMessage, { role: "system" }> =>
+        message.role === "system",
+    )
     .map((message) => message.content.trim())
     .filter(Boolean);
 }
@@ -45,9 +56,15 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
     private readonly messageProjector: AgentRunMessageProjector,
     private readonly modelInputBudgeter: AgentRunModelInputBudgeter,
     private readonly assetStore: LocalAssetStore | null = null,
+    private readonly observationManager: Pick<
+      ObservationManager,
+      "buildContextTail"
+    > | null = null,
   ) {}
 
-  build = async (request: AgentModelInputBuildRequest): Promise<NcpLLMApiInput> => {
+  build = async (
+    request: AgentModelInputBuildRequest,
+  ): Promise<NcpLLMApiInput> => {
     const projection = this.messageProjector.project({
       sessionId: request.sessionId,
       messages: request.messages,
@@ -66,36 +83,44 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
       .map((block) => block.trim())
       .filter(Boolean)
       .join("\n\n");
-    const contextBlocks = compressedContextBlocks.length > 0
-      ? request.contextBlocks.map(stripCompactedSessionOnboardingSections)
-      : request.contextBlocks;
-    const contextContent = [
-      ...compressedContextBlocks,
-      ...contextBlocks,
-    ]
+    const contextBlocks =
+      compressedContextBlocks.length > 0
+        ? request.contextBlocks.map(stripCompactedSessionOnboardingSections)
+        : request.contextBlocks;
+    const contextContent = [...compressedContextBlocks, ...contextBlocks]
       .map((block) => block.trim())
       .filter(Boolean)
       .join("\n\n");
     const contextMessages: OpenAIChatMessage[] = contextContent
       ? [{ role: "system", content: contextContent }]
       : [];
-    const stableConversationMessages = stableProjection.conversationMessages.flatMap((message) =>
-      ncpMessageToOpenAiMessages(message, {
-        assetStore: this.assetStore,
-      }),
-    );
-    const dynamicConversationMessages = dynamicProjection.conversationMessages.flatMap((message) =>
-      ncpMessageToOpenAiMessages(message, {
-        assetStore: this.assetStore,
-      }),
-    );
-    const protectedPrefixMessageCount = projection.stablePrefixMessageCount > 0
-      ? contextMessages.length + stableConversationMessages.length
-      : 0;
+    const convertMessage = (message: NcpMessage): OpenAIChatMessage[] => {
+      const observationMessage = buildObservationEventModelMessage(message);
+      return observationMessage
+        ? [observationMessage]
+        : ncpMessageToOpenAiMessages(message, { assetStore: this.assetStore });
+    };
+    const stableConversationMessages =
+      stableProjection.conversationMessages.flatMap(convertMessage);
+    const dynamicConversationMessages =
+      dynamicProjection.conversationMessages.flatMap(convertMessage);
+    const protectedPrefixMessageCount =
+      projection.stablePrefixMessageCount > 0
+        ? contextMessages.length + stableConversationMessages.length
+        : 0;
     const tools = buildProviderTools(request.tools);
+    const contextTail = await this.observationManager?.buildContextTail({
+      sessionId: request.sessionId,
+      signal: request.signal,
+    });
+    const contextTailInputTokens = contextTail
+      ? estimateInputTokens([
+          { role: "user", content: serializeContextTail(contextTail) },
+        ])
+      : 0;
     const pruned = await this.modelInputBudgeter.prune({
       spec: request.spec,
-      fixedInputTokens: estimateInputTokens(tools),
+      fixedInputTokens: estimateInputTokens(tools) + contextTailInputTokens,
       messages: [
         ...contextMessages,
         ...stableConversationMessages,
@@ -106,6 +131,7 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
     });
     return {
       messages: pruned.messages,
+      ...(contextTail ? { contextTail } : {}),
       tools: tools.length > 0 ? tools : undefined,
       model: request.spec.model,
       thinkingLevel: request.spec.thinkingEffort ?? null,

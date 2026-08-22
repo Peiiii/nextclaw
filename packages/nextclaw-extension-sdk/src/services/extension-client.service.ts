@@ -7,11 +7,13 @@ import type {
   ExtensionDiagnostics,
   ExtensionRequest,
   ExtensionRequestHandler,
+  ExtensionObservations,
   ExtensionTransportEnvelope,
   NextClawExtensionOptions,
 } from "../types/extension-sdk.types.js";
 import { ExtensionChannelService } from "./extension-channel.service.js";
 import { ExtensionTransportService } from "./extension-transport.service.js";
+import { ExtensionObservationService } from "./extension-observation.service.js";
 
 const EXTENSION_PARENT_WATCH_INTERVAL_MS = 1000;
 
@@ -108,9 +110,12 @@ function readRequest(payload: unknown): ExtensionRequest | null {
     extensionId: record.extensionId,
     generation: record.generation,
     kind: record.kind,
-    payload: record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
-      ? record.payload as Record<string, unknown>
-      : {},
+    payload:
+      record.payload &&
+      typeof record.payload === "object" &&
+      !Array.isArray(record.payload)
+        ? (record.payload as Record<string, unknown>)
+        : {},
   };
 }
 
@@ -174,11 +179,14 @@ class ExtensionCapabilityRegistry implements ExtensionCapabilities {
 
   readonly provide = (namespace: string, capability: object): (() => void) => {
     const normalizedNamespace = normalizeName(namespace, "namespace");
-    const unsubscribeHandlers = this.readHandlers(capability).map(([name, handler]) =>
-      this.provideHandler(`${normalizedNamespace}.${name}`, handler),
+    const unsubscribeHandlers = this.readHandlers(capability).map(
+      ([name, handler]) =>
+        this.provideHandler(`${normalizedNamespace}.${name}`, handler),
     );
     if (unsubscribeHandlers.length === 0) {
-      throw new Error(`capability '${normalizedNamespace}' has no callable methods.`);
+      throw new Error(
+        `capability '${normalizedNamespace}' has no callable methods.`,
+      );
     }
     return () => {
       for (const unsubscribe of unsubscribeHandlers) {
@@ -187,7 +195,10 @@ class ExtensionCapabilityRegistry implements ExtensionCapabilities {
     };
   };
 
-  readonly provideHandler = (kind: string, handler: ExtensionCapabilityHandler): (() => void) => {
+  readonly provideHandler = (
+    kind: string,
+    handler: ExtensionCapabilityHandler,
+  ): (() => void) => {
     const normalizedKind = normalizeName(kind, "kind");
     return this.params.eventBus.subscribeAll((event) => {
       if (event.type !== "extension.request") {
@@ -202,15 +213,21 @@ class ExtensionCapabilityRegistry implements ExtensionCapabilities {
       ) {
         return;
       }
-      void handleRequest(this.params.transport, request, async (matchedRequest) =>
-        await handler(matchedRequest.payload ?? {}, matchedRequest),
+      void handleRequest(
+        this.params.transport,
+        request,
+        async (matchedRequest) =>
+          await handler(matchedRequest.payload ?? {}, matchedRequest),
       );
     });
   };
 
-  private readonly readHandlers = (capability: object): Array<[string, ExtensionCapabilityHandler]> =>
+  private readonly readHandlers = (
+    capability: object,
+  ): Array<[string, ExtensionCapabilityHandler]> =>
     Object.entries(capability).filter(
-      (entry): entry is [string, ExtensionCapabilityHandler] => typeof entry[1] === "function",
+      (entry): entry is [string, ExtensionCapabilityHandler] =>
+        typeof entry[1] === "function",
     );
 }
 
@@ -219,10 +236,14 @@ export class NextClawExtension {
   readonly channels: ExtensionChannels;
   readonly capabilities: ExtensionCapabilities;
   readonly diagnostics: ExtensionDiagnostics;
+  readonly observations: ExtensionObservations;
   readonly extensionId: string;
   readonly generation: string;
   private readonly transport: ExtensionTransportService;
-  private eventStreamSubscription: { close: () => void; ready: Promise<void> } | null = null;
+  private eventStreamSubscription: {
+    close: () => void;
+    ready: Promise<void>;
+  } | null = null;
   private parentProcessWatcher: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: NextClawExtensionOptions = {}) {
@@ -249,6 +270,12 @@ export class NextClawExtension {
       extensionId: this.extensionId,
       transport: this.transport,
     });
+    this.observations = new ExtensionObservationService({
+      eventBus: this.eventBus,
+      extensionId: this.extensionId,
+      generation: this.generation,
+      transport: this.transport,
+    });
     this.diagnostics = new ExtensionDiagnosticClient(
       this.transport,
       Math.max(50, options.diagnosticTimeoutMs ?? 2_000),
@@ -263,12 +290,15 @@ export class NextClawExtension {
     }
     this.eventStreamSubscription?.close();
     this.eventStreamSubscription = null;
+    void this.observations.close();
   };
 
   readonly ready = async (): Promise<void> => {
     const subscription = this.eventStreamSubscription;
     if (!subscription) {
-      throw new Error(`Extension ${this.extensionId} has no event-stream subscription.`);
+      throw new Error(
+        `Extension ${this.extensionId} has no event-stream subscription.`,
+      );
     }
     await subscription.ready;
     await this.transport.reportReady(process.pid);
@@ -280,19 +310,27 @@ export class NextClawExtension {
         return;
       }
       const request = readRequest(event.payload);
-      if (!request || request.extensionId !== this.extensionId || request.generation !== this.generation) {
+      if (
+        !request ||
+        request.extensionId !== this.extensionId ||
+        request.generation !== this.generation
+      ) {
         return;
       }
       void handleRequest(this.transport, request, handler);
     });
 
-  private readonly toEventBusEnvelope = (event: ExtensionTransportEnvelope): ExtensionTransportEnvelope => ({
+  private readonly toEventBusEnvelope = (
+    event: ExtensionTransportEnvelope,
+  ): ExtensionTransportEnvelope => ({
     ...event,
     emittedAt: event.emittedAt ?? new Date().toISOString(),
     source: event.source ?? "event-stream",
   });
 
-  private readonly startParentProcessWatcher = (): ReturnType<typeof setInterval> | null => {
+  private readonly startParentProcessWatcher = (): ReturnType<
+    typeof setInterval
+  > | null => {
     const parentPid = readParentProcessId();
     if (!parentPid) {
       return null;
@@ -307,5 +345,4 @@ export class NextClawExtension {
     (timer as NodeJS.Timeout).unref?.();
     return timer;
   };
-
 }

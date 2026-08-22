@@ -25,6 +25,7 @@ export class AgentRunRuntimeContribution extends Contribution {
       new AgentRunMessageProjector(),
       new AgentRunModelInputBudgeter(kernel.agents),
       kernel.assetStore,
+      kernel.observations,
     );
   }
 

@@ -6,6 +6,10 @@ import type {
   ExtensionUiMetadata,
 } from "@nextclaw/core";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type {
+  ObservationEvent,
+  ObservationExtensionRuntime,
+} from "@kernel/features/observation/index.js";
 
 export type Config = NextclawCore.Config;
 export type InboundAttachment = NextclawCore.InboundAttachment;
@@ -26,6 +30,14 @@ export type ExtensionManifest = {
   rootDir: string;
   server: ExtensionServerConfig;
   contributes?: {
+    observations?: {
+      read?: { description: string; configSchema?: Record<string, unknown> };
+      events?: {
+        description: string;
+        configSchema?: Record<string, unknown>;
+        replay?: "supported" | "unsupported";
+      };
+    };
     channels?: Array<{
       id: string;
       name?: string;
@@ -52,13 +64,19 @@ export type RunningExtensionProcess = {
   generation: string;
 };
 
-export type ExtensionProcessState = "stopped" | "starting" | "running" | "stopping" | "failed";
+export type ExtensionProcessState =
+  | "stopped"
+  | "starting"
+  | "running"
+  | "stopping"
+  | "failed";
 
 export type ExtensionLeaseReason =
   | { kind: "enabled-channel"; channelId: string }
   | { kind: "auth-session"; sessionId: string; expiresAt: string }
   | { kind: "auth-handoff"; channelId: string; expiresAt: string }
-  | { kind: "request"; requestId: string };
+  | { kind: "request"; requestId: string }
+  | { kind: "observation-subscription"; subscriptionId: string };
 
 export type ExtensionLease = {
   extensionId: string;
@@ -100,7 +118,13 @@ export type PendingExtensionRequest = {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
   timeout: NodeJS.Timeout;
+  cleanup: () => void;
 };
+
+export type ExtensionObservationRequestKind =
+  | "observation.read"
+  | "observation.subscribe"
+  | "observation.unsubscribe";
 
 export type ExtensionChannelRequestKind =
   | "channel.auth.login"
@@ -111,7 +135,7 @@ export type ExtensionChannelRequestKind =
 
 export type ExtensionRequestSender = <T>(params: {
   extensionId: string;
-  kind: ExtensionChannelRequestKind;
+  kind: ExtensionChannelRequestKind | ExtensionObservationRequestKind;
   payload: Record<string, unknown>;
 }) => Promise<T>;
 
@@ -123,4 +147,13 @@ export type ExtensionRuntimeServiceOptions = {
   ingress: Pick<Ingress, "addHandler">;
   messageBus: Pick<MessageBus, "publishInbound">;
   sessionManager: SessionManager;
+  onObservationEvent?: (input: {
+    extensionId: string;
+    subscriptionId: string;
+    event: ObservationEvent;
+  }) => Promise<{ accepted: boolean }>;
+  onObservationRuntimeExited?: (extensionId: string) => void;
+  onObservationRuntimeReady?: (extensionId: string) => Promise<void>;
 };
+
+export type ExtensionObservationRuntime = ObservationExtensionRuntime;

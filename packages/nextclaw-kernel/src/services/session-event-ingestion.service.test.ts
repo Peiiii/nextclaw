@@ -37,6 +37,39 @@ function createMarkerEvent(status: ContextCompactionCheckpoint["status"]): NcpEn
 }
 
 describe("SessionEventIngestionService context compaction", () => {
+  it("flushes the durable chain before a session owner deletes its files", async () => {
+    let subscribed: ((event: NcpEndpointEvent) => void) | null = null;
+    let releaseAppend: (() => void) | null = null;
+    const appendSessionEvent = vi.fn(() => new Promise<void>((resolve) => {
+      releaseAppend = resolve;
+    }));
+    const service = new SessionEventIngestionService({
+      appendSessionEvent,
+      getSessionRecord: async () => null,
+      listUnfinishedRuns: async () => [],
+      onError: vi.fn(),
+      subscribe: (handler) => {
+        subscribed = handler;
+        return () => undefined;
+      },
+      updateSessionMetadata: async () => true,
+    });
+    await service.start();
+    const handler = subscribed as ((event: NcpEndpointEvent) => void) | null;
+    expect(handler).not.toBeNull();
+    handler?.(createMarkerEvent("compressing"));
+
+    let flushed = false;
+    const flush = service.flushSession(SESSION_ID).then(() => {
+      flushed = true;
+    });
+    await Promise.resolve();
+    expect(flushed).toBe(false);
+    releaseAppend?.();
+    await flush;
+    expect(flushed).toBe(true);
+  });
+
   it("appends the completed marker before projecting checkpoint metadata", async () => {
     const operations: string[] = [];
     const appendSessionEvent = vi.fn(async () => {

@@ -96,8 +96,30 @@ export class ConfigManager {
     return typeof value === "number" ? Math.trunc(value) : undefined;
   };
 
-  installRuntimeHooks = (hooks: ConfigManagerRuntimeHooks): void => {
+  installRuntimeHooks = (hooks: ConfigManagerRuntimeHooks): (() => void) => {
+    const previousHooks = new Map<
+      keyof ConfigManagerRuntimeHooks,
+      ConfigManagerRuntimeHooks[keyof ConfigManagerRuntimeHooks]
+    >();
+    for (const key of Object.keys(hooks) as Array<keyof ConfigManagerRuntimeHooks>) {
+      previousHooks.set(key, this.hooks[key]);
+    }
     this.hooks = { ...this.hooks, ...hooks };
+    return () => {
+      const nextHooks = { ...this.hooks };
+      for (const key of Object.keys(hooks) as Array<keyof ConfigManagerRuntimeHooks>) {
+        if (nextHooks[key] !== hooks[key]) {
+          continue;
+        }
+        const previous = previousHooks.get(key);
+        if (previous === undefined) {
+          delete nextHooks[key];
+        } else {
+          Object.assign(nextHooks, { [key]: previous });
+        }
+      }
+      this.hooks = nextHooks;
+    };
   };
 
   applyLiveConfigReload = async (): Promise<void> => {

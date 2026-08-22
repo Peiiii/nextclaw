@@ -67,6 +67,41 @@ describe("ConfigManager", () => {
     });
   });
 
+  it("restores the previous runtime hook when an installed hook is disposed", async () => {
+    const channels = {
+      load: vi.fn(),
+      reload: vi.fn(async () => undefined),
+    };
+    const manager = new ConfigManager({
+      configPath: join(createTempDir(), "config.json"),
+      channels: channels as never,
+      providerManager: { load: vi.fn() } as never,
+    });
+    manager.installRuntimeHooks({
+      resolveChannelConfig: (config) => ({
+        ...config,
+        channels: { original: { enabled: true } } as Config["channels"],
+      }),
+    });
+    const dispose = manager.installRuntimeHooks({
+      resolveChannelConfig: (config) => ({
+        ...config,
+        channels: { temporary: { enabled: true } } as Config["channels"],
+      }),
+    });
+
+    dispose();
+    await manager.rebuildChannels(manager.config, { start: false });
+
+    expect(channels.reload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channelConfig: expect.objectContaining({
+          channels: { original: { enabled: true } },
+        }),
+      }),
+    );
+  });
+
   it("reconciles extension demand before rebuilding channels on channel config changes", async () => {
     const callOrder: string[] = [];
     const channels = {

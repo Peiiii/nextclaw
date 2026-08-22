@@ -261,7 +261,7 @@ export class ExtensionLifecycleService {
         NEXTCLAW_EXTENSION_GENERATION: generation,
         NEXTCLAW_EXTENSION_PARENT_PID: String(process.pid),
         NEXTCLAW_EXTENSION_TOKEN: token,
-      }, { inheritBaseEnv: true }),
+      }, { inheritBaseEnv: false }),
       stdio: ["ignore", "ignore", "inherit"],
       windowsHide: true,
     });
@@ -477,7 +477,7 @@ export class ExtensionLifecycleService {
   };
 
   private hasPersistentLease = (record: ExtensionLifecycleRecord): boolean =>
-    [...record.leases.values()].some((reason) => reason.kind === "enabled-channel");
+    [...record.leases.values()].some((reason) => (reason.kind === "enabled-channel" || reason.kind === "observation-subscription"));
 
   private createDeferred = (): Deferred => {
     let resolvePromise!: () => void;

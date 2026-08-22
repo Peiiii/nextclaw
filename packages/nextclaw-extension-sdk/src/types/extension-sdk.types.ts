@@ -102,8 +102,12 @@ export type ExtensionDiagnostics = {
 
 export type ExtensionChannel = {
   id: string;
-  submitMessage: (input: Omit<ExtensionChannelMessageSubmitIngressPayload, "channelId">) => Promise<void>;
-  onNcpEvent: (handler: (event: NcpEndpointEvent) => void | Promise<void>) => Unsubscribe;
+  submitMessage: (
+    input: Omit<ExtensionChannelMessageSubmitIngressPayload, "channelId">,
+  ) => Promise<void>;
+  onNcpEvent: (
+    handler: (event: NcpEndpointEvent) => void | Promise<void>,
+  ) => Unsubscribe;
   config: ExtensionChannelConfig;
   commands: ExtensionChannelCommands;
 };
@@ -114,16 +118,59 @@ export type ExtensionChannels = {
   use: (channelId: string) => ExtensionChannel;
 };
 
-export type ExtensionRequestHandler = (request: ExtensionRequest) => unknown | Promise<unknown>;
+export type ExtensionRequestHandler = (
+  request: ExtensionRequest,
+) => unknown | Promise<unknown>;
 
 export type ExtensionCapabilityPayload = Record<string, unknown>;
 
-export type ExtensionCapabilityHandler<TPayload extends ExtensionCapabilityPayload = ExtensionCapabilityPayload> = (
+export type ExtensionCapabilityHandler<
+  TPayload extends ExtensionCapabilityPayload = ExtensionCapabilityPayload,
+> = (
   payload: TPayload,
   request: ExtensionRequest,
 ) => unknown | Promise<unknown>;
 
+export type ExtensionObservationEmitInput = {
+  id: string;
+  type: string;
+  occurredAt: string;
+  observedAt?: string;
+  cursor?: string;
+  dedupeKey?: string;
+  payload: unknown;
+  sourceRefs?: string[];
+  causationId?: string;
+  correlationId?: string;
+};
+
+export type ExtensionObservationHandlers = {
+  read?: (input: {
+    config: unknown;
+    signal: AbortSignal;
+  }) => unknown | Promise<unknown>;
+  subscribe?: (input: {
+    subscriptionId: string;
+    config: unknown;
+    cursor?: string;
+    emit: (event: ExtensionObservationEmitInput) => Promise<void>;
+    signal: AbortSignal;
+  }) =>
+    | void
+    | (() => void | Promise<void>)
+    | Promise<void | (() => void | Promise<void>)>;
+  replay?: "supported" | "unsupported";
+};
+
+export type ExtensionObservations = {
+  provide: (handlers: ExtensionObservationHandlers) => Unsubscribe;
+  close: () => Promise<void>;
+};
+
 export type ExtensionCapabilities = {
   provide: (namespace: string, capability: object) => Unsubscribe;
-  provideHandler: (kind: string, handler: ExtensionCapabilityHandler) => Unsubscribe;
+  provideHandler: (
+    kind: string,
+    handler: ExtensionCapabilityHandler,
+  ) => Unsubscribe;
 };

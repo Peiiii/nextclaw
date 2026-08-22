@@ -24,6 +24,7 @@ export type AgentRunRequest = {
   maxTokens?: number;
   thinkingEffort?: ThinkingEffort | null;
   delivery?: NcpInputDelivery;
+  idempotencyKey?: string;
 };
 
 export type AgentRunAbortRequest = {

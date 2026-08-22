@@ -39,6 +39,7 @@ function startDiagnosticRun(events: NcpEndpointEvent[]): ReturnType<typeof vi.fn
   }).startRuntimeRun({
     options: {
       contextBlocks: [],
+      initialMessages: [],
       session: {
         agentRuntimeId: "native",
         sessionId: "session-diagnostic",
