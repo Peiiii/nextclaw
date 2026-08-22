@@ -350,6 +350,7 @@ export const enSidebar = {
 export const zhSidebar = {
   '/zh/guide/': zhGuideSidebar,
   '/zh/tasks/': zhTasksSidebar,
+  '/zh/developers/': zhDevelopersSidebar,
   '/zh/project/': zhProjectSidebar,
   '/zh/notes/': zhNotesSidebar,
   '/zh/blog/': zhBlogSidebar
