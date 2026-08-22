@@ -15,7 +15,7 @@ description: 通用开发生命周期的「开发实现」阶段 owner；当目�
 
 1. 能否删除、复用或收敛已有路径？
 2. 事实、状态和生命周期的 owner 是否正确？
-3. 是否新增无语义 wrapper、adapter、factory、proxy、参数搬运或第二入口？
+3. 是否新增无当前调用者、只服务未来可能性的 type、interface、方法、配置字段，或无语义 wrapper、adapter、factory、proxy、参数搬运和第二入口？命中时不得边写边扩张，返回设计收窄范围。
 4. fallback、兼容和恢复是否位于真实边界，并有可观察信号和退出条件？
 5. 是否新增、移动、重命名文件或改变目录角色？命中时加载 `file-organization-governance` 并在编辑前运行 planned-path preflight。
 
