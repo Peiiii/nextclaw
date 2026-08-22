@@ -95,6 +95,10 @@ class MissingKernelProvider extends LLMProvider {
 
 export class LlmProviderManager {
   private readonly providerRegistry: ProviderRegistry;
+  private readonly contributedProviderPlugins = new Map<
+    string,
+    ProviderCatalogPlugin
+  >();
   private readonly providerModelDiscovery = new ProviderModelDiscoveryService();
   private readonly providerPool = new Map<string, LLMProvider>();
   private readonly missingProvider = new MissingKernelProvider("gpt-4o");
@@ -104,28 +108,50 @@ export class LlmProviderManager {
     this.providerRegistry = new ProviderRegistry(BUILTIN_PROVIDER_PLUGINS);
   }
 
+  registerProviderPlugin = (plugin: ProviderCatalogPlugin): (() => void) => {
+    const id = plugin.id.trim();
+    if (!id) {
+      throw new Error("Model provider plugin id is required.");
+    }
+    if (
+      BUILTIN_PROVIDER_PLUGINS.some((candidate) => candidate.id === id) ||
+      this.contributedProviderPlugins.has(id)
+    ) {
+      throw new Error(`Model provider plugin is already registered: ${id}`);
+    }
+    const occupiedNames = new Set(
+      this.providerRegistry.listProviderSpecs().map((provider) => provider.name),
+    );
+    const providers = plugin.providers.map((provider) => {
+      const name = provider.name.trim();
+      if (!name) {
+        throw new Error("Model provider name is required.");
+      }
+      if (occupiedNames.has(name)) {
+        throw new Error(`Model provider is already registered: ${name}`);
+      }
+      occupiedNames.add(name);
+      return { ...provider, name };
+    });
+    const normalizedPlugin = { ...plugin, id, providers };
+    this.contributedProviderPlugins.set(id, normalizedPlugin);
+    this.refreshProviderRegistry();
+    return () => {
+      if (this.contributedProviderPlugins.get(id) !== normalizedPlugin) {
+        return;
+      }
+      this.contributedProviderPlugins.delete(id);
+      this.refreshProviderRegistry();
+    };
+  };
+
+  listProviderSpecs = (): readonly ProviderSpec[] =>
+    this.providerRegistry.listProviderSpecs();
+
   load = (config: Config): void => {
     this.config = config;
     this.providerPool.clear();
     this.missingProvider.setDefaultModel(config.agents.defaults.model);
-  };
-
-  registerProviderPlugin = (plugin: ProviderCatalogPlugin): (() => void) => {
-    this.providerRegistry.addPlugin(plugin);
-    this.providerPool.clear();
-    let registered = true;
-    return () => {
-      if (!registered) {
-        return;
-      }
-      registered = false;
-      this.providerRegistry.removePlugin(plugin);
-      this.providerPool.clear();
-    };
-  };
-
-  listProviderSpecs = (): readonly ProviderSpec[] => {
-    return this.providerRegistry.listProviderSpecs();
   };
 
   get = (model?: string | null): LLMProvider => {
@@ -212,6 +238,14 @@ export class LlmProviderManager {
       extraHeaders: input.extraHeaders,
       signal: input.signal,
     });
+  };
+
+  private refreshProviderRegistry = (): void => {
+    this.providerRegistry.replacePlugins([
+      ...BUILTIN_PROVIDER_PLUGINS,
+      ...this.contributedProviderPlugins.values(),
+    ]);
+    this.providerPool.clear();
   };
 
   private resolveRoute = (model?: string | null): ProviderRoute | null => {

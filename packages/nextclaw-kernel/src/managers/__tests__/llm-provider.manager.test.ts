@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
-import {
-  ConfigSchema,
-  type LLMResponse,
-  type LLMStreamEvent,
-  type ProviderCatalogPlugin,
-} from "@nextclaw/core";
+import { ConfigSchema, type LLMResponse, type LLMStreamEvent } from "@nextclaw/core";
 
 type LlmProviderManagerInternals = {
   getOrCreateProvider: (route: unknown) => {
@@ -55,19 +50,35 @@ function response(): LLMResponse {
 }
 
 describe("LlmProviderManager", () => {
-  it("registers provider plugins with an idempotent disposer", () => {
+  it("registers and cleanly removes a kernel-local provider plugin", () => {
     const manager = new LlmProviderManager();
-    const plugin: ProviderCatalogPlugin = {
-      id: "fixture-provider-plugin",
-      providers: [{ envKey: "FIXTURE_API_KEY", name: "fixture", keywords: [] }],
-    };
+    const dispose = manager.registerProviderPlugin({
+      id: "fixture-plugin",
+      providers: [
+        {
+          name: " fixture-provider ",
+          displayName: "Fixture",
+          envKey: "FIXTURE_API_KEY",
+          keywords: ["fixture"],
+        },
+      ],
+    });
 
-    const dispose = manager.registerProviderPlugin(plugin);
-    expect(manager.listProviderSpecs()).toContainEqual(plugin.providers[0]);
-
+    expect(
+      manager.listProviderSpecs().some(({ name }) => name === "fixture-provider"),
+    ).toBe(true);
+    expect(() => manager.registerProviderPlugin({
+      id: "duplicate-plugin",
+      providers: [{
+        name: " fixture-provider ",
+        envKey: "DUPLICATE_API_KEY",
+        keywords: ["duplicate"],
+      }],
+    })).toThrow("Model provider is already registered: fixture-provider");
     dispose();
-    dispose();
-    expect(manager.listProviderSpecs()).not.toContainEqual(plugin.providers[0]);
+    expect(
+      manager.listProviderSpecs().some(({ name }) => name === "fixture-provider"),
+    ).toBe(false);
   });
 
   it("does not infer model discovery support from inference protocol compatibility", async () => {

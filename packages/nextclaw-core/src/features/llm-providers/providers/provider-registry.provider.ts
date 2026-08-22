@@ -43,15 +43,6 @@ export class ProviderRegistry {
     this.providers = mergeProviderSpecs(this.plugins);
   };
 
-  removePlugin = (plugin: ProviderCatalogPlugin): void => {
-    const index = this.plugins.lastIndexOf(plugin);
-    if (index < 0) {
-      return;
-    }
-    this.plugins.splice(index, 1);
-    this.providers = mergeProviderSpecs(this.plugins);
-  };
-
   listProviderPlugins = (): ProviderCatalogPlugin[] => {
     return [...this.plugins];
   };
