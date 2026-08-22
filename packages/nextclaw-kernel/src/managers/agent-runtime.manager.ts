@@ -7,10 +7,12 @@ import type {
 import type { AgentRunSession } from "@kernel/types/session.types.js";
 import type {
   AgentRuntimeEntry,
+  AgentRuntimeProviderRegistration,
   AgentRuntimeSessionTypeDescribeParams,
   AgentRuntimeSessionTypeOption,
 } from "@kernel/features/runtime-registry/index.js";
 import { describeAgentRuntimeSessionTypes } from "@kernel/features/runtime-registry/index.js";
+import { NcpAgentRuntimeWrapper } from "@kernel/services/ncp-agent-runtime-wrapper.service.js";
 
 export type AgentRuntimeRunOptions = {
   session: AgentRunSession;
@@ -82,6 +84,8 @@ type AgentRuntimeCacheParams = {
 export class AgentRuntimeManager {
   private readonly providers = new Map<string, AgentRuntimeRegistration>();
   private readonly entries = new Map<string, AgentRuntimeEntry>();
+  private readonly configuredEntries = new Map<string, AgentRuntimeEntry>();
+  private readonly contributedEntries = new Map<string, AgentRuntimeEntry>();
   private readonly globalRuntimes = new Map<string, AgentRuntime>();
   private readonly sessionRuntimes = new Map<string, AgentRuntime>();
 
@@ -106,15 +110,73 @@ export class AgentRuntimeManager {
     };
   };
 
+  registerProvider = (
+    provider: AgentRuntimeProviderRegistration,
+    host: { resolveAssetContentPath: (assetUri: string) => string | null },
+  ): (() => Promise<void>) =>
+    this.register({
+      kind: provider.kind,
+      label: provider.label,
+      defaultReuseScope: "session",
+      describeSessionTypeForEntry: provider.describeSessionTypeForEntry,
+      createRuntime: ({ entry, session }) =>
+        new NcpAgentRuntimeWrapper({
+          injectNextclawContext: entry.injectNextclawContext !== false,
+          createRuntime: ({ resolveTools, stateManager }) => {
+            const runtimeParams = {
+              ...(session.agentId ? { agentId: session.agentId } : {}),
+              resolveAssetContentPath: host.resolveAssetContentPath,
+              resolveTools,
+              sessionMetadata: session.metadata,
+              stateManager,
+            };
+            return provider.createRuntimeForEntry
+              ? provider.createRuntimeForEntry({ entry, runtimeParams })
+              : provider.createRuntime(runtimeParams);
+          },
+        }),
+    });
+
   applyEntries = (entries: readonly AgentRuntimeEntry[]): void => {
-    this.entries.clear();
+    const nextEntries = new Map<string, AgentRuntimeEntry>();
     for (const entry of entries) {
-      this.entries.set(this.normalizeId(entry.id), {
+      const id = this.normalizeId(entry.id);
+      if (this.contributedEntries.has(id)) {
+        throw new Error(`Agent runtime entry is already registered: ${id}`);
+      }
+      nextEntries.set(id, {
         ...entry,
-        id: this.normalizeId(entry.id),
+        id,
         type: this.normalizeId(entry.type),
       });
     }
+    this.configuredEntries.clear();
+    for (const [id, entry] of nextEntries) {
+      this.configuredEntries.set(id, entry);
+    }
+    this.rebuildEntries();
+  };
+
+  registerEntry = (entry: AgentRuntimeEntry): (() => Promise<void>) => {
+    const id = this.normalizeId(entry.id);
+    if (this.entries.has(id)) {
+      throw new Error(`Agent runtime entry is already registered: ${id}`);
+    }
+    const normalizedEntry = {
+      ...entry,
+      id,
+      type: this.normalizeId(entry.type),
+    };
+    this.contributedEntries.set(id, normalizedEntry);
+    this.rebuildEntries();
+    return async () => {
+      if (this.contributedEntries.get(id) !== normalizedEntry) {
+        return;
+      }
+      this.contributedEntries.delete(id);
+      this.rebuildEntries();
+      await this.disposeAllRuntimes();
+    };
   };
 
   getOrCreate = (params: AgentRuntimeCacheParams): AgentRuntime => {
@@ -162,6 +224,8 @@ export class AgentRuntimeManager {
     await this.disposeAllRuntimes();
     this.providers.clear();
     this.entries.clear();
+    this.configuredEntries.clear();
+    this.contributedEntries.clear();
   };
 
   private normalizeId = (agentRuntimeId: string): string => {
@@ -170,6 +234,19 @@ export class AgentRuntimeManager {
       throw new Error("Agent runtime id is required.");
     }
     return normalizedId;
+  };
+
+  private rebuildEntries = (): void => {
+    this.entries.clear();
+    for (const entry of this.configuredEntries.values()) {
+      this.entries.set(entry.id, entry);
+    }
+    for (const entry of this.contributedEntries.values()) {
+      if (this.entries.has(entry.id)) {
+        throw new Error(`Agent runtime entry is already registered: ${entry.id}`);
+      }
+      this.entries.set(entry.id, entry);
+    }
   };
 
   private getEntry = (agentRuntimeId: string): AgentRuntimeEntry => {

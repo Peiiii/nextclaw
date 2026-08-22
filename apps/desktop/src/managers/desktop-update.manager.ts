@@ -1,5 +1,5 @@
 import { Menu, app, dialog, ipcMain, type MessageBoxOptions, type MenuItemConstructorOptions } from "electron";
-import { AUTOMATIC_UPDATE_CHECK_INTERVAL_MS } from "@nextclaw/kernel/automatic-update-check";
+import { AUTOMATIC_UPDATE_CHECK_INTERVAL_MS } from "@nextclaw/kernel";
 import type { DesktopBundleManager } from "./desktop-bundle.manager";
 import type { DesktopWindowManager } from "./desktop-window.manager";
 import {

@@ -1,5 +1,11 @@
 export { EventBus } from "./services/event-bus.service.js";
 export { Ingress } from "./services/ingress.service.js";
+export { Contribution, EffectScope } from "./features/lifecycle/index.js";
+export type {
+  Disposer,
+  EffectSetup,
+  IContribution,
+} from "./features/lifecycle/index.js";
 export {
   DisposableOwner,
   DisposableStore,

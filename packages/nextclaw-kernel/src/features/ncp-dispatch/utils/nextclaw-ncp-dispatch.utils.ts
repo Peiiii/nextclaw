@@ -6,9 +6,13 @@ import {
   type InboundMessage,
 } from "@nextclaw/core";
 import { CommandRegistry } from "@kernel/services/command-registry.service.js";
-import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
+import type {
+  AgentRunClient,
+  AgentRunExecution,
+} from "@kernel/services/agent-run-client.service.js";
 import { buildRunMetadata } from "@kernel/utils/agent-run-metadata.utils.js";
 import { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";
+import type { NcpEndpointEvent, NcpMessage } from "@nextclaw/ncp";
 export type DirectPromptDispatchParams = {
   config: Config;
   agentRunClient: AgentRunClient;
@@ -21,7 +25,29 @@ export type DirectPromptDispatchParams = {
   agentId?: string;
   abortSignal?: AbortSignal;
   onAssistantDelta?: (delta: string) => void;
+  onEvent?: (event: NcpEndpointEvent) => void;
 };
+
+export type DirectPromptDispatchResult = {
+  kind: "agent" | "command";
+  agentId: string;
+  sessionId: string;
+  runId: string | null;
+  text: string;
+  completedMessage: NcpMessage | null;
+};
+
+export type DirectPromptDispatchExecution =
+  | {
+      kind: "command";
+      result: DirectPromptDispatchResult;
+    }
+  | {
+      kind: "agent";
+      agentId: string;
+      sessionId: string;
+      execution: AgentRunExecution;
+    };
 
 function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -103,9 +129,9 @@ function resolveDirectRoute(params: {
   };
 }
 
-export async function dispatchPromptOverNcp(
+export async function startPromptOverNcpExecution(
   params: DirectPromptDispatchParams,
-): Promise<string> {
+): Promise<DirectPromptDispatchExecution> {
   const {
     abortSignal,
     agentId,
@@ -116,6 +142,7 @@ export async function dispatchPromptOverNcp(
     content,
     metadata,
     onAssistantDelta,
+    onEvent,
     agentRunClient,
     sessionKey,
   } = params;
@@ -137,22 +164,65 @@ export async function dispatchPromptOverNcp(
     sessionKey: route.sessionKey,
   });
   if (commandResult) {
-    return commandResult;
+    return {
+      kind: "command",
+      result: {
+        kind: "command",
+        agentId: route.agentId,
+        sessionId: route.sessionKey,
+        runId: null,
+        text: commandResult,
+        completedMessage: null,
+      },
+    };
   }
 
-  const result = await agentRunClient.sendAndWaitForReply(await buildAgentRunSendPayload({
-    sessionId: route.sessionKey,
-    content,
-    attachments,
-    metadata: buildRunMetadata({
-      message,
-      route,
+  const execution = await agentRunClient.startRun(
+    await buildAgentRunSendPayload({
+      sessionId: route.sessionKey,
+      content,
+      attachments,
+      metadata: buildRunMetadata({
+        message,
+        route,
+      }),
     }),
-  }), {
-    abortSignal,
-    onAssistantDelta,
-    missingCompletedMessageError: `session "${route.sessionKey}" completed without a final assistant message`,
-    runErrorMessage: `session "${route.sessionKey}" failed`,
-  });
-  return result.text;
+    {
+      abortSignal,
+      onAssistantDelta,
+      onEvent,
+      missingCompletedMessageError: `session "${route.sessionKey}" completed without a final assistant message`,
+      runErrorMessage: `session "${route.sessionKey}" failed`,
+    },
+  );
+  return {
+    kind: "agent",
+    agentId: route.agentId,
+    sessionId: execution.handle.sessionId,
+    execution,
+  };
+}
+
+export async function dispatchPromptOverNcpResult(
+  params: DirectPromptDispatchParams,
+): Promise<DirectPromptDispatchResult> {
+  const started = await startPromptOverNcpExecution(params);
+  if (started.kind === "command") {
+    return started.result;
+  }
+  const result = await started.execution.result;
+  return {
+    kind: "agent",
+    agentId: started.agentId,
+    sessionId: result.handle.sessionId,
+    runId: result.handle.runId,
+    text: result.text,
+    completedMessage: result.completedMessage,
+  };
+}
+
+export async function dispatchPromptOverNcp(
+  params: DirectPromptDispatchParams,
+): Promise<string> {
+  return (await dispatchPromptOverNcpResult(params)).text;
 }

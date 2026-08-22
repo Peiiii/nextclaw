@@ -1,0 +1,52 @@
+{
+  "name": "@nextclaw/harness",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Experimental package entry for embedding the NextClaw agent harness in Node.js applications.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peiiii/nextclaw.git"
+  },
+  "homepage": "https://github.com/Peiiii/nextclaw/tree/master/packages/nextclaw-harness",
+  "bugs": {
+    "url": "https://github.com/Peiiii/nextclaw/issues"
+  },
+  "keywords": [
+    "nextclaw",
+    "agent",
+    "harness",
+    "sdk"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint src --max-warnings=0",
+    "tsc": "pnpm run build && tsc -p tsconfig.json",
+    "test": "pnpm --filter @nextclaw/kernel build && pnpm run build && node --test src/services/public-facade.service.test.mjs",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "dependencies": {
+    "@nextclaw/kernel": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3"
+  }
+}

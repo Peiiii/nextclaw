@@ -33,6 +33,14 @@ export type AgentRunReply = {
   completedMessage: NcpMessage;
 };
 
+export type AgentRunExecution = {
+  handle: NcpRunHandle;
+  events: AsyncIterable<NcpEndpointEvent>;
+  result: Promise<AgentRunReply>;
+  cancel: () => Promise<void>;
+  dispose: () => void;
+};
+
 function readEventCorrelationId(event: NcpEndpointEvent): string | undefined {
   if (!("payload" in event)) {
     return undefined;
@@ -66,6 +74,7 @@ function readEventRunId(event: NcpEndpointEvent): string | undefined {
 function isTerminalEvent(event: NcpEndpointEvent): boolean {
   return (
     event.type === NcpEventType.MessageFailed ||
+    event.type === NcpEventType.MessageAbort ||
     event.type === NcpEventType.RunError ||
     event.type === NcpEventType.RunFinished
   );
@@ -142,12 +151,16 @@ class AgentRunEventQueue<T> implements AsyncIterable<T> {
 
 class AgentRunObserver {
   private readonly queue = new AgentRunEventQueue<NcpEndpointEvent>();
+  private readonly resultPromise: Promise<NcpMessage>;
   private readonly unsubscribe: () => void;
   private abortCleanup?: () => void;
   private completedMessage?: NcpMessage;
   private disposed = false;
+  private rejectResult!: (error: Error) => void;
+  private resolveResult!: (message: NcpMessage) => void;
   private runId?: string;
   private sessionId?: string;
+  private settled = false;
 
   constructor(
     private readonly options: {
@@ -155,9 +168,16 @@ class AgentRunObserver {
       correlationId: string;
       eventBus: Pick<EventBus, "on">;
       ingress: Pick<Ingress, "handle">;
+      missingCompletedMessageError?: string;
+      onAssistantDelta?: (delta: string) => void;
       onEvent?: (event: NcpEndpointEvent) => void;
+      runErrorMessage?: string;
     },
   ) {
+    this.resultPromise = new Promise<NcpMessage>((resolve, reject) => {
+      this.resolveResult = resolve;
+      this.rejectResult = reject;
+    });
     this.unsubscribe = options.eventBus.on(
       eventKeys.ncpEvent,
       this.handleEvent,
@@ -199,43 +219,25 @@ class AgentRunObserver {
     }
   };
 
-  waitForReply = async (
-    options: AgentRunReplyOptions = {},
-  ): Promise<NcpMessage> => {
-    for await (const event of this.queue) {
-      if (event.type === NcpEventType.MessageTextDelta) {
-        options.onAssistantDelta?.(event.payload.delta);
-        continue;
-      }
-      if (event.type === NcpEventType.MessageCompleted) {
-        this.completedMessage = event.payload.message;
-        continue;
-      }
-      if (event.type === NcpEventType.MessageFailed) {
-        throw new Error(event.payload.error.message);
-      }
-      if (event.type === NcpEventType.RunError) {
-        throw new Error(
-          event.payload.error ?? options.runErrorMessage ?? "NCP run failed.",
-        );
-      }
-      if (event.type === NcpEventType.RunFinished) {
-        if (!this.completedMessage) {
-          throw new Error(
-            options.missingCompletedMessageError ??
-              "NCP run completed without a final assistant message.",
-          );
-        }
-        return this.completedMessage;
-      }
+  waitForReply = async (): Promise<NcpMessage> => await this.resultPromise;
+
+  cancel = async (): Promise<void> => {
+    if (!this.sessionId) {
+      return;
     }
-    throw new Error(
-      options.missingCompletedMessageError ??
-        "NCP run completed without a final assistant message.",
+    await this.options.ingress.handle(
+      {
+        type: ingressKeys.agentRun.abort,
+        payload: {
+          sessionId: this.sessionId,
+          correlationId: this.options.correlationId,
+        },
+      },
+      { source: "agent-run-client" },
     );
   };
 
-  dispose = (): void => {
+  dispose = (error?: Error): void => {
     if (this.disposed) {
       return;
     }
@@ -243,6 +245,12 @@ class AgentRunObserver {
     this.abortCleanup?.();
     this.unsubscribe();
     this.queue.close();
+    if (!this.settled) {
+      this.settled = true;
+      this.rejectResult(
+        error ?? new Error("NCP run observation ended before a terminal event."),
+      );
+    }
   };
 
   private handleEvent = (event: NcpEndpointEvent): void => {
@@ -259,9 +267,53 @@ class AgentRunObserver {
     }
     this.options.onEvent?.(event);
     this.queue.push(event);
+    if (event.type === NcpEventType.MessageTextDelta) {
+      this.options.onAssistantDelta?.(event.payload.delta);
+    } else if (event.type === NcpEventType.MessageCompleted) {
+      this.completedMessage = event.payload.message;
+    } else if (event.type === NcpEventType.MessageAbort) {
+      this.rejectWith(new DOMException("NCP run was cancelled.", "AbortError"));
+    } else if (event.type === NcpEventType.MessageFailed) {
+      this.rejectWith(new Error(event.payload.error.message));
+    } else if (event.type === NcpEventType.RunError) {
+      this.rejectWith(
+        new Error(
+          event.payload.error ??
+            this.options.runErrorMessage ??
+            "NCP run failed.",
+        ),
+      );
+    } else if (event.type === NcpEventType.RunFinished) {
+      if (this.completedMessage) {
+        this.resolveWith(this.completedMessage);
+      } else {
+        this.rejectWith(
+          new Error(
+            this.options.missingCompletedMessageError ??
+              "NCP run completed without a final assistant message.",
+          ),
+        );
+      }
+    }
     if (isTerminalEvent(event)) {
       this.queue.close();
     }
+  };
+
+  private rejectWith = (error: Error): void => {
+    if (this.settled) {
+      return;
+    }
+    this.settled = true;
+    this.rejectResult(error);
+  };
+
+  private resolveWith = (message: NcpMessage): void => {
+    if (this.settled) {
+      return;
+    }
+    this.settled = true;
+    this.resolveResult(message);
   };
 }
 
@@ -281,20 +333,41 @@ export class AgentRunClient {
     input: AgentRunSendIngressPayload,
     options: AgentRunReplyOptions = {},
   ): Promise<AgentRunReply> => {
+    return await (await this.startRun(input, options)).result;
+  };
+
+  startRun = async (
+    input: AgentRunSendIngressPayload,
+    options: AgentRunReplyOptions = {},
+  ): Promise<AgentRunExecution> => {
     const correlationId = randomUUID();
     const observer = this.prepareObserver(correlationId, options);
+    let handle: NcpRunHandle;
     try {
-      const handle = await this.sendWithCorrelation(input, correlationId);
+      handle = await this.sendWithCorrelation(input, correlationId);
       observer.attachHandle(handle);
-      const completedMessage = await observer.waitForReply(options);
-      return {
+    } catch (error) {
+      observer.dispose(
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      throw error;
+    }
+    const result = observer
+      .waitForReply()
+      .then((completedMessage) => ({
         handle,
         completedMessage,
         text: extractTextFromNcpMessage(completedMessage),
-      };
-    } finally {
-      observer.dispose();
-    }
+      }))
+      .finally(observer.dispose);
+    void result.catch(() => undefined);
+    return {
+      handle,
+      events: { [Symbol.asyncIterator]: () => observer.stream() },
+      result,
+      cancel: observer.cancel,
+      dispose: observer.dispose,
+    };
   };
 
   sendAndStreamEvents = async function* (
@@ -302,16 +375,13 @@ export class AgentRunClient {
     input: AgentRunSendIngressPayload,
     options: AgentRunStreamOptions = {},
   ): AsyncGenerator<NcpEndpointEvent> {
-    const correlationId = randomUUID();
-    const observer = this.prepareObserver(correlationId, options);
+    const execution = await this.startRun(input, options);
     try {
-      const handle = await this.sendWithCorrelation(input, correlationId);
-      observer.attachHandle(handle);
-      for await (const event of observer.stream()) {
+      for await (const event of execution.events) {
         yield event;
       }
     } finally {
-      observer.dispose();
+      execution.dispose();
     }
   };
 
@@ -319,12 +389,24 @@ export class AgentRunClient {
     correlationId: string,
     options: AgentRunReplyOptions | AgentRunStreamOptions,
   ): AgentRunObserver => {
+    const { abortSignal, onEvent } = options;
+    const missingCompletedMessageError =
+      "missingCompletedMessageError" in options
+        ? options.missingCompletedMessageError
+        : undefined;
+    const onAssistantDelta =
+      "onAssistantDelta" in options ? options.onAssistantDelta : undefined;
+    const runErrorMessage =
+      "runErrorMessage" in options ? options.runErrorMessage : undefined;
     return new AgentRunObserver({
-      abortSignal: options.abortSignal,
+      abortSignal,
       correlationId,
       eventBus: this.options.eventBus,
       ingress: this.options.ingress,
-      onEvent: options.onEvent,
+      missingCompletedMessageError,
+      onAssistantDelta,
+      onEvent,
+      runErrorMessage,
     });
   };
 

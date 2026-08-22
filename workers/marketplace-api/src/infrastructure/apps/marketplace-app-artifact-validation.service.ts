@@ -1,5 +1,5 @@
 import { DomainValidationError } from "@/domain/errors";
-import { AppArtifactValidationService } from "@nextclaw/app-runtime/artifact-validation";
+import { AppArtifactValidationService } from "@nextclaw/app-runtime";
 import type {
   MarketplaceAppArtifactInput,
   MarketplaceAppPublishInput,

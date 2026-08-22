@@ -85,6 +85,7 @@ If you are installing and starting NextClaw for the first time, use [Quickstart]
 |---------|---------|
 | `nextclaw agent` | Terminal chat |
 | `nextclaw agent -m "message"` | Send a one-shot message |
+| [`nextclaw exec "message"`](/en/developers/exec) | Run one headless task with text, JSON, or JSONL output |
 | `nextclaw agents list` | List agents |
 | `nextclaw agents runtimes` | List runtimes |
 

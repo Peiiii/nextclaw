@@ -1,5 +1,11 @@
 import { APP_NAME, getConfigPath, getDataDir, loadConfig, resolveWorkspacePath } from "@nextclaw/core";
-import { NextclawKernel } from "@nextclaw/kernel";
+import {
+  NextclawKernel,
+  runNextclawTask,
+  type NextclawHarnessOptions,
+  type NextclawTaskInput,
+  type NextclawTaskResult,
+} from "@nextclaw/kernel";
 import { existsSync, mkdirSync } from "node:fs";
 import { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
 import { ServiceCommandManager, runCliAgentCommand, type NextclawServiceCommands } from "@nextclaw-service/managers/service-command.manager.js";
@@ -75,6 +81,24 @@ export class NextclawServiceRuntime {
   get version(): string {
     return NextclawDistributionService.get().version;
   }
+
+  runTask = async (input: NextclawTaskInput): Promise<NextclawTaskResult> => {
+    const configPath = getConfigPath();
+    const distribution = NextclawDistributionService.get();
+    const productActivityReporter = new ProductActivityReporter({
+      homeDir: getDataDir(),
+      productVersion: distribution.version,
+      loadConfig: () => loadConfig(configPath),
+    });
+    const options: NextclawHarnessOptions = {
+      builtInAppsDirectory: distribution.builtInAppsDirectory,
+      configPath,
+      homeDir: getDataDir(),
+      productActivitySink: productActivityReporter,
+      productVersion: distribution.version,
+    };
+    return await runNextclawTask(input, options);
+  };
 
   onboard = async (): Promise<void> => {
     console.warn(

@@ -88,4 +88,44 @@ describe("AgentRunClient", () => {
     expect(reply.text).toBe("hello from ingress");
     expect(reply.completedMessage).toBe(assistantMessage);
   });
+
+  it("settles a MessageAbort-only run as cancellation", async () => {
+    const eventBus = new EventBus();
+    const ingress = new Ingress();
+    ingress.addHandler<AgentRunSendIngressPayload, NcpRunHandle>(
+      ingressKeys.agentRun.send,
+      async (envelope) => {
+        queueMicrotask(() => {
+          eventBus.emit(eventKeys.ncpEvent, {
+            type: NcpEventType.MessageAbort,
+            payload: {
+              sessionId: "session-abort",
+              runId: "run-abort",
+              correlationId: envelope.payload?.correlationId,
+            },
+          });
+        });
+        return {
+          sessionId: "session-abort",
+          userMessageId: "user-abort",
+          assistantMessageId: null,
+          runId: "run-abort",
+          correlationId: envelope.payload?.correlationId,
+        };
+      },
+    );
+
+    const execution = await new AgentRunClient({ eventBus, ingress }).startRun({
+      sessionId: "session-abort",
+      content: [{ type: "text", text: "cancel" }],
+      metadata: { agentId: "main" },
+    });
+
+    await expect(execution.result).rejects.toMatchObject({ name: "AbortError" });
+    const events = [];
+    for await (const event of execution.events) {
+      events.push(event);
+    }
+    expect(events).toHaveLength(1);
+  });
 });

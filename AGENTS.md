@@ -52,8 +52,9 @@
 - 实现优先单一路径、清晰 owner、删除或复用旧实现；必要且清晰的最小增长允许存在，禁止为抵消行数扩大无关范围或损害可读性、类型和协议安全。
 - 同一事实、事件、状态变化或传输语义只保留一个 owner 和一条标准主链路；新增 wrapper、adapter、factory、service、manager 前必须证明它减少真实复杂度或隔离真实变化点。
 - NextClaw 产品语义默认归 kernel owner；service 只承载宿主、进程、升级、远程访问、CLI/daemon 外壳和环境适配，触达产品语义时调用 kernel。
+- “平台 SDK 化”是长期伴随式技术目标：触达可复用的 agent、session、runtime、tool、skill、provider 等核心能力时，优先把稳定语义沉淀为 NCP / kernel 公共 contract，并让 NextClaw 自身通过同一入口消费；不为追求导出数量暴露未稳定内部实现，也不为无关产品改动强加 SDK 工作。阶段路线与验收归 `docs/ROADMAP.md`。
 - 业务层传递 owner 或本次调用的数据快照，不把稳定 owner 拆成多层参数、proxy 或同名转发方法。
-- 跨 workspace package 只导入公共入口或 `exports`；禁止消费者用 tsconfig alias 绕过包边界。
+- 跨 workspace package 只导入 package 根公共入口；禁止消费者用 `exports` 子路径、tsconfig/Vitest/Vite alias 绕过包边界。
 - 前端业务状态和编排归 manager/store/presenter；组件与 hook 主要连接和展示。用户文案走 i18n，React 组件类型保持模块级稳定，effect 只同步外部系统。
 - Chat 链路默认只建设 NCP 主链路；legacy 只做迁移阻塞修复、删除前清理或用户明确要求的临时保障。
 - 触达 NextClaw 自管理命令语义时，同步维护 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 和 `nextclaw-self-manage` skill，并说明资源同步结果。

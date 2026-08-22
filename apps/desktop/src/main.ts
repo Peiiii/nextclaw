@@ -1,5 +1,6 @@
-import { app, dialog, ipcMain, shell, type Event as ElectronEvent } from "electron";
-import { resolveAutomaticUpdateCheckIntervalMs } from "@nextclaw/kernel/automatic-update-check";
+import { app, crashReporter, dialog, ipcMain, shell, type Event as ElectronEvent } from "electron";
+import { resolveAutomaticUpdateCheckIntervalMs } from "@nextclaw/kernel";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import desktopPackageJson from "../package.json";
 import type { RuntimeCommand } from "./runtime-config";

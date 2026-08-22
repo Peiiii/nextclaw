@@ -671,6 +671,7 @@ nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json
 | `nextclaw --version` | Show the installed NextClaw version |
 | `nextclaw agent -m "message"` | Send a one-off message to the agent |
 | `nextclaw agent` | Interactive chat in the terminal |
+| `nextclaw exec "message"` | Run one non-interactive task (text output) |
 | `nextclaw agent --session <id> --model <model>` | Use a session-specific model/provider route (sticky for that session) |
 | `nextclaw status` | Show runtime process/health/config status (`--json`, `--verbose`, `--fix`) |
 | `nextclaw usage` | Show the latest observed LLM usage snapshot; add `--history`, `--stats`, `--limit <n>`, or `--json` for local usage history and prompt cache stats |
@@ -1333,3 +1334,31 @@ NextClaw binds UI to `0.0.0.0` by default and attempts to detect/print a public 
 | **Agent not responding in CLI** | Run `nextclaw init` if you have not yet; ensure a provider and model are set and the provider key is valid. |
 
 ---
+### Headless execution
+
+Use `nextclaw exec` from scripts, CI, or a pipeline. It accepts prompt arguments, piped stdin, `--agent`, `--session`, `--model`, `--timeout <ms>`, and `--format text|json|jsonl`. Without `--session`, each invocation uses a new `exec:<uuid>` session. Text writes only the final reply to stdout; JSON and JSONL are machine-readable, while diagnostics are written to stderr. Exit codes are `0` for success, `2` for invalid input, `130` for cancellation/timeout, and `1` for runtime failures.
+
+```bash
+nextclaw exec "Summarize the workspace" > summary.txt
+cat context.txt | nextclaw exec --format json "Analyze this context" | jq
+nextclaw exec --format jsonl --timeout 30000 "Run the checks"
+```
+
+For in-process Node.js use, install the experimental Harness package:
+
+```bash
+pnpm add @nextclaw/harness
+```
+
+```ts
+import { NextclawHarness } from "@nextclaw/harness";
+
+const harness = new NextclawHarness();
+await harness.start();
+try {
+  const result = await harness.runTask({ input: "Summarize the workspace" });
+  console.log(result.text);
+} finally {
+  await harness.dispose();
+}
+```

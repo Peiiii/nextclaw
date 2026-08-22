@@ -5,6 +5,7 @@ export const enNav: DefaultTheme.NavItem[] = [
   { text: 'Start', link: '/en/guide/introduction' },
   { text: 'How It Works', link: '/en/guide/chat' },
   { text: 'Task Guides', link: '/en/tasks/' },
+  { text: 'NextClaw Harness SDK', link: '/en/developers/' },
   { text: 'Setup & Reference', link: '/en/guide/install' },
   { text: 'Blog', link: '/en/blog/' },
   { text: 'Updates', link: '/en/notes/' },
@@ -15,6 +16,7 @@ export const zhNav: DefaultTheme.NavItem[] = [
   { text: '开始', link: '/zh/guide/introduction' },
   { text: '工作方式', link: '/zh/guide/chat' },
   { text: '任务案例', link: '/zh/tasks/' },
+  { text: 'NextClaw Harness SDK', link: '/zh/developers/' },
   { text: '安装与参考', link: '/zh/guide/install' },
   { text: '博客', link: '/zh/blog/' },
   { text: '更新', link: '/zh/notes/' },
@@ -227,6 +229,32 @@ const zhTasksSidebar: DefaultTheme.SidebarItem[] = [
   }
 ];
 
+const enDevelopersSidebar: DefaultTheme.SidebarItem[] = [
+  {
+    text: 'NextClaw Harness SDK',
+    items: [
+      { text: 'Overview', link: '/en/developers/' },
+      { text: 'Harness API', link: '/en/developers/harness' },
+      { text: 'Platform capabilities', link: '/en/developers/platform-capabilities' },
+      { text: 'nextclaw exec', link: '/en/developers/exec' },
+      { text: 'Examples', link: '/en/developers/examples' }
+    ]
+  }
+];
+
+const zhDevelopersSidebar: DefaultTheme.SidebarItem[] = [
+  {
+    text: 'NextClaw Harness SDK',
+    items: [
+      { text: '概览', link: '/zh/developers/' },
+      { text: 'Harness API', link: '/zh/developers/harness' },
+      { text: '平台扩展能力', link: '/zh/developers/platform-capabilities' },
+      { text: 'nextclaw exec', link: '/zh/developers/exec' },
+      { text: '示例', link: '/zh/developers/examples' }
+    ]
+  }
+];
+
 const enProjectSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'Project',
@@ -313,6 +341,7 @@ const zhBlogSidebar: DefaultTheme.SidebarItem[] = [
 export const enSidebar = {
   '/en/guide/': enGuideSidebar,
   '/en/tasks/': enTasksSidebar,
+  '/en/developers/': enDevelopersSidebar,
   '/en/project/': enProjectSidebar,
   '/en/notes/': enNotesSidebar,
   '/en/blog/': enBlogSidebar

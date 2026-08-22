@@ -17,7 +17,7 @@ const usage = `Usage:
   node scripts/governance/checks/structure/lint-new-code-package-public-imports.mjs --base origin/main
   node scripts/governance/checks/structure/lint-new-code-package-public-imports.mjs -- packages/nextclaw/src
 
-Blocks cross-workspace package deep imports. A workspace may import another workspace package only through its package root public entry or an explicit package.json exports subpath.`;
+Blocks cross-workspace package subpath imports and source-subpath aliases. A workspace may import another workspace package only through its package root public entry. Test/build aliases may resolve a package root to its development entry, but must not map a package subpath directly into another workspace package's src directory.`;
 
 const workspaceRootNames = ["apps", "packages", "workers"];
 const codeFilePattern = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
@@ -25,14 +25,6 @@ const codeFilePattern = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 const normalizePath = (value) => value.split(path.sep).join("/");
 
 const readJson = (filePath) => JSON.parse(fs.readFileSync(filePath, "utf8"));
-
-const collectExportedSubpaths = (exportsValue) => new Set(
-  exportsValue && typeof exportsValue === "object" && !Array.isArray(exportsValue)
-    ? Object.keys(exportsValue)
-      .filter((key) => key.startsWith("./") && key !== "./")
-      .map((key) => key.slice(2))
-    : [],
-);
 
 const collectWorkspacePackages = () => {
   const packages = [];
@@ -45,7 +37,6 @@ const collectWorkspacePackages = () => {
         packages.push({
           name: packageJson.name,
           rootPath: normalizePath(path.relative(rootDir, absoluteDir)),
-          exportedSubpaths: collectExportedSubpaths(packageJson.exports),
         });
       }
       return;
@@ -137,7 +128,117 @@ const collectImportSpecifiers = (source, filePath) => {
   return specifiers;
 };
 
-export const collectPackagePublicImportViolations = (filePaths, workspacePackages = collectWorkspacePackages()) => {
+const readPropertyName = (property) => {
+  if (!property || property.type !== "Property") {
+    return null;
+  }
+  if (property.key.type === "Identifier") {
+    return property.key.name;
+  }
+  return typeof property.key.value === "string" ? property.key.value : null;
+};
+
+const readStringLiteral = (node) =>
+  node?.type === "Literal" && typeof node.value === "string"
+    ? node.value
+    : null;
+
+const collectAliasSpecifiers = (node, entries = [], seen = new WeakSet()) => {
+  if (!node || typeof node !== "object" || seen.has(node)) {
+    return entries;
+  }
+  seen.add(node);
+  if (node.type === "Property" && readPropertyName(node) === "alias") {
+    if (node.value.type === "ObjectExpression") {
+      for (const property of node.value.properties) {
+        const alias = readPropertyName(property);
+        if (!alias) {
+          continue;
+        }
+        entries.push({
+          alias,
+          line: property.loc.start.line,
+          column: property.loc.start.column + 1,
+        });
+      }
+    }
+    if (node.value.type === "ArrayExpression") {
+      for (const entry of node.value.elements) {
+        if (!entry || entry.type !== "ObjectExpression") {
+          continue;
+        }
+        const find = entry.properties.find(
+          (property) => readPropertyName(property) === "find",
+        );
+        const replacement = entry.properties.find(
+          (property) => readPropertyName(property) === "replacement",
+        );
+        const alias = find && readStringLiteral(find.value);
+        if (!alias || !replacement) {
+          continue;
+        }
+        entries.push({
+          alias,
+          line: entry.loc.start.line,
+          column: entry.loc.start.column + 1,
+        });
+      }
+    }
+  }
+  for (const [key, value] of Object.entries(node)) {
+    if (["comments", "loc", "parent", "range", "tokens"].includes(key)) {
+      continue;
+    }
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        collectAliasSpecifiers(child, entries, seen);
+      }
+      continue;
+    }
+    collectAliasSpecifiers(value, entries, seen);
+  }
+  return entries;
+};
+
+export const collectPackageSourceAliasViolations = ({
+  filePath,
+  source,
+  workspacePackages = collectWorkspacePackages(),
+}) => {
+  const importerPackage = findOwningPackage(filePath, workspacePackages);
+  if (!importerPackage) {
+    return [];
+  }
+  const ast = parser.parse(source, {
+    sourceType: "module",
+    ecmaVersion: "latest",
+    loc: true,
+  });
+  const findings = [];
+  for (const entry of collectAliasSpecifiers(ast)) {
+    const resolvedAlias = resolveWorkspaceImport(entry.alias, workspacePackages);
+    if (
+      !resolvedAlias?.subpath ||
+      resolvedAlias.targetPackage.rootPath === importerPackage.rootPath
+    ) {
+      continue;
+    }
+    findings.push({
+      filePath,
+      line: entry.line,
+      column: entry.column,
+      level: "error",
+      message: `cross-workspace aliases must use '${resolvedAlias.packageName}' root public entry instead of subpath '${entry.alias}'`,
+    });
+  }
+  return defaultSortByLocation(findings);
+};
+
+export const collectPackagePublicImportViolations = (
+  filePaths,
+  workspacePackages = collectWorkspacePackages(),
+  sourceByFilePath,
+) => {
   const findings = [];
 
   for (const filePath of filePaths) {
@@ -148,7 +249,10 @@ export const collectPackagePublicImportViolations = (filePaths, workspacePackage
     if (!importerPackage) {
       continue;
     }
-    const source = fs.readFileSync(path.resolve(rootDir, filePath), "utf8");
+    const source = sourceByFilePath?.get(filePath) ?? fs.readFileSync(
+      path.resolve(rootDir, filePath),
+      "utf8",
+    );
     for (const specifier of collectImportSpecifiers(source, filePath)) {
       const resolvedImport = resolveWorkspaceImport(specifier.value, workspacePackages);
       if (!resolvedImport?.subpath) {
@@ -157,15 +261,12 @@ export const collectPackagePublicImportViolations = (filePaths, workspacePackage
       if (resolvedImport.targetPackage.rootPath === importerPackage.rootPath) {
         continue;
       }
-      if (resolvedImport.targetPackage.exportedSubpaths.has(resolvedImport.subpath)) {
-        continue;
-      }
       findings.push({
         filePath,
         line: specifier.line,
         column: specifier.column,
         level: "error",
-        message: `cross-workspace package imports must use '${resolvedImport.packageName}' public root or an explicit package.json exports subpath instead of deep importing '${specifier.value}'`,
+        message: `cross-workspace package imports must use '${resolvedImport.packageName}' root public entry instead of subpath '${specifier.value}'`,
       });
     }
   }
@@ -175,9 +276,20 @@ export const collectPackagePublicImportViolations = (filePaths, workspacePackage
 
 export const runPackagePublicImportCheck = (options) => {
   const { changedFiles } = collectChangedWorkspaceFiles(options);
+  const aliasFindings = [];
+  for (const filePath of changedFiles) {
+    if (!codeFilePattern.test(filePath)) {
+      continue;
+    }
+    const source = fs.readFileSync(path.resolve(rootDir, filePath), "utf8");
+    aliasFindings.push(...collectPackageSourceAliasViolations({ filePath, source }));
+  }
   return {
     changedFiles,
-    findings: collectPackagePublicImportViolations(changedFiles),
+    findings: defaultSortByLocation([
+      ...collectPackagePublicImportViolations(changedFiles),
+      ...aliasFindings,
+    ]),
   };
 };
 

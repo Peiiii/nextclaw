@@ -9,6 +9,7 @@ import { registerHostServiceControls } from "./service-command-registration.util
 import { registerAppCommands } from "./register-app-commands.js";
 import { registerProjectCommands } from "./register-project-commands.js";
 import { registerSessionCommands } from "./register-session-commands.js";
+import { registerExecCommand } from "./exec-command-registration.utils.js";
 
 const LOGO = "🤖";
 
@@ -142,6 +143,8 @@ registerAgentsCommands(program, runtime);
 registerProjectCommands(program, runtime);
 
 registerSessionCommands(program, runtime);
+
+registerExecCommand(program, runtime);
 
 registerAppCommands(program);
 

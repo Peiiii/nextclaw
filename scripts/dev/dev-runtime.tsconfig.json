@@ -15,7 +15,6 @@
       "@nextclaw/core": ["packages/nextclaw-core/src/index.ts"],
       "@nextclaw-cli/*": ["packages/nextclaw/src/*"],
       "@nextclaw/kernel": ["packages/nextclaw-kernel/src/index.ts"],
-      "@nextclaw/kernel/update-contract": ["packages/nextclaw-kernel/src/types/update-contract.types.ts"],
       "@nextclaw/mcp": ["packages/nextclaw-mcp/src/index.ts"],
       "@nextclaw/ncp": ["packages/ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/ncp-agent-runtime": ["packages/ncp-packages/nextclaw-ncp-agent-runtime/src/index.ts"],

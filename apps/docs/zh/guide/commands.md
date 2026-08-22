@@ -85,6 +85,7 @@
 |------|------|
 | `nextclaw agent` | 终端交互 |
 | `nextclaw agent -m "message"` | 发送一次性消息 |
+| [`nextclaw exec "message"`](/zh/developers/exec) | 以 headless 模式执行一次任务，支持 text、JSON 和 JSONL |
 | `nextclaw agents list` | 列出 Agent |
 | `nextclaw agents runtimes` | 列出 runtime |
 

@@ -1,4 +1,4 @@
-import { AppPlatformTargetService } from "@nextclaw/app-runtime/platform-target";
+import { AppPlatformTargetService } from "@nextclaw/app-runtime";
 import type {
   MarketplaceAppArtifactInput,
   MarketplaceAppPublishInput,
