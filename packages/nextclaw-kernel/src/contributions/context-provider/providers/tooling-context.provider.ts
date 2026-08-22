@@ -39,20 +39,11 @@ export class ToolingContextProvider implements ContextProvider {
     request: AgentRunRequest,
   ): Promise<readonly ContextBlock[]> => {
     const { runContext, toolCatalog } = await this.context.resolve(request);
-    const toolLines =
-      toolCatalog.length > 0
-        ? toolCatalog.map(
-            (tool) =>
-              `- ${tool.name}: ${tool.description ?? "No description available"}`,
-          )
-        : ["- No tools available for this turn."];
 
     return [
       [
         "## Tooling",
-        "Tool availability (filtered by policy):",
-        "Tool names are case-sensitive. Call tools exactly as listed.",
-        ...toolLines,
+        "The provider tool schemas are the complete policy-filtered tool catalog for this turn. Tool names are case-sensitive; call them exactly as defined there.",
         "Web access policy:",
         `- ${renderWebSearchReadiness({
           searchConfig: runContext.profile.searchConfig,

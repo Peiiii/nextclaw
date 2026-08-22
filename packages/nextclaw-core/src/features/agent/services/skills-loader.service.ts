@@ -174,7 +174,7 @@ export class SkillsLoader {
   };
 
   buildSkillsManifest = (selectors: string[]): string => {
-    const parts: string[] = [];
+    const skills: SkillInfo[] = [];
     const seenRefs = new Set<string>();
 
     for (const selector of selectors) {
@@ -183,10 +183,10 @@ export class SkillsLoader {
         continue;
       }
       seenRefs.add(match.skill.ref);
-      parts.push(...this.buildSkillXmlLines(match.skill, "  "));
+      skills.push(match.skill);
     }
 
-    return parts.length > 0 ? parts.join("\n") : "";
+    return this.buildSkillsCatalog(skills);
   };
 
   buildSkillsSummary = (): string => {
@@ -195,20 +195,7 @@ export class SkillsLoader {
       return "";
     }
 
-    const lines: string[] = ["<skills>"];
-    for (const scope of SKILL_SCOPE_SUMMARY_ORDER) {
-      const scopedSkills = allSkills.filter((skill) => skill.scope === scope);
-      if (scopedSkills.length === 0) {
-        continue;
-      }
-      lines.push(`  <skill_group scope="${scope}" source="${scope}">`);
-      for (const skill of scopedSkills) {
-        lines.push(...this.buildSkillXmlLines(skill, "    "));
-      }
-      lines.push("  </skill_group>");
-    }
-    lines.push("</skills>");
-    return lines.join("\n");
+    return this.buildSkillsCatalog(allSkills);
   };
 
   getAlwaysSkills = (): string[] => {
@@ -347,25 +334,28 @@ export class SkillsLoader {
     return { skill: matches[0], resolution: "name" };
   };
 
-  private buildSkillXmlLines = (skill: SkillInfo, indent: string): string[] => {
-    const description = this.getSkillMetadata(skill)?.description?.trim();
-    const lines = [
-      `${indent}<skill>`,
-      `${indent}  <name>${this.escapeXml(skill.name)}</name>`,
-      `${indent}  <ref>${this.escapeXml(skill.ref)}</ref>`,
-      `${indent}  <scope>${this.escapeXml(skill.scope)}</scope>`,
-      `${indent}  <source>${this.escapeXml(skill.source)}</source>`,
-    ];
-    if (description) {
-      lines.push(`${indent}  <description>${this.escapeXml(description)}</description>`);
+  private buildSkillsCatalog = (skills: SkillInfo[]): string => {
+    const lines: string[] = [];
+    for (const scope of SKILL_SCOPE_SUMMARY_ORDER) {
+      const skillsByRoot = new Map<string, SkillInfo[]>();
+      for (const skill of skills.filter((candidate) => candidate.scope === scope)) {
+        const root = dirname(dirname(skill.path));
+        const group = skillsByRoot.get(root) ?? [];
+        group.push(skill);
+        skillsByRoot.set(root, group);
+      }
+      for (const [root, groupedSkills] of skillsByRoot) {
+        if (lines.length > 0) {
+          lines.push("");
+        }
+        lines.push(`### ${scope} skills`, `Root: \`${root}\``);
+        for (const skill of groupedSkills) {
+          const description = this.getSkillMetadata(skill)?.description?.trim();
+          lines.push(`- ${skill.name}${description ? ` — ${description}` : ""}`);
+        }
+      }
     }
-    lines.push(`${indent}  <location>${this.escapeXml(skill.path)}</location>`);
-    lines.push(`${indent}</skill>`);
-    return lines;
-  };
-
-  private escapeXml = (value: string): string => {
-    return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return lines.join("\n");
   };
 
   private parseSkillMetadata = (raw: string): Record<string, unknown> => {

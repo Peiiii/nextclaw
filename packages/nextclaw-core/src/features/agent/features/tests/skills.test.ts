@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
+import { estimateInputTokens } from "@core/features/agent/services/input-budget-pruner.service.js";
 import { SkillsLoader } from "@core/features/agent/services/skills-loader.service.js";
 
 const tempWorkspaces: string[] = [];
@@ -106,12 +107,19 @@ describe("SkillsLoader skill sources", () => {
       expect.objectContaining({ name: "global-review", scope: "global" }),
     ]));
     const summary = loader.buildSkillsSummary();
-    const projectGroupIndex = summary.indexOf('<skill_group scope="project" source="project">');
-    const workspaceGroupIndex = summary.indexOf('<skill_group scope="workspace" source="workspace">');
-    const globalGroupIndex = summary.indexOf('<skill_group scope="global" source="global">');
+    const projectGroupIndex = summary.indexOf("### project skills");
+    const workspaceGroupIndex = summary.indexOf("### workspace skills");
+    const globalGroupIndex = summary.indexOf("### global skills");
     expect(projectGroupIndex).toBeGreaterThan(-1);
     expect(workspaceGroupIndex).toBeGreaterThan(projectGroupIndex);
     expect(globalGroupIndex).toBeGreaterThan(workspaceGroupIndex);
+    expect(summary).toContain(`Root: \`${join(projectRoot, ".agents", "skills")}\``);
+    expect(summary).toContain("- project-review — project-review instructions");
+    expect(summary).toContain("- workspace-review — workspace-review instructions");
+    expect(summary).toContain("- global-review — global-review instructions");
+    expect(summary).not.toContain("<skill");
+    expect(summary).not.toContain("<ref>");
+    expect(summary).not.toContain("<location>");
   });
 
   it("loads builtin skills even when the workspace has no copied skill directories", () => {
@@ -302,6 +310,31 @@ describe("SkillsLoader skill sources", () => {
       }),
     );
     expect(matches[0]?.path.startsWith(workspace)).toBe(false);
+  });
+
+});
+
+describe("SkillsLoader catalog prompt", () => {
+  it("keeps the complete builtin catalog compact without XML or description loss", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader({
+      workspace,
+      includeBuiltin: true,
+      includeGlobal: false,
+    });
+    const skills = loader.listSkills(true);
+    const summary = loader.buildSkillsSummary();
+
+    for (const skill of skills) {
+      const description = loader.getSkillMetadata(skill)?.description?.trim();
+      expect(summary).toContain(`- ${skill.name} — ${description}`);
+    }
+    expect(summary).not.toContain("<skill");
+    expect(summary).not.toContain("<ref>");
+    expect(summary).not.toContain("<location>");
+    expect(
+      estimateInputTokens([{ role: "system", content: summary }]),
+    ).toBeLessThan(1_400);
   });
 
   it("keeps always-on builtin skills active", () => {
