@@ -6,7 +6,7 @@
 >
 > 角色：目标架构与实现合同
 >
-> 替代：`2026-08-22-agent-observation-runtime.design.md` 中的 Source Registry 方案，以及 `2026-08-22-agent-observation-workspace-source.design.md` 中的内置 workspace source 方案
+> 替代：早期的 Source Registry 方案和内置 workspace source 方案；这两条路径均已被本 Extension Observation 设计取代
 
 ## 1. 结论
 

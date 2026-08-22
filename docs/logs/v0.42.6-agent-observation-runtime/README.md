@@ -22,7 +22,7 @@
 - Extension SDK Observation 测试：1 个文件、2 个测试通过。
 - `@nextclaw/kernel`、`@nextclaw/extension-sdk`、`@nextclaw/ncp-agent-runtime-next` 的 TypeScript 检查通过。
 - Kernel、Extension SDK、Native Runtime 定向 lint 无错误；Kernel 有 3 个既存 warning，Native Runtime 有 2 个 warning。
-- `git diff --check` 通过；观察相关旧 `ContextSource`/`EventSource`/`ObservationManager.register`/`sourceId` 搜索未发现残留（无关 Panel App `sourceId` 除外）。
+- `git diff --check` 通过；在实现代码中搜索观察相关旧 `ContextSource`/`EventSource`/`ObservationManager.register`/`sourceId` 未发现残留（无关 Panel App `sourceId` 除外；设计文档中的历史概念说明不计入实现残留）。
 - 维护性门禁仍有 2 个错误：`agent-runtime.service.ts` 超过 600 行预算且 `run` 方法超过函数预算；因此不能把本轮表述为维护性全绿，也没有声称全量测试通过。
 
 ## 发布/部署方式
