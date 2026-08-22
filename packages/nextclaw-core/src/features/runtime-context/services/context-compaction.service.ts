@@ -1,4 +1,4 @@
-import { InputBudgetPruner } from "@core/features/agent/index.js";
+import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/index.js";
 
 type RuntimeMessage = Record<string, unknown>;
 type ContextCompactionSummaryGenerator = (params: {
@@ -32,6 +32,18 @@ export type ContextCompactionCheckpoint = {
   coveredSessionMessageCount: number;
   originalEstimatedTokens: number;
   projectedEstimatedTokens: number;
+  summaryDiagnostics?: {
+    attemptCount: number;
+    degraded: boolean;
+    finishReason: string;
+    installedSummaryTokens: number;
+    providerInputTokens: number;
+    providerMaxOutputTokens: number;
+    providerUsage: Record<string, number>;
+    rawSummaryTokens: number;
+    recovery: "provider-summary" | "deterministic-recent-context";
+    targetSummaryTokens: number;
+  };
   createdAt: string;
   updatedAt: string;
 };
@@ -56,7 +68,7 @@ const PRESERVED_USER_MESSAGE_MAX_TOKENS = 20_000;
 const SUMMARY_MAX_TOKENS = 4_000;
 const SUMMARY_MIN_TOKENS = 256;
 const SUMMARY_AVAILABLE_TOKEN_SHARE = 0.5;
-const SUMMARY_PROVIDER_MAX_TOKENS = 8_000;
+const SUMMARY_PROVIDER_OUTPUT_MARGIN = 512;
 const SUMMARY_PROVIDER_MIN_INPUT_TOKENS = 512;
 const APPROXIMATE_CHARS_PER_TOKEN = 4;
 
@@ -206,16 +218,24 @@ export class ContextCompactionService {
       Math.max(SUMMARY_MIN_TOKENS, Math.floor(availableSummaryTokens * SUMMARY_AVAILABLE_TOKEN_SHARE)),
     );
     const summaryProviderMaxTokens = Math.min(
-      SUMMARY_PROVIDER_MAX_TOKENS,
       Math.max(1, contextTokens - SUMMARY_PROVIDER_MIN_INPUT_TOKENS),
+      targetSummaryTokens + Math.min(
+        SUMMARY_PROVIDER_OUTPUT_MARGIN,
+        Math.max(64, Math.floor(targetSummaryTokens * 0.1)),
+      ),
     );
     const summary = await generateSummary({
-      maxInstallableSummaryTokens: availableSummaryTokens,
+      maxInstallableSummaryTokens: Math.min(availableSummaryTokens, targetSummaryTokens),
       maxInputTokens: Math.max(1, contextTokens - summaryProviderMaxTokens),
       maxTokens: summaryProviderMaxTokens,
       messages: coveredMessages.map((message) => structuredClone(message)),
       targetSummaryTokens,
     });
+    if (estimateInputTokens(summary) > targetSummaryTokens) {
+      throw new Error(
+        `Context compaction summary exceeds its target budget: ${estimateInputTokens(summary)} estimated tokens exceeds ${targetSummaryTokens}. The previous checkpoint was kept unchanged.`,
+      );
+    }
     const checkpointMessage: RuntimeMessage = {
       role: "user",
       content: summary,

@@ -13,12 +13,26 @@ import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import { ContextCompactionPreflightService } from "./context-compaction-preflight.service.js";
 
 const SESSION_ID = "session-rolling-compaction";
-const VALID_SUMMARY = "# Compressed Working Context\n\n## Recent High-Fidelity Context\nThe active task continues.\n\n## Continuation Contract\nContinue the active task.";
+function protocolSummary(detail = "The active task continues."): string {
+  return [
+    "# Compressed Working Context",
+    "## Active Request\n\nPreserve the active request.",
+    "## Current Work State\n\nThe current work is in progress.",
+    "## Safety and User Constraints\n\nKeep the user's constraints.",
+    `## Continuation Contract\n\n${detail}`,
+    "<!-- nextclaw-essential-context-complete -->",
+  ].join("\n\n");
+}
 
-function createSummaryResponse(content: string | null = VALID_SUMMARY) {
+const VALID_SUMMARY = protocolSummary("Continue the active task.");
+
+function createSummaryResponse(
+  content: string | null = VALID_SUMMARY,
+  finishReason = "stop",
+) {
   return {
     content,
-    finishReason: "stop",
+    finishReason,
     reasoningContent: null,
     toolCalls: [],
     usage: {},
@@ -477,7 +491,7 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
   it("records a part boundary and keeps only later parts after mid-run compaction", async () => {
     const providerManager = {
       chat: vi.fn(async (request: { maxTokens: number }) => ({
-        ...createSummaryResponse("# Compressed Working Context\n\nThe lookup completed.\n\n## Continuation Contract\nContinue after the lookup."),
+        ...createSummaryResponse(protocolSummary("Continue after the lookup.")),
         finishReason: request.maxTokens < 8_000 ? "length" : "stop",
       })),
     };
@@ -585,7 +599,7 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
     const rollingFinishResult = await service.finish(rollingBeginResult.pendingCompaction!);
     const rollingCheckpoint = rollingFinishResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
     const rollingSummaryRequest = providerManager.chat.mock.calls[1]?.[0].messages[1]?.content ?? "";
-    expect(rollingSummaryRequest).toContain("The lookup completed.");
+    expect(rollingSummaryRequest).toContain("Continue after the lookup.");
     expect(rollingSummaryRequest).toContain("SECOND_ROUND_CANARY");
     expect(rollingSummaryRequest).not.toContain("Working. Working.");
     expect(rollingCheckpoint).toMatchObject({
@@ -596,72 +610,11 @@ describe("ContextCompactionPreflightService mid-run compaction", () => {
   });
 });
 
-describe("ContextCompactionPreflightService rolling source", () => {
-  it.each([
-    {
-      name: "truncated non-empty content",
-      response: createSummaryResponse("# Compressed Working Context\n\nPartial"),
-      finishReason: "length",
-      expectedError: "summary was truncated",
-    },
-    {
-      name: "structurally incomplete content",
-      response: createSummaryResponse("# Compressed Working Context\n\nPartial"),
-      finishReason: "stop",
-      expectedError: "summary is incomplete",
-    },
-    {
-      name: "reasoning-only content",
-      response: createSummaryResponse(null),
-      finishReason: "stop",
-      expectedError: "summary is empty",
-    },
-  ])("rejects $name without installing a checkpoint", async ({ response, finishReason, expectedError }) => {
-    const providerManager = {
-      chat: vi.fn(async () => ({
-        ...response,
-        finishReason,
-        reasoningContent: "internal reasoning without a usable summary",
-      })),
-    };
-    const service = new ContextCompactionPreflightService(
-      createAgentManager(20_000),
-      providerManager as never,
-    );
-    const beginResult = service.begin({
-      inputMessages: [],
-      model: "run-selected-model",
-      requestMetadata: {},
-      sessionId: SESSION_ID,
-      sessionMessages: [
-        createAssistantMessage({
-          id: "large-previous-reply",
-          text: "chapter ".repeat(12_000),
-          timestamp: "2026-06-05T17:13:00.000Z",
-        }),
-        createAssistantMessage({
-          id: "latest-reply",
-          text: "Keep going.",
-          timestamp: "2026-06-05T17:14:00.000Z",
-        }),
-      ],
-      storedAgentId: "main",
-      storedMetadata: {},
-      trigger: "manual",
-    });
-
-    await expect(service.finish(beginResult.pendingCompaction!)).rejects.toThrow(expectedError);
-    expect(providerManager.chat).toHaveBeenCalledWith(expect.objectContaining({
-      thinkingLevel: "off",
-    }));
-  });
-});
-
 describe("ContextCompactionPreflightService summary projection", () => {
   it("strips reasoning tags before storing generated summaries", async () => {
     const providerManager = {
       chat: vi.fn(async () => createSummaryResponse(
-        "<think>hidden compaction reasoning</think>\n\n# Compressed Working Context\n\n## Continuation Contract\nKeep continuing 《天脊书》.",
+        `<think>hidden compaction reasoning</think>\n\n${protocolSummary("Keep continuing 《天脊书》.")}`,
       )),
     };
     const service = new ContextCompactionPreflightService(createAgentManager(20_000), providerManager as never);
@@ -690,13 +643,13 @@ describe("ContextCompactionPreflightService summary projection", () => {
 
     const finishResult = await service.finish(beginResult.pendingCompaction!);
     const checkpoint = finishResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
-    expect(checkpoint.summary).toBe("# Compressed Working Context\n\n## Continuation Contract\nKeep continuing 《天脊书》.");
+    expect(checkpoint.summary).toBe(protocolSummary("Keep continuing 《天脊书》."));
     expect(checkpoint.summary).not.toContain("<think>");
   });
   it("keeps recent covered message heads when summary source is truncated", async () => {
     const providerManager = {
       chat: vi.fn(async () => createSummaryResponse(
-        "# Compressed Working Context\n\nKept source canaries.\n\n## Continuation Contract\nContinue.",
+        protocolSummary("Continue."),
       )),
     };
     const service = new ContextCompactionPreflightService(createAgentManager(20_000), providerManager as never);
@@ -725,8 +678,8 @@ describe("ContextCompactionPreflightService summary projection", () => {
     const summarySystemPrompt = providerManager.chat.mock.calls[0]?.[0].messages[0]?.content ?? "";
     const providerRequest = providerManager.chat.mock.calls[0]?.[0];
     expect(summarySystemPrompt).toContain("Continuation Contract");
-    expect(summarySystemPrompt).toContain("does not restart as a fresh session");
-    expect(summaryRequest).toContain("Continuation Contract");
+    expect(summarySystemPrompt).toContain("A greeting does not erase the prior task");
+    expect(summaryRequest).toContain("Complete the essential prefix first");
     expect(summaryRequest).toContain("CANARY_ALPHA_731");
     expect(summaryRequest).toContain("CANARY_RECENT_842");
     expect(
@@ -739,7 +692,7 @@ describe("ContextCompactionPreflightService summary projection", () => {
     const existingCheckpoint = createCheckpoint();
     const providerManager = {
       chat: vi.fn(async () => createSummaryResponse(
-        "# Compressed Working Context\n\nRolled forward.\n\n## Continuation Contract\nContinue.",
+        protocolSummary("Continue."),
       )),
     };
     const service = new ContextCompactionPreflightService(createAgentManager(20_000), providerManager as never);
@@ -792,7 +745,7 @@ describe("ContextCompactionPreflightService summary projection", () => {
       coveredUntil: "2026-06-05T17:34:00.000Z",
       id: existingCheckpoint.id,
       status: "compressed",
-      summary: "# Compressed Working Context\n\nRolled forward.\n\n## Continuation Contract\nContinue.",
+      summary: protocolSummary("Continue."),
     });
     const { messages: projectedAfterFinish } = buildContextCompactionModelProjection({
       sessionId: SESSION_ID,

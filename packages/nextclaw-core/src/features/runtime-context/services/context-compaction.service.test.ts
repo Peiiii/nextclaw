@@ -252,7 +252,7 @@ describe("ContextCompactionService", () => {
       plan: plan!,
       generateSummary: async ({ maxInputTokens, maxTokens, targetSummaryTokens }) => {
         expect(targetSummaryTokens).toBeGreaterThanOrEqual(256);
-        expect(maxTokens).toBe(8_000);
+        expect(maxTokens).toBeLessThan(targetSummaryTokens + 512);
         expect(maxInputTokens + maxTokens).toBe(35_000);
         return "# Compressed Working Context\n\n## Continuation Contract\nContinue.";
       },
@@ -305,6 +305,6 @@ describe("ContextCompactionService final-fit failures", () => {
         expect(maxTokens).toBeLessThan(600);
         return "oversized ".repeat(1_000);
       },
-    })).rejects.toThrow("output does not fit");
+    })).rejects.toThrow("exceeds its target budget");
   });
 });

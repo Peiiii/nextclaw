@@ -9,6 +9,20 @@ import { ContextCompactionPreflightService } from "./context-compaction-prefligh
 
 const SESSION_ID = "session-summary-budget";
 
+function protocolSummary(detail = "Continue the current task.", optional?: string): string {
+  return [
+    "# Compressed Working Context",
+    "## Active Request\n\nPreserve the active request.",
+    "## Current Work State\n\nThe current work is in progress.",
+    "## Safety and User Constraints\n\nKeep the user's constraints.",
+    `## Continuation Contract\n\n${detail}`,
+    "<!-- nextclaw-essential-context-complete -->",
+    optional
+      ? `## Critical Technical Context\n\n${optional}\n<!-- nextclaw-section-complete:critical-technical-context -->`
+      : "",
+  ].filter(Boolean).join("\n\n");
+}
+
 function createAgentManager(): AgentManager {
   return {
     resolveAgentProfileForRun: () => ({
@@ -60,10 +74,10 @@ function beginCompaction(service: ContextCompactionPreflightService) {
   });
 }
 
-function createSummaryResponse(content: string) {
+function createSummaryResponse(content: string, finishReason = "stop") {
   return {
     content,
-    finishReason: "stop",
+    finishReason,
     reasoningContent: null,
     toolCalls: [],
     usage: {},
@@ -71,36 +85,39 @@ function createSummaryResponse(content: string) {
 }
 
 describe("ContextCompactionPreflightService summary budget", () => {
-  it("installs a provider summary above the soft target when it fits the hard budget", async () => {
+  it("drops a low-priority tail so the installed summary meets the target budget", async () => {
     let targetSummaryTokens = 0;
     const providerManager = {
       chat: vi.fn(async (request: { messages: Array<{ content?: string }> }) => {
         targetSummaryTokens = Number(
           (request.messages[1]?.content ?? "").match(/within (\d+) tokens/)?.[1] ?? 0,
         );
-        let summary = "# Compressed Working Context\n\n## Continuation Contract\nContinue.\n\n";
-        while (estimateInputTokens(summary) <= Math.floor(targetSummaryTokens * 1.2)) {
-          summary += "Preserved context. ";
-        }
-        return createSummaryResponse(summary);
+        return createSummaryResponse(protocolSummary(
+          "Continue.",
+          "Preserved low-priority context. ".repeat(targetSummaryTokens),
+        ));
       }),
     };
     const service = createService(providerManager);
     const finishResult = await service.finish(beginCompaction(service).pendingCompaction!);
     const checkpoint = finishResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
 
-    expect(estimateInputTokens(checkpoint.summary)).toBeGreaterThan(targetSummaryTokens);
+    expect(estimateInputTokens(checkpoint.summary)).toBeLessThanOrEqual(targetSummaryTokens);
+    expect(checkpoint.summary).not.toContain("Critical Technical Context");
+    expect(checkpoint.summaryDiagnostics).toMatchObject({
+      attemptCount: 1,
+      degraded: true,
+      finishReason: "stop",
+    });
     expect(finishResult.contextWindow.usedContextTokens).toBeLessThanOrEqual(28_000);
   });
 
   it("fits a complete provider summary above the hard budget without another model call", async () => {
     const providerManager = {
-      chat: vi.fn(async () => createSummaryResponse([
-        "# Compressed Working Context",
-        "## Active Task & User Intent\nKeep the rolling task and its latest evidence.",
-        `## Recent High-Fidelity Context\n${"oversized ".repeat(20_000)}`,
-        "## Continuation Contract\nContinue the same run after installing this checkpoint.",
-      ].join("\n\n"))),
+      chat: vi.fn(async () => createSummaryResponse(protocolSummary(
+        "Continue the same run after installing this checkpoint.",
+        "oversized ".repeat(20_000),
+      ))),
     };
     const service = createService(providerManager);
     const finishResult = await service.finish(beginCompaction(service).pendingCompaction!);
@@ -110,7 +127,26 @@ describe("ContextCompactionPreflightService summary budget", () => {
     expect(checkpoint).toMatchObject({ status: "compressed" });
     expect(checkpoint.summary).toMatch(/^# Compressed Working Context/);
     expect(checkpoint.summary).toContain("Continuation Contract");
-    expect(checkpoint.summary).toContain("omitted to fit the checkpoint budget");
+    expect(checkpoint.summary).not.toContain("omitted to fit the checkpoint budget");
+    expect(finishResult.contextWindow.usedContextTokens).toBeLessThanOrEqual(28_000);
+  });
+
+  it("installs a structurally complete truncated summary after fitting it to the hard budget", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => createSummaryResponse(protocolSummary(
+        "Continue the task without restarting the session.",
+        "oversized context ".repeat(20_000),
+      ), "length")),
+    };
+    const service = createService(providerManager);
+    const finishResult = await service.finish(beginCompaction(service).pendingCompaction!);
+    const checkpoint = finishResult.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
+
+    expect(providerManager.chat).toHaveBeenCalledTimes(1);
+    expect(checkpoint).toMatchObject({ status: "compressed" });
+    expect(checkpoint.summary).toMatch(/^# Compressed Working Context/);
+    expect(checkpoint.summary).toContain("Continuation Contract");
+    expect(checkpoint.summary).not.toContain("omitted to fit the checkpoint budget");
     expect(finishResult.contextWindow.usedContextTokens).toBeLessThanOrEqual(28_000);
   });
 });

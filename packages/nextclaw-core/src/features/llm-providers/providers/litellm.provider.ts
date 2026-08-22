@@ -63,6 +63,7 @@ export class LiteLLMProvider extends LLMProvider {
       : new OpenAICompatibleProvider({
           apiKey: apiKey ?? null,
           apiBase: apiBase ?? null,
+          chatCompletionsThinkingControl: providerSpec?.chatCompletionsThinkingControl,
           defaultModel,
           extraHeaders,
           wireApi,

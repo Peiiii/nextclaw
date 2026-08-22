@@ -43,4 +43,12 @@ describe('@nextclaw/runtime module boundary', () => {
       'opencode/nemotron-3-ultra-free'
     ]);
   });
+
+  it('declares the DeepSeek chat-completions thinking control', async () => {
+    const runtime = await import('./builtin-provider-registry.provider.js');
+
+    const deepseek = runtime.findBuiltinProviderByName('deepseek');
+
+    assert.equal(deepseek?.chatCompletionsThinkingControl, 'thinking-type');
+  });
 });

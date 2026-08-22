@@ -97,6 +97,7 @@ export type ProviderSpec = {
   wireApiOptions?: WireApiMode[];
   defaultWireApi?: WireApiMode;
   supportsResponsesApi?: boolean;
+  chatCompletionsThinkingControl?: "thinking-type";
   logo?: string;
   apiBaseHelp?: LocalizedText;
   auth?: ProviderAuthSpec;

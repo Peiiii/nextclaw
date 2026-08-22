@@ -9,12 +9,18 @@ import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-con
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 
 const SESSION_ID = "session-context-compaction";
-const VALID_SUMMARY = "# Compressed Working Context\n\n## Recent High-Fidelity Context\nThe active task continues.\n\n## Continuation Contract\nContinue the active task.";
+const VALID_SUMMARY = [
+  "# Compressed Working Context",
+  "## Active Request\n\nContinue the active task.",
+  "## Current Work State\n\nThe task is in progress.",
+  "## Safety and User Constraints\n\nKeep the user's constraints.",
+  "## Continuation Contract\n\nProceed with the next required action.\n<!-- nextclaw-essential-context-complete -->",
+].join("\n\n");
 
-function createSummaryResponse(content = VALID_SUMMARY) {
+function createSummaryResponse(content = VALID_SUMMARY, finishReason = "stop") {
   return {
     content,
-    finishReason: "stop",
+    finishReason,
     reasoningContent: null,
     toolCalls: [],
     usage: {},
@@ -198,6 +204,34 @@ describe("AgentRunContextCompactionManager", () => {
     await expect(events.next()).resolves.toEqual({ done: true, value: undefined });
   });
 
+  it("completes compaction when a structurally valid summary reaches the output limit", async () => {
+    const providerManager = {
+      chat: vi.fn(async () => createSummaryResponse([
+        VALID_SUMMARY,
+        "## Critical Technical Context",
+        "oversized context ".repeat(20_000),
+      ].join("\n\n"), "length")),
+    };
+    const manager = createManager(providerManager, 20_000);
+
+    const events = await collectEvents(manager.runPreflight({
+      agentId: "main",
+      contextBlocks: ["runtime context ".repeat(4_000)],
+      messages: createFirstCompactionMessages(),
+      metadata: {},
+      model: "run-selected-model",
+      sessionId: SESSION_ID,
+    }));
+
+    expect(providerManager.chat).toHaveBeenCalledOnce();
+    expect(events).toHaveLength(2);
+    expect(events[1]?.payload).toMatchObject({
+      message: {
+        metadata: { checkpoint: { status: "compressed" } },
+      },
+    });
+  });
+
   it("cancels an in-flight summary and terminalizes the same marker", async () => {
     const controller = new AbortController();
     const providerManager = {
@@ -257,6 +291,7 @@ describe("AgentRunContextCompactionManager", () => {
       model: "run-selected-model",
       sessionId: SESSION_ID,
     }))).rejects.toThrow("provider failed");
+    expect(providerManager.chat).toHaveBeenCalledOnce();
   });
 
   it("preserves the previous checkpoint when rolling compaction fails", async () => {
@@ -290,6 +325,7 @@ describe("AgentRunContextCompactionManager", () => {
       model: "run-selected-model",
       sessionId: SESSION_ID,
     }))).rejects.toThrow("provider failed");
+    expect(providerManager.chat).toHaveBeenCalledOnce();
     expect(metadata[CONTEXT_COMPACTION_METADATA_KEY]).toEqual(checkpoint);
   });
 

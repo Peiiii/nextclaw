@@ -475,7 +475,7 @@ describe("AgentRunModelInputBuilder budget pruning", () => {
 });
 
 describe("AgentRunModelInputBuilder deterministic compaction integration", () => {
-  it("installs a soft-target overshoot and builds the continuation-safe final provider input", async () => {
+  it("fits an oversized optional tail and builds the continuation-safe final provider input", async () => {
     const contextBlocks = [
       [
         "# Agent Bootstrap Context",
@@ -523,13 +523,16 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
         targetSummaryTokens = Number(prompt.match(/within (\d+) tokens/)?.[1] ?? 0);
         let content = [
           "# Compressed Working Context",
-          "",
-          "## Continuation Contract",
-          "When the user says 你好, continue 《天脊书》 and ask whether to write Chapter 9 or Volume 2.",
-        ].join("\n");
+          "## Active Request\n\nContinue 《天脊书》 from the current task.",
+          "## Current Work State\n\nThe first eight chapters are complete.",
+          "## Safety and User Constraints\n\nDo not restart onboarding.",
+          "## Continuation Contract\n\nWhen the user says 你好, continue 《天脊书》 and ask whether to write Chapter 9 or Volume 2.\n<!-- nextclaw-essential-context-complete -->",
+          "## Critical Technical Context\n\nPreserved working context.",
+        ].join("\n\n");
         while (estimateInputTokens(content) <= Math.floor(targetSummaryTokens * 1.2)) {
           content += "\nPreserved working context.";
         }
+        content += "\n<!-- nextclaw-section-complete:critical-technical-context -->";
         return {
           content,
           finishReason: "stop",
@@ -554,7 +557,8 @@ describe("AgentRunModelInputBuilder deterministic compaction integration", () =>
     const finish = await preflight.finish(begin.pendingCompaction!);
     const checkpoint = finish.timelineMessage?.metadata?.checkpoint as ContextCompactionCheckpoint;
     expect(targetSummaryTokens).toBeGreaterThan(0);
-    expect(estimateInputTokens(checkpoint.summary)).toBeGreaterThan(targetSummaryTokens);
+    expect(estimateInputTokens(checkpoint.summary)).toBeLessThanOrEqual(targetSummaryTokens);
+    expect(checkpoint.summary).not.toContain("Critical Technical Context");
     const modelInput = await new AgentRunModelInputBuilder(
       {
         project: vi.fn(() =>

@@ -12,6 +12,7 @@ import {
   normalizeStructuredUsageCounters
 } from "@core/features/llm-providers/index.js";
 import { toOpenAiResponsesTools } from "@core/features/llm-providers/utils/openai-responses-tool.utils.js";
+import { buildChatCompletionsThinking } from "@core/features/llm-providers/utils/chat-completions-thinking.utils.js";
 import {
   buildOpenAiApiBaseCandidates,
   consumeOpenAiChatCompletionsStream,
@@ -39,6 +40,7 @@ type ResponsesApiBaseStreamParams = {
 export type OpenAIProviderOptions = {
   apiKey?: string | null;
   apiBase?: string | null;
+  chatCompletionsThinkingControl?: "thinking-type";
   defaultModel: string;
   extraHeaders?: Record<string, string> | null;
   wireApi?: "auto" | "chat" | "responses" | null;
@@ -52,10 +54,12 @@ export class OpenAICompatibleProvider extends LLMProvider {
   private wireApi: "auto" | "chat" | "responses";
   private enableResponsesFallback: boolean;
   private apiBaseCandidates: Array<string | null>;
+  private chatCompletionsThinkingControl?: "thinking-type";
 
   constructor(options: OpenAIProviderOptions) {
     super(options.apiKey, options.apiBase);
     this.defaultModel = options.defaultModel;
+    this.chatCompletionsThinkingControl = options.chatCompletionsThinkingControl;
     this.extraHeaders = options.extraHeaders ?? null;
     this.wireApi = options.wireApi ?? "auto";
     this.enableResponsesFallback = options.enableResponsesFallback ?? true;
@@ -124,7 +128,11 @@ export class OpenAICompatibleProvider extends LLMProvider {
             messages: params.messages as unknown as ChatCompletionMessageParam[],
             tools: params.tools as ChatCompletionTool[] | undefined,
             tool_choice: params.tools?.length ? "auto" : undefined,
-            ...this.buildChatCompletionsThinking(model, params.thinkingLevel),
+            ...buildChatCompletionsThinking({
+              control: this.chatCompletionsThinkingControl,
+              model,
+              thinkingLevel: params.thinkingLevel,
+            }),
             ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {})
           }, params.signal ? { signal: params.signal } : undefined)
         );
@@ -166,7 +174,11 @@ export class OpenAICompatibleProvider extends LLMProvider {
                 messages: params.messages as unknown as ChatCompletionMessageParam[],
                 tools: params.tools as ChatCompletionTool[] | undefined,
                 tool_choice: params.tools?.length ? "auto" : undefined,
-                ...provider.buildChatCompletionsThinking(model, params.thinkingLevel),
+                ...buildChatCompletionsThinking({
+                  control: provider.chatCompletionsThinkingControl,
+                  model,
+                  thinkingLevel: params.thinkingLevel,
+                }),
                 ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {}),
               },
               signal: params.signal,
@@ -314,20 +326,6 @@ export class OpenAICompatibleProvider extends LLMProvider {
       body.max_output_tokens = params.maxTokens;
     }
     return body;
-  };
-
-  private buildChatCompletionsThinking = (
-    model: string,
-    thinkingLevel: ThinkingLevel | null | undefined,
-  ): Record<string, unknown> => {
-    if (model.trim().toLowerCase() !== "minimax-m3" || thinkingLevel !== "off") {
-      return {};
-    }
-    return {
-      thinking: {
-        type: "disabled",
-      },
-    };
   };
 
   private shouldFallbackToResponses = (error: unknown): boolean => {

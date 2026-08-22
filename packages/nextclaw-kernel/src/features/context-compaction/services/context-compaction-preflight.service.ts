@@ -21,11 +21,7 @@ import {
   buildContextBlockInputMessages,
   estimateToolInputTokens,
 } from "@kernel/utils/agent-model-input-budget.utils.js";
-import {
-  fitContextCompactionSummaryOutput,
-  fitContextCompactionSummaryInput,
-  normalizeContextCompactionSummary,
-} from "@kernel/utils/context-compaction-summary-input.utils.js";
+import { ContextCompactionSummaryGenerationService } from "./context-compaction-summary-generation.service.js";
 import {
   buildContextCompactionModelProjection,
   buildContextCompactionTimelineNcpMessage,
@@ -74,13 +70,6 @@ type ResolvedCompactionProfile = {
   contextTokens: number;
   reservedContextTokens: number;
 };
-
-const TRUNCATED_SUMMARY_FINISH_REASONS = new Set([
-  "incomplete",
-  "length",
-  "max_output_tokens",
-  "max_tokens",
-]);
 
 function estimateCompactionProjectionOverhead(phase: ContextCompactionPhase): number {
   const summaryPlanOverhead = estimateInputTokens({ role: "user", content: "" });
@@ -182,11 +171,14 @@ function buildContextWindowSnapshotFromBudget(params: {
 export class ContextCompactionPreflightService {
   private readonly compactionService = new ContextCompactionService();
   private readonly contextWindowBudgetService = new ContextWindowBudgetService();
+  private readonly summaryGenerationService: ContextCompactionSummaryGenerationService;
 
   constructor(
     private readonly agentManager: AgentManager,
-    private readonly providerManager?: LlmProviderRuntime,
-  ) {}
+    providerManager?: LlmProviderRuntime,
+  ) {
+    this.summaryGenerationService = new ContextCompactionSummaryGenerationService(providerManager);
+  }
 
   preview = (params: {
     completeInputBudget?: boolean;
@@ -379,6 +371,7 @@ export class ContextCompactionPreflightService {
     pending: ContextCompactionPendingWork,
     signal?: AbortSignal,
   ): Promise<ContextCompactionPreflightResult> => {
+    let summaryDiagnostics: ContextCompactionCheckpoint["summaryDiagnostics"];
     const compacted = await this.compactionService.compactPreparedForModelInput({
       contextTokens: pending.contextTokens,
       plan: pending.plan,
@@ -388,8 +381,8 @@ export class ContextCompactionPreflightService {
         maxTokens,
         messages,
         targetSummaryTokens,
-      }) =>
-        await this.generateSummary({
+      }) => {
+        const generated = await this.summaryGenerationService.generate({
           maxInputTokens,
           maxInstallableSummaryTokens,
           maxTokens,
@@ -397,7 +390,10 @@ export class ContextCompactionPreflightService {
           model: pending.model,
           signal,
           targetSummaryTokens,
-        }),
+        });
+        summaryDiagnostics = generated.diagnostics;
+        return generated.summary;
+      },
     });
     const generatedCheckpoint = compacted.checkpoint;
     if (!generatedCheckpoint) {
@@ -413,6 +409,7 @@ export class ContextCompactionPreflightService {
         pending.continuationMessageBoundary?.coveredPartCount,
       coveredMessageCount: pending.checkpoint.coveredMessageCount,
       coveredSessionMessageCount: pending.checkpoint.coveredSessionMessageCount,
+      summaryDiagnostics: summaryDiagnostics!,
       status: "compressed" as const,
     };
     const timelineMessage = buildContextCompactionTimelineNcpMessage({
@@ -451,71 +448,6 @@ export class ContextCompactionPreflightService {
       sessionMessages: pending.sessionMessages,
       timelineMessage,
     };
-  };
-
-  private generateSummary = async (params: {
-    maxInputTokens: number;
-    maxInstallableSummaryTokens: number;
-    maxTokens: number;
-    messages: Record<string, unknown>[];
-    model: string;
-    signal?: AbortSignal;
-    targetSummaryTokens: number;
-  }): Promise<string> => {
-    if (!this.providerManager) {
-      throw new Error("context compaction summary generation requires a provider manager");
-    }
-    const {
-      maxInputTokens,
-      maxInstallableSummaryTokens,
-      maxTokens,
-      messages,
-      model,
-      signal,
-      targetSummaryTokens,
-    } = params;
-    const providerMessages = fitContextCompactionSummaryInput({
-      maxInputTokens,
-      messages,
-      targetSummaryTokens,
-    });
-    const response = await this.providerManager.chat({
-      model,
-      maxTokens,
-      messages: providerMessages,
-      signal,
-      thinkingLevel: "off",
-    });
-    const finishReason = response.finishReason.trim().toLowerCase();
-    if (TRUNCATED_SUMMARY_FINISH_REASONS.has(finishReason)) {
-      throw new Error(
-        `Context compaction summary was truncated: finishReason=${response.finishReason}, providerMaxTokens=${maxTokens}, targetSummaryTokens=${targetSummaryTokens}. The previous checkpoint was kept unchanged.`,
-      );
-    }
-    const summary = response.content ? normalizeContextCompactionSummary(response.content) : "";
-    if (!summary) {
-      throw new Error(
-        `Context compaction summary is empty: finishReason=${response.finishReason}, providerMaxTokens=${maxTokens}, targetSummaryTokens=${targetSummaryTokens}. The previous checkpoint was kept unchanged.`,
-      );
-    }
-    if (
-      !summary.startsWith("# Compressed Working Context") ||
-      !summary.includes("Continuation Contract")
-    ) {
-      throw new Error(
-        `Context compaction summary is incomplete: finishReason=${response.finishReason}, required heading or Continuation Contract is missing. The previous checkpoint was kept unchanged.`,
-      );
-    }
-    const installableSummary = fitContextCompactionSummaryOutput({
-      maxInstallableSummaryTokens,
-      summary,
-    });
-    if (!installableSummary) {
-      throw new Error(
-        `Context compaction summary cannot fit its minimum structural contract within the hard installable budget of ${maxInstallableSummaryTokens} tokens; the soft target was ${targetSummaryTokens}. The previous checkpoint was kept unchanged.`,
-      );
-    }
-    return installableSummary;
   };
 
   private resolveCompactionProfile = (params: {

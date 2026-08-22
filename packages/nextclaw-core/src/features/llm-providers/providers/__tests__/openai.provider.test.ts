@@ -618,6 +618,57 @@ describe("OpenAICompatibleProvider MiniMax thinking", () => {
       thinking: { type: "disabled" },
     });
   });
+
+  it("uses provider-declared thinking control for DeepSeek compaction requests", async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    const server = createServer((request, response) => {
+      const chunks: Buffer[] = [];
+      request.on("data", (chunk: Buffer) => chunks.push(chunk));
+      request.on("end", () => {
+        capturedBody = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Record<string, unknown>;
+        response.writeHead(200, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({
+          id: "resp_deepseek",
+          object: "chat.completion",
+          created: 0,
+          model: "deepseek-v4-flash",
+          choices: [{
+            index: 0,
+            message: { role: "assistant", content: "OK" },
+            finish_reason: "stop",
+          }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
+        }));
+      });
+    });
+
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("Expected http server to bind an ephemeral port.");
+    }
+
+    try {
+      const provider = new OpenAICompatibleProvider({
+        apiKey: "sk-test",
+        apiBase: `http://127.0.0.1:${address.port}`,
+        chatCompletionsThinkingControl: "thinking-type",
+        defaultModel: "deepseek-v4-flash",
+        wireApi: "chat",
+      });
+      await provider.chat({
+        messages: [{ role: "user", content: "summarize" }],
+        thinkingLevel: "off",
+      });
+    } finally {
+      server.close();
+    }
+
+    expect(capturedBody).toMatchObject({
+      model: "deepseek-v4-flash",
+      thinking: { type: "disabled" },
+    });
+  });
 });
 
 describe("OpenAICompatibleProvider /v1 fallback", () => {

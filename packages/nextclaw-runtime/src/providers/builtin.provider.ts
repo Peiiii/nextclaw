@@ -205,6 +205,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = {
       modelDiscovery: { kind: "openai-compatible" },
       stripModelPrefix: false,
       modelOverrides: [],
+      chatCompletionsThinkingControl: "thinking-type",
       logo: "deepseek.png",
     },
     {
