@@ -1,4 +1,7 @@
-import type { NextclawKernel } from "@nextclaw/kernel";
+import {
+  NcpAgentSessionJournalWriterConflictError,
+  type NextclawKernel,
+} from "@nextclaw/kernel";
 import { logStartupTrace, measureStartupAsync } from "@nextclaw-service/utils/startup-trace.utils.js";
 import type { ServiceGatewayManager } from "@nextclaw-service/managers/service-gateway.manager.js";
 
@@ -24,6 +27,9 @@ export class NextclawApp {
       await this.bootstrapKernel();
     } catch (error) {
       this.handleKernelStartupError(error);
+      if (error instanceof NcpAgentSessionJournalWriterConflictError) {
+        throw error;
+      }
     }
 
     await this.startDeferredRuntimeServices();

@@ -90,6 +90,29 @@ function deferMessageToolPayload(message: NcpMessage): NcpMessage {
   };
 }
 
+function sanitizeContextCompactionHistoryMessage(message: NcpMessage): NcpMessage {
+  const metadata = message.metadata;
+  if (metadata?.nextclaw_timeline_kind !== "context_compaction") {
+    return message;
+  }
+  const checkpoint = metadata.checkpoint;
+  if (!checkpoint || typeof checkpoint !== "object" || Array.isArray(checkpoint)) {
+    return message;
+  }
+  const {
+    summary: _summary,
+    summaryDiagnostics: _summaryDiagnostics,
+    ...uiCheckpoint
+  } = checkpoint as Record<string, unknown>;
+  return {
+    ...message,
+    metadata: {
+      ...metadata,
+      checkpoint: uiCheckpoint,
+    },
+  };
+}
+
 export function buildSessionMessageHistoryPayloadView(params: {
   messages: readonly NcpMessage[];
   messageDetailCursors: Readonly<Record<string, string>>;
@@ -162,9 +185,10 @@ export function buildSessionMessageHistoryPayloadView(params: {
     ]),
   );
   return {
-    messages: messages.map((message) =>
-      deferredIds.has(message.id) ? deferMessageToolPayload(message) : message,
-    ),
+    messages: messages.map((message) => {
+      const sanitized = sanitizeContextCompactionHistoryMessage(message);
+      return deferredIds.has(message.id) ? deferMessageToolPayload(sanitized) : sanitized;
+    }),
     deferredToolPayloads,
   };
 }
@@ -180,7 +204,18 @@ export function compactSessionMessageHistoryPayloadView(params: {
     1,
     Math.trunc(params.minimumMessages ?? SESSION_HISTORY_COMPACT_MIN_MESSAGES),
   );
-  let startIndex = Math.max(0, view.messages.length - minimumMessages);
+  let startIndex = view.messages.length;
+  let conversationMessageCount = 0;
+  while (startIndex > 0 && conversationMessageCount < minimumMessages) {
+    startIndex -= 1;
+    const message = view.messages[startIndex];
+    if (message?.role === "user" || message?.role === "assistant") {
+      conversationMessageCount += 1;
+    }
+  }
+  if (startIndex === view.messages.length) {
+    startIndex = Math.max(0, view.messages.length - minimumMessages);
+  }
   let bytes = view.messages
     .slice(startIndex)
     .reduce((total, message) => total + serializedBytes(message), 0);

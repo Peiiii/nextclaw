@@ -279,6 +279,7 @@ export class NcpAgentSessionMessageProjectionPersistenceStore {
         journal.events,
         seedMessages,
         meta.activeMessageId,
+        false,
       );
     } finally {
       await file.close();

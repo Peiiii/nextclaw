@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
 import { NextclawApp } from "./nextclaw-app.service.js";
 import type { ServiceGatewayManager } from "@nextclaw-service/managers/service-gateway.manager.js";
-import type { NextclawKernel } from "@nextclaw/kernel";
+import {
+  NcpAgentSessionJournalWriterConflictError,
+  type NextclawKernel,
+} from "@nextclaw/kernel";
 
 type TestGatewayKernel = Pick<NextclawKernel, "extensions" | "start">;
 
@@ -131,5 +134,27 @@ describe("NextclawApp", () => {
     expect(loadExtensions).toHaveBeenCalledTimes(1);
     expect(startChannels).toHaveBeenCalledTimes(1);
     expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops startup instead of continuing on a journal writer conflict", async () => {
+    const loadExtensions = vi.fn(async () => undefined);
+    const markNcpAgentError = vi.fn();
+    const gateway = createGateway({
+      kernel: {
+        start: vi.fn(async () => {
+          throw new NcpAgentSessionJournalWriterConflictError("/tmp/journal", 1234);
+        }),
+        extensions: {
+          start: vi.fn(async () => undefined),
+        },
+      } as never,
+      loadExtensions,
+      markNcpAgentError,
+    });
+    const app = new NextclawApp(gateway);
+
+    await expect(app.start()).rejects.toBeInstanceOf(NcpAgentSessionJournalWriterConflictError);
+    expect(markNcpAgentError).toHaveBeenCalledWith(expect.stringContaining("Another NextClaw runtime"));
+    expect(loadExtensions).not.toHaveBeenCalled();
   });
 });

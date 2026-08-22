@@ -2,7 +2,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { FileLockService } from "./file-lock.service.js";
+import { FileLockBusyError, FileLockService } from "./file-lock.service.js";
 
 const cleanupPaths: string[] = [];
 
@@ -57,6 +57,20 @@ describe("FileLockService", () => {
 
     await expect(new FileLockService().withLock(lockPath, async () => "recovered"))
       .resolves.toBe("recovered");
+  });
+
+  it("exposes a non-waiting lease for process lifetime ownership", async () => {
+    const directory = createTemporaryPath("napp-file-lease");
+    const lockPath = path.join(directory, "runtime.lock");
+    cleanupPaths.push(directory);
+
+    const first = await new FileLockService().acquireLease(lockPath);
+    await expect(new FileLockService().acquireLease(lockPath))
+      .rejects.toBeInstanceOf(FileLockBusyError);
+
+    await first.release();
+    const second = await new FileLockService().acquireLease(lockPath);
+    await second.release();
   });
 });
 

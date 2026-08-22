@@ -80,7 +80,7 @@ export type ContextCompactionTimelineView = {
   phase?: 'pre-run' | 'mid-run';
   continuationMessageId?: string;
   continuationMessageCoveredPartCount?: number;
-  summary: string;
+  summary?: string;
   coveredMessageCount: number;
   coveredSessionMessageCount: number;
   originalEstimatedTokens: number;
@@ -120,7 +120,7 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
   const continuationMessageCoveredPartCount = readNonNegativeInteger(
     rawCheckpoint.continuationMessageCoveredPartCount,
   );
-  const summary = typeof rawCheckpoint.summary === 'string' ? rawCheckpoint.summary : null;
+  const summary = typeof rawCheckpoint.summary === 'string' ? rawCheckpoint.summary : undefined;
   const coveredMessageCount = readNonNegativeInteger(rawCheckpoint.coveredMessageCount);
   const coveredSessionMessageCount = readNonNegativeInteger(rawCheckpoint.coveredSessionMessageCount);
   const originalEstimatedTokens = readNonNegativeInteger(rawCheckpoint.originalEstimatedTokens);
@@ -130,7 +130,6 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
   if (
     !id ||
     !status ||
-    summary === null ||
     coveredMessageCount === null ||
     coveredSessionMessageCount === null ||
     originalEstimatedTokens === null ||
@@ -148,7 +147,7 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
     ...(continuationMessageCoveredPartCount !== null
       ? { continuationMessageCoveredPartCount }
       : {}),
-    summary,
+    ...(summary !== undefined ? { summary } : {}),
     coveredMessageCount,
     coveredSessionMessageCount,
     originalEstimatedTokens,

@@ -3,7 +3,7 @@ import { SessionMessageCursorError } from "@kernel/types/session.types.js";
 
 const OFFSET_FIELD_WIDTH = 20;
 
-export const NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION = 6;
+export const NCP_AGENT_SESSION_MESSAGE_PROJECTION_VERSION = 7;
 export const MESSAGE_PROJECTION_OFFSET_RECORD_BYTES = OFFSET_FIELD_WIDTH * 2 + 2;
 
 export type NcpAgentSessionMessageProjectionMeta = {

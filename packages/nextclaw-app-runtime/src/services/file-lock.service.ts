@@ -9,6 +9,20 @@ type FileLockMetadata = {
   createdAt: string;
 };
 
+export class FileLockBusyError extends Error {
+  readonly lockPath: string;
+
+  constructor(lockPath: string) {
+    super(`等待文件锁超时：${lockPath}`);
+    this.name = "FileLockBusyError";
+    this.lockPath = lockPath;
+  }
+}
+
+export type FileLockLease = {
+  release(): Promise<void>;
+};
+
 const DEFAULT_WAIT_TIMEOUT_MS = 15_000;
 const MALFORMED_LOCK_STALE_AFTER_MS = 30_000;
 const RETRY_DELAY_MS = 25;
@@ -40,6 +54,13 @@ export class FileLockService {
       }
     }
   };
+
+  acquireLease = async (
+    lockPath: string,
+    options: { waitTimeoutMs?: number } = {},
+  ): Promise<FileLockLease> => ({
+    release: await this.acquire(path.resolve(lockPath), options.waitTimeoutMs ?? 0),
+  });
 
   private acquire = async (
     lockPath: string,
@@ -138,7 +159,7 @@ export class FileLockService {
     waitTimeoutMs: number,
   ): Promise<void> => {
     if (Date.now() - startedAt >= waitTimeoutMs) {
-      throw new Error(`等待文件锁超时：${lockPath}`);
+      throw new FileLockBusyError(lockPath);
     }
     await delay(RETRY_DELAY_MS + Math.floor(Math.random() * RETRY_DELAY_MS));
   };

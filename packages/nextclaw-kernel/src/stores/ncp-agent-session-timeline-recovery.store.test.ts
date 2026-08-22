@@ -186,7 +186,7 @@ describe("NCP agent session timeline recovery", () => {
       total: 2,
       messages: [{ id: "user-1" }, { id: "assistant-1" }]
     });
-    expect(JSON.parse(await readFile(metaPath, "utf-8"))).toMatchObject({ version: 6 });
+    expect(JSON.parse(await readFile(metaPath, "utf-8"))).toMatchObject({ version: 7 });
   });
 
   it("preserves an orphaned assistant when a different run starts after restart", async () => {

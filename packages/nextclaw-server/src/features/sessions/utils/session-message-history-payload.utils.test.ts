@@ -44,6 +44,33 @@ function withToolCalls(message: NcpMessage, count: number): NcpMessage {
   };
 }
 
+function compactionMarker(id: string): NcpMessage {
+  return {
+    id,
+    sessionId: "session-1",
+    role: "service",
+    status: "final",
+    timestamp: "2026-08-19T00:00:00.000Z",
+    parts: [{ type: "text", text: "Earlier context was auto-compacted" }],
+    metadata: {
+      nextclaw_timeline_kind: "context_compaction",
+      checkpoint: {
+        version: 1,
+        id: "ctx-1",
+        status: "compressed",
+        summary: "x".repeat(50_000),
+        summaryDiagnostics: { providerUsage: { inputTokens: 123_456 } },
+        coveredMessageCount: 20,
+        coveredSessionMessageCount: 20,
+        originalEstimatedTokens: 80_000,
+        projectedEstimatedTokens: 20_000,
+        createdAt: "2026-08-19T00:00:00.000Z",
+        updatedAt: "2026-08-19T00:00:00.000Z",
+      },
+    },
+  };
+}
+
 describe("buildSessionMessageHistoryPayloadView", () => {
   it("keeps ordinary tool payloads complete", () => {
     const message = assistantMessage("small", "small");
@@ -215,6 +242,22 @@ describe("buildSessionMessageHistoryPayloadView", () => {
       toolNames: ["exec_command"],
     });
   });
+
+  it("removes model-only compaction summary metadata from the UI history payload", () => {
+    const message = compactionMarker("marker-1");
+    const view = buildSessionMessageHistoryPayloadView({
+      messages: [message],
+      messageDetailCursors: {},
+    });
+
+    expect(view.messages[0]?.metadata?.checkpoint).toEqual(expect.objectContaining({
+      status: "compressed",
+      coveredSessionMessageCount: 20,
+    }));
+    expect(view.messages[0]?.metadata?.checkpoint).not.toHaveProperty("summary");
+    expect(view.messages[0]?.metadata?.checkpoint).not.toHaveProperty("summaryDiagnostics");
+    expect(message.metadata?.checkpoint).toHaveProperty("summary");
+  });
 });
 
 describe("compactSessionMessageHistoryPayloadView", () => {
@@ -255,5 +298,38 @@ describe("compactSessionMessageHistoryPayloadView", () => {
 
     expect(view.startIndex).toBe(0);
     expect(view.messages).toEqual(messages);
+  });
+
+  it("counts conversation messages separately from service timeline markers", () => {
+    const messages: NcpMessage[] = [
+      assistantMessage("user-1", "small"),
+      assistantMessage("assistant-1", "small"),
+      assistantMessage("user-2", "small"),
+      assistantMessage("assistant-2", "small"),
+      assistantMessage("user-3", "small"),
+      assistantMessage("assistant-3", "small"),
+      assistantMessage("user-4", "small"),
+      assistantMessage("assistant-4", "small"),
+      compactionMarker("marker-1"),
+    ];
+    messages[0] = { ...messages[0]!, role: "user" };
+    messages[2] = { ...messages[2]!, role: "user" };
+    messages[4] = { ...messages[4]!, role: "user" };
+    messages[6] = { ...messages[6]!, role: "user" };
+
+    const view = compactSessionMessageHistoryPayloadView({
+      view: { messages, deferredToolPayloads: {} },
+      budgetBytes: 1,
+      minimumMessages: 5,
+    });
+
+    expect(view.messages.map((message) => message.id)).toEqual([
+      "assistant-2",
+      "user-3",
+      "assistant-3",
+      "user-4",
+      "assistant-4",
+      "marker-1",
+    ]);
   });
 });
