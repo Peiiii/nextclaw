@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-08-21T03:15:00.129Z",
+  "generatedAt": "2026-08-22T03:05:43.547Z",
   "hero": {
-    "currentLoc": 256445,
-    "testLoc": 104713,
-    "trackedFiles": 2719,
-    "recentCommitCount": 368,
+    "currentLoc": 257622,
+    "testLoc": 104740,
+    "trackedFiles": 2726,
+    "recentCommitCount": 366,
     "activeDays30": 30,
     "recentReleaseCount": 51,
-    "latestReleaseDate": "2026-08-21",
-    "latestNoteDate": "2026-08-21",
+    "latestReleaseDate": "2026-08-22",
+    "latestNoteDate": "2026-08-22",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2608001,
-    "basePercentOfBenchmark": 9.83,
-    "lighterByPercent": 90.17
+    "benchmarkCodeLines": 2616251,
+    "basePercentOfBenchmark": 9.85,
+    "lighterByPercent": 90.15
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-24",
-        "label": "04-24",
-        "value": 0
-      },
       {
         "key": "2026-04-25",
         "label": "04-25",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-21",
         "label": "08-21",
         "value": 256445
+      },
+      {
+        "key": "2026-08-22",
+        "label": "08-22",
+        "value": 257622
       }
     ],
     "testLocDaily": [
@@ -1132,14 +1132,14 @@ export default {
         "key": "2026-08-21",
         "label": "08-21",
         "value": 104713
+      },
+      {
+        "key": "2026-08-22",
+        "label": "08-22",
+        "value": 104740
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-07-23",
-        "label": "07-23",
-        "value": 18
-      },
       {
         "key": "2026-07-24",
         "label": "07-24",
@@ -1283,7 +1283,12 @@ export default {
       {
         "key": "2026-08-21",
         "label": "08-21",
-        "value": 19
+        "value": 23
+      },
+      {
+        "key": "2026-08-22",
+        "label": "08-22",
+        "value": 12
       }
     ],
     "commitWeekly": [
@@ -1345,7 +1350,7 @@ export default {
       {
         "key": "2026-08-17",
         "label": "08-17",
-        "value": 69
+        "value": 85
       }
     ],
     "releaseMonthly": [
@@ -1407,7 +1412,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 13
+        "value": 14
       }
     ]
   },
@@ -1418,11 +1423,11 @@ export default {
         "codeLines": 66856,
         "testCodeLines": 36034,
         "files": 795,
-        "sharePercent": 26.1
+        "sharePercent": 26
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 27713,
+        "codeLines": 27731,
         "testCodeLines": 14862,
         "files": 280,
         "sharePercent": 10.8
@@ -1432,7 +1437,7 @@ export default {
         "codeLines": 15822,
         "testCodeLines": 5951,
         "files": 169,
-        "sharePercent": 6.2
+        "sharePercent": 6.1
       },
       {
         "name": "packages/nextclaw-service",
@@ -1443,24 +1448,24 @@ export default {
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
-        "codeLines": 14572,
+        "codeLines": 15345,
         "testCodeLines": 0,
-        "files": 73,
-        "sharePercent": 5.7
+        "files": 77,
+        "sharePercent": 6
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
         "codeLines": 13229,
         "testCodeLines": 8523,
         "files": 127,
-        "sharePercent": 5.2
+        "sharePercent": 5.1
       },
       {
         "name": "packages/nextclaw-server",
         "codeLines": 11958,
-        "testCodeLines": 9209,
+        "testCodeLines": 9236,
         "files": 137,
-        "sharePercent": 4.7
+        "sharePercent": 4.6
       },
       {
         "name": "packages/nextclaw-app-runtime",
@@ -1472,14 +1477,23 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2608001,
-      "basePercentOfBenchmark": 9.83,
-      "lighterByPercent": 90.17
+      "benchmarkCodeLines": 2616251,
+      "basePercentOfBenchmark": 9.85,
+      "lighterByPercent": 90.15
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-08-22",
+        "tagCount": 9,
+        "sampleTags": [
+          "@nextclaw/client-sdk@0.7.3",
+          "@nextclaw/companion@0.2.41",
+          "@nextclaw/kernel@0.9.2"
+        ]
+      },
+      {
         "date": "2026-08-21",
-        "tagCount": 51,
+        "tagCount": 52,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.7.1",
           "@nextclaw/channel-extension-dingtalk@0.2.32",
@@ -1521,20 +1535,30 @@ export default {
           "@nextclaw/channel-extension-dingtalk@0.2.25",
           "@nextclaw/channel-extension-discord@0.2.25"
         ]
-      },
-      {
-        "date": "2026-08-13",
-        "tagCount": 40,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.6.24",
-          "@nextclaw/app-runtime@0.9.15",
-          "@nextclaw/channel-extension-dingtalk@0.2.24"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-22-nextclaw-v0-42-2",
+        "date": "2026-08-22",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-22 · NextClaw v0.42.2",
+          "description": "Fixes built-in Service App requests on Windows Desktop, including installed and portable editions.",
+          "href": "/en/notes/2026-08-22-nextclaw-v0-42-2"
+        },
+        "zh": {
+          "title": "2026-08-22 · NextClaw v0.42.2",
+          "description": "修复 Windows 桌面端内置服务应用可能只显示“请重试”的问题，并覆盖安装版与便携版。",
+          "href": "/zh/notes/2026-08-22-nextclaw-v0-42-2"
+        }
+      },
       {
         "slug": "2026-08-21-nextclaw-v0-42-1",
         "date": "2026-08-21",
@@ -2552,9 +2576,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-08-21T03:14:58.054Z",
+    "locGeneratedAt": "2026-08-22T03:05:41.720Z",
     "sourceCount": {
-      "notes": 49,
+      "notes": 50,
       "scopes": 8
     }
   }
