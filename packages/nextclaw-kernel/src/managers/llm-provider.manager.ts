@@ -8,8 +8,10 @@ import {
   type Config,
   type LLMResponse,
   type LLMStreamEvent,
+  type ProviderCatalogPlugin,
   type ProviderConfig,
   type ProviderModelDiscoveryResult,
+  type ProviderSpec,
   type ThinkingLevel,
 } from "@nextclaw/core";
 import { BUILTIN_PROVIDER_PLUGINS } from "@nextclaw/runtime";
@@ -106,6 +108,24 @@ export class LlmProviderManager {
     this.config = config;
     this.providerPool.clear();
     this.missingProvider.setDefaultModel(config.agents.defaults.model);
+  };
+
+  registerProviderPlugin = (plugin: ProviderCatalogPlugin): (() => void) => {
+    this.providerRegistry.addPlugin(plugin);
+    this.providerPool.clear();
+    let registered = true;
+    return () => {
+      if (!registered) {
+        return;
+      }
+      registered = false;
+      this.providerRegistry.removePlugin(plugin);
+      this.providerPool.clear();
+    };
+  };
+
+  listProviderSpecs = (): readonly ProviderSpec[] => {
+    return this.providerRegistry.listProviderSpecs();
   };
 
   get = (model?: string | null): LLMProvider => {

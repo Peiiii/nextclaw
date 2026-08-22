@@ -29,6 +29,30 @@ import { createShowContentTools } from "@kernel/tools/show-content.tools.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 
 const tempWorkspaces: string[] = [];
+const NATIVE_CONTEXT_SECTION_ORDER = [
+  "You are a personal assistant running inside nextclaw.",
+  "## Tooling",
+  "## Tool Call Style",
+  "## Chat Composer Tokens",
+  "## Safety",
+  "## nextclaw CLI Quick Reference",
+  "## nextclaw Self-Update",
+  "## Workspace",
+  "## Reply Tags",
+  "## Messaging",
+  "## Memory Recall",
+  "## Silent Replies",
+  "## Runtime",
+  "## nextclaw Self-Management Guide",
+  "# Project Context",
+  "# Agent Bootstrap Context",
+  "## Skills (mandatory)",
+  "# Skill Learning Loop",
+  "## Session Orchestration",
+  "## Tool Use Enforcement",
+  "## Current Session",
+  "## Agent Output & Reply Formatting Contract",
+] as const;
 
 function createWorkspace(): string {
   const workspace = mkdtempSync(join(tmpdir(), "nextclaw-context-provider-"));
@@ -99,7 +123,7 @@ function createRequest(
   };
 }
 
-function assertOrder(text: string, markers: string[]): void {
+function assertOrder(text: string, markers: readonly string[]): void {
   let cursor = -1;
   for (const marker of markers) {
     const next = text.indexOf(marker);
@@ -235,7 +259,7 @@ describe("ContextProviderContribution native prompt contract", () => {
         ],
       },
     } as never);
-    contribution.start();
+    await contribution.start();
 
     const blocks = await contextProviderManager.buildContext(
       createRequest(projectRoot, {
@@ -359,31 +383,8 @@ describe("ContextProviderContribution native prompt contract", () => {
     ]) {
       expect(context).not.toContain(forbidden);
     }
-    assertOrder(context, [
-      "You are a personal assistant running inside nextclaw.",
-      "## Tooling",
-      "## Tool Call Style",
-      "## Chat Composer Tokens",
-      "## Safety",
-      "## nextclaw CLI Quick Reference",
-      "## nextclaw Self-Update",
-      "## Workspace",
-      "## Reply Tags",
-      "## Messaging",
-      "## Memory Recall",
-      "## Silent Replies",
-      "## Runtime",
-      "## nextclaw Self-Management Guide",
-      "# Project Context",
-      "# Agent Bootstrap Context",
-      "## Skills (mandatory)",
-      "# Skill Learning Loop",
-      "## Session Orchestration",
-      "## Tool Use Enforcement",
-      "## Current Session",
-      "## Agent Output & Reply Formatting Contract",
-    ]);
+    assertOrder(context, NATIVE_CONTEXT_SECTION_ORDER);
 
-    contribution.dispose();
+    await contribution.dispose();
   });
 });

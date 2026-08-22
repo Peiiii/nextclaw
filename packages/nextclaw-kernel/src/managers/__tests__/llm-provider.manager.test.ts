@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
-import { ConfigSchema, type LLMResponse, type LLMStreamEvent } from "@nextclaw/core";
+import {
+  ConfigSchema,
+  type LLMResponse,
+  type LLMStreamEvent,
+  type ProviderCatalogPlugin,
+} from "@nextclaw/core";
 
 type LlmProviderManagerInternals = {
   getOrCreateProvider: (route: unknown) => {
@@ -50,6 +55,21 @@ function response(): LLMResponse {
 }
 
 describe("LlmProviderManager", () => {
+  it("registers provider plugins with an idempotent disposer", () => {
+    const manager = new LlmProviderManager();
+    const plugin: ProviderCatalogPlugin = {
+      id: "fixture-provider-plugin",
+      providers: [{ envKey: "FIXTURE_API_KEY", name: "fixture", keywords: [] }],
+    };
+
+    const dispose = manager.registerProviderPlugin(plugin);
+    expect(manager.listProviderSpecs()).toContainEqual(plugin.providers[0]);
+
+    dispose();
+    dispose();
+    expect(manager.listProviderSpecs()).not.toContainEqual(plugin.providers[0]);
+  });
+
   it("does not infer model discovery support from inference protocol compatibility", async () => {
     const manager = new LlmProviderManager();
 

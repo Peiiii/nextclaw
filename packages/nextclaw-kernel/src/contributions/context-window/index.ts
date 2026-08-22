@@ -6,7 +6,7 @@ import {
   shouldRefreshContextWindowDuringStream,
   shouldRefreshContextWindowImmediately,
 } from "@kernel/features/context-compaction/index.js";
-import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
+import { Contribution } from "@nextclaw/shared";
 import {
   type NcpEndpointEvent,
   NcpEventType,
@@ -25,31 +25,32 @@ function formatBackgroundError(error: unknown): string {
   return String(error);
 }
 
-export class ContextWindowContribution implements KernelContribution {
+export class ContextWindowContribution extends Contribution {
   private readonly lastPublishedSignatureBySession = new Map<string, string>();
   private readonly pendingTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private stopped = true;
-  private unsubscribeNcpEvent: Unsubscribe | null = null;
 
-  constructor(private readonly kernel: NextclawKernel) {}
+  constructor(private readonly kernel: NextclawKernel) {
+    super();
+  }
 
-  start = (): void => {
-    if (this.unsubscribeNcpEvent) {
-      return;
-    }
-    this.stopped = false;
-    this.unsubscribeNcpEvent = this.kernel.eventBus.on(eventKeys.ncpEvent, this.handleNcpEvent);
-  };
-
-  dispose = (): void => {
-    this.unsubscribeNcpEvent?.();
-    this.unsubscribeNcpEvent = null;
-    this.stopped = true;
-    for (const timer of this.pendingTimers.values()) {
-      clearTimeout(timer);
-    }
-    this.pendingTimers.clear();
-    this.lastPublishedSignatureBySession.clear();
+  protected setup = (): void => {
+    this.effect(() => {
+      this.stopped = false;
+      const unsubscribe: Unsubscribe = this.kernel.eventBus.on(
+        eventKeys.ncpEvent,
+        this.handleNcpEvent,
+      );
+      return () => {
+        unsubscribe();
+        this.stopped = true;
+        for (const timer of this.pendingTimers.values()) {
+          clearTimeout(timer);
+        }
+        this.pendingTimers.clear();
+        this.lastPublishedSignatureBySession.clear();
+      };
+    });
   };
 
   private handleNcpEvent = (event: NcpEndpointEvent): void => {

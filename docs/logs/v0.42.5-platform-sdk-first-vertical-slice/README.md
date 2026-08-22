@@ -1,6 +1,6 @@
 # Platform SDK 第一纵向闭环
 
-状态：待提交并部署文档站。
+状态：已提交并完成文档站部署。
 
 本迭代把现有 kernel/NCP agent run 主链收敛为 experimental Harness，并通过独立轻量的 `@nextclaw/harness` package 提供公共入口；同一路径上增加 `nextclaw exec`。Harness 已提供 Agent、Session、Run 与 Contribution API，Contribution 可以使用受限 `IKernel` 注册 tools、context、model providers、runtimes 与 MCP servers。现有 `nextclaw agent`、server、UI、Desktop 和持久化合同保持不变。
 
@@ -13,6 +13,7 @@
 - 新增 experimental `@nextclaw/harness`：以 `NextclawHarness`、Agent、Session、Run 和 Contribution 作为进程内嵌入入口，核心执行仍由 Kernel/NCP 的既有主链路承担。
 - 新增 `nextclaw exec`：为脚本与 CI 提供 text、JSON、JSONL 输出、stdin、取消和超时适配；交互式 `nextclaw agent` 不改动。
 - 生命周期抽象归 `@nextclaw/shared` 根入口；Contribution 的 `setup()` 中可通过 `this.effect()` 注册资源，Harness 释放时逆序清理。
+- Kernel 内置的 context、tool、runtime、context-window 与 learning-loop contribution 也已切换到同一抽象，作为真实运行链路的 dogfooding；不再各自维护 cleanup 数组。
 - 消费方一律使用 workspace package 根入口：外部 SDK 为 `@nextclaw/harness`，内部复用能力从 `@nextclaw/kernel` 或 `@nextclaw/shared` 根入口导入；不新增 package 子路径或源码 alias。
 
 ## 测试/验证/验收方式

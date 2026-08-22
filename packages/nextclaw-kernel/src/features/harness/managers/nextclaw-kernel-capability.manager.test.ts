@@ -56,6 +56,8 @@ describe("NextclawKernelFacade", () => {
     expect(kernel.llmProviders.registerProviderPlugin).toHaveBeenCalledWith(
       plugin,
     );
+    expect(facade.models.listProviders()).toEqual([]);
+    expect(kernel.llmProviders.listProviderSpecs).toHaveBeenCalledOnce();
 
     const entry = { id: "fixture", type: "fixture", label: "Fixture" };
     facade.runtimes.registerEntry(entry);

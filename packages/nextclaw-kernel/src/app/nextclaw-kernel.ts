@@ -344,7 +344,7 @@ export class NextclawKernel {
     );
     await this.sessionManager.start();
     for (const contribution of this.contributions) {
-      contribution.start();
+      await contribution.start();
     }
     this.agentRunRequestManager.start();
   };

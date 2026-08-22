@@ -1,5 +1,5 @@
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
-import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
+import { Contribution } from "@nextclaw/shared";
 import { AgentBootstrapContextProvider } from "./providers/agent-bootstrap-context.provider.js";
 import { CurrentSessionContextProvider } from "./providers/current-session-context.provider.js";
 import { ConversationExcerptContextProvider } from "./providers/conversation-excerpt-context.provider.js";
@@ -34,15 +34,12 @@ export { ReplyFormatContextProvider } from "./providers/reply-format-context.pro
 export { SystemObjectReferenceContextProvider } from "./providers/system-object-reference-context.provider.js";
 export { UiResourceReferenceContextProvider } from "./providers/ui-resource-reference-context.provider.js";
 
-export class ContextProviderContribution implements KernelContribution {
-  private readonly cleanups: Array<() => void> = [];
+export class ContextProviderContribution extends Contribution {
+  constructor(private readonly kernel: NextclawKernel) {
+    super();
+  }
 
-  constructor(private readonly kernel: NextclawKernel) {}
-
-  start = (): void => {
-    if (this.cleanups.length > 0) {
-      return;
-    }
+  protected setup = (): void => {
     const context = new ContextProviderRunContextService(this.kernel);
 
     for (const provider of [
@@ -73,13 +70,7 @@ export class ContextProviderContribution implements KernelContribution {
       new CurrentSessionContextProvider(context),
       new ReplyFormatContextProvider(),
     ]) {
-      this.cleanups.push(this.kernel.contextProviderManager.register(provider));
-    }
-  };
-
-  dispose = (): void => {
-    while (this.cleanups.length > 0) {
-      this.cleanups.pop()?.();
+      this.effect(() => this.kernel.contextProviderManager.register(provider));
     }
   };
 }

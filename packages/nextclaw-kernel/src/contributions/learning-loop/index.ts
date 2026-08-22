@@ -4,10 +4,9 @@ import {
   type SpawnSessionAndRequestParams,
 } from "@nextclaw/core";
 import { NcpEventType, type NcpEndpointEvent, type NcpMessage } from "@nextclaw/ncp";
-import { eventKeys, type Unsubscribe } from "@nextclaw/shared";
+import { Contribution, eventKeys, type Unsubscribe } from "@nextclaw/shared";
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
-import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import {
   LEARNING_LOOP_DISABLED_METADATA_KEY,
   LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY,
@@ -84,28 +83,28 @@ function readRunFinishedSessionId(event: NcpEndpointEvent): string | null {
   return event.payload.sessionId?.trim() || null;
 }
 
-export class LearningLoopContribution implements KernelContribution {
+export class LearningLoopContribution extends Contribution {
   private readonly sessionStore: LearningLoopSessionStore;
   private readonly sessionRequester: LearningLoopSessionRequester;
   private readonly inFlightSessionIds = new Set<string>();
-  private unsubscribe: Unsubscribe | null = null;
 
   constructor(private readonly kernel: NextclawKernel) {
+    super();
     this.sessionStore = kernel.sessionManager;
     this.sessionRequester = kernel.sessionRequests;
   }
 
-  start = (): void => {
-    if (this.unsubscribe) {
-      return;
-    }
-    this.unsubscribe = this.kernel.eventBus.on(eventKeys.ncpEvent, this.handleNcpEvent);
-  };
-
-  dispose = (): void => {
-    this.unsubscribe?.();
-    this.unsubscribe = null;
-    this.inFlightSessionIds.clear();
+  protected setup = (): void => {
+    this.effect(() => {
+      const unsubscribe: Unsubscribe = this.kernel.eventBus.on(
+        eventKeys.ncpEvent,
+        this.handleNcpEvent,
+      );
+      return () => {
+        unsubscribe();
+        this.inFlightSessionIds.clear();
+      };
+    });
   };
 
   private handleNcpEvent = (event: NcpEndpointEvent): void => {

@@ -9,19 +9,18 @@ import {
 import { AgentRunMessageProjector } from "@kernel/services/agent-run-message-projector.service.js";
 import { AgentRunModelInputBudgeter } from "@kernel/services/agent-run-model-input-budgeter.service.js";
 import { AgentRunModelInputBuilder } from "@kernel/services/agent-run-model-input-builder.service.js";
-import { NcpAgentRuntimeWrapper } from "@kernel/services/ncp-agent-runtime-wrapper.service.js";
-import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
+import { Contribution } from "@nextclaw/shared";
 import type { Config } from "@nextclaw/core";
 import {
   DefaultNcpAgentRuntime,
   type AgentRunPreflight,
 } from "@nextclaw/ncp-agent-runtime-next";
 
-export class AgentRunRuntimeContribution implements KernelContribution {
-  private readonly cleanups: Array<() => Promise<void>> = [];
+export class AgentRunRuntimeContribution extends Contribution {
   private readonly modelInputBuilder: AgentRunModelInputBuilder;
 
   constructor(private readonly kernel: NextclawKernel) {
+    super();
     this.modelInputBuilder = new AgentRunModelInputBuilder(
       new AgentRunMessageProjector(),
       new AgentRunModelInputBudgeter(kernel.agents),
@@ -29,25 +28,18 @@ export class AgentRunRuntimeContribution implements KernelContribution {
     );
   }
 
-  start = (): void => {
-    if (this.cleanups.length > 0) {
-      return;
-    }
-    this.applyRuntimeConfig(this.kernel.configManager.loadConfig());
-    this.kernel.configManager.installRuntimeHooks({
-      applyAgentRuntimeConfig: this.applyRuntimeConfig,
+  protected setup = (): void => {
+    this.effect(() => {
+      this.applyRuntimeConfig(this.kernel.configManager.loadConfig());
+      return this.kernel.configManager.installRuntimeHooks({
+        applyAgentRuntimeConfig: this.applyRuntimeConfig,
+      });
     });
-    this.cleanups.push(this.registerNativeRuntime());
+    this.effect(this.registerNativeRuntime);
     for (const provider of new BuiltinNarpRuntimeProviderService(
       this.kernel.configManager,
     ).createProviders()) {
-      this.cleanups.push(this.registerNarpRuntime(provider));
-    }
-  };
-
-  dispose = async (): Promise<void> => {
-    while (this.cleanups.length > 0) {
-      await this.cleanups.pop()?.();
+      this.effect(() => this.registerNarpRuntime(provider));
     }
   };
 
@@ -121,31 +113,7 @@ export class AgentRunRuntimeContribution implements KernelContribution {
   private registerNarpRuntime = (
     provider: AgentRuntimeProviderRegistration,
   ): (() => Promise<void>) =>
-    this.kernel.agentRuntimeManager.register({
-      kind: provider.kind,
-      label: provider.label,
-      defaultReuseScope: "session",
-      describeSessionTypeForEntry: provider.describeSessionTypeForEntry,
-      createRuntime: ({ entry, session }) => {
-        if (!provider.createRuntimeForEntry) {
-          throw new Error(`Agent runtime provider does not support entries: ${provider.kind}`);
-        }
-        return new NcpAgentRuntimeWrapper({
-          injectNextclawContext:
-            entry.injectNextclawContext !== false,
-          createRuntime: ({ resolveTools, stateManager }) =>
-            provider.createRuntimeForEntry!({
-              entry,
-              runtimeParams: {
-                ...(session.agentId ? { agentId: session.agentId } : {}),
-                resolveAssetContentPath: (assetUri) =>
-                  this.kernel.assetStore.resolveContentPath(assetUri),
-                resolveTools,
-                sessionMetadata: session.metadata,
-                stateManager,
-              },
-            }),
-        });
-      },
+    this.kernel.agentRuntimeManager.registerProvider(provider, {
+      resolveAssetContentPath: this.kernel.assetStore.resolveContentPath,
     });
 }
