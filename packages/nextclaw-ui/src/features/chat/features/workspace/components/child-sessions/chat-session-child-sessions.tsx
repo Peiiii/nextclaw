@@ -2,6 +2,7 @@ import { ChevronRight, GitBranch, MessageSquarePlus } from 'lucide-react';
 
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import type { ResolvedChildSessionTab } from '@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view';
+import { ChatSessionMoreActionsMenu } from '@/features/chat/features/session/components/session-header/chat-session-more-actions-menu';
 import { t } from '@/shared/lib/i18n';
 
 export function ChatSessionChildSessions({
@@ -38,25 +39,35 @@ export function ChatSessionChildSessions({
         ) : (
           <div className="mt-4 space-y-2">
             {childSessionTabs.map((tab) => (
-              <button
+              <div
                 key={tab.sessionKey}
-                type="button"
-                className="group flex w-full items-center gap-3 rounded-lg border border-gray-200/80 bg-white px-3 py-3 text-left transition-colors hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-                onClick={() => presenter.chatThreadManager.selectChildSessionDetail(tab.sessionKey)}
+                className="group relative flex w-full items-center rounded-lg border border-gray-200/80 bg-white transition-colors hover:border-gray-300 hover:bg-gray-50"
               >
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                  <GitBranch className="h-4 w-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-gray-900">{tab.title}</span>
-                  {tab.projectName || tab.sessionTypeLabel ? (
-                    <span className="mt-0.5 block truncate text-xs text-gray-500">
-                      {[tab.sessionTypeLabel, tab.projectName].filter(Boolean).join(' · ')}
-                    </span>
-                  ) : null}
-                </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500" />
-              </button>
+                <button
+                  type="button"
+                  className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3 pr-12 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/25"
+                  onClick={() => presenter.chatThreadManager.selectChildSessionDetail(tab.sessionKey)}
+                >
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                    <GitBranch className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-gray-900">{tab.title}</span>
+                    {tab.projectName || tab.sessionTypeLabel ? (
+                      <span className="mt-0.5 block truncate text-xs text-gray-500">
+                        {[tab.sessionTypeLabel, tab.projectName].filter(Boolean).join(' · ')}
+                      </span>
+                    ) : null}
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-gray-300 transition-transform group-hover:translate-x-0.5 group-hover:text-gray-500" />
+                </button>
+                <ChatSessionMoreActionsMenu
+                  sessionKey={tab.sessionKey}
+                  triggerSize="sm"
+                  triggerTone="strong"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-white opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+                />
+              </div>
             ))}
           </div>
         )}

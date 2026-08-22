@@ -5,15 +5,30 @@ import { ChatSessionChildSessions } from '@/features/chat/features/workspace/com
 import type { ResolvedChildSessionTab } from '@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view';
 
 const mocks = vi.hoisted(() => ({
+  copyText: vi.fn(),
   openSideChatDraft: vi.fn(),
   selectChildSessionDetail: vi.fn(),
+}));
+
+vi.mock('@nextclaw/agent-chat-ui', () => ({
+  copyText: mocks.copyText,
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
   usePresenter: () => ({ chatThreadManager: mocks }),
 }));
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.copyText.mockResolvedValue(true);
+});
 
 function createChildSession(): ResolvedChildSessionTab {
   return {
@@ -48,4 +63,15 @@ it('keeps existing child sessions selectable beside the create action', async ()
   expect(screen.getByRole('button', { name: 'New child session' })).toBeTruthy();
   await user.click(screen.getByRole('button', { name: /Research branch/ }));
   expect(mocks.selectChildSessionDetail).toHaveBeenCalledWith('child-1');
+});
+
+it('copies a child session ID from its own more-actions menu', async () => {
+  const user = userEvent.setup();
+  render(<ChatSessionChildSessions childSessionTabs={[createChildSession()]} sessionKey="parent-1" />);
+
+  await user.click(screen.getByRole('button', { name: 'More actions' }));
+  await user.click(screen.getByRole('button', { name: 'Copy session ID' }));
+
+  expect(mocks.copyText).toHaveBeenCalledWith('child-1');
+  expect(mocks.selectChildSessionDetail).not.toHaveBeenCalled();
 });

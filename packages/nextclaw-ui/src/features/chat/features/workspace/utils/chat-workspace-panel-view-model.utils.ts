@@ -1,4 +1,5 @@
 import type { ResolvedChildSessionTab } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
+import type { ContextMenuGroup } from "@/shared/components/ui/context-menu/context-menu";
 import { shouldShowUnreadSessionIndicator } from "@/features/chat/stores/chat-session-list.store";
 import type {
   ChatWorkspaceNavigationEntry,
@@ -48,6 +49,7 @@ export type WorkspaceTabViewModel = {
   tooltip: string;
   active: boolean;
   agentId?: string | null;
+  sessionKey?: string | null;
   fileName?: string | null;
   showUnreadDot?: boolean;
   viewMode?: "preview" | "diff";
@@ -60,6 +62,8 @@ export type WorkspaceTabViewModel = {
   onAddToChat?: () => void;
   onSelect: () => void;
   onClose?: () => void;
+  menuLabel?: string;
+  menuGroups?: readonly ContextMenuGroup[];
 };
 
 export function readWorkspaceFileTitle(file: ChatWorkspaceFileTab): string {
@@ -304,6 +308,7 @@ export function buildWorkspaceTabsViewModel(
       title: tab.title,
       tooltip: tab.title,
       agentId: tab.agentId,
+      sessionKey: tab.sessionKey,
       active:
         activeSelection?.kind === "child-session" &&
         activeSelection.tab.sessionKey === tab.sessionKey,

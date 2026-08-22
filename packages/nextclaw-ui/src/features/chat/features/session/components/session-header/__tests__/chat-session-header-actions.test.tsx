@@ -4,9 +4,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatSessionHeaderActions } from '@/features/chat/features/session/components/session-header/chat-session-header-actions';
 
 const mocks = vi.hoisted(() => ({
+  copyText: vi.fn(),
   updateSessionProject: vi.fn(),
   onDeleteSession: vi.fn(),
   onToggleWorkspace: vi.fn(),
+}));
+
+vi.mock('@nextclaw/agent-chat-ui', () => ({
+  copyText: mocks.copyText,
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
 }));
 
 vi.mock('@/features/chat/features/session/hooks/use-chat-session-project', () => ({
@@ -19,9 +31,32 @@ vi.mock('@/features/chat/features/session/components/session-header/chat-session
 
 describe('ChatSessionHeaderActions', () => {
   beforeEach(() => {
+    mocks.copyText.mockReset();
     mocks.updateSessionProject.mockReset();
     mocks.onDeleteSession.mockReset();
     mocks.onToggleWorkspace.mockReset();
+  });
+
+  it('copies the current session ID from the more-actions menu', async () => {
+    const user = userEvent.setup();
+    mocks.copyText.mockResolvedValue(true);
+
+    render(
+      <ChatSessionHeaderActions
+        sessionKey="session-copy-me"
+        canDeleteSession
+        isDeletePending={false}
+        currentPath={null}
+        isWorkspaceOpen={false}
+        onToggleWorkspace={mocks.onToggleWorkspace}
+        onDeleteSession={mocks.onDeleteSession}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(screen.getByRole('button', { name: 'Copy session ID' }));
+
+    expect(mocks.copyText).toHaveBeenCalledWith('session-copy-me');
   });
 
   it('keeps only the set-project action in the more-actions menu when a project is already attached', async () => {

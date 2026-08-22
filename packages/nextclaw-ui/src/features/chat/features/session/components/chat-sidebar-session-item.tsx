@@ -1,6 +1,7 @@
 import { AgentAvatar } from '@/shared/components/common/agent-avatar';
 import { SessionContextIconNode } from '@/features/chat/features/session/components/session-context-icon';
 import { SessionRunBadge } from '@/features/chat/features/session/components/session-run-badge';
+import { ChatSessionMoreActionsMenu } from '@/features/chat/features/session/components/session-header/chat-session-more-actions-menu';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
 import { Input } from '@/shared/components/ui/input';
 import { type SessionContextView } from '@/features/chat/features/session/utils/session-context.utils';
@@ -93,9 +94,10 @@ function ChatSidebarSessionEditingView({
 type ChatSidebarSessionDisplayViewProps = Omit<
   ChatSidebarSessionItemProps,
   'sessionKey' | 'isEditing' | 'draftLabel' | 'isSaving' | 'onDraftLabelChange' | 'onSave' | 'onCancel'
->;
+> & Pick<ChatSidebarSessionItemProps, 'sessionKey'>;
 
 function ChatSidebarSessionDisplayView({
+  sessionKey,
   active,
   showUnreadDot,
   runStatus,
@@ -113,7 +115,7 @@ function ChatSidebarSessionDisplayView({
   onStartEditing,
   onTogglePinned
 }: ChatSidebarSessionDisplayViewProps) {
-  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-20' : 'pr-12';
+  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-32' : 'pr-20';
 
   return (
     <div className="group/session relative">
@@ -212,6 +214,11 @@ function ChatSidebarSessionDisplayView({
             onStartEditing();
           }}
         />
+        <ChatSessionMoreActionsMenu
+          sessionKey={sessionKey}
+          triggerSize="sm"
+          triggerTone="strong"
+        />
       </div>
     </div>
   );
@@ -262,6 +269,7 @@ export function ChatSidebarSessionItem({
         />
       ) : (
         <ChatSidebarSessionDisplayView
+          sessionKey={sessionKey}
           active={active}
           showUnreadDot={showUnreadDot}
           runStatus={runStatus}

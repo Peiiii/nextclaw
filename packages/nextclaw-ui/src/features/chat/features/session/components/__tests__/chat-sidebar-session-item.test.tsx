@@ -1,8 +1,26 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { ChatSidebarSessionItem } from '@/features/chat/features/session/components/chat-sidebar-session-item';
 
+const mocks = vi.hoisted(() => ({
+  copyText: vi.fn(),
+}));
+
+vi.mock('@nextclaw/agent-chat-ui', () => ({
+  copyText: mocks.copyText,
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 beforeEach(() => {
+  mocks.copyText.mockReset();
+  mocks.copyText.mockResolvedValue(true);
   render(
     <ChatSidebarSessionItem
       sessionKey="session:current"
@@ -43,6 +61,16 @@ it('shows session actions only on hover or when an action owns focus', () => {
   expect(actions?.className).not.toContain(
     'group-focus-within/session:opacity-100',
   );
+  expect(screen.getByRole('button', { name: 'More actions' })).toBeTruthy();
+});
+
+it('copies the sidebar session ID from the more-actions menu', async () => {
+  const user = userEvent.setup();
+
+  await user.click(screen.getByRole('button', { name: 'More actions' }));
+  await user.click(screen.getByRole('button', { name: 'Copy session ID' }));
+
+  expect(mocks.copyText).toHaveBeenCalledWith('session:current');
 });
 
 it('sizes the runtime icon to the session title text', () => {

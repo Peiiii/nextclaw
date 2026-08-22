@@ -19,6 +19,10 @@ NextClaw can host Native, Codex, Claude Code, Weixin, Feishu, and scheduled-task
 
 Name work so it is recognizable later. Prefer names such as “July sales analysis” or “Release verification” over a list of sessions called “Hello” or “Test.”
 
+## Copy a session ID
+
+Open **More actions** in the current session header, a session in the session list, a child session in the session workspace, or a child-session tab, then choose **Copy session ID**. This copies the complete ID for that session. Draft sessions do not have a stable ID yet, so this action is not shown for them.
+
 ## Add files and selected text to a message
 
 Type `@` to reference a file, folder, project, or Panel App. You can also open a file in the session workspace and choose **Add to chat** from its action menu. In a text file, select a passage first when only that excerpt should be included.

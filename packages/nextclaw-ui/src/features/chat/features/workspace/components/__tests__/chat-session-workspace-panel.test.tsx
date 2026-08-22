@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatSessionWorkspacePanel } from "@/features/chat/features/workspace/components/chat-session-workspace-panel";
+import { WorkspaceTabsBar } from "@/features/chat/features/workspace/components/chat-session-workspace-panel-nav";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import type * as ReactQuery from "@tanstack/react-query";
 
@@ -110,6 +111,34 @@ describe("ChatSessionWorkspacePanel", () => {
         .getByTestId("workspace-panel-content")
         .getAttribute("data-file-refresh-version"),
     ).toBe("1");
+  });
+
+  it("shows more actions for a child-session workspace tab", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkspaceTabsBar
+        canGoBack={false}
+        canGoForward={false}
+        tabs={[
+          {
+            key: "child:child-1",
+            kind: "child-session",
+            title: "Child session",
+            tooltip: "Child session",
+            active: true,
+            sessionKey: "child-1",
+            onSelect: vi.fn(),
+          },
+        ]}
+        onClose={vi.fn()}
+        onGoBack={vi.fn()}
+        onGoForward={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+
+    expect(screen.getByRole("menuitem", { name: "Copy session ID" })).toBeTruthy();
   });
 
   it("adds an opened project file to the active chat from its action menu", async () => {

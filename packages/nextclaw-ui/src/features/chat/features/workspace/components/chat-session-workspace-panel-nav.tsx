@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Code2,
+  Copy,
   Eye,
   FolderTree,
   GitBranch,
@@ -15,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
+import { copySessionId } from "@/features/chat/features/session/components/session-header/chat-session-more-actions-menu";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { FileTypeIcon } from "@/shared/components/file-type-icon";
 import {
@@ -109,6 +111,28 @@ function buildWorkspaceFileMenuGroups(
   ];
 }
 
+function buildWorkspaceSessionMenuGroups(
+  tab: WorkspaceTabViewModel,
+): ContextMenuGroup[] | undefined {
+  if (tab.kind !== "child-session" || !tab.sessionKey) {
+    return undefined;
+  }
+
+  return [
+    {
+      key: "session",
+      items: [
+        {
+          key: "copy-session-id",
+          label: t("chatSessionCopyId"),
+          icon: <Copy className="h-4 w-4" />,
+          onSelect: () => void copySessionId(tab.sessionKey!),
+        },
+      ],
+    },
+  ];
+}
+
 function buildCompactWorkspaceTabs(
   tabs: readonly WorkspaceTabViewModel[],
 ): CompactTabStripTab[] {
@@ -139,8 +163,14 @@ function buildCompactWorkspaceTabs(
     closePlacement: "leading-hover",
     onSelect: tab.onSelect,
     onClose: tab.onClose,
-    menuLabel: t("chatWorkspaceFileMoreActions"),
-    menuGroups: buildWorkspaceFileMenuGroups(tab),
+    menuLabel:
+      tab.kind === "child-session"
+        ? t("chatSessionMoreActions")
+        : t("chatWorkspaceFileMoreActions"),
+    menuGroups:
+      tab.menuGroups ??
+      buildWorkspaceSessionMenuGroups(tab) ??
+      buildWorkspaceFileMenuGroups(tab),
   }));
 }
 
