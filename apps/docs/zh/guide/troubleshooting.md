@@ -76,3 +76,9 @@ nextclaw remote doctor
 - `nextclaw status` 输出
 - `nextclaw doctor` 输出
 - 复现步骤
+
+## 6. Windows 上会话消息暂时无法写入
+
+Windows 可能会短暂占用会话缓存文件，日志中可见 `EPERM`、`EACCES` 或 `EBUSY`。NextClaw 会在有限时间内重试；如果仍无法提交缓存，会继续从会话日志读取消息，因此已经发送或完成的消息不会因缓存写入失败而中断。
+
+缓存恢复后，后续消息更新会自动重建并恢复分页性能。若同一错误持续出现，请关闭正在扫描 NextClaw 数据目录的安全软件或索引工具后重试，并附上相关日志和复现步骤。

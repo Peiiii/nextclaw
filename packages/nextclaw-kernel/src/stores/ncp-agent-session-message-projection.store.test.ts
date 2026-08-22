@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { NcpMessage } from "@nextclaw/ncp";
 import { SessionMessageCursorError } from "@kernel/types/session.types.js";
 import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-message-projection.store.js";
+import type { NcpAgentSessionMessageProjectionPersistenceStore } from "./ncp-agent-session-message-projection-persistence.store.js";
 
 const sessionId = "session-1";
 
@@ -74,10 +75,13 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
       projectedJournalOffset: 500,
     });
     const restartedStore = new NcpAgentSessionMessageProjectionStore(tempDir);
-    const privateStore = restartedStore as unknown as {
-      readMessageOrdinals: (...args: unknown[]) => Promise<Map<string, number>>;
-    };
-    const readMessageOrdinals = vi.spyOn(privateStore, "readMessageOrdinals");
+    const persistence = (restartedStore as unknown as {
+      persistence: NcpAgentSessionMessageProjectionPersistenceStore;
+    }).persistence;
+    const readMessageOrdinals = vi.spyOn(
+      persistence as unknown as { readMessageOrdinals: (...args: unknown[]) => Promise<Map<string, number>> },
+      "readMessageOrdinals",
+    );
 
     await expect(restartedStore.readPage({ sessionId, limit: 2 })).resolves.toMatchObject({
       messages: [{ id: "message-4" }, { id: "message-5" }],
@@ -239,4 +243,6 @@ describe("NcpAgentSessionMessageProjectionStore", () => {
       total: 1,
     });
   });
+
+
 });

@@ -1,10 +1,11 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { NCP_AGENT_SESSION_SNAPSHOT_MESSAGE_EVENT_TYPE } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
+import type { NcpAgentSessionMessageProjectionPersistenceStore } from "./ncp-agent-session-message-projection-persistence.store.js";
 
 const sessionId = "session-1";
 const userMessage: NcpMessage = {
@@ -30,6 +31,15 @@ type RawJournalLine = {
     type: string;
   };
 };
+
+type ProjectionPersistenceInternals = {
+  renameMeta: (from: string, to: string) => Promise<void>;
+  waitForMetaRenameRetry: (delayMs: number) => Promise<void>;
+};
+
+function fileSystemError(code: "EPERM"): Error & { code: string } {
+  return Object.assign(new Error(code), { code });
+}
 
 function createRecord(messages: NcpMessage[]) {
   return {
@@ -158,6 +168,34 @@ describe("NcpAgentSessionJournalStore", () => {
           parts: [{ text: "partial" }],
         },
       ],
+    });
+  });
+
+  it("keeps a committed journal event readable when projection metadata cannot be committed", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.importSessionSnapshot(createRecord([userMessage]));
+    const projectionStore = (store as unknown as {
+      messageProjectionStore: { persistence: NcpAgentSessionMessageProjectionPersistenceStore };
+    }).messageProjectionStore.persistence as unknown as ProjectionPersistenceInternals;
+    vi.spyOn(projectionStore, "renameMeta").mockRejectedValue(fileSystemError("EPERM"));
+    vi.spyOn(projectionStore, "waitForMetaRenameRetry").mockResolvedValue();
+
+    await expect(store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageCompleted,
+        payload: { sessionId, message: assistantMessage },
+      },
+    })).resolves.toBeUndefined();
+
+    await expect(store.listSessionMessages(sessionId)).resolves.toMatchObject([
+      { id: "user-1" },
+      { id: "assistant-1", parts: [{ text: "hi" }] },
+    ]);
+    await expect(store.listSessionMessagePage({ sessionId, limit: 10 })).resolves.toMatchObject({
+      total: 2,
+      messages: [{ id: "user-1" }, { id: "assistant-1" }],
     });
   });
 

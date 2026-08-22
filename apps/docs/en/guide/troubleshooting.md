@@ -76,3 +76,9 @@ Collect:
 - `nextclaw status` output
 - `nextclaw doctor` output
 - reproduction steps
+
+## 6. Session messages temporarily cannot be written on Windows
+
+Windows can briefly lock a session cache file. Logs may show `EPERM`, `EACCES`, or `EBUSY`. NextClaw retries for a bounded period; if the cache still cannot be committed, it reads messages from the session journal instead, so an already-sent or completed message does not interrupt the session.
+
+A later message update automatically rebuilds the cache and restores paged reads. If the error persists, close security or indexing tools that are scanning the NextClaw data directory, then retry and include the relevant logs and reproduction steps in a report.
