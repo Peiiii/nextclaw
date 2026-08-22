@@ -4,6 +4,7 @@
 
 - 日期：2026-08-22
 - 状态：Design Ready
+- 2026-08-23 范围修正：用户明确要求同一 `NEXTCLAW_HOME` 下的多个 runtime（包括同一会话）不能因 journal writer ownership 被阻止。本批次撤销目录级 writer lease 与启动 fail-fast；下文 8.1/8.2 的单写者方案不再是实现合同，保留 replay、projection 和历史视图修复。
 - 风险：L3，涉及 NCP 会话事实写入、进程启动恢复、消息投影、上下文压缩时间线和首屏分页
 - 事故会话：`ncp-mt4g15ql-djd2ohpr`
 - 事实源：`$NEXTCLAW_HOME/sessions/.ncp-agent-journal/<session-id>.jsonl`
@@ -28,14 +29,14 @@
 5. projection 的 offset 索引随后指向这条只有少量 parts 的新快照，原先包含完整 parts 的 error 快照仍在 `messages.jsonl` 中，但正常分页已经读不到。
 6. 首屏 24 KiB 紧凑预算又把包含完整压缩摘要的 service marker 当作普通消息计费，并让 service marker 占用最少 5 条消息名额，最终放大为“只剩两条压缩提示、其它消息消失”。
 
-推荐方案由四个相互独立但必须一起交付的保护组成：
+原始方案曾推荐四个相互独立但必须一起交付的保护组成；其中目录级单写者租约已被用户约束否决：
 
-1. **journal 目录进程级单写者租约**：完整 kernel 在执行任何恢复或订阅写入前必须取得租约；共享同一 journal 目录的第二个完整后端 fail-fast，不进入隐式只读或半可写状态。原 owner 确实死亡时，下一实例接管并继续执行现有 unfinished-run 恢复。
+1. **已撤销：journal 目录进程级单写者租约**。它会把 runtime 级资源误判成会话级资源，导致新会话也无法发送。
 2. **增量 replay 边界收紧**：projection tail replay 禁止仅凭未知 message ID 的 delta/tool 事件 bootstrap 新 assistant；只有 full replay 的 legacy 兼容路径允许该救援。权威终态不可被晚到 streaming 事件重新打开；被后续同 run/message 事件明确证伪的 synthetic interrupted terminal 则在历史 full rebuild 中跳过。
 3. **旧 projection 惰性修复**：提升 projection version，使可能已被旧语义污染的 projection 在该 session 第一次访问时从 journal 重建；不得在进程启动时批量重建全部历史。
 4. **压缩 marker 与 UI payload 收口**：compaction recovery 按 continuation 生命周期而非偶然事件顺序判断；session history API 不下发模型专用的完整 checkpoint summary，并保证首屏最少窗口按 user/assistant 对话锚点计算。
 
-这不是每个 run 的 lease、heartbeat 或分布式锁设计。唯一新增的进程协调事实是“谁拥有这个 journal 目录的写权限”，它只在 kernel 生命周期边界获取和释放。
+本次修正不新增每个 runtime、每个 run 或每个 session 的锁；避免把用户明确拒绝的限制换成另一种隐式阻断。
 
 ## 3. 用户语义与成功标准
 
@@ -147,8 +148,8 @@ session history compact view 默认预算为 24 KiB、最少 5 条消息。完�
 
 1. JSONL journal 是唯一会话事实源，append-only；projection 是可删除、可重建的派生读模型。
 2. 页面 GET、SSE 订阅和 history pagination 本身是只读操作，不得触发 run recovery。
-3. 同一 journal 目录同一时刻只有一个完整可写 kernel owner。
-4. unfinished-run recovery 只由成功取得 journal writer lease 的新 owner 执行。
+3. 同一 journal 目录下的 runtime 不因目录级 ownership 被阻止启动；共享写入异常不得升级成整个 kernel 不可用。
+4. unfinished-run recovery 不能仅凭 journal 缺少 terminal event 就把其它活跃 runtime 的 run 判定为中断；真正中断的 run 仍要收敛为明确终态。
 5. 权威 terminal 状态对 streaming delta 是吸收态：`final`、非恢复型 `error`、`cancelled/aborted` 不能被晚到 delta 重新打开。`run.error(interrupted=true)` 是启动恢复派生终态；只有 full replay 发现它在 append order 上被同 run/message continuation 明确证伪时才可忽略。
 6. projection 更新同一 message ID 时只能保留或增加已确认内容，不能因不完整救援快照丢失已确认 parts。
 7. 对合法事件流，full replay 与 incremental replay 必须同构。
@@ -182,56 +183,28 @@ session history compact view 默认预算为 24 KiB、最少 5 条消息。完�
 
 结论：不充分。
 
-### 7.5 journal 目录生命周期单写者 + replay/视图修复
+### 7.5 replay/视图修复，不以启动锁牺牲可用性
 
-该方案直接关闭多写者触发条件，保留 owner 死亡后的恢复，并在 projection 和 API 两层防止已有/异常事件再次造成可见数据丢失。锁只在启动和退出时操作，热路径没有额外 I/O。
+原方案曾建议用 journal 目录生命周期单写者直接关闭多写者触发条件；用户验证后明确否决：共享目录中的另一个 runtime，尤其是新会话，不能因为已有 runtime 或同一会话而被整个阻断。因此本批不再新增 runtime、run 或 session 级 writer lease。
 
-结论：采用。
+保留 replay、projection 和 API 视图层的完整性修复；若共享写入出现异常，必须沿局部写入失败、重建或降级路径处理，不能把持久化竞争升级成 kernel 启动失败或聊天不可用。
+
+结论：采用 replay/视图修复；不采用目录级单写者限制。
 
 ## 8. 推荐设计
 
-### 8.1 journal writer lease
+### 8.1 已撤销：journal writer lease
 
-在 session journal 根目录建立进程生命周期租约，例如：
+本节保留原始方案作为决策记录，不再是实现合同。`$NEXTCLAW_HOME/sessions/.ncp-agent-journal/.writer.lock`、legacy-owner guard、writer conflict fail-fast 和 stale lease 接管均已撤销；不得通过另一个 runtime 锁、session 锁或隐式只读模式替代它们。
 
-```text
-$NEXTCLAW_HOME/sessions/.ncp-agent-journal/.writer.lock
-```
+原因是 journal 目录是共享持久化资源，不等于某个会话的独占资源。目录级 ownership 会让一个无关的新会话也无法发送消息，违反可用性优先约束。
 
-metadata 至少包含：
+### 8.2 启动与退出顺序（修正后）
 
-```ts
-type JournalWriterLeaseMetadata = {
-  token: string;
-  pid: number;
-  createdAt: string;
-};
-```
-
-获取语义：
-
-1. 使用同目录 `open(path, "wx")` 原子创建。
-2. 创建成功后写入完整 metadata 并 `sync`，返回持有 token 的 lease handle。
-3. 文件已存在时读取 metadata：
-   - PID 存活或检查返回 `EPERM`：判定已有 owner，立即抛出明确的 writer conflict；
-   - PID 不存在：通过独占 recovery lock 删除 stale lock 并重试获取；
-   - metadata 损坏：只有超过有限 grace 后才允许 recovery，避免读取创建中的半成品。
-4. 正常 dispose 时只允许 token 匹配的 owner 删除 lock。
-5. 异常退出留下的 lock 由下一实例按 dead PID 恢复。
-
-版本升级还必须覆盖“不知道 writer lock 的旧 runtime”：首次部署 v7 时，正在运行的旧版本不会持有 `.writer.lock`。因此创建一个原本不存在的 writer lock 前，要复用当前 local UI/managed service state 的 PID liveness 事实做一次 legacy-owner guard；发现同一 home 下其它 live PID 时同样 fail-fast。当前已经能发现 remote/local ownership conflict 的启动链路必须从“只关闭 remote ownership”升级为“阻止 writable kernel 启动”。该 guard 是迁移期兼容保护，不替代新版本之间的原子 writer lock。
-
-优先复用 `@nextclaw/app-runtime` 已有 `FileLockService` 的 token、PID liveness、recovery lock 和 owner-safe release 算法，为它增加显式生命周期 lease handle；不要在 kernel 再复制一套近似文件锁。该能力仍是本地文件系统锁，不引入 daemon、数据库或网络协调。
-
-租约 owner 应落在 `NcpAgentSessionJournalStore` 或其直接持久化 owner，并由 kernel 生命周期调用。不要放进 server controller、UI、dev runner 或 `SessionEventIngestionService` 内部，因为这些都不是 journal 写权限 owner。
-
-### 8.2 启动与退出顺序
-
-冻结后的启动顺序：
+修正后的启动顺序：
 
 ```text
 resolve NEXTCLAW_HOME / journal path
-  -> acquire journal writer lease
   -> initialize writable kernel managers
   -> subscribe runtime events
   -> scan unfinished runs
@@ -241,13 +214,10 @@ resolve NEXTCLAW_HOME / journal path
 
 关键约束：
 
-- writer lease 获取失败时，不得执行 `SessionEventIngestionService.start()`，不得发布 backend ready，不得继续启动一个“只有 remote ownership 被禁用”的半可写 kernel。
-- 错误信息必须包含冲突 home、owner PID（可用时）和两个安全动作：打开现有实例，或显式设置隔离的 `NEXTCLAW_HOME`。
-- 不自动终止、重启或抢占活 owner。
-- kernel dispose 时先停止新事件入口并 flush 本进程 ingestion chain，再释放 writer lease。
-- 若 acquire 后的后续初始化失败，必须在异常清理中释放 lease。
-
-这样保留了原始启动恢复：旧 owner 真正死亡后，stale lease 被接管，新 owner 才运行 unfinished scan。启动恢复不是被关闭，而是增加了正确的授权前提。
+- 不存在 writer lease 获取失败这一条启动阻断路径；同一 `NEXTCLAW_HOME` 下的多个 runtime 可以初始化并发送新会话消息。
+- 任何 journal/projection 写入异常都必须局部处理，不能让无关会话或整个 backend 因持久化竞争而不可用。
+- 不自动终止、重启或抢占其它活跃 runtime；也不新增 session 级硬锁。
+- 保留 unfinished-run scan，但不能仅凭“journal 没有 terminal event”把其它活跃 runtime 的 run 判定为中断。
 
 ### 8.3 增量 projection replay
 
@@ -384,9 +354,6 @@ service timeline markers 仍按时间顺序包含在所选对话窗口中，但�
 
 只添加低频结构化事件，不记录消息正文：
 
-- writer lease acquired/released；
-- writer conflict（home fingerprint、owner PID、contender PID）；
-- stale lease recovered；
 - unfinished recovery count；
 - projection version rebuild started/completed/failed（session ID、journal bytes、duration）；
 - late streaming event ignored（session ID、message ID、event type，按 run/周期限流）；
@@ -399,38 +366,30 @@ service timeline markers 仍按时间顺序包含在所选对话窗口中，但�
 ```mermaid
 sequenceDiagram
     participant A as "原 Backend A"
-    participant L as "Journal writer lease"
     participant J as "JSONL journal"
     participant P as "Message projection"
     participant B as "第二 Backend B"
 
-    A->>L: 启动时原子 acquire
-    L-->>A: writer token A
     A->>J: run.started / streaming events
     A->>P: 增量同步
-    B->>L: 同一 home acquire
-    L-->>B: conflict(owner PID alive)
-    Note over B: fail-fast，不启动 recovery，不发布 ready
+    B->>J: 初始化并发送新会话消息
     A->>J: 后续 tool/final events
     A->>P: 合法 tail replay
 
     Note over A: 若 A 异常退出
-    B->>L: 再次 acquire
-    L-->>B: dead PID，恢复 stale lock并取得 token B
     B->>J: 对真正 unfinished run 追加一次 run.error
     B->>P: v7 replay / 惰性重建
 ```
 
 ## 10. 故障矩阵
 
-| 场景 | writer lease | startup recovery | projection/UI 结果 |
+| 场景 | runtime 启动 | startup recovery | projection/UI 结果 |
 | --- | --- | --- | --- |
-| 单实例正常启动 | acquire | 正常扫描 | 行为不变 |
-| 第二实例同 home，owner 存活 | conflict | 不运行 | 原会话不变，第二实例不 ready |
+| 单实例正常启动 | 正常初始化 | 正常扫描 | 行为不变 |
+| 第二实例同 home，owner 存活 | 允许初始化 | 不得误判其它活跃 run | 新会话可发送，原会话不被全局阻断 |
 | 第二实例只打开原实例 URL | 不启动新 kernel | 不运行 | 纯读 |
-| owner 正常退出 | owner-safe release | 下一实例正常扫描 | unfinished 依事实处理 |
-| owner 崩溃留下 lock | dead PID stale recovery | 新 owner 扫描一次 | 追加一次 interrupted terminal |
-| 两实例同时首次竞争 | `wx` 只有一个成功 | 只有获胜者运行 | 无重复 seq |
+| owner 正常退出 | 正常退出 | 下一实例正常扫描 | unfinished 依事实处理 |
+| 两实例同时首次启动 | 都不因 writer lease fail-fast | 由各自运行时事实决定 | 不新增全局不可用限制 |
 | 权威 terminal 后晚到 delta | owner 内事件仍可进 journal | 不相关 | projection 忽略，不重开 message |
 | 旧 synthetic interrupted terminal 后有同 run continuation | v7 前历史污染 | 不追加新事件 | full rebuild 跳过误恢复终态并保留后续内容 |
 | v6 projection 已污染 | 不相关 | 不相关 | 首次访问从 journal 重建 v7 |
@@ -447,22 +406,15 @@ sequenceDiagram
 1. 同一 message ID 在权威 `run.error` 后收到晚到 tool events，当前 projection 会从 error/full parts 退化到 streaming/short parts。
 2. `run.error(interrupted=true)` 后同 run/message 继续执行并最终完成时，旧 full/projection 语义不能稳定表达“误恢复被证伪”。
 3. prefix projection + tail replay 与 full replay 在合法 terminal 边界不等价。
-4. 两个进程/两个 store owner 指向同一临时 journal 目录时，第二 owner 仍能进入 recovery。
+4. 两个进程/两个 store owner 指向同一临时 journal 目录时，第二 owner 仍能打开目录并验证新会话链路不被启动 gate 阻断。
 5. terminal-before-compressing marker 不能正确终态化。
 6. 两个大 summary marker 会占据 compact initial payload 的 minimum。
 
 测试必须在 `mkdtemp` 隔离目录运行，不使用真实 `~/.nextclaw`。
 
-### 批次 B：writer lease 与 recovery authority
+### 批次 B：启动可用性与 recovery 边界
 
-预期触达：
-
-- `packages/nextclaw-app-runtime/src/services/file-lock.service.ts` 及测试：若现有 owner 无法返回生命周期 lease handle，做最小公共能力扩展；
-- `packages/nextclaw-kernel/src/stores/ncp-agent-session-journal.store.ts` 及测试：拥有 journal writer lease；
-- `packages/nextclaw-kernel/src/app/nextclaw-kernel.ts` 或实际 kernel start/dispose owner：冻结 acquire/start/flush/release 顺序；
-- `packages/nextclaw-kernel/src/services/session-event-ingestion.service.ts` 及测试：保留 unfinished recovery 内容，只证明它仅在已获写权限的 kernel 生命周期调用。
-
-不要把 writer check 只放在 `scripts/dev/dev-runner.mjs`；生产、foreground、desktop 和测试宿主都必须经过同一 kernel contract。dev runner 可以改善冲突提示，但不能成为安全 owner。
+不新增 writer lease 或启动级 ownership check。预期只验证：多个 runtime 可以初始化；unfinished recovery 不会把其它活跃 runtime 的 run 误写成 interrupted；单次 journal/projection 写入异常不会阻断无关会话。
 
 ### 批次 C：projection replay 与 v7
 
@@ -510,15 +462,14 @@ sequenceDiagram
 
 使用子进程和临时 `NEXTCLAW_HOME`，不得复用开发者 home：
 
-1. 进程 A 启动可写 kernel，写入 unfinished run，并通过 IPC 通知已持有 lease。
-2. 进程 B 使用同一 home 启动。
-3. 修复前基线应证明 B 能产生 interrupted `run.error` 或两个 writer 均可 append。
-4. 修复后 B 必须在 recovery 前返回 writer conflict；比较 B 前后的 journal hash/size/event count完全不变。
-5. 强制终止 A，不执行 graceful release。
-6. 再启动 B，证明 stale lease 被恢复，unfinished run 只得到一次 interrupted terminal。
-7. 扫描 journal seq，断言唯一、单调；扫描每个 run，断言 terminal 至多一个。
+1. 进程 A 启动可写 kernel，写入 unfinished run，并通过 IPC 通知已进入运行态。
+2. 进程 B 使用同一 home 启动，并尝试发送一个新会话消息。
+3. 修复前基线记录 B 被目录级 writer conflict 阻断，以及共享 home 下可能产生的错误 recovery。
+4. 修复后 B 必须完成启动并可发送新会话消息；不能以 writer conflict 作为启动失败原因。
+5. 强制终止 A，不执行 graceful release，再启动 B，验证真正中断的 run 仍可收敛。
+6. 扫描每个 run，断言 late event 不会让无关 session 的 projection 退化；journal/projection 单次写入异常只影响局部操作。
 
-如果完整 backend harness 太重，先用两个 journal-store lease harness 固定原子竞争，再补一条真实 kernel startup integration。仅有 mock PID 单元测试不足以声称复现完成。
+如果完整 backend harness 太重，先用两个 journal-store 实例固定“可同时打开 + 局部 recovery 边界”，再补一条真实 kernel startup integration。仅有 mock 进程状态单元测试不足以声称复现完成。
 
 ### 12.3 API/UI 复现
 
@@ -543,7 +494,7 @@ sequenceDiagram
 
 | 路径 | 新成本 | 结论 |
 | --- | --- | --- |
-| kernel startup | 一次 `wx` create/read + PID liveness | 常数级，仅启动发生 |
+| kernel startup | 不新增 journal ownership 检查 | 不因共享目录竞争阻断启动 |
 | journal append | 无新增跨进程 lock/heartbeat | 热路径不变 |
 | warm latest page | v7 projection 随机读取 | 不允许 full journal replay |
 | tail replay | 仍只读 projection boundary 后 tail；未知 late event直接忽略 | 不增加历史扫描 |
@@ -560,7 +511,6 @@ sequenceDiagram
 
 门槛：
 
-- uncontended writer lease acquire median 应为毫秒级，且不进入 append/page 热路径；
 - warm latest page p95 不得比基线回退超过 5%，并通过 fs spy/trace 证明未读取完整 journal；
 - warm cursor page p95 不得比基线回退超过 5%；
 - append p95 不得比基线回退超过 5%；
@@ -611,10 +561,10 @@ pnpm --filter @nextclaw/ui tsc
 - projection schema：v6 -> v7，按 session 惰性重建。
 - compaction checkpoint：journal 中保持完整；只收窄 UI transport view。
 - legacy journal：full replay 保留未知 streaming bootstrap 救援；incremental tail 不使用该 fallback。
-- startup recovery：保留，增加 writer authority 前置条件。
-- read-only secondary backend：非目标；冲突实例 fail-fast。
+- startup recovery：保留，但不以 writer authority 作为前置条件；必须避免仅凭 unfinished journal 误判活跃 runtime。
+- read-only secondary backend：非目标；同一 home 的 runtime 不因目录 ownership 被强制变成不可用。
 - 用户配置：不新增。
-- 用户文档：实现交付时应补充“同一数据目录只能由一个本地 runtime 写入；开发实例使用隔离 `NEXTCLAW_HOME`”的故障排查说明。
+- 用户文档：本批为内部故障修复，不新增“同一数据目录只能由一个本地 runtime 写入”的产品限制说明。
 - changeset：这是用户可见的数据可靠性修复，交付时需要按受影响 package 判断 changeset；本文不执行提交或发布。
 
 ## 16. 当前工作区实施警告
@@ -643,9 +593,9 @@ pnpm --filter @nextclaw/ui tsc
 
 - [ ] 失败测试在旧实现上稳定复现 terminal -> late event -> truncated projection。
 - [ ] 双进程隔离 harness 在旧实现上复现 foreign recovery/multiwriter。
-- [ ] writer lease 在任何 recovery/write subscription 前获取。
-- [ ] live owner 冲突实例零 journal 写入并 fail-fast。
-- [ ] dead owner 可接管，startup recovery 仍只执行一次。
+- [ ] 多 runtime 不因 journal writer ownership 在启动阶段 fail-fast。
+- [ ] 活跃 runtime 的 unfinished run 不被其它 runtime 仅凭 journal 状态误判为 interrupted。
+- [ ] startup recovery 在不牺牲新会话可用性的前提下仍可收敛真正中断的 run。
 - [ ] full replay 与合法边界 incremental replay 等价。
 - [ ] 权威 terminal assistant 不会被晚到 streaming/tool 事件重开。
 - [ ] 被后续同 run/message continuation 证伪的 synthetic interrupted terminal 在 v7 full rebuild 中被忽略，后续完整内容保留。
@@ -660,19 +610,19 @@ pnpm --filter @nextclaw/ui tsc
 
 ## 19. 本次实施与验证记录（2026-08-23）
 
-本方案已在主工作区完成实现，关键落点如下：
+本方案已在主工作区完成范围修正，关键落点如下：
 
-- journal 目录新增持久 writer lease；同一 `NEXTCLAW_HOME` 的第二 runtime 在 kernel 启动前 fail-fast，并兼容识别旧版 `service.json` / `ui-runtime.json` 活跃 owner。
-- 保留原有 unfinished-run startup recovery；真实 writer 死亡后允许 stale lease 接管，不把第二实例隐式伪装为只读实例。
+- 删除 journal 目录持久 writer lease、legacy-owner guard 和 kernel 启动 fail-fast；同一 `NEXTCLAW_HOME` 的第二 runtime（包括新会话）不再因 journal ownership 被阻断。
+- 保留原有 unfinished-run startup recovery、replay、projection 和历史视图修复；不新增 runtime、run 或 session 级硬锁。
 - full replay 增加 synthetic interruption 的历史证伪、终态消息保护和 late streaming/tool event 边界；incremental tail 仍只扫描 projection tail，并保留 `RunStarted` 后 legacy streaming 兼容窗口。
 - projection 版本升至 v7，compaction marker 仅在 API/UI view 层剥离 summary 大字段，journal 原文不改写。
-- 为降低维护风险，将 writer 生命周期、replay 编排、replay event 转换和 recovery 回归用例按职责拆开；没有新增 append 热路径锁。
+- 为降低维护风险，将 replay 编排、replay event 转换和 recovery 回归用例按职责拆开；没有新增 append 热路径锁。
 
 已取得的证据：
 
 - kernel 全量回归：87 个测试文件、414 个测试通过；故障相关 journal/recovery 定向回归 28/28 通过。
 - app-runtime、server、service、UI 的匹配 `tsc` 通过；对应定向测试分别为 3、12、3、17 个通过。
-- 临时目录双进程 harness 通过：第二 writer 被拒绝、持有进程被强制终止后可接管、旧版活跃 PID 也被拒绝；真实 `~/.nextclaw` 未被用于测试写入。
+- 临时目录双 store 可同时打开同一 journal 目录；真实 `~/.nextclaw` 未被用于测试写入。
 - targeted ESLint 无 error，diff-only maintainability 无阻断 finding，`git diff --check` 通过。
 
 尚未声称完成的证据：本次没有在真实事故实例上热重启或执行 8.1 MiB / 17k+ 生产规模的 5 次冷、20 次 warm 性能基准；这是出于不触碰现有实例和真实 session 数据的安全边界。后续若要闭合性能门槛，应在复制到隔离 `NEXTCLAW_HOME` 的 fixture 上执行第 13.2 节基准。

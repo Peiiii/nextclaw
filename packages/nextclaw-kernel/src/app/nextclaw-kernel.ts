@@ -344,49 +344,39 @@ export class NextclawKernel {
     this.gatewayController;
 
   start = async (): Promise<void> => {
-    await this.ncpAgentSessionJournalStore.start();
-    try {
-      await this.appPackageManager.start();
-      await this.appDataManager.start();
-      await this.serviceAppManager.start();
-      void this.sessionSearch.start();
-      this.mcpManager.start();
-      this.providerModelCatalog.start();
-      await this.projectManager.importSessionProjects(
-        (await this.sessionManager.listSessions()).map((session) =>
-          readProjectRoot(session.metadata),
-        ),
-      );
-      await this.sessionManager.start();
-      for (const contribution of this.contributions) {
-        await contribution.start();
-      }
-      this.agentRunRequestManager.start();
-      await this.observations.start();
-    } catch (error) {
-      await this.ncpAgentSessionJournalStore.dispose();
-      throw error;
+    await this.appPackageManager.start();
+    await this.appDataManager.start();
+    await this.serviceAppManager.start();
+    void this.sessionSearch.start();
+    this.mcpManager.start();
+    this.providerModelCatalog.start();
+    await this.projectManager.importSessionProjects(
+      (await this.sessionManager.listSessions()).map((session) =>
+        readProjectRoot(session.metadata),
+      ),
+    );
+    await this.sessionManager.start();
+    for (const contribution of this.contributions) {
+      await contribution.start();
     }
+    this.agentRunRequestManager.start();
+    await this.observations.start();
   };
 
   dispose = async (): Promise<void> => {
-    try {
-      this.providerModelCatalog.dispose();
-      await this.observations.dispose();
-      this.agentRunRequestManager.dispose();
-      for (const contribution of [...this.contributions].reverse()) {
-        await contribution.dispose();
-      }
-      this.toolProviderManager.dispose();
-      this.contextProviderManager.dispose();
-      await this.agentRuntimeManager.dispose();
-      this.sessionRunManager.dispose();
-      this.sessionManager.dispose();
-      await this.mcpManager.dispose();
-      await this.serviceAppManager.dispose();
-      await this.sessionSearch.dispose();
-    } finally {
-      await this.ncpAgentSessionJournalStore.dispose();
+    this.providerModelCatalog.dispose();
+    await this.observations.dispose();
+    this.agentRunRequestManager.dispose();
+    for (const contribution of [...this.contributions].reverse()) {
+      await contribution.dispose();
     }
+    this.toolProviderManager.dispose();
+    this.contextProviderManager.dispose();
+    await this.agentRuntimeManager.dispose();
+    this.sessionRunManager.dispose();
+    this.sessionManager.dispose();
+    await this.mcpManager.dispose();
+    await this.serviceAppManager.dispose();
+    await this.sessionSearch.dispose();
   };
 }

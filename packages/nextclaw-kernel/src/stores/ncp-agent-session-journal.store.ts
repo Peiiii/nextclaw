@@ -25,8 +25,6 @@ import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-messa
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
 import type { SessionMessagePage } from "@kernel/types/session.types.js";
-import { NcpAgentSessionJournalWriterService } from "@kernel/services/ncp-agent-session-journal-writer.service.js";
-export { NcpAgentSessionJournalWriterConflictError } from "@kernel/services/ncp-agent-session-journal-writer.service.js";
 export class NcpAgentSessionJournalStore {
   private readonly journalDir: string;
   private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
@@ -37,10 +35,8 @@ export class NcpAgentSessionJournalStore {
   private readonly unfinishedRunStore: NcpAgentUnfinishedRunStore;
   private readonly summaryIndexStore: NcpAgentSessionSummaryIndexStore;
   private readonly summaryReadStore: NcpAgentSessionSummaryReadStore;
-  private readonly writerService: NcpAgentSessionJournalWriterService;
   constructor(journalDir: string) {
     this.journalDir = journalDir;
-    this.writerService = new NcpAgentSessionJournalWriterService(journalDir);
     this.metadataStore = new NcpAgentSessionMetadataStore(journalDir);
     this.messageProjectionStore = new NcpAgentSessionMessageProjectionStore(journalDir, {
       loadSession: async (sessionId) => {
@@ -66,8 +62,6 @@ export class NcpAgentSessionJournalStore {
       async () => (await this.summaryIndexStore.list()).map(({ sessionId }) => sessionId),
     );
   }
-  start = async (): Promise<void> => await this.writerService.start();
-  dispose = async (): Promise<void> => await this.writerService.dispose();
   appendSessionEvent = async (params: {
     sessionId: string;
     event: NcpAgentSessionJournalReplayEvent;

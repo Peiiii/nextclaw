@@ -3,10 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
-import {
-  NcpAgentSessionJournalStore,
-  NcpAgentSessionJournalWriterConflictError,
-} from "./ncp-agent-session-journal.store.js";
+import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
 
 const sessionId = "session-1";
 const userMessage: NcpMessage = {
@@ -38,17 +35,13 @@ afterEach(async () => {
 });
 
 describe("NcpAgentSessionJournalStore recovery", () => {
-  it("allows only one runtime writer for a journal directory", async () => {
+  it("does not block a second runtime from opening the same journal directory", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const first = new NcpAgentSessionJournalStore(tempDir);
     const second = new NcpAgentSessionJournalStore(tempDir);
 
-    await first.start();
-    await expect(second.start()).rejects.toBeInstanceOf(NcpAgentSessionJournalWriterConflictError);
-
-    await first.dispose();
-    await second.start();
-    await second.dispose();
+    await expect(first.getSession(sessionId)).resolves.toBeNull();
+    await expect(second.getSession(sessionId)).resolves.toBeNull();
   });
 
   it("ignores an unknown late tool event in an incremental projection tail", async () => {
