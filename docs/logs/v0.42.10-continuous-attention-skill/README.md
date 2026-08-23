@@ -42,4 +42,9 @@
 - `@nextclaw/core`：patch，随当前未发布 changeset 批次进入 beta。
 - 其他 workspace 包：按仓库现有未发布 changeset 的依赖闭包统一处理，不在本次 Skill 中额外扩大范围。
 - 发布渠道：NPM `beta` dist-tag；runtime channel、desktop 和正式 `latest` 不涉及。
-- 初始记录状态：待 `pnpm release:npm:beta` 闭环后补充实际版本、包数、tag、安装验证与 release commit。
+- 发布批次：44 个 public workspace package 版本。
+- 关键版本：`@nextclaw/core@0.17.7-beta.0`、`@nextclaw/server@0.18.0-beta.0`、`nextclaw@0.42.3-beta.0`。
+- registry 校验：`release:verify:published` 通过，44/44 个版本可见；此前等待窗口结束后完成恢复校验，未重复上传。
+- release commit：`91a71e555`；package tags 已推送到 origin，master 因远端 metrics 自动提交前进而通过 merge 收口为 `5fc0d28a7`。
+- 真实安装验证：`pnpm -C packages/nextclaw validation:npm-update -- --published-beta` 通过，安装版本为 `0.42.3-beta.0`，并验证 `InputBudgetPruner.estimate/prune` 可用。
+- 闭合范围：NPM registry、`beta` dist-tag、Git master 与 package tags；runtime channel、desktop、文档站、官网和 X 均明确跳过。
