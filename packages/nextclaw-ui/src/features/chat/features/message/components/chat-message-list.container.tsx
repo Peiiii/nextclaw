@@ -420,6 +420,8 @@ export function ChatMessageListContainer({
               <ChatContextCompactionDivider checkpoint={item.checkpoint} />
             ) : item.kind === "context-inheritance" ? (
               <ChatContextInheritanceDivider inheritance={item.inheritance} />
+            ) : item.kind === "observation-event" ? (
+              <ChatMessageObservationEvent event={item.event} />
             ) : (
               <div className={item.kind === "message" ? "pb-5" : undefined}>
                 <ChatMessageList

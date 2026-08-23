@@ -8,6 +8,11 @@ import {
   readContextCompactionTimeline,
   type ContextCompactionTimelineView,
 } from "@/features/chat/features/session/utils/ncp-session-context-metadata.utils";
+import {
+  isObservationEventPartExtensionType,
+  readObservationEventPartData,
+  type ObservationEventPartData,
+} from "@/features/chat/features/message/utils/chat-message-observation-event.utils";
 
 const INHERITED_FROM_SESSION_METADATA_KEY = "inherited_from_session_id";
 export const CONTEXT_COMPACTION_PART_EXTENSION_TYPE =
@@ -44,6 +49,11 @@ export type ChatTimelineItem =
       inheritance: ContextInheritanceTimelineView;
     }
   | {
+      kind: "observation-event";
+      key: string;
+      event: ObservationEventPartData;
+    }
+  | {
       kind: "typing";
       key: "typing";
     }
@@ -55,6 +65,21 @@ export type ChatTimelineItem =
 function readInheritedSourceSessionId(message: NcpMessage): string | null {
   const value = message.metadata?.[INHERITED_FROM_SESSION_METADATA_KEY];
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readStandaloneObservationEvent(
+  message: NcpMessage,
+): ObservationEventPartData | null {
+  if (message.parts.length !== 1) return null;
+  const part = message.parts[0];
+  if (
+    !part ||
+    part.type !== "extension" ||
+    !isObservationEventPartExtensionType(part.extensionType)
+  ) {
+    return null;
+  }
+  return readObservationEventPartData(part.data);
 }
 
 export function isVisibleChatMessage(message: NcpMessage): boolean {
@@ -100,6 +125,13 @@ function mergeAssistantContinuation(
 type VisibleChatMessageProjection = {
   messages: NcpMessage[];
   inlineCompactionMessageIds: Set<string>;
+  observationEvents: ObservationEventTimelinePlacement[];
+};
+
+type ObservationEventTimelinePlacement = {
+  boundaryIndex: number;
+  event: ObservationEventPartData;
+  messageId: string;
 };
 
 type ProjectedMessagePartAnchor = {
@@ -127,6 +159,7 @@ function projectVisibleChatMessageState(
   );
   const inlineCompactions: InlineCompactionPlacement[] = [];
   const inlineCompactionMessageIds = new Set<string>();
+  const observationEvents: ObservationEventTimelinePlacement[] = [];
   let pendingContinuationTargetId: string | null = null;
 
   rawMessages.forEach((message, rawOrder) => {
@@ -164,6 +197,15 @@ function projectVisibleChatMessageState(
       return;
     }
     if (!isVisibleChatMessage(message)) {
+      return;
+    }
+    const observationEvent = readStandaloneObservationEvent(message);
+    if (observationEvent) {
+      observationEvents.push({
+        boundaryIndex: messages.length,
+        event: observationEvent,
+        messageId: message.id,
+      });
       return;
     }
     const targetIndex = pendingContinuationTargetId && message.role === "assistant"
@@ -238,7 +280,7 @@ function projectVisibleChatMessageState(
       status: "pending",
     };
   }
-  return { messages, inlineCompactionMessageIds };
+  return { messages, inlineCompactionMessageIds, observationEvents };
 }
 
 export function projectVisibleChatMessages(
@@ -292,6 +334,7 @@ export function buildChatMessageTimelineItems(params: {
 }): ChatTimelineItem[] {
   const projection = projectVisibleChatMessageState(params.rawMessages);
   const visibleRawMessages = projection.messages;
+  const observationEvents = projection.observationEvents;
   const checkpoints = params.rawMessages
     .map((message) => ({
       rawMessageId: message.id,
@@ -324,6 +367,7 @@ export function buildChatMessageTimelineItems(params: {
   const items: ChatTimelineItem[] = [];
   let pendingMessages: ChatMessageViewModel[] = [];
   let checkpointCursor = 0;
+  let observationEventCursor = 0;
   const flushPendingMessages = () => {
     if (pendingMessages.length === 0) {
       return;
@@ -337,8 +381,24 @@ export function buildChatMessageTimelineItems(params: {
     );
     pendingMessages = [];
   };
+  const flushObservationEvents = (boundaryIndex: number) => {
+    while (
+      observationEventCursor < observationEvents.length &&
+      observationEvents[observationEventCursor]!.boundaryIndex <= boundaryIndex
+    ) {
+      const currentEvent = observationEvents[observationEventCursor]!;
+      flushPendingMessages();
+      items.push({
+        kind: "observation-event",
+        key: `observation-event:${currentEvent.messageId}`,
+        event: currentEvent.event,
+      });
+      observationEventCursor += 1;
+    }
+  };
 
   visibleRawMessages.forEach((rawMessage, index) => {
+    flushObservationEvents(index);
     if (contextInheritance?.boundaryIndex === index) {
       flushPendingMessages();
       items.push({
@@ -373,6 +433,7 @@ export function buildChatMessageTimelineItems(params: {
       inheritance: contextInheritance,
     });
   }
+  flushObservationEvents(visibleRawMessages.length);
   while (checkpointCursor < checkpoints.length) {
     const currentCheckpoint = checkpoints[checkpointCursor];
     flushPendingMessages();

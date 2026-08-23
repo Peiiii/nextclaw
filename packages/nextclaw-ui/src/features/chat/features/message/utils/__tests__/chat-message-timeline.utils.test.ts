@@ -62,6 +62,58 @@ describe("chat message timeline visibility", () => {
     ]);
   });
 
+  it("renders a standalone observation message at its timeline boundary", () => {
+    const observationMessage = {
+      ...visibleMessage,
+      id: "observation-event-1",
+      role: "service" as const,
+      timestamp: "2026-08-07T00:01:00.000Z",
+      parts: [{
+        type: "extension" as const,
+        extensionType: "observation.event",
+        data: {
+          deliveryId: "delivery-1",
+          extensionId: "calendar-extension",
+          eventId: "event-1",
+          eventType: "calendar.event.created",
+          occurredAt: "2026-08-07T00:00:59.000Z",
+          payload: { title: "Planning" },
+        },
+      }],
+    } satisfies NcpMessage;
+    const afterMessage = {
+      ...visibleMessage,
+      id: "assistant-after-observation",
+      timestamp: "2026-08-07T00:02:00.000Z",
+    };
+
+    expect(projectVisibleChatMessages([
+      visibleMessage,
+      observationMessage,
+      afterMessage,
+    ]).map((message) => message.id)).toEqual([
+      visibleMessage.id,
+      afterMessage.id,
+    ]);
+    const items = buildChatMessageTimelineItems({
+      rawMessages: [visibleMessage, observationMessage, afterMessage],
+      messages: [
+        { id: visibleMessage.id } as never,
+        { id: afterMessage.id } as never,
+      ],
+    });
+
+    expect(items.map((item) => item.kind)).toEqual([
+      "message",
+      "observation-event",
+      "message",
+    ]);
+    expect(items[1]).toMatchObject({
+      kind: "observation-event",
+      event: { eventId: "event-1" },
+    });
+  });
+
   it("hides internal and legacy silent messages", () => {
     expect(isVisibleChatMessage({
       ...visibleMessage,

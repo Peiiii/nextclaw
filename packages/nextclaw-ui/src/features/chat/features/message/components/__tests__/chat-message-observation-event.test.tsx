@@ -26,10 +26,21 @@ it("shows the event identity and keeps the payload behind an expandable detail",
   );
 
   expect(screen.getByTestId("chat-observation-event")).toBeTruthy();
-  expect(screen.getByText("calendar.event.created")).toBeTruthy();
+  expect(screen.getAllByText("calendar.event.created")).toHaveLength(2);
   expect(screen.getByText(/calendar-extension/)).toBeTruthy();
-  const summary = screen.getByText("chatObservationEventShowDetails");
-  expect(summary).toBeTruthy();
-  expect(summary.closest("details")?.open).toBe(false);
+  const eventDetails = screen.getByTestId(
+    "chat-observation-event",
+  ) as HTMLDetailsElement;
+  expect(eventDetails.querySelector("summary")).toBeTruthy();
+  expect(eventDetails.open).toBe(false);
+  expect(screen.getByText(/event-1/)).toBeTruthy();
   expect(screen.getByText(/Planning/)).toBeTruthy();
+  expect(screen.getByText("chatObservationEventDetailsTitle")).toBeTruthy();
+  expect(screen.getByText("chatObservationEventPayloadLabel")).toBeTruthy();
+
+  expect(eventDetails.className).toContain("my-3");
+  expect(eventDetails.querySelector("summary")?.textContent).toContain(
+    "calendar.event.created",
+  );
+  expect(eventDetails.className).not.toContain("amber");
 });
