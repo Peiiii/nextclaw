@@ -1,5 +1,19 @@
 # nextclaw-core
 
+## 0.17.7-beta.0
+
+### Patch Changes
+
+- 5b07b81: Add automatic Windows Desktop host-exit diagnostics, including local crash evidence, restart recovery records, and AI-readable incident reporting.
+- 5f68b2f: Recover context compaction from truncated or structurally incomplete summaries with a priority-prefix protocol, bounded shrinking retries, and a deterministic recent-context fallback. Derive the provider output budget from the install target and honor DeepSeek's explicit thinking-disable control during compaction.
+
+  <!-- release-note-blog: docs/blog-drafts/2026-08-22-context-compaction-without-dead-ends.blog-draft.md -->
+
+- 41cb756: 降低空用户会话的固有上下文占用：技能目录改为保留完整描述的紧凑分组格式，工具目录不再与工具 schema 重复，回复格式合同去除重复表述，从而减少过早触发上下文压缩的概率。
+- 037d93e: 新增内置的持续关注 Skill，让 Agent 能根据用户意图区分一次性读取、会话级 Context 绑定和 Events 订阅，并管理关注关系的生命周期与外部事件安全处理。
+- Updated dependencies [70dd515]
+  - @nextclaw/shared@0.4.27-beta.0
+
 ## 0.17.6
 
 ### Patch Changes

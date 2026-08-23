@@ -1,5 +1,32 @@
 # nextclaw-server
 
+## 0.18.0-beta.0
+
+### Minor Changes
+
+- ec60bc1: 新增全局 Extension 管理入口、会话级持续关注管理，以及会话时间线中的可见外部事件卡片。事件消息使用通用的 `observation.event` 标识，不绑定具体产品或协议品牌。
+
+### Patch Changes
+
+- eeac1f6: 修复会话历史摘要删除工具调用结构节点导致上下文压缩边界和 Continue 后续内容错位的问题。摘要现在保留完整的 part 顺序与数量，仅延迟大 payload 的加载。
+- f9c6477: 修复会话历史可靠性问题：保留历史 replay、projection 恢复和压缩消息视图的修复，不再用 journal 目录级 writer ownership 阻止同一 `NEXTCLAW_HOME` 下的第二个 runtime 或新会话启动。
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [5b07b81]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [5f68b2f]
+- Updated dependencies [41cb756]
+- Updated dependencies [037d93e]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+- Updated dependencies [3817714]
+- Updated dependencies [f9c6477]
+- Updated dependencies [83c0628]
+  - @nextclaw/kernel@0.10.0-beta.0
+  - @nextclaw/ncp@0.9.0-beta.0
+  - @nextclaw/core@0.17.7-beta.0
+  - @nextclaw/runtime@0.4.33-beta.0
+  - @nextclaw/mcp@0.3.34-beta.0
+
 ## 0.17.3
 
 ### Patch Changes

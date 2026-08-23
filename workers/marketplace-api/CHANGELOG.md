@@ -1,5 +1,12 @@
 # @nextclaw/marketplace-api-worker
 
+## 0.0.9-beta.0
+
+### Patch Changes
+
+- Updated dependencies [f9c6477]
+  - @nextclaw/app-runtime@0.13.2-beta.0
+
 ## 0.0.8
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
 
+## 0.3.22-beta.0
+
+### Patch Changes
+
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [ec60bc1]
+  - @nextclaw/ncp@0.9.0-beta.0
+  - @nextclaw/ncp-agent-runtime@0.4.20-beta.0
+  - @nextclaw/ncp-http-agent-client@0.4.21-beta.0
+
 ## 0.3.21
 
 ### Patch Changes

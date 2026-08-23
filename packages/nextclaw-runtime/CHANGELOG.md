@@ -1,5 +1,19 @@
 # @nextclaw/runtime
 
+## 0.4.33-beta.0
+
+### Patch Changes
+
+- 5f68b2f: Recover context compaction from truncated or structurally incomplete summaries with a priority-prefix protocol, bounded shrinking retries, and a deterministic recent-context fallback. Derive the provider output budget from the install target and honor DeepSeek's explicit thinking-disable control during compaction.
+
+  <!-- release-note-blog: docs/blog-drafts/2026-08-22-context-compaction-without-dead-ends.blog-draft.md -->
+
+- Updated dependencies [5b07b81]
+- Updated dependencies [5f68b2f]
+- Updated dependencies [41cb756]
+- Updated dependencies [037d93e]
+  - @nextclaw/core@0.17.7-beta.0
+
 ## 0.4.32
 
 ### Patch Changes

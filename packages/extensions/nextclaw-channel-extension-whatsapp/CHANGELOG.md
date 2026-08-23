@@ -1,5 +1,17 @@
 # @nextclaw/channel-extension-whatsapp
 
+## 0.2.33-beta.0
+
+### Patch Changes
+
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [5b07b81]
+- Updated dependencies [5f68b2f]
+- Updated dependencies [41cb756]
+- Updated dependencies [037d93e]
+  - @nextclaw/extension-sdk@0.4.0-beta.0
+  - @nextclaw/core@0.17.7-beta.0
+
 ## 0.2.32
 
 ### Patch Changes

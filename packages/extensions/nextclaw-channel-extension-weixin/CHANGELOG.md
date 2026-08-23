@@ -1,5 +1,16 @@
 # @nextclaw/channel-extension-weixin
 
+## 0.2.28-beta.0
+
+### Patch Changes
+
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [ec60bc1]
+  - @nextclaw/extension-sdk@0.4.0-beta.0
+  - @nextclaw/ncp@0.9.0-beta.0
+  - @nextclaw/ncp-toolkit@0.6.22-beta.0
+
 ## 0.2.27
 
 ### Patch Changes

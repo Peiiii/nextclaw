@@ -65,5 +65,20 @@
     "@nextclaw/marketplace-api-worker": "0.0.8",
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "agent-observation-runtime",
+    "bright-host-diagnostics",
+    "chat-history-structural-fidelity",
+    "context-compaction-truncation",
+    "context-prompt-footprint",
+    "continuous-attention-skill",
+    "desktop-external-links",
+    "extension-observation-management",
+    "platform-sdk-exec",
+    "session-catalog-sqlite",
+    "session-copy-id",
+    "session-journal-single-writer",
+    "session-message-projection-recovery",
+    "session-run-steering-pending-ui"
+  ]
 }

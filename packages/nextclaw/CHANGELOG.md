@@ -1,5 +1,37 @@
 # nextclaw
 
+## 0.42.3-beta.0
+
+### Patch Changes
+
+- 70dd515: Add the experimental `@nextclaw/harness` SDK with Agent, Session, Run, and Contribution APIs; expose lifecycle-scoped tools, context, model providers, runtimes, and MCP capabilities; and add the non-interactive `nextclaw exec` command for headless tasks.
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [5b07b81]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [5f68b2f]
+- Updated dependencies [41cb756]
+- Updated dependencies [037d93e]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+- Updated dependencies [3817714]
+- Updated dependencies [f9c6477]
+- Updated dependencies [83c0628]
+  - @nextclaw/kernel@0.10.0-beta.0
+  - @nextclaw/ncp@0.9.0-beta.0
+  - @nextclaw/core@0.17.7-beta.0
+  - @nextclaw/service@0.3.45-beta.0
+  - @nextclaw/server@0.18.0-beta.0
+  - @nextclaw/runtime@0.4.33-beta.0
+  - @nextclaw/app-runtime@0.13.2-beta.0
+  - @nextclaw/remote@0.3.42-beta.0
+  - @nextclaw/ncp-agent-runtime@0.4.20-beta.0
+  - @nextclaw/ncp-mcp@0.2.34-beta.0
+  - @nextclaw/ncp-toolkit@0.6.22-beta.0
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.20-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.21-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.34-beta.0
+  - @nextclaw/mcp@0.3.34-beta.0
+
 ## 0.42.2
 
 ### Patch Changes

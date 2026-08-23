@@ -1,5 +1,20 @@
 # @nextclaw/extension-sdk
 
+## 0.4.0-beta.0
+
+### Minor Changes
+
+- 2c7ce8c: 新增持久化的 Agent Observation 能力：Agent 可绑定持续刷新的 Context、订阅带过滤与预算的事件源，并通过现有 started/queued/steered 输入链路可靠接收事件。Context 会作为低权限数据固定追加到模型输入尾部，订阅关系、cursor 与待投递事件可在重启后恢复，重复投递由幂等合同拦截。
+
+### Patch Changes
+
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+  - @nextclaw/ncp@0.9.0-beta.0
+  - @nextclaw/shared@0.4.27-beta.0
+
 ## 0.3.26
 
 ### Patch Changes

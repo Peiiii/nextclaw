@@ -1,5 +1,35 @@
 # @nextclaw/desktop
 
+## 0.0.263-beta.0
+
+### Patch Changes
+
+- 5b07b81: Add automatic Windows Desktop host-exit diagnostics, including local crash evidence, restart recovery records, and AI-readable incident reporting.
+- 67ddf3f: Open web links from the Windows desktop app in the system default browser instead of an internal Electron window.
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [5b07b81]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [5f68b2f]
+- Updated dependencies [41cb756]
+- Updated dependencies [037d93e]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+- Updated dependencies [3817714]
+- Updated dependencies [f9c6477]
+- Updated dependencies [83c0628]
+  - @nextclaw/kernel@0.10.0-beta.0
+  - @nextclaw/core@0.17.7-beta.0
+  - @nextclaw/server@0.18.0-beta.0
+  - nextclaw@0.42.3-beta.0
+  - @nextclaw/channel-extension-dingtalk@0.2.33-beta.0
+  - @nextclaw/channel-extension-discord@0.2.33-beta.0
+  - @nextclaw/channel-extension-email@0.2.33-beta.0
+  - @nextclaw/channel-extension-qq@0.2.27-beta.0
+  - @nextclaw/channel-extension-slack@0.2.33-beta.0
+  - @nextclaw/channel-extension-telegram@0.2.33-beta.0
+  - @nextclaw/channel-extension-wecom@0.2.33-beta.0
+  - @nextclaw/channel-extension-whatsapp@0.2.33-beta.0
+
 ## 0.0.262
 
 ### Patch Changes

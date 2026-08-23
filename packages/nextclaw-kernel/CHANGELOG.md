@@ -1,5 +1,47 @@
 # @nextclaw/kernel
 
+## 0.10.0-beta.0
+
+### Minor Changes
+
+- 2c7ce8c: 新增持久化的 Agent Observation 能力：Agent 可绑定持续刷新的 Context、订阅带过滤与预算的事件源，并通过现有 started/queued/steered 输入链路可靠接收事件。Context 会作为低权限数据固定追加到模型输入尾部，订阅关系、cursor 与待投递事件可在重启后恢复，重复投递由幂等合同拦截。
+
+### Patch Changes
+
+- 5f68b2f: Recover context compaction from truncated or structurally incomplete summaries with a priority-prefix protocol, bounded shrinking retries, and a deterministic recent-context fallback. Derive the provider output budget from the install target and honor DeepSeek's explicit thinking-disable control during compaction.
+
+  <!-- release-note-blog: docs/blog-drafts/2026-08-22-context-compaction-without-dead-ends.blog-draft.md -->
+
+- 41cb756: 降低空用户会话的固有上下文占用：技能目录改为保留完整描述的紧凑分组格式，工具目录不再与工具 schema 重复，回复格式合同去除重复表述，从而减少过早触发上下文压缩的概率。
+- ec60bc1: 新增全局 Extension 管理入口、会话级持续关注管理，以及会话时间线中的可见外部事件卡片。事件消息使用通用的 `observation.event` 标识，不绑定具体产品或协议品牌。
+- 70dd515: Add the experimental `@nextclaw/harness` SDK with Agent, Session, Run, and Contribution APIs; expose lifecycle-scoped tools, context, model providers, runtimes, and MCP capabilities; and add the non-interactive `nextclaw exec` command for headless tasks.
+- 3817714: 将会话摘要目录迁移到 SQLite，兼容并重建旧 journal、metadata 和 JSON 索引，避免多个 runtime 刷新后会话从列表中消失。
+- f9c6477: 修复会话历史可靠性问题：保留历史 replay、projection 恢复和压缩消息视图的修复，不再用 journal 目录级 writer ownership 阻止同一 `NEXTCLAW_HOME` 下的第二个 runtime 或新会话启动。
+- 83c0628: Keep session history readable when Windows temporarily locks message projection files, retrying transient cache commits and recovering automatically.
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [5b07b81]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [5f68b2f]
+- Updated dependencies [41cb756]
+- Updated dependencies [037d93e]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+- Updated dependencies [f9c6477]
+  - @nextclaw/ncp@0.9.0-beta.0
+  - @nextclaw/ncp-agent-runtime-next@0.1.20-beta.0
+  - @nextclaw/core@0.17.7-beta.0
+  - @nextclaw/runtime@0.4.33-beta.0
+  - @nextclaw/shared@0.4.27-beta.0
+  - @nextclaw/app-runtime@0.13.2-beta.0
+  - @nextclaw/channel-extension-feishu@0.2.28-beta.0
+  - @nextclaw/channel-extension-weixin@0.2.28-beta.0
+  - @nextclaw/ncp-agent-runtime@0.4.20-beta.0
+  - @nextclaw/ncp-mcp@0.2.34-beta.0
+  - @nextclaw/ncp-toolkit@0.6.22-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.21-beta.0
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.34-beta.0
+  - @nextclaw/mcp@0.3.34-beta.0
+
 ## 0.9.2
 
 ### Patch Changes

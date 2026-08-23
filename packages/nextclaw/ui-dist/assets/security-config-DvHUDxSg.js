@@ -1,0 +1,1 @@
+import{Ft as e}from"./api-C2iYhdTe.js";export{e as SecurityConfig};

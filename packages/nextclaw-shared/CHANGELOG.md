@@ -1,5 +1,15 @@
 # @nextclaw/shared
 
+## 0.4.27-beta.0
+
+### Patch Changes
+
+- 70dd515: Add the experimental `@nextclaw/harness` SDK with Agent, Session, Run, and Contribution APIs; expose lifecycle-scoped tools, context, model providers, runtimes, and MCP capabilities; and add the non-interactive `nextclaw exec` command for headless tasks.
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [ec60bc1]
+  - @nextclaw/ncp@0.9.0-beta.0
+
 ## 0.4.26
 
 ### Patch Changes
