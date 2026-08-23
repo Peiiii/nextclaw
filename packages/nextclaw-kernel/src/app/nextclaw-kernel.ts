@@ -344,6 +344,9 @@ export class NextclawKernel {
     this.gatewayController;
 
   start = async (): Promise<void> => {
+    // The catalog migration is a startup prerequisite. Do not allow the
+    // kernel to expose a partially rebuilt session list to the UI.
+    await this.ncpAgentSessionJournalStore.initialize();
     await this.appPackageManager.start();
     await this.appDataManager.start();
     await this.serviceAppManager.start();
