@@ -66,17 +66,19 @@ function deferMessageToolPayload(message: NcpMessage): NcpMessage {
   const tools = message.parts.filter((part) => part.type === "tool-invocation");
   const toolNames = [...new Set(tools.map((part) => part.toolName.trim()).filter(Boolean))]
     .slice(0, SUMMARY_TOOL_NAME_LIMIT);
-  const parts: NcpMessage["parts"] = [];
   let keptRepresentative = false;
-  for (const part of message.parts) {
-    if (part.type !== "tool-invocation") {
-      parts.push(part);
-      continue;
-    }
-    if (keptRepresentative) continue;
+  const parts = message.parts.map((part) => {
+    if (part.type !== "tool-invocation") return part;
+    const isRepresentative = !keptRepresentative;
     keptRepresentative = true;
-    parts.push({ ...part, args: undefined, result: undefined });
-  }
+    return {
+      ...part,
+      ...(isRepresentative ? {} : { payloadDeferred: true }),
+      args: undefined,
+      result: undefined,
+      resultContentItems: undefined,
+    };
+  });
   return {
     ...message,
     metadata: {

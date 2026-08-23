@@ -194,7 +194,9 @@ function mapToolStatus(part: Extract<NcpMessagePart, { type: 'tool-invocation' }
 
 function toUiParts(parts: NcpMessagePart[]): UIMessage['parts'] {
   const uiParts: UIMessage['parts'] = [];
-  for (const part of parts) {
+  for (const part of parts.filter((candidate) =>
+    candidate.type !== 'tool-invocation' || !candidate.payloadDeferred,
+  )) {
     if (part.type === 'text') {
       uiParts.push({ type: 'text', text: part.text });
       continue;

@@ -90,6 +90,44 @@ describe("mid-run compaction timeline projection", () => {
     }).map((item) => item.kind)).toEqual(["message"]);
   });
 
+  it("keeps a deferred tool part in the coordinate space used by compaction", () => {
+    const activeAssistant = {
+      ...visibleMessage,
+      status: "streaming" as const,
+      parts: [
+        {
+          type: "tool-invocation" as const,
+          toolCallId: "tool-visible",
+          toolName: "exec",
+          state: "result" as const,
+        },
+        {
+          type: "tool-invocation" as const,
+          toolCallId: "tool-deferred",
+          toolName: "read_file",
+          state: "result" as const,
+          payloadDeferred: true,
+        },
+        { type: "text" as const, text: "after" },
+      ],
+    };
+    const compactionMessage = createCompactionMessage({
+      assistantId: activeAssistant.id,
+      coveredPartCount: activeAssistant.parts.length,
+      id: "context-compaction-deferred-tool",
+    });
+
+    expect(projectVisibleChatMessages([
+      activeAssistant,
+      compactionMessage,
+    ])[0]?.parts.map((part) => part.type)).toEqual([
+      "tool-invocation",
+      "tool-invocation",
+      "text",
+      "extension",
+    ]);
+  });
+
   it("keeps repeated compactions ordered inside one assistant message", () => {
     const activeAssistant = {
       ...visibleMessage,

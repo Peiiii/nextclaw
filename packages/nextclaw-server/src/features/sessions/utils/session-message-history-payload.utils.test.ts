@@ -145,7 +145,15 @@ describe("buildSessionMessageHistoryPayloadView", () => {
     expect(view.deferredToolPayloads).toEqual({
       "many-tools": { cursor: "cursor-many-tools" },
     });
-    expect(view.messages[0]?.parts.filter((part) => part.type === "tool-invocation")).toHaveLength(1);
+    const summaryParts = view.messages[0]?.parts ?? [];
+    expect(summaryParts.filter((part) => part.type === "tool-invocation")).toHaveLength(13);
+    expect(summaryParts).toHaveLength(message.parts.length);
+    expect(summaryParts[1]).toMatchObject({
+      type: "tool-invocation",
+      payloadDeferred: true,
+      args: undefined,
+      result: undefined,
+    });
     expect(view.messages[0]?.metadata?.[SESSION_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY]).toEqual({
       toolCallCount: 13,
       toolNames: ["write_file"],
@@ -235,7 +243,9 @@ describe("buildSessionMessageHistoryPayloadView", () => {
     expect(Buffer.byteLength(JSON.stringify(view.messages), "utf8")).toBeLessThan(2 * 1024 * 1024);
     expect(Object.keys(view.deferredToolPayloads)).toHaveLength(20);
     expect(view.messages.every(
-      (message) => message.parts.filter((part) => part.type === "tool-invocation").length === 1,
+      (message, index) => message.parts.length === messages[index]?.parts.length &&
+        message.parts.filter((part) => part.type === "tool-invocation").length ===
+          messages[index]?.parts.filter((part) => part.type === "tool-invocation").length,
     )).toBe(true);
     expect(view.messages[19]?.metadata?.[SESSION_HISTORY_TOOL_PAYLOAD_SUMMARY_METADATA_KEY]).toEqual({
       toolCallCount: 500,

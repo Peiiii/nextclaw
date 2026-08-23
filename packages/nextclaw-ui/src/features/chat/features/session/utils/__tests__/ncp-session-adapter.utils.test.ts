@@ -35,6 +35,34 @@ it('preserves NCP extension parts for the chat presentation adapter', () => {
   ]);
 });
 
+it('keeps deferred tool part slots out of the summary card view', () => {
+  const adapted = adaptNcpMessagePartsForChat([
+    {
+      type: 'tool-invocation',
+      toolCallId: 'tool-visible',
+      toolName: 'exec',
+      state: 'result',
+      args: undefined,
+      result: undefined,
+    },
+    {
+      type: 'tool-invocation',
+      toolCallId: 'tool-deferred',
+      toolName: 'read_file',
+      state: 'result',
+      payloadDeferred: true,
+      args: undefined,
+      result: undefined,
+    },
+    { type: 'text', text: 'done' },
+  ]);
+
+  expect(adapted.map((part) => part.type)).toEqual([
+    'tool-invocation',
+    'text',
+  ]);
+});
+
 it('preserves standard tool execution timing without reading opaque result timing', () => {
   const adapted = adaptNcpMessageToUiMessage({
     id: 'ncp-message-timing-1',

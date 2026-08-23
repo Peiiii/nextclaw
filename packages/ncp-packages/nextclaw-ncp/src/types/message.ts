@@ -137,6 +137,11 @@ export type NcpToolInvocationPart = {
   toolName: string;
   toolCallId?: string;
   state?: "call" | "partial-call" | "result" | "cancelled";
+  /**
+   * The history view omitted this call's large payload fields. The part
+   * remains in the ordered structure so timeline boundaries stay stable.
+   */
+  payloadDeferred?: boolean;
   /** Tool input arguments. May be partial when `state === "partial-call"`. */
   args?: unknown;
   /** Tool output. Populated when `state === "result"`. */
