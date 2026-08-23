@@ -57,6 +57,26 @@ describe("SkillsLoader visualization builtin", () => {
   });
 });
 
+describe("SkillsLoader observation builtin", () => {
+  it("loads the always-on continuous attention skill", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const skill = loader.loadSkill("continuous-attention");
+    const entry = loader
+      .listSkills(false)
+      .find(({ name }) => name === "continuous-attention");
+    const metadata = entry ? loader.getSkillMetadata(entry) : null;
+
+    expect(skill).toContain("bind_context");
+    expect(skill).toContain("subscribe_events");
+    expect(skill).toContain("manage_observations");
+    expect(skill).toContain("Context Binding");
+    expect(skill).toContain("Event Subscription");
+    expect(metadata?.metadata).toContain('"always":true');
+    expect(loader.getAlwaysSkills()).toContain(entry?.ref);
+  });
+});
+
 describe("SkillsLoader result delivery policy", () => {
   it("routes durable results to the inbox without guessing an external channel", () => {
     const workspace = createWorkspace();
