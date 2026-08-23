@@ -678,7 +678,7 @@ describe("AgentRunModelInputBuilder observation projection", () => {
       parts: [
         {
           type: "extension",
-          extensionType: "nextclaw.observation.event",
+          extensionType: "observation.event",
           data: {
             deliveryId: "delivery-1",
             extensionId: "test-extension",

@@ -43,6 +43,9 @@ const ProvidersListPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/providers-config-page"))
     .ProvidersConfigPage,
 }));
+const ExtensionsConfigPage = lazy(async () => ({
+  default: (await import("@/features/extensions")).ExtensionsConfigPage,
+}));
 const ChannelsListPage = lazy(async () => ({
   default: (await import("@/components/config/ChannelsList")).ChannelsList,
 }));
@@ -147,6 +150,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/providers",
     element: createLazyElement(<ProvidersListPage />),
+  },
+  {
+    path: "/extensions",
+    element: createLazyElement(<ExtensionsConfigPage />),
   },
   {
     path: "/channels",

@@ -26,6 +26,8 @@ function createProviderProbeApp(configPath: string) {
       assetStore: {} as never,
       eventBus: new EventBus(),
       ingress: {} as never,
+      observations: {} as never,
+      extensions: {} as never,
       inboxDeliveryManager: {} as never,
       systemObjectReferenceManager: {} as never,
       agentRunRequestManager: {} as never,

@@ -64,3 +64,20 @@ export type RuntimeControlActionResult = {
   lifecycle: RuntimeLifecycleState;
   message: string;
 };
+export type UiExtensionView = {
+  id: string;
+  name: string;
+  version?: string;
+  state: 'stopped' | 'starting' | 'running' | 'stopping' | 'failed';
+  generation?: string;
+  pid?: number;
+  startedAt?: string;
+  leaseCount: number;
+  observations: { context: boolean; events: boolean };
+  channels: Array<{ id: string; name?: string; description?: string }>;
+};
+
+export type UiExtensionsView = {
+  extensions: UiExtensionView[];
+  counts: { total: number; running: number; withObservations: number; withChannels: number };
+};

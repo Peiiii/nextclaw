@@ -140,8 +140,10 @@ describe("Sidebar", () => {
         .getAllByRole("link")
         .map((link) => link.textContent?.trim() || ""),
     ).toEqual([
+      "Extensions",
       "Appearance",
       "Sign-in Management",
+      "Privacy & Analytics",
       "Search Channels",
       "Updates",
       "Remote Access",
@@ -153,8 +155,10 @@ describe("Sidebar", () => {
       "Model",
       "Providers",
       "Channels",
+      "Extensions",
       "Appearance",
       "Sign-in Management",
+      "Privacy & Analytics",
       "Search Channels",
       "Updates",
       "Remote Access",

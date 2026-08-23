@@ -21,7 +21,8 @@ export function areWorkspaceNavigationEntriesEqual(
     current.kind === 'overview' ||
     current.kind === 'child-sessions' ||
     current.kind === 'project-files' ||
-    current.kind === 'cron'
+    current.kind === 'cron' ||
+    current.kind === 'continuous-attention'
   ) {
     return true;
   }
@@ -30,6 +31,7 @@ export function areWorkspaceNavigationEntriesEqual(
     next.kind !== 'child-sessions' &&
     next.kind !== 'project-files' &&
     next.kind !== 'cron' &&
+    next.kind !== 'continuous-attention' &&
     current.key === next.key
   );
 }
@@ -50,7 +52,8 @@ export function createWorkspaceNavigationEntryFromSnapshot(
     activeWorkspacePanelKind === 'overview' ||
     activeWorkspacePanelKind === 'child-sessions' ||
     activeWorkspacePanelKind === 'project-files' ||
-    activeWorkspacePanelKind === 'cron'
+    activeWorkspacePanelKind === 'cron' ||
+    activeWorkspacePanelKind === 'continuous-attention'
   ) {
     return { kind: activeWorkspacePanelKind };
   }
@@ -72,7 +75,8 @@ export function createWorkspaceSelectionPatch(
   if (
     entry.kind === 'overview' ||
     entry.kind === 'child-sessions' ||
-    entry.kind === 'project-files'
+    entry.kind === 'project-files' ||
+    entry.kind === 'continuous-attention'
   ) {
     return {
       activeWorkspacePanelKind: entry.kind,
@@ -128,7 +132,8 @@ export function closeWorkspaceTabSnapshot(
     entry.kind === 'overview' ||
     entry.kind === 'child-sessions' ||
     entry.kind === 'cron' ||
-    entry.kind === 'project-files'
+    entry.kind === 'project-files' ||
+    entry.kind === 'continuous-attention'
   ) {
     return null;
   }

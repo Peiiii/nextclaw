@@ -1,8 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  fetchNcpSessionObservations,
   fetchNcpSessionSkills,
   fetchNcpSessionTokenUsage,
-  fetchNcpSessions
+  fetchNcpSessions,
+  updateNcpSessionObservation,
+} from '@/shared/lib/api';
+import type {
+  NcpSessionObservationAction,
+  NcpSessionObservationKind,
 } from '@/shared/lib/api';
 
 const ncpSessionQueryDefaults = { staleTime: 5_000, retry: false } as const;
@@ -38,5 +44,33 @@ export function useNcpSessionTokenUsage(sessionId: string | null) {
     queryFn: () => fetchNcpSessionTokenUsage(sessionId as string),
     enabled: Boolean(sessionId),
     ...ncpSessionQueryDefaults
+  });
+}
+
+export const ncpSessionObservationsQueryKey = (sessionId: string | null) =>
+  ['ncp-session-observations', sessionId] as const;
+
+export function useNcpSessionObservations(sessionId: string | null) {
+  return useQuery({
+    queryKey: ncpSessionObservationsQueryKey(sessionId),
+    queryFn: () => fetchNcpSessionObservations(sessionId as string),
+    enabled: Boolean(sessionId),
+    ...ncpSessionQueryDefaults
+  });
+}
+
+export function useNcpObservationAction(sessionId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      kind: NcpSessionObservationKind;
+      id: string;
+      action: NcpSessionObservationAction;
+    }) => updateNcpSessionObservation(sessionId as string, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ncpSessionObservationsQueryKey(sessionId),
+      });
+    },
   });
 }

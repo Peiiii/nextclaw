@@ -107,10 +107,9 @@ describe("ui auth routes", () => {
       state: "running" as const,
       startupDurationMs: 120,
     }];
-    const app = createApp(configPath, {}, {
+    const app = createApp(configPath, { extensions: { getRuntimeStatus: () => runtimeStatus } as never }, {
       authenticateEventStreamCredential: () => null,
       getChannelBindings: () => [],
-      getRuntimeStatus: () => runtimeStatus,
       getUiMetadata: () => [],
     });
 
@@ -121,6 +120,62 @@ describe("ui auth routes", () => {
       ok: true,
       data: runtimeStatus,
     });
+  });
+
+  it("exposes a safe global Extension catalog with declared capabilities", async () => {
+    useIsolatedHome();
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const app = createApp(configPath, { extensions: {
+      getManifests: () => [{
+        id: "world-extension",
+        name: "World",
+        version: "1.2.0",
+        rootDir: "/private/extension-root",
+        server: { type: "stdio", command: "node", args: ["server.js"] },
+        contributes: {
+          observations: {
+            read: { description: "Read state" },
+            events: { description: "Receive events" },
+          },
+          channels: [{ id: "world", name: "World channel" }],
+        },
+      }],
+      getRuntimeStatus: () => [{
+        extensionId: "world-extension",
+        generation: "generation-1",
+        lastExit: null,
+        leaseReasons: [{ kind: "observation-subscription", subscriptionId: "subscription-1" }],
+        memory: null,
+        pid: 123,
+        startedAt: "2026-08-23T00:00:00.000Z",
+        state: "running",
+        startupDurationMs: 120,
+      }],
+    } as never }, {
+      authenticateEventStreamCredential: () => null,
+      getChannelBindings: () => [],
+      getUiMetadata: () => [],
+    });
+
+    const response = await app.request("http://localhost/api/runtime/extensions/catalog");
+
+    expect(response.status).toBe(200);
+    const payload = await response.json();
+    expect(payload).toMatchObject({
+      ok: true,
+      data: {
+        counts: { total: 1, running: 1, withObservations: 1, withChannels: 1 },
+        extensions: [{
+          id: "world-extension",
+          name: "World",
+          state: "running",
+          observations: { context: true, events: true },
+          channels: [{ id: "world", name: "World channel" }],
+        }],
+      },
+    });
+    expect(JSON.stringify(payload)).not.toContain("private/extension-root");
   });
 
   it("keeps config routes public when auth is disabled", async () => {

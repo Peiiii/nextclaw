@@ -1,4 +1,4 @@
-import { nextclawClient } from "@/shared/lib/api/managers/client.manager";
+import { nextclawClient, requestApiResponse } from "@/shared/lib/api/managers/client.manager";
 import type {
   NcpSessionMessagesView,
   NcpSessionTokenUsageView,
@@ -6,6 +6,9 @@ import type {
   NcpSessionsListView,
   NcpSessionSummaryView,
   SessionPatchUpdate,
+  NcpSessionObservationAction,
+  NcpSessionObservationKind,
+  NcpSessionObservationsView,
 } from "@/shared/lib/api/types";
 
 // GET /api/ncp/sessions
@@ -56,6 +59,37 @@ export async function fetchNcpSessionTokenUsage(
   sessionId: string,
 ): Promise<NcpSessionTokenUsageView> {
   return (await nextclawClient.sessions.getUsage(sessionId)) as NcpSessionTokenUsageView;
+}
+
+// GET /api/ncp/sessions/:sessionId/observations
+export async function fetchNcpSessionObservations(
+  sessionId: string,
+): Promise<NcpSessionObservationsView> {
+  const response = await requestApiResponse<NcpSessionObservationsView>(
+    `/api/ncp/sessions/${encodeURIComponent(sessionId)}/observations`,
+  );
+  if (!response.ok) throw new Error(response.error.message);
+  return response.data;
+}
+
+// PATCH /api/ncp/sessions/:sessionId/observations/:kind/:id
+export async function updateNcpSessionObservation(
+  sessionId: string,
+  input: {
+    kind: NcpSessionObservationKind;
+    id: string;
+    action: NcpSessionObservationAction;
+  },
+): Promise<NcpSessionObservationsView> {
+  const response = await requestApiResponse<NcpSessionObservationsView>(
+    `/api/ncp/sessions/${encodeURIComponent(sessionId)}/observations/${input.kind}/${encodeURIComponent(input.id)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ action: input.action }),
+    },
+  );
+  if (!response.ok) throw new Error(response.error.message);
+  return response.data;
 }
 
 // GET /api/ncp/sessions/:sessionId/skills

@@ -14,7 +14,10 @@ import {
   type AgentRunSendIngressPayload,
   type Ingress,
 } from "@nextclaw/shared";
-import type { NcpRunHandle } from "@nextclaw/ncp";
+import {
+  OBSERVATION_EVENT_EXTENSION_TYPE,
+  type NcpRunHandle,
+} from "@nextclaw/ncp";
 
 const MAX_EVENT_PAYLOAD_CHARS = 16_000;
 
@@ -197,7 +200,7 @@ export class ObservationDeliveryService {
       parts: [
         {
           type: "extension",
-          extensionType: "nextclaw.observation.event",
+          extensionType: OBSERVATION_EVENT_EXTENSION_TYPE,
           data: {
             deliveryId: delivery.deliveryId,
             extensionId:

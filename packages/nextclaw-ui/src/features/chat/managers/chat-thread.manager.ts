@@ -174,7 +174,7 @@ export class ChatThreadManager {
 
   private openWorkspacePage = (
     rawParentSessionKey: string | null,
-    kind: 'overview' | 'child-sessions' | 'project-files' | 'cron',
+    kind: 'overview' | 'child-sessions' | 'project-files' | 'cron' | 'continuous-attention',
   ) => {
     const parentSessionKey = rawParentSessionKey?.trim() || null;
     if (!parentSessionKey && kind !== 'project-files') {
@@ -234,13 +234,11 @@ export class ChatThreadManager {
     if (snapshot) useChatThreadStore.getState().setSnapshot(snapshot);
   };
 
-  openChildSessions = (sessionKey: string) => {
-    this.openWorkspacePage(sessionKey, 'child-sessions');
-  };
+  openChildSessions = (sessionKey: string) => this.openWorkspacePage(sessionKey, 'child-sessions');
 
-  openProjectFiles = (sessionKey: string | null) => {
-    this.openWorkspacePage(sessionKey, 'project-files');
-  };
+  openContinuousAttention = (sessionKey: string) => this.openWorkspacePage(sessionKey, 'continuous-attention');
+
+  openProjectFiles = (sessionKey: string | null) => this.openWorkspacePage(sessionKey, 'project-files');
 
   materializeRootDraftSession = (rawSessionKey: string) => {
     const sessionKey = rawSessionKey.trim();

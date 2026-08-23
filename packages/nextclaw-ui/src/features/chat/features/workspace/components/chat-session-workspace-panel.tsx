@@ -129,6 +129,10 @@ export function ChatSessionWorkspacePanel({
           if (sessionKey)
             presenter.chatThreadManager.openSessionCronPanel(sessionKey);
         },
+        onSelectContinuousAttention: () => {
+          if (sessionKey)
+            presenter.chatThreadManager.openContinuousAttention(sessionKey);
+        },
       }),
     [
       activeSelection,

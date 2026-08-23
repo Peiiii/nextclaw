@@ -221,6 +221,7 @@ describe("fixed workspace tabs", () => {
       "overview",
       "child-sessions",
       "cron:session",
+      "continuous-attention",
       "project-files",
     ]);
   });
@@ -249,10 +250,10 @@ describe("fixed workspace tabs", () => {
     expect(
       tabs
         .filter((tab) =>
-          ["child-sessions", "cron", "project-files"].includes(tab.kind),
+          ["child-sessions", "cron", "continuous-attention", "project-files"].includes(tab.kind),
         )
         .map((tab) => tab.title),
-    ).toEqual(["子会话", "定时任务", "项目文件"]);
+    ).toEqual(["子会话", "定时任务", "持续关注", "项目文件"]);
   });
 });
 
@@ -284,7 +285,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       onSelectCronJobs: vi.fn(),
     });
 
-    expect(tabs[4]).toMatchObject({
+    expect(tabs[5]).toMatchObject({
       key: "child:child-1",
       kind: "child-session",
       title: "Child session",
@@ -292,7 +293,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       showUnreadDot: true,
     });
 
-    tabs[4]?.onSelect();
+    tabs[5]?.onSelect();
     expect(onSelectSession).toHaveBeenCalledWith("child-1");
   });
 
@@ -328,11 +329,12 @@ describe("buildWorkspaceTabsViewModel", () => {
       "overview",
       "child-sessions",
       "cron:session",
+      "continuous-attention",
       "project-files",
       "side-chat-draft:draft-1",
       "child:child-1",
     ]);
-    expect(tabs[4]).toMatchObject({
+    expect(tabs[5]).toMatchObject({
       kind: "side-chat-draft",
       active: true,
     });
@@ -378,7 +380,7 @@ describe("buildWorkspaceTabsViewModel", () => {
       onSelectCronJobs: vi.fn(),
     });
 
-    expect(tabs.slice(4)).toEqual([
+    expect(tabs.slice(5)).toEqual([
       expect.objectContaining({
         key: "file:parent::preview::demo.html",
         active: true,
@@ -401,7 +403,7 @@ describe("buildWorkspaceTabsViewModel", () => {
         }),
       }),
     ]);
-    tabs[4]?.alternateViewerAction?.onSelect();
+    tabs[5]?.alternateViewerAction?.onSelect();
     expect(onOpenFileViewer).toHaveBeenCalledWith(
       "parent::preview::demo.html",
       "rendered",

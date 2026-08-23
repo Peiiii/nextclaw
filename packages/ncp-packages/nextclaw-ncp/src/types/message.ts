@@ -11,6 +11,8 @@
 export type NcpMessageRole = "user" | "assistant" | "system" | "tool" | "service";
 
 export const NCP_INTERNAL_VISIBILITY_METADATA_KEY = "ncp_internal_visibility";
+/** Stable extension envelope for an external observation event. */
+export const OBSERVATION_EVENT_EXTENSION_TYPE = "observation.event";
 
 export function isHiddenNcpMessage(message: Pick<NcpMessage, "metadata"> | null | undefined): boolean {
   return message?.metadata?.[NCP_INTERNAL_VISIBILITY_METADATA_KEY] === "hidden";

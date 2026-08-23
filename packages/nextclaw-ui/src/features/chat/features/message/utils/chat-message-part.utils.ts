@@ -27,6 +27,10 @@ import {
   CONTEXT_COMPACTION_PART_EXTENSION_TYPE,
   type ContextCompactionPartData,
 } from "@/features/chat/features/message/utils/chat-message-timeline.utils";
+import {
+  isObservationEventPartExtensionType,
+  readObservationEventPartData,
+} from "@/features/chat/features/message/utils/chat-message-observation-event.utils";
 
 export type {
   ChatMessageAdapterTexts,
@@ -243,6 +247,16 @@ function isToolInvocationPart(
 function buildExtensionPart(
   part: Extract<ChatMessagePartSource, { type: "extension" }>,
 ): Extract<ChatMessagePartViewModel, { type: "custom" }> | null {
+  if (isObservationEventPartExtensionType(part.extensionType)) {
+    const data = readObservationEventPartData(part.data);
+    if (!data) return null;
+    return {
+      type: "custom",
+      id: data.deliveryId,
+      customType: part.extensionType,
+      data,
+    };
+  }
   if (part.extensionType !== CONTEXT_COMPACTION_PART_EXTENSION_TYPE) {
     return null;
   }
@@ -288,7 +302,7 @@ export function adaptChatMessagePart(
     return buildToolInvocationPart(part, texts);
   }
   if (isExtensionPart(part)) {
-    return buildExtensionPart(part);
+    return buildExtensionPart(part) ?? buildUnknownPart(part, texts);
   }
   return buildUnknownPart(part, texts);
 }

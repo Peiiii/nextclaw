@@ -116,6 +116,40 @@ it("maps context compaction extensions into stable process parts", () => {
   }]);
 });
 
+it("maps observation event extensions into visible custom parts", () => {
+  const adapted = adapt([{
+    id: "observation-event-message-1",
+    role: "system",
+    parts: [{
+      type: "extension",
+      extensionType: "observation.event",
+      data: {
+        deliveryId: "delivery-1",
+        extensionId: "calendar-extension",
+        eventId: "event-1",
+        eventType: "calendar.event.created",
+        occurredAt: "2026-08-23T10:00:00.000Z",
+        payload: { title: "Planning" },
+      },
+    }],
+  }]);
+
+  expect(adapted[0]?.role).toBe("system");
+  expect(adapted[0]?.parts).toEqual([{
+    type: "custom",
+    id: "delivery-1",
+    customType: "observation.event",
+    data: {
+      deliveryId: "delivery-1",
+      extensionId: "calendar-extension",
+      eventId: "event-1",
+      eventType: "calendar.event.created",
+      occurredAt: "2026-08-23T10:00:00.000Z",
+      payload: { title: "Planning" },
+    },
+  }]);
+});
+
 it("maps tool lifecycle statuses into visible card state feedback", () => {
   const adapted = adapt([
     {

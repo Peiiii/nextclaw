@@ -269,6 +269,8 @@ export class ExtensionManager {
 
   getRuntimeStatus = () => this.runtime.getStatus();
 
+  getManifests = () => this.runtime.getManifests();
+
   authenticateEventStreamCredential = (input: {
     extensionId: string | null;
     generation: string | null;

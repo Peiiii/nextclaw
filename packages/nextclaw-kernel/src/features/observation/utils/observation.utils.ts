@@ -1,7 +1,8 @@
-import type {
-  NcpContextTail,
-  NcpMessage,
-  OpenAIChatMessage,
+import {
+  OBSERVATION_EVENT_EXTENSION_TYPE,
+  type NcpContextTail,
+  type NcpMessage,
+  type OpenAIChatMessage,
 } from "@nextclaw/ncp";
 import type {
   EventDelivery,
@@ -11,6 +12,15 @@ import type {
   ObservationState,
   TypedPredicate,
 } from "@kernel/features/observation/types/observation.types.js";
+
+const LEGACY_OBSERVATION_EVENT_EXTENSION_TYPE = "nextclaw.observation.event";
+const PREVIOUS_OBSERVATION_EVENT_EXTENSION_TYPE = "ncp.observation.event";
+
+function isObservationEventExtensionType(value: string): boolean {
+  return value === OBSERVATION_EVENT_EXTENSION_TYPE ||
+    value === PREVIOUS_OBSERVATION_EVENT_EXTENSION_TYPE ||
+    value === LEGACY_OBSERVATION_EVENT_EXTENSION_TYPE;
+}
 
 const ISO_DURATION_PATTERN =
   /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/;
@@ -299,7 +309,7 @@ export function buildObservationEventModelMessage(
   const eventPart = message.parts.find(
     (part): part is Extract<typeof part, { type: "extension" }> =>
       part.type === "extension" &&
-      part.extensionType === "nextclaw.observation.event",
+      isObservationEventExtensionType(part.extensionType),
   );
   if (!eventPart || !eventPart.data || typeof eventPart.data !== "object")
     return null;

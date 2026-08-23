@@ -3,6 +3,7 @@ import type { ChatFileOpenActionViewModel } from '@nextclaw/agent-chat-ui';
 import {
   AlarmClock,
   ChevronRight,
+  Eye,
   FolderTree,
   GitBranch,
   MessageSquarePlus,
@@ -17,6 +18,8 @@ import { ChatSessionWorkspaceDirectoryBrowser } from '@/features/chat/features/w
 import { SessionCronJobContent } from '@/features/chat/features/workspace/components/session-cron-job-content';
 import { ChatSessionChildSessions } from '@/features/chat/features/workspace/components/child-sessions/chat-session-child-sessions';
 import { ChatSessionTokenUsage } from '@/features/chat/features/workspace/components/overview/chat-session-token-usage';
+import { ChatSessionContinuousAttention } from '@/features/chat/features/workspace/components/overview/chat-session-continuous-attention';
+import { useNcpSessionObservations } from '@/features/chat/features/ncp/hooks/use-ncp-session-queries';
 import type { ResolvedChildSessionTab } from '@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view';
 import type { WorkspaceSelection } from '@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils';
 import { useServerPathBrowse } from '@/shared/hooks/use-server-path-browse';
@@ -88,6 +91,7 @@ function WorkspaceOverview({
   sessionKey: string | null;
 }) {
   const presenter = usePresenter();
+  const observationsQuery = useNcpSessionObservations(sessionKey);
 
   return (
     <div className="h-full overflow-auto bg-gray-50/45 px-4 py-5 custom-scrollbar">
@@ -95,6 +99,17 @@ function WorkspaceOverview({
         <h2 className="text-base font-semibold text-gray-900">{t('chatWorkspaceOverview')}</h2>
         <p className="mt-1 text-xs leading-5 text-gray-500">{t('chatWorkspaceOverviewDescription')}</p>
         <div className="mt-4 space-y-2">
+          <WorkspaceOverviewEntry
+            count={observationsQuery.data?.counts.total ?? 0}
+            description={t('chatWorkspaceContinuousAttentionDescription')}
+            icon={<Eye className="h-4 w-4" />}
+            title={t('chatWorkspaceContinuousAttention')}
+            onClick={() => {
+              if (sessionKey) {
+                presenter.chatThreadManager.openContinuousAttention(sessionKey);
+              }
+            }}
+          />
           <WorkspaceOverviewEntry
             count={childSessionTabs.length}
             description={t('chatWorkspaceChildSessionsDescription')}
@@ -259,6 +274,10 @@ function WorkspaceSelectedContent({
 
   if (activeSelection.kind === 'child-sessions') {
     return <ChatSessionChildSessions childSessionTabs={childSessionTabs} sessionKey={sessionKey} />;
+  }
+
+  if (activeSelection.kind === 'continuous-attention') {
+    return <ChatSessionContinuousAttention sessionKey={sessionKey} />;
   }
 
   if (activeSelection.kind === 'side-chat-draft') {

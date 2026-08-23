@@ -150,6 +150,8 @@ export class ExtensionRuntimeService {
 
   getStatus = () => this.lifecycle.getStatus();
 
+  getManifests = () => this.manifests;
+
   readonly stop = async (): Promise<void> => {
     this.endpoint = null;
     this.releaseTrackedLeases();

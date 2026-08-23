@@ -11,6 +11,7 @@ import {
   MessageCircle,
   MessageSquare,
   Palette,
+  Puzzle,
   Search,
   Settings,
   Shield,
@@ -145,6 +146,11 @@ export function getSettingsNavItems(
       target: "/channels",
       label: translate("channels"),
       icon: MessageSquare,
+    },
+    {
+      target: "/extensions",
+      label: translate("extensions"),
+      icon: Puzzle,
     },
     {
       target: "/appearance",

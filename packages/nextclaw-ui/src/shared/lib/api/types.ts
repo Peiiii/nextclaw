@@ -25,6 +25,11 @@ export type {
   NcpMessageView,
   NcpSessionMessagesView,
   NcpSessionTokenUsageView,
+  NcpSessionObservationKind,
+  NcpSessionObservationStatus,
+  NcpSessionObservationView,
+  NcpSessionObservationsView,
+  NcpSessionObservationAction,
   SessionContextWindowView,
 } from './ncp-session.types';
 
@@ -75,6 +80,7 @@ export type BootstrapStatusView = {
 };
 
 export type ThinkingLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'adaptive' | 'xhigh';
+
 export type AgentModelsView = Record<
   string,
   {

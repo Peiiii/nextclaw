@@ -118,3 +118,41 @@ export type NcpSessionMessagesView = {
 };
 
 export type NcpSessionTokenUsageView = UiNcpSessionTokenUsageView;
+
+export type NcpSessionObservationKind = 'context' | 'events';
+export type NcpSessionObservationStatus = 'active' | 'paused' | 'degraded' | 'expired' | 'broken';
+
+export type NcpSessionObservationView = {
+  id: string;
+  kind: NcpSessionObservationKind;
+  extensionId: string;
+  title: string;
+  description?: string;
+  status: NcpSessionObservationStatus;
+  statusReason?: string;
+  createdAt: string;
+  expiresAt?: string;
+  lastReadAt?: string;
+  safeConfigPreview?: string;
+  pendingCount?: number;
+  suppressedCount?: number;
+  deliveryFailureCount?: number;
+  lastSuppressionReason?: string;
+  lastGapAt?: string;
+  gapReason?: string;
+  delivery?: 'queue' | 'prefer-steer';
+};
+
+export type NcpSessionObservationsView = {
+  sessionId: string;
+  bindings: NcpSessionObservationView[];
+  subscriptions: NcpSessionObservationView[];
+  counts: {
+    total: number;
+    context: number;
+    events: number;
+    needsAttention: number;
+  };
+};
+
+export type NcpSessionObservationAction = 'pause' | 'resume' | 'remove';

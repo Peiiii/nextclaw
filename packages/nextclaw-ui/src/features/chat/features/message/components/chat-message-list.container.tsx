@@ -64,6 +64,11 @@ import { buildServerPathContentUrl } from "@/shared/lib/api";
 import { formatDateTime, formatNumber, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 import type { SessionMessageToolPayloadState } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
+import { ChatMessageObservationEvent } from "@/features/chat/features/message/components/chat-message-observation-event";
+import {
+  isObservationEventPartExtensionType,
+  readObservationEventPartData,
+} from "@/features/chat/features/message/utils/chat-message-observation-event.utils";
 
 type ChatMessageListContainerProps = {
   canContinue?: boolean;
@@ -371,6 +376,10 @@ export function ChatMessageListContainer({
   }, []);
   const renderCustomPart = useCallback(
     (part: Extract<ChatMessageViewModel["parts"][number], { type: "custom" }>) => {
+      if (isObservationEventPartExtensionType(part.customType)) {
+        const event = readObservationEventPartData(part.data);
+        return event ? <ChatMessageObservationEvent event={event} /> : undefined;
+      }
       if (part.customType !== CONTEXT_COMPACTION_PART_EXTENSION_TYPE) {
         return undefined;
       }

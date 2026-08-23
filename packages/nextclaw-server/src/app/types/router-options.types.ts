@@ -36,7 +36,6 @@ export type UiExtensionHost = {
     token: string | null;
   }) => { extensionId: string; generation: string } | null;
   getChannelBindings: () => ExtensionChannelBinding[];
-  getRuntimeStatus?: () => ReturnType<NextclawKernel["extensions"]["getRuntimeStatus"]>;
   getUiMetadata: () => ExtensionUiMetadata[];
 };
 
@@ -57,6 +56,8 @@ export type UiKernelHost = Pick<
   | "providerModelCatalog"
   | "sessionManager"
   | "sessionRunManager"
+  | "observations"
+  | "extensions"
   | "panelAppManager"
   | "preferenceManager"
   | "projectManager"

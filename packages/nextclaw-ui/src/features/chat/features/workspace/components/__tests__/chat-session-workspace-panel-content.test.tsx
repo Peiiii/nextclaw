@@ -37,6 +37,7 @@ const mocks = vi.hoisted(() => ({
   openFilePreview: vi.fn(),
   openProjectFiles: vi.fn(),
   openSessionCronPanel: vi.fn(),
+  openContinuousAttention: vi.fn(),
   removeWorkspacePath: vi.fn(),
   renameWorkspacePath: vi.fn(),
   selectChildSessionDetail: vi.fn(),
@@ -93,6 +94,18 @@ vi.mock('@/shared/lib/api', async (importOriginal) => ({
 
 vi.mock('@/features/chat/features/conversation/components/session-conversation-area', () => ({
   SessionConversationArea: () => <div data-testid="session-conversation-area" />,
+}));
+
+vi.mock('@/features/chat/features/ncp/hooks/use-ncp-session-queries', () => ({
+  useNcpSessionObservations: () => ({
+    data: {
+      counts: { total: 0, context: 0, events: 0, needsAttention: 0 },
+      bindings: [],
+      subscriptions: [],
+    },
+    isPending: false,
+    isError: false,
+  }),
 }));
 
 vi.mock('@/shared/hooks/use-server-path-browse', () => ({

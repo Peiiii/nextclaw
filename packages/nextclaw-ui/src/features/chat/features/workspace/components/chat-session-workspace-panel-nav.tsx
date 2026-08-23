@@ -51,6 +51,10 @@ function WorkspaceTabIcon({
     return <AlarmClock className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
   }
 
+  if (kind === "continuous-attention") {
+    return <Eye className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+  }
+
   if (kind === "file") {
     return <FileTypeIcon fileName={fileName ?? ""} size="compact" />;
   }

@@ -19,6 +19,8 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
     } as never,
     eventBus: new EventBus(),
     ingress: new Ingress(),
+    observations: {} as never,
+    extensions: {} as never,
     inboxDeliveryManager: {
       listDeliveries: async () => ({
         deliveries: [],

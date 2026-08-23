@@ -57,7 +57,8 @@ export type ChatWorkspacePanelKind =
   | 'side-chat-draft'
   | 'project-files'
   | 'file'
-  | 'cron';
+  | 'cron'
+  | 'continuous-attention';
 
 export type ChatWorkspaceNavigationEntry =
   | { kind: 'overview' }
@@ -66,7 +67,8 @@ export type ChatWorkspaceNavigationEntry =
   | { kind: 'side-chat-draft'; key: string }
   | { kind: 'project-files' }
   | { kind: 'file'; key: string }
-  | { kind: 'cron' };
+  | { kind: 'cron' }
+  | { kind: 'continuous-attention' };
 
 export type ChatThreadSnapshot = {
   sessionTypeLabel?: string | null;
@@ -102,7 +104,7 @@ export type ChatThreadSnapshot = {
 };
 
 const CHAT_THREAD_WORKSPACE_STORAGE_KEY = 'nextclaw.chat.workspace-panel.state';
-const CHAT_THREAD_WORKSPACE_STORAGE_VERSION = 2;
+const CHAT_THREAD_WORKSPACE_STORAGE_VERSION = 3;
 const CHAT_THREAD_MAX_PERSISTED_WORKSPACE_FILE_TABS = 8;
 
 type ChatThreadStore = {
@@ -207,7 +209,8 @@ function normalizePersistedWorkspaceNavigationEntry(value: unknown): ChatWorkspa
     value.kind === 'overview' ||
     value.kind === 'child-sessions' ||
     value.kind === 'project-files' ||
-    value.kind === 'cron'
+    value.kind === 'cron' ||
+    value.kind === 'continuous-attention'
   ) {
     return { kind: value.kind };
   }

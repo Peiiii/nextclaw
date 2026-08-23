@@ -40,6 +40,9 @@ export type WorkspaceSelection =
     }
   | {
       kind: "cron";
+    }
+  | {
+      kind: "continuous-attention";
     };
 
 export type WorkspaceTabViewModel = {
@@ -102,6 +105,10 @@ export function resolveWorkspaceSelection(params: {
 
   if (activePanelKind === "cron") {
     return { kind: "cron" };
+  }
+
+  if (activePanelKind === "continuous-attention") {
+    return { kind: "continuous-attention" };
   }
 
   if (activePanelKind === "side-chat-draft" && activeSideChatDraft) {
@@ -177,6 +184,7 @@ type WorkspaceTabsViewModelParams = {
   onSelectChildSessions: () => void;
   onSelectProjectFiles: () => void;
   onSelectCronJobs: () => void;
+  onSelectContinuousAttention?: () => void;
 };
 
 function buildWorkspacePageTabs({
@@ -186,6 +194,7 @@ function buildWorkspacePageTabs({
   onSelectCronJobs,
   onSelectOverview,
   onSelectProjectFiles,
+  onSelectContinuousAttention,
 }: Pick<
   WorkspaceTabsViewModelParams,
   | "activeSelection"
@@ -194,6 +203,7 @@ function buildWorkspacePageTabs({
   | "onSelectCronJobs"
   | "onSelectOverview"
   | "onSelectProjectFiles"
+  | "onSelectContinuousAttention"
 >): WorkspaceTabViewModel[] {
   const pageTabs: WorkspaceTabViewModel[] = [
     {
@@ -219,6 +229,14 @@ function buildWorkspacePageTabs({
       tooltip: t("chatWorkspaceSessionCronJobs"),
       active: activeSelection?.kind === "cron",
       onSelect: onSelectCronJobs,
+    },
+    {
+      key: "continuous-attention",
+      kind: "continuous-attention",
+      title: t("chatWorkspaceContinuousAttention"),
+      tooltip: t("chatWorkspaceContinuousAttention"),
+      active: activeSelection?.kind === "continuous-attention",
+      onSelect: onSelectContinuousAttention ?? (() => undefined),
     },
     {
       key: "project-files",
@@ -255,6 +273,7 @@ export function buildWorkspaceTabsViewModel(
     onSelectChildSessions,
     onSelectProjectFiles,
     onSelectCronJobs,
+    onSelectContinuousAttention = () => undefined,
   } = params;
 
   const workspacePages = buildWorkspacePageTabs({
@@ -264,6 +283,7 @@ export function buildWorkspaceTabsViewModel(
     onSelectCronJobs,
     onSelectOverview,
     onSelectProjectFiles,
+    onSelectContinuousAttention,
   });
 
   const sideChatDraftTabs = activeSideChatDraft
