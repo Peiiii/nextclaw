@@ -94,7 +94,7 @@ async function verifyPortableZip(arch) {
       run("powershell", smokeArgs);
     }
   } finally {
-    rmSync(tempRoot, { recursive: true, force: true });
+    rmSync(tempRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }
 }
 

@@ -9,6 +9,7 @@
 - Desktop 空壳 Release 的根因是把已公开的 `release.published` 事件当作跨平台构建入口：平台 build/smoke 在资产上传前失败时，GitHub 已经公开 Release identity，因而留下只有源码归档、没有下载资产的页面。该结论由 `v0.42.3-desktop.1` 至 `.4` 的 0 资产状态及对应 Actions 失败链确认；修复改为隐藏 Draft → 唯一身份 workflow dispatch → 五平台构建/烟测 → 精确核验 30 个资产 → 公开同一 Release，直接消除公开时序根因，而不是事后补链接。
 - 发布关键路径原先还会先等待 `desktop-validate` 构建一批不会发布的产物，再由正式 workflow 重建五平台资产；两批 bits 不同，既浪费约 8–12 分钟，也不能增强发布证明。现已删除该平行门禁，正式 workflow 对同一批生产 artifact 完成单次 build/smoke/upload/publish，日常 CI 保持独立。
 - 首次真实 Draft 验证进一步确认 GitHub 在 Draft 公开前不会创建 tag ref；以 tag dispatch 会得到 HTTP 422。发布身份现由显式 `release_target` SHA 承载，workflow 从分支入口启动后核对 Draft target、checkout SHA，并在公开后验证 tag 反向指向同一 SHA。
+- Windows 便携版真实发布冒烟确认主程序、API 和 Service App 均正常，但便携分支漏设 renderer titlebar 证据开关，导致 hosted runner 无窗口句柄时无法使用已授权的 renderer fallback；该开关现对安装与便携模式统一设置，临时目录清理同时增加有界 Windows 文件锁重试。
 
 ## 测试/验证/验收方式
 

@@ -177,3 +177,18 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
     /waitForWorkflowRun\(options\)[\s\S]*?waitForWorkflowSuccess\(options, runEntry\)[\s\S]*?readTagSha\(options\.tag\)[\s\S]*?tagSha !== options\.target/
   );
 });
+
+test("Windows portable smoke emits renderer evidence and retries locked cleanup", () => {
+  const smoke = readFileSync(
+    new URL("../../apps/desktop/scripts/smoke-windows-desktop.ps1", import.meta.url),
+    "utf8"
+  );
+  const portableVerify = readFileSync(new URL("../desktop/desktop-portable-verify.mjs", import.meta.url), "utf8");
+
+  assert.equal(smoke.match(/NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST = "1"/g)?.length, 1);
+  assert.match(
+    smoke,
+    /if \(\$isPortableSmoke\)[\s\S]*?} else \{[\s\S]*?\$env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = \$smokeHome\s*}\s*\$env:NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST = "1"/
+  );
+  assert.match(portableVerify, /maxRetries: 5, retryDelay: 200/);
+});

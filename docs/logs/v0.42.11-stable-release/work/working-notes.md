@@ -21,6 +21,7 @@
 | Desktop 空壳 Release 事故 | 4 个 0 资产公开版本已转回 Draft；原子公开修复验证与 Review 通过 | `.4` Actions 运行 9m35s 后 cancelled；真实 Draft 上传/删除约 10s | 根因是 `release.published` 先公开后构建；Review 两次返工，分别拆分超预算主 CLI、加入唯一 dispatch id 防止同 tag 重试串 run |
 | Desktop 重复构建事故 | 删除正式发布前置的平行 `desktop-validate` 门禁 | 单轮 CI 约 8–12m；此前每次正式发布还会再构建一轮 | 正式 workflow 本身已经对将发布的同批五平台产物做安装/启动冒烟；前置 CI 产物不会发布且不能证明生产 bits |
 | Draft dispatch 协议 | Draft tag ref 不存在，改为分支 dispatch + 不可变 SHA checkout | preflight 约 43s；Draft 创建后 dispatch 立即返回 HTTP 422 | GitHub Draft `target_commitish` 已写入但 `refs/tags/*` 尚未创建；公开后才允许 tag 成为最终投影 |
+| Windows 便携 titlebar 冒烟 | 业务/API/Service App 通过，renderer 证据开关漏设 | 8m26s 时检测失败；Windows job 8m18s | hosted runner 无可见 HWND，便携分支此前没有生成显式 renderer hit-test 证据；临时目录清理又被残留文件锁放大为二次错误 |
 | NPM stable 发布 | 待执行 | — | — |
 | Desktop stable 发布 | 待执行 | — | — |
 | 公开回读 | 待执行 | — | — |
