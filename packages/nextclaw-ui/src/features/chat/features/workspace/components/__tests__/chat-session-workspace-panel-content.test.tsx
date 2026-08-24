@@ -222,7 +222,7 @@ function createChildTab(): ResolvedChildSessionTab {
   };
 }
 
-it('shows compact child session metadata in a full-height column layout', () => {
+it('shows child session content without a redundant metadata header', () => {
   render(
     <ChatSessionWorkspacePanelContent
       activeSelection={{
@@ -239,10 +239,10 @@ it('shows compact child session metadata in a full-height column layout', () => 
   );
 
   expect(screen.queryByText('Child title')).toBeNull();
-  expect(screen.getByText('原生')).toBeTruthy();
-  expect(screen.getByText('minimax/MiniMax-M3')).toBeTruthy();
-  expect(screen.getByText('nextbot')).toBeTruthy();
-  expect(screen.getByTitle('/Users/peiwang/Projects/nextbot')).toBeTruthy();
+  expect(screen.queryByText('原生')).toBeNull();
+  expect(screen.queryByText('minimax/MiniMax-M3')).toBeNull();
+  expect(screen.queryByText('nextbot')).toBeNull();
+  expect(screen.queryByTitle('/Users/peiwang/Projects/nextbot')).toBeNull();
   const conversationArea = screen.getByTestId('session-conversation-area');
   const selectedContentHost = conversationArea.parentElement?.parentElement;
   expect(Array.from(selectedContentHost?.classList ?? [])).toEqual(

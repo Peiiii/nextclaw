@@ -202,40 +202,6 @@ function WorkspaceProjectFiles({
   );
 }
 
-function ChildSessionMetaChip({ value }: { value: string }) {
-  return (
-    <span className="inline-flex max-w-full shrink-0 items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
-      <span className="truncate">{value}</span>
-    </span>
-  );
-}
-
-function ChildSessionMetaStrip({ tab }: { tab: ResolvedChildSessionTab }) {
-  const metaItems = [tab.sessionTypeLabel, tab.preferredModel, tab.projectName].filter((value): value is string =>
-    Boolean(value?.trim()),
-  );
-
-  if (metaItems.length === 0 && !tab.projectRoot) {
-    return null;
-  }
-
-  return (
-    <div className="flex min-h-9 min-w-0 items-center gap-1.5 border-b border-gray-200/70 px-3 py-1.5 text-[11px] text-gray-500">
-      {metaItems.map((item) => (
-        <ChildSessionMetaChip key={item} value={item} />
-      ))}
-      {tab.projectRoot ? (
-        <span
-          title={tab.projectRoot}
-          className="min-w-0 flex-1 truncate rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-500"
-        >
-          {tab.projectRoot}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 function WorkspaceSideChatDraftHeader() {
   return (
     <div className="border-b border-gray-200/70 px-4 py-3">
@@ -307,12 +273,9 @@ function WorkspaceSelectedContent({
 
   if (activeSelection.kind === 'child-session') {
     return (
-      <>
-        <ChildSessionMetaStrip tab={activeSelection.tab} />
-        <div className="flex min-h-0 flex-1 flex-col">
-          <SessionConversationArea sessionKey={activeSelection.tab.sessionKey} />
-        </div>
-      </>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <SessionConversationArea sessionKey={activeSelection.tab.sessionKey} />
+      </div>
     );
   }
 
