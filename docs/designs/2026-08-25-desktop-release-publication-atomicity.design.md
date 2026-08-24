@@ -39,8 +39,9 @@ preflight
 
 ```text
 local verify + signing preflight
-  -> 创建隐藏 Draft（同一 tag/target/notes）
-  -> workflow_dispatch(release_tag, release_notes_url)
+  -> 创建隐藏 Draft（同一 tag/target/notes；Draft 阶段不假设 tag ref 已存在）
+  -> 从分支入口 workflow_dispatch(release_tag, release_target, release_notes_url)
+  -> workflow 对 Draft targetCommitish 与 release_target 做等值门禁，并 checkout 不可变 SHA
   -> 五平台单次 build/smoke（产物与验证对象相同）
   -> 上传全部资产到 Draft
   -> 精确资产集合核验
@@ -86,7 +87,8 @@ local verify + signing preflight
 ## 五、实现边界
 
 - `createRelease` 增加 `--draft`，并在创建后验证 `isDraft=true`。
-- 本地脚本显式 dispatch `desktop-release.yml`，并按 `workflow_dispatch + exact target SHA` 定位本次 run。
+- GitHub Draft 在公开前不创建 tag ref；本地脚本从当前分支显式 dispatch `desktop-release.yml`，把不可变 `release_target` 作为输入传递。workflow 不从推进中的分支或尚不存在的 tag checkout，而是验证 Draft `targetCommitish` 后 checkout 该 SHA。
+- 每次 dispatch 带唯一 identity；closure 按 identity 和时间窗定位 run，workflow 成功公开 Draft 后再验证新建 tag 精确指向 `release_target`。
 - 删除正式发布 CLI 对 `desktop-validate.yml` 的等待、跳过参数和相关平行验证 owner；日常 CI 不参与发布状态迁移。
 - 删除 `desktop-release.yml` 的 `release.published` 触发器及相关事件分支。
 - Actions 在矩阵启动前再次要求目标 Release 为 Draft，手工错误触发也快速失败，不浪费平台构建时间。

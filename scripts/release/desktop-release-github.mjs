@@ -31,17 +31,17 @@ function readRelease(options) {
       "--repo",
       repo,
       "--json",
-      "isDraft,tagName,url"
+      "isDraft,tagName,targetCommitish,url"
     ])
   );
 }
 
 export function assertReleaseIsDraft(options) {
-  const { tag } = options;
+  const { tag, target } = options;
   const release = readRelease(options);
-  if (release.tagName !== tag || release.isDraft !== true) {
+  if (release.tagName !== tag || release.targetCommitish !== target || release.isDraft !== true) {
     throw new Error(
-      `Desktop build dispatch requires a hidden Draft release for ${tag}; got ${release.url}.`
+      `Desktop build dispatch requires a hidden Draft release for ${tag} targeting ${target}; got ${release.targetCommitish} at ${release.url}.`
     );
   }
   console.log(`[desktop:release] draft release ready: ${release.url}`);
@@ -72,7 +72,7 @@ export function createDraftRelease(options) {
 }
 
 export function dispatchReleaseWorkflow(options) {
-  const { releaseNotesUrl, repo, tag, workflow } = options;
+  const { branch, releaseNotesUrl, repo, tag, target, workflow } = options;
   const workflowDispatchId = randomUUID();
   const workflowDispatchStartedAt = Date.now();
   runGh([
@@ -82,9 +82,11 @@ export function dispatchReleaseWorkflow(options) {
     "--repo",
     repo,
     "--ref",
-    tag,
+    branch,
     "-f",
     `release_tag=${tag}`,
+    "-f",
+    `release_target=${target}`,
     "-f",
     `release_notes_url=${releaseNotesUrl}`,
     "-f",

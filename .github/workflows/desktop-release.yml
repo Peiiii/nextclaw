@@ -8,6 +8,10 @@ on:
         description: "Release tag to upload assets to, e.g. v0.8.61-desktop-beta.1"
         required: true
         type: string
+      release_target:
+        description: "Immutable commit SHA recorded by the hidden Draft; optional only for APT recovery from an existing public tag"
+        required: false
+        type: string
       release_notes_url:
         description: "Optional user-facing release notes URL for update manifests"
         required: false
@@ -37,11 +41,17 @@ jobs:
         shell: bash
         env:
           DESKTOP_RELEASE_TAG: ${{ inputs.release_tag }}
+          DESKTOP_RELEASE_TARGET: ${{ inputs.release_target }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [ "$(gh release view "$DESKTOP_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "true" ]; then
+          release_json="$(gh release view "$DESKTOP_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,targetCommitish)"
+          if [ "$(jq -r .isDraft <<<"$release_json")" != "true" ]; then
             echo "Desktop builds require a hidden Draft release: $DESKTOP_RELEASE_TAG"
+            exit 1
+          fi
+          if [ -z "$DESKTOP_RELEASE_TARGET" ] || [ "$(jq -r .targetCommitish <<<"$release_json")" != "$DESKTOP_RELEASE_TARGET" ]; then
+            echo "Draft target must equal immutable release_target: expected=$DESKTOP_RELEASE_TARGET actual=$(jq -r .targetCommitish <<<"$release_json")"
             exit 1
           fi
 
@@ -78,7 +88,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_target || inputs.release_tag }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -530,7 +540,7 @@ jobs:
       - name: Checkout release contract
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_target || inputs.release_tag }}
 
       - name: Download desktop artifacts
         uses: actions/download-artifact@v4
@@ -589,7 +599,7 @@ jobs:
       - name: Checkout release contract
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_target || inputs.release_tag }}
 
       - name: Publish only the verified Draft
         shell: bash
@@ -637,7 +647,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_target || inputs.release_tag }}
           fetch-depth: 0
 
       - name: Download desktop artifacts
@@ -719,7 +729,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_target || inputs.release_tag }}
           fetch-depth: 0
 
       - name: Setup Node

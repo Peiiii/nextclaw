@@ -8,7 +8,7 @@
 
 使用 `pnpm release:desktop:stable`。必须先证明目标 runtime identity 已经作为 stable NPM/runtime 发布且 release target 没有静默混入后续 package 源码，再闭合 clean/non-behind、签名 secret preflight、本地 package verify、GitHub release、workflow、assets、stable manifest 和 APT。正式发布必须提供 GitHub 专用的 `--notes-file`：中文在前、英文在后，且通过双语正文、绝对文档链接、无 frontmatter 和无自动生成提交噪音校验；禁止直接传入单一语言 docs 页面。没有结构化 release notes JSON 或显式恢复 URL 时同样 fail closed。该入口不调用任何 NPM publish 命令。
 
-GitHub Release 必须采用 Draft-first 原子公开：CLI 先创建隐藏 Draft，再对同一个 release tag 显式 dispatch `desktop-release.yml`；每次 dispatch 带唯一身份，闭环只等待该次 run。正式 workflow 是生产产物构建与验证的单一 owner：五平台各构建一次，安装/启动冒烟、上传、更新频道与 APT 全部消费同一 run 的 artifact；禁止先等待 `desktop-validate.yml` 构建一批不会发布的平行产物。日常 CI 保持独立，但不参与正式发布状态迁移。workflow dispatch 与全部投影绑定该 tag，禁止跟随推进中的分支漂移。五平台全部成功、30 个 installer/portable/bundle/manifest/update metadata/public key 资产完整上传并精确核验后，workflow 才能公开同一 Release。禁止以 `release.published` 作为构建触发器，禁止在资产缺失时降级公开。失败或取消时 Draft 对公众不可见；Release 已完整公开但 channel/APT 失败时只恢复未完成投影，不重复创建 release identity。
+GitHub Release 必须采用 Draft-first 原子公开：CLI 先创建隐藏 Draft，再从分支入口对同一个 release identity 显式 dispatch `desktop-release.yml`。GitHub Draft 公开前不存在 tag ref，禁止以 Draft tag 作为 workflow ref；CLI 必须显式传递不可变 `release_target` SHA，workflow 先核对 Draft `targetCommitish`，再 checkout 该 SHA，公开后 closure 反向验证新建 tag 精确指向同一 SHA。每次 dispatch 带唯一身份，闭环只等待该次 run。正式 workflow 是生产产物构建与验证的单一 owner：五平台各构建一次，安装/启动冒烟、上传、更新频道与 APT 全部消费同一 run 的 artifact；禁止先等待 `desktop-validate.yml` 构建一批不会发布的平行产物。日常 CI 保持独立，但不参与正式发布状态迁移。全部投影绑定该 release identity，禁止跟随推进中的分支漂移。五平台全部成功、30 个 installer/portable/bundle/manifest/update metadata/public key 资产完整上传并精确核验后，workflow 才能公开同一 Release。禁止以 `release.published` 作为构建触发器，禁止在资产缺失时降级公开。失败或取消时 Draft 对公众不可见；Release 已完整公开但 channel/APT 失败时只恢复未完成投影，不重复创建 release identity。
 
 ## 完成门
 

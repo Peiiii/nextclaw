@@ -69,11 +69,10 @@ function readTagSha(tag) {
   return sha;
 }
 
-async function waitForWorkflowRun(options, tagSha) {
+async function waitForWorkflowRun(options) {
   const {
     repo,
     runId,
-    target,
     workflow,
     workflowDispatchId,
     workflowDispatchStartedAt = 0
@@ -99,7 +98,6 @@ async function waitForWorkflowRun(options, tagSha) {
     ]);
     const runEntry = runs.find(
       (entry) =>
-        (entry.headSha === target || entry.headSha === tagSha) &&
         String(entry.displayTitle ?? "").includes(`dispatch=${workflowDispatchId}`) &&
         Date.parse(entry.createdAt ?? "") >= workflowDispatchStartedAt - 60_000
     );
@@ -397,9 +395,12 @@ async function waitForPublicStableAptRepo(options) {
 }
 
 export async function waitForDesktopReleaseClosure(options) {
-  const tagSha = readTagSha(options.tag);
-  const runEntry = await waitForWorkflowRun(options, tagSha);
+  const runEntry = await waitForWorkflowRun(options);
   await waitForWorkflowSuccess(options, runEntry);
+  const tagSha = readTagSha(options.tag);
+  if (tagSha !== options.target) {
+    throw new Error(`Published tag target mismatch: expected ${options.target}, got ${tagSha}.`);
+  }
   await verifyReleaseAssets({ ...options, expectedDraft: false });
 
   const ghPagesManifest = await readGhPagesManifest(options);

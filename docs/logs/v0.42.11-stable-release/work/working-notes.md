@@ -20,6 +20,7 @@
 | 发布自动化 Review | OIDC workflow、33 项发布/治理测试与治理总门通过 | 定向测试 0.24s；TypeScript/测试/治理总门 15.4s | 主发布编排一度跨过 500 行预算；将 Actions 输出与前置条件下沉后恢复为 0 error |
 | Desktop 空壳 Release 事故 | 4 个 0 资产公开版本已转回 Draft；原子公开修复验证与 Review 通过 | `.4` Actions 运行 9m35s 后 cancelled；真实 Draft 上传/删除约 10s | 根因是 `release.published` 先公开后构建；Review 两次返工，分别拆分超预算主 CLI、加入唯一 dispatch id 防止同 tag 重试串 run |
 | Desktop 重复构建事故 | 删除正式发布前置的平行 `desktop-validate` 门禁 | 单轮 CI 约 8–12m；此前每次正式发布还会再构建一轮 | 正式 workflow 本身已经对将发布的同批五平台产物做安装/启动冒烟；前置 CI 产物不会发布且不能证明生产 bits |
+| Draft dispatch 协议 | Draft tag ref 不存在，改为分支 dispatch + 不可变 SHA checkout | preflight 约 43s；Draft 创建后 dispatch 立即返回 HTTP 422 | GitHub Draft `target_commitish` 已写入但 `refs/tags/*` 尚未创建；公开后才允许 tag 成为最终投影 |
 | NPM stable 发布 | 待执行 | — | — |
 | Desktop stable 发布 | 待执行 | — | — |
 | 公开回读 | 待执行 | — | — |

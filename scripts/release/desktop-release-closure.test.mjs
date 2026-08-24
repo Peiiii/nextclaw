@@ -135,8 +135,6 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
 
   assert.match(githubRelease, /"--draft"/);
   assert.match(githubRelease, /"workflow",\s*\n\s*"run"/);
-  assert.match(githubRelease, /"--ref",\s*\n\s*tag/);
-  assert.doesNotMatch(githubRelease, /"--ref",\s*\n\s*branch/);
   assert.match(githubRelease, /`dispatch_id=\$\{workflowDispatchId\}`/);
   assert.match(workflow, /run-name: desktop-release .* dispatch=\$\{\{ inputs\.dispatch_id \}\}/);
   assert.match(
@@ -159,5 +157,23 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
   assert.match(
     workflow,
     /build-desktop:[\s\S]*?Build Desktop \(Linux\)[\s\S]*?Smoke Desktop \(Linux AppImage\)[\s\S]*?Upload desktop artifacts \(Linux\)/
+  );
+});
+
+test("desktop Draft dispatch carries an immutable target before the tag exists", () => {
+  const workflow = readFileSync(new URL("../../.github/workflows/desktop-release.yml", import.meta.url), "utf8");
+  const closure = readFileSync(new URL("./desktop-release-closure.mjs", import.meta.url), "utf8");
+  const githubRelease = readFileSync(new URL("./desktop-release-github.mjs", import.meta.url), "utf8");
+
+  assert.match(githubRelease, /"--ref",\s*\n\s*branch/);
+  assert.doesNotMatch(githubRelease, /"--ref",\s*\n\s*tag/);
+  assert.match(githubRelease, /`release_target=\$\{target\}`/);
+  assert.match(githubRelease, /release\.targetCommitish !== target/);
+  assert.match(workflow, /release_target:[\s\S]*?Immutable commit SHA/);
+  assert.match(workflow, /Draft target must equal immutable release_target/);
+  assert.match(workflow, /ref: \$\{\{ inputs\.release_target \|\| inputs\.release_tag \}\}/);
+  assert.match(
+    closure,
+    /waitForWorkflowRun\(options\)[\s\S]*?waitForWorkflowSuccess\(options, runEntry\)[\s\S]*?readTagSha\(options\.tag\)[\s\S]*?tagSha !== options\.target/
   );
 });
