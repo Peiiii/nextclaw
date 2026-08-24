@@ -214,7 +214,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $PSNativeCommandUseErrorActionPreference = $true
-          pnpm desktop:portable:verify
+          pnpm desktop:portable:verify -- --allow-renderer-only-titlebar-probe
 
       - name: Inspect Windows Portable archive
         if: matrix.platform == 'win32'

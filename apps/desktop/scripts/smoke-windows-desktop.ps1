@@ -753,7 +753,7 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $logRoot
 if (-not $isPortableSmoke) {
   New-Item -ItemType Directory -Path $smokeHome -Force | Out-Null
 }
-New-Item -ItemType Directory -Path $logRoot | Out-Null
+New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 if ($SeedStaleSameVersionBundle.IsPresent) {
   Seed-StaleSameVersionBundleState -DesktopExePath $resolvedExe -SmokeHome $smokeHome
 }

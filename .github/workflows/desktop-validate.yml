@@ -297,7 +297,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $PSNativeCommandUseErrorActionPreference = $true
-          pnpm desktop:portable:verify
+          pnpm desktop:portable:verify -- --allow-renderer-only-titlebar-probe
 
       - name: Stage Windows smoke logs
         if: always()

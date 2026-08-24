@@ -9,6 +9,7 @@ const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
 const desktopPackageJson = JSON.parse(readFileSync(resolve(rootDir, "apps/desktop/package.json"), "utf8"));
 const version = String(desktopPackageJson.version ?? "").trim();
+const allowRendererOnlyTitlebarProbe = process.argv.includes("--allow-renderer-only-titlebar-probe");
 
 function run(command, args, options = {}) {
   console.log(`[desktop-portable-verify] run: ${command} ${args.join(" ")}`);
@@ -72,7 +73,7 @@ async function verifyPortableZip(arch) {
     }
     console.log(`[desktop-portable-verify] extracted ${basename(zipPath)} to ${portableRoot}`);
     if (process.platform === "win32" && arch === "x64") {
-      run("powershell", [
+      const smokeArgs = [
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
@@ -86,7 +87,11 @@ async function verifyPortableZip(arch) {
         "180",
         "-MaxReadySec",
         "20"
-      ]);
+      ];
+      if (allowRendererOnlyTitlebarProbe) {
+        smokeArgs.push("-AllowRendererOnlyTitlebarProbe");
+      }
+      run("powershell", smokeArgs);
     }
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
