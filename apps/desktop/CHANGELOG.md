@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.264
+
+### Patch Changes
+
+- Fix cross-platform installer packaging for the Electron-compatible SQLite native binary.
+
 ## 0.0.263
 
 ### Patch Changes
