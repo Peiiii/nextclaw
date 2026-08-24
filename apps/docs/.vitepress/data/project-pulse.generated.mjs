@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-24T03:16:17.833Z",
+  "generatedAt": "2026-08-24T13:44:20.543Z",
   "hero": {
     "currentLoc": 266922,
     "testLoc": 108454,
     "trackedFiles": 2813,
-    "recentCommitCount": 389,
+    "recentCommitCount": 391,
     "activeDays30": 30,
     "recentReleaseCount": 51,
     "latestReleaseDate": "2026-08-24",
-    "latestNoteDate": "2026-08-22",
+    "latestNoteDate": "2026-08-24",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2618089,
     "basePercentOfBenchmark": 10.2,
@@ -1298,7 +1298,7 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 7
+        "value": 9
       }
     ],
     "commitWeekly": [
@@ -1360,7 +1360,7 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 7
+        "value": 9
       }
     ],
     "releaseMonthly": [
@@ -1503,7 +1503,7 @@ export default {
       },
       {
         "date": "2026-08-22",
-        "tagCount": 9,
+        "tagCount": 8,
         "sampleTags": [
           "@nextclaw/client-sdk@0.7.3",
           "@nextclaw/companion@0.2.41",
@@ -1521,7 +1521,7 @@ export default {
       },
       {
         "date": "2026-08-20",
-        "tagCount": 30,
+        "tagCount": 31,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.7.0",
           "@nextclaw/channel-extension-dingtalk@0.2.31",
@@ -1550,6 +1550,26 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-24-nextclaw-v0-42-3",
+        "date": "2026-08-24",
+        "tags": [
+          "release",
+          "npm",
+          "desktop",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-24 · NextClaw v0.42.3",
+          "description": "Long-session compaction recovers from truncated summaries, with continuous attention, session reliability, and Desktop startup fixes.",
+          "href": "/en/notes/2026-08-24-nextclaw-v0-42-3"
+        },
+        "zh": {
+          "title": "2026-08-24 · NextClaw v0.42.3",
+          "description": "长会话压缩可以从截断中恢复，并新增持续关注、会话目录可靠性与 Desktop 启动修复。",
+          "href": "/zh/notes/2026-08-24-nextclaw-v0-42-3"
+        }
+      },
       {
         "slug": "2026-08-22-nextclaw-v0-42-2",
         "date": "2026-08-22",
@@ -2588,7 +2608,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-24T03:16:15.745Z",
     "sourceCount": {
-      "notes": 50,
+      "notes": 51,
       "scopes": 8
     }
   }

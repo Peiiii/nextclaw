@@ -18,10 +18,12 @@ import {
 import {
   STABLE_RELEASE_STAGES,
   inspectStableSurfaceReview,
+  resolveStablePublishedPreviousVersion,
   resolveStableReleasePlan,
   validateStableResumeOptions,
 } from "./release-stable.utils.mjs";
 import { collectReleaseSummary } from "./release-summary.mjs";
+import { assertTrustedPublishingEnvironment } from "./release-action-environment.mjs";
 
 const ROOT_DIR = process.cwd();
 
@@ -208,6 +210,41 @@ function ensurePackageReleasePrerequisites(branch) {
   ensureStableRemoteSync(branch);
 }
 
+export function ensurePreparedPublishPrerequisites(options) {
+  const { branch, targetBranch, trustedPublishing } = options;
+  ensureCommandAvailable("pnpm");
+  ensureCommandAvailable("git");
+  ensureCommandAvailable("npm");
+  ensureStableCurrentBranch(branch);
+  ensureStableRemoteSync(branch);
+  if (targetBranch !== branch) {
+    run("git", ["fetch", "origin", targetBranch]);
+  }
+  if (branch !== targetBranch) {
+    run("pnpm", [
+      "release:check:branch-closure",
+      "--",
+      "--target",
+      `origin/${targetBranch}`,
+      "--release",
+      "HEAD",
+    ]);
+  }
+  if (trustedPublishing) {
+    const npmVersion = run("npm", ["--version"], { capture: true }).trim();
+    assertTrustedPublishingEnvironment({
+      nodeVersion: process.versions.node,
+      npmVersion,
+    });
+    console.log(
+      `[release:stable] npm identity: GitHub Actions trusted publishing (node ${process.versions.node}, npm ${npmVersion})`,
+    );
+    return;
+  }
+  const npmIdentity = run("npm", ["whoami"], { capture: true }).trim();
+  console.log(`[release:stable] npm identity: ${npmIdentity}`);
+}
+
 export function configureReleaseNpmUserconfig({ required = false } = {}) {
   const npmUserconfig = resolveReleaseNpmUserconfig({
     commonGitDir: git([
@@ -266,19 +303,20 @@ function resolvePendingStableExecutionContext(startsAt) {
     throw new Error("release:stable found no pending release packages.");
   }
   const releaseScope = summarizePlannedReleaseScope(changesetStatus);
+  let previousVersion = plan.previousVersion;
   if (plan.targetVersion) {
     const publishedStableVersion = readPublishedStableVersion();
-    if (plan.previousVersion !== publishedStableVersion) {
-      throw new Error(
-        `Changesets expects nextclaw ${plan.previousVersion}, but npm latest is ${publishedStableVersion}.`,
-      );
-    }
+    previousVersion = resolveStablePublishedPreviousVersion({
+      plannedPreviousVersion: plan.previousVersion,
+      publishedStableVersion,
+      targetVersion: plan.targetVersion,
+    });
   }
   return {
     checkpoint: null,
     npmPublishPackageCount: releaseScope.npmPublishPackageCount,
     packageCount: plan.packageCount,
-    previousVersion: plan.previousVersion,
+    previousVersion,
     startsAt,
     targetVersion: plan.targetVersion,
     validationPackageCount: releaseScope.validationPackageCount,

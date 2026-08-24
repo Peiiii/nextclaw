@@ -46,6 +46,24 @@ test("blocks a cross-workspace import even when the target declares an exports s
   assert.match(findings[0].message, /root public entry/);
 });
 
+test("allows an explicitly governed dual-mode Desktop host contract", () => {
+  const findings = collectPackagePublicImportViolations(
+    ["apps/desktop/src/main.ts"],
+    [
+      { name: "@nextclaw/desktop", rootPath: "apps/desktop" },
+      { name: "@nextclaw/kernel", rootPath: "packages/nextclaw-kernel" },
+    ],
+    new Map([
+      [
+        "apps/desktop/src/main.ts",
+        'import { resolveAutomaticUpdateCheckIntervalMs } from "@nextclaw/kernel/automatic-update-check";\n',
+      ],
+    ]),
+  );
+
+  assert.deepEqual(findings, []);
+});
+
 test("allows a package-root development alias", () => {
   const findings = collectPackageSourceAliasViolations({
     filePath: "packages/fixture-consumer/vitest.config.ts",

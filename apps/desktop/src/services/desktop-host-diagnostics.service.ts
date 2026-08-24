@@ -4,7 +4,7 @@ import {
   HostIncidentStore,
   type HostDiagnosticEvidence,
   type HostIncident
-} from "@nextclaw/core";
+} from "@nextclaw/core/host-incident";
 import type { DesktopLogger } from "../utils/desktop-logging.utils";
 import { collectWindowsHostEvidence } from "../utils/windows-host-evidence.utils";
 

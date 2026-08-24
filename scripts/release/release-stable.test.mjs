@@ -16,6 +16,7 @@ import {
   resolveNpmReadyStatus,
   resolveStableReleaseLevel,
   resolveStableReleasePlan,
+  resolveStablePublishedPreviousVersion,
   validateStableResumeOptions,
 } from "./release-stable.utils.mjs";
 import { validateReusableReleaseBuilds } from "./ensure-pnpm-publish.mjs";
@@ -36,6 +37,7 @@ test("parses the default full stable closure", () => {
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
     targetBranch: "master",
+    trustedPublishing: false,
     verifyConcurrency: 8,
     version: null,
   });
@@ -58,6 +60,14 @@ test("parses prepared publish performance controls", () => {
   assert.equal(options.publishConcurrency, 16);
   assert.equal(options.verifyConcurrency, 6);
   assert.equal(options.maxPublishSeconds, 55);
+});
+
+test("enables GitHub Actions trusted publishing only through an explicit flag", () => {
+  assert.equal(
+    parseStableReleaseArgs(["--trusted-publishing"]).trustedPublishing,
+    true,
+  );
+  assert.equal(parseStableReleaseArgs([]).trustedPublishing, false);
 });
 
 test("allows artifact export only during preparation", () => {
@@ -150,6 +160,46 @@ test("resolves nextclaw versions from the changeset release plan", () => {
   assert.throws(
     () => resolveStableReleasePlan({ preState: { mode: "pre" }, releases: [] }),
     /pre mode is active/,
+  );
+});
+
+test("resolves the public previous version when promoting a beta to stable", () => {
+  assert.equal(
+    resolveStablePublishedPreviousVersion({
+      plannedPreviousVersion: "0.42.2",
+      publishedStableVersion: "0.42.2",
+      targetVersion: "0.42.3",
+    }),
+    "0.42.2",
+  );
+  assert.equal(
+    resolveStablePublishedPreviousVersion({
+      plannedPreviousVersion: "0.42.3-beta.0",
+      publishedStableVersion: "0.42.2",
+      targetVersion: "0.42.3",
+    }),
+    "0.42.2",
+  );
+});
+
+test("rejects unrelated prerelease and registry drift", () => {
+  assert.throws(
+    () =>
+      resolveStablePublishedPreviousVersion({
+        plannedPreviousVersion: "0.42.4-beta.0",
+        publishedStableVersion: "0.42.2",
+        targetVersion: "0.42.5",
+      }),
+    /Changesets expects nextclaw 0\.42\.4-beta\.0/,
+  );
+  assert.throws(
+    () =>
+      resolveStablePublishedPreviousVersion({
+        plannedPreviousVersion: "0.42.1",
+        publishedStableVersion: "0.42.2",
+        targetVersion: "0.42.3",
+      }),
+    /npm latest is 0\.42\.2/,
   );
 });
 

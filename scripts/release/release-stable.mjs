@@ -3,6 +3,10 @@ import { execFileSync, spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
+import {
+  buildStableReleaseActionOutputs,
+  writeReleaseActionOutputs,
+} from "./release-action-environment.mjs";
 import { publishPreparedNpmRelease } from "./prepared-npm-release.mjs";
 import {
   closeStableGitReleaseState,
@@ -13,6 +17,7 @@ import {
 import {
   configureReleaseNpmUserconfig,
   ensureProductReleaseArtifacts,
+  ensurePreparedPublishPrerequisites,
   ensurePublishedStableTarget,
   hasStructuredReleaseNotes,
   inspectReleaseSurfaceReview,
@@ -70,14 +75,6 @@ function runAsync(command, args) {
 
 function git(args, capture = true) {
   return run("git", args, { capture }).trim();
-}
-
-function ensureCommandAvailable(command, args = ["--version"]) {
-  try {
-    run(command, args, { capture: true });
-  } catch {
-    throw new Error(`Required command is unavailable: ${command}`);
-  }
 }
 
 function readGitStatus() {
@@ -143,30 +140,6 @@ function printStableDryRun(options, context) {
       worktreeClean: !readGitStatus(),
     }).join("\n"),
   );
-}
-
-function ensurePreparedPublishPrerequisites(options) {
-  const { branch, targetBranch } = options;
-  ensureCommandAvailable("pnpm");
-  ensureCommandAvailable("git");
-  ensureCommandAvailable("npm");
-  ensureStableCurrentBranch(branch);
-  ensureStableRemoteSync(branch);
-  if (targetBranch !== branch) {
-    run("git", ["fetch", "origin", targetBranch]);
-  }
-  if (branch !== targetBranch) {
-    run("pnpm", [
-      "release:check:branch-closure",
-      "--",
-      "--target",
-      `origin/${targetBranch}`,
-      "--release",
-      "HEAD",
-    ]);
-  }
-  const npmIdentity = run("npm", ["whoami"], { capture: true }).trim();
-  console.log(`[release:stable] npm identity: ${npmIdentity}`);
 }
 
 async function publishStablePackages(options, context) {
@@ -359,9 +332,12 @@ async function runStableRelease(options) {
     skipPublishedInstall,
     skipRuntimeChannel,
     targetBranch,
+    trustedPublishing,
   } = options;
   const publishStartedAt = dryRun || prepareOnly ? null : performance.now();
-  configureReleaseNpmUserconfig({ required: !dryRun && !prepareOnly });
+  configureReleaseNpmUserconfig({
+    required: !dryRun && !prepareOnly && !trustedPublishing,
+  });
   if (prepareOnly && !dryRun) {
     prepareStableNpmBatch(options);
     return;
@@ -381,6 +357,19 @@ async function runStableRelease(options) {
     options,
     context,
     checkpoint,
+  );
+  const surfaceReview = inspectReleaseSurfaceReview(
+    context.previousVersion,
+    context.targetVersion,
+  );
+  writeReleaseActionOutputs(
+    buildStableReleaseActionOutputs({
+      contentReady:
+        hasStructuredReleaseNotes(context.targetVersion) && surfaceReview.ready,
+      context,
+      gitSummary,
+    }),
+    process.env.GITHUB_OUTPUT,
   );
   const closureCompletedAt = performance.now();
   const publishDurationMs = closureCompletedAt - publishStartedAt;

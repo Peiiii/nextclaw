@@ -1,5 +1,5 @@
 import { app, crashReporter, dialog, ipcMain, shell, type Event as ElectronEvent } from "electron";
-import { resolveAutomaticUpdateCheckIntervalMs } from "@nextclaw/kernel";
+import { resolveAutomaticUpdateCheckIntervalMs } from "@nextclaw/kernel/automatic-update-check";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import desktopPackageJson from "../package.json";
@@ -28,7 +28,7 @@ import {
 } from "./utils/desktop-paths.utils";
 import { resolveDesktopGitHubPublishTarget } from "./utils/desktop-publish-target.utils";
 import { DesktopHostDiagnosticsService } from "./services/desktop-host-diagnostics.service";
-import { launchDesktopGuardian } from "./launcher/desktop-guardian.service";
+import { launchDesktopGuardian } from "./launcher/desktop-guardian.utils";
 const installationProfile = setupDesktopInstallationProfile(app);
 const logger = createDesktopLogger();
 
@@ -125,7 +125,7 @@ class DesktopApplication {
     const launched = launchDesktopGuardian({
       enabled: app.isPackaged,
       executablePath: process.execPath,
-      guardianScriptPath: join(__dirname, "launcher", "desktop-guardian.service.js"),
+      guardianScriptPath: join(__dirname, "launcher", "desktop-guardian.utils.js"),
       runtimeHome: resolveDesktopRuntimeHome()
     });
     if (launched) {

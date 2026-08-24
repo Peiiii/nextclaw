@@ -264,6 +264,15 @@ describe("ui auth protection flows", () => {
 
     const healthResponse = await app.request("http://localhost/api/health");
     expect(healthResponse.status).toBe(200);
+    expect(await healthResponse.json()).toMatchObject({
+      ok: true,
+      data: {
+        status: "ok",
+        services: {
+          ncpAgent: "pending"
+        }
+      }
+    });
 
     const bootstrapStatusResponse = await app.request("http://localhost/api/runtime/bootstrap-status");
     expect(bootstrapStatusResponse.status).toBe(200);

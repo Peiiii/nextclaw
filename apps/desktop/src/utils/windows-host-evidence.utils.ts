@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import type { HostDiagnosticEvidence } from "@nextclaw/core";
+import type { HostDiagnosticEvidence } from "@nextclaw/core/host-incident";
 
 type CommandResult = {
   status: number | null;

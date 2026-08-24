@@ -143,6 +143,7 @@ function Invoke-DesktopApiProbe {
 
   $endpoints = @(
     "/api/health",
+    "/api/runtime/bootstrap-status",
     "/api/auth/status",
     "/api/config",
     "/api/ncp/sessions"
@@ -157,6 +158,12 @@ function Invoke-DesktopApiProbe {
       $passed = $true
       if ($endpoint -eq "/api/health") {
         $passed = ($payload.ok -eq $true -and $payload.data.status -eq "ok")
+      } elseif ($endpoint -eq "/api/runtime/bootstrap-status") {
+        $passed = (
+          $payload.ok -eq $true -and
+          $payload.data.phase -ne "error" -and
+          $payload.data.ncpAgent.state -eq "ready"
+        )
       }
       $results.Add([pscustomobject]@{
         endpoint = $endpoint

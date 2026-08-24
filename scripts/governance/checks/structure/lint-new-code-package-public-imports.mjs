@@ -17,10 +17,14 @@ const usage = `Usage:
   node scripts/governance/checks/structure/lint-new-code-package-public-imports.mjs --base origin/main
   node scripts/governance/checks/structure/lint-new-code-package-public-imports.mjs -- packages/nextclaw/src
 
-Blocks cross-workspace package subpath imports and source-subpath aliases. A workspace may import another workspace package only through its package root public entry. Test/build aliases may resolve a package root to its development entry, but must not map a package subpath directly into another workspace package's src directory.`;
+Blocks cross-workspace package subpath imports and source-subpath aliases. A workspace may import another workspace package only through its package root public entry, except for explicitly allowlisted dual-mode host/runtime contracts. Test/build aliases may resolve a package root to its development entry, but must not map a package subpath directly into another workspace package's src directory.`;
 
 const workspaceRootNames = ["apps", "packages", "workers"];
 const codeFilePattern = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
+const allowedDualModeHostContractImports = new Set([
+  "@nextclaw/desktop::@nextclaw/core/host-incident",
+  "@nextclaw/desktop::@nextclaw/kernel/automatic-update-check",
+]);
 
 const normalizePath = (value) => value.split(path.sep).join("/");
 
@@ -259,6 +263,9 @@ export const collectPackagePublicImportViolations = (
         continue;
       }
       if (resolvedImport.targetPackage.rootPath === importerPackage.rootPath) {
+        continue;
+      }
+      if (allowedDualModeHostContractImports.has(`${importerPackage.name}::${specifier.value}`)) {
         continue;
       }
       findings.push({

@@ -79,15 +79,7 @@ jobs:
           if [ "$NPM_RUNTIME_UPDATE_CHANNEL" = "stable" ]; then
             runtime_version="$(node -p "require('./packages/nextclaw/package.json').version")"
             release_notes_json="apps/docs/public/release-notes/nextclaw-v${runtime_version}.json"
-            if [ ! -f "$release_notes_json" ]; then
-              echo "::error::Stable NPM runtime update requires $release_notes_json."
-              exit 1
-            fi
-            release_notes_url="$(node -e "const data=require('./${release_notes_json}'); process.stdout.write(data.links?.html?.['en-US'] || data.links?.html?.['zh-CN'] || '')")"
-            if [ -z "$release_notes_url" ]; then
-              echo "::error::Stable NPM runtime update release notes URL is missing in $release_notes_json."
-              exit 1
-            fi
+            release_notes_url="$(node scripts/release/release-core-notes.mjs --version "$runtime_version" --format url)"
           fi
 
           extra_args=()
@@ -139,8 +131,7 @@ jobs:
           set -euo pipefail
           release_args=(--title "$NPM_RUNTIME_RELEASE_TAG" --notes "NPM runtime update assets for $NPM_RUNTIME_RELEASE_TAG.")
           if [ "$NPM_RUNTIME_UPDATE_CHANNEL" = "stable" ]; then
-            release_metadata="apps/docs/public/release-notes/nextclaw-v${NPM_RUNTIME_RELEASE_TAG#nextclaw@}.json"
-            release_notes="$(jq -er '.summary["en-US"] + "\n\nFull release notes: " + .links.html["en-US"]' "$release_metadata")"
+            release_notes="$(node scripts/release/release-core-notes.mjs --version "${NPM_RUNTIME_RELEASE_TAG#nextclaw@}" --format notes)"
             release_args=(--title "NextClaw v${NPM_RUNTIME_RELEASE_TAG#nextclaw@}" --notes "$release_notes" --prerelease=false --latest)
           else
             release_args+=(--prerelease --latest=false)

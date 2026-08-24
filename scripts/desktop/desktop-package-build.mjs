@@ -93,7 +93,7 @@ function buildWindowsArtifacts(arch, env) {
   run(binName("pnpm"), ["-C", "apps/desktop", "package:windows-portable", "--", "--arch", arch], { env });
 }
 
-function runSharedBuildSteps(env) {
+function runSharedBuildSteps(env, arch) {
   run(binName("pnpm"), ["-C", "packages/nextclaw-core", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-runtime", "build"]);
   for (const packageName of channelExtensionPackages) {
@@ -105,6 +105,16 @@ function runSharedBuildSteps(env) {
   run(binName("pnpm"), ["-C", "apps/desktop", "bundle:public-key:ensure"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "bundle:seed", "--", "--channel", "stable"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "build:main"], { env });
+  run(binName("pnpm"), [
+    "-C",
+    "apps/desktop",
+    "native-resources",
+    "--",
+    "--platform",
+    process.platform,
+    "--arch",
+    arch
+  ], { env });
 }
 
 function packageForCurrentPlatform() {
@@ -112,7 +122,7 @@ function packageForCurrentPlatform() {
   const env = { CSC_IDENTITY_AUTO_DISCOVERY: "false" };
 
   rmSync(releaseDir, { recursive: true, force: true });
-  runSharedBuildSteps(env);
+  runSharedBuildSteps(env, arch);
 
   if (process.platform === "darwin") {
     run(

@@ -1,0 +1,195 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Stable release target"
+        required: true
+        default: product
+        type: choice
+        options:
+          - npm
+          - product
+
+permissions: {}
+
+concurrency:
+  group: nextclaw-stable-release
+  cancel-in-progress: false
+
+jobs:
+  publish-npm:
+    name: publish stable NPM batch
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: npm-production
+    permissions:
+      actions: read
+      contents: write
+      id-token: write
+    outputs:
+      closure_commit: ${{ steps.release.outputs.closure_commit }}
+      content_ready: ${{ steps.release.outputs.content_ready }}
+      has_nextclaw: ${{ steps.release.outputs.has_nextclaw }}
+      previous_version: ${{ steps.release.outputs.previous_version }}
+      release_commit: ${{ steps.release.outputs.release_commit }}
+      release_tags_json: ${{ steps.release.outputs.release_tags_json }}
+      target_version: ${{ steps.release.outputs.target_version }}
+    steps:
+      - name: Require the protected master release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+            echo "Stable releases must be dispatched from master; got $GITHUB_REF."
+            exit 1
+          fi
+
+      - name: Checkout exact release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Setup trusted publishing runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Pin OIDC-capable npm CLI
+        run: npm install --global npm@11.5.1
+
+      - name: Bind checkout to master
+        shell: bash
+        run: |
+          set -euo pipefail
+          git switch -C master "$GITHUB_SHA"
+          git branch --set-upstream-to=origin/master master
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Install release toolchain
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Publish prepared batch and close Git state
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pnpm release:npm:stable -- --trusted-publishing
+
+      - name: Record core release status
+        shell: bash
+        env:
+          CONTENT_READY: ${{ steps.release.outputs.content_ready }}
+          TARGET_VERSION: ${{ steps.release.outputs.target_version }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## NPM_READY"
+            echo
+            echo "- target: ${{ inputs.target }}"
+            echo "- version: ${TARGET_VERSION:-package-only batch}"
+            echo "- content: $([ "$CONTENT_READY" = "true" ] && echo CONTENT_READY || echo CONTENT_PENDING)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-runtime:
+    name: publish stable Runtime channel
+    needs: publish-npm
+    if: ${{ inputs.target == 'product' && needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: pnpm
+
+      - name: Install release toolchain
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Publish and verify stable Runtime channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          pnpm release:stable:runtime --
+          --branch master
+          --version "${{ needs.publish-npm.outputs.target_version }}"
+          --release-tag "nextclaw@${{ needs.publish-npm.outputs.target_version }}"
+
+      - name: Verify upgrade from previous stable
+        run: >-
+          pnpm -C packages/nextclaw validation:npm-update --
+          --published-stable
+          --expected-version "${{ needs.publish-npm.outputs.target_version }}"
+          --previous-version "${{ needs.publish-npm.outputs.previous_version }}"
+          --update-only
+
+      - name: Record product release status
+        shell: bash
+        run: |
+          {
+            echo "## NEXTCLAW_STABLE_READY"
+            echo
+            echo "- version: ${{ needs.publish-npm.outputs.target_version }}"
+            echo "- release: https://github.com/${{ github.repository }}/releases/tag/nextclaw@${{ needs.publish-npm.outputs.target_version }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  summarize:
+    name: summarize release state
+    if: ${{ always() }}
+    needs: [publish-npm, publish-runtime]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Write final state
+        shell: bash
+        env:
+          CONTENT_READY: ${{ needs.publish-npm.outputs.content_ready }}
+          HAS_NEXTCLAW: ${{ needs.publish-npm.outputs.has_nextclaw }}
+          NPM_RESULT: ${{ needs.publish-npm.result }}
+          RUNTIME_RESULT: ${{ needs.publish-runtime.result }}
+          TARGET: ${{ inputs.target }}
+          TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Stable release summary"
+            echo
+            echo "- target: $TARGET"
+            echo "- version: ${TARGET_VERSION:-unresolved}"
+            echo "- npm: $NPM_RESULT"
+            echo "- runtime: $RUNTIME_RESULT"
+            echo "- content: $([ "$CONTENT_READY" = "true" ] && echo CONTENT_READY || echo CONTENT_PENDING)"
+            echo
+            echo "CONTENT_PENDING does not invalidate an immutable core release; finish the existing release-notes, docs, website, and social workflows against this same version."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$NPM_RESULT" != "success" ]; then
+            exit 1
+          fi
+          if [ "$TARGET" = "product" ] && [ "$HAS_NEXTCLAW" = "true" ] && [ "$RUNTIME_RESULT" != "success" ]; then
+            exit 1
+          fi

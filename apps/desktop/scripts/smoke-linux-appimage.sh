@@ -33,6 +33,7 @@ RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
 APPIMAGE_LOG="${LOG_ROOT}/appimage-extract.log"
 
 RUNTIME_PID=""
+READY_SINCE=""
 
 cleanup() {
   if [[ -n "${RUNTIME_PID}" ]] && kill -0 "${RUNTIME_PID}" 2>/dev/null; then
@@ -182,10 +183,21 @@ while true; do
     exit 1
   fi
 
-  if curl -fsS --max-time 2 "http://127.0.0.1:${RUNTIME_PORT}/api/health" >"${APP_HEALTH_LOG}" 2>/dev/null; then
-    if grep -q '"ok":true' "${APP_HEALTH_LOG}" && grep -q '"status":"ok"' "${APP_HEALTH_LOG}"; then
-      echo "[desktop-smoke] runtime fallback health check passed: http://127.0.0.1:${RUNTIME_PORT}/api/health"
-      exit 0
+  if curl -fsS --max-time 2 "http://127.0.0.1:${RUNTIME_PORT}/api/runtime/bootstrap-status" >"${APP_HEALTH_LOG}" 2>/dev/null; then
+    if grep -q '"phase":"error"' "${APP_HEALTH_LOG}" || grep -Eq '"ncpAgent":\{[^}]*"state":"error"' "${APP_HEALTH_LOG}"; then
+      echo "[desktop-smoke] runtime bootstrap failed. See ${APP_HEALTH_LOG} and ${RUNTIME_STDOUT_LOG}" >&2
+      exit 1
+    fi
+    if grep -q '"ok":true' "${APP_HEALTH_LOG}" && grep -Eq '"ncpAgent":\{[^}]*"state":"ready"' "${APP_HEALTH_LOG}"; then
+      NOW="$(date +%s)"
+      if [[ -z "${READY_SINCE}" ]]; then
+        READY_SINCE="${NOW}"
+      elif (( NOW - READY_SINCE >= 2 )); then
+        echo "[desktop-smoke] runtime bootstrap readiness passed: http://127.0.0.1:${RUNTIME_PORT}/api/runtime/bootstrap-status"
+        exit 0
+      fi
+    else
+      READY_SINCE=""
     fi
   fi
 

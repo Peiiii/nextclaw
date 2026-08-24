@@ -16,6 +16,7 @@ Options:
   --max-publish-seconds <seconds>       NPM_READY hard limit (default: 60)
   --skip-runtime-channel                Publish NPM without opening the stable runtime channel
   --skip-published-install              Skip exact registry payload/update verification
+  --trusted-publishing                  Authenticate npm publish through GitHub Actions OIDC
   --release-tag <tag>                   Override the runtime GitHub release tag
   --minimum-launcher-version-override <version>
                                         Recovery-only runtime compatibility override
@@ -47,6 +48,7 @@ export function parseStableReleaseArgs(argv) {
     skipPublishedInstall: false,
     skipRuntimeChannel: false,
     targetBranch: "master",
+    trustedPublishing: false,
     verifyConcurrency: 8,
     version: null,
   };
@@ -69,6 +71,9 @@ export function parseStableReleaseArgs(argv) {
         break;
       case "--skip-runtime-channel":
         options.skipRuntimeChannel = true;
+        break;
+      case "--trusted-publishing":
+        options.trustedPublishing = true;
         break;
       case "--branch":
         options.branch = normalizedArgv[index + 1] ?? "";
@@ -178,6 +183,27 @@ export function resolveStableReleasePlan(changesetStatus) {
     previousVersion: nextclawRelease?.oldVersion ?? null,
     targetVersion: nextclawRelease?.newVersion ?? null,
   };
+}
+
+export function resolveStablePublishedPreviousVersion({
+  plannedPreviousVersion,
+  publishedStableVersion,
+  targetVersion,
+}) {
+  if (plannedPreviousVersion === publishedStableVersion) {
+    return publishedStableVersion;
+  }
+  const prereleaseSeparator = plannedPreviousVersion?.indexOf("-") ?? -1;
+  const prereleaseBase =
+    prereleaseSeparator > 0
+      ? plannedPreviousVersion.slice(0, prereleaseSeparator)
+      : null;
+  if (prereleaseBase === targetVersion) {
+    return publishedStableVersion;
+  }
+  throw new Error(
+    `Changesets expects nextclaw ${plannedPreviousVersion}, but npm latest is ${publishedStableVersion}.`,
+  );
 }
 
 export {

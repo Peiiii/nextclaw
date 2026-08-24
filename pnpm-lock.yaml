@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  vitest: 4.1.2
+
 patchedDependencies:
   qq-official-bot@1.2.4:
     hash: 6jnkauxxhexywjyfxcbl473dwi
@@ -99,7 +102,7 @@ importers:
         specifier: ^8.0.3
         version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@1.21.7)(tsx@4.21.0)(yaml@2.8.2))
 
   apps/competitive-leaderboard:
@@ -199,6 +202,9 @@ importers:
       electron-builder:
         specifier: ^25.1.8
         version: 25.1.8(electron-builder-squirrel-windows@25.1.8)
+      prebuild-install:
+        specifier: 7.1.3
+        version: 7.1.3
       prettier:
         specifier: ^3.3.3
         version: 3.8.1
@@ -210,7 +216,7 @@ importers:
     devDependencies:
       vitepress:
         specifier: ^1.6.3
-        version: 1.6.4(@algolia/client-search@5.49.0)(@types/node@25.5.0)(@types/react@18.3.28)(axios@1.13.5)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.8)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@5.9.3)
+        version: 1.6.4(@algolia/client-search@5.49.0)(@types/node@25.5.0)(@types/react@18.3.28)(axios@1.16.1)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.8)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@5.9.3)
       vue:
         specifier: ^3.5.13
         version: 3.5.28(typescript@5.9.3)
@@ -356,7 +362,7 @@ importers:
         specifier: ^8.0.3
         version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@25.5.0)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   apps/platform-admin:
@@ -525,7 +531,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/browser-connector:
@@ -547,7 +553,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-channel-extension-dingtalk:
@@ -656,7 +662,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-channel-extension-qq:
@@ -772,7 +778,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-channel-extension-whatsapp:
@@ -822,7 +828,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-narp-runtime-claude-code-sdk:
@@ -844,7 +850,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-narp-runtime-codex-sdk:
@@ -866,7 +872,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-narp-runtime-opencode:
@@ -888,7 +894,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-ncp-runtime-claude-code-sdk:
@@ -910,7 +916,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-ncp-runtime-codex-sdk:
@@ -929,7 +935,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/ncp-packages/nextclaw-ncp:
@@ -963,7 +969,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/ncp-packages/nextclaw-ncp-agent-runtime-next:
@@ -982,7 +988,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/ncp-packages/nextclaw-ncp-http-agent-client:
@@ -1001,7 +1007,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/ncp-packages/nextclaw-ncp-http-agent-server:
@@ -1023,7 +1029,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/ncp-packages/nextclaw-ncp-mcp:
@@ -1045,7 +1051,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/ncp-packages/nextclaw-ncp-react:
@@ -1120,7 +1126,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw:
@@ -1199,7 +1205,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-agent-chat:
@@ -1306,7 +1312,7 @@ importers:
         specifier: ^8.0.3
         version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-app-runtime:
@@ -1325,7 +1331,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-app-sdk:
@@ -1337,7 +1343,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-client-sdk:
@@ -1359,7 +1365,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-core:
@@ -1384,7 +1390,7 @@ importers:
         version: 16.6.1
       openai:
         specifier: ^4.74.0
-        version: 4.104.0(encoding@0.1.13)(ws@8.19.0)(zod@3.25.76)
+        version: 4.104.0(encoding@0.1.13)(ws@8.21.3)(zod@3.25.76)
       pino:
         specifier: ^9.4.0
         version: 9.14.0
@@ -1417,7 +1423,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-extension-sdk:
@@ -1442,7 +1448,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-harness:
@@ -1471,7 +1477,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-kernel:
@@ -1541,7 +1547,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-mcp:
@@ -1566,7 +1572,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       zod:
         specifier: ^4.3.6
@@ -1588,7 +1594,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-ncp-runtime-adapter-hermes-http:
@@ -1610,7 +1616,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-ncp-runtime-http-client:
@@ -1629,7 +1635,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-ncp-runtime-stdio-client:
@@ -1654,7 +1660,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-remote:
@@ -1747,7 +1753,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-service:
@@ -1850,7 +1856,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-shared:
@@ -1869,7 +1875,7 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-ui:
@@ -2026,7 +2032,7 @@ importers:
         specifier: ^8.0.3
         version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@25.5.0)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   workers/marketplace-api:
@@ -2048,7 +2054,7 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
       vitest:
-        specifier: ^4.1.2
+        specifier: 4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       wrangler:
         specifier: ^4.45.0
@@ -5173,6 +5179,7 @@ packages:
   cron-parser@4.9.0:
     resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
     engines: {node: '>=12.0.0'}
+    deprecated: v4 is no longer maintained, upgrade to v5
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -9048,7 +9055,7 @@ packages:
         optional: true
 
   xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz:
-    resolution: {integrity: sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==, tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz}
+    resolution: {tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz}
     version: 0.20.3
     engines: {node: '>=0.8'}
     hasBin: true
@@ -11862,13 +11869,13 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@vueuse/integrations@12.8.2(axios@1.13.5)(change-case@5.4.4)(focus-trap@7.8.0)(qrcode@1.5.4)(typescript@5.9.3)':
+  '@vueuse/integrations@12.8.2(axios@1.16.1)(change-case@5.4.4)(focus-trap@7.8.0)(qrcode@1.5.4)(typescript@5.9.3)':
     dependencies:
       '@vueuse/core': 12.8.2(typescript@5.9.3)
       '@vueuse/shared': 12.8.2(typescript@5.9.3)
       vue: 3.5.28(typescript@5.9.3)
     optionalDependencies:
-      axios: 1.13.5(debug@4.4.3)
+      axios: 1.16.1
       change-case: 5.4.4
       focus-trap: 7.8.0
       qrcode: 1.5.4
@@ -15205,7 +15212,7 @@ snapshots:
       regex: 6.1.0
       regex-recursion: 6.0.2
 
-  openai@4.104.0(encoding@0.1.13)(ws@8.19.0)(zod@3.25.76):
+  openai@4.104.0(encoding@0.1.13)(ws@8.21.3)(zod@3.25.76):
     dependencies:
       '@types/node': 18.19.130
       '@types/node-fetch': 2.6.13
@@ -15215,7 +15222,7 @@ snapshots:
       formdata-node: 4.4.1
       node-fetch: 2.7.0(encoding@0.1.13)
     optionalDependencies:
-      ws: 8.19.0
+      ws: 8.21.3
       zod: 3.25.76
     transitivePeerDependencies:
       - encoding
@@ -16910,7 +16917,7 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  vitepress@1.6.4(@algolia/client-search@5.49.0)(@types/node@25.5.0)(@types/react@18.3.28)(axios@1.13.5)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.8)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@5.9.3):
+  vitepress@1.6.4(@algolia/client-search@5.49.0)(@types/node@25.5.0)(@types/react@18.3.28)(axios@1.16.1)(change-case@5.4.4)(lightningcss@1.32.0)(postcss@8.5.8)(qrcode@1.5.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@5.9.3):
     dependencies:
       '@docsearch/css': 3.8.2
       '@docsearch/js': 3.8.2(@algolia/client-search@5.49.0)(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)
@@ -16923,7 +16930,7 @@ snapshots:
       '@vue/devtools-api': 7.7.9
       '@vue/shared': 3.5.28
       '@vueuse/core': 12.8.2(typescript@5.9.3)
-      '@vueuse/integrations': 12.8.2(axios@1.13.5)(change-case@5.4.4)(focus-trap@7.8.0)(qrcode@1.5.4)(typescript@5.9.3)
+      '@vueuse/integrations': 12.8.2(axios@1.16.1)(change-case@5.4.4)(focus-trap@7.8.0)(qrcode@1.5.4)(typescript@5.9.3)
       focus-trap: 7.8.0
       mark.js: 8.11.1
       minisearch: 7.2.0

@@ -5,6 +5,10 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
+import {
+  DESKTOP_SQLITE_NATIVE_BINARY_RELATIVE_PATH,
+  resolveDesktopNativeResourcePackageNames
+} from "../../apps/desktop/scripts/prepare-native-app-resources.mjs";
 
 const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
@@ -23,15 +27,6 @@ const channelExtensionPackages = [
 const nextclawPackageJsonPath = resolve(rootDir, "packages/nextclaw/package.json");
 const isHandoffVerify = process.argv.includes("--handoff");
 const RUNTIME_BUNDLE_FILE_BUDGET = 400;
-const SHARP_RUNTIME_BASE_PACKAGE_NAMES = ["sharp", "detect-libc", "semver", "@img/colour"];
-const SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET = {
-  "darwin-arm64": ["@img/sharp-darwin-arm64", "@img/sharp-libvips-darwin-arm64"],
-  "darwin-x64": ["@img/sharp-darwin-x64", "@img/sharp-libvips-darwin-x64"],
-  "linux-arm64": ["@img/sharp-linux-arm64", "@img/sharp-libvips-linux-arm64"],
-  "linux-x64": ["@img/sharp-linux-x64", "@img/sharp-libvips-linux-x64"],
-  "win32-arm64": ["@img/sharp-win32-arm64"],
-  "win32-x64": ["@img/sharp-win32-x64"]
-};
 
 function binName(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
@@ -72,15 +67,6 @@ function readUsablePython3Path() {
     }
   }
   return "";
-}
-
-function resolveSharpRuntimePackageNames(platform, arch) {
-  const target = `${platform}-${arch}`;
-  const nativePackageNames = SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET[target];
-  if (!nativePackageNames) {
-    throw new Error(`Unsupported sharp native dependency target for desktop runtime bundle: ${target}`);
-  }
-  return [...SHARP_RUNTIME_BASE_PACKAGE_NAMES, ...nativePackageNames];
 }
 
 function ensureMacPythonCommand() {
@@ -239,7 +225,8 @@ function assertSeedBundleVersion(seedBundlePath) {
 
 function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
   const expectedChannelExtensionPackages = JSON.stringify(channelExtensionPackages);
-  const allowedRuntimeNodeModulePackageNames = JSON.stringify(resolveSharpRuntimePackageNames(platform, arch));
+  const allowedRuntimeNodeModulePackageNames = JSON.stringify(resolveDesktopNativeResourcePackageNames(platform, arch));
+  const requiredSqliteNativeBinaryPath = JSON.stringify(`bundle/${DESKTOP_SQLITE_NATIVE_BINARY_RELATIVE_PATH.replaceAll("\\", "/")}`);
   const script = [
     "const JSZip=require('jszip');",
     "const fs=require('fs');",
@@ -247,6 +234,7 @@ function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
     `const runtimeFileBudget=${RUNTIME_BUNDLE_FILE_BUDGET};`,
     `const expectedChannelExtensionPackages=${expectedChannelExtensionPackages};`,
     `const allowedRuntimeNodeModulePackageNames=${allowedRuntimeNodeModulePackageNames};`,
+    `const requiredSqliteNativeBinaryPath=${requiredSqliteNativeBinaryPath};`,
     "function packageNameToZipPath(packageName) {",
     "  return `bundle/node_modules/${packageName}/package.json`;",
     "}",
@@ -273,6 +261,7 @@ function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
     "    if (missingRuntimeNodeModulePackageNames.length > 0) {",
     "      throw new Error(`seed bundle is missing native runtime dependencies: ${missingRuntimeNodeModulePackageNames.join(', ')}`);",
     "    }",
+    "    if (!zip.file(requiredSqliteNativeBinaryPath)) throw new Error(`seed bundle is missing SQLite native binary: ${requiredSqliteNativeBinaryPath}`);",
     "    const runtimeFiles = entries.filter((name) => name.startsWith('bundle/runtime/') && !zip.files[name].dir);",
     "    if (runtimeFiles.length > runtimeFileBudget) {",
     "      throw new Error(`seed bundle runtime file count ${runtimeFiles.length} exceeds budget ${runtimeFileBudget}: ${zipPath}`);",
@@ -299,15 +288,20 @@ function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
   console.log(`[desktop-verify] seed bundle runtime shape verified (${result.stdout.trim()}): ${seedBundlePath}`);
 }
 
-function assertDesktopPackageExcludesNestedElectron(appRoot) {
-  const nestedElectronPath = resolve(appRoot, "Contents/Resources/app.asar.unpacked/node_modules/electron");
+function assertMacDesktopPackageRuntimeShape(appRoot) {
+  const unpackedResourcesRoot = resolve(appRoot, "Contents/Resources/app.asar.unpacked");
+  const nestedElectronPath = resolve(unpackedResourcesRoot, "node_modules/electron");
   if (existsSync(nestedElectronPath)) {
     throw new Error(`Packaged desktop app embeds nested Electron runtime: ${nestedElectronPath}`);
+  }
+  const sqliteNativeBinaryPath = resolve(unpackedResourcesRoot, DESKTOP_SQLITE_NATIVE_BINARY_RELATIVE_PATH);
+  if (!existsSync(sqliteNativeBinaryPath)) {
+    throw new Error(`Packaged desktop app is missing SQLite native binary: ${sqliteNativeBinaryPath}`);
   }
   console.log(`[desktop-verify] desktop app excludes nested Electron runtime: ${appRoot}`);
 }
 
-function verifySeedBundleRuntimeInit(seedBundlePath) {
+function verifySeedBundleRuntimeInit(seedBundlePath, electronExecutablePath) {
   const tempRoot = mkdtempSync(join(tmpdir(), "nextclaw-seed-runtime-verify-"));
   const extractRoot = resolve(tempRoot, "extract");
   const runtimeHome = resolve(tempRoot, "home");
@@ -317,9 +311,10 @@ function verifySeedBundleRuntimeInit(seedBundlePath) {
     if (!existsSync(runtimeScriptPath)) {
       throw new Error(`Packaged seed runtime script missing: ${runtimeScriptPath}`);
     }
-    run(binName("node"), [runtimeScriptPath, "init"], {
+    run(electronExecutablePath, [runtimeScriptPath, "init"], {
       env: {
-        NEXTCLAW_HOME: runtimeHome
+        NEXTCLAW_HOME: runtimeHome,
+        ELECTRON_RUN_AS_NODE: "1"
       }
     });
     console.log(`[desktop-verify] seed runtime init verified: ${runtimeScriptPath}`);
@@ -396,10 +391,13 @@ function verifyMacDesktopPackage() {
     packagedPublicKeyPath,
     `https://Peiiii.github.io/nextclaw/desktop-updates/stable/manifest-stable-darwin-${arch}.json`
   );
-  assertDesktopPackageExcludesNestedElectron(mountedAppRoot);
+  assertMacDesktopPackageRuntimeShape(mountedAppRoot);
   assertSeedBundleVersion(seedBundlePath);
   assertSeedBundleRuntimeShape(seedBundlePath, process.platform, arch);
-  verifySeedBundleRuntimeInit(seedBundlePath);
+  verifySeedBundleRuntimeInit(
+    seedBundlePath,
+    resolve(mountedAppRoot, "Contents", "MacOS", "NextClaw Desktop")
+  );
   run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"]);
   if (isHandoffVerify) {
     run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"], {

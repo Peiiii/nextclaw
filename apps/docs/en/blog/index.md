@@ -14,6 +14,7 @@ If you want the broader public project layer first, start here:
 
 ## Latest
 
+- [2026-08-24 · Long sessions no longer get stuck on truncated compaction summaries](./2026-08-24-context-compaction-without-dead-ends)
 - [2026-08-20 · From 6.94 Seconds to as Fast as 1.13: NextClaw Reopens Large Sessions About 6× Faster](./2026-08-20-large-tool-session-performance)
 - [2026-07-18 · Access Your NextClaw from Anywhere](./2026-07-18-remote-access-your-nextclaw)
 - [2026-07-16 · A Self-Hostable Codex / WorkBuddy with Built-In Mini Apps](./2026-07-16-self-hosted-codex-workbuddy-panel-apps)

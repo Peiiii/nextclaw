@@ -3,7 +3,9 @@ title: "让上下文压缩不再卡死会话：NextClaw 的三层恢复机制"
 description: "从 finishReason=length 到可验证前缀、有限重试与零模型调用熔断：一次长会话连续性修复。"
 releaseBlogTarget: next-stable
 releaseBlogChangeset: context-compaction-truncation
-releaseBlogState: draft
+releaseBlogState: ready
+releaseBlogZhPath: apps/docs/zh/blog/2026-08-24-context-compaction-without-dead-ends.md
+releaseBlogEnPath: apps/docs/en/blog/2026-08-24-context-compaction-without-dead-ends.md
 ---
 
 # 让上下文压缩不再卡死会话：NextClaw 的三层恢复机制

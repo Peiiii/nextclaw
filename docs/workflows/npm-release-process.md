@@ -120,7 +120,14 @@ Behavior is intentionally explicit:
 
 ## Stable NPM and product shortcuts
 
-Use the NPM-only owner when the goal is to make the stable package batch installable as early as
+Formal stable production releases are owned by `.github/workflows/release.yml` and run on GitHub-hosted runners with npm Trusted Publishing. Dispatch it from `master` and select:
+
+- `target=npm` for `NPM_READY` only;
+- `target=product` for NPM plus the stable Runtime channel and previous-version upgrade verification.
+
+The repository-local commands below remain the dry-run, diagnostic, and recovery implementation primitives. They are not the recommended production trigger after the Actions workflow is configured.
+
+Use the local NPM-only primitive when auditing or recovering a stable package batch:
 possible:
 
 ```bash
@@ -141,7 +148,7 @@ this order: explicit `NPM_CONFIG_USERCONFIG`, current worktree `.npmrc`, primary
 It prints the absolute config path and `npm whoami` identity, and refuses to fall back to ambient
 `~/.npmrc` for a formal publish.
 
-For the conventional NextClaw stable product release, use:
+For a local dry-run or explicit recovery of the conventional product closure, use:
 
 ```bash
 pnpm release:product:stable -- --dry-run
@@ -157,14 +164,14 @@ The product command performs one staged closure:
 3. publish immutable tarballs concurrently, verify every package identity/integrity/latest, close
    release commit/tags and local/remote target branches, and run a public cold tarball payload audit;
    then report `NPM_READY` only when the measured wall time remains below 60 seconds;
-4. validate structured release notes and the applicable docs/website/X release plan;
+4. report structured release notes and the applicable docs/website/X release plan as `CONTENT_READY` or `CONTENT_PENDING` without invalidating the core release;
 5. trigger and wait for the stable runtime workflow, then verify the GitHub Release assets,
    `gh-pages`, and public manifests;
 6. upgrade from the previous stable through
    `--check`, `--download-only`, `--apply`, and a new process version check.
 
-Release notes and surface material can block the product/runtime closure, but they do not block the
-NPM package stage. Recovery never repeats a successful publish. Resume from the failed boundary with
+Release notes and surface material are an asynchronous enrichment state and do not block the NPM or
+Runtime core stages. Recovery never repeats a successful publish. Resume from the failed boundary with
 the exact versions printed by the command; `release:stable` remains the compatible internal owner:
 
 ```bash

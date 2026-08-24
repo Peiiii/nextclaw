@@ -75,16 +75,18 @@ function buildExtensionsView(options: UiRouterOptions): UiExtensionsView {
 export class AppRoutesController {
   constructor(private readonly options: UiRouterOptions) {}
 
-  readonly health = (c: Context) =>
-    c.json(
+  readonly health = (c: Context) => {
+    const bootstrapStatus = this.options.bootstrapStatus?.getStatus() ?? buildFallbackBootstrapStatus();
+    return c.json(
       ok({
         status: "ok",
         services: {
-          ncpAgent: "ready",
+          ncpAgent: bootstrapStatus.ncpAgent.state,
           cronService: this.options.cron ? "ready" : "unavailable"
         }
       })
     );
+  };
 
   readonly appMeta = (c: Context) => c.json(ok(buildAppMetaView(this.options)));
 

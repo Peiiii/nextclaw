@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.42.3",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-24",
+  "title": {
+    "zh-CN": "NextClaw v0.42.3",
+    "en-US": "NextClaw v0.42.3"
+  },
+  "summary": {
+    "zh-CN": "让长会话从截断的压缩摘要中恢复，并新增持续关注、会话目录可靠性与 Desktop 启动修复。",
+    "en-US": "Keeps long sessions moving after truncated compaction summaries, with continuous attention, session reliability, and Desktop startup fixes."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-24-nextclaw-v0-42-3",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-24-nextclaw-v0-42-3"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "持续关注", "en-US": "Continuous attention" },
+          "body": {
+            "zh-CN": "Agent 可以绑定持续刷新的 Context、订阅外部事件，并在会话时间线中接收可见事件卡片。",
+            "en-US": "Agents can bind refreshing Context, subscribe to external events, and receive visible event cards in the session timeline."
+          }
+        },
+        {
+          "title": { "zh-CN": "无界面执行", "en-US": "Headless execution" },
+          "body": {
+            "zh-CN": "新增实验性的 nextclaw exec 命令与 Harness SDK，可从脚本启动 Agent、Session 和 Run。",
+            "en-US": "The experimental nextclaw exec command and Harness SDK can start Agents, Sessions, and Runs from scripts."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "上下文压缩恢复", "en-US": "Compaction recovery" },
+          "body": {
+            "zh-CN": "摘要输出被截断时，会优先保留可验证的关键内容、有限缩小输入重试，并在必要时保留近期原文继续会话。",
+            "en-US": "When summary output is truncated, NextClaw preserves a verified essential prefix, retries with smaller input, and can retain recent source messages to keep the session moving."
+          }
+        },
+        {
+          "title": { "zh-CN": "会话历史可靠性", "en-US": "Session history reliability" },
+          "body": {
+            "zh-CN": "会话目录迁移到 SQLite，并支持从旧索引和 journal 恢复，减少刷新或并发运行后会话从列表消失的问题。",
+            "en-US": "The session catalog moves to SQLite and can rebuild from legacy indexes and journals, reducing missing sessions after refreshes or concurrent runtime use."
+          }
+        },
+        {
+          "title": { "zh-CN": "Desktop 启动", "en-US": "Desktop startup" },
+          "body": {
+            "zh-CN": "安装包包含匹配 Electron 的 SQLite 原生模块，并等待 NCP Agent 真正 ready 后再报告启动成功。",
+            "en-US": "Installers include an Electron-compatible native SQLite module and report successful startup only after the NCP Agent is ready."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "兼容性", "en-US": "Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "自动迁移", "en-US": "Automatic migration" },
+          "body": {
+            "zh-CN": "旧会话目录会在使用时自动迁移，原始会话 journal 保留不变。",
+            "en-US": "Legacy session catalogs migrate on use while original session journals remain unchanged."
+          }
+        }
+      ]
+    }
+  ]
+}

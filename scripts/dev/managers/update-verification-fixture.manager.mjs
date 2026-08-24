@@ -252,8 +252,6 @@ export class UpdateVerificationFixtureManager {
         updateRoot,
         "--bundle-base-url",
         pathToFileURL(finalChannelDir).toString(),
-        "--offline",
-        "true",
         "--compression-level",
         "1",
         "--skip-build",

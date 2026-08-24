@@ -204,6 +204,9 @@
     "ws": "^8.18.0"
   },
   "pnpm": {
+    "overrides": {
+      "vitest": "4.1.2"
+    },
     "patchedDependencies": {
       "qq-official-bot@1.2.4": "patches/qq-official-bot@1.2.4.patch"
     }

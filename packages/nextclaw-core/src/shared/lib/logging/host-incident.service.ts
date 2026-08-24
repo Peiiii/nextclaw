@@ -1,9 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { getDataPath } from "../core-utils/utils/helpers.utils.js";
 
 export const HOST_INCIDENT_SCHEMA_VERSION = 1;
+
+function resolveDefaultDataPath(): string {
+  return resolve(process.env.NEXTCLAW_HOME?.trim() || join(homedir(), ".nextclaw"));
+}
 
 export type HostIncidentReasonCode =
   | "controlled-exit"
@@ -174,7 +178,7 @@ export class HostIncidentStore {
   private readonly createId: () => string;
 
   constructor(options: HostIncidentStoreOptions = {}) {
-    this.rootDir = resolve(options.rootDir ?? join(getDataPath(), "diagnostics", "host-incidents"));
+    this.rootDir = resolve(options.rootDir ?? join(resolveDefaultDataPath(), "diagnostics", "host-incidents"));
     this.now = options.now ?? (() => new Date());
     this.createId = options.createId ?? randomUUID;
   }

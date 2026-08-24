@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, describe, it } from "node:test";
-import { HostIncidentStore } from "@nextclaw/core";
+import { HostIncidentStore } from "@nextclaw/core/host-incident";
 import { DesktopHostDiagnosticsService } from "./desktop-host-diagnostics.service";
 
 describe("DesktopHostDiagnosticsService", () => {

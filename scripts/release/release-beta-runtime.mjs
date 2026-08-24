@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
+import { readCoreReleaseNotes } from "./release-core-notes.mjs";
 
 const ROOT_DIR = process.cwd();
 const REPO = "Peiiii/nextclaw";
@@ -129,22 +130,8 @@ function readPublishedVersion(channel) {
 }
 
 function readStableReleaseNotesUrl(nextclawVersion) {
-  const metadataPath = resolve(ROOT_DIR, `apps/docs/public/release-notes/nextclaw-v${nextclawVersion}.json`);
-  let metadata;
-  try {
-    metadata = JSON.parse(readFileSync(metadataPath, "utf8"));
-  } catch (error) {
-    throw new Error(
-      `Stable NPM runtime release requires structured release notes at ${metadataPath}: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
-  }
-  const releaseNotesUrl = metadata?.links?.html?.["en-US"] || metadata?.links?.html?.["zh-CN"] || "";
-  if (!releaseNotesUrl) {
-    throw new Error(`Stable NPM runtime release notes URL is missing in ${metadataPath}.`);
-  }
-  return releaseNotesUrl;
+  return readCoreReleaseNotes(ROOT_DIR, nextclawVersion, REPO)
+    .releaseNotesUrl;
 }
 
 function sleep(ms) {
@@ -325,11 +312,18 @@ async function main() {
   console.log(`- runtime manifest verification: ${publicManifestSummary.source} (${publicManifestSummary.pagesStatus})`);
 }
 
-try {
-  await main();
-} catch (error) {
-  console.error(
-    error instanceof Error ? `[release:beta:runtime] ${error.message}` : "[release:beta:runtime] unknown error"
-  );
-  process.exit(1);
+if (
+  !process.env.NODE_TEST_CONTEXT &&
+  resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)
+) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(
+      error instanceof Error
+        ? `[release:beta:runtime] ${error.message}`
+        : "[release:beta:runtime] unknown error",
+    );
+    process.exit(1);
+  }
 }

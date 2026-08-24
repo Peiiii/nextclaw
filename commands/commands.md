@@ -68,7 +68,7 @@
 
 - 用途：尽快发布当前待发布的 stable NPM package batch。
 - 输入格式：`/发布NPM`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 package 阶段。release-bearing `master` commit 的 version、strict check、artifact audit 和 tarball pack 必须已由 `npm-release-prepare` workflow 提前完成；用户无需知道或补说 prepare 命令。授权后直接执行 `pnpm release:npm:stable`，只定位/下载 HEAD 对应预制物、并发首次上传、逐包 version/integrity/latest registry 验证、空缓存公网精确 tarball/payload 审计和 Git 目标分支闭合；下载也计入 `NPM_READY` 的 60 秒硬目标。缺少有效预制物时快速失败，不在发布窗口重建。完整依赖安装/升级归产品正式版后续集成阶段。该命令只授权 NPM `latest` 及必要 Git 写入；不授权 runtime channel、desktop、文档站、官网或 X。完成后明确报告真实耗时、实际上传包数、验证闭包、版本与排除项。
+- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 package 阶段。release-bearing `master` commit 的 version、strict check、artifact audit 和 tarball pack 必须已由 `npm-release-prepare` workflow 提前完成；用户无需知道或补说 prepare 命令。授权后从 `master` dispatch GitHub Actions `release.yml`，选择 `target=npm`；workflow 通过 OIDC 定位/下载 HEAD 对应预制物、并发首次上传、逐包 version/integrity/latest registry 验证、空缓存公网精确 tarball/payload 审计和 Git 目标分支闭合。下载也计入 `NPM_READY` 的 60 秒硬目标。缺少有效预制物时快速失败，不在发布窗口重建。该命令只授权 NPM `latest` 及必要 Git 写入；不授权 runtime channel、desktop、文档站、官网或 X。
 
 ## `/发布NPM测试版`
 
@@ -80,7 +80,7 @@
 
 - 用途：发布 NextClaw 常规 stable 产品版本，明确不包含桌面端。
 - 输入格式：`/发布NextClaw正式版`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 先路由 `nextclaw-npm-release`，执行 `pnpm release:product:stable`。先闭合 NPM package 并立即报告 `NPM_READY`，再继续结构化 release notes、stable runtime channel、旧版本升级验证和适用的文档站/官网/X 合同；这些下游材料不得前置阻塞 NPM publish。最终报告 `NEXTCLAW_STABLE_READY`；不调用 desktop owner。
+- 输出/期望行为：由 `development-delivery` 先路由 `nextclaw-npm-release`，从 `master` dispatch GitHub Actions `release.yml`，选择 `target=product`。workflow 先闭合 NPM package 并报告 `NPM_READY`，再继续 stable runtime channel 与旧版本升级验证；结构化 release notes、文档站、官网和 X 以同一版本的 `CONTENT_READY|CONTENT_PENDING` 独立报告，不阻塞核心发布，也不调用 desktop owner。最终报告 `NEXTCLAW_STABLE_READY`。
 
 ## `/发布NextClaw桌面版`
 

@@ -8,7 +8,9 @@
     "baseUrl": ".",
     "paths": {
       "@nextclaw/core": ["../../packages/nextclaw-core/dist/index.d.ts"],
-      "@nextclaw/kernel": ["../../packages/nextclaw-kernel/dist/index.d.ts"]
+      "@nextclaw/core/host-incident": ["../../packages/nextclaw-core/dist/shared/lib/logging/host-incident.service.d.ts"],
+      "@nextclaw/kernel": ["../../packages/nextclaw-kernel/dist/index.d.ts"],
+      "@nextclaw/kernel/automatic-update-check": ["../../packages/nextclaw-kernel/dist/utils/automatic-update-check.utils.d.ts"]
     }
   },
   "include": ["src/**/*.ts"]

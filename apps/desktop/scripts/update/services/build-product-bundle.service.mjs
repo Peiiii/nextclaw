@@ -2,10 +2,10 @@
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { cp, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import JSZip from "jszip";
+import { prepareDesktopNativeResources } from "../../prepare-native-app-resources.mjs";
 import {
   normalizeDesktopUpdateChannel,
   resolveGovernedMinimumLauncherVersion
@@ -19,16 +19,6 @@ const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
 const RUNTIME_BUNDLE_FILE_BUDGET = 400;
 const RUNTIME_ENTRYPOINT = "runtime/dist/cli/app/index.js";
 const SESSION_SEARCH_WORKER_RELATIVE_PATH = "features/session-search/worker/session-search-worker-host.utils.js";
-const requireFromCore = createRequire(join(nextclawCorePackageRoot, "package.json"));
-const SHARP_RUNTIME_BASE_PACKAGE_NAMES = ["sharp", "detect-libc", "semver", "@img/colour"];
-const SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET = {
-  "darwin-arm64": ["@img/sharp-darwin-arm64", "@img/sharp-libvips-darwin-arm64"],
-  "darwin-x64": ["@img/sharp-darwin-x64", "@img/sharp-libvips-darwin-x64"],
-  "linux-arm64": ["@img/sharp-linux-arm64", "@img/sharp-libvips-linux-arm64"],
-  "linux-x64": ["@img/sharp-linux-x64", "@img/sharp-libvips-linux-x64"],
-  "win32-arm64": ["@img/sharp-win32-arm64"],
-  "win32-x64": ["@img/sharp-win32-x64"]
-};
 const CHANNEL_EXTENSION_PACKAGE_DIRS = [
   "nextclaw-channel-extension-dingtalk",
   "nextclaw-channel-extension-discord",
@@ -86,20 +76,6 @@ function runCommand(command, args, cwd) {
   }
 }
 
-function resolveSharpRuntimePackageNames(options) {
-  const target = `${options.platform}-${options.arch}`;
-  const nativePackageNames = SHARP_NATIVE_PACKAGE_NAMES_BY_TARGET[target];
-  if (!nativePackageNames) {
-    throw new Error(`Unsupported sharp native dependency target for desktop runtime bundle: ${target}`);
-  }
-  return [...SHARP_RUNTIME_BASE_PACKAGE_NAMES, ...nativePackageNames];
-}
-
-function resolveSharpInstallNodeModulesRoot() {
-  const sharpPackageJsonPath = requireFromCore.resolve("sharp/package.json");
-  return dirname(dirname(sharpPackageJsonPath));
-}
-
 function readRuntimeNodeModulePackageNames(nodeModulesRoot) {
   if (!existsSync(nodeModulesRoot)) {
     return [];
@@ -115,35 +91,6 @@ function readRuntimeNodeModulePackageNames(nodeModulesRoot) {
       .filter((scopedEntry) => scopedEntry.isDirectory())
       .map((scopedEntry) => `${entry.name}/${scopedEntry.name}`);
   });
-}
-
-async function copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, targetNodeModulesRoot) {
-  const pathSegments = packageName.split("/");
-  const sourceRoot = join(sourceNodeModulesRoot, ...pathSegments);
-  if (!existsSync(sourceRoot)) {
-    throw new Error(
-      [
-        `Missing installed package required by desktop runtime bundle: ${packageName}`,
-        "Run pnpm install with supportedArchitectures for the target platform and CPU before building the bundle."
-      ].join(" ")
-    );
-  }
-
-  const targetRoot = join(targetNodeModulesRoot, ...pathSegments);
-  rmSync(targetRoot, { recursive: true, force: true });
-  await mkdir(dirname(targetRoot), { recursive: true });
-  await cp(sourceRoot, targetRoot, { recursive: true, dereference: true });
-  rmSync(join(targetRoot, "node_modules"), { recursive: true, force: true });
-}
-
-async function copySharpRuntimeDependencies(workspace, options) {
-  const packageNames = resolveSharpRuntimePackageNames(options);
-  const sourceNodeModulesRoot = resolveSharpInstallNodeModulesRoot();
-  await mkdir(workspace.nativeDependenciesRoot, { recursive: true });
-  for (const packageName of packageNames) {
-    await copyRuntimeNodeModulePackage(packageName, sourceNodeModulesRoot, workspace.nativeDependenciesRoot);
-  }
-  return packageNames;
 }
 
 function writePackagedExtensionManifest(sourcePackageRoot, targetRoot) {
@@ -220,6 +167,7 @@ function createBundleWorkspace(tempRoot) {
     runtimeRoot,
     runtimeEntrypointDir,
     nativeDependenciesRoot: join(bundleRoot, "node_modules"),
+    nativeResourcesRoot: join(tempRoot, "native-app-resources"),
     uiRoot,
     pluginsRoot
   };
@@ -239,8 +187,8 @@ function bundleRuntimeEntrypoint(workspace) {
       "node",
       "--target",
       "es2022",
-      "--deps.never-bundle",
-      "sharp",
+      "--deps.neverBundle",
+      "/^(?:sharp|better-sqlite3)$/",
       "--out-dir",
       workspace.runtimeEntrypointDir,
       "--shims",
@@ -300,7 +248,7 @@ function bundlePackagedExtensionEntrypoint(sourcePackageRoot, targetRoot) {
       "node",
       "--target",
       "es2022",
-      "--deps.never-bundle",
+      "--deps.neverBundle",
       "sharp",
       "--out-dir",
       join(targetRoot, "dist"),
@@ -361,7 +309,16 @@ async function prepareBundleWorkspace(workspace, options) {
   await mkdir(workspace.bundleRoot, { recursive: true });
   bundleRuntimeEntrypoint(workspace);
   await copyRuntimeAssets(workspace);
-  const nativeRuntimeDependencies = await copySharpRuntimeDependencies(workspace, options);
+  const nativeResources = await prepareDesktopNativeResources({
+    outputRoot: workspace.nativeResourcesRoot,
+    platform: options.platform,
+    arch: options.arch
+  });
+  await cp(join(nativeResources.outputRoot, "node_modules"), workspace.nativeDependenciesRoot, {
+    recursive: true,
+    dereference: true
+  });
+  const nativeRuntimeDependencies = nativeResources.nativeResourcePackages;
   await copySessionSearchWorkerAssets(workspace);
   await writeFile(join(workspace.runtimeEntrypointDir, "index.js"), 'import "./index.mjs";\n', "utf8");
   assertRuntimeBundleContract(workspace.runtimeRoot, workspace.nativeDependenciesRoot, nativeRuntimeDependencies);

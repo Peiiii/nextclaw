@@ -13,7 +13,7 @@ type RuntimeServiceOptions = {
   scriptPath: string;
   runtimeEnv: NodeJS.ProcessEnv;
   startupTimeoutMs?: number;
-  healthPath?: string;
+  readinessPath?: string;
   onExit?: (input: { childPid: number | null | undefined; code: number | null; signal: string | null; expected: boolean }) => void;
 };
 
@@ -37,7 +37,7 @@ function spawnRuntimeScript(scriptPath: string, args: string[], env: NodeJS.Proc
 
 export class RuntimeServiceProcess {
   private readonly startupTimeoutMs: number;
-  private readonly healthPath: string;
+  private readonly readinessPath: string;
   private child: ChildProcess | null = null;
   private port: number | null = null;
   private stablePort: number | null = null;
@@ -49,7 +49,7 @@ export class RuntimeServiceProcess {
 
   constructor(private readonly options: RuntimeServiceOptions) {
     this.startupTimeoutMs = options.startupTimeoutMs ?? 25_000;
-    this.healthPath = options.healthPath ?? "/api/health";
+    this.readinessPath = options.readinessPath ?? "/api/runtime/bootstrap-status";
   }
 
   start = async (): Promise<{ port: number; baseUrl: string }> => {
@@ -96,7 +96,7 @@ export class RuntimeServiceProcess {
     this.port = port;
     const baseUrl = `http://127.0.0.1:${port}`;
     try {
-      await waitForHealth(`${baseUrl}${this.healthPath}`, this.startupTimeoutMs);
+      await waitForRuntimeReadiness(`${baseUrl}${this.readinessPath}`, this.startupTimeoutMs);
       this.restartAttempt = 0;
       this.options.logger.info(
         [
@@ -301,22 +301,55 @@ export function computeRuntimeRestartDelayMs(attempt: number): number {
   return Math.min(15_000, 500 * (2 ** (normalizedAttempt - 1)));
 }
 
-export async function waitForHealth(url: string, timeoutMs: number): Promise<void> {
+type RuntimeBootstrapStatusResponse = {
+  ok?: boolean;
+  data?: {
+    phase?: string;
+    lastError?: string;
+    ncpAgent?: {
+      state?: string;
+      error?: string;
+    };
+  };
+};
+
+export async function waitForRuntimeReadiness(url: string, timeoutMs: number): Promise<void> {
   const startedAt = Date.now();
+  let readySince: number | null = null;
   let lastError: unknown = null;
   while (Date.now() - startedAt < timeoutMs) {
+    let payload: RuntimeBootstrapStatusResponse | null = null;
     try {
       const response = await fetch(url, { method: "GET" });
       if (response.ok) {
-        return;
+        payload = await response.json() as RuntimeBootstrapStatusResponse;
+      } else {
+        lastError = new Error(`Unexpected status: ${response.status}`);
       }
-      lastError = new Error(`Unexpected status: ${response.status}`);
     } catch (error) {
       lastError = error;
     }
+
+    if (payload) {
+      const phase = payload.data?.phase;
+      const ncpAgentState = payload.data?.ncpAgent?.state;
+      const bootstrapError = payload.data?.ncpAgent?.error || payload.data?.lastError;
+      if (phase === "error" || ncpAgentState === "error") {
+        throw new Error(`Runtime bootstrap failed: ${bootstrapError || `phase=${String(phase)} ncpAgent=${String(ncpAgentState)}`}`);
+      }
+      if (payload.ok === true && ncpAgentState === "ready") {
+        readySince ??= Date.now();
+        if (Date.now() - readySince >= 1_000) {
+          return;
+        }
+      } else {
+        readySince = null;
+        lastError = new Error(`Runtime not ready: phase=${String(phase)} ncpAgent=${String(ncpAgentState)}`);
+      }
+    }
     await sleep(350);
   }
-  throw new Error(`Runtime health check timeout: ${String(lastError ?? "unknown error")}`);
+  throw new Error(`Runtime readiness check timeout: ${String(lastError ?? "unknown error")}`);
 }
 
 async function pickFreePort(): Promise<number> {

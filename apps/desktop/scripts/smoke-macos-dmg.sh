@@ -320,7 +320,11 @@ if [[ -f "${APP_MAIN_LOG}" ]]; then
 else
   MAIN_LOG_START_LINE=1
 fi
-"${APP_BIN}" >"${APP_STDOUT_LOG}" 2>&1 &
+APP_ARGS=()
+if [[ "${SMOKE_PROFILE}" == "isolated" ]]; then
+  APP_ARGS+=("--user-data-dir=${SMOKE_HOME}/electron-user-data")
+fi
+"${APP_BIN}" "${APP_ARGS[@]}" >"${APP_STDOUT_LOG}" 2>&1 &
 APP_PID="$!"
 
 START_MS="$(now_ms)"
@@ -354,7 +358,7 @@ while true; do
 
   NOW="$(date +%s)"
   if ((NOW - START_TIME >= STARTUP_TIMEOUT_SEC)); then
-    echo "[desktop-smoke] health API not ready within ${STARTUP_TIMEOUT_SEC}s." >&2
+    echo "[desktop-smoke] runtime bootstrap API not ready within ${STARTUP_TIMEOUT_SEC}s." >&2
     print_desktop_diagnostics
     exit 1
   fi
@@ -374,14 +378,19 @@ while true; do
   done < <(collect_candidate_ports "${PID_LIST[@]}")
 
   for port in "${PORT_LIST[@]}"; do
-    if curl -fsS --max-time 2 "http://127.0.0.1:${port}/api/health" >"${APP_HEALTH_LOG}" 2>/dev/null; then
-      if grep -q '"ok":true' "${APP_HEALTH_LOG}" && grep -q '"status":"ok"' "${APP_HEALTH_LOG}"; then
-        HEALTH_URL="http://127.0.0.1:${port}/api/health"
+    if curl -fsS --max-time 2 "http://127.0.0.1:${port}/api/runtime/bootstrap-status" >"${APP_HEALTH_LOG}" 2>/dev/null; then
+      if grep -q '"phase":"error"' "${APP_HEALTH_LOG}" || grep -Eq '"ncpAgent":\{[^}]*"state":"error"' "${APP_HEALTH_LOG}"; then
+        echo "[desktop-smoke] runtime bootstrap failed on port ${port}." >&2
+        print_desktop_diagnostics
+        exit 1
+      fi
+      if grep -q '"ok":true' "${APP_HEALTH_LOG}" && grep -Eq '"ncpAgent":\{[^}]*"state":"ready"' "${APP_HEALTH_LOG}"; then
+        HEALTH_URL="http://127.0.0.1:${port}/api/runtime/bootstrap-status"
         if desktop_window_ready; then
           READY_MS="$(($(now_ms) - START_MS))"
           run_command_surface_smoke
           echo "[desktop-smoke] GUI smoke passed in ${READY_MS}ms"
-          echo "[desktop-smoke] health check passed: ${HEALTH_URL}"
+          echo "[desktop-smoke] runtime bootstrap readiness passed: ${HEALTH_URL}"
           echo "[desktop-smoke] main log: ${APP_MAIN_LOG}"
           tail -n 80 "${APP_MAIN_LOG}" || true
           exit 0
