@@ -66,34 +66,6 @@ function findWorkflowDispatchRun(options) {
   return runs.find((entry) => entry.headSha === target);
 }
 
-function findExactWorkflowRun(options) {
-  const { repo, target, validationWorkflow } = options;
-  const runs = readJsonCommand("gh", [
-    "run",
-    "list",
-    "--repo",
-    repo,
-    "--workflow",
-    validationWorkflow,
-    "--limit",
-    "30",
-    "--json",
-    "databaseId,headSha,status,conclusion,url"
-  ]);
-  return runs.find((entry) => entry.headSha === target);
-}
-
-async function waitForExactWorkflowRun(options) {
-  for (let attempt = 1; attempt <= 30; attempt += 1) {
-    const runEntry = findExactWorkflowRun(options);
-    if (runEntry) {
-      return runEntry;
-    }
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, 5000));
-  }
-  throw new Error(`Timed out locating ${options.validationWorkflow} run for ${options.target}.`);
-}
-
 async function waitForWorkflowSuccess(options, runEntry, label) {
   const { repo, runAttempts, runDelayMs } = options;
   let previousLine = "";
@@ -129,25 +101,6 @@ async function waitForPreflightRun(options) {
 
 async function waitForPreflightSuccess(options, runEntry) {
   await waitForWorkflowSuccess(options, runEntry, "preflight");
-}
-
-export async function runRemoteValidation(options) {
-  const { branch, dryRun, repo, skipRemoteValidation, target, validationWorkflow } = options;
-  if (skipRemoteValidation) {
-    console.log("[desktop:release] exact-commit platform validation skipped by flag.");
-    return;
-  }
-  if (dryRun) {
-    console.log(`[desktop:release] would require ${validationWorkflow} success for ${target}`);
-    return;
-  }
-
-  let runEntry = findExactWorkflowRun(options);
-  if (!runEntry) {
-    run("gh", ["workflow", "run", validationWorkflow, "--repo", repo, "--ref", branch]);
-    runEntry = await waitForExactWorkflowRun(options);
-  }
-  await waitForWorkflowSuccess(options, runEntry, "platform validation");
 }
 
 export async function runRemotePreflight(options) {

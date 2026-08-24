@@ -10,11 +10,7 @@ import {
   dispatchReleaseWorkflow
 } from "./desktop-release-github.mjs";
 import { assertDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
-import {
-  assertPublishedDesktopRuntimeIdentity,
-  runRemotePreflight,
-  runRemoteValidation
-} from "./desktop-release-preflight.mjs";
+import { assertPublishedDesktopRuntimeIdentity, runRemotePreflight } from "./desktop-release-preflight.mjs";
 import {
   createReleaseWorktree,
   installReleaseWorktreeDependencies,
@@ -24,7 +20,6 @@ import {
 const ROOT_DIR = process.cwd();
 const DEFAULT_REPO = "Peiiii/nextclaw";
 const DEFAULT_PREFLIGHT_WORKFLOW = "desktop-release-preflight.yml";
-const DEFAULT_VALIDATION_WORKFLOW = "desktop-validate.yml";
 const DEFAULT_WORKFLOW = "desktop-release.yml";
 const DEFAULT_PUBLIC_ATTEMPTS = 24;
 const DEFAULT_PUBLIC_DELAY_MS = 10000;
@@ -58,7 +53,6 @@ Options:
   --branch <branch>               Branch to push/dispatch from. Defaults to the current branch
   --repo <owner/repo>             GitHub repository. Defaults to ${DEFAULT_REPO}
   --preflight-workflow <file>     Desktop release preflight workflow. Defaults to ${DEFAULT_PREFLIGHT_WORKFLOW}
-  --validation-workflow <file>    Exact-commit platform gate. Defaults to ${DEFAULT_VALIDATION_WORKFLOW}
   --workflow <file>               Desktop release workflow. Defaults to ${DEFAULT_WORKFLOW}
   --target <git-ref>              Release target. Defaults to the current HEAD SHA
   --notes-file <path>             GitHub-ready bilingual release body file (required for stable)
@@ -67,7 +61,6 @@ Options:
   --reuse-existing-release        Do not create the GitHub release; verify/close an existing tag
   --skip-local-verify             Skip pnpm desktop:package:verify
   --skip-remote-preflight         Skip GitHub signing-secret preflight
-  --skip-remote-validation        Skip exact-commit platform validation
   --skip-public-pages             Verify gh-pages only; skip public Pages propagation polling
   --release-worktree              Run local verification in a temporary detached worktree. This is the default.
   --no-release-worktree           Run local verification in the current checkout instead of a temporary worktree.
@@ -100,10 +93,8 @@ function parseArgs(argv) {
     skipLocalVerify: false,
     skipPublicPages: false,
     skipRemotePreflight: false,
-    skipRemoteValidation: false,
     tag: null,
     target: null,
-    validationWorkflow: DEFAULT_VALIDATION_WORKFLOW,
     workflow: DEFAULT_WORKFLOW
   };
 
@@ -122,7 +113,6 @@ function parseArgs(argv) {
       case "--runtime-version":
       case "--tag":
       case "--target":
-      case "--validation-workflow":
       case "--workflow":
         options[toCamelCase(arg.slice(2))] = readValue(args, index, arg);
         index += 1;
@@ -138,9 +128,6 @@ function parseArgs(argv) {
         break;
       case "--skip-remote-preflight":
         options.skipRemotePreflight = true;
-        break;
-      case "--skip-remote-validation":
-        options.skipRemoteValidation = true;
         break;
       case "--skip-public-pages":
         options.skipPublicPages = true;
@@ -430,7 +417,6 @@ async function executeRelease(options, aheadCount) {
 
   runLocalVerify(options);
   pushBranchIfNeeded(branch, aheadCount, options);
-  await runRemoteValidation(options);
   await runRemotePreflight(options);
   if (!reuseExistingRelease) {
     createDraftRelease(options);

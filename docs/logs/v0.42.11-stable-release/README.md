@@ -7,6 +7,7 @@
 - 根因通过真实 DMG 冷启动、Node/Electron ABI 对照、移除原生二进制后的负向 bootstrap 验证确认；修复统一了 native staging owner，并把 Desktop readiness 切到 `/api/runtime/bootstrap-status` 的 NCP agent 状态。
 - `better-sqlite3` 当前保留：系统 Node 22 的 `node:sqlite` 仍为实验能力，Electron 32 内置 Node 20.18.1 不提供 `node:sqlite`，不足以承担启动关键的会话目录。
 - Desktop 空壳 Release 的根因是把已公开的 `release.published` 事件当作跨平台构建入口：平台 build/smoke 在资产上传前失败时，GitHub 已经公开 Release identity，因而留下只有源码归档、没有下载资产的页面。该结论由 `v0.42.3-desktop.1` 至 `.4` 的 0 资产状态及对应 Actions 失败链确认；修复改为隐藏 Draft → 唯一身份 workflow dispatch → 五平台构建/烟测 → 精确核验 30 个资产 → 公开同一 Release，直接消除公开时序根因，而不是事后补链接。
+- 发布关键路径原先还会先等待 `desktop-validate` 构建一批不会发布的产物，再由正式 workflow 重建五平台资产；两批 bits 不同，既浪费约 8–12 分钟，也不能增强发布证明。现已删除该平行门禁，正式 workflow 对同一批生产 artifact 完成单次 build/smoke/upload/publish，日常 CI 保持独立。
 
 ## 测试/验证/验收方式
 
@@ -16,6 +17,7 @@
 - 真实 Desktop GUI 在 11.8 秒内完成窗口和 NCP agent readiness；移走临时 bundle 的 `better_sqlite3.node` 后，壳保持存活但 `ncpAgent.state=error`，证明新 readiness 门不会误判。
 - Desktop/Core/Server TypeScript、相关测试、脚本语法、lint、`git diff --check` 均通过；Windows/Ubuntu 安装器由发布 CI 补齐平台实机验证。
 - Desktop 原子公开修复通过 actionlint、13 项发布合同测试、ESLint、脚本语法、diff-only 治理与稳定发布 dry-run；真实隐藏 Draft 的临时资产上传状态为 `uploaded` 且大小非零，删除后恢复 0 资产。未登录公开 API 对 `.1` 至 `.4` 均返回 404；既有完整 stable Release `v0.42.2-desktop.1` 精确匹配 30 个资产。
+- Desktop 单次构建合同由发布测试证明：CLI 只做身份/签名 preflight，正式 workflow 内五平台 build、安装/启动冒烟、artifact upload 与 Draft 公开形成同一 run；发布 dry-run 不再等待 `desktop-validate`。
 
 ## 发布/部署方式
 

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   assertDesktopReleaseAssetMetadata,
   assertDesktopReleaseAssetSet,
+  buildDesktopReleaseObservation,
   buildExpectedDesktopReleaseAssetNames
 } from "./desktop-release-closure.mjs";
 
@@ -71,6 +72,48 @@ test("rejects an asset that is empty or not fully uploaded", () => {
   );
 });
 
+test("builds structured workflow timing and process observations", () => {
+  const observation = buildDesktopReleaseObservation({
+    conclusion: "success",
+    databaseId: 42,
+    headSha: "abc123",
+    jobs: [
+      {
+        completedAt: "2026-08-25T00:00:12Z",
+        conclusion: "success",
+        name: "desktop-win32-x64",
+        startedAt: "2026-08-25T00:00:02Z",
+        status: "completed",
+        steps: [
+          {
+            completedAt: "2026-08-25T00:00:05Z",
+            conclusion: "success",
+            name: "Build",
+            startedAt: "2026-08-25T00:00:02Z"
+          },
+          {
+            completedAt: "2026-08-25T00:00:11Z",
+            conclusion: "success",
+            name: "Smoke",
+            startedAt: "2026-08-25T00:00:05Z"
+          }
+        ]
+      }
+    ],
+    status: "completed"
+  });
+
+  assert.equal(observation.schema, "nextclaw.desktop-release/v1");
+  assert.equal(observation.runId, 42);
+  assert.equal(observation.wallMs, 10_000);
+  assert.equal(observation.jobs[0].durationMs, 10_000);
+  assert.deepEqual(observation.jobs[0].slowestStep, {
+    conclusion: "success",
+    durationMs: 6_000,
+    name: "Smoke"
+  });
+});
+
 test("desktop publication is Draft-first and workflow-dispatched", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/desktop-release.yml", import.meta.url), "utf8");
   const releaseScript = readFileSync(new URL("./release-desktop.mjs", import.meta.url), "utf8");
@@ -99,5 +142,22 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
   assert.match(
     releaseScript,
     /createDraftRelease\(options\)[\s\S]*?dispatchReleaseWorkflow\(options\)[\s\S]*?waitForDesktopReleaseClosure\(\{ \.\.\.options, \.\.\.workflowDispatch \}\)/
+  );
+  assert.doesNotMatch(releaseScript, /runRemoteValidation|validationWorkflow|skipRemoteValidation/);
+  assert.match(
+    releaseScript,
+    /runRemotePreflight\(options\)[\s\S]*?createDraftRelease\(options\)[\s\S]*?dispatchReleaseWorkflow\(options\)/
+  );
+  assert.match(
+    workflow,
+    /build-desktop:[\s\S]*?Build Desktop \(macOS\)[\s\S]*?Smoke Desktop Install \(macOS DMG\)[\s\S]*?Upload desktop artifacts \(macOS\)/
+  );
+  assert.match(
+    workflow,
+    /build-desktop:[\s\S]*?Build Desktop \(Windows\)[\s\S]*?Smoke Desktop \(Windows\)[\s\S]*?Upload desktop artifacts \(Windows\)/
+  );
+  assert.match(
+    workflow,
+    /build-desktop:[\s\S]*?Build Desktop \(Linux\)[\s\S]*?Smoke Desktop \(Linux AppImage\)[\s\S]*?Upload desktop artifacts \(Linux\)/
   );
 });

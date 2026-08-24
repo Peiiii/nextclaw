@@ -38,10 +38,10 @@ preflight
 目标链路：
 
 ```text
-local verify + exact-commit platform validation + signing preflight
+local verify + signing preflight
   -> 创建隐藏 Draft（同一 tag/target/notes）
   -> workflow_dispatch(release_tag, release_notes_url)
-  -> 五平台 build/smoke
+  -> 五平台单次 build/smoke（产物与验证对象相同）
   -> 上传全部资产到 Draft
   -> 精确资产集合核验
   -> 公开同一 Release
@@ -49,6 +49,8 @@ local verify + exact-commit platform validation + signing preflight
   -> 外部 closure
   -> DESKTOP_READY
 ```
+
+`desktop-validate.yml` 继续作为 PR、主干和手工触发的日常 CI owner，但不再是正式发布命令的前置门禁。正式 `desktop-release.yml` 已经对将要上传的五平台产物逐一执行安装或启动冒烟；先等待 `desktop-validate` 再进入正式 workflow 会构建两批不同产物，既增加约 8–12 分钟关键路径，也不能证明第二批发布产物等价。发布正确性的唯一权威证据必须来自正式 workflow 内对同批不可变产物的验证。
 
 ## 三、方案选择
 
@@ -85,6 +87,7 @@ local verify + exact-commit platform validation + signing preflight
 
 - `createRelease` 增加 `--draft`，并在创建后验证 `isDraft=true`。
 - 本地脚本显式 dispatch `desktop-release.yml`，并按 `workflow_dispatch + exact target SHA` 定位本次 run。
+- 删除正式发布 CLI 对 `desktop-validate.yml` 的等待、跳过参数和相关平行验证 owner；日常 CI 不参与发布状态迁移。
 - 删除 `desktop-release.yml` 的 `release.published` 触发器及相关事件分支。
 - Actions 在矩阵启动前再次要求目标 Release 为 Draft，手工错误触发也快速失败，不浪费平台构建时间。
 - 资产 job 只允许向现有 Draft 上传；上传后复用 closure 的唯一资产合同核验完整集合。
@@ -93,6 +96,15 @@ local verify + exact-commit platform validation + signing preflight
 - update channel job 依赖公开 job；APT recovery 保留显式 `publish_linux_apt_only` 路径。
 - 不新增长期 token、第二个 workflow、兼容性的公开旧入口或“失败也先发”的 fallback。
 
+## 五点一、时间合同与单次构建不变量
+
+1. 一次正式发布的生产产物只能由 `desktop-release.yml` 的五平台 matrix 各构建一次；冒烟、上传、Release、update channel 和 APT 必须消费这同一 run 的 artifact。
+2. 发布 CLI 不得先等待另一 workflow 生成一批不会发布的 installer、portable、DMG、AppImage 或 deb。
+3. Draft 前的同步步骤只保留本地快速合同检查和签名权限 preflight；产品级跨平台证据归正式 workflow。
+4. 正常目标为 10–20 分钟；超时保护覆盖签名 preflight、正式 workflow 和公网传播，超时只允许保持隐藏 Draft 或已经完整公开但投影未闭合的可恢复状态。
+5. CI 与发布可以独立触发，但 CI 成功不得被解释为正式资产已验证；正式 workflow 成功也不篡改普通 CI 历史。
+6. closure 对成功与失败 run 都输出 `nextclaw.desktop-release/v1` 结构化观测，记录 workflow wall time、各 job 时长和最慢 step；GitHub run 保留原始过程，迭代记录只消费该事实源，不人工估算。
+
 ## 六、最小充分验收
 
 1. 工作流合同测试证明不存在 `release.published`，只存在显式 dispatch。
@@ -100,8 +112,9 @@ local verify + exact-commit platform validation + signing preflight
 3. 单元测试覆盖完整 stable/beta 资产集合、缺失资产拒绝、Draft/public 状态不匹配拒绝。
 4. YAML 静态解析与 actionlint 通过；相关 Node 测试、lint 和脚本语法检查通过。
 5. dry-run 输出必须明确 `draft -> workflow_dispatch -> assets verified -> publish`，且不产生外部写入。
-6. 远端止血验证：四个已知 0-asset Release 均不再公开；最新公开 Desktop 仍指向最后一次完整成功版本。
-7. 未经新的真实桌面发布授权，不以生产 Release 验证本修复；首次真实发布时必须同时观察 Draft 不公开、失败不公开或成功后资产完整两个时间点。
+6. 合同测试证明正式 CLI 不再等待或跳过 `desktop-validate`，并证明 build/smoke/upload 都位于同一 `desktop-release` run。
+7. 远端止血验证：四个已知 0-asset Release 均不再公开；最新公开 Desktop 仍指向最后一次完整成功版本。
+8. 首次真实发布必须同时观察 Draft 不公开、同一 run 的五平台 build/smoke、公开后完整资产和公网通道闭合。
 
 ## 七、抽象审计与非目标
 

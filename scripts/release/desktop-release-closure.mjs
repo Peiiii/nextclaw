@@ -143,6 +143,51 @@ function summarizeJobs(runSummary) {
   return { completed, failed, important, total: jobs.length };
 }
 
+function durationMs(startedAt, completedAt) {
+  const started = Date.parse(startedAt ?? "");
+  const completed = Date.parse(completedAt ?? "");
+  return Number.isFinite(started) && Number.isFinite(completed) ? Math.max(0, completed - started) : null;
+}
+
+export function buildDesktopReleaseObservation(runSummary) {
+  const jobs = (runSummary.jobs ?? []).map((job) => {
+    const completedSteps = (job.steps ?? [])
+      .map((step) => ({
+        conclusion: step.conclusion ?? null,
+        durationMs: durationMs(step.startedAt, step.completedAt),
+        name: step.name
+      }))
+      .filter((step) => step.durationMs !== null);
+    const slowestStep = completedSteps.sort((left, right) => right.durationMs - left.durationMs)[0] ?? null;
+    return {
+      completedAt: job.completedAt ?? null,
+      conclusion: job.conclusion ?? null,
+      durationMs: durationMs(job.startedAt, job.completedAt),
+      name: job.name,
+      slowestStep,
+      startedAt: job.startedAt ?? null,
+      status: job.status
+    };
+  });
+  const startedAt = jobs.map((job) => job.startedAt).filter(Boolean).sort()[0] ?? null;
+  const completedAt = jobs.map((job) => job.completedAt).filter(Boolean).sort().at(-1) ?? null;
+  return {
+    completedAt,
+    conclusion: runSummary.conclusion ?? null,
+    headSha: runSummary.headSha ?? null,
+    jobs,
+    runId: runSummary.databaseId ?? null,
+    schema: "nextclaw.desktop-release/v1",
+    startedAt,
+    status: runSummary.status,
+    wallMs: durationMs(startedAt, completedAt)
+  };
+}
+
+function printDesktopReleaseObservation(runSummary) {
+  console.log(`[desktop:release-observation] ${JSON.stringify(buildDesktopReleaseObservation(runSummary))}`);
+}
+
 async function waitForWorkflowSuccess(options, runEntry) {
   const { repo, runAttempts, runDelayMs, runId: optionRunId } = options;
   const runId = runEntry.databaseId ?? optionRunId;
@@ -156,9 +201,11 @@ async function waitForWorkflowSuccess(options, runEntry) {
       previousLine = line;
     }
     if (jobSummary.failed.length > 0) {
+      printDesktopReleaseObservation(runSummary);
       throw new Error(`Workflow has failed jobs: ${runSummary.url}`);
     }
     if (runSummary.status === "completed") {
+      printDesktopReleaseObservation(runSummary);
       if (runSummary.conclusion !== "success") {
         throw new Error(`Workflow did not finish successfully: ${runSummary.url}`);
       }
