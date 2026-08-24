@@ -31,6 +31,7 @@ EXTRACT_ROOT="${TEMP_ROOT}/nextclaw-desktop-appimage-extract"
 SEED_ROOT="${TEMP_ROOT}/nextclaw-desktop-seed-bundle"
 APP_HEALTH_LOG="${LOG_ROOT}/health.json"
 RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
+NATIVE_RUNTIME_LOG="${LOG_ROOT}/native-runtime.log"
 APPIMAGE_LOG="${LOG_ROOT}/appimage-extract.log"
 
 RUNTIME_PID=""
@@ -132,6 +133,27 @@ if [[ ! -f "${RUNTIME_SCRIPT}" ]]; then
   echo "[desktop-smoke] runtime script not found in seed product bundle: ${RUNTIME_SCRIPT}" >&2
   exit 1
 fi
+
+SHARP_PACKAGE_ROOT="${SEED_ROOT}/bundle/node_modules/sharp"
+SQLITE_PACKAGE_ROOT="${SEED_ROOT}/bundle/node_modules/better-sqlite3"
+for package_root in "${SHARP_PACKAGE_ROOT}" "${SQLITE_PACKAGE_ROOT}"; do
+  if [[ ! -f "${package_root}/package.json" ]]; then
+    echo "[desktop-smoke] native runtime package not found in seed product bundle: ${package_root}" >&2
+    exit 1
+  fi
+done
+echo "[desktop-smoke] probing seed native runtime dependencies"
+if ! ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" -e '
+  for (const packageRoot of process.argv.slice(1)) {
+    require(packageRoot);
+    process.stdout.write(`[desktop-smoke] native dependency loaded: ${packageRoot}\n`);
+  }
+' "${SHARP_PACKAGE_ROOT}" "${SQLITE_PACKAGE_ROOT}" >"${NATIVE_RUNTIME_LOG}" 2>&1; then
+  cat "${NATIVE_RUNTIME_LOG}" >&2
+  echo "[desktop-smoke] seed native runtime dependency probe failed. See ${NATIVE_RUNTIME_LOG}" >&2
+  exit 1
+fi
+cat "${NATIVE_RUNTIME_LOG}"
 
 RUNTIME_PORT="$(pick_runtime_port || true)"
 if [[ -z "${RUNTIME_PORT}" ]]; then

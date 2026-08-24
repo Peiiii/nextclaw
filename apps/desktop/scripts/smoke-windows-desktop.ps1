@@ -337,6 +337,36 @@ public static class NextClawDesktopSmokeNative {
   [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
   public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
+  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+  [DllImport("user32.dll")]
+  public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+  [DllImport("user32.dll")]
+  public static extern bool IsWindowVisible(IntPtr hWnd);
+
+  [DllImport("user32.dll")]
+  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+  public static IntPtr FindVisibleTopLevelWindow(int[] processIds) {
+    IntPtr found = IntPtr.Zero;
+    EnumWindows(delegate(IntPtr hWnd, IntPtr lParam) {
+      if (!IsWindowVisible(hWnd)) {
+        return true;
+      }
+      uint processId;
+      GetWindowThreadProcessId(hWnd, out processId);
+      foreach (int candidate in processIds) {
+        if (candidate == processId) {
+          found = hWnd;
+          return false;
+        }
+      }
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
+
   public static int HitTest(IntPtr hWnd, int x, int y) {
     IntPtr result;
     int lParam = (y << 16) | (x & 0xFFFF);
@@ -396,9 +426,29 @@ function Get-DescendantProcessIds {
 }
 
 function Get-DesktopMainWindowHandle {
-  param([int]$RootPid)
+  param(
+    [int]$RootPid,
+    [string]$DesktopExePath
+  )
 
-  $candidatePids = @($RootPid) + @(Get-DescendantProcessIds -RootPid $RootPid)
+  $candidatePids = New-Object System.Collections.Generic.List[int]
+  foreach ($candidatePid in @($RootPid) + @(Get-DescendantProcessIds -RootPid $RootPid)) {
+    if (-not $candidatePids.Contains([int]$candidatePid)) {
+      $candidatePids.Add([int]$candidatePid)
+    }
+  }
+  if (-not [string]::IsNullOrWhiteSpace($DesktopExePath)) {
+    foreach ($process in @(Get-Process -ErrorAction SilentlyContinue)) {
+      try {
+        if ($process.Path -eq $DesktopExePath -and -not $candidatePids.Contains([int]$process.Id)) {
+          $candidatePids.Add([int]$process.Id)
+        }
+      } catch {
+        continue
+      }
+    }
+  }
+
   foreach ($candidatePid in $candidatePids | Select-Object -Unique) {
     try {
       $process = Get-Process -Id $candidatePid -ErrorAction Stop
@@ -410,7 +460,8 @@ function Get-DesktopMainWindowHandle {
     }
   }
 
-  return [IntPtr]::Zero
+  Initialize-WindowsTitlebarProbe
+  return [NextClawDesktopSmokeNative]::FindVisibleTopLevelWindow($candidatePids.ToArray())
 }
 
 function Add-UniqueWindowHandle {
@@ -467,13 +518,16 @@ function Read-WindowRect {
 }
 
 function Invoke-DesktopTitlebarDragProbe {
-  param([int]$RootPid)
+  param(
+    [int]$RootPid,
+    [string]$DesktopExePath
+  )
 
   Initialize-WindowsTitlebarProbe
   $windowHandle = [IntPtr]::Zero
   $handleDeadline = (Get-Date).AddSeconds(15)
   while ((Get-Date) -lt $handleDeadline) {
-    $windowHandle = Get-DesktopMainWindowHandle -RootPid $RootPid
+    $windowHandle = Get-DesktopMainWindowHandle -RootPid $RootPid -DesktopExePath $DesktopExePath
     if ($windowHandle -ne [IntPtr]::Zero) {
       break
     }
@@ -759,7 +813,7 @@ try {
       Write-Host "[desktop-smoke] GUI smoke passed in ${elapsedMs}ms"
       Write-Host "[desktop-smoke] API probes passed: $runtimeBaseUrl"
       Invoke-DesktopServiceAppProbe -RuntimeBaseUrl $runtimeBaseUrl
-      Invoke-DesktopTitlebarDragProbe -RootPid $desktopRootPid
+      Invoke-DesktopTitlebarDragProbe -RootPid $desktopRootPid -DesktopExePath $resolvedExe
       Write-Host "[desktop-smoke] main log: $script:MainLog"
       if (Test-Path $script:MainLog) {
         Get-Content -Path $script:MainLog -Tail 80
