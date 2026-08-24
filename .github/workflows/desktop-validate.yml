@@ -473,6 +473,7 @@ jobs:
         run: |
           set -euo pipefail
           export CSC_IDENTITY_AUTO_DISCOVERY=false
+          pnpm -C apps/desktop bundle:seed -- --channel stable --platform linux --arch x64
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop build:main
