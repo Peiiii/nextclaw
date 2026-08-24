@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.266
+
+### Patch Changes
+
+- Fix Windows product-bundle builds by passing native externals as shell-safe arguments.
+
 ## 0.0.265
 
 ### Patch Changes

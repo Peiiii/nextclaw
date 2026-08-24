@@ -1,10 +1,10 @@
-# NextClaw Desktop 0.0.265
+# NextClaw Desktop 0.0.266
 
 ## 中文
 
-NextClaw Desktop `0.0.265` 带来稳定版 `0.42.3` runtime，重点修复长会话压缩恢复、会话目录可靠性和 Desktop 原生 SQLite 启动问题。
+NextClaw Desktop `0.0.266` 带来稳定版 `0.42.3` runtime，重点修复长会话压缩恢复、会话目录可靠性和 Desktop 原生 SQLite 启动问题。
 
-- 桌面壳版本：`0.0.265`
+- 桌面壳版本：`0.0.266`
 - Runtime bundle 版本：`0.42.3`
 - 最低 launcher 版本：`0.0.141`
 
@@ -26,9 +26,9 @@ NextClaw Desktop `0.0.265` 带来稳定版 `0.42.3` runtime，重点修复长会
 
 ## English
 
-NextClaw Desktop `0.0.265` ships the stable `0.42.3` runtime, focusing on long-session compaction recovery, session catalog reliability, and native SQLite startup support.
+NextClaw Desktop `0.0.266` ships the stable `0.42.3` runtime, focusing on long-session compaction recovery, session catalog reliability, and native SQLite startup support.
 
-- Desktop shell version: `0.0.265`
+- Desktop shell version: `0.0.266`
 - Runtime bundle version: `0.42.3`
 - Minimum launcher version: `0.0.141`
 
