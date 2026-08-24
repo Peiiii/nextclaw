@@ -10,6 +10,7 @@
 - 发布关键路径原先还会先等待 `desktop-validate` 构建一批不会发布的产物，再由正式 workflow 重建五平台资产；两批 bits 不同，既浪费约 8–12 分钟，也不能增强发布证明。现已删除该平行门禁，正式 workflow 对同一批生产 artifact 完成单次 build/smoke/upload/publish，日常 CI 保持独立。
 - 首次真实 Draft 验证进一步确认 GitHub 在 Draft 公开前不会创建 tag ref；以 tag dispatch 会得到 HTTP 422。发布身份现由显式 `release_target` SHA 承载，workflow 从分支入口启动后核对 Draft target、checkout SHA，并在公开后验证 tag 反向指向同一 SHA。
 - Windows 便携版真实发布冒烟确认主程序、API 和 Service App 均正常，但便携分支漏设 renderer titlebar 证据开关，导致 hosted runner 无窗口句柄时无法使用已授权的 renderer fallback；该开关现对安装与便携模式统一设置。后续真实 run 又证明产品冒烟全部通过后，ephemeral runner 的残留 Electron 文件锁仍可能令临时目录删除报 `ENOTEMPTY`；清理现采用更长的有界重试，并仅将可恢复 Windows 锁错误交给 runner 收尾，避免把已通过的产品冒烟误报为发布失败。
+- Windows 安装器原先在 unpacked 应用和便携版都通过冒烟后，再让 electron-builder 删除并重建同一个 `win-unpacked` 目录；残留 Electron 句柄因此会令 NSIS 阶段删除 DLL 失败。NSIS 现通过 `--prepackaged` 直接消费同一批已验证 bits，既消除重复打包和文件锁冲突，也保证安装器与冒烟对象同源。
 
 ## 测试/验证/验收方式
 

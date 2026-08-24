@@ -417,7 +417,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $PSNativeCommandUseErrorActionPreference = $true
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
-          pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never
+          pnpm -C apps/desktop exec electron-builder --win nsis --x64 --prepackaged release/win-unpacked --publish never
 
       - name: Smoke Desktop Installer (Windows)
         if: matrix.platform == 'win32' && matrix.arch == 'x64'

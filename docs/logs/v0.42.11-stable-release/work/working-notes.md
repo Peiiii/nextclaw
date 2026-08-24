@@ -23,6 +23,7 @@
 | Draft dispatch 协议 | Draft tag ref 不存在，改为分支 dispatch + 不可变 SHA checkout | preflight 约 43s；Draft 创建后 dispatch 立即返回 HTTP 422 | GitHub Draft `target_commitish` 已写入但 `refs/tags/*` 尚未创建；公开后才允许 tag 成为最终投影 |
 | Windows 便携 titlebar 冒烟 | 业务/API/Service App 通过，renderer 证据开关漏设 | 8m26s 时检测失败；Windows job 8m18s | hosted runner 无可见 HWND，便携分支此前没有生成显式 renderer hit-test 证据；临时目录清理又被残留文件锁放大为二次错误 |
 | Windows 便携临时清理竞态 | 安装版与便携版 GUI/API/Service App/titlebar 冒烟均通过，测试结束删除临时目录时报 `ENOTEMPTY` | workflow wall 8m53s；Windows x64 job 8m45s；最慢 step 为 Windows build 4m21s | 将临时目录清理延长为有界重试；仅 `EBUSY`/`ENOTEMPTY`/`EPERM` 在重试耗尽后交由 ephemeral runner 收尾，其它错误继续失败 |
+| Windows 安装器重复打包锁冲突 | 安装版与便携版冒烟通过后，NSIS 阶段重建同一个 `win-unpacked`，删除 `d3dcompiler_47.dll` 报 Access denied | workflow wall 10m15s；Windows x64 job 10m08s；最慢 step 为 Linux build 5m24s | NSIS 改为 `--prepackaged release/win-unpacked`，直接消费同一批已构建、冒烟和归档的 bits，消除第二次 app packaging 与目录锁冲突 |
 | NPM stable 发布 | 待执行 | — | — |
 | Desktop stable 发布 | 待执行 | — | — |
 | 公开回读 | 待执行 | — | — |

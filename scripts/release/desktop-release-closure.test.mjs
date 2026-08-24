@@ -156,6 +156,10 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
   );
   assert.match(
     workflow,
+    /Build Desktop Installer \(Windows\)[\s\S]*?electron-builder --win nsis --x64 --prepackaged release\/win-unpacked --publish never/
+  );
+  assert.match(
+    workflow,
     /build-desktop:[\s\S]*?Build Desktop \(Linux\)[\s\S]*?Smoke Desktop \(Linux AppImage\)[\s\S]*?Upload desktop artifacts \(Linux\)/
   );
 });
