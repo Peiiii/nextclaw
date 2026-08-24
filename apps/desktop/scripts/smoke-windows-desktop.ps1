@@ -785,10 +785,20 @@ try {
 
   while ((Get-Date) -lt $deadline) {
     if ($appProc.HasExited) {
-      if ($appProc.ExitCode -ne 0) {
-        throw "Desktop exited early. ExitCode=$($appProc.ExitCode)"
+      # Start-Process can report HasExited before PowerShell refreshes ExitCode,
+      # especially when the packaged guardian exits immediately after handing
+      # startup to the child process. WaitForExit refreshes the process state so
+      # a successful guardian handoff is not mistaken for a blank/non-zero exit.
+      $appProc.WaitForExit()
+      $appProc.Refresh()
+      $exitCode = $appProc.ExitCode
+      if ($null -ne $exitCode -and [int]$exitCode -ne 0) {
+        throw "Desktop exited early. ExitCode=$exitCode"
       }
       $handoffPid = Get-DesktopRootProcessIdFromLog
+      if ($null -eq $exitCode -and $null -eq $handoffPid) {
+        throw "Desktop exited early without a readable exit code or guardian handoff."
+      }
       if ($null -ne $handoffPid -and $desktopRootPid -ne $handoffPid) {
         $desktopRootPid = $handoffPid
         Write-Host "[desktop-smoke] guardian handoff observed: rootPid=$desktopRootPid"
