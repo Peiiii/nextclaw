@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/harness",
-  "version": "0.2.0-beta.0",
+  "version": "0.2.0",
   "private": false,
   "description": "Experimental package entry for embedding the NextClaw agent harness in Node.js applications.",
   "type": "module",

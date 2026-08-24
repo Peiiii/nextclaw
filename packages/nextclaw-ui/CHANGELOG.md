@@ -1,5 +1,28 @@
 # @nextclaw/ui
 
+## 0.20.0
+
+### Minor Changes
+
+- ec60bc1: 新增全局 Extension 管理入口、会话级持续关注管理，以及会话时间线中的可见外部事件卡片。事件消息使用通用的 `observation.event` 标识，不绑定具体产品或协议品牌。
+
+### Patch Changes
+
+- eeac1f6: 修复会话历史摘要删除工具调用结构节点导致上下文压缩边界和 Continue 后续内容错位的问题。摘要现在保留完整的 part 顺序与数量，仅延迟大 payload 的加载。
+- e14eeb0: 会话头部、会话列表、子会话列表和工作区子会话 tab 的“更多操作”现在都支持复制对应的会话 ID。
+- f9c6477: 修复会话历史可靠性问题：保留历史 replay、projection 恢复和压缩消息视图的修复，不再用 journal 目录级 writer ownership 阻止同一 `NEXTCLAW_HOME` 下的第二个 runtime 或新会话启动。
+- a4421b3: 修复运行中通过 Cmd/Ctrl+Enter 插话后，待消费消息未立即显示“等待进入下一步”的问题；当插话回退为排队时也会正确显示在队列中。
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+  - @nextclaw/ncp@0.9.0
+  - @nextclaw/shared@0.4.27
+  - @nextclaw/ncp-http-agent-client@0.4.21
+  - @nextclaw/ncp-react@0.5.24
+  - @nextclaw/ncp-toolkit@0.6.22
+  - @nextclaw/client-sdk@0.7.4
+
 ## 0.20.0-beta.0
 
 ### Minor Changes
