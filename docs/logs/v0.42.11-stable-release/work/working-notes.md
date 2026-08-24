@@ -4,7 +4,7 @@
 
 - 记录阶段边界、wall time、外部等待、失败重试和人工/自动边界。
 - 构建/验证时间以命令输出为准；发布工作流时间以 GitHub Actions 与公开回读时间为准。
-- 本文件在发布完成后补齐总耗时、最慢阶段和下一批可执行提效项。
+- 本文件已按 GitHub Actions 与公网回读补齐总耗时、最慢阶段和下一批可执行提效项。
 
 ## 已观测流程
 
@@ -25,15 +25,17 @@
 | Windows 便携临时清理竞态 | 安装版与便携版 GUI/API/Service App/titlebar 冒烟均通过，测试结束删除临时目录时报 `ENOTEMPTY` | workflow wall 8m53s；Windows x64 job 8m45s；最慢 step 为 Windows build 4m21s | 将临时目录清理延长为有界重试；仅 `EBUSY`/`ENOTEMPTY`/`EPERM` 在重试耗尽后交由 ephemeral runner 收尾，其它错误继续失败 |
 | Windows 安装器重复打包锁冲突 | 安装版与便携版冒烟通过后，NSIS 阶段重建同一个 `win-unpacked`，删除 `d3dcompiler_47.dll` 报 Access denied | workflow wall 10m15s；Windows x64 job 10m08s；最慢 step 为 Linux build 5m24s | NSIS 改为 `--prepackaged release/win-unpacked`，直接消费同一批已构建、冒烟和归档的 bits，消除第二次 app packaging 与目录锁冲突 |
 | APT Pages 体积门 | APT 专用极限压缩包 105,169,684 bytes，超过 GitHub 100 MiB 上限 312,084 bytes | workflow 在 APT 重打包阶段失败；完整历史 checkout 与 gh-pages fetch 造成额外外部等待 | APT 副本只移除 `better-sqlite3` 的编译期 `src`/`deps`，保留原生二进制与运行库；发布投影 checkout 与 gh-pages 精确 fetch 均改为浅克隆 |
-| NPM stable 发布 | 待执行 | — | — |
-| Desktop stable 发布 | 待执行 | — | — |
-| 公开回读 | 待执行 | — | — |
+| NPM stable 发布 | 44 个 package 完成 stable 发布，`nextclaw@latest=0.42.3` | 首次正式 workflow 在 package 阶段 22.85s 失败；恢复发布与逐包回读完成 | 初始受 scoped package 认证/权限路径影响；恢复只发布未完成项，没有重复已成功 identity |
+| Runtime stable 发布 | `nextclaw@0.42.3` Release、4 个非空资产、stable 更新与旧版本升级验证完成 | workflow/公开回读完成 | 与 NPM 0.42.3 identity 一致，不重复 package publish |
+| Desktop stable 发布 | `v0.42.3-desktop.5` 五平台、30 个非空资产、stable manifests 全部完成 | 正式 workflow 到 Release 公开 14m34s；到 APT 首次失败共 21m01s；最慢平台 job Windows x64 12m41s，最慢 step macOS x64 build 6m12s | Draft-first 保证失败对公众不可见；Windows NSIS 改为消费已验证 unpacked bits |
+| APT-only 恢复 | `0.0.266` fresh install、upgrade、签名与 gh-pages 推送通过 | 首次恢复 7m55s，最慢为 gh-pages fetch 3m52s；浅 fetch 真实复验降至 5m53s，prepare step 22s | APT 镜像包 103,508,664 bytes；正式 Release `.deb` 保持完整 |
+| 公开回读 | NPM/runtime/Desktop/5 个 manifests/APT 全部通过 | Release 30/30 资产；5 个 manifest 均为 runtime 0.42.3；APT 关键 URL HTTP 200 | `.1` 至 `.4` 经 0 资产复核后连同 tag 删除，保留失败 workflow 历史用于复盘 |
 
 ## 当前提效判断
 
 1. `desktop:package:verify` 的主要时间消耗是重复全仓构建和 seed bundle（本次单次约 69s）；应为未变 package 引入内容寻址构建缓存，并把静态合同快检放在完整 DMG 前。
 2. Desktop main 的 CJS 消费 ESM 公共包应建立自动导入图门，阻止 Electron main 新增根入口依赖；这可提前消除原生弹窗式失败。
 3. Native 负向门应固化为发布脚本测试，直接断言 `data.ncpAgent.state=error`，避免人工脚本误读顶层 `phase`。
-4. 发布阶段继续补齐 Actions 队列、构建、上传、manifest 生效与公开回读耗时，以定位外部等待占比。
-5. Desktop 后续发布的最慢阶段预计仍是五平台构建/烟测；新流程已将这段外部等待全部放在隐藏 Draft 内。下一步可按平台缓存命中率拆分耗时，但不得以提前公开 Release 换取表面速度。
+4. 发布器已输出 `nextclaw.desktop-release/v1`，包含 workflow wall time、job 与最慢 step；通用 Delivery 进一步要求所有 release/deploy 采用稳定 schema，并在失败路径保留同一观测链。
+5. Desktop 本次最慢平台为 Windows x64 12m41s，最慢单 step 为 macOS x64 build 6m12s；新流程已将外部等待全部放在隐藏 Draft 内。下一步按平台缓存命中率优化，但不得以提前公开 Release 换取表面速度。
 6. 所有 release/deploy 统一由 Delivery 要求机器可读时间观测；成功与失败都保留总 wall time、阶段/job、最慢 step、外部等待和重试事实，避免复盘继续依赖会话记忆或人工估算。

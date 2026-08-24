@@ -25,9 +25,9 @@
 
 ## 发布/部署方式
 
-- 先从 beta prerelease 模式退出并发布 NPM stable 包、runtime channel、Git tags 与 GitHub Release。
-- 再发布 Desktop stable 的 macOS、Windows、Linux/AppImage 与 APT 产物，更新签名 manifest 和下载页。
-- 所有发布完成后回读 NPM dist-tag、GitHub Release、Desktop update manifest、APT metadata 与公开下载 URL；发布状态将在本记录中补齐。
+- NPM stable 的 44 个 package 已发布并逐包回读，`nextclaw@latest=0.42.3`；Runtime stable Release、4 个非空资产、更新通道和旧版本升级验证已闭合。
+- Desktop stable 已发布为 `v0.42.3-desktop.5`：macOS、Windows、Linux/AppImage、portable、signed bundle/manifest 共 30 个非空资产，五平台构建与安装/启动冒烟全部通过。
+- stable update manifests 与 Linux APT 已公开回读；APT `nextclaw-desktop` 为 `0.0.266`，fresh install 与 upgrade 冒烟通过。此前 `.1` 至 `.4` 的 0 资产空壳经复核后已删除。
 - Desktop 后续只允许显式触发：CLI 先创建隐藏 Draft，并以 release tag 和唯一 dispatch id 触发 Actions；构建失败或取消只保留不可公开的 Draft，完整资产核验通过后才公开。此次修复本身不创建新的 Desktop Release。
 
 ## 用户/产品视角的验收步骤
@@ -51,7 +51,7 @@
 
 - 需要发布：是。原因是本批次包含用户可见 bugfix、公共 SDK/运行时合同和 Desktop 正式版依赖的产品 bundle。
 - 待统一发布的精确包集合：`nextclaw`、`@nextclaw/app-runtime`、`@nextclaw/channel-extension-dingtalk`、`@nextclaw/channel-extension-discord`、`@nextclaw/channel-extension-email`、`@nextclaw/channel-extension-feishu`、`@nextclaw/channel-extension-qq`、`@nextclaw/channel-extension-slack`、`@nextclaw/channel-extension-telegram`、`@nextclaw/channel-extension-wecom`、`@nextclaw/channel-extension-weixin`、`@nextclaw/channel-extension-whatsapp`、`@nextclaw/client-sdk`、`@nextclaw/companion`、`@nextclaw/core`、`@nextclaw/extension-sdk`、`@nextclaw/harness`、`@nextclaw/kernel`、`@nextclaw/mcp`、`@nextclaw/ncp-agent-runtime-next`、`@nextclaw/ncp-agent-runtime`、`@nextclaw/ncp-http-agent-client`、`@nextclaw/ncp-http-agent-server`、`@nextclaw/ncp-mcp`、`@nextclaw/ncp-react-ui`、`@nextclaw/ncp-react`、`@nextclaw/ncp-toolkit`、`@nextclaw/ncp`、`@nextclaw/nextclaw-hermes-acp-bridge`、`@nextclaw/nextclaw-narp-runtime-claude-code-sdk`、`@nextclaw/nextclaw-narp-runtime-codex-sdk`、`@nextclaw/nextclaw-narp-runtime-opencode`、`@nextclaw/nextclaw-narp-stdio-runtime-wrapper`、`@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http`、`@nextclaw/nextclaw-ncp-runtime-claude-code-sdk`、`@nextclaw/nextclaw-ncp-runtime-codex-sdk`、`@nextclaw/nextclaw-ncp-runtime-http-client`、`@nextclaw/nextclaw-ncp-runtime-stdio-client`、`@nextclaw/remote`、`@nextclaw/runtime`、`@nextclaw/server`、`@nextclaw/service`、`@nextclaw/shared`、`@nextclaw/ui`。
-- 当前状态：上述包的 `beta` 版本已发布，stable/`latest` 待本次统一发布；发布后在此处补充精确版本与公开回读结果。
+- 当前状态：上述 44 个 package 的 stable 版本已发布并完成 registry 回读；`nextclaw@latest=0.42.3`，`beta=0.42.3-beta.0`。Runtime GitHub Release 为 `nextclaw@0.42.3`，Desktop Release 为 `v0.42.3-desktop.5`。
 - Desktop 原子公开修复不涉及额外 NPM 包发布或版本 bump。
 
 ## 红区触达与减债记录
