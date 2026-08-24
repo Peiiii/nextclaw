@@ -24,7 +24,7 @@
 | Windows 便携 titlebar 冒烟 | 业务/API/Service App 通过，renderer 证据开关漏设 | 8m26s 时检测失败；Windows job 8m18s | hosted runner 无可见 HWND，便携分支此前没有生成显式 renderer hit-test 证据；临时目录清理又被残留文件锁放大为二次错误 |
 | Windows 便携临时清理竞态 | 安装版与便携版 GUI/API/Service App/titlebar 冒烟均通过，测试结束删除临时目录时报 `ENOTEMPTY` | workflow wall 8m53s；Windows x64 job 8m45s；最慢 step 为 Windows build 4m21s | 将临时目录清理延长为有界重试；仅 `EBUSY`/`ENOTEMPTY`/`EPERM` 在重试耗尽后交由 ephemeral runner 收尾，其它错误继续失败 |
 | Windows 安装器重复打包锁冲突 | 安装版与便携版冒烟通过后，NSIS 阶段重建同一个 `win-unpacked`，删除 `d3dcompiler_47.dll` 报 Access denied | workflow wall 10m15s；Windows x64 job 10m08s；最慢 step 为 Linux build 5m24s | NSIS 改为 `--prepackaged release/win-unpacked`，直接消费同一批已构建、冒烟和归档的 bits，消除第二次 app packaging 与目录锁冲突 |
-| APT Pages 体积门 | APT 专用极限压缩包 105,169,684 bytes，超过 GitHub 100 MiB 上限 312,084 bytes | workflow 在 APT 重打包阶段失败；完整历史 checkout 造成额外外部等待 | APT 副本只移除 `better-sqlite3` 的编译期 `src`/`deps`，保留原生二进制与运行库；发布投影 checkout 改为浅克隆，gh-pages 仍精确 fetch |
+| APT Pages 体积门 | APT 专用极限压缩包 105,169,684 bytes，超过 GitHub 100 MiB 上限 312,084 bytes | workflow 在 APT 重打包阶段失败；完整历史 checkout 与 gh-pages fetch 造成额外外部等待 | APT 副本只移除 `better-sqlite3` 的编译期 `src`/`deps`，保留原生二进制与运行库；发布投影 checkout 与 gh-pages 精确 fetch 均改为浅克隆 |
 | NPM stable 发布 | 待执行 | — | — |
 | Desktop stable 发布 | 待执行 | — | — |
 | 公开回读 | 待执行 | — | — |

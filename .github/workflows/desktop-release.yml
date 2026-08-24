@@ -669,7 +669,7 @@ jobs:
           git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${GH_PAGES_AUTH_HEADER}"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git fetch origin gh-pages
+            git fetch --depth=1 origin gh-pages
             git worktree add .tmp/gh-pages origin/gh-pages
           else
             git worktree add --detach .tmp/gh-pages
@@ -804,7 +804,7 @@ jobs:
           git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ${GH_PAGES_AUTH_HEADER}"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git fetch origin gh-pages
+            git fetch --depth=1 origin gh-pages
             git worktree add .tmp/gh-pages origin/gh-pages
             if [ -d ".tmp/gh-pages/apt" ]; then
               cp -R ".tmp/gh-pages/apt" ".tmp/current-pages-apt"
