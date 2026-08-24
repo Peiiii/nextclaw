@@ -11,7 +11,7 @@ const SUMMARY: NcpSessionSummary = {
   updatedAt: "2026-08-24T00:01:00.000Z",
   metadata: {
     agentRuntimeId: "codex",
-    model: "openai/gpt-5",
+    preferred_model: "openai/gpt-5",
     project_root: "/tmp/nextclaw-project",
     thinkingEffort: "high",
   },

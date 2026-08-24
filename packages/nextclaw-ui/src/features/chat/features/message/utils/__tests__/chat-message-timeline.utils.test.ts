@@ -125,7 +125,9 @@ describe("chat message timeline visibility", () => {
     })).toBe(false);
     expect(isVisibleChatMessage(visibleMessage)).toBe(true);
   });
+});
 
+describe("chat message continuation projection", () => {
   it("projects continued assistant output into the interrupted message", () => {
     const messages = projectVisibleChatMessages([
       {
@@ -251,5 +253,74 @@ describe("chat message timeline visibility", () => {
       hiddenPrompt,
       { ...visibleMessage, id: "assistant-1" },
     ]).map((message) => message.id)).toEqual(["user-1", "assistant-1"]);
+  });
+});
+
+describe("child session timeline visibility", () => {
+  it("does not repeat inherited compaction markers", () => {
+    const childMessage = {
+      ...visibleMessage,
+      id: "child-user",
+      role: "user" as const,
+      timestamp: "2026-08-24T15:50:23.415Z",
+      parts: [{ type: "text" as const, text: "child request" }],
+    };
+    const inheritedCompactions = Array.from({ length: 5 }, (_, index) => ({
+      ...visibleMessage,
+      id: `child-session:inherited:${index + 1}`,
+      role: "service" as const,
+      timestamp: `2026-08-24T15:0${index}:00.000Z`,
+      parts: [{ type: "text" as const, text: "Earlier context was auto-compacted" }],
+      metadata: {
+        inherited_from_session_id: "parent-session",
+        inherited_from_message_id: `parent-compaction-${index + 1}`,
+        nextclaw_timeline_kind: "context_compaction",
+        checkpoint: {
+          id: "parent-checkpoint",
+          status: "compressed",
+          summary: "Compressed parent context",
+          coveredMessageCount: (index + 1) * 100,
+          coveredSessionMessageCount: (index + 1) * 100,
+          originalEstimatedTokens: 76_000,
+          projectedEstimatedTokens: 51_000,
+          createdAt: "2026-08-24T15:00:00.000Z",
+          updatedAt: `2026-08-24T15:0${index}:00.000Z`,
+        },
+      },
+    } satisfies NcpMessage));
+    const items = buildChatMessageTimelineItems({
+      rawMessages: [...inheritedCompactions, childMessage],
+      messages: [{ id: childMessage.id } as never],
+    });
+
+    expect(items.map((item) => item.kind)).toEqual([
+      "context-inheritance",
+      "message",
+    ]);
+
+    const childCompaction = {
+      ...inheritedCompactions[0]!,
+      id: "child-compaction",
+      metadata: {
+        ...inheritedCompactions[0]!.metadata,
+        inherited_from_session_id: undefined,
+        inherited_from_message_id: undefined,
+      },
+    } satisfies NcpMessage;
+    const childAssistant = {
+      ...visibleMessage,
+      id: "child-assistant",
+      timestamp: "2026-08-24T15:51:00.000Z",
+    };
+
+    expect(buildChatMessageTimelineItems({
+      rawMessages: [...inheritedCompactions, childMessage, childCompaction, childAssistant],
+      messages: [{ id: childMessage.id } as never, { id: childAssistant.id } as never],
+    }).map((item) => item.kind)).toEqual([
+      "context-inheritance",
+      "message",
+      "compaction",
+      "message",
+    ]);
   });
 });

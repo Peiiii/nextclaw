@@ -91,7 +91,11 @@ export type ContextCompactionTimelineView = {
 
 export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'metadata'>): ContextCompactionTimelineView | null {
   const { metadata } = message;
-  if (!metadata || metadata[NEXTCLAW_TIMELINE_KIND_METADATA_KEY] !== CONTEXT_COMPACTION_TIMELINE_KIND) {
+  if (
+    !metadata ||
+    readOptionalString(metadata.inherited_from_session_id) ||
+    metadata[NEXTCLAW_TIMELINE_KIND_METADATA_KEY] !== CONTEXT_COMPACTION_TIMELINE_KIND
+  ) {
     return null;
   }
   const rawCheckpoint =

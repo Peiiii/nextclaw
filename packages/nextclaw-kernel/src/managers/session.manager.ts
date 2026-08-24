@@ -529,7 +529,7 @@ export class SessionManager implements NcpSessionApi {
         readOptionalMetadataString(metadata.agentRuntimeId) ??
         DEFAULT_AGENT_RUNTIME_ENTRY_ID,
       metadata: structuredClone(metadata),
-      model: readOptionalMetadataString(metadata.model),
+      model: readOptionalMetadataString(metadata.model) ?? readOptionalMetadataString(metadata.preferred_model),
       projectRoot: readProjectRoot(metadata),
       workingDir: this.workingDirResolver.resolve({
         agentId: summary.agentId,
