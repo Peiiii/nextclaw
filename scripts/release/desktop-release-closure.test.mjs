@@ -178,7 +178,7 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   );
 });
 
-test("Windows portable smoke emits renderer evidence and retries locked cleanup", () => {
+test("Windows portable smoke emits renderer evidence and defers only recoverable cleanup locks", () => {
   const smoke = readFileSync(
     new URL("../../apps/desktop/scripts/smoke-windows-desktop.ps1", import.meta.url),
     "utf8"
@@ -190,5 +190,8 @@ test("Windows portable smoke emits renderer evidence and retries locked cleanup"
     smoke,
     /if \(\$isPortableSmoke\)[\s\S]*?} else \{[\s\S]*?\$env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = \$smokeHome\s*}\s*\$env:NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST = "1"/
   );
-  assert.match(portableVerify, /maxRetries: 5, retryDelay: 200/);
+  assert.match(portableVerify, /maxRetries: 10, retryDelay: 500/);
+  assert.match(portableVerify, /\["EBUSY", "ENOTEMPTY", "EPERM"\]\.includes\(code\)/);
+  assert.match(portableVerify, /temporary cleanup deferred to the runner/);
+  assert.match(portableVerify, /if \(!\["EBUSY", "ENOTEMPTY", "EPERM"\]\.includes\(code\)\) \{\s*throw error;/);
 });

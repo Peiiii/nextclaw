@@ -54,6 +54,20 @@ function ensurePortableZip(arch) {
   return zipPath;
 }
 
+function removeTemporaryDirectory(path) {
+  try {
+    rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : null;
+    if (!["EBUSY", "ENOTEMPTY", "EPERM"].includes(code)) {
+      throw error;
+    }
+    console.warn(
+      `[desktop-portable-verify] temporary cleanup deferred to the runner: ${code} ${path}`
+    );
+  }
+}
+
 async function verifyPortableZip(arch) {
   if (!version) {
     throw new Error("Desktop package version is missing.");
@@ -94,7 +108,7 @@ async function verifyPortableZip(arch) {
       run("powershell", smokeArgs);
     }
   } finally {
-    rmSync(tempRoot, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    removeTemporaryDirectory(tempRoot);
   }
 }
 

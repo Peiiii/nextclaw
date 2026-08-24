@@ -22,6 +22,7 @@
 | Desktop 重复构建事故 | 删除正式发布前置的平行 `desktop-validate` 门禁 | 单轮 CI 约 8–12m；此前每次正式发布还会再构建一轮 | 正式 workflow 本身已经对将发布的同批五平台产物做安装/启动冒烟；前置 CI 产物不会发布且不能证明生产 bits |
 | Draft dispatch 协议 | Draft tag ref 不存在，改为分支 dispatch + 不可变 SHA checkout | preflight 约 43s；Draft 创建后 dispatch 立即返回 HTTP 422 | GitHub Draft `target_commitish` 已写入但 `refs/tags/*` 尚未创建；公开后才允许 tag 成为最终投影 |
 | Windows 便携 titlebar 冒烟 | 业务/API/Service App 通过，renderer 证据开关漏设 | 8m26s 时检测失败；Windows job 8m18s | hosted runner 无可见 HWND，便携分支此前没有生成显式 renderer hit-test 证据；临时目录清理又被残留文件锁放大为二次错误 |
+| Windows 便携临时清理竞态 | 安装版与便携版 GUI/API/Service App/titlebar 冒烟均通过，测试结束删除临时目录时报 `ENOTEMPTY` | workflow wall 8m53s；Windows x64 job 8m45s；最慢 step 为 Windows build 4m21s | 将临时目录清理延长为有界重试；仅 `EBUSY`/`ENOTEMPTY`/`EPERM` 在重试耗尽后交由 ephemeral runner 收尾，其它错误继续失败 |
 | NPM stable 发布 | 待执行 | — | — |
 | Desktop stable 发布 | 待执行 | — | — |
 | 公开回读 | 待执行 | — | — |
@@ -33,3 +34,4 @@
 3. Native 负向门应固化为发布脚本测试，直接断言 `data.ncpAgent.state=error`，避免人工脚本误读顶层 `phase`。
 4. 发布阶段继续补齐 Actions 队列、构建、上传、manifest 生效与公开回读耗时，以定位外部等待占比。
 5. Desktop 后续发布的最慢阶段预计仍是五平台构建/烟测；新流程已将这段外部等待全部放在隐藏 Draft 内。下一步可按平台缓存命中率拆分耗时，但不得以提前公开 Release 换取表面速度。
+6. 所有 release/deploy 统一由 Delivery 要求机器可读时间观测；成功与失败都保留总 wall time、阶段/job、最慢 step、外部等待和重试事实，避免复盘继续依赖会话记忆或人工估算。
