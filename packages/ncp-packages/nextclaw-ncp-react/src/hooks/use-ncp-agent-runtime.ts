@@ -184,6 +184,16 @@ function createSessionMessage(
   };
 }
 
+function insertMessageAtIndex(
+  messages: readonly NcpMessage[],
+  message: NcpMessage,
+  index: number,
+): NcpMessage[] {
+  const nextMessages = [...messages];
+  nextMessages.splice(Math.min(Math.max(index, 0), nextMessages.length), 0, message);
+  return nextMessages;
+}
+
 export function useScopedAgentManager(
   sessionId: string | undefined,
 ): DefaultNcpAgentConversationStateManager {
@@ -238,14 +248,19 @@ export function useNcpAgentRuntime({
     };
   }, [client, manager]);
 
-  const messagesWithOptimistic = optimisticMessage &&
+  let messagesWithStreaming = snapshot.messages;
+  if (snapshot.streamingMessage) {
+    const streamingMessageIndex = snapshot.streamingMessageIndex;
+    if (streamingMessageIndex === null) {
+      throw new Error("Streaming conversation snapshot is missing its event-order insertion boundary.");
+    }
+    messagesWithStreaming = insertMessageAtIndex(snapshot.messages, snapshot.streamingMessage, streamingMessageIndex);
+  }
+  const visibleMessages: readonly NcpMessage[] = optimisticMessage &&
     (!sessionId || optimisticMessage.sessionId === sessionId) &&
     !snapshot.messages.some((message) => message.id === optimisticMessage.id)
-    ? insertMessageByTimeline(snapshot.messages, optimisticMessage)
-    : snapshot.messages;
-  const visibleMessages: readonly NcpMessage[] = snapshot.streamingMessage
-    ? insertMessageByTimeline(messagesWithOptimistic, snapshot.streamingMessage)
-    : messagesWithOptimistic;
+    ? insertMessageByTimeline(messagesWithStreaming, optimisticMessage)
+    : messagesWithStreaming;
 
   const activeRunId = snapshot.activeRun?.runId ?? null;
   const isRunning = !!snapshot.activeRun;

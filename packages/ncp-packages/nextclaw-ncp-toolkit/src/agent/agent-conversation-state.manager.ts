@@ -38,12 +38,13 @@ import {
   buildRuntimeError,
   cancelInFlightToolInvocations,
   findToolInvocationPart,
-  insertMessageByTimeline,
   prependConversationHistory,
+  rebaseStreamingMessageIndex,
   readMessageLifecycleFromRunPayload,
   routeAgentConversationEvent,
   settleMessageWithLifecycle,
-  shouldPromoteStreamingMessageId
+  shouldPromoteStreamingMessageId,
+  upsertMessageByEventOrder
 } from "./agent-conversation-state-manager.utils.js";
 
 const DEFAULT_ASSISTANT_ROLE: NcpMessageRole = "assistant";
@@ -51,6 +52,7 @@ const DEFAULT_ASSISTANT_ROLE: NcpMessageRole = "assistant";
 export class DefaultNcpAgentConversationStateManager implements NcpAgentConversationStateManager {
   private messages: NcpMessage[] = [];
   private streamingMessage: NcpMessage | null = null;
+  private streamingMessageIndex: number | null = null;
   private error: NcpError | null = null;
   private activeRun: NcpRunContext | null = null;
   private contextWindow: Record<string, unknown> | null = null;
@@ -78,6 +80,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     const snapshot: NcpAgentConversationSnapshot = {
       messages: this.messages,
       streamingMessage: this.streamingMessage,
+      streamingMessageIndex: this.streamingMessageIndex,
       error: this.error
         ? {
             ...this.error,
@@ -111,6 +114,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     }
     this.messages = [];
     this.streamingMessage = null;
+    this.streamingMessageIndex = null;
     this.error = null;
     this.activeRun = null;
     this.runExecution.clear();
@@ -132,6 +136,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   hydrate = (payload: NcpAgentConversationHydrationParams): void => {
     this.messages = [...new Map(payload.messages.map((message) => [message.id, normalizeConversationMessage(message)])).values()];
     this.streamingMessage = null;
+    this.streamingMessageIndex = null;
     this.error = null;
     this.contextWindow = payload.contextWindow ? { ...payload.contextWindow } : null;
     this.activeRun = payload.activeRun
@@ -149,11 +154,13 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   prependHistory = (messages: ReadonlyArray<NcpMessage>): void => {
+    const currentMessages = this.messages;
     const nextMessages = prependConversationHistory(this.messages, this.streamingMessage, messages);
-    if (nextMessages === this.messages) {
+    if (nextMessages === currentMessages) {
       return;
     }
     this.messages = nextMessages;
+    if (this.streamingMessageIndex !== null) this.streamingMessageIndex = rebaseStreamingMessageIndex(currentMessages, nextMessages, this.streamingMessageIndex);
     this.toolCalls.hydrate(this.messages);
     this.stateVersion += 1;
     this.notifyListeners();
@@ -446,6 +453,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       const nextMessages = [...this.messages];
       nextMessages.splice(messageIndex, 1);
       this.messages = nextMessages;
+      this.streamingMessageIndex = messageIndex;
       this.stateVersion += 1;
       const nextStreamingMessage = {
         ...existingMessage,
@@ -482,6 +490,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       parts: [],
       timestamp: new Date().toISOString()
     };
+    this.streamingMessageIndex = this.messages.length;
     this.replaceStreamingMessage(nextStreamingMessage);
     return nextStreamingMessage;
   };
@@ -522,25 +531,18 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   private upsertMessage = (message: NcpMessage): void => {
-    const normalizedMessage = normalizeConversationMessage(message);
-    if (this.streamingMessage?.id === normalizedMessage.id) this.streamingMessage = null;
-    const messageIndex = this.messages.findIndex((item) => item.id === normalizedMessage.id);
-    if (messageIndex < 0) {
-      this.messages = insertMessageByTimeline(this.messages, normalizedMessage);
-      this.stateVersion += 1;
-      return;
-    }
-
-    const nextMessages = [...this.messages];
-    nextMessages[messageIndex] = normalizedMessage;
-    this.messages = nextMessages;
+    const nextState = upsertMessageByEventOrder(this.messages, this.streamingMessage, this.streamingMessageIndex, message);
+    this.messages = nextState.messages;
+    this.streamingMessage = nextState.streamingMessage;
+    this.streamingMessageIndex = nextState.streamingMessageIndex;
     this.stateVersion += 1;
   };
 
   private replaceStreamingMessage = (nextStreamingMessage: NcpMessage | null): void => {
-    if (!nextStreamingMessage && !this.streamingMessage) {
+    if (!nextStreamingMessage && !this.streamingMessage && this.streamingMessageIndex === null) {
       return;
     }
+    this.streamingMessageIndex = nextStreamingMessage ? this.streamingMessageIndex ?? this.messages.length : null;
     this.streamingMessage = nextStreamingMessage ? normalizeConversationMessage(nextStreamingMessage) : null;
     this.stateVersion += 1;
   };

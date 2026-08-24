@@ -210,6 +210,52 @@ export function insertMessageByTimeline(messages: readonly NcpMessage[], message
   return nextMessages;
 }
 
+export function rebaseStreamingMessageIndex(
+  currentMessages: readonly NcpMessage[],
+  nextMessages: readonly NcpMessage[],
+  currentIndex: number
+): number {
+  const leftMessageId = currentIndex > 0 ? currentMessages[currentIndex - 1]?.id : null;
+  const rightMessageId = currentMessages[currentIndex]?.id;
+  const rightIndex = rightMessageId
+    ? nextMessages.findIndex((message) => message.id === rightMessageId)
+    : -1;
+  if (rightIndex >= 0) return rightIndex;
+  const leftIndex = leftMessageId
+    ? nextMessages.findIndex((message) => message.id === leftMessageId)
+    : -1;
+  return leftIndex >= 0 ? leftIndex + 1 : nextMessages.length;
+}
+
+export function upsertMessageByEventOrder(
+  messages: readonly NcpMessage[],
+  streamingMessage: NcpMessage | null,
+  streamingMessageIndex: number | null,
+  message: NcpMessage
+): {
+  messages: NcpMessage[];
+  streamingMessage: NcpMessage | null;
+  streamingMessageIndex: number | null;
+} {
+  const normalizedMessage = normalizeConversationMessage(message);
+  const settlesStreamingMessage = streamingMessage?.id === normalizedMessage.id;
+  const messageIndex = messages.findIndex((item) => item.id === normalizedMessage.id);
+  const nextMessages = [...messages];
+  if (messageIndex >= 0) {
+    nextMessages[messageIndex] = normalizedMessage;
+  } else {
+    const insertIndex = settlesStreamingMessage
+      ? Math.min(Math.max(streamingMessageIndex ?? messages.length, 0), messages.length)
+      : messages.length;
+    nextMessages.splice(insertIndex, 0, normalizedMessage);
+  }
+  return {
+    messages: nextMessages,
+    streamingMessage: settlesStreamingMessage ? null : streamingMessage,
+    streamingMessageIndex: settlesStreamingMessage ? null : streamingMessageIndex
+  };
+}
+
 export function prependConversationHistory(
   currentMessages: readonly NcpMessage[],
   streamingMessage: NcpMessage | null,

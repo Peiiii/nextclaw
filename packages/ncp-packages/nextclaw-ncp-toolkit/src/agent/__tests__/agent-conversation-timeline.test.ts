@@ -45,6 +45,69 @@ describe("agent conversation timeline", () => {
     ]);
   });
 
+  it("preserves accepted event order when a steered user timestamp precedes the completed assistant", async () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    await manager.dispatchBatch([
+      {
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          message: createMessage({
+            id: "user-mt7jp7vd",
+            sessionId: "ncp-mt7hs0u9-15yce6jv",
+            role: "user",
+            timestamp: "2026-08-24T18:04:10.460Z"
+          })
+        }
+      },
+      {
+        type: NcpEventType.RunStarted,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          runId: "agent-run-7c65d8b1-6bda-4f08-a2ad-d5f5318366fb"
+        }
+      },
+      {
+        type: NcpEventType.MessageReasoningDelta,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          messageId: "assistant-message-2629eaf9-c4ce-4562-b22d-c70f1e8c85e2",
+          delta: "Planning"
+        }
+      },
+      {
+        type: NcpEventType.MessageCompleted,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          message: createMessage({
+            id: "assistant-message-2629eaf9-c4ce-4562-b22d-c70f1e8c85e2",
+            sessionId: "ncp-mt7hs0u9-15yce6jv",
+            parts: [{ type: "reasoning", text: "Planning" }],
+            timestamp: "2026-08-24T18:04:16.861Z"
+          })
+        }
+      },
+      {
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          message: createMessage({
+            id: "user-mt7jpad5",
+            sessionId: "ncp-mt7hs0u9-15yce6jv",
+            role: "user",
+            timestamp: "2026-08-24T18:04:13.625Z"
+          })
+        }
+      }
+    ]);
+
+    expect(manager.getSnapshot().messages.map((message) => message.id)).toEqual([
+      "user-mt7jp7vd",
+      "assistant-message-2629eaf9-c4ce-4562-b22d-c70f1e8c85e2",
+      "user-mt7jpad5"
+    ]);
+  });
+
   it("settles an orphaned streaming assistant before a different run starts", () => {
     const manager = new DefaultNcpAgentConversationStateManager();
     manager.dispatch({

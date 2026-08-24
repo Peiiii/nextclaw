@@ -14,9 +14,13 @@ export interface NcpConversationSnapshot {
 
   /**
    * Message currently being streamed (deltas apply here); null when idle.
-   * When message.completed is dispatched, this is appended to messages and cleared.
+   * When message.completed is dispatched, this is inserted at
+   * streamingMessageIndex and cleared.
    */
   readonly streamingMessage: NcpMessage | null;
+
+  /** Event-order insertion boundary for streamingMessage within messages. */
+  readonly streamingMessageIndex: number | null;
 
   /** Latest error, if any (e.g. from message.failed or endpoint.error). */
   readonly error: NcpError | null;

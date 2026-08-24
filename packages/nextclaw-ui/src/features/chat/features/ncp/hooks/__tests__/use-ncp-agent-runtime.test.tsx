@@ -1,4 +1,4 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
 import {
   type NcpAgentClientEndpoint,
   type NcpAgentSendEnvelope,
@@ -156,6 +156,29 @@ class ExistingSessionLiveClient implements NcpAgentClientEndpoint {
       listener(event);
     }
   };
+}
+
+function RuntimeMessagesProbe({
+  client,
+  manager,
+}: {
+  client: NcpAgentClientEndpoint;
+  manager: DefaultNcpAgentConversationStateManager;
+}) {
+  const { visibleMessages } = useNcpAgentRuntime({
+    sessionId: "ncp-mt7hs0u9-15yce6jv",
+    client,
+    manager,
+  });
+  return (
+    <div data-testid="runtime-messages">
+      {visibleMessages.map((message) => (
+        <div key={message.id} data-message-id={message.id}>
+          {message.id}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function readAssistantText(messages: readonly NcpMessage[]): string {
@@ -419,6 +442,72 @@ describe("useNcpAgentRuntime", () => {
       "assistant-old",
       "user-later",
     ]);
+  });
+
+  it("keeps the live assistant boundary and DOM identity when a steered user has an earlier timestamp", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    manager.hydrate({
+      sessionId: "ncp-mt7hs0u9-15yce6jv",
+      messages: [{
+        id: "user-mt7jp7vd",
+        sessionId: "ncp-mt7hs0u9-15yce6jv",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "first" }],
+        timestamp: "2026-08-24T18:04:10.460Z",
+      }],
+    });
+    await manager.dispatchBatch([
+      {
+        type: NcpEventType.RunStarted,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          runId: "agent-run-7c65d8b1-6bda-4f08-a2ad-d5f5318366fb",
+        },
+      },
+      {
+        type: NcpEventType.MessageReasoningDelta,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          messageId: "assistant-message-2629eaf9-c4ce-4562-b22d-c70f1e8c85e2",
+          delta: "Planning",
+        },
+      },
+    ]);
+
+    const view = render(<RuntimeMessagesProbe client={client} manager={manager} />);
+    const assistantSelector = '[data-message-id="assistant-message-2629eaf9-c4ce-4562-b22d-c70f1e8c85e2"]';
+    const assistantNode = view.container.querySelector(assistantSelector);
+    expect(assistantNode).not.toBeNull();
+
+    await act(async () => {
+      await manager.dispatch({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId: "ncp-mt7hs0u9-15yce6jv",
+          message: {
+            id: "user-mt7jpad5",
+            sessionId: "ncp-mt7hs0u9-15yce6jv",
+            role: "user",
+            status: "final",
+            parts: [{ type: "text", text: "steer" }],
+            timestamp: "2026-08-24T18:04:13.625Z",
+          },
+        },
+      });
+    });
+
+    await waitFor(() => {
+      const ids = [...view.container.querySelectorAll("[data-message-id]")]
+        .map((node) => node.getAttribute("data-message-id"));
+      expect(ids).toEqual([
+        "user-mt7jp7vd",
+        "assistant-message-2629eaf9-c4ce-4562-b22d-c70f1e8c85e2",
+        "user-mt7jpad5",
+      ]);
+    });
+    expect(view.container.querySelector(assistantSelector)).toBe(assistantNode);
   });
 
 });

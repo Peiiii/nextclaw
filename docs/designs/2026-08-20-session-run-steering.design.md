@@ -472,6 +472,7 @@ RunFinished R1
 5. 同一 boundary claim 多条插话时，每条仍是独立 user message，按 FIFO 连续展示，随后只发起一次新的 model step 回应这一批输入，不把附件、引用或 skill token 强行合并。
 6. 用户可以复制 A1、U2、A2 各自内容；retry、fork、继续等 run 级动作只挂在该 run 的最后一个 assistant message/turn tail，不在 A1 上制造“这个 run 已结束”的错觉。
 7. 刷新和 journal replay 必须重建同样的 `A1 -> U2 -> A2` 顺序，不能依赖前端临时插入位置。
+8. 实时 conversation manager 必须以 NCP endpoint event 的接纳顺序作为 transcript 权威顺序；`message.timestamp` 只表达消息自身的时间事实，不能覆盖 `MessageCompleted(A1) -> MessageSent(U2)` 的因果边界。流式 assistant 从 finalized messages 中抽离展示时，manager 必须保存它首次进入事件流时的插入边界，并在 streaming、settlement 与刷新投影之间保持同一个位置。
 
 这要求补齐当前 NCP message lifecycle：
 
@@ -480,6 +481,7 @@ RunFinished R1
 - 每个 assistant step 在 claim steering 前发布自己的完成事实，finalize 当前 streaming message，但不清除 active run；
 - `RunFinished` 只结算 run 和最后一个 active step，不再负责把整个 run 唯一的一条 assistant message 才变成 final；
 - conversation state 需要允许同一个 active run 内顺序完成 A1、追加 U2、再建立 A2；run 级 usage metadata 不再依赖单一 assistant message ID。
+- conversation state 的实时增量消息按 endpoint event 顺序追加；历史 prepend 与尚未进入事件流的临时 optimistic message 才允许使用时间戳寻找位置。React 只消费 manager 给出的 streaming 插入边界，不自行按墙钟时间重新推断 run 内顺序。
 
 ### 后续增强边界
 
@@ -583,6 +585,7 @@ RunFinished R1
 - queue 行编辑、删除、strict steer 不互相破坏。
 - pending steering -> transcript 单气泡交接，无闪烁、无重复。
 - 消费插话后固定展示 A1 -> U2 -> A2；A1 与 A2 是两个 assistant 气泡且只在 A2 显示 active streaming 状态。
+- 覆盖 U2 的客户端时间早于 A1 首次 assistant delta / completed 时间的真实反转场景；直播、A1 settlement 后和刷新重载三种状态都必须保持 A1 -> U2，不能先错序再靠刷新自愈。
 - 刷新、切会话、SSE 重连、多客户端读取同一 pending snapshot。
 - stop 后未 claim 插话重新出现在队首。
 - 窄屏与键盘焦点可达性。
