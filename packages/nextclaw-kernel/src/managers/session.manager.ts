@@ -423,27 +423,12 @@ export class SessionManager implements NcpSessionApi {
   };
 
   getAgentRunSession = async (sessionId: string): Promise<AgentRunSession> => {
-    const record = await this.getSessionRecord(sessionId);
-    if (!record) {
+    const summary =
+      await this.options.journalStore.getSessionSummary(sessionId);
+    if (!summary) {
       throw new Error(`Session not found: ${sessionId}`);
     }
-    const agentRuntimeId =
-      readOptionalMetadataString(record.metadata?.agentRuntimeId) ??
-      DEFAULT_AGENT_RUNTIME_ENTRY_ID;
-    const model = readOptionalMetadataString(record.metadata?.model);
-    return {
-      sessionId: record.sessionId,
-      agentId: record.agentId,
-      agentRuntimeId,
-      metadata: structuredClone(record.metadata ?? {}),
-      model,
-      projectRoot: readProjectRoot(record.metadata),
-      workingDir: this.workingDirResolver.resolve({
-        agentId: record.agentId,
-        metadata: record.metadata,
-      }),
-      thinkingEffort: readThinkingEffort(record.metadata),
-    };
+    return this.toAgentRunSession(summary);
   };
 
   createAgentRunSession = async (
@@ -527,9 +512,31 @@ export class SessionManager implements NcpSessionApi {
     if (!params.sessionId) {
       return await this.createAgentRunSession(params);
     }
-    return (await this.getSessionRecord(params.sessionId))
-      ? await this.getAgentRunSession(params.sessionId)
+    const summary = await this.options.journalStore.getSessionSummary(
+      params.sessionId,
+    );
+    return summary
+      ? this.toAgentRunSession(summary)
       : await this.createAgentRunSession(params);
+  };
+
+  private toAgentRunSession = (summary: NcpSessionSummary): AgentRunSession => {
+    const metadata = summary.metadata ?? {};
+    return {
+      sessionId: summary.sessionId,
+      agentId: summary.agentId,
+      agentRuntimeId:
+        readOptionalMetadataString(metadata.agentRuntimeId) ??
+        DEFAULT_AGENT_RUNTIME_ENTRY_ID,
+      metadata: structuredClone(metadata),
+      model: readOptionalMetadataString(metadata.model),
+      projectRoot: readProjectRoot(metadata),
+      workingDir: this.workingDirResolver.resolve({
+        agentId: summary.agentId,
+        metadata,
+      }),
+      thinkingEffort: readThinkingEffort(metadata),
+    };
   };
 
   patchSessionMetadata = async (
