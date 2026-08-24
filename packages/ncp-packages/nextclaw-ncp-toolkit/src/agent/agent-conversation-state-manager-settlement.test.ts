@@ -102,7 +102,9 @@ describe("DefaultNcpAgentConversationStateManager settlement", () => {
       "user-2",
     ]);
   });
+});
 
+describe("DefaultNcpAgentConversationStateManager metadata settlement", () => {
   it("settles assistant message lifecycle from run timing facts", () => {
     const manager = new DefaultNcpAgentConversationStateManager();
 
@@ -135,6 +137,19 @@ describe("DefaultNcpAgentConversationStateManager settlement", () => {
         sessionId: "session-1",
         runId: "run-1",
         metadata: {
+          run_trigger: {
+            version: 1,
+            actor: "agent",
+            source: "sessions_spawn",
+            triggeredAt: "2026-03-12T00:00:00.000Z",
+            targetRunId: "run-1",
+            sourceSessionId: "parent-session",
+            sourceMessageId: "parent-user-message",
+            sourceRunId: "parent-run",
+            sourceToolCallId: "tool-call-1",
+            sourceRequestId: "request-1",
+            sourceModel: "openai/gpt-5.6",
+          },
           ai_execution: {
             version: 1,
             runId: "run-1",
@@ -180,8 +195,63 @@ describe("DefaultNcpAgentConversationStateManager settlement", () => {
         status: "reported",
       },
     });
+    expect(manager.getSnapshot().messages[0]?.metadata?.run_trigger).toMatchObject({
+      actor: "agent",
+      source: "sessions_spawn",
+      targetRunId: "run-1",
+      sourceModel: "openai/gpt-5.6",
+    });
   });
 
+  it("does not leak trigger provenance into the next run", async () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    await manager.dispatchBatch([
+      {
+        type: NcpEventType.RunStarted,
+        payload: { sessionId: "session-1", runId: "run-1" },
+      },
+      {
+        type: NcpEventType.RunMetadata,
+        payload: {
+          sessionId: "session-1",
+          runId: "run-1",
+          metadata: {
+            run_trigger: {
+              version: 1,
+              actor: "automation",
+              source: "observation",
+              triggeredAt: "2026-03-12T00:00:00.000Z",
+              targetRunId: "run-1",
+            },
+          },
+        },
+      },
+      {
+        type: NcpEventType.MessageCompleted,
+        payload: {
+          sessionId: "session-1",
+          message: createMessage({ id: "assistant-1" }),
+        },
+      },
+      {
+        type: NcpEventType.RunStarted,
+        payload: { sessionId: "session-1", runId: "run-2" },
+      },
+      {
+        type: NcpEventType.MessageCompleted,
+        payload: {
+          sessionId: "session-1",
+          message: createMessage({ id: "assistant-2" }),
+        },
+      },
+    ]);
+
+    expect(manager.getSnapshot().messages[0]?.metadata?.run_trigger).toBeDefined();
+    expect(manager.getSnapshot().messages[1]?.metadata?.run_trigger).toBeUndefined();
+  });
+});
+
+describe("DefaultNcpAgentConversationStateManager outcome settlement", () => {
   it("projects execution metadata when an assistant run is aborted", () => {
     const manager = new DefaultNcpAgentConversationStateManager();
     manager.dispatch({
@@ -243,7 +313,6 @@ describe("DefaultNcpAgentConversationStateManager settlement", () => {
       },
     });
   });
-
 });
 
 describe("DefaultNcpAgentConversationStateManager error settlement", () => {

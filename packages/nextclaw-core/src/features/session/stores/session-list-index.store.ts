@@ -25,6 +25,7 @@ const SESSION_LIST_METADATA_KEYS = [
   "spawned_by_request_id",
   "spawnedByRequestId",
   "child_session_promoted",
+  "session_creation_trigger",
 ] as const;
 
 type SessionListIndex = {

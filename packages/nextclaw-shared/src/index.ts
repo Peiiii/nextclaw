@@ -63,6 +63,7 @@ export {
   ingressKeys,
 } from "./configs/ingress-keys.config.js";
 export { DIAGNOSTIC_CORRELATION_METADATA_KEY } from "./configs/ingress-keys.config.js";
+export type { NcpRunTriggerInput } from "@nextclaw/ncp";
 export {
   RUNTIME_DEFAULT_MODEL_VALUE,
   isRuntimeDefaultModelValue,

@@ -1,7 +1,8 @@
 import type {
   SessionRequestNotifyMode,
   SessionRequestRecord,
-} from "../types/session-request.types.js";
+} from "@core/features/session-request/types/session-request.types.js";
+import type { NcpRunTriggerInput } from "@nextclaw/shared";
 
 export function createRunningSessionRequest(params: {
   requestId: string;
@@ -14,6 +15,7 @@ export function createRunningSessionRequest(params: {
   task: string;
   isChildSession: boolean;
   parentSessionId?: string;
+  trigger: NcpRunTriggerInput;
 }): SessionRequestRecord {
   const {
     requestId,
@@ -26,6 +28,7 @@ export function createRunningSessionRequest(params: {
     task,
     isChildSession,
     parentSessionId,
+    trigger,
   } = params;
   const createdAt = new Date().toISOString();
   return {
@@ -44,6 +47,7 @@ export function createRunningSessionRequest(params: {
       task,
       is_child_session: isChildSession,
       ...(parentSessionId ? { parent_session_id: parentSessionId } : {}),
+      run_trigger: structuredClone(trigger),
     },
   };
 }

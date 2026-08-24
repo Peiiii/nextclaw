@@ -2,8 +2,9 @@ import {
   normalizeToolParams,
   type ToolExecutionContext,
 } from "@nextclaw/core";
-import type { NcpTool } from "@nextclaw/ncp";
+import type { NcpRunTriggerInput, NcpTool } from "@nextclaw/ncp";
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
+import { attachSourceToolCall } from "@kernel/utils/agent-run-trigger.utils.js";
 
 function readRequiredString(params: Record<string, unknown>, key: string): string {
   const value = params[key];
@@ -58,15 +59,18 @@ export class SessionRequestTool implements NcpTool {
   };
   private sourceSessionId = "";
   private handoffDepth = 0;
+  private trigger: NcpRunTriggerInput | null = null;
 
   constructor(private readonly manager: SessionRequestManager) {}
 
   setContext = (params: {
     sourceSessionId: string;
     handoffDepth?: number;
+    trigger: NcpRunTriggerInput;
   }): void => {
     this.sourceSessionId = params.sourceSessionId;
     this.handoffDepth = params.handoffDepth ?? 0;
+    this.trigger = structuredClone(params.trigger);
   };
 
   execute = async (args: unknown, context?: ToolExecutionContext): Promise<unknown> => {
@@ -90,6 +94,14 @@ export class SessionRequestTool implements NcpTool {
       title: readOptionalString(params, "title"),
       notify: notifyMode,
       handoffDepth: this.handoffDepth,
+      trigger: attachSourceToolCall(this.readTriggerOrThrow(), context?.toolCallId),
     });
+  };
+
+  private readTriggerOrThrow = (): NcpRunTriggerInput => {
+    if (!this.trigger) {
+      throw new Error("sessions_request requires an active run trigger context.");
+    }
+    return structuredClone(this.trigger);
   };
 }

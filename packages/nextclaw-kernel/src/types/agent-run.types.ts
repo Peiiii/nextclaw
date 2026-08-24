@@ -3,6 +3,7 @@ import type {
   NcpInputDelivery,
   NcpMessage,
   NcpResolvedInputDelivery,
+  NcpRunTriggerInput,
   NcpTool,
 } from "@nextclaw/ncp";
 
@@ -25,6 +26,7 @@ export type AgentRunRequest = {
   thinkingEffort?: ThinkingEffort | null;
   delivery?: NcpInputDelivery;
   idempotencyKey?: string;
+  trigger?: NcpRunTriggerInput;
 };
 
 export type AgentRunAbortRequest = {

@@ -6,6 +6,7 @@ import type {
 import type {
   CreateSessionContextInheritanceInput as SessionContextInheritanceInput,
 } from "@core/features/session/index.js";
+import type { NcpRunTriggerInput } from "@nextclaw/shared";
 
 export type UpdateSessionRequestToolCallResult = (
   result: SessionRequestToolResult,
@@ -29,6 +30,7 @@ export type SpawnSessionAndRequestParams = {
   agentId?: string;
   parentSessionId?: string;
   notify: SessionRequestNotifyMode;
+  trigger?: NcpRunTriggerInput;
 };
 
 export type RequestSessionParams = {
@@ -40,6 +42,7 @@ export type RequestSessionParams = {
   title?: string;
   notify: SessionRequestNotifyMode;
   handoffDepth?: number;
+  trigger?: NcpRunTriggerInput;
 };
 
 export type DispatchRequestParams = {
@@ -56,6 +59,7 @@ export type DispatchRequestParams = {
   isChildSession: boolean;
   parentSessionId?: string;
   spawnedByRequestId?: string;
+  trigger: NcpRunTriggerInput;
 };
 
 export type SessionRequestResultContext = {

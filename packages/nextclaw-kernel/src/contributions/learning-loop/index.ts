@@ -147,6 +147,7 @@ export class LearningLoopContribution extends Contribution {
 
     this.inFlightSessionIds.add(sessionId);
     try {
+      const triggeredAt = new Date().toISOString();
       const reviewSession = await this.sessionRequester.spawnSessionAndRequest({
         sourceSessionId: sessionId,
         sourceSessionMetadata: metadata,
@@ -163,10 +164,19 @@ export class LearningLoopContribution extends Contribution {
           toolCallsSinceReview,
           currentToolCallCount: totalToolCalls,
         }),
+        trigger: {
+          actor: "automation",
+          source: "learning-loop",
+          triggeredAt,
+          sourceSessionId: sessionId,
+          ...(typeof metadata.preferred_model === "string" && metadata.preferred_model.trim()
+            ? { sourceModel: metadata.preferred_model.trim() }
+            : {}),
+        },
       });
       await this.sessionStore.updateSessionMetadata(sessionId, {
         [LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY]: totalToolCalls,
-        [LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY]: new Date().toISOString(),
+        [LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY]: triggeredAt,
         [LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY]:
           reviewSession.sessionId,
       });

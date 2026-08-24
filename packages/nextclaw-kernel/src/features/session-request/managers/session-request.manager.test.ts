@@ -1,7 +1,7 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { ProjectManager } from "@kernel/managers/project.manager.js";
@@ -52,10 +52,12 @@ function createFixture() {
     }),
     sessionSearch: { handleSessionUpdated: async () => undefined } as never,
   });
+  const dispatchedRequests: unknown[] = [];
   const manager = new SessionRequestManager({
     sessionManager,
     dispatcher: {
       dispatch: async ({ onAccepted, request }) => {
+        dispatchedRequests.push(structuredClone(request));
         onAccepted(`accepted-${request.requestId}`);
         return {
           finalResponseMessageId: `final-${request.requestId}`,
@@ -64,7 +66,7 @@ function createFixture() {
       },
     },
   });
-  return { dir, manager, sessionManager };
+  return { dir, dispatchedRequests, manager, sessionManager };
 }
 
 afterEach(() => {
@@ -121,6 +123,43 @@ describe("SessionRequestManager", () => {
         anchorToolCallId: "call-spawn-1",
         inheritedMessageCount: 0,
       },
+    });
+  });
+
+  it("persists agent trigger provenance in the request and child session", async () => {
+    const fixture = createFixture();
+    await fixture.sessionManager.createSession({
+      sessionId: "source-session",
+      sourceSessionMetadata: {},
+      task: "Parent",
+    });
+    const trigger = {
+      actor: "agent" as const,
+      source: "sessions_spawn",
+      triggeredAt: "2026-08-25T00:00:00.000Z",
+      sourceSessionId: "source-session",
+      sourceMessageId: "source-message",
+      sourceRunId: "source-run",
+      sourceToolCallId: "source-tool-call",
+      sourceModel: "openai/gpt-5.6",
+    };
+
+    const result = await fixture.manager.spawnSessionAndRequest({
+      sourceSessionId: "source-session",
+      sourceSessionMetadata: {},
+      parentSessionId: "source-session",
+      task: "Review this",
+      notify: "none",
+      trigger,
+    });
+    const child = await fixture.sessionManager.getSessionRecord(result.sessionId);
+
+    expect(child?.metadata?.session_creation_trigger).toMatchObject(trigger);
+    await vi.waitFor(() => {
+      expect(fixture.dispatchedRequests).toHaveLength(1);
+    });
+    expect(fixture.dispatchedRequests[0]).toMatchObject({
+      metadata: { run_trigger: trigger },
     });
   });
 

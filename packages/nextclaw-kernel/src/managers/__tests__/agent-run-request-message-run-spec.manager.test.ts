@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EventBus,
   Ingress,
+  eventKeys,
   ingressKeys,
   type AgentRunSendIngressPayload,
 } from "@nextclaw/shared";
@@ -30,23 +31,49 @@ describe("AgentRunRequestManager message run spec metadata", () => {
   it("records the resolved run spec on the queued user message", async () => {
     const ingress = new Ingress();
     const queuedMessages: NcpMessage[] = [];
+    const completedMessages: NcpMessage[] = [];
     const runtimeSpecs: AgentRunSpec[] = [];
     const surfaceAgentIds: Array<string | undefined> = [];
     const sessionRun = new SessionRun({ sessionId: "session-1", messages: [] });
+    const eventBus = new EventBus();
+    eventBus.on(eventKeys.ncpEvent, (event) => {
+      if (event.type === NcpEventType.MessageCompleted) {
+        completedMessages.push(structuredClone(event.payload.message));
+      }
+    });
     const manager = new AgentRunRequestManager(
       {
         getOrCreate: () => ({
           run: async function* (spec: AgentRunSpec, options): AsyncGenerator<NcpEndpointEvent> {
             queuedMessages.push(...options.initialMessages.map((message: NcpMessage) => structuredClone(message)));
             runtimeSpecs.push(structuredClone(spec));
-            yield {
+            const runStarted = {
               type: NcpEventType.RunStarted,
               payload: {
                 sessionId: "session-1",
                 messageId: "assistant-message-1",
                 runId: spec.runId,
               },
+            } as const;
+            await options.sessionRun.applyEvents([runStarted]);
+            yield runStarted;
+            const assistantMessage: NcpMessage = {
+              id: "assistant-message-1",
+              sessionId: "session-1",
+              role: "assistant",
+              status: "final",
+              timestamp: "2026-08-25T00:01:00.000Z",
+              parts: [{ type: "text", text: "done" }],
             };
+            const completedEvent = {
+              type: NcpEventType.MessageCompleted,
+              payload: {
+                sessionId: "session-1",
+                message: assistantMessage,
+              },
+            } as const;
+            await options.sessionRun.applyEvents([completedEvent]);
+            yield completedEvent;
           },
         }),
       } as never,
@@ -62,7 +89,7 @@ describe("AgentRunRequestManager message run spec metadata", () => {
           return { contextBlocks: [], tools: [] };
         },
       } as never,
-      new EventBus(),
+      eventBus,
       ingress,
       {
         getOrCreateAgentRunSession: async () => ({
@@ -96,6 +123,7 @@ describe("AgentRunRequestManager message run spec metadata", () => {
       },
     }, { source: "test" });
     await waitForCondition(() => runtimeSpecs.length > 0);
+    await waitForCondition(() => completedMessages.length > 0);
 
     const queuedMessage = queuedMessages[0];
     const runSpec = queuedMessage?.metadata?.[
@@ -147,6 +175,16 @@ describe("AgentRunRequestManager message run spec metadata", () => {
         },
       },
     });
+    expect(queuedMessage?.metadata?.run_trigger).toMatchObject({
+      version: 1,
+      actor: "human",
+      source: "test",
+      sourceMessageId: queuedMessage?.id,
+      targetRunId: runtimeSpecs[0]?.runId,
+    });
+    expect(completedMessages[0]?.metadata?.run_trigger).toEqual(
+      queuedMessage?.metadata?.run_trigger,
+    );
     expect(runtimeSpecs[0]).toMatchObject({
       runId: runtimeSpecs[0]?.runId,
       runtimeId: "native",

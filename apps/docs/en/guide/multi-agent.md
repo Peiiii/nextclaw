@@ -25,4 +25,6 @@ Do not create a large agent roster before the default agent completes a real tas
 
 A complex report can use one subtask to verify sources and another to prepare charts. Each subtask needs an input, deliverable, completion condition, and destination. The parent session still owns integration and final review.
 
+NextClaw delegation is intentionally one level deep: a top-level session can create child sessions, but a child cannot create grandchildren. When a child discovers more work that should be split out, it returns that need to the parent, which remains the single owner for further delegation and final synthesis. This prevents recursive session creation, duplicated resource use, and unclear integration ownership.
+
 Related: [Tasks and sessions](/en/guide/chat) and [Skills and MCP](/en/guide/skills-and-mcp).

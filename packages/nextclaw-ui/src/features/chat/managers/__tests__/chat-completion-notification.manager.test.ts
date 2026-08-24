@@ -117,6 +117,76 @@ describe("ChatCompletionNotificationManager", () => {
     expect(show).toHaveBeenCalledOnce();
   });
 
+  it("notifies only for human-triggered background runs", () => {
+    manager.start();
+    emit(createCompletedEvent(createMessage({
+      id: "assistant-agent",
+      metadata: {
+        run_trigger: {
+          version: 1,
+          actor: "agent",
+          source: "sessions_spawn",
+          triggeredAt: "2026-08-05T09:59:00.000Z",
+          targetRunId: "run-agent",
+        },
+      },
+    })));
+    emit(createCompletedEvent(createMessage({
+      id: "assistant-automation",
+      metadata: {
+        run_trigger: {
+          version: 1,
+          actor: "automation",
+          source: "observation",
+          triggeredAt: "2026-08-05T09:59:00.000Z",
+          targetRunId: "run-automation",
+        },
+      },
+    })));
+    emit(createCompletedEvent(createMessage({
+      id: "assistant-human",
+      metadata: {
+        run_trigger: {
+          version: 1,
+          actor: "human",
+          source: "ui-http",
+          triggeredAt: "2026-08-05T09:59:00.000Z",
+          targetRunId: "run-human",
+        },
+      },
+    })));
+
+    expect(show).toHaveBeenCalledOnce();
+    expect(show).toHaveBeenCalledWith(expect.objectContaining({
+      id: "chat-reply:assistant-human",
+    }));
+  });
+
+  it("silences legacy child replies without changing legacy top-level behavior", () => {
+    useChatQueryStore.setState({
+      snapshot: {
+        sessionsQuery: {
+          data: {
+            sessions: [{
+              sessionId: "session-background",
+              messageCount: 2,
+              updatedAt: "2026-08-05T10:00:00.000Z",
+              metadata: { parent_session_id: "parent-session" },
+            }],
+            total: 1,
+          },
+        } as never,
+      },
+    });
+    manager.start();
+    emit(createCompletedEvent());
+    expect(show).not.toHaveBeenCalled();
+
+    useChatQueryStore.setState({ snapshot: {} });
+    emit(createCompletedEvent(createMessage({ id: "legacy-top-level" })));
+    expect(show).toHaveBeenCalledOnce();
+  });
+
   it("ignores non-final, non-assistant, hidden, and unrelated events", () => {
     manager.start();
     emit(createCompletedEvent(createMessage({ status: "streaming" })));

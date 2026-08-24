@@ -17,6 +17,7 @@ import {
   type SpawnSessionAndRequestParams,
 } from "@nextclaw/core";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
+import type { NcpRunTriggerInput } from "@nextclaw/ncp";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import {
   NCP_SESSION_REQUEST_ACCEPTED_EVENT_TYPE,
@@ -33,6 +34,22 @@ export type SessionRequestManagerOptions = {
 
 function readRecordLabel(record: AgentSessionRecord): string | undefined {
   return readOptionalString(record.metadata?.label) ?? undefined;
+}
+
+function resolveRequestTrigger(params: {
+  trigger?: NcpRunTriggerInput;
+  sourceSessionId: string;
+  requestId: string;
+}): NcpRunTriggerInput {
+  return {
+    ...(params.trigger ?? {
+      actor: "system",
+      source: "session-request",
+      triggeredAt: new Date().toISOString(),
+      sourceSessionId: params.sourceSessionId,
+    }),
+    sourceRequestId: params.requestId,
+  };
 }
 
 export class SessionRequestManager {
@@ -59,15 +76,24 @@ export class SessionRequestManager {
       agentId,
       parentSessionId,
       notify,
+      trigger: requestedTrigger,
     } = params;
     const requestId = randomUUID();
+    const trigger = resolveRequestTrigger({
+      trigger: requestedTrigger,
+      sourceSessionId,
+      requestId,
+    });
     const createdSession = await this.options.sessionManager.createSession({
       sourceSessionId,
       ...(parentSessionId ? { parentSessionId } : {}),
       task,
       title,
       sourceSessionMetadata,
-      ...(metadataOverrides ? { metadataOverrides } : {}),
+      metadataOverrides: {
+        ...(metadataOverrides ?? {}),
+        session_creation_trigger: structuredClone(trigger),
+      },
       contextInheritance,
       agentId,
       model,
@@ -92,6 +118,7 @@ export class SessionRequestManager {
       isChildSession: Boolean(parentSessionId),
       ...(parentSessionId ? { parentSessionId } : {}),
       spawnedByRequestId: requestId,
+      trigger,
     });
   };
 
@@ -107,6 +134,7 @@ export class SessionRequestManager {
       title,
       notify,
       handoffDepth,
+      trigger: requestedTrigger,
     } = params;
     const normalizedTargetSessionId = targetSessionId.trim();
 
@@ -118,9 +146,15 @@ export class SessionRequestManager {
       throw new Error(`Target session not found: ${targetSessionId}`);
     }
     const parentSessionId = readParentSessionId(targetSession.metadata);
+    const requestId = randomUUID();
+    const trigger = resolveRequestTrigger({
+      trigger: requestedTrigger,
+      sourceSessionId,
+      requestId,
+    });
 
     return this.dispatchRequest({
-      requestId: randomUUID(),
+      requestId,
       sourceSessionId,
       sourceToolCallId,
       updateToolCallResult,
@@ -136,6 +170,7 @@ export class SessionRequestManager {
       isChildSession: Boolean(parentSessionId),
       parentSessionId: parentSessionId ?? undefined,
       spawnedByRequestId: undefined,
+      trigger,
     });
   };
 
@@ -156,6 +191,7 @@ export class SessionRequestManager {
       isChildSession,
       parentSessionId,
       spawnedByRequestId,
+      trigger,
     } = params;
     const request = createRunningSessionRequest({
       requestId,
@@ -168,6 +204,7 @@ export class SessionRequestManager {
       task,
       isChildSession,
       parentSessionId,
+      trigger,
     });
     const resultContext: SessionRequestResultContext = {
       task,

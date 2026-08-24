@@ -21,8 +21,13 @@ import {
 import { buildChatMessageProcessSummary } from "@/features/chat/features/message/utils/chat-message-process-summary.utils";
 import { buildChatMessageExecutionPresentation } from "@/features/chat/features/message/utils/chat-message-execution-summary.utils";
 import {
+  buildChatMessageTriggerDetails,
+  mergeChatMessageMoreActions,
+} from "@/features/chat/features/message/utils/chat-message-trigger-details.utils";
+import {
   buildChatMessageAdapterTexts,
   buildChatMessageExecutionLabels,
+  buildChatMessageTriggerLabels,
   buildChatMessageTexts,
 } from "@/features/chat/features/message/utils/chat-message-texts.utils";
 import {
@@ -94,6 +99,7 @@ class ChatMessageViewModelAdapter {
       language: Parameters<typeof formatDateTime>[1];
       processSummaryLabel: string | null;
       executionPresentationKey: string | null;
+      triggerDetailsKey: string | null;
       viewModel: ChatMessageViewModel;
     }
   >();
@@ -101,13 +107,14 @@ class ChatMessageViewModelAdapter {
   adapt = (params: {
     continuationRunning: boolean;
     executionLabels: ReturnType<typeof buildChatMessageExecutionLabels>;
+    triggerLabels: ReturnType<typeof buildChatMessageTriggerLabels>;
     language: Parameters<typeof formatDateTime>[1];
     processedLabel: string;
     rawMessages: readonly NcpMessage[];
     texts: ReturnType<typeof buildChatMessageAdapterTexts>;
   }): ChatMessageViewModel[] => {
     const {
-      continuationRunning, executionLabels, language, processedLabel, rawMessages, texts,
+      continuationRunning, executionLabels, triggerLabels, language, processedLabel, rawMessages, texts,
     } = params;
     return projectVisibleChatMessages(rawMessages, { continuationRunning }).map((message) => {
       const processSummary = buildChatMessageProcessSummary({
@@ -127,12 +134,28 @@ class ChatMessageViewModelAdapter {
         labels: executionLabels,
       });
       const executionPresentationKey = executionPresentation?.cacheKey ?? null;
+      const triggerDetails = buildChatMessageTriggerDetails({
+        message,
+        labels: triggerLabels,
+      });
+      const triggerDetailsKey = triggerDetails
+        ? JSON.stringify({
+          runTrigger: message.metadata?.run_trigger,
+          runSpec: message.metadata?.run_spec,
+          aiExecution: message.metadata?.ai_execution,
+        })
+        : null;
+      const moreActions = mergeChatMessageMoreActions(
+        executionPresentation?.moreActions,
+        triggerDetails,
+      );
       const cached = this.cache.get(message);
       if (
         cached &&
         cached.language === language &&
         cached.processSummaryLabel === processSummaryLabel &&
-        cached.executionPresentationKey === executionPresentationKey
+        cached.executionPresentationKey === executionPresentationKey &&
+        cached.triggerDetailsKey === triggerDetailsKey
       ) {
         return cached.viewModel;
       }
@@ -147,7 +170,7 @@ class ChatMessageViewModelAdapter {
           inlineTokens: readInlineTokensFromMetadata(message.metadata),
           processSummary,
           executionSummaryLabel: executionPresentation?.summaryLabel,
-          moreActions: executionPresentation?.moreActions,
+          moreActions,
         },
         parts: adaptNcpMessagePartsForChat(message.parts) as ChatMessageSource["parts"],
       };
@@ -160,6 +183,7 @@ class ChatMessageViewModelAdapter {
         language,
         processSummaryLabel,
         executionPresentationKey,
+        triggerDetailsKey,
         viewModel,
       });
       return viewModel;
@@ -295,17 +319,22 @@ export function ChatMessageListContainer({
     () => buildChatMessageExecutionLabels(language),
     [language],
   );
+  const triggerLabels = useMemo(
+    () => buildChatMessageTriggerLabels(language),
+    [language],
+  );
   const adaptedMessages = useMemo(
     () =>
       chatMessageViewModelAdapter.adapt({
         continuationRunning: isSending,
         executionLabels,
+        triggerLabels,
         language,
         processedLabel: t("chatProcessSummaryProcessed"),
         rawMessages,
         texts,
       }),
-    [executionLabels, isSending, language, rawMessages, texts],
+    [executionLabels, isSending, language, rawMessages, texts, triggerLabels],
   );
   const { handleMessageAction, messages, renderMessageContent } =
     useChatMessageActions({

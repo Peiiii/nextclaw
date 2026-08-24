@@ -26,6 +26,15 @@ function createTool() {
   tool.setContext({
     sourceSessionId: "parent-session",
     sourceSessionMetadata: { project_root: "/tmp/project" },
+    trigger: {
+      actor: "agent",
+      source: "sessions_spawn",
+      triggeredAt: "2026-06-19T00:00:00.000Z",
+      sourceSessionId: "parent-session",
+      sourceMessageId: "source-message",
+      sourceRunId: "source-run",
+      sourceModel: "openai/gpt-5.6",
+    },
   });
   return { sessionManager, sessionRequestManager, tool };
 }
@@ -64,6 +73,11 @@ describe("SessionSpawnTool", () => {
       notify: "final_reply",
       sourceToolCallId: "call-1",
       task: "测试一下子代理",
+      trigger: expect.objectContaining({
+        actor: "agent",
+        sourceToolCallId: "call-1",
+        sourceModel: "openai/gpt-5.6",
+      }),
       updateToolCallResult,
     }));
   });
@@ -88,6 +102,12 @@ describe("SessionSpawnTool", () => {
 
     expect(sessionManager.createSession).toHaveBeenCalledWith(expect.objectContaining({
       contextInheritance: { anchorToolCallId: "call-2" },
+      metadataOverrides: {
+        session_creation_trigger: expect.objectContaining({
+          actor: "agent",
+          sourceToolCallId: "call-2",
+        }),
+      },
       parentSessionId: "parent-session",
       task: "branch",
     }));

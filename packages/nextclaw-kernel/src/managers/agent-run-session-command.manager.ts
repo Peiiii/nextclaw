@@ -134,6 +134,13 @@ export class AgentRunSessionCommandManager {
         status: "final",
         timestamp: new Date().toISOString(),
       },
+      trigger: {
+        actor: "human",
+        source: "message-edit",
+        triggeredAt: new Date().toISOString(),
+        sourceSessionId: request.sessionId,
+        sourceMessageId: request.messageId,
+      },
     });
   };
 
@@ -155,6 +162,7 @@ export class AgentRunSessionCommandManager {
         !isHiddenNcpMessage(message) &&
         !isSilentReplyNcpMessage(message),
       );
+    const triggeredAt = new Date().toISOString();
     return await this.send({
       correlationId: request.correlationId,
       sessionId: request.sessionId,
@@ -163,7 +171,7 @@ export class AgentRunSessionCommandManager {
         sessionId: request.sessionId,
         role: "user",
         status: "final",
-        timestamp: new Date().toISOString(),
+        timestamp: triggeredAt,
         parts: [{ type: "text", text: CONTINUATION_PROMPT }],
         metadata: {
           [NCP_INTERNAL_VISIBILITY_METADATA_KEY]: "hidden",
@@ -172,6 +180,15 @@ export class AgentRunSessionCommandManager {
               ? latestVisibleConversationMessage.id
               : undefined,
         },
+      },
+      trigger: {
+        actor: "human",
+        source: "continue-run",
+        triggeredAt,
+        sourceSessionId: request.sessionId,
+        ...(latestVisibleConversationMessage
+          ? { sourceMessageId: latestVisibleConversationMessage.id }
+          : {}),
       },
     });
   };

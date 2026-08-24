@@ -1,4 +1,8 @@
-import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
+import {
+  NcpEventType,
+  parseNcpRunTriggerInput,
+  type NcpMessage,
+} from "@nextclaw/ncp";
 import {
   eventKeys,
   ingressKeys,
@@ -99,6 +103,13 @@ export async function dispatchAgentRuntimeSessionRequest(input: {
   request: SessionRequestRecord;
   task: string;
 }): Promise<void> {
+  const trigger = parseNcpRunTriggerInput(input.request.metadata?.run_trigger) ?? {
+    actor: "system",
+    source: "session-request-recovery",
+    triggeredAt: input.request.createdAt,
+    sourceSessionId: input.request.sourceSessionId,
+    sourceRequestId: input.request.requestId,
+  } as const;
   await input.ingress.handle<AgentRunSessionMessageRequestPayload, unknown>({
     type: ingressKeys.agentRun.sessionMessageRequest,
     payload: {
@@ -113,6 +124,7 @@ export async function dispatchAgentRuntimeSessionRequest(input: {
       },
       requestId: input.request.requestId,
       sessionId: input.request.targetSessionId,
+      trigger: structuredClone(trigger),
     },
   }, { source: "session-request" });
 }

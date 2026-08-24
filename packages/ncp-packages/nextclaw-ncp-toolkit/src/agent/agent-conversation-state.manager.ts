@@ -174,13 +174,13 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   handleMessageCompleted = (payload: NcpCompletedEnvelope): void => {
-    const execution = this.runExecution.take(this.activeRun?.runId);
+    const runId = this.activeRun?.runId;
     const message = this.runExecution.attach(
       normalizeConversationMessage({
         ...payload.message,
         status: "final"
       }),
-      execution,
+      this.runExecution.take(runId),
     );
     if (this.streamingMessage?.id === message.id) {
       this.upsertMessage(message);
@@ -192,7 +192,8 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   handleMessageAbort = (payload: NcpMessageAbortPayload, occurredAt?: string): void => {
     const targetMessageId = payload.messageId?.trim();
-    const execution = this.runExecution.take(payload.runId ?? this.activeRun?.runId);
+    const runId = payload.runId ?? this.activeRun?.runId;
+    const metadata = this.runExecution.take(runId);
     this.clearActiveRun();
     this.setError(null);
 
@@ -209,7 +210,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
             status: "final",
             parts: nextParts
           },
-          execution
+          metadata,
         )
       );
       this.replaceStreamingMessage(null);
@@ -353,7 +354,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         occurredAt,
       );
     }
-    this.runExecution.clear();
+    this.runExecution.beginRun(payload.runId);
     this.setError(null);
     this.activeRun = {
       runId: payload.runId ?? null,
@@ -578,9 +579,12 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   private settleStreamingMessage = (status: Extract<NcpMessageStatus, "final" | "error">, lifecycle?: NcpMessage["lifecycle"], runId?: string | null): void => {
-    const execution = this.runExecution.take(runId);
+    const metadata = this.runExecution.take(runId);
     if (!this.streamingMessage) return;
-    const settledMessage = this.runExecution.attach(settleMessageWithLifecycle(this.streamingMessage, status, lifecycle), execution);
+    const settledMessage = this.runExecution.attach(
+      settleMessageWithLifecycle(this.streamingMessage, status, lifecycle),
+      metadata,
+    );
     this.upsertMessage(settledMessage);
     this.replaceStreamingMessage(null);
     this.toolCalls.clearByMessageId(settledMessage.id);

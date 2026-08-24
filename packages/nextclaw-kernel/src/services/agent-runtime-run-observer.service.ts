@@ -114,7 +114,7 @@ export class AgentRuntimeRunObserverService {
             );
             messageCompletedSeen = true;
           }
-          eventsToPublish.push(event);
+          eventsToPublish.push(this.projectCompletedMessage(event, sessionRun));
           eventsToPublish.forEach(this.publishNcpEvent);
           if (consumedSteeringInput) {
             this.publishRunQueueUpdated(session.sessionId);
@@ -225,6 +225,22 @@ export class AgentRuntimeRunObserverService {
         source: "agent-run-request",
       },
     );
+  };
+
+  private projectCompletedMessage = (
+    event: NcpEndpointEvent,
+    sessionRun: SessionRun,
+  ): NcpEndpointEvent => {
+    if (event.type !== NcpEventType.MessageCompleted) return event;
+    const message = sessionRun.getSnapshot().messages.find(
+      (item) => item.id === event.payload.message.id,
+    );
+    return message
+      ? {
+          ...event,
+          payload: { ...event.payload, message: structuredClone(message) },
+        }
+      : event;
   };
 
   private publishNcpEvent = (event: NcpEndpointEvent): void => {

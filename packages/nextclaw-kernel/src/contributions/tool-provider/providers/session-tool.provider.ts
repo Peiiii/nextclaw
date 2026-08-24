@@ -7,8 +7,9 @@ import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
 import { SessionsUpdateTool } from "@kernel/tools/session-update.tools.js";
-import type { SessionSearchService } from "@nextclaw/core";
+import { readParentSessionId, type SessionSearchService } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
+import { createAgentToolRunTriggerInput } from "@kernel/utils/agent-run-trigger.utils.js";
 
 export class SessionToolProvider implements ToolProvider {
   constructor(
@@ -19,30 +20,42 @@ export class SessionToolProvider implements ToolProvider {
   ) {}
 
   provide = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
-    const { toolRunContext } = await this.runContextService.resolve(request);
+    const { session, toolRunContext } = await this.runContextService.resolve(request);
     const { handoffDepth, metadata, sessionId } = toolRunContext;
-    const sessionsSpawnTool = new SessionSpawnTool(
-      this.sessionManager,
-      this.sessionRequests,
-    );
-    sessionsSpawnTool.setContext({
-      sourceSessionId: sessionId,
-      sourceSessionMetadata: metadata,
-      handoffDepth,
+    const isChildSession = Boolean(readParentSessionId(session?.metadata ?? metadata));
+    const requestTrigger = createAgentToolRunTriggerInput({
+      request,
+      source: "sessions_request",
     });
 
     const sessionsRequestTool = new SessionRequestTool(this.sessionRequests);
     sessionsRequestTool.setContext({
       sourceSessionId: sessionId,
       handoffDepth,
+      trigger: requestTrigger,
     });
     const tools: NcpTool[] = [
-      sessionsSpawnTool,
       sessionsRequestTool,
       new SessionsListTool(this.sessionManager),
       new SessionsHistoryTool(this.sessionManager),
       new SessionsUpdateTool(this.sessionManager),
     ];
+    if (!isChildSession) {
+      const sessionsSpawnTool = new SessionSpawnTool(
+        this.sessionManager,
+        this.sessionRequests,
+      );
+      sessionsSpawnTool.setContext({
+        sourceSessionId: sessionId,
+        sourceSessionMetadata: metadata,
+        handoffDepth,
+        trigger: createAgentToolRunTriggerInput({
+          request,
+          source: "sessions_spawn",
+        }),
+      });
+      tools.unshift(sessionsSpawnTool);
+    }
     if (!this.sessionSearch.isReady()) {
       return tools;
     }

@@ -41,6 +41,12 @@ When a task is stopped, interrupted, or fails, a recoverable assistant reply sho
 
 Continue is available only for cancelled or failed tasks that the current runtime can resume. It is not shown while a task is still running.
 
+## Inspect what started a run
+
+Open **More actions** on a message to inspect who started the run, its entry point, source session and message, source model, model used for this run, tool call, target run ID, and retained identifiers for a channel, scheduled job, or observation. Assistant messages also show token usage and outcome so you can connect the trigger to its result.
+
+Global completion notifications are reserved for background replies started directly by a person. Agent delegation, scheduled jobs, observations, and other automated runs remain available in their sessions without an extra completion notification.
+
 ## Long tasks and context compaction
 
 Native Agents automatically compact earlier content when a long task approaches its context limit, then continue within the same task. The timeline shows when compaction starts and completes. The resulting context keeps a summary plus recent user messages so the resumed model can stay focused on the current request.

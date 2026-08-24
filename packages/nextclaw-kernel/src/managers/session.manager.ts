@@ -1,8 +1,4 @@
-import type {
-  CreatedSession,
-  CreateSessionInput,
-  SessionSearchService,
-} from "@nextclaw/core";
+import type { CreatedSession, CreateSessionInput, SessionSearchService } from "@nextclaw/core";
 import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
   ListMessagesOptions,
@@ -35,6 +31,7 @@ import {
 } from "@kernel/utils/session-manager.utils.js";
 import {
   applySessionOverrides,
+  assertCanCreateSessionFromLineage,
   cloneInheritedMetadata,
   DEFAULT_SESSION_LIFECYCLE,
   DEFAULT_SESSION_TYPE,
@@ -147,6 +144,9 @@ export class SessionManager implements NcpSessionApi {
     const metadata = cloneInheritedMetadata(sourceSessionMetadata);
     const title = readOptionalString(requestedTitle) ?? summarizeTask(task);
     const parentSessionId = readOptionalString(rawParentSessionId);
+    await assertCanCreateSessionFromLineage(
+      parentSessionId, sourceRecord, metadataOverrides, this.getSessionRecord,
+    );
     const requestId = readOptionalString(rawRequestId);
     const sessionType = resolveSessionType({
       runtime,

@@ -1,5 +1,6 @@
 import type { ChatMessageTexts } from "@nextclaw/agent-chat-ui";
 import type { ChatMessageExecutionPresentationLabels } from "./chat-message-execution-summary.utils";
+import type { ChatMessageTriggerDetailsLabels } from "./chat-message-trigger-details.utils";
 import type { ChatMessageAdapterTexts } from "@/features/chat/features/message/utils/chat-message.utils";
 import { t } from "@/shared/lib/i18n";
 
@@ -136,6 +137,41 @@ export function buildChatMessageExecutionLabels(
       reported: t("chatAiExecutionUsageReported"),
       partial: t("chatAiExecutionUsagePartial"),
       unavailable: t("chatAiExecutionUsageUnavailable"),
+    },
+  };
+}
+
+export function buildChatMessageTriggerLabels(
+  language: string,
+): ChatMessageTriggerDetailsLabels {
+  void language;
+  return {
+    moreActions: t("chatMessageMoreActions"),
+    viewTrigger: t("chatRunTriggerView"),
+    title: t("chatRunTriggerTitle"),
+    description: t("chatRunTriggerDescription"),
+    close: t("chatRunTriggerClose"),
+    notAvailable: t("chatAiExecutionNotAvailable"),
+    fields: {
+      actor: t("chatRunTriggerActor"),
+      source: t("chatRunTriggerSource"),
+      triggeredAt: t("chatRunTriggerTime"),
+      targetRunId: t("chatRunTriggerTargetRun"),
+      sourceSessionId: t("chatRunTriggerSourceSession"),
+      sourceMessageId: t("chatRunTriggerSourceMessage"),
+      sourceRunId: t("chatRunTriggerSourceRun"),
+      sourceToolCallId: t("chatRunTriggerSourceToolCall"),
+      sourceRequestId: t("chatRunTriggerSourceRequest"),
+      sourceModel: t("chatRunTriggerSourceModel"),
+      targetModel: t("chatRunTriggerTargetModel"),
+      sourceContext: t("chatRunTriggerSourceContext"),
+      raw: t("chatRunTriggerRaw"),
+    },
+    actors: {
+      human: t("chatRunTriggerActorHuman"),
+      agent: t("chatRunTriggerActorAgent"),
+      automation: t("chatRunTriggerActorAutomation"),
+      system: t("chatRunTriggerActorSystem"),
     },
   };
 }

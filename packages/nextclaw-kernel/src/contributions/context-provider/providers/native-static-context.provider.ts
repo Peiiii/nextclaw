@@ -160,6 +160,7 @@ export const createSelfManagementContextProvider = (): ContextProvider => ({
 export const createSessionOrchestrationContextProvider = (): ContextProvider =>
   staticBlock([
     "## Session Orchestration",
+    "- Only top-level sessions can create new sessions. Child sessions must complete their delegated task directly and return further delegation needs to the parent session.",
     "- Before passing a non-default `runtime` to `sessions_spawn` or agent creation/update flows, inspect the installed runtime kinds with `nextclaw agents runtimes --json`.",
     '- `sessions_spawn` is the unified session-creation tool. Omit `scope` or use `scope="standalone"` for a regular session, and use `scope="child"` when the new session should be a child session of the current flow.',
     '- `sessions_spawn` only creates the session by default. Add top-level `notify: "none" | "final_reply"` when the new session should start working immediately.',

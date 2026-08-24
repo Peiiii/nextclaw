@@ -9,6 +9,7 @@ import {
   type EventBus,
   type Ingress,
   type IngressEnvelope,
+  type IngressContext,
 } from "@nextclaw/shared";
 import {
   type NcpEndpointEvent,
@@ -50,6 +51,11 @@ import {
   toAgentRunRequest,
   toRunHandle,
 } from "@kernel/utils/agent-run-request.utils.js";
+import {
+  createIngressRunTriggerInput,
+  createRunTriggerMetadataEvent,
+  resolveRunTriggerMetadata,
+} from "@kernel/utils/agent-run-trigger.utils.js";
 
 export class AgentRunRequestManager {
   readonly cleanups: Array<() => void> = [];
@@ -134,11 +140,17 @@ export class AgentRunRequestManager {
 
   private handleSendRequest = async (
     envelope: IngressEnvelope<AgentRunSendIngressPayload>,
+    context: IngressContext,
   ): Promise<NcpRunHandle> => {
     if (!envelope.payload) {
       throw new Error("Invalid agent run send request.");
     }
-    return toRunHandle(await this.send(toAgentRunRequest(envelope.payload)));
+    const request = toAgentRunRequest(envelope.payload);
+    request.trigger = createIngressRunTriggerInput({
+      request,
+      source: context.source,
+    });
+    return toRunHandle(await this.send(request));
   };
 
   private handleAbortRequest = async (
@@ -191,6 +203,7 @@ export class AgentRunRequestManager {
           sessionId: envelope.payload.sessionId,
         },
         correlationId: envelope.payload.requestId,
+        trigger: structuredClone(envelope.payload.trigger),
       }),
     );
   };
@@ -270,6 +283,11 @@ export class AgentRunRequestManager {
       runId: activeRequest.runId,
       session,
     });
+    const trigger = resolveRunTriggerMetadata({
+      request,
+      spec,
+      startedAt: requestRunStartedAt,
+    });
     const message = attachRunSpecMetadata({
       message: {
         ...request.message,
@@ -281,6 +299,7 @@ export class AgentRunRequestManager {
       session,
       spec,
       startedAt: requestRunStartedAt,
+      trigger,
     });
     const providerRequest: AgentRunRequest = {
       ...request,
@@ -311,8 +330,14 @@ export class AgentRunRequestManager {
       message,
       correlationId: request.correlationId,
     });
-    await sessionRun.applyEvents([messageSentEvent]);
+    const triggerEvent = createRunTriggerMetadataEvent({
+      sessionId: session.sessionId,
+      spec,
+      trigger,
+    });
+    await sessionRun.applyEvents([messageSentEvent, triggerEvent]);
     this.publishNcpEvent(messageSentEvent);
+    this.publishNcpEvent(triggerEvent);
     try {
       const runtime = this.agentRuntimeManager.getOrCreate({
         agentRuntimeId: session.agentRuntimeId,

@@ -16,6 +16,15 @@ describe("SessionRequestTool", () => {
     };
     tool.setContext({
       sourceSessionId: "source-session",
+      trigger: {
+        actor: "agent",
+        source: "sessions_request",
+        triggeredAt: "2026-06-19T00:00:00.000Z",
+        sourceSessionId: "source-session",
+        sourceMessageId: "source-message",
+        sourceRunId: "source-run",
+        sourceModel: "openai/gpt-5.6",
+      },
     });
 
     await tool.execute({
@@ -31,6 +40,11 @@ describe("SessionRequestTool", () => {
       sourceToolCallId: "call-1",
       targetSessionId: "target-session",
       updateToolCallResult,
+      trigger: expect.objectContaining({
+        actor: "agent",
+        sourceToolCallId: "call-1",
+        sourceModel: "openai/gpt-5.6",
+      }),
     }));
   });
 });

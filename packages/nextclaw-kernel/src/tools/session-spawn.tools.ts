@@ -3,9 +3,10 @@ import {
   type SessionRequestNotifyMode,
   type ToolExecutionContext,
 } from "@nextclaw/core";
-import type { NcpTool } from "@nextclaw/ncp";
+import type { NcpRunTriggerInput, NcpTool } from "@nextclaw/ncp";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { SessionRequestManager } from "@kernel/features/session-request/index.js";
+import { attachSourceToolCall } from "@kernel/utils/agent-run-trigger.utils.js";
 
 function readRequiredString(value: unknown, key: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -104,6 +105,7 @@ export class SessionSpawnTool implements NcpTool {
   private sourceSessionId = "";
   private sourceSessionMetadata: Record<string, unknown> = {};
   private handoffDepth = 0;
+  private trigger: NcpRunTriggerInput | null = null;
 
   constructor(
     private readonly sessionManager: SessionManager,
@@ -114,13 +116,17 @@ export class SessionSpawnTool implements NcpTool {
     sourceSessionId: string;
     sourceSessionMetadata: Record<string, unknown>;
     handoffDepth?: number;
+    trigger: NcpRunTriggerInput;
   }): void => {
-    this.sourceSessionId = params.sourceSessionId;
-    this.sourceSessionMetadata = structuredClone(params.sourceSessionMetadata);
-    this.handoffDepth = params.handoffDepth ?? 0;
+    const { handoffDepth, sourceSessionId, sourceSessionMetadata, trigger } = params;
+    this.sourceSessionId = sourceSessionId;
+    this.sourceSessionMetadata = structuredClone(sourceSessionMetadata);
+    this.handoffDepth = handoffDepth ?? 0;
+    this.trigger = structuredClone(trigger);
   };
 
   execute = async (args: unknown, context?: ToolExecutionContext): Promise<unknown> => {
+    const { toolCallId, updateToolCallResult } = context ?? {};
     const params = normalizeToolParams(args);
     const {
       agentId: rawAgentId,
@@ -141,14 +147,18 @@ export class SessionSpawnTool implements NcpTool {
     }
     const parentSessionId = scope === "child" ? this.readParentSessionIdOrThrow() : undefined;
     const contextInheritance = inheritContext
-      ? { anchorToolCallId: context?.toolCallId }
+      ? { anchorToolCallId: toolCallId }
       : undefined;
+    const trigger = attachSourceToolCall(
+      this.readTriggerOrThrow(),
+      toolCallId,
+    );
 
     if (notify) {
       return this.sessionRequestManager.spawnSessionAndRequest({
         sourceSessionId: this.sourceSessionId,
-        sourceToolCallId: context?.toolCallId,
-        updateToolCallResult: context?.updateToolCallResult,
+        sourceToolCallId: toolCallId,
+        updateToolCallResult,
         sourceSessionMetadata: this.sourceSessionMetadata,
         task,
         title: readOptionalString(rawTitle),
@@ -159,6 +169,7 @@ export class SessionSpawnTool implements NcpTool {
         handoffDepth: this.handoffDepth,
         parentSessionId,
         notify,
+        trigger,
       });
     }
 
@@ -172,6 +183,9 @@ export class SessionSpawnTool implements NcpTool {
       runtime: readOptionalString(rawRuntime),
       contextInheritance,
       parentSessionId,
+      metadataOverrides: {
+        session_creation_trigger: structuredClone(trigger),
+      },
     });
 
     return {
@@ -193,5 +207,12 @@ export class SessionSpawnTool implements NcpTool {
       throw new Error('scope="child" requires an active source session.');
     }
     return sourceSessionId;
+  };
+
+  private readTriggerOrThrow = (): NcpRunTriggerInput => {
+    if (!this.trigger) {
+      throw new Error("sessions_spawn requires an active run trigger context.");
+    }
+    return structuredClone(this.trigger);
   };
 }

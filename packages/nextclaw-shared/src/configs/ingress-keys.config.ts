@@ -3,6 +3,7 @@ import type {
   NcpMessage,
   NcpMessageAbortPayload,
   NcpMessagePart,
+  NcpRunTriggerInput,
 } from "@nextclaw/ncp";
 import { createTypedKey } from "../types/typed-key.types.js";
 
@@ -165,6 +166,7 @@ export type AgentRunSessionMessageRequestPayload = {
   message: NcpMessage;
   requestId: string;
   sessionId: string;
+  trigger: NcpRunTriggerInput;
 };
 
 export const CHAT_SESSION_MATERIALIZATION_METADATA_KEY =

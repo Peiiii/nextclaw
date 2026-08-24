@@ -1,6 +1,7 @@
 import { expect, it, vi } from "vitest";
 import {
   buildChatMessageExecutionLabels,
+  buildChatMessageTriggerLabels,
   buildChatMessageTexts,
 } from "@/features/chat/features/message/utils/chat-message-texts.utils";
 
@@ -22,6 +23,14 @@ it("provides localized status keys for built-in tool categories", () => {
       error: "chatToolMemoryError",
       cancelled: "chatToolMemoryCancelled",
     },
+  });
+});
+
+it("provides localized labels for run trigger details", () => {
+  expect(buildChatMessageTriggerLabels("zh")).toMatchObject({
+    viewTrigger: "chatRunTriggerView",
+    fields: { sourceModel: "chatRunTriggerSourceModel" },
+    actors: { agent: "chatRunTriggerActorAgent" },
   });
 });
 
