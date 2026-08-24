@@ -11,6 +11,7 @@
 - 首次真实 Draft 验证进一步确认 GitHub 在 Draft 公开前不会创建 tag ref；以 tag dispatch 会得到 HTTP 422。发布身份现由显式 `release_target` SHA 承载，workflow 从分支入口启动后核对 Draft target、checkout SHA，并在公开后验证 tag 反向指向同一 SHA。
 - Windows 便携版真实发布冒烟确认主程序、API 和 Service App 均正常，但便携分支漏设 renderer titlebar 证据开关，导致 hosted runner 无窗口句柄时无法使用已授权的 renderer fallback；该开关现对安装与便携模式统一设置。后续真实 run 又证明产品冒烟全部通过后，ephemeral runner 的残留 Electron 文件锁仍可能令临时目录删除报 `ENOTEMPTY`；清理现采用更长的有界重试，并仅将可恢复 Windows 锁错误交给 runner 收尾，避免把已通过的产品冒烟误报为发布失败。
 - Windows 安装器原先在 unpacked 应用和便携版都通过冒烟后，再让 electron-builder 删除并重建同一个 `win-unpacked` 目录；残留 Electron 句柄因此会令 NSIS 阶段删除 DLL 失败。NSIS 现通过 `--prepackaged` 直接消费同一批已验证 bits，既消除重复打包和文件锁冲突，也保证安装器与冒烟对象同源。
+- APT 的 GitHub Pages 镜像受 100 MiB 单文件上限约束；正式 `.deb` 保持完整，APT 专用副本只裁掉 `better-sqlite3` 随包携带但运行时不读取的 C/C++ 编译源码与 headers，保留 `better_sqlite3.node`、JS 运行库和许可证。发布投影 job 同时改为浅克隆，避免为精确拉取 gh-pages 先下载完整仓库历史。
 
 ## 测试/验证/验收方式
 

@@ -648,7 +648,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release_target || inputs.release_tag }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Download desktop artifacts
         uses: actions/download-artifact@v4
@@ -730,7 +730,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release_target || inputs.release_tag }}
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -860,6 +860,9 @@ jobs:
             # APT mirror has GitHub's 100 MiB per-file limit, so omit only files
             # that are not part of the desktop process' Linux runtime path.
             apt_package_root="$package_root/opt/NextClaw Desktop"
+            rm -rf \
+              "$apt_package_root/resources/app.asar.unpacked/node_modules/better-sqlite3/src" \
+              "$apt_package_root/resources/app.asar.unpacked/node_modules/better-sqlite3/deps"
             rm -f \
               "$apt_package_root/LICENSES.chromium.html" \
               "$apt_package_root/LICENSE.electron.txt" \

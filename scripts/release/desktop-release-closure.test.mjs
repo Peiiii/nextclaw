@@ -158,6 +158,11 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
     workflow,
     /Build Desktop Installer \(Windows\)[\s\S]*?electron-builder --win nsis --x64 --prepackaged release\/win-unpacked --publish never/
   );
+  assert.match(workflow, /better-sqlite3\/src[\s\S]*?better-sqlite3\/deps/);
+  assert.doesNotMatch(
+    workflow,
+    /publish-desktop-update-channels:[\s\S]*?fetch-depth: 0[\s\S]*?publish-linux-apt-repo:[\s\S]*?fetch-depth: 0/
+  );
   assert.match(
     workflow,
     /build-desktop:[\s\S]*?Build Desktop \(Linux\)[\s\S]*?Smoke Desktop \(Linux AppImage\)[\s\S]*?Upload desktop artifacts \(Linux\)/
