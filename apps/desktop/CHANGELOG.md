@@ -1,5 +1,11 @@
 # @nextclaw/desktop
 
+## 0.0.265
+
+### Patch Changes
+
+- Fix cross-platform installer packaging by keeping native runtime dependencies exclusively in the signed seed bundle.
+
 ## 0.0.264
 
 ### Patch Changes

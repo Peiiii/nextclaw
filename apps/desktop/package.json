@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/desktop",
-  "version": "0.0.264",
+  "version": "0.0.265",
   "private": true,
   "description": "NextClaw desktop shell powered by Electron.",
   "author": "NextClaw Team",
@@ -80,16 +80,6 @@
       {
         "from": "build/update/seed-product-bundle.zip",
         "to": "update/seed-product-bundle.zip"
-      },
-      {
-        "from": "build/native-app-resources",
-        "to": "app.asar.unpacked",
-        "filter": [
-          "**/*",
-          "!node_modules/better-sqlite3/**/*",
-          "!node_modules/bindings/**/*",
-          "!node_modules/file-uri-to-path/**/*"
-        ]
       }
     ],
     "npmRebuild": false,
