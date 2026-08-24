@@ -28,6 +28,7 @@ TEMP_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 SMOKE_HOME="${TEMP_ROOT}/nextclaw-desktop-smoke-home"
 LOG_ROOT="${TEMP_ROOT}/nextclaw-desktop-smoke-logs"
 EXTRACT_ROOT="${TEMP_ROOT}/nextclaw-desktop-appimage-extract"
+SEED_ROOT="${TEMP_ROOT}/nextclaw-desktop-seed-bundle"
 APP_HEALTH_LOG="${LOG_ROOT}/health.json"
 RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
 APPIMAGE_LOG="${LOG_ROOT}/appimage-extract.log"
@@ -42,44 +43,10 @@ cleanup() {
     kill -KILL "${RUNTIME_PID}" 2>/dev/null || true
   fi
   rm -rf "${EXTRACT_ROOT}" >/dev/null 2>&1 || true
+  rm -rf "${SEED_ROOT}" >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
-
-find_runtime_script() {
-  local extract_dir="$1"
-  local candidates=(
-    "${extract_dir}/resources/app.asar/node_modules/nextclaw/dist/cli/app/index.js"
-    "${extract_dir}/resources/app.asar/node_modules/nextclaw/dist/cli/index.js"
-    "${extract_dir}/resources/app/node_modules/nextclaw/dist/cli/app/index.js"
-    "${extract_dir}/resources/app/node_modules/nextclaw/dist/cli/index.js"
-    "${extract_dir}/resources/node_modules/nextclaw/dist/cli/app/index.js"
-    "${extract_dir}/resources/node_modules/nextclaw/dist/cli/index.js"
-    "${extract_dir}/usr/lib/nextclaw-desktop/resources/app.asar/node_modules/nextclaw/dist/cli/app/index.js"
-    "${extract_dir}/usr/lib/nextclaw-desktop/resources/app.asar/node_modules/nextclaw/dist/cli/index.js"
-    "${extract_dir}/usr/lib/nextclaw-desktop/resources/app/node_modules/nextclaw/dist/cli/app/index.js"
-    "${extract_dir}/usr/lib/nextclaw-desktop/resources/app/node_modules/nextclaw/dist/cli/index.js"
-  )
-
-  local candidate
-  local asar_base
-  for candidate in "${candidates[@]}"; do
-    if [[ "${candidate}" == *"/app.asar/"* ]]; then
-      asar_base="${candidate%%/node_modules/*}"
-      if [[ -f "${asar_base}" ]]; then
-        echo "${candidate}"
-        return 0
-      fi
-    fi
-
-    if [[ -f "${candidate}" ]]; then
-      echo "${candidate}"
-      return 0
-    fi
-  done
-
-  return 1
-}
 
 find_app_bin() {
   local extract_dir="$1"
@@ -127,8 +94,8 @@ pick_runtime_port() {
 }
 
 mkdir -p "${LOG_ROOT}"
-rm -rf "${SMOKE_HOME}" "${EXTRACT_ROOT}"
-mkdir -p "${SMOKE_HOME}" "${EXTRACT_ROOT}"
+rm -rf "${SMOKE_HOME}" "${EXTRACT_ROOT}" "${SEED_ROOT}"
+mkdir -p "${SMOKE_HOME}" "${EXTRACT_ROOT}" "${SEED_ROOT}"
 
 echo "[desktop-smoke] appimage: ${APPIMAGE_PATH}"
 echo "[desktop-smoke] temp root: ${TEMP_ROOT}"
@@ -154,9 +121,15 @@ if [[ -z "${APP_BIN}" ]]; then
   exit 1
 fi
 
-RUNTIME_SCRIPT="$(find_runtime_script "${EXTRACT_DIR}" || true)"
-if [[ -z "${RUNTIME_SCRIPT}" ]]; then
-  echo "[desktop-smoke] runtime script not found in extracted AppImage" >&2
+SEED_BUNDLE="${EXTRACT_DIR}/resources/update/seed-product-bundle.zip"
+if [[ ! -f "${SEED_BUNDLE}" ]]; then
+  echo "[desktop-smoke] seed product bundle not found in extracted AppImage: ${SEED_BUNDLE}" >&2
+  exit 1
+fi
+unzip -q "${SEED_BUNDLE}" -d "${SEED_ROOT}"
+RUNTIME_SCRIPT="${SEED_ROOT}/bundle/runtime/dist/cli/app/index.js"
+if [[ ! -f "${RUNTIME_SCRIPT}" ]]; then
+  echo "[desktop-smoke] runtime script not found in seed product bundle: ${RUNTIME_SCRIPT}" >&2
   exit 1
 fi
 
@@ -167,13 +140,13 @@ if [[ -z "${RUNTIME_PORT}" ]]; then
 fi
 
 echo "[desktop-smoke] runtime fallback: init"
-if ! NEXTCLAW_HOME="${SMOKE_HOME}" ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" "${RUNTIME_SCRIPT}" init >"${RUNTIME_STDOUT_LOG}" 2>&1; then
+if ! NEXTCLAW_HOME="${SMOKE_HOME}" NEXTCLAW_PACKAGED_EXTENSION_DIR="${SEED_ROOT}/bundle/plugins" ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" "${RUNTIME_SCRIPT}" init >"${RUNTIME_STDOUT_LOG}" 2>&1; then
   echo "[desktop-smoke] runtime init failed. See ${RUNTIME_STDOUT_LOG}" >&2
   exit 1
 fi
 
 echo "[desktop-smoke] runtime fallback: serve on ${RUNTIME_PORT}"
-NEXTCLAW_HOME="${SMOKE_HOME}" ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" "${RUNTIME_SCRIPT}" serve --ui-port "${RUNTIME_PORT}" >>"${RUNTIME_STDOUT_LOG}" 2>&1 &
+NEXTCLAW_HOME="${SMOKE_HOME}" NEXTCLAW_PACKAGED_EXTENSION_DIR="${SEED_ROOT}/bundle/plugins" ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" "${RUNTIME_SCRIPT}" serve --ui-port "${RUNTIME_PORT}" >>"${RUNTIME_STDOUT_LOG}" 2>&1 &
 RUNTIME_PID="$!"
 
 STARTED_AT="$(date +%s)"
