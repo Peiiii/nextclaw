@@ -70,7 +70,14 @@ function readTagSha(tag) {
 }
 
 async function waitForWorkflowRun(options, tagSha) {
-  const { repo, runId, runtimeVersion, tag, workflow } = options;
+  const {
+    repo,
+    runId,
+    target,
+    workflow,
+    workflowDispatchId,
+    workflowDispatchStartedAt = 0
+  } = options;
   if (runId) {
     return await readWorkflowRun(repo, runId);
   }
@@ -84,17 +91,17 @@ async function waitForWorkflowRun(options, tagSha) {
       "--workflow",
       workflow,
       "--event",
-      "release",
+      "workflow_dispatch",
       "--limit",
       "40",
       "--json",
-      "databaseId,displayTitle,headSha,status,conclusion,url"
+      "databaseId,createdAt,displayTitle,headSha,status,conclusion,url"
     ]);
     const runEntry = runs.find(
       (entry) =>
-        entry.headSha === tagSha ||
-        String(entry.displayTitle ?? "").includes(tag) ||
-        String(entry.displayTitle ?? "").includes(runtimeVersion)
+        (entry.headSha === target || entry.headSha === tagSha) &&
+        String(entry.displayTitle ?? "").includes(`dispatch=${workflowDispatchId}`) &&
+        Date.parse(entry.createdAt ?? "") >= workflowDispatchStartedAt - 60_000
     );
     if (runEntry) {
       return runEntry;
@@ -102,7 +109,7 @@ async function waitForWorkflowRun(options, tagSha) {
     await sleep(5000);
   }
 
-  throw new Error(`Timed out locating ${workflow} release run for ${tag}.`);
+  throw new Error(`Timed out locating ${workflow} workflow_dispatch run for ${options.tag}.`);
 }
 
 async function readWorkflowRun(repo, runId) {
@@ -162,8 +169,75 @@ async function waitForWorkflowSuccess(options, runEntry) {
   throw new Error(`Timed out waiting for workflow success: ${runEntry.url ?? runId}`);
 }
 
-async function verifyReleaseAssets(options) {
-  const { channel, desktopVersion, repo, runtimeVersion, tag } = options;
+export function buildExpectedDesktopReleaseAssetNames(options) {
+  const { channel, desktopVersion, runtimeVersion } = options;
+  return [
+    "latest-mac-arm64.yml",
+    "latest-mac-x64.yml",
+    "latest.yml",
+    `manifest-${channel}-darwin-arm64.json`,
+    `manifest-${channel}-darwin-x64.json`,
+    `manifest-${channel}-linux-x64.json`,
+    `manifest-${channel}-win32-arm64.json`,
+    `manifest-${channel}-win32-x64.json`,
+    `nextclaw-bundle-darwin-arm64-${runtimeVersion}.zip`,
+    `nextclaw-bundle-darwin-x64-${runtimeVersion}.zip`,
+    `nextclaw-bundle-linux-x64-${runtimeVersion}.zip`,
+    `nextclaw-bundle-win32-arm64-${runtimeVersion}.zip`,
+    `nextclaw-bundle-win32-x64-${runtimeVersion}.zip`,
+    `nextclaw-desktop_${desktopVersion}_amd64.deb`,
+    `NextClaw-Portable-${desktopVersion}-win-arm64.zip`,
+    `NextClaw-Portable-${desktopVersion}-win-x64.zip`,
+    `NextClaw.Desktop-${desktopVersion}-arm64-mac.zip`,
+    `NextClaw.Desktop-${desktopVersion}-arm64-mac.zip.blockmap`,
+    `NextClaw.Desktop-${desktopVersion}-arm64.dmg`,
+    `NextClaw.Desktop-${desktopVersion}-arm64.dmg.blockmap`,
+    `NextClaw.Desktop-${desktopVersion}-linux-x64.AppImage`,
+    `NextClaw.Desktop-${desktopVersion}-win32-arm64-unpacked.zip`,
+    `NextClaw.Desktop-${desktopVersion}-win32-x64-unpacked.zip`,
+    `NextClaw.Desktop-${desktopVersion}-x64-mac.zip`,
+    `NextClaw.Desktop-${desktopVersion}-x64-mac.zip.blockmap`,
+    `NextClaw.Desktop-${desktopVersion}-x64.dmg`,
+    `NextClaw.Desktop-${desktopVersion}-x64.dmg.blockmap`,
+    `NextClaw.Desktop-Setup-${desktopVersion}-x64.exe`,
+    `NextClaw.Desktop-Setup-${desktopVersion}-x64.exe.blockmap`,
+    "update-bundle-public.pem"
+  ];
+}
+
+export function assertDesktopReleaseAssetSet(assetNames, options) {
+  const expectedAssets = buildExpectedDesktopReleaseAssetNames(options);
+  const actualAssets = new Set(assetNames);
+  const expectedAssetSet = new Set(expectedAssets);
+  const missingAssets = expectedAssets.filter((assetName) => !actualAssets.has(assetName));
+  const unexpectedAssets = [...actualAssets].filter((assetName) => !expectedAssetSet.has(assetName)).sort();
+  if (missingAssets.length > 0 || unexpectedAssets.length > 0) {
+    throw new Error(
+      [
+        `Desktop release asset set is incomplete for ${options.tag ?? "target release"}.`,
+        missingAssets.length > 0 ? `Missing: ${missingAssets.join(", ")}` : null,
+        unexpectedAssets.length > 0 ? `Unexpected: ${unexpectedAssets.join(", ")}` : null
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+  }
+  return expectedAssets;
+}
+
+export function assertDesktopReleaseAssetMetadata(assets, options) {
+  const invalidAssets = assets
+    .filter((asset) => asset.state !== "uploaded" || !Number.isFinite(asset.size) || asset.size <= 0)
+    .map((asset) => `${asset.name}:${asset.state ?? "unknown"}/${asset.size ?? "unknown"}`);
+  if (invalidAssets.length > 0) {
+    throw new Error(
+      `Desktop release contains incomplete asset uploads for ${options.tag ?? "target release"}: ${invalidAssets.join(", ")}`
+    );
+  }
+}
+
+export async function verifyReleaseAssets(options) {
+  const { channel, expectedDraft, repo, tag } = options;
   const release = await readJsonCommand("gh", [
     "release",
     "view",
@@ -171,35 +245,21 @@ async function verifyReleaseAssets(options) {
     "--repo",
     repo,
     "--json",
-    "assets,isPrerelease,tagName,url,targetCommitish"
+    "assets,isDraft,isPrerelease,tagName,url,targetCommitish"
   ]);
   if (Boolean(release.isPrerelease) !== (channel === "beta")) {
     throw new Error(`Release prerelease flag mismatch: ${release.url}`);
   }
-
-  const expectedAssets = [
-    `NextClaw-Portable-${desktopVersion}-win-x64.zip`,
-    `NextClaw-Portable-${desktopVersion}-win-arm64.zip`,
-    `NextClaw.Desktop-Setup-${desktopVersion}-x64.exe`,
-    `nextclaw-bundle-win32-x64-${runtimeVersion}.zip`,
-    `manifest-${channel}-win32-x64.json`,
-    "update-bundle-public.pem"
-  ];
-  if (channel === "stable") {
-    expectedAssets.push(`nextclaw-desktop_${desktopVersion}_amd64.deb`);
-  }
-
-  const assetNames = new Set((release.assets ?? []).map((asset) => asset.name));
-  const missingAssets = expectedAssets.filter((assetName) => !assetNames.has(assetName));
-  if (missingAssets.length > 0) {
-    throw new Error(`Missing release assets on ${tag}: ${missingAssets.join(", ")}`);
-  }
-  const npmRuntimeAssets = [...assetNames].filter((assetName) => /^nextclaw-runtime-.*\.zip$/.test(assetName));
-  if (npmRuntimeAssets.length > 0) {
+  if (typeof expectedDraft === "boolean" && release.isDraft !== expectedDraft) {
     throw new Error(
-      `Desktop release contains NPM runtime assets on ${tag}: ${npmRuntimeAssets.join(", ")}`
+      `Release draft state mismatch for ${tag}: expected ${expectedDraft}, got ${release.isDraft}.`
     );
   }
+  const expectedAssets = assertDesktopReleaseAssetSet(
+    (release.assets ?? []).map((asset) => asset.name),
+    options
+  );
+  assertDesktopReleaseAssetMetadata(release.assets ?? [], options);
   console.log(`[desktop:release] release assets OK: ${expectedAssets.join(", ")}`);
 }
 
@@ -293,7 +353,7 @@ export async function waitForDesktopReleaseClosure(options) {
   const tagSha = readTagSha(options.tag);
   const runEntry = await waitForWorkflowRun(options, tagSha);
   await waitForWorkflowSuccess(options, runEntry);
-  await verifyReleaseAssets(options);
+  await verifyReleaseAssets({ ...options, expectedDraft: false });
 
   const ghPagesManifest = await readGhPagesManifest(options);
   assertManifest(ghPagesManifest, options, "gh-pages manifest");

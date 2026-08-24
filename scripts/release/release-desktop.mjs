@@ -4,6 +4,11 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
+import {
+  assertReleaseIsDraft,
+  createDraftRelease,
+  dispatchReleaseWorkflow
+} from "./desktop-release-github.mjs";
 import { assertDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
 import {
   assertPublishedDesktopRuntimeIdentity,
@@ -326,15 +331,6 @@ function readNextTag(channel, runtimeVersion) {
   return `${prefix}${nextNumber}`;
 }
 
-function buildReleaseTitle(options) {
-  const { channel, desktopVersion, tag } = options;
-  const suffix = Number(tag.split(".").at(-1));
-  if (channel === "beta") {
-    return `NextClaw Desktop ${desktopVersion} Preview Beta ${Number.isInteger(suffix) ? suffix : ""}`.trim();
-  }
-  return `NextClaw Desktop ${desktopVersion}`;
-}
-
 function buildReleaseNotes(options) {
   const { channel, desktopVersion, minimumLauncherVersion, notesFile, runtimeVersion } = options;
   if (notesFile) {
@@ -391,32 +387,6 @@ function pushBranchIfNeeded(branch, aheadCount, options) {
   run("git", ["push", "origin", `HEAD:${branch}`], { capture: false });
 }
 
-function createRelease(options) {
-  const { channel, dryRun, releaseNotes, repo, tag, target } = options;
-  const args = [
-    "release",
-    "create",
-    tag,
-    "--repo",
-    repo,
-    "--target",
-    target,
-    "--title",
-    buildReleaseTitle(options),
-    "--notes",
-    releaseNotes
-  ];
-  if (channel === "beta") {
-    args.push("--prerelease");
-  }
-
-  if (dryRun) {
-    console.log(`[desktop:release] would create GitHub ${channel} release ${tag}`);
-    return;
-  }
-  run("gh", args, { capture: false });
-}
-
 function printPlan(options, aheadCount) {
   const {
     branch,
@@ -441,10 +411,37 @@ function printPlan(options, aheadCount) {
       `target=${target}`,
       `ahead=${aheadCount}`,
       `releaseWorktree=${releaseWorktree}`,
+      "publication=draft-until-assets-verified",
       "npmPublish=excluded",
       "publishedRuntimeIdentity=verified"
     ].join(" ")
   );
+}
+
+async function executeRelease(options, aheadCount) {
+  const { branch, channel, dryRun, reuseExistingRelease, runId, tag, target, workflow } = options;
+  if (dryRun) {
+    console.log(`[desktop:release] would create hidden Draft ${tag}`);
+    console.log(`[desktop:release] would dispatch ${workflow} for exact target ${target}`);
+    console.log("[desktop:release] public gate: complete Draft assets verified before publication");
+    console.log("[desktop:release] dry-run complete; no release was created.");
+    return;
+  }
+
+  runLocalVerify(options);
+  pushBranchIfNeeded(branch, aheadCount, options);
+  await runRemoteValidation(options);
+  await runRemotePreflight(options);
+  if (!reuseExistingRelease) {
+    createDraftRelease(options);
+  } else if (!runId) {
+    assertReleaseIsDraft(options);
+  }
+  const workflowDispatch = runId
+    ? {}
+    : dispatchReleaseWorkflow(options);
+  await waitForDesktopReleaseClosure({ ...options, ...workflowDispatch });
+  console.log(channel === "stable" ? "DESKTOP_READY" : "DESKTOP_BETA_READY");
 }
 
 async function main() {
@@ -479,21 +476,7 @@ async function main() {
   fetchReleaseRefs(options.branch);
   const aheadCount = assertBranchIsNotBehind(options.branch);
   printPlan(options, aheadCount);
-
-  if (options.dryRun) {
-    console.log("[desktop:release] dry-run complete; no release was created.");
-    return;
-  }
-
-  runLocalVerify(options);
-  pushBranchIfNeeded(options.branch, aheadCount, options);
-  await runRemoteValidation(options);
-  await runRemotePreflight(options);
-  if (!options.reuseExistingRelease) {
-    createRelease(options);
-  }
-  await waitForDesktopReleaseClosure(options);
-  console.log(options.channel === "stable" ? "DESKTOP_READY" : "DESKTOP_BETA_READY");
+  await executeRelease(options, aheadCount);
 }
 
 try {

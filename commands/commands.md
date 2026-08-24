@@ -136,6 +136,6 @@
 
 - 用途：发布桌面端正式版，包括 installer / portable / update bundle / update manifest / stable APT repo 的完整闭环。
 - 输入格式：`/release-desktop-stable`，可附目标版本、tag、release notes 文件或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和桌面验证门禁，再创建 GitHub release/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
+- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和桌面验证门禁，再创建隐藏 GitHub Draft 并显式触发 `desktop-release` workflow。只有五平台构建/冒烟和完整 release assets 核验通过后才公开同一 Release，失败或取消不得留下公众可见空壳；随后等待 `gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
 
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。

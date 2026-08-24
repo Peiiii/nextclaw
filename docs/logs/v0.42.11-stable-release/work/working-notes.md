@@ -18,6 +18,7 @@
 | Review | 0 error，no findings | 自动门 4.4s | 首次因超预算验证脚本净增 6 行返工，收敛后净减 2 行 |
 | Stable 计划与内容门 | 0.42.2 → 0.42.3 dry-run、双语 Notes/博客与 Docs 构建通过 | dry-run 2.1s；Docs build 6.15s | 首次发现 Changesets 把 beta 版本当公开升级起点；修复为 npm latest 0.42.2，并保留无关 prerelease 漂移硬拦截 |
 | 发布自动化 Review | OIDC workflow、33 项发布/治理测试与治理总门通过 | 定向测试 0.24s；TypeScript/测试/治理总门 15.4s | 主发布编排一度跨过 500 行预算；将 Actions 输出与前置条件下沉后恢复为 0 error |
+| Desktop 空壳 Release 事故 | 4 个 0 资产公开版本已转回 Draft；原子公开修复验证与 Review 通过 | `.4` Actions 运行 9m35s 后 cancelled；真实 Draft 上传/删除约 10s | 根因是 `release.published` 先公开后构建；Review 两次返工，分别拆分超预算主 CLI、加入唯一 dispatch id 防止同 tag 重试串 run |
 | NPM stable 发布 | 待执行 | — | — |
 | Desktop stable 发布 | 待执行 | — | — |
 | 公开回读 | 待执行 | — | — |
@@ -28,3 +29,4 @@
 2. Desktop main 的 CJS 消费 ESM 公共包应建立自动导入图门，阻止 Electron main 新增根入口依赖；这可提前消除原生弹窗式失败。
 3. Native 负向门应固化为发布脚本测试，直接断言 `data.ncpAgent.state=error`，避免人工脚本误读顶层 `phase`。
 4. 发布阶段继续补齐 Actions 队列、构建、上传、manifest 生效与公开回读耗时，以定位外部等待占比。
+5. Desktop 后续发布的最慢阶段预计仍是五平台构建/烟测；新流程已将这段外部等待全部放在隐藏 Draft 内。下一步可按平台缓存命中率拆分耗时，但不得以提前公开 Release 换取表面速度。
