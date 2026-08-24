@@ -4,9 +4,13 @@ const MINIMUM_NODE_VERSION = "22.14.0";
 const MINIMUM_NPM_VERSION = "11.5.1";
 
 function parseNumericVersion(version, label) {
-  const match = String(version ?? "").trim().match(/^(\d+)\.(\d+)\.(\d+)/);
+  const match = String(version ?? "")
+    .trim()
+    .match(/^(\d+)\.(\d+)\.(\d+)/);
   if (!match) {
-    throw new Error(`Could not parse ${label} version: ${version ?? "<missing>"}`);
+    throw new Error(
+      `Could not parse ${label} version: ${version ?? "<missing>"}`,
+    );
   }
   return match.slice(1).map(Number);
 }

@@ -5,7 +5,8 @@ import { resolveCoreReleaseNotes } from "./release-core-notes.mjs";
 
 test("prefers structured release notes for an enriched release", () => {
   const result = resolveCoreReleaseNotes({
-    changelog: "# nextclaw\n\n## 1.2.3\n\n### Patch Changes\n\n- Fixed update handling.\n",
+    changelog:
+      "# nextclaw\n\n## 1.2.3\n\n### Patch Changes\n\n- Fixed update handling.\n",
     structuredMetadata: {
       version: "1.2.3",
       links: { html: { "en-US": "https://docs.nextclaw.io/en/notes/v1-2-3" } },
@@ -27,7 +28,9 @@ test("rejects structured notes for a different immutable version", () => {
       resolveCoreReleaseNotes({
         structuredMetadata: {
           version: "1.2.2",
-          links: { html: { "en-US": "https://docs.nextclaw.io/en/notes/v1-2-2" } },
+          links: {
+            html: { "en-US": "https://docs.nextclaw.io/en/notes/v1-2-2" },
+          },
         },
         version: "1.2.3",
       }),

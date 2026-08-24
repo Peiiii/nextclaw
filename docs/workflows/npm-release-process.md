@@ -4,29 +4,35 @@ Scope: publish npm packages in `packages/*` and `packages/extensions/*`.
 This does NOT cover registry/console deployment.
 
 ## Prereqs
+
 - npm auth for this repo should come from the project-root `.npmrc` (gitignored).
 - If release commands run from an isolated worktree or a different cwd, set
   `NPM_CONFIG_USERCONFIG=/absolute/path/to/<repo>/.npmrc` so npm still reads the
   project-root credentials.
 
 ## Standard flow
-1) Create changeset
+
+1. Create changeset
+
 ```bash
 pnpm changeset
 ```
 
-2) Sync package READMEs (source of truth in `docs/npm-readmes`)
+2. Sync package READMEs (source of truth in `docs/npm-readmes`)
+
 ```bash
 pnpm release:sync-readmes
 pnpm release:check-readmes
 ```
 
-3) Bump versions + changelogs
+3. Bump versions + changelogs
+
 ```bash
 pnpm release:version
 ```
 
-4) Publish
+4. Publish
+
 ```bash
 pnpm release:publish
 ```
@@ -53,11 +59,13 @@ nextclaw --version
 ```
 
 Runtime channel storage rule:
+
 - signed manifests and `update-bundle-public.pem` stay on `gh-pages`,
 - large `nextclaw-runtime-*.zip` bundle files are uploaded to GitHub Release assets for the matching release tag,
 - this avoids GitHub Pages / git push file-size limits while keeping the public manifest URL stable.
 
 Notes:
+
 - `release:version` and `release:publish` automatically run README sync/check.
 - `release:check:groups` now only gates the explicit release batch from pending changesets or freshly versioned packages.
 - `release:check` now validates only the explicit release batch (packages from pending changesets, or freshly versioned public packages after `release:version`) instead of the whole workspace.

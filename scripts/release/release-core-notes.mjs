@@ -25,10 +25,7 @@ export function resolveCoreReleaseNotes(options) {
     structuredMetadata = null,
     version,
   } = options;
-  if (
-    structuredMetadata?.version &&
-    structuredMetadata.version !== version
-  ) {
+  if (structuredMetadata?.version && structuredMetadata.version !== version) {
     throw new Error(
       `Structured release notes version mismatch: expected ${version}, got ${structuredMetadata.version}.`,
     );
@@ -40,7 +37,9 @@ export function resolveCoreReleaseNotes(options) {
     null;
   const releaseNotesUrl = structuredUrl?.trim() || githubReleaseUrl;
   const changes = extractVersionSection(changelog, version);
-  const changeBlock = changes || "- Published the verified package and runtime artifacts for this version.";
+  const changeBlock =
+    changes ||
+    "- Published the verified package and runtime artifacts for this version.";
   return {
     contentReady: Boolean(structuredUrl?.trim()),
     notes: [

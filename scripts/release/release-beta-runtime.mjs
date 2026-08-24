@@ -14,11 +14,12 @@ const RUNTIME_MANIFEST_TARGETS = [
   { platform: "darwin", arch: "arm64" },
   { platform: "darwin", arch: "x64" },
   { platform: "linux", arch: "x64" },
-  { platform: "win32", arch: "x64" }
+  { platform: "win32", arch: "x64" },
 ];
 
 function printHelp() {
-  console.log(`
+  console.log(
+    `
 Usage:
   pnpm release:beta:runtime -- [options]
 
@@ -37,7 +38,8 @@ Default behavior:
   2. trigger npm-runtime-update-release for the selected channel
   3. wait for workflow success
   4. verify GitHub release metadata, assets, gh-pages manifests, and public channel manifests
-`.trim());
+`.trim(),
+  );
 }
 
 function parseArgs(argv) {
@@ -49,7 +51,7 @@ function parseArgs(argv) {
     help: false,
     minimumLauncherVersionOverride: null,
     releaseTag: null,
-    version: null
+    version: null,
   };
 
   for (let index = 0; index < normalizedArgv.length; index += 1) {
@@ -79,7 +81,8 @@ function parseArgs(argv) {
         index += 1;
         break;
       case "--minimum-launcher-version-override":
-        options.minimumLauncherVersionOverride = normalizedArgv[index + 1] ?? null;
+        options.minimumLauncherVersionOverride =
+          normalizedArgv[index + 1] ?? null;
         index += 1;
         break;
       default:
@@ -103,7 +106,7 @@ function run(command, args, options = {}) {
   return execFileSync(command, args, {
     cwd: ROOT_DIR,
     encoding: capture ? "utf8" : undefined,
-    stdio: capture ? ["ignore", "pipe", "pipe"] : stdio
+    stdio: capture ? ["ignore", "pipe", "pipe"] : stdio,
   });
 }
 
@@ -121,7 +124,9 @@ function ensureCommandAvailable(command, args = ["--version"]) {
 }
 
 function readCurrentBranch() {
-  return run("git", ["rev-parse", "--abbrev-ref", "HEAD"], { capture: true }).trim();
+  return run("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+    capture: true,
+  }).trim();
 }
 
 function readPublishedVersion(channel) {
@@ -130,8 +135,7 @@ function readPublishedVersion(channel) {
 }
 
 function readStableReleaseNotesUrl(nextclawVersion) {
-  return readCoreReleaseNotes(ROOT_DIR, nextclawVersion, REPO)
-    .releaseNotesUrl;
+  return readCoreReleaseNotes(ROOT_DIR, nextclawVersion, REPO).releaseNotesUrl;
 }
 
 function sleep(ms) {
@@ -154,7 +158,7 @@ async function waitForWorkflowRun(branch, startedAtMs) {
       "--limit",
       "20",
       "--json",
-      "databaseId,createdAt,event,headBranch,status,conclusion,url"
+      "databaseId,createdAt,event,headBranch,status,conclusion,url",
     ]);
     const matchingRun = runs.find((entry) => {
       const createdAtMs = Date.parse(entry.createdAt ?? "");
@@ -171,10 +175,17 @@ async function waitForWorkflowRun(branch, startedAtMs) {
     await sleep(5000);
   }
 
-  throw new Error(`Timed out waiting for ${RUNTIME_WORKFLOW} to appear on branch ${branch}.`);
+  throw new Error(
+    `Timed out waiting for ${RUNTIME_WORKFLOW} to appear on branch ${branch}.`,
+  );
 }
 
-function triggerRuntimeWorkflow({ branch, channel, minimumLauncherVersionOverride, releaseTag }) {
+function triggerRuntimeWorkflow({
+  branch,
+  channel,
+  minimumLauncherVersionOverride,
+  releaseTag,
+}) {
   const args = [
     "workflow",
     "run",
@@ -186,10 +197,13 @@ function triggerRuntimeWorkflow({ branch, channel, minimumLauncherVersionOverrid
     "-f",
     `channel=${channel}`,
     "-f",
-    `release_tag=${releaseTag}`
+    `release_tag=${releaseTag}`,
   ];
   if (minimumLauncherVersionOverride) {
-    args.push("-f", `minimum_launcher_version_override=${minimumLauncherVersionOverride}`);
+    args.push(
+      "-f",
+      `minimum_launcher_version_override=${minimumLauncherVersionOverride}`,
+    );
   }
   run("gh", args);
 }
@@ -203,10 +217,15 @@ function watchWorkflowRun(runId) {
     "--repo",
     REPO,
     "--json",
-    "status,conclusion,url"
+    "status,conclusion,url",
   ]);
-  if (runSummary.status !== "completed" || runSummary.conclusion !== "success") {
-    throw new Error(`Runtime workflow did not finish successfully: ${runSummary.url}`);
+  if (
+    runSummary.status !== "completed" ||
+    runSummary.conclusion !== "success"
+  ) {
+    throw new Error(
+      `Runtime workflow did not finish successfully: ${runSummary.url}`,
+    );
   }
   return runSummary;
 }
@@ -219,22 +238,34 @@ function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion, channel) {
     "--repo",
     REPO,
     "--json",
-    "url,isPrerelease,assets"
+    "url,isPrerelease,assets",
   ]);
   if (releaseSummary.isPrerelease !== (channel === "beta")) {
-    throw new Error(`GitHub release prerelease flag does not match the ${channel} channel: ${releaseSummary.url}`);
+    throw new Error(
+      `GitHub release prerelease flag does not match the ${channel} channel: ${releaseSummary.url}`,
+    );
   }
-  const assetNames = new Set((releaseSummary.assets ?? []).map((asset) => asset.name));
+  const assetNames = new Set(
+    (releaseSummary.assets ?? []).map((asset) => asset.name),
+  );
   for (const target of RUNTIME_MANIFEST_TARGETS) {
     const expectedAssetName = `nextclaw-runtime-${target.platform}-${target.arch}-${nextclawVersion}.zip`;
     if (!assetNames.has(expectedAssetName)) {
-      throw new Error(`Missing runtime bundle asset on release ${releaseTag}: ${expectedAssetName}`);
+      throw new Error(
+        `Missing runtime bundle asset on release ${releaseTag}: ${expectedAssetName}`,
+      );
     }
   }
   return releaseSummary;
 }
 
-function buildDryRunPlan({ branch, channel, nextclawVersion, releaseTag, minimumLauncherVersionOverride }) {
+function buildDryRunPlan({
+  branch,
+  channel,
+  nextclawVersion,
+  releaseTag,
+  minimumLauncherVersionOverride,
+}) {
   return [
     `- channel: ${channel}`,
     `- branch: ${branch}`,
@@ -245,7 +276,7 @@ function buildDryRunPlan({ branch, channel, nextclawVersion, releaseTag, minimum
       : "- minimum launcher version override: none",
     "- trigger npm-runtime-update-release workflow only",
     "- wait for workflow success",
-    `- verify GitHub release metadata, assets, gh-pages manifests, and public ${channel} manifests`
+    `- verify GitHub release metadata, assets, gh-pages manifests, and public ${channel} manifests`,
   ];
 }
 
@@ -262,12 +293,17 @@ async function main() {
 
   const channel = normalizeChannel(options.channel);
   const branch = options.branch ?? readCurrentBranch();
-  const nextclawVersion = options.version?.trim() || readPublishedVersion(channel);
+  const nextclawVersion =
+    options.version?.trim() || readPublishedVersion(channel);
   if (!nextclawVersion) {
-    throw new Error(`Could not resolve the published nextclaw ${channel} version.`);
+    throw new Error(
+      `Could not resolve the published nextclaw ${channel} version.`,
+    );
   }
-  const releaseTag = options.releaseTag?.trim() || `nextclaw@${nextclawVersion}`;
-  const expectedReleaseNotesUrl = channel === "stable" ? readStableReleaseNotesUrl(nextclawVersion) : null;
+  const releaseTag =
+    options.releaseTag?.trim() || `nextclaw@${nextclawVersion}`;
+  const expectedReleaseNotesUrl =
+    channel === "stable" ? readStableReleaseNotesUrl(nextclawVersion) : null;
 
   if (options.dryRun) {
     console.log(`release:${channel}:runtime dry run`);
@@ -277,8 +313,8 @@ async function main() {
         channel,
         nextclawVersion,
         releaseTag,
-        minimumLauncherVersionOverride: options.minimumLauncherVersionOverride
-      }).join("\n")
+        minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
+      }).join("\n"),
     );
     return;
   }
@@ -288,11 +324,15 @@ async function main() {
     branch,
     channel,
     minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
-    releaseTag
+    releaseTag,
   });
   const workflowRun = await waitForWorkflowRun(branch, dispatchStartedAtMs);
   const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
-  const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion, channel);
+  const runtimeReleaseSummary = verifyRuntimeReleaseAssets(
+    releaseTag,
+    nextclawVersion,
+    channel,
+  );
   const publicManifestSummary = await verifyPublicRuntimeManifests({
     channel,
     expectedReleaseNotesUrl,
@@ -301,7 +341,7 @@ async function main() {
     repo: REPO,
     run,
     sleep,
-    targets: RUNTIME_MANIFEST_TARGETS
+    targets: RUNTIME_MANIFEST_TARGETS,
   });
 
   console.log(`release:${channel}:runtime completed`);
@@ -309,7 +349,9 @@ async function main() {
   console.log(`- nextclaw version: ${nextclawVersion}`);
   console.log(`- runtime workflow: ${runtimeRunSummary.url}`);
   console.log(`- runtime release: ${runtimeReleaseSummary.url}`);
-  console.log(`- runtime manifest verification: ${publicManifestSummary.source} (${publicManifestSummary.pagesStatus})`);
+  console.log(
+    `- runtime manifest verification: ${publicManifestSummary.source} (${publicManifestSummary.pagesStatus})`,
+  );
 }
 
 if (

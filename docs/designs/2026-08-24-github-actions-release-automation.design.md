@@ -109,13 +109,13 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 
 状态分离：
 
-| 状态 | 含义 | 可否继续 |
-|---|---|---|
-| `PREPARED` | exact SHA tarball 已验证 | 可进入 publish |
-| `NPM_READY` | registry、Git commit/tag、冷 tarball audit 成立 | 不可回滚，不得重复 publish |
-| `CORE_RELEASED` | stable Runtime channel 和升级 smoke 成立 | 产品核心可用 |
-| `CONTENT_PENDING` | 高质量双语说明/博客/官网/X 尚未闭合 | 不影响核心事实，Desktop stable 仍等待 |
-| `CONTENT_READY` | 适用公开内容已闭合 | 可进入 Desktop stable 或全平台发布 |
+| 状态              | 含义                                            | 可否继续                              |
+| ----------------- | ----------------------------------------------- | ------------------------------------- |
+| `PREPARED`        | exact SHA tarball 已验证                        | 可进入 publish                        |
+| `NPM_READY`       | registry、Git commit/tag、冷 tarball audit 成立 | 不可回滚，不得重复 publish            |
+| `CORE_RELEASED`   | stable Runtime channel 和升级 smoke 成立        | 产品核心可用                          |
+| `CONTENT_PENDING` | 高质量双语说明/博客/官网/X 尚未闭合             | 不影响核心事实，Desktop stable 仍等待 |
+| `CONTENT_READY`   | 适用公开内容已闭合                              | 可进入 Desktop stable 或全平台发布    |
 
 这不是两套 release owner：内容增强消费同一版本/tag，只修改可变投影；NPM package、tag、bundle 和 manifest identity 始终由核心 workflow 冻结。
 

@@ -87,7 +87,11 @@ test("writes single-line GitHub Actions outputs", () => {
     'content_ready=false\nrelease_tags_json=["nextclaw@1.2.3"]\ntarget_version=1.2.3\n',
   );
   assert.throws(
-    () => writeReleaseActionOutputs({ target_version: "1.2.3\nunsafe" }, outputPath),
+    () =>
+      writeReleaseActionOutputs(
+        { target_version: "1.2.3\nunsafe" },
+        outputPath,
+      ),
     /single-line/,
   );
 });
@@ -125,10 +129,7 @@ test("release workflow isolates OIDC publish permissions and serializes stable r
     workflow,
     /group: nextclaw-stable-release\n {2}cancel-in-progress: false/,
   );
-  assert.match(
-    workflow,
-    /environment: npm-production[\s\S]*?id-token: write/,
-  );
+  assert.match(workflow, /environment: npm-production[\s\S]*?id-token: write/);
   assert.match(workflow, /npm install --global npm@11\.5\.1/);
   assert.match(workflow, /pnpm release:npm:stable -- --trusted-publishing/);
   assert.match(workflow, /GITHUB_REF.*refs\/heads\/master/);
@@ -137,7 +138,10 @@ test("release workflow isolates OIDC publish permissions and serializes stable r
 
 test("runtime workflow uses deterministic release notes fallback", () => {
   const workflow = readFileSync(
-    new URL("../../.github/workflows/npm-runtime-update-release.yml", import.meta.url),
+    new URL(
+      "../../.github/workflows/npm-runtime-update-release.yml",
+      import.meta.url,
+    ),
     "utf8",
   );
   assert.match(workflow, /release-core-notes\.mjs --version/);
