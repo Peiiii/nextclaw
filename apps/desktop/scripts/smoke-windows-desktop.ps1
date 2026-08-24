@@ -68,6 +68,24 @@ function Get-DesktopRuntimeBaseUrlFromLog {
   return $runtimeBaseUrl
 }
 
+function Get-DesktopRootProcessIdFromLog {
+  $candidatePid = $null
+  foreach ($line in @(Get-CurrentMainLogLines)) {
+    if ($line -match "Desktop main entry loaded\. pid=(\d+)") {
+      $candidatePid = [int]$Matches[1]
+    }
+  }
+  if ($null -eq $candidatePid) {
+    return $null
+  }
+  try {
+    Get-Process -Id $candidatePid -ErrorAction Stop | Out-Null
+    return $candidatePid
+  } catch {
+    return $null
+  }
+}
+
 function Test-DesktopRuntimeWindowLoaded {
   param([string]$RuntimeBaseUrl)
 
@@ -692,12 +710,14 @@ if ($isPortableSmoke) {
 }
 
 $appProc = $null
+$desktopRootPid = $null
 try {
   Write-Host "[desktop-smoke] launching desktop app"
   if (Test-Path $script:MainLog) {
     $script:MainLogStartLine = ((Get-Content -Path $script:MainLog | Measure-Object -Line).Lines + 1)
   }
   $appProc = Start-Process -FilePath $resolvedExe -PassThru -RedirectStandardOutput $appStdoutLog -RedirectStandardError $appStderrLog
+  $desktopRootPid = $appProc.Id
   $deadline = (Get-Date).AddSeconds($StartupTimeoutSec)
   $readyDeadline = (Get-Date).AddSeconds($MaxReadySec)
   $startedAt = Get-Date
@@ -706,7 +726,14 @@ try {
 
   while ((Get-Date) -lt $deadline) {
     if ($appProc.HasExited) {
-      throw "Desktop exited early. ExitCode=$($appProc.ExitCode)"
+      if ($appProc.ExitCode -ne 0) {
+        throw "Desktop exited early. ExitCode=$($appProc.ExitCode)"
+      }
+      $handoffPid = Get-DesktopRootProcessIdFromLog
+      if ($null -ne $handoffPid -and $desktopRootPid -ne $handoffPid) {
+        $desktopRootPid = $handoffPid
+        Write-Host "[desktop-smoke] guardian handoff observed: rootPid=$desktopRootPid"
+      }
     }
 
     $blockerLine = Get-DesktopStartupBlocker
@@ -732,7 +759,7 @@ try {
       Write-Host "[desktop-smoke] GUI smoke passed in ${elapsedMs}ms"
       Write-Host "[desktop-smoke] API probes passed: $runtimeBaseUrl"
       Invoke-DesktopServiceAppProbe -RuntimeBaseUrl $runtimeBaseUrl
-      Invoke-DesktopTitlebarDragProbe -RootPid $appProc.Id
+      Invoke-DesktopTitlebarDragProbe -RootPid $desktopRootPid
       Write-Host "[desktop-smoke] main log: $script:MainLog"
       if (Test-Path $script:MainLog) {
         Get-Content -Path $script:MainLog -Tail 80
@@ -773,7 +800,10 @@ try {
   Write-SmokeDiagnostics
   throw
 } finally {
-  if ($appProc -and -not $appProc.HasExited) {
-    Stop-ProcessTree -RootPid $appProc.Id
+  if ($null -ne $desktopRootPid) {
+    $desktopRootProcess = Get-Process -Id $desktopRootPid -ErrorAction SilentlyContinue
+    if ($null -ne $desktopRootProcess) {
+      Stop-ProcessTree -RootPid $desktopRootPid
+    }
   }
 }
