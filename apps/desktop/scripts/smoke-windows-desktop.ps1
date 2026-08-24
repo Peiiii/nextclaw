@@ -4,7 +4,8 @@ param(
   [string]$PortableRoot = "",
   [int]$StartupTimeoutSec = 90,
   [int]$MaxReadySec = 20,
-  [switch]$SeedStaleSameVersionBundle
+  [switch]$SeedStaleSameVersionBundle,
+  [switch]$AllowRendererOnlyTitlebarProbe
 )
 
 $ErrorActionPreference = "Stop"
@@ -535,6 +536,10 @@ function Invoke-DesktopTitlebarDragProbe {
   }
 
   if ($windowHandle -eq [IntPtr]::Zero) {
+    if ($AllowRendererOnlyTitlebarProbe.IsPresent -and (Test-RendererTitlebarDragRegionConfirmed)) {
+      Write-Warning "[desktop-smoke] renderer-only titlebar probe accepted because the hosted CI session exposes no visible top-level window handle."
+      return
+    }
     throw "Could not find a desktop window handle for process tree rooted at $RootPid"
   }
 

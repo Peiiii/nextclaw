@@ -109,6 +109,15 @@ async function copyDesktopRuntimePackages(packageNames, outputRoot) {
   }
 }
 
+async function copySharpOptionalRuntimePackages(packageNames, outputRoot) {
+  const sharpPackageRoot = join(outputRoot, "node_modules", "sharp");
+  const sharpOptionalPackageNames = packageNames.filter((packageName) => packageName.startsWith("@img/sharp-"));
+  for (const packageName of sharpOptionalPackageNames) {
+    const sourceRoot = join(outputRoot, "node_modules", ...packageName.split("/"));
+    await copyPackageRoot(packageName, sourceRoot, sharpPackageRoot);
+  }
+}
+
 function installSqlitePrebuildForElectron(options) {
   const { outputRoot, electronVersion, platform, arch } = options;
   const sqlitePackageRoot = join(outputRoot, "node_modules", "better-sqlite3");
@@ -153,6 +162,7 @@ export async function prepareDesktopNativeResources(options = {}) {
   rmSync(outputRoot, { recursive: true, force: true });
   await mkdir(outputRoot, { recursive: true });
   await copyDesktopRuntimePackages(packageNames, outputRoot);
+  await copySharpOptionalRuntimePackages(packageNames, outputRoot);
   installSqlitePrebuildForElectron({ outputRoot, electronVersion, platform, arch });
 
   return {
