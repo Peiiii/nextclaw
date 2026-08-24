@@ -174,7 +174,7 @@ function buildToolInvocationPart(
     detail,
     inputData: fileOperationCardData ? undefined : invocation.parsedArgs ?? invocation.args,
     text: shouldShowRawResult && rawResult ? rawResult : undefined,
-    outputData: invocation.result,
+    outputData: shouldShowRawResult ? invocation.result : undefined,
     callId: invocation.toolCallId || undefined,
     toolCallId: invocation.toolCallId || undefined,
     ...(invocation.execution ? { execution: invocation.execution } : {}),

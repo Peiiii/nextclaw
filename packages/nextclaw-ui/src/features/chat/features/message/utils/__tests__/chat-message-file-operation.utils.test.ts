@@ -154,6 +154,12 @@ it("uses structured edit-file result line numbers after the tool finishes", () =
       },
     },
   });
+  expect(adapted[0]?.parts[0]).not.toMatchObject({
+    type: "tool-card",
+    card: {
+      outputData: expect.anything(),
+    },
+  });
 });
 
 it("builds write-file previews from partial native args before the JSON is complete", () => {
@@ -261,6 +267,12 @@ it("keeps completed write-file cards in preview mode instead of falling back to 
       output: "Wrote 3906 bytes to games/snake.html",
     },
   });
+  expect(adapted[0]?.parts[0]).not.toMatchObject({
+    type: "tool-card",
+    card: {
+      outputData: expect.anything(),
+    },
+  });
 });
 
 it("renders codex file_change results as structured diff previews", () => {
@@ -334,6 +346,180 @@ it("renders codex file_change results as structured diff previews", () => {
             ],
           },
         ],
+      },
+    },
+  });
+  expect(adapted[0]?.parts[0]).not.toMatchObject({
+    type: "tool-card",
+    card: {
+      outputData: expect.anything(),
+    },
+  });
+});
+
+it("uses a read-file preview as the single visible representation of file content", () => {
+  const adapted = adapt([
+    {
+      id: "assistant-read-result",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.RESULT,
+            toolCallId: "read-result-1",
+            toolName: "read_file",
+            args: JSON.stringify({ path: "docs/readme.md" }),
+            parsedArgs: { path: "docs/readme.md" },
+            result: "1: first line\n2: second line\n</content>",
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "read_file",
+      summary: "docs/readme.md",
+      fileOperation: {
+        blocks: [
+          {
+            display: "preview",
+            path: "docs/readme.md",
+            lines: expect.arrayContaining([
+              expect.objectContaining({ text: "1: first line" }),
+              expect.objectContaining({ text: "2: second line" }),
+            ]),
+          },
+        ],
+      },
+    },
+  });
+  expect(adapted[0]?.parts[0]).not.toMatchObject({
+    type: "tool-card",
+    card: {
+      outputData: expect.anything(),
+    },
+  });
+});
+
+it("uses an apply-patch preview as the single visible representation of the patch", () => {
+  const patch = [
+    "*** Begin Patch",
+    "*** Update File: src/app.ts",
+    "@@",
+    "-const color = 'red';",
+    "+const color = 'blue';",
+    "*** End Patch",
+  ].join("\n");
+  const adapted = adapt([
+    {
+      id: "assistant-apply-patch-result",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.RESULT,
+            toolCallId: "apply-patch-result-1",
+            toolName: "apply_patch",
+            args: patch,
+            result: "Done!",
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "apply_patch",
+      summary: "src/app.ts",
+      fileOperation: {
+        blocks: [
+          {
+            path: "src/app.ts",
+            lines: [
+              expect.objectContaining({ kind: "remove", text: "const color = 'red';" }),
+              expect.objectContaining({ kind: "add", text: "const color = 'blue';" }),
+            ],
+          },
+        ],
+      },
+    },
+  });
+  expect(adapted[0]?.parts[0]).not.toMatchObject({
+    type: "tool-card",
+    card: {
+      outputData: expect.anything(),
+    },
+  });
+});
+
+it("keeps raw file-tool results when no structured preview can be built", () => {
+  const adapted = adapt([
+    {
+      id: "assistant-read-result-without-path",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.RESULT,
+            toolCallId: "read-result-without-path-1",
+            toolName: "read_file",
+            result: "raw file content",
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "read_file",
+      outputData: "raw file content",
+    },
+  });
+});
+
+it("keeps file-tool errors visible even when input can build a preview", () => {
+  const adapted = adapt([
+    {
+      id: "assistant-write-error",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.RESULT,
+            toolCallId: "write-error-1",
+            toolName: "write_file",
+            parsedArgs: {
+              path: "src/app.ts",
+              content: "const color = 'blue';",
+            },
+            error: "Permission denied",
+            result: "write failed",
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "write_file",
+      statusTone: "error",
+      output: "Permission denied",
+      outputData: "write failed",
+      fileOperation: {
+        blocks: [expect.objectContaining({ path: "src/app.ts" })],
       },
     },
   });
