@@ -1,6 +1,6 @@
 # NPM Package 发布
 
-1. Stable 正式入口使用 GitHub Actions Trusted Publishing，以 `npm-production` environment、OIDC 请求环境、Node/npm 最低版本、实际 publish 和 registry identity 验证 auth；OIDC 路径不运行 `npm whoami`。本地 dry-run/恢复使用传统 token 时，才按实际 npm config 验证 auth；项目私有 `.npmrc` 存在时显式设置 `NPM_CONFIG_USERCONFIG`，隔离 worktree 的 401 必须先核对主/隔离配置来源。
+1. Stable 正式入口使用 GitHub Actions 中已经真实验收的认证路径；当前通过 `npm-production` environment 的受控 `NPM_TOKEN` 发布，并按实际 npm config 验证 auth。Trusted Publishing 迁移必须单独执行：逐 package 配置精确 repository/workflow，记录配置清单，以真实 canary publish 验证而不是以“保存成功”代替，并在全部发布包通过后才切换正式 workflow；OIDC 路径不运行不受支持的 `npm whoami`。项目私有 `.npmrc` 存在时显式设置 `NPM_CONFIG_USERCONFIG`，隔离 worktree的 401 必须先核对主/隔离配置来源。
 2. `pnpm release:sync-readmes`、`release:check-readmes`、`release:check:health`。
 3. 根据用户安装入口和 workspace 依赖确定闭包；`@nextclaw/ui` 变化会影响 `nextclaw` 嵌入产物。严格检查在干净环境构建发布包的完整 workspace 依赖闭包，但只把 Changesets 发布包写入 checkpoint/tag/publish。窄发布必须证明排除依赖已按精确版本发布并通过 packed install。
 4. 使用 `release:auto:changeset`/changeset、`release:version` 与经过 strict checkpoint 的 publish；release notes owner 属于后续产品 closure，不是 NPM artifact 前置门禁。
