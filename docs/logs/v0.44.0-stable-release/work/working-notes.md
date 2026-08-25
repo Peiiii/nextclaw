@@ -10,6 +10,7 @@
 - 正式入口：GitHub Actions run `32877479224` attempt 2，最终 `success`，认证为 `npm-production/NPM_TOKEN`。
 - 当前公开稳定版：`nextclaw@0.44.0`，`latest` 指向 `0.44.0`。
 - 23 个 package identity 全部可见；GitHub Release 有四份 Runtime ZIP；四份 stable manifest 均指向 `0.44.0`。
+- GitHub Release 正文已从通用 fallback 原地更新为完整双语结构化说明，tag 和四份资产未改变。
 - 主工作区有用户 WIP，禁止 checkout、stash、reset 或混入发布。
 
 ## 关键约束 / 不变量
@@ -40,18 +41,20 @@
 - 不把本机 Node 25/Python 3.14 的 `better-sqlite3` 编译问题当成 GitHub Node 22 发布环境故障。
 - 不从主工作区发布，避免混入 landing 页面与未跟踪设计稿 WIP。
 - 排除包内容或权限错误：恢复尝试没有再次上传，23 个 prepared integrity 已全部公开可见。
+- 排除“只有资产没有完整说明”：Release 正文已回读中文/English sections 和各自语言链接。
 
 ## 关键决策
 
 - 版本选择 `0.44.0`，因为批次包含向后兼容的新用户能力。
 - 在 dispatch 前补齐双语 notes、结构化 JSON 和 minor release surface review，避免形成半成品内容状态。
 - 将成功 publish 后的 registry propagation 默认等待窗从约 120 秒延长到 15 分钟；等待期间不重复上传，integrity 冲突仍立即失败。
+- 修复 `release-core-notes` owner：结构化 JSON 完整时直接渲染双语正文，不再拼接英文 changelog fallback。
 
 ## 下一步
 
-1. 完成 registry 等待窗修复的验证与 Review。
-2. 把修复和最终发布记录安全回流远程 `master`。
-3. 运行 `release:reconcile:mainline`，保护主工作区 WIP 并确认自动同步状态。
+1. 完成 Release 正文 owner 的完整回归与 Review。
+2. 把正文修复和最终发布记录安全回流远程 `master`。
+3. 再次运行 `release:reconcile:mainline`，保护主工作区 WIP并确认自动同步状态。
 
 ## 剩余缺口 / 交接提醒
 
