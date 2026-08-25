@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-ncp-runtime-http-client
 
+## 0.3.22
+
+### Patch Changes
+
+- Updated dependencies [50f064c]
+- Updated dependencies [9ee3a68]
+  - @nextclaw/ncp@0.10.0
+  - @nextclaw/ncp-http-agent-client@0.4.22
+
 ## 0.3.21
 
 ### Patch Changes

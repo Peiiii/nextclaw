@@ -1,5 +1,33 @@
 # nextclaw
 
+## 0.43.0
+
+### Minor Changes
+
+- 50f064c: 为所有模型运行记录可查询的触发证据，包括发起者、来源渠道、触发与运行模型、关联会话、消息、请求和工具调用；消息的“更多操作”现在统一提供这些详情。后台完成通知只由人类直接发起的运行触发，代理委派、定时任务、观察和系统运行保持静默。
+
+### Patch Changes
+
+- Updated dependencies [af85fa6]
+- Updated dependencies [50f064c]
+- Updated dependencies [50f064c]
+- Updated dependencies [6e57449]
+- Updated dependencies [9ee3a68]
+  - @nextclaw/kernel@0.10.1
+  - @nextclaw/ncp@0.10.0
+  - @nextclaw/ncp-toolkit@0.6.23
+  - @nextclaw/core@0.17.8
+  - @nextclaw/remote@0.3.43
+  - @nextclaw/server@0.18.1
+  - @nextclaw/service@0.3.46
+  - @nextclaw/ncp-agent-runtime@0.4.21
+  - @nextclaw/ncp-mcp@0.2.35
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.21
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.22
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.35
+  - @nextclaw/mcp@0.3.35
+  - @nextclaw/runtime@0.4.34
+
 ## 0.42.3
 
 ### Patch Changes

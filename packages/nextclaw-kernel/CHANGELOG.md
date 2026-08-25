@@ -1,5 +1,29 @@
 # @nextclaw/kernel
 
+## 0.10.1
+
+### Patch Changes
+
+- af85fa6: 修复继承父会话上下文的子会话连续性：子会话会继续使用父会话选择的模型，并且不会把父会话的历史上下文压缩记录重复展示在自己的消息流中。
+- 50f064c: Prevent child sessions from creating additional sessions. Top-level sessions keep one-level delegation, while child sessions no longer receive session creation tools and nested creation is rejected before persistence.
+- 50f064c: 为所有模型运行记录可查询的触发证据，包括发起者、来源渠道、触发与运行模型、关联会话、消息、请求和工具调用；消息的“更多操作”现在统一提供这些详情。后台完成通知只由人类直接发起的运行触发，代理委派、定时任务、观察和系统运行保持静默。
+- 6e57449: 修复长会话中 AI 正在运行时继续发送消息可能需要等待数秒才能完成排队确认的问题：排队准入改为读取轻量会话摘要，不再读取、复制或回放完整会话历史。
+- Updated dependencies [50f064c]
+- Updated dependencies [9ee3a68]
+  - @nextclaw/ncp@0.10.0
+  - @nextclaw/ncp-toolkit@0.6.23
+  - @nextclaw/shared@0.4.28
+  - @nextclaw/core@0.17.8
+  - @nextclaw/channel-extension-feishu@0.2.29
+  - @nextclaw/channel-extension-weixin@0.2.29
+  - @nextclaw/ncp-agent-runtime@0.4.21
+  - @nextclaw/ncp-agent-runtime-next@0.1.21
+  - @nextclaw/ncp-mcp@0.2.35
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.22
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.35
+  - @nextclaw/mcp@0.3.35
+  - @nextclaw/runtime@0.4.34
+
 ## 0.10.0
 
 ### Minor Changes

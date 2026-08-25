@@ -1,5 +1,15 @@
 # @nextclaw/ncp-react
 
+## 0.5.25
+
+### Patch Changes
+
+- 9ee3a68: 修复运行中插到下一步时消息短暂错序的问题。当前步骤的 AI 输出现在会稳定显示在插话消息之前，流式过程中、步骤完成后和刷新重载后的顺序保持一致。
+- Updated dependencies [50f064c]
+- Updated dependencies [9ee3a68]
+  - @nextclaw/ncp@0.10.0
+  - @nextclaw/ncp-toolkit@0.6.23
+
 ## 0.5.24
 
 ### Patch Changes

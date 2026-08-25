@@ -1,1 +1,0 @@
-import{ot as e}from"./index-BTSwNDVi.js";export{e as RemoteAccessPage};

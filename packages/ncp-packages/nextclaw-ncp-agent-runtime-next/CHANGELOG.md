@@ -1,5 +1,14 @@
 # @nextclaw/ncp-agent-runtime-next
 
+## 0.1.21
+
+### Patch Changes
+
+- Updated dependencies [50f064c]
+- Updated dependencies [9ee3a68]
+  - @nextclaw/ncp@0.10.0
+  - @nextclaw/ncp-agent-runtime@0.4.21
+
 ## 0.1.20
 
 ### Patch Changes

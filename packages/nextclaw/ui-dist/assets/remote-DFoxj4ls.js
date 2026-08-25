@@ -1,0 +1,1 @@
+import{ot as e}from"./index-DUCA8m2w.js";export{e as RemoteAccessPage};
