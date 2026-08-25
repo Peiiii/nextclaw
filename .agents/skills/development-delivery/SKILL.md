@@ -65,7 +65,8 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 发布使用仓库既有 release flow，不以零散原子命令伪装完整闭环。
 - 发布完成必须覆盖授权范围内适用的 artifact、manifest、update channel、release notes、部署后 smoke 和分支回流。
 - tag、release 页面、workflow 触发或 registry publish 只是中间状态，不自动等于交付完成。
-- 可恢复的分支分叉、并行 WIP 或暂存于隔离分支只是交付中间状态；不得据此收尾，必须主动完成安全集成与主线回流。只有真实外部依赖无法消除时才报告未完成，并给出恢复条件和可直接续跑的入口。
+- 任何向远程 `master` 写入的交付或发布在远程完成门后运行 `pnpm release:reconcile:mainline`。本地独有提交由协调器在隔离 worktree 合并、验证并普通 push；本地主 worktree 有活跃 WIP 时由单例 retry worker 自动续跑，禁止要求用户手工 pull/rebase/stash。只有脚本返回 `LOCAL_MAINLINE_SYNCED` 才报告本地同步；`LOCAL_WORKTREE_RETRYING` 表示自动任务仍在运行，不是用户待办。
+- 可恢复的分支分叉、并行 WIP 或暂存于隔离分支只是交付中间状态；不得据此收尾，必须主动完成安全集成与主线回流。合并冲突必须留在协调器给出的恢复 worktree，并由当前 Agent 继续解决和验证，不污染活跃工作区、不重复已完成发布；只有真实外部依赖无法消除时才报告未完成。
 - 部分发布或外部失败优先进入专项恢复分支；不得重复发布已经成功的不可逆步骤。
 
 ## 输出

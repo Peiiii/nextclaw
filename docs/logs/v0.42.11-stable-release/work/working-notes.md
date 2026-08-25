@@ -30,6 +30,7 @@
 | Desktop stable 发布 | `v0.42.3-desktop.5` 五平台、30 个非空资产、stable manifests 全部完成 | 正式 workflow 到 Release 公开 14m34s；到 APT 首次失败共 21m01s；最慢平台 job Windows x64 12m41s，最慢 step macOS x64 build 6m12s | Draft-first 保证失败对公众不可见；Windows NSIS 改为消费已验证 unpacked bits |
 | APT-only 恢复 | `0.0.266` fresh install、upgrade、签名与 gh-pages 推送通过 | 首次恢复 7m55s，最慢为 gh-pages fetch 3m52s；浅 fetch 真实复验降至 5m53s，prepare step 22s | APT 镜像包 103,508,664 bytes；正式 Release `.deb` 保持完整 |
 | 公开回读 | NPM/runtime/Desktop/5 个 manifests/APT 全部通过 | Release 30/30 资产；5 个 manifest 均为 runtime 0.42.3；APT 关键 URL HTTP 200 | `.1` 至 `.4` 经 0 资产复核后连同 tag 删除，保留失败 workflow 历史用于复盘 |
+| 本地/远程主线对账 | 真实分叉在隔离 worktree 合并验证后普通 push，本地 `master` 安全快进；最终 `0/0` | 最终幂等复验 4.296s，最慢 fetch 3.815s；25 项发布回归 8.49–9.18s | 旧流程把本地 worktree FF 作为远程闭合前置；新 v1 遥测逐阶段记录 wall time，tracked WIP 由无限期单例 worker 自动续跑 |
 
 ## 当前提效判断
 
@@ -39,3 +40,4 @@
 4. 发布器已输出 `nextclaw.desktop-release/v1`，包含 workflow wall time、job 与最慢 step；通用 Delivery 进一步要求所有 release/deploy 采用稳定 schema，并在失败路径保留同一观测链。
 5. Desktop 本次最慢平台为 Windows x64 12m41s，最慢单 step 为 macOS x64 build 6m12s；新流程已将外部等待全部放在隐藏 Draft 内。下一步按平台缓存命中率优化，但不得以提前公开 Release 换取表面速度。
 6. 所有 release/deploy 统一由 Delivery 要求机器可读时间观测；成功与失败都保留总 wall time、阶段/job、最慢 step、外部等待和重试事实，避免复盘继续依赖会话记忆或人工估算。
+7. 发布主线对账不再等待用户选择“空闲时同步”：远程闭合、隔离合并和本地快进分别由同一个协调器拥有；只有活跃 tracked WIP 会让物理快进延后，worker 默认持续到成功并把 PID、目标 SHA、日志和最新报告写入 common Git dir。

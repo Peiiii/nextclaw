@@ -73,6 +73,7 @@ test("atomic Git closure updates the release branch and local/remote target", (c
         "@nextclaw/core": { version: "2.0.0" },
       },
     },
+    mainlineOptions: { spawnWorker: false },
     rootDir: repository,
     runBranchClosure: () => {},
     targetBranch: "master",
@@ -105,6 +106,7 @@ test("atomic Git closure updates the release branch and local/remote target", (c
         "@nextclaw/core": { version: "2.0.0" },
       },
     },
+    mainlineOptions: { spawnWorker: false },
     rootDir: repository,
     runBranchClosure: () => {},
     targetBranch: "master",
@@ -124,13 +126,18 @@ test("atomic Git closure keeps the default worktree on master and preserves unre
   const summary = closeStableGitReleaseState({
     branch: "release/test",
     checkpoint: { packages: { nextclaw: { version: "1.2.3" } } },
+    mainlineOptions: { spawnWorker: false },
     rootDir: releaseWorktree,
     runBranchClosure: () => {},
     targetBranch: "master",
   });
 
   assert.equal(git(repository, ["branch", "--show-current"]), "master");
-  assert.equal(git(repository, ["rev-parse", "HEAD"]), summary.closureCommit);
+  assert.equal(
+    summary.mainlineReconciliation.status,
+    "LOCAL_WORKTREE_RETRYING",
+  );
+  assert.notEqual(git(repository, ["rev-parse", "HEAD"]), summary.closureCommit);
   assert.equal(
     git(releaseWorktree, ["rev-parse", "origin/master"]),
     summary.closureCommit,
@@ -144,22 +151,23 @@ test("atomic Git closure keeps the default worktree on master and preserves unre
 
   writeFileSync(join(repository, "release.txt"), "local overlap\n");
   writeFileSync(join(releaseWorktree, "release.txt"), "next release\n");
-  assert.throws(
-    () =>
-      closeStableGitReleaseState({
-        branch: "release/test",
-        checkpoint: { packages: { nextclaw: { version: "1.2.4" } } },
-        rootDir: releaseWorktree,
-        runBranchClosure: () => {},
-        targetBranch: "master",
-      }),
-    /Command failed: git merge --ff-only/,
+  const nextSummary = closeStableGitReleaseState({
+    branch: "release/test",
+    checkpoint: { packages: { nextclaw: { version: "1.2.4" } } },
+    mainlineOptions: { spawnWorker: false },
+    rootDir: releaseWorktree,
+    runBranchClosure: () => {},
+    targetBranch: "master",
+  });
+  assert.equal(
+    nextSummary.mainlineReconciliation.status,
+    "LOCAL_WORKTREE_RETRYING",
   );
   assert.equal(git(repository, ["branch", "--show-current"]), "master");
-  assert.equal(git(repository, ["rev-parse", "HEAD"]), summary.closureCommit);
+  assert.notEqual(git(repository, ["rev-parse", "HEAD"]), nextSummary.closureCommit);
   assert.equal(
     git(releaseWorktree, ["rev-parse", "origin/master"]),
-    summary.closureCommit,
+    nextSummary.closureCommit,
   );
   assert.equal(
     readFileSync(join(repository, "release.txt"), "utf8"),

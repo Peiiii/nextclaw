@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { basename, dirname, join, resolve } from "node:path";
+import { reconcileReleaseMainline } from "./reconcile-release-mainline.mjs";
 
 const ROOT_DIR = process.cwd();
 
@@ -103,29 +104,6 @@ export function ensureStableRemoteSync(
   }
 }
 
-export function resolveStableTargetBranchWorktree(
-  targetBranch,
-  rootDir = ROOT_DIR,
-) {
-  const currentWorktree = git(["rev-parse", "--show-toplevel"], rootDir);
-  const records = git(["worktree", "list", "--porcelain"], rootDir).split(
-    "\n\n",
-  );
-  for (const record of records) {
-    const lines = record.split("\n");
-    const worktreeLine = lines.find((line) => line.startsWith("worktree "));
-    const branchLine = lines.find((line) => line.startsWith("branch "));
-    if (
-      worktreeLine &&
-      branchLine === `branch refs/heads/${targetBranch}` &&
-      worktreeLine.slice("worktree ".length) !== currentWorktree
-    ) {
-      return worktreeLine.slice("worktree ".length);
-    }
-  }
-  return null;
-}
-
 function commitReleaseArtifacts(rootDir) {
   const status = git(["status", "--short"], rootDir);
   if (!status) return git(["rev-parse", "HEAD"], rootDir);
@@ -177,6 +155,7 @@ export function closeStableGitReleaseState(options) {
   const {
     branch,
     checkpoint,
+    mainlineOptions = {},
     rootDir = ROOT_DIR,
     runBranchClosure = runDefaultBranchClosure,
     targetBranch,
@@ -207,23 +186,6 @@ export function closeStableGitReleaseState(options) {
     });
   }
   const closureCommit = git(["rev-parse", "HEAD"], rootDir);
-  if (branch !== targetBranch) {
-    const targetWorktree = resolveStableTargetBranchWorktree(
-      targetBranch,
-      rootDir,
-    );
-    if (targetWorktree) {
-      run("git", ["merge", "--ff-only", closureCommit], {
-        rootDir: targetWorktree,
-        capture: false,
-      });
-    } else {
-      run("git", ["branch", "-f", targetBranch, closureCommit], {
-        rootDir,
-        capture: false,
-      });
-    }
-  }
   const branchRefspecs = new Set([`HEAD:${branch}`, `HEAD:${targetBranch}`]);
   run(
     "git",
@@ -236,13 +198,34 @@ export function closeStableGitReleaseState(options) {
     ],
     { rootDir, capture: false },
   );
-  const localTarget = git(["rev-parse", targetBranch], rootDir);
-  const remoteTarget = git(["rev-parse", `origin/${targetBranch}`], rootDir);
-  if (localTarget !== closureCommit || remoteTarget !== closureCommit) {
+  runBranchClosure(branch, `origin/${targetBranch}`, rootDir);
+  const mainlineReconciliation = reconcileReleaseMainline({
+    ...mainlineOptions,
+    rootDir,
+    targetBranch,
+  });
+  if (
+    ["FAILED", "MAINLINE_RECONCILIATION_RECOVERING"].includes(
+      mainlineReconciliation.status,
+    )
+  ) {
     throw new Error(
-      `Target branch closure mismatch: closure=${closureCommit}, local=${localTarget}, remote=${remoteTarget}`,
+      `Stable release mainline reconciliation failed: ${mainlineReconciliation.status}`,
     );
   }
-  runBranchClosure(branch, targetBranch, rootDir);
-  return { closureCommit, releaseCommit, releaseTags };
+  git(
+    [
+      "merge-base",
+      "--is-ancestor",
+      closureCommit,
+      `origin/${targetBranch}`,
+    ],
+    rootDir,
+  );
+  return {
+    closureCommit,
+    mainlineReconciliation,
+    releaseCommit,
+    releaseTags,
+  };
 }

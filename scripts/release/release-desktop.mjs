@@ -11,6 +11,7 @@ import {
 } from "./desktop-release-github.mjs";
 import { assertDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
 import { assertPublishedDesktopRuntimeIdentity, runRemotePreflight } from "./desktop-release-preflight.mjs";
+import { reconcileReleaseMainline } from "./reconcile-release-mainline.mjs";
 import {
   createReleaseWorktree,
   installReleaseWorktreeDependencies,
@@ -427,6 +428,14 @@ async function executeRelease(options, aheadCount) {
     ? {}
     : dispatchReleaseWorkflow(options);
   await waitForDesktopReleaseClosure({ ...options, ...workflowDispatch });
+  const mainlineReconciliation = reconcileReleaseMainline({
+    rootDir: ROOT_DIR,
+    targetBranch: "master"
+  });
+  console.log(`[desktop:release] mainline reconciliation: ${mainlineReconciliation.status}`);
+  if (["FAILED", "MAINLINE_RECONCILIATION_RECOVERING"].includes(mainlineReconciliation.status)) {
+    throw new Error(`Desktop release mainline reconciliation failed: ${mainlineReconciliation.status}`);
+  }
   console.log(channel === "stable" ? "DESKTOP_READY" : "DESKTOP_BETA_READY");
 }
 

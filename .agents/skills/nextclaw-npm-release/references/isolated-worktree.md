@@ -17,7 +17,7 @@
 4. **统一 registry 身份**：若主仓库有私有 `.npmrc`，所有 `npm whoami/view/install`、`pnpm pack/publish` 和 registry 验证都使用同一个 `NPM_CONFIG_USERCONFIG=<project>/.npmrc`，避免不同配置造成假 401/404。`release:stable` 在链接 worktree 缺少 `.npmrc` 时会自动引用主 worktree 配置；其它命令仍需显式传入。出现 401 时先对比配置来源，禁止直接推断 token 失效或要求重新登录。
 5. **发布前验证**：运行被发布包匹配的 test/tsc/lint/build；严格检查必须在干净 worktree 中先构建发布包的完整 workspace 依赖闭包，未升版本的构建前置不得进入 checkpoint、tag 或 publish 范围。用 `pnpm pack` 检查 tarball、launcher/assets 和 `workspace:*` 转换；对关键依赖闭包做临时安装。
 6. **发布与 registry 验证**：底层依赖先发。全量优先 `pnpm release:publish`，并确保 tag 指向包含 version/changelog 的提交；窄发布在 release branch 使用 `pnpm publish --publish-branch <branch>`。逐包用相同 npm config 验证 version、dist-tags 和 dependencies；首次 scoped 包短暂 404 只做有限重试，不重复 publish。
-7. **回流目标分支**：发布后运行 `pnpm release:check:branch-closure -- --target <target> --release <ref>`。目标分支已在默认工作区检出时，发布器应在该工作区保持 `master` 的前提下执行 `git merge --ff-only <release-commit>`；WIP 不重叠且能 fast-forward 才回流，否则停止，不切分支、不 stash、不强制 merge。未回流时必须明确“registry 已发布，但本地目标分支尚未闭合”。
+7. **回流目标分支**：发布后先运行 `pnpm release:check:branch-closure -- --target <target> --release <ref>` 审计内容，再运行 `pnpm release:reconcile:mainline` 自动对账。远程 `master` 是发布主线 owner；本地独有提交在隔离 integration worktree 与远程合并、验证并普通 push，不直接 rebase/stash/reset 活跃目标工作区。目标 worktree 可安全快进时立即更新；存在 tracked WIP 时启动单例 retry worker 自动续跑。冲突只留在恢复 worktree 并由当前发布 Agent 继续，不把任何同步命令留给用户。
 8. **收尾**：release worktree 与目标工作区分别检查 status，并确认默认主工作区仍检出 `master`；发布产生的版本、changelog 和必要产物应提交回流，临时构建物清理。报告包、版本、dist-tag、安装证据、release commit、tags、目标分支闭合和残余 WIP。
 
-完成条件：未提交 WIP 未进入 release；registry 与临时安装证据成立；release metadata 已回流目标分支，或阻塞被明确报告。只完成 registry 不能称为“发布闭环完成”。
+完成条件：未提交 WIP 未进入 release；registry 与临时安装证据成立；远程 release metadata 和源码已闭合；本地主线达到 `LOCAL_MAINLINE_SYNCED`，或已由 `LOCAL_WORKTREE_RETRYING` / `MAINLINE_RECONCILIATION_RECOVERING` 的自动 owner 接管且当前 Agent 持续推进。只完成 registry 或把本地同步留给用户不能称为“发布闭环完成”。

@@ -18,7 +18,7 @@ GitHub Release 必须采用 Draft-first 原子公开：CLI 先创建隐藏 Draft
 - `gh-pages` 与公开 manifest 版本、floor、releaseNotesUrl 一致；
 - stable 的官网链接只在 release 与公开 channel 验证后更新；
 - shipped bits 改变时 launcher/runtime identity 与 asset/manifest 同步变化；
-- 隔离发布结果回流本地 master，活跃 WIP 保留。
+- 隔离发布结果先闭合远程 `master`，再自动运行 `pnpm release:reconcile:mainline`；本地独有提交在隔离 worktree 合并验证，活跃 WIP 由 retry worker 保护并自动续跑，不要求用户手工 rebase。
 - standalone desktop 完成后报告 `DESKTOP_READY`；全平台编排在此后由 Delivery 汇总 `ALL_PLATFORMS_READY`。
 - closure 必须输出 `nextclaw.desktop-release/v1` 结构化观测，包含 workflow 总 wall time、各 job 时长与最慢 step；失败 run 也输出已完成阶段，作为后续发布复盘的统一事实源。
 

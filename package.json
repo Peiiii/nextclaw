@@ -145,6 +145,7 @@
     "release:check:groups": "node scripts/release/check-release-groups.mjs",
     "release:check:health": "node scripts/release/report-release-health.mjs --fail-on-drift --fail-on-behind-tags --no-registry",
     "release:check:branch-closure": "node scripts/release/check-release-branch-closure.mjs",
+    "release:reconcile:mainline": "node scripts/release/reconcile-release-mainline.mjs",
     "release:report:health": "node scripts/release/report-release-health.mjs",
     "release:verify:published": "node scripts/release/verify-release-published.mjs",
     "release:prepare:publish-artifacts": "pnpm -C packages/nextclaw-ui build && pnpm -C packages/nextclaw build && pnpm -C packages/nextclaw-ui prepack && pnpm -C packages/nextclaw prepack",
