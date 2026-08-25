@@ -1,5 +1,5 @@
 ---
-"nextclaw": patch
+"nextclaw": minor
 "@nextclaw/core": patch
 "@nextclaw/service": patch
 "@nextclaw/server": patch
