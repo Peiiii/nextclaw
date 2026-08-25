@@ -228,11 +228,12 @@ export class AgentRunRequestManager {
       sessionId: session.sessionId,
       message: baseMessage,
     };
+    const queuedRequest = sessionRun.enqueueRequest(normalizedRequest, session);
     const steeringRequest =
       request.delivery === "prefer-steer" && sessionRun.isRunning()
-        ? this.pendingInputs.enqueuePreferredSteeringInput(
+        ? this.pendingInputs.promotePreferredSteeringInput(
             sessionRun,
-            normalizedRequest,
+            queuedRequest.id,
             session,
           )
         : null;
@@ -246,7 +247,6 @@ export class AgentRunRequestManager {
         delivery: "steered",
       };
     }
-    const queuedRequest = sessionRun.enqueueRequest(normalizedRequest, session);
     const activeRequest = sessionRun.beginNextRun();
     this.publishRunQueueUpdated(session.sessionId);
     if (activeRequest?.id === queuedRequest.id) {

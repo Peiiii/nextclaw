@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  NCP_RUN_TRIGGER_METADATA_KEY,
   NcpEventType,
   type NcpAgentConversationStateManager,
   type NcpEndpointEvent,
@@ -17,6 +18,8 @@ import {
   recordProductActivityBestEffort,
   resolveHumanProductActivitySource,
 } from "@kernel/utils/product-activity.utils.js";
+import { AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY } from "@kernel/utils/agent-run-metadata.utils.js";
+import { resolveSteeringRunTriggerMetadata } from "@kernel/utils/agent-run-trigger.utils.js";
 
 export type SessionRunQueuedRequest = {
   id: string;
@@ -56,13 +59,34 @@ class SessionPendingInputs {
   moveNextRunToNextStep = (
     requestId: string,
     intendedRunId: string,
+    activeRunSpec: Record<string, unknown> | null,
   ): SessionRunPendingRequest | null => {
     const index = this.nextRun.findIndex(({ id }) => id === requestId);
     if (index < 0) return null;
     const [request] = this.nextRun.splice(index, 1);
     if (!request) return null;
-    this.enqueueNextStep(request, intendedRunId);
-    return this.toPendingRequest(request, "steering", intendedRunId);
+    const steeringRequest: SessionRunQueuedRequest = {
+      ...request,
+      request: {
+        ...request.request,
+        message: {
+          ...request.request.message,
+          metadata: {
+            ...(request.request.message.metadata ?? {}),
+            ...(activeRunSpec
+              ? { [AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY]: structuredClone(activeRunSpec) }
+              : {}),
+            [NCP_RUN_TRIGGER_METADATA_KEY]: resolveSteeringRunTriggerMetadata({
+              request: request.request,
+              targetRunId: intendedRunId,
+              acceptedAt: new Date().toISOString(),
+            }),
+          },
+        },
+      },
+    };
+    this.enqueueNextStep(steeringRequest, intendedRunId);
+    return this.toPendingRequest(steeringRequest, "steering", intendedRunId);
   };
 
   list = (): readonly SessionRunPendingRequest[] => [
@@ -136,6 +160,24 @@ class SessionPendingInputs {
 
 function isConversationStateEvent(event: NcpEndpointEvent): boolean {
   return event.type !== NcpEventType.ContextWindowUpdated;
+}
+
+function findRunSpec(
+  messages: readonly NcpMessage[],
+  runId: string,
+): Record<string, unknown> | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const runSpec = messages[index]?.metadata?.[AGENT_RUN_MESSAGE_RUN_SPEC_METADATA_KEY];
+    if (
+      runSpec &&
+      typeof runSpec === "object" &&
+      !Array.isArray(runSpec) &&
+      (runSpec as Record<string, unknown>).runId === runId
+    ) {
+      return runSpec as Record<string, unknown>;
+    }
+  }
+  return null;
 }
 
 export class SessionRun {
@@ -227,27 +269,11 @@ export class SessionRun {
 
   moveQueuedRequestToNextStep = (queuedRequestId: string): SessionRunPendingRequest | null => {
     if (!this.activeRunId) return null;
-    return this.pendingInputs.moveNextRunToNextStep(queuedRequestId, this.activeRunId);
-  };
-
-  enqueueNextStepRequest = (
-    request: AgentRunRequest,
-    session: AgentRunSession,
-  ): SessionRunPendingRequest | null => {
-    if (!this.activeRunId) return null;
-    const pendingRequest: SessionRunQueuedRequest = {
-      id: `pending-input-${randomUUID()}`,
-      runId: `agent-run-${randomUUID()}`,
-      enqueuedAt: new Date().toISOString(),
-      request: structuredClone(request),
-      session: structuredClone(session),
-    };
-    this.pendingInputs.enqueueNextStep(pendingRequest, this.activeRunId);
-    return structuredClone({
-      ...pendingRequest,
-      placement: "steering",
-      intendedRunId: this.activeRunId,
-    });
+    return this.pendingInputs.moveNextRunToNextStep(
+      queuedRequestId,
+      this.activeRunId,
+      findRunSpec(this.getSnapshot().messages, this.activeRunId),
+    );
   };
 
   claimNextStepRequests = (runId: string): readonly SessionRunPendingRequest[] =>

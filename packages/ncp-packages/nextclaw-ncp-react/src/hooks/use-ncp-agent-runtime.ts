@@ -270,7 +270,7 @@ export function useNcpAgentRuntime({
     handle: NcpRunHandle,
     acceptedMessage?: NcpMessage,
   ): Promise<void> => {
-    if (handle.runId === null) {
+    if (handle.runId === null || handle.delivery === "steered") {
       return;
     }
     manager.clearError();

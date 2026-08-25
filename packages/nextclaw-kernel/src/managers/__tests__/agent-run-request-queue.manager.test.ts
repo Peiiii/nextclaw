@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   EventBus,
   Ingress,
@@ -246,6 +246,9 @@ describe("AgentRunRequestManager session run queue", () => {
       payload: { sessionId: "session-1", content: [{ type: "text", text: "first" }] },
     }, { source: "test" });
     await waitForCondition(() => started.length === 1);
+    const sessionRun = sessionRuns.get("session-1");
+    expect(sessionRun).toBeDefined();
+    const promoteQueuedInput = vi.spyOn(sessionRun!, "moveQueuedRequestToNextStep");
     const steering = await ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
       type: ingressKeys.agentRun.send,
       payload: {
@@ -256,11 +259,27 @@ describe("AgentRunRequestManager session run queue", () => {
     }, { source: "test" });
 
     expect(steering).toMatchObject({ delivery: "steered", runId: first.runId });
-    expect(manager.pendingInputs.listPendingInputs("session-1")).toMatchObject([{
+    const [pendingInput] = manager.pendingInputs.listPendingInputs("session-1");
+    expect(promoteQueuedInput).toHaveBeenCalledOnce();
+    expect(promoteQueuedInput).toHaveBeenCalledWith(pendingInput?.id);
+    expect(pendingInput).toMatchObject({
       intendedRunId: first.runId,
       placement: "steering",
-      message: { parts: [{ type: "text", text: "change direction" }] },
-    }]);
+      message: {
+        parts: [{ type: "text", text: "change direction" }],
+        metadata: {
+          run_spec: {
+            runId: first.runId,
+            model: "test-model",
+          },
+          run_trigger: {
+            actor: "human",
+            sourceMessageId: steering.userMessageId,
+            targetRunId: first.runId,
+          },
+        },
+      },
+    });
 
     completeRun.get(first.runId as string)?.();
     await waitForCondition(() => started.length === 2);

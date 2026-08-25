@@ -60,14 +60,54 @@ describe("SessionRun", () => {
       sessionId: "session-1",
       message: message(id, "user", new Date().toISOString()),
     });
-    run.enqueueRequest(request("user-1"), session);
+    const activeRequest = request("user-1");
+    activeRequest.message = {
+      ...activeRequest.message,
+      metadata: {
+        run_spec: {
+          runId: "active-run-placeholder",
+          model: "openai/gpt-5.6",
+        },
+      },
+    };
+    run.enqueueRequest(activeRequest, session);
     const active = run.beginNextRun();
+    await run.applyEvents([{
+      type: NcpEventType.MessageSent,
+      payload: {
+        sessionId: "session-1",
+        message: {
+          ...activeRequest.message,
+          metadata: {
+            run_spec: {
+              runId: active!.runId,
+              model: "openai/gpt-5.6",
+            },
+          },
+        },
+      },
+    }]);
     const queued = run.enqueueRequest(request("user-2"), session);
 
     expect(run.moveQueuedRequestToNextStep(queued.id)).toMatchObject({
       id: queued.id,
       intendedRunId: active?.runId,
       placement: "steering",
+      request: {
+        message: {
+          metadata: {
+            run_spec: {
+              runId: active?.runId,
+              model: "openai/gpt-5.6",
+            },
+            run_trigger: {
+              actor: "human",
+              sourceMessageId: "user-2",
+              targetRunId: active?.runId,
+            },
+          },
+        },
+      },
     });
     expect(run.listQueuedRequests()).toEqual([]);
     expect(run.claimNextStepRequests(active!.runId)).toHaveLength(1);

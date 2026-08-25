@@ -73,4 +73,54 @@ describe('useNcpAgentRuntime backend queue submission', () => {
       expect(result.current.visibleMessages).toEqual([queuedMessage]);
     });
   });
+
+  it('keeps a steered message in the pending projection instead of accepting it as a new run', async () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    manager.hydrate({ sessionId: 'session-1', messages: [] });
+    await manager.dispatch({
+      type: NcpEventType.RunStarted,
+      payload: {
+        sessionId: 'session-1',
+        runId: 'run-1',
+        messageId: 'assistant-1',
+      },
+    });
+    const send = vi.fn(async (envelope: NcpAgentSendEnvelope) => ({
+      assistantMessageId: null,
+      delivery: 'steered' as const,
+      runId: 'run-1',
+      sessionId: 'session-1',
+      userMessageId: envelope.message.id,
+    }));
+    const client = {
+      abort: vi.fn(async () => undefined),
+      send,
+      stop: vi.fn(async () => undefined),
+      stream: vi.fn(async () => undefined),
+      subscribe: vi.fn(() => () => undefined),
+    } as unknown as NcpAgentClientEndpoint;
+    const { result } = renderHook(() => useNcpAgentRuntime({
+      client,
+      manager,
+      sessionId: 'session-1',
+    }));
+
+    await act(async () => {
+      await result.current.send({
+        delivery: 'prefer-steer',
+        message: {
+          id: 'user-steering',
+          sessionId: 'session-1',
+          role: 'user',
+          status: 'final',
+          parts: [{ type: 'text', text: 'change direction' }],
+          timestamp: '2026-08-25T00:00:00.000Z',
+        },
+        sessionId: 'session-1',
+      });
+    });
+
+    expect(result.current.visibleMessages).toEqual([]);
+    expect(result.current.snapshot.activeRun?.runId).toBe('run-1');
+  });
 });

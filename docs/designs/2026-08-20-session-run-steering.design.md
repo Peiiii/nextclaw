@@ -216,6 +216,8 @@ runtime 只负责在它拥有的安全步骤边界 claim，不决定 UI fallback
 8. 已 claim 的消息不隐式回队；它已经成为标准 transcript 输入，失败由该 run 的标准终态表达。
 9. pending projection 与 transcript 通过稳定 message ID 交接，不能同时渲染两份。
 10. pending input 仍是进程内 SessionRun 状态；本设计不声称服务重启后可恢复。
+11. direct `prefer-steer` 与 queued-row strict steer 必须复用同一个 `next-run -> next-step` owner mutation；direct 入口只负责表达 best-effort 投递意图，不得拥有独立的 next-step 创建路径。
+12. queued -> steering mutation 必须同时把本次输入的 `run_trigger` 和当前活动 run 的 `run_spec` 固化到同一 message；pending-to-transcript 只迁移状态，不能依赖 runtime 或 UI 在 handoff 后补造运行原数据。
 
 ### 为什么需要 admission window
 
@@ -259,7 +261,8 @@ sequenceDiagram
   participant LLM
 
   UI->>ARM: send(delivery=prefer-steer)
-  ARM->>SR: tryAppendNextStep(activeRunId, request)
+  ARM->>SR: enqueueNextRun(request)
+  ARM->>SR: promoteQueuedInputToNextStep(inputId, activeRunId)
   SR-->>ARM: accepted as steering
   ARM-->>UI: handle(delivery=steered, runId=activeRunId)
   ARM-->>UI: pending-inputs updated
@@ -317,6 +320,10 @@ delivery: "started" | "queued" | "steered";
 ```
 
 steered handle 的 `runId` 是当前物理 run ID，只表示输入被该活动区间接纳，不表示后续某条 assistant message 是它的专属结果。
+
+Kernel 对 direct `prefer-steer` 的内部处理不是第二套 next-step admission：先按普通提交创建标准 pending input，再在同一个同步事务内调用 queued-row strict steer 所使用的 canonical promotion。promotion 不可用时保留该项为 next-run 并返回 `queued`。这样 direct 与“先排队再插话”在进入 pending owner 后具有相同的 ID、状态迁移、projection 和恢复语义。
+
+Consumer 必须使用 `delivery` 判定 handle 语义：只有 `started` 可以本地接纳为新 run 并提交 optimistic transcript；`queued` 进入 queued projection；`steered` 进入 steering pending projection。禁止用 `runId !== null` 推断 `started`，因为 `steered` 合法复用当前物理 run ID。
 
 这个 fallback 是协议明示、响应可观察、同一 owner 决定的业务语义，不是 consumer 端静默救援。
 
@@ -384,6 +391,8 @@ claim 不能先让 pending steering 从 UI 消失，再等待 `MessageSent` 到�
 3. 客户端以 message ID 优先显示标准 transcript 节点，并抑制同 ID pending 节点。
 4. `acknowledgeClaim()` 退役 claimed shadow，发布 pending-input update。
 5. 若 `MessageSent` 提交失败，claimed shadow 由 terminal settlement 恢复到 next-run，不产生无归属消失。
+
+promotion 固化的 `run_trigger` 描述这条插话自身由谁、从哪里、何时发起，并把 `targetRunId` 指向当前活动 run；`run_spec` 复制该活动 run 已解析的真实执行表面。消息被 claim 并写入 transcript 后继续保留这两项元数据，因此刷新、历史恢复和“更多操作”都能读取与普通发送相同的权威来源。若 promotion 最终不可用并保留为 next-run，后续真正启动时仍由标准 `startQueuedRun` 用新 run 的事实覆盖这两项元数据。
 
 claimed shadow 是一次交接状态，不是第二个业务队列；它只由 Inbox owner 管理，生命周期以 transcript commit 或 terminal restore 结束。
 

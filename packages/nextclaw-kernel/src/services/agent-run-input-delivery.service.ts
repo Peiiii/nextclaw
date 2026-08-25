@@ -9,7 +9,6 @@ import type {
 } from "@kernel/managers/session-run.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type {
-  AgentRunRequest,
   SessionPendingInput,
   SessionQueuedInput,
   SessionSteerQueuedInputResult,
@@ -68,9 +67,9 @@ export class AgentRunInputDeliveryService {
     return { ok: true, input: this.toPendingInput(moved) };
   };
 
-  enqueuePreferredSteeringInput = (
+  promotePreferredSteeringInput = (
     sessionRun: SessionRun,
-    request: AgentRunRequest,
+    queuedInputId: string,
     session: AgentRunSession,
   ): SessionRunPendingRequest | null => {
     try {
@@ -79,9 +78,8 @@ export class AgentRunInputDeliveryService {
         session,
         sessionRun,
       });
-      return runtime.capabilities?.nextStepInput === true
-        ? sessionRun.enqueueNextStepRequest(request, session)
-        : null;
+      if (runtime.capabilities?.nextStepInput !== true) return null;
+      return sessionRun.moveQueuedRequestToNextStep(queuedInputId);
     } catch {
       return null;
     }

@@ -109,4 +109,39 @@ describe("buildChatMessageTriggerDetails", () => {
       "run-trigger-metadata",
     ]);
   });
+
+  it("keeps a completed steering user message actionable from persisted run metadata", () => {
+    const details = buildChatMessageTriggerDetails({
+      labels,
+      message: {
+        metadata: {
+          run_spec: {
+            runId: "run-1",
+            model: "openai/gpt-5.6",
+          },
+          run_trigger: {
+            version: 1,
+            actor: "human",
+            source: "internal",
+            sourceMessageId: "user-steering",
+            targetRunId: "run-1",
+            triggeredAt: "2026-08-25T13:39:04.000Z",
+          },
+        },
+      },
+    });
+
+    expect(details).toMatchObject({
+      triggerLabel: "More actions",
+      items: [{
+        key: "run-trigger-metadata",
+        dialog: {
+          rows: expect.arrayContaining([
+            { label: "Target run", value: "run-1" },
+            { label: "Run model", value: "openai/gpt-5.6" },
+          ]),
+        },
+      }],
+    });
+  });
 });

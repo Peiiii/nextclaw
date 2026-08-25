@@ -5,6 +5,7 @@ import {
   createAgentToolRunTriggerInput,
   createIngressRunTriggerInput,
   resolveRunTriggerMetadata,
+  resolveSteeringRunTriggerMetadata,
 } from "@kernel/utils/agent-run-trigger.utils.js";
 
 function createRequest(): AgentRunRequest {
@@ -70,6 +71,29 @@ describe("agent run trigger metadata", () => {
       },
       source: "observation",
     })).toMatchObject({ actor: "automation", source: "observation" });
+  });
+
+  it("freezes a steering input onto the active run without changing its own trigger identity", () => {
+    const request = {
+      ...createRequest(),
+      message: {
+        ...createRequest().message,
+        role: "user" as const,
+        timestamp: "2026-08-25T00:02:00.000Z",
+      },
+    };
+
+    expect(resolveSteeringRunTriggerMetadata({
+      request,
+      targetRunId: "active-run",
+      acceptedAt: "2026-08-25T00:03:00.000Z",
+    })).toMatchObject({
+      actor: "human",
+      sourceMessageId: "source-message",
+      targetRunId: "active-run",
+      triggeredAt: "2026-08-25T00:02:00.000Z",
+      version: 1,
+    });
   });
 
   it("classifies cron runs as automation and retains queryable job context", () => {

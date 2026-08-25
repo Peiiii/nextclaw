@@ -114,18 +114,43 @@ export function resolveRunTriggerMetadata(params: {
   startedAt: string;
 }): NcpRunTriggerMetadata {
   const { request, spec, startedAt } = params;
+  return resolveTargetRunTriggerMetadata({
+    request,
+    targetRunId: spec.runId,
+    fallbackTriggeredAt: startedAt,
+  });
+}
+
+export function resolveSteeringRunTriggerMetadata(params: {
+  request: AgentRunRequest;
+  targetRunId: string;
+  acceptedAt: string;
+}): NcpRunTriggerMetadata {
+  return resolveTargetRunTriggerMetadata({
+    request: params.request,
+    targetRunId: params.targetRunId,
+    fallbackTriggeredAt: params.acceptedAt,
+  });
+}
+
+function resolveTargetRunTriggerMetadata(params: {
+  request: AgentRunRequest;
+  targetRunId: string;
+  fallbackTriggeredAt: string;
+}): NcpRunTriggerMetadata {
+  const { request } = params;
   const input = request.trigger ?? createIngressRunTriggerInput({
     request,
     source: "internal",
   });
   const triggeredAt = Number.isFinite(Date.parse(input.triggeredAt))
     ? new Date(input.triggeredAt).toISOString()
-    : startedAt;
+    : params.fallbackTriggeredAt;
   return {
     version: 1,
     ...structuredClone(input),
     triggeredAt,
-    targetRunId: spec.runId,
+    targetRunId: params.targetRunId,
   };
 }
 
