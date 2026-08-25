@@ -16,9 +16,9 @@ export const COMPARISON_COPY: Record<Locale, ComparisonCopy> = {
       },
       {
         icon: 'code-xml',
-        title: 'Open source and open to extension',
+        title: 'Open source, scriptable, and open to extension',
         description:
-          'Study and learn from a clear architecture, then modify and extend the system with the models, APIs, agent runtimes, skills, and tools that fit the way you want to work.',
+          'Study and extend a clear architecture, and use core operations through the nextclaw CLI from a terminal, script, CI job, or another Agent.',
         linkLabel: 'View the source',
         href: 'https://github.com/Peiiii/nextclaw'
       },
@@ -45,8 +45,8 @@ export const COMPARISON_COPY: Record<Locale, ComparisonCopy> = {
       },
       {
         icon: 'code-xml',
-        title: '开放开源，可以持续改造和扩展',
-        description: '源码开放、架构清晰，方便理解和学习整套 Agent 系统；也可以按自己的需要修改和扩展，接入模型、API、Agent runtime、技能和工具。',
+        title: '开放开源，也方便通过命令行集成',
+        description: '源码开放、架构清晰，方便理解和扩展整套 Agent 系统；核心操作也可以通过 nextclaw 命令行接入终端、脚本、CI 或其他 Agent。',
         linkLabel: '查看源代码',
         href: 'https://github.com/Peiiii/nextclaw'
       },

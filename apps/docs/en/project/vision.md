@@ -28,6 +28,8 @@ NextClaw should become a unified entry point, not just one more parallel tool.
 - software, services, channels, devices, and cloud resources should be brought together through NextClaw
 - it should grow into a default workspace for workflows, conversations, and information flows
 
+A unified entry point does not mean a GUI-only product. When an operation can be expressed clearly from a terminal, NextClaw aims to expose it through the `nextclaw` CLI so users, developers, scripts, CI jobs, and Agents can work with the same product capabilities. Visual and direct-manipulation experiences can remain UI-first.
+
 ### 2. Capability Orchestration
 
 NextClaw does not create value by rebuilding every tool itself. It creates value by connecting, coordinating, and composing the software, systems, services, and compute that already exist.

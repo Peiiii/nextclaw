@@ -50,6 +50,8 @@ Open source · Local-first · macOS, Windows, Linux, Docker, and cloud VMs
   </tr>
 </table>
 
+NextClaw also treats the `nextclaw` CLI as a first-class way to work. Many core operations can be used from a terminal, script, CI job, or another Agent, with machine-readable output where supported.
+
 New installations are ready for the first task without entering an API key. The built-in free trial uses a public gateway; limits and models may change, and sensitive or confidential data should not be sent through it.
 
 ## What You Can Finish
