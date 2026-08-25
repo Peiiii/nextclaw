@@ -100,6 +100,8 @@ missing/cancelled/failed -> dispatch exact SHA recovery -> queued/in_progress ->
 
 选择在具体 closure owner 内提供窄的有界轮询函数；不建立通用网络 DSL，也不按错误字符串伪造成功。HTTP 404 在“等待公开投影”的调用点是 pending，但在普通确定性读取中仍保持 fail-fast。
 
+NPM publish 命令已经成功返回后，精确版本暂时 404 属于 registry propagation pending，不是上传失败。生产发布 `0.44.0` 证明两份 package identity 可能在 120 秒后才公开，因此默认等待窗为 15 分钟，使用 1/2/4/8 秒后最多 15 秒的有界退避；等待期间不重复上传。完整等待窗到期后仍不可见才停止，并由同一 prepared identity 的恢复运行复用已经出现的包、只处理仍缺失的包。integrity 冲突仍然立即失败。
+
 ## 生命周期与不变量
 
 | 场景 | 预期行为 |

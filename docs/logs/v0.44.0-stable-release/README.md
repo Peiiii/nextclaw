@@ -9,17 +9,21 @@
 
 ## 测试/验证/验收方式
 
-- 发布自动化测试：`node --test scripts/release/*.test.mjs`，98/98 通过。
+- 发布自动化测试：`node --test scripts/release/*.test.mjs`，99/99 通过。
 - stable release 合同测试：`node --test scripts/release/release-stable.test.mjs`，21/21 通过。
 - 中英文文档与结构化 release notes：`pnpm --filter @nextclaw/docs build` 通过。
 - release summary、JSON 解析、README 同步检查、release health 与新增代码治理检查通过。
-- 正式 registry、Runtime、旧版本升级、GitHub Release 与主线闭合结果将在 workflow 完成后回填。
+- 正式 run `32877479224` 最终成功：23/23 NPM package identity、stable Runtime 四平台资产、公开 manifests、GitHub Release 和从 `0.43.0` 升级到 `0.44.0` 均通过。
+- 首次 NPM job 在 23 个上传命令成功后，因 `harness` 与 `server` 超过 120 秒仍不可见而保护性停止；failed-job recovery 没有重复上传，明确报告 `0 upload(s), 23 already visible` 后完成 Git 与 Runtime 闭环。这证明失败来自 registry 传播窗口不足，不是包内容错误。
 
 ## 发布/部署方式
 
 - 入口：GitHub Actions `.github/workflows/release.yml`，`target=product`。
 - 认证：受保护 `npm-production` environment 中的 `NPM_TOKEN`。
-- 目标版本：`nextclaw@0.44.0`；最终发布状态与运行链接将在 workflow 完成后回填。
+- 目标版本：`nextclaw@0.44.0`，`latest` 已公开。
+- 正式运行：[GitHub Actions 32877479224](https://github.com/Peiiii/nextclaw/actions/runs/32877479224)，最终状态 `success`、`CONTENT_READY`。
+- GitHub Release：[NextClaw v0.44.0](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.44.0)，包含 darwin arm64/x64、linux x64、win32 x64 四份 Runtime ZIP。
+- prepare 耗时 5 分 57 秒；首次正式尝试 3 分 59 秒后保护性停止；恢复尝试 16 分 02 秒，其中 NPM prepared publish/Git 闭合 17 秒，Runtime job 9 分 13 秒，最慢有效工作 step 为 Runtime 发布与验证 6 分 42 秒。含失败恢复的正式 run 总 wall time 22 分 59 秒；从 release-bearing push 到产品闭合共 29 分 19 秒。
 
 ## 用户/产品视角的验收步骤
 
@@ -34,12 +38,15 @@
 - 产品变更继续复用现有 Kernel/UI owner，没有为发布复制产品语义。
 - 正式发布统一由 release workflow、exact commit artifact 和单一版本 identity 驱动。
 - 暂时不可见只进行有界等待；标签、版本、公钥、资产和 immutable manifest 冲突继续快速失败。
+- 生产证据表明 NPM package identity 可能超过 120 秒才公开；默认 registry 等待窗调整为 15 分钟，等待期间禁止重复上传，超时恢复继续按 prepared integrity 复用已成立 identity。
 
 ## NPM 包发布记录
 
 - 需要发布：是。本批包含用户可见新能力、默认行为变化与运行/UI 修复。
 - 目标产品版本：`nextclaw@0.44.0`。
 - 目标 dist-tag：`latest`。
-- 实际包数、registry identity、耗时与真实安装结果将在 workflow 完成后回填。
+- 实际发布：23 个 package，registry version/integrity/latest 回读全部通过。
+- 真实安装与升级：workflow 从公开 `0.43.0` 完成 check、download、apply 和新进程 `0.44.0` 验证。
+- NPM_READY：恢复尝试的 prepared publish/Git 闭合为 17 秒，达到 60 秒性能目标；首次尝试因 registry 外部传播未形成 NPM_READY。
 
 发布过程观测见[工作记录](work/working-notes.md)。
