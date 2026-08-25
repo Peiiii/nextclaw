@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.43.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-25",
+  "title": {
+    "zh-CN": "NextClaw v0.43.0",
+    "en-US": "NextClaw v0.43.0"
+  },
+  "summary": {
+    "zh-CN": "让每次 AI 运行都可追溯，并改善插话、子会话与长会话排队体验。",
+    "en-US": "Makes every AI run traceable and improves steering, child sessions, and queueing in long conversations."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-25-nextclaw-v0-43-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-25-nextclaw-v0-43-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "运行触发详情", "en-US": "Run trigger details" },
+          "body": {
+            "zh-CN": "消息的更多操作会统一展示发起方、来源渠道、关联会话与消息、工具调用、来源模型和实际运行模型。",
+            "en-US": "The message overflow menu shows the initiator, source channel, related session and message, tool call, source model, and effective run model."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "更安静的后台通知", "en-US": "Quieter background notifications" },
+          "body": {
+            "zh-CN": "只有用户直接发起的后台任务弹出完成通知，Agent 委派、定时任务、观察任务和系统运行保持安静。",
+            "en-US": "Only human-started background tasks show completion notifications; delegated, scheduled, observed, and system runs stay quiet."
+          }
+        },
+        {
+          "title": { "zh-CN": "可靠的一层子会话", "en-US": "Reliable one-level child sessions" },
+          "body": {
+            "zh-CN": "子会话继承父会话模型，不重复显示继承的压缩记录，并停止递归创建下一层会话。",
+            "en-US": "Child sessions inherit the parent model, hide inherited compaction records, and no longer recursively create another level."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "稳定的插话顺序", "en-US": "Stable steering order" },
+          "body": {
+            "zh-CN": "插到下一步的消息在流式、完成和刷新后都会稳定排在当前步骤的 AI 输出之后。",
+            "en-US": "Messages steered into the next step remain after the current AI output during streaming, after completion, and after reload."
+          }
+        },
+        {
+          "title": { "zh-CN": "更快的长会话排队", "en-US": "Faster long-chat queueing" },
+          "body": {
+            "zh-CN": "排队确认改为读取轻量会话摘要，不再复制完整历史。",
+            "en-US": "Queue admission reads a lightweight session summary instead of copying the complete history."
+          }
+        },
+        {
+          "title": { "zh-CN": "文件结果去重", "en-US": "Deduplicated file results" },
+          "body": {
+            "zh-CN": "文件工具只保留一份结构化预览，同时继续显示错误与解析失败信息。",
+            "en-US": "File tools keep one structured preview while preserving errors and parse-failure details."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "兼容性", "en-US": "Compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "增量运行字段", "en-US": "Additive run fields" },
+          "body": {
+            "zh-CN": "已有消息和会话保持可读；会话委派固定为一层。",
+            "en-US": "Existing messages and sessions remain readable, while session delegation is limited to one level."
+          }
+        }
+      ]
+    }
+  ]
+}

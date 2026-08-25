@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-24T13:44:20.543Z",
+  "generatedAt": "2026-08-25T02:23:26.652Z",
   "hero": {
     "currentLoc": 266922,
     "testLoc": 108454,
     "trackedFiles": 2813,
-    "recentCommitCount": 391,
+    "recentCommitCount": 420,
     "activeDays30": 30,
-    "recentReleaseCount": 51,
+    "recentReleaseCount": 50,
     "latestReleaseDate": "2026-08-24",
-    "latestNoteDate": "2026-08-24",
+    "latestNoteDate": "2026-08-25",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2618089,
     "basePercentOfBenchmark": 10.2,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-04-27",
-        "label": "04-27",
-        "value": 0
-      },
       {
         "key": "2026-04-28",
         "label": "04-28",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-24",
         "label": "08-24",
         "value": 266922
+      },
+      {
+        "key": "2026-08-25",
+        "label": "08-25",
+        "value": 266922
       }
     ],
     "testLocDaily": [
@@ -1151,11 +1151,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-07-26",
-        "label": "07-26",
-        "value": 6
-      },
-      {
         "key": "2026-07-27",
         "label": "07-27",
         "value": 2
@@ -1298,7 +1293,12 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 9
+        "value": 23
+      },
+      {
+        "key": "2026-08-25",
+        "label": "08-25",
+        "value": 21
       }
     ],
     "commitWeekly": [
@@ -1360,7 +1360,7 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 9
+        "value": 44
       }
     ],
     "releaseMonthly": [
@@ -1494,7 +1494,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-24",
-        "tagCount": 44,
+        "tagCount": 92,
         "sampleTags": [
           "@nextclaw/app-runtime@0.13.2-beta.0",
           "@nextclaw/channel-extension-dingtalk@0.2.33-beta.0",
@@ -1503,7 +1503,7 @@ export default {
       },
       {
         "date": "2026-08-22",
-        "tagCount": 8,
+        "tagCount": 9,
         "sampleTags": [
           "@nextclaw/client-sdk@0.7.3",
           "@nextclaw/companion@0.2.41",
@@ -1550,6 +1550,26 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-25-nextclaw-v0-43-0",
+        "date": "2026-08-25",
+        "tags": [
+          "release",
+          "npm",
+          "desktop",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-25 · NextClaw v0.43.0",
+          "description": "Every AI run is traceable, with more reliable steering, child sessions, and long-chat queueing.",
+          "href": "/en/notes/2026-08-25-nextclaw-v0-43-0"
+        },
+        "zh": {
+          "title": "2026-08-25 · NextClaw v0.43.0",
+          "description": "每次 AI 运行都可追溯，插话、子会话和长会话排队也更稳定。",
+          "href": "/zh/notes/2026-08-25-nextclaw-v0-43-0"
+        }
+      },
       {
         "slug": "2026-08-24-nextclaw-v0-42-3",
         "date": "2026-08-24",
@@ -2608,7 +2628,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-24T03:16:15.745Z",
     "sourceCount": {
-      "notes": 51,
+      "notes": 52,
       "scopes": 8
     }
   }

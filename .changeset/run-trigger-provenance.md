@@ -1,4 +1,5 @@
 ---
+"nextclaw": minor
 "@nextclaw/ncp": minor
 "@nextclaw/ncp-toolkit": patch
 "@nextclaw/shared": patch

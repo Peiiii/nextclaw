@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.43.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-25-nextclaw-v0-43-0.md",
+        "apps/docs/en/notes/2026-08-25-nextclaw-v0-43-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.43.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "This release improves in-product run traceability and conversation behavior without changing the website's product positioning or download structure."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.43.0 is out.\n\nEvery AI run now carries traceable trigger details. Steering stays ordered, child sessions stay one level deep, and long-chat queueing is faster.\nhttps://docs.nextclaw.io/en/notes/2026-08-25-nextclaw-v0-43-0",
+      "imagePath": "images/screenshots/nextclaw-background-session-notification-en.png",
+      "imageAlt": "NextClaw showing a completion notification for a human-started background task",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-25-nextclaw-v0-43-0"
+    }
+  }
+}
