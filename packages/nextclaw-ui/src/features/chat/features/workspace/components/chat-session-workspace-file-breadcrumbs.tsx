@@ -78,10 +78,12 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
   breadcrumb,
   leading,
   onFileOpen,
+  trailing,
 }: {
   breadcrumb: WorkspaceFileBreadcrumbViewModel;
   leading?: ReactNode;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
+  trailing?: ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -138,6 +140,7 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
           </div>
         ) : null}
       </div>
+      {trailing ? <div className="flex shrink-0 items-center py-1.5 pr-2 pl-0.5">{trailing}</div> : null}
     </div>
   );
 }

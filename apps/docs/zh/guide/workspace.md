@@ -14,7 +14,7 @@ Explorer 的主要操作和常见代码编辑器保持一致：
 - Agent 生成的文件可以直接下载，也可以从操作菜单添加到当前聊天。
 - 侧栏宽度可以拖动调整并自动记住；空间不足时才切换为覆盖式侧栏。
 
-支持的预览包括 Markdown、代码、HTML、常见文档、表格和演示文稿。HTML 可以在源码与渲染结果之间切换，代码修改可以查看差异。
+支持的预览包括 Markdown、代码、HTML、常见文档、表格和演示文稿。查看渲染后的 Markdown 文件时，可以用路径栏右侧的目录按钮浏览标题结构，并直接跳转到对应章节。HTML 可以在源码与渲染结果之间切换，代码修改可以查看差异。
 
 ![项目文件 Explorer 和 Markdown 预览同时打开](/product-screenshots/nextclaw-workspace-explorer-cn.png)
 

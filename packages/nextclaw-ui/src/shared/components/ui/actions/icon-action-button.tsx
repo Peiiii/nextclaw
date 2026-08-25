@@ -75,14 +75,7 @@ const IconActionButton = React.forwardRef<HTMLButtonElement, IconActionButtonPro
     return (
       <TooltipProvider delayDuration={250}>
         <Tooltip disableHoverableContent>
-          <TooltipTrigger
-            asChild
-            onFocus={(event) => {
-              if (!event.currentTarget.matches(':focus-visible')) {
-                event.preventDefault();
-              }
-            }}
-          >
+          <TooltipTrigger asChild>
             {disabled ? <span className="inline-flex">{button}</span> : button}
           </TooltipTrigger>
           <TooltipContent side={tooltipSide} className="text-xs">{content}</TooltipContent>

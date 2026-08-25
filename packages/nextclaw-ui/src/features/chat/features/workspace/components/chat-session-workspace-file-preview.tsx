@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useRef, type ReactNode, type RefObject } from 'react';
 import type { ChatFileOpenActionViewModel, ChatFileOperationBlockViewModel } from '@nextclaw/agent-chat-ui';
 import { NextClawClientError } from '@nextclaw/client-sdk';
 import { ChatMessageMarkdown, FileOperationCodeSurface } from '@nextclaw/agent-chat-ui';
@@ -23,6 +23,7 @@ import { t } from '@/shared/lib/i18n';
 import { buildWorkspaceFileBreadcrumb, resolveWorkspaceRelativePath } from '@/shared/lib/session-project';
 import { cn } from '@/shared/lib/utils';
 import { resolveWorkspaceFileViewer } from '@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils';
+import { WorkspaceMarkdownOutline } from './workspace-markdown-outline';
 
 function inferPreviewKind(params: {
   path: string;
@@ -157,6 +158,7 @@ function WorkspacePreviewBody({
   fileBasePath,
   onFileOpen,
   onHtmlContentHeightChange,
+  markdownScrollRef,
   previewBlock,
   previewKind,
   previewViewer,
@@ -173,6 +175,7 @@ function WorkspacePreviewBody({
   fileBasePath: string | null;
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   onHtmlContentHeightChange?: (height: number) => void;
+  markdownScrollRef: RefObject<HTMLDivElement>;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: 'text' | 'markdown' | 'binary';
   previewViewer: 'source' | 'rendered' | null;
@@ -221,7 +224,7 @@ function WorkspacePreviewBody({
 
   if (previewKind === 'markdown' && previewViewer !== 'source' && previewText) {
     return (
-      <div className="h-full overflow-auto custom-scrollbar px-5 py-4">
+      <div ref={markdownScrollRef} className="h-full overflow-auto custom-scrollbar px-5 py-4">
         <ChatMessageMarkdown
           text={previewText}
           role="assistant"
@@ -266,6 +269,7 @@ export function ChatSessionWorkspaceFilePreview({
   onFileOpen,
   onTextExcerptAdd,
 }: ChatSessionWorkspaceFilePreviewProps) {
+  const markdownScrollRef = useRef<HTMLDivElement>(null);
   const isPreviewMode = file.viewMode === 'preview';
   const suppliedContentUrl = file.contentUrl?.trim() || null;
   const usesServerPath = isPreviewMode && !suppliedContentUrl;
@@ -360,6 +364,7 @@ export function ChatSessionWorkspaceFilePreview({
       fileBasePath={sessionWorkingDir}
       onFileOpen={onFileOpen}
       onHtmlContentHeightChange={onHtmlContentHeightChange}
+      markdownScrollRef={markdownScrollRef}
       previewBlock={previewBlock}
       previewKind={previewKind}
       previewViewer={previewViewer}
@@ -377,6 +382,19 @@ export function ChatSessionWorkspaceFilePreview({
           breadcrumb={breadcrumb}
           leading={breadcrumbLeading}
           onFileOpen={onFileOpen}
+          trailing={
+            isPreviewMode &&
+            previewKind === 'markdown' &&
+            previewViewer !== 'source' &&
+            previewText &&
+            !contentUrl ? (
+              <WorkspaceMarkdownOutline
+                contentKey={previewText}
+                documentKey={resolvedPath}
+                scrollContainerRef={markdownScrollRef}
+              />
+            ) : undefined
+          }
         />
       ) : null}
 

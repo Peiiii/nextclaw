@@ -44,6 +44,7 @@
   "chatWorkspaceBack": "工作区后退",
   "chatWorkspaceForward": "工作区前进",
   "chatWorkspaceRefreshFile": "刷新预览",
+  "chatWorkspaceMarkdownOutline": "文档目录",
   "chatWorkspaceMaximizePanel": "最大化工作区侧栏",
   "chatWorkspaceRestorePanel": "还原工作区侧栏",
   "chatWorkspaceClosePanel": "关闭工作区侧栏",

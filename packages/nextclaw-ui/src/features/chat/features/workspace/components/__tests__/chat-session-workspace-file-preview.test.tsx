@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
@@ -123,16 +124,21 @@ function renderWorkspaceFilePreview({
   sessionWorkingDir = "/tmp",
   showBreadcrumbs,
 }: RenderWorkspaceFilePreviewOptions = {}) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   const view = render(
-    <ChatSessionWorkspaceFilePreview
-      file={buildWorkspaceFile(file ?? {})}
-      sessionProjectRoot={sessionProjectRoot}
-      sessionWorkingDir={sessionWorkingDir}
-      refreshVersion={refreshVersion}
-      showBreadcrumbs={showBreadcrumbs}
-      onHtmlContentHeightChange={onHtmlContentHeightChange}
-      onFileOpen={onFileOpen}
-    />,
+    <QueryClientProvider client={queryClient}>
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile(file ?? {})}
+        sessionProjectRoot={sessionProjectRoot}
+        sessionWorkingDir={sessionWorkingDir}
+        refreshVersion={refreshVersion}
+        showBreadcrumbs={showBreadcrumbs}
+        onHtmlContentHeightChange={onHtmlContentHeightChange}
+        onFileOpen={onFileOpen}
+      />
+    </QueryClientProvider>,
   );
   return { ...view, onFileOpen };
 }
@@ -580,6 +586,7 @@ describe("ChatSessionWorkspaceFilePreview text rendering", () => {
 
     expect(screen.queryByTestId("markdown-preview")).toBeNull();
     expect(screen.getByTestId("file-code-surface")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("chatWorkspaceMarkdownOutline") })).toBeNull();
   });
 
   it("keeps HTML files in the source preview when preview viewer is automatic", () => {

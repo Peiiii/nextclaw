@@ -7,7 +7,22 @@ const TooltipProvider = TooltipPrimitive.Provider;
 
 const Tooltip = TooltipPrimitive.Root;
 
-const TooltipTrigger = TooltipPrimitive.Trigger;
+const TooltipTrigger = React.forwardRef<
+    React.ElementRef<typeof TooltipPrimitive.Trigger>,
+    React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>
+>(({ onFocus, ...props }, ref) => (
+    <TooltipPrimitive.Trigger
+        ref={ref}
+        onFocus={(event) => {
+            onFocus?.(event);
+            if (!event.defaultPrevented && !event.currentTarget.matches(':focus-visible')) {
+                event.preventDefault();
+            }
+        }}
+        {...props}
+    />
+));
+TooltipTrigger.displayName = TooltipPrimitive.Trigger.displayName;
 
 const TooltipContent = React.forwardRef<
     React.ElementRef<typeof TooltipPrimitive.Content>,

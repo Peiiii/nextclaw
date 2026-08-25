@@ -44,6 +44,7 @@
   "chatWorkspaceBack": "Back in workspace",
   "chatWorkspaceForward": "Forward in workspace",
   "chatWorkspaceRefreshFile": "Refresh preview",
+  "chatWorkspaceMarkdownOutline": "Document outline",
   "chatWorkspaceMaximizePanel": "Maximize workspace panel",
   "chatWorkspaceRestorePanel": "Restore workspace panel",
   "chatWorkspaceClosePanel": "Close workspace panel",
