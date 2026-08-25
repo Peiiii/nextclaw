@@ -23,10 +23,10 @@ jobs:
   publish-npm:
     name: publish stable NPM batch
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     environment: npm-production
     permissions:
-      actions: read
+      actions: write
       contents: write
     outputs:
       closure_commit: ${{ steps.release.outputs.closure_commit }}

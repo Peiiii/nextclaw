@@ -17,6 +17,7 @@ import {
   exportPreparedNpmReleaseArtifact,
   importPreparedNpmReleaseArtifact,
   ensurePreparedNpmReleaseArtifact,
+  selectActivePreparedNpmWorkflowRun,
   selectPreparedNpmWorkflowRun,
 } from "./prepared-npm-release-artifact.mjs";
 import { createPreparedNpmRelease } from "./prepared-npm-release.mjs";
@@ -199,6 +200,27 @@ test("selects only a successful exact-commit preparation run", () => {
   assert.equal(selectPreparedNpmWorkflowRun(runs, "missing"), null);
 });
 
+test("recognizes manual exact-source prepare runs independently from workflow headSha", () => {
+  const runs = [
+    {
+      databaseId: 8,
+      displayTitle: "npm-release-prepare source=wanted dispatch=recovery-1",
+      headSha: "new-master",
+      status: "in_progress",
+      conclusion: null,
+    },
+    {
+      databaseId: 9,
+      displayTitle: "npm-release-prepare source=wanted dispatch=recovery-1",
+      headSha: "new-master",
+      status: "completed",
+      conclusion: "success",
+    },
+  ];
+  assert.equal(selectActivePreparedNpmWorkflowRun(runs, "wanted")?.databaseId, 8);
+  assert.equal(selectPreparedNpmWorkflowRun(runs, "wanted")?.databaseId, 9);
+});
+
 test("downloads the exact successful workflow artifact before importing", (context) => {
   const fixtureRoot = mkdtempSync(
     join(tmpdir(), "prepared-npm-download-test-"),
@@ -264,4 +286,73 @@ test("downloads the exact successful workflow artifact before importing", (conte
       .version,
     "1.2.3",
   );
+});
+
+test("dispatches and waits for exact-commit recovery when no usable prewarm exists", (context) => {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), "prepared-npm-recovery-test-"));
+  context.after(() => rmSync(fixtureRoot, { force: true, recursive: true }));
+  const sourceRoot = createSourceRepository(fixtureRoot);
+  const packageFile = join(sourceRoot, "packages/nextclaw/package.json");
+  const packageJson = JSON.parse(readFileSync(packageFile, "utf8"));
+  packageJson.version = "1.2.3";
+  writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`);
+  const record = createPreparedNpmRelease({
+    branch: "master",
+    checkpoint: createCheckpoint(),
+    previousVersion: "1.2.2",
+    registry: "https://registry.example.test/",
+    rootDir: sourceRoot,
+    targetBranch: "master",
+  });
+  const artifactDirectory = join(fixtureRoot, "artifact");
+  exportPreparedNpmReleaseArtifact({ outputDirectory: artifactDirectory, record, rootDir: sourceRoot });
+
+  const importRoot = join(fixtureRoot, "import");
+  execFileSync("git", ["clone", "--no-local", sourceRoot, importRoot], { stdio: "ignore" });
+  const sourceCommit = git(importRoot, ["rev-parse", "HEAD"]);
+  let dispatched = false;
+  let watched = false;
+  const calls = [];
+  const recovered = ensurePreparedNpmReleaseArtifact({
+    locateAttempts: 2,
+    registry: "https://registry.example.test/",
+    rootDir: importRoot,
+    runCommand: (command, args) => {
+      calls.push([command, ...args]);
+      if (args[0] === "workflow" && args[1] === "run") {
+        dispatched = true;
+        return "";
+      }
+      if (args[0] === "run" && args[1] === "watch") {
+        watched = true;
+        return "";
+      }
+      if (args[0] === "run" && args[1] === "list") {
+        if (!dispatched) return "[]";
+        const dispatchArgument = calls.find((call) => call[1] === "workflow")?.find((value) =>
+          String(value).startsWith("dispatch_id="),
+        );
+        return JSON.stringify([
+          {
+            conclusion: watched ? "success" : null,
+            databaseId: 77,
+            displayTitle: `npm-release-prepare source=${sourceCommit} dispatch=${String(dispatchArgument).slice(12)}`,
+            headSha: "new-master",
+            status: watched ? "completed" : "in_progress",
+          },
+        ]);
+      }
+      if (args[0] === "run" && args[1] === "download") {
+        cpSync(artifactDirectory, args[args.indexOf("--dir") + 1], { recursive: true, force: true });
+        return "";
+      }
+      throw new Error(`Unexpected command: ${command} ${args.join(" ")}`);
+    },
+    sleep: () => {},
+    targetBranch: "master",
+  });
+
+  assert.equal(recovered.manifest.sourceCommit, sourceCommit);
+  assert.ok(calls.some((call) => call.includes(`source_sha=${sourceCommit}`)));
+  assert.ok(calls.some((call) => call[1] === "run" && call[2] === "watch"));
 });

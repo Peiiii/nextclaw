@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import {
   cpSync,
   existsSync,
@@ -291,14 +292,74 @@ export function importPreparedNpmReleaseArtifact(options) {
   }
 }
 
+function isPreparedRunForSource(entry, sourceCommit) {
+  return (
+    entry?.headSha === sourceCommit ||
+    String(entry?.displayTitle ?? "").includes(`source=${sourceCommit}`)
+  );
+}
+
 export function selectPreparedNpmWorkflowRun(runs, sourceCommit) {
   return (
     runs.find(
       (entry) =>
-        entry?.headSha === sourceCommit &&
+        isPreparedRunForSource(entry, sourceCommit) &&
         entry?.status === "completed" &&
         entry?.conclusion === "success",
     ) ?? null
+  );
+}
+
+export function selectActivePreparedNpmWorkflowRun(runs, sourceCommit) {
+  return (
+    runs.find(
+      (entry) =>
+        isPreparedRunForSource(entry, sourceCommit) &&
+        ["queued", "in_progress", "waiting", "requested", "pending"].includes(entry?.status),
+    ) ?? null
+  );
+}
+
+function blockingSleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function listPreparedWorkflowRuns({ rootDir, runCommand, workflow }) {
+  return JSON.parse(
+    runCommand(
+      "gh",
+      [
+        "run",
+        "list",
+        "--workflow",
+        workflow,
+        "--limit",
+        "50",
+        "--json",
+        "databaseId,createdAt,displayTitle,event,headSha,status,conclusion",
+      ],
+      { cwd: rootDir },
+    ) || "[]",
+  );
+}
+
+function waitForDispatchedPreparedRun(options) {
+  const { dispatchId, locateAttempts, rootDir, runCommand, sleep, workflow } = options;
+  for (let attempt = 1; attempt <= locateAttempts; attempt += 1) {
+    const runEntry = listPreparedWorkflowRuns({ rootDir, runCommand, workflow }).find((entry) =>
+      String(entry?.displayTitle ?? "").includes(`dispatch=${dispatchId}`),
+    );
+    if (runEntry) return runEntry;
+    if (attempt < locateAttempts) sleep(5000);
+  }
+  throw new Error(`Timed out locating ${workflow} recovery dispatch ${dispatchId}.`);
+}
+
+function waitForPreparedRun({ rootDir, runCommand, runEntry }) {
+  runCommand(
+    "gh",
+    ["run", "watch", String(runEntry.databaseId), "--exit-status"],
+    { cwd: rootDir },
   );
 }
 
@@ -325,6 +386,8 @@ export function ensurePreparedNpmReleaseArtifact(options = {}) {
     registry,
     rootDir = ROOT_DIR,
     runCommand = run,
+    sleep = blockingSleep,
+    locateAttempts = 30,
     targetBranch = "master",
     workflow = PREPARED_NPM_WORKFLOW,
   } = options;
@@ -338,29 +401,49 @@ export function ensurePreparedNpmReleaseArtifact(options = {}) {
   if (localRecord) return localRecord;
 
   ensureCleanImportBase(rootDir);
-  const runs = JSON.parse(
+  let runs = listPreparedWorkflowRuns({ rootDir, runCommand, workflow });
+  let workflowRun = selectPreparedNpmWorkflowRun(runs, sourceCommit);
+  if (!workflowRun) {
+    const activeRun = selectActivePreparedNpmWorkflowRun(runs, sourceCommit);
+    if (activeRun) {
+      try {
+        waitForPreparedRun({ rootDir, runCommand, runEntry: activeRun });
+      } catch {
+        // The exact-SHA recovery below is the single explicit fallback for a failed/cancelled prewarm.
+      }
+      runs = listPreparedWorkflowRuns({ rootDir, runCommand, workflow });
+      workflowRun = selectPreparedNpmWorkflowRun(runs, sourceCommit);
+    }
+  }
+  if (!workflowRun) {
+    const dispatchId = `npm-prepare-${randomUUID()}`;
     runCommand(
       "gh",
       [
+        "workflow",
         "run",
-        "list",
-        "--workflow",
         workflow,
-        "--commit",
-        sourceCommit,
-        "--limit",
-        "10",
-        "--json",
-        "databaseId,headSha,status,conclusion",
+        "-f",
+        `source_sha=${sourceCommit}`,
+        "-f",
+        `dispatch_id=${dispatchId}`,
       ],
       { cwd: rootDir },
-    ) || "[]",
-  );
-  const workflowRun = selectPreparedNpmWorkflowRun(runs, sourceCommit);
-  if (!workflowRun) {
-    throw new Error(
-      `No successful ${workflow} artifact exists for ${sourceCommit}. Wait for release preparation; the publish command will not rebuild inside the 60-second window.`,
     );
+    const recoveryRun = waitForDispatchedPreparedRun({
+      dispatchId,
+      locateAttempts,
+      rootDir,
+      runCommand,
+      sleep,
+      workflow,
+    });
+    waitForPreparedRun({ rootDir, runCommand, runEntry: recoveryRun });
+    runs = listPreparedWorkflowRuns({ rootDir, runCommand, workflow });
+    workflowRun = selectPreparedNpmWorkflowRun(runs, sourceCommit);
+  }
+  if (!workflowRun) {
+    throw new Error(`Exact-commit preparation completed without a successful ${workflow} run for ${sourceCommit}.`);
   }
   const downloadRoot = mkdtempSync(join(tmpdir(), "nextclaw-npm-artifact-"));
   try {
