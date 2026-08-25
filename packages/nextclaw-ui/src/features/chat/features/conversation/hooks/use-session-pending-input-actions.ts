@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import type {
-  UiNcpSessionPendingInputView,
-  UiNcpSessionQueuedInputView,
+import {
+  NextClawClientError,
+  type UiNcpSessionPendingInputView,
+  type UiNcpSessionQueuedInputView,
 } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope } from '@nextclaw/ncp';
 
@@ -20,9 +21,16 @@ type ComposerDraftSnapshot = Pick<
 
 type SessionRunQueue = {
   readonly inputs: readonly UiNcpSessionQueuedInputView[];
+  readonly refreshPendingInputs: () => Promise<readonly UiNcpSessionPendingInputView[]>;
   readonly removeQueuedInput: (id: string) => Promise<UiNcpSessionQueuedInputView | null>;
   readonly steerQueuedInput: (id: string) => Promise<UiNcpSessionPendingInputView | null>;
 };
+
+function isStaleQueuedInputError(error: unknown): boolean {
+  return error instanceof NextClawClientError
+    && error.status === 404
+    && error.code === 'NOT_FOUND';
+}
 
 export type SubmittingQueuedInput = {
   readonly attachments: readonly SessionQueuedInputAttachmentPreview[];
@@ -127,7 +135,17 @@ export function useQueuedInputActions(params: {
   const steerQueuedInput = useCallback((id: string) => {
     void runQueue.steerQueuedInput(id).then((steered) => {
       if (steered) setSendError(null);
-    }).catch((error) => {
+    }).catch(async (error) => {
+      if (isStaleQueuedInputError(error)) {
+        try {
+          await runQueue.refreshPendingInputs();
+          setSendError(null);
+          return;
+        } catch (refreshError) {
+          setSendError(refreshError instanceof Error ? refreshError.message : String(refreshError));
+          return;
+        }
+      }
       setSendError(error instanceof Error ? error.message : String(error));
     });
   }, [runQueue, setSendError]);

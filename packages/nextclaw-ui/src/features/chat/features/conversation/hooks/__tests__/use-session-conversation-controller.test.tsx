@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
+import { NextClawClientError, type UiNcpSessionQueuedInputView } from '@nextclaw/client-sdk';
 import type { NcpAgentSendEnvelope, NcpMessage, NcpRunHandle } from '@nextclaw/ncp';
 
 import { useSessionConversationController } from '@/features/chat/features/conversation/hooks/use-session-conversation-controller';
@@ -446,5 +446,45 @@ describe('useSessionConversationController backend run queue', () => {
       sessionId: 'session-1',
     });
     expect(params.onSessionMaterialized).not.toHaveBeenCalled();
+  });
+});
+
+describe('useSessionConversationController stale queue reconciliation', () => {
+  it('reconciles repeated stale queued actions without exposing their not-found errors', async () => {
+    const queuedInput = createQueuedInput();
+    const params = createControllerParams({ isRunning: true, queuedInputs: [queuedInput] });
+    params.runQueue.steerQueuedInput.mockRejectedValue(new NextClawClientError({
+      code: 'NOT_FOUND',
+      message: `queued input not found in session session-1: ${queuedInput.id}`,
+      status: 404,
+    }));
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    act(() => result.current.steerQueuedInput(queuedInput.id));
+    await waitFor(() => expect(params.runQueue.refreshPendingInputs).toHaveBeenCalledTimes(1));
+
+    act(() => result.current.steerQueuedInput(queuedInput.id));
+    await waitFor(() => expect(params.runQueue.refreshPendingInputs).toHaveBeenCalledTimes(2));
+
+    expect(params.setSendError).toHaveBeenLastCalledWith(null);
+    expect(params.setSendError).not.toHaveBeenCalledWith(expect.stringContaining('queued input not found'));
+  });
+
+  it('keeps a real steering failure visible', async () => {
+    const queuedInput = createQueuedInput();
+    const params = createControllerParams({ isRunning: true, queuedInputs: [queuedInput] });
+    params.runQueue.steerQueuedInput.mockRejectedValue(new NextClawClientError({
+      code: 'STEER_UNAVAILABLE',
+      message: 'The active runtime cannot accept this input at the next safe step.',
+      status: 409,
+    }));
+    const { result } = renderHook(() => useSessionConversationController(params));
+
+    act(() => result.current.steerQueuedInput(queuedInput.id));
+
+    await waitFor(() => expect(params.setSendError).toHaveBeenCalledWith(
+      'The active runtime cannot accept this input at the next safe step.',
+    ));
+    expect(params.runQueue.refreshPendingInputs).not.toHaveBeenCalled();
   });
 });
