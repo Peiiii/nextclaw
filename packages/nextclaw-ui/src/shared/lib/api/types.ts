@@ -638,6 +638,7 @@ export type SecretsConfigUpdate = {
 export type ProductAnalyticsAudience = 'external' | 'internal' | 'qa';
 
 export type ProductAnalyticsView = {
+  schemaVersion: 2;
   enabled: boolean;
   audience: ProductAnalyticsAudience;
 };
@@ -645,6 +646,13 @@ export type ProductAnalyticsView = {
 export type ProductAnalyticsConfigUpdate = {
   enabled?: boolean;
   audience?: ProductAnalyticsAudience;
+};
+
+export type ProductAnalyticsStatusView = {
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  pendingReceiptCount: number;
 };
 
 export type ChannelConfigUpdate = Record<string, unknown>;

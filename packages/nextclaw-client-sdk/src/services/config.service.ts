@@ -11,6 +11,7 @@ import type {
   CronListView,
   CronRunRequest,
   ProductAnalyticsConfigUpdate,
+  ProductAnalyticsStatusView,
   ProductAnalyticsView,
   RuntimeConfigUpdate,
   SearchConfigUpdate,
@@ -72,6 +73,12 @@ export class ConfigService {
     return await this.requestService.put<ProductAnalyticsView>(
       "/api/config/product-analytics",
       data,
+    );
+  };
+
+  readonly fetchProductAnalyticsStatus = async (): Promise<ProductAnalyticsStatusView> => {
+    return await this.requestService.get<ProductAnalyticsStatusView>(
+      "/api/config/product-analytics/status",
     );
   };
 

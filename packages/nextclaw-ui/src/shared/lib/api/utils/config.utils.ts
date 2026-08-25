@@ -31,6 +31,7 @@ import type {
   ProviderCreateResult,
   ProviderDeleteResult,
   ProductAnalyticsConfigUpdate,
+  ProductAnalyticsStatusView,
   ProductAnalyticsView,
   RuntimeConfigUpdate,
   SecretsConfigUpdate,
@@ -176,6 +177,10 @@ export async function updateProductAnalytics(
   data: ProductAnalyticsConfigUpdate,
 ): Promise<ProductAnalyticsView> {
   return await nextclawClient.config.updateProductAnalytics(data);
+}
+
+export async function fetchProductAnalyticsStatus(): Promise<ProductAnalyticsStatusView> {
+  return await nextclawClient.config.fetchProductAnalyticsStatus();
 }
 
 export async function executeConfigAction(

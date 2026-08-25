@@ -97,6 +97,7 @@ export class ServiceGatewayManager {
   readonly productVersion: string;
   readonly providerManager: LlmProviderManager;
   readonly gatewayController: GatewayControllerImpl;
+  readonly productActivityReporter: ProductActivityReporter;
 
   readonly configManager: ConfigManager;
   readonly uiConfig: Config["ui"];
@@ -117,7 +118,7 @@ export class ServiceGatewayManager {
   ) {
     const configPath = getConfigPath();
     const homeDir = getDataDir();
-    const productActivityReporter = new ProductActivityReporter({
+    this.productActivityReporter = new ProductActivityReporter({
       homeDir,
       productVersion: this.distribution.version,
       loadConfig: () => NextclawCore.loadConfig(configPath),
@@ -129,7 +130,7 @@ export class ServiceGatewayManager {
         configPath,
         builtInAppsDirectory: this.distribution.builtInAppsDirectory,
         productVersion: this.distribution.version,
-        productActivitySink: productActivityReporter,
+        productActivitySink: this.productActivityReporter,
       }),
     );
     this.configManager = this.kernel.configManager;
@@ -268,6 +269,7 @@ export class ServiceGatewayManager {
     ...(this.runtimeUpdate ? { runtimeUpdate: this.runtimeUpdate } : {}),
     bootstrapStatus: this.bootstrapStatus,
     extensions: this.extensions,
+    productActivity: this.productActivityReporter,
   });
 
   private runRuntimeLoop = async (): Promise<void> => {

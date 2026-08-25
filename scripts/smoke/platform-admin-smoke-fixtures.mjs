@@ -33,10 +33,7 @@ export const PLATFORM_ADMIN_SMOKE_FIXTURES = {
       mau: 143,
       successfulDau: 16,
       successfulWau: 58,
-      successfulMau: 130,
-      wauAnonymousInstallations: 22,
-      wauIdentifiedUsers: 42,
-      wauIdentificationRate: 0.6563
+      successfulMau: 130
     },
     trend: Array.from({ length: 30 }, (_, index) => ({
       date: `2026-08-${String(index + 1).padStart(2, "0")}`,

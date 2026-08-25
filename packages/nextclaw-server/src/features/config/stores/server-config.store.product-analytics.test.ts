@@ -18,21 +18,23 @@ describe("product analytics config updates", () => {
     }
   });
 
-  it("persists explicit consent and audience without changing defaults", () => {
+  it("persists anonymous reporting opt-out and audience without changing v2", () => {
     tempDir = mkdtempSync(join(tmpdir(), "nextclaw-product-analytics-config-"));
     const configPath = join(tempDir, "config.json");
     saveConfig(ConfigSchema.parse({}), configPath);
 
     expect(buildConfigView(loadConfig(configPath)).productAnalytics).toEqual({
-      enabled: false,
+      schemaVersion: 2,
+      enabled: true,
       audience: "external",
     });
     expect(updateProductAnalytics(configPath, {
-      enabled: true,
+      enabled: false,
       audience: "qa",
-    })).toEqual({ enabled: true, audience: "qa" });
+    })).toEqual({ schemaVersion: 2, enabled: false, audience: "qa" });
     expect(loadConfig(configPath).productAnalytics).toEqual({
-      enabled: true,
+      schemaVersion: 2,
+      enabled: false,
       audience: "qa",
     });
   });

@@ -90,7 +90,7 @@ export function AdminOverviewPage({ token }: Props): JSX.Element {
 
       <AdminSection
         title="产品活跃"
-        description="统计至少提交过一次 Agent 请求的去重主体。默认只看外部用户、生产环境和稳定版。"
+        description="统计默认开启的匿名活跃安装回执。默认只看外部用户、生产环境和稳定版。"
         actions={(
           <label className="flex items-center gap-2 text-sm text-[#656561]" htmlFor="product-activity-audience">
             <span>统计人群</span>
@@ -185,12 +185,11 @@ function ProductActivityOverviewPanel(props: {
     <div className="space-y-4">
       <AdminMetricGrid>
         <AdminMetricCard label="核心 DAU" value={formatCount(metrics.dau)} hint="今天提交过请求" />
-        <AdminMetricCard label="核心 WAU" value={formatCount(metrics.wau)} hint="最近 7 天去重" />
-        <AdminMetricCard label="核心 MAU" value={formatCount(metrics.mau)} hint="最近 30 天去重" />
-        <AdminMetricCard label="周成功活跃" value={formatCount(metrics.successfulWau)} hint="最近 7 天至少成功一次" />
-        <AdminMetricCard label="匿名安装" value={formatCount(metrics.wauAnonymousInstallations)} hint="最近 7 天，尚未关联账号" />
-        <AdminMetricCard label="已识别用户" value={formatCount(metrics.wauIdentifiedUsers)} hint="最近 7 天，按账号归并" />
-        <AdminMetricCard label="识别率" value={formatPercent(metrics.wauIdentificationRate)} hint="已识别主体 / 核心 WAU" />
+        <AdminMetricCard label="核心 WAU" value={formatCount(metrics.wau)} hint="本自然周活跃安装" />
+        <AdminMetricCard label="核心 MAU" value={formatCount(metrics.mau)} hint="本自然月活跃安装" />
+        <AdminMetricCard label="日成功活跃" value={formatCount(metrics.successfulDau)} hint="今天至少成功一次" />
+        <AdminMetricCard label="周成功活跃" value={formatCount(metrics.successfulWau)} hint="本自然周至少成功一次" />
+        <AdminMetricCard label="月成功活跃" value={formatCount(metrics.successfulMau)} hint="本自然月至少成功一次" />
         <AdminMetricCard label="统计日期" value={props.overview.asOfDate} hint="Asia/Shanghai" />
       </AdminMetricGrid>
 
@@ -200,7 +199,7 @@ function ProductActivityOverviewPanel(props: {
             <p className="text-sm font-semibold text-[#1f1f1d]">最近 30 日趋势</p>
             <p className="mt-1 text-sm text-[#656561]">蓝色为提交过请求，绿色为至少成功一次。</p>
           </div>
-          <p className="text-xs leading-5 text-[#8f8a7d]">匿名安装是随机安装标识，不等于精确人数。</p>
+          <p className="text-xs leading-5 text-[#8f8a7d]">回执不含账号或长期设备标识；活跃安装不等于精确人数。</p>
         </div>
         <ProductActivityTrend trend={trend} />
       </AdminSurface>
@@ -242,10 +241,6 @@ function ProductActivityTrend(props: {
 
 function formatCount(value: number): string {
   return new Intl.NumberFormat().format(value);
-}
-
-function formatPercent(value: number): string {
-  return new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 }).format(value);
 }
 
 function RemoteQuotaOverviewCard(props: {

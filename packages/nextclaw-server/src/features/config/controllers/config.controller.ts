@@ -129,6 +129,15 @@ export class ConfigRoutesController {
     return c.json(ok(buildConfigMeta(config, this.getExtensionConfigProjectionOptions())));
   };
 
+  readonly getProductAnalyticsStatus = (c: Context) => {
+    return c.json(ok(this.options.productActivity?.getStatus() ?? {
+      lastAttemptAt: null,
+      lastSuccessAt: null,
+      lastError: null,
+      pendingReceiptCount: 0,
+    }));
+  };
+
   readonly listProviders = (c: Context) => {
     const config = loadConfigOrDefault(this.options.configPath);
     return c.json(ok(buildProvidersView(config)));

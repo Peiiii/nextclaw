@@ -1,6 +1,13 @@
 import type { Config } from "@nextclaw/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ProductActivityReporter } from "./product-activity-reporter.service.js";
@@ -16,27 +23,20 @@ function createHome(): string {
 function createConfig(overrides: {
   enabled?: boolean;
   audience?: "external" | "internal" | "qa";
-  apiKey?: string;
 } = {}): Config {
   return {
     productAnalytics: {
+      schemaVersion: 2,
       enabled: overrides.enabled ?? true,
       audience: overrides.audience ?? "external",
     },
     providers: {
       nextclaw: {
         apiBase: "https://ai-gateway-api.nextclaw.io/v1",
-        apiKey: overrides.apiKey ?? "nc_free_not-a-session",
+        apiKey: "nca.must-not-enter-anonymous-analytics.signature",
       },
     },
   } as unknown as Config;
-}
-
-function createSessionToken(): string {
-  const payload = Buffer.from(JSON.stringify({
-    exp: Math.floor(Date.now() / 1_000) + 3_600,
-  })).toString("base64url");
-  return `nca.${payload}.signature`;
 }
 
 afterEach(() => {
@@ -47,8 +47,12 @@ afterEach(() => {
 });
 
 describe("ProductActivityReporter", () => {
-  it("does nothing and creates no identity when reporting is disabled", async () => {
+  it("clears local receipt state and the legacy identity when reporting is disabled", async () => {
     const home = createHome();
+    const analyticsDirectory = join(home, "product-analytics");
+    mkdirSync(analyticsDirectory, { recursive: true });
+    writeFileSync(join(analyticsDirectory, "installation.json"), "{}\n");
+    writeFileSync(join(analyticsDirectory, "state.json"), "{}\n");
     const fetchImpl = vi.fn<typeof fetch>();
     const reporter = new ProductActivityReporter({
       homeDir: home,
@@ -64,86 +68,143 @@ describe("ProductActivityReporter", () => {
     });
 
     expect(fetchImpl).not.toHaveBeenCalled();
-    expect(existsSync(join(home, "product-analytics", "installation.json"))).toBe(false);
+    expect(existsSync(join(analyticsDirectory, "installation.json"))).toBe(false);
+    expect(existsSync(join(analyticsDirectory, "state.json"))).toBe(false);
   });
 
-  it("persists a random installation id and sends only the fixed schema", async () => {
+  it("sends independent day, week, and month receipts without identity or authorization", async () => {
     const home = createHome();
     const requests: Array<{ input: string; init?: RequestInit }> = [];
     const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
       requests.push({ input: String(input), init });
       return new Response(null, { status: 202 });
     });
-    const options = {
+    const reporter = new ProductActivityReporter({
       homeDir: home,
-      productVersion: "1.2.3",
-      loadConfig: () => createConfig({ audience: "qa", apiKey: createSessionToken() }),
+      productVersion: "1.2.3-beta.4",
+      loadConfig: () => createConfig({ audience: "qa" }),
       env: {
         NODE_ENV: "production",
         NEXTCLAW_UPDATE_CHANNEL: "beta",
       },
       fetchImpl,
-    };
+      now: () => new Date("2026-08-20T12:05:00.000Z"),
+    });
 
-    await new ProductActivityReporter(options).record({
+    await reporter.record({
       kind: "intent_accepted",
       occurredAt: "2026-08-20T12:00:00.000Z",
       source: "channel",
     });
-    await new ProductActivityReporter(options).record({
+    await reporter.record({
       kind: "run_succeeded",
       occurredAt: "2026-08-20T12:01:00.000Z",
       source: "channel",
     });
 
-    expect(requests).toHaveLength(2);
-    expect(requests[0]?.input).toBe("https://ai-gateway-api.nextclaw.io/platform/analytics/activity");
-    const firstBody = JSON.parse(String(requests[0]?.init?.body)) as Record<string, unknown>;
-    const secondBody = JSON.parse(String(requests[1]?.init?.body)) as Record<string, unknown>;
-    expect(Object.keys(firstBody).sort()).toEqual([
-      "appVersion",
-      "audience",
-      "environment",
-      "event",
-      "installationId",
-      "occurredAt",
-      "platform",
-      "releaseChannel",
-      "schemaVersion",
-      "source",
+    expect(requests).toHaveLength(6);
+    expect(requests.every(({ input }) => input === "https://ai-gateway-api.nextclaw.io/platform/analytics/activity")).toBe(true);
+    const bodies = requests.map(({ init }) => JSON.parse(String(init?.body)) as Record<string, unknown>);
+    expect(new Set(bodies.map((body) => body.receiptId)).size).toBe(6);
+    expect(bodies.map((body) => body.periodKind)).toEqual([
+      "day", "week", "month", "day", "week", "month",
     ]);
-    expect(firstBody).toMatchObject({
+    expect(bodies.map((body) => body.periodStart)).toEqual([
+      "2026-08-20", "2026-08-17", "2026-08-01",
+      "2026-08-20", "2026-08-17", "2026-08-01",
+    ]);
+    expect(bodies[0]).toMatchObject({
+      schemaVersion: 2,
+      metric: "active",
       audience: "qa",
       environment: "production",
-      event: "intent_accepted",
       releaseChannel: "beta",
-      source: "channel",
+      appVersion: "1.2",
     });
-    expect(secondBody.installationId).toBe(firstBody.installationId);
-    expect(requests[0]?.init?.headers).toBeInstanceOf(Headers);
-    expect((requests[0]?.init?.headers as Headers).get("authorization")).toMatch(/^Bearer nca\./);
-    const persisted = JSON.parse(readFileSync(
-      join(home, "product-analytics", "installation.json"),
-      "utf8",
-    )) as { installationId: string };
-    expect(persisted.installationId).toBe(firstBody.installationId);
+    expect(bodies[3]).toMatchObject({ metric: "successful" });
+    for (const body of bodies) {
+      expect(Object.keys(body).sort()).toEqual([
+        "appVersion",
+        "audience",
+        "environment",
+        "metric",
+        "occurredAt",
+        "periodKind",
+        "periodStart",
+        "platform",
+        "receiptId",
+        "releaseChannel",
+        "schemaVersion",
+      ]);
+      expect(body).not.toHaveProperty("installationId");
+      expect(body).not.toHaveProperty("source");
+    }
+    expect(requests.every(({ init }) => !new Headers(init?.headers).has("authorization"))).toBe(true);
+    expect(reporter.getStatus()).toEqual({
+      lastAttemptAt: "2026-08-20T12:05:00.000Z",
+      lastSuccessAt: "2026-08-20T12:05:00.000Z",
+      lastError: null,
+      pendingReceiptCount: 0,
+    });
   });
 
-  it("does not attach free keys and never exposes network failures", async () => {
+  it("serializes concurrent signals and sends each period metric once", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response(null, { status: 202 }));
     const reporter = new ProductActivityReporter({
       homeDir: createHome(),
       productVersion: "1.2.3",
       loadConfig: () => createConfig(),
-      fetchImpl: vi.fn<typeof fetch>(async (_input, init) => {
-        expect((init?.headers as Headers).has("authorization")).toBe(false);
-        throw new Error("offline");
-      }),
+      fetchImpl,
     });
-
-    await expect(reporter.record({
-      kind: "run_succeeded",
+    const signal = {
+      kind: "intent_accepted" as const,
       occurredAt: "2026-08-20T12:00:00.000Z",
-      source: "direct",
-    })).resolves.toBeUndefined();
+      source: "direct" as const,
+    };
+
+    await Promise.all([reporter.record(signal), reporter.record(signal), reporter.record(signal)]);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("retries non-2xx failures with the same receipt ids and exposes status", async () => {
+    const requestBodies: Array<Record<string, unknown>> = [];
+    let succeeds = false;
+    const fetchImpl = vi.fn<typeof fetch>(async (_input, init) => {
+      requestBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(null, { status: succeeds ? 202 : 503 });
+    });
+    const reporter = new ProductActivityReporter({
+      homeDir: createHome(),
+      productVersion: "1.2.3",
+      loadConfig: () => createConfig(),
+      fetchImpl,
+      now: () => new Date("2026-08-20T12:05:00.000Z"),
+    });
+    const signal = {
+      kind: "intent_accepted" as const,
+      occurredAt: "2026-08-20T12:00:00.000Z",
+      source: "direct" as const,
+    };
+
+    await reporter.record(signal);
+    expect(reporter.getStatus()).toMatchObject({
+      lastError: "HTTP 503",
+      pendingReceiptCount: 3,
+    });
+    const failedIds = requestBodies.map((body) => body.receiptId);
+    succeeds = true;
+    await reporter.record(signal);
+
+    expect(requestBodies.slice(3).map((body) => body.receiptId)).toEqual(failedIds);
+    expect(reporter.getStatus()).toMatchObject({
+      lastError: null,
+      pendingReceiptCount: 0,
+    });
+    const persisted = JSON.parse(readFileSync(
+      join(temporaryDirectories.at(-1)!, "product-analytics", "state.json"),
+      "utf8",
+    )) as { receipts: Record<string, { deliveredAt: string | null }> };
+    expect(Object.values(persisted.receipts).every((receipt) => receipt.deliveredAt !== null)).toBe(true);
   });
 });

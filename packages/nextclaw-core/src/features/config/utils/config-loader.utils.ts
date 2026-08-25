@@ -184,8 +184,35 @@ function migrateSearchConfig(params: {
   };
 }
 
+function migrateProductAnalyticsConfig(data: Record<string, unknown>): boolean {
+  const rawProductAnalytics = data.productAnalytics;
+  const isCurrentSchema = Boolean(
+    rawProductAnalytics
+    && typeof rawProductAnalytics === "object"
+    && !Array.isArray(rawProductAnalytics)
+    && (rawProductAnalytics as Record<string, unknown>).schemaVersion === 2,
+  );
+  if (isCurrentSchema) {
+    return false;
+  }
+  const rawAnalyticsRecord = (
+    rawProductAnalytics
+    && typeof rawProductAnalytics === "object"
+    && !Array.isArray(rawProductAnalytics)
+  ) ? rawProductAnalytics as Record<string, unknown> : null;
+  const audience = ["external", "internal", "qa"].includes(String(rawAnalyticsRecord?.audience))
+    ? rawAnalyticsRecord?.audience
+    : "external";
+  data.productAnalytics = {
+    schemaVersion: 2,
+    enabled: true,
+    audience,
+  };
+  return true;
+}
+
 function migrateConfig(data: Record<string, unknown>): { config: Record<string, unknown>; changed: boolean } {
-  let changed = false;
+  let changed = migrateProductAnalyticsConfig(data);
   const tools = (data.tools ?? {}) as Record<string, unknown>;
   const execConfig = (tools.exec ?? {}) as Record<string, unknown>;
   if (execConfig.restrictToWorkspace !== undefined && tools.restrictToWorkspace === undefined) {

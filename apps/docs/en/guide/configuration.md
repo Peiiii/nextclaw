@@ -37,6 +37,12 @@ Related guide:
 
 - [Run Automations](/en/guide/cron)
 
+### Privacy and anonymous analytics
+
+NextClaw sends anonymous usage analytics by default to estimate active installations and successful activity for the current day, calendar week, and calendar month. Each window uses an unrelated random one-time receipt. Accounts, login tokens, persistent installation identifiers, messages, replies, tool data, files, URLs, IP addresses, User-Agent, and diagnostic logs are never sent.
+
+You can turn this off at any time under **Settings → Privacy & Analytics**. NextClaw then stops delivery and removes pending local receipts. Existing server data is anonymous aggregate data and cannot be traced back to an installation for deletion. Counts are estimates of active installations rather than exact people; WAU and MAU use calendar-week and calendar-month windows, not rolling 7/30-day windows.
+
 ## Check configuration changes
 
 ```bash

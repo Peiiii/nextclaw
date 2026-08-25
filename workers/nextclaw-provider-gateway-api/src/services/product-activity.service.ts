@@ -1,31 +1,32 @@
 import {
   deleteExpiredProductActivity,
+  insertProductActivityReceipt,
   readProductActivityMetrics,
   readProductActivityTrend,
-  upsertProductActivity,
 } from "@/repositories/product-activity.repository";
 import type {
   ProductActivityAudience,
   ProductActivityEnvironment,
   ProductActivityInput,
+  ProductActivityMetric,
   ProductActivityOverview,
   ProductActivityOverviewFilter,
+  ProductActivityPeriodKind,
   ProductActivityPlatform,
   ProductActivityReleaseChannel,
-  ProductActivitySource,
 } from "@/types/product-activity.types";
-import type { Env, UserRow } from "@/types/platform";
-import { readAuthSecret } from "@/utils/platform.utils";
+import type { Env } from "@/types/platform";
 
 const TIMEZONE = "Asia/Shanghai" as const;
 const RETENTION_DAYS = 180;
 const MAX_CLOCK_SKEW_MS = 7 * 24 * 60 * 60 * 1_000;
 const ALLOWED_INPUT_KEYS = new Set([
   "schemaVersion",
-  "installationId",
-  "event",
+  "receiptId",
+  "metric",
+  "periodKind",
+  "periodStart",
   "occurredAt",
-  "source",
   "audience",
   "environment",
   "releaseChannel",
@@ -43,38 +44,24 @@ export class ProductActivityService {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  ingest = async (
-    input: ProductActivityInput,
-    user: UserRow | null,
-  ): Promise<void> => {
-    const secret = readAuthSecret(this.env);
-    if (!secret) {
-      throw new Error("PRODUCT_ANALYTICS_UNAVAILABLE");
-    }
+  ingest = async (input: ProductActivityInput): Promise<void> => {
     const now = this.now();
     const nowIso = now.toISOString();
-    const activityDate = formatBusinessDate(now);
-    const audience = resolveAudience(input.audience, user);
-    const installationHash = await hashInstallationId(input.installationId, secret);
-    await upsertProductActivity(this.env.NEXTCLAW_PLATFORM_DB, {
-      installationHash,
-      linkedUserId: user?.id ?? null,
-      audience,
+    await insertProductActivityReceipt(this.env.NEXTCLAW_PLATFORM_DB, {
+      receiptId: input.receiptId,
+      metric: input.metric,
+      periodKind: input.periodKind,
+      periodStart: input.periodStart,
+      audience: input.audience,
       environment: input.environment,
       releaseChannel: input.releaseChannel,
       platform: input.platform,
       appVersion: input.appVersion,
-      activityDate,
-      event: input.event,
-      source: input.source,
-      nowIso,
+      receivedAt: nowIso,
     });
-
-    const cutoff = addBusinessDays(now, -RETENTION_DAYS);
     await deleteExpiredProductActivity(
       this.env.NEXTCLAW_PLATFORM_DB,
-      formatBusinessDate(cutoff),
-      cutoff.toISOString(),
+      new Date(now.getTime() - RETENTION_DAYS * 24 * 60 * 60 * 1_000).toISOString(),
     );
   };
 
@@ -82,17 +69,15 @@ export class ProductActivityService {
     filter: ProductActivityOverviewFilter,
   ): Promise<ProductActivityOverview> => {
     const now = this.now();
-    const today = formatBusinessDate(now);
-    const wauStart = formatBusinessDate(addBusinessDays(now, -6));
-    const mauStart = formatBusinessDate(addBusinessDays(now, -29));
-    const trendStart = formatBusinessDate(addBusinessDays(now, -(filter.trendDays - 1)));
+    const periods = resolvePeriodStarts(now);
+    const trendStart = formatBusinessDate(addDays(now, -(filter.trendDays - 1)));
     const [metrics, trendRows] = await Promise.all([
       readProductActivityMetrics({
         db: this.env.NEXTCLAW_PLATFORM_DB,
         filter,
-        today,
-        wauStart,
-        mauStart,
+        dayStart: periods.day,
+        weekStart: periods.week,
+        monthStart: periods.month,
       }),
       readProductActivityTrend({
         db: this.env.NEXTCLAW_PLATFORM_DB,
@@ -102,7 +87,7 @@ export class ProductActivityService {
     ]);
     const trendByDate = new Map(trendRows.map((row) => [row.activity_date, row]));
     const trend = Array.from({ length: filter.trendDays }, (_, index) => {
-      const date = formatBusinessDate(addBusinessDays(now, index - filter.trendDays + 1));
+      const date = formatBusinessDate(addDays(now, index - filter.trendDays + 1));
       const row = trendByDate.get(date);
       return {
         date,
@@ -110,22 +95,17 @@ export class ProductActivityService {
         successful: normalizeCount(row?.successful),
       };
     });
-    const wau = normalizeCount(metrics.wau);
-    const identified = normalizeCount(metrics.wau_identified_users);
     return {
       timezone: TIMEZONE,
-      asOfDate: today,
+      asOfDate: periods.day,
       filters: filter,
       metrics: {
         dau: normalizeCount(metrics.dau),
-        wau,
+        wau: normalizeCount(metrics.wau),
         mau: normalizeCount(metrics.mau),
         successfulDau: normalizeCount(metrics.successful_dau),
         successfulWau: normalizeCount(metrics.successful_wau),
         successfulMau: normalizeCount(metrics.successful_mau),
-        wauAnonymousInstallations: normalizeCount(metrics.wau_anonymous_installations),
-        wauIdentifiedUsers: identified,
-        wauIdentificationRate: wau > 0 ? Number((identified / wau).toFixed(4)) : 0,
       },
       trend,
     };
@@ -139,21 +119,38 @@ export function parseProductActivityInput(
   if (!isRecord(value)) {
     return invalid("INVALID_ANALYTICS_PAYLOAD", "A JSON object is required.");
   }
+  const fieldFailure = validateProductActivityFields(value);
+  if (fieldFailure) {
+    return fieldFailure;
+  }
+  const timeFailure = validateProductActivityTime(value, now);
+  if (timeFailure) {
+    return timeFailure;
+  }
+  return { ok: true, input: value as ProductActivityInput };
+}
+
+function validateProductActivityFields(
+  value: Record<string, unknown>,
+): ProductActivityInputResult | null {
   const unknownKey = Object.keys(value).find((key) => !ALLOWED_INPUT_KEYS.has(key));
   if (unknownKey) {
     return invalid("UNSUPPORTED_ANALYTICS_FIELD", `Unsupported field: ${unknownKey}.`);
   }
-  if (value.schemaVersion !== 1) {
-    return invalid("INVALID_ANALYTICS_SCHEMA", "schemaVersion must be 1.");
+  if (value.schemaVersion !== 2) {
+    return invalid("INVALID_ANALYTICS_SCHEMA", "schemaVersion must be 2.");
   }
-  if (typeof value.installationId !== "string" || !isUuid(value.installationId)) {
-    return invalid("INVALID_INSTALLATION_ID", "installationId must be a UUID.");
+  if (typeof value.receiptId !== "string" || !isUuid(value.receiptId)) {
+    return invalid("INVALID_RECEIPT_ID", "receiptId must be a UUID.");
   }
-  if (value.event !== "intent_accepted" && value.event !== "run_succeeded") {
-    return invalid("INVALID_ANALYTICS_EVENT", "Unsupported analytics event.");
+  if (!isMetric(value.metric)) {
+    return invalid("INVALID_ANALYTICS_METRIC", "Unsupported analytics metric.");
   }
-  if (value.source !== "direct" && value.source !== "channel") {
-    return invalid("INVALID_ANALYTICS_SOURCE", "source must be direct or channel.");
+  if (!isPeriodKind(value.periodKind)) {
+    return invalid("INVALID_ANALYTICS_PERIOD", "Unsupported analytics period.");
+  }
+  if (typeof value.periodStart !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value.periodStart)) {
+    return invalid("INVALID_PERIOD_START", "periodStart must be a calendar date.");
   }
   if (!isAudience(value.audience)) {
     return invalid("INVALID_ANALYTICS_AUDIENCE", "Unsupported audience.");
@@ -174,6 +171,13 @@ export function parseProductActivityInput(
   ) {
     return invalid("INVALID_APP_VERSION", "appVersion must be between 1 and 80 characters.");
   }
+  return null;
+}
+
+function validateProductActivityTime(
+  value: Record<string, unknown>,
+  now: Date,
+): ProductActivityInputResult | null {
   if (typeof value.occurredAt !== "string") {
     return invalid("INVALID_OCCURRED_AT", "occurredAt must be an ISO timestamp.");
   }
@@ -184,8 +188,12 @@ export function parseProductActivityInput(
   ) {
     return invalid("INVALID_OCCURRED_AT", "occurredAt is outside the accepted clock window.");
   }
-
-  return { ok: true, input: value as ProductActivityInput };
+  const periodKind = value.periodKind as ProductActivityPeriodKind;
+  const expectedPeriodStart = resolvePeriodStarts(occurredAt)[periodKind];
+  if (value.periodStart !== expectedPeriodStart) {
+    return invalid("INVALID_PERIOD_START", "periodStart does not match occurredAt.");
+  }
+  return null;
 }
 
 export function parseProductActivityAudience(
@@ -206,30 +214,16 @@ export function parseProductActivityReleaseChannel(
   return isReleaseChannel(value) ? value : "stable";
 }
 
-function resolveAudience(
-  reported: ProductActivityAudience,
-  user: UserRow | null,
-): ProductActivityAudience {
-  if (!user) {
-    return reported;
-  }
-  return user.role === "admin" ? "internal" : user.analytics_audience;
-}
-
-async function hashInstallationId(installationId: string, secret: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(`nextclaw-product-activity:v1\0${installationId}`),
-  );
-  return Array.from(new Uint8Array(signature), (byte) => byte.toString(16).padStart(2, "0")).join("");
+function resolvePeriodStarts(date: Date): Record<ProductActivityPeriodKind, string> {
+  const day = formatBusinessDate(date);
+  const [year, month, dateOfMonth] = day.split("-").map(Number);
+  const utcDate = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, dateOfMonth ?? 1));
+  const weekday = utcDate.getUTCDay() || 7;
+  return {
+    day,
+    week: formatUtcDate(new Date(utcDate.getTime() - (weekday - 1) * 86_400_000)),
+    month: `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`,
+  };
 }
 
 function formatBusinessDate(date: Date): string {
@@ -241,8 +235,16 @@ function formatBusinessDate(date: Date): string {
   }).format(date);
 }
 
-function addBusinessDays(date: Date, days: number): Date {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1_000);
+function formatUtcDate(date: Date): string {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 86_400_000);
 }
 
 function normalizeCount(value: number | undefined): number {
@@ -278,6 +280,10 @@ function isPlatform(value: unknown): value is ProductActivityPlatform {
   return value === "macos" || value === "windows" || value === "linux" || value === "other";
 }
 
-export function isProductActivitySource(value: unknown): value is ProductActivitySource {
-  return value === "direct" || value === "channel";
+function isMetric(value: unknown): value is ProductActivityMetric {
+  return value === "active" || value === "successful";
+}
+
+function isPeriodKind(value: unknown): value is ProductActivityPeriodKind {
+  return value === "day" || value === "week" || value === "month";
 }

@@ -363,6 +363,7 @@ class UiRouteRegistry {
       ["get", "/api/config", config.getConfig],
       ["get", "/api/config/meta", config.getConfigMeta],
       ["get", "/api/config/schema", config.getConfigSchema],
+      ["get", "/api/config/product-analytics/status", config.getProductAnalyticsStatus],
       ["get", "/api/providers", config.listProviders],
       ["get", "/api/provider-templates", config.listProviderTemplates],
       ["get", "/api/provider-model-catalog", config.listProviderModelCatalog],

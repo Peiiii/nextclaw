@@ -16,9 +16,6 @@ export type AdminProductActivityOverview = {
     successfulDau: number;
     successfulWau: number;
     successfulMau: number;
-    wauAnonymousInstallations: number;
-    wauIdentifiedUsers: number;
-    wauIdentificationRate: number;
   };
   trend: Array<{
     date: string;

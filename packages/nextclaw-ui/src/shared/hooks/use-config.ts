@@ -19,6 +19,7 @@ import {
   updateChannel,
   updateRuntime,
   updateProductAnalytics,
+  fetchProductAnalyticsStatus,
   updateSecrets,
   executeConfigAction
 } from '@/shared/lib/api';
@@ -40,6 +41,15 @@ export function useConfigMeta() {
     queryKey: ['config-meta'],
     queryFn: fetchConfigMeta,
     staleTime: Infinity
+  });
+}
+
+export function useProductAnalyticsStatus() {
+  return useQuery({
+    queryKey: ['product-analytics-status'],
+    queryFn: fetchProductAnalyticsStatus,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true
   });
 }
 
@@ -108,6 +118,7 @@ export function useUpdateProductAnalytics() {
       queryClient.setQueryData<ConfigView>(['config'], (current) => current
         ? { ...current, productAnalytics }
         : current);
+      queryClient.invalidateQueries({ queryKey: ['product-analytics-status'] });
       toast.success(t('configSavedApplied'));
     },
     onError: (error: Error) => {

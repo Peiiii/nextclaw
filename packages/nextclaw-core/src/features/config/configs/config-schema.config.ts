@@ -342,7 +342,8 @@ export const CompanionConfigSchema = z.object({
 });
 
 export const ProductAnalyticsConfigSchema = z.object({
-  enabled: z.boolean().default(false),
+  schemaVersion: z.literal(2).default(2),
+  enabled: z.boolean().default(true),
   audience: z.enum(["external", "internal", "qa"]).default("external")
 });
 

@@ -6,7 +6,16 @@ const mocks = vi.hoisted(() => ({ mutate: vi.fn() }));
 
 vi.mock('@/shared/hooks/use-config', () => ({
   useConfig: () => ({
-    data: { productAnalytics: { enabled: false, audience: 'external' } },
+    data: { productAnalytics: { schemaVersion: 2, enabled: true, audience: 'external' } },
+    isLoading: false
+  }),
+  useProductAnalyticsStatus: () => ({
+    data: {
+      lastAttemptAt: '2026-08-25T12:00:00.000Z',
+      lastSuccessAt: '2026-08-25T12:00:01.000Z',
+      lastError: null,
+      pendingReceiptCount: 0
+    },
     isLoading: false
   }),
   useUpdateProductAnalytics: () => ({
@@ -18,13 +27,13 @@ vi.mock('@/shared/hooks/use-config', () => ({
 describe('PrivacySettingsPage', () => {
   beforeEach(() => mocks.mutate.mockClear());
 
-  it('requires explicit opt-in and saves the selected test audience', () => {
+  it('shows anonymous reporting enabled by default and saves opt-out and test audience', () => {
     render(<PrivacySettingsPage />);
 
-    const shareSwitch = screen.getByRole('switch', { name: 'Share product activity' });
-    expect(shareSwitch.getAttribute('aria-checked')).toBe('false');
+    const shareSwitch = screen.getByRole('switch', { name: 'Send anonymous usage analytics' });
+    expect(shareSwitch.getAttribute('aria-checked')).toBe('true');
     fireEvent.click(shareSwitch);
-    expect(mocks.mutate).toHaveBeenCalledWith({ data: { enabled: true } });
+    expect(mocks.mutate).toHaveBeenCalledWith({ data: { enabled: false } });
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Analytics audience' }));
     fireEvent.click(screen.getByRole('option', { name: 'QA testing' }));

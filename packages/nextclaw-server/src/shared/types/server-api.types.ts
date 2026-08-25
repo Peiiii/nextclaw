@@ -636,6 +636,7 @@ export type SecretsConfigUpdate = {
 export type ProductAnalyticsView = Config["productAnalytics"];
 export type ProductAnalyticsAudience = ProductAnalyticsView["audience"];
 export type ProductAnalyticsConfigUpdate = Partial<ProductAnalyticsView>;
+export type { ProductAnalyticsStatusView } from "./server-api-config.types.js";
 
 export type UiNcpSessionListView = {
   sessions: NcpSessionSummary[];

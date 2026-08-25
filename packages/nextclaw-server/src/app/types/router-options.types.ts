@@ -20,6 +20,7 @@ import type {
   RemoteServiceAction,
   RemoteServiceActionResult,
   RemoteSettingsUpdateRequest,
+  ProductAnalyticsStatusView,
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { RuntimeControlActionResult, RuntimeControlView } from "@nextclaw-server/features/runtime-control/index.js";
 
@@ -101,6 +102,11 @@ export type UiRouterOptions = {
   runtimeUpdate?: UiRuntimeUpdateHost;
   bootstrapStatus?: UiBootstrapStatusHost;
   extensions?: UiExtensionHost;
+  productActivity?: UiProductActivityHost;
+};
+
+export type UiProductActivityHost = {
+  getStatus: () => ProductAnalyticsStatusView;
 };
 
 export type UiRemoteAccessHost = {

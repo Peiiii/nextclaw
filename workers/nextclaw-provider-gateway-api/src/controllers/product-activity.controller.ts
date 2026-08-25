@@ -9,7 +9,6 @@ import {
 import type { Env } from "@/types/platform";
 import {
   ensurePlatformBootstrap,
-  PlatformRequestAuthService,
   requireAdminUser,
 } from "@/services/platform.service";
 import { apiError, parseBoundedInt, readJson } from "@/utils/platform.utils";
@@ -22,20 +21,7 @@ export async function productActivityIngestHandler(
   if (!parsed.ok) {
     return apiError(c, 400, parsed.code, parsed.message);
   }
-  const auth = await new PlatformRequestAuthService(c.env).resolveOptional(
-    c.req.header("authorization"),
-  );
-  if (!auth.ok) {
-    return auth.response;
-  }
-  try {
-    await new ProductActivityService(c.env).ingest(parsed.input, auth.user);
-  } catch (error) {
-    if (error instanceof Error && error.message === "PRODUCT_ANALYTICS_UNAVAILABLE") {
-      return apiError(c, 503, "PRODUCT_ANALYTICS_UNAVAILABLE", "Product analytics is temporarily unavailable.");
-    }
-    throw error;
-  }
+  await new ProductActivityService(c.env).ingest(parsed.input);
   return c.body(null, 202);
 }
 
