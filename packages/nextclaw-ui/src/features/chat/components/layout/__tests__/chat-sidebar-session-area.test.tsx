@@ -16,6 +16,7 @@ function renderSessionArea(isProjectFirstView: boolean) {
       onAddProject={onAddProject}
       onSelectMode={onSelectMode}
       projectGroups={[]}
+      projectCronJobCountByRoot={new Map()}
       renderSessionItem={() => <></>}
       sessionTypeOptions={[]}
     />,
@@ -59,7 +60,9 @@ describe("ChatSidebarSessionArea", () => {
 
   it("uses a folder-plus icon for the add-project action", () => {
     const { onAddProject } = renderSessionArea(true);
-    const addProjectButton = screen.getByRole("button", { name: "Add Project" });
+    const addProjectButton = screen.getByRole("button", {
+      name: "Add Project",
+    });
     const modeIndicator = screen
       .getByRole("group", { name: "Session list view" })
       .querySelector("span[aria-hidden='true']");
@@ -72,10 +75,14 @@ describe("ChatSidebarSessionArea", () => {
     expect(addProjectButton.className).toContain("hover:bg-gray-200/60");
     expect(modeIndicator?.className).toContain("translate-x-full");
     expect(modeIndicator?.className).toContain("motion-reduce:transition-none");
-    expect(screen.getByRole("button", { name: "Project" }).getAttribute("aria-pressed")).toBe(
-      "true",
+    expect(
+      screen
+        .getByRole("button", { name: "Project" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(modeIndicator?.parentElement?.previousElementSibling).toBe(
+      addProjectButton,
     );
-    expect(modeIndicator?.parentElement?.previousElementSibling).toBe(addProjectButton);
     fireEvent.click(addProjectButton);
 
     expect(onAddProject).toHaveBeenCalledOnce();

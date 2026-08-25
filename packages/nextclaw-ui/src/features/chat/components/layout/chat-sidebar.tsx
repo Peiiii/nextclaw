@@ -21,7 +21,10 @@ import {
   useCreateProject,
   useProjects,
 } from "@/shared/hooks/use-projects";
-import type { ProjectAddExistingRequest, ProjectCreateRequest } from "@/shared/lib/api";
+import type {
+  ProjectAddExistingRequest,
+  ProjectCreateRequest,
+} from "@/shared/lib/api";
 import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
 import { cn } from "@/shared/lib/utils";
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from "@/shared/lib/i18n";
@@ -50,6 +53,7 @@ import { useChatNewSessionTypePreference } from "@/features/chat/features/sessio
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import { SIDEBAR_RAIL_WIDTH_CLASS } from "@/app/components/layout/sidebar-rail.styles";
 import { ChatProjectAddDialog } from "@/features/chat/features/project/components/chat-project-add-dialog";
+import { useChatSidebarContextCounts } from "@/features/chat/features/session/hooks/use-chat-sidebar-context-counts";
 
 type ChatSidebarVariant = "desktop" | "mobile";
 
@@ -116,7 +120,9 @@ export function ChatSidebar({
   const projectsQuery = useProjects();
   const projectCreateMutation = useCreateProject();
   const projectAddExistingMutation = useAddExistingProject();
-  const { isLoading, items } = useNcpSessionListView();
+  const { allItems, isLoading, items } = useNcpSessionListView();
+  const { cronJobCountByProjectRoot, cronJobCountBySessionKey } =
+    useChatSidebarContextCounts(allItems);
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
   const currentThemeLabel = t(
@@ -160,21 +166,27 @@ export function ChatSidebar({
     [items],
   );
   const childSessionsByParentKey = useMemo(
-    () => groupChildSessionsByParentKey(items),
-    [items],
+    () => groupChildSessionsByParentKey(allItems),
+    [allItems],
   );
   const groups = useMemo(
     () => groupSessionsByDate(sortedItems, pinnedSessionKeys),
     [pinnedSessionKeys, sortedItems],
   );
   const projectGroups = useMemo(
-    () => groupSessionsByProject(
-      sortedItems,
-      pinnedSessionKeys,
+    () =>
+      groupSessionsByProject(
+        sortedItems,
+        pinnedSessionKeys,
+        pinnedProjectRoots,
+        projectsQuery.data?.projects ?? [],
+      ),
+    [
       pinnedProjectRoots,
-      projectsQuery.data?.projects ?? [],
-    ),
-    [pinnedProjectRoots, pinnedSessionKeys, projectsQuery.data?.projects, sortedItems],
+      pinnedSessionKeys,
+      projectsQuery.data?.projects,
+      sortedItems,
+    ],
   );
   const sessionTypeOptions = useMemo(
     () => buildSessionTypeOptions(sessionTypesData?.options ?? []),
@@ -220,6 +232,7 @@ export function ChatSidebar({
       optimisticReadAtBySessionKey={optimisticReadAtBySessionKey}
       agentsById={agentsById}
       childSessionsByParentKey={childSessionsByParentKey}
+      cronJobCount={cronJobCountBySessionKey.get(item.session.key) ?? 0}
       editingSessionKey={editingSessionKey}
       draftLabel={draftLabel}
       savingSessionKey={savingSessionKey}
@@ -227,12 +240,6 @@ export function ChatSidebar({
       isPinned={pinnedSessionKeys.has(item.session.key)}
       sessionTitle={getSessionTitle}
       onSelectSession={presenter.chatSessionListManager.selectSession}
-      onOpenChildSessions={(parentSessionKey, activeChildSessionKey) =>
-        presenter.chatThreadManager.openChildSessionPanel({
-          parentSessionKey,
-          activeChildSessionKey,
-        })
-      }
       onStartEditingSessionLabel={startEditingSessionLabel}
       onDraftLabelChange={setDraftLabel}
       onSaveSessionLabel={saveSessionLabel}
@@ -256,7 +263,9 @@ export function ChatSidebar({
     projectAddExistingMutation.reset();
     setIsProjectAddOpen(true);
   };
-  const createProjectFromSidebar = async (input: ProjectCreateRequest): Promise<void> => {
+  const createProjectFromSidebar = async (
+    input: ProjectCreateRequest,
+  ): Promise<void> => {
     await projectCreateMutation.mutateAsync(input);
     setIsProjectAddOpen(false);
   };
@@ -274,10 +283,7 @@ export function ChatSidebar({
         isMobileVariant
           ? "flex-1 overflow-hidden"
           : shouldCollapse
-            ? cn(
-                SIDEBAR_RAIL_WIDTH_CLASS,
-                "shrink-0",
-              )
+            ? cn(SIDEBAR_RAIL_WIDTH_CLASS, "shrink-0")
             : "w-[280px] shrink-0",
       )}
       data-sidebar-collapsed={shouldCollapse ? "true" : "false"}
@@ -339,6 +345,7 @@ export function ChatSidebar({
         onAddProject={openProjectAdd}
         onSelectMode={presenter.chatSessionListManager.setListMode}
         projectGroups={projectGroups}
+        projectCronJobCountByRoot={cronJobCountByProjectRoot}
         renderSessionItem={renderSessionItem}
         sessionTypeOptions={sessionTypeOptions}
       />

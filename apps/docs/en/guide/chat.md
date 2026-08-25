@@ -19,6 +19,8 @@ NextClaw can host Native, Codex, Claude Code, Weixin, Feishu, and scheduled-task
 
 Name work so it is recognizable later. Prefer names such as “July sales analysis” or “Release verification” over a list of sessions called “Hello” or “Test.”
 
+On desktop, hover over a session to see its project, child-session count, and scheduled-task count. Hover over a project to see its path, session count, and related scheduled tasks. Project rows keep the default view minimal; the expand indicator and actions appear on hover.
+
 ## Copy a session ID
 
 Open **More actions** in the current session header, a session in the session list, a child session in the session workspace, or a child-session tab, then choose **Copy session ID**. This copies the complete ID for that session. Draft sessions do not have a stable ID yet, so this action is not shown for them.

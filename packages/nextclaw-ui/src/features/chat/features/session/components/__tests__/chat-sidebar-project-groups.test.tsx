@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatSidebarProjectGroups } from "@/features/chat/features/session/components/chat-sidebar-project-groups";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
@@ -38,6 +39,7 @@ function renderProjectGroups(isPinned = false) {
   return render(
     <ChatSidebarProjectGroups
       groups={[{ ...projectGroup, isPinned }]}
+      projectCronJobCountByRoot={new Map([[projectGroup.projectRoot, 2]])}
       defaultSessionType="native"
       sessionTypeOptions={[
         { value: "native", label: "Native", icon: null, ready: true },
@@ -74,7 +76,15 @@ describe("ChatSidebarProjectGroups", () => {
     expect(header.parentElement?.className).toContain("h-8");
     expect(header.parentElement?.className).toContain("hover:bg-gray-200/60");
     expect(header.parentElement?.className).not.toContain("focus-within:bg");
-    expect(screen.getByText("analysis-project").nextElementSibling?.tagName).toBe("svg");
+    expect(
+      screen.getByText("analysis-project").nextElementSibling?.tagName,
+    ).toBe("svg");
+    expect(
+      screen
+        .getByText("analysis-project")
+        .nextElementSibling?.getAttribute("class"),
+    ).toContain("opacity-0");
+    expect(screen.queryByText("Sessions")).toBeNull();
 
     fireEvent.click(header);
 
@@ -85,6 +95,20 @@ describe("ChatSidebarProjectGroups", () => {
       "session:current",
     );
     expect(screen.queryByText("Project session")).toBeNull();
+  });
+
+  it("shows project context from the row on hover", async () => {
+    const user = userEvent.setup();
+    renderProjectGroups();
+
+    await user.hover(screen.getByLabelText("Collapse project"));
+
+    const tooltip = await screen.findByRole("tooltip");
+    expect(within(tooltip).getByText("Path")).toBeTruthy();
+    expect(within(tooltip).getByText("Sessions")).toBeTruthy();
+    expect(within(tooltip).getByText("Scheduled tasks")).toBeTruthy();
+    expect(within(tooltip).getByText("/tmp/analysis-project")).toBeTruthy();
+    expect(within(tooltip).getByText("2")).toBeTruthy();
   });
 
   it("keeps project creation and pinning in one trailing action cluster", () => {

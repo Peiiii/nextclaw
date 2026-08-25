@@ -63,7 +63,10 @@ function ChatSidebarCollapseButton({ isCollapsed }: { isCollapsed: boolean }) {
     <IconActionButton
       icon={<Icon className={SIDEBAR_RAIL_ICON_CLASS} />}
       label={label}
-      className={cn(SIDEBAR_RAIL_SURFACE_CLASS, isCollapsed && SIDEBAR_RAIL_CONTROL_CLASS)}
+      className={cn(
+        SIDEBAR_RAIL_SURFACE_CLASS,
+        isCollapsed && SIDEBAR_RAIL_CONTROL_CLASS,
+      )}
       onClick={viewportLayoutManager.toggleSidebarCollapsed}
     />
   );
@@ -77,7 +80,9 @@ export function ChatSidebarDesktopHeader({
   isCollapsed: boolean;
 }) {
   const isWindowsHost = isWindowsDesktopHost();
-  const shouldReserveMacWindowControls = typeof window !== "undefined" && window.nextclawDesktop?.platform === "darwin";
+  const shouldReserveMacWindowControls =
+    typeof window !== "undefined" &&
+    window.nextclawDesktop?.platform === "darwin";
 
   return (
     <div
@@ -124,9 +129,13 @@ export function ChatSidebarDesktopNav({
                 density="compact"
                 collapsed={isCollapsed}
                 indicator={item.target === "/inbox" && unreadCount > 0}
-                trailing={item.target === "/inbox" && unreadCount > 0
-                  ? unreadCount > 99 ? "99+" : unreadCount
-                  : undefined}
+                trailing={
+                  item.target === "/inbox" && unreadCount > 0
+                    ? unreadCount > 99
+                      ? "99+"
+                      : unreadCount
+                    : undefined
+                }
                 className={isCollapsed ? undefined : "rounded-lg px-2.5 py-1.5"}
               />
             </li>
@@ -147,6 +156,7 @@ export function ChatSidebarSessionArea({
   onAddProject,
   onSelectMode,
   projectGroups,
+  projectCronJobCountByRoot,
   renderSessionItem,
   sessionTypeOptions,
 }: {
@@ -158,6 +168,7 @@ export function ChatSidebarSessionArea({
   onAddProject: () => void;
   onSelectMode: (mode: "time-first" | "project-first") => void;
   projectGroups: ReturnType<typeof groupSessionsByProject>;
+  projectCronJobCountByRoot: ReadonlyMap<string, number>;
   renderSessionItem: (item: NcpSessionListItemView) => JSX.Element;
   sessionTypeOptions: Parameters<
     typeof ChatSidebarSessionList
@@ -195,6 +206,7 @@ export function ChatSidebarSessionArea({
           isProjectFirstView={isProjectFirstView}
           groups={groups}
           projectGroups={projectGroups}
+          projectCronJobCountByRoot={projectCronJobCountByRoot}
           defaultSessionType={defaultSessionType}
           sessionTypeOptions={sessionTypeOptions}
           renderSessionItem={renderSessionItem}

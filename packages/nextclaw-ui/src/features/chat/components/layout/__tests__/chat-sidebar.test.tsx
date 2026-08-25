@@ -18,7 +18,6 @@ const mocks = vi.hoisted(() => ({
   setQuery: vi.fn(),
   setListMode: vi.fn(),
   selectSession: vi.fn(),
-  openChildSessionPanel: vi.fn(),
   docOpen: vi.fn(),
   setLanguage: vi.fn(),
   setTheme: vi.fn(),
@@ -49,7 +48,12 @@ vi.mock("@/shared/hooks/use-projects", () => ({
     isPending: false,
     error: null,
   }),
-  useAddExistingProject: () => ({ mutateAsync: vi.fn(), reset: vi.fn(), isPending: false, error: null }),
+  useAddExistingProject: () => ({
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isPending: false,
+    error: null,
+  }),
 }));
 function sidebarElement(variant?: "desktop" | "mobile") {
   const queryClient = new QueryClient({
@@ -82,7 +86,10 @@ function expectCodexSelectedInSessionTypeMenu() {
   ).toBe("true");
 }
 function expectSessionCreated(sessionType: string, projectRoot?: string) {
-  expect(mocks.createSession).toHaveBeenCalledWith({ projectRoot, sessionType });
+  expect(mocks.createSession).toHaveBeenCalledWith({
+    projectRoot,
+    sessionType,
+  });
 }
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
@@ -106,9 +113,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
               .markSessionRead(sessionKey, readAt)
           : undefined,
     },
-    chatThreadManager: {
-      openChildSessionPanel: mocks.openChildSessionPanel,
-    },
+    chatThreadManager: {},
   }),
 }));
 
@@ -145,6 +150,7 @@ vi.mock(
 
 vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-list-view", () => ({
   useNcpSessionListView: () => ({
+    allItems: mocks.sessionItems,
     isLoading: mocks.isLoading,
     items: mocks.sessionItems,
   }),
@@ -196,7 +202,6 @@ function resetSidebarTestState() {
   mocks.setQuery.mockReset();
   mocks.setListMode.mockReset();
   mocks.selectSession.mockReset();
-  mocks.openChildSessionPanel.mockReset();
   mocks.docOpen.mockReset();
   mocks.setLanguage.mockReset();
   mocks.setTheme.mockReset();
@@ -284,9 +289,9 @@ describe("ChatSidebar create and list basics", () => {
   it("keeps the desktop brand row compact with symmetric vertical padding", () => {
     renderSidebar();
 
-    expect(
-      screen.getByTestId("brand-header").parentElement?.className,
-    ).toMatch(/(?:^|\s)py-2(?:\s|$)/);
+    expect(screen.getByTestId("brand-header").parentElement?.className).toMatch(
+      /(?:^|\s)py-2(?:\s|$)/,
+    );
   });
 
   it("shows setup required status for runtime session types that are not ready yet", () => {
@@ -857,7 +862,7 @@ describe("ChatSidebar session item interactions", () => {
     expect(screen.queryByLabelText("Session has unread updates")).toBeNull();
   });
 
-  it("opens the child-session browser from a parent session row", () => {
+  it("keeps child-session counts out of the parent session row", () => {
     mocks.sessionItems = [
       createSessionItem({
         key: "session:parent-1",
@@ -882,11 +887,6 @@ describe("ChatSidebar session item interactions", () => {
 
     renderSidebar();
 
-    fireEvent.click(screen.getByLabelText("View child sessions"));
-
-    expect(mocks.openChildSessionPanel).toHaveBeenCalledWith({
-      parentSessionKey: "session:parent-1",
-      activeChildSessionKey: "session:child-1",
-    });
+    expect(screen.queryByLabelText("View child sessions")).toBeNull();
   });
 });

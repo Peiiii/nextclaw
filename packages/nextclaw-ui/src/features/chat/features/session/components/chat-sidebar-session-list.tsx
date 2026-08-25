@@ -16,6 +16,7 @@ type ChatSidebarSessionListProps = {
   isProjectFirstView: boolean;
   groups: ChatSidebarDateGroup[];
   projectGroups: ChatSidebarProjectGroup[];
+  projectCronJobCountByRoot: ReadonlyMap<string, number>;
   defaultSessionType: string;
   sessionTypeOptions: SessionTypeOption[];
   renderSessionItem: (item: NcpSessionListItemView) => ReactNode;
@@ -36,11 +37,16 @@ export function ChatSidebarSessionList({
   isLoading,
   isProjectFirstView,
   projectGroups,
+  projectCronJobCountByRoot,
   renderSessionItem,
   sessionTypeOptions,
 }: ChatSidebarSessionListProps) {
   if (isLoading) {
-    return <div className="p-3 text-xs text-muted-foreground">{t("sessionsLoading")}</div>;
+    return (
+      <div className="p-3 text-xs text-muted-foreground">
+        {t("sessionsLoading")}
+      </div>
+    );
   }
 
   if (isProjectFirstView) {
@@ -49,6 +55,7 @@ export function ChatSidebarSessionList({
     ) : (
       <ChatSidebarProjectGroups
         groups={projectGroups}
+        projectCronJobCountByRoot={projectCronJobCountByRoot}
         defaultSessionType={defaultSessionType}
         sessionTypeOptions={sessionTypeOptions}
         renderSessionItem={renderSessionItem}
@@ -67,7 +74,9 @@ export function ChatSidebarSessionList({
           <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/65">
             {group.label}
           </div>
-          <div className="space-y-0.5">{group.items.map(renderSessionItem)}</div>
+          <div className="space-y-0.5">
+            {group.items.map(renderSessionItem)}
+          </div>
         </div>
       ))}
     </div>

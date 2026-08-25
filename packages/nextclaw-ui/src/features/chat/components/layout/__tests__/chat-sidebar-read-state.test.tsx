@@ -41,6 +41,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
 
 vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-list-view", () => ({
   useNcpSessionListView: () => ({
+    allItems: mocks.sessionItems,
     isLoading: false,
     items: mocks.sessionItems,
   }),
@@ -188,9 +189,9 @@ describe("ChatSidebar read state sync", () => {
   it("collapses the desktop sidebar into accessible icon actions", () => {
     const { container } = renderReadStateSidebar(createTestQueryClient());
 
-    expect(
-      container.querySelector(".custom-scrollbar")?.className,
-    ).toContain("[mask-image:linear-gradient");
+    expect(container.querySelector(".custom-scrollbar")?.className).toContain(
+      "[mask-image:linear-gradient",
+    );
     expect(
       screen.getByRole("button", { name: "Settings menu" }).parentElement
         ?.className,
