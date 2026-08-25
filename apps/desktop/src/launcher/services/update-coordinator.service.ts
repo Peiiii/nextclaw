@@ -207,11 +207,11 @@ export class DesktopUpdateCoordinatorService {
     this.publishSnapshot();
 
     try {
-      const manifestUrl = (await this.options.updateSourceService.resolveManifestUrl())?.trim();
-      if (!manifestUrl) {
-        throw new Error("Desktop update manifest URL is not configured.");
-      }
-      const availableUpdate = await this.bundleManager.updateService.checkForUpdate(manifestUrl, this.snapshot.currentVersion);
+      const manifestSources = await this.options.updateSourceService.resolveManifestSources();
+      const availableUpdate = await this.bundleManager.updateService.checkForUpdates(
+        manifestSources,
+        this.snapshot.currentVersion
+      );
       const persistedState = await this.recordLastCheckedAt(checkedAt);
       this.snapshot = this.toSnapshotAfterCheck(availableUpdate, persistedState);
       this.publishSnapshot();

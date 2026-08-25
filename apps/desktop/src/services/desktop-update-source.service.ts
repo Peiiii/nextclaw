@@ -5,6 +5,7 @@ import {
   type DesktopLauncherStateStore,
   normalizeDesktopReleaseChannel
 } from "../launcher/stores/launcher-state.store";
+import type { DesktopUpdateManifestSource } from "../launcher/services/update.service";
 
 export type GitHubPublishTarget = {
   owner: string;
@@ -128,23 +129,35 @@ export class DesktopUpdateSourceService {
   };
 
   resolveManifestUrl = async (): Promise<string | null> => {
+    return (await this.resolveManifestSources())[0]?.url ?? null;
+  };
+
+  resolveManifestSources = async (): Promise<DesktopUpdateManifestSource[]> => {
+    const channel = this.resolveChannel();
     const explicitManifestUrl = normalizeOptionalString(this.env.NEXTCLAW_DESKTOP_UPDATE_MANIFEST_URL);
     if (explicitManifestUrl) {
-      return explicitManifestUrl;
+      return [{ channel, url: explicitManifestUrl }];
     }
     const explicitManifestBaseUrl = normalizeOptionalString(this.env.NEXTCLAW_DESKTOP_UPDATE_MANIFEST_BASE_URL);
     if (explicitManifestBaseUrl) {
-      return this.buildChannelManifestUrlFromBaseUrl(explicitManifestBaseUrl, this.resolveChannel());
+      return this.buildManifestSources(channel, (sourceChannel) =>
+        this.buildChannelManifestUrlFromBaseUrl(explicitManifestBaseUrl, sourceChannel)
+      );
     }
     const packagedMetadataBaseUrl = this.readPackagedReleaseMetadata().manifestBaseUrl;
     if (packagedMetadataBaseUrl) {
-      return this.buildChannelManifestUrlFromBaseUrl(packagedMetadataBaseUrl, this.resolveChannel());
+      return this.buildManifestSources(channel, (sourceChannel) =>
+        this.buildChannelManifestUrlFromBaseUrl(packagedMetadataBaseUrl, sourceChannel)
+      );
     }
-    if (!this.options.isPackaged || !this.options.publishTarget) {
-      return null;
+    const publishTarget = this.options.publishTarget;
+    if (!this.options.isPackaged || !publishTarget) {
+      return [];
     }
 
-    return this.buildChannelManifestUrl(this.options.publishTarget, this.resolveChannel());
+    return this.buildManifestSources(channel, (sourceChannel) =>
+      this.buildChannelManifestUrl(publishTarget, sourceChannel)
+    );
   };
 
   ensureStateChannelInitialized = async (): Promise<DesktopReleaseChannel> => {
@@ -196,5 +209,16 @@ export class DesktopUpdateSourceService {
     channel: DesktopReleaseChannel
   ): string => {
     return getDesktopUpdateChannelManifestUrlFromBaseUrl(baseUrl, channel, this.platform, this.arch);
+  };
+
+  private buildManifestSources = (
+    channel: DesktopReleaseChannel,
+    resolveUrl: (sourceChannel: DesktopReleaseChannel) => string
+  ): DesktopUpdateManifestSource[] => {
+    const sourceChannels: DesktopReleaseChannel[] = channel === "beta" ? ["beta", "stable"] : ["stable"];
+    return sourceChannels.map((sourceChannel) => ({
+      channel: sourceChannel,
+      url: resolveUrl(sourceChannel)
+    }));
   };
 }

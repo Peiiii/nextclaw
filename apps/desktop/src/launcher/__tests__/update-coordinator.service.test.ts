@@ -9,7 +9,7 @@ import { DesktopUpdateCoordinatorService } from "../services/update-coordinator.
 import { DesktopUpdateService } from "../services/update.service";
 import { DesktopBundleLayoutStore } from "../stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "../stores/launcher-state.store";
-import type { DesktopUpdateSourceService } from "../../services/desktop-update-source.service";
+import { DesktopUpdateSourceService } from "../../services/desktop-update-source.service";
 import {
   bundlePublicKey,
   createBundleArchive,
@@ -27,6 +27,7 @@ type TestCoordinatorOptions = {
   bundleLifecycle?: DesktopBundleLifecycleService;
   updateCapability?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["updateCapability"];
   resolveManifestUrl?: () => Promise<string | null>;
+  updateSourceService?: DesktopUpdateSourceService;
   now?: () => number;
   publishSnapshot?: ConstructorParameters<typeof DesktopUpdateCoordinatorService>[0]["publishSnapshot"];
 };
@@ -39,6 +40,7 @@ function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUp
     bundleService,
     updateCapability,
     resolveManifestUrl,
+    updateSourceService: providedUpdateSourceService,
     now,
     publishSnapshot
   } = options;
@@ -48,10 +50,18 @@ function createTestUpdateCoordinator(options: TestCoordinatorOptions): DesktopUp
     bundleLifecycle: bundleLifecycle ?? ({} as DesktopBundleLifecycleService),
     bundleService: bundleService ?? ({} as DesktopBundleService)
   };
-  const updateSourceService = {
-    resolveChannel: () => stateStore.read().channel,
-    resolveManifestUrl: resolveManifestUrl ?? (async () => "https://example.com/manifest.json")
-  } as unknown as DesktopUpdateSourceService;
+  const updateSourceService =
+    providedUpdateSourceService ??
+    ({
+      resolveChannel: () => stateStore.read().channel,
+      resolveManifestUrl: resolveManifestUrl ?? (async () => "https://example.com/manifest.json"),
+      resolveManifestSources: async () => [
+        {
+          channel: stateStore.read().channel,
+          url: (await (resolveManifestUrl ?? (async () => "https://example.com/manifest.json"))()) ?? ""
+        }
+      ]
+    } as unknown as DesktopUpdateSourceService);
 
   return new DesktopUpdateCoordinatorService({
     launcherVersion: "0.1.0",
@@ -177,7 +187,7 @@ test("coordinator blocks updates for unsupported installation kinds", async () =
       },
       stateStore,
       updateService: {
-        checkForUpdate: async () => {
+        checkForUpdates: async () => {
           checkInvocations += 1;
           return null;
         }
@@ -210,7 +220,7 @@ test("coordinator runs automatic checks regardless of the persisted check time",
     const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
-        checkForUpdate: async () => {
+        checkForUpdates: async () => {
           checkInvocations += 1;
           return null;
         }
@@ -221,6 +231,73 @@ test("coordinator runs automatic checks regardless of the persisted check time",
     assert.equal((await coordinator.runAutomaticCheck()).status, "up-to-date");
     assert.equal(checkInvocations, 1);
     assert.equal(stateStore.read().lastUpdateCheckAt, "2026-07-16T12:00:00.000Z");
+  }));
+
+test("beta coordinator discovers a newer stable release through assembled update sources", async () =>
+  await withTempDir("nextclaw-update-coordinator-beta-stable-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        channel: "beta",
+        currentVersion: "0.42.0",
+        lastKnownGoodVersion: "0.42.0"
+      })
+    );
+    const betaManifest = createSignedUpdateManifest({
+      channel: "beta",
+      latestVersion: "0.22.1"
+    });
+    const stableManifest = createSignedUpdateManifest({
+      channel: "stable",
+      latestVersion: "0.43.0"
+    });
+    const requestedUrls: string[] = [];
+    const updateSourceService = new DesktopUpdateSourceService({
+      isPackaged: true,
+      appPath: rootDir,
+      resourcesPath: rootDir,
+      platform: "darwin",
+      arch: "arm64",
+      publishTarget: {
+        owner: "Peiiii",
+        repo: "nextclaw"
+      },
+      stateStore
+    });
+    const updateService = new DesktopUpdateService({
+      layout,
+      launcherVersion: "0.1.0",
+      bundlePublicKey,
+      platform: "darwin",
+      arch: "arm64",
+      resolveChannel: updateSourceService.resolveChannel,
+      fetchImpl: async (url) => {
+        requestedUrls.push(String(url));
+        return new Response(JSON.stringify(String(url).includes("/stable/") ? stableManifest : betaManifest), {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        });
+      }
+    });
+    const coordinator = createTestUpdateCoordinator({
+      stateStore,
+      updateService,
+      updateSourceService
+    });
+
+    const snapshot = await coordinator.checkForUpdates({ manual: true });
+
+    assert.equal(snapshot.status, "update-available");
+    assert.equal(snapshot.channel, "beta");
+    assert.equal(snapshot.availableVersion, "0.43.0");
+    assert.deepEqual(requestedUrls, [
+      "https://Peiiii.github.io/nextclaw/desktop-updates/beta/manifest-beta-darwin-arm64.json",
+      "https://Peiiii.github.io/nextclaw/desktop-updates/stable/manifest-stable-darwin-arm64.json"
+    ]);
   }));
 
 test("launcher state ignores and removes retired update preferences", async () =>
@@ -262,7 +339,7 @@ test("coordinator reports an available update without downloading by default", a
     const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
-        checkForUpdate: async () => ({
+        checkForUpdates: async () => ({
           kind: "bundle-update",
           manifest
         }),
@@ -332,7 +409,7 @@ test("coordinator downloads an update and waits for user-triggered apply", async
     const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
-        checkForUpdate: async () => ({
+        checkForUpdates: async () => ({
           kind: "bundle-update",
           manifest
         }),
@@ -406,7 +483,7 @@ test("coordinator never downloads during automatic checks", async () =>
     const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
-        checkForUpdate: async () => ({
+        checkForUpdates: async () => ({
           kind: "bundle-update",
           manifest
         }),
@@ -450,7 +527,7 @@ test("background update check failures do not replace the primary status with fa
     const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
-        checkForUpdate: async () => {
+        checkForUpdates: async () => {
           throw new Error("update manifest request failed with status 404");
         }
       } as unknown as DesktopUpdateService,
@@ -484,7 +561,7 @@ test("manual update checks throw without replacing the primary status", async ()
     const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
-        checkForUpdate: async () => {
+        checkForUpdates: async () => {
           throw new Error("update manifest request failed with status 404");
         }
       } as unknown as DesktopUpdateService,
@@ -531,7 +608,7 @@ test("channel switching clears stale downloads and refreshes availability withou
       resolveManifestUrl: async () => "https://example.com/beta-manifest.json",
       stateStore,
       updateService: {
-        checkForUpdate: async () => ({
+        checkForUpdates: async () => ({
           kind: "bundle-update",
           manifest
         }),
@@ -588,7 +665,7 @@ test("channel switching waits for an in-flight check before checking the new cha
     const coordinator = createTestUpdateCoordinator({
       stateStore,
       updateService: {
-        checkForUpdate: async () => {
+        checkForUpdates: async () => {
           checkInvocations += 1;
           if (checkInvocations === 1) {
             markFirstCheckStarted();

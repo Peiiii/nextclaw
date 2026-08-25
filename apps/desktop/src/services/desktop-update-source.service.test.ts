@@ -65,10 +65,16 @@ test("beta packaged apps resolve the published beta channel manifest URL", async
     });
 
     assert.equal(service.resolveChannel(), "beta");
-    assert.equal(
-      await service.resolveManifestUrl(),
-      "https://Peiiii.github.io/nextclaw/desktop-updates/beta/manifest-beta-darwin-arm64.json"
-    );
+    assert.deepEqual(await service.resolveManifestSources(), [
+      {
+        channel: "beta",
+        url: "https://Peiiii.github.io/nextclaw/desktop-updates/beta/manifest-beta-darwin-arm64.json"
+      },
+      {
+        channel: "stable",
+        url: "https://Peiiii.github.io/nextclaw/desktop-updates/stable/manifest-stable-darwin-arm64.json"
+      }
+    ]);
   }));
 
 test("packaged metadata manifest base url can drive a local validation update source", async () =>
@@ -124,10 +130,16 @@ test("packaged metadata manifest base url can drive a local validation update so
     });
 
     assert.equal(service.resolveChannel(), "beta");
-    assert.equal(
-      await service.resolveManifestUrl(),
-      "http://127.0.0.1:43010/desktop-updates/beta/manifest-beta-darwin-arm64.json"
-    );
+    assert.deepEqual(await service.resolveManifestSources(), [
+      {
+        channel: "beta",
+        url: "http://127.0.0.1:43010/desktop-updates/beta/manifest-beta-darwin-arm64.json"
+      },
+      {
+        channel: "stable",
+        url: "http://127.0.0.1:43010/desktop-updates/stable/manifest-stable-darwin-arm64.json"
+      }
+    ]);
   }));
 
 test("builds a deterministic published channel manifest URL", () => {
@@ -179,10 +191,16 @@ test("explicit manifest base url keeps channel-aware resolution for unpackaged s
     });
 
     assert.equal(service.resolveChannel(), "beta");
-    assert.equal(
-      await service.resolveManifestUrl(),
-      "http://127.0.0.1:4010/desktop-updates/beta/manifest-beta-darwin-arm64.json"
-    );
+    assert.deepEqual(await service.resolveManifestSources(), [
+      {
+        channel: "beta",
+        url: "http://127.0.0.1:4010/desktop-updates/beta/manifest-beta-darwin-arm64.json"
+      },
+      {
+        channel: "stable",
+        url: "http://127.0.0.1:4010/desktop-updates/stable/manifest-stable-darwin-arm64.json"
+      }
+    ]);
   }));
 
 test("explicit manifest url still wins over manifest base url", async () =>
@@ -203,6 +221,12 @@ test("explicit manifest url still wins over manifest base url", async () =>
     });
 
     assert.equal(await service.resolveManifestUrl(), "http://127.0.0.1:4010/custom-manifest.json");
+    assert.deepEqual(await service.resolveManifestSources(), [
+      {
+        channel: "stable",
+        url: "http://127.0.0.1:4010/custom-manifest.json"
+      }
+    ]);
   }));
 
 test("persisted launcher state channel overrides packaged metadata", async () =>

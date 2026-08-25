@@ -10,6 +10,8 @@ Use the desktop app when you want to download NextClaw and open it directly. It 
 
 Open NextClaw after installation. A fresh install enables OpenCode Zen free-trial models by default, so you can send the first message without entering an API key. Then continue to the [Quickstart](/en/guide/getting-started).
 
+You can choose an update channel in Desktop settings. Stable receives production releases only. Beta checks both preview and production releases and offers whichever version is newer.
+
 ## Terminal and local service: npm
 
 Use npm when you prefer a command-line workflow or want NextClaw to run as a local service.

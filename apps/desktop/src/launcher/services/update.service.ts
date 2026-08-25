@@ -13,7 +13,7 @@ import {
 } from "../utils/update-manifest.utils";
 import { compareDesktopVersions } from "../utils/version.utils";
 import type { DesktopBundleLayoutStore } from "../stores/bundle-layout.store";
-import { DesktopLauncherStateStore } from "../stores/launcher-state.store";
+import { DesktopLauncherStateStore, type DesktopReleaseChannel } from "../stores/launcher-state.store";
 import type { UpdateProgress } from "@nextclaw/kernel";
 
 type FetchLike = typeof fetch;
@@ -44,6 +44,11 @@ export type DesktopAvailableUpdate =
       kind: "quarantined-bad-version";
       manifest: DesktopUpdateManifest;
     };
+
+export type DesktopUpdateManifestSource = {
+  channel: DesktopReleaseChannel;
+  url: string;
+};
 
 export type DesktopLauncherUpdateRequired = Extract<DesktopAvailableUpdate, { kind: "launcher-update-required" }>;
 export type DesktopQuarantinedBadVersion = Extract<DesktopAvailableUpdate, { kind: "quarantined-bad-version" }>;
@@ -111,6 +116,37 @@ export class DesktopUpdateService {
   checkForUpdate = async (manifestUrl: string, currentVersion: string | null): Promise<DesktopAvailableUpdate | null> => {
     const manifest = await this.fetchManifest(manifestUrl);
     this.assertManifestTarget(manifest, this.getChannel());
+    return this.resolveAvailableUpdate(manifest, currentVersion);
+  };
+
+  checkForUpdates = async (
+    sources: DesktopUpdateManifestSource[],
+    currentVersion: string | null
+  ): Promise<DesktopAvailableUpdate | null> => {
+    if (sources.length === 0) {
+      throw new Error("Desktop update manifest sources are not configured.");
+    }
+    const manifests = await Promise.all(
+      sources.map(async (source) => {
+        const manifest = await this.fetchManifest(source.url);
+        this.assertManifestTarget(manifest, source.channel);
+        return manifest;
+      })
+    );
+    const manifest = manifests.reduce((latest, candidate) => {
+      const versionComparison = compareDesktopVersions(candidate.latestVersion, latest.latestVersion);
+      if (versionComparison > 0 || (versionComparison === 0 && candidate.channel === "stable")) {
+        return candidate;
+      }
+      return latest;
+    });
+    return this.resolveAvailableUpdate(manifest, currentVersion);
+  };
+
+  private resolveAvailableUpdate = (
+    manifest: DesktopUpdateManifest,
+    currentVersion: string | null
+  ): DesktopAvailableUpdate | null => {
     if (compareDesktopVersions(this.launcherVersion, manifest.minimumLauncherVersion) < 0) {
       return {
         kind: "launcher-update-required",
@@ -126,9 +162,9 @@ export class DesktopUpdateService {
     if (currentVersion && compareDesktopVersions(manifest.latestVersion, currentVersion) <= 0) {
       return null;
     }
-      return {
-        kind: "bundle-update",
-        manifest
+    return {
+      kind: "bundle-update",
+      manifest
     };
   };
 

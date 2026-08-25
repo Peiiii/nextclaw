@@ -10,6 +10,8 @@ NextClaw 支持桌面版、npm 和 Docker。三种方式使用同一个产品，
 
 安装完成后启动 NextClaw。全新安装会默认启用 OpenCode Zen 免费试用模型，无需填写 API Key 就能发送第一条消息，然后进入[快速开始](/zh/guide/getting-started)。
 
+你可以在桌面端设置中选择更新渠道。stable 只接收正式版；beta 会同时检查预览版和正式版，并提示其中版本较新的更新。
+
 ## 终端与本机服务：npm
 
 如果你习惯命令行，或希望在本机以服务方式运行，可以安装 npm 包。
