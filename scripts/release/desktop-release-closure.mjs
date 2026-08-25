@@ -39,27 +39,6 @@ async function readTextCommand(command, args) {
   }
 }
 
-function isRetryableGitFetchError(error) {
-  const stderr = String(error?.stderr ?? "");
-  const message = String(error?.message ?? "");
-  return /cannot lock ref|is at .* but expected/.test(`${stderr}\n${message}`);
-}
-
-async function fetchGhPagesWithRetry() {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      run("git", ["-c", "gc.auto=0", "fetch", "origin", "gh-pages", "--quiet"]);
-      return;
-    } catch (error) {
-      if (attempt >= 3 || !isRetryableGitFetchError(error)) {
-        throw error;
-      }
-      console.warn(`[desktop:release] gh-pages fetch ref lock; retrying ${attempt}/3`);
-      await sleep(1000 * attempt);
-    }
-  }
-}
-
 function readTagSha(tag) {
   const output = run("git", ["ls-remote", "origin", `refs/tags/${tag}`]);
   const [sha] = output.split(/\s+/);
@@ -309,14 +288,14 @@ export async function verifyReleaseAssets(options) {
 }
 
 async function readGhPagesManifest(options) {
-  const { channel } = options;
-  await fetchGhPagesWithRetry();
-  return JSON.parse(
-    run("git", [
-      "show",
-      `origin/gh-pages:desktop-updates/${channel}/manifest-${channel}-win32-x64.json`
-    ])
-  );
+  const { channel, repo } = options;
+  const manifestUrl =
+    `https://raw.githubusercontent.com/${repo}/gh-pages/desktop-updates/${channel}/` +
+    `manifest-${channel}-win32-x64.json`;
+  return await readJsonCommand("curl", [
+    "-fsSL",
+    `${manifestUrl}?desktopRelease=${Date.now()}`
+  ]);
 }
 
 function assertManifest(manifest, options, label) {
@@ -360,12 +339,15 @@ async function waitForPublicManifest(options) {
   throw new Error(`Public Pages manifest did not propagate to ${runtimeVersion}.`);
 }
 
-function verifyStableAptRepo(options) {
-  const { channel, desktopVersion } = options;
+async function verifyStableAptRepo(options) {
+  const { channel, desktopVersion, repo } = options;
   if (channel !== "stable") {
     return;
   }
-  const packagesText = run("git", ["show", "origin/gh-pages:apt/dists/stable/main/binary-amd64/Packages"]);
+  const packagesText = await readTextCommand("curl", [
+    "-fsSL",
+    `https://raw.githubusercontent.com/${repo}/gh-pages/apt/dists/stable/main/binary-amd64/Packages?desktopRelease=${Date.now()}`
+  ]);
   if (!packagesText.includes(`Version: ${desktopVersion}`)) {
     throw new Error(`gh-pages APT Packages does not contain Version: ${desktopVersion}`);
   }
@@ -407,7 +389,7 @@ export async function waitForDesktopReleaseClosure(options) {
   assertManifest(ghPagesManifest, options, "gh-pages manifest");
   console.log(`[desktop:release] gh-pages manifest OK: ${ghPagesManifest.latestVersion}`);
   await waitForPublicManifest(options);
-  verifyStableAptRepo(options);
+  await verifyStableAptRepo(options);
   await waitForPublicStableAptRepo(options);
   console.log(`[desktop:release] complete: ${options.tag}`);
 }

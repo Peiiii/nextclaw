@@ -116,6 +116,44 @@ test("prepared publish uploads only missing versions and verifies latest", async
   assert.match(publishCalls[0][1], /nextclaw\.tgz$/);
 });
 
+test("prepared publish backs off for registry visibility without republishing", async () => {
+  const record = createRecord();
+  record.manifest.packages = [record.manifest.packages[1]];
+  const events = [];
+  let publishCompleted = false;
+  let publishCount = 0;
+  let visibilityReads = 0;
+  const runCommand = async (args) => {
+    if (args[0] === "publish") {
+      publishCompleted = true;
+      publishCount += 1;
+      return { stdout: "{}" };
+    }
+    if (!publishCompleted) throw new Error("E404");
+    visibilityReads += 1;
+    if (visibilityReads < 4) throw new Error("E404");
+    return { stdout: publishedIdentity(record, args[1]) };
+  };
+
+  const result = await publishPreparedNpmRelease({
+    onEvent: (event) => events.push(event),
+    record,
+    runCommand,
+    verifyAttempts: 5,
+    verifyDelayMs: 1,
+    verifyMaxDelayMs: 2,
+  });
+
+  assert.equal(result.attemptsUsed, 4);
+  assert.equal(publishCount, 1);
+  assert.deepEqual(
+    events
+      .filter((event) => event.type === "registry-wait")
+      .map((event) => event.delayMs),
+    [1, 2, 2],
+  );
+});
+
 test("prepared publish never retries an already visible package after partial recovery", async () => {
   const record = createRecord();
   const publishedTarballs = [];

@@ -128,7 +128,7 @@ Behavior is intentionally explicit:
 
 ## Stable NPM and product shortcuts
 
-Formal stable production releases are owned by `.github/workflows/release.yml` and run on GitHub-hosted runners with npm Trusted Publishing. Dispatch it from `master` and select:
+Formal stable production releases are owned by `.github/workflows/release.yml` and run on GitHub-hosted runners. The currently validated production authentication is the controlled `NPM_TOKEN` in the `npm-production` environment. Dispatch it from `master` and select:
 
 - `target=npm` for `NPM_READY` only;
 - `target=product` for NPM plus the stable Runtime channel and previous-version upgrade verification.
@@ -171,7 +171,8 @@ The product command performs one staged closure:
    package artifacts;
 3. publish immutable tarballs concurrently, verify every package identity/integrity/latest, close
    release commit/tags and local/remote target branches, and run a public cold tarball payload audit;
-   then report `NPM_READY` only when the measured wall time remains below 60 seconds;
+   registry visibility uses bounded exponential backoff without repeating `npm publish`, and reports
+   `NPM_READY` from the release facts even when the 60-second performance target is missed;
 4. report structured release notes and the applicable docs/website/X release plan as `CONTENT_READY` or `CONTENT_PENDING` without invalidating the core release;
 5. trigger and wait for the stable runtime workflow, then verify the GitHub Release assets,
    `gh-pages`, and public manifests;

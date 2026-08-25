@@ -10,6 +10,7 @@ const DEFAULT_PUBLISH_CONCURRENCY = 12;
 const DEFAULT_VERIFY_CONCURRENCY = 8;
 const DEFAULT_VERIFY_ATTEMPTS = 12;
 const DEFAULT_VERIFY_DELAY_MS = 1000;
+const DEFAULT_VERIFY_MAX_DELAY_MS = 15000;
 
 export async function mapWithConcurrency(items, concurrency, worker) {
   if (!Number.isInteger(concurrency) || concurrency < 1) {
@@ -112,8 +113,16 @@ function inspectPublishedIdentity(entry, identity) {
 }
 
 async function verifyPublishedBatch(options) {
-  const { attempts, concurrency, delayMs, packages, registry, runCommand } =
-    options;
+  const {
+    attempts,
+    concurrency,
+    delayMs,
+    maxDelayMs,
+    onEvent,
+    packages,
+    registry,
+    runCommand,
+  } = options;
   let missingPackages = packages;
   let remainingIssues = packages.map(
     (entry) => `${entry.name}@${entry.version}: not checked`,
@@ -130,11 +139,36 @@ async function verifyPublishedBatch(options) {
     remainingIssues = inspections
       .map((inspection) => inspection.issue)
       .filter(Boolean);
+    const integrityIssues = inspections
+      .filter(
+        (inspection) =>
+          !inspection.missing && inspection.issue?.includes("integrity"),
+      )
+      .map((inspection) => inspection.issue);
+    if (integrityIssues.length > 0) {
+      throw new Error(
+        `Published package identity conflicts with prepared tarballs:\n${integrityIssues.join("\n")}`,
+      );
+    }
     missingPackages = missingPackages.filter(
       (_entry, index) => inspections[index].issue,
     );
     if (missingPackages.length === 0) return attempt;
-    if (attempt < attempts) await sleep(delayMs);
+    if (attempt < attempts) {
+      const nextDelayMs = Math.min(
+        delayMs * 2 ** (attempt - 1),
+        maxDelayMs,
+      );
+      onEvent({
+        type: "registry-wait",
+        attempt,
+        delayMs: nextDelayMs,
+        remainingPackages: missingPackages.map(
+          (entry) => `${entry.name}@${entry.version}`,
+        ),
+      });
+      await sleep(nextDelayMs);
+    }
   }
   throw new Error(
     `Registry did not expose complete prepared identities:\n${remainingIssues.join("\n")}`,
@@ -152,6 +186,7 @@ export async function publishPreparedNpmRelease(options) {
     verifyAttempts = DEFAULT_VERIFY_ATTEMPTS,
     verifyConcurrency = DEFAULT_VERIFY_CONCURRENCY,
     verifyDelayMs = DEFAULT_VERIFY_DELAY_MS,
+    verifyMaxDelayMs = DEFAULT_VERIFY_MAX_DELAY_MS,
   } = options;
   const packages = record.manifest.packages;
   const existingIdentities = await mapWithConcurrency(
@@ -215,6 +250,8 @@ export async function publishPreparedNpmRelease(options) {
     attempts: verifyAttempts,
     concurrency: verifyConcurrency,
     delayMs: verifyDelayMs,
+    maxDelayMs: verifyMaxDelayMs,
+    onEvent,
     packages,
     registry,
     runCommand,

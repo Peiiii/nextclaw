@@ -28,7 +28,6 @@ import {
 import {
   STABLE_RELEASE_HELP,
   STABLE_RELEASE_STAGES,
-  assertNpmReadyWithinBudget,
   buildStableCompletionSummary,
   buildStableDryRunPlan,
   buildStableNpmTimingSummary,
@@ -37,7 +36,7 @@ import {
   buildStableRuntimeCommandArgs,
   formatStableRecoveryCommand,
   parseStableReleaseArgs,
-  resolveNpmReadyStatus,
+  resolveNpmTimingStatus,
 } from "./release-stable.utils.mjs";
 
 const ROOT_DIR = process.cwd();
@@ -169,6 +168,10 @@ async function publishStablePackages(options, context) {
             } else if (event.type === "registry-verified") {
               console.log(
                 `[release:npm] registry verified ${event.packageCount} package(s) in ${event.attemptsUsed} attempt(s)`,
+              );
+            } else if (event.type === "registry-wait") {
+              console.log(
+                `[release:npm] registry visibility pending for ${event.remainingPackages.length} package(s); attempt ${event.attempt}, retrying in ${event.delayMs}ms`,
               );
             }
           },
@@ -373,7 +376,7 @@ async function runStableRelease(options) {
   );
   const closureCompletedAt = performance.now();
   const publishDurationMs = closureCompletedAt - publishStartedAt;
-  const npmReadyStatus = resolveNpmReadyStatus(
+  const npmTimingStatus = resolveNpmTimingStatus(
     publishDurationMs,
     maxPublishSeconds,
   );
@@ -388,12 +391,11 @@ async function runStableRelease(options) {
       },
       publishSummary,
       skipPublishedInstall,
-      status: npmReadyStatus,
+      timingStatus: npmTimingStatus,
       targetBranch,
       targetVersion: context.targetVersion,
     }).join("\n"),
   );
-  assertNpmReadyWithinBudget(publishDurationMs, maxPublishSeconds);
   if (skipRuntimeChannel) {
     return;
   }

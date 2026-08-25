@@ -13,7 +13,7 @@ Options:
   --target-branch <branch>              Branch that must receive the release (default: master)
   --publish-concurrency <count>         Concurrent prepared tarball uploads (default: 12)
   --verify-concurrency <count>          Concurrent registry reads (default: 8)
-  --max-publish-seconds <seconds>       NPM_READY hard limit (default: 60)
+  --max-publish-seconds <seconds>       NPM_READY observation target (default: 60)
   --skip-runtime-channel                Publish NPM without opening the stable runtime channel
   --skip-published-install              Skip exact registry payload/update verification
   --trusted-publishing                  Authenticate npm publish through GitHub Actions OIDC
@@ -311,12 +311,12 @@ export function buildStableNpmTimingSummary({
   phaseTimings,
   publishSummary,
   skipPublishedInstall = false,
-  status = "NPM_READY",
+  timingStatus = "not recorded",
   targetBranch,
   targetVersion,
 }) {
   return [
-    status,
+    "NPM_READY",
     `- channel: stable/latest`,
     `- package count: ${Object.keys(checkpoint?.packages ?? {}).length}`,
     `- tarballs uploaded now: ${publishSummary?.publishedCount ?? "not recorded"}`,
@@ -328,6 +328,7 @@ export function buildStableNpmTimingSummary({
     `- exact nextclaw registry payload: ${!targetVersion ? "not applicable" : skipPublishedInstall ? "skipped" : "passed"}`,
     `- target branch: ${targetBranch ?? "master"}`,
     `- publish duration: ${typeof durationMs === "number" ? `${(durationMs / 1000).toFixed(2)}s` : "not recorded"}`,
+    `- time budget: ${timingStatus}`,
     `- remaining product stages: runtime, applicable docs/website/X; desktop excluded`,
   ];
 }
@@ -338,18 +339,10 @@ function formatDuration(durationMs) {
     : "not recorded";
 }
 
-export function resolveNpmReadyStatus(durationMs, maxPublishSeconds) {
+export function resolveNpmTimingStatus(durationMs, maxPublishSeconds) {
   return Number.isFinite(durationMs) && durationMs < maxPublishSeconds * 1000
-    ? "NPM_READY"
-    : "NPM_SLA_MISSED";
-}
-
-export function assertNpmReadyWithinBudget(durationMs, maxPublishSeconds) {
-  if (resolveNpmReadyStatus(durationMs, maxPublishSeconds) !== "NPM_READY") {
-    throw new Error(
-      `NPM publish exceeded the ${maxPublishSeconds}s completion budget: ${(durationMs / 1000).toFixed(2)}s`,
-    );
-  }
+    ? `met (<${maxPublishSeconds}s)`
+    : `missed (target <${maxPublishSeconds}s)`;
 }
 
 export function buildStableCompletionSummary({

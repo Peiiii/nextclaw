@@ -9,15 +9,16 @@
 ## 测试/验证/验收方式
 
 - 发布前运行 product stable dry-run，初次发现自动版本级别仍为 patch 且结构化 release notes 缺失，已在任何 registry/Release 写入前修正。
-- 待提交后重新运行 release summary、product dry-run、文档构建、发布合同测试和 diff-only Review。
-- 正式发布将记录 NPM、Runtime、安装升级、Desktop 五平台、30 资产、更新清单、APT 与本地主线对账证据。
+- Product workflow `32803630382` 最终成功：43/43 NPM package identity 可见，Runtime 四个平台构建成功，旧版本 `0.42.3` 经 check/download-only/apply/new-process 升级到 `0.43.0`。
+- Desktop workflow `32804702855` 最终成功：五个平台构建与冒烟、30 个资产、五份公开更新清单和 APT `0.0.267` 均已核验。
+- 本地主线已由协调器安全回流到 `768e9b712f551dda1962859ac52360d871763b99`；用户未跟踪设计文件未纳入发布或提交范围。
 
 ## 发布/部署方式
 
-- 当前状态：准备中，尚未触发不可逆正式发布。
-- Product：从冻结的远程 `master` dispatch `release.yml target=product`，先达到 `NPM_READY`，再达到 `NEXTCLAW_STABLE_READY`。
-- Desktop：Product 完成后运行标准 Desktop stable 入口，隐藏 Draft 完成五平台构建/冒烟和资产核验后原子公开。
-- 主线：每个远程完成门后运行 `pnpm release:reconcile:mainline`。
+- 当前状态：正式发布完成。
+- Product：GitHub Actions `release.yml target=product` 已达到 `NPM_READY` 和 `NEXTCLAW_STABLE_READY`；Runtime Release 为 `nextclaw@0.43.0`。
+- Desktop：隐藏 Draft 完成五平台构建/冒烟和资产核验后原子公开为 `v0.43.0-desktop.1`。
+- 主线：远程 release commit 和指标 commit 已安全 fast-forward 回本地 `master`。
 
 ## 用户/产品视角的验收步骤
 
@@ -31,12 +32,12 @@
 
 - 本批次功能实现沿既有 NCP/Kernel/UI owner 交付，没有为发布新增产品语义平行路径。
 - 正式发布自动化只消费 changeset、结构化 Notes 与冻结 artifact；失败恢复沿同一版本 identity 续跑。
-- 发布收尾前补充最终 diff-only maintainability 结果和主观 Review 结论。
+- 生产观测发现并修复两项自动化缺口：registry 最终一致性等待改为最长约 120 秒的有界退避，Desktop `gh-pages` 收尾改为直接读取单个 raw manifest，不再 fetch 仓库。
 
 ## NPM 包发布记录
 
 - 需要发布：是。原因是本批包含用户可见新能力、运行合同和 UI/Kernel 修复。
 - 目标产品版本：`nextclaw@0.43.0`。
-- 当前状态：待 prepare、正式 workflow、registry 回读和真实安装验证闭合后更新。
+- 当前状态：43 个公开 package 已完成 registry version/integrity/latest 回读；`nextclaw@0.43.0` 真实安装与升级链路通过。
 
 发布过程观测见[工作记录](work/working-notes.md)。

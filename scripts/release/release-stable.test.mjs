@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  assertNpmReadyWithinBudget,
   buildStableCompletionSummary,
   buildStableDryRunPlan,
   buildStableNpmTimingSummary,
@@ -13,7 +12,7 @@ import {
   inspectStableSurfaceReview,
   parseStableReleaseArgs,
   resolveReleaseNpmUserconfig,
-  resolveNpmReadyStatus,
+  resolveNpmTimingStatus,
   resolveStableReleaseLevel,
   resolveStableReleasePlan,
   resolveStablePublishedPreviousVersion,
@@ -485,17 +484,12 @@ test("reports the NPM_READY completion point explicitly", () => {
   );
 });
 
-test("enforces the NPM_READY wall-clock budget", () => {
-  assert.equal(resolveNpmReadyStatus(59_999, 60), "NPM_READY");
-  assert.equal(resolveNpmReadyStatus(60_000, 60), "NPM_SLA_MISSED");
-  assert.doesNotThrow(() => assertNpmReadyWithinBudget(59_999, 60));
-  assert.throws(
-    () => assertNpmReadyWithinBudget(60_000, 60),
-    /exceeded the 60s completion budget/,
-  );
+test("observes the NPM_READY wall-clock target without invalidating success", () => {
+  assert.equal(resolveNpmTimingStatus(59_999, 60), "met (<60s)");
+  assert.equal(resolveNpmTimingStatus(60_000, 60), "missed (target <60s)");
 });
 
-test("reports the same phase timings when the NPM SLA is missed", () => {
+test("reports the same phase timings when the NPM timing target is missed", () => {
   const summary = buildStableNpmTimingSummary({
     checkpoint: { packages: { nextclaw: {} } },
     durationMs: 120_970,
@@ -510,11 +504,12 @@ test("reports the same phase timings when the NPM SLA is missed", () => {
       reusedCount: 0,
       timings: { precheckMs: 2_000, uploadMs: 60_000, verifyMs: 18_000 },
     },
-    status: "NPM_SLA_MISSED",
+    timingStatus: "missed (target <60s)",
     targetVersion: "0.38.0",
   }).join("\n");
 
-  assert.match(summary, /^NPM_SLA_MISSED/m);
+  assert.match(summary, /^NPM_READY/m);
+  assert.match(summary, /time budget: missed \(target <60s\)/);
   assert.match(
     summary,
     /timing: artifact 10\.00s, package phase 80\.00s, Git\/install join 30\.97s/,

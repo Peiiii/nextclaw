@@ -188,6 +188,21 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   );
 });
 
+test("desktop closure reads one raw gh-pages manifest without fetching the repository", () => {
+  const closure = readFileSync(new URL("./desktop-release-closure.mjs", import.meta.url), "utf8");
+
+  assert.match(
+    closure,
+    /https:\/\/raw\.githubusercontent\.com\/\$\{repo\}\/gh-pages\/desktop-updates\/\$\{channel\}/,
+  );
+  assert.match(
+    closure,
+    /https:\/\/raw\.githubusercontent\.com\/\$\{repo\}\/gh-pages\/apt\/dists\/stable\/main\/binary-amd64\/Packages/,
+  );
+  assert.doesNotMatch(closure, /fetchGhPagesWithRetry|"fetch",\s*"origin"/);
+  assert.doesNotMatch(closure, /origin\/gh-pages:/);
+});
+
 test("Windows portable smoke emits renderer evidence and defers only recoverable cleanup locks", () => {
   const smoke = readFileSync(
     new URL("../../apps/desktop/scripts/smoke-windows-desktop.ps1", import.meta.url),
