@@ -52,17 +52,15 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 
 ## 设计门
 
-Task Understanding 结束、进入 Implementation 之前，必须显式判断一次 Design 是否可跳过。只有以下条件同时成立，才允许跳过独立 Design 阶段：
+Task Understanding 结束、进入 Implementation 前必须显式判断 Design；`feature`、`bugfix` 和 `small-change` 都不能按类型自动决定。只有以下条件同时成立才允许跳过：
 
-- 任务类型不是 `feature`；若为 `bugfix`，根因、修复路径和修后验证判定均已确认；
+- 已记录 `skip-design`、`design-document: not-required` 及单一路径依据；若为 `feature`，用户结果和行为边界已清楚；若为 `bugfix`，根因、修复路径和修后验证判定均已确认；
 - 风险为 L0-L1；
-- 只触达一个现有 owner，不改变跨层合同、状态归属、持久化、兼容、迁移、fallback 或用户任务；
+- 只触达一个现有 owner，不改变跨层合同、状态归属、持久化、兼容、迁移或 fallback，也不存在未决的用户工作流或交互取舍；
 - 已有明确惯例且不存在会改变结果的真实方案分叉；
 - 改动局部、可逆，验证方式直接且不依赖新增交互或运行时假设。
 
-任一条件不成立就进入 `development-design`。跳过时也要留下简短依据，说明为什么是单一路径；不能用 diff 小、时间紧或“看起来显然”代替判断。进入 Design 不等于必须写文档，产物层级由 Design owner 决定。
-
-因此 `feature` 必须进入 Design；`bugfix` 在根因、修复路径或验证判定仍不确定时进入 Design，三者均确定且满足其余条件时可直接进入 Implementation；`small-change` 也只有满足上述全部条件时才能直接实现。
+任一条件不成立就进入 `development-design`。跳过不能用 diff 小、时间紧或“看起来显然”代替判断。进入 Design 后返回稳定设计文档与大型执行 plan 决定；plan 不是新 phase。
 
 ## 阶段路由
 
@@ -76,7 +74,7 @@ Task Understanding 结束、进入 Implementation 之前，必须显式判断一
 6. 结果交接、提交、发布或部署：`development-delivery`。
 7. 任务结束前的轻量反思和条件沉淀：`development-retrospective`。
 
-阶段存在不等于重型执行：Design 可以判定为轻量产物而不创建设计文档；没有实现产物时实现、验证和 review 可明确跳过；没有外部授权时 Delivery 只完成结果交接；Retrospective 没有复用价值时不落盘。
+阶段存在不等于重型执行：Design 可以判定为轻量产物而不创建设计文档，也可以判定单批任务不需要 plan；没有实现产物时实现、验证和 review 可明确跳过；没有外部授权时 Delivery 只完成结果交接；Retrospective 没有复用价值时不落盘。
 
 ## 阶段结果
 

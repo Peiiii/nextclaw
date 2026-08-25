@@ -2,7 +2,7 @@
 
 ## 文档状态
 
-- 状态：已实施
+- 状态：已实施；2026-08-25 补充设计文档与大型计划决策门
 - 日期：2026-08-14
 - 目标：把项目核心开发 skill 从多个平级入口重构为“一个生命周期 owner + 七个阶段 owner + 按需专项能力”的标准体系。
 - 前置设计：[Skill 渐进式加载治理设计](./2026-08-08-skill-progressive-loading-governance.design.md)
@@ -203,6 +203,12 @@ rework_target: discovery | design | implementation | validation | review | deliv
 现有 `nextclaw-solution-design` 演进为本阶段 owner。通用功能设计和架构原则保留为 references；NextClaw Kernel owner 等深耦合合同以 `nextclaw-` 命名的 reference 或专项 skill 保留。
 
 路径显然的任务可以轻量完成并明确“不需要独立设计文档”，但不能未经判断直接跳过设计门。
+
+`feature` 与 `bugfix` 都必须显式判断是否进入 Design，不能只按任务类型机械路由。局部、低风险、单一路径且验证直接的功能或修复可以记录依据后跳过；存在真实方案分叉、跨边界合同、状态或生命周期变化、兼容/迁移/fallback，或风险达到 L3-L4 时进入 Design。进入 Design 后还要单独判断产物层级：形成设计结论不等于必须创建稳定设计文档，是否写入 `docs/designs` 由影响面、跨会话复用和合同稳定性决定。
+
+Design 在完成前还必须显式判断是否需要执行 plan。Plan 不是第八个 lifecycle phase，而是大型任务的跨批执行合同；只有实现需要多个有依赖的批次、跨多个 owner、跨会话或可交接执行、部分完成后需要恢复，或单批无法形成可信验证闭环时，才写入 `docs/plans/YYYY-MM-DD-<topic>.plan.md`。单批可闭环任务明确记录不需要 plan，不为流程完整制造清单。
+
+Plan 必须链接上位设计并为每个执行部分冻结：范围与 owner、依赖和顺序、完成与验证标准，以及开始该部分前采用父设计、补充内联设计判断，还是必须新增/更新更细的设计文档。细节尚不确定时写清触发条件并在该部分开始前重新经过 Design，不能在总计划里假装提前完成未知设计。设计回答“采用什么结构与合同”，计划回答“按什么顺序交付”，两者不得复制成平行事实源。
 
 ### 3. `development-implementation`
 

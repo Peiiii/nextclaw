@@ -52,6 +52,10 @@ docs/TODO.md Inbox
 - design 升级为 plan：出现明确执行批次、步骤、验证方式和完成标准。
 - plan / implementation 升级为 docs/logs：实际完成交付、验证、发布、修复或治理后，按当前项目的迭代记录规则判断。
 
+## Plan 合同
+
+生命周期判定大型任务需要 plan 时，读取[开发执行 Plan 合同](references/development-plan-contract.md)。普通知识分流只需遵守本入口的升级与命名规则，不预读该条件合同。
+
 升级时保留原文链接，不需要删除旧文；若旧文已明显过时，应在旧文顶部标注升级去向。
 
 ## 文件命名

@@ -24,7 +24,9 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 
 同批次收尾补齐了独立于 NextClaw 产品的本地开发任务大盘：根目录命令启动只绑定 `127.0.0.1` 的只读服务，按当前 Git workspace、协议启用日期和增量缓存筛选 Codex rollout，并展示任务、阶段、模型、Token、耗时和数据质量。任务协议新增可读的 `name` 字段，大盘与文本报告均以名称为主、稳定 ID 为辅；历史 marker 保持兼容并明确显示为未命名，不从聊天正文猜测标题。
 
-2026-08-25 同批补充任务类型：lifecycle 在 Task Understanding 冻结 `feature`、`bugfix` 或 `small-change`，telemetry 只记录既有判断；文本报告与本地大盘展示类型，历史 marker 保持未知且不通过名称反推。Design 门同步收敛：功能必须进入 Design；Bug 在根因、修复路径和验证判定明确且满足其余低风险条件时可以跳过；琐碎改动也只有满足完整低风险门才可直接实现。Bug 修复另增加可选复现门：不确定时先做最小充分复现，证据已锁定根因与修后判定时可以显式跳过；时间、环境和 Token 成本只影响复现层级，不能单独降低证明门槛。
+2026-08-25 同批补充任务类型：lifecycle 在 Task Understanding 冻结 `feature`、`bugfix` 或 `small-change`，telemetry 只记录既有判断；文本报告与本地大盘展示类型，历史 marker 保持未知且不通过名称反推。Design 门同步收敛：功能和 Bug 都必须显式考虑是否进入 Design、是否需要稳定设计文档，但任务类型本身不机械决定结果；满足完整低风险单路径门时可以跳过。Bug 修复另增加可选复现门：不确定时先做最小充分复现，证据已锁定根因与修后判定时可以显式跳过；时间、环境和 Token 成本只影响复现层级，不能单独降低证明门槛。
+
+同日继续补充大型任务 plan 门：Design 完成前显式判断是否需要 `docs/plans`，只有多部分依赖、跨 owner/会话交接、部分完成恢复或分批验证使单批闭环不可信时才创建。Plan 不成为第八个 phase；它链接上位设计并逐部分声明范围、owner、依赖、验证，以及复用上位设计、轻量内联判断、补更细设计文档或满足条件后返回 Design 的策略。Implementation 执行每一部分前消费该策略，避免一边编码一边补做未冻结设计。
 
 设计依据：[`docs/designs/2026-08-14-development-skill-lifecycle.design.md`](../../designs/2026-08-14-development-skill-lifecycle.design.md)。
 
