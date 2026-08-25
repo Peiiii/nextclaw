@@ -68,7 +68,7 @@
 
 - 用途：尽快发布当前待发布的 stable NPM package batch。
 - 输入格式：`/发布NPM`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 package 阶段。release-bearing `master` commit 的 version、strict check、artifact audit 和 tarball pack 必须已由 `npm-release-prepare` workflow 提前完成；用户无需知道或补说 prepare 命令。授权后从远程 `master` 的冻结 SHA dispatch GitHub Actions `release.yml`，选择 `target=npm`；workflow 通过 OIDC 定位/下载 HEAD 对应预制物、并发首次上传、逐包 version/integrity/latest registry 验证、空缓存公网精确 tarball/payload 审计和 Git 目标分支闭合。下载也计入 `NPM_READY` 的 60 秒硬目标。远程完成门后自动运行 `pnpm release:reconcile:mainline`，不得把本地 pull/rebase 留给用户。缺少有效预制物时快速失败，不在发布窗口重建。该命令只授权 NPM `latest` 及必要 Git 写入；不授权 runtime channel、desktop、文档站、官网或 X。
+- 输出/期望行为：由 `development-delivery` 路由 `nextclaw-npm-release` 的 package 阶段。先从 `.github/workflows/release.yml`、最近一次 successful run 和目标 registry identity 输出 `EXISTING_RELEASE_PATH`；已经跑通的正式主链路必须复用，远端证据暂时不可读只能标记 evidence gap，不能推断流程不存在。release-bearing `master` commit 的 version、strict check、artifact audit 和 tarball pack 必须已由 `npm-release-prepare` workflow 提前完成；用户无需知道或补说 prepare 命令。授权后从远程 `master` 的冻结 SHA dispatch GitHub Actions `release.yml`，选择 `target=npm`；workflow 在 `npm-production` environment 中使用受控 `NPM_TOKEN`，定位/下载 HEAD 对应预制物、并发首次上传、逐包 version/integrity/latest registry 验证、空缓存公网精确 tarball/payload 审计和 Git 目标分支闭合。下载计入 `NPM_READY` 的 60 秒性能观测目标，但超时不推翻已经成立的发布事实。远程完成门后自动运行 `pnpm release:reconcile:mainline`，不得把本地 pull/rebase 留给用户。缺少有效预制物时快速失败，不在发布窗口重建。该命令只授权 NPM `latest` 及必要 Git 写入；不授权 runtime channel、desktop、文档站、官网或 X。
 
 ## `/发布NPM测试版`
 
@@ -80,7 +80,7 @@
 
 - 用途：发布 NextClaw 常规 stable 产品版本，明确不包含桌面端。
 - 输入格式：`/发布NextClaw正式版`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 先路由 `nextclaw-npm-release`，从远程 `master` 的冻结 SHA dispatch GitHub Actions `release.yml`，选择 `target=product`。workflow 先闭合 NPM package 并报告 `NPM_READY`，再继续 stable runtime channel 与旧版本升级验证；结构化 release notes、文档站、官网和 X 以同一版本的 `CONTENT_READY|CONTENT_PENDING` 独立报告，不阻塞核心发布，也不调用 desktop owner。远程完成门后自动运行 `pnpm release:reconcile:mainline`，最终报告 `NEXTCLAW_STABLE_READY` 和本地主线协调状态。
+- 输出/期望行为：由 `development-delivery` 先路由 `nextclaw-npm-release`，复用 `/发布NPM` 的 `EXISTING_RELEASE_PATH` 证据门，再从远程 `master` 的冻结 SHA dispatch GitHub Actions `release.yml`，选择 `target=product`。workflow 先闭合 NPM package 并报告 `NPM_READY`，再继续 stable runtime channel 与旧版本升级验证；结构化 release notes、文档站、官网和 X 以同一版本的 `CONTENT_READY|CONTENT_PENDING` 独立报告，不阻塞核心发布，也不调用 desktop owner。远程完成门后自动运行 `pnpm release:reconcile:mainline`，最终报告 `NEXTCLAW_STABLE_READY` 和本地主线协调状态。
 
 ## `/发布NextClaw桌面版`
 
@@ -92,7 +92,7 @@
 
 - 用途：发布 NextClaw 常规 stable 产品与桌面端的完整组合。
 - 输入格式：`/发布NextClaw全平台版`，可附目标版本、版本级别、desktop 参数或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 顺序编排，不并行扩大 owner：先按 `/发布NextClaw正式版` 达到 `NPM_READY` 与 `NEXTCLAW_STABLE_READY`，再以同一 stable identity 按 `/发布NextClaw桌面版` 达到 `DESKTOP_READY`，最后统一运行 `pnpm release:reconcile:mainline` 并报告 `ALL_PLATFORMS_READY` 与本地主线协调状态。desktop 或对账阶段失败不得回退或重复发布已完成的 NPM/runtime 阶段；主线分叉由隔离协调器和 retry worker 自动续跑，不要求用户介入。
+- 输出/期望行为：由 `development-delivery` 从远程 `master` 的冻结 SHA 单次 dispatch GitHub Actions `release.yml target=all`，随后只监控同一父 workflow。Actions 内部顺序达到 `NPM_READY`、`NEXTCLAW_STABLE_READY`、`DESKTOP_READY` 和 `ALL_PLATFORMS_READY`：NPM/Runtime 成功后自动创建 Desktop 隐藏 Draft、触发五平台子 workflow、闭合 assets/update manifest/APT，并统一运行主线对账。AI、本地 CLI 和用户都不负责跨阶段编排；Desktop 失败只恢复未完成 job，不得重复已成立的 NPM/runtime identity。
 
 以上五个命令的清晰自然语言等价表达具有相同语义；例如“发 NPM”只表示 `/发布NPM`，“发布 NextClaw 正式版”不包含 desktop，“全平台发布”才包含 desktop。上下文无法确定发布对象时只询问一次“NPM、NextClaw 常规正式版，还是桌面版？”，执行前用一句话复述包含项与排除项。
 

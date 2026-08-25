@@ -3,9 +3,10 @@
 Scope: publish npm packages in `packages/*` and `packages/extensions/*`.
 This does NOT cover registry/console deployment.
 
-## Prereqs
+## Local recovery prerequisites
 
-- npm auth for this repo should come from the project-root `.npmrc` (gitignored).
+- Formal stable production publishing runs in GitHub Actions and uses the controlled `NPM_TOKEN` from the `npm-production` environment; it never reads a developer machine's `.npmrc`.
+- Local dry-run or explicit recovery auth for this repo should come from the project-root `.npmrc` (gitignored).
 - If release commands run from an isolated worktree or a different cwd, set
   `NPM_CONFIG_USERCONFIG=/absolute/path/to/<repo>/.npmrc` so npm still reads the
   project-root credentials.
@@ -131,7 +132,10 @@ Behavior is intentionally explicit:
 Formal stable production releases are owned by `.github/workflows/release.yml` and run on GitHub-hosted runners. The currently validated production authentication is the controlled `NPM_TOKEN` in the `npm-production` environment. Dispatch it from `master` and select:
 
 - `target=npm` for `NPM_READY` only;
-- `target=product` for NPM plus the stable Runtime channel and previous-version upgrade verification.
+- `target=product` for NPM plus the stable Runtime channel and previous-version upgrade verification;
+- `target=all` for the same product closure followed by the Draft-first Desktop child workflow, five-platform artifacts, update manifests, APT, and `ALL_PLATFORMS_READY`.
+
+`target=all` is the recommended full-platform trigger. The parent Actions run owns stage ordering and recovery; AI or a local shell only dispatches and monitors it. The Desktop job runs `release:desktop:stable` on the exact release commit, generates its bilingual GitHub body from the matching structured release-notes JSON, and never receives the NPM token or Desktop signing secret.
 
 The repository-local commands below remain the dry-run, diagnostic, and recovery implementation primitives. They are not the recommended production trigger after the Actions workflow is configured.
 

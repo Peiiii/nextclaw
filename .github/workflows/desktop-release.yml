@@ -36,6 +36,7 @@ jobs:
   require-draft-release:
     if: ${{ !inputs.publish_linux_apt_only }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Require a hidden Draft before building
         shell: bash
@@ -536,6 +537,7 @@ jobs:
     if: ${{ !inputs.publish_linux_apt_only }}
     needs: [require-draft-release, build-desktop]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout release contract
         uses: actions/checkout@v4
@@ -595,6 +597,7 @@ jobs:
     if: ${{ !inputs.publish_linux_apt_only }}
     needs: [publish-release-assets]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout release contract
         uses: actions/checkout@v4
@@ -643,6 +646,7 @@ jobs:
     if: ${{ !inputs.publish_linux_apt_only }}
     needs: [build-desktop, publish-release-assets, publish-github-release]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -723,6 +727,7 @@ jobs:
     needs:
       [build-desktop, publish-release-assets, publish-github-release, publish-desktop-update-channels]
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       DESKTOP_RELEASE_TAG: ${{ inputs.release_tag }}
     steps:

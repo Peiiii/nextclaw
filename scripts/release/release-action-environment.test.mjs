@@ -137,6 +137,136 @@ test("release workflow isolates token publishing and serializes stable runs", ()
   assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
 });
 
+test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub Actions", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    workflow,
+    /options:\n[\s\S]*?- npm\n[\s\S]*?- product\n[\s\S]*?- all/,
+  );
+  assert.match(
+    workflow,
+    /publish-runtime:[\s\S]*?if: \$\{\{ inputs\.target != 'npm' && needs\.publish-npm\.outputs\.has_nextclaw == 'true' \}\}/,
+  );
+
+  const desktopJob = workflow.match(
+    /\n {2}publish-desktop:([\s\S]*?)\n {2}summarize:/,
+  )?.[1];
+  assert.ok(desktopJob, "release.yml must include the publish-desktop job");
+  assert.match(desktopJob, /needs: \[publish-npm, publish-runtime\]/);
+  assert.match(desktopJob, /timeout-minutes: 150/);
+  assert.match(desktopJob, /inputs\.target == 'all'/);
+  assert.match(desktopJob, /needs\.publish-runtime\.result == 'success'/);
+  assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
+  assert.match(
+    desktopJob,
+    /ref: \$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}/,
+  );
+  assert.match(desktopJob, /pnpm release:desktop:stable/);
+  assert.match(
+    desktopJob,
+    /--target "\$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}"/,
+  );
+  assert.match(
+    desktopJob,
+    /--runtime-version "\$\{\{ needs\.publish-npm\.outputs\.target_version \}\}"/,
+  );
+  assert.match(desktopJob, /--skip-local-verify/);
+  assert.doesNotMatch(
+    desktopJob,
+    /NPM_TOKEN|NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY/,
+  );
+
+  assert.match(
+    workflow,
+    /needs: \[publish-npm, publish-runtime, publish-desktop\]/,
+  );
+  assert.match(
+    workflow,
+    /if \[ "\$TARGET" = "all" \]; then[\s\S]*?"\$DESKTOP_RESULT" != "success"/,
+  );
+  assert.match(workflow, /## ALL_PLATFORMS_READY/);
+
+  const desktopWorkflow = readFileSync(
+    new URL("../../.github/workflows/desktop-release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    desktopWorkflow,
+    /require-draft-release:[\s\S]*?timeout-minutes: 5/,
+  );
+  assert.match(
+    desktopWorkflow,
+    /publish-release-assets:[\s\S]*?timeout-minutes: 15/,
+  );
+  assert.match(
+    desktopWorkflow,
+    /publish-github-release:[\s\S]*?timeout-minutes: 10/,
+  );
+  assert.match(
+    desktopWorkflow,
+    /publish-desktop-update-channels:[\s\S]*?timeout-minutes: 15/,
+  );
+  assert.match(
+    desktopWorkflow,
+    /publish-linux-apt-repo:[\s\S]*?timeout-minutes: 25/,
+  );
+
+  const desktopReleaseScript = readFileSync(
+    new URL("./release-desktop.mjs", import.meta.url),
+    "utf8",
+  );
+  const desktopClosure = readFileSync(
+    new URL("./desktop-release-closure.mjs", import.meta.url),
+    "utf8",
+  );
+  assert.match(desktopReleaseScript, /DEFAULT_RUN_ATTEMPTS = 720/);
+  assert.match(desktopClosure, /gh["], \["run", "cancel"/);
+});
+
+test("release workflow, agent contract, and command catalog share one observed auth path", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/release.yml", import.meta.url),
+    "utf8",
+  );
+  const releaseSkill = readFileSync(
+    new URL(
+      "../../.agents/skills/nextclaw-npm-release/SKILL.md",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const commands = readFileSync(
+    new URL("../../commands/commands.md", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(workflow, /environment: npm-production/);
+  assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/);
+  assert.doesNotMatch(workflow, /id-token: write|--trusted-publishing/);
+
+  assert.match(releaseSkill, /EXISTING_RELEASE_PATH/);
+  assert.match(
+    releaseSkill,
+    /gh run list --workflow release\.yml --status success --limit 1/,
+  );
+  assert.match(
+    releaseSkill,
+    /通过 GitHub Actions 发布[^\n]+不等于[^\n]+OIDC\/Trusted Publishing/,
+  );
+
+  const npmCommand = commands.match(
+    /## `\/发布NPM`([\s\S]*?)(?=\n## `\/发布NPM测试版`)/,
+  )?.[1];
+  assert.ok(npmCommand, "the /发布NPM command contract must exist");
+  assert.match(npmCommand, /EXISTING_RELEASE_PATH/);
+  assert.match(npmCommand, /npm-production/);
+  assert.match(npmCommand, /NPM_TOKEN/);
+  assert.doesNotMatch(npmCommand, /通过 OIDC|60 秒硬目标/);
+});
+
 test("runtime workflow uses deterministic release notes fallback", () => {
   const workflow = readFileSync(
     new URL(

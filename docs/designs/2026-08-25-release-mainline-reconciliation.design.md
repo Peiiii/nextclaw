@@ -65,7 +65,7 @@ NextClaw 正式发布从隔离 worktree 或 GitHub Actions 推进远程 `master`
 
 ## 自动化与观测
 
-新增 `pnpm release:reconcile:mainline`。所有正式 NPM、Runtime、Desktop 和全平台发布的本地编排在远程完成门之后调用它；开发 Delivery 在本地主线写入前后也调用同一个 owner。一次调用先同步执行远程闭合；只有物理 worktree 因活跃编辑无法更新时，才派生单例 retry worker。worker 默认持续运行到同步成功，PID、目标 SHA、最近状态和日志保存在 common Git dir 下，重复触发复用同一实例；机器重启后由下一次开发/发布入口幂等恢复，不依赖用户操作。脚本输出稳定的 `nextclaw.release-mainline-reconciliation/v1` JSON，至少包含：
+新增 `pnpm release:reconcile:mainline`。所有正式 NPM、Runtime、standalone Desktop 和 GitHub Actions 全平台父 workflow 都在远程完成门之后调用它；开发 Delivery 在本地主线写入前后也调用同一个 owner。一次调用先同步执行远程闭合；只有物理 worktree 因活跃编辑无法更新时，才派生单例 retry worker。worker 默认持续运行到同步成功，PID、目标 SHA、最近状态和日志保存在 common Git dir 下，重复触发复用同一实例；机器重启后由下一次开发/发布入口幂等恢复，不依赖用户操作。脚本输出稳定的 `nextclaw.release-mainline-reconciliation/v1` JSON，至少包含：
 
 - 开始、结束和 wall time；
 - 初始/最终本地与远程 SHA；

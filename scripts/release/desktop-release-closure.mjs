@@ -190,6 +190,11 @@ async function waitForWorkflowSuccess(options, runEntry) {
     }
     await sleep(runDelayMs);
   }
+  try {
+    run("gh", ["run", "cancel", String(runId), "--repo", repo]);
+  } catch (error) {
+    console.warn(`[desktop:release] failed to cancel timed-out workflow ${runId}: ${error instanceof Error ? error.message : error}`);
+  }
   throw new Error(`Timed out waiting for workflow success: ${runEntry.url ?? runId}`);
 }
 

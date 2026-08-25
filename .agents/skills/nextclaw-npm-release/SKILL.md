@@ -32,9 +32,16 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - “发 NPM”、`/发布NPM`：dispatch `release.yml` 的 `target=npm`，只闭合 stable NPM，完成点 `NPM_READY`。
 - “发 NPM beta”、`/发布NPM测试版`：`pnpm release:npm:beta`，只闭合 beta NPM，完成点 `NPM_READY (channel: beta)`。
 - “发布 NextClaw 正式版”、`/发布NextClaw正式版`：dispatch `release.yml` 的 `target=product`，先报告 `NPM_READY`，再闭合 runtime/product，完成点 `NEXTCLAW_STABLE_READY`；desktop 明确排除。
-- “发布 NextClaw 全平台版”先完成上述常规 stable，再由 Delivery 转交 desktop owner；本 skill 不直接拥有 desktop。
+- “发布 NextClaw 全平台版”单次 dispatch `release.yml` 的 `target=all`；父 workflow 在常规 stable 成功后调用 desktop owner，最终报告 `ALL_PLATFORMS_READY`。Delivery 只触发和监控，不在本地编排阶段。
 
-发布开始先报告版本变化包数、实际 NPM 上传包数、验证闭包和排除表面。每个不可逆阶段使用 checkpoint；下游失败只恢复未完成阶段。
+发布开始先报告 `EXISTING_RELEASE_PATH`，再报告版本变化包数、上传包数、验证闭包和排除表面：
+
+- 读取正式 owner `.github/workflows/release.yml`，按实际 environment、secret 和 publish command 判断入口与认证，禁止从旧文档、记忆或迁移方案反推现状。
+- 用 `gh run list --workflow release.yml --status success --limit 1` 查最近成功 run；已有生产证据时复用同一 workflow、认证和恢复合同，只有实证失效才讨论重建或迁移。
+- 用 `npm view`、`gh release view` 和公开 manifest 判断目标 identity；已成立阶段只恢复/复用，不得重发。
+- 输出 workflow、observed auth mode、latest successful run URL、reusable、evidence gap。远端暂不可读只标 gap，不得把未知说成未实现。
+
+每个不可逆阶段使用 checkpoint；下游失败只恢复未完成阶段。
 
 ## 默认版本级别
 
@@ -42,10 +49,12 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - 批次包含明显的向后兼容新能力时选择 `minor`，只有修复、润色和内部调整时选择 `patch`；现有 changeset 只是输入，不替代这个整体判断。
 - 其余 workspace package 不逐包做语义版本裁决，按依赖闭包和 changeset 跟随发布；确定 `minor` 后只需把一个代表性 changeset 中的 `nextclaw` bump 提升为 `minor`。
 
-Stable NPM-only 与常规 stable 产品的正式入口统一为 GitHub Actions `release.yml`，分别使用 `target=npm|product`；Beta NPM-only 仍使用 `pnpm release:npm:beta`。本地 `release:npm:stable`、`release:product:stable`、旧 `release:stable`、`release:beta:npm` 与 full-beta `release:beta` 保留为 dry-run、诊断、兼容和恢复原语；仅 channel 用 `release:beta:runtime` / `release:stable:runtime`。恢复已发布 stable 时使用 `release:stable -- --resume-from <git|runtime|install> --version <version>`，不得重复 publish。
+Stable NPM-only、常规产品与全平台正式入口统一为 GitHub Actions `release.yml`，分别使用 `target=npm|product|all`；Beta NPM-only 仍使用 `pnpm release:npm:beta`。本地 `release:npm:stable`、`release:product:stable`、旧 `release:stable`、`release:beta:npm` 与 full-beta `release:beta` 保留为 dry-run、诊断、兼容和恢复原语；仅 channel 用 `release:beta:runtime` / `release:stable:runtime`。恢复已发布 stable 时使用 `release:stable -- --resume-from <git|runtime|install> --version <version>`，不得重复 publish。
 
 Stable 正式发布采用 ahead-of-window prepare/publish 两阶段实现，但用户语义仍只有一个“发布 NPM”。release-bearing `master` push 后由 `npm-release-prepare` workflow 为 exact commit 自动执行 version、strict validation、pack 与 artifact 导出；delivery 在交付这类 commit 时等待 workflow artifact 成立，不能等用户发出发布命令后再做分钟级准备。用户授权发布后 dispatch `release.yml`；它在 GitHub-hosted runner 消费 HEAD 对应成功 artifact，缺失/失效时快速失败，绝不回退旧慢链路。prepare 不写 NPM/Git；`NPM_READY` 由逐包 identity、空缓存公网精确 payload 审计和 Git 闭环事实决定。60 秒是包含 artifact 定位/下载的性能观测目标，不是正确性门；未达目标必须输出阶段计时并进入复盘，但不得把已经成立的发布事实判成失败或诱发重复 publish。
 
 GitHub Actions stable 正式入口只使用已经真实验收的认证路径；当前由 `npm-production` environment 中的受控 `NPM_TOKEN` 发布。Trusted Publishing 是独立迁移工程：npm 按 package 配置且保存时不验证，只有全部发布包完成配置、至少一次真实 canary publish 和 registry identity 验证后，才能在同一变更中切换 workflow 默认值；不得把未验收 OIDC 直接设为正式发布前置。传统 token 的任何 auth/permission 结论必须先解析并报告实际 userconfig，再用同一配置运行 `npm whoami`；项目根 `.npmrc` 存在时，默认 `~/.npmrc` 的 401/404 不是 token 失效证据。publish 成功能力与 dist-tag 删除等 package-setting 强认证能力分别判断，不得混为一个“没有 NPM 权限”。
+
+“通过 GitHub Actions 发布”不等于“使用 OIDC/Trusted Publishing 认证”。两者分别从 workflow 取证；不得因 Trusted Publishing 未迁移而误判 GitHub 发布未实现。
 
 最终报告 package/version/dist-tag、workflow、manifest、真实安装证据、分支闭合和残余 WIP。

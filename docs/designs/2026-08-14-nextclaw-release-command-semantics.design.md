@@ -156,7 +156,7 @@ NPM 最小安全门禁
 
 固定语义：
 
-> 先完成 `/发布NextClaw正式版`，再以同一已发布 stable identity 完成 `/发布NextClaw桌面版`。
+> 从远程 `master` 单次 dispatch GitHub Actions `release.yml target=all`；父 workflow 依次完成常规 stable 与同一 identity 的 Desktop，不由 AI 或本地命令编排阶段。
 
 阶段反馈：
 
@@ -168,6 +168,8 @@ NPM_READY
 ```
 
 如果 desktop 失败，常规正式版状态不回退；最终报告必须写成“NextClaw stable 已完成，desktop 未完成”，不能笼统宣称整个发布失败或重复前序阶段。
+
+GitHub Actions 是全平台状态机 owner：Delivery 只触发并监控父 run；failed-job rerun 从未完成阶段恢复，完整重跑也必须复用已成立的 NPM/runtime identity。
 
 ## 五、自然语言等价表达
 

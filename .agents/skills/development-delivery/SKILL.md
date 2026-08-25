@@ -55,7 +55,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 每次 release/deploy 从进入交付阶段起使用 `development-task-telemetry` 记录阶段边界、wall time、外部等待、失败重试和人工/自动边界；专项发布器或 workflow 还必须输出稳定 schema 的机器可读观测，至少包含总 wall time、各阶段/各 job 起止与耗时、最慢 step、外部等待和重试/失败。失败路径同样保留已完成阶段，恢复必须沿用同一发布 identity 和观测链；最终在迭代记录与交付摘要中报告实测总耗时、最慢阶段和可执行提效项，不以估算替代。
 - 清晰自然语言与 `commands/commands.md` 中对应的中文发布命令等价；执行前用一句话复述包含项、排除项和第一个完成点。
 - “发布 NPM”只进入 NPM package owner；“发布 NextClaw 正式版”包含 NPM 与常规 runtime/product closure，但不包含 desktop；只有“桌面版”或“全平台版”才授权 desktop。
-- 全平台发布按阶段顺序路由：当前 owner 完成并形成状态后再进入下一个 owner，不同时加载或并行触发 NPM 与 desktop 发布。
+- 全平台发布只 dispatch 一次 `release.yml target=all`，由 GitHub Actions 按 NPM、Runtime、Desktop 顺序调用既有 owner；Delivery 只监控父 workflow，不在本地或 AI 会话中拼接阶段，也不并行触发 NPM 与 desktop。
 - 上下文不能确定对象时只问一个短问题；存在“只、仅、不包含”等限制词时以更窄授权为准。
 
 ## 外部动作

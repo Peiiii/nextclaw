@@ -4,19 +4,11 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
-import {
-  assertReleaseIsDraft,
-  createDraftRelease,
-  dispatchReleaseWorkflow
-} from "./desktop-release-github.mjs";
-import { assertDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
+import { assertReleaseIsDraft, createDraftRelease, dispatchReleaseWorkflow } from "./desktop-release-github.mjs";
+import { assertDesktopGithubReleaseNotes, buildDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
 import { assertPublishedDesktopRuntimeIdentity, runRemotePreflight } from "./desktop-release-preflight.mjs";
 import { reconcileReleaseMainline } from "./reconcile-release-mainline.mjs";
-import {
-  createReleaseWorktree,
-  installReleaseWorktreeDependencies,
-  runReleaseWorktreePackageVerify
-} from "./desktop-release-worktree.mjs";
+import { createReleaseWorktree, installReleaseWorktreeDependencies, runReleaseWorktreePackageVerify } from "./desktop-release-worktree.mjs";
 
 const ROOT_DIR = process.cwd();
 const DEFAULT_REPO = "Peiiii/nextclaw";
@@ -24,7 +16,7 @@ const DEFAULT_PREFLIGHT_WORKFLOW = "desktop-release-preflight.yml";
 const DEFAULT_WORKFLOW = "desktop-release.yml";
 const DEFAULT_PUBLIC_ATTEMPTS = 24;
 const DEFAULT_PUBLIC_DELAY_MS = 10000;
-const DEFAULT_RUN_ATTEMPTS = 150;
+const DEFAULT_RUN_ATTEMPTS = 720;
 const DEFAULT_RUN_DELAY_MS = 10000;
 const CHANNELS = new Set(["beta", "stable"]);
 const RELEASE_SENSITIVE_PATHS = [
@@ -39,7 +31,8 @@ const RELEASE_SENSITIVE_PATHS = [
 ];
 
 function printHelp() {
-  console.log(`
+  console.log(
+    `
 Usage:
   pnpm release:desktop:beta -- [options]
   pnpm release:desktop:stable -- [options]
@@ -56,7 +49,7 @@ Options:
   --preflight-workflow <file>     Desktop release preflight workflow. Defaults to ${DEFAULT_PREFLIGHT_WORKFLOW}
   --workflow <file>               Desktop release workflow. Defaults to ${DEFAULT_WORKFLOW}
   --target <git-ref>              Release target. Defaults to the current HEAD SHA
-  --notes-file <path>             GitHub-ready bilingual release body file (required for stable)
+  --notes-file <path>             Override the stable GitHub body; defaults to exact-version structured release notes
   --release-notes-url <url>       User-facing release notes URL expected in update manifests
   --run-id <id>                   Reuse a known desktop-release run
   --reuse-existing-release        Do not create the GitHub release; verify/close an existing tag
@@ -68,7 +61,8 @@ Options:
                                   This also requires a fully clean tracked worktree.
   --dry-run                       Print planned actions without mutating remote state
   --help                          Show this help
-`.trim());
+`.trim()
+  );
 }
 
 function parseArgs(argv) {
@@ -233,9 +227,7 @@ function assertCleanWorktree(options) {
           `[desktop:release] ignoring unrelated tracked worktree changes; release uses committed target ${target ?? "HEAD"}:\n${trackedChanges.join("\n")}`
         );
       } else if (dryRun) {
-        console.warn(
-          `[desktop:release] dry-run continuing with release-sensitive tracked worktree changes:\n${sensitiveChanges.join("\n")}`
-        );
+        console.warn(`[desktop:release] dry-run continuing with release-sensitive tracked worktree changes:\n${sensitiveChanges.join("\n")}`);
       } else {
         throw new Error(
           [
@@ -251,14 +243,10 @@ function assertCleanWorktree(options) {
       console.warn("[desktop:release] dry-run continuing with tracked worktree changes.");
       return;
     }
-    throw new Error(
-      `Desktop release requires no tracked worktree changes. Commit or stash these first:\n${trackedChanges.join("\n")}`
-    );
+    throw new Error(`Desktop release requires no tracked worktree changes. Commit or stash these first:\n${trackedChanges.join("\n")}`);
   }
   if (untrackedChanges.length > 0) {
-    console.warn(
-      `[desktop:release] ignoring untracked files; they will not be included in the release:\n${untrackedChanges.join("\n")}`
-    );
+    console.warn(`[desktop:release] ignoring untracked files; they will not be included in the release:\n${untrackedChanges.join("\n")}`);
   }
 }
 
@@ -301,41 +289,64 @@ function readMinimumLauncherVersion(channel) {
 }
 
 function buildTagPrefix(channel, runtimeVersion) {
-  return channel === "beta"
-    ? `v${runtimeVersion}-desktop-beta.`
-    : `v${runtimeVersion}-desktop.`;
+  return channel === "beta" ? `v${runtimeVersion}-desktop-beta.` : `v${runtimeVersion}-desktop.`;
 }
 
 function readNextTag(channel, runtimeVersion) {
   const prefix = buildTagPrefix(channel, runtimeVersion);
   const output = run("git", ["ls-remote", "--tags", "origin", `refs/tags/${prefix}*`]);
-  const nextNumber = output
-    .split("\n")
-    .map((line) => line.trim().split(/\s+/)[1] ?? "")
-    .map((ref) => ref.replace(/^refs\/tags\//, "").replace(/\^\{\}$/, ""))
-    .map((tag) => Number(tag.startsWith(prefix) ? tag.slice(prefix.length) : NaN))
-    .filter(Number.isInteger)
-    .reduce((max, value) => Math.max(max, value), 0) + 1;
+  const nextNumber =
+    output
+      .split("\n")
+      .map((line) => line.trim().split(/\s+/)[1] ?? "")
+      .map((ref) => ref.replace(/^refs\/tags\//, "").replace(/\^\{\}$/, ""))
+      .map((tag) => Number(tag.startsWith(prefix) ? tag.slice(prefix.length) : NaN))
+      .filter(Number.isInteger)
+      .reduce((max, value) => Math.max(max, value), 0) + 1;
   return `${prefix}${nextNumber}`;
 }
 
 function buildReleaseNotes(options) {
   const { channel, desktopVersion, minimumLauncherVersion, notesFile, runtimeVersion } = options;
   if (notesFile) {
-    return readFileSync(resolve(ROOT_DIR, notesFile), "utf8");
+    return {
+      notes: readFileSync(resolve(ROOT_DIR, notesFile), "utf8"),
+      structuredReleaseNotesPath: null
+    };
   }
 
   if (channel === "beta") {
-    return [
-      `NextClaw Desktop preview build for runtime ${runtimeVersion}.`,
-      "",
-      "- Includes desktop installers, portable Windows builds, update bundles, and beta update manifests.",
-      `- Desktop app version: ${desktopVersion}`,
-      `- Runtime bundle version: ${runtimeVersion}`,
-      `- Minimum launcher version: ${minimumLauncherVersion}`
-    ].join("\n");
+    return {
+      notes: [
+        `NextClaw Desktop preview build for runtime ${runtimeVersion}.`,
+        "",
+        "- Includes desktop installers, portable Windows builds, update bundles, and beta update manifests.",
+        `- Desktop app version: ${desktopVersion}`,
+        `- Runtime bundle version: ${runtimeVersion}`,
+        `- Minimum launcher version: ${minimumLauncherVersion}`
+      ].join("\n"),
+      structuredReleaseNotesPath: null
+    };
   }
-  throw new Error("Stable desktop release requires --notes-file with a GitHub-ready bilingual release body.");
+
+  const structuredReleaseNotesPath = `apps/docs/public/release-notes/nextclaw-v${runtimeVersion}.json`;
+  const rawStructuredReleaseNotes = readTargetFile(options.target, structuredReleaseNotesPath);
+  if (!rawStructuredReleaseNotes) {
+    throw new Error(`Stable desktop release target ${options.target} is missing ${structuredReleaseNotesPath}.`);
+  }
+  let metadata;
+  try {
+    metadata = JSON.parse(rawStructuredReleaseNotes);
+  } catch (error) {
+    throw new Error(`Invalid structured release notes at ${options.target}:${structuredReleaseNotesPath}: ${error instanceof Error ? error.message : error}`);
+  }
+  return {
+    notes: buildDesktopGithubReleaseNotes({
+      expectedVersion: runtimeVersion,
+      metadata
+    }),
+    structuredReleaseNotesPath
+  };
 }
 
 function runLocalVerify(options) {
@@ -376,17 +387,7 @@ function pushBranchIfNeeded(branch, aheadCount, options) {
 }
 
 function printPlan(options, aheadCount) {
-  const {
-    branch,
-    channel,
-    desktopVersion,
-    minimumLauncherVersion,
-    releaseNotesUrl,
-    releaseWorktree,
-    runtimeVersion,
-    tag,
-    target
-  } = options;
+  const { branch, channel, desktopVersion, minimumLauncherVersion, releaseNotesUrl, releaseWorktree, runtimeVersion, tag, target } = options;
   console.log(
     [
       `[desktop:release] channel=${channel}`,
@@ -424,9 +425,7 @@ async function executeRelease(options, aheadCount) {
   } else if (!runId) {
     assertReleaseIsDraft(options);
   }
-  const workflowDispatch = runId
-    ? {}
-    : dispatchReleaseWorkflow(options);
+  const workflowDispatch = runId ? {} : dispatchReleaseWorkflow(options);
   await waitForDesktopReleaseClosure({ ...options, ...workflowDispatch });
   const mainlineReconciliation = reconcileReleaseMainline({
     rootDir: ROOT_DIR,
@@ -461,11 +460,14 @@ async function main() {
     explicitReleaseNotesUrl: options.releaseNotesUrl,
     readTargetFile
   });
-  options.releaseNotes = buildReleaseNotes(options);
+  const releaseNotes = buildReleaseNotes(options);
+  options.releaseNotes = releaseNotes.notes;
+  options.structuredReleaseNotesPath = releaseNotes.structuredReleaseNotesPath;
   assertDesktopGithubReleaseNotes({
     channel: options.channel,
     notes: options.releaseNotes,
-    notesFile: options.notesFile
+    notesFile: options.notesFile,
+    structuredReleaseNotesPath: options.structuredReleaseNotesPath
   });
 
   fetchReleaseRefs(options.branch);

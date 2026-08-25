@@ -17,7 +17,7 @@
 2. 核心发布不调用任何大模型，AI Token 消耗为零；认证用的 GitHub/OIDC 临时凭据和签名私钥不计作 AI Token。
 3. `npm` 完成点仍是 `NPM_READY`；`product` 在此基础上闭合 stable Runtime 和旧版本升级，完成点仍是 `NEXTCLAW_STABLE_READY`。
 4. 高质量双语更新笔记、博客、官网与 X 内容是同一 release identity 的异步增强状态。它们可以在核心发布前准备，也可以在核心发布后补齐；失败不得重复或回滚已经成立的 NPM publish。
-5. Desktop 保持独立发布对象。其跨平台构建仍完全由 Actions 执行，但 stable Desktop 继续要求增强后的双语说明，不因本次改造降低用户可见发布质量。
+5. Desktop 保持独立发布 identity 与子 workflow，但全平台 stable 由 `release.yml target=all` 在 Runtime 成功后自动创建 Draft、触发 Desktop、等待公开投影并汇总；stable Desktop 的双语说明由结构化 release-notes JSON 确定性生成，不依赖本地临时文件或 AI。
 
 ## 二、当前链路证据
 
@@ -26,7 +26,7 @@
 ```text
 master push
   -> npm-release-prepare（exact SHA version/build/tsc/lint/pack artifact）
-  -> release.yml target=npm|product [environment: npm-production]
+  -> release.yml target=npm|product|all [environment: npm-production]
      -> environment NPM_TOKEN
      -> npm publish prepared tarballs
      -> registry identity + cold tarball audit
@@ -36,7 +36,7 @@ master push
         -> previous stable update smoke
 ```
 
-Desktop 是“本地命令建 release identity 并等待，Actions 负责远端 preflight、多平台 installer、assets、manifest、APT 和公开验证”。文档站也已有独立 Actions 部署。`0.43.0` 的产品与 Desktop 正式版已经分别通过上述 owner 完成生产验收。
+Desktop 的五平台 installer、assets、manifest、APT 和公开验证已经由 `desktop-release.yml` 拥有；此前只有 Draft 创建、子 workflow dispatch 与 closure wait 留在本地 CLI。全平台自动化把该 CLI 移入 `release.yml` 的 Desktop job，使一次 `target=all` dispatch 在 GitHub Runner 内完成全部状态迁移。文档站继续由独立 Actions 部署。`0.43.0` 的产品与 Desktop 正式版已经分别通过这些 owner 完成生产验收。
 
 ## 三、候选方案
 
@@ -57,7 +57,7 @@ Desktop 是“本地命令建 release identity 并等待，Actions 负责远端 
 `.github/workflows/release.yml` 是正式 stable 发布生命周期的唯一生产 owner。它只编排状态和权限，不复制 package、manifest、签名或平台构建算法：
 
 ```text
-workflow_dispatch(master, target=npm|product)
+workflow_dispatch(master, target=npm|product|all)
   -> preflight
      -> 确认 master/exact SHA/prepared artifact/非 Changesets pre mode
   -> publish-npm [environment: npm-production]
@@ -66,13 +66,19 @@ workflow_dispatch(master, target=npm|product)
      -> registry identity + cold tarball audit
      -> release commit/package tags/atomic push
      -> NPM_READY
-  -> publish-runtime（仅 product 且 batch 包含 nextclaw）
+  -> publish-runtime（product/all 且 batch 包含 nextclaw）
      -> dispatch/wait npm-runtime-update-release
      -> GitHub Release/assets/gh-pages/public manifests
      -> previous stable update smoke
      -> NEXTCLAW_STABLE_READY
+  -> publish-desktop（仅 all，且 Runtime 成功）
+     -> 从结构化 release-notes JSON 生成双语 GitHub body
+     -> release:desktop:stable（运行在 GitHub Runner）
+     -> signing preflight -> hidden Draft -> desktop-release child workflow
+     -> five-platform assets/manifests/APT/public projection closure
+     -> DESKTOP_READY
   -> summarize（always）
-     -> 分别报告 CORE_RELEASED / CONTENT_PENDING|CONTENT_READY
+     -> 分别报告 NPM_READY / NEXTCLAW_STABLE_READY / DESKTOP_READY / ALL_PLATFORMS_READY
 ```
 
 脚本职责保持如下：
@@ -82,6 +88,7 @@ workflow_dispatch(master, target=npm|product)
 - `release-stable-git`：release commit、package tag 和 branch closure owner。
 - `npm-runtime-update-release`：Runtime bundle、GitHub Release assets 和公开 channel owner。
 - `release.yml`：正式生产阶段顺序、job 权限、environment 审批和最终状态 owner。
+- `release-desktop`：Desktop Draft、子 workflow correlation 与 closure owner；本地和 Actions 入口复用同一脚本，不再由 AI 拼接阶段。
 
 本地 `release:npm:stable` / `release:product:stable` 不删除，避免破坏恢复能力；文档与项目命令把普通正式发布入口改为 GitHub Actions，本地直发只保留为 recovery/诊断路径。
 
@@ -135,9 +142,10 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 
 ## 八、迁移与删除点
 
-首版保留本地命令以支付恢复兼容成本，但删除它作为“推荐正式入口”的文档和命令路由。迁移完成后：
+保留本地命令以支付诊断和恢复兼容成本，但删除它作为“全平台正式发布编排 owner”的文档和命令路由。迁移完成后：
 
 - 推荐 stable 发布：GitHub Actions `release.yml`；
+- 推荐全平台 stable：同一 workflow 的 `target=all`，不再由 AI 顺序触发 product 与 desktop；
 - 本地命令：dry-run、prepared artifact 调试、历史 checkpoint recovery；
 - 不新增第二个 publisher、第二份 manifest 或第二套 tag 规则；
 - 不把 AI API key、模型选择或 prompt 放进核心 workflow。
@@ -153,6 +161,8 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 5. 运行匹配范围的 `tsc`；本次没有 TypeScript 产品合同变化时记录不适用范围，不用 lint 冒充类型证据。
 6. 运行 `release:npm:stable -- --dry-run` 和 workflow contract test；生产验收以 `nextclaw@0.43.0` 正式 run、registry 43/43 identity、Runtime Release 和旧版本升级 smoke 为准。
 7. NPM 时间观测拆分为 precheck、upload、registry verify；Desktop 输出 workflow wall time、每个 job duration 和 slowest step。Desktop 本地闭环的 manifest 与 APT 源事实通过 raw GitHub 单文件 URL 读取，再独立读取 Pages 公网投影；禁止为这两个文件 fetch 仓库。
+8. workflow 合同测试证明 `all` 只在 Runtime 成功后运行 Desktop job，GitHub Runner 使用 closure commit、`actions:write` / `contents:write`，最终 summary 对缺少任一状态 fail closed。
+9. Desktop notes 测试证明显式 `--notes-file` 与结构化 JSON 生成路径都满足中文在前、英文在后、绝对文档链接和无 frontmatter/commit noise 合同。
 
 ## 十、抽象审计与非目标
 
@@ -163,3 +173,64 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 延后：Trusted Publishing 迁移、beta 认证迁移、自动定时发布、AI provider/API 选择、Desktop 在 `CONTENT_PENDING` 时降级发布。这些都有独立安全或产品质量决策，不能借本次可靠性修订提前进入。
 
 非目标：本次不修改 NPM package 内容语义，不改变 package 版本级别决定规则，不降低 Desktop stable 双语说明门禁。
+
+## 十二、全平台单次 Actions 编排
+
+### 能力缺口
+
+用户的“全自动发布”语义是一次 GitHub Actions dispatch 后无人介入，而不是 AI 在本地依次调用两个发布器。此前 NPM/Runtime 与 Desktop 各自自动化，但缺少一个拥有跨阶段状态机的 Actions 外层 owner；AI/Delivery 成了不可观测且不可复用的隐式编排层。
+
+### 选择与边界
+
+选择扩展现有 `release.yml`，不创建第三个 full-release workflow：
+
+- `npm` 保持只发布 NPM；`product` 保持 NPM + Runtime；`all` 复用前两段后追加 Desktop；
+- Desktop job checkout `publish-npm.outputs.closure_commit`，显式绑定 `master` 和 exact SHA；
+- Desktop job 调用现有 `release:desktop:stable` 并允许跳过重复的本地 package verify，因为 child workflow 本身执行正式五平台 build/smoke，且上游 prepared artifact 已完成 package gate；
+- `release-desktop` 在未提供 `--notes-file` 时只允许从 exact target 的 `apps/docs/public/release-notes/nextclaw-v<version>.json` 生成双语正文。JSON 缺失、版本不匹配、任一语言摘要/链接缺失时 fail closed；显式 notes file 继续作为 standalone/recovery 入口；
+- 父 workflow 只编排状态；Desktop 产物仍由 `desktop-release.yml` 单一构建，禁止父 workflow 预构建另一批 installer；
+- failed-job rerun 复用成功的 NPM/Runtime outputs；重新 dispatch 时 publisher 按既有 identity/integrity 幂等恢复，不重复不可变产物。
+
+### 状态与权限
+
+```text
+target=npm     -> NPM_READY
+target=product -> NPM_READY -> NEXTCLAW_STABLE_READY
+target=all     -> NPM_READY -> NEXTCLAW_STABLE_READY -> DESKTOP_READY -> ALL_PLATFORMS_READY
+```
+
+Desktop job 只获得 `actions:write`（dispatch child workflows）和 `contents:write`（Draft/Release）；不接收 `NPM_TOKEN` 或 Desktop signing key。签名 secret 继续只存在于 Desktop preflight/build child workflows。`all` batch 不含 `nextclaw`、Runtime 失败或 Desktop closure 未成立时，summary 必须返回失败，不能以部分成功报告全平台完成。
+
+父子等待采用显式层级预算，避免旧的 25 分钟 CLI 等待与最近一次 24 分钟 Desktop run 几乎贴线：child workflow 的 Draft/build/assets/publication/channel/APT 分别使用 5/45/15/10/15/25 分钟 job timeout，CLI 最长观察 child 120 分钟，父 Desktop job 最长 150 分钟。正常耗时仍由 `nextclaw.desktop-release/v1` 的 wall/job/slowest-step 事实衡量；任一等待预算耗尽时取消精确 child run 并保留可恢复 identity，禁止父 run 失败后子 run 继续推进不可逆公开。
+
+### 抽象审计
+
+保留现有 `release.yml`、`release-desktop.mjs` 和 Desktop child workflow；新增的唯一状态是 `target=all`。结构化 notes 生成是现有 JSON owner 的一个纯函数 consumer，不建立 content service 或第二份 release-note schema。删除的是 AI/本地 Delivery 对全平台阶段顺序的所有权；standalone Desktop 命令只保留窄发布与恢复价值。
+
+## 十一、Reuse-first 主链路感知合同
+
+### 事故证据与不变量
+
+`nextclaw@0.43.0` 已由 `release.yml` 使用 `npm-production/NPM_TOKEN` 完成真实生产发布，但命令总表仍残留“workflow 通过 OIDC”的旧描述。执行者从该 consumer 进入后，把尚未迁移的 Trusted Publishing 误判成“GitHub 发布尚未实现”，重复调查并尝试替换已经跑通的主链路。
+
+必须成立的不变量是：讨论发布实现、认证故障或迁移前，先证明仓库当前已经如何发布；一个可选认证方案未配置，不得推翻已有 workflow 和成功 run 已经证明的发布能力。
+
+### 单一事实链路
+
+正式执行事实仍只归 `.github/workflows/release.yml`。发布 skill 和项目命令不再独立声明候选实现，而是按以下顺序建立 `EXISTING_RELEASE_PATH`：
+
+1. 读取 workflow 的 environment、secret 注入和 publish command，区分执行宿主与认证模式；
+2. 查询最近一次 successful `release.yml` run，证明该合同是否经过真实生产验收；
+3. 对目标版本读取 NPM identity、GitHub Release 和 manifest，识别已经成立的不可变阶段；
+4. 默认复用已证明路径，只对缺失阶段执行或恢复；远端查询失败记为 evidence gap，不把未知降格成不存在；
+5. 只有 workflow/run/产物证据证明现行路径失效，才进入修复或 Trusted Publishing 迁移设计。
+
+不新增 capability registry、第二个 preflight service 或复制 workflow 的配置文件。现有 `release-action-environment.test.mjs` 同时锁定 workflow、release skill 和命令总表的认证合同；任一投影再次写成 OIDC、硬 60 秒门槛或遗漏 reuse-first 探测时，CI 直接失败。
+
+### 验证标准
+
+- workflow 继续证明 `npm-production`、`secrets.NPM_TOKEN` 且没有 `id-token: write` / `--trusted-publishing`；
+- NPM release skill 每次 stable 命中都要求输出 `EXISTING_RELEASE_PATH` 和最近成功 run；
+- `/发布NPM`、`/发布NextClaw正式版`、全平台组合入口复用同一证据门；
+- 静态合同测试阻止 workflow、skill 和命令再次漂移；
+- 本修复不改变生产 workflow、NPM identity、认证 secret 或发布权限。
