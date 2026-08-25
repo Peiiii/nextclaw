@@ -6,4 +6,5 @@ NextclawDistributionService.configureRuntime(
   createNextclawDistribution(import.meta.url),
 );
 
-await import("./nextclaw-cli-app.js");
+const { nextclawCliProgram } = await import("./nextclaw-cli-app.js");
+await nextclawCliProgram.parseAsync(process.argv);

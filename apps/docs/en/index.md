@@ -115,7 +115,7 @@ Scheduled tasks cover briefs, checks, and recurring summaries. Channels let requ
   <a class="nc-docs-link" href="/en/guide/troubleshooting"><strong>Troubleshooting</strong><span>Start with runtime status, logs, and connections.</span></a>
   <a class="nc-docs-link" href="/en/guide/configuration"><strong>Configuration</strong><span>Look up complete settings and runtime options.</span></a>
   <a class="nc-docs-link" href="/en/guide/resource-usage"><strong>Runtime resource usage</strong><span>Review the tested VPS baseline, idle memory measurements, and workload boundaries.</span></a>
-  <a class="nc-docs-link" href="/en/guide/commands"><strong>Command index</strong><span>Find terminal usage by command name.</span></a>
+  <a class="nc-docs-link" href="/en/guide/commands"><strong>CLI capability map</strong><span>Browse the complete NextClaw command surface by capability area.</span></a>
   <a class="nc-docs-link" href="/en/notes/"><strong>Product updates</strong><span>See what each version added, improved, and fixed.</span></a>
   <a class="nc-docs-link" href="/en/project/"><strong>Project and community</strong><span>Explore the vision, roadmap, activity, and community.</span></a>
 </div>

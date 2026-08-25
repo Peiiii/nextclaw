@@ -138,7 +138,7 @@ hero:
   <a class="nc-docs-link" href="/zh/guide/troubleshooting"><strong>故障排查</strong><span>从运行状态、日志和连接问题开始定位。</span></a>
   <a class="nc-docs-link" href="/zh/guide/configuration"><strong>配置手册</strong><span>查找完整配置项和运行设置。</span></a>
   <a class="nc-docs-link" href="/zh/guide/resource-usage"><strong>运行资源与内存基准</strong><span>查看 VPS 测试配置、空闲内存数据和活跃任务边界。</span></a>
-  <a class="nc-docs-link" href="/zh/guide/commands"><strong>命令索引</strong><span>按命令名快速查找终端用法。</span></a>
+  <a class="nc-docs-link" href="/zh/guide/commands"><strong>CLI 能力全集</strong><span>按能力域查看 NextClaw 的全部命令行功能。</span></a>
   <a class="nc-docs-link" href="/zh/notes/"><strong>产品更新</strong><span>查看每个版本新增、增强和修复了什么。</span></a>
   <a class="nc-docs-link" href="/zh/project/"><strong>项目与社区</strong><span>查看愿景、路线图、动态和社区入口。</span></a>
 </div>

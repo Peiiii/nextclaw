@@ -53,6 +53,7 @@
 - 同一事实、事件、状态变化或传输语义只保留一个 owner 和一条标准主链路；新增 wrapper、adapter、factory、service、manager 前必须证明它减少真实复杂度或隔离真实变化点。
 - NextClaw 产品语义默认归 kernel owner；service 只承载宿主、进程、升级、远程访问、CLI/daemon 外壳和环境适配，触达产品语义时调用 kernel。
 - `nextclaw` CLI 是一等操作入口；新增或改造用户可用能力时，默认评估并尽可能提供对应命令行入口，持续提高 CLI 能力完整度。纯视觉或直接操控等不适合命令行的体验可明确不适用；CLI 复用对应 owner 的公共 contract，不复制产品语义。
+- 新增、删除或重命名 `nextclaw` CLI 命令时，同步维护文档站中英文 CLI 能力全集 `apps/docs/{zh,en}/guide/commands.md`；命令注册树是事实源，完整覆盖由对应同步测试保证。
 - “平台 SDK 化”是长期伴随式技术目标：触达可复用的 agent、session、runtime、tool、skill、provider 等核心能力时，优先把稳定语义沉淀为 NCP / kernel 公共 contract，并让 NextClaw 自身通过同一入口消费；不为追求导出数量暴露未稳定内部实现，也不为无关产品改动强加 SDK 工作。阶段路线与验收归 `docs/ROADMAP.md`。
 - 业务层传递 owner 或本次调用的数据快照，不把稳定 owner 拆成多层参数、proxy 或同名转发方法。
 - 跨 workspace package 默认只导入 package 根公共入口；仅当宿主/runtime 互操作需要独立双模产物、目标 subpath 已是稳定公共合同且被 package-public-imports 检查显式 allowlist 时例外。禁止其它 `exports` 子路径以及 tsconfig/Vitest/Vite alias 绕过包边界。

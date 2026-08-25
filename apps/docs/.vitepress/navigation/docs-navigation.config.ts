@@ -92,7 +92,7 @@ const enGuideSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Runtime resource usage', link: '/en/guide/resource-usage' },
       { text: 'Troubleshooting', link: '/en/guide/troubleshooting' },
       { text: 'Core commands', link: '/en/guide/core-commands' },
-      { text: 'Command index', link: '/en/guide/commands' },
+      { text: 'CLI capability map', link: '/en/guide/commands' },
       { text: 'Advanced configuration', link: '/en/guide/advanced' },
       { text: 'Resource hub', link: '/en/guide/resources' }
     ]
@@ -168,7 +168,7 @@ const zhGuideSidebar: DefaultTheme.SidebarItem[] = [
       { text: '运行资源与内存基准', link: '/zh/guide/resource-usage' },
       { text: '故障排查', link: '/zh/guide/troubleshooting' },
       { text: '核心命令', link: '/zh/guide/core-commands' },
-      { text: '命令索引', link: '/zh/guide/commands' },
+      { text: 'CLI 能力全集', link: '/zh/guide/commands' },
       { text: '进阶配置', link: '/zh/guide/advanced' },
       { text: '生态资源', link: '/zh/guide/resources' }
     ]
@@ -238,6 +238,7 @@ const enDevelopersSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Overview', link: '/en/developers/' },
       { text: 'Harness API', link: '/en/developers/harness' },
       { text: 'Platform capabilities', link: '/en/developers/platform-capabilities' },
+      { text: 'CLI command reference', link: '/en/guide/commands' },
       { text: 'nextclaw exec', link: '/en/developers/exec' },
       { text: 'Examples', link: '/en/developers/examples' }
     ]
@@ -251,6 +252,7 @@ const zhDevelopersSidebar: DefaultTheme.SidebarItem[] = [
       { text: '概览', link: '/zh/developers/' },
       { text: 'Harness API', link: '/zh/developers/harness' },
       { text: '平台扩展能力', link: '/zh/developers/platform-capabilities' },
+      { text: 'CLI 命令全集', link: '/zh/guide/commands' },
       { text: 'nextclaw exec', link: '/zh/developers/exec' },
       { text: '示例', link: '/zh/developers/examples' }
     ]

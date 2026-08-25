@@ -357,4 +357,4 @@ logs.command("query")
   .action((opts) => runtime.commands.logs.query(opts));
 program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => runtime.commands.usage.show(opts));
 
-await program.parseAsync(process.argv);
+export { program as nextclawCliProgram };
