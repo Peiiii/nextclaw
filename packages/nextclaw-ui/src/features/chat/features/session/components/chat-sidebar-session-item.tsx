@@ -115,12 +115,21 @@ function ChatSidebarSessionDisplayView({
   onStartEditing,
   onTogglePinned
 }: ChatSidebarSessionDisplayViewProps) {
-  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-32' : 'pr-20';
+  const trailingControlsClassName =
+    childSessionCount > 0 && onOpenChildSessions
+      ? 'group-hover/session:pr-32 group-has-[[data-session-actions]:focus-within]/session:pr-32'
+      : 'group-hover/session:pr-20 group-has-[[data-session-actions]:focus-within]/session:pr-20';
 
   return (
     <div className="group/session relative">
       <button type="button" onClick={onSelect} className="w-full text-left">
-        <div className={cn('flex min-h-6 min-w-0 items-center', trailingControlsClassName)}>
+        <div
+          className={cn(
+            'flex min-h-6 min-w-0 items-center',
+            runStatus && 'pr-6',
+            trailingControlsClassName,
+          )}
+        >
           <span className="flex min-w-0 items-center gap-1.5">
             {agentId?.trim() && agentId.trim().toLowerCase() !== 'main' ? (
               <AgentAvatar
@@ -184,7 +193,10 @@ function ChatSidebarSessionDisplayView({
           <SessionRunBadge status={runStatus} />
         </span>
       ) : null}
-      <div className="pointer-events-none absolute right-0 top-0 flex h-6 items-center gap-0.5 opacity-0 transition-opacity group-hover/session:pointer-events-auto group-hover/session:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100">
+      <div
+        data-session-actions
+        className="pointer-events-none absolute right-0 top-0 flex h-6 items-center gap-0.5 opacity-0 transition-opacity group-hover/session:pointer-events-auto group-hover/session:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+      >
         <IconActionButton
           size="sm"
           tone="strong"

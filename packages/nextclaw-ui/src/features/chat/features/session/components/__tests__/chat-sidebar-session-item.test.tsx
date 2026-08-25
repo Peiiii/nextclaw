@@ -54,12 +54,19 @@ beforeEach(() => {
 it('shows session actions only on hover or when an action owns focus', () => {
   screen.getByText('Current Task').closest('button')?.focus();
   const actions = screen.getByLabelText('Pin session').parentElement;
+  const titleRow =
+    screen.getByText('Current Task').parentElement?.parentElement;
 
   expect(actions?.className).toContain('opacity-0');
   expect(actions?.className).toContain('group-hover/session:opacity-100');
   expect(actions?.className).toContain('focus-within:opacity-100');
   expect(actions?.className).not.toContain(
     'group-focus-within/session:opacity-100',
+  );
+  expect(titleRow?.classList.contains('pr-20')).toBe(false);
+  expect(titleRow?.className).toContain('group-hover/session:pr-20');
+  expect(titleRow?.className).toContain(
+    'group-has-[[data-session-actions]:focus-within]/session:pr-20',
   );
   expect(screen.getByRole('button', { name: 'More actions' })).toBeTruthy();
 });
