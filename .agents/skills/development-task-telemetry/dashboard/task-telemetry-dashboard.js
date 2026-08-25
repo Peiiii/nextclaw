@@ -66,6 +66,11 @@ const phaseLabels = {
   delivery: "交付",
   retrospective: "复盘",
 };
+const taskTypeLabels = {
+  bugfix: "Bug 修复",
+  feature: "功能",
+  "small-change": "琐碎改动",
+};
 
 let currentSnapshot = null;
 let selectedTaskId = null;
@@ -173,7 +178,7 @@ function renderTaskTable(tasks) {
       "empty-table-cell",
       "还没有完整的开发任务标记。",
     );
-    cell.colSpan = 6;
+    cell.colSpan = 7;
     row.append(cell);
     elements.taskTableBody.append(row);
     renderTaskDetail(null);
@@ -218,6 +223,7 @@ function renderTaskTable(tasks) {
     tokenCell.title = `${formatExact(task.total_usage.total_tokens)} Token`;
     row.append(
       taskCell,
+      makeElement("td", "", taskTypeLabels[task.type] ?? "历史未知"),
       statusCell,
       tokenCell,
       makeElement("td", "", formatPercent(task.mechanical_coverage)),

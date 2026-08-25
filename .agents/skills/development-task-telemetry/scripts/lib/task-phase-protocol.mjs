@@ -9,6 +9,7 @@ export const PHASES = [
   "retrospective",
 ];
 export const STATUSES = ["completed", "blocked", "cancelled", "failed"];
+export const TASK_TYPES = ["feature", "bugfix", "small-change"];
 export const USAGE_KEYS = [
   "input_tokens",
   "cached_input_tokens",
@@ -22,13 +23,14 @@ const TASK_ID_PATTERN = "[a-z0-9][a-z0-9_-]{5,31}";
 const TASK_NAME_PATTERN = '[^"\\r\\n\\]]{1,64}';
 const PHASE_PATTERN = PHASES.join("|");
 const STATUS_PATTERN = STATUSES.join("|");
+const TASK_TYPE_PATTERN = TASK_TYPES.join("|");
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 const START = new RegExp(
-  `^\\[${escapeRegExp(PROTOCOL)} task=start id=(${TASK_ID_PATTERN})(?: name="(${TASK_NAME_PATTERN})")? phase=(${PHASE_PATTERN})\\]$`,
+  `^\\[${escapeRegExp(PROTOCOL)} task=start id=(${TASK_ID_PATTERN})(?: name="(${TASK_NAME_PATTERN})")?(?: type=(${TASK_TYPE_PATTERN}))? phase=(${PHASE_PATTERN})\\]$`,
 );
 const JOIN = new RegExp(
   `^\\[${escapeRegExp(PROTOCOL)} task=join id=(${TASK_ID_PATTERN}) phase=(${PHASE_PATTERN})\\]$`,
@@ -83,7 +85,8 @@ function parseMarkerFromText(text) {
       action: "start",
       taskId: match[1],
       taskName: match[2] ?? null,
-      phase: match[3],
+      taskType: match[3] ?? null,
+      phase: match[4],
       raw,
     };
   }

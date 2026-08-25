@@ -2,7 +2,7 @@
 
 ## 文档状态
 
-- 状态：设计完成；已按可插拔约束更新并重新通过两轮 Review
+- 状态：设计完成；2026-08-25 补充任务类型合同
 - 日期：2026-08-14
 - 上游设计：[开发 Skill 生命周期重构设计](./2026-08-14-development-skill-lifecycle.design.md)
 - 目标：在不依赖 Codex App metadata、数据库或常驻服务，且不为 marker 增加专用模型轮次的前提下，用可见、可解析的英文文本标记为开发任务和生命周期阶段建立稳定边界，并从现有 rollout 中按需统计 Token 消耗。
@@ -41,7 +41,7 @@ AI 只声明任务和阶段边界，不自报 Token、耗时、成本或质量�
 3. **单一事实源**：rollout usage 是资源消耗事实；marker 只提供归属边界。
 4. **失败关闭**：无法确定归属时进入 `unattributed`，不得用语义猜测补齐。
 5. **阶段可回退**：阶段是可重复 Span，不是假设单向瀑布。
-6. **轻量优先**：首期不建设数据库、daemon、仪表盘、自动路由器或综合评分。
+6. **轻量优先**：不建设数据库、daemon、自动路由器或综合评分；本地大盘只投影确定性报告。
 7. **可见即规范**：用户可以看到当前阶段，AI 也必须公开声明真实的 lifecycle owner 切换。
 8. **能力可插拔**：生命周期只暴露稳定阶段状态；marker 协议、解析器和报告作为独立扩展整体启停，禁用后不改变生命周期的阶段判断与完成门。
 
@@ -50,6 +50,7 @@ AI 只声明任务和阶段边界，不自报 Token、耗时、成本或质量�
 ### 目标
 
 - 为同一会话中的多个任务建立明确边界；
+- 为任务记录稳定的主类型，支持比较不同工作类型的 Token 与阶段分布；
 - 为跨会话、跨子 Agent 的同一任务建立关联；
 - 自动计算任务和阶段级 Token；
 - 正确处理阶段返工、重复 marker、缺失 marker、异常中止和计数器重置；
@@ -62,7 +63,9 @@ AI 只声明任务和阶段边界，不自报 Token、耗时、成本或质量�
 - 不在首期自动选择或切换模型；
 - 不依赖 Codex App、IDE 或模型供应商提供 phase metadata；
 - 不从自然语言自动识别任务或阶段；
-- 不建立长期数据库和可视化平台；
+- 不建立长期数据库或远程可视化平台；
+- 不让任务类型替代风险分级、设计门或阶段判断；
+- 不把 Bug 复现扩展为第八个 phase 或新的 telemetry 字段；复现是 `bugfix` 在 Task Understanding 与 Validation 内部共享的证据活动；
 - 不精确计算 CPU 时间、工具 API 费用或并行关键路径；
 - 不把动态价格查询和账单估算纳入 v1 核心报告；
 - 不用单一综合分替代质量、成本和速度的独立判断；
@@ -119,7 +122,7 @@ Lifecycle observer: development-task-telemetry
 根线程开始或重新打开任务：
 
 ```text
-[nextclaw.dev/v1 task=start id=<task-id> phase=<phase>]
+[nextclaw.dev/v1 task=start id=<task-id> name="<task-name>" type=<task-type> phase=<phase>]
 ```
 
 子线程加入同一任务：
@@ -146,7 +149,7 @@ Lifecycle observer: development-task-telemetry
 [nextclaw.dev/v1 task=end id=<task-id> status=<status>]
 ```
 
-字段顺序固定，不接受自由文本字段，不接受同义写法。
+字段顺序固定，不接受同义写法。`name` 是受长度和字符集约束的展示文本；其它字段均为固定枚举或 ID。
 
 ### 固定枚举
 
@@ -173,7 +176,33 @@ cancelled
 failed
 ```
 
-`task-id` 只允许 6 到 32 位小写 ASCII 字母、数字、下划线和短横线，必须以字母或数字开头。任务名称继续由自然语言表达，不进入 marker。
+`task-type` 只允许：
+
+```text
+feature
+bugfix
+small-change
+```
+
+- `feature`：新增或实质改变用户、开发者或系统可用能力；它改变用户任务，必须经过 Design。
+- `bugfix`：恢复已有合同或预期行为；是否进入 Design 由风险、根因、修复路径和验证判定决定，不能因为修复代码很少就自动跳过，也不能因为属于 Bug 就机械进入 Design。
+- `small-change`：局部、可逆、沿用既有惯例且不改变用户任务或跨层合同的琐碎改动；它只是 Design 可跳过的必要信号之一，仍需同时满足 lifecycle 的全部设计门。
+
+三类按“当前任务的主要意图”互斥归类。优先判断是否恢复既有合同（`bugfix`），再判断是否新增或改变能力（`feature`）；只有两者都不是且满足局部琐碎边界时才使用 `small-change`。类型不是风险等级：三类任务都继续独立标记 L0-L4。
+
+### Bug 修复的复现门
+
+复现是 Bug 修复最强的默认证据，但不是每个 `bugfix` 的强制独立阶段。Task Understanding 必须显式选择 `reproduce` 或 `skip-reproduction`：
+
+- 根因、失败边界或修复后的可观察判定任一不确定时，必须先复现；优先使用低成本的最小复现、边界回放或定向失败测试，不机械追求昂贵端到端环境。
+- 只有直接证据已经同时锁定根因与违约边界，并且存在确定、贴近风险的修后验证时，才可跳过复现；必须记录所依据的证据和修后判定方式。
+- 时间、环境和 Token 成本用于选择最小充分复现层级，或在证据已经充分时支持跳过；不能单独成为“未复现也算验证通过”的理由。
+
+执行过复现时，Validation 必须尽量沿同一入口和观察指标证明“修前失败、修后通过”。跳过复现时，Validation 必须使用预先声明的替代证据证明原合同恢复，并披露没有建立修前失败基线。复现决定不进入 marker：它不改变任务主类型，也不创建新的 lifecycle owner；后续若确实需要统计复现率，再单独版本化扩展协议。
+
+`task-id` 只允许 6 到 32 位小写 ASCII 字母、数字、下划线和短横线，必须以字母或数字开头。`task-name` 建议 8–30 个字符、最多 64 个字符，不含 `"`、`]` 或换行。
+
+新 `task=start` marker 必须同时提供 `name` 和 `type`。解析器继续兼容历史上缺少两者之一的 v1 marker：缺失字段投影为 `null`，大盘显示“历史未知”，不得根据任务名称或阶段反推。任务 reopen 必须复用原名称和类型；发现同一 task-id 的非空类型冲突时保留首次类型并报告数据质量警告。
 
 根线程在第一次 `task=start` 时生成一次非加密短随机 ID，推荐使用 `dt-` 加 8 位小写十六进制字符，例如 `dt-7f3a2c91`。子线程必须从父任务输入中原样复用该 ID，禁止自行重建。ID 只要求在当前 workspace 的可读取 rollout 范围内唯一；发现第二个不同根线程使用相同 ID 时报告冲突。
 
@@ -224,6 +253,7 @@ implementation -> validation -> implementation -> validation -> review
 ### 任务状态
 
 - 一个 `task-id` 只能有一个根线程；
+- 一个任务只有一个主类型，根线程首次 `task=start` 负责声明；子线程继承 task-id，不重复声明或自行分类；
 - 根线程使用 `task=start` 和 `task=end`；
 - 子线程使用 `task=join` 和 `task=leave`；
 - 根线程只有在没有 active child lane 时才能输出 `task=end status=completed`；cancelled、failed 或 blocked 可以先关闭根线程，但仍存活的 child lane 必须进入报告警告并使数据质量为 partial；
@@ -333,6 +363,8 @@ pricing_version
 | 场景                                                       | 处理                                              |
 | ---------------------------------------------------------- | ------------------------------------------------- |
 | 普通阶段前进                                               | 关闭当前 Span，打开新 Span                        |
+| 历史 start marker 缺少 name 或 type                        | 接受并投影为 null，不猜测                         |
+| 同一 task-id reopen 时类型冲突                             | 保留首次非空类型并警告，数据质量 partial          |
 | validation 返回 implementation                             | 允许，生成新的 phase Span                         |
 | 连续重复相同 phase                                         | 幂等忽略并记录重复次数                            |
 | 第一行代码示例含 marker                                    | 只有 active lifecycle 允许 marker；否则忽略并警告 |
@@ -353,6 +385,7 @@ pricing_version
 
 ```text
 Task: 7f3a2c
+Type: feature
 Status: completed
 Data quality: complete
 Mechanical attribution coverage: 100%

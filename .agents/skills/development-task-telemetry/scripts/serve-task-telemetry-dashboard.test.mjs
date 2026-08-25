@@ -42,7 +42,7 @@ function rollout(workspace, threadId, taskId, taskName = "Dashboard test") {
         content: [
           {
             type: "output_text",
-            text: `[nextclaw.dev/v1 task=start id=${taskId} name="${taskName}" phase=implementation] start`,
+            text: `[nextclaw.dev/v1 task=start id=${taskId} name="${taskName}" type=bugfix phase=implementation] start`,
           },
         ],
       },
@@ -167,6 +167,7 @@ test("serves a cached project report and static dashboard", async () => {
     assert.equal(first.meta.parsed_rollout_count, 1);
     assert.equal(first.report.tasks[0].id, "dt-board001");
     assert.equal(first.report.tasks[0].name, "Dashboard test");
+    assert.equal(first.report.tasks[0].type, "bugfix");
     assert.equal(first.report.tasks[0].started_at, "2026-08-15T00:00:02.000Z");
     assert.equal(first.report.tasks[0].total_usage.total_tokens, 140);
 
@@ -178,7 +179,15 @@ test("serves a cached project report and static dashboard", async () => {
     const page = await fetch(running.url);
     assert.equal(page.status, 200);
     assert.match(page.headers.get("content-type"), /^text\/html/);
-    assert.match(await page.text(), /Development Task Telemetry/);
+    const pageText = await page.text();
+    assert.match(pageText, /Development Task Telemetry/);
+    assert.match(pageText, /<th scope="col">类型<\/th>/);
+
+    const dashboardScript = await fetch(
+      `${running.url}/task-telemetry-dashboard.js`,
+    ).then((response) => response.text());
+    assert.match(dashboardScript, /bugfix: "Bug 修复"/);
+    assert.match(dashboardScript, /"small-change": "琐碎改动"/);
   } finally {
     if (server)
       await new Promise((resolvePromise) => server.close(resolvePromise));

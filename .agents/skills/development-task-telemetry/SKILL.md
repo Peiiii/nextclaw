@@ -21,7 +21,7 @@ description: Use when a development task needs visible phase tracing, task-level
 根任务开始：
 
 ```text
-[nextclaw.dev/v1 task=start id=<task-id> name="<task-name>" phase=<phase>]
+[nextclaw.dev/v1 task=start id=<task-id> name="<task-name>" type=<task-type> phase=<phase>]
 ```
 
 子 Agent 加入：
@@ -48,9 +48,9 @@ description: Use when a development task needs visible phase tracing, task-level
 [nextclaw.dev/v1 task=end id=<task-id> status=<status>]
 ```
 
-字段顺序和拼写固定。`phase` 只允许 `task-understanding`、`design`、`implementation`、`validation`、`review`、`delivery`、`retrospective`；`status` 只允许 `completed`、`blocked`、`cancelled`、`failed`。
+字段顺序和拼写固定。`task-type` 只允许 `feature`、`bugfix`、`small-change`，原样记录 lifecycle 已冻结的类型，不自行推断或修正；`phase` 只允许 `task-understanding`、`design`、`implementation`、`validation`、`review`、`delivery`、`retrospective`；`status` 只允许 `completed`、`blocked`、`cancelled`、`failed`。
 
-根任务生成一次 `dt-` 加 8 位小写十六进制 task-id，并在 reopen 时复用。`task-name` 使用能让人直接识别目标的简短名称，建议 8–30 个字符，最多 64 个字符，不含 `"`、`]` 或换行；reopen 时保持原名称。子 Agent 原样复用父任务 ID，禁止自行生成。解析器继续兼容没有 `name` 的历史 `task=start` marker，但新 marker 必须提供名称。
+根任务生成一次 `dt-` 加 8 位小写十六进制 task-id，并在 reopen 时复用。`task-name` 使用能让人直接识别目标的简短名称，建议 8–30 个字符，最多 64 个字符，不含 `"`、`]` 或换行；reopen 时保持原名称和类型。子 Agent 原样复用父任务 ID，禁止自行生成或重新分类。解析器继续兼容缺少 `name` 或 `type` 的历史 `task=start` marker，但新 marker 必须同时提供名称和类型；历史缺失值保持未知，不从自然语言猜测。
 
 每条 assistant 消息首行最多一个 marker。不要在首行示例、引用、用户内容、工具输出或总结中伪造 marker。
 
@@ -62,7 +62,7 @@ description: Use when a development task needs visible phase tracing, task-level
 node .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.mjs --sessions-root ~/.codex/sessions [--thread <thread-id>] [--task <task-id>] [--format json]
 ```
 
-AI 默认用文本结果回答；需要比较、自动化或进一步计算时用 JSON。回答优先给总 Token、阶段占比、模型/effort、调用与工具轮次、耗时、覆盖率和警告。没有 marker 时只报告可观察总量并说明不能可靠分阶段，不让用户补跑命令，不用自然语言猜测缺失数据。
+AI 默认用文本结果回答；需要比较、自动化或进一步计算时用 JSON。回答优先给任务类型、总 Token、阶段占比、模型/effort、调用与工具轮次、耗时、覆盖率和警告。没有 marker 时只报告可观察总量并说明不能可靠分阶段，不让用户补跑命令，不用自然语言猜测缺失数据。
 
 默认仍按需查询，不在每个任务结束时运行报告。用户显式要求“完成后汇报”时，根 AI 在最后一条完成进度首行输出 `task=end`，等该 frame 写入 rollout 后运行脚本，并在最终答复附一段简报；报告边界截止 `task=end`，统计工具和最终简报属于 observer 开销，不递归计入任务。跨线程和子 Agent 复用同一 task-id，由根 AI 汇总一次，子 Agent 不单独刷屏。
 

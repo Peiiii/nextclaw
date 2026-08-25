@@ -38,6 +38,7 @@ export function formatTextReport(report, taskId = null) {
       "",
       `Task: ${task.name ?? "Unnamed task"}`,
       `Task ID: ${task.id}`,
+      `Type: ${task.type ?? "unknown"}`,
       `Status: ${task.status}`,
       `Data quality: ${task.data_quality}`,
       `Mechanical coverage: ${percent(task.mechanical_coverage)}`,

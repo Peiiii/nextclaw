@@ -13,6 +13,7 @@ const PARTIAL_WARNING_CODES = [
   "invalid_marker_position",
   "multiple_markers",
   "state_conflict",
+  "task_type_conflict",
   "root_end_with_active_children",
 ];
 
@@ -35,6 +36,7 @@ class TaskAccumulator {
   constructor(taskId, rootThreadId) {
     this.id = taskId;
     this.name = null;
+    this.type = null;
     this.rootThreadId = rootThreadId;
     this.rootStartCount = 0;
     this.reopenCount = 0;
@@ -149,6 +151,7 @@ class TaskAccumulator {
     return {
       id: this.id,
       name: this.name,
+      type: this.type,
       status: this.status,
       requested_status: this.requestedStatus,
       data_quality: dataQuality,
@@ -320,6 +323,13 @@ export function analyzeParsedRollouts(rollouts) {
       } else {
         task = ensureTask(marker.taskId);
         task.name ??= marker.taskName;
+        if (
+          task.type !== null &&
+          marker.taskType !== null &&
+          task.type !== marker.taskType
+        ) {
+          task.incrementWarning("task_type_conflict");
+        } else task.type ??= marker.taskType;
         task.rootStartCount += 1;
         task.reopenCount = Math.max(0, task.rootStartCount - 1);
         task.status = "incomplete";

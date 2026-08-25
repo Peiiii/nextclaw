@@ -24,6 +24,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 
 同批次收尾补齐了独立于 NextClaw 产品的本地开发任务大盘：根目录命令启动只绑定 `127.0.0.1` 的只读服务，按当前 Git workspace、协议启用日期和增量缓存筛选 Codex rollout，并展示任务、阶段、模型、Token、耗时和数据质量。任务协议新增可读的 `name` 字段，大盘与文本报告均以名称为主、稳定 ID 为辅；历史 marker 保持兼容并明确显示为未命名，不从聊天正文猜测标题。
 
+2026-08-25 同批补充任务类型：lifecycle 在 Task Understanding 冻结 `feature`、`bugfix` 或 `small-change`，telemetry 只记录既有判断；文本报告与本地大盘展示类型，历史 marker 保持未知且不通过名称反推。Design 门同步收敛：功能必须进入 Design；Bug 在根因、修复路径和验证判定明确且满足其余低风险条件时可以跳过；琐碎改动也只有满足完整低风险门才可直接实现。Bug 修复另增加可选复现门：不确定时先做最小充分复现，证据已锁定根因与修后判定时可以显式跳过；时间、环境和 Token 成本只影响复现层级，不能单独降低证明门槛。
+
 设计依据：[`docs/designs/2026-08-14-development-skill-lifecycle.design.md`](../../designs/2026-08-14-development-skill-lifecycle.design.md)。
 
 任务遥测设计依据：[`docs/designs/2026-08-14-development-task-phase-tracing.design.md`](../../designs/2026-08-14-development-task-phase-tracing.design.md)。
@@ -48,6 +50,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 - `node --test .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.test.mjs .agents/skills/development-task-telemetry/scripts/serve-task-telemetry-dashboard.test.mjs`：10 个测试通过，新增覆盖任务名称、历史 marker 兼容、CLI 名称输出、workspace/日期过滤、HTTP 报告和缓存复用。
 - 真实运行 `pnpm development-task-telemetry:dashboard -- --no-open --port 4785`：同一 URL 冷启动成功；大盘在真实 Codex sessions 中匹配当前项目日志并正常刷新。浏览器验收确认名称为主信息、ID 为次级信息、旧任务回退可见、无错误态和横向溢出。
 - `pnpm lint:new-code:governance`、`pnpm check:skill-progressive-loading`、`pnpm check:governance-backlog-ratchet` 和定向 ESLint 全部通过；当前为 37 个 Skill、144775 字节入口正文、4392 字符 description、9202 字节 AGENTS、33 条依赖边。
+- 任务类型补充后，`node --test .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.test.mjs .agents/skills/development-task-telemetry/scripts/serve-task-telemetry-dashboard.test.mjs` 的 11 个测试通过，覆盖三类合法类型、历史缺失类型、reopen 类型冲突、非法类型失败关闭，以及大盘类型列和中文映射；相关脚本定向 ESLint 与 `git diff --check` 通过。
+- `pnpm check:skill-progressive-loading` 再次通过：37 个 Skill、158929 字节入口正文、4392 字符 description、10979 字节 AGENTS、35 条依赖边；`pnpm check:governance-backlog-ratchet` 通过，未扩大治理债务。
 
 本轮没有触达 TypeScript、产品运行链路或 UI 行为，因此 tsc、产品测试和真实产品冒烟不适用。
 
@@ -65,6 +69,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 6. 检查 `autonomous-requirement-discovery` 与 `iterative-quality-convergence`，确认两者保持独立探索入口且 `allow_implicit_invocation: false`，生命周期只把 `development-task-understanding` 作为第一阶段 owner。
 7. 检查 lifecycle 的 observer 路径和 telemetry Skill，确认清空 observer 即可停用；直接向 AI 询问任务统计，确认 AI 自己定位和运行报告；运行报告脚本的 `--help`，确认支持显式 rollout、跨线程日志发现、task 筛选以及 text/json 输出。
 8. 向 AI 说“打开开发任务统计大盘”，确认 AI 启动并返回本地链接；新任务在列表和详情中显示可读名称与次级 ID，旧任务显示“未命名任务”，刷新不会重新全量解析未变化日志。
+9. 启动一个新的功能、Bug 修复或琐碎改动，确认首个 `task=start` marker 包含对应 `type`，文本报告与大盘列表显示“功能 / Bug 修复 / 琐碎改动”；读取历史任务时显示“历史未知”。
+10. 对一个根因不确定的 Bug 确认 Task Understanding 选择最小充分复现，并在 Validation 沿同一入口复验；对根因和修后判定均有直接证据的明显 Bug，确认可以记录依据后跳过修前复现。
 
 ## 可维护性总结汇总
 
@@ -81,6 +87,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 telemetry 首版的自动 maintainability 检查先发现单文件 885 行、超过 500 行预算，已按协议解析、Codex rollout adapter、任务聚合和薄 CLI 四个真实 owner 拆分；复验为 0 error。任务聚合文件 452/500 行仍收到接近预算 warning，但其内容是同一个 task/thread 状态机，继续拆分会引入状态搬运和第二 owner，因此本批不再为行数继续拆。其它 warning 来自工作区中未纳入本提交的并发改动。新增 Skill 只把数量预算从 36 精确增加到 37，没有扩大 description 或 AGENTS 常驻索引，也没有向 `AGENTS.md` 添加常驻协议；AI 查询合同只增加在命中 telemetry 后才加载的正文。
 
 大盘后续的 maintainability 检查为 0 error、2 warning：单页渲染脚本 393/400 行，任务聚合器 466/500 行。前者保持一个无框架页面的渲染与刷新 owner，拆成多个模块只会增加文件和跳转；后者本次只增加名称字段与解析后聚合主链。Review 删除了低价值的名称冲突专用 warning 分支，以首个名称为稳定 owner，避免为罕见 reopen 误用扩大状态机。最终主观复核为无 findings。
+
+任务类型补充的 maintainability 检查仍为 0 error、2 warning：单页渲染脚本 399/400 行，任务聚合器 476/500 行。本次增长分别属于既有 UI 映射/列表投影和既有 task 状态机的类型不变量；没有新增 service、adapter、文件或第二事实源，继续拆分反而会产生状态搬运与额外跳转。主观复核关闭了“所有 Bug 强制进入 Design”的流程偏差，并补齐大盘可见类型和非法协议值的回归证据，最终无 findings。
 
 ## NPM 包发布记录
 

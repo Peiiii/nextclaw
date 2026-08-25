@@ -108,7 +108,7 @@ test("attributes start, phase, end, model and tool rounds by response frame", as
     turn("2026-08-14T00:00:00.010Z"),
     assistant(
       "2026-08-14T00:00:01.000Z",
-      '[我严格遵守规则][nextclaw.dev/v1 task=start id=dt-aabbccdd name="优化任务统计名称" phase=implementation] start',
+      '[我严格遵守规则][nextclaw.dev/v1 task=start id=dt-aabbccdd name="优化任务统计名称" type=feature phase=implementation] start',
     ),
     toolCall("2026-08-14T00:00:01.100Z"),
     tokenCount("2026-08-14T00:00:02.000Z", 100),
@@ -129,6 +129,7 @@ test("attributes start, phase, end, model and tool rounds by response frame", as
     const task = taskById(report, "dt-aabbccdd");
 
     assert.equal(task.name, "优化任务统计名称");
+    assert.equal(task.type, "feature");
     assert.equal(task.status, "completed");
     assert.equal(task.data_quality, "complete");
     assert.equal(task.started_at, "2026-08-14T00:00:02.000Z");
@@ -313,7 +314,7 @@ test("fails closed on conflicting markers and recovers on a new start", async ()
     tokenCount("2026-08-14T04:00:06.000Z", 100),
     assistant(
       "2026-08-14T04:00:07.000Z",
-      "[nextclaw.dev/v1 task=start id=dt-conflict phase=implementation] recover",
+      '[nextclaw.dev/v1 task=start id=dt-conflict name="恢复冲突任务" type=feature phase=implementation] recover',
     ),
     tokenCount("2026-08-14T04:00:08.000Z", 130),
     assistant(
@@ -333,6 +334,7 @@ test("fails closed on conflicting markers and recovers on a new start", async ()
     assert.equal(task.data_quality, "partial");
     assert.equal(task.warning_counts.multiple_markers, 1);
     assert.equal(task.reopen_count, 1);
+    assert.equal(task.type, "feature");
   });
 });
 
@@ -370,7 +372,7 @@ test("runs the public CLI path with rollout and JSON options", async () => {
     turn("2026-08-14T06:00:00.010Z"),
     assistant(
       "2026-08-14T06:00:01.000Z",
-      '[nextclaw.dev/v1 task=start id=dt-cli00001 name="验证 CLI 统计" phase=validation] start',
+      '[nextclaw.dev/v1 task=start id=dt-cli00001 name="验证 CLI 统计" type=small-change phase=validation] start',
     ),
     tokenCount("2026-08-14T06:00:02.000Z", 25),
   ];
@@ -385,5 +387,68 @@ test("runs the public CLI path with rollout and JSON options", async () => {
     const textResult = await runCli(["--rollout", path]);
     assert.match(textResult.output, /Task: 验证 CLI 统计/);
     assert.match(textResult.output, /Task ID: dt-cli00001/);
+    assert.match(textResult.output, /Type: small-change/);
+  });
+});
+
+test("keeps legacy missing types unknown and warns on reopen conflicts", async () => {
+  const records = [
+    session("thread-task-type", "2026-08-14T07:00:00.000Z"),
+    turn("2026-08-14T07:00:00.010Z"),
+    assistant(
+      "2026-08-14T07:00:01.000Z",
+      '[nextclaw.dev/v1 task=start id=dt-type0001 name="任务类型冲突" type=bugfix phase=implementation] start',
+    ),
+    tokenCount("2026-08-14T07:00:02.000Z", 20),
+    assistant(
+      "2026-08-14T07:00:03.000Z",
+      "[nextclaw.dev/v1 task=end id=dt-type0001 status=blocked] blocked",
+    ),
+    tokenCount("2026-08-14T07:00:04.000Z", 30),
+    assistant(
+      "2026-08-14T07:00:05.000Z",
+      '[nextclaw.dev/v1 task=start id=dt-type0001 name="任务类型冲突" type=feature phase=design] reopen',
+    ),
+    tokenCount("2026-08-14T07:00:06.000Z", 40),
+  ];
+
+  await withRollouts({ "task-type.jsonl": records }, async (paths) => {
+    const task = taskById(await analyzeRollouts(paths), "dt-type0001");
+    assert.equal(task.type, "bugfix");
+    assert.equal(task.warning_counts.task_type_conflict, 1);
+    assert.equal(task.data_quality, "partial");
+  });
+
+  const legacyRecords = [
+    session("thread-legacy-type", "2026-08-14T08:00:00.000Z"),
+    turn("2026-08-14T08:00:00.010Z"),
+    assistant(
+      "2026-08-14T08:00:01.000Z",
+      '[nextclaw.dev/v1 task=start id=dt-legacy01 name="历史任务" phase=implementation] start',
+    ),
+    tokenCount("2026-08-14T08:00:02.000Z", 10),
+  ];
+  await withRollouts({ "legacy-type.jsonl": legacyRecords }, async (paths) => {
+    const task = taskById(await analyzeRollouts(paths), "dt-legacy01");
+    assert.equal(task.type, null);
+  });
+
+  const invalidRecords = [
+    session("thread-invalid-type", "2026-08-14T09:00:00.000Z"),
+    turn("2026-08-14T09:00:00.010Z"),
+    assistant(
+      "2026-08-14T09:00:01.000Z",
+      '[nextclaw.dev/v1 task=start id=dt-invalid1 name="非法类型" type=other phase=implementation] start',
+    ),
+    tokenCount("2026-08-14T09:00:02.000Z", 10),
+  ];
+  await withRollouts({ "invalid-type.jsonl": invalidRecords }, async (paths) => {
+    const report = await analyzeRollouts(paths);
+    assert.equal(report.tasks.length, 0);
+    assert.equal(
+      report.warnings.filter((warning) => warning.code === "invalid_marker")
+        .length,
+      1,
+    );
   });
 });
