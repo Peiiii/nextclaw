@@ -16,6 +16,8 @@ The Explorer follows familiar code-editor conventions:
 
 Previews cover Markdown, code, HTML, common documents, spreadsheets, and presentations. In a rendered Markdown file, use the outline button at the right of the path bar to review its heading structure and jump directly to a section. HTML can switch between source and rendered output, while code changes can be reviewed as diffs.
 
+![A Markdown document outline showing heading hierarchy for direct section navigation](/product-screenshots/nextclaw-markdown-outline-navigation-cn.png)
+
 ![Project Explorer and Markdown preview open together](/product-screenshots/nextclaw-workspace-explorer-en.png)
 
 ## Open files
