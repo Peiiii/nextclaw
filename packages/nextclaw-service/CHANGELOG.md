@@ -1,5 +1,50 @@
 # @nextclaw/service
 
+## 0.3.45
+
+### Patch Changes
+
+- 5b07b81: Add automatic Windows Desktop host-exit diagnostics, including local crash evidence, restart recovery records, and AI-readable incident reporting.
+- 70dd515: Add the experimental `@nextclaw/harness` SDK with Agent, Session, Run, and Contribution APIs; expose lifecycle-scoped tools, context, model providers, runtimes, and MCP capabilities; and add the non-interactive `nextclaw exec` command for headless tasks.
+- f9c6477: 修复会话历史可靠性问题：保留历史 replay、projection 恢复和压缩消息视图的修复，不再用 journal 目录级 writer ownership 阻止同一 `NEXTCLAW_HOME` 下的第二个 runtime 或新会话启动。
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [5b07b81]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [5f68b2f]
+- Updated dependencies [41cb756]
+- Updated dependencies [037d93e]
+- Updated dependencies [eabdf41]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+- Updated dependencies [3817714]
+- Updated dependencies [f9c6477]
+- Updated dependencies [83c0628]
+  - @nextclaw/kernel@0.10.0
+  - @nextclaw/ncp@0.9.0
+  - @nextclaw/core@0.17.7
+  - @nextclaw/server@0.18.0
+  - @nextclaw/runtime@0.4.33
+  - @nextclaw/shared@0.4.27
+  - @nextclaw/remote@0.3.42
+  - @nextclaw/channel-extension-dingtalk@0.2.33
+  - @nextclaw/channel-extension-discord@0.2.33
+  - @nextclaw/channel-extension-email@0.2.33
+  - @nextclaw/channel-extension-feishu@0.2.28
+  - @nextclaw/channel-extension-qq@0.2.27
+  - @nextclaw/channel-extension-slack@0.2.33
+  - @nextclaw/channel-extension-telegram@0.2.33
+  - @nextclaw/channel-extension-wecom@0.2.33
+  - @nextclaw/channel-extension-weixin@0.2.28
+  - @nextclaw/channel-extension-whatsapp@0.2.33
+  - @nextclaw/ncp-agent-runtime@0.4.20
+  - @nextclaw/ncp-mcp@0.2.34
+  - @nextclaw/ncp-toolkit@0.6.22
+  - @nextclaw/client-sdk@0.7.4
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.20
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.21
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.34
+  - @nextclaw/mcp@0.3.34
+
 ## 0.3.45-beta.0
 
 ### Patch Changes

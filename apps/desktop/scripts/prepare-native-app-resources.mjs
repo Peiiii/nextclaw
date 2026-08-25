@@ -109,6 +109,23 @@ async function copyDesktopRuntimePackages(packageNames, outputRoot) {
   }
 }
 
+async function prepareSharpDirectRuntimeLayout(platform, arch, outputRoot) {
+  const target = `${platform}-${arch}`;
+  const sharpPackageRoot = join(outputRoot, "node_modules", "sharp");
+  const sharpNativePackageRoot = join(outputRoot, "node_modules", "@img", `sharp-${target}`);
+  const sharpBuildRoot = join(sharpPackageRoot, "src", "build", "Release");
+  await mkdir(sharpBuildRoot, { recursive: true });
+  await cp(join(sharpNativePackageRoot, "lib"), sharpBuildRoot, { recursive: true, dereference: true });
+
+  const sharpLibvipsPackageRoot = join(outputRoot, "node_modules", "@img", `sharp-libvips-${target}`);
+  if (existsSync(sharpLibvipsPackageRoot)) {
+    await cp(sharpLibvipsPackageRoot, join(sharpPackageRoot, "src", `sharp-libvips-${target}`), {
+      recursive: true,
+      dereference: true
+    });
+  }
+}
+
 function installSqlitePrebuildForElectron(options) {
   const { outputRoot, electronVersion, platform, arch } = options;
   const sqlitePackageRoot = join(outputRoot, "node_modules", "better-sqlite3");
@@ -153,6 +170,7 @@ export async function prepareDesktopNativeResources(options = {}) {
   rmSync(outputRoot, { recursive: true, force: true });
   await mkdir(outputRoot, { recursive: true });
   await copyDesktopRuntimePackages(packageNames, outputRoot);
+  await prepareSharpDirectRuntimeLayout(platform, arch, outputRoot);
   installSqlitePrebuildForElectron({ outputRoot, electronVersion, platform, arch });
 
   return {

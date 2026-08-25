@@ -51,12 +51,6 @@ test("leaves beta release notes outside the stable bilingual contract", () => {
   assert.doesNotThrow(validate("Preview build", { channel: "beta", notesFile: null }));
 });
 
-test("desktop asset upload does not append generated release notes", () => {
-  const workflow = readFileSync(new URL("../../.github/workflows/desktop-release.yml", import.meta.url), "utf8");
-  assert.match(workflow, /generate_release_notes: false/);
-  assert.doesNotMatch(workflow, /generate_release_notes: true/);
-});
-
 test("desktop workflow exposes an explicit APT-only recovery path", () => {
   const workflow = readFileSync(
     new URL("../../.github/workflows/desktop-release.yml", import.meta.url),

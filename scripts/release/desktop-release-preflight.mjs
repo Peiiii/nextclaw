@@ -66,6 +66,27 @@ function findWorkflowDispatchRun(options) {
   return runs.find((entry) => entry.headSha === target);
 }
 
+async function waitForWorkflowSuccess(options, runEntry, label) {
+  const { repo, runAttempts, runDelayMs } = options;
+  let previousLine = "";
+  for (let attempt = 1; attempt <= runAttempts; attempt += 1) {
+    const runSummary = readWorkflowRun(repo, runEntry.databaseId);
+    const line = `[desktop:release] ${label} ${runEntry.databaseId}: ${runSummary.status}/${runSummary.conclusion || "pending"}`;
+    if (line !== previousLine) {
+      console.log(line);
+      previousLine = line;
+    }
+    if (runSummary.status === "completed") {
+      if (runSummary.conclusion !== "success") {
+        throw new Error(`Desktop ${label} failed: ${runSummary.url}`);
+      }
+      return;
+    }
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, runDelayMs));
+  }
+  throw new Error(`Timed out waiting for desktop ${label}: ${runEntry.url}`);
+}
+
 async function waitForPreflightRun(options) {
   const { preflightWorkflow, target } = options;
   for (let attempt = 1; attempt <= 30; attempt += 1) {
@@ -79,24 +100,7 @@ async function waitForPreflightRun(options) {
 }
 
 async function waitForPreflightSuccess(options, runEntry) {
-  const { repo, runAttempts, runDelayMs } = options;
-  let previousLine = "";
-  for (let attempt = 1; attempt <= runAttempts; attempt += 1) {
-    const runSummary = readWorkflowRun(repo, runEntry.databaseId);
-    const line = `[desktop:release] preflight ${runEntry.databaseId}: ${runSummary.status}/${runSummary.conclusion || "pending"}`;
-    if (line !== previousLine) {
-      console.log(line);
-      previousLine = line;
-    }
-    if (runSummary.status === "completed") {
-      if (runSummary.conclusion !== "success") {
-        throw new Error(`Desktop release preflight failed: ${runSummary.url}`);
-      }
-      return;
-    }
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, runDelayMs));
-  }
-  throw new Error(`Timed out waiting for desktop release preflight: ${runEntry.url}`);
+  await waitForWorkflowSuccess(options, runEntry, "preflight");
 }
 
 export async function runRemotePreflight(options) {

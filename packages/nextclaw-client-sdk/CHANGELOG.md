@@ -1,5 +1,18 @@
 # @nextclaw/client-sdk
 
+## 0.7.4
+
+### Patch Changes
+
+- Updated dependencies [2c7ce8c]
+- Updated dependencies [eeac1f6]
+- Updated dependencies [ec60bc1]
+- Updated dependencies [70dd515]
+- Updated dependencies [f9c6477]
+  - @nextclaw/ncp@0.9.0
+  - @nextclaw/server@0.18.0
+  - @nextclaw/shared@0.4.27
+
 ## 0.7.4-beta.0
 
 ### Patch Changes

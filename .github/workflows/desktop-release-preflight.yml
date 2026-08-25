@@ -57,7 +57,8 @@ jobs:
           set -euo pipefail
           node <<'NODE'
           const { readFileSync } = require('node:fs');
-          const desktopVersion = JSON.parse(readFileSync('apps/desktop/package.json', 'utf8')).version;
+          const desktopPackage = JSON.parse(readFileSync('apps/desktop/package.json', 'utf8'));
+          const desktopVersion = desktopPackage.version;
           const runtimeVersion = JSON.parse(readFileSync('packages/nextclaw/package.json', 'utf8')).version;
           const compatibility = JSON.parse(readFileSync('apps/desktop/desktop-launcher-compatibility.json', 'utf8'));
           const channel = process.env.CHANNEL;
@@ -75,6 +76,14 @@ jobs:
             if (actual[key] !== expectedValue) {
               throw new Error(`${key} mismatch: expected ${expectedValue}, got ${actual[key]}`);
             }
+          }
+          const duplicateNativeRuntimeResource = desktopPackage.build?.extraResources?.find(
+            (entry) => entry?.from === 'build/native-app-resources' && entry?.to === 'app.asar.unpacked'
+          );
+          if (duplicateNativeRuntimeResource) {
+            throw new Error(
+              'Desktop native runtime dependencies must be owned by the signed seed bundle; copying them to app.asar.unpacked collides with electron-builder dependency unpacking.'
+            );
           }
           NODE
 

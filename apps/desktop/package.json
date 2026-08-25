@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/desktop",
-  "version": "0.0.263-beta.0",
+  "version": "0.0.266",
   "private": true,
   "description": "NextClaw desktop shell powered by Electron.",
   "author": "NextClaw Team",
@@ -80,13 +80,6 @@
       {
         "from": "build/update/seed-product-bundle.zip",
         "to": "update/seed-product-bundle.zip"
-      },
-      {
-        "from": "build/native-app-resources",
-        "to": "app.asar.unpacked",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "npmRebuild": false,

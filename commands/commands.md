@@ -130,12 +130,12 @@
 
 - 用途：发布桌面端 beta preview，包括 installer / portable / update bundle / update manifest 的完整闭环。
 - 输入格式：`/release-desktop-beta`，可附目标版本、tag 或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:beta`，先确认发布身份和桌面验证门禁，再创建 GitHub prerelease/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` beta manifest 与公网 beta manifest 全部闭合。不能把 `gh release create`、空 assets 页面或只完成部分平台 workflow 当成发布完成。
+- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:beta`，先确认发布身份和签名 preflight，再创建隐藏 GitHub prerelease Draft；`desktop-release` workflow 对同一批五平台产物完成单次构建、冒烟与上传，精确资产集合通过后才公开，并等待 `gh-pages` beta manifest 与公网 beta manifest 全部闭合。不能把 Draft 创建、空 assets 页面或只完成部分平台 workflow 当成发布完成。
 
 ## `/release-desktop-stable`
 
 - 用途：发布桌面端正式版，包括 installer / portable / update bundle / update manifest / stable APT repo 的完整闭环。
 - 输入格式：`/release-desktop-stable`，可附目标版本、tag、release notes 文件或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和桌面验证门禁，再创建 GitHub release/tag 并等待 `desktop-release` workflow、release assets、`gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
+- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和签名 preflight，再创建隐藏 GitHub Draft 并显式触发 `desktop-release` workflow。正式 workflow 对同一批五平台产物各构建一次并完成安装/启动冒烟，禁止先运行一轮不会发布的平行平台构建；只有完整 release assets 核验通过后才公开同一 Release，失败或取消不得留下公众可见空壳；随后等待 `gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
 
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。

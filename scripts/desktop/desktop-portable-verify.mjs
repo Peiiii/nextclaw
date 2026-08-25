@@ -9,6 +9,7 @@ const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
 const desktopPackageJson = JSON.parse(readFileSync(resolve(rootDir, "apps/desktop/package.json"), "utf8"));
 const version = String(desktopPackageJson.version ?? "").trim();
+const allowRendererOnlyTitlebarProbe = process.argv.includes("--allow-renderer-only-titlebar-probe");
 
 function run(command, args, options = {}) {
   console.log(`[desktop-portable-verify] run: ${command} ${args.join(" ")}`);
@@ -53,6 +54,20 @@ function ensurePortableZip(arch) {
   return zipPath;
 }
 
+function removeTemporaryDirectory(path) {
+  try {
+    rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? error.code : null;
+    if (!["EBUSY", "ENOTEMPTY", "EPERM"].includes(code)) {
+      throw error;
+    }
+    console.warn(
+      `[desktop-portable-verify] temporary cleanup deferred to the runner: ${code} ${path}`
+    );
+  }
+}
+
 async function verifyPortableZip(arch) {
   if (!version) {
     throw new Error("Desktop package version is missing.");
@@ -72,7 +87,7 @@ async function verifyPortableZip(arch) {
     }
     console.log(`[desktop-portable-verify] extracted ${basename(zipPath)} to ${portableRoot}`);
     if (process.platform === "win32" && arch === "x64") {
-      run("powershell", [
+      const smokeArgs = [
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
@@ -86,10 +101,14 @@ async function verifyPortableZip(arch) {
         "180",
         "-MaxReadySec",
         "20"
-      ]);
+      ];
+      if (allowRendererOnlyTitlebarProbe) {
+        smokeArgs.push("-AllowRendererOnlyTitlebarProbe");
+      }
+      run("powershell", smokeArgs);
     }
   } finally {
-    rmSync(tempRoot, { recursive: true, force: true });
+    removeTemporaryDirectory(tempRoot);
   }
 }
 

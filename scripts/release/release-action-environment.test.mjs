@@ -119,7 +119,7 @@ test("builds stable release outputs from the closed release state", () => {
   );
 });
 
-test("release workflow isolates OIDC publish permissions and serializes stable runs", () => {
+test("release workflow isolates token publishing and serializes stable runs", () => {
   const workflow = readFileSync(
     new URL("../../.github/workflows/release.yml", import.meta.url),
     "utf8",
@@ -129,11 +129,12 @@ test("release workflow isolates OIDC publish permissions and serializes stable r
     workflow,
     /group: nextclaw-stable-release\n {2}cancel-in-progress: false/,
   );
-  assert.match(workflow, /environment: npm-production[\s\S]*?id-token: write/);
-  assert.match(workflow, /npm install --global npm@11\.5\.1/);
-  assert.match(workflow, /pnpm release:npm:stable -- --trusted-publishing/);
+  assert.match(workflow, /environment: npm-production/);
+  assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/);
+  assert.match(workflow, /run: pnpm release:npm:stable/);
   assert.match(workflow, /GITHUB_REF.*refs\/heads\/master/);
-  assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY|NPM_TOKEN/);
+  assert.doesNotMatch(workflow, /id-token: write|--trusted-publishing/);
+  assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
 });
 
 test("runtime workflow uses deterministic release notes fallback", () => {

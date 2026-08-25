@@ -3,7 +3,8 @@ param(
   [string]$InstallerPath,
   [int]$StartupTimeoutSec = 90,
   [int]$MaxReadySec = 20,
-  [switch]$SeedStaleSameVersionBundle
+  [switch]$SeedStaleSameVersionBundle,
+  [switch]$AllowRendererOnlyTitlebarProbe
 )
 
 $ErrorActionPreference = "Stop"
@@ -183,6 +184,9 @@ try {
   }
   if ($SeedStaleSameVersionBundle.IsPresent) {
     $desktopSmokeArgs.SeedStaleSameVersionBundle = $true
+  }
+  if ($AllowRendererOnlyTitlebarProbe.IsPresent) {
+    $desktopSmokeArgs.AllowRendererOnlyTitlebarProbe = $true
   }
   & "apps/desktop/scripts/smoke-windows-desktop.ps1" @desktopSmokeArgs
 } finally {

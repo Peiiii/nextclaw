@@ -125,16 +125,12 @@ async function addDirectoryToZip(zip, sourceDir, zipRoot) {
     entries.map(async (entry) => {
       const sourcePath = join(sourceDir, entry.name);
       const targetPath = join(zipRoot, entry.name).replaceAll("\\", "/");
-      try {
-        const sourceStat = await stat(sourcePath);
-        if (sourceStat.isDirectory()) {
-          await addDirectoryToZip(zip, sourcePath, targetPath);
-          return;
-        }
-        zip.file(targetPath, readFileSync(sourcePath));
-      } catch {
+      const sourceStat = await stat(sourcePath);
+      if (sourceStat.isDirectory()) {
+        await addDirectoryToZip(zip, sourcePath, targetPath);
         return;
       }
+      zip.file(targetPath, readFileSync(sourcePath));
     })
   );
 }
@@ -188,7 +184,9 @@ function bundleRuntimeEntrypoint(workspace) {
       "--target",
       "es2022",
       "--deps.neverBundle",
-      "/^(?:sharp|better-sqlite3)$/",
+      "sharp",
+      "--deps.neverBundle",
+      "better-sqlite3",
       "--out-dir",
       workspace.runtimeEntrypointDir,
       "--shims",
@@ -321,7 +319,12 @@ async function prepareBundleWorkspace(workspace, options) {
   const nativeRuntimeDependencies = nativeResources.nativeResourcePackages;
   await copySessionSearchWorkerAssets(workspace);
   await writeFile(join(workspace.runtimeEntrypointDir, "index.js"), 'import "./index.mjs";\n', "utf8");
-  assertRuntimeBundleContract(workspace.runtimeRoot, workspace.nativeDependenciesRoot, nativeRuntimeDependencies);
+  assertRuntimeBundleContract(
+    workspace.runtimeRoot,
+    workspace.nativeDependenciesRoot,
+    nativeRuntimeDependencies,
+    options
+  );
   await copyPackagedChannelExtensions(workspace);
   assertPackagedExtensionBundleContract(workspace.pluginsRoot);
   const runtimeFileCount = await countFiles(workspace.runtimeRoot);
@@ -337,7 +340,19 @@ async function prepareBundleWorkspace(workspace, options) {
   };
 }
 
-function assertRuntimeBundleContract(runtimeRoot, nativeDependenciesRoot, allowedRuntimeNodeModulePackageNames) {
+function findFilesRecursively(rootDir) {
+  return readdirSync(rootDir, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = join(rootDir, entry.name);
+    return entry.isDirectory() ? findFilesRecursively(entryPath) : [entryPath];
+  });
+}
+
+function assertRuntimeBundleContract(
+  runtimeRoot,
+  nativeDependenciesRoot,
+  allowedRuntimeNodeModulePackageNames,
+  options
+) {
   const requiredFiles = [
     "dist/cli/app/index.js",
     "dist/cli/app/index.mjs",
@@ -362,6 +377,25 @@ function assertRuntimeBundleContract(runtimeRoot, nativeDependenciesRoot, allowe
   const unexpectedNodeModulePackageNames = nodeModulePackageNames.filter((packageName) => !allowedPackageNames.has(packageName));
   if (unexpectedNodeModulePackageNames.length > 0) {
     throw new Error(`Runtime bundle contains unexpected node_modules packages: ${unexpectedNodeModulePackageNames.join(", ")}`);
+  }
+
+  const target = `${options.platform}-${options.arch}`;
+  const sharpNativePackageName = `@img/sharp-${target}`;
+  const sharpNativePackageRoot = join(nativeDependenciesRoot, ...sharpNativePackageName.split("/"));
+  const sharpNativeFiles = findFilesRecursively(sharpNativePackageRoot);
+  if (!sharpNativeFiles.some((filePath) => filePath.endsWith(".node"))) {
+    throw new Error(`Runtime bundle is missing the sharp native binary for ${target}.`);
+  }
+  const sharpLibvipsPackageName = `@img/sharp-libvips-${target}`;
+  if (allowedPackageNames.has(sharpLibvipsPackageName)) {
+    const sharpLibvipsPackageRoot = join(nativeDependenciesRoot, ...sharpLibvipsPackageName.split("/"));
+    const sharpLibvipsFiles = findFilesRecursively(sharpLibvipsPackageRoot);
+    if (!sharpLibvipsFiles.some((filePath) => filePath.includes("libvips"))) {
+      throw new Error(`Runtime bundle is missing the sharp libvips runtime for ${target}.`);
+    }
+  }
+  if (!existsSync(join(nativeDependenciesRoot, "better-sqlite3", "build", "Release", "better_sqlite3.node"))) {
+    throw new Error(`Runtime bundle is missing the better-sqlite3 native binary for ${target}.`);
   }
 }
 
@@ -401,6 +435,13 @@ async function writeBundleArchive(bundleRoot, options) {
   const { platform, arch, bundleVersion, outputDir } = options;
   const zip = new JSZip();
   await addDirectoryToZip(zip, bundleRoot, basename(bundleRoot));
+  const sourceFileCount = await countFiles(bundleRoot);
+  const archiveFileCount = Object.values(zip.files).filter((entry) => !entry.dir).length;
+  if (archiveFileCount !== sourceFileCount) {
+    throw new Error(
+      `Product bundle archive file count mismatch: source=${sourceFileCount} archive=${archiveFileCount}.`
+    );
+  }
   const archiveName = `nextclaw-bundle-${platform}-${arch}-${bundleVersion}.zip`;
   const archivePath = resolve(outputDir, archiveName);
   await mkdir(dirname(archivePath), { recursive: true });

@@ -46,6 +46,6 @@ Stable NPM-only 与常规 stable 产品的正式入口统一为 GitHub Actions `
 
 Stable 正式发布采用 ahead-of-window prepare/publish 两阶段实现，但用户语义仍只有一个“发布 NPM”。release-bearing `master` push 后由 `npm-release-prepare` workflow 为 exact commit 自动执行 version、strict validation、pack 与 artifact 导出；delivery 在交付这类 commit 时等待 workflow artifact 成立，不能等用户发出发布命令后再做分钟级准备。用户授权发布后 dispatch `release.yml`；它在 GitHub-hosted runner 消费 HEAD 对应成功 artifact，缺失/失效时快速失败，绝不回退旧慢链路。prepare 不写 NPM/Git；`NPM_READY` 计时包含 artifact 定位/下载、逐包 identity 验证、空缓存公网精确 payload 审计和 Git 闭环，必须真实小于 60 秒，任一分支失败都不报告完成。
 
-GitHub Actions stable 正式入口只使用 npm Trusted Publishing：`npm-production` environment、GitHub-hosted runner、`id-token: write`、Node/npm 最低版本和实际 publish + registry identity 是认证证据，不执行不支持 OIDC 的 `npm whoami`，也不保存长期 `NPM_TOKEN`。本地 dry-run/恢复若使用传统 token，任何 auth/permission 结论仍必须先解析并报告实际 userconfig，再用同一配置运行 `npm whoami`；项目根 `.npmrc` 存在时，默认 `~/.npmrc` 的 401/404 不是 token 失效证据。publish 成功能力与 dist-tag 删除等 package-setting 强认证能力分别判断，不得混为一个“没有 NPM 权限”。
+GitHub Actions stable 正式入口只使用已经真实验收的认证路径；当前由 `npm-production` environment 中的受控 `NPM_TOKEN` 发布。Trusted Publishing 是独立迁移工程：npm 按 package 配置且保存时不验证，只有全部发布包完成配置、至少一次真实 canary publish 和 registry identity 验证后，才能在同一变更中切换 workflow 默认值；不得把未验收 OIDC 直接设为正式发布前置。传统 token 的任何 auth/permission 结论必须先解析并报告实际 userconfig，再用同一配置运行 `npm whoami`；项目根 `.npmrc` 存在时，默认 `~/.npmrc` 的 401/404 不是 token 失效证据。publish 成功能力与 dist-tag 删除等 package-setting 强认证能力分别判断，不得混为一个“没有 NPM 权限”。
 
 最终报告 package/version/dist-tag、workflow、manifest、真实安装证据、分支闭合和残余 WIP。

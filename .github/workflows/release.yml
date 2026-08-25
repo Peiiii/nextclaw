@@ -27,7 +27,6 @@ jobs:
     permissions:
       actions: read
       contents: write
-      id-token: write
     outputs:
       closure_commit: ${{ steps.release.outputs.closure_commit }}
       content_ready: ${{ steps.release.outputs.content_ready }}
@@ -57,15 +56,12 @@ jobs:
         with:
           version: 9.15.1
 
-      - name: Setup trusted publishing runtime
+      - name: Setup NPM publishing runtime
         uses: actions/setup-node@v4
         with:
           node-version: 22.14.0
           cache: pnpm
           registry-url: https://registry.npmjs.org
-
-      - name: Pin OIDC-capable npm CLI
-        run: npm install --global npm@11.5.1
 
       - name: Bind checkout to master
         shell: bash
@@ -83,7 +79,8 @@ jobs:
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: pnpm release:npm:stable -- --trusted-publishing
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm release:npm:stable
 
       - name: Record core release status
         shell: bash
