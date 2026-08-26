@@ -68,7 +68,7 @@ export class NcpAgentSessionJournalStore {
     );
     this.summaryReadStore = new NcpAgentSessionSummaryReadStore({
       getIndexedSummary: (sessionId) => this.summaryIndexStore.get(sessionId),
-      listIndexedSummaries: () => this.summaryIndexStore.list(),
+      listIndexedSummaries: (limit) => this.summaryIndexStore.list(limit),
       readJournalModifiedAt: async (sessionId) => (await stat(this.sessionPath(sessionId))).mtime.toISOString(),
       readMetadata: (sessionId, fallback) => this.metadataStore.read(sessionId, fallback),
       readProjectedMessageCount: async (sessionId) => (await this.messageProjectionStore.readMeta(sessionId))?.total ?? null,

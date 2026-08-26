@@ -19,6 +19,10 @@
 
 因此这是跨 message projection、HTTP view、前端历史状态和折叠交互的 L3 合同缺口，不是单纯调小消息条数或增加列表虚拟化可以关闭的问题。
 
+2026-08-26 的本地回归复现进一步证明，首屏数据优化本身没有失效，但会话搜索的增量索引破坏了全局延迟上界：当前数据目录包含 2,756 个 legacy session 文件；每次 `session-updated` 都调用 `indexSession`，而 `indexSession` 先重新扫描全部 2,756 个文件，再定位一个目标。后台全量 reconcile 尚未结束时，增量更新还会并发启动同一批全目录扫描和 SQLite 写入。真实服务进程因此达到 100% 以上 CPU，`/api/health` 首字节出现 3.735–6.902 秒，未运行的保留压力会话 compact history 首字节出现 7.649 秒。第一个违约边界不是某个 Chat message 的状态或 React 渲染，而是 `SessionSearchWorkerRuntimeService -> SessionSearchWorkerIndexerService` 没有把“全量 reconcile”和“单 session 增量更新”串行化，且增量路径没有按稳定 session path 直接读取。
+
+该缺口判定为既有大会话性能能力面的局部运行时合同缺口：搜索索引仍由现有 worker/store owner 持有，不改变搜索结果、会话数据、消息载荷或 UI 交互；只收敛索引调度和目标文件解析。修复必须同时满足：全量 reconcile 与增量索引共享单一写队列；同一 session 的重复更新合并但不会漏掉队列执行期间产生的最后一次更新；增量索引只读取目标 session 文件，不重新扫描目录；目标缺失时沿现有语义删除索引；查询仍可在 worker ready 后执行，不把重索引搬回主线程。
+
 ## 用户任务与成功标准
 
 用户从会话列表或 URL 进入历史会话时，应先快速看到最近消息、工具调用数量和执行摘要；只有主动展开某条消息的处理过程时，才等待该条消息的大工具参数和结果，加载一次后可以连续查看其中所有工具调用。
@@ -199,6 +203,24 @@ VPS 浏览器在静态资源压缩后连续 5 次热刷新仍为 3.04–5.21 秒
 
 NextClaw 内置 HTTP server 继续使用动态 `compress()` 和 immutable cache，不要求 `.gz` 才能启动，也不在每次请求中扫描多级目录。只有部署环境显式提供“随 active runtime 原子切换”的静态 asset owner 后，外部 Nginx/Caddy 才可评估 `gzip_static`；该能力不能由 `postinstall`、单机升级脚本或指向全局 npm 安装目录的 alias 伪造。当前 VPS 不启用这类直出，响应正确性以 HTML 和其所有 hash asset 由同一 runtime 返回为准。
 
+### 20. 会话搜索的全量 reconcile 与增量索引必须共享单一调度 owner
+
+采用现有 worker 内的单队列、按 session 去重方案。`SessionSearchFileScannerService` 增加按 canonical session id 解析单个 legacy 文件 summary 的直接入口；`indexSession` 只消费该入口。`SessionSearchWorkerRuntimeService` 让启动 reconcile 先占有索引队列，增量通知只把 session id 标记为 dirty；reconcile 完成后按集合批量 drain。某 session 在 drain 期间再次变更时重新进入下一轮，保证最终索引追上最新磁盘状态。不同 session 也沿同一队列串行写入 SQLite，消除 `database is locked` 和无界并发文件扫描。
+
+不采用定时全量轮询、丢弃运行中更新、停止搜索索引或降低索引内容范围：这些方案会分别保留周期性尖峰、造成搜索陈旧、移除能力或损失搜索体验。也不在 HTTP 层为慢请求增加缓存，因为健康接口和任意会话都被同一宿主阻塞，缓存只能掩盖部分 consumer，不能修复第一个违约 owner。
+
+修前黄金基线固定为同一运行实例、同一数据目录和同一未运行压力会话：compact history 最大 7.649 秒、普通 summary 最大 6.165 秒、health 最大 6.902 秒。修后必须在包含并发 session update 与搜索索引的隔离真实服务中执行连续采样，按最大值而非均值验收：health、压力会话 compact history、压力会话普通 summary 以及浏览器最近消息可见时间均不得超过 1.5 秒。任何消息、tool detail、历史分页、实时状态或搜索结果缺失都视为失败；若环境噪声使最大值超标，不能挑选较快样本宣称通过。
+
+### 21. 会话列表先修复查询上界，再由实测决定是否引入分页协议
+
+根路径侧栏已经通过 `GET /api/ncp/sessions?limit=200` 声明首屏上界，session summary 也已经由 SQLite catalog 持有；但 `NcpAgentSessionSummaryIndexStore.list()` 仍执行无 `LIMIT` 的全表查询，`NcpAgentSessionSummaryReadStore` 收到全部结果后才在内存切片。真实服务连续采样中，`limit=20` 最大 1.254 秒，`limit=50` 最大 4.641 秒，`limit=200` 最大 5.800 秒。尖峰的第一根因仍是第 20 节的全局 worker 阻塞，但列表读模型没有把既有上界下推到事实 owner，会随会话数量继续放大 SQLite 取行、对象转换和垃圾回收成本。
+
+本批把 `limit` 从 HTTP、`SessionManager`、journal summary read store 一直下推到 SQLite `SELECT ... LIMIT ?`，同时保留当前活动时间倒序、metadata 补齐、搜索、项目分组、置顶、未读状态和一次最多 200 条的可见体验。列表专项验收为同一隔离真实服务连续采样的最大值小于 1 秒，并以浏览器侧栏第一条真实会话可见时间复验；不能只以 DOMContentLoaded 或空壳出现时间替代。
+
+游标分页、后端筛选/排序和滚动前预测预取属于下一层协议与交互能力，只有上述两个确定性缺口修复后，包含至少当前规模会话数据的真实浏览器验收仍超过 1 秒，或 200 条上界被证明造成可见的滚动断层时才启用。若触发，后端必须拥有稳定 activity cursor 与筛选/排序合同，前端在接近列表尾部前预取下一页并合并去重；不得以减少可搜索范围、丢失置顶/项目分组、改变排序或让用户看到加载断层换取速度。若未触发，则不扩大 API 和状态 owner，仅在设计结论中记录实测依据。
+
+2026-08-26 修后在独立端口、独立 `NEXTCLAW_HOME` 的当前源码冷启动实例完成门控验证。fixture 含 2,756 个 legacy 会话文件、1,314 条 SQLite session summary、42 MB 压力 journal 和 500 次工具调用的末条消息；全量搜索 reconcile 期间服务进程一度使用 163% CPU。30 轮交错 API 采样最大总耗时为 health 20.196ms、`limit=200` 列表 408.196ms、compact history 54.185ms、普通 summary 96.116ms，搜索库最终有 2,756 条 meta 与 2,756 条 FTS 记录，日志无 `database is locked`。浏览器连续 15 次冷进入，第一条真实会话可见最大 914ms，压力会话最近 500-tool 摘要可见最大 878ms；展开后逐批加载 12 次，最终可达 500 条工具记录（四类各 125 条）。因此本次分页门槛未触发：首屏已小于 1 秒，Chat 已小于 1.5 秒，现有 200 条范围、搜索和详情体验完整保留；当前不引入游标/后端筛选/预测预取。
+
 ## 数据与事件主链路
 
 1. 会话发生标准变更时，`publishSessionChange` 读取 canonical record、计算 context window、写入 message projection 并发布 session summary。
@@ -270,6 +292,8 @@ NextClaw 内置 HTTP server 继续使用动态 `compress()` 和 immutable cache�
 - Kernel：`getSession` 的测试锁定 summary read model，`publishSessionChange` 的测试锁定 canonical 计算与 projection 更新；旁路摘要请求并发时不触发重复 preview。
 - 性能：当前 44 MB 压力会话的 summary 接口首字节应由约 1.45 秒降到 200ms 内；若冷态 projection 首次重建不满足此目标，单独记录为一次性重建路径，不能混入稳定热路径结论。
 - 并发首屏：在 200 条 session list、skills、queued-inputs 等正常请求同时发起时，历史 summary 请求不能因 metadata I/O 饥饿超过 300ms。
+- 全局隔离：在后台 reconcile 与重复单 session 更新同时发生时，增量路径不得调用全目录扫描；同一 session 更新应合并，最后一次磁盘状态必须进入索引，不得出现并发 SQLite 写入或 `database is locked`。连续同入口采样以最大值验收，health、compact history、普通 summary 和浏览器最近消息可见均不得超过 1.5 秒。
+- 会话列表：`limit` 必须进入 SQLite 查询而不是只做内存切片；在当前规模或更大隔离数据集下连续采样，列表 API 和浏览器第一条真实会话可见时间最大值均小于 1 秒，排序、筛选、置顶、项目分组、未读状态和最多 200 条可见范围保持一致。只有该门槛失败才追加游标分页和预测预取。
 - 浏览器：同一 URL 冷进入时最近消息出现目标先定为 2 秒内，且首屏阶段无超过 200ms 的长任务；展开最后一条时有即时 loading，加载后可查看完整 500 个调用并逐批显示。
 - 线上复现：68 MB 会话最近消息首次可见从约 18.3 秒降到 2 秒目标附近，随后无需用户操作自动补齐最近 20 条；summary view 不超过 80 个未延迟工具 part，并分别记录首批响应字节数、服务器投影读取时间、浏览器首次可见时间和后台补齐完成时间；向上滚动后能连续补回第 21–40 条。
 - 回归：普通会话、历史向前分页、刷新、session 切换、流式消息和旧服务端兼容路径保持可用。

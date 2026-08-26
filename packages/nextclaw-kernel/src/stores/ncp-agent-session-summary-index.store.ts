@@ -97,13 +97,14 @@ export class NcpAgentSessionSummaryIndexStore {
     return row ? structuredClone(rowToSummary(row)) : null;
   };
 
-  list = async (): Promise<NcpSessionSummary[]> => {
+  list = async (limit?: number): Promise<NcpSessionSummary[]> => {
     await this.ensureReady();
-    const rows = this.db().prepare(
-      `SELECT * FROM sessions
-       WHERE deleted_at IS NULL
-       ORDER BY COALESCE(last_message_at, created_at, updated_at) DESC, session_id DESC`,
-    ).all() as SessionCatalogRow[];
+    const query = `SELECT * FROM sessions
+      WHERE deleted_at IS NULL
+      ORDER BY COALESCE(last_message_at, created_at, updated_at) DESC, session_id DESC`;
+    const rows = limit === undefined
+      ? this.db().prepare(query).all() as SessionCatalogRow[]
+      : this.db().prepare(`${query} LIMIT ?`).all(limit) as SessionCatalogRow[];
     return rows.map((row) => structuredClone(rowToSummary(row)));
   };
 

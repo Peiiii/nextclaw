@@ -71,6 +71,20 @@ afterEach(async () => {
 });
 
 describe("NcpAgentSessionJournalStore", () => {
+  it("pushes the session list limit into the SQLite summary index", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    const summaryIndexStore = (store as unknown as {
+      summaryIndexStore: { list: (limit?: number) => Promise<unknown[]> };
+    }).summaryIndexStore;
+    const listIndexedSummaries = vi.spyOn(summaryIndexStore, "list");
+
+    await store.importSessionSnapshot(createRecord([userMessage]));
+    await expect(store.listSessionSummaries({ limit: 1 })).resolves.toHaveLength(1);
+
+    expect(listIndexedSummaries).toHaveBeenLastCalledWith(1);
+  });
+
   it("reports only runs whose append-only lifecycle has no terminal event", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);

@@ -36,7 +36,7 @@ export class SessionSearchWorkerIndexerService {
 
   constructor(private readonly options: SessionSearchWorkerIndexerOptions) {}
 
-  reconcileAll = async (): Promise<SessionSearchWorkerProgress> => {
+  async reconcileAll(): Promise<SessionSearchWorkerProgress> {
     const summaries = await this.options.scanner.listSessionFiles();
     const existingMetadata = toMetadataBySessionId(await this.options.store.listIndexedMetadata());
     const activeSessionIds = new Set(summaries.map((summary) => summary.sessionId));
@@ -72,17 +72,16 @@ export class SessionSearchWorkerIndexerService {
     }
 
     return progress;
-  };
+  }
 
-  indexSession = async (sessionId: string): Promise<void> => {
-    const summaries = await this.options.scanner.listSessionFiles();
-    const summary = summaries.find((entry) => entry.sessionId === sessionId);
+  async indexSession(sessionId: string): Promise<void> {
+    const summary = await this.options.scanner.getSessionFileSummary(sessionId);
     if (!summary) {
       await this.options.store.deleteDocument(sessionId);
       return;
     }
     await this.indexSummary(summary);
-  };
+  }
 
   private indexSummary = async (summary: SessionSearchFileSummary): Promise<void> => {
     const session = await this.options.scanner.readSession(summary);

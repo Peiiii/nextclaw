@@ -6,7 +6,7 @@ const METADATA_READ_CONCURRENCY = 2;
 
 type SessionSummaryReadStoreOptions = {
   getIndexedSummary: (sessionId: string) => Promise<NcpSessionSummary | null>;
-  listIndexedSummaries: () => Promise<NcpSessionSummary[]>;
+  listIndexedSummaries: (limit?: number) => Promise<NcpSessionSummary[]>;
   readJournalModifiedAt: (sessionId: string) => Promise<string>;
   readMetadata: (
     sessionId: string,
@@ -38,10 +38,13 @@ export class NcpAgentSessionSummaryReadStore {
   constructor(private readonly options: SessionSummaryReadStoreOptions) {}
 
   list = async (limit?: number): Promise<NcpSessionSummary[]> => {
-    const summaries = await this.options.listIndexedSummaries();
-    const selected = limit === undefined
+    const normalizedLimit = limit === undefined || limit === Number.POSITIVE_INFINITY
+      ? undefined
+      : Math.max(0, Math.trunc(limit));
+    const summaries = await this.options.listIndexedSummaries(normalizedLimit);
+    const selected = normalizedLimit === undefined
       ? summaries
-      : summaries.slice(0, Math.max(0, limit));
+      : summaries.slice(0, normalizedLimit);
     return await mapWithConcurrency(selected, this.withMetadata);
   };
 

@@ -24,6 +24,7 @@ export class SessionSearchWorkerRuntimeService {
   private runtime: WorkerRuntime | null = null;
   private state: SessionSearchWorkerState = "stopped";
   private indexingPromise: Promise<void> | null = null;
+  private readonly pendingSessionIds = new Set<string>();
 
   constructor(private readonly post: (event: SessionSearchWorkerEvent) => void) {}
 
@@ -87,17 +88,47 @@ export class SessionSearchWorkerRuntimeService {
       queryService: new SessionSearchQueryService(store),
     };
     this.setState("ready");
-    this.indexingPromise = this.runBackgroundIndexing();
+    this.startIndexing(this.runBackgroundIndexing);
   };
 
   private runBackgroundIndexing = async (): Promise<void> => {
-    try {
-      this.setState("indexing");
-      await this.requireRuntime().indexer.reconcileAll();
-      this.setState("idle");
-    } catch (error) {
-      this.setState("error", formatErrorMessage(error));
+    await this.requireRuntime().indexer.reconcileAll();
+    await this.drainPendingSessionUpdates();
+  };
+
+  private runIncrementalIndexing = async (): Promise<void> => {
+    await this.drainPendingSessionUpdates();
+  };
+
+  private drainPendingSessionUpdates = async (): Promise<void> => {
+    const { indexer } = this.requireRuntime();
+    while (this.pendingSessionIds.size > 0) {
+      const sessionIds = [...this.pendingSessionIds];
+      this.pendingSessionIds.clear();
+      for (const sessionId of sessionIds) {
+        await indexer.indexSession(sessionId);
+      }
     }
+  };
+
+  private startIndexing = (work: () => Promise<void>): void => {
+    if (this.indexingPromise || this.state === "disposed" || this.state === "error") {
+      return;
+    }
+    this.setState("indexing");
+    this.indexingPromise = work()
+      .then(() => {
+        this.setState("idle");
+      })
+      .catch((error) => {
+        this.setState("error", formatErrorMessage(error));
+      })
+      .finally(() => {
+        this.indexingPromise = null;
+        if (this.pendingSessionIds.size > 0 && this.state !== "error") {
+          this.startIndexing(this.runIncrementalIndexing);
+        }
+      });
   };
 
   private handleStart = async (request: Extract<SessionSearchWorkerRequest, { type: "start" }>): Promise<void> => {
@@ -113,10 +144,9 @@ export class SessionSearchWorkerRuntimeService {
   private handleSessionUpdated = async (
     request: Extract<SessionSearchWorkerRequest, { type: "session-updated" }>,
   ): Promise<void> => {
-    const activeRuntime = this.requireRuntime();
-    void activeRuntime.indexer.indexSession(request.payload.sessionId).catch((error) => {
-      this.setState("error", formatErrorMessage(error));
-    });
+    this.requireRuntime();
+    this.pendingSessionIds.add(request.payload.sessionId);
+    this.startIndexing(this.runIncrementalIndexing);
     this.respondOk(request.id);
   };
 
@@ -125,6 +155,7 @@ export class SessionSearchWorkerRuntimeService {
     await this.runtime?.store.close();
     this.runtime = null;
     this.indexingPromise = null;
+    this.pendingSessionIds.clear();
     this.setState("disposed");
     this.respondOk(request.id);
   };

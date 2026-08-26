@@ -32,6 +32,11 @@ function toSessionId(fileName: string): string {
   return basename(fileName, ".jsonl").replace(/_/g, ":");
 }
 
+function toSessionFileName(sessionId: string): string | null {
+  const fileName = `${sessionId.replace(/:/g, "_")}.jsonl`;
+  return basename(fileName) === fileName ? fileName : null;
+}
+
 function toIsoTimestamp(value: unknown, fallback: string): string {
   const parsed = typeof value === "string" ? Date.parse(value) : NaN;
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : fallback;
@@ -94,6 +99,17 @@ async function readFirstLine(path: string): Promise<string> {
 
 export class SessionSearchFileScannerService {
   constructor(private readonly sessionsDir: string) {}
+
+  getSessionFileSummary = async (
+    sessionId: string,
+  ): Promise<SessionSearchFileSummary | null> => {
+    const fileName = toSessionFileName(sessionId);
+    if (!fileName) {
+      return null;
+    }
+    const summary = await this.readFileSummary(fileName);
+    return summary ? { ...summary, sessionId } : null;
+  };
 
   listSessionFiles = async (): Promise<SessionSearchFileSummary[]> => {
     const entries = await readdir(this.sessionsDir, { withFileTypes: true }).catch(() => []);
