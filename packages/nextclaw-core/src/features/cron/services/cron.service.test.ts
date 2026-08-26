@@ -18,21 +18,21 @@ function readStore(storePath: string): CronStore {
   return JSON.parse(readFileSync(storePath, "utf-8")) as CronStore;
 }
 
-describe("CronService", () => {
-  let tempDir: string;
-  let storePath: string;
+let tempDir: string;
+let storePath: string;
 
-  beforeEach(() => {
-    vi.useFakeTimers();
-    tempDir = mkdtempSync(join(tmpdir(), "nextclaw-cron-service-"));
-    storePath = createStorePath(tempDir);
-  });
+beforeEach(() => {
+  vi.useFakeTimers();
+  tempDir = mkdtempSync(join(tmpdir(), "nextclaw-cron-service-"));
+  storePath = createStorePath(tempDir);
+});
 
-  afterEach(() => {
-    vi.useRealTimers();
-    rmSync(tempDir, { recursive: true, force: true });
-  });
+afterEach(() => {
+  vi.useRealTimers();
+  rmSync(tempDir, { recursive: true, force: true });
+});
 
+describe("CronService scheduling", () => {
   it("stores the target session id on created jobs", () => {
     vi.setSystemTime(Date.parse("2026-04-08T02:00:00.000Z"));
     const service = new CronService(storePath);
@@ -191,7 +191,119 @@ describe("CronService", () => {
     expect(job.state.lastRunAtMs).toBe(Date.parse("2026-04-08T12:00:25.000Z"));
     expect(job.state.nextRunAtMs).toBe(Date.parse("2026-04-08T12:02:00.000Z"));
   });
+});
 
+describe("CronService execution reload safety", () => {
+  it("does not re-enter a running one-shot job when its agent updates the cron store", async () => {
+    const scheduledAtMs = Date.parse("2026-04-08T12:10:00.000Z");
+    writeStore(storePath, {
+      version: 1,
+      jobs: [
+        {
+          id: "job-reentrant",
+          name: "one-shot-health-check",
+          enabled: true,
+          schedule: { kind: "at", atMs: scheduledAtMs },
+          payload: { message: "check the observation and update another cron job" },
+          state: { nextRunAtMs: scheduledAtMs },
+          createdAtMs: scheduledAtMs - 1_000,
+          updatedAtMs: scheduledAtMs - 1_000,
+          deleteAfterRun: true,
+        },
+      ],
+    });
+    vi.setSystemTime(scheduledAtMs - 1_000);
+
+    let releaseFirstExecution: (() => void) | undefined;
+    const firstExecutionBlocked = new Promise<void>((resolve) => {
+      releaseFirstExecution = resolve;
+    });
+    const onJob = vi.fn(async () => {
+      if (onJob.mock.calls.length !== 1) {
+        return "duplicate";
+      }
+      service.addJob({
+        name: "recurring-health-check",
+        schedule: { kind: "every", everyMs: 60_000 },
+        message: "keep watching",
+      });
+      service.reloadFromStore();
+      await firstExecutionBlocked;
+      return "ok";
+    });
+    const service = new CronService(storePath, onJob);
+    await service.start();
+    vi.setSystemTime(scheduledAtMs);
+
+    const firstRun = service.runJob("job-reentrant");
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onJob).toHaveBeenCalledTimes(1);
+    releaseFirstExecution?.();
+    await firstRun;
+    service.stop();
+  });
+
+  it("settles a running job against the current store after an external reload", async () => {
+    const scheduledAtMs = Date.parse("2026-04-08T12:20:00.000Z");
+    const oneShotJob: CronStore["jobs"][number] = {
+      id: "job-external-reload",
+      name: "one-shot-with-external-reload",
+      enabled: true,
+      schedule: { kind: "at", atMs: scheduledAtMs },
+      payload: { message: "run once" },
+      state: { nextRunAtMs: scheduledAtMs },
+      createdAtMs: scheduledAtMs - 1_000,
+      updatedAtMs: scheduledAtMs - 1_000,
+      deleteAfterRun: true,
+    };
+    writeStore(storePath, { version: 1, jobs: [oneShotJob] });
+    vi.setSystemTime(scheduledAtMs - 1_000);
+
+    let releaseExecution: (() => void) | undefined;
+    const executionBlocked = new Promise<void>((resolve) => {
+      releaseExecution = resolve;
+    });
+    const onJob = vi.fn(async () => {
+      await executionBlocked;
+      return "ok";
+    });
+    const service = new CronService(storePath, onJob);
+    await service.start();
+    vi.setSystemTime(scheduledAtMs);
+
+    const firstRun = service.runJob(oneShotJob.id);
+    writeStore(storePath, {
+      version: 1,
+      jobs: [
+        oneShotJob,
+        {
+          id: "job-added-externally",
+          name: "external-update",
+          enabled: true,
+          schedule: { kind: "every", everyMs: 60_000 },
+          payload: { message: "preserve me" },
+          state: { nextRunAtMs: scheduledAtMs + 60_000 },
+          createdAtMs: scheduledAtMs,
+          updatedAtMs: scheduledAtMs,
+          deleteAfterRun: false,
+        },
+      ],
+    });
+    service.reloadFromStore();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(onJob).toHaveBeenCalledTimes(1);
+    await expect(service.runJob(oneShotJob.id)).resolves.toBe(false);
+    releaseExecution?.();
+    await expect(firstRun).resolves.toBe(true);
+    service.stop();
+
+    expect(readStore(storePath).jobs.map((job) => job.id)).toEqual(["job-added-externally"]);
+  });
+});
+
+describe("CronService persistence and diagnostics", () => {
   it("does not rewrite the cron store on reload when nothing changed", async () => {
     vi.useRealTimers();
     writeStore(storePath, {

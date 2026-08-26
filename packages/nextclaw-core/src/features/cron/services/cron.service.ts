@@ -67,6 +67,7 @@ export class CronService {
   private store: CronStore | null = null;
   private timer: NodeJS.Timeout | null = null;
   private running = false;
+  private readonly executingJobIds = new Set<string>();
   private lastPersistedStoreJson: string | null = null;
   private storeExistsOnDisk = false;
   onJob?: (job: CronJob) => Promise<string | null>;
@@ -145,6 +146,17 @@ export class CronService {
   };
 
   readonly reloadFromStore = (): void => {
+    if (existsSync(this.storePath)) {
+      try {
+        if (this.storeExistsOnDisk && readFileSync(this.storePath, "utf-8") === this.lastPersistedStoreJson) {
+          return;
+        }
+      } catch {
+        // Let loadStore recover from an unreadable or partially replaced file.
+      }
+    } else if (!this.storeExistsOnDisk) {
+      return;
+    }
     this.store = null;
     this.loadStore();
     this.recomputeNextRunsForMaintenance();
@@ -210,7 +222,7 @@ export class CronService {
       return null;
     }
     const times = this.store.jobs
-      .filter((job) => job.enabled && job.state.nextRunAtMs)
+      .filter((job) => job.enabled && !this.executingJobIds.has(job.id) && job.state.nextRunAtMs)
       .map((job) => job.state.nextRunAtMs as number);
     if (!times.length) {
       return null;
@@ -270,9 +282,40 @@ export class CronService {
     this.armTimer();
   };
 
-  private readonly executeJob = async (job: CronJob): Promise<void> => {
+  private readonly settleJobExecution = (params: {
+    jobId: string;
+    lastError: string | null;
+    lastStatus: CronJobState["lastStatus"];
+    startedAtMs: number;
+  }): void => {
+    const store = this.store;
+    const currentJob = store?.jobs.find((job) => job.id === params.jobId);
+    if (!store || !currentJob) {
+      return;
+    }
+    const previousNextRunAtMs = normalizeFiniteMs(currentJob.state.nextRunAtMs);
+    currentJob.state.lastStatus = params.lastStatus;
+    currentJob.state.lastError = params.lastError;
+    currentJob.state.lastRunAtMs = params.startedAtMs;
+    currentJob.updatedAtMs = nowMs();
+    if (currentJob.schedule.kind !== "at") {
+      currentJob.state.nextRunAtMs = computeNextRun(currentJob.schedule, nowMs(), previousNextRunAtMs);
+      return;
+    }
+    if (currentJob.deleteAfterRun) {
+      store.jobs = store.jobs.filter((job) => job.id !== currentJob.id);
+      return;
+    }
+    currentJob.enabled = false;
+    currentJob.state.nextRunAtMs = null;
+  };
+
+  private readonly executeJob = async (job: CronJob): Promise<boolean> => {
+    if (this.executingJobIds.has(job.id)) {
+      return false;
+    }
+    this.executingJobIds.add(job.id);
     const start = nowMs();
-    const previousNextRunAtMs = normalizeFiniteMs(job.state.nextRunAtMs);
     this.diagnostics?.record({
       domain: "automation.execution",
       event: "job.started",
@@ -281,12 +324,12 @@ export class CronService {
       correlationId: job.id,
       facts: { scheduleKind: job.schedule.kind },
     });
+    let lastStatus: CronJobState["lastStatus"] = "ok";
+    let lastError: string | null = null;
     try {
       if (this.onJob) {
         await this.onJob(job);
       }
-      job.state.lastStatus = "ok";
-      job.state.lastError = null;
       this.diagnostics?.record({
         domain: "automation.execution",
         event: "job.completed",
@@ -298,8 +341,8 @@ export class CronService {
       });
     } catch (err) {
       const classification = classifyDiagnosticError(err);
-      job.state.lastStatus = "error";
-      job.state.lastError = String(err);
+      lastStatus = "error";
+      lastError = String(err);
       this.diagnostics?.record({
         domain: "automation.execution",
         event: "job.failed",
@@ -312,19 +355,16 @@ export class CronService {
         facts: { scheduleKind: job.schedule.kind, ...(classification.facts ?? {}) },
       });
     }
-    job.state.lastRunAtMs = start;
-    job.updatedAtMs = nowMs();
-    if (job.schedule.kind === "at") {
-      if (job.deleteAfterRun) {
-        if (this.store) {
-          this.store.jobs = this.store.jobs.filter((existing) => existing.id !== job.id);
-        }
-      } else {
-        job.enabled = false;
-        job.state.nextRunAtMs = null;
-      }
-    } else {
-      job.state.nextRunAtMs = computeNextRun(job.schedule, nowMs(), previousNextRunAtMs);
+    try {
+      this.settleJobExecution({
+        jobId: job.id,
+        lastError,
+        lastStatus,
+        startedAtMs: start,
+      });
+      return true;
+    } finally {
+      this.executingJobIds.delete(job.id);
     }
   };
 
@@ -403,10 +443,10 @@ export class CronService {
         if (!force && !job.enabled) {
           return false;
         }
-        await this.executeJob(job);
+        const executed = await this.executeJob(job);
         this.saveStore();
         this.armTimer();
-        return true;
+        return executed;
       }
     }
     return false;

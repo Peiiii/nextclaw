@@ -76,6 +76,7 @@ describe("createCronJobHandler", () => {
       }),
     });
     const payload = sendAndWaitForReply.mock.calls[0]?.[0] as { metadata?: Record<string, unknown> };
+    expect(payload).not.toHaveProperty("model");
     expect(payload.metadata).not.toHaveProperty("agent_id");
     expect(payload.metadata).not.toHaveProperty("account_id");
     expect(payload.metadata).not.toHaveProperty("chat_id");

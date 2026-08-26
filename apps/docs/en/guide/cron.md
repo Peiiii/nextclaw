@@ -23,6 +23,8 @@ Run the brief we just completed every weekday at 08:30. Read daily-sources.md, p
 
 Use the schedule page to enable, disable, run now, and inspect timing. Run it manually again after changing a model, directory, channel, or credential.
 
+A task bound to an existing session uses that session's model unless the task specifies another one. Each due task starts one run; updating other scheduled tasks while it is running does not start the current task again.
+
 Scheduled work should be low-risk, stable, reviewable, and retryable. Keep explicit confirmation around public publishing, destructive changes, sensitive messages, production data, and paid actions.
 
 See [Generate and send a scheduled brief](/en/tasks/scheduled-brief) for a complete example.
