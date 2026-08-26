@@ -15,6 +15,7 @@ import { ChatConversationTrack } from "@/features/chat/components/conversation/c
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { t } from "@/shared/lib/i18n";
+import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 import type { SessionMessageToolPayloadState } from "@/features/chat/features/ncp/hooks/use-ncp-session-message-history";
 
 type ChatConversationContentProps = {
@@ -41,6 +42,13 @@ type ChatConversationContentProps = {
   welcomeSlot?: ReactNode;
 };
 
+function createConversationScrollRestorationKey(
+  sessionKey: string | null,
+  showWelcome: boolean,
+): string | null {
+  return sessionKey && !showWelcome ? `chat-conversation:${sessionKey}` : null;
+}
+
 export function ChatConversationContent({
   bottomSlot,
   canContinue = false,
@@ -61,9 +69,15 @@ export function ChatConversationContent({
   onEditMessage,
   welcomeSlot,
 }: ChatConversationContentProps) {
-  const threadRef = useRef<HTMLDivElement | null>(null);
-  const contentRef = useRef<HTMLDivElement | null>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const hasConversationContent = messages.length > 0 || isSending;
+  const scrollRestoration = useScrollRestoration({
+    restorationKey: createConversationScrollRestorationKey(sessionKey, showWelcome),
+    scrollRef: threadRef,
+    isEnabled: !showWelcome,
+  });
+  const { onScroll: onScrollPositionSave } = scrollRestoration;
   const { isAtBottom, onScroll, scrollToBottom } = useStickyBottomScroll({
     contentRef,
     scrollRef: threadRef,
@@ -75,6 +89,7 @@ export function ChatConversationContent({
   const hasMessages = messages.length > 0;
   const handleScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
+      onScrollPositionSave(event);
       onScroll();
       if (
         event.currentTarget.scrollTop <= 320 &&
@@ -89,6 +104,7 @@ export function ChatConversationContent({
       isLoadingPreviousMessages,
       onLoadPreviousMessages,
       onScroll,
+      onScrollPositionSave,
     ],
   );
   return (

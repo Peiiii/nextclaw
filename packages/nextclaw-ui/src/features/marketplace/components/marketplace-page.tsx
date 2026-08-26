@@ -30,6 +30,7 @@ import { PageLayout } from "@/app/components/layout/page-layout";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
+import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 import { Tabs, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 
 const PAGE_SIZE = 20;
@@ -95,6 +96,11 @@ export function MarketplacePage({
     onLoadMore: () => itemsQuery.fetchNextPage(),
     watchValue: `${typeFilter}:${scope}:${query}:${sceneParam ?? ""}:${sort}:${itemsQuery.data?.loadedItems ?? 0}:${itemsQuery.data?.loadedPages ?? 0}`,
   });
+  const scrollRestoration = useScrollRestoration({
+    restorationKey: `marketplace:${forcedType ?? "all"}`,
+    scrollRef: listContainerRef,
+  });
+  const { onScroll: onScrollPositionSave } = scrollRestoration;
 
   useEffect(() => {
     const container = listContainerRef.current;
@@ -177,6 +183,7 @@ export function MarketplacePage({
       <section className="flex min-h-0 flex-1 flex-col">
         <div
           ref={listContainerRef}
+          onScroll={onScrollPositionSave}
           className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1"
           aria-busy={listModel.showListSkeleton || itemsQuery.isFetchingNextPage}
         >

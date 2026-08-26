@@ -28,6 +28,7 @@ import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-s
 import { PanelAppMainSidebarNav } from "@/features/panel-apps";
 import { isWindowsDesktopHost } from "@/platforms/desktop";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
+import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 import {
   SIDEBAR_RAIL_CONTROL_CLASS,
   SIDEBAR_RAIL_ICON_CLASS,
@@ -176,6 +177,11 @@ export function ChatSidebarSessionArea({
     typeof ChatSidebarSessionList
   >[0]["sessionTypeOptions"];
 }) {
+  const scrollRestoration = useScrollRestoration<HTMLDivElement>({
+    restorationKey: "chat-sidebar:sessions",
+    isEnabled: !isCollapsed,
+  });
+  const { onScroll: onScrollPositionSave, scrollRef } = scrollRestoration;
   if (isCollapsed) {
     return <div className="min-h-0 flex-1" aria-hidden="true" />;
   }
@@ -198,7 +204,9 @@ export function ChatSidebarSessionArea({
       </div>
 
       <div
+        ref={scrollRef}
         onScroll={(event) => {
+          onScrollPositionSave(event);
           const element = event.currentTarget;
           if (element.scrollHeight - element.scrollTop - element.clientHeight < 600) {
             onScrollNearEnd();

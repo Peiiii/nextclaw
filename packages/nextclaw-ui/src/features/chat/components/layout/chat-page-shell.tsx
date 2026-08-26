@@ -8,6 +8,7 @@ import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { ChatMobileShell } from "@/platforms/mobile";
 import { InboxPage } from "@/features/inbox";
 import { PanelAppMainPage } from "@/features/panel-apps";
+import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox" | "panel-app";
 export type ChatPageProps = {
   view: MainPanelView;
@@ -36,6 +37,14 @@ type ChatPageLayoutProps = {
 };
 export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
   const { isMobile } = useViewportLayout();
+  const cronScroll = useScrollRestoration<HTMLDivElement>({
+    restorationKey: "main-page:cron",
+  });
+  const agentsScroll = useScrollRestoration<HTMLDivElement>({
+    restorationKey: "main-page:agents",
+  });
+  const { onScroll: onCronScroll, scrollRef: cronScrollRef } = cronScroll;
+  const { onScroll: onAgentsScroll, scrollRef: agentsScrollRef } = agentsScroll;
 
   return (
     <div className="h-full flex">
@@ -52,13 +61,21 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
           ) : view === "panel-app" ? (
             <PanelAppMainPage />
           ) : view === "cron" ? (
-            <div className="h-full overflow-auto custom-scrollbar">
+            <div
+              ref={cronScrollRef}
+              onScroll={onCronScroll}
+              className="h-full overflow-auto custom-scrollbar"
+            >
               <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
                 <CronConfig />
               </div>
             </div>
           ) : view === "agents" ? (
-            <div className="h-full overflow-auto custom-scrollbar">
+            <div
+              ref={agentsScrollRef}
+              onScroll={onAgentsScroll}
+              className="h-full overflow-auto custom-scrollbar"
+            >
               <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
                 <AgentsPage />
               </div>

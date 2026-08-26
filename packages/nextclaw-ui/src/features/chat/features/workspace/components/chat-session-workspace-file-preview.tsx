@@ -1,4 +1,4 @@
-import { useMemo, useRef, type ReactNode, type RefObject } from 'react';
+import { useMemo, useRef, type ReactNode, type RefObject, type UIEvent } from 'react';
 import type { ChatFileOpenActionViewModel, ChatFileOperationBlockViewModel } from '@nextclaw/agent-chat-ui';
 import { NextClawClientError } from '@nextclaw/client-sdk';
 import { ChatMessageMarkdown, FileOperationCodeSurface } from '@nextclaw/agent-chat-ui';
@@ -24,6 +24,7 @@ import { buildWorkspaceFileBreadcrumb, resolveWorkspaceRelativePath } from '@/sh
 import { cn } from '@/shared/lib/utils';
 import { resolveWorkspaceFileViewer } from '@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils';
 import { WorkspaceMarkdownOutline } from './workspace-markdown-outline';
+import { useScrollRestoration } from '@/shared/hooks/use-scroll-restoration';
 
 function inferPreviewKind(params: {
   path: string;
@@ -40,6 +41,31 @@ function appendPreviewRefreshVersion(url: string, refreshVersion: number): strin
     return url;
   }
   return `${url}${url.includes('?') ? '&' : '?'}refresh=${refreshVersion}`;
+}
+
+function createMarkdownScrollRestorationKey(params: {
+  contentUrl: string | null;
+  fileKey: string;
+  previewKind: 'text' | 'markdown' | 'binary';
+  previewText: string | null;
+  previewViewer: 'source' | 'rendered' | null;
+  refreshVersion: number;
+}): string | null {
+  const {
+    contentUrl,
+    fileKey,
+    previewKind,
+    previewText,
+    previewViewer,
+    refreshVersion,
+  } = params;
+  if (previewKind !== 'markdown' || previewViewer === 'source' || !previewText || contentUrl) {
+    return null;
+  }
+  // `fileKey` is the workspace tab's stable identity. Do not include resolvedPath:
+  // React Query may temporarily expose a previous result while a different file
+  // loads, which would turn one tab into several restoration records.
+  return `workspace-preview:markdown:${fileKey}:${refreshVersion}`;
 }
 
 function buildPreviewBlock(params: {
@@ -159,6 +185,7 @@ function WorkspacePreviewBody({
   onFileOpen,
   onHtmlContentHeightChange,
   markdownScrollRef,
+  onMarkdownScroll,
   previewBlock,
   previewKind,
   previewViewer,
@@ -176,6 +203,7 @@ function WorkspacePreviewBody({
   onFileOpen: (action: ChatFileOpenActionViewModel) => void;
   onHtmlContentHeightChange?: (height: number) => void;
   markdownScrollRef: RefObject<HTMLDivElement>;
+  onMarkdownScroll: (event: UIEvent<HTMLDivElement>) => void;
   previewBlock: ChatFileOperationBlockViewModel | null;
   previewKind: 'text' | 'markdown' | 'binary';
   previewViewer: 'source' | 'rendered' | null;
@@ -224,7 +252,11 @@ function WorkspacePreviewBody({
 
   if (previewKind === 'markdown' && previewViewer !== 'source' && previewText) {
     return (
-      <div ref={markdownScrollRef} className="h-full overflow-auto custom-scrollbar px-5 py-4">
+      <div
+        ref={markdownScrollRef}
+        onScroll={onMarkdownScroll}
+        className="h-full overflow-auto custom-scrollbar px-5 py-4"
+      >
         <ChatMessageMarkdown
           text={previewText}
           role="assistant"
@@ -338,6 +370,18 @@ export function ChatSessionWorkspaceFilePreview({
     previewText,
   ]);
   const isTextPreviewTruncated = !contentUrl && Boolean(previewQuery?.data?.truncated);
+  const markdownScrollRestoration = useScrollRestoration({
+    restorationKey: createMarkdownScrollRestorationKey({
+      contentUrl,
+      fileKey: file.key,
+      previewKind,
+      previewText,
+      previewViewer,
+      refreshVersion,
+    }),
+    scrollRef: markdownScrollRef,
+  });
+  const { onScroll: onMarkdownScroll } = markdownScrollRestoration;
   const breadcrumbBasePath = sessionProjectRoot ?? sessionWorkingDir;
   const excerptPath =
     resolveWorkspaceRelativePath({
@@ -365,6 +409,7 @@ export function ChatSessionWorkspaceFilePreview({
       onFileOpen={onFileOpen}
       onHtmlContentHeightChange={onHtmlContentHeightChange}
       markdownScrollRef={markdownScrollRef}
+      onMarkdownScroll={onMarkdownScroll}
       previewBlock={previewBlock}
       previewKind={previewKind}
       previewViewer={previewViewer}

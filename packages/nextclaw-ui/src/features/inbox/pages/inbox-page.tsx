@@ -12,6 +12,7 @@ import { Button } from "@/shared/components/ui/button";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { formatDateShort, formatDateTime, t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
+import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 
 type InboxFilter = "unread" | "all" | "archived";
 
@@ -64,6 +65,10 @@ function InboxListPane({
   filter: InboxFilter;
   onFilterChange: (filter: InboxFilter) => void;
 }) {
+  const scrollRestoration = useScrollRestoration<HTMLDivElement>({
+    restorationKey: "inbox:list",
+  });
+  const { onScroll, scrollRef } = scrollRestoration;
   const filterItems: Array<{ id: InboxFilter; label: string; count: number }> = [
     {
       id: "unread",
@@ -100,7 +105,11 @@ function InboxListPane({
           </button>
         ))}
       </div>
-      <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2">
+      <div
+        ref={scrollRef}
+        onScroll={onScroll}
+        className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-2"
+      >
         {filteredDeliveries.length > 0 ? (
           <ul className="space-y-0.5">
             {filteredDeliveries.map((delivery) => (
@@ -166,6 +175,10 @@ function InboxDetailPane({
   onDelete: () => void;
   onReadToggle: () => void;
 }) {
+  const scrollRestoration = useScrollRestoration<HTMLDivElement>({
+    restorationKey: delivery ? `inbox:delivery:${delivery.id}` : null,
+  });
+  const { onScroll, scrollRef } = scrollRestoration;
   if (!delivery) {
     return <main className="flex min-h-0 flex-col"><InboxEmptyState selection /></main>;
   }
@@ -204,7 +217,10 @@ function InboxDetailPane({
         isHtml
           ? "p-3 sm:p-4"
           : "custom-scrollbar overflow-y-auto px-5 py-5 sm:px-6 sm:py-6",
-      )}>
+      )}
+      ref={scrollRef}
+      onScroll={onScroll}
+      >
         <div className={cn("mx-auto max-w-5xl", isHtml && "h-full")}>
           <InboxDeliveryContent
             className={isHtml ? "h-full" : undefined}

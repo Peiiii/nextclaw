@@ -215,7 +215,6 @@ export function DocBrowser({
     currentTab,
     iframeRef,
     isEnabled: supportsScrollRestoration,
-    tabs,
   });
   const { handleUrlSubmit, setUrlInput, urlInput } = useDocBrowserAddressBar({
     activeTabId,

@@ -22,6 +22,7 @@ import { useRemoteStatus } from "@/features/remote";
 import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
+import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 import {
   SIDEBAR_RAIL_CONTROL_CLASS,
   SIDEBAR_RAIL_ICON_CLASS,
@@ -136,8 +137,14 @@ function SidebarNavigation({
   isCollapsed: boolean;
   sections: SidebarNavSection[];
 }) {
+  const scrollRestoration = useScrollRestoration<HTMLElement>({
+    restorationKey: "settings-sidebar:navigation",
+  });
+  const { onScroll, scrollRef } = scrollRestoration;
   return (
     <nav
+      ref={scrollRef}
+      onScroll={onScroll}
       className={cn(
         "custom-scrollbar min-h-0 flex-1 overflow-y-auto",
         isCollapsed ? "pr-0" : "pr-1",

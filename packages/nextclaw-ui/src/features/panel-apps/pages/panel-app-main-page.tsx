@@ -12,6 +12,7 @@ import {
 } from "@/features/panel-apps/utils/panel-app-iframe.utils";
 import { openApps } from "@/features/panel-apps/utils/panel-app-doc-browser.utils";
 import { useDocBrowser } from "@/shared/components/doc-browser";
+import { usePanelAppScrollRestoration } from "@/shared/hooks/use-panel-app-scroll-restoration";
 import { t } from "@/shared/lib/i18n";
 
 export function PanelAppMainPage() {
@@ -25,6 +26,12 @@ export function PanelAppMainPage() {
     [appId, panelApps.data?.entries],
   );
   const runtime = usePanelAppMainRuntime(entry);
+  const restoreScroll = usePanelAppScrollRestoration({
+    currentUrl: entry?.contentPath ?? null,
+    iframeRef,
+    isEnabled: Boolean(entry),
+    restorationKey: entry ? `panel-app:main:${entry.appId}` : null,
+  });
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -88,6 +95,7 @@ export function PanelAppMainPage() {
         title={entry.title}
         sandbox={PANEL_APP_IFRAME_SANDBOX}
         className="block h-full w-full border-0 bg-background"
+        onLoad={restoreScroll}
         onPointerOver={(event) => focusPanelAppIframe(event.currentTarget)}
       />
     </div>

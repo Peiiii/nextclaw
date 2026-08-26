@@ -14,6 +14,7 @@ import type { DocBrowserTabMenuGroupsResolver } from "@/shared/components/doc-br
 import { cn } from "@/shared/lib/utils";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styles";
+import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 
 const DocBrowser = lazy(async () => ({
   default: (await import("@/shared/components/doc-browser/doc-browser"))
@@ -55,6 +56,10 @@ export function DesktopAppShell({
     : isMainRoute
       ? "280px"
       : "240px";
+  const settingsScroll = useScrollRestoration<HTMLElement>({
+    restorationKey: isMainRoute ? null : `settings-page:${pathname}`,
+  });
+  const { onScroll: onSettingsScroll, scrollRef: settingsScrollRef } = settingsScroll;
 
   return (
     <div
@@ -82,7 +87,11 @@ export function DesktopAppShell({
             {isMainRoute ? (
               <div className="flex-1 h-full overflow-hidden">{children}</div>
             ) : (
-              <main className="flex-1 overflow-auto p-8 pb-16 custom-scrollbar">
+              <main
+                ref={settingsScrollRef}
+                onScroll={onSettingsScroll}
+                className="flex-1 overflow-auto p-8 pb-16 custom-scrollbar"
+              >
                 <div className="mx-auto h-full max-w-6xl animate-fade-in">
                   {children}
                 </div>

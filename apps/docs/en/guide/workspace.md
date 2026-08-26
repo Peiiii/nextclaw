@@ -22,7 +22,7 @@ Previews cover Markdown, code, HTML, common documents, spreadsheets, and present
 
 ## Open files
 
-Open files stay available while you move between the conversation, source, and output. Reopen the real file after the agent changes it. On a narrow screen, use the Explorer button in the preview header to reveal the tree temporarily and continue in the same preview context after choosing another file.
+Open files stay available while you move between the conversation, source, and output. Your reading position is kept when you return to a file, switch between Markdown source and preview, or view another file first. Reopen the real file after the agent changes it. On a narrow screen, use the Explorer button in the preview header to reveal the tree temporarily and continue in the same preview context after choosing another file.
 
 To use a file in the current message, choose **Add to chat** from its action menu. In a text file, you can select a passage first and add only that excerpt. Files, folders, and selected text appear as visible references in the composer. See [Tasks and sessions](/en/guide/chat#add-files-and-selected-text-to-a-message) for the full workflow.
 
