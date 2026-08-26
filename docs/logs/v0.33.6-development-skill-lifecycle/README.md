@@ -30,6 +30,10 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 
 2026-08-26 将启用 observer 的根开发任务从“仅按需查询 Token”调整为“任务结束默认附一行近似 Token 简报”：根 Agent 先结束 marker、待 rollout 落盘后复用同一确定性脚本汇总，子 Agent 不重复输出；用户可以按任务关闭。日志或 usage 不可用时只报告暂不可用，不让观测失败阻塞任务交付；完整阶段报告和持久化导出仍保持按需。
 
+同日真实收尾验收发现 parser 把 `[我严格遵守规则][深思模式] [nextclaw.dev/v1 …]` 中前缀与 marker 之间的空格误判为 `invalid_marker_position`，导致任务报告不可用。根因是 parser 只接受连续方括号前缀，测试也只覆盖了无空格样本；现已允许前缀后的空白、补入真实格式回归样本，并规定 marker、解析或默认收尾汇报改动必须同时通过定向测试与真实 rollout/task-id 复验，静态治理检查不得替代行为验收。
+
+同一轮真实复验继续发现 Codex 会把多个独立进度消息聚合到一个 usage frame；旧 parser 把这种合法顺序状态转换误作冲突，令 `task=end` 无法关闭。现在 parser 保留同帧独立消息的 marker 顺序，analyzer 依次更新状态并只把该帧累计 Token 归给最后状态；单条消息内的多个 marker 仍保持失败关闭。新增回归测试覆盖 retrospective 与 task=end 被同帧聚合的真实时序。
+
 设计依据：[`docs/designs/2026-08-14-development-skill-lifecycle.design.md`](../../designs/2026-08-14-development-skill-lifecycle.design.md)。
 
 任务遥测设计依据：[`docs/designs/2026-08-14-development-task-phase-tracing.design.md`](../../designs/2026-08-14-development-task-phase-tracing.design.md)。
@@ -57,6 +61,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 - 任务类型补充后，`node --test .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.test.mjs .agents/skills/development-task-telemetry/scripts/serve-task-telemetry-dashboard.test.mjs` 的 11 个测试通过，覆盖三类合法类型、历史缺失类型、reopen 类型冲突、非法类型失败关闭，以及大盘类型列和中文映射；相关脚本定向 ESLint 与 `git diff --check` 通过。
 - `pnpm check:skill-progressive-loading` 再次通过：37 个 Skill、158929 字节入口正文、4392 字符 description、10979 字节 AGENTS、35 条依赖边；`pnpm check:governance-backlog-ratchet` 通过，未扩大治理债务。
 - 默认结束 Token 简报调整后，`pnpm check:skill-progressive-loading` 通过：37 个 Skill、159967 字节入口正文、4392 字符 description、11791 字节 AGENTS、36 条依赖边；定向新代码治理、backlog ratchet 与 `git diff --check` 均通过。未修改解析器，既有报告算法和测试合同不变。
+- 解析空格修复后，`node --test .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.test.mjs` 8/8 通过；对真实 rollout 的 `dt-4c8f27a1` 复验得到 `1,722,834` Token、100% 任务机械覆盖率且无任务告警。定向 ESLint、`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`git diff --check` 与 `pnpm check:skill-progressive-loading`（37 个 Skill、159960 字节入口正文、4392 字符 description、11791 字节 AGENTS、36 条依赖边）均通过。
+- 同帧顺序 marker 修复后，telemetry 定向测试 9/9、定向 ESLint 与真实 rollout 复验通过；`dt-4c8f27a1` 仍保持 100% 任务机械覆盖率和 completed。当前修复任务在复验前主动 reopen，最终 end 后应再次用同一 rollout 确认 completed。
 
 本轮没有触达 TypeScript、产品运行链路或 UI 行为，因此 tsc、产品测试和真实产品冒烟不适用。
 

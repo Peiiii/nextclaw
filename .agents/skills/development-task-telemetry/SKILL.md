@@ -15,6 +15,7 @@ description: Use when a development task needs visible phase tracing, task-level
 - marker 必须附着在原本就要发送的进度或最终消息第一物理行，位于 `[我严格遵守规则]`、`[深思模式]` 等前缀之后；除用户显式要求收尾汇报外，禁止为 marker 新增消息、模型调用或工具调用。
 - 只在真实 task / phase 转换时输出；同一阶段的普通进度不重复输出。
 - 加载失败时说明 `telemetry unavailable` 并继续开发，不得阻塞任务。
+- 触达 marker、解析或默认收尾汇报时，必须运行定向测试，并以真实 rollout 和同一 task-id 复验报告；静态规则检查不能替代。
 
 ## 固定合同
 
@@ -62,11 +63,11 @@ description: Use when a development task needs visible phase tracing, task-level
 node .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.mjs --sessions-root ~/.codex/sessions [--thread <thread-id>] [--task <task-id>] [--format json]
 ```
 
-AI 默认用文本结果回答；需要比较、自动化或进一步计算时用 JSON。按需报告优先给任务类型、总 Token、阶段占比、模型/effort、调用与工具轮次、耗时、覆盖率和警告。没有 marker 时只报告可观察总量并说明不能可靠分阶段，不让用户补跑命令，不用自然语言猜测缺失数据。
+AI 默认文本回答，需要比较或计算时用 JSON。按需报告给任务类型、总 Token、阶段占比、模型/effort、调用与工具轮次、耗时、覆盖率和警告；无 marker 时只报告可观察总量并说明不能可靠分阶段。
 
 启用 observer 的根开发任务默认收尾汇报：把 `task=end` 附在完成进度首行，待该 frame 落盘后按 task-id 运行脚本，最终答复末尾附 `Token：约 <total>（输入 <input> / 输出 <output>，覆盖率 <coverage>）`；只追加最关键警告。统计截止 `task=end`，后续 observer 开销不递归计入任务。
 
-用户可关闭当前任务汇报。数据不可用时输出 `Token：暂不可用（<简短原因>）`，不重试刷屏或阻塞交付。跨线程只由根 AI 汇总一次，子 Agent 不汇报。
+用户可关闭本任务汇报。数据不可用时说明原因，不重试或阻塞交付；跨线程只由根 AI 汇总一次。
 
 ## 本地大盘
 

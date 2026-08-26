@@ -241,11 +241,14 @@ export function analyzeParsedRollouts(rollouts) {
 
   const roots = new Map();
   for (const frame of frames) {
-    if (frame.marker.kind !== "marker" || frame.marker.action !== "start")
-      continue;
-    const rootThreads = roots.get(frame.marker.taskId) ?? new Set();
-    rootThreads.add(frame.threadId);
-    roots.set(frame.marker.taskId, rootThreads);
+    const markers =
+      frame.marker.kind === "markers" ? frame.marker.markers : [frame.marker];
+    for (const marker of markers) {
+      if (marker.kind !== "marker" || marker.action !== "start") continue;
+      const rootThreads = roots.get(marker.taskId) ?? new Set();
+      rootThreads.add(frame.threadId);
+      roots.set(marker.taskId, rootThreads);
+    }
   }
   for (const [taskId, rootThreads] of roots) {
     if (rootThreads.size > 1) {
@@ -288,61 +291,68 @@ export function analyzeParsedRollouts(rollouts) {
         ensureTask(state.taskId).incrementWarning(frameWarning.code);
     }
 
-    let task = state.taskId ? ensureTask(state.taskId) : null;
-    let attributed = false;
-    const marker = frame.marker;
+    const applyMarker = (marker, assignFrame) => {
+      let task = state.taskId ? ensureTask(state.taskId) : null;
+      let attributed = false;
+      const assign = (phase) => {
+        if (!assignFrame) return;
+        task.assignFrame(phase, frame);
+        attributed = true;
+      };
+      const assignUnattributed = () => {
+        if (task && assignFrame) task.assignUnattributed(frame);
+      };
 
-    if (marker.kind === "invalid") {
-      if (task) {
-        task.assignUnattributed(frame);
-        state.desynchronize(task, marker.code);
-      }
-      globalWarnings.push(
-        makeWarning(marker.code, {
-          thread_id: frame.threadId,
-          timestamp: frame.timestamp,
-        }),
-      );
-    } else if (marker.kind === "marker" && marker.action === "start") {
-      const rootThreads = roots.get(marker.taskId);
-      const rootIsUnique =
-        rootThreads?.size === 1 && rootThreads.has(frame.threadId);
-      if (
-        !rootIsUnique ||
-        (state.mode === "active" && state.taskId !== marker.taskId)
-      ) {
-        if (task) task.assignUnattributed(frame);
-        state.desynchronize(task, "state_conflict");
+      if (marker.kind === "invalid") {
+        if (task) {
+          assignUnattributed();
+          state.desynchronize(task, marker.code);
+        }
         globalWarnings.push(
-          makeWarning("state_conflict", {
+          makeWarning(marker.code, {
             thread_id: frame.threadId,
-            task_id: marker.taskId,
             timestamp: frame.timestamp,
           }),
         );
-      } else {
-        task = ensureTask(marker.taskId);
-        task.name ??= marker.taskName;
+      } else if (marker.kind === "marker" && marker.action === "start") {
+        const rootThreads = roots.get(marker.taskId);
+        const rootIsUnique =
+          rootThreads?.size === 1 && rootThreads.has(frame.threadId);
         if (
-          task.type !== null &&
-          marker.taskType !== null &&
-          task.type !== marker.taskType
+          !rootIsUnique ||
+          (state.mode === "active" && state.taskId !== marker.taskId)
         ) {
-          task.incrementWarning("task_type_conflict");
-        } else task.type ??= marker.taskType;
-        task.rootStartCount += 1;
-        task.reopenCount = Math.max(0, task.rootStartCount - 1);
-        task.status = "incomplete";
-        task.startTimestamp ??= frame.timestamp;
-        state.activate(marker.taskId, marker.phase, "root");
-        task.openPhase(marker.phase);
-        task.assignFrame(marker.phase, frame);
-        attributed = true;
-      }
-    } else if (marker.kind === "marker" && marker.action === "join") {
+          assignUnattributed();
+          state.desynchronize(task, "state_conflict");
+          globalWarnings.push(
+            makeWarning("state_conflict", {
+              thread_id: frame.threadId,
+              task_id: marker.taskId,
+              timestamp: frame.timestamp,
+            }),
+          );
+        } else {
+          task = ensureTask(marker.taskId);
+          task.name ??= marker.taskName;
+          if (
+            task.type !== null &&
+            marker.taskType !== null &&
+            task.type !== marker.taskType
+          ) {
+            task.incrementWarning("task_type_conflict");
+          } else task.type ??= marker.taskType;
+          task.rootStartCount += 1;
+          task.reopenCount = Math.max(0, task.rootStartCount - 1);
+          task.status = "incomplete";
+          task.startTimestamp ??= frame.timestamp;
+          state.activate(marker.taskId, marker.phase, "root");
+          task.openPhase(marker.phase);
+          assign(marker.phase);
+        }
+      } else if (marker.kind === "marker" && marker.action === "join") {
       const rootThreads = roots.get(marker.taskId);
       if (rootThreads?.size !== 1 || state.mode === "active") {
-        if (task) task.assignUnattributed(frame);
+        assignUnattributed();
         state.desynchronize(task, "unresolved_join");
         globalWarnings.push(
           makeWarning("unresolved_join", {
@@ -357,12 +367,11 @@ export function analyzeParsedRollouts(rollouts) {
         task.activeChildren.add(frame.threadId);
         state.activate(marker.taskId, marker.phase, "child");
         task.openPhase(marker.phase);
-        task.assignFrame(marker.phase, frame);
-        attributed = true;
+        assign(marker.phase);
       }
-    } else if (marker.kind === "marker" && marker.action === "phase") {
+      } else if (marker.kind === "marker" && marker.action === "phase") {
       if (state.mode !== "active" || !task) {
-        if (task) task.assignUnattributed(frame);
+        assignUnattributed();
         state.desynchronize(task, "state_conflict");
         globalWarnings.push(
           makeWarning("state_conflict", {
@@ -377,10 +386,9 @@ export function analyzeParsedRollouts(rollouts) {
           state.phase = marker.phase;
           task.openPhase(marker.phase);
         }
-        task.assignFrame(state.phase, frame);
-        attributed = true;
+        assign(state.phase);
       }
-    } else if (
+      } else if (
       marker.kind === "marker" &&
       (marker.action === "leave" || marker.action === "end")
     ) {
@@ -391,7 +399,7 @@ export function analyzeParsedRollouts(rollouts) {
         state.taskId !== marker.taskId ||
         state.laneType !== expectedLane
       ) {
-        if (task) task.assignUnattributed(frame);
+        assignUnattributed();
         state.desynchronize(task, "state_conflict");
         globalWarnings.push(
           makeWarning("state_conflict", {
@@ -401,8 +409,7 @@ export function analyzeParsedRollouts(rollouts) {
           }),
         );
       } else {
-        task.assignFrame(state.phase, frame);
-        attributed = true;
+        assign(state.phase);
         if (marker.action === "leave") {
           task.activeChildren.delete(frame.threadId);
           if (marker.status !== "completed")
@@ -417,12 +424,20 @@ export function analyzeParsedRollouts(rollouts) {
         }
         state.close();
       }
-    } else if (state.mode === "active" && task) {
-      task.assignFrame(state.phase, frame);
-      attributed = true;
-    } else if (state.mode === "desynchronized" && task) {
-      task.assignUnattributed(frame);
-    }
+      } else if (state.mode === "active" && task) {
+        assign(state.phase);
+      } else if (state.mode === "desynchronized" && task && assignFrame) {
+        assignUnattributed();
+      }
+
+      return attributed;
+    };
+
+    const markers =
+      frame.marker.kind === "markers" ? frame.marker.markers : [frame.marker];
+    const attributed = markers.some((marker, index) =>
+      applyMarker(marker, index === markers.length - 1),
+    );
 
     if (frame.usage) {
       if (attributed)

@@ -274,7 +274,7 @@ marker 在响应帧中的生效顺序固定为：
 - `task=start`、`task=join`、`phase=<phase>`：先应用状态转换，再归因该帧；声明进入新阶段的那次模型调用属于新阶段；
 - `task=leave`、`task=end`：先把该帧归入当前 task / phase，再关闭线程状态；最终回复自身的 Token 不会丢失。
 
-每个响应帧最多接受一个合法 marker；出现多个 marker 时整帧进入 `unattributed` 并产生警告。
+每条 assistant 消息首行最多接受一个合法 marker；同一响应帧含多个独立 assistant 消息时，按日志顺序依次应用 marker，帧的累计 usage 只归给最后一个有效状态，避免对中间消息伪造不可观测的 Token 切分。单条消息内多个 marker，或任一消息含非法 marker 时，整帧仍进入 `unattributed` 并产生警告。
 
 跨线程报告采用两遍解析，避免文件遍历顺序影响结果：第一遍只索引所有根 `task=start`、task-id 和所属 workspace，并检查根 ID 冲突；第二遍再逐线程执行状态机、解析 join/leave 和计算 usage。找不到根任务的 join 在第二遍结束后才确定为 unresolved，不因子线程文件先被读取而误报。
 
@@ -493,6 +493,8 @@ Warnings
 10. 重复执行报告无重复计数。
 
 再选 5 到 10 个真实开发任务试运行，人工核对 marker 精度、归属覆盖率、用户噪音和 telemetry 初始化开销。至少保留一组禁用扩展的可比基线；试运行没有证明价值前，不进入自动模型路由和长期平台化。
+
+后续凡修改 marker 位置、解析、协议字段或默认收尾汇报，除合成 fixture 外必须立即用至少一个真实 rollout 和同一 task-id 复验报告可读；渐进加载、lint、diff 等静态检查只能证明规则与代码结构，不能替代该行为验证。
 
 ## 退出条件
 

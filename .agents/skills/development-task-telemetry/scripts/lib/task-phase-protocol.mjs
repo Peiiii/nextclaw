@@ -66,7 +66,7 @@ function parseMarkerFromText(text) {
 
   const markerStart = firstLine.indexOf(namespace);
   const prefix = firstLine.slice(0, markerStart);
-  if (!/^(?:\[[^\]\r\n]+\])*$/.test(prefix)) {
+  if (!/^(?:\[[^\]\r\n]+\]\s*)*$/.test(prefix)) {
     return { kind: "invalid", code: "invalid_marker_position" };
   }
 
@@ -124,6 +124,8 @@ export function parseFrameMarker(assistantTexts) {
     .map(parseMarkerFromText)
     .filter((result) => result.kind !== "none");
   if (parsed.length === 0) return { kind: "none" };
-  if (parsed.length > 1) return { kind: "invalid", code: "multiple_markers" };
-  return parsed[0];
+  const invalid = parsed.find((result) => result.kind === "invalid");
+  if (invalid) return invalid;
+  if (parsed.length === 1) return parsed[0];
+  return { kind: "markers", markers: parsed };
 }

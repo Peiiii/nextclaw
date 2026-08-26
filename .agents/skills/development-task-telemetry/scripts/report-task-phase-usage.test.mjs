@@ -108,7 +108,7 @@ test("attributes start, phase, end, model and tool rounds by response frame", as
     turn("2026-08-14T00:00:00.010Z"),
     assistant(
       "2026-08-14T00:00:01.000Z",
-      '[我严格遵守规则][nextclaw.dev/v1 task=start id=dt-aabbccdd name="优化任务统计名称" type=feature phase=implementation] start',
+      '[我严格遵守规则][深思模式] [nextclaw.dev/v1 task=start id=dt-aabbccdd name="优化任务统计名称" type=feature phase=implementation] start',
     ),
     toolCall("2026-08-14T00:00:01.100Z"),
     tokenCount("2026-08-14T00:00:02.000Z", 100),
@@ -335,6 +335,37 @@ test("fails closed on conflicting markers and recovers on a new start", async ()
     assert.equal(task.warning_counts.multiple_markers, 1);
     assert.equal(task.reopen_count, 1);
     assert.equal(task.type, "feature");
+  });
+});
+
+test("orders markers from separate messages in one usage frame", async () => {
+  const records = [
+    session("thread-batched", "2026-08-14T04:30:00.000Z"),
+    turn("2026-08-14T04:30:00.010Z"),
+    assistant(
+      "2026-08-14T04:30:01.000Z",
+      "[nextclaw.dev/v1 task=start id=dt-batched name=\"批量 marker\" type=bugfix phase=implementation] start",
+    ),
+    tokenCount("2026-08-14T04:30:02.000Z", 50),
+    assistant(
+      "2026-08-14T04:30:03.000Z",
+      "[nextclaw.dev/v1 phase=retrospective] retrospective",
+    ),
+    assistant(
+      "2026-08-14T04:30:04.000Z",
+      "[nextclaw.dev/v1 task=end id=dt-batched status=completed] done",
+    ),
+    tokenCount("2026-08-14T04:30:05.000Z", 100),
+  ];
+
+  await withRollouts({ "batched.jsonl": records }, async (paths) => {
+    const task = taskById(await analyzeRollouts(paths), "dt-batched");
+
+    assert.equal(task.status, "completed");
+    assert.equal(task.data_quality, "complete");
+    assert.equal(task.total_usage.total_tokens, 100);
+    assert.equal(phaseByName(task, "retrospective").total_usage.total_tokens, 50);
+    assert.equal(task.warning_counts.multiple_markers, undefined);
   });
 });
 
