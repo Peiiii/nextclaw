@@ -8,6 +8,8 @@
 
 通过覆盖等待、恢复、超时和确定性冲突的自动化测试确认根因已被关闭，而不是仅放宽某一个报错点。
 
+后续真实主线同步又暴露同类编排缺口：retry worker 的 lease 仅以 common Git dir 命名，导致一个活跃 worktree 被误当作另一个 worktree 的自动同步 owner。现改为以目标 worktree 绝对路径生成稳定独立 lease；同路径复用、跨 worktree 隔离，避免 WIP 保护状态下的同步静默失效。
+
 ## 测试/验证/验收方式
 
 - `node --test scripts/release/*.test.mjs`：98 项全部通过。
@@ -15,6 +17,7 @@
 - `node --check` 覆盖本轮修改的发布脚本，全部通过。
 - `pnpm lint:new-code:governance`：通过。
 - `git diff --check`：通过。
+- 主线协调器临时 Git 仓库测试覆盖同 worktree worker 复用与跨 worktree lease 隔离。
 - diff-only maintainability 检查：0 error、2 个接近文件预算上限的 warning；人工复核未发现需要阻止提交的问题。
 - `pnpm dev:verify-update` 已尝试真实更新链路验证，但本机 Node.js 25.6.1 与 Python 3.14 组合无法编译 `better-sqlite3`，在进入 apply 阶段前被本地原生工具链阻断；该项未宣称通过，也未遗留生成产物。
 
@@ -37,6 +40,7 @@
 - 保留确定性合同冲突的快速失败，没有用无限重试掩盖真实错误。
 - 两个发布脚本已接近当前文件预算上限，但本轮人工复核认为立即拆分只会增加状态跳转；后续继续增长时应优先抽取稳定的轮询合同。
 - `0.44.0` 生产发布验证发现 NPM 两个包在原 120 秒窗口后才完成公开传播；恢复运行无需重新上传即可看到 23/23 identity。默认 registry 等待窗已据此延长为 15 分钟，仍保留 integrity 冲突立即失败。
+- 以 worktree 为 owner 的 lease 删除了错误的全局单例假设，没有新增发布队列或第二个协调器；已有 legacy worker 不被中止，保证其它活跃任务不被同步修复干扰。
 
 ## NPM 包发布记录
 
