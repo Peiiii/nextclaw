@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.44.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-26",
+  "title": {
+    "zh-CN": "NextClaw v0.44.0",
+    "en-US": "NextClaw v0.44.0"
+  },
+  "summary": {
+    "zh-CN": "改善 Markdown 长文浏览、会话侧栏信息与运行中插话，并提供不使用稳定设备标识的匿名活跃汇总。",
+    "en-US": "Improves Markdown navigation, session context, and mid-run steering with anonymous activity summaries that use no stable device identifier."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-26-nextclaw-v0-44-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-26-nextclaw-v0-44-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "Markdown 文档目录", "en-US": "Markdown outline navigation" },
+          "body": {
+            "zh-CN": "从预览路径栏查看标题层级，并直接跳到长文档中的对应章节。",
+            "en-US": "Inspect the heading hierarchy from the preview path bar and jump directly to a section in a long document."
+          }
+        },
+        {
+          "title": { "zh-CN": "侧栏悬浮信息", "en-US": "Sidebar context cards" },
+          "body": {
+            "zh-CN": "悬停会话或项目即可集中查看所属项目、子会话和定时任务等信息。",
+            "en-US": "Hover over a session or project to inspect its project, child sessions, scheduled tasks, and related context."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "一致的插话体验", "en-US": "Consistent steering" },
+          "body": {
+            "zh-CN": "直接插话与排队插话共享状态和消息呈现，完成后仍保留更多操作入口。",
+            "en-US": "Direct and queued steering share the same state and presentation while preserving message actions after completion."
+          }
+        },
+        {
+          "title": { "zh-CN": "更完整的会话标题", "en-US": "More complete session titles" },
+          "body": {
+            "zh-CN": "操作按钮仅在悬停时预留空间，平时展示更长的标题。",
+            "en-US": "Action buttons reserve space only on hover, leaving more room for session titles."
+          }
+        },
+        {
+          "title": { "zh-CN": "更全面的 beta 更新检查", "en-US": "Broader beta update checks" },
+          "body": {
+            "zh-CN": "桌面端 beta 渠道同时检查预览版和正式版，并提示较新的版本。",
+            "en-US": "The Desktop beta channel checks both preview and stable releases and offers the newer version."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "自动清除过期队列错误", "en-US": "Automatic stale queue cleanup" },
+          "body": {
+            "zh-CN": "排队消息已经开始运行时，新的插话会刷新队列并移除过期错误。",
+            "en-US": "When a queued message has already started, a new steering action refreshes the queue and removes obsolete errors."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "默认行为与兼容性", "en-US": "Defaults and compatibility" },
+      "items": [
+        {
+          "title": { "zh-CN": "匿名活跃汇总", "en-US": "Anonymous activity summaries" },
+          "body": {
+            "zh-CN": "默认生成按日、周、月隔离的一次性收据，不上传或保存稳定安装标识、账号、令牌、网络信息、消息内容或工具参数。",
+            "en-US": "Separate one-time daily, weekly, and monthly receipts are enabled by default without uploading or storing stable installation IDs, accounts, tokens, network metadata, message content, or tool parameters."
+          }
+        }
+      ]
+    }
+  ]
+}

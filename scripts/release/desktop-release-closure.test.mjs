@@ -5,7 +5,8 @@ import {
   assertDesktopReleaseAssetMetadata,
   assertDesktopReleaseAssetSet,
   buildDesktopReleaseObservation,
-  buildExpectedDesktopReleaseAssetNames
+  buildExpectedDesktopReleaseAssetNames,
+  waitForPublicManifest
 } from "./desktop-release-closure.mjs";
 
 const releaseOptions = {
@@ -114,6 +115,55 @@ test("builds structured workflow timing and process observations", () => {
   });
 });
 
+test("public manifest propagation treats read failures and stale versions as pending", async () => {
+  const observations = [new Error("curl 404"), { latestVersion: "0.42.2" }, {
+    latestVersion: "0.42.3",
+    minimumLauncherVersion: "0.0.260",
+    releaseNotesUrl: "https://example.test/notes"
+  }];
+  let reads = 0;
+  let sleeps = 0;
+  await waitForPublicManifest({
+    ...releaseOptions,
+    minimumLauncherVersion: "0.0.260",
+    publicAttempts: 3,
+    publicDelayMs: 1,
+    readJsonCommand: async () => {
+      const observation = observations[reads++];
+      if (observation instanceof Error) throw observation;
+      return observation;
+    },
+    releaseNotesUrl: "https://example.test/notes",
+    sleep: async () => { sleeps += 1; }
+  });
+  assert.equal(reads, 3);
+  assert.equal(sleeps, 2);
+});
+
+test("public manifest fails immediately after expected version exposes an immutable-field mismatch", async () => {
+  let reads = 0;
+  await assert.rejects(
+    waitForPublicManifest({
+      ...releaseOptions,
+      minimumLauncherVersion: "0.0.260",
+      publicAttempts: 3,
+      publicDelayMs: 1,
+      readJsonCommand: async () => {
+        reads += 1;
+        return {
+          latestVersion: "0.42.3",
+          minimumLauncherVersion: "0.0.259",
+          releaseNotesUrl: "https://example.test/notes"
+        };
+      },
+      releaseNotesUrl: "https://example.test/notes",
+      sleep: async () => {}
+    }),
+    /minimumLauncherVersion mismatch/
+  );
+  assert.equal(reads, 1);
+});
+
 test("desktop publication is Draft-first and workflow-dispatched", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/desktop-release.yml", import.meta.url), "utf8");
   const releaseScript = readFileSync(new URL("./release-desktop.mjs", import.meta.url), "utf8");
@@ -184,7 +234,7 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   assert.match(workflow, /ref: \$\{\{ inputs\.release_target \|\| inputs\.release_tag \}\}/);
   assert.match(
     closure,
-    /waitForWorkflowRun\(options\)[\s\S]*?waitForWorkflowSuccess\(options, runEntry\)[\s\S]*?readTagSha\(options\.tag\)[\s\S]*?tagSha !== options\.target/
+    /const \{ tag, target \} = options;[\s\S]*?waitForWorkflowRun\(options\)[\s\S]*?waitForWorkflowSuccess\(options, runEntry\)[\s\S]*?readTagSha\(tag\)[\s\S]*?tagSha !== target/
   );
 });
 
