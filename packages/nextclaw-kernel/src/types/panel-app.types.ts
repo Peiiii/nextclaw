@@ -35,6 +35,7 @@ export type PanelAppList = {
   workspacePath: string;
   panelsPath: string;
   entries: PanelAppEntry[];
+  unavailablePackages: Array<{ appId: string; message: string }>;
 };
 
 export type PanelAppContent = {

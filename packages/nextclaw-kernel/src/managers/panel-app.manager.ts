@@ -11,7 +11,10 @@ import type { PanelAppPreferencesUpdate } from "@kernel/stores/panel-app-state.s
 import { PanelAppCapabilityGrantStore } from "@kernel/stores/panel-app-capability-grant.store.js";
 import { PanelAppClientGrantStore } from "@kernel/stores/panel-app-client-grant.store.js";
 import type { PanelAppClientGrant } from "@kernel/stores/panel-app-client-grant.store.js";
-import type { AppPackageComponentSource } from "@kernel/types/app-package.types.js";
+import type {
+  AppPackageComponentSource,
+  AppPackageUnavailableDiagnostic,
+} from "@kernel/types/app-package.types.js";
 import type {
   PanelAppAgentCapability,
   PanelAppAgentGenerateObjectInput,
@@ -77,6 +80,7 @@ export class PanelAppManager {
     eventBus?: EventBus;
     ingress?: Ingress;
     listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
+    listPackageComponentDiagnostics?: () => Promise<AppPackageUnavailableDiagnostic[]>;
   }) {
     this.agentRunClient = params.agentRunClient ??
       (params.eventBus && params.ingress
@@ -123,6 +127,7 @@ export class PanelAppManager {
       workspacePath,
       panelsPath,
       entries: entries.sort(this.entryPresenter.compare),
+      unavailablePackages: await this.params.listPackageComponentDiagnostics?.() ?? [],
     };
   };
 

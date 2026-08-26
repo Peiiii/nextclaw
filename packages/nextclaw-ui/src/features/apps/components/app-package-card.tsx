@@ -59,6 +59,7 @@ export function AppPackageCard({
   storageUsage,
   storageUsageLoading,
   storageUsageUnavailable,
+  unavailableMessage,
 }: {
   appPackage: AppPackageView;
   isPending: boolean;
@@ -73,6 +74,7 @@ export function AppPackageCard({
   storageUsage?: AppDataEntry['usage'];
   storageUsageLoading: boolean;
   storageUsageUnavailable: boolean;
+  unavailableMessage?: string;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [uninstallOpen, setUninstallOpen] = useState(false);
@@ -91,6 +93,7 @@ export function AppPackageCard({
   );
   const operationActive = operation ? isAppPackageOperationActive(operation.status) : false;
   const pending = isPending || operationActive;
+  const availability = readPackageAvailability(appPackage.enabled, unavailableMessage);
   const storageUsageLabel = resolveStorageUsageLabel(
     storageUsage,
     storageUsageLoading,
@@ -106,13 +109,12 @@ export function AppPackageCard({
             <h2 className="truncate text-sm font-semibold text-foreground">{displayName}</h2>
             <span className={cn(
               'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium',
-              appPackage.enabled
-                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                : 'bg-muted text-muted-foreground',
+              availability.className,
             )}>
-              {appPackage.enabled ? t('appPackagesEnabled') : t('appPackagesAvailable')}
+              {availability.label}
             </span>
           </div>
+          {unavailableMessage ? <p role="alert" className="mt-2 text-xs leading-5 text-destructive">{unavailableMessage}</p> : null}
           {displayDescription ? (
             <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
               {displayDescription}
@@ -160,7 +162,8 @@ export function AppPackageCard({
             type="button"
             size="sm"
             variant={appPackage.enabled ? 'outline' : 'default'}
-            disabled={pending}
+            disabled={pending || !availability.interactive}
+            title={availability.message}
             onClick={appPackage.enabled ? onDisable : onEnable}
           >
             {renderPrimaryActionLabel({
@@ -243,7 +246,7 @@ export function AppPackageCard({
                 <button
                   key={component.id}
                   type="button"
-                  disabled={!appPackage.enabled || !panelApp || pending}
+                  disabled={!appPackage.enabled || !panelApp || pending || !availability.interactive}
                   onClick={() => panelApp && onOpenPanelApp({
                     ...panelApp,
                     title: componentTitle,
@@ -253,7 +256,7 @@ export function AppPackageCard({
                     ),
                   })}
                   className="group flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:cursor-default disabled:opacity-55"
-                  title={!appPackage.enabled ? t('appPackagesEnableToOpen') : componentTitle}
+                  title={availability.message ?? (!appPackage.enabled ? t('appPackagesEnableToOpen') : componentTitle)}
                 >
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground shadow-sm ring-1 ring-border/60">
                     <ComponentIcon icon={component.icon} fallback={Icon} />
@@ -367,6 +370,25 @@ function resolveStorageUsageLabel(
   if (usage) return formatBytes(usage.totalBytes);
   if (loading) return t('appPackagesLoading');
   return t(unavailable ? 'appPackagesDataUsageUnavailable' : 'appPackagesNoDataYet');
+}
+
+function readPackageAvailability(enabled: boolean, message: string | undefined) {
+  if (message) {
+    return {
+      className: 'bg-destructive/10 text-destructive',
+      interactive: false,
+      label: t('appPackagesUnavailable'),
+      message,
+    };
+  }
+  return {
+    className: enabled
+      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+      : 'bg-muted text-muted-foreground',
+    interactive: true,
+    label: enabled ? t('appPackagesEnabled') : t('appPackagesAvailable'),
+    message: undefined,
+  };
 }
 
 function renderPrimaryActionLabel({

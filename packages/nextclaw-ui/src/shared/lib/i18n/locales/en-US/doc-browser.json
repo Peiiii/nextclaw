@@ -62,6 +62,7 @@
   "appPackagesEmptyTitle": "No apps available yet",
   "appPackagesEmptyDescription": "Install a Mini APP, or upgrade to a NextClaw version that includes built-in apps.",
   "appPackagesEnabled": "Enabled",
+  "appPackagesUnavailable": "Unavailable",
   "appPackagesAvailable": "Available",
   "appPackagesBuiltIn": "Built into NextClaw",
   "appPackagesLocalService": "Local data service",

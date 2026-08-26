@@ -422,6 +422,35 @@ describe("AppPackageManager packed artifact lifecycle", () => {
 });
 
 describe("AppPackageManager package projection lifecycle", () => {
+  it("keeps workspace panels available when an enabled package fails integrity checks", async () => {
+    const homeDirectory = createTempDirectory();
+    const kernel = createKernel(builtInAppsDirectory, homeDirectory);
+    try {
+      await kernel.appPackageManager.start();
+      const appPackage = await kernel.appPackageManager.enable("nextclaw.personal-organizer");
+      const manifestPath = appPackage.components[0]?.manifestPath;
+      if (!manifestPath) throw new Error("package panel fixture is unavailable");
+      chmodSync(manifestPath, 0o600);
+      writeFileSync(manifestPath, "{ invalid");
+
+      const workspacePanelPath = join(
+        "workspace",
+        "panels",
+        "healthy.panel.html",
+      );
+      const workspacePanelFile = join(homeDirectory, workspacePanelPath);
+      mkdirSync(join(workspacePanelFile, ".."), { recursive: true });
+      writeFileSync(workspacePanelFile, "<title>Healthy Panel</title>");
+
+      await expect(kernel.panelAppManager.listPanelApps()).resolves.toMatchObject({
+        entries: [expect.objectContaining({ title: "Healthy Panel" })],
+        unavailablePackages: [expect.objectContaining({ appId: "nextclaw.personal-organizer" })],
+      });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  });
+
   it("projects the official package into panel and service runtimes with stable data", async () => {
     const kernel = createKernel();
 

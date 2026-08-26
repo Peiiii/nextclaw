@@ -229,6 +229,8 @@ export class NextclawKernel {
       ingress: this.ingress,
       listPackageComponentSources:
         this.appPackageManager.listActiveComponentSources,
+      listPackageComponentDiagnostics: async () =>
+        (await this.appPackageManager.listActiveComponentSourcesWithDiagnostics()).unavailablePackages,
     });
     this.preferenceManager = new PreferenceManager({
       storePath: resolveKernelPreferenceStorePath(options),

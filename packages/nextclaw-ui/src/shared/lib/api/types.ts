@@ -488,6 +488,7 @@ export type PanelAppListView = {
   workspacePath: string;
   panelsPath: string;
   entries: PanelAppEntryView[];
+  unavailablePackages?: Array<{ appId: string; message: string }>;
 };
 
 export type PanelAppPreferencesUpdateView = {

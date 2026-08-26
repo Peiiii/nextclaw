@@ -62,6 +62,7 @@
   "appPackagesEmptyTitle": "还没有可用应用",
   "appPackagesEmptyDescription": "安装一个 Mini APP，或升级到包含内置应用的 NextClaw 版本。",
   "appPackagesEnabled": "已启用",
+  "appPackagesUnavailable": "不可用",
   "appPackagesAvailable": "可用",
   "appPackagesBuiltIn": "NextClaw 内置",
   "appPackagesLocalService": "本地数据服务",

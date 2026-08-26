@@ -189,6 +189,7 @@ export function AppPackagesPanel({
               : undefined}
             packages={appPackages.data?.entries ?? []}
             panelApps={panelApps.data?.entries ?? []}
+            unavailablePackages={panelApps.data?.unavailablePackages ?? []}
             operations={operations}
             onInstall={() => setInstallOpen(true)}
             onMutate={runMutation}
@@ -277,6 +278,7 @@ function AppPackageLibrary({
   onOpenPanelApp,
   packages,
   panelApps,
+  unavailablePackages,
   operations,
 }: {
   appDataEntries: AppDataEntry[];
@@ -292,6 +294,7 @@ function AppPackageLibrary({
   onOpenPanelApp: (entry: PanelAppEntryView) => void;
   packages: AppPackageView[];
   panelApps: PanelAppEntryView[];
+  unavailablePackages: Array<{ appId: string; message: string }>;
   operations: AppPackageOperationView[];
 }) {
   if (isLoading) {
@@ -361,6 +364,7 @@ function AppPackageLibrary({
           >
             <AppPackageCard
               appPackage={appPackage}
+              unavailableMessage={unavailablePackages.find((entry) => entry.appId === appPackage.id)?.message}
               storageUsage={appDataEntries.find((entry) =>
                 entry.source === 'package' &&
                 entry.lifecycle === 'active' &&

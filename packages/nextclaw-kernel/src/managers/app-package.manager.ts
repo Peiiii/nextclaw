@@ -20,6 +20,7 @@ import { AppPackagePresentationService } from "@kernel/services/app-package-pres
 import {
   AppPackageError,
   type AppPackageComponentSource,
+  type AppPackageComponentSourceList,
   type AppPackageHostTarget,
   type AppPackageList,
   type AppPackageOperationInput,
@@ -118,32 +119,36 @@ export class AppPackageManager {
     }
   };
 
-  listActiveComponentSources = async (): Promise<AppPackageComponentSource[]> => {
+  listActiveComponentSources = async (): Promise<AppPackageComponentSource[]> =>
+    (await this.listActiveComponentSourcesWithDiagnostics()).sources;
+
+  listActiveComponentSourcesWithDiagnostics = async (): Promise<AppPackageComponentSourceList> => {
     const records = await this.registryService.listApps();
-    return (await Promise.all(records
+    const results = await Promise.all(records
       .filter((record) => record.enabled)
       .map(async (record) => {
-        await this.installationService.assertVersionIntegrity(
-          record.appId,
-          record.activeVersion,
-        );
-        const version = record.installedVersions[record.activeVersion];
-        if (!version || version.manifestSchemaVersion !== 2) {
-          return [];
+        try {
+          await this.installationService.assertVersionIntegrity(record.appId, record.activeVersion);
+          const version = record.installedVersions[record.activeVersion];
+          if (!version || version.manifestSchemaVersion !== 2) return { sources: [] };
+          return { sources: (version.components ?? []).map((component) => ({
+            kind: component.kind, id: component.id, packageId: record.appId,
+            packageVersion: record.activeVersion, sourcePath: component.componentDirectory,
+            manifestPath: component.manifestPath, dataDirectory: record.dataDirectory,
+            instanceId: record.defaultInstance.id, storage: record.defaultInstance.storage,
+            ...this.resolveSecurity(version, record.appId),
+          })) };
+        } catch (error) {
+          return { sources: [], unavailablePackage: {
+            appId: record.appId,
+            message: error instanceof Error ? error.message : String(error),
+          } };
         }
-        return (version.components ?? []).map((component) => ({
-          kind: component.kind,
-          id: component.id,
-          packageId: record.appId,
-          packageVersion: record.activeVersion,
-          sourcePath: component.componentDirectory,
-          manifestPath: component.manifestPath,
-          dataDirectory: record.dataDirectory,
-          instanceId: record.defaultInstance.id,
-          storage: record.defaultInstance.storage,
-          ...this.resolveSecurity(version, record.appId),
-        }));
-      }))).flat();
+      }));
+    return {
+      sources: results.flatMap((result) => result.sources),
+      unavailablePackages: results.flatMap((result) => result.unavailablePackage ?? []),
+    };
   };
 
   listOperations = async (): Promise<AppPackageOperationList> =>

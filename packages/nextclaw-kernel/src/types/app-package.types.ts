@@ -21,6 +21,16 @@ export type AppPackageComponentSource = {
   isolation: AppRuntimeIsolation;
 };
 
+export type AppPackageUnavailableDiagnostic = {
+  appId: string;
+  message: string;
+};
+
+export type AppPackageComponentSourceList = {
+  sources: AppPackageComponentSource[];
+  unavailablePackages: AppPackageUnavailableDiagnostic[];
+};
+
 export type AppPackageComponentView = AppPackageComponentSource & {
   title?: string;
   description?: string;

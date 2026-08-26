@@ -2,18 +2,4 @@
 
 `workspace-glance` 是一个官方示例 app，用来快速查看一个已授权 workspace 目录的体量。
 
-## Local workflow
-
-```bash
-napp inspect ./apps/examples/workspace-glance
-napp pack ./apps/examples/workspace-glance
-napp install ./apps/examples/workspace-glance
-napp grant nextclaw.workspace-glance --document workspace=/absolute/path/to/workspace
-napp run nextclaw.workspace-glance
-```
-
-## Publish workflow
-
-```bash
-napp publish ./apps/examples/workspace-glance
-```
+这是历史 schema v1 示例，不提供独立 CLI 工作流。当前 App 开发、检查、打包和发布请使用 `nextclaw app …` 命令；命令说明见 [NextClaw Apps](/zh/guide/commands#nextclaw-apps)。
