@@ -84,19 +84,18 @@
   align-self: center;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid hsl(var(--border) / 0.72);
-  border-radius: 0.5rem;
-  background: hsl(var(--background));
-  padding: clamp(0.45rem, 0.8vw, 0.75rem);
-  box-shadow: 0 30px 70px -46px hsl(var(--foreground) / 0.55);
+  border: 0;
+  border-radius: 1.25rem;
+  background: transparent;
+  box-shadow: 0 30px 72px -52px hsl(var(--foreground) / 0.52);
 }
 
 .runtime-showcase-image {
   display: block;
   width: 100%;
   aspect-ratio: 1512 / 828;
-  border: 1px solid hsl(var(--border) / 0.52);
-  border-radius: 0.375rem;
+  border: 0;
+  border-radius: 0;
   background: white;
   filter: saturate(0.78) contrast(0.97) brightness(1.02);
   object-fit: contain;

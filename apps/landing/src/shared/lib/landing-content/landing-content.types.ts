@@ -1,7 +1,7 @@
 import type { DownloadAssetKey } from '@/shared/lib/desktop-release';
 
 export type Locale = 'en' | 'zh';
-export type PageRoute = 'home' | 'download' | 'install' | 'useCases' | 'integrations' | 'releases';
+export type PageRoute = 'home' | 'download' | 'useCases' | 'integrations' | 'releases';
 
 export type FeatureItem = {
   icon: string;
@@ -73,7 +73,7 @@ export type DownloadOption = {
 };
 
 export type InstallMethod = {
-  key: 'desktop' | 'npm' | 'docker';
+  key: 'npm' | 'docker';
   icon: string;
   title: string;
   description: string;
@@ -98,19 +98,22 @@ export type ComparisonCopy = {
 
 export type LandingCopy = {
   navDownload: string;
-  navInstall: string;
   navUseCases: string;
   navCompare: string;
   navIntegrations: string;
+  navCommunity: string;
   navDocs: string;
   heroTitleLine1: string;
-  heroEyebrow: string;
   heroDescription: string;
   heroDownloadButton: string;
-  heroInstallButton: string;
+  heroSecondaryButton: string;
+  heroInstallLink: string;
   heroInstallDescription: string;
+  heroScreenshotAlt: string;
   downloadTitle: string;
   downloadSubtitle: string;
+  downloadDesktopTitle: string;
+  downloadDesktopSubtitle: string;
   downloadVersionLabel: string;
   downloadDetectedLabel: string;
   downloadUnknownPlatform: string;
@@ -127,11 +130,6 @@ export type LandingCopy = {
   downloadWindowsPortableLabel: string;
   downloadWindowsPortableDescription: string;
   downloadOptions: DownloadOption[];
-  downloadInstallTeaserTitle: string;
-  downloadInstallTeaserDescription: string;
-  downloadInstallTeaserButton: string;
-  installTitle: string;
-  installSubtitle: string;
   installCopyLabel: string;
   installCopiedText: string;
   installMethods: InstallMethod[];
@@ -176,12 +174,10 @@ export type LandingCopy = {
   footerDocs: string;
   footerReleases: string;
   footerNpm: string;
-  footerDiscord: string;
   footerWechatGroup: string;
   communityTitle: string;
   communitySubtitle: string;
   communityWechatLabel: string;
-  communityDiscordLabel: string;
   communityScanHint: string;
   faqTitle: string;
   faqSubtitle: string;

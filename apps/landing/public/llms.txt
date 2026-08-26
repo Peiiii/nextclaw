@@ -19,10 +19,8 @@ Primary pages:
 - Chinese integrations: https://nextclaw.io/zh/integrations/
 - English product updates: https://nextclaw.io/en/releases/
 - Chinese product updates: https://nextclaw.io/zh/releases/
-- English desktop downloads: https://nextclaw.io/en/download/
-- Chinese desktop downloads: https://nextclaw.io/zh/download/
-- English install options: https://nextclaw.io/en/install/
-- Chinese install options: https://nextclaw.io/zh/install/
+- English downloads and install options: https://nextclaw.io/en/download/
+- Chinese downloads and install options: https://nextclaw.io/zh/download/
 
 Key capabilities:
 - Local AI workbench for continuing tasks across conversations, files, panels, and tools.
@@ -32,4 +30,4 @@ Key capabilities:
 - Message channels including Weixin, Feishu/Lark, QQ, DingTalk, WeCom, Telegram, Discord, Slack, email, and WhatsApp.
 - Skills, MCP, CLI tools, scheduled work, local files, panel apps, file previews, HTML previews, and image generation.
 
-Last updated: 2026-08-09
+Last updated: 2026-08-26

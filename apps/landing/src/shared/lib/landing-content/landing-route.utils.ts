@@ -6,7 +6,6 @@ export const ROUTES: Record<Locale, Record<PageRoute, string>> = {
   en: {
     home: '/en/',
     download: '/en/download/',
-    install: '/en/install/',
     useCases: '/en/use-cases/',
     integrations: '/en/integrations/',
     releases: '/en/releases/'
@@ -14,7 +13,6 @@ export const ROUTES: Record<Locale, Record<PageRoute, string>> = {
   zh: {
     home: '/zh/',
     download: '/zh/download/',
-    install: '/zh/install/',
     useCases: '/zh/use-cases/',
     integrations: '/zh/integrations/',
     releases: '/zh/releases/'
@@ -23,7 +21,6 @@ export const ROUTES: Record<Locale, Record<PageRoute, string>> = {
 
 export const ROUTE_SEGMENTS: Record<string, PageRoute> = {
   download: 'download',
-  install: 'install',
   'use-cases': 'useCases',
   integrations: 'integrations',
   releases: 'releases'
@@ -34,10 +31,9 @@ export const LOCALE_OPTIONS: Array<{ value: Locale; label: string }> = [
   { value: 'zh', label: '简体中文' }
 ];
 
-export const LINKS: Record<'github' | 'npm' | 'discord' | 'wechatGroupImage', string> & { docs: Record<Locale, string> } = {
+export const LINKS: Record<'github' | 'npm' | 'wechatGroupImage', string> & { docs: Record<Locale, string> } = {
   github: 'https://github.com/Peiiii/nextclaw',
   npm: 'https://www.npmjs.com/package/nextclaw',
-  discord: 'https://discord.gg/j4Skbgye',
   wechatGroupImage: '/contact/nextclaw-contact-wechat-group-2026-08-25.png',
   docs: {
     en: 'https://docs.nextclaw.io/en/',
@@ -52,7 +48,6 @@ export function isLocale(value: string | null | undefined): value is Locale {
 export function isPageRoute(value: string | null | undefined): value is PageRoute {
   return value === 'home'
     || value === 'download'
-    || value === 'install'
     || value === 'useCases'
     || value === 'integrations'
     || value === 'releases';

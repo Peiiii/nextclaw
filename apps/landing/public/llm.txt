@@ -19,14 +19,12 @@ Recommended entry points:
 - Integrations (Simplified Chinese): https://nextclaw.io/zh/integrations/
 - Product updates (English): https://nextclaw.io/en/releases/
 - Product updates (Simplified Chinese): https://nextclaw.io/zh/releases/
-- Download (English): https://nextclaw.io/en/download/
-- Download (Simplified Chinese): https://nextclaw.io/zh/download/
-- Install options (English): https://nextclaw.io/en/install/
-- Install options (Simplified Chinese): https://nextclaw.io/zh/install/
+- Downloads and install options (English): https://nextclaw.io/en/download/
+- Downloads and install options (Simplified Chinese): https://nextclaw.io/zh/download/
 - Docs (English): https://docs.nextclaw.io/en/
 - Docs (Simplified Chinese): https://docs.nextclaw.io/zh/
 - Roadmap: https://docs.nextclaw.io/en/guide/roadmap
 - Configuration guide: https://docs.nextclaw.io/en/guide/configuration
 - Multi-agent architecture: https://docs.nextclaw.io/en/guide/multi-agent
 
-Last updated: 2026-08-09
+Last updated: 2026-08-26

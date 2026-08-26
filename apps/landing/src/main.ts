@@ -41,22 +41,23 @@ declare global {
 
 const COPY: Record<Locale, LandingCopy> = {
   en: {
-    navDownload: 'Download',
-    navInstall: 'Install',
+    navDownload: 'Download & install',
     navUseCases: 'Use cases',
-    navCompare: 'Distinct value',
+    navCompare: 'Why NextClaw',
     navIntegrations: 'Integrations',
+    navCommunity: 'Join community',
     navDocs: 'Docs',
-    heroTitleLine1: 'NextClaw, your long-term personal AI partner.',
-    heroEyebrow: 'From a request to usable results',
-    heroDescription:
-      'Tell NextClaw what you want done. New installations are ready for the first task with no API key or extra setup required.',
+    heroTitleLine1: 'NextClaw, your long-term personal AI partner',
+    heroDescription: 'Give NextClaw a task. It uses files and tools on your device to do the work, leaving results you can inspect and refine.',
     heroDownloadButton: 'Download Desktop',
-    heroInstallButton: 'View all install options',
-    heroInstallDescription:
-      'Use the desktop app, npm, or Docker on a personal computer, NAS, or cloud server.',
-    downloadTitle: 'Download NextClaw Desktop',
-    downloadSubtitle: 'Official installer assets from the latest stable desktop release (macOS + Windows + Linux).',
+    heroSecondaryButton: 'Browse task guides',
+    heroInstallLink: 'View all install options',
+    heroInstallDescription: 'Ready to use after installation, with no extra setup',
+    heroScreenshotAlt: 'NextClaw project files open beside an inspectable task result',
+    downloadTitle: 'Download & install NextClaw',
+    downloadSubtitle: 'Desktop is recommended for most people. npm and Docker options are available below for terminals, servers, and NAS devices.',
+    downloadDesktopTitle: 'Desktop app (recommended)',
+    downloadDesktopSubtitle: 'Choose your device and download the latest stable installer.',
     downloadVersionLabel: 'Current desktop version',
     downloadDetectedLabel: 'Detected device',
     downloadUnknownPlatform: 'Unknown platform',
@@ -117,22 +118,9 @@ const COPY: Record<Locale, LandingCopy> = {
         buttonLabel: 'Download AppImage'
       }
     ],
-    downloadInstallTeaserTitle: 'Need npm or Docker?',
-    downloadInstallTeaserDescription: 'Every install includes free-trial models for the first task. Terminal and server options are available too.',
-    downloadInstallTeaserButton: 'View install options',
-    installTitle: 'Choose your NextClaw install path.',
-    installSubtitle:
-      'Desktop, npm, and Docker are all ready for the first task with no API key required. Server deployments stay lean while idle by starting messaging channels only when needed.',
     installCopyLabel: 'Copy',
     installCopiedText: 'Copied',
     installMethods: [
-      {
-        key: 'desktop',
-        icon: 'download',
-        title: 'Desktop app',
-        description: 'Recommended for most users on macOS, Windows, or Linux.',
-        buttonLabel: 'Download desktop'
-      },
       {
         key: 'npm',
         icon: 'terminal',
@@ -152,7 +140,7 @@ const COPY: Record<Locale, LandingCopy> = {
       }
     ],
     docsButton: 'Read the Docs',
-    screenshotChatSrc: new URL('../../../images/screenshots/nextclaw-hero-workbench-en.png', import.meta.url).href,
+    screenshotChatSrc: new URL('../../../images/screenshots/nextclaw-workspace-explorer-en.png', import.meta.url).href,
     showcaseTitle: 'Start work in one connected workspace.',
     showcaseSubtitle:
       'Use conversations, skills, browser panels, and task context together without switching between separate tools.',
@@ -375,12 +363,10 @@ const COPY: Record<Locale, LandingCopy> = {
     footerDocs: 'Docs',
     footerReleases: 'Updates',
     footerNpm: 'NPM',
-    footerDiscord: 'Discord',
     footerWechatGroup: 'WeChat Group',
     communityTitle: 'Join the community',
-    communitySubtitle: 'WeChat group for Chinese users, Discord for everyone.',
+    communitySubtitle: 'Scan the QR code to join the NextClaw WeChat group.',
     communityWechatLabel: 'WeChat Group QR',
-    communityDiscordLabel: 'Join Discord',
     communityScanHint: 'Scan to join',
     faqTitle: 'Frequently Asked Questions',
     faqSubtitle: 'Quick answers to common questions about NextClaw.',
@@ -392,21 +378,23 @@ const COPY: Record<Locale, LandingCopy> = {
     ]
   },
   zh: {
-    navDownload: '下载',
-    navInstall: '安装方式',
+    navDownload: '下载与安装',
     navUseCases: '使用场景',
-    navCompare: '独特价值',
+    navCompare: '为什么选择',
     navIntegrations: '集成',
+    navCommunity: '加入社群',
     navDocs: '文档',
-    heroTitleLine1: 'NextClaw，你的长期个人智能搭档。',
-    heroEyebrow: '从一句话到可用结果',
-    heroDescription:
-      '说出你要做什么。全新安装无需填写 API Key，开箱即可发送第一条消息。',
+    heroTitleLine1: 'NextClaw，你的长期个人智能搭档',
+    heroDescription: '把任务交给 NextClaw。它会使用你设备上的文件和工具完成工作，结果由你检查和继续完善。',
     heroDownloadButton: '下载桌面版',
-    heroInstallButton: '查看全部安装方式',
-    heroInstallDescription: '支持桌面版、npm 和 Docker，可运行在个人电脑、NAS 或云服务器上。',
-    downloadTitle: '下载 NextClaw Desktop',
-    downloadSubtitle: '从官网下载最新稳定版，支持 macOS、Windows 和 Linux。',
+    heroSecondaryButton: '查看任务案例',
+    heroInstallLink: '查看全部安装方式',
+    heroInstallDescription: '安装完成即可使用，无需额外配置',
+    heroScreenshotAlt: 'NextClaw 工作台中的任务会话、数据图表与项目文档',
+    downloadTitle: '下载与安装 NextClaw',
+    downloadSubtitle: '桌面版适合大多数用户；也可以通过 npm 或 Docker 安装到个人电脑、NAS 或服务器。',
+    downloadDesktopTitle: '桌面版（推荐）',
+    downloadDesktopSubtitle: '选择你的设备，下载最新稳定版安装包。',
     downloadVersionLabel: '当前桌面端版本',
     downloadDetectedLabel: '检测到的设备',
     downloadUnknownPlatform: '未知平台',
@@ -467,21 +455,9 @@ const COPY: Record<Locale, LandingCopy> = {
         buttonLabel: '下载 AppImage'
       }
     ],
-    downloadInstallTeaserTitle: '需要 npm 或 Docker？',
-    downloadInstallTeaserDescription: '每种安装方式都自带首个任务可用的免费试用模型，也支持命令行和服务器部署。',
-    downloadInstallTeaserButton: '查看安装方式',
-    installTitle: '选择适合你的安装方式。',
-    installSubtitle: '桌面版、npm 和 Docker 都能开箱开始第一个任务，无需配置 API Key；服务器部署空闲时保持轻量，消息渠道按需启动。',
     installCopyLabel: '复制',
     installCopiedText: '已复制',
     installMethods: [
-      {
-        key: 'desktop',
-        icon: 'download',
-        title: '桌面版',
-        description: '适合大多数 macOS、Windows 和 Linux 用户，下载后直接打开使用。',
-        buttonLabel: '下载桌面版'
-      },
       {
         key: 'npm',
         icon: 'terminal',
@@ -716,12 +692,10 @@ const COPY: Record<Locale, LandingCopy> = {
     footerDocs: '文档',
     footerReleases: '更新',
     footerNpm: 'NPM',
-    footerDiscord: 'Discord',
     footerWechatGroup: '微信群',
     communityTitle: '加入社群',
-    communitySubtitle: '国内用户可以加微信群，英文交流可以去 Discord。',
+    communitySubtitle: '扫描二维码加入 NextClaw 微信群。',
     communityWechatLabel: '微信群二维码',
-    communityDiscordLabel: '加入 Discord',
     communityScanHint: '扫码加群',
     faqTitle: '常见问题',
     faqSubtitle: '这里整理了几个常见问题。',
@@ -786,74 +760,77 @@ class LandingPage {
     </article>
       `;
 
-  private getInstallMethodHref = (method: InstallMethod, downloadRoute: string, docsLink: string): string => {
-    if (method.key === 'desktop') {
-      return downloadRoute;
-    }
-    return method.docsPath ? `${docsLink}${method.docsPath}` : LINKS.npm;
-  };
+  private getInstallMethodHref = (method: InstallMethod, docsLink: string): string =>
+    method.docsPath ? `${docsLink}${method.docsPath}` : LINKS.npm;
 
-  private renderInstallMethodCard = (method: InstallMethod, downloadRoute: string, docsLink: string): string => {
-    const href = this.getInstallMethodHref(method, downloadRoute, docsLink);
-    const targetAttrs = method.key === 'desktop' ? '' : ' target="_blank" rel="noopener noreferrer"';
+  private renderInstallMethodCard = (method: InstallMethod, docsLink: string): string => {
+    const href = this.getInstallMethodHref(method, docsLink);
 
     return `
-      <article data-install-method-card class="rounded-lg border border-border/70 bg-white p-5 shadow-sm">
-        <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <i data-lucide="${method.icon}" class="h-5 w-5"></i>
+      <article id="install-${method.key}" data-install-method-card class="install-method-panel scroll-mt-28">
+        <div class="install-method-panel__header">
+          <div class="install-method-panel__icon">
+            <i data-lucide="${method.icon}" class="h-5 w-5"></i>
+          </div>
+          <div>
+            <h2 class="install-method-panel__title">${method.title}</h2>
+            <p class="install-method-panel__description">${method.description}</p>
+          </div>
         </div>
-        <h3 class="text-lg font-semibold">${method.title}</h3>
-        <p class="mt-3 text-sm leading-relaxed text-muted-foreground">${method.description}</p>
         ${method.command
-          ? `<pre class="mt-4 whitespace-pre-wrap break-all rounded-lg border border-border/70 bg-secondary/60 px-3 py-3 text-sm"><code class="font-mono text-foreground">${method.command}</code></pre>`
+          ? `<pre class="install-method-panel__command"><code class="font-mono text-foreground">${method.command}</code></pre>`
           : ''}
-        <div class="mt-5 flex flex-wrap gap-3">
+        <div class="install-method-panel__actions">
           ${method.command
             ? `<button data-install-copy-button type="button" class="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-3 text-sm font-semibold text-foreground hover:bg-secondary transition-colors">
                 ${this.copy.installCopyLabel}
               </button>`
             : ''}
-          <a href="${href}"${targetAttrs} class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
+          <a href="${href}" target="_blank" rel="noopener noreferrer" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
             ${method.buttonLabel}
-            ${method.key === 'desktop' ? '' : '<i data-lucide="external-link" class="h-4 w-4"></i>'}
+            <i data-lucide="external-link" class="h-4 w-4"></i>
           </a>
         </div>
       </article>
     `;
   };
 
-  private renderInstallMethodsSection = (
-    downloadRoute: string,
-    docsLink: string,
-    className = 'py-20 px-6 z-10 w-full max-w-7xl mx-auto',
-    showHeading = true
-  ): string => `
-    <section id="install-methods" class="${className}">
-      ${showHeading
-        ? `<div class="mb-10 max-w-3xl">
-            <h2 class="text-3xl md:text-5xl font-bold tracking-normal mb-4">${this.copy.installTitle}</h2>
-            <p class="text-muted-foreground text-lg">${this.copy.installSubtitle}</p>
-          </div>`
-        : ''}
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        ${this.copy.installMethods.map((method) => this.renderInstallMethodCard(method, downloadRoute, docsLink)).join('')}
-      </div>
-    </section>
-  `;
+  private renderInstallMethodNav = (): string => {
+    const methods = [
+      { key: 'desktop', icon: 'monitor', title: this.copy.downloadDesktopTitle },
+      ...this.copy.installMethods
+    ];
+
+    return `
+      <nav class="install-method-nav" aria-label="${this.copy.navDownload}">
+        ${methods.map((method, index) => `
+          <a
+            href="#install-${method.key}"
+            data-install-method-link="install-${method.key}"
+            class="install-method-nav__item${index === 0 ? ' is-recommended' : ''}"
+            ${index === 0 ? 'aria-current="true"' : ''}
+          >
+            <i data-lucide="${method.icon}" class="h-4 w-4"></i>
+            <span>${method.title}</span>
+          </a>
+        `).join('')}
+      </nav>
+    `;
+  };
 
   render = (): void => {
     const docsLink = LINKS.docs[this.locale];
     const homeRoute = ROUTES[this.locale].home;
     const downloadRoute = ROUTES[this.locale].download;
-    const installRoute = ROUTES[this.locale].install;
     const useCasesRoute = ROUTES[this.locale].useCases;
     const integrationsRoute = ROUTES[this.locale].integrations;
     const releasesRoute = ROUTES[this.locale].releases;
     const comparisonRoute = `${homeRoute}#compare`;
+    const communityRoute = `${homeRoute}#community`;
 
     this.root.innerHTML = `
-      <div class="landing-site relative min-h-screen flex flex-col bg-background overflow-hidden">
-        <header class="landing-header fixed top-0 w-full z-50 glass border-b transition-all duration-300">
+      <div class="landing-site relative min-h-screen flex flex-col bg-background">
+        <header class="landing-header fixed z-50 glass border-b transition-all duration-300">
           <div class="landing-header__inner container mx-auto px-6 h-16 flex items-center justify-between">
             <a id="home-link" href="${homeRoute}" class="flex items-center gap-2 group cursor-pointer">
               <img src="/logo-phoenix.svg" alt="NextClaw" class="w-8 h-8 transition-transform group-hover:scale-105" />
@@ -864,7 +841,7 @@ class LandingPage {
               <a href="${useCasesRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navUseCases}</a>
               <a href="${comparisonRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navCompare}</a>
               <a href="${integrationsRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navIntegrations}</a>
-              <a href="${installRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navInstall}</a>
+              <a href="${communityRoute}" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navCommunity}</a>
               <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors">${this.copy.navDocs}</a>
             </nav>
             <div class="flex items-center gap-2">
@@ -894,107 +871,87 @@ class LandingPage {
               <a href="${useCasesRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navUseCases}</a>
               <a href="${comparisonRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navCompare}</a>
               <a href="${integrationsRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navIntegrations}</a>
-              <a href="${installRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navInstall}</a>
+              <a href="${communityRoute}" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navCommunity}</a>
               <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="text-muted-foreground hover:text-foreground transition-colors py-2">${this.copy.navDocs}</a>
             </nav>
           </div>
         </header>
 
         <main class="landing-main ${this.route === 'home'
-          ? 'landing-main--home relative flex flex-col overflow-hidden px-6 pt-28 pb-14 text-left z-10 sm:pt-32 sm:pb-16'
+          ? 'landing-main--home relative flex flex-col px-6 text-left z-10'
           : 'landing-main--route flex-1 flex flex-col items-center text-center px-6 pt-32 pb-20 z-10'}">
-          <div class="${this.route === 'home' ? 'relative z-10 w-full max-w-7xl mx-auto' : 'contents'}">
+          <div class="${this.route === 'home' ? 'landing-home-shell relative z-10 w-full mx-auto' : 'contents'}">
           ${this.route === 'home' ? `
-          ${renderLandingHomeHero(this.copy, downloadRoute, docsLink, installRoute)}
+          ${renderLandingHomeHero(this.copy, downloadRoute, useCasesRoute)}
           ` : `
           ${renderLandingRouteHero(this.route, this.copy)}
           `}
 
           ${this.route === 'download' ? `
-          <section id="download" class="w-full max-w-5xl mx-auto mb-10 text-left animate-slide-up opacity-0" style="animation-delay: 0.35s">
-            <div class="glass-card rounded-3xl p-6 md:p-8 border border-primary/20 shadow-2xl">
-              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                <div>
-                  <h2 class="text-2xl md:text-3xl font-bold tracking-normal">${this.copy.downloadTitle}</h2>
-                  <p class="text-muted-foreground mt-2">${this.copy.downloadSubtitle}</p>
+          <section id="install-methods" class="install-method-layout w-full max-w-6xl mx-auto mb-10 text-left animate-slide-up opacity-0 scroll-mt-28" style="animation-delay: 0.35s">
+            ${this.renderInstallMethodNav()}
+            <div class="install-method-panels">
+              <section id="install-desktop" class="install-method-panel install-method-panel--desktop scroll-mt-28">
+                <div class="install-method-panel__header install-method-panel__header--desktop">
+                  <div class="flex items-start gap-3">
+                    <div class="install-method-panel__icon">
+                      <i data-lucide="monitor" class="h-5 w-5"></i>
+                    </div>
+                    <div>
+                      <h2 class="install-method-panel__title">${this.copy.downloadDesktopTitle}</h2>
+                      <p class="install-method-panel__description">${this.copy.downloadDesktopSubtitle}</p>
+                    </div>
+                  </div>
+                  <div class="install-method-panel__meta">
+                    <div>${this.copy.downloadVersionLabel}: <span id="desktop-version" class="font-semibold text-foreground">${DESKTOP_RELEASE_FALLBACK.version}</span></div>
+                    <div>${this.copy.downloadDetectedLabel}: <span id="desktop-detected-platform" class="font-semibold text-foreground">${this.copy.downloadUnknownPlatform}</span></div>
+                    <div>${this.copy.downloadReleaseLabel}: <a id="desktop-release-link" href="${DESKTOP_RELEASE_FALLBACK.url}" target="_blank" rel="noopener noreferrer" class="font-semibold text-primary hover:underline">${DESKTOP_RELEASE_FALLBACK.tag}</a></div>
+                  </div>
                 </div>
-                <div class="text-sm text-muted-foreground space-y-1 md:text-right">
-                  <div>${this.copy.downloadVersionLabel}: <span id="desktop-version" class="font-semibold text-foreground">${DESKTOP_RELEASE_FALLBACK.version}</span></div>
-                  <div>${this.copy.downloadDetectedLabel}: <span id="desktop-detected-platform" class="font-semibold text-foreground">${this.copy.downloadUnknownPlatform}</span></div>
-                  <div>${this.copy.downloadReleaseLabel}: <a id="desktop-release-link" href="${DESKTOP_RELEASE_FALLBACK.url}" target="_blank" rel="noopener noreferrer" class="font-semibold text-primary hover:underline">${DESKTOP_RELEASE_FALLBACK.tag}</a></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  ${this.copy.downloadOptions.map((option) => this.renderDownloadCard(option)).join('')}
                 </div>
-              </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                ${this.copy.downloadOptions
-                  .map((option) => this.renderDownloadCard(option))
-                  .join('')}
-              </div>
+                <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-900">
+                  ${this.copy.downloadUnsignedNotice}
+                </div>
 
-              <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-900">
-                ${this.copy.downloadUnsignedNotice}
-              </div>
-
-              <div class="mt-5">
-                <a
-                  id="desktop-release-link-secondary"
-                  href="${DESKTOP_RELEASE_FALLBACK.url}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                >
+                <a id="desktop-release-link-secondary" href="${DESKTOP_RELEASE_FALLBACK.url}" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
                   <i data-lucide="external-link" class="w-4 h-4"></i>
                   ${this.copy.downloadReleaseLinkText}
                 </a>
-              </div>
 
-              <div class="mt-6">
-                <h3 class="text-base font-semibold mb-3">${this.copy.downloadOpenGuideTitle}</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div class="rounded-2xl border border-border/60 bg-background/60 p-4">
-                    <h4 class="font-medium mb-2">${this.copy.downloadMacGuideTitle}</h4>
-                    <ol class="space-y-2 text-sm text-muted-foreground list-decimal pl-5">
-                      ${this.copy.downloadMacGuideSteps.map((step) => `<li>${step}</li>`).join('')}
-                    </ol>
+                <details class="desktop-open-guide">
+                  <summary>
+                    <span>${this.copy.downloadOpenGuideTitle}</span>
+                    <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                  </summary>
+                  <div class="desktop-open-guide__grid">
+                    <div>
+                      <h3>${this.copy.downloadMacGuideTitle}</h3>
+                      <ol>${this.copy.downloadMacGuideSteps.map((step) => `<li>${step}</li>`).join('')}</ol>
+                    </div>
+                    <div>
+                      <h3>${this.copy.downloadWindowsGuideTitle}</h3>
+                      <ol>${this.copy.downloadWindowsGuideSteps.map((step) => `<li>${step}</li>`).join('')}</ol>
+                    </div>
+                    <div>
+                      <h3>${this.copy.downloadLinuxGuideTitle}</h3>
+                      <ol>${this.copy.downloadLinuxGuideSteps.map((step) => `<li>${step}</li>`).join('')}</ol>
+                    </div>
                   </div>
-                  <div class="rounded-2xl border border-border/60 bg-background/60 p-4">
-                    <h4 class="font-medium mb-2">${this.copy.downloadWindowsGuideTitle}</h4>
-                    <ol class="space-y-2 text-sm text-muted-foreground list-decimal pl-5">
-                      ${this.copy.downloadWindowsGuideSteps.map((step) => `<li>${step}</li>`).join('')}
-                    </ol>
-                  </div>
-                  <div class="rounded-2xl border border-border/60 bg-background/60 p-4">
-                    <h4 class="font-medium mb-2">${this.copy.downloadLinuxGuideTitle}</h4>
-                    <ol class="space-y-2 text-sm text-muted-foreground list-decimal pl-5">
-                      ${this.copy.downloadLinuxGuideSteps.map((step) => `<li>${step}</li>`).join('')}
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-          <section class="w-full max-w-5xl mx-auto mb-10 text-left animate-slide-up opacity-0">
-            <div class="rounded-2xl border border-border/70 bg-background/80 p-5">
-              <h2 class="text-xl font-semibold">${this.copy.downloadInstallTeaserTitle}</h2>
-              <p class="mt-2 text-sm text-muted-foreground">${this.copy.downloadInstallTeaserDescription}</p>
-              <a href="${installRoute}" class="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">
-                ${this.copy.downloadInstallTeaserButton}
-                <i data-lucide="arrow-right" class="h-4 w-4"></i>
-              </a>
+                </details>
+              </section>
+
+              ${this.copy.installMethods.map((method) => this.renderInstallMethodCard(method, docsLink)).join('')}
             </div>
           </section>
           ` : ''}
 
-          ${this.route === 'install' ? this.renderInstallMethodsSection(
-            downloadRoute,
-            docsLink,
-            'w-full max-w-5xl mx-auto mb-10 text-left animate-slide-up opacity-0',
-            false
-          ) : ''}
-
           ${this.route === 'useCases' ? renderUseCasesPage(this.copy, downloadRoute, docsLink) : ''}
 
-          ${this.route === 'integrations' ? renderIntegrationsPage(this.copy, installRoute, docsLink) : ''}
+          ${this.route === 'integrations' ? renderIntegrationsPage(this.copy, downloadRoute, docsLink) : ''}
 
           ${this.route === 'releases' ? renderReleasesPage(this.copy, downloadRoute) : ''}
 
@@ -1014,7 +971,65 @@ class LandingPage {
     this.bindCommunityQrModal();
     this.bindDesktopDownloads();
     this.bindInstallCopyButtons();
+    this.bindInstallMethodNavigation();
     createIcons({ icons, nameAttr: 'data-lucide' });
+  };
+
+  private bindInstallMethodNavigation = (): void => {
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-install-method-link]'));
+    if (links.length === 0) {
+      return;
+    }
+    const navigation = links[0]?.closest<HTMLElement>('.install-method-nav');
+    if (!navigation) {
+      return;
+    }
+
+    const setCurrent = (panelId: string): void => {
+      links.forEach((link) => {
+        if (link.dataset.installMethodLink === panelId) {
+          link.setAttribute('aria-current', 'true');
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      });
+    };
+
+    links.forEach((link) => {
+      link.addEventListener('click', () => {
+        const panelId = link.dataset.installMethodLink;
+        if (panelId) {
+          setCurrent(panelId);
+        }
+      });
+    });
+
+    const panels = links
+      .map((link) => document.getElementById(link.dataset.installMethodLink ?? ''))
+      .filter((panel): panel is HTMLElement => panel !== null);
+    let frameRequest: number | null = null;
+    const updateNavigationState = (): void => {
+      frameRequest = null;
+      const stickyTop = Number.parseFloat(window.getComputedStyle(navigation).top) || 0;
+      navigation.classList.toggle('is-stuck', navigation.getBoundingClientRect().top <= stickyTop + 1);
+      const viewportCenter = window.innerHeight / 2;
+      const closestPanel = panels
+        .map((panel) => {
+          const bounds = panel.getBoundingClientRect();
+          return { panel, distance: Math.abs((bounds.top + bounds.bottom) / 2 - viewportCenter) };
+        })
+        .sort((left, right) => left.distance - right.distance)[0]?.panel;
+      if (closestPanel) {
+        setCurrent(closestPanel.id);
+      }
+    };
+
+    window.addEventListener('scroll', () => {
+      if (frameRequest === null) {
+        frameRequest = window.requestAnimationFrame(updateNavigationState);
+      }
+    }, { passive: true });
+    updateNavigationState();
   };
 
   private bindDesktopDownloads = (): void => {

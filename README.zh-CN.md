@@ -20,12 +20,11 @@
 
 **从一句话到可用结果，中间做过的事都不会散落。**
 
-[下载桌面版](https://nextclaw.io/zh/download/) · [安装 NextClaw](https://nextclaw.io/zh/install/) · [查看使用场景](https://nextclaw.io/zh/use-cases/) · [阅读文档](https://docs.nextclaw.io/zh/)
+[下载与安装](https://nextclaw.io/zh/download/) · [查看使用场景](https://nextclaw.io/zh/use-cases/) · [阅读文档](https://docs.nextclaw.io/zh/)
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![GitHub Release](https://img.shields.io/github/v/release/Peiiii/nextclaw?display_name=tag)](https://github.com/Peiiii/nextclaw/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-NextClaw-5865F2?logo=discord&logoColor=white)](https://discord.gg/j4Skbgye)
 
 开源 · 本地优先 · 支持 macOS、Windows、Linux、Docker 和云服务器
 
@@ -171,7 +170,7 @@ nextclaw stop
 curl -fsSL https://nextclaw.io/install-docker.sh | bash
 ```
 
-反向代理、域名和远程访问设置请查看 [Docker 部署文档](https://docs.nextclaw.io/zh/guide/tutorials/docker-one-click)。所有支持的方式都可以在[安装方式页面](https://nextclaw.io/zh/install/)中对比。
+反向代理、域名和远程访问设置请查看 [Docker 部署文档](https://docs.nextclaw.io/zh/guide/tutorials/docker-one-click)。所有支持的方式都可以在[下载与安装页](https://nextclaw.io/zh/download/)中对比。
 
 当前已验证的服务器配置、空闲内存数据，以及活跃任务可能增加的资源占用见[运行资源与内存基准](https://docs.nextclaw.io/zh/guide/resource-usage)。
 
@@ -226,7 +225,6 @@ pnpm run screenshots:refresh
 ## 社群
 
 - **微信群** — 扫描下方二维码。
-- **Discord** — [NextClaw / OpenClaw](https://discord.gg/j4Skbgye)
 - **问题反馈** — [GitHub Issues](https://github.com/Peiiii/nextclaw/issues)
 
 <img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="NextClaw 微信群二维码" />

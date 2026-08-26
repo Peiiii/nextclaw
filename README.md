@@ -20,12 +20,11 @@ Tell NextClaw what you want done. It brings the conversation, files, tools, and 
 
 **From one request to a usable result, without losing the work in between.**
 
-[Download Desktop](https://nextclaw.io/en/download/) · [Install NextClaw](https://nextclaw.io/en/install/) · [Explore Use Cases](https://nextclaw.io/en/use-cases/) · [Read the Docs](https://docs.nextclaw.io/en/)
+[Download & Install](https://nextclaw.io/en/download/) · [Explore Use Cases](https://nextclaw.io/en/use-cases/) · [Read the Docs](https://docs.nextclaw.io/en/)
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![GitHub Release](https://img.shields.io/github/v/release/Peiiii/nextclaw?display_name=tag)](https://github.com/Peiiii/nextclaw/releases)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-NextClaw-5865F2?logo=discord&logoColor=white)](https://discord.gg/j4Skbgye)
 
 Open source · Local-first · macOS, Windows, Linux, Docker, and cloud VMs
 
@@ -171,7 +170,7 @@ For a long-running server or cloud VM deployment:
 curl -fsSL https://nextclaw.io/install-docker.sh | bash
 ```
 
-See the [Docker deployment guide](https://docs.nextclaw.io/en/guide/tutorials/docker-one-click) for reverse proxy, domain, and remote access setup. You can compare every supported path on the [install options page](https://nextclaw.io/en/install/).
+See the [Docker deployment guide](https://docs.nextclaw.io/en/guide/tutorials/docker-one-click) for reverse proxy, domain, and remote access setup. You can compare every supported path on the [download and install page](https://nextclaw.io/en/download/).
 
 For the current tested server baseline, idle measurements, and factors that increase memory during active work, see [Runtime Resource Usage](https://docs.nextclaw.io/en/guide/resource-usage).
 
@@ -225,7 +224,6 @@ Repository planning: [Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
 
 ## Community
 
-- [Discord](https://discord.gg/j4Skbgye)
 - [GitHub Issues](https://github.com/Peiiii/nextclaw/issues)
 - WeChat group: scan the QR code below.
 
