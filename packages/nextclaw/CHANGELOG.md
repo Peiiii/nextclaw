@@ -1,5 +1,26 @@
 # nextclaw
 
+## 0.44.1
+
+### Patch Changes
+
+- 2d292fa: 修复会话搜索索引重复全目录扫描和并发写入造成的全局卡顿；会话列表改为 SQLite 页码分页、后端搜索排序与滚动前预取，在大量会话与重工具调用历史并存时仍能快速出现，并可继续访问全部会话、历史和工具详情。
+- 1f61d34: 重做 NextClaw 官网首页产品实证、下载与安装信息架构和微信社群入口，让用户在首屏直接看见真实工作台，并在同一页面完成安装方式选择。
+- Updated dependencies
+- Updated dependencies [2d292fa]
+- Updated dependencies [a5a03e5]
+- Updated dependencies [c0523dc]
+- Updated dependencies [7d2b9f8]
+  - @nextclaw/server@0.18.3
+  - @nextclaw/core@0.17.10
+  - @nextclaw/kernel@0.10.3
+  - @nextclaw/service@0.3.48
+  - @nextclaw/remote@0.3.45
+  - @nextclaw/mcp@0.3.37
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.37
+  - @nextclaw/runtime@0.4.36
+  - @nextclaw/ncp-mcp@0.2.37
+
 ## 0.44.0
 
 ### Minor Changes

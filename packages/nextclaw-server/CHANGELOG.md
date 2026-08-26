@@ -1,5 +1,24 @@
 # nextclaw-server
 
+## 0.18.3
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/client-sdk
+  - @nextclaw/server
+
+- Updated dependencies [2d292fa]
+- Updated dependencies [a5a03e5]
+- Updated dependencies [c0523dc]
+- Updated dependencies [7d2b9f8]
+  - @nextclaw/core@0.17.10
+  - @nextclaw/kernel@0.10.3
+  - @nextclaw/mcp@0.3.37
+  - @nextclaw/runtime@0.4.36
+
 ## 0.18.2
 
 ### Patch Changes

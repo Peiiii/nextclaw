@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.20.3
+
+### Patch Changes
+
+- 4ecb43f: 修复长回复尚未完整恢复时，多条上下文压缩提示被错误堆叠到会话末尾的问题；压缩边界现在只会在能够定位到回复中的正确位置后显示。
+- a5a03e5: Prevent one unavailable App package from breaking the Apps list, and show its diagnostic while other Apps remain available.
+- f8d7f74: 会话内的定时任务现在支持启用或暂停、立即运行、查看完整任务详情和删除；长任务内容会保持紧凑展示，避免撑开工作区卡片。
+- 444e666: 会话工作台的 Token 用量现在会显示 Agent 轮次、模型调用次数与已报告调用次数。缓存读取占比明确只按输入 Token 计算，按模型明细也会显示对应调用次数。
+- c8410fd: 在工作区、会话和常用页面间切换后，NextClaw 会恢复此前的阅读位置。Markdown 文件预览现在会在切换文件，以及在源码和渲染预览之间往返时保留滚动位置。
+- Updated dependencies
+  - @nextclaw/client-sdk@0.7.7
+
 ## 0.20.2
 
 ### Patch Changes

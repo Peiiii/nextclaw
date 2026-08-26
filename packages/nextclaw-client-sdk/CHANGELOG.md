@@ -1,5 +1,18 @@
 # @nextclaw/client-sdk
 
+## 0.7.7
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/client-sdk
+  - @nextclaw/server
+
+- Updated dependencies
+  - @nextclaw/server@0.18.3
+
 ## 0.7.6
 
 ### Patch Changes

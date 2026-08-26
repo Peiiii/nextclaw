@@ -1,5 +1,18 @@
 # @nextclaw/remote
 
+## 0.3.45
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [2d292fa]
+- Updated dependencies [a5a03e5]
+- Updated dependencies [c0523dc]
+- Updated dependencies [7d2b9f8]
+  - @nextclaw/server@0.18.3
+  - @nextclaw/core@0.17.10
+  - @nextclaw/kernel@0.10.3
+
 ## 0.3.44
 
 ### Patch Changes

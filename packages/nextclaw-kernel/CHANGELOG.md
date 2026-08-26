@@ -1,5 +1,22 @@
 # @nextclaw/kernel
 
+## 0.10.3
+
+### Patch Changes
+
+- 2d292fa: 修复会话搜索索引重复全目录扫描和并发写入造成的全局卡顿；会话列表改为 SQLite 页码分页、后端搜索排序与滚动前预取，在大量会话与重工具调用历史并存时仍能快速出现，并可继续访问全部会话、历史和工具详情。
+- a5a03e5: Prevent one unavailable App package from breaking the Apps list, and show its diagnostic while other Apps remain available.
+- 7d2b9f8: 修复长时间运行的 Agent 任务可能异常消耗额度的问题：共享同一数据目录的进程不再重复执行同一会话或定时任务，工具调用次数现在严格遵守 Agent 配置上限，上下文压缩也按真实模型输入估算而不再重复计算工具结果。
+- Updated dependencies [2d292fa]
+- Updated dependencies [c0523dc]
+- Updated dependencies [7d2b9f8]
+  - @nextclaw/core@0.17.10
+  - @nextclaw/ncp-agent-runtime-next@0.1.22
+  - @nextclaw/mcp@0.3.37
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.37
+  - @nextclaw/runtime@0.4.36
+  - @nextclaw/ncp-mcp@0.2.37
+
 ## 0.10.2
 
 ### Patch Changes
