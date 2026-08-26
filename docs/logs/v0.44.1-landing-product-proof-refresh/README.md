@@ -24,7 +24,8 @@
 
 - 先把官网范围精确提交并通过主线协调器合入、推送 `origin/master`，不纳入工作区内其它 Kernel、Desktop 或 UI 构建改动。
 - 从已推送的固定 `origin/master` 提交创建隔离 worktree，执行 `pnpm deploy:landing` 部署 Cloudflare Pages 项目 `nextclaw-landing`。
-- 部署完成后验证正式域首页、下载页、旧安装地址跳转和关键社群入口；实际部署地址、提交和耗时将在部署后补记。
+- 已从固定提交 `45b6356e60a8bcd32e39ebe220c62be2ae0319b0` 部署 Cloudflare Pages，部署地址为 `https://13e8a22c.nextclaw-landing.pages.dev`；依赖安装、生产构建与上传共约 33 秒，上传 29 个新文件并复用 93 个已有文件，失败重试为 0。
+- 正式域 `https://nextclaw.io` 的中英文首页与下载页均返回 200；真实浏览器确认中文 Hero 无横向溢出、顶部微信社群入口存在，旧 `/zh/install/` 自动到达 `/zh/download/#install-methods`。
 - 本轮不发布 NPM、Runtime channel 或 Desktop。
 
 ## 用户/产品视角的验收步骤
