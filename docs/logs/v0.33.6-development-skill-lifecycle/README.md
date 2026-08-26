@@ -28,6 +28,8 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 
 同日继续补充大型任务 plan 门：Design 完成前显式判断是否需要 `docs/plans`，只有多部分依赖、跨 owner/会话交接、部分完成恢复或分批验证使单批闭环不可信时才创建。Plan 不成为第八个 phase；它链接上位设计并逐部分声明范围、owner、依赖、验证，以及复用上位设计、轻量内联判断、补更细设计文档或满足条件后返回 Design 的策略。Implementation 执行每一部分前消费该策略，避免一边编码一边补做未冻结设计。
 
+2026-08-26 将启用 observer 的根开发任务从“仅按需查询 Token”调整为“任务结束默认附一行近似 Token 简报”：根 Agent 先结束 marker、待 rollout 落盘后复用同一确定性脚本汇总，子 Agent 不重复输出；用户可以按任务关闭。日志或 usage 不可用时只报告暂不可用，不让观测失败阻塞任务交付；完整阶段报告和持久化导出仍保持按需。
+
 设计依据：[`docs/designs/2026-08-14-development-skill-lifecycle.design.md`](../../designs/2026-08-14-development-skill-lifecycle.design.md)。
 
 任务遥测设计依据：[`docs/designs/2026-08-14-development-task-phase-tracing.design.md`](../../designs/2026-08-14-development-task-phase-tracing.design.md)。
@@ -54,6 +56,7 @@ Review 期间发现少数专项 skill 仍自行编排 validation/guard/交付，
 - `pnpm lint:new-code:governance`、`pnpm check:skill-progressive-loading`、`pnpm check:governance-backlog-ratchet` 和定向 ESLint 全部通过；当前为 37 个 Skill、144775 字节入口正文、4392 字符 description、9202 字节 AGENTS、33 条依赖边。
 - 任务类型补充后，`node --test .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.test.mjs .agents/skills/development-task-telemetry/scripts/serve-task-telemetry-dashboard.test.mjs` 的 11 个测试通过，覆盖三类合法类型、历史缺失类型、reopen 类型冲突、非法类型失败关闭，以及大盘类型列和中文映射；相关脚本定向 ESLint 与 `git diff --check` 通过。
 - `pnpm check:skill-progressive-loading` 再次通过：37 个 Skill、158929 字节入口正文、4392 字符 description、10979 字节 AGENTS、35 条依赖边；`pnpm check:governance-backlog-ratchet` 通过，未扩大治理债务。
+- 默认结束 Token 简报调整后，`pnpm check:skill-progressive-loading` 通过：37 个 Skill、159967 字节入口正文、4392 字符 description、11791 字节 AGENTS、36 条依赖边；定向新代码治理、backlog ratchet 与 `git diff --check` 均通过。未修改解析器，既有报告算法和测试合同不变。
 
 本轮没有触达 TypeScript、产品运行链路或 UI 行为，因此 tsc、产品测试和真实产品冒烟不适用。
 

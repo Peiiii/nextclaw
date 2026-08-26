@@ -62,9 +62,11 @@ description: Use when a development task needs visible phase tracing, task-level
 node .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.mjs --sessions-root ~/.codex/sessions [--thread <thread-id>] [--task <task-id>] [--format json]
 ```
 
-AI 默认用文本结果回答；需要比较、自动化或进一步计算时用 JSON。回答优先给任务类型、总 Token、阶段占比、模型/effort、调用与工具轮次、耗时、覆盖率和警告。没有 marker 时只报告可观察总量并说明不能可靠分阶段，不让用户补跑命令，不用自然语言猜测缺失数据。
+AI 默认用文本结果回答；需要比较、自动化或进一步计算时用 JSON。按需报告优先给任务类型、总 Token、阶段占比、模型/effort、调用与工具轮次、耗时、覆盖率和警告。没有 marker 时只报告可观察总量并说明不能可靠分阶段，不让用户补跑命令，不用自然语言猜测缺失数据。
 
-默认仍按需查询，不在每个任务结束时运行报告。用户显式要求“完成后汇报”时，根 AI 在最后一条完成进度首行输出 `task=end`，等该 frame 写入 rollout 后运行脚本，并在最终答复附一段简报；报告边界截止 `task=end`，统计工具和最终简报属于 observer 开销，不递归计入任务。跨线程和子 Agent 复用同一 task-id，由根 AI 汇总一次，子 Agent 不单独刷屏。
+启用 observer 的根开发任务默认收尾汇报：把 `task=end` 附在完成进度首行，待该 frame 落盘后按 task-id 运行脚本，最终答复末尾附 `Token：约 <total>（输入 <input> / 输出 <output>，覆盖率 <coverage>）`；只追加最关键警告。统计截止 `task=end`，后续 observer 开销不递归计入任务。
+
+用户可关闭当前任务汇报。数据不可用时输出 `Token：暂不可用（<简短原因>）`，不重试刷屏或阻塞交付。跨线程只由根 AI 汇总一次，子 Agent 不汇报。
 
 ## 本地大盘
 
