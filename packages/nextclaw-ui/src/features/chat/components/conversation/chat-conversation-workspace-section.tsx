@@ -29,6 +29,9 @@ export function ChatConversationWorkspaceSection({
     activeSideChatDraft,
     workspaceFileTabs,
     sessionCronJobs,
+    sessionCronJobsError,
+    sessionCronJobsLoading,
+    retrySessionCronJobs,
     showWorkspacePanel,
   } = useChatConversationWorkspaceState(snapshot, sessionKey);
 
@@ -49,6 +52,9 @@ export function ChatConversationWorkspaceSection({
       workspaceNavigationHistoryIndex={snapshot.workspaceNavigationHistoryIndex}
       activePanelKind={snapshot.activeWorkspacePanelKind ?? null}
       sessionCronJobs={sessionKey ? sessionCronJobs : []}
+      sessionCronJobsError={sessionKey ? sessionCronJobsError : false}
+      sessionCronJobsLoading={sessionKey ? sessionCronJobsLoading : false}
+      onRetrySessionCronJobs={retrySessionCronJobs}
       sessionProjectRoot={selectedSession?.projectRoot ?? draftProjectRoot}
       sessionWorkingDir={
         selectedSession?.workingDir ??

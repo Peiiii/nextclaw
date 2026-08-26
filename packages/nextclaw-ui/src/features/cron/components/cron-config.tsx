@@ -17,12 +17,8 @@ import {
   CronTaskComposer,
   CronTemplateGallery,
 } from "@/features/cron/components/cron-task-discovery";
-import {
-  useCronJobs,
-  useDeleteCronJob,
-  useRunCronJob,
-  useToggleCronJob,
-} from "@/features/cron/hooks/use-cron-jobs";
+import { useCronJobs } from "@/features/cron/hooks/use-cron-jobs";
+import { useCronJobActions } from "@/features/cron/hooks/use-cron-job-actions";
 import { Button } from "@/shared/components/ui/button";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 import { Input } from "@/shared/components/ui/input";
@@ -31,7 +27,6 @@ import type {
   CronListStatus,
   CronListSummaryView,
 } from "@/shared/lib/api";
-import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -167,10 +162,7 @@ export function CronConfig() {
     query: deferredQuery,
     status,
   });
-  const deleteCronJob = useDeleteCronJob();
-  const toggleCronJob = useToggleCronJob();
-  const runCronJob = useRunCronJob();
-  const { confirm, ConfirmDialog } = useConfirmDialog();
+  const cronActions = useCronJobActions();
   const jobs = cronQuery.data?.jobs ?? [];
   const total = cronQuery.data?.total ?? 0;
   const summary = cronQuery.data?.summary;
@@ -190,46 +182,28 @@ export function CronConfig() {
     composerRef.current?.focus();
   };
 
-  const handleDelete = async (job: CronJobView) => {
-    const confirmed = await confirm({
-      title: `${t("cronDeleteConfirm")}?`,
-      description: job.name ? `${job.name} (${job.id})` : job.id,
-      variant: "destructive",
-      confirmLabel: t("delete"),
+  const handleDelete = (job: CronJobView) => {
+    void cronActions.deleteJob(job, () => {
+      setExpandedJobId(null);
+      setSelectedJobId(null);
+      if (jobs.length === 1 && page > 0) {
+        setPage(page - 1);
+      }
     });
-    if (!confirmed) {
-      return;
-    }
-    setExpandedJobId(null);
-    setSelectedJobId(null);
-    if (jobs.length === 1 && page > 0) {
-      setPage(page - 1);
-    }
-    deleteCronJob.mutate({ id: job.id });
   };
 
   const handleToggle = (job: CronJobView, enabled: boolean) => {
-    const leavesCurrentFilter =
-      (status === "enabled" && !enabled) || (status === "disabled" && enabled);
-    if (leavesCurrentFilter && jobs.length === 1 && page > 0) {
-      setPage(page - 1);
-    }
-    toggleCronJob.mutate({ id: job.id, enabled });
+    void cronActions.toggleJob(job, enabled, () => {
+      const leavesCurrentFilter =
+        (status === "enabled" && !enabled) || (status === "disabled" && enabled);
+      if (leavesCurrentFilter && jobs.length === 1 && page > 0) {
+        setPage(page - 1);
+      }
+    });
   };
 
-  const handleRun = async (job: CronJobView) => {
-    const force = !job.enabled;
-    if (force) {
-      const confirmed = await confirm({
-        title: `${t("cronRunForceConfirm")}?`,
-        description: job.name ? `${job.name} (${job.id})` : job.id,
-        confirmLabel: t("cronRunNow"),
-      });
-      if (!confirmed) {
-        return;
-      }
-    }
-    runCronJob.mutate({ id: job.id, force });
+  const handleRun = (job: CronJobView) => {
+    void cronActions.runJob(job);
   };
 
   const handlePageChange = (nextPage: number) => {
@@ -446,7 +420,7 @@ export function CronConfig() {
         onRun={handleRun}
         onToggle={handleToggle}
       />
-      <ConfirmDialog />
+      <cronActions.ConfirmDialog />
     </PageLayout>
   );
 }

@@ -44,6 +44,9 @@ type ChatSessionWorkspacePanelProps = {
   workspaceNavigationHistoryIndex?: number;
   activePanelKind?: ChatWorkspacePanelKind | null;
   sessionCronJobs?: readonly CronJobView[];
+  sessionCronJobsError?: boolean;
+  sessionCronJobsLoading?: boolean;
+  onRetrySessionCronJobs?: () => void;
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
   workspacePanelWidth?: number;
@@ -62,6 +65,9 @@ export function ChatSessionWorkspacePanel({
   workspaceNavigationHistoryIndex = 0,
   activePanelKind,
   sessionCronJobs = [],
+  sessionCronJobsError = false,
+  sessionCronJobsLoading = false,
+  onRetrySessionCronJobs,
   sessionProjectRoot,
   sessionWorkingDir,
   workspacePanelWidth = CHAT_WORKSPACE_PANEL_DEFAULT_WIDTH,
@@ -218,6 +224,9 @@ export function ChatSessionWorkspacePanel({
           filePreviewRefreshVersion={filePreviewRefreshVersion}
           sessionKey={sessionKey}
           sessionCronJobs={sessionCronJobs}
+          sessionCronJobsError={sessionCronJobsError}
+          sessionCronJobsLoading={sessionCronJobsLoading}
+          onRetrySessionCronJobs={onRetrySessionCronJobs}
           sessionProjectRoot={sessionProjectRoot}
           sessionWorkingDir={sessionWorkingDir}
         />

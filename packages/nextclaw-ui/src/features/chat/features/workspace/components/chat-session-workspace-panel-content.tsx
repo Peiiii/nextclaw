@@ -39,8 +39,11 @@ type ChatSessionWorkspacePanelContentProps = {
   filePreviewRefreshVersion: number;
   sessionKey: string | null;
   sessionCronJobs: readonly CronJobView[];
+  sessionCronJobsError?: boolean;
+  sessionCronJobsLoading?: boolean;
   sessionProjectRoot: string | null;
   sessionWorkingDir: string | null;
+  onRetrySessionCronJobs?: () => void;
 };
 
 function WorkspaceOverviewEntry({
@@ -220,8 +223,11 @@ function WorkspaceSelectedContent({
   filePreviewRefreshVersion,
   sessionKey,
   sessionCronJobs,
+  sessionCronJobsError = false,
+  sessionCronJobsLoading = false,
   sessionProjectRoot,
   sessionWorkingDir,
+  onRetrySessionCronJobs,
   explorerControl,
 }: ChatSessionWorkspacePanelContentProps & {
   explorerControl?: { open: boolean; onToggle: () => void };
@@ -309,7 +315,14 @@ function WorkspaceSelectedContent({
     );
   }
 
-  return <SessionCronJobContent jobs={sessionCronJobs} />;
+  return (
+    <SessionCronJobContent
+      jobs={sessionCronJobs}
+      isError={sessionCronJobsError}
+      isLoading={sessionCronJobsLoading}
+      onRetry={onRetrySessionCronJobs}
+    />
+  );
 }
 
 export function ChatSessionWorkspacePanelContent({

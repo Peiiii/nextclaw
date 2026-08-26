@@ -52,6 +52,16 @@ vi.mock("@/features/cron/hooks/use-cron-jobs", () => ({
   useToggleCronJob: () => ({ mutate: mocks.toggleJob }),
 }));
 
+vi.mock("@/features/cron/hooks/use-cron-job-actions", () => ({
+  useCronJobActions: () => ({
+    ConfirmDialog: () => null,
+    deleteJob: mocks.deleteJob,
+    isPending: () => false,
+    runJob: mocks.runJob,
+    toggleJob: mocks.toggleJob,
+  }),
+}));
+
 vi.mock("@/shared/hooks/use-confirm-dialog", () => ({
   useConfirmDialog: () => ({
     confirm: mocks.confirm,
@@ -268,7 +278,7 @@ describe("CronConfig", () => {
     renderCronConfig();
 
     await user.click(
-      screen.getByRole("button", { name: "编辑 Agent 产品雷达" }),
+      screen.getByRole("button", { name: "查看任务详情 Agent 产品雷达" }),
     );
     expect(screen.getByRole("dialog")).toBeTruthy();
     expect(screen.getByText("当前系统只保存最近一次执行快照。")).toBeTruthy();
@@ -283,10 +293,11 @@ describe("CronConfig", () => {
     renderCronConfig();
 
     await user.click(screen.getAllByRole("switch")[0]);
-    expect(mocks.toggleJob).toHaveBeenCalledWith({
-      id: "agent-radar",
-      enabled: false,
-    });
+    expect(mocks.toggleJob).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "agent-radar" }),
+      false,
+      expect.any(Function),
+    );
     expect(
       screen
         .getByRole("button", { name: "展开任务 Agent 产品雷达" })

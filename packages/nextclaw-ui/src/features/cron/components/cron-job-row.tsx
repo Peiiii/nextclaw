@@ -166,7 +166,7 @@ export function CronJobRow({
                     size="icon"
                     className="h-8 w-8"
                     onClick={() => onEdit(job)}
-                    aria-label={`${t("edit")} ${jobLabel}`}
+                    aria-label={`${t("cronEditDetails")} ${jobLabel}`}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>

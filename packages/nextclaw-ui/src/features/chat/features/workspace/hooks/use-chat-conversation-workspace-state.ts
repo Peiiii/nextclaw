@@ -62,6 +62,11 @@ export function useChatConversationWorkspaceState(
     activeSideChatDraft,
     workspaceFileTabs,
     sessionCronJobs,
+    sessionCronJobsError: cronQuery.isError,
+    sessionCronJobsLoading: cronQuery.isLoading,
+    retrySessionCronJobs: () => {
+      void cronQuery.refetch();
+    },
     showWorkspacePanel:
       snapshot.workspacePanelParentKey === sessionKey &&
       snapshot.activeWorkspacePanelKind != null,
