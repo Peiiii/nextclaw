@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NextClaw 项目主页交互原型</title>
+  <style>
+    :root {
+      --canvas: #eee8df;
+      --app: #faf8f4;
+      --sidebar: #f4f1eb;
+      --panel: #fcfbf7;
+      --panel-soft: #f7f3ed;
+      --line: #dfd7cd;
+      --line-strong: #c8bbac;
+      --text: #362c26;
+      --muted: #796d63;
+      --faint: #9e9186;
+      --blue: #7b6a5b;
+      --blue-strong: #625247;
+      --blue-soft: #efeae1;
+      --green: #138868;
+      --green-soft: #e3f5ef;
+      --amber: #a86c12;
+      --amber-soft: #fff2d9;
+      --shadow: 0 30px 80px rgba(48, 34, 22, .16);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; color: var(--text); background: var(--canvas); }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .hidden { display: none !important; }
+
+    .prototype-bar {
+      height: 56px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 22px; color: #6d6056; font-size: 13px;
+    }
+    .prototype-title { display: flex; align-items: center; gap: 10px; font-weight: 650; }
+    .prototype-title span { color: #94877c; font-weight: 500; }
+    .segmented { display: inline-flex; padding: 3px; border: 1px solid var(--line-strong); background: rgba(252,251,247,.72); border-radius: 10px; }
+    .segmented button { border: 0; background: transparent; padding: 6px 11px; border-radius: 7px; cursor: pointer; font-size: 12px; }
+    .segmented button.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 5px rgba(48,34,22,.10); }
+
+    .stage { height: calc(100dvh - 56px); min-height: 0; padding: 0 22px 22px; display: grid; place-items: center; }
+    .app-shell {
+      width: min(1480px, 100%); height: 100%; max-height: 900px; min-height: 0;
+      overflow: hidden; display: grid; grid-template-columns: 286px 1fr 48px;
+      border: 1px solid rgba(164,177,194,.7); border-radius: 18px; background: var(--app); box-shadow: var(--shadow);
+    }
+
+    .sidebar { min-width: 0; min-height: 0; overflow: hidden; background: var(--sidebar); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+    .brand { height: 58px; display: flex; align-items: center; padding: 0 18px; gap: 10px; }
+    .brand-mark { width: 25px; height: 25px; border-radius: 8px; display: grid; place-items: center; background: #111827; color: white; font-size: 13px; font-weight: 800; }
+    .brand-name { font-weight: 730; letter-spacing: -.02em; }
+    .brand-version { color: var(--faint); font-size: 12px; }
+    .brand-spacer { flex: 1; }
+    .icon-button { width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
+    .icon-button:hover, .icon-button:focus-visible { background: #e9e3da; color: var(--text); outline: none; }
+    .icon { width: 17px; height: 17px; display: block; }
+
+    .new-task { margin: 2px 14px 12px; height: 42px; border: 0; border-radius: 13px; background: var(--blue-soft); color: var(--blue-strong); font-weight: 650; cursor: pointer; }
+    .search { margin: 0 14px 13px; height: 38px; border: 1px solid var(--line-strong); background: rgba(255,255,255,.76); border-radius: 11px; display: flex; align-items: center; gap: 8px; padding: 0 11px; color: var(--faint); font-size: 13px; }
+    .search input { width: 100%; border: 0; background: transparent; outline: none; color: var(--text); }
+    .nav-stack { padding: 0 10px; display: grid; gap: 2px; }
+    .nav-item { height: 36px; border: 0; border-radius: 9px; padding: 0 10px; background: transparent; display: flex; align-items: center; gap: 10px; color: #64748b; cursor: pointer; text-align: left; }
+    .nav-item:hover { background: #ebe6de; color: var(--text); }
+    .nav-item.active { background: var(--blue-soft); color: var(--text); font-weight: 650; }
+
+    .session-section { min-height: 0; flex: 1; margin-top: 12px; border-top: 1px solid var(--line); display: flex; flex-direction: column; }
+    .session-header { height: 46px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .mode-switch { display: flex; gap: 4px; }
+    .mode-switch button { border: 0; background: transparent; color: var(--faint); padding: 5px 7px; border-radius: 6px; cursor: pointer; }
+    .mode-switch button.active { color: var(--text); font-weight: 650; background: rgba(255,255,255,.65); }
+    .project-list { overflow: auto; padding: 0 8px 14px; }
+
+    .project-block { margin-bottom: 4px; }
+    .project-row { position: relative; min-height: 38px; border-radius: 9px; display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; }
+    .project-row:hover, .project-row.selected { background: var(--blue-soft); }
+    .disclosure { width: 34px; height: 38px; border: 0; background: transparent; border-radius: 8px; cursor: pointer; display: grid; place-items: center; color: var(--muted); }
+    .disclosure:hover { color: var(--text); background: rgba(255,255,255,.58); }
+    .project-link { min-width: 0; height: 38px; border: 0; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; text-align: left; }
+    .project-link strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: .035em; text-transform: uppercase; }
+    .project-actions { display: flex; padding-right: 5px; opacity: 0; pointer-events: none; }
+    .project-row:hover .project-actions, .project-row:focus-within .project-actions, .project-row.selected .project-actions { opacity: 1; pointer-events: auto; }
+    .project-actions .icon-button { width: 28px; height: 28px; }
+    .folder-icon { color: #c38b24; }
+    .chevron { transition: transform .18s ease; }
+    .project-block.collapsed .chevron { transform: rotate(-90deg); }
+    .session-children { margin: 2px 0 8px 25px; display: grid; gap: 2px; }
+    .project-block.collapsed .session-children { display: none; }
+    .session-row { height: 34px; border: 0; background: transparent; border-radius: 8px; padding: 0 9px; color: #5f6f84; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .session-row:hover { background: #ebe6de; color: var(--text); }
+    .session-meta { color: var(--faint); font-size: 11px; margin-left: 6px; }
+    .sidebar-footer { height: 50px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 0 16px; color: var(--muted); font-size: 13px; }
+
+    .main { position: relative; min-width: 0; min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--app); }
+    .topbar { height: 58px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.82); display: flex; align-items: center; padding: 0 24px; gap: 10px; }
+    .mobile-back { display: none; }
+    .crumb { color: var(--muted); font-size: 13px; }
+    .crumb strong { color: var(--text); }
+    .topbar-spacer { flex: 1; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; color: var(--green); background: var(--green-soft); border-radius: 999px; font-size: 12px; font-weight: 650; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .primary { height: 34px; border: 0; border-radius: 9px; padding: 0 13px; background: var(--blue); color: white; font-weight: 650; cursor: pointer; box-shadow: 0 4px 12px rgba(72,115,164,.19); }
+    .primary:hover { background: var(--blue-strong); }
+
+    .project-head { padding: 26px 32px 0; background: var(--app); }
+    .project-title-row { display: flex; gap: 18px; align-items: flex-start; }
+    .project-avatar { width: 50px; height: 50px; border-radius: 14px; display: grid; place-items: center; color: #9a6713; background: #fff1cf; border: 1px solid #f1dcae; }
+    .project-heading { min-width: 0; flex: 1; }
+    .project-heading h1 { margin: 1px 0 5px; font-size: 24px; line-height: 1.2; letter-spacing: -.025em; }
+    .project-path { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .project-head-actions { display: flex; gap: 8px; }
+    .secondary { height: 34px; border: 1px solid var(--line-strong); border-radius: 9px; background: white; padding: 0 12px; cursor: pointer; color: #53637a; }
+    .secondary:hover { background: var(--panel-soft); color: var(--text); }
+    .tabs { margin-top: 24px; display: flex; align-items: center; gap: 4px; border-bottom: 1px solid var(--line); }
+    .tab { position: relative; height: 42px; padding: 0 13px; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); font-weight: 650; }
+    .tab.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px 2px 0 0; background: var(--blue); }
+    .tab-count { margin-left: 5px; color: var(--faint); font-size: 11px; }
+
+    .content { min-height: 0; flex: 1; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; -webkit-overflow-scrolling: touch; padding: 22px 32px 34px; }
+    .page { display: none; max-width: 1120px; margin: 0 auto; }
+    .page.active { display: block; }
+    .section-title { display: flex; align-items: end; justify-content: space-between; margin-bottom: 12px; }
+    .section-title h2 { margin: 0; font-size: 15px; }
+    .section-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .text-link { border: 0; background: transparent; color: var(--blue-strong); cursor: pointer; font-size: 12px; }
+
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .metric-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); box-shadow: 0 5px 14px rgba(31,47,69,.035); cursor: pointer; text-align: left; }
+    .metric-card:hover { border-color: var(--line-strong); background: #fffdf9; }
+    .metric-label { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .metric-value { margin-top: 10px; display: flex; align-items: baseline; gap: 6px; font-size: 24px; font-weight: 720; letter-spacing: -.03em; }
+    .metric-value small { color: var(--muted); font-size: 12px; font-weight: 500; }
+    .metric-note { margin-top: 6px; color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .focus-strip { margin-bottom: 14px; min-height: 82px; padding: 16px 18px; border: 1px solid #d9cdbc; border-radius: 14px; background: linear-gradient(135deg, #fffaf0 0%, #f5efe5 100%); display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 16px; }
+    .focus-kicker { color: var(--amber); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+    .focus-title { margin-top: 5px; font-size: 16px; font-weight: 700; }
+    .focus-meta { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 7px 14px; color: var(--muted); font-size: 11px; }
+    .focus-meta span::before { content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 6px 1px 0; border-radius: 50%; background: var(--line-strong); }
+    .focus-meta .running::before { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+    .overview-columns { margin-top: 22px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); gap: 18px; }
+    .panel { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+    .panel-head { height: 50px; padding: 0 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+    .panel-head strong { font-size: 13px; }
+    .task-list, .attention-list { display: grid; }
+    .task-item, .attention-item { min-height: 62px; padding: 11px 16px; display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 10px; border-bottom: 1px solid #edf1f5; }
+    .task-item:last-child, .attention-item:last-child { border-bottom: 0; }
+    .task-icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--blue-soft); color: var(--blue-strong); }
+    .item-main { min-width: 0; }
+    .item-main strong { display: block; font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-main span { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-time { color: var(--faint); font-size: 11px; }
+    .attention-icon { color: var(--amber); background: var(--amber-soft); }
+    .empty-note { padding: 18px; color: var(--muted); font-size: 12px; }
+    .recent-artifacts { margin-top: 22px; }
+    .artifact-row { min-height: 66px; padding: 12px 16px; display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; gap: 11px; border-bottom: 1px solid #ebe4da; }
+    .artifact-row:last-child { border-bottom: 0; }
+    .artifact-icon { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; display: grid; place-items: center; background: #fffdf9; color: var(--blue-strong); font-size: 11px; font-weight: 750; }
+    .artifact-role { color: var(--faint); font-size: 10px; }
+
+    .work-toolbar, .artifact-toolbar { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .work-toolbar-left { min-width: 0; display: flex; align-items: center; gap: 10px; }
+    .view-toggle { flex: 0 0 auto; }
+    .view-toggle button { display: inline-flex; align-items: center; gap: 5px; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-chip { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 11px; cursor: pointer; }
+    .filter-chip.active { border-color: var(--line-strong); background: var(--blue-soft); color: var(--text); font-weight: 650; }
+    .work-card { padding: 16px; border-bottom: 1px solid #ebe4da; }
+    .work-card:last-child { border-bottom: 0; }
+    .work-card-top { display: flex; align-items: flex-start; gap: 12px; }
+    .work-card-main { min-width: 0; flex: 1; }
+    .work-card-main h3 { margin: 0; font-size: 14px; }
+    .work-card-main p { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+    .work-runs { margin: 13px 0 0 40px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-soft); display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; color: var(--muted); font-size: 11px; }
+    .work-runs strong { display: block; margin-bottom: 4px; color: var(--text); font-size: 11px; }
+    .run-live { color: var(--green); font-weight: 650; }
+    .work-layout { min-height: 560px; display: grid; grid-template-columns: minmax(280px,.72fr) minmax(520px,1.28fr); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
+    .work-list { border-right: 1px solid var(--line); background: #faf8f4; }
+    .work-list-head { height: 42px; padding: 0 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; color: var(--muted); font-size: 10px; }
+    .work-list-item { width: 100%; min-height: 84px; padding: 13px 14px; border: 0; border-bottom: 1px solid #ebe4da; background: transparent; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; text-align: left; cursor: pointer; }
+    .work-list-item:hover { background: #f3efe8; }
+    .work-list-item.active { background: var(--blue-soft); box-shadow: inset 3px 0 0 var(--blue); }
+    .work-list-item strong { display: block; overflow: hidden; color: var(--text); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .work-list-item span { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; }
+    .work-list-item small { align-self: center; color: var(--faint); font-size: 15px; }
+    .work-list-flags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
+    .work-list-flag { padding: 3px 6px; border-radius: 999px; background: #eee8df; color: var(--muted); font-size: 9px; }
+    .work-list-flag.attention { background: var(--amber-soft); color: var(--amber); }
+    .work-detail { min-width: 0; padding: 22px; overflow: auto; }
+    .work-item-detail { min-width: 0; }
+    .work-detail-head { display: flex; align-items: flex-start; gap: 12px; }
+    .work-detail-head h2 { margin: 0; font-size: 18px; }
+    .work-detail-head p { margin: 6px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .work-detail-spacer { flex: 1; }
+    .work-type-line { margin-bottom: 7px; display: flex; align-items: center; gap: 7px; color: var(--faint); font-size: 9px; }
+    .work-type { padding: 4px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--blue-strong); font-weight: 700; }
+    .work-item-nav { display: flex; gap: 5px; }
+    .work-item-nav .icon-button { border: 1px solid var(--line); background: #fffdf9; }
+    .work-item-detail .work-runs, .work-item-detail .state-flow { margin-left: 0; }
+    .work-item-detail .human-request { margin-bottom: 12px; }
+    .detail-tabs { margin: 16px 0 12px; display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+    .detail-tab { position: relative; height: 34px; padding: 0 10px; border: 0; background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; }
+    .detail-tab.active { color: var(--text); font-weight: 700; }
+    .detail-tab.active::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: var(--blue); }
+    .detail-panel { display: none; }
+    .detail-panel.active { display: block; }
+    .description-card { padding: 0 13px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fffdf9; }
+    .description-card summary { padding: 11px 0; color: var(--text); font-size: 11px; font-weight: 700; cursor: pointer; }
+    .description-card p, .description-card li { color: var(--muted); font-size: 10px; line-height: 1.7; }
+    .description-card p { margin: 0 0 8px; }
+    .detail-artifact-list { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .detail-activity { border: 1px solid var(--line); border-radius: 10px; background: #fffdf9; }
+    .drawer-body .work-item-detail { min-height: 100%; }
+    .work-table { display: none; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
+    .work-table.active { display: block; }
+    .work-layout.view-hidden { display: none; }
+    .work-table-scroll { overflow: auto; }
+    .work-table table { width: 100%; min-width: 880px; border-collapse: collapse; font-size: 10px; }
+    .work-table th { height: 38px; padding: 0 11px; border-bottom: 1px solid var(--line); background: var(--panel-soft); color: var(--muted); font-weight: 650; text-align: left; white-space: nowrap; }
+    .work-table td { height: 48px; padding: 0 11px; border-bottom: 1px solid #ebe4da; color: var(--muted); white-space: nowrap; }
+    .work-table tbody tr { cursor: pointer; }
+    .work-table tbody tr:hover { background: var(--blue-soft); }
+    .work-table td:first-child { color: var(--text); font-weight: 650; }
+    .work-table-footer { min-height: 46px; padding: 7px 11px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 10px; }
+    .work-table-footer .secondary { height: 30px; }
+    .work-table-spacer { flex: 1; }
+    .state-flow { margin: 14px 0 0 40px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: #fffdf9; }
+    .state-flow-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .state-flow-head strong { display: block; font-size: 12px; }
+    .state-flow-head span { display: block; margin-top: 4px; color: var(--faint); font-size: 10px; }
+    .state-summary { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green); font-size: 10px; font-weight: 700; }
+    .state-track { margin-top: 16px; display: flex; align-items: flex-start; min-width: 0; }
+    .state-step { min-width: 68px; padding: 0; border: 0; background: transparent; display: grid; justify-items: center; gap: 5px; color: var(--faint); font-size: 10px; text-align: center; cursor: pointer; }
+    .state-step:hover, .state-step:focus-visible { color: var(--text); outline: none; }
+    .state-step:focus-visible .state-node { box-shadow: 0 0 0 3px var(--blue-soft); }
+    .state-step small { color: var(--faint); font-size: 9px; font-weight: 500; }
+    .state-node { width: 30px; height: 30px; border: 1px solid var(--line-strong); border-radius: 50%; display: grid; place-items: center; background: var(--panel); color: var(--muted); font-size: 10px; font-weight: 700; }
+    .state-step.done { color: var(--muted); }
+    .state-step.done .state-node { border-color: #b9d8ca; background: var(--green-soft); color: var(--green); }
+    .state-step.current { color: var(--text); font-weight: 700; }
+    .state-step.current .state-node { border-color: var(--blue); background: var(--blue); color: white; box-shadow: 0 0 0 4px var(--blue-soft); }
+    .state-step.skipped .state-node { border-style: dashed; background: var(--panel-soft); color: var(--faint); }
+    .state-step.skipped span { text-decoration: line-through; text-decoration-color: var(--line-strong); }
+    .state-step.selected:not(.current) .state-node { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+    .state-connector { flex: 1; min-width: 12px; height: 1px; margin-top: 15px; background: var(--line-strong); }
+    .state-connector.done { background: #8dbda8; }
+    .state-connector.human { position: relative; background: repeating-linear-gradient(90deg, var(--amber) 0 4px, transparent 4px 8px); }
+    .state-connector.human::after { content: "需你确认"; position: absolute; left: 50%; top: -17px; transform: translateX(-50%); color: var(--amber); font-size: 9px; font-weight: 700; white-space: nowrap; }
+    .state-branch { margin: 12px 0 0 2px; padding-top: 10px; border-top: 1px dashed var(--line); display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 10px; }
+    .state-branch strong { color: var(--amber); font-weight: 650; }
+    .human-request { margin-top: 12px; padding: 11px 12px; border: 1px solid #efd5a7; border-radius: 10px; background: var(--amber-soft); display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 10px; }
+    .human-request-icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: #fffaf0; color: var(--amber); font-weight: 800; }
+    .human-request strong { display: block; font-size: 11px; }
+    .human-request span { display: block; margin-top: 3px; color: #80633a; font-size: 10px; }
+    .human-action { height: 30px; padding: 0 9px; border: 1px solid #d9b575; border-radius: 8px; background: #fffaf0; color: #7d5617; font-size: 10px; font-weight: 700; cursor: pointer; }
+    .stage-inspector { display: none; margin-top: 12px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-soft); }
+    .stage-inspector.visible { display: block; }
+    .stage-hint { width: 100%; margin-top: 12px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-soft); color: var(--muted); font-size: 10px; text-align: left; cursor: pointer; }
+    .stage-hint:hover { border-color: var(--line-strong); color: var(--text); }
+    .stage-inspector-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .stage-inspector-head strong { display: block; font-size: 12px; }
+    .stage-inspector-head span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .stage-status { flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; background: var(--blue-soft); color: var(--blue-strong); font-size: 9px; font-weight: 700; }
+    .stage-status.skipped { background: #ece7df; color: var(--muted); }
+    .stage-output-grid { margin-top: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stage-output { min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fffdf9; }
+    .stage-output label { display: block; margin-bottom: 5px; color: var(--faint); font-size: 9px; }
+    .stage-output div { color: var(--text); font-size: 10px; line-height: 1.55; }
+    .stage-evidence { margin-top: 8px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .artifact-layout { height: 520px; display: grid; grid-template-columns: 1fr; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
+    .artifact-list { overflow: auto; }
+    .artifact-list .artifact-row { cursor: pointer; }
+    .artifact-list .artifact-row.active { background: var(--blue-soft); box-shadow: inset 3px 0 0 var(--blue); }
+    .artifact-detail { display: none; }
+    .artifact-detail h2 { margin: 7px 0 8px; font-size: 20px; }
+    .relationship-box { margin-top: 18px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-soft); }
+    .relationship-box label { display: block; margin-bottom: 7px; color: var(--faint); font-size: 10px; }
+    .relationship-line { color: var(--muted); font-size: 11px; line-height: 1.8; }
+    .relationship-line strong { color: var(--text); }
+
+    .skills-toolbar { display: flex; gap: 10px; margin-bottom: 14px; }
+    .skills-toolbar .search { flex: 1; margin: 0; height: 40px; }
+    .select { min-width: 140px; height: 40px; border: 1px solid var(--line-strong); border-radius: 10px; background: white; padding: 0 12px; color: #5b6a7f; cursor: pointer; }
+    .skills-layout { display: grid; grid-template-columns: 1fr; height: 520px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: white; }
+    .skill-list { min-width: 0; overflow: auto; background: #faf8f4; }
+    .skill-list-head { position: sticky; top: 0; z-index: 1; height: 42px; display: flex; align-items: center; padding: 0 14px; color: var(--muted); font-size: 11px; background: rgba(248,250,252,.95); border-bottom: 1px solid var(--line); }
+    .skill-item { width: 100%; min-height: 77px; border: 0; border-bottom: 1px solid #edf1f5; background: transparent; padding: 12px 14px; text-align: left; cursor: pointer; display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 10px; }
+    .skill-item:hover { background: #f3efe8; }
+    .skill-item.active { background: var(--blue-soft); box-shadow: inset 3px 0 0 var(--blue); }
+    .skill-glyph { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #4f6d94; background: white; border: 1px solid #dfe6ee; font-weight: 750; font-size: 11px; }
+    .skill-copy { min-width: 0; }
+    .skill-copy strong { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .skill-copy span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 5px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .badge { align-self: start; display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 650; color: var(--green); background: var(--green-soft); white-space: nowrap; }
+    .badge.warn { color: var(--amber); background: var(--amber-soft); }
+    .skill-detail { display: none; }
+    .detail-kicker { color: var(--blue-strong); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .detail-title { margin: 7px 0 8px; font-size: 20px; }
+    .detail-description { margin: 0; color: #526279; font-size: 13px; line-height: 1.7; }
+    .detail-meta { margin: 18px 0 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .meta-box { padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-soft); }
+    .meta-box label { display: block; color: var(--faint); font-size: 10px; margin-bottom: 5px; }
+    .meta-box span { display: block; color: #405169; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-section { margin-top: 20px; }
+    .detail-section h3 { margin: 0 0 8px; font-size: 12px; }
+    .detail-section p, .detail-section li { color: #5c6c80; font-size: 12px; line-height: 1.7; }
+    .code-box { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #f5f1ea; color: #62564d; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; overflow: auto; }
+    .read-only { display: inline-flex; align-items: center; gap: 6px; margin-top: 18px; padding: 7px 9px; background: #f1ece5; border-radius: 8px; color: var(--muted); font-size: 11px; }
+
+    .files-layout { height: 520px; display: grid; grid-template-columns: 250px 1fr; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: white; }
+    .tree { border-right: 1px solid var(--line); padding: 10px; overflow: auto; background: #faf8f4; }
+    .tree-row { height: 30px; border-radius: 7px; padding: 0 8px; display: flex; align-items: center; gap: 7px; color: #5a6a7e; font-size: 12px; }
+    .tree-row.active { background: var(--blue-soft); color: #355e8d; }
+    .tree-indent { padding-left: 25px; }
+    .file-preview { padding: 28px 36px; overflow: auto; }
+    .file-preview h2 { margin-top: 0; font-size: 21px; }
+    .file-preview p, .file-preview li { color: #53637a; line-height: 1.75; font-size: 13px; }
+
+    .utility-rail { border-left: 1px solid var(--line); background: #faf8f4; display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 10px; }
+    .utility-spacer { flex: 1; }
+    .utility-rail .icon-button.active { color: var(--blue-strong); background: var(--blue-soft); }
+
+    .menu { position: fixed; z-index: 20; width: 176px; padding: 6px; background: white; border: 1px solid var(--line); border-radius: 11px; box-shadow: 0 18px 50px rgba(31,47,69,.22); }
+    .menu button { width: 100%; height: 34px; border: 0; border-radius: 7px; background: transparent; text-align: left; padding: 0 10px; color: #4c5c70; cursor: pointer; font-size: 12px; }
+    .menu button:hover { background: #f0f4f8; color: var(--text); }
+
+    .toast { position: fixed; z-index: 30; left: 50%; bottom: 26px; transform: translate(-50%, 18px); padding: 10px 14px; border-radius: 10px; background: #362c26; color: #fcfbf7; font-size: 12px; opacity: 0; pointer-events: none; transition: .2s ease; box-shadow: 0 12px 34px rgba(48,34,22,.25); }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .drawer-scrim { position: absolute; z-index: 34; inset: 58px 0 0; border: 0; background: rgba(54,44,38,.18); opacity: 0; pointer-events: none; transition: opacity .18s ease; }
+    .context-drawer { position: absolute; z-index: 35; top: 58px; right: 0; bottom: 0; width: min(540px, 72%); border-left: 1px solid var(--line-strong); background: var(--panel); box-shadow: -22px 0 60px rgba(48,34,22,.16); transform: translateX(102%); transition: transform .2s ease; display: flex; flex-direction: column; }
+    .main.drawer-open .drawer-scrim { opacity: 1; pointer-events: auto; }
+    .main.drawer-open .context-drawer { transform: translateX(0); }
+    .drawer-head { min-height: 62px; padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+    .drawer-head-copy { min-width: 0; flex: 1; }
+    .drawer-head-copy strong { display: block; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+    .drawer-head-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .drawer-body { min-height: 0; flex: 1; overflow: auto; padding: 18px; }
+    .drawer-section { margin-bottom: 18px; }
+    .drawer-section h3 { margin: 0 0 9px; font-size: 11px; }
+    .drawer-section p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .drawer-artifact { padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px; background: #fffdf9; display: flex; align-items: center; gap: 10px; }
+    .drawer-artifact + .drawer-artifact { margin-top: 7px; }
+    .drawer-artifact-main { min-width: 0; flex: 1; }
+    .drawer-artifact-main strong { display: block; font-size: 11px; }
+    .drawer-artifact-main span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .document-preview { padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fffdf9; }
+    .document-preview h4 { margin: 0 0 10px; font-size: 15px; }
+    .document-preview p, .document-preview li { color: var(--muted); font-size: 11px; line-height: 1.75; }
+    .modal-scrim { position: fixed; z-index: 50; inset: 0; padding: 20px; background: rgba(54,44,38,.34); display: none; place-items: center; }
+    .modal-scrim.open { display: grid; }
+    .decision-modal { width: min(460px,100%); padding: 22px; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--panel); box-shadow: 0 30px 90px rgba(48,34,22,.24); }
+    .decision-modal h2 { margin: 0; font-size: 17px; }
+    .decision-modal p { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .decision-options { margin-top: 16px; display: grid; gap: 8px; }
+    .decision-option { padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fffdf9; text-align: left; cursor: pointer; }
+    .decision-option strong { display: block; font-size: 11px; }
+    .decision-option span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .decision-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px; }
+    .create-field { margin-top: 14px; }
+    .create-field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 10px; }
+    .create-input, .create-textarea { width: 100%; border: 1px solid var(--line-strong); border-radius: 10px; background: #fffdf9; color: var(--text); outline: none; }
+    .create-input { height: 40px; padding: 0 11px; }
+    .create-textarea { min-height: 132px; padding: 10px 11px; resize: vertical; font: inherit; line-height: 1.55; }
+    .create-input:focus, .create-textarea:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .create-properties { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .create-property { padding: 6px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-soft); color: var(--muted); font-size: 9px; }
+
+    body.mobile .prototype-bar { max-width: 480px; margin: 0 auto; }
+    body.mobile .stage { padding-left: 12px; padding-right: 12px; }
+    body.mobile .app-shell { width: 390px; height: 100%; max-height: 844px; min-height: 0; grid-template-columns: 1fr; border-radius: 28px; }
+    body.mobile .utility-rail { display: none; }
+    body.mobile .sidebar { border-right: 0; }
+    body.mobile .sidebar.mobile-away { display: none; }
+    body.mobile .main { display: none; }
+    body.mobile .main.mobile-current { display: flex; }
+    body.mobile .brand { height: 62px; padding: 0 16px; }
+    body.mobile .new-task { margin-left: 12px; margin-right: 12px; }
+    body.mobile .search { margin-left: 12px; margin-right: 12px; }
+    body.mobile .project-actions { opacity: 1; pointer-events: auto; }
+    body.mobile .project-actions .icon-button:first-child { display: none; }
+    body.mobile .project-row { min-height: 46px; grid-template-columns: 44px minmax(0,1fr) auto; }
+    body.mobile .disclosure { width: 44px; height: 44px; }
+    body.mobile .project-link { height: 44px; }
+    body.mobile .session-row { min-height: 40px; }
+    body.mobile .topbar { height: 56px; padding: 0 12px; }
+    body.mobile .mobile-back { display: grid; }
+    body.mobile .crumb { font-size: 12px; }
+    body.mobile .status-pill, body.mobile .topbar .primary { display: none; }
+    body.mobile .project-head { padding: 20px 16px 0; }
+    body.mobile .project-title-row { gap: 12px; }
+    body.mobile .project-avatar { width: 42px; height: 42px; border-radius: 12px; }
+    body.mobile .project-heading h1 { font-size: 20px; }
+    body.mobile .project-head-actions .secondary { display: none; }
+    body.mobile .project-head-actions .primary { display: block; width: 36px; padding: 0; font-size: 0; }
+    body.mobile .project-head-actions .primary::after { content: "+"; font-size: 20px; }
+    body.mobile .tabs { margin-top: 18px; overflow-x: auto; }
+    body.mobile .tab { flex: 0 0 auto; height: 40px; padding: 0 11px; }
+    body.mobile .content { padding: 16px 14px 24px; }
+    body.mobile .focus-strip { grid-template-columns: 1fr; gap: 12px; }
+    body.mobile .focus-strip .primary { width: 100%; }
+    body.mobile .metric-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
+    body.mobile .metric-card { padding: 13px; }
+    body.mobile .metric-value { font-size: 21px; }
+    body.mobile .overview-columns { grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
+    body.mobile .section-title p { display: none; }
+    body.mobile .skills-toolbar { gap: 7px; }
+    body.mobile .select { min-width: 104px; width: 104px; }
+    body.mobile .skills-layout { height: auto; min-height: 500px; grid-template-columns: 1fr; border-radius: 12px; }
+    body.mobile .skill-list { border-right: 0; }
+    body.mobile .skill-detail { display: none; }
+    body.mobile .detail-back { display: inline-flex !important; margin-bottom: 14px; }
+    body.mobile .detail-meta { grid-template-columns: 1fr; }
+    body.mobile .files-layout { height: auto; min-height: 520px; grid-template-columns: 1fr; }
+    body.mobile .tree { border-right: 0; }
+    body.mobile .file-preview { display: none; }
+    body.mobile .work-toolbar, body.mobile .artifact-toolbar { align-items: flex-start; flex-direction: column; }
+    body.mobile .work-toolbar-left { width: 100%; align-items: flex-start; flex-direction: column; }
+    body.mobile .view-toggle { display: none; }
+    body.mobile .work-runs { margin-left: 0; }
+    body.mobile .state-flow { margin-left: 0; }
+    body.mobile .state-track { display: grid; grid-template-columns: 1fr; }
+    body.mobile .state-step { min-width: 0; grid-template-columns: 30px minmax(0,1fr); justify-items: start; align-items: center; text-align: left; }
+    body.mobile .state-step small { grid-column: 2; margin-top: -4px; }
+    body.mobile .state-connector { width: 1px; min-width: 1px; height: 16px; margin: 2px 0 2px 15px; }
+    body.mobile .state-connector.human { background: repeating-linear-gradient(180deg, var(--amber) 0 4px, transparent 4px 8px); }
+    body.mobile .state-connector.human::after { left: 24px; top: 2px; transform: none; }
+    body.mobile .human-request { grid-template-columns: 28px minmax(0,1fr); }
+    body.mobile .human-action { grid-column: 1 / -1; width: 100%; }
+    body.mobile .stage-output-grid { grid-template-columns: 1fr; }
+    body.mobile .work-layout { min-height: 520px; grid-template-columns: 1fr; }
+    body.mobile .work-list { border-right: 0; }
+    body.mobile .work-detail { display: none; padding: 16px; }
+    body.mobile .work-layout.detail-open .work-list { display: none; }
+    body.mobile .work-layout.detail-open .work-detail { display: block; }
+    body.mobile .work-detail-head { flex-wrap: wrap; }
+    body.mobile .work-detail-spacer { display: none; }
+    body.mobile .work-item-nav { margin-left: auto; }
+    body.mobile .detail-tabs { overflow-x: auto; }
+    body.mobile .detail-tab { flex: 0 0 auto; }
+    body.mobile .artifact-layout { height: auto; min-height: 520px; grid-template-columns: 1fr; }
+    body.mobile .artifact-list { border-right: 0; }
+    body.mobile .artifact-detail { display: none; }
+    body.mobile .drawer-scrim { inset: 0; }
+    body.mobile .context-drawer { position: absolute; inset: 0; width: 100%; border-left: 0; }
+    body.mobile .drawer-head { min-height: 58px; }
+
+    @media (max-width: 900px) {
+      body:not(.mobile) .metric-grid { grid-template-columns: 1fr 1fr; }
+      body:not(.mobile) .overview-columns { grid-template-columns: 1fr; }
+      body:not(.mobile) .skills-layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="prototype-bar">
+    <div class="prototype-title">项目主页 · 交互原型 <span>点击项目、标签和 Skill 试用</span></div>
+    <div class="segmented" aria-label="预览设备">
+      <button id="desktopMode" class="active" type="button">桌面</button>
+      <button id="mobileMode" type="button">手机</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <div class="brand-mark">Y</div>
+          <div class="brand-name">NextClaw</div>
+          <div class="brand-version">v0.43</div>
+          <div class="brand-spacer"></div>
+          <button class="icon-button" aria-label="收起侧边栏">◧</button>
+        </div>
+        <button class="new-task" type="button" data-toast="已准备新建任务">＋ 新任务</button>
+        <label class="search">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input placeholder="搜索任务或项目…" />
+        </label>
+        <nav class="nav-stack">
+          <button class="nav-item"><span>◷</span> 定时任务</button>
+          <button class="nav-item"><span>⌘</span> Skills</button>
+          <button class="nav-item"><span>▣</span> Agent 管理</button>
+        </nav>
+
+        <section class="session-section">
+          <div class="session-header">
+            <span>任务</span>
+            <div class="mode-switch">
+              <button type="button">时间</button>
+              <button type="button" class="active">项目</button>
+            </div>
+          </div>
+          <div class="project-list">
+            <div class="project-block" data-project="nextclaw">
+              <div class="project-row selected">
+                <button class="disclosure" type="button" aria-label="展开或收起 NextClaw">
+                  <svg class="icon chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <button class="project-link" type="button" data-open-project>
+                  <svg class="icon folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6.5h6l2 2h10v10H3z"/></svg>
+                  <strong>NextClaw</strong>
+                </button>
+                <div class="project-actions">
+                  <button class="icon-button" type="button" aria-label="在 NextClaw 新建任务" data-toast="将在 NextClaw 中新建任务">＋</button>
+                  <button class="icon-button more-trigger" type="button" aria-label="NextClaw 更多操作">•••</button>
+                </div>
+              </div>
+              <div class="session-children">
+                <button class="session-row">项目 Skill 管理面板设计 <span class="session-meta">现在</span></button>
+                <button class="session-row">整理发布流程与主线同步 <span class="session-meta">2h</span></button>
+                <button class="session-row">修复 Markdown 大纲定位 <span class="session-meta">昨天</span></button>
+              </div>
+            </div>
+
+            <div class="project-block" data-project="personal-os">
+              <div class="project-row">
+                <button class="disclosure" type="button" aria-label="展开或收起 Personal OS">
+                  <svg class="icon chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <button class="project-link" type="button" data-open-project>
+                  <svg class="icon folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6.5h6l2 2h10v10H3z"/></svg>
+                  <strong>Personal OS</strong>
+                </button>
+                <div class="project-actions">
+                  <button class="icon-button" type="button" aria-label="在 Personal OS 新建任务">＋</button>
+                  <button class="icon-button more-trigger" type="button" aria-label="Personal OS 更多操作">•••</button>
+                </div>
+              </div>
+              <div class="session-children">
+                <button class="session-row">每周复盘自动整理 <span class="session-meta">周一</span></button>
+                <button class="session-row">知识库标签清理 <span class="session-meta">8月20日</span></button>
+              </div>
+            </div>
+
+            <div class="project-block collapsed" data-project="research">
+              <div class="project-row">
+                <button class="disclosure" type="button" aria-label="展开或收起 Research">
+                  <svg class="icon chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <button class="project-link" type="button">
+                  <svg class="icon folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6.5h6l2 2h10v10H3z"/></svg>
+                  <strong>Research</strong>
+                </button>
+                <div class="project-actions"><button class="icon-button" type="button">＋</button><button class="icon-button more-trigger" type="button">•••</button></div>
+              </div>
+              <div class="session-children"><button class="session-row">竞品调研</button></div>
+            </div>
+          </div>
+        </section>
+        <div class="sidebar-footer"><span>⚙</span> 设置 <span style="margin-left:auto;color:var(--faint)">纸暖 / 中文</span></div>
+      </aside>
+
+      <section class="main mobile-current" id="mainPanel">
+        <header class="topbar">
+          <button class="icon-button mobile-back" id="mobileBack" aria-label="返回项目列表">‹</button>
+          <div class="crumb">项目&nbsp; / &nbsp;<strong>NextClaw</strong></div>
+          <div class="topbar-spacer"></div>
+          <span class="status-pill"><span class="dot"></span> 本地可用</span>
+          <button class="primary" type="button" data-toast="将在 NextClaw 中新建任务">＋ 新任务</button>
+          <button class="icon-button more-trigger" type="button" aria-label="项目更多操作">•••</button>
+        </header>
+
+        <div class="project-head">
+          <div class="project-title-row">
+            <div class="project-avatar">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6.5h6l2 2h10v10H3z"/></svg>
+            </div>
+            <div class="project-heading">
+              <h1>NextClaw</h1>
+              <div class="project-path">~/Projects/nextclaw</div>
+            </div>
+            <div class="project-head-actions">
+              <button class="secondary" type="button" data-tab-target="files">打开文件</button>
+              <button class="primary" type="button" data-toast="将在 NextClaw 中新建任务">＋ 新任务</button>
+            </div>
+          </div>
+          <nav class="tabs" aria-label="项目页面">
+            <button class="tab active" type="button" data-tab="overview">概览</button>
+            <button class="tab" type="button" data-tab="work">工作 <span class="tab-count">248</span></button>
+            <button class="tab" type="button" data-tab="artifacts">产物 <span class="tab-count">12</span></button>
+            <button class="tab" type="button" data-tab="files">文件</button>
+            <button class="tab" type="button" data-tab="skills">Skills <span class="tab-count">14</span></button>
+            <button class="tab" type="button" data-tab="automations">自动化 <span class="tab-count">3</span></button>
+          </nav>
+        </div>
+
+        <div class="content">
+          <section class="page active" data-page="overview">
+            <div class="focus-strip">
+              <div><div class="focus-kicker">当前重点</div><div class="focus-title">项目治理主页设计</div><div class="focus-meta"><span>设计阶段</span><span class="running">Codex 正在执行</span><span>刚刚更新</span></div></div>
+              <button class="primary" type="button" data-tab-target="work">继续工作</button>
+            </div>
+            <div class="metric-grid">
+              <button class="metric-card" data-tab-target="work">
+                <div class="metric-label"><span>活跃工作</span><span>↗</span></div>
+                <div class="metric-value">18 <small>个</small></div>
+                <div class="metric-note">2 个进行中 · 1 个等待处理</div>
+              </button>
+              <button class="metric-card" data-tab-target="work">
+                <div class="metric-label"><span>活跃执行</span><span>↗</span></div>
+                <div class="metric-value">2 <small>个</small></div>
+                <div class="metric-note">Codex 1 · 自动化 1</div>
+              </button>
+              <button class="metric-card" data-tab-target="artifacts">
+                <div class="metric-label"><span>项目产物</span><span>↗</span></div>
+                <div class="metric-value">12 <small>个</small></div>
+                <div class="metric-note">设计 3 · 计划 2 · 证据 7</div>
+              </button>
+              <button class="metric-card" data-attention-target>
+                <div class="metric-label"><span>待你处理</span><span>↓</span></div>
+                <div class="metric-value">3 <small>个</small></div>
+                <div class="metric-note">1 个范围确认 · 2 个风险</div>
+              </button>
+            </div>
+
+            <div class="overview-columns">
+              <div>
+                <div class="section-title"><div><h2>进行中的工作</h2><p>目标、阶段与最近一次真实执行。</p></div><button class="text-link" data-tab-target="work">查看全部</button></div>
+                <div class="panel task-list">
+                  <div class="task-item"><div class="task-icon">✦</div><div class="item-main"><strong>项目治理主页设计</strong><span>设计 · Codex 执行中</span></div><div class="item-time">现在</div></div>
+                  <div class="task-item"><div class="task-icon">◷</div><div class="item-main"><strong>产品发布叙事与配图</strong><span>内容审阅 · Creative Agent 执行中</span></div><div class="item-time">12 分钟</div></div>
+                  <div class="task-item"><div class="task-icon">⌁</div><div class="item-main"><strong>Markdown 大纲定位修复</strong><span>Review · 等待确认</span></div><div class="item-time">昨天</div></div>
+                </div>
+              </div>
+              <div id="attentionPanel">
+                <div class="section-title"><div><h2>需要留意</h2><p>只列出可直接确认的项目事实。</p></div></div>
+                <div class="panel attention-list">
+                  <div class="attention-item"><div class="task-icon attention-icon">?</div><div class="item-main"><strong>设计范围等待确认</strong><span>是否将“产物”纳入项目主页首版</span></div><button class="text-link" data-tab-target="work">处理</button></div>
+                  <div class="attention-item"><div class="task-icon attention-icon">!</div><div class="item-main"><strong>1 个 Skill 暂不可用</strong><span>缺少引用的说明文件</span></div><button class="text-link" data-tab-target="skills">查看</button></div>
+                  <div class="attention-item"><div class="task-icon attention-icon">!</div><div class="item-main"><strong>一次验证尚未闭合</strong><span>移动端入口缺少触控验证</span></div><button class="text-link" data-tab-target="artifacts">证据</button></div>
+                </div>
+              </div>
+            </div>
+            <div class="recent-artifacts">
+              <div class="section-title"><div><h2>最近产物</h2><p>只收录进入工作链路的决策、结果与证据。</p></div><button class="text-link" data-tab-target="artifacts">查看全部</button></div>
+              <div class="panel">
+                <div class="artifact-row"><div class="artifact-icon">设计</div><div class="item-main"><strong>项目治理主页设计</strong><span>关联：项目治理主页设计 · Codex</span></div><div class="artifact-role">刚刚更新</div></div>
+                <div class="artifact-row"><div class="artifact-icon">原型</div><div class="item-main"><strong>项目主页交互原型</strong><span>关联：项目治理主页设计 · HTML</span></div><div class="artifact-role">刚刚更新</div></div>
+                <div class="artifact-row"><div class="artifact-icon">证据</div><div class="item-main"><strong>移动端入口验证</strong><span>关联：项目治理主页设计 · 待补充</span></div><div class="artifact-role">未闭合</div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" data-page="work">
+            <div class="work-toolbar">
+              <div class="work-toolbar-left"><div class="segmented view-toggle" aria-label="工作视图"><button class="active" type="button" data-work-view="focus">☷ 聚焦</button><button type="button" data-work-view="table">▤ 表格</button></div><div class="filter-chips"><button class="filter-chip active">全部 248</button><button class="filter-chip">进行中 2</button><button class="filter-chip">待处理 1</button><button class="filter-chip">已完成</button></div></div>
+              <button class="primary" id="openCreateWork" type="button">＋ 新工作</button>
+            </div>
+            <div class="work-layout" id="workLayout">
+              <div class="work-list">
+                <div class="work-list-head">248 个工作项 · 活跃优先 · 分页加载</div>
+                <button class="work-list-item active" type="button" data-open-work-detail><div><strong>项目治理主页设计</strong><span>方案设计 · Codex 执行中</span><div class="work-list-flags"><span class="work-list-flag">2 个产物</span><span class="work-list-flag attention">需要你确认</span></div></div><small>›</small></button>
+                <button class="work-list-item" type="button" data-toast="此原型重点展示第一个工作项"><div><strong>产品发布叙事与配图</strong><span>内容审阅 · Creative Agent</span><div class="work-list-flags"><span class="work-list-flag">3 个产物</span></div></div><small>›</small></button>
+                <button class="work-list-item" type="button" data-toast="此原型重点展示第一个工作项"><div><strong>Markdown 大纲定位修复</strong><span>Review · 等待确认</span><div class="work-list-flags"><span class="work-list-flag attention">1 项待处理</span></div></div><small>›</small></button>
+              </div>
+              <article class="work-detail">
+                <button class="secondary detail-back hidden" id="workBack" type="button">‹ 返回工作列表</button>
+                <div class="work-item-detail" id="workItemDetail">
+                  <div class="work-detail-head"><div><div class="work-type-line"><span class="work-type">产品设计</span><span>WORK-018 · 来源类型</span></div><h2>项目治理主页设计</h2><p>让用户从项目层面掌握 AI 工作、产物、风险与约束。</p></div><div class="work-detail-spacer"></div><div class="work-item-nav"><button class="icon-button" type="button" aria-label="上一个工作项" data-toast="已切换到上一个工作项（原型）">‹</button><button class="icon-button" type="button" aria-label="下一个工作项" data-toast="已切换到下一个工作项（原型）">›</button></div><span class="badge">进行中</span></div>
+                  <nav class="detail-tabs" aria-label="工作详情"><button class="detail-tab active" type="button" data-detail-tab="summary">概览</button><button class="detail-tab" type="button" data-detail-tab="flow">流程</button><button class="detail-tab" type="button" data-detail-tab="outputs">产物 2</button><button class="detail-tab" type="button" data-detail-tab="activity">活动</button></nav>
+                  <section class="detail-panel active" data-detail-panel="summary">
+                    <details class="description-card" open><summary>描述</summary><p>为 NextClaw 增加项目级治理主页，让用户不必阅读全部代码或会话，也能理解 AI 当前在做什么、产生了什么，以及哪里需要自己介入。</p><p>首版保持只读和渐进披露，不重新实现完整任务管理平台，也不复制来源文档。</p></details>
+                    <div class="work-runs"><div><strong>最近执行 · Codex</strong>方案设计 · 刚刚更新 HTML 原型</div><span class="run-live">● 执行中</span></div>
+                    <div class="human-request"><div class="human-request-icon">人</div><div><strong>需要你确认设计范围</strong><span>阻塞下一步 · 确认后才能进入开发实现</span></div><button class="human-action" id="openDecision" type="button">查看并决定</button></div>
+                  </section>
+                  <section class="detail-panel" data-detail-panel="flow">
+                    <div class="state-flow">
+                      <div class="state-flow-head"><div><strong>状态流转</strong><span>当前工作采用：NextClaw 开发生命周期 v1</span></div><div class="state-summary">宏观状态：进行中</div></div>
+                      <div class="state-track" aria-label="任务理解已完成，当前处于方案设计，实现计划已决定跳过，后续为开发实现、验证审查和交付">
+                        <button class="state-step done" type="button" data-stage="understanding"><span class="state-node">✓</span><span>任务理解</span><small>1 项结论</small></button><div class="state-connector done"></div>
+                        <button class="state-step current selected" type="button" data-stage="design"><span class="state-node">2</span><span>方案设计</span><small>2 个产物</small></button><div class="state-connector"></div>
+                        <button class="state-step skipped" type="button" data-stage="plan"><span class="state-node">—</span><span>实现计划</span><small>已跳过</small></button><div class="state-connector human"></div>
+                        <button class="state-step" type="button" data-stage="implementation"><span class="state-node">3</span><span>开发实现</span><small>未进入</small></button><div class="state-connector"></div>
+                        <button class="state-step" type="button" data-stage="validation"><span class="state-node">4</span><span>验证审查</span><small>未进入</small></button><div class="state-connector"></div>
+                        <button class="state-step" type="button" data-stage="delivery"><span class="state-node">5</span><span>交付</span><small>未进入</small></button>
+                      </div>
+                      <div class="state-branch"><span>流程允许分支与回退，不要求线性推进</span><strong>验证未通过 ↶ 返回实现</strong></div>
+                      <button class="stage-hint" type="button" data-open-stage="design">选择阶段查看交付物、决策证据或跳过原因　→</button>
+                    </div>
+                  </section>
+                  <section class="detail-panel" data-detail-panel="outputs"><div class="detail-artifact-list"><div class="artifact-row"><div class="artifact-icon">设计</div><div class="item-main"><strong>项目治理主页设计</strong><span>必需 · 持续完善</span></div><span>›</span></div><div class="artifact-row"><div class="artifact-icon">原型</div><div class="item-main"><strong>HTML 交互原型</strong><span>按需 · 已更新</span></div><span>›</span></div></div></section>
+                  <section class="detail-panel" data-detail-panel="activity"><div class="detail-activity"><div class="task-item"><div class="task-icon">✦</div><div class="item-main"><strong>方案设计开始</strong><span>Codex · 当前执行</span></div><div class="item-time">现在</div></div><div class="task-item"><div class="task-icon">✓</div><div class="item-main"><strong>任务理解完成</strong><span>形成目标与范围</span></div><div class="item-time">今天</div></div></div></section>
+                </div>
+              </article>
+            </div>
+            <div class="work-table" id="workTable">
+              <div class="work-table-scroll"><table><thead><tr><th>工作项</th><th>状态</th><th>当前阶段 / 执行</th><th>需要人处理</th><th>最近更新</th></tr></thead><tbody><tr data-table-work><td>项目治理主页设计</td><td><span class="badge">进行中</span></td><td>方案设计 · Codex</td><td><span class="badge warn">范围确认</span></td><td>刚刚</td></tr><tr data-toast="此原型重点展示第一个工作项"><td>产品发布叙事与配图</td><td><span class="badge">进行中</span></td><td>内容审阅 · Creative Agent</td><td>—</td><td>12 分钟前</td></tr><tr data-toast="此原型重点展示第一个工作项"><td>Markdown 大纲定位修复</td><td><span class="badge warn">待处理</span></td><td>Review · Native</td><td><span class="badge warn">结果确认</span></td><td>昨天</td></tr><tr data-toast="此原型重点展示第一个工作项"><td>竞品方向研究</td><td>已完成</td><td>结论整理 · Research Agent</td><td>—</td><td>8 月 22 日</td></tr></tbody></table></div><div class="work-table-footer"><span>每页 50 项</span><span>·</span><span>第 1–50 项，共 248 项</span><div class="work-table-spacer"></div><button class="secondary" type="button" disabled>上一页</button><button class="secondary" type="button" data-toast="已请求下一页（原型）">下一页</button></div>
+            </div>
+          </section>
+
+          <section class="page" data-page="artifacts">
+            <div class="artifact-toolbar">
+              <div class="filter-chips"><button class="filter-chip active">全部 12</button><button class="filter-chip">设计 3</button><button class="filter-chip">计划 2</button><button class="filter-chip">证据 7</button></div>
+              <span class="read-only" style="margin-top:0">▣ 只读索引</span>
+            </div>
+            <div class="artifact-layout">
+              <div class="artifact-list">
+                <div class="artifact-row" data-artifact="design"><div class="artifact-icon">设计</div><div class="item-main"><strong>项目治理主页设计</strong><span>docs/designs · 刚刚更新</span></div><span class="badge">有效</span></div>
+                <div class="artifact-row" data-artifact="prototype"><div class="artifact-icon">原型</div><div class="item-main"><strong>项目主页交互原型</strong><span>docs/designs · 刚刚更新</span></div><span class="badge">有效</span></div>
+                <div class="artifact-row" data-artifact="plan"><div class="artifact-icon">计划</div><div class="item-main"><strong>项目主页实现计划</strong><span>docs/plans · 尚未开始</span></div><span class="badge warn">待创建</span></div>
+                <div class="artifact-row" data-artifact="evidence"><div class="artifact-icon">证据</div><div class="item-main"><strong>移动端入口验证</strong><span>验证记录 · 尚未闭合</span></div><span class="badge warn">待补充</span></div>
+              </div>
+              <article class="artifact-detail"><div class="detail-kicker">设计 · 有效</div><h2>项目治理主页设计</h2><p class="detail-description">定义项目入口、桌面与手机交互、六个通用治理对象，以及首版只读投影的数据边界。</p><div class="detail-meta"><div class="meta-box"><label>角色</label><span>方案设计</span></div><div class="meta-box"><label>状态</label><span>持续完善</span></div><div class="meta-box" style="grid-column:1/-1"><label>项目相对位置</label><span>docs/designs/2026-08-25-project-governance-hub.design.md</span></div></div><div class="relationship-box"><label>工作链路</label><div class="relationship-line">工作项　<strong>项目治理主页设计</strong></div><div class="relationship-line">产生于　<strong>Codex · 当前设计执行</strong></div><div class="relationship-line">相关产物　<strong>HTML 交互原型</strong></div></div><div class="read-only">↗ 打开来源文件 · 不在这里复制编辑</div></article>
+            </div>
+          </section>
+
+          <section class="page" data-page="skills">
+            <div class="skills-toolbar">
+              <label class="search"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="skillSearch" placeholder="搜索项目 Skill…" /></label>
+              <select class="select" id="skillFilter" aria-label="筛选 Skill"><option value="all">全部状态</option><option value="available">可用</option><option value="attention">需检查</option></select>
+            </div>
+            <div class="skills-layout" id="skillsLayout">
+              <div class="skill-list" id="skillList">
+                <div class="skill-list-head">14 个项目 Skills · .agents/skills</div>
+                <button class="skill-item" data-name="development-lifecycle" data-state="available">
+                  <div class="skill-glyph">DL</div><div class="skill-copy"><strong>development-lifecycle</strong><span>按风险编排任务理解、设计、实现、验证与交付。</span></div><span class="badge">可用</span>
+                </button>
+                <button class="skill-item" data-name="frontend-interaction-quality" data-state="available">
+                  <div class="skill-glyph">UI</div><div class="skill-copy"><strong>frontend-interaction-quality</strong><span>统一前端交互语义、状态、键盘与移动端可达性。</span></div><span class="badge">可用</span>
+                </button>
+                <button class="skill-item" data-name="project-knowledge-governance" data-state="available">
+                  <div class="skill-glyph">PK</div><div class="skill-copy"><strong>project-knowledge-governance</strong><span>整理项目想法、设计、计划与迭代记录。</span></div><span class="badge">可用</span>
+                </button>
+                <button class="skill-item" data-name="nextclaw-release-notes" data-state="available">
+                  <div class="skill-glyph">RN</div><div class="skill-copy"><strong>nextclaw-release-notes</strong><span>生成更新说明、变更汇总和发布叙事。</span></div><span class="badge">可用</span>
+                </button>
+                <button class="skill-item" data-name="legacy-project-audit" data-state="attention">
+                  <div class="skill-glyph">LA</div><div class="skill-copy"><strong>legacy-project-audit</strong><span>扫描历史项目结构；一个引用文件当前不存在。</span></div><span class="badge warn">需检查</span>
+                </button>
+              </div>
+              <article class="skill-detail" id="skillDetail">
+                <button class="secondary detail-back hidden" id="skillBack" type="button">‹ 返回 Skills</button>
+                <div class="detail-kicker">项目 Skill · 可用</div>
+                <h2 class="detail-title">development-lifecycle</h2>
+                <p class="detail-description">按风险编排 Task Understanding、Design、Implementation、Validation、Review、Delivery 与 Retrospective，让一次开发任务沿着同一条主链路完成。</p>
+                <div class="detail-meta">
+                  <div class="meta-box"><label>来源</label><span>项目</span></div>
+                  <div class="meta-box"><label>状态</label><span>可用于当前项目</span></div>
+                  <div class="meta-box" style="grid-column:1/-1"><label>位置</label><span>.agents/skills/development-lifecycle/SKILL.md</span></div>
+                </div>
+                <div class="detail-section"><h3>什么时候使用</h3><p>普通源码、脚本、测试或运行链路任务开始时使用，并按当前阶段渐进加载对应 owner。</p></div>
+                <div class="detail-section"><h3>包含内容</h3><div class="code-box">SKILL.md<br>references/<br>&nbsp;&nbsp;task-understanding.md<br>&nbsp;&nbsp;validation-levels.md</div></div>
+                <div class="read-only">▣ 当前为只读预览 · 编辑能力以后再加入</div>
+              </article>
+            </div>
+          </section>
+
+          <section class="page" data-page="files">
+            <div class="files-layout">
+              <div class="tree">
+                <div class="tree-row">⌄ 📁 .agents</div>
+                <div class="tree-row tree-indent">⌄ 📁 skills</div>
+                <div class="tree-row tree-indent active">📄 development-lifecycle</div>
+                <div class="tree-row">› 📁 apps</div><div class="tree-row">› 📁 docs</div><div class="tree-row">› 📁 packages</div><div class="tree-row">› 📁 scripts</div><div class="tree-row">📄 AGENTS.md</div><div class="tree-row">📄 package.json</div>
+              </div>
+              <article class="file-preview"><div class="detail-kicker">SKILL.md</div><h2>Development Lifecycle</h2><p>通用开发生命周期的默认流程 owner。根据任务风险逐步进入任务理解、设计、实现、验证、审查与交付阶段。</p><h3>渐进加载</h3><ul><li>当前阶段只加载一个 owner。</li><li>专项 Skill 只在真实触达时进入。</li><li>验证结果覆盖到实际提供的证据为止。</li></ul></article>
+            </div>
+          </section>
+
+          <section class="page" data-page="automations"><div class="panel"><div class="panel-head"><strong>项目自动化</strong><span class="badge">3 个正常</span></div><div class="task-list"><div class="task-item"><div class="task-icon">◷</div><div class="item-main"><strong>每日项目状态摘要</strong><span>每天 09:00 · 下次运行明天</span></div><div class="item-time">已启用</div></div><div class="task-item"><div class="task-icon">◷</div><div class="item-main"><strong>每周维护性检查</strong><span>每周一 10:00</span></div><div class="item-time">已启用</div></div></div></div></section>
+        </div>
+        <button class="drawer-scrim" id="drawerScrim" type="button" aria-label="关闭详情"></button>
+        <aside class="context-drawer" id="contextDrawer" aria-label="详情抽屉">
+          <header class="drawer-head"><button class="icon-button" id="drawerClose" type="button" aria-label="关闭详情">‹</button><div class="drawer-head-copy"><strong id="drawerTitle">详情</strong><span id="drawerMeta">只读预览</span></div><button class="secondary" id="drawerSourceAction" type="button" data-toast="已准备打开来源文件">打开来源</button></header>
+          <div class="drawer-body" id="drawerBody"></div>
+        </aside>
+      </section>
+
+      <aside class="utility-rail">
+        <button class="icon-button active" aria-label="项目">◇</button><button class="icon-button" aria-label="文件">▤</button><button class="icon-button" aria-label="文档">▣</button><button class="icon-button" aria-label="添加">＋</button><div class="utility-spacer"></div><button class="icon-button" aria-label="GitHub">⌁</button><button class="icon-button" aria-label="终端">›_</button>
+      </aside>
+    </div>
+  </main>
+
+  <div class="menu hidden" id="moreMenu">
+    <button type="button" data-open-project>打开项目主页</button>
+    <button type="button" data-tab-target="work">查看工作状态</button>
+    <button type="button" data-tab-target="artifacts">浏览项目产物</button>
+    <button type="button" data-tab-target="files">浏览项目文件</button>
+    <button type="button" data-tab-target="skills">查看项目 Skills</button>
+    <button type="button" data-toast="已复制项目路径">复制项目路径</button>
+  </div>
+  <div class="toast" id="toast"></div>
+  <div class="modal-scrim" id="decisionModal">
+    <div class="decision-modal" role="dialog" aria-modal="true" aria-labelledby="decisionTitle"><h2 id="decisionTitle">确认首版设计范围</h2><p>这个决定会解除“方案设计 → 开发实现”的阻塞。原型不会直接改变真实项目状态。</p><div class="decision-options"><button class="decision-option" type="button" data-toast="已记录：包含状态流转与阶段产物"><strong>纳入首版</strong><span>实现状态流转、人工介入和阶段产物的只读投影。</span></button><button class="decision-option" type="button" data-toast="已记录：首版只保留基础项目主页"><strong>推迟治理详情</strong><span>首版只完成项目入口、概览、文件和 Skills。</span></button></div><div class="decision-actions"><button class="secondary" id="decisionCancel" type="button">暂不决定</button></div></div>
+  </div>
+  <div class="modal-scrim" id="createWorkModal">
+    <div class="decision-modal" role="dialog" aria-modal="true" aria-labelledby="createWorkTitle"><h2 id="createWorkTitle">新建工作</h2><p>先把目标说清楚即可。其它治理信息由项目流程在需要时逐步补充。</p><div class="create-field"><label for="workTitleInput">标题 · 必填</label><input class="create-input" id="workTitleInput" required aria-required="true" placeholder="要完成什么？" /></div><div class="create-field"><label for="workDescriptionInput">描述 · 可稍后补充</label><textarea class="create-textarea" id="workDescriptionInput" placeholder="背景、期望结果、边界或验收条件…"></textarea></div><div class="create-properties"><span class="create-property">项目　NextClaw</span><span class="create-property">初始状态　待整理</span></div><div class="decision-actions"><button class="secondary" id="createWorkCancel" type="button">取消</button><button class="secondary" type="button" data-toast="已保存到待整理">保存待整理</button><button class="primary" type="button" data-toast="描述充分性将在交给 AI 前确认">创建并交给 AI</button></div></div>
+  </div>
+
+  <script>
+    const body = document.body;
+    const desktopMode = document.getElementById('desktopMode');
+    const mobileMode = document.getElementById('mobileMode');
+    const sidebar = document.getElementById('sidebar');
+    const mainPanel = document.getElementById('mainPanel');
+    const menu = document.getElementById('moreMenu');
+    const toast = document.getElementById('toast');
+    let toastTimer;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 1700);
+    }
+
+    function setDevice(mode) {
+      body.classList.toggle('mobile', mode === 'mobile');
+      desktopMode.classList.toggle('active', mode === 'desktop');
+      mobileMode.classList.toggle('active', mode === 'mobile');
+      if (mode === 'mobile') {
+        sidebar.classList.remove('mobile-away');
+        mainPanel.classList.remove('mobile-current');
+      } else {
+        sidebar.classList.remove('mobile-away');
+        mainPanel.classList.add('mobile-current');
+      }
+      closeDrawer();
+      menu.classList.add('hidden');
+    }
+
+    function openProject() {
+      if (body.classList.contains('mobile')) {
+        sidebar.classList.add('mobile-away');
+        mainPanel.classList.add('mobile-current');
+      }
+      showToast('已打开 NextClaw 项目主页');
+      menu.classList.add('hidden');
+    }
+
+    function openTab(name) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('active', tab.dataset.tab === name));
+      document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.dataset.page === name));
+      document.querySelector('.content').scrollTop = 0;
+      closeDrawer();
+      menu.classList.add('hidden');
+    }
+
+    desktopMode.addEventListener('click', () => setDevice('desktop'));
+    mobileMode.addEventListener('click', () => setDevice('mobile'));
+    document.getElementById('mobileBack').addEventListener('click', () => {
+      sidebar.classList.remove('mobile-away');
+      mainPanel.classList.remove('mobile-current');
+    });
+    document.querySelectorAll('.disclosure').forEach(button => button.addEventListener('click', () => button.closest('.project-block').classList.toggle('collapsed')));
+    document.querySelectorAll('[data-open-project]').forEach(button => button.addEventListener('click', openProject));
+    document.querySelectorAll('.tab').forEach(button => button.addEventListener('click', () => openTab(button.dataset.tab)));
+    document.querySelectorAll('[data-tab-target]').forEach(button => button.addEventListener('click', () => { openProject(); openTab(button.dataset.tabTarget); }));
+    document.querySelectorAll('[data-attention-target]').forEach(button => button.addEventListener('click', () => document.getElementById('attentionPanel').scrollIntoView({ behavior: 'smooth', block: 'center' })));
+    document.querySelectorAll('[data-toast]').forEach(button => button.addEventListener('click', () => showToast(button.dataset.toast)));
+    document.querySelectorAll('.more-trigger').forEach(button => button.addEventListener('click', event => {
+      event.stopPropagation();
+      const rect = button.getBoundingClientRect();
+      menu.style.left = `${Math.min(rect.left, window.innerWidth - 190)}px`;
+      menu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 170)}px`;
+      menu.classList.toggle('hidden');
+    }));
+    document.addEventListener('click', event => { if (!menu.contains(event.target) && !event.target.closest('.more-trigger')) menu.classList.add('hidden'); });
+
+    const drawer = document.getElementById('contextDrawer');
+    const drawerTitle = document.getElementById('drawerTitle');
+    const drawerMeta = document.getElementById('drawerMeta');
+    const drawerBody = document.getElementById('drawerBody');
+    const drawerSourceAction = document.getElementById('drawerSourceAction');
+    const workItemDetail = document.getElementById('workItemDetail');
+    const workDetailHome = workItemDetail.parentElement;
+    let workDetailInDrawer = false;
+    function restoreWorkDetail() {
+      if (!workDetailInDrawer) return;
+      workDetailHome.appendChild(workItemDetail);
+      workItemDetail.classList.remove('in-drawer');
+      workDetailInDrawer = false;
+    }
+    function openDrawer(title, meta, content) {
+      restoreWorkDetail();
+      drawerTitle.textContent = title;
+      drawerMeta.textContent = meta;
+      drawerSourceAction.classList.remove('hidden');
+      drawerBody.innerHTML = content;
+      mainPanel.classList.add('drawer-open');
+      drawerBody.scrollTop = 0;
+    }
+    function openWorkDrawer() {
+      restoreWorkDetail();
+      drawerTitle.textContent = '工作详情';
+      drawerMeta.textContent = '与聚焦视图共用同一内容';
+      drawerSourceAction.classList.add('hidden');
+      drawerBody.innerHTML = '';
+      drawerBody.appendChild(workItemDetail);
+      workItemDetail.classList.add('in-drawer');
+      workDetailInDrawer = true;
+      mainPanel.classList.add('drawer-open');
+      drawerBody.scrollTop = 0;
+    }
+    function closeDrawer() {
+      mainPanel.classList.remove('drawer-open');
+      restoreWorkDetail();
+    }
+    document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+    document.getElementById('drawerScrim').addEventListener('click', closeDrawer);
+
+    const stageDetails = {
+      understanding: { title: '任务理解', meta: '已完成 · 1 项结论', expected: '目标与成功条件（必需）<br>无固定文档要求', actual: '任务理解结论<br>影响范围确认', evidence: '用户任务、现状调查和风险等级。' },
+      design: { title: '方案设计', meta: '进行中 · 2 个产物', expected: '设计方案（必需）<br>交互原型（按需）', actual: '项目治理主页设计<br>HTML 交互原型', evidence: '通用治理对象、状态投影边界、桌面与手机渲染记录。', preview: true },
+      plan: { title: '实现计划', meta: '已跳过 · 条件阶段', expected: '大型或跨模块任务需要计划<br>本工作项为条件交付', actual: '无需产物', evidence: '跳过原因：当前仍处于交互原型设计，不进入产品实现。决定来源：项目流程规则。' },
+      implementation: { title: '开发实现', meta: '尚未进入', expected: '代码变更或配置结果（按任务类型）<br>不要求额外说明文档', actual: '尚无产物', evidence: '进入条件：设计范围确认，且用户决定进入产品实现。' },
+      validation: { title: '验证审查', meta: '尚未进入', expected: '验证证据（必需）<br>Review 结论（按风险）', actual: '尚无产物', evidence: '产物可以是测试结果、截图或审查记录，不限定为文档。' },
+      delivery: { title: '交付', meta: '尚未进入', expected: '交付结果（必需）<br>发布记录（仅在适用时）', actual: '尚无产物', evidence: '未授权提交或发布时，交付结果只包含产物交接。' }
+    };
+    function openStage(stage) {
+      const detail = stageDetails[stage];
+      document.querySelectorAll('[data-stage]').forEach(button => button.classList.toggle('selected', button.dataset.stage === stage));
+      const artifacts = detail.preview ? `<div class="drawer-section"><h3>阶段交付物</h3><div class="drawer-artifact"><div class="artifact-icon">设计</div><div class="drawer-artifact-main"><strong>项目治理主页设计</strong><span>必需 · 持续完善</span></div><span>›</span></div><div class="drawer-artifact"><div class="artifact-icon">原型</div><div class="drawer-artifact-main"><strong>HTML 交互原型</strong><span>按需 · 已更新</span></div><span>›</span></div></div><div class="drawer-section"><h3>文档预览</h3><div class="document-preview"><h4>项目治理主页设计</h4><p>项目主页通过渐进披露组织信息：一级页面负责概览和选择，抽屉承载实体详情，长内容保留来源引用。</p><ul><li>通用治理对象与来源工作流解耦。</li><li>人工介入挂在状态或转移边上。</li><li>阶段产物按需下钻，不在主页面平铺。</li></ul></div></div>` : '';
+      openDrawer(detail.title, detail.meta, `<div class="drawer-section"><h3>阶段要求</h3><div class="stage-output-grid"><div class="stage-output"><label>预期交付</label><div>${detail.expected}</div></div><div class="stage-output"><label>已产生</label><div>${detail.actual}</div></div></div></div><div class="drawer-section"><h3>决策与证据</h3><p>${detail.evidence}</p></div>${artifacts}`);
+    }
+    document.querySelectorAll('[data-stage]').forEach(button => button.addEventListener('click', () => openStage(button.dataset.stage)));
+    document.querySelectorAll('[data-open-stage]').forEach(button => button.addEventListener('click', () => openStage(button.dataset.openStage)));
+
+    const workLayout = document.getElementById('workLayout');
+    const workTable = document.getElementById('workTable');
+    document.querySelector('[data-open-work-detail]').addEventListener('click', () => workLayout.classList.add('detail-open'));
+    document.getElementById('workBack').addEventListener('click', () => workLayout.classList.remove('detail-open'));
+    document.querySelectorAll('[data-work-view]').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('[data-work-view]').forEach(other => other.classList.toggle('active', other === button));
+      const tableMode = button.dataset.workView === 'table';
+      workLayout.classList.toggle('view-hidden', tableMode);
+      workTable.classList.toggle('active', tableMode);
+    }));
+    document.querySelectorAll('[data-table-work]').forEach(row => row.addEventListener('click', openWorkDrawer));
+    document.querySelectorAll('[data-detail-tab]').forEach(button => button.addEventListener('click', () => {
+      workItemDetail.querySelectorAll('[data-detail-tab]').forEach(other => other.classList.toggle('active', other === button));
+      workItemDetail.querySelectorAll('[data-detail-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.detailPanel === button.dataset.detailTab));
+    }));
+
+    document.querySelectorAll('.skill-item').forEach(item => item.addEventListener('click', () => {
+      document.querySelectorAll('.skill-item').forEach(other => other.classList.toggle('active', other === item));
+      const name = item.dataset.name;
+      const description = item.querySelector('.skill-copy span').textContent;
+      const state = item.dataset.state === 'available' ? '可用' : '需检查';
+      openDrawer(name, `项目 Skill · ${state}`, `<div class="drawer-section"><h3>说明</h3><p>${description}</p></div><div class="detail-meta"><div class="meta-box"><label>来源</label><span>项目</span></div><div class="meta-box"><label>状态</label><span>${state}</span></div><div class="meta-box" style="grid-column:1/-1"><label>项目相对位置</label><span>.agents/skills/${name}/SKILL.md</span></div></div><div class="drawer-section"><h3>内容结构</h3><div class="code-box">SKILL.md<br>references/<br>scripts/</div></div><div class="read-only">▣ 只读预览</div>`);
+    }));
+    const artifactDetails = {
+      design: ['项目治理主页设计', '设计 · 有效', 'docs/designs/2026-08-25-project-governance-hub.design.md'],
+      prototype: ['项目主页交互原型', '原型 · 有效', 'docs/designs/2026-08-25-project-governance-hub.prototype.html'],
+      plan: ['项目主页实现计划', '计划 · 待创建', 'docs/plans'],
+      evidence: ['移动端入口验证', '证据 · 待补充', '验证记录']
+    };
+    document.querySelectorAll('[data-artifact]').forEach(item => item.addEventListener('click', () => {
+      document.querySelectorAll('[data-artifact]').forEach(other => other.classList.toggle('active', other === item));
+      const [title, meta, path] = artifactDetails[item.dataset.artifact];
+      openDrawer(title, meta, `<div class="drawer-section"><h3>来源</h3><div class="meta-box"><label>项目相对位置</label><span>${path}</span></div></div><div class="drawer-section"><h3>关联工作</h3><p>项目治理主页设计 · Codex 当前执行</p></div><div class="drawer-section"><h3>内容预览</h3><div class="document-preview"><h4>${title}</h4><p>这里仅显示适合快速判断的摘要。完整内容保留在来源文件中，不在项目主页复制第二份事实。</p></div></div>`);
+    }));
+
+    const decisionModal = document.getElementById('decisionModal');
+    document.getElementById('openDecision').addEventListener('click', () => decisionModal.classList.add('open'));
+    document.getElementById('decisionCancel').addEventListener('click', () => decisionModal.classList.remove('open'));
+    decisionModal.addEventListener('click', event => { if (event.target === decisionModal) decisionModal.classList.remove('open'); });
+    decisionModal.querySelectorAll('.decision-option').forEach(option => option.addEventListener('click', () => decisionModal.classList.remove('open')));
+    const createWorkModal = document.getElementById('createWorkModal');
+    document.getElementById('openCreateWork').addEventListener('click', () => createWorkModal.classList.add('open'));
+    document.getElementById('createWorkCancel').addEventListener('click', () => createWorkModal.classList.remove('open'));
+    createWorkModal.addEventListener('click', event => { if (event.target === createWorkModal) createWorkModal.classList.remove('open'); });
+    createWorkModal.querySelectorAll('[data-toast]').forEach(button => button.addEventListener('click', () => createWorkModal.classList.remove('open')));
+    function filterSkills() {
+      const query = document.getElementById('skillSearch').value.trim().toLowerCase();
+      const state = document.getElementById('skillFilter').value;
+      document.querySelectorAll('.skill-item').forEach(item => {
+        item.classList.toggle('hidden', !(item.dataset.name.includes(query) && (state === 'all' || item.dataset.state === state)));
+      });
+    }
+    document.getElementById('skillSearch').addEventListener('input', filterSkills);
+    document.getElementById('skillFilter').addEventListener('change', filterSkills);
+    const previewParams = new URLSearchParams(window.location.search);
+    if (previewParams.get('device') === 'mobile') setDevice('mobile');
+    if (previewParams.get('open') === 'project') openProject();
+    if (previewParams.has('tab')) openTab(previewParams.get('tab'));
+  </script>
+</body>
+</html>
