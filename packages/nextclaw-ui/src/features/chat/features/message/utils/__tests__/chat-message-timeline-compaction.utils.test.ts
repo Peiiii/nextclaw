@@ -169,7 +169,7 @@ describe("mid-run compaction timeline projection", () => {
     ]);
   });
 
-  it("does not silently clamp an invalid canonical part boundary", () => {
+  it("does not render a temporarily unavailable canonical part boundary as a standalone marker", () => {
     const invalidCompaction = createCompactionMessage({
       assistantId: visibleMessage.id,
       coveredPartCount: 2,
@@ -183,7 +183,7 @@ describe("mid-run compaction timeline projection", () => {
     expect(buildChatMessageTimelineItems({
       rawMessages: [visibleMessage, invalidCompaction],
       messages: [{ id: visibleMessage.id } as never],
-    }).map((item) => item.kind)).toEqual(["message", "compaction"]);
+    }).map((item) => item.kind)).toEqual(["message"]);
   });
 
   it("offsets a continued assistant compaction within its canonical message", () => {

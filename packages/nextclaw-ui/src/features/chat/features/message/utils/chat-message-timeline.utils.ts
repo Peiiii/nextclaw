@@ -252,12 +252,12 @@ function projectVisibleChatMessageState(
       .forEach((placement) => {
         if (
           !Number.isSafeInteger(placement.boundaryIndex) ||
-          placement.boundaryIndex < 0 ||
-          placement.boundaryIndex > message.parts.length
+          placement.boundaryIndex < 0
         ) {
           inlineCompactionMessageIds.delete(placement.serviceMessageId);
           return;
         }
+        if (placement.boundaryIndex > message.parts.length) return;
         parts.splice(placement.boundaryIndex + insertedCount, 0, {
           type: "extension",
           extensionType: CONTEXT_COMPACTION_PART_EXTENSION_TYPE,
