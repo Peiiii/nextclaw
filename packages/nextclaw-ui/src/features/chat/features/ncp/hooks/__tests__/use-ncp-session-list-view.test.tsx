@@ -9,12 +9,20 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-queries", () => ({
-  useNcpSessions: () => ({
+  useInfiniteNcpSessions: () => ({
     data: {
-      sessions: mocks.sessions,
-      total: mocks.sessions.length,
+      pages: [{
+        sessions: mocks.sessions,
+        total: mocks.sessions.length,
+        page: 1,
+        pageSize: 100,
+        hasMore: false,
+      }],
     },
     isLoading: false,
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
   }),
 }));
 

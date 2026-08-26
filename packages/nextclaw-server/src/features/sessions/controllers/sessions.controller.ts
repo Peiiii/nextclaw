@@ -27,6 +27,8 @@ import type { ObservationRef } from "@nextclaw/kernel";
 
 const DEFAULT_SESSION_MESSAGE_PAGE_SIZE = 40;
 const MAX_SESSION_MESSAGE_PAGE_SIZE = 200;
+const DEFAULT_SESSION_LIST_PAGE_SIZE = 100;
+const MAX_SESSION_LIST_PAGE_SIZE = 200;
 
 function sessionProjectError(error: { code: string; message: string }): {
   code: string;
@@ -126,13 +128,37 @@ export class NcpSessionRoutesController {
 
   readonly listSessions = async (c: Context) => {
     const sessionManager = this.options.kernel.sessionManager;
-    const sessions = await sessionManager.listSessions({
-      limit: readPositiveInt(c.req.query("limit")),
-      peerId: c.req.query("peerId")
+    const page = readPositiveInt(c.req.query("page")) ?? 1;
+    const pageSize = Math.min(
+      readPositiveInt(c.req.query("pageSize")) ??
+        readPositiveInt(c.req.query("limit")) ??
+        DEFAULT_SESSION_LIST_PAGE_SIZE,
+      MAX_SESSION_LIST_PAGE_SIZE,
+    );
+    const rawQuery = c.req.query("query")?.trim();
+    const peerId = c.req.query("peerId")?.trim();
+    if (peerId) {
+      const sessions = await sessionManager.listSessions({ limit: pageSize, peerId });
+      const payload: UiNcpSessionListView = {
+        sessions: sessions.map(this.withRuntimeStatus),
+        total: sessions.length,
+        page: 1,
+        pageSize,
+        hasMore: false,
+      };
+      return c.json(ok(payload));
+    }
+    const result = await sessionManager.listSessionPage({
+      page,
+      pageSize,
+      ...(rawQuery ? { query: rawQuery } : {}),
     });
     const payload: UiNcpSessionListView = {
-      sessions: sessions.map(this.withRuntimeStatus),
-      total: sessions.length
+      sessions: result.sessions.map(this.withRuntimeStatus),
+      total: result.total,
+      page,
+      pageSize,
+      hasMore: page * pageSize < result.total,
     };
     return c.json(ok(payload));
   };

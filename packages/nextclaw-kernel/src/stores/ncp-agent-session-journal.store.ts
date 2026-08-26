@@ -67,8 +67,7 @@ export class NcpAgentSessionJournalStore {
       },
     );
     this.summaryReadStore = new NcpAgentSessionSummaryReadStore({
-      getIndexedSummary: (sessionId) => this.summaryIndexStore.get(sessionId),
-      listIndexedSummaries: (limit) => this.summaryIndexStore.list(limit),
+      summaryIndex: this.summaryIndexStore,
       readJournalModifiedAt: async (sessionId) => (await stat(this.sessionPath(sessionId))).mtime.toISOString(),
       readMetadata: (sessionId, fallback) => this.metadataStore.read(sessionId, fallback),
       readProjectedMessageCount: async (sessionId) => (await this.messageProjectionStore.readMeta(sessionId))?.total ?? null,
@@ -120,6 +119,7 @@ export class NcpAgentSessionJournalStore {
   listSessionSummaries = async (options?: { limit?: number }): Promise<NcpSessionSummary[]> => {
     return await this.summaryReadStore.list(options?.limit);
   };
+  listSessionSummaryPage = (options: { page: number; pageSize: number; query?: string }) => this.summaryReadStore.listPage(options);
   getSessionSummary = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const normalizedSessionId = normalizeNcpSessionId(sessionId);
     if (!normalizedSessionId) {

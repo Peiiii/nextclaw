@@ -103,6 +103,9 @@ export type NcpSessionSummaryView = NcpSessionSummary;
 export type NcpSessionsListView = {
   sessions: NcpSessionSummaryView[];
   total: number;
+  page?: number;
+  pageSize?: number;
+  hasMore?: boolean;
 };
 
 export type NcpMessageView = NcpMessage;

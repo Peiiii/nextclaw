@@ -71,18 +71,30 @@ afterEach(async () => {
 });
 
 describe("NcpAgentSessionJournalStore", () => {
-  it("pushes the session list limit into the SQLite summary index", async () => {
+  it("returns distinct numbered session pages with the full total", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
-    const summaryIndexStore = (store as unknown as {
-      summaryIndexStore: { list: (limit?: number) => Promise<unknown[]> };
-    }).summaryIndexStore;
-    const listIndexedSummaries = vi.spyOn(summaryIndexStore, "list");
+    for (const index of [1, 2, 3]) {
+      const currentSessionId = `session-${index}`;
+      await store.importSessionSnapshot({
+        ...createRecord([]),
+        sessionId: currentSessionId,
+        updatedAt: `2026-05-14T00:00:0${index}.000Z`,
+        metadata: { label: `Page ${index}` },
+      });
+    }
 
-    await store.importSessionSnapshot(createRecord([userMessage]));
-    await expect(store.listSessionSummaries({ limit: 1 })).resolves.toHaveLength(1);
+    const first = await store.listSessionSummaryPage({ page: 1, pageSize: 2 });
+    const second = await store.listSessionSummaryPage({ page: 2, pageSize: 2 });
+    const filtered = await store.listSessionSummaryPage({
+      page: 1,
+      pageSize: 2,
+      query: "Page 2",
+    });
 
-    expect(listIndexedSummaries).toHaveBeenLastCalledWith(1);
+    expect(first).toMatchObject({ total: 3, sessions: [{ sessionId: "session-3" }, { sessionId: "session-2" }] });
+    expect(second).toMatchObject({ total: 3, sessions: [{ sessionId: "session-1" }] });
+    expect(filtered).toMatchObject({ total: 1, sessions: [{ sessionId: "session-2" }] });
   });
 
   it("reports only runs whose append-only lifecycle has no terminal event", async () => {

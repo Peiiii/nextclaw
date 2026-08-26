@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useDeferredValue, useMemo } from "react";
 import type { SessionEntryView } from "@/shared/lib/api";
 import { sessionMatchesQuery } from "@/features/chat/features/session/utils/chat-session-display.utils";
 import { adaptNcpSessionSummaries } from "@/features/chat/features/session/utils/ncp-session-adapter.utils";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
-import { useNcpSessions } from "@/features/chat/features/ncp/hooks/use-ncp-session-queries";
+import { useInfiniteNcpSessions } from "@/features/chat/features/ncp/hooks/use-ncp-session-queries";
 import type { SessionRunStatus } from "@/features/chat/types/session-run-status.types";
 
 export type NcpSessionListItemView = {
@@ -30,15 +30,19 @@ export function useNcpSessionListView(
 ) {
   const storedQuery = useChatSessionListStore((state) => state.snapshot.query);
   const query = params.query ?? storedQuery;
-  const sessionsQuery = useNcpSessions({ limit: params.limit ?? 200 });
+  const deferredQuery = useDeferredValue(query);
+  const sessionsQuery = useInfiniteNcpSessions({
+    pageSize: params.limit ?? 100,
+    query: deferredQuery,
+  });
 
   const allItems = useMemo<NcpSessionListItemView[]>(() => {
-    const summaries = sessionsQuery.data?.sessions ?? [];
+    const summaries = sessionsQuery.data?.pages.flatMap((page) => page.sessions) ?? [];
     return adaptNcpSessionSummaries(summaries).map((session) => ({
       session,
       runStatus: session.status === "running" ? "running" : undefined,
     }));
-  }, [sessionsQuery.data?.sessions]);
+  }, [sessionsQuery.data?.pages]);
   const items = useMemo<NcpSessionListItemView[]>(() => {
     const visibleItems = allItems.filter(({ session }) =>
       shouldShowSessionInSidebar(session),
@@ -59,5 +63,8 @@ export function useNcpSessionListView(
     allItems,
     isLoading: sessionsQuery.isLoading,
     items,
+    hasMore: sessionsQuery.hasNextPage,
+    isLoadingMore: sessionsQuery.isFetchingNextPage,
+    loadMore: sessionsQuery.fetchNextPage,
   };
 }

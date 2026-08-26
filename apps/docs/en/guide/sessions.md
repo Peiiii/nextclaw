@@ -4,6 +4,8 @@ Sessions keep a task's goal, messages, tool activity, working directory, and res
 
 Session history is kept locally in the journal and SQLite session catalog. During an upgrade, NextClaw rebuilds the catalog from existing journals and metadata, so sessions whose legacy list entry was incomplete can return automatically without a manual import.
 
+When the catalog is large, the sidebar shows the most recent page first and preloads the next page near the end of the list. Search, ordering, and totals are handled by the local catalog, so older sessions remain browsable and searchable.
+
 You may also need:
 
 - [Create your first task](/en/guide/create-task)

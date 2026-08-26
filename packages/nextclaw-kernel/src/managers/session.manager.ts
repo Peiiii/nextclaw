@@ -320,30 +320,30 @@ export class SessionManager implements NcpSessionApi {
     await this.publishSessionChange(normalizedSessionId);
   };
 
-  getSessionRecord = async (
-    sessionId: string,
-  ): Promise<AgentSessionRecord | null> => {
+  getSessionRecord = async (sessionId: string): Promise<AgentSessionRecord | null> => {
     const normalizedSessionId = normalizeSessionId(sessionId);
     if (!normalizedSessionId) {
       return null;
     }
     return await this.options.journalStore.getSession(normalizedSessionId);
   };
-
-  listSessions = async (
-    options?: ListSessionsOptions,
-  ): Promise<NcpSessionSummary[]> => {
+  listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
     const { limit, peerId: rawPeerId } = options ?? {};
     const { journalStore } = this.options;
     const peerId = readOptionalString(rawPeerId);
-    const summaryReadOptions =
-      !peerId && limit !== undefined ? { limit } : undefined;
+    const summaryReadOptions = !peerId && limit !== undefined ? { limit } : undefined;
     return applyLimit(
       (await journalStore.listSessionSummaries(summaryReadOptions))
         .filter((summary) => !peerId || summary.peerId === peerId)
         .map(this.workingDirResolver.withWorkingDir),
       limit,
     );
+  };
+  listSessionPage = async (
+    options: { page: number; pageSize: number; query?: string },
+  ): Promise<{ sessions: NcpSessionSummary[]; total: number }> => {
+    const result = await this.options.journalStore.listSessionSummaryPage(options);
+    return { ...result, sessions: result.sessions.map(this.workingDirResolver.withWorkingDir) };
   };
 
   listSessionMessages = async (

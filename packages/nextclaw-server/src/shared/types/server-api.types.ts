@@ -641,6 +641,9 @@ export type { ProductAnalyticsStatusView } from "./server-api-config.types.js";
 export type UiNcpSessionListView = {
   sessions: NcpSessionSummary[];
   total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
 };
 
 export type UiNcpSessionQueuedInputsView = {

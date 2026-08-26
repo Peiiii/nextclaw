@@ -76,6 +76,46 @@ it("passes peerId filters through the ncp session list route", async () => {
   expect(listSessionCalls).toEqual([{ limit: 10, peerId: "peer-1" }]);
 });
 
+it("passes numbered pagination and search to the session catalog", async () => {
+  const calls: Array<{ page: number; pageSize: number; query?: string }> = [];
+  const app = createUiRouter({
+    configPath: createConfigPath(),
+    appEventBus: new EventBus(),
+    kernel: createRouterTestKernel({
+      sessionManager: {
+        listSessionPage: async (options: { page: number; pageSize: number; query?: string }) => {
+          calls.push(options);
+          return {
+            sessions: [{
+              sessionId: "session-101",
+              messageCount: 1,
+              updatedAt: "2026-03-16T00:00:00.000Z",
+            }],
+            total: 201,
+          };
+        },
+      } as never,
+    }),
+  });
+
+  const response = await app.request(
+    "http://localhost/api/ncp/sessions?page=2&pageSize=100&query=older",
+  );
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toMatchObject({
+    ok: true,
+    data: {
+      page: 2,
+      pageSize: 100,
+      total: 201,
+      hasMore: true,
+      sessions: [{ sessionId: "session-101" }],
+    },
+  });
+  expect(calls).toEqual([{ page: 2, pageSize: 100, query: "older" }]);
+});
+
 it("returns session token usage from the kernel owner", async () => {
   const app = createUiRouter({
     configPath: createConfigPath(),

@@ -14,6 +14,9 @@ import type {
 // GET /api/ncp/sessions
 export async function fetchNcpSessions(params?: {
   limit?: number;
+  page?: number;
+  pageSize?: number;
+  query?: string;
   peerId?: string;
 }): Promise<NcpSessionsListView> {
   return (await nextclawClient.sessions.list(params)) as NcpSessionsListView;

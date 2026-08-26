@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchNcpSessionObservations,
   fetchNcpSessionSkills,
@@ -18,6 +18,20 @@ export function useNcpSessions(params?: { limit?: number; peerId?: string }) {
     queryKey: ['ncp-sessions', params?.limit ?? null, params?.peerId?.trim() || null],
     queryFn: () => fetchNcpSessions(params),
     ...ncpSessionQueryDefaults
+  });
+}
+
+export function useInfiniteNcpSessions(params: { pageSize: number; query?: string }) {
+  return useInfiniteQuery({
+    queryKey: ['ncp-session-pages', params.pageSize, params.query?.trim() || null],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => fetchNcpSessions({
+      page: pageParam,
+      pageSize: params.pageSize,
+      ...(params.query?.trim() ? { query: params.query.trim() } : {}),
+    }),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? (lastPage.page ?? 1) + 1 : undefined,
+    ...ncpSessionQueryDefaults,
   });
 }
 

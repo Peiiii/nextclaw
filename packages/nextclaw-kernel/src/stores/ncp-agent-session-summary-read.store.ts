@@ -5,8 +5,12 @@ import type { NcpAgentSessionActivitySnapshot } from "@kernel/stores/ncp-agent-s
 const METADATA_READ_CONCURRENCY = 2;
 
 type SessionSummaryReadStoreOptions = {
-  getIndexedSummary: (sessionId: string) => Promise<NcpSessionSummary | null>;
-  listIndexedSummaries: (limit?: number) => Promise<NcpSessionSummary[]>;
+  summaryIndex: {
+    get: (sessionId: string) => Promise<NcpSessionSummary | null>;
+    list: (limit?: number) => Promise<NcpSessionSummary[]>;
+    listPage: (options: { offset: number; limit: number; query?: string }) => Promise<NcpSessionSummary[]>;
+    count: (query?: string) => Promise<number>;
+  };
   readJournalModifiedAt: (sessionId: string) => Promise<string>;
   readMetadata: (
     sessionId: string,
@@ -41,15 +45,33 @@ export class NcpAgentSessionSummaryReadStore {
     const normalizedLimit = limit === undefined || limit === Number.POSITIVE_INFINITY
       ? undefined
       : Math.max(0, Math.trunc(limit));
-    const summaries = await this.options.listIndexedSummaries(normalizedLimit);
+    const summaries = await this.options.summaryIndex.list(normalizedLimit);
     const selected = normalizedLimit === undefined
       ? summaries
       : summaries.slice(0, normalizedLimit);
     return await mapWithConcurrency(selected, this.withMetadata);
   };
 
+  listPage = async (options: {
+    page: number;
+    pageSize: number;
+    query?: string;
+  }): Promise<{ sessions: NcpSessionSummary[]; total: number }> => {
+    const page = Math.max(1, Math.trunc(options.page));
+    const pageSize = Math.max(1, Math.trunc(options.pageSize));
+    const [summaries, total] = await Promise.all([
+      this.options.summaryIndex.listPage({
+        offset: (page - 1) * pageSize,
+        limit: pageSize,
+        ...(options.query?.trim() ? { query: options.query.trim() } : {}),
+      }),
+      this.options.summaryIndex.count(options.query),
+    ]);
+    return { sessions: await mapWithConcurrency(summaries, this.withMetadata), total };
+  };
+
   get = async (sessionId: string): Promise<NcpSessionSummary | null> => {
-    const indexed = await this.options.getIndexedSummary(sessionId);
+    const indexed = await this.options.summaryIndex.get(sessionId);
     if (indexed) return await this.withMetadata(indexed);
     const messageCount = await this.options.readProjectedMessageCount(sessionId);
     if (messageCount === null) return null;

@@ -149,6 +149,7 @@ export function applyNcpSessionRealtimeEvent(
   queryClient: QueryClient | undefined,
   event: Extract<WsEvent, { type: 'session.run-status' | 'session.summary.upsert' | 'session.summary.delete' }>
 ): void {
+  void queryClient?.invalidateQueries({ queryKey: ['ncp-session-pages'] });
   if (event.type === 'session.run-status') {
     updateNcpSessionRunStatusInQueryClient(queryClient, event.payload);
     return;

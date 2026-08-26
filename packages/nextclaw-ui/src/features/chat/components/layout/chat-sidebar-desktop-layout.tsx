@@ -154,6 +154,7 @@ export function ChatSidebarSessionArea({
   isLoading,
   isProjectFirstView,
   onAddProject,
+  onScrollNearEnd = () => undefined,
   onSelectMode,
   projectGroups,
   projectCronJobCountByRoot,
@@ -166,6 +167,7 @@ export function ChatSidebarSessionArea({
   isLoading: boolean;
   isProjectFirstView: boolean;
   onAddProject: () => void;
+  onScrollNearEnd?: () => void;
   onSelectMode: (mode: "time-first" | "project-first") => void;
   projectGroups: ReturnType<typeof groupSessionsByProject>;
   projectCronJobCountByRoot: ReadonlyMap<string, number>;
@@ -196,6 +198,12 @@ export function ChatSidebarSessionArea({
       </div>
 
       <div
+        onScroll={(event) => {
+          const element = event.currentTarget;
+          if (element.scrollHeight - element.scrollTop - element.clientHeight < 600) {
+            onScrollNearEnd();
+          }
+        }}
         className={cn(
           "custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1",
           SCROLL_BOTTOM_EDGE_FADE_CLASS,

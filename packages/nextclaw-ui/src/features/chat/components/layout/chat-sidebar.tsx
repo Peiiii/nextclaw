@@ -120,7 +120,7 @@ export function ChatSidebar({
   const projectsQuery = useProjects();
   const projectCreateMutation = useCreateProject();
   const projectAddExistingMutation = useAddExistingProject();
-  const { allItems, isLoading, items } = useNcpSessionListView();
+  const { allItems, hasMore, isLoading, isLoadingMore, items, loadMore } = useNcpSessionListView();
   const { cronJobCountByProjectRoot, cronJobCountBySessionKey } =
     useChatSidebarContextCounts(allItems);
   const { language, setLanguage } = useI18n();
@@ -343,6 +343,9 @@ export function ChatSidebar({
         isLoading={isLoading}
         isProjectFirstView={isProjectFirstView}
         onAddProject={openProjectAdd}
+        onScrollNearEnd={() => {
+          if (hasMore && !isLoadingMore) void loadMore();
+        }}
         onSelectMode={presenter.chatSessionListManager.setListMode}
         projectGroups={projectGroups}
         projectCronJobCountByRoot={cronJobCountByProjectRoot}

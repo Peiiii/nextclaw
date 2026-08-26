@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ChatSidebarSessionArea } from "@/features/chat/components/layout/chat-sidebar-desktop-layout";
 
-function renderSessionArea(isProjectFirstView: boolean) {
+function renderSessionArea(isProjectFirstView: boolean, onScrollNearEnd = vi.fn()) {
   const onAddProject = vi.fn();
   const onSelectMode = vi.fn();
 
@@ -14,6 +14,7 @@ function renderSessionArea(isProjectFirstView: boolean) {
       isLoading={false}
       isProjectFirstView={isProjectFirstView}
       onAddProject={onAddProject}
+      onScrollNearEnd={onScrollNearEnd}
       onSelectMode={onSelectMode}
       projectGroups={[]}
       projectCronJobCountByRoot={new Map()}
@@ -22,7 +23,7 @@ function renderSessionArea(isProjectFirstView: boolean) {
     />,
   );
 
-  return { onAddProject, onSelectMode };
+  return { onAddProject, onScrollNearEnd, onSelectMode };
 }
 
 describe("ChatSidebarSessionArea", () => {
@@ -86,5 +87,18 @@ describe("ChatSidebarSessionArea", () => {
     fireEvent.click(addProjectButton);
 
     expect(onAddProject).toHaveBeenCalledOnce();
+  });
+
+  it("requests the next page before scrolling reaches the end", () => {
+    const { onScrollNearEnd } = renderSessionArea(false);
+    const scroller = document.querySelector(".overflow-y-auto") as HTMLDivElement;
+    Object.defineProperties(scroller, {
+      scrollHeight: { value: 2_000 },
+      clientHeight: { value: 500 },
+    });
+
+    fireEvent.scroll(scroller, { target: { scrollTop: 1_000 } });
+
+    expect(onScrollNearEnd).toHaveBeenCalledOnce();
   });
 });

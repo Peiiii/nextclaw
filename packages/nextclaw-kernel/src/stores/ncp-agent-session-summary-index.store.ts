@@ -31,6 +31,27 @@ type SessionCatalogRow = {
   deleted_at: string | null;
 };
 
+type SessionCatalogPageOptions = {
+  offset: number;
+  limit: number;
+  query?: string;
+};
+
+function buildCatalogFilter(query?: string): { sql: string; params: string[] } {
+  const normalized = query?.trim().toLocaleLowerCase();
+  if (!normalized) return { sql: "deleted_at IS NULL", params: [] };
+  const pattern = `%${normalized.replace(/[\\%_]/g, "\\$&")}%`;
+  return {
+    sql: `deleted_at IS NULL AND (
+      LOWER(session_id) LIKE ? ESCAPE '\\' OR
+      LOWER(COALESCE(peer_id, '')) LIKE ? ESCAPE '\\' OR
+      LOWER(COALESCE(agent_id, '')) LIKE ? ESCAPE '\\' OR
+      LOWER(metadata_json) LIKE ? ESCAPE '\\'
+    )`,
+    params: [pattern, pattern, pattern, pattern],
+  };
+}
+
 function readEventMessage(event: NcpAgentSessionJournalReplayEvent): NcpMessage | undefined {
   if (
     event.type === NcpEventType.MessageSent ||
@@ -106,6 +127,27 @@ export class NcpAgentSessionSummaryIndexStore {
       ? this.db().prepare(query).all() as SessionCatalogRow[]
       : this.db().prepare(`${query} LIMIT ?`).all(limit) as SessionCatalogRow[];
     return rows.map((row) => structuredClone(rowToSummary(row)));
+  };
+
+  listPage = async (options: SessionCatalogPageOptions): Promise<NcpSessionSummary[]> => {
+    await this.ensureReady();
+    const filter = buildCatalogFilter(options.query);
+    const rows = this.db().prepare(
+      `SELECT * FROM sessions
+       WHERE ${filter.sql}
+       ORDER BY COALESCE(last_message_at, created_at, updated_at) DESC, session_id DESC
+       LIMIT ? OFFSET ?`,
+    ).all(...filter.params, options.limit, options.offset) as SessionCatalogRow[];
+    return rows.map((row) => structuredClone(rowToSummary(row)));
+  };
+
+  count = async (query?: string): Promise<number> => {
+    await this.ensureReady();
+    const filter = buildCatalogFilter(query);
+    const row = this.db().prepare(
+      `SELECT COUNT(*) AS total FROM sessions WHERE ${filter.sql}`,
+    ).get(...filter.params) as { total: number };
+    return row.total;
   };
 
   upsert = async (summary: NcpSessionSummary): Promise<void> => {
