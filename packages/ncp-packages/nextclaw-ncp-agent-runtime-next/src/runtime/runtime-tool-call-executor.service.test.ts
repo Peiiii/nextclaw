@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
-import { RuntimeToolCallExecutor } from "./runtime-tool-call-executor.service.js";
+import {
+  RuntimeToolCallExecutor,
+  RuntimeToolIterationBudget,
+} from "./runtime-tool-call-executor.service.js";
 
 function deferred() {
   let resolve!: () => void;
@@ -38,7 +41,7 @@ class ToolExecutorHarness {
   readonly started: string[] = [];
   maxActive = 0;
 
-  constructor(parallelToolNames: readonly string[]) {
+  constructor(parallelToolNames: readonly string[], maxToolIterations = 1000) {
     const parallel = new Set(parallelToolNames);
     this.executor = new RuntimeToolCallExecutor({
       executeToolCall: async (toolCall) => {
@@ -56,6 +59,7 @@ class ToolExecutorHarness {
       },
       supportsParallelToolCalls: (toolCall) => parallel.has(toolCall.toolName),
       toRunErrorEvent: runErrorEvent,
+      toolIterationBudget: new RuntimeToolIterationBudget(maxToolIterations),
     });
   }
 
@@ -184,5 +188,20 @@ describe("RuntimeToolCallExecutor scheduling", () => {
 
     await waitFor(() => harness.active.size === 0);
     expect(harness.started).toEqual(["call-1"]);
+  });
+
+  it("never starts a parallel tool call beyond the run budget", async () => {
+    const harness = new ToolExecutorHarness(["read"], 2);
+
+    harness.enqueue("call-1", "read");
+    harness.enqueue("call-2", "read");
+    expect(() => harness.enqueue("call-3", "read")).toThrow(
+      "Tool iteration limit reached: configured maximum 2; 2 tool calls already started.",
+    );
+
+    expect(harness.started).toEqual(["call-1", "call-2"]);
+    harness.release("call-1");
+    harness.release("call-2");
+    await waitFor(() => harness.active.size === 0);
   });
 });

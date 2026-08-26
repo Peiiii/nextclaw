@@ -6,6 +6,7 @@ const spec = {
   agentId: "main",
   model: "openai/gpt-5",
   requestedModel: "openai/gpt-5",
+  maxToolIterations: 1000,
   runId: "run-1",
   runtimeId: "native",
 };

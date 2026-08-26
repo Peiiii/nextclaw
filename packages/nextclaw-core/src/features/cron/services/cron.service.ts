@@ -1,12 +1,14 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import cronParser from "cron-parser";
 import { classifyDiagnosticError } from "@nextclaw/shared";
 import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from "@core/features/cron/types/cron.types.js";
 import type { DiagnosticRuntime } from "@core/shared/lib/logging/index.js";
+import { LocalExecutionClaimService } from "@core/shared/lib/core-utils/services/local-execution-claim.service.js";
 
 const nowMs = () => Date.now();
+const EXECUTION_CLAIM_RETRY_DELAY_MS = 1_000;
 
 function normalizeFiniteMs(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -67,7 +69,8 @@ export class CronService {
   private store: CronStore | null = null;
   private timer: NodeJS.Timeout | null = null;
   private running = false;
-  private readonly executingJobIds = new Set<string>();
+  private readonly executionClaims: LocalExecutionClaimService;
+  private readonly executionRetryAfterByJobId = new Map<string, number>();
   private lastPersistedStoreJson: string | null = null;
   private storeExistsOnDisk = false;
   onJob?: (job: CronJob) => Promise<string | null>;
@@ -78,6 +81,9 @@ export class CronService {
     private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
   ) {
     this.onJob = onJob;
+    this.executionClaims = new LocalExecutionClaimService(
+      join(dirname(storePath), ".execution-claims"),
+    );
   }
 
   private readonly loadStore = (): CronStore => {
@@ -222,8 +228,11 @@ export class CronService {
       return null;
     }
     const times = this.store.jobs
-      .filter((job) => job.enabled && !this.executingJobIds.has(job.id) && job.state.nextRunAtMs)
-      .map((job) => job.state.nextRunAtMs as number);
+      .filter((job) => job.enabled && job.state.nextRunAtMs)
+      .map((job) => Math.max(
+        job.state.nextRunAtMs as number,
+        this.executionRetryAfterByJobId.get(job.id) ?? 0,
+      ));
     if (!times.length) {
       return null;
     }
@@ -286,17 +295,28 @@ export class CronService {
     jobId: string;
     lastError: string | null;
     lastStatus: CronJobState["lastStatus"];
+    scheduledAtMs: number;
     startedAtMs: number;
   }): void => {
+    const {
+      jobId,
+      lastError,
+      lastStatus,
+      scheduledAtMs,
+      startedAtMs,
+    } = params;
     const store = this.store;
-    const currentJob = store?.jobs.find((job) => job.id === params.jobId);
+    const currentJob = store?.jobs.find((job) => job.id === jobId);
     if (!store || !currentJob) {
       return;
     }
     const previousNextRunAtMs = normalizeFiniteMs(currentJob.state.nextRunAtMs);
-    currentJob.state.lastStatus = params.lastStatus;
-    currentJob.state.lastError = params.lastError;
-    currentJob.state.lastRunAtMs = params.startedAtMs;
+    if (previousNextRunAtMs !== scheduledAtMs) {
+      return;
+    }
+    currentJob.state.lastStatus = lastStatus;
+    currentJob.state.lastError = lastError;
+    currentJob.state.lastRunAtMs = startedAtMs;
     currentJob.updatedAtMs = nowMs();
     if (currentJob.schedule.kind !== "at") {
       currentJob.state.nextRunAtMs = computeNextRun(currentJob.schedule, nowMs(), previousNextRunAtMs);
@@ -311,11 +331,48 @@ export class CronService {
   };
 
   private readonly executeJob = async (job: CronJob): Promise<boolean> => {
-    if (this.executingJobIds.has(job.id)) {
+    const start = nowMs();
+    const scheduledAtMs = normalizeFiniteMs(job.state.nextRunAtMs) ?? start;
+    type CronExecutionCompletion = {
+      lastError: string | null;
+      lastStatus: CronJobState["lastStatus"];
+      scheduledAtMs: number;
+      startedAtMs: number;
+    };
+    const acquired = this.executionClaims.tryAcquire<CronExecutionCompletion>(
+      `cron:${job.id}:${scheduledAtMs}`,
+    );
+    if (!acquired.acquired) {
+      this.diagnostics?.record({
+        domain: "automation.execution",
+        event: "job.claim-suppressed",
+        component: "core.cron-service",
+        outcome: "suppressed",
+        correlationId: job.id,
+        reasonCode: acquired.reason === "completed"
+          ? "execution_slot_completed"
+          : "execution_claim_active",
+        facts: { scheduleKind: job.schedule.kind, scheduledAtMs },
+      });
+      const completion = acquired.record?.completion;
+      if (acquired.reason === "completed" && completion) {
+        this.executionRetryAfterByJobId.delete(job.id);
+        this.settleJobExecution({
+          jobId: job.id,
+          lastError: completion.lastError,
+          lastStatus: completion.lastStatus,
+          scheduledAtMs: completion.scheduledAtMs,
+          startedAtMs: completion.startedAtMs,
+        });
+      } else if (acquired.reason === "active-owner") {
+        this.executionRetryAfterByJobId.set(
+          job.id,
+          nowMs() + EXECUTION_CLAIM_RETRY_DELAY_MS,
+        );
+      }
       return false;
     }
-    this.executingJobIds.add(job.id);
-    const start = nowMs();
+    this.executionRetryAfterByJobId.delete(job.id);
     this.diagnostics?.record({
       domain: "automation.execution",
       event: "job.started",
@@ -355,17 +412,15 @@ export class CronService {
         facts: { scheduleKind: job.schedule.kind, ...(classification.facts ?? {}) },
       });
     }
-    try {
-      this.settleJobExecution({
-        jobId: job.id,
-        lastError,
-        lastStatus,
-        startedAtMs: start,
-      });
-      return true;
-    } finally {
-      this.executingJobIds.delete(job.id);
-    }
+    const completion: CronExecutionCompletion = {
+      lastError,
+      lastStatus,
+      scheduledAtMs,
+      startedAtMs: start,
+    };
+    acquired.claim.complete(completion);
+    this.settleJobExecution({ jobId: job.id, ...completion });
+    return true;
   };
 
   readonly listJobs = (includeDisabled = false): CronJob[] => {

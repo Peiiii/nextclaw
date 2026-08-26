@@ -43,6 +43,7 @@ export type AgentRunMessageRunSpecMetadata = {
   model: string;
   modelSource: AgentRunModelSource;
   requestedModel: string | null;
+  maxToolIterations: number;
   maxTokens: number | undefined;
   thinkingEffort: ThinkingEffort | null | undefined;
   projectRoot: string | null;

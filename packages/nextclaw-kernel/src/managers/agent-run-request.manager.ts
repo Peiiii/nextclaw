@@ -17,7 +17,11 @@ import {
   type NcpMessageAbortPayload,
   type NcpRunHandle,
 } from "@nextclaw/ncp";
-import type { DiagnosticRuntime } from "@nextclaw/core";
+import type {
+  DiagnosticRuntime,
+  LocalExecutionClaimHandle,
+  LocalExecutionClaimService,
+} from "@nextclaw/core";
 import { DIAGNOSTIC_CORRELATION_METADATA_KEY } from "@nextclaw/core";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
@@ -76,6 +80,7 @@ export class AgentRunRequestManager {
     private readonly sessionManager: SessionManager,
     private readonly sessionRunManager: SessionRunManager,
     private readonly diagnostics?: Pick<DiagnosticRuntime, "record">,
+    private readonly executionClaims?: LocalExecutionClaimService,
   ) {
     this.pendingInputs = new AgentRunInputDeliveryService(
       agentRuntimeManager,
@@ -273,20 +278,16 @@ export class AgentRunRequestManager {
   ): Promise<void> => {
     const { request, session } = activeRequest;
     const requestRunStartedAt = new Date().toISOString();
-    const model =
-      request.model ?? session.model ?? this.configManager.getDefaultModel();
-    const { modelSource, spec } = resolveRunSpec({
-      defaultAgentId: this.agentManager.getDefaultAgentId(),
-      model,
-      modelMaxTokens: this.configManager.getModelMaxTokens(model),
-      request,
-      runId: activeRequest.runId,
-      session,
-    });
+    const { modelSource, spec } = this.resolveQueuedRunSpec(activeRequest);
     const trigger = resolveRunTriggerMetadata({
       request,
       spec,
       startedAt: requestRunStartedAt,
+    });
+    const executionClaim = await this.claimSessionExecutionOrFail({
+      requestRunStartedAt,
+      sessionRun,
+      spec,
     });
     const message = attachRunSpecMetadata({
       message: {
@@ -335,10 +336,10 @@ export class AgentRunRequestManager {
       spec,
       trigger,
     });
-    await sessionRun.applyEvents([messageSentEvent, triggerEvent]);
-    this.publishNcpEvent(messageSentEvent);
-    this.publishNcpEvent(triggerEvent);
     try {
+      await sessionRun.applyEvents([messageSentEvent, triggerEvent]);
+      this.publishNcpEvent(messageSentEvent);
+      this.publishNcpEvent(triggerEvent);
       const runtime = this.agentRuntimeManager.getOrCreate({
         agentRuntimeId: session.agentRuntimeId,
         session,
@@ -359,8 +360,10 @@ export class AgentRunRequestManager {
         runtime,
         spec,
         parentCorrelationId,
+        executionClaim,
       });
     } catch (error) {
+      this.releaseExecutionClaim(executionClaim);
       const classification = classifyDiagnosticError(
         error,
         activeRequest.signal,
@@ -391,16 +394,79 @@ export class AgentRunRequestManager {
     }
   };
 
+  private resolveQueuedRunSpec = (
+    activeRequest: SessionRunActiveRequest,
+  ): ReturnType<typeof resolveRunSpec> => {
+    const { request, session } = activeRequest;
+    const model =
+      request.model ?? session.model ?? this.configManager.getDefaultModel();
+    const defaultAgentId = this.agentManager.getDefaultAgentId();
+    const agentId = session.agentId ?? request.agentId ?? defaultAgentId;
+    const maxToolIterations = this.agentManager.resolveAgentProfileForRun({
+      agentId,
+      requestMetadata: request.metadata,
+      storedAgentId: session.agentId,
+    }).maxToolIterations;
+    return resolveRunSpec({
+      defaultAgentId,
+      model,
+      modelMaxTokens: this.configManager.getModelMaxTokens(model),
+      maxToolIterations,
+      request,
+      runId: activeRequest.runId,
+      session,
+    });
+  };
+
+  private claimSessionExecutionOrFail = async (params: {
+    requestRunStartedAt: string;
+    sessionRun: SessionRun;
+    spec: AgentRunSpec;
+  }): Promise<LocalExecutionClaimHandle<void> | undefined> => {
+    const { requestRunStartedAt, sessionRun, spec } = params;
+    const acquired = this.executionClaims?.tryAcquire<void>(
+      `session:${sessionRun.sessionId}`,
+    );
+    if (!acquired || acquired.acquired) {
+      return acquired?.claim;
+    }
+    const error = new Error(
+      `Session already has an active run owned by another NextClaw process: ${sessionRun.sessionId}`,
+    );
+    await this.publishRunStartupFailure({
+      error,
+      requestRunStartedAt,
+      sessionRun,
+      spec,
+    });
+    this.startNextQueuedRun(sessionRun);
+    throw error;
+  };
+
   private startRuntimeRun = (
     params: Omit<
       Parameters<AgentRuntimeRunObserverService["start"]>[0],
       "onSettled"
-    >,
-  ): void =>
+    > & { executionClaim?: LocalExecutionClaimHandle<void> },
+  ): void => {
+    const { executionClaim, ...runtimeParams } = params;
     this.runtimeRuns.start({
-      ...params,
-      onSettled: this.startNextQueuedRun,
+      ...runtimeParams,
+      onSettled: (sessionRun) => {
+        this.releaseExecutionClaim(executionClaim);
+        this.startNextQueuedRun(sessionRun);
+      },
     });
+  };
+
+  private releaseExecutionClaim = (
+    claim?: LocalExecutionClaimHandle<void>,
+  ): void => {
+    if (!claim) {
+      return;
+    }
+    claim.release();
+  };
 
   private publishRunStartupFailure = async (params: {
     error: unknown;

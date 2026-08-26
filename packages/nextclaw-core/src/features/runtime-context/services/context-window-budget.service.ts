@@ -77,7 +77,7 @@ export class ContextWindowBudgetService {
   };
 }
 
-function stripToModelInputMessage(message: RuntimeMessage): RuntimeMessage {
+export function stripToModelInputMessage(message: RuntimeMessage): RuntimeMessage {
   const modelMessage: RuntimeMessage = {};
   for (const field of MODEL_MESSAGE_FIELDS) {
     if (Object.prototype.hasOwnProperty.call(message, field)) {

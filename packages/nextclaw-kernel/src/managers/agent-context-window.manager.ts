@@ -1,6 +1,7 @@
 import { estimateInputTokens } from "@nextclaw/core";
 import type { ContextWindowSnapshot } from "@nextclaw/core";
 import type { NcpMessage, NcpTool } from "@nextclaw/ncp";
+import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import { ContextCompactionPreflightService } from "@kernel/features/context-compaction/index.js";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 import {
@@ -40,8 +41,13 @@ export class AgentContextWindowManager {
     private readonly agentManager: AgentManager,
     private readonly contextProviderManager: ContextProviderManager,
     private readonly toolProviderManager: ToolProviderManager,
+    assetStore: LocalAssetStore | null = null,
   ) {
-    this.preflightService = new ContextCompactionPreflightService(agentManager);
+    this.preflightService = new ContextCompactionPreflightService(
+      agentManager,
+      undefined,
+      assetStore,
+    );
   }
 
   resolveRunSurface = async (request: AgentRunRequest): Promise<AgentRunSurface> => {

@@ -77,7 +77,10 @@ describe("AgentRunRequestManager message run spec metadata", () => {
           },
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      {
+        getDefaultAgentId: () => "main",
+        resolveAgentProfileForRun: () => ({ maxToolIterations: 37 }),
+      } as never,
       {
         getDefaultModel: () => "custom-3/mimo-v2.5-pro",
         getModelMaxTokens: () => 8192,
@@ -145,6 +148,7 @@ describe("AgentRunRequestManager message run spec metadata", () => {
       model: "custom-3/mimo-v2.5-pro",
       modelSource: "default",
       requestedModel: null,
+      maxToolIterations: 37,
       maxTokens: 8192,
       thinkingEffort: null,
       projectRoot: "/session/project",

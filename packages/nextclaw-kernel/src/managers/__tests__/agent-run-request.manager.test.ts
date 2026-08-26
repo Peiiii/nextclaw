@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { LocalExecutionClaimService } from "@nextclaw/core";
 import {
   CHAT_SESSION_MATERIALIZATION_METADATA_KEY,
   EventBus,
@@ -15,6 +19,73 @@ import {
 } from "@nextclaw/ncp";
 import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { SessionRun } from "@kernel/managers/session-run.manager.js";
+
+describe("AgentRunRequestManager cross-process ownership", () => {
+  it("fails before model startup while another process owns the session", async () => {
+    const root = mkdtempSync(join(tmpdir(), "nextclaw-session-run-claims-"));
+    try {
+      const ownerClaims = new LocalExecutionClaimService(root, {
+        pid: 101,
+        isProcessAlive: () => true,
+      });
+      const contenderClaims = new LocalExecutionClaimService(root, {
+        pid: 202,
+        isProcessAlive: () => true,
+      });
+      const owner = ownerClaims.tryAcquire<void>("session:session-shared");
+      if (!owner.acquired) throw new Error("expected session owner");
+      const ingress = new Ingress();
+      const runtimeStarts = vi.fn();
+      const sessionRun = new SessionRun({ sessionId: "session-shared", messages: [] });
+      const manager = new AgentRunRequestManager(
+        { getOrCreate: runtimeStarts } as never,
+        {
+          getDefaultAgentId: () => "main",
+          resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }),
+        } as never,
+        {
+          getDefaultModel: () => "test-model",
+          getModelMaxTokens: () => 12000,
+          loadConfig: () => ({}),
+        } as never,
+        { resolveRunSurface: async () => ({ contextBlocks: [], tools: [] }) } as never,
+        new EventBus(),
+        ingress,
+        {
+          getOrCreateAgentRunSession: async () => ({
+            sessionId: "session-shared",
+            agentId: "main",
+            agentRuntimeId: "native",
+            metadata: {},
+            model: "test-model",
+            thinkingEffort: null,
+          }),
+        } as never,
+        {
+          getSessionRun: () => sessionRun,
+          getOrCreateSessionRun: async () => sessionRun,
+        } as never,
+        undefined,
+        contenderClaims,
+      );
+      manager.start();
+
+      await expect(ingress.handle<AgentRunSendIngressPayload, NcpRunHandle>({
+        type: ingressKeys.agentRun.send,
+        payload: { content: [{ type: "text", text: "must not start twice" }] },
+      }, { source: "test" })).rejects.toThrow(
+        "Session already has an active run owned by another NextClaw process",
+      );
+
+      expect(runtimeStarts).not.toHaveBeenCalled();
+      expect(sessionRun.getSnapshot().messages).toEqual([]);
+      owner.claim.release();
+      manager.dispose();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
 
 async function waitForEvent(
   events: readonly NcpEndpointEvent[],
@@ -53,7 +124,7 @@ describe("AgentRunRequestManager branch session creation", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -127,7 +198,7 @@ describe("AgentRunRequestManager branch session creation", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -196,7 +267,7 @@ describe("AgentRunRequestManager branch session creation", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -245,7 +316,7 @@ describe("AgentRunRequestManager peer session identity", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -300,7 +371,7 @@ describe("AgentRunRequestManager peer session identity", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -429,7 +500,7 @@ describe("AgentRunRequestManager event publication", () => {
           },
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -529,7 +600,7 @@ describe("AgentRunRequestManager assistant publication", () => {
           },
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -631,7 +702,7 @@ describe("AgentRunRequestManager runtime failure publication", () => {
         getOrCreate,
         disposeRuntime,
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -744,7 +815,7 @@ describe("AgentRunRequestManager tool context", () => {
           },
         }),
       } as never,
-      { getDefaultAgentId: () => "main" } as never,
+      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,

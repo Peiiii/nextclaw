@@ -1,4 +1,5 @@
 import { InputBudgetPruner, estimateInputTokens } from "@core/features/agent/index.js";
+import { stripToModelInputMessage } from "./context-window-budget.service.js";
 
 type RuntimeMessage = Record<string, unknown>;
 type ContextCompactionSummaryGenerator = (params: {
@@ -61,6 +62,7 @@ export type ContextCompactionPlan = {
   preservableUserMessages: RuntimeMessage[];
   projectedTokenLimit: number;
   originalEstimatedTokens: number;
+  retainLeadingSystemMessage: boolean;
 };
 
 const RETAINED_CURRENT_MESSAGE_COUNT = 1;
@@ -128,6 +130,7 @@ export class ContextCompactionService {
     messages: RuntimeMessage[];
     contextTokens: number;
     compactionThresholdTokens?: number;
+    coverLeadingSystemMessage?: boolean;
     fixedInputTokens?: number;
     preservableUserMessageIds?: readonly string[];
     projectedTokenLimit?: number;
@@ -135,6 +138,7 @@ export class ContextCompactionService {
   }): ContextCompactionPlan | null => {
     const {
       compactionThresholdTokens,
+      coverLeadingSystemMessage = false,
       contextTokens,
       fixedInputTokens = 0,
       messages,
@@ -143,7 +147,7 @@ export class ContextCompactionService {
       retainLatestMessage = true,
     } = params;
     const originalEstimate = this.inputBudgetPruner.estimate({
-      messages,
+      messages: messages.map(stripToModelInputMessage),
       contextTokens,
       fixedInputTokens,
     });
@@ -152,7 +156,9 @@ export class ContextCompactionService {
       return null;
     }
 
-    const leadingSystemMessage = isSystemMessage(messages[0]) ? messages[0] : null;
+    const leadingSystemMessage = !coverLeadingSystemMessage && isSystemMessage(messages[0])
+      ? messages[0]
+      : null;
     const conversationMessages = leadingSystemMessage ? messages.slice(1) : messages;
     const retainedMessageCount = retainLatestMessage ? RETAINED_CURRENT_MESSAGE_COUNT : 0;
     const coveredMessageCount = Math.max(0, conversationMessages.length - retainedMessageCount);
@@ -174,6 +180,7 @@ export class ContextCompactionService {
       }),
       projectedTokenLimit,
       originalEstimatedTokens: originalEstimate.estimatedTokens,
+      retainLeadingSystemMessage: Boolean(leadingSystemMessage),
     };
   };
 
@@ -194,10 +201,13 @@ export class ContextCompactionService {
       retainedMessages,
     } = plan;
     const createdAt = (now ?? new Date()).toISOString();
-    const leadingSystemMessage = isSystemMessage(messages[0]) ? messages[0] : null;
+    const leadingSystemMessage = plan.retainLeadingSystemMessage
+      ? messages[0] ?? null
+      : null;
     const summaryBaseEstimate = this.inputBudgetPruner.estimate({
       messages: [leadingSystemMessage, ...retainedMessages]
-        .filter((message): message is RuntimeMessage => Boolean(message)),
+        .filter((message): message is RuntimeMessage => Boolean(message))
+        .map(stripToModelInputMessage),
       contextTokens,
       fixedInputTokens,
     });
@@ -246,7 +256,7 @@ export class ContextCompactionService {
       ...retainedMessages,
     ].filter((message): message is RuntimeMessage => Boolean(message));
     const baseProjectedEstimate = this.inputBudgetPruner.estimate({
-      messages: baseProjectedMessages,
+      messages: baseProjectedMessages.map(stripToModelInputMessage),
       contextTokens,
       fixedInputTokens,
     });
@@ -266,7 +276,7 @@ export class ContextCompactionService {
       ...retainedMessages,
     ].filter((message): message is RuntimeMessage => Boolean(message));
     const projectedEstimate = this.inputBudgetPruner.estimate({
-      messages: projectedMessages,
+      messages: projectedMessages.map(stripToModelInputMessage),
       contextTokens,
       fixedInputTokens,
     });
@@ -325,7 +335,7 @@ export class ContextCompactionService {
       }
       const projectedMessage = toPreservedUserMessage(message);
       const estimatedTokens = this.inputBudgetPruner.estimate({
-        messages: [projectedMessage],
+        messages: [stripToModelInputMessage(projectedMessage)],
         contextTokens,
       }).estimatedTokens;
       if (estimatedTokens <= remainingTokens) {
@@ -337,7 +347,7 @@ export class ContextCompactionService {
         break;
       }
       const messageOverheadTokens = this.inputBudgetPruner.estimate({
-        messages: [toPreservedUserMessage(message, "")],
+        messages: [stripToModelInputMessage(toPreservedUserMessage(message, ""))],
         contextTokens,
       }).estimatedTokens;
       const text = truncatePreservedUserMessage(

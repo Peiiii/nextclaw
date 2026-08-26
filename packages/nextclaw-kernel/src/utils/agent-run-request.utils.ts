@@ -226,6 +226,7 @@ export function resolveRunSpec(params: {
   defaultAgentId: string;
   model: string;
   modelMaxTokens?: number;
+  maxToolIterations: number;
   request: AgentRunRequest;
   runId: string;
   session: AgentRunSession;
@@ -251,6 +252,7 @@ export function resolveRunSpec(params: {
       agentId: session.agentId ?? request.agentId ?? defaultAgentId,
       model,
       requestedModel: request.model ?? null,
+      maxToolIterations: params.maxToolIterations,
       maxTokens: request.maxTokens ?? modelMaxTokens,
       thinkingEffort: request.thinkingEffort ?? session.thinkingEffort ?? null,
       correlationId: request.correlationId,
@@ -279,6 +281,7 @@ export function attachRunSpecMetadata(params: {
     model: spec.model,
     modelSource,
     requestedModel: request.model ?? null,
+    maxToolIterations: spec.maxToolIterations,
     maxTokens: spec.maxTokens,
     thinkingEffort: spec.thinkingEffort,
     projectRoot: request.projectRoot ?? session.projectRoot ?? null,

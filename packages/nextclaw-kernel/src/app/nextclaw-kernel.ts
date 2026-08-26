@@ -50,6 +50,7 @@ import {
   getWorkspacePath,
   MessageBus,
   DiagnosticRuntime,
+  LocalExecutionClaimService,
   type SessionSearchService,
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
@@ -184,6 +185,7 @@ export class NextclawKernel {
       this.agents,
       this.contextProviderManager,
       this.toolProviderManager,
+      this.assetStore,
     );
     this.accessManager = new AccessManager({
       configManager: this.configManager,
@@ -278,6 +280,7 @@ export class NextclawKernel {
     this.contextCompactionManager = new AgentRunContextCompactionManager(
       this.agents,
       this.llmProviders,
+      this.assetStore,
     );
     this.sessionRunManager = new SessionRunManager(
       this.sessionManager,
@@ -299,6 +302,7 @@ export class NextclawKernel {
       this.sessionManager,
       this.sessionRunManager,
       this.diagnostics,
+      new LocalExecutionClaimService(resolve(sessionsDir, ".execution-claims", "session-runs")),
     );
     this.contributions = this.createContributions();
   }

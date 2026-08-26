@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronService } from "./cron.service.js";
 import type { CronStore } from "@core/features/cron/types/cron.types.js";
+import { LocalExecutionClaimService } from "@core/shared/lib/core-utils/services/local-execution-claim.service.js";
 
 function createStorePath(rootDir: string): string {
   return join(rootDir, "cron", "jobs.json");
@@ -194,6 +195,97 @@ describe("CronService scheduling", () => {
 });
 
 describe("CronService execution reload safety", () => {
+  it("lets only one service execute the same scheduled slot", async () => {
+    const scheduledAtMs = Date.parse("2026-04-08T12:05:00.000Z");
+    writeStore(storePath, {
+      version: 1,
+      jobs: [{
+        id: "job-shared-slot",
+        name: "shared-slot",
+        enabled: true,
+        schedule: { kind: "every", everyMs: 60_000 },
+        payload: { message: "run once across processes" },
+        state: { nextRunAtMs: scheduledAtMs },
+        createdAtMs: scheduledAtMs - 60_000,
+        updatedAtMs: scheduledAtMs - 60_000,
+        deleteAfterRun: false,
+      }],
+    });
+    vi.setSystemTime(scheduledAtMs);
+    let releaseExecution: (() => void) | undefined;
+    const blocked = new Promise<void>((resolve) => {
+      releaseExecution = resolve;
+    });
+    const onJob = vi.fn(async () => {
+      await blocked;
+      return "ok";
+    });
+    const first = new CronService(storePath, onJob);
+    const second = new CronService(storePath, onJob);
+    first.listJobs();
+    second.listJobs();
+
+    const firstRun = first.runJob("job-shared-slot");
+    await Promise.resolve();
+    await expect(second.runJob("job-shared-slot")).resolves.toBe(false);
+    expect(onJob).toHaveBeenCalledTimes(1);
+
+    releaseExecution?.();
+    await expect(firstRun).resolves.toBe(true);
+  });
+
+  it("settles a completed slot marker without executing it again", async () => {
+    const scheduledAtMs = Date.parse("2026-04-08T12:07:00.000Z");
+    writeStore(storePath, {
+      version: 1,
+      jobs: [{
+        id: "job-completed-slot",
+        name: "completed-slot",
+        enabled: true,
+        schedule: { kind: "every", everyMs: 60_000 },
+        payload: { message: "do not repeat" },
+        state: { nextRunAtMs: scheduledAtMs },
+        createdAtMs: scheduledAtMs - 60_000,
+        updatedAtMs: scheduledAtMs - 60_000,
+        deleteAfterRun: false,
+      }],
+    });
+    vi.setSystemTime(scheduledAtMs + 1_000);
+    const claims = new LocalExecutionClaimService(
+      join(dirname(storePath), ".execution-claims"),
+    );
+    const claim = claims.tryAcquire<{
+      lastError: string | null;
+      lastStatus: "ok" | "error";
+      scheduledAtMs: number;
+      startedAtMs: number;
+    }>(`cron:job-completed-slot:${scheduledAtMs}`);
+    if (!claim.acquired) throw new Error("expected completed-slot claim");
+    claim.claim.complete({
+      lastError: null,
+      lastStatus: "ok",
+      scheduledAtMs,
+      startedAtMs: scheduledAtMs,
+    });
+    const onJob = vi.fn().mockResolvedValue("duplicate");
+    const record = vi.fn();
+    const service = new CronService(storePath, onJob, { record });
+
+    await expect(service.runJob("job-completed-slot")).resolves.toBe(false);
+
+    expect(onJob).not.toHaveBeenCalled();
+    expect(record).toHaveBeenCalledWith(expect.objectContaining({
+      event: "job.claim-suppressed",
+      outcome: "suppressed",
+      reasonCode: "execution_slot_completed",
+    }));
+    expect(readStore(storePath).jobs[0]?.state).toMatchObject({
+      lastRunAtMs: scheduledAtMs,
+      lastStatus: "ok",
+      nextRunAtMs: scheduledAtMs + 60_000,
+    });
+  });
+
   it("does not re-enter a running one-shot job when its agent updates the cron store", async () => {
     const scheduledAtMs = Date.parse("2026-04-08T12:10:00.000Z");
     writeStore(storePath, {

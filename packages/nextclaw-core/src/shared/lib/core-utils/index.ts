@@ -5,4 +5,5 @@ export * from "./utils/runtime-paths.utils.js";
 export * from "./utils/thinking.js";
 export * from "./utils/model-config.utils.js";
 export * from "./utils/reasoning-tags.js";
+export * from "./services/local-execution-claim.service.js";
 export * from "./features/openai/index.js";

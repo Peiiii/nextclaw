@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   CONTEXT_COMPACTION_METADATA_KEY,
+  ContextWindowBudgetService,
   estimateInputTokens,
   type ContextCompactionCheckpoint,
 } from "@nextclaw/core";
+import { ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
   buildContextCompactionModelProjection,
@@ -104,6 +106,47 @@ function createAssistantMessage(params: {
 }
 
 describe("ContextCompactionPreflightService", () => {
+  it("estimates tool results from the provider projection without counting stored content twice", () => {
+    const repeatedResult = "expensive result ".repeat(2_000);
+    const message: NcpMessage = {
+      id: "assistant-tool-result",
+      sessionId: SESSION_ID,
+      role: "assistant",
+      status: "final",
+      timestamp: "2026-06-05T17:12:18.000Z",
+      parts: [{
+        type: "tool-invocation",
+        toolName: "read_file",
+        toolCallId: "call-read",
+        state: "result",
+        args: { path: "/tmp/large.txt" },
+        result: repeatedResult,
+        resultContentItems: [{ type: "input_text", text: repeatedResult }],
+      }],
+    };
+    const service = new ContextCompactionPreflightService(
+      createAgentManager(100_000),
+    );
+
+    const preview = service.preview({
+      requestMetadata: {},
+      sessionId: SESSION_ID,
+      sessionMessages: [message],
+      storedAgentId: "main",
+      storedMetadata: {},
+    });
+    const expected = new ContextWindowBudgetService().evaluate({
+      messages: ncpMessageToOpenAiMessages(message),
+      contextTokens: 100_000,
+      reservedContextTokens: 0,
+    });
+
+    expect(preview?.usedContextTokens).toBe(expected.estimatedTokens);
+    expect(preview?.usedContextTokens).toBeLessThan(
+      estimateInputTokens([repeatedResult, repeatedResult]),
+    );
+  });
+
   it("does not call the summary provider when tool schemas already exhaust the compacted input budget", async () => {
     const providerManager = {
       chat: vi.fn(async () => createSummaryResponse()),

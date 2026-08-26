@@ -53,7 +53,7 @@ function createSessionCommandFixture(params: {
         run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
       }),
     } as never,
-    { getDefaultAgentId: () => 'main' } as never,
+    { getDefaultAgentId: () => 'main', resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
     {
       getDefaultModel: () => 'test-model',
       getModelMaxTokens: () => 12000,

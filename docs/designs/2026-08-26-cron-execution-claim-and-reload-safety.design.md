@@ -1,5 +1,7 @@
 # Cron 执行领取与热重载安全设计
 
+> 状态：本文保留最初的单进程热重载根因与不变量；跨进程范围已由 [运行时成本失控三项治理设计](2026-08-26-runtime-cost-containment.design.md) 扩展并取代本文的“延后/非目标”判断。当前实现以跨进程计划槽 claim 为执行所有权事实源，不再以 `executingJobIds` 为最终方案。
+
 ## 背景与证据
 
 会话 `ncp-mt8yjtiz-70rq3wln` 中的一次性任务 `1707a266` 在 2026-08-26 09:54 至 09:57（Asia/Shanghai）之间产生了 21 个不同的 NCP run。每次 run 都继承了会话模型 `codex-sub/gpt-5.6-sol`，并实际执行了 `exec`、`manage_observations`、`cron` 等工具，因此模型选择和 agent/skill runtime 不是本次故障的第一个错误边界。

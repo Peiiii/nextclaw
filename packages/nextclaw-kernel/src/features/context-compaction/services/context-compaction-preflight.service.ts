@@ -13,10 +13,13 @@ import {
   type ContextWindowSnapshot,
 } from "@nextclaw/core";
 import { type NcpMessage, type NcpTool } from "@nextclaw/ncp";
+import {
+  ncpMessageToOpenAiMessages,
+  type LocalAssetStore,
+} from "@nextclaw/ncp-agent-runtime";
 import { CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import { toLegacyMessages } from "@kernel/utils/ncp-message-bridge.utils.js";
 import {
   buildContextBlockInputMessages,
   estimateToolInputTokens,
@@ -28,6 +31,7 @@ import {
   CONTEXT_COMPACTION_CONTINUATION_TEXT,
   CONTEXT_COMPACTION_SYSTEM_PREAMBLE,
   createContextCompactionMessageId,
+  isContextCompactionProjectionMessage,
   isContextCompactionTimelineMessage,
   readLatestContextCompactionCheckpoint,
 } from "@kernel/features/context-compaction/utils/context-compaction.utils.js";
@@ -70,6 +74,19 @@ type ResolvedCompactionProfile = {
   contextTokens: number;
   reservedContextTokens: number;
 };
+
+function toCompactionModelMessages(
+  messages: readonly NcpMessage[],
+  assetStore: LocalAssetStore | null,
+): Record<string, unknown>[] {
+  return messages.flatMap((message) =>
+    ncpMessageToOpenAiMessages(message, { assetStore }).map((providerMessage) => ({
+      ...providerMessage,
+      ncp_message_id: message.id,
+      timestamp: message.timestamp,
+    })),
+  );
+}
 
 function estimateCompactionProjectionOverhead(phase: ContextCompactionPhase): number {
   const summaryPlanOverhead = estimateInputTokens({ role: "user", content: "" });
@@ -176,6 +193,7 @@ export class ContextCompactionPreflightService {
   constructor(
     private readonly agentManager: AgentManager,
     providerManager?: LlmProviderRuntime,
+    private readonly assetStore: LocalAssetStore | null = null,
   ) {
     this.summaryGenerationService = new ContextCompactionSummaryGenerationService(providerManager);
   }
@@ -222,7 +240,7 @@ export class ContextCompactionPreflightService {
       ?? contextBlockInputTokens + toolInputTokens;
     const messages = [
       ...(fixedInputTokens === undefined ? contextBlockMessages : []),
-      ...toLegacyMessages(projectedMessages) as Record<string, unknown>[],
+      ...toCompactionModelMessages(projectedMessages, this.assetStore),
     ];
     const budget = this.contextWindowBudgetService.evaluate({
       messages,
@@ -291,7 +309,7 @@ export class ContextCompactionPreflightService {
     const contextBlockMessages = buildContextBlockInputMessages(contextBlocks);
     const messages = [
       ...contextBlockMessages,
-      ...toLegacyMessages(projectedMessages) as Record<string, unknown>[],
+      ...toCompactionModelMessages(projectedMessages, this.assetStore),
     ];
     const preservableUserMessageIds = ncpMessages.flatMap((message) =>
       message.role === "user" ? [message.id] : [],
@@ -308,6 +326,9 @@ export class ContextCompactionPreflightService {
       ? null
       : this.compactionService.prepareForModelInput({
           messages,
+          coverLeadingSystemMessage:
+            contextBlockMessages.length === 0
+            && isContextCompactionProjectionMessage(projectedMessages[0]),
           contextTokens,
           compactionThresholdTokens: trigger === "manual" ? 0 : budget.triggerTokens,
           fixedInputTokens,
@@ -424,7 +445,7 @@ export class ContextCompactionPreflightService {
     const budget = this.contextWindowBudgetService.evaluate({
       messages: [
         ...pending.contextBlockMessages,
-        ...toLegacyMessages(projectedMessages, { serviceRole: "system" }) as Record<string, unknown>[],
+        ...toCompactionModelMessages(projectedMessages, this.assetStore),
       ],
       contextTokens: pending.contextTokens,
       fixedInputTokens: pending.plan.fixedInputTokens,

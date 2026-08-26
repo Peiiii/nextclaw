@@ -64,6 +64,7 @@ export async function* runModelRoundWithRecovery(
       executeToolCall: input.executeToolCall,
       supportsParallelToolCalls: input.supportsParallelToolCalls,
       toRunErrorEvent: (error) => input.toRunErrorEvent(error, input.runStartedAt),
+      toolIterationBudget: input.executionManager.toolIterationBudget,
     });
     try {
       const encoded = input.streamEncoder.encode(
