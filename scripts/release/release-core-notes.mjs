@@ -18,6 +18,68 @@ function extractVersionSection(changelog, version) {
     .trim();
 }
 
+function readLocalizedText(value, locale) {
+  if (typeof value === "string") return value.trim();
+  return typeof value?.[locale] === "string" ? value[locale].trim() : "";
+}
+
+function formatStructuredSections(sections, locale) {
+  return sections.flatMap((section) => {
+    const title = readLocalizedText(section?.title, locale);
+    const items = Array.isArray(section?.items)
+      ? section.items
+          .map((item) => {
+            const itemTitle = readLocalizedText(item?.title, locale);
+            const body = readLocalizedText(item?.body, locale);
+            if (!itemTitle || !body) return null;
+            const separator = locale === "zh-CN" ? "：" : ": ";
+            return `- **${itemTitle}**${separator}${body}`;
+          })
+          .filter(Boolean)
+      : [];
+    return title && items.length > 0
+      ? [`### ${title}`, "", ...items, ""]
+      : [];
+  });
+}
+
+function buildStructuredReleaseBody(metadata, version) {
+  const sections = Array.isArray(metadata?.sections) ? metadata.sections : [];
+  const chineseSummary = readLocalizedText(metadata?.summary, "zh-CN");
+  const englishSummary = readLocalizedText(metadata?.summary, "en-US");
+  const chineseSections = formatStructuredSections(sections, "zh-CN");
+  const englishSections = formatStructuredSections(sections, "en-US");
+  const chineseUrl = metadata?.links?.html?.["zh-CN"]?.trim();
+  const englishUrl = metadata?.links?.html?.["en-US"]?.trim();
+  if (
+    !chineseSummary ||
+    !englishSummary ||
+    chineseSections.length === 0 ||
+    englishSections.length === 0 ||
+    !chineseUrl ||
+    !englishUrl
+  ) {
+    return null;
+  }
+  return [
+    `# NextClaw v${version}`,
+    "",
+    "## 中文",
+    "",
+    chineseSummary,
+    "",
+    ...chineseSections,
+    `[查看完整更新说明](${chineseUrl})`,
+    "",
+    "## English",
+    "",
+    englishSummary,
+    "",
+    ...englishSections,
+    `[View the full release notes](${englishUrl})`,
+  ].join("\n");
+}
+
 export function resolveCoreReleaseNotes(options) {
   const {
     changelog = "",
@@ -36,29 +98,35 @@ export function resolveCoreReleaseNotes(options) {
     structuredMetadata?.links?.html?.["zh-CN"] ??
     null;
   const releaseNotesUrl = structuredUrl?.trim() || githubReleaseUrl;
+  const structuredBody = buildStructuredReleaseBody(
+    structuredMetadata,
+    version,
+  );
   const changes = extractVersionSection(changelog, version);
   const changeBlock =
     changes ||
     "- Published the verified package and runtime artifacts for this version.";
   return {
     contentReady: Boolean(structuredUrl?.trim()),
-    notes: [
-      `# NextClaw v${version}`,
-      "",
-      "## 中文",
-      "",
-      "本次核心版本已通过确定性发布流水线完成。高质量中文产品说明如尚未就绪，将在同一版本下补充，不会重复发布软件包或更新包。",
-      "",
-      `[查看当前版本说明](${releaseNotesUrl})`,
-      "",
-      "## English",
-      "",
-      "This core release completed the deterministic release pipeline. If the full product narrative is not ready yet, it will be added to this same version without republishing packages or update bundles.",
-      "",
-      changeBlock,
-      "",
-      `[View the current release notes](${releaseNotesUrl})`,
-    ].join("\n"),
+    notes:
+      structuredBody ??
+      [
+        `# NextClaw v${version}`,
+        "",
+        "## 中文",
+        "",
+        "本次核心版本已通过确定性发布流水线完成。完整产品说明尚未就绪时，会在同一版本下补充，不会重复发布软件包或更新包。",
+        "",
+        `[查看当前版本说明](${releaseNotesUrl})`,
+        "",
+        "## English",
+        "",
+        "This core release completed the deterministic release pipeline. If the full product narrative is not ready yet, it will be added to this same version without republishing packages or update bundles.",
+        "",
+        changeBlock,
+        "",
+        `[View the current release notes](${releaseNotesUrl})`,
+      ].join("\n"),
     releaseNotesUrl,
   };
 }

@@ -25,14 +25,17 @@ function assertRuntimeManifest({ expectedReleaseNotesUrl, expectedVersion, label
   }
 }
 
-function verifyGhPagesRuntimeManifests({ channel, expectedReleaseNotesUrl, expectedVersion, repo, run, targets }) {
+function inspectGhPagesRuntimeManifests({ channel, expectedReleaseNotesUrl, expectedVersion, repo, run, targets }) {
   for (const target of targets) {
-    const manifest = readGhPagesManifest({
-      channel,
-      repo,
-      run,
-      target
-    });
+    let manifest;
+    try {
+      manifest = readGhPagesManifest({ channel, repo, run, target });
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error), target };
+    }
+    if (manifest.latestVersion !== expectedVersion) {
+      return { latestVersion: manifest.latestVersion, target };
+    }
     assertRuntimeManifest({
       expectedReleaseNotesUrl,
       expectedVersion,
@@ -41,6 +44,7 @@ function verifyGhPagesRuntimeManifests({ channel, expectedReleaseNotesUrl, expec
       target
     });
   }
+  return null;
 }
 
 function readPublicManifest({ channel, readJsonCommand, target }) {
@@ -75,23 +79,51 @@ export async function verifyPublicRuntimeManifests({
   sleep,
   targets
 }) {
-  verifyGhPagesRuntimeManifests({
+  await waitForGhPagesRuntimeManifests({
     channel,
     expectedReleaseNotesUrl,
     expectedVersion,
     repo,
     run,
+    sleep,
     targets
   });
+  return await waitForPublicRuntimeManifests({
+    channel,
+    expectedReleaseNotesUrl,
+    expectedVersion,
+    readJsonCommand,
+    repo,
+    sleep,
+    targets
+  });
+}
 
+async function waitForGhPagesRuntimeManifests(options) {
+  let ghPagesPending = null;
+  for (let attempt = 0; attempt < 36; attempt += 1) {
+    ghPagesPending = inspectGhPagesRuntimeManifests(options);
+    if (!ghPagesPending) break;
+    if (attempt < 35) await options.sleep(5000);
+  }
+  if (ghPagesPending) {
+    throw new Error(
+      `Timed out waiting for gh-pages runtime manifest ${options.expectedVersion} for ${ghPagesPending.target.platform}-${ghPagesPending.target.arch}; last observation: ${ghPagesPending.error ?? `version ${ghPagesPending.latestVersion ?? "<missing>"}`}.`
+    );
+  }
+}
+
+async function waitForPublicRuntimeManifests(options) {
+  const { channel, expectedReleaseNotesUrl, expectedVersion, readJsonCommand, repo, sleep, targets } = options;
   let lastPagesStatus = "unknown";
   let lastMismatch = null;
 
   for (let attempt = 0; attempt < 36; attempt += 1) {
-    lastPagesStatus = readGitHubPagesStatus({
-      readJsonCommand,
-      repo
-    });
+    try {
+      lastPagesStatus = readGitHubPagesStatus({ readJsonCommand, repo });
+    } catch {
+      lastPagesStatus = "unknown";
+    }
     lastMismatch = null;
 
     for (const target of targets) {
@@ -110,23 +142,21 @@ export async function verifyPublicRuntimeManifests({
         break;
       }
       const manifest = publicManifestResult.manifest;
-      try {
-        assertRuntimeManifest({
-          expectedReleaseNotesUrl,
-          expectedVersion,
-          label: "Public manifest",
-          manifest,
-          target
-        });
-      } catch (error) {
+      if (manifest.latestVersion !== expectedVersion) {
         lastMismatch = {
-          error: error instanceof Error ? error.message : String(error),
           expectedVersion,
           latestVersion: manifest.latestVersion,
           target
         };
         break;
       }
+      assertRuntimeManifest({
+        expectedReleaseNotesUrl,
+        expectedVersion,
+        label: "Public manifest",
+        manifest,
+        target
+      });
     }
 
     if (!lastMismatch) {

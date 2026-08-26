@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
@@ -129,6 +130,10 @@ function readCurrentBranch() {
   }).trim();
 }
 
+function readHeadSha() {
+  return run("git", ["rev-parse", "HEAD"], { capture: true }).trim();
+}
+
 function readPublishedVersion(channel) {
   const packageSpec = channel === "beta" ? "nextclaw@beta" : "nextclaw@latest";
   return run("npm", ["view", packageSpec, "version"], { capture: true }).trim();
@@ -144,7 +149,19 @@ function sleep(ms) {
   });
 }
 
-async function waitForWorkflowRun(branch, startedAtMs) {
+export function selectRuntimeWorkflowRun(runs, dispatchId, startedAtMs) {
+  return runs.find((entry) => {
+    const createdAtMs = Date.parse(entry.createdAt ?? "");
+    return (
+      entry.event === "workflow_dispatch" &&
+      String(entry.displayTitle ?? "").includes(`dispatch=${dispatchId}`) &&
+      Number.isFinite(createdAtMs) &&
+      createdAtMs >= startedAtMs - 60_000
+    );
+  });
+}
+
+async function waitForWorkflowRun(dispatchId, startedAtMs) {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const runs = readJsonCommand("gh", [
       "run",
@@ -153,22 +170,12 @@ async function waitForWorkflowRun(branch, startedAtMs) {
       REPO,
       "--workflow",
       RUNTIME_WORKFLOW,
-      "--branch",
-      branch,
       "--limit",
       "20",
       "--json",
-      "databaseId,createdAt,event,headBranch,status,conclusion,url",
+      "databaseId,createdAt,displayTitle,event,headSha,status,conclusion,url",
     ]);
-    const matchingRun = runs.find((entry) => {
-      const createdAtMs = Date.parse(entry.createdAt ?? "");
-      return (
-        entry.event === "workflow_dispatch" &&
-        entry.headBranch === branch &&
-        Number.isFinite(createdAtMs) &&
-        createdAtMs >= startedAtMs - 60_000
-      );
-    });
+    const matchingRun = selectRuntimeWorkflowRun(runs, dispatchId, startedAtMs);
     if (matchingRun) {
       return matchingRun;
     }
@@ -176,7 +183,7 @@ async function waitForWorkflowRun(branch, startedAtMs) {
   }
 
   throw new Error(
-    `Timed out waiting for ${RUNTIME_WORKFLOW} to appear on branch ${branch}.`,
+    `Timed out waiting for ${RUNTIME_WORKFLOW} dispatch ${dispatchId}.`,
   );
 }
 
@@ -185,6 +192,8 @@ function triggerRuntimeWorkflow({
   channel,
   minimumLauncherVersionOverride,
   releaseTag,
+  releaseTarget,
+  dispatchId,
 }) {
   const args = [
     "workflow",
@@ -198,6 +207,10 @@ function triggerRuntimeWorkflow({
     `channel=${channel}`,
     "-f",
     `release_tag=${releaseTag}`,
+    "-f",
+    `release_target=${releaseTarget}`,
+    "-f",
+    `dispatch_id=${dispatchId}`,
   ];
   if (minimumLauncherVersionOverride) {
     args.push(
@@ -228,6 +241,14 @@ function watchWorkflowRun(runId) {
     );
   }
   return runSummary;
+}
+
+async function dispatchAndWaitRuntimeWorkflow(options) {
+  const dispatchStartedAtMs = Date.now();
+  const dispatchId = `npm-runtime-${randomUUID()}`;
+  triggerRuntimeWorkflow({ ...options, dispatchId });
+  const workflowRun = await waitForWorkflowRun(dispatchId, dispatchStartedAtMs);
+  return watchWorkflowRun(workflowRun.databaseId);
 }
 
 function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion, channel) {
@@ -293,6 +314,7 @@ async function main() {
 
   const channel = normalizeChannel(options.channel);
   const branch = options.branch ?? readCurrentBranch();
+  const releaseTarget = readHeadSha();
   const nextclawVersion =
     options.version?.trim() || readPublishedVersion(channel);
   if (!nextclawVersion) {
@@ -319,15 +341,13 @@ async function main() {
     return;
   }
 
-  const dispatchStartedAtMs = Date.now();
-  triggerRuntimeWorkflow({
+  const runtimeRunSummary = await dispatchAndWaitRuntimeWorkflow({
     branch,
     channel,
     minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
     releaseTag,
+    releaseTarget,
   });
-  const workflowRun = await waitForWorkflowRun(branch, dispatchStartedAtMs);
-  const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(
     releaseTag,
     nextclawVersion,

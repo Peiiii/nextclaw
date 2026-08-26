@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.44.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-26-nextclaw-v0-44-0.md",
+        "apps/docs/en/notes/2026-08-26-nextclaw-v0-44-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.44.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "This release improves in-product document navigation, session context, steering reliability, and privacy reporting without changing the website's product positioning or download structure."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.44.0 is out.\n\nNavigate long Markdown files from a heading outline, inspect session context on hover, and steer running tasks more reliably—with anonymous activity summaries that use no stable device ID.\nhttps://docs.nextclaw.io/en/notes/2026-08-26-nextclaw-v0-44-0",
+      "imagePath": "images/screenshots/nextclaw-markdown-outline-navigation-cn.png",
+      "imageAlt": "NextClaw Markdown preview showing a heading outline for direct section navigation",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-26-nextclaw-v0-44-0"
+    }
+  }
+}
