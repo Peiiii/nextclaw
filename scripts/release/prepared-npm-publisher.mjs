@@ -8,9 +8,9 @@ const execFileAsync = promisify(execFile);
 const ROOT_DIR = process.cwd();
 const DEFAULT_PUBLISH_CONCURRENCY = 12;
 const DEFAULT_VERIFY_CONCURRENCY = 8;
-const DEFAULT_VERIFY_ATTEMPTS = 12;
-const DEFAULT_VERIFY_DELAY_MS = 1000;
-const DEFAULT_VERIFY_MAX_DELAY_MS = 15000;
+export const DEFAULT_VERIFY_ATTEMPTS = 64;
+export const DEFAULT_VERIFY_DELAY_MS = 1000;
+export const DEFAULT_VERIFY_MAX_DELAY_MS = 15000;
 
 export async function mapWithConcurrency(items, concurrency, worker) {
   if (!Number.isInteger(concurrency) || concurrency < 1) {

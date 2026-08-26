@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-25T03:11:10.775Z",
+  "generatedAt": "2026-08-25T17:13:37.676Z",
   "hero": {
     "currentLoc": 267677,
     "testLoc": 109760,
     "trackedFiles": 2821,
-    "recentCommitCount": 422,
+    "recentCommitCount": 437,
     "activeDays30": 30,
     "recentReleaseCount": 51,
     "latestReleaseDate": "2026-08-25",
-    "latestNoteDate": "2026-08-25",
+    "latestNoteDate": "2026-08-26",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2626278,
     "basePercentOfBenchmark": 10.19,
@@ -1303,7 +1303,7 @@ export default {
       {
         "key": "2026-08-25",
         "label": "08-25",
-        "value": 23
+        "value": 38
       }
     ],
     "commitWeekly": [
@@ -1365,7 +1365,7 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 46
+        "value": 62
       }
     ],
     "releaseMonthly": [
@@ -1499,7 +1499,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-25",
-        "tagCount": 44,
+        "tagCount": 45,
         "sampleTags": [
           "v0.42.3-desktop.5",
           "@nextclaw/channel-extension-dingtalk@0.2.34",
@@ -1508,7 +1508,7 @@ export default {
       },
       {
         "date": "2026-08-24",
-        "tagCount": 88,
+        "tagCount": 92,
         "sampleTags": [
           "@nextclaw/app-runtime@0.13.2-beta.0",
           "@nextclaw/channel-extension-dingtalk@0.2.33-beta.0",
@@ -1535,7 +1535,7 @@ export default {
       },
       {
         "date": "2026-08-20",
-        "tagCount": 30,
+        "tagCount": 31,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.7.0",
           "@nextclaw/channel-extension-dingtalk@0.2.31",
@@ -1555,6 +1555,25 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-26-nextclaw-v0-44-0",
+        "date": "2026-08-26",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-26 · NextClaw v0.44.0",
+          "description": "Faster Markdown navigation, clearer session context, and more reliable mid-run steering.",
+          "href": "/en/notes/2026-08-26-nextclaw-v0-44-0"
+        },
+        "zh": {
+          "title": "2026-08-26 · NextClaw v0.44.0",
+          "description": "Markdown 长文浏览更快，会话侧栏信息更清楚，运行中插话也更稳定。",
+          "href": "/zh/notes/2026-08-26-nextclaw-v0-44-0"
+        }
+      },
       {
         "slug": "2026-08-25-nextclaw-v0-43-0",
         "date": "2026-08-25",
@@ -2633,7 +2652,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-25T03:11:08.692Z",
     "sourceCount": {
-      "notes": 52,
+      "notes": 53,
       "scopes": 8
     }
   }

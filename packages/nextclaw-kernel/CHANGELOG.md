@@ -1,5 +1,17 @@
 # @nextclaw/kernel
 
+## 0.10.2
+
+### Patch Changes
+
+- 8716fb9: 统一运行中直接插话与排队后插话的状态迁移、消息展示和运行原数据，避免直接插话被误显示为普通消息，或完成后缺少“更多操作”入口。
+- Updated dependencies [667c4fd]
+  - @nextclaw/core@0.17.9
+  - @nextclaw/mcp@0.3.36
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.36
+  - @nextclaw/runtime@0.4.35
+  - @nextclaw/ncp-mcp@0.2.36
+
 ## 0.10.1
 
 ### Patch Changes

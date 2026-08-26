@@ -1,4 +1,5 @@
 name: desktop-release-preflight
+run-name: desktop-release-preflight target=${{ inputs.target_sha }} dispatch=${{ inputs.dispatch_id }}
 
 on:
   workflow_dispatch:
@@ -24,6 +25,10 @@ on:
         type: string
       target_sha:
         description: "Commit SHA the release tag will target"
+        required: true
+        type: string
+      dispatch_id:
+        description: "Unique caller identity used to locate this exact dispatch"
         required: true
         type: string
 
@@ -114,7 +119,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL "https://peiiii.github.io/nextclaw/desktop-updates/update-bundle-public.pem?preflight=${GITHUB_RUN_ID}" \
+          curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors --connect-timeout 15 --max-time 60 \
+            "https://peiiii.github.io/nextclaw/desktop-updates/update-bundle-public.pem?preflight=${GITHUB_RUN_ID}" \
             -o /tmp/published-update-bundle-public.pem
           node <<'NODE'
           const { createPublicKey } = require('node:crypto');
