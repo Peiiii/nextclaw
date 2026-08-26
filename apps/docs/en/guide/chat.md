@@ -53,6 +53,12 @@ Press `Command + Enter` on macOS or `Ctrl + Enter` on Windows and Linux to inser
 
 Open **More actions** on a message to inspect who started the run, its entry point, source session and message, source model, model used for this run, tool call, target run ID, and retained identifiers for a channel, scheduled job, or observation. Assistant messages also show token usage and outcome so you can connect the trigger to its result.
 
+## Inspect session token usage
+
+Open the session workspace to see recorded Agent rounds, model calls, calls with reported usage, and input, output, cached-input, and total tokens. The per-model breakdown shows the rounds and calls for each model, so you can tell whether a task completed in a few long calls or through multiple tool loops.
+
+Cache read ratio uses input tokens only: cached-read tokens divided by all input tokens. Output tokens are shown separately and do not affect the ratio. The ratio appears only when the model reports cache usage.
+
 Global completion notifications are reserved for background replies started directly by a person. Agent delegation, scheduled jobs, observations, and other automated runs remain available in their sessions without an extra completion notification.
 
 ## Long tasks and context compaction

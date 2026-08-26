@@ -66,12 +66,15 @@ beforeEach(() => {
   mocks.query.isError = false;
 });
 
-it('shows totals, cache hit rate, and usage grouped by model', () => {
+it('shows totals, model calls, cache read ratio, and usage grouped by model', () => {
   render(<ChatSessionTokenUsage sessionKey="parent-1" />);
 
   expect(screen.getByText('Token usage')).toBeTruthy();
   expect(screen.getByText('1,490')).toBeTruthy();
   expect(screen.getAllByText('40%').length).toBeGreaterThan(0);
+  expect(screen.getByText('Model calls')).toBeTruthy();
+  expect(screen.getByText('Reported calls')).toBeTruthy();
+  expect(screen.getByText('2 agent rounds · 3 model calls · Cache read ratio: 40%')).toBeTruthy();
   expect(screen.getByText('openai/gpt-5')).toBeTruthy();
   expect(screen.getByText('anthropic/claude-sonnet-4')).toBeTruthy();
   expect(screen.getAllByText('Partial usage')).toHaveLength(2);

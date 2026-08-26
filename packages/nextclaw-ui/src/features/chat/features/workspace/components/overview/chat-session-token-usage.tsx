@@ -8,6 +8,10 @@ function formatTokenCount(value: number | null): string {
   return value === null ? '—' : new Intl.NumberFormat().format(value);
 }
 
+function formatCount(value: number | null): string {
+  return value === null ? '—' : new Intl.NumberFormat().format(value);
+}
+
 function formatCacheHitRate(value: number | null): string {
   return value === null
     ? '—'
@@ -119,6 +123,14 @@ export function ChatSessionTokenUsage({ sessionKey }: { sessionKey: string | nul
               label={t('chatWorkspaceTokenUsageRuns')}
               value={String(usage.runCount)}
             />
+            <TokenUsageMetric
+              label={t('chatWorkspaceTokenUsageModelCalls')}
+              value={formatCount(usage.modelCallCount)}
+            />
+            <TokenUsageMetric
+              label={t('chatWorkspaceTokenUsageReportedModelCalls')}
+              value={formatCount(usage.reportedModelCallCount)}
+            />
           </div>
           <div>
             <div className="mb-1.5 text-[11px] font-medium text-gray-700">
@@ -135,6 +147,11 @@ export function ChatSessionTokenUsage({ sessionKey }: { sessionKey: string | nul
                   </div>
                   <div className="mt-1 text-[10px] text-gray-500">
                     {t('chatWorkspaceTokenUsageModelRunCount').replace('{count}', String(modelUsage.runCount))}
+                    {' · '}
+                    {t('chatWorkspaceTokenUsageModelCallCount').replace(
+                      '{count}',
+                      formatCount(modelUsage.modelCallCount),
+                    )}
                     {' · '}
                     {t('chatWorkspaceTokenUsageModelCacheHitRate').replace(
                       '{rate}',
