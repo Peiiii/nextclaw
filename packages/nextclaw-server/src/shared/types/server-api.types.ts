@@ -22,6 +22,7 @@ export type * from "@nextclaw-server/features/panel-apps/index.js";
 export type * from "@nextclaw-server/features/preferences/index.js";
 export type * from "@nextclaw-server/features/service-apps/index.js";
 export type * from "@nextclaw-server/features/sessions/types/session-observation-api.types.js";
+export type * from "./server-api-mcp.types.js";
 export type * from "./server-api-cron.types.js";
 export type * from "./server-api-remote.types.js";
 

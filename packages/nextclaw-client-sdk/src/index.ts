@@ -5,6 +5,7 @@ export {
 } from "./nextclaw-app-client.utils.js";
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
+export { McpService } from "./services/mcp.service.js";
 export {
   FeatureControlsService,
   type ProductFeatureControlsView,
@@ -99,6 +100,9 @@ export type {
   CronListView,
   CronRunRequest,
   MarketplaceInstalledView,
+  McpConnectionCreateResult,
+  McpConnectionRequest,
+  McpConnectionTestResult,
   MarketplaceInstallRequest,
   MarketplaceInstallResult,
   MarketplaceItemType,

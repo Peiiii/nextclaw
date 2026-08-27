@@ -9,7 +9,9 @@ import type {
 } from "@/shared/lib/api";
 import {
   fetchMcpMarketplaceContent,
+  createMcpConnection,
   doctorMcpMarketplaceItem,
+  testMcpConnection,
 } from "@/shared/lib/api";
 import { SettingsPage } from "@/shared/components/settings/settings-page";
 import {
@@ -19,6 +21,7 @@ import {
 } from "@/features/marketplace/components/marketplace-page-parts";
 import { buildLocaleFallbacks } from "@/features/marketplace/components/marketplace-localization";
 import { McpMarketplaceCard } from "@/features/marketplace/components/mcp/mcp-marketplace-card";
+import { McpConnectionDialog } from "@/features/marketplace/components/mcp/mcp-connection-dialog";
 import {
   buildInstalledRecordLookup,
   findInstalledRecordForItem,
@@ -46,6 +49,7 @@ import { t } from "@/shared/lib/i18n";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
 import { cn } from "@/shared/lib/utils";
 import { Sparkles, PackageCheck } from "lucide-react";
+import { Button } from "@/shared/components/ui/button";
 
 type ScopeType = "catalog" | "installed";
 
@@ -61,6 +65,7 @@ export function McpMarketplacePage() {
   const [doctorTarget, setDoctorTarget] = useState<string | null>(null);
   const [doctorResult, setDoctorResult] =
     useState<MarketplaceMcpDoctorResult | null>(null);
+  const [connectionOpen, setConnectionOpen] = useState(false);
   const { language } = useI18n();
   const docBrowser = useDocBrowser();
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -110,6 +115,8 @@ export function McpMarketplacePage() {
       setDoctorResult(result);
     },
   });
+  const testConnectionMutation = useMutation({ mutationFn: testMcpConnection });
+  const createConnectionMutation = useMutation({ mutationFn: createMcpConnection });
 
   const installedRecordLookup = useMemo(() => {
     return buildInstalledRecordLookup(installedQuery.data?.records ?? []);
@@ -325,6 +332,9 @@ export function McpMarketplacePage() {
                   : (installedQuery.data?.total ?? 0)}
               </span>
             </h3>
+            <Button type="button" size="sm" onClick={() => setConnectionOpen(true)}>
+              {t("mcpConnectionOpen")}
+            </Button>
           </div>
 
           <div
@@ -441,13 +451,21 @@ export function McpMarketplacePage() {
           </div>
         </section>
 
-      <InstallDialog
+        <InstallDialog
         item={installingItem}
         open={Boolean(installingItem)}
         pending={installMutation.isPending}
         onOpenChange={(open) => !open && setInstallingItem(null)}
         onSubmit={handleInstall}
-      />
+        />
+        <McpConnectionDialog
+          open={connectionOpen}
+          testing={testConnectionMutation.isPending}
+          saving={createConnectionMutation.isPending}
+          onOpenChange={setConnectionOpen}
+          onTest={(request) => testConnectionMutation.mutateAsync(request)}
+          onSave={async (request) => { await createConnectionMutation.mutateAsync(request); }}
+        />
       <DoctorDialog
         open={Boolean(doctorTarget)}
         targetName={doctorTarget}

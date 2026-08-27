@@ -8,6 +8,7 @@ export * from './managers/client.manager';
 export * from './utils/config.utils';
 export * from './utils/marketplace.utils';
 export * from './utils/mcp-marketplace.utils';
+export * from './utils/mcp-connection.utils';
 export * from './utils/ncp-attachments.utils';
 export * from './utils/ncp-session.utils';
 export * from './projects/project.utils';

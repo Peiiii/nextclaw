@@ -27,6 +27,7 @@ import {
   resolveMarketplaceBaseUrls,
   SkillMarketplaceController,
 } from "@nextclaw-server/features/marketplace/index.js";
+import { McpRoutesController, mountMcpRoutes } from "@nextclaw-server/features/mcp/index.js";
 import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/index.js";
 import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
@@ -86,6 +87,7 @@ function createUiRouteControllers(
     runtimeUpdate: runtimeUpdate ? new RuntimeUpdateRoutesController(runtimeUpdate) : null,
     skillMarketplace: new SkillMarketplaceController(options, marketplaceBaseUrls),
     mcpMarketplace: new McpMarketplaceController(options, marketplaceBaseUrls),
+    mcp: new McpRoutesController(options),
   };
 }
 
@@ -476,6 +478,7 @@ class UiRouteRegistry {
       skill: this.controllers.skillMarketplace,
       mcp: this.controllers.mcpMarketplace,
     });
+    mountMcpRoutes(this.app, this.controllers.mcp);
   };
 }
 

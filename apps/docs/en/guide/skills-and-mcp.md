@@ -14,6 +14,10 @@ Browse and install skills from the marketplace, or ask NextClaw to package a pro
 
 An MCP server can provide tools, resources, and access to an external system. After connecting one, inspect its health, available tools, and permission scope. Use the MCP diagnostic view when a connection fails.
 
+In addition to installing an MCP server from the marketplace, open **Settings → MCP** and choose **Connect external MCP**. Enter a command and arguments for a local server, or an address, headers, and timeout for a remote server. Test the connection before saving it, and connect only to servers you trust: local servers execute commands and remote servers can access external systems and data.
+
+The CLI and an agent can configure the same MCP servers without bypassing the UI or editing configuration files. For example, run `nextclaw mcp add local-tools -- npx -y <mcp-package>` for a local server, or `nextclaw mcp add remote-tools --transport http --url https://example.com/mcp --header Authorization='Bearer <token>'` for a remote server. Then use `nextclaw mcp doctor <name>` to inspect connectivity and tools, and `list`, `enable`, `disable`, or `remove` to manage it. The CLI and UI share configuration and live reload behavior.
+
 ## Which one do you need?
 
 - You have the tools but repeat the method: write a skill.

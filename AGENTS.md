@@ -31,7 +31,7 @@
 - 未经用户明确要求，不得 commit、push、建 PR、发布、部署或执行破坏性 Git 操作。
 - 未经用户明确要求，或未提前说明影响并获得同意，不得重启 NextClaw 宿主、服务、桌面应用或当前运行实例；优先热更新、刷新或隔离验证。
 - 工作区可能有用户或其它任务的改动；不得覆盖、revert、格式化或混入无关改动。触达已修改文件前先读懂现状并做双向范围审计。
-- 默认主工作区必须常驻本地 `master` 并作为可自动快进的主线镜像；会产生提交、可能与交付或发布并发的开发默认进入隔离分支/worktree，不在该镜像长期堆本地提交。发布和交付从冻结的远程 `master` 运行，完成后必须调用 `pnpm release:reconcile:mainline`：协调器在隔离 worktree 合并已提交分叉、普通 push，并在不覆盖活跃 WIP 的前提下自动快进本地镜像；不得 rebase/stash/reset 活跃工作区，无法立即快进时由自动 retry worker 接管，不把同步动作留给用户。
+- 默认主工作区必须常驻本地 `master` 并作为可自动快进的主线镜像；任何改产品源码、测试、运行配置或用户文档的开发，开始实质编辑前默认进入隔离分支/worktree，即使本次不提交、不发布，也不得把并发 WIP 堆到主镜像。仅 L0 元信息/讨论文档，或用户明确指定当前 workspace/worktree 时可例外；例外要在首次编辑前说明。发布和交付从冻结的远程 `master` 运行，完成后必须调用 `pnpm release:reconcile:mainline`：协调器在隔离 worktree 合并已提交分叉、普通 push，并在不覆盖活跃 WIP 的前提下自动快进本地镜像；不得 rebase/stash/reset 活跃工作区，无法立即快进时由自动 retry worker 接管，不把同步动作留给用户。
 - 用户要求提交时，由 `development-delivery` 编排，先使用 `nextclaw-release-notes` 和 `nextclaw-iteration-log-governance` 判断 changeset、迭代记录和 NPM 记录，再精确 stage/commit。
 - 面向 `master` 的交付默认先进入本地 `master`，再由本地 `master` 推送 `origin/master`；例外必须说明回流方案。
 - 成功执行提交、推送、建分支或 PR 后，最终回复输出 Codex app 对应 directive。

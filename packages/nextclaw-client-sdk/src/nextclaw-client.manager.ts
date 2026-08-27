@@ -15,6 +15,7 @@ import { ConfigService } from "./services/config.service.js";
 import { MarketplaceService } from "./services/marketplace.service.js";
 import { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
 import { McpMarketplaceService } from "./services/mcp-marketplace.service.js";
+import { McpService } from "./services/mcp.service.js";
 import { PanelAppsClientService } from "./services/panel-apps.service.js";
 import { ProviderService } from "./services/providers.service.js";
 import { ProjectsService } from "./services/projects.service.js";
@@ -44,6 +45,7 @@ export class NextClawClient {
   readonly marketplace: MarketplaceService;
   readonly inboxDeliveries: InboxDeliveriesService;
   readonly mcpMarketplace: McpMarketplaceService;
+  readonly mcp: McpService;
   readonly panelApps: PanelAppsClientService;
   readonly providers: ProviderService;
   readonly projects: ProjectsService;
@@ -94,6 +96,7 @@ export class NextClawClient {
     this.marketplace = new MarketplaceService(requestService);
     this.inboxDeliveries = new InboxDeliveriesService(requestService);
     this.mcpMarketplace = new McpMarketplaceService(requestService);
+    this.mcp = new McpService(requestService);
     this.panelApps = new PanelAppsClientService(requestService);
     this.providers = new ProviderService(requestService);
     this.projects = new ProjectsService(requestService);
