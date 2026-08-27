@@ -126,6 +126,15 @@ export class ObservationManager {
     extensionId: string,
   ): Promise<void> => await this.events.onExtensionRuntimeReady(extensionId);
 
+  onDesktopObservationAuthorizationRevoked = async (input: {
+    extensionId: string;
+    subscriptionId: string;
+  }): Promise<void> => await this.events.onCapabilityAuthorizationRevoked(input);
+
+  onDesktopObservationAuthorizationGranted = async (input: {
+    extensionId: string;
+  }): Promise<void> => await this.events.onCapabilityAuthorizationGranted(input);
+
   buildContextTail = async (
     input: BuildContextTailInput,
   ): Promise<ObservationContextTail | undefined> =>

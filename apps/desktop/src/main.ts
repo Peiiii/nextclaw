@@ -75,7 +75,7 @@ class DesktopApplication {
     this.desktopRuntimeControlService = new DesktopRuntimeControlService({
       logger,
       restartRuntime: this.restartRuntime,
-      restartApplication: this.restartApplication
+      restartApplication: this.requestApplicationRestart
     });
     this.desktopUpdateManager = new DesktopUpdateManager({
       logger,
@@ -83,6 +83,7 @@ class DesktopApplication {
       updateCapability: installationProfile.updateCapability,
       bundleManager: this.bundleManager,
       presenceService: this.desktopPresenceService,
+      restartApplication: this.requestApplicationRestart,
       windowManager: this.windowManager,
       automaticCheckIntervalMs: resolveAutomaticUpdateCheckIntervalMs({
         verificationMode: process.env.NEXTCLAW_UPDATE_VERIFICATION_MODE === "1",
@@ -120,7 +121,6 @@ class DesktopApplication {
     await this.startReadyServices();
     await this.bootstrapOrQuit();
   };
-
   private handOffToDesktopGuardian = (): boolean => {
     const launched = launchDesktopGuardian({
       enabled: app.isPackaged,
@@ -173,14 +173,12 @@ class DesktopApplication {
       if (!this.desktopPresenceService.handleBeforeQuit(event)) {
         return;
       }
-      this.stopping = true;
-      this.desktopPresenceService.markQuitting();
-      this.hostDiagnostics.recordExitIntent("desktop-before-quit");
       event.preventDefault();
-      void this.stopRuntime().finally(() => {
-        this.dispose();
-        this.hostDiagnostics.complete({ outcome: "controlled-exit", code: 0 });
-        app.quit();
+      void this.shutdown({
+        outcome: "controlled-exit",
+        code: 0,
+        relaunch: false,
+        exitIntent: "desktop-before-quit"
       });
     });
   };
@@ -226,11 +224,12 @@ class DesktopApplication {
     const loaded = await this.bootstrapRuntimeAndWindow();
     if (!loaded) {
       logger.warn("Desktop bootstrap returned false. Quitting launcher.");
-      this.desktopPresenceService.markQuitting();
-      this.hostDiagnostics.recordExitIntent("desktop-bootstrap-failed");
-      this.dispose();
-      this.hostDiagnostics.complete({ outcome: "controlled-exit", code: 1 });
-      app.quit();
+      await this.shutdown({
+        outcome: "controlled-exit",
+        code: 1,
+        relaunch: false,
+        exitIntent: "desktop-bootstrap-failed"
+      });
     }
   };
   private bootstrapRuntimeAndWindow = async (allowPackagedSeedRepair = true): Promise<boolean> => {
@@ -276,7 +275,12 @@ class DesktopApplication {
             : {}),
         },
         {
-          packagedExtensionDir: runtimeCommand.pluginsDirectory
+          packagedExtensionDir: runtimeCommand.pluginsDirectory,
+          ...(runtimeCommand.source === "environment-override"
+            ? {
+                nativeModuleRegisterPath: join(app.getAppPath(), "scripts", "native", "desktop-native-module-register.mjs"), nativeModulesDir: join(app.getAppPath(), "build", "native-app-resources", "node_modules")
+              }
+            : {})
         }
       ),
       onExit: this.hostDiagnostics.recordRuntimeChildExit
@@ -341,16 +345,37 @@ class DesktopApplication {
     }
   };
 
-  private restartApplication = (): void => {
+  private requestApplicationRestart = (): Promise<void> =>
+    this.shutdown({
+      outcome: "controlled-exit",
+      code: 0,
+      relaunch: true,
+      exitIntent: "desktop-restart-requested"
+    });
+
+  private shutdown = async (params: {
+    outcome: "controlled-exit";
+    code: number;
+    relaunch: boolean;
+    exitIntent: string;
+  }): Promise<void> => {
+    const { code, exitIntent, outcome, relaunch } = params;
+    if (this.stopping) {
+      return;
+    }
+    this.stopping = true;
     this.desktopPresenceService.markQuitting();
-    this.hostDiagnostics.recordExitIntent("desktop-restart-requested");
-    app.relaunch();
-    this.dispose();
-    this.hostDiagnostics.complete({ outcome: "controlled-exit", code: 0 });
+    this.hostDiagnostics.recordExitIntent(exitIntent);
+    await this.stopRuntime();
+    await this.dispose();
+    if (relaunch) {
+      app.relaunch();
+    }
+    this.hostDiagnostics.complete({ outcome, code });
     app.quit();
   };
 
-  private dispose = (): void => {
+  private dispose = async (): Promise<void> => {
     this.desktopUpdateManager.dispose();
     this.desktopHostCapabilityService.dispose();
     this.desktopPresenceService.dispose();

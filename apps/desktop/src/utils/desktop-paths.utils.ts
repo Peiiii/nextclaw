@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { app } from "electron";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   PACKAGED_DESKTOP_DATA_OVERRIDE_ENV,
   PACKAGED_RUNTIME_HOME_OVERRIDE_ENV
@@ -20,6 +21,8 @@ const PACKAGED_EXTENSION_DIR_ENV = "NEXTCLAW_PACKAGED_EXTENSION_DIR";
 
 type DesktopRuntimeEnvOptions = {
   packagedExtensionDir?: string | null;
+  nativeModuleRegisterPath?: string | null;
+  nativeModulesDir?: string | null;
 };
 
 function readOptionalEnv(name: string): string | null {
@@ -82,6 +85,15 @@ export function createDesktopRuntimeEnv(
   runtimeEnv.ELECTRON_RUN_AS_NODE = "1";
   runtimeEnv.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
   runtimeEnv.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST = "1";
+  const nativeModuleRegisterPath = normalizeOptionalPath(options.nativeModuleRegisterPath);
+  const nativeModulesDir = normalizeOptionalPath(options.nativeModulesDir);
+  if (nativeModuleRegisterPath && nativeModulesDir) {
+    const registerOption = `--import=${pathToFileURL(nativeModuleRegisterPath).href}`;
+    runtimeEnv.NODE_OPTIONS = [runtimeEnv.NODE_OPTIONS?.trim(), registerOption].filter(Boolean).join(" ");
+    runtimeEnv.NEXTCLAW_DESKTOP_NATIVE_MODULES_DIR = nativeModulesDir;
+  } else {
+    delete runtimeEnv.NEXTCLAW_DESKTOP_NATIVE_MODULES_DIR;
+  }
   const packagedExtensionDir = normalizeOptionalPath(
     options.packagedExtensionDir !== undefined
       ? options.packagedExtensionDir

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
+import { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
 import type { AppPackageComponentSource } from "@kernel/types/app-package.types.js";
 import type { PanelAppError } from "@kernel/types/panel-app.types.js";
 
@@ -59,6 +60,9 @@ function createManager(
       providerManager: { load: vi.fn() } as never,
     }),
     listPackageComponentSources,
+    capabilityGrantManager: new CapabilityGrantManager(
+      join(createTempDir(), "capability-grants.json"),
+    ),
   });
 }
 

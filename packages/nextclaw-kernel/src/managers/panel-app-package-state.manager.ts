@@ -1,8 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import type { PanelAppSourceService } from "@kernel/services/panel-app-source.service.js";
-import type { PanelAppCapabilityGrantStore } from "@kernel/stores/panel-app-capability-grant.store.js";
-import type { PanelAppClientGrantStore } from "@kernel/stores/panel-app-client-grant.store.js";
+import type { CapabilityGrant, CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
 import type { PanelAppStateStore } from "@kernel/stores/panel-app-state.store.js";
 import {
   AppPackageError,
@@ -33,10 +32,9 @@ export class PanelAppPackageStateManager {
     getPanelsPath: () => string;
     listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
     createAssetBaseHref: (source: PanelAppSource) => string;
-    deleteBridgeSessions: (appId: string) => void;
+    suspendBridgeSessions: (appId: string) => () => void;
     createStateStore: (panelsPath: string) => PanelAppStateStore;
-    createCapabilityGrantStore: () => PanelAppCapabilityGrantStore;
-    createClientGrantStore: () => PanelAppClientGrantStore;
+    capabilityGrantManager: CapabilityGrantManager;
   }) {}
 
   listSources = async (): Promise<ResolvedPanelAppSource[]> => {
@@ -159,28 +157,80 @@ export class PanelAppPackageStateManager {
   deactivate = (components: AppPackageComponentSource[]): void => {
     for (const component of components) {
       if (component.kind === "panel") {
-        this.params.deleteBridgeSessions(component.id);
+        this.params.suspendBridgeSessions(component.id);
       }
     }
   };
 
-  removeState = async (components: AppPackageComponentSource[]): Promise<void> => {
+  removeState = async (
+    components: AppPackageComponentSource[],
+  ): Promise<() => Promise<void>> => {
     const panelsPath = this.params.getPanelsPath();
-    for (const component of components) {
-      if (component.kind !== "panel") {
-        continue;
-      }
-      this.params.deleteBridgeSessions(component.id);
-      await this.params.createStateStore(panelsPath).deleteEntry(
-        encodePanelAppId(basename(component.sourcePath)),
-        component.id,
-      );
-      await this.params.createCapabilityGrantStore().deleteCaller({
-        surface: "panel-app",
-        appId: component.id,
-      });
-      await this.params.createClientGrantStore().revoke(component.id);
+    const panelComponents = components.filter((component) => component.kind === "panel");
+    const stateStore = this.params.createStateStore(panelsPath);
+    const originalState = await stateStore.load();
+    const originalGrants: CapabilityGrant[] = [];
+    for (const component of panelComponents) {
+      originalGrants.push(...await this.params.capabilityGrantManager.list({
+        subject: { type: "panel-app", id: component.id },
+      }));
     }
+    try {
+      for (const component of panelComponents) {
+        await stateStore.deleteEntry(
+          encodePanelAppId(basename(component.sourcePath)),
+          component.id,
+        );
+        await this.params.capabilityGrantManager.revoke({
+          subject: { type: "panel-app", id: component.id },
+        });
+      }
+    } catch (error) {
+      const recoveryErrors = await this.restoreState({
+        originalGrants,
+        originalState,
+        stateStore,
+      });
+      if (recoveryErrors.length > 0) {
+        throw new AggregateError(
+          [error, ...recoveryErrors],
+          "Panel package 卸载准备失败，且状态恢复未完整完成。",
+        );
+      }
+      throw error;
+    }
+    return async () => {
+      const recoveryErrors = await this.restoreState({
+        originalGrants,
+        originalState,
+        stateStore,
+      });
+      if (recoveryErrors.length > 0) {
+        throw new AggregateError(
+          recoveryErrors,
+          "Panel package 卸载状态恢复未完整完成。",
+        );
+      }
+    };
+  };
+
+  private restoreState = async (params: {
+    originalGrants: CapabilityGrant[];
+    originalState: Awaited<ReturnType<PanelAppStateStore["load"]>>;
+    stateStore: PanelAppStateStore;
+  }): Promise<unknown[]> => {
+    const errors: unknown[] = [];
+    for (const operation of [
+      async () => await params.stateStore.replace(params.originalState),
+      async () => await this.params.capabilityGrantManager.import(params.originalGrants),
+    ]) {
+      try {
+        await operation();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    return errors;
   };
 
   private listPackageComponentSources = async (): Promise<AppPackageComponentSource[]> =>

@@ -224,6 +224,30 @@ export class ObservationEventService {
     );
   };
 
+  onCapabilityAuthorizationRevoked = async (input: {
+    extensionId: string;
+    subscriptionId: string;
+  }): Promise<void> => {
+    const subscription = await this.get(input.subscriptionId);
+    if (!subscription || subscription.extensionId !== input.extensionId) return;
+    await this.deactivateStored(subscription);
+    await this.setStatus(input.subscriptionId, "degraded", "authorization_required");
+  };
+
+  onCapabilityAuthorizationGranted = async (input: {
+    extensionId: string;
+  }): Promise<void> => {
+    const subscriptions = (await this.options.store.read()).subscriptions.filter(
+      (subscription) =>
+        subscription.extensionId === input.extensionId &&
+        subscription.status === "degraded" &&
+        subscription.statusReason === "authorization_required",
+    );
+    await Promise.all(
+      subscriptions.map((subscription) => this.activate(subscription.subscriptionId)),
+    );
+  };
+
   revalidateSession = async (sessionId: string): Promise<void> => {
     const items = (await this.options.store.read()).subscriptions.filter(
       (item) =>

@@ -100,6 +100,10 @@ export class PanelAppStateStore {
     await this.persist(state);
   };
 
+  replace = async (state: PanelAppStateSnapshot): Promise<void> => {
+    await this.persist(structuredClone(state));
+  };
+
   private persist = async (state: PanelAppStateSnapshot): Promise<void> => {
     const statePath = this.getStatePath();
     const tempPath = `${statePath}.${randomUUID()}.tmp`;

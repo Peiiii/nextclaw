@@ -278,6 +278,60 @@ describe("ObservationManager", () => {
     await manager.dispose();
   });
 
+  it("blocks late events after Desktop authorization revocation and resumes after reauthorization", async () => {
+    const storePath = await createStorePath();
+    const dependencies = createDependencies();
+    const manager = createManager(storePath, dependencies);
+    const runtime = createRuntime();
+    manager.setExtensionRuntime(runtime);
+    await manager.start();
+    const subscription = await manager.subscribeEvents({
+      extensionId: "test-extension",
+      config: { applicationId: "wechat" },
+      targetSessionId: "session-1",
+    });
+
+    await manager.onDesktopObservationAuthorizationRevoked({
+      extensionId: "test-extension",
+      subscriptionId: subscription.subscriptionId,
+    });
+
+    await expect(manager.getObservation({
+      kind: "event_subscription",
+      id: subscription.subscriptionId,
+    })).resolves.toMatchObject({
+      status: "degraded",
+      statusReason: "authorization_required",
+    });
+    await expect(manager.acceptExtensionEvent({
+      extensionId: "test-extension",
+      subscriptionId: subscription.subscriptionId,
+      event: {
+        eventId: "late-after-revoke",
+        eventType: "wechat.message.created",
+        occurredAt: "2026-08-22T00:00:00.000Z",
+        observedAt: "2026-08-22T00:00:01.000Z",
+        payload: {},
+      },
+    })).resolves.toEqual({ accepted: false });
+
+    runtime.subscriptions.mockClear();
+    await manager.onDesktopObservationAuthorizationGranted({
+      extensionId: "test-extension",
+    });
+
+    expect(runtime.subscriptions).toHaveBeenCalledWith({
+      extensionId: "test-extension",
+      subscriptionId: subscription.subscriptionId,
+      config: { applicationId: "wechat" },
+    });
+    await expect(manager.getObservation({
+      kind: "event_subscription",
+      id: subscription.subscriptionId,
+    })).resolves.toMatchObject({ status: "active" });
+    await manager.dispose();
+  });
+
   it("restores the same subscription id and cursor after runtime restart", async () => {
     const storePath = await createStorePath();
     const dependencies = createDependencies();

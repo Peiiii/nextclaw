@@ -354,6 +354,7 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.serviceAppManager.dispose();
     }
   });
+
 });
 
 describe("AppPackageManager packed artifact lifecycle", () => {

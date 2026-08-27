@@ -154,6 +154,7 @@ export type {
   ExtensionChannelMessageContent,
   ExtensionChannelMessageSubmitIngressPayload,
   ExtensionDiagnosticIngressPayload,
+  ExtensionDesktopHostInvokeIngressPayload,
   DiagnosticFactValue,
   DiagnosticOutcome,
   ExtensionChannelSubmittedAttachment,

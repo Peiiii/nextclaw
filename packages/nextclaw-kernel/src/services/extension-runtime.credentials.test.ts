@@ -14,7 +14,7 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...actual, spawn: extensionRuntimeMocks.spawnMock };
 });
 import { ExtensionRuntimeService } from "./extension-runtime.service.js";
-import { createDiagnostics, createFakeChildProcess, createTempDir, markSpawnedExtensionReady, readSpawnedExtension, sessionManager, spawnMock, writeExtensionManifest } from "./extension-runtime.test-fixtures.js";
+import { createDesktopRuntimeOptions, createDiagnostics, createFakeChildProcess, createTempDir, markSpawnedExtensionReady, readSpawnedExtension, sessionManager, spawnMock, writeExtensionManifest } from "./extension-runtime.test-fixtures.js";
 import "./extension-runtime.test-fixtures.js";
 
 describe("ExtensionRuntimeService event stream credentials", () => {
@@ -28,6 +28,7 @@ describe("ExtensionRuntimeService event stream credentials", () => {
     const config = { channels: { "fake-channel": { enabled: true } } } as never;
     const diagnostics = createDiagnostics();
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics,
       eventBus: { emitEnvelope: vi.fn() },
       getConfig: () => config,

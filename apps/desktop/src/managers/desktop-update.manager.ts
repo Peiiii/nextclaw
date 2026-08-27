@@ -35,6 +35,7 @@ type DesktopUpdateManagerOptions = {
   updateCapability?: DesktopUpdateCapability;
   bundleManager: DesktopBundleManager;
   presenceService: DesktopPresenceService;
+  restartApplication: () => Promise<void>;
   windowManager: DesktopWindowManager;
   automaticCheckIntervalMs?: number;
 };
@@ -75,7 +76,7 @@ export class DesktopUpdateManager {
     ipcMain.handle(DESKTOP_UPDATES_DOWNLOAD_CHANNEL, async () => await this.ensureCoordinator().downloadUpdate());
     ipcMain.handle(DESKTOP_UPDATES_APPLY_CHANNEL, async () => {
       const snapshot = await this.ensureCoordinator().applyDownloadedUpdate();
-      this.restartApplication();
+      await this.options.restartApplication();
       return snapshot;
     });
     ipcMain.handle(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL, async (_event, channel: DesktopReleaseChannel | undefined) => {
@@ -279,7 +280,7 @@ export class DesktopUpdateManager {
   private handleApplyDownloadedUpdate = async (): Promise<void> => {
     try {
       await this.ensureCoordinator().applyDownloadedUpdate();
-      this.restartApplication();
+      await this.options.restartApplication();
     } catch (error) {
       await this.showMessage("error", "Unable to apply desktop update", error);
     }
@@ -341,9 +342,4 @@ export class DesktopUpdateManager {
     window.webContents.send(DESKTOP_UPDATES_STATE_CHANGED_CHANNEL, snapshot);
   };
 
-  private restartApplication = (): void => {
-    this.options.presenceService.markQuitting();
-    app.relaunch();
-    app.quit();
-  };
 }

@@ -17,7 +17,7 @@ type DesktopRuntimeControlLogger = {
 type DesktopRuntimeControlServiceOptions = {
   logger: DesktopRuntimeControlLogger;
   restartRuntime: () => Promise<void>;
-  restartApplication: () => void;
+  restartApplication: () => Promise<void>;
 };
 
 export class DesktopRuntimeControlService {
@@ -44,7 +44,11 @@ export class DesktopRuntimeControlService {
     ipcMain.handle(DESKTOP_RUNTIME_RESTART_APP_CHANNEL, async () => {
       this.options.logger.info("Desktop app restart requested from renderer.");
       setTimeout(() => {
-        this.options.restartApplication();
+        void this.options.restartApplication().catch((error) => {
+          this.options.logger.error(
+            `Desktop app restart failed: ${error instanceof Error ? error.message : String(error)}`
+          );
+        });
       }, 50);
       return {
         accepted: true,

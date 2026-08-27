@@ -313,15 +313,33 @@ export class AppPackageManager {
     if (current.builtIn) {
       await this.registryService.setBuiltInSuppressed(appId, true);
     }
+    let rollbackRuntimeState: (() => Promise<void>) | undefined;
     try {
-      if (current.enabled) {
-        await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
-      }
-      await this.runtimeHooks.beforeUninstall(this.toComponentSources(current));
+      const sources = this.toComponentSources(current);
+      const preparedRollback = await this.runtimeHooks.beforeUninstall(sources);
+      rollbackRuntimeState = preparedRollback || undefined;
       return await this.installationService.uninstall(appId, purgeData);
     } catch (error) {
+      const recoveryErrors: unknown[] = [];
+      if (rollbackRuntimeState) {
+        try {
+          await rollbackRuntimeState();
+        } catch (recoveryError) {
+          recoveryErrors.push(recoveryError);
+        }
+      }
       if (current.builtIn) {
-        await this.registryService.setBuiltInSuppressed(appId, false);
+        try {
+          await this.registryService.setBuiltInSuppressed(appId, false);
+        } catch (recoveryError) {
+          recoveryErrors.push(recoveryError);
+        }
+      }
+      if (recoveryErrors.length > 0) {
+        throw new AggregateError(
+          [error, ...recoveryErrors],
+          `应用 ${appId} 卸载失败，且 runtime 状态恢复未完整完成。`,
+        );
       }
       throw error;
     }

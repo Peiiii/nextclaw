@@ -1,6 +1,6 @@
 # Desktop 自动化 Agent 与扩展统一授权链路
 
-> 2026-08-27 后续批次：工具形态已收敛为受限 `node_repl` + 私有 `desktop` SDK；本批次只完成定向自动验证。真实微信“读消息—写入—发送—回读”仍未通过，不得作为已验收能力对外宣称。后续补齐了微信 Desktop Extension 的开发、打包与正式产品 bundle 接线。
+> 2026-08-27 后续批次：工具形态已收敛为受限 `node_repl` + 私有 `desktop` SDK；本批次只完成定向自动验证。真实微信“读消息—写入—发送—回读”仍未通过，不得作为已验收能力对外宣称。后续补齐了微信 Desktop Extension 的开发、打包与正式产品 bundle 接线，并将 Panel App/Service App 的授权迁移和失败恢复接入同一 capability grant 主链路。
 
 ## 迭代完成说明
 
@@ -12,6 +12,8 @@
 - macOS 原生 `setValue` 完成后回读 `AXValue`，把 `verified` 与 `observedValue` 经 Host 协议返回。
 - `pressKey` 采用 Service 独立原生 helper 承载 Quartz 键事件，避免原生事件异常杀死 Host Worker；helper 只构建于 macOS，且不依赖 Electron 窗口。该路径尚未完成微信快捷键实测。
 - 平台支持判断收敛为 Kernel 的统一 `feature-controls` 合同；Server、SDK 与网页共享该对象，当前运行环境不支持桌面自动化时不显示设置入口。
+- Panel App 与 Service App 的授权迁移改为单一 capability grant owner；包启用、禁用、卸载与失败回滚会一起处理面板状态、桥接会话及服务动作授权，避免遗留旧 store 或部分清理后的越权路径。
+- Desktop 开发态运行时通过独立 native module register 加载与 Electron ABI 匹配的 SQLite 依赖；受控退出和重启统一进入同一停机入口，先停止 runtime 再释放宿主资源。
 
 ## 测试/验证/验收方式
 
@@ -22,6 +24,7 @@
 - Desktop：主进程编译通过，Host 与 shell capability 共 15 个 Node 测试通过；macOS arm64 Objective-C++ Accessibility adapter 独立编译通过。
 - Extension SDK：Desktop Host 与 Observation 共 3 个测试及 TypeScript 检查通过。
 - 微信 Desktop Extension：3 个语义提取/去重/清理测试、TypeScript 检查与包构建通过。
+- 后续收口批次：Panel/Service capability grant、observation、extension runtime 与 server event-stream 定向测试通过；全仓 TypeScript 检查与 Desktop 主进程构建通过。隔离 worktree 使用 Node 25，`better-sqlite3` 仅有 Node 22 ABI 产物，因此依赖该原生二进制的 1 个既有 context-window 用例未在该环境重复通过；其余 74 个定向 Kernel 用例通过。
 - 尚未完成真实微信“读取—输入—发送—回读”及已安装 Desktop 包的 TCC 冒烟；不能把该部分声明为已验证。
 
 ## 发布/部署方式
@@ -43,6 +46,7 @@
 - Agent 工具只做受信运行上下文到 capability manager 的薄适配；Extension 连续观察继续归 Observation manager 管理生命周期。
 - 风险边界集中在 capability access 合同中，当前写能力严格停在草稿，不通过模糊 fallback 兼容发送行为。
 - 微信语义解析目前只承诺有界可见文本与稳定去重，不把未经真实版本矩阵验证的控件层级包装成稳定公共合同。
+- 自动 maintainability guard 本批无 error；保留的近预算文件已有明确拆分缝，新增卸载恢复测试已独立为专题文件，未扩大既有大文件。
 
 ## NPM 包发布记录
 

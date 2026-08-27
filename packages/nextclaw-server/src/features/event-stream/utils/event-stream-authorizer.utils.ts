@@ -65,7 +65,7 @@ export function canStreamAppEventToPrincipal(
   principal: EventStreamPrincipal,
   event: AppEventEnvelope,
 ): boolean {
-  if (event.type === "extension.request") {
+  if (event.type === "extension.request" || event.type === "extension.host.desktop.event") {
     const target = readExtensionRequestTarget(event);
     return hasGrant(principal, "event-stream:extension-requests") &&
       hasScopeValue(principal, "extensionIds", target.extensionId) &&

@@ -14,7 +14,7 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...actual, spawn: extensionRuntimeMocks.spawnMock };
 });
 import { ExtensionRuntimeService } from "./extension-runtime.service.js";
-import { createDiagnostics, createFakeChildProcess, createTempDir, markSpawnedExtensionReady, sessionManager, spawnMock, writeExtensionManifest } from "./extension-runtime.test-fixtures.js";
+import { createDesktopRuntimeOptions, createDiagnostics, createFakeChildProcess, createTempDir, markSpawnedExtensionReady, sessionManager, spawnMock, writeExtensionManifest } from "./extension-runtime.test-fixtures.js";
 import "./extension-runtime.test-fixtures.js";
 
 describe("ExtensionRuntimeService requests", () => {
@@ -28,6 +28,7 @@ describe("ExtensionRuntimeService requests", () => {
     const ingress = new Ingress();
     let config = { channels: { "fake-channel": { enabled: false } } } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,
@@ -150,6 +151,7 @@ describe("ExtensionRuntimeService requests", () => {
     const ingress = new Ingress();
     let config = { channels: { "fake-channel": { enabled: false } } } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus: { emitEnvelope: vi.fn() },
       getConfig: () => config,
@@ -193,6 +195,7 @@ describe("ExtensionRuntimeService observation requests", () => {
       channels: { "fake-channel": { enabled: false } },
     } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,
@@ -205,25 +208,32 @@ describe("ExtensionRuntimeService observation requests", () => {
     await runtime.loadChannelContributions({ config, workspace });
     await runtime.start({ endpoint: "http://127.0.0.1:55667" });
 
-    expect(runtime.observations.discoverObservations()).toEqual([
-      expect.objectContaining({
-        extensionId: "fake-extension",
-        kind: "context",
-        description: "Read fake state",
-        configSchema: { type: "object" },
-      }),
-      expect.objectContaining({
-        extensionId: "fake-extension",
-        kind: "events",
-        replay: "supported",
-      }),
-    ]);
+    expect(runtime.observations.discoverObservations()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          extensionId: "fake-extension",
+          kind: "context",
+          description: "Read fake state",
+          configSchema: { type: "object" },
+        }),
+        expect.objectContaining({
+          extensionId: "fake-extension",
+          kind: "events",
+          replay: "supported",
+        }),
+      ]),
+    );
     expect(
       runtime.observations.discoverObservations({
         kinds: ["events"],
-        query: "watch",
+        query: "watch fake state",
       }),
-    ).toEqual([expect.objectContaining({ kind: "events" })]);
+    ).toEqual([
+      expect.objectContaining({
+        extensionId: "fake-extension",
+        kind: "events",
+      }),
+    ]);
     await expect(
       runtime.observations.readObservation({
         extensionId: "missing-extension",
@@ -278,6 +288,7 @@ describe("ExtensionRuntimeService observation requests", () => {
     const ingress = new Ingress();
     const config = { channels: { "fake-channel": { enabled: true } } } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,

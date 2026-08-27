@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { ConfigManager, PanelAppError, PanelAppManager } from "@nextclaw/kernel";
+import { CapabilityGrantManager, ConfigManager, PanelAppError, PanelAppManager } from "@nextclaw/kernel";
 import { EventBus } from "@nextclaw/shared";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
@@ -37,6 +37,9 @@ function createTestPanelAppManager(workspacePath: string): PanelAppManager {
     agents: { defaults: { workspace: workspacePath } },
   }), configPath);
   return new PanelAppManager({
+    capabilityGrantManager: new CapabilityGrantManager(
+      join(mkdtempSync(join(tmpdir(), "nextclaw-panel-app-grants-test-")), "grants.json"),
+    ),
     configManager: new ConfigManager({
       configPath,
       channels: { load: async () => undefined, reload: async () => undefined } as never,

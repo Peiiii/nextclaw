@@ -259,6 +259,7 @@ describe("AgentContextWindowManager", () => {
       },
     }), configPath);
     const kernel = new NextclawKernel({ configPath, homeDir: homeDirectory });
+    const disposeExtensions = vi.spyOn(kernel.extensions, "dispose");
 
     try {
       await kernel.start();
@@ -307,6 +308,7 @@ describe("AgentContextWindowManager", () => {
       expect(switchedAgentPreview?.fixedInputTokens).toBeLessThan(28_000);
     } finally {
       await kernel.dispose();
+      expect(disposeExtensions).toHaveBeenCalledOnce();
       rmSync(homeDirectory, { recursive: true, force: true });
     }
   }, 30_000);

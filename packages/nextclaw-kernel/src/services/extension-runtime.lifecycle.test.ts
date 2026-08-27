@@ -145,6 +145,51 @@ describe("ExtensionLifecycleService", () => {
     await acquired;
   });
 
+  it("waits for asynchronous process-exit cleanup before stopAll completes", async () => {
+    const root = createTempDir();
+    const child = createFakeChildProcess(4326);
+    spawnMock.mockReturnValue(child);
+    let finishCleanup!: () => void;
+    const cleanupGate = new Promise<void>((resolve) => {
+      finishCleanup = resolve;
+    });
+    const onProcessExit = vi.fn(async () => await cleanupGate);
+    const lifecycle = new ExtensionLifecycleService({
+      cleanupOrphanProcesses: () => undefined,
+      onProcessExit,
+    });
+    const acquired = lifecycle.acquire(
+      {
+        id: "fake-extension",
+        rootDir: root,
+        server: { type: "stdio", command: "node", args: ["dist/index.js"] },
+      },
+      {
+        endpoint: "http://127.0.0.1:55667",
+        reason: { kind: "enabled-channel", channelId: "fake-channel" },
+      },
+    );
+    const spawned = readSpawnedExtension();
+    lifecycle.markReady({
+      extensionId: spawned.extensionId,
+      generation: spawned.generation,
+      pid: spawned.pid,
+    });
+    await acquired;
+
+    let stopped = false;
+    const stopping = lifecycle.stopAll().then(() => {
+      stopped = true;
+    });
+    child.emit("exit", 0, null);
+    await vi.waitFor(() => expect(onProcessExit).toHaveBeenCalledOnce());
+    expect(stopped).toBe(false);
+
+    finishCleanup();
+    await stopping;
+    expect(stopped).toBe(true);
+  });
+
   it("shares one spawn and ready promise across twenty concurrent leases", async () => {
     const root = createTempDir();
     spawnMock.mockImplementation(() => createFakeChildProcess(4322));

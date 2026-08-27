@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 import { access, readdir, rename, rm } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { FileLockService } from "@nextclaw/app-runtime";
-import type { ServiceActionGrant, ServiceAppRecord } from "@kernel/types/service-app.types.js";
-import type { ServiceActionGrantStore } from "@kernel/stores/service-action-grant.store.js";
+import type { ServiceAppRecord } from "@kernel/types/service-app.types.js";
+import type { CapabilityGrant, CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
+import { readServiceActionTargetId } from "@kernel/features/capability-grants/index.js";
 import { readServiceAppManifest } from "@kernel/utils/service-app-manifest.utils.js";
 
 type StagedPath = {
@@ -43,7 +44,7 @@ export class ServiceAppRemovalService {
         !directoryName.startsWith(".") && !isServiceAppDeletionTombstone(directoryName));
 
   remove = async (params: {
-    grantStore: ServiceActionGrantStore;
+    capabilityGrantManager: CapabilityGrantManager;
     loadRecord: () => Promise<ServiceAppRecord>;
     lockPath: string;
     purgeData: boolean;
@@ -58,11 +59,11 @@ export class ServiceAppRemovalService {
   );
 
   reconcile = async (params: {
-    grantStore: ServiceActionGrantStore;
+    capabilityGrantManager: CapabilityGrantManager;
     lockPathForAppId: (appId: string) => string;
     serviceAppsPath: string;
   }): Promise<ServiceAppRemovalDiagnostic[]> => {
-    const { grantStore, lockPathForAppId, serviceAppsPath } = params;
+    const { capabilityGrantManager, lockPathForAppId, serviceAppsPath } = params;
     const diagnostics: ServiceAppRemovalDiagnostic[] = [];
     for (const directoryName of await this.listDirectories(serviceAppsPath)) {
       const appId = parseServiceAppDeletionTombstone(directoryName);
@@ -78,7 +79,7 @@ export class ServiceAppRemovalService {
             throw new Error(`Service App 删除墓碑 identity 不匹配：${manifest.id}`);
           }
           if (!await this.pathExists(canonicalPath)) {
-            await grantStore.revokeActionsByPrefix(`${appId}.`);
+            await this.revokeAppActionGrants(capabilityGrantManager, appId);
           }
           await rm(stagedPath, { recursive: true });
         });
@@ -94,26 +95,26 @@ export class ServiceAppRemovalService {
   };
 
   private removeLocked = async (params: {
-    grantStore: ServiceActionGrantStore;
+    capabilityGrantManager: CapabilityGrantManager;
     purgeData: boolean;
     record: ServiceAppRecord;
     stopRuntime: (record: ServiceAppRecord) => Promise<void>;
   }): Promise<void> => {
-    const { grantStore, purgeData, record, stopRuntime } = params;
-    const grants = (await grantStore.list())
-      .filter((grant) => grant.actionId.startsWith(`${record.id}.`));
+    const { capabilityGrantManager, purgeData, record, stopRuntime } = params;
+    const grants = (await capabilityGrantManager.list({ resourceType: "service.action" }))
+      .filter((grant) => readServiceActionTargetId(grant.resource.target)?.startsWith(`${record.id}.`) === true);
     const stagedPaths: StagedPath[] = [];
     try {
-      await stopRuntime(record);
       await this.stageSourcePath(record.dirPath, stagedPaths);
       if (purgeData && record.storage) {
         await this.stageInstancePath(record.storage.instanceDirectory, stagedPaths);
       }
-      await grantStore.revokeActionsByPrefix(`${record.id}.`);
+      await this.revokeAppActionGrants(capabilityGrantManager, record.id);
+      await stopRuntime(record);
     } catch (error) {
       const recoveryErrors = [
         ...await this.restoreStagedPaths(stagedPaths),
-        ...await this.restoreGrants(grantStore, grants),
+        ...await this.restoreGrants(capabilityGrantManager, grants),
       ];
       if (recoveryErrors.length > 0) {
         throw new AggregateError(
@@ -194,18 +195,25 @@ export class ServiceAppRemovalService {
   };
 
   private restoreGrants = async (
-    grantStore: ServiceActionGrantStore,
-    grants: ServiceActionGrant[],
+    capabilityGrantManager: CapabilityGrantManager,
+    grants: CapabilityGrant[],
   ): Promise<unknown[]> => {
-    const errors: unknown[] = [];
-    for (const grant of grants) {
-      try {
-        await grantStore.grant(grant);
-      } catch (error) {
-        errors.push(error);
-      }
+    try {
+      await capabilityGrantManager.import(grants);
+      return [];
+    } catch (error) {
+      return [error];
     }
-    return errors;
+  };
+
+  private revokeAppActionGrants = async (
+    capabilityGrantManager: CapabilityGrantManager,
+    appId: string,
+  ): Promise<void> => {
+    await capabilityGrantManager.revokeMatching((grant) =>
+      grant.resource.type === "service.action" &&
+      readServiceActionTargetId(grant.resource.target)?.startsWith(`${appId}.`) === true
+    );
   };
 }
 

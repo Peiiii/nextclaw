@@ -14,7 +14,7 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...actual, spawn: extensionRuntimeMocks.spawnMock };
 });
 import { ExtensionRuntimeService } from "./extension-runtime.service.js";
-import { createDiagnostics, createFakeChildProcess, createTempDir, markSpawnedExtensionReady, sessionManager, spawnMock, writeExtensionManifest } from "./extension-runtime.test-fixtures.js";
+import { createDesktopRuntimeOptions, createDiagnostics, createFakeChildProcess, createTempDir, markSpawnedExtensionReady, sessionManager, spawnMock, writeExtensionManifest } from "./extension-runtime.test-fixtures.js";
 import "./extension-runtime.test-fixtures.js";
 
 describe("ExtensionRuntimeService observations", () => {
@@ -30,6 +30,7 @@ describe("ExtensionRuntimeService observations", () => {
       channels: { "fake-channel": { enabled: false } },
     } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,
@@ -84,6 +85,7 @@ describe("ExtensionRuntimeService observations", () => {
     const eventBus = { emitEnvelope: vi.fn() };
     const config = { channels: { "fake-channel": { enabled: false } } } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,
@@ -147,6 +149,7 @@ describe("ExtensionRuntimeService observations", () => {
     const restoration = vi.fn(() => new Promise<void>(() => undefined));
     const config = { channels: { "fake-channel": { enabled: true } } } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus: { emitEnvelope: vi.fn() },
       getConfig: () => config,
@@ -183,6 +186,7 @@ describe("ExtensionRuntimeService observation events", () => {
       channels: { "fake-channel": { enabled: false } },
     } as never;
     const runtime = new ExtensionRuntimeService({
+      ...createDesktopRuntimeOptions(workspace),
       diagnostics: createDiagnostics(),
       eventBus,
       getConfig: () => config,
