@@ -15,9 +15,9 @@
 
 ## 发布/部署方式
 
-- 先将官网范围精确提交、由主线协调器回流并推送 `origin/master`。
-- 从固定的 `origin/master` 提交在隔离 worktree 执行 `pnpm deploy:landing`，部署 Cloudflare Pages 项目 `nextclaw-landing`。
-- 部署完成后记录预览地址、正式域验证结果与实测耗时。
+- 已提交并推送 `origin/master`：`e0c3bf99f6f65e9456c3df467f0437091d7c3885`（`feat(landing): showcase interactive chat results`）。
+- 从该固定提交的隔离 worktree 执行 `pnpm deploy:landing`，Cloudflare Pages 项目为 `nextclaw-landing`。
+- Cloudflare 部署成功：预览地址为 `https://742e034b.nextclaw-landing.pages.dev/`；正式地址 `https://nextclaw.io/zh/` 返回 200，Playwright 已确认线上存在互动展示节点。
 
 ## 用户/产品视角的验收步骤
 
