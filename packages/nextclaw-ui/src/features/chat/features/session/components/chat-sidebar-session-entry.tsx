@@ -32,6 +32,7 @@ export function ChatSidebarSessionEntry(props: {
   onSaveSessionLabel: (session: SessionEntryView) => void;
   onCancelEditingSessionLabel: () => void;
   onTogglePinned: () => void;
+  onDeleteSession: (sessionKey: string) => void;
 }) {
   const {
     item,
@@ -52,6 +53,7 @@ export function ChatSidebarSessionEntry(props: {
     onSaveSessionLabel,
     onCancelEditingSessionLabel,
     onTogglePinned,
+    onDeleteSession,
   } = props;
   const { session, runStatus } = item;
   const active = selectedSessionKey === session.key;
@@ -111,6 +113,7 @@ export function ChatSidebarSessionEntry(props: {
       onSave={() => onSaveSessionLabel(session)}
       onCancel={onCancelEditingSessionLabel}
       onTogglePinned={onTogglePinned}
+      onDelete={() => onDeleteSession(session.key)}
     />
   );
 }

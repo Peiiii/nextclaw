@@ -1,5 +1,6 @@
 import { appQueryClient } from '@/app-query-client';
 import { deleteNcpSession as deleteNcpSessionApi, deleteNcpSessionSummaryInQueryClient } from '@/shared/lib/api';
+import { toast } from 'sonner';
 import type {
   ChatFileOpenActionViewModel,
   ChatUiShowContentRequest,
@@ -17,6 +18,7 @@ import type {
   ChatWorkspaceFileTab,
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import { createDeletedChatThreadStatePatch } from '@/features/chat/features/session/utils/chat-session-deletion.utils';
 import {
   normalizeChatWorkspaceExplorerWidth,
   normalizeChatWorkspacePanelWidth,
@@ -80,27 +82,7 @@ export class ChatThreadManager {
   };
 
   private clearDeletedSessionState = () => {
-    useChatThreadStore.getState().setSnapshot({
-      sessionKey: null,
-      sessionTypeLabel: null,
-      agentId: null,
-      sessionDisplayName: undefined,
-      draftProjectRoot: null,
-      sessionProjectName: null,
-      canDeleteSession: false,
-      parentSessionKey: null,
-      parentSessionLabel: null,
-      workspacePanelParentKey: null,
-      activeWorkspacePanelKind: null,
-      childSessionTabs: [],
-      activeChildSessionKey: null,
-      activeSideChatDraft: null,
-      workspaceFileTabs: [],
-      activeWorkspaceFileKey: null,
-      closedWorkspaceTabEntries: [],
-      workspaceNavigationHistory: [],
-      workspaceNavigationHistoryIndex: 0,
-    });
+    useChatThreadStore.getState().setSnapshot(createDeletedChatThreadStatePatch());
   };
 
   private resolveWorkspaceParentSessionKey = (): string | null => {
@@ -565,11 +547,12 @@ export class ChatThreadManager {
     this.uiManager.goToSession(resolvedParentSessionKey);
   };
 
-  deleteSession = async () => {
+  deleteSession = async (rawSessionKey?: string) => {
     const {
       snapshot: { selectedSessionKey },
     } = useChatSessionListStore.getState();
-    if (!selectedSessionKey) {
+    const sessionKey = rawSessionKey?.trim() || selectedSessionKey;
+    if (!sessionKey) {
       return;
     }
     const confirmed = await this.uiManager.confirm({
@@ -582,13 +565,19 @@ export class ChatThreadManager {
     }
     useChatThreadStore.getState().setSnapshot({ isDeletePending: true });
     try {
-      await deleteNcpSessionApi(selectedSessionKey);
-      deleteNcpSessionSummaryInQueryClient(appQueryClient, selectedSessionKey);
+      await deleteNcpSessionApi(sessionKey);
+      deleteNcpSessionSummaryInQueryClient(appQueryClient, sessionKey);
       appQueryClient.removeQueries({
-        queryKey: ['ncp-session-messages', selectedSessionKey],
+        queryKey: ['ncp-session-messages', sessionKey],
       });
-      this.clearDeletedSessionState();
-      this.uiManager.goToChatRoot({ replace: true });
+      toast.success(t('chatDeleteSessionSucceeded'));
+      if (sessionKey === selectedSessionKey) {
+        this.clearDeletedSessionState();
+        this.uiManager.goToChatRoot({ replace: true });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`${t('chatDeleteSessionFailed')}: ${message}`);
     } finally {
       useChatThreadStore.getState().setSnapshot({ isDeletePending: false });
     }

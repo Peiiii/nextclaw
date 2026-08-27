@@ -4,6 +4,10 @@ export type SessionCommandOptions = {
   json?: boolean;
 };
 
+export type SessionDeleteCommandOptions = SessionCommandOptions & {
+  confirm: string;
+};
+
 export class SessionCommands {
   constructor(private readonly createKernel: () => NextclawKernel) {}
 
@@ -28,6 +32,30 @@ export class SessionCommands {
     options: SessionCommandOptions = {},
   ): Promise<void> => {
     await this.update(sessionId, { projectRoot: null }, options);
+  };
+
+  delete = async (
+    sessionId: string,
+    options: SessionDeleteCommandOptions,
+  ): Promise<void> => {
+    if (options.confirm !== sessionId) {
+      throw new Error(`--confirm must exactly match the session id: ${sessionId}`);
+    }
+    const kernel = this.createKernel();
+    try {
+      const session = await kernel.sessionManager.getSession(sessionId);
+      if (!session) {
+        throw new Error(`Session not found: ${sessionId}`);
+      }
+      kernel.sessionRunManager.deleteSessionRun(sessionId);
+      await kernel.sessionManager.deleteSession(sessionId);
+      const result = { deleted: true, sessionId };
+      console.log(options.json
+        ? JSON.stringify(result, null, 2)
+        : `Deleted session ${sessionId}`);
+    } finally {
+      await kernel.dispose();
+    }
   };
 
   private update = async (

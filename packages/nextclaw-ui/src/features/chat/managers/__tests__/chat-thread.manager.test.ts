@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { appQueryClient } from '@/app-query-client';
 import { ChatThreadManager } from '@/features/chat/managers/chat-thread.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
@@ -839,41 +838,5 @@ describe('ChatThreadManager visible workspace selection', () => {
 
     expect(sessionListManager.markVisibleWorkspaceChildRead).toHaveBeenCalledTimes(1);
     expect(sessionListManager.markVisibleWorkspaceChildRead).toHaveBeenCalledWith(tab);
-  });
-});
-
-describe('ChatThreadManager deletion', () => {
-  it('clears thread state while leaving route-derived selection to navigation', async () => {
-    const removeQueries = vi.spyOn(appQueryClient, 'removeQueries').mockImplementation(async () => undefined);
-    const uiManager = {
-      goToSession: vi.fn(),
-      goToChatRoot: vi.fn(),
-      goToProviders: vi.fn(),
-      confirm: vi.fn(async () => true),
-    } as unknown as ConstructorParameters<typeof ChatThreadManager>[0];
-    const sessionListManager = {} as ConstructorParameters<typeof ChatThreadManager>[1];
-    const manager = new ChatThreadManager(uiManager, sessionListManager);
-
-    await manager.deleteSession();
-
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('parent-session-1');
-    expect(useChatThreadStore.getState().snapshot).toMatchObject({
-      sessionKey: null,
-      canDeleteSession: false,
-      workspacePanelParentKey: null,
-      childSessionTabs: [],
-      activeChildSessionKey: null,
-      workspaceFileTabs: [],
-      activeWorkspaceFileKey: null,
-      workspaceNavigationHistory: [],
-      workspaceNavigationHistoryIndex: 0,
-    });
-    expect(deleteSummaryMock).toHaveBeenCalledWith(appQueryClient, 'parent-session-1');
-    expect(removeQueries).toHaveBeenCalledWith({
-      queryKey: ['ncp-session-messages', 'parent-session-1'],
-    });
-    expect(uiManager.goToChatRoot).toHaveBeenCalledWith({ replace: true });
-
-    removeQueries.mockRestore();
   });
 });

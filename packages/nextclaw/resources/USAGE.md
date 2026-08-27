@@ -463,6 +463,9 @@ nextclaw projects create knowledge --path ~/Projects/knowledge --template knowle
 nextclaw sessions rename <session-id> "Research session" --json
 nextclaw sessions set-project <session-id> ~/Projects/research --json
 nextclaw sessions clear-project <session-id> --json
+
+# Permanently delete a session (the confirmation must match the session ID)
+nextclaw sessions delete <session-id> --confirm <session-id> --json
 ```
 
 The UI, CLI, and built-in AI tools all use the same kernel-owned operations. AI exposes them through `projects_list`, `projects_create`, and `sessions_update`. Project creation never overwrites a non-empty directory. Binding an existing directory registers it as a project; binding the default workspace clears the explicit project binding instead.
@@ -473,7 +476,7 @@ This is useful when running multi-agent routing and channel operations long term
 
 NextClaw UI includes a first-class **Chat** tab so you can talk to your agent directly from browser:
 
-- create/switch/delete sessions from the left panel
+- create, switch, rename, pin, or delete sessions from the left panel; press Enter to confirm a deletion or Escape to cancel
 - filter session list by channel in the left panel
 - inspect complete session history in the thread panel
 - choose target agent before sending message

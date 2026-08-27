@@ -247,6 +247,7 @@ export function ChatSidebar({
       onTogglePinned={() =>
         presenter.chatSessionListManager.toggleSessionPinned(item.session.key)
       }
+      onDeleteSession={presenter.chatThreadManager.deleteSession}
     />
   );
   const createSessionAndOpenIfNeeded = (

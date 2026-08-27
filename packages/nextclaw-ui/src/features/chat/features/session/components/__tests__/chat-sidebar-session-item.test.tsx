@@ -5,6 +5,7 @@ import { ChatSidebarSessionItem } from "@/features/chat/features/session/compone
 
 const mocks = vi.hoisted(() => ({
   copyText: vi.fn(),
+  deleteSession: vi.fn(),
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", () => ({
@@ -21,6 +22,7 @@ vi.mock("sonner", () => ({
 beforeEach(() => {
   mocks.copyText.mockReset();
   mocks.copyText.mockResolvedValue(true);
+  mocks.deleteSession.mockReset();
   render(
     <ChatSidebarSessionItem
       sessionKey="session:current"
@@ -50,6 +52,7 @@ beforeEach(() => {
       onSave={vi.fn()}
       onCancel={vi.fn()}
       onTogglePinned={vi.fn()}
+      onDelete={mocks.deleteSession}
     />,
   );
 });
@@ -85,6 +88,15 @@ it("copies the sidebar session ID from the more-actions menu", async () => {
   await user.click(screen.getByRole("button", { name: "Copy session ID" }));
 
   expect(mocks.copyText).toHaveBeenCalledWith("session:current");
+});
+
+it("deletes the sidebar session from the more-actions menu", async () => {
+  const user = userEvent.setup();
+
+  await user.click(screen.getByRole("button", { name: "More actions" }));
+  await user.click(screen.getByRole("button", { name: "Delete Session" }));
+
+  expect(mocks.deleteSession).toHaveBeenCalledOnce();
 });
 
 it("sizes the runtime icon to the session title text", () => {

@@ -476,6 +476,8 @@
   "chatSteeringPending": "等待进入下一步",
   "chatDeleteSession": "删除会话",
   "chatDeleteSessionConfirm": "确认删除当前会话？",
+  "chatDeleteSessionSucceeded": "会话已删除。",
+  "chatDeleteSessionFailed": "无法删除会话",
   "chatSessionMoreActions": "更多操作",
   "chatSessionCopyId": "复制会话 ID",
   "chatSessionCopyIdSuccess": "会话 ID 已复制",

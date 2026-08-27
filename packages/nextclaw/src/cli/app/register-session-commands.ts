@@ -25,4 +25,11 @@ export function registerSessionCommands(
     .description("Clear a session project binding")
     .option("--json", "Output JSON", false)
     .action((sessionId, options) => commands.clearProject(sessionId, options));
+
+  sessions
+    .command("delete <session-id>")
+    .description("Permanently delete a session")
+    .requiredOption("--confirm <session-id>", "Confirm the exact session id")
+    .option("--json", "Output JSON", false)
+    .action((sessionId, options) => commands.delete(sessionId, options));
 }

@@ -111,6 +111,7 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | `nextclaw sessions rename`        | Rename a session                                              |
 | `nextclaw sessions set-project`   | Bind a session to an existing project directory               |
 | `nextclaw sessions clear-project` | Clear a session's explicit project binding                    |
+| `nextclaw sessions delete`        | Permanently delete a session; requires `--confirm <session-id>` |
 
 ## Automation and learning loop
 

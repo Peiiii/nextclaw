@@ -111,6 +111,7 @@ nextclaw <command> --help
 | `nextclaw sessions rename`        | 重命名会话                             |
 | `nextclaw sessions set-project`   | 把会话绑定到现有项目目录               |
 | `nextclaw sessions clear-project` | 清除会话的显式项目绑定                 |
+| `nextclaw sessions delete`        | 永久删除会话；需 `--confirm <会话 ID>` |
 
 ## 自动化与学习循环
 

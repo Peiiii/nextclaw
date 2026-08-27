@@ -35,6 +35,8 @@ export const ConfirmDialog = ({
   onConfirm,
   onCancel
 }: ConfirmDialogProps) => {
+  const confirmButtonRef = React.useRef<HTMLButtonElement>(null);
+
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -45,7 +47,14 @@ export const ConfirmDialog = ({
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="[&>:last-child]:hidden" onCloseAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent
+        className="[&>:last-child]:hidden"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          confirmButtonRef.current?.focus();
+        }}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
@@ -55,6 +64,7 @@ export const ConfirmDialog = ({
             {cancelLabel}
           </Button>
           <Button
+            ref={confirmButtonRef}
             type="button"
             variant={variant === 'destructive' ? 'destructive' : 'default'}
             onClick={handleConfirm}

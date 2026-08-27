@@ -15,9 +15,11 @@ import {
   GitBranch,
   Pencil,
   Pin,
+  Trash2,
   X,
 } from "lucide-react";
 import { ChatSidebarContextCard } from "@/features/chat/features/session/components/chat-sidebar-context-card";
+import { ChatSessionHeaderMenuItem } from "@/features/chat/features/session/components/session-header/chat-session-header-menu-item";
 
 type ChatSidebarSessionItemProps = {
   sessionKey: string;
@@ -44,6 +46,7 @@ type ChatSidebarSessionItemProps = {
   onSave: () => void | Promise<void>;
   onCancel: () => void;
   onTogglePinned: () => void;
+  onDelete: () => void;
 };
 
 type ChatSidebarSessionEditingViewProps = Pick<
@@ -139,6 +142,7 @@ function ChatSidebarSessionDisplayView({
   onSelect,
   onStartEditing,
   onTogglePinned,
+  onDelete,
 }: ChatSidebarSessionDisplayViewProps) {
   return (
     <div className="group/session relative">
@@ -262,7 +266,14 @@ function ChatSidebarSessionDisplayView({
           sessionKey={sessionKey}
           triggerSize="sm"
           triggerTone="strong"
-        />
+        >
+          <ChatSessionHeaderMenuItem
+            icon={Trash2}
+            label={t("chatDeleteSession")}
+            onClick={onDelete}
+            destructive
+          />
+        </ChatSessionMoreActionsMenu>
       </div>
     </div>
   );
@@ -293,6 +304,7 @@ export function ChatSidebarSessionItem({
   onSave,
   onCancel,
   onTogglePinned,
+  onDelete,
 }: ChatSidebarSessionItemProps) {
   return (
     <div
@@ -332,6 +344,7 @@ export function ChatSidebarSessionItem({
           projectName={projectName}
           onStartEditing={onStartEditing}
           onTogglePinned={onTogglePinned}
+          onDelete={onDelete}
         />
       )}
     </div>

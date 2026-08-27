@@ -476,6 +476,8 @@
   "chatSteeringPending": "Waiting for the next step",
   "chatDeleteSession": "Delete Session",
   "chatDeleteSessionConfirm": "Delete the current session?",
+  "chatDeleteSessionSucceeded": "Session deleted.",
+  "chatDeleteSessionFailed": "Could not delete session",
   "chatSessionMoreActions": "More actions",
   "chatSessionCopyId": "Copy session ID",
   "chatSessionCopyIdSuccess": "Session ID copied",
