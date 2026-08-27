@@ -957,6 +957,402 @@
     background: hsl(38 30% 90% / 0.62);
   }
 
+  .interactive-artifact-section {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    border-block: 1px solid hsl(var(--border) / 0.56);
+    background:
+      radial-gradient(circle at 82% 28%, hsl(var(--accent) / 0.13), transparent 24rem),
+      hsl(42 42% 97% / 0.72);
+    padding: clamp(4rem, 8vw, 6.75rem) 1.5rem;
+  }
+
+  .interactive-artifact-inner {
+    width: 100%;
+    max-width: 80rem;
+    margin: 0 auto;
+  }
+
+  .interactive-artifact-header {
+    max-width: 48rem;
+  }
+
+  .interactive-artifact-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: hsl(var(--primary));
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .interactive-artifact-eyebrow svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .interactive-artifact-title {
+    max-width: 44rem;
+    margin-top: 0.8rem;
+    color: hsl(var(--foreground));
+    font-size: clamp(2.2rem, 4.5vw, 4.1rem);
+    font-weight: 650;
+    line-height: 1.04;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
+  }
+
+  .interactive-artifact-description {
+    max-width: 42rem;
+    margin-top: 1.25rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 1.0625rem;
+    line-height: 1.72;
+  }
+
+  .interactive-artifact-demo {
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+    padding: clamp(1.1rem, 3vw, 1.6rem);
+    border: 1px solid hsl(var(--border) / 0.74);
+    border-radius: 1.65rem;
+    background: hsl(42 44% 99% / 0.88);
+    box-shadow: 0 38px 84px -70px hsl(var(--foreground) / 0.82);
+  }
+
+  .interactive-artifact-control {
+    padding: 0.15rem 0.35rem 1.5rem;
+    border-bottom: 1px solid hsl(var(--border) / 0.72);
+  }
+
+  .interactive-artifact-control__topline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .interactive-artifact-control label {
+    color: hsl(var(--foreground));
+    font-size: 0.9rem;
+    font-weight: 650;
+  }
+
+  .interactive-artifact-control output {
+    color: hsl(var(--primary));
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .interactive-artifact-control input[type='range'] {
+    display: block;
+    width: 100%;
+    height: 1.5rem;
+    margin: 0;
+    cursor: ew-resize;
+    accent-color: hsl(var(--primary));
+  }
+
+  .interactive-artifact-control input[type='range']:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 0.35rem;
+    border-radius: 999px;
+  }
+
+  .interactive-artifact-control__ends {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.1rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.72rem;
+  }
+
+  .interactive-artifact-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.14fr) minmax(19rem, 0.86fr);
+    gap: clamp(1.25rem, 3.4vw, 2.5rem);
+    padding-top: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  .interactive-artifact-canvas {
+    min-width: 0;
+  }
+
+  .interactive-artifact-canvas__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .interactive-artifact-canvas__header > span {
+    color: hsl(var(--foreground));
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .interactive-artifact-canvas__header strong {
+    max-width: 22rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.74rem;
+    font-weight: 550;
+    line-height: 1.45;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .interactive-artifact-chart {
+    display: block;
+    width: 100%;
+    overflow: visible;
+  }
+
+  .interactive-artifact-chart__grid {
+    fill: none;
+    stroke: hsl(var(--border) / 0.72);
+    stroke-dasharray: 2 7;
+    stroke-width: 1;
+  }
+
+  .interactive-artifact-chart__area {
+    fill: url(#artifact-line);
+    opacity: 0.1;
+    transition: d 280ms ease;
+  }
+
+  .interactive-artifact-chart__line {
+    fill: none;
+    stroke: url(#artifact-line);
+    stroke-linecap: round;
+    stroke-width: 4;
+    transition: d 280ms ease;
+  }
+
+  .interactive-artifact-chart__marker {
+    stroke: hsl(var(--foreground) / 0.22);
+    stroke-dasharray: 3 6;
+    stroke-width: 1;
+    transition: x1 180ms ease, x2 180ms ease;
+  }
+
+  .interactive-artifact-chart__dot {
+    fill: hsl(var(--background));
+    stroke: hsl(var(--primary));
+    stroke-width: 4;
+    transition: cx 180ms ease, cy 180ms ease;
+  }
+
+  .interactive-artifact-chart__labels text {
+    fill: hsl(var(--muted-foreground));
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .interactive-artifact-breakdown {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.1rem;
+    margin-top: 1rem;
+  }
+
+  .interactive-artifact-breakdown span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.76rem;
+  }
+
+  .interactive-artifact-breakdown i {
+    display: block;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    background: hsl(var(--primary));
+  }
+
+  .interactive-artifact-breakdown [data-artifact-synthesis] i {
+    background: hsl(36 68% 50%);
+  }
+
+  .interactive-artifact-breakdown [data-artifact-action] i {
+    background: hsl(var(--accent));
+  }
+
+  .interactive-artifact-breakdown strong {
+    color: hsl(var(--foreground));
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .interactive-artifact-conversation {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid hsl(var(--border) / 0.8);
+    border-radius: 1.1rem;
+    background: hsl(40 30% 96% / 0.82);
+  }
+
+  .interactive-artifact-conversation__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.8rem 0.9rem;
+    border-bottom: 1px solid hsl(var(--border) / 0.62);
+  }
+
+  .interactive-artifact-conversation__brand,
+  .interactive-artifact-conversation__status,
+  .interactive-artifact-message__label,
+  .interactive-artifact-result__footer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .interactive-artifact-conversation__brand {
+    color: hsl(var(--foreground));
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .interactive-artifact-conversation__brand svg,
+  .interactive-artifact-message__label svg,
+  .interactive-artifact-result__footer svg {
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+
+  .interactive-artifact-conversation__status {
+    color: hsl(var(--muted-foreground));
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+
+  .interactive-artifact-conversation__status i {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: hsl(var(--primary));
+  }
+
+  .interactive-artifact-message {
+    margin: 0.85rem;
+    padding: 0.72rem 0.8rem;
+    border-radius: 0.85rem;
+    font-size: 0.78rem;
+    line-height: 1.58;
+  }
+
+  .interactive-artifact-message--user {
+    margin-left: 2.8rem;
+    color: hsl(var(--foreground));
+    background: hsl(var(--secondary) / 0.88);
+  }
+
+  .interactive-artifact-message--assistant {
+    margin-top: 0.25rem;
+    margin-right: 1.45rem;
+    border: 1px solid hsl(var(--border) / 0.58);
+    background: hsl(var(--background));
+  }
+
+  .interactive-artifact-message__label {
+    color: hsl(var(--primary));
+    font-size: 0.7rem;
+    font-weight: 750;
+  }
+
+  .interactive-artifact-result {
+    margin-top: 0.7rem;
+    padding: 0.78rem;
+    border: 1px solid hsl(var(--border) / 0.62);
+    border-radius: 0.7rem;
+    background: hsl(42 44% 99%);
+  }
+
+  .interactive-artifact-result__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+  }
+
+  .interactive-artifact-result__title-row strong {
+    color: hsl(var(--foreground));
+    font-size: 0.75rem;
+  }
+
+  .interactive-artifact-result__title-row span {
+    flex: 0 0 auto;
+    color: hsl(var(--primary));
+    font-size: 0.63rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .interactive-artifact-result__bars {
+    display: flex;
+    width: 100%;
+    height: 0.45rem;
+    margin-top: 0.75rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: hsl(var(--secondary));
+  }
+
+  .interactive-artifact-result__bars span {
+    flex: var(--artifact-share, 1) 1 0;
+    min-width: 0;
+    transition: flex 180ms ease;
+  }
+
+  .interactive-artifact-result__bars [data-artifact-result-research] {
+    --artifact-share: 38;
+    background: hsl(var(--primary));
+  }
+
+  .interactive-artifact-result__bars [data-artifact-result-synthesis] {
+    --artifact-share: 25;
+    background: hsl(36 68% 50%);
+  }
+
+  .interactive-artifact-result__bars [data-artifact-result-action] {
+    --artifact-share: 37;
+    background: hsl(var(--accent));
+  }
+
+  .interactive-artifact-result p {
+    margin-top: 0.65rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.7rem;
+    line-height: 1.55;
+  }
+
+  .interactive-artifact-result__footer {
+    margin-top: 0.7rem;
+    color: hsl(var(--primary));
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .interactive-artifact-chart__area,
+    .interactive-artifact-chart__line,
+    .interactive-artifact-chart__marker,
+    .interactive-artifact-chart__dot,
+    .interactive-artifact-result__bars span {
+      transition: none;
+    }
+  }
+
   @media (max-width: 767px) {
     .landing-header {
       top: 0.5rem;
@@ -1016,6 +1412,34 @@
     .landing-cta-card {
       border-radius: 1.75rem;
       padding: 2rem 1.25rem;
+    }
+
+    .interactive-artifact-section {
+      padding-inline: 1rem;
+    }
+
+    .interactive-artifact-demo {
+      border-radius: 1.15rem;
+    }
+
+    .interactive-artifact-control__topline,
+    .interactive-artifact-canvas__header {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .interactive-artifact-control output,
+    .interactive-artifact-canvas__header strong {
+      text-align: left;
+    }
+
+    .interactive-artifact-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .interactive-artifact-conversation {
+      min-width: 0;
     }
 
     .install-method-layout {

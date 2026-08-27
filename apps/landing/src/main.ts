@@ -10,6 +10,7 @@ import {
 } from '@/shared/lib/desktop-release';
 import {
   COMPARISON_COPY,
+  bindInteractiveArtifactShowcase,
   isLocale,
   LINKS,
   LOCALE_OPTIONS,
@@ -957,9 +958,7 @@ class LandingPage {
 
           </div>
         </main>
-
         ${this.route === 'home' ? renderHomeSections(this.copy, docsLink, this.locale) : ''}
-
         ${renderLandingFooter(this.copy, docsLink, releasesRoute)}
 
       </div>
@@ -972,6 +971,7 @@ class LandingPage {
     this.bindDesktopDownloads();
     this.bindInstallCopyButtons();
     this.bindInstallMethodNavigation();
+    bindInteractiveArtifactShowcase();
     createIcons({ icons, nameAttr: 'data-lucide' });
   };
 

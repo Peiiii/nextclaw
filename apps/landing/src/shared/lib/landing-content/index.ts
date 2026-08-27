@@ -1,5 +1,6 @@
 export * from './landing-comparison-content.config';
 export * from './landing-content.types';
+export * from './controllers/interactive-artifact.controller';
 export * from './landing-home-sections.utils';
 export * from './landing-proactive-delivery.config';
 export * from './landing-runtime-showcase.config';
