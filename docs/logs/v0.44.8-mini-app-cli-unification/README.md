@@ -22,7 +22,10 @@ CLI 覆盖 Marketplace 查询，以及本机运行中的 NextClaw 对本地目�
 
 ## 发布/部署方式
 
-待本迭代提交、主线回流和 Cloudflare 部署完成后补充提交、部署目标及线上 smoke 结果。
+- 已提交并推送 `882b6e0be`（`feat(app): unify mini app CLI management`）至 `origin/master`。
+- Marketplace Worker 发布为 Cloudflare Worker Version `1b1090f6-d570-48df-8509-1d2c393b9881`。部署时发现 runtime 的既有 Node 内置模块依赖未启用 Worker 兼容层，已在 `wrangler.toml` 补充 `nodejs_compat`，避免 Cloudflare 因 `node:fs/promises` 拒绝版本上传。
+- Apps Web 已发布至 `https://64d7a79c.nextclaw-apps.pages.dev`，Platform Console 已发布至 `https://17c0cf74.nextclaw-platform-console.pages.dev`，Platform Admin 已发布至 `https://10f7ad41.nextclaw-platform-admin.pages.dev`，均指定生产 `master` 分支。
+- 无缓存请求已对生产 Registry 的 `/api/v2/apps/items` 与 `/api/v1/apps/items/:slug` 验证：install 只返回 `kind/spec/registry`。原有边缘缓存的 TTL 是 120 秒，旧 URL 在 TTL 结束前仍可能读到旧响应，但新缓存键已返回新合同。
 
 ## 用户/产品视角的验收步骤
 
