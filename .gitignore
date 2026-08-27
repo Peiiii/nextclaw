@@ -21,3 +21,5 @@ apps/desktop/.local/
 *.pyc
 *.pyo
 /website
+/packages/nextclaw-service/build/
+/packages/nextclaw/ui-dist/

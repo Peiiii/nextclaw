@@ -1,1 +1,0 @@
-function e(e){return Array.isArray(e)?e.filter(e=>typeof e==`string`).join(`.`):e}function t(t,n){if(!n)return;let r=e(t),i=n[r];if(i)return i;let a=r.split(`.`);for(let[e,t]of Object.entries(n)){if(!e.includes(`*`))continue;let n=e.split(`.`);if(n.length!==a.length)continue;let r=!0;for(let e=0;e<a.length;e+=1)if(n[e]!==`*`&&n[e]!==a[e]){r=!1;break}if(r)return t}}export{t};

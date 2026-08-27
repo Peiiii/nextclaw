@@ -1,6 +1,7 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import { rmSync } from "node:fs";
 
-const GENERATED_PATHS = ["packages/nextclaw/ui-dist"];
+const GENERATED_PATHS = ["packages/nextclaw-service/build", "packages/nextclaw/ui-dist"];
 const isCheckMode = process.argv.includes("--check");
 
 function runGit(args, options = {}) {
@@ -10,33 +11,43 @@ function runGit(args, options = {}) {
   });
 }
 
-function readStatus() {
-  return runGit(["status", "--short", "--", ...GENERATED_PATHS]).trim();
+function readTrackedPaths() {
+  return runGit(["ls-files", "--", ...GENERATED_PATHS])
+    .trim()
+    .split("\n")
+    .filter(Boolean);
 }
 
-const beforeStatus = readStatus();
+function isIgnored(path) {
+  return (
+    spawnSync("git", ["check-ignore", "--no-index", "--quiet", "--", `${path}/`], {
+      stdio: "ignore",
+    }).status === 0
+  );
+}
 
-if (!beforeStatus) {
-  console.log("[clean:generated] generated artifacts are clean.");
+const trackedPaths = readTrackedPaths();
+const unignoredPaths = GENERATED_PATHS.filter((path) => !isIgnored(path));
+
+if (trackedPaths.length > 0 || unignoredPaths.length > 0) {
+  if (trackedPaths.length > 0) {
+    console.error("[clean:generated] generated artifacts are still tracked:");
+    console.error(trackedPaths.join("\n"));
+  }
+  if (unignoredPaths.length > 0) {
+    console.error("[clean:generated] generated artifact directories are not ignored:");
+    console.error(unignoredPaths.join("\n"));
+  }
+  process.exit(1);
+}
+
+if (isCheckMode) {
+  console.log("[clean:generated] generated artifact Git boundary is valid.");
   process.exit(0);
 }
 
-console.log("[clean:generated] generated artifact drift:");
-console.log(beforeStatus);
-
-if (isCheckMode) {
-  console.error("[clean:generated] generated artifacts are dirty.");
-  process.exit(1);
+for (const path of GENERATED_PATHS) {
+  rmSync(path, { recursive: true, force: true });
 }
 
-runGit(["restore", "--", ...GENERATED_PATHS], { stdio: "inherit" });
-runGit(["clean", "-fd", "--", ...GENERATED_PATHS], { stdio: "inherit" });
-
-const afterStatus = readStatus();
-if (afterStatus) {
-  console.error("[clean:generated] generated artifacts are still dirty:");
-  console.error(afterStatus);
-  process.exit(1);
-}
-
-console.log("[clean:generated] generated artifacts restored to git state.");
+console.log("[clean:generated] generated artifact directories removed.");
