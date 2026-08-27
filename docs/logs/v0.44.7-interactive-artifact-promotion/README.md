@@ -2,35 +2,38 @@
 
 ## 迭代完成说明
 
-官网首页新增“聊天里的互动成果”展示。访问者可拖动一个控制项，看到工作节奏曲线、资料/推演/行动分配与会话内成果卡同步变化，从而理解 NextClaw 的图表、计划和临时小工具可以留在同一任务中继续调整。
+官网首页的“聊天里的互动成果”已更正为真实 NextClaw 会话录屏，不再把官网自绘滑块当作产品展示。画面中，用户要求做悬臂梁评估，助手在同一条回复里给出内联 Panel App；拖动载荷、长度和安全系数时，位移曲线、最大应力、安全裕度和可用/超限结论同步变化。
+
+根因是前一版把“可交互的视觉效果”错误放在官网本身，而非产品会话里，导致宣传与真实产品能力脱节。修正使用现有聊天内联 Panel App renderer 和公开确定性 fixture 录制，因此画面中的交互路径与产品一致，不是概念图或官网替身。
 
 设计冻结见 [聊天内交互式成果展示设计](../../designs/2026-08-27-interactive-artifact-promotion.design.md)，用户可见变更见 [interactive artifact promotion changeset](../../../.changeset/interactive-artifact-promotion.md)。
 
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/landing tsc` 通过。
-- `pnpm --filter @nextclaw/landing build` 通过。
-- Playwright 在 `1512 × 828` 与 `390 × 844` 视口验证：键盘可将滑块推到两端，图表标记、工作分配、会话结果卡同步更新；页面无横向溢出，滑块焦点可见。
-- landing ESLint 无 error；`apps/landing/src/main.ts` 仅保留既有的 max-lines warning，本次净增为 0。
+- `pnpm --filter @nextclaw/landing build` 通过，产物包含录屏、poster 与 `_headers`。
+- 独立截图脚本在运行中的 NextClaw UI 上生成 `10.56s` WebM（约 `656KB`），并以真实会话 iframe 接收三组 range 输入；末帧显示 24.0kN / 3.4m / 2.6 的超限组合，曲线、读数和结论全部改变。
+- poster 从 `587KB` PNG 压缩为 `88KB` WebP；中文首屏产品图从 `896KB` PNG 压缩为 `243KB` WebP。
+- landing ESLint 无 error；`apps/landing/src/main.ts` 仅保留既有 max-lines warning，本次净减少两行。定向 maintainability guard 无 error。
 
 ## 发布/部署方式
 
-- 已提交并推送 `origin/master`：`e0c3bf99f6f65e9456c3df467f0437091d7c3885`（`feat(landing): showcase interactive chat results`）。
-- 从该固定提交的隔离 worktree 执行 `pnpm deploy:landing`，Cloudflare Pages 项目为 `nextclaw-landing`。
-- Cloudflare 部署成功：预览地址为 `https://742e034b.nextclaw-landing.pages.dev/`；正式地址 `https://nextclaw.io/zh/` 返回 200，Playwright 已确认线上存在互动展示节点。
+- 先将官网范围精确提交、由主线协调器回流并推送 `origin/master`。
+- 从固定的 `origin/master` 提交在隔离 worktree 执行 `pnpm deploy:landing`，部署 Cloudflare Pages 项目 `nextclaw-landing`。
+- 部署完成后记录预览地址、正式域验证结果与实测耗时。
 
 ## 用户/产品视角的验收步骤
 
 1. 打开 `https://nextclaw.io/zh/`，向下浏览到“聊天里的互动成果”。
-2. 用鼠标、触摸或键盘拖动“把任务从探索推向执行”。
-3. 确认曲线、资料/推演/行动占比与右侧会话中的成果条同步变化。
-4. 在手机宽度下确认滑块可聚焦、内容不横向滚动，成果卡仍完整可读。
+2. 确认视频画面是完整的 NextClaw 对话，而非官网模拟聊天框：用户请求和助手回复中的“悬臂梁载荷评估”同时可见。
+3. 播放或等待循环录屏，确认载荷、长度、安全系数依次变化，曲线、端部挠度、最大应力、安全裕度与“可用/超限”结论同步变化。
+4. 在窄屏确认视频等比缩放且原生 controls 可用；视频无法播放时确认同一会话 poster 仍可解释能力。
 
 ## 可维护性总结汇总
 
-展示静态渲染归 `utils/interactive-artifact.utils.ts`，DOM 输入与更新归 `controllers/interactive-artifact.controller.ts`；入口文件只调用 controller，避免继续扩大既有超长入口。没有新增运行时协议、状态持久化、通用框架或平行展示路径。
+官网只嵌入真实会话视频与 poster，不再重复实现任何滑块、图表或会话状态。可复现录制归 `scripts/docs/product-screenshots/capture-interactive-engineering-demo.mjs`，公开的 Panel App fixture 归 `fixtures/product-screenshots/`；通用截图器保持不变。没有新增运行时协议、状态持久化或平行展示路径。
 
-定向 maintainability guard 无 error。`main.ts` 保留历史文件预算 warning，但本次净增为 0；全仓新代码治理检查若被并行 Kernel/Desktop WIP 阻断，不将其归因于本批官网文件。
+定向 maintainability guard 无 error。`main.ts` 保留历史文件预算 warning，但本次未加重；独立录制脚本放入现有产品截图目录，避免扩大通用脚本和目录边界。
 
 ## NPM 包发布记录
 

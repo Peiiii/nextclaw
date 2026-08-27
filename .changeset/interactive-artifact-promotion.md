@@ -2,4 +2,6 @@
 "nextclaw": patch
 ---
 
-官网首页新增可直接操作的互动成果演示：拖动控制项后，图表、工作安排和会话内成果会同步变化，让用户更直观地理解聊天里的成果可以继续调整。
+<!-- release-note-image: zh-CN | images/screenshots/nextclaw-inline-engineering-20260827-cn.png | NextClaw 对话内的悬臂梁载荷评估，参数、曲线与安全结论同步变化 -->
+
+官网首页现在用真实 NextClaw 会话录屏展示消息内 Panel App：拖动工程参数后，图表、读数与安全结论会在同一条回复中同步变化；同时压缩关键图片并优化版本化媒体缓存，减少官网加载等待。
