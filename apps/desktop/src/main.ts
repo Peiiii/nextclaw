@@ -268,7 +268,12 @@ class DesktopApplication {
       runtimeEnv: createDesktopRuntimeEnv(
         {
           ...process.env,
-          ...commandSurface.runtimeEnvPatch
+          ...commandSurface.runtimeEnvPatch,
+          ...(process.platform === "darwin"
+            ? {
+                NEXTCLAW_MACOS_ACCESSIBILITY_MODULE: join(process.resourcesPath, "native", "macos-accessibility.node"),
+              }
+            : {}),
         },
         {
           packagedExtensionDir: runtimeCommand.pluginsDirectory

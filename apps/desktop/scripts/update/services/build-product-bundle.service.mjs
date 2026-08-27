@@ -29,7 +29,8 @@ const CHANNEL_EXTENSION_PACKAGE_DIRS = [
   "nextclaw-channel-extension-telegram",
   "nextclaw-channel-extension-wecom",
   "nextclaw-channel-extension-whatsapp",
-  "nextclaw-channel-extension-weixin"
+  "nextclaw-channel-extension-weixin",
+  "nextclaw-desktop-extension-wechat"
 ];
 
 function parseArgs(argv) {

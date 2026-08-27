@@ -15,6 +15,7 @@ const releaseDir = resolve(rootDir, "apps/desktop/release");
 const channelExtensionPackages = [
   "nextclaw-channel-extension-feishu",
   "nextclaw-channel-extension-weixin",
+  "nextclaw-desktop-extension-wechat",
   "nextclaw-channel-extension-qq",
   "nextclaw-channel-extension-dingtalk",
   "nextclaw-channel-extension-telegram",

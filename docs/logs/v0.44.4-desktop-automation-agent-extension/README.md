@@ -1,6 +1,6 @@
 # Desktop 自动化 Agent 与扩展统一授权链路
 
-> 2026-08-27 后续批次：工具形态已收敛为受限 `node_repl` + 私有 `desktop` SDK；本批次只完成定向自动验证。真实微信“读消息—写入—发送—回读”仍未通过，不得作为已验收能力对外宣称。
+> 2026-08-27 后续批次：工具形态已收敛为受限 `node_repl` + 私有 `desktop` SDK；本批次只完成定向自动验证。真实微信“读消息—写入—发送—回读”仍未通过，不得作为已验收能力对外宣称。后续补齐了微信 Desktop Extension 的开发、打包与正式产品 bundle 接线。
 
 ## 迭代完成说明
 
@@ -26,7 +26,7 @@
 
 ## 发布/部署方式
 
-本轮未提交、未推送、未发布、未部署，也未重启 NextClaw。变更已接入 Desktop package build/verify、product bundle 和 dev runtime TypeScript 构建清单，后续随统一版本交付。
+本轮已提交本地代码，未推送、未发布、未部署，也未重启 NextClaw。变更已接入 Desktop package build/verify、product bundle 和 dev runtime TypeScript 构建清单，后续随统一版本交付。
 
 ## 用户/产品视角的验收步骤
 
