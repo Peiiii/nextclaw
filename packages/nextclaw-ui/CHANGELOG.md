@@ -1,5 +1,35 @@
 # @nextclaw/ui
 
+## 0.20.3
+
+### Patch Changes
+
+- 4ecb43f: 修复长回复尚未完整恢复时，多条上下文压缩提示被错误堆叠到会话末尾的问题；压缩边界现在只会在能够定位到回复中的正确位置后显示。
+- a5a03e5: Prevent one unavailable App package from breaking the Apps list, and show its diagnostic while other Apps remain available.
+- f8d7f74: 会话内的定时任务现在支持启用或暂停、立即运行、查看完整任务详情和删除；长任务内容会保持紧凑展示，避免撑开工作区卡片。
+- 444e666: 会话工作台的 Token 用量现在会显示 Agent 轮次、模型调用次数与已报告调用次数。缓存读取占比明确只按输入 Token 计算，按模型明细也会显示对应调用次数。
+- c8410fd: 在工作区、会话和常用页面间切换后，NextClaw 会恢复此前的阅读位置。Markdown 文件预览现在会在切换文件，以及在源码和渲染预览之间往返时保留滚动位置。
+- Updated dependencies
+  - @nextclaw/client-sdk@0.7.7
+
+## 0.20.2
+
+### Patch Changes
+
+- 667c4fd: 产品活跃统计改为默认开启的匿名汇总：每个客户端仅为当日、当周和当月生成相互独立的一次性收据，不再上传或保存稳定安装标识、账号、令牌、IP、User-Agent、消息内容或工具参数；隐私设置新增本机投递状态，管理后台同步展示当前自然日、自然周、自然月活跃与成功使用趋势。
+- cfce362: 排队消息已自动开始运行时，插嘴操作会刷新队列并清除过期错误，不再显示找不到旧队列项的提示。
+- 9120123: 在会话工作台的 Markdown 预览路径栏增加文档目录，可查看标题层级并快速跳转到对应章节。
+
+  <!-- release-note-image: zh-CN | images/screenshots/nextclaw-markdown-outline-navigation-cn.png | Markdown 文档目录展示标题层级并支持章节跳转 -->
+
+- 44c8cdc: 会话与项目列表新增简约悬浮信息卡片，集中展示所属项目、子会话和定时任务等上下文；项目数量和展开图标改为按需显示，并修复会话操作图标重叠与标题过早截断。
+- e43fbe1: 会话列表仅在悬停显示操作按钮时为其预留空间，非悬停状态下可以展示更完整的会话标题。
+- 8716fb9: 统一运行中直接插话与排队后插话的状态迁移、消息展示和运行原数据，避免直接插话被误显示为普通消息，或完成后缺少“更多操作”入口。
+- Updated dependencies [667c4fd]
+- Updated dependencies [8716fb9]
+  - @nextclaw/client-sdk@0.7.6
+  - @nextclaw/ncp-react@0.5.26
+
 ## 0.20.1
 
 ### Patch Changes

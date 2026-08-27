@@ -1,6 +1,6 @@
 # 项目治理主页 V1 功能范围决策
 
-> 状态：V1 产品范围已裁决，作为下一版原型依据
+> 状态：历史 V1 范围裁决；当前模型以 2026-08-27 修订为准
 >
 > 日期：2026-08-26
 >
@@ -10,7 +10,71 @@
 >
 > 现有探索原型：[HTML 原型](2026-08-25-project-governance-hub.prototype.html)
 >
+> AI 核心候选原型：[通用项目主页 · AI 核心版](2026-08-27-project-home-ai-core.prototype.html)
+>
 > 后续场景探索：[AI 小说创作产品探索](../thoughts/2026-08-26-ai-novel-creation-product-exploration.thought.md)
+
+## 0. 2026-08-27 模型修订（当前裁决）
+
+后续讨论发现，旧版把项目治理对象过早映射成了六个页面入口，也把 Workflow 表达成了接近项目总流程的结构。当前设计作如下修订；下文旧版裁决继续保留作为版本依据，但与本节冲突之处均以本节为准。
+
+### 0.1 当前领域模型
+
+项目当前确认四类核心对象，但这四类对象不等于四个页面或四个一级模块：
+
+- **Work Item**：项目中一次具体工作的中心对象，包含标题、描述、类型、当前流程节点和流转状态。
+- **Workflow Definition**：Work Item 的可复用处理流程，定义节点以及允许的推进、跳过、回退和人工确认；它不是项目级总生命周期。
+- **Artifact**：项目级独立产物，可以被多个 Work Item 产生、使用或更新；Artifact 与 Work Item 是关联关系，不是包含关系。
+- **Skill**：项目中人或 AI 可调用的能力，可以作用于 Work Item 或 Artifact；节点动作可以引用 Skill，但 Skill 不拥有工作项状态。
+
+第一版不额外引入 `Workflow Run` 对象。Work Item 通过 `workflowId`、当前节点和必要的流转记录承载一次流程运行。
+
+### 0.2 当前关系
+
+```text
+Project
+├── Work Item
+│   └── binds → Workflow Definition
+├── Artifact
+│   └── relates many-to-many ↔ Work Item
+└── Skill
+    └── can act on → Work Item / Artifact
+```
+
+流程节点可以声明期望关联的 Artifact 类型和可用 Skill，但不直接拥有 Artifact，也不嵌入 Skill 内容。Artifact 首版关系先收敛为 `input`、`output` 和 `related`，不提前扩展复杂关系词表。
+
+### 0.3 当前项目主页信息架构
+
+用户可见入口不与领域对象一一对应。当前原型保留四个有独立用户任务支撑的主导航：
+
+1. **概览**：承担项目级判断，组合展示需要人介入的工作项、正在推进的工作项、AI 建议、最近项目产物和项目有效 Skill 摘要。
+2. **工作项**：承担大量工作项的搜索、筛选、分页和连续进入；点击后统一打开工作项详情。
+3. **产物**：承担跨 Work Item 的项目资产浏览、搜索、筛选、复用和关系下钻；不能只从某一个工作项进入。
+4. **Skills**：承担项目有效 Skill 集的只读发现和治理，展示项目专属与共享来源、适用环节及可用状态。
+
+工作项详情按上下文展示：
+
+- 工作项标题、描述和类型；
+- 该 Work Item 自己的 Workflow 与当前节点；
+- 需要人的判断；
+- 与项目级 Artifact 的输入、输出或相关关系；
+- 当前节点可用或推荐的 Skill。
+
+Artifact 页面采用笔记式列表—正文结构：桌面左侧连续选择产物，右侧稳定展示 Markdown / HTML 内容预览、项目相对位置和跨 Work Item 关联；手机使用列表进入全屏正文再返回。进入产物模块后不再使用抽屉。Skill 既在工作项动作和流程节点中按需出现，也通过独立 Skills 页面提供项目级能力概览。
+
+左侧产物列表必须按项目定义的类别分组，而不是把所有文档平铺。NextClaw 项目可配置为 `designs`、`plans`、`thoughts`、`logs`；其它项目可以定义自己的类别名称、路径匹配和允许格式。类别属于 Artifact 契约，不是产品内写死的固定枚举。
+
+四个入口恰好与当前四类对象部分重合，是因为概览、工作项治理、跨工作项资产浏览和项目能力治理分别存在独立用户任务，不是按领域对象机械生成页面。Workflow 暂不设独立页面，继续作为 Work Item 详情的一部分。
+
+### 0.4 当前明确不做
+
+- 不把 Workflow、Work Item、Artifact、Skill 机械做成四个模块。
+- 不展示一条虚构的项目级总流程。
+- 暂不增加 Files 和 Activity 页面；必要文件通过 Artifact 来源进入，必要流程信息保留在 Work Item 内。
+- 暂不增加独立 Human Attention 页面；它先作为 Work Item 状态、筛选和概览提醒存在。
+- 暂不建设图形化 Workflow 编辑器、完整任务管理平台或复杂 Artifact 关系模型。
+
+当前对应原型为：[项目主页 · 工作项中心版](2026-08-27-project-home-ai-core.prototype.html)。
 
 ## 1. 最终判断
 

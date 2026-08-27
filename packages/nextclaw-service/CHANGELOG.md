@@ -1,5 +1,55 @@
 # @nextclaw/service
 
+## 0.3.48
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [2d292fa]
+- Updated dependencies [a5a03e5]
+- Updated dependencies [c0523dc]
+- Updated dependencies [7d2b9f8]
+  - @nextclaw/client-sdk@0.7.7
+  - @nextclaw/server@0.18.3
+  - @nextclaw/core@0.17.10
+  - @nextclaw/kernel@0.10.3
+  - @nextclaw/remote@0.3.45
+  - @nextclaw/channel-extension-dingtalk@0.2.36
+  - @nextclaw/channel-extension-discord@0.2.36
+  - @nextclaw/channel-extension-email@0.2.36
+  - @nextclaw/channel-extension-slack@0.2.36
+  - @nextclaw/channel-extension-telegram@0.2.36
+  - @nextclaw/channel-extension-wecom@0.2.36
+  - @nextclaw/channel-extension-whatsapp@0.2.36
+  - @nextclaw/mcp@0.3.37
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.37
+  - @nextclaw/runtime@0.4.36
+  - @nextclaw/ncp-mcp@0.2.37
+
+## 0.3.47
+
+### Patch Changes
+
+- 667c4fd: 产品活跃统计改为默认开启的匿名汇总：每个客户端仅为当日、当周和当月生成相互独立的一次性收据，不再上传或保存稳定安装标识、账号、令牌、IP、User-Agent、消息内容或工具参数；隐私设置新增本机投递状态，管理后台同步展示当前自然日、自然周、自然月活跃与成功使用趋势。
+- Updated dependencies [667c4fd]
+- Updated dependencies [8716fb9]
+  - @nextclaw/core@0.17.9
+  - @nextclaw/server@0.18.2
+  - @nextclaw/client-sdk@0.7.6
+  - @nextclaw/kernel@0.10.2
+  - @nextclaw/channel-extension-dingtalk@0.2.35
+  - @nextclaw/channel-extension-discord@0.2.35
+  - @nextclaw/channel-extension-email@0.2.35
+  - @nextclaw/channel-extension-slack@0.2.35
+  - @nextclaw/channel-extension-telegram@0.2.35
+  - @nextclaw/channel-extension-wecom@0.2.35
+  - @nextclaw/channel-extension-whatsapp@0.2.35
+  - @nextclaw/mcp@0.3.36
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.36
+  - @nextclaw/remote@0.3.44
+  - @nextclaw/runtime@0.4.35
+  - @nextclaw/ncp-mcp@0.2.36
+
 ## 0.3.46
 
 ### Patch Changes

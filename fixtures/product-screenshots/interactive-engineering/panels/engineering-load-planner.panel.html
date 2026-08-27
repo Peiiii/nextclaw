@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="nextclaw-panel-title" content="悬臂梁载荷评估">
+  <meta name="nextclaw-panel-description" content="可在会话中直接调整参数的工程计算示例">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #07111f; color: #edf6ff; }
+    body { min-width: 0; }
+    main { min-height: 496px; padding: 20px; background: radial-gradient(circle at 85% 0%, rgba(24, 158, 255, .2), transparent 34%), linear-gradient(155deg, #07111f, #0b1727 58%, #07111f); }
+    .topline { display: flex; align-items: center; gap: 8px; color: #7dd3fc; font: 700 10px ui-monospace, SFMono-Regular, monospace; letter-spacing: .11em; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #43e8b4; box-shadow: 0 0 15px #43e8b4; }
+    h1 { margin: 9px 0 3px; font-size: clamp(20px, 3vw, 27px); letter-spacing: -.045em; }
+    .summary { margin: 0 0 17px; color: #9bb0c9; font-size: 12px; line-height: 1.5; }
+    .layout { display: grid; grid-template-columns: minmax(186px, .72fr) minmax(272px, 1.28fr); gap: 14px; }
+    .card { border: 1px solid rgba(131, 163, 196, .2); border-radius: 15px; background: rgba(14, 30, 49, .88); box-shadow: inset 0 1px rgba(255,255,255,.035); }
+    .controls { display: grid; gap: 13px; padding: 15px; }
+    .control { display: grid; gap: 7px; }
+    .control-head { display: flex; align-items: baseline; justify-content: space-between; gap: 9px; color: #cbd9e9; font-size: 11px; }
+    output { color: #62d9ff; font: 700 13px ui-monospace, SFMono-Regular, monospace; }
+    input[type=range] { width: 100%; height: 6px; accent-color: #48c9ff; cursor: ew-resize; }
+    .hint { margin: 2px 0 0; color: #6f859f; font-size: 10px; line-height: 1.4; }
+    .results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px; }
+    .metric { min-width: 0; border: 1px solid rgba(131, 163, 196, .16); border-radius: 11px; padding: 10px; background: rgba(5, 14, 27, .52); }
+    .metric span { display: block; color: #8196af; font-size: 9px; letter-spacing: .03em; }
+    .metric strong { display: block; margin-top: 5px; color: #f4f8ff; font: 700 clamp(13px, 2vw, 18px) ui-monospace, SFMono-Regular, monospace; letter-spacing: -.05em; white-space: nowrap; }
+    .chart { position: relative; overflow: hidden; min-height: 191px; padding: 14px 12px 10px; }
+    .chart-head { display: flex; justify-content: space-between; gap: 8px; color: #92a9c2; font-size: 10px; }
+    #decision { color: #5ff2bd; font-weight: 800; }
+    #decision.risk { color: #ff8b8b; }
+    svg { display: block; width: 100%; height: 150px; margin-top: 4px; overflow: visible; }
+    .grid-line { stroke: rgba(144, 171, 205, .15); stroke-width: 1; }
+    .baseline { stroke: rgba(144, 171, 205, .38); stroke-width: 1.5; }
+    #curve { fill: none; stroke: #57d6ff; stroke-width: 4; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(87,214,255,.58)); transition: d 170ms ease, stroke 170ms ease; }
+    #curve.risk { stroke: #ff839a; filter: drop-shadow(0 0 6px rgba(255,131,154,.58)); }
+    #tip { fill: #57d6ff; transition: cx 170ms ease, cy 170ms ease, fill 170ms ease; }
+    #tip.risk { fill: #ff839a; }
+    .end-label { fill: #8399b0; font-size: 9px; font-family: ui-monospace, SFMono-Regular, monospace; }
+    .status { display: flex; align-items: center; gap: 7px; padding: 0 12px 12px; color: #a8b9cc; font-size: 11px; }
+    .status i { width: 8px; height: 8px; border-radius: 50%; background: #43e8b4; box-shadow: 0 0 12px #43e8b4; }
+    .status.risk i { background: #ff7288; box-shadow: 0 0 12px #ff7288; }
+    @media (max-width: 560px) { main { padding: 14px; } .layout { grid-template-columns: 1fr; } .chart { min-height: 166px; } svg { height: 124px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="topline"><span class="dot"></span> LIVE ENGINEERING CHECK</div>
+    <h1>悬臂梁载荷评估</h1>
+    <p class="summary">拖动参数，挠度曲线、应力读数和安全结论在这一条回复里同步更新。</p>
+    <div class="layout">
+      <section class="card controls" aria-label="结构计算参数">
+        <label class="control" for="load">
+          <span class="control-head"><span>端部载荷</span><output id="load-value" for="load">12.0 kN</output></span>
+          <input id="load" type="range" min="4" max="28" value="12" step="1" aria-describedby="controls-hint">
+        </label>
+        <label class="control" for="length">
+          <span class="control-head"><span>悬臂长度</span><output id="length-value" for="length">2.4 m</output></span>
+          <input id="length" type="range" min="1.2" max="4.2" value="2.4" step="0.1" aria-describedby="controls-hint">
+        </label>
+        <label class="control" for="factor">
+          <span class="control-head"><span>目标安全系数</span><output id="factor-value" for="factor">1.8</output></span>
+          <input id="factor" type="range" min="1.2" max="3" value="1.8" step="0.1" aria-describedby="controls-hint">
+        </label>
+        <p id="controls-hint" class="hint">演示模型：钢制矩形截面，结果用于说明互动方式，不替代正式工程复核。</p>
+      </section>
+      <section class="card">
+        <div class="results" aria-live="polite">
+          <div class="metric"><span>端部挠度</span><strong id="deflection">6.8 mm</strong></div>
+          <div class="metric"><span>最大应力</span><strong id="stress">92 MPa</strong></div>
+          <div class="metric"><span>安全裕度</span><strong id="margin">+38%</strong></div>
+        </div>
+        <div class="chart">
+          <div class="chart-head"><span>位移曲线（放大示意）</span><span id="decision">可用 · PASS</span></div>
+          <svg viewBox="0 0 500 150" role="img" aria-label="随输入变化的悬臂梁挠度曲线">
+            <path class="grid-line" d="M 14 28 H 486 M 14 64 H 486 M 14 100 H 486"></path>
+            <path class="baseline" d="M 14 18 V 128 H 486"></path>
+            <path id="curve" d="M 14 25 C 164 25, 340 34, 486 72"></path>
+            <circle id="tip" cx="486" cy="72" r="6"></circle>
+            <text class="end-label" x="14" y="144">固定端</text><text class="end-label" x="450" y="144">自由端</text>
+          </svg>
+        </div>
+        <div id="status" class="status"><i></i><span>当前组合在目标安全系数内。</span></div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const controls = ['load', 'length', 'factor'].map((id) => document.getElementById(id));
+    const byId = (id) => document.getElementById(id);
+    const update = () => {
+      const load = Number(byId('load').value);
+      const length = Number(byId('length').value);
+      const factor = Number(byId('factor').value);
+      const stress = load * length * 3.18;
+      const deflection = load * Math.pow(length, 3) * 0.041;
+      const capacity = 255 / factor;
+      const margin = (capacity / stress - 1) * 100;
+      const isRisk = margin < 0;
+      byId('load-value').value = `${load.toFixed(1)} kN`;
+      byId('length-value').value = `${length.toFixed(1)} m`;
+      byId('factor-value').value = factor.toFixed(1);
+      byId('deflection').textContent = `${deflection.toFixed(1)} mm`;
+      byId('stress').textContent = `${Math.round(stress)} MPa`;
+      byId('margin').textContent = `${margin >= 0 ? '+' : ''}${Math.round(margin)}%`;
+      const depth = Math.min(78, 22 + deflection * 2.1);
+      const curve = byId('curve');
+      const tip = byId('tip');
+      curve.setAttribute('d', `M 14 25 C 164 25, 340 ${26 + depth * .22}, 486 ${25 + depth}`);
+      tip.setAttribute('cy', String(25 + depth));
+      curve.classList.toggle('risk', isRisk);
+      tip.classList.toggle('risk', isRisk);
+      const decision = byId('decision');
+      decision.classList.toggle('risk', isRisk);
+      decision.textContent = isRisk ? '超限 · REVIEW' : '可用 · PASS';
+      const status = byId('status');
+      status.classList.toggle('risk', isRisk);
+      status.querySelector('span').textContent = isRisk
+        ? '当前组合超过目标安全系数，请降低载荷或缩短悬臂。'
+        : '当前组合在目标安全系数内。';
+      requestAnimationFrame(reportHeight);
+    };
+    const reportHeight = () => parent.postMessage({ type: 'nextclaw:panel-app-content-height', height: document.documentElement.scrollHeight }, '*');
+    controls.forEach((control) => control.addEventListener('input', update));
+    window.addEventListener('load', () => { update(); setTimeout(reportHeight, 100); });
+    window.addEventListener('resize', reportHeight);
+  </script>
+</body>
+</html>

@@ -14,6 +14,7 @@ import {
 } from "./landing-route-pages.utils";
 import { PROACTIVE_DELIVERY_COPY } from "./landing-proactive-delivery.config";
 import { LINKS } from "./landing-route.utils";
+import { renderInteractiveArtifactShowcase } from "./utils/interactive-artifact.utils";
 
 function renderProactiveDeliveryShowcase(
   showcase: ProactiveDeliveryShowcase,
@@ -79,6 +80,8 @@ export function renderHomeSections(
       </div>
       <div class="showcase-grid">${renderShowcaseCards(copy.showcaseItems)}</div>
     </section>
+
+    ${renderInteractiveArtifactShowcase(locale)}
 
     ${renderRuntimeShowcase(copy.runtimeShowcase)}
 

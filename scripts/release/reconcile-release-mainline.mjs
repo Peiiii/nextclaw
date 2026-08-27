@@ -13,7 +13,7 @@ import {
   readConflictFiles,
   readStatus,
   readTargetWorktree,
-  resolveReconciliationStateDir,
+  resolveReconciliationWorkerPath,
   spawnReconciliationRetryWorker,
 } from "./release-mainline-reconciliation.utils.mjs";
 
@@ -343,8 +343,7 @@ function parseArgs(argv) {
 
 async function runWatchChild(options) {
   const { maxWatchMs, pollMs, rootDir, targetBranch } = options;
-  const stateDir = resolveReconciliationStateDir(rootDir);
-  const workerPath = join(stateDir, "worker.json");
+  const workerPath = resolveReconciliationWorkerPath(rootDir);
   const deadline = maxWatchMs > 0 ? Date.now() + maxWatchMs : null;
   try {
     while (deadline === null || Date.now() < deadline) {

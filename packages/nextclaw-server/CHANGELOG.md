@@ -1,5 +1,36 @@
 # nextclaw-server
 
+## 0.18.3
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/client-sdk
+  - @nextclaw/server
+
+- Updated dependencies [2d292fa]
+- Updated dependencies [a5a03e5]
+- Updated dependencies [c0523dc]
+- Updated dependencies [7d2b9f8]
+  - @nextclaw/core@0.17.10
+  - @nextclaw/kernel@0.10.3
+  - @nextclaw/mcp@0.3.37
+  - @nextclaw/runtime@0.4.36
+
+## 0.18.2
+
+### Patch Changes
+
+- 667c4fd: 产品活跃统计改为默认开启的匿名汇总：每个客户端仅为当日、当周和当月生成相互独立的一次性收据，不再上传或保存稳定安装标识、账号、令牌、IP、User-Agent、消息内容或工具参数；隐私设置新增本机投递状态，管理后台同步展示当前自然日、自然周、自然月活跃与成功使用趋势。
+- Updated dependencies [667c4fd]
+- Updated dependencies [8716fb9]
+  - @nextclaw/core@0.17.9
+  - @nextclaw/kernel@0.10.2
+  - @nextclaw/mcp@0.3.36
+  - @nextclaw/runtime@0.4.35
+
 ## 0.18.1
 
 ### Patch Changes

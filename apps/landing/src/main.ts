@@ -477,7 +477,7 @@ const COPY: Record<Locale, LandingCopy> = {
       }
     ],
     docsButton: '查看文档',
-    screenshotChatSrc: new URL('../../../images/screenshots/nextclaw-hero-workbench-cn.png', import.meta.url).href,
+    screenshotChatSrc: new URL('../../../images/screenshots/nextclaw-hero-workbench-cn.webp', import.meta.url).href,
     showcaseTitle: '把任务放在一个工作台里做。',
     showcaseSubtitle: '对话、技能、浏览器和资料放在一起，少一点来回切换。',
     showcaseItems: [
@@ -957,9 +957,7 @@ class LandingPage {
 
           </div>
         </main>
-
         ${this.route === 'home' ? renderHomeSections(this.copy, docsLink, this.locale) : ''}
-
         ${renderLandingFooter(this.copy, docsLink, releasesRoute)}
 
       </div>

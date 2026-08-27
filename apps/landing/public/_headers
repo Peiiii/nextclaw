@@ -1,0 +1,5 @@
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/nextclaw-inline-engineering-20260827-*
+  Cache-Control: public, max-age=31536000, immutable

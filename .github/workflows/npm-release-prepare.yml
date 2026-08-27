@@ -1,17 +1,30 @@
 name: npm-release-prepare
+run-name: npm-release-prepare source=${{ inputs.source_sha || github.sha }} dispatch=${{ inputs.dispatch_id || 'push' }}
 
 on:
   push:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      source_sha:
+        description: "Exact source commit to prepare"
+        required: true
+        type: string
+      dispatch_id:
+        description: "Unique caller identity for recovery dispatches"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: npm-release-prepare-${{ github.ref }}
-  cancel-in-progress: true
+  group: npm-release-prepare-${{ inputs.source_sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  NPM_RELEASE_SOURCE_SHA: ${{ inputs.source_sha || github.sha }}
 
 jobs:
   prepare:
@@ -22,6 +35,7 @@ jobs:
       - name: Checkout exact source commit
         uses: actions/checkout@v4
         with:
+          ref: ${{ env.NPM_RELEASE_SOURCE_SHA }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -37,7 +51,7 @@ jobs:
 
       - name: Bind checkout to master
         run: |
-          git switch -C master "$GITHUB_SHA"
+          git switch -C master "$NPM_RELEASE_SOURCE_SHA"
           git branch --set-upstream-to=origin/master master
 
       - name: Install dependencies
@@ -51,7 +65,7 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "No releasable public package drift exists at $GITHUB_SHA."
+            echo "No releasable public package drift exists at $NPM_RELEASE_SOURCE_SHA."
           fi
 
       - name: Prepare immutable release tree and tarballs
@@ -66,7 +80,7 @@ jobs:
         if: steps.release-batch.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: npm-release-prepared-${{ github.sha }}
+          name: npm-release-prepared-${{ env.NPM_RELEASE_SOURCE_SHA }}
           if-no-files-found: error
           retention-days: 7
           path: ${{ runner.temp }}/npm-release-prepared

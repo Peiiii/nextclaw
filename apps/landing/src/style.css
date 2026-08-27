@@ -37,7 +37,6 @@
       linear-gradient(180deg, hsl(42 44% 97%), hsl(var(--background)) 32rem);
   }
 }
-
 @layer utilities {
   .glass {
     background: rgba(255, 255, 255, 0.7);
@@ -957,6 +956,141 @@
     background: hsl(38 30% 90% / 0.62);
   }
 
+  .interactive-artifact-section {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    border-block: 1px solid hsl(var(--border) / 0.56);
+    background:
+      radial-gradient(circle at 82% 28%, hsl(var(--accent) / 0.13), transparent 24rem),
+      hsl(42 42% 97% / 0.72);
+    padding: clamp(4rem, 8vw, 6.75rem) 1.5rem;
+  }
+
+  .interactive-artifact-inner {
+    width: 100%;
+    max-width: 80rem;
+    margin: 0 auto;
+  }
+
+  .interactive-artifact-header {
+    max-width: 48rem;
+  }
+
+  .interactive-artifact-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: hsl(var(--primary));
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .interactive-artifact-eyebrow svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .interactive-artifact-title {
+    max-width: 44rem;
+    margin-top: 0.8rem;
+    color: hsl(var(--foreground));
+    font-size: clamp(2.2rem, 4.5vw, 4.1rem);
+    font-weight: 650;
+    line-height: 1.04;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
+  }
+
+  .interactive-artifact-description {
+    max-width: 42rem;
+    margin-top: 1.25rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 1.0625rem;
+    line-height: 1.72;
+  }
+
+  .interactive-artifact-product-shot {
+    margin-top: clamp(2rem, 5vw, 3.5rem);
+    overflow: hidden;
+    border: 1px solid hsl(var(--border) / 0.74);
+    border-radius: 1.65rem;
+    background: hsl(42 44% 99% / 0.88);
+    box-shadow: 0 38px 84px -70px hsl(var(--foreground) / 0.82);
+  }
+
+  .interactive-artifact-product-shot__media {
+    overflow: hidden;
+    background: hsl(var(--secondary));
+  }
+
+  .interactive-artifact-product-shot video,
+  .interactive-artifact-product-shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .interactive-artifact-product-shot video {
+    aspect-ratio: 1512 / 828;
+    background: hsl(var(--secondary));
+  }
+
+  .interactive-artifact-product-shot figcaption {
+    padding: 0.95rem 1.15rem 1.05rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .interactive-artifact-path {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin-top: 1.15rem;
+    border: 1px solid hsl(var(--border) / 0.72);
+    border-radius: 1.15rem;
+    background: hsl(42 44% 99% / 0.58);
+  }
+
+  .interactive-artifact-path li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    padding: 1.1rem 1.2rem;
+  }
+
+  .interactive-artifact-path li + li {
+    border-left: 1px solid hsl(var(--border) / 0.72);
+  }
+
+  .interactive-artifact-path span {
+    display: grid;
+    width: 1.85rem;
+    height: 1.85rem;
+    place-items: center;
+    border-radius: 999px;
+    color: hsl(var(--primary));
+    background: hsl(var(--primary) / 0.1);
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+
+  .interactive-artifact-path strong {
+    display: block;
+    color: hsl(var(--foreground));
+    font-size: 0.92rem;
+    line-height: 1.35;
+  }
+
+  .interactive-artifact-path p {
+    margin-top: 0.35rem;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.82rem;
+    line-height: 1.58;
+  }
+
   @media (max-width: 767px) {
     .landing-header {
       top: 0.5rem;
@@ -1016,6 +1150,23 @@
     .landing-cta-card {
       border-radius: 1.75rem;
       padding: 2rem 1.25rem;
+    }
+
+    .interactive-artifact-section {
+      padding-inline: 1rem;
+    }
+
+    .interactive-artifact-product-shot {
+      border-radius: 1.15rem;
+    }
+
+    .interactive-artifact-path {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .interactive-artifact-path li + li {
+      border-top: 1px solid hsl(var(--border) / 0.72);
+      border-left: 0;
     }
 
     .install-method-layout {
