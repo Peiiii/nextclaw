@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.44.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-27",
+  "title": {
+    "zh-CN": "NextClaw v0.44.1",
+    "en-US": "NextClaw v0.44.1"
+  },
+  "summary": {
+    "zh-CN": "可以在会话中管理定时任务、查看模型调用与 Token 用量，并在切换页面或长回复时保留准确的阅读位置。",
+    "en-US": "Manage scheduled tasks and inspect model calls and token usage in a session, while keeping your reading position across views and long replies."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-27-nextclaw-v0-44-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-27-nextclaw-v0-44-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "会话内定时任务管理", "en-US": "Scheduled task controls in sessions" },
+          "body": {
+            "zh-CN": "在会话中启用、暂停、立即运行、查看详情或删除定时任务；较长的任务内容会保持紧凑显示。",
+            "en-US": "Enable, pause, run now, inspect, or delete scheduled tasks directly in a session while keeping long task content compact."
+          }
+        },
+        {
+          "title": { "zh-CN": "模型调用与 Token 用量", "en-US": "Model calls and token usage" },
+          "body": {
+            "zh-CN": "会话工作台会显示 Agent 轮次、模型调用次数、已报告调用次数和按模型统计的 Token 用量。",
+            "en-US": "The session workspace shows agent turns, model calls, reported calls, and token usage by model."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "切换后恢复阅读位置", "en-US": "Restored reading positions" },
+          "body": {
+            "zh-CN": "在工作区、会话和常用页面之间切换后，会回到此前的位置；Markdown 文件在切换文件和预览模式时也会保留滚动位置。",
+            "en-US": "Return to the previous position after switching workspaces, sessions, and common pages. Markdown previews also retain their scroll position when changing files or preview modes."
+          }
+        },
+        {
+          "title": { "zh-CN": "更快打开大量会话", "en-US": "Faster access to large session lists" },
+          "body": {
+            "zh-CN": "会话列表使用分页、排序和预取来减少卡顿，在大量历史和工具调用并存时仍可继续浏览全部会话。",
+            "en-US": "Pagination, sorting, and prefetching reduce stalls so you can continue browsing all sessions even with extensive history and tool calls."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "上下文压缩提示的位置", "en-US": "Context compaction marker placement" },
+          "body": {
+            "zh-CN": "长回复仍在恢复时，上下文压缩提示只会在能够定位到正确回复位置后显示，不再堆叠到会话末尾。",
+            "en-US": "While a long reply is still restoring, context-compaction markers appear only after their correct reply position is known instead of stacking at the end of the session."
+          }
+        }
+      ]
+    }
+  ]
+}

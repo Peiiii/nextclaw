@@ -1,5 +1,47 @@
 # nextclaw
 
+## 0.44.1
+
+### Patch Changes
+
+- 2d292fa: 修复会话搜索索引重复全目录扫描和并发写入造成的全局卡顿；会话列表改为 SQLite 页码分页、后端搜索排序与滚动前预取，在大量会话与重工具调用历史并存时仍能快速出现，并可继续访问全部会话、历史和工具详情。
+- 1f61d34: 重做 NextClaw 官网首页产品实证、下载与安装信息架构和微信社群入口，让用户在首屏直接看见真实工作台，并在同一页面完成安装方式选择。
+- Updated dependencies
+- Updated dependencies [2d292fa]
+- Updated dependencies [a5a03e5]
+- Updated dependencies [c0523dc]
+- Updated dependencies [7d2b9f8]
+  - @nextclaw/server@0.18.3
+  - @nextclaw/core@0.17.10
+  - @nextclaw/kernel@0.10.3
+  - @nextclaw/service@0.3.48
+  - @nextclaw/remote@0.3.45
+  - @nextclaw/mcp@0.3.37
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.37
+  - @nextclaw/runtime@0.4.36
+  - @nextclaw/ncp-mcp@0.2.37
+
+## 0.44.0
+
+### Minor Changes
+
+- 667c4fd: 产品活跃统计改为默认开启的匿名汇总：每个客户端仅为当日、当周和当月生成相互独立的一次性收据，不再上传或保存稳定安装标识、账号、令牌、IP、User-Agent、消息内容或工具参数；隐私设置新增本机投递状态，管理后台同步展示当前自然日、自然周、自然月活跃与成功使用趋势。
+
+### Patch Changes
+
+- fe65833: 让桌面端 beta 更新渠道同时检查预览版和正式版，并提示版本较新的更新。
+- Updated dependencies [667c4fd]
+- Updated dependencies [8716fb9]
+  - @nextclaw/core@0.17.9
+  - @nextclaw/service@0.3.47
+  - @nextclaw/server@0.18.2
+  - @nextclaw/kernel@0.10.2
+  - @nextclaw/mcp@0.3.36
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.36
+  - @nextclaw/remote@0.3.44
+  - @nextclaw/runtime@0.4.35
+  - @nextclaw/ncp-mcp@0.2.36
+
 ## 0.43.0
 
 ### Minor Changes

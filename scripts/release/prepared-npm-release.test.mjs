@@ -17,6 +17,11 @@ import {
   publishPreparedNpmRelease,
   validatePreparedNpmRelease,
 } from "./prepared-npm-release.mjs";
+import {
+  DEFAULT_VERIFY_ATTEMPTS,
+  DEFAULT_VERIFY_DELAY_MS,
+  DEFAULT_VERIFY_MAX_DELAY_MS,
+} from "./prepared-npm-publisher.mjs";
 
 function createRecord() {
   return {
@@ -151,6 +156,21 @@ test("prepared publish backs off for registry visibility without republishing", 
       .filter((event) => event.type === "registry-wait")
       .map((event) => event.delayMs),
     [1, 2, 2],
+  );
+});
+
+test("default registry visibility window tolerates fifteen minutes of propagation", () => {
+  const delays = Array.from(
+    { length: DEFAULT_VERIFY_ATTEMPTS - 1 },
+    (_value, index) =>
+      Math.min(
+        DEFAULT_VERIFY_DELAY_MS * 2 ** index,
+        DEFAULT_VERIFY_MAX_DELAY_MS,
+      ),
+  );
+  assert.equal(
+    delays.reduce((total, delayMs) => total + delayMs, 0),
+    15 * 60 * 1000,
   );
 });
 

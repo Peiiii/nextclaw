@@ -1,0 +1,1 @@
+import{t as e}from"./doc-browser-npOvWtgf.js";export{e as DocBrowser};

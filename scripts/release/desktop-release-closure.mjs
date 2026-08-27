@@ -297,7 +297,7 @@ async function readGhPagesManifest(options) {
   const manifestUrl =
     `https://raw.githubusercontent.com/${repo}/gh-pages/desktop-updates/${channel}/` +
     `manifest-${channel}-win32-x64.json`;
-  return await readJsonCommand("curl", [
+  return await (options.readJsonCommand ?? readJsonCommand)("curl", [
     "-fsSL",
     `${manifestUrl}?desktopRelease=${Date.now()}`
   ]);
@@ -320,7 +320,7 @@ function assertManifest(manifest, options, label) {
   }
 }
 
-async function waitForPublicManifest(options) {
+export async function waitForPublicManifest(options) {
   const { channel, publicAttempts, publicDelayMs, runtimeVersion, skipPublicPages } = options;
   if (skipPublicPages) {
     console.log("[desktop:release] public Pages verification skipped by flag.");
@@ -329,19 +329,50 @@ async function waitForPublicManifest(options) {
 
   const manifestUrl =
     `https://peiiii.github.io/nextclaw/desktop-updates/${channel}/manifest-${channel}-win32-x64.json`;
+  let lastObservation = "not read";
   for (let attempt = 1; attempt <= publicAttempts; attempt += 1) {
-    const manifest = await readJsonCommand("curl", ["-fsSL", `${manifestUrl}?desktopRelease=${Date.now()}-${attempt}`]);
-    if (manifest.latestVersion === runtimeVersion) {
+    let manifest = null;
+    try {
+      manifest = await (options.readJsonCommand ?? readJsonCommand)("curl", [
+        "-fsSL",
+        `${manifestUrl}?desktopRelease=${Date.now()}-${attempt}`
+      ]);
+      lastObservation = `version ${manifest.latestVersion ?? "<missing>"}`;
+    } catch (error) {
+      lastObservation = `read pending: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    if (manifest?.latestVersion === runtimeVersion) {
       assertManifest(manifest, options, "public Pages manifest");
       console.log(`[desktop:release] public Pages manifest OK: ${manifest.latestVersion}`);
       return;
     }
-    console.warn(`[desktop:release] public Pages attempt ${attempt}/${publicAttempts}: still ${manifest.latestVersion}`);
+    console.warn(`[desktop:release] public Pages attempt ${attempt}/${publicAttempts}: ${lastObservation}`);
     if (attempt < publicAttempts) {
-      await sleep(publicDelayMs);
+      await (options.sleep ?? sleep)(publicDelayMs);
     }
   }
-  throw new Error(`Public Pages manifest did not propagate to ${runtimeVersion}.`);
+  throw new Error(`Timed out waiting for public Pages manifest ${runtimeVersion}; last observation: ${lastObservation}.`);
+}
+
+export async function waitForGhPagesManifest(options) {
+  const { publicAttempts, publicDelayMs, runtimeVersion } = options;
+  let lastObservation = "not read";
+  for (let attempt = 1; attempt <= publicAttempts; attempt += 1) {
+    let manifest = null;
+    try {
+      manifest = await readGhPagesManifest(options);
+      lastObservation = `version ${manifest.latestVersion ?? "<missing>"}`;
+    } catch (error) {
+      lastObservation = `read pending: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    if (manifest?.latestVersion === runtimeVersion) {
+      assertManifest(manifest, options, "gh-pages manifest");
+      console.log(`[desktop:release] gh-pages manifest OK: ${manifest.latestVersion}`);
+      return;
+    }
+    if (attempt < publicAttempts) await (options.sleep ?? sleep)(publicDelayMs);
+  }
+  throw new Error(`Timed out waiting for gh-pages manifest ${runtimeVersion}; last observation: ${lastObservation}.`);
 }
 
 async function verifyStableAptRepo(options) {
@@ -349,7 +380,7 @@ async function verifyStableAptRepo(options) {
   if (channel !== "stable") {
     return;
   }
-  const packagesText = await readTextCommand("curl", [
+  const packagesText = await (options.readTextCommand ?? readTextCommand)("curl", [
     "-fsSL",
     `https://raw.githubusercontent.com/${repo}/gh-pages/apt/dists/stable/main/binary-amd64/Packages?desktopRelease=${Date.now()}`
   ]);
@@ -359,42 +390,65 @@ async function verifyStableAptRepo(options) {
   console.log(`[desktop:release] gh-pages stable APT repo OK: ${desktopVersion}`);
 }
 
-async function waitForPublicStableAptRepo(options) {
+export async function waitForPublicStableAptRepo(options) {
   const { channel, desktopVersion, publicAttempts, publicDelayMs, skipPublicPages } = options;
   if (channel !== "stable" || skipPublicPages) {
     return;
   }
+  let lastObservation = "not read";
   for (let attempt = 1; attempt <= publicAttempts; attempt += 1) {
-    const packagesText = await readTextCommand("curl", [
-      "-fsSL",
-      `https://peiiii.github.io/nextclaw/apt/dists/stable/main/binary-amd64/Packages?desktopRelease=${Date.now()}-${attempt}`
-    ]);
-    if (packagesText.includes(`Version: ${desktopVersion}`)) {
-      console.log(`[desktop:release] public stable APT repo OK: ${desktopVersion}`);
-      return;
+    try {
+      const packagesText = await (options.readTextCommand ?? readTextCommand)("curl", [
+        "-fsSL",
+        `https://peiiii.github.io/nextclaw/apt/dists/stable/main/binary-amd64/Packages?desktopRelease=${Date.now()}-${attempt}`
+      ]);
+      lastObservation = packagesText.includes(`Version: ${desktopVersion}`)
+        ? `version ${desktopVersion}`
+        : `version ${desktopVersion} not visible`;
+      if (packagesText.includes(`Version: ${desktopVersion}`)) {
+        console.log(`[desktop:release] public stable APT repo OK: ${desktopVersion}`);
+        return;
+      }
+    } catch (error) {
+      lastObservation = `read pending: ${error instanceof Error ? error.message : String(error)}`;
     }
-    console.warn(`[desktop:release] public APT attempt ${attempt}/${publicAttempts}: missing ${desktopVersion}`);
+    console.warn(`[desktop:release] public APT attempt ${attempt}/${publicAttempts}: ${lastObservation}`);
     if (attempt < publicAttempts) {
-      await sleep(publicDelayMs);
+      await (options.sleep ?? sleep)(publicDelayMs);
     }
   }
-  throw new Error(`Public stable APT repo did not propagate to ${desktopVersion}.`);
+  throw new Error(`Timed out waiting for public stable APT repo ${desktopVersion}; last observation: ${lastObservation}.`);
+}
+
+async function waitForGhPagesStableAptRepo(options) {
+  const { channel, desktopVersion, publicAttempts, publicDelayMs } = options;
+  if (channel !== "stable") return;
+  let lastObservation = "not read";
+  for (let attempt = 1; attempt <= publicAttempts; attempt += 1) {
+    try {
+      await verifyStableAptRepo(options);
+      return;
+    } catch (error) {
+      lastObservation = error instanceof Error ? error.message : String(error);
+    }
+    if (attempt < publicAttempts) await (options.sleep ?? sleep)(publicDelayMs);
+  }
+  throw new Error(`Timed out waiting for gh-pages stable APT repo ${desktopVersion}; last observation: ${lastObservation}.`);
 }
 
 export async function waitForDesktopReleaseClosure(options) {
+  const { tag, target } = options;
   const runEntry = await waitForWorkflowRun(options);
   await waitForWorkflowSuccess(options, runEntry);
-  const tagSha = readTagSha(options.tag);
-  if (tagSha !== options.target) {
-    throw new Error(`Published tag target mismatch: expected ${options.target}, got ${tagSha}.`);
+  const tagSha = readTagSha(tag);
+  if (tagSha !== target) {
+    throw new Error(`Published tag target mismatch: expected ${target}, got ${tagSha}.`);
   }
   await verifyReleaseAssets({ ...options, expectedDraft: false });
 
-  const ghPagesManifest = await readGhPagesManifest(options);
-  assertManifest(ghPagesManifest, options, "gh-pages manifest");
-  console.log(`[desktop:release] gh-pages manifest OK: ${ghPagesManifest.latestVersion}`);
+  await waitForGhPagesManifest(options);
   await waitForPublicManifest(options);
-  await verifyStableAptRepo(options);
+  await waitForGhPagesStableAptRepo(options);
   await waitForPublicStableAptRepo(options);
-  console.log(`[desktop:release] complete: ${options.tag}`);
+  console.log(`[desktop:release] complete: ${tag}`);
 }

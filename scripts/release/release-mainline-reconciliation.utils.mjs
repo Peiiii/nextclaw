@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -8,7 +9,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 export const RECONCILIATION_SCHEMA =
   "nextclaw.release-mainline-reconciliation/v1";
@@ -103,6 +104,14 @@ export function resolveReconciliationStateDir(rootDir) {
   const stateDir = join(commonGitDir, "nextclaw", "release-mainline");
   mkdirSync(stateDir, { recursive: true });
   return stateDir;
+}
+
+export function resolveReconciliationWorkerPath(rootDir) {
+  const scope = createHash("sha256")
+    .update(resolve(rootDir))
+    .digest("hex")
+    .slice(0, 16);
+  return join(resolveReconciliationStateDir(rootDir), `worker-${scope}.json`);
 }
 
 export function writeReconciliationReport(rootDir, report) {
@@ -240,11 +249,14 @@ export function spawnReconciliationRetryWorker({
   targetSha,
 }) {
   const stateDir = resolveReconciliationStateDir(rootDir);
-  const workerPath = join(stateDir, "worker.json");
+  const resolvedRootDir = resolve(rootDir);
+  const workerPath = resolveReconciliationWorkerPath(resolvedRootDir);
   if (existsSync(workerPath)) {
     try {
       const existing = JSON.parse(readFileSync(workerPath, "utf8"));
-      if (processIsAlive(existing.pid)) return { pid: existing.pid, reused: true };
+      if (existing.rootDir === resolvedRootDir && processIsAlive(existing.pid)) {
+        return { pid: existing.pid, reused: true };
+      }
     } catch {
       // Replace stale or malformed worker state below.
     }
@@ -258,7 +270,7 @@ export function spawnReconciliationRetryWorker({
       scriptPath,
       "--watch-child",
       "--root",
-      rootDir,
+      resolvedRootDir,
       "--remote",
       remote,
       "--target",
@@ -277,6 +289,7 @@ export function spawnReconciliationRetryWorker({
     `${JSON.stringify(
       {
         pid: child.pid,
+        rootDir: resolvedRootDir,
         startedAt: new Date().toISOString(),
         targetBranch,
         targetSha,

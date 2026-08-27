@@ -6,6 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { reconcileReleaseMainline } from "./reconcile-release-mainline.mjs";
+import { resolveReconciliationWorkerPath } from "./release-mainline-reconciliation.utils.mjs";
 
 function git(rootDir, args) {
   return execFileSync("git", args, {
@@ -181,13 +182,8 @@ test("retry worker completes the local fast-forward after active edits settle", 
   git(repository, ["restore", "--staged", "shared.txt"]);
   git(repository, ["restore", "shared.txt"]);
 
-  const commonGitDir = git(repository, [
-    "rev-parse",
-    "--path-format=absolute",
-    "--git-common-dir",
-  ]);
-  const stateDir = join(commonGitDir, "nextclaw", "release-mainline");
-  const workerPath = join(stateDir, "worker.json");
+  const workerPath = resolveReconciliationWorkerPath(repository);
+  const stateDir = join(workerPath, "..");
   const latestPath = join(stateDir, "latest.json");
   for (let attempt = 0; attempt < 60 && existsSync(workerPath); attempt += 1) {
     await wait(50);
@@ -196,6 +192,14 @@ test("retry worker completes the local fast-forward after active edits settle", 
   assert.equal(existsSync(workerPath), false);
   assert.equal(git(repository, ["rev-parse", "HEAD"]), remoteCommit);
   assert.equal(JSON.parse(readFileSync(latestPath, "utf8")).status, "LOCAL_MAINLINE_SYNCED");
+});
+
+test("scopes retry worker leases to each target worktree", (context) => {
+  const { repository, upstream } = createFixture(context);
+  assert.notEqual(
+    resolveReconciliationWorkerPath(repository),
+    resolveReconciliationWorkerPath(upstream),
+  );
 });
 
 test("isolates semantic merge conflicts and leaves the active worktree and remote unchanged", (context) => {

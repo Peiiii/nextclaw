@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 
 const ROOT_DIR = process.cwd();
 
@@ -15,22 +16,37 @@ function readJsonCommand(command, args) {
   return JSON.parse(run(command, args));
 }
 
-export function assertPublishedDesktopRuntimeIdentity(channel, runtimeVersion) {
+function blockingSleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+export function assertPublishedDesktopRuntimeIdentity(channel, runtimeVersion, options = {}) {
   const distTag = channel === "beta" ? "beta" : "latest";
-  const readPublishedVersion = (packageSpec) => {
+  const runCommand = options.runCommand ?? run;
+  const sleep = options.sleep ?? blockingSleep;
+  const attempts = options.attempts ?? 6;
+  let exactVersion = null;
+  let channelVersion = null;
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    lastError = null;
     try {
-      return run("npm", ["view", packageSpec, "version"]);
-    } catch {
-      return null;
+      exactVersion = runCommand("npm", ["view", `nextclaw@${runtimeVersion}`, "version"]);
+      channelVersion = runCommand("npm", ["view", `nextclaw@${distTag}`, "version"]);
+    } catch (error) {
+      lastError = error;
     }
-  };
-  const exactVersion = readPublishedVersion(`nextclaw@${runtimeVersion}`);
-  const channelVersion = readPublishedVersion(`nextclaw@${distTag}`);
-  if (exactVersion !== runtimeVersion || channelVersion !== runtimeVersion) {
+    if (exactVersion === runtimeVersion && channelVersion === runtimeVersion) return;
+    if (attempt < attempts) sleep(2000 * attempt);
+  }
+  if (lastError) {
     throw new Error(
-      `Desktop release requires an already published nextclaw ${channel} identity: exact=${exactVersion || "<missing>"}, ${distTag}=${channelVersion || "<missing>"}, expected=${runtimeVersion}. Publish the NPM/runtime version first; desktop release never republishes NPM.`
+      `Could not confirm published NPM identity after ${attempts} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`
     );
   }
+  throw new Error(
+    `Desktop release requires an already published nextclaw ${channel} identity after ${attempts} attempts: exact=${exactVersion || "<missing>"}, ${distTag}=${channelVersion || "<missing>"}, expected=${runtimeVersion}. Publish the NPM/runtime version first; desktop release never republishes NPM.`
+  );
 }
 
 function readWorkflowRun(repo, runId) {
@@ -45,8 +61,16 @@ function readWorkflowRun(repo, runId) {
   ]);
 }
 
+export function selectPreflightWorkflowRun(runs, dispatchId, startedAt = 0) {
+  return runs.find(
+    (entry) =>
+      String(entry.displayTitle ?? "").includes(`dispatch=${dispatchId}`) &&
+      Date.parse(entry.createdAt ?? "") >= startedAt - 60_000
+  );
+}
+
 function findWorkflowDispatchRun(options) {
-  const { branch, preflightWorkflow, repo, target } = options;
+  const { dispatchId, dispatchStartedAt, preflightWorkflow, repo } = options;
   const runs = readJsonCommand("gh", [
     "run",
     "list",
@@ -56,14 +80,12 @@ function findWorkflowDispatchRun(options) {
     preflightWorkflow,
     "--event",
     "workflow_dispatch",
-    "--branch",
-    branch,
     "--limit",
     "20",
     "--json",
-    "databaseId,headSha,status,conclusion,url"
+    "databaseId,createdAt,displayTitle,headSha,status,conclusion,url"
   ]);
-  return runs.find((entry) => entry.headSha === target);
+  return selectPreflightWorkflowRun(runs, dispatchId, dispatchStartedAt);
 }
 
 async function waitForWorkflowSuccess(options, runEntry, label) {
@@ -125,6 +147,9 @@ export async function runRemotePreflight(options) {
     return;
   }
 
+  const dispatchId = `desktop-preflight-${randomUUID()}`;
+  const dispatchStartedAt = Date.now();
+
   run("gh", [
     "workflow",
     "run",
@@ -142,8 +167,10 @@ export async function runRemotePreflight(options) {
     "-f",
     `minimum_launcher_version=${minimumLauncherVersion}`,
     "-f",
-    `target_sha=${target}`
+    `target_sha=${target}`,
+    "-f",
+    `dispatch_id=${dispatchId}`
   ]);
-  const runEntry = await waitForPreflightRun(options);
+  const runEntry = await waitForPreflightRun({ ...options, dispatchId, dispatchStartedAt });
   await waitForPreflightSuccess(options, runEntry);
 }
