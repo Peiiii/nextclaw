@@ -19,6 +19,8 @@ import {
   ExtensionIngressDiagnosticsService,
   ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
+  ExtensionObservationRuntimeService,
+  ExtensionDesktopRuntimeService,
   readOptionalNumber,
   readRecord,
   readRequiredString,
@@ -35,7 +37,7 @@ import {
   type ExtensionRuntimeServiceOptions,
   type PendingExtensionRequest,
 } from "@kernel/features/extension-runtime/index.js";
-import { ExtensionObservationRuntimeService } from "@kernel/features/extension-runtime/services/extension-observation-runtime.service.js";
+import type { DesktopHostCapabilityManager } from "@kernel/features/desktop-host/index.js";
 
 const EXTENSION_REQUEST_EVENT_TYPE = "extension.request";
 const EXTENSION_REQUEST_TIMEOUT_MS = 60_000;
@@ -44,8 +46,11 @@ export class ExtensionRuntimeService {
   private readonly authLeases: ExtensionAuthLeaseService;
   private readonly lifecycle: ExtensionLifecycleService;
   private readonly ingressDiagnostics: ExtensionIngressDiagnosticsService;
+  private readonly manifestDiscovery = new ExtensionManifestDiscoveryService();
+  private readonly contributions: ExtensionContributionsService;
   private readonly pendingRequests = new Map<string, PendingExtensionRequest>();
   private readonly persistentLeases = new Map<string, ExtensionLease>();
+  private readonly desktopRuntime: ExtensionDesktopRuntimeService;
   readonly observations: ExtensionObservationRuntimeService;
   private endpoint: string | null = null;
   private manifests: ExtensionManifest[] = [];
@@ -54,6 +59,9 @@ export class ExtensionRuntimeService {
     this.ingressDiagnostics = new ExtensionIngressDiagnosticsService(
       options.diagnostics,
     );
+    this.contributions = new ExtensionContributionsService({
+      request: this.requestExtension,
+    });
     this.lifecycle = new ExtensionLifecycleService({
       diagnostics: this.options.diagnostics,
       onProcessExit: this.handleProcessExit,
@@ -66,6 +74,28 @@ export class ExtensionRuntimeService {
         this.persistentLeases.has(
           this.persistentLeaseKey(extensionId, channelId),
         ),
+    });
+    this.desktopRuntime = new ExtensionDesktopRuntimeService({
+      authenticate: this.assertAuthorized,
+      capabilityGrantManager: options.capabilityGrantManager,
+      host: options.desktopHost,
+      emitEvent: options.eventBus.emitEnvelope,
+      findManifest: this.findManifest,
+      hasAgent: options.hasAgent,
+      onAuthorizationRequired: ({ applicationId, caller, request }) => {
+        options.eventBus.emitEnvelope({
+          type: "desktop.authorization.required",
+          payload: { applicationId, caller, request },
+          emittedAt: new Date().toISOString(),
+          source: "backend",
+        });
+      },
+      getCurrentGeneration: this.lifecycle.getCurrentGeneration,
+      onObservationAuthorizationRevoked:
+        options.onDesktopObservationAuthorizationRevoked,
+      onObservationAuthorizationGranted:
+        options.onDesktopObservationAuthorizationGranted,
+      onObservationRuntimeExited: options.onObservationRuntimeExited,
     });
     this.observations = new ExtensionObservationRuntimeService({
       lifecycle: this.lifecycle,
@@ -110,17 +140,23 @@ export class ExtensionRuntimeService {
       ingressKeys.extension.observationEvent,
       this.handleObservationEvent,
     );
+    this.options.ingress.addHandler(
+      ingressKeys.extension.desktopHostInvoke,
+      this.desktopRuntime.handleInvoke,
+    );
   };
 
   readonly loadChannelContributions = async (params: {
     config: Config;
     workspace: string;
   }): Promise<ExtensionRuntimeContributions> => {
-    this.manifests = await this.discoverManifests(params);
+    this.manifests = await this.manifestDiscovery.discover(
+      resolveExtensionManifestRoots(params),
+    );
     if (this.endpoint) {
       await this.reconcilePersistentDemand(params.config);
     }
-    return this.toContributions(this.manifests);
+    return this.contributions.toContributions(this.manifests);
   };
 
   readonly start = async (params: {
@@ -133,10 +169,12 @@ export class ExtensionRuntimeService {
     this.endpoint = endpoint;
     const config = this.options.getConfig();
     if (this.manifests.length === 0) {
-      this.manifests = await this.discoverManifests({
-        config,
-        workspace: this.options.getWorkspace(),
-      });
+      this.manifests = await this.manifestDiscovery.discover(
+        resolveExtensionManifestRoots({
+          config,
+          workspace: this.options.getWorkspace(),
+        }),
+      );
     }
     await this.reconcilePersistentDemand(config);
   };
@@ -149,8 +187,8 @@ export class ExtensionRuntimeService {
     this.lifecycle.authenticateCredential(input);
 
   getStatus = () => this.lifecycle.getStatus();
-
   getManifests = () => this.manifests;
+  get desktopHost(): DesktopHostCapabilityManager { return this.desktopRuntime.capabilities; }
 
   readonly stop = async (): Promise<void> => {
     this.endpoint = null;
@@ -163,6 +201,12 @@ export class ExtensionRuntimeService {
     }
     this.pendingRequests.clear();
     await this.lifecycle.stopAll();
+    await this.desktopRuntime.stop();
+  };
+
+  readonly dispose = async (): Promise<void> => {
+    await this.stop();
+    await this.desktopRuntime.dispose();
   };
 
   private readonly reconcilePersistentDemand = async (
@@ -242,20 +286,6 @@ export class ExtensionRuntimeService {
     }
     return manifest;
   };
-
-  private readonly discoverManifests = async (params: {
-    config: Config;
-    workspace: string;
-  }): Promise<ExtensionManifest[]> => {
-    const discovery = new ExtensionManifestDiscoveryService();
-    return await discovery.discover(resolveExtensionManifestRoots(params));
-  };
-
-  private readonly toContributions = (
-    manifests: ExtensionManifest[],
-  ): ExtensionRuntimeContributions =>
-    new ExtensionContributionsService({ request: this.requestExtension })
-      .toContributions(manifests);
 
   private readonly handleChannelConfigGet = (
     envelope: IngressEnvelope<ExtensionChannelConfigGetIngressPayload>,
@@ -539,9 +569,9 @@ export class ExtensionRuntimeService {
     readRecord(readRecord(this.options.getConfig().channels)[channelId])
       .enabled === true;
 
-  private readonly handleProcessExit = (
+  private readonly handleProcessExit = async (
     event: ExtensionProcessExitEvent,
-  ): void => {
+  ): Promise<void> => {
     for (const [requestId, pending] of this.pendingRequests) {
       if (
         pending.extensionId !== event.extensionId ||
@@ -558,7 +588,7 @@ export class ExtensionRuntimeService {
       );
     }
     this.authLeases.handleProcessExit(event);
-    this.options.onObservationRuntimeExited?.(event.extensionId);
+    await this.desktopRuntime.releaseProcessResources(event);
   };
 
   private readonly assertAuthorized = (

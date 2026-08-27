@@ -146,6 +146,15 @@ export type ExtensionRuntimeReadyIngressPayload = {
   pid: number;
 };
 
+export type ExtensionDesktopHostInvokeIngressPayload = {
+  method: string;
+  payload?: Record<string, unknown>;
+  caller?: {
+    sessionId?: string;
+    agentRunId?: string;
+  };
+};
+
 export type ExtensionObservationEventIngressPayload = {
   subscriptionId: string;
   event: {
@@ -248,6 +257,9 @@ export const ingressKeys = {
       createTypedKey<ExtensionResponseIngressPayload>("extension.response"),
     observationEvent: createTypedKey<ExtensionObservationEventIngressPayload>(
       "extension.observation.event",
+    ),
+    desktopHostInvoke: createTypedKey<ExtensionDesktopHostInvokeIngressPayload>(
+      "extension.host.desktop.invoke",
     ),
   },
   agentRun: {

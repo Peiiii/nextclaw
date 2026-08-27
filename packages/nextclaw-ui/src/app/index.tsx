@@ -14,6 +14,7 @@ import { ChatPage } from "@/components/chat/chat-page";
 import { AccountPanel } from "@/features/account";
 import { InboxRuntime } from "@/features/inbox";
 import { ServiceActionAuthorizationDialog } from "@/features/service-apps";
+import { DesktopAuthorizationDialog } from "@/features/desktop-capabilities";
 import { runtimeUpdateManager, useSystemStatusSources } from "@/features/system-status";
 import {
   isTransientAuthStatusBootstrapError,
@@ -66,6 +67,10 @@ const SecretsConfigPage = lazy(async () => ({
 const PrivacySettingsPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/privacy-settings-page"))
     .PrivacySettingsPage,
+}));
+const DesktopCapabilitiesPage = lazy(async () => ({
+  default: (await import("@/features/desktop-capabilities/pages/desktop-capabilities-page"))
+    .DesktopCapabilitiesPage,
 }));
 const RemoteAccessPage = lazy(async () => ({
   default: (await import("@/features/remote")).RemoteAccessPage,
@@ -180,6 +185,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
     element: createLazyElement(<PrivacySettingsPage />),
   },
   {
+    path: "/desktop-capabilities",
+    element: createLazyElement(<DesktopCapabilitiesPage />),
+  },
+  {
     path: "/secrets",
     element: createLazyElement(<SecretsConfigPage />),
   },
@@ -252,6 +261,7 @@ function ProtectedApp() {
       </AppLayout>
       <AccountPanel />
       <ServiceActionAuthorizationDialog />
+      <DesktopAuthorizationDialog />
     </AppPresenterProvider>
   );
 }

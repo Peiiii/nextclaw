@@ -18,6 +18,18 @@ Review the source, tools, and permission scope before installation. Test against
 
 Decide who may trigger an agent, which model receives group content, and where results return. Public or shared entry points should not connect directly to a high-privilege workspace.
 
+## Desktop app access
+
+On macOS, Accessibility permission is granted once to `NextClaw Desktop` in System Settings. Turning on that system permission does not automatically let every AI agent or Extension access every app. When one first tries to read, watch, or write to an app, NextClaw shows who is requesting access, the target app, and the requested action so you can allow or reject it.
+
+Open **Settings → Desktop Access** to check the Desktop Host and Accessibility status, review app access for AI agents and Extensions, and revoke a specific action at any time. Access follows the stable AI agent or Extension identity rather than one session. Revoking it immediately stops the related reads, watches, or writes.
+
+AI agents currently enter Desktop capability through one restricted `node_repl`; it injects only a `desktop` SDK to read a visible interface and click or enter text by element or coordinates. Every action must include a freshly read interface state and element index; an expired state or replaced target element is rejected and must be read again. For custom-drawn interfaces that expose no Accessibility element, a separately authorized screenshot and pointer-input path can click only inside the same freshly captured target window. Coordinates use the screenshot's top-left origin and the Host maps them to the matching window; a changed capture boundary, expired state, or out-of-window coordinate is rejected. The SDK does not prohibit actions such as Send or Confirm based on button text; whether to take those actions is determined by your task instruction and the Agent authorization flow. The REPL receives no access to local files, the terminal, the network, environment variables, native Desktop APIs, or arbitrary packages.
+
+Desktop writing and clicking require authorization for the target application. Screenshot-based coordinate clicks must stay inside the authorized, freshly captured target window and need separate pointer-input permission. Key presses, scrolling, dragging, recording, and background Desktop history are not available yet. For continuous attention to WeChat and other apps, the AI uses an Extension-backed session relationship that you can pause, resume, or remove.
+
+Some desktop apps do not expose chat text through Accessibility. To read visible content in those windows, the AI requests a separate permission to capture the current window, and macOS must also grant Screen Recording permission to `NextClaw Desktop`. The capture is limited to the authorized target window. NextClaw recognizes its text on-device and sends the result to the model you selected for summarization. When using a hosted model, visible window text follows that model provider's data path, so allow it only when both the content and model choice are appropriate.
+
 ## High-impact actions
 
 Preview deletion, overwrites, outbound messages, public publishing, production data changes, and paid actions before confirmation. Verify the actual file, page, or message after execution.
@@ -26,4 +38,4 @@ Preview deletion, overwrites, outbound messages, public publishing, production d
 
 NextClaw's service and data run in your environment, but hosted models, channels, MCP servers, websites, and remote services can still receive task data. Evaluate the complete call path.
 
-Related: [Secrets](/en/guide/secrets), [Messaging channels](/en/guide/channels), and [Remote access](/en/guide/remote-access).
+Related: [Continuous attention](/en/guide/agent-observation), [Secrets](/en/guide/secrets), [Messaging channels](/en/guide/channels), and [Remote access](/en/guide/remote-access).

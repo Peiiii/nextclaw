@@ -13,6 +13,8 @@ import {
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type { ObservationManager } from "@kernel/features/observation/index.js";
+import type { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
+import type { DesktopHost } from "@kernel/features/desktop-host/index.js";
 import { ExtensionRuntimeService } from "@kernel/services/extension-runtime.service.js";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 
@@ -43,6 +45,9 @@ type ExtensionManagerOptions = {
   messageBus: Pick<MessageBus, "publishInbound">;
   sessionManager: SessionManager;
   observations: ObservationManager;
+  capabilityGrantManager: CapabilityGrantManager;
+  desktopHost: DesktopHost;
+  hasAgent: (agentId: string) => boolean;
 };
 
 type ExtensionLoadParams = {
@@ -187,6 +192,9 @@ export class ExtensionManager {
 
   constructor(private readonly options: ExtensionManagerOptions) {
     this.runtime = new ExtensionRuntimeService({
+      capabilityGrantManager: options.capabilityGrantManager,
+      desktopHost: options.desktopHost,
+      hasAgent: options.hasAgent,
       diagnostics: options.diagnostics,
       eventBus: options.eventBus,
       getConfig: options.configManager.loadConfig,
@@ -199,6 +207,10 @@ export class ExtensionManager {
         options.observations.onExtensionObservationRuntimeExited,
       onObservationRuntimeReady:
         options.observations.onExtensionObservationRuntimeReady,
+      onDesktopObservationAuthorizationRevoked:
+        options.observations.onDesktopObservationAuthorizationRevoked,
+      onDesktopObservationAuthorizationGranted:
+        options.observations.onDesktopObservationAuthorizationGranted,
     });
     options.observations.setExtensionRuntime(this.runtime.observations);
   }
@@ -259,6 +271,10 @@ export class ExtensionManager {
     await this.runtime.stop();
   };
 
+  dispose = async (): Promise<void> => {
+    await this.runtime.dispose();
+  };
+
   getExtensionRegistry = (): ExtensionRegistry =>
     this.snapshot.extensionRegistry;
 
@@ -266,6 +282,8 @@ export class ExtensionManager {
     this.snapshot.channelBindings;
 
   getUiMetadata = (): ExtensionUiMetadata[] => this.snapshot.uiMetadata;
+
+  getDesktopHost = () => this.runtime.desktopHost;
 
   getRuntimeStatus = () => this.runtime.getStatus();
 

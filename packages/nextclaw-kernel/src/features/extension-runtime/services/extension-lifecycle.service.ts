@@ -13,32 +13,30 @@ import type {
 } from "@kernel/features/extension-runtime/index.js";
 import { createRuntimeChildEnv, resolveRuntimeCommandLaunch, type DiagnosticRuntime } from "@nextclaw/core";
 import { classifyDiagnosticError } from "@nextclaw/shared";
+import {
+  ExtensionLifecycleAsyncService,
+  type ExtensionLifecycleDeferred,
+} from "@kernel/features/extension-runtime/services/extension-lifecycle-async.service.js";
 
 type ExtensionLifecycleServiceOptions = {
   cleanupOrphanProcesses?: (manifests: ExtensionManifest[]) => void;
   diagnostics?: Pick<DiagnosticRuntime, "record">;
-  onProcessExit?: (event: ExtensionProcessExitEvent) => void;
+  onProcessExit?: (event: ExtensionProcessExitEvent) => void | Promise<void>;
   restartDelaysMs?: readonly number[];
   startupTimeoutMs?: number;
   stopGraceMs?: number;
 };
 
-type Deferred = {
-  promise: Promise<void>;
-  reject: (error: Error) => void;
-  resolve: () => void;
-};
-
 type ExtensionLifecycleRecord = {
   endpoint: string;
   expectedStopGeneration: string | null;
-  exit: Deferred | null;
+  exit: ExtensionLifecycleDeferred | null;
   generation: string | null;
   lastExit: ExtensionRuntimeStatus["lastExit"];
   leases: Map<string, ExtensionLeaseReason>;
   manifest: ExtensionManifest;
   process: ChildProcess | null;
-  ready: Deferred | null;
+  ready: ExtensionLifecycleDeferred | null;
   restartAttempts: number;
   restartTimer: ReturnType<typeof setTimeout> | null;
   stableTimer: ReturnType<typeof setTimeout> | null;
@@ -61,15 +59,20 @@ type ProcessSnapshot = {
 type PreparedExtensionStart = {
   generation: string;
   manifest: ExtensionManifest;
-  ready: Deferred;
+  ready: ExtensionLifecycleDeferred;
   token: string;
 };
 
 export class ExtensionLifecycleService {
   private readonly records = new Map<string, ExtensionLifecycleRecord>();
+  private readonly asyncLifecycle: ExtensionLifecycleAsyncService;
   private shuttingDown = false;
 
-  constructor(private readonly options: ExtensionLifecycleServiceOptions = {}) {}
+  constructor(private readonly options: ExtensionLifecycleServiceOptions = {}) {
+    this.asyncLifecycle = new ExtensionLifecycleAsyncService(
+      options.onProcessExit,
+    );
+  }
 
   acquire = async (manifest: ExtensionManifest, params: {
     endpoint: string;
@@ -189,6 +192,7 @@ export class ExtensionLifecycleService {
       this.clearRecordTimers(record);
     }
     await Promise.all(records.map(async (record) => await this.stopRecord(record)));
+    await this.asyncLifecycle.waitForCallbacks();
     this.records.clear();
     this.shuttingDown = false;
   };
@@ -350,7 +354,7 @@ export class ExtensionLifecycleService {
     );
     record.exit?.resolve();
     record.exit = null;
-    this.options.onProcessExit?.({
+    this.asyncLifecycle.runProcessExitCallback({
       extensionId: record.manifest.id,
       generation,
       expected,
@@ -473,29 +477,20 @@ export class ExtensionLifecycleService {
     ]);
     if (!exited && record.process === child && record.generation === generation) {
       child.kill("SIGKILL");
+      await this.asyncLifecycle.waitForExitAfterKill(record.exit?.promise);
     }
   };
 
   private hasPersistentLease = (record: ExtensionLifecycleRecord): boolean =>
     [...record.leases.values()].some((reason) => (reason.kind === "enabled-channel" || reason.kind === "observation-subscription"));
 
-  private createDeferred = (): Deferred => {
-    let resolvePromise!: () => void;
-    let rejectPromise!: (error: Error) => void;
-    const promise = new Promise<void>((resolve, reject) => {
-      resolvePromise = resolve;
-      rejectPromise = reject;
-    });
-    return { promise, reject: rejectPromise, resolve: resolvePromise };
-  };
-
   private prepareStart = (record: ExtensionLifecycleRecord): PreparedExtensionStart => {
     const manifest = record.manifest;
     this.cleanupOrphanProcesses([manifest]);
     const generation = randomUUID();
     const token = randomUUID();
-    const ready = this.createDeferred();
-    const exit = this.createDeferred();
+    const ready = this.asyncLifecycle.createDeferred();
+    const exit = this.asyncLifecycle.createDeferred();
     Object.assign(record, {
       exit,
       expectedStopGeneration: null,

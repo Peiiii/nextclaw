@@ -17,7 +17,15 @@ import {
   ServiceAppRemovalCleanupError,
   ServiceAppRemovalService,
 } from "@kernel/services/service-app-removal.service.js";
-import { ServiceActionGrantStore } from "@kernel/stores/service-action-grant.store.js";
+import {
+  createServiceActionGrantRequest,
+  getCapabilityGrantKey,
+  readServiceActionTargetId,
+  type CapabilityGrant,
+  type CapabilityGrantManager,
+} from "@kernel/features/capability-grants/index.js";
+import { ServiceActionGrantService } from "@kernel/services/service-action-grant.service.js";
+import { ServiceAppPackageRuntimeService } from "@kernel/services/service-app-package-runtime.service.js";
 import type {
   ServiceAction,
   ServiceActionCaller,
@@ -30,7 +38,6 @@ import type {
 } from "@kernel/types/service-app.types.js";
 import { readServiceAppManifest } from "@kernel/utils/service-app-manifest.utils.js";
 import {
-  DEFAULT_SERVICE_ACTION_RISK,
   getServiceActionName,
   resolveServiceActionGrantState,
 } from "@kernel/utils/service-action.utils.js";
@@ -50,7 +57,6 @@ export {
   type ServiceAppErrorCode,
 } from "@kernel/utils/service-app-error.utils.js";
 
-const SERVICE_ACTION_GRANTS_FILE_NAME = ".service-action-grants.json";
 const SERVICE_APP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export type ServiceAppList = {
@@ -70,12 +76,15 @@ export class ServiceAppManager {
   private readonly removalService = new ServiceAppRemovalService();
   private readonly runtimeService: ServiceAppRuntime;
   private readonly recordService: ServiceAppRecordService;
+  private readonly actionGrants: ServiceActionGrantService;
+  private readonly packageRuntime: ServiceAppPackageRuntimeService;
   private reconciliationDiagnostics: ServiceAppRemovalDiagnostic[] = [];
 
   constructor(private readonly params: {
     configManager: ConfigManager;
     runtimeService?: ServiceAppRuntime;
     listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
+    capabilityGrantManager: CapabilityGrantManager;
   }) {
     this.runtimeService = params.runtimeService ?? new McpServiceAppRuntimeService({
       getConfig: () => params.configManager.config,
@@ -84,11 +93,22 @@ export class ServiceAppManager {
       getWorkspacePath: this.getWorkspacePath,
       runtimeService: this.runtimeService,
     });
+    this.actionGrants = new ServiceActionGrantService({
+      capabilityGrantManager: params.capabilityGrantManager,
+      resolveAction: this.requireServiceAction,
+    });
+    this.packageRuntime = new ServiceAppPackageRuntimeService({
+      getStatus: this.runtimeService.getStatus,
+      restore: async (serviceId) => {
+        await this.discoverServiceAppActions(serviceId);
+      },
+      stop: this.runtimeService.stop,
+    });
   }
 
   start = async (): Promise<void> => {
     this.reconciliationDiagnostics = await this.removalService.reconcile({
-      grantStore: this.createGrantStore(),
+      capabilityGrantManager: this.params.capabilityGrantManager,
       lockPathForAppId: (appId) => this.getServiceAppLockPath(this.getWorkspacePath(), appId),
       serviceAppsPath: this.getServiceAppsPath(this.getWorkspacePath()),
     });
@@ -154,8 +174,12 @@ export class ServiceAppManager {
     if (!Object.hasOwn(manifest.actions, actionName)) {
       throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "service action not found");
     }
-    const declaredRisk = manifest.actions[actionName]?.risk ?? DEFAULT_SERVICE_ACTION_RISK;
-    if (!await this.createGrantStore().isGranted(request.caller, actionId, declaredRisk)) {
+    const action = listServiceAppManifestActions(record, manifest)
+      .find((entry) => entry.id === actionId);
+    if (!action) {
+      throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "service action not found");
+    }
+    if (!(await this.actionGrants.isGranted(request.caller, action))) {
       throw new ServiceAppError(
         "AUTHORIZATION_REQUIRED",
         `This panel app needs permission to call ${actionId}.`,
@@ -204,30 +228,37 @@ export class ServiceAppManager {
       this.assertDeclaredAction(actionId, request.declaredActions);
       actions.push(await this.requireServiceAction(actionId));
     }
-    const grantedAt = new Date().toISOString();
-    const grantStore = this.createGrantStore();
-    const grants: ServiceActionGrant[] = [];
-    for (const action of actions) {
-      grants.push(await grantStore.grant({
-        caller: request.caller,
-        actionId: action.id,
-        risk: action.risk,
-        grantedAt,
-      }));
-    }
-    return grants;
+    return await this.actionGrants.grant(request.caller, actions);
   };
 
-  listServiceActionGrants = async (): Promise<ServiceActionGrant[]> => {
-    return await this.createGrantStore().list();
-  };
+  listServiceActionGrants = async (): Promise<ServiceActionGrant[]> =>
+    await this.actionGrants.list();
 
   revokeServiceAction = async (
     caller: ServiceActionCaller,
     actionId: string,
   ): Promise<void> => {
     this.assertCaller(caller);
-    await this.createGrantStore().revoke(caller, actionId);
+    await this.actionGrants.revoke(caller, actionId);
+  };
+
+  matchesCapabilityGrant = async (grant: CapabilityGrant): Promise<boolean> => {
+    if (grant.subject.type !== "panel-app" || grant.resource.type !== "service.action") {
+      return false;
+    }
+    const actionId = readServiceActionTargetId(grant.resource.target);
+    if (!actionId) return false;
+    try {
+      const action = await this.requireServiceAction(actionId);
+      return getCapabilityGrantKey(grant) === getCapabilityGrantKey(
+        createServiceActionGrantRequest(
+          { surface: "panel-app", appId: grant.subject.id },
+          action,
+        ),
+      );
+    } catch {
+      return false;
+    }
   };
 
   restartServiceApp = async (appId: string): Promise<ServiceAppRecord> => {
@@ -253,7 +284,7 @@ export class ServiceAppManager {
     let record: ServiceAppRecord;
     try {
       record = await this.removalService.remove({
-        grantStore: this.createGrantStore(),
+        capabilityGrantManager: this.params.capabilityGrantManager,
         lockPath: this.getServiceAppLockPath(workspacePath, appId),
         purgeData,
         loadRecord: async () => {
@@ -266,7 +297,7 @@ export class ServiceAppManager {
           }
           return record;
         },
-        stopRuntime: async (loaded) => await this.runtimeService.restart(loaded.id),
+        stopRuntime: async (loaded) => await this.runtimeService.stop(loaded.id),
       });
     } catch (error) {
       if (error instanceof ServiceAppRemovalCleanupError) {
@@ -359,20 +390,24 @@ export class ServiceAppManager {
     const serviceIds = components
       .filter((component) => component.kind === "service")
       .map((component) => component.id);
-    await Promise.all(serviceIds.map(async (serviceId) => await this.runtimeService.restart(serviceId)));
+    await Promise.all(serviceIds.map(async (serviceId) => await this.runtimeService.stop(serviceId)));
   };
+
+  preparePackageComponentDeactivation = async (
+    components: AppPackageComponentSource[],
+  ): Promise<() => Promise<void>> =>
+    await this.packageRuntime.prepareDeactivation(components);
 
   removePackageComponentGrants = async (
     components: AppPackageComponentSource[],
-  ): Promise<void> => {
-    const serviceIds = components
-      .filter((component) => component.kind === "service")
-      .map((component) => component.id);
-    const grantStore = this.createGrantStore();
-    for (const serviceId of serviceIds) {
-      await grantStore.revokeActionsByPrefix(`${serviceId}.`);
-    }
-  };
+  ): Promise<() => Promise<void>> =>
+    await this.actionGrants.removePackageGrants(new Set(
+      components
+        .filter((component) => component.kind === "service")
+        .map((component) => component.id),
+    ));
+
+
 
   private withGrantState = async (
     action: ServiceAction,
@@ -384,11 +419,7 @@ export class ServiceAppManager {
     if (!params.caller) {
       return action;
     }
-    const granted = await this.createGrantStore().isGranted(
-      params.caller,
-      action.id,
-      action.risk,
-    );
+    const granted = await this.actionGrants.isGranted(params.caller, action);
     return {
       ...action,
       grantState: resolveServiceActionGrantState({
@@ -561,11 +592,6 @@ export class ServiceAppManager {
 
   private getServiceAppLockPath = (workspacePath: string, appId: string): string => join(workspacePath, ".nextclaw", "locks", "service-apps", `${appId}.lock`);
 
-  private createGrantStore = (): ServiceActionGrantStore =>
-    new ServiceActionGrantStore(
-      join(this.getServiceAppsPath(this.getWorkspacePath()), SERVICE_ACTION_GRANTS_FILE_NAME),
-    );
-
   private listPackageComponentSources = async (): Promise<AppPackageComponentSource[]> =>
     await this.params.listPackageComponentSources?.() ?? [];
 
@@ -589,5 +615,5 @@ export class ServiceAppManager {
 
 type ServiceAppRuntime = Pick<
   McpServiceAppRuntimeService,
-  "dispose" | "getStatus" | "invokeAction" | "listActions" | "restart"
+  "dispose" | "getStatus" | "invokeAction" | "listActions" | "restart" | "stop"
 >;

@@ -6,6 +6,8 @@ import type {
   ExtensionUiMetadata,
 } from "@nextclaw/core";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
+import type { DesktopHost } from "@kernel/features/desktop-host/index.js";
+import type { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
 import type {
   ObservationEvent,
   ObservationExtensionRuntime,
@@ -36,6 +38,18 @@ export type ExtensionManifest = {
         description: string;
         configSchema?: Record<string, unknown>;
         replay?: "supported" | "unsupported";
+      };
+    };
+    hostCapabilities?: {
+      desktopAutomation?: {
+        access: Array<
+          | "ui.read"
+          | "ui.observe"
+          | "ui.write"
+          | "screen.capture-window"
+          | "input.keyboard"
+          | "input.pointer"
+        >;
       };
     };
     channels?: Array<{
@@ -141,9 +155,12 @@ export type ExtensionRequestSender = <T>(params: {
 
 export type ExtensionRuntimeServiceOptions = {
   diagnostics: NextclawCore.DiagnosticRuntime;
+  capabilityGrantManager: CapabilityGrantManager;
+  desktopHost: DesktopHost;
   eventBus: Pick<EventBus, "emitEnvelope">;
   getConfig: () => Config;
   getWorkspace: () => string;
+  hasAgent?: (agentId: string) => boolean;
   ingress: Pick<Ingress, "addHandler">;
   messageBus: Pick<MessageBus, "publishInbound">;
   sessionManager: SessionManager;
@@ -154,6 +171,13 @@ export type ExtensionRuntimeServiceOptions = {
   }) => Promise<{ accepted: boolean }>;
   onObservationRuntimeExited?: (extensionId: string) => void;
   onObservationRuntimeReady?: (extensionId: string) => Promise<void>;
+  onDesktopObservationAuthorizationRevoked?: (input: {
+    extensionId: string;
+    subscriptionId: string;
+  }) => Promise<void>;
+  onDesktopObservationAuthorizationGranted?: (input: {
+    extensionId: string;
+  }) => Promise<void>;
 };
 
 export type ExtensionObservationRuntime = ObservationExtensionRuntime;

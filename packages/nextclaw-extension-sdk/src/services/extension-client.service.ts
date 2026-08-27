@@ -4,6 +4,7 @@ import type {
   ExtensionCapabilities,
   ExtensionCapabilityHandler,
   ExtensionChannels,
+  DesktopHost,
   ExtensionDiagnostics,
   ExtensionRequest,
   ExtensionRequestHandler,
@@ -14,6 +15,7 @@ import type {
 import { ExtensionChannelService } from "./extension-channel.service.js";
 import { ExtensionTransportService } from "./extension-transport.service.js";
 import { ExtensionObservationService } from "./extension-observation.service.js";
+import { ExtensionDesktopHostService } from "./extension-desktop-host.service.js";
 
 const EXTENSION_PARENT_WATCH_INTERVAL_MS = 1000;
 
@@ -236,6 +238,7 @@ export class NextClawExtension {
   readonly channels: ExtensionChannels;
   readonly capabilities: ExtensionCapabilities;
   readonly diagnostics: ExtensionDiagnostics;
+  readonly host: { desktop: DesktopHost };
   readonly observations: ExtensionObservations;
   readonly extensionId: string;
   readonly generation: string;
@@ -270,6 +273,14 @@ export class NextClawExtension {
       extensionId: this.extensionId,
       transport: this.transport,
     });
+    this.host = {
+      desktop: new ExtensionDesktopHostService({
+        eventBus: this.eventBus,
+        extensionId: this.extensionId,
+        generation: this.generation,
+        transport: this.transport,
+      }),
+    };
     this.observations = new ExtensionObservationService({
       eventBus: this.eventBus,
       extensionId: this.extensionId,

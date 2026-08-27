@@ -27,7 +27,12 @@ function createProviderProbeApp(configPath: string) {
       eventBus: new EventBus(),
       ingress: {} as never,
       observations: {} as never,
-      extensions: {} as never,
+      extensions: {
+        getDesktopHost: () => ({
+          status: async () => ({ online: false }),
+        }),
+      } as never,
+      capabilityGrants: {} as never,
       inboxDeliveryManager: {} as never,
       systemObjectReferenceManager: {} as never,
       agentRunRequestManager: {} as never,

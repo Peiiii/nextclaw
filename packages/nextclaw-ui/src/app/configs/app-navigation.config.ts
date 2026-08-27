@@ -10,6 +10,7 @@ import {
   KeyRound,
   MessageCircle,
   MessageSquare,
+  MonitorCog,
   Palette,
   Puzzle,
   Search,
@@ -166,6 +167,11 @@ export function getSettingsNavItems(
       target: "/privacy",
       label: translate("privacy"),
       icon: Activity,
+    },
+    {
+      target: "/desktop-capabilities",
+      label: translate("desktopCapabilities"),
+      icon: MonitorCog,
     },
     {
       target: "/search",

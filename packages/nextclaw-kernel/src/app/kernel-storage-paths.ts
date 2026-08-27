@@ -42,6 +42,16 @@ export function resolveKernelObservationStorePath(options: KernelStoragePathOpti
   return resolveKernelDataPath(options, "observations", "state.json");
 }
 
+export function resolveKernelCapabilityGrantStorePath(options: KernelStoragePathOptions): string {
+  return resolveKernelDataPath(options, "capability-grants", "grants.json");
+}
+
+export function resolveKernelCapabilityGrantMigrationMarkerPath(
+  options: KernelStoragePathOptions,
+): string {
+  return resolveKernelDataPath(options, "capability-grants", "legacy-v1-migration.json");
+}
+
 function resolveKernelDataPath(
   options: KernelStoragePathOptions,
   ...segments: string[]

@@ -183,6 +183,62 @@ describe("ui server event stream principal auth", () => {
     }));
   });
 
+  it("streams desktop events only to the owning extension generation", async () => {
+    const port = await reservePort();
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const appEventBus = new EventBus();
+    const handle = await startEventStreamTestServer({ configPath, port, appEventBus });
+    handles.push(handle);
+    await setupUiAuth(`http://127.0.0.1:${port}`);
+
+    const socket = await openSocket(`ws://127.0.0.1:${port}/ws`, {
+      authorization: "Bearer secret",
+      "x-nextclaw-extension-id": "fake-extension",
+      "x-nextclaw-extension-generation": "generation-1",
+    });
+    sockets.push(socket);
+    const messages: unknown[] = [];
+    socket.on("message", (data) => messages.push(JSON.parse(data.toString()) as unknown));
+
+    for (const payload of [
+      {
+        extensionId: "other-extension",
+        generation: "generation-1",
+        watchId: "other-extension-watch",
+      },
+      {
+        extensionId: "fake-extension",
+        generation: "generation-2",
+        watchId: "stale-generation-watch",
+      },
+      {
+        extensionId: "fake-extension",
+        generation: "generation-1",
+        watchId: "owned-watch",
+      },
+    ]) {
+      appEventBus.emitEnvelope({
+        type: "extension.host.desktop.event",
+        payload: { ...payload, event: { changed: true } },
+        emittedAt: new Date().toISOString(),
+        source: "test",
+      });
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(messages).toEqual([
+      expect.objectContaining({
+        type: "extension.host.desktop.event",
+        payload: expect.objectContaining({
+          extensionId: "fake-extension",
+          generation: "generation-1",
+          watchId: "owned-watch",
+        }),
+      }),
+    ]);
+  });
+
   it("filters ncp events for extension principals by channel route", async () => {
     const port = await reservePort();
     const configPath = createTempConfigPath();

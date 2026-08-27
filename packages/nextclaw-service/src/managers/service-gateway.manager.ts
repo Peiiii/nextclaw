@@ -31,6 +31,7 @@ import { ServiceBootstrapStatusStore } from "@nextclaw-service/services/gateway/
 import { GatewayRuntimeSupportService, ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, watchServiceConfigFile } from "@nextclaw-service/services/gateway/service-startup-support.service.js";
 import { ServiceMarketplaceInstaller } from "@nextclaw-service/services/marketplace/service-marketplace-installer.service.js";
 import { ProductActivityReporter } from "@nextclaw-service/services/product-activity/product-activity-reporter.service.js";
+import { MacosDesktopHostService } from "@nextclaw-service/services/desktop/macos-desktop-host.service.js";
 import {
   NpmRuntimeUpdateHost,
   resolveNpmRuntimeUpdateApplyRestartMode,
@@ -85,6 +86,7 @@ export type GatewayRuntimeDeps = {
 
 export class ServiceGatewayManager {
   readonly kernel: NextclawKernel;
+  readonly desktopHost = new MacosDesktopHostService();
   readonly appEventBus: EventBus;
   readonly messageBus: MessageBus;
   readonly sessionManager: SessionManager;
@@ -131,6 +133,7 @@ export class ServiceGatewayManager {
         builtInAppsDirectory: this.distribution.builtInAppsDirectory,
         productVersion: this.distribution.version,
         productActivitySink: this.productActivityReporter,
+        desktopHost: this.desktopHost,
       }),
     );
     this.configManager = this.kernel.configManager;
@@ -325,6 +328,7 @@ export class ServiceGatewayManager {
     this.runtimeUpdate?.dispose();
     await this.fileWatchers.clear();
     await this.kernel.extensions.stop();
+    await this.desktopHost.dispose();
     await this.remoteManager.stop();
   };
 

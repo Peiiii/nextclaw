@@ -5,6 +5,12 @@ export {
 } from "./nextclaw-app-client.utils.js";
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
+export {
+  CapabilityAccessService,
+  type CapabilityGrantRequestView,
+  type CapabilityGrantView,
+  type DesktopHostStatusView,
+} from "./services/capability-access.service.js";
 export { AppPackagesClientService } from "./services/app-packages.service.js";
 export { AppDataClientService } from "./services/app-data.service.js";
 export { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";

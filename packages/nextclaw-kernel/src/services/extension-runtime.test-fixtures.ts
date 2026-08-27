@@ -4,12 +4,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Ingress } from "@nextclaw/shared";
 import type { DiagnosticRuntime } from "@nextclaw/core";
+import { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
+import { UnavailableDesktopHost } from "@kernel/features/desktop-host/index.js";
 import { afterEach, vi } from "vitest";
 
 export const spawnMock = (globalThis as typeof globalThis & { __nextclawExtensionSpawnMock?: ReturnType<typeof vi.fn> }).__nextclawExtensionSpawnMock ?? vi.fn();
 
 export const tempDirs: string[] = [];
 export const sessionManager = {} as never;
+export function createDesktopRuntimeOptions(workspace: string) {
+  return {
+    capabilityGrantManager: new CapabilityGrantManager(
+      join(workspace, ".nextclaw", "test-capability-grants.json"),
+    ),
+    desktopHost: new UnavailableDesktopHost(),
+  };
+}
 export function createDiagnostics(): DiagnosticRuntime {
   return { record: vi.fn((event) => event), readCorrelationId: vi.fn(() => undefined) } as unknown as DiagnosticRuntime;
 }

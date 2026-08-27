@@ -20,7 +20,20 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
     eventBus: new EventBus(),
     ingress: new Ingress(),
     observations: {} as never,
-    extensions: {} as never,
+    extensions: {
+      getDesktopHost: () => ({
+        status: async () => unavailable("extensions.desktopHost.status"),
+        grantAccess: async () => unavailable("extensions.desktopHost.grantAccess"),
+        getPermissions: async () => unavailable("extensions.desktopHost.getPermissions"),
+        requestPermissions: async () => unavailable("extensions.desktopHost.requestPermissions"),
+        openPermissionSettings: async () => unavailable("extensions.desktopHost.openPermissionSettings"),
+      }),
+    } as never,
+    capabilityGrants: {
+      list: async () => [],
+      grant: async () => unavailable("capabilityGrants.grant"),
+      revoke: async () => unavailable("capabilityGrants.revoke"),
+    } as never,
     inboxDeliveryManager: {
       listDeliveries: async () => ({
         deliveries: [],

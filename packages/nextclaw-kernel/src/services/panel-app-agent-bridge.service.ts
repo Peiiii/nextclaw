@@ -12,7 +12,8 @@ import {
   type PanelAppCapabilityGrant,
 } from "@kernel/types/panel-app.types.js";
 import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
-import type { PanelAppCapabilityGrantStore } from "@kernel/stores/panel-app-capability-grant.store.js";
+import type { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
+import { createPanelAppAgentGrantRequest } from "@kernel/features/capability-grants/index.js";
 import {
   createPanelAppAgentMetadata,
   createPanelAppGenerateObjectMessage,
@@ -30,7 +31,7 @@ type PanelAppAgentBridgeSession = {
 export class PanelAppAgentBridgeService {
   constructor(private readonly params: {
     agentRunClient: PanelAppAgentRunClient | null;
-    createCapabilityGrantStore: () => PanelAppCapabilityGrantStore;
+    capabilityGrantManager: CapabilityGrantManager;
   }) {}
 
   sendAgentMessage = async (
@@ -80,11 +81,14 @@ export class PanelAppAgentBridgeService {
       );
     }
     this.assertDeclaredCapability(bridgeSession, capability);
-    return await this.params.createCapabilityGrantStore().grant({
+    const grant = await this.params.capabilityGrantManager.grant(
+      createPanelAppAgentGrantRequest(bridgeSession.caller, capability),
+    );
+    return {
       caller: bridgeSession.caller,
       capability,
-      grantedAt: new Date().toISOString(),
-    });
+      grantedAt: grant.grantedAt,
+    };
   };
 
   private assertAgentCapabilityGranted = async (
@@ -92,11 +96,10 @@ export class PanelAppAgentBridgeService {
     capability: PanelAppAgentCapability,
   ): Promise<void> => {
     this.assertDeclaredCapability(bridgeSession, capability);
-    const granted = await this.params.createCapabilityGrantStore().isGranted(
-      bridgeSession.caller,
-      capability,
+    const decision = await this.params.capabilityGrantManager.check(
+      createPanelAppAgentGrantRequest(bridgeSession.caller, capability),
     );
-    if (!granted) {
+    if (!decision.granted) {
       throw new PanelAppError(
         "AUTHORIZATION_REQUIRED",
         `This panel app needs permission to use ${capability}.`,

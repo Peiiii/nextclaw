@@ -174,3 +174,26 @@ export type ExtensionCapabilities = {
     handler: ExtensionCapabilityHandler,
   ) => Unsubscribe;
 };
+
+export type DesktopHostInvokeInput = {
+  method: string;
+  payload?: Record<string, unknown>;
+  caller?: {
+    sessionId?: string;
+    agentRunId?: string;
+    subscriptionId?: string;
+  };
+};
+
+export type DesktopHostEvent = {
+  watchId: string;
+  event: unknown;
+};
+
+export type DesktopHost = {
+  invoke: <T = unknown>(input: DesktopHostInvokeInput) => Promise<T>;
+  status: <T = unknown>() => Promise<T>;
+  onEvent: (
+    handler: (event: DesktopHostEvent) => void | Promise<void>,
+  ) => Unsubscribe;
+};

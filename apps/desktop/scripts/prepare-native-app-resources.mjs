@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { cp, mkdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildMacosAccessibilityAdapter, buildMacosKeyboardInputHelper } from "./native/build-macos-accessibility-adapter.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const desktopDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -172,13 +173,26 @@ export async function prepareDesktopNativeResources(options = {}) {
   await copyDesktopRuntimePackages(packageNames, outputRoot);
   await prepareSharpDirectRuntimeLayout(platform, arch, outputRoot);
   installSqlitePrebuildForElectron({ outputRoot, electronVersion, platform, arch });
+  mkdirSync(join(outputRoot, "native"), { recursive: true });
+  const macosAccessibilityModule = buildMacosAccessibilityAdapter({
+    platform,
+    arch,
+    output: join(outputRoot, "native", "macos-accessibility.node"),
+  });
+  const macosKeyboardInputHelper = buildMacosKeyboardInputHelper({
+    platform,
+    arch,
+    output: join(outputRoot, "native", "macos-keyboard-input"),
+  });
 
   return {
     outputRoot,
     platform,
     arch,
     electronVersion,
-    nativeResourcePackages: packageNames
+    nativeResourcePackages: packageNames,
+    macosAccessibilityModule,
+    macosKeyboardInputHelper
   };
 }
 

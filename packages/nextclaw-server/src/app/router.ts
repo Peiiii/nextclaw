@@ -10,6 +10,7 @@ import {
 } from "@nextclaw/shared";
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
+import { CapabilityAccessRoutesController } from "@nextclaw-server/app/controllers/capability-access.controller.js";
 import { AppPackagesRoutesController } from "@nextclaw-server/features/app-packages/index.js";
 import { AppDataRoutesController } from "@nextclaw-server/features/app-data/index.js";
 import { SystemObjectReferencesRoutesController } from "@nextclaw-server/app/controllers/system-object-references.controller.js";
@@ -52,6 +53,10 @@ function createUiRouteControllers(
   const { kernel, panelAppClientSdkScript, remoteAccess, runtimeControl, runtimeUpdate } = options;
   return {
     app: new AppRoutesController(options),
+    capabilityAccess: new CapabilityAccessRoutesController({
+      capabilityGrantManager: kernel.capabilityGrants,
+      getDesktopHost: () => kernel.extensions.getDesktopHost(),
+    }),
     appPackages: new AppPackagesRoutesController(kernel.appPackageManager),
     appData: new AppDataRoutesController(kernel.appDataManager),
     agents: new AgentsRoutesController(options),
@@ -251,7 +256,19 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const { appData, appPackages, ncpSession, inboxDeliveries, panelApps, preferences, projects, serviceApps, serverPath, systemObjectReferences } = this.controllers;
+    const {
+      appData,
+      appPackages,
+      capabilityAccess,
+      ncpSession,
+      inboxDeliveries,
+      panelApps,
+      preferences,
+      projects,
+      serviceApps,
+      serverPath,
+      systemObjectReferences,
+    } = this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -274,6 +291,13 @@ class UiRouteRegistry {
       ["delete", "/api/inbox/deliveries/:deliveryId", inboxDeliveries.delete],
       ["get", "/api/system-object-references", systemObjectReferences.list],
       ["post", "/api/system-object-references/resolve", systemObjectReferences.resolve],
+      ["get", "/api/capability-grants", capabilityAccess.listGrants],
+      ["post", "/api/capability-grants", capabilityAccess.grant],
+      ["delete", "/api/capability-grants", capabilityAccess.revoke],
+      ["get", "/api/desktop-host/status", capabilityAccess.getDesktopStatus],
+      ["get", "/api/desktop-host/permissions", capabilityAccess.getDesktopPermissions],
+      ["post", "/api/desktop-host/permissions/request", capabilityAccess.requestDesktopPermissions],
+      ["post", "/api/desktop-host/permissions/open-settings", capabilityAccess.openDesktopPermissionSettings],
       ["get", "/api/app-packages", appPackages.list],
       ["get", "/api/app-data", appData.list],
       ["delete", "/api/app-data/:dataId", appData.deleteRetained],

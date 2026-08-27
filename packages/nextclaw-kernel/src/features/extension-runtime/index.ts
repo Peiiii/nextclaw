@@ -5,5 +5,8 @@ export * from "./services/extension-channel-client.service.js";
 export * from "./services/extension-contributions.service.js";
 export * from "./services/extension-auth-lease.service.js";
 export * from "./services/extension-manifest-discovery.service.js";
+export * from "./services/extension-observation-runtime.service.js";
+export * from "./services/extension-desktop-runtime.service.js";
+export * from "./services/extension-lifecycle-async.service.js";
 export * from "./utils/extension-channel-catalog.utils.js";
 export * from "./utils/extension-runtime-payload.utils.js";

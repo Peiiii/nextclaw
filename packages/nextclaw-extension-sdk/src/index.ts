@@ -24,6 +24,9 @@ export type {
   ExtensionChannelAdapter,
 } from "./services/extension-channel-controller.service.js";
 export type {
+  DesktopHost,
+  DesktopHostEvent,
+  DesktopHostInvokeInput,
   ChannelConfigGetRequest,
   ChannelConfigGetResponse,
   ChannelCommandExecuteRequest,

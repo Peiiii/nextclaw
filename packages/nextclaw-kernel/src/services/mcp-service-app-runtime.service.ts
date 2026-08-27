@@ -109,9 +109,13 @@ export class McpServiceAppRuntimeService {
     }
   };
 
-  restart = async (appId: string): Promise<void> => {
+  stop = async (appId: string): Promise<void> => {
     await this.lifecycleManager.closeServer(appId);
     this.states.set(appId, { status: "idle" });
+  };
+
+  restart = async (appId: string): Promise<void> => {
+    await this.stop(appId);
   };
 
   dispose = async (): Promise<void> => {

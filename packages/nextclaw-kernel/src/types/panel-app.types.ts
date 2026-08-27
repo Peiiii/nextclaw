@@ -115,6 +115,12 @@ export function isPanelAppAgentCapability(
   return (PANEL_APP_AGENT_CAPABILITIES as readonly unknown[]).includes(value);
 }
 
+
+export type PanelAppClientGrant = {
+  appId: string;
+  grantedAt: string;
+};
+
 export type PanelAppCapabilityGrantCaller = {
   surface: "panel-app";
   appId: string;

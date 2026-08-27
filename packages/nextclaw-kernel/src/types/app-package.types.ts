@@ -142,10 +142,14 @@ export type AppPackageConflict = {
   conflictingSource: string;
 };
 
+export type AppPackageUninstallRollback = () => Promise<void>;
+
 export type AppPackageRuntimeHooks = {
   assertCanActivate: (sources: AppPackageComponentSource[]) => Promise<void>;
   beforeDeactivate: (sources: AppPackageComponentSource[]) => Promise<void>;
-  beforeUninstall: (sources: AppPackageComponentSource[]) => Promise<void>;
+  beforeUninstall: (
+    sources: AppPackageComponentSource[],
+  ) => Promise<AppPackageUninstallRollback | void>;
 };
 
 export type AppPackageErrorCode =

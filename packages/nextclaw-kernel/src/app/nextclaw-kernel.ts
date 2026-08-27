@@ -35,13 +35,16 @@ import {
   createAgentRuntimeSessionRequestDispatcher,
   SessionRequestManager,
 } from "@kernel/features/session-request/index.js";
-import { AgentRunRuntimeContribution } from "@kernel/contributions/agent-run-runtime/index.js";
-import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
-import { ContextWindowContribution } from "@kernel/contributions/context-window/index.js";
-import { LearningLoopContribution } from "@kernel/contributions/learning-loop/index.js";
-import { ToolProviderContribution } from "@kernel/contributions/tool-provider/index.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
 import type { ObservationManager } from "@kernel/features/observation/index.js";
+import {
+  CapabilityGrantLegacyMigrationService,
+  CapabilityGrantManager,
+} from "@kernel/features/capability-grants/index.js";
+import {
+  UnavailableDesktopHost,
+  type DesktopHost,
+} from "@kernel/features/desktop-host/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -59,6 +62,8 @@ import { readProjectRoot } from "@kernel/utils/session-creation.utils.js";
 import {
   resolveKernelAppHomeDirectory,
   resolveKernelAutomationStorePath,
+  resolveKernelCapabilityGrantMigrationMarkerPath,
+  resolveKernelCapabilityGrantStorePath,
   resolveKernelInboxDeliveryStorePath,
   resolveKernelObservationStorePath,
   resolveKernelPreferenceStorePath,
@@ -66,9 +71,11 @@ import {
   resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
+  createKernelContributions,
   createKernelOperationalManagers,
   createKernelSessionManagers,
   createKernelServiceAppManagers,
+  installKernelAppPackageRuntimeHooks,
 } from "@kernel/app/kernel-manager.factory.js";
 import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
 
@@ -78,6 +85,7 @@ export type NextclawKernelOptions = {
   builtInAppsDirectory?: string;
   productVersion?: string;
   productActivitySink?: ProductActivitySink;
+  desktopHost?: DesktopHost;
 };
 
 type NextclawKernelRuntimeControl<TGatewayInput, TUiInput, TStartInput> = {
@@ -154,12 +162,15 @@ export class NextclawKernel {
   readonly toolProviderManager = new ToolProviderManager(this.diagnostics);
   readonly agentRunRequestManager: AgentRunRequestManager;
   readonly observations: ObservationManager;
+  readonly capabilityGrants: CapabilityGrantManager;
+  private readonly capabilityGrantLegacyMigration: CapabilityGrantLegacyMigrationService;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
 
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
+    this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
     ({
       automation: this.automation,
       channels: this.channels,
@@ -172,25 +183,15 @@ export class NextclawKernel {
       providerManager: this.llmProviders,
       providerModelCatalogManager: this.providerModelCatalog,
     }));
-    this.assetStore = new LocalAssetStore({
-      rootDir: resolve(getDataDir(), "assets"),
-    });
-    this.control = new NextclawKernelControlManager<
-      unknown,
-      unknown,
-      unknown
-    >();
+    this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
+    this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.agents = new AgentManager(this.configManager);
     this.agentContextWindowManager = new AgentContextWindowManager(
-      this.agents,
-      this.contextProviderManager,
-      this.toolProviderManager,
+      this.agents, this.contextProviderManager, this.toolProviderManager,
       this.assetStore,
     );
-    this.accessManager = new AccessManager({
-      configManager: this.configManager,
-      homeDir: options.homeDir,
-    });
+    this.accessManager = new AccessManager({ configManager: this.configManager, homeDir: options.homeDir });
+    this.capabilityGrantLegacyMigration = this.createCapabilityGrantLegacyMigration(options);
     ({
       journalStore: this.ncpAgentSessionJournalStore,
       observations: this.observations,
@@ -214,8 +215,7 @@ export class NextclawKernel {
     this.systemObjectReferenceManager = new SystemObjectReferenceManager(
       this.assetStore,
       [
-        createInboxDeliverySystemObjectProvider(this.inboxDeliveryManager),
-        createCronJobSystemObjectProvider(this.automation),
+        createInboxDeliverySystemObjectProvider(this.inboxDeliveryManager), createCronJobSystemObjectProvider(this.automation),
       ],
     );
     this.appPackageManager = new AppPackageManager({
@@ -231,6 +231,7 @@ export class NextclawKernel {
         this.appPackageManager.listActiveComponentSources,
       listPackageComponentDiagnostics: async () =>
         (await this.appPackageManager.listActiveComponentSourcesWithDiagnostics()).unavailablePackages,
+      capabilityGrantManager: this.capabilityGrants,
     });
     this.preferenceManager = new PreferenceManager({
       storePath: resolveKernelPreferenceStorePath(options),
@@ -242,9 +243,17 @@ export class NextclawKernel {
       appHomeDirectory: resolveKernelAppHomeDirectory(options),
       appPackageManager: this.appPackageManager,
       configManager: this.configManager,
+      capabilityGrantManager: this.capabilityGrants,
     }));
-    this.installAppPackageRuntimeHooks();
+    installKernelAppPackageRuntimeHooks({
+      appPackageManager: this.appPackageManager,
+      panelAppManager: this.panelAppManager,
+      serviceAppManager: this.serviceAppManager,
+    });
     this.extensions = new ExtensionManager({
+      capabilityGrantManager: this.capabilityGrants,
+      desktopHost: options.desktopHost ?? new UnavailableDesktopHost(),
+      hasAgent: (agentId) => this.agents.getAgent(agentId) !== null,
       diagnostics: this.diagnostics,
       configManager: this.configManager,
       eventBus: this.eventBus,
@@ -306,35 +315,18 @@ export class NextclawKernel {
       this.diagnostics,
       new LocalExecutionClaimService(resolve(sessionsDir, ".execution-claims", "session-runs")),
     );
-    this.contributions = this.createContributions();
+    this.contributions = createKernelContributions(this);
   }
 
-  private createContributions = (): KernelContribution[] => [
-    new ToolProviderContribution(this),
-    new LearningLoopContribution(this),
-    new ContextProviderContribution(this),
-    new AgentRunRuntimeContribution(this),
-    new ContextWindowContribution(this),
-  ];
-
-  private installAppPackageRuntimeHooks = (): void => {
-    this.appPackageManager.installRuntimeHooks({
-      assertCanActivate: async (sources) => {
-        await this.panelAppManager.assertCanActivatePackageComponents(sources);
-        await this.serviceAppManager.assertCanActivatePackageComponents(
-          sources,
-        );
-      },
-      beforeDeactivate: async (sources) => {
-        this.panelAppManager.deactivatePackageComponents(sources);
-        await this.serviceAppManager.deactivatePackageComponents(sources);
-      },
-      beforeUninstall: async (sources) => {
-        await this.panelAppManager.removePackageComponentState(sources);
-        await this.serviceAppManager.removePackageComponentGrants(sources);
-      },
+  private createCapabilityGrantLegacyMigration = (options: NextclawKernelOptions) =>
+    new CapabilityGrantLegacyMigrationService({
+      capabilityGrantManager: this.capabilityGrants,
+      markerPath: resolveKernelCapabilityGrantMigrationMarkerPath(options),
+      validateGrant: async (grant) =>
+        await this.panelAppManager.matchesCapabilityGrant(grant) ||
+        await this.serviceAppManager.matchesCapabilityGrant(grant),
+      workspacePath: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
     });
-  };
 
   listSessionTypes = (params?: AgentRuntimeSessionTypeDescribeParams) =>
     this.agentRuntimeManager.listSessionTypes(params);
@@ -353,6 +345,7 @@ export class NextclawKernel {
     // The catalog migration is a startup prerequisite. Do not allow the
     // kernel to expose a partially rebuilt session list to the UI.
     await this.ncpAgentSessionJournalStore.initialize();
+    await this.capabilityGrantLegacyMigration.migrate();
     await this.appPackageManager.start();
     await this.appDataManager.start();
     await this.serviceAppManager.start();
@@ -375,6 +368,7 @@ export class NextclawKernel {
   dispose = async (): Promise<void> => {
     this.providerModelCatalog.dispose();
     await this.observations.dispose();
+    await this.extensions.dispose();
     this.agentRunRequestManager.dispose();
     for (const contribution of [...this.contributions].reverse()) {
       await contribution.dispose();

@@ -1,0 +1,46 @@
+{
+  "id": "nextclaw-desktop-extension-wechat",
+  "name": "微信桌面观察",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "hostCapabilities": {
+      "desktopAutomation": {
+        "access": ["ui.read", "ui.observe"]
+      }
+    },
+    "observations": {
+      "read": {
+        "description": "读取当前微信窗口中可见的对话和消息。",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "conversation": { "type": "string" },
+            "maxItems": { "type": "integer", "minimum": 1, "maximum": 100 }
+          }
+        }
+      },
+      "events": {
+        "description": "微信窗口出现新的可见消息时通知当前会话。",
+        "replay": "unsupported",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "conversation": { "type": "string" },
+            "ignorePrefixes": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "maxItems": { "type": "integer", "minimum": 1, "maximum": 100 }
+          }
+        }
+      }
+    }
+  }
+}
