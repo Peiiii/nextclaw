@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { formatNextClawAppInstallCommand } from "@nextclaw/shared";
 import { AppCover } from "@/features/app-marketplace/components/app-cover.js";
 import type { AppItemDetail } from "@/features/app-marketplace/types/app-marketplace.types.js";
 import { formatAppPlatformLabel } from "@/features/app-marketplace/utils/app-platform-label.utils.js";
@@ -47,7 +48,7 @@ export function AppDetailPage(props: {
               <span>v{app.latestVersion}</span><span>本机安装</span><span>发布于 {formatDate(app.publishedAt)}</span>
             </div>
           </div>
-          <CopyInstallButton command={app.install.command} />
+          <CopyInstallButton command={formatNextClawAppInstallCommand(app.install.spec)} />
         </div>
       </section>
 

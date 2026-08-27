@@ -20,6 +20,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 8. **Desktop-installed AI uses the same command names**. When NextClaw Desktop launches the runtime, it exposes a managed `nextclaw` command surface to AI command tools, so self-management commands keep using `nextclaw ...` without requiring a global NPM install.
 9. **Restart live Service App runtimes before live retest**: after modifying a running Service App, use `nextclaw app restart <app-id> --json` before validating through the product UI or panel-to-service action calls.
 10. **Manage App data through the product contract**: list data with `nextclaw app data list --json`; delete only a `retained` entry with the returned data id and an exact `--confirm <app-id>`. Never replace this flow with a recursive filesystem deletion.
+11. **Manage Mini Apps through the product contract**: use `nextclaw app install <app-id|local-dir|bundle.napp>`, `list`, `operations`, `enable`, `disable`, `update`, `rollback`, and `uninstall`. Do not use or recommend another App runtime command.
 
 ---
 
@@ -35,6 +36,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 - [Session management (UI)](#session-management-ui)
 - [Workspace](#workspace)
 - [Publishing Mini Apps](#publishing-mini-apps)
+- [Managing Mini Apps](#managing-mini-apps)
 - [App data and uninstall](#app-data-and-uninstall)
 - [Commands](#commands)
 - [Channels](#channels)
@@ -577,6 +579,22 @@ After validation succeeds, submit the package for review:
 nextclaw app publish <mini-app-dir> --json
 ```
 
+## Managing Mini Apps
+
+Use the same NextClaw command surface for Marketplace Apps, local App directories, and local `.napp` bundles. The Marketplace keeps an App identifier and registry location; its displayed installation command is derived by NextClaw, not stored per App.
+
+```bash
+nextclaw app marketplace search --query notes --json
+nextclaw app marketplace info nextclaw.personal-organizer --json
+nextclaw app install nextclaw.personal-organizer --json
+nextclaw app install ./my-local-app --json
+nextclaw app install ./release/my-local-app.napp --json
+nextclaw app operations --json
+nextclaw app enable nextclaw.personal-organizer --json
+```
+
+Install, update, rollback, and uninstall return a background operation receipt. Check `nextclaw app operations --json` or the Apps page for progress. Schema v2 Apps remain disabled after installation until explicitly enabled.
+
 Personal submissions return `publishStatus: pending` and appear in the public App Marketplace only after approval with `catalogVisibility: listed`. Community Panel-only Apps follow normal review. Schema v2 Service components currently launch host processes with the user's permissions, so their root manifest must declare `runtime.profile: native-process` and enter high-privilege manual review; an administrator may approve them as `listed` or `unlisted`. Installed schema v2 Apps remain disabled until the user explicitly enables them. Schema v2 WASI Service components are not supported yet—changing only the profile does not create a sandbox. Pending or rejected submissions can be corrected and submitted again. Updating an already published personal app is intentionally blocked until version-level review is available, so the current public version remains online.
 
 Use `https://platform.nextclaw.io/apps` to review submission status. The built-in `nextclaw-app-publisher` skill lets NextClaw AI assemble a package from existing Panel/Service directories, run the checks, guide login, and submit it with the same native commands.
@@ -626,11 +644,11 @@ nextclaw app data list --json
 
 The second list verifies that the retained entry is gone. Do not build a data id manually and do not remove managed directories with `rm -rf`.
 
-For the low-level NApp runtime, uninstall keeps data unless `--purge-data` is present:
+Uninstall keeps data unless `--purge-data` is present:
 
 ```bash
-napp uninstall <app-id>
-napp uninstall <app-id> --purge-data
+nextclaw app uninstall <app-id>
+nextclaw app uninstall <app-id> --purge-data --confirm <app-id>
 ```
 
 Service App development gets a separate, deterministic development instance. Resetting it is destructive and therefore requires both the reset flag and an exact manifest id confirmation:
@@ -658,6 +676,17 @@ nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json
 | `nextclaw app validate-publish <mini-app-dir>` | Validate a schema v2 Mini App package before Marketplace submission |
 | `nextclaw app publish <mini-app-dir>` | Submit a validated Mini App to the App Marketplace for review |
 | `nextclaw app restart <app-id>` | Restart a live Service App runtime in the running UI before live retest |
+| `nextclaw app marketplace search` | Search Apps available from the official App Marketplace |
+| `nextclaw app marketplace info <app-id>` | Show a Marketplace App and its derived installation command |
+| `nextclaw app list` | List Apps installed in the running NextClaw host |
+| `nextclaw app info <app-id>` | Show the installed App state and versions |
+| `nextclaw app operations` | List durable App lifecycle operations |
+| `nextclaw app install <app-id\|local-dir\|bundle.napp>` | Install an App through the running host |
+| `nextclaw app enable <app-id>` | Enable an installed App |
+| `nextclaw app disable <app-id>` | Disable an installed App |
+| `nextclaw app update <app-id>` | Start a background App update |
+| `nextclaw app rollback <app-id> --version <version>` | Roll back to an installed version |
+| `nextclaw app uninstall <app-id>` | Start a background uninstall; require exact confirmation to purge data |
 | `nextclaw service install-systemd --user` | Install a user-level Linux `systemd` service for NextClaw |
 | `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service for NextClaw |
 | `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |

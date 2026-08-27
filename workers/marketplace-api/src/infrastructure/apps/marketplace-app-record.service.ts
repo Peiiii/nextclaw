@@ -225,7 +225,6 @@ export class MarketplaceAppRecordMapper {
     return {
       kind: "registry",
       spec: appId,
-      command: `napp install ${appId}`,
       registry: OFFICIAL_APPS_REGISTRY_METADATA_URL,
     };
   };

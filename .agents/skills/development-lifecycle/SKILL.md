@@ -9,10 +9,8 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 
 当前 observer：[`development-task-telemetry`](../development-task-telemetry/SKILL.md)。
 
-- observer 路径存在时视为启用，进入本流程时只加载一次；阶段切换时不重复加载。
-- observer 只接收本流程已经决定的 task / phase 事实，不参与阶段路由、返工和完成门。
-- 子 Agent 由父任务传入 observer 名、task-id 和当前 phase，不自行扫描全局配置。
-- observer 缺失或加载失败时明确说明 unavailable 并继续任务。
+- observer 路径存在即启用，只在进入本流程时加载一次；它只接收既定 task / phase，不参与路由、返工或完成门。
+- 子 Agent 接收父任务的 observer、task-id 与 phase；缺失或加载失败时说明 unavailable 并继续。
 - 把“当前 observer”设为空即可停用；本节不复制 observer 的具体输出协议。
 
 ## 定位
@@ -22,6 +20,8 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 总流程只负责阶段状态和任务完成，不拥有调查、设计、实现、验证、review、发布或沉淀的内部方法。
 
 ## 开始
+
+并发提交或主线并发时，读取[Worktree 合同](references/parallel-worktree-development.md)。
 
 先确定六件事：
 

@@ -35,7 +35,7 @@ nextclaw <command> --help
 | 配置与密钥            | 读写配置、审计和应用密钥引用                      |
 | MCP 与消息渠道        | 管理 MCP 服务和消息渠道连接                       |
 | Skills 与 Marketplace | 查看、安装、发布、更新和发现 Skills               |
-| NextClaw Apps         | 检查、开发、打包、发布、调用和管理 App 数据       |
+| NextClaw Apps         | 检查、开发、打包、发布、安装、调用和管理 App 数据 |
 
 ## 初始化与账号
 
@@ -183,6 +183,17 @@ nextclaw <command> --help
 | `nextclaw app restart`          | 重启运行中 NextClaw UI 内的 Service App        |
 | `nextclaw app data list`        | 列出活动和保留的 App 数据实例                  |
 | `nextclaw app data delete`      | 永久删除保留的 App 数据实例，需精确确认 App ID |
+| `nextclaw app marketplace search` | 搜索官方 App Marketplace 中的 App |
+| `nextclaw app marketplace info` | 查看 Marketplace App 和派生安装命令 |
+| `nextclaw app list` | 列出运行中 NextClaw 宿主已安装的 App |
+| `nextclaw app info` | 查看已安装 App 的状态和版本 |
+| `nextclaw app operations` | 列出持久化的 App 生命周期操作 |
+| `nextclaw app install` | 通过运行中的 NextClaw 宿主安装 Marketplace、本地目录或 `.napp` App |
+| `nextclaw app enable` | 启用已安装的 App |
+| `nextclaw app disable` | 停用已安装的 App |
+| `nextclaw app update` | 发起 App 后台更新 |
+| `nextclaw app rollback` | 回滚到一个已安装版本 |
+| `nextclaw app uninstall` | 发起卸载；清除数据需要精确确认 App ID |
 
 ## 自动化使用建议
 

@@ -113,7 +113,6 @@ describe("AppPublishingService", () => {
         install: {
           kind: "registry",
           spec: "alice.notes",
-          command: "napp install alice.notes",
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },

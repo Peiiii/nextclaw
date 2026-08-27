@@ -18,7 +18,7 @@ Data is stored locally under NextClaw's app data directory. Each panel only decl
 Personal Space is built into supported NextClaw releases. It can also be installed from the official Apps Registry:
 
 ```bash
-napp install nextclaw.personal-organizer
+nextclaw app install nextclaw.personal-organizer
 ```
 
 After installation, open **Apps** in NextClaw and enable Personal Space. You can then launch Todos, Notes, Favorites, or Calendar independently.

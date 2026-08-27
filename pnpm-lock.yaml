@@ -296,6 +296,9 @@ importers:
 
   apps/nextclaw-apps-web:
     dependencies:
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-shared
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -367,6 +370,9 @@ importers:
 
   apps/platform-admin:
     dependencies:
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-shared
       '@tanstack/react-query':
         specifier: ^5.59.20
         version: 5.90.21(react@18.3.1)
@@ -413,6 +419,9 @@ importers:
 
   apps/platform-console:
     dependencies:
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-shared
       '@tanstack/react-query':
         specifier: ^5.59.20
         version: 5.90.21(react@18.3.1)
@@ -1192,6 +1201,9 @@ importers:
       '@nextclaw/service':
         specifier: workspace:*
         version: link:../nextclaw-service
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../nextclaw-shared
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -1333,6 +1345,9 @@ importers:
 
   packages/nextclaw-app-runtime:
     dependencies:
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../nextclaw-shared
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
@@ -5775,6 +5790,7 @@ packages:
   eslint@9.39.3:
     resolution: {integrity: sha512-VmQ+sifHUbI/IcSopBCF/HO3YiHQx/AVd3UVyYL6weuwW+HvON9VYn5l6Zl1WZzPWXPNZrSQpxwkkZ/VuvJZzg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'

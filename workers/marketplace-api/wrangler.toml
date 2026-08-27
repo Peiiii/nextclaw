@@ -1,6 +1,8 @@
 name = "nextclaw-marketplace-api"
 main = "src/main.ts"
 compatibility_date = "2026-02-23"
+# App metadata reuses runtime platform-target contracts, which require Node compatibility in Workers.
+compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 routes = [
   { pattern = "marketplace-api.nextclaw.io", custom_domain = true },

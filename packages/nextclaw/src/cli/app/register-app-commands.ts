@@ -7,6 +7,7 @@ import { AppRestartCommandController } from "./controllers/app-restart-command.c
 import { AppPackCommandController } from "./controllers/app-pack-command.controller.js";
 import { AppPublishCommandController } from "./controllers/app-publish-command.controller.js";
 import { AppValidatePublishCommandController } from "./controllers/app-validate-publish-command.controller.js";
+import { AppPackageCommandController } from "./controllers/app-packages/app-package-command.controller.js";
 
 export function registerAppCommands(program: Command): void {
   const app = program.command("app").description("Develop, validate, and publish NextClaw apps");
@@ -18,6 +19,7 @@ export function registerAppCommands(program: Command): void {
   const appPack = new AppPackCommandController();
   const appValidatePublish = new AppValidatePublishCommandController();
   const appPublish = new AppPublishCommandController();
+  const appPackages = new AppPackageCommandController();
 
   app
     .command("pack <app-dir>")
@@ -85,4 +87,86 @@ export function registerAppCommands(program: Command): void {
     .description("Restart a live Service App runtime in the running NextClaw UI")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => appRestart.restart(appId, opts));
+
+  registerAppPackageCommands(app, appPackages);
+}
+
+function registerAppPackageCommands(app: Command, appPackages: AppPackageCommandController): void {
+  const marketplace = app.command("marketplace").description("Browse NextClaw App Marketplace");
+
+  marketplace
+    .command("search")
+    .description("Search Apps in NextClaw App Marketplace")
+    .option("-q, --query <text>", "Search text")
+    .option("--tag <tag>", "Filter by tag")
+    .option("--cursor <cursor>", "Continue from a marketplace cursor")
+    .option("--limit <n>", "Maximum number of items")
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => appPackages.searchMarketplace(opts));
+
+  marketplace
+    .command("info <selector>")
+    .description("Show an App Marketplace item")
+    .option("--json", "Output JSON", false)
+    .action(async (selector, opts) => appPackages.marketplaceInfo(selector, opts));
+
+  app
+    .command("list")
+    .description("List Apps installed in the running NextClaw host")
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => appPackages.list(opts));
+
+  app
+    .command("info <app-id>")
+    .description("Show an App installed in the running NextClaw host")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => appPackages.info(appId, opts));
+
+  app
+    .command("operations")
+    .description("List App install, update, rollback, and uninstall operations")
+    .option("--json", "Output JSON", false)
+    .action(async (opts) => appPackages.operations(opts));
+
+  app
+    .command("install <source>")
+    .description("Install an App through the running NextClaw host")
+    .option("--registry <url>", "Registry URL for an App id")
+    .option("--json", "Output JSON", false)
+    .action(async (source, opts) => appPackages.install(source, opts));
+
+  app
+    .command("enable <app-id>")
+    .description("Enable an installed App")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => appPackages.enable(appId, opts));
+
+  app
+    .command("disable <app-id>")
+    .description("Disable an installed App")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => appPackages.disable(appId, opts));
+
+  app
+    .command("update <app-id>")
+    .description("Update an App through the running NextClaw host")
+    .option("--version <version>", "Target version")
+    .option("--registry <url>", "Registry URL")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => appPackages.update(appId, opts));
+
+  app
+    .command("rollback <app-id>")
+    .description("Roll back an App to an installed version")
+    .requiredOption("--version <version>", "Installed version to activate")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => appPackages.rollback(appId, opts));
+
+  app
+    .command("uninstall <app-id>")
+    .description("Uninstall an App through the running NextClaw host")
+    .option("--purge-data", "Permanently delete App data", false)
+    .option("--confirm <app-id>", "Confirm the exact App id when purging data")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => appPackages.uninstall(appId, opts));
 }

@@ -216,6 +216,9 @@ export const collectPackageSourceAliasViolations = ({
   const ast = parser.parse(source, {
     sourceType: "module",
     ecmaVersion: "latest",
+    ecmaFeatures: {
+      jsx: filePath.endsWith(".tsx") || filePath.endsWith(".jsx"),
+    },
     loc: true,
   });
   const findings = [];

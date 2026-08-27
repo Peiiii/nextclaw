@@ -65,6 +65,7 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
+    "@nextclaw/shared": "workspace:*",
     "fflate": "^0.8.2"
   },
   "devDependencies": {

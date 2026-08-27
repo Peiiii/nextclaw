@@ -8,7 +8,6 @@ export type AppPublisher = {
 export type AppInstallSpec = {
   kind: "registry";
   spec: string;
-  command: string;
   registry: string;
 };
 

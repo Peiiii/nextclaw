@@ -66,6 +66,7 @@
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/service": "workspace:*",
     "@nextclaw/server": "workspace:*",
+    "@nextclaw/shared": "workspace:*",
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",
     "jszip": "^3.10.1",
