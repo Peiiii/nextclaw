@@ -18,9 +18,10 @@
 
 ## 发布/部署方式
 
-- 先将官网范围精确提交、由主线协调器回流并推送 `origin/master`。
-- 从固定的 `origin/master` 提交在隔离 worktree 执行 `pnpm deploy:landing`，部署 Cloudflare Pages 项目 `nextclaw-landing`。
-- 部署完成后记录预览地址、正式域验证结果与实测耗时。
+- 已在隔离 worktree 提交官网与资产：`c597b6dbc51d60ab4bb5e6c83e12fc6aba5c8edb`（`feat(landing): show interactive results in chat`）。
+- 从该候选提交执行 `pnpm deploy:landing`，部署至 Cloudflare Pages 项目 `nextclaw-landing` 的 `master` 分支。
+- `https://nextclaw.io/zh/` 已返回新的 `main-P2wsgwGL.js`，其中包含录屏与 poster 引用；正式视频 `200`、约 `529KB`，poster `200`、约 `90KB`。
+- 线上响应头确认版本化 WebM、WebP 与 Vite hash 首屏图均为 `Cache-Control: public, max-age=31536000, immutable`；页面 HTML 仍是 `max-age=0, must-revalidate`，以便后续发布立即更新。
 
 ## 用户/产品视角的验收步骤
 
