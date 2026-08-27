@@ -41,7 +41,6 @@ describe("AppPublishService", () => {
         install: {
           kind: "registry",
           spec: "nextclaw.app",
-          command: "napp install nextclaw.app",
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },
@@ -129,7 +128,6 @@ describe("AppPublishService", () => {
         install: {
           kind: "registry",
           spec: "nextclaw.todo-app",
-          command: "napp install nextclaw.todo-app",
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },
@@ -222,7 +220,6 @@ describe("AppPublishService bundle mode", () => {
         install: {
           kind: "registry",
           spec: "nextclaw.todo-app",
-          command: "napp install nextclaw.todo-app",
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },
@@ -286,7 +283,6 @@ describe("AppPublishService bundle mode", () => {
         install: {
           kind: "registry",
           spec: "nextclaw.personal-organizer",
-          command: "napp install nextclaw.personal-organizer",
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },

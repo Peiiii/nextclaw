@@ -1,4 +1,5 @@
 import { AppPublishService } from "#app-runtime/services/app-publish.service.js";
+import { formatNextClawAppInstallCommand } from "@nextclaw/shared";
 
 export class PublishCommand {
   constructor(
@@ -42,6 +43,6 @@ export class PublishCommand {
     if (result.item.webUrl) {
       write(`Details: ${result.item.webUrl}\n`);
     }
-    write(`Install: ${result.item.install.command}\n`);
+    write(`Install: ${formatNextClawAppInstallCommand(result.item.install.spec)}\n`);
   };
 }

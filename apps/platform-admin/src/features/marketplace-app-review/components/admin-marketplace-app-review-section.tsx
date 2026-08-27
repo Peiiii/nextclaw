@@ -12,6 +12,7 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TableWrap } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { formatNextClawAppInstallCommand } from '@nextclaw/shared';
 import {
   DetailMetaItem,
   MarketplaceRuntimeReview,
@@ -373,7 +374,7 @@ function MarketplaceDetailPanel(props: {
           <DetailMetaItem label="发布时间" value={formatDateTime(item.publishedAt)} />
           <DetailMetaItem label="更新时间" value={formatDateTime(item.updatedAt)} />
           <DetailMetaItem label="最近审核" value={item.reviewedAt ? formatDateTime(item.reviewedAt) : '未审核'} />
-          <DetailMetaItem label="安装命令" value={item.install.command} />
+          <DetailMetaItem label="安装命令" value={formatNextClawAppInstallCommand(item.install.spec)} />
         </div>
 
         <div>

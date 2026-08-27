@@ -35,7 +35,7 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | Configuration and secrets    | Read and write configuration, audit secrets, and apply secret references                      |
 | MCP and messaging channels   | Manage MCP servers and messaging-channel connections                                          |
 | Skills and Marketplace       | Inspect, install, publish, update, and discover Skills                                        |
-| NextClaw Apps                | Check, develop, package, publish, call, and manage App data                                   |
+| NextClaw Apps                | Check, develop, package, publish, install, call, and manage App data                          |
 
 ## Setup and account
 
@@ -183,6 +183,17 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | `nextclaw app restart`          | Restart a Service App running in the NextClaw UI                       |
 | `nextclaw app data list`        | List active and retained App data instances                            |
 | `nextclaw app data delete`      | Permanently delete retained App data with an exact App-ID confirmation |
+| `nextclaw app marketplace search` | Search Apps in the official App Marketplace |
+| `nextclaw app marketplace info` | Show a Marketplace App and its derived install command |
+| `nextclaw app list` | List Apps installed in the running NextClaw host |
+| `nextclaw app info` | Show installed App state and versions |
+| `nextclaw app operations` | List durable App lifecycle operations |
+| `nextclaw app install` | Install a Marketplace App, local directory, or `.napp` bundle through the running host |
+| `nextclaw app enable` | Enable an installed App |
+| `nextclaw app disable` | Disable an installed App |
+| `nextclaw app update` | Start a background App update |
+| `nextclaw app rollback` | Roll back to an installed version |
+| `nextclaw app uninstall` | Start an uninstall; purging data requires exact App-ID confirmation |
 
 ## Automation guidance
 

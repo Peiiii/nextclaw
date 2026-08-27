@@ -11,6 +11,11 @@ describe("MarketplaceAppRecordMapper visuals", () => {
       coverUrl: "https://apps-registry.nextclaw.io/api/v1/apps/items/personal-organizer/files/blob?path=marketplace-assets%2Fcover.webp",
       iconUrl: "https://apps-registry.nextclaw.io/api/v1/apps/items/personal-organizer/files/blob?path=assets%2Ficon.svg",
     });
+    expect(new MarketplaceAppRecordMapper().mapItemSummary(row).install).toEqual({
+      kind: "registry",
+      spec: "nextclaw.personal-organizer",
+      registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
+    });
   });
 
   it("projects the canonical public-listing assessment for admin review", () => {

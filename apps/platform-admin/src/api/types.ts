@@ -202,7 +202,6 @@ export type AdminMarketplaceAppReviewStatus = 'published' | 'rejected';
 export type MarketplaceAppInstallView = {
   kind: 'registry';
   spec: string;
-  command: string;
   registry: string;
 };
 

@@ -96,6 +96,7 @@ export {
 } from "./configs/system-object-reference.config.js";
 export { PANEL_APP_INLINE_HOST_CONTRACT } from "./configs/panel-app-inline-host.config.js";
 export { PANEL_APP_SCROLL_RESTORATION_CONTRACT } from "./configs/panel-app-scroll-restoration.config.js";
+export { formatNextClawAppInstallCommand } from "./configs/app-install-command.config.js";
 export { readInlineContentHeight } from "./utils/inline-content-height.utils.js";
 export { classifyDiagnosticError } from "./utils/diagnostic-error.utils.js";
 export type { DiagnosticErrorClassification } from "./utils/diagnostic-error.utils.js";

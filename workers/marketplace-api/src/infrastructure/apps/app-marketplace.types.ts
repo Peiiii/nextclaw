@@ -14,7 +14,6 @@ export type AppDistributionMode = "bundle" | "source";
 export type AppInstallSpec = {
   kind: "registry";
   spec: string;
-  command: string;
   registry: string;
 };
 

@@ -63,6 +63,7 @@
     "tsc:desktop": "pnpm -C apps/desktop tsc",
     "tsc:companion": "pnpm -C apps/companion tsc",
     "dev": "node scripts/dev/dev-runner.mjs",
+    "dev:worktree": "node scripts/dev/worktrees/create-parallel-worktree.mjs",
     "stress:chat-tool-call-session": "pnpm -C packages/nextclaw exec tsx --tsconfig ../../scripts/dev/dev-runtime.tsconfig.json ../../scripts/stress/seed-chat-tool-call-session.mts",
     "dev:verify-update": "node scripts/dev/verify-update.mjs",
     "dev:claude": "node scripts/dev/dev-runner.mjs start --claude-runtime-source",

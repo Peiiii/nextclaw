@@ -198,7 +198,6 @@ export type OwnerMarketplaceAppManageAction = 'hide' | 'show' | 'delete';
 export type MarketplaceAppInstallView = {
   kind: 'registry';
   spec: string;
-  command: string;
   registry: string;
 };
 

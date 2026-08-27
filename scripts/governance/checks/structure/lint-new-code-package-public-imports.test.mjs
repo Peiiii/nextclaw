@@ -75,3 +75,16 @@ test("allows a package-root development alias", () => {
 
   assert.deepEqual(findings, []);
 });
+
+test("parses JSX when inspecting aliases in a TSX config", () => {
+  const findings = collectPackageSourceAliasViolations({
+    filePath: "packages/fixture-consumer/vite.config.tsx",
+    source: `const app = <main />;
+      export default { resolve: { alias: {
+        "@fixture/shared": new URL("../fixture-shared/src/index.ts", import.meta.url).pathname,
+      } } };`,
+    workspacePackages,
+  });
+
+  assert.deepEqual(findings, []);
+});

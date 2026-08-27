@@ -55,7 +55,6 @@ describe("AppPublishService targeted artifacts", () => {
         install: {
           kind: "registry",
           spec: "nextclaw.personal-organizer",
-          command: "nextclaw app install nextclaw.personal-organizer",
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },

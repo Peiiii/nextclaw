@@ -90,7 +90,6 @@ export type AppPublishResult = {
     install: {
       kind: "registry";
       spec: string;
-      command: string;
       registry: string;
     };
   };

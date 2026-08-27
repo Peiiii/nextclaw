@@ -21,6 +21,7 @@ import { Button } from '@/shared/components/button';
 import { Input } from '@/shared/components/input';
 import { formatDateTime, type LocaleCode } from '@/i18n/i18n.service';
 import { useLocaleStore } from '@/i18n/locale.store';
+import { formatNextClawAppInstallCommand } from '@nextclaw/shared';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -401,7 +402,7 @@ function AppDetailPanel(props: {
           label={t('apps.fields.reviewedAt')}
           value={item.reviewedAt ? formatDateTime(locale, item.reviewedAt) : t('apps.values.notReviewed')}
         />
-        <MetaItem label={t('apps.fields.install')} value={item.install.command} />
+        <MetaItem label={t('apps.fields.install')} value={formatNextClawAppInstallCommand(item.install.spec)} />
       </div>
 
       <div>
