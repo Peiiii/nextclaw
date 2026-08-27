@@ -10,6 +10,7 @@ import { AppDataClientService } from "./services/app-data.service.js";
 import { AuthService } from "./services/auth.service.js";
 import { ChannelAuthService } from "./services/channel-auth.service.js";
 import { CapabilityAccessService } from "./services/capability-access.service.js";
+import { FeatureControlsService } from "./services/feature-controls.service.js";
 import { ConfigService } from "./services/config.service.js";
 import { MarketplaceService } from "./services/marketplace.service.js";
 import { InboxDeliveriesService } from "./services/inbox-deliveries.service.js";
@@ -37,6 +38,7 @@ export class NextClawClient {
   readonly auth: AuthService;
   readonly channelAuth: ChannelAuthService;
   readonly capabilityAccess: CapabilityAccessService;
+  readonly featureControls: FeatureControlsService;
   readonly config: ConfigService;
   readonly eventBus: EventBus;
   readonly marketplace: MarketplaceService;
@@ -87,6 +89,7 @@ export class NextClawClient {
     this.auth = new AuthService(requestService);
     this.channelAuth = new ChannelAuthService(requestService);
     this.capabilityAccess = new CapabilityAccessService(requestService);
+    this.featureControls = new FeatureControlsService(requestService);
     this.config = new ConfigService(requestService);
     this.marketplace = new MarketplaceService(requestService);
     this.inboxDeliveries = new InboxDeliveriesService(requestService);

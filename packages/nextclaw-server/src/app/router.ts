@@ -11,6 +11,7 @@ import {
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
 import { CapabilityAccessRoutesController } from "@nextclaw-server/app/controllers/capability-access.controller.js";
+import { FeatureControlsRoutesController } from "@nextclaw-server/features/feature-controls/index.js";
 import { AppPackagesRoutesController } from "@nextclaw-server/features/app-packages/index.js";
 import { AppDataRoutesController } from "@nextclaw-server/features/app-data/index.js";
 import { SystemObjectReferencesRoutesController } from "@nextclaw-server/app/controllers/system-object-references.controller.js";
@@ -57,6 +58,7 @@ function createUiRouteControllers(
       capabilityGrantManager: kernel.capabilityGrants,
       getDesktopHost: () => kernel.extensions.getDesktopHost(),
     }),
+    featureControls: new FeatureControlsRoutesController(kernel.featureControls),
     appPackages: new AppPackagesRoutesController(kernel.appPackageManager),
     appData: new AppDataRoutesController(kernel.appDataManager),
     agents: new AgentsRoutesController(options),
@@ -260,6 +262,7 @@ class UiRouteRegistry {
       appData,
       appPackages,
       capabilityAccess,
+      featureControls,
       ncpSession,
       inboxDeliveries,
       panelApps,
@@ -294,6 +297,7 @@ class UiRouteRegistry {
       ["get", "/api/capability-grants", capabilityAccess.listGrants],
       ["post", "/api/capability-grants", capabilityAccess.grant],
       ["delete", "/api/capability-grants", capabilityAccess.revoke],
+      ["get", "/api/feature-controls", featureControls.get],
       ["get", "/api/desktop-host/status", capabilityAccess.getDesktopStatus],
       ["get", "/api/desktop-host/permissions", capabilityAccess.getDesktopPermissions],
       ["post", "/api/desktop-host/permissions/request", capabilityAccess.requestDesktopPermissions],

@@ -34,6 +34,10 @@ export type AppNavigationSection = {
   items: AppNavigationItem[];
 };
 
+type SettingsNavigationOptions = {
+  includeDesktopCapabilities?: boolean;
+};
+
 export function matchesRouteTarget(pathname: string, target: string): boolean {
   const normalizedPath = pathname.toLowerCase();
   const normalizedTarget = target.toLowerCase();
@@ -131,8 +135,9 @@ export function getMainSidebarNavItems(
 
 export function getSettingsNavItems(
   translate: Translate,
+  options: SettingsNavigationOptions = {},
 ): AppNavigationItem[] {
-  return [
+  const items = [
     {
       target: "/model",
       label: translate("model"),
@@ -204,12 +209,16 @@ export function getSettingsNavItems(
       icon: Wrench,
     },
   ];
+  return options.includeDesktopCapabilities === false
+    ? items.filter((item) => item.target !== "/desktop-capabilities")
+    : items;
 }
 
 export function getSettingsNavSections(
   translate: Translate,
+  options: SettingsNavigationOptions = {},
 ): AppNavigationSection[] {
-  const items = getSettingsNavItems(translate);
+  const items = getSettingsNavItems(translate, options);
   return [
     {
       label: translate("settingsGroupBasic"),

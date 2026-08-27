@@ -33,6 +33,7 @@ function createProviderProbeApp(configPath: string) {
         }),
       } as never,
       capabilityGrants: {} as never,
+      featureControls: { get: async () => ({ desktopAutomation: { available: false } }) } as never,
       inboxDeliveryManager: {} as never,
       systemObjectReferenceManager: {} as never,
       agentRunRequestManager: {} as never,

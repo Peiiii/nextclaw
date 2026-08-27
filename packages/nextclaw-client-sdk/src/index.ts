@@ -6,6 +6,10 @@ export {
 export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export {
+  FeatureControlsService,
+  type ProductFeatureControlsView,
+} from "./services/feature-controls.service.js";
+export {
   CapabilityAccessService,
   type CapabilityGrantRequestView,
   type CapabilityGrantView,

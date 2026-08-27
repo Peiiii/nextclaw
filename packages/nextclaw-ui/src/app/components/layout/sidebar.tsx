@@ -19,6 +19,7 @@ import { IconActionButton } from "@/shared/components/ui/actions/icon-action-but
 import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useRemoteStatus } from "@/features/remote";
+import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities/hooks/use-desktop-capabilities";
 import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
@@ -186,13 +187,16 @@ export function Sidebar() {
   const presenter = useAppPresenter();
   const docBrowser = useDocBrowser();
   const remoteStatus = useRemoteStatus();
+  const desktopCapabilityAvailable = useDesktopCapabilityAvailability();
   const isCollapsed = useViewportLayoutStore(
     (state) => state.isSidebarCollapsed,
   );
   const toggleCollapsed = viewportLayoutManager.toggleSidebarCollapsed;
   const accountEmail = remoteStatus.data?.account.email?.trim();
   const accountConnected = Boolean(remoteStatus.data?.account.loggedIn);
-  const settingsNavSections = getSettingsNavSections(t);
+  const settingsNavSections = getSettingsNavSections(t, {
+    includeDesktopCapabilities: desktopCapabilityAvailable,
+  });
   const sidebarStackClass = isCollapsed
     ? SIDEBAR_RAIL_STACK_CLASS
     : getSidebarItemStackClass("compact");

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CapabilityGrantView } from "@nextclaw/client-sdk";
+import type { CapabilityGrantView, ProductFeatureControlsView } from "@nextclaw/client-sdk";
+import { useFeatureControls } from "@/app/hooks/use-feature-controls";
 import { desktopCapabilityManager } from "../managers/desktop-capability.manager";
 
 const STATUS_QUERY_KEY = ["desktop-capability", "status"] as const;
@@ -10,6 +11,15 @@ export function useDesktopCapabilityStatus() {
     queryKey: STATUS_QUERY_KEY,
     queryFn: desktopCapabilityManager.getStatus,
   });
+}
+
+export function useDesktopCapabilityAvailability(): boolean {
+  const featureControls = useFeatureControls();
+  return isDesktopAutomationAvailable(featureControls.data);
+}
+
+export function isDesktopAutomationAvailable(controls: ProductFeatureControlsView | undefined): boolean {
+  return controls?.desktopAutomation.available === true;
 }
 
 export function useDesktopCapabilityGrants() {

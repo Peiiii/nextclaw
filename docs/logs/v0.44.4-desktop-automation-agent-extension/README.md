@@ -11,6 +11,7 @@
 - 新增微信 Desktop Extension，使用正式 observation 链路持续读取可见 AX 文本、生成稳定事件 ID/cursor，并过滤 `🤖[墨爪]` 自身消息前缀。
 - macOS 原生 `setValue` 完成后回读 `AXValue`，把 `verified` 与 `observedValue` 经 Host 协议返回。
 - `pressKey` 采用 Service 独立原生 helper 承载 Quartz 键事件，避免原生事件异常杀死 Host Worker；helper 只构建于 macOS，且不依赖 Electron 窗口。该路径尚未完成微信快捷键实测。
+- 平台支持判断收敛为 Kernel 的统一 `feature-controls` 合同；Server、SDK 与网页共享该对象，当前运行环境不支持桌面自动化时不显示设置入口。
 
 ## 测试/验证/验收方式
 

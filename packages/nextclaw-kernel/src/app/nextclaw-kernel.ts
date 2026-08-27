@@ -45,6 +45,7 @@ import {
   UnavailableDesktopHost,
   type DesktopHost,
 } from "@kernel/features/desktop-host/index.js";
+import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -163,6 +164,7 @@ export class NextclawKernel {
   readonly agentRunRequestManager: AgentRunRequestManager;
   readonly observations: ObservationManager;
   readonly capabilityGrants: CapabilityGrantManager;
+  readonly featureControls: FeatureControlsService;
   private readonly capabilityGrantLegacyMigration: CapabilityGrantLegacyMigrationService;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
@@ -170,7 +172,9 @@ export class NextclawKernel {
 
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
+    const desktopHost = options.desktopHost ?? new UnavailableDesktopHost();
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
+    this.featureControls = new FeatureControlsService(desktopHost);
     ({
       automation: this.automation,
       channels: this.channels,
@@ -252,7 +256,7 @@ export class NextclawKernel {
     });
     this.extensions = new ExtensionManager({
       capabilityGrantManager: this.capabilityGrants,
-      desktopHost: options.desktopHost ?? new UnavailableDesktopHost(),
+      desktopHost,
       hasAgent: (agentId) => this.agents.getAgent(agentId) !== null,
       diagnostics: this.diagnostics,
       configManager: this.configManager,

@@ -34,6 +34,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       grant: async () => unavailable("capabilityGrants.grant"),
       revoke: async () => unavailable("capabilityGrants.revoke"),
     } as never,
+    featureControls: {
+      get: async () => ({ desktopAutomation: { available: false } }),
+    } as never,
     inboxDeliveryManager: {
       listDeliveries: async () => ({
         deliveries: [],

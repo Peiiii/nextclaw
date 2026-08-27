@@ -24,6 +24,7 @@ export * from "@kernel/stores/llm-usage.store.js";
 export * from "@kernel/stores/ncp-agent-session-journal.store.js";
 export * from "@kernel/features/capability-grants/index.js";
 export * from "@kernel/features/desktop-host/index.js";
+export * from "@kernel/features/feature-controls/index.js";
 export { readLearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export type { LearningLoopRuntimeConfig } from "@kernel/contributions/learning-loop/config.js";
 export * from "@kernel/utils/skill-frontmatter.utils.js";

@@ -60,6 +60,7 @@ export type UiKernelHost = Pick<
   | "observations"
   | "extensions"
   | "capabilityGrants"
+  | "featureControls"
   | "panelAppManager"
   | "preferenceManager"
   | "projectManager"
