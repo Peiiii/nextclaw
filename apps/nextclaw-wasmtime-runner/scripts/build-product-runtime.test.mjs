@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import {
   createPortableRuntimeBuildPlan,
   syncArtifactAtomically,
 } from "./build-product-runtime.mjs";
 
 test("creates one shared runner and five guest artifact targets for macOS", () => {
+  const workspaceRoot = resolve("/workspace");
   const plan = createPortableRuntimeBuildPlan({
-    workspaceRoot: "/workspace",
+    workspaceRoot,
     platform: "darwin",
     arch: "arm64",
   });
@@ -19,7 +20,15 @@ test("creates one shared runner and five guest artifact targets for macOS", () =
   assert.equal(plan.cargoTarget, "aarch64-apple-darwin");
   assert.equal(
     plan.runner.destination,
-    "/workspace/packages/nextclaw/resources/native/darwin-arm64/nextclaw-wasmtime-runner",
+    join(
+      workspaceRoot,
+      "packages",
+      "nextclaw",
+      "resources",
+      "native",
+      "darwin-arm64",
+      "nextclaw-wasmtime-runner",
+    ),
   );
   assert.equal(plan.commands.length, 6);
   assert.deepEqual(plan.commands.at(-1), [
@@ -29,7 +38,7 @@ test("creates one shared runner and five guest artifact targets for macOS", () =
     "aarch64-apple-darwin",
   ]);
   assert.equal(plan.guests.length, 5);
-  assert.ok(plan.guests.every(({ destination }) => destination.endsWith("/service.wasm")));
+  assert.ok(plan.guests.every(({ destination }) => basename(destination) === "service.wasm"));
 });
 
 for (const [platform, arch, cargoTarget, executable] of [
@@ -41,8 +50,8 @@ for (const [platform, arch, cargoTarget, executable] of [
   test(`maps ${platform}-${arch} to its native Rust runner target`, () => {
     const plan = createPortableRuntimeBuildPlan({ workspaceRoot: "/workspace", platform, arch });
     assert.equal(plan.cargoTarget, cargoTarget);
-    assert.ok(plan.runner.source.endsWith(`/${cargoTarget}/release/${executable}`));
-    assert.ok(plan.runner.destination.endsWith(`/${platform}-${arch}/${executable}`));
+    assert.ok(plan.runner.source.endsWith(join(cargoTarget, "release", executable)));
+    assert.ok(plan.runner.destination.endsWith(join(`${platform}-${arch}`, executable)));
   });
 }
 
