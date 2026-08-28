@@ -68,7 +68,9 @@ jobs:
           targets: wasm32-wasip2
 
       - name: Install cargo-component
-        uses: taiki-e/install-action@cargo-component
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-component
 
       - name: Validate build contract
         run: node --test apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.test.mjs
