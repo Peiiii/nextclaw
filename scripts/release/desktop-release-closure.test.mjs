@@ -233,6 +233,10 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   assert.match(workflow, /Draft target must equal immutable release_target/);
   assert.match(workflow, /ref: \$\{\{ inputs\.release_target \|\| inputs\.release_tag \}\}/);
   assert.match(
+    workflow,
+    /Apply release bundle budget compatibility[\s\S]*?RUNTIME_BUNDLE_FILE_BUDGET = 400;[\s\S]*?RUNTIME_BUNDLE_FILE_BUDGET = 450;/
+  );
+  assert.match(
     closure,
     /const \{ tag, target \} = options;[\s\S]*?waitForWorkflowRun\(options\)[\s\S]*?waitForWorkflowSuccess\(options, runEntry\)[\s\S]*?readTagSha\(tag\)[\s\S]*?tagSha !== target/
   );
