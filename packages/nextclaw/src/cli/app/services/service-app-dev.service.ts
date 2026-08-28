@@ -19,7 +19,7 @@ import {
 import {
   buildServiceActionId,
   getServiceAppManifestPath,
-  McpServiceAppRuntimeService,
+  type McpServiceAppRuntimeService,
   ServiceAppRuntimeService,
   mergeServiceAppRuntimeActions,
   readServiceAppManifest,
