@@ -176,6 +176,27 @@ test("accepts a ready bilingual blog after its changeset is consumed", (context)
   assert.doesNotThrow(() => ensureReleaseBlogsReady(rootDir));
 });
 
+test("accepts ready blogs exposed through generated dated navigation", (context) => {
+  const rootDir = createFixture();
+  context.after(() => rmSync(rootDir, { recursive: true, force: true }));
+  const paths = writeReadyBlogSurfaces(rootDir, "heavy-session");
+  writeFileSync(
+    join(rootDir, "apps/docs/.vitepress/navigation/docs-navigation.config.ts"),
+    [
+      "createDatedDirectoryItems('zh', 'blog', (title) => title)",
+      "createDatedDirectoryItems('en', 'blog', (title) => title)",
+    ].join("\n"),
+  );
+  writeBlogDraft(rootDir, "heavy-session", {
+    state: "ready",
+    zhPath: paths.zhPath,
+    enPath: paths.enPath,
+  });
+
+  const summary = collectReleaseSummary(rootDir, { requireReadyBlogs: true });
+  assert.deepEqual(summary.errors, []);
+});
+
 test("stable product closure rejects a draft even after its changeset is consumed", (context) => {
   const rootDir = createFixture();
   context.after(() => rmSync(rootDir, { recursive: true, force: true }));

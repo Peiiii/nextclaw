@@ -103,7 +103,14 @@ function validateBlogNavigation(rootDir, ownerFile, locale, sourcePath) {
   if (!existsSync(indexPath) || !readFileSync(indexPath, "utf8").includes(slug)) {
     errors.push(`${ownerFile}: ${locale} blog index is missing ${slug}`);
   }
-  if (!existsSync(navigationPath) || !readFileSync(navigationPath, "utf8").includes(route)) {
+  const navigationSource = existsSync(navigationPath)
+    ? readFileSync(navigationPath, "utf8")
+    : "";
+  const hasExplicitRoute = navigationSource.includes(route);
+  const hasGeneratedDirectoryNavigation = navigationSource.includes(
+    `createDatedDirectoryItems('${localeSegment}', 'blog'`,
+  );
+  if (!hasExplicitRoute && !hasGeneratedDirectoryNavigation) {
     errors.push(`${ownerFile}: ${locale} blog sidebar is missing ${route}`);
   }
 
