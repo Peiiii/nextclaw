@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.45.1
+
+### Patch Changes
+
+- 97e3b50: Fix stable runtime bundles so Portable Service Apps include an executable native runner on every published platform.
+- Updated dependencies [97e3b50]
+  - @nextclaw/service@0.4.1
+
 ## 0.45.0
 
 ### Minor Changes
