@@ -139,14 +139,15 @@ export class ServiceAppsClientService {
       | { surface: "panel-app"; appId: string }
       | { surface: "agent"; agentId: string };
   }): Promise<{ revoked: boolean }> => {
+    const { actionId, caller } = params;
     const search = new URLSearchParams({
-      surface: params.caller.surface,
-      callerId: params.caller.surface === "panel-app"
-        ? params.caller.appId
-        : params.caller.agentId,
+      surface: caller.surface,
+      callerId: caller.surface === "panel-app"
+        ? caller.appId
+        : caller.agentId,
     });
     return await this.requestService.delete<{ revoked: boolean }>(
-      `/api/service-action-grants/${encodeURIComponent(params.actionId)}?${search.toString()}`,
+      `/api/service-action-grants/${encodeURIComponent(actionId)}?${search.toString()}`,
     );
   };
 }
