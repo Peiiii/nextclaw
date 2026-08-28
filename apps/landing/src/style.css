@@ -444,6 +444,7 @@
   .landing-main--home {
     min-height: 100svh;
     justify-content: center;
+    padding-inline: clamp(2rem, 4vw, 5rem);
     padding-top: clamp(6rem, 10svh, 8rem);
     padding-bottom: clamp(2.5rem, 6svh, 4rem);
   }
@@ -609,6 +610,13 @@
 
     .landing-hero__title {
       font-size: clamp(2.75rem, 4.4vw, 3rem);
+    }
+  }
+
+  @media (min-width: 1121px) and (max-width: 1360px) {
+    .landing-hero {
+      grid-template-columns: minmax(26rem, 0.88fr) minmax(34rem, 1.12fr);
+      gap: 2.5rem;
     }
   }
 

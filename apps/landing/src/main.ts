@@ -878,7 +878,7 @@ class LandingPage {
         </header>
 
         <main class="landing-main ${this.route === 'home'
-          ? 'landing-main--home relative flex flex-col px-6 text-left z-10'
+          ? 'landing-main--home relative flex flex-col text-left z-10'
           : 'landing-main--route flex-1 flex flex-col items-center text-center px-6 pt-32 pb-20 z-10'}">
           <div class="${this.route === 'home' ? 'landing-home-shell relative z-10 w-full mx-auto' : 'contents'}">
           ${this.route === 'home' ? `

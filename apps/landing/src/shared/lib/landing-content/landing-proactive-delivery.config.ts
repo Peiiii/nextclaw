@@ -17,9 +17,9 @@ export const PROACTIVE_DELIVERY_COPY: Record<
     notificationLabel: "Completion notice",
     notificationTitle: "Know when background work finishes",
     guideLabel: "Explore proactive delivery",
-    inboxImageSrc: "/nextclaw-ai-delivery-html-en.png",
+    inboxImageSrc: "/nextclaw-island-inbox-workspace-cn.png",
     inboxImageAlt:
-      "A daily AI and technology briefing delivered to the NextClaw AI Inbox",
+      "NextClaw Island theme showing a daily AI and technology briefing delivered to the AI Inbox",
     notificationImageSrc: "/nextclaw-background-session-notification-en.png",
     notificationImageAlt:
       "NextClaw showing a completion notice for a background conversation",
@@ -34,8 +34,8 @@ export const PROACTIVE_DELIVERY_COPY: Record<
     notificationLabel: "完成提醒",
     notificationTitle: "后台任务完成时，及时告诉你",
     guideLabel: "了解主动送达",
-    inboxImageSrc: "/nextclaw-ai-delivery-html-cn.png",
-    inboxImageAlt: "每日 AI 与科技简报主动送达到 NextClaw AI 收件箱",
+    inboxImageSrc: "/nextclaw-island-inbox-workspace-cn.png",
+    inboxImageAlt: "NextClaw 岛屿主题展示每日 AI 与科技简报主动送达到 AI 收件箱",
     notificationImageSrc: "/nextclaw-background-session-notification-cn.png",
     notificationImageAlt: "NextClaw 显示后台会话完成提醒",
   },

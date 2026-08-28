@@ -76,7 +76,7 @@ Start with source material, let the Agent organize and visualize it, then inspec
 
 When scheduled work, a background Agent, or a long-running monitor finishes, NextClaw can deliver the report to your inbox. Read it later, manage it with the rest of your results, or continue the conversation with the full context.
 
-[![NextClaw delivering a project brief to the AI inbox](images/screenshots/nextclaw-ai-delivery-inbox-en.png)](images/screenshots/nextclaw-ai-delivery-inbox-en.png)
+[![NextClaw Island theme showing a daily AI and technology briefing delivered to the AI Inbox](images/screenshots/nextclaw-island-inbox-workspace-cn.png)](images/screenshots/nextclaw-island-inbox-workspace-cn.png)
 
 ### Choose the Agent Runtime for each task
 

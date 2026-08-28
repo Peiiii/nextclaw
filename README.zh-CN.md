@@ -76,7 +76,7 @@ NextClaw 也把 `nextclaw` 命令行作为一等使用入口。许多核心操�
 
 定时任务、后台 Agent 或长期监测完成后，NextClaw 可以把报告送进收件箱。你可以稍后阅读、集中管理，也可以带着完整内容直接继续聊。
 
-[![NextClaw AI 主动送达项目晨报](images/screenshots/nextclaw-ai-delivery-inbox-cn.png)](images/screenshots/nextclaw-ai-delivery-inbox-cn.png)
+[![NextClaw 岛屿主题展示每日 AI 与科技简报主动送达到 AI 收件箱](images/screenshots/nextclaw-island-inbox-workspace-cn.png)](images/screenshots/nextclaw-island-inbox-workspace-cn.png)
 
 ### 每次任务都可以选择 Agent Runtime
 

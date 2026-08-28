@@ -54,6 +54,15 @@ Open local files, Markdown, code, HTML, documents, spreadsheets, and presentatio
   <a class="nc-docs-link" href="/en/guide/doc-browser"><strong>Doc Browser</strong><span>Keep websites, documentation, and browser tabs in the global dock.</span></a>
 </div>
 
+## Let background agents deliver finished work
+
+Scheduled tasks, background agents, and long-running monitors can place reports in the AI Inbox. Read them when convenient, manage them with other results, or continue the conversation from the delivered report.
+
+<figure class="nc-docs-product-shot nc-docs-product-shot--wide">
+  <img src="/product-screenshots/nextclaw-island-inbox-workspace-cn.png" alt="NextClaw Island theme showing a daily AI and technology briefing delivered to the AI Inbox">
+  <figcaption>A delivered briefing stays beside conversations and apps in the same desktop workspace.</figcaption>
+</figure>
+
 ## Turn repeated work into your own agents and apps
 
 Dedicated agents can keep an identity, home directory, memory, skills, and runtime. Package proven work as a skill, connect external tools through MCP, or keep an interactive result as a Panel App.

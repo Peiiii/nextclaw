@@ -81,11 +81,11 @@ export function renderHomeSections(
       <div class="showcase-grid">${renderShowcaseCards(copy.showcaseItems)}</div>
     </section>
 
+    ${renderProactiveDeliveryShowcase(PROACTIVE_DELIVERY_COPY[locale], docsLink)}
+
     ${renderInteractiveArtifactShowcase(locale)}
 
     ${renderRuntimeShowcase(copy.runtimeShowcase)}
-
-    ${renderProactiveDeliveryShowcase(PROACTIVE_DELIVERY_COPY[locale], docsLink)}
 
     <section class="app-surface-section">
       <div class="w-full max-w-7xl mx-auto">

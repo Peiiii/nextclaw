@@ -66,6 +66,15 @@ hero:
   <a class="nc-docs-link" href="/zh/guide/doc-browser"><strong>Doc Browser</strong><span>把网页、文档和多个浏览标签留在全局右侧。</span></a>
 </div>
 
+## 让后台 Agent 主动把结果送回来
+
+定时任务、后台 Agent 或长期监测完成后，可以把报告送进 AI 收件箱。你可以稍后阅读、集中管理，也可以带着报告内容直接继续聊。
+
+<figure class="nc-docs-product-shot nc-docs-product-shot--wide">
+  <img src="/product-screenshots/nextclaw-island-inbox-workspace-cn.png" alt="NextClaw 岛屿主题展示每日 AI 与科技简报主动送达到 AI 收件箱">
+  <figcaption>主动送达的简报与会话、应用一起留在同一个桌面工作台。</figcaption>
+</figure>
+
 ## 用熟悉的 Agent Runtime 继续项目
 
 同一个任务可以选择 Native、Codex、Claude Code、OpenCode 或 Hermes 来执行。会话、项目目录和生成结果仍留在 NextClaw 里，开始任务时可以直接选择需要的 Runtime。
