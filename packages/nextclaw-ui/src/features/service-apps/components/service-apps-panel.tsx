@@ -11,12 +11,14 @@ import { ServiceAppListItem } from "@/features/service-apps/components/service-a
 import {
   useDeleteServiceApp,
   useDiscoverServiceAppActions,
+  useGrantAgentServiceActions,
   useRestartServiceApp,
   useRevokeServiceActionGrant,
   useServiceActionGrants,
   useServiceActions,
   useServiceApps,
 } from "@/features/service-apps/hooks/use-service-apps";
+import { useAgents } from "@/shared/hooks/use-agents";
 import {
   Tooltip,
   TooltipContent,
@@ -36,10 +38,12 @@ export function ServiceAppsPanel({
   const appData = useAppData();
   const serviceActions = useServiceActions();
   const serviceActionGrants = useServiceActionGrants();
+  const agents = useAgents();
   const deleteServiceApp = useDeleteServiceApp();
   const restartServiceApp = useRestartServiceApp();
   const discoverServiceAppActions = useDiscoverServiceAppActions();
   const revokeServiceActionGrant = useRevokeServiceActionGrant();
+  const grantAgentServiceActions = useGrantAgentServiceActions();
   const [discoveredActionsByApp, setDiscoveredActionsByApp] = useState<
     Record<string, ServiceActionView[]>
   >({});
@@ -163,6 +167,7 @@ export function ServiceAppsPanel({
                 }
                 actionsOpen={Boolean(expandedActionsByApp[app.id])}
                 grants={grants}
+                agents={agents.data?.agents ?? []}
                 deletePending={deleteServiceApp.isPending}
                 deleteError={deleteServiceApp.error}
                 dataEntry={workspaceDataEntries.find((entry) => entry.appId === app.id)}
@@ -188,6 +193,13 @@ export function ServiceAppsPanel({
                     caller: grant.caller,
                   })
                 }
+                onGrantAgent={(actionId, agentId) =>
+                  void grantAgentServiceActions.mutate({
+                    actionIds: [actionId],
+                    agentId,
+                  })
+                }
+                grantAgentPending={grantAgentServiceActions.isPending}
               />
             ))}
           </div>

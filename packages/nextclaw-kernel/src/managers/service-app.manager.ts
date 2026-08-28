@@ -9,7 +9,8 @@ import {
   AppPackageError,
   type AppPackageComponentSource,
 } from "@kernel/types/app-package.types.js";
-import { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
+import { ServiceAppRuntimeService } from "@kernel/services/service-app-runtime.service.js";
+import { ServiceAppLifecycleService } from "@kernel/services/service-app-lifecycle.service.js";
 import { ServiceAppRecordService } from "@kernel/services/service-app-record.service.js";
 import type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
 import {
@@ -38,6 +39,8 @@ import type {
 } from "@kernel/types/service-app.types.js";
 import { readServiceAppManifest } from "@kernel/utils/service-app-manifest.utils.js";
 import {
+  assertServiceActionCaller,
+  assertServiceActionDeclared,
   getServiceActionName,
   resolveServiceActionGrantState,
 } from "@kernel/utils/service-action.utils.js";
@@ -78,6 +81,7 @@ export class ServiceAppManager {
   private readonly recordService: ServiceAppRecordService;
   private readonly actionGrants: ServiceActionGrantService;
   private readonly packageRuntime: ServiceAppPackageRuntimeService;
+  private readonly lifecycleService: ServiceAppLifecycleService;
   private reconciliationDiagnostics: ServiceAppRemovalDiagnostic[] = [];
 
   constructor(private readonly params: {
@@ -85,12 +89,19 @@ export class ServiceAppManager {
     runtimeService?: ServiceAppRuntime;
     listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
     capabilityGrantManager: CapabilityGrantManager;
+    hasAgent?: (agentId: string) => boolean;
+    portableServiceRunnerPath?: string;
   }) {
-    this.runtimeService = params.runtimeService ?? new McpServiceAppRuntimeService({
+    this.runtimeService = params.runtimeService ?? new ServiceAppRuntimeService({
       getConfig: () => params.configManager.config,
+      portableServiceRunnerPath: params.portableServiceRunnerPath,
     });
     this.recordService = new ServiceAppRecordService({
       getWorkspacePath: this.getWorkspacePath,
+      runtimeService: this.runtimeService,
+    });
+    this.lifecycleService = new ServiceAppLifecycleService({
+      recordService: this.recordService,
       runtimeService: this.runtimeService,
     });
     this.actionGrants = new ServiceActionGrantService({
@@ -112,6 +123,7 @@ export class ServiceAppManager {
       lockPathForAppId: (appId) => this.getServiceAppLockPath(this.getWorkspacePath(), appId),
       serviceAppsPath: this.getServiceAppsPath(this.getWorkspacePath()),
     });
+    await this.lifecycleService.startDiscovered(await this.listValidServiceApps());
   };
 
   listServiceApps = async (): Promise<ServiceAppList> => {
@@ -167,8 +179,8 @@ export class ServiceAppManager {
     actionId: string,
     request: ServiceActionInvokeRequest,
   ): Promise<ServiceActionInvokeResult> => {
-    this.assertCaller(request.caller);
-    this.assertDeclaredAction(actionId, request.declaredActions);
+    assertServiceActionCaller(request.caller, this.params.hasAgent);
+    assertServiceActionDeclared(request.caller, actionId, request.declaredActions);
     const { manifest, record } = await this.requireServiceAppForAction(actionId, true);
     const actionName = getServiceActionName(actionId, record.id);
     if (!Object.hasOwn(manifest.actions, actionName)) {
@@ -218,14 +230,14 @@ export class ServiceAppManager {
     actionIds: readonly string[],
     request: ServiceActionGrantRequest,
   ): Promise<ServiceActionGrant[]> => {
-    this.assertCaller(request.caller);
+    assertServiceActionCaller(request.caller, this.params.hasAgent);
     const normalizedActionIds = this.normalizeActionIds(actionIds);
     if (normalizedActionIds.length === 0) {
       throw new ServiceAppError("SERVICE_APP_INVALID_ACTION", "service action id is invalid");
     }
     const actions: ServiceAction[] = [];
     for (const actionId of normalizedActionIds) {
-      this.assertDeclaredAction(actionId, request.declaredActions);
+      assertServiceActionDeclared(request.caller, actionId, request.declaredActions);
       actions.push(await this.requireServiceAction(actionId));
     }
     return await this.actionGrants.grant(request.caller, actions);
@@ -238,12 +250,15 @@ export class ServiceAppManager {
     caller: ServiceActionCaller,
     actionId: string,
   ): Promise<void> => {
-    this.assertCaller(caller);
+    assertServiceActionCaller(caller, this.params.hasAgent);
     await this.actionGrants.revoke(caller, actionId);
   };
 
   matchesCapabilityGrant = async (grant: CapabilityGrant): Promise<boolean> => {
-    if (grant.subject.type !== "panel-app" || grant.resource.type !== "service.action") {
+    if (
+      (grant.subject.type !== "panel-app" && grant.subject.type !== "agent") ||
+      grant.resource.type !== "service.action"
+    ) {
       return false;
     }
     const actionId = readServiceActionTargetId(grant.resource.target);
@@ -252,7 +267,9 @@ export class ServiceAppManager {
       const action = await this.requireServiceAction(actionId);
       return getCapabilityGrantKey(grant) === getCapabilityGrantKey(
         createServiceActionGrantRequest(
-          { surface: "panel-app", appId: grant.subject.id },
+          grant.subject.type === "panel-app"
+            ? { surface: "panel-app", appId: grant.subject.id }
+            : { surface: "agent", agentId: grant.subject.id },
           action,
         ),
       );
@@ -384,14 +401,13 @@ export class ServiceAppManager {
     }
   };
 
+  activatePackageComponents = async (
+    components: AppPackageComponentSource[],
+  ): Promise<void> => await this.lifecycleService.activatePackageComponents(components);
+
   deactivatePackageComponents = async (
     components: AppPackageComponentSource[],
-  ): Promise<void> => {
-    const serviceIds = components
-      .filter((component) => component.kind === "service")
-      .map((component) => component.id);
-    await Promise.all(serviceIds.map(async (serviceId) => await this.runtimeService.stop(serviceId)));
-  };
+  ): Promise<void> => await this.lifecycleService.deactivatePackageComponents(components);
 
   preparePackageComponentDeactivation = async (
     components: AppPackageComponentSource[],
@@ -561,24 +577,6 @@ export class ServiceAppManager {
       .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
   };
 
-  private assertCaller = (caller: ServiceActionCaller): void => {
-    if (caller.surface !== "panel-app" || !caller.appId.trim()) {
-      throw new ServiceAppError("SERVICE_APP_INVALID_CALLER", "service action caller is invalid");
-    }
-  };
-
-  private assertDeclaredAction = (
-    actionId: string,
-    declaredActions: readonly string[],
-  ): void => {
-    if (!declaredActions.includes(actionId)) {
-      throw new ServiceAppError(
-        "SERVICE_APP_ACTION_NOT_DECLARED",
-        "panel app did not declare this service action",
-      );
-    }
-  };
-
   private normalizeActionIds = (actionIds: readonly string[]): string[] =>
     Array.from(new Set(
       actionIds
@@ -614,6 +612,6 @@ export class ServiceAppManager {
 }
 
 type ServiceAppRuntime = Pick<
-  McpServiceAppRuntimeService,
+  ServiceAppRuntimeService,
   "dispose" | "getStatus" | "invokeAction" | "listActions" | "restart" | "stop"
->;
+> & Pick<Partial<ServiceAppRuntimeService>, "start">;

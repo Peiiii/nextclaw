@@ -1,0 +1,30 @@
+{
+  "id": "nextclaw-portable-runtime-lab-provider",
+  "title": "Portable Contact Provider",
+  "description": "以独立 Rust/WASM 实例提供可复用联系人规范化合同。",
+  "protocol": "wasi-component",
+  "component": {
+    "entry": "service.wasm"
+  },
+  "lifecycle": {
+    "mode": "provider"
+  },
+  "actions": {
+    "contact_normalize": {
+      "risk": "write",
+      "title": "规范化联系人",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "email": { "type": "string", "minLength": 3 },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["name", "email"],
+        "additionalProperties": false
+      }
+    },
+    "provider_status": { "risk": "read", "title": "读取 Provider 状态" },
+    "runtime_info": { "risk": "read", "title": "查看 Provider 宿主" }
+  }
+}

@@ -98,7 +98,7 @@ describe("AppManifestService", () => {
     }
   });
 
-  it("rejects a schema v2 WASI label because Service components still launch host processes", async () => {
+  it("accepts a schema v2 WASI Service package as host-mediated", async () => {
     const appDirectory = await createComponentPackage();
     try {
       const manifestPath = path.join(appDirectory, "manifest.json");
@@ -108,9 +108,17 @@ describe("AppManifestService", () => {
         JSON.stringify({ ...manifest, runtime: { profile: "wasi" } }),
       );
 
-      await expect(new AppManifestService().load(appDirectory)).rejects.toThrow(
-        "schema v2 Service component 尚不支持 WASI runtime",
-      );
+      const service = new AppManifestService();
+      const bundle = await service.load(appDirectory);
+      expect(bundle.manifest.schemaVersion).toBe(2);
+      if (bundle.manifest.schemaVersion !== 2) throw new Error("Expected schema v2.");
+      expect(service.resolvePlatformSecurity(bundle.manifest)).toEqual({
+        runtimeProfile: "wasi",
+        isolation: "host-mediated",
+        hasServiceComponents: true,
+        inferred: false,
+        permissions: {},
+      });
     } finally {
       await rm(appDirectory, { recursive: true, force: true });
     }

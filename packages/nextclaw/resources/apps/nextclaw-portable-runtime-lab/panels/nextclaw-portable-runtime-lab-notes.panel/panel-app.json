@@ -1,0 +1,12 @@
+{
+  "id": "nextclaw-portable-runtime-lab-notes",
+  "title": "灵感便签",
+  "description": "随手记下一句话，之后还能搜索回来。",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-portable-runtime-lab-state.records_list",
+    "nextclaw-portable-runtime-lab-state.record_upsert",
+    "nextclaw-portable-runtime-lab-state.record_delete",
+    "nextclaw-portable-runtime-lab-state.data_snapshot"
+  ]
+}

@@ -36,10 +36,33 @@
   font-size: 14px;
 }
 
-.VPSidebarItem.level-0 > .item > .text {
-  font-size: 12px;
+.VPSidebarItem.level-0 > .item > .text,
+.VPSidebarItem.level-0 > .item > .link > .text {
+  font-size: 14px;
+  font-weight: 700;
   letter-spacing: 0;
-  text-transform: uppercase;
+  text-transform: none;
+}
+
+.VPSidebarItem.level-1:not(.is-link) > .item > .text {
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.VPSidebarItem.level-1.is-active > .item > .indicator {
+  background-color: var(--vp-c-brand-1);
+}
+
+.VPSidebarItem.is-active > .item > .link {
+  margin-left: -8px;
+  border-radius: 6px;
+  padding: 0 8px;
+  background: var(--vp-c-brand-soft);
+}
+
+.VPSidebarItem.has-active > .item > .caret {
+  display: none;
 }
 
 .VPHome {

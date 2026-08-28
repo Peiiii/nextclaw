@@ -2,10 +2,13 @@ import { createHash } from "node:crypto";
 import { access } from "node:fs/promises";
 import path from "node:path";
 import {
+  AppManifestService,
   AppHomeService,
   AppInstanceInventoryService,
   AppInstanceStorageService,
   type AppStorageContext,
+  type AppPermissions,
+  isAppComponentManifestBundle,
 } from "@nextclaw/app-runtime";
 import {
   getConfigPath,
@@ -17,6 +20,7 @@ import {
   buildServiceActionId,
   getServiceAppManifestPath,
   McpServiceAppRuntimeService,
+  ServiceAppRuntimeService,
   mergeServiceAppRuntimeActions,
   readServiceAppManifest,
   type ServiceAction,
@@ -30,9 +34,14 @@ import type {
 } from "@nextclaw-cli/cli/app/types/service-app-dev.types.js";
 
 type RuntimeService = Pick<
-  McpServiceAppRuntimeService,
+  McpServiceAppRuntimeService | ServiceAppRuntimeService,
   "dispose" | "getStatus" | "invokeAction" | "listActions"
 >;
+
+type PortableDevContext = {
+  componentPath: string;
+  permissions: AppPermissions;
+};
 
 export class ServiceAppDevService {
   private readonly instanceInventoryService = new AppInstanceInventoryService();
@@ -41,6 +50,7 @@ export class ServiceAppDevService {
   constructor(private readonly params: {
     getConfig?: () => Config;
     runtimeService?: RuntimeService;
+    portableServiceRunnerPath?: string;
   } = {}) {}
 
   inspect = async (
@@ -69,6 +79,15 @@ export class ServiceAppDevService {
       );
     }
 
+    const portable = await this.loadPortableDevContext(appPath, loaded.manifest, issues);
+    if (this.hasErrors(issues)) {
+      return this.buildDevReport(
+        appPath,
+        this.toServiceAppRecord(appPath, loaded.manifest, this.idleRuntimeStatus),
+        [],
+        issues,
+      );
+    }
     const runtime = this.createRuntimeService();
     const storage = await this.createDevStorage(
       appPath,
@@ -76,12 +95,12 @@ export class ServiceAppDevService {
       options.resetData === true,
     );
     try {
-      const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
+      const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
       const runtimeActions = await runtime.listActions({
         app: startRecord,
         manifest: loaded.manifest,
       });
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
       const actions = mergeServiceAppRuntimeActions({
         record,
         manifest: loaded.manifest,
@@ -126,17 +145,27 @@ export class ServiceAppDevService {
       return this.buildCallReport(appPath, record, undefined, undefined, issues);
     }
 
+    const portable = await this.loadPortableDevContext(appPath, loaded.manifest, issues);
+    if (this.hasErrors(issues)) {
+      return this.buildCallReport(
+        appPath,
+        this.toServiceAppRecord(appPath, loaded.manifest, this.idleRuntimeStatus),
+        undefined,
+        undefined,
+        issues,
+      );
+    }
     const runtime = this.createRuntimeService();
     const storage = await this.createDevStorage(appPath, loaded.manifest.id);
     try {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
       const result = await runtime.invokeAction({
         app: record,
         manifest: loaded.manifest,
         actionName: action,
         input,
       });
-      const nextRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
+      const nextRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
       return this.buildCallReport(
         appPath,
         nextRecord,
@@ -145,7 +174,7 @@ export class ServiceAppDevService {
         issues,
       );
     } catch (error) {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage);
+      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
       issues.push({
         severity: "error",
         code: "service.runtime.callFailed",
@@ -194,10 +223,78 @@ export class ServiceAppDevService {
     }
   };
 
-  private createRuntimeService = (): RuntimeService =>
-    this.params.runtimeService ?? new McpServiceAppRuntimeService({
+  private createRuntimeService = (): RuntimeService => {
+    if (this.params.runtimeService) return this.params.runtimeService;
+    return new ServiceAppRuntimeService({
       getConfig: this.params.getConfig ?? this.loadRuntimeConfig,
+      portableServiceRunnerPath: this.params.portableServiceRunnerPath,
     });
+  };
+
+  private loadPortableDevContext = async (
+    appPath: string,
+    manifest: ServiceAppManifest,
+    issues: ServiceAppDevIssue[],
+  ): Promise<PortableDevContext | undefined> => {
+    if (manifest.protocol !== "wasi-component") return undefined;
+    const componentPath = path.resolve(appPath, manifest.componentEntry ?? "");
+    if (!(await this.pathExists(componentPath))) {
+      issues.push({
+        severity: "error",
+        code: "service.component.notFound",
+        message: `Portable Component does not exist: ${manifest.componentEntry ?? "(missing)"}.`,
+      });
+      return undefined;
+    }
+    const packageContext = await this.findOwningPackage(appPath);
+    if (!packageContext) {
+      issues.push({
+        severity: "error",
+        code: "service.package.required",
+        message: "Portable Service App development requires an owning schema v2 Mini App so permissions have one product owner.",
+        fixHint: "Place the service under a manifest.json components entry and run app dev on that service directory.",
+      });
+      return undefined;
+    }
+    return {
+      componentPath,
+      permissions: packageContext.permissions,
+    };
+  };
+
+  private findOwningPackage = async (
+    appPath: string,
+  ): Promise<{ permissions: AppPermissions } | undefined> => {
+    let candidate = path.dirname(appPath);
+    while (true) {
+      const permissions = await this.readOwningPackagePermissions(candidate, appPath);
+      if (permissions) return { permissions };
+      const parent = path.dirname(candidate);
+      if (parent === candidate) return undefined;
+      candidate = parent;
+    }
+  };
+
+  private readOwningPackagePermissions = async (
+    candidate: string,
+    appPath: string,
+  ): Promise<AppPermissions | undefined> => {
+    if (!(await this.pathExists(path.join(candidate, "manifest.json")))) return undefined;
+    const manifestService = new AppManifestService();
+    try {
+      const bundle = await manifestService.load(candidate);
+      if (!isAppComponentManifestBundle(bundle)) return undefined;
+      const ownsComponent = bundle.components.some(
+        (component) => path.resolve(component.componentDirectory) === path.resolve(appPath),
+      );
+      return ownsComponent
+        ? manifestService.resolvePlatformSecurity(bundle.manifest).permissions
+        : undefined;
+    } catch {
+      // The package validator owns detailed diagnostics; continue to a possible parent package.
+      return undefined;
+    }
+  };
 
   private loadRuntimeConfig = (): Config => {
     const configPath = getConfigPath();
@@ -254,6 +351,7 @@ export class ServiceAppDevService {
     manifest: ServiceAppManifest,
     runtime: Pick<RuntimeService, "getStatus">,
     storage?: AppStorageContext,
+    portable?: PortableDevContext,
   ): ServiceAppRecord => {
     const runtimeStatus = runtime.getStatus(manifest.id);
     const record: ServiceAppRecord = {
@@ -270,7 +368,12 @@ export class ServiceAppDevService {
       dataDirectory: storage?.dataDirectory,
       instanceId: storage?.instanceId,
       storage,
-      isolation: "full-user",
+      isolation: manifest.protocol === "wasi-component" ? "host-mediated" : "full-user",
+      runtimeProfile: manifest.protocol === "wasi-component" ? "wasi" : "native-process",
+      componentPath: portable?.componentPath,
+      permissions: portable?.permissions,
+      providerIds: manifest.providerIds,
+      lifecycle: manifest.lifecycle,
     };
     if (manifest.description) {
       record.description = manifest.description;

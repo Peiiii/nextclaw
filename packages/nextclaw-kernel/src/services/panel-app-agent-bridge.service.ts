@@ -11,7 +11,7 @@ import {
   type PanelAppAgentSendResult,
   type PanelAppCapabilityGrant,
 } from "@kernel/types/panel-app.types.js";
-import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
+import type { PanelServiceActionCaller } from "@kernel/types/service-app.types.js";
 import type { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
 import { createPanelAppAgentGrantRequest } from "@kernel/features/capability-grants/index.js";
 import {
@@ -24,7 +24,7 @@ import {
 
 type PanelAppAgentBridgeSession = {
   appId: string;
-  caller: ServiceActionCaller;
+  caller: PanelServiceActionCaller;
   declaredCapabilities: string[];
 };
 

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "id": "nextclaw.portable-runtime-lab",
+  "name": "日常小工具箱",
+  "version": "0.5.2",
+  "description": "清单、便签、专注计时和联系人整理，四个能直接使用的日常小应用。",
+  "icon": "assets/icon.svg",
+  "engines": {
+    "nextclaw": ">=0.43.0"
+  },
+  "presentation": {
+    "primaryPanel": "nextclaw-portable-runtime-lab-todos"
+  },
+  "runtime": {
+    "profile": "wasi"
+  },
+  "distribution": {
+    "mode": "universal"
+  },
+  "storage": {
+    "scope": "global",
+    "schemaVersion": 1
+  },
+  "permissions": {
+    "storage": {
+      "namespace": "portable-runtime-lab"
+    },
+    "allowedDomains": [
+      "httpbin.org"
+    ]
+  },
+  "components": [
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-portable-runtime-lab-todos.panel"
+    },
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-portable-runtime-lab-notes.panel"
+    },
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-portable-runtime-lab-focus.panel"
+    },
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-portable-runtime-lab-contacts.panel"
+    },
+    {
+      "kind": "panel",
+      "path": "panels/nextclaw-portable-runtime-lab-panel.panel"
+    },
+    {
+      "kind": "service",
+      "path": "service-components/nextclaw-portable-runtime-lab-state"
+    },
+    {
+      "kind": "service",
+      "path": "service-components/nextclaw-portable-runtime-lab-capabilities"
+    },
+    {
+      "kind": "service",
+      "path": "service-components/nextclaw-portable-runtime-lab-resident"
+    },
+    {
+      "kind": "service",
+      "path": "service-components/nextclaw-portable-runtime-lab-provider"
+    },
+    {
+      "kind": "service",
+      "path": "service-components/nextclaw-portable-runtime-lab-composition"
+    }
+  ]
+}

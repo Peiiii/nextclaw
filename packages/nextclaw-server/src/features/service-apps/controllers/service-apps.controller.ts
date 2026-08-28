@@ -139,6 +139,26 @@ export class ServiceAppsRoutesController {
     }
   };
 
+  readonly grantAgentServiceActions = async (c: Context) => {
+    const body = await readJson<ServiceActionGrantBatchRequestView>(c.req.raw);
+    const agentId = c.req.param("agentId").trim();
+    if (!body.ok || !Array.isArray(body.data?.actionIds) || !agentId) {
+      return c.json(err(
+        "INVALID_SERVICE_ACTION_GRANT_REQUEST",
+        "invalid Agent service action grant request",
+      ), 400);
+    }
+    try {
+      const grants = await this.params.serviceAppManager.grantServiceActions(
+        body.data.actionIds,
+        { caller: { surface: "agent", agentId } },
+      );
+      return c.json(ok({ grants }));
+    } catch (error) {
+      return this.handleServiceAppError(c, error);
+    }
+  };
+
   readonly listServiceActionGrants = async (c: Context) => {
     return c.json(ok({
       grants: await this.params.serviceAppManager.listServiceActionGrants(),
@@ -212,11 +232,11 @@ export class ServiceAppsRoutesController {
 
   private readCallerQuery = (c: Context) => {
     const surface = c.req.query("surface");
-    const appId = c.req.query("appId")?.trim();
-    if (surface !== "panel-app" || !appId) {
-      return null;
-    }
-    return { surface, appId } as const;
+    const callerId = c.req.query("callerId")?.trim() ?? c.req.query("appId")?.trim();
+    if (!callerId) return null;
+    if (surface === "panel-app") return { surface, appId: callerId } as const;
+    if (surface === "agent") return { surface, agentId: callerId } as const;
+    return null;
   };
 
   private handleServiceAppError = (c: Context, error: unknown) => {

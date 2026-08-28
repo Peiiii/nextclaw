@@ -1,0 +1,23 @@
+[package]
+name = "nextclaw-wasmtime-runner"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+members = [
+  "guests/state-lab",
+  "guests/capability-lab",
+  "guests/resident-lab",
+  "guests/provider-lab",
+  "guests/composition-lab",
+]
+
+[dependencies]
+anyhow = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+url = "2.5"
+wasmtime = { version = "44.0", features = ["component-model"] }
+wasmtime-wasi = "44.0"

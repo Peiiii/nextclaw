@@ -1,4 +1,5 @@
 import type {
+  AppPermissions,
   AppRuntimeIsolation,
   AppRuntimeProfile,
   AppStorageContext,
@@ -19,6 +20,7 @@ export type AppPackageComponentSource = {
   storage: AppStorageContext;
   runtimeProfile: AppRuntimeProfile;
   isolation: AppRuntimeIsolation;
+  permissions: AppPermissions;
 };
 
 export type AppPackageUnavailableDiagnostic = {
@@ -146,6 +148,7 @@ export type AppPackageUninstallRollback = () => Promise<void>;
 
 export type AppPackageRuntimeHooks = {
   assertCanActivate: (sources: AppPackageComponentSource[]) => Promise<void>;
+  afterActivate: (sources: AppPackageComponentSource[]) => Promise<void>;
   beforeDeactivate: (sources: AppPackageComponentSource[]) => Promise<void>;
   beforeUninstall: (
     sources: AppPackageComponentSource[],

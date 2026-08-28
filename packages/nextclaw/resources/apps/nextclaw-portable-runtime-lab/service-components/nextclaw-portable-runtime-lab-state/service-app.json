@@ -1,0 +1,49 @@
+{
+  "id": "nextclaw-portable-runtime-lab-state",
+  "title": "Portable State Component",
+  "description": "Rust/WASM 状态与共享宿主演示模块。",
+  "protocol": "wasi-component",
+  "component": {
+    "entry": "service.wasm"
+  },
+  "actions": {
+    "counter_read": { "risk": "read", "title": "读取持久计数" },
+    "counter_increment": {
+      "risk": "write",
+      "title": "增加持久计数",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "step": { "type": "integer" } }
+      }
+    },
+    "records_seed": { "risk": "write", "title": "生成验证数据" },
+    "records_list": { "risk": "read", "title": "列出验证数据" },
+    "record_upsert": {
+      "risk": "write",
+      "title": "创建或修改记录",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 48 },
+          "title": { "type": "string", "minLength": 1 },
+          "status": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["id", "title"],
+        "additionalProperties": false
+      }
+    },
+    "record_delete": {
+      "risk": "write",
+      "title": "删除记录",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "id": { "type": "string", "minLength": 1, "maxLength": 48 } },
+        "required": ["id"],
+        "additionalProperties": false
+      }
+    },
+    "data_snapshot": { "risk": "read", "title": "读取数据快照" },
+    "runtime_info": { "risk": "read", "title": "查看共享宿主" }
+  }
+}

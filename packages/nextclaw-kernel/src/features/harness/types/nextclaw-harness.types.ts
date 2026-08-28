@@ -68,6 +68,7 @@ export type NextclawHarnessOptions = {
   homeDir?: string;
   configPath?: string;
   builtInAppsDirectory?: string;
+  portableServiceRunnerPath?: string;
   productVersion?: string;
   productActivitySink?: {
     record: (signal: {

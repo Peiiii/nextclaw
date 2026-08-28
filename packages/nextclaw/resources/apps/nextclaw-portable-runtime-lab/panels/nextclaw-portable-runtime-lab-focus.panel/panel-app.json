@@ -1,0 +1,14 @@
+{
+  "id": "nextclaw-portable-runtime-lab-focus",
+  "title": "专注小钟",
+  "description": "关掉页面也会继续走的轻量专注计时器。",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-portable-runtime-lab-resident.resident_status",
+    "nextclaw-portable-runtime-lab-resident.resident_reset",
+    "nextclaw-portable-runtime-lab-resident.resident_emit_event",
+    "nextclaw-portable-runtime-lab-resident.runtime_info",
+    "nextclaw-portable-runtime-lab-state.records_list",
+    "nextclaw-portable-runtime-lab-state.record_upsert"
+  ]
+}

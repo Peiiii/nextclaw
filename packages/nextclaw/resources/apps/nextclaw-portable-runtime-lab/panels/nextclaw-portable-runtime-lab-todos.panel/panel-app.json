@@ -1,0 +1,12 @@
+{
+  "id": "nextclaw-portable-runtime-lab-todos",
+  "title": "今日清单",
+  "description": "记下今天要做的事，完成后轻轻划掉。",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-portable-runtime-lab-state.records_list",
+    "nextclaw-portable-runtime-lab-state.record_upsert",
+    "nextclaw-portable-runtime-lab-state.record_delete",
+    "nextclaw-portable-runtime-lab-state.data_snapshot"
+  ]
+}

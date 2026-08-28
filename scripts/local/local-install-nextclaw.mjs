@@ -66,6 +66,7 @@ function createPnpmLinkEnv() {
   };
 }
 
+run(binName("pnpm"), ["portable-runtime:build"]);
 run(binName("pnpm"), ["-r", "--filter", "nextclaw...", "build"]);
 run(binName("pnpm"), ["-C", "packages/nextclaw", "link", "--global"], {
   env: createPnpmLinkEnv()

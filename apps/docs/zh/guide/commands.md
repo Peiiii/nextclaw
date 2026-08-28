@@ -175,11 +175,11 @@ nextclaw <command> --help
 | 命令                            | 用途                                           |
 | ------------------------------- | ---------------------------------------------- |
 | `nextclaw app check`            | 检查 Panel App 或 Service App 目录             |
-| `nextclaw app dev`              | 通过真实 Runtime 启动并调试 Service App        |
+| `nextclaw app dev`              | 通过真实 Runtime 启动并调试 MCP 或轻量 Service App |
 | `nextclaw app pack`             | 为指定平台目标打包 `.napp` 产物                |
 | `nextclaw app validate-publish` | 在提交 Marketplace 前验证 App 和目标产物       |
 | `nextclaw app publish`          | 向 App Marketplace 提交 App                    |
-| `nextclaw app call`             | 通过真实 Runtime 调用 Service App action       |
+| `nextclaw app call`             | 通过真实 Runtime 调用 MCP 或轻量 Service App action |
 | `nextclaw app restart`          | 重启运行中 NextClaw UI 内的 Service App        |
 | `nextclaw app data list`        | 列出活动和保留的 App 数据实例                  |
 | `nextclaw app data delete`      | 永久删除保留的 App 数据实例，需精确确认 App ID |
@@ -194,6 +194,8 @@ nextclaw <command> --help
 | `nextclaw app update` | 发起 App 后台更新 |
 | `nextclaw app rollback` | 回滚到一个已安装版本 |
 | `nextclaw app uninstall` | 发起卸载；清除数据需要精确确认 App ID |
+
+Service App 的使用方式见 [Service Apps](/zh/guide/service-apps)；WASM 开发命令与 Runtime 合同见 [开发 WASM Service App](/zh/developers/portable-service-apps)。
 
 ## 自动化使用建议
 

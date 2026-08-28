@@ -11,6 +11,7 @@ import type {
   ServiceActionCaller,
   ServiceActionGrant,
 } from "@kernel/types/service-app.types.js";
+import { getServiceActionCallerId } from "@kernel/utils/service-action.utils.js";
 
 export class ServiceActionGrantService {
   constructor(private readonly params: {
@@ -54,11 +55,16 @@ export class ServiceActionGrantService {
     const results: ServiceActionGrant[] = [];
     for (const grant of grants) {
       const actionId = readServiceActionTargetId(grant.resource.target);
-      if (!actionId || grant.subject.type !== "panel-app") continue;
+      if (
+        !actionId ||
+        (grant.subject.type !== "panel-app" && grant.subject.type !== "agent")
+      ) continue;
       try {
         const action = await this.params.resolveAction(actionId);
         results.push({
-          caller: { surface: "panel-app", appId: grant.subject.id },
+          caller: grant.subject.type === "panel-app"
+            ? { surface: "panel-app", appId: grant.subject.id }
+            : { surface: "agent", agentId: grant.subject.id },
           actionId,
           risk: action.risk,
           grantedAt: grant.grantedAt,
@@ -77,7 +83,7 @@ export class ServiceActionGrantService {
     actionId: string,
   ): Promise<void> => {
     await this.params.capabilityGrantManager.revoke({
-      subject: { type: caller.surface, id: caller.appId },
+      subject: { type: caller.surface, id: getServiceActionCallerId(caller) },
       resourceType: "service.action",
       target: { actionId },
     });

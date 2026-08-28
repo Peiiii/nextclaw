@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>联系人整理</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <p class="eyebrow">CONTACT CLEANUP</p>
+        <h1>联系人整理</h1>
+        <p>复制来的信息乱七八糟？交给它变成一张干净的联系人卡片。</p>
+      </header>
+
+      <section class="workspace">
+        <form class="contact-form" data-contact-form>
+          <label>姓名<input data-name value="  Ada   Lovelace  " autocomplete="name" /></label>
+          <label>邮箱<input data-email value=" ADA@EXAMPLE.COM " autocomplete="email" /></label>
+          <label>标签<input data-tags value="AI, ai, Math" placeholder="用逗号分隔" /></label>
+          <button type="submit">整理联系人</button>
+        </form>
+
+        <article class="contact-card" data-contact-card hidden>
+          <div class="avatar" data-avatar>AL</div>
+          <div class="card-copy"><p>整理完成</p><h2 data-display-name>—</h2><a data-display-email>—</a><div class="tags" data-display-tags></div></div>
+          <button type="button" class="copy-button" data-copy>复制</button>
+        </article>
+        <div class="placeholder" data-placeholder><span>✦</span><p>填写左边的信息，整理后的联系人会出现在这里。</p></div>
+      </section>
+
+      <p class="notice" data-notice></p>
+
+      <details class="behind-scenes">
+        <summary>这和普通表单有什么不同？</summary>
+        <p>这个 Panel 只负责收集和展示。真正的规范化逻辑由独立 Provider Component 提供，Consumer 通过宿主受控调用进行组合。以后替换联系人规则，页面不用复制一份实现。</p>
+        <dl><div><dt>组合方式</dt><dd>Host mediated component call</dd></div><div><dt>Provider 已处理</dt><dd data-proof-count>等待执行</dd></div></dl>
+      </details>
+    </main>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

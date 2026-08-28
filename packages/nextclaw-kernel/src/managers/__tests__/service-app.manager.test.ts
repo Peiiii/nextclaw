@@ -165,6 +165,45 @@ describe("ServiceAppManager runtime env", () => {
   });
 });
 
+describe("ServiceAppManager Agent callers", () => {
+  it("grants, lists, and invokes the same Service Action for a known Agent", async () => {
+    const workspacePath = createTempDir();
+    writeServiceApp(workspacePath);
+    const runtime = createRuntime({
+      id: "notes.read",
+      appId: "notes",
+      name: "read",
+      risk: "read",
+    });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      capabilityGrantManager: createCapabilityGrantManager(),
+      hasAgent: (agentId) => agentId === "main",
+      runtimeService: runtime,
+    });
+    const caller = { surface: "agent", agentId: "main" } as const;
+
+    await expect(manager.listServiceActions({ caller })).resolves.toEqual([
+      expect.objectContaining({ id: "notes.read", grantState: "not-granted" }),
+    ]);
+    await expect(manager.grantServiceAction("notes.read", { caller })).resolves.toMatchObject({
+      actionId: "notes.read",
+      caller,
+    });
+    await expect(manager.listServiceActions({ caller })).resolves.toEqual([
+      expect.objectContaining({ id: "notes.read", grantState: "granted" }),
+    ]);
+    await expect(manager.invokeServiceAction("notes.read", { caller })).resolves.toEqual({
+      actionId: "notes.read",
+      result: { ok: true },
+    });
+
+    await expect(manager.grantServiceAction("notes.read", {
+      caller: { surface: "agent", agentId: "unknown" },
+    })).rejects.toMatchObject({ code: "SERVICE_APP_INVALID_CALLER" });
+  });
+});
+
 describe("ServiceAppManager", () => {
   it("discovers and invokes a real MCP-backed service app after grant", async () => {
     const workspacePath = createTempDir();

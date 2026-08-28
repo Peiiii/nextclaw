@@ -13,6 +13,7 @@ apps/docs/.vitepress/cache/
 apps/docs/--host/
 packages/nextclaw/*.tgz
 **/.wrangler/
+/packages/nextclaw/resources/native/
 
 apps/docs/.vitepress/.temp/
 apps/ncp-demo/backend/.ncp-demo-store/

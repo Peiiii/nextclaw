@@ -1,0 +1,155 @@
+# Runtime 模型与能力合同
+
+Portable Runtime 的公共边界由两部分组成：WIT 定义 Component 与宿主如何通信，App 与 Service 清单定义这个 Component 可以使用哪些能力、以什么角色运行，以及向调用者暴露哪些 Actions。
+
+## WIT world
+
+当前合同包是 `nextclaw:portable-service@0.1.0`，world 名为 `service-app`。
+
+### Component 导出
+
+| 导出 | 用途 |
+| --- | --- |
+| `list-actions()` | 返回运行时实际提供的 Action 名称、标题和说明 |
+| `invoke(action, input-json)` | 调用一个 Action，并以 JSON 字符串返回成功结果或错误 |
+| `start(config-json)` | 启动 Component 生命周期 |
+| `handle-event(event-json)` | 处理宿主投递给 Resident 的事件 |
+| `stop(reason-json)` | 停止当前实例 |
+
+`service-app.json` 声明的 Actions 会与 `list-actions()` 结果比对。两边一致时状态为 `matched`；清单有而运行时没有时为 `missing`；运行时有而清单未声明时为 `undeclared`。
+
+### 宿主导入
+
+| 导入 | 用途 | 边界 |
+| --- | --- | --- |
+| `log(level, message)` | 写入分级运行日志 | level 为 debug、info、warn 或 error |
+| `kv-get(key)` | 读取宿主管理的字符串值 | 所属 App 必须声明存储权限 |
+| `kv-set(key, value)` | 写入宿主管理的字符串值 | 数据写入 App 的受管实例 |
+| `http-get(url)` | 返回 HTTP 状态和文本 body | 只接受 HTTPS，且目标必须符合 App 的 `allowedDomains` |
+| `component-call(provider-id, action, input-json)` | 调用 Provider Action | Consumer 必须在 `providers` 中声明该 id |
+| `get-runtime-info()` | 返回 runner pid、已加载数量和 Component id | 用于运行诊断 |
+
+WIT 当前没有公开文件系统、Secret、任意 socket、模型调用或 Agent 调用。
+
+## Service 清单
+
+每个 WASM Service 目录包含 `service-app.json` 和清单指向的 `.wasm` 文件：
+
+```json
+{
+  "id": "notes-state",
+  "title": "Notes state",
+  "description": "Stores and retrieves notes.",
+  "protocol": "wasi-component",
+  "component": {
+    "entry": "service.wasm"
+  },
+  "lifecycle": {
+    "mode": "action"
+  },
+  "actions": {
+    "notes_list": {
+      "title": "List notes",
+      "description": "Returns saved notes.",
+      "risk": "read"
+    },
+    "note_save": {
+      "title": "Save note",
+      "description": "Creates or updates one note.",
+      "risk": "write",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "text": { "type": "string" }
+        },
+        "required": ["id", "text"],
+        "additionalProperties": false
+      },
+      "timeoutMs": 7000
+    }
+  }
+}
+```
+
+关键约束：
+
+- `id` 使用 kebab-case，并与 Service 目录名一致；
+- `protocol` 为 `wasi-component`；
+- `component.entry` 是 Service 目录内的 `.wasm` 相对路径；
+- `actions` 不能为空；每项 Action 都应声明 `risk`；
+- `timeoutMs` 可设为 100–300000 毫秒；未指定时当前默认值为 7000 毫秒；
+- Action 的完整 id 是 `<service-id>.<action-name>`。
+
+## 生命周期声明
+
+### Action
+
+```json
+{ "lifecycle": { "mode": "action" } }
+```
+
+这是默认角色。实例用于按需调用，不要求长期保留。
+
+### Resident
+
+```json
+{
+  "lifecycle": {
+    "mode": "resident",
+    "eventIntervalMs": 1000
+  }
+}
+```
+
+`eventIntervalMs` 必须是 250–60000 的整数。Kernel 会保留实例并按该间隔调用 `handle-event()`。
+
+### Provider
+
+```json
+{ "lifecycle": { "mode": "provider" } }
+```
+
+Provider 保留独立实例。Consumer 必须显式声明依赖：
+
+```json
+{
+  "providers": ["contact-provider"]
+}
+```
+
+Provider id 使用 kebab-case Service id。当前不支持 Provider 再递归调用另一个 Provider。
+
+## 所属 App 清单
+
+Portable Service 必须属于 schema v2 NextClaw App，并在 `components` 中声明：
+
+```json
+{
+  "schemaVersion": 2,
+  "id": "example.notes",
+  "name": "Notes",
+  "version": "0.1.0",
+  "engines": { "nextclaw": ">=0.43.0" },
+  "runtime": { "profile": "wasi" },
+  "distribution": { "mode": "universal" },
+  "storage": { "scope": "global", "schemaVersion": 1 },
+  "permissions": {
+    "storage": { "namespace": "notes" },
+    "allowedDomains": ["api.example.com"]
+  },
+  "components": [
+    { "kind": "service", "path": "services/notes-state" }
+  ]
+}
+```
+
+runner 只会根据当前合同使用 `permissions.storage` 和 `permissions.allowedDomains`。不要据此推断 Component 已拥有其它 App 权限对应的宿主 API。
+
+## 调用与错误
+
+`invoke` 的输入和成功结果都是 JSON 字符串。Service Action 层会用清单中的 `inputSchema` 验证结构，并把 Component 错误转为调用失败。
+
+如果调用超过 `timeoutMs`，Kernel 会终止共享 runner、令未完成调用失败，并恢复需要持续存在的 Provider 与 Resident。因为写操作是否已经发生可能无法从超时本身判断，Kernel 不会自动重放失败调用。
+
+继续阅读：[开发 WASM Service App](/zh/developers/portable-service-apps)。

@@ -76,6 +76,8 @@ export function createKernelServiceAppManagers(params: {
   appPackageManager: AppPackageManager;
   configManager: ConfigManager;
   capabilityGrantManager: CapabilityGrantManager;
+  hasAgent?: (agentId: string) => boolean;
+  portableServiceRunnerPath?: string;
 }): {
   appDataManager: AppDataManager;
   serviceAppManager: ServiceAppManager;
@@ -85,11 +87,15 @@ export function createKernelServiceAppManagers(params: {
     appPackageManager,
     capabilityGrantManager,
     configManager,
+    hasAgent,
+    portableServiceRunnerPath,
   } = params;
   const serviceAppManager = new ServiceAppManager({
     configManager,
     listPackageComponentSources: appPackageManager.listActiveComponentSources,
     capabilityGrantManager,
+    hasAgent,
+    portableServiceRunnerPath,
   });
   return {
     serviceAppManager,
@@ -195,6 +201,9 @@ export function installKernelAppPackageRuntimeHooks(params: {
     assertCanActivate: async (sources) => {
       await panelAppManager.assertCanActivatePackageComponents(sources);
       await serviceAppManager.assertCanActivatePackageComponents(sources);
+    },
+    afterActivate: async (sources) => {
+      await serviceAppManager.activatePackageComponents(sources);
     },
     beforeDeactivate: async (sources) => {
       panelAppManager.deactivatePackageComponents(sources);

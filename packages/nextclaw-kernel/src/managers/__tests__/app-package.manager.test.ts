@@ -151,7 +151,10 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.appPackageManager.start();
 
       await expect(kernel.appPackageManager.listPackages()).resolves.toMatchObject({
-        entries: [expect.objectContaining({ id: "nextclaw.personal-organizer" })],
+        entries: expect.arrayContaining([
+          expect.objectContaining({ id: "nextclaw.personal-organizer" }),
+          expect.objectContaining({ id: "nextclaw.portable-runtime-lab" }),
+        ]),
       });
       expect(existsSync(packagePath)).toBe(true);
     } finally {
@@ -226,7 +229,9 @@ describe("AppPackageManager runtime projection", () => {
     try {
       await kernel.appPackageManager.start();
       await expect(kernel.appPackageManager.listPackages()).resolves.toMatchObject({
-        entries: [expect.objectContaining({ id: "nextclaw.personal-organizer" })],
+        entries: expect.arrayContaining([
+          expect.objectContaining({ id: "nextclaw.personal-organizer" }),
+        ]),
       });
       const accepted = await kernel.appPackageManager.startOperation({
         action: "uninstall",
@@ -254,14 +259,19 @@ describe("AppPackageManager runtime projection", () => {
     const restartedKernel = createKernel(builtInAppsDirectory, homeDirectory);
     try {
       await restartedKernel.appPackageManager.start();
-      await expect(restartedKernel.appPackageManager.listPackages()).resolves.toMatchObject({
-        entries: [],
-      });
+      const packages = await restartedKernel.appPackageManager.listPackages();
+      expect(packages.entries).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: "nextclaw.portable-runtime-lab" }),
+      ]));
+      expect(packages.entries.some((entry) => entry.id === "nextclaw.personal-organizer"))
+        .toBe(false);
     } finally {
       await restartedKernel.serviceAppManager.dispose();
     }
   });
+});
 
+describe("AppPackageManager activation lifecycle", () => {
   it("rejects enabling a package that requires a newer NextClaw version", async () => {
     const incompatibleAppsDirectory = createTempDirectory();
     const packageDirectory = join(incompatibleAppsDirectory, "incompatible-organizer");
@@ -278,6 +288,60 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.appPackageManager.start();
       await expect(kernel.appPackageManager.enable("nextclaw.personal-organizer"))
         .rejects.toMatchObject({ code: "APP_PACKAGE_INCOMPATIBLE" });
+      await expect(kernel.appPackageManager.getPackage("nextclaw.personal-organizer"))
+        .resolves.toMatchObject({ enabled: false });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  });
+
+  it("activates runtime components after enable and deactivates them before disable", async () => {
+    const kernel = createKernel();
+    const lifecycle: string[] = [];
+    try {
+      await kernel.appPackageManager.start();
+      kernel.appPackageManager.installRuntimeHooks({
+        assertCanActivate: async () => {
+          lifecycle.push("probe");
+        },
+        afterActivate: async () => {
+          lifecycle.push("activate");
+        },
+        beforeDeactivate: async () => {
+          lifecycle.push("deactivate");
+        },
+        beforeUninstall: async () => undefined,
+      });
+
+      await kernel.appPackageManager.enable("nextclaw.personal-organizer");
+      expect(lifecycle).toEqual(["probe", "activate"]);
+      await kernel.appPackageManager.disable("nextclaw.personal-organizer");
+      expect(lifecycle).toEqual(["probe", "activate", "deactivate"]);
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  });
+
+  it("restores disabled state when runtime activation and cleanup both fail", async () => {
+    const kernel = createKernel();
+    try {
+      await kernel.appPackageManager.start();
+      kernel.appPackageManager.installRuntimeHooks({
+        assertCanActivate: async () => undefined,
+        afterActivate: async () => {
+          throw new Error("activation failed");
+        },
+        beforeDeactivate: async () => {
+          throw new Error("cleanup failed");
+        },
+        beforeUninstall: async () => undefined,
+      });
+
+      await expect(kernel.appPackageManager.enable("nextclaw.personal-organizer"))
+        .rejects.toMatchObject({
+          name: "AggregateError",
+          message: expect.stringContaining("runtime 状态恢复未完整完成"),
+        });
       await expect(kernel.appPackageManager.getPackage("nextclaw.personal-organizer"))
         .resolves.toMatchObject({ enabled: false });
     } finally {
@@ -340,6 +404,7 @@ describe("AppPackageManager runtime projection", () => {
             throw new Error("candidate probe failed");
           }
         },
+        afterActivate: async () => undefined,
         beforeDeactivate: async () => undefined,
         beforeUninstall: async () => undefined,
       });
@@ -354,7 +419,6 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.serviceAppManager.dispose();
     }
   });
-
 });
 
 describe("AppPackageManager packed artifact lifecycle", () => {
@@ -458,7 +522,8 @@ describe("AppPackageManager package projection lifecycle", () => {
     try {
       await kernel.appPackageManager.start();
       const initialPackages = await kernel.appPackageManager.listPackages();
-      expect(initialPackages.entries).toEqual([
+      expect(initialPackages.entries).toHaveLength(2);
+      expect(initialPackages.entries).toEqual(expect.arrayContaining([
         expect.objectContaining({
           activeVersion: builtInOrganizerVersion,
           builtIn: true,
@@ -469,7 +534,23 @@ describe("AppPackageManager package projection lifecycle", () => {
           enabled: false,
           id: "nextclaw.personal-organizer",
         }),
-      ]);
+        expect.objectContaining({
+          builtIn: true,
+          enabled: false,
+          id: "nextclaw.portable-runtime-lab",
+          isolation: "host-mediated",
+          runtimeProfile: "wasi",
+          components: expect.arrayContaining([
+            expect.objectContaining({ kind: "panel" }),
+            expect.objectContaining({
+              kind: "service",
+              permissions: expect.objectContaining({
+                allowedDomains: ["httpbin.org"],
+              }),
+            }),
+          ]),
+        }),
+      ]));
       await expect(kernel.panelAppManager.listPanelApps()).resolves.toMatchObject({
         entries: [],
       });

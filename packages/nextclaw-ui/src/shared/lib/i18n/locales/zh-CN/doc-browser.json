@@ -227,6 +227,7 @@
   "serviceAppsActionsEmpty": "尚未发现动作",
   "serviceAppsDetails": "运行时详情",
   "serviceAppsGrantedTo": "已授权给",
+  "serviceAppsGrantToAgent": "授权给 Agent",
   "serviceAppsRevokeGrant": "撤销授权",
   "serviceAppsRuntimeState_matched": "已匹配",
   "serviceAppsRuntimeState_missing": "运行时缺失",

@@ -84,6 +84,7 @@ export type NextclawKernelOptions = {
   homeDir?: string;
   configPath?: string;
   builtInAppsDirectory?: string;
+  portableServiceRunnerPath?: string;
   productVersion?: string;
   productActivitySink?: ProductActivitySink;
   desktopHost?: DesktopHost;
@@ -231,8 +232,7 @@ export class NextclawKernel {
       configManager: this.configManager,
       eventBus: this.eventBus,
       ingress: this.ingress,
-      listPackageComponentSources:
-        this.appPackageManager.listActiveComponentSources,
+      listPackageComponentSources: this.appPackageManager.listActiveComponentSources,
       listPackageComponentDiagnostics: async () =>
         (await this.appPackageManager.listActiveComponentSourcesWithDiagnostics()).unavailablePackages,
       capabilityGrantManager: this.capabilityGrants,
@@ -248,6 +248,8 @@ export class NextclawKernel {
       appPackageManager: this.appPackageManager,
       configManager: this.configManager,
       capabilityGrantManager: this.capabilityGrants,
+      hasAgent: (agentId) => this.agents.getAgent(agentId) !== null,
+      portableServiceRunnerPath: options.portableServiceRunnerPath,
     }));
     installKernelAppPackageRuntimeHooks({
       appPackageManager: this.appPackageManager,
@@ -267,9 +269,7 @@ export class NextclawKernel {
       observations: this.observations,
     });
     this.skills = new SkillManager({
-      workspace: getWorkspacePath(
-        this.configManager.config.agents.defaults.workspace,
-      ),
+      workspace: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
     });
     this.mcpManager = new McpManager(this.configManager.loadConfig);
     this.configManager.installRuntimeHooks({

@@ -8,13 +8,20 @@ import { AppPackCommandController } from "./controllers/app-pack-command.control
 import { AppPublishCommandController } from "./controllers/app-publish-command.controller.js";
 import { AppValidatePublishCommandController } from "./controllers/app-validate-publish-command.controller.js";
 import { AppPackageCommandController } from "./controllers/app-packages/app-package-command.controller.js";
+import { ServiceAppDevService } from "./services/service-app-dev.service.js";
 
-export function registerAppCommands(program: Command): void {
+export function registerAppCommands(
+  program: Command,
+  options: { portableServiceRunnerPath?: string } = {},
+): void {
   const app = program.command("app").description("Develop, validate, and publish NextClaw apps");
   const appCheck = new AppCheckCommandController();
-  const appDev = new AppDevCommandController();
+  const serviceAppDev = new ServiceAppDevService({
+    portableServiceRunnerPath: options.portableServiceRunnerPath,
+  });
+  const appDev = new AppDevCommandController(serviceAppDev);
   const appData = new AppDataCommandController();
-  const appCall = new AppCallCommandController();
+  const appCall = new AppCallCommandController(serviceAppDev);
   const appRestart = new AppRestartCommandController();
   const appPack = new AppPackCommandController();
   const appValidatePublish = new AppValidatePublishCommandController();

@@ -19,6 +19,8 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 
 总流程只负责阶段状态和任务完成，不拥有调查、设计、实现、验证、review、发布或沉淀的内部方法。
 
+用户明确要求大型、多阶段或低监督任务的完整交付验收标准时，条件加载 [`acceptance-contract-governance`](../acceptance-contract-governance/SKILL.md)，把它的整体契约与阶段门作为各阶段共享输入；它不是新 phase，普通任务不加载。
+
 ## 开始
 
 并发提交或主线并发时，读取[Worktree 合同](references/parallel-worktree-development.md)。

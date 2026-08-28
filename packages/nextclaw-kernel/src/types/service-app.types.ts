@@ -1,6 +1,11 @@
-import type { AppRuntimeIsolation, AppStorageContext } from "@nextclaw/app-runtime";
+import type {
+  AppPermissions,
+  AppRuntimeIsolation,
+  AppRuntimeProfile,
+  AppStorageContext,
+} from "@nextclaw/app-runtime";
 
-export type ServiceAppProtocol = "mcp";
+export type ServiceAppProtocol = "mcp" | "wasi-component";
 
 export type ServiceActionRisk = "read" | "write" | "external" | "dangerous";
 
@@ -16,7 +21,13 @@ export type ServiceAppManifestAction = {
   title?: string;
   description?: string;
   inputSchema?: Record<string, unknown>;
+  timeoutMs?: number;
 };
+
+export type ServiceAppLifecycle =
+  | { mode: "action" }
+  | { mode: "resident"; eventIntervalMs: number }
+  | { mode: "provider" };
 
 export type ServiceAppManifest = {
   id: string;
@@ -24,8 +35,11 @@ export type ServiceAppManifest = {
   description?: string;
   enabled: boolean;
   protocol: ServiceAppProtocol;
-  command: string;
-  args: string[];
+  command?: string;
+  args?: string[];
+  componentEntry?: string;
+  providerIds?: string[];
+  lifecycle?: ServiceAppLifecycle;
   actions: Record<string, ServiceAppManifestAction>;
 };
 
@@ -53,6 +67,11 @@ export type ServiceAppRecord = {
   instanceId?: string;
   storage?: AppStorageContext;
   isolation?: AppRuntimeIsolation;
+  runtimeProfile?: AppRuntimeProfile;
+  permissions?: AppPermissions;
+  componentPath?: string;
+  providerIds?: string[];
+  lifecycle?: ServiceAppLifecycle;
 };
 
 export type ServiceActionGrantState =
@@ -77,10 +96,19 @@ export type ServiceAction = {
   grantState?: ServiceActionGrantState;
 };
 
-export type ServiceActionCaller = {
+export type PanelServiceActionCaller = {
   surface: "panel-app";
   appId: string;
 };
+
+export type AgentServiceActionCaller = {
+  surface: "agent";
+  agentId: string;
+};
+
+export type ServiceActionCaller =
+  | PanelServiceActionCaller
+  | AgentServiceActionCaller;
 
 export type ServiceActionGrant = {
   caller: ServiceActionCaller;
@@ -91,7 +119,7 @@ export type ServiceActionGrant = {
 
 export type ServiceActionInvokeRequest = {
   caller: ServiceActionCaller;
-  declaredActions: string[];
+  declaredActions?: string[];
   input?: Record<string, unknown>;
 };
 
@@ -102,5 +130,5 @@ export type ServiceActionInvokeResult = {
 
 export type ServiceActionGrantRequest = {
   caller: ServiceActionCaller;
-  declaredActions: string[];
+  declaredActions?: string[];
 };

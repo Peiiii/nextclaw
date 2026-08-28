@@ -1,0 +1,10 @@
+{
+  "id": "nextclaw-portable-runtime-lab-contacts",
+  "title": "联系人整理",
+  "description": "把乱格式的姓名、邮箱和标签整理成干净联系人卡片。",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-portable-runtime-lab-composition.compose_contact",
+    "nextclaw-portable-runtime-lab-provider.provider_status"
+  ]
+}

@@ -195,6 +195,7 @@ describe("AppPackageManager uninstall recovery", () => {
       ).mockRejectedValueOnce(new Error("uninstall failed"));
       kernel.appPackageManager.installRuntimeHooks({
         assertCanActivate: async () => undefined,
+        afterActivate: async () => undefined,
         beforeDeactivate: async () => undefined,
         beforeUninstall: async () => async () => {
           throw new Error("rollback failed");

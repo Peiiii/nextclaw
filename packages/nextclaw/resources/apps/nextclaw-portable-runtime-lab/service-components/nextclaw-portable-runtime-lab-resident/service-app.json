@@ -1,0 +1,31 @@
+{
+  "id": "nextclaw-portable-runtime-lab-resident",
+  "title": "Portable Resident Component",
+  "description": "宿主持有同一个 Rust/WASM 实例，并在 Panel 关闭后继续投递定时事件。",
+  "protocol": "wasi-component",
+  "component": {
+    "entry": "service.wasm"
+  },
+  "lifecycle": {
+    "mode": "resident",
+    "eventIntervalMs": 1000
+  },
+  "actions": {
+    "resident_status": { "risk": "read", "title": "读取 Resident 状态" },
+    "resident_emit_event": {
+      "risk": "write",
+      "title": "向 Resident 投递事件",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "eventId": { "type": "string" },
+          "kind": { "type": "string" },
+          "triggeredAt": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "resident_reset": { "risk": "write", "title": "重置 Resident 证据" },
+    "runtime_info": { "risk": "read", "title": "查看 Resident 宿主" }
+  }
+}

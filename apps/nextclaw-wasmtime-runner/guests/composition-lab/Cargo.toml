@@ -1,0 +1,16 @@
+[package]
+name = "nextclaw-portable-runtime-composition"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+serde_json = "1.0"
+wit-bindgen-rt = { version = "0.44.0", features = ["bitflags"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "nextclaw:portable-service"
+target = { path = "../../wit", world = "service-app" }

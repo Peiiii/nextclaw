@@ -201,7 +201,10 @@ function parseServiceActionGrants(value: unknown): CapabilityGrant[] {
       assertExactKeys(record, ["grantedAt", "risk"], "Service Action grant");
       const risk = requireServiceActionRisk(record.risk);
       return {
-        subject: { type: caller.surface, id: caller.appId },
+        subject: {
+          type: caller.surface,
+          id: caller.surface === "panel-app" ? caller.appId : caller.agentId,
+        },
         resource: { type: "service.action", target: { actionId } },
         access: ["invoke"],
         declarationFingerprint: createCapabilityDeclarationFingerprint({

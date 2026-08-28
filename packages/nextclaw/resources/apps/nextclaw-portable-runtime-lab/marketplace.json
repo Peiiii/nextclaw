@@ -1,0 +1,21 @@
+{
+  "slug": "portable-runtime-lab",
+  "summary": "Four everyday mini apps powered by portable Rust/WASM services.",
+  "summaryI18n": {
+    "zh-CN": "用清单、便签、专注计时和联系人整理，体验可移植 Service App。",
+    "en-US": "Use todos, notes, a focus timer, and contact cleanup powered by portable Service Apps."
+  },
+  "description": "Product-first demos for persistent data, shared capabilities, resident background work, component composition, and Agent access.",
+  "descriptionI18n": {
+    "zh-CN": "四个普通人能直接使用的小应用，背后覆盖持久数据、能力复用、后台常驻、组件组合与 Agent 调用。",
+    "en-US": "Four approachable mini apps backed by persistence, capability reuse, resident work, component composition, and Agent access."
+  },
+  "author": "NextClaw",
+  "tags": ["productivity", "todo", "notes", "wasm", "experimental"],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://nextclaw.io",
+  "featured": false,
+  "visuals": {
+    "accentColor": "#7C5CFC"
+  }
+}
