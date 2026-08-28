@@ -1,8 +1,8 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { accessSync, chmodSync, constants, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
 import {
@@ -38,6 +38,17 @@ function writeBundleFixture(rootDir: string, version: string): string {
   const bundleDir = join(rootDir, version);
   mkdirSync(join(bundleDir, "runtime", "dist", "cli", "app"), { recursive: true });
   writeFileSync(join(bundleDir, "runtime", "dist", "cli", "app", "index.js"), "console.log('runtime');\n");
+  const runnerPath = join(
+    bundleDir,
+    "runtime",
+    "resources",
+    "native",
+    `${process.platform}-${process.arch}`,
+    process.platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner"
+  );
+  mkdirSync(dirname(runnerPath), { recursive: true });
+  writeFileSync(runnerPath, "runner");
+  if (process.platform !== "win32") chmodSync(runnerPath, 0o755);
   mkdirSync(join(bundleDir, "ui"), { recursive: true });
   writeFileSync(join(bundleDir, "ui", "index.html"), "<html></html>\n");
   mkdirSync(join(bundleDir, "plugins"), { recursive: true });
@@ -70,16 +81,26 @@ function writeBundleFixture(rootDir: string, version: string): string {
 async function createBundleArchive(rootDir: string, version: string): Promise<Buffer> {
   const sourceBundleDir = writeBundleFixture(rootDir, version);
   const zip = new JSZip();
+  const runnerRelativePath = join(
+    "runtime",
+    "resources",
+    "native",
+    `${process.platform}-${process.arch}`,
+    process.platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner"
+  );
   for (const relativePath of [
     "manifest.json",
     join("runtime", "dist", "cli", "app", "index.js"),
+    runnerRelativePath,
     join("ui", "index.html"),
     join("plugins", ".keep")
   ]) {
     const bytes = await readFile(join(sourceBundleDir, relativePath));
-    zip.file(join("bundle", relativePath).replaceAll("\\", "/"), bytes);
+    zip.file(join("bundle", relativePath).replaceAll("\\", "/"), bytes, {
+      unixPermissions: relativePath === runnerRelativePath ? 0o755 : 0o644
+    });
   }
-  return Buffer.from(await zip.generateAsync({ type: "nodebuffer" }));
+  return Buffer.from(await zip.generateAsync({ type: "nodebuffer", platform: "UNIX" }));
 }
 
 function createManifest(overrides: Partial<UnsignedUpdateManifest> & Pick<UnsignedUpdateManifest, "latestVersion">): UpdateManifest {
@@ -184,6 +205,15 @@ describe("RuntimeUpdateManager", () => {
       expect(layout.readCurrentPointer()).toEqual({ version: "0.18.1" });
       expect(stateStore.read().downloadedVersion).toBeNull();
       expect(stateStore.read().candidateVersion).toBe("0.18.1");
+      if (process.platform !== "win32") {
+        expect(() => accessSync(join(
+          layout.getVersionsDir(),
+          "0.18.1",
+          "runtime/resources/native",
+          `${process.platform}-${process.arch}`,
+          "nextclaw-wasmtime-runner",
+        ), constants.X_OK)).not.toThrow();
+      }
     }));
 
   it("keeps download-only runtime updates staged until apply is requested", async () =>

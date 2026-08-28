@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { createHash, createPrivateKey, createPublicKey, sign } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { lstat, mkdir, readdir, realpath, stat, writeFile } from "node:fs/promises";
+import { constants, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { access, lstat, mkdir, readdir, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -10,6 +10,7 @@ import JSZip from "jszip";
 import { NpmRuntimeDeploymentCacheManager } from "./managers/npm-runtime-deployment-cache.manager.mjs";
 
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const scriptPath = fileURLToPath(import.meta.url);
 const workspaceRoot = resolve(packageRoot, "../..");
 const workspacePackagesRoot = resolve(workspaceRoot, "packages");
 const packageJsonPath = resolve(packageRoot, "package.json");
@@ -126,7 +127,7 @@ function serializeUnsignedManifest(manifest) {
   });
 }
 
-async function addDirectoryToZip(zip, sourceDir, zipRoot) {
+export async function addDirectoryToZip(zip, sourceDir, zipRoot) {
   const entries = await readdir(sourceDir, { withFileTypes: true });
   await Promise.all(entries.map(async (entry) => {
     const sourcePath = join(sourceDir, entry.name);
@@ -143,8 +144,32 @@ async function addDirectoryToZip(zip, sourceDir, zipRoot) {
       return;
     }
     const filePath = entry.isSymbolicLink() ? await realpath(sourcePath) : sourcePath;
-    zip.file(targetPath, readFileSync(filePath));
+    zip.file(targetPath, readFileSync(filePath), {
+      unixPermissions: sourceStat.mode & 0o777,
+    });
   }));
+}
+
+export function resolvePortableRunnerResourcePath(root, platform, arch) {
+  const executable = platform === "win32"
+    ? "nextclaw-wasmtime-runner.exe"
+    : "nextclaw-wasmtime-runner";
+  return resolve(root, "resources", "native", `${platform}-${arch}`, executable);
+}
+
+export async function assertPortableRunnerResource(root, platform, arch, label = "runtime bundle") {
+  const runnerPath = resolvePortableRunnerResourcePath(root, platform, arch);
+  const runnerStat = await stat(runnerPath).catch(() => null);
+  if (!runnerStat?.isFile()) {
+    throw new Error(
+      `${label} is missing the Portable Service App runner for ${platform}-${arch}: ${runnerPath}. `
+      + "Build apps/nextclaw-wasmtime-runner before creating the runtime bundle.",
+    );
+  }
+  await access(runnerPath, platform === "win32" ? constants.F_OK : constants.X_OK).catch(() => {
+    throw new Error(`${label} Portable Service App runner is not executable: ${runnerPath}`);
+  });
+  return runnerPath;
 }
 
 class NpmRuntimeUpdateChannelBuilder {
@@ -222,6 +247,7 @@ class NpmRuntimeUpdateChannelBuilder {
 
   prepareBundleWorkspace = async (workspace) => {
     await mkdir(workspace.bundleRoot, { recursive: true });
+    await assertPortableRunnerResource(packageRoot, this.platform, this.arch, "nextclaw package");
     const deploymentCache = new NpmRuntimeDeploymentCacheManager({
       arch: this.arch,
       cacheDir: this.runtimeCacheDir,
@@ -232,6 +258,7 @@ class NpmRuntimeUpdateChannelBuilder {
     const cachedDeployment = await deploymentCache.restore();
     if (cachedDeployment) {
       this.runtimeCacheStatus = "hit";
+      await assertPortableRunnerResource(workspace.runtimeRoot, this.platform, this.arch);
       return cachedDeployment;
     }
 
@@ -245,6 +272,7 @@ class NpmRuntimeUpdateChannelBuilder {
       deployArgs,
       { cwd: workspaceRoot }
     );
+    await assertPortableRunnerResource(workspace.runtimeRoot, this.platform, this.arch);
     const pruneResult = await deploymentCache.pruneRuntimeNodeModules();
     await deploymentCache.assertCoreRuntimeSkillAssets();
     await deploymentCache.store();
@@ -276,7 +304,11 @@ class NpmRuntimeUpdateChannelBuilder {
     const channelDir = join(this.outputRoot, this.channel);
     const archivePath = resolve(channelDir, `nextclaw-runtime-${this.platform}-${this.arch}-${this.version}.zip`);
     await mkdir(dirname(archivePath), { recursive: true });
-    const zipOptions = { type: "nodebuffer", compression: "DEFLATE" };
+    const zipOptions = {
+      type: "nodebuffer",
+      platform: this.platform === "win32" ? "DOS" : "UNIX",
+      compression: "DEFLATE",
+    };
     if (this.compressionLevel !== null) {
       zipOptions.compressionOptions = { level: this.compressionLevel };
     }
@@ -324,7 +356,9 @@ class NpmRuntimeUpdateChannelBuilder {
   };
 }
 
-new NpmRuntimeUpdateChannelBuilder(parseArgs(process.argv.slice(2))).run().catch((error) => {
-  console.error(`[build-npm-runtime-update-channel] ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
+  new NpmRuntimeUpdateChannelBuilder(parseArgs(process.argv.slice(2))).run().catch((error) => {
+    console.error(`[build-npm-runtime-update-channel] ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  });
+}

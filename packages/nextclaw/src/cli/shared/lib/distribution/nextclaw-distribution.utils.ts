@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { accessSync, chmodSync, constants, existsSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextclawDistribution } from "@nextclaw/service";
@@ -27,4 +27,21 @@ export function createNextclawDistribution(importMetaUrl: string): NextclawDistr
       portableRunnerExecutable,
     )
   };
+}
+
+export function repairPackagedPortableRunnerPermissions(distribution: NextclawDistribution): boolean {
+  if (process.platform === "win32") return false;
+  const runnerPath = distribution.portableServiceRunnerPath?.trim();
+  if (!runnerPath || !existsSync(runnerPath)) return false;
+  const runnerStat = statSync(runnerPath);
+  if (!runnerStat.isFile()) return false;
+  try {
+    accessSync(runnerPath, constants.X_OK);
+    return false;
+  } catch {
+    chmodSync(runnerPath, (runnerStat.mode & 0o777) | 0o111);
+    accessSync(runnerPath, constants.X_OK);
+    process.stderr.write(`[nextclaw] restored executable permission for bundled Portable Service App runner: ${runnerPath}\n`);
+    return true;
+  }
 }

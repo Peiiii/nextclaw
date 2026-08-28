@@ -42,7 +42,7 @@ jobs:
   build-npm-runtime-update:
     name: npm-runtime-${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
@@ -50,15 +50,19 @@ jobs:
           - os: macos-14
             platform: darwin
             arch: arm64
-          - os: macos-14
+            cargo_target: aarch64-apple-darwin
+          - os: macos-15-intel
             platform: darwin
             arch: x64
+            cargo_target: x86_64-apple-darwin
           - os: ubuntu-latest
             platform: linux
             arch: x64
+            cargo_target: x86_64-unknown-linux-gnu
           - os: windows-latest
             platform: win32
             arch: x64
+            cargo_target: x86_64-pc-windows-msvc
 
     steps:
       - name: Checkout
@@ -76,8 +80,21 @@ jobs:
         with:
           version: 9.15.1
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2,${{ matrix.cargo_target }}
+
+      - name: Install cargo-component
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-component
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build Portable Service App runtime
+        run: node apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
       - name: Build signed NPM runtime update channel
         shell: bash

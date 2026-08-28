@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-28T14:19:09.670Z",
+  "generatedAt": "2026-08-28T21:27:04.668Z",
   "hero": {
     "currentLoc": 274668,
     "testLoc": 114492,
     "trackedFiles": 2923,
-    "recentCommitCount": 449,
+    "recentCommitCount": 452,
     "activeDays30": 30,
     "recentReleaseCount": 51,
     "latestReleaseDate": "2026-08-28",
-    "latestNoteDate": "2026-08-27",
+    "latestNoteDate": "2026-08-29",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2662624,
     "basePercentOfBenchmark": 10.32,
@@ -1318,7 +1318,7 @@ export default {
       {
         "key": "2026-08-28",
         "label": "08-28",
-        "value": 4
+        "value": 7
       }
     ],
     "commitWeekly": [
@@ -1380,7 +1380,7 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 110
+        "value": 130
       }
     ],
     "releaseMonthly": [
@@ -1514,7 +1514,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-28",
-        "tagCount": 29,
+        "tagCount": 40,
         "sampleTags": [
           "@nextclaw/app-runtime@0.13.3",
           "@nextclaw/channel-extension-dingtalk@0.2.37",
@@ -1541,7 +1541,7 @@ export default {
       },
       {
         "date": "2026-08-24",
-        "tagCount": 88,
+        "tagCount": 92,
         "sampleTags": [
           "@nextclaw/app-runtime@0.13.2-beta.0",
           "@nextclaw/channel-extension-dingtalk@0.2.33-beta.0",
@@ -1570,6 +1570,44 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-29-nextclaw-v0-45-1",
+        "date": "2026-08-29",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-29 · NextClaw v0.45.1",
+          "description": "Fix missing or non-executable Portable Service App runners on Linux, Windows, and macOS.",
+          "href": "/en/notes/2026-08-29-nextclaw-v0-45-1"
+        },
+        "zh": {
+          "title": "2026-08-29 · NextClaw v0.45.1",
+          "description": "修复 Linux、Windows 和 macOS 上可移植 Service App 缸运行器或不可执行的问题。",
+          "href": "/zh/notes/2026-08-29-nextclaw-v0-45-1"
+        }
+      },
+      {
+        "slug": "2026-08-28-nextclaw-v0-45-0",
+        "date": "2026-08-28",
+        "tags": [
+          "release",
+          "npm",
+          "minor"
+        ],
+        "en": {
+          "title": "2026-08-28 · NextClaw v0.45.0",
+          "description": "Build a Service App in Rust once and run it through NextClaw on macOS, Windows, and Linux.",
+          "href": "/en/notes/2026-08-28-nextclaw-v0-45-0"
+        },
+        "zh": {
+          "title": "2026-08-28 · NextClaw v0.45.0",
+          "description": "用 Rust 编写一次 Service App，并在 macOS、Windows 和 Linux 上由 NextClaw 统一运行。",
+          "href": "/zh/notes/2026-08-28-nextclaw-v0-45-0"
+        }
+      },
       {
         "slug": "2026-08-27-nextclaw-v0-44-1",
         "date": "2026-08-27",
@@ -2686,7 +2724,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-28T14:19:07.516Z",
     "sourceCount": {
-      "notes": 54,
+      "notes": 56,
       "scopes": 8
     }
   }

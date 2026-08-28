@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, rmSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -325,6 +325,48 @@ function verifyPublishedStableUpdate(
     upgradedVersion === expectedVersion,
     `expected upgraded runtime ${expectedVersion}, got ${upgradedVersion}`,
   );
+  const installedRuntimeRoot = join(
+    fixture.nextclawHome,
+    "launcher",
+    "runtime-bundles",
+    "versions",
+    expectedVersion,
+    "runtime",
+  );
+  const runnerPath = join(
+    installedRuntimeRoot,
+    "resources",
+    "native",
+    `${process.platform}-${process.arch}`,
+    process.platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner",
+  );
+  assert(existsSync(runnerPath), `published runtime is missing Portable Service App runner: ${runnerPath}`);
+  if (process.platform !== "win32") {
+    accessSync(runnerPath, constants.X_OK);
+  }
+  const stateServicePath = join(
+    installedRuntimeRoot,
+    "resources",
+    "apps",
+    "nextclaw-portable-runtime-lab",
+    "service-components",
+    "nextclaw-portable-runtime-lab-state",
+  );
+  const callResult = JSON.parse(run(fixture.binaryPath, [
+    "app",
+    "call",
+    stateServicePath,
+    "counter_read",
+    "--json",
+  ], {
+    cwd: fixture.packageDirectory,
+    env: {
+      NEXTCLAW_HOME: fixture.nextclawHome,
+      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
+    },
+    timeout: 300000,
+  }).stdout.trim());
+  assert(callResult.ok === true, `published Portable Service App call failed: ${JSON.stringify(callResult)}`);
 
   console.log(`
 [validation:npm-update --published-stable] Published stable update verified.
@@ -334,5 +376,7 @@ function verifyPublishedStableUpdate(
 - download-only: did not switch current pointer
 - apply: ${appliedSnapshot.status}
 - new process version: ${upgradedVersion}
+- Portable Service App runner: executable
+- Portable Service App call: ${callResult.actionId}
 `);
 }

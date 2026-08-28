@@ -16,6 +16,18 @@ const oidcEnv = {
   GITHUB_ACTIONS: "true",
 };
 
+function assertPortableRuntimeBuildContract() {
+  const runtimeWorkflow = readFileSync(
+    new URL("../../.github/workflows/npm-runtime-update-release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(runtimeWorkflow, /Build Portable Service App runtime/);
+  assert.match(
+    runtimeWorkflow,
+    /build-product-runtime\.mjs --platform \$\{\{ matrix\.platform \}\} --arch \$\{\{ matrix\.arch \}\}/,
+  );
+}
+
 test("accepts the minimum trusted publishing runtime", () => {
   assert.doesNotThrow(() =>
     assertTrustedPublishingEnvironment({
@@ -197,6 +209,8 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
     desktopWorkflow,
     /require-draft-release:[\s\S]*?timeout-minutes: 5/,
   );
+
+  assertPortableRuntimeBuildContract();
   assert.match(
     desktopWorkflow,
     /publish-release-assets:[\s\S]*?timeout-minutes: 15/,

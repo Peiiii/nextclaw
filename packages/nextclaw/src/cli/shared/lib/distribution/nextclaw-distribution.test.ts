@@ -1,9 +1,12 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { accessSync, chmodSync, constants, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { describe, expect, it } from "vitest";
-import { createNextclawDistribution } from "./nextclaw-distribution.utils.js";
+import { describe, expect, it, vi } from "vitest";
+import {
+  createNextclawDistribution,
+  repairPackagedPortableRunnerPermissions,
+} from "./nextclaw-distribution.utils.js";
 
 describe("createNextclawDistribution", () => {
   it("derives package-owned distribution metadata from the package entrypoint", () => {
@@ -39,6 +42,35 @@ describe("createNextclawDistribution", () => {
         launcherEntrypoint: resolve(packageRoot, "src/cli/launcher/index.ts")
       });
     } finally {
+      rmSync(packageRoot, { force: true, recursive: true });
+    }
+  });
+
+  it.runIf(process.platform !== "win32")("repairs only the packaged runner executable bit", () => {
+    const packageRoot = mkdtempSync(resolve(tmpdir(), "nextclaw-distribution-runner-"));
+
+    try {
+      writeFileSync(resolve(packageRoot, "package.json"), JSON.stringify({ version: "0.45.1" }));
+      const runnerPath = resolve(
+        packageRoot,
+        "resources/native",
+        `${process.platform}-${process.arch}`,
+        "nextclaw-wasmtime-runner",
+      );
+      mkdirSync(resolve(runnerPath, ".."), { recursive: true });
+      writeFileSync(runnerPath, "runner");
+      chmodSync(runnerPath, 0o644);
+      const distribution = createNextclawDistribution(
+        pathToFileURL(resolve(packageRoot, "dist/cli/app/index.js")).href,
+      );
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+
+      expect(repairPackagedPortableRunnerPermissions(distribution)).toBe(true);
+      expect(() => accessSync(runnerPath, constants.X_OK)).not.toThrow();
+      expect(repairPackagedPortableRunnerPermissions(distribution)).toBe(false);
+      expect(stderr).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.restoreAllMocks();
       rmSync(packageRoot, { force: true, recursive: true });
     }
   });

@@ -1,1 +1,4 @@
-export { createNextclawDistribution } from "./nextclaw-distribution.utils.js";
+export {
+  createNextclawDistribution,
+  repairPackagedPortableRunnerPermissions,
+} from "./nextclaw-distribution.utils.js";

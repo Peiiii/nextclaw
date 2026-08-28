@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.45.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-29",
+  "title": {
+    "zh-CN": "NextClaw v0.45.1",
+    "en-US": "NextClaw v0.45.1"
+  },
+  "summary": {
+    "zh-CN": "修复可移植 Service App 的跨平台运行器打包与 Unix 执行权限，发布验证现在会实际调用内置应用。",
+    "en-US": "Fix cross-platform runner packaging and Unix permissions for Portable Service Apps, with a real included-app call in published validation."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-29-nextclaw-v0-45-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-29-nextclaw-v0-45-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "可移植 Service App 可正常启动", "en-US": "Portable Service Apps start correctly" },
+          "body": {
+            "zh-CN": "Stable Runtime 会为 Linux x64、Windows x64 和 macOS arm64/x64 打包对应运行器并保留执行权限；缺少运行器时发布会直接失败。",
+            "en-US": "Stable Runtime releases package the correct runner for Linux x64, Windows x64, and macOS arm64/x64 while preserving executable permissions; publishing fails if a runner is missing."
+          }
+        },
+        {
+          "title": { "zh-CN": "发布前验证真实应用调用", "en-US": "Real app invocation in release validation" },
+          "body": {
+            "zh-CN": "公开产物验证会检查安装后的运行器并实际调用一次内置可移植 Service App，避免只验证更新版本号。",
+            "en-US": "Published-artifact validation checks the installed runner and invokes an included Portable Service App instead of validating only the updated version."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 import { NextclawDistributionService } from "@nextclaw/service";
-import { createNextclawDistribution } from "@nextclaw-cli/cli/shared/lib/distribution/index.js";
+import {
+  createNextclawDistribution,
+  repairPackagedPortableRunnerPermissions,
+} from "@nextclaw-cli/cli/shared/lib/distribution/index.js";
 
+const distribution = createNextclawDistribution(import.meta.url);
+repairPackagedPortableRunnerPermissions(distribution);
 NextclawDistributionService.configureRuntime(
-  createNextclawDistribution(import.meta.url),
+  distribution,
 );
 
 const { nextclawCliProgram } = await import("./nextclaw-cli-app.js");
