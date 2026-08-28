@@ -105,6 +105,27 @@ jobs:
         shell: bash
         run: pnpm install --frozen-lockfile --force
 
+      - name: Prepare Electron headers (macOS)
+        if: matrix.platform == 'darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          electron_version="$(node -p "require('./apps/desktop/node_modules/electron/package.json').version")"
+          headers_root="$HOME/.electron-gyp/$electron_version"
+          if [ ! -f "$headers_root/include/node/node_api.h" ]; then
+            temp_root="$(mktemp -d)"
+            headers_archive="$temp_root/node-headers.tar.gz"
+            checksum_file="$temp_root/SHASUMS256.txt"
+            curl --fail --location --retry 3 --retry-all-errors "https://www.electronjs.org/headers/v${electron_version}/node-v${electron_version}-headers.tar.gz" --output "$headers_archive"
+            curl --fail --location --retry 3 --retry-all-errors "https://www.electronjs.org/headers/v${electron_version}/SHASUMS256.txt" --output "$checksum_file"
+            expected_checksum="$(awk -v filename="node-v${electron_version}-headers.tar.gz" '$2 == filename { print $1 }' "$checksum_file")"
+            actual_checksum="$(shasum -a 256 "$headers_archive" | awk '{ print $1 }')"
+            test -n "$expected_checksum" && test "$actual_checksum" = "$expected_checksum"
+            mkdir -p "$headers_root"
+            tar -xzf "$headers_archive" --strip-components=1 -C "$headers_root"
+          fi
+          test -f "$headers_root/include/node/node_api.h"
+
       - name: Write bundled update public key
         env:
           NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
