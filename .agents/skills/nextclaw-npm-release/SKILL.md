@@ -19,8 +19,10 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 ## 永久合同
 
 - 使用仓库 release flow，不以包目录 raw `npm publish` 作为默认路径。
-- 正式发布默认采用低 Token 的全自动闭环：AI 完成一次发布意图判断和一次 workflow dispatch 后，由 GitHub Actions 连续完成构建、发布、验证与 Git 回流；AI 不在本地重复编排已由 workflow 拥有的阶段。
-- 监控只读取有界的结构化状态快照，不使用持续刷新的 `gh run watch`，不重复回传未变化状态，也不读取成功 job 的完整日志；只有失败或状态异常时才读取失败步骤附近的最小日志。最终一次性报告发布 identity、完成状态和验证证据。
+- 正式发布默认低 Token 全自动闭环：一次意图判断和 dispatch 后，由 Actions 完成构建、发布、验证与 Git 回流；AI 不在本地重复编排。
+- dispatch 前审计同 workflow 的 queued/in-progress run；旧 SHA 的失效队列经精确核对后取消。dispatch 后必须立即取得新 run ID、target 与 head SHA；没有这组证据就不算已触发。
+- 等待使用产品 wait/automation 或至少两分钟一次的有界状态检查；禁止 `nohup` 等无法确认结果的 fire-and-forget，也不使用持续刷新的 `gh run watch`。状态未变化时不分析、不播报。
+- 成功 job 不读日志；失败或异常时只读失败步骤附近的最小日志。最终一次性报告 identity、状态和验证证据。
 - `nextclaw` 是已发布 workspace 依赖闭包和嵌入 UI/runtime 产物的产品包，不只看自身版本。
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
 - NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。
