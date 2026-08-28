@@ -37,6 +37,7 @@ export * from "@kernel/features/harness/index.js";
 export { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 export { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
 export { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
+export { ServiceAppRuntimeService } from "@kernel/services/service-app-runtime.service.js";
 export { CommandRegistry } from "@kernel/services/command-registry.service.js";
 export { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";
 export {

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>开发者验证台</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">RUST · WASM COMPONENT · HOST CAPABILITIES</p>
+          <h1>开发者验证台</h1>
+          <p class="lead">这里是四个日常小应用背后的技术证据。普通体验请直接打开「今日清单」「灵感便签」「专注小钟」或「联系人整理」。</p>
+        </div>
+        <span class="live-badge"><i></i> 可交互 Demo</span>
+      </header>
+
+      <section class="topology" aria-label="运行拓扑">
+        <div class="node guest">Action Components<small>State + Capability</small></div>
+        <span aria-hidden="true">→</span>
+        <div class="node host">Shared Runner<small>Wasmtime + WIT</small></div>
+        <span aria-hidden="true">←</span>
+        <div class="node guest">Resident Component<small>Retained instance + events</small></div>
+      </section>
+
+      <section class="scenario-grid" aria-label="验证场景">
+        <article class="scenario" data-scenario="shared">
+          <div class="scenario-copy">
+            <span class="number">01</span>
+            <div><h2>共享宿主</h2><p>分别调用两个 Component，比较 runner PID 与已加载模块数。</p></div>
+          </div>
+          <button type="button" data-run="shared">验证同一进程</button>
+          <pre class="result" aria-live="polite">尚未执行</pre>
+        </article>
+
+        <article class="scenario data-workbench" data-scenario="data">
+          <div class="scenario-copy">
+            <span class="number">02</span>
+            <div><h2>结构化数据与持久化证据</h2><p>在 Rust/WASM 中执行 CRUD；Guest 只使用宿主 KV，数据位置与生命周期仍由 NextClaw 管理。</p></div>
+          </div>
+          <div class="data-editor">
+            <label>ID<input data-field="record-id" value="delta" maxlength="48" /></label>
+            <label>标题<input data-field="record-title" value="从 Agent 与 Panel 共用 Action" /></label>
+            <label>状态<select data-field="record-status"><option value="active">active</option><option value="pending">pending</option><option value="done">done</option></select></label>
+          </div>
+          <div class="button-row">
+            <button type="button" data-run="data-refresh" class="secondary">读取数据</button>
+            <button type="button" data-run="data-seed">生成 3 条基线</button>
+            <button type="button" data-run="data-save">创建或修改</button>
+            <button type="button" data-run="data-delete" class="danger">删除 ID</button>
+          </div>
+          <div class="data-table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>标题</th><th>状态</th><th>标签</th><th>版本</th></tr></thead>
+              <tbody data-records><tr><td colspan="5">尚未读取</td></tr></tbody>
+            </table>
+          </div>
+          <pre class="result data-meta" aria-live="polite">尚未执行</pre>
+        </article>
+
+        <article class="scenario resident-workbench" data-scenario="resident">
+          <div class="scenario-copy">
+            <span class="number">03</span>
+            <div><h2>Resident Service 与后台事件</h2><p>宿主保留同一个 WASM 实例，每秒投递真实 timer event；关闭 Panel 后仍继续。内存计数证明实例连续，durable cursor 证明跨重启恢复。</p></div>
+          </div>
+          <div class="button-row">
+            <button type="button" data-run="resident-refresh" class="secondary">读取当前状态</button>
+            <button type="button" data-run="resident-event">投递手动事件</button>
+            <button type="button" data-run="resident-reset" class="danger">重置事件证据</button>
+          </div>
+          <dl class="resident-metrics">
+            <div><dt>实例代次</dt><dd data-resident="epoch">—</dd></div>
+            <div><dt>内存事件数</dt><dd data-resident="memory-count">—</dd></div>
+            <div><dt>持久事件数</dt><dd data-resident="event-count">—</dd></div>
+            <div><dt>最后事件</dt><dd data-resident="last-event">—</dd></div>
+          </dl>
+          <div class="data-table-wrap">
+            <table>
+              <thead><tr><th>Event ID</th><th>类型</th><th>宿主投递时间</th></tr></thead>
+              <tbody data-resident-events><tr><td colspan="3">尚未读取</td></tr></tbody>
+            </table>
+          </div>
+          <pre class="result data-meta" aria-live="polite">尚未执行</pre>
+        </article>
+
+        <article class="scenario composition-workbench" data-scenario="composition">
+          <div class="scenario-copy">
+            <span class="number">04</span>
+            <div><h2>Component Provider 与跨模块组合</h2><p>Consumer 不包含联系人规范化逻辑，而是通过宿主调用 manifest 明确声明的独立 Provider；未声明的 Provider 会被宿主拒绝。</p></div>
+          </div>
+          <div class="data-editor composition-editor">
+            <label>姓名<input data-field="contact-name" value="  Ada   Lovelace  " /></label>
+            <label>邮箱<input data-field="contact-email" value=" ADA@EXAMPLE.COM " /></label>
+            <label>标签<input data-field="contact-tags" value="AI, ai, Math" /></label>
+          </div>
+          <div class="button-row">
+            <button type="button" data-run="composition-run">执行组合工作流</button>
+            <button type="button" data-run="provider-status" class="secondary">读取 Provider 状态</button>
+            <button type="button" data-run="provider-denied" class="danger">验证未声明拒绝</button>
+          </div>
+          <pre class="result composition-result" aria-live="polite">尚未执行</pre>
+        </article>
+
+        <article class="scenario" data-scenario="network">
+          <div class="scenario-copy">
+            <span class="number">05</span>
+            <div><h2>受控网络</h2><p>同一个 HTTP 原语：manifest 白名单内放行，白名单外明确拒绝。</p></div>
+          </div>
+          <div class="button-row">
+            <button type="button" data-run="network-allowed">允许的请求</button>
+            <button type="button" data-run="network-denied" class="secondary">拒绝的请求</button>
+          </div>
+          <pre class="result" aria-live="polite">尚未执行</pre>
+        </article>
+
+        <article class="scenario" data-scenario="failure">
+          <div class="scenario-copy">
+            <span class="number">06</span>
+            <div><h2>失败与恢复</h2><p>观察 Guest 错误与执行超时；超时后 runner 自动重建，并重新读取相同数据快照。</p></div>
+          </div>
+          <div class="button-row">
+            <button type="button" data-run="structured-failure" class="danger">结构化失败</button>
+            <button type="button" data-run="timeout-recovery" class="secondary">超时并恢复</button>
+          </div>
+          <pre class="result" aria-live="polite">尚未执行</pre>
+        </article>
+
+        <article class="scenario benchmark-evidence">
+          <div class="scenario-copy">
+            <span class="number">07</span>
+            <div><h2>内存密度基准</h2><p>Apple Silicon、Node 22.16 上重复三轮；每个 Component 使用独立 artifact 路径，每个 Node Service 使用独立进程。</p></div>
+          </div>
+          <dl class="metric-grid">
+            <div><dt>空 runner</dt><dd>7.70–7.73 <small>MiB</small></dd></div>
+            <div><dt>1 Component</dt><dd>34.17–36.77 <small>MiB</small></dd></div>
+            <div><dt>5 Components</dt><dd>43.86–44.72 <small>MiB</small></dd></div>
+            <div><dt>10 Components</dt><dd>50.84–53.17 <small>MiB</small></dd></div>
+            <div><dt>1 Node Service</dt><dd>39.88–39.91 <small>MiB</small></dd></div>
+            <div><dt>5 Node Services</dt><dd>199.61–199.70 <small>MiB</small></dd></div>
+            <div><dt>10 Node Services</dt><dd>399.25–399.47 <small>MiB</small></dd></div>
+          </dl>
+          <p class="benchmark-note">这是开发机上的密度证据，不是等价业务 workload 的最终结论；Resident 密度、CPU/延迟和跨平台仍待验证。</p>
+        </article>
+      </section>
+
+      <footer>
+        <strong>当前覆盖：</strong>Action、Agent Tool、真实数据、Resident、后台事件、Component Provider、跨组件组合、网络权限、故障恢复与共享宿主。
+      </footer>
+    </main>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

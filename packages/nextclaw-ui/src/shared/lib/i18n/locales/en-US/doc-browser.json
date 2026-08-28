@@ -227,6 +227,7 @@
   "serviceAppsActionsEmpty": "No actions discovered yet",
   "serviceAppsDetails": "Runtime details",
   "serviceAppsGrantedTo": "Granted to",
+  "serviceAppsGrantToAgent": "Grant to Agent",
   "serviceAppsRevokeGrant": "Revoke grant",
   "serviceAppsRuntimeState_matched": "Matched",
   "serviceAppsRuntimeState_missing": "Missing",

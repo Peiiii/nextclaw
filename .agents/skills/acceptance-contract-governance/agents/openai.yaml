@@ -1,0 +1,7 @@
+interface:
+  display_name: "验收契约治理"
+  short_description: "为大型低监督任务建立可演进、不过度设计的交付验收契约"
+  default_prompt: "使用 $acceptance-contract-governance 为当前大型或多阶段任务建立最小验收契约、阶段图和当前阶段门，并过滤无关、不可观察或过度约束实现的标准。"
+
+policy:
+  allow_implicit_invocation: false

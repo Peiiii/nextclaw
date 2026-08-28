@@ -71,8 +71,27 @@ export function useRevokeServiceActionGrant() {
   return useMutation({
     mutationFn: (params: {
       actionId: string;
-      caller: { surface: 'panel-app'; appId: string };
+      caller:
+        | { surface: 'panel-app'; appId: string }
+        | { surface: 'agent'; agentId: string };
     }) => nextclawClient.serviceApps.revokeServiceActionGrant(params),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: SERVICE_ACTIONS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: SERVICE_ACTION_GRANTS_QUERY_KEY }),
+      ]);
+    },
+  });
+}
+
+export function useGrantAgentServiceActions() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { agentId: string; actionIds: string[] }) =>
+      nextclawClient.serviceApps.grantAgentServiceActions(
+        params.agentId,
+        params.actionIds,
+      ),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: SERVICE_ACTIONS_QUERY_KEY }),

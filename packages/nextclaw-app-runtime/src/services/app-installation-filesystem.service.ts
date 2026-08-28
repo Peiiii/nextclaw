@@ -70,6 +70,9 @@ export class AppInstallationFilesystemService {
       const serviceManifest = JSON.parse(
         await readFile(component.manifestPath, "utf8"),
       ) as Record<string, unknown>;
+      if (serviceManifest.protocol === "wasi-component") {
+        continue;
+      }
       const { command } = launchService.resolve(serviceManifest, target);
       if (path.isAbsolute(command) || !command.includes("/")) {
         continue;

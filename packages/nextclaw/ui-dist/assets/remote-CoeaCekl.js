@@ -1,0 +1,1 @@
+import{ft as e}from"./index-PnFyYfat.js";export{e as RemoteAccessPage};

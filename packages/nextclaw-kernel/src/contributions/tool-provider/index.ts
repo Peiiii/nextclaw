@@ -12,6 +12,7 @@ import { InboxDeliveryToolProvider } from "./providers/inbox-delivery-tool.provi
 import { StructuredResultToolProvider } from "./providers/structured-result-tool.provider.js";
 import { ObservationToolProvider } from "./providers/observation-tool.provider.js";
 import { DesktopToolProvider } from "./providers/desktop-tool.provider.js";
+import { ServiceActionToolProvider } from "./providers/service-action-tool.provider.js";
 import { ToolProviderRunContextService } from "./services/tool-provider-run-context.service.js";
 
 export { ShowContentToolProvider };
@@ -57,6 +58,7 @@ export class ToolProviderContribution extends Contribution {
         this.kernel.sessionSearch,
       ),
       new AssetToolProvider(this.kernel.assetStore),
+      new ServiceActionToolProvider(runContextService, this.kernel.serviceAppManager),
       new McpToolProvider(runContextService, this.kernel.mcpManager),
     ];
   };

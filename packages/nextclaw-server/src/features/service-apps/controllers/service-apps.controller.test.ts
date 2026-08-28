@@ -306,7 +306,9 @@ describe("service apps routes", () => {
     expect(response.status).toBe(200);
     expect(listServiceActions).toHaveBeenCalledWith({ appId: "notes" });
   });
+});
 
+describe("service app bridge and grant routes", () => {
   it("creates panel bridge sessions through the thin panel app route", async () => {
     const bridgeSession = createBridgeSession();
     const createPanelAppBridgeSession = vi.fn(async () => bridgeSession);
@@ -408,5 +410,43 @@ describe("service apps routes", () => {
       caller: bridgeSession.caller,
       declaredActions: bridgeSession.declaredActions,
     });
+  });
+
+  it("grants and revokes Service Actions for an Agent through the resource endpoint", async () => {
+    const grantServiceActions = vi.fn(async () => [{
+      caller: { surface: "agent" as const, agentId: "main" },
+      actionId: "notes.read",
+      risk: "read" as const,
+      grantedAt: "2026-05-27T00:00:00.000Z",
+    }]);
+    const revokeServiceAction = vi.fn(async () => {});
+    const app = createTestApp({
+      panelAppManager: {},
+      serviceAppManager: { grantServiceActions, revokeServiceAction },
+    });
+
+    const grantResponse = await app.request(
+      "http://localhost/api/agents/main/service-action-grants",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ actionIds: ["notes.read"] }),
+      },
+    );
+    expect(grantResponse.status).toBe(200);
+    expect(grantServiceActions).toHaveBeenCalledWith(
+      ["notes.read"],
+      { caller: { surface: "agent", agentId: "main" } },
+    );
+
+    const revokeResponse = await app.request(
+      "http://localhost/api/service-action-grants/notes.read?surface=agent&callerId=main",
+      { method: "DELETE" },
+    );
+    expect(revokeResponse.status).toBe(200);
+    expect(revokeServiceAction).toHaveBeenCalledWith(
+      { surface: "agent", agentId: "main" },
+      "notes.read",
+    );
   });
 });

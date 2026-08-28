@@ -1,0 +1,48 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #24352d;
+  background: #edf3ed;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at top left, #fff 0, #f6f8f3 36%, #e7efe8 100%); }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled, input:disabled { cursor: wait; opacity: .6; }
+.app-shell { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 48px; }
+.hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.eyebrow { margin: 0 0 8px; color: #538164; font-size: 12px; font-weight: 800; letter-spacing: .18em; }
+h1 { margin: 0; font-family: Georgia, "Noto Serif SC", serif; font-size: clamp(36px, 7vw, 56px); letter-spacing: -.04em; }
+.hero p:last-child { margin: 8px 0 0; color: #6b7a70; }
+.date-card { flex: 0 0 auto; width: 90px; padding: 16px 10px; border: 1px solid #d4dfd6; border-radius: 22px; background: rgba(255,255,255,.75); text-align: center; box-shadow: 0 12px 28px rgba(56,83,66,.08); }
+.date-card strong { display: block; font-size: 32px; line-height: 1; }
+.date-card span { display: block; margin-top: 7px; color: #738078; font-size: 12px; }
+.composer { display: flex; gap: 10px; padding: 9px; border: 1px solid #dbe4dc; border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgba(64,90,72,.1); }
+.composer input { min-width: 0; flex: 1; border: 0; outline: 0; padding: 12px 14px; color: #263a2e; background: transparent; }
+.composer button, .actions button { border: 0; border-radius: 12px; padding: 12px 22px; color: #fff; background: #347052; font-weight: 700; }
+.summary { display: flex; align-items: center; gap: 18px; padding: 18px 4px 10px; color: #68776d; font-size: 14px; }
+.summary strong { color: #2d5d44; }
+.text-button { margin-left: auto; border: 0; color: #4d725b; background: transparent; }
+.todo-list { display: grid; gap: 10px; margin-top: 8px; }
+.todo-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid #dae4db; border-radius: 16px; background: rgba(255,255,255,.88); transition: transform .16s ease, opacity .16s ease; }
+.todo-item:hover { transform: translateY(-1px); }
+.todo-item p { margin: 0; line-height: 1.55; }
+.todo-item.is-done { opacity: .62; }
+.todo-item.is-done p { text-decoration: line-through; }
+.check-button { width: 24px; height: 24px; padding: 0; border: 2px solid #76a083; border-radius: 50%; color: #fff; background: transparent; font-size: 13px; }
+.is-done .check-button { background: #4d8663; }
+.remove-button { border: 0; color: #9a695f; background: transparent; font-size: 13px; opacity: .7; }
+.empty { display: flex; min-height: 180px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed #cbd8cd; border-radius: 18px; color: #7d8b81; text-align: center; }
+.empty strong { color: #4e6254; font-size: 18px; }
+.notice { min-height: 22px; margin: 14px 4px; color: #6e7d72; font-size: 14px; }
+.notice[data-tone="success"] { color: #347052; }
+.notice[data-tone="error"] { color: #b14e43; }
+.behind-scenes { margin-top: 28px; padding: 16px 18px; border: 1px solid #dce4dc; border-radius: 16px; color: #66746a; background: rgba(255,255,255,.55); font-size: 13px; }
+.behind-scenes summary { color: #46594b; cursor: pointer; font-weight: 700; }
+.behind-scenes p { line-height: 1.65; }
+.behind-scenes dl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0 0; }
+.behind-scenes dl div { padding: 10px; border-radius: 10px; background: #fff; }
+.behind-scenes dt { color: #879188; font-size: 11px; }
+.behind-scenes dd { margin: 3px 0 0; color: #3e5143; overflow-wrap: anywhere; }
+@media (max-width: 560px) { .app-shell { width: min(100% - 22px, 760px); padding-top: 24px; } .hero { align-items: flex-end; } .date-card { width: 76px; } .composer button { padding-inline: 16px; } .summary { gap: 10px; } .behind-scenes dl { grid-template-columns: 1fr; } }

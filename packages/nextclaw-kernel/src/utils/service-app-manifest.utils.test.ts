@@ -13,6 +13,89 @@ const BASE_MANIFEST = {
 };
 
 describe("parseServiceAppManifest target launch", () => {
+  it("parses a portable WASI component without a native launch command", () => {
+    expect(parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+    }))).toMatchObject({
+      protocol: "wasi-component",
+      componentEntry: "service.wasm",
+      command: undefined,
+      args: undefined,
+    });
+  });
+
+  it("parses a portable action execution budget and rejects unsafe values", () => {
+    expect(parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      actions: { run: { risk: "dangerous", timeoutMs: 1_200 } },
+    })).actions.run).toMatchObject({ timeoutMs: 1_200 });
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      actions: { run: { timeoutMs: 10 } },
+    }))).toThrow("timeoutMs must be an integer between 100 and 300000");
+  });
+
+  it("parses an explicit resident lifecycle and rejects native or unsafe intervals", () => {
+    expect(parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      lifecycle: { mode: "resident", eventIntervalMs: 1_000 },
+    })).lifecycle).toEqual({ mode: "resident", eventIntervalMs: 1_000 });
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      command: "node",
+      lifecycle: { mode: "resident", eventIntervalMs: 1_000 },
+    }))).toThrow("requires wasi-component protocol");
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      lifecycle: { mode: "resident", eventIntervalMs: 100 },
+    }))).toThrow("between 250 and 60000");
+  });
+
+  it("parses provider registration and explicit consumer dependencies", () => {
+    expect(parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      lifecycle: { mode: "provider" },
+      providers: ["contact-provider", "contact-provider"],
+    }))).toMatchObject({
+      lifecycle: { mode: "provider" },
+      providerIds: ["contact-provider"],
+    });
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      command: "node",
+      lifecycle: { mode: "provider" },
+    }))).toThrow("provider service app lifecycle requires wasi-component protocol");
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      providers: ["Not Valid"],
+    }))).toThrow("kebab-case service app ids");
+  });
+
+  it("rejects portable component entries that escape the package", () => {
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "../service.wasm" },
+    }))).toThrow("package-relative path");
+  });
+
   it("keeps the existing universal command contract", () => {
     expect(parseServiceAppManifest(JSON.stringify({
       ...BASE_MANIFEST,

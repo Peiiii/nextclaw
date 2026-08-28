@@ -143,6 +143,12 @@ describe("AppInstallationService", () => {
         registryUrl: registryFixture.registryUrl,
       })).rejects.toThrow("已绑定发布者 nextclaw");
       await expect(access(sentinelPath)).resolves.toBeUndefined();
+      await expect(access(path.join(
+        appHomeDirectory,
+        "packages",
+        registryFixture.appId,
+        "0.1.0",
+      ))).rejects.toMatchObject({ code: "ENOENT" });
       await expect(installationService.list()).resolves.toEqual([]);
     } finally {
       await closeServer(registryFixture.server);

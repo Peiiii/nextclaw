@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
-import { NextclawServiceRuntime } from "@nextclaw/service";
+import { NextclawDistributionService, NextclawServiceRuntime } from "@nextclaw/service";
 import { registerAgentsCommands } from "./register-agents-commands.js";
 import { registerLearningLoopCommands } from "./register-learning-loop-commands.js";
 import { registerSkillsCommands } from "./register-skills-commands.js";
@@ -146,7 +146,9 @@ registerSessionCommands(program, runtime);
 
 registerExecCommand(program, runtime);
 
-registerAppCommands(program);
+registerAppCommands(program, {
+  portableServiceRunnerPath: NextclawDistributionService.get().portableServiceRunnerPath,
+});
 
 const config = program.command("config").description("Manage config values");
 

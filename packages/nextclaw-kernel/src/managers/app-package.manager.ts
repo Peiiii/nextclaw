@@ -17,6 +17,7 @@ import type {
 } from "@nextclaw/app-runtime";
 import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
 import { AppPackagePresentationService } from "@kernel/services/app-package-presentation.service.js";
+import { AppPackageRuntimeActivationService, EMPTY_APP_PACKAGE_RUNTIME_HOOKS } from "@kernel/services/app-package-runtime-activation.service.js";
 import {
   AppPackageError,
   type AppPackageComponentSource,
@@ -33,12 +34,6 @@ import {
 } from "@kernel/types/app-package.types.js";
 import { satisfiesAppEngineVersion } from "@kernel/utils/app-engine-version.utils.js";
 
-const EMPTY_RUNTIME_HOOKS: AppPackageRuntimeHooks = {
-  assertCanActivate: async () => undefined,
-  beforeDeactivate: async () => undefined,
-  beforeUninstall: async () => undefined,
-};
-
 export class AppPackageManager {
   private readonly appHomeService: AppHomeService;
   private readonly installationService: AppInstallationService;
@@ -46,8 +41,9 @@ export class AppPackageManager {
   private readonly operationManager: AppPackageOperationManager;
   private readonly platformTargetService = new AppPlatformTargetService();
   private readonly presentationService = new AppPackagePresentationService();
+  private readonly runtimeActivationService = new AppPackageRuntimeActivationService();
   private readonly registryService: AppRegistryService;
-  private runtimeHooks: AppPackageRuntimeHooks = EMPTY_RUNTIME_HOOKS;
+  private runtimeHooks: AppPackageRuntimeHooks = EMPTY_APP_PACKAGE_RUNTIME_HOOKS;
   private builtInBootstrapPromise: Promise<void> | undefined;
   private builtInDefinitionsPromise: Promise<Array<{
     appDirectory: string;
@@ -184,6 +180,18 @@ export class AppPackageManager {
     const sources = this.toComponentSources(app);
     await this.runtimeHooks.assertCanActivate(sources);
     await this.installationService.setEnabled(appId, true);
+    try {
+      await this.runtimeHooks.afterActivate(sources);
+    } catch (error) {
+      await this.runtimeActivationService.recoverFailedActivation({
+        appId, error, sources,
+        beforeDeactivate: this.runtimeHooks.beforeDeactivate,
+        disable: async () => {
+          await this.installationService.setEnabled(appId, false);
+        },
+      });
+      throw error;
+    }
     return await this.getPackage(appId);
     });
   };
@@ -232,6 +240,9 @@ export class AppPackageManager {
       }
       const activation = await this.installationService.rollback(appId, result.version);
       activated = activation.rolledBack;
+      if (current.enabled) {
+        await this.runtimeHooks.afterActivate(this.toComponentSources(candidate));
+      }
       return { package: await this.getPackage(appId), result };
     } catch (error) {
       if (activated) {
@@ -240,6 +251,7 @@ export class AppPackageManager {
       if (deactivated) {
         try {
           await this.runtimeHooks.assertCanActivate(this.toComponentSources(current));
+          await this.runtimeHooks.afterActivate(this.toComponentSources(current));
         } catch (recoveryError) {
           throw new AggregateError(
             [error, recoveryError],
@@ -284,6 +296,9 @@ export class AppPackageManager {
         await this.runtimeHooks.assertCanActivate(this.toComponentSources(candidate));
       }
       result = await this.installationService.rollback(appId, version);
+      if (current.enabled) {
+        await this.runtimeHooks.afterActivate(this.toComponentSources(candidate));
+      }
       return { package: await this.getPackage(appId), result };
     } catch (error) {
       if (result?.rolledBack) {
@@ -292,6 +307,7 @@ export class AppPackageManager {
       if (deactivated) {
         try {
           await this.runtimeHooks.assertCanActivate(this.toComponentSources(current));
+          await this.runtimeHooks.afterActivate(this.toComponentSources(current));
         } catch (recoveryError) {
           throw new AggregateError(
             [error, recoveryError],
@@ -398,6 +414,7 @@ export class AppPackageManager {
           isolation: manifestBundle.manifest.main.kind === "wasi-http-component"
             ? "host-mediated" as const
             : "sandboxed" as const,
+          permissions: manifestBundle.manifest.permissions ?? {},
         };
     return {
       id: info.appId,
@@ -423,6 +440,7 @@ export class AppPackageManager {
         storage: info.storage,
         runtimeProfile: security.runtimeProfile,
         isolation: security.isolation,
+        permissions: security.permissions,
         ...await this.presentationService.readManifest(component.manifestPath),
       }))),
       dataDirectory: info.dataDirectory,
@@ -437,11 +455,12 @@ export class AppPackageManager {
   private resolveSecurity = (
     version: NonNullable<Awaited<ReturnType<AppRegistryService["getApp"]>>>["installedVersions"][string],
     appId: string,
-  ): { runtimeProfile: "panel-only" | "wasi" | "native-process"; isolation: "sandboxed" | "host-mediated" | "full-user" } => {
+  ): Pick<AppPackageComponentSource, "runtimeProfile" | "isolation" | "permissions"> => {
     if (version.security) {
       return {
         runtimeProfile: version.security.runtimeProfile,
         isolation: version.security.isolation,
+        permissions: version.security.permissions,
       };
     }
     const hasService = version.components?.some((component) => component.kind === "service") ?? false;
@@ -452,8 +471,8 @@ export class AppPackageManager {
       );
     }
     return hasService
-      ? { runtimeProfile: "native-process", isolation: "full-user" }
-      : { runtimeProfile: "panel-only", isolation: "sandboxed" };
+      ? { runtimeProfile: "native-process", isolation: "full-user", permissions: {} }
+      : { runtimeProfile: "panel-only", isolation: "sandboxed", permissions: {} };
   };
 
   private toComponentSources = (app: AppPackageView): AppPackageComponentSource[] =>

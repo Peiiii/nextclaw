@@ -8,9 +8,15 @@ import {
   getServiceAppManifestPath,
   readServiceAppManifest,
 } from "@kernel/utils/service-app-manifest.utils.js";
-import type { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
-
-type ServiceAppStatusReader = Pick<McpServiceAppRuntimeService, "getStatus">;
+type ServiceAppStatusReader = {
+  getStatus: (appId: string) => {
+    status: ServiceAppRecord["status"];
+    lastError?: string;
+    lastStartedAt?: string;
+    lastReadyAt?: string;
+    lastFailedAt?: string;
+  };
+};
 
 export type WorkspaceServiceDataOwner = {
   id: string;
@@ -132,6 +138,11 @@ export class ServiceAppRecordService {
       instanceId: packageSource?.instanceId ?? storage?.instanceId,
       storage,
       isolation: packageSource?.isolation ?? "full-user",
+      runtimeProfile: packageSource?.runtimeProfile ?? "native-process",
+      permissions: packageSource?.permissions ?? {},
+      componentPath: manifest.componentEntry ? join(dirPath, manifest.componentEntry) : undefined,
+      providerIds: manifest.providerIds,
+      lifecycle: manifest.lifecycle,
     };
   };
 
@@ -172,6 +183,8 @@ export class ServiceAppRecordService {
     instanceId: source.instanceId,
     storage: source.storage,
     isolation: source.isolation,
+    runtimeProfile: source.runtimeProfile,
+    permissions: source.permissions,
   });
 
   private toTitle = (value: string): string =>

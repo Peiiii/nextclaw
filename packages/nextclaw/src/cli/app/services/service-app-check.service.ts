@@ -27,18 +27,24 @@ export class ServiceAppCheckService {
       return issues;
     }
 
-    const serviceId = this.checkManifestFields(appPath, manifestResult.value, issues);
+    const protocol = readOptionalString(manifestResult.value, "protocol") ?? "mcp";
+    const serviceId = this.checkManifestFields(appPath, manifestResult.value, protocol, issues);
     const command = readOptionalString(manifestResult.value, "command");
     const args = readStringArray(manifestResult.value.args, "service.args");
     this.pushIssue(issues, args.issue);
     this.checkActions(serviceId, manifestResult.value.actions, issues);
-    await this.checkCommand(appPath, command, args.values, issues);
+    if (protocol === "wasi-component") {
+      await this.checkPortableComponent(appPath, manifestResult.value, issues);
+    } else {
+      await this.checkCommand(appPath, command, args.values, issues);
+    }
     return issues;
   };
 
   private checkManifestFields = (
     appPath: string,
     manifest: JsonRecord,
+    protocol: string,
     issues: AppCheckIssue[],
   ): string | undefined => {
     const id = readRequiredString(manifest, "id", "service");
@@ -51,16 +57,51 @@ export class ServiceAppCheckService {
       });
     }
     this.pushIssue(issues, readRequiredString(manifest, "title", "service").issue);
-    this.pushIssue(issues, readRequiredString(manifest, "command", "service").issue);
-    const protocol = readOptionalString(manifest, "protocol") ?? "mcp";
-    if (protocol !== "mcp") {
+    if (protocol === "mcp") {
+      this.pushIssue(issues, readRequiredString(manifest, "command", "service").issue);
+    } else if (protocol !== "wasi-component") {
       issues.push({
         severity: "error",
         code: "service.protocol.invalid",
-        message: "Service App protocol must be mcp.",
+        message: "Service App protocol must be mcp or wasi-component.",
       });
     }
     return id.value;
+  };
+
+  private checkPortableComponent = async (
+    appPath: string,
+    manifest: JsonRecord,
+    issues: AppCheckIssue[],
+  ): Promise<void> => {
+    if (!isRecord(manifest.component)) {
+      issues.push({
+        severity: "error",
+        code: "service.component.missing",
+        message: "wasi-component Service App must declare component.entry.",
+      });
+      return;
+    }
+    const entry = readRequiredString(manifest.component, "entry", "service.component");
+    this.pushIssue(issues, entry.issue);
+    if (!entry.value) return;
+    const normalized = entry.value.replace(/\\/g, "/");
+    if (path.isAbsolute(normalized) || normalized.split("/").includes("..") || !normalized.endsWith(".wasm")) {
+      issues.push({
+        severity: "error",
+        code: "service.component.entryInvalid",
+        message: "service.component.entry must be a package-relative .wasm path.",
+      });
+      return;
+    }
+    const componentPath = resolveRelativeFile(appPath, normalized);
+    if (!componentPath || !(await fileExists(componentPath))) {
+      issues.push({
+        severity: "error",
+        code: "service.component.notFound",
+        message: `Portable Component does not exist: ${entry.value}.`,
+      });
+    }
   };
 
   private checkActions = (

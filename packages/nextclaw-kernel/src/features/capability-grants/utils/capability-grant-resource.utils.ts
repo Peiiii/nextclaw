@@ -1,7 +1,12 @@
 import type { CapabilityGrantRequest } from "@kernel/features/capability-grants/types/capability-grant.types.js";
 import { createCapabilityDeclarationFingerprint } from "@kernel/features/capability-grants/utils/capability-grant.utils.js";
 import type { PanelAppAgentCapability } from "@kernel/types/panel-app.types.js";
-import type { ServiceAction, ServiceActionCaller } from "@kernel/types/service-app.types.js";
+import type {
+  PanelServiceActionCaller,
+  ServiceAction,
+  ServiceActionCaller,
+} from "@kernel/types/service-app.types.js";
+import { getServiceActionCallerId } from "@kernel/utils/service-action.utils.js";
 
 export function createPanelAppClientGrantRequest(
   appId: string,
@@ -15,11 +20,11 @@ export function createPanelAppClientGrantRequest(
 }
 
 export function createPanelAppAgentGrantRequest(
-  caller: ServiceActionCaller,
+  caller: PanelServiceActionCaller,
   capability: PanelAppAgentCapability,
 ): CapabilityGrantRequest {
   return {
-    subject: { type: caller.surface, id: caller.appId },
+    subject: { type: caller.surface, id: getServiceActionCallerId(caller) },
     resource: { type: "agent.capability", target: { capability } },
     access: ["invoke"],
     declarationFingerprint: createCapabilityDeclarationFingerprint({ capability }),
@@ -31,7 +36,7 @@ export function createServiceActionGrantRequest(
   action: ServiceAction,
 ): CapabilityGrantRequest {
   return {
-    subject: { type: caller.surface, id: caller.appId },
+    subject: { type: caller.surface, id: getServiceActionCallerId(caller) },
     resource: { type: "service.action", target: { actionId: action.id } },
     access: ["invoke"],
     declarationFingerprint: createCapabilityDeclarationFingerprint({

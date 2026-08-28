@@ -1,0 +1,88 @@
+name: portable-runtime-validate
+
+on:
+  pull_request:
+    paths:
+      - "apps/nextclaw-wasmtime-runner/**"
+      - "packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/**"
+      - "packages/nextclaw/src/cli/shared/lib/distribution/**"
+      - ".github/workflows/portable-runtime-validate.yml"
+      - "package.json"
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - "apps/nextclaw-wasmtime-runner/**"
+      - "packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/**"
+      - "packages/nextclaw/src/cli/shared/lib/distribution/**"
+      - ".github/workflows/portable-runtime-validate.yml"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portable-runtime-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-runner:
+    name: native-runner-${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            platform: darwin
+            arch: arm64
+            target: darwin-arm64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            target: linux-x64
+          - os: windows-latest
+            platform: win32
+            arch: x64
+            target: win32-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+
+      - name: Install cargo-component
+        uses: taiki-e/install-action@cargo-component
+
+      - name: Validate build contract
+        run: node --test apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.test.mjs
+
+      - name: Build native runner and universal Components
+        run: node apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+
+      - name: Run native runner tests
+        working-directory: apps/nextclaw-wasmtime-runner
+        run: cargo test --release
+
+      - name: Upload runner resource
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-runtime-${{ matrix.target }}
+          path: packages/nextclaw/resources/native/${{ matrix.target }}/nextclaw-wasmtime-runner*
+          if-no-files-found: error

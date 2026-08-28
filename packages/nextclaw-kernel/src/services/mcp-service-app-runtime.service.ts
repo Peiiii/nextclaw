@@ -127,6 +127,9 @@ export class McpServiceAppRuntimeService {
     app: ServiceAppRecord,
     manifest: ServiceAppManifest,
   ): McpServerRecord => {
+    if (!manifest.command || !manifest.args) {
+      throw new Error(`MCP Service App ${app.id} is missing its launch command.`);
+    }
     const launch = resolveRuntimeCommandLaunch(manifest.command);
     return {
       name: app.id,

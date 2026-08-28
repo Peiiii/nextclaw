@@ -25,7 +25,13 @@ describe("createNextclawDistribution", () => {
         templatesDir: resolve(packageRoot, "templates"),
         uiDistDir: resolve(packageRoot, "ui-dist"),
         runtimeUpdatePublicKeyPath: resolve(packageRoot, "resources/update-bundle-public.pem"),
-        builtInAppsDirectory: resolve(packageRoot, "resources/apps")
+        builtInAppsDirectory: resolve(packageRoot, "resources/apps"),
+        portableServiceRunnerPath: resolve(
+          packageRoot,
+          "resources/native",
+          `${process.platform}-${process.arch}`,
+          process.platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner"
+        )
       });
       expect(
         createNextclawDistribution(pathToFileURL(resolve(packageRoot, "src/cli/app/index.ts")).href)

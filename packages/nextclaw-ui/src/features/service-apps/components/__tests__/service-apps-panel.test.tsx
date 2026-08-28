@@ -11,6 +11,7 @@ const refetchServiceApps = vi.fn();
 const refetchAppData = vi.fn();
 const restartServiceAppMutate = vi.fn();
 const revokeServiceActionGrantMutate = vi.fn();
+const grantAgentServiceActionsMutate = vi.fn();
 const resetDeleteServiceApp = vi.fn();
 
 vi.mock('@/features/app-data/hooks/use-app-data', () => ({
@@ -66,6 +67,10 @@ vi.mock('@/features/service-apps/hooks/use-service-apps', () => ({
     isPending: false,
     mutateAsync: discoverServiceAppActionsMutateAsync,
   }),
+  useGrantAgentServiceActions: () => ({
+    isPending: false,
+    mutate: grantAgentServiceActionsMutate,
+  }),
   useRestartServiceApp: () => ({
     mutate: restartServiceAppMutate,
   }),
@@ -79,7 +84,18 @@ vi.mock('@/features/service-apps/hooks/use-service-apps', () => ({
     refetch: refetchServiceActionGrants,
   }),
   useServiceActions: () => ({
-    data: { actions: [] },
+    data: {
+      actions: [{
+        id: 'notes.read',
+        appId: 'notes',
+        name: 'read',
+        title: 'Read notes',
+        description: 'Read persisted notes.',
+        risk: 'read',
+        runtimeState: 'matched',
+        grantState: 'not-granted',
+      }],
+    },
     isError: false,
     isLoading: false,
     refetch: refetchServiceActions,
@@ -120,6 +136,10 @@ vi.mock('@/features/service-apps/hooks/use-service-apps', () => ({
     isLoading: false,
     refetch: refetchServiceApps,
   }),
+}));
+
+vi.mock('@/shared/hooks/use-agents', () => ({
+  useAgents: () => ({ data: { agents: [{ id: 'main', displayName: 'Main' }] } }),
 }));
 
 describe('ServiceAppsPanel', () => {
@@ -170,5 +190,19 @@ describe('ServiceAppsPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Manage in Apps' }));
 
     expect(onManagePackage).toHaveBeenCalledWith('nextclaw.personal-organizer');
+  });
+
+  it('explicitly grants a service action to the selected agent', async () => {
+    const user = userEvent.setup();
+    render(<ServiceAppsPanel onManagePackage={vi.fn()} />);
+
+    await user.click(screen.getAllByRole('button', { name: /Actions/ })[0]!);
+    await user.click(screen.getByRole('button', { name: 'Grant to Agent' }));
+    await user.click(screen.getByRole('button', { name: 'Main' }));
+
+    expect(grantAgentServiceActionsMutate).toHaveBeenCalledWith({
+      actionIds: ['notes.read'],
+      agentId: 'main',
+    });
   });
 });

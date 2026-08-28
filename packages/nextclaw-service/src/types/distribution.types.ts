@@ -8,4 +8,5 @@ export type NextclawDistribution = {
   uiDistDir: string;
   runtimeUpdatePublicKeyPath: string;
   builtInAppsDirectory?: string;
+  portableServiceRunnerPath?: string;
 };

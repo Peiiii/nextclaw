@@ -352,6 +352,7 @@ class UiRouteRegistry {
       ["delete", "/api/service-actions/:actionId/grant", serviceApps.revokeServiceAction],
       ["get", "/api/service-action-grants", serviceApps.listServiceActionGrants],
       ["post", "/api/service-action-grants", serviceApps.grantServiceActions],
+      ["post", "/api/agents/:agentId/service-action-grants", serviceApps.grantAgentServiceActions],
       ["delete", "/api/service-action-grants/:actionId", serviceApps.revokeServiceActionGrant],
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/search", serverPath.search],

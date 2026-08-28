@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>灵感便签</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <p class="eyebrow">QUICK NOTES</p>
+        <h1>灵感便签</h1>
+        <p>先记下来，不让刚刚想到的东西溜走。</p>
+      </header>
+
+      <form class="note-composer" data-note-form>
+        <textarea data-note-input rows="4" maxlength="800" placeholder="写下一句话、一个想法，或者稍后要查的东西…"></textarea>
+        <div><span data-character-count>0 / 800</span><button type="submit">保存便签</button></div>
+      </form>
+
+      <div class="toolbar">
+        <label><span>搜索便签</span><input data-search type="search" placeholder="输入关键词" /></label>
+        <span data-note-count>0 张便签</span>
+      </div>
+
+      <section class="notes-grid" data-notes-grid aria-live="polite">
+        <div class="empty">正在打开你的便签盒…</div>
+      </section>
+
+      <p class="notice" data-notice></p>
+
+      <details class="behind-scenes">
+        <summary>为什么它也是运行时 Demo？</summary>
+        <p>便签和“今日清单”是两个独立 Panel，却复用同一个底层数据 Component。产品可以变，稳定的存储与授权能力不用为每个页面重新实现。</p>
+        <dl><div><dt>当前数据版本</dt><dd data-proof-revision>等待读取</dd></div><div><dt>可被 Agent 使用</dt><dd>是，同一 Service Action</dd></div></dl>
+      </details>
+    </main>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

@@ -5,7 +5,7 @@ import type {
   NcpRunHandle,
 } from "@nextclaw/ncp";
 import type { AgentRunSendIngressPayload } from "@nextclaw/shared";
-import type { ServiceActionCaller } from "@kernel/types/service-app.types.js";
+import type { PanelServiceActionCaller } from "@kernel/types/service-app.types.js";
 
 export type PanelAppEntry = {
   id: string;
@@ -60,7 +60,7 @@ export type PanelAppBridgeSession = {
   id: string;
   token: string;
   appId: string;
-  caller: ServiceActionCaller;
+  caller: PanelServiceActionCaller;
   declaredCapabilities: string[];
   declaredActions: string[];
   clientDeclared: boolean;

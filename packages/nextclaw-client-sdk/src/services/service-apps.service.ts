@@ -107,6 +107,16 @@ export class ServiceAppsClientService {
     );
   };
 
+  readonly grantAgentServiceActions = async (
+    agentId: string,
+    actionIds: string[],
+  ): Promise<ServiceActionGrantListView> => {
+    return await this.requestService.post<ServiceActionGrantListView>(
+      `/api/agents/${encodeURIComponent(agentId)}/service-action-grants`,
+      { actionIds },
+    );
+  };
+
   readonly listServiceActionGrants = async (): Promise<ServiceActionGrantListView> => {
     return await this.requestService.get<ServiceActionGrantListView>(
       "/api/service-action-grants",
@@ -125,11 +135,15 @@ export class ServiceAppsClientService {
 
   readonly revokeServiceActionGrant = async (params: {
     actionId: string;
-    caller: { surface: "panel-app"; appId: string };
+    caller:
+      | { surface: "panel-app"; appId: string }
+      | { surface: "agent"; agentId: string };
   }): Promise<{ revoked: boolean }> => {
     const search = new URLSearchParams({
       surface: params.caller.surface,
-      appId: params.caller.appId,
+      callerId: params.caller.surface === "panel-app"
+        ? params.caller.appId
+        : params.caller.agentId,
     });
     return await this.requestService.delete<{ revoked: boolean }>(
       `/api/service-action-grants/${encodeURIComponent(params.actionId)}?${search.toString()}`,

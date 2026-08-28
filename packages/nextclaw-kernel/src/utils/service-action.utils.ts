@@ -3,6 +3,7 @@ import type {
   ServiceActionGrantState,
   ServiceActionRisk,
 } from "@kernel/types/service-app.types.js";
+import { ServiceAppError } from "@kernel/utils/service-app-error.utils.js";
 
 export const DEFAULT_SERVICE_ACTION_RISK: ServiceActionRisk = "dangerous";
 
@@ -23,15 +24,48 @@ export function getServiceActionName(actionId: string, appId: string): string {
 }
 
 export function getServiceActionCallerKey(caller: ServiceActionCaller): string {
-  return `${caller.surface}:${caller.appId}`;
+  return `${caller.surface}:${getServiceActionCallerId(caller)}`;
 }
 
 export function parseServiceActionCallerKey(key: string): ServiceActionCaller | null {
-  const [surface, appId, ...rest] = key.split(":");
-  if (surface !== "panel-app" || !appId || rest.length > 0) {
+  const [surface, callerId, ...rest] = key.split(":");
+  if (!callerId || rest.length > 0) {
     return null;
   }
-  return { surface, appId };
+  if (surface === "panel-app") return { surface, appId: callerId };
+  if (surface === "agent") return { surface, agentId: callerId };
+  return null;
+}
+
+export function getServiceActionCallerId(caller: ServiceActionCaller): string {
+  return caller.surface === "panel-app" ? caller.appId : caller.agentId;
+}
+
+export function assertServiceActionCaller(
+  caller: ServiceActionCaller,
+  hasAgent?: (agentId: string) => boolean,
+): void {
+  if (caller.surface === "panel-app" && caller.appId.trim()) return;
+  if (
+    caller.surface === "agent" &&
+    caller.agentId.trim() &&
+    (hasAgent?.(caller.agentId) ?? true)
+  ) return;
+  throw new ServiceAppError("SERVICE_APP_INVALID_CALLER", "service action caller is invalid");
+}
+
+export function assertServiceActionDeclared(
+  caller: ServiceActionCaller,
+  actionId: string,
+  declaredActions: readonly string[] | undefined,
+): void {
+  if (caller.surface === "agent") return;
+  if (!declaredActions?.includes(actionId)) {
+    throw new ServiceAppError(
+      "SERVICE_APP_ACTION_NOT_DECLARED",
+      "panel app did not declare this service action",
+    );
+  }
 }
 
 export function resolveServiceActionGrantState({

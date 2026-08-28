@@ -1,0 +1,20 @@
+{
+  "id": "nextclaw-portable-runtime-lab-capabilities",
+  "title": "Portable Capability Component",
+  "description": "Rust/WASM 网络、拒绝、错误与超时演示模块。",
+  "protocol": "wasi-component",
+  "component": {
+    "entry": "service.wasm"
+  },
+  "actions": {
+    "network_allowed": { "risk": "external", "title": "访问允许的网络" },
+    "network_denied": { "risk": "read", "title": "验证网络拒绝" },
+    "structured_failure": { "risk": "dangerous", "title": "触发结构化失败" },
+    "simulate_timeout": {
+      "risk": "dangerous",
+      "title": "触发执行超时",
+      "timeoutMs": 1200
+    },
+    "runtime_info": { "risk": "read", "title": "查看共享宿主" }
+  }
+}

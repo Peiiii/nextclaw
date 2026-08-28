@@ -31,6 +31,10 @@ Agent 可以生成 `.panel.html` 或带清单的应用，再在右侧打开预�
 
 如果 Panel App 需要本地运行时或受控操作，可以配合 Service App。授权前要确认它提供哪些动作、可访问哪些文件或服务，并只开放完成任务所需的范围。
 
+Service Apps 页面会列出每个 Service Action。可以从动作旁的授权入口选择一个 Agent；授权后，该 Agent 会把同一个 Action 作为工具发现和调用。授权可以随时撤销，未授权的 Agent 不会看到该工具。
+
+如何连接 Service、确认 Panel 授权和把 Action 交给 Agent，见 [Service Apps](/zh/guide/service-apps)。
+
 ## 应用数据与卸载
 
 NextClaw 把可安装的代码与会变化的应用数据分开管理。更新应用时只替换代码，继续使用原来的受管实例；卸载应用或从 workspace 移除 Service App 时也默认保留实例，之后重装仍可接着使用。
@@ -51,4 +55,4 @@ nextclaw app data delete <data-id> --confirm <app-id> --json
 
 独立删除只接受已经卸载或移除的 `retained` 数据。请从最新清单复制不透明的 data id，并让 `--confirm` 与 App id 完全一致；不要手工删除存储目录。
 
-相关文档：[会话工作区](/zh/guide/workspace) · [查看任务结果](/zh/guide/results)
+相关文档：[会话工作区](/zh/guide/workspace) · [查看任务结果](/zh/guide/results) · [Service Apps](/zh/guide/service-apps)

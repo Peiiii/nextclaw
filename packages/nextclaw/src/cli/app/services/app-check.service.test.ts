@@ -117,4 +117,24 @@ describe("AppCheckService", () => {
     expect(report.kind).toBe("service");
     expect(report.issues.map((issue) => issue.code)).toContain("service.command.syntaxInvalid");
   });
+
+  it("passes a Rust/WASM portable Service App without a process command", async () => {
+    const workspace = await createWorkspace();
+    const servicePath = path.join(workspace, "service-apps", "portable-notes");
+    await mkdir(servicePath, { recursive: true });
+    await writeJson(path.join(servicePath, "service-app.json"), {
+      id: "portable-notes",
+      title: "Portable Notes",
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      actions: { list: { risk: "read" } },
+    });
+    await writeFile(path.join(servicePath, "service.wasm"), "component");
+
+    const report = await new AppCheckService().check(servicePath);
+
+    expect(report.ok).toBe(true);
+    expect(report.kind).toBe("service");
+    expect(report.issues).toEqual([]);
+  });
 });

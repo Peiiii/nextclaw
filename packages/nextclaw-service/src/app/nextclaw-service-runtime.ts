@@ -94,6 +94,7 @@ export class NextclawServiceRuntime {
       builtInAppsDirectory: distribution.builtInAppsDirectory,
       configPath,
       homeDir: getDataDir(),
+      portableServiceRunnerPath: distribution.portableServiceRunnerPath,
       productActivitySink: productActivityReporter,
       productVersion: distribution.version,
     };
@@ -173,6 +174,7 @@ export class NextclawServiceRuntime {
     const kernel = new NextclawKernel({
       homeDir: getDataDir(),
       configPath,
+      portableServiceRunnerPath: distribution.portableServiceRunnerPath,
       productVersion: distribution.version,
       productActivitySink: productActivityReporter,
     });

@@ -175,14 +175,16 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | Command                         | Purpose                                                                |
 | ------------------------------- | ---------------------------------------------------------------------- |
 | `nextclaw app check`            | Check a Panel App or Service App directory                             |
-| `nextclaw app dev`              | Start and debug a Service App through the real Runtime                 |
+| `nextclaw app dev`              | Start and debug an MCP or Portable Service App through the real Runtime |
 | `nextclaw app pack`             | Package a `.napp` artifact for one declared platform target            |
 | `nextclaw app validate-publish` | Validate an App and its artifacts before Marketplace submission        |
 | `nextclaw app publish`          | Submit an App to App Marketplace                                       |
-| `nextclaw app call`             | Call a Service App action through the real Runtime                     |
+| `nextclaw app call`             | Call an MCP or Portable Service App action through the real Runtime     |
 | `nextclaw app restart`          | Restart a Service App running in the NextClaw UI                       |
 | `nextclaw app data list`        | List active and retained App data instances                            |
 | `nextclaw app data delete`      | Permanently delete retained App data with an exact App-ID confirmation |
+
+See [Service Apps](/en/guide/service-apps) for the user workflow and [Develop a WASM Service App](/en/developers/portable-service-apps) for runtime development commands.
 
 ## Automation guidance
 

@@ -23,6 +23,7 @@ import {
   AppInstallSourceService,
   type ResolvedAppInstallSource,
 } from "#app-runtime/services/app-install-source.service.js";
+import { resolveAppInstallationContract } from "#app-runtime/utils/app-installation-contract.utils.js";
 import type {
   AppInfoResult,
   AppInstallProgressHandler,
@@ -161,45 +162,33 @@ export class AppInstallationService {
     }
     await onProgress?.("installing");
     const existingRecord = await this.registryService.getApp(appId);
-    const publisher = source.kind === "registry"
-      ? source.registryResolution.publisher
-      : options.trustedPublisher;
-    const currentPublisher = existingRecord?.publisher ??
-      existingRecord?.installedVersions[existingRecord.activeVersion]?.publisher;
-    if (currentPublisher && currentPublisher.id !== publisher?.id) {
-      throw new Error(
-        `应用 ${appId} 已绑定发布者 ${currentPublisher.id}，拒绝由 ${publisher?.id ?? "未验证本地来源"} 覆盖。`,
-      );
-    }
-    const dataSchemaVersion = manifestBundle.manifest.schemaVersion === 2
-      ? manifestBundle.manifest.storage?.schemaVersion ?? 1
-      : 1;
-    if (existingRecord?.defaultInstance.dataSchemaVersion !== undefined &&
-      existingRecord.defaultInstance.dataSchemaVersion !== dataSchemaVersion) {
-      throw new Error(
-        `应用 ${appId} 数据 schema 从 ${existingRecord.defaultInstance.dataSchemaVersion} 升级到 ${dataSchemaVersion}，但包内没有受支持的迁移合同。更新已停止，现有数据和版本保持不变。`,
-      );
-    }
+    const { currentPublisher, dataSchemaVersion, publisher } =
+      resolveAppInstallationContract({
+        appId, existingRecord, manifestBundle, source,
+        trustedPublisher: options.trustedPublisher,
+      });
     const instanceDirectory = this.appHomeService.getAppInstanceDirectory(appId, "default");
     const instanceExisted = await this.integrityService.pathExists(instanceDirectory);
     const contentSha256 = await this.filesystemService.copyToImmutableInstallDirectory({
-      appId,
-      appVersion: version,
-      extractedDirectory,
-      installDirectory,
-      target: extractedMetadata.metadata.target?.kind === "native" ? extractedMetadata.metadata.target : undefined,
-    });
-    const defaultInstance = await this.instanceStorageService.materializeDefaultInstance({
-      appId,
-      publisherId: (currentPublisher ?? publisher)?.id,
-      legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy"
-        ? existingRecord.dataDirectory
+      appId, appVersion: version, extractedDirectory, installDirectory,
+      target: extractedMetadata.metadata.target?.kind === "native"
+        ? extractedMetadata.metadata.target
         : undefined,
-      dataSchemaVersion,
     });
-    await onProgress?.("finalizing");
+    let defaultInstance: Awaited<ReturnType<
+      AppInstanceStorageService["materializeDefaultInstance"]
+    >> | undefined;
     let registryRecord;
     try {
+      defaultInstance = await this.instanceStorageService.materializeDefaultInstance({
+        appId,
+        publisherId: (currentPublisher ?? publisher)?.id,
+        legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy"
+          ? existingRecord.dataDirectory
+          : undefined,
+        dataSchemaVersion,
+      });
+      await onProgress?.("finalizing");
       registryRecord = await this.registryService.upsertInstallation({
         appId,
         name: manifestBundle.manifest.name,
@@ -242,7 +231,7 @@ export class AppInstallationService {
       });
     } catch (error) {
       await this.integrityService.removeDirectory(installDirectory);
-      if (!instanceExisted) {
+      if (!instanceExisted && defaultInstance) {
         await this.instanceStorageService.rollbackNewInstance({
           instance: defaultInstance,
           legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy"
@@ -251,6 +240,9 @@ export class AppInstallationService {
         });
       }
       throw error;
+    }
+    if (!defaultInstance) {
+      throw new Error(`应用 ${appId} 安装完成但缺少默认实例。`);
     }
     const installedVersion = registryRecord.installedVersions[version];
     return {

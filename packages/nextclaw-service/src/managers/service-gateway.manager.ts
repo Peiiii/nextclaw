@@ -131,6 +131,7 @@ export class ServiceGatewayManager {
         homeDir,
         configPath,
         builtInAppsDirectory: this.distribution.builtInAppsDirectory,
+        portableServiceRunnerPath: this.distribution.portableServiceRunnerPath,
         productVersion: this.distribution.version,
         productActivitySink: this.productActivityReporter,
         desktopHost: this.desktopHost,

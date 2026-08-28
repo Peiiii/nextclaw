@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>今日清单</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">TODAY</p>
+          <h1>今日清单</h1>
+          <p>把脑子里的事情放下来，一件一件完成。</p>
+        </div>
+        <div class="date-card"><strong data-date-day>—</strong><span data-date-label>—</span></div>
+      </header>
+
+      <form class="composer" data-todo-form>
+        <input data-todo-input maxlength="160" placeholder="今天还要做什么？" autocomplete="off" />
+        <button type="submit">添加</button>
+      </form>
+
+      <section class="summary" aria-label="任务概况">
+        <span><strong data-open-count>0</strong> 件待完成</span>
+        <span><strong data-done-count>0</strong> 件已完成</span>
+        <button type="button" class="text-button" data-refresh>刷新</button>
+      </section>
+
+      <section class="todo-list" data-todo-list aria-live="polite">
+        <div class="empty">正在读取你的清单…</div>
+      </section>
+
+      <p class="notice" data-notice></p>
+
+      <details class="behind-scenes">
+        <summary>这个小应用背后发生了什么？</summary>
+        <p>每次添加、完成和删除都会调用同一组 Rust/WASM Service Action，并写入 NextClaw 管理的持久数据。关掉再打开，清单仍然存在；授权后的 Agent 也可以操作同一份数据。</p>
+        <dl><div><dt>数据</dt><dd data-proof-revision>等待读取</dd></div><div><dt>存储</dt><dd>NextClaw Host KV</dd></div></dl>
+      </details>
+    </main>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

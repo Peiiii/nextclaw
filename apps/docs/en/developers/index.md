@@ -1,42 +1,27 @@
-# NextClaw Harness SDK
+# NextClaw developers
 
-NextClaw provides two headless entry points. They share task, session, event, and result semantics, so scripts, CI jobs, and Node.js programs can choose an entry point without changing core behavior.
+NextClaw currently provides two developer surfaces. Harness SDK integrates Agents, Sessions, and Runs into programs or scripts. Portable Runtime builds WASM Service Apps managed by NextClaw.
 
-| Entry point | Use it for | What it provides |
-| --- | --- | --- |
-| [In-process Harness](./harness) | Node.js applications, services, and long-lived processes | Compose Agents, manage sessions and runs, and own lifecycle in process |
-| [`nextclaw exec`](./exec) | Shell, CI, scheduled jobs, and pipelines | One task with clean stdout and text/JSON/JSONL output |
-| [Platform capabilities](./platform-capabilities) | Agent platforms that bring their own integrations | Observe events, extend ingress, and register tools, context, models, runtimes, and MCP |
+## Harness SDK
 
-## Which should I use?
+Use Harness SDK to run NextClaw tasks from a Node.js process or the CLI with shared Session, event, and result semantics.
 
-- For one task and one result, use `nextclaw exec` or `runNextclawTask()`.
-- For multiple tasks in one process, event callbacks, or explicit session control, use the Harness.
-- To resume a session, pass `sessionId` or `--session` explicitly. Without it, a new `exec:<uuid>` session is created.
+| Entry point | Use it for |
+| --- | --- |
+| [Harness API](./harness) | Node.js applications, services, and long-lived processes |
+| [`nextclaw exec`](./exec) | Shell, CI, scheduled jobs, and pipelines |
+| [Platform capabilities](./platform-capabilities) | Register tools, context, models, runtimes, and MCP |
 
-## Quick start
+[Get started with Harness SDK](./harness)
 
-The CLI is included with NextClaw:
+## Portable Runtime
 
-```bash
-nextclaw exec "Summarize the current workspace"
-```
+Implement a Service App business Component in Rust and run it in NextClaw's shared native runner. Panels, Agents, and the CLI can use the same Service Actions.
 
-Install the dedicated Harness entry package for Node.js applications:
+| Document | What it covers |
+| --- | --- |
+| [Portable Runtime](./portable-runtime) | Execution model, roles, host capabilities, and current boundaries |
+| [Runtime model and capability contracts](./portable-runtime-contracts) | WIT, manifests, lifecycle, timeout, and recovery semantics |
+| [Develop a WASM Service App](./portable-service-apps) | Rust guest, App layout, Panel calls, and CLI development |
 
-```bash
-pnpm add @nextclaw/harness
-```
-
-```ts
-import { runNextclawTask } from '@nextclaw/harness';
-
-const result = await runNextclawTask({ input: 'Summarize the current workspace' });
-console.log(result.text);
-```
-
-## Experimental boundary
-
-The current public surface covers Harness lifecycle, Agent and session handles, live runs, the Kernel-owned event bus and ingress, and lifecycle-scoped contributions for tools, context, models, runtimes, and MCP. App Server, structured output, approval handlers, storage adapters, sandbox adapters, skills, channels, and apps are not public Harness APIs yet.
-
-Continue with the [Harness API](./harness), [Platform capabilities](./platform-capabilities), [`nextclaw exec`](./exec), and [Examples](./examples).
+[Start with Portable Runtime](./portable-runtime)

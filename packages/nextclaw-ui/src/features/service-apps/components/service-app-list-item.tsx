@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type {
+  AgentProfileView,
   ServiceActionGrantView,
   ServiceActionListView,
   AppDataEntry,
@@ -16,13 +17,12 @@ import {
   PauseCircle,
   Radar,
   Server,
-  ShieldCheck,
   Trash2,
   Unplug,
   type LucideIcon,
-  Wrench,
 } from "lucide-react";
 import { ServiceAppDeleteDialog } from "@/features/service-apps/components/service-app-delete-dialog";
+import { ServiceActionRow } from "@/features/service-apps/components/service-action-row";
 import {
   Popover,
   PopoverContent,
@@ -45,6 +45,7 @@ export function ServiceAppListItem({
   actions,
   actionsOpen,
   grants,
+  agents,
   deletePending,
   deleteError,
   dataEntry,
@@ -57,11 +58,14 @@ export function ServiceAppListItem({
   onResetDelete,
   onRestart,
   onRevoke,
+  onGrantAgent,
+  grantAgentPending,
 }: {
   app: ServiceAppRecordView;
   actions: ServiceActionView[];
   actionsOpen: boolean;
   grants: ServiceActionGrantView[];
+  agents: AgentProfileView[];
   deletePending: boolean;
   deleteError: unknown;
   dataEntry?: AppDataEntry;
@@ -74,6 +78,8 @@ export function ServiceAppListItem({
   onResetDelete: () => void;
   onRestart: (appId: string) => void;
   onRevoke: (grant: ServiceActionGrantView) => void;
+  onGrantAgent: (actionId: string, agentId: string) => void;
+  grantAgentPending: boolean;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -245,6 +251,9 @@ export function ServiceAppListItem({
                       grants={grants.filter(
                         (grant) => grant.actionId === action.id,
                       )}
+                      agents={agents}
+                      grantAgentPending={grantAgentPending}
+                      onGrantAgent={onGrantAgent}
                       onRevoke={onRevoke}
                     />
                   ))}
@@ -431,69 +440,5 @@ function ServiceAppDiagnosticRow({
         {value}
       </dd>
     </>
-  );
-}
-
-function ServiceActionRow({
-  action,
-  grants,
-  onRevoke,
-}: {
-  action: ServiceActionView;
-  grants: ServiceActionGrantView[];
-  onRevoke: (grant: ServiceActionGrantView) => void;
-}) {
-  return (
-    <div className="py-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center text-muted-foreground">
-            <Wrench className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-xs font-medium text-foreground">
-              {action.title ?? action.name}
-            </div>
-            {action.description ? (
-              <div className="truncate text-[11px] text-muted-foreground">
-                {action.description}
-              </div>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {action.runtimeState ? (
-            <span className="text-[11px] text-muted-foreground">
-              {t(`serviceAppsRuntimeState_${action.runtimeState}`)}
-            </span>
-          ) : null}
-          <span className="text-[11px] text-muted-foreground">
-            {action.risk}
-          </span>
-        </div>
-      </div>
-      {grants.map((grant) => (
-        <div
-          key={`${grant.caller.surface}:${grant.caller.appId}:${grant.actionId}`}
-          className="mt-1.5 flex items-center justify-between gap-2 pl-8"
-        >
-          <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-muted-foreground">
-            <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-500" />
-            <span className="truncate">
-              {t("serviceAppsGrantedTo")} {grant.caller.appId}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => onRevoke(grant)}
-            className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-rose-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
-            title={t("serviceAppsRevokeGrant")}
-            aria-label={t("serviceAppsRevokeGrant")}
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        </div>
-      ))}
-    </div>
   );
 }

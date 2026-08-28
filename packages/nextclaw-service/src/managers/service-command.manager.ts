@@ -25,6 +25,7 @@ import { SessionCommands } from "@nextclaw-service/controllers/commands/session/
 import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
 import type { ServiceRestartManager } from "@nextclaw-service/managers/service-restart.manager.js";
 import type { ServiceWorkspaceManager } from "@nextclaw-service/managers/service-workspace.manager.js";
+import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 
 const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
 
@@ -67,9 +68,11 @@ export class ServiceCommandManager {
   readonly remote: RemoteCommands;
 
   constructor(private readonly deps: ServiceCommandManagerDeps) {
+    const distribution = NextclawDistributionService.get();
     const createKernel = () => new NextclawKernel({
       homeDir: getDataDir(),
       configPath: getConfigPath(),
+      portableServiceRunnerPath: distribution.portableServiceRunnerPath,
     });
     const start = new StartCommands({
       runtimeCommandService: this.deps.managedService,

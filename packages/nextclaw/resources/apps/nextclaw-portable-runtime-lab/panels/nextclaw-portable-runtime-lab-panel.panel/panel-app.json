@@ -1,0 +1,29 @@
+{
+  "id": "nextclaw-portable-runtime-lab-panel",
+  "title": "开发者验证台",
+  "description": "查看四个日常小应用背后的 Rust/WASM 运行链证据。",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-portable-runtime-lab-state.counter_read",
+    "nextclaw-portable-runtime-lab-state.counter_increment",
+    "nextclaw-portable-runtime-lab-state.records_seed",
+    "nextclaw-portable-runtime-lab-state.records_list",
+    "nextclaw-portable-runtime-lab-state.record_upsert",
+    "nextclaw-portable-runtime-lab-state.record_delete",
+    "nextclaw-portable-runtime-lab-state.data_snapshot",
+    "nextclaw-portable-runtime-lab-state.runtime_info",
+    "nextclaw-portable-runtime-lab-capabilities.network_allowed",
+    "nextclaw-portable-runtime-lab-capabilities.network_denied",
+    "nextclaw-portable-runtime-lab-capabilities.structured_failure",
+    "nextclaw-portable-runtime-lab-capabilities.simulate_timeout",
+    "nextclaw-portable-runtime-lab-capabilities.runtime_info",
+    "nextclaw-portable-runtime-lab-resident.resident_status",
+    "nextclaw-portable-runtime-lab-resident.resident_emit_event",
+    "nextclaw-portable-runtime-lab-resident.resident_reset",
+    "nextclaw-portable-runtime-lab-resident.runtime_info",
+    "nextclaw-portable-runtime-lab-provider.provider_status",
+    "nextclaw-portable-runtime-lab-composition.compose_contact",
+    "nextclaw-portable-runtime-lab-composition.provider_denied",
+    "nextclaw-portable-runtime-lab-composition.runtime_info"
+  ]
+}

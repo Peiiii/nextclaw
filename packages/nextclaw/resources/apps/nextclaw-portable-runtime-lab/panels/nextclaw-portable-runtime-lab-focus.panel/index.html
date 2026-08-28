@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>专注小钟</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div><p class="eyebrow">FOCUS</p><h1>专注小钟</h1><p>开始后就去做事吧，关掉这个页面，时间也不会停。</p></div>
+        <span class="live"><i></i> 后台计时中</span>
+      </header>
+
+      <section class="clock-card">
+        <div class="clock" data-clock>00:00</div>
+        <p data-clock-caption>正在读取本轮专注时间…</p>
+        <div class="actions">
+          <button type="button" data-start>开始新一轮</button>
+          <button type="button" class="secondary" data-milestone>记下完成点</button>
+        </div>
+      </section>
+
+      <section class="timeline">
+          <div class="section-title"><div><h2>最近的专注记录</h2><p>完成一个阶段时点一下，记录会被保存下来。</p></div><button type="button" class="text-button" data-refresh>刷新</button></div>
+        <ol data-milestones><li class="empty">还没有完成点</li></ol>
+      </section>
+
+      <p class="notice" data-notice></p>
+
+      <details class="behind-scenes">
+        <summary>关闭页面后，为什么计时还会继续？</summary>
+        <p>计时不属于这个页面，而是由 NextClaw 宿主持续向一个常驻 Rust/WASM Component 投递事件；完成点同时写入持久数据 Component。Panel 只负责查看和控制，所以页面关闭、重新打开，甚至宿主恢复后都能继续。</p>
+        <dl><div><dt>本次实例</dt><dd data-proof-epoch>等待读取</dd></div><div><dt>持久事件</dt><dd data-proof-events>等待读取</dd></div></dl>
+      </details>
+    </main>
+    <script src="assets/app.js"></script>
+  </body>
+</html>
