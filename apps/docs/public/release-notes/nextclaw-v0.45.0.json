@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.45.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-28",
+  "title": {
+    "zh-CN": "NextClaw v0.45.0",
+    "en-US": "NextClaw v0.45.0"
+  },
+  "summary": {
+    "zh-CN": "现在可以把 Rust 编写的 Service App 编译为可移植的 WebAssembly Component，并在 macOS、Windows 和 Linux 上由 NextClaw 统一运行。",
+    "en-US": "Build Rust Service Apps as portable WebAssembly Components and run them through NextClaw on macOS, Windows, and Linux."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-28-nextclaw-v0-45-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-28-nextclaw-v0-45-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "功能", "en-US": "Features" },
+      "items": [
+        {
+          "title": { "zh-CN": "跨平台运行的 Service App", "en-US": "Cross-platform Service Apps" },
+          "body": {
+            "zh-CN": "Service App 可以把 Rust 逻辑编译为 WebAssembly Component，由 NextClaw 随产品提供的运行器加载，不需要在每台机器单独准备开发者运行环境。",
+            "en-US": "A Service App can compile Rust logic into a WebAssembly Component that runs in the runner shipped with NextClaw, without preparing a developer runtime on every machine."
+          }
+        },
+        {
+          "title": { "zh-CN": "可体验的日常小工具箱", "en-US": "A practical daily toolkit" },
+          "body": {
+            "zh-CN": "内置示例包含今日清单、灵感便签、专注小钟和联系人整理，用来体验数据保存、后台常驻事件、模块之间协作、面板授权和 Agent 调用应用能力。",
+            "en-US": "The included examples cover a daily list, quick notes, a focus timer, and contact organizing, demonstrating saved data, resident background events, module collaboration, panel permissions, and Agent access to app capabilities."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "增强", "en-US": "Enhancements" },
+      "items": [
+        {
+          "title": { "zh-CN": "统一的应用开发与恢复链路", "en-US": "A unified app development and recovery path" },
+          "body": {
+            "zh-CN": "使用 nextclaw app check、dev 和 call 可以检查、调试和调用可移植 Service App；运行器超时或退出后，持久组件会按依赖关系恢复，已有数据会保留。",
+            "en-US": "Use nextclaw app check, dev, and call to validate, debug, and invoke Portable Service Apps. Persistent components recover in dependency order after a runner timeout or exit, while their existing data is retained."
+          }
+        }
+      ]
+    }
+  ]
+}
