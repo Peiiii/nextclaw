@@ -1,5 +1,32 @@
 # nextclaw
 
+## 0.44.2
+
+### Patch Changes
+
+- e0c3bf9: <!-- release-note-image: zh-CN | images/screenshots/nextclaw-inline-engineering-20260827-cn.png | NextClaw 对话内的悬臂梁载荷评估，参数、曲线与安全结论同步变化 -->
+
+  官网首页现在用真实 NextClaw 会话录屏展示消息内 Panel App：拖动工程参数后，图表、读数与安全结论会在同一条回复中同步变化；同时压缩关键图片并优化版本化媒体缓存，减少官网加载等待。
+
+- 882b6e0: Mini Apps 现在统一通过 `nextclaw app` 管理。可从 App Marketplace、本地应用目录或本地 `.napp` 包安装，并可通过命令行查看、启停、更新、回滚、卸载和查询操作结果。应用市场不再为每个应用保存或返回另一套安装命令。
+- bad2c8d: 现在可以直接从聊天侧边栏每个会话的更多菜单删除会话，无需先打开目标会话。删除当前会话会回到会话根页；删除其它会话不会中断当前阅读，并会显示成功或失败提示。删除确认弹窗打开后，可按 Enter 确认或 Escape 取消。命令行也新增 `nextclaw sessions delete <session-id> --confirm <session-id> --json`，确认值必须与会话 ID 完全一致。
+- Updated dependencies
+- Updated dependencies [f80df69]
+- Updated dependencies [4a6fc30]
+- Updated dependencies [882b6e0]
+- Updated dependencies [bad2c8d]
+  - @nextclaw/core@0.17.11
+  - @nextclaw/kernel@0.11.0
+  - @nextclaw/server@0.19.0
+  - @nextclaw/app-runtime@0.13.3
+  - @nextclaw/shared@0.4.29
+  - @nextclaw/service@0.3.49
+  - @nextclaw/mcp@0.3.38
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.38
+  - @nextclaw/remote@0.3.46
+  - @nextclaw/runtime@0.4.37
+  - @nextclaw/ncp-mcp@0.2.38
+
 ## 0.44.1
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # nextclaw-core
 
+## 0.17.11
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+
+- Updated dependencies [882b6e0]
+  - @nextclaw/shared@0.4.29
+
 ## 0.17.10
 
 ### Patch Changes

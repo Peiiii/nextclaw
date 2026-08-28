@@ -1,5 +1,35 @@
 # @nextclaw/service
 
+## 0.3.49
+
+### Patch Changes
+
+- bad2c8d: 现在可以直接从聊天侧边栏每个会话的更多菜单删除会话，无需先打开目标会话。删除当前会话会回到会话根页；删除其它会话不会中断当前阅读，并会显示成功或失败提示。删除确认弹窗打开后，可按 Enter 确认或 Escape 取消。命令行也新增 `nextclaw sessions delete <session-id> --confirm <session-id> --json`，确认值必须与会话 ID 完全一致。
+- Updated dependencies
+- Updated dependencies [f80df69]
+- Updated dependencies [4a6fc30]
+- Updated dependencies [882b6e0]
+  - @nextclaw/core@0.17.11
+  - @nextclaw/kernel@0.11.0
+  - @nextclaw/server@0.19.0
+  - @nextclaw/client-sdk@0.8.0
+  - @nextclaw/shared@0.4.29
+  - @nextclaw/channel-extension-dingtalk@0.2.37
+  - @nextclaw/channel-extension-discord@0.2.37
+  - @nextclaw/channel-extension-email@0.2.37
+  - @nextclaw/channel-extension-slack@0.2.37
+  - @nextclaw/channel-extension-telegram@0.2.37
+  - @nextclaw/channel-extension-wecom@0.2.37
+  - @nextclaw/channel-extension-whatsapp@0.2.37
+  - @nextclaw/mcp@0.3.38
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.38
+  - @nextclaw/remote@0.3.46
+  - @nextclaw/runtime@0.4.37
+  - @nextclaw/channel-extension-feishu@0.2.30
+  - @nextclaw/channel-extension-qq@0.2.29
+  - @nextclaw/channel-extension-weixin@0.2.30
+  - @nextclaw/ncp-mcp@0.2.38
+
 ## 0.3.48
 
 ### Patch Changes

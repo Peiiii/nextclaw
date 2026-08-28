@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/desktop-extension-wechat",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "description": "NextClaw WeChat Desktop observation extension.",
   "type": "module",
@@ -12,7 +12,11 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "nextclaw.extension.json", "README.md"],
+  "files": [
+    "dist",
+    "nextclaw.extension.json",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsdown src/index.ts src/main.ts --dts.sourcemap --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
