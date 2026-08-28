@@ -37,6 +37,12 @@ Related guide:
 
 - [Run Automations](/en/guide/cron)
 
+### Appearance
+
+Open **Settings → Appearance** to choose the interface theme, language, message layout, and SideDock visibility. Theme choices apply immediately and are kept on the current device across reloads.
+
+The `Island` theme combines a warm paper canvas, a gently swaying tropical tree, and quieter interface chrome for a calmer, more atmospheric workspace. The tree stays still when reduced motion is enabled. It changes presentation only; tasks, sessions, and tool behavior stay the same.
+
 ### Privacy and anonymous analytics
 
 NextClaw sends anonymous usage analytics by default to estimate active installations and successful activity for the current day, calendar week, and calendar month. Each window uses an unrelated random one-time receipt. Accounts, login tokens, persistent installation identifiers, messages, replies, tool data, files, URLs, IP addresses, User-Agent, and diagnostic logs are never sent.

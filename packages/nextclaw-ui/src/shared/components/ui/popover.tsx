@@ -24,6 +24,7 @@ const PopoverContent = React.forwardRef<
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
+      data-theme-overlay="popover"
       sideOffset={sideOffset}
       align={align}
       collisionPadding={collisionPadding}

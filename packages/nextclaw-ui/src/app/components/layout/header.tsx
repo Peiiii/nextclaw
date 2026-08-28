@@ -5,7 +5,10 @@ interface HeaderProps {
 
 export function Header({ title, description }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center bg-background/90 px-6 backdrop-blur-sm transition-all duration-base">
+    <header
+      data-theme-surface="header"
+      className="sticky top-0 z-10 flex h-14 items-center bg-background/90 px-6 backdrop-blur-sm transition-all duration-base"
+    >
       <div className="flex items-center gap-3">
         {title && (
           <div>

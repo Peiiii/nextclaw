@@ -29,4 +29,13 @@ describe('ui theme defaults', () => {
       labelKey: 'themeCharcoal',
     });
   });
+
+  it('recognizes island as a light theme option', () => {
+    expect(normalizeTheme('island')).toBe('island');
+    expect(getThemeAppearance('island')).toBe('light');
+    expect(THEME_OPTIONS).toContainEqual({
+      value: 'island',
+      labelKey: 'themeIsland',
+    });
+  });
 });

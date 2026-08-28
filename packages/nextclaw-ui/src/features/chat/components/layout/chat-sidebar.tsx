@@ -279,6 +279,7 @@ export function ChatSidebar({
 
   return (
     <aside
+      data-theme-surface="navigation"
       className={cn(
         "flex h-full min-h-0 flex-col bg-secondary transition-[width] duration-200 ease-out",
         isMobileVariant

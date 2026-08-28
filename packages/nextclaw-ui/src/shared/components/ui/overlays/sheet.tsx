@@ -16,6 +16,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     ref={ref}
+    data-theme-overlay="modal-backdrop"
     className={cn(
       "fixed inset-0 z-[var(--z-modal-backdrop,10000)] bg-black/35 backdrop-blur-[1px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
@@ -59,6 +60,7 @@ const SheetContent = React.forwardRef<
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}
+      data-theme-overlay="sheet"
       className={cn(sheetVariants({ side }), className)}
       {...props}
     >

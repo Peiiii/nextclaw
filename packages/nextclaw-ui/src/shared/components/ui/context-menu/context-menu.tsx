@@ -108,6 +108,7 @@ function ContextMenuSurface({
       <div
         ref={menuRef}
         role="menu"
+        data-theme-overlay="menu"
         aria-label={label}
         className="fixed min-w-52 max-w-72 overflow-hidden rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_18px_48px_-20px_rgba(15,23,42,0.42)]"
         style={{ left: position.x, top: position.y }}

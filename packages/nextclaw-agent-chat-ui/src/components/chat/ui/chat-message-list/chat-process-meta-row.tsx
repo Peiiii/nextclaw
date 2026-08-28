@@ -19,7 +19,10 @@ export function ChatProcessLeadingIcon({
   className?: string;
 }) {
   return (
-    <span className={cn(CHAT_PROCESS_LEADING_COL_CLASS, className)}>
+    <span
+      data-theme-control="process-icon"
+      className={cn(CHAT_PROCESS_LEADING_COL_CLASS, className)}
+    >
       {children}
     </span>
   );

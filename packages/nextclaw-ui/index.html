@@ -68,6 +68,12 @@
       background: #1c1c1c;
     }
 
+    html[data-theme="island"],
+    html[data-theme="island"] body,
+    html[data-theme="island"] #root {
+      background: #fbf8ed;
+    }
+
     html[data-theme="probe"],
     html[data-theme="probe"] body,
     html[data-theme="probe"] #root {
@@ -88,6 +94,7 @@
         graphite: '#F8F8F7',
         night: '#101318',
         charcoal: '#1C1C1C',
+        island: '#FBF8ED',
         probe: '#FEFCF6'
       };
       const themeAppearances = {
@@ -100,6 +107,7 @@
         graphite: 'light',
         night: 'dark',
         charcoal: 'dark',
+        island: 'light',
         probe: 'light'
       };
       const legacyThemeAliases = {

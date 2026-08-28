@@ -83,6 +83,7 @@ describe("DesktopAppShell", () => {
     const controls = screen.getByTestId("desktop-window-controls");
 
     expect(chrome).toBeTruthy();
+    expect(chrome.getAttribute("data-theme-surface")).toBe("header");
     expect(
       chrome.parentElement?.style.getPropertyValue("--desktop-titlebar-height"),
     ).toBe("40px");
@@ -149,6 +150,13 @@ describe("DesktopAppShell", () => {
 
     expect(screen.queryByTestId("desktop-window-chrome")).toBeNull();
     expect(screen.getByTestId("app-content")).toBeTruthy();
+    expect(
+      document.querySelector('[data-theme-decoration="island-paper"]'),
+    ).toBeTruthy();
+    expect(
+      document.querySelector('[data-theme-decoration="island-palm"]'),
+    ).toBeTruthy();
+    expect(document.querySelector("#island-wind-filter")).toBeTruthy();
   });
 
   it("keeps mobile bottom navigation visible inside Windows desktop hosts at narrow widths", () => {

@@ -163,6 +163,7 @@ describe("ChatSessionWorkspacePanel", () => {
 
     const panel = screen.getByTestId("chat-session-workspace-panel");
     expect(panel.className).not.toContain("absolute");
+    expect(panel.getAttribute("data-theme-surface")).toBe("workspace-panel");
 
     await user.click(
       screen.getByRole("button", { name: "Maximize workspace panel" }),

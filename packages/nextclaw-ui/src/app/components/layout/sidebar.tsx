@@ -203,6 +203,7 @@ export function Sidebar() {
 
   return (
     <aside
+      data-theme-surface="navigation"
       className={cn(
         "shrink-0 flex h-full min-h-0 flex-col overflow-hidden bg-secondary pb-6 transition-[width] duration-200 ease-out",
         isCollapsed

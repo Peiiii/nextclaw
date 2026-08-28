@@ -50,7 +50,10 @@ export function PageHeader({
     const Heading = headingLevel === 1 ? 'h1' : 'h2';
 
     return (
-        <header className={cn('flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between', className)}>
+        <header
+            data-theme-surface="header"
+            className={cn('flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between', className)}
+        >
             <div className="min-w-0">
                 <Heading className="text-xl font-semibold tracking-tight text-foreground">{title}</Heading>
                 {description && (

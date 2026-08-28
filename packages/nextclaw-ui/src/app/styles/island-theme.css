@@ -1,0 +1,542 @@
+@layer base {
+  :root[data-theme="island"] {
+    color-scheme: light;
+
+    /* Sea-glass actions over sun-warmed paper. */
+    --brand-50: 152 38% 94%;
+    --brand-100: 153 36% 88%;
+    --brand-200: 154 34% 79%;
+    --brand-300: 155 35% 66%;
+    --brand-400: 156 39% 49%;
+    --brand-500: 157 50% 34%;
+    --brand-600: 158 53% 28%;
+    --brand-700: 159 55% 22%;
+    --brand-800: 160 52% 17%;
+    --brand-900: 162 48% 12%;
+
+    /* Cream paper and green-black ink. */
+    --gray-50: 45 48% 93%;
+    --gray-100: 44 38% 89%;
+    --gray-200: 42 32% 84%;
+    --gray-300: 40 22% 74%;
+    --gray-400: 75 8% 56%;
+    --gray-500: 104 8% 43%;
+    --gray-600: 128 10% 32%;
+    --gray-700: 142 14% 24%;
+    --gray-800: 68 16% 22%;
+    --gray-900: 160 25% 11%;
+
+    --background: var(--gray-50);
+    --background-secondary: var(--gray-100);
+    --background-tertiary: var(--gray-200);
+    --foreground: var(--gray-800);
+    --foreground-secondary: var(--gray-700);
+    --foreground-tertiary: var(--gray-500);
+    --foreground-muted: var(--gray-400);
+    --link-foreground: 158 58% 28%;
+    --link-foreground-hover: 160 62% 20%;
+    --primary: var(--brand-500);
+    --primary-hover: var(--brand-600);
+    --primary-active: var(--brand-700);
+    --primary-foreground: 45 67% 97%;
+    --secondary: var(--gray-100);
+    --secondary-hover: 151 25% 86%;
+    --secondary-foreground: var(--gray-800);
+    --accent: 151 28% 88%;
+    --accent-foreground: var(--brand-800);
+    --interaction-hover: hsl(151 25% 86% / 0.72);
+    --interaction-selection: hsl(153 35% 80% / 0.82);
+    --interaction-selection-border: hsl(157 37% 58% / 0.88);
+    --muted: var(--gray-100);
+    --muted-foreground: var(--gray-500);
+    --destructive: 5 61% 47%;
+    --destructive-foreground: 45 67% 97%;
+    --success: 157 50% 34%;
+    --success-foreground: 45 67% 97%;
+    --warning: 35 74% 45%;
+    --warning-foreground: 160 25% 11%;
+    --card: 45 46% 93%;
+    --card-foreground: var(--gray-800);
+    --card-border: 40 28% 78%;
+    --popover: 45 46% 95%;
+    --popover-foreground: var(--gray-800);
+    --border: 40 27% 78%;
+    --border-hover: 150 18% 62%;
+    --border-active: var(--brand-500);
+    --input: 45 44% 94%;
+    --input-border: 40 27% 78%;
+    --input-focus: var(--brand-500);
+    --ring: var(--brand-500);
+    --ring-offset: var(--gray-50);
+
+    --radius: 0.4rem;
+    --radius-sm: 3px;
+    --radius-md: 5px;
+    --radius-lg: 7px;
+    --radius-xl: 10px;
+    --radius-2xl: 14px;
+    --radius-3xl: 18px;
+
+    --font-sans:
+      "American Typewriter", "Courier New", "Noto Sans Mono", monospace;
+    --font-mono:
+      "American Typewriter", "Courier New", "Noto Sans Mono", monospace;
+    --island-font-display:
+      "American Typewriter", "Hannotate SC", "HanziPen SC", "Kaiti SC", STKaiti,
+      KaiTi, serif;
+    --shadow-xs: 0 1px 2px rgb(44 57 36 / 0.05);
+    --shadow-sm:
+      0 1px 3px rgb(44 57 36 / 0.07), 0 1px 2px -1px rgb(44 57 36 / 0.06);
+    --shadow-md:
+      0 8px 20px -14px rgb(35 67 47 / 0.28), 0 3px 8px -6px rgb(82 65 37 / 0.18);
+    --shadow-lg:
+      0 16px 32px -20px rgb(35 67 47 / 0.32),
+      0 7px 14px -10px rgb(82 65 37 / 0.2);
+    --shadow-xl: 0 24px 44px -26px rgb(35 67 47 / 0.36);
+    --shadow-2xl: 0 30px 56px -30px rgb(35 67 47 / 0.4);
+    --shadow-card:
+      0 0 0 1px hsl(var(--border) / 0.46),
+      0 14px 34px -28px rgb(42 75 52 / 0.42);
+    --shadow-card-hover:
+      0 0 0 1px hsl(var(--border-hover) / 0.62),
+      0 18px 42px -28px rgb(42 75 52 / 0.5);
+  }
+
+  :root[data-theme="island"] ::selection {
+    background: hsl(155 42% 68% / 0.52);
+    color: hsl(var(--gray-900));
+  }
+
+  :root[data-theme="island"]
+    :is(.chat-markdown-assistant, .chat-markdown-user) {
+    --md-text: hsl(var(--foreground));
+    --md-muted: hsl(var(--foreground-tertiary));
+    --md-border: hsl(var(--border-hover) / 0.62);
+    --md-link: hsl(var(--link-foreground));
+    --md-inline-code-bg: hsl(151 24% 84% / 0.72);
+    --md-inline-code-color: hsl(var(--gray-800));
+    --md-blockquote-border: hsl(var(--brand-400) / 0.58);
+    --md-blockquote-bg: hsl(151 28% 88% / 0.66);
+    --md-code-surface: hsl(157 26% 12%);
+    --md-code-toolbar-bg: hsl(157 23% 16%);
+    --md-code-toolbar-border: hsl(151 18% 32% / 0.78);
+    --md-code-text: #ebead8;
+    --md-code-muted: #9cac9a;
+    --md-code-keyword: #d8b487;
+    --md-code-title: #91c8b1;
+    --md-code-string: #b8d69e;
+    --md-code-number: #e2c078;
+    --md-code-comment: #829787;
+    --md-code-attr: #8bc6bd;
+    --md-code-meta: #cfaa9c;
+    --md-code-deletion: #dfa69a;
+    --md-code-addition: #a8d394;
+    --md-table-head-bg: hsl(151 22% 84% / 0.6);
+  }
+
+  :root[data-theme="island"] .chat-terminal-surface {
+    --terminal-surface: hsl(157 26% 12%);
+    --terminal-border: hsl(151 18% 32% / 0.78);
+    --terminal-text: #ebead8;
+    --terminal-muted: #9cac9a;
+    --terminal-prompt: #8fc8a8;
+    --terminal-caret: #a8d394;
+    --terminal-error-border: rgba(199, 110, 93, 0.56);
+    --terminal-error-bg: rgba(111, 42, 31, 0.2);
+    --terminal-error-text: #efb8aa;
+  }
+}
+
+@layer utilities {
+  :is(
+    [data-theme-decoration="island-paper"],
+    [data-theme-decoration="island-palm"]
+  ) {
+    display: none;
+  }
+
+  :root[data-theme="island"] [data-theme-surface="app-shell"] {
+    isolation: isolate;
+    position: relative;
+    background-color: hsl(var(--background));
+    background-image: none;
+    font-variant-ligatures: none;
+    letter-spacing: 0.006em;
+    text-shadow:
+      0.022em 0 hsl(166 34% 25% / 0.055),
+      -0.016em 0 hsl(26 35% 36% / 0.05);
+  }
+
+  :root[data-theme="island"] [data-theme-decoration="island-paper"] {
+    background: url("/themes/island/island-atmosphere.webp") center top / cover
+      no-repeat;
+    display: block;
+    inset: 0;
+    opacity: 0.94;
+    pointer-events: none;
+    position: absolute;
+    z-index: 0;
+  }
+
+  :root[data-theme="island"] [data-theme-decoration="island-palm"] {
+    display: block;
+    inset: 0;
+    opacity: 1;
+    pointer-events: none;
+    position: absolute;
+    z-index: 0;
+  }
+
+  :root[data-theme="island"]
+    [data-theme-decoration="island-palm"]
+    [data-island-palm-part] {
+    background: url("/themes/island/island-atmosphere.webp") center top / cover
+      no-repeat;
+    clip-path: polygon(46% 0, 100% 0, 100% 61%, 62% 55%);
+    inset: 0;
+    mask-image: radial-gradient(
+      ellipse at 88% 17%,
+      black 0 43%,
+      rgb(0 0 0 / 0.86) 51%,
+      transparent 72%
+    );
+    position: absolute;
+    will-change: filter;
+  }
+
+  :root[data-theme="island"]
+    [data-theme-decoration="island-palm"]
+    [data-island-palm-part="frond-wind"] {
+    filter: url("#island-wind-filter");
+    opacity: 1;
+  }
+
+  :root[data-theme="island"] [data-theme-surface="navigation"] {
+    background: transparent;
+    border-right: 1px solid hsl(var(--border) / 0.56);
+  }
+
+  :root[data-theme="island"]
+    :is(
+      [data-theme-surface="workspace"],
+      [data-theme-surface="settings-workspace"]
+    ) {
+    background: transparent;
+  }
+
+  :root[data-theme="island"] [data-theme-surface="utility-rail"] {
+    background: transparent;
+    border-color: hsl(var(--border) / 0.58);
+  }
+
+  :root[data-theme="island"]
+    :is(
+      [data-theme-surface="workspace-panel"],
+      [data-theme-surface="doc-browser"]
+    ) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: transparent;
+    border-color: hsl(var(--border) / 0.54);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    :is(.bg-white, .bg-background),
+  :root[data-theme="island"]
+    [data-theme-surface="doc-browser"]
+    :is(.bg-white, .bg-background) {
+    background-color: transparent;
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    :is(.bg-card, .bg-muted) {
+    background-color: hsl(var(--card) / 0.52);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="doc-browser"]
+    .bg-card {
+    background-color: hsl(var(--card) / 0.22);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="doc-browser"]
+    .bg-muted {
+    background-color: hsl(var(--card) / 0.28);
+  }
+
+  :root[data-theme="island"] [data-theme-surface="workspace-explorer"] {
+    background-color: hsl(var(--card) / 0.16);
+    border-color: hsl(var(--border) / 0.48);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    :is(
+      [data-file-code-surface="true"],
+      [data-file-code-canvas="true"]
+    ),
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    [data-file-code-canvas="true"]
+    > .bg-card,
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    [data-file-code-row="true"].bg-card {
+    background-color: transparent;
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    [data-file-code-gutter="true"]
+    :is([data-file-line-number-cell="true"].bg-muted, .bg-muted) {
+    background-color: hsl(var(--card) / 0.12);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    [data-file-target-line="true"]
+    [data-file-code-row="true"],
+  :root[data-theme="island"]
+    [data-theme-surface="workspace-panel"]
+    [data-file-line-number-cell="true"][aria-current="location"] {
+    background-color: hsl(var(--brand-200) / 0.28);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="doc-browser"]
+    .doc-browser-tab-scrollbar {
+    background-color: transparent;
+  }
+
+  :root[data-theme="island"]
+    :is(
+      [data-theme-overlay="popover"],
+      [data-theme-overlay="menu"],
+      [data-theme-overlay="select"],
+      .bg-popover,
+      [role="menu"].bg-popover,
+      [role="listbox"].bg-popover
+    ) {
+    -webkit-backdrop-filter: blur(18px) saturate(0.9);
+    backdrop-filter: blur(18px) saturate(0.9);
+    background-color: hsl(var(--popover) / 0.9);
+    border-color: hsl(var(--border) / 0.7);
+    box-shadow: 0 18px 42px -24px hsl(158 27% 20% / 0.46);
+  }
+
+  :root[data-theme="island"] [data-theme-overlay="tooltip"] {
+    -webkit-backdrop-filter: blur(14px) saturate(0.9);
+    backdrop-filter: blur(14px) saturate(0.9);
+    background-color: hsl(var(--popover) / 0.94);
+    border-color: hsl(var(--border) / 0.72);
+    box-shadow: 0 10px 24px -18px hsl(158 27% 20% / 0.42);
+  }
+
+  :root[data-theme="island"]
+    :is([data-theme-overlay="dialog"], [data-theme-overlay="sheet"]) {
+    -webkit-backdrop-filter: blur(24px) saturate(0.88);
+    backdrop-filter: blur(24px) saturate(0.88);
+    background-color: hsl(var(--popover) / 0.94);
+    border-color: hsl(var(--border) / 0.72);
+    box-shadow: 0 32px 80px -32px hsl(158 31% 17% / 0.58);
+  }
+
+  :root[data-theme="island"] [data-theme-overlay="modal-backdrop"] {
+    -webkit-backdrop-filter: blur(3px) saturate(0.82);
+    backdrop-filter: blur(3px) saturate(0.82);
+    background-color: hsl(158 22% 16% / 0.24);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="app-shell"]
+    :is(h1, h2, h3, button, [role="tab"], [aria-current="page"]) {
+    font-family: var(--island-font-display);
+    letter-spacing: 0.025em;
+  }
+
+  :root[data-theme="island"] [data-theme-surface="header"] {
+    background-color: transparent;
+    background-image: none;
+    backdrop-filter: none;
+  }
+
+  :root[data-theme="island"]
+    :is([data-theme-surface="navigation"], [data-theme-surface="header"])
+    :is(.bg-secondary, .bg-background) {
+    background-color: transparent;
+  }
+
+  :root[data-theme="island"] .nextclaw-chat-composer-surface {
+    background-color: hsl(var(--card) / 0.86);
+    border-color: hsl(var(--border) / 0.7);
+    backdrop-filter: blur(18px) saturate(0.88);
+  }
+
+  :root[data-theme="island"] [data-theme-control="chat-search"] {
+    background-color: transparent;
+    border: 1px solid transparent;
+  }
+
+  :root[data-theme="island"] [data-theme-control="chat-search"]:hover {
+    background-color: hsl(var(--background) / 0.22);
+  }
+
+  :root[data-theme="island"] [data-theme-control="chat-search"]:focus {
+    background-color: hsl(var(--background) / 0.28);
+    border-color: hsl(var(--brand-500) / 0.58);
+  }
+
+  :root[data-theme="island"] .nextclaw-chat-input-bar-surface {
+    background-color: transparent;
+    background-image: none;
+  }
+
+  :root[data-theme="island"] .nextclaw-chat-composer:focus {
+    caret-color: hsl(var(--brand-500));
+    text-shadow:
+      0.055em 0 hsl(163 44% 35% / 0.12),
+      -0.035em 0 hsl(28 42% 38% / 0.1);
+  }
+
+  :root[data-theme="island"] .chat-markdown[data-stream-phase="0"] {
+    animation: island-ink-echo-a 240ms ease-out;
+  }
+
+  :root[data-theme="island"] .chat-markdown[data-stream-phase="1"] {
+    animation: island-ink-echo-b 260ms ease-out;
+  }
+
+  :root[data-theme="island"] .chat-markdown[data-stream-phase="2"] {
+    animation: island-ink-echo-c 220ms ease-out;
+  }
+
+  :root[data-theme="island"] .nextclaw-chat-message-user {
+    -webkit-backdrop-filter: blur(12px) saturate(0.88);
+    backdrop-filter: blur(12px) saturate(0.88);
+    background-color: hsl(151 28% 87% / 0.5);
+    border-color: hsl(153 22% 62% / 0.42);
+    color: hsl(var(--gray-800));
+    box-shadow:
+      inset 0 1px 0 hsl(45 70% 98% / 0.52),
+      0 9px 22px -20px rgb(42 75 52 / 0.52);
+  }
+
+  :root[data-theme="island"] .nextclaw-chat-message-avatar-user {
+    -webkit-backdrop-filter: blur(10px) saturate(0.86);
+    backdrop-filter: blur(10px) saturate(0.86);
+    background-color: hsl(45 58% 94% / 0.46);
+    color: hsl(var(--brand-700));
+    box-shadow:
+      inset 0 0 0 1px hsl(var(--brand-500) / 0.34),
+      0 5px 14px -12px rgb(42 75 52 / 0.48);
+  }
+
+  :root[data-theme="island"]
+    [data-theme-control="process-icon"].bg-card {
+    background-color: transparent;
+    color: hsl(var(--brand-700) / 0.82);
+  }
+
+  :root[data-theme="island"] [data-reasoning-scroll="true"] {
+    background-color: transparent;
+    border-left: 1px solid hsl(var(--brand-600) / 0.28);
+    border-radius: 0;
+  }
+
+  :root[data-theme="island"]
+    [data-theme-surface="navigation"]
+    :is([aria-current="page"], [aria-selected="true"], [data-state="active"]),
+  :root[data-theme="island"]
+    [data-theme-surface="utility-rail"]
+    :is([aria-pressed="true"], [data-state="active"]) {
+    background-color: hsl(151 27% 84% / 0.68);
+    color: hsl(var(--brand-800));
+  }
+
+  :root[data-theme="island"]
+    :is(
+      .custom-scrollbar,
+      .workspace-horizontal-scrollbar,
+      .doc-browser-tab-scrollbar
+    ) {
+    scrollbar-color: hsl(var(--brand-400) / 0.35) transparent;
+  }
+
+  :root[data-theme="island"] .custom-scrollbar::-webkit-scrollbar-thumb,
+  :root[data-theme="island"]
+    .workspace-horizontal-scrollbar::-webkit-scrollbar-thumb,
+  :root[data-theme="island"]
+    .doc-browser-tab-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--brand-400) / 0.3);
+  }
+
+  @media (max-width: 760px) {
+    :root[data-theme="island"] [data-theme-surface="app-shell"] {
+      background-image: none;
+    }
+
+    :root[data-theme="island"] [data-theme-decoration="island-palm"] {
+      inset: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-theme="island"] .chat-markdown[data-stream-phase] {
+      animation: none;
+    }
+
+    :root[data-theme="island"]
+      [data-theme-decoration="island-palm"]
+      [data-island-palm-part] {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    :root[data-theme="island"]
+      :is(
+        .nextclaw-chat-composer-surface,
+        .nextclaw-chat-message-user,
+        .nextclaw-chat-message-avatar-user,
+        [data-theme-surface="workspace-panel"],
+        [data-theme-surface="doc-browser"]
+      ) {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+
+    :root[data-theme="island"] .nextclaw-chat-message-user {
+      background-color: hsl(151 28% 87% / 0.9);
+    }
+
+    :root[data-theme="island"] .nextclaw-chat-message-avatar-user {
+      background-color: hsl(45 58% 94% / 0.9);
+    }
+  }
+}
+
+@keyframes island-ink-echo-a {
+  from {
+    opacity: 0.9;
+    text-shadow: 0.08em 0 hsl(163 45% 34% / 0.28);
+  }
+}
+
+@keyframes island-ink-echo-b {
+  from {
+    opacity: 0.92;
+    text-shadow: -0.065em 0 hsl(27 42% 38% / 0.24);
+  }
+}
+
+@keyframes island-ink-echo-c {
+  from {
+    opacity: 0.91;
+    text-shadow:
+      0.05em 0 hsl(163 45% 34% / 0.2),
+      -0.035em 0 hsl(27 42% 38% / 0.18);
+  }
+}

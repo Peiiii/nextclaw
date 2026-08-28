@@ -8,6 +8,7 @@ export type UiTheme =
   | 'graphite'
   | 'night'
   | 'charcoal'
+  | 'island'
   | 'probe';
 export type UiThemeAppearance = 'light' | 'dark';
 
@@ -24,6 +25,7 @@ const THEME_DEFINITIONS: readonly UiThemeDefinition[] = [
   { value: 'work', labelKey: 'themeWork', appearance: 'light' },
   { value: 'night', labelKey: 'themeNight', appearance: 'dark' },
   { value: 'charcoal', labelKey: 'themeCharcoal', appearance: 'dark' },
+  { value: 'island', labelKey: 'themeIsland', appearance: 'light' },
   { value: 'natural', labelKey: 'themeNatural', appearance: 'light' },
   { value: 'minimal', labelKey: 'themeMinimal', appearance: 'light' },
   { value: 'warm', labelKey: 'themeWarm', appearance: 'light' },

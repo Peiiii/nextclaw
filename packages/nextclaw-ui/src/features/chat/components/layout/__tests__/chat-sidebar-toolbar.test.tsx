@@ -40,6 +40,11 @@ describe("ChatSidebarToolbar", () => {
     expect(
       screen.getByPlaceholderText("Search conversations...").className,
     ).toContain("border-0");
+    expect(
+      screen
+        .getByPlaceholderText("Search conversations...")
+        .getAttribute("data-theme-control"),
+    ).toBe("chat-search");
   });
 
   it("keeps mobile search icon transparent to pointer input", () => {
@@ -49,5 +54,10 @@ describe("ChatSidebarToolbar", () => {
     expect(
       screen.getByPlaceholderText("Search conversations...").className,
     ).toContain("border-0");
+    expect(
+      screen
+        .getByPlaceholderText("Search conversations...")
+        .getAttribute("data-theme-control"),
+    ).toBe("chat-search");
   });
 });

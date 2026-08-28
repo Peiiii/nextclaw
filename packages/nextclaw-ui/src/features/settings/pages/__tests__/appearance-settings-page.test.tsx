@@ -66,8 +66,8 @@ describe("AppearanceSettingsPage", () => {
     render(<AppearanceSettingsPage />);
 
     fireEvent.click(screen.getByRole("combobox", { name: "Theme" }));
-    fireEvent.click(screen.getByRole("option", { name: "Charcoal" }));
-    expect(mocks.setTheme).toHaveBeenCalledWith("charcoal");
+    fireEvent.click(screen.getByRole("option", { name: "Island" }));
+    expect(mocks.setTheme).toHaveBeenCalledWith("island");
 
     fireEvent.click(screen.getByRole("combobox", { name: "Language" }));
     fireEvent.click(screen.getByRole("option", { name: "中文" }));

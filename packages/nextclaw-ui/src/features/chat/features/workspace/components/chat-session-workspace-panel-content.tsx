@@ -363,6 +363,7 @@ export function ChatSessionWorkspacePanelContent({
       ) : null}
       <div
         data-testid="workspace-shared-explorer"
+        data-theme-surface="workspace-explorer"
         data-mode={projectFilesActive ? 'full' : explorerOverlay ? 'overlay' : 'side'}
         className={cn(
           'relative min-h-0 shrink-0 flex-col border-r border-gray-200/80 bg-white',

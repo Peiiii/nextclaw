@@ -100,6 +100,15 @@ describe('PwaShellThemeManager', () => {
     expect(document.documentElement.style.colorScheme).toBe('dark');
   });
 
+  it('applies island shell colors and light color scheme', () => {
+    pwaShellThemeManager.syncTheme('island');
+
+    const meta = document.querySelector('meta[name="theme-color"]');
+    expect(meta?.getAttribute('content')).toBe('#FBF8ED');
+    expect(document.body.style.backgroundColor).toBe('rgb(251, 248, 237)');
+    expect(document.documentElement.style.colorScheme).toBe('light');
+  });
+
   it('maps the legacy leaf theme to warm shell colors', () => {
     document.documentElement.setAttribute('data-theme', 'leaf');
 

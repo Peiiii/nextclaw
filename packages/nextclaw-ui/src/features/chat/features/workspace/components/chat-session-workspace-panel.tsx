@@ -187,6 +187,7 @@ export function ChatSessionWorkspacePanel({
   return (
     <ResizableRightPanel
       data-testid="chat-session-workspace-panel"
+      data-theme-surface="workspace-panel"
       className={cn(
         isOverlayPanel
           ? "bg-white"

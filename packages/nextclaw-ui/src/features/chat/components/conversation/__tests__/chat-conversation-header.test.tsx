@@ -38,6 +38,7 @@ describe("ChatConversationHeader", () => {
 
     const header = screen.getByTestId("chat-conversation-header");
 
+    expect(header.getAttribute("data-theme-surface")).toBe("header");
     expect(header?.className).toContain("h-[52px]");
     expect(header?.className).not.toContain("border-b");
     expect(header?.className).not.toContain("transition-all");

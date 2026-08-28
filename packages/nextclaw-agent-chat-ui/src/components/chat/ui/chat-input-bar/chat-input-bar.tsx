@@ -178,9 +178,9 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
       : 'bg-background px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2';
 
   return (
-    <div className={surfaceClassName}>
+    <div className={`nextclaw-chat-input-bar-surface ${surfaceClassName}`}>
       <div className="nextclaw-chat-input-bar-shell mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="nextclaw-chat-composer-surface overflow-hidden rounded-2xl border border-border bg-card shadow-card">
           {topSlot ? (
             <div className="px-3 pb-0 pt-2 sm:px-4 sm:pt-2.5">
               {topSlot}

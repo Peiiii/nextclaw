@@ -59,10 +59,12 @@ export function DesktopAppShell({
   const settingsScroll = useScrollRestoration<HTMLElement>({
     restorationKey: isMainRoute ? null : `settings-page:${pathname}`,
   });
-  const { onScroll: onSettingsScroll, scrollRef: settingsScrollRef } = settingsScroll;
+  const { onScroll: onSettingsScroll, scrollRef: settingsScrollRef } =
+    settingsScroll;
 
   return (
     <div
+      data-theme-surface="app-shell"
       className={cn(
         "h-screen flex flex-col overflow-hidden bg-background font-sans text-foreground",
         shouldUseWindowsChrome ? "rounded-[10px]" : null,
@@ -77,10 +79,61 @@ export function DesktopAppShell({
           : undefined
       }
     >
+      <div aria-hidden="true" data-theme-decoration="island-paper" />
+      <svg aria-hidden="true" className="absolute h-0 w-0" focusable="false">
+        <defs>
+          <filter
+            id="island-wind-filter"
+            x="-8%"
+            y="-8%"
+            width="116%"
+            height="116%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feTurbulence
+              type="turbulence"
+              baseFrequency="0.0025 0.011"
+              numOctaves="2"
+              seed="7"
+              result="island-wind-noise"
+            >
+              <animate
+                attributeName="baseFrequency"
+                dur="8.5s"
+                values="0.0025 0.011;0.0038 0.015;0.0028 0.009;0.0025 0.011"
+                keyTimes="0;0.38;0.72;1"
+                calcMode="spline"
+                keySplines="0.42 0 0.25 1;0.45 0 0.2 1;0.4 0 0.3 1"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="island-wind-noise"
+              scale="5"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            >
+              <animate
+                attributeName="scale"
+                dur="8.5s"
+                values="5;17;9;14;5"
+                keyTimes="0;0.34;0.58;0.78;1"
+                calcMode="spline"
+                keySplines="0.42 0 0.25 1;0.45 0 0.2 1;0.4 0 0.3 1;0.42 0 0.3 1"
+                repeatCount="indefinite"
+              />
+            </feDisplacementMap>
+          </filter>
+        </defs>
+      </svg>
+      <div aria-hidden="true" data-theme-decoration="island-palm">
+        <span data-island-palm-part="frond-wind" />
+      </div>
       {shouldUseWindowsChrome ? (
         <DesktopWindowChrome sidebarCollapsed={isSidebarCollapsed} />
       ) : null}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative z-[1] flex min-h-0 flex-1 overflow-hidden">
         {!isMainRoute && <Sidebar />}
         <div className="flex-1 flex min-w-0 overflow-hidden relative">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -88,6 +141,7 @@ export function DesktopAppShell({
               <div className="flex-1 h-full overflow-hidden">{children}</div>
             ) : (
               <main
+                data-theme-surface="settings-workspace"
                 ref={settingsScrollRef}
                 onScroll={onSettingsScroll}
                 className="flex-1 overflow-auto p-8 pb-16 custom-scrollbar"

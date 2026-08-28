@@ -53,7 +53,10 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
       {view === "chat" ? (
         isMobile ? <ChatMobileShell /> : <ChatConversationPanel />
       ) : (
-        <section className="flex-1 min-h-0 overflow-hidden bg-background">
+        <section
+          data-theme-surface="workspace"
+          className="flex-1 min-h-0 overflow-hidden bg-background"
+        >
           {view === "inbox" ? (
             <div className={`mx-auto flex h-full min-h-0 w-full flex-col py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
               <InboxPage />

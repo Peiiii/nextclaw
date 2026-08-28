@@ -410,6 +410,7 @@ export function DocBrowser({
     return (
       <ResizableRightPanel
         data-testid="doc-browser-panel"
+        data-theme-surface="doc-browser"
         defaultWidth={dockedWidth}
         width={dockedWidth}
         minWidth={DOC_BROWSER_DOCKED_MIN_WIDTH}
@@ -424,6 +425,7 @@ export function DocBrowser({
   return (
     <div
       data-testid="doc-browser-panel"
+      data-theme-surface="doc-browser"
       className={cn(
         'relative flex flex-col overflow-hidden bg-card text-card-foreground',
         isFullscreen

@@ -1,4 +1,9 @@
-import { createContext, useContext, type MouseEvent, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import type { Components } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -72,12 +77,18 @@ type ChatMessageMarkdownProps = {
   ) => ReactNode | undefined;
 };
 
-function isSingleLineImageParagraph(node: ChatMarkdownNode | undefined): boolean {
+function isSingleLineImageParagraph(
+  node: ChatMarkdownNode | undefined,
+): boolean {
   let imageCount = 0;
   for (const child of node?.children ?? []) {
     if (child.type === "text") {
       const text = child.value ?? "";
-      if (text.trim().length > 0 || text.includes("\n") || text.includes("\r")) {
+      if (
+        text.trim().length > 0 ||
+        text.includes("\n") ||
+        text.includes("\r")
+      ) {
         return false;
       }
       continue;
@@ -105,7 +116,9 @@ const ChatMessageMarkdownRuntimeContext =
 function useChatMessageMarkdownRuntime(): ChatMessageMarkdownRuntime {
   const runtime = useContext(ChatMessageMarkdownRuntimeContext);
   if (!runtime) {
-    throw new Error("Chat message Markdown renderer requires its runtime context");
+    throw new Error(
+      "Chat message Markdown renderer requires its runtime context",
+    );
   }
   return runtime;
 }
@@ -139,25 +152,35 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         token.kind === "workspace_excerpt" && "path" in token ? token : null;
       return (
         <ChatInlineTokenBadge
-          characterCountLabel={workspaceExcerptToken
-            ? texts.excerptCharacterCountTemplate?.replace(
-                '{count}',
-                String(countChatReferenceCharacters(workspaceExcerptToken.excerpt)),
-              )
-            : undefined}
+          characterCountLabel={
+            workspaceExcerptToken
+              ? texts.excerptCharacterCountTemplate?.replace(
+                  "{count}",
+                  String(
+                    countChatReferenceCharacters(workspaceExcerptToken.excerpt),
+                  ),
+                )
+              : undefined
+          }
           excerpt={excerptToken?.excerpt}
           kind={token.kind}
           label={token.label}
-          location={workspaceExcerptToken?.startLine
-            ? workspaceExcerptToken.startLine === workspaceExcerptToken.endLine || !workspaceExcerptToken.endLine
-              ? `L${workspaceExcerptToken.startLine}`
-              : `L${workspaceExcerptToken.startLine}–${workspaceExcerptToken.endLine}`
-            : undefined}
+          location={
+            workspaceExcerptToken?.startLine
+              ? workspaceExcerptToken.startLine ===
+                  workspaceExcerptToken.endLine ||
+                !workspaceExcerptToken.endLine
+                ? `L${workspaceExcerptToken.startLine}`
+                : `L${workspaceExcerptToken.startLine}–${workspaceExcerptToken.endLine}`
+              : undefined
+          }
           path={workspaceExcerptToken?.path}
           tooltip={"ref" in token ? token.name : token.key}
-          onClick={onInlineTokenClick && token.kind !== "conversation_excerpt"
-            ? () => onInlineTokenClick(token)
-            : undefined}
+          onClick={
+            onInlineTokenClick && token.kind !== "conversation_excerpt"
+              ? () => onInlineTokenClick(token)
+              : undefined
+          }
         />
       );
     }
@@ -338,6 +361,7 @@ export function ChatMessageMarkdown({
       }}
     >
       <WrapperTag
+        data-stream-phase={isStreaming ? text.length % 3 : undefined}
         className={cn(
           "chat-markdown",
           isUser ? "chat-markdown-user" : "chat-markdown-assistant",

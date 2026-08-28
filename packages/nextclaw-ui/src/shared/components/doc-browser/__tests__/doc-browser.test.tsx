@@ -188,6 +188,9 @@ describe("DocBrowser", () => {
     render(<DocBrowser />);
 
     expect(screen.getByTestId("doc-browser-panel").style.width).toBe("420px");
+    expect(
+      screen.getByTestId("doc-browser-panel").getAttribute("data-theme-surface"),
+    ).toBe("doc-browser");
     expect(screen.getByTestId("resizable-right-panel-handle")).toBeTruthy();
   });
 
