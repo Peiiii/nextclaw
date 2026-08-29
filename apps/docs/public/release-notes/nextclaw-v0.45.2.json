@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.45.2",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-29",
+  "title": {
+    "zh-CN": "NextClaw v0.45.2",
+    "en-US": "NextClaw v0.45.2"
+  },
+  "summary": {
+    "zh-CN": "修复 Linux runner 的系统兼容、缺失 Runtime 自愈和子进程异常导致宿主 502 的问题。",
+    "en-US": "Fix Linux runner compatibility, incomplete Runtime self-repair, and host 502 errors caused by runner failures."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-29-nextclaw-v0-45-2",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-29-nextclaw-v0-45-2"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "Linux 可移植应用正常启动", "en-US": "Portable Apps start on more Linux systems" },
+          "body": {
+            "zh-CN": "Linux x64 runner 改为静态链接，不再要求服务器提供构建环境中的新版 glibc。",
+            "en-US": "The Linux x64 runner is statically linked and no longer requires the newer glibc version from the build environment."
+          }
+        },
+        {
+          "title": { "zh-CN": "不完整安装自动修复", "en-US": "Incomplete installations repair themselves" },
+          "body": {
+            "zh-CN": "缺少 runner 时会下载签名的完整 Runtime；runner 启动失败会返回结构化错误，不再带崩 NextClaw 主服务。",
+            "en-US": "A missing runner triggers a signed Runtime download, while runner startup failures return a structured error instead of terminating the NextClaw host."
+          }
+        }
+      ]
+    }
+  ]
+}
