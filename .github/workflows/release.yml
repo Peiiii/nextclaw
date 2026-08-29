@@ -143,7 +143,6 @@ jobs:
           --published-stable
           --expected-version "${{ needs.publish-npm.outputs.target_version }}"
           --previous-version "${{ needs.publish-npm.outputs.previous_version }}"
-          --update-only
 
       - name: Record product release status
         shell: bash

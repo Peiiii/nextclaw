@@ -59,6 +59,9 @@ export class NpmRuntimeUpdateService {
     if (currentVersion && compareNpmRuntimeVersions(manifest.latestVersion, currentVersion) <= 0) {
       return null;
     }
+    if (!currentVersion && compareNpmRuntimeVersions(manifest.latestVersion, this.options.launcherVersion) < 0) {
+      return null;
+    }
     if (compareNpmRuntimeVersions(this.options.launcherVersion, manifest.minimumLauncherVersion) < 0) {
       return { kind: "host-update-required", manifest };
     }

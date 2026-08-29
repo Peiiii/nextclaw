@@ -35,6 +35,7 @@ export type UpdateSnapshot = {
   channel: "stable" | "beta";
   hostVersion: string | null;
   currentVersion: string | null;
+  targetVersion?: string | null;
   availableVersion: string | null;
   downloadedVersion: string | null;
   minimumHostVersion: string | null;

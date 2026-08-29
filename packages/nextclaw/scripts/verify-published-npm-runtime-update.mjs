@@ -97,6 +97,7 @@ async function verifyPublishedStableRelease(argv) {
   );
   try {
     verifyPublishedStableInstall(fixture, expectedVersion);
+    verifyPublishedPortableRuntimeHttp(fixture);
     if (previousVersion) {
       await verifyPreviousStableUpdate(previousVersion, expectedVersion);
     }
@@ -216,6 +217,11 @@ function verifyPublishedStableInstall(fixture, expectedVersion) {
 function verifyPublishedPackagePayload(fixture, expectedVersion) {
   const installedVersion = run(fixture.binaryPath, ["--version"], {
     cwd: fixture.packageDirectory,
+    env: {
+      NEXTCLAW_HOME: fixture.nextclawHome,
+      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
+    },
+    timeout: 300000,
   }).stdout.trim();
   assert(
     installedVersion === expectedVersion,
@@ -236,6 +242,25 @@ function verifyPublishedPackagePayload(fixture, expectedVersion) {
     rootDir: join(fixture.packageDirectory, "ui-dist"),
   }).verify();
   return installedVersion;
+}
+
+function verifyPublishedPortableRuntimeHttp(fixture) {
+  run(process.execPath, [
+    resolve(packageRoot, "scripts/verify-portable-runtime-http-smoke.mjs"),
+    "--binary",
+    fixture.binaryPath,
+    "--home",
+    fixture.nextclawHome,
+    "--cwd",
+    fixture.packageDirectory,
+  ], {
+    cwd: fixture.packageDirectory,
+    env: {
+      NEXTCLAW_HOME: fixture.nextclawHome,
+      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
+    },
+    timeout: 300000,
+  });
 }
 
 function parsePublishedLauncherJson(fixture, args) {

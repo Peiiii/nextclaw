@@ -21,7 +21,7 @@ const RUNNER_TARGETS = new Map([
   ["darwin-arm64", { cargoTarget: "aarch64-apple-darwin", executable: "nextclaw-wasmtime-runner" }],
   ["darwin-x64", { cargoTarget: "x86_64-apple-darwin", executable: "nextclaw-wasmtime-runner" }],
   ["linux-arm64", { cargoTarget: "aarch64-unknown-linux-gnu", executable: "nextclaw-wasmtime-runner" }],
-  ["linux-x64", { cargoTarget: "x86_64-unknown-linux-gnu", executable: "nextclaw-wasmtime-runner" }],
+  ["linux-x64", { cargoTarget: "x86_64-unknown-linux-musl", executable: "nextclaw-wasmtime-runner" }],
   ["win32-x64", { cargoTarget: "x86_64-pc-windows-msvc", executable: "nextclaw-wasmtime-runner.exe" }],
 ]);
 

@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { accessSync, constants, existsSync, statSync } from "node:fs";
 import { cp, readdir, rename, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { NpmRuntimeBundleManifestReader } from "@nextclaw-service/services/runtime/npm-runtime-bundle-manifest.service.js";
@@ -65,28 +65,22 @@ export class NpmRuntimeBundleService {
   installFromDirectory = async (sourceDirectory: string): Promise<ResolvedNpmRuntimeBundle> => {
     this.options.layout.ensureLauncherDirs();
     const sourceBundle = this.verifyBundle(sourceDirectory);
+    this.assertBundleComplete(sourceBundle);
     const targetDirectory = this.options.layout.getVersionDir(sourceBundle.manifest.bundleVersion);
-    if (existsSync(targetDirectory)) {
-      return this.verifyBundle(targetDirectory);
-    }
+    const reusableBundle = this.resolveReusableBundle(targetDirectory);
+    if (reusableBundle) return reusableBundle;
+    const displacedDirectory = await this.displaceExistingBundle(
+      targetDirectory,
+      sourceBundle.manifest.bundleVersion,
+    );
 
     try {
-      await rename(sourceDirectory, targetDirectory);
-      return this.verifyBundle(targetDirectory);
+      await this.moveBundleIntoPlace(sourceDirectory, targetDirectory, sourceBundle.manifest.bundleVersion);
+      const installedBundle = this.verifyBundle(targetDirectory);
+      if (displacedDirectory) await rm(displacedDirectory, { recursive: true, force: true });
+      return installedBundle;
     } catch (error) {
-      if (!shouldRetryInstallWithCopy(error)) {
-        throw error;
-      }
-    }
-
-    const stagingDirectory = join(this.options.layout.getStagingDir(), `${sourceBundle.manifest.bundleVersion}-${this.now()}`);
-    await rm(stagingDirectory, { recursive: true, force: true });
-    try {
-      await cp(sourceDirectory, stagingDirectory, { recursive: true });
-      await rename(stagingDirectory, targetDirectory);
-      return this.verifyBundle(targetDirectory);
-    } catch (error) {
-      await rm(stagingDirectory, { recursive: true, force: true });
+      await this.restoreDisplacedBundle(displacedDirectory, targetDirectory);
       throw error;
     }
   };
@@ -139,6 +133,66 @@ export class NpmRuntimeBundleService {
     await Promise.all(entries.map(async (entry) => await rm(join(this.options.layout.getStagingDir(), entry.name), { recursive: true, force: true })));
   };
 
+  private assertBundleComplete = (bundle: ResolvedNpmRuntimeBundle): void => {
+    if (isNpmRuntimeBundleComplete({
+      bundleDirectory: bundle.bundleDirectory,
+      platform: this.platform,
+      arch: this.arch,
+    })) return;
+    throw new Error(`runtime bundle runner missing or not executable: ${bundle.manifest.bundleVersion}`);
+  };
+
+  private resolveReusableBundle = (targetDirectory: string): ResolvedNpmRuntimeBundle | null => {
+    if (!existsSync(targetDirectory)) return null;
+    const bundle = this.verifyBundle(targetDirectory);
+    return isNpmRuntimeBundleComplete({
+      bundleDirectory: bundle.bundleDirectory,
+      platform: this.platform,
+      arch: this.arch,
+    }) ? bundle : null;
+  };
+
+  private displaceExistingBundle = async (
+    targetDirectory: string,
+    version: string,
+  ): Promise<string | null> => {
+    if (!existsSync(targetDirectory)) return null;
+    const displacedDirectory = join(this.options.layout.getStagingDir(), `displaced-${version}-${this.now()}`);
+    await rm(displacedDirectory, { recursive: true, force: true });
+    await rename(targetDirectory, displacedDirectory);
+    return displacedDirectory;
+  };
+
+  private moveBundleIntoPlace = async (
+    sourceDirectory: string,
+    targetDirectory: string,
+    version: string,
+  ): Promise<void> => {
+    try {
+      await rename(sourceDirectory, targetDirectory);
+      return;
+    } catch (error) {
+      if (!shouldRetryInstallWithCopy(error)) throw error;
+    }
+    const stagingDirectory = join(this.options.layout.getStagingDir(), `${version}-${this.now()}`);
+    await rm(stagingDirectory, { recursive: true, force: true });
+    try {
+      await cp(sourceDirectory, stagingDirectory, { recursive: true });
+      await rename(stagingDirectory, targetDirectory);
+    } catch (error) {
+      await rm(stagingDirectory, { recursive: true, force: true });
+      throw error;
+    }
+  };
+
+  private restoreDisplacedBundle = async (
+    displacedDirectory: string | null,
+    targetDirectory: string,
+  ): Promise<void> => {
+    if (!displacedDirectory || !existsSync(displacedDirectory) || existsSync(targetDirectory)) return;
+    await rename(displacedDirectory, targetDirectory);
+  };
+
   private verifyBundle = (bundleDirectory: string): ResolvedNpmRuntimeBundle => {
     const manifest = this.manifestReader.readFile(resolve(bundleDirectory, "manifest.json"));
     if (manifest.platform !== this.platform) {
@@ -180,29 +234,58 @@ export function compareNpmRuntimeVersions(left: string, right: string): number {
   return leftPrerelease.localeCompare(rightPrerelease, undefined, { numeric: true });
 }
 
-export function resolveEffectiveNpmRuntimeVersion(params: {
-  launcherVersion: string | null;
-  currentBundleVersion: string | null;
-}): string | null {
-  const launcherVersion = params.launcherVersion?.trim() || null;
-  const currentBundleVersion = params.currentBundleVersion?.trim() || null;
-  if (!launcherVersion) {
-    return currentBundleVersion;
-  }
-  if (!currentBundleVersion) {
-    return launcherVersion;
-  }
-  return compareNpmRuntimeVersions(launcherVersion, currentBundleVersion) > 0
-    ? launcherVersion
-    : currentBundleVersion;
-}
-
 export function shouldPreferPackagedNpmRuntime(params: {
   launcherVersion: string | null;
   currentBundleVersion: string | null;
+  packagedRuntimeComplete: boolean;
 }): boolean {
   const launcherVersion = params.launcherVersion?.trim() || null;
-  return Boolean(launcherVersion) && resolveEffectiveNpmRuntimeVersion(params) === launcherVersion;
+  const currentBundleVersion = params.currentBundleVersion?.trim() || null;
+  if (!params.packagedRuntimeComplete || !launcherVersion) {
+    return false;
+  }
+  return !currentBundleVersion || compareNpmRuntimeVersions(launcherVersion, currentBundleVersion) > 0;
+}
+
+export function isPackagedNpmRuntimeComplete(params: {
+  runnerPath: string | null | undefined;
+  platform?: NodeJS.Platform;
+}): boolean {
+  const runnerPath = params.runnerPath?.trim();
+  if (!runnerPath || !existsSync(runnerPath)) {
+    return false;
+  }
+  try {
+    if (!statSync(runnerPath).isFile()) {
+      return false;
+    }
+    if ((params.platform ?? process.platform) !== "win32") {
+      accessSync(runnerPath, constants.X_OK);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function isNpmRuntimeBundleComplete(params: {
+  bundleDirectory: string;
+  platform?: NodeJS.Platform;
+  arch?: string;
+}): boolean {
+  const platform = params.platform ?? process.platform;
+  const arch = params.arch ?? process.arch;
+  return isPackagedNpmRuntimeComplete({
+    platform,
+    runnerPath: resolve(
+      params.bundleDirectory,
+      "runtime",
+      "resources",
+      "native",
+      `${platform}-${arch}`,
+      platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner"
+    )
+  });
 }
 
 function parseVersionParts(version: string): number[] {

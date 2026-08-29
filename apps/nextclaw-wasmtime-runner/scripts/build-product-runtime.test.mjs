@@ -42,7 +42,7 @@ test("creates one shared runner and five guest artifact targets for macOS", () =
 });
 
 for (const [platform, arch, cargoTarget, executable] of [
-  ["linux", "x64", "x86_64-unknown-linux-gnu", "nextclaw-wasmtime-runner"],
+  ["linux", "x64", "x86_64-unknown-linux-musl", "nextclaw-wasmtime-runner"],
   ["linux", "arm64", "aarch64-unknown-linux-gnu", "nextclaw-wasmtime-runner"],
   ["win32", "x64", "x86_64-pc-windows-msvc", "nextclaw-wasmtime-runner.exe"],
   ["darwin", "x64", "x86_64-apple-darwin", "nextclaw-wasmtime-runner"],

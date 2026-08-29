@@ -4,6 +4,7 @@ import { NextclawDistributionService } from "@nextclaw-service/services/runtime/
 
 const mocks = vi.hoisted(() => ({
   managerOptions: [] as Array<Record<string, unknown>>,
+  snapshot: { status: "up-to-date" } as Record<string, unknown>,
 }));
 
 vi.mock("@nextclaw-service/services/runtime/npm-runtime-update-source.service.js", () => ({
@@ -38,13 +39,38 @@ vi.mock("@nextclaw-service/managers/runtime-update.manager.js", () => ({
       mocks.managerOptions.push(options);
     }
 
-    run = async () => ({ status: "up-to-date" });
+    run = async () => mocks.snapshot;
   },
 }));
 
 describe("NpmRuntimeUpdateCommandService", () => {
   beforeEach(() => {
     mocks.managerOptions.length = 0;
+    mocks.snapshot = { status: "up-to-date" };
+  });
+
+  it("prints the activated target instead of the still-running version", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    mocks.snapshot = {
+      status: "restart-required",
+      currentVersion: "0.45.1-beta.0",
+      targetVersion: "0.45.1"
+    };
+    NextclawDistributionService.configure({
+      version: "0.45.1-beta.0",
+      appEntrypoint: "/runtime/dist/cli/app/index.js",
+      launcherVersion: "0.45.1-beta.0",
+      launcherEntrypoint: "/runtime/dist/cli/launcher/index.js",
+      launchedByLauncher: false,
+      templatesDir: "/runtime/templates",
+      uiDistDir: "/runtime/ui-dist",
+      runtimeUpdatePublicKeyPath: "/runtime/resources/update-bundle-public.pem"
+    });
+
+    await new NpmRuntimeUpdateCommandService({}).run({});
+
+    expect(log).toHaveBeenCalledWith("Runtime update applied: 0.45.1");
+    log.mockRestore();
   });
 
   it("blocks npm runtime updates from the desktop command surface", async () => {

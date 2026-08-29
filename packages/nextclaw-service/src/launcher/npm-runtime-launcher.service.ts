@@ -3,7 +3,14 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { createExternalCommandEnv } from "@nextclaw/core";
 import { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/stores/npm-runtime-bundle-layout.store.js";
-import { NpmRuntimeBundleService, shouldPreferPackagedNpmRuntime } from "@nextclaw-service/services/runtime/npm-runtime-bundle.service.js";
+import {
+  isNpmRuntimeBundleComplete,
+  isPackagedNpmRuntimeComplete,
+  NpmRuntimeBundleService,
+  shouldPreferPackagedNpmRuntime,
+  type ResolvedNpmRuntimeBundle
+} from "@nextclaw-service/services/runtime/npm-runtime-bundle.service.js";
+import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/services/runtime/npm-runtime-update-command.service.js";
 import { inferDefaultNpmRuntimeReleaseChannel } from "@nextclaw-service/services/runtime/npm-runtime-update-source.service.js";
 import { NpmRuntimeUpdateStateStore } from "@nextclaw-service/stores/npm-runtime-update-state.store.js";
 import { getPackageVersion } from "@nextclaw-service/utils/cli.utils.js";
@@ -14,6 +21,8 @@ type NpmRuntimeLauncherOptions = {
   layout?: NpmRuntimeBundleLayoutStore;
   launcherVersion?: string;
   packagedAppEntrypoint?: string;
+  packagedPortableRunnerPath?: string;
+  bootstrapRuntimeBundle?: () => Promise<void>;
 };
 
 export class NpmRuntimeLauncher {
@@ -25,8 +34,8 @@ export class NpmRuntimeLauncher {
     this.layout = options.layout ?? new NpmRuntimeBundleLayoutStore();
   }
 
-  run = (): never => {
-    const runtimeScriptPath = this.resolveRuntimeScriptPath();
+  run = async (): Promise<never> => {
+    const runtimeScriptPath = await this.resolveRuntimeScriptPath();
     const launcherVersion = this.resolveLauncherVersion();
     const launcherEntrypoint = this.options.argv[1]?.trim();
     const result = spawnSync(process.execPath, [runtimeScriptPath, ...this.options.argv.slice(2)], {
@@ -42,7 +51,7 @@ export class NpmRuntimeLauncher {
     process.exit(typeof result.status === "number" ? result.status : 1);
   };
 
-  private resolveRuntimeScriptPath = (): string => {
+  private resolveRuntimeScriptPath = async (): Promise<string> => {
     const launcherVersion = this.resolveLauncherVersion();
     if (this.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER === "1" || this.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD === "1") {
       return this.resolvePackagedAppEntrypoint();
@@ -55,23 +64,69 @@ export class NpmRuntimeLauncher {
       stateStore,
       launcherVersion
     });
+    let currentBundle: ResolvedNpmRuntimeBundle | null = null;
     try {
-      const currentBundle = bundleService.resolveCurrentBundle();
-      if (
-        currentBundle &&
-        shouldPreferPackagedNpmRuntime({
-          launcherVersion,
-          currentBundleVersion: currentBundle.manifest.runtimeVersion ?? currentBundle.manifest.bundleVersion
-        })
-      ) {
-        return this.resolvePackagedAppEntrypoint();
-      }
-      return currentBundle?.runtimeScriptPath ?? this.resolvePackagedAppEntrypoint();
+      currentBundle = bundleService.resolveCurrentBundle();
     } catch (error) {
       console.error(`Cannot start current runtime bundle: ${error instanceof Error ? error.message : String(error)}`);
-      console.error("Falling back to the packaged npm launcher runtime.");
+    }
+    const packagedRuntimeComplete = isPackagedNpmRuntimeComplete({
+      runnerPath: this.options.packagedPortableRunnerPath
+    });
+    const currentBundleComplete = Boolean(currentBundle && isNpmRuntimeBundleComplete({
+      bundleDirectory: currentBundle.bundleDirectory
+    }));
+    if (
+      packagedRuntimeComplete &&
+      (!currentBundleComplete || (currentBundle && shouldPreferPackagedNpmRuntime({
+        launcherVersion,
+        currentBundleVersion: currentBundle.manifest.runtimeVersion ?? currentBundle.manifest.bundleVersion,
+        packagedRuntimeComplete
+      })))
+    ) {
       return this.resolvePackagedAppEntrypoint();
     }
+    if (
+      currentBundleComplete &&
+      currentBundle &&
+      (currentBundle.manifest.runtimeVersion ?? currentBundle.manifest.bundleVersion) === launcherVersion
+    ) {
+      return currentBundle.runtimeScriptPath;
+    }
+    if (!packagedRuntimeComplete || !currentBundleComplete) {
+      try {
+        await this.bootstrapRuntimeBundle();
+        const bootstrappedBundle = bundleService.resolveCurrentBundle();
+        if (bootstrappedBundle && isNpmRuntimeBundleComplete({ bundleDirectory: bootstrappedBundle.bundleDirectory })) {
+          return bootstrappedBundle.runtimeScriptPath;
+        }
+        return currentBundle?.runtimeScriptPath ?? this.resolveIncompletePackagedRuntime();
+      } catch (error) {
+        console.error(`Cannot bootstrap the complete runtime bundle: ${error instanceof Error ? error.message : String(error)}`);
+        if (currentBundle) {
+          console.error(`Continuing with the previously installed runtime bundle ${currentBundle.manifest.runtimeVersion}.`);
+          return currentBundle.runtimeScriptPath;
+        }
+        return this.resolveIncompletePackagedRuntime();
+      }
+    }
+    return currentBundle?.runtimeScriptPath ?? this.resolvePackagedAppEntrypoint();
+  };
+
+  private bootstrapRuntimeBundle = async (): Promise<void> => {
+    if (this.options.bootstrapRuntimeBundle) {
+      await this.options.bootstrapRuntimeBundle();
+      return;
+    }
+    const snapshot = await new NpmRuntimeUpdateCommandService(this.env).runManaged({});
+    if (snapshot.status === "blocked" || snapshot.status === "failed") {
+      throw new Error(snapshot.errorMessage ?? snapshot.blockReason ?? "runtime bundle bootstrap failed");
+    }
+  };
+
+  private resolveIncompletePackagedRuntime = (): string => {
+    console.error("The packaged npm runtime is missing the current platform runner; Portable Service Apps remain unavailable until runtime bootstrap succeeds.");
+    return this.resolvePackagedAppEntrypoint();
   };
 
   private resolveLauncherVersion = (): string => this.options.launcherVersion ?? getPackageVersion();

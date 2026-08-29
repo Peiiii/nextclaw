@@ -53,9 +53,11 @@ If the runner exits or a call times out, the Kernel terminates the failed proces
 
 ## Cross-platform model
 
-The WASM Component is platform independent; NextClaw supplies the native runner for each target. The source tree currently maps macOS arm64/x64, Linux arm64/x64, and Windows x64 resources, with build checks on macOS arm64, Linux x64, and Windows x64.
+The WASM Component is platform independent; NextClaw supplies the native runner for each target. The source tree currently maps macOS arm64/x64, Linux x64, and Windows x64 resources.
 
-The real product runtime has currently been exercised on macOS arm64. Other targets still need complete installation, startup, update, and recovery coverage, so this is not yet a full cross-platform release guarantee.
+For NPM installations, the stable launcher checks for a complete Runtime for the current platform on first start. If the runner is missing, it downloads and verifies the signed Runtime before launching it. When the network is temporarily unavailable but an older complete Runtime is installed, NextClaw keeps using that version instead of requiring a manual runner copy.
+
+Stable releases build separately on macOS arm64, Linux x64, and Windows x64, then exercise real HTTP enablement, all five Components, Provider and Resident startup, and an Action call. The Linux x64 runner is statically linked so it does not inherit the build machine's glibc requirement.
 
 ## Current boundaries
 

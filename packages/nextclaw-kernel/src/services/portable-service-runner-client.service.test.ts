@@ -33,6 +33,15 @@ lines.on("line", (line) => {
   return runnerPath;
 }
 
+function createFailingRunner(): string {
+  const directory = mkdtempSync(join(tmpdir(), "nextclaw-portable-runner-failing-"));
+  tempDirectories.push(directory);
+  const runnerPath = join(directory, "failing-runner.mjs");
+  writeFileSync(runnerPath, "#!/usr/bin/env node\nprocess.stderr.write('unsupported runtime ABI\\n');\nprocess.exit(1);\n");
+  chmodSync(runnerPath, 0o755);
+  return runnerPath;
+}
+
 describe("PortableServiceRunnerClientService distribution contract", () => {
   it("fails clearly when the distribution has no runner", async () => {
     const client = new PortableServiceRunnerClientService({ env: {} });
@@ -70,6 +79,18 @@ describe("PortableServiceRunnerClientService distribution contract", () => {
     });
 
     await expect(client.stats()).resolves.toMatchObject({ loadedComponents: 0 });
+    await client.dispose();
+  });
+
+  it("rejects the request without crashing the host when the runner exits before stdin is written", async () => {
+    const client = new PortableServiceRunnerClientService({
+      env: {},
+      runnerPath: createFailingRunner(),
+    });
+
+    await expect(client.stats()).rejects.toMatchObject({
+      name: "PortableServiceRunnerError",
+    });
     await client.dispose();
   });
 });

@@ -3,4 +3,4 @@ import { NextclawDistributionService, runNextclawNpmRuntimeLauncher } from "@nex
 import { createNextclawDistribution } from "@nextclaw-cli/cli/shared/lib/distribution/index.js";
 
 NextclawDistributionService.configure(createNextclawDistribution(import.meta.url));
-runNextclawNpmRuntimeLauncher(process.argv);
+await runNextclawNpmRuntimeLauncher(process.argv);
