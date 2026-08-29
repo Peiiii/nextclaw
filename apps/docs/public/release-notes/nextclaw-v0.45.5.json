@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.45.5",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-30",
+  "title": {
+    "zh-CN": "NextClaw v0.45.5",
+    "en-US": "NextClaw v0.45.5"
+  },
+  "summary": {
+    "zh-CN": "修复正式版匿名活跃数据被误归入开发环境的问题。",
+    "en-US": "Fix production activity receipts being classified as development traffic."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-30-nextclaw-v0-45-5",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-30-nextclaw-v0-45-5"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "正式版活跃数据进入正确统计口径",
+            "en-US": "Production activity reaches the correct reporting view"
+          },
+          "body": {
+            "zh-CN": "NPM、Runtime 与桌面发行版现在通过统一发行信息上报 production/stable，开发和测试流量继续保持隔离。",
+            "en-US": "NPM, Runtime, and desktop releases now report through the canonical distribution contract as production/stable while development and test traffic remain separate."
+          }
+        }
+      ]
+    }
+  ]
+}
