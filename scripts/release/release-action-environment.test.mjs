@@ -240,6 +240,39 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopClosure, /gh["], \["run", "cancel"/);
 });
 
+test("stable preparation validates product content before the irreversible package publish", () => {
+  const preparation = readFileSync(
+    new URL("./release-stable-preparation.mjs", import.meta.url),
+    "utf8",
+  );
+  const contentGuard = preparation.indexOf(
+    "ensureProductReleaseArtifacts(previousVersion, targetVersion)",
+  );
+  const packageVersioning = preparation.indexOf(
+    "preparePackageRelease(targetVersion)",
+  );
+
+  assert.ok(contentGuard >= 0, "stable preparation must validate product content");
+  assert.ok(
+    contentGuard < packageVersioning,
+    "product content must be validated before package versioning and publication",
+  );
+});
+
+test("published stable validation installs immutable registry tarballs", () => {
+  const verifier = readFileSync(
+    new URL("../../packages/nextclaw/scripts/verify-published-npm-runtime-update.mjs", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    verifier,
+    /https:\/\/registry\.npmjs\.org\/nextclaw\/-\/nextclaw-\$\{version\}\.tgz/,
+  );
+  assert.doesNotMatch(verifier, /`nextclaw@\$\{expectedVersion\}`/);
+  assert.doesNotMatch(verifier, /`nextclaw@\$\{previousVersion\}`/);
+});
+
 test("release workflow, agent contract, and command catalog share one observed auth path", () => {
   const workflow = readFileSync(
     new URL("../../.github/workflows/release.yml", import.meta.url),

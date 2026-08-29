@@ -404,6 +404,7 @@ export function prepareStableNpmBatch(options) {
   );
   const { previousVersion, targetVersion } = context;
   ensureNpmPrePublishArtifacts(targetVersion);
+  ensureProductReleaseArtifacts(previousVersion, targetVersion);
   const checkpoint = preparePackageRelease(targetVersion);
   const record = createPreparedNpmRelease({
     branch,
