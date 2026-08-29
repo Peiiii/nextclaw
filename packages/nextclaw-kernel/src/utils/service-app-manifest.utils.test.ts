@@ -42,6 +42,43 @@ describe("parseServiceAppManifest target launch", () => {
     }))).toThrow("timeoutMs must be an integer between 100 and 300000");
   });
 
+  it("keeps portable packages self-contained unless a Service explicitly declares an external requirement", () => {
+    const manifest = { ...BASE_MANIFEST, command: "node" };
+    expect(parseServiceAppManifest(JSON.stringify(manifest)).requires).toBeUndefined();
+
+    expect(parseServiceAppManifest(JSON.stringify({
+      ...manifest,
+      requires: {
+        capabilities: [{
+          id: "redis",
+          version: "1",
+          title: "Shared cache",
+          remediation: { kind: "agent-setup", summary: "Connect a managed cache." },
+        }],
+        resources: [{
+          binding: "cache",
+          type: "redis",
+          title: "Team cache",
+          remediation: {
+            kind: "agent-setup",
+            summary: "Ask the user to sign in to the managed cache.",
+            requiresUserAction: true,
+          },
+        }],
+      },
+    }))).toMatchObject({
+      requires: {
+        capabilities: [{ id: "redis", version: "1", title: "Shared cache" }],
+        resources: [{ binding: "cache", type: "redis", required: true }],
+      },
+    });
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...manifest,
+      requires: { capabilities: [{ id: "Redis" }] },
+    }))).toThrow("lowercase identifier");
+  });
+
   it("parses an explicit resident lifecycle and rejects native or unsafe intervals", () => {
     expect(parseServiceAppManifest(JSON.stringify({
       ...BASE_MANIFEST,

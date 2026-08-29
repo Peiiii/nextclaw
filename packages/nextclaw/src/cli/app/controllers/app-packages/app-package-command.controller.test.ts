@@ -13,6 +13,7 @@ describe("AppPackageCommandController", () => {
       enable: vi.fn().mockResolvedValue({
         id: "example.notes", name: "Notes", activeVersion: "1.0.0", enabled: true,
         builtIn: false, installedVersions: ["1.0.0"],
+        readiness: { status: "ready", requirements: [] },
       }),
     };
     const controller = new AppPackageCommandController(liveService as never, {} as never);

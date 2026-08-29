@@ -484,6 +484,27 @@ describe("AppPackageManager packed artifact lifecycle", () => {
       await fixture.close();
     }
   }, 20_000);
+
+  it("keeps the enabled version active when an update requires an unavailable capability", async () => {
+    const fixture = await PackedOrganizerRegistryFixture.create(createTempDirectory());
+    const kernel = createKernel(fixture.emptyBuiltInsDirectory);
+    try {
+      const installed = await kernel.appPackageManager.install("nextclaw.personal-organizer", fixture.registryUrl);
+      await kernel.appPackageManager.enable(installed.id);
+      fixture.setLatestVersion("0.3.0");
+      await expect(kernel.appPackageManager.update(installed.id, {
+        registryUrl: fixture.registryUrl,
+      })).rejects.toMatchObject({ code: "APP_PACKAGE_NOT_READY" });
+      await expect(kernel.appPackageManager.getPackage(installed.id)).resolves.toMatchObject({
+        activeVersion: "0.1.0",
+        enabled: true,
+        installedVersions: expect.arrayContaining(["0.3.0"]),
+      });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+      await fixture.close();
+    }
+  }, 20_000);
 });
 
 describe("AppPackageManager package projection lifecycle", () => {
@@ -689,7 +710,7 @@ describe("AppPackageManager package projection lifecycle", () => {
   });
 });
 
-type OrganizerFixtureVersion = "0.1.0" | "0.2.0";
+type OrganizerFixtureVersion = "0.1.0" | "0.2.0" | "0.3.0";
 
 class PackedOrganizerRegistryFixture {
   private latestVersion: OrganizerFixtureVersion = "0.1.0";
@@ -707,8 +728,9 @@ class PackedOrganizerRegistryFixture {
     const emptyBuiltInsDirectory = join(fixtureDirectory, "built-ins");
     mkdirSync(emptyBuiltInsDirectory);
     const bundles = {
-      "0.1.0": await packOrganizerVersion(fixtureDirectory, "0.1.0", false),
-      "0.2.0": await packOrganizerVersion(fixtureDirectory, "0.2.0", true),
+      "0.1.0": await packOrganizerVersion(fixtureDirectory, "0.1.0"),
+      "0.2.0": await packOrganizerVersion(fixtureDirectory, "0.2.0", { brokenRuntime: true }),
+      "0.3.0": await packOrganizerVersion(fixtureDirectory, "0.3.0", { externalCapability: true }),
     };
     await expect(new AppArtifactValidationService().validate({
       bytes: new Uint8Array(bundles["0.1.0"]),
@@ -754,7 +776,7 @@ class PackedOrganizerRegistryFixture {
       this.respondWithMetadata(response);
       return;
     }
-    const version = requestUrl.pathname.match(/^\/-\/organizer-(0\.[12]\.0)\.napp$/)?.[1];
+    const version = requestUrl.pathname.match(/^\/-\/organizer-(0\.[123]\.0)\.napp$/)?.[1];
     const bundle = version
       ? this.bundles[version as OrganizerFixtureVersion]
       : undefined;
@@ -774,6 +796,7 @@ class PackedOrganizerRegistryFixture {
       versions: {
         "0.1.0": this.createVersionRecord("0.1.0"),
         "0.2.0": this.createVersionRecord("0.2.0"),
+        "0.3.0": this.createVersionRecord("0.3.0"),
       },
     }));
   };
@@ -797,7 +820,7 @@ class PackedOrganizerRegistryFixture {
 async function packOrganizerVersion(
   fixtureDirectory: string,
   version: OrganizerFixtureVersion,
-  brokenRuntime: boolean,
+  options: { brokenRuntime?: boolean; externalCapability?: boolean } = {},
 ): Promise<Buffer> {
   const packageDirectory = join(fixtureDirectory, `source-${version}`);
   const bundlePath = join(fixtureDirectory, `organizer-${version}.napp`);
@@ -805,11 +828,24 @@ async function packOrganizerVersion(
     recursive: true,
   });
   writePackageVersion(packageDirectory, version);
-  if (brokenRuntime) {
+  if (options.brokenRuntime) {
     breakOrganizerRuntime(packageDirectory);
+  }
+  if (options.externalCapability) {
+    addOrganizerExternalCapability(packageDirectory);
   }
   await new AppBundleService().packAppDirectory({ appDirectory: packageDirectory, outputPath: bundlePath });
   return readFileSync(bundlePath);
+}
+
+function addOrganizerExternalCapability(packageDirectory: string): void {
+  const manifestPath = join(
+    packageDirectory,
+    "service-components/nextclaw-personal-organizer-data/service-app.json",
+  );
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+  manifest.requires = { capabilities: [{ id: "redis", title: "Shared cache" }] };
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 function breakOrganizerRuntime(packageDirectory: string): void {

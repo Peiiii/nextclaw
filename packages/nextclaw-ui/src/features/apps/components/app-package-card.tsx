@@ -30,6 +30,7 @@ import {
   formatBytes,
 } from '@/features/app-data';
 import { isAppPackageOperationActive } from '@/features/apps/hooks/use-app-packages';
+import { readAppPackageAvailability } from '@/features/apps/utils/app-package-readiness.utils';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
@@ -93,7 +94,7 @@ export function AppPackageCard({
   );
   const operationActive = operation ? isAppPackageOperationActive(operation.status) : false;
   const pending = isPending || operationActive;
-  const availability = readPackageAvailability(appPackage.enabled, unavailableMessage);
+  const availability = readAppPackageAvailability(appPackage, unavailableMessage);
   const storageUsageLabel = resolveStorageUsageLabel(
     storageUsage,
     storageUsageLoading,
@@ -114,7 +115,21 @@ export function AppPackageCard({
               {availability.label}
             </span>
           </div>
-          {unavailableMessage ? <p role="alert" className="mt-2 text-xs leading-5 text-destructive">{unavailableMessage}</p> : null}
+          {availability.message ? (
+            <p role="alert" className={cn('mt-2 text-xs leading-5', availability.messageClassName)}>
+              {availability.message}
+            </p>
+          ) : null}
+          {!appPackage.enabled && appPackage.readiness.status !== 'ready' ? (
+            <ul className="mt-1.5 space-y-1 text-xs leading-5 text-muted-foreground">
+              {appPackage.readiness.requirements.map((requirement) => (
+                <li key={`${requirement.componentId}:${requirement.kind}:${requirement.id}`}>
+                  {requirement.title}
+                  {requirement.description ? ` — ${requirement.description}` : ''}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {displayDescription ? (
             <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
               {displayDescription}
@@ -370,25 +385,6 @@ function resolveStorageUsageLabel(
   if (usage) return formatBytes(usage.totalBytes);
   if (loading) return t('appPackagesLoading');
   return t(unavailable ? 'appPackagesDataUsageUnavailable' : 'appPackagesNoDataYet');
-}
-
-function readPackageAvailability(enabled: boolean, message: string | undefined) {
-  if (message) {
-    return {
-      className: 'bg-destructive/10 text-destructive',
-      interactive: false,
-      label: t('appPackagesUnavailable'),
-      message,
-    };
-  }
-  return {
-    className: enabled
-      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-      : 'bg-muted text-muted-foreground',
-    interactive: true,
-    label: enabled ? t('appPackagesEnabled') : t('appPackagesAvailable'),
-    message: undefined,
-  };
 }
 
 function renderPrimaryActionLabel({
