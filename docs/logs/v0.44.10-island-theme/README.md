@@ -46,5 +46,7 @@
 
 ## NPM 包发布记录
 
-- 岛屿主题首批变化已随统一版本流程发布；背景性能修复需要 patch 发布 `@nextclaw/ui`（当前 registry `0.22.2`）与 `@nextclaw/server`（当前 registry `0.20.2`），由 `.changeset/swift-islands-cache.md` 记录，对应 NextClaw `0.45.4`。
-- 当前状态：待本次稳定发布闭环后回填最终版本与 registry 验证结果。
+- 背景性能修复已随 NextClaw `0.45.4` 发布：`@nextclaw/ui@0.22.3`、`@nextclaw/server@0.20.3` 与 `nextclaw@0.45.4` 均已从 NPM registry 回读验证；正式 Release 为 `nextclaw@0.45.4`。
+- 四个平台的稳定 Runtime 更新通道已发布，并在各平台构建中通过签名、真实 HTTP 启用与组件生命周期验证。
+- 发布观测：产品发布执行共 26 分 48 秒；最慢阶段为 Runtime 通道发布与验签（16 分 52 秒），其次是最终升级验收（5 分 14 秒）。NPM 批次、Runtime 通道和 GitHub Release 均成功；最终工作流仅在验收结束后的临时目录删除遇到 `ENOTEMPTY` 而标红，未影响已发布包或 Runtime 资产。
+- 防复发：发布校验已改为使用 Node 的带重试递归删除（20 次、250ms 间隔）清理临时目录，覆盖服务子进程刚退出时仍写入目录的竞争窗口；该内部保障随 `fix(release): retry published smoke cleanup` 提交到 `master`，不额外制造用户版本。
