@@ -208,6 +208,27 @@ describe("ServiceAppDevService", () => {
     }
   });
 
+  it("uses a non-existing child path for transient package validation storage", async () => {
+    const packagePath = await createPortablePackage();
+    const report = await new ServiceAppDevService({
+      getConfig: createConfig,
+      runtimeService: {
+        getStatus: () => ({ status: "running" }),
+        listActions: async () => [{
+          id: "example-dev-service.counter_read",
+          appId: "example-dev-service",
+          name: "counter_read",
+          risk: "read",
+        }],
+        invokeAction: async () => ({ counter: 0 }),
+        dispose: async () => {},
+      },
+    }).inspect(packagePath, { transientData: true });
+
+    expect(report).toMatchObject({ ok: true });
+    expect(report.app?.storage?.instanceDirectory).toContain("nextclaw-app-check-");
+  });
+
   it("requires an explicit component when a package contains multiple Services", async () => {
     const packagePath = await createPortablePackage([
       "example-dev-service",

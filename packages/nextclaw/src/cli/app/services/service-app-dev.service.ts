@@ -121,15 +121,18 @@ export class ServiceAppDevService {
       );
     }
     const runtime = this.createRuntimeService();
-    const transientRoot = options.transientData
+    const transientDirectory = options.transientData
       ? await mkdtemp(path.join(tmpdir(), "nextclaw-app-check-"))
       : undefined;
-    const storage = transientRoot
+    const storage = transientDirectory
       ? (
           await this.instanceStorageService.materialize({
             appId: loaded.manifest.id,
             instanceId: "check",
-            instanceDirectory: transientRoot,
+            // AppInstanceStorageService atomically renames a staged directory
+            // into this path. Keep the target absent so the same contract works
+            // on Windows, where rename cannot replace an existing directory.
+            instanceDirectory: path.join(transientDirectory, "instance"),
           })
         ).storage
       : await this.createDevStorage(
@@ -165,8 +168,8 @@ export class ServiceAppDevService {
       return this.buildDevReport(appPath, record, actions, issues);
     } finally {
       await runtime.dispose();
-      if (transientRoot) {
-        await rm(transientRoot, { recursive: true, force: true });
+      if (transientDirectory) {
+        await rm(transientDirectory, { recursive: true, force: true });
       }
     }
   };

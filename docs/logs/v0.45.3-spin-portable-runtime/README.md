@@ -16,6 +16,7 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 - Readiness 与真实 registry artifact 生命周期 14 项、UI 10 项通过；Kernel/UI `tsc` 通过；触达文件 ESLint 0 error。
 - 两个独立真实 `.napp` 的 Provider→Consumer 链路通过：Consumer 初始 `needs-capability`、Provider 安装启用、唯一候选 setup、Consumer enable、runner 受控跨 App `component-call`、运行时变更拒绝、停用后 unbind 回到 `needs-configuration`。
 - Portable Runtime 最终矩阵首次复验发现两个发布自动化缺口：Linux 的 Spin telemetry OpenSSL 已改为 vendored 构建；Windows smoke 的 file URL 路径已改用 `fileURLToPath`，避免生成 `D:\\D:\\...`。
+- 第二次矩阵进一步暴露 Windows 不允许用 `rename` 覆盖已存在空目录：`app check` 的临时实例现在使用 `mkdtemp` 下尚不存在的子目录作为原子迁移目标，并新增跨平台回归测试；这修复的是实际开发者校验链路，不是 CI 特判。
 - 文档站构建与中英文同步检查通过；`git diff --check` 通过。
 
 ## 发布/部署方式
