@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.45.3",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-29",
+  "title": {
+    "zh-CN": "NextClaw v0.45.3",
+    "en-US": "NextClaw v0.45.3"
+  },
+  "summary": {
+    "zh-CN": "修复旧实例在 20 次工具调用后意外中止 Agent 任务的问题，并移除无效的工具调用上限配置入口。",
+    "en-US": "Fix Agent runs stopping after 20 tool calls on upgraded installations and remove obsolete tool-call limit controls."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-29-nextclaw-v0-45-3",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-29-nextclaw-v0-45-3"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "长工具链不再停在 20 次", "en-US": "Long tool chains no longer stop at 20 calls" },
+          "body": {
+            "zh-CN": "旧配置文件中的历史上限不再影响 Agent 运行；原生 Agent 统一使用 1000 次工具调用安全预算。",
+            "en-US": "Historical limits in older configuration files no longer affect Agent runs; native Agents use a fixed safety budget of 1,000 tool calls."
+          }
+        },
+        {
+          "title": { "zh-CN": "移除无效配置入口", "en-US": "Obsolete controls removed" },
+          "body": {
+            "zh-CN": "设置页、Agent 详情和配置 API 不再暴露工具调用上限。",
+            "en-US": "Settings, Agent details, and the configuration API no longer expose a tool-call limit."
+          }
+        }
+      ]
+    }
+  ]
+}
