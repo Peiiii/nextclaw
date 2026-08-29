@@ -24,7 +24,6 @@ function createFixture() {
           thinkingDefault: "off",
           models: {},
           contextTokens: 200000,
-          maxToolIterations: 1000,
         },
         list: [],
       },

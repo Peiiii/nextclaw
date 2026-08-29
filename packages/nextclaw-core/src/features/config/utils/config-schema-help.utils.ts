@@ -11,7 +11,6 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.defaults.contextTokens": "Maximum model input context budget (used for token-budget pruning before provider calls).",
   "agents.defaults.reservedContextTokens":
     "Optional exact context reserve before compaction. When omitted, NextClaw uses min(10000, floor(contextTokens * 0.2)).",
-  "agents.defaults.maxToolIterations": "Maximum tool calls per turn.",
   "agents.list": "List of agent runtimes hosted by one gateway process.",
   "agents.list.*.id": "Agent identifier used for routing and session partition.",
   "agents.list.*.default": "Mark this agent as the default routing target.",
@@ -25,7 +24,6 @@ export const FIELD_HELP: Record<string, string> = {
     "Optional per-agent model strategy overrides. Set agents.list[].models.<provider/model>.params.thinking to override thinking by model for that agent.",
   "agents.list.*.contextTokens": "Optional per-agent input context budget override.",
   "agents.list.*.reservedContextTokens": "Optional per-agent exact context reserve before compaction.",
-  "agents.list.*.maxToolIterations": "Optional per-agent max tool iterations.",
   "agents.context.bootstrap.files": "Files injected into the system prompt at startup.",
   "agents.context.bootstrap.minimalFiles": "Minimal file set used for low-context runs.",
   "agents.context.bootstrap.perFileChars": "Max chars per bootstrap file.",

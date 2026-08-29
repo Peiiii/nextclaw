@@ -20,7 +20,6 @@ const spec: DefaultNcpAgentRunSpec = {
   agentId: "main",
   model: "model",
   requestedModel: null,
-  maxToolIterations: 1000,
   runId: "run-1",
   runtimeId: "native",
 };

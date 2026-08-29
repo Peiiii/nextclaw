@@ -19,7 +19,6 @@ export type AgentProfileView = {
   models?: AgentModelsView;
   contextTokens?: number;
   reservedContextTokens?: number;
-  maxToolIterations?: number;
   builtIn?: boolean;
 };
 

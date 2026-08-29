@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { OpenAIChatChunk } from "@nextclaw/ncp";
 import { AgentRunExecutionManager } from "./agent-run-execution.manager.js";
+import { FIXED_NATIVE_TOOL_CALL_LIMIT } from "./runtime-tool-call-executor.service.js";
 
 const spec = {
   agentId: "main",
   model: "openai/gpt-5",
   requestedModel: "openai/gpt-5",
-  maxToolIterations: 1000,
   runId: "run-1",
   runtimeId: "native",
 };
@@ -18,6 +18,18 @@ async function drain(stream: AsyncIterable<OpenAIChatChunk>): Promise<void> {
 }
 
 describe("AgentRunExecutionManager", () => {
+  it("owns one fixed tool call budget for the entire run", () => {
+    const manager = new AgentRunExecutionManager({
+      spec,
+      sessionId: "session-1",
+      messageId: "message-1",
+    });
+
+    expect(FIXED_NATIVE_TOOL_CALL_LIMIT).toBe(1000);
+    expect(manager.toolCallBudget.limit).toBe(FIXED_NATIVE_TOOL_CALL_LIMIT);
+    expect(manager.toolCallBudget).toBe(manager.toolCallBudget);
+  });
+
   it("uses the last cumulative usage in one call and sums across calls", async () => {
     const manager = new AgentRunExecutionManager({
       spec,

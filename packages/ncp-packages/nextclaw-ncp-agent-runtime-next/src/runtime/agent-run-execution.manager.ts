@@ -9,7 +9,10 @@ import {
   type OpenAIChatChunk,
 } from "@nextclaw/ncp";
 import type { DefaultNcpAgentRunSpec } from "./types/agent-model-input.types.js";
-import { RuntimeToolIterationBudget } from "./runtime-tool-call-executor.service.js";
+import {
+  FIXED_NATIVE_TOOL_CALL_LIMIT,
+  RuntimeToolCallBudget,
+} from "./runtime-tool-call-executor.service.js";
 
 type ReportedUsage = Pick<
   NcpAiExecutionUsage,
@@ -99,7 +102,7 @@ function sumReportedUsage(
 export class AgentRunExecutionManager {
   private modelCallCount = 0;
   private readonly reportedUsages: ReportedUsage[] = [];
-  private currentToolIterationBudget: RuntimeToolIterationBudget | null = null;
+  private currentToolCallBudget: RuntimeToolCallBudget | null = null;
 
   constructor(
     private readonly run: {
@@ -109,11 +112,11 @@ export class AgentRunExecutionManager {
     },
   ) {}
 
-  get toolIterationBudget(): RuntimeToolIterationBudget {
-    this.currentToolIterationBudget ??= new RuntimeToolIterationBudget(
-      this.run.spec.maxToolIterations,
+  get toolCallBudget(): RuntimeToolCallBudget {
+    this.currentToolCallBudget ??= new RuntimeToolCallBudget(
+      FIXED_NATIVE_TOOL_CALL_LIMIT,
     );
-    return this.currentToolIterationBudget;
+    return this.currentToolCallBudget;
   }
 
   observeModelCall = async function* (

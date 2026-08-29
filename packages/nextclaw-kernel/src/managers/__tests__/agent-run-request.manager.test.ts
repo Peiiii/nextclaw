@@ -41,7 +41,6 @@ describe("AgentRunRequestManager cross-process ownership", () => {
         { getOrCreate: runtimeStarts } as never,
         {
           getDefaultAgentId: () => "main",
-          resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }),
         } as never,
         {
           getDefaultModel: () => "test-model",
@@ -124,7 +123,7 @@ describe("AgentRunRequestManager branch session creation", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -198,7 +197,7 @@ describe("AgentRunRequestManager branch session creation", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -267,7 +266,7 @@ describe("AgentRunRequestManager branch session creation", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -316,7 +315,7 @@ describe("AgentRunRequestManager peer session identity", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -371,7 +370,7 @@ describe("AgentRunRequestManager peer session identity", () => {
           run: async function* (): AsyncGenerator<NcpEndpointEvent> {},
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -500,7 +499,7 @@ describe("AgentRunRequestManager event publication", () => {
           },
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -600,7 +599,7 @@ describe("AgentRunRequestManager assistant publication", () => {
           },
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -702,7 +701,7 @@ describe("AgentRunRequestManager runtime failure publication", () => {
         getOrCreate,
         disposeRuntime,
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,
@@ -815,7 +814,7 @@ describe("AgentRunRequestManager tool context", () => {
           },
         }),
       } as never,
-      { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+      { getDefaultAgentId: () => "main" } as never,
       {
         getDefaultModel: () => "test-model",
         getModelMaxTokens: () => 12000,

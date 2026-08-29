@@ -348,7 +348,6 @@ export type AgentProfileView = {
   models?: AgentModelsView;
   contextTokens?: number;
   reservedContextTokens?: number;
-  maxToolIterations?: number;
   builtIn?: boolean;
 };
 
@@ -673,7 +672,6 @@ export type ConfigView = {
       models?: AgentModelsView;
       contextTokens?: number;
       reservedContextTokens?: number;
-      maxToolIterations?: number;
     };
     runtimes?: {
       entries?: Record<string, RuntimeEntryView>;

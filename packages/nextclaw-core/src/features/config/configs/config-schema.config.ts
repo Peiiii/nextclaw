@@ -185,7 +185,6 @@ export const AgentDefaultsSchema = z.object({
     .default({}),
   contextTokens: z.number().int().min(1000).default(200000),
   reservedContextTokens: z.number().int().min(0).optional(),
-  maxToolIterations: z.number().int().min(1).default(1000)
 });
 
 export const AgentProfileSchema = z.object({
@@ -208,7 +207,6 @@ export const AgentProfileSchema = z.object({
     .optional(),
   contextTokens: z.number().int().min(1000).optional(),
   reservedContextTokens: z.number().int().min(0).optional(),
-  maxToolIterations: z.number().int().min(1).optional()
 });
 
 export const AgentRuntimeEntrySchema = z.object({
