@@ -53,6 +53,17 @@ function assert(condition, message) {
   }
 }
 
+function readVersionOutput(stdout, description) {
+  const versionLines = stdout
+    .replaceAll("\r", "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(line));
+  const version = versionLines.at(-1);
+  assert(version, `${description} did not print a semantic version:\n${stdout.trim()}`);
+  return version;
+}
+
 export async function runPublishedNpmRuntimeUpdateValidation(argv) {
   if (argv.includes("--published-beta")) {
     await verifyPublishedBetaRelease();
@@ -148,7 +159,6 @@ async function createPublishedInstallFixture(packageSpec, label) {
       prefix,
       "--no-audit",
       "--no-fund",
-      "--prefer-offline",
     ],
     {
       cwd: tempRoot,
@@ -223,14 +233,11 @@ function verifyPublishedStableInstall(fixture, expectedVersion) {
 }
 
 function verifyPublishedPackagePayload(fixture, expectedVersion) {
-  const installedVersion = run(fixture.binaryPath, ["--version"], {
-    cwd: fixture.packageDirectory,
-    env: {
-      NEXTCLAW_HOME: fixture.nextclawHome,
-      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
-    },
-    timeout: 300000,
-  }).stdout.trim();
+  const installedVersion = run(
+    process.execPath,
+    ["-p", "require('./package.json').version"],
+    { cwd: fixture.packageDirectory },
+  ).stdout.trim();
   assert(
     installedVersion === expectedVersion,
     `expected nextclaw ${expectedVersion}, got ${installedVersion}`,
@@ -346,14 +353,17 @@ function verifyPublishedStableUpdate(
     "apply did not create the current runtime pointer",
   );
 
-  const upgradedVersion = run(fixture.binaryPath, ["--version"], {
-    cwd: fixture.packageDirectory,
-    env: {
-      NEXTCLAW_HOME: fixture.nextclawHome,
-      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
-    },
-    timeout: 300000,
-  }).stdout.trim();
+  const upgradedVersion = readVersionOutput(
+    run(fixture.binaryPath, ["--version"], {
+      cwd: fixture.packageDirectory,
+      env: {
+        NEXTCLAW_HOME: fixture.nextclawHome,
+        PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
+      },
+      timeout: 300000,
+    }).stdout,
+    "updated nextclaw runtime",
+  );
   assert(
     upgradedVersion === expectedVersion,
     `expected upgraded runtime ${expectedVersion}, got ${upgradedVersion}`,
