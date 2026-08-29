@@ -65,6 +65,7 @@ export function buildSessionRequestToolResult(params: {
     task,
     status: request.status,
     notify: request.notify,
+    wait: request.wait,
     ...(request.finalResponseText
       ? { finalResponseText: request.finalResponseText }
       : {}),

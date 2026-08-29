@@ -33,6 +33,7 @@ import { ToolProviderManager } from "@kernel/managers/tool-provider.manager.js";
 import type { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
   createAgentRuntimeSessionRequestDispatcher,
+  createAgentRuntimeSessionRequestSourceNotifier,
   SessionRequestManager,
 } from "@kernel/features/session-request/index.js";
 import type { AgentRuntimeSessionTypeDescribeParams } from "@kernel/features/runtime-registry/index.js";
@@ -287,10 +288,8 @@ export class NextclawKernel {
     });
     this.sessionRequests = new SessionRequestManager({
       sessionManager: this.sessionManager,
-      dispatcher: createAgentRuntimeSessionRequestDispatcher({
-        eventBus: this.eventBus,
-        ingress: this.ingress,
-      }),
+      dispatcher: createAgentRuntimeSessionRequestDispatcher({ eventBus: this.eventBus, ingress: this.ingress }),
+      notifySourceSession: createAgentRuntimeSessionRequestSourceNotifier({ ingress: this.ingress }),
     });
     this.contextCompactionManager = new AgentRunContextCompactionManager(
       this.agents,

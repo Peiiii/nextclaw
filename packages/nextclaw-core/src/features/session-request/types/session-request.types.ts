@@ -8,6 +8,7 @@ export type SessionRequestStatus =
   | "cancelled";
 
 export type SessionRequestNotifyMode = "none" | "final_reply";
+export type SessionRequestWaitMode = "none" | "final_reply";
 
 export type SessionRequestRecord = {
   requestId: string;
@@ -18,6 +19,7 @@ export type SessionRequestRecord = {
   parentRequestId?: string;
   handoffDepth: number;
   notify: SessionRequestNotifyMode;
+  wait: SessionRequestWaitMode;
   status: SessionRequestStatus;
   targetMessageId?: string;
   finalResponseMessageId?: string;
@@ -43,6 +45,7 @@ export type SessionRequestToolResult = {
   task: string;
   status: SessionRequestStatus;
   notify: SessionRequestNotifyMode;
+  wait: SessionRequestWaitMode;
   finalResponseText?: string;
   error?: string;
   message?: string;

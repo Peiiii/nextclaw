@@ -26,7 +26,7 @@ function readOptionalString(params: Record<string, unknown>, key: string): strin
 export class SessionRequestTool implements NcpTool {
   readonly name = "sessions_request";
   readonly description =
-    "Send one task to another session. Use notify to control whether this session should continue after the target session finishes.";
+    "Send one task to another session. The request starts immediately; wait controls blocking and notify controls completion delivery.";
   readonly parameters = {
     type: "object",
     properties: {
@@ -48,14 +48,19 @@ export class SessionRequestTool implements NcpTool {
       notify: {
         type: "string",
         enum: ["none", "final_reply"],
-        description: "Whether the current session should continue after the target session finishes. Use \"final_reply\" to continue after the target session reaches its final reply.",
+        description: "Optional completion delivery policy. Defaults to \"final_reply\"; use \"none\" for no follow-up notification.",
+      },
+      wait: {
+        type: "string",
+        enum: ["none", "final_reply"],
+        description: "Optional blocking policy. Defaults to \"none\"; use \"final_reply\" only when this tool call must wait for the target result.",
       },
       title: {
         type: "string",
         description: "Optional card title override.",
       },
     },
-    required: ["target", "task", "notify"],
+    required: ["target", "task"],
   };
   private sourceSessionId = "";
   private handoffDepth = 0;
@@ -80,19 +85,23 @@ export class SessionRequestTool implements NcpTool {
       throw new Error("target must be an object.");
     }
     const task = readRequiredString(params, "task");
-    const notifyMode = readOptionalString(params, "notify")?.toLowerCase();
+    const notifyMode = readOptionalString(params, "notify")?.toLowerCase() ?? "final_reply";
     if (notifyMode !== "none" && notifyMode !== "final_reply") {
       throw new Error('notify must be "none" or "final_reply".');
+    }
+    const waitMode = readOptionalString(params, "wait")?.toLowerCase() ?? "none";
+    if (waitMode !== "none" && waitMode !== "final_reply") {
+      throw new Error('wait must be "none" or "final_reply".');
     }
 
     return this.manager.requestSession({
       sourceSessionId: this.sourceSessionId,
       sourceToolCallId: context?.toolCallId,
-      updateToolCallResult: context?.updateToolCallResult,
       targetSessionId: readRequiredString(target as Record<string, unknown>, "session_id"),
       task,
       title: readOptionalString(params, "title"),
       notify: notifyMode,
+      wait: waitMode,
       handoffDepth: this.handoffDepth,
       trigger: attachSourceToolCall(this.readTriggerOrThrow(), context?.toolCallId),
     });

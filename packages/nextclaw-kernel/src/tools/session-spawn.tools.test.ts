@@ -40,11 +40,17 @@ function createTool() {
 }
 
 describe("SessionSpawnTool", () => {
-  it("advertises top-level notify instead of nested request", () => {
+  it("advertises independent start, wait, and notify controls", () => {
     const { tool } = createTool();
 
     expect((tool.parameters.properties as Record<string, unknown>).notify).toMatchObject({
       enum: ["none", "final_reply"],
+    });
+    expect((tool.parameters.properties as Record<string, unknown>).wait).toMatchObject({
+      enum: ["none", "final_reply"],
+    });
+    expect((tool.parameters.properties as Record<string, unknown>).start).toMatchObject({
+      type: "boolean",
     });
     expect((tool.parameters.properties as Record<string, unknown>).inheritContext).toMatchObject({
       type: "boolean",
@@ -52,25 +58,23 @@ describe("SessionSpawnTool", () => {
     expect((tool.parameters.properties as Record<string, unknown>).request).toBeUndefined();
   });
 
-  it("starts child sessions from top-level notify", async () => {
-    const { sessionRequestManager, tool } = createTool();
-    const updateToolCallResult = vi.fn(async () => undefined);
+  it("starts child sessions by default without waiting for completion", async () => {
+    const { sessionManager, sessionRequestManager, tool } = createTool();
     const context: ToolExecutionContext = {
       toolCallId: "call-1",
-      updateToolCallResult,
     };
 
     await tool.execute({
       inheritContext: true,
       scope: "child",
       task: "测试一下子代理",
-      notify: "final_reply",
     }, context);
 
     expect(sessionRequestManager.spawnSessionAndRequest).toHaveBeenCalledWith(expect.objectContaining({
       contextInheritance: { anchorToolCallId: "call-1" },
       parentSessionId: "parent-session",
       notify: "final_reply",
+      wait: "none",
       sourceToolCallId: "call-1",
       task: "测试一下子代理",
       trigger: expect.objectContaining({
@@ -78,8 +82,8 @@ describe("SessionSpawnTool", () => {
         sourceToolCallId: "call-1",
         sourceModel: "openai/gpt-5.6",
       }),
-      updateToolCallResult,
     }));
+    expect(sessionManager.createSession).not.toHaveBeenCalled();
   });
 
   it("rejects context inheritance for standalone sessions", async () => {
@@ -91,12 +95,13 @@ describe("SessionSpawnTool", () => {
     })).rejects.toThrow('inheritContext=true requires scope="child".');
   });
 
-  it("passes context inheritance to child session creation", async () => {
-    const { sessionManager, tool } = createTool();
+  it("creates an idle child session only when start is explicitly false", async () => {
+    const { sessionManager, sessionRequestManager, tool } = createTool();
 
     await tool.execute({
       inheritContext: true,
       scope: "child",
+      start: false,
       task: "branch",
     }, { toolCallId: "call-2" });
 
@@ -111,6 +116,26 @@ describe("SessionSpawnTool", () => {
       parentSessionId: "parent-session",
       task: "branch",
     }));
+    expect(sessionRequestManager.spawnSessionAndRequest).not.toHaveBeenCalled();
+  });
+
+  it("accepts neutral generated policies for create-only and rejects active delivery policies", async () => {
+    const { sessionManager, tool } = createTool();
+
+    await tool.execute({
+      start: false,
+      task: "idle",
+      notify: "none",
+      wait: "none",
+    });
+
+    expect(sessionManager.createSession).toHaveBeenCalled();
+
+    await expect(tool.execute({
+      start: false,
+      task: "idle",
+      notify: "final_reply",
+    })).rejects.toThrow("start=false cannot request waiting or completion notification");
   });
 
   it("declares the canonical schema without legacy request", () => {
