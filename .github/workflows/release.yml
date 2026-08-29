@@ -289,7 +289,7 @@ jobs:
   publish-desktop:
     name: publish stable Desktop release
     needs: [publish-npm, publish-runtime]
-    if: ${{ inputs.target == 'all' && needs.publish-npm.outputs.has_nextclaw == 'true' && needs.publish-npm.outputs.content_ready == 'true' && needs.publish-runtime.result == 'success' }}
+    if: ${{ always() && inputs.target == 'all' && needs.publish-npm.outputs.has_nextclaw == 'true' && needs.publish-npm.outputs.content_ready == 'true' && needs.publish-runtime.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:

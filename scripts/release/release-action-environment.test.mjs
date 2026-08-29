@@ -172,7 +172,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
     "release.yml must include the publish-desktop job",
   );
   assert.match(desktopJob, /timeout-minutes: 150/);
-  assert.match(desktopJob, /inputs\.target == 'all'/);
+  assert.match(desktopJob, /always\(\) && inputs\.target == 'all'/);
   assert.match(desktopJob, /needs\.publish-runtime\.result == 'success'/);
   assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
   assert.match(
