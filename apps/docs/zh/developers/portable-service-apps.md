@@ -1,6 +1,8 @@
 # 开发 WASM Service App
 
-当前 Portable Runtime 的官方开发路径是 Rust + WebAssembly Component。NextClaw 可以直接生成一个包含 WIT 合同、Rust Guest、Panel 和 Service 清单的独立项目；开发普通 App 不需要克隆 NextClaw 源码仓库。
+当前 Portable Runtime 的官方开发路径是 Rust + WebAssembly Component。NextClaw 可以直接生成一个包含 WIT 合同、Rust Guest、Panel 和 Service 清单的独立项目；开发普通 App 不需要克隆 NextClaw 源码仓库。Component 由内嵌的 Spin Runtime 执行，但 App 作者只需要遵守公开的 `.napp`、WIT 和 NDJSON 合同。
+
+Portable Service 默认应当是自包含的：把需要的 Component、清单和构建结果放进 `.napp`，用户安装后即可运行。需要 Redis 等外部服务时，使用 Service 清单的 `requires` 显式声明；这会让 App 显示为 `needs-capability` 或 `needs-configuration` 并阻止启用，直到依赖满足。当前不会自动安装外部服务或完成第三方授权，也不要在清单中放凭据或连接字符串。
 
 ## 从可运行模板开始
 
@@ -126,7 +128,7 @@ nextclaw app build .
 
 NextClaw 会提供当前平台的原生 runner；App 开发者只构建跨平台的 `.wasm` Component，不需要为 Windows、Linux 和 macOS 分别编译 runner。
 
-只有维护 NextClaw Runtime 本身时，才在源码仓库根目录运行 `pnpm portable-runtime:build`，构建 runner 和内置验证 Components。
+只有维护 NextClaw Runtime 本身时，才在源码仓库根目录运行 `pnpm portable-runtime:build`，构建平台运行时和内置验证 Components。应用作者不能通过公开 API 动态加载任意第三方 Spin Factor；需要额外宿主能力时，应使用已有的受支持 Factor/Native Provider，或改用 `native-process` Service。
 
 ## 声明 Panel 调用的 Actions
 

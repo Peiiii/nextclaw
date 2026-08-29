@@ -156,7 +156,7 @@ jobs:
           registry: 'https://registry.npmjs.org', rootDir: process.cwd(), targetBranch: 'master' });"
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.94.1
         with:
           targets: wasm32-wasip2,${{ matrix.cargo_target }}
 
@@ -174,6 +174,9 @@ jobs:
 
       - name: Build Portable Service App runtime
         run: node apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+
+      - name: Verify native runner Factor and lifecycle contract
+        run: node apps/nextclaw-wasmtime-runner/tools/spin-runner-smoke.tools.mjs
 
       - name: Build signed NPM runtime update channel
         shell: bash

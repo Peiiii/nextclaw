@@ -1,6 +1,6 @@
 # Runtime model and capability contracts
 
-Portable Runtime has two public boundaries. WIT defines communication between a Component and the host. App and Service manifests define available capabilities, runtime role, and caller-facing Actions.
+Portable Runtime has two public boundaries. WIT defines communication between a Component and the host. App and Service manifests define available capabilities, runtime role, and caller-facing Actions. The implementation uses embedded Spin Runtime Factors for host linking; this does not change the public `.napp`, WIT, or NDJSON contracts.
 
 ## WIT world
 
@@ -104,6 +104,34 @@ A consumer must declare kebab-case Provider service ids:
 ```
 
 Providers cannot currently call another Provider recursively.
+
+## Declaring external requirements
+
+A Service should not depend on services outside its package by default. When it must, it can explicitly declare an external capability or resource. These declarations describe the dependency only; they never carry credentials, connection strings, or installation commands:
+
+```json
+{
+  "requires": {
+    "capabilities": [
+      {
+        "id": "redis",
+        "title": "Redis capability",
+        "description": "Requires a trusted Redis capability provider."
+      }
+    ],
+    "resources": [
+      {
+        "binding": "primary-database",
+        "type": "redis",
+        "title": "Primary Redis",
+        "description": "A Redis resource must be configured before enablement."
+      }
+    ]
+  }
+}
+```
+
+An App with required external dependencies is shown as `needs-capability` or `needs-configuration` in the App list and details, and cannot be enabled until the requirement is satisfied. NextClaw does not currently install an external service or complete third-party authorization automatically; App authors should provide a self-contained path whenever possible.
 
 ## Owning App manifest
 

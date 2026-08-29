@@ -1,6 +1,6 @@
 # Runtime 模型与能力合同
 
-Portable Runtime 的公共边界由两部分组成：WIT 定义 Component 与宿主如何通信，App 与 Service 清单定义这个 Component 可以使用哪些能力、以什么角色运行，以及向调用者暴露哪些 Actions。
+Portable Runtime 的公共边界由两部分组成：WIT 定义 Component 与宿主如何通信，App 与 Service 清单定义这个 Component 可以使用哪些能力、以什么角色运行，以及向调用者暴露哪些 Actions。内部使用嵌入式 Spin Runtime Factors 连接宿主，不会改变 `.napp`、WIT 或 NDJSON 公共合同。
 
 ## WIT world
 
@@ -119,6 +119,34 @@ Provider 保留独立实例。Consumer 必须显式声明依赖：
 ```
 
 Provider id 使用 kebab-case Service id。当前不支持 Provider 再递归调用另一个 Provider。
+
+## 外部依赖声明
+
+默认 Service 不应依赖安装包之外的服务。确有需要时，Service 可以显式声明外部 capability 或 resource；这些声明只描述依赖，不携带凭据、连接字符串或安装命令：
+
+```json
+{
+  "requires": {
+    "capabilities": [
+      {
+        "id": "redis",
+        "title": "Redis capability",
+        "description": "Requires a trusted Redis capability provider."
+      }
+    ],
+    "resources": [
+      {
+        "binding": "primary-database",
+        "type": "redis",
+        "title": "Primary Redis",
+        "description": "A Redis resource must be configured before enablement."
+      }
+    ]
+  }
+}
+```
+
+带有必需外部依赖的 App 会在 App 列表和详情中显示 `needs-capability` 或 `needs-configuration`，在满足要求前不能启用。当前 NextClaw 不会自动安装外部服务或完成第三方授权；应用作者应优先提供不需要外部服务的自包含路径。
 
 ## 所属 App 清单
 

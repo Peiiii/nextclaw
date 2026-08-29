@@ -1,8 +1,8 @@
-# NextClaw Wasmtime Runner
+# NextClaw Portable Runtime Runner
 
-这是 Portable Capability Runtime 的 Rust-first 宿主实现。它通过 stdin/stdout NDJSON 接收 NextClaw Kernel 请求，在一个共享 Wasmtime 进程中缓存并执行多个 WebAssembly Component。
+这是 Portable Capability Runtime 的 Rust-first 宿主实现。它通过 stdin/stdout NDJSON 接收 NextClaw Kernel 请求，并以嵌入式 Spin Runtime Factors 在一个共享 Wasmtime 进程中缓存、隔离和执行多个 WebAssembly Component。
 
-它不是新的 App 产品或通用容器。`.napp`、安装、授权、Action 和数据生命周期仍由现有 NextClaw owner 管理；runner 只负责 Component 装载、WIT linking、执行和资源隔离。
+Spin 是内部执行引擎，不是公开 App 合同。它不暴露 `spin.toml`，也不接管 `.napp`、安装、授权、Action、数据或生命周期；这些语义仍由 NextClaw owner 管理。runner 只负责 Component 装载、Factor linking、执行和资源隔离，发布 artifact 名与现有 Kernel NDJSON/WIT 合同保持不变。
 
 ## 当前合同
 
@@ -21,6 +21,17 @@
 - `guests/resident-lab`：验证常驻实例、宿主定时事件、内存连续性与 durable cursor。
 - `guests/provider-lab`：注册一个可复用的联系人规范化 Provider，并保留独立调用计数。
 - `guests/composition-lab`：通过 Host 的 `component-call` 调用已声明 Provider，并验证未声明依赖被拒绝。
+
+## Spin-compatible smoke
+
+正式 runner 构建后可执行同一套可重复的五 Guest 核心链路 smoke：
+
+```sh
+node apps/nextclaw-wasmtime-runner/tools/spin-runner-smoke.tools.mjs \
+  apps/nextclaw-wasmtime-runner/target/release/nextclaw-wasmtime-runner
+```
+
+脚本验证 list-actions、Host KV、存储/网络拒绝、Provider 与 Consumer component-call（允许/拒绝）、Resident 事件/状态/停止，以及同一 PID 和实例计数；网络拒绝不依赖公网。
 
 ## 产品构建
 
@@ -46,7 +57,7 @@ node apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.mjs --platform 
 node tools/runtime-memory.tools.mjs
 ```
 
-脚本会在同一台机器上分别测量空 runner、加载 1/5/10 个独立 artifact 路径的 Action Component，以及 1/5/10 个最小 Node Service 独立进程的稳定 RSS。每个点取五次 OS RSS 采样的中位数，用来验证共享 runner 的服务密度方向；它不替代等价业务 workload、Resident 密度、CPU/延迟与跨平台统计。
+脚本会在同一台机器上分别测量空 runner、加载 1/5/10 个独立 artifact 路径的 Action Component，以及 1/5/10 个最小 Node Service 独立进程的稳定 RSS，并记录首个 Component 装载和热 Action 延迟。每个 RSS 点取五次 OS 采样的中位数，用来验证共享 runner 的服务密度方向；它不替代等价业务 workload、Resident 密度、CPU 与跨平台统计。可用 `--runner <path>` 对同一 workload 比较候选实现。
 
 ## 已知边界
 

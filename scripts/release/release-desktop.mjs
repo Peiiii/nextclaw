@@ -412,7 +412,7 @@ function printPlan(options, aheadCount) {
 async function executeRelease(options, aheadCount) {
   const { branch, channel, dryRun, existingReleaseComplete, publishLinuxAptOnly, reuseExistingRelease, runId, tag, target, workflow } = options;
   if (dryRun) {
-    console.log(`[desktop:release] would create hidden Draft ${tag}`);
+    console.log(publishLinuxAptOnly ? `[desktop:release] would recover APT for existing public release ${tag}` : `[desktop:release] would create hidden Draft ${tag}`);
     console.log(`[desktop:release] would dispatch ${workflow} for exact target ${target}`);
     console.log("[desktop:release] public gate: complete Draft assets verified before publication");
     console.log("[desktop:release] dry-run complete; no release was created.");

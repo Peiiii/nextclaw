@@ -1,6 +1,6 @@
 # Portable Runtime
 
-Portable Runtime 是 NextClaw 执行 WASM Service App 的运行方式。应用把业务逻辑编译成平台无关的 WebAssembly Component，NextClaw 通过共享的原生 Wasmtime runner 装载和执行它，并向 Component 提供一组受控的宿主能力。
+Portable Runtime 是 NextClaw 执行 WASM Service App 的运行方式。应用把业务逻辑编译成平台无关的 WebAssembly Component，NextClaw 通过内嵌的 Spin Runtime 和共享的原生运行进程装载、连接并执行它，并向 Component 提供一组受控的宿主能力。
 
 它解决的是 Service App 的运行与能力边界，不是一套新的应用产品：App 安装、Panel、Service Actions、用户授权和数据生命周期仍由 NextClaw 原有体系管理。
 
@@ -22,9 +22,9 @@ Portable Runtime 适合需要以下特征的 Service App：
 
 ```text
 Panel App ─┐
-Agent ─────┼─→ Service Action / grant ─→ NextClaw Kernel ─→ shared runner ─→ WASM Component
-CLI ───────┘                                      │
-                                                   └─→ KV / HTTP GET / declared Provider
+Agent ─────┼─→ Service Action / grant ─→ NextClaw Kernel ─→ embedded Spin Runtime ─→ WASM Component
+CLI ───────┘                                                │
+                                                            └─→ KV / HTTP GET / declared Provider
 ```
 
 NextClaw Kernel 是产品语义的 owner：它解析 App 和 Service 清单、检查调用者授权、确定数据目录与能力范围，并管理运行时状态。runner 只负责 Component 装载、WIT linking 和执行。
@@ -53,7 +53,7 @@ Component 不会自动继承宿主文件系统或原生网络。存储、网络�
 
 ## 共享 runner 与恢复
 
-NextClaw 通过一个共享子进程执行多个 Component：
+NextClaw 通过一个共享子进程执行多个 Component。进程内部使用 Spin Runtime 的 Factors 连接宿主能力；Factor 是实现细节，不改变 App 作者看到的 `.napp`、WIT 和 NDJSON 合同：
 
 - Action 按需装载和调用；
 - Resident 与 Provider 在 runner 中保留实例；
@@ -63,17 +63,23 @@ NextClaw 通过一个共享子进程执行多个 Component：
 
 当前超时恢复用于闭合故障主链路，不等同于完整的进程内资源隔离。内部 CPU、内存和并发限制仍需要继续完善。
 
+## 扩展与外部依赖
+
+优先把可复用能力做成 Portable Component，或由受信任的 Native Provider 提供。NextClaw 当前不承诺应用可以在安装后动态加载任意第三方 Spin Factor；需要产品支持的宿主能力，必须先进入受支持的 Factor/Provider 合同。
+
+默认 App 应该是自包含的，安装后即可运行。Service 可以在清单中显式声明外部 capability 或 resource，但这属于谨慎的兜底路径：App 列表和详情会显示 `needs-capability` 或 `needs-configuration`，在依赖满足前不会允许启用。NextClaw 目前只负责识别、展示和阻止误启用，不会自动安装外部服务或代替用户完成第三方账号授权。
+
 ## 跨平台模型
 
 WASM Component 是平台无关产物；原生 runner 由 NextClaw 针对目标操作系统提供。当前源码包含 macOS arm64/x64、Linux x64 和 Windows x64 的资源映射。
 
-通过 NPM 安装时，稳定 launcher 会在首次启动时检查当前平台的完整 Runtime。runner 缺失时，它会下载并验证签名 Runtime，再从完整版本启动；如果暂时无法联网但本机已有完整 Runtime，则继续使用该版本，不需要手工复制 runner。
+通过 NPM 安装时，稳定 launcher 会在首次启动时检查当前平台的完整 Runtime。运行时缺失时，它会下载并验证签名 Runtime，再从完整版本启动；如果暂时无法联网但本机已有完整 Runtime，则继续使用该版本，不需要手工复制运行时文件。
 
 正式发布会在 macOS arm64、Linux x64 和 Windows x64 上分别完成构建，并走一遍真实的 HTTP 启用、五个 Component 发现、Provider/Resident 启动和 Action 调用。Linux x64 runner 使用静态链接，不会继承构建机器的 glibc 版本要求。
 
 ## 当前边界
 
-- 官方 Guest 开发路径目前只覆盖 Rust；不能直接把 FastAPI 或现有 Python 依赖树整体编译成当前 Component。
+- 官方 Guest 开发路径目前只覆盖 Rust；不能直接把 FastAPI 或现有 Python 依赖树整体编译成当前 Component。Python/Node 等完整生态仍可通过 `native-process` Service 使用，但那不是 Portable Component 的自包含运行方式。
 - 公开合同尚不包含 Secret、文件与 Blob、流式 HTTP、长任务进度与取消，也不包含 Component 直接调用模型或 Agent。
 - Resident 当前接收宿主定时事件，还没有通用外部事件订阅路由。
 - Provider 不支持递归调用另一个 Provider。

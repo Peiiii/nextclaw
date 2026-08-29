@@ -1,16 +1,16 @@
-# WASI Service App 运行时与现有 Mini App 体系融合设计探索
+# WASI Service App 运行时与现有 Mini App 体系融合设计
 
 ## 文档状态
 
-- 日期：2026-08-28
-- 状态：探索草案，待用户逐项 Review，**尚未冻结**
-- 文档层级：设计探索，不是实施计划、发布承诺或已批准协议
-- 当前目的：保存 2026-08-28 围绕 Service App 内存、跨平台分发、WASM/WASI、Component Model、Spin、wasmCloud、能力组合与长期产品潜力的全部讨论成果，避免宝贵判断在正式 Review 前丢失
+- 日期：2026-08-28；2026-08-30 完成 Spin-first Review、判别性 Spike 与正式执行器迁移
+- 状态：**Spin-first 执行底座已冻结并完成本机迁移验证**；跨平台发布矩阵仍是交付门
+- 文档层级：稳定设计；实施顺序由总体阶段计划负责，本文不构成发布承诺
+- 当前目的：冻结 Service App 内存、跨平台分发、WASM/WASI、Spin、可安装宿主能力、外部资源绑定与原生逃生路径的统一架构
 - 配套认知材料：[NextClaw 可移植能力运行时全景说明与场景设想](../thoughts/2026-08-28-portable-capability-runtime-panorama.thought.md)，保存完整比喻、端到端解释、场景、生态潜力、多语言边界与长期推演；本文继续作为架构决策 owner
 - 愿景与首版范围：[Portable Capability Runtime 愿景与 MVP 设计](./2026-08-28-portable-capability-runtime-mvp.design.md)，负责技术 Spike、Reference App、明确不做项、验收与停止条件
 - 完整验证范围：[Portable Capability Runtime 全能力验证套件设计](./2026-08-28-portable-runtime-verification-suite.design.md)，负责三种组件角色、常见应用场景、Demo 拆分和用户可核验证据
-- Design Ready：否；需完成本文末尾的选型验证与用户 Review 后再冻结
-- Implementation Plan：[Portable Capability Runtime 总体阶段计划](../plans/2026-08-28-portable-capability-runtime-overall.plan.md)；阶段 1 Action 技术垂直切片已实现并通过本地端到端验证，但用户体验 Review 发现覆盖不足，Gate 1 已重新打开
+- Design Ready：是，适用于正式 Spin runner、依赖就绪模型与开发者闭环；进程内第三方 Factor ABI 和外部资源自动配置仍未冻结
+- Implementation Plan：[Portable Capability Runtime 总体阶段计划](../plans/2026-08-28-portable-capability-runtime-overall.plan.md)；直接 Wasmtime 已完成对照使命并从正式实现移除
 
 ## 一、问题起点
 
@@ -460,15 +460,91 @@ WASI 可以覆盖大量便携 Service，但不能在保持轻量、单 artifact 
 
 无法合理进入通用 capability 的需求继续使用 `native-process`。WASI 是默认便携运行层，不是唯一运行层，也不是 Docker 替代品。
 
-### 6.4 能力供给采用三层模型，避免宿主无限膨胀
+### 6.4 能力供给采用四层模型，避免宿主无限膨胀
 
 | 层次 | 谁提供 | 典型内容 | 是否进入 NextClaw 稳定底层 |
 | --- | --- | --- | --- |
-| 宿主根能力 | NCP/NextClaw Runtime | WASI、KV、Secret、事件、调度、日志、资源控制 | 是，但严格有限、跨应用、可审计 |
+| 内置宿主 Factor | NCP/NextClaw Runtime | WASI、KV、SQLite、Secret、HTTP、日志、资源控制 | 是，但只收录高频、跨应用、可审计的有限集合 |
+| 可安装 Capability Provider | NextClaw、第三方或用户自己的 AI | Redis、PostgreSQL、MQTT、企业系统、Agent/模型桥接 | 不进入默认 runner；通过稳定 Provider/Action 合同独立安装和版本化 |
 | 可移植组件能力 | App 或第三方 WASM Component | Markdown/PDF 解析、OAuth、协议 adapter、中间件、数据转换 | 否，随组件依赖分发和组合 |
 | 平台专属能力 | Native Provider | macOS Accessibility、Windows UI Automation、GPU、摄像头、硬件 | 否，只有最后一段按平台构建 |
 
-这个结构改变了“底层不支持就必须给 NextClaw 增加专用 API”的假设。纯逻辑和协议能力可以由组件生态自行补充；只有真正需要宿主权限、硬件或操作系统参与的能力才增加 provider。一个 `.napp` 可以保持可移植 WASM 核心，只为少数平台能力附带不同 Native Provider，避免整个 App 分平台重写。
+这个结构改变了“底层不支持就必须等待 NextClaw 产品发版”的假设。纯逻辑和协议能力由组件生态自行补充；需要原生 SDK、重客户端或外部服务的能力，由用户或其 AI 通过公开 Provider/Action 合同构建、安装和管理；真正需要操作系统参与的能力使用 Native Provider。NextClaw 团队不再是每个新能力的交付瓶颈。
+
+Spin Factor 是与 runner 一起编译的可信宿主代码，不是普通沙箱 App。Spin 4 的 Runtime Factors 是静态 Rust 类型，本身不提供稳定的任意动态插件 ABI；因此首版只允许随 NextClaw 签名 runtime 发布的内置 Factor，普通 `.napp` 不得静默携带或加载任意 Factor。生态自定义能力走已存在的通用 `component-call(providerId, action, json)` 桥：Provider 可以是可移植 Component，也可以是 `native-process` Service，从而无需修改 NextClaw 产品源码，同时避免把未经信任的原生库注入共享 runner。若未来开放真正的进程内第三方 Factor，必须先完成稳定 ABI、签名、崩溃隔离和跨平台兼容合同，不能把设计愿景冒充为当前能力。
+
+### 6.4.1 App 分发与运行依赖必须解耦
+
+`.napp` 继续是可复制、可上传、可安装的应用 artifact，但“可分发”不等于“离线自包含所有外部世界”。包只声明它需要什么，不携带用户的连接实例和秘密：
+
+产品默认和推荐路径仍然是 **自包含、安装后可直接运行**。只有无法合理内嵌、真实依赖用户既有基础设施或需要专有系统连接时，才允许声明外部 Factor/资源；它是兼容与特殊需求逃生口，不是与自包含 App 平级的推荐形态。App 作者和生成 App 的 AI 必须先证明不能由包内 Component、内置 Factor 或宿主管理的本地资源关闭需求，才选择外部依赖。
+
+```text
+.napp
+  -> 声明 capability id + API 版本范围
+  -> 声明 external resource binding 的类型与用途
+  -> 安装器解析本机 Factor 是否满足
+  -> 缺 Factor：给出可安装来源或本地构建入口
+  -> 缺配置：引导绑定 endpoint、账号和 Secret
+  -> 满足后才允许 enable
+```
+
+依赖分为三类，不能混写：
+
+1. **包内依赖**：Panel、WASM Component、纯资源和可移植组件依赖，随 `.napp` 分发；
+2. **宿主能力依赖**：内置能力由 runtime Factor 提供；生态能力由 Capability Provider catalog 独立安装和版本化；
+3. **外部资源依赖**：例如用户自己的 Redis、PostgreSQL 或企业 API，由安装实例绑定，endpoint 与凭据不进入公开包。
+
+同一个 `.napp` 因而仍可跨平台分发。目标设备缺少 Factor 或资源配置时，应用可以完成安装，但状态必须明确停在 `needs-capability` 或 `needs-configuration`，不得伪装为已可运行，也不得在第一次调用时才暴露模糊错误。补齐后状态进入 `ready`，再由用户启用。
+
+安装详情、Marketplace 卡片和确认页必须在安装前醒目标出“需要额外组件”或“需要外部服务”，说明是否收费、是否离开本机、需要哪些账号/授权，以及能否由 NextClaw 自动完成。默认排序、推荐和“一键安装”资格应优先给自包含 App；外部依赖 App 不能使用与开箱即用 App 相同的无差别展示。
+
+### 6.4.2 外部依赖必须由 AI 操作
+
+外部依赖不能把 README、命令、连接字符串和排障步骤交给用户。NextClaw/Agent 必须能通过同一个结构化控制面完成：
+
+1. 检测本机缺少的 Factor、服务或配置；
+2. 解释影响并请求最小必要授权；
+3. 自动选择兼容 artifact、安装或连接资源；
+4. 安全采集账号/Secret，不在聊天、日志和 artifact 中回显；
+5. 运行连接、权限和代表性 Action 验证；
+6. 失败时给出结构化原因并自动执行可恢复修复；
+7. 卸载 App 时说明外部资源是否保留，并按用户选择清理绑定。
+
+用户只承担不可代理的决定，例如确认安装可信宿主扩展、登录外部账号或批准付费；不要求非技术用户理解 Redis、端口、连接池或命令行。CLI、UI 与 Agent 复用同一个 dependency readiness/operation owner，不能分别复制安装语义。
+
+### 6.4.3 自定义能力的分发合同
+
+应用只依赖稳定 capability id 和 WIT/API 版本，不依赖某个 Factor 文件名或安装路径。Runtime catalog 负责把 capability 解析到兼容实现：
+
+```text
+capability request
+  -> catalog resolution
+  -> compatible built-in Factor or external Provider implementation
+  -> platform artifact (macOS / Windows / Linux)
+  -> user trust and grant
+  -> resource binding
+```
+
+这使用户自己的 AI 可以在不修改 NextClaw 产品源码的情况下：生成 Component Provider 或 Native Provider 工程、实现既定 Action/WIT 合同、构建 artifact、运行兼容测试并发起本地安装。若要分发 Native Provider，仍需为目标平台产出 artifact，并通过签名或显式本地信任流程；跨平台成本只属于这个 Provider，不会扩散到所有依赖它的 `.napp`。真正的内置 Factor 仍随 runtime 发布，不伪装成动态生态插件。
+
+默认 runner 不预装重型集成。Redis、PostgreSQL、MQTT 等默认由独立 Capability Provider 承载；只有高频、跨应用且包体和内存证据合理的能力才可能在未来进入官方内置 Factor。未安装的 Provider 不创建 client、连接池、timer 或常驻进程。
+
+### 6.4.4 外部依赖产品功能地图
+
+用户任务是：用户从 Marketplace 或本地 artifact 安装一个 App，在不学习底层技术的情况下提前知道额外要求，由 NextClaw AI 完成可代理步骤，并看到可验证的可用结果。
+
+| 场景 | 用户看到什么 | 可执行动作 | 状态 owner | 失败或返回路径 | 验证证据 |
+| --- | --- | --- | --- | --- | --- |
+| 浏览 App | 默认 App 显示“开箱即用”；外部依赖 App 显示醒目标识、数据位置和可能费用 | 查看依赖说明或继续安装 | Marketplace/App metadata | 信息不可解析时禁止宣称一键可用 | 卡片与详情来自同一声明 |
+| 开始安装 | AI 先检查 capability、资源和账号状态，列出能自动完成与必须用户确认的项目 | 授权 AI 配置、取消 | AppPackageManager + readiness owner | 取消后不安装宿主扩展、不留下半配置 Secret | 操作记录包含每一步结果 |
+| 缺能力实现 | 显示 Provider 来源、签名、权限和平台兼容，不展示手工命令 | 批准安装或选择兼容实现 | Capability Provider catalog/operation owner | 无可信实现时保持 `needs-capability`，允许卸载 App | 安装后运行 Provider 自检 |
+| 缺外部资源 | AI 引导登录或选择现有资源，不要求输入底层连接参数；高级用户可展开手动配置 | 登录、选择资源、批准费用 | Resource binding owner | 连接失败保持 `needs-configuration`，Secret 不回显 | 连接测试 + 代表性只读/写入 smoke |
+| 已就绪 | 显示“可以启用”及实际绑定摘要 | 启用 App | App lifecycle owner | enable 失败返回结构化原因和 AI 修复动作 | 真实 enable + Action 成功 |
+| 运行中失效 | 显示受影响能力、数据安全和 AI 正在执行的恢复 | 重试、换绑定、撤销授权 | readiness operation owner | 不静默 fallback，不无限重试 | PID/服务稳定、故障操作可追踪 |
+| 卸载 | 明确 App 数据、Factor 与外部资源是否共享 | 保留或删除 App 数据；解绑外部资源 | App removal + binding owner | 不删除共享服务或其它 App 使用的 Factor | 引用计数、解绑与残留检查 |
+
+默认界面不显示 Redis、端口、TLS、连接池等实现术语；这些只在高级详情和诊断中出现。AI、CLI 与 UI 必须消费同一 operation/status contract，保证 Agent 能完成的动作不是一套隐藏旁路。
 
 ### 6.5 邮件/GitHub 监控 Service 的端到端示例
 
@@ -525,9 +601,9 @@ WASI 可以覆盖大量便携 Service，但不能在保持轻量、单 artifact 
 | --- | --- |
 | 通用产品行为 vs 旧代码原样兼容 | 优先让新组件表达广泛行为；旧框架走 native，不追求完整 POSIX |
 | 强隔离 vs 长期状态与性能 | 同时提供 Action 与显式 Resident 生命周期，状态不依赖偶然实例复用 |
-| 有限宿主能力 vs 无限扩展 | 小型根能力 + Component Provider + 少量 Native Provider |
+| 有限宿主能力 vs 无限扩展 | 精选内置 Factor + Component Provider + Native Provider |
 | 强类型 WIT vs 动态 Service Action | WIT 是底层合同；Action/MCP/Tool 是产品投影，首版允许受控动态 envelope |
-| 复用生态 vs 框架锁定 | NCP 拥有 WIT 和包合同；Spin、`wash-runtime`、Wasmtime 可替换 |
+| 复用生态 vs 框架锁定 | Spin-first，但 NCP 拥有 WIT、包和 adapter 合同；Spin 不成为产品事实源 |
 
 ## 七、数据库与持久化
 
@@ -555,7 +631,7 @@ WASM Component
   -> App 私有数据库
 ```
 
-宿主不得向 WASM 暴露真实数据库路径；Service 的数据仍归现有 App instance/storage owner。外部 PostgreSQL、MySQL、Redis 等默认由 App 通过受授权网络和可移植客户端实现，只有真实重复需求证明宿主 provider 更合理时才增加标准 provider。
+宿主不得向 WASM 暴露真实数据库路径；Service 的数据仍归现有 App instance/storage owner。外部 PostgreSQL、MySQL、Redis 等允许三种明确路径：轻量、可移植客户端可直接随 Component 分发；已有或用户安装的 Factor 可提供共享客户端、连接池和统一权限；无法进入 WASI 或需要完整既有框架的应用继续使用 `native-process`。选择哪条路径由应用需求决定，平台不得强迫所有数据库访问都经过 Factor。
 
 首版是否直接提供 SQL，还是先提供更小的 KV/Blob，并让 App 自带 SQLite，仍需通过真实 Personal Organizer 等案例验证后冻结。
 
@@ -571,7 +647,7 @@ WASI 本身就是跨平台基础系统接口标准，已经覆盖或推进 files
 - [WASI Releases 与接口状态](https://wasi.dev/releases)
 - [WASI 0.3](https://wasi.dev/releases/wasi-p3)
 
-### 8.2 Spin：Action/HTTP 与异步实例复用的强候选
+### 8.2 Spin：生产执行底座的首选
 
 Spin 更接近 NextClaw 当前的单机、本地 WASM Service Runtime 需求：
 
@@ -587,6 +663,8 @@ Spin 更接近 NextClaw 当前的单机、本地 WASM Service Runtime 需求：
 - [Extending and Embedding Spin](https://spinframework.dev/v4/extending-and-embedding)
 - [Spin 4.0 与 WASI 0.3 instance reuse](https://spinframework.dev/blog/announcing-spin-4-0)
 
+2026-08-30 Review 后，架构推荐从“直接 Wasmtime MVP 继续扩张”调整为 **Spin-first**。Spin 底层仍是 Wasmtime；变化的是不再自行维护完整的 component host 框架，而复用 Spin 的 Trigger、Factor、装载、链接、资源上下文与 SDK 生态。
+
 推荐复用：
 
 - Component 装载和 Wasmtime linking；
@@ -594,6 +672,8 @@ Spin 更接近 NextClaw 当前的单机、本地 WASM Service Runtime 需求：
 - capability 注入；
 - 资源预算与执行上下文基础；
 - Rust/Go 等语言 SDK 生态。
+
+NextClaw 增加一个自己的 Service Action Trigger，并只组装当前产品需要的 Factors。首批目标是 WASI、variables/secrets、KV、SQLite、outbound HTTP、observability，以及 NextClaw Service/Agent 自定义 Factor；Redis、PostgreSQL、MQTT、MySQL 和 LLM 等不得因为 Spin 已提供就默认进入 runner。
 
 禁止让 Spin 成为第二产品 owner：
 
@@ -605,6 +685,15 @@ Spin 更接近 NextClaw 当前的单机、本地 WASM Service Runtime 需求：
 正确定位是：
 
 > Spin 可以是内部执行发动机，NextClaw 仍是产品和 runtime lifecycle owner。
+
+判别性 Spike 已于 2026-08-30 关闭本机四项核心风险，并迁入正式 runner：
+
+- 原有五个 Guest、WIT 与 NDJSON `0.1.0` 合同不变；Action、KV、权限拒绝、Resident、Provider、Composition、停止与同进程统计通过自动 smoke；
+- Kernel 原有共享 runner、超时重建、持久角色恢复和权限隔离测试复用通过；迁移时发现并修复了 Factor 配置缓存未纳入授权/数据边界的问题；
+- macOS arm64 release 二进制约 31 MiB，直接 Wasmtime 基线约 25 MiB；Spin 空载/1/5/10 Component RSS 为 9.89/40.28/48.92/56.36 MiB，直接 Wasmtime 为 7.70/34.84/42.94/49.16 MiB；额外固定成本约 6–7 MiB，但 5 个 Component 仍显著低于 5 个独立 Node Service 的约 203 MiB；
+- Spin 首个 `list-actions` 70.09 ms、热 `counter_read` 中位数 0.11 ms，未见相对直接 Wasmtime 的有意义延迟退化。
+
+因此正式 artifact 继续沿用 `nextclaw-wasmtime-runner` 文件名以保持分发合同兼容，但内部实现已是嵌入式 Spin Runtime Factors，不长期保留第二 executor。Linux musl、Windows 和双架构 macOS 仍必须通过现有发布矩阵，不能用本机证据替代。
 
 ### 8.3 `wash-runtime`：从“借鉴对象”升级为必须对比的嵌入式候选
 
@@ -654,7 +743,7 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
 
 问题：Spin 嵌入 API、实际内存、长期 Component instance、资源隔离和 Desktop 多平台 runner 分发仍需真实验证。
 
-结论：Action/HTTP、异步与实例复用的强候选；不在技术 spike 前冻结为唯一首选。
+结论：**正式首选**。以嵌入式 Spin + NextClaw Trigger/Factor 进入判别性 Spike；不运行每 App 一个 `spin up`，不暴露 `spin.toml`。
 
 ### 方案 C：嵌入 `wash-runtime`，不采用完整 wasmCloud 平台
 
@@ -674,7 +763,7 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
 
 ## 十、Manifest 与包模型方向
 
-最终字段尚未冻结，概念方向如下：
+运行协议字段保持现有方向；能力与资源依赖新增独立概念层，具体 JSON 字段在实现前由 schema 设计冻结：
 
 ```json
 {
@@ -689,9 +778,15 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
       "inputSchema": {},
       "outputSchema": {}
     }
-  ]
+  ],
+  "requires": {
+    "capabilities": ["key-value@1", "redis@1"],
+    "resources": [{ "binding": "cache", "type": "redis", "required": true }]
+  }
 }
 ```
+
+上述名称只表达设计语义，不是已经发布的 schema。关键不变量是：capability 表示宿主接口，resource 表示该 App instance 需要绑定的外部实例；Secret 只保存为本机绑定，绝不写回 `.napp`。
 
 约束倾向：
 
@@ -701,6 +796,8 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
 - 一个包若未来包含不同安全等级 Service，安装展示与审核按最高权限等级收敛；
 - WASM artifact 属于 `universal` 分发；
 - Spin manifest 不进入公开包合同；
+- `.napp` 不内嵌任意原生 Factor，Factor 通过独立 catalog 和信任流程解析；
+- 缺 Factor 或配置时允许安装完成但禁止 enable，并返回稳定 readiness 状态与修复动作；
 - 顶层 package runtime/security 只表达或派生包级摘要，实际 entry 与 action 属于 Service Component 事实源，避免重复定义。
 
 ## 十一、生命周期与失败边界
@@ -770,7 +867,7 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
 
 ### 延后
 
-- 动态第三方 capability provider 市场；
+- 任意未签名 Factor 的静默加载与公共市场；首期先完成官方 Factor 和显式本地信任安装；
 - 分布式 runner、NATS/wRPC、远程调度与自动伸缩；
 - 任意 shell、进程和 OS API 的 WASI 暴露；
 - JavaScript/TypeScript WASM 的官方低内存承诺；
@@ -794,10 +891,10 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
    - 多 App 并发行为；
 7. 单 App trap、超时、OOM 和 capability denied 不影响其它 App；
 8. runner 崩溃后 Kernel 能恢复并按需重建实例；
-9. 使用同一测试同时比较 Spin、直接 Wasmtime 与 `wash-runtime`，不以一个候选失败为启动另一个候选的前提；
+9. 使用同一测试比较 Spin 与直接 Wasmtime 基线；`wash-runtime` 不再阻塞本轮选择，只有 Spin 无法满足硬门时才重新进入候选；
 10. 验证 WASI 0.2 既有工具链兼容与 WASI 0.3 async/stream/instance reuse 主路径如何共存。
 
-验证结果决定最终采用 Spin、直接 Wasmtime 或 wasmCloud embeddable runtime；公共 `.napp`、Service Action 与 WIT 目标合同不应依赖候选框架的私有产品模型。
+Spin 同时通过功能、内存、包体和三平台门后替换直接 Wasmtime 主链；任一硬门失败则保留直接 Wasmtime 并记录证据。公共 `.napp`、Service Action、capability id 与 WIT 合同不依赖 Spin 私有产品模型。
 
 ## 十四、待用户 Review 的关键问题
 
@@ -807,13 +904,13 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
 4. 数据库首版采用宿主 SQLite capability，还是 App 自带 SQLite + `/data`？
 5. actions 的 schema 唯一事实源放在 `service-app.json`，还是允许 runtime discovery 拥有部分动态事实？
 6. 是否接受一个 NextClaw 共享 runner，而不是每个 App 一个 Spin/Wasmtime 进程？
-7. Spin、`wash-runtime`、直接 Wasmtime 的同题 spike 结果分别如何，哪一个能以最小产品耦合满足 Action、Resident、capability 和 Desktop 内存合同？
+7. Spin 正式 runner 是否在不暴露 `spin.toml` 的前提下持续满足 Action、Resident、Provider、Capability Provider 与 Desktop 内存合同？
 8. 旧 schema v1 NApp 在新主链成立后的迁移、兼容和删除边界是什么？
 
 ## 十五、当前推荐摘要
 
-当前尚未冻结的推荐倾向是：
+当前冻结的推荐是：
 
-> 将 WASI/Component Model 接入现有 schema v2 Service App，并把长期北极星提升为 NCP/NextClaw Portable Capability Runtime；由产品级共享 runner 或未来有限 runner pool 承载隔离的 Action Component、Resident Service 与 Component Provider；NextClaw 继续拥有包、授权、数据和产品生命周期，NCP/kernel 拥有稳定 WIT/capability 公共合同；Spin、`wash-runtime` 与直接 Wasmtime 进行同题 spike 比较且保持可替换；无法合理跨平台抽象的能力继续走 Native Provider 或 `native-process`。
+> 将 WASI/Component Model 接入现有 schema v2 Service App，并以嵌入式 Spin 作为生产执行底座；由产品级共享 runner 或有限 runner pool 承载 Action Component、Resident Service 与 Component Provider。NextClaw 继续拥有包、授权、数据、依赖就绪状态和产品生命周期，NCP/kernel 拥有稳定 WIT/capability 公共合同。默认 runner 只内置精选 Factors，Redis 等重能力由独立 Component/Native Provider 承载；用户或其 AI 可以通过稳定 Provider/Action 合同扩展，而不必把任意原生插件注入共享 runner。无法合理跨平台抽象或需要完整既有框架的能力继续走 Native Provider 或 `native-process`。
 
-本文只保存讨论成果。只有完成用户逐项 Review、选型验证和正式设计冻结后，才能进入实现计划。
+本文已经完成本轮用户 Review。Spin 判别性 Spike、本机密度对照和正式 runner 迁移已完成；生产交付仍以三平台构建、真实 HTTP enable、开发者闭环和发布产物验证为门，不以本机偏好代替跨平台证据。

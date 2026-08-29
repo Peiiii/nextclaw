@@ -108,6 +108,10 @@ export class AppPackageCommandController {
     `${app.name} (${app.id})`,
     `  version: ${app.activeVersion}`,
     `  enabled: ${app.enabled ? "yes" : "no"}`,
+    `  readiness: ${app.readiness.status}`,
+    ...app.readiness.requirements.map((requirement) =>
+      `  requirement: ${requirement.kind} ${requirement.title} (${requirement.id})`,
+    ),
     `  built-in: ${app.builtIn ? "yes" : "no"}`,
     `  versions: ${app.installedVersions.join(", ")}`,
   ].join("\n") + "\n";
