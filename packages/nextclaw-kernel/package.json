@@ -39,6 +39,7 @@
     "@nextclaw/channel-extension-weixin": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
+    "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-agent-runtime": "workspace:*",
     "@nextclaw/ncp-agent-runtime-next": "workspace:*",
     "@nextclaw/ncp-mcp": "workspace:*",
@@ -47,8 +48,7 @@
     "@nextclaw/nextclaw-ncp-runtime-stdio-client": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/shared": "workspace:*",
-    "@nextclaw/ncp": "workspace:*",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^12.11.1",
     "rxjs": "^7.8.2",
     "yaml": "^2.8.1"
   },

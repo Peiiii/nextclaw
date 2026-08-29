@@ -191,6 +191,13 @@ export class PortableServiceRunnerClientService {
       this.stderrTail = [...this.stderrTail, message].slice(-20);
       process.stderr.write(`${message}\n`);
     });
+    child.stdin.on("error", (error) => {
+      if (this.child !== child) return;
+      this.handleChildFailure(new PortableServiceRunnerError(
+        "PORTABLE_RUNNER_IO_FAILED",
+        `Portable runner input failed: ${error.message}. ${this.stderrTail.join(" ")}`.trim(),
+      ));
+    });
     child.once("error", (error) => {
       if (this.child === child) this.handleChildFailure(error);
     });

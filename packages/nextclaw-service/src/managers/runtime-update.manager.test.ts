@@ -1,5 +1,5 @@
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { accessSync, chmodSync, constants, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { accessSync, chmodSync, constants, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -13,8 +13,8 @@ import {
 import { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/stores/npm-runtime-bundle-layout.store.js";
 import {
   compareNpmRuntimeVersions,
+  isNpmRuntimeBundleComplete,
   NpmRuntimeBundleService,
-  resolveEffectiveNpmRuntimeVersion,
   shouldPreferPackagedNpmRuntime
 } from "@nextclaw-service/services/runtime/npm-runtime-bundle.service.js";
 import { RuntimeUpdateManager } from "@nextclaw-service/managers/runtime-update.manager.js";
@@ -178,6 +178,67 @@ function createManager(params: {
 }
 
 describe("RuntimeUpdateManager", () => {
+  it("bootstraps a complete bundle matching a fresh launcher version", async () =>
+    await withTempDir(async (rootDir) => {
+      const archiveBytes = await createBundleArchive(join(rootDir, "archive"), "0.45.2");
+      const manifest = createManifest({
+        latestVersion: "0.45.2",
+        bundleSha256: createHash("sha256").update(archiveBytes).digest("hex"),
+        bundleSignature: sign(null, archiveBytes, keyPair.privateKey).toString("base64")
+      });
+      const { manager, layout } = createManager({
+        rootDir,
+        manifest,
+        archiveBytes,
+        launcherVersion: "0.45.2",
+        runningVersion: "0.45.2"
+      });
+
+      const snapshot = await manager.run();
+
+      expect(snapshot).toMatchObject({
+        status: "restart-required",
+        currentVersion: "0.45.2",
+        targetVersion: "0.45.2"
+      });
+      expect(layout.readCurrentPointer()).toEqual({ version: "0.45.2" });
+    }));
+
+  it("replaces an incomplete same-version bundle with the signed complete bundle", async () =>
+    await withTempDir(async (rootDir) => {
+      const layout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+      const incompleteBundle = writeBundleFixture(layout.getVersionsDir(), "0.45.2");
+      const runnerRelativePath = join(
+        "runtime",
+        "resources",
+        "native",
+        `${process.platform}-${process.arch}`,
+        process.platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner"
+      );
+      rmSync(join(incompleteBundle, runnerRelativePath));
+      layout.writeCurrentPointer({ version: "0.45.2" });
+      const archiveBytes = await createBundleArchive(join(rootDir, "archive"), "0.45.2");
+      const manifest = createManifest({
+        latestVersion: "0.45.2",
+        bundleSha256: createHash("sha256").update(archiveBytes).digest("hex"),
+        bundleSignature: sign(null, archiveBytes, keyPair.privateKey).toString("base64")
+      });
+      const { manager, stateStore } = createManager({
+        rootDir,
+        manifest,
+        archiveBytes,
+        launcherVersion: "0.45.2",
+        runningVersion: "0.45.2"
+      });
+
+      expect(stateStore.read().currentVersion).toBeNull();
+      await expect(manager.run()).resolves.toMatchObject({
+        status: "restart-required",
+        targetVersion: "0.45.2"
+      });
+      expect(existsSync(join(layout.getVersionDir("0.45.2"), runnerRelativePath))).toBe(true);
+    }));
+
   it("updates by downloading and applying the runtime bundle in one default run", async () =>
     await withTempDir(async (rootDir) => {
       const initialLayout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
@@ -323,18 +384,45 @@ describe("Npm runtime update defaults", () => {
 
   it("prefers the packaged npm runtime when the installed launcher is newer than current bundle", () => {
     expect(
-      resolveEffectiveNpmRuntimeVersion({
+      shouldPreferPackagedNpmRuntime({
         launcherVersion: "0.18.12-beta.7",
-        currentBundleVersion: "0.18.12-beta.4"
+        currentBundleVersion: "0.18.12-beta.4",
+        packagedRuntimeComplete: true
       })
-    ).toBe("0.18.12-beta.7");
+    ).toBe(true);
     expect(
       shouldPreferPackagedNpmRuntime({
         launcherVersion: "0.18.12-beta.7",
-        currentBundleVersion: "0.18.12-beta.4"
+        currentBundleVersion: "0.18.12-beta.4",
+        packagedRuntimeComplete: false
       })
-    ).toBe(true);
+    ).toBe(false);
   });
+
+  it("prefers a complete bundle when the packaged runtime has the same version", () => {
+    expect(
+      shouldPreferPackagedNpmRuntime({
+        launcherVersion: "0.45.1",
+        currentBundleVersion: "0.45.1",
+        packagedRuntimeComplete: true
+      })
+    ).toBe(false);
+  });
+
+  it("does not treat a runtime bundle without its platform runner as complete", async () =>
+    await withTempDir(async (rootDir) => {
+      const layout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+      const bundleDirectory = writeBundleFixture(layout.getVersionsDir(), "0.45.2");
+      rmSync(join(
+        bundleDirectory,
+        "runtime",
+        "resources",
+        "native",
+        `${process.platform}-${process.arch}`,
+        process.platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner"
+      ));
+      expect(isNpmRuntimeBundleComplete({ bundleDirectory })).toBe(false);
+    }));
 
   it("defaults beta launchers to the beta channel when no state file exists", async () =>
     await withTempDir(async (rootDir) => {
@@ -386,7 +474,7 @@ describe("Npm runtime update defaults", () => {
     expect(source.resolveChannel(undefined, "0.18.12")).toBe("stable");
   });
 
-  it("reports the packaged runtime version as current when it is newer than the current bundle pointer", async () =>
+  it("keeps the complete bundle pointer as the installed version when a newer launcher is incomplete", async () =>
     await withTempDir(async (rootDir) => {
       const layout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
       const stateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"));
@@ -409,6 +497,40 @@ describe("Npm runtime update defaults", () => {
       });
 
       expect(manager.getSnapshot().currentVersion).toBe("0.18.12-beta.7");
-      expect(stateStore.read().currentVersion).toBe("0.18.12-beta.7");
+      expect(stateStore.read().currentVersion).toBe("0.18.12-beta.4");
+    }));
+
+  it("clears stale installed-version state when no complete bundle pointer exists", async () =>
+    await withTempDir(async (rootDir) => {
+      const layout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+      const stateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"));
+      stateStore.write({
+        ...stateStore.read(),
+        currentVersion: "0.45.1"
+      });
+
+      createManager({
+        rootDir,
+        manifest: createManifest({ latestVersion: "0.45.1" }),
+        launcherVersion: "0.45.1"
+      });
+
+      expect(layout.readCurrentPointer()).toBeNull();
+      expect(stateStore.read().currentVersion).toBeNull();
+    }));
+
+  it("does not bootstrap an older runtime channel before the matching bundle is published", async () =>
+    await withTempDir(async (rootDir) => {
+      const { manager, layout } = createManager({
+        rootDir,
+        manifest: createManifest({ latestVersion: "0.45.1" }),
+        launcherVersion: "0.45.2",
+        runningVersion: "0.45.2"
+      });
+
+      const snapshot = await manager.run();
+
+      expect(snapshot.status).toBe("up-to-date");
+      expect(layout.readCurrentPointer()).toBeNull();
     }));
 });

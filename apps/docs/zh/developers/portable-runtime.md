@@ -65,9 +65,11 @@ NextClaw 通过一个共享子进程执行多个 Component：
 
 ## 跨平台模型
 
-WASM Component 是平台无关产物；原生 runner 由 NextClaw 针对目标操作系统提供。当前源码包含 macOS arm64/x64、Linux arm64/x64 和 Windows x64 的资源映射，并对 macOS arm64、Linux x64、Windows x64 执行构建检查。
+WASM Component 是平台无关产物；原生 runner 由 NextClaw 针对目标操作系统提供。当前源码包含 macOS arm64/x64、Linux x64 和 Windows x64 的资源映射。
 
-目前真实产品运行链路完成验证的是 macOS arm64。其它目标仍需要补齐安装、启动、升级和恢复覆盖，因此这不是完整的跨平台发布承诺。
+通过 NPM 安装时，稳定 launcher 会在首次启动时检查当前平台的完整 Runtime。runner 缺失时，它会下载并验证签名 Runtime，再从完整版本启动；如果暂时无法联网但本机已有完整 Runtime，则继续使用该版本，不需要手工复制 runner。
+
+正式发布会在 macOS arm64、Linux x64 和 Windows x64 上分别完成构建，并走一遍真实的 HTTP 启用、五个 Component 发现、Provider/Resident 启动和 Action 调用。Linux x64 runner 使用静态链接，不会继承构建机器的 glibc 版本要求。
 
 ## 当前边界
 

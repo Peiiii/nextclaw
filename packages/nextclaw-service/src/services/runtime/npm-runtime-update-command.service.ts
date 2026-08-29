@@ -98,7 +98,7 @@ export class NpmRuntimeUpdateCommandService {
       return;
     }
     if (snapshot.status === "restart-required") {
-      console.log(`Runtime update applied: ${snapshot.currentVersion}`);
+      console.log(`Runtime update applied: ${snapshot.targetVersion ?? "unknown"}`);
       console.log("Restart the running NextClaw service or start a new CLI process to use it.");
       return;
     }

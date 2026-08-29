@@ -1,7 +1,9 @@
 import type { UpdateManifest, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel";
 import { getPackageVersion } from "@nextclaw-service/utils/cli.utils.js";
-import { resolveEffectiveNpmRuntimeVersion } from "@nextclaw-service/services/runtime/npm-runtime-bundle.service.js";
-import type { NpmRuntimeBundleService } from "@nextclaw-service/services/runtime/npm-runtime-bundle.service.js";
+import {
+  isNpmRuntimeBundleComplete,
+  type NpmRuntimeBundleService
+} from "@nextclaw-service/services/runtime/npm-runtime-bundle.service.js";
 import type { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/stores/npm-runtime-bundle-layout.store.js";
 import type { NpmRuntimeUpdateService, NpmRuntimeAvailableUpdate } from "@nextclaw-service/services/runtime/npm-runtime-update.service.js";
 import type { NpmRuntimeUpdateStateStore } from "@nextclaw-service/stores/npm-runtime-update-state.store.js";
@@ -136,6 +138,7 @@ export class RuntimeUpdateManager {
     this.availableManifest = null;
     return this.toSnapshotFromState(this.options.stateStore.read(), {
       status: "restart-required",
+      targetVersion: downloadedVersion,
       availableVersion: null,
       downloadedVersion: null,
       releaseNotesUrl: null,
@@ -221,17 +224,18 @@ export class RuntimeUpdateManager {
   };
 
   private syncStateFromCurrentPointer = (): void => {
-    const currentPointer = this.options.layout.readCurrentPointer();
-    const effectiveCurrentVersion = resolveEffectiveNpmRuntimeVersion({
-      launcherVersion: this.launcherVersion,
-      currentBundleVersion: currentPointer?.version ?? null
-    });
-    if (!effectiveCurrentVersion) {
-      return;
+    let currentVersion: string | null = null;
+    try {
+      const currentBundle = this.options.bundleService.resolveCurrentBundle();
+      if (currentBundle && isNpmRuntimeBundleComplete({ bundleDirectory: currentBundle.bundleDirectory })) {
+        currentVersion = currentBundle.manifest.runtimeVersion ?? currentBundle.manifest.bundleVersion;
+      }
+    } catch {
+      currentVersion = null;
     }
     this.options.stateStore.update((state) => ({
       ...state,
-      currentVersion: effectiveCurrentVersion
+      currentVersion
     }));
   };
 
@@ -246,6 +250,7 @@ export class RuntimeUpdateManager {
       channel: state.channel,
       hostVersion: this.launcherVersion,
       currentVersion: this.runningVersion,
+      targetVersion: null,
       availableVersion: null,
       downloadedVersion: state.downloadedVersion,
       minimumHostVersion: null,

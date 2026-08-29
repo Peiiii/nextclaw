@@ -208,11 +208,12 @@ export class NextclawServiceRuntime {
 
 export const runNextclawNpmRuntimeLauncher = (
   argv: string[] = process.argv,
-): void => {
+): Promise<never> => {
   const distribution = NextclawDistributionService.get();
-  new NpmRuntimeLauncher({
+  return new NpmRuntimeLauncher({
     argv,
     launcherVersion: distribution.version,
     packagedAppEntrypoint: distribution.appEntrypoint,
+    packagedPortableRunnerPath: distribution.portableServiceRunnerPath,
   }).run();
 };

@@ -6,6 +6,10 @@ on:
       - "apps/nextclaw-wasmtime-runner/**"
       - "packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/**"
       - "packages/nextclaw/src/cli/shared/lib/distribution/**"
+      - "packages/nextclaw/scripts/verify-portable-runtime-http-smoke.mjs"
+      - "packages/nextclaw-service/src/launcher/**"
+      - "packages/nextclaw-service/src/managers/runtime-update.manager*"
+      - "packages/nextclaw-service/src/services/runtime/npm-runtime-*"
       - ".github/workflows/portable-runtime-validate.yml"
       - "package.json"
   push:
@@ -16,6 +20,10 @@ on:
       - "apps/nextclaw-wasmtime-runner/**"
       - "packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/**"
       - "packages/nextclaw/src/cli/shared/lib/distribution/**"
+      - "packages/nextclaw/scripts/verify-portable-runtime-http-smoke.mjs"
+      - "packages/nextclaw-service/src/launcher/**"
+      - "packages/nextclaw-service/src/managers/runtime-update.manager*"
+      - "packages/nextclaw-service/src/services/runtime/npm-runtime-*"
       - ".github/workflows/portable-runtime-validate.yml"
       - "package.json"
   workflow_dispatch:
@@ -38,14 +46,17 @@ jobs:
             platform: darwin
             arch: arm64
             target: darwin-arm64
-          - os: ubuntu-latest
+            cargo_target: aarch64-apple-darwin
+          - os: ubuntu-22.04
             platform: linux
             arch: x64
             target: linux-x64
+            cargo_target: x86_64-unknown-linux-musl
           - os: windows-latest
             platform: win32
             arch: x64
             target: win32-x64
+            cargo_target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
     steps:
@@ -62,15 +73,22 @@ jobs:
         with:
           version: 9.15.1
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-wasip2
+          targets: wasm32-wasip2,${{ matrix.cargo_target }}
 
       - name: Install cargo-component
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-component
+
+      - name: Install Linux static toolchain
+        if: ${{ matrix.platform == 'linux' }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Validate build contract
         run: node --test apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.test.mjs
@@ -81,6 +99,21 @@ jobs:
       - name: Run native runner tests
         working-directory: apps/nextclaw-wasmtime-runner
         run: cargo test --release
+
+      - name: Verify Linux runner is statically linked
+        if: ${{ matrix.platform == 'linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          runner="packages/nextclaw/resources/native/linux-x64/nextclaw-wasmtime-runner"
+          ! readelf -l "$runner" | grep -q 'Requesting program interpreter'
+          ! readelf -d "$runner" | grep -q '(NEEDED)'
+
+      - name: Build NextClaw runtime closure
+        run: pnpm --filter nextclaw... build
+
+      - name: Verify real HTTP enable and component lifecycle
+        run: pnpm -C packages/nextclaw validation:portable-runtime-http
 
       - name: Upload runner resource
         uses: actions/upload-artifact@v4

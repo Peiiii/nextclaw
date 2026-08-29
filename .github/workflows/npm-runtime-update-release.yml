@@ -55,10 +55,10 @@ jobs:
             platform: darwin
             arch: x64
             cargo_target: x86_64-apple-darwin
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: linux
             arch: x64
-            cargo_target: x86_64-unknown-linux-gnu
+            cargo_target: x86_64-unknown-linux-musl
           - os: windows-latest
             platform: win32
             arch: x64
@@ -89,6 +89,10 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: cargo-component
+
+      - name: Install Linux static toolchain
+        if: ${{ matrix.platform == 'linux' }}
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -124,6 +128,18 @@ jobs:
             --release-notes-url "$release_notes_url" \
             --output-dir dist/npm-runtime-updates \
             "${extra_args[@]}"
+
+      - name: Verify Linux runner is statically linked
+        if: ${{ matrix.platform == 'linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          runner="packages/nextclaw/resources/native/linux-x64/nextclaw-wasmtime-runner"
+          ! readelf -l "$runner" | grep -q 'Requesting program interpreter'
+          ! readelf -d "$runner" | grep -q '(NEEDED)'
+
+      - name: Verify real HTTP enable and component lifecycle
+        run: pnpm -C packages/nextclaw validation:portable-runtime-http
 
       - name: Upload NPM runtime update artifacts
         uses: actions/upload-artifact@v4
