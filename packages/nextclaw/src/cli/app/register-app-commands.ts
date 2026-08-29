@@ -246,6 +246,8 @@ function registerAppPackageCommands(
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => appPackages.info(appId, opts));
 
+  registerAppDependencyCommands(app, appPackages);
+
   app
     .command("operations")
     .description("List App install, update, rollback, and uninstall operations")
@@ -293,4 +295,45 @@ function registerAppPackageCommands(
     .option("--confirm <app-id>", "Confirm the exact App id when purging data")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => appPackages.uninstall(appId, opts));
+}
+
+function registerAppDependencyCommands(
+  app: Command,
+  controller: AppPackageCommandController,
+): void {
+  const dependencies = app.command("dependencies")
+    .description("Inspect and manage an App's capability and resource dependencies");
+  dependencies.command("inspect <app-id>")
+    .description("Inspect dependency readiness and available providers")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.inspectDependencies(appId, opts));
+  dependencies.command("verify <app-id>")
+    .description("Verify dependency readiness")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.verifyDependencies(appId, opts));
+  dependencies.command("setup <app-id>")
+    .description("Bind dependencies when exactly one compatible provider is available")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.setupDependencies(appId, opts));
+  dependencies.command("bind <app-id>")
+    .description("Bind one dependency to a trusted installed provider")
+    .requiredOption("--component <id>", "Service component id")
+    .requiredOption("--kind <kind>", "Requirement kind: capability or resource")
+    .requiredOption("--requirement <id>", "Declared requirement id")
+    .requiredOption("--provider <id>", "Installed provider id")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.bindDependency(appId, {
+      componentId: opts.component, requirementKind: opts.kind,
+      requirementId: opts.requirement, providerId: opts.provider, json: opts.json,
+    }));
+  dependencies.command("unbind <app-id>")
+    .description("Remove one dependency binding")
+    .requiredOption("--component <id>", "Service component id")
+    .requiredOption("--kind <kind>", "Requirement kind: capability or resource")
+    .requiredOption("--requirement <id>", "Declared requirement id")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.unbindDependency(appId, {
+      componentId: opts.component, requirementKind: opts.kind,
+      requirementId: opts.requirement, json: opts.json,
+    }));
 }

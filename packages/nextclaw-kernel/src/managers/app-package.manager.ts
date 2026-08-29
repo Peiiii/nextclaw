@@ -15,14 +15,16 @@ import type {
   AppUpdateResult,
 } from "@nextclaw/app-runtime";
 import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
+import { AppPackageDependencyCoordinator } from "@kernel/services/app-package-dependency-coordinator.service.js";
 import { AppPackageHostTargetService } from "@kernel/services/app-package-host-target.service.js";
 import { AppPackagePresentationService } from "@kernel/services/app-package-presentation.service.js";
-import { AppPackageReadinessService } from "@kernel/services/app-package-readiness.service.js";
 import { AppPackageRuntimeActivationService, EMPTY_APP_PACKAGE_RUNTIME_HOOKS } from "@kernel/services/app-package-runtime-activation.service.js";
 import {
   AppPackageError,
   type AppPackageComponentSource,
   type AppPackageComponentSourceList,
+  type AppPackageDependencyBindingInput,
+  type AppPackageDependencyView,
   type AppPackageList,
   type AppPackageOperationInput,
   type AppPackageOperationList,
@@ -31,6 +33,7 @@ import {
   type AppPackageOperationView,
   type AppPackageRuntimeHooks,
   type AppPackageView,
+  type CapabilityProviderView,
 } from "@kernel/types/app-package.types.js";
 import { satisfiesAppEngineVersion } from "@kernel/utils/app-engine-version.utils.js";
 
@@ -41,7 +44,7 @@ export class AppPackageManager {
   private readonly operationManager: AppPackageOperationManager;
   private readonly hostTargetService = new AppPackageHostTargetService();
   private readonly presentationService = new AppPackagePresentationService();
-  private readonly readinessService = new AppPackageReadinessService();
+  private readonly dependencyCoordinator: AppPackageDependencyCoordinator;
   private readonly runtimeActivationService = new AppPackageRuntimeActivationService();
   private readonly registryService: AppRegistryService;
   private runtimeHooks: AppPackageRuntimeHooks = EMPTY_APP_PACKAGE_RUNTIME_HOOKS;
@@ -59,14 +62,20 @@ export class AppPackageManager {
     this.appHomeService = new AppHomeService(params.appHomeDirectory);
     this.installationService = new AppInstallationService(this.appHomeService);
     this.registryService = new AppRegistryService(this.appHomeService);
+    this.dependencyCoordinator = new AppPackageDependencyCoordinator({
+      installationService: this.installationService,
+      registryService: this.registryService,
+      listCapabilityProviders: async () => await this.runtimeHooks.listCapabilityProviders(),
+      resolveSecurity: this.resolveSecurity,
+    });
     this.operationManager = new AppPackageOperationManager({
       storePath: this.appHomeService.getOperationsPath(),
       execute: this.executeOperation,
     });
   }
 
-  installRuntimeHooks = (hooks: AppPackageRuntimeHooks): void => {
-    this.runtimeHooks = hooks;
+  installRuntimeHooks = (hooks: Partial<AppPackageRuntimeHooks>): void => {
+    this.runtimeHooks = { ...EMPTY_APP_PACKAGE_RUNTIME_HOOKS, ...hooks };
   };
 
   start = async (): Promise<void> => await this.ensureBuiltInPackages();
@@ -74,14 +83,18 @@ export class AppPackageManager {
   listPackages = async (
     options: { includeStorageUsage?: boolean } = {},
   ): Promise<AppPackageList> => {
-    const records = await this.registryService.listApps();
+    const [records, providers] = await Promise.all([
+      this.registryService.listApps(),
+      this.runtimeHooks.listCapabilityProviders(),
+    ]);
+    const entries = await Promise.all(records.map(async (record) =>
+      await this.toPackageView(await this.installationService.info(
+        record.appId,
+        { measureStorageUsage: options.includeStorageUsage !== false },
+      ), undefined, providers)));
     return {
       hostTarget: this.hostTargetService.read(),
-      entries: await Promise.all(records.map(async (record) =>
-        await this.toPackageView(await this.installationService.info(
-          record.appId,
-          { measureStorageUsage: options.includeStorageUsage !== false },
-        )))),
+      entries,
     };
   };
 
@@ -102,37 +115,19 @@ export class AppPackageManager {
     }
   };
 
+  inspectDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.inspect(appId);
+  verifyDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.verify(appId);
+  setupDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.setup(appId);
+  bindDependency = async (appId: string, input: AppPackageDependencyBindingInput): Promise<AppPackageDependencyView> =>
+    await this.dependencyCoordinator.bind(appId, input);
+  unbindDependency = async (appId: string, input: Omit<AppPackageDependencyBindingInput, "providerId">): Promise<AppPackageDependencyView> =>
+    await this.dependencyCoordinator.unbind(appId, input);
+
   listActiveComponentSources = async (): Promise<AppPackageComponentSource[]> =>
     (await this.listActiveComponentSourcesWithDiagnostics()).sources;
 
-  listActiveComponentSourcesWithDiagnostics = async (): Promise<AppPackageComponentSourceList> => {
-    const records = await this.registryService.listApps();
-    const results = await Promise.all(records
-      .filter((record) => record.enabled)
-      .map(async (record) => {
-        try {
-          await this.installationService.assertVersionIntegrity(record.appId, record.activeVersion);
-          const version = record.installedVersions[record.activeVersion];
-          if (!version || version.manifestSchemaVersion !== 2) return { sources: [] };
-          return { sources: (version.components ?? []).map((component) => ({
-            kind: component.kind, id: component.id, packageId: record.appId,
-            packageVersion: record.activeVersion, sourcePath: component.componentDirectory,
-            manifestPath: component.manifestPath, dataDirectory: record.dataDirectory,
-            instanceId: record.defaultInstance.id, storage: record.defaultInstance.storage,
-            ...this.resolveSecurity(version, record.appId),
-          })) };
-        } catch (error) {
-          return { sources: [], unavailablePackage: {
-            appId: record.appId,
-            message: error instanceof Error ? error.message : String(error),
-          } };
-        }
-      }));
-    return {
-      sources: results.flatMap((result) => result.sources),
-      unavailablePackages: results.flatMap((result) => result.unavailablePackage ?? []),
-    };
-  };
+  listActiveComponentSourcesWithDiagnostics = async (): Promise<AppPackageComponentSourceList> =>
+    await this.dependencyCoordinator.listActiveComponentSourcesWithDiagnostics();
 
   listOperations = async (): Promise<AppPackageOperationList> =>
     await this.operationManager.list();
@@ -163,7 +158,7 @@ export class AppPackageManager {
     if (app.enabled) {
       return app;
     }
-    this.readinessService.assertReadyToEnable(app);
+    this.dependencyCoordinator.assertReadyToEnable(app);
     await this.assertEngineCompatibility(appId);
     const sources = this.toComponentSources(app);
     await this.runtimeHooks.assertCanActivate(sources);
@@ -190,6 +185,7 @@ export class AppPackageManager {
     if (!app.enabled) {
       return app;
     }
+    await this.dependencyCoordinator.assertNoEnabledDependents(app);
     await this.runtimeHooks.beforeDeactivate(this.toComponentSources(app));
     await this.installationService.setEnabled(appId, false);
     return await this.getPackage(appId);
@@ -213,6 +209,7 @@ export class AppPackageManager {
     if (!result.updated) {
       return { package: current, result };
     }
+    await this.dependencyCoordinator.assertNoEnabledDependents(current);
     let activated = false;
     let deactivated = false;
     try {
@@ -222,7 +219,7 @@ export class AppPackageManager {
         result.version,
       );
       if (current.enabled) {
-        this.readinessService.assertReadyToEnable(candidate);
+        this.dependencyCoordinator.assertReadyToEnable(candidate);
         await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
         deactivated = true;
         await this.runtimeHooks.assertCanActivate(this.toComponentSources(candidate));
@@ -271,6 +268,7 @@ export class AppPackageManager {
         },
       };
     }
+    await this.dependencyCoordinator.assertNoEnabledDependents(current);
     await this.assertEngineCompatibility(appId, version);
     const candidate = await this.toPackageView(
       await this.installationService.info(appId),
@@ -280,7 +278,7 @@ export class AppPackageManager {
     let result: AppRollbackResult | undefined;
     try {
       if (current.enabled) {
-        this.readinessService.assertReadyToEnable(candidate);
+        this.dependencyCoordinator.assertReadyToEnable(candidate);
         await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
         deactivated = true;
         await this.runtimeHooks.assertCanActivate(this.toComponentSources(candidate));
@@ -316,6 +314,7 @@ export class AppPackageManager {
   ): Promise<AppUninstallResult> => {
     return await this.installationService.withAppOperation(appId, async () => {
     const current = await this.getPackage(appId);
+    await this.dependencyCoordinator.assertNoEnabledDependents(current);
     if (current.builtIn) {
       await this.registryService.setBuiltInSuppressed(appId, true);
     }
@@ -383,6 +382,7 @@ export class AppPackageManager {
   private toPackageView = async (
     info: AppInfoResult,
     selectedVersion: string = info.activeVersion,
+    providers?: CapabilityProviderView[],
   ): Promise<AppPackageView> => {
     const activeVersion = info.installedVersions.find(
       (version) => version.version === selectedVersion,
@@ -406,7 +406,10 @@ export class AppPackageManager {
             : "sandboxed" as const,
           permissions: manifestBundle.manifest.permissions ?? {},
         };
-    const readiness = await this.readinessService.resolve(activeVersion.components ?? []);
+    const dependencies = await this.dependencyCoordinator.inspectTarget(
+      this.dependencyCoordinator.targetForInfo(info, selectedVersion),
+      providers,
+    );
     return {
       id: info.appId,
       name: info.name,
@@ -432,6 +435,7 @@ export class AppPackageManager {
         runtimeProfile: security.runtimeProfile,
         isolation: security.isolation,
         permissions: security.permissions,
+        resolvedProviderIds: dependencies.resolvedProviderIds[component.id],
         ...await this.presentationService.readManifest(component.manifestPath),
       }))),
       dataDirectory: info.dataDirectory,
@@ -440,7 +444,8 @@ export class AppPackageManager {
       storageUsage: info.storageUsage,
       runtimeProfile: security.runtimeProfile,
       isolation: security.isolation,
-      readiness,
+      readiness: dependencies.readiness,
+      dependencies,
     };
   };
 

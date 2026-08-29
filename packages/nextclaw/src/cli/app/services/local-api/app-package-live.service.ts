@@ -1,4 +1,6 @@
 import type {
+  AppPackageDependencyBindingInput,
+  AppPackageDependencyView,
   AppPackageList,
   AppPackageOperationList,
   AppPackageOperationView,
@@ -25,6 +27,27 @@ export class AppPackageLiveService {
 
   listOperations = async (): Promise<AppPackageOperationList> =>
     await this.requireApiClient().request<AppPackageOperationList>({ path: "/api/app-package-operations" });
+
+  inspectDependencies = async (appId: string): Promise<AppPackageDependencyView> =>
+    await this.requireApiClient().request<AppPackageDependencyView>({ path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/dependencies` });
+
+  verifyDependencies = async (appId: string): Promise<AppPackageDependencyView> =>
+    await this.requireApiClient().request<AppPackageDependencyView>({ path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/dependencies/verify` });
+
+  setupDependencies = async (appId: string): Promise<AppPackageDependencyView> =>
+    await this.requireApiClient().request<AppPackageDependencyView>({ path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/dependencies/setup`, method: "POST" });
+
+  bindDependency = async (
+    appId: string,
+    input: AppPackageDependencyBindingInput,
+  ): Promise<AppPackageDependencyView> =>
+    await this.requireApiClient().request<AppPackageDependencyView>({ path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/dependencies/bind`, method: "POST", body: input });
+
+  unbindDependency = async (
+    appId: string,
+    input: Omit<AppPackageDependencyBindingInput, "providerId">,
+  ): Promise<AppPackageDependencyView> =>
+    await this.requireApiClient().request<AppPackageDependencyView>({ path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/dependencies/unbind`, method: "POST", body: input });
 
   install = async (source: string, registryUrl?: string): Promise<AppPackageOperationView> =>
     await this.requireApiClient().request<AppPackageOperationView>({

@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import {
   isAppPackageError,
+  type AppPackageDependencyBindingInput,
   type AppPackageManager,
 } from "@nextclaw/kernel";
 import {
@@ -95,6 +96,62 @@ export class AppPackagesRoutesController {
     }
   };
 
+  readonly inspectDependencies = async (c: Context) => {
+    try {
+      return c.json(ok(await this.manager.inspectDependencies(c.req.param("appId"))));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly verifyDependencies = async (c: Context) => {
+    try {
+      return c.json(ok(await this.manager.verifyDependencies(c.req.param("appId"))));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly setupDependencies = async (c: Context) => {
+    try {
+      return c.json(ok(await this.manager.setupDependencies(c.req.param("appId"))));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly bindDependency = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    const input = body.ok ? readDependencyBinding(body.data, true) : undefined;
+    if (!input) {
+      return c.json(err("INVALID_APP_PACKAGE_DEPENDENCY", "binding fields are required"), 400);
+    }
+    try {
+      return c.json(ok(await this.manager.bindDependency(
+        c.req.param("appId"),
+        input as AppPackageDependencyBindingInput,
+      )));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly unbindDependency = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    const input = body.ok ? readDependencyBinding(body.data, false) : undefined;
+    if (!input) {
+      return c.json(err("INVALID_APP_PACKAGE_DEPENDENCY", "binding fields are required"), 400);
+    }
+    try {
+      return c.json(ok(await this.manager.unbindDependency(
+        c.req.param("appId"),
+        input,
+      )));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
   readonly install = async (c: Context) => {
     const body = await readJson<unknown>(c.req.raw);
     if (!body.ok || !isRecord(body.data) || typeof body.data.source !== "string") {
@@ -179,5 +236,32 @@ export class AppPackagesRoutesController {
       "APP_PACKAGE_OPERATION_FAILED",
       error instanceof Error ? error.message : String(error),
     ), 400);
+  };
+}
+
+function readDependencyBinding(
+  value: unknown,
+  requireProvider: true,
+): AppPackageDependencyBindingInput | undefined;
+function readDependencyBinding(
+  value: unknown,
+  requireProvider: false,
+): Omit<AppPackageDependencyBindingInput, "providerId"> | undefined;
+function readDependencyBinding(
+  value: unknown,
+  requireProvider: boolean,
+): AppPackageDependencyBindingInput | Omit<AppPackageDependencyBindingInput, "providerId"> | undefined {
+  if (!isRecord(value) ||
+    typeof value.componentId !== "string" || !value.componentId.trim() ||
+    !["capability", "resource"].includes(String(value.requirementKind)) ||
+    typeof value.requirementId !== "string" || !value.requirementId.trim() ||
+    (requireProvider && (typeof value.providerId !== "string" || !value.providerId.trim()))) {
+    return undefined;
+  }
+  return {
+    componentId: value.componentId,
+    requirementKind: value.requirementKind as "capability" | "resource",
+    requirementId: value.requirementId,
+    ...(requireProvider ? { providerId: value.providerId as string } : {}),
   };
 }

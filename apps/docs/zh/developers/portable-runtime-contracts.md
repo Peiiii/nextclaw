@@ -120,6 +120,25 @@ Provider 保留独立实例。Consumer 必须显式声明依赖：
 
 Provider id 使用 kebab-case Service id。当前不支持 Provider 再递归调用另一个 Provider。
 
+独立 Provider App 还可以声明自己提供的稳定能力合同。`provides` 只允许出现在 `lifecycle.mode: "provider"` 的 Service 上：
+
+```json
+{
+  "lifecycle": { "mode": "provider" },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "contacts.normalize",
+        "version": "1",
+        "resourceTypes": ["contacts"]
+      }
+    ]
+  }
+}
+```
+
+当前绑定的执行身份仍是 Provider 的 Service id。替换实现必须暴露同一个稳定 Service id；能力别名到任意实现的动态路由尚未开放。
+
 ## 外部依赖声明
 
 默认 Service 不应依赖安装包之外的服务。确有需要时，Service 可以显式声明外部 capability 或 resource；这些声明只描述依赖，不携带凭据、连接字符串或安装命令：
@@ -146,7 +165,23 @@ Provider id 使用 kebab-case Service id。当前不支持 Provider 再递归调
 }
 ```
 
-带有必需外部依赖的 App 会在 App 列表和详情中显示 `needs-capability` 或 `needs-configuration`，在满足要求前不能启用。当前 NextClaw 不会自动安装外部服务或完成第三方授权；应用作者应优先提供不需要外部服务的自包含路径。
+带有必需外部依赖的 App 会在 App 列表和详情中显示 `needs-capability` 或 `needs-configuration`，在满足要求前不能启用。NextClaw 会从已安装、已启用且正在运行的 Provider 中匹配 capability 版本和 resource type；候选唯一时可以自动绑定，多候选时必须明确选择：
+
+```bash
+nextclaw app dependencies inspect <app-id> --json
+nextclaw app dependencies setup <app-id> --json
+nextclaw app dependencies bind <app-id> \
+  --component <service-id> \
+  --kind capability \
+  --requirement contacts.normalize@1 \
+  --provider <provider-service-id> \
+  --json
+nextclaw app dependencies verify <app-id> --json
+```
+
+绑定记录保存在 Consumer 实例的受管配置目录，只包含 Component、requirement 和 Provider Service id，文件权限为 `0600`；不会写入密码、token、连接字符串或安装命令。修改绑定前必须先停用 Consumer，防止运行中的 allowlist 与磁盘配置不一致。Provider 被已启用的 Consumer 使用时也不能停用或卸载。
+
+Agent 使用与 CLI、HTTP API 相同的 Kernel owner 执行 inspect、setup、bind、verify 和 unbind；变更操作要求调用方明确声明已经获得用户授权。NextClaw 不会凭空安装未知外部服务，也不会替用户完成登录、付费或第三方授权。Provider 如需 Redis 等重型外部资源，应通过自己的 Service Actions 和既有 Secret owner 完成可代理设置，并把不可代理步骤交给用户。应用作者仍应优先提供无需外部服务的自包含路径。
 
 ## 所属 App 清单
 

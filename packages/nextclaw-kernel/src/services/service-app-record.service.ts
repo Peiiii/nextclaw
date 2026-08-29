@@ -141,7 +141,10 @@ export class ServiceAppRecordService {
       runtimeProfile: packageSource?.runtimeProfile ?? "native-process",
       permissions: packageSource?.permissions ?? {},
       componentPath: manifest.componentEntry ? join(dirPath, manifest.componentEntry) : undefined,
-      providerIds: manifest.providerIds,
+      providerIds: Array.from(new Set([
+        ...(manifest.providerIds ?? []),
+        ...(packageSource?.resolvedProviderIds ?? []),
+      ])),
       lifecycle: manifest.lifecycle,
     };
   };

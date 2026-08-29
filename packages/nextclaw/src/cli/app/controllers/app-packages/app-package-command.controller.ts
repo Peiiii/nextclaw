@@ -1,4 +1,6 @@
 import type {
+  AppPackageDependencyBindingInput,
+  AppPackageDependencyView,
   AppPackageList,
   AppPackageOperationList,
   AppPackageOperationView,
@@ -45,6 +47,35 @@ export class AppPackageCommandController {
 
   info = async (appId: string, options: JsonOptions): Promise<void> =>
     this.write(await this.liveService.info(appId), options, this.formatApp);
+
+  inspectDependencies = async (appId: string, options: JsonOptions): Promise<void> =>
+    this.write(await this.liveService.inspectDependencies(appId), options, this.formatDependencyView);
+
+  verifyDependencies = async (appId: string, options: JsonOptions): Promise<void> =>
+    this.write(await this.liveService.verifyDependencies(appId), options, this.formatDependencyView);
+
+  setupDependencies = async (appId: string, options: JsonOptions): Promise<void> =>
+    this.write(await this.liveService.setupDependencies(appId), options, this.formatDependencyView);
+
+  bindDependency = async (
+    appId: string,
+    options: AppPackageDependencyBindingInput & JsonOptions,
+  ): Promise<void> => {
+    const { componentId, requirementKind, requirementId, providerId } = options;
+    this.write(await this.liveService.bindDependency(appId, {
+      componentId, requirementKind, requirementId, providerId,
+    }), options, this.formatDependencyView);
+  };
+
+  unbindDependency = async (
+    appId: string,
+    options: Omit<AppPackageDependencyBindingInput, "providerId"> & JsonOptions,
+  ): Promise<void> =>
+    this.write(await this.liveService.unbindDependency(appId, {
+      componentId: options.componentId,
+      requirementKind: options.requirementKind,
+      requirementId: options.requirementId,
+    }), options, this.formatDependencyView);
 
   operations = async (options: JsonOptions): Promise<void> =>
     this.write(await this.liveService.listOperations(), options, this.formatOperations);
@@ -120,6 +151,18 @@ export class AppPackageCommandController {
     if (result.entries.length === 0) return "App operations: none\n";
     return `${result.entries.map((operation) => this.formatOperation(operation).trim()).join("\n\n")}\n`;
   };
+
+  private formatDependencyView = (
+    result: AppPackageDependencyView,
+  ): string => [
+    `Dependency readiness: ${result.readiness.status}`,
+    ...result.readiness.requirements.map((requirement) =>
+      `  requirement: ${requirement.componentId}/${requirement.kind}/${requirement.id}`,
+    ),
+    ...result.bindings.map((binding) =>
+      `  binding: ${binding.componentId}/${binding.requirementKind}/${binding.requirementId} -> ${binding.providerId}`,
+    ),
+  ].join("\n") + "\n";
 
   private formatOperation = (operation: AppPackageOperationView): string => [
     `App operation ${operation.id}`,

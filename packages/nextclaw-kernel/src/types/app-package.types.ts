@@ -21,6 +21,14 @@ export type AppPackageComponentSource = {
   runtimeProfile: AppRuntimeProfile;
   isolation: AppRuntimeIsolation;
   permissions: AppPermissions;
+  resolvedProviderIds?: string[];
+};
+
+export type CapabilityProviderView = {
+  providerId: string;
+  appId: string;
+  componentId: string;
+  capabilities: Array<{ id: string; version?: string; resourceTypes?: string[] }>;
 };
 
 export type AppPackageUnavailableDiagnostic = {
@@ -64,6 +72,32 @@ export type AppPackageReadiness = {
   requirements: AppPackageReadinessRequirement[];
 };
 
+export type AppPackageDependencyBinding = {
+  componentId: string;
+  requirementKind: "capability" | "resource";
+  requirementId: string;
+  providerId: string;
+};
+
+export type AppPackageDependencyCandidate = {
+  requirement: AppPackageReadinessRequirement;
+  providers: CapabilityProviderView[];
+};
+
+export type AppPackageDependencyView = {
+  readiness: AppPackageReadiness;
+  bindings: AppPackageDependencyBinding[];
+  candidates: AppPackageDependencyCandidate[];
+  resolvedProviderIds: Record<string, string[]>;
+};
+
+export type AppPackageDependencyBindingInput = {
+  componentId: string;
+  requirementKind: "capability" | "resource";
+  requirementId: string;
+  providerId: string;
+};
+
 export type AppPackageView = {
   id: string;
   name: string;
@@ -84,6 +118,7 @@ export type AppPackageView = {
   runtimeProfile: AppRuntimeProfile;
   isolation: AppRuntimeIsolation;
   readiness: AppPackageReadiness;
+  dependencies: AppPackageDependencyView;
 };
 
 export type AppPackageHostTarget = {
@@ -171,6 +206,7 @@ export type AppPackageConflict = {
 export type AppPackageUninstallRollback = () => Promise<void>;
 
 export type AppPackageRuntimeHooks = {
+  listCapabilityProviders: () => Promise<CapabilityProviderView[]>;
   assertCanActivate: (sources: AppPackageComponentSource[]) => Promise<void>;
   afterActivate: (sources: AppPackageComponentSource[]) => Promise<void>;
   beforeDeactivate: (sources: AppPackageComponentSource[]) => Promise<void>;

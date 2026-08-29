@@ -13,7 +13,7 @@
 ## 一、计划状态与关联文档
 
 - 日期：2026-08-28
-- 状态：总体计划执行中；直接 Wasmtime 核心 MVP v0.5.2 与全平台发布基线已完成，2026-08-30 冻结 Spin-first、可安装 Capability Provider、外部资源绑定与 native-process 并存模型；Spin 判别性 Spike 已过本机功能/密度门并迁入正式 runner
+- 状态：总体计划执行中；直接 Wasmtime 核心 MVP v0.5.2 与全平台发布基线已完成；2026-08-30 已完成正式 Spin runner 迁移，以及首版 Capability Provider、resource binding、readiness、CLI/API/Agent 控制面和真实双包调用闭环；Provider 自动安装、外部账号/Secret 配置与开发者全链路仍待后续阶段
 - 计划粒度：四个主阶段；每个阶段约等于一个普通中大型开发任务
 - 架构 owner：[WASI Service App 运行时与现有 Mini App 体系融合设计探索](../designs/2026-08-28-wasi-service-app-runtime.design.md)
 - 愿景与 MVP owner：[Portable Capability Runtime 愿景与 MVP 设计](../designs/2026-08-28-portable-capability-runtime-mvp.design.md)
@@ -28,10 +28,10 @@
 
 | 部分 | Owner 与输入 | 交付结果 | 最小验证与继续条件 |
 | --- | --- | --- | --- |
-| A. Spin 判别性 Spike | runtime runner；复用现有五个 Guest 与 Wasmtime 基线 | 嵌入式 Spin runner、NextClaw Trigger/Factor adapter、同场景测量 | Action/Resident/Provider、KV/HTTP、故障恢复、RSS/包体、macOS/Linux/Windows 构建均达到门槛 |
-| B. 正式执行器迁移 | Kernel portable executor；输入 A 的通过结论 | 保持 runner protocol 与 `.napp` 不变，Spin 替代直接 Wasmtime内部实现 | 现有 HTTP enable、Panel、Agent Tool、CLI、持久化与发布 smoke 全部复用通过；删除长期双实现 |
-| C. 依赖就绪模型 | AppPackageManager + capability grants；复用上位设计 | `ready`、`needs-capability`、`needs-configuration`、`incompatible` 状态，capability/resource 声明和结构化修复动作 | 可安装但不可误启用；补齐 Provider/配置后原地进入 ready；Secret 不写回 artifact |
-| D. Capability Provider 扩展闭环 | Provider catalog + CLI/Agent；输入 C 的稳定合同 | Component/Native Provider 注册、显式本地信任安装、SDK/template、AI 可执行 detect/build/install/configure/verify/uninstall 路径 | 用一个非默认重 Provider 做从零闭环；除授权、登录或付费确认外不要求用户执行技术步骤；无 NextClaw 产品源码改动 |
+| A. Spin 判别性 Spike（完成） | runtime runner；复用现有五个 Guest 与 Wasmtime 基线 | 嵌入式 Spin runner、NextClaw Trigger/Factor adapter、同场景测量 | Action/Resident/Provider、KV/HTTP、故障恢复、RSS/包体与三平台构建进入正式矩阵 |
+| B. 正式执行器迁移（完成） | Kernel portable executor；输入 A 的通过结论 | 保持 runner protocol 与 `.napp` 不变，Spin 替代直接 Wasmtime 内部实现 | 现有 runtime 主链复用通过；长期双实现已删除 |
+| C. 依赖就绪模型（完成） | AppPackageManager + capability grants；复用上位设计 | `ready`、`needs-capability`、`needs-configuration`，capability/resource 声明、实例绑定和结构化修复动作 | 可安装但不可误启用；补齐 Provider/绑定后原地进入 ready；Secret 不写回 artifact |
+| D. Capability Provider 首版闭环（部分完成） | Provider catalog + CLI/Agent；输入 C 的稳定合同 | 已启用 Component/Native Provider 发现，CLI/API/Agent inspect/setup/bind/unbind/verify，反向生命周期保护 | 真实两个 `.napp` 完成安装→绑定→启用→跨组件 Action；Provider 自动安装、外部账号/Secret 配置和 SDK/template 仍待完成 |
 | E. 开发者与发布闭环 | CLI、文档、发布 workflow；复用 A-D | create/doctor/build/check/test/pack/install/configure/enable 全链路与自动发布门 | 干净环境、三平台 artifact、真实 HTTP enable、代表性 action、缺依赖错误均有自动证据 |
 
 恢复入口：每部分只以其产物、定向测试和设计中的稳定合同作为输入。A 未通过时不得启动 B；C/D 可以在 A 后按独立 owner推进，但不得在 schema 未冻结前实现通用动态加载。任何 Spin 私有 manifest 都不得上浮为 `.napp` 事实源。

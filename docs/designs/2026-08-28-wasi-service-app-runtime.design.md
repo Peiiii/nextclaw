@@ -9,7 +9,7 @@
 - 配套认知材料：[NextClaw 可移植能力运行时全景说明与场景设想](../thoughts/2026-08-28-portable-capability-runtime-panorama.thought.md)，保存完整比喻、端到端解释、场景、生态潜力、多语言边界与长期推演；本文继续作为架构决策 owner
 - 愿景与首版范围：[Portable Capability Runtime 愿景与 MVP 设计](./2026-08-28-portable-capability-runtime-mvp.design.md)，负责技术 Spike、Reference App、明确不做项、验收与停止条件
 - 完整验证范围：[Portable Capability Runtime 全能力验证套件设计](./2026-08-28-portable-runtime-verification-suite.design.md)，负责三种组件角色、常见应用场景、Demo 拆分和用户可核验证据
-- Design Ready：是，适用于正式 Spin runner、依赖就绪模型与开发者闭环；进程内第三方 Factor ABI 和外部资源自动配置仍未冻结
+- Design Ready：是；正式 Spin runner 与首版 Capability Provider/resource binding 合同已实现，进程内第三方 Factor ABI、任意 Provider 自动安装和外部账号/Secret 自动配置仍未冻结
 - Implementation Plan：[Portable Capability Runtime 总体阶段计划](../plans/2026-08-28-portable-capability-runtime-overall.plan.md)；直接 Wasmtime 已完成对照使命并从正式实现移除
 
 ## 一、问题起点
@@ -483,9 +483,9 @@ Spin Factor 是与 runner 一起编译的可信宿主代码，不是普通沙箱
 .napp
   -> 声明 capability id + API 版本范围
   -> 声明 external resource binding 的类型与用途
-  -> 安装器解析本机 Factor 是否满足
-  -> 缺 Factor：给出可安装来源或本地构建入口
-  -> 缺配置：引导绑定 endpoint、账号和 Secret
+  -> AppPackageManager 解析已启用 Provider 是否满足
+  -> 缺 Provider：保持 needs-capability，并给出候选实现
+  -> 缺绑定：保持 needs-configuration，由 CLI/API/Agent 建立实例绑定
   -> 满足后才允许 enable
 ```
 
@@ -511,7 +511,7 @@ Spin Factor 是与 runner 一起编译的可信宿主代码，不是普通沙箱
 6. 失败时给出结构化原因并自动执行可恢复修复；
 7. 卸载 App 时说明外部资源是否保留，并按用户选择清理绑定。
 
-用户只承担不可代理的决定，例如确认安装可信宿主扩展、登录外部账号或批准付费；不要求非技术用户理解 Redis、端口、连接池或命令行。CLI、UI 与 Agent 复用同一个 dependency readiness/operation owner，不能分别复制安装语义。
+用户只承担不可代理的决定，例如确认安装可信宿主扩展、登录外部账号或批准付费；不要求非技术用户理解 Redis、端口、连接池或命令行。CLI、UI 与 Agent 复用同一个 dependency readiness/operation owner，不能分别复制安装语义。首版已经闭合 inspect/setup/bind/unbind/verify、启用门禁和反向依赖保护；Provider artifact 自动发现/安装以及外部账号、Secret 采集仍是后续能力，当前不得宣称自动完成。
 
 ### 6.4.3 自定义能力的分发合同
 
@@ -763,7 +763,7 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
 
 ## 十、Manifest 与包模型方向
 
-运行协议字段保持现有方向；能力与资源依赖新增独立概念层，具体 JSON 字段在实现前由 schema 设计冻结：
+运行协议字段保持现有方向；能力与资源依赖已经进入 Service Component manifest 合同：
 
 ```json
 {
@@ -780,13 +780,16 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
     }
   ],
   "requires": {
-    "capabilities": ["key-value@1", "redis@1"],
-    "resources": [{ "binding": "cache", "type": "redis", "required": true }]
+    "capabilities": [{ "id": "nextclaw.shared-cache", "version": "1" }],
+    "resources": [{ "binding": "cache", "type": "shared-cache", "required": true }]
+  },
+  "provides": {
+    "capabilities": [{ "id": "nextclaw.shared-cache", "version": "1", "resourceTypes": ["shared-cache"] }]
   }
 }
 ```
 
-上述名称只表达设计语义，不是已经发布的 schema。关键不变量是：capability 表示宿主接口，resource 表示该 App instance 需要绑定的外部实例；Secret 只保存为本机绑定，绝不写回 `.napp`。
+`requires` 表达 Consumer 所需能力与资源，`provides` 只允许由 Provider lifecycle Service 声明。实例绑定存入该 App 私有配置目录的 `dependencies.json`，原子写入并设为 `0600`；其中只保存 Provider 身份和非秘密元数据，Secret 只保存引用，绝不写回 `.napp`。首版 Provider 调用身份仍是稳定 Service id，替换实现必须暴露同一 Service id；动态别名路由不在当前合同中。
 
 约束倾向：
 
@@ -796,8 +799,9 @@ Golem 等 durable runtime 展示了带身份、持久状态、日志重放和故
 - 一个包若未来包含不同安全等级 Service，安装展示与审核按最高权限等级收敛；
 - WASM artifact 属于 `universal` 分发；
 - Spin manifest 不进入公开包合同；
-- `.napp` 不内嵌任意原生 Factor，Factor 通过独立 catalog 和信任流程解析；
-- 缺 Factor 或配置时允许安装完成但禁止 enable，并返回稳定 readiness 状态与修复动作；
+- `.napp` 不内嵌任意原生 Factor；首版 catalog 来自已安装、已启用且正在运行的 Provider Service；
+- 缺 Provider 或绑定时允许安装完成但禁止 enable，并返回稳定 readiness 状态与候选实现；
+- Consumer 运行中禁止修改绑定；已启用 Consumer 依赖 Provider 时，Provider 禁止 disable、uninstall、update 或 rollback；
 - 顶层 package runtime/security 只表达或派生包级摘要，实际 entry 与 action 属于 Service Component 事实源，避免重复定义。
 
 ## 十一、生命周期与失败边界

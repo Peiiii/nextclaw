@@ -157,7 +157,6 @@ nextclaw <command> --help
 
 ## Skills 与 Marketplace
 
-| 命令                                    | 用途                               |
 | --------------------------------------- | ---------------------------------- |
 | `nextclaw skills installed`             | 列出当前运行环境已安装的 Skills    |
 | `nextclaw skills info`                  | 查看已安装 Skill 的详情            |
@@ -191,6 +190,11 @@ nextclaw <command> --help
 | `nextclaw app marketplace info`   | 查看 Marketplace App 和派生安装命令                                |
 | `nextclaw app list`               | 列出运行中 NextClaw 宿主已安装的 App                               |
 | `nextclaw app info`               | 查看已安装 App 的状态和版本                                        |
+| `nextclaw app dependencies inspect` | 查看外部能力/资源依赖、候选 Provider 和当前绑定                    |
+| `nextclaw app dependencies verify`  | 验证当前依赖是否已满足                                             |
+| `nextclaw app dependencies setup`   | 仅在兼容 Provider 唯一时自动建立绑定                               |
+| `nextclaw app dependencies bind`    | 将一个依赖绑定到已安装且受信任的 Provider                          |
+| `nextclaw app dependencies unbind`  | 移除一个依赖绑定                                                   |
 | `nextclaw app operations`         | 列出持久化的 App 生命周期操作                                      |
 | `nextclaw app install`            | 通过运行中的 NextClaw 宿主安装 Marketplace、本地目录或 `.napp` App |
 | `nextclaw app enable`             | 启用已安装的 App                                                   |

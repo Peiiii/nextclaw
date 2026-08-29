@@ -68,7 +68,7 @@ export class PortableServiceAppRuntimeService {
     )
       return;
     this.persistentRegistrations.set(app.id, { app, manifest });
-    const runnerApp = this.toRunnerApp(app, manifest.providerIds);
+    const runnerApp = this.toRunnerApp(app, app.providerIds);
     this.apps.set(app.id, runnerApp);
     if (manifest.lifecycle.mode === "provider") {
       if (this.providers.has(app.id)) return;
@@ -129,7 +129,7 @@ export class PortableServiceAppRuntimeService {
     manifest: ServiceAppManifest;
   }): Promise<ServiceAction[]> => {
     if (!app.enabled) return [];
-    const runnerApp = this.toRunnerApp(app, manifest.providerIds);
+    const runnerApp = this.toRunnerApp(app, app.providerIds);
     this.apps.set(app.id, runnerApp);
     const persistent =
       manifest.lifecycle?.mode === "resident" ||
@@ -179,7 +179,7 @@ export class PortableServiceAppRuntimeService {
     input: Record<string, unknown>;
   }): Promise<unknown> => {
     await this.start({ app, manifest });
-    const runnerApp = this.toRunnerApp(app, manifest.providerIds);
+    const runnerApp = this.toRunnerApp(app, app.providerIds);
     this.apps.set(app.id, runnerApp);
     if (manifest.lifecycle?.mode === "resident") {
       try {

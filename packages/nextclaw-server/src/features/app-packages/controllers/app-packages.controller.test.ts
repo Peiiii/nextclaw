@@ -22,6 +22,11 @@ function createTestApp(
     "/api/app-package-operations/:appId/uninstall",
     controller.startUninstallOperation,
   );
+  app.get("/api/app-packages/:appId/dependencies", controller.inspectDependencies);
+  app.get("/api/app-packages/:appId/dependencies/verify", controller.verifyDependencies);
+  app.post("/api/app-packages/:appId/dependencies/setup", controller.setupDependencies);
+  app.post("/api/app-packages/:appId/dependencies/bind", controller.bindDependency);
+  app.post("/api/app-packages/:appId/dependencies/unbind", controller.unbindDependency);
   return app;
 }
 
@@ -37,6 +42,40 @@ const operation = {
 };
 
 describe("app package operation routes", () => {
+  it("exposes dependency inspection and mutation routes through the manager", async () => {
+    const dependencyView = {
+      readiness: { status: "ready", requirements: [] },
+      bindings: [], candidates: [], resolvedProviderIds: {},
+    };
+    const manager = {
+      inspectDependencies: vi.fn(async () => dependencyView),
+      verifyDependencies: vi.fn(async () => dependencyView),
+      setupDependencies: vi.fn(async () => dependencyView),
+      bindDependency: vi.fn(async (_appId: string, input: unknown) => ({ ...dependencyView, input })),
+      unbindDependency: vi.fn(async (_appId: string, input: unknown) => ({ ...dependencyView, input })),
+    };
+    const app = createTestApp(manager as never);
+    const inspect = await app.request("http://localhost/api/app-packages/demo/dependencies");
+    const setup = await app.request("http://localhost/api/app-packages/demo/dependencies/setup", { method: "POST" });
+    const bind = await app.request("http://localhost/api/app-packages/demo/dependencies/bind", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ componentId: "state", requirementKind: "capability", requirementId: "cache", providerId: "redis" }),
+    });
+    expect(inspect.status).toBe(200);
+    expect(setup.status).toBe(200);
+    expect(bind.status).toBe(200);
+    expect(manager.inspectDependencies).toHaveBeenCalledWith("demo");
+    expect(manager.setupDependencies).toHaveBeenCalledWith("demo");
+    expect(manager.bindDependency).toHaveBeenCalledWith("demo", expect.objectContaining({ providerId: "redis" }));
+
+    const invalid = await app.request("http://localhost/api/app-packages/demo/dependencies/bind", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requirementKind: "anything", providerId: "redis" }),
+    });
+    expect(invalid.status).toBe(400);
+    expect(manager.bindDependency).toHaveBeenCalledTimes(1);
+  });
+
   it("lets UI callers skip recursive storage measurement without changing the default", async () => {
     const hostTarget = {
       key: "darwin-arm64",

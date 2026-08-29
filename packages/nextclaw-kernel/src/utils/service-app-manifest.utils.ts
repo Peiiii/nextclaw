@@ -9,6 +9,7 @@ import {
 import type {
   ServiceActionRisk,
   ServiceAppExternalRemediation,
+  ServiceAppProvides,
   ServiceAppLifecycle,
   ServiceAppManifest,
   ServiceAppManifestAction,
@@ -83,6 +84,10 @@ export function parseServiceAppManifest(
   if (lifecycle.mode !== "action" && protocol !== "wasi-component") {
     throw new Error(`${lifecycle.mode} service app lifecycle requires wasi-component protocol.`);
   }
+  const provides = readServiceAppProvides(parsed.provides);
+  if (provides && lifecycle.mode !== "provider") {
+    throw new Error("service app provides requires provider lifecycle.");
+  }
   return {
     id,
     title: readRequiredString(parsed, "title"),
@@ -95,8 +100,58 @@ export function parseServiceAppManifest(
     providerIds: readProviderIds(parsed.providers),
     lifecycle,
     requires: readServiceAppRequirements(parsed.requires),
+    provides,
     actions: readManifestActions(parsed.actions),
   };
+}
+
+function readServiceAppProvides(value: unknown): ServiceAppProvides | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    throw new Error("service app provides must be an object.");
+  }
+  if (value.capabilities === undefined) return undefined;
+  if (!Array.isArray(value.capabilities)) {
+    throw new Error("service app provides.capabilities must be an array.");
+  }
+  const seen = new Set<string>();
+  const capabilities = value.capabilities.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`service app provides.capabilities[${index}] must be an object.`);
+    }
+    const id = readRequirementIdentifier(entry, "id", `provides.capabilities[${index}].id`);
+    const version = readOptionalString(entry, "version");
+    if (!version) {
+      throw new Error(`service app provides.capabilities[${index}].version is required.`);
+    }
+    const key = `${id}@${version}`;
+    if (seen.has(key)) {
+      throw new Error(`service app provides.capabilities contains duplicate ${key}.`);
+    }
+    seen.add(key);
+    const resourceTypes = readCapabilityResourceTypes(entry.resourceTypes, index);
+    return { id, version, resourceTypes };
+  });
+  return capabilities.length > 0 ? { capabilities } : undefined;
+}
+
+function readCapabilityResourceTypes(value: unknown, index: number): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error(`service app provides.capabilities[${index}].resourceTypes must be an array.`);
+  }
+  const resourceTypes = value.map((entry, resourceIndex) => {
+    if (typeof entry !== "string" || !entry.trim()) {
+      throw new Error(
+        `service app provides.capabilities[${index}].resourceTypes[${resourceIndex}] must be a lowercase identifier.`,
+      );
+    }
+    return entry.trim();
+  });
+  if (resourceTypes.some((entry) => !/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/.test(entry))) {
+    throw new Error(`service app provides.capabilities[${index}].resourceTypes must contain lowercase identifiers.`);
+  }
+  return Array.from(new Set(resourceTypes));
 }
 
 function readServiceAppRequirements(value: unknown): ServiceAppRequirements | undefined {

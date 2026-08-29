@@ -198,6 +198,7 @@ export function installKernelAppPackageRuntimeHooks(params: {
 }): void {
   const { appPackageManager, panelAppManager, serviceAppManager } = params;
   appPackageManager.installRuntimeHooks({
+    listCapabilityProviders: serviceAppManager.listCapabilityProviders,
     assertCanActivate: async (sources) => {
       await panelAppManager.assertCanActivatePackageComponents(sources);
       await serviceAppManager.assertCanActivatePackageComponents(sources);

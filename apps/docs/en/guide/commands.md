@@ -157,7 +157,6 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 
 ## Skills and Marketplace
 
-| Command                                 | Purpose                                      |
 | --------------------------------------- | -------------------------------------------- |
 | `nextclaw skills installed`             | List Skills installed in the current runtime |
 | `nextclaw skills info`                  | Inspect an installed Skill                   |
@@ -191,6 +190,11 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | `nextclaw app marketplace info`   | Show a Marketplace App and its derived install command                                 |
 | `nextclaw app list`               | List Apps installed in the running NextClaw host                                       |
 | `nextclaw app info`               | Show installed App state and versions                                                  |
+| `nextclaw app dependencies inspect` | Inspect external capability/resource dependencies, Provider candidates, and bindings |
+| `nextclaw app dependencies verify`  | Verify whether current dependencies are satisfied                                |
+| `nextclaw app dependencies setup`   | Establish bindings only when a compatible Provider is unique                      |
+| `nextclaw app dependencies bind`    | Bind one dependency to an installed trusted Provider                             |
+| `nextclaw app dependencies unbind`  | Remove one dependency binding                                                      |
 | `nextclaw app operations`         | List durable App lifecycle operations                                                  |
 | `nextclaw app install`            | Install a Marketplace App, local directory, or `.napp` bundle through the running host |
 | `nextclaw app enable`             | Enable an installed App                                                                |

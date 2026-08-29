@@ -105,6 +105,25 @@ A consumer must declare kebab-case Provider service ids:
 
 Providers cannot currently call another Provider recursively.
 
+An independent Provider App can also declare a stable capability contract. `provides` is valid only on a Service with `lifecycle.mode: "provider"`:
+
+```json
+{
+  "lifecycle": { "mode": "provider" },
+  "provides": {
+    "capabilities": [
+      {
+        "id": "contacts.normalize",
+        "version": "1",
+        "resourceTypes": ["contacts"]
+      }
+    ]
+  }
+}
+```
+
+The runtime binding identity is still the Provider Service id. A replacement implementation must expose the same stable Service id; dynamic capability aliases that route to arbitrary implementations are not yet public.
+
 ## Declaring external requirements
 
 A Service should not depend on services outside its package by default. When it must, it can explicitly declare an external capability or resource. These declarations describe the dependency only; they never carry credentials, connection strings, or installation commands:
@@ -131,7 +150,23 @@ A Service should not depend on services outside its package by default. When it 
 }
 ```
 
-An App with required external dependencies is shown as `needs-capability` or `needs-configuration` in the App list and details, and cannot be enabled until the requirement is satisfied. NextClaw does not currently install an external service or complete third-party authorization automatically; App authors should provide a self-contained path whenever possible.
+An App with required external dependencies is shown as `needs-capability` or `needs-configuration` in the App list and details, and cannot be enabled until the requirement is satisfied. NextClaw matches capability versions and resource types against installed, enabled, and running Providers. A unique candidate can be bound automatically; multiple candidates require an explicit choice:
+
+```bash
+nextclaw app dependencies inspect <app-id> --json
+nextclaw app dependencies setup <app-id> --json
+nextclaw app dependencies bind <app-id> \
+  --component <service-id> \
+  --kind capability \
+  --requirement contacts.normalize@1 \
+  --provider <provider-service-id> \
+  --json
+nextclaw app dependencies verify <app-id> --json
+```
+
+Bindings live in the Consumer instance's managed configuration directory and contain only the Component, requirement, and Provider Service id. The file mode is `0600`; passwords, tokens, connection strings, and install commands are never stored there. Disable the Consumer before changing bindings so its live allowlist cannot diverge from disk. A Provider used by an enabled Consumer cannot be disabled or uninstalled.
+
+Agents use the same Kernel owner as the CLI and HTTP API for inspect, setup, bind, verify, and unbind. Mutation tools require the caller to declare that the user has already authorized the change. NextClaw does not invent an unknown external-service installation or complete login, payment, or third-party authorization on the user's behalf. A Provider backed by Redis or another heavy external resource should expose setup through its own Service Actions and the existing Secret owner, leaving only non-delegable steps to the user. App authors should still provide a self-contained path whenever possible.
 
 ## Owning App manifest
 

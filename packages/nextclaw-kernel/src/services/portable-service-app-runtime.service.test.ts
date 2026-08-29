@@ -8,7 +8,8 @@ import type { ServiceAppManifest, ServiceAppRecord } from "@kernel/types/service
 const REPOSITORY_ROOT = path.resolve(process.cwd(), "../..");
 const RUNNER_PATH = path.join(
   REPOSITORY_ROOT,
-  "apps/nextclaw-wasmtime-runner/target/release/nextclaw-wasmtime-runner",
+  `packages/nextclaw/resources/native/${process.platform}-${process.arch}`,
+  process.platform === "win32" ? "nextclaw-wasmtime-runner.exe" : "nextclaw-wasmtime-runner",
 );
 const APP_ROOT = path.join(
   REPOSITORY_ROOT,
@@ -299,6 +300,9 @@ function createFixture(
       runtimeProfile: "wasi",
       isolation: "host-mediated",
       permissions: { storage: true, allowedDomains: ["httpbin.org"] },
+      providerIds: kind === "composition"
+        ? ["nextclaw-portable-runtime-lab-provider"]
+        : [],
     },
     manifest: {
       id,

@@ -2,18 +2,22 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
 
 const packagedRunnerName = process.platform === "win32"
   ? "nextclaw-wasmtime-runner.exe"
   : "nextclaw-wasmtime-runner";
-const packagedRunnerPath = new URL(
+const packagedRunnerPath = fileURLToPath(new URL(
   `../../../packages/nextclaw/resources/native/${process.platform}-${process.arch}/${packagedRunnerName}`,
   import.meta.url,
-).pathname;
+));
 const runnerPath = path.resolve(process.argv[2] ?? packagedRunnerPath);
-const componentsRoot = path.resolve(new URL("../../../packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/service-components", import.meta.url).pathname);
+const componentsRoot = fileURLToPath(new URL(
+  "../../../packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/service-components/",
+  import.meta.url,
+));
 const workDirectory = await mkdtemp(path.join(tmpdir(), "nextclaw-spin-smoke-"));
 const runner = spawn(runnerPath, [], { stdio: ["pipe", "pipe", "pipe"] });
 const lines = createInterface({ input: runner.stdout });

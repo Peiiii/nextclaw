@@ -2,7 +2,7 @@
 
 The official Portable Runtime path uses Rust and WebAssembly Components. NextClaw can generate a standalone project with the WIT contract, Rust guest, Panel, and Service manifests; ordinary App development does not require a NextClaw source checkout. Components run through the embedded Spin Runtime, while App authors use only the public `.napp`, WIT, and NDJSON contracts.
 
-A Portable Service should be self-contained by default: include its Components, manifests, and build outputs in the `.napp` so it runs after installation. If it needs an external service such as Redis, declare it explicitly with `requires` in the Service manifest. The App is then shown as `needs-capability` or `needs-configuration` and enablement is blocked until the requirement is met. NextClaw does not currently install external services or complete third-party authorization automatically; never put credentials or connection strings in the manifest.
+A Portable Service should be self-contained by default: include its Components, manifests, and build outputs in the `.napp` so it runs after installation. If it needs an external service such as Redis, declare it explicitly with `requires` in the Service manifest. The App is then shown as `needs-capability` or `needs-configuration` and enablement is blocked until it is bound to a compatible running Provider. A user or Agent can create that binding through the shared dependency commands, but NextClaw does not invent an unknown external-service installation or complete third-party authorization on the user's behalf. Never put credentials or connection strings in either the manifest or binding.
 
 ## Start from a runnable template
 
@@ -188,6 +188,17 @@ nextclaw app enable nextclaw.my-counter --json
 Local directories and `.napp` bundles accept relative paths. Installation and enablement run through the active NextClaw host; on failure the CLI preserves the server error code and reason.
 
 Rust/WASI Apps without platform-native files produce a `universal` artifact by default, so `--target` is unnecessary. Select a target explicitly only when the package really contains platform-specific resources.
+
+If an App declares a capability or resource, inspect and bind its Provider before enablement:
+
+```bash
+nextclaw app dependencies inspect nextclaw.my-counter --json
+nextclaw app dependencies setup nextclaw.my-counter --json
+nextclaw app dependencies verify nextclaw.my-counter --json
+nextclaw app enable nextclaw.my-counter --json
+```
+
+`setup` selects a Provider only when exactly one compatible candidate exists. Use `dependencies bind` to make an explicit choice when several are available. Bindings cannot change while the Consumer is running, and a Provider used by an enabled Consumer cannot be disabled or uninstalled.
 
 ## Errors and runtime observations
 

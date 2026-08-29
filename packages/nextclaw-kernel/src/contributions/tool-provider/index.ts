@@ -13,6 +13,7 @@ import { StructuredResultToolProvider } from "./providers/structured-result-tool
 import { ObservationToolProvider } from "./providers/observation-tool.provider.js";
 import { DesktopToolProvider } from "./providers/desktop-tool.provider.js";
 import { ServiceActionToolProvider } from "./providers/service-action-tool.provider.js";
+import { AppPackageDependencyToolProvider } from "./providers/app-package-dependency-tool.provider.js";
 import { ToolProviderRunContextService } from "./services/tool-provider-run-context.service.js";
 
 export { ShowContentToolProvider };
@@ -59,6 +60,7 @@ export class ToolProviderContribution extends Contribution {
       ),
       new AssetToolProvider(this.kernel.assetStore),
       new ServiceActionToolProvider(runContextService, this.kernel.serviceAppManager),
+      new AppPackageDependencyToolProvider(this.kernel.appPackageManager),
       new McpToolProvider(runContextService, this.kernel.mcpManager),
     ];
   };

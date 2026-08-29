@@ -61,6 +61,20 @@ export type ServiceAppRequirements = {
   resources?: ServiceAppResourceRequirement[];
 };
 
+/**
+ * A stable capability exposed by a Service Provider App. Provider identity is
+ * still the Service id; this declaration only describes what it can satisfy.
+ */
+export type ServiceAppCapabilityProvision = {
+  id: string;
+  version: string;
+  resourceTypes?: string[];
+};
+
+export type ServiceAppProvides = {
+  capabilities?: ServiceAppCapabilityProvision[];
+};
+
 export type ServiceAppManifest = {
   id: string;
   title: string;
@@ -73,6 +87,7 @@ export type ServiceAppManifest = {
   providerIds?: string[];
   lifecycle?: ServiceAppLifecycle;
   requires?: ServiceAppRequirements;
+  provides?: ServiceAppProvides;
   actions: Record<string, ServiceAppManifestAction>;
 };
 

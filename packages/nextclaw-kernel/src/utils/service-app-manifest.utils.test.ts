@@ -79,6 +79,35 @@ describe("parseServiceAppManifest target launch", () => {
     }))).toThrow("lowercase identifier");
   });
 
+  it("parses a Provider capability contract and rejects ambiguous declarations", () => {
+    expect(parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      lifecycle: { mode: "provider" },
+      provides: {
+        capabilities: [{
+          id: "shared-cache",
+          version: "1",
+          resourceTypes: ["cache", "cache"],
+        }],
+      },
+    }))).toMatchObject({
+      provides: { capabilities: [{ id: "shared-cache", version: "1", resourceTypes: ["cache"] }] },
+    });
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      command: "node",
+      provides: { capabilities: [{ id: "shared-cache" }] },
+    }))).toThrow("provides.capabilities[0].version is required");
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      command: "node",
+      provides: { capabilities: [{ id: "shared-cache", version: "1", resourceTypes: ["Redis"] }] },
+    }))).toThrow("lowercase identifiers");
+  });
+
   it("parses an explicit resident lifecycle and rejects native or unsafe intervals", () => {
     expect(parseServiceAppManifest(JSON.stringify({
       ...BASE_MANIFEST,

@@ -4,6 +4,7 @@ import type {
 } from "@kernel/types/app-package.types.js";
 
 export const EMPTY_APP_PACKAGE_RUNTIME_HOOKS: AppPackageRuntimeHooks = {
+  listCapabilityProviders: async () => [],
   assertCanActivate: async () => undefined,
   afterActivate: async () => undefined,
   beforeDeactivate: async () => undefined,

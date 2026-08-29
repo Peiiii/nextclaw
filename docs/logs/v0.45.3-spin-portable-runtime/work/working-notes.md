@@ -33,9 +33,10 @@
 - 正式五 Guest smoke 已自动化并通过：Action discover/invoke、Host KV、storage/network denied、Provider、Composition、Resident、同 PID、stop 后角色释放。
 - 迁移后的 Kernel 定向集成首次发现缓存隔离 Bug：相同 id/component path 但不同 storage grant 会复用旧 Factor config。缓存键现已纳入 data directory、storage、allowed domains 与 provider grants，并新增回归；6 条共享 runner/恢复测试通过。
 - 真实产品 HTTP smoke 已通过：干净 home 启动、内置 App enable、5 个 Service Component、Provider/Resident running、`counter_read`；同轮 `--verify-rust-wasi-scaffold` 从 doctor/create/build/check/test/dev/call/pack/相对路径 install/enable 到安装后 action 全链通过。
-- 外部依赖 readiness 第一条纵向合同已落地：无显式声明的 App 始终 `ready`；显式 capability/resource 依赖投影为 `needs-capability` / `needs-configuration`，API/CLI/UI 共享状态并在 enable 前返回稳定 409。当前只负责诚实识别、展示和阻止误启用，不冒充尚未实现的外部服务自动安装或第三方授权。
+- 外部依赖纵向合同已闭合：无显式声明的 App 始终 `ready`；独立 Provider `.napp` 以 `provides.capabilities` 进入运行中 catalog；Consumer 的 capability/resource 可由 API、CLI、Agent 共享 owner 完成 inspect/setup/bind/verify/unbind，并只把非敏感 Provider 引用原子写入实例配置。
+- 两个真实独立 `.napp` 已完成 Consumer needs-capability → Provider install/enable → unique setup → Consumer enable → runner component-call → 运行期 mutation 拒绝 → disable/unbind 的全链。Provider 反向依赖保护与 binding 文件 0600 均有回归。
 - Review 补齐了更新/回滚边界：未启用 App 仍可安装或切换到依赖未满足的版本；仅当当前 App 已启用、切换会立即激活候选 runtime 时阻止操作并保留原运行版本。真实 registry artifact 回归已覆盖启用中的 `0.1.0 -> 0.3.0` 拒绝与旧版本持续可用。
-- 最终定向验证：Kernel readiness/真实 artifact 生命周期 14 项、UI 10 项通过；Kernel/UI `tsc` 通过；触达文件 ESLint 0 error；diff-only maintainability 0 error（仅保留三个既有/临界文件预算 warning）；`git diff --check` 通过。
+- 首次跨平台矩阵中 macOS arm64、Linux x64 均通过；Windows runner 本身构建成功，smoke 因 URL pathname 生成 `D:\\D:\\...` 失败，现已统一改为 `fileURLToPath`，等待最终矩阵复验。
 
 ## 活跃假设
 
@@ -65,12 +66,12 @@
 
 ## 下一步
 
-1. 提交并回流主干，触发既有 macOS/Linux/Windows Portable Runtime 矩阵。
-2. 只读取结构化 CI 状态；失败走单平台/单步骤快速漏斗，成功后验证 artifact。
-3. 外部资源自动配置与真正的 Provider catalog 继续作为独立后续能力，不在没有稳定绑定/Secret owner 时伪造“已自动配置”。
+1. 完成第二批定向 tsc/lint/docs build/maintainability。
+2. 提交并回流主干，触发最终 macOS/Linux/Windows Portable Runtime 矩阵。
+3. 只读取结构化 CI 状态；失败走单平台/单步骤快速漏斗，成功后验证 artifact。
 
 ## 剩余缺口 / 交接提醒
 
-- Linux musl、Windows x64 与 macOS x64 尚需 CI 原生构建证据；本机 macOS arm64 不能替代最终矩阵。
+- Windows x64 的路径修复尚需 CI 原生复验；本机 macOS arm64 不能替代最终矩阵。
 - Spin 4 Runtime Factors 是静态 Rust 类型；生态扩展通过 Component/Native Provider，而不是未经验证的进程内动态插件。
-- Readiness 当前不会把缺资源依赖伪装为 ready；真正补齐状态需要后续稳定的 Provider catalog/resource binding owner。
+- 当前 v1 binding 的执行身份是稳定 Provider Service id；动态 capability alias 到任意 Provider id 的路由尚未公开，替换实现必须维持同一 Service id。

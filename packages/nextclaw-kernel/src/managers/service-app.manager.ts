@@ -1,9 +1,6 @@
 import { stat } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  DEFAULT_SERVICE_APPS_DIR,
-  getWorkspacePathFromConfig,
-} from "@nextclaw/core";
+import { DEFAULT_SERVICE_APPS_DIR, getWorkspacePathFromConfig } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import {
   AppPackageError,
@@ -11,8 +8,7 @@ import {
 } from "@kernel/types/app-package.types.js";
 import { ServiceAppRuntimeService } from "@kernel/services/service-app-runtime.service.js";
 import { ServiceAppLifecycleService } from "@kernel/services/service-app-lifecycle.service.js";
-import { ServiceAppRecordService } from "@kernel/services/service-app-record.service.js";
-import type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
+import { ServiceAppRecordService, type WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
 import {
   type ServiceAppRemovalDiagnostic,
   ServiceAppRemovalCleanupError,
@@ -27,6 +23,7 @@ import {
 } from "@kernel/features/capability-grants/index.js";
 import { ServiceActionGrantService } from "@kernel/services/service-action-grant.service.js";
 import { ServiceAppPackageRuntimeService } from "@kernel/services/service-app-package-runtime.service.js";
+import { projectCapabilityProviders } from "@kernel/services/service-app-capability-provider.service.js";
 import type {
   ServiceAction,
   ServiceActionCaller,
@@ -148,6 +145,8 @@ export class ServiceAppManager {
         .sort((left, right) => left.title.localeCompare(right.title)),
     };
   };
+
+  listCapabilityProviders = async () => projectCapabilityProviders(await this.listValidServiceApps());
 
   getServiceApp = async (appId: string): Promise<ServiceAppRecord> => {
     const { record } = await this.requireServiceApp(appId);

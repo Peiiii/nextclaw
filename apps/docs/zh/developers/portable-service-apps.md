@@ -2,7 +2,7 @@
 
 当前 Portable Runtime 的官方开发路径是 Rust + WebAssembly Component。NextClaw 可以直接生成一个包含 WIT 合同、Rust Guest、Panel 和 Service 清单的独立项目；开发普通 App 不需要克隆 NextClaw 源码仓库。Component 由内嵌的 Spin Runtime 执行，但 App 作者只需要遵守公开的 `.napp`、WIT 和 NDJSON 合同。
 
-Portable Service 默认应当是自包含的：把需要的 Component、清单和构建结果放进 `.napp`，用户安装后即可运行。需要 Redis 等外部服务时，使用 Service 清单的 `requires` 显式声明；这会让 App 显示为 `needs-capability` 或 `needs-configuration` 并阻止启用，直到依赖满足。当前不会自动安装外部服务或完成第三方授权，也不要在清单中放凭据或连接字符串。
+Portable Service 默认应当是自包含的：把需要的 Component、清单和构建结果放进 `.napp`，用户安装后即可运行。需要 Redis 等外部服务时，使用 Service 清单的 `requires` 显式声明；这会让 App 显示为 `needs-capability` 或 `needs-configuration` 并阻止启用，直到它绑定到兼容且正在运行的 Provider。绑定可由用户或 Agent 通过统一依赖命令完成，但不会自动安装未知外部服务或代替用户完成第三方授权；清单和绑定中都不要放凭据或连接字符串。
 
 ## 从可运行模板开始
 
@@ -195,6 +195,17 @@ nextclaw app enable nextclaw.my-counter --json
 本地目录和 `.napp` 都支持相对路径。安装和启用由正在运行的 NextClaw 宿主完成；失败时 CLI 会保留服务端返回的错误码与原因。
 
 没有平台原生文件的 Rust/WASI App 默认生成 `universal` 产物，不需要传 `--target`；确实包含平台特定资源时再显式选择目标平台。
+
+如果 App 声明了 capability/resource，先检查并绑定 Provider，再启用：
+
+```bash
+nextclaw app dependencies inspect nextclaw.my-counter --json
+nextclaw app dependencies setup nextclaw.my-counter --json
+nextclaw app dependencies verify nextclaw.my-counter --json
+nextclaw app enable nextclaw.my-counter --json
+```
+
+`setup` 只会自动选择唯一兼容 Provider；有多个候选时使用 `dependencies bind` 明确指定。Consumer 运行期间不能更改绑定，Provider 被已启用 Consumer 使用时也不能停用或卸载。
 
 ## 错误与运行观测
 
