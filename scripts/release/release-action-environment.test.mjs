@@ -160,7 +160,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   );
   assert.match(
     workflow,
-    /publish-runtime:[\s\S]*?if: \$\{\{ inputs\.target != 'npm' && needs\.publish-npm\.outputs\.has_nextclaw == 'true' \}\}/,
+    /publish-runtime:[\s\S]*?if: \$\{\{ always\(\) && inputs\.target != 'npm'[\s\S]*?outputs\.is_recovery == 'true'/,
   );
 
   const desktopJob = workflow.match(
@@ -172,12 +172,12 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
     "release.yml must include the publish-desktop job",
   );
   assert.match(desktopJob, /timeout-minutes: 150/);
-  assert.match(desktopJob, /inputs\.target == 'all'/);
+  assert.match(desktopJob, /always\(\) && inputs\.target == 'all'/);
   assert.match(desktopJob, /needs\.publish-runtime\.result == 'success'/);
   assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
   assert.match(
     desktopJob,
-    /ref: \$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}/,
+    /ref: \$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}/,
   );
   assert.match(desktopJob, /pnpm release:desktop:stable/);
   assert.match(
@@ -205,7 +205,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(workflow, /## ALL_PLATFORMS_READY/);
   assert.match(
     workflow,
-    /resume_version:[\s\S]*?Resolve existing stable release for automatic recovery[\s\S]*?inputs\.resume_version != '' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit[\s\S]*?Reuse published stable Runtime channel[\s\S]*?darwin-arm64 darwin-x64 linux-x64 win32-x64/,
+    /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery[\s\S]*?Resolve existing stable release for automatic recovery[\s\S]*?Reuse published stable Runtime channel[\s\S]*?darwin-arm64 darwin-x64 linux-x64 win32-x64/,
   );
 
   const desktopWorkflow = readFileSync(
@@ -247,6 +247,12 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopClosure, /gh["], \["run", "cancel"/);
 });
 
+test("stable release exposes only the business target and infers recovery checkpoints", () => {
+  const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
+  assert.doesNotMatch(workflow, /resume_version|resume_previous_version/);
+  assert.match(workflow, /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery/);
+});
+
 test("product and all releases validate content before the irreversible package publish", () => {
   const workflow = readFileSync(
     new URL("../../.github/workflows/release.yml", import.meta.url),
@@ -263,6 +269,27 @@ test("product and all releases validate content before the irreversible package 
   assert.match(workflow, /if \[ "\$RELEASE_TARGET" != "npm" \]; then[\s\S]*?--require-product-artifacts/);
   assert.ok(contentGuard >= 0, "stable release must expose the product content guard");
   assert.ok(contentGuard < packagePublish, "product content must be validated before package publication");
+});
+
+test("stable recovery runs current verification scripts against the immutable release", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.equal(
+    workflow.match(
+      /ref: \$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}/g,
+    )?.length,
+    4,
+  );
+  assert.match(
+    workflow,
+    /git switch -C master "\$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}"/,
+  );
+  assert.match(
+    workflow,
+    /verify-npm-node-compatibility:[\s\S]*?outputs\.is_recovery != 'true'[\s\S]*?verify-npm-unsupported-node:[\s\S]*?outputs\.is_recovery != 'true'/,
+  );
 });
 
 test("published stable validation installs immutable registry tarballs", () => {

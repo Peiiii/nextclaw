@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { copyFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { createInterface } from "node:readline";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -13,7 +14,10 @@ const repositoryRoot = path.resolve(runnerDirectory, "../..");
 const executable = process.platform === "win32"
   ? "nextclaw-wasmtime-runner.exe"
   : "nextclaw-wasmtime-runner";
-const runnerPath = path.join(runnerDirectory, "target", "release", executable);
+const runnerArgumentIndex = process.argv.indexOf("--runner");
+const runnerPath = runnerArgumentIndex >= 0
+  ? path.resolve(process.argv[runnerArgumentIndex + 1])
+  : path.join(runnerDirectory, "target", "release", executable);
 const appRoot = path.join(
   repositoryRoot,
   "packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/service-components",
@@ -44,6 +48,8 @@ try {
   await requestRunner({ operation: "stats" });
   const runnerEmptyMiB = await stableRssMiB(runner.pid);
   const runnerDensityMiB = {};
+  let firstComponentLoadMs;
+  const hotInvokeSamplesMs = [];
   const sourceComponent = path.join(
     appRoot,
     "nextclaw-portable-runtime-lab-state",
@@ -52,7 +58,22 @@ try {
   for (let index = 1; index <= 10; index += 1) {
     const componentPath = path.join(benchmarkDirectory, `component-${index}.wasm`);
     await copyFile(sourceComponent, componentPath);
-    await requestRunner({ operation: "list-actions", app: runnerApp(index, componentPath) });
+    const app = runnerApp(index, componentPath);
+    const loadStartedAt = performance.now();
+    await requestRunner({ operation: "list-actions", app });
+    if (index === 1) {
+      firstComponentLoadMs = roundMs(performance.now() - loadStartedAt);
+      for (let sample = 0; sample < 10; sample += 1) {
+        const invokeStartedAt = performance.now();
+        await requestRunner({
+          operation: "invoke",
+          app,
+          actionName: "counter_read",
+          input: {},
+        });
+        hotInvokeSamplesMs.push(performance.now() - invokeStartedAt);
+      }
+    }
     if ([1, 5, 10].includes(index)) {
       runnerDensityMiB[index] = await stableRssMiB(runner.pid);
     }
@@ -74,6 +95,7 @@ try {
     platform: process.platform,
     architecture: process.arch,
     nodeVersion: process.version,
+    runnerPath,
     method: "Median of five OS RSS samples after warm-up; each Component uses a distinct artifact path and each Node baseline uses an independent process.",
     metricsMiB: {
       runnerEmpty: runnerEmptyMiB,
@@ -86,6 +108,10 @@ try {
       componentsSixThroughTenIncrement: roundMiB(runnerDensityMiB[10] - runnerDensityMiB[5]),
       nodeServicesTwoThroughFiveIncrement: roundMiB(nodeDensityMiB[5] - nodeDensityMiB[1]),
       nodeServicesSixThroughTenIncrement: roundMiB(nodeDensityMiB[10] - nodeDensityMiB[5]),
+    },
+    latencyMs: {
+      firstComponentListActions: firstComponentLoadMs,
+      hotCounterReadMedian: median(hotInvokeSamplesMs.map(roundMs)),
     },
     caveat: "Development-machine directional evidence only; production adoption still requires equivalent workloads, Resident density, CPU/latency, and cross-platform measurements.",
   };
@@ -146,4 +172,13 @@ async function stableTotalRssMiB(pids) {
 
 function roundMiB(value) {
   return Math.round(value * 100) / 100;
+}
+
+function roundMs(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function median(values) {
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.floor(sorted.length / 2)];
 }

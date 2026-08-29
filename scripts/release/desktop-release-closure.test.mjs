@@ -208,7 +208,7 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
     workflow,
     /Build Desktop Installer \(Windows\)[\s\S]*?electron-builder --win nsis --x64 --prepackaged release\/win-unpacked --publish never/
   );
-  assert.doesNotMatch(workflow, /better-sqlite3/);
+  assert.doesNotMatch(workflow, /(?:pnpm|npm) rebuild better-sqlite3/);
   assert.doesNotMatch(
     workflow,
     /publish-desktop-update-channels:[\s\S]*?fetch-depth: 0[\s\S]*?publish-linux-apt-repo:[\s\S]*?fetch-depth: 0/
@@ -220,6 +220,15 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
   );
 });
 
+test("desktop owner infers APT recovery without public recovery inputs", () => {
+  const releaseScript = readFileSync(new URL("./release-desktop.mjs", import.meta.url), "utf8");
+  const githubRelease = readFileSync(new URL("./desktop-release-github.mjs", import.meta.url), "utf8");
+  const recovery = readFileSync(new URL("./desktop-release-recovery.mjs", import.meta.url), "utf8");
+  assert.match(githubRelease, /publish_linux_apt_only=\$\{publishLinuxAptOnly === true\}/);
+  assert.match(releaseScript, /Object\.assign\(options, inferExistingReleaseRecovery\(options, run\) \?\? \{\}\)[\s\S]*?options\.tag \?\?= readNextTag/);
+  assert.match(recovery, /publishLinuxAptOnly: true/);
+});
+
 test("desktop Draft dispatch carries an immutable target before the tag exists", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/desktop-release.yml", import.meta.url), "utf8");
   const closure = readFileSync(new URL("./desktop-release-closure.mjs", import.meta.url), "utf8");
@@ -228,6 +237,11 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   assert.match(githubRelease, /"--ref",\s*\n\s*branch/);
   assert.doesNotMatch(githubRelease, /"--ref",\s*\n\s*tag/);
   assert.match(githubRelease, /`release_target=\$\{target\}`/);
+  assert.match(githubRelease, /`node_version=\$\{nodeVersion\}`/);
+  assert.equal(
+    workflow.match(/node-version: \$\{\{ inputs\.node_version \}\}/g)?.length,
+    2,
+  );
   assert.match(githubRelease, /release\.targetCommitish !== target/);
   assert.match(workflow, /release_target:[\s\S]*?Immutable commit SHA/);
   assert.match(workflow, /Draft target must equal immutable release_target/);

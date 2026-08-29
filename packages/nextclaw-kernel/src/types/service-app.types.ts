@@ -29,6 +29,38 @@ export type ServiceAppLifecycle =
   | { mode: "resident"; eventIntervalMs: number }
   | { mode: "provider" };
 
+/**
+ * A dependency intentionally kept outside a portable `.napp` artifact.
+ * It never carries credentials, connection strings, or installation commands.
+ */
+export type ServiceAppExternalRemediation = {
+  kind: "agent-setup";
+  summary: string;
+  requiresUserAction?: boolean;
+};
+
+export type ServiceAppCapabilityRequirement = {
+  id: string;
+  version?: string;
+  title?: string;
+  description?: string;
+  remediation?: ServiceAppExternalRemediation;
+};
+
+export type ServiceAppResourceRequirement = {
+  binding: string;
+  type: string;
+  required?: boolean;
+  title?: string;
+  description?: string;
+  remediation?: ServiceAppExternalRemediation;
+};
+
+export type ServiceAppRequirements = {
+  capabilities?: ServiceAppCapabilityRequirement[];
+  resources?: ServiceAppResourceRequirement[];
+};
+
 export type ServiceAppManifest = {
   id: string;
   title: string;
@@ -40,6 +72,7 @@ export type ServiceAppManifest = {
   componentEntry?: string;
   providerIds?: string[];
   lifecycle?: ServiceAppLifecycle;
+  requires?: ServiceAppRequirements;
   actions: Record<string, ServiceAppManifestAction>;
 };
 

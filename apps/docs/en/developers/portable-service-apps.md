@@ -1,6 +1,8 @@
 # Develop a WASM Service App
 
-The official Portable Runtime path uses Rust and WebAssembly Components. NextClaw can generate a standalone project with the WIT contract, Rust guest, Panel, and Service manifests; ordinary App development does not require a NextClaw source checkout.
+The official Portable Runtime path uses Rust and WebAssembly Components. NextClaw can generate a standalone project with the WIT contract, Rust guest, Panel, and Service manifests; ordinary App development does not require a NextClaw source checkout. Components run through the embedded Spin Runtime, while App authors use only the public `.napp`, WIT, and NDJSON contracts.
+
+A Portable Service should be self-contained by default: include its Components, manifests, and build outputs in the `.napp` so it runs after installation. If it needs an external service such as Redis, declare it explicitly with `requires` in the Service manifest. The App is then shown as `needs-capability` or `needs-configuration` and enablement is blocked until the requirement is met. NextClaw does not currently install external services or complete third-party authorization automatically; never put credentials or connection strings in the manifest.
 
 ## Start from a runnable template
 
@@ -119,7 +121,7 @@ The command runs `cargo build --locked --release --target wasm32-wasip2` and cop
 
 NextClaw provides the native runner for the current platform. App developers build one portable `.wasm` Component instead of building separate runners for Windows, Linux, and macOS.
 
-Runtime maintainers use `pnpm portable-runtime:build` from the NextClaw source root to build the runner and built-in validation Components.
+Runtime maintainers use `pnpm portable-runtime:build` from the NextClaw source root to build platform runtimes and built-in validation Components. App authors cannot dynamically load arbitrary third-party Spin Factors through the public API. For an additional host capability, use a supported Factor or Native Provider, or choose a `native-process` Service.
 
 ## Declare Panel Actions
 

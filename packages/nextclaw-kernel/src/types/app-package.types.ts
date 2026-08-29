@@ -41,6 +41,29 @@ export type AppPackageComponentView = AppPackageComponentSource & {
   descriptionI18n?: Record<string, string>;
 };
 
+export type AppPackageReadinessStatus =
+  | "ready"
+  | "needs-capability"
+  | "needs-configuration";
+
+export type AppPackageReadinessRequirement = {
+  componentId: string;
+  kind: "capability" | "configuration";
+  id: string;
+  title: string;
+  description?: string;
+  remediation?: {
+    kind: "agent-setup";
+    summary: string;
+    requiresUserAction?: boolean;
+  };
+};
+
+export type AppPackageReadiness = {
+  status: AppPackageReadinessStatus;
+  requirements: AppPackageReadinessRequirement[];
+};
+
 export type AppPackageView = {
   id: string;
   name: string;
@@ -60,6 +83,7 @@ export type AppPackageView = {
   storageUsage?: AppStorageUsage;
   runtimeProfile: AppRuntimeProfile;
   isolation: AppRuntimeIsolation;
+  readiness: AppPackageReadiness;
 };
 
 export type AppPackageHostTarget = {
@@ -158,6 +182,7 @@ export type AppPackageRuntimeHooks = {
 export type AppPackageErrorCode =
   | "APP_PACKAGE_CONFLICT"
   | "APP_PACKAGE_INCOMPATIBLE"
+  | "APP_PACKAGE_NOT_READY"
   | "APP_PACKAGE_NOT_FOUND"
   | "APP_PACKAGE_OPERATION_FAILED";
 

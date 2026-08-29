@@ -452,3 +452,15 @@ export async function waitForDesktopReleaseClosure(options) {
   await waitForPublicStableAptRepo(options);
   console.log(`[desktop:release] complete: ${tag}`);
 }
+
+export async function verifyExistingDesktopReleaseClosure(options) {
+  const { tag, target } = options;
+  const tagSha = readTagSha(tag);
+  if (tagSha !== target) throw new Error(`Published tag target mismatch: expected ${target}, got ${tagSha}.`);
+  await verifyReleaseAssets({ ...options, expectedDraft: false });
+  await waitForGhPagesManifest(options);
+  await waitForPublicManifest(options);
+  await waitForGhPagesStableAptRepo(options);
+  await waitForPublicStableAptRepo(options);
+  console.log(`[desktop:release] existing release already complete: ${tag}`);
+}

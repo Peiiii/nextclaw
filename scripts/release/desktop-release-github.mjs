@@ -21,7 +21,7 @@ function buildReleaseTitle(options) {
   return `NextClaw Desktop ${desktopVersion}`;
 }
 
-function readRelease(options) {
+export function readRelease(options) {
   const { repo, tag } = options;
   return JSON.parse(
     runGh([
@@ -31,7 +31,7 @@ function readRelease(options) {
       "--repo",
       repo,
       "--json",
-      "isDraft,tagName,targetCommitish,url"
+      "assets,isDraft,isPrerelease,tagName,targetCommitish,url"
     ])
   );
 }
@@ -72,7 +72,7 @@ export function createDraftRelease(options) {
 }
 
 export function dispatchReleaseWorkflow(options) {
-  const { branch, releaseNotesUrl, repo, tag, target, workflow } = options;
+  const { branch, nodeVersion, publishLinuxAptOnly, releaseNotesUrl, repo, tag, target, workflow } = options;
   const workflowDispatchId = randomUUID();
   const workflowDispatchStartedAt = Date.now();
   runGh([
@@ -90,7 +90,11 @@ export function dispatchReleaseWorkflow(options) {
     "-f",
     `release_notes_url=${releaseNotesUrl}`,
     "-f",
-    `dispatch_id=${workflowDispatchId}`
+    `node_version=${nodeVersion}`,
+    "-f",
+    `dispatch_id=${workflowDispatchId}`,
+    "-f",
+    `publish_linux_apt_only=${publishLinuxAptOnly === true}`
   ]);
   console.log(`[desktop:release] dispatched ${workflow} for hidden Draft ${tag} (${workflowDispatchId})`);
   return { workflowDispatchId, workflowDispatchStartedAt };
