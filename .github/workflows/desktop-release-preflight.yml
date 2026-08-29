@@ -23,6 +23,10 @@ on:
         description: "Expected governed launcher compatibility floor"
         required: true
         type: string
+      node_version:
+        description: "Pinned Node version from the release protocol"
+        required: true
+        type: string
       target_sha:
         description: "Commit SHA the release tag will target"
         required: true
@@ -49,7 +53,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
+          node-version: ${{ inputs.node_version }}
 
       - name: Validate release identity
         shell: bash

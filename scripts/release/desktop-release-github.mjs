@@ -72,7 +72,7 @@ export function createDraftRelease(options) {
 }
 
 export function dispatchReleaseWorkflow(options) {
-  const { branch, releaseNotesUrl, repo, tag, target, workflow } = options;
+  const { branch, nodeVersion, releaseNotesUrl, repo, tag, target, workflow } = options;
   const workflowDispatchId = randomUUID();
   const workflowDispatchStartedAt = Date.now();
   runGh([
@@ -89,6 +89,8 @@ export function dispatchReleaseWorkflow(options) {
     `release_target=${target}`,
     "-f",
     `release_notes_url=${releaseNotesUrl}`,
+    "-f",
+    `node_version=${nodeVersion}`,
     "-f",
     `dispatch_id=${workflowDispatchId}`
   ]);

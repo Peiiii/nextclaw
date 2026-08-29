@@ -167,6 +167,8 @@ export async function runRemotePreflight(options) {
     "-f",
     `minimum_launcher_version=${minimumLauncherVersion}`,
     "-f",
+    `node_version=${options.nodeVersion}`,
+    "-f",
     `target_sha=${target}`,
     "-f",
     `dispatch_id=${dispatchId}`

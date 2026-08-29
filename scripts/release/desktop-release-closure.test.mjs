@@ -228,6 +228,11 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   assert.match(githubRelease, /"--ref",\s*\n\s*branch/);
   assert.doesNotMatch(githubRelease, /"--ref",\s*\n\s*tag/);
   assert.match(githubRelease, /`release_target=\$\{target\}`/);
+  assert.match(githubRelease, /`node_version=\$\{nodeVersion\}`/);
+  assert.equal(
+    workflow.match(/node-version: \$\{\{ inputs\.node_version \}\}/g)?.length,
+    2,
+  );
   assert.match(githubRelease, /release\.targetCommitish !== target/);
   assert.match(workflow, /release_target:[\s\S]*?Immutable commit SHA/);
   assert.match(workflow, /Draft target must equal immutable release_target/);

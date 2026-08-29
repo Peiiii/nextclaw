@@ -73,6 +73,7 @@ function parseArgs(argv) {
     desktopVersion: null,
     dryRun: false,
     minimumLauncherVersion: null,
+    nodeVersion: readFileSync(resolve(ROOT_DIR, ".nvmrc"), "utf8").trim(),
     notesFile: null,
     preflightWorkflow: DEFAULT_PREFLIGHT_WORKFLOW,
     publicAttempts: DEFAULT_PUBLIC_ATTEMPTS,

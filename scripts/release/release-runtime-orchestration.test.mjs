@@ -103,6 +103,7 @@ test("release workflows bind dispatch identity and immutable source commits", ()
 
   assert.match(preflight, /run-name: .*dispatch=\$\{\{ inputs\.dispatch_id \}\}/);
   assert.match(preflight, /ref: \$\{\{ inputs\.target_sha \}\}/);
+  assert.match(preflight, /node-version: \$\{\{ inputs\.node_version \}\}/);
   assert.match(runtime, /run-name: .*target=\$\{\{ inputs\.release_target \}\} dispatch=\$\{\{ inputs\.dispatch_id \}\}/);
   assert.equal(runtime.match(/ref: \$\{\{ inputs\.release_target \}\}/g)?.length, 2);
   assert.match(prepare, /group: npm-release-prepare-\$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
