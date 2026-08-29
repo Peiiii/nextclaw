@@ -21,9 +21,11 @@
 
 ## 发布/部署方式
 
-当前仅在隔离 worktree `codex/product-activity-release-classification` 完成未提交实现。未经用户明确授权，未 commit、未 push、未发布 NPM/runtime/desktop、未部署，也未改写生产 D1。
+已于 2026-08-30 通过统一 `release.yml target=all` 入口完成 `nextclaw 0.45.5`、Runtime 四平台资产和 `v0.45.5-desktop.1` 五平台 Desktop 发布。最终父流程 `33273710311` 与 Desktop 子流程 `33273964827` 均为 success，输出 `ALL_PLATFORMS_READY`；Linux APT `0.0.276` 已进入公开仓库。
 
-因此生产网站当前仍可能显示 0。修复需要进入新版 NPM runtime 与 Desktop runtime；用户升级并完成一次 Agent 意图后，新的 production/stable 回执才会进入默认统计。部署后应以生产 D1 只读查询和正式管理后台默认筛选共同验收。
+生产 D1 没有改写历史数据。管理后台 external / production / stable 仍可能暂时显示 0，直到升级到 0.45.5 的真实外部客户端完成活动并投递新回执；此前错分到 development/development 的历史数据不会伪装成生产活跃。
+
+发布恢复曾暴露五类自动化缺口：prepared artifact 跨平台导入、并发主线前进、Runtime 成功后的进程清理误判、恢复协议与冻结发布身份混用、APT 包超过 GitHub Pages 单文件上限。最终将公开入口收敛为仅接收业务参数 `target`，由 workflow 自动识别已发布版本及未闭合 checkpoint；Desktop owner 自动复用既有公开 release 并只恢复 APT，用户或 Agent 不再补传版本、SHA、阶段或恢复参数。
 
 ## 用户/产品视角的验收步骤
 
@@ -49,9 +51,8 @@ diff-only maintainability 检查最终为 0 error。两个 warning 均未恶化�
 
 ## NPM 包发布记录
 
-需要随下一次统一发布：
+已随统一发布完成：
 
-- `nextclaw`：待统一发布，包含 NPM launcher 与 runtime 装配修复。
-- `@nextclaw/service`：待统一发布，包含 canonical distribution 与 reporter 分类合同。
-
-Desktop 也需要包含同一源码的新版 runtime，但当前未执行 Desktop 发布。触发条件是用户明确授权对应提交与发布流程。
+- `nextclaw 0.45.5`：包含 NPM launcher 与 runtime 装配修复。
+- `@nextclaw/service 0.4.5`：包含 canonical distribution 与 reporter 分类合同。
+- `v0.45.5-desktop.1`：包含同一正式 runtime 分类合同及 Linux APT 0.0.276。
