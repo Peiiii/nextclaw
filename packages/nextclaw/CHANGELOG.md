@@ -1,5 +1,23 @@
 # nextclaw
 
+## 0.45.5
+
+### Patch Changes
+
+- 2e7db68: 修复正式 NPM 与桌面版的匿名活跃回执被错误归入开发环境的问题，使新版客户端的使用数据能进入管理后台默认的 production/stable 统计。
+- 9377757: 修复子 Agent 的运行、等待和通知语义：`sessions_spawn` 现在默认立即启动且不阻塞父 Agent，`notify` 只控制完成通知，`wait` 独立控制同步等待；仅创建空会话改为显式 `start=false`。异步任务结束后，原工具结果会可靠更新并在冷重启后保持终态。
+- Updated dependencies [2e7db68]
+- Updated dependencies [9377757]
+  - @nextclaw/service@0.4.5
+  - @nextclaw/core@0.17.14
+  - @nextclaw/kernel@0.12.3
+  - @nextclaw/mcp@0.3.41
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.41
+  - @nextclaw/remote@0.3.51
+  - @nextclaw/runtime@0.4.40
+  - @nextclaw/server@0.20.4
+  - @nextclaw/ncp-mcp@0.2.41
+
 ## 0.45.4
 
 ### Patch Changes

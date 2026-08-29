@@ -1,5 +1,28 @@
 # @nextclaw/service
 
+## 0.4.5
+
+### Patch Changes
+
+- 2e7db68: 修复正式 NPM 与桌面版的匿名活跃回执被错误归入开发环境的问题，使新版客户端的使用数据能进入管理后台默认的 production/stable 统计。
+- Updated dependencies [9377757]
+  - @nextclaw/core@0.17.14
+  - @nextclaw/kernel@0.12.3
+  - @nextclaw/channel-extension-dingtalk@0.2.40
+  - @nextclaw/channel-extension-discord@0.2.40
+  - @nextclaw/channel-extension-email@0.2.40
+  - @nextclaw/channel-extension-slack@0.2.40
+  - @nextclaw/channel-extension-telegram@0.2.40
+  - @nextclaw/channel-extension-wecom@0.2.40
+  - @nextclaw/channel-extension-whatsapp@0.2.40
+  - @nextclaw/mcp@0.3.41
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.41
+  - @nextclaw/remote@0.3.51
+  - @nextclaw/runtime@0.4.40
+  - @nextclaw/server@0.20.4
+  - @nextclaw/ncp-mcp@0.2.41
+  - @nextclaw/client-sdk@0.9.4
+
 ## 0.4.4
 
 ### Patch Changes
