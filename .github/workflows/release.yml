@@ -12,6 +12,14 @@ on:
           - npm
           - product
           - all
+      resume_version:
+        description: "Existing stable version whose Runtime/Desktop closure should resume"
+        required: false
+        type: string
+      resume_previous_version:
+        description: "Previous stable version required with resume_version"
+        required: false
+        type: string
 
 permissions: {}
 
@@ -29,13 +37,13 @@ jobs:
       actions: write
       contents: write
     outputs:
-      closure_commit: ${{ steps.release.outputs.closure_commit }}
-      content_ready: ${{ steps.release.outputs.content_ready }}
-      has_nextclaw: ${{ steps.release.outputs.has_nextclaw }}
-      previous_version: ${{ steps.release.outputs.previous_version }}
-      release_commit: ${{ steps.release.outputs.release_commit }}
-      release_tags_json: ${{ steps.release.outputs.release_tags_json }}
-      target_version: ${{ steps.release.outputs.target_version }}
+      closure_commit: ${{ steps.release.outputs.closure_commit || steps.recovery.outputs.closure_commit }}
+      content_ready: ${{ steps.release.outputs.content_ready || steps.recovery.outputs.content_ready }}
+      has_nextclaw: ${{ steps.release.outputs.has_nextclaw || steps.recovery.outputs.has_nextclaw }}
+      previous_version: ${{ steps.release.outputs.previous_version || steps.recovery.outputs.previous_version }}
+      release_commit: ${{ steps.release.outputs.release_commit || steps.recovery.outputs.release_commit }}
+      release_tags_json: ${{ steps.release.outputs.release_tags_json || steps.recovery.outputs.release_tags_json }}
+      target_version: ${{ steps.release.outputs.target_version || steps.recovery.outputs.target_version }}
     steps:
       - name: Require the protected master release source
         shell: bash
@@ -78,6 +86,7 @@ jobs:
 
       - name: Publish prepared batch and close Git state
         id: release
+        if: ${{ inputs.resume_version == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -91,11 +100,42 @@ jobs:
           fi
           pnpm release:npm:stable -- "${args[@]}"
 
+      - name: Resolve existing stable release for automatic recovery
+        id: recovery
+        if: ${{ inputs.resume_version != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_VERSION: ${{ inputs.resume_previous_version }}
+          TARGET_VERSION: ${{ inputs.resume_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          semver='^[0-9]+\.[0-9]+\.[0-9]+$'
+          if [[ ! "$TARGET_VERSION" =~ $semver ]] || [[ ! "$PREVIOUS_VERSION" =~ $semver ]]; then
+            echo "resume_version and resume_previous_version must both be stable semantic versions."
+            exit 1
+          fi
+          tag="nextclaw@$TARGET_VERSION"
+          git fetch origin "refs/tags/$tag:refs/tags/$tag"
+          release_commit="$(git rev-list -n 1 "$tag")"
+          test "$(npm view "nextclaw@$TARGET_VERSION" version)" = "$TARGET_VERSION"
+          gh release view "$tag" --json isDraft --jq 'select(.isDraft == false) | true' | grep -qx true
+          git cat-file -e "$release_commit:apps/docs/public/release-notes/nextclaw-v$TARGET_VERSION.json"
+          {
+            echo "closure_commit=$release_commit"
+            echo "content_ready=true"
+            echo "has_nextclaw=true"
+            echo "previous_version=$PREVIOUS_VERSION"
+            echo "release_commit=$release_commit"
+            echo "release_tags_json=[\"$tag\"]"
+            echo "target_version=$TARGET_VERSION"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Record core release status
         shell: bash
         env:
-          CONTENT_READY: ${{ steps.release.outputs.content_ready }}
-          TARGET_VERSION: ${{ steps.release.outputs.target_version }}
+          CONTENT_READY: ${{ steps.release.outputs.content_ready || steps.recovery.outputs.content_ready }}
+          TARGET_VERSION: ${{ steps.release.outputs.target_version || steps.recovery.outputs.target_version }}
         run: |
           set -euo pipefail
           {
@@ -119,7 +159,7 @@ jobs:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ inputs.resume_version != '' && github.sha || needs.publish-npm.outputs.closure_commit }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -137,6 +177,7 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Publish and verify stable Runtime channel
+        if: ${{ inputs.resume_version == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
@@ -145,6 +186,20 @@ jobs:
           --prepared-source-sha "${{ github.sha }}"
           --version "${{ needs.publish-npm.outputs.target_version }}"
           --release-tag "nextclaw@${{ needs.publish-npm.outputs.target_version }}"
+
+      - name: Reuse published stable Runtime channel
+        if: ${{ inputs.resume_version != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="nextclaw@$TARGET_VERSION"
+          assets="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+          for target in darwin-arm64 darwin-x64 linux-x64 win32-x64; do
+            grep -qx "nextclaw-runtime-$target-$TARGET_VERSION.zip" <<< "$assets"
+          done
 
       - name: Verify upgrade from previous stable
         run: >-
@@ -197,7 +252,7 @@ jobs:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ inputs.resume_version != '' && github.sha || needs.publish-npm.outputs.closure_commit }}
 
       - name: Setup compatibility Node
         uses: actions/setup-node@v4
@@ -221,7 +276,7 @@ jobs:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ inputs.resume_version != '' && github.sha || needs.publish-npm.outputs.closure_commit }}
       - uses: actions/setup-node@v4
         with:
           node-version: "18.20.8"
