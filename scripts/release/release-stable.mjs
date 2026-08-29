@@ -351,6 +351,12 @@ async function runStableRelease(options) {
     printStableDryRun(options, context);
     return;
   }
+  if (options.requireProductArtifacts) {
+    ensureProductReleaseArtifacts(
+      context.previousVersion,
+      context.targetVersion,
+    );
+  }
   const { checkpoint, publishSummary } = await publishStablePackages(
     options,
     context,
