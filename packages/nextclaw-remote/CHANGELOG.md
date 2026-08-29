@@ -1,5 +1,12 @@
 # @nextclaw/remote
 
+## 0.3.50
+
+### Patch Changes
+
+- Updated dependencies [824f59e]
+  - @nextclaw/server@0.20.3
+
 ## 0.3.49
 
 ### Patch Changes

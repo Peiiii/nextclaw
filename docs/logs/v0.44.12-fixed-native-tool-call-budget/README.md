@@ -48,5 +48,5 @@
 - `@nextclaw/ncp-agent-runtime-next@0.1.23`：已发布，包含 native runtime 固定工具调用预算。
 - `@nextclaw/server@0.20.2`：已发布，包含 API 配置合同删除。
 - `@nextclaw/ui@0.22.2`：已发布，包含设置和 Agent 详情入口删除。
-- `nextclaw@0.45.3`：已发布，`latest=0.45.3`；GitHub Release 为 `nextclaw@0.45.3`，stable Runtime manifests 四个平台均指向 `0.45.3`。
+- `nextclaw@0.45.3`：已发布并交付本次工具调用预算修复；GitHub Release 为 `nextclaw@0.45.3`，发布验收时 stable Runtime manifests 四个平台均指向 `0.45.3`。后续 `0.45.4` 已正常接替 registry latest，不改变本批交付归属。
 - 本次发布自动化改造不改变已发布产品包内容，不新增 changeset；workflow/script/skill 合同在合入远程 `master` 后直接作用于下一次 release-bearing prepare 和 stable release。

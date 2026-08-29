@@ -98,7 +98,6 @@ export function resolvePublishedRuntimeAsset(version, platform, arch) {
 function sleep(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
-
 export async function runPublishedNpmRuntimeUpdateValidation(argv) {
   if (argv.includes("--published-beta")) {
     await verifyPublishedBetaRelease();
