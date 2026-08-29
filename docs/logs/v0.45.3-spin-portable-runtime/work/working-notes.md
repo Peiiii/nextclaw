@@ -36,7 +36,8 @@
 - 外部依赖纵向合同已闭合：无显式声明的 App 始终 `ready`；独立 Provider `.napp` 以 `provides.capabilities` 进入运行中 catalog；Consumer 的 capability/resource 可由 API、CLI、Agent 共享 owner 完成 inspect/setup/bind/verify/unbind，并只把非敏感 Provider 引用原子写入实例配置。
 - 两个真实独立 `.napp` 已完成 Consumer needs-capability → Provider install/enable → unique setup → Consumer enable → runner component-call → 运行期 mutation 拒绝 → disable/unbind 的全链。Provider 反向依赖保护与 binding 文件 0600 均有回归。
 - Review 补齐了更新/回滚边界：未启用 App 仍可安装或切换到依赖未满足的版本；仅当当前 App 已启用、切换会立即激活候选 runtime 时阻止操作并保留原运行版本。真实 registry artifact 回归已覆盖启用中的 `0.1.0 -> 0.3.0` 拒绝与旧版本持续可用。
-- 首次跨平台矩阵中 macOS arm64、Linux x64 均通过；Windows runner 本身构建成功，smoke 因 URL pathname 生成 `D:\\D:\\...` 失败，现已统一改为 `fileURLToPath`，等待最终矩阵复验。
+- Portable Runtime 最终证据：run `33276343562` 的 macOS arm64、Linux x64 成功；focused run `33277547811` 的 Windows x64 成功，包含 runner/Spin/Rust tests/runtime closure/真实 HTTP/Rust-WASI scaffold 全链。
+- Desktop 最终证据：run `33278867556` 的 runtime、macOS DMG、Windows installer、Linux AppImage/deb 成功；focused run `33279269319` 的 Windows EXE 成功。
 
 ## 活跃假设
 
@@ -66,15 +67,14 @@
 
 ## 下一步
 
-1. 完成第二批定向 tsc/lint/docs build/maintainability。
-2. 提交并回流主干，触发最终 macOS/Linux/Windows Portable Runtime 矩阵。
-3. 只读取结构化 CI 状态；失败走单平台/单步骤快速漏斗，成功后验证 artifact。
+1. 当前实现、文档、主干回流与验证已完成。
+2. 后续统一稳定版发布时，由正式 release workflow 消费本批 changeset；不得把本次合入误写为已发布。
 
 ## 剩余缺口 / 交接提醒
 
-- Windows x64 的 file URL 路径修复已通过 runner smoke；后续真实 HTTP/scaffold 门发现 `app check` 临时实例将 staged 目录 rename 到已存在空目录时触发 Windows `EPERM`，已改为 non-existing child target，尚需最终 CI 原生复验。
+- Windows x64 的 file URL、临时实例原子 rename 和异步安装节流均已在 focused 原生 run 通过。
 - 发布验证快速漏斗已补单平台 dispatch；异步安装 smoke 同时读取 operation 状态，失败时立即暴露真实错误，避免重复完整矩阵只得到模糊列表超时。
 - Desktop 验证揭示 bundled app-runtime 的 `import.meta` 相对路径已迁到 `runtime/dist`，因此 WIT/Cargo.lock 必须由 Desktop bundle owner 同步重定位；已把两项资源加入强制 bundle contract，并修复 macOS N-API header 自动选择及 Windows smoke 清理重试。
-- Desktop 第一轮修复矩阵中 runtime、macOS DMG、Windows installer、Linux AppImage/deb 全部成功；仅 Windows EXE 的 Service App smoke 在业务成功后因 Electron 短暂文件锁清理失败。按 Desktop smoke 合同改为 warning，并新增单链 dispatch 供确定性恢复。
+- Desktop runtime、macOS DMG、Windows installer、Linux AppImage/deb 与 Windows EXE 均已通过；短暂文件锁只在业务 smoke 已成功后作为 cleanup warning。
 - Spin 4 Runtime Factors 是静态 Rust 类型；生态扩展通过 Component/Native Provider，而不是未经验证的进程内动态插件。
 - 当前 v1 binding 的执行身份是稳定 Provider Service id；动态 capability alias 到任意 Provider id 的路由尚未公开，替换实现必须维持同一 Service id。
