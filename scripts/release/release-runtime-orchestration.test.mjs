@@ -110,6 +110,7 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(prepare, /name: npm-release-prepared-\$\{\{ env\.NPM_RELEASE_SOURCE_SHA \}\}/);
   assert.match(prepare, /uses: \.\/\.github\/workflows\/npm-runtime-update-release\.yml/);
   assert.match(prepare, /publish: false/);
+  assert.match(prepare, /prepare-runtime:[\s\S]*permissions:[\s\S]*contents: write/);
   assert.match(runtime, /prepared_run_id:/);
   assert.match(runtime, /run-id: \$\{\{ inputs\.prepared_run_id \}\}/);
   assert.match(runtime, /Verify prepared Runtime identity and completeness/);

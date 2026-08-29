@@ -18,7 +18,7 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 concurrency:
   group: npm-release-prepare-${{ inputs.source_sha || github.sha }}
@@ -32,6 +32,9 @@ jobs:
     name: prepare exact-commit NPM artifact
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
     outputs:
       ready: ${{ steps.release-batch.outputs.ready }}
       target_version: ${{ steps.release-identity.outputs.target_version }}
@@ -104,6 +107,9 @@ jobs:
     name: prepare exact-commit Runtime artifacts
     needs: prepare
     if: ${{ needs.prepare.outputs.ready == 'true' }}
+    permissions:
+      actions: read
+      contents: write
     uses: ./.github/workflows/npm-runtime-update-release.yml
     with:
       channel: stable
