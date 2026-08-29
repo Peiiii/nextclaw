@@ -16,7 +16,7 @@
 - `pnpm dev:verify-update -- --rebuild` 完成隔离更新回放：自动发现、下载、应用、进程替换、`current.json` 切换与清理均通过。
 - 新代码治理、backlog ratchet、diff check 与维护性 Review 通过；Review 无未关闭 finding。
 - 新增真实 HTTP 发布门：启动发布后的服务，经 `/api/app-packages/.../enable` 启用内置应用，验证 5 个 Component、Provider、Resident 与 `counter_read`，而不是只做 runner 文件检查或 direct-call。
-- 本轮本地证据：40 个 runtime/launcher/runner 定向测试、四个受影响 package 的 TypeScript 检查、真实 HTTP 五组件闭环和 YAML 解析通过；维护性检查 0 error。Linux 静态产物与三平台闭环由分支 CI 和正式发布产物继续验收。
+- 本轮本地证据：40 个 runtime/launcher/runner 定向测试、四个受影响 package 的 TypeScript 检查、真实 HTTP 五组件闭环和 YAML 解析通过；`better-sqlite3@13.0.3` 分别在 Node 22 与 Node 26.7.0 完成内存数据库读写；维护性检查 0 error。Linux 静态产物与三平台闭环由分支 CI 和正式发布产物继续验收。
 
 ## 发布/部署方式
 

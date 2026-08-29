@@ -73,6 +73,9 @@ jobs:
         with:
           version: 9.15.1
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:

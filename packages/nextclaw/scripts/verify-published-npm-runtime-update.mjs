@@ -137,7 +137,6 @@ async function createPublishedInstallFixture(packageSpec, label) {
       packageSpec,
       "--prefix",
       prefix,
-      "--ignore-scripts",
       "--no-audit",
       "--no-fund",
       "--prefer-offline",
