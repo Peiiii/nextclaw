@@ -299,7 +299,7 @@ jobs:
       - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ inputs.resume_version != '' && github.sha || needs.publish-npm.outputs.closure_commit }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -317,7 +317,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git switch -C master "${{ needs.publish-npm.outputs.closure_commit }}"
+          git switch -C master "${{ inputs.resume_version != '' && github.sha || needs.publish-npm.outputs.closure_commit }}"
           git branch --set-upstream-to=origin/master master
 
       - name: Install release toolchain

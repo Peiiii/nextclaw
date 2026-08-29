@@ -177,7 +177,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
   assert.match(
     desktopJob,
-    /ref: \$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}/,
+    /ref: \$\{\{ inputs\.resume_version != '' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}/,
   );
   assert.match(desktopJob, /pnpm release:desktop:stable/);
   assert.match(
@@ -274,7 +274,11 @@ test("stable recovery runs current verification scripts against the immutable re
     workflow.match(
       /ref: \$\{\{ inputs\.resume_version != '' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}/g,
     )?.length,
-    3,
+    4,
+  );
+  assert.match(
+    workflow,
+    /git switch -C master "\$\{\{ inputs\.resume_version != '' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}"/,
   );
   assert.match(
     workflow,
