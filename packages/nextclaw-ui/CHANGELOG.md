@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.22.3
+
+### Patch Changes
+
+- 824f59e: 加快岛屿主题背景加载：图片体积减半并在启用主题时提前加载，刷新后复用长期缓存，不再重复下载整张背景。
+  - @nextclaw/client-sdk@0.9.3
+
 ## 0.22.2
 
 ### Patch Changes

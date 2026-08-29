@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.45.4
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - nextclaw
+
+- Updated dependencies [824f59e]
+  - @nextclaw/server@0.20.3
+  - @nextclaw/remote@0.3.50
+  - @nextclaw/service@0.4.4
+
 ## 0.45.3
 
 ### Patch Changes
