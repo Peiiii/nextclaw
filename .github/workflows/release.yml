@@ -149,7 +149,7 @@ jobs:
   publish-runtime:
     name: publish stable Runtime channel
     needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node]
-    if: ${{ inputs.target != 'npm' && needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    if: ${{ always() && inputs.target != 'npm' && needs.publish-npm.outputs.has_nextclaw == 'true' && (inputs.resume_version != '' || (needs.verify-npm-node-compatibility.result == 'success' && needs.verify-npm-unsupported-node.result == 'success')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     permissions:
@@ -221,7 +221,7 @@ jobs:
   verify-npm-node-compatibility:
     name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }}
     needs: publish-npm
-    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' && inputs.resume_version == '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -267,7 +267,7 @@ jobs:
   verify-npm-unsupported-node:
     name: verify NPM unsupported Node fails clearly
     needs: publish-npm
-    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' && inputs.resume_version == '' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 8
     permissions:
@@ -384,10 +384,10 @@ jobs:
           if [ "$NPM_RESULT" != "success" ]; then
             exit 1
           fi
-          if [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_NODE_COMPATIBILITY_RESULT" != "success" ]; then
+          if [ -z "${{ inputs.resume_version }}" ] && [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_NODE_COMPATIBILITY_RESULT" != "success" ]; then
             exit 1
           fi
-          if [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_UNSUPPORTED_NODE_RESULT" != "success" ]; then
+          if [ -z "${{ inputs.resume_version }}" ] && [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_UNSUPPORTED_NODE_RESULT" != "success" ]; then
             exit 1
           fi
           if [ "$TARGET" = "product" ] && [ "$HAS_NEXTCLAW" = "true" ] && [ "$RUNTIME_RESULT" != "success" ]; then

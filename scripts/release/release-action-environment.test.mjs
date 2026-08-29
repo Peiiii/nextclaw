@@ -160,7 +160,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   );
   assert.match(
     workflow,
-    /publish-runtime:[\s\S]*?if: \$\{\{ inputs\.target != 'npm' && needs\.publish-npm\.outputs\.has_nextclaw == 'true' \}\}/,
+    /publish-runtime:[\s\S]*?if: \$\{\{ always\(\) && inputs\.target != 'npm'[\s\S]*?inputs\.resume_version != ''/,
   );
 
   const desktopJob = workflow.match(
@@ -275,6 +275,10 @@ test("stable recovery runs current verification scripts against the immutable re
       /ref: \$\{\{ inputs\.resume_version != '' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}/g,
     )?.length,
     3,
+  );
+  assert.match(
+    workflow,
+    /verify-npm-node-compatibility:[\s\S]*?inputs\.resume_version == ''[\s\S]*?verify-npm-unsupported-node:[\s\S]*?inputs\.resume_version == ''/,
   );
 });
 
