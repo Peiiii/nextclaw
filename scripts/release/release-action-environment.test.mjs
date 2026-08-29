@@ -143,7 +143,7 @@ test("release workflow isolates token publishing and serializes stable runs", ()
   );
   assert.match(workflow, /environment: npm-production/);
   assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/);
-  assert.match(workflow, /run: pnpm release:npm:stable/);
+  assert.match(workflow, /pnpm release:npm:stable -- "\$\{args\[@\]\}"/);
   assert.match(workflow, /GITHUB_REF.*refs\/heads\/master/);
   assert.doesNotMatch(workflow, /id-token: write|--trusted-publishing/);
   assert.doesNotMatch(workflow, /OPENAI_API_KEY|ANTHROPIC_API_KEY/);
@@ -240,23 +240,22 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopClosure, /gh["], \["run", "cancel"/);
 });
 
-test("stable preparation validates product content before the irreversible package publish", () => {
-  const preparation = readFileSync(
-    new URL("./release-stable-preparation.mjs", import.meta.url),
+test("product and all releases validate content before the irreversible package publish", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/release.yml", import.meta.url),
     "utf8",
   );
-  const contentGuard = preparation.indexOf(
-    "ensureProductReleaseArtifacts(previousVersion, targetVersion)",
+  const release = readFileSync(
+    new URL("./release-stable.mjs", import.meta.url),
+    "utf8",
   );
-  const packageVersioning = preparation.indexOf(
-    "preparePackageRelease(targetVersion)",
-  );
+  const contentGuard = release.indexOf("if (options.requireProductArtifacts)");
+  const packagePublish = release.indexOf("await publishStablePackages(");
 
-  assert.ok(contentGuard >= 0, "stable preparation must validate product content");
-  assert.ok(
-    contentGuard < packageVersioning,
-    "product content must be validated before package versioning and publication",
-  );
+  assert.match(workflow, /RELEASE_TARGET: \$\{\{ inputs\.target \}\}/);
+  assert.match(workflow, /if \[ "\$RELEASE_TARGET" != "npm" \]; then[\s\S]*?--require-product-artifacts/);
+  assert.ok(contentGuard >= 0, "stable release must expose the product content guard");
+  assert.ok(contentGuard < packagePublish, "product content must be validated before package publication");
 });
 
 test("published stable validation installs immutable registry tarballs", () => {

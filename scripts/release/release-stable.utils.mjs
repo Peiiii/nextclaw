@@ -16,6 +16,7 @@ Options:
   --max-publish-seconds <seconds>       NPM_READY observation target (default: 60)
   --skip-runtime-channel                Publish NPM without opening the stable runtime channel
   --skip-published-install              Skip exact registry payload/update verification
+  --require-product-artifacts           Require product content before any package publication
   --trusted-publishing                  Authenticate npm publish through GitHub Actions OIDC
   --release-tag <tag>                   Override the runtime GitHub release tag
   --minimum-launcher-version-override <version>
@@ -43,6 +44,7 @@ export function parseStableReleaseArgs(argv) {
     previousVersion: null,
     prepareOnly: false,
     publishConcurrency: 12,
+    requireProductArtifacts: false,
     releaseTag: null,
     resumeFrom: "packages",
     skipPublishedInstall: false,
@@ -71,6 +73,9 @@ export function parseStableReleaseArgs(argv) {
         break;
       case "--skip-runtime-channel":
         options.skipRuntimeChannel = true;
+        break;
+      case "--require-product-artifacts":
+        options.requireProductArtifacts = true;
         break;
       case "--trusted-publishing":
         options.trustedPublishing = true;

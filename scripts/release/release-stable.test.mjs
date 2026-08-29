@@ -31,6 +31,7 @@ test("parses the default full stable closure", () => {
     previousVersion: null,
     prepareOnly: false,
     publishConcurrency: 12,
+    requireProductArtifacts: false,
     releaseTag: null,
     resumeFrom: "packages",
     skipPublishedInstall: false,
@@ -91,6 +92,7 @@ test("parses explicit recovery and exception flags", () => {
     "--previous-version",
     "0.29.0",
     "--skip-published-install",
+    "--require-product-artifacts",
     "--branch",
     "release/stable",
   ]);
@@ -98,6 +100,7 @@ test("parses explicit recovery and exception flags", () => {
   assert.equal(options.version, "0.30.0");
   assert.equal(options.previousVersion, "0.29.0");
   assert.equal(options.skipPublishedInstall, true);
+  assert.equal(options.requireProductArtifacts, true);
   assert.equal(options.branch, "release/stable");
 });
 

@@ -81,7 +81,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: pnpm release:npm:stable
+          RELEASE_TARGET: ${{ inputs.target }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=()
+          if [ "$RELEASE_TARGET" != "npm" ]; then
+            args+=(--require-product-artifacts)
+          fi
+          pnpm release:npm:stable -- "${args[@]}"
 
       - name: Record core release status
         shell: bash
