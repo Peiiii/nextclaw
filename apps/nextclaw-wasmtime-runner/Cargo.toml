@@ -26,3 +26,8 @@ spin-factors-executor = { git = "https://github.com/spinframework/spin", tag = "
 tokio = { version = "1", features = ["macros", "rt", "io-std", "io-util"] }
 url = "2.5"
 wasmtime = { version = "44.0", features = ["component-model-async"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Spin telemetry still pulls native-tls on Linux. Vendoring OpenSSL keeps the
+# musl release cross-build self-contained instead of depending on a host sysroot.
+openssl = { version = "0.10", features = ["vendored"] }
