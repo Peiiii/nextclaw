@@ -154,5 +154,10 @@ try {
   } else {
     process.env.PATH = originalPath;
   }
-  rmSync(homeDirectory, { recursive: true, force: true });
+  rmSync(homeDirectory, {
+    recursive: true,
+    force: true,
+    maxRetries: process.platform === "win32" ? 10 : 0,
+    retryDelay: 250,
+  });
 }

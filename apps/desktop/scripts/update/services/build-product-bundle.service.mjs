@@ -14,6 +14,7 @@ import {
 const desktopDir = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
 const nextclawCorePackageRoot = resolve(workspaceRoot, "packages", "nextclaw-core");
+const nextclawAppRuntimePackageRoot = resolve(workspaceRoot, "packages", "nextclaw-app-runtime");
 const nextclawPackageRoot = resolve(workspaceRoot, "packages", "nextclaw");
 const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
 const RUNTIME_BUNDLE_FILE_BUDGET = 450;
@@ -203,6 +204,13 @@ async function copyRuntimeAssets(workspace) {
     cp(join(nextclawPackageRoot, "ui-dist"), workspace.uiRoot, { recursive: true }),
     cp(join(nextclawPackageRoot, "templates"), join(workspace.runtimeRoot, "templates"), { recursive: true }),
     cp(join(nextclawPackageRoot, "resources"), join(workspace.runtimeRoot, "resources"), { recursive: true }),
+    // The bundled runtime relocates app-runtime modules under runtime/dist.
+    // Keep their import.meta-relative template resources beside that output.
+    cp(
+      join(nextclawAppRuntimePackageRoot, "resources"),
+      join(workspace.runtimeRoot, "dist", "resources"),
+      { recursive: true }
+    ),
     cp(join(nextclawPackageRoot, "bridge"), join(workspace.runtimeRoot, "bridge"), { recursive: true }),
     writeFile(join(workspace.runtimeRoot, "package.json"), readFileSync(nextclawPackageJsonPath, "utf8"), "utf8")
   ]);
@@ -357,6 +365,8 @@ function assertRuntimeBundleContract(
     "dist/cli/app/index.mjs",
     `dist/cli/app/${SESSION_SEARCH_WORKER_RELATIVE_PATH}`,
     "dist/cli/app/skills/nextclaw-self-manage/SKILL.md",
+    "dist/resources/wit/portable-service.wit",
+    "dist/resources/rust-wasi/Cargo.lock",
     "package.json",
     "ui-dist/index.html"
   ];

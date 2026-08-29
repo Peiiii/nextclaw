@@ -24,15 +24,20 @@ export function buildMacosAccessibilityAdapter(options = {}) {
   const electronVersion = JSON.parse(
     readFileSync(join(desktopRoot, "node_modules", "electron", "package.json"), "utf8"),
   ).version;
-  const headers = resolve(
+  const electronHeaders = resolve(
     process.env.HOME || "",
     ".electron-gyp",
     electronVersion,
     "include",
     "node",
   );
-  if (!existsSync(join(headers, "node_api.h"))) {
-    throw new Error(`Electron headers are missing: ${headers}`);
+  const nodeHeaders = resolve(dirname(process.execPath), "..", "include", "node");
+  const headers = [electronHeaders, nodeHeaders].find((candidate) =>
+    existsSync(join(candidate, "node_api.h")));
+  if (!headers) {
+    throw new Error(
+      `N-API headers are missing: Electron=${electronHeaders}; Node=${nodeHeaders}`,
+    );
   }
   const clangArch = arch === "x64" ? "x86_64" : arch;
   if (clangArch !== "arm64" && clangArch !== "x86_64") {
