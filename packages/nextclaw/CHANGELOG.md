@@ -1,5 +1,23 @@
 # nextclaw
 
+## 0.45.2
+
+### Patch Changes
+
+- 60febb5: 修复 NPM 安装缺少当前平台 Portable Runtime runner 时无法自愈的问题；Linux runner 改为静态链接，并确保 runner 启动失败不会带崩 NextClaw 主服务。升级 SQLite 原生依赖并恢复真实安装脚本验证，覆盖 Node 26 安装。发布流程会在 macOS、Linux 与 Windows 上验证真实应用启用、持久组件启动和 Action 调用。
+- Updated dependencies [60febb5]
+  - @nextclaw/kernel@0.12.1
+  - @nextclaw/service@0.4.2
+  - @nextclaw/shared@0.4.30
+  - @nextclaw/remote@0.3.48
+  - @nextclaw/server@0.20.1
+  - @nextclaw/app-runtime@0.14.1
+  - @nextclaw/core@0.17.12
+  - @nextclaw/mcp@0.3.39
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.39
+  - @nextclaw/runtime@0.4.38
+  - @nextclaw/ncp-mcp@0.2.39
+
 ## 0.45.1
 
 ### Patch Changes

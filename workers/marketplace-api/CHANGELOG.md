@@ -1,5 +1,11 @@
 # @nextclaw/marketplace-api-worker
 
+## 0.0.12
+
+### Patch Changes
+
+- @nextclaw/app-runtime@0.14.1
+
 ## 0.0.11
 
 ### Patch Changes
