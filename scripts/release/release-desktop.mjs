@@ -3,8 +3,9 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
+import { verifyExistingDesktopReleaseClosure, waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
 import { assertReleaseIsDraft, createDraftRelease, dispatchReleaseWorkflow } from "./desktop-release-github.mjs";
+import { inferExistingReleaseRecovery } from "./desktop-release-recovery.mjs";
 import { assertDesktopGithubReleaseNotes, buildDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
 import { assertPublishedDesktopRuntimeIdentity, runRemotePreflight } from "./desktop-release-preflight.mjs";
 import { reconcileReleaseMainline } from "./reconcile-release-mainline.mjs";
@@ -409,7 +410,7 @@ function printPlan(options, aheadCount) {
 }
 
 async function executeRelease(options, aheadCount) {
-  const { branch, channel, dryRun, reuseExistingRelease, runId, tag, target, workflow } = options;
+  const { branch, channel, dryRun, existingReleaseComplete, publishLinuxAptOnly, reuseExistingRelease, runId, tag, target, workflow } = options;
   if (dryRun) {
     console.log(`[desktop:release] would create hidden Draft ${tag}`);
     console.log(`[desktop:release] would dispatch ${workflow} for exact target ${target}`);
@@ -418,12 +419,17 @@ async function executeRelease(options, aheadCount) {
     return;
   }
 
-  runLocalVerify(options);
+  if (existingReleaseComplete) {
+    await verifyExistingDesktopReleaseClosure(options);
+    console.log(channel === "stable" ? "DESKTOP_READY" : "DESKTOP_BETA_READY");
+    return;
+  }
+  if (!publishLinuxAptOnly) runLocalVerify(options);
   pushBranchIfNeeded(branch, aheadCount, options);
-  await runRemotePreflight(options);
+  if (!publishLinuxAptOnly) await runRemotePreflight(options);
   if (!reuseExistingRelease) {
     createDraftRelease(options);
-  } else if (!runId) {
+  } else if (!runId && !publishLinuxAptOnly) {
     assertReleaseIsDraft(options);
   }
   const workflowDispatch = runId ? {} : dispatchReleaseWorkflow(options);
@@ -455,6 +461,7 @@ async function main() {
   options.runtimeVersion ??= readPackageVersion("packages/nextclaw/package.json");
   assertPublishedDesktopRuntimeIdentity(options.channel, options.runtimeVersion);
   options.minimumLauncherVersion ??= readMinimumLauncherVersion(options.channel);
+  if (!options.tag) Object.assign(options, inferExistingReleaseRecovery(options, run) ?? {});
   options.tag ??= readNextTag(options.channel, options.runtimeVersion);
   options.releaseNotesUrl = resolveDesktopReleaseNotesUrl({
     ...options,
