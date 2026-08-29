@@ -13,6 +13,7 @@ import test from "node:test";
 
 import {
   createPreparedNpmRelease,
+  isContainedRelativePath,
   mapWithConcurrency,
   publishPreparedNpmRelease,
   validatePreparedNpmRelease,
@@ -22,6 +23,13 @@ import {
   DEFAULT_VERIFY_DELAY_MS,
   DEFAULT_VERIFY_MAX_DELAY_MS,
 } from "./prepared-npm-publisher.mjs";
+
+test("accepts contained artifact paths with POSIX or Windows separators", () => {
+  assert.equal(isContainedRelativePath("batch/manifest.json"), true);
+  assert.equal(isContainedRelativePath("batch\\manifest.json"), true);
+  assert.equal(isContainedRelativePath("../manifest.json"), false);
+  assert.equal(isContainedRelativePath("..\\manifest.json"), false);
+});
 
 function createRecord() {
   return {
