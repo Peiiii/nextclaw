@@ -44,7 +44,7 @@
 
 - 用途：提交当前变更。
 - 输入格式：`/commit`，可附提交范围或说明。
-- 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；该请求默认表示“主线交付”，由 `development-delivery` 编排，提交信息使用英文，完成精确 commit 后必须安全集成本地 `master`，再从本地 `master` 普通推送 `origin/master`；只有用户明确说“只合入本地”或“不要推送”时才跳过远程推送，仅停在隔离分支不算完成。提交前使用 `nextclaw-release-notes` 判断是否需要 `.changeset`，使用 `nextclaw-iteration-log-governance` 判断是否需要更新 `docs/logs` 与 NPM 发布记录；必要更新完成后再确认暂存范围，不纳入无关用户改动。
+- 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；由 `development-delivery` 编排，提交信息使用英文，只在当前任务分支完成精确 stage/commit，不授权合并或 push；主线交付必须由用户明确说“合入主干”。提交前使用 `nextclaw-release-notes` 判断是否需要 `.changeset`，使用 `nextclaw-iteration-log-governance` 判断是否需要更新 `docs/logs` 与 NPM 发布记录；必要更新完成后再确认暂存范围，不纳入无关用户改动。
 
 ## `/close-task`
 
