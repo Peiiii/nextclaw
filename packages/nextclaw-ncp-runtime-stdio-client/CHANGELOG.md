@@ -1,5 +1,12 @@
 # @nextclaw/nextclaw-ncp-runtime-stdio-client
 
+## 0.3.40
+
+### Patch Changes
+
+- Updated dependencies [51fac6a]
+  - @nextclaw/core@0.17.13
+
 ## 0.3.39
 
 ### Patch Changes
