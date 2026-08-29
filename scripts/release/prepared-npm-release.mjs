@@ -2,9 +2,11 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readlinkSync,
   renameSync,
   rmSync,
   statSync,
@@ -45,29 +47,55 @@ function listUntrackedFiles(rootDir) {
     .sort();
 }
 
+function listChangedFiles(rootDir) {
+  return execFileSync(
+    "git",
+    ["diff", "--name-only", "--no-renames", "-z", "HEAD", "--", "."],
+    {
+      cwd: rootDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  )
+    .split("\0")
+    .filter(Boolean);
+}
+
+function hashWorkingTreeFile(rootDir, filePath) {
+  const absolutePath = resolve(rootDir, filePath);
+  if (!existsSync(absolutePath)) return "deleted";
+  const stat = lstatSync(absolutePath);
+  if (stat.isSymbolicLink()) {
+    return `symlink:${sha256(readlinkSync(absolutePath))}`;
+  }
+  const blobHash = git(
+    ["hash-object", `--path=${filePath}`, "--", filePath],
+    { cwd: rootDir },
+  );
+  return `file:${blobHash}`;
+}
+
 export function computeReleaseTreeFingerprint(rootDir = ROOT_DIR) {
   const hash = createHash("sha256");
   hash.update(git(["rev-parse", "HEAD"], { cwd: rootDir }));
-  hash.update("\0");
-  hash.update(
-    execFileSync(
-      "git",
-      ["diff", "--binary", "--no-ext-diff", "HEAD", "--", "."],
-      {
-        cwd: rootDir,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        maxBuffer: 100 * 1024 * 1024,
-      },
-    ),
-  );
-  for (const filePath of listUntrackedFiles(rootDir)) {
+  const changedFiles = new Set([
+    ...listChangedFiles(rootDir),
+    ...listUntrackedFiles(rootDir),
+  ]);
+  for (const filePath of [...changedFiles].sort()) {
     hash.update("\0");
     hash.update(filePath);
     hash.update("\0");
-    hash.update(readFileSync(resolve(rootDir, filePath)));
+    hash.update(hashWorkingTreeFile(rootDir, filePath));
   }
   return hash.digest("hex");
+}
+
+function normalizeRegistryUrl(registry) {
+  if (!registry) return registry;
+  const normalized = new URL(registry);
+  if (!normalized.pathname.endsWith("/")) normalized.pathname += "/";
+  return normalized.toString();
 }
 
 function validateCheckpointSteps(checkpoint) {
@@ -373,7 +401,10 @@ export function validatePreparedNpmRelease(options = {}) {
   if (targetVersion && manifest.targetVersion !== targetVersion) {
     issues.push(`target version ${manifest.targetVersion} != ${targetVersion}`);
   }
-  if (registry && manifest.registry !== registry) {
+  if (
+    registry &&
+    normalizeRegistryUrl(manifest.registry) !== normalizeRegistryUrl(registry)
+  ) {
     issues.push(`registry ${manifest.registry} != ${registry}`);
   }
   const currentFingerprint = computeReleaseTreeFingerprint(rootDir);

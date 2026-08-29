@@ -108,7 +108,7 @@ test("exports and imports an exact prepared release tree", (context) => {
   assert.equal(git(importRoot, ["rev-parse", "HEAD"]), sourceCommit);
   const importedRecord = importPreparedNpmReleaseArtifact({
     artifactDirectory,
-    registry: "https://registry.example.test/",
+    registry: "https://registry.example.test",
     rootDir: importRoot,
     targetBranch: "master",
   });

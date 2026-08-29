@@ -285,7 +285,7 @@ test("prepared manifest binds immutable tarballs to the exact release tree", (co
     validatePreparedNpmRelease({
       branch: "release/test",
       record,
-      registry: "https://registry.example.test/",
+      registry: "https://registry.example.test",
       rootDir,
       targetBranch: "master",
       targetVersion: "1.2.3",
