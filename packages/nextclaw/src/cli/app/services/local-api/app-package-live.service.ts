@@ -8,6 +8,7 @@ import {
   createLocalUiApiClient,
   type UiApiClient,
 } from "@nextclaw-cli/cli/app/services/local-api/local-ui-api-client.service.js";
+import path from "node:path";
 
 export class AppPackageLiveService {
   constructor(private readonly params: {
@@ -29,7 +30,7 @@ export class AppPackageLiveService {
     await this.requireApiClient().request<AppPackageOperationView>({
       path: "/api/app-package-operations/install",
       method: "POST",
-      body: { source: this.requireSource(source), registryUrl },
+      body: { source: this.normalizeInstallSource(source), registryUrl },
     });
 
   enable = async (appId: string): Promise<AppPackageView> =>
@@ -86,6 +87,14 @@ export class AppPackageLiveService {
   private requireId = (value: string): string => this.requireValue(value, "App id");
 
   private requireSource = (value: string): string => this.requireValue(value, "App install source");
+
+  private normalizeInstallSource = (value: string): string => {
+    const source = this.requireSource(value);
+    return this.looksLikeLocalPath(source) ? path.resolve(source) : source;
+  };
+
+  private looksLikeLocalPath = (value: string): boolean =>
+    value.startsWith(".") || path.isAbsolute(value) || value.includes(path.sep) || value.endsWith(".napp");
 
   private requireVersion = (value: string): string => this.requireValue(value, "App version");
 

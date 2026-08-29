@@ -4,6 +4,7 @@ import { accessSync, constants } from "node:fs";
 import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
 import type { AppPermissions } from "@nextclaw/app-runtime";
+import { readExtensionProcessMemory } from "@kernel/features/extension-runtime/index.js";
 
 export type PortableRunnerApp = {
   id: string;
@@ -57,12 +58,25 @@ type PendingRequest = {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
   timeout: NodeJS.Timeout;
+  startedAt: number;
+  operation: RunnerOperation;
+  appId?: string;
+};
+
+export type PortableRunnerObservation = {
+  operation: RunnerOperation;
+  appId?: string;
+  durationMs: number;
+  runnerPid: number | null;
+  memory: { rssBytes: number | null; pssBytes: number | null } | null;
+  logs: string[];
 };
 
 export class PortableServiceRunnerError extends Error {
   constructor(
     readonly code: string,
     message: string,
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
     this.name = "PortableServiceRunnerError";
@@ -73,52 +87,69 @@ export class PortableServiceRunnerClientService {
   private child?: ChildProcessByStdio<Writable, Readable, Readable>;
   private readonly pending = new Map<string, PendingRequest>();
   private stderrTail: string[] = [];
+  private lastObservation?: PortableRunnerObservation;
 
-  constructor(private readonly params: {
-    runnerPath?: string;
-    env?: NodeJS.ProcessEnv;
-    onUnexpectedExit?: (error: PortableServiceRunnerError) => void;
-  } = {}) {}
+  constructor(
+    private readonly params: {
+      runnerPath?: string;
+      env?: NodeJS.ProcessEnv;
+      onUnexpectedExit?: (error: PortableServiceRunnerError) => void;
+    } = {},
+  ) {}
 
-  listActions = async (app: PortableRunnerApp): Promise<PortableRunnerAction[]> =>
-    this.request<PortableRunnerAction[]>({ operation: "list-actions", app }, 7_000);
+  listActions = async (
+    app: PortableRunnerApp,
+  ): Promise<PortableRunnerAction[]> =>
+    this.request<PortableRunnerAction[]>(
+      { operation: "list-actions", app },
+      7_000,
+    );
 
   invoke = async (
     app: PortableRunnerApp,
     actionName: string,
     input: Record<string, unknown>,
     timeoutMs = 7_000,
-  ): Promise<unknown> => this.request({ operation: "invoke", app, actionName, input }, timeoutMs);
+  ): Promise<unknown> =>
+    this.request({ operation: "invoke", app, actionName, input }, timeoutMs);
 
   startResident = async (
     app: PortableRunnerApp,
     config: Record<string, unknown>,
-  ): Promise<unknown> => this.request({ operation: "start-resident", app, input: config }, 7_000);
+  ): Promise<unknown> =>
+    this.request({ operation: "start-resident", app, input: config }, 7_000);
 
   startProvider = async (
     app: PortableRunnerApp,
     config: Record<string, unknown>,
-  ): Promise<unknown> => this.request({ operation: "start-provider", app, input: config }, 7_000);
+  ): Promise<unknown> =>
+    this.request({ operation: "start-provider", app, input: config }, 7_000);
 
   deliverEvent = async (
     app: PortableRunnerApp,
     event: Record<string, unknown>,
-  ): Promise<unknown> => this.request({ operation: "deliver-event", app, input: event }, 7_000);
+  ): Promise<unknown> =>
+    this.request({ operation: "deliver-event", app, input: event }, 7_000);
 
   stats = async (): Promise<{
     runnerPid: number;
     loadedComponents: number;
     providerInstances: number;
     residentInstances: number;
-  }> =>
-    this.request({ operation: "stats" }, 2_000);
+  }> => this.request({ operation: "stats" }, 2_000);
+
+  getLastObservation = (): PortableRunnerObservation | undefined =>
+    this.lastObservation;
 
   stop = async (app: PortableRunnerApp): Promise<void> => {
-    await this.request({
-      operation: "stop",
-      app,
-      input: { stoppedAt: new Date().toISOString(), reason: "host-stop" },
-    }, 2_000);
+    await this.request(
+      {
+        operation: "stop",
+        app,
+        input: { stoppedAt: new Date().toISOString(), reason: "host-stop" },
+      },
+      2_000,
+    );
   };
 
   dispose = async (): Promise<void> => {
@@ -140,7 +171,9 @@ export class PortableServiceRunnerClientService {
   };
 
   private request = async <T>(
-    request: Omit<RunnerRequest, "requestId" | "app"> & { app?: PortableRunnerApp },
+    request: Omit<RunnerRequest, "requestId" | "app"> & {
+      app?: PortableRunnerApp;
+    },
     timeoutMs: number,
   ): Promise<T> => {
     const child = this.ensureChild();
@@ -165,6 +198,9 @@ export class PortableServiceRunnerClientService {
         resolve: (value) => resolve(value as T),
         reject,
         timeout,
+        startedAt: Date.now(),
+        operation: request.operation,
+        appId: request.app?.id,
       });
       child.stdin.write(`${JSON.stringify(payload)}\n`, (error) => {
         if (!error) return;
@@ -177,7 +213,11 @@ export class PortableServiceRunnerClientService {
     });
   };
 
-  private ensureChild = (): ChildProcessByStdio<Writable, Readable, Readable> => {
+  private ensureChild = (): ChildProcessByStdio<
+    Writable,
+    Readable,
+    Readable
+  > => {
     if (this.child && this.child.exitCode === null) return this.child;
     const command = this.resolveRunnerPath();
     const child = spawn(command, [], { stdio: ["pipe", "pipe", "pipe"] });
@@ -193,10 +233,12 @@ export class PortableServiceRunnerClientService {
     });
     child.stdin.on("error", (error) => {
       if (this.child !== child) return;
-      this.handleChildFailure(new PortableServiceRunnerError(
-        "PORTABLE_RUNNER_IO_FAILED",
-        `Portable runner input failed: ${error.message}. ${this.stderrTail.join(" ")}`.trim(),
-      ));
+      this.handleChildFailure(
+        new PortableServiceRunnerError(
+          "PORTABLE_RUNNER_IO_FAILED",
+          `Portable runner input failed: ${error.message}. ${this.stderrTail.join(" ")}`.trim(),
+        ),
+      );
     });
     child.once("error", (error) => {
       if (this.child === child) this.handleChildFailure(error);
@@ -219,7 +261,9 @@ export class PortableServiceRunnerClientService {
     try {
       response = JSON.parse(line) as RunnerResponse;
     } catch {
-      this.handleChildFailure(new Error(`Portable runner returned invalid JSON: ${line}`));
+      this.handleChildFailure(
+        new Error(`Portable runner returned invalid JSON: ${line}`),
+      );
       return;
     }
     if (response.protocolVersion !== PORTABLE_RUNNER_PROTOCOL_VERSION) {
@@ -237,14 +281,29 @@ export class PortableServiceRunnerClientService {
     if (!pending) return;
     clearTimeout(pending.timeout);
     this.pending.delete(response.requestId);
+    const childPid = this.child?.pid ?? null;
+    this.lastObservation = {
+      operation: pending.operation,
+      appId: pending.appId,
+      durationMs: Date.now() - pending.startedAt,
+      runnerPid: childPid,
+      memory:
+        childPid === null
+          ? { rssBytes: null, pssBytes: null }
+          : readExtensionProcessMemory(childPid),
+      logs: [...this.stderrTail],
+    };
     if (response.ok) {
       pending.resolve(response.result);
       return;
     }
-    pending.reject(new PortableServiceRunnerError(
-      response.error?.code ?? "PORTABLE_RUNTIME_FAILED",
-      response.error?.message ?? "Portable runner request failed.",
-    ));
+    pending.reject(
+      new PortableServiceRunnerError(
+        response.error?.code ?? "PORTABLE_RUNTIME_FAILED",
+        response.error?.message ?? "Portable runner request failed.",
+        this.stderrTail.length > 0 ? { logs: [...this.stderrTail] } : undefined,
+      ),
+    );
   };
 
   private handleChildFailure = (error: Error): void => {
@@ -260,7 +319,9 @@ export class PortableServiceRunnerClientService {
     this.pending.clear();
   };
 
-  private toRunnerApp = (app: PortableRunnerApp): NonNullable<RunnerRequest["app"]> => ({
+  private toRunnerApp = (
+    app: PortableRunnerApp,
+  ): NonNullable<RunnerRequest["app"]> => ({
     id: app.id,
     componentPath: app.componentPath,
     dataDirectory: app.dataDirectory,
@@ -280,7 +341,10 @@ export class PortableServiceRunnerClientService {
       );
     }
     try {
-      accessSync(runnerPath, process.platform === "win32" ? constants.F_OK : constants.X_OK);
+      accessSync(
+        runnerPath,
+        process.platform === "win32" ? constants.F_OK : constants.X_OK,
+      );
     } catch {
       throw new PortableServiceRunnerError(
         "PORTABLE_RUNNER_UNAVAILABLE",

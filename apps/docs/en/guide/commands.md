@@ -103,14 +103,14 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 
 ## Projects and sessions
 
-| Command                           | Purpose                                                       |
-| --------------------------------- | ------------------------------------------------------------- |
-| `nextclaw projects list`          | List registered projects, including projects without sessions |
-| `nextclaw projects templates`     | List built-in project templates                               |
-| `nextclaw projects create`        | Create and register a project                                 |
-| `nextclaw sessions rename`        | Rename a session                                              |
-| `nextclaw sessions set-project`   | Bind a session to an existing project directory               |
-| `nextclaw sessions clear-project` | Clear a session's explicit project binding                    |
+| Command                           | Purpose                                                         |
+| --------------------------------- | --------------------------------------------------------------- |
+| `nextclaw projects list`          | List registered projects, including projects without sessions   |
+| `nextclaw projects templates`     | List built-in project templates                                 |
+| `nextclaw projects create`        | Create and register a project                                   |
+| `nextclaw sessions rename`        | Rename a session                                                |
+| `nextclaw sessions set-project`   | Bind a session to an existing project directory                 |
+| `nextclaw sessions clear-project` | Clear a session's explicit project binding                      |
 | `nextclaw sessions delete`        | Permanently delete a session; requires `--confirm <session-id>` |
 
 ## Automation and learning loop
@@ -172,30 +172,36 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 
 ## NextClaw Apps
 
-| Command                         | Purpose                                                                |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| `nextclaw app check`            | Check a Panel App or Service App directory                             |
-| `nextclaw app dev`              | Start and debug an MCP or Portable Service App through the real Runtime |
-| `nextclaw app pack`             | Package a `.napp` artifact for one declared platform target            |
-| `nextclaw app validate-publish` | Validate an App and its artifacts before Marketplace submission        |
-| `nextclaw app publish`          | Submit an App to App Marketplace                                       |
-| `nextclaw app call`             | Call an MCP or Portable Service App action through the real Runtime     |
-| `nextclaw app restart`          | Restart a Service App running in the NextClaw UI                       |
-| `nextclaw app data list`        | List active and retained App data instances                            |
-| `nextclaw app data delete`      | Permanently delete retained App data with an exact App-ID confirmation |
-| `nextclaw app marketplace search` | Search Apps in the official App Marketplace |
-| `nextclaw app marketplace info` | Show a Marketplace App and its derived install command |
-| `nextclaw app list` | List Apps installed in the running NextClaw host |
-| `nextclaw app info` | Show installed App state and versions |
-| `nextclaw app operations` | List durable App lifecycle operations |
-| `nextclaw app install` | Install a Marketplace App, local directory, or `.napp` bundle through the running host |
-| `nextclaw app enable` | Enable an installed App |
-| `nextclaw app disable` | Disable an installed App |
-| `nextclaw app update` | Start a background App update |
-| `nextclaw app rollback` | Roll back to an installed version |
-| `nextclaw app uninstall` | Start an uninstall; purging data requires exact App-ID confirmation |
+| Command                           | Purpose                                                                                |
+| --------------------------------- | -------------------------------------------------------------------------------------- |
+| `nextclaw app create`             | Create a standalone App; the default template is Rust/WASI                             |
+| `nextclaw app doctor`             | Diagnose the WASI Guest build environment and print repair commands                    |
+| `nextclaw app build`              | Build Rust/WASI Service Components in an App                                           |
+| `nextclaw app check`              | Check a complete App package, Panel, or Service directory                              |
+| `nextclaw app test`               | Run an App's Action smoke tests in the isolated Runtime                                |
+| `nextclaw app dev`                | Start the real Runtime from an App package or Service directory                        |
+| `nextclaw app pack`               | Package a `.napp`; pure WASI Apps default to a universal artifact                      |
+| `nextclaw app validate-publish`   | Validate an App and its artifacts before Marketplace submission                        |
+| `nextclaw app publish`            | Submit an App to App Marketplace                                                       |
+| `nextclaw app call`               | Call a real Action from an App package or Service directory                            |
+| `nextclaw app restart`            | Restart a Service App running in the NextClaw UI                                       |
+| `nextclaw app data list`          | List active and retained App data instances                                            |
+| `nextclaw app data delete`        | Permanently delete retained App data with an exact App-ID confirmation                 |
+| `nextclaw app marketplace search` | Search Apps in the official App Marketplace                                            |
+| `nextclaw app marketplace info`   | Show a Marketplace App and its derived install command                                 |
+| `nextclaw app list`               | List Apps installed in the running NextClaw host                                       |
+| `nextclaw app info`               | Show installed App state and versions                                                  |
+| `nextclaw app operations`         | List durable App lifecycle operations                                                  |
+| `nextclaw app install`            | Install a Marketplace App, local directory, or `.napp` bundle through the running host |
+| `nextclaw app enable`             | Enable an installed App                                                                |
+| `nextclaw app disable`            | Disable an installed App                                                               |
+| `nextclaw app update`             | Start a background App update                                                          |
+| `nextclaw app rollback`           | Roll back to an installed version                                                      |
+| `nextclaw app uninstall`          | Start an uninstall; purging data requires exact App-ID confirmation                    |
 
 See [Service Apps](/en/guide/service-apps) for the user workflow and [Develop a WASM Service App](/en/developers/portable-service-apps) for runtime development commands.
+
+`app dev` and `app call` accept a schema v2 App root directly. A package with one Service is selected automatically; use `--component <service-id>` when a package has multiple Services. Local `.napp` files can be installed by relative path, for example `nextclaw app install ./my-app.napp`.
 
 ## Automation guidance
 

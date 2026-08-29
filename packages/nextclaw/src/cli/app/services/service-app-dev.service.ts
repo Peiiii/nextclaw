@@ -1,14 +1,13 @@
 import { createHash } from "node:crypto";
-import { access } from "node:fs/promises";
+import { access, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-  AppManifestService,
   AppHomeService,
   AppInstanceInventoryService,
   AppInstanceStorageService,
   type AppStorageContext,
   type AppPermissions,
-  isAppComponentManifestBundle,
 } from "@nextclaw/app-runtime";
 import {
   getConfigPath,
@@ -32,11 +31,12 @@ import type {
   ServiceAppDevIssue,
   ServiceAppDevReport,
 } from "@nextclaw-cli/cli/app/types/service-app-dev.types.js";
+import { ServiceAppPackageTargetService } from "@nextclaw-cli/cli/app/services/development/service-app-package-target.service.js";
 
 type RuntimeService = Pick<
   McpServiceAppRuntimeService | ServiceAppRuntimeService,
   "dispose" | "getStatus" | "invokeAction" | "listActions"
->;
+> & { getLastObservation?: ServiceAppRuntimeService["getLastObservation"] };
 
 type PortableDevContext = {
   componentPath: string;
@@ -46,24 +46,43 @@ type PortableDevContext = {
 export class ServiceAppDevService {
   private readonly instanceInventoryService = new AppInstanceInventoryService();
   private readonly instanceStorageService = new AppInstanceStorageService();
+  private readonly packageTargetService = new ServiceAppPackageTargetService();
 
-  constructor(private readonly params: {
-    getConfig?: () => Config;
-    runtimeService?: RuntimeService;
-    portableServiceRunnerPath?: string;
-  } = {}) {}
+  constructor(
+    private readonly params: {
+      getConfig?: () => Config;
+      runtimeService?: RuntimeService;
+      portableServiceRunnerPath?: string;
+    } = {},
+  ) {}
 
   inspect = async (
     target: string,
-    options: { resetData?: boolean; confirmAppId?: string } = {},
+    options: {
+      componentId?: string;
+      resetData?: boolean;
+      confirmAppId?: string;
+      transientData?: boolean;
+    } = {},
   ): Promise<ServiceAppDevReport> => {
-    const appPath = path.resolve(target);
     const issues: ServiceAppDevIssue[] = [];
+    const resolvedTarget = await this.packageTargetService.resolve(
+      target,
+      options.componentId,
+      issues,
+    );
+    const appPath = resolvedTarget?.appPath ?? path.resolve(target);
+    if (!resolvedTarget) {
+      return this.buildDevReport(appPath, undefined, [], issues);
+    }
     const loaded = await this.loadServiceApp(appPath, issues);
     if (!loaded) {
       return this.buildDevReport(appPath, undefined, [], issues);
     }
-    if (options.resetData && options.confirmAppId?.trim() !== loaded.manifest.id) {
+    if (
+      options.resetData &&
+      options.confirmAppId?.trim() !== loaded.manifest.id
+    ) {
       issues.push({
         severity: "error",
         code: "service.data.confirmationMismatch",
@@ -73,34 +92,70 @@ export class ServiceAppDevService {
     if (this.hasErrors(issues)) {
       return this.buildDevReport(
         appPath,
-        this.toServiceAppRecord(appPath, loaded.manifest, this.idleRuntimeStatus),
+        this.toServiceAppRecord(
+          appPath,
+          loaded.manifest,
+          this.idleRuntimeStatus,
+        ),
         [],
         issues,
       );
     }
 
-    const portable = await this.loadPortableDevContext(appPath, loaded.manifest, issues);
+    const portable = await this.loadPortableDevContext(
+      appPath,
+      loaded.manifest,
+      issues,
+      resolvedTarget.packageContext,
+    );
     if (this.hasErrors(issues)) {
       return this.buildDevReport(
         appPath,
-        this.toServiceAppRecord(appPath, loaded.manifest, this.idleRuntimeStatus),
+        this.toServiceAppRecord(
+          appPath,
+          loaded.manifest,
+          this.idleRuntimeStatus,
+        ),
         [],
         issues,
       );
     }
     const runtime = this.createRuntimeService();
-    const storage = await this.createDevStorage(
-      appPath,
-      loaded.manifest.id,
-      options.resetData === true,
-    );
+    const transientRoot = options.transientData
+      ? await mkdtemp(path.join(tmpdir(), "nextclaw-app-check-"))
+      : undefined;
+    const storage = transientRoot
+      ? (
+          await this.instanceStorageService.materialize({
+            appId: loaded.manifest.id,
+            instanceId: "check",
+            instanceDirectory: transientRoot,
+          })
+        ).storage
+      : await this.createDevStorage(
+          appPath,
+          loaded.manifest.id,
+          options.resetData === true,
+        );
     try {
-      const startRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
+      const startRecord = this.toServiceAppRecord(
+        appPath,
+        loaded.manifest,
+        runtime,
+        storage,
+        portable,
+      );
       const runtimeActions = await runtime.listActions({
         app: startRecord,
         manifest: loaded.manifest,
       });
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
+      const record = this.toServiceAppRecord(
+        appPath,
+        loaded.manifest,
+        runtime,
+        storage,
+        portable,
+      );
       const actions = mergeServiceAppRuntimeActions({
         record,
         manifest: loaded.manifest,
@@ -110,6 +165,9 @@ export class ServiceAppDevService {
       return this.buildDevReport(appPath, record, actions, issues);
     } finally {
       await runtime.dispose();
+      if (transientRoot) {
+        await rm(transientRoot, { recursive: true, force: true });
+      }
     }
   };
 
@@ -117,17 +175,42 @@ export class ServiceAppDevService {
     target: string,
     actionName: string,
     input: Record<string, unknown>,
+    options: { componentId?: string } = {},
   ): Promise<ServiceAppCallReport> => {
-    const appPath = path.resolve(target);
     const issues: ServiceAppDevIssue[] = [];
+    const resolvedTarget = await this.packageTargetService.resolve(
+      target,
+      options.componentId,
+      issues,
+    );
+    const appPath = resolvedTarget?.appPath ?? path.resolve(target);
+    if (!resolvedTarget) {
+      return this.buildCallReport(
+        appPath,
+        undefined,
+        undefined,
+        undefined,
+        issues,
+      );
+    }
     const loaded = await this.loadServiceApp(appPath, issues);
     if (!loaded) {
-      return this.buildCallReport(appPath, undefined, undefined, undefined, issues);
+      return this.buildCallReport(
+        appPath,
+        undefined,
+        undefined,
+        undefined,
+        issues,
+      );
     }
     if (this.hasErrors(issues)) {
       return this.buildCallReport(
         appPath,
-        this.toServiceAppRecord(appPath, loaded.manifest, this.idleRuntimeStatus),
+        this.toServiceAppRecord(
+          appPath,
+          loaded.manifest,
+          this.idleRuntimeStatus,
+        ),
         undefined,
         undefined,
         issues,
@@ -141,15 +224,34 @@ export class ServiceAppDevService {
         code: "service.action.notDeclared",
         message: `service-app.json does not declare action: ${action || "(empty)"}.`,
       });
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, this.idleRuntimeStatus);
-      return this.buildCallReport(appPath, record, undefined, undefined, issues);
+      const record = this.toServiceAppRecord(
+        appPath,
+        loaded.manifest,
+        this.idleRuntimeStatus,
+      );
+      return this.buildCallReport(
+        appPath,
+        record,
+        undefined,
+        undefined,
+        issues,
+      );
     }
 
-    const portable = await this.loadPortableDevContext(appPath, loaded.manifest, issues);
+    const portable = await this.loadPortableDevContext(
+      appPath,
+      loaded.manifest,
+      issues,
+      resolvedTarget.packageContext,
+    );
     if (this.hasErrors(issues)) {
       return this.buildCallReport(
         appPath,
-        this.toServiceAppRecord(appPath, loaded.manifest, this.idleRuntimeStatus),
+        this.toServiceAppRecord(
+          appPath,
+          loaded.manifest,
+          this.idleRuntimeStatus,
+        ),
         undefined,
         undefined,
         issues,
@@ -158,27 +260,47 @@ export class ServiceAppDevService {
     const runtime = this.createRuntimeService();
     const storage = await this.createDevStorage(appPath, loaded.manifest.id);
     try {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
+      const record = this.toServiceAppRecord(
+        appPath,
+        loaded.manifest,
+        runtime,
+        storage,
+        portable,
+      );
       const result = await runtime.invokeAction({
         app: record,
         manifest: loaded.manifest,
         actionName: action,
         input,
       });
-      const nextRecord = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
+      const nextRecord = this.toServiceAppRecord(
+        appPath,
+        loaded.manifest,
+        runtime,
+        storage,
+        portable,
+      );
       return this.buildCallReport(
         appPath,
         nextRecord,
         buildServiceActionId(loaded.manifest.id, action),
         result,
         issues,
+        runtime.getLastObservation?.(),
       );
     } catch (error) {
-      const record = this.toServiceAppRecord(appPath, loaded.manifest, runtime, storage, portable);
+      const record = this.toServiceAppRecord(
+        appPath,
+        loaded.manifest,
+        runtime,
+        storage,
+        portable,
+      );
       issues.push({
         severity: "error",
-        code: "service.runtime.callFailed",
+        code: this.readRuntimeErrorCode(error),
         message: error instanceof Error ? error.message : String(error),
+        fixHint: this.readRuntimeErrorHint(error),
       });
       return this.buildCallReport(
         appPath,
@@ -186,6 +308,7 @@ export class ServiceAppDevService {
         buildServiceActionId(loaded.manifest.id, action),
         undefined,
         issues,
+        runtime.getLastObservation?.(),
       );
     } finally {
       await runtime.dispose();
@@ -235,6 +358,7 @@ export class ServiceAppDevService {
     appPath: string,
     manifest: ServiceAppManifest,
     issues: ServiceAppDevIssue[],
+    resolvedPackageContext?: { permissions: AppPermissions },
   ): Promise<PortableDevContext | undefined> => {
     if (manifest.protocol !== "wasi-component") return undefined;
     const componentPath = path.resolve(appPath, manifest.componentEntry ?? "");
@@ -246,54 +370,26 @@ export class ServiceAppDevService {
       });
       return undefined;
     }
-    const packageContext = await this.findOwningPackage(appPath);
+    const packageContext =
+      resolvedPackageContext ??
+      (await this.packageTargetService.findOwningPackage(appPath, issues));
     if (!packageContext) {
-      issues.push({
-        severity: "error",
-        code: "service.package.required",
-        message: "Portable Service App development requires an owning schema v2 Mini App so permissions have one product owner.",
-        fixHint: "Place the service under a manifest.json components entry and run app dev on that service directory.",
-      });
+      if (!issues.some((issue) => issue.code === "service.package.invalid")) {
+        issues.push({
+          severity: "error",
+          code: "service.package.required",
+          message:
+            "Portable Service App development requires an owning schema v2 Mini App so permissions have one product owner.",
+          fixHint:
+            "Place the service under a manifest.json components entry, or run app dev on the package directory.",
+        });
+      }
       return undefined;
     }
     return {
       componentPath,
       permissions: packageContext.permissions,
     };
-  };
-
-  private findOwningPackage = async (
-    appPath: string,
-  ): Promise<{ permissions: AppPermissions } | undefined> => {
-    let candidate = path.dirname(appPath);
-    while (true) {
-      const permissions = await this.readOwningPackagePermissions(candidate, appPath);
-      if (permissions) return { permissions };
-      const parent = path.dirname(candidate);
-      if (parent === candidate) return undefined;
-      candidate = parent;
-    }
-  };
-
-  private readOwningPackagePermissions = async (
-    candidate: string,
-    appPath: string,
-  ): Promise<AppPermissions | undefined> => {
-    if (!(await this.pathExists(path.join(candidate, "manifest.json")))) return undefined;
-    const manifestService = new AppManifestService();
-    try {
-      const bundle = await manifestService.load(candidate);
-      if (!isAppComponentManifestBundle(bundle)) return undefined;
-      const ownsComponent = bundle.components.some(
-        (component) => path.resolve(component.componentDirectory) === path.resolve(appPath),
-      );
-      return ownsComponent
-        ? manifestService.resolvePlatformSecurity(bundle.manifest).permissions
-        : undefined;
-    } catch {
-      // The package validator owns detailed diagnostics; continue to a possible parent package.
-      return undefined;
-    }
   };
 
   private loadRuntimeConfig = (): Config => {
@@ -319,7 +415,7 @@ export class ServiceAppDevService {
       sourceId,
       "default",
     );
-    if (resetData && await this.pathExists(instanceDirectory)) {
+    if (resetData && (await this.pathExists(instanceDirectory))) {
       await this.instanceInventoryService.purgeNested({
         instancesRoot: appHomeDirectory,
         pathSegments: ["dev-instances", appId, sourceId, "default"],
@@ -327,11 +423,13 @@ export class ServiceAppDevService {
         instanceId: "default",
       });
     }
-    return (await this.instanceStorageService.materialize({
-      appId,
-      instanceId: "default",
-      instanceDirectory,
-    })).storage;
+    return (
+      await this.instanceStorageService.materialize({
+        appId,
+        instanceId: "default",
+        instanceDirectory,
+      })
+    ).storage;
   };
 
   private getSourceId = (appPath: string): string =>
@@ -368,8 +466,10 @@ export class ServiceAppDevService {
       dataDirectory: storage?.dataDirectory,
       instanceId: storage?.instanceId,
       storage,
-      isolation: manifest.protocol === "wasi-component" ? "host-mediated" : "full-user",
-      runtimeProfile: manifest.protocol === "wasi-component" ? "wasi" : "native-process",
+      isolation:
+        manifest.protocol === "wasi-component" ? "host-mediated" : "full-user",
+      runtimeProfile:
+        manifest.protocol === "wasi-component" ? "wasi" : "native-process",
       componentPath: portable?.componentPath,
       permissions: portable?.permissions,
       providerIds: manifest.providerIds,
@@ -409,14 +509,20 @@ export class ServiceAppDevService {
       if (action.runtimeState === "missing") {
         issues.push({
           severity: "error",
-          code: "service.action.runtimeMissing",
+          code:
+            record.protocol === "wasi-component"
+              ? "WASI_GUEST_EXPORT_MISSING"
+              : "service.action.runtimeMissing",
           message: `Declared action is missing from runtime tools/list: ${action.name}.`,
         });
       }
       if (action.runtimeState === "undeclared") {
         issues.push({
           severity: "error",
-          code: "service.action.runtimeUndeclared",
+          code:
+            record.protocol === "wasi-component"
+              ? "WASI_GUEST_EXPORT_UNDECLARED"
+              : "service.action.runtimeUndeclared",
           message: `Runtime exposes an undeclared action: ${action.name}.`,
           fixHint: `Add "${action.name}" to service-app.json actions or remove it from the MCP server.`,
         });
@@ -437,18 +543,42 @@ export class ServiceAppDevService {
     issues,
   });
 
+  private readRuntimeErrorCode = (error: unknown): string => {
+    const code =
+      typeof error === "object" && error !== null
+        ? (error as { code?: unknown }).code
+        : undefined;
+    return typeof code === "string" ? code : "service.runtime.callFailed";
+  };
+
+  private readRuntimeErrorHint = (error: unknown): string | undefined => {
+    const details =
+      typeof error === "object" && error !== null
+        ? (error as { details?: unknown }).details
+        : undefined;
+    if (!details || typeof details !== "object" || !("logs" in details))
+      return undefined;
+    const logs = (details as { logs?: unknown }).logs;
+    return Array.isArray(logs) &&
+      logs.every((entry) => typeof entry === "string")
+      ? `Runner log tail:\n${logs.join("\n")}`
+      : undefined;
+  };
+
   private buildCallReport = (
     target: string,
     app: ServiceAppRecord | undefined,
     actionId: string | undefined,
     result: unknown,
     issues: ServiceAppDevIssue[],
+    observation?: ServiceAppCallReport["observation"],
   ): ServiceAppCallReport => ({
     ok: !issues.some((issue) => issue.severity === "error"),
     target,
     actionId,
     app,
     result,
+    observation,
     issues,
   });
 

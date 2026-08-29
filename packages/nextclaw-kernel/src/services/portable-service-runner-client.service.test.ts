@@ -42,6 +42,28 @@ function createFailingRunner(): string {
   return runnerPath;
 }
 
+function createDeniedRunner(): string {
+  const directory = mkdtempSync(join(tmpdir(), "nextclaw-portable-runner-denied-"));
+  tempDirectories.push(directory);
+  const runnerPath = join(directory, "denied-runner.mjs");
+  writeFileSync(runnerPath, `#!/usr/bin/env node
+import readline from "node:readline";
+readline.createInterface({ input: process.stdin }).on("line", (line) => {
+  const request = JSON.parse(line);
+  process.stderr.write("[portable-runtime][denied][error] storage denied\\n", () => {
+    process.stdout.write(JSON.stringify({
+      requestId: request.requestId,
+      protocolVersion: "0.1.0",
+      ok: false,
+      error: { code: "WASI_CAPABILITY_DENIED", message: "storage is not allowed" }
+    }) + "\\n");
+  });
+});
+`);
+  chmodSync(runnerPath, 0o755);
+  return runnerPath;
+}
+
 describe("PortableServiceRunnerClientService distribution contract", () => {
   it("fails clearly when the distribution has no runner", async () => {
     const client = new PortableServiceRunnerClientService({ env: {} });
@@ -79,6 +101,32 @@ describe("PortableServiceRunnerClientService distribution contract", () => {
     });
 
     await expect(client.stats()).resolves.toMatchObject({ loadedComponents: 0 });
+    expect(client.getLastObservation()).toMatchObject({
+      operation: "stats",
+      runnerPid: expect.any(Number),
+      durationMs: expect.any(Number),
+      memory: expect.any(Object),
+      logs: [],
+    });
+    await client.dispose();
+  });
+
+  it("preserves stable WASI codes and a bounded runner log tail", async () => {
+    const client = new PortableServiceRunnerClientService({
+      env: {},
+      runnerPath: createDeniedRunner(),
+    });
+
+    await expect(client.stats()).rejects.toMatchObject({
+      code: "WASI_CAPABILITY_DENIED",
+      details: {
+        logs: [expect.stringContaining("storage denied")],
+      },
+    });
+    expect(client.getLastObservation()).toMatchObject({
+      operation: "stats",
+      logs: [expect.stringContaining("storage denied")],
+    });
     await client.dispose();
   });
 

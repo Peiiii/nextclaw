@@ -1,5 +1,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  AppManifestService,
+  isAppComponentManifestBundle,
+  type AppComponentManifestBundle,
+} from "@nextclaw/app-runtime";
 import type { AppCheckIssue, JsonRecord } from "@nextclaw-cli/cli/app/types/app-check.types.js";
 import {
   extractHtmlAssetPaths,
@@ -127,6 +132,7 @@ export class PanelAppCheckService {
       }
       await this.checkWorkspaceServiceAction(
         workspaceRoot,
+        appPath,
         match[1] ?? "",
         match[2] ?? "",
         cache,
@@ -137,12 +143,19 @@ export class PanelAppCheckService {
 
   private checkWorkspaceServiceAction = async (
     workspaceRoot: string,
+    appPath: string,
     serviceId: string,
     actionName: string,
     cache: Map<string, JsonRecord | null>,
     issues: AppCheckIssue[],
   ): Promise<void> => {
-    const manifest = await this.readCachedServiceManifest(workspaceRoot, serviceId, cache, issues);
+    const manifest = await this.readCachedServiceManifest(
+      workspaceRoot,
+      appPath,
+      serviceId,
+      cache,
+      issues,
+    );
     if (!manifest) {
       return;
     }
@@ -325,12 +338,22 @@ export class PanelAppCheckService {
 
   private readCachedServiceManifest = async (
     workspaceRoot: string,
+    appPath: string,
     serviceId: string,
     cache: Map<string, JsonRecord | null>,
     issues: AppCheckIssue[],
   ): Promise<JsonRecord | null> => {
     if (cache.has(serviceId)) {
       return cache.get(serviceId) ?? null;
+    }
+    const packageManifest = await this.readOwningPackageServiceManifest(
+      appPath,
+      serviceId,
+      issues,
+    );
+    if (packageManifest !== undefined) {
+      cache.set(serviceId, packageManifest);
+      return packageManifest;
     }
     const manifestPath = path.join(workspaceRoot, "service-apps", serviceId, SERVICE_MANIFEST_FILE);
     if (!(await fileExists(manifestPath))) {
@@ -357,6 +380,68 @@ export class PanelAppCheckService {
     cache.set(serviceId, manifestResult.value);
     return manifestResult.value;
   };
+
+  private readOwningPackageServiceManifest = async (
+    appPath: string,
+    serviceId: string,
+    issues: AppCheckIssue[],
+  ): Promise<JsonRecord | null | undefined> => {
+    const bundle = await this.findOwningComponentPackage(appPath, issues);
+    if (bundle === undefined || bundle === null) return bundle;
+    const service = bundle.components.find(
+      (component) => component.kind === "service" && component.id === serviceId,
+    );
+    if (!service) {
+      issues.push({
+        severity: "error",
+        code: "panel.action.serviceMissing",
+        message: `Declared Service component does not exist in the owning package: ${serviceId}.`,
+        fixHint: `Add ${serviceId} to manifest.json components or fix panel-app.json actions.`,
+      });
+      return null;
+    }
+    const result = await readJsonObject(service.manifestPath);
+    if (result.issue) {
+      issues.push({ ...result.issue, code: `panel.action.${result.issue.code}` });
+    }
+    return result.value ?? null;
+  };
+
+  private findOwningComponentPackage = async (
+    appPath: string,
+    issues: AppCheckIssue[],
+  ): Promise<AppComponentManifestBundle | null | undefined> => {
+    let candidate = path.dirname(appPath);
+    while (true) {
+      const manifestPath = path.join(candidate, "manifest.json");
+      if (await fileExists(manifestPath)) {
+        try {
+          const bundle = await new AppManifestService().load(candidate);
+          if (isAppComponentManifestBundle(bundle) && this.packageOwnsPanel(bundle, appPath)) {
+            return bundle;
+          }
+        } catch (error) {
+          issues.push({
+            severity: "error",
+            code: "panel.package.invalid",
+            message: `Cannot load owning schema v2 package at ${candidate}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          });
+          return null;
+        }
+      }
+      const parent = path.dirname(candidate);
+      if (parent === candidate) return undefined;
+      candidate = parent;
+    }
+  };
+
+  private packageOwnsPanel = (bundle: AppComponentManifestBundle, appPath: string): boolean =>
+    bundle.components.some(
+      (component) => component.kind === "panel" &&
+        path.resolve(component.componentDirectory) === path.resolve(appPath),
+    );
 
   private pushIssue = (issues: AppCheckIssue[], issue: AppCheckIssue | undefined): void => {
     if (issue) {

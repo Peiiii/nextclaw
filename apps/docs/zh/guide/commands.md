@@ -172,30 +172,36 @@ nextclaw <command> --help
 
 ## NextClaw Apps
 
-| 命令                            | 用途                                           |
-| ------------------------------- | ---------------------------------------------- |
-| `nextclaw app check`            | 检查 Panel App 或 Service App 目录             |
-| `nextclaw app dev`              | 通过真实 Runtime 启动并调试 MCP 或轻量 Service App |
-| `nextclaw app pack`             | 为指定平台目标打包 `.napp` 产物                |
-| `nextclaw app validate-publish` | 在提交 Marketplace 前验证 App 和目标产物       |
-| `nextclaw app publish`          | 向 App Marketplace 提交 App                    |
-| `nextclaw app call`             | 通过真实 Runtime 调用 MCP 或轻量 Service App action |
-| `nextclaw app restart`          | 重启运行中 NextClaw UI 内的 Service App        |
-| `nextclaw app data list`        | 列出活动和保留的 App 数据实例                  |
-| `nextclaw app data delete`      | 永久删除保留的 App 数据实例，需精确确认 App ID |
-| `nextclaw app marketplace search` | 搜索官方 App Marketplace 中的 App |
-| `nextclaw app marketplace info` | 查看 Marketplace App 和派生安装命令 |
-| `nextclaw app list` | 列出运行中 NextClaw 宿主已安装的 App |
-| `nextclaw app info` | 查看已安装 App 的状态和版本 |
-| `nextclaw app operations` | 列出持久化的 App 生命周期操作 |
-| `nextclaw app install` | 通过运行中的 NextClaw 宿主安装 Marketplace、本地目录或 `.napp` App |
-| `nextclaw app enable` | 启用已安装的 App |
-| `nextclaw app disable` | 停用已安装的 App |
-| `nextclaw app update` | 发起 App 后台更新 |
-| `nextclaw app rollback` | 回滚到一个已安装版本 |
-| `nextclaw app uninstall` | 发起卸载；清除数据需要精确确认 App ID |
+| 命令                              | 用途                                                               |
+| --------------------------------- | ------------------------------------------------------------------ |
+| `nextclaw app create`             | 创建可独立构建的 App；默认生成 Rust/WASI 模板                      |
+| `nextclaw app doctor`             | 检查 WASI Guest 构建环境并给出修复命令                             |
+| `nextclaw app build`              | 构建 App 内的 Rust/WASI Service Components                         |
+| `nextclaw app check`              | 检查完整 App 包、Panel 或 Service 目录                             |
+| `nextclaw app test`               | 在隔离 Runtime 中执行 App 的 Action 冒烟测试                       |
+| `nextclaw app dev`                | 从完整 App 包或 Service 目录启动真实 Runtime                       |
+| `nextclaw app pack`               | 打包 `.napp`；纯 WASI App 默认生成通用产物                         |
+| `nextclaw app validate-publish`   | 在提交 Marketplace 前验证 App 和目标产物                           |
+| `nextclaw app publish`            | 向 App Marketplace 提交 App                                        |
+| `nextclaw app call`               | 从完整 App 包或 Service 目录调用真实 Action                        |
+| `nextclaw app restart`            | 重启运行中 NextClaw UI 内的 Service App                            |
+| `nextclaw app data list`          | 列出活动和保留的 App 数据实例                                      |
+| `nextclaw app data delete`        | 永久删除保留的 App 数据实例，需精确确认 App ID                     |
+| `nextclaw app marketplace search` | 搜索官方 App Marketplace 中的 App                                  |
+| `nextclaw app marketplace info`   | 查看 Marketplace App 和派生安装命令                                |
+| `nextclaw app list`               | 列出运行中 NextClaw 宿主已安装的 App                               |
+| `nextclaw app info`               | 查看已安装 App 的状态和版本                                        |
+| `nextclaw app operations`         | 列出持久化的 App 生命周期操作                                      |
+| `nextclaw app install`            | 通过运行中的 NextClaw 宿主安装 Marketplace、本地目录或 `.napp` App |
+| `nextclaw app enable`             | 启用已安装的 App                                                   |
+| `nextclaw app disable`            | 停用已安装的 App                                                   |
+| `nextclaw app update`             | 发起 App 后台更新                                                  |
+| `nextclaw app rollback`           | 回滚到一个已安装版本                                               |
+| `nextclaw app uninstall`          | 发起卸载；清除数据需要精确确认 App ID                              |
 
 Service App 的使用方式见 [Service Apps](/zh/guide/service-apps)；WASM 开发命令与 Runtime 合同见 [开发 WASM Service App](/zh/developers/portable-service-apps)。
+
+`app dev` 和 `app call` 直接接受 schema v2 App 根目录。包内只有一个 Service 时会自动选择；有多个 Service 时使用 `--component <service-id>`。本地 `.napp` 可以使用相对路径安装，例如 `nextclaw app install ./my-app.napp`。
 
 ## 自动化使用建议
 

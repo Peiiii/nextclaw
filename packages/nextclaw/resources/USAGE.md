@@ -518,16 +518,16 @@ Use `nextclaw init --force` to overwrite existing template files.
 
 Created under the workspace:
 
-| File / folder   | Purpose                          |
-|-----------------|----------------------------------|
-| `AGENTS.md`     | System instructions for the agent |
-| `SOUL.md`       | Personality and values            |
-| `USER.md`       | User profile hints                |
-| `IDENTITY.md`   | Identity context                  |
-| `TOOLS.md`      | Tool usage guidelines             |
-| `BOOT.md` / `BOOTSTRAP.md` | Boot context               |
-| `memory/MEMORY.md` | Long-term notes                |
-| `skills/`       | Custom skills                     |
+| File / folder              | Purpose                           |
+| -------------------------- | --------------------------------- |
+| `AGENTS.md`                | System instructions for the agent |
+| `SOUL.md`                  | Personality and values            |
+| `USER.md`                  | User profile hints                |
+| `IDENTITY.md`              | Identity context                  |
+| `TOOLS.md`                 | Tool usage guidelines             |
+| `BOOT.md` / `BOOTSTRAP.md` | Boot context                      |
+| `memory/MEMORY.md`         | Long-term notes                   |
+| `skills/`                  | Custom skills                     |
 
 NextClaw's AI self-management guide is built into the app package and is not written into each workspace anymore.
 
@@ -595,7 +595,7 @@ nextclaw app enable nextclaw.personal-organizer --json
 
 Install, update, rollback, and uninstall return a background operation receipt. Check `nextclaw app operations --json` or the Apps page for progress. Schema v2 Apps remain disabled after installation until explicitly enabled.
 
-Personal submissions return `publishStatus: pending` and appear in the public App Marketplace only after approval with `catalogVisibility: listed`. Community Panel-only Apps follow normal review. Schema v2 Service components currently launch host processes with the user's permissions, so their root manifest must declare `runtime.profile: native-process` and enter high-privilege manual review; an administrator may approve them as `listed` or `unlisted`. Installed schema v2 Apps remain disabled until the user explicitly enables them. Schema v2 WASI Service components are not supported yet—changing only the profile does not create a sandbox. Pending or rejected submissions can be corrected and submitted again. Updating an already published personal app is intentionally blocked until version-level review is available, so the current public version remains online.
+Personal submissions return `publishStatus: pending` and appear in the public App Marketplace only after approval with `catalogVisibility: listed`. Community Panel-only Apps follow normal review. Schema v2 native-process Service components launch host processes with the user's permissions, so they enter high-privilege manual review. Rust/WASI Service components declare `runtime.profile: wasi` and run through the host-mediated Portable Runtime; use the generated WIT contract and capability declarations rather than treating a profile change as automatic sandboxing. An administrator may approve Apps as `listed` or `unlisted`. Installed schema v2 Apps remain disabled until the user explicitly enables them. Pending or rejected submissions can be corrected and submitted again. Updating an already published personal app is intentionally blocked until version-level review is available, so the current public version remains online.
 
 Use `https://platform.nextclaw.io/apps` to review submission status. The built-in `nextclaw-app-publisher` skill lets NextClaw AI assemble a package from existing Panel/Service directories, run the checks, guide login, and submit it with the same native commands.
 
@@ -654,104 +654,108 @@ nextclaw app uninstall <app-id> --purge-data --confirm <app-id>
 Service App development gets a separate, deterministic development instance. Resetting it is destructive and therefore requires both the reset flag and an exact manifest id confirmation:
 
 ```bash
-nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json
+nextclaw app dev <app-dir> --reset-data --confirm <app-id> --json
 ```
 
 ---
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `nextclaw start` | Start gateway + UI in the background |
-| `nextclaw restart` | Restart the background service with optional start flags |
-| `nextclaw stop` | Stop the background service |
-| `nextclaw app check <app-dir>` | Check a Panel App or Service App directory |
-| `nextclaw app dev <service-app-dir>` | Start a Service App in an isolated runtime and inspect its actions |
-| `nextclaw app dev <service-app-dir> --reset-data --confirm <app-id>` | Reset that Service App's isolated development instance before starting |
-| `nextclaw app call <service-app-dir> <action-name>` | Call a Service App action in an isolated runtime |
-| `nextclaw app data list` | List active and retained App data through the running host |
-| `nextclaw app data delete <data-id> --confirm <app-id>` | Permanently delete one retained App data instance |
-| `nextclaw app pack <mini-app-dir> --target <target-key> --out <file>` | Pack one declared platform artifact for a schema v2 Mini App |
-| `nextclaw app validate-publish <mini-app-dir>` | Validate a schema v2 Mini App package before Marketplace submission |
-| `nextclaw app publish <mini-app-dir>` | Submit a validated Mini App to the App Marketplace for review |
-| `nextclaw app restart <app-id>` | Restart a live Service App runtime in the running UI before live retest |
-| `nextclaw app marketplace search` | Search Apps available from the official App Marketplace |
-| `nextclaw app marketplace info <app-id>` | Show a Marketplace App and its derived installation command |
-| `nextclaw app list` | List Apps installed in the running NextClaw host |
-| `nextclaw app info <app-id>` | Show the installed App state and versions |
-| `nextclaw app operations` | List durable App lifecycle operations |
-| `nextclaw app install <app-id\|local-dir\|bundle.napp>` | Install an App through the running host |
-| `nextclaw app enable <app-id>` | Enable an installed App |
-| `nextclaw app disable <app-id>` | Disable an installed App |
-| `nextclaw app update <app-id>` | Start a background App update |
-| `nextclaw app rollback <app-id> --version <version>` | Roll back to an installed version |
-| `nextclaw app uninstall <app-id>` | Start a background uninstall; require exact confirmation to purge data |
-| `nextclaw service install-systemd --user` | Install a user-level Linux `systemd` service for NextClaw |
-| `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service for NextClaw |
-| `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |
-| `sudo nextclaw service uninstall-systemd --system` | Remove a system-wide Linux `systemd` service |
-| `nextclaw service install-launch-agent` | Install a managed macOS LaunchAgent for NextClaw |
-| `nextclaw service uninstall-launch-agent` | Remove a managed macOS LaunchAgent |
-| `nextclaw service install-task` | Install a managed Windows Scheduled Task for NextClaw |
-| `nextclaw service uninstall-task` | Remove a managed Windows Scheduled Task |
-| `nextclaw service autostart status` | Show host autostart status |
-| `nextclaw service autostart doctor` | Diagnose host autostart setup |
-| `nextclaw ui` | Start UI and gateway in the foreground |
-| `nextclaw gateway` | Start gateway only (for channels) |
-| `nextclaw serve` | Run gateway + UI in the foreground (no background) |
-| `nextclaw --version` | Show the installed NextClaw version |
-| `nextclaw agent -m "message"` | Send a one-off message to the agent |
-| `nextclaw agent` | Interactive chat in the terminal |
-| `nextclaw exec "message"` | Run one non-interactive task (text output) |
-| `nextclaw agent --session <id> --model <model>` | Use a session-specific model/provider route (sticky for that session) |
-| `nextclaw status` | Show runtime process/health/config status (`--json`, `--verbose`, `--fix`) |
-| `nextclaw usage` | Show the latest observed LLM usage snapshot; add `--history`, `--stats`, `--limit <n>`, or `--json` for local usage history and prompt cache stats |
-| `nextclaw init` | Initialize workspace and template files |
-| `nextclaw init --force` | Re-run init and overwrite templates |
-| `nextclaw agents list` | List built-in and created agents |
-| `nextclaw agents runtimes` | List installed agent runtimes (`--json`, `--probe`) |
-| `nextclaw agents runtime config <runtime-id>` | Show or update one runtime's NextClaw context injection setting |
-| `nextclaw agents new <agent-id>` | Create a new agent with default home/template/avatar |
-| `nextclaw agents update <agent-id>` | Update an existing agent's display metadata |
-| `nextclaw agents remove <agent-id>` | Remove an extra agent (built-in `main` cannot be removed) |
-| `nextclaw projects list` | List registered projects, including projects without sessions |
-| `nextclaw projects templates` | List built-in project templates |
-| `nextclaw projects create <name>` | Create an empty or knowledge-base project |
-| `nextclaw sessions rename <session-id> <label>` | Rename a session |
-| `nextclaw sessions set-project <session-id> <directory>` | Bind a session to an existing project directory |
-| `nextclaw sessions clear-project <session-id>` | Clear a session project binding |
-| `nextclaw login --api-base <url>` | Start browser sign-in for NextClaw Platform and save the platform token locally (`--no-open` for headless servers, `--email/--password` for direct fallback) |
-| `nextclaw remote enable` | Enable service-managed remote access |
-| `nextclaw remote disable` | Disable service-managed remote access |
-| `nextclaw remote status` | Show remote runtime/config status |
-| `nextclaw remote doctor` | Diagnose remote readiness |
-| `nextclaw remote connect` | Foreground debug mode: register this machine and keep the connector online |
-| `nextclaw update` | Self-update the CLI |
-| `nextclaw channels list --json` | List extension channels for automation and agent channel discovery |
-| `nextclaw channels status` | Show enabled channels and status |
-| `nextclaw doctor` | Run runtime diagnostics (`--json`, `--verbose`, `--fix`) |
-| `nextclaw channels login` | Channel login is handled by the running UI extension auth flow |
-| `nextclaw channels add --channel <id> ...` | Configure an extension channel |
-| `nextclaw cron list` | List all scheduled jobs, including disabled ones |
-| `nextclaw cron add ...` | Add a cron job (see [Cron](#cron)) |
-| `nextclaw cron remove <jobId>` | Remove a job |
-| `nextclaw cron enable <jobId>` | Enable a disabled job |
-| `nextclaw cron disable <jobId>` | Disable a job without deleting it |
-| `nextclaw cron run <jobId>` | Run a job once (optionally with `--force` if disabled) |
-| `nextclaw skills installed` | List installed skills from the local runtime (`--json`, `--scope`, `--query`) |
-| `nextclaw skills info <selector>` | Show installed skill details from the local runtime (`--json`) |
-| `nextclaw skills install <slug>` | Compatibility shortcut: install a marketplace skill into `<workspace>/skills/<slug>` |
-| `nextclaw skills publish <dir>` | Upload/create a skill to marketplace |
-| `nextclaw skills update <dir>` | Update an existing marketplace skill |
-| `nextclaw marketplace skills search` | Search marketplace skills (`--json`, `--query`, `--tag`, `--sort`, `--page`, `--page-size`) |
-| `nextclaw marketplace skills info <slug>` | Show marketplace skill details (`--json`) |
-| `nextclaw marketplace skills recommend` | List recommended marketplace skills (`--json`, `--scene`, `--limit`) |
-| `nextclaw marketplace skills install <slug>` | Install a marketplace skill using the explicit marketplace domain |
-| `nextclaw marketplace skills update <slug>` | Update an installed marketplace skill; refuses local file drift unless `--force` is used |
-| `nextclaw config get <path>` | Get config value by path (use `--json` for structured output) |
-| `nextclaw config set <path> <value>` | Set config value by path (use `--json` to parse value as JSON) |
-| `nextclaw config unset <path>` | Remove config value by path |
+| Command                                                      | Description                                                                                                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `nextclaw start`                                             | Start gateway + UI in the background                                                                                                                         |
+| `nextclaw restart`                                           | Restart the background service with optional start flags                                                                                                     |
+| `nextclaw stop`                                              | Stop the background service                                                                                                                                  |
+| `nextclaw app create <app-dir> --template rust-wasi`         | Create a standalone Rust/WASI App with WIT, Panel, Service, lockfile, and smoke test                                                                         |
+| `nextclaw app doctor --profile wasi`                         | Diagnose Cargo, Rust, and the `wasm32-wasip2` target                                                                                                         |
+| `nextclaw app build <app-dir>`                               | Build and place the App's Rust/WASI Components                                                                                                               |
+| `nextclaw app check <app-dir>`                               | Check a complete schema v2 App, Panel App, or Service App directory                                                                                          |
+| `nextclaw app test <app-dir>`                                | Execute the App's declared Service Action smoke tests                                                                                                        |
+| `nextclaw app dev <app-dir>`                                 | Start a Service App from the package in an isolated runtime and inspect its actions                                                                          |
+| `nextclaw app dev <app-dir> --reset-data --confirm <app-id>` | Reset that App's isolated development instance before starting                                                                                               |
+| `nextclaw app call <app-dir> <action-name>`                  | Call a Service Action from the complete App package                                                                                                          |
+| `nextclaw app data list`                                     | List active and retained App data through the running host                                                                                                   |
+| `nextclaw app data delete <data-id> --confirm <app-id>`      | Permanently delete one retained App data instance                                                                                                            |
+| `nextclaw app pack <mini-app-dir> --out <file>`              | Pack a schema v2 App; pure WASI Apps default to a universal artifact                                                                                         |
+| `nextclaw app validate-publish <mini-app-dir>`               | Validate a schema v2 Mini App package before Marketplace submission                                                                                          |
+| `nextclaw app publish <mini-app-dir>`                        | Submit a validated Mini App to the App Marketplace for review                                                                                                |
+| `nextclaw app restart <app-id>`                              | Restart a live Service App runtime in the running UI before live retest                                                                                      |
+| `nextclaw app marketplace search`                            | Search Apps available from the official App Marketplace                                                                                                      |
+| `nextclaw app marketplace info <app-id>`                     | Show a Marketplace App and its derived installation command                                                                                                  |
+| `nextclaw app list`                                          | List Apps installed in the running NextClaw host                                                                                                             |
+| `nextclaw app info <app-id>`                                 | Show the installed App state and versions                                                                                                                    |
+| `nextclaw app operations`                                    | List durable App lifecycle operations                                                                                                                        |
+| `nextclaw app install <app-id\|local-dir\|bundle.napp>`      | Install an App through the running host                                                                                                                      |
+| `nextclaw app enable <app-id>`                               | Enable an installed App                                                                                                                                      |
+| `nextclaw app disable <app-id>`                              | Disable an installed App                                                                                                                                     |
+| `nextclaw app update <app-id>`                               | Start a background App update                                                                                                                                |
+| `nextclaw app rollback <app-id> --version <version>`         | Roll back to an installed version                                                                                                                            |
+| `nextclaw app uninstall <app-id>`                            | Start a background uninstall; require exact confirmation to purge data                                                                                       |
+| `nextclaw service install-systemd --user`                    | Install a user-level Linux `systemd` service for NextClaw                                                                                                    |
+| `sudo nextclaw service install-systemd --system`             | Install a system-wide Linux `systemd` service for NextClaw                                                                                                   |
+| `nextclaw service uninstall-systemd --user`                  | Remove a user-level Linux `systemd` service                                                                                                                  |
+| `sudo nextclaw service uninstall-systemd --system`           | Remove a system-wide Linux `systemd` service                                                                                                                 |
+| `nextclaw service install-launch-agent`                      | Install a managed macOS LaunchAgent for NextClaw                                                                                                             |
+| `nextclaw service uninstall-launch-agent`                    | Remove a managed macOS LaunchAgent                                                                                                                           |
+| `nextclaw service install-task`                              | Install a managed Windows Scheduled Task for NextClaw                                                                                                        |
+| `nextclaw service uninstall-task`                            | Remove a managed Windows Scheduled Task                                                                                                                      |
+| `nextclaw service autostart status`                          | Show host autostart status                                                                                                                                   |
+| `nextclaw service autostart doctor`                          | Diagnose host autostart setup                                                                                                                                |
+| `nextclaw ui`                                                | Start UI and gateway in the foreground                                                                                                                       |
+| `nextclaw gateway`                                           | Start gateway only (for channels)                                                                                                                            |
+| `nextclaw serve`                                             | Run gateway + UI in the foreground (no background)                                                                                                           |
+| `nextclaw --version`                                         | Show the installed NextClaw version                                                                                                                          |
+| `nextclaw agent -m "message"`                                | Send a one-off message to the agent                                                                                                                          |
+| `nextclaw agent`                                             | Interactive chat in the terminal                                                                                                                             |
+| `nextclaw exec "message"`                                    | Run one non-interactive task (text output)                                                                                                                   |
+| `nextclaw agent --session <id> --model <model>`              | Use a session-specific model/provider route (sticky for that session)                                                                                        |
+| `nextclaw status`                                            | Show runtime process/health/config status (`--json`, `--verbose`, `--fix`)                                                                                   |
+| `nextclaw usage`                                             | Show the latest observed LLM usage snapshot; add `--history`, `--stats`, `--limit <n>`, or `--json` for local usage history and prompt cache stats           |
+| `nextclaw init`                                              | Initialize workspace and template files                                                                                                                      |
+| `nextclaw init --force`                                      | Re-run init and overwrite templates                                                                                                                          |
+| `nextclaw agents list`                                       | List built-in and created agents                                                                                                                             |
+| `nextclaw agents runtimes`                                   | List installed agent runtimes (`--json`, `--probe`)                                                                                                          |
+| `nextclaw agents runtime config <runtime-id>`                | Show or update one runtime's NextClaw context injection setting                                                                                              |
+| `nextclaw agents new <agent-id>`                             | Create a new agent with default home/template/avatar                                                                                                         |
+| `nextclaw agents update <agent-id>`                          | Update an existing agent's display metadata                                                                                                                  |
+| `nextclaw agents remove <agent-id>`                          | Remove an extra agent (built-in `main` cannot be removed)                                                                                                    |
+| `nextclaw projects list`                                     | List registered projects, including projects without sessions                                                                                                |
+| `nextclaw projects templates`                                | List built-in project templates                                                                                                                              |
+| `nextclaw projects create <name>`                            | Create an empty or knowledge-base project                                                                                                                    |
+| `nextclaw sessions rename <session-id> <label>`              | Rename a session                                                                                                                                             |
+| `nextclaw sessions set-project <session-id> <directory>`     | Bind a session to an existing project directory                                                                                                              |
+| `nextclaw sessions clear-project <session-id>`               | Clear a session project binding                                                                                                                              |
+| `nextclaw login --api-base <url>`                            | Start browser sign-in for NextClaw Platform and save the platform token locally (`--no-open` for headless servers, `--email/--password` for direct fallback) |
+| `nextclaw remote enable`                                     | Enable service-managed remote access                                                                                                                         |
+| `nextclaw remote disable`                                    | Disable service-managed remote access                                                                                                                        |
+| `nextclaw remote status`                                     | Show remote runtime/config status                                                                                                                            |
+| `nextclaw remote doctor`                                     | Diagnose remote readiness                                                                                                                                    |
+| `nextclaw remote connect`                                    | Foreground debug mode: register this machine and keep the connector online                                                                                   |
+| `nextclaw update`                                            | Self-update the CLI                                                                                                                                          |
+| `nextclaw channels list --json`                              | List extension channels for automation and agent channel discovery                                                                                           |
+| `nextclaw channels status`                                   | Show enabled channels and status                                                                                                                             |
+| `nextclaw doctor`                                            | Run runtime diagnostics (`--json`, `--verbose`, `--fix`)                                                                                                     |
+| `nextclaw channels login`                                    | Channel login is handled by the running UI extension auth flow                                                                                               |
+| `nextclaw channels add --channel <id> ...`                   | Configure an extension channel                                                                                                                               |
+| `nextclaw cron list`                                         | List all scheduled jobs, including disabled ones                                                                                                             |
+| `nextclaw cron add ...`                                      | Add a cron job (see [Cron](#cron))                                                                                                                           |
+| `nextclaw cron remove <jobId>`                               | Remove a job                                                                                                                                                 |
+| `nextclaw cron enable <jobId>`                               | Enable a disabled job                                                                                                                                        |
+| `nextclaw cron disable <jobId>`                              | Disable a job without deleting it                                                                                                                            |
+| `nextclaw cron run <jobId>`                                  | Run a job once (optionally with `--force` if disabled)                                                                                                       |
+| `nextclaw skills installed`                                  | List installed skills from the local runtime (`--json`, `--scope`, `--query`)                                                                                |
+| `nextclaw skills info <selector>`                            | Show installed skill details from the local runtime (`--json`)                                                                                               |
+| `nextclaw skills install <slug>`                             | Compatibility shortcut: install a marketplace skill into `<workspace>/skills/<slug>`                                                                         |
+| `nextclaw skills publish <dir>`                              | Upload/create a skill to marketplace                                                                                                                         |
+| `nextclaw skills update <dir>`                               | Update an existing marketplace skill                                                                                                                         |
+| `nextclaw marketplace skills search`                         | Search marketplace skills (`--json`, `--query`, `--tag`, `--sort`, `--page`, `--page-size`)                                                                  |
+| `nextclaw marketplace skills info <slug>`                    | Show marketplace skill details (`--json`)                                                                                                                    |
+| `nextclaw marketplace skills recommend`                      | List recommended marketplace skills (`--json`, `--scene`, `--limit`)                                                                                         |
+| `nextclaw marketplace skills install <slug>`                 | Install a marketplace skill using the explicit marketplace domain                                                                                            |
+| `nextclaw marketplace skills update <slug>`                  | Update an installed marketplace skill; refuses local file drift unless `--force` is used                                                                     |
+| `nextclaw config get <path>`                                 | Get config value by path (use `--json` for structured output)                                                                                                |
+| `nextclaw config set <path> <value>`                         | Set config value by path (use `--json` to parse value as JSON)                                                                                               |
+| `nextclaw config unset <path>`                               | Remove config value by path                                                                                                                                  |
 
 Autostart notes:
 
@@ -1356,18 +1360,19 @@ NextClaw binds UI to `0.0.0.0` by default and attempts to detect/print a public 
 
 ## Troubleshooting
 
-| Issue | What to check |
-|-------|----------------|
-| **401 / invalid API key** | Verify the provider `apiKey` and `apiBase` in config or UI. Ensure no extra spaces or wrong key. |
-| **Unknown model** | Confirm the model ID is supported by your provider (e.g. OpenRouter model list). |
-| **No replies on a channel** | Run `nextclaw status --json`, `nextclaw channels status`, and `nextclaw logs query --since 2h --domain channel.delivery --json`. Use the returned correlation id to query the full operation. If no inbound event exists, local logs cannot prove whether the external platform delivered the message; send a new unique test message and check again. |
-| **Port already in use** | Change `ui.port` in config or use `--ui-port` when starting. Default UI port is 55667, gateway 18790. |
-| **Port connects but the UI never responds** | This usually means the target port is occupied by a stale or wrong listener instead of a healthy NextClaw HTTP server. Newer `nextclaw start` now preflights the UI port and fails fast with diagnostics. On the server, run `ss -ltnp | grep 55667` or `lsof -iTCP:55667 -sTCP:LISTEN -n -P`, then free the port or restart with `--ui-port <port>`. |
-| **Public browser access returns 502** | First verify `curl http://127.0.0.1:55667/api/health` on the server. If it is `200`, your reverse proxy is misconfigured. Make sure it proxies to `http://127.0.0.1:55667` instead of `https://127.0.0.1:55667`, and that `443` is terminated by Nginx/Caddy rather than NextClaw itself. |
-| **Config not loading** | Ensure `NEXTCLAW_HOME` (if set) points to the directory that contains `config.json`. Run `nextclaw status` to see which config file is used. |
-| **Agent not responding in CLI** | Run `nextclaw init` if you have not yet; ensure a provider and model are set and the provider key is valid. |
+| Issue                                       | What to check                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| **401 / invalid API key**                   | Verify the provider `apiKey` and `apiBase` in config or UI. Ensure no extra spaces or wrong key.                                                                                                                                                                                                                                                       |
+| **Unknown model**                           | Confirm the model ID is supported by your provider (e.g. OpenRouter model list).                                                                                                                                                                                                                                                                       |
+| **No replies on a channel**                 | Run `nextclaw status --json`, `nextclaw channels status`, and `nextclaw logs query --since 2h --domain channel.delivery --json`. Use the returned correlation id to query the full operation. If no inbound event exists, local logs cannot prove whether the external platform delivered the message; send a new unique test message and check again. |
+| **Port already in use**                     | Change `ui.port` in config or use `--ui-port` when starting. Default UI port is 55667, gateway 18790.                                                                                                                                                                                                                                                  |
+| **Port connects but the UI never responds** | This usually means the target port is occupied by a stale or wrong listener instead of a healthy NextClaw HTTP server. Newer `nextclaw start` now preflights the UI port and fails fast with diagnostics. On the server, run `ss -ltnp                                                                                                                 | grep 55667`or`lsof -iTCP:55667 -sTCP:LISTEN -n -P`, then free the port or restart with `--ui-port <port>`. |
+| **Public browser access returns 502**       | First verify `curl http://127.0.0.1:55667/api/health` on the server. If it is `200`, your reverse proxy is misconfigured. Make sure it proxies to `http://127.0.0.1:55667` instead of `https://127.0.0.1:55667`, and that `443` is terminated by Nginx/Caddy rather than NextClaw itself.                                                              |
+| **Config not loading**                      | Ensure `NEXTCLAW_HOME` (if set) points to the directory that contains `config.json`. Run `nextclaw status` to see which config file is used.                                                                                                                                                                                                           |
+| **Agent not responding in CLI**             | Run `nextclaw init` if you have not yet; ensure a provider and model are set and the provider key is valid.                                                                                                                                                                                                                                            |
 
 ---
+
 ### Headless execution
 
 Use `nextclaw exec` from scripts, CI, or a pipeline. It accepts prompt arguments, piped stdin, `--agent`, `--session`, `--model`, `--timeout <ms>`, and `--format text|json|jsonl`. Without `--session`, each invocation uses a new `exec:<uuid>` session. Text writes only the final reply to stdout; JSON and JSONL are machine-readable, while diagnostics are written to stderr. Exit codes are `0` for success, `2` for invalid input, `130` for cancellation/timeout, and `1` for runtime failures.

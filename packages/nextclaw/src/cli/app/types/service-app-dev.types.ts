@@ -1,7 +1,5 @@
-import type {
-  ServiceAction,
-  ServiceAppRecord,
-} from "@nextclaw/kernel";
+import type { ServiceAction, ServiceAppRecord } from "@nextclaw/kernel";
+import type { PortableRunnerObservation } from "@nextclaw/kernel";
 
 export type ServiceAppDevIssue = {
   severity: "error" | "warning";
@@ -24,6 +22,7 @@ export type ServiceAppCallReport = {
   actionId?: string;
   app?: ServiceAppRecord;
   result?: unknown;
+  observation?: PortableRunnerObservation;
   issues: ServiceAppDevIssue[];
 };
 
@@ -35,12 +34,14 @@ export type ServiceAppRestartReport = {
 };
 
 export type ServiceAppDevCommandOptions = {
+  component?: string;
   json?: boolean;
   resetData?: boolean;
   confirm?: string;
 };
 
 export type ServiceAppCallCommandOptions = {
+  component?: string;
   input?: string;
   json?: boolean;
 };

@@ -32,7 +32,10 @@ export class PortableServiceAppRuntimeService {
   private readonly states = new Map<string, RuntimeState>();
   private readonly apps = new Map<string, PortableRunnerApp>();
   private readonly providers = new Set<string>();
-  private readonly persistentRegistrations = new Map<string, PersistentRegistration>();
+  private readonly persistentRegistrations = new Map<
+    string,
+    PersistentRegistration
+  >();
   private readonly residentTimers = new Map<string, NodeJS.Timeout>();
   private readonly residentDeliveries = new Map<string, Promise<void>>();
   private recoveryPromise?: Promise<void>;
@@ -46,7 +49,10 @@ export class PortableServiceAppRuntimeService {
     });
   }
 
-  getStatus = (appId: string): RuntimeState => this.states.get(appId) ?? { status: "idle" };
+  getStatus = (appId: string): RuntimeState =>
+    this.states.get(appId) ?? { status: "idle" };
+
+  getLastObservation = () => this.runner.getLastObservation();
 
   start = async ({
     app,
@@ -55,7 +61,12 @@ export class PortableServiceAppRuntimeService {
     app: ServiceAppRecord;
     manifest: ServiceAppManifest;
   }): Promise<void> => {
-    if (!app.enabled || !manifest.lifecycle || manifest.lifecycle.mode === "action") return;
+    if (
+      !app.enabled ||
+      !manifest.lifecycle ||
+      manifest.lifecycle.mode === "action"
+    )
+      return;
     this.persistentRegistrations.set(app.id, { app, manifest });
     const runnerApp = this.toRunnerApp(app, manifest.providerIds);
     this.apps.set(app.id, runnerApp);
@@ -91,9 +102,10 @@ export class PortableServiceAppRuntimeService {
       const timer = setInterval(() => {
         this.scheduleResidentEvent({
           appId: app.id,
-          eventIntervalMs: manifest.lifecycle?.mode === "resident"
-            ? manifest.lifecycle.eventIntervalMs
-            : 0,
+          eventIntervalMs:
+            manifest.lifecycle?.mode === "resident"
+              ? manifest.lifecycle.eventIntervalMs
+              : 0,
         });
       }, manifest.lifecycle.eventIntervalMs);
       timer.unref();
@@ -119,12 +131,14 @@ export class PortableServiceAppRuntimeService {
     if (!app.enabled) return [];
     const runnerApp = this.toRunnerApp(app, manifest.providerIds);
     this.apps.set(app.id, runnerApp);
-    const persistent = manifest.lifecycle?.mode === "resident"
-      || manifest.lifecycle?.mode === "provider";
+    const persistent =
+      manifest.lifecycle?.mode === "resident" ||
+      manifest.lifecycle?.mode === "provider";
     const lastStartedAt = persistent
-      ? this.states.get(app.id)?.lastStartedAt ?? new Date().toISOString()
+      ? (this.states.get(app.id)?.lastStartedAt ?? new Date().toISOString())
       : new Date().toISOString();
-    if (!persistent) this.states.set(app.id, { status: "starting", lastStartedAt });
+    if (!persistent)
+      this.states.set(app.id, { status: "starting", lastStartedAt });
     try {
       const actions = await this.runner.listActions(runnerApp);
       if (!persistent) {
@@ -221,7 +235,8 @@ export class PortableServiceAppRuntimeService {
 
   dispose = async (): Promise<void> => {
     if (this.recoveryPromise) await this.recoveryPromise;
-    for (const appId of this.residentTimers.keys()) this.clearResidentTimer(appId);
+    for (const appId of this.residentTimers.keys())
+      this.clearResidentTimer(appId);
     await Promise.allSettled(this.residentDeliveries.values());
     await this.runner.dispose();
     this.states.clear();
@@ -273,20 +288,31 @@ export class PortableServiceAppRuntimeService {
     this.residentTimers.delete(appId);
   };
 
-  private recoverPersistentComponentsIfNeeded = async (error: unknown): Promise<void> => {
-    if (!(error instanceof PortableServiceRunnerError)
-      || !["PORTABLE_RUNTIME_TIMEOUT", "PORTABLE_RUNNER_EXITED"].includes(error.code)) {
+  private recoverPersistentComponentsIfNeeded = async (
+    error: unknown,
+  ): Promise<void> => {
+    if (
+      !(error instanceof PortableServiceRunnerError) ||
+      !["PORTABLE_RUNTIME_TIMEOUT", "PORTABLE_RUNNER_EXITED"].includes(
+        error.code,
+      )
+    ) {
       return;
     }
     if (this.recoveryPromise) return await this.recoveryPromise;
     const registrations = Array.from(this.persistentRegistrations.values());
     if (registrations.length === 0) return;
     this.recoveryPromise = (async () => {
-      for (const appId of this.residentTimers.keys()) this.clearResidentTimer(appId);
+      for (const appId of this.residentTimers.keys())
+        this.clearResidentTimer(appId);
       this.providers.clear();
       const ordered = [
-        ...registrations.filter(({ manifest }) => manifest.lifecycle?.mode === "provider"),
-        ...registrations.filter(({ manifest }) => manifest.lifecycle?.mode === "resident"),
+        ...registrations.filter(
+          ({ manifest }) => manifest.lifecycle?.mode === "provider",
+        ),
+        ...registrations.filter(
+          ({ manifest }) => manifest.lifecycle?.mode === "resident",
+        ),
       ];
       for (const registration of ordered) {
         try {
@@ -306,7 +332,9 @@ export class PortableServiceAppRuntimeService {
     providerIds: string[] | undefined,
   ): PortableRunnerApp => {
     if (!app.componentPath || !app.dataDirectory) {
-      throw new Error(`Portable Service App ${app.id} is missing component or data storage.`);
+      throw new Error(
+        `Portable Service App ${app.id} is missing component or data storage.`,
+      );
     }
     return {
       id: app.id,
@@ -317,7 +345,11 @@ export class PortableServiceAppRuntimeService {
     };
   };
 
-  private markFailed = (appId: string, lastStartedAt: string, error: unknown): void => {
+  private markFailed = (
+    appId: string,
+    lastStartedAt: string,
+    error: unknown,
+  ): void => {
     this.states.set(appId, {
       status: "failed",
       lastError: error instanceof Error ? error.message : String(error),

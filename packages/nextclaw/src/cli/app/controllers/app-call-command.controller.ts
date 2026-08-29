@@ -13,14 +13,17 @@ export class AppCallCommandController {
     actionName: string,
     options: ServiceAppCallCommandOptions,
   ): Promise<void> => {
-    const input = this.parseInput(options.input);
+    const { component, input: rawInput, json } = options;
+    const input = this.parseInput(rawInput);
     if (!input.ok) {
-      this.writeInputError(input.message, Boolean(options.json));
+      this.writeInputError(input.message, Boolean(json));
       process.exitCode = 1;
       return;
     }
-    const report = await this.serviceAppDevService.call(target, actionName, input.value);
-    process.stdout.write(options.json ? `${JSON.stringify(report, null, 2)}\n` : this.format(report));
+    const report = await this.serviceAppDevService.call(target, actionName, input.value, {
+      componentId: component,
+    });
+    process.stdout.write(json ? `${JSON.stringify(report, null, 2)}\n` : this.format(report));
     if (!report.ok) {
       process.exitCode = 1;
     }

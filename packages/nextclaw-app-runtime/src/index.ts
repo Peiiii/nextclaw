@@ -53,6 +53,7 @@ export * from "./types/main-runner.types.js";
 export * from "./services/wasm-main-runner.service.js";
 export * from "./services/wasmtime-wasi-http-component.service.js";
 export * from "./services/app-scaffold.service.js";
+export * from "./services/app-rust-wasi-scaffold-template.service.js";
 export * from "./services/app-ts-http-lite-scaffold-template.service.js";
 export * from "./services/app-ts-http-scaffold-template.service.js";
 export * from "./services/wasm-sidecar-client.service.js";

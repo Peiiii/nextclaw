@@ -23,6 +23,7 @@ type ApiResponse<T> = {
 } | {
   ok: false;
   error?: {
+    code?: string;
     message?: string;
   };
 };
@@ -32,7 +33,7 @@ export function createLocalUiApiClient(): UiApiClient | null {
   return apiBase ? new LocalUiApiClient(apiBase) : null;
 }
 
-class LocalUiApiClient implements UiApiClient {
+export class LocalUiApiClient implements UiApiClient {
   private cookie: string | null | undefined;
 
   constructor(private readonly apiBase: string) {}
@@ -52,14 +53,35 @@ class LocalUiApiClient implements UiApiClient {
       headers,
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
+    const responseBody = await response.text();
+    const payload = this.parsePayload<T>(responseBody);
     if (!response.ok) {
-      throw new Error(`api request failed with status ${response.status}`);
+      const errorCode = payload && !payload.ok ? payload.error?.code : undefined;
+      const errorMessage = payload && !payload.ok ? payload.error?.message : undefined;
+      const detail = [errorCode, errorMessage].filter(Boolean).join(": ") ||
+        responseBody.trim().slice(0, 240);
+      throw new Error(
+        `api request failed with status ${response.status}${detail ? `: ${detail}` : ""}`,
+      );
     }
-    const payload = await response.json() as ApiResponse<T>;
+    if (!payload) {
+      throw new Error("api request returned invalid JSON");
+    }
     if (!payload.ok) {
-      throw new Error(payload.error?.message ?? "api request failed");
+      throw new Error(
+        [payload.error?.code, payload.error?.message].filter(Boolean).join(": ") ||
+          "api request failed",
+      );
     }
     return payload.data;
+  };
+
+  private parsePayload = <T>(body: string): ApiResponse<T> | null => {
+    try {
+      return JSON.parse(body) as ApiResponse<T>;
+    } catch {
+      return null;
+    }
   };
 
   private getCookie = async (): Promise<string | null> => {
