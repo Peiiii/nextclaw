@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.45.4",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-08-29",
+  "title": {
+    "zh-CN": "NextClaw v0.45.4",
+    "en-US": "NextClaw v0.45.4"
+  },
+  "summary": {
+    "zh-CN": "加快岛屿主题背景的首次显示，并在刷新后复用本地缓存。",
+    "en-US": "Load the Island theme background earlier and reuse it from the browser cache after refreshes."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-29-nextclaw-v0-45-4",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-29-nextclaw-v0-45-4"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "修复", "en-US": "Fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "岛屿主题背景更快出现", "en-US": "The Island background appears sooner" },
+          "body": {
+            "zh-CN": "背景会在界面启动阶段提前加载，刷新和再次访问时复用本地缓存，并保持其它主题不产生额外下载。",
+            "en-US": "The background starts loading during page startup, reuses the local cache on refreshes and later visits, and adds no download for other themes."
+          }
+        }
+      ]
+    }
+  ]
+}

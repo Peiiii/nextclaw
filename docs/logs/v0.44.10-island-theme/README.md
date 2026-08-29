@@ -46,5 +46,5 @@
 
 ## NPM 包发布记录
 
-- 岛屿主题首批变化已随统一版本流程发布；背景性能修复需要 patch 发布 `@nextclaw/ui`（当前 registry `0.22.1`）与 `@nextclaw/server`（当前 registry `0.20.1`），由 `.changeset/swift-islands-cache.md` 记录。
+- 岛屿主题首批变化已随统一版本流程发布；背景性能修复需要 patch 发布 `@nextclaw/ui`（当前 registry `0.22.2`）与 `@nextclaw/server`（当前 registry `0.20.2`），由 `.changeset/swift-islands-cache.md` 记录，对应 NextClaw `0.45.4`。
 - 当前状态：待本次稳定发布闭环后回填最终版本与 registry 验证结果。

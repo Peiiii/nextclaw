@@ -10,8 +10,8 @@
     "en-US": "NextClaw v0.45.3"
   },
   "summary": {
-    "zh-CN": "修复长工具链意外中止的问题，并加快岛屿主题背景加载。",
-    "en-US": "Fix long Agent runs stopping early and make the Island theme background load faster."
+    "zh-CN": "修复旧实例在 20 次工具调用后意外中止 Agent 任务的问题，并移除无效的工具调用上限配置入口。",
+    "en-US": "Fix Agent runs stopping after 20 tool calls on upgraded installations and remove obsolete tool-call limit controls."
   },
   "links": {
     "html": {
@@ -36,13 +36,6 @@
           "body": {
             "zh-CN": "设置页、Agent 详情和配置 API 不再暴露工具调用上限。",
             "en-US": "Settings, Agent details, and the configuration API no longer expose a tool-call limit."
-          }
-        },
-        {
-          "title": { "zh-CN": "岛屿主题背景更快出现", "en-US": "The Island background appears sooner" },
-          "body": {
-            "zh-CN": "背景会在界面启动阶段提前加载，刷新和再次访问时复用本地缓存，并保持其它主题不产生额外下载。",
-            "en-US": "The background starts loading during page startup, reuses the local cache on refreshes and later visits, and adds no download for other themes."
           }
         }
       ]
