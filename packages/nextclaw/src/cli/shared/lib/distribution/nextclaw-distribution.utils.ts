@@ -12,6 +12,8 @@ export function createNextclawDistribution(importMetaUrl: string): NextclawDistr
     : "nextclaw-wasmtime-runner";
   return {
     version: typeof version === "string" ? version : "0.0.0",
+    productEnvironment: "development",
+    releaseChannel: "development",
     appEntrypoint: resolve(packageRoot, "dist/cli/app/index.js"),
     launcherVersion: typeof version === "string" ? version : "0.0.0",
     launcherEntrypoint: resolve(dirname(entrypoint), "../launcher", basename(entrypoint)),

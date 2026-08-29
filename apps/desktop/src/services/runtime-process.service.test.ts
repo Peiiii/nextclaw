@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRuntimeScriptSpawnOptions } from "../runtime-service";
-import { createDesktopRuntimeEnv } from "../utils/desktop-paths.utils";
+import {
+  createDesktopRuntimeEnv,
+} from "../utils/desktop-paths.utils";
 
 test("hides runtime child process console windows on Windows", () => {
   const env = { NEXTCLAW_HOME: "/tmp/nextclaw" };
@@ -55,4 +57,10 @@ test("desktop development runtime resolves SQLite from its Electron-specific res
     runtimeEnv.NODE_OPTIONS ?? "",
     /--import=file:\/\/\/tmp\/nextclaw-desktop\/desktop-native-module-register\.mjs/
   );
+});
+
+test("classifies packaged desktop runtimes separately from source overrides", () => {
+  assert.equal(createDesktopRuntimeEnv({}, { runtimeSource: "bundle" }).NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT, "production");
+  assert.equal(createDesktopRuntimeEnv({}, { runtimeSource: "packaged-runtime" }).NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT, "production");
+  assert.equal(createDesktopRuntimeEnv({}, { runtimeSource: "environment-override" }).NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT, "development");
 });

@@ -23,6 +23,7 @@ type DesktopRuntimeEnvOptions = {
   packagedExtensionDir?: string | null;
   nativeModuleRegisterPath?: string | null;
   nativeModulesDir?: string | null;
+  runtimeSource?: "bundle" | "environment-override" | "packaged-runtime";
 };
 
 function readOptionalEnv(name: string): string | null {
@@ -85,6 +86,9 @@ export function createDesktopRuntimeEnv(
   runtimeEnv.ELECTRON_RUN_AS_NODE = "1";
   runtimeEnv.NEXTCLAW_DISABLE_BUILTIN_EXTENSIONS = "1";
   runtimeEnv.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST = "1";
+  if (options.runtimeSource) {
+    runtimeEnv.NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT = resolveDesktopProductEnvironment(options.runtimeSource);
+  }
   const nativeModuleRegisterPath = normalizeOptionalPath(options.nativeModuleRegisterPath);
   const nativeModulesDir = normalizeOptionalPath(options.nativeModulesDir);
   if (nativeModuleRegisterPath && nativeModulesDir) {
@@ -106,6 +110,12 @@ export function createDesktopRuntimeEnv(
   }
   runtimeEnv[LEGACY_RUNTIME_HOME_ENV] = resolveDesktopRuntimeHomeFromEnv(baseEnv);
   return runtimeEnv;
+}
+
+function resolveDesktopProductEnvironment(
+  source: "bundle" | "environment-override" | "packaged-runtime",
+): "production" | "development" {
+  return source === "environment-override" ? "development" : "production";
 }
 
 export function resolveDesktopLauncherBuildFingerprint(appPath: string, launcherVersion: string): string {

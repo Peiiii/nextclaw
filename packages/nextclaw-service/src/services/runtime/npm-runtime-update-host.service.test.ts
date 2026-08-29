@@ -140,6 +140,8 @@ vi.mock("@nextclaw-service/managers/runtime-update.manager.js", () => ({
 
 const TEST_DISTRIBUTION = {
   version: "0.18.12-beta.4",
+  productEnvironment: "production" as const,
+  releaseChannel: "beta" as const,
   appEntrypoint: "/pkg/dist/cli/app/index.js",
   launcherVersion: "0.30.0",
   launcherEntrypoint: "/pkg/dist/cli/launcher/index.js",

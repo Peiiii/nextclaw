@@ -147,6 +147,7 @@ function createRuntimeEnv(manifest: DesktopCommandSurfaceManifest, baseEnv: Node
     ELECTRON_RUN_AS_NODE: "1",
     NEXTCLAW_HOME: manifest.runtimeHome,
     NEXTCLAW_DESKTOP_COMMAND_SURFACE: "1",
+    NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT: "production",
     [NEXTCLAW_COMMAND_SURFACE_BIN_ENV]: manifest.commandSurfaceBinDir
   };
   delete env.NEXTCLAW_RUNTIME_BUNDLE_CHILD;

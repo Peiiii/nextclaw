@@ -66,6 +66,7 @@ test("desktop command bridge resolves current bundle runtime and forwards args",
   assert.equal(calls[0]?.env.NEXTCLAW_HOME, "/runtime-home");
   assert.equal(calls[0]?.env.NEXTCLAW_COMMAND_SURFACE_BIN, "/desktop-data/command-surface/bin");
   assert.equal(calls[0]?.env.NEXTCLAW_DESKTOP_COMMAND_SURFACE, "1");
+  assert.equal(calls[0]?.env.NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT, "production");
   assert.equal(calls[0]?.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD, undefined);
   assert.equal(calls[0]?.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER, undefined);
 });

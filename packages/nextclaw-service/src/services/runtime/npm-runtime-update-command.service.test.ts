@@ -58,6 +58,8 @@ describe("NpmRuntimeUpdateCommandService", () => {
     };
     NextclawDistributionService.configure({
       version: "0.45.1-beta.0",
+      productEnvironment: "development",
+      releaseChannel: "development",
       appEntrypoint: "/runtime/dist/cli/app/index.js",
       launcherVersion: "0.45.1-beta.0",
       launcherEntrypoint: "/runtime/dist/cli/launcher/index.js",
@@ -76,6 +78,8 @@ describe("NpmRuntimeUpdateCommandService", () => {
   it("blocks npm runtime updates from the desktop command surface", async () => {
     NextclawDistributionService.configure({
       version: "0.19.26",
+      productEnvironment: "production",
+      releaseChannel: "stable",
       appEntrypoint: "/runtime/dist/cli/app/index.js",
       launcherVersion: "0.19.26",
       launcherEntrypoint: "/runtime/dist/cli/launcher/index.js",
@@ -101,6 +105,8 @@ describe("NpmRuntimeUpdateCommandService", () => {
   it("uses the canonical launcher version instead of the running bundle version", async () => {
     NextclawDistributionService.configure({
       version: "0.35.0",
+      productEnvironment: "production",
+      releaseChannel: "stable",
       appEntrypoint: "/runtime/0.35.0/dist/cli/app/index.js",
       launcherVersion: "0.34.0",
       launcherEntrypoint: "/usr/lib/node_modules/nextclaw/dist/cli/launcher/index.js",

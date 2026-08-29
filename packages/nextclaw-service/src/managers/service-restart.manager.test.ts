@@ -45,6 +45,8 @@ describe("ServiceRestartManager self relaunch", () => {
     });
     NextclawDistributionService.configure({
       version: "0.23.0",
+      productEnvironment: "development",
+      releaseChannel: "development",
       appEntrypoint: "/pkg/runtime/dist/cli/app/index.js",
       launcherVersion: "0.23.0",
       launcherEntrypoint: "/pkg/runtime/dist/cli/launcher/index.js",

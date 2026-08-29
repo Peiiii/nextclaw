@@ -57,6 +57,8 @@ describe("ProductActivityReporter", () => {
     const reporter = new ProductActivityReporter({
       homeDir: home,
       productVersion: "1.2.3",
+      environment: "development",
+      releaseChannel: "development",
       loadConfig: () => createConfig({ enabled: false }),
       fetchImpl,
     });
@@ -82,11 +84,9 @@ describe("ProductActivityReporter", () => {
     const reporter = new ProductActivityReporter({
       homeDir: home,
       productVersion: "1.2.3-beta.4",
+      environment: "production",
+      releaseChannel: "beta",
       loadConfig: () => createConfig({ audience: "qa" }),
-      env: {
-        NODE_ENV: "production",
-        NEXTCLAW_UPDATE_CHANNEL: "beta",
-      },
       fetchImpl,
       now: () => new Date("2026-08-20T12:05:00.000Z"),
     });
@@ -153,6 +153,8 @@ describe("ProductActivityReporter", () => {
     const reporter = new ProductActivityReporter({
       homeDir: createHome(),
       productVersion: "1.2.3",
+      environment: "development",
+      releaseChannel: "development",
       loadConfig: () => createConfig(),
       fetchImpl,
     });
@@ -177,6 +179,8 @@ describe("ProductActivityReporter", () => {
     const reporter = new ProductActivityReporter({
       homeDir: createHome(),
       productVersion: "1.2.3",
+      environment: "development",
+      releaseChannel: "development",
       loadConfig: () => createConfig(),
       fetchImpl,
       now: () => new Date("2026-08-20T12:05:00.000Z"),

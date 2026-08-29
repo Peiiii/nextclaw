@@ -88,6 +88,8 @@ export class NextclawServiceRuntime {
     const productActivityReporter = new ProductActivityReporter({
       homeDir: getDataDir(),
       productVersion: distribution.version,
+      environment: distribution.productEnvironment,
+      releaseChannel: distribution.releaseChannel,
       loadConfig: () => loadConfig(configPath),
     });
     const options: NextclawHarnessOptions = {
@@ -169,6 +171,8 @@ export class NextclawServiceRuntime {
     const productActivityReporter = new ProductActivityReporter({
       homeDir: getDataDir(),
       productVersion: distribution.version,
+      environment: distribution.productEnvironment,
+      releaseChannel: distribution.releaseChannel,
       loadConfig: () => loadConfig(configPath),
     });
     const kernel = new NextclawKernel({

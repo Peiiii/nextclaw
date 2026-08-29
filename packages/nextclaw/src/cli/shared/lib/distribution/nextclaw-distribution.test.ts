@@ -21,6 +21,8 @@ describe("createNextclawDistribution", () => {
 
       expect(distribution).toMatchObject({
         version: "0.19.4",
+        productEnvironment: "development",
+        releaseChannel: "development",
         appEntrypoint: resolve(packageRoot, "dist/cli/app/index.js"),
         launcherVersion: "0.19.4",
         launcherEntrypoint: resolve(packageRoot, "dist/cli/launcher/index.js"),

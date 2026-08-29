@@ -21,8 +21,9 @@ type ProductActivityPeriodKind = "day" | "week" | "month";
 type ProductActivityReporterOptions = {
   homeDir: string;
   productVersion: string;
+  environment: ProductActivityEnvironment;
+  releaseChannel: ProductActivityReleaseChannel;
   loadConfig: () => Config;
-  env?: NodeJS.ProcessEnv;
   fetchImpl?: typeof fetch;
   now?: () => Date;
 };
@@ -55,7 +56,6 @@ const REPORT_TIMEOUT_MS = 3_000;
 const STATE_SCHEMA_VERSION = 2;
 
 export class ProductActivityReporter implements ProductActivitySink {
-  private readonly env: NodeJS.ProcessEnv;
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => Date;
   private readonly statePath: string;
@@ -63,7 +63,6 @@ export class ProductActivityReporter implements ProductActivitySink {
   private queue: Promise<void> = Promise.resolve();
 
   constructor(private readonly options: ProductActivityReporterOptions) {
-    this.env = options.env ?? process.env;
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? (() => new Date());
     this.statePath = resolve(options.homeDir, "product-analytics", "state.json");
@@ -149,8 +148,8 @@ export class ProductActivityReporter implements ProductActivitySink {
           periodStart: receipt.periodStart,
           occurredAt: receipt.occurredAt,
           audience: config.productAnalytics.audience satisfies ProductActivityAudience,
-          environment: resolveEnvironment(this.env),
-          releaseChannel: resolveReleaseChannel(this.env),
+          environment: this.options.environment,
+          releaseChannel: this.options.releaseChannel,
           platform: resolvePlatform(),
           appVersion: normalizeAppVersion(this.options.productVersion),
         }),
@@ -277,27 +276,6 @@ function normalizeAppVersion(version: string): string {
   const core = version.trim().split("-")[0] ?? "";
   const segments = core.split(".").filter(Boolean);
   return (segments.length >= 2 ? segments.slice(0, 2).join(".") : core).slice(0, 80) || "unknown";
-}
-
-function resolveEnvironment(env: NodeJS.ProcessEnv): ProductActivityEnvironment {
-  const explicit = env.NEXTCLAW_PRODUCT_ANALYTICS_ENVIRONMENT?.trim().toLowerCase();
-  if (explicit === "production" || explicit === "development" || explicit === "test") {
-    return explicit;
-  }
-  if (env.NODE_ENV === "production") return "production";
-  if (env.NODE_ENV === "test" || env.VITEST) return "test";
-  return "development";
-}
-
-function resolveReleaseChannel(env: NodeJS.ProcessEnv): ProductActivityReleaseChannel {
-  const raw = (
-    env.NEXTCLAW_PRODUCT_ANALYTICS_RELEASE_CHANNEL
-    ?? env.NEXTCLAW_DESKTOP_UPDATE_CHANNEL
-    ?? env.NEXTCLAW_UPDATE_CHANNEL
-    ?? ""
-  ).trim().toLowerCase();
-  if (raw === "stable" || raw === "beta" || raw === "nightly") return raw;
-  return resolveEnvironment(env) === "production" ? "stable" : "development";
 }
 
 function resolvePlatform(): "macos" | "windows" | "linux" | "other" {

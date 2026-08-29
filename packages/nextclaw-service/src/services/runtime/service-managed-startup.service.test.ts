@@ -77,6 +77,8 @@ describe("spawnManagedService", () => {
     originalArgv = [...process.argv];
     NextclawDistributionService.configure({
       version: "0.35.0",
+      productEnvironment: "production",
+      releaseChannel: "stable",
       appEntrypoint: "/runtime/0.35.0/dist/cli/app/index.js",
       launcherVersion: "0.34.0",
       launcherEntrypoint: "/usr/lib/node_modules/nextclaw/dist/cli/launcher/index.js",

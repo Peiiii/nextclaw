@@ -123,6 +123,8 @@ export class ServiceGatewayManager {
     this.productActivityReporter = new ProductActivityReporter({
       homeDir,
       productVersion: this.distribution.version,
+      environment: this.distribution.productEnvironment,
+      releaseChannel: this.distribution.releaseChannel,
       loadConfig: () => NextclawCore.loadConfig(configPath),
     });
     this.kernel = measureStartupSync(
