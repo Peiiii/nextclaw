@@ -39,6 +39,18 @@ on:
       - "scripts/**"
       - ".github/workflows/desktop-validate.yml"
   workflow_dispatch:
+    inputs:
+      target:
+        description: Desktop validation path to run during focused recovery
+        type: choice
+        default: all
+        options:
+          - all
+          - runtime
+          - macos-dmg
+          - windows-exe
+          - windows-installer
+          - linux-package
 
 permissions:
   contents: read
@@ -49,6 +61,7 @@ concurrency:
 
 jobs:
   desktop-runtime-smoke:
+    if: ${{ inputs.target == '' || inputs.target == 'all' || inputs.target == 'runtime' }}
     name: desktop-runtime-smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -163,6 +176,7 @@ jobs:
           NODE
 
   desktop-macos-dmg-install-smoke:
+    if: ${{ inputs.target == '' || inputs.target == 'all' || inputs.target == 'macos-dmg' }}
     name: desktop-macos-dmg-install-smoke
     runs-on: macos-14
     timeout-minutes: 45
@@ -229,6 +243,7 @@ jobs:
             apps/desktop/release/*.blockmap
 
   desktop-windows-exe-smoke:
+    if: ${{ inputs.target == '' || inputs.target == 'all' || inputs.target == 'windows-exe' }}
     name: desktop-windows-exe-smoke
     runs-on: windows-latest
     timeout-minutes: 45
@@ -345,6 +360,7 @@ jobs:
             apps/desktop/release/NextClaw-Portable-*-win-x64.zip
 
   desktop-windows-installer-smoke:
+    if: ${{ inputs.target == '' || inputs.target == 'all' || inputs.target == 'windows-installer' }}
     name: desktop-windows-installer-smoke
     runs-on: windows-latest
     timeout-minutes: 45
@@ -437,6 +453,7 @@ jobs:
             apps/desktop/release/*.exe.blockmap
 
   desktop-linux-package-smoke:
+    if: ${{ inputs.target == '' || inputs.target == 'all' || inputs.target == 'linux-package' }}
     name: desktop-linux-package-smoke
     runs-on: ubuntu-latest
     timeout-minutes: 45

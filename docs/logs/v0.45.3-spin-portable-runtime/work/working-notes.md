@@ -75,5 +75,6 @@
 - Windows x64 的 file URL 路径修复已通过 runner smoke；后续真实 HTTP/scaffold 门发现 `app check` 临时实例将 staged 目录 rename 到已存在空目录时触发 Windows `EPERM`，已改为 non-existing child target，尚需最终 CI 原生复验。
 - 发布验证快速漏斗已补单平台 dispatch；异步安装 smoke 同时读取 operation 状态，失败时立即暴露真实错误，避免重复完整矩阵只得到模糊列表超时。
 - Desktop 验证揭示 bundled app-runtime 的 `import.meta` 相对路径已迁到 `runtime/dist`，因此 WIT/Cargo.lock 必须由 Desktop bundle owner 同步重定位；已把两项资源加入强制 bundle contract，并修复 macOS N-API header 自动选择及 Windows smoke 清理重试。
+- Desktop 第一轮修复矩阵中 runtime、macOS DMG、Windows installer、Linux AppImage/deb 全部成功；仅 Windows EXE 的 Service App smoke 在业务成功后因 Electron 短暂文件锁清理失败。按 Desktop smoke 合同改为 warning，并新增单链 dispatch 供确定性恢复。
 - Spin 4 Runtime Factors 是静态 Rust 类型；生态扩展通过 Component/Native Provider，而不是未经验证的进程内动态插件。
 - 当前 v1 binding 的执行身份是稳定 Provider Service id；动态 capability alias 到任意 Provider id 的路由尚未公开，替换实现必须维持同一 Service id。

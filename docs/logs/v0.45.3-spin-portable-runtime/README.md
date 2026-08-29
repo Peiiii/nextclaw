@@ -19,6 +19,7 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 - 第二次矩阵进一步暴露 Windows 不允许用 `rename` 覆盖已存在空目录：`app check` 的临时实例现在使用 `mkdtemp` 下尚不存在的子目录作为原子迁移目标，并新增跨平台回归测试；这修复的是实际开发者校验链路，不是 CI 特判。
 - 验证器同时观察异步安装 operation 与应用列表：operation 失败会立即报告稳定状态和错误，不再空等列表超时；workflow dispatch 支持 `darwin-arm64`、`linux-x64`、`win32-x64` 单目标恢复，完整三平台矩阵仍是最终合入门。
 - Desktop bundle 现在把 App Runtime 的 WIT 与锁文件复制到重定位后的 `runtime/dist/resources` 并纳入 bundle 必需文件合同，避免 AppImage/Windows installer 因 Rust/WASI scaffold 资源缺失而启动失败；macOS N-API adapter 在 Electron headers 未预热时使用 ABI 稳定的当前 Node `node_api.h`，Windows Electron smoke 清理增加有界文件锁重试。
+- Desktop workflow dispatch 支持按 runtime、macOS DMG、Windows EXE、Windows installer 或 Linux package 单链恢复；Windows Electron Service App smoke 在业务与 lifecycle 断言已通过后，短暂文件锁导致的临时目录清理失败只记录 warning，不再制造假失败。
 - 文档站构建与中英文同步检查通过；`git diff --check` 通过。
 
 ## 发布/部署方式

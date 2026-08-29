@@ -154,10 +154,19 @@ try {
   } else {
     process.env.PATH = originalPath;
   }
-  rmSync(homeDirectory, {
-    recursive: true,
-    force: true,
-    maxRetries: process.platform === "win32" ? 10 : 0,
-    retryDelay: 250,
-  });
+  try {
+    rmSync(homeDirectory, {
+      recursive: true,
+      force: true,
+      maxRetries: process.platform === "win32" ? 10 : 0,
+      retryDelay: 250,
+    });
+  } catch (error) {
+    // The business and lifecycle assertions above have already passed. Windows
+    // can retain a short-lived Electron file handle after dispose; CI runners
+    // discard their temp root, so cleanup must not turn a valid smoke red.
+    console.warn(
+      `desktop Electron service app host cleanup warning: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
