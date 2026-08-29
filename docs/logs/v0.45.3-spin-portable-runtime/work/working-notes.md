@@ -73,5 +73,6 @@
 ## 剩余缺口 / 交接提醒
 
 - Windows x64 的 file URL 路径修复已通过 runner smoke；后续真实 HTTP/scaffold 门发现 `app check` 临时实例将 staged 目录 rename 到已存在空目录时触发 Windows `EPERM`，已改为 non-existing child target，尚需最终 CI 原生复验。
+- 发布验证快速漏斗已补单平台 dispatch；异步安装 smoke 同时读取 operation 状态，失败时立即暴露真实错误，避免重复完整矩阵只得到模糊列表超时。
 - Spin 4 Runtime Factors 是静态 Rust 类型；生态扩展通过 Component/Native Provider，而不是未经验证的进程内动态插件。
 - 当前 v1 binding 的执行身份是稳定 Provider Service id；动态 capability alias 到任意 Provider id 的路由尚未公开，替换实现必须维持同一 Service id。

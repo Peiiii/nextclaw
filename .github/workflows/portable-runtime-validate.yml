@@ -31,6 +31,16 @@ on:
       - ".github/workflows/portable-runtime-validate.yml"
       - "package.json"
   workflow_dispatch:
+    inputs:
+      target:
+        description: Native target to validate during focused recovery
+        type: choice
+        default: all
+        options:
+          - all
+          - darwin-arm64
+          - linux-x64
+          - win32-x64
 
 permissions:
   contents: read
@@ -40,27 +50,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  select-matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - id: select
+        name: Select native targets
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target || 'all' }}
+        run: |
+          case "$TARGET" in
+            darwin-arm64) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","cargo_target":"aarch64-apple-darwin"}]' ;;
+            linux-x64) matrix='[{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"}]' ;;
+            win32-x64) matrix='[{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
+            all) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","cargo_target":"aarch64-apple-darwin"},{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"},{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
+            *) echo "Unsupported target: $TARGET" >&2; exit 2 ;;
+          esac
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
   native-runner:
+    needs: select-matrix
     name: native-runner-${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-14
-            platform: darwin
-            arch: arm64
-            target: darwin-arm64
-            cargo_target: aarch64-apple-darwin
-          - os: ubuntu-22.04
-            platform: linux
-            arch: x64
-            target: linux-x64
-            cargo_target: x86_64-unknown-linux-musl
-          - os: windows-latest
-            platform: win32
-            arch: x64
-            target: win32-x64
-            cargo_target: x86_64-pc-windows-msvc
+        include: ${{ fromJSON(needs.select-matrix.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 35
     steps:

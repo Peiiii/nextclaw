@@ -203,8 +203,8 @@ async function waitForJson(url, { timeoutMs, accept = () => true }) {
       );
     } catch (error) {
       lastError = error;
-      await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
     }
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
   }
   throw new Error(
     `NextClaw service did not become ready: ${String(lastError ?? "timeout")}`,
@@ -409,13 +409,7 @@ async function installAndVerifyGeneratedApp(appRoot, artifactPath) {
     (await realpath(install.source)) === (await realpath(artifactPath)),
     `generated app relative source was not normalized: ${JSON.stringify(install)}`,
   );
-  await waitForJson(`${baseUrl}/api/app-packages`, {
-    timeoutMs: 90_000,
-    accept: ({ payload }) =>
-      payload?.data?.entries?.some(
-        (entry) => entry?.id === "nextclaw.generated-counter",
-      ),
-  });
+  await waitForInstalledPackage("nextclaw.generated-counter", install.id);
   const enable = parseJsonCommand(
     runCli(["app", "enable", "nextclaw.generated-counter", "--json"], {
       cwd: tempRoot,
@@ -468,6 +462,33 @@ async function installAndVerifyGeneratedApp(appRoot, artifactPath) {
     "NextClaw service exited while enabling the generated app",
   );
   return installedRead;
+}
+
+async function waitForInstalledPackage(appId, operationId) {
+  const deadline = Date.now() + 90_000;
+  let lastOperation;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) {
+      throw new Error(
+        `NextClaw service exited while installing ${appId} (code ${child.exitCode})`,
+      );
+    }
+    const packages = await fetchJson(`${baseUrl}/api/app-packages`);
+    if (packages.payload?.data?.entries?.some((entry) => entry?.id === appId)) return;
+    const operations = await fetchJson(`${baseUrl}/api/app-package-operations`);
+    lastOperation = operations.payload?.data?.entries?.find(
+      (entry) => entry?.id === operationId,
+    );
+    if (lastOperation?.status === "failed" || lastOperation?.status === "interrupted") {
+      throw new Error(
+        `App install ${operationId} ${lastOperation.status}: ${lastOperation.error ?? "unknown error"}`,
+      );
+    }
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+  }
+  throw new Error(
+    `App ${appId} was not installed before timeout; operation=${JSON.stringify(lastOperation)}`,
+  );
 }
 
 function runCli(args, options = {}) {

@@ -17,6 +17,7 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 - 两个独立真实 `.napp` 的 Provider→Consumer 链路通过：Consumer 初始 `needs-capability`、Provider 安装启用、唯一候选 setup、Consumer enable、runner 受控跨 App `component-call`、运行时变更拒绝、停用后 unbind 回到 `needs-configuration`。
 - Portable Runtime 最终矩阵首次复验发现两个发布自动化缺口：Linux 的 Spin telemetry OpenSSL 已改为 vendored 构建；Windows smoke 的 file URL 路径已改用 `fileURLToPath`，避免生成 `D:\\D:\\...`。
 - 第二次矩阵进一步暴露 Windows 不允许用 `rename` 覆盖已存在空目录：`app check` 的临时实例现在使用 `mkdtemp` 下尚不存在的子目录作为原子迁移目标，并新增跨平台回归测试；这修复的是实际开发者校验链路，不是 CI 特判。
+- 验证器同时观察异步安装 operation 与应用列表：operation 失败会立即报告稳定状态和错误，不再空等列表超时；workflow dispatch 支持 `darwin-arm64`、`linux-x64`、`win32-x64` 单目标恢复，完整三平台矩阵仍是最终合入门。
 - 文档站构建与中英文同步检查通过；`git diff --check` 通过。
 
 ## 发布/部署方式
