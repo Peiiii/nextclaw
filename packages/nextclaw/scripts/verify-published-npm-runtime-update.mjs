@@ -93,7 +93,7 @@ async function verifyPublishedStableRelease(argv) {
     return;
   }
   const fixture = await createPublishedInstallFixture(
-    `nextclaw@${expectedVersion}`,
+    resolveStablePackageTarball(expectedVersion),
     `stable-${expectedVersion}`,
   );
   try {
@@ -114,7 +114,7 @@ async function verifyPreviousStableUpdate(previousVersion, expectedVersion) {
     "--previous-version must differ from --expected-version",
   );
   const fixture = await createPublishedInstallFixture(
-    `nextclaw@${previousVersion}`,
+    resolveStablePackageTarball(previousVersion),
     `stable-upgrade-${previousVersion}`,
   );
   try {
@@ -122,6 +122,14 @@ async function verifyPreviousStableUpdate(previousVersion, expectedVersion) {
   } finally {
     rmSync(fixture.tempRoot, { recursive: true, force: true });
   }
+}
+
+function resolveStablePackageTarball(version) {
+  assert(
+    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version),
+    `invalid stable package version: ${version}`,
+  );
+  return `https://registry.npmjs.org/nextclaw/-/nextclaw-${version}.tgz`;
 }
 
 async function createPublishedInstallFixture(packageSpec, label) {
