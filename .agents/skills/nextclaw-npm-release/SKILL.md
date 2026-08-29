@@ -19,10 +19,11 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 ## 永久合同
 
 - 使用仓库 release flow，不以包目录 raw `npm publish` 作为默认路径。
-- 正式发布默认低 Token 全自动闭环：一次意图判断和 dispatch 后，由 Actions 完成构建、发布、验证与 Git 回流；AI 不在本地重复编排。
+- 正式发布只 dispatch 一次 parent；Actions 独立闭合构建、发布、传播、真实升级验证、终态与 Git 回流，任何观察者在线都不是完成条件。
+- 只调用仓库 owning entry；禁止临时拼装安装、验证、轮询或恢复，下游失败走 exact-stage 幂等恢复且不重发既有 identity。
 - 完整跨平台矩阵只作最终准入，不作调试。失败先用本地定向、失败步骤/单平台或最终产物实机验证；合同通过后再跑完整矩阵，复用成功产物和已发布 identity。
 - dispatch 前审计同 workflow 的 queued/in-progress run；旧 SHA 的失效队列经精确核对后取消。dispatch 后必须立即取得新 run ID、target 与 head SHA；没有这组证据就不算已触发。
-- 等待使用产品 wait/automation 或至少两分钟一次的有界状态检查；禁止 `nohup` 等无法确认结果的 fire-and-forget，也不使用持续刷新的 `gh run watch`。状态未变化时不分析、不播报。
+- Actions 可等待 child；Agent 观察不参与状态迁移，只对 parent 使用一次有界 wait 并读取最终 summary，禁止轮询、逐 step 监控或本地 `gh run watch`。
 - 成功 job 不读日志；失败或异常时只读失败步骤附近的最小日志。最终一次性报告 identity、状态和验证证据。
 - `nextclaw` 是已发布 workspace 依赖闭包和嵌入 UI/runtime 产物的产品包，不只看自身版本。
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
@@ -36,8 +37,8 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 
 - “发 NPM”、`/发布NPM`：dispatch `release.yml` 的 `target=npm`，只闭合 stable NPM，完成点 `NPM_READY`。
 - “发 NPM beta”、`/发布NPM测试版`：`pnpm release:npm:beta`，只闭合 beta NPM，完成点 `NPM_READY (channel: beta)`。
-- “发布 NextClaw 正式版”、`/发布NextClaw正式版`：dispatch `release.yml` 的 `target=product`，先报告 `NPM_READY`，再闭合 runtime/product，完成点 `NEXTCLAW_STABLE_READY`；desktop 明确排除。
-- “发布 NextClaw 全平台版”单次 dispatch `release.yml` 的 `target=all`；父 workflow 在常规 stable 成功后调用 desktop owner，最终报告 `ALL_PLATFORMS_READY`。Delivery 只触发和监控，不在本地编排阶段。
+- “发布 NextClaw 正式版”、`/发布NextClaw正式版`：一次 dispatch `release.yml target=product`，完成点 `NEXTCLAW_STABLE_READY`；desktop 排除。
+- “发布 NextClaw 全平台版”：一次 dispatch `target=all`，父 workflow 再调用 desktop owner，完成点 `ALL_PLATFORMS_READY`。
 
 发布开始先报告 `EXISTING_RELEASE_PATH`，再报告版本变化包数、上传包数、验证闭包和排除表面：
 
@@ -56,7 +57,7 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 
 Stable NPM-only、常规产品与全平台正式入口统一为 GitHub Actions `release.yml`，分别使用 `target=npm|product|all`；Beta NPM-only 仍使用 `pnpm release:npm:beta`。本地 `release:npm:stable`、`release:product:stable`、旧 `release:stable`、`release:beta:npm` 与 full-beta `release:beta` 保留为 dry-run、诊断、兼容和恢复原语；仅 channel 用 `release:beta:runtime` / `release:stable:runtime`。恢复已发布 stable 时使用 `release:stable -- --resume-from <git|runtime|install> --version <version>`，不得重复 publish。
 
-Stable 正式发布采用 prepare/publish 两阶段，但用户语义仍只有一次发布。release-bearing `master` push 由 `npm-release-prepare` 为 exact commit 提前生成不可变 artifact；授权后 `release.yml` 只消费匹配 artifact，缺失时快速失败且不回退慢链路。`NPM_READY` 仍以 registry identity、公开 payload 与 Git 闭环为准；性能超时只进入复盘，不诱发重复发布。
+Stable 使用 prepare/promotion：`master` push 预生成 exact versioned NPM tree 与四平台 Runtime；`release.yml` 只消费匹配 source/version 的产物，缺失时 fail closed。Promotion 预算两分钟，超时只复盘，不新增人工分支。
 
 Stable 只使用已验收的认证路径，当前为 `npm-production` environment 的 `NPM_TOKEN`。Trusted Publishing 必须在全部包完成配置、canary publish 和 registry identity 验证后单独切换；传统 token 诊断先确认实际 userconfig，再用同一配置验证，不能把错误配置的 401/404 当作权限结论。
 

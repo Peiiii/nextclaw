@@ -6,7 +6,10 @@ import {
   assertPublishedDesktopRuntimeIdentity,
   selectPreflightWorkflowRun
 } from "./desktop-release-preflight.mjs";
-import { selectRuntimeWorkflowRun } from "./release-beta-runtime.mjs";
+import {
+  selectPreparedRuntimeWorkflowRun,
+  selectRuntimeWorkflowRun,
+} from "./release-beta-runtime.mjs";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
 
 test("workflow dispatch selectors use unique caller identity instead of mutable branch head", () => {
@@ -27,6 +30,15 @@ test("workflow dispatch selectors use unique caller identity instead of mutable 
   ];
   assert.equal(selectPreflightWorkflowRun(runs, "mine", startedAt)?.headSha, "new-master");
   assert.equal(selectRuntimeWorkflowRun(runs, "mine", startedAt)?.headSha, "new-master");
+});
+
+test("stable Runtime promotion selects only the completed exact-source prepare run", () => {
+  const runs = [
+    { headSha: "wanted", status: "in_progress", conclusion: "", databaseId: 1 },
+    { headSha: "other", status: "completed", conclusion: "success", databaseId: 2 },
+    { headSha: "wanted", status: "completed", conclusion: "success", databaseId: 3 },
+  ];
+  assert.equal(selectPreparedRuntimeWorkflowRun(runs, "wanted")?.databaseId, 3);
 });
 
 test("published runtime identity retries unavailable registry reads without calling them missing", () => {
@@ -96,6 +108,12 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(prepare, /group: npm-release-prepare-\$\{\{ inputs\.source_sha \|\| github\.sha \}\}/);
   assert.match(prepare, /cancel-in-progress: false/);
   assert.match(prepare, /name: npm-release-prepared-\$\{\{ env\.NPM_RELEASE_SOURCE_SHA \}\}/);
+  assert.match(prepare, /uses: \.\/\.github\/workflows\/npm-runtime-update-release\.yml/);
+  assert.match(prepare, /publish: false/);
+  assert.match(runtime, /prepared_run_id:/);
+  assert.match(runtime, /run-id: \$\{\{ inputs\.prepared_run_id \}\}/);
+  assert.match(runtime, /Verify prepared Runtime identity and completeness/);
+  assert.match(release, /--prepared-source-sha "\$\{\{ github\.sha \}\}"/);
   assert.match(release, /timeout-minutes: 45/);
   assert.match(release, /actions: write/);
 });

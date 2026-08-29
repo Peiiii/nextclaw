@@ -6,6 +6,10 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
 import { readCoreReleaseNotes } from "./release-core-notes.mjs";
+import {
+  PREPARED_NPM_WORKFLOW,
+  selectPreparedNpmWorkflowRun,
+} from "./prepared-npm-release-artifact.mjs";
 
 const ROOT_DIR = process.cwd();
 const REPO = "Peiiii/nextclaw";
@@ -30,6 +34,7 @@ Options:
   --branch <branch>                     Override the git branch used for workflow dispatch
   --version <version>                   Override the nextclaw version to publish to the runtime channel
   --release-tag <tag>                   Override the GitHub release tag used for runtime bundle assets
+  --prepared-source-sha <sha>           Require and promote Runtime artifacts from this exact prepared source
   --minimum-launcher-version-override <version>
                                         Recovery-only runtime manifest floor override
   --help                                Show this help
@@ -51,6 +56,7 @@ function parseArgs(argv) {
     dryRun: false,
     help: false,
     minimumLauncherVersionOverride: null,
+    preparedSourceSha: null,
     releaseTag: null,
     version: null,
   };
@@ -79,6 +85,10 @@ function parseArgs(argv) {
         break;
       case "--release-tag":
         options.releaseTag = normalizedArgv[index + 1] ?? null;
+        index += 1;
+        break;
+      case "--prepared-source-sha":
+        options.preparedSourceSha = normalizedArgv[index + 1] ?? null;
         index += 1;
         break;
       case "--minimum-launcher-version-override":
@@ -194,6 +204,8 @@ function triggerRuntimeWorkflow({
   releaseTag,
   releaseTarget,
   dispatchId,
+  preparedRunId,
+  preparedSourceSha,
 }) {
   const args = [
     "workflow",
@@ -212,6 +224,12 @@ function triggerRuntimeWorkflow({
     "-f",
     `dispatch_id=${dispatchId}`,
   ];
+  if (preparedRunId) {
+    args.push("-f", `prepared_run_id=${preparedRunId}`);
+  }
+  if (preparedSourceSha) {
+    args.push("-f", `prepared_source_sha=${preparedSourceSha}`);
+  }
   if (minimumLauncherVersionOverride) {
     args.push(
       "-f",
@@ -219,6 +237,33 @@ function triggerRuntimeWorkflow({
     );
   }
   run("gh", args);
+}
+
+export function selectPreparedRuntimeWorkflowRun(runs, sourceCommit) {
+  return selectPreparedNpmWorkflowRun(runs, sourceCommit);
+}
+
+function resolvePreparedRuntimeWorkflowRun(sourceCommit) {
+  if (!sourceCommit) return null;
+  const runs = readJsonCommand("gh", [
+    "run",
+    "list",
+    "--repo",
+    REPO,
+    "--workflow",
+    PREPARED_NPM_WORKFLOW,
+    "--limit",
+    "50",
+    "--json",
+    "databaseId,createdAt,displayTitle,event,headSha,status,conclusion,url",
+  ]);
+  const runEntry = selectPreparedRuntimeWorkflowRun(runs, sourceCommit);
+  if (!runEntry) {
+    throw new Error(
+      `Stable Runtime promotion requires a successful ${PREPARED_NPM_WORKFLOW} run for exact source ${sourceCommit}.`,
+    );
+  }
+  return runEntry;
 }
 
 function watchWorkflowRun(runId) {
@@ -286,6 +331,7 @@ function buildDryRunPlan({
   nextclawVersion,
   releaseTag,
   minimumLauncherVersionOverride,
+  preparedSourceSha,
 }) {
   return [
     `- channel: ${channel}`,
@@ -295,6 +341,9 @@ function buildDryRunPlan({
     minimumLauncherVersionOverride
       ? `- minimum launcher version override: ${minimumLauncherVersionOverride}`
       : "- minimum launcher version override: none",
+    preparedSourceSha
+      ? `- prepared Runtime source: ${preparedSourceSha}`
+      : "- prepared Runtime source: cold-build fallback",
     "- trigger npm-runtime-update-release workflow only",
     "- wait for workflow success",
     `- verify GitHub release metadata, assets, gh-pages manifests, and public ${channel} manifests`,
@@ -326,6 +375,7 @@ async function main() {
     options.releaseTag?.trim() || `nextclaw@${nextclawVersion}`;
   const expectedReleaseNotesUrl =
     channel === "stable" ? readStableReleaseNotesUrl(nextclawVersion) : null;
+  const preparedSourceSha = options.preparedSourceSha?.trim() || null;
 
   if (options.dryRun) {
     console.log(`release:${channel}:runtime dry run`);
@@ -336,10 +386,13 @@ async function main() {
         nextclawVersion,
         releaseTag,
         minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
+        preparedSourceSha,
       }).join("\n"),
     );
     return;
   }
+
+  const preparedRun = resolvePreparedRuntimeWorkflowRun(preparedSourceSha);
 
   const runtimeRunSummary = await dispatchAndWaitRuntimeWorkflow({
     branch,
@@ -347,6 +400,8 @@ async function main() {
     minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
     releaseTag,
     releaseTarget,
+    preparedRunId: preparedRun?.databaseId ?? null,
+    preparedSourceSha,
   });
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(
     releaseTag,

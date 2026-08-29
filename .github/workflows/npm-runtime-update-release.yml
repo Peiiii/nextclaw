@@ -2,6 +2,41 @@ name: npm-runtime-update-release
 run-name: npm-runtime-update-release target=${{ inputs.release_target }} dispatch=${{ inputs.dispatch_id }}
 
 on:
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+      minimum_launcher_version_override:
+        required: false
+        type: string
+      channel:
+        required: true
+        type: string
+      release_target:
+        required: true
+        type: string
+      dispatch_id:
+        required: true
+        type: string
+      publish:
+        required: false
+        default: false
+        type: boolean
+      prepared_npm_artifact_name:
+        required: false
+        type: string
+      prepared_run_id:
+        required: false
+        type: string
+      prepared_source_sha:
+        required: false
+        type: string
+    secrets:
+      NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY:
+        required: false
+      NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY:
+        required: false
   workflow_dispatch:
     inputs:
       release_tag:
@@ -28,9 +63,30 @@ on:
         description: "Unique caller identity used to locate this exact dispatch"
         required: true
         type: string
+      publish:
+        description: "Publish prepared Runtime artifacts after building"
+        required: false
+        default: true
+        type: boolean
+      prepared_npm_artifact_name:
+        description: "Same-run exact-source NPM artifact used to materialize the versioned release tree"
+        required: false
+        type: string
+      prepared_run_id:
+        description: "Exact npm-release-prepare run containing prebuilt Runtime artifacts"
+        required: false
+        type: string
+      prepared_source_sha:
+        description: "Exact source SHA bound to the prepared Runtime artifacts"
+        required: false
+        type: string
 
 permissions:
+  actions: read
   contents: write
+
+  # Stable release uses a prebuilt exact-source run. Beta and explicit recovery
+  # may still execute the matrix in this workflow.
 
 env:
   NPM_RUNTIME_RELEASE_TAG: ${{ inputs.release_tag }}
@@ -41,6 +97,7 @@ env:
 jobs:
   build-npm-runtime-update:
     name: npm-runtime-${{ matrix.platform }}-${{ matrix.arch }}
+    if: ${{ !inputs.prepared_run_id }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 50
     strategy:
@@ -80,6 +137,24 @@ jobs:
         with:
           version: 9.15.1
 
+      - name: Download exact-source prepared NPM tree
+        if: ${{ inputs.prepared_npm_artifact_name != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.prepared_npm_artifact_name }}
+          path: ${{ runner.temp }}/npm-release-prepared
+
+      - name: Materialize the versioned release tree
+        if: ${{ inputs.prepared_npm_artifact_name != '' }}
+        shell: bash
+        env:
+          PREPARED_NPM_ARTIFACT_DIR: ${{ runner.temp }}/npm-release-prepared
+        run: >-
+          node --input-type=module -e
+          "import { importPreparedNpmReleaseArtifact } from './scripts/release/prepared-npm-release-artifact.mjs';
+          importPreparedNpmReleaseArtifact({ artifactDirectory: process.env.PREPARED_NPM_ARTIFACT_DIR,
+          registry: 'https://registry.npmjs.org', rootDir: process.cwd(), targetBranch: 'master' });"
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -108,7 +183,6 @@ jobs:
           release_notes_url="https://github.com/${{ github.repository }}/releases/tag/${NPM_RUNTIME_RELEASE_TAG}"
           if [ "$NPM_RUNTIME_UPDATE_CHANNEL" = "stable" ]; then
             runtime_version="$(node -p "require('./packages/nextclaw/package.json').version")"
-            release_notes_json="apps/docs/public/release-notes/nextclaw-v${runtime_version}.json"
             release_notes_url="$(node scripts/release/release-core-notes.mjs --version "$runtime_version" --format url)"
           fi
 
@@ -135,8 +209,14 @@ jobs:
         run: |
           set -euo pipefail
           runner="packages/nextclaw/resources/native/linux-x64/nextclaw-wasmtime-runner"
-          ! readelf -l "$runner" | grep -q 'Requesting program interpreter'
-          ! readelf -d "$runner" | grep -q '(NEEDED)'
+          if readelf -l "$runner" | grep -q 'Requesting program interpreter'; then
+            echo "Linux runner unexpectedly requests a dynamic interpreter."
+            exit 1
+          fi
+          if readelf -d "$runner" | grep -q '(NEEDED)'; then
+            echo "Linux runner unexpectedly declares dynamic dependencies."
+            exit 1
+          fi
 
       - name: Verify real HTTP enable and component lifecycle
         run: pnpm -C packages/nextclaw validation:portable-runtime-http
@@ -144,27 +224,60 @@ jobs:
       - name: Upload NPM runtime update artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: npm-runtime-update-${{ matrix.platform }}-${{ matrix.arch }}
+          name: npm-runtime-prepared-${{ inputs.prepared_source_sha || inputs.release_target }}-${{ matrix.platform }}-${{ matrix.arch }}
           if-no-files-found: error
           path: |
             packages/nextclaw/dist/npm-runtime-updates
 
   publish-npm-runtime-update-channel:
     needs: [build-npm-runtime-update]
+    if: ${{ always() && inputs.publish && (inputs.prepared_run_id != '' || needs.build-npm-runtime-update.result == 'success') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Start Runtime promotion timing
+        shell: bash
+        run: echo "NPM_RUNTIME_PROMOTION_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release_target }}
-          fetch-depth: 0
+          fetch-depth: 1
 
-      - name: Download NPM runtime update artifacts
+      - name: Download same-run NPM runtime update artifacts
+        if: ${{ inputs.prepared_run_id == '' }}
         uses: actions/download-artifact@v4
         with:
-          pattern: npm-runtime-update-*
+          pattern: npm-runtime-prepared-*
           path: dist/npm-runtime-updates
           merge-multiple: true
+
+      - name: Download exact prepared Runtime artifacts
+        if: ${{ inputs.prepared_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.prepared_run_id }}
+          pattern: npm-runtime-prepared-${{ inputs.prepared_source_sha }}-*
+          path: dist/npm-runtime-updates
+          merge-multiple: true
+
+      - name: Verify prepared Runtime identity and completeness
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_version="${NPM_RUNTIME_RELEASE_TAG#nextclaw@}"
+          expected_targets=(darwin-arm64 darwin-x64 linux-x64 win32-x64)
+          for target in "${expected_targets[@]}"; do
+            manifest="dist/npm-runtime-updates/${NPM_RUNTIME_UPDATE_CHANNEL}/manifest-${NPM_RUNTIME_UPDATE_CHANNEL}-${target}.json"
+            test -f "$manifest"
+            jq -e \
+              --arg version "$expected_version" \
+              --arg channel "$NPM_RUNTIME_UPDATE_CHANNEL" \
+              '.latestVersion == $version and .channel == $channel and .hostKind == "npm-runtime-bundle"' \
+              "$manifest" >/dev/null
+          done
 
       - name: Publish NPM runtime release metadata
         shell: bash
@@ -242,3 +355,23 @@ jobs:
           fi
           git -C .tmp/gh-pages commit -m "chore: publish npm runtime update channel"
           git -C .tmp/gh-pages push origin HEAD:gh-pages
+
+      - name: Record Runtime promotion timing
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          elapsed_seconds=$(( $(date +%s) - NPM_RUNTIME_PROMOTION_STARTED_AT ))
+          budget_status="met"
+          if [ "$elapsed_seconds" -gt 120 ]; then
+            budget_status="missed"
+          fi
+          {
+            echo "## nextclaw.runtime-promotion/v1"
+            echo
+            echo "- source: ${{ inputs.prepared_source_sha || inputs.release_target }}"
+            echo "- release: $NPM_RUNTIME_RELEASE_TAG"
+            echo "- elapsed_seconds: $elapsed_seconds"
+            echo "- budget_seconds: 120"
+            echo "- budget_status: $budget_status"
+          } >> "$GITHUB_STEP_SUMMARY"

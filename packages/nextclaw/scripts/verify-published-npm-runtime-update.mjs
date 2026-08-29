@@ -1,5 +1,14 @@
 import { spawnSync } from "node:child_process";
-import { accessSync, constants, existsSync, mkdirSync, rmSync } from "node:fs";
+import {
+  accessSync,
+  constants,
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -10,6 +19,9 @@ import { UiDistPrecompressionManager } from "./managers/ui-dist-precompression.m
 
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const workspaceRoot = resolve(packageRoot, "../..");
+const REPO = "Peiiii/nextclaw";
+const REGISTRY_VISIBILITY_ATTEMPTS = 6;
+const REGISTRY_VISIBILITY_RETRY_MS = 5_000;
 
 function readArgValue(argv, name) {
   const index = argv.indexOf(name);
@@ -51,6 +63,40 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+export function readVersionOutput(stdout, description) {
+  const versions = stdout
+    .replaceAll("\r", "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(line));
+  const version = versions.at(-1);
+  assert(version, `${description} did not print a semantic version:\n${stdout.trim()}`);
+  return version;
+}
+
+export function isRegistryVisibilityError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /\b(?:ETARGET|E404)\b|No matching version found|Not Found/i.test(message);
+}
+
+export function resolvePublishedRuntimeAsset(version, platform, arch) {
+  assert(
+    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version),
+    `invalid published Runtime version: ${version}`,
+  );
+  const assetName = `nextclaw-runtime-${platform}-${arch}-${version}.zip`;
+  const releaseTag = `nextclaw@${version}`;
+  return {
+    assetName,
+    releaseTag,
+    url: `https://github.com/${REPO}/releases/download/${releaseTag}/${assetName}`,
+  };
+}
+
+function sleep(ms) {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
 export async function runPublishedNpmRuntimeUpdateValidation(argv) {
@@ -138,23 +184,38 @@ async function createPublishedInstallFixture(packageSpec, label) {
   );
   const prefix = join(tempRoot, "prefix");
   mkdirSync(prefix, { recursive: true });
-  run(
-    "npm",
-    [
-      "install",
-      "-g",
-      packageSpec,
-      "--prefix",
-      prefix,
-      "--no-audit",
-      "--no-fund",
-      "--prefer-offline",
-    ],
-    {
-      cwd: tempRoot,
-      timeout: 300000,
-    },
-  );
+  const installArgs = [
+    "install",
+    "-g",
+    packageSpec,
+    "--prefix",
+    prefix,
+    "--no-audit",
+    "--no-fund",
+    "--prefer-online",
+  ];
+  const installOptions = {
+    cwd: tempRoot,
+    env: { npm_config_cache: join(tempRoot, "npm-cache") },
+    timeout: 300000,
+  };
+  for (let attempt = 1; attempt <= REGISTRY_VISIBILITY_ATTEMPTS; attempt += 1) {
+    try {
+      run("npm", installArgs, installOptions);
+      break;
+    } catch (error) {
+      if (
+        attempt === REGISTRY_VISIBILITY_ATTEMPTS ||
+        !isRegistryVisibilityError(error)
+      ) {
+        throw error;
+      }
+      log(
+        `registry metadata is not visible yet; retrying install (${attempt}/${REGISTRY_VISIBILITY_ATTEMPTS})`,
+      );
+      await sleep(REGISTRY_VISIBILITY_RETRY_MS);
+    }
+  }
   return {
     binaryPath: join(prefix, "bin/nextclaw"),
     packageDirectory: join(prefix, "lib/node_modules/nextclaw"),
@@ -223,14 +284,9 @@ function verifyPublishedStableInstall(fixture, expectedVersion) {
 }
 
 function verifyPublishedPackagePayload(fixture, expectedVersion) {
-  const installedVersion = run(fixture.binaryPath, ["--version"], {
-    cwd: fixture.packageDirectory,
-    env: {
-      NEXTCLAW_HOME: fixture.nextclawHome,
-      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
-    },
-    timeout: 300000,
-  }).stdout.trim();
+  const installedVersion = JSON.parse(
+    readFileSync(join(fixture.packageDirectory, "package.json"), "utf8"),
+  ).version;
   assert(
     installedVersion === expectedVersion,
     `expected nextclaw ${expectedVersion}, got ${installedVersion}`,
@@ -289,11 +345,56 @@ function parsePublishedLauncherJson(fixture, args) {
   }
 }
 
+function seedPreviousPublishedRuntime(fixture, previousVersion) {
+  const asset = resolvePublishedRuntimeAsset(
+    previousVersion,
+    process.platform,
+    process.arch,
+  );
+  const downloadPath = join(fixture.tempRoot, asset.assetName);
+  const extractPath = join(fixture.tempRoot, "previous-runtime");
+  run("curl", ["--fail", "--location", "--output", downloadPath, asset.url], {
+    cwd: fixture.tempRoot,
+    timeout: 300000,
+  });
+  run("unzip", ["-q", downloadPath, "-d", extractPath], {
+    cwd: fixture.tempRoot,
+    timeout: 300000,
+  });
+  const sourceBundle = join(extractPath, "bundle");
+  const manifest = JSON.parse(
+    readFileSync(join(sourceBundle, "manifest.json"), "utf8"),
+  );
+  assert(
+    manifest.runtimeVersion === previousVersion &&
+      manifest.platform === process.platform &&
+      manifest.arch === process.arch,
+    `previous Runtime asset identity mismatch: ${JSON.stringify(manifest)}`,
+  );
+  const bundleDirectory = join(
+    fixture.nextclawHome,
+    "launcher",
+    "runtime-bundles",
+    "versions",
+    previousVersion,
+  );
+  mkdirSync(bundleDirectory, { recursive: true });
+  cpSync(sourceBundle, bundleDirectory, { recursive: true, force: true });
+  const pointerPath = join(
+    fixture.nextclawHome,
+    "launcher",
+    "runtime-bundles",
+    "current.json",
+  );
+  writeFileSync(pointerPath, `${JSON.stringify({ version: previousVersion }, null, 2)}\n`);
+}
+
 function verifyPublishedStableUpdate(
   fixture,
   previousVersion,
   expectedVersion,
 ) {
+  seedPreviousPublishedRuntime(fixture, previousVersion);
   const checkSnapshot = parsePublishedLauncherJson(fixture, [
     "update",
     "--channel",
@@ -327,8 +428,9 @@ function verifyPublishedStableUpdate(
     downloadedSnapshot.status === "downloaded",
     `expected downloaded, got ${downloadedSnapshot.status}`,
   );
+  const pointerBeforeApply = JSON.parse(readFileSync(currentPointerPath, "utf8"));
   assert(
-    !existsSync(currentPointerPath),
+    pointerBeforeApply.version === previousVersion,
     "download-only unexpectedly switched the current runtime pointer",
   );
 
@@ -346,14 +448,17 @@ function verifyPublishedStableUpdate(
     "apply did not create the current runtime pointer",
   );
 
-  const upgradedVersion = run(fixture.binaryPath, ["--version"], {
-    cwd: fixture.packageDirectory,
-    env: {
-      NEXTCLAW_HOME: fixture.nextclawHome,
-      PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
-    },
-    timeout: 300000,
-  }).stdout.trim();
+  const upgradedVersion = readVersionOutput(
+    run(fixture.binaryPath, ["--version"], {
+      cwd: fixture.packageDirectory,
+      env: {
+        NEXTCLAW_HOME: fixture.nextclawHome,
+        PATH: `${fixture.prefix}/bin:${process.env.PATH ?? ""}`,
+      },
+      timeout: 300000,
+    }).stdout,
+    "updated nextclaw runtime",
+  );
   assert(
     upgradedVersion === expectedVersion,
     `expected upgraded runtime ${expectedVersion}, got ${upgradedVersion}`,

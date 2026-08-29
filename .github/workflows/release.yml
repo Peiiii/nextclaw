@@ -133,7 +133,7 @@ jobs:
           node-version: 22.14.0
           cache: pnpm
 
-      - name: Install release toolchain
+      - name: Install release verification toolchain
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Publish and verify stable Runtime channel
@@ -142,6 +142,7 @@ jobs:
         run: >-
           pnpm release:stable:runtime --
           --branch master
+          --prepared-source-sha "${{ github.sha }}"
           --version "${{ needs.publish-npm.outputs.target_version }}"
           --release-tag "nextclaw@${{ needs.publish-npm.outputs.target_version }}"
 

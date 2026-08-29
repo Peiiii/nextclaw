@@ -17,6 +17,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -31,6 +32,9 @@ jobs:
     name: prepare exact-commit NPM artifact
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      ready: ${{ steps.release-batch.outputs.ready }}
+      target_version: ${{ steps.release-identity.outputs.target_version }}
     steps:
       - name: Checkout exact source commit
         uses: actions/checkout@v4
@@ -76,6 +80,17 @@ jobs:
           --target-branch master
           --artifact-output "${{ runner.temp }}/npm-release-prepared"
 
+      - name: Read prepared release identity
+        if: steps.release-batch.outputs.ready == 'true'
+        id: release-identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          target_version="$(jq -r '.targetVersion' "${{ runner.temp }}/npm-release-prepared/artifact.json")"
+          test -n "$target_version"
+          test "$target_version" != "null"
+          echo "target_version=$target_version" >> "$GITHUB_OUTPUT"
+
       - name: Upload exact-commit prepared artifact
         if: steps.release-batch.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
@@ -84,3 +99,18 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: ${{ runner.temp }}/npm-release-prepared
+
+  prepare-runtime:
+    name: prepare exact-commit Runtime artifacts
+    needs: prepare
+    if: ${{ needs.prepare.outputs.ready == 'true' }}
+    uses: ./.github/workflows/npm-runtime-update-release.yml
+    with:
+      channel: stable
+      dispatch_id: prepare-${{ inputs.source_sha || github.sha }}
+      prepared_npm_artifact_name: npm-release-prepared-${{ inputs.source_sha || github.sha }}
+      prepared_source_sha: ${{ inputs.source_sha || github.sha }}
+      publish: false
+      release_tag: nextclaw@${{ needs.prepare.outputs.target_version }}
+      release_target: ${{ inputs.source_sha || github.sha }}
+    secrets: inherit
