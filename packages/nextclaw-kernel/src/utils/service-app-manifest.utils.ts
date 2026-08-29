@@ -8,9 +8,11 @@ import {
 } from "@nextclaw/app-runtime";
 import type {
   ServiceActionRisk,
+  ServiceAppExternalRemediation,
   ServiceAppLifecycle,
   ServiceAppManifest,
   ServiceAppManifestAction,
+  ServiceAppRequirements,
 } from "@kernel/types/service-app.types.js";
 
 const SERVICE_APP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -92,7 +94,106 @@ export function parseServiceAppManifest(
     componentEntry,
     providerIds: readProviderIds(parsed.providers),
     lifecycle,
+    requires: readServiceAppRequirements(parsed.requires),
     actions: readManifestActions(parsed.actions),
+  };
+}
+
+function readServiceAppRequirements(value: unknown): ServiceAppRequirements | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    throw new Error("service app requires must be an object.");
+  }
+  const capabilities = readCapabilityRequirements(value.capabilities);
+  const resources = readResourceRequirements(value.resources);
+  return capabilities || resources ? { capabilities, resources } : undefined;
+}
+
+function readCapabilityRequirements(
+  value: unknown,
+): ServiceAppRequirements["capabilities"] {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error("service app requires.capabilities must be an array.");
+  }
+  const seen = new Set<string>();
+  return value.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`service app requires.capabilities[${index}] must be an object.`);
+    }
+    const id = readRequirementIdentifier(entry, "id", `requires.capabilities[${index}].id`);
+    const version = readOptionalString(entry, "version");
+    const key = `${id}@${version ?? "*"}`;
+    if (seen.has(key)) {
+      throw new Error(`service app requires.capabilities contains duplicate ${key}.`);
+    }
+    seen.add(key);
+    return {
+      id,
+      version,
+      title: readOptionalString(entry, "title"),
+      description: readOptionalString(entry, "description"),
+      remediation: readExternalRemediation(entry.remediation, `requires.capabilities[${index}]`),
+    };
+  });
+}
+
+function readResourceRequirements(
+  value: unknown,
+): ServiceAppRequirements["resources"] {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error("service app requires.resources must be an array.");
+  }
+  const seen = new Set<string>();
+  return value.map((entry, index) => {
+    if (!isRecord(entry)) {
+      throw new Error(`service app requires.resources[${index}] must be an object.`);
+    }
+    const binding = readRequirementIdentifier(entry, "binding", `requires.resources[${index}].binding`);
+    if (seen.has(binding)) {
+      throw new Error(`service app requires.resources contains duplicate binding ${binding}.`);
+    }
+    seen.add(binding);
+    return {
+      binding,
+      type: readRequirementIdentifier(entry, "type", `requires.resources[${index}].type`),
+      required: readOptionalBoolean(entry, "required") ?? true,
+      title: readOptionalString(entry, "title"),
+      description: readOptionalString(entry, "description"),
+      remediation: readExternalRemediation(entry.remediation, `requires.resources[${index}]`),
+    };
+  });
+}
+
+function readRequirementIdentifier(
+  record: Record<string, unknown>,
+  key: string,
+  fieldName: string,
+): string {
+  const value = readOptionalString(record, key);
+  if (!value || !/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/.test(value)) {
+    throw new Error(`service app ${fieldName} must be a lowercase identifier.`);
+  }
+  return value;
+}
+
+function readExternalRemediation(
+  value: unknown,
+  fieldPrefix: string,
+): ServiceAppExternalRemediation | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value) || value.kind !== "agent-setup") {
+    throw new Error(`service app ${fieldPrefix}.remediation.kind must be agent-setup.`);
+  }
+  const summary = readOptionalString(value, "summary");
+  if (!summary) {
+    throw new Error(`service app ${fieldPrefix}.remediation.summary is required.`);
+  }
+  return {
+    kind: "agent-setup",
+    summary,
+    requiresUserAction: readOptionalBoolean(value, "requiresUserAction"),
   };
 }
 

@@ -15,9 +15,14 @@ members = [
 
 [dependencies]
 anyhow = "1.0"
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+spin-app = { git = "https://github.com/spinframework/spin", tag = "v4.0.2" }
+spin-core = { git = "https://github.com/spinframework/spin", tag = "v4.0.2" }
+spin-factor-wasi = { git = "https://github.com/spinframework/spin", tag = "v4.0.2" }
+spin-factors = { git = "https://github.com/spinframework/spin", tag = "v4.0.2" }
+spin-factors-executor = { git = "https://github.com/spinframework/spin", tag = "v4.0.2" }
+tokio = { version = "1", features = ["macros", "rt", "io-std", "io-util"] }
 url = "2.5"
-wasmtime = { version = "44.0", features = ["component-model"] }
-wasmtime-wasi = "44.0"
+wasmtime = { version = "44.0", features = ["component-model-async"] }

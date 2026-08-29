@@ -170,7 +170,7 @@ export class AppPackagesRoutesController {
     if (isAppPackageError(error)) {
       const status = error.code === "APP_PACKAGE_NOT_FOUND"
         ? 404
-        : error.code === "APP_PACKAGE_CONFLICT"
+        : error.code === "APP_PACKAGE_CONFLICT" || error.code === "APP_PACKAGE_NOT_READY"
           ? 409
           : 400;
       return c.json(err(error.code, error.message), status);

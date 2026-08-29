@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   appDataError: false,
   enabled: false,
   includePackageStorageUsage: true,
+  readinessStatus: 'ready' as 'ready' | 'needs-capability' | 'needs-configuration',
   grantClient: vi.fn(),
   lifecycleMutate: vi.fn(),
   lifecycleReset: vi.fn(),
@@ -118,6 +119,18 @@ vi.mock('@/features/apps/hooks/use-app-packages', () => ({
         isolation: 'full-user',
         name: 'Personal Space',
         primaryPanelId: 'nextclaw-personal-organizer-todos',
+        readiness: mocks.readinessStatus === 'ready'
+          ? { status: 'ready' as const, requirements: [] }
+          : {
+              status: mocks.readinessStatus,
+              requirements: [{
+                componentId: 'nextclaw-personal-organizer-data',
+                kind: mocks.readinessStatus === 'needs-capability' ? 'capability' as const : 'configuration' as const,
+                id: 'shared-cache',
+                title: 'Shared workspace connection',
+                description: 'Keeps your team data in sync.',
+              }],
+            },
         runtimeProfile: 'native-process',
         storage: createStorageFixture(),
         storageUsage: mocks.includePackageStorageUsage ? createUsageFixture() : undefined,
@@ -247,6 +260,7 @@ describe('AppPackagesPanel', () => {
     mocks.appDataError = false;
     mocks.enabled = false;
     mocks.includePackageStorageUsage = true;
+    mocks.readinessStatus = 'ready';
     mocks.grantClient.mockReset();
     mocks.lifecycleMutate.mockReset();
     mocks.lifecycleReset.mockReset();
@@ -279,6 +293,17 @@ describe('AppPackagesPanel', () => {
       { action: 'enable', appId: 'nextclaw.personal-organizer' },
       { onSuccess: undefined },
     );
+  });
+
+  it('explains missing external setup and does not offer an unusable enable action', () => {
+    mocks.readinessStatus = 'needs-configuration';
+
+    render(<AppPackagesPanel onOpenPanelApp={mocks.onOpen} />);
+
+    expect(screen.getByText('Needs setup')).toBeTruthy();
+    expect(screen.getByText(/Shared workspace connection/)).toBeTruthy();
+    expect(screen.getByText(/Keeps your team data in sync/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Enable' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('scrolls and transfers focus to a package selected from Service Apps', async () => {

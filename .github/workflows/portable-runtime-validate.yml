@@ -81,7 +81,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.94.1
         with:
           targets: wasm32-wasip2,${{ matrix.cargo_target }}
 
@@ -99,6 +99,9 @@ jobs:
 
       - name: Build native runner and universal Components
         run: node apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+
+      - name: Verify native runner Factor and lifecycle contract
+        run: node apps/nextclaw-wasmtime-runner/tools/spin-runner-smoke.tools.mjs
 
       - name: Run native runner tests
         working-directory: apps/nextclaw-wasmtime-runner

@@ -4,16 +4,16 @@
 
 **Goal：** 分阶段证明并交付一个 Rust-first、低增量内存、单主要 artifact、可授权并接入现有 Service App 主链的 Portable Capability Runtime，让用户尽早体验真实 Demo，再逐步推进到产品 MVP、跨平台开发者预览和生产化决策。
 
-**Architecture：** 现有 `.napp`、AppPackageManager、ServiceAppManager 和 Service Action 继续拥有产品语义；新增可替换的 WASI Component executor 与产品级共享 runner；Rust Component 通过稳定 WIT 使用 HTTP、KV、Secret、日志等有限能力；`native-process` 长期保留为旧框架和平台能力逃生口。
+**Architecture：** 现有 `.napp`、AppPackageManager、ServiceAppManager 和 Service Action 继续拥有产品语义；嵌入式 Spin 已成为正式执行底座，直接 Wasmtime 只保留历史测量证据；Rust Component 通过稳定 WIT 使用精选内置 Factor，并通过 Component/Native Provider 扩展生态能力；`native-process` 长期保留为旧框架、重依赖和平台能力逃生口。
 
-**Tech Stack：** Rust、WebAssembly Component Model、WASI 0.2/0.3 候选能力、WIT、Spin / `wash-runtime` / Wasmtime 候选宿主、现有 NextClaw TypeScript/kernel/App Platform、`.napp` schema v2。
+**Tech Stack：** Rust、WebAssembly Component Model、WASI 0.2/0.3、WIT、Spin Runtime Factors/Triggers、Wasmtime 基线、现有 NextClaw TypeScript/kernel/App Platform、`.napp` schema v2。
 
 ---
 
 ## 一、计划状态与关联文档
 
 - 日期：2026-08-28
-- 状态：总体计划草案；Gate 1 的 Action、真实数据、Agent Tool、Resident、Provider、故障恢复与 1/5/10 密度补证已完成，产品场景版核心 MVP v0.5.2 可体验；Secret/Blob/长任务/流/模型、跨平台与生产资源治理仍未完成；尚未提交或发布
+- 状态：总体计划执行中；直接 Wasmtime 核心 MVP v0.5.2 与全平台发布基线已完成，2026-08-30 冻结 Spin-first、可安装 Capability Provider、外部资源绑定与 native-process 并存模型；Spin 判别性 Spike 已过本机功能/密度门并迁入正式 runner
 - 计划粒度：四个主阶段；每个阶段约等于一个普通中大型开发任务
 - 架构 owner：[WASI Service App 运行时与现有 Mini App 体系融合设计探索](../designs/2026-08-28-wasi-service-app-runtime.design.md)
 - 愿景与 MVP owner：[Portable Capability Runtime 愿景与 MVP 设计](../designs/2026-08-28-portable-capability-runtime-mvp.design.md)
@@ -21,6 +21,20 @@
 - 认知与场景材料：[NextClaw 可移植能力运行时全景说明与场景设想](../thoughts/2026-08-28-portable-capability-runtime-panorama.thought.md)
 
 本计划只编排已经收敛的 Portable Capability Runtime 主线，不纳入尚未收敛的 Agent OS、Node REPL 编排、新 DSL、任意组件互调或多语言生态讨论。
+
+### 1.2 2026-08-30 Spin-first 与依赖模型决策
+
+本轮后续执行拆成五个有依赖顺序的部分；每部分完成后保留可恢复入口，不以“整体还很大”为由重复运行完整矩阵：
+
+| 部分 | Owner 与输入 | 交付结果 | 最小验证与继续条件 |
+| --- | --- | --- | --- |
+| A. Spin 判别性 Spike | runtime runner；复用现有五个 Guest 与 Wasmtime 基线 | 嵌入式 Spin runner、NextClaw Trigger/Factor adapter、同场景测量 | Action/Resident/Provider、KV/HTTP、故障恢复、RSS/包体、macOS/Linux/Windows 构建均达到门槛 |
+| B. 正式执行器迁移 | Kernel portable executor；输入 A 的通过结论 | 保持 runner protocol 与 `.napp` 不变，Spin 替代直接 Wasmtime内部实现 | 现有 HTTP enable、Panel、Agent Tool、CLI、持久化与发布 smoke 全部复用通过；删除长期双实现 |
+| C. 依赖就绪模型 | AppPackageManager + capability grants；复用上位设计 | `ready`、`needs-capability`、`needs-configuration`、`incompatible` 状态，capability/resource 声明和结构化修复动作 | 可安装但不可误启用；补齐 Provider/配置后原地进入 ready；Secret 不写回 artifact |
+| D. Capability Provider 扩展闭环 | Provider catalog + CLI/Agent；输入 C 的稳定合同 | Component/Native Provider 注册、显式本地信任安装、SDK/template、AI 可执行 detect/build/install/configure/verify/uninstall 路径 | 用一个非默认重 Provider 做从零闭环；除授权、登录或付费确认外不要求用户执行技术步骤；无 NextClaw 产品源码改动 |
+| E. 开发者与发布闭环 | CLI、文档、发布 workflow；复用 A-D | create/doctor/build/check/test/pack/install/configure/enable 全链路与自动发布门 | 干净环境、三平台 artifact、真实 HTTP enable、代表性 action、缺依赖错误均有自动证据 |
+
+恢复入口：每部分只以其产物、定向测试和设计中的稳定合同作为输入。A 未通过时不得启动 B；C/D 可以在 A 后按独立 owner推进，但不得在 schema 未冻结前实现通用动态加载。任何 Spin 私有 manifest 都不得上浮为 `.napp` 事实源。
 
 ### 1.1 2026-08-28 阶段 1 实施记录
 
@@ -87,10 +101,22 @@ Gate 1 仍不等于完整阶段 2。Secret、Blob/file、长任务、流、模�
 
 ### 2.4 框架是实现，不是合同
 
-- Spin、`wash-runtime` 与 Wasmtime 只在第一阶段比较；
+- Spin 是首选执行底座，直接 Wasmtime 是判别性 Spike 基线；`wash-runtime` 只在 Spin 无法通过硬门时重新进入候选；
 - 对外 `.napp`、WIT、Service Action 和 grant 不包含框架私有 manifest；
-- 第一阶段决策后主线只保留一个正式 runtime 实现，不并行维护三套 executor；
+- Spike 决策后主线只保留一个正式 runtime 实现，不长期维护双 executor；
 - `native-process` 与新的 portable executor 并列存在，不做隐式 fallback。
+
+### 2.5 分发不等于所有依赖都内嵌
+
+- 默认和推荐路径是自包含、安装后直接可运行；外部 Provider/资源只作为特殊需求逃生口，不与默认路径平级宣传；
+- `.napp` 始终可以独立复制、上传和安装；包内只包含 Panel、Component 与可移植资源；
+- 生态 Capability Provider 独立版本化，App 只声明 capability id/API 范围；真正的进程内 Spin Factor 仍随签名 runtime 发布；
+- Redis、PostgreSQL 等外部服务通过 App instance resource binding 配置，endpoint 与 Secret 不进入公开包；
+- 缺 Factor 或资源配置时安装成功但禁止 enable，必须返回结构化 readiness 和一键/CLI 修复动作；
+- Marketplace、安装确认和应用详情必须在安装前醒目标识额外组件、外部服务、数据离机和可能费用，并降低非自包含 App 的默认推荐优先级；
+- AI 必须能自动完成检测、安装、配置、Secret 采集、连接验证、修复和解绑；用户只做不可代理的授权、登录或付费决定；
+- 默认 runner 只编译精选 Factors；重型集成使用按需安装的 Provider，未安装时不得产生连接池、timer、常驻进程或内存成本；
+- 需要完整 Node、Python、原生 SDK 或 OS 权限的应用继续选择 `native-process`，不强制迁移到 WASM。
 
 ## 三、总体路线图
 
@@ -133,13 +159,14 @@ Gate 1 仍不等于完整阶段 2。Secret、Blob/file、长任务、流、模�
 - 明确当前进程、内存、启动、数据、权限和错误观测方式；
 - 确认哪些旧实现可以复用，哪些只能作为证据。
 
-#### 工作包 B：同题 runtime 候选实验
+#### 工作包 B：Spin 与直接 Wasmtime 的判别性实验
 
-- 使用同一 Rust Component 和同一 host capability 测试 Spin、`wash-runtime` 与直接 Wasmtime；
-- 只实现比较所需的最小装载、invoke、HTTP/KV、取消和资源限制，不分别建设三套产品集成；
+- 使用现有五个 Rust Component 和同一 host capability 对比 Spin 与直接 Wasmtime基线；
+- 实现一个 NextClaw Service Action Trigger 和最小自定义 Factor，验证现有 WIT 可兼容；
+- 只组装 WASI、variables/secrets、KV、SQLite、outbound HTTP、observability 与 NextClaw 自定义 Factor，不默认编译 Redis 等重能力；
 - 测量 runner 基线、每 Component 增量 RSS、首次/热调用、回收和隔离；
 - 审查嵌入 API、WASI 版本、跨平台构建、私有 manifest 与升级耦合；
-- 选出一个正式集成候选，其他实验代码不进入产品主链。
+- Spin 通过全部硬门后替换正式实现；否则保留直接 Wasmtime并记录失败证据。
 
 #### 工作包 C：体验型垂直切片
 
@@ -167,8 +194,8 @@ Demo 可以使用开发安装路径，不要求完整 Marketplace、更新或三
 ### 4.4 阶段产物
 
 - 一个可运行、可操作的 Demo；
-- 一份 Node 与三个 runtime 候选的同题证据；
-- 一个正式宿主候选及其不采用其它候选的理由；
+- 一份 Node、直接 Wasmtime 与 Spin 的同题证据；
+- 一个正式宿主结论及其迁移或保留理由；
 - 最小 WIT、runner adapter 与 capability linking 结论；
 - 一份进入产品 MVP 的风险和范围修正；
 - 阶段 2 的文件级实施计划草案。
