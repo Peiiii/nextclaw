@@ -1,6 +1,6 @@
 ---
 name: nextclaw-agent-instructions-governance
-description: 当确定要修改 AGENTS.md、commands、项目 AI 规则、skill/references 分层、治理脚本，或判断一条规则应放在哪一层时使用；普通规则讨论和一次性纠偏不提前触发。
+description: 当确定要修改 AGENTS.md、commands、项目 AI 规则、skill/references、治理脚本，或明确优化 AI 驱动开发体系时使用；普通规则讨论和一次性纠偏不提前触发。
 ---
 
 # AI 指令系统治理
@@ -19,15 +19,6 @@ description: 当确定要修改 AGENTS.md、commands、项目 AI 规则、skill/
 
 如果一段内容每次触发 skill 都必需，保留在入口；不要拆成必读 reference。若只在一个分支需要，必须移出入口并写清加载条件。
 
-## 入口分类
-
-- **标准流程 owner**：普通开发只能有一个；具体入口由当前 `AGENTS.md` 的默认开发路由声明，本 skill 不重复写死名称。
-- **阶段 owner**：Task Understanding、Design、Implementation、Validation、Review、Delivery、Retrospective 各有一个 `development-*` owner，只在进入该阶段后加载。
-- **完整场景 owner**：发布、长期治理、外部系统交付等能独立回答“用户要完成什么任务”的闭环才保留入口。
-- **工艺与场景规范**：只回答“当前阶段怎样判断/实现/验证”的通用原则或项目细节进入所属 owner 的条件 reference，不占平行入口。
-
-reference 也要区分通用工艺与项目场景，文件名和加载条件应直接表达类别；不要把已删除 skill 的 frontmatter 原样搬入 reference。
-
 ## 修改顺序
 
 1. 找当前 owner 和相邻规则，先判断删除、合并、收窄、移动，再考虑新增。
@@ -38,17 +29,14 @@ reference 也要区分通用工艺与项目场景，文件名和加载条件应�
 6. 核心阶段使用统一的 `development-<stage>` 命名；只有深度依赖 NextClaw 产品、NCP、Kernel、仓库命令或发布合同的 skill 使用 `nextclaw-` 前缀。
 7. 大型重构写设计并在同批迭代记录中留痕，小措辞不建日志。
 
-## 创建 Skill 门槛
+## 条件方法
 
-只有同时满足才创建：
+- 用户明确要求优化 AI 驱动开发体系，或有效反馈暴露重复、系统性、高影响机制缺口时，读取[开发体系演进闭环](references/development-system-evolution.md)。
+- 修改、提升、下沉、合并或删除规则资产，或者要标记/复核模型能力补丁时，读取[规则资产生命周期](references/rule-asset-lifecycle.md)。
+- 任务明确涉及常驻上下文膨胀、渐进加载、重复读取或 Token 成本时，读取[上下文与 Token 治理](references/context-token-governance.md)。
+- 新增、删除、合并 Skill，或改变 lifecycle/阶段/专项入口拓扑时，读取[Skill 拓扑与创建门](references/skill-topology.md)。
 
-- 没有现有 owner；
-- 有明确、可重复的用户意图；
-- 有独立流程或稳定合同，而不是原则换名；
-- description 能与相邻 skill 互斥；
-- 新入口比 reference 或扩展现有 owner更清晰。
-
-否则合并、写 reference 或删除。
+普通局部措辞修正不机械加载多份参考；每次只读取当前判断确实需要的方法，不批量预读。
 
 ## 检查
 
