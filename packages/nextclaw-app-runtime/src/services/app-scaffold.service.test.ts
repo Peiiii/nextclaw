@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
-import { isAppStandaloneManifestBundle } from "#app-runtime/types/app-manifest.types.js";
+import {
+  isAppComponentManifestBundle,
+  isAppStandaloneManifestBundle,
+} from "#app-runtime/types/app-manifest.types.js";
 import { AppBuildService } from "#app-runtime/services/app-build.service.js";
 import { AppScaffoldService } from "./app-scaffold.service.js";
 
@@ -100,5 +103,29 @@ describe("AppScaffoldService", () => {
     expect(result.template).toBe("ts-http-lite");
     expect(bundle.manifest.main.kind).toBe("wasi-http-component");
     expect(packageJson.dependencies?.hono).toBeUndefined();
+  });
+
+  it("creates a self-contained Rust/WASI Component schema v2 scaffold", async () => {
+    const service = new AppScaffoldService();
+    const appDirectory = path.join(
+      tmpdir(),
+      `napp-rust-wasi-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    createdDirectories.push(appDirectory);
+
+    const result = await service.scaffold(appDirectory, { template: "rust-wasi" });
+    const bundle = await new AppManifestService().load(result.appDirectory);
+    if (!isAppComponentManifestBundle(bundle)) {
+      throw new Error("Expected schema v2 component manifest bundle.");
+    }
+
+    await expect(access(path.join(appDirectory, "guest", "Cargo.toml"))).resolves.toBeUndefined();
+    await expect(access(path.join(appDirectory, "guest", "src", "lib.rs"))).resolves.toBeUndefined();
+    await expect(access(
+      path.join(appDirectory, "guest", "wit", "portable-service.wit"),
+    )).resolves.toBeUndefined();
+    expect(result.template).toBe("rust-wasi");
+    expect(bundle.manifest.runtime?.profile).toBe("wasi");
+    expect(bundle.components.map((component) => component.kind)).toEqual(["panel", "service"]);
   });
 });

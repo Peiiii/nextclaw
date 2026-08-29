@@ -5,7 +5,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { closeStableGitReleaseState } from "./release-stable-git.mjs";
+import {
+  closeStableGitReleaseState,
+  ensureStableRemoteSync,
+} from "./release-stable-git.mjs";
 
 function git(rootDir, args) {
   return execFileSync("git", args, {
@@ -44,6 +47,37 @@ function createLinkedReleaseFixture(context) {
   git(releaseWorktree, ["push", "-u", "origin", "release/test"]);
   return { releaseWorktree, repository };
 }
+
+test("prepared publish accepts a remotely advanced immutable release source", (context) => {
+  const { releaseWorktree, repository } = createLinkedReleaseFixture(context);
+  writeFileSync(join(repository, "remote.txt"), "newer\n");
+  git(repository, ["add", "remote.txt"]);
+  git(repository, ["commit", "-m", "advance target"]);
+  git(repository, ["push", "origin", "master:release/test"]);
+
+  assert.throws(
+    () => ensureStableRemoteSync("release/test", { rootDir: releaseWorktree }),
+    /remote-only=1, local-only=0/,
+  );
+  assert.doesNotThrow(() =>
+    ensureStableRemoteSync("release/test", {
+      allowRemoteAhead: true,
+      rootDir: releaseWorktree,
+    }),
+  );
+
+  writeFileSync(join(releaseWorktree, "local.txt"), "diverged\n");
+  git(releaseWorktree, ["add", "local.txt"]);
+  git(releaseWorktree, ["commit", "-m", "diverge release"]);
+  assert.throws(
+    () =>
+      ensureStableRemoteSync("release/test", {
+        allowRemoteAhead: true,
+        rootDir: releaseWorktree,
+      }),
+    /remote-only=1, local-only=1/,
+  );
+});
 
 test("atomic Git closure updates the release branch and local/remote target", (context) => {
   const fixtureRoot = mkdtempSync(join(tmpdir(), "stable-git-closure-test-"));

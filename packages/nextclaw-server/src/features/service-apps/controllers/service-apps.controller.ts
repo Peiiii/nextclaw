@@ -18,7 +18,7 @@ import type {
 
 const PANEL_BRIDGE_SESSION_HEADER = "x-nextclaw-panel-bridge-session";
 
-function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 502 {
+function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 422 | 502 {
   switch (code) {
     case "AUTHORIZATION_REQUIRED":
       return 401;
@@ -28,12 +28,19 @@ function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 502 {
     case "SERVICE_APP_NOT_FOUND":
       return 404;
     case "SERVICE_APP_RUNTIME_FAILED":
+    case "WASI_ABI_VERSION_MISMATCH":
+    case "WASI_COMPONENT_FAILED":
+    case "WASI_COMPONENT_TRAP":
+    case "WASI_GUEST_EXPORT_MISSING":
       return 502;
+    case "WASI_CAPABILITY_DENIED":
+      return 403;
+    case "WASI_INPUT_SCHEMA_MISMATCH":
+      return 422;
     default:
       return 400;
   }
 }
-
 export class ServiceAppsRoutesController {
   constructor(private readonly params: {
     panelAppManager: PanelAppManager;
@@ -242,7 +249,7 @@ export class ServiceAppsRoutesController {
   private handleServiceAppError = (c: Context, error: unknown) => {
     if (isServiceAppError(error)) {
       return c.json(
-        err(error.code, error.message),
+        err(error.code, error.message, error.details),
         statusForServiceAppError(error.code),
       );
     }

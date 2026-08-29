@@ -53,7 +53,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 ## 发布语义
 
 - 每次 release/deploy 使用 `development-task-telemetry` 记录阶段、wall time、外部等待、重试和人工/自动边界；workflow 输出稳定 schema 的总耗时、job/step 耗时、最慢 step 与失败。失败也保留观测，恢复沿用 release identity；最终报告实测总耗时、最慢阶段和提效项。
-- 每次 release/deploy 结束（含失败/取消）固定报告 `AUTOMATION_INTERVENTIONS: <n>`，目标为 `0`。从首次 owning entry/prewarm 到终态，推进状态的 owner 外人工动作按根因计数；初始 dispatch、发布前准备、只读观察及 owner 自动重试/恢复不计。非 `0` 时逐项报告介入点、根因和自动化消除落点；不报主观分数。
+- 每次 release/deploy 结束（含失败/取消）固定报告 `AUTOMATION_INTERVENTIONS: <n>`，目标为 `0`。`owning entry/prewarm` 至终态的 owner 外人工动作按根因计数；初始 dispatch、准备、只读观察和 owner 自动重试/恢复不计。非 `0` 时逐项报告介入点、根因和自动化消除落点；不报主观分数。
 - 外部等待只在完成点、风险、失败或需决策时更新；状态未变不发心跳。优先一次有界 wait/sleep；重复只读监控仅在净省 Token 时交给低成本 Agent，不把等待变成定时任务或高频轮询。
 - 清晰自然语言与 `commands/commands.md` 中对应的中文发布命令等价；执行前用一句话复述包含项、排除项和第一个完成点。
 - “发布 NPM”只进入 NPM package owner；“发布 NextClaw 正式版”包含 NPM 与常规 runtime/product closure，但不包含 desktop；只有“桌面版”或“全平台版”才授权 desktop。
@@ -63,7 +63,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 ## 外部动作
 
 - 未经用户明确要求，不 commit、push、建 PR、release、deploy 或执行不可逆操作。
-- 用户要求提交时先判断 changeset 和迭代记录，再精确 stage，禁止混入无关 WIP。
+- 用户要求“提交”或使用 `/commit` 时，只在当前任务分支精确 stage/commit；用户明确说“合入主干”时，才安全集成本地 `master` 并推送 `origin/master`。用户限制为本地时跳过 push，禁止混入无关 WIP 或把隔离分支报告为合入完成。
 - 发布使用仓库既有 release flow，不以零散原子命令伪装完整闭环。
 - 发布完成必须覆盖授权范围内适用的 artifact、manifest、update channel、release notes、部署后 smoke 和分支回流。
 - tag、release 页面、workflow 触发或 registry publish 只是中间状态，不自动等于交付完成。

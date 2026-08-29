@@ -186,8 +186,6 @@ function bundleRuntimeEntrypoint(workspace) {
       "es2022",
       "--deps.neverBundle",
       "sharp",
-      "--deps.neverBundle",
-      "better-sqlite3",
       "--out-dir",
       workspace.runtimeEntrypointDir,
       "--shims",
@@ -394,9 +392,6 @@ function assertRuntimeBundleContract(
     if (!sharpLibvipsFiles.some((filePath) => filePath.includes("libvips"))) {
       throw new Error(`Runtime bundle is missing the sharp libvips runtime for ${target}.`);
     }
-  }
-  if (!existsSync(join(nativeDependenciesRoot, "better-sqlite3", "build", "Release", "better_sqlite3.node"))) {
-    throw new Error(`Runtime bundle is missing the better-sqlite3 native binary for ${target}.`);
   }
 }
 

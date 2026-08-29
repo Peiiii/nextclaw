@@ -158,6 +158,7 @@ export class LearningLoopContribution extends Contribution {
         },
         parentSessionId: sessionId,
         notify: "none",
+        wait: "none",
         title: this.buildReviewTitle(metadata),
         task: buildLearningLoopTask({
           sessionId,

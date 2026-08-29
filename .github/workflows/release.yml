@@ -12,6 +12,14 @@ on:
           - npm
           - product
           - all
+      resume_version:
+        description: "Existing stable version whose Runtime/Desktop closure should resume"
+        required: false
+        type: string
+      resume_previous_version:
+        description: "Previous stable version required with resume_version"
+        required: false
+        type: string
 
 permissions: {}
 
@@ -29,13 +37,13 @@ jobs:
       actions: write
       contents: write
     outputs:
-      closure_commit: ${{ steps.release.outputs.closure_commit }}
-      content_ready: ${{ steps.release.outputs.content_ready }}
-      has_nextclaw: ${{ steps.release.outputs.has_nextclaw }}
-      previous_version: ${{ steps.release.outputs.previous_version }}
-      release_commit: ${{ steps.release.outputs.release_commit }}
-      release_tags_json: ${{ steps.release.outputs.release_tags_json }}
-      target_version: ${{ steps.release.outputs.target_version }}
+      closure_commit: ${{ steps.release.outputs.closure_commit || steps.recovery.outputs.closure_commit }}
+      content_ready: ${{ steps.release.outputs.content_ready || steps.recovery.outputs.content_ready }}
+      has_nextclaw: ${{ steps.release.outputs.has_nextclaw || steps.recovery.outputs.has_nextclaw }}
+      previous_version: ${{ steps.release.outputs.previous_version || steps.recovery.outputs.previous_version }}
+      release_commit: ${{ steps.release.outputs.release_commit || steps.recovery.outputs.release_commit }}
+      release_tags_json: ${{ steps.release.outputs.release_tags_json || steps.recovery.outputs.release_tags_json }}
+      target_version: ${{ steps.release.outputs.target_version || steps.recovery.outputs.target_version }}
     steps:
       - name: Require the protected master release source
         shell: bash
@@ -60,7 +68,7 @@ jobs:
       - name: Setup NPM publishing runtime
         uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version-file: .nvmrc
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
@@ -78,6 +86,7 @@ jobs:
 
       - name: Publish prepared batch and close Git state
         id: release
+        if: ${{ inputs.resume_version == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -91,11 +100,42 @@ jobs:
           fi
           pnpm release:npm:stable -- "${args[@]}"
 
+      - name: Resolve existing stable release for automatic recovery
+        id: recovery
+        if: ${{ inputs.resume_version != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIOUS_VERSION: ${{ inputs.resume_previous_version }}
+          TARGET_VERSION: ${{ inputs.resume_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          semver='^[0-9]+\.[0-9]+\.[0-9]+$'
+          if [[ ! "$TARGET_VERSION" =~ $semver ]] || [[ ! "$PREVIOUS_VERSION" =~ $semver ]]; then
+            echo "resume_version and resume_previous_version must both be stable semantic versions."
+            exit 1
+          fi
+          tag="nextclaw@$TARGET_VERSION"
+          git fetch origin "refs/tags/$tag:refs/tags/$tag"
+          release_commit="$(git rev-list -n 1 "$tag")"
+          test "$(npm view "nextclaw@$TARGET_VERSION" version)" = "$TARGET_VERSION"
+          gh release view "$tag" --json isDraft --jq 'select(.isDraft == false) | true' | grep -qx true
+          git cat-file -e "$release_commit:apps/docs/public/release-notes/nextclaw-v$TARGET_VERSION.json"
+          {
+            echo "closure_commit=$release_commit"
+            echo "content_ready=true"
+            echo "has_nextclaw=true"
+            echo "previous_version=$PREVIOUS_VERSION"
+            echo "release_commit=$release_commit"
+            echo "release_tags_json=[\"$tag\"]"
+            echo "target_version=$TARGET_VERSION"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Record core release status
         shell: bash
         env:
-          CONTENT_READY: ${{ steps.release.outputs.content_ready }}
-          TARGET_VERSION: ${{ steps.release.outputs.target_version }}
+          CONTENT_READY: ${{ steps.release.outputs.content_ready || steps.recovery.outputs.content_ready }}
+          TARGET_VERSION: ${{ steps.release.outputs.target_version || steps.recovery.outputs.target_version }}
         run: |
           set -euo pipefail
           {
@@ -108,7 +148,7 @@ jobs:
 
   publish-runtime:
     name: publish stable Runtime channel
-    needs: publish-npm
+    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node]
     if: ${{ inputs.target != 'npm' && needs.publish-npm.outputs.has_nextclaw == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -119,7 +159,7 @@ jobs:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ inputs.resume_version != '' && github.sha || needs.publish-npm.outputs.closure_commit }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -130,13 +170,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install release verification toolchain
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Publish and verify stable Runtime channel
+        if: ${{ inputs.resume_version == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
@@ -145,6 +186,20 @@ jobs:
           --prepared-source-sha "${{ github.sha }}"
           --version "${{ needs.publish-npm.outputs.target_version }}"
           --release-tag "nextclaw@${{ needs.publish-npm.outputs.target_version }}"
+
+      - name: Reuse published stable Runtime channel
+        if: ${{ inputs.resume_version != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="nextclaw@$TARGET_VERSION"
+          assets="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+          for target in darwin-arm64 darwin-x64 linux-x64 win32-x64; do
+            grep -qx "nextclaw-runtime-$target-$TARGET_VERSION.zip" <<< "$assets"
+          done
 
       - name: Verify upgrade from previous stable
         run: >-
@@ -162,6 +217,74 @@ jobs:
             echo "- version: ${{ needs.publish-npm.outputs.target_version }}"
             echo "- release: https://github.com/${{ github.repository }}/releases/tag/nextclaw@${{ needs.publish-npm.outputs.target_version }}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  verify-npm-node-compatibility:
+    name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }}
+    needs: publish-npm
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux-x64
+          - windows-x64
+          - darwin-arm64
+          - darwin-x64
+        node:
+          - "20.19.0"
+          - "22.19.0"
+          - "24"
+          - "26"
+        include:
+          - platform: linux-x64
+            os: ubuntu-22.04
+          - platform: windows-x64
+            os: windows-latest
+          - platform: darwin-arm64
+            os: macos-14
+          - platform: darwin-x64
+            os: macos-15-intel
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+
+      - name: Setup compatibility Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install published package and open SQLite
+        run: >-
+          node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs
+          --expected-version "${{ needs.publish-npm.outputs.target_version }}"
+
+  verify-npm-unsupported-node:
+    name: verify NPM unsupported Node fails clearly
+    needs: publish-npm
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18.20.8"
+      - name: Verify launcher version guard
+        run: >-
+          node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs
+          --expected-version "${{ needs.publish-npm.outputs.target_version }}"
+          --expect-unsupported
 
   publish-desktop:
     name: publish stable Desktop release
@@ -187,7 +310,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Bind checkout to master
@@ -225,7 +348,7 @@ jobs:
   summarize:
     name: summarize release state
     if: ${{ always() }}
-    needs: [publish-npm, publish-runtime, publish-desktop]
+    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -236,6 +359,8 @@ jobs:
           DESKTOP_RESULT: ${{ needs.publish-desktop.result }}
           HAS_NEXTCLAW: ${{ needs.publish-npm.outputs.has_nextclaw }}
           NPM_RESULT: ${{ needs.publish-npm.result }}
+          NPM_NODE_COMPATIBILITY_RESULT: ${{ needs.verify-npm-node-compatibility.result }}
+          NPM_UNSUPPORTED_NODE_RESULT: ${{ needs.verify-npm-unsupported-node.result }}
           RUNTIME_RESULT: ${{ needs.publish-runtime.result }}
           TARGET: ${{ inputs.target }}
           TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
@@ -247,6 +372,8 @@ jobs:
             echo "- target: $TARGET"
             echo "- version: ${TARGET_VERSION:-unresolved}"
             echo "- npm: $NPM_RESULT"
+            echo "- npm node compatibility: $NPM_NODE_COMPATIBILITY_RESULT"
+            echo "- npm unsupported node guard: $NPM_UNSUPPORTED_NODE_RESULT"
             echo "- runtime: $RUNTIME_RESULT"
             echo "- desktop: $DESKTOP_RESULT"
             echo "- content: $([ "$CONTENT_READY" = "true" ] && echo CONTENT_READY || echo CONTENT_PENDING)"
@@ -255,6 +382,12 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$NPM_RESULT" != "success" ]; then
+            exit 1
+          fi
+          if [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_NODE_COMPATIBILITY_RESULT" != "success" ]; then
+            exit 1
+          fi
+          if [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_UNSUPPORTED_NODE_RESULT" != "success" ]; then
             exit 1
           fi
           if [ "$TARGET" = "product" ] && [ "$HAS_NEXTCLAW" = "true" ] && [ "$RUNTIME_RESULT" != "success" ]; then

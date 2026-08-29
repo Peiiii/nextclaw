@@ -59,7 +59,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -173,7 +173,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -239,7 +239,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -355,7 +355,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -447,7 +447,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

@@ -48,6 +48,29 @@ describe("AppPublishingService", () => {
     });
   });
 
+  it("packs a universal App without forcing a target", async () => {
+    const packAppDirectory = vi.fn().mockResolvedValue({ bundlePath: "/tmp/dist/example.napp" });
+    const parseTargetKey = vi.fn();
+    const service = new AppPublishingService(
+      {} as never,
+      {} as never,
+      { packAppDirectory } as never,
+      { parseTargetKey } as never,
+    );
+
+    await expect(service.pack({
+      appDirectory: "/tmp/example",
+      outputPath: "/tmp/dist/example.napp",
+    })).resolves.toEqual({ bundlePath: "/tmp/dist/example.napp" });
+    expect(parseTargetKey).not.toHaveBeenCalled();
+    expect(packAppDirectory).toHaveBeenCalledWith({
+      appDirectory: "/tmp/example",
+      outputPath: "/tmp/dist/example.napp",
+      mode: "bundle",
+      target: undefined,
+    });
+  });
+
   it("pins native Mini App validation to schema v2 bundle publishing", async () => {
     const validate = vi.fn().mockResolvedValue(componentValidation);
     const service = new AppPublishingService(

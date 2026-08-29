@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import path from "node:path";
 import { AppPackageLiveService } from "./app-package-live.service.js";
 
 describe("AppPackageLiveService", () => {
@@ -16,7 +17,7 @@ describe("AppPackageLiveService", () => {
     expect(request).toHaveBeenNthCalledWith(1, {
       path: "/api/app-package-operations/install",
       method: "POST",
-      body: { source: "./local-app", registryUrl: undefined },
+      body: { source: path.resolve("./local-app"), registryUrl: undefined },
     });
     expect(request).toHaveBeenNthCalledWith(2, {
       path: "/api/app-package-operations/example.notes/update",
@@ -41,6 +42,21 @@ describe("AppPackageLiveService", () => {
       path: "/api/app-packages/example.notes/disable",
       method: "POST",
     });
+  });
+
+  it("keeps registry selectors unchanged while resolving local bundles at the CLI boundary", async () => {
+    const request = vi.fn().mockResolvedValue({ id: "operation-1", status: "queued" });
+    const service = new AppPackageLiveService({ createApiClient: () => ({ request }) });
+
+    await service.install("example.notes@1.2.0");
+    await service.install("dist/example.notes.napp");
+
+    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      body: { source: "example.notes@1.2.0", registryUrl: undefined },
+    }));
+    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      body: { source: path.resolve("dist/example.notes.napp"), registryUrl: undefined },
+    }));
   });
 
   it("fails clearly when the managed host is unavailable", async () => {

@@ -88,7 +88,11 @@ export function ensureStableCleanWorktree(rootDir = ROOT_DIR) {
 
 export function ensureStableRemoteSync(
   branch,
-  { allowLocalAhead = false, rootDir = ROOT_DIR } = {},
+  {
+    allowLocalAhead = false,
+    allowRemoteAhead = false,
+    rootDir = ROOT_DIR,
+  } = {},
 ) {
   run("git", ["fetch", "origin", branch], { rootDir, capture: false });
   const [remoteOnly, localOnly] = git(
@@ -97,7 +101,10 @@ export function ensureStableRemoteSync(
   )
     .split(/\s+/)
     .map(Number);
-  if (remoteOnly !== 0 || (!allowLocalAhead && localOnly !== 0)) {
+  if (
+    (!allowRemoteAhead && remoteOnly !== 0) ||
+    (!allowLocalAhead && localOnly !== 0)
+  ) {
     throw new Error(
       `release:stable branch is not synchronized with origin/${branch}: remote-only=${remoteOnly}, local-only=${localOnly}.`,
     );

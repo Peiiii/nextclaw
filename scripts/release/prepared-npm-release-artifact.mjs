@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
 import {
+  isPathWithinDirectory,
   readPreparedNpmRelease,
   resolvePreparedNpmReleaseRoot,
   validatePreparedNpmRelease,
@@ -123,7 +124,7 @@ function readArtifactDescriptor(artifactDirectory) {
 function resolveContainedPath(parentDirectory, childPath, label) {
   const resolvedParent = resolve(parentDirectory);
   const resolvedChild = resolve(resolvedParent, childPath);
-  if (!resolvedChild.startsWith(`${resolvedParent}/`)) {
+  if (!isPathWithinDirectory(resolvedParent, resolvedChild)) {
     throw new Error(`${label} escapes the prepared artifact: ${childPath}`);
   }
   return resolvedChild;

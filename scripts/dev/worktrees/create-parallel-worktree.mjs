@@ -1,10 +1,23 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const DEFAULT_BASE = "master";
+
+export function assertProjectNodeVersion(root, currentVersion = process.versions.node) {
+  const requiredVersion = readFileSync(join(root, ".nvmrc"), "utf8").trim();
+  if (!requiredVersion) throw new Error(".nvmrc must declare the project Node version.");
+  if (currentVersion !== requiredVersion) {
+    throw new Error(
+      `Worktree setup requires Node ${requiredVersion}; current Node is ${currentVersion}. ` +
+      "Run it through pnpm dev:worktree so the project Node wrapper can select the exact version.",
+    );
+  }
+  return requiredVersion;
+}
 
 export function parseParallelWorktreeArgs(args) {
   const options = { base: DEFAULT_BASE, bootstrap: true };
@@ -59,15 +72,17 @@ export function main({ argv = process.argv.slice(2), cwd = process.cwd() } = {})
   const options = parseParallelWorktreeArgs(argv);
   if (options.help) return printHelp();
   const root = getRoot(cwd);
+  const nodeVersion = assertProjectNodeVersion(root);
   const plan = createParallelWorktreePlan({ ...options, root });
   run("git", ["worktree", "add", "-b", plan.branch, plan.targetPath, plan.base], root);
-  if (options.bootstrap) run("pnpm", plan.bootstrap, plan.targetPath);
+  if (options.bootstrap) run("corepack", ["pnpm", ...plan.bootstrap], plan.targetPath);
   process.stdout.write(`${JSON.stringify({
     schema: "nextclaw.parallel-worktree/v1",
     branch: plan.branch,
     path: plan.targetPath,
     base: plan.base,
     dependencyMode: options.bootstrap ? "offline-link-only" : "skipped",
+    nodeVersion,
     next: "Build only the workspace dependency closure required by the planned validation.",
   })}\n`);
 }

@@ -1,12 +1,37 @@
 # Develop a WASM Service App
 
-The official Portable Runtime path currently uses Rust and WebAssembly Components. This guide follows a NextClaw source checkout: implement a Rust guest, declare it as a Service Component in a schema v2 App, and use the NextClaw CLI against the real runtime.
+The official Portable Runtime path uses Rust and WebAssembly Components. NextClaw can generate a standalone project with the WIT contract, Rust guest, Panel, and Service manifests; ordinary App development does not require a NextClaw source checkout.
+
+## Start from a runnable template
+
+```bash
+nextclaw app doctor --profile wasi
+nextclaw app create ./my-counter --template rust-wasi
+cd my-counter
+nextclaw app build .
+```
+
+Use the App root for the whole development loop:
+
+```bash
+nextclaw app check .
+nextclaw app test . --json
+nextclaw app dev .
+nextclaw app call . counter_increment --input '{"step":3}' --json
+nextclaw app call . counter_read --json
+```
+
+The template computes the counter in Rust/WASM and persists it through host KV. The Panel and CLI call the same Actions.
 
 ## Prerequisites
 
-Install the Rust toolchain, `cargo-component`, the `wasm32-wasip2` target, and the Node.js and pnpm dependencies for the NextClaw source tree.
+Run `nextclaw app doctor --profile wasi` first. It checks for `cargo` and `rustc`, validates the supported Rust version, and confirms that the `wasm32-wasip2` target is installed. If the target is missing, the report includes the exact `rustup target add wasm32-wasip2` command.
 
-The repository's WIT contract and Rust guests live under:
+Guest builds do not require separate `wasmtime`, `wkg`, `cargo-component`, or `wit-bindgen` CLI installations. The generated project pins `wit-bindgen` as a Rust dependency.
+
+`app create` copies the current WIT contract into `guest/wit/portable-service.wit` and generates a locked `Cargo.lock`. A source checkout is only needed when maintaining the NextClaw Runtime or its built-in validation Apps.
+
+The maintainer-side WIT contract and Rust guests live under:
 
 ```text
 apps/nextclaw-wasmtime-runner/
@@ -25,17 +50,17 @@ my-app/
 │   └── notes.panel/
 │       ├── panel-app.json
 │       └── index.html
-└── services/
+└── service-components/
     └── notes-state/
         ├── service-app.json
         └── service.wasm
 ```
 
-Use `runtime.profile: "wasi"` in `manifest.json` and list each Panel and Service under `components`. See [Runtime model and capability contracts](/en/developers/portable-runtime-contracts#owning-app-manifest).
+Use `runtime.profile: "wasi"` in `manifest.json` and list each Panel and Service under `components`. See [Runtime model and capability contracts](/en/developers/portable-runtime-contracts#owning-app-manifest). `app check` validates the package manifest, Panel references, and sibling Service Actions together.
 
 ## Implement the Rust guest
 
-The Rust crate emits a `cdylib`, and `cargo-component` targets the repository's `service-app` world:
+The Rust crate emits a `cdylib` and uses the pinned project-local `wit-bindgen` dependency for the `service-app` world:
 
 ```toml
 [package]
@@ -45,19 +70,15 @@ edition = "2024"
 publish = false
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-wit-bindgen-rt = { version = "0.44.0", features = ["bitflags"] }
+wit-bindgen = "0.44.0"
 
 [lib]
 crate-type = ["cdylib"]
 
-[package.metadata.component]
-package = "nextclaw:portable-service"
-target = { path = "../../wit", world = "service-app" }
 ```
 
-Implement the generated `Guest` trait with the Action list, invocation entry point, and lifecycle methods:
+Generate bindings from the project-local WIT contract and implement the `Guest` trait with the Action list, invocation entry point, and lifecycle methods:
 
 ```rust
 impl Guest for NotesService {
@@ -86,17 +107,19 @@ impl Guest for NotesService {
 
 The in-repository `state-lab`, `resident-lab`, `provider-lab`, and `composition-lab` guests provide complete KV, Resident, Provider, and composition examples.
 
-## Build Components and the runner
+## Build the Component
 
-From the NextClaw repository root:
+Build from the App root:
 
 ```bash
-pnpm portable-runtime:build
+nextclaw app build .
 ```
 
-This builds the five repository guests and the native runner for the current platform, then syncs artifacts into NextClaw's standard resource locations. It is a source-development command, not a separately published third-party SDK command.
+The command runs `cargo build --locked --release --target wasm32-wasip2` and copies the Component to `service-components/<service-id>/service.wasm`. Its report names the output file, which is immediately ready for `app check` and `app test`.
 
-For a guest developed inside the runner workspace, you can also use `cargo component build --release` and copy the artifact to the path referenced by `component.entry`.
+NextClaw provides the native runner for the current platform. App developers build one portable `.wasm` Component instead of building separate runners for Windows, Linux, and macOS.
+
+Runtime maintainers use `pnpm portable-runtime:build` from the NextClaw source root to build the runner and built-in validation Components.
 
 ## Declare Panel Actions
 
@@ -107,10 +130,7 @@ A Panel's `panel-app.json` lists full Action ids in `actions`:
   "id": "notes-panel",
   "title": "Notes",
   "entry": "index.html",
-  "actions": [
-    "notes-state.notes_list",
-    "notes-state.note_save"
-  ]
+  "actions": ["notes-state.notes_list", "notes-state.note_save"]
 }
 ```
 
@@ -127,18 +147,21 @@ const notes = await window.nextclaw.serviceActions.invoke(
 
 ## Check and run
 
-Run the static check, start through the real runtime, and call one selected Action:
+Run the static check, start through the real runtime, and call one selected Action from the complete App root:
 
 ```bash
-nextclaw app check <service-app-dir>
-nextclaw app dev <service-app-dir>
-nextclaw app call <service-app-dir> notes_list --input '{}' --json
+nextclaw app check <app-dir>
+nextclaw app test <app-dir> --json
+nextclaw app dev <app-dir>
+nextclaw app call <app-dir> notes_list --input '{}' --json
 ```
 
-`app dev` and `app call` use an isolated development instance tied to the source location and read storage, domain, and Provider declarations from the owning schema v2 App. To reset only that development instance before starting:
+`app test` executes the real Action sequence declared in the generated `tests/service-smoke.json`. Each step can define input and output assertions, so persistence behavior can be verified without writing runner-protocol JSON by hand.
+
+A package with one Service is selected automatically; use `--component <service-id>` when it contains multiple Services. The second positional argument to `app call` is the Guest Action name, not the full Action id, and input must be a JSON object. `app dev` and `app call` use an isolated development instance tied to the source location and read storage, domain, and Provider declarations from that schema v2 App. To reset only that development instance before starting:
 
 ```bash
-nextclaw app dev <service-app-dir> \
+nextclaw app dev <app-dir> \
   --reset-data \
   --confirm <app-id> \
   --json
@@ -152,13 +175,40 @@ nextclaw app restart <app-id> --json
 
 Normal Service source or manifest changes do not require restarting the NextClaw host.
 
+## Package, install, and enable
+
+```bash
+nextclaw app pack . --out my-counter.napp
+nextclaw app install ./my-counter.napp --json
+nextclaw app enable nextclaw.my-counter --json
+```
+
+Local directories and `.napp` bundles accept relative paths. Installation and enablement run through the active NextClaw host; on failure the CLI preserves the server error code and reason.
+
+Rust/WASI Apps without platform-native files produce a `universal` artifact by default, so `--target` is unnecessary. Select a target explicitly only when the package really contains platform-specific resources.
+
+## Errors and runtime observations
+
+WASI failures retain stable error codes across the Panel, CLI, and HTTP API:
+
+| Code                         | Meaning                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `WASI_CAPABILITY_DENIED`     | The Guest requested storage, network, or host capabilities not granted by the manifest |
+| `WASI_INPUT_SCHEMA_MISMATCH` | The Action input does not match its contract                                           |
+| `WASI_GUEST_EXPORT_MISSING`  | An Action declared in the manifest is not exported by the Guest                        |
+| `WASI_ABI_VERSION_MISMATCH`  | The Guest is incompatible with the current WIT/ABI contract                            |
+| `WASI_COMPONENT_TRAP`        | Guest execution trapped                                                                |
+| `WASI_COMPONENT_FAILED`      | Another Component runtime failure occurred                                             |
+
+`nextclaw app call ... --json` also returns an `observation` with the operation, App id, Action duration, runner PID, memory sampling when available, and a bounded Service log tail. Capability denials and traps therefore retain actionable diagnostics instead of collapsing into an unexplained generic 409/502.
+
 ## Development checklist
 
 - The Service id matches its directory, and the Component path stays inside the package.
 - Manifest Actions exactly match `list-actions()`.
 - Every Action has an accurate risk, purpose, and minimal `inputSchema`.
 - The App declares only the required storage, domains, and Providers.
-- `app check` and `app dev` pass, and at least one safe or explicitly selected critical Action is called.
+- `app build`, `app check`, `app test`, and `app dev` pass from the App root, and at least one safe or explicitly selected critical Action is called.
 - The Panel declares only the full Action ids it actually calls.
 - Persistent, Resident, or Provider behavior is tested through one real stop-and-recovery cycle.
 

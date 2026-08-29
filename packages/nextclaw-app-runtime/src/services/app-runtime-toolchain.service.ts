@@ -12,8 +12,11 @@ export type AppRuntimeToolStatus = {
 
 export type AppRuntimeDoctorResult = {
   ok: boolean;
+  profile: AppRuntimeToolchainProfile;
   tools: AppRuntimeToolStatus[];
 };
+
+export type AppRuntimeToolchainProfile = "all" | "wasi-component" | "wasi-http";
 
 export type AppRuntimeCommandResult = {
   stdout: string;
@@ -27,7 +30,7 @@ type RequiredTool = {
   installHint: string;
 };
 
-const REQUIRED_TOOLS: RequiredTool[] = [
+const WASI_HTTP_TOOLS: RequiredTool[] = [
   {
     name: "npm",
     command: "npm",
@@ -48,17 +51,44 @@ const REQUIRED_TOOLS: RequiredTool[] = [
   },
 ];
 
+const WASI_COMPONENT_TOOLS: RequiredTool[] = [
+  {
+    name: "cargo",
+    command: "cargo",
+    args: ["--version"],
+    installHint: "Install Rust with rustup: https://rustup.rs/",
+  },
+  {
+    name: "rustc",
+    command: "rustc",
+    args: ["--version"],
+    installHint: "Install Rust with rustup: https://rustup.rs/",
+  },
+  {
+    name: "wasm32-wasip2 target",
+    command: "rustc",
+    args: ["--print", "target-libdir", "--target", "wasm32-wasip2"],
+    installHint: "Run: rustup target add wasm32-wasip2",
+  },
+];
+
 export class AppRuntimeToolchainService {
-  doctor = async (): Promise<AppRuntimeDoctorResult> => {
-    const tools = await Promise.all(REQUIRED_TOOLS.map((tool) => this.checkTool(tool)));
+  doctor = async (profile: AppRuntimeToolchainProfile = "all"): Promise<AppRuntimeDoctorResult> => {
+    const requiredTools = profile === "wasi-component"
+      ? WASI_COMPONENT_TOOLS
+      : profile === "wasi-http"
+        ? WASI_HTTP_TOOLS
+        : [...WASI_COMPONENT_TOOLS, ...WASI_HTTP_TOOLS];
+    const tools = await Promise.all(requiredTools.map((tool) => this.checkTool(tool)));
     return {
       ok: tools.every((tool) => tool.ok),
+      profile,
       tools,
     };
   };
 
   assertReadyForWasiHttpBuild = async (): Promise<void> => {
-    const result = await this.doctor();
+    const result = await this.doctor("wasi-http");
     const missing = result.tools.filter((tool) => !tool.ok);
     if (missing.length === 0) {
       return;
@@ -69,6 +99,16 @@ export class AppRuntimeToolchainService {
         ...missing.map((tool) => `- 缺少 ${tool.name}: ${tool.installHint}`),
       ].join("\n"),
     );
+  };
+
+  assertReadyForWasiComponentBuild = async (): Promise<void> => {
+    const result = await this.doctor("wasi-component");
+    const missing = result.tools.filter((tool) => !tool.ok);
+    if (missing.length === 0) return;
+    throw new Error([
+      "Rust/WASI Component development environment is not ready.",
+      ...missing.map((tool) => `- Missing ${tool.name}: ${tool.installHint}`),
+    ].join("\n"));
   };
 
   runCommand = async (params: {

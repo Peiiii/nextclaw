@@ -1,7 +1,10 @@
-import { access } from "node:fs/promises";
+import { access, copyFile, readFile } from "node:fs/promises";
 import path from "node:path";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
-import { isAppStandaloneManifestBundle } from "#app-runtime/types/app-manifest.types.js";
+import {
+  isAppComponentManifestBundle,
+  isAppStandaloneManifestBundle,
+} from "#app-runtime/types/app-manifest.types.js";
 import { AppRuntimeToolchainService } from "./app-runtime-toolchain.service.js";
 
 export type AppBuildResult = {
@@ -25,6 +28,9 @@ export class AppBuildService {
   }): Promise<AppBuildResult> => {
     const appDirectory = path.resolve(params.appDirectory);
     const bundle = await this.manifestService.load(appDirectory);
+    if (isAppComponentManifestBundle(bundle)) {
+      return await this.buildRustWasiComponent(appDirectory, bundle.components);
+    }
     if (!isAppStandaloneManifestBundle(bundle)) {
       throw new Error("schema v2 组合包必须提交可直接运行的 bundle，不能执行本地 build。");
     }
@@ -61,6 +67,50 @@ export class AppBuildService {
       mainKind: bundle.manifest.main.kind,
       mainEntryPath: bundle.mainEntryPath,
       installedDependencies: shouldInstall,
+      built: true,
+    };
+  };
+
+  private buildRustWasiComponent = async (
+    appDirectory: string,
+    components: Array<{ kind: "panel" | "service"; componentDirectory: string }>,
+  ): Promise<AppBuildResult> => {
+    const serviceComponents = components.filter((component) => component.kind === "service");
+    if (serviceComponents.length !== 1) {
+      throw new Error(
+        `Rust/WASI scaffold build requires exactly one Service Component; found ${serviceComponents.length}.`,
+      );
+    }
+    const guestDirectory = path.join(appDirectory, "guest");
+    const cargoTomlPath = path.join(guestDirectory, "Cargo.toml");
+    const cargoLockPath = path.join(guestDirectory, "Cargo.lock");
+    await Promise.all([access(cargoTomlPath), access(cargoLockPath)]);
+    await this.toolchainService.assertReadyForWasiComponentBuild();
+    await this.toolchainService.runCommand({
+      command: "cargo",
+      args: ["build", "--locked", "--release", "--target", "wasm32-wasip2"],
+      cwd: guestDirectory,
+    });
+    const cargoToml = await readFile(cargoTomlPath, "utf8");
+    const crateName = /^name\s*=\s*"([^"]+)"/m.exec(cargoToml)?.[1];
+    if (!crateName) {
+      throw new Error("Rust Guest Cargo.toml must declare package.name.");
+    }
+    const compiledPath = path.join(
+      guestDirectory,
+      "target",
+      "wasm32-wasip2",
+      "release",
+      `${crateName.replace(/-/g, "_")}.wasm`,
+    );
+    const mainEntryPath = path.join(serviceComponents[0]!.componentDirectory, "service.wasm");
+    await access(compiledPath);
+    await copyFile(compiledPath, mainEntryPath);
+    return {
+      appDirectory,
+      mainKind: "wasi-component",
+      mainEntryPath,
+      installedDependencies: false,
       built: true,
     };
   };

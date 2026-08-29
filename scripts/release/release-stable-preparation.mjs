@@ -216,7 +216,10 @@ export function ensurePreparedPublishPrerequisites(options) {
   ensureCommandAvailable("git");
   ensureCommandAvailable("npm");
   ensureStableCurrentBranch(branch);
-  ensureStableRemoteSync(branch);
+  // A prepared batch is bound to the workflow's immutable dispatch SHA. New
+  // remote commits stay outside that batch and are merged by the atomic Git
+  // closure after publication, so they must not require a human redispatch.
+  ensureStableRemoteSync(branch, { allowRemoteAhead: true });
   if (targetBranch !== branch) {
     run("git", ["fetch", "origin", targetBranch]);
   }

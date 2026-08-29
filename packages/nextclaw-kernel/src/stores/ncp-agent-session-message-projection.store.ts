@@ -42,6 +42,24 @@ export class NcpAgentSessionMessageProjectionStore {
       return await this.persistence.synchronize(params);
     }, false);
 
+  synchronizeSource = async (sessionId: string): Promise<boolean> => {
+    const loaded = await this.source?.loadSession(sessionId);
+    if (!loaded) return false;
+    const synchronized = await this.synchronize({
+      sessionId,
+      messages: loaded.record.messages,
+      projectedJournalOffset: loaded.journalOffset,
+    });
+    if (!synchronized) {
+      await this.rebuild({
+        sessionId,
+        messages: loaded.record.messages,
+        projectedJournalOffset: loaded.journalOffset,
+      });
+    }
+    return true;
+  };
+
   synchronizeJournalTail = async (params: { sessionId: string; journalOffset: number }): Promise<boolean> =>
     await this.mutate(params.sessionId, "synchronizeJournalTail", async () => {
       if (await this.rebuildIfDegraded(params.sessionId, "synchronizeJournalTail")) return true;

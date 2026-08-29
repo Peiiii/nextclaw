@@ -83,6 +83,8 @@ describe("NcpAgentSessionJournalStore SQLite catalog migration", () => {
     const firstMessage = { ...message, sessionId: "ncp-concurrent-1", id: "concurrent-message-1" };
     const secondMessage = { ...message, sessionId: "ncp-concurrent-2", id: "concurrent-message-2" };
 
+    await Promise.all([first.initialize(), second.initialize()]);
+
     await Promise.all([
       first.importSessionSnapshot({
         sessionId: firstMessage.sessionId,

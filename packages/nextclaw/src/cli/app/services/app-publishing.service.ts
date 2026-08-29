@@ -23,13 +23,18 @@ export class AppPublishingService {
   pack = async (params: {
     appDirectory: string;
     outputPath: string;
-    target: string;
-  }) => this.bundleService.packAppDirectory({
-    appDirectory: params.appDirectory,
-    outputPath: params.outputPath,
-    mode: "bundle",
-    target: this.platformTargetService.parseTargetKey(params.target),
-  });
+    target?: string;
+  }) => {
+    const { appDirectory, outputPath, target } = params;
+    return this.bundleService.packAppDirectory({
+      appDirectory,
+      outputPath,
+      mode: "bundle",
+      target: target
+        ? this.platformTargetService.parseTargetKey(target)
+        : undefined,
+    });
+  };
 
   validate = async (params: {
     appDirectory: string;

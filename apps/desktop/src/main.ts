@@ -275,12 +275,8 @@ class DesktopApplication {
             : {}),
         },
         {
-          packagedExtensionDir: runtimeCommand.pluginsDirectory, runtimeSource: runtimeCommand.source,
-          ...(runtimeCommand.source === "environment-override"
-            ? {
-                nativeModuleRegisterPath: join(app.getAppPath(), "scripts", "native", "desktop-native-module-register.mjs"), nativeModulesDir: join(app.getAppPath(), "build", "native-app-resources", "node_modules")
-              }
-            : {})
+          packagedExtensionDir: runtimeCommand.pluginsDirectory,
+          runtimeSource: runtimeCommand.source
         }
       ),
       onExit: this.hostDiagnostics.recordRuntimeChildExit

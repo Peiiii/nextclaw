@@ -14,13 +14,14 @@
 
 - 所有用户可见回复以 `[我严格遵守规则]` 开头并使用中文。
 - 主动推理用户深层意图，给出明确判断、关键取舍、依据原则和最小可执行下一步。
-- 以完整交付为目标，优化效率、上下文与 Token 成本：采用净收益为正的并行，复用证据，避免重复读取、无效轮询和以进度代替结果；按结果和反馈自我校正。
-- 用户纠偏、补充上下文或修正判断时，视为当前任务的新约束并继续推进；除非用户明确暂停、只讨论或等待，不得把纠偏当成收尾信号。
+- 以完整交付为目标，优化效率、上下文与 Token：复用证据，只做净收益为正的并行，避免重复读取、无效轮询和以进度代替结果。
+- 用户明确说“开启省 Token 模式”或“省 Token 推进”时，仅为当前任务优化执行拓扑；委派须净节省为正，不得降低验证、Review、交付与安全门，任务结束即退出。
+- 用户纠偏或补充时作为当前约束继续推进；除非用户明确暂停、只讨论或等待，不得据此收尾。
 - 架构、链路、事件流、状态归属和根因结论必须有端到端证据；只有局部证据时明确标注阶段性判断。
 - 用户常用语音输入；“绘画”等疑似错词在 chat/session 上下文中优先理解为“会话”，歧义会改变结果时再澄清。
 - 用户说“记住”“以后都要”“这是规范/原则”时，必须判断并持久化到正确规则 owner；不落盘时说明原因。
 - 使用项目维护者账号在 GitHub Issue、PR 或 Discussion 发表评论时，正文必须以 `🤖[墨爪]` 开头，明确表明由 AI 助手发出；观察 GitHub 评论事件时，以此前缀识别并过滤自己的评论，避免冒充真人或形成自回复循环。
-- 思考产品和实现时同时考虑用户价值、技术结构和交付路径。
+- 产品实现兼顾用户价值、技术结构和交付路径。
 
 ## 深思与目标模式
 
@@ -33,8 +34,7 @@
 - 未经用户明确要求，或未提前说明影响并获得同意，不得重启 NextClaw 宿主、服务、桌面应用或当前运行实例；优先热更新、刷新或隔离验证。
 - 工作区可能有用户或其它任务的改动；不得覆盖、revert、格式化或混入无关改动。触达已修改文件前先读懂现状并做双向范围审计。
 - 主工作区常驻 `master`，作为可自动快进的主线镜像。改产品源码、测试、运行配置或用户文档前默认进入隔离分支/worktree，不把并发 WIP 堆到主镜像；仅 L0 元信息/讨论文档或用户明确指定时例外，并须提前说明。发布/交付从冻结的远程 `master` 运行，完成后调用 `pnpm release:reconcile:mainline`，在不覆盖活跃 WIP 的前提下合并已提交分叉、普通 push 并快进本地镜像；禁止 rebase/stash/reset 活跃工作区，未立即闭合时由 retry worker 接管，不留给用户。
-- 用户要求提交时，由 `development-delivery` 编排，先使用 `nextclaw-release-notes` 和 `nextclaw-iteration-log-governance` 判断 changeset、迭代记录和 NPM 记录，再精确 stage/commit。
-- 面向 `master` 的交付默认先进入本地 `master`，再由本地 `master` 推送 `origin/master`；例外必须说明回流方案。
+- “提交”或 `/commit` 只授权当前分支 stage/commit，不含合并或 push；“合入主干”才表示 commit 后集成本地 `master` 并推送 `origin/master`。要求“只合入本地”或“不要推送”时跳过 push；只停在隔离分支不算完成。changeset、迭代与 NPM 记录由 `development-delivery` 提交前判断。
 - 成功执行提交、推送、建分支或 PR 后，最终回复输出 Codex app 对应 directive。
 - 涉及用户私有远程主机、VPS、部署或线上诊断时，若 `.local/remote-environments.private.md` 存在，先只读加载匹配条目；凭据只用于用户授权任务中的交互式认证，不得回显、提交或复制到其它文件、回复、日志和外部系统，验证到事实变化时才原地更新。
 - 搜索优先 `rg` / `rg --files`；手工编辑默认使用 `apply_patch`。
@@ -45,7 +45,7 @@
 - 用户明确只要求任务理解/代码调查、方案设计、验证、code review、交付发布或复盘时，可直接加载对应的 `development-task-understanding`、`development-design`、`development-validation`、`development-review`、`development-delivery`、`development-retrospective`；修改规则系统时加载 `nextclaw-agent-instructions-governance`。
 - 其它专项 skill 只按明确意图或真实触达面加载。不要因为未来阶段“可能会用”而预读，也不要因一个任务同时符合多个泛词就加载多个相邻原则 skill。
 - 同一逻辑任务内已经完整读取且未变化的 skill 不重复读取；skill 的 references 只在入口写明的条件成立时读取，禁止批量读取整个 references 目录。
-- Lifecycle 只向当前阶段路由；阶段 owner 不得直接调用其它阶段或回链 lifecycle，专项 skill 不得回链上游。一个判断分支最多要求一个直接下游；多个 skill 看似同时适用时，选择拥有当前决策的单一 owner。
+- Lifecycle 只向当前阶段路由；阶段 owner 不调用其它阶段或回链，专项 skill 不回链上游；每个分支只选当前决策的单一 owner。
 - 新增或重写 skill 时，先查职责重叠；能删除、合并或改为 reference 时不新增独立入口。项目内 skill 和设计文档默认使用中文。
 
 ## 开发与实现边界

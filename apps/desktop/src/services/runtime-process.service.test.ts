@@ -39,24 +39,17 @@ test("desktop runtime passes packaged extension root to embedded runtime", () =>
   assert.equal(runtimeEnv.NEXTCLAW_PACKAGED_EXTENSION_DIR, "/tmp/nextclaw-desktop-bundle/plugins");
 });
 
-test("desktop development runtime resolves SQLite from its Electron-specific resource copy", () => {
+test("desktop development runtime does not inject a native SQLite module loader", () => {
   const runtimeEnv = createDesktopRuntimeEnv(
     {
       NEXTCLAW_HOME: "/tmp/ambient",
-      NODE_OPTIONS: "--conditions=development"
-    },
-    {
-      nativeModuleRegisterPath: "/tmp/nextclaw-desktop/desktop-native-module-register.mjs",
-      nativeModulesDir: "/tmp/nextclaw-desktop/native-node-modules"
+      NODE_OPTIONS: "--conditions=development",
+      NEXTCLAW_DESKTOP_NATIVE_MODULES_DIR: "/tmp/obsolete-native-modules"
     }
   );
 
-  assert.equal(runtimeEnv.NEXTCLAW_DESKTOP_NATIVE_MODULES_DIR, "/tmp/nextclaw-desktop/native-node-modules");
-  assert.match(runtimeEnv.NODE_OPTIONS ?? "", /--conditions=development/);
-  assert.match(
-    runtimeEnv.NODE_OPTIONS ?? "",
-    /--import=file:\/\/\/tmp\/nextclaw-desktop\/desktop-native-module-register\.mjs/
-  );
+  assert.equal(runtimeEnv.NEXTCLAW_DESKTOP_NATIVE_MODULES_DIR, undefined);
+  assert.equal(runtimeEnv.NODE_OPTIONS, "--conditions=development");
 });
 
 test("classifies packaged desktop runtimes separately from source overrides", () => {

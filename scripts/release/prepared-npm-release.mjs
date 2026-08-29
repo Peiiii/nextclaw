@@ -12,7 +12,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 const ROOT_DIR = process.cwd();
 const SCHEMA_VERSION = 1;
 
@@ -96,6 +96,22 @@ function normalizeRegistryUrl(registry) {
   const normalized = new URL(registry);
   if (!normalized.pathname.endsWith("/")) normalized.pathname += "/";
   return normalized.toString();
+}
+
+export function isContainedRelativePath(relativePath) {
+  return (
+    relativePath !== "" &&
+    relativePath !== ".." &&
+    !relativePath.startsWith("../") &&
+    !relativePath.startsWith("..\\") &&
+    !isAbsolute(relativePath)
+  );
+}
+
+export function isPathWithinDirectory(parentDirectory, candidatePath) {
+  return isContainedRelativePath(
+    relative(resolve(parentDirectory), resolve(candidatePath)),
+  );
 }
 
 function validateCheckpointSteps(checkpoint) {
@@ -243,8 +259,7 @@ export function writePreparedNpmReleasePointer(
   );
   const resolvedManifestPath = resolve(preparedRoot, relativeManifestPath);
   if (
-    !relativeManifestPath ||
-    relativeManifestPath.startsWith("../") ||
+    !isContainedRelativePath(relativeManifestPath) ||
     resolvedManifestPath !== resolve(manifestPath)
   ) {
     throw new Error(
@@ -371,7 +386,7 @@ export function readPreparedNpmRelease(rootDir = ROOT_DIR) {
   const preparedRoot = resolvePreparedNpmReleaseRoot(rootDir);
   const manifestPath = resolve(preparedRoot, pointer.manifestPath);
   if (
-    !manifestPath.startsWith(`${preparedRoot}/`) ||
+    !isPathWithinDirectory(preparedRoot, manifestPath) ||
     !existsSync(manifestPath)
   ) {
     throw new Error(`Prepared NPM manifest is missing: ${manifestPath}`);
@@ -417,7 +432,7 @@ export function validatePreparedNpmRelease(options = {}) {
     for (const entry of manifest.packages) {
       const tarballPath = resolve(batchDirectory, entry.tarballPath);
       if (
-        !tarballPath.startsWith(`${batchDirectory}/`) ||
+        !isPathWithinDirectory(batchDirectory, tarballPath) ||
         !existsSync(tarballPath)
       ) {
         issues.push(`${entry.name}: tarball is missing`);

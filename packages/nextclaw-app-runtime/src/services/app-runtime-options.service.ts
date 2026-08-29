@@ -111,10 +111,13 @@ export class AppRuntimeOptionsService {
   };
 
   private readCreateTemplate = (rawTemplate: string): AppScaffoldTemplate => {
-    if (rawTemplate === "starter" || rawTemplate === "ts-http" || rawTemplate === "ts-http-lite") {
+    if (
+      rawTemplate === "starter" || rawTemplate === "ts-http" ||
+      rawTemplate === "ts-http-lite" || rawTemplate === "rust-wasi"
+    ) {
       return rawTemplate;
     }
-    throw new Error("--template 只支持 starter、ts-http 或 ts-http-lite。");
+    throw new Error("--template 只支持 starter、ts-http、ts-http-lite 或 rust-wasi。");
   };
 
   readPackOptions = (rawArgs: string[]): PackCliOptions => {

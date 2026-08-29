@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-29T09:00:12.255Z",
+  "generatedAt": "2026-08-29T18:37:24.165Z",
   "hero": {
     "currentLoc": 276169,
     "testLoc": 115353,
     "trackedFiles": 2936,
-    "recentCommitCount": 469,
+    "recentCommitCount": 503,
     "activeDays30": 30,
     "recentReleaseCount": 52,
     "latestReleaseDate": "2026-08-29",
-    "latestNoteDate": "2026-08-29",
+    "latestNoteDate": "2026-08-30",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2673477,
     "basePercentOfBenchmark": 10.33,
@@ -1323,7 +1323,7 @@ export default {
       {
         "key": "2026-08-29",
         "label": "08-29",
-        "value": 18
+        "value": 52
       }
     ],
     "commitWeekly": [
@@ -1385,7 +1385,7 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 132
+        "value": 172
       }
     ],
     "releaseMonthly": [
@@ -1519,9 +1519,11 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-29",
-        "tagCount": 1,
+        "tagCount": 61,
         "sampleTags": [
-          "v0.45.0-desktop.1"
+          "v0.45.0-desktop.1",
+          "@nextclaw/app-runtime@0.14.1",
+          "@nextclaw/channel-extension-dingtalk@0.2.38"
         ]
       },
       {
@@ -1553,7 +1555,7 @@ export default {
       },
       {
         "date": "2026-08-24",
-        "tagCount": 88,
+        "tagCount": 92,
         "sampleTags": [
           "@nextclaw/app-runtime@0.13.2-beta.0",
           "@nextclaw/channel-extension-dingtalk@0.2.33-beta.0",
@@ -1573,6 +1575,82 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-30-nextclaw-v0-45-5",
+        "date": "2026-08-30",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-30 · NextClaw v0.45.5",
+          "description": "Fix production activity receipts being classified as development traffic.",
+          "href": "/en/notes/2026-08-30-nextclaw-v0-45-5"
+        },
+        "zh": {
+          "title": "2026-08-30 · NextClaw v0.45.5",
+          "description": "修复正式版匿名活跃数据被误归入开发环境的问题。",
+          "href": "/zh/notes/2026-08-30-nextclaw-v0-45-5"
+        }
+      },
+      {
+        "slug": "2026-08-29-nextclaw-v0-45-4",
+        "date": "2026-08-29",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-29 · NextClaw v0.45.4",
+          "description": "Load the Island theme background earlier and reuse it across refreshes.",
+          "href": "/en/notes/2026-08-29-nextclaw-v0-45-4"
+        },
+        "zh": {
+          "title": "2026-08-29 · NextClaw v0.45.4",
+          "description": "加快岛屿主题背景的首次显示和刷新加载。",
+          "href": "/zh/notes/2026-08-29-nextclaw-v0-45-4"
+        }
+      },
+      {
+        "slug": "2026-08-29-nextclaw-v0-45-3",
+        "date": "2026-08-29",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-29 · NextClaw v0.45.3",
+          "description": "Fix Agent runs stopping unexpectedly after 20 tool calls on upgraded installations.",
+          "href": "/en/notes/2026-08-29-nextclaw-v0-45-3"
+        },
+        "zh": {
+          "title": "2026-08-29 · NextClaw v0.45.3",
+          "description": "修复旧实例在 20 次工具调用后意外中止 Agent 任务的问题。",
+          "href": "/zh/notes/2026-08-29-nextclaw-v0-45-3"
+        }
+      },
+      {
+        "slug": "2026-08-29-nextclaw-v0-45-2",
+        "date": "2026-08-29",
+        "tags": [
+          "release",
+          "npm",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-08-29 · NextClaw v0.45.2",
+          "description": "Fix Linux compatibility, first-install self-repair, and runner failure handling for Portable Service Apps.",
+          "href": "/en/notes/2026-08-29-nextclaw-v0-45-2"
+        },
+        "zh": {
+          "title": "2026-08-29 · NextClaw v0.45.2",
+          "description": "修复 Linux 上可移植 Service App 的系统兼容、首次安装自愈和异常退出问题。",
+          "href": "/zh/notes/2026-08-29-nextclaw-v0-45-2"
+        }
+      },
       {
         "slug": "2026-08-29-nextclaw-v0-45-1",
         "date": "2026-08-29",
@@ -2727,7 +2805,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-29T09:00:10.085Z",
     "sourceCount": {
-      "notes": 56,
+      "notes": 60,
       "scopes": 8
     }
   }
