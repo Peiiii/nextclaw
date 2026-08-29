@@ -122,6 +122,14 @@
       if (storedTheme !== nextTheme) {
         window.localStorage.setItem(storageKey, nextTheme);
       }
+      if (nextTheme === 'island') {
+        const islandBackgroundPreload = document.createElement('link');
+        islandBackgroundPreload.rel = 'preload';
+        islandBackgroundPreload.as = 'image';
+        islandBackgroundPreload.href = '/themes/island/island-atmosphere-7a037243.webp';
+        islandBackgroundPreload.fetchPriority = 'high';
+        document.head.appendChild(islandBackgroundPreload);
+      }
       const themeColor = themeColors[nextTheme];
       const themeAppearance = themeAppearances[nextTheme];
       document.documentElement.setAttribute('data-theme', nextTheme);

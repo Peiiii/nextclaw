@@ -168,7 +168,7 @@
   }
 
   :root[data-theme="island"] [data-theme-decoration="island-paper"] {
-    background: url("/themes/island/island-atmosphere.webp") center top / cover
+    background: url("/themes/island/island-atmosphere-7a037243.webp") center top / cover
       no-repeat;
     display: block;
     inset: 0;
@@ -190,7 +190,7 @@
   :root[data-theme="island"]
     [data-theme-decoration="island-palm"]
     [data-island-palm-part] {
-    background: url("/themes/island/island-atmosphere.webp") center top / cover
+    background: url("/themes/island/island-atmosphere-7a037243.webp") center top / cover
       no-repeat;
     clip-path: polygon(46% 0, 100% 0, 100% 61%, 62% 55%);
     inset: 0;

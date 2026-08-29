@@ -139,6 +139,30 @@ function createTestGateway(params: {
   };
 }
 
+function writeUiStaticCacheFixture(staticDir: string): void {
+  const assetsDir = join(staticDir, "assets");
+  const themeDir = join(staticDir, "themes", "island");
+  mkdirSync(assetsDir, { recursive: true });
+  mkdirSync(themeDir, { recursive: true });
+  writeFileSync(join(staticDir, "index.html"), "<!doctype html><script type=\"module\" src=\"/assets/app-CONTENT1.js\"></script>");
+  writeFileSync(join(assetsDir, "app-CONTENT1.js"), "export const immutable = true;");
+  writeFileSync(join(assetsDir, "styles-CONTENT2.css"), "body { color: black; }");
+  writeFileSync(join(assetsDir, "app.js"), "export const ok = true;");
+  writeFileSync(join(themeDir, "island-atmosphere-CONTENT3.webp"), "hashed image");
+  writeFileSync(join(themeDir, "island-atmosphere.webp"), "unhashed image");
+}
+
+async function expectCacheControl(
+  baseUrl: string,
+  pathname: string,
+  expected: string,
+): Promise<Response> {
+  const response = await fetch(`${baseUrl}${pathname}`);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("cache-control")).toBe(expected);
+  return response;
+}
+
 describe("ui server api cors", () => {
   const handles: Array<{ close: () => Promise<void> }> = [];
 
@@ -297,12 +321,7 @@ describe("ui server api cors", () => {
     const port = await reservePort();
     const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-server-ui-assets-"));
     const staticDir = join(rootDir, "ui-dist");
-    const assetsDir = join(staticDir, "assets");
-    mkdirSync(assetsDir, { recursive: true });
-    writeFileSync(join(staticDir, "index.html"), "<!doctype html><script type=\"module\" src=\"/assets/app-CONTENT1.js\"></script>");
-    writeFileSync(join(assetsDir, "app-CONTENT1.js"), "export const immutable = true;");
-    writeFileSync(join(assetsDir, "styles-CONTENT2.css"), "body { color: black; }");
-    writeFileSync(join(assetsDir, "app.js"), "export const ok = true;");
+    writeUiStaticCacheFixture(staticDir);
     const configPath = join(rootDir, "config.json");
     const handle = await startUiServer(createTestGateway({
       configPath,
@@ -314,21 +333,16 @@ describe("ui server api cors", () => {
     const baseUrl = `http://127.0.0.1:${port}`;
     await waitForServer(baseUrl);
 
-    const hashedAssetResponse = await fetch(`${baseUrl}/assets/app-CONTENT1.js`);
-    expect(hashedAssetResponse.status).toBe(200);
-    expect(hashedAssetResponse.headers.get("cache-control")).toBe(
-      "public, max-age=31536000, immutable",
+    const immutable = "public, max-age=31536000, immutable";
+    await expectCacheControl(baseUrl, "/assets/app-CONTENT1.js", immutable);
+    await expectCacheControl(baseUrl, "/assets/styles-CONTENT2.css", immutable);
+    await expectCacheControl(
+      baseUrl,
+      "/themes/island/island-atmosphere-CONTENT3.webp",
+      immutable,
     );
-
-    const hashedStyleResponse = await fetch(`${baseUrl}/assets/styles-CONTENT2.css`);
-    expect(hashedStyleResponse.status).toBe(200);
-    expect(hashedStyleResponse.headers.get("cache-control")).toBe(
-      "public, max-age=31536000, immutable",
-    );
-
-    const unhashedAssetResponse = await fetch(`${baseUrl}/assets/app.js`);
-    expect(unhashedAssetResponse.status).toBe(200);
-    expect(unhashedAssetResponse.headers.get("cache-control")).toBe("no-store");
+    await expectCacheControl(baseUrl, "/assets/app.js", "no-store");
+    await expectCacheControl(baseUrl, "/themes/island/island-atmosphere.webp", "no-store");
 
     const staleChunkResponse = await fetch(`${baseUrl}/assets/old-chunk.js`);
     expect(staleChunkResponse.status).toBe(200);

@@ -44,7 +44,7 @@ const CONTENT_HASHED_UI_ASSET_PATTERN = /-[A-Za-z0-9_-]{8}\.[^./]+$/;
 type CorsPolicy = string[] | "*" | typeof DEFAULT_CORS_ORIGINS;
 
 function resolveUiStaticCacheControl(pathname: string): string {
-  return pathname.startsWith("/assets/") && CONTENT_HASHED_UI_ASSET_PATTERN.test(pathname)
+  return CONTENT_HASHED_UI_ASSET_PATTERN.test(pathname)
     ? IMMUTABLE_UI_ASSET_CACHE_CONTROL
     : NO_STORE_CACHE_CONTROL;
 }
