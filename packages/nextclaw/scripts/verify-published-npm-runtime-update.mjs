@@ -29,6 +29,7 @@ function run(command, args, options = {}) {
       ...options.env,
     },
     encoding: "utf8",
+    maxBuffer: options.maxBuffer ?? 128 * 1024 * 1024,
     timeout: options.timeout ?? 120000,
   });
   if (result.status !== 0) {
