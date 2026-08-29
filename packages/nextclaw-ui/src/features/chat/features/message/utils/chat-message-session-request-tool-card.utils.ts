@@ -37,6 +37,7 @@ type SessionRequestResult = {
   task?: string;
   status?: string;
   notify?: string;
+  wait?: string;
   spawnedByRequestId?: string;
   message?: unknown;
   finalResponseText?: unknown;
@@ -144,6 +145,7 @@ function buildSessionRequestOutput(result: SessionRequestResult): string | undef
   const task = readOptionalString(result.task);
   const status = readOptionalString(result.status);
   const notify = readOptionalString(result.notify);
+  const wait = readOptionalString(result.wait);
   const lifecycle = readOptionalString(result.lifecycle);
   const parentSessionId = readOptionalString(result.parentSessionId);
   const spawnedByRequestId = readOptionalString(result.spawnedByRequestId);
@@ -168,6 +170,7 @@ function buildSessionRequestOutput(result: SessionRequestResult): string | undef
       : null,
     status ? `Status: ${status}` : null,
     notify ? `Notify: ${notify}` : null,
+    wait ? `Wait: ${wait}` : null,
     lifecycle ? `Lifecycle: ${lifecycle}` : null,
     parentSessionId ? `Parent Session ID: ${parentSessionId}` : null,
     spawnedByRequestId ? `Spawned By Request ID: ${spawnedByRequestId}` : null,

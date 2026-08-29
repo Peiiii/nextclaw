@@ -2,9 +2,10 @@ import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { NcpMessage } from "@nextclaw/ncp";
+import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { SessionMessageCursorError } from "@kernel/types/session.types.js";
 import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-message-projection.store.js";
+import { NcpAgentSessionJournalStore } from "./ncp-agent-session-journal.store.js";
 import type { NcpAgentSessionMessageProjectionPersistenceStore } from "./ncp-agent-session-message-projection-persistence.store.js";
 
 const sessionId = "session-1";
@@ -29,7 +30,61 @@ afterEach(async () => {
   }
 });
 
+describe("NcpAgentSessionMessageProjectionStore synchronization", () => {
+  it("synchronizes a final tool result appended after its assistant message completed", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageCompleted,
+        payload: {
+          sessionId,
+          message: {
+            id: "assistant-1",
+            sessionId,
+            role: "assistant",
+            status: "final",
+            timestamp: "2026-05-14T00:00:02.000Z",
+            parts: [{
+              type: "tool-invocation",
+              toolCallId: "tool-1",
+              toolName: "sessions_spawn",
+              state: "result",
+              args: {},
+              result: { status: "running" },
+            }],
+          },
+        },
+      },
+    });
+    await store.appendSessionEvent({
+      sessionId,
+      event: {
+        type: NcpEventType.MessageToolCallResult,
+        payload: {
+          sessionId,
+          toolCallId: "tool-1",
+          content: { status: "completed" },
+          final: true,
+        },
+      },
+    });
+
+    await store.synchronizeSessionMessageProjection(sessionId);
+
+    const reloaded = new NcpAgentSessionJournalStore(tempDir);
+    expect((await reloaded.getSession(sessionId))?.messages[0]?.parts[0]).toMatchObject({
+      type: "tool-invocation",
+      toolCallId: "tool-1",
+      result: { status: "completed" },
+    });
+  });
+
+});
+
 describe("NcpAgentSessionMessageProjectionStore", () => {
+
   it("reads the newest page and walks backward without overlap", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-message-projection-"));
     const store = new NcpAgentSessionMessageProjectionStore(tempDir);

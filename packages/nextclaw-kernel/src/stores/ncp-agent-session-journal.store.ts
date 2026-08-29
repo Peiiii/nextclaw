@@ -27,7 +27,6 @@ import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-in
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
 import type { SessionMessagePage } from "@kernel/types/session.types.js";
 export class NcpAgentSessionJournalStore {
-  private readonly journalDir: string;
   private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
   private readonly nextSeqBySession = new Map<string, number>();
   private readonly writeChains = new Map<string, Promise<void>>();
@@ -36,8 +35,7 @@ export class NcpAgentSessionJournalStore {
   private readonly unfinishedRunStore: NcpAgentUnfinishedRunStore;
   private readonly summaryIndexStore: NcpAgentSessionSummaryIndexStore;
   private readonly summaryReadStore: NcpAgentSessionSummaryReadStore;
-  constructor(journalDir: string) {
-    this.journalDir = journalDir;
+  constructor(private readonly journalDir: string) {
     this.metadataStore = new NcpAgentSessionMetadataStore(journalDir);
     this.messageProjectionStore = new NcpAgentSessionMessageProjectionStore(journalDir, {
       loadSession: async (sessionId) => {
@@ -100,6 +98,7 @@ export class NcpAgentSessionJournalStore {
     );
     await next;
   };
+  synchronizeSessionMessageProjection = (sessionId: string) => this.messageProjectionStore.synchronizeSource(normalizeNcpSessionId(sessionId));
   getSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
     const normalizedSessionId = normalizeNcpSessionId(sessionId);
     if (!normalizedSessionId) {

@@ -43,13 +43,13 @@ import {
   summarizeTask,
 } from "@kernel/utils/session-creation.utils.js";
 import { createSessionContextInheritance } from "@kernel/utils/session-context-inheritance.utils.js";
-import { eventKeys, type EventBus } from "@nextclaw/shared";
+import type { EventBus } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { ProjectManager } from "@kernel/managers/project.manager.js";
 import { buildSessionTokenUsageSummary } from "@kernel/managers/session-token-usage.manager.js";
-import { SessionEventIngestionService } from "@kernel/services/session-event-ingestion.service.js";
+import { SessionEventCoordinatorService, type PublishSessionEventParams } from "@kernel/services/session-event-coordinator.service.js";
 import { SessionSettingsService } from "@kernel/services/session-settings.service.js";
 import { SessionSummaryProjectionService } from "@kernel/services/session-summary-projection.service.js";
 import { SessionWorkingDirResolver } from "@kernel/services/session-working-dir-resolver.service.js";
@@ -70,27 +70,18 @@ export type SessionManagerOptions = {
 };
 
 export class SessionManager implements NcpSessionApi {
-  private readonly eventIngestion: SessionEventIngestionService;
+  private readonly sessionEvents: SessionEventCoordinatorService;
   private readonly settings: SessionSettingsService;
   private readonly summaryProjection: SessionSummaryProjectionService;
   private readonly workingDirResolver: SessionWorkingDirResolver;
 
   constructor(private readonly options: SessionManagerOptions) {
-    this.eventIngestion = new SessionEventIngestionService({
+    this.sessionEvents = new SessionEventCoordinatorService({
       appendSessionEvent: (params) => this.appendSessionEvent(params),
       getSessionRecord: (sessionId) => this.getSessionRecord(sessionId),
       listUnfinishedRuns: () => this.options.journalStore.listUnfinishedRuns(),
-      onError: (sessionId, error) => {
-        const message =
-          error instanceof Error
-            ? (error.stack ?? error.message)
-            : String(error);
-        console.error(
-          `[session-manager] failed to handle ncp event for ${sessionId}: ${message}`,
-        );
-      },
-      subscribe: (handler) =>
-        this.options.eventBus.on(eventKeys.ncpEvent, handler),
+      eventBus: this.options.eventBus,
+      journalStore: this.options.journalStore,
       updateSessionMetadata: (sessionId, metadata) =>
         this.updateSessionMetadata(sessionId, metadata),
     });
@@ -114,9 +105,12 @@ export class SessionManager implements NcpSessionApi {
     });
   }
 
-  start = async (): Promise<void> => await this.eventIngestion.start();
+  start = async (): Promise<void> => await this.sessionEvents.start();
 
-  dispose = (): void => this.eventIngestion.dispose();
+  dispose = (): void => this.sessionEvents.dispose();
+
+  publishSessionEvent = async (params: PublishSessionEventParams): Promise<void> =>
+    await this.sessionEvents.publish(params);
 
   createSession = async (
     params: CreateNcpSessionInput,
@@ -313,7 +307,7 @@ export class SessionManager implements NcpSessionApi {
     if (!normalizedSessionId) {
       return;
     }
-    await this.eventIngestion.flushSession(normalizedSessionId);
+    await this.sessionEvents.flushSession(normalizedSessionId);
     await this.options.beforeDeleteSession?.(normalizedSessionId);
     await this.options.journalStore.deleteSession(normalizedSessionId);
     this.options.agentContextWindowManager.forgetSession(normalizedSessionId);
