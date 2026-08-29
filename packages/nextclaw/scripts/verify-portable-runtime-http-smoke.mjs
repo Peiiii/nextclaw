@@ -42,6 +42,7 @@ const child = spawn(
   [...commandPrefix, "serve", "--ui-port", String(port)],
   {
     cwd: commandCwd,
+    detached: process.platform !== "win32",
     env: runtimeEnv,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
@@ -222,13 +223,48 @@ async function fetchJson(url, init) {
 }
 
 async function stopChild(processHandle) {
+  try {
+    if (processHandle.exitCode === null) {
+      signalChildTree(processHandle, "SIGTERM");
+      await waitForExit(processHandle, 5_000);
+    }
+    if (processHandle.exitCode === null) {
+      signalChildTree(processHandle, "SIGKILL");
+      await waitForExit(processHandle, 5_000);
+    }
+  } finally {
+    // Resident components can inherit the service pipes. Closing our readers
+    // prevents a successful smoke from waiting for the outer 300s timeout.
+    processHandle.stdout?.destroy();
+    processHandle.stderr?.destroy();
+  }
+}
+
+function signalChildTree(processHandle, signal) {
+  if (process.platform === "win32") {
+    if (signal === "SIGKILL" && processHandle.pid) {
+      spawnSync("taskkill", ["/pid", String(processHandle.pid), "/t", "/f"], {
+        stdio: "ignore",
+        windowsHide: true,
+      });
+      return;
+    }
+    processHandle.kill(signal);
+    return;
+  }
+  try {
+    process.kill(-processHandle.pid, signal);
+  } catch (error) {
+    if (error?.code !== "ESRCH") throw error;
+  }
+}
+
+async function waitForExit(processHandle, timeoutMs) {
   if (processHandle.exitCode !== null) return;
-  processHandle.kill("SIGTERM");
   await Promise.race([
     new Promise((resolvePromise) => processHandle.once("exit", resolvePromise)),
-    new Promise((resolvePromise) => setTimeout(resolvePromise, 5_000)),
+    new Promise((resolvePromise) => setTimeout(resolvePromise, timeoutMs)),
   ]);
-  if (processHandle.exitCode === null) processHandle.kill("SIGKILL");
 }
 
 function assert(condition, message) {

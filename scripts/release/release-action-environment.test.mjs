@@ -166,8 +166,11 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   const desktopJob = workflow.match(
     /\n {2}publish-desktop:([\s\S]*?)\n {2}summarize:/,
   )?.[1];
-  assert.ok(desktopJob, "release.yml must include the publish-desktop job");
-  assert.match(desktopJob, /needs: \[publish-npm, publish-runtime\]/);
+  assert.match(
+    desktopJob ?? "",
+    /needs: \[publish-npm, publish-runtime\]/,
+    "release.yml must include the publish-desktop job",
+  );
   assert.match(desktopJob, /timeout-minutes: 150/);
   assert.match(desktopJob, /inputs\.target == 'all'/);
   assert.match(desktopJob, /needs\.publish-runtime\.result == 'success'/);
@@ -193,13 +196,17 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
 
   assert.match(
     workflow,
-    /needs: \[publish-npm, publish-runtime, publish-desktop\]/,
+    /needs: \[publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop\]/,
   );
   assert.match(
     workflow,
     /if \[ "\$TARGET" = "all" \]; then[\s\S]*?"\$DESKTOP_RESULT" != "success"/,
   );
   assert.match(workflow, /## ALL_PLATFORMS_READY/);
+  assert.match(
+    workflow,
+    /resume_version:[\s\S]*?Resolve existing stable release for automatic recovery[\s\S]*?inputs\.resume_version != '' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit[\s\S]*?Reuse published stable Runtime channel[\s\S]*?darwin-arm64 darwin-x64 linux-x64 win32-x64/,
+  );
 
   const desktopWorkflow = readFileSync(
     new URL("../../.github/workflows/desktop-release.yml", import.meta.url),
