@@ -43,4 +43,19 @@
 - 需要发布：修复已公开 v0.45.0 的稳定 Runtime 缺陷，用户必须获得新的不可变 package/runtime identity。
 - 直接 changeset：`nextclaw` patch、`@nextclaw/service` patch；最终依赖闭包由 stable release prepare 计算。
 - v0.45.1 已发布，但 Linux glibc 2.32 实机启用失败，证明旧发布门不充分。
-- 当前状态：`nextclaw`、`@nextclaw/kernel`、`@nextclaw/service`、`@nextclaw/shared` patch 待统一发布；以 v0.45.2 的 NPM latest、四平台 Runtime manifest、GitHub Release、Desktop manifest、APT 和真实 Linux HTTP 启用结果为最终完成门。
+- 当时的完成门：以 v0.45.2 的 NPM latest、四平台 Runtime manifest、GitHub Release、Desktop manifest、APT 和真实 Linux HTTP 启用结果为准；最终实测结果见下节。
+
+## v0.45.2 最终实测与发布闭环
+
+- `nextclaw@0.45.2` 已作为 NPM `latest` 发布；Stable Runtime 的四个平台 bundle（macOS arm64/x64、Linux x64、Windows x64）和公开 Linux runner 均已完成产物验收。
+- 在用户的 Linux x64 实机（glibc 2.32）上，从旧 launcher/runtime 状态执行稳定更新后，Runtime 切换至 `0.45.2`；runner 位于签名 Runtime 的固定路径、存在且具备执行权限，并被确认是静态 PIE ELF，因此不再依赖宿主机较新的 glibc。
+- 实机重启后的真实服务链路已通过：`app enable nextclaw.portable-runtime-lab --json` 返回 `enabled: true`，5 类 Service Component（state、capabilities、resident、provider、composition）均完成启用；状态组件 `counter_read` 返回持久化计数。启用前后 NextClaw 主进程 PID 未变化，服务保持 active，近期 journal 未出现 `EPIPE`、runner 缺失或主进程退出，入口不再产生 502。
+- v0.45.2 的中英文更新说明和结构化 release notes 已部署并可公开访问。Desktop 稳定构建使用冻结 target `bba91f3fcd05224c55b2ed77ac34f780d3922615`，其 `.desktop.1` 仅为稳定 Desktop 构建序号，不表示 beta 或 prerelease。
+- Desktop stable run `33253296049` 于 2026-08-29 12:45:12Z 至 13:11:29Z 完成（约 26 分钟）；五个平台构建、资产发布、GitHub Release、stable update channels 和 Linux APT repo 均成功。公开 Release 精确包含 30 个已上传且非空的预期资产；五份 stable manifest 均指向 Runtime `0.45.2`，APT `Packages` 已包含 `nextclaw-desktop` `0.0.273`。
+
+## 无人值守发布流程修复
+
+- 旧流程把 NPM 包发布放在发布内容可验证之前，且发布后安装验证使用 registry 解析版本号，可能遇到 registry 缓存传播窗口；本次失败并非产品 artifact 重建失败，而是验证进程被大量下载进度输出撑满默认 `spawnSync` buffer，造成父发布被误判失败。
+- 正式 `target=all` / 产品发布现在会在任何不可逆 NPM 发布前检查结构化发布内容；NPM-only 仍保留其独立语义，不会被不适用的产品内容门误阻断。
+- 发布后稳定安装验证改为安装不可变 NPM tarball，并显式扩大验证进程输出缓冲区；这消除了版本缓存和进度输出导致的假失败，同时仍保留真实安装、升级、HTTP 启用和五组件调用作为验收链路。
+- 对上述发布合同新增定向回归测试；验证通过后才合入主线。今后的故障先沿失败步骤或受影响平台做最小复现和定向验证，已成功的平台产物与证据复用，不重跑整条发布链路。
