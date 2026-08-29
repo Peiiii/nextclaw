@@ -2,8 +2,9 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { AppTsHttpLiteScaffoldTemplateService } from "./app-ts-http-lite-scaffold-template.service.js";
 import { AppTsHttpScaffoldTemplateService } from "./app-ts-http-scaffold-template.service.js";
+import { AppRustWasiScaffoldTemplateService } from "./app-rust-wasi-scaffold-template.service.js";
 
-export type AppScaffoldTemplate = "starter" | "ts-http" | "ts-http-lite";
+export type AppScaffoldTemplate = "starter" | "ts-http" | "ts-http-lite" | "rust-wasi";
 
 export type AppScaffoldResult = {
   appDirectory: string;
@@ -15,6 +16,7 @@ export class AppScaffoldService {
   constructor(
     private readonly tsHttpTemplateService: AppTsHttpScaffoldTemplateService = new AppTsHttpScaffoldTemplateService(),
     private readonly tsHttpLiteTemplateService: AppTsHttpLiteScaffoldTemplateService = new AppTsHttpLiteScaffoldTemplateService(),
+    private readonly rustWasiTemplateService: AppRustWasiScaffoldTemplateService = new AppRustWasiScaffoldTemplateService(),
   ) {}
 
   scaffold = async (
@@ -26,13 +28,18 @@ export class AppScaffoldService {
     const appDirectory = path.resolve(targetDirectory);
     const template = options?.template ?? "starter";
     await this.assertTargetDoesNotExist(appDirectory);
-    await mkdir(path.join(appDirectory, "main"), { recursive: true });
-    await mkdir(path.join(appDirectory, "ui"), { recursive: true });
-    await mkdir(path.join(appDirectory, "assets"), { recursive: true });
+    await mkdir(appDirectory, { recursive: true });
 
     const appName = this.buildAppName(appDirectory);
     const appId = this.buildAppId(appDirectory);
     const manifestPath = path.join(appDirectory, "manifest.json");
+    if (template === "rust-wasi") {
+      await this.writeTemplateFiles(
+        appDirectory,
+        this.rustWasiTemplateService.buildFiles({ appId, appName }),
+      );
+      return { appDirectory, manifestPath, template };
+    }
     if (template === "ts-http") {
       await this.writeTemplateFiles(
         appDirectory,
@@ -62,6 +69,11 @@ export class AppScaffoldService {
       };
     }
 
+    await Promise.all([
+      mkdir(path.join(appDirectory, "main"), { recursive: true }),
+      mkdir(path.join(appDirectory, "ui"), { recursive: true }),
+      mkdir(path.join(appDirectory, "assets"), { recursive: true }),
+    ]);
     await Promise.all([
       writeFile(
         manifestPath,

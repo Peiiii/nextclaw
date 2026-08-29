@@ -10,3 +10,4 @@ export * from "./services/extension-desktop-runtime.service.js";
 export * from "./services/extension-lifecycle-async.service.js";
 export * from "./utils/extension-channel-catalog.utils.js";
 export * from "./utils/extension-runtime-payload.utils.js";
+export * from "./utils/extension-process-memory.utils.js";

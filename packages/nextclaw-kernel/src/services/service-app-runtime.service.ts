@@ -14,7 +14,10 @@ export class ServiceAppRuntimeService {
   private readonly portable: PortableServiceAppRuntimeService;
   private readonly protocols = new Map<string, ServiceAppProtocol>();
 
-  constructor(params: { getConfig: () => Config; portableServiceRunnerPath?: string }) {
+  constructor(params: {
+    getConfig: () => Config;
+    portableServiceRunnerPath?: string;
+  }) {
     this.mcp = new McpServiceAppRuntimeService(params);
     this.portable = new PortableServiceAppRuntimeService({
       runnerPath: params.portableServiceRunnerPath,
@@ -27,6 +30,8 @@ export class ServiceAppRuntimeService {
       ? this.portable.getStatus(appId)
       : this.mcp.getStatus(appId);
   };
+
+  getLastObservation = () => this.portable.getLastObservation();
 
   start = async (call: RuntimeCall): Promise<void> => {
     this.protocols.set(call.app.id, call.manifest.protocol);
@@ -42,10 +47,12 @@ export class ServiceAppRuntimeService {
       : await this.mcp.listActions(call);
   };
 
-  invokeAction = async (call: RuntimeCall & {
-    actionName: string;
-    input: Record<string, unknown>;
-  }) => {
+  invokeAction = async (
+    call: RuntimeCall & {
+      actionName: string;
+      input: Record<string, unknown>;
+    },
+  ) => {
     this.protocols.set(call.app.id, call.manifest.protocol);
     return call.manifest.protocol === "wasi-component"
       ? await this.portable.invokeAction(call)

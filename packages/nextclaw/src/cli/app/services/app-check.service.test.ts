@@ -137,4 +137,55 @@ describe("AppCheckService", () => {
     expect(report.kind).toBe("service");
     expect(report.issues).toEqual([]);
   });
+
+  it("checks a schema v2 package and resolves Panel actions from its sibling Service", async () => {
+    const packagePath = path.join(
+      tmpdir(),
+      `nextclaw-package-check-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    const panelPath = path.join(packagePath, "panels", "example-reading-panel.panel");
+    const servicePath = path.join(packagePath, "service-components", "example-reading-service");
+    await mkdir(panelPath, { recursive: true });
+    await mkdir(servicePath, { recursive: true });
+    await writeJson(path.join(packagePath, "manifest.json"), {
+      schemaVersion: 2,
+      id: "example.reading",
+      name: "Reading",
+      version: "0.1.0",
+      description: "Reading progress",
+      runtime: { profile: "wasi" },
+      distribution: { mode: "universal" },
+      permissions: { storage: { namespace: "example-reading" } },
+      components: [
+        { kind: "panel", path: "panels/example-reading-panel.panel" },
+        { kind: "service", path: "service-components/example-reading-service" },
+      ],
+    });
+    await writeJson(path.join(panelPath, "panel-app.json"), {
+      id: "example-reading-panel",
+      title: "Reading",
+      description: "Reading progress",
+      icon: "📚",
+      entry: "index.html",
+      actions: ["example-reading-service.records_list"],
+    });
+    await writeFile(path.join(panelPath, "index.html"), [
+      "<!doctype html>",
+      "<script>window.nextclaw.serviceActions.invoke('example-reading-service.records_list', {});</script>",
+    ].join("\n"));
+    await writeJson(path.join(servicePath, "service-app.json"), {
+      id: "example-reading-service",
+      title: "Reading State",
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      actions: { records_list: { risk: "read" } },
+    });
+    await writeFile(path.join(servicePath, "service.wasm"), "component");
+
+    const packageReport = await new AppCheckService().check(packagePath);
+    const panelReport = await new AppCheckService().check(panelPath);
+
+    expect(packageReport).toMatchObject({ ok: true, kind: "package", issues: [] });
+    expect(panelReport).toMatchObject({ ok: true, kind: "panel", issues: [] });
+  });
 });

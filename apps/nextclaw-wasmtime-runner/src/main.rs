@@ -574,11 +574,40 @@ fn response_for(request_id: String, result: Result<Value>) -> RunnerResponse {
             ok: false,
             result: None,
             error: Some(RunnerError {
-                code: "PORTABLE_RUNTIME_FAILED".into(),
+                code: classify_error(&error).into(),
                 message: format!("{error:#}"),
             }),
         },
     }
+}
+
+fn classify_error(error: &anyhow::Error) -> &'static str {
+    let message = format!("{error:#}");
+    if message.contains("CAPABILITY_DENIED")
+        || message.contains("NETWORK_DENIED")
+        || message.contains("PROVIDER_DENIED")
+    {
+        return "WASI_CAPABILITY_DENIED";
+    }
+    if message.contains("INVALID_INPUT") || message.contains("INPUT_SCHEMA") {
+        return "WASI_INPUT_SCHEMA_MISMATCH";
+    }
+    if message.contains("unknown export")
+        || message.contains("export not found")
+        || message.contains("missing export")
+    {
+        return "WASI_GUEST_EXPORT_MISSING";
+    }
+    if message.contains("component type")
+        || message.contains("type mismatch")
+        || message.contains("incompatible import")
+    {
+        return "WASI_ABI_VERSION_MISMATCH";
+    }
+    if message.contains("trap") || message.contains("unreachable") {
+        return "WASI_COMPONENT_TRAP";
+    }
+    "WASI_COMPONENT_FAILED"
 }
 
 fn main() -> Result<()> {
@@ -608,4 +637,35 @@ fn main() -> Result<()> {
         stdout.flush()?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::classify_error;
+
+    #[test]
+    fn classifies_public_wasi_failures() {
+        for (message, expected) in [
+            (
+                "CAPABILITY_DENIED: storage permission is required",
+                "WASI_CAPABILITY_DENIED",
+            ),
+            (
+                "INVALID_INPUT: expected an object",
+                "WASI_INPUT_SCHEMA_MISMATCH",
+            ),
+            (
+                "missing export nextclaw:service",
+                "WASI_GUEST_EXPORT_MISSING",
+            ),
+            ("component type mismatch", "WASI_ABI_VERSION_MISMATCH"),
+            ("guest trapped: unreachable", "WASI_COMPONENT_TRAP"),
+            (
+                "guest returned an application error",
+                "WASI_COMPONENT_FAILED",
+            ),
+        ] {
+            assert_eq!(classify_error(&anyhow::anyhow!(message)), expected);
+        }
+    }
 }

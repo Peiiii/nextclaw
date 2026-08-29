@@ -135,8 +135,7 @@ if [[ ! -f "${RUNTIME_SCRIPT}" ]]; then
 fi
 
 SHARP_PACKAGE_ROOT="${SEED_ROOT}/bundle/node_modules/sharp"
-SQLITE_PACKAGE_ROOT="${SEED_ROOT}/bundle/node_modules/better-sqlite3"
-for package_root in "${SHARP_PACKAGE_ROOT}" "${SQLITE_PACKAGE_ROOT}"; do
+for package_root in "${SHARP_PACKAGE_ROOT}"; do
   if [[ ! -f "${package_root}/package.json" ]]; then
     echo "[desktop-smoke] native runtime package not found in seed product bundle: ${package_root}" >&2
     exit 1
@@ -148,7 +147,14 @@ if ! ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" -e '
     require(packageRoot);
     process.stdout.write(`[desktop-smoke] native dependency loaded: ${packageRoot}\n`);
   }
-' "${SHARP_PACKAGE_ROOT}" "${SQLITE_PACKAGE_ROOT}" >"${NATIVE_RUNTIME_LOG}" 2>&1; then
+  const { DatabaseSync } = require("node:sqlite");
+  const database = new DatabaseSync(":memory:");
+  database.exec("CREATE TABLE smoke (value TEXT)");
+  database.prepare("INSERT INTO smoke VALUES (?)").run("ok");
+  if (database.prepare("SELECT value FROM smoke").get().value !== "ok") process.exit(1);
+  database.close();
+  process.stdout.write("[desktop-smoke] built-in node:sqlite write/read succeeded\n");
+' "${SHARP_PACKAGE_ROOT}" >"${NATIVE_RUNTIME_LOG}" 2>&1; then
   cat "${NATIVE_RUNTIME_LOG}" >&2
   echo "[desktop-smoke] seed native runtime dependency probe failed. See ${NATIVE_RUNTIME_LOG}" >&2
   exit 1

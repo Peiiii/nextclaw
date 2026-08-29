@@ -36,7 +36,7 @@ description: 通用开发生命周期的「开发实现」阶段 owner；当目�
 
 - 当前决策确实涉及前端状态、React 生命周期、交互、样式、兼容策略或外部 runtime 时，只选择对应的一个专项 skill。
 - 只有用户明确讨论简单性、拆分收益、过度防卫、过度抽象或代码审美，且需要裁决保留、拆分还是抽象时，才读取[实现工艺](references/implementation-craft.md)。
-- 只有 `node/pnpm/npx/corepack` 无法从 PATH 解析时，才读取[Node/pnpm 环境恢复](references/node-pnpm-environment.md)。
+- 只有 `node/pnpm/npx/corepack` 无法从 PATH 解析，或实际 Node 与仓库 `.nvmrc` 不一致时，才读取[Node/pnpm 环境恢复](references/node-pnpm-environment.md)。
 
 普通实现不预读这些条件材料。
 

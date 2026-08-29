@@ -1,5 +1,5 @@
 export type AppCheckSeverity = "error" | "warning";
-export type AppCheckKind = "mixed" | "panel" | "service" | "unknown";
+export type AppCheckKind = "mixed" | "package" | "panel" | "service" | "unknown";
 
 export type AppCheckIssue = {
   severity: AppCheckSeverity;

@@ -34,6 +34,8 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 - 当前阶段；
 - 完成任务所需的最小可信证据。
 
+用户显式启用时读取[省 Token 委派合同](references/token-efficient-delegation.md)；它只优化执行拓扑，不改变风险、阶段和完成门。
+
 风险定义：
 
 - L0：文档与普通元信息；

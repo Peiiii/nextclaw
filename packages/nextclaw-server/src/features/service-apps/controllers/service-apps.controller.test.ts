@@ -119,6 +119,36 @@ async function assertStructuredForeignRuntimeFailureResponse(): Promise<void> {
   });
 }
 
+async function assertStructuredWasiFailureResponse(): Promise<void> {
+  const bridgeSession = createBridgeSession();
+  const app = createTestApp({
+    panelAppManager: { resolvePanelAppBridgeSession: () => bridgeSession },
+    serviceAppManager: {
+      invokeServiceAction: async () => {
+        throw new ServiceAppError(
+          "WASI_CAPABILITY_DENIED",
+          "Storage access was denied.",
+          { logs: ["host.kv: namespace is not allowed"] },
+        );
+      },
+    },
+  });
+  const response = await app.request("http://localhost/api/service-actions/notes.read/invoke", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-nextclaw-panel-bridge-session": "bridge-token" },
+    body: JSON.stringify({ input: {} }),
+  });
+  expect(response.status).toBe(403);
+  await expect(response.json()).resolves.toEqual({
+    ok: false,
+    error: {
+      code: "WASI_CAPABILITY_DENIED",
+      message: "Storage access was denied.",
+      details: { logs: ["host.kv: namespace is not allowed"] },
+    },
+  });
+}
+
 async function assertStructuredUnexpectedFailureResponse(): Promise<void> {
   const bridgeSession = createBridgeSession();
   const app = createTestApp({
@@ -165,7 +195,6 @@ afterEach(() => {
     }
   }
 });
-
 describe("service apps routes", () => {
   it("requires a panel bridge session before invoking service actions", async () => {
     const app = createTestApp({
@@ -227,6 +256,10 @@ describe("service apps routes", () => {
 
   it("keeps a Service App runtime error structured across package copies", async () => {
     await assertStructuredForeignRuntimeFailureResponse();
+  });
+
+  it("preserves stable WASI errors and runner diagnostics", async () => {
+    await assertStructuredWasiFailureResponse();
   });
 
   it("returns structured JSON when a Service App request fails unexpectedly", async () => {

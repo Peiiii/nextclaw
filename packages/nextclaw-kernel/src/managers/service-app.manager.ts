@@ -51,6 +51,7 @@ import {
 import {
   isServiceAppError,
   ServiceAppError,
+  toServiceAppRuntimeError,
 } from "@kernel/utils/service-app-error.utils.js";
 
 export type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
@@ -206,12 +207,7 @@ export class ServiceAppManager {
       });
       return { actionId, result };
     } catch (error) {
-      throw new ServiceAppError(
-        "SERVICE_APP_RUNTIME_FAILED",
-        `Service App ${record.id} action ${actionName} failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+      throw toServiceAppRuntimeError(error, record.id, actionName);
     }
   };
 

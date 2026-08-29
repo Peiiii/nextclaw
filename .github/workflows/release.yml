@@ -60,7 +60,7 @@ jobs:
       - name: Setup NPM publishing runtime
         uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version-file: .nvmrc
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
@@ -108,7 +108,7 @@ jobs:
 
   publish-runtime:
     name: publish stable Runtime channel
-    needs: publish-npm
+    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node]
     if: ${{ inputs.target != 'npm' && needs.publish-npm.outputs.has_nextclaw == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -130,7 +130,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install release verification toolchain
@@ -163,6 +163,74 @@ jobs:
             echo "- release: https://github.com/${{ github.repository }}/releases/tag/nextclaw@${{ needs.publish-npm.outputs.target_version }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  verify-npm-node-compatibility:
+    name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }}
+    needs: publish-npm
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux-x64
+          - windows-x64
+          - darwin-arm64
+          - darwin-x64
+        node:
+          - "20.19.0"
+          - "22.19.0"
+          - "24"
+          - "26"
+        include:
+          - platform: linux-x64
+            os: ubuntu-22.04
+          - platform: windows-x64
+            os: windows-latest
+          - platform: darwin-arm64
+            os: macos-14
+          - platform: darwin-x64
+            os: macos-15-intel
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+
+      - name: Setup compatibility Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install published package and open SQLite
+        run: >-
+          node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs
+          --expected-version "${{ needs.publish-npm.outputs.target_version }}"
+
+  verify-npm-unsupported-node:
+    name: verify NPM unsupported Node fails clearly
+    needs: publish-npm
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18.20.8"
+      - name: Verify launcher version guard
+        run: >-
+          node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs
+          --expected-version "${{ needs.publish-npm.outputs.target_version }}"
+          --expect-unsupported
+
   publish-desktop:
     name: publish stable Desktop release
     needs: [publish-npm, publish-runtime]
@@ -187,7 +255,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22.14.0
+          node-version-file: .nvmrc
           cache: pnpm
 
       - name: Bind checkout to master
@@ -225,7 +293,7 @@ jobs:
   summarize:
     name: summarize release state
     if: ${{ always() }}
-    needs: [publish-npm, publish-runtime, publish-desktop]
+    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -236,6 +304,8 @@ jobs:
           DESKTOP_RESULT: ${{ needs.publish-desktop.result }}
           HAS_NEXTCLAW: ${{ needs.publish-npm.outputs.has_nextclaw }}
           NPM_RESULT: ${{ needs.publish-npm.result }}
+          NPM_NODE_COMPATIBILITY_RESULT: ${{ needs.verify-npm-node-compatibility.result }}
+          NPM_UNSUPPORTED_NODE_RESULT: ${{ needs.verify-npm-unsupported-node.result }}
           RUNTIME_RESULT: ${{ needs.publish-runtime.result }}
           TARGET: ${{ inputs.target }}
           TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
@@ -247,6 +317,8 @@ jobs:
             echo "- target: $TARGET"
             echo "- version: ${TARGET_VERSION:-unresolved}"
             echo "- npm: $NPM_RESULT"
+            echo "- npm node compatibility: $NPM_NODE_COMPATIBILITY_RESULT"
+            echo "- npm unsupported node guard: $NPM_UNSUPPORTED_NODE_RESULT"
             echo "- runtime: $RUNTIME_RESULT"
             echo "- desktop: $DESKTOP_RESULT"
             echo "- content: $([ "$CONTENT_READY" = "true" ] && echo CONTENT_READY || echo CONTENT_PENDING)"
@@ -255,6 +327,12 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$NPM_RESULT" != "success" ]; then
+            exit 1
+          fi
+          if [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_NODE_COMPATIBILITY_RESULT" != "success" ]; then
+            exit 1
+          fi
+          if [ "$HAS_NEXTCLAW" = "true" ] && [ "$NPM_UNSUPPORTED_NODE_RESULT" != "success" ]; then
             exit 1
           fi
           if [ "$TARGET" = "product" ] && [ "$HAS_NEXTCLAW" = "true" ] && [ "$RUNTIME_RESULT" != "success" ]; then

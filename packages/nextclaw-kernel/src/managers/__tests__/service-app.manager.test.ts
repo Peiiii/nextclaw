@@ -114,7 +114,6 @@ afterEach(() => {
     }
   }
 });
-
 describe("ServiceAppManager runtime env", () => {
   it("runs a node command service app when the parent process PATH is minimal", async () => {
     const originalPath = process.env.PATH;

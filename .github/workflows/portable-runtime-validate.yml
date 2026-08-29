@@ -5,6 +5,8 @@ on:
     paths:
       - "apps/nextclaw-wasmtime-runner/**"
       - "packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/**"
+      - "packages/nextclaw-app-runtime/src/services/app-rust-wasi-scaffold-template.service.ts"
+      - "packages/nextclaw/src/cli/app/**"
       - "packages/nextclaw/src/cli/shared/lib/distribution/**"
       - "packages/nextclaw/scripts/verify-portable-runtime-http-smoke.mjs"
       - "packages/nextclaw-service/src/launcher/**"
@@ -19,6 +21,8 @@ on:
     paths:
       - "apps/nextclaw-wasmtime-runner/**"
       - "packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/**"
+      - "packages/nextclaw-app-runtime/src/services/app-rust-wasi-scaffold-template.service.ts"
+      - "packages/nextclaw/src/cli/app/**"
       - "packages/nextclaw/src/cli/shared/lib/distribution/**"
       - "packages/nextclaw/scripts/verify-portable-runtime-http-smoke.mjs"
       - "packages/nextclaw-service/src/launcher/**"
@@ -66,7 +70,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -113,7 +117,7 @@ jobs:
         run: pnpm --filter nextclaw... build
 
       - name: Verify real HTTP enable and component lifecycle
-        run: pnpm -C packages/nextclaw validation:portable-runtime-http
+        run: pnpm -C packages/nextclaw validation:portable-runtime-http -- --verify-rust-wasi-scaffold
 
       - name: Upload runner resource
         uses: actions/upload-artifact@v4
