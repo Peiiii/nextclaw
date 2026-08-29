@@ -114,7 +114,6 @@ export function resolveEffectiveAgentProfiles(config: Config): EffectiveAgentPro
       models: mainOverride?.models,
       contextTokens: mainOverride?.contextTokens,
       reservedContextTokens: mainOverride?.reservedContextTokens,
-      maxToolIterations: mainOverride?.maxToolIterations,
       builtIn: true
     },
     ...extraAgents

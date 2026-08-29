@@ -401,17 +401,10 @@ export class AgentRunRequestManager {
     const model =
       request.model ?? session.model ?? this.configManager.getDefaultModel();
     const defaultAgentId = this.agentManager.getDefaultAgentId();
-    const agentId = session.agentId ?? request.agentId ?? defaultAgentId;
-    const maxToolIterations = this.agentManager.resolveAgentProfileForRun({
-      agentId,
-      requestMetadata: request.metadata,
-      storedAgentId: session.agentId,
-    }).maxToolIterations;
     return resolveRunSpec({
       defaultAgentId,
       model,
       modelMaxTokens: this.configManager.getModelMaxTokens(model),
-      maxToolIterations,
       request,
       runId: activeRequest.runId,
       session,

@@ -100,7 +100,6 @@ export function toAgentProfileView(config: Config, agentId: string): AgentProfil
     models: profile.models,
     contextTokens: profile.contextTokens,
     reservedContextTokens: profile.reservedContextTokens,
-    maxToolIterations: profile.maxToolIterations,
     builtIn: profile.builtIn === true
   };
 }

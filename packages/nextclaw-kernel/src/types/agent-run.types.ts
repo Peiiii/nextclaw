@@ -79,7 +79,6 @@ export type AgentRunSpec = {
   agentId: string;
   model: string;
   requestedModel: string | null;
-  maxToolIterations: number;
   maxTokens?: number;
   thinkingEffort?: ThinkingEffort | null;
   correlationId?: string;

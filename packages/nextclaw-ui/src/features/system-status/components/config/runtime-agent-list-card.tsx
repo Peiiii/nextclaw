@@ -39,23 +39,14 @@ export function RuntimeAgentListCard({
               <Input value={agent.workspace ?? ''} onChange={(event) => onUpdateAgent(index, { workspace: event.target.value })} placeholder={t('workspaceOverridePlaceholder')} />
               <Input value={agent.model ?? ''} onChange={(event) => onUpdateAgent(index, { model: event.target.value })} placeholder={t('modelOverridePlaceholder')} />
               <Input value={agent.runtime ?? agent.engine ?? ''} onChange={(event) => onUpdateAgent(index, { runtime: event.target.value })} placeholder={t('engineOverridePlaceholder')} />
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
-                <Input
-                  type='number'
-                  min={1000}
-                  step={1000}
-                  value={agent.contextTokens ?? ''}
-                  onChange={(event) => onUpdateAgent(index, { contextTokens: parseOptionalInt(event.target.value) })}
-                  placeholder={t('contextTokensPlaceholder')}
-                />
-                <Input
-                  type='number'
-                  min={1}
-                  value={agent.maxToolIterations ?? ''}
-                  onChange={(event) => onUpdateAgent(index, { maxToolIterations: parseOptionalInt(event.target.value) })}
-                  placeholder={t('maxToolsPlaceholder')}
-                />
-              </div>
+              <Input
+                type='number'
+                min={1000}
+                step={1000}
+                value={agent.contextTokens ?? ''}
+                onChange={(event) => onUpdateAgent(index, { contextTokens: parseOptionalInt(event.target.value) })}
+                placeholder={t('contextTokensPlaceholder')}
+              />
             </div>
             <div className='flex items-center justify-between'>
               <div className='flex items-center gap-2 text-sm text-muted-foreground'>

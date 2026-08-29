@@ -18,7 +18,6 @@ function createConfig() {
         contextTokens: 200000,
         engine: "native",
         engineConfig: {},
-        maxToolIterations: 1000,
         model: "default-model",
         models: {},
         thinkingDefault: "off",

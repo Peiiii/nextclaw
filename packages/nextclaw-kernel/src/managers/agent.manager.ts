@@ -16,9 +16,8 @@ import {
 } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 
-export type ResolvedAgentProfile = Omit<EffectiveAgentProfile, "maxToolIterations"> & {
+export type ResolvedAgentProfile = EffectiveAgentProfile & {
   contextTokens: number;
-  maxToolIterations: number;
   model: string;
   reservedContextTokens: number;
 };
@@ -120,8 +119,6 @@ export class AgentManager {
     return {
       ...profile,
       contextTokens,
-      maxToolIterations:
-        profile.maxToolIterations ?? config.agents.defaults.maxToolIterations,
       model: profile.model ?? config.agents.defaults.model,
       reservedContextTokens: ContextWindowBudgetService.resolveReservedContextTokens({
         contextTokens,

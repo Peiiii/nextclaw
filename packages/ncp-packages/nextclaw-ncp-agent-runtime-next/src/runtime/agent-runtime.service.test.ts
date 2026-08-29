@@ -29,7 +29,6 @@ const spec: DefaultNcpAgentRunSpec = {
   agentId: "main",
   model: "model",
   requestedModel: null,
-  maxToolIterations: 1000,
   runId: "run-1",
   runtimeId: "native",
 };
@@ -571,45 +570,6 @@ describe("DefaultNcpAgentRuntime preflight", () => {
 });
 
 describe("DefaultNcpAgentRuntime tool call scheduling", () => {
-  it("shares the tool iteration limit across model rounds", async () => {
-    let round = 0;
-    let executions = 0;
-    const runtime = new DefaultNcpAgentRuntime({
-      llmApi: {
-        generate: async function* () {
-          round += 1;
-          yield toolCallChunk(0, `call-${round}`, "lookup", "{}");
-          yield finishChunk("tool_calls");
-        },
-      },
-      modelInputBuilder,
-    });
-    const tool: NcpTool = {
-      name: "lookup",
-      execute: async () => {
-        executions += 1;
-        return { ok: true };
-      },
-    };
-    const { sessionRun } = createSessionRun();
-    const events: NcpEndpointEvent[] = [];
-
-    for await (const event of runtime.run(
-      { ...spec, maxToolIterations: 2 },
-      { contextBlocks: [], sessionRun, tools: [tool] },
-    )) {
-      events.push(event);
-    }
-
-    expect(executions).toBe(2);
-    expect(round).toBe(3);
-    expect(events.find((event) => event.type === NcpEventType.RunError)).toMatchObject({
-      payload: {
-        error: "Tool iteration limit reached: configured maximum 2; 2 tool calls already started.",
-      },
-    });
-  });
-
   it("emits partial tool call args before the model round finishes", async () => {
     const partialArgsSeen = deferred();
     const releaseModelFinish = deferred();

@@ -100,7 +100,7 @@ function createQueueManager(params: {
       disposeRuntime: async () => undefined,
       getOrCreate: () => runtime ?? createDeferredRuntime(started, completeRun),
     } as never,
-    { getDefaultAgentId: () => "main", resolveAgentProfileForRun: () => ({ maxToolIterations: 1000 }) } as never,
+    { getDefaultAgentId: () => "main" } as never,
     {
       getDefaultModel: () => "test-model",
       getModelMaxTokens: () => 12000,

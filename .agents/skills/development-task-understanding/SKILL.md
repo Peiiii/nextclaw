@@ -18,6 +18,7 @@ description: 通用开发生命周期的「任务理解与现状调查」阶段 
 先冻结：
 
 - 用户或系统可观察问题；
+- 最小完整结果及其必要链路；
 - 任务类型、Design/设计文档建议及证据；`feature` 和 `bugfix` 不按类型自动决定，`bugfix` 另含复现决策与修后判定；
 - 期望行为和成功条件；
 - 范围、非目标和约束；
@@ -50,6 +51,7 @@ description: 通用开发生命周期的「任务理解与现状调查」阶段 
 
 ## 条件方法
 
+- 用户只给出方向、目标边界模糊或“做到什么程度”会改变交付时，读取[最小完整结果边界](references/minimum-complete-outcome.md)。
 - 跨多 hop、runtime、transport、异步边界，或真实复现昂贵时，读取[链路切片](references/chain-slicing.md)。
 - 用户要求系统根因、事故复盘或机制沉淀，且已有足够直接证据时，读取[根因分层](references/root-cause-layers.md)。
 
@@ -57,7 +59,7 @@ description: 通用开发生命周期的「任务理解与现状调查」阶段 
 
 ## 输出
 
-- 需求、范围、成功条件和风险；
+- 需求、最小完整结果、必要链路、范围、非目标、成功条件和风险；
 - 任务类型、Design/设计文档建议与分叉依据；`bugfix` 另含复现决定、依据和修后判定；
 - 已查 producer、owner、boundary、consumer 范围；
 - 已确认事实、仍待验证假设和证据缺口；

@@ -108,8 +108,7 @@ export const configPayload = {
     defaults: {
       model: 'openai/gpt-5.1',
       workspace: '~/workspace-nextclaw',
-      contextTokens: 64000,
-      maxToolIterations: 1000
+      contextTokens: 64000
     },
     list: [
       {

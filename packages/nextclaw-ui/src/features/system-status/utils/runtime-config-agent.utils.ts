@@ -19,7 +19,7 @@ const DEFAULT_NARP_STDIO_ENTRY_CONFIG = {
 };
 
 export function createEmptyRuntimeAgent(): AgentProfileView {
-  return { id: '', default: false, workspace: '', model: '', runtime: '', contextTokens: undefined, maxToolIterations: undefined };
+  return { id: '', default: false, workspace: '', model: '', runtime: '', contextTokens: undefined };
 }
 
 export function createEmptyRuntimeBinding(): AgentBindingView {
@@ -31,7 +31,7 @@ export function createEmptyRuntimeEntry(): RuntimeEntryDraft {
 }
 
 export function hydrateRuntimeAgent(agent: AgentProfileView): AgentProfileView {
-  return { id: agent.id ?? '', default: Boolean(agent.default), displayName: agent.displayName ?? '', description: agent.description ?? '', avatar: agent.avatar ?? '', workspace: agent.workspace ?? '', model: agent.model ?? '', runtime: agent.runtime ?? agent.engine ?? '', contextTokens: agent.contextTokens, maxToolIterations: agent.maxToolIterations };
+  return { id: agent.id ?? '', default: Boolean(agent.default), displayName: agent.displayName ?? '', description: agent.description ?? '', avatar: agent.avatar ?? '', workspace: agent.workspace ?? '', model: agent.model ?? '', runtime: agent.runtime ?? agent.engine ?? '', contextTokens: agent.contextTokens };
 }
 
 export function hydrateRuntimeBinding(binding: AgentBindingView): AgentBindingView {
@@ -77,7 +77,6 @@ export function toPersistedRuntimeAgent(agent: AgentProfileView): AgentProfileVi
   const runtime = agent.runtime?.trim() ?? agent.engine?.trim();
   if (runtime) normalized.engine = runtime;
   if (typeof agent.contextTokens === 'number') normalized.contextTokens = Math.max(1000, agent.contextTokens);
-  if (typeof agent.maxToolIterations === 'number') normalized.maxToolIterations = agent.maxToolIterations;
   return normalized;
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import {
   RuntimeToolCallExecutor,
-  RuntimeToolIterationBudget,
+  RuntimeToolCallBudget,
 } from "./runtime-tool-call-executor.service.js";
 
 function deferred() {
@@ -41,7 +41,7 @@ class ToolExecutorHarness {
   readonly started: string[] = [];
   maxActive = 0;
 
-  constructor(parallelToolNames: readonly string[], maxToolIterations = 1000) {
+  constructor(parallelToolNames: readonly string[], toolCallLimit = 1000) {
     const parallel = new Set(parallelToolNames);
     this.executor = new RuntimeToolCallExecutor({
       executeToolCall: async (toolCall) => {
@@ -59,7 +59,7 @@ class ToolExecutorHarness {
       },
       supportsParallelToolCalls: (toolCall) => parallel.has(toolCall.toolName),
       toRunErrorEvent: runErrorEvent,
-      toolIterationBudget: new RuntimeToolIterationBudget(maxToolIterations),
+      toolCallBudget: new RuntimeToolCallBudget(toolCallLimit),
     });
   }
 
@@ -196,7 +196,7 @@ describe("RuntimeToolCallExecutor scheduling", () => {
     harness.enqueue("call-1", "read");
     harness.enqueue("call-2", "read");
     expect(() => harness.enqueue("call-3", "read")).toThrow(
-      "Tool iteration limit reached: configured maximum 2; 2 tool calls already started.",
+        "Tool call limit reached: fixed maximum 2; 2 tool calls already started.",
     );
 
     expect(harness.started).toEqual(["call-1", "call-2"]);

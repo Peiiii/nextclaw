@@ -58,10 +58,6 @@ export function AgentDetailsDialog({
     agent.reservedContextTokens,
     defaults?.reservedContextTokens,
   );
-  const maxToolIterations = resolveNumberValue(
-    agent.maxToolIterations,
-    defaults?.maxToolIterations ?? 1000,
-  );
   const thinkingDefault = resolveTextValue(
     agent.thinkingDefault,
     defaults?.thinkingDefault ?? "off",
@@ -158,11 +154,6 @@ export function AgentDetailsDialog({
               label={t("agentsDetailsFieldReservedContextTokens")}
               value={reservedContextTokens.value}
               source={reservedContextTokens.source}
-            />
-            <DetailItem
-              label={t("agentsDetailsFieldMaxToolIterations")}
-              value={maxToolIterations.value}
-              source={maxToolIterations.source}
             />
           </DetailSection>
 

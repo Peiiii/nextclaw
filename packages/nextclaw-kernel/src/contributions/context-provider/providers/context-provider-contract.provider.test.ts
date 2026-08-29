@@ -71,7 +71,6 @@ function createConfig(workspace: string) {
         thinkingDefault: "off",
         models: {},
         contextTokens: 200000,
-        maxToolIterations: 1000,
       },
       context: {
         bootstrap: {

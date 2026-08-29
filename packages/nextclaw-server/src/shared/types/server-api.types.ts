@@ -712,7 +712,6 @@ export type ConfigView = {
       models?: AgentDefaultModelsView;
       contextTokens?: number;
       reservedContextTokens?: number;
-      maxToolIterations?: number;
     };
     runtimes?: {
       entries?: Record<string, RuntimeEntryView>;

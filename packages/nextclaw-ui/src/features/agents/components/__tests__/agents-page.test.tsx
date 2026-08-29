@@ -54,7 +54,6 @@ const mocks = vi.hoisted(() => ({
           thinkingDefault: "high",
           contextTokens: 128000,
           reservedContextTokens: 4096,
-          maxToolIterations: 64,
           workspace: "~/.nextclaw/workspace/agents/researcher",
           avatarUrl: null,
         },
@@ -74,7 +73,6 @@ const mocks = vi.hoisted(() => ({
           models: {},
           contextTokens: 200000,
           reservedContextTokens: 10000,
-          maxToolIterations: 1000,
         },
       },
       providers: {

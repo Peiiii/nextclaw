@@ -23,35 +23,36 @@ export type RuntimeToolCallExecutorInput = {
   ): Promise<NcpEndpointEvent>;
   supportsParallelToolCalls(toolCall: CollectedToolCall): boolean;
   toRunErrorEvent(error: unknown): NcpEndpointEvent;
-  toolIterationBudget: RuntimeToolIterationBudget;
+  toolCallBudget: RuntimeToolCallBudget;
 };
 
 const MAX_PARALLEL_TOOL_CALLS = 8;
+export const FIXED_NATIVE_TOOL_CALL_LIMIT = 1000;
 
-export class RuntimeToolIterationLimitError extends Error {
+export class RuntimeToolCallLimitError extends Error {
   constructor(
     readonly limit: number,
     readonly startedToolCount: number,
   ) {
     super(
-      `Tool iteration limit reached: configured maximum ${limit}; ${startedToolCount} tool calls already started.`,
+      `Tool call limit reached: fixed maximum ${limit}; ${startedToolCount} tool calls already started.`,
     );
-    this.name = "RuntimeToolIterationLimitError";
+    this.name = "RuntimeToolCallLimitError";
   }
 }
 
-export class RuntimeToolIterationBudget {
+export class RuntimeToolCallBudget {
   private startedToolCount = 0;
 
   constructor(readonly limit: number) {
     if (!Number.isInteger(limit) || limit < 1) {
-      throw new Error(`maxToolIterations must be a positive integer; received ${limit}.`);
+      throw new Error(`Tool call limit must be a positive integer; received ${limit}.`);
     }
   }
 
   consume = (): void => {
     if (this.startedToolCount >= this.limit) {
-      throw new RuntimeToolIterationLimitError(this.limit, this.startedToolCount);
+      throw new RuntimeToolCallLimitError(this.limit, this.startedToolCount);
     }
     this.startedToolCount += 1;
   };
@@ -164,7 +165,7 @@ export class RuntimeToolCallExecutor {
     const call = this.calls.get(toolCallId);
     if (!call || call.ended || this.isCanceled) return;
     try {
-      this.input.toolIterationBudget.consume();
+      this.input.toolCallBudget.consume();
     } catch (error) {
       this.cancel(error);
       throw error;

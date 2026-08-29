@@ -6,7 +6,6 @@ export type DefaultNcpAgentRunSpec = {
   agentId: string;
   model: string;
   requestedModel: string | null;
-  maxToolIterations: number;
   maxTokens?: number;
   thinkingEffort?: string | null;
   correlationId?: string;
