@@ -6,10 +6,9 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  rmSync,
   writeFileSync,
 } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,6 +97,15 @@ export function resolvePublishedRuntimeAsset(version, platform, arch) {
 function sleep(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
+
+async function removeFixture(tempRoot) {
+  await rm(tempRoot, {
+    recursive: true,
+    force: true,
+    maxRetries: 20,
+    retryDelay: 250,
+  });
+}
 export async function runPublishedNpmRuntimeUpdateValidation(argv) {
   if (argv.includes("--published-beta")) {
     await verifyPublishedBetaRelease();
@@ -116,7 +124,7 @@ async function verifyPublishedBetaRelease() {
     verifyPublishedBetaInstall(fixture);
     log("published beta install smoke passed");
   } finally {
-    rmSync(fixture.tempRoot, { recursive: true, force: true });
+    await removeFixture(fixture.tempRoot);
   }
 }
 
@@ -149,7 +157,7 @@ async function verifyPublishedStableRelease(argv) {
     }
     log("published stable install smoke passed");
   } finally {
-    rmSync(fixture.tempRoot, { recursive: true, force: true });
+    await removeFixture(fixture.tempRoot);
   }
 }
 
@@ -165,7 +173,7 @@ async function verifyPreviousStableUpdate(previousVersion, expectedVersion) {
   try {
     verifyPublishedStableUpdate(fixture, previousVersion, expectedVersion);
   } finally {
-    rmSync(fixture.tempRoot, { recursive: true, force: true });
+    await removeFixture(fixture.tempRoot);
   }
 }
 
