@@ -61,7 +61,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 ## 外部动作
 
 - 未经用户明确要求，不 commit、push、建 PR、release、deploy 或执行不可逆操作。
-- 用户要求“提交”或使用 `/commit` 时，按 `AGENTS.md` 的“主线交付”语义判断 changeset 和迭代记录、精确 commit、集成本地 `master` 并推送 `origin/master`；用户明确限制为本地时才跳过 push，禁止混入无关 WIP 或把隔离分支报告为完成。
+- 用户要求“提交”或使用 `/commit` 时，只在当前任务分支精确 stage/commit；用户明确说“合入主干”时，才安全集成本地 `master` 并推送 `origin/master`。用户限制为本地时跳过 push，禁止混入无关 WIP 或把隔离分支报告为合入完成。
 - 发布使用仓库既有 release flow，不以零散原子命令伪装完整闭环。
 - 发布完成必须覆盖授权范围内适用的 artifact、manifest、update channel、release notes、部署后 smoke 和分支回流。
 - tag、release 页面、workflow 触发或 registry publish 只是中间状态，不自动等于交付完成。
