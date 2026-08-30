@@ -1,5 +1,23 @@
 # nextclaw-server
 
+## 0.20.5
+
+### Patch Changes
+
+- 99a2f2c: 将 WASM Service App 的共享执行器切换为嵌入式 Spin Runtime Factors，同时保持现有 `.napp`、WIT、Service Action 与 runner 协议不变。
+
+  新增外部依赖就绪状态：默认 App 仍为自包含并可直接启用；显式声明额外 capability 或 resource 的 App 会在 API、CLI 和界面中显示缺失要求，并在依赖未满足时阻止误启用。
+
+  新增独立 Provider App 与资源绑定闭环：Provider 可声明版本化 capability，Consumer 可通过 API、CLI 或 Agent 检查、绑定、验证和解绑；绑定只保存非敏感 Provider 引用，并通过 runner allowlist 执行受控跨 App 调用。
+
+- 9180398: 补齐 Rust WASI Component App 的创建、诊断、构建、校验、测试、调试、打包、安装与运行闭环，并为组件失败提供稳定错误码和运行观测信息。
+
+  同时使 NPM 安装在受支持的 Node.js 20 与 22+ 环境中都能直接使用 SQLite：Node.js 20 自动使用随包提供的 WASM SQLite 实现，无需本机编译原生依赖。
+
+- Updated dependencies [99a2f2c]
+- Updated dependencies [9180398]
+  - @nextclaw/kernel@0.13.0
+
 ## 0.20.4
 
 ### Patch Changes
