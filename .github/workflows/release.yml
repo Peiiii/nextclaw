@@ -109,12 +109,15 @@ jobs:
           if [ "$is_recovery" = true ]; then
             git fetch origin "refs/tags/$tag:refs/tags/$tag"
             release_commit="$(git rev-list -n 1 "$tag")"
-            while read -r candidate_run candidate_sha; do
+            while read -r candidate_run candidate_sha candidate_conclusion; do
+              if [ "$candidate_conclusion" != "failure" ] && [ "$candidate_conclusion" != "cancelled" ]; then
+                continue
+              fi
               if git merge-base --is-ancestor "$release_commit" "$candidate_sha"; then
                 gh run view "$candidate_run" --json jobs --jq '.jobs[]' >> "$RUNNER_TEMP/previous-compatibility-jobs.ndjson"
                 compatibility_source_run="${compatibility_source_run:+$compatibility_source_run,}$candidate_run"
               fi
-            done < <(gh run list --workflow release.yml --status failure --limit 20 --json databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha)"')
+            done < <(gh run list --workflow release.yml --status completed --limit 40 --json conclusion,databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha) \(.conclusion)"')
           fi
           compatibility_result="$(node scripts/release/npm-compatibility-recovery-matrix.mjs \
             --is-recovery "$is_recovery" \

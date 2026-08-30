@@ -262,6 +262,6 @@ Desktop job 只获得 `actions:write`（dispatch child workflows）和 `contents
 
 已发布 NPM、tag 存在而 GitHub Release 尚未建立时，recovery 必须继续执行当前工作流中的跨平台真实安装/SQLite 合同，并只补 Runtime；不得重发不可变 NPM tarball。Windows 真实验证中，`node:sqlite` 的文件句柄会让临时 fixture 清理在 CRUD 成功后阻塞到 job timeout；Windows hosted runner 直接跳过该无业务价值的回收，由 runner 生命周期清除。非 Windows 保留有限 `EBUSY` 重试。两者都不遮蔽安装、版本、SQLite 写读或 manifest 失败。
 
-恢复不是另一次完整 matrix。Actions 在 recovery mode 根据 exact `nextclaw@<version>` tag 验证候选 run 的 source 是 release commit 的后代，再聚合这些 run 的结构化 job 结论：任一成功 cell 作为同一不可变 NPM identity 的证据复用，只运行从未成功的 failure/cancelled/missing cell；全 16 cell 都成功时只产生一个轻量 evidence-reuse job。动态 matrix 和选择逻辑归 workflow + `npm-compatibility-recovery-matrix.mjs`，不由 AI 手工拼平台命令。新 identity 仍必须跑完整矩阵作为最终准入。
+恢复不是另一次完整 matrix。Actions 在 recovery mode 根据 exact `nextclaw@<version>` tag 验证候选 failure/cancelled run 的 source 是 release commit 的后代，再聚合这些 run 的结构化 job 结论：任一成功 cell 作为同一不可变 NPM identity 的证据复用，只运行从未成功的 failure/cancelled/missing cell；全 16 cell 都成功时只产生一个轻量 evidence-reuse job。动态 matrix 和选择逻辑归 workflow + `npm-compatibility-recovery-matrix.mjs`，不由 AI 手工拼平台命令。新 identity 仍必须跑完整矩阵作为最终准入。
 
 验证不是固定金字塔。每次按根因定位置信度、模块测试成本、focused/failed-job 和完整矩阵 wall time、重现稳定性与风险选择下一层：本次 Windows `.cmd`、SQLite handle 和 cleanup 属于平台特有且完整重跑约 12 分钟，故以可本地运行的 cleanup/matrix resolver 模块合同先锁住；若改动极小且 failed-only job 已足够接近最终边界，则直接走该 job。任何路径都必须保留唯一失败日志→focused command/job 映射，完整矩阵不因恢复而重复消耗已成功证据。

@@ -261,6 +261,10 @@ test("stable release exposes only the business target and infers recovery checkp
   );
   assert.match(
     workflow,
+    /candidate_conclusion" != "failure"[\s\S]*?candidate_conclusion" != "cancelled"[\s\S]*?--status completed[\s\S]*?--json conclusion,databaseId,headSha/,
+  );
+  assert.match(
+    workflow,
     /matrix: \$\{\{ fromJSON\(needs\.publish-npm\.outputs\.compatibility_matrix\) \}\}[\s\S]*?Reuse completed immutable compatibility evidence/,
   );
 });
