@@ -29,7 +29,7 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
 - NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。
 - 发布授权按对象严格分层：NPM-only 不授权 runtime、desktop、文档站、官网或 X；常规 NextClaw stable 包含 NPM 与 runtime/product closure，但不包含 desktop；全平台发布完成常规 stable 后才转交 desktop owner。
-- `target=npm` 可独立报告 `CONTENT_READY|CONTENT_PENDING`；`target=product|all` 必须在首次 NPM publish 前验证结构化说明和适用内容合同，且 `all` 的 closure commit 必须携带 Desktop 所需说明。发布后只更新可变说明投影，不重复产物 identity。
+- `target=npm|product` 可独立报告 `CONTENT_READY|CONTENT_PENDING`；核心 NPM 与 Runtime 使用确定性 GitHub Release fallback，不因高质量内容尚未就绪而阻塞。只有 `target=all` 必须在首次 NPM publish 前验证结构化说明和适用内容合同，确保 closure commit 携带 Desktop 所需说明。发布后只更新可变说明投影，不重复产物 identity。
 - `nextclaw` 的 stable `minor` / `major` 必须在 `docs/releases/nextclaw-v<version>.release-review.json` 中审查文档站、官网和 X 宣发：文档站/官网要么列出真实更新路径，要么明确记录 `not-needed` 原因；stable minor 必须冻结 X 账号、正文、release note URL、图片和 alt。该合同影响 `CONTENT_READY`，不回退已经成立的 `NPM_READY` 或 `NEXTCLAW_STABLE_READY`。
 - 执行 stable minor X 帖前，先查最近一次成功 stable minor 的迭代记录并复用已经验证的 `x-bird`、Node/代理参数和回读命令；不得在已有成功路径时从通用工具重新推演。只有帖子返回 ID，并回读确认作者、正文和媒体后才算内容闭合；X 阻断时必须明确标记 `CONTENT_PENDING`，不得对用户报告内容“全部完成”。
 

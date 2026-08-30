@@ -126,7 +126,7 @@ jobs:
         run: |
           set -euo pipefail
           args=()
-          if [ "$RELEASE_TARGET" != "npm" ]; then
+          if [ "$RELEASE_TARGET" = "all" ]; then
             args+=(--require-product-artifacts)
           fi
           pnpm release:npm:stable -- "${args[@]}"

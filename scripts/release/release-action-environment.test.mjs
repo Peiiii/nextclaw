@@ -253,7 +253,7 @@ test("stable release exposes only the business target and infers recovery checkp
   assert.match(workflow, /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery/);
 });
 
-test("product and all releases validate content before the irreversible package publish", () => {
+test("only all-platform releases require complete content before package publication", () => {
   const workflow = readFileSync(
     new URL("../../.github/workflows/release.yml", import.meta.url),
     "utf8",
@@ -266,9 +266,16 @@ test("product and all releases validate content before the irreversible package 
   const packagePublish = release.indexOf("await publishStablePackages(");
 
   assert.match(workflow, /RELEASE_TARGET: \$\{\{ inputs\.target \}\}/);
-  assert.match(workflow, /if \[ "\$RELEASE_TARGET" != "npm" \]; then[\s\S]*?--require-product-artifacts/);
-  assert.ok(contentGuard >= 0, "stable release must expose the product content guard");
-  assert.ok(contentGuard < packagePublish, "product content must be validated before package publication");
+  assert.match(workflow, /if \[ "\$RELEASE_TARGET" = "all" \]; then[\s\S]*?--require-product-artifacts/);
+  assert.doesNotMatch(
+    workflow,
+    /if \[ "\$RELEASE_TARGET" != "npm" \]; then[\s\S]*?--require-product-artifacts/,
+  );
+  assert.ok(contentGuard >= 0, "stable release must expose the all-platform content guard");
+  assert.ok(
+    contentGuard < packagePublish,
+    "all-platform content must be validated before package publication",
+  );
 });
 
 test("stable recovery runs current verification scripts against the immutable release", () => {

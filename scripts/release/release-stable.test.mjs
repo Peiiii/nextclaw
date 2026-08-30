@@ -399,6 +399,35 @@ test("dry run exposes every closure stage and explicit exceptions", () => {
   assert.equal(skipped.at(-1), "- desktop: excluded");
 });
 
+test("reports content pending without blocking the product core release", () => {
+  const plan = buildStableDryRunPlan({
+    branch: "master",
+    npmPublishPackageCount: 10,
+    packageCount: 12,
+    previousVersion: "0.45.5",
+    releaseNotesReady: false,
+    surfaceReviewReady: false,
+    surfaceReviewRequired: true,
+    resumeFrom: "packages",
+    skipPublishedInstall: false,
+    skipRuntimeChannel: false,
+    targetVersion: "0.46.0",
+    validationPackageCount: 38,
+    validationSupportPackageCount: 28,
+    worktreeClean: true,
+  }).join("\n");
+
+  assert.match(
+    plan,
+    /CONTENT_PENDING \(runtime uses deterministic GitHub Release fallback\)/,
+  );
+  assert.match(
+    plan,
+    /CONTENT_PENDING \(does not block NPM or Runtime core closure\)/,
+  );
+  assert.doesNotMatch(plan, /blocks runtime|blocks product closure/);
+});
+
 test("formats an unambiguous recovery command", () => {
   const command = formatStableRecoveryCommand("runtime", {
     branch: "master",

@@ -22,10 +22,11 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 - Desktop workflow dispatch 支持按 runtime、macOS DMG、Windows EXE、Windows installer 或 Linux package 单链恢复；Windows Electron Service App smoke 在业务与 lifecycle 断言已通过后，短暂文件锁导致的临时目录清理失败只记录 warning，不再制造假失败。
 - 最终原生证据已闭合：Portable Runtime run `33276343562` 的 macOS arm64/Linux x64 成功，focused Windows x64 run `33277547811` 成功；Desktop run `33278867556` 的 runtime、macOS DMG、Windows installer、Linux AppImage/deb 成功，focused Windows EXE run `33279269319` 成功。所有 focused run 都复用同一主干 SHA 的实现，仅跳过已由前序 run 证明且未受后续修复影响的平台。
 - 文档站构建与中英文同步检查通过；`git diff --check` 通过。
+- `0.46.0` 首次 `target=product` run `33293465778` 在任何 NPM 写入前复现发布自动化漂移：workflow 把完整内容门错误地同时施加给 `product` 与 `all`，而现有设计明确允许核心发布以 `CONTENT_PENDING` 和确定性 GitHub Release fallback 继续。修复后 39 个发布合同测试、产品 dry-run、Skill 渐进加载与治理 ratchet 均通过；dry-run 明确显示 NPM/Runtime 不再被内容缺失阻塞，Desktop 所属的 `all` 仍保留完整双语内容门。
 
 ## 发布/部署方式
 
-本批按用户授权提交并合入 `master`；Portable Runtime 与 Desktop 的适用原生矩阵已用完整门 + focused recovery 组合闭合。本记录不把“合入主干”写成已经发布稳定版本；NPM/runtime/desktop 发布仍走统一 release workflow。
+本批按用户授权提交并合入 `master`；Portable Runtime 与 Desktop 的适用原生矩阵已用完整门 + focused recovery 组合闭合。`0.46.0` 产品正式发布只使用统一 `release.yml target=product`，先形成 `NPM_READY`，再由同一个无人值守 workflow 闭合 Runtime 与旧版本升级；Desktop 不在本次授权范围。首次 run 在 preflight 失败且没有发布任何包，修复沿同一 `0.46.0` identity 重新生成 exact-SHA prepared artifact 后恢复，不手工拆发、不发布 beta、不重复已有不可变产物。
 
 ## 用户/产品视角的验收步骤
 
@@ -50,7 +51,7 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 - 需要随下一次统一稳定版发布，因为 runner 实现、Kernel 公共返回合同、Server/CLI/UI 用户行为均有变化。
 - Changeset：`.changeset/adopt-spin-portable-runtime.md`。
 - 涉及包：`nextclaw`、`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/ui` 及 Runtime artifact。
-- 当前状态：待统一发布；本批未单独发布 NPM、Runtime 或 Desktop。
+- 当前状态：`0.46.0` 正式产品发布恢复中；首次 run `33293465778` 在 package publish 前失败，registry、tag 与 Runtime 均未发生写入。修复发布内容门后，将从新主线 SHA 单次恢复 NPM + Runtime；Desktop 明确排除。
 
 ## 关联产物
 

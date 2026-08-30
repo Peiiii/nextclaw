@@ -130,6 +130,17 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 
 这不是两套 release owner：内容增强消费同一版本/tag，只修改可变投影；NPM package、tag、bundle 和 manifest identity 始终由核心 workflow 冻结。
 
+### 2026-08-30 内容门禁漂移修正
+
+`0.46.0` 首次 `target=product` 自动发布在任何 NPM 写入前失败：workflow 把 `--require-product-artifacts` 同时施加给 `product` 和 `all`，而 exact-commit preparation 只准备 package/Runtime artifact，不负责调用 AI 或人工生成新版本的双语说明。结果是核心发布重新依赖值守者补文件，违反本节的 `CONTENT_PENDING` 状态和“核心更新链不能以大模型是否可用作为正确性门”。
+
+门禁恢复为单一、可观察的边界：
+
+- `target=npm` 与 `target=product` 允许 `CONTENT_PENDING`；缺少结构化 JSON 时复用 `release-core-notes` 的确定性 GitHub Release fallback，NPM、Runtime 和真实升级验证继续无人值守闭环；
+- `target=all` 仍在首次 package publish 前要求完整结构化说明和适用 surface review，因为 Desktop update manifest 与公开 Release 必须消费同一份双语说明；
+- `CONTENT_PENDING` 只表示可变内容投影未闭合，不得伪装成 `CONTENT_READY`，也不得触发 NPM/Runtime 重发；
+- 静态 workflow 合同测试锁定这个分界，禁止再次用 `target != npm` 扩大内容硬门。
+
 ## 七、失败、恢复和并发
 
 - workflow concurrency 使用 stable release 全局串行，`cancel-in-progress: false`，避免新触发取消正在 publish 的不可逆批次。

@@ -277,7 +277,7 @@ export function buildStableDryRunPlan({
         ? "not in NPM scope"
         : releaseNotesReady
           ? "ready for runtime"
-          : "missing (blocks runtime, not NPM)"
+          : "CONTENT_PENDING (runtime uses deterministic GitHub Release fallback)"
     }`,
     `- docs/website/X release plan: ${
       !includesNextclaw || skipRuntimeChannel
@@ -286,7 +286,7 @@ export function buildStableDryRunPlan({
           ? "not required"
           : surfaceReviewReady
             ? "ready for product closure"
-            : "missing or invalid (blocks product closure, not NPM)"
+            : "CONTENT_PENDING (does not block NPM or Runtime core closure)"
     }`,
     resumeFrom === "packages"
       ? "- packages: prepared tarball proof -> concurrent publish -> concurrent registry verify"
