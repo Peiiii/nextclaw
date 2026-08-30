@@ -182,7 +182,7 @@ jobs:
               if [ -z "$candidate_conclusion" ] || [ "$candidate_conclusion" = "skipped" ]; then
                 continue
               fi
-              if git merge-base --is-ancestor "$release_commit" "$candidate_sha"; then
+              if git merge-base --is-ancestor "$candidate_sha" "$release_commit"; then
                 gh run view "$candidate_run" --json jobs --jq '.jobs[]' >> "$RUNNER_TEMP/previous-compatibility-jobs.ndjson"
                 compatibility_source_run="${compatibility_source_run:+$compatibility_source_run,}$candidate_run"
               fi
@@ -241,9 +241,24 @@ jobs:
           release_commit="$(git rev-list -n 1 "$tag")"
           prepared_source_sha="$(git rev-parse "$release_commit^")"
           test "$(npm view "nextclaw@$TARGET_VERSION" version)" = "$TARGET_VERSION"
+          content_ready="$(node --input-type=module -- "$PREVIOUS_VERSION" "$TARGET_VERSION" <<'NODE'
+          import {
+            hasStructuredReleaseNotes,
+            inspectReleaseSurfaceReview,
+          } from './scripts/release/release-stable-preparation.mjs';
+
+          const [previousVersion, targetVersion] = process.argv.slice(2);
+          const surfaceReview = inspectReleaseSurfaceReview(previousVersion, targetVersion);
+          process.stdout.write(String(hasStructuredReleaseNotes(targetVersion) && surfaceReview.ready));
+          NODE
+          )"
+          if [ "$content_ready" != "true" ]; then
+            echo "Automatic recovery requires existing structured release notes and a ready surface review for $TARGET_VERSION." >&2
+            exit 1
+          fi
           {
             echo "closure_commit=$release_commit"
-            echo "content_ready=false"
+            echo "content_ready=$content_ready"
             echo "has_nextclaw=true"
             echo "previous_version=$PREVIOUS_VERSION"
             echo "prepared_source_sha=$prepared_source_sha"

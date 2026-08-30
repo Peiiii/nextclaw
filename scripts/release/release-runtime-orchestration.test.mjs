@@ -118,6 +118,9 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(runtime, /name: Restore portable runtime Rust build cache/);
   assert.match(runtime, /key: portable-runtime-rust-\$\{\{ runner\.os \}\}-\$\{\{ matrix\.cargo_target \}\}-/);
   assert.match(release, /--prepared-source-sha "\$\{\{ needs\.publish-npm\.outputs\.prepared_source_sha \|\| github\.sha \}\}"/);
+  assert.match(release, /Automatic recovery requires existing structured release notes and a ready surface review/);
+  assert.doesNotMatch(release, /echo "content_ready=false"/);
+  assert.match(release, /git merge-base --is-ancestor "\$candidate_sha" "\$release_commit"/);
   assert.match(release, /timeout-minutes: 45/);
   assert.match(release, /actions: write/);
 });
