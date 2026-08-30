@@ -1,6 +1,12 @@
 const RETRYABLE_WINDOWS_CLEANUP_ERRORS = new Set(["EBUSY", "ENOTEMPTY", "EPERM"]);
 
-export function cleanupPublishedInstallRoot({ installRoot, remove, warn }) {
+export function cleanupPublishedInstallRoot({ installRoot, platform, remove, warn }) {
+  if (platform === "win32") {
+    warn(
+      `[nextclaw:npm-node-compatibility] Windows runner will reclaim temporary fixture: ${installRoot}`,
+    );
+    return false;
+  }
   try {
     remove(installRoot, {
       recursive: true,

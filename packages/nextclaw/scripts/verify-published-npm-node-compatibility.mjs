@@ -161,6 +161,7 @@ try {
 } finally {
   cleanupPublishedInstallRoot({
     installRoot,
+    platform: process.platform,
     remove: rmSync,
     warn: (message) => process.stderr.write(`${message}\n`),
   });
