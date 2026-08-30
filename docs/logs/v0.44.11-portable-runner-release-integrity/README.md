@@ -59,3 +59,12 @@
 - 正式 `target=all` / 产品发布现在会在任何不可逆 NPM 发布前检查结构化发布内容；NPM-only 仍保留其独立语义，不会被不适用的产品内容门误阻断。
 - 发布后稳定安装验证改为安装不可变 NPM tarball，并显式扩大验证进程输出缓冲区；这消除了版本缓存和进度输出导致的假失败，同时仍保留真实安装、升级、HTTP 启用和五组件调用作为验收链路。
 - 对上述发布合同新增定向回归测试；验证通过后才合入主线。今后的故障先沿失败步骤或受影响平台做最小复现和定向验证，已成功的平台产物与证据复用，不重跑整条发布链路。
+
+## v0.47.0 Desktop / APT 发布闭环补充
+
+- 根因一：Portable Runtime 进入 Desktop bundle 后，内嵌 Runtime 文件数从历史上限 `450` 增至 `482–484`，而构建预算仍是旧值，五个平台在打包前被同一硬断言拒绝。该问题已通过把通用预算收敛为 `520`，并在本地实际构建 bundle（`484 <= 520`）后再触发远端矩阵解决。
+- 根因二：GitHub Pages 的单文件上限为 100 MiB。普通 Desktop `.deb` 为 `123,634,676` bytes；第一轮 APT 裁剪后仍为 `117,738,524` bytes，不能上传。最终 APT 镜像包为 `97,388,124` bytes。它只移除了 GitHub Pages 镜像中的离线首启 seed cache 和可选诊断/开发文件；GitHub Release 的普通 `.deb`、AppImage、DMG 和 Windows 包未改变。镜像内元数据同步清除 seed 声明，启动器在无 seed 时走已有的签名 stable manifest 首启下载路径。
+- 根因三：APT-only recovery 复用了旧发布 target 作为 checkout，导致当前修复的发布脚本没有进入 recovery runner。现在产品资产身份仍固定为原 `release_target`，但仅 APT 投影恢复从本次显式 dispatch 的 `master` 检出 publisher control plane；因此既不会重建产品，也能修复发布基础设施本身。
+- 防回归：`build-linux-apt-repo.mjs --github-pages-compatible` 成为唯一 APT 镜像重打包 owner，同时被 `desktop-validate` 的 Linux package 阶段和正式 APT 发布使用；它会验证最终包严格小于 100 MiB。Desktop bootstrap 定向测试已覆盖“无 seed -> 签名远程 bundle”路径。发布阶段不再拥有这项特有的实现逻辑，只消费开发验证已使用的同一脚本。
+- 最终发布状态：`nextclaw@0.47.0` 为 NPM `latest`；Runtime 的 macOS arm64/x64、Linux x64、Windows x64 四份 stable manifest 全部指向 `0.47.0`；公开稳定 Desktop Release 为 [`v0.47.0-desktop.1`](https://github.com/Peiiii/nextclaw/releases/tag/v0.47.0-desktop.1)，不是 beta/prerelease，五份 Desktop stable manifest 均指向 `0.47.0`；APT `Packages` 公开 `nextclaw-desktop 0.0.278`。中英文 `0.47.0` 更新说明均返回 HTTP 200。
+- 验证证据：本地运行 Desktop TypeScript 检查、lint、编译后的 bootstrap 定向测试 `9/9`、release workflow contract test `11/11`、`actionlint`、diff check 和维护性治理；正式 APT-only run `33330349404` 成功，跳过五平台 build、Release assets 与 update channels，只执行重打包、签名仓库、APT fresh install 与 upgrade smoke。`check:test-governance` 仍报告仓库既有的测试规模阈值，未由本次修改新增，故不作为本批阻塞 finding。
