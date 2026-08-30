@@ -20,6 +20,7 @@
 
 | Date | Idea | Source | Owner | Issue | Next Action |
 | --- | --- | --- | --- | --- | --- |
+| 2026-08-30 | 建设克制的功能验证用例体系：区分任务期临时验证、按需 AI/浏览器验证与少数核心自动化用例，明确资产目录、永久用例准入与退出、成本感知运行及 AI 触发规则，避免用例泛滥或把单测通过误当成功能可用 | user-feedback | @owner | `TBD` | revisit: freeze the minimal case ownership, storage and lifecycle design before deciding whether to promote this into roadmap or an implementation issue |
 | 2026-05-26 | 设计渠道多账号管理：微信、飞书等渠道统一支持显式列出、切换、禁用、删除账号/智能体，避免历史账号隐式参与运行 | user-feedback | @owner | `TBD` | create issue: define cross-channel multi-account UX, runtime selection semantics, and migration from single-default replacement |
 | 2026-05-14 | 为 toolkit / library 类 package 设计 `lib` 类型 module-structure protocol，并将 `@nextclaw/ncp-toolkit` 从本次授权豁免迁回正式目录治理 | user-feedback | @owner | `TBD` | create issue: define lib protocol, migration plan, and remove authorized waiver |
 | 2026-03-30 | 排查发布链是否存在过度依赖与过宽联动发布，重点审视 `@nextclaw/channel-plugin-weixin`、Codex SDK 等是否应继续直接跟随 `@nextclaw/core` / release batch | user-feedback | @owner | `TBD` | create issue: map release dependency graph and propose narrower publish groups |
