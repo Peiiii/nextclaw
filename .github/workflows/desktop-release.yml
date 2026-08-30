@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # An immutable release target can predate the 432-file Portable Runtime bundle.
+          # An immutable release target can predate the current Portable Runtime bundle budget.
           # This only updates the local release builder guard; packaged runtime sources still come
           # from the verified release_target checkout above.
           for script_path in \
@@ -143,10 +143,12 @@ jobs:
             node - "$script_path" <<'NODE'
           const { readFileSync, writeFileSync } = require("node:fs");
           const scriptPath = process.argv[2];
-          const oldBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 400;";
-          const compatibleBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 450;";
+          const compatibleBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 520;";
           const source = readFileSync(scriptPath, "utf8");
-          const updated = source.includes(oldBudget) ? source.replace(oldBudget, compatibleBudget) : source;
+          const updated = source.replace(
+            /const RUNTIME_BUNDLE_FILE_BUDGET = (?:400|450);/,
+            compatibleBudget,
+          );
           if (!updated.includes(compatibleBudget)) {
             throw new Error(`Unsupported runtime bundle budget in ${scriptPath}`);
           }

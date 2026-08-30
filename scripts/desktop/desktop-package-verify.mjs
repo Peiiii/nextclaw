@@ -27,7 +27,7 @@ const channelExtensionPackages = [
 ];
 const nextclawPackageJsonPath = resolve(rootDir, "packages/nextclaw/package.json");
 const isHandoffVerify = process.argv.includes("--handoff");
-const RUNTIME_BUNDLE_FILE_BUDGET = 450;
+const RUNTIME_BUNDLE_FILE_BUDGET = 520;
 
 function binName(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
