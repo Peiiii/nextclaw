@@ -167,6 +167,10 @@ test("desktop workflow exposes an explicit APT-only recovery path", () => {
     /Download Linux package from existing release[\s\S]*?gh release download/,
   );
   assert.match(workflow, /build-linux-apt-repo\.mjs[\s\S]*?--github-pages-compatible/);
+  assert.match(
+    workflow,
+    /publish-linux-apt-repo:[\s\S]*?inputs\.publish_linux_apt_only && github\.ref \|\| inputs\.release_target \|\| inputs\.release_tag/,
+  );
   const aptBuilder = readFileSync(
     new URL("../desktop/build-linux-apt-repo.mjs", import.meta.url),
     "utf8",

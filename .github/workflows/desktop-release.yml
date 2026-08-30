@@ -785,7 +785,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_target || inputs.release_tag }}
+          # An APT-only recovery republishes an already immutable release asset;
+          # it must use the current, explicitly dispatched publisher code rather
+          # than the historical product target that created that asset.
+          ref: ${{ inputs.publish_linux_apt_only && github.ref || inputs.release_target || inputs.release_tag }}
           fetch-depth: 1
 
       - name: Setup Node
