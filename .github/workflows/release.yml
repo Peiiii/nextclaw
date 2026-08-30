@@ -31,6 +31,9 @@ jobs:
     outputs:
       closure_commit: ${{ steps.release.outputs.closure_commit || steps.recovery.outputs.closure_commit }}
       content_ready: ${{ steps.release.outputs.content_ready || steps.recovery.outputs.content_ready }}
+      compatibility_matrix: ${{ steps.mode.outputs.compatibility_matrix }}
+      compatibility_reused: ${{ steps.mode.outputs.compatibility_reused }}
+      compatibility_source_run: ${{ steps.mode.outputs.compatibility_source_run }}
       has_nextclaw: ${{ steps.release.outputs.has_nextclaw || steps.recovery.outputs.has_nextclaw }}
       is_recovery: ${{ steps.mode.outputs.is_recovery }}
       previous_version: ${{ steps.release.outputs.previous_version || steps.recovery.outputs.previous_version }}
@@ -91,6 +94,7 @@ jobs:
           published_version="$(npm view "nextclaw@$target_version" version 2>/dev/null || true)"
           is_recovery=false
           runtime_ready=false
+          compatibility_source_run=""
           tag="nextclaw@$target_version"
           if [ "$published_version" = "$target_version" ] && git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
             is_recovery=true
@@ -101,14 +105,36 @@ jobs:
               done
             fi
           fi
+          printf '[]' > "$RUNNER_TEMP/previous-compatibility-jobs.json"
+          if [ "$is_recovery" = true ]; then
+            git fetch origin "refs/tags/$tag:refs/tags/$tag"
+            release_commit="$(git rev-list -n 1 "$tag")"
+            while read -r candidate_run candidate_sha; do
+              if git merge-base --is-ancestor "$release_commit" "$candidate_sha"; then
+                compatibility_source_run="$candidate_run"
+                break
+              fi
+            done < <(gh run list --workflow release.yml --status failure --limit 20 --json databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha)"')
+            if [ -n "$compatibility_source_run" ]; then
+              gh run view "$compatibility_source_run" --json jobs --jq '.jobs' > "$RUNNER_TEMP/previous-compatibility-jobs.json"
+            fi
+          fi
+          compatibility_result="$(node scripts/release/npm-compatibility-recovery-matrix.mjs \
+            --is-recovery "$is_recovery" \
+            --jobs-file "$RUNNER_TEMP/previous-compatibility-jobs.json")"
+          compatibility_matrix="$(node -e 'const result = JSON.parse(process.argv[1]); process.stdout.write(JSON.stringify({ include: result.include }))' "$compatibility_result")"
+          compatibility_reused="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).reused))' "$compatibility_result")"
           previous_version="$(git tag -l 'nextclaw@*' --sort=-version:refname | sed 's/^nextclaw@//' | grep -vx "$target_version" | head -n 1)"
           {
             echo "is_recovery=$is_recovery"
+            echo "compatibility_matrix=$compatibility_matrix"
+            echo "compatibility_reused=$compatibility_reused"
+            echo "compatibility_source_run=$compatibility_source_run"
             echo "runtime_ready=$runtime_ready"
             echo "target_version=$target_version"
             echo "previous_version=$previous_version"
           } >> "$GITHUB_OUTPUT"
-          echo "[release] mode=$([ "$is_recovery" = true ] && echo recovery || echo new) runtime_ready=$runtime_ready target=$target_version"
+          echo "[release] mode=$([ "$is_recovery" = true ] && echo recovery || echo new) runtime_ready=$runtime_ready compatibility_reused=$compatibility_reused source_run=${compatibility_source_run:-none} target=$target_version"
 
       - name: Publish prepared batch and close Git state
         id: release
@@ -250,45 +276,33 @@ jobs:
     if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
     strategy:
       fail-fast: false
-      matrix:
-        platform:
-          - linux-x64
-          - windows-x64
-          - darwin-arm64
-          - darwin-x64
-        node:
-          - "20.19.0"
-          - "22.19.0"
-          - "24"
-          - "26"
-        include:
-          - platform: linux-x64
-            os: ubuntu-22.04
-          - platform: windows-x64
-            os: windows-latest
-          - platform: darwin-arm64
-            os: macos-14
-          - platform: darwin-x64
-            os: macos-15-intel
+      matrix: ${{ fromJSON(needs.publish-npm.outputs.compatibility_matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 12
     permissions:
       contents: read
     steps:
       - name: Checkout release commit
+        if: ${{ matrix.reused != true }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
 
       - name: Setup compatibility Node
+        if: ${{ matrix.reused != true }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
 
       - name: Install published package and open SQLite
+        if: ${{ matrix.reused != true }}
         run: >-
           node packages/nextclaw/scripts/verify-published-npm-node-compatibility.mjs
           --expected-version "${{ needs.publish-npm.outputs.target_version }}"
+
+      - name: Reuse completed immutable compatibility evidence
+        if: ${{ matrix.reused == true }}
+        run: echo "Reusing the completed cross-platform compatibility evidence for nextclaw@${{ needs.publish-npm.outputs.target_version }}."
 
   verify-npm-unsupported-node:
     name: verify NPM unsupported Node fails clearly

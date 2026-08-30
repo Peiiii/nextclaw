@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
+import { cleanupPublishedInstallRoot } from "./published-npm-node-compatibility-cleanup.utils.mjs";
 
 const expectedVersion = readArg("--expected-version");
 const packageSpec = readArg("--package-spec") ?? `nextclaw@${expectedVersion}`;
@@ -158,15 +159,10 @@ try {
     );
   }
 } finally {
-  // node:sqlite can release a Windows file handle just after the CRUD contract
-  // completes. The temporary fixture is not part of that contract, so retry the
-  // bounded cleanup instead of turning a successful published-package check
-  // into a platform-specific false failure.
-  rmSync(installRoot, {
-    recursive: true,
-    force: true,
-    maxRetries: 10,
-    retryDelay: 500,
+  cleanupPublishedInstallRoot({
+    installRoot,
+    remove: rmSync,
+    warn: (message) => process.stderr.write(`${message}\n`),
   });
 }
 

@@ -251,6 +251,18 @@ test("stable release exposes only the business target and infers recovery checkp
   const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
   assert.doesNotMatch(workflow, /resume_version|resume_previous_version/);
   assert.match(workflow, /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery/);
+  assert.match(
+    workflow,
+    /compatibility_matrix=\$compatibility_matrix[\s\S]*?compatibility_reused=\$compatibility_reused[\s\S]*?compatibility_source_run=\$compatibility_source_run/,
+  );
+  assert.match(
+    workflow,
+    /git merge-base --is-ancestor "\$release_commit" "\$candidate_sha"[\s\S]*?gh run view "\$compatibility_source_run" --json jobs/,
+  );
+  assert.match(
+    workflow,
+    /matrix: \$\{\{ fromJSON\(needs\.publish-npm\.outputs\.compatibility_matrix\) \}\}[\s\S]*?Reuse completed immutable compatibility evidence/,
+  );
 });
 
 test("only all-platform releases require complete content before package publication", () => {

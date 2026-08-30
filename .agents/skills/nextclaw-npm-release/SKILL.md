@@ -18,12 +18,13 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 
 ## 永久合同
 
-- 正式发布同交付 A. 产物闭环与 B. 自动化闭环。B 用结构化 wall time/依赖图找 critical path、错误等待、无收益串行/重复和空等；超预算或空等必须修 owner、补合同测试，并以同 identity/recovery 验证。正常观察只读终态/时序。
+- 正式发布同交付 A 产物闭环、B 自动化闭环。B 用结构化时序/依赖图找 critical path、错误等待、串行/重复/空等；超预算必须修 owner、补合同并以同 identity/recovery 验证。
 - 最终报告总/NPM_READY 耗时、最慢阶段、等待原因、优化落点、`AUTOMATION_INTERVENTIONS`（按根因；dispatch、准备、只读不计）。
 - 使用仓库 release flow，不以包目录 raw `npm publish` 作为默认路径。
 - 正式发布只 dispatch 一次 parent；Actions 独立闭合构建、发布、传播、真实升级验证、终态与 Git 回流，任何观察者在线都不是完成条件。
 - 只调用 owning entry；下游 exact-stage 幂等恢复，禁止重发 identity。
-- 完整跨平台矩阵只作最终准入；失败先定向验证，复用既成产物/identity。
+- 验证拓扑按净收益选择：比较根因置信度、focused/failed-job 与全矩阵耗时、重现稳定性和风险，选最低成本的有效层。平台适配、spawn、临时清理、artifact/recovery state 机在反复/高成本/不确定时须有可单模块或单 job 运行的入口和唯一失败映射；高置信度微修可直接 failed-only job。
+- 全矩阵只作新 identity 的最终准入；stable recovery 只重跑未证明/失败/cancelled cell，同 tag 完整成功证据可复用。复用源由 Actions 用 tag 与 source ancestry 校验，禁止 AI 拼 matrix 命令或重发 NPM。
 - dispatch 前审计同 workflow 队列；旧 SHA 经核对后取消。随后立即取得 run ID、target、head SHA。
 - Actions 可等待 child；Agent 观察不参与状态迁移，只对 parent 使用一次有界 wait 并读取最终 summary，禁止轮询、逐 step 监控或本地 `gh run watch`。
 - 成功 job 不读日志；异常时只读失败步骤附近的最小日志。
@@ -31,8 +32,8 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
 - NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。
 - 发布授权按对象严格分层：NPM-only 不授权 runtime、desktop、文档站、官网或 X；常规 NextClaw stable 包含 NPM 与 runtime/product closure，但不包含 desktop；全平台发布完成常规 stable 后才转交 desktop owner。
-- `target=npm|product` 可独立报告 `CONTENT_READY|CONTENT_PENDING`；核心 NPM 与 Runtime 使用确定性 GitHub Release fallback，不因高质量内容尚未就绪而阻塞。只有 `target=all` 必须在首次 NPM publish 前验证结构化说明和适用内容合同，确保 closure commit 携带 Desktop 所需说明。发布后只更新可变说明投影，不重复产物 identity。
-- `nextclaw` 的 stable `minor` / `major` 必须在 `docs/releases/nextclaw-v<version>.release-review.json` 中审查文档站、官网和 X 宣发：文档站/官网要么列出真实更新路径，要么明确记录 `not-needed` 原因；stable minor 必须冻结 X 账号、正文、release note URL、图片和 alt。该合同影响 `CONTENT_READY`，不回退已经成立的 `NPM_READY` 或 `NEXTCLAW_STABLE_READY`。
+- `target=npm|product` 可报告 `CONTENT_READY|CONTENT_PENDING`；核心 NPM/Runtime 不因内容未就绪阻塞。仅 `target=all` 在首次 NPM 前验证结构化说明，之后只更新可变说明投影。
+- stable `minor` / `major` 在 `docs/releases/nextclaw-v<version>.release-review.json` 审查文档站、官网和 X；该合同影响 `CONTENT_READY`，不回退 `NPM_READY` 或 `NEXTCLAW_STABLE_READY`。
 - 执行 stable minor X 帖前，先查最近一次成功 stable minor 的迭代记录并复用已经验证的 `x-bird`、Node/代理参数和回读命令；不得在已有成功路径时从通用工具重新推演。只有帖子返回 ID，并回读确认作者、正文和媒体后才算内容闭合；X 阻断时必须明确标记 `CONTENT_PENDING`，不得对用户报告内容“全部完成”。
 
 ## 发布意图与完成点
@@ -46,7 +47,7 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 
 - 读取正式 owner `.github/workflows/release.yml`，按实际 environment、secret 和 publish command 判断入口与认证，禁止从旧文档、记忆或迁移方案反推现状。
 - 用 `gh run list --workflow release.yml --status success --limit 1` 查最近成功 run；已有生产证据时复用同一 workflow、认证和恢复合同，只有实证失效才讨论重建或迁移。
-- 用 `npm view`、`gh release view` 和公开 manifest 判断目标 identity；已成立阶段只恢复/复用，不得重发。
+- 用 `npm view`、`gh release view` 和公开 manifest 判断 identity；已成立阶段只恢复/复用，不得重发。
 - 输出 workflow、observed auth mode、latest successful run URL、reusable、evidence gap。远端暂不可读只标 gap，不得把未知说成未实现。
 
 每个不可逆阶段使用 checkpoint；下游失败只恢复未完成阶段。
