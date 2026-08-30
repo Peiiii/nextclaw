@@ -5,6 +5,20 @@ function buildTagPrefix(channel, runtimeVersion) {
   return channel === "beta" ? `v${runtimeVersion}-desktop-beta.` : `v${runtimeVersion}-desktop.`;
 }
 
+export function readNextDesktopReleaseTag(options, run) {
+  const prefix = buildTagPrefix(options.channel, options.runtimeVersion);
+  const output = run("git", ["ls-remote", "--tags", "origin", `refs/tags/${prefix}*`]);
+  const nextNumber =
+    output
+      .split("\n")
+      .map((line) => line.trim().split(/\s+/)[1] ?? "")
+      .map((ref) => ref.replace(/^refs\/tags\//, "").replace(/\^\{\}$/, ""))
+      .map((tag) => Number(tag.startsWith(prefix) ? tag.slice(prefix.length) : Number.NaN))
+      .filter(Number.isInteger)
+      .reduce((max, value) => Math.max(max, value), 0) + 1;
+  return `${prefix}${nextNumber}`;
+}
+
 function readLatestTag(options, run) {
   const prefix = buildTagPrefix(options.channel, options.runtimeVersion);
   const output = run("git", ["ls-remote", "--tags", "origin", `refs/tags/${prefix}*`]);
@@ -42,5 +56,23 @@ export function inferExistingReleaseRecovery(options, run) {
   } else {
     console.log(`[desktop:release] inferred APT-only recovery for ${tag}; no release identity input required.`);
     return { publishLinuxAptOnly: true, reuseExistingRelease: true, tag };
+  }
+}
+
+export function inferExistingDesktopDraft(options, run) {
+  const tag = readNextDesktopReleaseTag(options, run);
+  try {
+    const release = readRelease({ ...options, tag });
+    if (
+      release.isDraft === true &&
+      Boolean(release.isPrerelease) === (options.channel === "beta") &&
+      release.targetCommitish === options.target
+    ) {
+      console.log(`[desktop:release] inferred existing hidden Draft ${tag}; reusing the immutable release identity.`);
+      return { reuseExistingRelease: true, tag };
+    }
+  } catch {
+    // A missing draft is the normal new-release path. Creation stays with the
+    // stable release owner; this recovery helper only recognizes exact matches.
   }
 }

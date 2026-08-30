@@ -115,7 +115,13 @@ Runtime child 必须核对四个平台 artifact 和目标版本完整，随后�
 - 删除 stable 正式路径的发布时冷构建依赖；保留 beta 或显式 recovery 的冷构建入口。
 - 删除 published validation 的 `--prefer-offline` 与空 home 假升级路径。
 - 不新增第二个 release service、数据库、调度器或人工 runbook。
-- 本批不优化 Desktop release，也不改变用户 Runtime 协议和 launcher compatibility floor。
+- 不改变用户 Runtime 协议和 launcher compatibility floor；Desktop 仅补齐通用的隐藏 Draft 控制面，不改变其构建或资产合同。
+
+## 0.47.0 Desktop Draft 权限恢复补充
+
+Desktop 的公开资产构建仍由独立的五平台 workflow owner 承担；但它的隐藏 Draft 必须在 immutable NPM release commit 已产生后、由同一稳定发布编排中已验证具备仓库写权限的 checkpoint 创建或复用。Desktop job 只消费该精确 `tag + target` Draft，不能在恢复时临时重新创建 release identity。
+
+这保持了发布主链的两个不变量：Draft 在 assets 完整前始终不可见；恢复不重发 NPM/Runtime、不新建 tag，也不依赖观察者或人工 token。若 Runtime 或 Desktop 后续失败，隐藏 Draft 保留为同一 stable identity 的幂等恢复锚点。该补充只改变发布控制面的 owner 边界，不向产品构建、NPM 产物或 Runtime ABI 添加任何 feature-specific 门。
 
 ## 抽象审计
 

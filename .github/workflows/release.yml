@@ -267,6 +267,21 @@ jobs:
             echo "target_version=$TARGET_VERSION"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Create or reuse stable Desktop Draft
+        if: ${{ inputs.target == 'all' && (steps.release.outputs.has_nextclaw == 'true' || steps.recovery.outputs.has_nextclaw == 'true') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOSURE_COMMIT: ${{ steps.release.outputs.closure_commit || steps.recovery.outputs.closure_commit }}
+          TARGET_VERSION: ${{ steps.release.outputs.target_version || steps.recovery.outputs.target_version }}
+        shell: bash
+        run: >-
+          pnpm release:desktop:stable --
+          --prepare-draft-only
+          --branch master
+          --target "$CLOSURE_COMMIT"
+          --runtime-version "$TARGET_VERSION"
+          --skip-local-verify
+
       - name: Record core release status
         shell: bash
         env:

@@ -247,6 +247,17 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopClosure, /gh["], \["run", "cancel"/);
 });
 
+test("the writable NPM release checkpoint prepares the immutable Desktop Draft", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    workflow,
+    /Create or reuse stable Desktop Draft[\s\S]*?--prepare-draft-only[\s\S]*?--target "\$CLOSURE_COMMIT"[\s\S]*?--runtime-version "\$TARGET_VERSION"/,
+  );
+});
+
 test("stable release exposes only the business target and infers recovery checkpoints", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
   assert.doesNotMatch(workflow, /resume_version|resume_previous_version/);
@@ -304,7 +315,7 @@ test("stable recovery runs current verification scripts against the immutable pa
     "utf8",
   );
   const verificationJobs = workflow.match(
-    /\n  verify-npm-node-compatibility:([\s\S]*?)\n  publish-desktop:/,
+    /\n {2}verify-npm-node-compatibility:([\s\S]*?)\n {2}publish-desktop:/,
   )?.[1];
   assert.equal(
     verificationJobs?.match(

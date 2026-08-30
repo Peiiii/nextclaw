@@ -99,3 +99,21 @@ export function dispatchReleaseWorkflow(options) {
   console.log(`[desktop:release] dispatched ${workflow} for hidden Draft ${tag} (${workflowDispatchId})`);
   return { workflowDispatchId, workflowDispatchStartedAt };
 }
+
+export function prepareDesktopDraft(options, aheadCount, run) {
+  const { branch, channel, dryRun, reuseExistingRelease, tag } = options;
+  if (dryRun) {
+    console.log(`[desktop:release] would create or reuse hidden Draft ${tag}.`);
+    return;
+  }
+  if (aheadCount > 0) {
+    console.log(`[desktop:release] pushing ${aheadCount} local commit(s) to origin/${branch}`);
+    run("git", ["push", "origin", `HEAD:${branch}`], { capture: false });
+  }
+  if (reuseExistingRelease) {
+    assertReleaseIsDraft(options);
+  } else {
+    createDraftRelease(options);
+  }
+  console.log(channel === "stable" ? "DESKTOP_DRAFT_READY" : "DESKTOP_BETA_DRAFT_READY");
+}
