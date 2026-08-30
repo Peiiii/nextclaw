@@ -10,7 +10,6 @@ import {
   isAppComponentManifestBundle,
 } from "@nextclaw/app-runtime";
 import type {
-  AppInfoResult,
   AppInstallProgressHandler,
   AppRollbackResult,
   AppUninstallResult,

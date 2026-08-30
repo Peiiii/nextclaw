@@ -22,7 +22,6 @@ import type {
   PortableActiveHostJob as ActiveHostJob,
   PortablePersistentRegistration as PersistentRegistration,
   PortableRuntimeState as RuntimeState,
-  PortableServiceAppHostCall,
   PortableServiceAppHostCallHandler,
 } from "@kernel/types/portable-service-app-runtime.types.js";
 export type { PortableServiceAppHostCall, PortableServiceAppHostCallHandler } from "@kernel/types/portable-service-app-runtime.types.js";

@@ -1,14 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { AppPackageComponentSource } from "@kernel/types/app-package.types.js";
-import {
+import type {
   ServiceAppJobJournalService,
-  type ServiceAppJobEventSink,
-  type ServiceAppJobScope,
+  ServiceAppJobEventSink,
+  ServiceAppJobScope,
 } from "@kernel/services/service-app-job-journal.service.js";
-import {
+import type {
   ServiceAppResidentEventInboxService,
-  type ResidentEventInput,
-  type ServiceAppResidentEventScope,
+  ResidentEventInput,
+  ServiceAppResidentEventScope,
 } from "@kernel/services/service-app-resident-event-inbox.service.js";
 import type { VerificationRecordService } from "@kernel/services/verification-record.service.js";
 import type { PortableRunnerObservation } from "@kernel/services/portable-service-runner-client.service.js";

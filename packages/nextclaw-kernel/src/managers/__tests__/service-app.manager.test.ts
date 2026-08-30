@@ -1,9 +1,7 @@
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
-  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -21,11 +19,9 @@ import type { ServiceAppError } from "@kernel/managers/service-app.manager.js";
 import type {
   ServiceAction,
   ServiceActionCaller,
-  ServiceAppManifest,
   ServiceAppRecord,
 } from "@kernel/types/service-app.types.js";
 import { VerificationRecordService } from "@kernel/services/verification-record.service.js";
-import type { PortableServiceAppHostCallHandler } from "@kernel/services/portable-service-app-runtime.service.js";
 
 const tempDirs: string[] = [];
 

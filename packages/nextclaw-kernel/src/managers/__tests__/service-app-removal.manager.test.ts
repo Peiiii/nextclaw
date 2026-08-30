@@ -7,25 +7,19 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
-import {
-  CapabilityGrantManager,
-  createServiceActionGrantRequest,
-} from "@kernel/features/capability-grants/index.js";
+import { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
 import type { ServiceAppError } from "@kernel/managers/service-app.manager.js";
 import type {
   ServiceAction,
   ServiceActionCaller,
-  ServiceAppManifest,
   ServiceAppRecord,
 } from "@kernel/types/service-app.types.js";
-import { VerificationRecordService } from "@kernel/services/verification-record.service.js";
-import type { PortableServiceAppHostCallHandler } from "@kernel/services/portable-service-app-runtime.service.js";
 
 const tempDirs: string[] = [];
 
@@ -63,11 +57,6 @@ function createConfigManager(workspacePath: string, model?: string): ConfigManag
     } as never,
   });
 }
-
-const mcpFixturePath = resolve(
-  import.meta.dirname,
-  "../../../../nextclaw-mcp/tests/fixtures/mock-mcp-server.utils.mjs",
-);
 
 function writeServiceApp(
   workspacePath: string,
