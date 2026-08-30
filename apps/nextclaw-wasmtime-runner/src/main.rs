@@ -1581,23 +1581,17 @@ fn assert_safe_key(key: &str) -> std::result::Result<(), String> {
 }
 
 fn assert_safe_guest_path(path: &str) -> Result<()> {
-    let candidate = std::path::Path::new(path);
+    // Guest paths belong to WASI's POSIX namespace even when the host runner
+    // is Windows; host-native Path::is_absolute would reject valid `/data`.
     anyhow::ensure!(
-        candidate.is_absolute(),
+        path.starts_with('/'),
         "Portable filesystem guest path must be absolute"
     );
     anyhow::ensure!(
-        !path
-            .split('/')
-            .any(|segment| segment == "." || segment == ".."),
-        "Portable filesystem guest path must not contain . or .."
-    );
-    anyhow::ensure!(
-        candidate.components().all(|component| matches!(
-            component,
-            std::path::Component::RootDir | std::path::Component::Normal(_)
-        )),
-        "Portable filesystem guest path must not contain . or .."
+        path.split('/').skip(1).all(|segment| {
+            !segment.is_empty() && segment != "." && segment != ".." && !segment.contains('\\')
+        }),
+        "Portable filesystem guest path must use contained POSIX segments"
     );
     Ok(())
 }
@@ -2018,7 +2012,16 @@ mod tests {
     fn accepts_only_absolute_contained_guest_paths() {
         assert_safe_guest_path("/app").unwrap();
         assert_safe_guest_path("/documents/notes").unwrap();
-        for path in ["relative", "/documents/../outside", "/documents/./notes"] {
+        for path in [
+            "relative",
+            r"C:\documents\notes",
+            r"\documents\notes",
+            "/documents/../outside",
+            "/documents/./notes",
+            r"/documents\notes",
+            "//documents/notes",
+            "/documents/notes/",
+        ] {
             assert!(
                 assert_safe_guest_path(path).is_err(),
                 "{path} must be rejected"
