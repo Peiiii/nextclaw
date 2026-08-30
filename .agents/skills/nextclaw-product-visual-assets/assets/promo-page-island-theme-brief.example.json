@@ -76,7 +76,14 @@
         "contentRole": "prove",
         "candidates": ["split-proof", "stacked-proof"],
         "archetypeId": "split-proof",
-        "rationale": "主张与同一张完整工作台并置，便于同时检查会话、内容和侧栏的连续关系。"
+        "rationale": "主张与同一张完整工作台并置，便于同时检查会话、内容和侧栏的连续关系。",
+        "balancePlan": {
+          "copyFillRatio": 0.48,
+          "mediaFillRatio": 0.64,
+          "alignmentAnchor": "center",
+          "emptySpaceRole": "两栏围绕共同中心展开，上下空白把视线收向主张和完整工作台。",
+          "fallbackArchetype": "stacked-proof"
+        }
       },
       "title": "不只是换了一张背景。",
       "body": "会话、内容与侧边栏，都落在同一张水彩纸上。",
