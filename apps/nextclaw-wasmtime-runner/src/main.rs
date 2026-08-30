@@ -540,7 +540,14 @@ impl ComponentLoader<SpinFactors, ()> for PathComponentLoader {
         engine: &spin_core::wasmtime::Engine,
         _component: &AppComponent,
     ) -> Result<Component> {
-        Component::from_file(engine, &self.component_path).map_err(|error| {
+        // `Component::from_file` may keep a memory-mapped file handle alive.
+        // Windows then rejects package-directory rename during uninstall even
+        // after the logical component has stopped. Read the immutable artifact
+        // into memory so the loader never owns the package path past this call.
+        let bytes = fs::read(&self.component_path).with_context(|| {
+            format!("failed to read component {}", self.component_path.display())
+        })?;
+        Component::new(engine, bytes).map_err(|error| {
             anyhow!(
                 "failed to load component {}: {error}",
                 self.component_path.display()

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { rename } from "node:fs/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import type { AppInstallationIntegrityService } from "#app-runtime/services/app-installation-integrity.service.js";
 import type { AppInstanceStorageService } from "#app-runtime/services/app-instance-storage.service.js";
 import type { AppRegistryConfigService } from "#app-runtime/services/app-registry-config.service.js";
@@ -19,6 +20,43 @@ type AppUpdateOptions = {
   onProgress?: AppInstallProgressHandler;
   activate?: boolean;
 };
+
+const WINDOWS_RENAME_RETRY_DELAYS_MS = [25, 50, 100, 200, 400] as const;
+const WINDOWS_TRANSIENT_RENAME_CODES = new Set(["EACCES", "EBUSY", "EPERM"]);
+
+export async function renameAppLifecyclePath(
+  originalPath: string,
+  targetPath: string,
+  options: {
+    platform?: NodeJS.Platform;
+    renamePath?: typeof rename;
+    wait?: (milliseconds: number) => Promise<unknown>;
+  } = {},
+): Promise<void> {
+  const platform = options.platform ?? process.platform;
+  const renamePath = options.renamePath ?? rename;
+  const wait = options.wait ?? delay;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await renamePath(originalPath, targetPath);
+      return;
+    } catch (error) {
+      const retryDelay = WINDOWS_RENAME_RETRY_DELAYS_MS[attempt];
+      const code = error instanceof Error && "code" in error
+        ? (error as NodeJS.ErrnoException).code
+        : undefined;
+      if (
+        platform !== "win32" ||
+        retryDelay === undefined ||
+        !code ||
+        !WINDOWS_TRANSIENT_RENAME_CODES.has(code)
+      ) {
+        throw error;
+      }
+      await wait(retryDelay);
+    }
+  }
+}
 
 export class AppInstallationLifecycleService {
   constructor(private readonly params: {
@@ -154,7 +192,7 @@ export class AppInstallationLifecycleService {
       return;
     }
     const stagedPath = `${originalPath}.uninstalling-${randomUUID()}`;
-    await rename(originalPath, stagedPath);
+    await renameAppLifecyclePath(originalPath, stagedPath);
     stagedPaths.push({ originalPath, stagedPath });
   };
 
@@ -166,7 +204,7 @@ export class AppInstallationLifecycleService {
     try {
       for (const entry of [...stagedPaths].reverse()) {
         if (await this.params.integrityService.pathExists(entry.stagedPath)) {
-          await rename(entry.stagedPath, entry.originalPath);
+          await renameAppLifecyclePath(entry.stagedPath, entry.originalPath);
         }
       }
     } catch (restoreError) {
