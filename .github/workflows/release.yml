@@ -136,12 +136,6 @@ jobs:
       - name: Install release toolchain
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Download exact-commit portable runtime acceptance evidence
-        uses: actions/download-artifact@v4
-        with:
-          name: portable-runtime-ci-evidence-summary
-          path: ${{ runner.temp }}/portable-runtime-acceptance
-
       - name: Infer release checkpoint
         id: mode
         env:
@@ -218,7 +212,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_TARGET: ${{ inputs.target }}
-          NEXTCLAW_PORTABLE_RUNTIME_ACCEPTANCE_EVIDENCE: ${{ runner.temp }}/portable-runtime-acceptance/portable-runtime-ci-evidence-summary.json
         shell: bash
         run: |
           set -euo pipefail

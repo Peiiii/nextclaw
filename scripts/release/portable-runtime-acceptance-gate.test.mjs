@@ -86,10 +86,10 @@ test("release gate fail-closes only on a structured candidate artifact", async (
   assert.match(failed.stderr, /PRT-EXEC-001@linux-x64/);
 });
 
-test("stable product release requires exact-commit evidence and invokes the gate before publish", async () => {
+test("portable runtime acceptance remains independent from the stable release path", async () => {
   const stableRelease = await readFile(path.join(rootDir, "scripts/release/release-stable.mjs"), "utf8");
-  assert.match(stableRelease, /NEXTCLAW_PORTABLE_RUNTIME_ACCEPTANCE_EVIDENCE/);
-  assert.match(stableRelease, /Stable release requires NEXTCLAW_PORTABLE_RUNTIME_ACCEPTANCE_EVIDENCE/);
-  assert.match(stableRelease, /release:portable-runtime:acceptance:validate:prepublish/);
-  assert.match(stableRelease, /runPortableRuntimeAcceptanceGate\(\);[\s\S]*?publishStablePackages/);
+  const releaseWorkflow = await readFile(path.join(rootDir, ".github/workflows/release.yml"), "utf8");
+  assert.doesNotMatch(stableRelease, /NEXTCLAW_PORTABLE_RUNTIME_ACCEPTANCE_EVIDENCE/);
+  assert.doesNotMatch(stableRelease, /release:portable-runtime:acceptance:validate:prepublish/);
+  assert.doesNotMatch(releaseWorkflow, /portable-runtime-ci-evidence-summary/);
 });
