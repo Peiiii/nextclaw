@@ -34,8 +34,10 @@ jobs:
       has_nextclaw: ${{ steps.release.outputs.has_nextclaw || steps.recovery.outputs.has_nextclaw }}
       is_recovery: ${{ steps.mode.outputs.is_recovery }}
       previous_version: ${{ steps.release.outputs.previous_version || steps.recovery.outputs.previous_version }}
+      prepared_source_sha: ${{ steps.release.outputs.prepared_source_sha || steps.recovery.outputs.prepared_source_sha }}
       release_commit: ${{ steps.release.outputs.release_commit || steps.recovery.outputs.release_commit }}
       release_tags_json: ${{ steps.release.outputs.release_tags_json || steps.recovery.outputs.release_tags_json }}
+      runtime_ready: ${{ steps.mode.outputs.runtime_ready }}
       target_version: ${{ steps.release.outputs.target_version || steps.recovery.outputs.target_version }}
     steps:
       - name: Require the protected master release source
@@ -88,32 +90,25 @@ jobs:
           target_version="$(node -p "require('./packages/nextclaw/package.json').version")"
           published_version="$(npm view "nextclaw@$target_version" version 2>/dev/null || true)"
           is_recovery=false
-          if [ "$published_version" = "$target_version" ] && gh release view "nextclaw@$target_version" --json isDraft --jq 'select(.isDraft == false) | true' | grep -qx true; then
-            assets="$(gh release view "nextclaw@$target_version" --json assets --jq '.assets[].name')"
-            runtime_ready=true
-            for platform in darwin-arm64 darwin-x64 linux-x64 win32-x64; do
-              grep -qx "nextclaw-runtime-$platform-$target_version.zip" <<< "$assets" || runtime_ready=false
-            done
-            desktop_ready=true
-            if [ "$RELEASE_TARGET" = "all" ]; then
-              desktop_tag="$(git ls-remote --tags origin "refs/tags/v$target_version-desktop.*" | awk '{ print $2 }' | sed 's#refs/tags/##; s/\^{}//' | sort -Vu | tail -n 1)"
-              desktop_version="$(node -p "require('./apps/desktop/package.json').version")"
-              apt_packages="$(curl -fsSL "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/gh-pages/apt/dists/stable/main/binary-amd64/Packages?releaseMode=$GITHUB_RUN_ID" 2>/dev/null || true)"
-              if [ -z "$desktop_tag" ] || ! grep -q "Version: $desktop_version" <<< "$apt_packages"; then
-                desktop_ready=false
-              fi
-            fi
-            if [ "$runtime_ready" != true ] || [ "$desktop_ready" != true ]; then
-              is_recovery=true
+          runtime_ready=false
+          tag="nextclaw@$target_version"
+          if [ "$published_version" = "$target_version" ] && git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            is_recovery=true
+            if gh release view "$tag" --json isDraft,assets --jq 'select(.isDraft == false) | .assets[].name' > "$RUNNER_TEMP/runtime-assets" 2>/dev/null; then
+              runtime_ready=true
+              for platform in darwin-arm64 darwin-x64 linux-x64 win32-x64; do
+                grep -qx "nextclaw-runtime-$platform-$target_version.zip" "$RUNNER_TEMP/runtime-assets" || runtime_ready=false
+              done
             fi
           fi
           previous_version="$(git tag -l 'nextclaw@*' --sort=-version:refname | sed 's/^nextclaw@//' | grep -vx "$target_version" | head -n 1)"
           {
             echo "is_recovery=$is_recovery"
+            echo "runtime_ready=$runtime_ready"
             echo "target_version=$target_version"
             echo "previous_version=$previous_version"
           } >> "$GITHUB_OUTPUT"
-          echo "[release] mode=$([ "$is_recovery" = true ] && echo recovery || echo new) target=$target_version"
+          echo "[release] mode=$([ "$is_recovery" = true ] && echo recovery || echo new) runtime_ready=$runtime_ready target=$target_version"
 
       - name: Publish prepared batch and close Git state
         id: release
@@ -149,14 +144,14 @@ jobs:
           tag="nextclaw@$TARGET_VERSION"
           git fetch origin "refs/tags/$tag:refs/tags/$tag"
           release_commit="$(git rev-list -n 1 "$tag")"
+          prepared_source_sha="$(git rev-parse "$release_commit^")"
           test "$(npm view "nextclaw@$TARGET_VERSION" version)" = "$TARGET_VERSION"
-          gh release view "$tag" --json isDraft --jq 'select(.isDraft == false) | true' | grep -qx true
-          git cat-file -e "$release_commit:apps/docs/public/release-notes/nextclaw-v$TARGET_VERSION.json"
           {
             echo "closure_commit=$release_commit"
-            echo "content_ready=true"
+            echo "content_ready=false"
             echo "has_nextclaw=true"
             echo "previous_version=$PREVIOUS_VERSION"
+            echo "prepared_source_sha=$prepared_source_sha"
             echo "release_commit=$release_commit"
             echo "release_tags_json=[\"$tag\"]"
             echo "target_version=$TARGET_VERSION"
@@ -180,7 +175,7 @@ jobs:
   publish-runtime:
     name: publish stable Runtime channel
     needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node]
-    if: ${{ always() && inputs.target != 'npm' && needs.publish-npm.outputs.has_nextclaw == 'true' && (needs.publish-npm.outputs.is_recovery == 'true' || (needs.verify-npm-node-compatibility.result == 'success' && needs.verify-npm-unsupported-node.result == 'success')) }}
+    if: ${{ always() && inputs.target != 'npm' && needs.publish-npm.outputs.has_nextclaw == 'true' && needs.verify-npm-node-compatibility.result == 'success' && needs.verify-npm-unsupported-node.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     permissions:
@@ -190,7 +185,7 @@ jobs:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.is_recovery == 'true' && github.sha || needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ needs.publish-npm.outputs.closure_commit }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -208,18 +203,18 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Publish and verify stable Runtime channel
-        if: ${{ needs.publish-npm.outputs.is_recovery != 'true' }}
+        if: ${{ needs.publish-npm.outputs.runtime_ready != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           pnpm release:stable:runtime --
           --branch master
-          --prepared-source-sha "${{ github.sha }}"
+          --prepared-source-sha "${{ needs.publish-npm.outputs.prepared_source_sha || github.sha }}"
           --version "${{ needs.publish-npm.outputs.target_version }}"
           --release-tag "nextclaw@${{ needs.publish-npm.outputs.target_version }}"
 
       - name: Reuse published stable Runtime channel
-        if: ${{ needs.publish-npm.outputs.is_recovery == 'true' }}
+        if: ${{ needs.publish-npm.outputs.runtime_ready == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
@@ -252,7 +247,7 @@ jobs:
   verify-npm-node-compatibility:
     name: verify NPM ${{ matrix.platform }} Node ${{ matrix.node }}
     needs: publish-npm
-    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' && needs.publish-npm.outputs.is_recovery != 'true' }}
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -283,7 +278,7 @@ jobs:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.is_recovery == 'true' && github.sha || needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ github.sha }}
 
       - name: Setup compatibility Node
         uses: actions/setup-node@v4
@@ -298,7 +293,7 @@ jobs:
   verify-npm-unsupported-node:
     name: verify NPM unsupported Node fails clearly
     needs: publish-npm
-    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' && needs.publish-npm.outputs.is_recovery != 'true' }}
+    if: ${{ needs.publish-npm.outputs.has_nextclaw == 'true' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 8
     permissions:
@@ -307,7 +302,7 @@ jobs:
       - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.is_recovery == 'true' && github.sha || needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: "18.20.8"
@@ -330,7 +325,7 @@ jobs:
       - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.is_recovery == 'true' && github.sha || needs.publish-npm.outputs.closure_commit }}
+          ref: ${{ needs.publish-npm.outputs.closure_commit }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -348,7 +343,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git switch -C master "${{ needs.publish-npm.outputs.is_recovery == 'true' && github.sha || needs.publish-npm.outputs.closure_commit }}"
+          git switch -C master "${{ needs.publish-npm.outputs.closure_commit }}"
           git branch --set-upstream-to=origin/master master
 
       - name: Install release toolchain

@@ -149,6 +149,8 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 
 这条合同的可观察指标是：`NPM_READY` 的 critical path 只包含 NPM artifact job、artifact 下载、publish、registry/Git/install closure；四平台 Runtime 只属于后续 Runtime closure。单元测试锁定“active parent + successful NPM artifact job 立即消费”和“download propagation retry”，并禁止重新引入 `gh run watch`。
 
+同一事件还校准了发布后恢复：Windows published-install 验证必须经 shell 启动 `npm.cmd`，否则会在安装前以 `EINVAL` 假失败；该验证器始终运行当前 workflow 源码，但安装的仍是 immutable registry tarball。只要 NPM identity 和 `nextclaw@<version>` tag 已成立，workflow 就进入 recovery，即使 GitHub Release/Runtime 尚未创建；它从 release commit 的父 source 复用 prepared Runtime artifacts，补齐缺失 Runtime，而不是把“尚无 assets”误当成可复用成功。由此恢复只重做未完成的验证/Runtime，不会重新发布包。
+
 ## 七、失败、恢复和并发
 
 - workflow concurrency 使用 stable release 全局串行，`cancel-in-progress: false`，避免新触发取消正在 publish 的不可逆批次。

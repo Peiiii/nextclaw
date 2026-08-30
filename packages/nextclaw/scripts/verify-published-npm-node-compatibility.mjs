@@ -21,8 +21,7 @@ const npmUserConfig = join(installRoot, "empty-npmrc");
 writeFileSync(npmUserConfig, "");
 
 try {
-  execFileSync(
-    process.platform === "win32" ? "npm.cmd" : "npm",
+  installPublishedPackage(
     [
       "install",
       "--prefix",
@@ -34,19 +33,10 @@ try {
       "--no-fund",
       "--loglevel=warn",
     ],
-    {
-      stdio: "inherit",
-      timeout: 5 * 60_000,
-      env: {
-        ...process.env,
-        npm_config_userconfig: npmUserConfig,
-      },
-    },
   );
 
   if (kernelPackageSpec) {
-    execFileSync(
-      process.platform === "win32" ? "npm.cmd" : "npm",
+    installPublishedPackage(
       [
         "install",
         "--prefix",
@@ -56,14 +46,6 @@ try {
         "--no-fund",
         "--loglevel=warn",
       ],
-      {
-        stdio: "inherit",
-        timeout: 5 * 60_000,
-        env: {
-          ...process.env,
-          npm_config_userconfig: npmUserConfig,
-        },
-      },
     );
   }
 
@@ -182,6 +164,18 @@ try {
 function readArg(name) {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1]?.trim() || null : null;
+}
+
+function installPublishedPackage(args) {
+  execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", args, {
+    stdio: "inherit",
+    timeout: 5 * 60_000,
+    shell: process.platform === "win32",
+    env: {
+      ...process.env,
+      npm_config_userconfig: npmUserConfig,
+    },
+  });
 }
 
 function isMissingNodeSqlite(error) {
