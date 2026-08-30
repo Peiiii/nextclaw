@@ -3,7 +3,12 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema } from "@core/features/config/configs/config-schema.config.js";
-import { hasSecretRef, normalizeInlineSecretRefs, resolveConfigSecrets } from "./config-secrets.service.js";
+import {
+  hasSecretRef,
+  normalizeInlineSecretRefs,
+  resolveConfigSecrets,
+  resolveSecretRef,
+} from "./config-secrets.service.js";
 
 const tempDirs: string[] = [];
 
@@ -50,6 +55,31 @@ describe("config secrets", () => {
 
     expect(resolved.providers.openai.apiKey).toBe("sk-env-123");
     expect(config.providers.openai.apiKey).toBe("");
+  });
+
+  it("resolves one SecretRef without mutating the product config", () => {
+    const config = ConfigSchema.parse({
+      secrets: { enabled: true },
+    });
+    const ref = { source: "env" as const, id: "ISSUE_API_TOKEN" };
+
+    expect(resolveSecretRef(config, ref, {
+      env: { ISSUE_API_TOKEN: "runtime-only-secret" },
+    })).toBe("runtime-only-secret");
+    expect(config.secrets.refs).toEqual({});
+  });
+
+  it("does not resolve an individual SecretRef when secrets are disabled", () => {
+    const config = ConfigSchema.parse({
+      secrets: { enabled: false },
+    });
+
+    expect(() => resolveSecretRef(config, {
+      source: "env",
+      id: "ISSUE_API_TOKEN",
+    }, {
+      env: { ISSUE_API_TOKEN: "runtime-only-secret" },
+    })).toThrow("Secret resolution is disabled");
   });
 
   it("resolves file secret refs", () => {
@@ -112,6 +142,32 @@ describe("config secrets", () => {
 
     const resolved = resolveConfigSecrets(config);
     expect(resolved.providers.openai.apiKey).toBe("sk-exec-789");
+  });
+
+  it("does not expose exec provider stderr through Secret resolution errors", () => {
+    const config = ConfigSchema.parse({
+      secrets: {
+        providers: {
+          "exec-main": {
+            source: "exec",
+            command: process.execPath,
+            args: ["-e", "process.stderr.write('runtime-only-secret'); process.exit(1)"],
+          },
+        },
+      },
+    });
+
+    try {
+      resolveSecretRef(config, {
+        source: "exec",
+        provider: "exec-main",
+        id: "issue-api-token",
+      });
+      throw new Error("Expected Secret resolution to fail.");
+    } catch (error) {
+      expect(String(error)).toContain("exec provider exec-main exited with 1");
+      expect(String(error)).not.toContain("runtime-only-secret");
+    }
   });
 
   it("normalizes inline secret refs to secrets.refs", () => {

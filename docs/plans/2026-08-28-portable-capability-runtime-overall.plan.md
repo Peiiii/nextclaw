@@ -2,7 +2,7 @@
 
 > **执行约束：** 本文是项目级阶段计划，不是可以直接逐条编码的文件级实施清单。每个阶段启动前必须在隔离 worktree 中单独形成可执行实施计划，并按该阶段的真实代码证据冻结文件、测试和验证范围。
 
-**Goal：** 分阶段证明并交付一个 Rust-first、低增量内存、单主要 artifact、可授权并接入现有 Service App 主链的 Portable Capability Runtime，让用户尽早体验真实 Demo，再逐步推进到产品 MVP、跨平台开发者预览和生产化决策。
+**Goal：** 完整交付一个 Rust-first、低增量内存、单主要 artifact、可授权并接入现有 Service App 主链的 Portable Capability Runtime；所有 Required `PRT-*` 验收编号关闭、真实产品面可复验并完成稳定发布后才算整体完成。
 
 **Architecture：** 现有 `.napp`、AppPackageManager、ServiceAppManager 和 Service Action 继续拥有产品语义；嵌入式 Spin 已成为正式执行底座，直接 Wasmtime 只保留历史测量证据；Rust Component 通过稳定 WIT 使用精选内置 Factor，并通过 Component/Native Provider 扩展生态能力；`native-process` 长期保留为旧框架、重依赖和平台能力逃生口。
 
@@ -13,14 +13,72 @@
 ## 一、计划状态与关联文档
 
 - 日期：2026-08-28
-- 状态：总体计划执行中；直接 Wasmtime 核心 MVP v0.5.2 与全平台发布基线已完成；2026-08-30 已完成正式 Spin runner 迁移，以及首版 Capability Provider、resource binding、readiness、CLI/API/Agent 控制面和真实双包调用闭环；Provider 自动安装、外部账号/Secret 配置与开发者全链路仍待后续阶段
+- 状态：总体计划执行中；0.46.0 只代表部分能力与开发链路已发布，不代表整体完成。2026-08-30 审计确认 Secret、文件、标准网络/存储、长任务、流、模型/Agent 出站、强类型 Provider、跨入口同实例、动态验收证据、资源隔离和三平台产品实证仍需闭合
 - 计划粒度：四个主阶段；每个阶段约等于一个普通中大型开发任务
 - 架构 owner：[WASI Service App 运行时与现有 Mini App 体系融合设计探索](../designs/2026-08-28-wasi-service-app-runtime.design.md)
 - 愿景与 MVP owner：[Portable Capability Runtime 愿景与 MVP 设计](../designs/2026-08-28-portable-capability-runtime-mvp.design.md)
 - 完整验证 owner：[Portable Capability Runtime 全能力验证套件设计](../designs/2026-08-28-portable-runtime-verification-suite.design.md)
+- 当前能力、owner 与稳定验收编号：[Portable Runtime 能力闭合设计](../designs/2026-08-30-portable-runtime-capability-closure.design.md)
 - 认知与场景材料：[NextClaw 可移植能力运行时全景说明与场景设想](../thoughts/2026-08-28-portable-capability-runtime-panorama.thought.md)
 
-本计划只编排已经收敛的 Portable Capability Runtime 主线，不纳入尚未收敛的 Agent OS、Node REPL 编排、新 DSL、任意组件互调或多语言生态讨论。
+本计划只编排已经收敛的 Portable Capability Runtime 主线，不纳入 Agent OS、Node REPL、新 DSL、完整 POSIX 或多语言官方矩阵。Resident、事件、组件组合、Secret、文件、长任务、流和模型/Agent 能力已经进入当前闭合设计，不再作为“后续方向”排除。
+
+### 1.3 2026-08-30 整体闭合执行合同
+
+- contract-id：`prt-capability-closure-2026-08-30`
+- parent-goal：完整交付、亲自验收并稳定发布 Portable Capability Runtime，不以局部版本或阶段替代整体结果
+- scope-revision：`1`；没有任何用户确认的 scope reduction
+- completion owner：`development-lifecycle`；阶段、Delivery 和 release 只更新编号证据
+
+以下六部分替代“每过一个 Gate 必须等待用户 Review”的旧执行节奏。用户已授权 AI 按稳定验收合同完整推进；局部发布或某一部分完成后必须回到父目标，不能收尾。
+
+| 部分 | 设计策略与 owner | 交付结果 | 完成门 |
+| --- | --- | --- | --- |
+| 1. 能力底座 | Kernel grant snapshot + Spin Factors | filesystem、network、KV/SQLite、Secret、time/random/stream 的统一授权与执行链 | PRT-DATA/FILE/NET/SECRET，定向攻击与迁移测试通过 |
+| 2. 长期与组合 | Kernel lifecycle/task/provider owner | Resident/event/scheduler、progress/cancel、stream、AI/Agent、版本化 Provider | PRT-RES/EVENT/TASK/STREAM/AI/COMP，失败恢复与兼容矩阵通过 |
+| 3. 多入口与证据产品 | installed invocation + VerificationRecord | Panel/Agent/CLI 同实例，普通场景状态链接，验收矩阵、运行、证据、导出 | PRT-AGENT/ENTRY/EVID，记录不能由 UI 伪造 |
+| 4. 生命周期与生产治理 | Kernel App owner + 资源模型 | install→rollback/uninstall，隔离、配额、OOM/timeout/cancel、等价性能证据 | PRT-LIFE/BOUND/PERF，真实故障不拖垮宿主 |
+| 5. 开发者、参考 App 与三平台 | 现有 Rust CLI 与公开合同 | 干净环境闭环、GitHub Issue Watcher、三平台安装升级与代表 action | PRT-DX/DIST/REF/DOCS |
+| 6. 最终 Review 与稳定发布 | 当前版本有效 `PRT-*` 证据 | 可审查代码、用户文档、自动 gate、稳定 NPM/runtime/Desktop 发布 | 所有 Required ID 当前且通过；PRT-REL-001 公开复验通过 |
+
+恢复入口：每部分以提交、对应 `PRT-*` 证据和本文状态表为边界。实现期优先本地/单 package/单平台/单步骤快速漏斗，只有最终候选运行完整矩阵；失败不得无脑重跑全部成功任务。
+
+#### Active acceptance ledger
+
+`Required=true` 的条目只有在当前实现、当前场景版本和适用环境的证据均成立时才能标 `passed`；早期历史证据不直接继承为完成。实施中可以在证据列记录局部进展，但状态保持 `not-run`，避免“部分能力”被误读为验收通过。
+
+| ID | Required | Status | 当前证据 / 仍需关闭 |
+| --- | --- | --- | --- |
+| PRT-EXEC-001 | true | not-run | 已有 Action/错误历史实证；待当前候选完整复验 |
+| PRT-DATA-001 | true | not-run | custom KV 已用；待 Spin KV/SQLite、并发、迁移与隔离 |
+| PRT-FILE-001 | true | not-run | Spin/WASI 可用；待 schema v2 grant、攻击矩阵与撤权 |
+| PRT-NET-001 | true | not-run | GET allowlist 已用；待标准 WASI HTTP/networking 与完整拒绝矩阵 |
+| PRT-SECRET-001 | true | not-run | 未实现 |
+| PRT-RES-001 | true | not-run | Resident 历史实证；待当前候选复验 |
+| PRT-EVENT-001 | true | not-run | timer/cursor 局部存在；待 ack/retry/去重/顺序 |
+| PRT-TASK-001 | true | not-run | 未实现 |
+| PRT-STREAM-001 | true | not-run | 未实现产品合同 |
+| PRT-AGENT-001 | true | not-run | Agent 入站历史实证；待同一当前实例/证据复验 |
+| PRT-AI-001 | true | not-run | 未实现 Guest→model/Agent |
+| PRT-COMP-001 | true | not-run | JSON 中介已用；待版本化合同和不兼容诊断 |
+| PRT-ENTRY-001 | true | not-run | installed-app CLI 与记录基础已实现；待 Panel/Agent/CLI 组合场景 |
+| PRT-LIFE-001 | true | not-run | 启停/更新局部存在；待 rollback/uninstall retain/purge 当前复验 |
+| PRT-BOUND-001 | true | not-run | timeout/recovery 局部存在；待资源与多 App 隔离 |
+| PRT-PERF-001 | true | not-run | Apple Silicon 方向性旧样本；待等价 workload 与三平台 |
+| PRT-DX-001 | true | not-run | Rust CLI 已有；待干净环境完整复验 |
+| PRT-DIST-001 | true | not-run | CI 构建已存在；待三平台安装、升级和 Action |
+| PRT-EVID-001 | true | not-run | 持久脱敏记录与 CLI 已实现；待产品矩阵、场景执行与导出复验 |
+| PRT-REF-001 | true | not-run | 未实现完整 HTTP+Secret+数据参考 App |
+| PRT-DOCS-001 | true | not-run | 设计已同步；用户与开发者文档待实现后更新 |
+| PRT-REL-001 | true | not-run | 已有 fail-closed candidate-artifact gate 基础；真实全量 checker/CI artifact/稳定公开复验尚未接线，不能标完成 |
+
+open-required：以上 22 项当前全部保持打开；上下文压缩、阶段交接和发布恢复必须原样携带本 ledger 与 scope-revision。
+
+#### 验收基础设施接线剩余（2026-08-30）
+
+- 已完成：Kernel 唯一 TS contract（含 i18n key、checker key、分类与 canonical `darwin-arm64` target）、版本/fingerprint 新鲜度评估、旧记录 stale 迁移语义，以及候选 artifact 存在时 publish 前 fail-closed 的 prepublish gate。
+- 尚未完成：22 项真实 checker 注册、Panel/CLI/Server 对 contract 的直接消费、Panel 硬编码 ID 删除，以及 CI 生成并传递全量候选 evidence artifact。
+- 本条不改变 ledger：本批没有新增可运行或仅注册的 PRT checker；现有历史调用记录也尚未接入当前 fingerprint。后续 checker 即使先完成注册，也必须写入真实 current record 后才能从 `not-run` 变为 `passed`；公开产物复验产生真实 `PRT-REL-001` 后还必须运行 postpublish gate，`PRT-REL-001` 才能关闭。
 
 ### 1.2 2026-08-30 Spin-first 与依赖模型决策
 
@@ -139,7 +197,7 @@ Gate 1 仍不等于完整阶段 2。Secret、Blob/file、长任务、流、模�
 后续扩展：只按真实需求单独立项
 ```
 
-阶段之间不默认连续执行。每个 Gate 都要求用户 Review 体验、证据、范围变化和下一阶段成本，再决定是否继续。
+阶段之间按总体父目标连续执行。AI 必须亲自 Review 体验、证据、范围变化和下一阶段成本；用户无需逐 Gate 值守，但范围缩减仍必须得到用户明确同意。
 
 ## 四、阶段 1：可体验 Demo 与技术选型
 
@@ -388,15 +446,13 @@ Reference App 同时包含最小 Panel，并允许 Agent 通过现有 Service Ac
 
 以下方向不属于四阶段主计划。只有主线证明价值且真实需求出现后，才分别立项：
 
-- Resident Service、WebSocket、消息订阅和长期连接；
-- Component-to-Component 动态组合；
-- Provider Marketplace；
+- 任意递归组件图、无版本动态互调和独立 Provider Marketplace；
 - Python、JavaScript、Go 或其它语言官方支持；
 - WASIX、完整 POSIX、shell 和子进程；
 - GPU、摄像头、桌面自动化与平台专属 Provider；
 - 分布式 runner、云端迁移和自动伸缩；
 - Agent OS、Node REPL capability 编排或新 DSL；
-- durable worker、checkpoint、重放和跨设备连续执行。
+- 跨设备连续执行和分布式 durable worker；本机长任务进度、取消、事件 cursor 与恢复属于当前范围。
 
 排除不代表永远不做，而是防止它们在核心价值尚未证明前拖大当前任务。
 
@@ -410,7 +466,7 @@ Reference App 同时包含最小 Panel，并允许 Agent 通过现有 Service Ac
 2. 在隔离 worktree/branch 工作；
 3. 形成该阶段独立的文件级实施计划；
 4. 明确成功条件、真实验证、文档和不做项；
-5. 用户确认阶段范围后再开始实现。
+5. 对照 `PRT-*` 验收编号确认范围；只有用户可见范围需要改变时才请求用户决定。
 
 总体计划不预先决定未来阶段的文件和函数，因为前一 Gate 的结果会改变后续实现路径。
 

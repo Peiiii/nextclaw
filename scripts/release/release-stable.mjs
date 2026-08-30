@@ -93,6 +93,21 @@ function runPublishedValidation(args) {
   }
   run("pnpm", args);
 }
+
+function runPortableRuntimeAcceptanceGate() {
+  const artifactPath = process.env.NEXTCLAW_PORTABLE_RUNTIME_ACCEPTANCE_EVIDENCE;
+  if (!artifactPath) {
+    throw new Error(
+      "Stable release requires NEXTCLAW_PORTABLE_RUNTIME_ACCEPTANCE_EVIDENCE from the exact release commit.",
+    );
+  }
+  run("pnpm", [
+    "release:portable-runtime:acceptance:validate:prepublish",
+    "--",
+    "--artifact",
+    resolve(artifactPath),
+  ]);
+}
 function runReleaseStage(stage, recoveryOptions, callback) {
   try {
     return callback();
@@ -357,6 +372,7 @@ async function runStableRelease(options) {
       context.targetVersion,
     );
   }
+  runPortableRuntimeAcceptanceGate();
   const { checkpoint, publishSummary } = await publishStablePackages(
     options,
     context,

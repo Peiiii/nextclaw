@@ -17,6 +17,7 @@ export const defaultSkillBudgets = Object.freeze({
 });
 
 export const developmentLifecycleSkillName = "development-lifecycle";
+export const acceptanceContractSkillName = "acceptance-contract-governance";
 
 export const developmentStageSkillNames = Object.freeze([
   "development-task-understanding",
@@ -318,6 +319,31 @@ const validateDevelopmentLifecycle = ({ edges, entriesByName }) => {
   return violations;
 };
 
+const acceptanceCompletionContractSources = new Map([
+  [".agents/skills/acceptance-contract-governance/SKILL.md", ["active contract", "stable acceptance IDs"]],
+  [".agents/skills/acceptance-contract-governance/references/acceptance-contract-method.md", ["`contract-id`", "`parent-goal`", "`scope-confirmation: user-confirmed`", "`acceptance_updates`", "`parent_status:", "`active-contract`", "`open-required`", "全部 `Required: true` ID 当前均为"]],
+  [".agents/skills/development-lifecycle/SKILL.md", [acceptanceContractSkillName, "Required acceptance IDs", "`parent_status`", "scope reduction", "上下文压缩"]],
+  [".agents/skills/development-delivery/SKILL.md", ["`acceptance_updates`", "`parent_status`", "completion gate"]],
+  [".agents/skills/nextclaw-npm-release/SKILL.md", ["stable acceptance IDs", "`acceptance_updates`", "parent-goal"]],
+  [".agents/skills/nextclaw-desktop-release/SKILL.md", ["stable ID", "`acceptance_updates`", "parent-goal"]]
+]);
+
+const validateAcceptanceCompletionContract = ({ entriesByName, repoRoot }) => {
+  const violations = [];
+  if (!entriesByName.has(acceptanceContractSkillName)) violations.push(`acceptance completion contract: missing owner ${acceptanceContractSkillName}`);
+  for (const [relativePath, markers] of acceptanceCompletionContractSources) {
+    const filePath = path.join(repoRoot, relativePath);
+    if (!fs.existsSync(filePath)) {
+      violations.push(`acceptance completion contract: missing ${relativePath}`);
+      continue;
+    }
+    const text = fs.readFileSync(filePath, "utf8");
+    const missingMarkers = markers.filter((marker) => !text.includes(marker));
+    violations.push(...missingMarkers.map((marker) => `acceptance completion contract: ${relativePath} missing marker ${marker}`));
+  }
+  return violations;
+};
+
 const collectMetrics = ({ agentsPath, edges, skillEntries }) => {
   const agentsBytes = fs.existsSync(agentsPath) ? fs.statSync(agentsPath).size : 0;
   const skillTotalBytes = skillEntries.reduce((total, entry) => total + entry.bytes, 0);
@@ -372,6 +398,9 @@ export const auditSkillProgressiveLoading = ({
   const lifecycleViolations = enforceDevelopmentLifecycle
     ? validateDevelopmentLifecycle({ edges, entriesByName })
     : [];
+  const acceptanceCompletionViolations = enforceDevelopmentLifecycle
+    ? validateAcceptanceCompletionContract({ entriesByName, repoRoot })
+    : [];
   const dependencyViolations = validateDependencyCycles(edges);
   const metrics = collectMetrics({ agentsPath: activeMarkdown.agentsPath, edges, skillEntries });
   const budgetViolations = validateAggregateBudgets(metrics, budgets);
@@ -380,6 +409,7 @@ export const auditSkillProgressiveLoading = ({
     ...indexedSkills.violations,
     ...activeMarkdown.violations,
     ...lifecycleViolations,
+    ...acceptanceCompletionViolations,
     ...dependencyViolations,
     ...budgetViolations
   ];

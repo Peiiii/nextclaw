@@ -14,4 +14,14 @@ crate-type = ["cdylib"]
 
 [package.metadata.component]
 package = "nextclaw:portable-service"
-target = { path = "../../wit", world = "service-app" }
+
+[package.metadata.component.target]
+path = "../../wit"
+world = "service-app-v2"
+
+[package.metadata.component.target.dependencies]
+"fermyon:spin" = { path = "../../wit/deps/spin@2.0.0" }
+"wasi:http" = { path = "../../wit/deps/http@0.2.6" }
+"wasi:io" = { path = "../../wit/deps/io@0.2.6" }
+"wasi:clocks" = { path = "../../wit/deps/clocks@0.2.6" }
+"wasi:config" = { path = "../../wit/deps/config@0.2.0-draft-2024-09-27" }

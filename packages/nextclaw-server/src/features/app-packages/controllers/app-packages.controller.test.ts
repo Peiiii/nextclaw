@@ -27,6 +27,10 @@ function createTestApp(
   app.post("/api/app-packages/:appId/dependencies/setup", controller.setupDependencies);
   app.post("/api/app-packages/:appId/dependencies/bind", controller.bindDependency);
   app.post("/api/app-packages/:appId/dependencies/unbind", controller.unbindDependency);
+  app.get("/api/app-packages/:appId/secrets", controller.inspectSecrets);
+  app.post("/api/app-packages/:appId/secrets/verify", controller.verifySecrets);
+  app.post("/api/app-packages/:appId/secrets/bind", controller.bindSecret);
+  app.post("/api/app-packages/:appId/secrets/unbind", controller.unbindSecret);
   return app;
 }
 
@@ -96,6 +100,39 @@ describe("app package operation routes", () => {
 
     expect(listPackages).toHaveBeenNthCalledWith(1, { includeStorageUsage: false });
     expect(listPackages).toHaveBeenNthCalledWith(2, { includeStorageUsage: true });
+  });
+
+  it("exposes only redacted App Secret binding operations", async () => {
+    const secretView = {
+      readiness: { status: "needs-configuration", requirements: [] },
+      slots: [{
+        id: "issue-api-token", title: "Issue token", description: "", required: true,
+        status: "unbound", errorCode: "SECRET_BINDING_MISSING",
+      }],
+    };
+    const manager = {
+      inspectSecrets: vi.fn(async () => secretView),
+      verifySecrets: vi.fn(async () => secretView),
+      bindSecret: vi.fn(async () => secretView),
+      unbindSecret: vi.fn(async () => secretView),
+    };
+    const app = createTestApp(manager as never);
+    const inspect = await app.request("http://localhost/api/app-packages/demo/secrets");
+    const bind = await app.request("http://localhost/api/app-packages/demo/secrets/bind", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slotId: "issue-api-token", source: "env", id: "ISSUE_API_TOKEN" }),
+    });
+    const verify = await app.request("http://localhost/api/app-packages/demo/secrets/verify", { method: "POST" });
+    const unbind = await app.request("http://localhost/api/app-packages/demo/secrets/unbind", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slotId: "issue-api-token" }),
+    });
+    expect([inspect.status, bind.status, verify.status, unbind.status]).toEqual([200, 200, 200, 200]);
+    expect(manager.bindSecret).toHaveBeenCalledWith("demo", {
+      slotId: "issue-api-token",
+      binding: { source: "env", provider: undefined, id: "ISSUE_API_TOKEN" },
+    });
+    await expect(bind.json()).resolves.not.toHaveProperty("data.slots.0.value");
   });
 
   it("accepts lifecycle requests without waiting for operation completion", async () => {

@@ -14,6 +14,8 @@ import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { ProviderModelCatalogManager } from "@kernel/managers/provider-model-catalog.manager.js";
 import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
+import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
+import type { VerificationRecordService } from "@kernel/services/verification-record.service.js";
 import { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
 import {
   createCronJobSystemObjectProvider,
@@ -68,18 +70,20 @@ import {
   resolveKernelCapabilityGrantStorePath,
   resolveKernelInboxDeliveryStorePath,
   resolveKernelObservationStorePath,
+  resolveKernelVerificationRecordStorePath,
   resolveKernelPreferenceStorePath,
   resolveKernelProjectStorePath,
   resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
   createKernelContributions,
+  createKernelAppRuntimeManagers,
   createKernelOperationalManagers,
   createKernelSessionManagers,
-  createKernelServiceAppManagers,
-  installKernelAppPackageRuntimeHooks,
+  createPortableRuntimeAcceptanceServices,
 } from "@kernel/app/kernel-manager.factory.js";
 import type { ProductActivitySink } from "@kernel/types/product-activity.types.js";
+import type { PortableRuntimeAcceptanceManager } from "@kernel/services/portable-runtime-acceptance-manager.service.js";
 
 export type NextclawKernelOptions = {
   homeDir?: string;
@@ -87,6 +91,8 @@ export type NextclawKernelOptions = {
   builtInAppsDirectory?: string;
   portableServiceRunnerPath?: string;
   productVersion?: string;
+  /** Version of the active runtime bundle; local development falls back to productVersion. */
+  runtimeVersion?: string;
   productActivitySink?: ProductActivitySink;
   desktopHost?: DesktopHost;
 };
@@ -167,6 +173,8 @@ export class NextclawKernel {
   readonly observations: ObservationManager;
   readonly capabilityGrants: CapabilityGrantManager;
   readonly featureControls: FeatureControlsService;
+  readonly verificationRecords: VerificationRecordService;
+  readonly portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
   private readonly capabilityGrantLegacyMigration: CapabilityGrantLegacyMigrationService;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
@@ -176,6 +184,8 @@ export class NextclawKernel {
     const sessionsDir = resolveKernelSessionsDir(options);
     const desktopHost = options.desktopHost ?? new UnavailableDesktopHost();
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
+    ({ verificationRecords: this.verificationRecords, portableRuntimeAcceptance: this.portableRuntimeAcceptance } =
+      createPortableRuntimeAcceptanceServices({ ...options, verificationRecordStorePath: resolveKernelVerificationRecordStorePath(options) }));
     this.featureControls = new FeatureControlsService(desktopHost);
     ({
       automation: this.automation,
@@ -228,6 +238,8 @@ export class NextclawKernel {
       appHomeDirectory: resolveKernelAppHomeDirectory(options),
       builtInAppsDirectory: options.builtInAppsDirectory,
       productVersion: options.productVersion,
+      getSecretConfig: () => this.configManager.config,
+      secretConfigPath: this.configManager.configPath,
     });
     this.panelAppManager = new PanelAppManager({
       configManager: this.configManager,
@@ -241,22 +253,19 @@ export class NextclawKernel {
     this.preferenceManager = new PreferenceManager({
       storePath: resolveKernelPreferenceStorePath(options),
     });
-    ({
-      appDataManager: this.appDataManager,
-      serviceAppManager: this.serviceAppManager,
-    } = createKernelServiceAppManagers({
+    ({ appDataManager: this.appDataManager, serviceAppManager: this.serviceAppManager } = createKernelAppRuntimeManagers({
       appHomeDirectory: resolveKernelAppHomeDirectory(options),
       appPackageManager: this.appPackageManager,
+      panelAppManager: this.panelAppManager,
       configManager: this.configManager,
       capabilityGrantManager: this.capabilityGrants,
       hasAgent: (agentId) => this.agents.getAgent(agentId) !== null,
+      providerManager: this.llmProviders,
+      llmUsage: this.llmUsage,
+      agentRunClient: new AgentRunClient({ eventBus: this.eventBus, ingress: this.ingress }),
       portableServiceRunnerPath: options.portableServiceRunnerPath,
+      verificationRecords: this.verificationRecords,
     }));
-    installKernelAppPackageRuntimeHooks({
-      appPackageManager: this.appPackageManager,
-      panelAppManager: this.panelAppManager,
-      serviceAppManager: this.serviceAppManager,
-    });
     this.extensions = new ExtensionManager({
       capabilityGrantManager: this.capabilityGrants,
       desktopHost,

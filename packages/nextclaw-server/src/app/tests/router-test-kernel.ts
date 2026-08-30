@@ -160,6 +160,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
         unavailable("serviceAppManager.discoverServiceAppActions"),
       invokeServiceAction: async () =>
         unavailable("serviceAppManager.invokeServiceAction"),
+      invokeInstalledServiceAction: async () =>
+        unavailable("serviceAppManager.invokeInstalledServiceAction"),
+      listVerificationRecords: async () => ({ entries: [] }),
       grantServiceAction: async () =>
         unavailable("serviceAppManager.grantServiceAction"),
       grantServiceActions: async () =>
@@ -171,6 +174,29 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
         unavailable("serviceAppManager.restartServiceApp"),
       deleteServiceApp: async () =>
         unavailable("serviceAppManager.deleteServiceApp"),
+    } as never,
+    portableRuntimeAcceptance: {
+      contract: () => ({
+        contractFingerprint: "sha256:test",
+        locale: "zh-CN",
+        definitions: [{ id: "test.registry-projection" }],
+      }),
+      status: async () => ({
+        schemaVersion: 1,
+        contract: { contractFingerprint: "sha256:test", locale: "zh-CN", definitions: [{ id: "test.registry-projection" }] },
+        appId: "test",
+        identity: { available: false, reason: "test", environment: null, productVersion: null, runtimeVersion: null, runtimeVersionSource: null },
+        entries: [{ id: "test.registry-projection", result: { status: "missing" } }],
+        summary: { "current-passed": 0, missing: 1, stale: 0, failed: 0, "not-applicable": 0 },
+      }),
+      export: async () => ({
+        schemaVersion: 1,
+        contract: { contractFingerprint: "sha256:test", locale: "zh-CN", definitions: [{ id: "test.registry-projection" }] },
+        appId: "test",
+        identity: { available: false, reason: "test", environment: null, productVersion: null, runtimeVersion: null, runtimeVersionSource: null },
+        entries: [{ id: "test.registry-projection", result: { status: "missing" } }],
+        summary: { "current-passed": 0, missing: 1, stale: 0, failed: 0, "not-applicable": 0 },
+      }),
     } as never,
     ...overrides,
   };

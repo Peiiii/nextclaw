@@ -1,0 +1,37 @@
+{
+  "id": "nextclaw-portable-runtime-lab-sqlite",
+  "title": "Portable Spin SQLite Component",
+  "description": "通过标准 Spin SQLite interface 验证私有持久数据、隔离和权限拒绝。",
+  "protocol": "wasi-component",
+  "component": {
+    "entry": "service.wasm"
+  },
+  "actions": {
+    "sqlite_roundtrip": {
+      "risk": "write",
+      "title": "写入并查询标准 Spin SQLite",
+      "inputSchema": {
+        "type": "object",
+        "required": ["key", "value"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "value": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sqlite_read": {
+      "risk": "read",
+      "title": "读取标准 Spin SQLite",
+      "inputSchema": {
+        "type": "object",
+        "required": ["key"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1, "maxLength": 128 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sqlite_permission_denied": { "risk": "read", "title": "验证 SQLite 权限拒绝" }
+  }
+}

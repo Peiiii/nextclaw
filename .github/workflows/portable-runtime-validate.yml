@@ -1,6 +1,26 @@
 name: portable-runtime-validate
 
 on:
+  workflow_call:
+    inputs:
+      target:
+        description: Native target to validate
+        required: false
+        type: string
+        default: all
+      product_version:
+        description: Immutable stable product/runtime version selected by the release identity resolver
+        required: false
+        type: string
+        default: ""
+      release_mode:
+        description: new or recovery; recovery is allowed to use an already-consumed Changesets plan
+        required: false
+        type: string
+        default: new
+    outputs:
+      product_version:
+        value: ${{ jobs.select-matrix.outputs.product_version }}
   pull_request:
     paths:
       - "apps/nextclaw-wasmtime-runner/**"
@@ -9,6 +29,15 @@ on:
       - "packages/nextclaw/src/cli/app/**"
       - "packages/nextclaw/src/cli/shared/lib/distribution/**"
       - "packages/nextclaw/scripts/verify-portable-runtime-http-smoke.mjs"
+      - "apps/nextclaw-wasmtime-runner/tools/runtime-memory.tools.mjs"
+      - "apps/nextclaw-wasmtime-runner/tools/portable-runtime-ci-evidence.tools.ts"
+      - "packages/nextclaw-kernel/tools/portable-runtime-kernel-scenarios.tools.ts"
+      - "packages/nextclaw/resources/apps/nextclaw-github-issue-watcher/**"
+      - "packages/nextclaw-kernel/src/types/portable-runtime-acceptance.types.ts"
+      - "packages/nextclaw-kernel/src/services/service-app-resident-event-inbox.service.ts"
+      - "packages/nextclaw-kernel/src/services/service-app-job-journal.service.ts"
+      - "packages/nextclaw-kernel/src/services/app-package-dependency.service.ts"
+      - "packages/nextclaw-kernel/src/utils/service-app-manifest.utils.ts"
       - "packages/nextclaw-service/src/launcher/**"
       - "packages/nextclaw-service/src/managers/runtime-update.manager*"
       - "packages/nextclaw-service/src/services/runtime/npm-runtime-*"
@@ -25,6 +54,15 @@ on:
       - "packages/nextclaw/src/cli/app/**"
       - "packages/nextclaw/src/cli/shared/lib/distribution/**"
       - "packages/nextclaw/scripts/verify-portable-runtime-http-smoke.mjs"
+      - "apps/nextclaw-wasmtime-runner/tools/runtime-memory.tools.mjs"
+      - "apps/nextclaw-wasmtime-runner/tools/portable-runtime-ci-evidence.tools.ts"
+      - "packages/nextclaw-kernel/tools/portable-runtime-kernel-scenarios.tools.ts"
+      - "packages/nextclaw/resources/apps/nextclaw-github-issue-watcher/**"
+      - "packages/nextclaw-kernel/src/types/portable-runtime-acceptance.types.ts"
+      - "packages/nextclaw-kernel/src/services/service-app-resident-event-inbox.service.ts"
+      - "packages/nextclaw-kernel/src/services/service-app-job-journal.service.ts"
+      - "packages/nextclaw-kernel/src/services/app-package-dependency.service.ts"
+      - "packages/nextclaw-kernel/src/utils/service-app-manifest.utils.ts"
       - "packages/nextclaw-service/src/launcher/**"
       - "packages/nextclaw-service/src/managers/runtime-update.manager*"
       - "packages/nextclaw-service/src/services/runtime/npm-runtime-*"
@@ -54,7 +92,25 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.select.outputs.matrix }}
+      product_version: ${{ steps.release-plan.outputs.product_version }}
     steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install Changesets resolver
+        if: ${{ inputs.product_version == '' }}
+        run: pnpm install --frozen-lockfile --prefer-offline
+
       - id: select
         name: Select native targets
         shell: bash
@@ -62,13 +118,40 @@ jobs:
           TARGET: ${{ inputs.target || 'all' }}
         run: |
           case "$TARGET" in
-            darwin-arm64) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","cargo_target":"aarch64-apple-darwin"}]' ;;
-            linux-x64) matrix='[{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"}]' ;;
-            win32-x64) matrix='[{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
-            all) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","cargo_target":"aarch64-apple-darwin"},{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"},{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
+            darwin-arm64) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","environment":"darwin-arm64","cargo_target":"aarch64-apple-darwin"}]' ;;
+            linux-x64) matrix='[{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","environment":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"}]' ;;
+            win32-x64) matrix='[{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","environment":"windows-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
+            all) matrix='[{"os":"macos-14","platform":"darwin","arch":"arm64","target":"darwin-arm64","environment":"darwin-arm64","cargo_target":"aarch64-apple-darwin"},{"os":"ubuntu-22.04","platform":"linux","arch":"x64","target":"linux-x64","environment":"linux-x64","cargo_target":"x86_64-unknown-linux-musl"},{"os":"windows-latest","platform":"win32","arch":"x64","target":"win32-x64","environment":"windows-x64","cargo_target":"x86_64-pc-windows-msvc"}]' ;;
             *) echo "Unsupported target: $TARGET" >&2; exit 2 ;;
           esac
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+      # A new stable release validates the version Changesets will publish, not
+      # packages/nextclaw/package.json from the pre-version source checkout.
+      # Recovery receives the already-published immutable identity from the
+      # caller because its Changesets entry has correctly been consumed.
+      - id: release-plan
+        name: Resolve exact planned NextClaw stable version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.product_version }}" ]; then
+            [[ "${{ inputs.release_mode }}" = "new" || "${{ inputs.release_mode }}" = "recovery" ]]
+            [[ "${{ inputs.product_version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+            echo "product_version=${{ inputs.product_version }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pnpm exec changeset status --output "$RUNNER_TEMP/changeset-status.json"
+          node - "$RUNNER_TEMP/changeset-status.json" >> "$GITHUB_OUTPUT" <<'NODE'
+          const fs = require("node:fs");
+          const status = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (status.preState) throw new Error("portable-runtime acceptance does not permit Changesets prerelease mode");
+          const release = (status.releases ?? []).find((entry) => entry.name === "nextclaw");
+          if (!release || !/^\d+\.\d+\.\d+$/.test(release.newVersion ?? "")) {
+            throw new Error("portable-runtime acceptance requires a planned stable nextclaw Changesets release");
+          }
+          process.stdout.write(`product_version=${release.newVersion}\n`);
+          NODE
 
   native-runner:
     needs: select-matrix
@@ -117,9 +200,11 @@ jobs:
         run: node apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
 
       - name: Verify native runner Factor and lifecycle contract
-        run: node apps/nextclaw-wasmtime-runner/tools/spin-runner-smoke.tools.mjs
+        env:
+          NEXTCLAW_RUN_WASI_HTTP_E2E: "1"
+        run: node apps/nextclaw-wasmtime-runner/tools/spin-runner-smoke.tools.mjs --runner "packages/nextclaw/resources/native/${{ matrix.target }}/nextclaw-wasmtime-runner${{ matrix.platform == 'win32' && '.exe' || '' }}" --output "${{ runner.temp }}/portable-runtime-runner.json"
 
-      - name: Run native runner tests
+      - name: Run targeted native runner contract tests
         working-directory: apps/nextclaw-wasmtime-runner
         run: cargo test --release
 
@@ -136,11 +221,112 @@ jobs:
         run: pnpm --filter nextclaw... build
 
       - name: Verify real HTTP enable and component lifecycle
-        run: pnpm -C packages/nextclaw validation:portable-runtime-http -- --verify-rust-wasi-scaffold
+        run: pnpm -C packages/nextclaw validation:portable-runtime-http -- --verify-rust-wasi-scaffold --output "${{ runner.temp }}/portable-runtime-developer.json"
+
+      - name: Verify durable Kernel event, Job, stream and Provider contracts
+        run: >-
+          pnpm -C packages/nextclaw exec tsx --tsconfig ../nextclaw-kernel/tsconfig.json
+          ../nextclaw-kernel/tools/portable-runtime-kernel-scenarios.tools.ts
+          --output "${{ runner.temp }}/portable-runtime-kernel.json"
+
+      - name: Verify public GitHub Issue Watcher sync and persisted list
+        run: node packages/nextclaw/resources/apps/nextclaw-github-issue-watcher/tests/public-github-runner-smoke.tools.mjs --runner "packages/nextclaw/resources/native/${{ matrix.target }}/nextclaw-wasmtime-runner${{ matrix.platform == 'win32' && '.exe' || '' }}" --repository Peiiii/nextclaw --output "${{ runner.temp }}/portable-runtime-reference.json"
+
+      - name: Measure equivalent WASM and Node counter workload
+        run: node apps/nextclaw-wasmtime-runner/tools/runtime-memory.tools.mjs --runner "packages/nextclaw/resources/native/${{ matrix.target }}/nextclaw-wasmtime-runner${{ matrix.platform == 'win32' && '.exe' || '' }}" --output "${{ runner.temp }}/portable-runtime-performance.json"
+
+      - name: Verify portable runtime user and developer documentation contract
+        run: >-
+          pnpm -C packages/nextclaw exec tsx --tsconfig ../nextclaw-kernel/tsconfig.json
+          ../../apps/nextclaw-wasmtime-runner/tools/portable-runtime-ci-evidence.tools.ts
+          --verify-docs
+          --output "${{ runner.temp }}/portable-runtime-docs.json"
+
+      - name: Emit complete strict acceptance fragment
+        run: >-
+          pnpm -C packages/nextclaw exec tsx --tsconfig ../nextclaw-kernel/tsconfig.json
+          ../../apps/nextclaw-wasmtime-runner/tools/portable-runtime-ci-evidence.tools.ts
+          --target ${{ matrix.environment }}
+          --product-version "${{ needs.select-matrix.outputs.product_version }}"
+          --runtime-version "${{ needs.select-matrix.outputs.product_version }}"
+          --runner "packages/nextclaw/resources/native/${{ matrix.target }}/nextclaw-wasmtime-runner${{ matrix.platform == 'win32' && '.exe' || '' }}"
+          --runner-smoke "${{ runner.temp }}/portable-runtime-runner.json"
+          --kernel "${{ runner.temp }}/portable-runtime-kernel.json"
+          --performance "${{ runner.temp }}/portable-runtime-performance.json"
+          --developer "${{ runner.temp }}/portable-runtime-developer.json"
+          --reference "${{ runner.temp }}/portable-runtime-reference.json"
+          --docs "${{ runner.temp }}/portable-runtime-docs.json"
+          --output "${{ runner.temp }}/${{ matrix.environment }}.json"
 
       - name: Upload runner resource
         uses: actions/upload-artifact@v4
         with:
           name: portable-runtime-${{ matrix.target }}
           path: packages/nextclaw/resources/native/${{ matrix.target }}/nextclaw-wasmtime-runner*
+          if-no-files-found: error
+
+      - name: Upload portable runtime acceptance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-runtime-acceptance-evidence-${{ matrix.environment }}
+          path: ${{ runner.temp }}/${{ matrix.environment }}.json
+          if-no-files-found: error
+
+      - name: Upload portable runtime diagnostic observations
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-runtime-observations-${{ matrix.target }}
+          path: |
+            ${{ runner.temp }}/portable-runtime-performance.json
+            ${{ runner.temp }}/portable-runtime-runner.json
+            ${{ runner.temp }}/portable-runtime-kernel.json
+            ${{ runner.temp }}/portable-runtime-developer.json
+            ${{ runner.temp }}/portable-runtime-reference.json
+            ${{ runner.temp }}/portable-runtime-docs.json
+          if-no-files-found: error
+
+  aggregate-acceptance-evidence:
+    needs: [select-matrix, native-runner]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies for contract evaluator
+        run: pnpm install --frozen-lockfile
+
+      - name: Download CI evidence fragments
+        uses: actions/download-artifact@v4
+        with:
+          pattern: portable-runtime-acceptance-evidence-*
+          path: ${{ runner.temp }}/portable-runtime-acceptance
+          merge-multiple: true
+
+      - name: Validate and aggregate complete prepublish acceptance candidate
+        shell: bash
+        run: |
+          pnpm -C packages/nextclaw exec tsx --tsconfig ../nextclaw-kernel/tsconfig.json \
+            ../../apps/nextclaw-wasmtime-runner/tools/portable-runtime-ci-evidence.tools.ts \
+            --aggregate \
+            --product-version "${{ needs.select-matrix.outputs.product_version }}" \
+            --runtime-version "${{ needs.select-matrix.outputs.product_version }}" \
+            --input-dir "$RUNNER_TEMP/portable-runtime-acceptance" \
+            --output "$RUNNER_TEMP/portable-runtime-ci-evidence-summary.json"
+
+      - name: Upload complete prepublish acceptance candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-runtime-ci-evidence-summary
+          path: ${{ runner.temp }}/portable-runtime-ci-evidence-summary.json
           if-no-files-found: error

@@ -6,9 +6,18 @@
   "component": {
     "entry": "service.wasm"
   },
-  "providers": [
-    "nextclaw-portable-runtime-lab-provider"
-  ],
+  "requires": {
+    "capabilities": [{
+      "id": "nextclaw.contacts.normalize",
+      "version": "1",
+      "provider": "nextclaw-portable-runtime-lab-provider",
+      "wit": {
+        "package": "nextclaw:portable-service",
+        "interface": "host",
+        "version": "^0.1.0"
+      }
+    }]
+  },
   "actions": {
     "compose_contact": {
       "risk": "write",

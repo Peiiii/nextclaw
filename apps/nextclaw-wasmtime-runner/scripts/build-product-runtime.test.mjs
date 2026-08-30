@@ -8,7 +8,7 @@ import {
   syncArtifactAtomically,
 } from "./build-product-runtime.mjs";
 
-test("creates one shared runner and five guest artifact targets for macOS", () => {
+test("creates one shared runner and six guest artifact targets for macOS", () => {
   const workspaceRoot = resolve("/workspace");
   const plan = createPortableRuntimeBuildPlan({
     workspaceRoot,
@@ -30,14 +30,14 @@ test("creates one shared runner and five guest artifact targets for macOS", () =
       "nextclaw-wasmtime-runner",
     ),
   );
-  assert.equal(plan.commands.length, 6);
+  assert.equal(plan.commands.length, 7);
   assert.deepEqual(plan.commands.at(-1), [
     "build",
     "--release",
     "--target",
     "aarch64-apple-darwin",
   ]);
-  assert.equal(plan.guests.length, 5);
+  assert.equal(plan.guests.length, 6);
   assert.ok(plan.guests.every(({ destination }) => basename(destination) === "service.wasm"));
 });
 

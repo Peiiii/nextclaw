@@ -13,7 +13,6 @@ import {
 } from "@nextclaw/app-runtime";
 import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
-
 const tempDirectories: string[] = [];
 const builtInAppsDirectory = resolve(
   import.meta.dirname,
@@ -25,13 +24,11 @@ const builtInOrganizerVersion = (
     "utf8",
   )) as { version: string }
 ).version;
-
 function createTempDirectory(): string {
   const directory = mkdtempSync(join(tmpdir(), "nextclaw-app-package-test-"));
   tempDirectories.push(directory);
   return directory;
 }
-
 function createKernel(
   appsDirectory = builtInAppsDirectory,
   homeDirectory = createTempDirectory(),
@@ -55,7 +52,6 @@ function createKernel(
     productVersion: "0.32.0",
   });
 }
-
 async function assertFavoritesServiceActions(kernel: NextclawKernel): Promise<void> {
   const session = await kernel.panelAppManager.createPanelAppBridgeSession({
     id: "nextclaw-personal-organizer-favorites",
@@ -83,7 +79,6 @@ async function assertFavoritesServiceActions(kernel: NextclawKernel): Promise<vo
     },
   });
 }
-
 async function assertCalendarServiceActions(kernel: NextclawKernel): Promise<void> {
   const session = await kernel.panelAppManager.createPanelAppBridgeSession({
     id: "nextclaw-personal-organizer-calendar",
@@ -117,7 +112,6 @@ async function assertCalendarServiceActions(kernel: NextclawKernel): Promise<voi
     },
   });
 }
-
 afterEach(() => {
   while (tempDirectories.length > 0) {
     const directory = tempDirectories.pop();
@@ -126,7 +120,6 @@ afterEach(() => {
     }
   }
 });
-
 describe("AppPackageManager runtime projection", () => {
   it("keeps package reads pure until startup reconciles built-in packages", async () => {
     const homeDirectory = createTempDirectory();
@@ -147,9 +140,7 @@ describe("AppPackageManager runtime projection", () => {
       });
       expect(existsSync(appsPath)).toBe(false);
       expect(existsSync(packagePath)).toBe(false);
-
       await kernel.appPackageManager.start();
-
       await expect(kernel.appPackageManager.listPackages()).resolves.toMatchObject({
         entries: expect.arrayContaining([
           expect.objectContaining({ id: "nextclaw.personal-organizer" }),
@@ -161,7 +152,6 @@ describe("AppPackageManager runtime projection", () => {
       await kernel.serviceAppManager.dispose();
     }
   });
-
   it("marks persisted active operations as interrupted after process recovery", async () => {
     const storeDirectory = createTempDirectory();
     const storePath = join(storeDirectory, "operations.json");
@@ -183,7 +173,6 @@ describe("AppPackageManager runtime projection", () => {
       storePath,
       execute: async () => ({ appId: "nextclaw.example" }),
     });
-
     await expect(manager.list()).resolves.toMatchObject({
       entries: [{
         id: "operation-before-restart",
@@ -195,7 +184,6 @@ describe("AppPackageManager runtime projection", () => {
       entries: [{ status: "interrupted" }],
     });
   });
-
   it("deduplicates concurrent write operations for the same app", async () => {
     const storeDirectory = createTempDirectory();
     let finishExecution: (() => void) | undefined;
@@ -543,7 +531,7 @@ describe("AppPackageManager package projection lifecycle", () => {
     try {
       await kernel.appPackageManager.start();
       const initialPackages = await kernel.appPackageManager.listPackages();
-      expect(initialPackages.entries).toHaveLength(2);
+      expect(initialPackages.entries).toHaveLength(3);
       expect(initialPackages.entries).toEqual(expect.arrayContaining([
         expect.objectContaining({
           activeVersion: builtInOrganizerVersion,
@@ -569,6 +557,17 @@ describe("AppPackageManager package projection lifecycle", () => {
                 allowedDomains: ["httpbin.org"],
               }),
             }),
+          ]),
+        }),
+        expect.objectContaining({
+          builtIn: true,
+          enabled: false,
+          id: "nextclaw.github-issue-watcher",
+          isolation: "host-mediated",
+          runtimeProfile: "wasi",
+          components: expect.arrayContaining([
+            expect.objectContaining({ kind: "panel" }),
+            expect.objectContaining({ kind: "service" }),
           ]),
         }),
       ]));

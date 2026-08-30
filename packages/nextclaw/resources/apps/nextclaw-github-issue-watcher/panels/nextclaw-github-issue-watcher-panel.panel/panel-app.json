@@ -1,0 +1,11 @@
+{
+  "id": "nextclaw-github-issue-watcher-panel",
+  "title": "GitHub Issue Watcher",
+  "description": "配置仓库、同步并筛选最近 Issue。",
+  "icon": "🔎",
+  "entry": "index.html",
+  "actions": [
+    "nextclaw-github-issue-watcher-service.issues_sync",
+    "nextclaw-github-issue-watcher-service.issues_list"
+  ]
+}

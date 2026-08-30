@@ -11,7 +11,12 @@ export function projectCapabilityProviders(
       providerId: record.id,
       appId: record.packageId ?? record.id,
       componentId: record.id,
-      capabilities: capabilities.map(({ id, version, resourceTypes }) => ({ id, version, resourceTypes })),
+      capabilities: capabilities.map(({ id, version, resourceTypes, wit }) => ({
+        id,
+        version,
+        resourceTypes,
+        wit,
+      })),
     }];
   });
 }

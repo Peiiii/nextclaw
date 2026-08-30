@@ -211,6 +211,100 @@ describe("AppManifestService", () => {
   });
 });
 
+describe("AppManifestService Secret slots", () => {
+  it("parses stable Secret slots without accepting Secret values in the manifest", async () => {
+    const appDirectory = await createComponentPackage();
+    try {
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          ...manifest,
+          permissions: {
+            secrets: [{
+              id: "issue-api-token",
+              title: "Issue API token",
+              description: "Used to read and update the configured issue tracker.",
+              required: true,
+            }],
+          },
+        }),
+      );
+
+      const bundle = await new AppManifestService().load(appDirectory);
+      expect(bundle.manifest.permissions?.secrets).toEqual([{
+        id: "issue-api-token",
+        title: "Issue API token",
+        description: "Used to read and update the configured issue tracker.",
+        required: true,
+      }]);
+    } finally {
+      await rm(appDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects malformed and duplicate Secret slot declarations", async () => {
+    const appDirectory = await createComponentPackage();
+    try {
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          ...manifest,
+          permissions: {
+            secrets: [{
+              id: "IssueToken",
+              title: "Issue token",
+              description: "A token.",
+              required: true,
+            }],
+          },
+        }),
+      );
+      await expect(new AppManifestService().load(appDirectory)).rejects.toThrow(
+        "lowercase slot id",
+      );
+
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          ...manifest,
+          permissions: {
+            secrets: [
+              { id: "issue-token", title: "Issue token", description: "A token.", required: true },
+              { id: "issue-token", title: "Second token", description: "Another token.", required: false },
+            ],
+          },
+        }),
+      );
+      await expect(new AppManifestService().load(appDirectory)).rejects.toThrow("重复 slot id");
+
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          ...manifest,
+          permissions: {
+            secrets: [{
+              id: "issue-token",
+              title: "Issue token",
+              description: "A token.",
+              required: true,
+              value: "must-not-be-packaged",
+            }],
+          },
+        }),
+      );
+      await expect(new AppManifestService().load(appDirectory)).rejects.toThrow(
+        "只能声明 id、title、description 和 required",
+      );
+    } finally {
+      await rm(appDirectory, { recursive: true, force: true });
+    }
+  });
+});
+
 async function createComponentPackage(): Promise<string> {
   const appDirectory = path.join(
     tmpdir(),

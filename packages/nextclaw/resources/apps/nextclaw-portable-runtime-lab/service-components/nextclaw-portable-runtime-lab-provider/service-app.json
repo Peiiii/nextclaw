@@ -9,6 +9,17 @@
   "lifecycle": {
     "mode": "provider"
   },
+  "provides": {
+    "capabilities": [{
+      "id": "nextclaw.contacts.normalize",
+      "version": "1",
+      "wit": {
+        "package": "nextclaw:portable-service",
+        "interface": "host",
+        "version": "0.1.0"
+      }
+    }]
+  },
   "actions": {
     "contact_normalize": {
       "risk": "write",

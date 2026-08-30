@@ -190,11 +190,30 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | `nextclaw app marketplace info`   | Show a Marketplace App and its derived install command                                 |
 | `nextclaw app list`               | List Apps installed in the running NextClaw host                                       |
 | `nextclaw app info`               | Show installed App state and versions                                                  |
+| `nextclaw app invoke`             | Call an Action on an enabled installed App through the running host                    |
+| `nextclaw app verification`       | Read redacted runtime verification records from the running host                       |
+| `nextclaw app acceptance contract` | Read the stable Portable Runtime acceptance contract                                  |
+| `nextclaw app acceptance status`   | Read current Portable Runtime acceptance status and evidence freshness                |
+| `nextclaw app acceptance export`   | Export the contract, current runtime identity, and acceptance status as JSON          |
+| `nextclaw app jobs list`          | List durable Jobs for one installed App instance                                       |
+| `nextclaw app jobs inspect`       | Inspect one durable App Job                                                            |
+| `nextclaw app jobs watch`         | Replay retained Job progress and output after an optional sequence cursor              |
+| `nextclaw app jobs cancel`        | Request Job cancellation; completion remains pending until runtime confirmation        |
+| `nextclaw app resident-inbox list` | Inspect durable Resident delivery state; `--dead-letters` narrows to recoverable failures |
+| `nextclaw app resident-inbox replay` | Replay one dead-letter Resident event through the host-owned inbox                    |
 | `nextclaw app dependencies inspect` | Inspect external capability/resource dependencies, Provider candidates, and bindings |
 | `nextclaw app dependencies verify`  | Verify whether current dependencies are satisfied                                |
 | `nextclaw app dependencies setup`   | Establish bindings only when a compatible Provider is unique                      |
 | `nextclaw app dependencies bind`    | Bind one dependency to an installed trusted Provider                             |
 | `nextclaw app dependencies unbind`  | Remove one dependency binding                                                      |
+| `nextclaw app secrets inspect`      | Show declared Secret slots and non-sensitive SecretRef bindings                   |
+| `nextclaw app secrets verify`       | Resolve bindings without revealing Secret values                                   |
+| `nextclaw app secrets bind`         | Bind one declared Secret slot to an env, file, or exec provider                   |
+| `nextclaw app secrets unbind`       | Remove an App SecretRef binding and its active Secret permission                  |
+| `nextclaw app ai-capabilities inspect` | Inspect declared non-secret model and Agent slots with current bindings         |
+| `nextclaw app ai-capabilities verify`  | Verify required model and Agent slot readiness                                  |
+| `nextclaw app ai-capabilities bind`    | Bind one declared model or Agent slot to a configured target                    |
+| `nextclaw app ai-capabilities unbind`  | Remove one model or Agent slot binding                                          |
 | `nextclaw app operations`         | List durable App lifecycle operations                                                  |
 | `nextclaw app install`            | Install a Marketplace App, local directory, or `.napp` bundle through the running host |
 | `nextclaw app enable`             | Enable an installed App                                                                |
@@ -206,6 +225,12 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 See [Service Apps](/en/guide/service-apps) for the user workflow and [Develop a WASM Service App](/en/developers/portable-service-apps) for runtime development commands.
 
 `app dev` and `app call` accept a schema v2 App root directly. A package with one Service is selected automatically; use `--component <service-id>` when a package has multiple Services. Local `.napp` files can be installed by relative path, for example `nextclaw app install ./my-app.napp`.
+
+`app invoke <app-id> <action-name> --input '<json>'` calls an Action on an enabled installed App, rather than a source package. It returns the call ID, trace ID, data version, and verification-record ID. Use `app verification [--acceptance <id>] [--app <id>] [--limit <n>]` to inspect the corresponding redacted, persisted runtime facts; add `--json` for machine-readable output.
+
+`app acceptance contract|status|export` reads the single Portable Runtime acceptance registry used by the product, server, CLI, and release gate. `status` evaluates evidence against the active product version, runtime version, runner fingerprint, and contract fingerprint; only `current-passed` means the evidence is current. `export` always writes the complete machine-readable status document. Use `--locale en` for English presentation and `--app <id>` only when inspecting a non-default acceptance App.
+
+For Apps that declare Secret slots, use `app secrets inspect <app-id>` to see required configuration without revealing values. Bind a declared slot with `app secrets bind <app-id> --slot <slot> --source env|file|exec --id <secret-id> [--provider <provider>]`, then run `app secrets verify <app-id>`. A required unbound or unresolved slot leaves the App in `needs-configuration` and blocks enable with a `SECRET_*` error code. `app secrets unbind` removes the active Secret permission; retaining App data never retains Secret bindings.
 
 ## Automation guidance
 

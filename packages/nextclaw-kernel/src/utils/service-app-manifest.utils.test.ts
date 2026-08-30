@@ -108,6 +108,80 @@ describe("parseServiceAppManifest target launch", () => {
     }))).toThrow("lowercase identifiers");
   });
 
+  it("requires exact Provider WIT semver and a Consumer WIT range", () => {
+    const provider = parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      lifecycle: { mode: "provider" },
+      provides: {
+        capabilities: [{
+          id: "contacts.normalize",
+          version: "1",
+          wit: {
+            package: "nextclaw:contacts",
+            interface: "normalize",
+            version: "1.2.0",
+          },
+        }],
+      },
+    }));
+    expect(provider.provides?.capabilities?.[0]?.wit).toEqual({
+      package: "nextclaw:contacts",
+      interface: "normalize",
+      version: "1.2.0",
+    });
+
+    const consumer = parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      requires: {
+        capabilities: [{
+          id: "contacts.normalize",
+          wit: {
+            package: "nextclaw:contacts",
+            interface: "normalize",
+            version: "^1.1.0",
+          },
+        }],
+      },
+    }));
+    expect(consumer.requires?.capabilities?.[0]?.wit?.version).toBe("^1.1.0");
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      lifecycle: { mode: "provider" },
+      provides: { capabilities: [{
+        id: "contacts.normalize", version: "1", wit: {
+          package: "nextclaw:contacts", interface: "normalize", version: "^1.1.0",
+        },
+      }] },
+    }))).toThrow("exact semver version");
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      command: "node",
+      requires: { capabilities: [{
+        id: "contacts.normalize", wit: {
+          package: "nextclaw:contacts", interface: "normalize", version: "^1.1.0",
+        },
+      }] },
+    }))).toThrow("requires wasi-component protocol");
+
+    expect(() => parseServiceAppManifest(JSON.stringify({
+      ...BASE_MANIFEST,
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      requires: { capabilities: [{ id: "contacts.normalize", provider: "contact-provider" }] },
+    }))).toThrow("provider requires WIT metadata");
+  });
+
+});
+
+describe("parseServiceAppManifest portable lifecycle", () => {
   it("parses an explicit resident lifecycle and rejects native or unsafe intervals", () => {
     expect(parseServiceAppManifest(JSON.stringify({
       ...BASE_MANIFEST,

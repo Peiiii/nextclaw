@@ -9,6 +9,14 @@ import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js
 import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
 import type { AppInstanceRecord } from "#app-runtime/types/app-storage.types.js";
 
+export type AppSecretBinding = {
+  source: "env" | "file" | "exec";
+  provider?: string;
+  id: string;
+};
+
+export type AppSecretBindingMap = Record<string, AppSecretBinding>;
+
 export type AppInstallSourceKind = "bundle" | "directory" | "registry";
 
 export type AppRegistryInstalledVersion = {
@@ -43,6 +51,7 @@ export type AppRegistryAppRecord = {
   defaultInstance: AppInstanceRecord;
   installedVersions: Record<string, AppRegistryInstalledVersion>;
   grants: AppDocumentGrantMap;
+  secretBindings: AppSecretBindingMap;
 };
 
 export type AppRegistry = {

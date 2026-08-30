@@ -29,6 +29,7 @@ description: NextClaw Desktop 构建、发布、恢复与运行冒烟流程 owne
 - Desktop 不授权 NPM publish；stable 只消费已验证的 `nextclaw` stable identity。存在未发布 runtime 语义时停止，转入常规 stable/全平台发布。
 - `/发布NextClaw桌面版` 成功报告 `DESKTOP_READY`；全平台只在 `NEXTCLAW_STABLE_READY` 后进入本 owner，desktop 失败不得重发 NPM/runtime。
 - `/发布NextClaw全平台版` 由 GitHub `release.yml target=all` 调用；AI/Delivery 仅触发、监控父 workflow。Standalone Desktop 仅用于窄发布/恢复。
+- `DESKTOP_READY`、`ALL_PLATFORMS_READY` 只关闭子目标；active contract 下向 lifecycle 返回 stable ID 的 `acceptance_updates`、`parent_status`，版本/tag/artifact 不能完成 parent-goal。
 
 ## 默认入口
 

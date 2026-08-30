@@ -1,68 +1,50 @@
 # Service Apps
 
-Service App 让 NextClaw 中的应用不只展示界面，还能执行需要本地运行时的操作。它可以保存应用数据、访问经过允许的网络服务、在后台持续运行，或把一项能力同时提供给 Panel App 和指定 Agent。
+Service Apps 让 NextClaw 应用不只是一个界面。它可以在 Panel 背后保存数据、访问已批准的网站、读取你明确授权的文件夹、持续处理后台工作，或者把某个操作交给指定的 Agent。
 
-你仍然通过 NextClaw 使用和管理这些能力：应用负责声明自己能做什么，NextClaw 负责启动运行时、展示风险、处理授权，并管理应用数据。
+你仍然像使用普通应用一样从 Panel 开始。Service Apps 的作用是让结果可以保存下来，并且在合适的时候，让同一个操作也能被 Agent 或命令行调用。
 
-## Service App 能做什么
+## 它能帮你做什么
 
-具体能力取决于应用本身。当前 Service App 可以支持这些常见场景：
+每个应用只会声明自己需要的能力。启用前，NextClaw 会展示权限和配置状态。
 
-- **保存和修改应用数据**：例如待办、便签、表单记录和应用状态。
-- **执行一次操作**：例如计算、格式转换、数据查询或写入。
-- **访问允许的网络服务**：应用只能访问清单中声明的域名。
-- **在后台保持运行**：例如计时、轮询或处理宿主定时事件。
-- **复用其它 Service App 的能力**：应用可以调用自己明确声明依赖的 Provider。
-- **供 Agent 调用**：你可以把某个 Action 单独授权给指定 Agent。
+| 需求 | 应用可以做什么 | 仍由你控制的部分 |
+| --- | --- | --- |
+| 保存工作 | 保存应用自己的记录、设置、缓存或数据库 | 数据属于该应用实例，可随应用保留或删除 |
+| 使用文件 | 只读取或修改你授权的文件夹 | 安装应用不等于它能浏览其他文件夹 |
+| 连接服务 | 只访问应用声明的网站域名 | 不在声明列表内的网络请求会被拒绝 |
+| 使用 Token | 为 GitHub 等服务使用一个命名的密钥槽位 | Token 不会出现在 Panel、操作结果或诊断记录里 |
+| 后台运行 | 接收可恢复的 Resident 事件，或执行长时间 Job | 你可以查看进度、重放失败事件或请求取消 Job |
+| 与 Agent 协作 | 让指定 Agent 发现并调用某个声明的操作 | Agent 按操作授权，随时可以撤销 |
+| 组合应用 | 使用声明的 Provider 或明确配置的外部资源 | 依赖缺失或有多个候选时，应用不会悄悄猜测后启用 |
 
-Service App 暴露的每项能力都叫作一个 **Action**。例如，一个笔记应用可以提供“列出笔记”“保存笔记”和“删除笔记”三个 Action，而不是一次获得不受限制的系统访问。
+Portable Runtime 是面向 WebAssembly Component 的 Service Apps 运行方式。它适合把应用逻辑和数据处理一起打包，并在支持的平台上使用同一份应用包。确实需要平台程序或较重外部集成的应用，仍可以使用 native-process Service。
 
-## 它和 Panel App 的关系
+## 在哪里使用
 
-Panel App 负责用户看到和操作的界面，Service App 负责界面背后的运行逻辑。两者可以组合成一个完整应用：
+打开 NextClaw 的 **Service Apps** 页面，可以看到已安装服务、它们提供的操作、运行状态和请求的访问权限。日常使用时，从应用自己的 Panel 开始。第一次调用受保护操作时可能需要确认；确认后，Panel 会通过 NextClaw 调用服务，而不是直接访问你的系统。
 
-```text
-你操作 Panel App → Panel 请求一个 Action → NextClaw 检查授权 → Service App 执行并返回结果
-```
+想先看一个完整的日常例子，可以阅读 [GitHub Issue Watcher](/zh/guide/service-apps-github-issue-watcher)。具体步骤见 [使用 Service Apps](/zh/guide/service-apps-usage)。
 
-Panel App 不是使用 Service App 的唯一方式。经过你单独授权后，Agent 也可以发现并调用同一个 Action，并使用同一份应用数据。
+## 启用前请确认
 
-## 从哪里管理
+1. 阅读应用说明和它请求的权限。
+2. 如果它需要文件夹，只选择你愿意分享的文件夹；能只读就不要给写入权限。
+3. 如果它需要密钥，在 NextClaw 中把请求的槽位绑定到已配置的密钥。不要把值粘贴到应用清单或 Panel 里。
+4. 如果它需要模型、Agent、Provider 或外部资源，选择你希望它使用的对象。必要配置没完成时，NextClaw 会保持应用未启用。
+5. 启用应用，然后从 Panel 或已经授权的操作开始使用。
 
-打开 NextClaw 的 **Service Apps** 页面，可以看到已发现的 Service App、它提供的 Actions、当前运行状态和每项 Action 的风险类型。
+应用请求文件、网络、密钥或外部依赖时，请先阅读 [权限与数据](/zh/guide/service-app-permissions-data)。
 
-常见状态包括：
+## 出问题时
 
-| 状态 | 含义 |
-| --- | --- |
-| 未连接 | 运行时尚未启动或尚未发现 Actions |
-| 连接中 | NextClaw 正在连接 Service App |
-| 已连接 | 可以使用已发现的 Actions |
-| 连接失败 | 启动或运行发生错误，可查看错误信息后重试 |
-| 已停止 | 运行时已断开，可以重新连接 |
+应用可能因为没有授权、缺少配置、输入不正确，或服务停止而失败。NextClaw 会保留错误代码和简要原因，不会把所有问题都混成同一种失败。
 
-如果 Service App 来自已安装的 NextClaw App，可以从该页面进入应用管理；如果它来自 workspace 源码，则可以直接移除这个 Service App。
+先看 [Service Apps 故障排查](/zh/guide/service-apps-troubleshooting)。如果应用正在做长时间工作，请先查看已保存的 Job 进度，不要直接重复执行。
 
-## 开始使用
+## 相关页面
 
-1. 在 **Service Apps** 页面找到要使用的服务。
-2. 选择“连接并发现动作”，等待状态变为已连接。
-3. 在对应的 Panel App 中执行操作。首次调用 Action 时，检查来源、用途、输入和风险，然后选择允许或拒绝。
-4. 如果还希望 Agent 使用某项能力，在对应 Action 旁只授权给需要它的 Agent。
-
-NextClaw 会分别保存 Panel 和 Agent 的授权。允许一个 Panel 调用 Action，不代表所有 Agent 都自动获得该能力。
-
-## 当前支持的运行方式
-
-NextClaw 当前支持两类 Service App 协议：
-
-- **MCP**：连接现有 MCP Service，并把它提供的工具映射为 Service Actions。
-- **WASM Component**：使用 Portable Runtime 在共享原生运行器中执行 Rust/WASM Component。
-
-对使用者而言，两者都会出现在 Service Apps 页面，并通过同一套 Action、状态和授权体验使用。
-
-## 接下来
-
-- [使用 Service Apps](/zh/guide/service-apps-usage)：连接服务、调用 Action，并把能力授权给 Agent。
-- [Service App 权限与数据](/zh/guide/service-app-permissions-data)：了解风险标记、授权边界和卸载时的数据处理。
-- [Portable Runtime](/zh/developers/portable-runtime)：了解 WASM Service App 的运行模型和当前技术边界。
+- [使用 Service Apps](/zh/guide/service-apps-usage)
+- [权限与数据](/zh/guide/service-app-permissions-data)
+- [GitHub Issue Watcher](/zh/guide/service-apps-github-issue-watcher)
+- [面向开发者的 Portable Runtime](/zh/developers/portable-runtime)

@@ -85,4 +85,60 @@ describe("AppPackageManager external dependency readiness", () => {
     }
   });
 
+  it("projects missing and unresolved required Secret slots as needs-configuration without exposing values", async () => {
+    const appsDirectory = createTemporaryDirectory();
+    const packageDirectory = join(appsDirectory, "secret-organizer");
+    cpSync(join(builtInAppsDirectory, "nextclaw-personal-organizer"), packageDirectory, {
+      recursive: true,
+    });
+    const manifestPath = join(packageDirectory, "manifest.json");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest.permissions = {
+      secrets: [{
+        id: "issue-api-token",
+        title: "Issue tracker token",
+        description: "Used only by this App.",
+        required: true,
+      }],
+    };
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    const kernel = createKernel(appsDirectory);
+    const appId = String(manifest.id);
+
+    try {
+      await kernel.appPackageManager.start();
+      await expect(kernel.appPackageManager.getPackage(appId)).resolves.toMatchObject({
+        readiness: {
+          status: "needs-configuration",
+          requirements: [expect.objectContaining({ id: "secret:issue-api-token" })],
+        },
+        secrets: {
+          slots: [expect.objectContaining({
+            id: "issue-api-token",
+            status: "unbound",
+            errorCode: "SECRET_BINDING_MISSING",
+          })],
+        },
+      });
+      await expect(kernel.appPackageManager.enable(appId))
+        .rejects.toMatchObject({ code: "SECRET_BINDING_MISSING" });
+
+      await kernel.appPackageManager.bindSecret(appId, {
+        slotId: "issue-api-token",
+        binding: { source: "env", id: "NEXTCLAW_TEST_MISSING_SECRET" },
+      });
+      const verification = await kernel.appPackageManager.verifySecrets(appId);
+      expect(verification.readiness.status).toBe("needs-configuration");
+      expect(verification.slots[0]).toMatchObject({
+        status: "unresolved",
+        errorCode: "SECRET_RESOLUTION_FAILED",
+        binding: { source: "env", id: "NEXTCLAW_TEST_MISSING_SECRET" },
+      });
+      await expect(kernel.appPackageManager.enable(appId))
+        .rejects.toMatchObject({ code: "SECRET_RESOLUTION_FAILED" });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  });
+
 });

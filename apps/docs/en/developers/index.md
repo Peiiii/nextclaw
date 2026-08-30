@@ -20,8 +20,10 @@ Implement a Service App business Component in Rust and run it in NextClaw's shar
 
 | Document | What it covers |
 | --- | --- |
-| [Portable Runtime](./portable-runtime) | Execution model, roles, host capabilities, and current boundaries |
-| [Runtime model and capability contracts](./portable-runtime-contracts) | WIT, manifests, lifecycle, timeout, and recovery semantics |
-| [Develop a WASM Service App](./portable-service-apps) | Rust guest, App layout, Panel calls, and CLI development |
+| [Portable Runtime](./portable-runtime) | When to use a portable Component and how the host-mediated runtime is structured |
+| [Capabilities and security](./portable-runtime-contracts) | Manifest requests, WIT, files, storage, network, secrets, AI slots, and Providers |
+| [Build a Service App](./portable-service-apps) | Rust guest, package layout, and the create/build/check/test loop |
+| [Jobs, events, and observations](./portable-runtime-observability) | Long work, Resident delivery, redacted runtime facts, and recovery |
+| [Package and distribute](./portable-runtime-distribution) | Universal `.napp` packages, supported platforms, updates, and explicit external dependencies |
 
 [Start with Portable Runtime](./portable-runtime)

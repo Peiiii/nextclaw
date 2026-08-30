@@ -32,6 +32,7 @@
       <details class="behind-scenes">
         <summary>关闭页面后，为什么计时还会继续？</summary>
         <p>计时不属于这个页面，而是由 NextClaw 宿主持续向一个常驻 Rust/WASM Component 投递事件；完成点同时写入持久数据 Component。Panel 只负责查看和控制，所以页面关闭、重新打开，甚至宿主恢复后都能继续。</p>
+        <p><strong>已验证能力</strong>：<span data-verification-status>读取中…</span></p>
         <dl><div><dt>本次实例</dt><dd data-proof-epoch>等待读取</dd></div><div><dt>持久事件</dt><dd data-proof-events>等待读取</dd></div></dl>
       </details>
     </main>

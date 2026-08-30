@@ -1,7 +1,6 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { AppManifestService } from "#app-runtime/services/app-manifest.service.js";
-import { isAppStandaloneManifestBundle } from "#app-runtime/types/app-manifest.types.js";
 import { AppRegistryService } from "#app-runtime/services/app-registry.service.js";
 import type {
   AppDocumentGrantMutationResult,
@@ -23,22 +22,23 @@ export class AppGrantService {
     if (!activeVersion) {
       throw new Error(`已安装应用缺少激活版本：${appId}`);
     }
-    const bundle = await this.manifestService.load(activeVersion.installDirectory);
-    if (!isAppStandaloneManifestBundle(bundle)) {
-      throw new Error("schema v2 组合包权限由 Panel/Service runtime grant 管理。");
-    }
+    const bundle = await this.manifestService.load(
+      activeVersion.installDirectory,
+    );
     const requestedPermissions = bundle.manifest.permissions ?? {};
     return {
       appId: appRecord.appId,
       name: appRecord.name,
       activeVersion: appRecord.activeVersion,
-      documentAccess: (requestedPermissions.documentAccess ?? []).map((scope) => ({
-        id: scope.id,
-        mode: scope.mode,
-        description: scope.description,
-        granted: Boolean(appRecord.grants[scope.id]),
-        grantedPath: appRecord.grants[scope.id],
-      })),
+      documentAccess: (requestedPermissions.documentAccess ?? []).map(
+        (scope) => ({
+          id: scope.id,
+          mode: scope.mode,
+          description: scope.description,
+          granted: Boolean(appRecord.grants[scope.id]),
+          grantedPath: appRecord.grants[scope.id],
+        }),
+      ),
       allowedDomains: requestedPermissions.allowedDomains ?? [],
       storage: {
         enabled:

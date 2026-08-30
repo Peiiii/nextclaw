@@ -20,8 +20,64 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  resolve-release-identity:
+    name: resolve immutable stable release identity
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.identity.outputs.mode }}
+      target_version: ${{ steps.identity.outputs.target_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - id: identity
+        name: Resolve planned release or existing recovery identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec changeset status --output "$RUNNER_TEMP/changeset-status.json"
+          node - "$RUNNER_TEMP/changeset-status.json" <<'NODE' >> "$GITHUB_OUTPUT"
+          const { execFileSync } = require("node:child_process");
+          const fs = require("node:fs");
+          const status = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (status.preState) throw new Error("stable release cannot use Changesets prerelease mode");
+          const planned = (status.releases ?? []).find((entry) => entry.name === "nextclaw");
+          if (planned && /^\d+\.\d+\.\d+$/.test(planned.newVersion ?? "")) {
+            process.stdout.write(`mode=new\ntarget_version=${planned.newVersion}\n`);
+            process.exit(0);
+          }
+          const version = JSON.parse(fs.readFileSync("packages/nextclaw/package.json", "utf8")).version;
+          if (!/^\d+\.\d+\.\d+$/.test(version ?? "")) throw new Error("no planned NextClaw release and source version is not stable");
+          const published = execFileSync("npm", ["view", `nextclaw@${version}`, "version"], { encoding: "utf8" }).trim();
+          execFileSync("git", ["ls-remote", "--exit-code", "--tags", "origin", `refs/tags/nextclaw@${version}`], { stdio: "ignore" });
+          if (published !== version) throw new Error(`no planned NextClaw release and ${version} is not a published recovery identity`);
+          process.stdout.write(`mode=recovery\ntarget_version=${version}\n`);
+          NODE
+
+  validate-portable-runtime:
+    name: validate portable runtime release contract
+    needs: resolve-release-identity
+    uses: ./.github/workflows/portable-runtime-validate.yml
+    with:
+      target: all
+      product_version: ${{ needs.resolve-release-identity.outputs.target_version }}
+      release_mode: ${{ needs.resolve-release-identity.outputs.mode }}
+
   publish-npm:
     name: publish stable NPM batch
+    needs: [resolve-release-identity, validate-portable-runtime]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: npm-production
@@ -82,22 +138,40 @@ jobs:
       - name: Install release toolchain
         run: pnpm install --frozen-lockfile --prefer-offline
 
+      - name: Download exact-commit portable runtime acceptance evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: portable-runtime-ci-evidence-summary
+          path: ${{ runner.temp }}/portable-runtime-acceptance
+
       - name: Infer release checkpoint
         id: mode
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TARGET: ${{ inputs.target }}
+          RELEASE_MODE: ${{ needs.resolve-release-identity.outputs.mode }}
+          RELEASE_TARGET_VERSION: ${{ needs.resolve-release-identity.outputs.target_version }}
         shell: bash
         run: |
           set -euo pipefail
-          target_version="$(node -p "require('./packages/nextclaw/package.json').version")"
+          target_version="$RELEASE_TARGET_VERSION"
+          [[ "$target_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           published_version="$(npm view "nextclaw@$target_version" version 2>/dev/null || true)"
           is_recovery=false
+          if [ "$RELEASE_MODE" = "recovery" ]; then
+            is_recovery=true
+          elif [ "$RELEASE_MODE" != "new" ]; then
+            echo "Unsupported immutable release mode: $RELEASE_MODE" >&2
+            exit 1
+          fi
           runtime_ready=false
           compatibility_source_run=""
           tag="nextclaw@$target_version"
-          if [ "$published_version" = "$target_version" ] && git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
-            is_recovery=true
+          if [ "$is_recovery" = true ]; then
+            if [ "$published_version" != "$target_version" ] || ! git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              echo "Resolved recovery identity is no longer published/tagged: $tag" >&2
+              exit 1
+            fi
             if gh release view "$tag" --json isDraft,assets --jq 'select(.isDraft == false) | .assets[].name' > "$RUNNER_TEMP/runtime-assets" 2>/dev/null; then
               runtime_ready=true
               for platform in darwin-arm64 darwin-x64 linux-x64 win32-x64; do
@@ -146,6 +220,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_TARGET: ${{ inputs.target }}
+          NEXTCLAW_PORTABLE_RUNTIME_ACCEPTANCE_EVIDENCE: ${{ runner.temp }}/portable-runtime-acceptance/portable-runtime-ci-evidence-summary.json
         shell: bash
         run: |
           set -euo pipefail
@@ -388,10 +463,68 @@ jobs:
             echo "- desktop: DESKTOP_READY"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  verify-portable-runtime-postpublish:
+    name: verify public portable runtime release evidence
+    needs: [publish-npm, publish-runtime, publish-desktop]
+    if: ${{ always() && inputs.target == 'all' && needs.publish-npm.outputs.has_nextclaw == 'true' && needs.publish-runtime.result == 'success' && needs.publish-desktop.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install contract verifier
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Download exact candidate evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: portable-runtime-ci-evidence-summary
+          path: ${{ runner.temp }}/portable-runtime-acceptance
+
+      - name: Verify public NPM Runtime Desktop APT and documentation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          pnpm -C packages/nextclaw exec tsx --tsconfig ../nextclaw-kernel/tsconfig.json
+          ../../scripts/release/portable-runtime-postpublish-evidence.ts
+          --input "${{ runner.temp }}/portable-runtime-acceptance/portable-runtime-ci-evidence-summary.json"
+          --output "${{ runner.temp }}/portable-runtime-acceptance/postpublish.json"
+          --version "${{ needs.publish-npm.outputs.target_version }}"
+          --desktop-version "$(node -p \"require('./apps/desktop/package.json').version\")"
+
+      - name: Enforce full postpublish portable runtime acceptance gate
+        run: >-
+          pnpm release:portable-runtime:acceptance:validate:postpublish --
+          --artifact "${{ runner.temp }}/portable-runtime-acceptance/postpublish.json"
+
+      - name: Upload immutable postpublish acceptance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-runtime-postpublish-evidence
+          path: ${{ runner.temp }}/portable-runtime-acceptance/postpublish.json
+          if-no-files-found: error
+
   summarize:
     name: summarize release state
     if: ${{ always() }}
-    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop]
+    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop, verify-portable-runtime-postpublish]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -406,6 +539,7 @@ jobs:
           NPM_NODE_COMPATIBILITY_RESULT: ${{ needs.verify-npm-node-compatibility.result }}
           NPM_UNSUPPORTED_NODE_RESULT: ${{ needs.verify-npm-unsupported-node.result }}
           RUNTIME_RESULT: ${{ needs.publish-runtime.result }}
+          PORTABLE_RUNTIME_POSTPUBLISH_RESULT: ${{ needs.verify-portable-runtime-postpublish.result }}
           TARGET: ${{ inputs.target }}
           TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
         run: |
@@ -420,6 +554,7 @@ jobs:
             echo "- npm unsupported node guard: $NPM_UNSUPPORTED_NODE_RESULT"
             echo "- runtime: $RUNTIME_RESULT"
             echo "- desktop: $DESKTOP_RESULT"
+            echo "- portable runtime postpublish acceptance: $PORTABLE_RUNTIME_POSTPUBLISH_RESULT"
             echo "- content: $([ "$CONTENT_READY" = "true" ] && echo CONTENT_READY || echo CONTENT_PENDING)"
             echo
             echo "CONTENT_PENDING does not invalidate an immutable core release; finish the existing release-notes, docs, website, and social workflows against this same version."
@@ -446,7 +581,7 @@ jobs:
               echo "target=all requires CONTENT_READY before Desktop publication."
               exit 1
             fi
-            if [ "$RUNTIME_RESULT" != "success" ] || [ "$DESKTOP_RESULT" != "success" ]; then
+            if [ "$RUNTIME_RESULT" != "success" ] || [ "$DESKTOP_RESULT" != "success" ] || [ "$PORTABLE_RUNTIME_POSTPUBLISH_RESULT" != "success" ]; then
               exit 1
             fi
           fi

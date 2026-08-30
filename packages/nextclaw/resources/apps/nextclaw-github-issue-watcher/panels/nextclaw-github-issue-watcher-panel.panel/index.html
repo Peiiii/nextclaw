@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GitHub Issue Watcher</title>
+    <style>
+      :root {
+        color: #20242b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #f7f8fa;
+      }
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 28px 22px 48px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 26px;
+      }
+      .intro {
+        color: #606875;
+        margin: 8px 0 24px;
+      }
+      .controls,
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .controls {
+        padding: 16px;
+        background: #fff;
+        border: 1px solid #e4e7ec;
+        border-radius: 12px;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        border-radius: 8px;
+      }
+      input,
+      select {
+        min-height: 38px;
+        box-sizing: border-box;
+        border: 1px solid #cbd1d9;
+        padding: 0 10px;
+        background: #fff;
+      }
+      input {
+        flex: 1 1 220px;
+      }
+      button {
+        min-height: 38px;
+        padding: 0 14px;
+        border: 0;
+        background: #2463d4;
+        color: #fff;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #e8edf7;
+        color: #22324f;
+      }
+      button:disabled {
+        cursor: wait;
+        opacity: 0.62;
+      }
+      .summary {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 20px 0 12px;
+        color: #56606d;
+        font-size: 14px;
+      }
+      [data-notice] {
+        min-height: 22px;
+        margin: 12px 0;
+        color: #46515f;
+      }
+      [data-notice][data-tone="error"] {
+        color: #ba1a1a;
+      }
+      [data-notice][data-tone="success"] {
+        color: #167443;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .issue {
+        background: #fff;
+        border: 1px solid #e4e7ec;
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .issue a {
+        color: #153d88;
+        text-decoration: none;
+        font-weight: 650;
+      }
+      .issue a:hover {
+        text-decoration: underline;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        color: #687280;
+        font-size: 13px;
+        margin-top: 7px;
+      }
+      .label {
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: #edf1f7;
+      }
+      .empty {
+        padding: 30px 18px;
+        border: 1px dashed #cbd1d9;
+        border-radius: 12px;
+        background: #fff;
+        color: #687280;
+        text-align: center;
+      }
+      @media (max-width: 560px) {
+        main {
+          padding: 20px 14px 36px;
+        }
+        .summary {
+          display: block;
+        }
+        .summary > * + * {
+          display: block;
+          margin-top: 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>GitHub Issue Watcher</h1>
+      <p class="intro">
+        把一个仓库的最近 Issue 保存到 NextClaw，之后可离线筛选查看。可选 GitHub
+        Token 仅用于请求，不会出现在这里。
+      </p>
+
+      <form class="controls" data-sync-form>
+        <input
+          data-repository
+          name="repository"
+          autocomplete="off"
+          placeholder="owner/repository，例如 Peiiii/nextclaw"
+          aria-label="GitHub 仓库"
+        />
+        <button type="submit" data-sync>同步 Issue</button>
+        <button class="secondary" type="button" data-refresh>刷新列表</button>
+      </form>
+      <p data-notice aria-live="polite"></p>
+
+      <div class="summary">
+        <span data-repository-summary>还没有同步仓库</span>
+        <span data-sync-time></span>
+      </div>
+      <div class="filters" aria-label="Issue 状态筛选">
+        <label
+          >显示
+          <select data-state>
+            <option value="open">打开的 Issue</option>
+            <option value="closed">已关闭的 Issue</option>
+            <option value="all">全部 Issue</option>
+          </select>
+        </label>
+        <span data-count></span>
+      </div>
+      <ul data-issues aria-live="polite"></ul>
+    </main>
+    <script src="assets/app.js"></script>
+  </body>
+</html>

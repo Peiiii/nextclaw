@@ -3,56 +3,32 @@ import { randomUUID } from "node:crypto";
 import { accessSync, constants } from "node:fs";
 import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
-import type { AppPermissions } from "@nextclaw/app-runtime";
 import { readExtensionProcessMemory } from "@kernel/features/extension-runtime/index.js";
+import type {
+  PortableRunnerAction,
+  PortableRunnerApp,
+  PortableRunnerHostCallHandler,
+  PortableRunnerHostCallRequest,
+  PortableRunnerJob,
+  PortableRunnerJobEvent,
+  PortableRunnerObservation,
+  RunnerOperation,
+  RunnerOutput,
+  RunnerRequest,
+  RunnerResponse,
+} from "@kernel/types/portable-service-runner-protocol.types.js";
+export type {
+  PortableRunnerAction,
+  PortableRunnerApp,
+  PortableRunnerFileMount,
+  PortableRunnerHostCallHandler,
+  PortableRunnerHostCallRequest,
+  PortableRunnerJob,
+  PortableRunnerJobEvent,
+  PortableRunnerObservation,
+} from "@kernel/types/portable-service-runner-protocol.types.js";
 
-export type PortableRunnerApp = {
-  id: string;
-  componentPath: string;
-  dataDirectory: string;
-  permissions: AppPermissions;
-  providerIds?: string[];
-};
-
-export type PortableRunnerAction = {
-  name: string;
-  title: string;
-  description: string;
-};
-
-type RunnerOperation =
-  | "deliver-event"
-  | "invoke"
-  | "list-actions"
-  | "start-provider"
-  | "start-resident"
-  | "stats"
-  | "stop";
-
-type RunnerRequest = {
-  requestId: string;
-  operation: RunnerOperation;
-  app?: {
-    id: string;
-    componentPath: string;
-    dataDirectory: string;
-    allowedDomains: string[];
-    allowedProviderIds: string[];
-    storageEnabled: boolean;
-  };
-  actionName?: string;
-  input?: Record<string, unknown>;
-};
-
-type RunnerResponse = {
-  requestId: string;
-  protocolVersion?: string;
-  ok: boolean;
-  result?: unknown;
-  error?: { code?: string; message?: string };
-};
-
-const PORTABLE_RUNNER_PROTOCOL_VERSION = "0.1.0";
+const PORTABLE_RUNNER_PROTOCOL_VERSION = "0.2.0";
 
 type PendingRequest = {
   resolve: (value: unknown) => void;
@@ -63,13 +39,13 @@ type PendingRequest = {
   appId?: string;
 };
 
-export type PortableRunnerObservation = {
-  operation: RunnerOperation;
-  appId?: string;
-  durationMs: number;
-  runnerPid: number | null;
-  memory: { rssBytes: number | null; pssBytes: number | null } | null;
-  logs: string[];
+type ActiveJob = {
+  callbacks: Set<(event: PortableRunnerJobEvent) => void>;
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+  settled: boolean;
+  hostCall?: PortableRunnerHostCallHandler;
+  hostCalls: Map<string, AbortController>;
 };
 
 export class PortableServiceRunnerError extends Error {
@@ -86,6 +62,7 @@ export class PortableServiceRunnerError extends Error {
 export class PortableServiceRunnerClientService {
   private child?: ChildProcessByStdio<Writable, Readable, Readable>;
   private readonly pending = new Map<string, PendingRequest>();
+  private readonly jobs = new Map<string, ActiveJob>();
   private stderrTail: string[] = [];
   private lastObservation?: PortableRunnerObservation;
 
@@ -110,8 +87,103 @@ export class PortableServiceRunnerClientService {
     actionName: string,
     input: Record<string, unknown>,
     timeoutMs = 7_000,
-  ): Promise<unknown> =>
-    this.request({ operation: "invoke", app, actionName, input }, timeoutMs);
+    hostCall?: PortableRunnerHostCallHandler,
+  ): Promise<unknown> => {
+    const job = await this.startJob(app, actionName, input, undefined, undefined, timeoutMs, hostCall);
+    return await this.waitForJob(job.jobId, job.result, timeoutMs);
+  };
+
+  /** Starts isolated execution and returns immediately; events are delivered in order. */
+  startJob = async (
+    app: PortableRunnerApp,
+    actionName: string,
+    input: Record<string, unknown>,
+    watch?: (event: PortableRunnerJobEvent) => void,
+    requestedJobId?: string,
+    timeoutMs?: number,
+    hostCall?: PortableRunnerHostCallHandler,
+    callId?: string,
+    traceId?: string,
+  ): Promise<PortableRunnerJob> => {
+    const jobId = requestedJobId ?? randomUUID();
+    let resolve!: (value: unknown) => void;
+    let reject!: (error: Error) => void;
+    const result = new Promise<unknown>((resolveResult, rejectResult) => {
+      resolve = resolveResult;
+      reject = rejectResult;
+    });
+    const callbacks = new Set<(event: PortableRunnerJobEvent) => void>();
+    if (watch) callbacks.add(watch);
+    this.jobs.set(jobId, { callbacks, resolve, reject, settled: false, hostCall, hostCalls: new Map() });
+    try {
+      const started = await this.request<{ jobId?: string }>(
+        { operation: "start-job", app, actionName, input, jobId, timeoutMs, callId, traceId },
+        7_000,
+      );
+      const runnerJobId = started?.jobId ?? jobId;
+      if (runnerJobId !== jobId) {
+        const active = this.jobs.get(jobId);
+        if (active) {
+          this.jobs.delete(jobId);
+          this.jobs.set(runnerJobId, active);
+        }
+      }
+      return { jobId: runnerJobId, result };
+    } catch (error) {
+      this.jobs.delete(jobId);
+      reject(error instanceof Error ? error : new Error(String(error)));
+      // Marking the rejection observed prevents an immediate start failure
+      // from becoming an unhandled rejection before the caller sees it.
+      void result.catch(() => undefined);
+      throw error;
+    }
+  };
+
+  cancelJob = async (jobId: string, cancelReason?: "timeout"): Promise<void> => {
+    this.abortHostCalls(jobId, new Error("Portable Job was cancelled."));
+    await this.request({ operation: "cancel-job", jobId, cancelReason }, 2_000);
+  };
+
+  jobStatus = async (jobId: string): Promise<{ jobId: string; active: boolean }> =>
+    await this.request({ operation: "job-status", jobId }, 2_000);
+
+  runJob = async (
+    app: PortableRunnerApp,
+    actionName: string,
+    input: Record<string, unknown>,
+    params: {
+      jobId: string;
+      timeoutMs: number;
+      watch?: (event: PortableRunnerJobEvent) => void;
+      hostCall?: PortableRunnerHostCallHandler;
+      callId?: string;
+      traceId?: string;
+    },
+  ): Promise<unknown> => {
+    const { watch, jobId, timeoutMs, hostCall, callId, traceId } = params;
+    const job = await this.startJob(
+      app,
+      actionName,
+      input,
+      watch,
+      jobId,
+      timeoutMs,
+      hostCall,
+      callId,
+      traceId,
+    );
+    return await this.waitForJob(job.jobId, job.result, timeoutMs);
+  };
+
+  watchJob = (
+    jobId: string,
+    callback: (event: PortableRunnerJobEvent) => void,
+  ): (() => void) => {
+    const job = this.jobs.get(jobId);
+    if (!job) return () => undefined;
+    job.callbacks.add(callback);
+    return () => job.callbacks.delete(callback);
+  };
 
   startResident = async (
     app: PortableRunnerApp,
@@ -185,13 +257,13 @@ export class PortableServiceRunnerClientService {
     };
     return await new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
-        const error = new PortableServiceRunnerError(
+        const pending = this.pending.get(requestId);
+        if (!pending) return;
+        this.pending.delete(requestId);
+        pending.reject(new PortableServiceRunnerError(
           "PORTABLE_RUNTIME_TIMEOUT",
-          `Portable component exceeded its ${timeoutMs}ms execution budget.`,
-        );
-        this.failAll(error);
-        this.child?.kill("SIGKILL");
-        this.child = undefined;
+          `Portable runner control request exceeded its ${timeoutMs}ms execution budget.`,
+        ));
       }, timeoutMs);
       timeout.unref();
       this.pending.set(requestId, {
@@ -220,7 +292,13 @@ export class PortableServiceRunnerClientService {
   > => {
     if (this.child && this.child.exitCode === null) return this.child;
     const command = this.resolveRunnerPath();
-    const child = spawn(command, [], { stdio: ["pipe", "pipe", "pipe"] });
+    // The runner receives only its JSON control channel. In particular, do
+    // not inherit the kernel's provider environment into a process that hosts
+    // untrusted portable Components.
+    const child = spawn(command, [], {
+      stdio: ["pipe", "pipe", "pipe"],
+      env: this.runnerEnvironment(),
+    });
     this.child = child;
     this.stderrTail = [];
     const lines = createInterface({ input: child.stdout });
@@ -257,17 +335,17 @@ export class PortableServiceRunnerClientService {
   };
 
   private handleLine = (line: string): void => {
-    let response: RunnerResponse;
+    let output: RunnerOutput;
     try {
-      response = JSON.parse(line) as RunnerResponse;
+      output = JSON.parse(line) as RunnerOutput;
     } catch {
       this.handleChildFailure(
         new Error(`Portable runner returned invalid JSON: ${line}`),
       );
       return;
     }
-    if (response.protocolVersion !== PORTABLE_RUNNER_PROTOCOL_VERSION) {
-      const received = response.protocolVersion ?? "missing";
+    if (output.protocolVersion !== PORTABLE_RUNNER_PROTOCOL_VERSION) {
+      const received = output.protocolVersion ?? "missing";
       const error = new PortableServiceRunnerError(
         "PORTABLE_RUNNER_PROTOCOL_MISMATCH",
         `Portable runner protocol mismatch: expected ${PORTABLE_RUNNER_PROTOCOL_VERSION}, received ${received}.`,
@@ -277,6 +355,15 @@ export class PortableServiceRunnerClientService {
       child?.kill("SIGKILL");
       return;
     }
+    if ("kind" in output && output.kind === "host-call-request") {
+      this.handleHostCall(output as PortableRunnerHostCallRequest);
+      return;
+    }
+    if ("kind" in output && output.kind && output.kind !== "response") {
+      this.handleJobEvent(output as PortableRunnerJobEvent);
+      return;
+    }
+    const response = output as RunnerResponse;
     const pending = this.pending.get(response.requestId);
     if (!pending) return;
     clearTimeout(pending.timeout);
@@ -308,6 +395,7 @@ export class PortableServiceRunnerClientService {
 
   private handleChildFailure = (error: Error): void => {
     this.failAll(error);
+    this.failJobs(error);
     this.child = undefined;
   };
 
@@ -319,6 +407,132 @@ export class PortableServiceRunnerClientService {
     this.pending.clear();
   };
 
+  private handleJobEvent = (event: PortableRunnerJobEvent): void => {
+    const job = this.jobs.get(event.jobId);
+    if (!job) return;
+    for (const callback of job.callbacks) callback(event);
+    if (event.kind !== "job-terminal" || job.settled) return;
+    job.settled = true;
+    for (const controller of job.hostCalls.values()) {
+      controller.abort(new Error("Portable Job reached a terminal state."));
+    }
+    job.hostCalls.clear();
+    this.jobs.delete(event.jobId);
+    if (event.status === "succeeded") {
+      job.resolve(event.result);
+      return;
+    }
+    job.reject(new PortableServiceRunnerError(
+      event.error?.code ?? `PORTABLE_JOB_${event.status.toUpperCase().replaceAll("-", "_")}`,
+      event.error?.message ?? `Portable Job ${event.jobId} ${event.status}.`,
+    ));
+  };
+
+  private waitForJob = async (
+    jobId: string,
+    result: Promise<unknown>,
+    timeoutMs: number,
+  ): Promise<unknown> => await new Promise<unknown>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      void this.cancelJob(jobId, "timeout").catch(() => undefined);
+      reject(new PortableServiceRunnerError(
+        "PORTABLE_RUNTIME_TIMEOUT",
+        `Portable component exceeded its ${timeoutMs}ms execution budget.`,
+      ));
+    }, timeoutMs);
+    timeout.unref();
+    void result.then(
+      (value) => { clearTimeout(timeout); resolve(value); },
+      (error) => { clearTimeout(timeout); reject(error); },
+    );
+  });
+
+  private failJobs = (error: Error): void => {
+    for (const job of this.jobs.values()) {
+      for (const controller of job.hostCalls.values()) controller.abort(error);
+      if (!job.settled) job.reject(error);
+    }
+    this.jobs.clear();
+  };
+
+  private handleHostCall = (request: PortableRunnerHostCallRequest): void => {
+    const job = this.jobs.get(request.jobId);
+    if (!job) {
+      void this.resolveHostCall(request.hostCallId, undefined, {
+        code: "HOST_CALL_JOB_NOT_FOUND",
+        message: "The enclosing Job is no longer active.",
+      });
+      return;
+    }
+    const controller = new AbortController();
+    job.hostCalls.set(request.hostCallId, controller);
+    void (async () => {
+      try {
+        if (!job.hostCall) {
+          throw new PortableServiceRunnerError(
+            "AI_CAPABILITY_UNAVAILABLE",
+            "The NextClaw host did not register an AI capability callback for this Job.",
+          );
+        }
+        const result = await job.hostCall(request, controller.signal);
+        if (!this.jobs.has(request.jobId) || controller.signal.aborted) return;
+        const bytes = Buffer.byteLength(JSON.stringify(result), "utf8");
+        if (bytes > 64 * 1024) {
+          throw new PortableServiceRunnerError(
+            "HOST_CALL_OUTPUT_TOO_LARGE",
+            "The host callback response exceeded 64 KiB.",
+          );
+        }
+        await this.resolveHostCall(request.hostCallId, result);
+      } catch (error) {
+        if (!this.jobs.has(request.jobId) || controller.signal.aborted) return;
+        await this.resolveHostCall(request.hostCallId, undefined, this.toHostCallError(error));
+      } finally {
+        this.jobs.get(request.jobId)?.hostCalls.delete(request.hostCallId);
+      }
+    })();
+  };
+
+  private resolveHostCall = async (
+    hostCallId: string,
+    result?: unknown,
+    error?: { code: string; message: string },
+  ): Promise<void> => {
+    try {
+      await this.request(
+        {
+          operation: "resolve-host-call",
+          hostCallId,
+          hostCallResult: error ? undefined : result,
+          hostCallError: error,
+        },
+        7_000,
+      );
+    } catch {
+      // A terminal/cancelled Job removes the runner-side pending callback.
+      // Its Job terminal event remains the authoritative outcome.
+    }
+  };
+
+  private abortHostCalls = (jobId: string, reason: Error): void => {
+    const job = this.jobs.get(jobId);
+    if (!job) return;
+    for (const controller of job.hostCalls.values()) controller.abort(reason);
+    job.hostCalls.clear();
+  };
+
+  private toHostCallError = (error: unknown): { code: string; message: string } => {
+    if (error instanceof PortableServiceRunnerError) {
+      return { code: error.code, message: error.message };
+    }
+    // Provider/Agent failures can include upstream payloads. They must never
+    // become a Guest-visible channel for credentials or raw provider logs.
+    return {
+      code: "HOST_CALL_FAILED",
+      message: "The NextClaw host capability call failed.",
+    };
+  };
+
   private toRunnerApp = (
     app: PortableRunnerApp,
   ): NonNullable<RunnerRequest["app"]> => ({
@@ -328,6 +542,9 @@ export class PortableServiceRunnerClientService {
     allowedDomains: app.permissions.allowedDomains ?? [],
     allowedProviderIds: app.providerIds ?? [],
     storageEnabled: Boolean(app.permissions.storage),
+    fileMounts: app.fileMounts,
+    secretVariables: app.secretVariables,
+    secretFingerprints: app.secretFingerprints,
   });
 
   private resolveRunnerPath = (): string => {
@@ -352,5 +569,14 @@ export class PortableServiceRunnerClientService {
       );
     }
     return runnerPath;
+  };
+
+  private runnerEnvironment = (): NodeJS.ProcessEnv => {
+    const source = this.params.env ?? process.env;
+    return Object.fromEntries(
+      ["PATH", "SystemRoot", "WINDIR", "TEMP", "TMP", "TMPDIR"]
+        .filter((key) => source[key] !== undefined)
+        .map((key) => [key, source[key]]),
+    );
   };
 }

@@ -1,13 +1,13 @@
 export default {
-  "generatedAt": "2026-08-29T18:37:24.165Z",
+  "generatedAt": "2026-08-30T12:28:15.366Z",
   "hero": {
     "currentLoc": 276169,
     "testLoc": 115353,
     "trackedFiles": 2936,
-    "recentCommitCount": 503,
+    "recentCommitCount": 565,
     "activeDays30": 30,
     "recentReleaseCount": 52,
-    "latestReleaseDate": "2026-08-29",
+    "latestReleaseDate": "2026-08-30",
     "latestNoteDate": "2026-08-30",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2673477,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-02",
-        "label": "05-02",
-        "value": 0
-      },
       {
         "key": "2026-05-03",
         "label": "05-03",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-29",
         "label": "08-29",
         "value": 276169
+      },
+      {
+        "key": "2026-08-30",
+        "label": "08-30",
+        "value": 276169
       }
     ],
     "testLocDaily": [
@@ -1176,11 +1176,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-07-31",
-        "label": "07-31",
-        "value": 10
-      },
-      {
         "key": "2026-08-01",
         "label": "08-01",
         "value": 1
@@ -1323,7 +1318,12 @@ export default {
       {
         "key": "2026-08-29",
         "label": "08-29",
-        "value": 52
+        "value": 53
+      },
+      {
+        "key": "2026-08-30",
+        "label": "08-30",
+        "value": 71
       }
     ],
     "commitWeekly": [
@@ -1385,7 +1385,7 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 172
+        "value": 238
       }
     ],
     "releaseMonthly": [
@@ -1447,7 +1447,7 @@ export default {
       {
         "key": "2026-08",
         "label": "08/26",
-        "value": 19
+        "value": 20
       }
     ]
   },
@@ -1518,8 +1518,17 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-08-30",
+        "tagCount": 10,
+        "sampleTags": [
+          "@nextclaw/app-runtime@0.15.0",
+          "@nextclaw/client-sdk@0.9.5",
+          "@nextclaw/companion@0.2.52"
+        ]
+      },
+      {
         "date": "2026-08-29",
-        "tagCount": 61,
+        "tagCount": 84,
         "sampleTags": [
           "v0.45.0-desktop.1",
           "@nextclaw/app-runtime@0.14.1",
@@ -1561,20 +1570,31 @@ export default {
           "@nextclaw/channel-extension-dingtalk@0.2.33-beta.0",
           "@nextclaw/channel-extension-discord@0.2.33-beta.0"
         ]
-      },
-      {
-        "date": "2026-08-22",
-        "tagCount": 9,
-        "sampleTags": [
-          "@nextclaw/client-sdk@0.7.3",
-          "@nextclaw/companion@0.2.41",
-          "@nextclaw/kernel@0.9.2"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-08-30-nextclaw-v0-47-0",
+        "date": "2026-08-30",
+        "tags": [
+          "release",
+          "apps",
+          "wasm",
+          "runtime"
+        ],
+        "en": {
+          "title": "2026-08-30 · NextClaw v0.47.0",
+          "description": "Portable Service Apps now have a complete capability, background-work, AI, and cross-platform verification loop.",
+          "href": "/en/notes/2026-08-30-nextclaw-v0-47-0"
+        },
+        "zh": {
+          "title": "2026-08-30 · NextClaw v0.47.0",
+          "description": "Portable Service Apps 现在具备完整的受控能力、长期任务、AI 调用和可验证的跨平台交付链路。",
+          "href": "/zh/notes/2026-08-30-nextclaw-v0-47-0"
+        }
+      },
       {
         "slug": "2026-08-30-nextclaw-v0-45-5",
         "date": "2026-08-30",
@@ -2805,7 +2825,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-29T09:00:10.085Z",
     "sourceCount": {
-      "notes": 60,
+      "notes": 61,
       "scopes": 8
     }
   }

@@ -1,0 +1,18 @@
+{
+  "slug": "github-issue-watcher",
+  "summary": "Sync and review GitHub issues from a portable NextClaw app.",
+  "summaryI18n": {
+    "zh-CN": "在可移植的 NextClaw 应用中同步和查看 GitHub Issue。",
+    "en-US": "Sync and review GitHub issues from a portable NextClaw app."
+  },
+  "description": "A small reference app that uses portable HTTP, local persistent storage, and an optional secret without exposing credentials to the app.",
+  "descriptionI18n": {
+    "zh-CN": "一个真实的参考应用：使用可移植网络访问、本地持久化和可选密钥，并且不会把凭据暴露给应用。",
+    "en-US": "A small reference app that uses portable HTTP, local persistent storage, and an optional secret without exposing credentials to the app."
+  },
+  "author": "NextClaw",
+  "tags": ["github", "issues", "portable", "reference"],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://nextclaw.io",
+  "featured": false
+}

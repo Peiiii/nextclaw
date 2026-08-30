@@ -49,4 +49,68 @@ describe("AppPackageCommandController", () => {
       .rejects.toThrow("--confirm");
     expect(liveService.uninstall).not.toHaveBeenCalled();
   });
+
+  it("keeps installed invocation distinct from source development calls", async () => {
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const liveService = {
+      invoke: vi.fn().mockResolvedValue({
+        actionId: "notes.read", result: { ok: true },
+        invocation: { callId: "call-1", traceId: "trace-1", dataVersion: "instance-v1:1", verificationRunId: "run-1" },
+      }),
+    };
+    const controller = new AppPackageCommandController(liveService as never, {} as never);
+
+    await controller.invoke("example.notes", "read", { input: '{"page":1}' });
+
+    expect(liveService.invoke).toHaveBeenCalledWith("example.notes", "read", { page: 1 });
+    expect(write).toHaveBeenCalledWith(expect.stringContaining("trace: trace-1"));
+  });
+
+  it("renders acceptance status through the host projection and exports JSON", async () => {
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const liveService = {
+      portableRuntimeAcceptanceContract: vi.fn(async () => ({
+        contractFingerprint: "sha256:contract", definitions: [{ id: "PRT-EXEC-001", category: "execution", presentation: { title: "执行" } }],
+      })),
+      portableRuntimeAcceptanceStatus: vi.fn(async () => ({
+        appId: "nextclaw.github-issue-watcher", identity: { available: false, reason: "runner unavailable" },
+        contract: { contractFingerprint: "sha256:contract" }, entries: [{ id: "PRT-EXEC-001", result: { status: "missing" }, presentation: { title: "执行" } }],
+      })),
+      exportPortableRuntimeAcceptance: vi.fn(async () => ({ schemaVersion: 1, entries: [] })),
+    };
+    const controller = new AppPackageCommandController(liveService as never, {} as never);
+
+    await controller.acceptanceContract({ locale: "zh-CN" });
+    await controller.acceptanceStatus({ app: "example.acceptance", locale: "en" });
+    await controller.acceptanceExport({ app: "example.acceptance" });
+
+    expect(liveService.portableRuntimeAcceptanceStatus).toHaveBeenCalledWith({ appId: "example.acceptance", locale: "en" });
+    expect(liveService.exportPortableRuntimeAcceptance).toHaveBeenCalledWith({ appId: "example.acceptance", locale: undefined });
+    expect(write).toHaveBeenLastCalledWith(expect.stringContaining('"schemaVersion": 1'));
+  });
+
+  it("renders Job inspection and keeps cancellation pending until the runtime confirms it", async () => {
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const liveService = {
+      listJobs: vi.fn(async () => ({ entries: [{
+        id: "job-1", status: "running", componentId: "notes", actionName: "sync", callId: "call-1", traceId: "trace-1",
+      }] })),
+      watchJob: vi.fn(async () => ({
+        job: { id: "job-1", status: "running", componentId: "notes", actionName: "sync", callId: "call-1", traceId: "trace-1" },
+        events: [{ sequence: 2, type: "progress" }], cursor: 2,
+      })),
+      cancelJob: vi.fn(async () => ({
+        id: "job-1", status: "cancel-requested", componentId: "notes", actionName: "sync", callId: "call-1", traceId: "trace-1",
+      })),
+    };
+    const controller = new AppPackageCommandController(liveService as never, {} as never);
+
+    await controller.listJobs("example.notes", {});
+    await controller.watchJob("example.notes", "job-1", { after: "1" });
+    await controller.cancelJob("example.notes", "job-1", {});
+
+    expect(liveService.watchJob).toHaveBeenCalledWith("example.notes", "job-1", 1);
+    expect(liveService.cancelJob).toHaveBeenCalledWith("example.notes", "job-1");
+    expect(write).toHaveBeenLastCalledWith(expect.stringContaining("cancel-requested"));
+  });
 });

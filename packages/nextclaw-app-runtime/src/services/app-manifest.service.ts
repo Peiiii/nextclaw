@@ -12,12 +12,14 @@ import type {
   AppPermissions,
   AppPlatformSecuritySummary,
   AppResolvedComponent,
+  AppSecretSlot,
   AppStandaloneManifest,
   AppStandaloneManifestBundle,
 } from "#app-runtime/types/app-manifest.types.js";
 
 const PACKAGE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const COMPONENT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SECRET_SLOT_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 
 export class AppManifestService {
   constructor(
@@ -414,6 +416,7 @@ export class AppManifestService {
     const candidate = this.assertObject(rawPermissions, "permissions");
     return {
       documentAccess: this.parseDocumentAccess(candidate.documentAccess),
+      secrets: this.parseSecretSlots(candidate.secrets),
       allowedDomains: this.parseStringArray(candidate.allowedDomains, "permissions.allowedDomains"),
       storage: this.parseStorage(candidate.storage),
       capabilities: this.parseCapabilities(candidate.capabilities),
@@ -442,6 +445,42 @@ export class AppManifestService {
         ),
       };
     });
+  };
+
+  private parseSecretSlots = (rawSecrets: unknown): AppSecretSlot[] | undefined => {
+    if (rawSecrets === undefined) {
+      return undefined;
+    }
+    if (!Array.isArray(rawSecrets)) {
+      throw new Error("permissions.secrets 必须是数组。");
+    }
+    const slots = rawSecrets.map((rawSlot, index) => {
+      const field = `permissions.secrets[${index}]`;
+      const candidate = this.assertObject(rawSlot, field);
+      const unsupportedField = Object.keys(candidate).find(
+        (key) => !["id", "title", "description", "required"].includes(key),
+      );
+      if (unsupportedField) {
+        throw new Error(`${field} 只能声明 id、title、description 和 required。`);
+      }
+      const id = this.readRequiredString(candidate.id, `${field}.id`);
+      if (!SECRET_SLOT_ID_PATTERN.test(id)) {
+        throw new Error(`${field}.id 必须是稳定的 lowercase slot id。`);
+      }
+      return {
+        id,
+        title: this.readRequiredString(candidate.title, `${field}.title`),
+        description: this.readRequiredString(candidate.description, `${field}.description`),
+        required: this.readBoolean(candidate.required, `${field}.required`),
+      };
+    });
+    const duplicate = slots.find(
+      (slot, index) => slots.findIndex((entry) => entry.id === slot.id) !== index,
+    );
+    if (duplicate) {
+      throw new Error(`permissions.secrets 包含重复 slot id：${duplicate.id}`);
+    }
+    return slots;
   };
 
   private parseStringArray = (rawValue: unknown, fieldName: string): string[] | undefined => {

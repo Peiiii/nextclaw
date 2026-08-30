@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { ServiceAppManifest, ServiceAppRecord } from "@kernel/types/service-app.types.js";
-import { projectCapabilityProviders } from "./service-app-capability-provider.service.js";
+import { projectCapabilityProviders } from "./service-app-capability-provider.utils.js";
 
 const manifest = {
   lifecycle: { mode: "provider" },
   provides: {
-    capabilities: [{ id: "contacts.normalize", version: "1", resourceTypes: ["contacts"] }],
+    capabilities: [{
+      id: "contacts.normalize",
+      version: "1",
+      resourceTypes: ["contacts"],
+      wit: { package: "nextclaw:contacts", interface: "normalize", version: "1.0.0" },
+    }],
   },
 } as ServiceAppManifest;
 
@@ -29,7 +34,12 @@ describe("projectCapabilityProviders", () => {
       providerId: "contacts-provider",
       appId: "example.contacts",
       componentId: "contacts-provider",
-      capabilities: [{ id: "contacts.normalize", version: "1", resourceTypes: ["contacts"] }],
+      capabilities: [{
+        id: "contacts.normalize",
+        version: "1",
+        resourceTypes: ["contacts"],
+        wit: { package: "nextclaw:contacts", interface: "normalize", version: "1.0.0" },
+      }],
     }]);
   });
 });

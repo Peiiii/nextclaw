@@ -7,6 +7,7 @@ import {
   AppPackageError,
   type AppPackageDependencyBinding,
   type AppPackageDependencyBindingInput,
+  type AppPackageDependencyCycle,
   type AppPackageDependencyView,
   type AppPackageComponentSource,
   type AppPackageComponentSourceList,
@@ -18,6 +19,7 @@ import {
   AppPackageDependencyService,
   type AppPackageDependencyTarget,
 } from "@kernel/services/app-package-dependency.service.js";
+import { readServiceAppManifest } from "@kernel/utils/service-app-manifest.utils.js";
 
 /**
  * Bridges the package lifecycle owner to dependency persistence. It keeps all
@@ -47,9 +49,11 @@ export class AppPackageDependencyCoordinator {
   setup = async (appId: string): Promise<AppPackageDependencyView> =>
     await this.params.installationService.withAppOperation(appId, async () => {
       const info = await this.getMutableTargetInfo(appId);
+      const target = this.targetForInfo(info);
       return await this.dependencyService.setup({
-        target: this.targetForInfo(info),
-        providers: await this.params.listCapabilityProviders(),
+        target,
+        providers: await this.providersForTarget(target),
+        cycles: await this.findDependencyCycles(target),
       });
     });
 
@@ -59,9 +63,11 @@ export class AppPackageDependencyCoordinator {
   ): Promise<AppPackageDependencyView> =>
     await this.params.installationService.withAppOperation(appId, async () => {
       const info = await this.getMutableTargetInfo(appId);
+      const target = this.targetForInfo(info);
       return await this.dependencyService.bind({
-        target: this.targetForInfo(info),
-        providers: await this.params.listCapabilityProviders(),
+        target,
+        providers: await this.providersForTarget(target),
+        cycles: await this.findDependencyCycles(target),
         input,
       });
     });
@@ -84,7 +90,8 @@ export class AppPackageDependencyCoordinator {
     providers?: CapabilityProviderView[],
   ): Promise<AppPackageDependencyView> => await this.dependencyService.inspect({
     target,
-    providers: providers ?? await this.params.listCapabilityProviders(),
+    providers: await this.providersForTarget(target, providers),
+    cycles: await this.findDependencyCycles(target),
   });
 
   resolveStoredProviderIds = async (
@@ -206,6 +213,94 @@ export class AppPackageDependencyCoordinator {
       "APP_PACKAGE_NOT_READY",
       `App ${app.id} is not ready to enable: ${reason}${required ? ` (${required})` : ""}.`,
     );
+  };
+
+  private findDependencyCycles = async (
+    target: AppPackageDependencyTarget,
+  ): Promise<AppPackageDependencyCycle[]> => {
+    const targets = new Map<string, AppPackageDependencyTarget>([[target.appId, target]]);
+    const records = await this.params.registryService.listApps();
+    await Promise.all(records
+      .filter((record) => record.appId !== target.appId)
+      .map(async (record) => {
+        try {
+          targets.set(record.appId, this.targetForInfo(
+            await this.params.installationService.info(record.appId),
+          ));
+        } catch {
+          // An incomplete or corrupt package cannot contribute a trustworthy
+          // dependency edge; its own integrity diagnostics remain the owner.
+        }
+      }));
+    const graph = new Map<string, string[]>();
+    for (const dependencyTarget of targets.values()) {
+      try {
+        const resolved = await this.dependencyService.resolveStoredProviderIds(dependencyTarget);
+        await Promise.all(dependencyTarget.components
+          .filter((component) => component.kind === "service")
+          .map(async (component) => {
+            const manifest = await readServiceAppManifest(component.componentDirectory);
+            graph.set(component.id, Array.from(new Set([
+              ...(manifest.providerIds ?? []),
+              ...(resolved[component.id] ?? []),
+            ])));
+          }));
+      } catch {
+        // Integrity and manifest parsing own the invalid-package diagnostic.
+        // Dependency inspection must not hide every other installed App.
+      }
+    }
+    return target.components
+      .filter((component) => component.kind === "service")
+      .flatMap((component) => this.findCyclesFrom(component.id, graph));
+  };
+
+  /**
+   * Same-package Providers are declared artifacts, not live-catalog entries:
+   * they must be resolvable before enable so a self-contained .napp can start
+   * its Providers first. External providers remain supplied by the runtime.
+   */
+  private providersForTarget = async (
+    target: AppPackageDependencyTarget,
+    externalProviders?: CapabilityProviderView[],
+  ): Promise<CapabilityProviderView[]> => {
+    const samePackageProviderEntries: Array<CapabilityProviderView | undefined> = await Promise.all(target.components
+      .filter((component) => component.kind === "service")
+      .map(async (component) => {
+        const manifest = await readServiceAppManifest(component.componentDirectory);
+        if (manifest.lifecycle?.mode !== "provider" || !manifest.provides?.capabilities?.length) return undefined;
+        return {
+          providerId: component.id,
+          appId: target.appId,
+          componentId: component.id,
+          capabilities: manifest.provides.capabilities,
+        } satisfies CapabilityProviderView;
+      }));
+    const samePackageProviders = samePackageProviderEntries.filter(
+      (entry): entry is CapabilityProviderView => entry !== undefined,
+    );
+    const providers = externalProviders ?? await this.params.listCapabilityProviders();
+    return [...samePackageProviders, ...providers.filter((provider) =>
+      !samePackageProviders.some((samePackage) => samePackage.providerId === provider.providerId))];
+  };
+
+  private findCyclesFrom = (
+    origin: string,
+    graph: Map<string, string[]>,
+  ): AppPackageDependencyCycle[] => {
+    const cycles: string[][] = [];
+    const walk = (current: string, path: string[], seen: Set<string>): void => {
+      for (const next of graph.get(current) ?? []) {
+        if (next === origin) {
+          cycles.push([...path, next]);
+          continue;
+        }
+        if (seen.has(next)) continue;
+        walk(next, [...path, next], new Set([...seen, next]));
+      }
+    };
+    walk(origin, [origin], new Set([origin]));
+    return cycles.map((providerIds) => ({ componentId: origin, providerIds }));
   };
 
   private getTarget = async (appId: string): Promise<AppPackageDependencyTarget> =>

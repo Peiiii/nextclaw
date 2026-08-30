@@ -30,29 +30,23 @@ export class ServiceAppLifecycleService {
       ({ manifest, record }) =>
         record.enabled && manifest.lifecycle && manifest.lifecycle.mode !== "action",
     );
-    await Promise.allSettled(this.order(active).map(async ({ manifest, record }) =>
-      await this.params.runtimeService.start?.({ app: record, manifest })
-    ));
+    for (const { manifest, record } of this.order(active)) {
+      try {
+        await this.params.runtimeService.start?.({ app: record, manifest });
+      } catch {
+        // Discovery remains best-effort, but ordering is intentionally serial:
+        // a Consumer must never race its declared Provider during recovery.
+      }
+    }
   };
 
   activatePackageComponents = async (
     components: AppPackageComponentSource[],
   ): Promise<void> => {
-    const registrations: LifecycleRegistration[] = [];
-    for (const component of components.filter((entry) => entry.kind === "service")) {
-      const manifest = await readServiceAppManifest(component.sourcePath);
-      if (!manifest.lifecycle || manifest.lifecycle.mode === "action") continue;
-      registrations.push({
-        manifest,
-        record: this.params.recordService.fromManifest(
-          component.sourcePath,
-          manifest,
-          component,
-          component.storage,
-        ),
-      });
-    }
-    for (const { manifest, record } of this.order(registrations)) {
+    const persistent = (await this.registrationsFor(components)).filter(
+      ({ manifest }) => manifest.lifecycle && manifest.lifecycle.mode !== "action",
+    );
+    for (const { manifest, record } of this.order(persistent)) {
       await this.params.runtimeService.start?.({ app: record, manifest });
     }
   };
@@ -60,16 +54,45 @@ export class ServiceAppLifecycleService {
   deactivatePackageComponents = async (
     components: AppPackageComponentSource[],
   ): Promise<void> => {
-    const serviceIds = components
-      .filter((component) => component.kind === "service")
-      .map((component) => component.id);
-    await Promise.all(serviceIds.map(async (serviceId) =>
-      await this.params.runtimeService.stop(serviceId)
-    ));
+    const registrations = await this.registrationsFor(components);
+    for (const { record } of this.order(registrations).reverse()) {
+      await this.params.runtimeService.stop(record.id);
+    }
   };
 
-  private order = (registrations: LifecycleRegistration[]): LifecycleRegistration[] => [
-    ...registrations.filter(({ manifest }) => manifest.lifecycle?.mode === "provider"),
-    ...registrations.filter(({ manifest }) => manifest.lifecycle?.mode === "resident"),
-  ];
+  private registrationsFor = async (
+    components: AppPackageComponentSource[],
+  ): Promise<LifecycleRegistration[]> => {
+    const registrations: LifecycleRegistration[] = [];
+    for (const component of components.filter((entry) => entry.kind === "service")) {
+      const manifest = await readServiceAppManifest(component.sourcePath);
+      if (!manifest.lifecycle || manifest.lifecycle.mode === "action") continue;
+      registrations.push({
+        manifest,
+        record: this.params.recordService.fromManifest(
+          component.sourcePath, manifest, component, component.storage,
+        ),
+      });
+    }
+    return registrations;
+  };
+
+  private order = (registrations: LifecycleRegistration[]): LifecycleRegistration[] => {
+    const byId = new Map(registrations.map((registration) => [registration.record.id, registration]));
+    const ordered: LifecycleRegistration[] = [];
+    const visited = new Set<string>();
+    const visit = (registration: LifecycleRegistration): void => {
+      if (visited.has(registration.record.id)) return;
+      visited.add(registration.record.id);
+      for (const providerId of [...(registration.record.providerIds ?? [])].sort()) {
+        const provider = byId.get(providerId);
+        if (provider) visit(provider);
+      }
+      ordered.push(registration);
+    };
+    for (const registration of [...registrations].sort((left, right) => left.record.id.localeCompare(right.record.id))) {
+      visit(registration);
+    }
+    return ordered;
+  };
 }

@@ -1,79 +1,63 @@
-# Service App 权限与数据
+# Service Apps：权限与数据
 
-NextClaw 把 Service App 的“应用能力”“调用授权”和“受管数据”分开处理。启用一个应用，不等于把它的所有 Actions 自动交给所有 Panel 和 Agent。
+安装一个应用，并不代表它自动获得你的电脑、账号或其他应用的访问权限。Portable Runtime 使用“由宿主转交”的方式：应用先声明需要什么，NextClaw 再检查声明和你的配置，最后只把被允许的资源交给运行中的 Component。
 
-## 三层边界
+## 文件
 
-| 边界 | 决定什么 | 在哪里声明或确认 |
+Portable Component 有一套很小的私有文件空间：
+
+| Guest 路径 | 访问方式 | 用途 |
 | --- | --- | --- |
-| App 权限 | 应用可以向宿主请求哪些基础能力 | App 清单，例如存储和允许访问的域名 |
-| Panel 授权 | 某个 Panel 是否可以调用声明过的 Action | 首次调用时由用户确认 |
-| Agent 授权 | 某个 Agent 是否能发现并调用某个 Action | Service Apps 页面逐项授予 |
+| `/app` | 只读 | 应用打包的资源；存在时才会挂载 |
+| `/data` | 可读写 | 应用受管的私有数据 |
+| `/cache` | 可读写 | 应用受管的缓存 |
+| `/tmp` | 可读写 | 临时文件 |
+| `/documents/<scope>` | 由你授权的方式决定 | 应用在 `documentAccess` 中声明的文件夹 |
 
-这三层不会互相替代。App 声明允许存储，只代表运行时可以提供存储能力；Panel 或 Agent 仍然只能调用自己获准使用的 Action。
+文件权限会声明一个 scope，并请求 `read` 或 `read-write`。授权时由你选择对应的文件夹。运行时会规范化该目录并阻止通过符号链接越界；撤销授权后，下一次运行不会再挂载该目录。
 
-## Action 风险类型
+## 网络与密钥
 
-Service App 开发者需要为每项 Action 声明风险类型，NextClaw 会在列表和授权确认中展示它。
+应用要先声明需要访问的网站域名。网络访问只会发往这些域名，重定向后的目标也会检查。运行时策略会拒绝私有网络目标。
 
-| 类型 | 用来表达 |
-| --- | --- |
-| `read` | 主要读取或查询数据 |
-| `write` | 会创建、修改或删除数据 |
-| `external` | 会与外部服务交互 |
-| `dangerous` | 可能产生更高影响，需要格外检查 |
-
-风险类型是开发者对 Action 的分类，不会代替你对具体用途、输入和来源的判断。
-
-## 网络访问
-
-WASM Service App 不能直接使用宿主网络。所属 App 必须在清单中声明 `allowedDomains`，Component 再通过宿主提供的 HTTPS GET 能力发起请求。非 HTTPS 地址或未列入允许范围的目标会被拒绝。
-
-当前 Portable Runtime 只向 Component 公开受控的 HTTPS GET；它没有把宿主的原生网络能力整体交给应用。
-
-## 受管数据
-
-如果所属 App 声明了存储权限，WASM Component 可以使用宿主提供的 KV 能力。数据保存在 NextClaw 管理的 App 实例中，与可替换的应用代码分开。
-
-因此：
-
-- 关闭 Panel 不会删除数据；
-- 更新应用代码时继续使用原有受管实例；
-- 停用应用会停止运行能力，但不会自动清空数据；
-- 卸载或移除应用时，默认可以选择保留数据；
-- 只有明确选择“删除应用和数据”或之后单独删除保留实例时，受管数据才会永久删除。
-
-当前 App 清单支持全局存储作用域，同一个 App 的 Panel 和已授权 Agent 可以通过 Service Actions 使用同一份数据。
-
-## 卸载与保留数据
-
-移除应用时，NextClaw 提供两个明确选择：
-
-- **保留数据**：移除应用代码，保留受管实例，之后重新安装可以继续使用。
-- **删除应用和数据**：在破坏性确认后，同时删除应用和受管实例。
-
-确认前，NextClaw 会显示受管路径，以及数据、配置、状态、缓存、临时文件和日志的占用。应用被移除后，保留实例仍会出现在应用管理中，供你稍后处理。
-
-应用获准访问、但位于受管实例之外的文件或目录，不属于这套清理流程，不会随 App 数据一起删除。
-
-## 通过 CLI 查看和删除
-
-可以通过运行中的 NextClaw 主机列出 App 数据：
+密钥是命名槽位，不是明文输入框。通过已安装应用查看和配置：
 
 ```bash
-nextclaw app data list --json
+nextclaw app secrets inspect <app-id> --json
+nextclaw app secrets bind <app-id> --slot <slot> --source env|file|exec --id <secret-id> --json
+nextclaw app secrets verify <app-id> --json
 ```
 
-要永久删除已经处于 `retained` 状态的实例：
+`verify` 只会告诉你槽位能否使用，不会返回值。必需密钥缺失或无法读取时，应用不能启用。更换或移除绑定后，Component 会带着新的能力快照重新启动；密钥本身不会保存在应用数据、命令参数、Panel 输出或验证记录中。
+
+## 模型、Agent、Provider 与外部服务
+
+应用可以声明非敏感的模型或 Agent 槽位。只绑定你希望该应用使用的、已经配置好的模型或 Agent：
 
 ```bash
-nextclaw app data delete <data-id> --confirm <app-id> --json
+nextclaw app ai-capabilities inspect <app-id> --json
+nextclaw app ai-capabilities bind <app-id> --kind model|agent --slot <slot> --target <id> --json
+nextclaw app ai-capabilities verify <app-id> --json
 ```
 
-从最新清单复制不透明的 `data-id`，并让 `--confirm` 与 App id 完全一致。活动中的实例不能通过这个命令删除；不要手工删除受管存储目录。
+应用也可以需要 Provider 或外部资源。这是保留的例外，不是推荐安装方式：自包含应用更容易安装、更新和移除。缺少依赖时，NextClaw 会明确显示并保持应用未启用；它不会把清单中的连接字符串或凭据当作已经完成设置。
 
-## 当前安全边界
+```bash
+nextclaw app dependencies inspect <app-id> --json
+nextclaw app dependencies setup <app-id> --json
+nextclaw app dependencies verify <app-id> --json
+```
 
-Portable Runtime 使用宿主中介能力限制 Component 可以请求的资源，但当前还不是用于运行不受信任代码的生产级安全沙箱。CPU、内存和并发隔离仍在完善；Secret、文件与 Blob 等能力也尚未进入公开 Component 合同。
+只有恰好存在一个兼容 Provider 时，`setup` 才会自动绑定。有多个候选时，请用 `dependencies bind` 明确选择，或使用 Provider 自己的设置操作。得到授权后，Agent 可以使用同一套管理入口；不要要求非技术用户去学习某个 Provider 专有的配置流程。
 
-继续阅读：[使用 Service Apps](/zh/guide/service-apps-usage) · [Runtime 模型与能力合同](/zh/developers/portable-runtime-contracts)
+## 应用生命周期中的数据
+
+应用数据按应用实例隔离。更新和回滚会保留受管实例，除非应用自己的迁移另有说明。卸载默认保留受管数据，因此重新安装同一个应用时可以恢复。只有同时指定 `--purge-data` 并精确确认 App id 才会永久删除。
+
+用 `nextclaw app data list --json` 查看活动和保留的数据。只有确认要永久删除时，才执行 `nextclaw app data delete <data-id> --confirm <app-id> --json`。
+
+## Agent 权限是另一层
+
+把一个 Service Action 授权给 Agent，并不代表它拿到了该应用的所有权限。Agent 只获得这个操作声明的接口；文件夹、密钥、模型、Provider 和外部资源仍由各自的授权和绑定控制。
+
+相关页面：[使用 Service Apps](/zh/guide/service-apps-usage) · [Service Apps 故障排查](/zh/guide/service-apps-troubleshooting)

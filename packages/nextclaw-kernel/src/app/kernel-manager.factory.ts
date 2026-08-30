@@ -4,8 +4,14 @@ import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import type { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
+import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
+import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import type { ProviderModelCatalogManager } from "@kernel/managers/provider-model-catalog.manager.js";
 import { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
+import type { VerificationRecordService } from "@kernel/services/verification-record.service.js";
+import { VerificationRecordService as VerificationRecordServiceImpl } from "@kernel/services/verification-record.service.js";
+import { PortableRuntimeAcceptanceIdentityService } from "@kernel/services/portable-runtime-acceptance-identity.service.js";
+import { PortableRuntimeAcceptanceManager } from "@kernel/services/portable-runtime-acceptance-manager.service.js";
 import type { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { ObservationManager } from "@kernel/features/observation/index.js";
@@ -77,7 +83,11 @@ export function createKernelServiceAppManagers(params: {
   configManager: ConfigManager;
   capabilityGrantManager: CapabilityGrantManager;
   hasAgent?: (agentId: string) => boolean;
+  providerManager?: LlmProviderManager;
+  llmUsage?: LlmUsageManager;
+  agentRunClient?: AgentRunClient;
   portableServiceRunnerPath?: string;
+  verificationRecords?: VerificationRecordService;
 }): {
   appDataManager: AppDataManager;
   serviceAppManager: ServiceAppManager;
@@ -88,14 +98,23 @@ export function createKernelServiceAppManagers(params: {
     capabilityGrantManager,
     configManager,
     hasAgent,
+    providerManager,
+    llmUsage,
+    agentRunClient,
     portableServiceRunnerPath,
+    verificationRecords,
   } = params;
   const serviceAppManager = new ServiceAppManager({
+    appHomeDirectory,
     configManager,
     listPackageComponentSources: appPackageManager.listActiveComponentSources,
     capabilityGrantManager,
     hasAgent,
+    providerManager,
+    llmUsage,
+    agentRunClient,
     portableServiceRunnerPath,
+    verificationRecords,
   });
   return {
     serviceAppManager,
@@ -105,6 +124,65 @@ export function createKernelServiceAppManagers(params: {
       listInstalledPackageOwners: appPackageManager.listInstalledDataOwners,
       listWorkspaceDataOwners: serviceAppManager.listWorkspaceDataOwners,
     }),
+  };
+}
+
+/** Composes the installed-App runtime owners without growing the Kernel shell. */
+export function createKernelAppRuntimeManagers(params: {
+  appHomeDirectory: string;
+  appPackageManager: AppPackageManager;
+  panelAppManager: PanelAppManager;
+  configManager: ConfigManager;
+  capabilityGrantManager: CapabilityGrantManager;
+  hasAgent?: (agentId: string) => boolean;
+  providerManager?: LlmProviderManager;
+  llmUsage?: LlmUsageManager;
+  agentRunClient?: AgentRunClient;
+  portableServiceRunnerPath?: string;
+  verificationRecords?: VerificationRecordService;
+}): {
+  appDataManager: AppDataManager;
+  serviceAppManager: ServiceAppManager;
+} {
+  const managers = createKernelServiceAppManagers(params);
+  installKernelAppPackageRuntimeHooks({
+    appPackageManager: params.appPackageManager,
+    panelAppManager: params.panelAppManager,
+    serviceAppManager: managers.serviceAppManager,
+  });
+  return managers;
+}
+
+/**
+ * Keeps current-runtime identity and acceptance projection independent from
+ * the Service App manager while allowing ordinary invocation records to carry
+ * Kernel-owned `local` provenance.
+ */
+export function createPortableRuntimeAcceptanceServices(params: {
+  productVersion?: string;
+  runtimeVersion?: string;
+  portableServiceRunnerPath?: string;
+  verificationRecordStorePath: string;
+}): {
+  verificationRecords: VerificationRecordService;
+  portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
+} {
+  const { productVersion, runtimeVersion, portableServiceRunnerPath, verificationRecordStorePath } = params;
+  const identity = new PortableRuntimeAcceptanceIdentityService({
+    productVersion,
+    runtimeVersion,
+    portableServiceRunnerPath,
+  });
+  const verificationRecords = new VerificationRecordServiceImpl({
+    storePath: verificationRecordStorePath,
+    resolveCurrentIdentity: async (appId) => {
+      const resolved = await identity.resolve(appId);
+      return resolved.available ? resolved.context : undefined;
+    },
+  });
+  return {
+    verificationRecords,
+    portableRuntimeAcceptance: new PortableRuntimeAcceptanceManager({ verificationRecords, identity }),
   };
 }
 

@@ -1,14 +1,9 @@
 import { open, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
-import type {
-  AppPermissions,
-  AppPlatformSecuritySummary,
-  AppResolvedComponent,
-} from "#app-runtime/types/app-manifest.types.js";
+import type { AppPermissions, AppPlatformSecuritySummary, AppResolvedComponent } from "#app-runtime/types/app-manifest.types.js";
 import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
 import { AppHomeService } from "#app-runtime/services/app-home.service.js";
-import { AppInstanceStorageService } from "#app-runtime/services/app-instance-storage.service.js";
-import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
+import { AppRegistryParserService } from "#app-runtime/services/app-registry-parser.service.js";
 import { FileLockService } from "#app-runtime/services/file-lock.service.js";
 import type { AppInstanceRecord } from "#app-runtime/types/app-storage.types.js";
 import type {
@@ -16,25 +11,22 @@ import type {
   AppRegistry,
   AppRegistryAppRecord,
   AppRegistryInstalledVersion,
+  AppSecretBinding,
+  AppSecretBindingMap,
 } from "#app-runtime/types/app-registry.types.js";
 
-const SAFE_APP_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
-const SAFE_VERSION_PATTERN = /^[0-9A-Za-z]+(?:[._+-][0-9A-Za-z]+)*$/;
-const SAFE_COMPONENT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
 export class AppRegistryService {
-  private readonly instanceStorageService: AppInstanceStorageService;
   private readonly fileLockService = new FileLockService();
-  private readonly platformTargetService = new AppPlatformTargetService();
+  private readonly parser: AppRegistryParserService;
 
   constructor(private readonly appHomeService: AppHomeService = new AppHomeService()) {
-    this.instanceStorageService = new AppInstanceStorageService(appHomeService);
+    this.parser = new AppRegistryParserService(appHomeService);
   }
 
   load = async (): Promise<AppRegistry> => {
     try {
       const raw = await readFile(this.appHomeService.getRegistryPath(), "utf-8");
-      return this.parseRegistry(JSON.parse(raw) as unknown);
+      return this.parser.parse(JSON.parse(raw) as unknown);
     } catch (error) {
       if (this.isMissingFileError(error)) {
         return { schemaVersion: 1, apps: {}, suppressedBuiltIns: {} };
@@ -120,14 +112,18 @@ export class AppRegistryService {
           `应用 ${params.appId} 已绑定发布者 ${currentPublisher.id}，拒绝由 ${params.publisher?.id ?? "未验证本地来源"} 覆盖。`,
         );
       }
+      const activeVersion = params.activate === false && currentRecord
+        ? currentRecord.activeVersion
+        : params.version;
+      const activePermissions = activeVersion === params.version
+        ? params.permissions
+        : currentRecord?.installedVersions[activeVersion]?.permissions ?? {};
       const nextRecord: AppRegistryAppRecord = {
         appId: params.appId,
         name: params.name,
         description: params.description,
         publisher: currentPublisher ?? params.publisher,
-        activeVersion: params.activate === false && currentRecord
-          ? currentRecord.activeVersion
-          : params.version,
+        activeVersion,
         enabled: params.enabled ?? currentRecord?.enabled ?? params.manifestSchemaVersion === 1,
         dataDirectory: params.defaultInstance.storage.dataDirectory,
         defaultInstance: params.defaultInstance,
@@ -155,6 +151,13 @@ export class AppRegistryService {
           },
         },
         grants: currentRecord?.grants ?? {},
+        // A SecretRef is an active permission, not retained App data. Keep only
+        // bindings declared by the active version so an update cannot leave an
+        // undeclared credential reachable by a later runtime snapshot.
+        secretBindings: this.parser.retainDeclaredSecretBindings(
+          currentRecord?.secretBindings ?? {},
+          activePermissions,
+        ),
       };
       registry.apps[params.appId] = nextRecord;
       await this.saveUnlocked(registry);
@@ -174,7 +177,14 @@ export class AppRegistryService {
       if (!record.installedVersions[version]) {
         throw new Error(`应用 ${appId} 未安装版本 ${version}。`);
       }
-      return { ...record, activeVersion: version };
+      return {
+        ...record,
+        activeVersion: version,
+        secretBindings: this.parser.retainDeclaredSecretBindings(
+          record.secretBindings,
+          record.installedVersions[version].permissions,
+        ),
+      };
     });
   };
 
@@ -233,6 +243,44 @@ export class AppRegistryService {
     return removed;
   };
 
+  bindSecret = async (
+    appId: string,
+    slotId: string,
+    binding: AppSecretBinding,
+  ): Promise<AppRegistryAppRecord> => {
+    const normalizedSlotId = this.parser.parseSecretSlotId(slotId, "secret slot id");
+    const normalizedBinding = this.parser.parseSecretBinding(binding, `secret binding ${normalizedSlotId}`);
+    return await this.updateApp(appId, (record) => {
+      const activeVersion = record.installedVersions[record.activeVersion];
+      const declaredSlots = activeVersion?.permissions.secrets ?? [];
+      if (!declaredSlots.some((slot) => slot.id === normalizedSlotId)) {
+        throw new Error(`应用 ${appId} 未声明 Secret slot：${normalizedSlotId}`);
+      }
+      return {
+        ...record,
+        secretBindings: {
+          ...record.secretBindings,
+          [normalizedSlotId]: normalizedBinding,
+        },
+      };
+    });
+  };
+
+  unbindSecret = async (appId: string, slotId: string): Promise<boolean> => {
+    const normalizedSlotId = this.parser.parseSecretSlotId(slotId, "secret slot id");
+    let removed = false;
+    await this.updateApp(appId, (record) => {
+      if (!(normalizedSlotId in record.secretBindings)) {
+        return record;
+      }
+      const secretBindings = { ...record.secretBindings };
+      delete secretBindings[normalizedSlotId];
+      removed = true;
+      return { ...record, secretBindings };
+    });
+    return removed;
+  };
+
   removeApp = async (appId: string): Promise<AppRegistryAppRecord | undefined> => {
     return await this.withMutation(async () => {
       const registry = await this.load();
@@ -285,292 +333,6 @@ export class AppRegistryService {
     return await this.fileLockService.withLock(`${registryPath}.lock`, operation);
   };
 
-  private parseRegistry = (rawRegistry: unknown): AppRegistry => {
-    const candidate = this.assertRecord(rawRegistry, "registry.json");
-    if (candidate.schemaVersion !== 1) {
-      throw new Error("当前只支持 registry schemaVersion = 1。");
-    }
-    const rawApps = this.assertRecord(candidate.apps, "registry.apps");
-    const apps: Record<string, AppRegistryAppRecord> = {};
-    for (const [appId, rawApp] of Object.entries(rawApps)) {
-      if (!SAFE_APP_ID_PATTERN.test(appId)) {
-        throw new Error(`registry.apps 包含不安全的 appId：${appId}`);
-      }
-      const app = this.assertRecord(rawApp, `registry.apps.${appId}`) as Partial<AppRegistryAppRecord>;
-      const installedVersions: Record<string, AppRegistryInstalledVersion> = {};
-      const rawVersions = this.assertRecord(
-        app.installedVersions,
-        `registry.apps.${appId}.installedVersions`,
-      );
-      for (const [version, rawVersion] of Object.entries(rawVersions)) {
-        if (!SAFE_VERSION_PATTERN.test(version)) {
-          throw new Error(`registry.apps.${appId} 包含不安全的版本：${version}`);
-        }
-        const versionRecord = this.assertRecord(
-          rawVersion,
-          `registry.apps.${appId}.installedVersions.${version}`,
-        ) as Partial<AppRegistryInstalledVersion>;
-        const installDirectory = this.requireString(
-          versionRecord.installDirectory,
-          `registry.apps.${appId}.installedVersions.${version}.installDirectory`,
-        );
-        this.assertExactPath(
-          installDirectory,
-          this.appHomeService.getInstallDirectory(appId, version),
-          `registry.apps.${appId}.installedVersions.${version}.installDirectory`,
-        );
-        installedVersions[version] = {
-          ...(versionRecord as AppRegistryInstalledVersion),
-          version,
-          installDirectory: path.resolve(installDirectory),
-          manifestSchemaVersion: versionRecord.manifestSchemaVersion === 2 ? 2 : 1,
-          target: versionRecord.target === undefined
-            ? undefined
-            : this.platformTargetService.parseArtifactTarget(
-                versionRecord.target,
-                `registry.apps.${appId}.installedVersions.${version}.target`,
-              ),
-          components: this.parseComponents(
-            versionRecord.components,
-            installDirectory,
-            `registry.apps.${appId}.installedVersions.${version}.components`,
-          ),
-          dataSchemaVersion: typeof versionRecord.dataSchemaVersion === "number" &&
-            Number.isSafeInteger(versionRecord.dataSchemaVersion) &&
-            versionRecord.dataSchemaVersion > 0
-            ? versionRecord.dataSchemaVersion
-            : 1,
-        };
-      }
-      const activeVersion = this.requireString(app.activeVersion, `registry.apps.${appId}.activeVersion`);
-      if (!installedVersions[activeVersion]) {
-        throw new Error(`registry.apps.${appId} 缺少 activeVersion ${activeVersion}。`);
-      }
-      const dataDirectory = this.requireString(
-        app.dataDirectory,
-        `registry.apps.${appId}.dataDirectory`,
-      );
-      const firstInstalledAt = Object.values(installedVersions)
-        .map((version) => version.installedAt)
-        .filter((value): value is string => typeof value === "string")
-        .sort()[0] ?? new Date(0).toISOString();
-      const defaultInstance = this.parseDefaultInstance(
-        app.defaultInstance,
-        appId,
-        dataDirectory,
-        firstInstalledAt,
-      );
-      apps[appId] = {
-        ...(app as AppRegistryAppRecord),
-        appId,
-        publisher: app.publisher ?? installedVersions[activeVersion]?.publisher,
-        enabled: typeof app.enabled === "boolean" ? app.enabled : true,
-        activeVersion,
-        dataDirectory: defaultInstance.storage.dataDirectory,
-        defaultInstance,
-        installedVersions,
-        grants: app.grants && typeof app.grants === "object" ? app.grants : {},
-      };
-    }
-    const suppressedBuiltIns = candidate.suppressedBuiltIns &&
-      typeof candidate.suppressedBuiltIns === "object" &&
-      !Array.isArray(candidate.suppressedBuiltIns)
-      ? Object.fromEntries(Object.entries(candidate.suppressedBuiltIns).flatMap(([appId, raw]) => {
-          if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-            return [];
-          }
-          const suppressedAt = (raw as { suppressedAt?: unknown }).suppressedAt;
-          return typeof suppressedAt === "string" ? [[appId, { suppressedAt }]] : [];
-        }))
-      : {};
-    return { schemaVersion: 1, apps, suppressedBuiltIns };
-  };
-
-  private parseDefaultInstance = (
-    rawInstance: unknown,
-    appId: string,
-    dataDirectory: string,
-    createdAt: string,
-  ): AppInstanceRecord => {
-    if (!rawInstance || typeof rawInstance !== "object" || Array.isArray(rawInstance)) {
-      this.assertExactPath(
-        dataDirectory,
-        this.appHomeService.getAppDataDirectory(appId),
-        `registry.apps.${appId}.dataDirectory`,
-      );
-      return this.instanceStorageService.buildLegacyDefaultInstance({
-        appId,
-        dataDirectory,
-        createdAt,
-      });
-    }
-    const instance = rawInstance as Partial<AppInstanceRecord>;
-    if (
-      instance.id !== "default" ||
-      !instance.storage ||
-      typeof instance.storage !== "object" ||
-      (instance.storage.layout !== "legacy" && instance.storage.layout !== "instance-v1")
-    ) {
-      throw new Error(`registry.apps.${appId}.defaultInstance 无效。`);
-    }
-    if (instance.publisherId !== undefined && typeof instance.publisherId !== "string") {
-      throw new Error(`registry.apps.${appId}.defaultInstance.publisherId 无效。`);
-    }
-    const dataSchemaVersion = typeof instance.dataSchemaVersion === "number" &&
-      Number.isSafeInteger(instance.dataSchemaVersion) &&
-      instance.dataSchemaVersion > 0
-      ? instance.dataSchemaVersion
-      : 1;
-    const instanceCreatedAt = typeof instance.createdAt === "string"
-      ? instance.createdAt
-      : createdAt;
-    const instanceDirectory = path.resolve(
-      this.appHomeService.getAppInstanceDirectory(appId, "default"),
-    );
-    const expectedStorage = {
-      layout: "instance-v1" as const,
-      layoutVersion: 1 as const,
-      instanceId: "default",
-      instanceDirectory,
-      dataDirectory: path.join(instanceDirectory, "data"),
-      configDirectory: path.join(instanceDirectory, "config"),
-      stateDirectory: path.join(instanceDirectory, "state"),
-      cacheDirectory: path.join(instanceDirectory, "cache"),
-      temporaryDirectory: path.join(instanceDirectory, "tmp"),
-      logsDirectory: path.join(instanceDirectory, "logs"),
-    };
-    if (instance.storage.layout === "legacy") {
-      const expectedLegacyDataDirectory = this.appHomeService.getAppDataDirectory(appId);
-      this.assertExactPath(
-        dataDirectory,
-        expectedLegacyDataDirectory,
-        `registry.apps.${appId}.dataDirectory`,
-      );
-      return {
-        id: "default",
-        publisherId: instance.publisherId,
-        storage: {
-          ...expectedStorage,
-          layout: "legacy",
-          dataDirectory: path.resolve(expectedLegacyDataDirectory),
-        },
-        dataSchemaVersion,
-        createdAt: instanceCreatedAt,
-        migratedAt: instance.migratedAt,
-        legacyDataDirectory: path.resolve(expectedLegacyDataDirectory),
-      };
-    }
-    for (const [field, expectedPath] of Object.entries({
-      instanceDirectory: expectedStorage.instanceDirectory,
-      dataDirectory: expectedStorage.dataDirectory,
-      configDirectory: expectedStorage.configDirectory,
-      stateDirectory: expectedStorage.stateDirectory,
-      cacheDirectory: expectedStorage.cacheDirectory,
-      temporaryDirectory: expectedStorage.temporaryDirectory,
-      logsDirectory: expectedStorage.logsDirectory,
-    })) {
-      this.assertExactPath(
-        instance.storage[field as keyof typeof instance.storage] as string,
-        expectedPath,
-        `registry.apps.${appId}.defaultInstance.storage.${field}`,
-      );
-    }
-    this.assertExactPath(
-      dataDirectory,
-      expectedStorage.dataDirectory,
-      `registry.apps.${appId}.dataDirectory`,
-    );
-    return {
-      id: "default",
-      publisherId: instance.publisherId,
-      storage: expectedStorage,
-      dataSchemaVersion,
-      createdAt: instanceCreatedAt,
-      migratedAt: instance.migratedAt,
-      legacyDataDirectory: instance.legacyDataDirectory,
-    };
-  };
-
-  private assertExactPath = (actual: unknown, expected: string, field: string): void => {
-    if (typeof actual !== "string" || path.resolve(actual) !== path.resolve(expected)) {
-      throw new Error(`${field} 必须位于受管路径 ${path.resolve(expected)}。`);
-    }
-  };
-
-  private parseComponents = (
-    rawComponents: unknown,
-    installDirectory: string,
-    field: string,
-  ): AppResolvedComponent[] | undefined => {
-    if (rawComponents === undefined) {
-      return undefined;
-    }
-    if (!Array.isArray(rawComponents)) {
-      throw new Error(`${field} 必须是数组。`);
-    }
-    return rawComponents.map((rawComponent, index) => {
-      const component = this.assertRecord(rawComponent, `${field}[${index}]`);
-      const kind = component.kind;
-      if (kind !== "panel" && kind !== "service") {
-        throw new Error(`${field}[${index}].kind 无效。`);
-      }
-      const id = this.requireString(component.id, `${field}[${index}].id`);
-      if (!SAFE_COMPONENT_ID_PATTERN.test(id)) {
-        throw new Error(`${field}[${index}].id 不安全。`);
-      }
-      const relativeComponentPath = this.requireString(
-        component.path,
-        `${field}[${index}].path`,
-      );
-      const expectedComponentDirectory = path.resolve(installDirectory, relativeComponentPath);
-      const relativeToInstall = path.relative(
-        path.resolve(installDirectory),
-        expectedComponentDirectory,
-      );
-      if (
-        !relativeToInstall ||
-        relativeToInstall.startsWith("..") ||
-        path.isAbsolute(relativeToInstall)
-      ) {
-        throw new Error(`${field}[${index}].path 必须位于版本目录内。`);
-      }
-      const expectedManifestPath = path.join(
-        expectedComponentDirectory,
-        kind === "panel" ? "panel-app.json" : "service-app.json",
-      );
-      this.assertExactPath(
-        component.componentDirectory,
-        expectedComponentDirectory,
-        `${field}[${index}].componentDirectory`,
-      );
-      this.assertExactPath(
-        component.manifestPath,
-        expectedManifestPath,
-        `${field}[${index}].manifestPath`,
-      );
-      return {
-        kind,
-        id,
-        path: relativeComponentPath,
-        componentDirectory: expectedComponentDirectory,
-        manifestPath: expectedManifestPath,
-      };
-    });
-  };
-
-  private assertRecord = (value: unknown, field: string): Record<string, unknown> => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new Error(`${field} 必须是对象。`);
-    }
-    return value as Record<string, unknown>;
-  };
-
-  private requireString = (value: unknown, field: string): string => {
-    if (typeof value !== "string" || !value.trim()) {
-      throw new Error(`${field} 必须是非空字符串。`);
-    }
-    return value;
-  };
 
   private isMissingFileError = (error: unknown): boolean =>
     typeof error === "object" && error !== null &&

@@ -4,7 +4,17 @@ import type {
   AppPackageList,
   AppPackageOperationList,
   AppPackageOperationView,
+  AppPackageSecretReadiness,
   AppPackageView,
+  PortableRuntimeAcceptanceContractView,
+  PortableRuntimeAcceptanceStatusView,
+  ServiceActionInvokeResult,
+  ServiceAppJobList,
+  ServiceAppJobView,
+  ServiceAppJobWatch,
+  ServiceAppResidentEventList,
+  ServiceAppResidentEventView,
+  VerificationRecordList,
 } from "@nextclaw/kernel";
 import {
   createLocalUiApiClient,
@@ -49,6 +59,52 @@ export class AppPackageLiveService {
   ): Promise<AppPackageDependencyView> =>
     await this.requireApiClient().request<AppPackageDependencyView>({ path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/dependencies/unbind`, method: "POST", body: input });
 
+  inspectSecrets = async (appId: string): Promise<AppPackageSecretReadiness> =>
+    await this.requireApiClient().request<AppPackageSecretReadiness>({
+      path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/secrets`,
+    });
+
+  inspectAiCapabilities = async (appId: string): Promise<unknown> =>
+    await this.requireApiClient().request({ path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/ai-capabilities` });
+
+  verifyAiCapabilities = async (appId: string): Promise<unknown> =>
+    await this.requireApiClient().request({ path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/ai-capabilities/verify`, method: "POST" });
+
+  bindAiCapability = async (appId: string, input: { kind: "model" | "agent"; slotId: string; targetId: string }): Promise<unknown> =>
+    await this.requireApiClient().request({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/ai-capabilities/bind`, method: "POST", body: input,
+    });
+
+  unbindAiCapability = async (appId: string, input: { kind: "model" | "agent"; slotId: string }): Promise<unknown> =>
+    await this.requireApiClient().request({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/ai-capabilities/unbind`, method: "POST", body: input,
+    });
+
+  verifySecrets = async (appId: string): Promise<AppPackageSecretReadiness> =>
+    await this.requireApiClient().request<AppPackageSecretReadiness>({
+      path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/secrets/verify`,
+      method: "POST",
+    });
+
+  bindSecret = async (appId: string, input: {
+    slotId: string;
+    source: "env" | "file" | "exec";
+    provider?: string;
+    id: string;
+  }): Promise<AppPackageSecretReadiness> =>
+    await this.requireApiClient().request<AppPackageSecretReadiness>({
+      path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/secrets/bind`,
+      method: "POST",
+      body: input,
+    });
+
+  unbindSecret = async (appId: string, slotId: string): Promise<AppPackageSecretReadiness> =>
+    await this.requireApiClient().request<AppPackageSecretReadiness>({
+      path: `/api/app-packages/${encodeURIComponent(this.requireId(appId))}/secrets/unbind`,
+      method: "POST",
+      body: { slotId: this.requireValue(slotId, "Secret slot") },
+    });
+
   install = async (source: string, registryUrl?: string): Promise<AppPackageOperationView> =>
     await this.requireApiClient().request<AppPackageOperationView>({
       path: "/api/app-package-operations/install",
@@ -61,6 +117,91 @@ export class AppPackageLiveService {
 
   disable = async (appId: string): Promise<AppPackageView> =>
     await this.changeEnabled(appId, "disable");
+
+  invoke = async (
+    appId: string,
+    actionName: string,
+    input: Record<string, unknown>,
+  ): Promise<ServiceActionInvokeResult> =>
+    await this.requireApiClient().request<ServiceActionInvokeResult>({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/actions/${encodeURIComponent(this.requireValue(actionName, "Action name"))}/invoke`,
+      method: "POST",
+      body: { input },
+    });
+
+  listJobs = async (appId: string): Promise<ServiceAppJobList> =>
+    await this.requireApiClient().request<ServiceAppJobList>({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/jobs`,
+    });
+
+  inspectJob = async (appId: string, jobId: string): Promise<ServiceAppJobView> =>
+    await this.requireApiClient().request<ServiceAppJobView>({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/jobs/${encodeURIComponent(this.requireValue(jobId, "Job id"))}`,
+    });
+
+  watchJob = async (
+    appId: string,
+    jobId: string,
+    afterSequence?: number,
+  ): Promise<ServiceAppJobWatch> => {
+    const query = afterSequence === undefined ? "" : `?afterSequence=${afterSequence}`;
+    return await this.requireApiClient().request<ServiceAppJobWatch>({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/jobs/${encodeURIComponent(this.requireValue(jobId, "Job id"))}/watch${query}`,
+    });
+  };
+
+  cancelJob = async (appId: string, jobId: string): Promise<ServiceAppJobView> =>
+    await this.requireApiClient().request<ServiceAppJobView>({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/jobs/${encodeURIComponent(this.requireValue(jobId, "Job id"))}/cancel`,
+      method: "POST",
+    });
+
+  listResidentInbox = async (appId: string, deadLettersOnly = false): Promise<ServiceAppResidentEventList> =>
+    await this.requireApiClient().request<ServiceAppResidentEventList>({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/resident-inbox${deadLettersOnly ? "?deadLetters=true" : ""}`,
+    });
+
+  replayResidentDeadLetter = async (appId: string, eventId: string): Promise<ServiceAppResidentEventView> =>
+    await this.requireApiClient().request<ServiceAppResidentEventView>({
+      path: `/api/service-apps/${encodeURIComponent(this.requireId(appId))}/resident-inbox/${encodeURIComponent(this.requireValue(eventId, "Event id"))}/replay`,
+      method: "POST",
+    });
+
+  listVerificationRecords = async (filters: {
+    acceptanceId?: string;
+    appId?: string;
+    limit?: number;
+  } = {}): Promise<VerificationRecordList> => {
+    const query = new URLSearchParams();
+    if (filters.acceptanceId?.trim()) query.set("acceptanceId", filters.acceptanceId.trim());
+    if (filters.appId?.trim()) query.set("appId", filters.appId.trim());
+    if (filters.limit !== undefined) query.set("limit", String(filters.limit));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return await this.requireApiClient().request<VerificationRecordList>({
+      path: `/api/runtime-verification-records${suffix}`,
+    });
+  };
+
+  portableRuntimeAcceptanceContract = async (locale?: "zh-CN" | "en"): Promise<PortableRuntimeAcceptanceContractView> =>
+    await this.requireApiClient().request<PortableRuntimeAcceptanceContractView>({
+      path: `/api/portable-runtime/acceptance/contract${locale === "en" ? "?locale=en" : ""}`,
+    });
+
+  portableRuntimeAcceptanceStatus = async (params: {
+    appId?: string;
+    locale?: "zh-CN" | "en";
+  } = {}): Promise<PortableRuntimeAcceptanceStatusView> =>
+    await this.requireApiClient().request<PortableRuntimeAcceptanceStatusView>({
+      path: this.portableRuntimeAcceptancePath("status", params),
+    });
+
+  exportPortableRuntimeAcceptance = async (params: {
+    appId?: string;
+    locale?: "zh-CN" | "en";
+  } = {}): Promise<PortableRuntimeAcceptanceStatusView> =>
+    await this.requireApiClient().request<PortableRuntimeAcceptanceStatusView>({
+      path: this.portableRuntimeAcceptancePath("export", params),
+    });
 
   update = async (
     appId: string,
@@ -118,6 +259,17 @@ export class AppPackageLiveService {
 
   private looksLikeLocalPath = (value: string): boolean =>
     value.startsWith(".") || path.isAbsolute(value) || value.includes(path.sep) || value.endsWith(".napp");
+
+  private portableRuntimeAcceptancePath = (
+    action: "status" | "export",
+    params: { appId?: string; locale?: "zh-CN" | "en" },
+  ): string => {
+    const query = new URLSearchParams();
+    if (params.appId?.trim()) query.set("appId", params.appId.trim());
+    if (params.locale === "en") query.set("locale", "en");
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return `/api/portable-runtime/acceptance/${action}${suffix}`;
+  };
 
   private requireVersion = (value: string): string => this.requireValue(value, "App version");
 

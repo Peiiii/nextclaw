@@ -152,6 +152,50 @@ export class AppPackagesRoutesController {
     }
   };
 
+  readonly inspectSecrets = async (c: Context) => {
+    try {
+      return c.json(ok(await this.manager.inspectSecrets(c.req.param("appId"))));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly verifySecrets = async (c: Context) => {
+    try {
+      return c.json(ok(await this.manager.verifySecrets(c.req.param("appId"))));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly bindSecret = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    const input = body.ok ? readSecretBinding(body.data) : undefined;
+    if (!input) {
+      return c.json(err("INVALID_APP_SECRET_BINDING", "slotId, source, and id are required"), 400);
+    }
+    try {
+      return c.json(ok(await this.manager.bindSecret(c.req.param("appId"), input)));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
+  readonly unbindSecret = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    const slotId = body.ok && isRecord(body.data) && typeof body.data.slotId === "string"
+      ? body.data.slotId.trim()
+      : "";
+    if (!slotId) {
+      return c.json(err("INVALID_APP_SECRET_BINDING", "slotId is required"), 400);
+    }
+    try {
+      return c.json(ok(await this.manager.unbindSecret(c.req.param("appId"), slotId)));
+    } catch (error) {
+      return this.handleError(c, error);
+    }
+  };
+
   readonly install = async (c: Context) => {
     const body = await readJson<unknown>(c.req.raw);
     if (!body.ok || !isRecord(body.data) || typeof body.data.source !== "string") {
@@ -227,7 +271,8 @@ export class AppPackagesRoutesController {
     if (isAppPackageError(error)) {
       const status = error.code === "APP_PACKAGE_NOT_FOUND"
         ? 404
-        : error.code === "APP_PACKAGE_CONFLICT" || error.code === "APP_PACKAGE_NOT_READY"
+        : error.code === "APP_PACKAGE_CONFLICT" || error.code === "APP_PACKAGE_NOT_READY" ||
+          error.code === "SECRET_BINDING_MISSING" || error.code === "SECRET_RESOLUTION_FAILED"
           ? 409
           : 400;
       return c.json(err(error.code, error.message), status);
@@ -263,5 +308,26 @@ function readDependencyBinding(
     requirementKind: value.requirementKind as "capability" | "resource",
     requirementId: value.requirementId,
     ...(requireProvider ? { providerId: value.providerId as string } : {}),
+  };
+}
+
+function readSecretBinding(value: unknown): { slotId: string; binding: {
+  source: "env" | "file" | "exec";
+  provider?: string;
+  id: string;
+} } | undefined {
+  if (!isRecord(value) || typeof value.slotId !== "string" || !value.slotId.trim() ||
+    !["env", "file", "exec"].includes(String(value.source)) ||
+    typeof value.id !== "string" || !value.id.trim() ||
+    (value.provider !== undefined && (typeof value.provider !== "string" || !value.provider.trim()))) {
+    return undefined;
+  }
+  return {
+    slotId: value.slotId.trim(),
+    binding: {
+      source: value.source as "env" | "file" | "exec",
+      provider: typeof value.provider === "string" ? value.provider.trim() : undefined,
+      id: value.id.trim(),
+    },
   };
 }

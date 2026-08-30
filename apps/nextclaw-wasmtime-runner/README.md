@@ -18,6 +18,7 @@ Spin 是内部执行引擎，不是公开 App 合同。它不暴露 `spin.toml`�
 
 - `guests/state-lab`：读取/增加由宿主落盘的计数，并返回 runner 信息；
 - `guests/capability-lab`：验证允许/拒绝的网络、结构化失败、执行超时和 runner 信息。
+- `guests/sqlite-lab`：使用标准 `fermyon:spin@2.0.0/sqlite` 创建表、插入、查询，并验证实例隔离、持久化与权限拒绝。
 - `guests/resident-lab`：验证常驻实例、宿主定时事件、内存连续性与 durable cursor。
 - `guests/provider-lab`：注册一个可复用的联系人规范化 Provider，并保留独立调用计数。
 - `guests/composition-lab`：通过 Host 的 `component-call` 调用已声明 Provider，并验证未声明依赖被拒绝。
@@ -49,15 +50,17 @@ pnpm portable-runtime:build
 node apps/nextclaw-wasmtime-runner/scripts/build-product-runtime.mjs --platform linux --arch x64
 ```
 
-## 内存方向性基准
+## 同机性能回归证据
 
 在构建 release runner 和 Component 后运行：
 
 ```bash
-node tools/runtime-memory.tools.mjs
+node tools/runtime-memory.tools.mjs --output runtime-performance.json
 ```
 
-脚本会在同一台机器上分别测量空 runner、加载 1/5/10 个独立 artifact 路径的 Action Component，以及 1/5/10 个最小 Node Service 独立进程的稳定 RSS，并记录首个 Component 装载和热 Action 延迟。每个 RSS 点取五次 OS 采样的中位数，用来验证共享 runner 的服务密度方向；它不替代等价业务 workload、Resident 密度、CPU 与跨平台统计。可用 `--runner <path>` 对同一 workload 比较候选实现。
+脚本使用同一个 `counter_increment → counter_read` JSON 协议比较 Component 与独立 Node fixture：两边都反序列化输入、读取持久计数、序列化写入并再次序列化读取。它输出稳定 JSON schema，包含空 runner、1/5/10 个 Action 与 Resident 实例、Node 进程基线、冷调用、热调用 P50/P95、吞吐期间进程 CPU，以及 stop/unload 后 RSS 回收。每个内存点取五次 OS 采样的中位数；Linux 额外记录可用的 PSS，macOS 和 Windows 的 `pssMiB` 为 `null`。
+
+阈值是宽松的**同机回归预算**，用于发现候选版本突然退化；它不构成不同操作系统、不同 CI 机型之间的绝对性能比较。可用 `--runner <path>` 对同一 workload 比较候选 runner。
 
 ## 已知边界
 

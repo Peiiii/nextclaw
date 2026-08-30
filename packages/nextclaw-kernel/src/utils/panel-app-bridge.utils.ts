@@ -406,6 +406,13 @@ ${getUiContentParamsBootstrapScript()}
         requestGrant: (actionId) => request("requestGrant", { actionId }),
         revokeGrant: (actionId) => request("revokeGrant", { actionId })
       },
+      verificationRecords: {
+        list: (options = {}) => request("verification.list", options)
+      },
+      portableRuntimeAcceptance: {
+        status: (options = {}) => request("acceptance.status", options),
+        export: (options = {}) => request("acceptance.export", options)
+      },
       agent: {
         send: (input) => request("agent.send", { request: input }),
         generateObject: (input) => request("agent.generateObject", { input })

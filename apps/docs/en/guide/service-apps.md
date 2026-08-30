@@ -1,66 +1,50 @@
 # Service Apps
 
-Service Apps let applications in NextClaw do more than display an interface. They can run local logic, persist application data, access approved network services, continue in the background, or expose a capability to both a Panel App and a selected Agent.
+Service Apps give a NextClaw App a working part behind its Panel. They can save app data, use an approved web service, read a folder that you explicitly share, continue a background task, or offer an Action to a selected Agent.
 
-You still manage these capabilities through NextClaw. An App declares what it can do; NextClaw starts the runtime, shows risk information, handles grants, and manages App data.
+You use the App from its Panel as usual. Service Apps make the result persist and let the same action be used from the App, an Agent, and the command line when appropriate.
 
-## What Service Apps can do
+## What you can do
 
-The exact capabilities depend on the App. Service Apps currently support common patterns such as:
+The App author chooses which of these are needed. Before you enable an App, NextClaw shows the requested permissions and configuration state.
 
-- **Persisting and changing App data**, such as tasks, notes, form records, and runtime state.
-- **Running one operation**, such as a calculation, transformation, query, or update.
-- **Accessing approved network services** declared by the App.
-- **Remaining active in the background** for timers, polling, or host timer events.
-- **Reusing another Service App capability** through an explicitly declared Provider.
-- **Providing an Action to an Agent** after you grant that specific Action.
+| Need | What the App can do | What stays under your control |
+| --- | --- | --- |
+| Save work | Keep an App's own records, settings, cache, or database | Data belongs to that App instance and can be retained or deleted with the App |
+| Use files | Read or update only a folder that you grant | The App cannot browse other folders just because it is installed |
+| Connect to a service | Call only the domains declared by the App | A network request outside the declared list is denied |
+| Use a token | Use a named secret slot for a service such as GitHub | The token is not shown in the Panel, Action result, or diagnostic record |
+| Run in the background | Receive durable Resident events or run a long Job | You can inspect progress, retry a dead-letter event, or ask to cancel a Job |
+| Work with an Agent | Let a selected Agent discover and call a declared Action | Agent access is granted per Action and can be revoked |
+| Combine Apps | Use a declared Provider or an explicitly configured external resource | Missing or ambiguous dependencies block enablement instead of silently guessing |
 
-Each capability exposed by a Service App is an **Action**. A notes App might expose “list notes,” “save note,” and “delete note” instead of receiving unrestricted system access.
+Portable Runtime is the Service Apps path for WebAssembly Components. It is designed for Apps whose logic and data handling should be delivered in one portable package across supported desktop platforms. Native-process Service Apps remain available when an App genuinely needs a platform program or a heavy external integration.
 
-## How Service Apps work with Panel Apps
+## Where to use them
 
-A Panel App owns the interface you see and use. A Service App owns the runtime logic behind that interface. Together they can form one complete App:
+Open **Service Apps** in NextClaw to see installed services, their Actions, state, and requested access. Open an App's Panel to use its day-to-day interface. The first protected call can ask for approval; after approval, the Panel calls the Service through NextClaw rather than directly accessing your system.
 
-```text
-You use a Panel App → the Panel requests an Action → NextClaw checks the grant → the Service App returns a result
-```
+For a concrete example, see [GitHub Issue Watcher](/en/guide/service-apps-github-issue-watcher). For step-by-step use, see [Use Service Apps](/en/guide/service-apps-usage).
 
-A Panel is not the only caller. After a separate grant, an Agent can discover and call the same Action and work with the same App data.
+## Before enabling an App
 
-## Where to manage them
+1. Read the App's description and its requested permissions.
+2. If it needs a folder, select only the folder you mean to share and choose read-only access whenever that is enough.
+3. If it needs a secret, bind the requested slot to a secret already configured in NextClaw. You do not paste the value into the App manifest or its Panel.
+4. If it needs a model, Agent, Provider, or external resource, choose the target you intend to use. NextClaw keeps the App disabled until required setup is complete.
+5. Enable the App and use its Panel or approved Actions.
 
-Open **Service Apps** in NextClaw to see discovered services, their Actions, runtime status, and the declared risk for each Action.
+Read [Permissions and data](/en/guide/service-app-permissions-data) before enabling an App that requests files, network access, secrets, or external dependencies.
 
-| Status | Meaning |
-| --- | --- |
-| Not connected | The runtime has not started or Actions have not been discovered |
-| Connecting | NextClaw is connecting to the Service App |
-| Connected | Discovered Actions are available |
-| Connection failed | Startup or runtime failed; inspect the error and retry |
-| Stopped | The runtime is disconnected and can be connected again |
+## When something fails
 
-For a Service App installed as part of a NextClaw App, the page links back to App management. A workspace-source Service App can be removed directly.
+An App can fail because a permission has not been granted, a required configuration is missing, the requested action is invalid, or the Service itself stopped. NextClaw preserves a code and a short explanation rather than treating all failures as the same error.
 
-## Get started
+Start with [Troubleshoot Service Apps](/en/guide/service-apps-troubleshooting). If an App performs a long operation, inspect its retained Job progress instead of running the action again.
 
-1. Find the service in **Service Apps**.
-2. Select **Connect and discover actions**, then wait for the Connected state.
-3. Use its Panel App. On the first Action call, review the source, purpose, input, and risk, then allow or reject it.
-4. To make one capability available to an Agent, grant only that Action to the intended Agent.
-
-NextClaw stores Panel and Agent grants separately. Allowing a Panel to call an Action does not grant it to every Agent.
-
-## Supported runtime types
-
-NextClaw currently supports two Service App protocols:
-
-- **MCP**, which connects an MCP service and projects its tools as Service Actions.
-- **WASM Component**, which uses Portable Runtime to execute Rust/WASM Components in a shared native runner.
-
-Both appear in Service Apps and use the same Action, status, and grant experience.
-
-## Next steps
+## Related pages
 
 - [Use Service Apps](/en/guide/service-apps-usage)
-- [Service App permissions and data](/en/guide/service-app-permissions-data)
-- [Portable Runtime](/en/developers/portable-runtime)
+- [Permissions and data](/en/guide/service-app-permissions-data)
+- [GitHub Issue Watcher](/en/guide/service-apps-github-issue-watcher)
+- [Portable Runtime for developers](/en/developers/portable-runtime)

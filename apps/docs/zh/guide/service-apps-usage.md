@@ -1,74 +1,74 @@
 # 使用 Service Apps
 
-这篇文档说明如何连接 Service App、在 Panel 中调用它的 Action，以及怎样只把需要的能力交给指定 Agent。
+Service Apps 按“应用”安装和管理，日常通常从应用的 Panel 使用；**Service Apps** 页面用来查看 Panel 背后真正运行的服务。
 
-## 连接并发现 Actions
+## 安装并启用
 
-打开 **Service Apps**，找到目标服务，然后选择“连接并发现动作”。NextClaw 会启动对应运行时并读取它实际提供的 Actions。
+可以从 Marketplace 或 `.napp` 文件安装应用。启用前先查看它的状态。
 
-连接后，每项 Action 会显示：
+```bash
+nextclaw app install ./my-app.napp --json
+nextclaw app info <app-id> --json
+nextclaw app enable <app-id> --json
+```
 
-- 名称、标题和用途说明；
-- 开发者声明的风险类型；
-- 清单声明与运行时发现结果是否一致；
-- 已获得该 Action 的 Agent。
+如果状态显示 `needs-configuration` 或 `needs-capability`，说明应用声明了必须完成的设置。请先完成设置；不要把连接信息或 Token 塞进操作输入里绕过它。
 
-如果状态显示 `missing`，说明清单声明了 Action，但运行时没有提供；如果显示 `undeclared`，说明运行时提供了清单中没有声明的 Action。这两种情况都应该由应用开发者修正。
+## 从 Panel 使用应用
 
-## 在 Panel App 中使用
+1. 从应用列表打开应用。
+2. 第一次执行受保护操作前，阅读它请求的访问权限。
+3. 在 Panel 中完成应用要做的事情。
+4. 需要查看操作、错误或后台任务时，再回到 **Service Apps** 页面。
 
-Panel App 必须在自己的清单中列出需要调用的 Actions。首次实际调用时，NextClaw 会显示授权确认，其中包括：
+Panel 只能调用自己声明的操作。遇到操作授权时，只确认你认识的操作和风险级别。
 
-- 发起调用的 Panel；
-- 要调用的 Action；
-- Action 的用途和风险；
-- 本次传入的数据。
+## 让 Agent 使用一个操作
 
-选择“允许”后，该 Panel 可以继续调用已批准的 Action；选择“拒绝”则中止本次调用。授权只属于当前 Panel，不会自动扩展到其它 Panel 或 Agent。
+在 **Service Apps** 中展开服务，找到目标操作，然后把它授权给需要使用它的 Agent。该 Agent 会把同一个已声明操作当作工具发现。撤销授权后，Agent 就不会再看到它。
 
-## 让 Agent 调用
+适合的任务例如：“同步这个仓库的 Issue，再总结未关闭的 Bug”。不要因为 Agent 请求就直接授权危险操作；先看清楚操作名称和风险。
 
-在 Service Apps 页面展开目标服务，在某个 Action 旁选择授权入口，然后选择一个 Agent。授权完成后，该 Agent 会把 Action 作为工具发现。
+## 从命令行调用同一个操作
 
-你可以直接用自然语言要求 Agent 使用它。例如，应用提供“列出任务”和“保存任务”两个 Action 时，可以说：
+命令行会通过与 Panel 相同的宿主，调用一个已启用的已安装应用：
 
-> 先读取我的任务列表，再新增一条“整理本周计划”的待办；完成后告诉我新增记录的标题。
+```bash
+nextclaw app invoke <app-id> <action-name> --input '{"key":"value"}' --json
+```
 
-Agent 只能发现你明确授予它的 Actions。只授予读取 Action 时，它不能调用写入 Action；撤销授权后，这项工具会从该 Agent 的可用能力中移除。
+结果里会带有操作和验证记录标识。要查看这次调用的脱敏运行事实：
 
-## 断开和重新连接
+```bash
+nextclaw app verification --app <app-id> --json
+```
 
-需要停止运行时时，可以从 Service App 的更多操作中选择断开。再次选择连接时，NextClaw 会重新启动运行时并发现 Actions。
+## 跟进长时间工作
 
-如果 Service App 进入失败状态：
+当一个操作启动了持久化 Job，可以通过 Job id 查看保留的进度和输出。请求取消不代表已经取消；只有运行时确认终态后，Job 才会结束。
 
-1. 查看页面显示的最后一条错误信息。
-2. 检查应用所需的配置、文件或外部服务是否可用。
-3. 重新连接并确认 Actions 能否正常发现。
+```bash
+nextclaw app jobs list <app-id> --json
+nextclaw app jobs inspect <app-id> <job-id> --json
+nextclaw app jobs watch <app-id> <job-id> --json
+nextclaw app jobs cancel <app-id> <job-id> --json
+```
 
-WASM Service App 的共享运行器异常退出或调用超时时，NextClaw 会结束故障运行器；需要持续存在的 Provider 和 Resident 会按 Provider 优先的顺序恢复。导致失败的调用本身不会被静默重放。
+Resident 应用的死信事件也可以通过同一个宿主查看和重放：
 
-## 管理或移除
+```bash
+nextclaw app resident-inbox list <app-id> --dead-letters --json
+nextclaw app resident-inbox replay <app-id> <event-id> --json
+```
 
-- **随 NextClaw App 安装的 Service App**：选择“在应用中管理”，统一启用、停用或卸载所属 App。
-- **workspace 源码 Service App**：可以直接从 Service Apps 页面移除。
+## 更新、回滚或移除
 
-移除时可以保留受管数据，也可以在明确确认后同时删除应用和数据。详细规则见 [Service App 权限与数据](/zh/guide/service-app-permissions-data)。
+```bash
+nextclaw app update <app-id> --version <version> --json
+nextclaw app rollback <app-id> --version <installed-version> --json
+nextclaw app uninstall <app-id> --json
+```
 
-## 常见问题
+卸载默认保留应用的受管数据。只有显式传入 `--purge-data` 并精确确认 App id 才会永久删除。密钥绑定不会作为应用数据被保留。
 
-### Agent 看不到某个 Action
-
-确认服务处于已连接状态，并检查该 Action 是否已单独授权给当前 Agent。Panel 授权和 Agent 授权互不替代。
-
-### Panel 第一次调用没有成功
-
-确认授权对话框中列出的 Action 是当前 Panel 清单声明的 Action。拒绝授权、运行时未连接或 Action 未正确发现都会让调用失败。
-
-### 关闭 Panel 后数据会消失吗
-
-不会。关闭 Panel 只关闭界面。是否保存数据由 Service App 的实现和所属 App 的存储权限决定。
-
-### 关闭 Panel 后后台工作会停止吗
-
-普通 Action 本来就只在调用时运行。声明为 Resident 的 Service App 可以在 Panel 关闭后继续接收宿主定时事件，直到所属 App 被停用或运行时被断开。
+接着阅读：[权限与数据](/zh/guide/service-app-permissions-data) · [Service Apps 故障排查](/zh/guide/service-apps-troubleshooting)

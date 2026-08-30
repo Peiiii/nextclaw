@@ -116,7 +116,9 @@ const enSections: LocaleSections = {
             items: [
               { text: 'Overview', link: '/en/guide/service-apps' },
               { text: 'Use Service Apps', link: '/en/guide/service-apps-usage' },
-              { text: 'Permissions and data', link: '/en/guide/service-app-permissions-data' }
+              { text: 'Permissions and data', link: '/en/guide/service-app-permissions-data' },
+              { text: 'GitHub Issue Watcher', link: '/en/guide/service-apps-github-issue-watcher' },
+              { text: 'Troubleshoot Service Apps', link: '/en/guide/service-apps-troubleshooting' }
             ]
           }
         ]
@@ -207,8 +209,10 @@ const enSections: LocaleSections = {
         text: 'Portable Runtime',
         items: [
           { text: 'Overview', link: '/en/developers/portable-runtime' },
-          { text: 'Runtime model and capabilities', link: '/en/developers/portable-runtime-contracts' },
-          { text: 'Develop WASM Service Apps', link: '/en/developers/portable-service-apps' }
+          { text: 'Capabilities and security', link: '/en/developers/portable-runtime-contracts' },
+          { text: 'Build a Service App', link: '/en/developers/portable-service-apps' },
+          { text: 'Jobs, events, and observations', link: '/en/developers/portable-runtime-observability' },
+          { text: 'Package and distribute', link: '/en/developers/portable-runtime-distribution' }
         ]
       }
     ],
@@ -286,7 +290,9 @@ const zhSections: LocaleSections = {
             items: [
               { text: '概览', link: '/zh/guide/service-apps' },
               { text: '使用 Service Apps', link: '/zh/guide/service-apps-usage' },
-              { text: '权限与数据', link: '/zh/guide/service-app-permissions-data' }
+              { text: '权限与数据', link: '/zh/guide/service-app-permissions-data' },
+              { text: 'GitHub Issue Watcher', link: '/zh/guide/service-apps-github-issue-watcher' },
+              { text: 'Service Apps 故障排查', link: '/zh/guide/service-apps-troubleshooting' }
             ]
           }
         ]
@@ -377,8 +383,10 @@ const zhSections: LocaleSections = {
         text: 'Portable Runtime',
         items: [
           { text: '概览', link: '/zh/developers/portable-runtime' },
-          { text: 'Runtime 模型与能力合同', link: '/zh/developers/portable-runtime-contracts' },
-          { text: '开发 WASM Service App', link: '/zh/developers/portable-service-apps' }
+          { text: '能力与安全边界', link: '/zh/developers/portable-runtime-contracts' },
+          { text: '开发 Service App', link: '/zh/developers/portable-service-apps' },
+          { text: 'Job、事件与可观测性', link: '/zh/developers/portable-runtime-observability' },
+          { text: '打包与分发', link: '/zh/developers/portable-runtime-distribution' }
         ]
       }
     ],

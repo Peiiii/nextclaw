@@ -66,6 +66,7 @@ function createProviderProbeApp(configPath: string) {
         listTemplates: () => [],
       } as never,
       serviceAppManager: {} as never,
+      portableRuntimeAcceptance: {} as never,
       sessionContextCompactionManager: {} as never,
       llmProviders: { testConnection: testConnectionMock } as unknown as LlmProviderManager,
       providerModelCatalog: {

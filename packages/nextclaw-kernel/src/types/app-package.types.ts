@@ -2,9 +2,12 @@ import type {
   AppPermissions,
   AppRuntimeIsolation,
   AppRuntimeProfile,
+  AppSecretBinding,
+  AppSecretSlot,
   AppStorageContext,
   AppStorageUsage,
 } from "@nextclaw/app-runtime";
+import type { ServiceAppWitContract } from "@kernel/types/service-app.types.js";
 
 export type AppPackageComponentKind = "panel" | "service";
 
@@ -28,7 +31,12 @@ export type CapabilityProviderView = {
   providerId: string;
   appId: string;
   componentId: string;
-  capabilities: Array<{ id: string; version?: string; resourceTypes?: string[] }>;
+  capabilities: Array<{
+    id: string;
+    version?: string;
+    resourceTypes?: string[];
+    wit?: ServiceAppWitContract;
+  }>;
 };
 
 export type AppPackageUnavailableDiagnostic = {
@@ -72,6 +80,22 @@ export type AppPackageReadiness = {
   requirements: AppPackageReadinessRequirement[];
 };
 
+export type AppPackageSecretStatus = "bound" | "ready" | "unbound" | "unresolved";
+
+export type AppPackageSecretSlotView = Pick<
+  AppSecretSlot,
+  "id" | "title" | "description" | "required"
+> & {
+  status: AppPackageSecretStatus;
+  binding?: AppSecretBinding;
+  errorCode?: "SECRET_BINDING_MISSING" | "SECRET_RESOLUTION_FAILED";
+};
+
+export type AppPackageSecretReadiness = {
+  readiness: AppPackageReadiness;
+  slots: AppPackageSecretSlotView[];
+};
+
 export type AppPackageDependencyBinding = {
   componentId: string;
   requirementKind: "capability" | "resource";
@@ -84,11 +108,38 @@ export type AppPackageDependencyCandidate = {
   providers: CapabilityProviderView[];
 };
 
+export type AppPackageDependencyDiagnosticCode =
+  | "CAPABILITY_LEGACY_CONTRACT"
+  | "CAPABILITY_PROVIDER_MISSING"
+  | "CAPABILITY_VERSION_INCOMPATIBLE"
+  | "CAPABILITY_WIT_INCOMPATIBLE"
+  | "CAPABILITY_BINDING_MISSING"
+  | "CAPABILITY_PROVIDER_UNAVAILABLE"
+  | "PROVIDER_DEPENDENCY_CYCLE"
+  | "RESOURCE_PROVIDER_MISSING"
+  | "RESOURCE_BINDING_MISSING"
+  | "RESOURCE_PROVIDER_UNAVAILABLE";
+
+export type AppPackageDependencyDiagnostic = {
+  code: AppPackageDependencyDiagnosticCode;
+  componentId: string;
+  requirementKind: "capability" | "resource";
+  requirementId: string;
+  providerId?: string;
+  message: string;
+};
+
+export type AppPackageDependencyCycle = {
+  componentId: string;
+  providerIds: string[];
+};
+
 export type AppPackageDependencyView = {
   readiness: AppPackageReadiness;
   bindings: AppPackageDependencyBinding[];
   candidates: AppPackageDependencyCandidate[];
   resolvedProviderIds: Record<string, string[]>;
+  diagnostics: AppPackageDependencyDiagnostic[];
 };
 
 export type AppPackageDependencyBindingInput = {
@@ -118,6 +169,7 @@ export type AppPackageView = {
   runtimeProfile: AppRuntimeProfile;
   isolation: AppRuntimeIsolation;
   readiness: AppPackageReadiness;
+  secrets: AppPackageSecretReadiness;
   dependencies: AppPackageDependencyView;
 };
 
@@ -220,7 +272,13 @@ export type AppPackageErrorCode =
   | "APP_PACKAGE_INCOMPATIBLE"
   | "APP_PACKAGE_NOT_READY"
   | "APP_PACKAGE_NOT_FOUND"
-  | "APP_PACKAGE_OPERATION_FAILED";
+  | "APP_PACKAGE_DEPENDENCY_MISSING"
+  | "APP_PACKAGE_DEPENDENCY_INCOMPATIBLE"
+  | "APP_PACKAGE_DEPENDENCY_CYCLE"
+  | "APP_PACKAGE_OPERATION_FAILED"
+  | "SECRET_SLOT_NOT_DECLARED"
+  | "SECRET_BINDING_MISSING"
+  | "SECRET_RESOLUTION_FAILED";
 
 export class AppPackageError extends Error {
   constructor(
