@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "page": {
+    "kicker": "NextClaw visual story · Island theme",
+    "title": "让每天打开的 AI 工作台，也成为一个愿意久待的地方。",
+    "introduction": "这份宣传页不把 Island 当成一张壁纸，而是展示背景、内容表面和真实工作界面如何形成同一个空间。",
+    "channel": {
+      "label": "传播文案预览",
+      "author": "Pei",
+      "handle": "@XiaotiaoWang",
+      "copy": "给 NextClaw 做了一个我自己很喜欢的新主题：Island。\n\n它不只是换了一张背景。会话、文件、工作台、菜单和弹层都重新做了透明层次，让整块界面落在同一张水彩纸上。\n\nAI 工作台不一定非得像控制台。它也可以是一个让人愿意久待的地方。",
+      "status": "本地草稿 · 尚未发布"
+    }
+  },
+  "claims": [
+    {
+      "id": "long-term-workspace",
+      "text": "Island 主题让长期使用的 AI 工作台拥有更安静、连续的视觉氛围。",
+      "kind": "product"
+    },
+    {
+      "id": "unified-surface",
+      "text": "背景与会话、内容区和侧边栏形成统一的透明层次，而不是彼此割裂的区块。",
+      "kind": "product"
+    }
+  ],
+  "assets": [
+    {
+      "id": "island-atmosphere",
+      "path": "./promo-page-island-atmosphere-reference.webp",
+      "role": "atmosphere",
+      "supports": [],
+      "alt": "青绿色到暖黄色过渡的水彩岛屿背景"
+    },
+    {
+      "id": "island-workspace",
+      "path": "./promo-page-island-workspace-reference.png",
+      "role": "product-screenshot",
+      "supports": ["long-term-workspace", "unified-surface"],
+      "alt": "NextClaw Island 主题真实界面，展示会话侧边栏、收件箱列表、内容区和全局侧栏",
+      "capture": {
+        "scope": "full-window",
+        "completeness": "complete",
+        "subject": "Island 主题完整工作台",
+        "selectionReason": "同一画面完整包含会话、列表、内容区和全局侧栏，可直接证明全局背景与透明层次的连续性。",
+        "privacyReviewed": true
+      }
+    }
+  ],
+  "cards": [
+    {
+      "label": "Island theme · 01",
+      "layout": "hero-window",
+      "layoutDecision": {
+        "contentRole": "prove",
+        "candidates": ["stacked-proof", "split-proof"],
+        "archetypeId": "stacked-proof",
+        "rationale": "完整工作台是宽幅证据，文案在上、截图在下能保留全局界面和统一背景。"
+      },
+      "title": "AI 工作台，也可以是一个让人愿意久待的地方。",
+      "body": "把每天反复打开的工作空间，做得更有呼吸感。",
+      "backgroundAssetId": "island-atmosphere",
+      "evidence": {
+        "assetIds": ["island-workspace"],
+        "composition": "single",
+        "fit": "contain",
+        "frameAspect": "source",
+        "rationale": "用一张完整工作台证明整体氛围，避免裁切后只剩局部背景。"
+      },
+      "claimIds": ["long-term-workspace"]
+    },
+    {
+      "label": "Island theme · 02",
+      "layout": "evidence-board",
+      "layoutDecision": {
+        "contentRole": "prove",
+        "candidates": ["split-proof", "stacked-proof"],
+        "archetypeId": "split-proof",
+        "rationale": "主张与同一张完整工作台并置，便于同时检查会话、内容和侧栏的连续关系。"
+      },
+      "title": "不只是换了一张背景。",
+      "body": "会话、内容与侧边栏，都落在同一张水彩纸上。",
+      "backgroundAssetId": "island-atmosphere",
+      "evidence": {
+        "assetIds": ["island-workspace"],
+        "composition": "single",
+        "fit": "contain",
+        "frameAspect": "source",
+        "rationale": "同一完整画面可以检查会话、内容区和侧栏的连续关系，不需要伪造三张局部图。"
+      },
+      "claimIds": ["unified-surface"],
+      "detailLabels": ["会话", "内容", "全局界面"]
+    }
+  ],
+  "designNote": "整页先用一句产品判断建立记忆，再让渠道文案和两张视觉卡片分别承担情绪与证据。水彩背景贯穿页面，但真实截图始终是产品事实的唯一来源。"
+}
