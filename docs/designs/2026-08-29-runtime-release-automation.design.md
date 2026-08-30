@@ -123,7 +123,7 @@ Desktop 的公开资产构建仍由独立的五平台 workflow owner 承担；�
 
 这保持了发布主链的两个不变量：Draft 在 assets 完整前始终不可见；恢复不重发 NPM/Runtime、不新建 tag，也不依赖观察者或人工 token。若 Runtime 或 Desktop 后续失败，隐藏 Draft 保留为同一 stable identity 的幂等恢复锚点。该补充只改变发布控制面的 owner 边界，不向产品构建、NPM 产物或 Runtime ABI 添加任何 feature-specific 门。
 
-Linux APT 镜像的体积裁剪只可优化实际存在的可选 native dependency；不能把某个依赖的历史目录形状当作 Desktop 包的发布前提。缺失可选目录时跳过裁剪，仍由 APT 包生成、安装与升级 smoke 验证最终交付物。
+Linux APT 镜像的体积裁剪只可优化实际存在的可选 native dependency；不能把某个依赖的历史目录形状当作 Desktop 包的发布前提。缺失可选目录时跳过裁剪，仍由 APT 包生成、安装与升级 smoke 验证最终交付物。GitHub Pages 对单文件有 100 MiB 限制，因此 APT 镜像还会移除只用于离线首启加速的 `seed-product-bundle.zip`，并将镜像内元数据的 `seedBundle` 置空；普通 `.deb`、AppImage、DMG 与 Windows 包仍携带 seed。Desktop bootstrap 已有的标准路径会在没有 seed 和没有已激活 bundle 时获取签名 stable manifest 并下载首个 bundle。这个体积规则由同一个 `build-linux-apt-repo.mjs --github-pages-compatible` owner 同时供开发阶段的 Linux package 验证与正式发布消费，不能只留在发布 workflow 中。
 
 ## 抽象审计
 

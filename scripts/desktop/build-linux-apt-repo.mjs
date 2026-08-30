@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  renameSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -20,12 +21,14 @@ const APT_PACKAGE_NAME = "nextclaw-desktop";
 const APT_ARCH = "amd64";
 const APT_DIST = "stable";
 const APT_COMPONENT = "main";
+const GITHUB_PAGES_FILE_LIMIT = 100 * 1024 * 1024;
 
 function parseArgs(argv) {
   const options = {
     inputDirs: [],
     outputDir: DEFAULT_OUTPUT_DIR,
-    signingMode: "env"
+    signingMode: "env",
+    githubPagesCompatible: false
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -55,6 +58,10 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (arg === "--github-pages-compatible") {
+      options.githubPagesCompatible = true;
+      continue;
+    }
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -65,7 +72,8 @@ function parseArgs(argv) {
   return {
     inputDirs: options.inputDirs.map((dir) => resolve(dir)),
     outputDir: resolve(options.outputDir),
-    signingMode: options.signingMode
+    signingMode: options.signingMode,
+    githubPagesCompatible: options.githubPagesCompatible
   };
 }
 
@@ -134,7 +142,96 @@ function createRepoLayout(outputDir) {
   return { repoRoot, poolDir, binaryDir };
 }
 
-function copyDebFiles(debPaths, poolDir) {
+function removeAptMirrorOnlyFiles(packageRoot) {
+  const appRoot = resolve(packageRoot, "opt", "NextClaw Desktop");
+  if (!existsSync(appRoot)) {
+    throw new Error(`Desktop application root is missing from Debian package: ${appRoot}`);
+  }
+
+  for (const relativePath of [
+    "LICENSES.chromium.html",
+    "LICENSE.electron.txt",
+    "chrome_crashpad_handler",
+    "libvk_swiftshader.so",
+    "vk_swiftshader_icd.json",
+    "chrome_200_percent.pak",
+    "locales/zh-TW.pak",
+    // The normal desktop installers keep this local first-boot cache. The APT
+    // mirror is size-bound by GitHub Pages, and the bootstrap service already
+    // fetches the signed stable bundle when no seed archive is packaged.
+    "resources/update/seed-product-bundle.zip"
+  ]) {
+    rmSync(resolve(appRoot, relativePath), { force: true, recursive: true });
+  }
+
+  const updateMetadataPath = resolve(appRoot, "resources", "update", "update-release-metadata.json");
+  if (existsSync(updateMetadataPath)) {
+    const metadata = JSON.parse(readFileSync(updateMetadataPath, "utf8"));
+    writeFileSync(updateMetadataPath, `${JSON.stringify({ ...metadata, seedBundle: null }, null, 2)}\n`);
+  }
+
+  const unpackedModules = resolve(appRoot, "resources", "app.asar.unpacked", "node_modules");
+  if (!existsSync(unpackedModules)) {
+    return;
+  }
+  for (const filePath of walk(unpackedModules)) {
+    const relativePath = relative(unpackedModules, filePath).replaceAll("\\", "/");
+    const basename = filePath.split(/[/\\]/).at(-1) ?? "";
+    if (
+      basename.endsWith(".md") ||
+      basename.endsWith(".markdown") ||
+      basename.endsWith(".svg") ||
+      basename === ".jekyll-metadata" ||
+      relativePath.includes("/fsevents/") ||
+      basename === "fsevents.node" ||
+      basename === "jszip.min.js" ||
+      relativePath.endsWith("/jszip/dist/jszip.js") ||
+      relativePath.endsWith("/jszip/vendor/FileSaver.js")
+    ) {
+      rmSync(filePath, { force: true });
+    }
+  }
+
+  const betterSqlite3Root = resolve(unpackedModules, "better-sqlite3");
+  if (existsSync(betterSqlite3Root)) {
+    rmSync(resolve(betterSqlite3Root, "deps"), { force: true, recursive: true });
+    rmSync(resolve(betterSqlite3Root, "src"), { force: true, recursive: true });
+    rmSync(resolve(betterSqlite3Root, "binding.gyp"), { force: true });
+    rmSync(resolve(betterSqlite3Root, "Makefile"), { force: true });
+    if (!existsSync(resolve(betterSqlite3Root, "build", "Release", "better_sqlite3.node"))) {
+      throw new Error("APT mirror pruning removed the required better-sqlite3 native addon");
+    }
+  }
+}
+
+function repackForGitHubPages(debPath) {
+  const originalSize = statSync(debPath).size;
+  if (originalSize < GITHUB_PAGES_FILE_LIMIT) {
+    console.log(`[linux-apt-repo] keeping ${debPath} at ${originalSize} bytes; below GitHub Pages limit`);
+    return;
+  }
+
+  const packageRoot = mkdtempSync(join(tmpdir(), "nextclaw-apt-package-"));
+  const repackedPath = `${debPath}.repacked`;
+  try {
+    run("dpkg-deb", ["--raw-extract", debPath, packageRoot]);
+    removeAptMirrorOnlyFiles(packageRoot);
+    run("dpkg-deb", ["--root-owner-group", "--build", "-Zxz", "-z9", "-Sextreme", packageRoot, repackedPath]);
+    const repackedSize = statSync(repackedPath).size;
+    console.log(`[linux-apt-repo] repacked ${debPath} from ${originalSize} to ${repackedSize} bytes`);
+    if (repackedSize >= GITHUB_PAGES_FILE_LIMIT) {
+      throw new Error(
+        `Repacked Linux package still exceeds the GitHub Pages 100 MiB file limit: ${repackedSize} bytes`
+      );
+    }
+    renameSync(repackedPath, debPath);
+  } finally {
+    rmSync(packageRoot, { recursive: true, force: true });
+    rmSync(repackedPath, { force: true });
+  }
+}
+
+function copyDebFiles(debPaths, poolDir, options = {}) {
   const copied = [];
   for (const debPath of debPaths) {
     const packageName = readDebField(debPath, "Package");
@@ -145,6 +242,9 @@ function copyDebFiles(debPaths, poolDir) {
     const targetName = `${APT_PACKAGE_NAME}_${version}_${APT_ARCH}.deb`;
     const targetPath = resolve(poolDir, targetName);
     copyFileSync(debPath, targetPath);
+    if (options.githubPagesCompatible) {
+      repackForGitHubPages(targetPath);
+    }
     copied.push({
       packageName,
       version,
@@ -327,7 +427,7 @@ function main() {
 
   const debPaths = collectDebFiles(options.inputDirs);
   const { repoRoot, poolDir, binaryDir } = createRepoLayout(options.outputDir);
-  const copied = copyDebFiles(debPaths, poolDir);
+  const copied = copyDebFiles(debPaths, poolDir, options);
   writePackagesFiles(repoRoot, binaryDir);
   const releasePath = writeReleaseFile(repoRoot);
   const keyId = signRelease(repoRoot, releasePath, options.signingMode);

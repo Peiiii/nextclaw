@@ -101,6 +101,51 @@ test("retries a quarantined packaged seed when the packaged archive fingerprint 
     assert.equal(stateStore.read().lastAttemptedPackagedSeedLauncherFingerprint, "launcher-a");
   }));
 
+test("fetches the signed remote bundle when an APT package intentionally omits the seed archive", async () =>
+  await withTempDir("nextclaw-desktop-remote-bootstrap-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    const bundleService = new DesktopBundleService({
+      layout,
+      stateStore,
+      launcherVersion: "0.1.0"
+    });
+    const stageCalls: Array<[string, null]> = [];
+    const logs: string[] = [];
+    const service = new DesktopBundleBootstrapService({
+      logger: {
+        info: (message) => logs.push(message),
+        warn: (message) => logs.push(message)
+      },
+      layout,
+      launcherVersion: "0.1.0",
+      channel: "stable",
+      resolveManifestUrl: async () => "https://updates.example.test/stable/manifest.json",
+      bundlePublicKey: null,
+      seedBundlePath: null,
+      launcherStateStore: stateStore,
+      bundleService,
+      bundleLifecycle: new DesktopBundleLifecycleService({
+        layout,
+        stateStore,
+        bundleService
+      }),
+      updateService: {
+        stageUpdate: async (manifestUrl: string, currentVersion: null) => {
+          stageCalls.push([manifestUrl, currentVersion]);
+          return { kind: "ready", activatedVersion: "0.20.0" };
+        }
+      } as unknown as DesktopUpdateService
+    });
+
+    await service.ensureInitialBundleAvailability();
+
+    assert.deepEqual(stageCalls, [["https://updates.example.test/stable/manifest.json", null]]);
+    assert.ok(logs.some((message) => message.includes("No active product bundle found")));
+    assert.ok(logs.some((message) => message.includes("Prepared initial bundle 0.20.0")));
+  }));
+
 test("does not retry the same quarantined packaged seed fingerprint again", async () =>
   await withTempDir("nextclaw-desktop-packaged-seed-skip-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
