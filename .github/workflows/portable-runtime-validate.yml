@@ -93,6 +93,7 @@ jobs:
     outputs:
       matrix: ${{ steps.select.outputs.matrix }}
       product_version: ${{ steps.release-plan.outputs.product_version }}
+      target: ${{ steps.select.outputs.target }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@v4
@@ -125,6 +126,7 @@ jobs:
             *) echo "Unsupported target: $TARGET" >&2; exit 2 ;;
           esac
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
 
       # A new stable release validates the version Changesets will publish, not
       # packages/nextclaw/package.json from the pre-version source checkout.
@@ -304,6 +306,7 @@ jobs:
 
   aggregate-acceptance-evidence:
     needs: [select-matrix, native-runner]
+    if: ${{ needs.select-matrix.outputs.target == 'all' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:

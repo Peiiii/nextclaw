@@ -86,3 +86,16 @@ test("development validation reuses the exact native Rust target build", async (
   assert.match(workflow, /apps\/nextclaw-wasmtime-runner\/target/);
   assert.match(workflow, /cargo test --release --target \$\{\{ matrix\.cargo_target \}\}/);
 });
+
+test("focused platform validation does not invoke the three-platform aggregate gate", async () => {
+  const workflow = await readFile(
+    new URL("../../../.github/workflows/portable-runtime-validate.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /target: \$\{\{ steps\.select\.outputs\.target \}\}/);
+  assert.match(workflow, /echo "target=\$TARGET" >> "\$GITHUB_OUTPUT"/);
+  assert.match(
+    workflow,
+    /aggregate-acceptance-evidence:[\s\S]*?if: \$\{\{ needs\.select-matrix\.outputs\.target == 'all' \}\}/,
+  );
+});
