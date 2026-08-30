@@ -19,7 +19,7 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 ## 永久合同
 
 - 正式发布同交付 A 产物闭环、B 自动化闭环。B 用结构化时序/依赖图找 critical path、错误等待、串行/重复/空等；超预算必须修 owner、补合同并以同 identity/recovery 验证。
-- 总/NPM_READY耗时、瓶颈/等待/优化、`AUTOMATION_INTERVENTIONS`总数；dispatch/准备/只读不计。0次报零；>0不得仅报数，逐项列触发/症状、根因/失败阶段、修复、自动化沉淀与否、run/identity（适用时）。
+- 报总/NPM_READY耗时、瓶颈/优化和干预总数；dispatch/准备/只读不计。0次报零；>0每项一行写问题→修复，禁止只报总数。用户追问或仍失败时再展开根因、阶段、沉淀和 run/identity。
 - 使用仓库 release flow，不以包目录 raw `npm publish` 作为默认路径。
 - 正式发布只 dispatch 一次 parent；Actions 独立闭合构建、发布、传播、真实升级验证、终态与 Git 回流，任何观察者在线都不是完成条件。
 - 只调用 owning entry；下游 exact-stage 幂等恢复，禁止重发 identity。
