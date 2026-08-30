@@ -53,7 +53,7 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 - 最终产品恢复 run `33297141799` 于 2026-08-30 06:32:48Z–06:47:02Z 成功：NPM recovery 没有重复发布，unsupported-Node guard、四个此前失败的 Windows Node 20/22/24/26 真正 registry clean-install + SQLite contract、Runtime 四平台与旧稳定版升级验证全部通过。
 - 自动化闭环同时修正六个独立根因：内容门误拦截 product、NPM publisher 等待整个 Runtime prewarm parent、Windows `npm.cmd` spawn、NPM/tag 已存在但 GitHub Release 未完成的 recovery checkpoint、Windows fixture cleanup 锁、以及 recovery 误重跑已成功 matrix cell。发布者现在只等待 exact NPM prepare job/artifact 并做有界下载重试；恢复会以不可变 tag/source ancestry 聚合历史成功证据，失败单元才重跑，全部成功时只执行 lightweight reuse job。
 - 观察到的初次发布窗口为 2026-08-30 05:07:38Z–06:47:02Z（99 分 24 秒）；最终 recovery wall time 为 14 分 14 秒，NPM recovery checkpoint 为 1 分 51 秒，最慢有效阶段为 Runtime publish + verify 5 分 06 秒。此前最慢的非业务等待是完整 prepare parent 阻塞 NPM 约 21 分钟，已移除。模块级 cleanup 与 recovery-matrix tests 使相应诊断在本地毫秒级完成；是否先跑模块测试改为按定位置信度、平台隔离价值和运行成本自适应选择，完整矩阵只保留为首次/最终门。
-- 后续 recovery `33297868807` 成功，正确跳过 NPM 写入与 Runtime 重发，并把兼容性范围缩至唯一尚无成功证据的 Windows Node 20 单元；其产生的成功证据与此前 15 个单元一起，被主线的下一轮 recovery 作为完整不可变 evidence 复用，不再重跑矩阵。
+- 后续 recovery `33297868807` 成功，正确跳过 NPM 写入与 Runtime 重发，并把兼容性范围缩至唯一尚无成功证据的 Windows Node 20 单元。最终 recovery `33298307609`（2026-08-30 07:03:22Z–07:09:02Z）成功把其成功证据与此前 15 个单元一起复用为 `verify NPM reused Node reused`，没有重跑兼容性矩阵；它仍独立执行 unsupported-Node guard、Runtime asset reuse 与旧版升级合同，Desktop 保持跳过。
 
 ## 关联产物
 
