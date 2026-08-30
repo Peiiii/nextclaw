@@ -15,9 +15,12 @@ export const NPM_COMPATIBILITY_MATRIX = platforms.flatMap(([platform, os]) =>
 export function resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs = [] }) {
   if (!isRecovery) return { include: NPM_COMPATIBILITY_MATRIX, reused: false };
 
-  const conclusionByName = new Map(
-    jobs.map((job) => [job.name, job.conclusion]),
-  );
+  const conclusionByName = new Map();
+  for (const job of jobs) {
+    if (job.conclusion === "success" || !conclusionByName.has(job.name)) {
+      conclusionByName.set(job.name, job.conclusion);
+    }
+  }
   const unresolved = NPM_COMPATIBILITY_MATRIX.filter((entry) =>
     conclusionByName.get(jobName(entry)) !== "success",
   );
@@ -39,8 +42,16 @@ function jobName({ node, platform }) {
 if (process.argv[1] === new URL(import.meta.url).pathname) {
   const isRecovery = readArg("--is-recovery") === "true";
   const jobsFile = readArg("--jobs-file");
-  const jobs = jobsFile ? JSON.parse(readFileSync(jobsFile, "utf8")) : [];
+  const jobs = jobsFile ? parseJobs(readFileSync(jobsFile, "utf8")) : [];
   process.stdout.write(`${JSON.stringify(resolveNpmCompatibilityRecoveryMatrix({ isRecovery, jobs }))}\n`);
+}
+
+function parseJobs(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) return [];
+  return trimmed.startsWith("[")
+    ? JSON.parse(trimmed)
+    : trimmed.split("\n").map((line) => JSON.parse(line));
 }
 
 function readArg(name) {

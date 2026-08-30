@@ -257,7 +257,7 @@ test("stable release exposes only the business target and infers recovery checkp
   );
   assert.match(
     workflow,
-    /git merge-base --is-ancestor "\$release_commit" "\$candidate_sha"[\s\S]*?gh run view "\$compatibility_source_run" --json jobs/,
+    /git merge-base --is-ancestor "\$release_commit" "\$candidate_sha"[\s\S]*?gh run view "\$candidate_run" --json jobs --jq '\.jobs\[\]'/,
   );
   assert.match(
     workflow,
