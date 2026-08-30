@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { AppPermissions, AppResolvedComponent } from "#app-runtime/types/app-manifest.types.js";
-import { AppHomeService } from "#app-runtime/services/app-home.service.js";
+import type { AppHomeService } from "#app-runtime/services/app-home.service.js";
 import { AppInstanceStorageService } from "#app-runtime/services/app-instance-storage.service.js";
 import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
 import type { AppInstanceRecord } from "#app-runtime/types/app-storage.types.js";

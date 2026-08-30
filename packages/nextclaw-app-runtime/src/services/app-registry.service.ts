@@ -12,7 +12,6 @@ import type {
   AppRegistryAppRecord,
   AppRegistryInstalledVersion,
   AppSecretBinding,
-  AppSecretBindingMap,
 } from "#app-runtime/types/app-registry.types.js";
 
 export class AppRegistryService {
