@@ -234,6 +234,29 @@ function validateBrief(brief, briefPath) {
       `Card ${index} archetype ${layoutDecision.archetypeId} is not implemented by layout ${card.layout}`,
     );
     requiredString(layoutDecision.rationale, `cards[${index}].layoutDecision.rationale`);
+    if (layoutDecision.archetypeId === "split-proof") {
+      const balancePlan = layoutDecision.balancePlan;
+      invariant(balancePlan && typeof balancePlan === "object", `cards[${index}].layoutDecision.balancePlan is required for split-proof`);
+      for (const key of ["copyFillRatio", "mediaFillRatio"]) {
+        invariant(
+          Number.isFinite(balancePlan[key]) && balancePlan[key] >= 0.35 && balancePlan[key] <= 0.85,
+          `cards[${index}].layoutDecision.balancePlan.${key} must be between 0.35 and 0.85`,
+        );
+      }
+      invariant(
+        Math.abs(balancePlan.copyFillRatio - balancePlan.mediaFillRatio) <= 0.25,
+        `Card ${index} split-proof column fill ratios differ by more than 0.25`,
+      );
+      invariant(
+        ["top", "center", "bottom", "shared-baseline"].includes(balancePlan.alignmentAnchor),
+        `Unsupported split-proof alignment anchor for card ${index}: ${balancePlan.alignmentAnchor}`,
+      );
+      requiredString(balancePlan.emptySpaceRole, `cards[${index}].layoutDecision.balancePlan.emptySpaceRole`);
+      invariant(
+        layoutArchetypes.has(balancePlan.fallbackArchetype) && balancePlan.fallbackArchetype !== "split-proof",
+        `Card ${index} split-proof fallbackArchetype must be another registered archetype`,
+      );
+    }
     invariant(Array.isArray(card.claimIds) && card.claimIds.length > 0, `cards[${index}].claimIds must not be empty`);
     for (const claimId of card.claimIds) invariant(claims.has(claimId), `Card ${index} references unknown claim ${claimId}`);
     if (card.backgroundAssetId) invariant(assets.has(card.backgroundAssetId), `Card ${index} references unknown background asset`);
