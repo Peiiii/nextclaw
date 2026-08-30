@@ -214,8 +214,14 @@ jobs:
         run: |
           set -euo pipefail
           runner="packages/nextclaw/resources/native/linux-x64/nextclaw-wasmtime-runner"
-          ! readelf -l "$runner" | grep -q 'Requesting program interpreter'
-          ! readelf -d "$runner" | grep -q '(NEEDED)'
+          if readelf -l "$runner" | grep -q 'Requesting program interpreter'; then
+            echo "Linux runner unexpectedly requires a dynamic program interpreter" >&2
+            exit 1
+          fi
+          if readelf -d "$runner" | grep -q '(NEEDED)'; then
+            echo "Linux runner unexpectedly declares dynamic library dependencies" >&2
+            exit 1
+          fi
 
       - name: Build NextClaw runtime closure
         run: pnpm --filter nextclaw... build

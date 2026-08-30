@@ -19,6 +19,11 @@ test("postpublish evidence verifies public NPM, Runtime, Desktop, APT and docume
 test("full release runs public postpublish verification after the same identity desktop closure", async () => {
   const workflow = await readFile(path.join(root, ".github/workflows/release.yml"), "utf8");
   assert.match(workflow, /verify-portable-runtime-postpublish:[\s\S]*?needs: \[publish-npm, publish-runtime, publish-desktop\]/);
+  assert.match(
+    workflow,
+    /validate-portable-runtime:[\s\S]*?permissions:\s*\n\s+contents: read[\s\S]*?uses: \.\/\.github\/workflows\/portable-runtime-validate\.yml/,
+    "the caller must grant the reusable validation workflow its declared read permission",
+  );
   assert.match(workflow, /Download exact candidate evidence/);
   assert.match(workflow, /portable-runtime-postpublish-evidence\.ts/);
   assert.match(workflow, /release:portable-runtime:acceptance:validate:postpublish/);

@@ -24,7 +24,7 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - 只调用 owning entry；下游 exact-stage 幂等恢复，禁止重发 identity。
 - 验证拓扑按净收益选择：比较根因置信度、focused/failed-job 与全矩阵耗时、重现稳定性和风险，选最低成本的有效层。平台适配、spawn、临时清理、artifact/recovery state 机在反复/高成本/不确定时须有可单模块或单 job 运行的入口和唯一失败映射；高置信度微修可直接 failed-only job。
 - 全矩阵只作新 identity 的最终准入；stable recovery 只重跑未证明/失败/cancelled cell，同 tag 完整成功证据可复用。复用源由 Actions 用 tag 与 source ancestry 校验，禁止 AI 拼 matrix 命令或重发 NPM。
-- dispatch 前审计同 workflow 队列；旧 SHA 经核对后取消。随后立即取得 run ID、target、head SHA。
+- dispatch 前审计队列并取消 SHA；工作流改动先过`actionlint`并核对 reusable 权限。随后记录 run ID、target、head SHA；不得用 startup failure 作首轮校验。
 - Actions 可等待 child；Agent 不参与状态迁移，只对 parent 有界等待并读最终 summary，禁止轮询、逐 step 监控或 `gh run watch`。成功 job 不读日志；异常只读失败附近。
 - `nextclaw` 是已发布 workspace 依赖闭包和嵌入 UI/runtime 产物的产品包，不只看自身版本。
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
