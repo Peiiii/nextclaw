@@ -3,6 +3,8 @@
 > 代表场景与排序依据见：[项目治理代表场景梳理与评估](../thoughts/2026-08-26-project-governance-representative-scenarios.thought.md)。该场景集合用于检验通用模型，不构成产品场景边界。
 >
 > 本文保留探索过程；第一版的最终功能取舍见：[项目治理主页 V1 功能范围决策](2026-08-26-project-governance-hub-v1-scope.design.md)。
+>
+> **当前实现依据已升级为：[只读项目观测 V1 设计](2026-08-30-read-only-project-observer-v1.design.md)。** 本文下方的六对象、`Policy` 和可写治理设想仍按历史探索原貌保留，不再代表当前裁决；当前版本只从配置、文件、AI 显式 Marker 和现有只读接口生成项目投影。
 
 ## 设计状态
 

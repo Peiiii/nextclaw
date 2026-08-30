@@ -18,13 +18,15 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 
 ## 永久合同
 
+- 正式发布同交付 A. 产物闭环与 B. 自动化闭环。B 用结构化 wall time/依赖图找 critical path、错误等待、无收益串行/重复和空等；超预算或空等必须修 owner、补合同测试，并以同 identity/recovery 验证。正常观察只读终态/时序。
+- 最终报告总/NPM_READY 耗时、最慢阶段、等待原因、优化落点、`AUTOMATION_INTERVENTIONS`（按根因；dispatch、准备、只读不计）。
 - 使用仓库 release flow，不以包目录 raw `npm publish` 作为默认路径。
 - 正式发布只 dispatch 一次 parent；Actions 独立闭合构建、发布、传播、真实升级验证、终态与 Git 回流，任何观察者在线都不是完成条件。
-- 只调用仓库 owning entry；禁止临时拼装安装、验证、轮询或恢复，下游失败走 exact-stage 幂等恢复且不重发既有 identity。
-- 完整跨平台矩阵只作最终准入，不作调试。失败先用本地定向、失败步骤/单平台或最终产物实机验证；合同通过后再跑完整矩阵，复用成功产物和已发布 identity。
-- dispatch 前审计同 workflow 的 queued/in-progress run；旧 SHA 的失效队列经精确核对后取消。dispatch 后必须立即取得新 run ID、target 与 head SHA；没有这组证据就不算已触发。
+- 只调用 owning entry；下游 exact-stage 幂等恢复，禁止重发 identity。
+- 完整跨平台矩阵只作最终准入；失败先定向验证，复用既成产物/identity。
+- dispatch 前审计同 workflow 队列；旧 SHA 经核对后取消。随后立即取得 run ID、target、head SHA。
 - Actions 可等待 child；Agent 观察不参与状态迁移，只对 parent 使用一次有界 wait 并读取最终 summary，禁止轮询、逐 step 监控或本地 `gh run watch`。
-- 成功 job 不读日志；失败或异常时只读失败步骤附近的最小日志。最终一次性报告 identity、状态和验证证据。
+- 成功 job 不读日志；异常时只读失败步骤附近的最小日志。
 - `nextclaw` 是已发布 workspace 依赖闭包和嵌入 UI/runtime 产物的产品包，不只看自身版本。
 - 发布包必须包含 launcher/app entries 和 `resources/update-bundle-public.pem`。
 - NPM runtime manifest 使用 `hostKind: npm-runtime-bundle`，兼容 floor 来自 `packages/nextclaw/npm-runtime-compatibility.json`，只有 launcher 合同破坏才提高。

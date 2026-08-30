@@ -21,8 +21,7 @@ const npmUserConfig = join(installRoot, "empty-npmrc");
 writeFileSync(npmUserConfig, "");
 
 try {
-  execFileSync(
-    process.platform === "win32" ? "npm.cmd" : "npm",
+  installPublishedPackage(
     [
       "install",
       "--prefix",
@@ -34,19 +33,10 @@ try {
       "--no-fund",
       "--loglevel=warn",
     ],
-    {
-      stdio: "inherit",
-      timeout: 5 * 60_000,
-      env: {
-        ...process.env,
-        npm_config_userconfig: npmUserConfig,
-      },
-    },
   );
 
   if (kernelPackageSpec) {
-    execFileSync(
-      process.platform === "win32" ? "npm.cmd" : "npm",
+    installPublishedPackage(
       [
         "install",
         "--prefix",
@@ -56,14 +46,6 @@ try {
         "--no-fund",
         "--loglevel=warn",
       ],
-      {
-        stdio: "inherit",
-        timeout: 5 * 60_000,
-        env: {
-          ...process.env,
-          npm_config_userconfig: npmUserConfig,
-        },
-      },
     );
   }
 
@@ -176,12 +158,33 @@ try {
     );
   }
 } finally {
-  rmSync(installRoot, { recursive: true, force: true });
+  // node:sqlite can release a Windows file handle just after the CRUD contract
+  // completes. The temporary fixture is not part of that contract, so retry the
+  // bounded cleanup instead of turning a successful published-package check
+  // into a platform-specific false failure.
+  rmSync(installRoot, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 500,
+  });
 }
 
 function readArg(name) {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1]?.trim() || null : null;
+}
+
+function installPublishedPackage(args) {
+  execFileSync(process.platform === "win32" ? "npm.cmd" : "npm", args, {
+    stdio: "inherit",
+    timeout: 5 * 60_000,
+    shell: process.platform === "win32",
+    env: {
+      ...process.env,
+      npm_config_userconfig: npmUserConfig,
+    },
+  });
 }
 
 function isMissingNodeSqlite(error) {
