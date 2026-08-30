@@ -930,9 +930,11 @@ jobs:
               -delete
             # Keep the compiled native addon, but omit build-only sources from the APT mirror.
             better_sqlite3_root="$apt_package_root/resources/app.asar.unpacked/node_modules/better-sqlite3"
-            rm -rf "$better_sqlite3_root/deps" "$better_sqlite3_root/src"
-            rm -f "$better_sqlite3_root/binding.gyp" "$better_sqlite3_root/Makefile"
-            test -f "$better_sqlite3_root/build/Release/better_sqlite3.node"
+            if [ -d "$better_sqlite3_root" ]; then
+              rm -rf "$better_sqlite3_root/deps" "$better_sqlite3_root/src"
+              rm -f "$better_sqlite3_root/binding.gyp" "$better_sqlite3_root/Makefile"
+              test -f "$better_sqlite3_root/build/Release/better_sqlite3.node"
+            fi
             dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme "$package_root" "$repacked_file"
             package_size="$(stat --format='%s' "$repacked_file")"
             printf '[desktop-release] repacked %s from %s to %s bytes\n' "$deb_file" "$original_size" "$package_size"

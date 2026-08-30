@@ -123,6 +123,8 @@ Desktop 的公开资产构建仍由独立的五平台 workflow owner 承担；�
 
 这保持了发布主链的两个不变量：Draft 在 assets 完整前始终不可见；恢复不重发 NPM/Runtime、不新建 tag，也不依赖观察者或人工 token。若 Runtime 或 Desktop 后续失败，隐藏 Draft 保留为同一 stable identity 的幂等恢复锚点。该补充只改变发布控制面的 owner 边界，不向产品构建、NPM 产物或 Runtime ABI 添加任何 feature-specific 门。
 
+Linux APT 镜像的体积裁剪只可优化实际存在的可选 native dependency；不能把某个依赖的历史目录形状当作 Desktop 包的发布前提。缺失可选目录时跳过裁剪，仍由 APT 包生成、安装与升级 smoke 验证最终交付物。
+
 ## 抽象审计
 
 命中的原则是 `single-complete-owner`、`equivalence-by-construction`、`tell-dont-ask` 和 `abstractions-pay-rent`。Prepare artifact 是 versioned release tree 已有事实的多平台产物投影；promotion 只消费这一事实。没有新增通用 artifact registry 或 DSL。beta 冷构建与 stable promotion 的分叉由真实发布时延合同支撑，不能合并成隐式 fallback。

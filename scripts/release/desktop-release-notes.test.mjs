@@ -171,8 +171,10 @@ test("desktop workflow exposes an explicit APT-only recovery path", () => {
     /dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme/,
   );
   assert.match(workflow, /github_file_limit=104857600/);
-  assert.match(workflow, /rm -rf "\$better_sqlite3_root\/deps" "\$better_sqlite3_root\/src"/);
-  assert.match(workflow, /test -f "\$better_sqlite3_root\/build\/Release\/better_sqlite3\.node"/);
+  assert.match(
+    workflow,
+    /if \[ -d "\$better_sqlite3_root" \]; then[\s\S]*?rm -rf "\$better_sqlite3_root\/deps" "\$better_sqlite3_root\/src"[\s\S]*?test -f "\$better_sqlite3_root\/build\/Release\/better_sqlite3\.node"[\s\S]*?fi/,
+  );
   assert.match(workflow, /timeout 180s sudo apt-get update/);
   assert.match(workflow, /failed after 3 bounded attempts/);
 });
