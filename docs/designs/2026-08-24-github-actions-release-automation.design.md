@@ -255,3 +255,9 @@ Desktop job 只获得 `actions:write`（dispatch child workflows）和 `contents
 - `/发布NPM`、`/发布NextClaw正式版`、全平台组合入口复用同一证据门；
 - 静态合同测试阻止 workflow、skill 和命令再次漂移；
 - 本修复不改变生产 workflow、NPM identity、认证 secret 或发布权限。
+
+### 2026-08-30：发布等待与 Windows 清理的边界
+
+正式 `product` 发布的 NPM READY 只依赖 exact-commit NPM preparation job 的成功和可下载 artifact，不依赖同一个 parent prepare run 中仍在执行的 Runtime prewarm matrix。publisher 以结构化 job 状态观察该精确 job，并对 artifact 可见性作有界下载重试；不得 `gh run watch` 整个 parent 后把 Runtime 预热的 wall time 串行化到 NPM 发布。
+
+已发布 NPM、tag 存在而 GitHub Release 尚未建立时，recovery 必须继续执行当前工作流中的跨平台真实安装/SQLite 合同，并只补 Runtime；不得重发不可变 NPM tarball。Windows 真实验证中，`node:sqlite` 的文件句柄在 CRUD 完成后可能稍后释放，临时 fixture 的清理必须使用有限 `EBUSY` 重试，避免把已经成功的公开包合同误判为 release 失败。此重试只覆盖临时目录回收，不遮蔽安装、版本、SQLite 写读或 manifest 任何一项业务失败。

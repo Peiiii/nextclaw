@@ -158,7 +158,16 @@ try {
     );
   }
 } finally {
-  rmSync(installRoot, { recursive: true, force: true });
+  // node:sqlite can release a Windows file handle just after the CRUD contract
+  // completes. The temporary fixture is not part of that contract, so retry the
+  // bounded cleanup instead of turning a successful published-package check
+  // into a platform-specific false failure.
+  rmSync(installRoot, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 500,
+  });
 }
 
 function readArg(name) {

@@ -12,3 +12,12 @@ test("uses a Windows shell to launch npm.cmd in published-install verification",
   assert.match(source, /process\.platform === "win32" \? "npm\.cmd" : "npm"/);
   assert.match(source, /shell: process\.platform === "win32"/);
 });
+
+test("retries bounded Windows fixture cleanup after SQLite closes its handle", () => {
+  const source = readFileSync(
+    new URL("./verify-published-npm-node-compatibility.mjs", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(source, /rmSync\(installRoot, \{[\s\S]*maxRetries: 10,[\s\S]*retryDelay: 500,/);
+});
