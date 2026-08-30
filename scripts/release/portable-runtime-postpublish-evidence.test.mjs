@@ -16,28 +16,22 @@ test("postpublish evidence verifies public NPM, Runtime, Desktop, APT and docume
   ]) assert.match(script, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
-test("full release runs public postpublish verification after the same identity desktop closure", async () => {
+test("portable runtime development acceptance stays independent from the stable release workflow", async () => {
   const workflow = await readFile(path.join(root, ".github/workflows/release.yml"), "utf8");
-  assert.match(workflow, /verify-portable-runtime-postpublish:[\s\S]*?needs: \[publish-npm, publish-runtime, publish-desktop\]/);
-  assert.match(
-    workflow,
-    /validate-portable-runtime:[\s\S]*?permissions:\s*\n\s+contents: read[\s\S]*?uses: \.\/\.github\/workflows\/portable-runtime-validate\.yml/,
-    "the caller must grant the reusable validation workflow its declared read permission",
-  );
-  assert.match(workflow, /Download exact candidate evidence/);
-  assert.match(workflow, /portable-runtime-postpublish-evidence\.ts/);
-  assert.match(workflow, /release:portable-runtime:acceptance:validate:postpublish/);
-  assert.match(workflow, /PORTABLE_RUNTIME_POSTPUBLISH_RESULT/);
+  assert.doesNotMatch(workflow, /validate-portable-runtime:/);
+  assert.doesNotMatch(workflow, /verify-portable-runtime-postpublish:/);
+  assert.doesNotMatch(workflow, /portable-runtime-postpublish-evidence\.ts/);
+  assert.doesNotMatch(workflow, /PORTABLE_RUNTIME_POSTPUBLISH_RESULT/);
 });
 
-test("release identity resolves new and recovery paths before reusable validation", async () => {
+test("release identity resolves new and recovery paths before publication", async () => {
   const workflow = await readFile(path.join(root, ".github/workflows/release.yml"), "utf8");
   assert.match(workflow, /resolve-release-identity:/);
   assert.match(workflow, /git update-ref refs\/heads\/master "\$GITHUB_SHA"/);
   assert.match(workflow, /test "\$\(git rev-parse master\)" = "\$GITHUB_SHA"/);
   assert.match(workflow, /mode=new/);
   assert.match(workflow, /mode=recovery/);
-  assert.match(workflow, /needs: resolve-release-identity[\s\S]*?portable-runtime-validate/);
+  assert.match(workflow, /publish-npm:[\s\S]*?needs: resolve-release-identity/);
   assert.match(workflow, /RELEASE_TARGET_VERSION: \$\{\{ needs\.resolve-release-identity\.outputs\.target_version \}\}/);
   assert.doesNotMatch(workflow, /target_version="\$\(node -p "require\('\.\/packages\/nextclaw\/package\.json'\)\.version"\)/);
   assert.match(workflow, /changeset status --output \.changeset-status\.json/);

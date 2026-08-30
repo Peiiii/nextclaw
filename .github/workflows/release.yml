@@ -73,20 +73,9 @@ jobs:
           process.stdout.write(`mode=recovery\ntarget_version=${version}\n`);
           NODE
 
-  validate-portable-runtime:
-    name: validate portable runtime release contract
-    needs: resolve-release-identity
-    permissions:
-      contents: read
-    uses: ./.github/workflows/portable-runtime-validate.yml
-    with:
-      target: all
-      product_version: ${{ needs.resolve-release-identity.outputs.target_version }}
-      release_mode: ${{ needs.resolve-release-identity.outputs.mode }}
-
   publish-npm:
     name: publish stable NPM batch
-    needs: [resolve-release-identity, validate-portable-runtime]
+    needs: resolve-release-identity
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: npm-production
@@ -472,70 +461,10 @@ jobs:
             echo "- desktop: DESKTOP_READY"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  verify-portable-runtime-postpublish:
-    name: verify public portable runtime release evidence
-    needs: [publish-npm, publish-runtime, publish-desktop]
-    if: ${{ always() && inputs.target == 'all' && needs.publish-npm.outputs.has_nextclaw == 'true' && needs.publish-runtime.result == 'success' && needs.publish-desktop.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    permissions:
-      actions: read
-      contents: read
-    steps:
-      - name: Checkout exact candidate source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.1
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - name: Install contract verifier
-        run: pnpm install --frozen-lockfile --prefer-offline
-
-      - name: Download exact candidate evidence
-        uses: actions/download-artifact@v4
-        with:
-          name: portable-runtime-ci-evidence-summary
-          path: ${{ runner.temp }}/portable-runtime-acceptance
-
-      - name: Verify public NPM Runtime Desktop APT and documentation
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          desktop_version="$(node -p "require('./apps/desktop/package.json').version")"
-          pnpm -C packages/nextclaw exec tsx --tsconfig ../nextclaw-kernel/tsconfig.json \
-            ../../scripts/release/portable-runtime-postpublish-evidence.ts \
-            --input "${{ runner.temp }}/portable-runtime-acceptance/portable-runtime-ci-evidence-summary.json" \
-            --output "${{ runner.temp }}/portable-runtime-acceptance/postpublish.json" \
-            --version "${{ needs.publish-npm.outputs.target_version }}" \
-            --desktop-version "$desktop_version"
-
-      - name: Enforce full postpublish portable runtime acceptance gate
-        run: >-
-          pnpm release:portable-runtime:acceptance:validate:postpublish --
-          --artifact "${{ runner.temp }}/portable-runtime-acceptance/postpublish.json"
-
-      - name: Upload immutable postpublish acceptance evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: portable-runtime-postpublish-evidence
-          path: ${{ runner.temp }}/portable-runtime-acceptance/postpublish.json
-          if-no-files-found: error
-
   summarize:
     name: summarize release state
     if: ${{ always() }}
-    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop, verify-portable-runtime-postpublish]
+    needs: [publish-npm, verify-npm-node-compatibility, verify-npm-unsupported-node, publish-runtime, publish-desktop]
     runs-on: ubuntu-latest
     permissions: {}
     steps:
@@ -550,7 +479,6 @@ jobs:
           NPM_NODE_COMPATIBILITY_RESULT: ${{ needs.verify-npm-node-compatibility.result }}
           NPM_UNSUPPORTED_NODE_RESULT: ${{ needs.verify-npm-unsupported-node.result }}
           RUNTIME_RESULT: ${{ needs.publish-runtime.result }}
-          PORTABLE_RUNTIME_POSTPUBLISH_RESULT: ${{ needs.verify-portable-runtime-postpublish.result }}
           TARGET: ${{ inputs.target }}
           TARGET_VERSION: ${{ needs.publish-npm.outputs.target_version }}
         run: |
@@ -565,7 +493,6 @@ jobs:
             echo "- npm unsupported node guard: $NPM_UNSUPPORTED_NODE_RESULT"
             echo "- runtime: $RUNTIME_RESULT"
             echo "- desktop: $DESKTOP_RESULT"
-            echo "- portable runtime postpublish acceptance: $PORTABLE_RUNTIME_POSTPUBLISH_RESULT"
             echo "- content: $([ "$CONTENT_READY" = "true" ] && echo CONTENT_READY || echo CONTENT_PENDING)"
             echo
             echo "CONTENT_PENDING does not invalidate an immutable core release; finish the existing release-notes, docs, website, and social workflows against this same version."
@@ -592,7 +519,7 @@ jobs:
               echo "target=all requires CONTENT_READY before Desktop publication."
               exit 1
             fi
-            if [ "$RUNTIME_RESULT" != "success" ] || [ "$DESKTOP_RESULT" != "success" ] || [ "$PORTABLE_RUNTIME_POSTPUBLISH_RESULT" != "success" ]; then
+            if [ "$RUNTIME_RESULT" != "success" ] || [ "$DESKTOP_RESULT" != "success" ]; then
               exit 1
             fi
           fi

@@ -76,3 +76,13 @@ test("atomically replaces a previously installed runner resource", async (contex
   assert.equal(await readFile(destination, "utf8"), "new-runner");
   assert.equal(result.bytes, 10);
 });
+
+test("development validation reuses the exact native Rust target build", async () => {
+  const workflow = await readFile(
+    new URL("../../../.github/workflows/portable-runtime-validate.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /uses: actions\/cache@v4/);
+  assert.match(workflow, /apps\/nextclaw-wasmtime-runner\/target/);
+  assert.match(workflow, /cargo test --release --target \$\{\{ matrix\.cargo_target \}\}/);
+});

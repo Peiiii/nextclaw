@@ -115,7 +115,7 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(runtime, /prepared_run_id:/);
   assert.match(runtime, /run-id: \$\{\{ inputs\.prepared_run_id \}\}/);
   assert.match(runtime, /Verify prepared Runtime identity and completeness/);
-  assert.match(release, /--prepared-source-sha "\$\{\{ github\.sha \}\}"/);
+  assert.match(release, /--prepared-source-sha "\$\{\{ needs\.publish-npm\.outputs\.prepared_source_sha \|\| github\.sha \}\}"/);
   assert.match(release, /timeout-minutes: 45/);
   assert.match(release, /actions: write/);
 });

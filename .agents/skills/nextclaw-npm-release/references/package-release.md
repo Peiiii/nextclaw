@@ -1,5 +1,7 @@
 # NPM Package 发布
 
+发布流程是稳定基础设施，只负责版本身份、冻结产物、上传、渠道更新、发布后完整性和恢复。功能专属验收、本地开发检查及其它前序阶段职责必须在进入发布前由各自 owner 独立闭合，禁止为了弥补上游遗漏而塞进发布 workflow。只有发布机制、平台、认证、产物合同或工具链本身发生真实变化时才修改发布流程；一次功能新增默认不得改变它。
+
 1. Stable 正式入口使用 GitHub Actions 中已经真实验收的认证路径；当前通过 `npm-production` environment 的受控 `NPM_TOKEN` 发布，并按实际 npm config 验证 auth。开始发布或认证诊断时，先读取 `.github/workflows/release.yml`，再用 `gh run list --workflow release.yml --status success --limit 1` 取得最近成功生产证据，并输出 `EXISTING_RELEASE_PATH`；远端查询失败只能形成 evidence gap，不能推翻本地 workflow 和历史成功产物已经证明的能力。Trusted Publishing 迁移必须单独执行：逐 package 配置精确 repository/workflow，记录配置清单，以真实 canary publish 验证而不是以“保存成功”代替，并在全部发布包通过后才切换正式 workflow；OIDC 路径不运行不受支持的 `npm whoami`。项目私有 `.npmrc` 存在时显式设置 `NPM_CONFIG_USERCONFIG`，隔离 worktree的 401 必须先核对主/隔离配置来源。
 2. `pnpm release:sync-readmes`、`release:check-readmes`、`release:check:health`。
 3. 根据用户安装入口和 workspace 依赖确定闭包；`@nextclaw/ui` 变化会影响 `nextclaw` 嵌入产物。严格检查在干净环境构建发布包的完整 workspace 依赖闭包，但只把 Changesets 发布包写入 checkpoint/tag/publish。窄发布必须证明排除依赖已按精确版本发布并通过 packed install。

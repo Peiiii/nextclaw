@@ -103,16 +103,13 @@ export class AppPackageManager {
       this.registryService.listApps(),
       this.runtimeHooks.listCapabilityProviders(),
     ]);
-    // Uninstall stages package directories before its registry mutation so it
-    // can restore them if staging fails. A concurrent list must therefore
-    // wait through that deliberately short transactional window rather than
-    // turn a harmless in-flight uninstall into a host-wide HTTP 500.
     const entries = (await Promise.all(records.map(async (record) =>
-      await this.readListedPackageView(
-        record.appId,
-        options.includeStorageUsage !== false,
-        providers,
-      )))).filter((entry): entry is AppPackageView => entry !== undefined);
+      await this.installationService.withAppOperation(record.appId, async () =>
+        await this.readListedPackageView(
+          record.appId,
+          options.includeStorageUsage !== false,
+          providers,
+        ))))).filter((entry): entry is AppPackageView => entry !== undefined);
     return {
       hostTarget: this.hostTargetService.read(),
       entries,
@@ -126,18 +123,22 @@ export class AppPackageManager {
     }));
 
   getPackage = async (appId: string): Promise<AppPackageView> => {
-    try {
-      return await this.readinessManager.toPackageView(await this.installationService.info(appId));
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("未找到已安装应用")) {
-        throw new AppPackageError("APP_PACKAGE_NOT_FOUND", error.message);
+    return await this.installationService.withAppOperation(appId, async () => {
+      try {
+        return await this.readinessManager.toPackageView(await this.installationService.info(appId));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("未找到已安装应用")) {
+          throw new AppPackageError("APP_PACKAGE_NOT_FOUND", error.message);
+        }
+        throw error;
       }
-      throw error;
-    }
+    });
   };
 
-  inspectDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.inspect(appId);
-  verifyDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.verify(appId);
+  inspectDependencies = async (appId: string): Promise<AppPackageDependencyView> =>
+    await this.installationService.withAppOperation(appId, async () => await this.dependencyCoordinator.inspect(appId));
+  verifyDependencies = async (appId: string): Promise<AppPackageDependencyView> =>
+    await this.installationService.withAppOperation(appId, async () => await this.dependencyCoordinator.verify(appId));
   setupDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.setup(appId);
   bindDependency = async (appId: string, input: AppPackageDependencyBindingInput): Promise<AppPackageDependencyView> =>
     await this.dependencyCoordinator.bind(appId, input);
@@ -145,10 +146,12 @@ export class AppPackageManager {
     await this.dependencyCoordinator.unbind(appId, input);
 
   inspectSecrets = async (appId: string): Promise<AppPackageSecretReadiness> =>
-    await this.readinessManager.inspectSecrets(await this.installationService.info(appId), false);
+    await this.installationService.withAppOperation(appId, async () =>
+      await this.readinessManager.inspectSecrets(await this.installationService.info(appId), false));
 
   verifySecrets = async (appId: string): Promise<AppPackageSecretReadiness> =>
-    await this.readinessManager.inspectSecrets(await this.installationService.info(appId), true);
+    await this.installationService.withAppOperation(appId, async () =>
+      await this.readinessManager.inspectSecrets(await this.installationService.info(appId), true));
 
   bindSecret = async (
     appId: string,
@@ -440,23 +443,17 @@ export class AppPackageManager {
     measureStorageUsage: boolean,
     providers: CapabilityProviderView[],
   ): Promise<AppPackageView | undefined> => {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        return await this.readinessManager.toPackageView(await this.installationService.info(
-          appId,
-          { measureStorageUsage },
-        ), undefined, providers);
-      } catch (error) {
-        if (!this.isTransientUninstallRead(error)) throw error;
-        // The registry is authoritative. Once uninstall has committed its
-        // registry mutation, omitting the removed App is the correct list
-        // projection; before that, retry the staged-directory window.
-        if (!await this.registryService.getApp(appId)) return undefined;
-        if (attempt === 2) throw error;
-        await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 10));
+    try {
+      return await this.readinessManager.toPackageView(await this.installationService.info(
+        appId,
+        { measureStorageUsage },
+      ), undefined, providers);
+    } catch (error) {
+      if (this.isTransientUninstallRead(error) && !await this.registryService.getApp(appId)) {
+        return undefined;
       }
+      throw error;
     }
-    return undefined;
   };
 
   private resolveSecurity = (
