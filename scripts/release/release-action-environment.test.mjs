@@ -177,7 +177,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
   assert.match(
     desktopJob,
-    /ref: \$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}/,
+    /ref: \$\{\{ github\.sha \}\}/,
   );
   assert.match(desktopJob, /pnpm release:desktop:stable/);
   assert.match(

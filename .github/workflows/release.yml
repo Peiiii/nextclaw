@@ -423,7 +423,9 @@ jobs:
       - name: Checkout exact release commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.publish-npm.outputs.closure_commit }}
+          # Recovery must run the current release control plane while the
+          # Desktop builder receives the immutable product target below.
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Setup pnpm
@@ -441,7 +443,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git switch -C master "${{ needs.publish-npm.outputs.closure_commit }}"
+          git switch -C master "$GITHUB_SHA"
           git branch --set-upstream-to=origin/master master
 
       - name: Install release toolchain
