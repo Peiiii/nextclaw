@@ -1,112 +1,55 @@
 ---
 name: nextclaw-product-visual-assets
-description: 当 NextClaw 产品更新后需要重生成、替换或检查官网、GitHub README、用户文档中的产品截图、真实会话截图、功能演示图、社区二维码或其它对外视觉资产时使用；也用于用户提出“更新截图”“重新截一批图”“用真实实例生成图片”“同步 landing 与仓库图片”“更新微信群二维码”或发布前检查图片是否受本次变化影响。负责按资产类型选择自动或精选流程、保持默认/雾蓝主题与真实代表性数据、同步镜像并完成尺寸、引用、隐私和展示质量验收。
+description: 当 NextClaw 产品更新后需要生成、替换、挑毛病或检查官网、GitHub README、用户文档或社交传播中的真实截图、AI 宣传视觉、整页 HTML 宣传预览、社区二维码等对外视觉资产时使用；也用于“更新截图”“重新截一批图”“做宣传页”“生成 campaign 页面”“视觉审稿”“五星挑刺法”或发布前检查视觉资产。普通站点布局开发或只写文章不触发。
 ---
 
-# 刷新产品视觉素材
+# NextClaw 产品视觉资产
 
 ## 目标
 
-让产品更新后的对外图片刷新成为可重复流程。skill 负责编排和验收，仓库脚本负责确定性执行；不要靠临时截图步骤或逐处手工复制维持一致性。
+让对外视觉既能准确证明真实产品价值，又形成值得传播的完成品。skill 负责选择证据、艺术方向、生成编排和验收；确定性脚本负责截图、同步或渲染。开始前先使用 `user-facing-content-boundary`，隔离内部过程、隐私、调试状态和不成熟结论。
 
-开始前先使用 `user-facing-content-boundary`，确保最终图片只呈现产品结果，不把内部方案、调试状态或生产过程带到对外内容中。
+## 选择一个模式
 
-## 先判断是否需要刷新
+- **产品截图与外部资产**：更新稳定界面、精选真实任务、README/landing 镜像、二维码或指标图时，读取 [产品截图与外部资产](references/product-screenshot-and-external-assets.md)。
+- **整页宣传工作室**：把新功能、主题、版本或真实场景做成精美的单文件 HTML showcase/campaign 页面时，执行下方流程。
+- **AI 辅助单张视觉**：只需一张概念主图或截图包装时，使用 `imagegen`；真实 UI 仍由原始截图承担证据，概念图不得冒充产品界面。
 
-1. 读取本次 diff、release notes 或用户点名的界面，列出受影响的可见表面。
-2. 用 `rg` 检查这些表面当前被 README、landing、docs 或社交元信息引用的图片。
-3. 只刷新受到真实视觉或内容影响的场景；纯后端、协议或不可见重构不机械重截全套图片。
-4. 产品发布前至少检查首页首屏、主要功能展示和 README 代表图是否仍与当前产品一致。
+只选择当前任务需要的模式，不批量读取其它参考。
 
-## 选择执行路径
+## 整页宣传工作室
 
-### 稳定界面
+主产物是一件完整 HTML 宣传作品：开场判断、渠道文案预览、传播卡片、真实证据和设计说明共同组成同一套叙事。X、官网、README 或社区帖只是可选渠道模块，不是页面本身的全部目的。
 
-适用于 Provider、渠道、Agent、技能市场、定时任务、面板应用、工作区预览等可稳定定位的页面。
+1. **冻结命题与内容骨架**：用一句话写清用户应记住什么，再列 1–3 个可核查 claim。为每个模块声明它在故事中的任务、提供的信息增量、用户看完应带走的结论，以及承载结论的证据或解释；回答不了这四项的模块直接删除或重写，禁止用漂亮背景包装空内容。命题应服务 NextClaw 作为长期个人智能搭档或个人操作层的真实价值，不能只写“更高级、更震撼”。
+2. **截图计划**：先决定 claim 需要“完整窗口”“完整功能面板”还是“完整图 + 有来源的细节图”，再选择或重新采集素材。每张事实素材都要在 `capture` 中声明主体、完整性、裁切来源和隐私检查；不能先拿现成图再随意找一个位置塞进去。读取 [宣传页内容与证据合同](references/promo-page-content-evidence.md)。
+3. **裁切决策**：完整证据保持原始画面；局部图必须声明来源完整图和归一化 `cropRegion`，只能用于解释细节。没有完整图时不得生成事实卡片。
+4. **选择区块原型**：先读取 [宣传页区块布局原型目录](references/promo-page-layout-archetypes.md)，根据内容角色、信息数量、顺序关系和媒体形状筛选最多三个候选，并在 `layoutDecision` 中记录最终选择与理由。再在 card 的 `evidence` 中明确单图、连续多图或“完整图 + 细节图”，固定使用 `contain` 并继承源图比例。读取 [宣传页构图与留白合同](references/promo-page-composition-and-spacing.md)，约束文字、截图、主动留白、安全区和多图关系；截图自身成为圆角卡片，不默认再套窗口壳。
+5. **确定艺术方向**：从产品本身提取颜色、材质、留白和字体气质。需要生成/编辑背景、使用参考图或准备提示词时，读取 [宣传页艺术方向与生图提示词](references/promo-page-art-direction-and-image-prompts.md)，并使用 `imagegen`。AI 只生成背景、纹理、装饰或明确标注的概念视觉，不伪造产品 UI。
+6. **编排整页**：先按内容推进确定模块数量，再决定构图。默认包含开场判断、可选渠道预览、2–4 张传播卡片、证据映射和简短设计说明；按传播目标增删，不强行保留 X 帖子，也不为凑满卡片保留只有一句泛化口号的模块。背景只提供氛围、分区和视线引导，不算内容。
+7. **生成**：复制并修改样例 brief，然后运行：
 
-```bash
-pnpm run screenshots:refresh
-```
+   ```bash
+   node scripts/render-promo-page.mjs --brief <brief.json> --out <preview.html>
+   ```
 
-公开素材优先连接真实本地实例；只有 CI、结构回归或真实数据不可用时才使用确定性 mock：
+   模板位于 `assets/promo-page-template.html`。渲染器会把本地图片嵌入 HTML，并阻断缺少布局决策、原型与实现不相容、claim 与截图不匹配、事实卡片缺少完整截图或试图用全幅裁切冒充产品证据的页面。
+8. **验收**：打开页面检查桌面和窄屏；逐条核对“选图—裁切—比例—拼接—可读性”，确认每个事实 claim 都能在完整截图中找到、截图关键对象足够大、多图顺序有意义，并排除私人信息、失败态、加载态、旧版本误导或 AI 伪造 UI。交付前必须执行构图参考中的“五星挑刺法”，并在最终回复中公开每个模块的五个问题、分数、模块指数、全局排序和未解决项；不能因为结果达到交付线就省略问题。用户说“挑毛病”“按之前的方法审”或“五星挑刺”时，直接召回同一方法。纯审美由用户确认，内容代表性由执行者先证明。
 
-```bash
-SCREENSHOT_USE_REAL_APP_DATA=1 \
-SCREENSHOT_UI_ORIGIN=http://127.0.0.1:<port> \
-SCREENSHOT_SCENES=<scene-a,scene-b> \
-pnpm run screenshots:refresh
-```
+### 自带起点
 
-### 精选真实任务
+- `assets/promo-page-island-theme-brief.example.json`：可运行的 Island 样例。
+- `assets/promo-page-island-atmosphere-reference.webp`：艺术背景参考，不承担功能证据。
+- `assets/promo-page-island-workspace-reference.png`：真实界面参考；复用前仍须检查版本、隐私和内容代表性。
 
-适用于图片生成、数据分析、写作、代码或 HTML 结果等依赖代表性会话内容的场景。先在人类可判断的真实本地数据中选定一个完整结果，再让脚本完成主题、语言、视口、定位和镜像输出；不要让脚本随机生成宣传内容。
+## 共同结果标准
 
-```bash
-SCREENSHOT_UI_ORIGIN=http://127.0.0.1:<port> \
-SCREENSHOT_SESSION_ID=<real-session-id> \
-pnpm run screenshots:capture-curated
-```
+- 真实截图证明事实，AI 视觉提供氛围，两者角色清楚。
+- 每张事实型卡片至少完整展示一次证据截图；局部细节只能辅助，必须可追溯到同卡完整图，不能取代完整画面。
+- 截图不是填充纹理：先确认主体和边界，再按源图比例决定卡片尺寸，最后才做拼接。
+- 图片完整显示文案声称的对象和结果；不出现密钥、私人标识、失败提示、加载态或被裁断的关键内容。
+- 概念图、重排卡片和拼接图不能冒充真实产品截图。
+- 页面或图片自身像完成品：有节奏、留白、统一材质和明确焦点，不是内部提案套背景。
+- 交付时列出产物路径、证据来源、未采用素材及原因；未经用户要求不提交、不发布、不替换线上资产。
 
-需要在一个会话中精确选择目标时，增加 `SCREENSHOT_TARGET_TEXT=<可唯一定位的文字>`。精选模式必须使用真实实例，缺少 session id 或真实 UI 时直接失败，不回退到 mock。
-
-### 外部时效资产
-
-微信群二维码等外部提供、会过期或需要防缓存的图片，不属于产品 UI 截图。使用专门同步命令更新 GitHub 稳定路径、landing 稳定路径、landing 日期路径和源码引用：
-
-```bash
-pnpm run assets:update-wechat-qr -- --source <image-path> --date YYYY-MM-DD
-```
-
-不要手工只覆盖其中一处。日期应使用收到并启用该二维码的当天日期。
-
-GitHub Star 趋势图不再引用第三方实时 SVG。使用仓库脚本通过当前仓库的 GitHub Token 生成本地静态资产：
-
-```bash
-GITHUB_TOKEN=$(gh auth token) pnpm run assets:refresh-star-history
-```
-
-定时 workflow 使用 `github.token` 自动刷新该图；README 只引用 `images/metrics/nextclaw-star-history.svg`，避免第三方接口限流或权限变化导致图片失效。
-
-### AI 辅助宣发视觉
-
-适用于抽象能力、品牌叙事或单张产品截图难以承载的发布主结论。可直接用 AI 生图，也可把公开安全的真实截图作为输入，让 AI 生成背景、构图或视觉包装；执行时使用 `imagegen` skill，并保留原始截图作为事实对照。
-
-- 若主结论是可见功能行为，优先让真实截图承担证据，AI 只做不遮挡关键界面的包装。
-- 若主结论是性能数据，优先使用精确数据摘要图；AI 视觉只能辅助氛围，不能改写数字、平台、配置或测量边界。
-- 若主结论是抽象能力或品牌叙事，可使用纯 AI 概念图，但必须在资产角色和对外文案中保持“概念视觉”语义，不得冒充产品 UI。
-- 选择标准是信息表达和可信度，不建立“截图永远优先”或“AI 生图永远优先”的机械顺序。
-
-## 固定展示合同
-
-- 对外产品截图只使用默认主题或雾蓝主题；同一批次不混用主题，默认 `cool`。
-- 标准画布为 `1512 x 828` CSS 像素、`2x` 输出，即 `3024 x 1656`。
-- 使用真实、非空、有代表性的数据。截图要完整显示文案声称的对象和结果。
-- 不得出现密钥、token、私人标识、无关会话、失败提示、加载态、调试工具或被裁断的关键结果。
-- 产品截图必须来自真实运行界面；概念图、重排卡片或拼接图不能冒充产品截图。
-- `images/screenshots/` 是 GitHub/文档源资产；landing 使用的同名镜像必须与源资产哈希一致。
-- 为单个用户可见需求产出的正式截图，如果适合未来版本更新说明，必须通过 `release-note-image` 指令绑定到同一需求的 changeset；不要只把图片放进目录后期待发布时按文件名猜测。
-- README 中的动态指标图使用仓库自有静态资产，并由 workflow 定期刷新；不得直接依赖需要公开 token 的第三方图片 URL。
-- 定时 CI 只刷新稳定场景。精选真实任务和外部时效资产需要明确输入，不加入无输入的定时任务。
-
-## 验收
-
-1. 打开每张新图检查构图、主题、内容完整度和隐私，不只检查脚本退出码。
-2. 用 `sips` 或等价工具检查尺寸与格式；用 `shasum -a 256` 检查源资产和 landing 镜像。
-3. 用 `rg` 检查 README、landing 与 docs 的实际引用，确认没有仍指向旧资产。
-4. 对 landing 变更运行 `pnpm --filter @nextclaw/landing build`，并在真实页面打开对应图片或入口。
-5. 在 Validation 阶段运行触达脚本的 ESLint、skill validator 和治理检查；源码或脚本改动再进入 Review 阶段执行 maintainability 自动检查。
-6. 若本次图片已绑定 changeset，运行 `pnpm release:summary -- --json`，确认语言、路径、替代文本和文件存在性全部通过。
-7. 最后检查 `git diff --name-status`，只保留本次视觉资产机制和实际受影响图片；未经用户要求不要提交。
-
-## 与版本更新说明关联
-
-需求级截图的长期 owner 仍是 `images/screenshots/`，changeset 只保存机器可读引用：
-
-```md
-<!-- release-note-image: zh-CN | images/screenshots/<asset-cn>.png | 中文替代文本 -->
-<!-- release-note-image: en-US | images/screenshots/<asset-en>.png | English alt text -->
-```
-
-仅在截图真实、公开安全、能直接证明需求价值时添加。完整发现、筛选、版本化复制和未采用原因由 `nextclaw-release-notes` 负责；本 skill 不生成最终 release note。
-
-详细场景清单、环境变量和资产 owner 以 [`docs/workflows/product-screenshot-automation.md`](../../../docs/workflows/product-screenshot-automation.md) 为准。
+正式截图若适合未来版本说明，使用 `release-note-image` 绑定到同一需求 changeset；完整规则见 [产品截图与外部资产](references/product-screenshot-and-external-assets.md)。
