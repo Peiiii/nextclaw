@@ -33,6 +33,8 @@ test("full release runs public postpublish verification after the same identity 
 test("release identity resolves new and recovery paths before reusable validation", async () => {
   const workflow = await readFile(path.join(root, ".github/workflows/release.yml"), "utf8");
   assert.match(workflow, /resolve-release-identity:/);
+  assert.match(workflow, /git update-ref refs\/heads\/master "\$GITHUB_SHA"/);
+  assert.match(workflow, /test "\$\(git rev-parse master\)" = "\$GITHUB_SHA"/);
   assert.match(workflow, /mode=new/);
   assert.match(workflow, /mode=recovery/);
   assert.match(workflow, /needs: resolve-release-identity[\s\S]*?portable-runtime-validate/);
