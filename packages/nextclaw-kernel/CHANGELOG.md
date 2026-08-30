@@ -1,5 +1,22 @@
 # @nextclaw/kernel
 
+## 0.14.0
+
+### Minor Changes
+
+- f38b756: Complete the Portable Capability Runtime with host-mediated files, secrets, networking, SQLite, jobs, streaming, resident events, AI and Agent slots, versioned providers, shared Panel/Agent/CLI invocation, and a current-evidence acceptance contract. Add end-to-end developer commands, real reference apps, cross-platform release gates, and user/developer documentation.
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [f38b756]
+  - @nextclaw/core@0.17.15
+  - @nextclaw/app-runtime@0.16.0
+  - @nextclaw/mcp@0.3.42
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.42
+  - @nextclaw/runtime@0.4.41
+  - @nextclaw/ncp-mcp@0.2.42
+
 ## 0.13.0
 
 ### Minor Changes
