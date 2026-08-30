@@ -1,5 +1,16 @@
 # @nextclaw/ui
 
+## 0.23.0
+
+### Minor Changes
+
+- f38b756: Complete the Portable Capability Runtime with host-mediated files, secrets, networking, SQLite, jobs, streaming, resident events, AI and Agent slots, versioned providers, shared Panel/Agent/CLI invocation, and a current-evidence acceptance contract. Add end-to-end developer commands, real reference apps, cross-platform release gates, and user/developer documentation.
+
+### Patch Changes
+
+- Updated dependencies [f38b756]
+  - @nextclaw/client-sdk@0.10.0
+
 ## 0.22.5
 
 ### Patch Changes
