@@ -261,7 +261,11 @@ test("stable release exposes only the business target and infers recovery checkp
   );
   assert.match(
     workflow,
-    /candidate_conclusion" != "failure"[\s\S]*?candidate_conclusion" != "cancelled"[\s\S]*?--status completed[\s\S]*?--json conclusion,databaseId,headSha/,
+    /A completed successful recovery can supply the missing cells[\s\S]*?candidate_conclusion" = "skipped"/,
+  );
+  assert.match(
+    workflow,
+    /candidate_conclusion" = "skipped"[\s\S]*?--status completed[\s\S]*?--json conclusion,databaseId,headSha/,
   );
   assert.match(
     workflow,

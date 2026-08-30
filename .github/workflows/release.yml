@@ -110,7 +110,10 @@ jobs:
             git fetch origin "refs/tags/$tag:refs/tags/$tag"
             release_commit="$(git rev-list -n 1 "$tag")"
             while read -r candidate_run candidate_sha candidate_conclusion; do
-              if [ "$candidate_conclusion" != "failure" ] && [ "$candidate_conclusion" != "cancelled" ]; then
+              # A completed successful recovery can supply the missing cells from an
+              # earlier failed run. Keep every actionable completed run, then let the
+              # matrix resolver give immutable success evidence precedence.
+              if [ -z "$candidate_conclusion" ] || [ "$candidate_conclusion" = "skipped" ]; then
                 continue
               fi
               if git merge-base --is-ancestor "$release_commit" "$candidate_sha"; then
