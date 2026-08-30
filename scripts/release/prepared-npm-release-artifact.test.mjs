@@ -311,7 +311,6 @@ test("dispatches and waits for exact-commit recovery when no usable prewarm exis
   execFileSync("git", ["clone", "--no-local", sourceRoot, importRoot], { stdio: "ignore" });
   const sourceCommit = git(importRoot, ["rev-parse", "HEAD"]);
   let dispatched = false;
-  let watched = false;
   const calls = [];
   const recovered = ensurePreparedNpmReleaseArtifact({
     locateAttempts: 2,
@@ -323,10 +322,6 @@ test("dispatches and waits for exact-commit recovery when no usable prewarm exis
         dispatched = true;
         return "";
       }
-      if (args[0] === "run" && args[1] === "watch") {
-        watched = true;
-        return "";
-      }
       if (args[0] === "run" && args[1] === "list") {
         if (!dispatched) return "[]";
         const dispatchArgument = calls.find((call) => call[1] === "workflow")?.find((value) =>
@@ -334,13 +329,24 @@ test("dispatches and waits for exact-commit recovery when no usable prewarm exis
         );
         return JSON.stringify([
           {
-            conclusion: watched ? "success" : null,
+            conclusion: null,
             databaseId: 77,
             displayTitle: `npm-release-prepare source=${sourceCommit} dispatch=${String(dispatchArgument).slice(12)}`,
             headSha: "new-master",
-            status: watched ? "completed" : "in_progress",
+            status: "in_progress",
           },
         ]);
+      }
+      if (args[0] === "run" && args[1] === "view") {
+        return JSON.stringify({
+          jobs: [
+            {
+              conclusion: "success",
+              name: "prepare exact-commit NPM artifact",
+              status: "completed",
+            },
+          ],
+        });
       }
       if (args[0] === "run" && args[1] === "download") {
         cpSync(artifactDirectory, args[args.indexOf("--dir") + 1], { recursive: true, force: true });
@@ -354,5 +360,76 @@ test("dispatches and waits for exact-commit recovery when no usable prewarm exis
 
   assert.equal(recovered.manifest.sourceCommit, sourceCommit);
   assert.ok(calls.some((call) => call.includes(`source_sha=${sourceCommit}`)));
-  assert.ok(calls.some((call) => call[1] === "run" && call[2] === "watch"));
+  assert.ok(calls.some((call) => call[1] === "run" && call[2] === "view"));
+  assert.ok(!calls.some((call) => call[1] === "run" && call[2] === "watch"));
+});
+
+test("uses an active prewarm as soon as its NPM artifact job succeeds", (context) => {
+  const fixtureRoot = mkdtempSync(join(tmpdir(), "prepared-npm-active-job-test-"));
+  context.after(() => rmSync(fixtureRoot, { force: true, recursive: true }));
+  const sourceRoot = createSourceRepository(fixtureRoot);
+  const packageFile = join(sourceRoot, "packages/nextclaw/package.json");
+  const packageJson = JSON.parse(readFileSync(packageFile, "utf8"));
+  packageJson.version = "1.2.3";
+  writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`);
+  const record = createPreparedNpmRelease({
+    branch: "master",
+    checkpoint: createCheckpoint(),
+    previousVersion: "1.2.2",
+    registry: "https://registry.example.test/",
+    rootDir: sourceRoot,
+    targetBranch: "master",
+  });
+  const artifactDirectory = join(fixtureRoot, "artifact");
+  exportPreparedNpmReleaseArtifact({ outputDirectory: artifactDirectory, record, rootDir: sourceRoot });
+
+  const importRoot = join(fixtureRoot, "import");
+  execFileSync("git", ["clone", "--no-local", sourceRoot, importRoot], { stdio: "ignore" });
+  const sourceCommit = git(importRoot, ["rev-parse", "HEAD"]);
+  const calls = [];
+  let downloadAttempts = 0;
+  const downloaded = ensurePreparedNpmReleaseArtifact({
+    artifactJobAttempts: 1,
+    downloadAttempts: 2,
+    registry: "https://registry.example.test/",
+    rootDir: importRoot,
+    runCommand: (command, args) => {
+      calls.push([command, ...args]);
+      if (args[0] === "run" && args[1] === "list") {
+        return JSON.stringify([
+          {
+            conclusion: null,
+            databaseId: 88,
+            headSha: sourceCommit,
+            status: "in_progress",
+          },
+        ]);
+      }
+      if (args[0] === "run" && args[1] === "view") {
+        return JSON.stringify({
+          jobs: [
+            {
+              conclusion: "success",
+              name: "prepare exact-commit NPM artifact",
+              status: "completed",
+            },
+          ],
+        });
+      }
+      if (args[0] === "run" && args[1] === "download") {
+        downloadAttempts += 1;
+        if (downloadAttempts === 1) throw new Error("artifact not propagated yet");
+        cpSync(artifactDirectory, args[args.indexOf("--dir") + 1], { recursive: true, force: true });
+        return "";
+      }
+      throw new Error(`Unexpected command: ${command} ${args.join(" ")}`);
+    },
+    sleep: () => {},
+    targetBranch: "master",
+  });
+
+  assert.equal(downloaded.manifest.sourceCommit, sourceCommit);
+  assert.equal(downloadAttempts, 2);
+  assert.ok(calls.some((call) => call[1] === "run" && call[2] === "view"));
+  assert.ok(!calls.some((call) => call[1] === "run" && call[2] === "watch"));
 });

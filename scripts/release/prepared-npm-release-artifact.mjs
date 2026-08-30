@@ -25,6 +25,10 @@ const ROOT_DIR = process.cwd();
 const ARTIFACT_SCHEMA_VERSION = 1;
 export const PREPARED_NPM_WORKFLOW = "npm-release-prepare.yml";
 export const PREPARED_NPM_ARTIFACT_PREFIX = "npm-release-prepared";
+const PREPARED_NPM_ARTIFACT_JOB = "prepare exact-commit NPM artifact";
+const DEFAULT_ARTIFACT_JOB_ATTEMPTS = 240;
+const DEFAULT_ARTIFACT_DOWNLOAD_ATTEMPTS = 12;
+const ARTIFACT_RETRY_DELAY_MS = 5000;
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -356,11 +360,78 @@ function waitForDispatchedPreparedRun(options) {
   throw new Error(`Timed out locating ${workflow} recovery dispatch ${dispatchId}.`);
 }
 
-function waitForPreparedRun({ rootDir, runCommand, runEntry }) {
-  runCommand(
+function readPreparedWorkflowJobs({ rootDir, runCommand, runEntry }) {
+  const result = runCommand(
     "gh",
-    ["run", "watch", String(runEntry.databaseId), "--exit-status"],
+    ["run", "view", String(runEntry.databaseId), "--json", "jobs"],
     { cwd: rootDir },
+  );
+  return JSON.parse(result || "{}").jobs ?? [];
+}
+
+function waitForPreparedNpmArtifactJob(options) {
+  const {
+    artifactJobAttempts,
+    rootDir,
+    runCommand,
+    runEntry,
+    sleep,
+  } = options;
+  for (let attempt = 1; attempt <= artifactJobAttempts; attempt += 1) {
+    const job = readPreparedWorkflowJobs({ rootDir, runCommand, runEntry }).find(
+      (entry) => entry?.name === PREPARED_NPM_ARTIFACT_JOB,
+    );
+    if (job?.status === "completed" && job?.conclusion === "success") {
+      return runEntry;
+    }
+    if (job?.status === "completed") {
+      throw new Error(
+        `Exact-commit NPM artifact job failed in ${runEntry.databaseId}: ${job.conclusion ?? "unknown conclusion"}.`,
+      );
+    }
+    if (attempt < artifactJobAttempts) sleep(ARTIFACT_RETRY_DELAY_MS);
+  }
+  throw new Error(
+    `Timed out waiting for exact-commit NPM artifact job in ${runEntry.databaseId}.`,
+  );
+}
+
+function downloadPreparedNpmArtifact(options) {
+  const {
+    artifactName,
+    downloadAttempts,
+    downloadRoot,
+    rootDir,
+    runCommand,
+    runEntry,
+    sleep,
+  } = options;
+  let lastError = null;
+  for (let attempt = 1; attempt <= downloadAttempts; attempt += 1) {
+    rmSync(downloadRoot, { force: true, recursive: true });
+    mkdirSync(downloadRoot, { recursive: true });
+    try {
+      runCommand(
+        "gh",
+        [
+          "run",
+          "download",
+          String(runEntry.databaseId),
+          "--name",
+          artifactName,
+          "--dir",
+          downloadRoot,
+        ],
+        { cwd: rootDir },
+      );
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < downloadAttempts) sleep(ARTIFACT_RETRY_DELAY_MS);
+    }
+  }
+  throw new Error(
+    `Exact-commit NPM artifact ${artifactName} was not downloadable from ${runEntry.databaseId} after ${downloadAttempts} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
   );
 }
 
@@ -388,6 +459,8 @@ export function ensurePreparedNpmReleaseArtifact(options = {}) {
     rootDir = ROOT_DIR,
     runCommand = run,
     sleep = blockingSleep,
+    artifactJobAttempts = DEFAULT_ARTIFACT_JOB_ATTEMPTS,
+    downloadAttempts = DEFAULT_ARTIFACT_DOWNLOAD_ATTEMPTS,
     locateAttempts = 30,
     targetBranch = "master",
     workflow = PREPARED_NPM_WORKFLOW,
@@ -405,15 +478,21 @@ export function ensurePreparedNpmReleaseArtifact(options = {}) {
   let runs = listPreparedWorkflowRuns({ rootDir, runCommand, workflow });
   let workflowRun = selectPreparedNpmWorkflowRun(runs, sourceCommit);
   if (!workflowRun) {
-    const activeRun = selectActivePreparedNpmWorkflowRun(runs, sourceCommit);
-    if (activeRun) {
+    const candidateRun = runs.find((entry) =>
+      isPreparedRunForSource(entry, sourceCommit),
+    );
+    if (candidateRun) {
       try {
-        waitForPreparedRun({ rootDir, runCommand, runEntry: activeRun });
+        workflowRun = waitForPreparedNpmArtifactJob({
+          artifactJobAttempts,
+          rootDir,
+          runCommand,
+          runEntry: candidateRun,
+          sleep,
+        });
       } catch {
-        // The exact-SHA recovery below is the single explicit fallback for a failed/cancelled prewarm.
+        // The exact-SHA recovery below is the single explicit fallback for a failed/cancelled NPM preparation job.
       }
-      runs = listPreparedWorkflowRuns({ rootDir, runCommand, workflow });
-      workflowRun = selectPreparedNpmWorkflowRun(runs, sourceCommit);
     }
   }
   if (!workflowRun) {
@@ -439,9 +518,13 @@ export function ensurePreparedNpmReleaseArtifact(options = {}) {
       sleep,
       workflow,
     });
-    waitForPreparedRun({ rootDir, runCommand, runEntry: recoveryRun });
-    runs = listPreparedWorkflowRuns({ rootDir, runCommand, workflow });
-    workflowRun = selectPreparedNpmWorkflowRun(runs, sourceCommit);
+    workflowRun = waitForPreparedNpmArtifactJob({
+      artifactJobAttempts,
+      rootDir,
+      runCommand,
+      runEntry: recoveryRun,
+      sleep,
+    });
   }
   if (!workflowRun) {
     throw new Error(`Exact-commit preparation completed without a successful ${workflow} run for ${sourceCommit}.`);
@@ -449,19 +532,15 @@ export function ensurePreparedNpmReleaseArtifact(options = {}) {
   const downloadRoot = mkdtempSync(join(tmpdir(), "nextclaw-npm-artifact-"));
   try {
     const artifactName = `${PREPARED_NPM_ARTIFACT_PREFIX}-${sourceCommit}`;
-    runCommand(
-      "gh",
-      [
-        "run",
-        "download",
-        String(workflowRun.databaseId),
-        "--name",
-        artifactName,
-        "--dir",
-        downloadRoot,
-      ],
-      { cwd: rootDir },
-    );
+    downloadPreparedNpmArtifact({
+      artifactName,
+      downloadAttempts,
+      downloadRoot,
+      rootDir,
+      runCommand,
+      runEntry: workflowRun,
+      sleep,
+    });
     return importPreparedNpmReleaseArtifact({
       artifactDirectory: downloadRoot,
       registry,

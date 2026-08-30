@@ -141,6 +141,14 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 - `CONTENT_PENDING` 只表示可变内容投影未闭合，不得伪装成 `CONTENT_READY`，也不得触发 NPM/Runtime 重发；
 - 静态 workflow 合同测试锁定这个分界，禁止再次用 `target != npm` 扩大内容硬门。
 
+### 2026-08-30 Prepared artifact 等待边界修正
+
+`0.46.0` 的第二次 `target=product` run 证明了一条新的性能/自治缺口：发布器在 exact-SHA 的 NPM artifact 已上传并完成后，调用 `gh run watch` 等待整个 `npm-release-prepare` 父 run；该父 run 还在并行预热四平台 Runtime。因此 NPM publish 被与它没有依赖关系的 macOS/Windows Runtime 构建阻塞，`NPM_READY` 无法优先形成。
+
+等待 owner 收窄到唯一真实依赖：同一 prepare run 的 `prepare exact-commit NPM artifact` job。发布器只读取该 job 的结构化完成状态；成功后以有界重试下载同名 artifact，吸收 GitHub artifact 的短暂一致性延迟。Runtime prewarm 继续并行，不再是 NPM publish 的等待条件。job 失败或有界下载耗尽时，才 dispatch/恢复同一 source identity 的 exact prepare；不会重复 NPM 包或等待 parent workflow 的其它矩阵。
+
+这条合同的可观察指标是：`NPM_READY` 的 critical path 只包含 NPM artifact job、artifact 下载、publish、registry/Git/install closure；四平台 Runtime 只属于后续 Runtime closure。单元测试锁定“active parent + successful NPM artifact job 立即消费”和“download propagation retry”，并禁止重新引入 `gh run watch`。
+
 ## 七、失败、恢复和并发
 
 - workflow concurrency 使用 stable release 全局串行，`cancel-in-progress: false`，避免新触发取消正在 publish 的不可逆批次。

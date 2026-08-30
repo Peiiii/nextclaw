@@ -1,4 +1,4 @@
 interface:
-  display_name: "刷新产品视觉素材"
-  short_description: "按真实产品状态刷新官网与 GitHub 的截图和社区二维码。"
-  default_prompt: "使用 $nextclaw-product-visual-assets 刷新本次 NextClaw 产品更新影响到的对外截图与视觉资产，并完成镜像和质量检查。"
+  display_name: "NextClaw 产品视觉工作室"
+  short_description: "生成真实产品截图、宣传视觉与精美的整页 HTML 展示方案。"
+  default_prompt: "使用 $nextclaw-product-visual-assets 为这次 NextClaw 更新生成与真实产品证据匹配的视觉资产或整页 HTML 宣传预览。"

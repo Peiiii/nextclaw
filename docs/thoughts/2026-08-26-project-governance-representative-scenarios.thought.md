@@ -7,6 +7,10 @@
 > 关联设计：[项目治理主页设计](../designs/2026-08-25-project-governance-hub.design.md)
 >
 > V1 裁决：[项目治理主页 V1 功能范围决策](../designs/2026-08-26-project-governance-hub-v1-scope.design.md)
+>
+> 当前实现依据：[只读项目观测 V1 设计](../designs/2026-08-30-read-only-project-observer-v1.design.md)
+>
+> 本文保留场景研究时使用的六对象、`Policy` 和主动治理假设。当前产品已收敛为配置驱动、来源可追溯的只读项目观测层；本文旧术语和控制面设想只用于追溯场景结论，不再作为当前领域对象、界面动作或技术范围。
 
 ## 1. 目的
 
