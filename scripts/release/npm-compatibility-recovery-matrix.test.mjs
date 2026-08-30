@@ -24,6 +24,22 @@ test("reruns only failed or cancelled compatibility jobs for a stable recovery",
   ]);
 });
 
+test("reuses a successful cell from an earlier run of the same immutable identity", () => {
+  const windows20 = NPM_COMPATIBILITY_MATRIX.find((entry) =>
+    entry.platform === "windows-x64" && entry.node === "20.19.0",
+  );
+  const jobs = [
+    { name: `verify NPM ${windows20.platform} Node ${windows20.node}`, conclusion: "success" },
+    ...NPM_COMPATIBILITY_MATRIX.filter((entry) => entry !== windows20).map((entry) => ({
+      name: `verify NPM ${entry.platform} Node ${entry.node}`,
+      conclusion: "failure",
+    })),
+    { name: `verify NPM ${windows20.platform} Node ${windows20.node}`, conclusion: "cancelled" },
+  ];
+  const result = resolveNpmCompatibilityRecoveryMatrix({ isRecovery: true, jobs });
+  assert.equal(result.include.some((entry) => entry === windows20), false);
+});
+
 test("reuses complete immutable identity evidence without scheduling another matrix", () => {
   const jobs = NPM_COMPATIBILITY_MATRIX.map((entry) => ({
     name: `verify NPM ${entry.platform} Node ${entry.node}`,

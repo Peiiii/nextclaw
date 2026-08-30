@@ -105,23 +105,20 @@ jobs:
               done
             fi
           fi
-          printf '[]' > "$RUNNER_TEMP/previous-compatibility-jobs.json"
+          : > "$RUNNER_TEMP/previous-compatibility-jobs.ndjson"
           if [ "$is_recovery" = true ]; then
             git fetch origin "refs/tags/$tag:refs/tags/$tag"
             release_commit="$(git rev-list -n 1 "$tag")"
             while read -r candidate_run candidate_sha; do
               if git merge-base --is-ancestor "$release_commit" "$candidate_sha"; then
-                compatibility_source_run="$candidate_run"
-                break
+                gh run view "$candidate_run" --json jobs --jq '.jobs[]' >> "$RUNNER_TEMP/previous-compatibility-jobs.ndjson"
+                compatibility_source_run="${compatibility_source_run:+$compatibility_source_run,}$candidate_run"
               fi
             done < <(gh run list --workflow release.yml --status failure --limit 20 --json databaseId,headSha --jq '.[] | "\(.databaseId) \(.headSha)"')
-            if [ -n "$compatibility_source_run" ]; then
-              gh run view "$compatibility_source_run" --json jobs --jq '.jobs' > "$RUNNER_TEMP/previous-compatibility-jobs.json"
-            fi
           fi
           compatibility_result="$(node scripts/release/npm-compatibility-recovery-matrix.mjs \
             --is-recovery "$is_recovery" \
-            --jobs-file "$RUNNER_TEMP/previous-compatibility-jobs.json")"
+            --jobs-file "$RUNNER_TEMP/previous-compatibility-jobs.ndjson")"
           compatibility_matrix="$(node -e 'const result = JSON.parse(process.argv[1]); process.stdout.write(JSON.stringify({ include: result.include }))' "$compatibility_result")"
           compatibility_reused="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).reused))' "$compatibility_result")"
           previous_version="$(git tag -l 'nextclaw@*' --sort=-version:refname | sed 's/^nextclaw@//' | grep -vx "$target_version" | head -n 1)"
