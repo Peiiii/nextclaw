@@ -241,7 +241,7 @@ jobs:
           release_commit="$(git rev-list -n 1 "$tag")"
           prepared_source_sha="$(git rev-parse "$release_commit^")"
           test "$(npm view "nextclaw@$TARGET_VERSION" version)" = "$TARGET_VERSION"
-          content_ready="$(node --input-type=module -- "$PREVIOUS_VERSION" "$TARGET_VERSION" <<'NODE'
+          content_ready="$(node --input-type=module - "$PREVIOUS_VERSION" "$TARGET_VERSION" <<'NODE'
           import {
             hasStructuredReleaseNotes,
             inspectReleaseSurfaceReview,
