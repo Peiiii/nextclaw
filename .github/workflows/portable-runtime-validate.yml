@@ -141,8 +141,8 @@ jobs:
             echo "product_version=${{ inputs.product_version }}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          pnpm exec changeset status --output "$RUNNER_TEMP/changeset-status.json"
-          node - "$RUNNER_TEMP/changeset-status.json" >> "$GITHUB_OUTPUT" <<'NODE'
+          pnpm exec changeset status --output .changeset-status.json
+          node - .changeset-status.json >> "$GITHUB_OUTPUT" <<'NODE'
           const fs = require("node:fs");
           const status = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           if (status.preState) throw new Error("portable-runtime acceptance does not permit Changesets prerelease mode");

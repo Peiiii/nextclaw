@@ -47,8 +47,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm exec changeset status --output "$RUNNER_TEMP/changeset-status.json"
-          node - "$RUNNER_TEMP/changeset-status.json" <<'NODE' >> "$GITHUB_OUTPUT"
+          pnpm exec changeset status --output .changeset-status.json
+          node - .changeset-status.json <<'NODE' >> "$GITHUB_OUTPUT"
           const { execFileSync } = require("node:child_process");
           const fs = require("node:fs");
           const status = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
