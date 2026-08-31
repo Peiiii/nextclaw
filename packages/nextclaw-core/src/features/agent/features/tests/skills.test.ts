@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -246,6 +246,9 @@ describe("SkillsLoader skill sources", () => {
     );
     expect(loader.loadSkill("nextclaw-autostart")).toContain("nextclaw service autostart status");
   });
+});
+
+describe("SkillsLoader Mini App creation", () => {
 
   it("documents Panel App Agent APIs in the builtin panel app creator skill", () => {
     const workspace = createWorkspace();
@@ -284,6 +287,10 @@ describe("SkillsLoader skill sources", () => {
     expect(skill).toContain("`list()` 返回 action 数组");
     expect(skill).toContain("`invoke()` 已由宿主 SDK 解包");
     expect(skill).toContain("不要为了 AI 分析新建 Service App 自己调用模型");
+    expect(skill).toContain("完整、可安装、可发布或长期维护的 schema v2 Mini App");
+    expect(skill).toContain("`panels/<panel-id>.panel/`");
+    expect(skill).toContain("Panel bridge 不按 runtime 分叉");
+    expect(skill).toContain("nextclaw app check <app-dir> --json");
   });
 
   it("loads the NextClaw app creator orchestration skill", () => {
@@ -294,32 +301,32 @@ describe("SkillsLoader skill sources", () => {
     expect(skill).toContain("Panel-only");
     expect(skill).toContain("Service-only");
     expect(skill).toContain("Panel + Service");
+    expect(skill).toContain("组件组成和 Service runtime 是两条正交维度");
+    expect(skill).toContain("不是三个并列 App 类型");
+    expect(skill).toContain("Portable WASI 与 native-process 只用于比较 Service 组件如何运行");
+    expect(skill).toContain("Portable WASI");
+    expect(skill).toContain("native-process");
     expect(skill).toContain("panel-app-creator");
     expect(skill).toContain("service-app-creator");
     expect(skill).toContain("panel-app-react-vite-creator");
-    expect(skill).toContain("完成 Panel/Service 形态判断后，再判断前端工程形态");
     expect(skill).toContain("React + Vite + TypeScript + Tailwind CSS + pnpm");
-    expect(skill).toContain("AI 应用、对话体验、需要 App Client 类型");
     expect(skill).toContain("window.nextclaw.serviceActions.invoke()");
     expect(skill).toContain("window.nextclaw.agent.generateObject()");
-    expect(skill).toContain("不要外部生成稳定 `sessionId`");
-    expect(skill).toContain("创建目录式 Panel App");
-    expect(skill).toContain("`panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源");
-    expect(skill).toContain("Service Actions 当前推荐继续使用旧 bridge");
-    expect(skill).toContain("只有明确需要旧 bridge 的 `generateObject()` 便利层时才走 `window.nextclaw.agent.generateObject()`");
-    expect(skill).toContain("`window.nextclaw.serviceActions.list()` 返回数组");
-    expect(skill).toContain("Service App 零依赖优先");
-    expect(skill).toContain("创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主");
-    expect(skill).toContain("交付说明不要让用户 restart");
-    expect(skill).toContain("Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel");
-    expect(skill).toContain("普通 inline Panel App 展示必须输出 `nextclaw-inline`");
-    expect(skill).toContain("不要调用 `show_panel_app` 做 inline 展示");
-    expect(skill).toContain("只用于 side panel 即时预览");
+    expect(skill).toContain("`window.nextclaw.serviceActions.invoke()`");
+    expect(skill).toContain("开发机器需要 `cargo`、`rustc` 和 `wasm32-wasip2`");
+    expect(skill).toContain("最终用户安装、启用和运行已经构建好的 Portable `.napp` 不需要 Rust");
+    expect(skill).toContain("纯 Panel 不需要 Rust");
+    expect(skill).toContain("开发机缺少 Rust 不是把安全边界静默降级为 native-process 的充分理由");
+    expect(skill).toContain("nextclaw app create <app-dir> --template rust-wasi");
+    expect(skill).toContain("build → check → test → dev → call");
+    expect(skill).toContain("schema v2 包根");
+    expect(skill).toContain("service-components/<service-id>/");
+    expect(skill).not.toContain("当前 schema v2 Service App 使用 `service-app.json` 的 `command/args`");
+    expect(skill).not.toContain("当前没有 schema v2 WASI");
     expect(skill).toContain("nextclaw-inline");
     expect(skill).toContain('show_file(path, viewer="rendered")');
     expect(skill).toContain("show_url(url)");
     expect(skill).not.toContain('placement="side_panel"');
-    expect(skill).toContain('viewer="source"');
   });
 
   it("loads the React/Vite Panel App creator builtin skill", () => {
@@ -341,25 +348,44 @@ describe("SkillsLoader skill sources", () => {
     expect(skill).toContain("真实 client 必须来自宿主同步注入的 `window.nextclaw.client`");
     expect(skill).toContain("不要凭记忆写 `panelApps.*`");
     expect(skill).toContain("nextclaw app check");
+    expect(skill).toContain("`<app-dir>/panels/<panel-id>.panel/`");
+    expect(skill).toContain("schema v2 包内 Panel 必须从包根运行");
   });
 
-  it("documents the Service App bridge payload contract", () => {
+  it("routes Service Apps between Portable WASI and native-process contracts", () => {
     const workspace = createWorkspace();
     const loader = new SkillsLoader(workspace);
     const skill = loader.loadSkill("service-app-creator");
+    const skillRoot = new URL("../../shared/skills/service-app-creator/", import.meta.url);
+    const portable = readFileSync(new URL("references/portable-wasi-service-app.md", skillRoot), "utf8");
+    const nativeProcess = readFileSync(new URL("references/native-process-service-app.md", skillRoot), "utf8");
 
-    expect(skill).toContain("Service App 只负责浏览器做不了或不该做的后端动作");
-    expect(skill).toContain("AI 分析、总结、分类、结构化 JSON 输出默认走 Panel App 的 `window.nextclaw.agent.generateObject()`");
-    expect(skill).toContain("`serviceActions.list()` 返回 action 数组");
-    expect(skill).toContain("`serviceActions.invoke()` 返回业务 payload");
-    expect(skill).toContain("如果 MCP tool result 使用 `structuredContent`");
-    expect(skill).toContain("默认优先做零依赖 Service App");
-    expect(skill).toContain("零依赖优先：能用 Node.js 内置模块完成");
-    expect(skill).toContain("Service App 可以自由使用第三方包");
-    expect(skill).toContain("@modelcontextprotocol/sdk");
-    expect(skill).toContain("不要假设用户已经手动装过");
-    expect(skill).toContain("创建或修改 Service App 后不需要重启 NextClaw 宿主");
+    expect(skill).toContain("Portable WASI Service");
+    expect(skill).toContain("native-process Service");
+    expect(skill).toContain("references/portable-wasi-service-app.md");
+    expect(skill).toContain("references/native-process-service-app.md");
+    expect(skill).toContain("nextclaw app doctor --profile wasi");
+    expect(skill).toContain("安装和运行已经构建好的");
+    expect(skill).toContain("Panel 不需要知道后端是 WASI 还是 native-process");
+    expect(skill).not.toContain("当前没有 schema v2 WASI Service component 合同");
+
+    expect(portable).toContain("nextclaw app create <app-dir> --template rust-wasi");
+    expect(portable).toContain('"protocol": "wasi-component"');
+    expect(portable).toContain("Action");
+    expect(portable).toContain("Resident");
+    expect(portable).toContain("Provider");
+    expect(portable).toContain("nextclaw app test . --json");
+    expect(portable).toContain("Rust 是本机构建依赖，不是安装后运行依赖");
+
+    expect(nativeProcess).toContain('"protocol": "mcp"');
+    expect(nativeProcess).toContain('"command": "node"');
+    expect(nativeProcess).toContain("默认优先零依赖 `server.mjs`");
+    expect(nativeProcess).toContain("@modelcontextprotocol/sdk");
+    expect(nativeProcess).toContain("不是 OS 进程沙箱");
   });
+});
+
+describe("SkillsLoader builtin metadata", () => {
 
   it("keeps builtin skill descriptions bilingual", () => {
     const workspace = createWorkspace();
@@ -405,7 +431,6 @@ describe("SkillsLoader skill sources", () => {
     );
     expect(matches[0]?.path.startsWith(workspace)).toBe(false);
   });
-
 });
 
 describe("SkillsLoader catalog prompt", () => {
@@ -454,10 +479,20 @@ describe("SkillsLoader Mini App publishing", () => {
     expect(skill).toContain("nextclaw account status --json");
     expect(skill).toContain("nextclaw app validate-publish");
     expect(skill).toContain("nextclaw app publish");
+    expect(skill).toContain("Portable WASI");
+    expect(skill).toContain("native-process");
+    expect(skill).toContain("Panel-only 与 Portable WASI、native-process 不是同一层的三个选项");
+    expect(skill).toContain('`protocol: "wasi-component"`');
+    expect(skill).toContain('`protocol: "mcp"`');
+    expect(skill).toContain("最终用户安装、启用和运行已构建的 Portable `.napp` 不需要 Rust");
+    expect(skill).toContain("nextclaw app test <app-dir> --json");
+    expect(skill).toContain("distribution.targets");
     expect(skill).toContain("publishStatus: pending");
-    expect(skill).toContain("已提交审核，尚未出现在应用市场");
+    expect(skill).toContain("已提交审核，尚未出现在 Marketplace");
     expect(skill).not.toContain("napp publish");
+    expect(skill).not.toContain("当前没有 schema v2 WASI Service 执行合同");
+    expect(skill).not.toContain("schema v2 Service components do not support a WASI runtime yet");
     expect(creator).toContain("nextclaw-app-publisher");
-    expect(creator).toContain("nextclaw app validate-publish / publish");
+    expect(creator).toContain("nextclaw app validate-publish/publish");
   });
 });

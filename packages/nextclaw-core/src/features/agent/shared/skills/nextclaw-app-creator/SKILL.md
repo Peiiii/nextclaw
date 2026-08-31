@@ -1,123 +1,153 @@
 ---
 name: nextclaw-app-creator
-description: Create or update complete NextClaw lightweight apps, deciding whether the user needs a Panel App, a Service App, or a combined Panel + Service App. Use for NextClaw applets, small tools, dashboards, local file tools, AI-assisted UI tools, apps that may combine right-side UI with backend actions, or questions about what NextClaw/Panel apps can do and which app APIs/capabilities they can use.
-description_zh: 创建或修改完整的 NextClaw 轻量应用，并判断应使用 Panel App、Service App，还是 Panel App + Service App 组合。适用于 NextClaw 小应用、小工具、dashboard、本地文件工具、AI 辅助 UI 工具、需要右侧 UI 搭配后端动作的应用，或用户询问 NextClaw/Panel App 能做什么、能使用哪些 app API/能力。
+description: Create or update complete NextClaw Mini Apps by first choosing a Panel-only, Service-only, or Panel + Service composition, then choosing Portable WASI or native-process only when a Service exists. Use for applets, dashboards, local tools, AI-assisted interfaces, Service Actions, portable Components, or questions about NextClaw App capabilities and authoring requirements.
+description_zh: 创建或修改完整 NextClaw Mini App：先判断是纯 Panel、纯 Service 还是 Panel + Service，再仅对存在的 Service 选择 Portable WASI 或 native-process。适用于小应用、dashboard、本地工具、AI 辅助界面、Service Actions、可移植 Component，或询问 NextClaw App 能力与开发要求。
 ---
 
 # NextClaw App Creator
 
-当用户说“做一个应用 / 小工具 / dashboard / 管理器 / 可视化 / 本地文件工具 / AI 辅助工具”时，先使用这个总入口 skill。目标不是把 Panel App 和 Service App 混成一个概念，而是先判断形态，再按需读取专项 skill。
+当用户说“做一个应用、小工具、dashboard、管理器、可视化、本地文件工具或 AI 辅助工具”时，先使用这个总入口。目标是按用户工作流确定应用边界和运行形态，再把字段细节交给单一专项 owner。
 
-总入口只负责形态决策、组合顺序和最终验收，不拥有 Panel App 或 Service App 的字段细节。判断出形态后，必须继续读取对应专项 skill；不能只读本 skill 就直接编写 `panel-app.json`、`service-app.json`、bridge 调用或 MCP server。
+本 skill 只负责：
 
-先主动判断 Panel App 的前端形态，不要只在用户点名技术栈时才选择工程化方案。明显是多组件 UI、AI 对话/Agent Run、列表筛选、图表、复杂表单、持续维护、需要 TypeScript 类型辅助，或用户要求现代/可构建/可复用源码时，优先读取 `panel-app-react-vite-creator`，再按需读取 `panel-app-creator` 处理 manifest、bridge、Client SDK 和验收规则。工程化推荐栈是 `React + Vite + TypeScript + Tailwind CSS + pnpm` 一整套，缺一不可；只有极小、一次性、无复杂状态、无构建收益的静态面板，才直接走轻量目录式 Panel App。
+- Panel-only / Service-only / Panel + Service 的组件组成判断；
+- 仅在存在 Service 时判断 Portable WASI / native-process runtime；
+- loose 本机应用 / schema v2 完整包边界；
+- 前端工程形态和最终验收编排。
 
-## 能力发现
+确定形态后必须继续读取对应专项 skill。不能只读本入口就猜 `panel-app.json`、`service-app.json`、WIT、MCP server 或 bridge API。
 
-当用户问“这个应用能做什么”“Panel App 能接哪些能力”“能不能做 AI 相关应用”“有哪些 API 可以用”时，必须说明 `window.nextclaw.client` 这类 App Client 能力，但不要把 Service Actions 迁移成 App Client 主路径。Service Actions 当前推荐继续使用旧 bridge，因为旧 bridge 拥有 Panel App 所需的授权确认和自动 retry 体验。
+组件组成和 Service runtime 是两条正交维度，不是三个并列 App 类型。`Panel-only` 表示这个 Mini App 没有 Service；Portable WASI 与 native-process 只用于比较 Service 组件如何运行，也都可以出现在 Service-only 或 Panel + Service 包中。
 
-能力盘点默认按三层说明：
+## 先判断用户要交付什么
 
-- Panel UI：右侧面板里的静态 UI、表单、列表、图表和页面内临时状态。
-- App Client：声明 `"client": true` 并整体授权后，使用同步注入的 `window.nextclaw.client` 访问标准客户端能力，例如 sessions、agents、agentRuns、assets、events。`client.serviceActions.*` 当前存在，但不要作为 Panel App Service Actions 推荐路径。
-- Service App：提供本地文件、外部 API、本地命令和其它需要授权的后端原子动作；Panel App 当前推荐通过旧 bridge `window.nextclaw.serviceActions.*` 调用，以保留授权确认、grant 和自动 retry。
+### 1. Panel-only
 
-`window.nextclaw.serviceActions.*` 不是待替代的历史细节，而是当前 Panel App 调用 Service Actions 的推荐入口。AI 应用可以优先介绍 App Client 的 `agentRuns`；需要旧 bridge 独有的高层结构化能力，或用户不希望开启整体 client 授权时，再提 `window.nextclaw.agent.*`。
+适用于交互 UI、表单、列表、看板、图表、计算器或轻量 dashboard，且不需要稳定持久化、本地文件、外部 API、系统命令或权限动作。
 
-## 先判断应用形态
+- 下一步读取 `panel-app-creator`；
+- 页面状态只放内存，或显式导入/导出；
+- 不依赖 `localStorage`、`sessionStorage`、cookie 或 IndexedDB；
+- 纯 Panel 不需要 Rust。
 
-优先按用户想完成的工作流选择，而不是按技术名词选择：
+### 2. Service-only
 
-1. **Panel-only**
-   - 用户主要需要一个可交互 UI、表单、列表、看板、图表、计算器或轻量 dashboard。
-   - 核心数据不需要跨重新打开持久保存；临时状态只存在内存中，或通过导入/导出 JSON 手动保存。
-   - 不需要读写本地文件、调用外部 API、本地命令或权限动作。
-   - 下一步：读取 `panel-app-creator`。
+用户只需要可授权 actions、Resident 事件处理或 Provider 能力，不需要新建 UI。
 
-2. **Service-only**
-   - 用户明确只需要给某个能力提供后端 actions。
-   - 不需要新建右侧 UI。
-   - 典型场景是给已有 Panel App 或未来应用提供文件读写、外部 API、本地命令封装。
-   - 下一步：读取 `service-app-creator`。
-   - 禁止只凭本 skill 编写 `service-app.json`；`actions`、`risk`、`command`、依赖和 MCP server 规则都归 `service-app-creator`。
+- 下一步读取 `service-app-creator`；
+- 由它继续选择 Portable WASI 或 native-process；
+- 不在本入口编写 action、risk、WIT、command 或 MCP 细节。
 
-3. **Panel + Service**
-   - 用户要的是一个完整小应用，并且 UI 需要后端能力。
-   - 典型信号：读写 workspace 文件、管理 Markdown/记忆/配置、调用外部 API、执行本地命令、需要权限确认、需要多个用户可授权 action。
-   - 下一步：先读取 `service-app-creator` 设计 actions，再读取 `panel-app-creator` 设计 UI 和调用方式。
-   - 不要跳过 `service-app-creator` 直接在 Panel App 中猜 Service Action；后端 action 的 manifest 字段以 `service-app-creator` 为唯一专项规则源。
+### 3. Panel + Service
 
-如果不确定是否需要后端，默认先做 **Panel-only**，但只能依赖页面内临时状态和手动导入/导出；不能依赖 `localStorage`、`sessionStorage`、cookie 或 IndexedDB。只要用户目标需要稳定持久化、文件、网络、命令或权限边界，就加入 Service App 或使用已授权的 App Client 能力。
+用户需要完整小应用，且 UI 需要持久化、文件、网络、命令、Provider、AI slot 或其它宿主能力。
 
-当前 schema v2 Service App 使用 `service-app.json` 的 `command/args` 启动宿主进程，安全分级是 `native-process/full-user`，不属于 WASI 或沙箱。组合包含任意 Service component 时，根 manifest 必须声明 `runtime.profile: native-process`；禁止仅把 profile 改成 `wasi`。社区 Service App 可以提交公开上架，但必须进入高权限人工审核；创建时如实声明能力和风险，不能为了降低审核等级改成 Panel-only 或伪造 WASI。
+1. 先读取 `service-app-creator`，冻结 runtime、action、risk 和能力边界；
+2. 再读取 `panel-app-creator`，实现 UI、action allowlist 和统一 bridge 调用；
+3. Panel 不根据 Service runtime 分叉：Portable 与 native-process 都通过 `window.nextclaw.serviceActions.*` 调用。
 
-完成 Panel/Service 形态判断后，再判断前端工程形态：
+## 再判断 Service runtime
 
-- **工程化 React/Vite/TypeScript/Tailwind/pnpm**：适合 AI 应用、对话体验、需要 App Client 类型、多个视图/组件、列表筛选排序、图表、复杂表单、异步加载状态、错误/空状态较多，或后续会持续迭代的 Panel App。推荐栈必须作为一整套使用：`React + Vite + TypeScript + Tailwind CSS + pnpm`，不要只选其中一部分；最终仍交付静态 `.panel` 目录。
-- **轻量目录式静态 Panel App**：适合极小工具、一次性页面、纯展示/简单表单、少量内存状态、无明显组件拆分和构建收益的应用。不要为了“像工程”而引入 npm 工程。
+涉及 Service 时，不再默认生成 Node MCP stdio。
 
-## 组合原则
+### Portable WASI 优先条件
 
-- Panel App 是用户界面层，默认展示在右侧面板，必须窄侧栏优先。
-- 工程化 React/Vite/Tailwind Panel App 由 `panel-app-react-vite-creator` 负责；最终仍必须产出静态目录式 `.panel`，不要让宿主运行 Vite dev server。
-- Service App 是用户自定义后端扩展，提供可授权 actions；它不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
-- Service App 当前以宿主用户权限运行；权限确认约束 action 调用，不等于进程沙箱。社区组合包经高权限人工审核后可以进入公开目录，安装后默认停用，必须由用户显式启用。
-- Panel App 调用 Service App 时，当前推荐继续使用 `window.nextclaw.serviceActions.invoke()`，并在 `panel-app.json.actions` 声明 action allowlist；不要因为 App Client 里存在 `client.serviceActions.*` 就默认替代旧 bridge。
-- Panel App 如果已经声明 `"client": true`，触发标准 Agent Run 优先使用 `window.nextclaw.client.agentRuns.*`；未开启 App Client 或需要旧 bridge 独有高层能力时，才使用 `window.nextclaw.agent.*` 并声明 capability。
-- Panel App 只有确实需要 NextClaw App Client 时，才在 `panel-app.json` 声明 `client: true`，并在运行时使用宿主同步注入的 `window.nextclaw.client`；不要让 Panel App 自己 import、保存 token 或猜测 Client SDK 接口。需要接口形状时，从用户机器已安装的 `@nextclaw/client-sdk` NPM 包声明文件解析 `NextClawAppClient`。
-- 使用 App Client 时，把 NextClaw 当作会话、消息、Agent Run 和资产的持久化 owner。Panel App 不要再用浏览器 storage 镜像会话历史、保存 sessionId 映射或自建聊天存档；稳定会话用 `peerId`，历史数据用 `client.sessions.*` 读取，运行中状态用 `client.events.subscribe()` 追踪。
-- AI 分析、总结、分类、结构化 JSON 输出优先判断 App Client 的 `agentRuns` 是否能覆盖；只有明确需要旧 bridge 的 `generateObject()` 便利层时才走 `window.nextclaw.agent.generateObject()`。Service App 用于本地文件、外部 API、本地命令和权限动作，不默认承担模型调用。
-- 不要让 Panel App 自己启动 HTTP server、直连 Service Gateway、伪造 caller、保存 bridge token 或猜测 sessionId。
-- 不要为了“像应用工程”而给 Panel App 创建 Vite、后台 dev server 或无意义的 `package.json`；第一版 NextClaw 轻量应用默认是静态 Panel App + 可选 MCP stdio Service App。Service App 零依赖优先，能用 Node.js 内置模块手写最小 MCP stdio / JSON-RPC server 就不要引入包；确实 import 第三方包时，才在该 Service App 目录声明自己的 `package.json` 并安装依赖。
-- 创建或修改 Panel App / Service App 后，默认不需要重启 NextClaw 宿主、server 或桌面应用；如果要验证 live 产品实例或 Panel-to-Service 调用，先运行 `nextclaw app restart <service-app-id> --json` 断开旧 Service App runtime，再刷新列表、重新打开 Panel App，或运行 `nextclaw app check/dev/call` 做验收。
-- 当用户进一步要求把完成的 Panel App、Service App 或组合应用发布到应用市场时，继续读取 `nextclaw-app-publisher`。发布 Mini App 只使用 `nextclaw app validate-publish / publish`，不要把用户路由到 `napp`。
+- 自包含、面向分发或希望跨支持平台运行；
+- KV、SQLite、授权文件、允许域名、密钥、Provider、model slot 或 agent slot 足以覆盖需求；
+- 希望 Guest 只获得声明并绑定的能力，而不是完整宿主用户权限；
+- 需要 Action、Resident 或 Provider 生命周期。
 
-## 实现顺序
+### native-process 条件
+
+- 必须直接运行 Node、Python、系统程序、平台 SDK、驱动、socket 或外部守护进程；
+- 当前 Portable Runtime 没有真实能力承接；
+- 用户明确只要一个快速、本机、无需 Rust 的 Service helper，并接受宿主权限边界；
+- 维护已有 workspace MCP Service。
+
+开发机缺少 Rust 不是把安全边界静默降级为 native-process 的充分理由。若两种路径都会满足用户目标，可选择 native-process 快速本机闭环，但必须说明它不具备 Portable Runtime 的隔离与通用分发合同。
+
+## Rust 只属于 Portable 的开发期
+
+- 本机创建并构建 Rust/WASI Guest 前运行 `nextclaw app doctor --profile wasi`；开发机器需要 `cargo`、`rustc` 和 `wasm32-wasip2`。
+- 最终用户安装、启用和运行已经构建好的 Portable `.napp` 不需要 Rust、Cargo、Wasmtime 或系统 Node；runner 随 NextClaw 提供。
+- Panel-only 和 native-process Service 不因本机制而强制安装 Rust。
+- 未经用户授权不要自动安装 Rust 工具链；工具链缺失时保留源码并准确报告未完成的 build/test 门。
+
+## 选择包边界
+
+完整、可安装、可发布或长期维护的 Mini App 默认使用 schema v2 包根：
+
+```text
+my-app/
+├── manifest.json
+├── marketplace.json
+├── panels/<panel-id>.panel/             # 可选
+├── service-components/<service-id>/     # 可选
+├── guest/                               # Portable 源码，可选
+└── tests/                               # Service smoke，可选
+```
+
+根 manifest 的 `components` 是归属事实源；从包根运行当前形态适用的 `build/check/test/dev/call/pack/validate-publish`。
+
+只有用户明确要临时、本机、不可发布的松散扩展时，才直接写 workspace：
+
+- loose Panel：`panels/<panel-id>.panel/`；
+- loose native-process Service：`service-apps/<service-id>/`。
+
+不要先制造散落组件，再把组装完整包留给用户。只要目标已经是“完整 Mini App”或“以后要安装/分享”，从一开始就在包根工作。
+
+## 前端工程形态
+
+明显包含多组件 UI、对话/Agent Run、列表筛选、图表、复杂表单、多个状态、TypeScript 类型或持续维护时，先读取 `panel-app-react-vite-creator`，再读取 `panel-app-creator` 处理 manifest、bridge、sandbox 和验收。默认工程栈是完整的 `React + Vite + TypeScript + Tailwind CSS + pnpm`。
+
+极小、一次性、纯展示或简单表单使用轻量目录式 Panel，不为“像工程”创建 npm 工程。工程源码可以在包内或用户指定目录开发，但运行组件仍是静态 `.panel` 产物，宿主不运行 Vite dev server。
+
+## 组合不变量
+
+- `panel-app.json` 是 Panel 标题、入口、图标、Agent capabilities 和 Service action allowlist 的事实源。
+- `service-app.json.actions` 是 Service actions、risk 和输入合同的事实源。
+- action id 使用 `<service-id>.<action-name>`。
+- Panel 调用 Service Action 推荐 `window.nextclaw.serviceActions.invoke()`；`list()` 返回数组，`invoke()` 返回业务 payload，不读取 `response.actions` 或 `response.result`。
+- 需要标准 sessions、agents、agentRuns、assets、events 时才声明 `client: true` 并使用同步注入的 `window.nextclaw.client`；不要 import runtime client、保存 token 或猜 API。
+- AI 应用优先使用 App Client `agentRuns`；只有需要旧便利层时才使用 `window.nextclaw.agent.generateObject()`。
+- Service 不默认自己调用模型；Portable 的模型/Agent 依赖使用 manifest slot，外部模型服务必须是用户明确需求。
+- Panel sandbox 不增加 `allow-same-origin`，不直接请求 Gateway，不伪造 caller，不保存 bridge token。
+- 普通组件变更不要求重启 NextClaw 宿主。
+
+## 实现与验证顺序
 
 ### Panel-only
 
-1. 读取 `panel-app-creator`。
-2. 创建目录式 Panel App。
-3. 确保标题、描述、图标、窄侧栏布局和核心交互完整。
-4. 状态默认只保存在内存；需要保存时提供导出/导入 JSON，或升级为 Panel + Service。
-5. 做 Panel App 打开和刷新验收。
+1. 读取 `panel-app-creator`；
+2. 按 loose 或 package-root 边界创建 Panel；
+3. 运行 `nextclaw app check <target> --json`；
+4. 验收窄侧栏、宽屏、loading/empty/error 和核心交互。
 
-### Service-only
+### 包含 Service，且 runtime 为 Portable WASI
 
-1. 读取 `service-app-creator`。
-2. 设计 `service-app.json.actions`，为每个 action 写清 `title`、`description` 和 `risk`。
-3. 实现 MCP stdio server，不创建 HTTP 常驻端口。
-4. 优先实现零依赖 `server.mjs`；如果确实 import 官方 MCP SDK 或其它第三方包，在 Service App 目录创建 `package.json` 并运行安装命令。
-5. 验证 manifest actions 与 MCP `tools/list` 对齐。
-6. 用“服务应用”面板刷新状态。
+1. 读取 `service-app-creator` 及其 Portable reference；
+2. 运行 `doctor`，再使用 `nextclaw app create <app-dir> --template rust-wasi`；
+3. 修改 schema v2 包内 Service、Guest、权限和 smoke fixture；若组成包含 Panel，再实现 Panel 与 action allowlist；
+4. 从包根运行 `build → check → test → dev → call`；
+5. 明确区分创作者工具链与最终用户运行依赖。
 
-### Panel + Service
+### 包含 Service，且 runtime 为 native-process
 
-1. 先读取 `service-app-creator`，确定 action 边界、risk 和入参输出。
-2. 再读取 `panel-app-creator`，实现 UI、allowlist、调用和降级体验。
-3. Panel App 的核心 UI 必须在 Service App 不可用时仍有可理解状态；如确实没有后端就无法完成核心目标，要在 UI 中明确展示需要授权或服务状态，而不是静默失败。
-4. 完成后分别验收 Service App 状态、Panel App 展示、首次授权、action 调用和错误提示。
+1. 读取 `service-app-creator` 及其 native-process reference；
+2. 选择完整包或明确的 loose workspace 形态；
+3. 实现 MCP stdio Service；若组成包含 Panel，再实现 Panel 与 action allowlist；
+4. 运行 `check → dev → call`，核对 manifest 与 `tools/list`；
+5. 披露宿主权限和外部依赖，不声称它是 WASI 沙箱。
 
-## 设计约束
+## 完成清单
 
-- **先创建再优化，禁止长时间思考后才动手**：读完必要 SKILL.md 后，必须在 2 次工具调用内开始写文件（例如 `write_file`，或在已有可运行产物时用 `show_file` / `show_url` 展示）。不要在 thinking 中反复推演架构、对比方案或预写代码——这些工作应该边做边展示。用户的"做一个 XX"请求期望在 1-2 分钟内看到可见产物，不是 6 分钟的架构分析。如果需要选择技术方案（轻量 vs 工程化、Panel-only vs Panel+Service），选第一个合理的方案直接动手，用户不满意再迭代。
-- 先做能被用户立即使用的小闭环，不做重型工程脚手架。
-- 一个小应用的 UI、后端 actions、Agent 调用和授权声明必须互相一致。
-- `panel-app.json` 是 Panel App 标题、入口、图标、Agent capabilities 和 Service action allowlist 的唯一事实源；不要在 HTML meta 中重复声明 NextClaw manifest 字段。
-- action id 统一使用 `<service-app-id>.<tool-name>`。
-- Agent capability 统一使用 `agent:send`、`agent:generateObject`，不要写 `agent.send`、`agent.generateObject` 或泛化的 `agent`。
-- `window.nextclaw.serviceActions.list()` 返回数组；`window.nextclaw.serviceActions.invoke()` 返回业务 payload；不要读取 `response.actions` 或 `response.result`。
-- `window.nextclaw.client` 是授权后同步可用的 App Client projection，不是完整底层 `NextClawClient`；本 skill 不硬编码其 API schema，需要时读取已安装 `@nextclaw/client-sdk` 包的 `NextClawAppClient` 声明。
+- 组件组成、适用的 Service runtime 和包边界都有明确依据；
+- 完整 Mini App 的 Panel、Service、权限、smoke 与根 manifest 同包一致；
+- Panel action allowlist、Service manifest 和 runtime exports 完全一致；
+- Portable 实际通过 `build/check/test`，或明确披露工具链阻塞，不能把 scaffold 当完成；
+- native-process 实际通过 `check/dev` 和一个授权范围内的关键 `call`；
+- Panel 能打开、无横向溢出，并区分未授权、Service 失败和返回格式异常；
+- 交付说明准确写明：最终用户是否需要外部依赖，以及 Rust 是否只出现在开发期；
+- 用户进一步要求发布时读取 `nextclaw-app-publisher`，只使用 `nextclaw app validate-publish/publish`。
 
-## 验收清单
-
-- 创建或修改任何 Panel App / Service App 后，必须运行 `nextclaw app check <app-dir>`；Panel + Service 组合要分别检查两个目录。检查失败必须先修复，不能把失败应用交付给用户。
-- 如果创建或修改 Service App，继续运行 `nextclaw app dev <service-app-dir>`，并用 `nextclaw app call <service-app-dir> <action-name> --input '{}'` 抽测至少一个关键 action；这两个命令使用隔离临时 runtime。若还要验证 live 产品实例或 Panel-to-Service 调用，先运行 `nextclaw app restart <service-app-id> --json`，避免旧运行进程继续响应。
-- Panel App：能在“面板应用”列表出现，标题、描述、图标正确；窄侧栏可用；打开后无横向溢出。
-- Service App：能在“服务应用”列表出现，状态不是 failed；manifest actions 非空且有 risk。
-- Panel + Service：`panel-app.json.actions` 覆盖实际调用的 action；首次调用触发授权；授权后返回值按业务 payload 读取，不读 `response.result`。
-- Agent：`panel-app.json.capabilities` 精确覆盖实际调用；需要稳定会话时传 `peerId`，不要外部生成稳定 `sessionId`。
-- Client SDK：只有实际使用 `window.nextclaw.client` 时才声明 `client: true`；首次打开会触发整体授权，授权后 App Client projection 同步可用，接口形状以 `@nextclaw/client-sdk` 导出的 `NextClawAppClient` 为准。
-- 错误提示：区分 bridge 不存在、未授权、Service Action 调用失败、返回结构不符合预期、Agent capability 未声明。
-- 交付说明不要让用户 restart；只有当验证证据明确指向宿主进程自身异常、版本切换或进程崩溃时，才把重启作为异常恢复手段，并说明这是例外不是常规生效步骤。
-- **主动展示结果**：验收通过后，立即用 Service Action 带默认输入跑一次，把真实数据展示给用户看。Panel App、编辑器、管理页、大表格和多页工作流应使用 side panel；普通本地 HTML 文件或页面原型用 `show_file(path, viewer="rendered")`，需要看源码时用 `viewer="source"`；Markdown 文件链接默认打开源码，只有需要链接直接打开渲染视图时才写 `?viewer=rendered`；如果启动了 Vite、Next.js、Storybook 或其它本地 HTTP dev server，用 `show_url(url)` 打开运行中的页面，不要把 dev server 页面导出成静态 HTML 再预览。不要为了预览普通 HTML 文件强行做成 Panel App。不要等用户问"看看效果"——交付的第一印象是看到跑起来的产物，不是一段文字描述。注意：普通 inline Panel App 展示必须输出 `nextclaw-inline` fenced JSON block；不要调用 `show_panel_app` 做 inline 展示，`show_panel_app` 只用于 side panel 即时预览。
+验收通过后主动展示可见结果。Panel、编辑器、管理页、大表格和多页工作流使用 side panel；普通本地 HTML 用 `show_file(path, viewer="rendered")`；本地 dev server 用 `show_url(url)`。普通 inline Panel App 使用 `nextclaw-inline` fenced JSON，不调用 `show_panel_app` 做 inline 展示。

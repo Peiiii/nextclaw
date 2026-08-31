@@ -1,7 +1,7 @@
 ---
 name: panel-app-react-vite-creator
-description: Create or update an engineering-style NextClaw Panel App using pnpm, Vite, React, TypeScript, and Tailwind CSS, then build it into a static .panel directory. Use when the user asks for a modern frontend stack, React Panel App, Vite app, Tailwind UI, or reusable/buildable Panel App project, and when the requested Panel App has complex UI/state, AI chat or Agent Run workflows, charts, filters, forms, or needs TypeScript access to App Client types.
-description_zh: 使用 pnpm、Vite、React、TypeScript、Tailwind CSS 创建或修改工程化 NextClaw Panel App，并构建成静态 .panel 目录。适用于用户要求现代前端技术栈、React Panel App、Vite 应用、Tailwind UI、可维护/可构建的 Panel App 工程，或 Panel App 明显包含复杂 UI/状态、AI 对话/Agent Run、图表、筛选、表单，或需要 TypeScript 获取 App Client 类型的场景。
+description: Create or update an engineering-style NextClaw Panel component with pnpm, Vite, React, TypeScript, and Tailwind CSS, then build it into a static .panel directory inside a schema v2 package or an explicitly loose workspace Panel. Use for modern, reusable, complex, Agent-powered, typed Panel interfaces.
+description_zh: 使用 pnpm、Vite、React、TypeScript、Tailwind CSS 创建或修改工程化 NextClaw Panel 组件，再构建为 schema v2 包内或明确 loose workspace 中的静态 .panel 目录。适用于现代、可维护、复杂、Agent 驱动或需要类型的 Panel 界面。
 ---
 
 # React/Vite/TypeScript/Tailwind/pnpm Panel App Creator
@@ -15,7 +15,7 @@ description_zh: 使用 pnpm、Vite、React、TypeScript、Tailwind CSS 创建或
 - 本 skill 是复杂或可维护 Panel App 的工程化默认路径；极小、一次性、无明显构建收益的静态面板仍交给 `panel-app-creator` 轻量目录式实现。
 - 开发期可以使用 Vite dev server；需要给用户看运行中的开发页面时，用 `show_url(url)` 打开本地 dev server。交付给 NextClaw 的必须是 build 后的静态 `.panel` 目录。
 - 不要让 NextClaw 宿主运行 `vite dev`、Node server 或 Bun server。
-- 源码工程可以放在用户指定位置；最终产物必须复制或构建到 `~/.nextclaw/workspace/panels/<app-id>.panel/`。
+- 源码工程可以放在用户指定位置；最终产物沿用 `nextclaw-app-creator` 已冻结的边界：完整 schema v2 App 构建到 `<app-dir>/panels/<panel-id>.panel/`，明确 loose 本地 Panel 才构建到 `<workspace>/panels/<panel-id>.panel/`。
 - 运行期目录里可以包含构建产物和 `panel-app.json`，不要依赖运行期 `node_modules`。
 - Vite 必须配置 `base: "./"`，避免资源路径指向 NextClaw host 根路径。
 - 构建出来的应用运行在 sandbox iframe 中，不具备普通同源网页能力；不要使用 `localStorage`、`sessionStorage`、cookie、IndexedDB 或默认启用浏览器持久化的状态库插件。需要持久化时按 `panel-app-creator` 选择 Service App、App Client 或导出/导入 JSON。
@@ -32,16 +32,16 @@ my-panel-src/
   public/
 ```
 
-交付产物示例：
+完整包内的交付产物示例：
 
 ```text
-~/.nextclaw/workspace/panels/my-panel.panel/
+my-app/panels/my-panel.panel/
   panel-app.json
   index.html
   assets/
 ```
 
-如果用户没有指定源码位置，优先在 workspace 之外或用户当前工作目录下创建源码工程，不要把完整 npm 工程直接当作最终 `.panel` 交付目录。最终 `.panel` 应保持静态产物形态。
+如果用户没有指定源码位置，优先在包根的独立前端源码目录或用户当前工作目录下创建工程，不要把完整 npm 工程直接当作最终 `.panel` 组件目录。最终 `.panel` 只保留静态产物；根 `manifest.json.components` 引用该目录。
 
 ## 创建流程
 
@@ -82,7 +82,7 @@ export default defineConfig({
 pnpm build
 ```
 
-8. 把 `dist/` 内容同步到最终 `.panel` 目录，并写入 `panel-app.json`：
+8. 把 `dist/` 内容同步到已确定的 `.panel` 目录，并写入 `panel-app.json`：
 
 ```json
 {
@@ -133,11 +133,19 @@ if (!client) {
 
 ## 验收
 
-必须运行：
+loose Panel 必须运行：
 
 ```bash
 nextclaw app check ~/.nextclaw/workspace/panels/<app-id>.panel
 ```
+
+schema v2 包内 Panel 必须从包根运行：
+
+```bash
+nextclaw app check <app-dir> --json
+```
+
+如果包内包含 Portable Service，前端 build 和 App check 都不能替代 `nextclaw app build/test`；这些 Service 验证归 `service-app-creator`。
 
 如果修改了源码工程，还应运行：
 
@@ -145,4 +153,4 @@ nextclaw app check ~/.nextclaw/workspace/panels/<app-id>.panel
 pnpm build
 ```
 
-交付说明中告诉用户刷新 Panel Apps 列表或重新打开 Panel App；不要要求重启 NextClaw，除非有明确证据表明宿主进程异常。
+loose Panel 交付时告诉用户刷新 Panel Apps 列表；完整包通过 `app dev/install` 或 Apps 页面打开。不要要求重启 NextClaw，除非有明确证据表明宿主进程异常。
