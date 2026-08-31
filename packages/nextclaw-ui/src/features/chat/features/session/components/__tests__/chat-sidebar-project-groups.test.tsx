@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatSidebarProjectGroups } from "@/features/chat/features/session/components/chat-sidebar-project-groups";
+import { MemoryRouter, useLocation } from "react-router-dom";
+import {
+  ChatSidebarProjectGroups,
+  type ChatSidebarProjectGroup,
+} from "@/features/chat/features/session/components/chat-sidebar-project-groups";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 
 const mocks = vi.hoisted(() => ({
@@ -16,7 +20,8 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   }),
 }));
 
-const projectGroup = {
+const projectGroup: ChatSidebarProjectGroup = {
+  projectId: "project-analysis",
   projectRoot: "/tmp/analysis-project",
   projectName: "analysis-project",
   items: [
@@ -35,17 +40,30 @@ const projectGroup = {
   isPinned: false,
 };
 
-function renderProjectGroups(isPinned = false) {
+function LocationProbe() {
+  const location = useLocation();
+  return (
+    <output data-testid="location">{`${location.pathname}${location.search}`}</output>
+  );
+}
+
+function renderProjectGroups(
+  isPinned = false,
+  group: ChatSidebarProjectGroup = projectGroup,
+) {
   return render(
-    <ChatSidebarProjectGroups
-      groups={[{ ...projectGroup, isPinned }]}
-      projectCronJobCountByRoot={new Map([[projectGroup.projectRoot, 2]])}
-      defaultSessionType="native"
-      sessionTypeOptions={[
-        { value: "native", label: "Native", icon: null, ready: true },
-      ]}
-      renderSessionItem={() => <div>Project session</div>}
-    />,
+    <MemoryRouter initialEntries={["/chat"]}>
+      <ChatSidebarProjectGroups
+        groups={[{ ...group, isPinned }]}
+        projectCronJobCountByRoot={new Map([[projectGroup.projectRoot, 2]])}
+        defaultSessionType="native"
+        sessionTypeOptions={[
+          { value: "native", label: "Native", icon: null, ready: true },
+        ]}
+        renderSessionItem={() => <div>Project session</div>}
+      />
+      <LocationProbe />
+    </MemoryRouter>,
   );
 }
 
@@ -72,18 +90,23 @@ describe("ChatSidebarProjectGroups", () => {
     const { container } = renderProjectGroups();
 
     const header = screen.getByLabelText("Collapse project");
+    const projectLink = screen.getByRole("link", { name: "analysis-project" });
+    const projectRow = projectLink.parentElement?.parentElement;
     expect(container.firstElementChild?.className).toBe("space-y-0.5");
-    expect(header.parentElement?.className).toContain("h-8");
-    expect(header.parentElement?.className).toContain("hover:bg-gray-200/60");
-    expect(header.parentElement?.className).not.toContain("focus-within:bg");
+    expect(projectRow?.className).toContain("h-8");
+    expect(projectRow?.className).toContain("hover:bg-gray-200/60");
+    const projectContent = projectLink.parentElement;
+    expect(projectContent?.classList.contains("pr-14")).toBe(false);
+    expect(projectContent?.className).toContain("group-hover/project:pr-14");
+    expect(projectContent?.className).toContain(
+      "group-has-[[data-project-actions]:focus-within]/project:pr-14",
+    );
+    expect(projectLink.querySelector("span")?.className).not.toContain("uppercase");
+    expect(projectLink.querySelector("span")?.className).toContain("text-[13px]");
     expect(
-      screen.getByText("analysis-project").nextElementSibling?.tagName,
-    ).toBe("svg");
-    expect(
-      screen
-        .getByText("analysis-project")
-        .nextElementSibling?.getAttribute("class"),
-    ).toContain("opacity-0");
+      header.compareDocumentPosition(projectLink) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.queryByText("Sessions")).toBeNull();
 
     fireEvent.click(header);
@@ -95,6 +118,31 @@ describe("ChatSidebarProjectGroups", () => {
       "session:current",
     );
     expect(screen.queryByText("Project session")).toBeNull();
+  });
+
+  it("opens the project home from the project name without changing expansion", () => {
+    renderProjectGroups();
+
+    fireEvent.click(screen.getByRole("link", { name: "analysis-project" }));
+
+    expect(mocks.toggleProjectCollapsed).not.toHaveBeenCalled();
+    expect(screen.getByTestId("location").textContent).toBe(
+      "/projects/project-analysis/overview",
+    );
+    expect(screen.getByText("Project session")).toBeTruthy();
+  });
+
+  it("surfaces a running child session while its project is collapsed", () => {
+    renderProjectGroups(false, {
+      ...projectGroup,
+      items: [{ ...projectGroup.items[0], runStatus: "running" as const }],
+    });
+
+    expect(screen.queryByLabelText("Running")).toBeNull();
+
+    fireEvent.click(screen.getByLabelText("Collapse project"));
+
+    expect(screen.getByLabelText("Running")).toBeTruthy();
   });
 
   it("shows project context from the row on hover", async () => {

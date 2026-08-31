@@ -242,12 +242,11 @@ class SecretRuntimeResolver {
     });
 
     if (result.error) {
-      throw new Error(`exec provider ${alias} failed: ${String(result.error)}`);
+      throw new Error(`exec provider ${alias} failed`);
     }
 
     if (result.status !== 0) {
-      const stderr = String(result.stderr ?? "").trim();
-      throw new Error(`exec provider ${alias} exited with ${result.status}${stderr ? `: ${stderr}` : ""}`);
+      throw new Error(`exec provider ${alias} exited with ${result.status}`);
     }
 
     const stdout = String(result.stdout ?? "").trim();
@@ -272,6 +271,21 @@ class SecretRuntimeResolver {
     this.execSnapshots.set(alias, snapshot);
     return snapshot;
   };
+}
+
+export function resolveSecretRef(
+  config: Config,
+  ref: SecretRef,
+  options?: ResolveConfigSecretsOptions,
+): string {
+  if (config.secrets.enabled === false) {
+    throw new Error("Secret resolution is disabled.");
+  }
+  const normalizedRef = SecretRefSchema.parse(ref);
+  return new SecretRuntimeResolver(config, options).resolve(
+    normalizedRef,
+    "runtime secret binding",
+  );
 }
 
 export function resolveConfigSecrets(config: Config, options?: ResolveConfigSecretsOptions): Config {

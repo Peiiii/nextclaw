@@ -21,6 +21,12 @@ function serviceActions() {
   return bridge;
 }
 
+function verificationRecords() {
+  const bridge = window.nextclaw?.verificationRecords;
+  if (!bridge) throw new Error("验收记录桥尚未就绪。");
+  return bridge;
+}
+
 async function invoke(actionId, input = {}) {
   return await serviceActions().invoke(actionId, input);
 }
@@ -130,3 +136,18 @@ const poll = window.setInterval(() => {
   if (document.visibilityState === "visible") void refresh();
 }, 1000);
 window.addEventListener("pagehide", () => window.clearInterval(poll), { once: true });
+async function refreshVerificationStatus() {
+  const element = document.querySelector("[data-verification-status]");
+  if (!element) return;
+  try {
+    const payload = await verificationRecords().list({ appId: "nextclaw.portable-runtime-lab", limit: 500 });
+    const entry = (payload?.entries || []).find((candidate) => candidate.acceptanceId === "PRT-RES-001");
+    element.textContent = entry
+      ? `${entry.status === "passed" ? "已有局部证据" : entry.status} · ${new Date(entry.finishedAt).toLocaleString()}`
+      : "未验证（暂无 PRT-RES-001 记录）";
+  } catch {
+    element.textContent = "暂时无法读取验收记录";
+  }
+}
+
+void refreshVerificationStatus();

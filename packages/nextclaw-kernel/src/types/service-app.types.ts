@@ -39,9 +39,23 @@ export type ServiceAppExternalRemediation = {
   requiresUserAction?: boolean;
 };
 
+/**
+ * The versioned WIT surface used by a capability Provider and its Consumers.
+ * A Provider carries an exact semver release; a Consumer carries the range it
+ * accepts. This declaration is static manifest metadata, never a registry.
+ */
+export type ServiceAppWitContract = {
+  package: string;
+  interface: string;
+  version: string;
+};
+
 export type ServiceAppCapabilityRequirement = {
   id: string;
   version?: string;
+  /** A Provider Component packaged beside this Consumer. */
+  provider?: string;
+  wit?: ServiceAppWitContract;
   title?: string;
   description?: string;
   remediation?: ServiceAppExternalRemediation;
@@ -56,9 +70,31 @@ export type ServiceAppResourceRequirement = {
   remediation?: ServiceAppExternalRemediation;
 };
 
+/**
+ * A portable Guest can name a slot but never a provider, model, or Agent.
+ * The Kernel binds the slot through a capability grant after installation.
+ */
+export type ServiceAppModelCapabilitySlot = {
+  id: string;
+  title: string;
+  description: string;
+  required: boolean;
+  maxTokens?: number;
+  timeoutMs?: number;
+};
+
+export type ServiceAppAgentCapabilitySlot = {
+  id: string;
+  title: string;
+  description: string;
+  required: boolean;
+};
+
 export type ServiceAppRequirements = {
   capabilities?: ServiceAppCapabilityRequirement[];
   resources?: ServiceAppResourceRequirement[];
+  modelSlots?: ServiceAppModelCapabilitySlot[];
+  agentSlots?: ServiceAppAgentCapabilitySlot[];
 };
 
 /**
@@ -68,6 +104,7 @@ export type ServiceAppRequirements = {
 export type ServiceAppCapabilityProvision = {
   id: string;
   version: string;
+  wit?: ServiceAppWitContract;
   resourceTypes?: string[];
 };
 
@@ -174,6 +211,134 @@ export type ServiceActionInvokeRequest = {
 export type ServiceActionInvokeResult = {
   actionId: string;
   result: unknown;
+  invocation?: ServiceActionInvocationFacts;
+};
+
+/**
+ * Durable status for an explicitly asynchronous Service App invocation.
+ * Terminal statuses are intentionally irreversible: a retry is a new job
+ * linked through `retryOf`, never a rewrite of the original execution.
+ */
+export type ServiceAppJobStatus =
+  | "queued"
+  | "starting"
+  | "running"
+  | "succeeded"
+  | "cancel-requested"
+  | "cancelled"
+  | "timed-out"
+  | "failed"
+  | "interrupted";
+
+export type ServiceAppTerminalJobStatus = Extract<
+  ServiceAppJobStatus,
+  "succeeded" | "cancelled" | "timed-out" | "failed" | "interrupted"
+>;
+
+export type ServiceAppJobCaller = {
+  surface: "panel" | "agent" | "installed-app-cli";
+  id?: string;
+};
+
+export type ServiceAppJobView = {
+  id: string;
+  appId: string;
+  instanceId: string;
+  componentId: string;
+  actionName: string;
+  status: ServiceAppJobStatus;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  cancelRequestedAt?: string;
+  retryOf?: string;
+  callId: string;
+  traceId: string;
+  caller?: ServiceAppJobCaller;
+  error?: { code?: string; message: string };
+};
+
+export type ServiceAppJobProgressEvent = {
+  type: "progress";
+  current?: number;
+  total?: number;
+  message?: string;
+};
+
+export type ServiceAppJobChunkEvent = {
+  type: "stream-chunk";
+  content: string;
+};
+
+export type ServiceAppJobTerminalEvent = {
+  type: "terminal";
+  status: ServiceAppTerminalJobStatus;
+  error?: { code?: string; message: string };
+};
+
+export type ServiceAppJobEvent = {
+  sequence: number;
+  timestamp: string;
+} & (ServiceAppJobProgressEvent | ServiceAppJobChunkEvent | ServiceAppJobTerminalEvent);
+
+export type ServiceAppJobList = { entries: ServiceAppJobView[] };
+
+export type ServiceAppJobWatch = {
+  job: ServiceAppJobView;
+  events: ServiceAppJobEvent[];
+  /** Pass this value back as `afterSequence` to resume without a gap. */
+  cursor: number;
+};
+
+/**
+ * Durable host-owned delivery state for a Resident event.  A Resident is a
+ * serial lane, therefore an acknowledged event is the only state permitted
+ * to advance that stream's cursor.  Event payload is retained only in the
+ * App instance journal, never in VerificationRecord evidence.
+ */
+export type ServiceAppResidentEventStatus =
+  | "received"
+  | "pending"
+  | "leased"
+  | "acked"
+  | "retry-wait"
+  | "dead-letter";
+
+export type ServiceAppResidentEventDisposition =
+  | { kind: "ack" }
+  | { kind: "retry"; delayMs?: number; error?: { code?: string; message?: string } };
+
+export type ServiceAppResidentEventView = {
+  id: string;
+  appId: string;
+  instanceId: string;
+  componentId: string;
+  eventId: string;
+  streamKey: string;
+  sequence: number;
+  status: ServiceAppResidentEventStatus;
+  receivedAt: string;
+  updatedAt: string;
+  attempt: number;
+  leaseExpiresAt?: string;
+  nextAttemptAt?: string;
+  ackedAt?: string;
+  deadLetteredAt?: string;
+  lastError?: { code?: string; message: string };
+};
+
+export type ServiceAppResidentEventList = {
+  entries: ServiceAppResidentEventView[];
+  cursors: Record<string, number>;
+  frozen: boolean;
+};
+
+export type ServiceActionInvocationFacts = {
+  callId: string;
+  traceId: string;
+  dataVersion: string;
+  verificationRunId: string;
 };
 
 export type ServiceActionGrantRequest = {

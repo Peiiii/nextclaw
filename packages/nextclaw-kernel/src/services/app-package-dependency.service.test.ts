@@ -42,6 +42,36 @@ function writeConsumerManifest(directory: string): void {
   }));
 }
 
+function writeWitConsumerManifest(
+  directory: string,
+  wit?: Record<string, string>,
+  provider?: string,
+): void {
+  writeFileSync(join(directory, "service-app.json"), JSON.stringify({
+    id: "consumer-service",
+    title: "Consumer",
+    protocol: "wasi-component",
+    component: { entry: "service.wasm" },
+    requires: {
+      capabilities: [{ id: "shared-cache", version: "1", ...(provider ? { provider } : {}), ...(wit ? { wit } : {}) }],
+    },
+    actions: { use_cache: { risk: "read" } },
+  }));
+}
+
+function writeProviderManifest(directory: string): void {
+  writeFileSync(join(directory, "service-app.json"), JSON.stringify({
+    id: "shared-cache-provider",
+    title: "Provider",
+    protocol: "wasi-component",
+    component: { entry: "service.wasm" },
+    lifecycle: { mode: "provider" },
+    providers: ["consumer-service"],
+    provides: { capabilities: [{ id: "shared-cache", version: "1" }] },
+    actions: { provide: { risk: "read" } },
+  }));
+}
+
 function target(storage: AppStorageContext, componentDirectory: string) {
   return {
     appId: "consumer-app",
@@ -135,6 +165,189 @@ describe("AppPackageDependencyService", () => {
       .resolves.toEqual({ "consumer-service": ["shared-cache-provider"] });
   });
 
+  it("matches a Provider's exact WIT release against the Consumer range and diagnoses migration gaps", async () => {
+    const directory = createTemporaryDirectory();
+    const componentDirectory = join(directory, "consumer-service");
+    const storage = createStorage(directory);
+    mkdirSync(componentDirectory, { recursive: true });
+    writeWitConsumerManifest(componentDirectory, {
+      package: "nextclaw:shared-cache",
+      interface: "cache",
+      version: "^1.1.0",
+    });
+    const service = new AppPackageDependencyService();
+    const compatible = {
+      ...sharedCacheProvider,
+      capabilities: [{
+        id: "shared-cache",
+        version: "1",
+        wit: { package: "nextclaw:shared-cache", interface: "cache", version: "1.2.0" },
+      }],
+    };
+
+    const mixedCatalog = await service.inspect({
+      target: target(storage, componentDirectory),
+      providers: [compatible, {
+        ...compatible,
+        providerId: "incompatible-provider",
+        capabilities: [{
+          id: "shared-cache",
+          version: "1",
+          wit: { package: "nextclaw:shared-cache", interface: "different", version: "1.2.0" },
+        }],
+      }],
+    });
+    expect(mixedCatalog.diagnostics).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "CAPABILITY_WIT_INCOMPATIBLE" }),
+    ]));
+
+    await expect(service.setup({
+      target: target(storage, componentDirectory), providers: [compatible],
+    })).resolves.toMatchObject({
+      readiness: { status: "ready" },
+      diagnostics: [],
+    });
+
+    const missingWit = {
+      ...sharedCacheProvider,
+      capabilities: [{ id: "shared-cache", version: "1" }],
+    };
+    const incompatible = await service.inspect({
+      target: target(storage, componentDirectory), providers: [missingWit],
+    });
+    expect(incompatible).toMatchObject({
+      readiness: { status: "needs-capability" },
+      diagnostics: [expect.objectContaining({ code: "CAPABILITY_WIT_INCOMPATIBLE" })],
+      resolvedProviderIds: {},
+    });
+
+    writeWitConsumerManifest(componentDirectory);
+    const legacy = await service.inspect({
+      target: target(storage, componentDirectory), providers: [missingWit],
+    });
+    expect(legacy).toMatchObject({
+      readiness: { status: "ready" },
+      diagnostics: [expect.objectContaining({ code: "CAPABILITY_LEGACY_CONTRACT" })],
+    });
+
+    writeFileSync(join(componentDirectory, "service-app.json"), JSON.stringify({
+      id: "consumer-service",
+      title: "Consumer",
+      protocol: "wasi-component",
+      component: { entry: "service.wasm" },
+      providers: ["shared-cache-provider"],
+      actions: { use_cache: { risk: "read" } },
+    }));
+    await expect(service.inspect({
+      target: target(storage, componentDirectory),
+      providers: [missingWit],
+    })).resolves.toMatchObject({
+      resolvedProviderIds: { "consumer-service": ["shared-cache-provider"] },
+      diagnostics: [expect.objectContaining({ code: "CAPABILITY_LEGACY_CONTRACT" })],
+    });
+  });
+
+  it("resolves a same-package Provider declaratively without a mutable binding", async () => {
+    const directory = createTemporaryDirectory();
+    const componentDirectory = join(directory, "consumer-service");
+    const storage = createStorage(directory);
+    mkdirSync(componentDirectory, { recursive: true });
+    writeWitConsumerManifest(componentDirectory, {
+      package: "nextclaw:shared-cache", interface: "cache", version: "^1.1.0",
+    }, "shared-cache-provider");
+    const provider = {
+      ...sharedCacheProvider,
+      capabilities: [{
+        id: "shared-cache", version: "1",
+        wit: { package: "nextclaw:shared-cache", interface: "cache", version: "1.2.0" },
+      }],
+    };
+    const service = new AppPackageDependencyService();
+
+    await expect(service.inspect({
+      target: target(storage, componentDirectory), providers: [provider],
+    })).resolves.toMatchObject({
+      readiness: { status: "ready" },
+      bindings: [],
+      resolvedProviderIds: { "consumer-service": ["shared-cache-provider"] },
+    });
+
+    await expect(service.inspect({
+      target: target(storage, componentDirectory), providers: [{ ...provider, capabilities: [{
+        id: "shared-cache", version: "1",
+        wit: { package: "nextclaw:shared-cache", interface: "different", version: "1.2.0" },
+      }] }],
+    })).resolves.toMatchObject({
+      readiness: { status: "needs-capability" },
+      diagnostics: [expect.objectContaining({ code: "CAPABILITY_WIT_INCOMPATIBLE" })],
+    });
+  });
+
+});
+
+describe("AppPackageDependencyService installed coordination", () => {
+  it("projects packaged Providers through the dependency coordinator before activation", async () => {
+    const directory = createTemporaryDirectory();
+    const consumerDirectory = join(directory, "consumer-service");
+    const providerDirectory = join(directory, "provider-service");
+    const storage = createStorage(directory);
+    mkdirSync(consumerDirectory, { recursive: true });
+    mkdirSync(providerDirectory, { recursive: true });
+    writeWitConsumerManifest(consumerDirectory, {
+      package: "nextclaw:shared-cache", interface: "cache", version: "^1.1.0",
+    }, "shared-cache-provider");
+    writeFileSync(join(providerDirectory, "service-app.json"), JSON.stringify({
+      id: "shared-cache-provider", title: "Provider", protocol: "wasi-component",
+      component: { entry: "service.wasm" }, lifecycle: { mode: "provider" }, actions: { provide: { risk: "read" } },
+      provides: { capabilities: [{ id: "shared-cache", version: "1", wit: {
+        package: "nextclaw:shared-cache", interface: "cache", version: "1.2.0",
+      } }] },
+    }));
+    const coordinator = new AppPackageDependencyCoordinator({
+      installationService: {} as never,
+      registryService: { listApps: async () => [] } as never,
+      listCapabilityProviders: async () => [],
+      resolveSecurity: () => ({ runtimeProfile: "wasi", isolation: "host-mediated", permissions: {} }),
+    });
+
+    await expect(coordinator.inspectTarget({
+      appId: "consumer-app", storage,
+      components: [
+        { id: "consumer-service", kind: "service", componentDirectory: consumerDirectory },
+        { id: "shared-cache-provider", kind: "service", componentDirectory: providerDirectory },
+      ],
+    }, [])).resolves.toMatchObject({
+      readiness: { status: "ready" },
+      resolvedProviderIds: { "consumer-service": ["shared-cache-provider"] },
+    });
+  });
+
+  it("surfaces a stored Provider cycle as a non-ready structured diagnostic", async () => {
+    const directory = createTemporaryDirectory();
+    const componentDirectory = join(directory, "consumer-service");
+    const storage = createStorage(directory);
+    mkdirSync(componentDirectory, { recursive: true });
+    writeConsumerManifest(componentDirectory);
+    const service = new AppPackageDependencyService();
+    await service.setup({
+      target: target(storage, componentDirectory), providers: [sharedCacheProvider],
+    });
+
+    await expect(service.inspect({
+      target: target(storage, componentDirectory),
+      providers: [sharedCacheProvider],
+      cycles: [{
+        componentId: "consumer-service",
+        providerIds: ["consumer-service", "shared-cache-provider", "consumer-service"],
+      }],
+    })).resolves.toMatchObject({
+      readiness: { status: "needs-capability" },
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: "PROVIDER_DEPENDENCY_CYCLE" }),
+      ]),
+    });
+  });
+
   it("protects a Provider App while an enabled Consumer still binds its service", async () => {
     const directory = createTemporaryDirectory();
     const componentDirectory = join(directory, "consumer-service");
@@ -172,6 +385,59 @@ describe("AppPackageDependencyService", () => {
     } as AppPackageView)).rejects.toMatchObject({
       code: "APP_PACKAGE_CONFLICT",
       message: expect.stringContaining("consumer-app"),
+    });
+  });
+
+  it("diagnoses a Provider cycle from installed dependency bindings before enable", async () => {
+    const directory = createTemporaryDirectory();
+    const consumerDirectory = join(directory, "consumer-service");
+    const providerDirectory = join(directory, "provider-service");
+    const consumerStorage = createStorage(join(directory, "consumer"));
+    const providerStorage = createStorage(join(directory, "provider"));
+    mkdirSync(consumerDirectory, { recursive: true });
+    mkdirSync(providerDirectory, { recursive: true });
+    writeConsumerManifest(consumerDirectory);
+    writeProviderManifest(providerDirectory);
+    const dependencyService = new AppPackageDependencyService();
+    await dependencyService.setup({
+      target: target(consumerStorage, consumerDirectory),
+      providers: [sharedCacheProvider],
+    });
+    const consumerInfo = {
+      appId: "consumer-app",
+      activeVersion: "1.0.0",
+      storage: consumerStorage,
+      installedVersions: [{
+        version: "1.0.0",
+        components: [{ id: "consumer-service", kind: "service", componentDirectory: consumerDirectory }],
+      }],
+    };
+    const providerInfo = {
+      appId: "provider-app",
+      activeVersion: "1.0.0",
+      storage: providerStorage,
+      installedVersions: [{
+        version: "1.0.0",
+        components: [{ id: "shared-cache-provider", kind: "service", componentDirectory: providerDirectory }],
+      }],
+    };
+    const coordinator = new AppPackageDependencyCoordinator({
+      dependencyService,
+      installationService: {
+        info: async (appId: string) => appId === "provider-app" ? providerInfo : consumerInfo,
+      } as never,
+      registryService: {
+        listApps: async () => [{ appId: "consumer-app" }, { appId: "provider-app" }],
+      } as never,
+      listCapabilityProviders: async () => [sharedCacheProvider],
+      resolveSecurity: () => ({ runtimeProfile: "wasi", isolation: "host-mediated", permissions: {} }),
+    });
+
+    await expect(coordinator.inspect("consumer-app")).resolves.toMatchObject({
+      readiness: { status: "needs-capability" },
+      diagnostics: expect.arrayContaining([
+        expect.objectContaining({ code: "PROVIDER_DEPENDENCY_CYCLE" }),
+      ]),
     });
   });
 

@@ -124,6 +124,12 @@ describe("AppScaffoldService", () => {
     await expect(access(
       path.join(appDirectory, "guest", "wit", "portable-service.wit"),
     )).resolves.toBeUndefined();
+    await expect(access(
+      path.join(appDirectory, "guest", "wit", "deps", "http@0.2.6", "handler.wit"),
+    )).resolves.toBeUndefined();
+    await expect(access(
+      path.join(appDirectory, "guest", "wit", "deps", "spin@2.0.0", "sqlite.wit"),
+    )).resolves.toBeUndefined();
     expect(result.template).toBe("rust-wasi");
     expect(bundle.manifest.runtime?.profile).toBe("wasi");
     expect(bundle.components.map((component) => component.kind)).toEqual(["panel", "service"]);

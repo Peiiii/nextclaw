@@ -1,0 +1,36 @@
+{
+  "id": "nextclaw-github-issue-watcher-service",
+  "title": "GitHub Issue Watcher",
+  "description": "同步并读取仓库 Issue；数据保存在此应用自己的存储空间。",
+  "protocol": "wasi-component",
+  "component": { "entry": "service.wasm" },
+  "actions": {
+    "issues_sync": {
+      "risk": "external",
+      "title": "同步 GitHub Issue",
+      "inputSchema": {
+        "type": "object",
+        "required": ["repository"],
+        "properties": {
+          "repository": { "type": "string", "pattern": "^[^/]+/[^/]+$" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "issues_list": {
+      "risk": "read",
+      "title": "查看已同步 Issue",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["open", "closed", "all"],
+            "default": "open"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

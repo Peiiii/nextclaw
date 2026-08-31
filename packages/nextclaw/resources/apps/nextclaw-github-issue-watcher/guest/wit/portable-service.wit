@@ -1,0 +1,56 @@
+package nextclaw:portable-service@0.1.0;
+
+interface host {
+  enum log-level {
+    debug,
+    info,
+    warn,
+    error,
+  }
+
+  record http-response {
+    status: u16,
+    body: string,
+  }
+
+  record runtime-info {
+    runner-pid: u32,
+    loaded-components: u32,
+    component-id: string,
+  }
+
+  log: func(level: log-level, message: string);
+  kv-get: func(key: string) -> result<option<string>, string>;
+  kv-set: func(key: string, value: string) -> result<_, string>;
+  http-get: func(url: string) -> result<http-response, string>;
+  component-call: func(provider-id: string, action: string, input-json: string) -> result<string, string>;
+  get-runtime-info: func() -> runtime-info;
+  /// A job-scoped, bounded observation channel. Older Components that do not
+  /// import these functions remain link-compatible with this host interface.
+  report-progress: func(current: option<u64>, total: option<u64>, message: option<string>) -> result<_, string>;
+  emit-chunk: func(content: string) -> result<_, string>;
+  check-cancelled: func() -> bool;
+}
+
+interface service {
+  record action {
+    name: string,
+    title: string,
+    description: string,
+  }
+
+  list-actions: func() -> list<action>;
+  invoke: func(action: string, input-json: string) -> result<string, string>;
+  start: func(config-json: string) -> result<string, string>;
+  handle-event: func(event-json: string) -> result<string, string>;
+  stop: func(reason-json: string) -> result<string, string>;
+}
+
+world service-app {
+  import host;
+  import wasi:http/outgoing-handler@0.2.6;
+  import wasi:keyvalue/store@0.2.0-draft2;
+  import wasi:config/store@0.2.0-draft-2024-09-27;
+  import wasi:clocks/wall-clock@0.2.6;
+  export service;
+}

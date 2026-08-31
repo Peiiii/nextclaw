@@ -24,20 +24,6 @@ export function cloneMetadata(value: unknown): Record<string, unknown> | undefin
   return isRecord(value) ? structuredClone(value) : undefined;
 }
 
-export function readStringArray(value: unknown): string[] | null {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-  const deduped = new Set<string>();
-  for (const item of value) {
-    const normalized = normalizeString(item);
-    if (normalized) {
-      deduped.add(normalized);
-    }
-  }
-  return [...deduped];
-}
-
 export function mergeSessionMetadata(
   currentMetadata: Record<string, unknown>,
   inputMetadata?: Record<string, unknown>,
@@ -79,13 +65,6 @@ export function mergeSessionMetadata(
     normalizeString(inputMetadata.label) ?? normalizeString(inputMetadata.session_label);
   if (label) {
     nextMetadata.label = label;
-  }
-
-  const requestedSkills =
-    readStringArray(inputMetadata.requested_skills) ??
-    readStringArray(inputMetadata.requestedSkills);
-  if (requestedSkills) {
-    nextMetadata.requested_skills = requestedSkills;
   }
 
   return nextMetadata;

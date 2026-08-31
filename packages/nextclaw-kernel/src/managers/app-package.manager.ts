@@ -1,20 +1,22 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
+import type { Config } from "@nextclaw/core";
 import {
   AppHomeService,
   AppInstallationService,
   AppManifestService,
   AppRegistryService,
+  type AppSecretBinding,
   isAppComponentManifestBundle,
 } from "@nextclaw/app-runtime";
 import type {
-  AppInfoResult,
   AppInstallProgressHandler,
   AppRollbackResult,
   AppUninstallResult,
   AppUpdateResult,
 } from "@nextclaw/app-runtime";
 import { AppPackageOperationManager } from "@kernel/managers/app-package-operation.manager.js";
+import { AppPackageReadinessManager } from "@kernel/managers/app-package-readiness.manager.js";
 import { AppPackageDependencyCoordinator } from "@kernel/services/app-package-dependency-coordinator.service.js";
 import { AppPackageHostTargetService } from "@kernel/services/app-package-host-target.service.js";
 import { AppPackagePresentationService } from "@kernel/services/app-package-presentation.service.js";
@@ -33,9 +35,9 @@ import {
   type AppPackageOperationView,
   type AppPackageRuntimeHooks,
   type AppPackageView,
+  type AppPackageSecretReadiness,
   type CapabilityProviderView,
 } from "@kernel/types/app-package.types.js";
-import { satisfiesAppEngineVersion } from "@kernel/utils/app-engine-version.utils.js";
 
 export class AppPackageManager {
   private readonly appHomeService: AppHomeService;
@@ -47,6 +49,7 @@ export class AppPackageManager {
   private readonly dependencyCoordinator: AppPackageDependencyCoordinator;
   private readonly runtimeActivationService = new AppPackageRuntimeActivationService();
   private readonly registryService: AppRegistryService;
+  private readonly readinessManager: AppPackageReadinessManager;
   private runtimeHooks: AppPackageRuntimeHooks = EMPTY_APP_PACKAGE_RUNTIME_HOOKS;
   private builtInBootstrapPromise: Promise<void> | undefined;
   private builtInDefinitionsPromise: Promise<Array<{
@@ -58,6 +61,8 @@ export class AppPackageManager {
     appHomeDirectory: string;
     builtInAppsDirectory?: string;
     productVersion?: string;
+    getSecretConfig?: () => Config;
+    secretConfigPath?: string;
   }) {
     this.appHomeService = new AppHomeService(params.appHomeDirectory);
     this.installationService = new AppInstallationService(this.appHomeService);
@@ -67,6 +72,17 @@ export class AppPackageManager {
       registryService: this.registryService,
       listCapabilityProviders: async () => await this.runtimeHooks.listCapabilityProviders(),
       resolveSecurity: this.resolveSecurity,
+    });
+    this.readinessManager = new AppPackageReadinessManager({
+      manifestService: this.manifestService,
+      installationService: this.installationService,
+      presentationService: this.presentationService,
+      dependencyCoordinator: this.dependencyCoordinator,
+      registryService: this.registryService,
+      productVersion: params.productVersion,
+      getSecretConfig: params.getSecretConfig,
+      secretConfigPath: params.secretConfigPath,
+      isBuiltInAppId: this.isBuiltInAppId,
     });
     this.operationManager = new AppPackageOperationManager({
       storePath: this.appHomeService.getOperationsPath(),
@@ -87,11 +103,13 @@ export class AppPackageManager {
       this.registryService.listApps(),
       this.runtimeHooks.listCapabilityProviders(),
     ]);
-    const entries = await Promise.all(records.map(async (record) =>
-      await this.toPackageView(await this.installationService.info(
-        record.appId,
-        { measureStorageUsage: options.includeStorageUsage !== false },
-      ), undefined, providers)));
+    const entries = (await Promise.all(records.map(async (record) =>
+      await this.installationService.withAppOperation(record.appId, async () =>
+        await this.readListedPackageView(
+          record.appId,
+          options.includeStorageUsage !== false,
+          providers,
+        ))))).filter((entry): entry is AppPackageView => entry !== undefined);
     return {
       hostTarget: this.hostTargetService.read(),
       entries,
@@ -105,23 +123,61 @@ export class AppPackageManager {
     }));
 
   getPackage = async (appId: string): Promise<AppPackageView> => {
-    try {
-      return await this.toPackageView(await this.installationService.info(appId));
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("未找到已安装应用")) {
-        throw new AppPackageError("APP_PACKAGE_NOT_FOUND", error.message);
+    return await this.installationService.withAppOperation(appId, async () => {
+      try {
+        return await this.readinessManager.toPackageView(await this.installationService.info(appId));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("未找到已安装应用")) {
+          throw new AppPackageError("APP_PACKAGE_NOT_FOUND", error.message);
+        }
+        throw error;
       }
-      throw error;
-    }
+    });
   };
 
-  inspectDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.inspect(appId);
-  verifyDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.verify(appId);
+  inspectDependencies = async (appId: string): Promise<AppPackageDependencyView> =>
+    await this.installationService.withAppOperation(appId, async () => await this.dependencyCoordinator.inspect(appId));
+  verifyDependencies = async (appId: string): Promise<AppPackageDependencyView> =>
+    await this.installationService.withAppOperation(appId, async () => await this.dependencyCoordinator.verify(appId));
   setupDependencies = async (appId: string): Promise<AppPackageDependencyView> => await this.dependencyCoordinator.setup(appId);
   bindDependency = async (appId: string, input: AppPackageDependencyBindingInput): Promise<AppPackageDependencyView> =>
     await this.dependencyCoordinator.bind(appId, input);
   unbindDependency = async (appId: string, input: Omit<AppPackageDependencyBindingInput, "providerId">): Promise<AppPackageDependencyView> =>
     await this.dependencyCoordinator.unbind(appId, input);
+
+  inspectSecrets = async (appId: string): Promise<AppPackageSecretReadiness> =>
+    await this.installationService.withAppOperation(appId, async () =>
+      await this.readinessManager.inspectSecrets(await this.installationService.info(appId), false));
+
+  verifySecrets = async (appId: string): Promise<AppPackageSecretReadiness> =>
+    await this.installationService.withAppOperation(appId, async () =>
+      await this.readinessManager.inspectSecrets(await this.installationService.info(appId), true));
+
+  bindSecret = async (
+    appId: string,
+    input: { slotId: string; binding: AppSecretBinding },
+  ): Promise<AppPackageSecretReadiness> =>
+    await this.installationService.withAppOperation(appId, async () => {
+      try {
+        await this.registryService.bindSecret(appId, input.slotId, input.binding);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("未声明 Secret slot")) {
+          throw new AppPackageError("SECRET_SLOT_NOT_DECLARED", message);
+        }
+        throw new AppPackageError("SECRET_RESOLUTION_FAILED", message);
+      }
+      return await this.inspectSecrets(appId);
+    });
+
+  unbindSecret = async (
+    appId: string,
+    slotId: string,
+  ): Promise<AppPackageSecretReadiness> =>
+    await this.installationService.withAppOperation(appId, async () => {
+      await this.registryService.unbindSecret(appId, slotId);
+      return await this.inspectSecrets(appId);
+    });
 
   listActiveComponentSources = async (): Promise<AppPackageComponentSource[]> =>
     (await this.listActiveComponentSourcesWithDiagnostics()).sources;
@@ -158,8 +214,9 @@ export class AppPackageManager {
     if (app.enabled) {
       return app;
     }
+    this.readinessManager.assertSecretsReady(app);
     this.dependencyCoordinator.assertReadyToEnable(app);
-    await this.assertEngineCompatibility(appId);
+    await this.readinessManager.assertEngineCompatibility(appId);
     const sources = this.toComponentSources(app);
     await this.runtimeHooks.assertCanActivate(sources);
     await this.installationService.setEnabled(appId, true);
@@ -213,12 +270,13 @@ export class AppPackageManager {
     let activated = false;
     let deactivated = false;
     try {
-      await this.assertEngineCompatibility(appId, result.version);
-      const candidate = await this.toPackageView(
+      await this.readinessManager.assertEngineCompatibility(appId, result.version);
+      const candidate = await this.readinessManager.toPackageView(
         await this.installationService.info(appId),
         result.version,
       );
       if (current.enabled) {
+        this.readinessManager.assertSecretsReady(candidate);
         this.dependencyCoordinator.assertReadyToEnable(candidate);
         await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
         deactivated = true;
@@ -269,8 +327,8 @@ export class AppPackageManager {
       };
     }
     await this.dependencyCoordinator.assertNoEnabledDependents(current);
-    await this.assertEngineCompatibility(appId, version);
-    const candidate = await this.toPackageView(
+    await this.readinessManager.assertEngineCompatibility(appId, version);
+    const candidate = await this.readinessManager.toPackageView(
       await this.installationService.info(appId),
       version,
     );
@@ -278,6 +336,7 @@ export class AppPackageManager {
     let result: AppRollbackResult | undefined;
     try {
       if (current.enabled) {
+        this.readinessManager.assertSecretsReady(candidate);
         this.dependencyCoordinator.assertReadyToEnable(candidate);
         await this.runtimeHooks.beforeDeactivate(this.toComponentSources(current));
         deactivated = true;
@@ -379,74 +438,22 @@ export class AppPackageManager {
     }
   };
 
-  private toPackageView = async (
-    info: AppInfoResult,
-    selectedVersion: string = info.activeVersion,
-    providers?: CapabilityProviderView[],
-  ): Promise<AppPackageView> => {
-    const activeVersion = info.installedVersions.find(
-      (version) => version.version === selectedVersion,
-    );
-    if (!activeVersion) {
-      throw new AppPackageError(
-        "APP_PACKAGE_OPERATION_FAILED",
-        `应用 ${info.appId} 缺少版本 ${selectedVersion}。`,
-      );
+  private readListedPackageView = async (
+    appId: string,
+    measureStorageUsage: boolean,
+    providers: CapabilityProviderView[],
+  ): Promise<AppPackageView | undefined> => {
+    try {
+      return await this.readinessManager.toPackageView(await this.installationService.info(
+        appId,
+        { measureStorageUsage },
+      ), undefined, providers);
+    } catch (error) {
+      if (this.isTransientUninstallRead(error) && !await this.registryService.getApp(appId)) {
+        return undefined;
+      }
+      throw error;
     }
-    const packagePresentation = await this.presentationService.readManifest(
-      path.join(activeVersion.installDirectory, "manifest.json"),
-    );
-    const manifestBundle = await this.manifestService.load(activeVersion.installDirectory);
-    const security = manifestBundle.manifest.schemaVersion === 2
-      ? this.manifestService.resolvePlatformSecurity(manifestBundle.manifest)
-      : {
-          runtimeProfile: "wasi" as const,
-          isolation: manifestBundle.manifest.main.kind === "wasi-http-component"
-            ? "host-mediated" as const
-            : "sandboxed" as const,
-          permissions: manifestBundle.manifest.permissions ?? {},
-        };
-    const dependencies = await this.dependencyCoordinator.inspectTarget(
-      this.dependencyCoordinator.targetForInfo(info, selectedVersion),
-      providers,
-    );
-    return {
-      id: info.appId,
-      name: info.name,
-      description: info.description,
-      icon: packagePresentation.icon,
-      nameI18n: packagePresentation.nameI18n,
-      descriptionI18n: packagePresentation.descriptionI18n,
-      activeVersion: selectedVersion,
-      installedVersions: info.installedVersions.map((version) => version.version),
-      enabled: info.enabled,
-      builtIn: await this.isBuiltInAppId(info.appId),
-      primaryPanelId: activeVersion.primaryPanelId,
-      components: await Promise.all((activeVersion.components ?? []).map(async (component) => ({
-        kind: component.kind,
-        id: component.id,
-        packageId: info.appId,
-        packageVersion: selectedVersion,
-        sourcePath: component.componentDirectory,
-        manifestPath: component.manifestPath,
-        dataDirectory: info.dataDirectory,
-        instanceId: info.instance.id,
-        storage: info.storage,
-        runtimeProfile: security.runtimeProfile,
-        isolation: security.isolation,
-        permissions: security.permissions,
-        resolvedProviderIds: dependencies.resolvedProviderIds[component.id],
-        ...await this.presentationService.readManifest(component.manifestPath),
-      }))),
-      dataDirectory: info.dataDirectory,
-      instanceId: info.instance.id,
-      storage: info.storage,
-      storageUsage: info.storageUsage,
-      runtimeProfile: security.runtimeProfile,
-      isolation: security.isolation,
-      readiness: dependencies.readiness,
-      dependencies,
-    };
   };
 
   private resolveSecurity = (
@@ -474,37 +481,6 @@ export class AppPackageManager {
 
   private toComponentSources = (app: AppPackageView): AppPackageComponentSource[] =>
     app.components.map((component) => ({ ...component }));
-
-  private assertEngineCompatibility = async (
-    appId: string,
-    selectedVersion?: string,
-  ): Promise<void> => {
-    const productVersion = this.params.productVersion?.trim();
-    if (!productVersion) {
-      return;
-    }
-    const info = await this.installationService.info(appId);
-    const targetVersion = selectedVersion ?? info.activeVersion;
-    const activeVersion = info.installedVersions.find(
-      (version) => version.version === targetVersion,
-    );
-    if (!activeVersion) {
-      throw new AppPackageError(
-        "APP_PACKAGE_OPERATION_FAILED",
-        `应用 ${appId} 缺少版本 ${targetVersion}。`,
-      );
-    }
-    const manifestBundle = await this.manifestService.load(activeVersion.installDirectory);
-    const engineRange = manifestBundle.manifest.schemaVersion === 2
-      ? manifestBundle.manifest.engines?.nextclaw?.trim()
-      : undefined;
-    if (engineRange && !satisfiesAppEngineVersion(productVersion, engineRange)) {
-      throw new AppPackageError(
-        "APP_PACKAGE_INCOMPATIBLE",
-        `应用 ${appId}@${targetVersion} 要求 NextClaw ${engineRange}，当前版本为 ${productVersion}。`,
-      );
-    }
-  };
 
   private listBuiltInDefinitions = async (): Promise<Array<{
     appDirectory: string;
@@ -592,4 +568,8 @@ export class AppPackageManager {
   private isMissingFileError = (error: unknown): boolean =>
     typeof error === "object" && error !== null &&
     "code" in error && (error as { code?: unknown }).code === "ENOENT";
+
+  private isTransientUninstallRead = (error: unknown): boolean =>
+    this.isMissingFileError(error) ||
+    (error instanceof Error && error.message.includes("未找到已安装应用"));
 }

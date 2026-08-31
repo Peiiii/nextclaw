@@ -160,6 +160,17 @@ jobs:
         with:
           targets: wasm32-wasip2,${{ matrix.cargo_target }}
 
+      - name: Restore portable runtime Rust build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/nextclaw-wasmtime-runner/target
+          key: portable-runtime-rust-${{ runner.os }}-${{ matrix.cargo_target }}-${{ hashFiles('apps/nextclaw-wasmtime-runner/Cargo.lock') }}
+          restore-keys: |
+            portable-runtime-rust-${{ runner.os }}-${{ matrix.cargo_target }}-
+
       - name: Install cargo-component
         uses: taiki-e/install-action@v2
         with:

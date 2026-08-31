@@ -1,7 +1,7 @@
 {
   "id": "nextclaw-portable-runtime-lab-panel",
-  "title": "开发者验证台",
-  "description": "查看四个日常小应用背后的 Rust/WASM 运行链证据。",
+  "title": "运行时验收与证据",
+  "description": "查看已安装应用真实产生的 PRT 验收记录、环境和证据。",
   "entry": "index.html",
   "actions": [
     "nextclaw-portable-runtime-lab-state.counter_read",

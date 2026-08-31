@@ -9,6 +9,7 @@ export type ChatSidebarDateGroup = {
 };
 
 export type ChatSidebarProjectGroup = {
+  projectId?: string;
   projectRoot: string;
   projectName: string;
   items: NcpSessionListItemView[];
@@ -102,6 +103,7 @@ export function groupSessionsByProject(
 
   for (const project of projects) {
     grouped.set(project.rootPath, {
+      projectId: project.id,
       projectRoot: project.rootPath,
       projectName: project.name,
       items: [],

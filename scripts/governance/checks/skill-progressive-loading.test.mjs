@@ -16,7 +16,7 @@ const generousBudgets = {
   descriptionChars: 1_000,
   descriptionTotalChars: 10_000,
   skillBytes: 10_000,
-  skillCount: 10,
+  skillCount: 12,
   skillTotalBytes: 20_000
 };
 
@@ -139,6 +139,46 @@ const createLifecycleFixture = () => {
       `---\nname: ${name}\ndescription: ${name}.\n---\n\n# ${name}\n\n${routes}\n`
     );
   }
+
+  const contractFiles = {
+    ".agents/skills/acceptance-contract-governance/SKILL.md": [
+      "---",
+      "name: acceptance-contract-governance",
+      "description: Acceptance contract.",
+      "---",
+      "active contract stable acceptance IDs"
+    ].join("\n"),
+    ".agents/skills/acceptance-contract-governance/references/acceptance-contract-method.md":
+      "`contract-id` `parent-goal` `scope-confirmation: user-confirmed` `acceptance_updates` `parent_status: in-progress` `active-contract` `open-required` 全部 `Required: true` ID 当前均为 passed",
+    ".agents/skills/nextclaw-npm-release/SKILL.md": [
+      "---",
+      "name: nextclaw-npm-release",
+      "description: NPM release.",
+      "---",
+      "stable acceptance IDs `acceptance_updates` parent-goal"
+    ].join("\n"),
+    ".agents/skills/nextclaw-desktop-release/SKILL.md": [
+      "---",
+      "name: nextclaw-desktop-release",
+      "description: Desktop release.",
+      "---",
+      "stable ID `acceptance_updates` parent-goal"
+    ].join("\n")
+  };
+  for (const [relativePath, text] of Object.entries(contractFiles)) {
+    const filePath = path.join(repoRoot, relativePath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, `${text}\n`);
+  }
+
+  fs.appendFileSync(
+    path.join(repoRoot, ".agents/skills/development-lifecycle/SKILL.md"),
+    "acceptance-contract-governance Required acceptance IDs `parent_status` scope reduction 上下文压缩\n"
+  );
+  fs.appendFileSync(
+    path.join(repoRoot, ".agents/skills/development-delivery/SKILL.md"),
+    "`acceptance_updates` `parent_status` completion gate\n"
+  );
   return repoRoot;
 };
 
@@ -181,6 +221,42 @@ test("reports missing lifecycle owners and cross-stage routing", (t) => {
   assert.ok(
     result.violations.some((violation) =>
       violation.includes("stage development-design must not route core owner development-validation")
+    )
+  );
+});
+
+test("reports drift in the acceptance completion contract", (t) => {
+  const repoRoot = createLifecycleFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  fs.writeFileSync(
+    path.join(
+      repoRoot,
+      ".agents/skills/acceptance-contract-governance/references/acceptance-contract-method.md"
+    ),
+    "`contract-id` `parent-goal` `acceptance_updates`\n"
+  );
+  fs.writeFileSync(
+    path.join(repoRoot, ".agents/skills/nextclaw-npm-release/SKILL.md"),
+    "---\nname: nextclaw-npm-release\ndescription: NPM release.\n---\n"
+  );
+
+  const result = auditSkillProgressiveLoading({
+    budgets: generousBudgets,
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.ok(
+    result.violations.some((violation) =>
+      violation.includes("acceptance completion contract") && violation.includes("open-required")
+    )
+  );
+  assert.ok(
+    result.violations.some((violation) => violation.includes("scope-confirmation: user-confirmed"))
+  );
+  assert.ok(
+    result.violations.some((violation) =>
+      violation.includes("nextclaw-npm-release/SKILL.md") && violation.includes("parent-goal")
     )
   );
 });

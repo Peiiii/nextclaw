@@ -11,7 +11,9 @@
 | 专注小钟 | 开始一轮专注、记录完成点，关掉页面后仍计时 | Resident Component、宿主事件投递、持久恢复 |
 | 联系人整理 | 清理姓名空格、邮箱大小写和重复标签 | Consumer 经宿主调用独立 Provider Component |
 
-应用列表还保留一个「开发者验证台」。它不是普通用户的主入口，只用于查看共享 runner、受控网络、越权拒绝、超时恢复和运行时指标等底层证据。
+运行时包还包含一个仅用于验收的标准 Spin SQLite Component：它使用 `fermyon:spin@2.0.0/sqlite` 完成建表、写入和查询；每个 App 实例的数据目录独立，重启后仍从同一私有数据库读取，未授予存储时由标准接口返回拒绝。
+
+应用列表还保留一个「运行时验收与证据」。它不是普通用户的主入口，用来查看已安装实例真实产生的 PRT 验收记录、最近环境、运行时间和脱敏证据。没有记录的项目会显示“未验证”，不会把静态说明当成通过；当前尚未注册检查器的项目会标明“等待对应检查器”。
 
 ## Agent 也能使用
 
@@ -24,11 +26,11 @@
   → Service Action 授权
   → ServiceAppManager
   → wasi-component runtime
-  → 共享 Rust/Wasmtime runner
+  → 共享 Rust/Spin runner（底层使用 Wasmtime）
   → Host capability / component-call
   → Rust/WASM Component
 ```
 
 ## 当前边界
 
-这是单平台技术 MVP：官方 Guest 只覆盖 Rust，不承诺 Python/FastAPI 等现有框架直接编译，也不代表跨平台 runner 分发、签名、升级和生产级资源治理已经完成。
+官方 Guest 开发链路目前以 Rust 为主，不承诺 Python/FastAPI 等现有框架可以直接编译成 Component。具体能力是否完成、在哪个平台通过，以「运行时验收与证据」中当前安装实例的编号记录为准；没有当前证据就不会显示为通过。

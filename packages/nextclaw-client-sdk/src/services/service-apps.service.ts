@@ -6,6 +6,10 @@ import type {
   ServiceAppDeleteResultView,
   ServiceAppListView,
   ServiceAppRecordView,
+  PortableRuntimeAcceptanceContractApiView,
+  PortableRuntimeAcceptanceExportApiView,
+  PortableRuntimeAcceptanceStatusApiView,
+  RuntimeVerificationRecordListView,
 } from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
@@ -17,6 +21,17 @@ type BridgeRequestOptions = {
 
 type ListServiceActionsOptions = BridgeRequestOptions & {
   appId?: string;
+};
+
+type PortableRuntimeAcceptanceOptions = BridgeRequestOptions & {
+  appId?: string;
+  locale?: string;
+};
+
+type ListVerificationRecordsOptions = BridgeRequestOptions & {
+  acceptanceId?: string;
+  appId?: string;
+  limit?: number;
 };
 
 function bridgeHeaders(token?: string): Record<string, string> | undefined {
@@ -60,6 +75,56 @@ export class ServiceAppsClientService {
       : "";
     return await this.requestService.get<ServiceActionListView>(
       `/api/service-actions${search}`,
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
+  readonly listVerificationRecords = async (
+    options: ListVerificationRecordsOptions = {},
+  ): Promise<RuntimeVerificationRecordListView> => {
+    const search = new URLSearchParams();
+    if (options.acceptanceId) search.set("acceptanceId", options.acceptanceId);
+    if (options.appId) search.set("appId", options.appId);
+    if (options.limit !== undefined) search.set("limit", String(options.limit));
+    const suffix = search.size > 0 ? `?${search.toString()}` : "";
+    return await this.requestService.get<RuntimeVerificationRecordListView>(
+      `/api/runtime-verification-records${suffix}`,
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
+  readonly getPortableRuntimeAcceptanceContract = async (
+    options: Pick<PortableRuntimeAcceptanceOptions, "bridgeSessionToken" | "locale"> = {},
+  ): Promise<PortableRuntimeAcceptanceContractApiView> => {
+    const search = options.locale ? `?${new URLSearchParams({ locale: options.locale })}` : "";
+    return await this.requestService.get<PortableRuntimeAcceptanceContractApiView>(
+      `/api/portable-runtime/acceptance/contract${search}`,
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
+  readonly getPortableRuntimeAcceptanceStatus = async (
+    options: PortableRuntimeAcceptanceOptions = {},
+  ): Promise<PortableRuntimeAcceptanceStatusApiView> => {
+    const search = new URLSearchParams();
+    if (options.appId) search.set("appId", options.appId);
+    if (options.locale) search.set("locale", options.locale);
+    const suffix = search.size > 0 ? `?${search.toString()}` : "";
+    return await this.requestService.get<PortableRuntimeAcceptanceStatusApiView>(
+      `/api/portable-runtime/acceptance/status${suffix}`,
+      { headers: bridgeHeaders(options.bridgeSessionToken) },
+    );
+  };
+
+  readonly exportPortableRuntimeAcceptance = async (
+    options: PortableRuntimeAcceptanceOptions = {},
+  ): Promise<PortableRuntimeAcceptanceExportApiView> => {
+    const search = new URLSearchParams();
+    if (options.appId) search.set("appId", options.appId);
+    if (options.locale) search.set("locale", options.locale);
+    const suffix = search.size > 0 ? `?${search.toString()}` : "";
+    return await this.requestService.get<PortableRuntimeAcceptanceExportApiView>(
+      `/api/portable-runtime/acceptance/export${suffix}`,
       { headers: bridgeHeaders(options.bridgeSessionToken) },
     );
   };

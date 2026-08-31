@@ -37,6 +37,12 @@ describe("resolveUiDocumentTitle", () => {
     ).toBe("NextClaw 3000 - Model Configuration");
   });
 
+  it("uses the projects title for project routes", () => {
+    setLanguage("en");
+
+    expect(resolveUiDocumentTitle("/projects")).toBe("NextClaw - Projects");
+  });
+
   it("uses the full host for non-local instances", () => {
     setLanguage("en");
     const title = resolveUiDocumentTitle(

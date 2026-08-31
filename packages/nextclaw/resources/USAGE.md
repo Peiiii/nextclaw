@@ -461,6 +461,9 @@ nextclaw projects create research --template empty --json
 # Create a knowledge-base project at an explicit path
 nextclaw projects create knowledge --path ~/Projects/knowledge --template knowledge-base --json
 
+# Read the same project observation snapshot used by the Projects page
+nextclaw projects observe ~/Projects/knowledge --json
+
 # Rename a session and manage its project binding
 nextclaw sessions rename <session-id> "Research session" --json
 nextclaw sessions set-project <session-id> ~/Projects/research --json
@@ -722,6 +725,7 @@ nextclaw app dev <app-dir> --reset-data --confirm <app-id> --json
 | `nextclaw projects list`                                     | List registered projects, including projects without sessions                                                                                                |
 | `nextclaw projects templates`                                | List built-in project templates                                                                                                                              |
 | `nextclaw projects create <name>`                            | Create an empty or knowledge-base project                                                                                                                    |
+| `nextclaw projects observe <root-path>`                      | Read the registered project's read-only observation snapshot                                                                                                 |
 | `nextclaw sessions rename <session-id> <label>`              | Rename a session                                                                                                                                             |
 | `nextclaw sessions set-project <session-id> <directory>`     | Bind a session to an existing project directory                                                                                                              |
 | `nextclaw sessions clear-project <session-id>`               | Clear a session project binding                                                                                                                              |

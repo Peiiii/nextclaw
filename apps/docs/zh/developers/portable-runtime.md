@@ -1,92 +1,53 @@
 # Portable Runtime
 
-Portable Runtime 是 NextClaw 执行 WASM Service App 的运行方式。应用把业务逻辑编译成平台无关的 WebAssembly Component，NextClaw 通过内嵌的 Spin Runtime 和共享的原生运行进程装载、连接并执行它，并向 Component 提供一组受控的宿主能力。
+Portable Runtime 是 NextClaw 用来运行 WebAssembly Component Service App 的方式。你把 Rust/WASI Guest、Service 清单和可选 Panel 一起打包为 schema v2 `.napp`，NextClaw 用随产品提供的原生 runner 运行 Component，并在应用边界转交每一项宿主资源。
 
-它解决的是 Service App 的运行与能力边界，不是一套新的应用产品：App 安装、Panel、Service Actions、用户授权和数据生命周期仍由 NextClaw 原有体系管理。
+它不是一个通用容器。Component 只能拿到应用声明、且在已安装宿主中完成绑定的存储、文件夹、域名、密钥槽位、Provider 和 AI 槽位。正是这个边界让同一份应用包可以在支持的平台运行，而不必把当前用户的完整环境交给 Guest。
 
-> Portable Runtime 当前处于实验阶段。官方 Guest 开发路径只覆盖 Rust，且尚不能把它视为运行不受信任代码的生产级安全沙箱。
+## 什么时候该选它
 
-## 什么时候使用
+| 适合 Portable Runtime | 适合 native-process Service |
+| --- | --- |
+| 服务可以作为 Rust/WASI Component 运行 | 必须直接启动平台程序，或复用 Node、Python 等完整运行时 |
+| 希望用一个通用 `.napp`，并由宿主转交能力 | 集成确实需要外部守护进程、SDK、驱动或系统命令 |
+| KV、SQLite、已批准 HTTP、用户授权文件、配置值和声明 Provider 已能覆盖需求 | 部署需要 Redis 等外部依赖；必须明确声明并让设置过程可见 |
 
-Portable Runtime 适合需要以下特征的 Service App：
+自包含应用优先使用 Portable Runtime。外部依赖只是一条明确、可见的例外：不能让用户猜该装什么，也不能把凭据写进清单。
 
-- 希望同一份业务 Component 在多个桌面平台使用；
-- 希望多个轻量服务共享一个原生运行器，而不是每个服务常驻一个 JavaScript 进程；
-- 需要宿主管理的持久 KV、受控网络请求或 Component 组合；
-- 需要按调用运行、持续接收事件或向其它 Component 提供能力；
-- 希望 Panel、Agent 和 CLI 复用同一套 Service Action 合同。
-
-已有 MCP Service 不需要为了使用 NextClaw 而改写。`mcp` 和 `wasi-component` 是 Service App 的两种并列协议。
-
-## 运行链路
+## 架构
 
 ```text
-Panel App ─┐
-Agent ─────┼─→ Service Action / grant ─→ NextClaw Kernel ─→ embedded Spin Runtime ─→ WASM Component
-CLI ───────┘                                                │
-                                                            └─→ KV / HTTP GET / declared Provider
+Panel / Agent / nextclaw CLI
+            │ 已声明的操作
+            ▼
+NextClaw Kernel：授权、绑定、生命周期、证据
+            │ 已解析的能力快照
+            ▼
+随产品提供的 Spin runner ── WIT ── Rust/WASI Component
 ```
 
-NextClaw Kernel 是产品语义的 owner：它解析 App 和 Service 清单、检查调用者授权、确定数据目录与能力范围，并管理运行时状态。runner 只负责 Component 装载、WIT linking 和执行。
+Panel、Agent 和 CLI 的调用都经过同一个 Kernel owner。它校验操作输入、在调用时解析授权、启动或复用对应运行通道，并写入脱敏验证记录。Guest 不会拿到宿主配置文件、任意进程环境，也不能绕开这些检查。
 
-## 三种运行角色
+## 需要构建的内容
 
-| 角色 | 生命周期 | 适合场景 |
-| --- | --- | --- |
-| Action | 收到调用时执行；不需要长期保留实例 | 查询、写入、计算、转换、受控请求 |
-| Resident | 保留同一个实例，并按清单间隔接收宿主事件 | 计时、轮询、需要跨 Panel 保持内存状态的工作 |
-| Provider | 保留独立实例，供显式声明依赖的 Component 调用 | 可复用的规范化、查询或领域能力 |
+一个最小应用包包含：
 
-三种角色都实现同一个 `service-app` world。区别来自 `service-app.json` 的 `lifecycle` 声明，而不是三套不同框架。
+```text
+my-app/
+├── manifest.json
+├── panels/<panel-id>.panel/       # 可选的用户界面
+├── service-components/<service-id>/
+│   ├── service-app.json
+│   └── service.wasm
+├── guest/                         # Rust 源码、Cargo.lock、复制的 WIT 包
+└── tests/service-smoke.json
+```
 
-## 当前宿主能力
+用 `nextclaw app create ./my-app --template rust-wasi` 创建。之后从包根目录运行 `build`、`check`、`test`、`dev`、`call` 和 `pack`。这样 Panel、Service、权限和同包 Component 始终处于同一个产品边界。
 
-WIT 合同 `nextclaw:portable-service@0.1.0` 当前提供：
+## 从这里开始
 
-- 分级日志；
-- 宿主管理的 KV 读取与写入；
-- 受 `allowedDomains` 限制的 HTTPS GET；
-- 调用已声明 Provider 的 `component-call`；
-- runner 进程、已加载 Component 数量和当前 Component id 等运行信息。
-
-Component 不会自动继承宿主文件系统或原生网络。存储、网络和 Provider 依赖都由所属 schema v2 App 的清单限定。
-
-## 共享 runner 与恢复
-
-NextClaw 通过一个共享子进程执行多个 Component。进程内部使用 Spin Runtime 的 Factors 连接宿主能力；Factor 是实现细节，不改变 App 作者看到的 `.napp`、WIT 和 NDJSON 合同：
-
-- Action 按需装载和调用；
-- Resident 与 Provider 在 runner 中保留实例；
-- Provider 会先于依赖它的持久角色启动；
-- runner 异常退出或调用超时时，Kernel 结束故障进程，并重建需要持续存在的 Provider 和 Resident；
-- 失败中的调用不会被自动重放。
-
-当前超时恢复用于闭合故障主链路，不等同于完整的进程内资源隔离。内部 CPU、内存和并发限制仍需要继续完善。
-
-## 扩展与外部依赖
-
-优先把可复用能力做成 Portable Component，或由受信任的 Native Provider 提供。NextClaw 当前不承诺应用可以在安装后动态加载任意第三方 Spin Factor；需要产品支持的宿主能力，必须先进入受支持的 Factor/Provider 合同。
-
-默认 App 应该是自包含的，安装后即可运行。Service 可以在清单中显式声明外部 capability 或 resource，但这属于谨慎的兜底路径：App 列表和详情会显示 `needs-capability` 或 `needs-configuration`，在依赖满足前不会允许启用。NextClaw 目前只负责识别、展示和阻止误启用，不会自动安装外部服务或代替用户完成第三方账号授权。
-
-## 跨平台模型
-
-WASM Component 是平台无关产物；原生 runner 由 NextClaw 针对目标操作系统提供。当前源码包含 macOS arm64/x64、Linux x64 和 Windows x64 的资源映射。
-
-通过 NPM 安装时，稳定 launcher 会在首次启动时检查当前平台的完整 Runtime。运行时缺失时，它会下载并验证签名 Runtime，再从完整版本启动；如果暂时无法联网但本机已有完整 Runtime，则继续使用该版本，不需要手工复制运行时文件。
-
-正式发布会在 macOS arm64、Linux x64 和 Windows x64 上分别完成构建，并走一遍真实的 HTTP 启用、五个 Component 发现、Provider/Resident 启动和 Action 调用。Linux x64 runner 使用静态链接，不会继承构建机器的 glibc 版本要求。
-
-## 当前边界
-
-- 官方 Guest 开发路径目前只覆盖 Rust；不能直接把 FastAPI 或现有 Python 依赖树整体编译成当前 Component。Python/Node 等完整生态仍可通过 `native-process` Service 使用，但那不是 Portable Component 的自包含运行方式。
-- 公开合同尚不包含 Secret、文件与 Blob、流式 HTTP、长任务进度与取消，也不包含 Component 直接调用模型或 Agent。
-- Resident 当前接收宿主定时事件，还没有通用外部事件订阅路由。
-- Provider 不支持递归调用另一个 Provider。
-- 当前不是用于运行不受信任代码的生产级安全沙箱。
-
-## 接下来
-
-- [Runtime 模型与能力合同](/zh/developers/portable-runtime-contracts)
-- [开发 WASM Service App](/zh/developers/portable-service-apps)
-- [Service Apps](/zh/guide/service-apps)
+1. [能力与安全边界](/zh/developers/portable-runtime-contracts)：清单请求、WIT、挂载点和错误边界。
+2. [开发 Service App](/zh/developers/portable-service-apps)：Rust 开发流程。
+3. [Job、事件与可观测性](/zh/developers/portable-runtime-observability)：长时间工作、Resident 投递和诊断事实。
+4. [打包与分发](/zh/developers/portable-runtime-distribution)：通用产物和外部依赖规则。

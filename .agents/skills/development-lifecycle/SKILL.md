@@ -19,7 +19,7 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 
 总流程只负责阶段状态和任务完成，不拥有调查、设计、实现、验证、review、发布或沉淀的内部方法。
 
-用户明确要求大型、多阶段或低监督任务的完整交付验收标准时，条件加载 [`acceptance-contract-governance`](../acceptance-contract-governance/SKILL.md)，把它的整体契约与阶段门作为各阶段共享输入；它不是新 phase，普通任务不加载。
+风险为 L3-L4，或用户明确给出验收标准、要求大型/多阶段/低监督完整交付时，加载 [`acceptance-contract-governance`](../acceptance-contract-governance/SKILL.md)，建立 active contract 与 stable acceptance IDs；它不是新 phase，普通 L0-L2 任务不加载。
 
 ## 开始
 
@@ -34,37 +34,19 @@ description: 通用开发生命周期的唯一默认流程 owner；用于按风�
 - 当前阶段；
 - 完成任务所需的最小可信证据。
 
-用户显式启用时读取[省 Token 委派合同](references/token-efficient-delegation.md)；它只优化执行拓扑，不改变风险、阶段和完成门。
+命中时记录 `contract-id`、`parent-goal`、ledger 落点和 Required acceptance IDs；设计/计划清单先登记，不能凭文档存在进入 gate。
 
-风险定义：
+用户当前任务同时明确开启省 Token 并要求子代理时才读取[省 Token 委派合同](references/token-efficient-delegation.md)；效率、省 Token 或并行本身不授权委派。
 
-- L0：文档与普通元信息；
-- L1：局部低风险代码、纯视觉或文案展示；
-- L2：交互、状态、局部行为或明确 bug；
-- L3：跨 owner/transport、持久化、兼容或运行链路；
-- L4：发布、迁移、生产或不可逆操作。
+风险定义：L0 文档/元信息；L1 局部低风险代码或展示；L2 交互、状态、局部行为或明确 bug；L3 跨 owner/transport、持久化、兼容或运行链路；L4 发布、迁移、生产或不可逆操作。
 
-任务类型按主要意图互斥归类，不能替代风险等级：
-
-- `bugfix`：恢复已有合同或预期行为；
-- `feature`：新增或实质改变用户、开发者或系统可用能力；
-- `small-change`：既不是修复已有合同，也不新增或实质改变能力，并且局部、可逆、沿用既有惯例的琐碎改动。
-
-优先判断 `bugfix`，再判断 `feature`；只有两者都不成立时才可使用 `small-change`。任务理解阶段冻结类型；新证据改变主要意图时显式修正，telemetry 不参与分类。
+任务类型按主要意图互斥归类：`bugfix` 恢复已有合同；`feature` 新增或实质改变能力；`small-change` 仅用于前两者都不成立且局部、可逆、沿用惯例的琐碎改动。依次判断并在 Task Understanding 冻结；新证据改变意图时显式修正。类型不替代风险，telemetry 不参与分类。
 
 `bugfix` 还必须在 Task Understanding 显式选择 `reproduce` 或 `skip-reproduction` 并留下证据；复现不是独立 phase，具体门槛归 Task Understanding 和 Validation owner。
 
 ## 设计门
 
-Task Understanding 结束、进入 Implementation 前必须显式判断 Design；`feature`、`bugfix` 和 `small-change` 都不能按类型自动决定。只有以下条件同时成立才允许跳过：
-
-- 已记录 `skip-design`、`design-document: not-required` 及单一路径依据；若为 `feature`，用户结果和行为边界已清楚；若为 `bugfix`，根因、修复路径和修后验证判定均已确认；
-- 风险为 L0-L1；
-- 只触达一个现有 owner，不改变跨层合同、状态归属、持久化、兼容、迁移或 fallback，也不存在未决的用户工作流或交互取舍；
-- 已有明确惯例且不存在会改变结果的真实方案分叉；
-- 改动局部、可逆，验证方式直接且不依赖新增交互或运行时假设。
-
-任一条件不成立就进入 `development-design`。跳过不能用 diff 小、时间紧或“看起来显然”代替判断。进入 Design 后返回稳定设计文档与大型执行 plan 决定；plan 不是新 phase。
+Task Understanding 后、Implementation 前显式判断 Design，任务类型不能自动决定。仅当同时记录 `skip-design`、`design-document: not-required` 和单一路径依据，风险 L0-L1，只触达一个 owner，不改变跨层合同/状态/持久化/兼容/迁移/fallback，无未决工作流、交互取舍或真实方案分叉，且改动局部可逆、验证直接时跳过；feature 还须结果与行为边界清楚，bugfix 还须根因、路径和修后判定确认。否则进入 `development-design`，返回设计文档与 plan 决定；plan 不是 phase。diff 小、时间紧或“显然”不是依据。
 
 ## 阶段路由
 
@@ -78,7 +60,7 @@ Task Understanding 结束、进入 Implementation 前必须显式判断 Design�
 6. 结果交接、提交、发布或部署：`development-delivery`。
 7. 任务结束前的轻量反思和条件沉淀：`development-retrospective`。
 
-阶段存在不等于重型执行：Design 可以判定为轻量产物而不创建设计文档，也可以判定单批任务不需要 plan；没有实现产物时实现、验证和 review 可明确跳过；没有外部授权时 Delivery 只完成结果交接；Retrospective 没有复用价值时不落盘。
+阶段不等于重型仪式：Design 可用轻量产物且单批无需 plan；无实现产物时实现、验证和 review 可跳过；无外部授权时 Delivery 只交接；Retrospective 无复用价值时不落盘。
 
 ## 阶段结果
 
@@ -90,8 +72,12 @@ Task Understanding 结束、进入 Implementation 前必须显式判断 Design�
 - `evidence`：支持结论的最小可信证据；
 - `open_risks`：未关闭或未验证边界；
 - `rework_target`：需要返回的阶段，没有则为空。
+- `acceptance_updates`：本阶段改变的 stable IDs，没有 active contract 时为空；
+- `parent_status`：in-progress、blocked 或 ready-for-completion-check，阶段不得返回整体 completed。
 
-`open_risks` 同时承载仍会妨碍当前最小完整结果成立的必要缺口；阶段不能把这类缺口降格为笼统的“后续优化”。不要求机械输出固定格式，但不能省略影响下一阶段或完成判断的事实。
+`open_risks` 承载妨碍最小完整结果的必要缺口，不得降格为“后续优化”。格式可变，但不得省略影响下一阶段或完成判断的事实。
+
+跨会话、交接或上下文压缩前持久化 active contract、open Required IDs、证据和 scope decisions；恢复后先重载对账，不能从 summary、版本或发布猜测父目标。
 
 ## 返工
 
@@ -104,6 +90,8 @@ Task Understanding 结束、进入 Implementation 前必须显式判断 Design�
 
 阶段 owner 不直接调用其它阶段 owner，也不回链本入口。阶段切换始终由本流程决定。
 
+阶段、Delivery 和 release 只关闭子目标并返回 `acceptance_updates`。仅本流程可改 parent 整体状态；局部发布不得把 `parent_status` 升为完成。
+
 ## 完成门
 
 任务完成必须同时满足：
@@ -115,13 +103,15 @@ Task Understanding 结束、进入 Implementation 前必须显式判断 Design�
 - Delivery 已完成结果交接，外部动作已完成或因未授权而明确跳过；
 - Retrospective 已判断是否需要持久化；
 - 未验证边界、主观确认项和外部阻塞已经披露。
+- active contract 的 Required acceptance IDs 均为 current passed，且 parent-goal 无未登记必要缺口；
+- scope reduction（删/降 Required ID、降低合同或移出 parent-goal）有用户确认和 scope revision。
 
-进度汇报、局部成功和“主要功能已完成”都不能替代完成门。只汇报结果、主要证据、未验证边界和真实触发的交付/沉淀状态，不罗列所有未触发阶段和命令。
+无 active contract 时按最小完整结果判断；命中却未建 ledger 时不得完成。进度、局部成功、版本发布和“主要功能已完成”不能替代完成门。
 
 ## 禁止
 
 - 任务开始时加载全部七个阶段。
 - 在本入口复制阶段详细清单。
 - 让阶段 skill 互相调用或回链生命周期。
-- 为流程完整而制造无信息增量的设计、测试、review 或文档。
+- 制造无信息增量的设计、测试、review 或文档。
 - 未经用户授权执行 commit、push、PR、release、deploy 或不可逆操作。

@@ -14,6 +14,7 @@ import { AppTestCommandController } from "./controllers/development/app-test-com
 import { AppPackageCommandController } from "./controllers/app-packages/app-package-command.controller.js";
 import { ServiceAppDevService } from "./services/service-app-dev.service.js";
 import { AppCheckService } from "./services/app-check.service.js";
+import { registerPortableRuntimeAppCommands } from "./commands/register-portable-runtime-app-commands.js";
 
 export function registerAppCommands(
   program: Command,
@@ -247,6 +248,8 @@ function registerAppPackageCommands(
     .action(async (appId, opts) => appPackages.info(appId, opts));
 
   registerAppDependencyCommands(app, appPackages);
+  registerAppSecretCommands(app, appPackages);
+  registerPortableRuntimeAppCommands(app, appPackages);
 
   app
     .command("operations")
@@ -274,6 +277,13 @@ function registerAppPackageCommands(
     .action(async (appId, opts) => appPackages.disable(appId, opts));
 
   app
+    .command("invoke <app-id> <action-name>")
+    .description("Call an Action on an enabled installed App through the running host")
+    .option("--input <json>", "JSON object input for the action")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, actionName, opts) => appPackages.invoke(appId, actionName, opts));
+
+  app
     .command("update <app-id>")
     .description("Update an App through the running NextClaw host")
     .option("--version <version>", "Target version")
@@ -295,6 +305,35 @@ function registerAppPackageCommands(
     .option("--confirm <app-id>", "Confirm the exact App id when purging data")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => appPackages.uninstall(appId, opts));
+}
+
+function registerAppSecretCommands(
+  app: Command,
+  controller: AppPackageCommandController,
+): void {
+  const secrets = app.command("secrets")
+    .description("Inspect and manage non-sensitive SecretRef bindings for an App");
+  secrets.command("inspect <app-id>")
+    .description("Show declared Secret slots and non-sensitive bindings")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.inspectSecrets(appId, opts));
+  secrets.command("verify <app-id>")
+    .description("Resolve each declared Secret binding without returning its value")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.verifySecrets(appId, opts));
+  secrets.command("bind <app-id>")
+    .description("Bind one declared Secret slot to a configured Secret provider")
+    .requiredOption("--slot <id>", "Declared Secret slot id")
+    .requiredOption("--source <source>", "Secret source: env, file, or exec")
+    .option("--provider <id>", "Configured Secret provider id")
+    .requiredOption("--id <id>", "Secret id within the provider")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.bindSecret(appId, opts));
+  secrets.command("unbind <app-id>")
+    .description("Remove a SecretRef binding from an App")
+    .requiredOption("--slot <id>", "Declared Secret slot id")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.unbindSecret(appId, opts));
 }
 
 function registerAppDependencyCommands(

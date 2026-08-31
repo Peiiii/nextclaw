@@ -42,6 +42,10 @@ export function resolveKernelObservationStorePath(options: KernelStoragePathOpti
   return resolveKernelDataPath(options, "observations", "state.json");
 }
 
+export function resolveKernelVerificationRecordStorePath(options: KernelStoragePathOptions): string {
+  return resolveKernelDataPath(options, "verification-records", "records.json");
+}
+
 export function resolveKernelCapabilityGrantStorePath(options: KernelStoragePathOptions): string {
   return resolveKernelDataPath(options, "capability-grants", "grants.json");
 }

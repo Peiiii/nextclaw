@@ -1,0 +1,9 @@
+interface store {
+  variant error {
+    upstream(string),
+    io(string),
+  }
+
+  get: func(key: string) -> result<option<string>, error>;
+  get-all: func() -> result<list<tuple<string, string>>, error>;
+}

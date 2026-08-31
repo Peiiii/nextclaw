@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "id": "nextclaw.portable-runtime-lab",
   "name": "日常小工具箱",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "清单、便签、专注计时和联系人整理，四个能直接使用的日常小应用。",
   "icon": "assets/icon.svg",
   "engines": {
-    "nextclaw": ">=0.43.0"
+    "nextclaw": ">=0.46.0"
   },
   "presentation": {
     "primaryPanel": "nextclaw-portable-runtime-lab-todos"
@@ -27,6 +27,14 @@
     },
     "allowedDomains": [
       "httpbin.org"
+    ],
+    "secrets": [
+      {
+        "id": "api-token",
+        "title": "验证用 API Token",
+        "description": "仅用于 Portable Capability Lab 的标准 WASI Secret 验证。",
+        "required": false
+      }
     ]
   },
   "components": [
@@ -57,6 +65,10 @@
     {
       "kind": "service",
       "path": "service-components/nextclaw-portable-runtime-lab-capabilities"
+    },
+    {
+      "kind": "service",
+      "path": "service-components/nextclaw-portable-runtime-lab-sqlite"
     },
     {
       "kind": "service",

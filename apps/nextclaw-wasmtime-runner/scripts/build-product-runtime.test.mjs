@@ -8,7 +8,7 @@ import {
   syncArtifactAtomically,
 } from "./build-product-runtime.mjs";
 
-test("creates one shared runner and five guest artifact targets for macOS", () => {
+test("creates one shared runner and six guest artifact targets for macOS", () => {
   const workspaceRoot = resolve("/workspace");
   const plan = createPortableRuntimeBuildPlan({
     workspaceRoot,
@@ -30,14 +30,14 @@ test("creates one shared runner and five guest artifact targets for macOS", () =
       "nextclaw-wasmtime-runner",
     ),
   );
-  assert.equal(plan.commands.length, 6);
+  assert.equal(plan.commands.length, 7);
   assert.deepEqual(plan.commands.at(-1), [
     "build",
     "--release",
     "--target",
     "aarch64-apple-darwin",
   ]);
-  assert.equal(plan.guests.length, 5);
+  assert.equal(plan.guests.length, 6);
   assert.ok(plan.guests.every(({ destination }) => basename(destination) === "service.wasm"));
 });
 
@@ -75,4 +75,27 @@ test("atomically replaces a previously installed runner resource", async (contex
 
   assert.equal(await readFile(destination, "utf8"), "new-runner");
   assert.equal(result.bytes, 10);
+});
+
+test("development validation reuses the exact native Rust target build", async () => {
+  const workflow = await readFile(
+    new URL("../../../.github/workflows/portable-runtime-validate.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /uses: actions\/cache@v4/);
+  assert.match(workflow, /apps\/nextclaw-wasmtime-runner\/target/);
+  assert.match(workflow, /cargo test --release --target \$\{\{ matrix\.cargo_target \}\}/);
+});
+
+test("focused platform validation does not invoke the three-platform aggregate gate", async () => {
+  const workflow = await readFile(
+    new URL("../../../.github/workflows/portable-runtime-validate.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(workflow, /target: \$\{\{ steps\.select\.outputs\.target \}\}/);
+  assert.match(workflow, /echo "target=\$TARGET" >> "\$GITHUB_OUTPUT"/);
+  assert.match(
+    workflow,
+    /aggregate-acceptance-evidence:[\s\S]*?if: \$\{\{ needs\.select-matrix\.outputs\.target == 'all' \}\}/,
+  );
 });

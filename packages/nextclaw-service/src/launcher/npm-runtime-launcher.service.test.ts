@@ -77,6 +77,44 @@ describe("NpmRuntimeLauncher", () => {
       rmSync(rootDir, { recursive: true, force: true });
     }
   });
+
+  it("refreshes an older complete bundle after the npm launcher advances", async () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-launcher-version-skew-"));
+    const layout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+    const packagedEntrypoint = join(rootDir, "npm", "dist", "cli", "app", "index.js");
+    const refreshedEntrypoint = join(layout.getVersionDir("0.48.0-beta.0"), "runtime", "dist", "cli", "app", "index.js");
+    try {
+      writeBundleFixture(layout, "0.47.0");
+      layout.writeCurrentPointer({ version: "0.47.0" });
+      vi.spyOn(process, "exit").mockImplementation((() => {
+        throw new Error("process exit");
+      }) as never);
+      const bootstrapRuntimeBundle = vi.fn(async () => {
+        writeBundleFixture(layout, "0.48.0-beta.0");
+        layout.writeCurrentPointer({ version: "0.48.0-beta.0" });
+      });
+      const launcher = new NpmRuntimeLauncher({
+        argv: ["/usr/bin/node", "/usr/lib/node_modules/nextclaw/dist/cli/launcher/index.js", "serve"],
+        env: {},
+        layout,
+        launcherVersion: "0.48.0-beta.0",
+        packagedAppEntrypoint: packagedEntrypoint,
+        packagedPortableRunnerPath: join(rootDir, "npm", "resources", "native", "linux-x64", "nextclaw-wasmtime-runner"),
+        bootstrapRuntimeBundle
+      });
+
+      await expect(launcher.run()).rejects.toThrow("process exit");
+
+      expect(bootstrapRuntimeBundle).toHaveBeenCalledOnce();
+      expect(childProcess.spawnSync).toHaveBeenCalledWith(
+        process.execPath,
+        [refreshedEntrypoint, "serve"],
+        expect.any(Object)
+      );
+    } finally {
+      rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
 });
 
 function writeBundleFixture(layout: NpmRuntimeBundleLayoutStore, version: string): void {

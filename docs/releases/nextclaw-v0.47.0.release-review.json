@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.47.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-08-30-nextclaw-v0-47-0.md",
+        "apps/docs/en/notes/2026-08-30-nextclaw-v0-47-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.47.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md",
+        "apps/docs/zh/developers/portable-service-apps.md",
+        "apps/docs/en/developers/portable-service-apps.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "This release completes the existing Service Apps product surface and developer runtime without changing the website's positioning, download flow, or pricing."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.47.0 completes Portable Service Apps: safe files, SQLite, secrets, jobs, streaming, AI/Agent calls, providers, and 22 cross-platform acceptance contracts.\nhttps://docs.nextclaw.io/en/notes/2026-08-30-nextclaw-v0-47-0",
+      "imagePath": "images/screenshots/nextclaw-panel-apps-page-cn.png",
+      "imageAlt": "NextClaw Panel Apps page showing installed mini apps",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-30-nextclaw-v0-47-0"
+    }
+  }
+}

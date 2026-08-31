@@ -93,6 +93,7 @@ function runPublishedValidation(args) {
   }
   run("pnpm", args);
 }
+
 function runReleaseStage(stage, recoveryOptions, callback) {
   try {
     return callback();

@@ -6,7 +6,7 @@ import { ConfigSchema } from "@nextclaw/core";
 import { EventBus } from "@nextclaw/shared";
 import { ToolProviderRunContextService } from "@kernel/contributions/tool-provider/services/tool-provider-run-context.service.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
-import { ProjectManager } from "@kernel/managers/project.manager.js";
+import { ProjectManager } from "@kernel/features/projects/index.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { SessionToolProvider } from "@kernel/contributions/tool-provider/providers/session-tool.provider.js";
 

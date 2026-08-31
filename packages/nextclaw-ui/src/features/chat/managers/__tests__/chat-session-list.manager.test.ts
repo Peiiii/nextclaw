@@ -230,6 +230,33 @@ describe("ChatSessionListManager draft and selection flow", () => {
     });
   });
 
+  it("keeps a project-bound initial prompt as an editable unsent draft", () => {
+    const uiManager = {
+      goToChatRoot: vi.fn(),
+      navigateTo: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
+
+    const manager = new ChatSessionListManager(uiManager);
+    manager.createSession({
+      projectRoot: "/tmp/project-alpha",
+      prompt: "Use the project observation capability.",
+    });
+
+    expect(uiManager.navigateTo).toHaveBeenCalledWith("/chat/draft", {
+      replace: true,
+      state: {
+        chatDraft: {
+          sessionType: "native",
+          projectRoot: "/tmp/project-alpha",
+          prompt: "Use the project observation capability.",
+        },
+      },
+    });
+    expect(useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage).toBe(false);
+  });
+
   it("does not eagerly replace the old selected session before the route finishes switching", () => {
     const uiManager = {
       goToChatRoot: vi.fn(),

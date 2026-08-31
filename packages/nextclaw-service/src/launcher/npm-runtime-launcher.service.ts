@@ -6,6 +6,7 @@ import { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/stores/npm-runtim
 import {
   isNpmRuntimeBundleComplete,
   isPackagedNpmRuntimeComplete,
+  compareNpmRuntimeVersions,
   NpmRuntimeBundleService,
   shouldPreferPackagedNpmRuntime,
   type ResolvedNpmRuntimeBundle
@@ -76,6 +77,12 @@ export class NpmRuntimeLauncher {
     const currentBundleComplete = Boolean(currentBundle && isNpmRuntimeBundleComplete({
       bundleDirectory: currentBundle.bundleDirectory
     }));
+    const currentRuntimeVersion = currentBundle?.manifest.runtimeVersion ?? currentBundle?.manifest.bundleVersion;
+    const launcherHasNewerRuntime = Boolean(
+      currentBundleComplete
+      && currentRuntimeVersion
+      && compareNpmRuntimeVersions(launcherVersion, currentRuntimeVersion) > 0,
+    );
     if (
       packagedRuntimeComplete &&
       (!currentBundleComplete || (currentBundle && shouldPreferPackagedNpmRuntime({
@@ -93,7 +100,7 @@ export class NpmRuntimeLauncher {
     ) {
       return currentBundle.runtimeScriptPath;
     }
-    if (!packagedRuntimeComplete || !currentBundleComplete) {
+    if (!packagedRuntimeComplete || !currentBundleComplete || launcherHasNewerRuntime) {
       try {
         await this.bootstrapRuntimeBundle();
         const bootstrappedBundle = bundleService.resolveCurrentBundle();

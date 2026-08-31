@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # An immutable release target can predate the 432-file Portable Runtime bundle.
+          # An immutable release target can predate the current Portable Runtime bundle budget.
           # This only updates the local release builder guard; packaged runtime sources still come
           # from the verified release_target checkout above.
           for script_path in \
@@ -143,10 +143,12 @@ jobs:
             node - "$script_path" <<'NODE'
           const { readFileSync, writeFileSync } = require("node:fs");
           const scriptPath = process.argv[2];
-          const oldBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 400;";
-          const compatibleBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 450;";
+          const compatibleBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 520;";
           const source = readFileSync(scriptPath, "utf8");
-          const updated = source.includes(oldBudget) ? source.replace(oldBudget, compatibleBudget) : source;
+          const updated = source.replace(
+            /const RUNTIME_BUNDLE_FILE_BUDGET = (?:400|450);/,
+            compatibleBudget,
+          );
           if (!updated.includes(compatibleBudget)) {
             throw new Error(`Unsupported runtime bundle budget in ${scriptPath}`);
           }
@@ -783,7 +785,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_target || inputs.release_tag }}
+          # An APT-only recovery republishes an already immutable release asset;
+          # it must use the current, explicitly dispatched publisher code rather
+          # than the historical product target that created that asset.
+          ref: ${{ inputs.publish_linux_apt_only && github.ref || inputs.release_target || inputs.release_tag }}
           fetch-depth: 1
 
       - name: Setup Node
@@ -895,52 +900,6 @@ jobs:
             done
           fi
 
-      - name: Repack Linux packages for GitHub Pages
-        shell: bash
-        run: |
-          set -euo pipefail
-          github_file_limit=104857600
-          while IFS= read -r deb_file; do
-            original_size="$(stat --format='%s' "$deb_file")"
-            if [ "$original_size" -lt "$github_file_limit" ]; then
-              printf '[desktop-release] keeping %s at %s bytes; below GitHub limit\n' "$deb_file" "$original_size"
-              continue
-            fi
-            package_root="$(mktemp -d)"
-            repacked_file="${deb_file}.repacked"
-            dpkg-deb --raw-extract "$deb_file" "$package_root"
-            # The desktop release package intentionally keeps optional Chromium
-            # diagnostics/Vulkan fallback files for standalone installs. The
-            # APT mirror has GitHub's 100 MiB per-file limit, so omit only files
-            # that are not part of the desktop process' Linux runtime path.
-            apt_package_root="$package_root/opt/NextClaw Desktop"
-            rm -f \
-              "$apt_package_root/LICENSES.chromium.html" \
-              "$apt_package_root/LICENSE.electron.txt" \
-              "$apt_package_root/chrome_crashpad_handler" \
-              "$apt_package_root/libvk_swiftshader.so" \
-              "$apt_package_root/vk_swiftshader_icd.json" \
-              "$apt_package_root/chrome_200_percent.pak" \
-              "$apt_package_root/locales/zh-TW.pak"
-            find "$apt_package_root/resources/app.asar.unpacked/node_modules" \
-              -type f \
-              \( -name '*.md' -o -name '*.markdown' -o -name '*.svg' -o -name '.jekyll-metadata' -o -path '*/fsevents/*' -o -name 'fsevents.node' -o -name 'jszip.min.js' -o -path '*/jszip/dist/jszip.js' -o -path '*/jszip/vendor/FileSaver.js' \) \
-              -delete
-            # Keep the compiled native addon, but omit build-only sources from the APT mirror.
-            better_sqlite3_root="$apt_package_root/resources/app.asar.unpacked/node_modules/better-sqlite3"
-            rm -rf "$better_sqlite3_root/deps" "$better_sqlite3_root/src"
-            rm -f "$better_sqlite3_root/binding.gyp" "$better_sqlite3_root/Makefile"
-            test -f "$better_sqlite3_root/build/Release/better_sqlite3.node"
-            dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme "$package_root" "$repacked_file"
-            package_size="$(stat --format='%s' "$repacked_file")"
-            printf '[desktop-release] repacked %s from %s to %s bytes\n' "$deb_file" "$original_size" "$package_size"
-            if [ "$package_size" -ge "$github_file_limit" ]; then
-              echo "Repacked Linux package still exceeds the GitHub 100 MiB file limit: $package_size bytes"
-              exit 1
-            fi
-            mv "$repacked_file" "$deb_file"
-          done < <(find dist/linux-apt-input -maxdepth 1 -type f -name '*.deb' | sort)
-
       - name: Build signed Linux APT repo
         shell: bash
         env:
@@ -949,7 +908,7 @@ jobs:
           NEXTCLAW_APT_GPG_KEY_ID: ${{ secrets.NEXTCLAW_APT_GPG_KEY_ID }}
         run: |
           set -euo pipefail
-          node scripts/desktop/build-linux-apt-repo.mjs --input-dir dist/linux-apt-input --output-dir dist/linux-apt-repo --signing-mode env
+          node scripts/desktop/build-linux-apt-repo.mjs --input-dir dist/linux-apt-input --output-dir dist/linux-apt-repo --signing-mode env --github-pages-compatible
 
       - name: Smoke Linux APT fresh install
         shell: bash

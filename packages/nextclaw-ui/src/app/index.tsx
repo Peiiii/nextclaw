@@ -79,7 +79,6 @@ const McpMarketplacePage = lazy(async () => ({
   default: (await import("@/components/marketplace/mcp/mcp-marketplace-page"))
     .McpMarketplacePage,
 }));
-
 type RedirectRouteDefinition = {
   path: string;
   redirectTo: string;
@@ -109,6 +108,14 @@ function createLazyElement(element: ReactElement): ReactElement {
 }
 
 const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
+  {
+    path: "/projects/:projectId/:tab",
+    element: createLazyElement(<ChatPage view="projects" />),
+  },
+  {
+    path: "/projects",
+    element: createLazyElement(<ChatPage view="projects" />),
+  },
   { path: "/chat/skills", redirectTo: "/skills" },
   { path: "/chat/cron", redirectTo: "/cron" },
   { path: "/chat/agents", redirectTo: "/agents" },

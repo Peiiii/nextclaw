@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.47.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-08-30",
+  "title": {
+    "zh-CN": "NextClaw v0.47.0",
+    "en-US": "NextClaw v0.47.0"
+  },
+  "summary": {
+    "zh-CN": "Portable Service Apps 现在具备完整的受控能力、长期任务、AI 调用、开发工具与跨平台验收闭环。",
+    "en-US": "Portable Service Apps now provide a complete mediated capability set, background work, AI calls, developer tooling, and cross-platform acceptance closure."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-08-30-nextclaw-v0-47-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-08-30-nextclaw-v0-47-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "完整的 Portable App 能力", "en-US": "Complete Portable App capabilities" },
+      "items": [
+        {
+          "title": { "zh-CN": "宿主中介的数据、文件、网络与 Secret", "en-US": "Host-mediated data, files, network, and secrets" },
+          "body": {
+            "zh-CN": "Rust/WASM Component 可以使用 KV、SQLite、受控目录、域名白名单和调用时 Secret，同时保持包体可移植和权限可撤销。",
+            "en-US": "Rust/WASM Components can use KV, SQLite, granted directories, domain allowlists, and per-call secrets while packages stay portable and permissions remain revocable."
+          }
+        },
+        {
+          "title": { "zh-CN": "长期任务、Resident、流与 AI", "en-US": "Jobs, Residents, streams, and AI" },
+          "body": {
+            "zh-CN": "应用可运行可取消 Job、发送进度和流式结果、处理可重试事件，并通过已绑定插槽调用模型或 Agent。",
+            "en-US": "Apps can run cancellable jobs, publish progress and streamed results, process retryable events, and call models or Agents through bound slots."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "开发与验证闭环", "en-US": "Development and verification loop" },
+      "items": [
+        {
+          "title": { "zh-CN": "同一实例贯通 Panel、Agent 与 CLI", "en-US": "One instance across Panel, Agent, and CLI" },
+          "body": {
+            "zh-CN": "三个入口复用同一份数据、权限和调用合同，并提供依赖配置、Secret 绑定、验收状态和证据导出命令。",
+            "en-US": "All three entry points share data, permissions, and invocation contracts, with CLI commands for dependencies, secrets, acceptance status, and evidence export."
+          }
+        },
+        {
+          "title": { "zh-CN": "22 项稳定验收合同", "en-US": "22 stable acceptance contracts" },
+          "body": {
+            "zh-CN": "开发、产品和发布流程消费同一验收合同；跨平台产物必须携带当前版本与场景的真实证据才能发布。",
+            "en-US": "Development, product, and release flows consume one acceptance contract; cross-platform artifacts must carry current-version, current-scenario evidence before publication."
+          }
+        }
+      ]
+    }
+  ]
+}

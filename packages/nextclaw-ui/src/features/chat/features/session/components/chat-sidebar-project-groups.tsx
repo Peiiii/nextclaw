@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   AlarmClock,
   ChevronDown,
@@ -19,6 +20,8 @@ import type { ChatSidebarProjectGroup } from "@/features/chat/features/session/u
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { t } from "@/shared/lib/i18n";
 import { ChatSidebarContextCard } from "@/features/chat/features/session/components/chat-sidebar-context-card";
+import { SessionRunBadge } from "@/features/chat/features/session/components/session-run-badge";
+import { cn } from "@/shared/lib/utils";
 
 export type { ChatSidebarProjectGroup };
 
@@ -53,6 +56,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
     projectCronJobCountByRoot,
   } = props;
   const presenter = usePresenter();
+  const location = useLocation();
   const collapsedProjectRoots = useChatSessionListStore(
     (state) => state.snapshot.collapsedProjectRoots,
   );
@@ -72,13 +76,23 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
       {groups.map((group) => {
         const actionLabel = `${t("chatSidebarNewTask")} · ${group.projectName}`;
         const isCollapsed = collapsedProjectRoots.includes(group.projectRoot);
+        const hasRunningSession = isCollapsed && group.items.some(
+          (item) => item.runStatus === "running",
+        );
+        const isSelected = Boolean(group.projectId) &&
+          location.pathname.startsWith(`/projects/${group.projectId}/`);
         const pinLabel = t(
           group.isPinned ? "chatSidebarUnpinProject" : "chatSidebarPinProject",
         );
 
         return (
           <div key={group.projectRoot}>
-            <div className="group/project relative h-8 rounded-lg px-2 text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900">
+            <div
+              className={cn(
+                "group/project relative h-8 rounded-lg px-1 text-muted-foreground transition-colors hover:bg-gray-200/60 hover:text-gray-900",
+                isSelected && "bg-gray-200/60 text-gray-900",
+              )}
+            >
               <ChatSidebarContextCard
                 title={group.projectName}
                 metrics={[
@@ -100,42 +114,75 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                   },
                 ]}
               >
-                <button
-                  type="button"
-                  aria-expanded={!isCollapsed}
-                  aria-label={t(
-                    isCollapsed
-                      ? "chatSidebarExpandProject"
-                      : "chatSidebarCollapseProject",
+                <div
+                  className={cn(
+                    "flex h-full w-full min-w-0 items-center group-hover/project:pr-14 group-has-[[data-project-actions]:focus-within]/project:pr-14",
+                    hasRunningSession && "pr-7",
                   )}
-                  className="flex h-full w-full min-w-0 items-center gap-1.5 pr-14 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
-                  onClick={() =>
-                    presenter.chatSessionListManager.toggleProjectCollapsed(
-                      group.projectRoot,
-                    )
-                  }
                 >
-                  <Folder className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span
-                    className="truncate text-[11px] font-medium uppercase tracking-wider"
-                    title={group.projectRoot}
-                  >
-                    {group.projectName}
-                  </span>
-                  {isCollapsed ? (
-                    <ChevronRight
-                      className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover/project:opacity-100 group-focus-within/project:opacity-100"
-                      aria-hidden="true"
-                    />
+                  <IconActionButton
+                    icon={
+                      isCollapsed ? (
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )
+                    }
+                    label={t(
+                      isCollapsed
+                        ? "chatSidebarExpandProject"
+                        : "chatSidebarCollapseProject",
+                    )}
+                    aria-expanded={!isCollapsed}
+                    size="sm"
+                    tone="surface"
+                    tooltip={false}
+                    onClick={() =>
+                      presenter.chatSessionListManager.toggleProjectCollapsed(
+                        group.projectRoot,
+                      )
+                    }
+                  />
+                  {group.projectId ? (
+                    <Link
+                      to={`/projects/${encodeURIComponent(group.projectId)}/overview`}
+                      className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+                      aria-current={isSelected ? "page" : undefined}
+                      title={group.projectRoot}
+                    >
+                      <Folder
+                        className="h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span className="truncate text-[13px] font-medium">
+                        {group.projectName}
+                      </span>
+                    </Link>
                   ) : (
-                    <ChevronDown
-                      className="h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover/project:opacity-100 group-focus-within/project:opacity-100"
-                      aria-hidden="true"
-                    />
+                    <span
+                      className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left"
+                      title={group.projectRoot}
+                    >
+                      <Folder
+                        className="h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span className="truncate text-[13px] font-medium">
+                        {group.projectName}
+                      </span>
+                    </span>
                   )}
-                </button>
+                </div>
               </ChatSidebarContextCard>
-              <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100">
+              {hasRunningSession ? (
+                <span className="absolute right-2 top-1/2 inline-flex -translate-y-1/2 transition-opacity group-hover/project:opacity-0 group-has-[[data-project-actions]:focus-within]/project:opacity-0">
+                  <SessionRunBadge status="running" />
+                </span>
+              ) : null}
+              <div
+                data-project-actions
+                className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
+              >
                 {supportsSessionTypeChoice ? (
                   <Popover
                     open={openProjectRoot === group.projectRoot}

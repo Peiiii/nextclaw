@@ -160,7 +160,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   );
   assert.match(
     workflow,
-    /publish-runtime:[\s\S]*?if: \$\{\{ always\(\) && inputs\.target != 'npm'[\s\S]*?outputs\.is_recovery == 'true'/,
+    /publish-runtime:[\s\S]*?if: \$\{\{ always\(\) && inputs\.target != 'npm'[\s\S]*?verify-npm-node-compatibility\.result == 'success'[\s\S]*?verify-npm-unsupported-node\.result == 'success'/,
   );
 
   const desktopJob = workflow.match(
@@ -177,7 +177,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
   assert.match(
     desktopJob,
-    /ref: \$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}/,
+    /ref: \$\{\{ github\.sha \}\}/,
   );
   assert.match(desktopJob, /pnpm release:desktop:stable/);
   assert.match(
@@ -205,7 +205,7 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(workflow, /## ALL_PLATFORMS_READY/);
   assert.match(
     workflow,
-    /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery[\s\S]*?Resolve existing stable release for automatic recovery[\s\S]*?Reuse published stable Runtime channel[\s\S]*?darwin-arm64 darwin-x64 linux-x64 win32-x64/,
+    /Infer release checkpoint[\s\S]*?git ls-remote --exit-code --tags origin[\s\S]*?runtime_ready=\$runtime_ready[\s\S]*?prepared_source_sha=\$prepared_source_sha[\s\S]*?--prepared-source-sha "\$\{\{ needs\.publish-npm\.outputs\.prepared_source_sha \|\| github\.sha \}\}"[\s\S]*?Reuse published stable Runtime channel[\s\S]*?darwin-arm64 darwin-x64 linux-x64 win32-x64/,
   );
 
   const desktopWorkflow = readFileSync(
@@ -247,10 +247,41 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopClosure, /gh["], \["run", "cancel"/);
 });
 
+test("the writable NPM release checkpoint prepares the immutable Desktop Draft", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/release.yml", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    workflow,
+    /Create or reuse stable Desktop Draft[\s\S]*?--prepare-draft-only[\s\S]*?--target "\$CLOSURE_COMMIT"[\s\S]*?--runtime-version "\$TARGET_VERSION"/,
+  );
+});
+
 test("stable release exposes only the business target and infers recovery checkpoints", () => {
   const workflow = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
   assert.doesNotMatch(workflow, /resume_version|resume_previous_version/);
   assert.match(workflow, /Infer release checkpoint[\s\S]*?is_recovery=\$is_recovery/);
+  assert.match(
+    workflow,
+    /compatibility_matrix=\$compatibility_matrix[\s\S]*?compatibility_reused=\$compatibility_reused[\s\S]*?compatibility_source_run=\$compatibility_source_run/,
+  );
+  assert.match(
+    workflow,
+    /git merge-base --is-ancestor "\$candidate_sha" "\$release_commit"[\s\S]*?gh run view "\$candidate_run" --json jobs --jq '\.jobs\[\]'/,
+  );
+  assert.match(
+    workflow,
+    /A completed successful recovery can supply the missing cells[\s\S]*?candidate_conclusion" = "skipped"/,
+  );
+  assert.match(
+    workflow,
+    /candidate_conclusion" = "skipped"[\s\S]*?--status completed[\s\S]*?--json conclusion,databaseId,headSha/,
+  );
+  assert.match(
+    workflow,
+    /matrix: \$\{\{ fromJSON\(needs\.publish-npm\.outputs\.compatibility_matrix\) \}\}[\s\S]*?Reuse completed immutable compatibility evidence/,
+  );
 });
 
 test("only all-platform releases require complete content before package publication", () => {
@@ -278,24 +309,27 @@ test("only all-platform releases require complete content before package publica
   );
 });
 
-test("stable recovery runs current verification scripts against the immutable release", () => {
+test("stable recovery runs current verification scripts against the immutable package identity", () => {
   const workflow = readFileSync(
     new URL("../../.github/workflows/release.yml", import.meta.url),
     "utf8",
   );
+  const verificationJobs = workflow.match(
+    /\n {2}verify-npm-node-compatibility:([\s\S]*?)\n {2}publish-desktop:/,
+  )?.[1];
   assert.equal(
-    workflow.match(
-      /ref: \$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}/g,
-    )?.length,
-    4,
+    verificationJobs?.match(
+      /ref: \$\{\{ github\.sha \}\}/g,
+    )?.length ?? 0,
+    2,
   );
   assert.match(
     workflow,
-    /git switch -C master "\$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}"/,
+    /publish-runtime:[\s\S]*?ref: \$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}/,
   );
   assert.match(
     workflow,
-    /verify-npm-node-compatibility:[\s\S]*?outputs\.is_recovery != 'true'[\s\S]*?verify-npm-unsupported-node:[\s\S]*?outputs\.is_recovery != 'true'/,
+    /verify-npm-node-compatibility:[\s\S]*?if: \$\{\{ needs\.publish-npm\.outputs\.has_nextclaw == 'true' \}\}[\s\S]*?verify-npm-unsupported-node:[\s\S]*?if: \$\{\{ needs\.publish-npm\.outputs\.has_nextclaw == 'true' \}\}/,
   );
 });
 

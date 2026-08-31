@@ -1,9 +1,7 @@
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
-  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -23,6 +21,7 @@ import type {
   ServiceActionCaller,
   ServiceAppRecord,
 } from "@kernel/types/service-app.types.js";
+import { VerificationRecordService } from "@kernel/services/verification-record.service.js";
 
 const tempDirs: string[] = [];
 
@@ -36,13 +35,14 @@ function createCapabilityGrantManager(): CapabilityGrantManager {
   return new CapabilityGrantManager(join(createTempDir(), "capability-grants.json"));
 }
 
-function createConfigManager(workspacePath: string): ConfigManager {
+function createConfigManager(workspacePath: string, model?: string): ConfigManager {
   const configPath = join(createTempDir(), "config.json");
   saveConfig(
     ConfigSchema.parse({
       agents: {
         defaults: {
           workspace: workspacePath,
+          ...(model ? { model } : {}),
         },
       },
     }),
@@ -96,6 +96,7 @@ function createRuntime(
 ) {
   const actionList = Array.isArray(actions) ? actions : [actions];
   return {
+    getLastObservation: vi.fn(() => undefined),
     getStatus: vi.fn(() => status),
     listActions: vi.fn(async () => actionList),
     invokeAction: vi.fn(async () => ({ ok: true })),
@@ -142,7 +143,7 @@ describe("ServiceAppManager runtime env", () => {
       await expect(manager.invokeServiceAction("notes.echo", {
         caller,
         declaredActions: ["notes.echo"],
-      })).resolves.toEqual({
+      })).resolves.toMatchObject({
         actionId: "notes.echo",
         result: expect.objectContaining({
           content: [expect.objectContaining({ text: "echo:ok" })],
@@ -163,6 +164,7 @@ describe("ServiceAppManager runtime env", () => {
     }
   });
 });
+
 
 describe("ServiceAppManager Agent callers", () => {
   it("grants, lists, and invokes the same Service Action for a known Agent", async () => {
@@ -192,7 +194,7 @@ describe("ServiceAppManager Agent callers", () => {
     await expect(manager.listServiceActions({ caller })).resolves.toEqual([
       expect.objectContaining({ id: "notes.read", grantState: "granted" }),
     ]);
-    await expect(manager.invokeServiceAction("notes.read", { caller })).resolves.toEqual({
+    await expect(manager.invokeServiceAction("notes.read", { caller })).resolves.toMatchObject({
       actionId: "notes.read",
       result: { ok: true },
     });
@@ -200,6 +202,86 @@ describe("ServiceAppManager Agent callers", () => {
     await expect(manager.grantServiceAction("notes.read", {
       caller: { surface: "agent", agentId: "unknown" },
     })).rejects.toMatchObject({ code: "SERVICE_APP_INVALID_CALLER" });
+  });
+});
+
+describe("ServiceAppManager installed invocation evidence", () => {
+  it("records a call through the installed-app owner without treating source apps as installed", async () => {
+    const workspacePath = createTempDir();
+    const runtime = createRuntime({
+      id: "notes.read",
+      appId: "notes",
+      name: "read",
+      risk: "read",
+    });
+    const verificationRecords = new VerificationRecordService({
+      storePath: join(createTempDir(), "verification-records.json"),
+    });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      capabilityGrantManager: createCapabilityGrantManager(),
+      runtimeService: runtime,
+      verificationRecords,
+    });
+
+    await expect(manager.invokeInstalledServiceAction("notes", "read"))
+      .rejects.toMatchObject({ code: "SERVICE_APP_ACTION_NOT_FOUND" });
+  });
+
+  it("returns call facts and persists a redacted PRT-ENTRY-001 record for an installed Service", async () => {
+    const workspacePath = createTempDir();
+    const packageRoot = join(createTempDir(), "service-components", "notes");
+    mkdirSync(packageRoot, { recursive: true });
+    writeFileSync(join(packageRoot, "service-app.json"), JSON.stringify({
+      id: "notes", title: "Notes", protocol: "mcp", command: "node", args: [],
+      actions: { read: { risk: "read" } },
+    }));
+    const dataDirectory = join(createTempDir(), "data");
+    const source = {
+      kind: "service" as const,
+      id: "notes",
+      packageId: "example.notes",
+      packageVersion: "1.0.0",
+      sourcePath: packageRoot,
+      manifestPath: join(packageRoot, "service-app.json"),
+      dataDirectory,
+      instanceId: "default",
+      storage: {
+        layout: "instance-v1" as const, layoutVersion: 1 as const, instanceId: "default",
+        instanceDirectory: dataDirectory, dataDirectory, configDirectory: join(dataDirectory, "config"),
+        stateDirectory: join(dataDirectory, "state"), cacheDirectory: join(dataDirectory, "cache"),
+        temporaryDirectory: join(dataDirectory, "tmp"), logsDirectory: join(dataDirectory, "logs"),
+      },
+      runtimeProfile: "wasi" as const,
+      isolation: "host-mediated" as const,
+      permissions: { storage: true },
+    };
+    const runtime = createRuntime({
+      id: "notes.read", appId: "notes", name: "read", risk: "read",
+    });
+    const verificationRecords = new VerificationRecordService({
+      storePath: join(createTempDir(), "verification-records.json"),
+    });
+    const manager = new ServiceAppManager({
+      configManager: createConfigManager(workspacePath),
+      capabilityGrantManager: createCapabilityGrantManager(),
+      runtimeService: runtime,
+      listPackageComponentSources: async () => [source],
+      verificationRecords,
+    });
+
+    await expect(manager.invokeInstalledServiceAction("example.notes", "read", { secret: "not-stored" }))
+      .resolves.toMatchObject({
+        actionId: "notes.read",
+        result: { ok: true },
+        invocation: { callId: expect.any(String), traceId: expect.any(String), dataVersion: "instance-v1:1" },
+      });
+    await expect(manager.listVerificationRecords({ appId: "example.notes" })).resolves.toEqual({
+      entries: [expect.objectContaining({
+        acceptanceId: "PRT-ENTRY-001", entrySurface: "installed-app-cli", status: "passed",
+        inputDigest: expect.any(String), outputDigest: expect.any(String),
+      })],
+    });
   });
 });
 
@@ -239,7 +321,7 @@ describe("ServiceAppManager", () => {
       await expect(manager.invokeServiceAction("notes.echo", {
         caller,
         declaredActions: ["notes.echo"],
-      })).resolves.toEqual({
+      })).resolves.toMatchObject({
         actionId: "notes.echo",
         result: expect.objectContaining({
           content: [expect.objectContaining({ text: "echo:ok" })],
@@ -388,7 +470,7 @@ describe("ServiceAppManager", () => {
       caller,
       risk: "read",
     }));
-    await expect(manager.invokeServiceAction("notes.read", request)).resolves.toEqual({
+    await expect(manager.invokeServiceAction("notes.read", request)).resolves.toMatchObject({
       actionId: "notes.read",
       result: { ok: true },
     });
@@ -429,232 +511,6 @@ describe("ServiceAppManager", () => {
     } satisfies Partial<ServiceAppError>);
   });
 
-});
-
-describe("ServiceAppManager deletion", () => {
-  it("deletes a service app directory and clears its grants", async () => {
-    const workspacePath = createTempDir();
-    writeServiceApp(workspacePath);
-    const appPath = join(workspacePath, "service-apps", "notes");
-    const runtime = createRuntime({
-      id: "notes.read",
-      appId: "notes",
-      name: "read",
-      risk: "read",
-    });
-    const manager = new ServiceAppManager({
-      configManager: createConfigManager(workspacePath),
-      capabilityGrantManager: createCapabilityGrantManager(),
-      runtimeService: runtime,
-    });
-    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
-
-    await manager.grantServiceAction("notes.read", {
-      caller,
-      declaredActions: ["notes.read"],
-    });
-    await expect(manager.listServiceActionGrants()).resolves.toHaveLength(1);
-
-    await expect(manager.deleteServiceApp("notes")).resolves.toEqual({
-      deleted: true,
-      id: "notes",
-      dataRemoved: false,
-    });
-
-    expect(existsSync(appPath)).toBe(false);
-    expect(existsSync(join(
-      workspacePath,
-      ".nextclaw",
-      "app-instances",
-      "notes",
-      "default",
-    ))).toBe(false);
-    expect(runtime.stop).toHaveBeenCalledWith("notes");
-    await expect(manager.listServiceActionGrants()).resolves.toEqual([]);
-    await expect(manager.getServiceApp("notes")).rejects.toMatchObject({
-      code: "SERVICE_APP_NOT_FOUND",
-    } satisfies Partial<ServiceAppError>);
-  });
-
-  it("deletes the workspace instance only after explicit purge selection", async () => {
-    const workspacePath = createTempDir();
-    writeServiceApp(workspacePath);
-    const manager = new ServiceAppManager({
-      configManager: createConfigManager(workspacePath),
-      capabilityGrantManager: createCapabilityGrantManager(),
-      runtimeService: createRuntime(),
-    });
-    const instancePath = join(
-      workspacePath,
-      ".nextclaw",
-      "app-instances",
-      "notes",
-      "default",
-    );
-    await manager.discoverServiceAppActions("notes");
-    expect(existsSync(instancePath)).toBe(true);
-
-    await expect(manager.deleteServiceApp("notes", true)).resolves.toEqual({
-      deleted: true,
-      id: "notes",
-      dataRemoved: true,
-    });
-
-    expect(existsSync(instancePath)).toBe(false);
-  });
-
-  it("does not stop the runtime when grant revocation fails and restores source and grants", async () => {
-    const workspacePath = createTempDir();
-    writeServiceApp(workspacePath);
-    const appPath = join(workspacePath, "service-apps", "notes");
-    const runtime = createRuntime({
-      id: "notes.read",
-      appId: "notes",
-      name: "read",
-      risk: "read",
-    });
-    const capabilityGrantManager = createCapabilityGrantManager();
-    const manager = new ServiceAppManager({
-      configManager: createConfigManager(workspacePath),
-      capabilityGrantManager,
-      runtimeService: runtime,
-    });
-    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
-    await manager.grantServiceAction("notes.read", {
-      caller,
-      declaredActions: ["notes.read"],
-    });
-    vi.spyOn(capabilityGrantManager, "revokeMatching").mockImplementationOnce(async (matches) => {
-      const revoked = (await capabilityGrantManager.list()).filter(matches);
-      await capabilityGrantManager.replace(
-        (await capabilityGrantManager.list()).filter((grant) => !matches(grant)),
-      );
-      expect(revoked).toHaveLength(1);
-      throw new Error("revoke failed after write");
-    });
-
-    await expect(manager.deleteServiceApp("notes")).rejects.toThrow(
-      "revoke failed after write",
-    );
-
-    expect(runtime.stop).not.toHaveBeenCalled();
-    expect(existsSync(appPath)).toBe(true);
-    await expect(manager.listServiceActionGrants()).resolves.toEqual([
-      expect.objectContaining({ actionId: "notes.read", caller }),
-    ]);
-  });
-
-  it("rejects an unsafe service app id before resolving managed paths", async () => {
-    const workspacePath = createTempDir();
-    const outsidePath = join(workspacePath, "outside");
-    mkdirSync(outsidePath, { recursive: true });
-    writeFileSync(join(outsidePath, "sentinel.txt"), "keep");
-    const runtime = createRuntime([]);
-    const manager = new ServiceAppManager({
-      configManager: createConfigManager(workspacePath),
-      capabilityGrantManager: createCapabilityGrantManager(),
-      runtimeService: runtime,
-    });
-
-    await expect(manager.deleteServiceApp("../outside", true)).rejects.toMatchObject({
-      code: "SERVICE_APP_INVALID_MANIFEST",
-    } satisfies Partial<ServiceAppError>);
-
-    expect(existsSync(join(outsidePath, "sentinel.txt"))).toBe(true);
-    expect(runtime.restart).not.toHaveBeenCalled();
-  });
-
-  it("completes a committed source deletion tombstone during startup", async () => {
-    const workspacePath = createTempDir();
-    writeServiceApp(workspacePath);
-    const appPath = join(workspacePath, "service-apps", "notes");
-    const stagedPath = join(
-      workspacePath,
-      "service-apps",
-      ".deleting-notes-123e4567-e89b-42d3-a456-426614174000",
-    );
-    const manager = new ServiceAppManager({
-      configManager: createConfigManager(workspacePath),
-      capabilityGrantManager: createCapabilityGrantManager(),
-      runtimeService: createRuntime(),
-    });
-    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
-    await manager.grantServiceAction("notes.read", {
-      caller,
-      declaredActions: ["notes.read"],
-    });
-    renameSync(appPath, stagedPath);
-
-    await manager.start();
-
-    expect(existsSync(stagedPath)).toBe(false);
-    await expect(manager.listServiceActionGrants()).resolves.toEqual([]);
-    await expect(manager.listServiceApps()).resolves.toMatchObject({
-      diagnostics: [],
-      entries: [],
-    });
-  });
-
-  it("keeps grants when a canonical source was restored before tombstone cleanup", async () => {
-    const workspacePath = createTempDir();
-    writeServiceApp(workspacePath);
-    const appPath = join(workspacePath, "service-apps", "notes");
-    const stagedPath = join(
-      workspacePath,
-      "service-apps",
-      ".deleting-notes-123e4567-e89b-42d3-a456-426614174000",
-    );
-    cpSync(appPath, stagedPath, { recursive: true });
-    const manager = new ServiceAppManager({
-      configManager: createConfigManager(workspacePath),
-      capabilityGrantManager: createCapabilityGrantManager(),
-      runtimeService: createRuntime(),
-    });
-    const caller: ServiceActionCaller = { surface: "panel-app", appId: "todo-panel" };
-    await manager.grantServiceAction("notes.read", {
-      caller,
-      declaredActions: ["notes.read"],
-    });
-
-    await manager.start();
-
-    expect(existsSync(stagedPath)).toBe(false);
-    await expect(manager.listServiceActionGrants()).resolves.toEqual([
-      expect.objectContaining({ actionId: "notes.read", caller }),
-    ]);
-    await expect(manager.listServiceApps()).resolves.toMatchObject({
-      diagnostics: [],
-      entries: [expect.objectContaining({ id: "notes" })],
-    });
-  });
-
-  it("keeps an unverifiable source tombstone out of the app list and reports it", async () => {
-    const workspacePath = createTempDir();
-    writeServiceApp(workspacePath);
-    const stagedPath = join(
-      workspacePath,
-      "service-apps",
-      ".deleting-other-123e4567-e89b-42d3-a456-426614174000",
-    );
-    renameSync(join(workspacePath, "service-apps", "notes"), stagedPath);
-    const manager = new ServiceAppManager({
-      configManager: createConfigManager(workspacePath),
-      capabilityGrantManager: createCapabilityGrantManager(),
-      runtimeService: createRuntime(),
-    });
-
-    await manager.start();
-
-    expect(existsSync(stagedPath)).toBe(true);
-    await expect(manager.listServiceApps()).resolves.toMatchObject({
-      diagnostics: [{
-        appId: "other",
-        stagedPath,
-        message: expect.stringContaining("identity 不匹配"),
-      }],
-      entries: [],
-    });
-  });
 });
 
 describe("ServiceAppManager batch action grants", () => {

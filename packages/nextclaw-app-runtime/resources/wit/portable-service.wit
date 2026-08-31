@@ -25,6 +25,30 @@ interface host {
   http-get: func(url: string) -> result<http-response, string>;
   component-call: func(provider-id: string, action: string, input-json: string) -> result<string, string>;
   get-runtime-info: func() -> runtime-info;
+  /// Ask the NextClaw-selected model bound to a declared slot to complete a
+  /// short request. The record is typed; messages remain JSON so the WIT
+  /// stays independent of the product's evolving chat message schema.
+  record model-complete-input {
+    slot-id: string,
+    messages-json: string,
+    max-tokens: option<u32>,
+  }
+
+  /// Starts the NextClaw-selected Agent bound to a declared slot. It returns
+  /// immediately with a JSON handle; terminal output is published through the
+  /// enclosing Job stream rather than becoming a second guest protocol.
+  record agent-start-input {
+    slot-id: string,
+    input-json: string,
+  }
+
+  model-complete: func(input: model-complete-input) -> result<string, string>;
+  agent-start: func(input: agent-start-input) -> result<string, string>;
+  /// A job-scoped, bounded observation channel. Older Components that do not
+  /// import these functions remain link-compatible with this host interface.
+  report-progress: func(current: option<u64>, total: option<u64>, message: option<string>) -> result<_, string>;
+  emit-chunk: func(content: string) -> result<_, string>;
+  check-cancelled: func() -> bool;
 }
 
 interface service {
@@ -41,7 +65,56 @@ interface service {
   stop: func(reason-json: string) -> result<string, string>;
 }
 
+/// The 0.2 Resident contract intentionally has its own exported interface.
+/// Existing Components keep exporting `service` unchanged; new Resident
+/// templates export this interface so acknowledgement and retry are typed at
+/// the Component boundary rather than inferred from arbitrary JSON.
+interface resident-v2 {
+  record action {
+    name: string,
+    title: string,
+    description: string,
+  }
+
+  record retry {
+    delay-ms: option<u32>,
+    error-code: option<string>,
+    error-message: option<string>,
+  }
+
+  variant event-disposition {
+    ack,
+    retry(retry),
+  }
+
+  list-actions: func() -> list<action>;
+  invoke: func(action: string, input-json: string) -> result<string, string>;
+  start: func(config-json: string) -> result<string, string>;
+  handle-event: func(event-json: string) -> result<event-disposition, string>;
+  stop: func(reason-json: string) -> result<string, string>;
+}
+
 world service-app {
   import host;
+  import wasi:http/outgoing-handler@0.2.6;
+  import wasi:config/store@0.2.0-draft-2024-09-27;
   export service;
+}
+
+/// SQLite is opt-in: ordinary Service Components retain their existing import
+/// surface, while Components targeting this world receive Spin's standard
+/// database interface alongside the ordinary Service contract.
+world service-app-sqlite {
+  include service-app;
+  import fermyon:spin/sqlite@2.0.0;
+}
+
+/// New durable Residents use this world. The runner tries it first and then
+/// deliberately adapts the original `service-app` world only for installed
+/// legacy Components.
+world service-app-v2 {
+  import host;
+  import wasi:http/outgoing-handler@0.2.6;
+  import wasi:config/store@0.2.0-draft-2024-09-27;
+  export resident-v2;
 }

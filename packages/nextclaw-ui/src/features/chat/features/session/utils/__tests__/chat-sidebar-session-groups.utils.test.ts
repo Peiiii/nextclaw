@@ -4,6 +4,7 @@ import { groupSessionsByProject } from "@/features/chat/features/session/utils/c
 describe("groupSessionsByProject", () => {
   it("uses registered projects as the project-first baseline", () => {
     const groups = groupSessionsByProject([], new Set(), new Set(), [{
+      id: "project-knowledge",
       name: "Knowledge",
       rootPath: "/tmp/knowledge",
       template: "knowledge-base",
@@ -12,6 +13,7 @@ describe("groupSessionsByProject", () => {
     }]);
 
     expect(groups).toEqual([{
+      projectId: "project-knowledge",
       projectRoot: "/tmp/knowledge",
       projectName: "Knowledge",
       items: [],

@@ -29,6 +29,10 @@ export class AppPackageDependencyToolProvider implements ToolProvider {
     this.setupTool(),
     this.bindTool(),
     this.unbindTool(),
+    this.inspectSecretsTool(),
+    this.verifySecretsTool(),
+    this.bindSecretTool(),
+    this.unbindSecretTool(),
   ];
 
   private inspectTool = (): NcpTool => ({
@@ -141,6 +145,94 @@ export class AppPackageDependencyToolProvider implements ToolProvider {
     },
   });
 
+  private inspectSecretsTool = (): NcpTool => ({
+    name: "app_secrets_inspect",
+    description:
+      "Inspect an installed App's declared Secret slots and non-sensitive SecretRef bindings. Never returns Secret values.",
+    parameters: {
+      type: "object",
+      properties: { appId: { type: "string" } },
+      required: ["appId"],
+      additionalProperties: false,
+    },
+    execute: async (args) => JSON.stringify(
+      await this.manager.inspectSecrets(readAppId(args)),
+      null,
+      2,
+    ),
+  });
+
+  private verifySecretsTool = (): NcpTool => ({
+    name: "app_secrets_verify",
+    description:
+      "Resolve an installed App's SecretRef bindings and return only readiness plus SECRET_* error codes, never Secret values.",
+    parameters: {
+      type: "object",
+      properties: { appId: { type: "string" } },
+      required: ["appId"],
+      additionalProperties: false,
+    },
+    execute: async (args) => JSON.stringify(
+      await this.manager.verifySecrets(readAppId(args)),
+      null,
+      2,
+    ),
+  });
+
+  private bindSecretTool = (): NcpTool => ({
+    name: "app_secret_bind",
+    description:
+      "Bind one declared App Secret slot to a configured provider. The tool stores only a SecretRef and requires explicit user approval before mutation.",
+    parameters: {
+      type: "object",
+      properties: {
+        appId: { type: "string" },
+        slotId: { type: "string" },
+        source: { type: "string", enum: ["env", "file", "exec"] },
+        provider: { type: "string" },
+        id: { type: "string" },
+        confirm: { type: "boolean" },
+      },
+      required: ["appId", "slotId", "source", "id"],
+      additionalProperties: false,
+    },
+    execute: async (args) => {
+      const input = readSecretBinding(args);
+      if (!readConfirmation(args)) return confirmationResult("secret-bind", input.appId);
+      return JSON.stringify(await this.manager.bindSecret(input.appId, {
+        slotId: input.slotId,
+        binding: {
+          source: input.source,
+          provider: input.provider,
+          id: input.id,
+        },
+      }), null, 2);
+    },
+  });
+
+  private unbindSecretTool = (): NcpTool => ({
+    name: "app_secret_unbind",
+    description:
+      "Remove one App SecretRef binding. This immediately removes the active Secret permission and requires explicit user approval.",
+    parameters: {
+      type: "object",
+      properties: {
+        appId: { type: "string" },
+        slotId: { type: "string" },
+        confirm: { type: "boolean" },
+      },
+      required: ["appId", "slotId"],
+      additionalProperties: false,
+    },
+    execute: async (args) => {
+      const params = normalizeToolParams(args);
+      const appId = readAppId(params);
+      const slotId = readString(params.slotId, "slotId");
+      if (!readConfirmation(params)) return confirmationResult("secret-unbind", appId);
+      return JSON.stringify(await this.manager.unbindSecret(appId, slotId), null, 2);
+    },
+  });
+
   private executeWithConfirmation = async (
     args: unknown,
     action: "setup",
@@ -208,6 +300,26 @@ function readUnbind(value: unknown): {
     requirementKind: binding.requirementKind,
     requirementId: binding.requirementId,
     confirm: binding.confirm,
+  };
+}
+
+function readSecretBinding(value: unknown): {
+  appId: string;
+  slotId: string;
+  source: "env" | "file" | "exec";
+  provider?: string;
+  id: string;
+} {
+  const params = normalizeToolParams(value);
+  if (params.source !== "env" && params.source !== "file" && params.source !== "exec") {
+    throw new Error("source must be env, file, or exec.");
+  }
+  return {
+    appId: readAppId(params),
+    slotId: readString(params.slotId, "slotId"),
+    source: params.source,
+    provider: params.provider === undefined ? undefined : readString(params.provider, "provider"),
+    id: readString(params.id, "id"),
   };
 }
 

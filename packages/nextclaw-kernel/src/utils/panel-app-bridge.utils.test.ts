@@ -207,6 +207,13 @@ describe("panel app inline host bridge", () => {
       serviceActions: {
         invoke: expect.any(Function),
       },
+      verificationRecords: {
+        list: expect.any(Function),
+      },
+      portableRuntimeAcceptance: {
+        status: expect.any(Function),
+        export: expect.any(Function),
+      },
     });
   });
 

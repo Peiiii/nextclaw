@@ -10,6 +10,7 @@ import zhMarketplace from './locales/zh-CN/marketplace.json';
 import zhInbox from './locales/zh-CN/inbox.json';
 import zhPathPicker from './locales/zh-CN/path-picker.json';
 import zhPwa from './locales/zh-CN/pwa.json';
+import zhProjects from './locales/zh-CN/projects.json';
 import zhRemote from './locales/zh-CN/remote.json';
 import zhRuntimeControl from './locales/zh-CN/runtime-control.json';
 import zhSearch from './locales/zh-CN/search.json';
@@ -25,6 +26,7 @@ import enMarketplace from './locales/en-US/marketplace.json';
 import enInbox from './locales/en-US/inbox.json';
 import enPathPicker from './locales/en-US/path-picker.json';
 import enPwa from './locales/en-US/pwa.json';
+import enProjects from './locales/en-US/projects.json';
 import enRemote from './locales/en-US/remote.json';
 import enRuntimeControl from './locales/en-US/runtime-control.json';
 import enSearch from './locales/en-US/search.json';
@@ -60,7 +62,8 @@ const zhCatalog: MessageCatalog = {
   ...zhDocBrowser,
   ...zhPathPicker,
   ...zhPwa,
-  ...zhChannelAuth
+  ...zhChannelAuth,
+  ...zhProjects
 };
 
 const enCatalog: MessageCatalog = {
@@ -78,7 +81,8 @@ const enCatalog: MessageCatalog = {
   ...enDocBrowser,
   ...enPathPicker,
   ...enPwa,
-  ...enChannelAuth
+  ...enChannelAuth,
+  ...enProjects
 };
 
 const CATALOGS: Record<I18nLanguage, MessageCatalog> = {

@@ -9,6 +9,9 @@ import type {
   ServiceActionGrantView,
   ServiceActionInvokeResultView,
   ServiceActionListView,
+  PortableRuntimeAcceptanceExportApiView,
+  PortableRuntimeAcceptanceStatusApiView,
+  RuntimeVerificationRecordListView,
 } from '@nextclaw/client-sdk';
 import type { ServiceActionAuthorizationManager } from '@/features/service-apps';
 import { nextclawClient } from '@/shared/lib/api';
@@ -26,13 +29,20 @@ type PanelAppBridgeRequest = {
   method:
     | 'agent.generateObject'
     | 'agent.send'
+    | 'acceptance.export'
+    | 'acceptance.status'
     | 'invoke'
     | 'list'
     | 'requestGrant'
-    | 'revokeGrant';
+    | 'revokeGrant'
+    | 'verification.list';
   payload?: {
+    acceptanceId?: string;
     actionId?: string;
+    appId?: string;
     input?: unknown;
+    limit?: number;
+    locale?: string;
     request?: unknown;
   };
 };
@@ -103,6 +113,9 @@ export class PanelAppBridgeManager {
     | PanelAppAgentGenerateObjectResultView
     | PanelAppAgentSendResultView
     | PanelAppCapabilityGrantView
+    | PortableRuntimeAcceptanceExportApiView
+    | PortableRuntimeAcceptanceStatusApiView
+    | RuntimeVerificationRecordListView
     | ServiceActionGrantView
     | ServiceActionInvokeResultView
     | ServiceActionListView
@@ -126,6 +139,25 @@ export class PanelAppBridgeManager {
         return await this.sendAgentMessageWithAuthorization(session, request);
       case 'agent.generateObject':
         return await this.generateAgentObjectWithAuthorization(session, request);
+      case 'verification.list':
+        return await nextclawClient.serviceApps.listVerificationRecords({
+          acceptanceId: request.payload?.acceptanceId,
+          appId: request.payload?.appId,
+          limit: request.payload?.limit,
+          bridgeSessionToken: session.token,
+        });
+      case 'acceptance.status':
+        return await nextclawClient.serviceApps.getPortableRuntimeAcceptanceStatus({
+          appId: request.payload?.appId,
+          locale: request.payload?.locale,
+          bridgeSessionToken: session.token,
+        });
+      case 'acceptance.export':
+        return await nextclawClient.serviceApps.exportPortableRuntimeAcceptance({
+          appId: request.payload?.appId,
+          locale: request.payload?.locale,
+          bridgeSessionToken: session.token,
+        });
       default:
         throw new Error(`Unsupported panel bridge method: ${String(request.method)}`);
     }
@@ -378,9 +410,12 @@ export class PanelAppBridgeManager {
       (candidate.method === 'invoke' ||
         candidate.method === 'agent.send' ||
         candidate.method === 'agent.generateObject' ||
+        candidate.method === 'acceptance.export' ||
+        candidate.method === 'acceptance.status' ||
         candidate.method === 'list' ||
         candidate.method === 'requestGrant' ||
-        candidate.method === 'revokeGrant')
+        candidate.method === 'revokeGrant' ||
+        candidate.method === 'verification.list')
     );
   };
 }

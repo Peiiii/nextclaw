@@ -18,7 +18,7 @@ export * from "@kernel/managers/llm-usage.manager.js";
 export * from "@kernel/managers/mcp.manager.js";
 export * from "@kernel/managers/panel-app.manager.js";
 export * from "@kernel/managers/preference.manager.js";
-export * from "@kernel/managers/project.manager.js";
+export * from "@kernel/features/projects/index.js";
 export * from "@kernel/managers/service-app.manager.js";
 export * from "@kernel/stores/llm-usage.store.js";
 export * from "@kernel/stores/ncp-agent-session-journal.store.js";
@@ -35,9 +35,64 @@ export * from "@kernel/features/narp-runtime/index.js";
 export * from "@kernel/features/ncp-dispatch/index.js";
 export * from "@kernel/features/harness/index.js";
 export { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
+export { ServiceAppAiCapabilityService } from "@kernel/services/service-app-ai-capability.service.js";
 export { PanelAppAssetTokenService } from "@kernel/services/panel-app-asset-token.service.js";
 export { McpServiceAppRuntimeService } from "@kernel/services/mcp-service-app-runtime.service.js";
 export { ServiceAppRuntimeService } from "@kernel/services/service-app-runtime.service.js";
+export { VerificationRecordService } from "@kernel/services/verification-record.service.js";
+export {
+  evaluatePortableRuntimeAcceptance,
+  evaluatePortableRuntimeAcceptanceArtifact,
+  parsePortableRuntimeAcceptanceEvidenceArtifact,
+} from "@kernel/utils/portable-runtime-acceptance-evaluator.utils.js";
+export {
+  PortableRuntimeAcceptanceManager,
+  PORTABLE_RUNTIME_ACCEPTANCE_REFERENCE_APP_ID,
+} from "@kernel/services/portable-runtime-acceptance-manager.service.js";
+export {
+  PortableRuntimeAcceptanceIdentityService,
+  normalizePortableRuntimeEnvironment,
+} from "@kernel/services/portable-runtime-acceptance-identity.service.js";
+export {
+  PORTABLE_RUNTIME_ACCEPTANCE_LOCALES,
+  PORTABLE_RUNTIME_ACCEPTANCE_PRESENTATION,
+  presentPortableRuntimeAcceptanceDefinition,
+  resolvePortableRuntimeAcceptanceLocale,
+} from "@kernel/utils/portable-runtime-acceptance-presentation.utils.js";
+export type {
+  PortableRuntimeAcceptanceEvaluationContext,
+  PortableRuntimeAcceptanceEvidence,
+  PortableRuntimeAcceptanceEvidenceArtifact,
+  PortableRuntimeAcceptanceResult,
+  PortableRuntimeAcceptanceResultStatus,
+} from "@kernel/utils/portable-runtime-acceptance-evaluator.utils.js";
+export type {
+  PortableRuntimeAcceptanceContractView,
+  PortableRuntimeAcceptanceDefinitionView,
+  PortableRuntimeAcceptanceSurfaceResult,
+  PortableRuntimeAcceptanceStatusEntry,
+  PortableRuntimeAcceptanceStatusView,
+} from "@kernel/services/portable-runtime-acceptance-manager.service.js";
+export type {
+  PortableRuntimeAcceptanceIdentity,
+  PortableRuntimeAcceptanceIdentityResult,
+  PortableRuntimeAcceptanceUnavailableIdentity,
+} from "@kernel/services/portable-runtime-acceptance-identity.service.js";
+export type {
+  PortableRuntimeAcceptanceLocale,
+  PortableRuntimeAcceptancePresentation,
+} from "@kernel/utils/portable-runtime-acceptance-presentation.utils.js";
+export {
+  ServiceAppJobJournalService,
+  type ServiceAppJobEventSink,
+  type ServiceAppJobScope,
+} from "@kernel/services/service-app-job-journal.service.js";
+export {
+  ServiceAppResidentEventInboxService,
+  type ResidentEventInput,
+  type ServiceAppResidentEventScope,
+  type LeasedResidentEvent,
+} from "@kernel/services/service-app-resident-event-inbox.service.js";
 export type { PortableRunnerObservation } from "@kernel/services/portable-service-runner-client.service.js";
 export { CommandRegistry } from "@kernel/services/command-registry.service.js";
 export { buildAgentRunSendPayload } from "@kernel/utils/agent-run-send-payload.utils.js";
@@ -82,9 +137,10 @@ export * from "@kernel/types/update-manifest.types.js";
 export * from "@kernel/types/service-app.types.js";
 export * from "@kernel/types/panel-app.types.js";
 export * from "@kernel/types/preference.types.js";
-export * from "@kernel/types/project.types.js";
 export * from "@kernel/types/session.types.js";
 export * from "@kernel/types/product-activity.types.js";
+export * from "@kernel/types/verification-record.types.js";
+export * from "@kernel/types/portable-runtime-acceptance.types.js";
 export type {
   SessionPendingInput,
   SessionQueuedInput,

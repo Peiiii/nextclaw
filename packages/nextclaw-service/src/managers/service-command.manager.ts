@@ -73,6 +73,8 @@ export class ServiceCommandManager {
       homeDir: getDataDir(),
       configPath: getConfigPath(),
       portableServiceRunnerPath: distribution.portableServiceRunnerPath,
+      productVersion: distribution.version,
+      runtimeVersion: distribution.version,
     });
     const start = new StartCommands({
       runtimeCommandService: this.deps.managedService,

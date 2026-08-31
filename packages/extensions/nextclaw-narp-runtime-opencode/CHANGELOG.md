@@ -1,5 +1,17 @@
 # @nextclaw/nextclaw-narp-runtime-opencode
 
+## 0.2.43-beta.0
+
+### Patch Changes
+
+- @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.43-beta.0
+
+## 0.2.42
+
+### Patch Changes
+
+- @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.42
+
 ## 0.2.41
 
 ### Patch Changes

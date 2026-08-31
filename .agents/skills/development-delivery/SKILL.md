@@ -7,7 +7,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 目标
 
-回答“如何把已经接受的结果安全交付给用户或目标环境”。每个完成的开发任务都进行轻量结果交接；commit、push、PR、release、deploy 和其它外部写入只有在用户明确授权后执行。
+回答“如何安全交付结果”。每个任务都交接结果；commit、push、PR、release、deploy 等外部写入仅在用户明确授权后执行。
 
 ## 进入门
 
@@ -18,8 +18,9 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 适用 Review 已无未关闭 findings；
 - 工作区中的用户或其它任务改动已经隔离；
 - 外部动作的对象、范围和授权明确。
+- active contract 存在时，本次交付对应 stable acceptance IDs 已明确且证据当前有效。
 
-任一前置合同不成立时返回正确返工阶段，不在 Delivery 内修代码或改设计。
+前置合同不成立就返回正确阶段，不在 Delivery 内修代码或设计。
 
 ## 轻量交付
 
@@ -46,9 +47,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 博客候选门
 
-博客候选在适用 Validation 和 Review 已形成稳定证据后判断，不等待 commit、release 或 deploy。明显改变具体用户任务、具备可解释的 before/after、解决可复用的 AI 原生产品问题，或有真实指标/界面支撑独立主题时，进入产品博客 owner；常规修复、内部重构、纯 changeset 或证据仍会变化的结果跳过。
-
-命中候选不等于发布。事实已经稳定且当前任务未明确排除内容产物时，可以提前形成内部草稿；若文章必须随当前产品变化发布，在对应 changeset 中写入博客绑定指令。文章上线、站点导航、配图公开和社交分发仍分别遵守明确授权与对应交付合同。
+适用 Validation/Review 已形成稳定证据，且成果明显改变用户任务、有可解释 before/after、解决可复用 AI 原生问题或有真实指标/界面时，进入博客 owner；常规修复、内部重构、纯 changeset 或证据未稳定时跳过。命中不等于发布：可在任务未排除内容产物时先写内部草稿；需随版本发布则写入 changeset 绑定指令，上线、导航、配图和社交仍各自遵守授权。
 
 ## 发布语义
 
@@ -68,11 +67,12 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 发布完成必须覆盖授权范围内适用的 artifact、manifest、update channel、release notes、部署后 smoke 和分支回流。
 - tag、release 页面、workflow 触发或 registry publish 只是中间状态，不自动等于交付完成。
 - 任何向远程 `master` 写入的交付或发布在远程完成门后运行 `pnpm release:reconcile:mainline`。本地独有提交由协调器在隔离 worktree 合并、验证并普通 push；本地主 worktree 有活跃 WIP 时由单例 retry worker 自动续跑，禁止要求用户手工 pull/rebase/stash。只有脚本返回 `LOCAL_MAINLINE_SYNCED` 才报告本地同步；`LOCAL_WORKTREE_RETRYING` 表示自动任务仍在运行，不是用户待办。
-- 可恢复的分支分叉、并行 WIP 或暂存于隔离分支只是交付中间状态；不得据此收尾，必须主动完成安全集成与主线回流。合并冲突必须留在协调器给出的恢复 worktree，并由当前 Agent 继续解决和验证，不污染活跃工作区、不重复已完成发布；只有真实外部依赖无法消除时才报告未完成。
+- 可恢复分叉、并行 WIP 或隔离分支只是中间状态，必须安全集成并回流主线。冲突留在恢复 worktree 继续解决和验证，不污染活跃区、不重复发布；只有真实外部依赖无法消除时报告未完成。
 - 部分发布或外部失败优先进入专项恢复分支；不得重复发布已经成功的不可逆步骤。
+- active contract 下只返回 `acceptance_updates` 与 `parent_status`；artifact、版本或 release 不能完成 parent-goal，交回 lifecycle 执行 completion gate。
 
 ## 输出
 
-报告交付范围、主要证据、外部动作及其结果、未完成项、恢复入口和残余 WIP。没有外部动作时明确说明授权边界；不得把部分完成表述成全部完成。
+报告交付范围、主要证据、外部动作及其结果、未完成项、恢复入口和残余 WIP；有 active contract 时同时报告 stable ID 更新并返回 parent。没有外部动作时说明授权边界；不得把部分完成表述成全部完成。
 
 本阶段不修改产品实现、不关闭 Review findings，也不把内部工程记录直接拼成用户 release notes。

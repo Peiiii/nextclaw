@@ -100,6 +100,7 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   const runtime = readFileSync(new URL("../../.github/workflows/npm-runtime-update-release.yml", import.meta.url), "utf8");
   const prepare = readFileSync(new URL("../../.github/workflows/npm-release-prepare.yml", import.meta.url), "utf8");
   const release = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
+  const beta = readFileSync(new URL("./release-beta.mjs", import.meta.url), "utf8");
 
   assert.match(preflight, /run-name: .*dispatch=\$\{\{ inputs\.dispatch_id \}\}/);
   assert.match(preflight, /ref: \$\{\{ inputs\.target_sha \}\}/);
@@ -115,9 +116,18 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(runtime, /prepared_run_id:/);
   assert.match(runtime, /run-id: \$\{\{ inputs\.prepared_run_id \}\}/);
   assert.match(runtime, /Verify prepared Runtime identity and completeness/);
-  assert.match(release, /--prepared-source-sha "\$\{\{ github\.sha \}\}"/);
+  assert.match(runtime, /name: Restore portable runtime Rust build cache/);
+  assert.match(runtime, /key: portable-runtime-rust-\$\{\{ runner\.os \}\}-\$\{\{ matrix\.cargo_target \}\}-/);
+  assert.match(release, /--prepared-source-sha "\$\{\{ needs\.publish-npm\.outputs\.prepared_source_sha \|\| github\.sha \}\}"/);
+  assert.match(release, /Automatic recovery requires existing structured release notes and a ready surface review/);
+  assert.match(release, /node --input-type=module - "\$PREVIOUS_VERSION" "\$TARGET_VERSION"/);
+  assert.doesNotMatch(release, /echo "content_ready=false"/);
+  assert.match(release, /git merge-base --is-ancestor "\$candidate_sha" "\$release_commit"/);
   assert.match(release, /timeout-minutes: 45/);
   assert.match(release, /actions: write/);
+  assert.match(beta, /`release_target=\$\{releaseTarget\}`/);
+  assert.match(beta, /`dispatch_id=\$\{dispatchId\}`/);
+  assert.match(beta, /displayTitle.*dispatch=\$\{dispatchId\}/);
 });
 
 test("runtime manifest verification waits through missing and stale gh-pages projections", async () => {

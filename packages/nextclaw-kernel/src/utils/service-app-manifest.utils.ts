@@ -14,6 +14,8 @@ import type {
   ServiceAppManifest,
   ServiceAppManifestAction,
   ServiceAppRequirements,
+  ServiceAppProtocol,
+  ServiceAppWitContract,
 } from "@kernel/types/service-app.types.js";
 
 const SERVICE_APP_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -23,6 +25,9 @@ const SERVICE_ACTION_RISKS = new Set<ServiceActionRisk>([
   "external",
   "dangerous",
 ]);
+const WIT_PACKAGE_PATTERN = /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*:[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/;
+const SEMVER_VERSION_PATTERN = /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const SEMVER_RANGE_TOKEN_PATTERN = /^(?:\^|~|>=|<=|>|<|=)?(?:v?\d+\.(?:\d+|x|X|\*)\.(?:\d+|x|X|\*)|[xX*])(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 export const SERVICE_APP_MANIFEST_FILE_NAME = "service-app.json";
 
@@ -99,7 +104,7 @@ export function parseServiceAppManifest(
     componentEntry,
     providerIds: readProviderIds(parsed.providers),
     lifecycle,
-    requires: readServiceAppRequirements(parsed.requires),
+    requires: readServiceAppRequirements(parsed.requires, protocol),
     provides,
     actions: readManifestActions(parsed.actions),
   };
@@ -130,7 +135,12 @@ function readServiceAppProvides(value: unknown): ServiceAppProvides | undefined 
     }
     seen.add(key);
     const resourceTypes = readCapabilityResourceTypes(entry.resourceTypes, index);
-    return { id, version, resourceTypes };
+    return {
+      id,
+      version,
+      resourceTypes,
+      wit: readWitContract(entry.wit, `provides.capabilities[${index}].wit`, "provider"),
+    };
   });
   return capabilities.length > 0 ? { capabilities } : undefined;
 }
@@ -154,18 +164,87 @@ function readCapabilityResourceTypes(value: unknown, index: number): string[] | 
   return Array.from(new Set(resourceTypes));
 }
 
-function readServiceAppRequirements(value: unknown): ServiceAppRequirements | undefined {
+function readServiceAppRequirements(
+  value: unknown,
+  protocol: ServiceAppProtocol,
+): ServiceAppRequirements | undefined {
   if (value === undefined) return undefined;
   if (!isRecord(value)) {
     throw new Error("service app requires must be an object.");
   }
-  const capabilities = readCapabilityRequirements(value.capabilities);
+  const capabilities = readCapabilityRequirements(value.capabilities, protocol);
   const resources = readResourceRequirements(value.resources);
-  return capabilities || resources ? { capabilities, resources } : undefined;
+  const modelSlots = readModelCapabilitySlots(value.modelSlots);
+  const agentSlots = readAgentCapabilitySlots(value.agentSlots);
+  return capabilities || resources || modelSlots || agentSlots
+    ? { capabilities, resources, modelSlots, agentSlots }
+    : undefined;
+}
+
+function readModelCapabilitySlots(
+  value: unknown,
+): ServiceAppRequirements["modelSlots"] {
+  return readCapabilitySlots(value, "modelSlots", true);
+}
+
+function readAgentCapabilitySlots(
+  value: unknown,
+): ServiceAppRequirements["agentSlots"] {
+  return readCapabilitySlots(value, "agentSlots", false);
+}
+
+function readCapabilitySlots(
+  value: unknown,
+  name: "modelSlots" | "agentSlots",
+  hasModelLimits: boolean,
+): Array<{
+  id: string;
+  title: string;
+  description: string;
+  required: boolean;
+  maxTokens?: number;
+  timeoutMs?: number;
+}> | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) {
+    throw new Error(`service app requires.${name} must be an array.`);
+  }
+  const seen = new Set<string>();
+  return value.map((entry, index) => {
+    const field = `requires.${name}[${index}]`;
+    if (!isRecord(entry)) throw new Error(`service app ${field} must be an object.`);
+    const allowed = hasModelLimits
+      ? ["id", "title", "description", "required", "maxTokens", "timeoutMs"]
+      : ["id", "title", "description", "required"];
+    const unsupported = Object.keys(entry).find((key) => !allowed.includes(key));
+    if (unsupported) {
+      throw new Error(`service app ${field} cannot declare ${unsupported}; Guests declare only capability slots.`);
+    }
+    const id = readRequirementIdentifier(entry, "id", `${field}.id`);
+    if (seen.has(id)) throw new Error(`service app requires.${name} contains duplicate slot id: ${id}.`);
+    seen.add(id);
+    const slot = {
+      id,
+      title: readRequiredString(entry, "title"),
+      description: readRequiredString(entry, "description"),
+      required: readRequiredBoolean(entry, "required"),
+    };
+    if (!hasModelLimits) return slot;
+    const maxTokens = readOptionalNumber(entry, "maxTokens");
+    const timeoutMs = readOptionalNumber(entry, "timeoutMs");
+    if (maxTokens !== undefined && (!Number.isInteger(maxTokens) || maxTokens < 1 || maxTokens > 1_000_000)) {
+      throw new Error(`service app ${field}.maxTokens must be an integer between 1 and 1000000.`);
+    }
+    if (timeoutMs !== undefined && (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 300_000)) {
+      throw new Error(`service app ${field}.timeoutMs must be an integer between 100 and 300000.`);
+    }
+    return { ...slot, maxTokens, timeoutMs };
+  });
 }
 
 function readCapabilityRequirements(
   value: unknown,
+  protocol: ServiceAppProtocol,
 ): ServiceAppRequirements["capabilities"] {
   if (value === undefined) return undefined;
   if (!Array.isArray(value)) {
@@ -183,13 +262,60 @@ function readCapabilityRequirements(
       throw new Error(`service app requires.capabilities contains duplicate ${key}.`);
     }
     seen.add(key);
+    const wit = readWitContract(entry.wit, `requires.capabilities[${index}].wit`, "consumer");
+    const provider = entry.provider === undefined
+      ? undefined
+      : readServiceAppId(entry, "provider", `requires.capabilities[${index}].provider`);
+    if (wit && protocol !== "wasi-component") {
+      throw new Error(`service app requires.capabilities[${index}].wit requires wasi-component protocol.`);
+    }
+    if (provider && !wit) {
+      throw new Error(`service app requires.capabilities[${index}].provider requires WIT metadata.`);
+    }
     return {
       id,
       version,
+      provider,
+      wit,
       title: readOptionalString(entry, "title"),
       description: readOptionalString(entry, "description"),
       remediation: readExternalRemediation(entry.remediation, `requires.capabilities[${index}]`),
     };
+  });
+}
+
+function readWitContract(
+  value: unknown,
+  fieldName: string,
+  role: "provider" | "consumer",
+): ServiceAppWitContract | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) throw new Error(`service app ${fieldName} must be an object.`);
+  const packageName = readOptionalString(value, "package");
+  if (!packageName || !WIT_PACKAGE_PATTERN.test(packageName)) {
+    throw new Error(`service app ${fieldName}.package must be a WIT package identifier.`);
+  }
+  const interfaceName = readRequirementIdentifier(value, "interface", `${fieldName}.interface`);
+  const version = readOptionalString(value, "version");
+  if (!version) throw new Error(`service app ${fieldName}.version is required.`);
+  if (role === "provider" && !SEMVER_VERSION_PATTERN.test(version)) {
+    throw new Error(`service app ${fieldName}.version must be an exact semver version for a Provider.`);
+  }
+  if (role === "consumer" && !isSemverRange(version)) {
+    throw new Error(`service app ${fieldName}.version must be a semver range for a Consumer.`);
+  }
+  return { package: packageName, interface: interfaceName, version };
+}
+
+function isSemverRange(value: string): boolean {
+  return value.split(/\s*\|\|\s*/).every((alternative) => {
+    const hyphenRange = /^\s*(\S+)\s+-\s+(\S+)\s*$/.exec(alternative);
+    if (hyphenRange) {
+      return SEMVER_VERSION_PATTERN.test(hyphenRange[1] ?? "") &&
+        SEMVER_VERSION_PATTERN.test(hyphenRange[2] ?? "");
+    }
+    const tokens = alternative.trim().split(/\s+/).filter(Boolean);
+    return tokens.length > 0 && tokens.every((token) => SEMVER_RANGE_TOKEN_PATTERN.test(token));
   });
 }
 
@@ -291,6 +417,14 @@ function readProviderIds(value: unknown): string[] {
   return Array.from(new Set(providerIds));
 }
 
+function readServiceAppId(record: Record<string, unknown>, key: string, fieldName: string): string {
+  const value = readOptionalString(record, key);
+  if (!value || !SERVICE_APP_ID_PATTERN.test(value)) {
+    throw new Error(`service app ${fieldName} must be a kebab-case service app id.`);
+  }
+  return value;
+}
+
 function readPortableComponentEntry(record: Record<string, unknown>): string {
   const component = record.component;
   if (!isRecord(component)) {
@@ -359,6 +493,13 @@ function readRequiredString(record: Record<string, unknown>, key: string): strin
     throw new Error(`service app ${key} is required.`);
   }
   return value;
+}
+
+function readRequiredBoolean(record: Record<string, unknown>, key: string): boolean {
+  if (typeof record[key] !== "boolean") {
+    throw new Error(`service app ${key} is required and must be a boolean.`);
+  }
+  return record[key];
 }
 
 function readOptionalString(

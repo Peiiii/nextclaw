@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import type { AppInstallationService } from "@nextclaw/app-runtime";
+import {
+  AppScaffoldService,
+  type AppInstallationService,
+  type AppRegistryService,
+} from "@nextclaw/app-runtime";
 import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 
 const tempDirectories: string[] = [];
@@ -12,11 +16,10 @@ const builtInAppsDirectory = resolve(
   "../../../../nextclaw/resources/apps",
 );
 
-function createKernel(): NextclawKernel {
-  const homeDirectory = mkdtempSync(
-    join(tmpdir(), "nextclaw-app-package-uninstall-test-"),
-  );
-  tempDirectories.push(homeDirectory);
+function createKernel(
+  appsDirectory = builtInAppsDirectory,
+  homeDirectory = createTempDirectory(),
+): NextclawKernel {
   const configPath = join(homeDirectory, "config.json");
   saveConfig(
     ConfigSchema.parse({
@@ -25,11 +28,19 @@ function createKernel(): NextclawKernel {
     configPath,
   );
   return new NextclawKernel({
-    builtInAppsDirectory,
+    builtInAppsDirectory: appsDirectory,
     configPath,
     homeDir: homeDirectory,
     productVersion: "0.32.0",
   });
+}
+
+function createTempDirectory(): string {
+  const homeDirectory = mkdtempSync(
+    join(tmpdir(), "nextclaw-app-package-uninstall-test-"),
+  );
+  tempDirectories.push(homeDirectory);
+  return homeDirectory;
 }
 
 afterEach(() => {
@@ -40,6 +51,50 @@ afterEach(() => {
 });
 
 describe("AppPackageManager uninstall recovery", () => {
+  it("serializes package reads with an in-flight uninstall transaction", async () => {
+    const appDirectory = join(createTempDirectory(), "source-app");
+    await new AppScaffoldService().scaffold(appDirectory);
+    const kernel = createKernel(createTempDirectory());
+    try {
+      await kernel.appPackageManager.start();
+      const installed = await kernel.appPackageManager.install(appDirectory);
+      const registryService = readPackageRegistryService(kernel);
+      const removeApp = registryService.removeApp.bind(registryService);
+      let releaseRegistryMutation: (() => void) | undefined;
+      const registryMutationGate = new Promise<void>((resolveMutation) => {
+        releaseRegistryMutation = resolveMutation;
+      });
+      let stagedPackage: (() => void) | undefined;
+      const packageStaged = new Promise<void>((resolveStaged) => {
+        stagedPackage = resolveStaged;
+      });
+      vi.spyOn(registryService, "removeApp").mockImplementation(async (appId) => {
+        stagedPackage?.();
+        await registryMutationGate;
+        return await removeApp(appId);
+      });
+
+      const uninstall = kernel.appPackageManager.uninstall(installed.id, false);
+      await packageStaged;
+      const list = kernel.appPackageManager.listPackages();
+      const earlyResult = await Promise.race([
+        list.then(() => "settled", () => "settled"),
+        new Promise<"waiting">((resolveWaiting) => setTimeout(() => resolveWaiting("waiting"), 50)),
+      ]);
+      expect(earlyResult).toBe("waiting");
+
+      releaseRegistryMutation?.();
+      await expect(uninstall).resolves.toMatchObject({ appId: installed.id });
+      await expect(list).resolves.toMatchObject({
+        entries: expect.not.arrayContaining([
+          expect.objectContaining({ id: installed.id }),
+        ]),
+      });
+    } finally {
+      await kernel.serviceAppManager.dispose();
+    }
+  }, 15_000);
+
   it("restores panel state, grants, bridge sessions, and service runtime after filesystem uninstall fails", async () => {
     const kernel = createKernel();
     try {
@@ -225,6 +280,15 @@ function readPackageInstallationService(
       installationService: AppInstallationService;
     }
   ).installationService;
+}
+
+function readPackageRegistryService(kernel: NextclawKernel): AppRegistryService {
+  const installationService = readPackageInstallationService(kernel);
+  return (
+    installationService as unknown as {
+      registryService: AppRegistryService;
+    }
+  ).registryService;
 }
 
 function readStoredPanelState(panelsPath: string): {

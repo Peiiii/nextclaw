@@ -216,20 +216,6 @@ class HistoryMessageBuilder {
   };
 }
 
-export function normalizeRequestedSkills(value: string[] | undefined): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  const deduped = new Set<string>();
-  for (const item of value) {
-    const trimmed = item.trim();
-    if (trimmed) {
-      deduped.add(trimmed);
-    }
-  }
-  return [...deduped];
-}
-
 export function buildUiMessagesFromHistoryMessages(messages: SessionMessageView[]): UIMessage[] {
   return new HistoryMessageBuilder().build(messages);
 }

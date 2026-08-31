@@ -60,6 +60,7 @@ describe("buildChatWelcomeProjectOptions", () => {
     const options = buildChatWelcomeProjectOptions({
       defaultProjectRoot: "/Users/demo/.nextclaw/workspace",
       projects: [{
+        id: "project-knowledge",
         name: "Knowledge",
         rootPath: "/tmp/knowledge",
         template: "knowledge-base",

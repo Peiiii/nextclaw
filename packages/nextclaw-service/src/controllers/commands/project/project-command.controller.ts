@@ -2,6 +2,7 @@ import type {
   CreateProjectInput,
   NextclawKernel,
   ProjectRecord,
+  ProjectObservationSnapshot,
 } from "@nextclaw/kernel";
 
 export type ProjectCommandOptions = {
@@ -61,12 +62,28 @@ export class ProjectCommands {
     });
   };
 
+  observe = async (rootPath: string, options: ProjectCommandOptions = {}): Promise<void> => {
+    await this.withKernel(async (kernel) => {
+      const snapshot = await kernel.projectObservation.observe(rootPath);
+      if (options.json) {
+        console.log(JSON.stringify(snapshot, null, 2));
+        return;
+      }
+      this.printObservationSummary(snapshot);
+    });
+  };
+
   private printCreatedProject = (project: ProjectRecord, json: boolean): void => {
     if (json) {
       console.log(JSON.stringify(project, null, 2));
       return;
     }
     console.log(`Created project "${project.name}" at ${project.rootPath}`);
+  };
+
+  private printObservationSummary = (snapshot: ProjectObservationSnapshot): void => {
+    console.log(`${snapshot.project.name}\t${snapshot.dataQuality}\t${snapshot.project.rootPath}`);
+    console.log(`work-items: ${snapshot.workItems.length}, artifacts: ${snapshot.artifacts.length}, signals: ${snapshot.signals.length}, requests: ${snapshot.requests.length}`);
   };
 
   private withKernel = async <T>(action: (kernel: NextclawKernel) => Promise<T>): Promise<T> => {

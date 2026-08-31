@@ -1,60 +1,74 @@
 # Use Service Apps
 
-This guide explains how to connect a Service App, call its Actions from a Panel, and grant only the required capabilities to a selected Agent.
+Service Apps are installed and managed as Apps. Their visible interface is usually a Panel; **Service Apps** is where you inspect what runs behind that Panel.
 
-## Connect and discover Actions
+## Install and enable
 
-Open **Service Apps**, find the service, and select **Connect and discover actions**. NextClaw starts the corresponding runtime and reads the Actions it actually exposes.
+Install an App from Marketplace or from a `.napp` file, then inspect its state before enabling it.
 
-Each Action shows its name and purpose, developer-declared risk, manifest-to-runtime match state, and the Agents that currently have a grant.
+```bash
+nextclaw app install ./my-app.napp --json
+nextclaw app info <app-id> --json
+nextclaw app enable <app-id> --json
+```
 
-A `missing` Action was declared but not exposed by the runtime. An `undeclared` Action was exposed by the runtime but omitted from the manifest. The App developer should correct either mismatch.
+If the state says `needs-configuration` or `needs-capability`, the App has declared required setup. Complete that setup first; do not work around it by putting connection details or tokens into an Action input.
 
-## Use an Action from a Panel App
+## Use an App from its Panel
 
-A Panel App must list the Actions it intends to call. On the first real call, NextClaw shows the calling Panel, Action, purpose, risk, and input data.
+1. Open the App from the Apps list.
+2. Read the requested access before approving the first protected operation.
+3. Use the Panel for the task it presents.
+4. Return to **Service Apps** when you need to inspect Actions, an error, or background work.
 
-Choose **Allow** to let that Panel continue with the approved Action, or **Reject** to stop the call. The grant belongs to that Panel and does not automatically extend to another Panel or Agent.
+Panels call only the Actions they declare. If an App asks for an Action approval, approve only the action and risk level you recognize.
 
-## Let an Agent call an Action
+## Let an Agent use an Action
 
-Expand the service in **Service Apps**, use the grant control beside an Action, and select an Agent. The Agent can then discover that Action as a tool.
+In **Service Apps**, expand the service, choose the Action, and grant it to the Agent that should use it. The Agent then sees the same declared Action as a tool. Revoke the grant to remove it from that Agent.
 
-For an App with “list tasks” and “save task” Actions, you could ask:
+Use this for a clear task such as “sync this repository's Issues and summarize the open bugs.” Do not grant a dangerous Action simply because an Agent asks for it; read the App's Action title and risk first.
 
-> Read my task list, then add a task called “Plan this week.” Tell me the title of the created record when you finish.
+## Use the same Action from the command line
 
-An Agent sees only the Actions granted to it. A read grant does not include a write Action. Revoking the grant removes that tool from the Agent.
+The command line calls an enabled installed App through the same host that the Panel uses:
 
-## Disconnect and reconnect
+```bash
+nextclaw app invoke <app-id> <action-name> --input '{"key":"value"}' --json
+```
 
-Use the Service App's additional actions to disconnect its runtime. Connect it again to restart the runtime and rediscover Actions.
+The result includes an operation and verification-record identifier. To inspect redacted runtime facts for that call:
 
-If the service enters the Failed state, inspect its last error, check required configuration or external services, and reconnect.
+```bash
+nextclaw app verification --app <app-id> --json
+```
 
-When a WASM Service App call times out or the shared runner exits, NextClaw terminates the failed runner. Persistent Providers and Residents are restored in Provider-first order. The failed call itself is not silently replayed.
+## Follow a long operation
 
-## Manage or remove a Service App
+When an Action starts a durable Job, use its Job id to see retained progress and output. A cancellation request is not a success result: the Job remains pending until the runtime confirms a terminal result.
 
-- For a Service App installed with a NextClaw App, select **Manage in Apps** to enable, disable, or uninstall the owning App.
-- A workspace-source Service App can be removed directly from Service Apps.
+```bash
+nextclaw app jobs list <app-id> --json
+nextclaw app jobs inspect <app-id> <job-id> --json
+nextclaw app jobs watch <app-id> <job-id> --json
+nextclaw app jobs cancel <app-id> <job-id> --json
+```
 
-Removal can keep managed data or permanently delete both the App and its data after explicit confirmation. See [Service App permissions and data](/en/guide/service-app-permissions-data).
+For a Resident App, dead-letter events can be inspected and replayed through the same host:
 
-## Troubleshooting
+```bash
+nextclaw app resident-inbox list <app-id> --dead-letters --json
+nextclaw app resident-inbox replay <app-id> <event-id> --json
+```
 
-### An Agent cannot see an Action
+## Update, roll back, or remove
 
-Make sure the service is connected and that this Action is granted to the current Agent. Panel and Agent grants are separate.
+```bash
+nextclaw app update <app-id> --version <version> --json
+nextclaw app rollback <app-id> --version <installed-version> --json
+nextclaw app uninstall <app-id> --json
+```
 
-### A Panel's first call failed
+Uninstall keeps managed App data unless you explicitly request `--purge-data` and confirm the exact App id. Secret bindings are not retained as App data.
 
-Confirm that the Action shown in the grant dialog is declared by the Panel. A rejected grant, disconnected runtime, or Action-discovery mismatch can all stop the call.
-
-### Does closing a Panel delete data?
-
-No. Closing a Panel closes only the interface. Persistence depends on the Service App implementation and the storage permission of its owning App.
-
-### Does background work stop when the Panel closes?
-
-An ordinary Action runs only when called. A Resident Service App can continue receiving host timer events after its Panel closes, until the owning App is disabled or the runtime is disconnected.
+Next: [Permissions and data](/en/guide/service-app-permissions-data) · [Troubleshoot Service Apps](/en/guide/service-apps-troubleshooting)

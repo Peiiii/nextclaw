@@ -1,13 +1,18 @@
-import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { DEFAULT_SERVICE_APPS_DIR, getWorkspacePathFromConfig } from "@nextclaw/core";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import {
-  AppPackageError,
   type AppPackageComponentSource,
 } from "@kernel/types/app-package.types.js";
 import { ServiceAppRuntimeService } from "@kernel/services/service-app-runtime.service.js";
 import { ServiceAppLifecycleService } from "@kernel/services/service-app-lifecycle.service.js";
+import { ServiceAppAiCapabilityService } from "@kernel/services/service-app-ai-capability.service.js";
+import { ServiceAppJobManager } from "@kernel/managers/service-app-job.manager.js";
+import { ServiceAppActivationManager } from "@kernel/managers/service-app-activation.manager.js";
+import { hasConfiguredServiceModel, ServiceAppAiManager } from "@kernel/managers/service-app-ai.manager.js";
+import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
+import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
+import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import { ServiceAppRecordService, type WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
 import {
   type ServiceAppRemovalDiagnostic,
@@ -23,7 +28,16 @@ import {
 } from "@kernel/features/capability-grants/index.js";
 import { ServiceActionGrantService } from "@kernel/services/service-action-grant.service.js";
 import { ServiceAppPackageRuntimeService } from "@kernel/services/service-app-package-runtime.service.js";
-import { projectCapabilityProviders } from "@kernel/services/service-app-capability-provider.service.js";
+import type { VerificationRecordService } from "@kernel/services/verification-record.service.js";
+import {
+  ServiceAppJobJournalService,
+  type ServiceAppJobScope,
+} from "@kernel/services/service-app-job-journal.service.js";
+import {
+  ServiceAppResidentEventInboxService,
+  type ResidentEventInput,
+} from "@kernel/services/service-app-resident-event-inbox.service.js";
+import { projectCapabilityProviders } from "@kernel/utils/service-app-capability-provider.utils.js";
 import type {
   ServiceAction,
   ServiceActionCaller,
@@ -31,6 +45,7 @@ import type {
   ServiceActionGrantRequest,
   ServiceActionInvokeRequest,
   ServiceActionInvokeResult,
+  ServiceAppJobCaller,
   ServiceAppManifest,
   ServiceAppRecord,
 } from "@kernel/types/service-app.types.js";
@@ -38,6 +53,7 @@ import { readServiceAppManifest } from "@kernel/utils/service-app-manifest.utils
 import {
   assertServiceActionCaller,
   assertServiceActionDeclared,
+  buildServiceActionId,
   getServiceActionName,
   resolveServiceActionGrantState,
 } from "@kernel/utils/service-action.utils.js";
@@ -46,11 +62,8 @@ import {
   mergeServiceAppRuntimeActions,
 } from "@kernel/utils/service-app-runtime-action.utils.js";
 import {
-  isServiceAppError,
   ServiceAppError,
-  toServiceAppRuntimeError,
 } from "@kernel/utils/service-app-error.utils.js";
-
 export type { WorkspaceServiceDataOwner } from "@kernel/services/service-app-record.service.js";
 export {
   isServiceAppError,
@@ -80,23 +93,43 @@ export class ServiceAppManager {
   private readonly actionGrants: ServiceActionGrantService;
   private readonly packageRuntime: ServiceAppPackageRuntimeService;
   private readonly lifecycleService: ServiceAppLifecycleService;
+  readonly aiCapabilities: ServiceAppAiCapabilityService;
+  private readonly aiManager: ServiceAppAiManager;
+  private readonly verificationRecords?: VerificationRecordService;
+  private readonly jobJournal: ServiceAppJobJournalService;
+  private readonly jobManager: ServiceAppJobManager;
+  private readonly activationManager: ServiceAppActivationManager;
+  private readonly residentInbox: ServiceAppResidentEventInboxService;
   private reconciliationDiagnostics: ServiceAppRemovalDiagnostic[] = [];
 
   constructor(private readonly params: {
+    appHomeDirectory?: string;
     configManager: ConfigManager;
     runtimeService?: ServiceAppRuntime;
     listPackageComponentSources?: () => Promise<AppPackageComponentSource[]>;
     capabilityGrantManager: CapabilityGrantManager;
     hasAgent?: (agentId: string) => boolean;
+    providerManager?: LlmProviderRuntime;
+    llmUsage?: Pick<LlmUsageManager, "observeProviderManager">;
+    agentRunClient?: Pick<AgentRunClient, "startRun">;
     portableServiceRunnerPath?: string;
+    verificationRecords?: VerificationRecordService;
+    jobJournal?: ServiceAppJobJournalService;
+    residentInbox?: ServiceAppResidentEventInboxService;
   }) {
+    this.residentInbox = params.residentInbox ?? new ServiceAppResidentEventInboxService();
     this.runtimeService = params.runtimeService ?? new ServiceAppRuntimeService({
       getConfig: () => params.configManager.config,
+      configPath: params.configManager.configPath,
+      appHomeDirectory: params.appHomeDirectory,
       portableServiceRunnerPath: params.portableServiceRunnerPath,
+      residentInbox: this.residentInbox,
     });
     this.recordService = new ServiceAppRecordService({
       getWorkspacePath: this.getWorkspacePath,
       runtimeService: this.runtimeService,
+      listPackageComponentSources: this.listPackageComponentSources,
+      listWorkspaceDirectoryNames: this.listServiceAppDirNames,
     });
     this.lifecycleService = new ServiceAppLifecycleService({
       recordService: this.recordService,
@@ -106,12 +139,40 @@ export class ServiceAppManager {
       capabilityGrantManager: params.capabilityGrantManager,
       resolveAction: this.requireServiceAction,
     });
+    this.aiCapabilities = new ServiceAppAiCapabilityService({
+      capabilityGrantManager: params.capabilityGrantManager,
+      hasAgent: params.hasAgent ?? (() => false),
+      hasModel: (modelId) => hasConfiguredServiceModel(params.configManager.config, modelId),
+      providerManager: params.providerManager,
+      llmUsage: params.llmUsage,
+      agentRunClient: params.agentRunClient,
+    });
+    this.aiManager = new ServiceAppAiManager({ capabilities: this.aiCapabilities, records: this.recordService });
+    this.runtimeService.setPortableHostCallHandler?.(this.aiCapabilities.handlePortableHostCall);
     this.packageRuntime = new ServiceAppPackageRuntimeService({
       getStatus: this.runtimeService.getStatus,
       restore: async (serviceId) => {
         await this.discoverServiceAppActions(serviceId);
       },
       stop: this.runtimeService.stop,
+    });
+    this.verificationRecords = params.verificationRecords;
+    this.jobJournal = params.jobJournal ?? new ServiceAppJobJournalService();
+    this.jobManager = new ServiceAppJobManager({
+      journal: this.jobJournal,
+      residentInbox: this.residentInbox,
+      runtime: this.runtimeService,
+      verificationRecords: this.verificationRecords,
+      requireServiceApp: this.recordService.require,
+      listPackageComponentSources: this.listPackageComponentSources,
+    });
+    this.activationManager = new ServiceAppActivationManager({
+      runtime: this.runtimeService,
+      records: this.recordService,
+      aiCapabilities: this.aiCapabilities,
+      getWorkspaceServiceAppsPath: () => this.getServiceAppsPath(this.getWorkspacePath()),
+      listWorkspaceDirectoryNames: this.listServiceAppDirNames,
+      listPackageComponentSources: this.listPackageComponentSources,
     });
   }
 
@@ -121,7 +182,24 @@ export class ServiceAppManager {
       lockPathForAppId: (appId) => this.getServiceAppLockPath(this.getWorkspacePath(), appId),
       serviceAppsPath: this.getServiceAppsPath(this.getWorkspacePath()),
     });
-    await this.lifecycleService.startDiscovered(await this.listValidServiceApps());
+    const discovered = await this.recordService.listValid();
+    const recoveredScopes = new Map<string, ServiceAppJobScope>();
+    for (const { record } of discovered) {
+      const scope = this.toJobScope(record);
+      if (scope) recoveredScopes.set(scope.stateDirectory, scope);
+    }
+    await this.jobJournal.recoverUnfinished([...recoveredScopes.values()]);
+    const ready = [] as typeof discovered;
+    for (const registration of discovered) {
+      try {
+        await this.aiCapabilities.assertReady(registration.record, registration.manifest);
+        ready.push(registration);
+      } catch {
+        // Required AI slots fail closed. The record remains inspectable and can
+        // be bound through the management surfaces before the next start.
+      }
+    }
+    await this.lifecycleService.startDiscovered(ready);
   };
 
   listServiceApps = async (): Promise<ServiceAppList> => {
@@ -146,12 +224,25 @@ export class ServiceAppManager {
     };
   };
 
-  listCapabilityProviders = async () => projectCapabilityProviders(await this.listValidServiceApps());
+  listCapabilityProviders = async () => projectCapabilityProviders(await this.recordService.listValid());
 
   getServiceApp = async (appId: string): Promise<ServiceAppRecord> => {
-    const { record } = await this.requireServiceApp(appId);
+    const { record } = await this.recordService.require(appId);
     return record;
   };
+
+  inspectServiceAppAiCapabilities = async (appId: string) => await this.aiManager.inspect(appId);
+  verifyServiceAppAiCapabilities = async (appId: string) => await this.aiManager.inspect(appId);
+  bindServiceAppModelSlot = async (appId: string, slotId: string, modelId: string) =>
+    await this.aiManager.bindModel(appId, slotId, modelId);
+  bindServiceAppAgentSlot = async (appId: string, slotId: string, agentId: string) =>
+    await this.aiManager.bindAgent(appId, slotId, agentId);
+  unbindServiceAppAiSlot = async (appId: string, kind: "model" | "agent", slotId: string) =>
+    await this.aiManager.unbind(appId, kind, slotId);
+  completeServiceAppModelSlot = async (params: Parameters<ServiceAppAiManager["completeModel"]>[0]) =>
+    await this.aiManager.completeModel(params);
+  startServiceAppAgentSlot = async (params: Parameters<ServiceAppAiManager["startAgent"]>[0]) =>
+    await this.aiManager.startAgent(params);
 
   listServiceActions = async (params: {
     caller?: ServiceActionCaller;
@@ -159,8 +250,8 @@ export class ServiceAppManager {
     declaredActions?: readonly string[];
   } = {}): Promise<ServiceAction[]> => {
     const manifests = params.appId
-      ? [await this.requireServiceApp(params.appId)]
-      : await this.listValidServiceApps();
+      ? [await this.recordService.require(params.appId)]
+      : await this.recordService.listValid();
     const actions = manifests.flatMap(({ manifest, record }) =>
       listServiceAppManifestActions(record, manifest),
     );
@@ -170,7 +261,7 @@ export class ServiceAppManager {
   };
 
   discoverServiceAppActions = async (appId: string): Promise<ServiceAction[]> => {
-    const { manifest, record } = await this.requireServiceApp(appId, true);
+    const { manifest, record } = await this.recordService.require(appId, true);
     const runtimeActions = await this.runtimeService.listActions({ app: record, manifest });
     return mergeServiceAppRuntimeActions({ record, manifest, runtimeActions });
   };
@@ -197,18 +288,60 @@ export class ServiceAppManager {
         `This panel app needs permission to call ${actionId}.`,
       );
     }
-    try {
-      const result = await this.runtimeService.invokeAction({
-        app: record,
-        manifest,
-        actionName,
-        input: request.input ?? {},
-      });
-      return { actionId, result };
-    } catch (error) {
-      throw toServiceAppRuntimeError(error, record.id, actionName);
-    }
+    return await this.jobManager.invoke({
+      actionId,
+      actionName,
+      record,
+      manifest,
+      input: request.input ?? {},
+      role: request.caller.surface === "agent" ? "agent" : "panel",
+      entrySurface: request.caller.surface === "agent" ? "agent" : "panel",
+    });
   };
+
+  /**
+   * Calls a Service component belonging to an enabled installed package.
+   * This is deliberately separate from source-tree `nextclaw app call`.
+   */
+  invokeInstalledServiceAction = async (
+    appId: string,
+    actionName: string,
+    input: Record<string, unknown> = {},
+  ): Promise<ServiceActionInvokeResult> => {
+    const { manifest, record } = await this.requireInstalledServiceApp(appId, actionName);
+    return await this.jobManager.invoke({
+      actionId: buildServiceActionId(record.id, actionName),
+      actionName,
+      record,
+      manifest,
+      input,
+      role: "cli",
+      entrySurface: "installed-app-cli",
+    });
+  };
+
+  listVerificationRecords = async (filters: { acceptanceId?: string; appId?: string; limit?: number } = {}) =>
+    await this.jobManager.listVerificationRecords(filters);
+  exportVerificationRecords = async (filters: { acceptanceId?: string; appId?: string; limit?: number } = {}) =>
+    await this.jobManager.exportVerificationRecords(filters);
+  listServiceAppJobs = async (appId: string, params: { caller?: ServiceAppJobCaller } = {}) =>
+    await this.jobManager.list(appId, params.caller);
+  getServiceAppJob = async (appId: string, jobId: string, params: { caller?: ServiceAppJobCaller } = {}) =>
+    await this.jobManager.get(appId, jobId, params.caller);
+  watchServiceAppJob = async (appId: string, jobId: string, afterSequence?: number, params: { caller?: ServiceAppJobCaller } = {}) =>
+    await this.jobManager.watch(appId, jobId, afterSequence, params.caller);
+  cancelServiceAppJob = async (appId: string, jobId: string, params: { caller?: ServiceAppJobCaller } = {}) =>
+    await this.jobManager.cancel(appId, jobId, params.caller);
+  listResidentInbox = async (appId: string, params: { deadLettersOnly?: boolean } = {}) =>
+    await this.jobManager.listResidentInbox(appId, params.deadLettersOnly);
+  replayResidentDeadLetter = async (appId: string, eventId: string) =>
+    await this.jobManager.replayResidentDeadLetter(appId, eventId);
+  enqueueResidentEvent = async (appId: string, input: ResidentEventInput) =>
+    await this.jobManager.enqueueResidentEvent(appId, input);
+  createServiceAppJob = async (params: Parameters<ServiceAppJobManager["create"]>[0]) =>
+    await this.jobManager.create(params);
+  createServiceAppJobEventSink = (record: ServiceAppRecord, jobId: string) =>
+    this.jobManager.createEventSink(record, jobId);
 
   grantServiceAction = async (
     actionId: string,
@@ -274,7 +407,7 @@ export class ServiceAppManager {
   };
 
   restartServiceApp = async (appId: string): Promise<ServiceAppRecord> => {
-    const { record } = await this.requireServiceApp(appId);
+    const { record } = await this.recordService.require(appId);
     await this.runtimeService.restart(record.id);
     return await this.getServiceApp(appId);
   };
@@ -300,7 +433,7 @@ export class ServiceAppManager {
         lockPath: this.getServiceAppLockPath(workspacePath, appId),
         purgeData,
         loadRecord: async () => {
-          const { record } = await this.requireServiceApp(appId);
+          const { record } = await this.recordService.require(appId);
           if (record.sourceKind === "package") {
             throw new ServiceAppError(
               "SERVICE_APP_MANAGED_SOURCE",
@@ -325,76 +458,8 @@ export class ServiceAppManager {
 
   dispose = async (): Promise<void> => await this.runtimeService.dispose();
 
-  assertCanActivatePackageComponents = async (
-    components: AppPackageComponentSource[],
-  ): Promise<void> => {
-    const serviceComponents = components.filter((component) => component.kind === "service");
-    if (serviceComponents.length === 0) {
-      return;
-    }
-    const workspacePath = this.getServiceAppsPath(this.getWorkspacePath());
-    const workspaceIds = new Set<string>();
-    for (const dirName of await this.listServiceAppDirNames(workspacePath)) {
-      try {
-        workspaceIds.add((await readServiceAppManifest(join(workspacePath, dirName))).id);
-      } catch {
-        continue;
-      }
-    }
-    const activePackageSources = await this.listPackageComponentSources();
-    for (const component of serviceComponents) {
-      const conflictsWithPackage = activePackageSources.some((active) =>
-        active.kind === "service" &&
-        active.id === component.id &&
-        active.packageId !== component.packageId,
-      );
-      if (workspaceIds.has(component.id) || conflictsWithPackage) {
-        throw new AppPackageError(
-          "APP_PACKAGE_CONFLICT",
-          `Service component id 冲突：${component.id}`,
-        );
-      }
-    }
-    for (const component of serviceComponents) {
-      let manifest: ServiceAppManifest;
-      try {
-        manifest = await readServiceAppManifest(component.sourcePath);
-      } catch (error) {
-        throw new AppPackageError(
-          "APP_PACKAGE_OPERATION_FAILED",
-          `Service component ${component.id} manifest 无效：${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-      try {
-        const record = this.recordService.fromManifest(
-          component.sourcePath,
-          manifest,
-          component,
-          component.storage,
-        );
-        const runtimeActions = await this.runtimeService.listActions({ app: record, manifest });
-        const runtimeStatus = this.runtimeService.getStatus(component.id);
-        if (runtimeStatus.status === "failed") {
-          throw new AppPackageError(
-            "APP_PACKAGE_OPERATION_FAILED",
-            `Service component ${component.id} 启动探测失败：${runtimeStatus.lastError ?? "unknown error"}`,
-          );
-        }
-        const actions = mergeServiceAppRuntimeActions({ record, manifest, runtimeActions });
-        const invalidAction = actions.find(
-          (action) => action.runtimeState === "missing" || action.runtimeState === "undeclared",
-        );
-        if (invalidAction) {
-          throw new AppPackageError(
-            "APP_PACKAGE_OPERATION_FAILED",
-            `Service component ${component.id} action 合同不一致：${invalidAction.id} (${invalidAction.runtimeState})`,
-          );
-        }
-      } finally {
-        await this.runtimeService.restart(component.id);
-      }
-    }
-  };
+  assertCanActivatePackageComponents = async (components: AppPackageComponentSource[]): Promise<void> =>
+    await this.activationManager.assertCanActivate(components);
 
   activatePackageComponents = async (
     components: AppPackageComponentSource[],
@@ -417,8 +482,6 @@ export class ServiceAppManager {
         .filter((component) => component.kind === "service")
         .map((component) => component.id),
     ));
-
-
 
   private withGrantState = async (
     action: ServiceAction,
@@ -458,118 +521,34 @@ export class ServiceAppManager {
     if (!appId) {
       throw new ServiceAppError("SERVICE_APP_INVALID_ACTION", "service action id is invalid");
     }
-    return await this.requireServiceApp(appId, materializeStorage);
+    return await this.recordService.require(appId, materializeStorage);
   };
 
-  private requireServiceApp = async (
-    appId: string, materializeStorage = false,
+  private requireInstalledServiceApp = async (
+    appId: string,
+    actionName: string,
   ): Promise<{ manifest: ServiceAppManifest; record: ServiceAppRecord }> => {
-    const serviceAppsPath = this.getServiceAppsPath(this.getWorkspacePath());
-    let dirPath = join(serviceAppsPath, appId);
-    let packageSource: AppPackageComponentSource | undefined;
-    try {
-      const dirStat = await stat(dirPath);
-      if (!dirStat.isDirectory()) {
-        throw new ServiceAppError("SERVICE_APP_NOT_FOUND", "service app not found");
-      }
-    } catch (error) {
-      if (!this.isMissingFileError(error)) {
-        throw error;
-      }
-      packageSource = (await this.listPackageComponentSources()).find((component) =>
-        component.kind === "service" && component.id === appId,
-      );
-      if (!packageSource) {
-        throw new ServiceAppError("SERVICE_APP_NOT_FOUND", "service app not found");
-      }
-      dirPath = packageSource.sourcePath;
+    const candidates = await Promise.all((await this.listPackageComponentSources())
+      .filter((component) => component.kind === "service" && component.packageId === appId)
+      .map(async (component) => {
+        const manifest = await readServiceAppManifest(component.sourcePath);
+        return Object.hasOwn(manifest.actions, actionName)
+          ? { manifest, record: this.recordService.fromManifest(
+            component.sourcePath, manifest, component, component.storage,
+          ) }
+          : null;
+      }));
+    const matching = candidates.filter((candidate): candidate is NonNullable<typeof candidate> => Boolean(candidate));
+    if (matching.length === 0) {
+      throw new ServiceAppError("SERVICE_APP_ACTION_NOT_FOUND", "installed App action not found");
     }
-    try {
-      const dirStat = await stat(dirPath);
-      if (!dirStat.isDirectory()) {
-        throw new ServiceAppError("SERVICE_APP_NOT_FOUND", "service app not found");
-      }
-      const manifest = await readServiceAppManifest(dirPath);
-      if (manifest.id !== appId) {
-        throw new ServiceAppError(
-          "SERVICE_APP_INVALID_MANIFEST",
-          "service app manifest id must match directory name",
-        );
-      }
-      const storage = packageSource?.storage ?? (materializeStorage
-        ? await this.recordService.materializeWorkspaceStorage(manifest.id)
-        : await this.recordService.inspectWorkspaceStorage(manifest.id));
-      return {
-        manifest,
-        record: this.recordService.fromManifest(
-          dirPath,
-          manifest,
-          packageSource,
-          storage,
-        ),
-      };
-    } catch (error) {
-      if (isServiceAppError(error)) {
-        throw error;
-      }
-      if (this.isMissingFileError(error)) {
-        throw new ServiceAppError("SERVICE_APP_NOT_FOUND", "service app not found");
-      }
+    if (matching.length > 1) {
       throw new ServiceAppError(
-        "SERVICE_APP_READ_FAILED",
-        error instanceof Error ? error.message : String(error),
+        "SERVICE_APP_INVALID_ACTION",
+        `installed App ${appId} exposes action ${actionName} from multiple Service components`,
       );
     }
-  };
-
-  private listValidServiceApps = async (): Promise<Array<{
-    manifest: ServiceAppManifest;
-    record: ServiceAppRecord;
-  }>> => {
-    const workspacePath = this.getWorkspacePath();
-    const serviceAppsPath = this.getServiceAppsPath(workspacePath);
-    const dirNames = await this.listServiceAppDirNames(serviceAppsPath);
-    const workspaceEntries = await Promise.all(
-      dirNames.map(async (dirName) => {
-        const dirPath = join(serviceAppsPath, dirName);
-        try {
-          const manifest = await readServiceAppManifest(dirPath);
-          return {
-            manifest,
-            record: this.recordService.fromManifest(
-              dirPath,
-              manifest,
-              undefined,
-              await this.recordService.inspectWorkspaceStorage(manifest.id),
-            ),
-          };
-        } catch {
-          return null;
-        }
-      }),
-    );
-    const packageEntries = await Promise.all(
-      (await this.listPackageComponentSources())
-        .filter((component) => component.kind === "service")
-        .map(async (component) => {
-          try {
-            const manifest = await readServiceAppManifest(component.sourcePath);
-            return {
-              manifest,
-              record: this.recordService.fromManifest(
-                component.sourcePath,
-                manifest,
-                component,
-                component.storage,
-              ),
-            };
-          } catch {
-            return null;
-          }
-        }),
-    );
-    return [...workspaceEntries, ...packageEntries]
-      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+    return matching[0]!;
   };
 
   private normalizeActionIds = (actionIds: readonly string[]): string[] =>
@@ -578,6 +557,11 @@ export class ServiceAppManager {
         .map((actionId) => actionId.trim())
         .filter((actionId) => actionId.length > 0),
     ));
+
+  private toJobScope = (record: ServiceAppRecord): ServiceAppJobScope | undefined =>
+    record.storage?.stateDirectory && record.instanceId
+      ? { appId: record.packageId ?? record.id, instanceId: record.instanceId, stateDirectory: record.storage.stateDirectory }
+      : undefined;
 
   private getWorkspacePath = (): string => getWorkspacePathFromConfig(this.params.configManager.config);
 
@@ -608,5 +592,9 @@ export class ServiceAppManager {
 
 type ServiceAppRuntime = Pick<
   ServiceAppRuntimeService,
-  "dispose" | "getStatus" | "invokeAction" | "listActions" | "restart" | "stop"
-> & Pick<Partial<ServiceAppRuntimeService>, "start">;
+  "dispose" | "getLastObservation" | "getStatus" | "invokeAction" | "listActions" | "restart" | "stop"
+> & Pick<Partial<ServiceAppRuntimeService>, "start"> & {
+  cancelJob?: (params: { appId: string; instanceId: string; jobId: string }) => Promise<void>;
+  enqueueResidentEvent?: ServiceAppRuntimeService["enqueueResidentEvent"];
+  setPortableHostCallHandler?: ServiceAppRuntimeService["setPortableHostCallHandler"];
+};

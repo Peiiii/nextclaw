@@ -1,0 +1,27 @@
+[package]
+name = "nextclaw-github-issue-watcher"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+serde_json = "1.0"
+wit-bindgen = "0.44.0"
+wit-bindgen-rt = { version = "0.44.0", features = ["bitflags"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "nextclaw:portable-service"
+
+[package.metadata.component.target]
+path = "wit"
+world = "service-app"
+
+[package.metadata.component.target.dependencies]
+"wasi:http" = { path = "wit/deps/http@0.2.6" }
+"wasi:io" = { path = "wit/deps/io@0.2.6" }
+"wasi:clocks" = { path = "wit/deps/clocks@0.2.6" }
+"wasi:keyvalue" = { path = "wit/deps/keyvalue@0.2.0-draft2" }
+"wasi:config" = { path = "wit/deps/config@0.2.0-draft-2024-09-27" }

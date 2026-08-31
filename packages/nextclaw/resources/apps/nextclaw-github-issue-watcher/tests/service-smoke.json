@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "component": "nextclaw-github-issue-watcher-service",
+  "resetData": true,
+  "steps": [
+    {
+      "action": "issues_list",
+      "input": { "state": "open" },
+      "expect": { "issues": [], "persistedBy": "wasi:keyvalue/store" }
+    }
+  ]
+}

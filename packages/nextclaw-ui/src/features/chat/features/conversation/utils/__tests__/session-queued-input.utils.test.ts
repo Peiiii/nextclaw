@@ -13,7 +13,6 @@ describe('session queued input utils', () => {
       sessionId: 'session-1',
       enqueuedAt: '2026-07-22T10:00:00.000Z',
       metadata: {
-        requested_skill_refs: ['project:review'],
         ui_inline_tokens: [{
           kind: 'skill',
           key: 'project:review',

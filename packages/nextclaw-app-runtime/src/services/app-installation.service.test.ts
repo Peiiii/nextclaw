@@ -9,6 +9,7 @@ import { AppHomeService } from "#app-runtime/services/app-home.service.js";
 import { AppBundleService } from "#app-runtime/services/app-bundle.service.js";
 import { AppScaffoldService } from "#app-runtime/services/app-scaffold.service.js";
 import { AppInstallationService } from "./app-installation.service.js";
+import { renameAppLifecyclePath } from "./app-installation-lifecycle.service.js";
 import { AppRegistryService } from "#app-runtime/services/app-registry.service.js";
 import type { AppBuildService } from "#app-runtime/services/app-build.service.js";
 
@@ -27,6 +28,32 @@ afterEach(async () => {
 });
 
 describe("AppInstallationService", () => {
+  it("retries only transient Windows package rename failures", async () => {
+    const attempts: string[] = [];
+    const waits: number[] = [];
+    await renameAppLifecyclePath("source", "target", {
+      platform: "win32",
+      renamePath: async () => {
+        attempts.push("rename");
+        if (attempts.length < 3) {
+          throw Object.assign(new Error("temporarily locked"), { code: "EPERM" });
+        }
+      },
+      wait: async (milliseconds) => {
+        waits.push(milliseconds);
+      },
+    });
+
+    expect(attempts).toHaveLength(3);
+    expect(waits).toEqual([25, 50]);
+    await expect(renameAppLifecyclePath("source", "target", {
+      platform: "linux",
+      renamePath: async () => {
+        throw Object.assign(new Error("permission denied"), { code: "EPERM" });
+      },
+    })).rejects.toThrow("permission denied");
+  });
+
   it("installs, lists, resolves, and uninstalls an app", async () => {
     const appDirectory = path.join(
       tmpdir(),

@@ -23,16 +23,17 @@ function createTempConfigPath(): string {
   return configPath;
 }
 
-function createTestApp(params: {
-  panelAppManager?: Partial<UiKernelHost["panelAppManager"]>;
-  serviceAppManager?: Partial<UiKernelHost["serviceAppManager"]>;
+function createTestApp(params: Omit<Partial<UiKernelHost>, "panelAppManager" | "serviceAppManager"> & {
+  panelAppManager?: Record<string, unknown>;
+  serviceAppManager?: Record<string, unknown>;
 }) {
   return createUiRouter({
     configPath: createTempConfigPath(),
     appEventBus: new EventBus(),
     kernel: createRouterTestKernel({
-      panelAppManager: params.panelAppManager as UiKernelHost["panelAppManager"],
-      serviceAppManager: params.serviceAppManager as UiKernelHost["serviceAppManager"],
+    ...params,
+    panelAppManager: params.panelAppManager as unknown as UiKernelHost["panelAppManager"],
+    serviceAppManager: params.serviceAppManager as unknown as UiKernelHost["serviceAppManager"],
     }),
   });
 }
@@ -93,6 +94,107 @@ async function assertStructuredRuntimeFailureResponse(): Promise<void> {
     },
   });
 }
+
+  it("invokes an installed App action without a Panel bridge and exposes recorded evidence", async () => {
+  const invokeInstalledServiceAction = vi.fn(async () => ({
+    actionId: "notes.read",
+    result: { ok: true },
+    invocation: { callId: "call-1", traceId: "trace-1", dataVersion: "instance-v1:1", verificationRunId: "run-1" },
+  }));
+  const listVerificationRecords = vi.fn(async () => ({ entries: [] }));
+  const app = createTestApp({
+    serviceAppManager: { invokeInstalledServiceAction, listVerificationRecords },
+  });
+
+  const invoke = await app.request("http://localhost/api/service-apps/example.notes/actions/read/invoke", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ input: { page: 1 } }),
+  });
+  expect(invoke.status).toBe(200);
+  await expect(invoke.json()).resolves.toMatchObject({ ok: true, data: { invocation: { traceId: "trace-1" } } });
+  expect(invokeInstalledServiceAction).toHaveBeenCalledWith("example.notes", "read", { page: 1 });
+
+  const records = await app.request("http://localhost/api/runtime-verification-records?acceptanceId=PRT-ENTRY-001&appId=example.notes&limit=1");
+  expect(records.status).toBe(200);
+  expect(listVerificationRecords).toHaveBeenCalledWith({ acceptanceId: "PRT-ENTRY-001", appId: "example.notes", limit: 1 });
+});
+
+it("projects the portable runtime acceptance registry through contract, status, and export endpoints", async () => {
+  const contract = vi.fn(() => ({ contractFingerprint: "sha256:contract", locale: "en", definitions: [{ id: "PRT-EXEC-001" }] }));
+  const status = vi.fn(async () => ({ schemaVersion: 1, appId: "nextclaw.github-issue-watcher", entries: [{ id: "PRT-EXEC-001", result: { status: "missing" } }] }));
+  const exportEvidence = vi.fn(async () => ({ schemaVersion: 1, appId: "nextclaw.github-issue-watcher", entries: [{ id: "PRT-EXEC-001" }] }));
+  const app = createTestApp({
+    serviceAppManager: {},
+    portableRuntimeAcceptance: { contract, status, export: exportEvidence } as never,
+  } as never);
+
+  await expect((await app.request("http://localhost/api/portable-runtime/acceptance/contract?locale=en")).json())
+    .resolves.toMatchObject({ ok: true, data: { contractFingerprint: "sha256:contract", locale: "en" } });
+  await expect((await app.request("http://localhost/api/portable-runtime/acceptance/status?appId=example.acceptance&locale=en")).json())
+    .resolves.toMatchObject({ ok: true, data: { appId: "nextclaw.github-issue-watcher" } });
+  await expect((await app.request("http://localhost/api/portable-runtime/acceptance/export?appId=example.acceptance")).json())
+    .resolves.toMatchObject({ ok: true, data: { schemaVersion: 1 } });
+
+  expect(contract).toHaveBeenCalledWith("en");
+  expect(status).toHaveBeenCalledWith({ appId: "example.acceptance", locale: "en" });
+  expect(exportEvidence).toHaveBeenCalledWith({ appId: "example.acceptance", locale: "zh-CN" });
+});
+
+it("exposes durable Job inspection, cursor replay, and cancellation through the Service App API", async () => {
+  const listServiceAppJobs = vi.fn(async () => ({ entries: [{ id: "job-1", status: "running" }] }));
+  const getServiceAppJob = vi.fn(async () => ({ id: "job-1", status: "running" }));
+  const watchServiceAppJob = vi.fn(async () => ({
+    job: { id: "job-1", status: "running" },
+    events: [{ sequence: 2, timestamp: "2026-08-30T00:00:00.000Z", type: "progress" }],
+    cursor: 2,
+  }));
+  const cancelServiceAppJob = vi.fn(async () => ({ id: "job-1", status: "cancel-requested" }));
+  const app = createTestApp({
+    panelAppManager: {},
+    serviceAppManager: { listServiceAppJobs, getServiceAppJob, watchServiceAppJob, cancelServiceAppJob },
+  });
+
+  await expect((await app.request("http://localhost/api/service-apps/example.notes/jobs")).json())
+    .resolves.toMatchObject({ ok: true, data: { entries: [{ id: "job-1" }] } });
+  await expect((await app.request("http://localhost/api/service-apps/example.notes/jobs/job-1")).json())
+    .resolves.toMatchObject({ ok: true, data: { status: "running" } });
+  await expect((await app.request("http://localhost/api/service-apps/example.notes/jobs/job-1/watch?afterSequence=1")).json())
+    .resolves.toMatchObject({ ok: true, data: { cursor: 2 } });
+  await expect((await app.request("http://localhost/api/service-apps/example.notes/jobs/job-1/cancel", { method: "POST" })).json())
+    .resolves.toMatchObject({ ok: true, data: { status: "cancel-requested" } });
+
+  expect(watchServiceAppJob).toHaveBeenCalledWith("example.notes", "job-1", 1);
+  expect(cancelServiceAppJob).toHaveBeenCalledWith("example.notes", "job-1");
+});
+
+it("rejects malformed Job replay cursors before reaching the manager", async () => {
+  const watchServiceAppJob = vi.fn();
+  const app = createTestApp({ panelAppManager: {}, serviceAppManager: { watchServiceAppJob } });
+
+  const response = await app.request("http://localhost/api/service-apps/example.notes/jobs/job-1/watch?afterSequence=-1");
+  expect(response.status).toBe(400);
+  await expect(response.json()).resolves.toMatchObject({
+    ok: false, error: { code: "INVALID_JOB_CURSOR" },
+  });
+  expect(watchServiceAppJob).not.toHaveBeenCalled();
+});
+
+it("exposes durable Resident inbox inspection and dead-letter replay through the Service App API", async () => {
+  const listResidentInbox = vi.fn(async () => ({
+    entries: [{ eventId: "event-1", status: "dead-letter", streamKey: "timer", sequence: 1 }],
+    cursors: {}, frozen: false,
+  }));
+  const replayResidentDeadLetter = vi.fn(async () => ({ eventId: "event-1", status: "pending" }));
+  const app = createTestApp({
+    panelAppManager: {},
+    serviceAppManager: { listResidentInbox, replayResidentDeadLetter },
+  });
+  await expect((await app.request("http://localhost/api/service-apps/example.resident/resident-inbox?deadLetters=true")).json())
+    .resolves.toMatchObject({ ok: true, data: { entries: [{ eventId: "event-1", status: "dead-letter" }] } });
+  await expect((await app.request("http://localhost/api/service-apps/example.resident/resident-inbox/event-1/replay", { method: "POST" })).json())
+    .resolves.toMatchObject({ ok: true, data: { eventId: "event-1", status: "pending" } });
+  expect(listResidentInbox).toHaveBeenCalledWith("example.resident", { deadLettersOnly: true });
+  expect(replayResidentDeadLetter).toHaveBeenCalledWith("example.resident", "event-1");
+});
 
 async function assertStructuredForeignRuntimeFailureResponse(): Promise<void> {
   const bridgeSession = createBridgeSession();
@@ -481,5 +583,34 @@ describe("service app bridge and grant routes", () => {
       { surface: "agent", agentId: "main" },
       "notes.read",
     );
+  });
+
+  it("invokes an Agent-granted Service Action through the same manager path", async () => {
+    const invokeServiceAction = vi.fn(async () => ({
+      actionId: "notes.read",
+      result: { value: 4 },
+      invocation: { callId: "agent-call", traceId: "agent-trace", dataVersion: "instance-v1", verificationRunId: "agent-record" },
+    }));
+    const app = createTestApp({
+      panelAppManager: {},
+      serviceAppManager: { invokeServiceAction },
+    });
+    const response = await app.request(
+      "http://localhost/api/agents/main/service-actions/notes.read/invoke",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ input: { page: 4 } }),
+      },
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      data: { invocation: { traceId: "agent-trace" }, result: { value: 4 } },
+    });
+    expect(invokeServiceAction).toHaveBeenCalledWith("notes.read", {
+      caller: { surface: "agent", agentId: "main" },
+      input: { page: 4 },
+    });
   });
 });

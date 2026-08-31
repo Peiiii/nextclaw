@@ -32,6 +32,7 @@ function createPanelApp(): PanelAppEntryView {
 
 function createProject(): ProjectView {
   return {
+    id: 'project-nextclaw',
     name: 'NextClaw',
     rootPath: '/tmp/nextclaw',
     createdAt: '2026-07-28T00:00:00.000Z',

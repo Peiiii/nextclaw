@@ -180,6 +180,7 @@ export class NextclawServiceRuntime {
       configPath,
       portableServiceRunnerPath: distribution.portableServiceRunnerPath,
       productVersion: distribution.version,
+      runtimeVersion: distribution.version,
       productActivitySink: productActivityReporter,
     });
     const config = kernel.configManager.config;

@@ -30,7 +30,7 @@ nextclaw <command> --help
 | 宿主托管              | 安装或移除 Linux、macOS、Windows 自启动服务       |
 | 远程访问              | 启用、关闭、诊断和调试远程连接                    |
 | Agent 与任务执行      | 终端聊天、Headless 执行、Agent 与 Runtime 管理    |
-| 项目与会话            | 创建项目、查看模板、绑定和整理会话                |
+| 项目与会话            | 创建项目、观测项目进展、绑定和整理会话            |
 | 自动化与学习循环      | 管理定时任务和学习循环策略                        |
 | 配置与密钥            | 读写配置、审计和应用密钥引用                      |
 | MCP 与消息渠道        | 管理 MCP 服务和消息渠道连接                       |
@@ -108,6 +108,7 @@ nextclaw <command> --help
 | `nextclaw projects list`          | 列出所有已注册项目，包括尚无会话的项目 |
 | `nextclaw projects templates`     | 列出内置项目模板                       |
 | `nextclaw projects create`        | 创建并注册项目                         |
+| `nextclaw projects observe`       | 读取已注册项目的只读观测快照           |
 | `nextclaw sessions rename`        | 重命名会话                             |
 | `nextclaw sessions set-project`   | 把会话绑定到现有项目目录               |
 | `nextclaw sessions clear-project` | 清除会话的显式项目绑定                 |
@@ -190,11 +191,30 @@ nextclaw <command> --help
 | `nextclaw app marketplace info`   | 查看 Marketplace App 和派生安装命令                                |
 | `nextclaw app list`               | 列出运行中 NextClaw 宿主已安装的 App                               |
 | `nextclaw app info`               | 查看已安装 App 的状态和版本                                        |
+| `nextclaw app invoke`             | 通过运行中的宿主调用已启用且已安装 App 的 Action                   |
+| `nextclaw app verification`       | 读取运行中宿主保存的脱敏 Runtime 验证记录                          |
+| `nextclaw app acceptance contract` | 读取稳定的 Portable Runtime 验收合同                               |
+| `nextclaw app acceptance status`   | 读取当前 Portable Runtime 验收状态与证据新鲜度                     |
+| `nextclaw app acceptance export`   | 以 JSON 导出合同、当前 Runtime 身份和验收状态                      |
+| `nextclaw app jobs list`          | 列出一个已安装 App 实例的持久化 Job                               |
+| `nextclaw app jobs inspect`       | 查看一个持久化 App Job                                            |
+| `nextclaw app jobs watch`         | 从可选序号游标重放保留的 Job 进度与输出                           |
+| `nextclaw app jobs cancel`        | 请求取消 Job；在 Runtime 确认前仍保持等待状态                     |
+| `nextclaw app resident-inbox list` | 查看持久化 Resident 事件投递状态；可用 `--dead-letters` 仅查看可恢复失败 |
+| `nextclaw app resident-inbox replay` | 通过宿主拥有的收件箱重放一条死信 Resident 事件                 |
 | `nextclaw app dependencies inspect` | 查看外部能力/资源依赖、候选 Provider 和当前绑定                    |
 | `nextclaw app dependencies verify`  | 验证当前依赖是否已满足                                             |
 | `nextclaw app dependencies setup`   | 仅在兼容 Provider 唯一时自动建立绑定                               |
 | `nextclaw app dependencies bind`    | 将一个依赖绑定到已安装且受信任的 Provider                          |
 | `nextclaw app dependencies unbind`  | 移除一个依赖绑定                                                   |
+| `nextclaw app secrets inspect`      | 查看声明的密钥槽位和非敏感 SecretRef 绑定                          |
+| `nextclaw app secrets verify`       | 解析绑定但绝不返回密钥值                                           |
+| `nextclaw app secrets bind`         | 将声明的密钥槽位绑定到 env、file 或 exec Provider                  |
+| `nextclaw app secrets unbind`       | 移除 App SecretRef 绑定及其活动密钥权限                            |
+| `nextclaw app ai-capabilities inspect` | 查看声明的非敏感模型和 Agent 槽位及当前绑定                      |
+| `nextclaw app ai-capabilities verify`  | 验证必填模型和 Agent 槽位是否就绪                               |
+| `nextclaw app ai-capabilities bind`    | 将声明的模型或 Agent 槽位绑定到已配置目标                       |
+| `nextclaw app ai-capabilities unbind`  | 移除一个模型或 Agent 槽位绑定                                   |
 | `nextclaw app operations`         | 列出持久化的 App 生命周期操作                                      |
 | `nextclaw app install`            | 通过运行中的 NextClaw 宿主安装 Marketplace、本地目录或 `.napp` App |
 | `nextclaw app enable`             | 启用已安装的 App                                                   |
@@ -206,6 +226,12 @@ nextclaw <command> --help
 Service App 的使用方式见 [Service Apps](/zh/guide/service-apps)；WASM 开发命令与 Runtime 合同见 [开发 WASM Service App](/zh/developers/portable-service-apps)。
 
 `app dev` 和 `app call` 直接接受 schema v2 App 根目录。包内只有一个 Service 时会自动选择；有多个 Service 时使用 `--component <service-id>`。本地 `.napp` 可以使用相对路径安装，例如 `nextclaw app install ./my-app.napp`。
+
+`app invoke <app-id> <action-name> --input '<json>'` 调用的是已启用、已安装的 App，而不是源码包；输出会带上调用 ID、追踪 ID、数据版本和验证记录 ID。使用 `app verification [--acceptance <id>] [--app <id>] [--limit <n>]` 可查看对应的脱敏、持久化 Runtime 事实；脚本可加 `--json` 获取机器可读输出。
+
+`app acceptance contract|status|export` 读取产品、Server、CLI 与发布门共同使用的唯一 Portable Runtime 验收合同。`status` 会用当前产品版本、Runtime 版本、runner 指纹与合同指纹重新判断证据；只有 `current-passed` 才代表证据仍然当前有效。`export` 始终输出完整的机器可读状态文档。英文展示使用 `--locale en`；只有检查非默认验收 App 时才传 `--app <id>`。
+
+声明了密钥槽位的 App，可先用 `app secrets inspect <app-id>` 查看需要的配置；该命令不会返回密钥值。用 `app secrets bind <app-id> --slot <slot> --source env|file|exec --id <secret-id> [--provider <provider>]` 绑定已声明槽位，再运行 `app secrets verify <app-id>`。必填槽位未绑定或无法解析时，App 会显示为 `needs-configuration`，启用会返回 `SECRET_*` 错误码。`app secrets unbind` 会移除活动密钥权限；即使保留 App 数据，也绝不保留 Secret 绑定。
 
 ## 自动化使用建议
 

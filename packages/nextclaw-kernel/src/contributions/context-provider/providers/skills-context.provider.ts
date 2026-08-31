@@ -6,7 +6,7 @@ import type {
 } from "@kernel/types/agent-run.types.js";
 import { SkillsLoader } from "@nextclaw/core";
 
-function renderActiveSkillsSection(
+function renderAlwaysOnSkillsSection(
   skills: SkillsLoader,
   skillSelectors: string[],
 ): string {
@@ -15,9 +15,8 @@ function renderActiveSkillsSection(
     return "";
   }
   return [
-    "# Active Skills",
-    "These user-selected or always-on skills take precedence when relevant. Read the chosen `Root/<name>/SKILL.md` before following it.",
-    "For NextClaw self-management, use the active built-in self-management skill before unrelated generic skills.",
+    "# Always-on Skills",
+    "These skills are always active. Read each `Root/<name>/SKILL.md` before following it.",
     manifest,
   ].join("\n");
 }
@@ -65,7 +64,7 @@ export class SkillsContextProvider implements ContextProvider {
   provide = async (
     request: AgentRunRequest,
   ): Promise<readonly ContextBlock[]> => {
-    const { projectContext, runContext } = await this.context.resolve(request);
+    const { projectContext } = await this.context.resolve(request);
     const skills = new SkillsLoader({
       workspace: projectContext.hostWorkspace,
       projectRoot: projectContext.projectRoot,
@@ -77,14 +76,11 @@ export class SkillsContextProvider implements ContextProvider {
         projectSkillsRoot: projectContext.projectSkillsRoot,
       }),
     ];
-    const activeSkills = [
-      ...runContext.requestedSkills.selectors,
-      ...skills.getAlwaysSkills(),
-    ];
-    if (activeSkills.length) {
-      const activeSection = renderActiveSkillsSection(skills, activeSkills);
-      if (activeSection) {
-        blocks.push(activeSection);
+    const alwaysOnSkills = skills.getAlwaysSkills();
+    if (alwaysOnSkills.length) {
+      const alwaysOnSection = renderAlwaysOnSkillsSection(skills, alwaysOnSkills);
+      if (alwaysOnSection) {
+        blocks.push(alwaysOnSection);
       }
     }
 

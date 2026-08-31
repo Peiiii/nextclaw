@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readLatestReleaseCheckpoint } from "./release-checkpoints.mjs";
@@ -121,6 +122,10 @@ function readCurrentBranch() {
   return run("git", ["rev-parse", "--abbrev-ref", "HEAD"], { capture: true }).trim();
 }
 
+function readHeadSha() {
+  return run("git", ["rev-parse", "HEAD"], { capture: true }).trim();
+}
+
 function ensureBetaPreMode() {
   const preStatePath = join(ROOT_DIR, ".changeset", "pre.json");
   const preState = JSON.parse(readFileSync(preStatePath, "utf8"));
@@ -200,7 +205,7 @@ function sleep(ms) {
   });
 }
 
-async function waitForWorkflowRun(branch, startedAtMs) {
+async function waitForWorkflowRun(dispatchId, startedAtMs) {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const runs = readJsonCommand("gh", [
       "run",
@@ -214,13 +219,13 @@ async function waitForWorkflowRun(branch, startedAtMs) {
       "--limit",
       "20",
       "--json",
-      "databaseId,createdAt,event,headBranch,status,conclusion,url"
+      "databaseId,createdAt,displayTitle,event,status,conclusion,url"
     ]);
     const matchingRun = runs.find((entry) => {
       const createdAtMs = Date.parse(entry.createdAt ?? "");
       return (
         entry.event === "workflow_dispatch" &&
-        entry.headBranch === branch &&
+        String(entry.displayTitle ?? "").includes(`dispatch=${dispatchId}`) &&
         Number.isFinite(createdAtMs) &&
         createdAtMs >= startedAtMs - 60_000
       );
@@ -231,10 +236,16 @@ async function waitForWorkflowRun(branch, startedAtMs) {
     await sleep(5000);
   }
 
-  throw new Error(`Timed out waiting for ${RUNTIME_WORKFLOW} to appear on branch ${branch}.`);
+  throw new Error(`Timed out waiting for ${RUNTIME_WORKFLOW} dispatch ${dispatchId}.`);
 }
 
-function triggerRuntimeWorkflow({ branch, minimumLauncherVersionOverride, releaseTag }) {
+function triggerRuntimeWorkflow({
+  branch,
+  dispatchId,
+  minimumLauncherVersionOverride,
+  releaseTag,
+  releaseTarget
+}) {
   const args = [
     "workflow",
     "run",
@@ -246,7 +257,11 @@ function triggerRuntimeWorkflow({ branch, minimumLauncherVersionOverride, releas
     "-f",
     `channel=${BETA_CHANNEL}`,
     "-f",
-    `release_tag=${releaseTag}`
+    `release_tag=${releaseTag}`,
+    "-f",
+    `release_target=${releaseTarget}`,
+    "-f",
+    `dispatch_id=${dispatchId}`
   ];
   if (minimumLauncherVersionOverride) {
     args.push("-f", `minimum_launcher_version_override=${minimumLauncherVersionOverride}`);
@@ -371,13 +386,17 @@ async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
 
   ensureRuntimeReleaseCommandPrerequisites();
   const releaseTag = options.releaseTag ?? `nextclaw@${nextclawVersion}`;
+  const releaseTarget = readHeadSha();
+  const dispatchId = randomUUID();
   const dispatchStartedAtMs = Date.now();
   triggerRuntimeWorkflow({
     branch,
+    dispatchId,
     minimumLauncherVersionOverride: options.minimumLauncherVersionOverride,
-    releaseTag
+    releaseTag,
+    releaseTarget
   });
-  const workflowRun = await waitForWorkflowRun(branch, dispatchStartedAtMs);
+  const workflowRun = await waitForWorkflowRun(dispatchId, dispatchStartedAtMs);
   const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion);
   const publicManifestSummary = await verifyPublicBetaManifests(nextclawVersion);

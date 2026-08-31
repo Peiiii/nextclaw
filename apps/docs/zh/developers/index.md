@@ -20,8 +20,10 @@ NextClaw 当前提供两组开发入口：Harness SDK 用于把 Agent、Session 
 
 | 文档 | 内容 |
 | --- | --- |
-| [Portable Runtime](./portable-runtime) | 运行方式、角色、宿主能力和当前边界 |
-| [Runtime 模型与能力合同](./portable-runtime-contracts) | WIT、清单、生命周期、超时和恢复语义 |
-| [开发 WASM Service App](./portable-service-apps) | Rust Guest、App 结构、Panel 调用和 CLI 调试 |
+| [Portable Runtime](./portable-runtime) | 什么时候适合用可移植 Component，以及由宿主转交的运行方式 |
+| [能力与安全边界](./portable-runtime-contracts) | 清单请求、WIT、文件、存储、网络、密钥、AI 槽位和 Provider |
+| [开发 Service App](./portable-service-apps) | Rust Guest、应用包结构，以及 create/build/check/test 循环 |
+| [Job、事件与可观测性](./portable-runtime-observability) | 长时间工作、Resident 投递、脱敏运行事实和恢复 |
+| [打包与分发](./portable-runtime-distribution) | 通用 `.napp`、支持平台、更新和明确的外部依赖 |
 
 [开始了解 Portable Runtime](./portable-runtime)

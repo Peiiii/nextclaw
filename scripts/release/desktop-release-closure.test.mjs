@@ -178,6 +178,8 @@ test("desktop publication is Draft-first and workflow-dispatched", () => {
   assert.match(workflow, /Verify complete Draft asset set[\s\S]*?expectedDraft: true/);
   assert.match(workflow, /publish-github-release:[\s\S]*?needs: \[publish-release-assets\]/);
   assert.match(workflow, /gh release edit[\s\S]*?--draft=false/);
+  assert.match(releaseScript, /--prepare-draft-only/);
+  assert.match(releaseScript, /inferExistingDesktopDraft/);
   assert.match(
     workflow,
     /publish-desktop-update-channels:[\s\S]*?needs: \[build-desktop, publish-release-assets, publish-github-release\]/
@@ -225,7 +227,10 @@ test("desktop owner infers APT recovery without public recovery inputs", () => {
   const githubRelease = readFileSync(new URL("./desktop-release-github.mjs", import.meta.url), "utf8");
   const recovery = readFileSync(new URL("./desktop-release-recovery.mjs", import.meta.url), "utf8");
   assert.match(githubRelease, /publish_linux_apt_only=\$\{publishLinuxAptOnly === true\}/);
-  assert.match(releaseScript, /Object\.assign\(options, inferExistingReleaseRecovery\(options, run\) \?\? \{\}\)[\s\S]*?options\.tag \?\?= readNextTag/);
+  assert.match(
+    releaseScript,
+    /inferExistingReleaseRecovery\(options, run\) \?\? inferExistingDesktopDraft\(options, run\)[\s\S]*?options\.tag \?\?= readNextDesktopReleaseTag/,
+  );
   assert.match(recovery, /publishLinuxAptOnly: true/);
 });
 
@@ -248,8 +253,9 @@ test("desktop Draft dispatch carries an immutable target before the tag exists",
   assert.match(workflow, /ref: \$\{\{ inputs\.release_target \|\| inputs\.release_tag \}\}/);
   assert.match(
     workflow,
-    /Apply release bundle budget compatibility[\s\S]*?RUNTIME_BUNDLE_FILE_BUDGET = 400;[\s\S]*?RUNTIME_BUNDLE_FILE_BUDGET = 450;/
+    /Apply release bundle budget compatibility[\s\S]*?const compatibleBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 520;";[\s\S]*?source\.replace/
   );
+  assert.match(workflow, /\(\?:400\|450\)/);
   assert.match(
     closure,
     /const \{ tag, target \} = options;[\s\S]*?waitForWorkflowRun\(options\)[\s\S]*?waitForWorkflowSuccess\(options, runEntry\)[\s\S]*?readTagSha\(tag\)[\s\S]*?tagSha !== target/

@@ -8,7 +8,10 @@
 - 上位愿景：[NextClaw 产品愿景](../VISION.md)
 - 架构 owner：[WASI Service App 运行时与现有 Mini App 体系融合设计探索](./2026-08-28-wasi-service-app-runtime.design.md)
 - 总体阶段 owner：[Portable Capability Runtime 总体阶段计划](../plans/2026-08-28-portable-capability-runtime-overall.plan.md)
+- 当前能力闭合与稳定验收 ID owner：[Portable Runtime 能力闭合设计](./2026-08-30-portable-runtime-capability-closure.design.md)
 - 本文不是生产协议定稿，也不是一次性 UI 展示清单；正式实现前仍需形成文件级实施计划
+
+> 2026-08-30 起，本文继续拥有场景全集与 L0–L5 成熟度定义；稳定 `PRT-*` 验收编号、能力 owner、完成判定与发布门以“能力闭合设计”为准。下方 2026-08-28 表格是历史实证快照，不是当前版本的动态状态事实源。
 
 ### 2026-08-28 实施与实证快照
 

@@ -6,8 +6,16 @@ export type AppDocumentAccessScope = {
   description?: string;
 };
 
+export type AppSecretSlot = {
+  id: string;
+  title: string;
+  description: string;
+  required: boolean;
+};
+
 export type AppPermissions = {
   documentAccess?: AppDocumentAccessScope[];
+  secrets?: AppSecretSlot[];
   allowedDomains?: string[];
   storage?: boolean | { namespace?: string };
   capabilities?: {

@@ -141,6 +141,16 @@ GitHub Release 在缺少结构化说明时先写入从版本、package identity 
 - `CONTENT_PENDING` 只表示可变内容投影未闭合，不得伪装成 `CONTENT_READY`，也不得触发 NPM/Runtime 重发；
 - 静态 workflow 合同测试锁定这个分界，禁止再次用 `target != npm` 扩大内容硬门。
 
+### 2026-08-30 Prepared artifact 等待边界修正
+
+`0.46.0` 的第二次 `target=product` run 证明了一条新的性能/自治缺口：发布器在 exact-SHA 的 NPM artifact 已上传并完成后，调用 `gh run watch` 等待整个 `npm-release-prepare` 父 run；该父 run 还在并行预热四平台 Runtime。因此 NPM publish 被与它没有依赖关系的 macOS/Windows Runtime 构建阻塞，`NPM_READY` 无法优先形成。
+
+等待 owner 收窄到唯一真实依赖：同一 prepare run 的 `prepare exact-commit NPM artifact` job。发布器只读取该 job 的结构化完成状态；成功后以有界重试下载同名 artifact，吸收 GitHub artifact 的短暂一致性延迟。Runtime prewarm 继续并行，不再是 NPM publish 的等待条件。job 失败或有界下载耗尽时，才 dispatch/恢复同一 source identity 的 exact prepare；不会重复 NPM 包或等待 parent workflow 的其它矩阵。
+
+这条合同的可观察指标是：`NPM_READY` 的 critical path 只包含 NPM artifact job、artifact 下载、publish、registry/Git/install closure；四平台 Runtime 只属于后续 Runtime closure。单元测试锁定“active parent + successful NPM artifact job 立即消费”和“download propagation retry”，并禁止重新引入 `gh run watch`。
+
+同一事件还校准了发布后恢复：Windows published-install 验证必须经 shell 启动 `npm.cmd`，否则会在安装前以 `EINVAL` 假失败；该验证器始终运行当前 workflow 源码，但安装的仍是 immutable registry tarball。只要 NPM identity 和 `nextclaw@<version>` tag 已成立，workflow 就进入 recovery，即使 GitHub Release/Runtime 尚未创建；它从 release commit 的父 source 复用 prepared Runtime artifacts，补齐缺失 Runtime，而不是把“尚无 assets”误当成可复用成功。由此恢复只重做未完成的验证/Runtime，不会重新发布包。
+
 ## 七、失败、恢复和并发
 
 - workflow concurrency 使用 stable release 全局串行，`cancel-in-progress: false`，避免新触发取消正在 publish 的不可逆批次。
@@ -245,3 +255,13 @@ Desktop job 只获得 `actions:write`（dispatch child workflows）和 `contents
 - `/发布NPM`、`/发布NextClaw正式版`、全平台组合入口复用同一证据门；
 - 静态合同测试阻止 workflow、skill 和命令再次漂移；
 - 本修复不改变生产 workflow、NPM identity、认证 secret 或发布权限。
+
+### 2026-08-30：发布等待与 Windows 清理的边界
+
+正式 `product` 发布的 NPM READY 只依赖 exact-commit NPM preparation job 的成功和可下载 artifact，不依赖同一个 parent prepare run 中仍在执行的 Runtime prewarm matrix。publisher 以结构化 job 状态观察该精确 job，并对 artifact 可见性作有界下载重试；不得 `gh run watch` 整个 parent 后把 Runtime 预热的 wall time 串行化到 NPM 发布。
+
+已发布 NPM、tag 存在而 GitHub Release 尚未建立时，recovery 必须继续执行当前工作流中的跨平台真实安装/SQLite 合同，并只补 Runtime；不得重发不可变 NPM tarball。Windows 真实验证中，`node:sqlite` 的文件句柄会让临时 fixture 清理在 CRUD 成功后阻塞到 job timeout；Windows hosted runner 直接跳过该无业务价值的回收，由 runner 生命周期清除。非 Windows 保留有限 `EBUSY` 重试。两者都不遮蔽安装、版本、SQLite 写读或 manifest 失败。
+
+恢复不是另一次完整 matrix。Actions 在 recovery mode 根据 exact `nextclaw@<version>` tag 验证候选 failure/cancelled run 的 source 是 release commit 的后代，再聚合这些 run 的结构化 job 结论：任一成功 cell 作为同一不可变 NPM identity 的证据复用，只运行从未成功的 failure/cancelled/missing cell；全 16 cell 都成功时只产生一个轻量 evidence-reuse job。动态 matrix 和选择逻辑归 workflow + `npm-compatibility-recovery-matrix.mjs`，不由 AI 手工拼平台命令。新 identity 仍必须跑完整矩阵作为最终准入。
+
+验证不是固定金字塔。每次按根因定位置信度、模块测试成本、focused/failed-job 和完整矩阵 wall time、重现稳定性与风险选择下一层：本次 Windows `.cmd`、SQLite handle 和 cleanup 属于平台特有且完整重跑约 12 分钟，故以可本地运行的 cleanup/matrix resolver 模块合同先锁住；若改动极小且 failed-only job 已足够接近最终边界，则直接走该 job。任何路径都必须保留唯一失败日志→focused command/job 映射，完整矩阵不因恢复而重复消耗已成功证据。

@@ -1,5 +1,15 @@
 # @nextclaw/ncp-agent-runtime
 
+## 0.4.22-beta.0
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+  - @nextclaw/ncp-agent-runtime
+
 ## 0.4.21
 
 ### Patch Changes

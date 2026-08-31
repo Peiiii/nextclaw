@@ -21,6 +21,10 @@ export function createNextClawAppClient(hostClient: NextClawClient) {
     serviceActions: {
       list: hostClient.serviceApps.listServiceActions,
       invoke: hostClient.serviceApps.invokeServiceAction,
+      listVerificationRecords: hostClient.serviceApps.listVerificationRecords,
+      getPortableRuntimeAcceptanceContract: hostClient.serviceApps.getPortableRuntimeAcceptanceContract,
+      getPortableRuntimeAcceptanceStatus: hostClient.serviceApps.getPortableRuntimeAcceptanceStatus,
+      exportPortableRuntimeAcceptance: hostClient.serviceApps.exportPortableRuntimeAcceptance,
     },
     assets: {
       upload: hostClient.sessions.uploadAssets,

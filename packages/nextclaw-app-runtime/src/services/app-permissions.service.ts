@@ -4,7 +4,6 @@ import type {
   AppDocumentAccessScope,
   AppManifestBundle,
 } from "#app-runtime/types/app-manifest.types.js";
-import { isAppStandaloneManifestBundle } from "#app-runtime/types/app-manifest.types.js";
 import type {
   AppDocumentGrantMap,
   AppPermissionSummary,
@@ -20,16 +19,17 @@ export class AppPermissionsService {
       appId?: string;
     },
   ): Promise<ResolvedPermissions> => {
-    if (!isAppStandaloneManifestBundle(bundle)) {
-      throw new Error("schema v2 组合包权限由 Panel/Service runtime grant 管理。");
-    }
     const requestedPermissions = bundle.manifest.permissions ?? {};
     const documentAccess =
       requestedPermissions.documentAccess === undefined
         ? []
         : await Promise.all(
             requestedPermissions.documentAccess.map((scope) =>
-              this.resolveDocumentGrant(scope, documentGrantMap, context?.appId),
+              this.resolveDocumentGrant(
+                scope,
+                documentGrantMap,
+                context?.appId,
+              ),
             ),
           );
 
@@ -37,7 +37,9 @@ export class AppPermissionsService {
       documentAccess,
       allowedDomains: requestedPermissions.allowedDomains ?? [],
       storage: {
-        enabled: requestedPermissions.storage !== undefined && requestedPermissions.storage !== false,
+        enabled:
+          requestedPermissions.storage !== undefined &&
+          requestedPermissions.storage !== false,
         namespace:
           typeof requestedPermissions.storage === "object"
             ? requestedPermissions.storage.namespace
@@ -53,9 +55,6 @@ export class AppPermissionsService {
     bundle: AppManifestBundle,
     permissions: ResolvedPermissions,
   ): AppPermissionSummary => {
-    if (!isAppStandaloneManifestBundle(bundle)) {
-      throw new Error("schema v2 组合包权限由 Panel/Service runtime grant 管理。");
-    }
     return {
       requested: bundle.manifest.permissions ?? {},
       documentAccess: permissions.documentAccess,
@@ -85,7 +84,9 @@ export class AppPermissionsService {
     try {
       await access(normalizedPath);
     } catch {
-      throw new Error(`documentAccess 授权路径不存在：${scope.id} -> ${normalizedPath}`);
+      throw new Error(
+        `documentAccess 授权路径不存在：${scope.id} -> ${normalizedPath}`,
+      );
     }
     return {
       id: scope.id,

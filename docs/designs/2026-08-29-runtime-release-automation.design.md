@@ -115,7 +115,15 @@ Runtime child 必须核对四个平台 artifact 和目标版本完整，随后�
 - 删除 stable 正式路径的发布时冷构建依赖；保留 beta 或显式 recovery 的冷构建入口。
 - 删除 published validation 的 `--prefer-offline` 与空 home 假升级路径。
 - 不新增第二个 release service、数据库、调度器或人工 runbook。
-- 本批不优化 Desktop release，也不改变用户 Runtime 协议和 launcher compatibility floor。
+- 不改变用户 Runtime 协议和 launcher compatibility floor；Desktop 仅补齐通用的隐藏 Draft 控制面，不改变其构建或资产合同。
+
+## 0.47.0 Desktop Draft 权限恢复补充
+
+Desktop 的公开资产构建仍由独立的五平台 workflow owner 承担；但它的隐藏 Draft 必须在 immutable NPM release commit 已产生后、由同一稳定发布编排中已验证具备仓库写权限的 checkpoint 创建或复用。Desktop job 只消费该精确 `tag + target` Draft，不能在恢复时临时重新创建 release identity。
+
+这保持了发布主链的两个不变量：Draft 在 assets 完整前始终不可见；恢复不重发 NPM/Runtime、不新建 tag，也不依赖观察者或人工 token。若 Runtime 或 Desktop 后续失败，隐藏 Draft 保留为同一 stable identity 的幂等恢复锚点。该补充只改变发布控制面的 owner 边界，不向产品构建、NPM 产物或 Runtime ABI 添加任何 feature-specific 门。
+
+Linux APT 镜像的体积裁剪只可优化实际存在的可选 native dependency；不能把某个依赖的历史目录形状当作 Desktop 包的发布前提。缺失可选目录时跳过裁剪，仍由 APT 包生成、安装与升级 smoke 验证最终交付物。GitHub Pages 对单文件有 100 MiB 限制，因此 APT 镜像还会移除只用于离线首启加速的 `seed-product-bundle.zip`，并将镜像内元数据的 `seedBundle` 置空；普通 `.deb`、AppImage、DMG 与 Windows 包仍携带 seed。Desktop bootstrap 已有的标准路径会在没有 seed 和没有已激活 bundle 时获取签名 stable manifest 并下载首个 bundle。这个体积规则由同一个 `build-linux-apt-repo.mjs --github-pages-compatible` owner 同时供开发阶段的 Linux package 验证与正式发布消费，不能只留在发布 workflow 中。APT-only recovery 的产品资产身份始终来自 `release_target`，但它的 publisher control plane 必须 checkout 本次显式 dispatch 的 `github.ref`；否则恢复会运行历史 target 中已过时的脚本，既无法修复发布基础设施，也会把控制面变更错误地当成产品重建。
 
 ## 抽象审计
 

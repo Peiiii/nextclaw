@@ -1,19 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
+import { ProjectObservationError } from "@nextclaw/kernel";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
-function createProjectsApp(projectManager: object) {
+function createProjectsApp(projectManager: object, projectObservation?: object) {
   return createUiRouter({
     appEventBus: new EventBus(),
     configPath: "/tmp/nextclaw-project-routes-test-config.json",
-    kernel: createRouterTestKernel({ projectManager } as never),
+    kernel: createRouterTestKernel({
+      projectManager,
+      ...(projectObservation ? { projectObservation } : {}),
+    } as never),
   });
 }
 
 describe("projects routes", () => {
   it("mounts the independent project list through the assembled UI router", async () => {
     const listProjects = vi.fn(async () => [{
+      id: "project-knowledge",
       name: "Knowledge",
       rootPath: "/tmp/knowledge",
       createdAt: "2026-07-15T00:00:00.000Z",
@@ -43,6 +48,7 @@ describe("projects routes", () => {
 
   it("mounts project creation and preserves the standard response wrapper", async () => {
     const createProject = vi.fn(async (input) => ({
+      id: "project-knowledge",
       ...input,
       rootPath: "/tmp/knowledge",
       createdAt: "2026-07-15T00:00:00.000Z",
@@ -73,6 +79,7 @@ describe("projects routes", () => {
 
   it("mounts existing-directory registration without a template payload", async () => {
     const registerExistingProject = vi.fn(async (rootPath) => ({
+      id: "project-existing",
       name: "existing",
       rootPath,
       createdAt: "2026-07-20T00:00:00.000Z",
@@ -96,5 +103,44 @@ describe("projects routes", () => {
       data: { name: "existing", rootPath: "/tmp/existing" },
     });
     expect(registerExistingProject).toHaveBeenCalledWith("/tmp/existing");
+  });
+
+  it("observes a registered project through the kernel owner", async () => {
+    const observe = vi.fn(async (rootPath: string) => ({
+      asOf: "2026-08-30T00:00:00.000Z",
+      project: { name: "Knowledge", rootPath, context: [] },
+      sources: [], workflows: [], runs: [], workItems: [], artifacts: [], signals: [], requests: [],
+      activity: [], skills: [], diagnostics: [], dataQuality: "complete",
+    }));
+    const getProjectById = vi.fn(async (projectId: string) =>
+      projectId === "project-knowledge"
+        ? { id: projectId, name: "Knowledge", rootPath: "/tmp/knowledge space", createdAt: "2026-08-30T00:00:00.000Z", updatedAt: "2026-08-30T00:00:00.000Z" }
+        : null,
+    );
+    const app = createProjectsApp({ getProjectById }, { observe });
+    const response = await app.request(
+      "http://localhost/api/projects/project-knowledge/observation",
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ ok: true, data: { dataQuality: "complete" } });
+    expect(getProjectById).toHaveBeenCalledWith("project-knowledge");
+    expect(observe).toHaveBeenCalledWith("/tmp/knowledge space");
+  });
+
+  it("returns not found when the observation owner rejects an unregistered root", async () => {
+    const observe = vi.fn(async () => {
+      throw new ProjectObservationError("PROJECT_NOT_REGISTERED", "Project is not registered.");
+    });
+    const app = createProjectsApp({ getProjectById: async () => null }, { observe });
+
+    const response = await app.request(
+      "http://localhost/api/projects/project-missing/observation",
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: "PROJECT_NOT_FOUND" },
+    });
   });
 });

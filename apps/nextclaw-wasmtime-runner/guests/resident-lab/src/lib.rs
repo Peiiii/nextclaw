@@ -3,7 +3,9 @@ mod bindings;
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use bindings::exports::nextclaw::portable_service::service::{Action, Guest};
+use bindings::exports::nextclaw::portable_service::resident_v2::{
+    Action, EventDisposition, Guest, Retry,
+};
 use bindings::nextclaw::portable_service::host;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -137,13 +139,30 @@ impl Guest for ResidentLab {
         status_json(&state)
     }
 
-    fn handle_event(event_json: String) -> Result<String, String> {
+    fn handle_event(event_json: String) -> Result<EventDisposition, String> {
         if !STARTED.load(Ordering::Relaxed) {
             return Err("RESIDENT_NOT_STARTED: start must run before event delivery".into());
         }
         let event = serde_json::from_str::<ResidentEvent>(&event_json)
             .map_err(|error| format!("INVALID_RESIDENT_EVENT: {error}"))?;
-        handle_resident_event(event)
+        // A deterministic verification branch for the host-owned retry
+        // protocol. The first lease asks for retry; the next lease receives a
+        // typed Ack and performs the side effect exactly once in this Guest.
+        if event.kind == "retry-once" {
+            let retry_key = format!("verification.resident.retry.{}", event.event_id);
+            if host::kv_get(&retry_key)?.is_none() {
+                host::kv_set(&retry_key, "requested")?;
+                return Ok(EventDisposition::Retry(Retry {
+                    delay_ms: Some(0),
+                    error_code: Some("RESIDENT_RETRY_ONCE".into()),
+                    error_message: Some("Resident requested one deterministic retry.".into()),
+                }));
+            }
+        }
+        handle_resident_event(event)?;
+        // This is deliberately the v2 typed contract: the Kernel decides when
+        // to advance a durable cursor only after the Component returns Ack.
+        Ok(EventDisposition::Ack)
     }
 
     fn stop(reason_json: String) -> Result<String, String> {

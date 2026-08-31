@@ -1,79 +1,63 @@
-# Service App permissions and data
+# Service Apps: permissions and data
 
-NextClaw separates a Service App's host capabilities, caller grants, and managed data. Enabling an App does not automatically grant every Action to every Panel or Agent.
+An installed App does not automatically gain access to your computer, accounts, or other Apps. Portable Runtime uses host-mediated access: the App requests a named capability, NextClaw checks the App's declaration and your configuration, then passes only the permitted resource to the running Component.
 
-## Three boundaries
+## Files
 
-| Boundary | What it controls | Where it is declared or approved |
+Portable Components receive a small private filesystem:
+
+| Guest path | Access | Purpose |
 | --- | --- | --- |
-| App permissions | Which primitive host capabilities the App may request | The App manifest, such as storage and allowed domains |
-| Panel grants | Whether one Panel may call a declared Action | Approved by the user on first call |
-| Agent grants | Whether one Agent can discover and call one Action | Granted per Action in Service Apps |
+| `/app` | read-only | The App's packaged assets, when present |
+| `/data` | read-write | The App's managed private data |
+| `/cache` | read-write | The App's managed cache |
+| `/tmp` | read-write | Temporary App files |
+| `/documents/<scope>` | the mode you grant | A folder named by the App's `documentAccess` permission |
 
-These boundaries do not replace each other. Declaring storage allows the runtime to offer storage to the App; a Panel or Agent can still call only an Action it is allowed to use.
+A file permission names a scope and asks for `read` or `read-write`. You choose the matching folder when granting it. The runtime canonicalizes the folder and rejects escapes through symbolic links; revoking the grant removes the mount from the next run.
 
-## Action risk types
+## Network and secrets
 
-Each Action declares a risk type that NextClaw displays in the Action list and grant prompt.
+An App lists the web domains it needs. Network access is limited to those domains, including redirected requests. Private network targets are rejected by the runtime policy.
 
-| Type | What it communicates |
-| --- | --- |
-| `read` | Primarily reads or queries data |
-| `write` | Creates, changes, or deletes data |
-| `external` | Interacts with an external service |
-| `dangerous` | May have higher impact and deserves extra review |
-
-The type is the developer's classification. Always review the Action's source, purpose, and input as well.
-
-## Network access
-
-A WASM Service App does not receive direct host networking. Its owning App declares `allowedDomains`, and the Component makes requests through the host-mediated HTTPS GET capability. Non-HTTPS URLs and undeclared destinations are rejected.
-
-Portable Runtime currently exposes only mediated HTTPS GET, not the host's general native network access.
-
-## Managed data
-
-When the owning App declares storage, a WASM Component can use host-provided key-value storage. The data lives in a NextClaw-managed App instance, separate from replaceable App code.
-
-As a result:
-
-- closing a Panel does not delete data;
-- updating App code continues with the existing managed instance;
-- disabling an App stops its runtime capabilities without clearing data;
-- uninstalling or removing an App can keep its data;
-- managed data is permanently deleted only after an explicit delete choice.
-
-The current App manifest supports global storage scope, allowing an App's Panels and authorized Agents to work with the same data through Service Actions.
-
-## Uninstall and retained data
-
-NextClaw offers two explicit removal choices:
-
-- **Keep data** removes App code and retains its managed instance for a later reinstall.
-- **Delete app and data** removes both after destructive confirmation.
-
-Before confirmation, NextClaw shows the managed path and usage for data, config, state, cache, temporary files, and logs. A retained instance remains visible in App management for later cleanup.
-
-Files or folders granted to an App outside its managed instance are outside this cleanup flow and are not deleted with App data.
-
-## Inspect and delete with the CLI
-
-List App data through the running NextClaw host:
+Secrets are named slots, not plain text fields. Inspect and configure them through the installed App:
 
 ```bash
-nextclaw app data list --json
+nextclaw app secrets inspect <app-id> --json
+nextclaw app secrets bind <app-id> --slot <slot> --source env|file|exec --id <secret-id> --json
+nextclaw app secrets verify <app-id> --json
 ```
 
-Permanently delete an instance that is already `retained`:
+`verify` reports whether the slot is usable without returning its value. A required missing or unreadable slot blocks enablement. Rotating or removing a binding causes the Component to be started with a new capability snapshot; the secret itself is never retained in App data, command arguments, Panel output, or verification records.
+
+## Models, Agents, Providers, and external services
+
+An App can declare non-secret model or Agent slots. Bind only a configured model or Agent you intend that App to use:
 
 ```bash
-nextclaw app data delete <data-id> --confirm <app-id> --json
+nextclaw app ai-capabilities inspect <app-id> --json
+nextclaw app ai-capabilities bind <app-id> --kind model|agent --slot <slot> --target <id> --json
+nextclaw app ai-capabilities verify <app-id> --json
 ```
 
-Copy the opaque `data-id` from the latest list and make `--confirm` exactly match the App id. Active instances cannot be deleted with this command. Do not remove managed storage directories by hand.
+Apps can also require a Provider or an external resource. This is an exception, not the preferred installation path: a self-contained App is easier to install, update, and remove. NextClaw shows the missing requirement and keeps the App disabled until it is satisfied. It never treats a connection string or credential in a manifest as setup.
 
-## Current security boundary
+```bash
+nextclaw app dependencies inspect <app-id> --json
+nextclaw app dependencies setup <app-id> --json
+nextclaw app dependencies verify <app-id> --json
+```
 
-Portable Runtime uses host-mediated capabilities to limit what a Component can request, but it is not yet a production security sandbox for untrusted code. CPU, memory, and concurrency isolation remain incomplete, and secrets, files, and blobs are not part of the public Component contract.
+`setup` binds automatically only when there is exactly one compatible Provider. If there is more than one, make an explicit choice with `dependencies bind` or use the Provider's own setup Action. An Agent can use the same management surface after you authorize the change; it must not ask a non-technical user to learn a provider-specific configuration flow.
 
-Continue with [Use Service Apps](/en/guide/service-apps-usage) and [Runtime model and capability contracts](/en/developers/portable-runtime-contracts).
+## Data through the App lifecycle
+
+App data is isolated by App instance. Update and rollback preserve the managed instance unless the App's own migration says otherwise. Uninstall retains managed data by default so that reinstalling the same App can recover it. Permanent deletion requires both `--purge-data` and an exact App-id confirmation.
+
+Use `nextclaw app data list --json` to inspect active and retained data, and `nextclaw app data delete <data-id> --confirm <app-id> --json` only when you intend permanent removal.
+
+## Agent access is separate
+
+Giving an Agent a Service Action does not give it every App permission. The Agent receives only that Action's declared interface. File folders, secrets, models, Providers, and external resources remain controlled by their own grants and bindings.
+
+Related: [Use Service Apps](/en/guide/service-apps-usage) · [Troubleshoot Service Apps](/en/guide/service-apps-troubleshooting)

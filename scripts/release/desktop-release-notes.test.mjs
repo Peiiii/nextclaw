@@ -166,13 +166,20 @@ test("desktop workflow exposes an explicit APT-only recovery path", () => {
     workflow,
     /Download Linux package from existing release[\s\S]*?gh release download/,
   );
+  assert.match(workflow, /build-linux-apt-repo\.mjs[\s\S]*?--github-pages-compatible/);
   assert.match(
     workflow,
-    /dpkg-deb --root-owner-group --build -Zxz -z9 -Sextreme/,
+    /publish-linux-apt-repo:[\s\S]*?inputs\.publish_linux_apt_only && github\.ref \|\| inputs\.release_target \|\| inputs\.release_tag/,
   );
-  assert.match(workflow, /github_file_limit=104857600/);
-  assert.match(workflow, /rm -rf "\$better_sqlite3_root\/deps" "\$better_sqlite3_root\/src"/);
-  assert.match(workflow, /test -f "\$better_sqlite3_root\/build\/Release\/better_sqlite3\.node"/);
+  const aptBuilder = readFileSync(
+    new URL("../desktop/build-linux-apt-repo.mjs", import.meta.url),
+    "utf8",
+  );
+  assert.match(aptBuilder, /GITHUB_PAGES_FILE_LIMIT = 100 \* 1024 \* 1024/);
+  assert.match(aptBuilder, /resources\/update\/seed-product-bundle\.zip/);
+  assert.match(aptBuilder, /seedBundle: null/);
+  assert.match(aptBuilder, /dpkg-deb", \["--root-owner-group", "--build", "-Zxz", "-z9", "-Sextreme"/);
+  assert.match(aptBuilder, /better-sqlite3 native addon/);
   assert.match(workflow, /timeout 180s sudo apt-get update/);
   assert.match(workflow, /failed after 3 bounded attempts/);
 });

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>开发者验证台</title>
+    <title>运行时验收与证据</title>
     <link rel="stylesheet" href="assets/style.css" />
   </head>
   <body>
@@ -11,25 +11,55 @@
       <header class="hero">
         <div>
           <p class="eyebrow">RUST · WASM COMPONENT · HOST CAPABILITIES</p>
-          <h1>开发者验证台</h1>
-          <p class="lead">这里是四个日常小应用背后的技术证据。普通体验请直接打开「今日清单」「灵感便签」「专注小钟」或「联系人整理」。</p>
+          <h1>运行时验收与证据</h1>
+          <p class="lead">查看当前安装实例真实产生的验收记录。没有记录就显示“未验证”，不会把静态说明当成通过。</p>
         </div>
         <span class="live-badge"><i></i> 可交互 Demo</span>
       </header>
 
+      <section class="verification" aria-labelledby="verification-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">EVIDENCE CENTER</p>
+            <h2 id="verification-title">能力验收矩阵</h2>
+            <p>每条状态都由当前产品、当前 runner 指纹和实际证据共同判定；只有“当前通过”是绿色。</p>
+          </div>
+          <div class="verification-actions">
+            <button type="button" data-refresh-verification class="secondary">刷新记录</button>
+            <button type="button" data-export-verification>导出证据</button>
+          </div>
+        </div>
+        <dl class="verification-summary" aria-label="验收摘要">
+          <div><dt>验收应用</dt><dd data-verification-app>读取中…</dd></div>
+          <div><dt>产品 / Runtime</dt><dd data-verification-runtime>读取中…</dd></div>
+          <div><dt>当前通过</dt><dd data-verification-count>0</dd></div>
+          <div><dt>环境</dt><dd data-verification-environment>尚未验证</dd></div>
+          <div><dt>实现指纹</dt><dd data-verification-implementation>读取中…</dd></div>
+          <div><dt>合同指纹</dt><dd data-verification-contract>读取中…</dd></div>
+          <div><dt>证据来源</dt><dd data-verification-sources>读取中…</dd></div>
+        </dl>
+        <div class="verification-list" data-verification-list aria-live="polite">
+          <p class="verification-empty">正在读取真实验收记录…</p>
+        </div>
+        <details class="evidence-details" data-evidence-details>
+          <summary>查看最近证据</summary>
+          <pre data-verification-evidence>选择上方已有证据即可查看详情；该页不会把手动点击包装成验收通过。</pre>
+        </details>
+      </section>
+
       <section class="topology" aria-label="运行拓扑">
         <div class="node guest">Action Components<small>State + Capability</small></div>
         <span aria-hidden="true">→</span>
-        <div class="node host">Shared Runner<small>Wasmtime + WIT</small></div>
+        <div class="node host">Shared Runner<small>Spin + Wasmtime + WIT</small></div>
         <span aria-hidden="true">←</span>
         <div class="node guest">Resident Component<small>Retained instance + events</small></div>
       </section>
 
-      <section class="scenario-grid" aria-label="验证场景">
+      <section class="scenario-grid" aria-label="运行时交互场景">
         <article class="scenario" data-scenario="shared">
           <div class="scenario-copy">
             <span class="number">01</span>
-            <div><h2>共享宿主</h2><p>分别调用两个 Component，比较 runner PID 与已加载模块数。</p></div>
+          <div><h2>共享宿主</h2><p>分别调用两个 Component，比较 runner PID 与已加载模块数。</p></div>
           </div>
           <button type="button" data-run="shared">验证同一进程</button>
           <pre class="result" aria-live="polite">尚未执行</pre>
@@ -130,23 +160,14 @@
         <article class="scenario benchmark-evidence">
           <div class="scenario-copy">
             <span class="number">07</span>
-            <div><h2>内存密度基准</h2><p>Apple Silicon、Node 22.16 上重复三轮；每个 Component 使用独立 artifact 路径，每个 Node Service 使用独立进程。</p></div>
+            <div><h2>性能与资源证据</h2><p>发布流水线在三个目标平台运行同一套持久计数 workload，记录冷/热延迟、吞吐、CPU、RSS/PSS、1/5/10 实例密度和卸载回收。</p></div>
           </div>
-          <dl class="metric-grid">
-            <div><dt>空 runner</dt><dd>7.70–7.73 <small>MiB</small></dd></div>
-            <div><dt>1 Component</dt><dd>34.17–36.77 <small>MiB</small></dd></div>
-            <div><dt>5 Components</dt><dd>43.86–44.72 <small>MiB</small></dd></div>
-            <div><dt>10 Components</dt><dd>50.84–53.17 <small>MiB</small></dd></div>
-            <div><dt>1 Node Service</dt><dd>39.88–39.91 <small>MiB</small></dd></div>
-            <div><dt>5 Node Services</dt><dd>199.61–199.70 <small>MiB</small></dd></div>
-            <div><dt>10 Node Services</dt><dd>399.25–399.47 <small>MiB</small></dd></div>
-          </dl>
-          <p class="benchmark-note">这是开发机上的密度证据，不是等价业务 workload 的最终结论；Resident 密度、CPU/延迟和跨平台仍待验证。</p>
+          <p class="benchmark-note">该页不内置容易过期的开发机数字。请在上方选择 <code>PRT-PERF-001</code> 查看与当前产品、当前 runner 指纹一致的结构化证据；没有当前证据时会明确显示“尚无证据”。</p>
         </article>
       </section>
 
       <footer>
-        <strong>当前覆盖：</strong>Action、Agent Tool、真实数据、Resident、后台事件、Component Provider、跨组件组合、网络权限、故障恢复与共享宿主。
+        <strong>说明：</strong>下方交互场景用于复验当前已安装应用；上方矩阵只显示后端真实写入的 PRT 记录。
       </footer>
     </main>
     <script src="assets/app.js"></script>

@@ -33,7 +33,10 @@ import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtim
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
 import { PreferencesRoutesController } from "@nextclaw-server/features/preferences/index.js";
-import { ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
+import {
+  ProjectObservationRoutesController,
+  ProjectsRoutesController,
+} from "@nextclaw-server/features/projects/index.js";
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
@@ -77,9 +80,14 @@ function createUiRouteControllers(
     }),
     preferences: new PreferencesRoutesController(kernel.preferenceManager),
     projects: new ProjectsRoutesController(kernel.projectManager),
+    projectObservation: new ProjectObservationRoutesController(
+      kernel.projectManager,
+      kernel.projectObservation,
+    ),
     serviceApps: new ServiceAppsRoutesController({
       panelAppManager: kernel.panelAppManager,
       serviceAppManager: kernel.serviceAppManager,
+      portableRuntimeAcceptance: kernel.portableRuntimeAcceptance,
     }),
     serverPath: new ServerPathRoutesController(serverPathWatchService),
     remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
@@ -270,6 +278,7 @@ class UiRouteRegistry {
       panelApps,
       preferences,
       projects,
+      projectObservation,
       serviceApps,
       serverPath,
       systemObjectReferences,
@@ -319,6 +328,10 @@ class UiRouteRegistry {
       ["post", "/api/app-packages/:appId/dependencies/setup", appPackages.setupDependencies],
       ["post", "/api/app-packages/:appId/dependencies/bind", appPackages.bindDependency],
       ["post", "/api/app-packages/:appId/dependencies/unbind", appPackages.unbindDependency],
+      ["get", "/api/app-packages/:appId/secrets", appPackages.inspectSecrets],
+      ["post", "/api/app-packages/:appId/secrets/verify", appPackages.verifySecrets],
+      ["post", "/api/app-packages/:appId/secrets/bind", appPackages.bindSecret],
+      ["post", "/api/app-packages/:appId/secrets/unbind", appPackages.unbindSecret],
       ["post", "/api/app-packages/:appId/enable", appPackages.enable],
       ["post", "/api/app-packages/:appId/disable", appPackages.disable],
       ["post", "/api/app-packages/:appId/update", appPackages.update],
@@ -339,6 +352,7 @@ class UiRouteRegistry {
       ["put", "/api/preferences/:key", preferences.update],
       ["delete", "/api/preferences/:key", preferences.delete],
       ["get", "/api/projects", projects.list],
+      ["get", "/api/projects/:projectId/observation", projectObservation.get],
       ["post", "/api/projects", projects.create],
       ["post", "/api/projects/existing", projects.addExisting],
       ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],
@@ -347,17 +361,33 @@ class UiRouteRegistry {
       ["get", "/api/panel-apps/:id/assets/*", panelApps.getPanelAppAsset],
       ["get", "/api/panel-app-assets/:token/*", panelApps.getPanelAppAssetByToken],
       ["get", "/api/service-apps", serviceApps.listServiceApps],
+      ["get", "/api/service-apps/:appId/ai-capabilities", serviceApps.inspectServiceAppAiCapabilities],
+      ["post", "/api/service-apps/:appId/ai-capabilities/verify", serviceApps.verifyServiceAppAiCapabilities],
+      ["post", "/api/service-apps/:appId/ai-capabilities/bind", serviceApps.bindServiceAppAiCapability],
+      ["post", "/api/service-apps/:appId/ai-capabilities/unbind", serviceApps.unbindServiceAppAiCapability],
       ["post", "/api/service-apps/:appId/restart", serviceApps.restartServiceApp],
       ["post", "/api/service-apps/:appId/actions/discover", serviceApps.discoverServiceAppActions],
+      ["get", "/api/service-apps/:appId/jobs", serviceApps.listServiceAppJobs],
+      ["get", "/api/service-apps/:appId/jobs/:jobId", serviceApps.getServiceAppJob],
+      ["get", "/api/service-apps/:appId/jobs/:jobId/watch", serviceApps.watchServiceAppJob],
+      ["post", "/api/service-apps/:appId/jobs/:jobId/cancel", serviceApps.cancelServiceAppJob],
+      ["get", "/api/service-apps/:appId/resident-inbox", serviceApps.listResidentInbox],
+      ["post", "/api/service-apps/:appId/resident-inbox/:eventId/replay", serviceApps.replayResidentDeadLetter],
       ["get", "/api/service-apps/:appId", serviceApps.getServiceApp],
       ["delete", "/api/service-apps/:appId", serviceApps.deleteServiceApp],
       ["get", "/api/service-actions", serviceApps.listServiceActions],
       ["post", "/api/service-actions/:actionId/invoke", serviceApps.invokeServiceAction],
+      ["post", "/api/service-apps/:appId/actions/:actionName/invoke", serviceApps.invokeInstalledServiceAction],
+      ["get", "/api/runtime-verification-records", serviceApps.listVerificationRecords],
+      ["get", "/api/portable-runtime/acceptance/contract", serviceApps.getPortableRuntimeAcceptanceContract],
+      ["get", "/api/portable-runtime/acceptance/status", serviceApps.getPortableRuntimeAcceptanceStatus],
+      ["get", "/api/portable-runtime/acceptance/export", serviceApps.exportPortableRuntimeAcceptance],
       ["post", "/api/service-actions/:actionId/grant", serviceApps.grantServiceAction],
       ["delete", "/api/service-actions/:actionId/grant", serviceApps.revokeServiceAction],
       ["get", "/api/service-action-grants", serviceApps.listServiceActionGrants],
       ["post", "/api/service-action-grants", serviceApps.grantServiceActions],
       ["post", "/api/agents/:agentId/service-action-grants", serviceApps.grantAgentServiceActions],
+      ["post", "/api/agents/:agentId/service-actions/:actionId/invoke", serviceApps.invokeAgentServiceAction],
       ["delete", "/api/service-action-grants/:actionId", serviceApps.revokeServiceActionGrant],
       ["get", "/api/server-paths/browse", serverPath.browse],
       ["get", "/api/server-paths/search", serverPath.search],

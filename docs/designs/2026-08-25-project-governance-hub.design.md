@@ -3,6 +3,8 @@
 > 代表场景与排序依据见：[项目治理代表场景梳理与评估](../thoughts/2026-08-26-project-governance-representative-scenarios.thought.md)。该场景集合用于检验通用模型，不构成产品场景边界。
 >
 > 本文保留探索过程；第一版的最终功能取舍见：[项目治理主页 V1 功能范围决策](2026-08-26-project-governance-hub-v1-scope.design.md)。
+>
+> **当前实现依据已升级为：[只读项目观测 V1 设计](2026-08-30-read-only-project-observer-v1.design.md)。** 本文下方的六对象、`Policy` 和可写治理设想仍按历史探索原貌保留，不再代表当前裁决；当前版本只从配置、文件、AI 显式 Marker 和现有只读接口生成项目投影。
 
 ## 设计状态
 
@@ -309,7 +311,7 @@ flowchart LR
 1. Project：治理系统自己的稳定项目记录，以及可选的目录、NextClaw 项目或外部项目绑定。
 2. Work Item：可手工创建或由来源导入的工作项，拥有标题、描述、类型、状态和项目关系。
 3. Run：人工、Agent、自动化或外部系统的中性执行记录；来源执行只保存稳定引用和投影。
-4. Artifact：用户明确加入或来源适配器导入的产物引用，不靠文件名自动猜测。
+4. Artifact：用户明确加入或由可证明来源导入的产物引用，不靠文件名自动猜测。
 5. Attention：治理原生或来源导入的人工介入事项，包含原因、解除条件和处理结果。
 6. Policy：项目级 Skills、规则和外部约束的只读索引；正文仍由来源管理。
 
@@ -333,7 +335,7 @@ flowchart LR
 
 延后：
 
-- 通用状态枚举、跨框架 adapter registry 和公共 SDK 合同，等待 producer 调查后冻结。
+- 通用状态枚举、跨框架来源注册机制和公共 SDK 合同，等待 producer 调查后冻结。
 - 项目健康评分、自动优先级、依赖图和写操作。
 - 通用 capability registry；首版 Skills 继续沿用现有 owner。
 

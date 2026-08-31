@@ -6,6 +6,27 @@ const PORTABLE_SERVICE_WIT = readFileSync(
   new URL("../../resources/wit/portable-service.wit", import.meta.url),
   "utf8",
 );
+const STANDARD_PORTABLE_WIT_FILES = [
+  "deps/http@0.2.6/package.wit",
+  "deps/http@0.2.6/handler.wit",
+  "deps/http@0.2.6/types.wit",
+  "deps/io@0.2.6/error.wit",
+  "deps/io@0.2.6/poll.wit",
+  "deps/io@0.2.6/streams.wit",
+  "deps/io@0.2.6/world.wit",
+  "deps/clocks@0.2.6/monotonic-clock.wit",
+  "deps/clocks@0.2.6/timezone.wit",
+  "deps/clocks@0.2.6/wall-clock.wit",
+  "deps/clocks@0.2.6/world.wit",
+  "deps/config@0.2.0-draft-2024-09-27/package.wit",
+  "deps/config@0.2.0-draft-2024-09-27/store.wit",
+  "deps/spin@2.0.0/package.wit",
+  "deps/spin@2.0.0/sqlite.wit",
+] as const;
+const STANDARD_PORTABLE_WIT_DEPS: AppScaffoldFile[] = STANDARD_PORTABLE_WIT_FILES.map((relativePath) => ({
+  relativePath: `guest/wit/${relativePath}`,
+  content: readFileSync(new URL(`../../resources/wit/${relativePath}`, import.meta.url), "utf8"),
+}));
 const RUST_WASI_CARGO_LOCK = readFileSync(
   new URL("../../resources/rust-wasi/Cargo.lock", import.meta.url),
   "utf8",
@@ -41,6 +62,7 @@ export class AppRustWasiScaffoldTemplateService {
       { relativePath: "guest/Cargo.lock", content: RUST_WASI_CARGO_LOCK },
       { relativePath: "guest/src/lib.rs", content: this.buildRustSource() },
       { relativePath: "guest/wit/portable-service.wit", content: PORTABLE_SERVICE_WIT },
+      ...STANDARD_PORTABLE_WIT_DEPS,
       {
         relativePath: "tests/service-smoke.json",
         content: `${JSON.stringify(this.buildServiceSmokeFixture(serviceId), null, 2)}\n`,
@@ -132,11 +154,27 @@ wit-bindgen = "0.44.0"
 
 [lib]
 crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "nextclaw:portable-service"
+
+[package.metadata.component.target]
+path = "wit"
+world = "service-app"
+
+[package.metadata.component.target.dependencies]
+"fermyon:spin" = { path = "wit/deps/spin@2.0.0" }
+"wasi:http" = { path = "wit/deps/http@0.2.6" }
+"wasi:io" = { path = "wit/deps/io@0.2.6" }
+"wasi:clocks" = { path = "wit/deps/clocks@0.2.6" }
+"wasi:config" = { path = "wit/deps/config@0.2.0-draft-2024-09-27" }
 `;
 
   private buildRustSource = (): string => `wit_bindgen::generate!({
     path: "wit",
     world: "service-app",
+    // Generate standard WASI HTTP's transitive interfaces for later use by a Guest.
+    generate_all,
 });
 
 use exports::nextclaw::portable_service::service::{Action, Guest};

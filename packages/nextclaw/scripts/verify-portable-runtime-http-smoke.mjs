@@ -1,13 +1,20 @@
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtemp, realpath, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  configurePortableRuntimeHttpSmokeTools,
+  fetchJson,
+  verifyInstalledEntrySurfaces,
+  verifyRustWasiScaffoldLoop,
+} from "./portable-runtime-http-smoke.tools.mjs";
 
 const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const appEntrypoint = resolve(packageRoot, "dist/cli/app/index.js");
 const binaryPath = readArg("--binary");
+const outputPath = readArg("--output");
 const verifyRustWasiScaffold = process.argv.includes(
   "--verify-rust-wasi-scaffold",
 );
@@ -50,6 +57,7 @@ const child = spawn(
 );
 child.stdout.on("data", (chunk) => output.push(String(chunk)));
 child.stderr.on("data", (chunk) => output.push(String(chunk)));
+configurePortableRuntimeHttpSmokeTools({ baseUrl, tempRoot, child, command, commandPrefix, commandCwd, runtimeEnv });
 
 try {
   const meta = await waitForJson(`${baseUrl}/api/app/meta`, {
@@ -97,9 +105,18 @@ try {
     serviceApps.payload?.data?.entries?.filter(
       (entry) => entry?.packageId === "nextclaw.portable-runtime-lab",
     ) ?? [];
+  const expectedComponentIds = [
+    "nextclaw-portable-runtime-lab-state",
+    "nextclaw-portable-runtime-lab-capabilities",
+    "nextclaw-portable-runtime-lab-sqlite",
+    "nextclaw-portable-runtime-lab-resident",
+    "nextclaw-portable-runtime-lab-provider",
+    "nextclaw-portable-runtime-lab-composition",
+  ];
   assert(
-    entries.length === 5,
-    `expected five portable runtime components, got ${entries.length}`,
+    entries.length === expectedComponentIds.length &&
+      expectedComponentIds.every((id) => entries.some((entry) => entry?.id === id)),
+    `portable runtime component inventory is incomplete: ${JSON.stringify(entries.map((entry) => entry?.id))}`,
   );
   for (const mode of ["provider", "resident"]) {
     const entry = entries.find(
@@ -115,33 +132,8 @@ try {
     (entry) => entry?.id === "nextclaw-portable-runtime-lab-state",
   );
   assert(stateComponent?.dirPath, "portable state component was not installed");
-  const call = spawnSync(
-    command,
-    [
-      ...commandPrefix,
-      "app",
-      "call",
-      stateComponent.dirPath,
-      "counter_read",
-      "--json",
-    ],
-    {
-      cwd: commandCwd,
-      env: runtimeEnv,
-      encoding: "utf8",
-      timeout: 90_000,
-      windowsHide: true,
-    },
-  );
-  assert(
-    call.status === 0,
-    `counter_read failed: ${call.stderr || call.stdout}`,
-  );
-  const callPayload = JSON.parse(call.stdout.trim());
-  assert(
-    callPayload.ok === true,
-    `counter_read did not return ok=true: ${call.stdout}`,
-  );
+  const entrySurfaces = await verifyInstalledEntrySurfaces();
+  const residentLifecycle = await verifyInstalledResidentLifecycle();
   assert(
     child.exitCode === null,
     "NextClaw service exited while invoking the portable runtime action",
@@ -151,18 +143,51 @@ try {
     ? await verifyRustWasiScaffoldLoop()
     : undefined;
 
-  console.log(
-    JSON.stringify({
-      ok: true,
-      platform: process.platform,
-      arch: process.arch,
-      componentCount: entries.length,
-      provider: "running",
-      resident: "running",
-      action: "counter_read",
-      ...(scaffold ? { scaffold } : {}),
-    }),
-  );
+  const summary = {
+    schemaVersion: 1,
+    kind: "nextclaw.portable-runtime.developer-smoke",
+    ok: true,
+    checks: [
+      "service-enable",
+      "installed-cli-action",
+      "panel-installed-action",
+      "agent-installed-action",
+      "entry-fact-equivalence",
+      "acceptance-contract",
+      "verification-record",
+      "acceptance-export",
+      "resident-disable-reenable",
+      ...(scaffold ? [
+        "doctor",
+        "create",
+        "build",
+        "check",
+        "test",
+        "pack",
+        "install-relative",
+        "enable",
+        "disable-reenable",
+        "persistence-across-reenable",
+        "update",
+        "rollback",
+        "uninstall-retain",
+        "reinstall-retain",
+        "uninstall-purge",
+      ] : []),
+    ],
+    platform: process.platform,
+    arch: process.arch,
+    componentCount: entries.length,
+    provider: "running",
+    resident: "running",
+    action: "counter_read",
+    entrySurfaces,
+    residentLifecycle,
+    ...(scaffold ? { scaffold } : {}),
+  };
+  const serialized = `${JSON.stringify(summary, null, 2)}\n`;
+  if (outputPath) await writeFile(resolve(outputPath), serialized, "utf8");
+  process.stdout.write(serialized);
 } catch (error) {
   process.stderr.write(output.join("").slice(-12_000));
   throw error;
@@ -211,15 +236,42 @@ async function waitForJson(url, { timeoutMs, accept = () => true }) {
   );
 }
 
-async function fetchJson(url, init) {
-  const response = await fetch(url, init);
-  const contentType = response.headers.get("content-type") ?? "";
-  const body = await response.text();
+/**
+ * This goes through the same installed-App package lifecycle that users use.
+ * It checks the package lifecycle boundary, not a test-only resident endpoint:
+ * after disable the component is unavailable, and enable must restart it.
+ */
+async function verifyInstalledResidentLifecycle() {
+  const packageId = "nextclaw.portable-runtime-lab";
+  const residentId = "nextclaw-portable-runtime-lab-resident";
+  const disable = await fetchJson(`${baseUrl}/api/app-packages/${encodeURIComponent(packageId)}/disable`, {
+    method: "POST",
+  });
   assert(
-    contentType.includes("application/json"),
-    `expected JSON from ${url}, got ${response.status} ${contentType}: ${body.slice(0, 500)}`,
+    disable.response.ok && disable.payload?.ok === true && disable.payload?.data?.enabled === false,
+    `portable Resident package disable failed: ${JSON.stringify(disable.payload)}`,
   );
-  return { response, payload: JSON.parse(body) };
+  const disabledInventory = await fetchJson(`${baseUrl}/api/service-apps`);
+  assert(
+    disabledInventory.response.ok && disabledInventory.payload?.ok === true &&
+      !disabledInventory.payload?.data?.entries?.some((entry) => entry?.id === residentId),
+    `Resident remained callable after package disable: ${JSON.stringify(disabledInventory.payload)}`,
+  );
+
+  const enable = await fetchJson(`${baseUrl}/api/app-packages/${encodeURIComponent(packageId)}/enable`, {
+    method: "POST",
+  });
+  assert(
+    enable.response.ok && enable.payload?.ok === true && enable.payload?.data?.enabled === true,
+    `portable Resident package re-enable failed: ${JSON.stringify(enable.payload)}`,
+  );
+  const inventory = await fetchJson(`${baseUrl}/api/service-apps`);
+  const resident = inventory.payload?.data?.entries?.find((entry) => entry?.id === residentId);
+  assert(
+    inventory.response.ok && inventory.payload?.ok === true && resident?.status === "running",
+    `Resident did not restart after package enable: ${JSON.stringify(resident)}`,
+  );
+  return { disabled: true, reenabled: true, status: resident.status };
 }
 
 async function stopChild(processHandle) {
@@ -274,248 +326,4 @@ function assert(condition, message) {
 function readArg(name) {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1]?.trim() || null : null;
-}
-
-async function verifyRustWasiScaffoldLoop() {
-  const appRoot = join(tempRoot, "generated-counter");
-  const artifactPath = join(tempRoot, "generated-counter.napp");
-  const { dev } = await createAndValidateGeneratedApp(appRoot);
-  const sourceRead = verifyGeneratedSourceCalls(appRoot);
-  const installedRead = await installAndVerifyGeneratedApp(
-    appRoot,
-    artifactPath,
-  );
-
-  return {
-    template: "rust-wasi",
-    actions: dev.actions.length,
-    doctor: "ready",
-    build: "locked-rust-wasip2",
-    test: "fixture-passed",
-    sourceCounter: sourceRead.result.counter,
-    installedCounter: installedRead.result.counter,
-    relativeInstall: "normalized-and-installed",
-    enabled: true,
-  };
-}
-
-async function createAndValidateGeneratedApp(appRoot) {
-  const doctor = parseJsonCommand(
-    runCli(["app", "doctor", "--profile", "wasi", "--json"]),
-    "WASI toolchain doctor",
-  );
-  assert(
-    doctor.ok === true,
-    `WASI toolchain is not ready: ${JSON.stringify(doctor)}`,
-  );
-  runCli(["app", "create", appRoot, "--template", "rust-wasi", "--json"]);
-  const build = parseJsonCommand(
-    runCli(["app", "build", appRoot, "--json"]),
-    "generated app build",
-  );
-  assert(
-    build.ok === true && build.build?.built === true,
-    `generated app build failed: ${JSON.stringify(build)}`,
-  );
-
-  const check = parseJsonCommand(
-    runCli(["app", "check", appRoot, "--json"]),
-    "generated app check",
-  );
-  assert(
-    check.ok === true,
-    `generated app check failed: ${JSON.stringify(check)}`,
-  );
-  assert(
-    check.issues?.length === 0,
-    `generated app check returned issues: ${JSON.stringify(check.issues)}`,
-  );
-
-  const test = parseJsonCommand(
-    runCli(["app", "test", appRoot, "--json"]),
-    "generated app test",
-  );
-  assert(
-    test.ok === true && test.steps?.length === 2,
-    `generated app test failed: ${JSON.stringify(test)}`,
-  );
-
-  const dev = parseJsonCommand(
-    runCli([
-      "app",
-      "dev",
-      appRoot,
-      "--reset-data",
-      "--confirm",
-      "nextclaw-generated-counter-service",
-      "--json",
-    ]),
-    "generated app dev",
-  );
-  assert(
-    dev.ok === true && dev.actions?.length === 2,
-    `generated app dev failed: ${JSON.stringify(dev)}`,
-  );
-  return { dev };
-}
-
-function verifyGeneratedSourceCalls(appRoot) {
-  const increment = parseJsonCommand(
-    runCli([
-      "app",
-      "call",
-      appRoot,
-      "counter_increment",
-      "--input",
-      JSON.stringify({ step: 3 }),
-      "--json",
-    ]),
-    "generated app increment",
-  );
-  assert(
-    increment.result?.counter === 3,
-    `generated app increment failed: ${JSON.stringify(increment)}`,
-  );
-  assert(
-    increment.observation?.operation === "invoke",
-    `generated app observation is missing: ${JSON.stringify(increment)}`,
-  );
-  const read = parseJsonCommand(
-    runCli(["app", "call", appRoot, "counter_read", "--json"]),
-    "generated app read",
-  );
-  assert(
-    read.result?.counter === 3,
-    `generated app persistence failed: ${JSON.stringify(read)}`,
-  );
-  return read;
-}
-
-async function installAndVerifyGeneratedApp(appRoot, artifactPath) {
-  runCli(["app", "pack", appRoot, "--out", artifactPath, "--json"]);
-  const install = parseJsonCommand(
-    runCli(["app", "install", "./generated-counter.napp", "--json"], {
-      cwd: tempRoot,
-    }),
-    "generated app relative install",
-  );
-  assert(
-    install.status === "queued" ||
-      install.status === "running" ||
-      install.status === "completed",
-    `generated app install was not accepted: ${JSON.stringify(install)}`,
-  );
-  assert(
-    (await realpath(install.source)) === (await realpath(artifactPath)),
-    `generated app relative source was not normalized: ${JSON.stringify(install)}`,
-  );
-  await waitForInstalledPackage("nextclaw.generated-counter", install.id);
-  const enable = parseJsonCommand(
-    runCli(["app", "enable", "nextclaw.generated-counter", "--json"], {
-      cwd: tempRoot,
-    }),
-    "generated app enable",
-  );
-  assert(
-    enable.enabled === true,
-    `generated app enable failed: ${JSON.stringify(enable)}`,
-  );
-  const installedServices = await fetchJson(`${baseUrl}/api/service-apps`);
-  const installedService = installedServices.payload?.data?.entries?.find(
-    (entry) =>
-      entry?.packageId === "nextclaw.generated-counter" &&
-      entry?.id === "nextclaw-generated-counter-service",
-  );
-  assert(installedService?.dirPath, "generated app service was not installed");
-  const installedIncrement = parseJsonCommand(
-    runCli(
-      [
-        "app",
-        "call",
-        installedService.dirPath,
-        "counter_increment",
-        "--input",
-        JSON.stringify({ step: 4 }),
-        "--json",
-      ],
-      { cwd: tempRoot },
-    ),
-    "installed generated app increment",
-  );
-  assert(
-    installedIncrement.result?.counter === 4,
-    `installed generated app increment failed: ${JSON.stringify(installedIncrement)}`,
-  );
-  const installedRead = parseJsonCommand(
-    runCli(
-      ["app", "call", installedService.dirPath, "counter_read", "--json"],
-      { cwd: tempRoot },
-    ),
-    "installed generated app read",
-  );
-  assert(
-    installedRead.result?.counter === 4,
-    `installed generated app persistence failed: ${JSON.stringify(installedRead)}`,
-  );
-  assert(
-    child.exitCode === null,
-    "NextClaw service exited while enabling the generated app",
-  );
-  return installedRead;
-}
-
-async function waitForInstalledPackage(appId, operationId) {
-  const deadline = Date.now() + 90_000;
-  let lastOperation;
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(
-        `NextClaw service exited while installing ${appId} (code ${child.exitCode})`,
-      );
-    }
-    const packages = await fetchJson(`${baseUrl}/api/app-packages`);
-    if (packages.payload?.data?.entries?.some((entry) => entry?.id === appId)) return;
-    const operations = await fetchJson(`${baseUrl}/api/app-package-operations`);
-    lastOperation = operations.payload?.data?.entries?.find(
-      (entry) => entry?.id === operationId,
-    );
-    if (lastOperation?.status === "failed" || lastOperation?.status === "interrupted") {
-      throw new Error(
-        `App install ${operationId} ${lastOperation.status}: ${lastOperation.error ?? "unknown error"}`,
-      );
-    }
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
-  }
-  throw new Error(
-    `App ${appId} was not installed before timeout; operation=${JSON.stringify(lastOperation)}`,
-  );
-}
-
-function runCli(args, options = {}) {
-  return runChecked(command, [...commandPrefix, ...args], options);
-}
-
-function runChecked(commandName, args, options = {}) {
-  const result = spawnSync(commandName, args, {
-    cwd: options.cwd ?? commandCwd,
-    env: runtimeEnv,
-    encoding: "utf8",
-    timeout: 180_000,
-    windowsHide: true,
-  });
-  assert(
-    result.status === 0,
-    `${commandName} ${args.join(" ")} failed: ${result.stderr || result.stdout || String(result.error)}`,
-  );
-  return result;
-}
-
-function parseJsonCommand(result, description) {
-  try {
-    return JSON.parse(result.stdout.trim());
-  } catch {
-    throw new Error(
-      `${description} did not return JSON: ${result.stdout}\n${result.stderr}`,
-    );
-  }
 }

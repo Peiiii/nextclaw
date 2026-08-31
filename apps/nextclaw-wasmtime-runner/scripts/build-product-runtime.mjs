@@ -12,6 +12,7 @@ const workspaceRoot = resolve(runnerRoot, "../..");
 const GUESTS = [
   ["state-lab", "nextclaw_portable_runtime_state.wasm", "nextclaw-portable-runtime-lab-state"],
   ["capability-lab", "nextclaw_portable_runtime_capabilities.wasm", "nextclaw-portable-runtime-lab-capabilities"],
+  ["sqlite-lab", "nextclaw_portable_runtime_sqlite.wasm", "nextclaw-portable-runtime-lab-sqlite"],
   ["resident-lab", "nextclaw_portable_runtime_resident.wasm", "nextclaw-portable-runtime-lab-resident"],
   ["provider-lab", "nextclaw_portable_runtime_provider.wasm", "nextclaw-portable-runtime-lab-provider"],
   ["composition-lab", "nextclaw_portable_runtime_composition.wasm", "nextclaw-portable-runtime-lab-composition"],

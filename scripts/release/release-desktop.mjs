@@ -4,8 +4,12 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { verifyExistingDesktopReleaseClosure, waitForDesktopReleaseClosure } from "./desktop-release-closure.mjs";
-import { assertReleaseIsDraft, createDraftRelease, dispatchReleaseWorkflow } from "./desktop-release-github.mjs";
-import { inferExistingReleaseRecovery } from "./desktop-release-recovery.mjs";
+import { assertReleaseIsDraft, createDraftRelease, dispatchReleaseWorkflow, prepareDesktopDraft } from "./desktop-release-github.mjs";
+import {
+  inferExistingDesktopDraft,
+  inferExistingReleaseRecovery,
+  readNextDesktopReleaseTag
+} from "./desktop-release-recovery.mjs";
 import { assertDesktopGithubReleaseNotes, buildDesktopGithubReleaseNotes, resolveDesktopReleaseNotesUrl } from "./desktop-release-notes.mjs";
 import { assertPublishedDesktopRuntimeIdentity, runRemotePreflight } from "./desktop-release-preflight.mjs";
 import { reconcileReleaseMainline } from "./reconcile-release-mainline.mjs";
@@ -57,6 +61,7 @@ Options:
   --skip-local-verify             Skip pnpm desktop:package:verify
   --skip-remote-preflight         Skip GitHub signing-secret preflight
   --skip-public-pages             Verify gh-pages only; skip public Pages propagation polling
+  --prepare-draft-only             Create or verify the hidden Draft, without preflight, build, or dispatch
   --release-worktree              Run local verification in a temporary detached worktree. This is the default.
   --no-release-worktree           Run local verification in the current checkout instead of a temporary worktree.
                                   This also requires a fully clean tracked worktree.
@@ -76,6 +81,7 @@ function parseArgs(argv) {
     minimumLauncherVersion: null,
     nodeVersion: readFileSync(resolve(ROOT_DIR, ".nvmrc"), "utf8").trim(),
     notesFile: null,
+    prepareDraftOnly: false,
     preflightWorkflow: DEFAULT_PREFLIGHT_WORKFLOW,
     publicAttempts: DEFAULT_PUBLIC_ATTEMPTS,
     publicDelayMs: DEFAULT_PUBLIC_DELAY_MS,
@@ -128,6 +134,9 @@ function parseArgs(argv) {
         break;
       case "--skip-public-pages":
         options.skipPublicPages = true;
+        break;
+      case "--prepare-draft-only":
+        options.prepareDraftOnly = true;
         break;
       case "--release-worktree":
         options.releaseWorktree = true;
@@ -290,24 +299,6 @@ function readMinimumLauncherVersion(channel) {
   return value.trim();
 }
 
-function buildTagPrefix(channel, runtimeVersion) {
-  return channel === "beta" ? `v${runtimeVersion}-desktop-beta.` : `v${runtimeVersion}-desktop.`;
-}
-
-function readNextTag(channel, runtimeVersion) {
-  const prefix = buildTagPrefix(channel, runtimeVersion);
-  const output = run("git", ["ls-remote", "--tags", "origin", `refs/tags/${prefix}*`]);
-  const nextNumber =
-    output
-      .split("\n")
-      .map((line) => line.trim().split(/\s+/)[1] ?? "")
-      .map((ref) => ref.replace(/^refs\/tags\//, "").replace(/\^\{\}$/, ""))
-      .map((tag) => Number(tag.startsWith(prefix) ? tag.slice(prefix.length) : NaN))
-      .filter(Number.isInteger)
-      .reduce((max, value) => Math.max(max, value), 0) + 1;
-  return `${prefix}${nextNumber}`;
-}
-
 function buildReleaseNotes(options) {
   const { channel, desktopVersion, minimumLauncherVersion, notesFile, runtimeVersion } = options;
   if (notesFile) {
@@ -375,21 +366,8 @@ function runLocalVerify(options) {
   }
 }
 
-function pushBranchIfNeeded(branch, aheadCount, options) {
-  if (aheadCount === 0) {
-    return;
-  }
-  const message = `[desktop:release] pushing ${aheadCount} local commit(s) to origin/${branch}`;
-  if (options.dryRun) {
-    console.log(`${message} (dry-run)`);
-    return;
-  }
-  console.log(message);
-  run("git", ["push", "origin", `HEAD:${branch}`], { capture: false });
-}
-
 function printPlan(options, aheadCount) {
-  const { branch, channel, desktopVersion, minimumLauncherVersion, releaseNotesUrl, releaseWorktree, runtimeVersion, tag, target } = options;
+  const { branch, channel, desktopVersion, minimumLauncherVersion, prepareDraftOnly, releaseNotesUrl, releaseWorktree, runtimeVersion, tag, target } = options;
   console.log(
     [
       `[desktop:release] channel=${channel}`,
@@ -404,7 +382,7 @@ function printPlan(options, aheadCount) {
       `releaseWorktree=${releaseWorktree}`,
       "publication=draft-until-assets-verified",
       "npmPublish=excluded",
-      "publishedRuntimeIdentity=verified"
+      prepareDraftOnly ? "publishedRuntimeIdentity=deferred" : "publishedRuntimeIdentity=verified"
     ].join(" ")
   );
 }
@@ -425,7 +403,15 @@ async function executeRelease(options, aheadCount) {
     return;
   }
   if (!publishLinuxAptOnly) runLocalVerify(options);
-  pushBranchIfNeeded(branch, aheadCount, options);
+  if (aheadCount > 0) {
+    const message = `[desktop:release] pushing ${aheadCount} local commit(s) to origin/${branch}`;
+    if (dryRun) {
+      console.log(`${message} (dry-run)`);
+    } else {
+      console.log(message);
+      run("git", ["push", "origin", `HEAD:${branch}`], { capture: false });
+    }
+  }
   if (!publishLinuxAptOnly) await runRemotePreflight(options);
   if (!reuseExistingRelease) {
     createDraftRelease(options);
@@ -459,10 +445,17 @@ async function main() {
   options.target ??= readHeadSha();
   options.desktopVersion ??= readPackageVersion("apps/desktop/package.json");
   options.runtimeVersion ??= readPackageVersion("packages/nextclaw/package.json");
-  assertPublishedDesktopRuntimeIdentity(options.channel, options.runtimeVersion);
+  if (!options.prepareDraftOnly) {
+    assertPublishedDesktopRuntimeIdentity(options.channel, options.runtimeVersion);
+  }
   options.minimumLauncherVersion ??= readMinimumLauncherVersion(options.channel);
-  if (!options.tag) Object.assign(options, inferExistingReleaseRecovery(options, run) ?? {});
-  options.tag ??= readNextTag(options.channel, options.runtimeVersion);
+  if (!options.tag) {
+    Object.assign(
+      options,
+      inferExistingReleaseRecovery(options, run) ?? inferExistingDesktopDraft(options, run) ?? {}
+    );
+  }
+  options.tag ??= readNextDesktopReleaseTag(options, run);
   options.releaseNotesUrl = resolveDesktopReleaseNotesUrl({
     ...options,
     explicitReleaseNotesUrl: options.releaseNotesUrl,
@@ -481,6 +474,10 @@ async function main() {
   fetchReleaseRefs(options.branch);
   const aheadCount = assertBranchIsNotBehind(options.branch);
   printPlan(options, aheadCount);
+  if (options.prepareDraftOnly) {
+    prepareDesktopDraft(options, aheadCount, run);
+    return;
+  }
   await executeRelease(options, aheadCount);
 }
 
