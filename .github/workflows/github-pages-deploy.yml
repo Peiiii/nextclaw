@@ -1,0 +1,87 @@
+name: github-pages-deploy
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: nextclaw-github-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout publisher
+        uses: actions/checkout@v4
+        with:
+          path: publisher
+
+      - name: Checkout compact Pages state
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+          path: pages-state
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: publisher/.nvmrc
+
+      - name: Read APT package source
+        id: apt-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_file="pages-state/apt/package-source.json"
+          test -f "$source_file"
+          echo "release_tag=$(jq -r '.releaseTag' "$source_file")" >> "$GITHUB_OUTPUT"
+          echo "asset_name=$(jq -r '.assetName' "$source_file")" >> "$GITHUB_OUTPUT"
+
+      - name: Download APT package from GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APT_RELEASE_TAG: ${{ steps.apt-source.outputs.release_tag }}
+          APT_ASSET_NAME: ${{ steps.apt-source.outputs.asset_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p apt-package
+          gh release download "$APT_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$APT_ASSET_NAME" \
+            --dir apt-package
+          test -f "apt-package/$APT_ASSET_NAME"
+
+      - name: Materialize complete Pages artifact
+        shell: bash
+        env:
+          APT_ASSET_NAME: ${{ steps.apt-source.outputs.asset_name }}
+        run: |
+          set -euo pipefail
+          node publisher/scripts/release/github-pages-artifact.mjs materialize \
+            --state-dir pages-state \
+            --apt-package "apt-package/$APT_ASSET_NAME" \
+            --output-dir pages-artifact
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: pages-artifact
+
+      - name: Deploy GitHub Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -698,12 +698,22 @@ jobs:
     needs: [build-desktop, publish-release-assets, publish-github-release]
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: nextclaw-github-pages-state
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.release_target || inputs.release_tag }}
           fetch-depth: 1
+
+      - name: Checkout publisher control plane
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          path: .tmp/publisher
 
       - name: Download desktop artifacts
         uses: actions/download-artifact@v4
@@ -763,6 +773,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node .tmp/publisher/scripts/release/github-pages-artifact.mjs verify-state --state-dir .tmp/gh-pages
           git -C .tmp/gh-pages config user.name "github-actions[bot]"
           git -C .tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C .tmp/gh-pages add desktop-updates .nojekyll
@@ -779,6 +790,9 @@ jobs:
       [build-desktop, publish-release-assets, publish-github-release, publish-desktop-update-channels]
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    concurrency:
+      group: nextclaw-github-pages-state
+      cancel-in-progress: false
     env:
       DESKTOP_RELEASE_TAG: ${{ inputs.release_tag }}
     steps:
@@ -790,6 +804,13 @@ jobs:
           # than the historical product target that created that asset.
           ref: ${{ inputs.publish_linux_apt_only && github.ref || inputs.release_target || inputs.release_tag }}
           fetch-depth: 1
+
+      - name: Checkout publisher control plane
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          path: .tmp/publisher
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -853,6 +874,7 @@ jobs:
       - name: Prepare gh-pages worktree
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           GH_PAGES_PUSH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -867,6 +889,29 @@ jobs:
             git worktree add .tmp/gh-pages origin/gh-pages
             if [ -d ".tmp/gh-pages/apt" ]; then
               cp -R ".tmp/gh-pages/apt" ".tmp/current-pages-apt"
+              if ! find ".tmp/current-pages-apt/pool" -type f -name '*.deb' -print -quit 2>/dev/null | grep -q .; then
+                source_file=".tmp/current-pages-apt/package-source.json"
+                packages_file=".tmp/current-pages-apt/dists/stable/main/binary-amd64/Packages"
+                test -f "$source_file"
+                test -f "$packages_file"
+                old_release_tag="$(jq -r '.releaseTag' "$source_file")"
+                old_asset_name="$(jq -r '.assetName' "$source_file")"
+                old_relative_path="$(awk -F': ' '$1 == "Filename" { print $2; exit }' "$packages_file")"
+                case "$old_relative_path" in
+                  ""|/*|*".."*) echo "Unsafe previous APT package path: $old_relative_path"; exit 1 ;;
+                esac
+                old_package_dir=".tmp/current-pages-apt/$(dirname "$old_relative_path")"
+                old_asset_dir=".tmp/previous-apt-release-asset"
+                mkdir -p "$old_package_dir"
+                rm -rf "$old_asset_dir"
+                mkdir -p "$old_asset_dir"
+                gh release download "$old_release_tag" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --pattern "$old_asset_name" \
+                  --dir "$old_asset_dir"
+                cp "$old_asset_dir/$old_asset_name" ".tmp/current-pages-apt/$old_relative_path"
+                test -f ".tmp/current-pages-apt/$old_relative_path"
+              fi
               if [ -d ".tmp/current-pages-apt/pool" ]; then
                 find ".tmp/current-pages-apt/pool" -type f -name '*.deb' -exec cp {} dist/linux-apt-input/ \;
               fi
@@ -925,14 +970,32 @@ jobs:
 
       - name: Publish Linux APT repo to gh-pages
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p .tmp/gh-pages
           rm -rf .tmp/gh-pages/apt
           cp -R dist/linux-apt-repo/apt .tmp/gh-pages/apt
+          apt_package="$(find .tmp/gh-pages/apt/pool -type f -name 'nextclaw-desktop_*_amd64.deb' -print -quit)"
+          test -n "$apt_package"
+          apt_release_asset_name="$(basename "${apt_package%.deb}.pages.deb")"
+          apt_release_asset_path=".tmp/$apt_release_asset_name"
+          cp "$apt_package" "$apt_release_asset_path"
+          gh release upload "$DESKTOP_RELEASE_TAG" "$apt_release_asset_path" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+          node .tmp/publisher/scripts/release/github-pages-artifact.mjs create-apt-source \
+            --packages .tmp/gh-pages/apt/dists/stable/main/binary-amd64/Packages \
+            --apt-package "$apt_package" \
+            --release-asset-name "$apt_release_asset_name" \
+            --release-tag "$DESKTOP_RELEASE_TAG" \
+            --output .tmp/gh-pages/apt/package-source.json
+          find .tmp/gh-pages/apt/pool -type f -name '*.deb' -delete
           cp apps/desktop/scripts/install-linux-apt.sh .tmp/gh-pages/install-apt.sh
           chmod 0755 .tmp/gh-pages/install-apt.sh
           touch .tmp/gh-pages/.nojekyll
+          node .tmp/publisher/scripts/release/github-pages-artifact.mjs verify-state --state-dir .tmp/gh-pages
           git -C .tmp/gh-pages config user.name "github-actions[bot]"
           git -C .tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C .tmp/gh-pages add apt install-apt.sh .nojekyll
@@ -942,3 +1005,12 @@ jobs:
           fi
           git -C .tmp/gh-pages commit -m "chore: publish linux apt repo"
           git -C .tmp/gh-pages push origin HEAD:gh-pages
+
+  deploy-public-pages:
+    needs: [publish-desktop-update-channels, publish-linux-apt-repo]
+    if: ${{ always() && ((contains(inputs.release_tag, 'desktop-beta') && needs.publish-desktop-update-channels.result == 'success') || (!contains(inputs.release_tag, 'desktop-beta') && needs.publish-linux-apt-repo.result == 'success')) }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/github-pages-deploy.yml

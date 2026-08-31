@@ -238,8 +238,13 @@ export function assertDesktopReleaseAssetSet(assetNames, options) {
   const expectedAssets = buildExpectedDesktopReleaseAssetNames(options);
   const actualAssets = new Set(assetNames);
   const expectedAssetSet = new Set(expectedAssets);
+  const optionalAssetSet = new Set([
+    `nextclaw-desktop_${options.desktopVersion}_amd64.pages.deb`
+  ]);
   const missingAssets = expectedAssets.filter((assetName) => !actualAssets.has(assetName));
-  const unexpectedAssets = [...actualAssets].filter((assetName) => !expectedAssetSet.has(assetName)).sort();
+  const unexpectedAssets = [...actualAssets]
+    .filter((assetName) => !expectedAssetSet.has(assetName) && !optionalAssetSet.has(assetName))
+    .sort();
   if (missingAssets.length > 0 || unexpectedAssets.length > 0) {
     throw new Error(
       [

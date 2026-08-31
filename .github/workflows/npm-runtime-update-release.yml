@@ -247,6 +247,9 @@ jobs:
     needs: [build-npm-runtime-update]
     if: ${{ always() && inputs.publish && (inputs.prepared_run_id != '' || needs.build-npm-runtime-update.result == 'success') }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: nextclaw-github-pages-state
+      cancel-in-progress: false
     steps:
       - name: Start Runtime promotion timing
         shell: bash
@@ -257,6 +260,13 @@ jobs:
         with:
           ref: ${{ inputs.release_target }}
           fetch-depth: 1
+
+      - name: Checkout publisher control plane
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          path: .tmp/publisher
 
       - name: Download same-run NPM runtime update artifacts
         if: ${{ inputs.prepared_run_id == '' }}
@@ -333,7 +343,7 @@ jobs:
           rm -rf .tmp/gh-pages
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git fetch origin gh-pages
+            git fetch --depth=1 origin gh-pages
             git worktree add .tmp/gh-pages origin/gh-pages
           else
             git worktree add --detach .tmp/gh-pages
@@ -360,6 +370,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node .tmp/publisher/scripts/release/github-pages-artifact.mjs verify-state --state-dir .tmp/gh-pages
           git -C .tmp/gh-pages config user.name "github-actions[bot]"
           git -C .tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git -C .tmp/gh-pages add npm-runtime-updates .nojekyll
@@ -389,3 +400,12 @@ jobs:
             echo "- budget_seconds: 120"
             echo "- budget_status: $budget_status"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-public-pages:
+    needs: [publish-npm-runtime-update-channel]
+    if: ${{ needs.publish-npm-runtime-update-channel.result == 'success' }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/github-pages-deploy.yml
