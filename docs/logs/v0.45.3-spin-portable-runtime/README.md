@@ -16,6 +16,7 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 
 ## 测试/验证/验收方式
 
+- Spin Action Job 生命周期已收敛到进程级共享 Runtime、Engine、FactorsExecutor 与 Component；macOS 同机十并发实测 physical footprint 增量从 `113.60 MiB` 降至 `2.61 MiB`（`0.26 MiB/Action`），十个独立 Job/Store 在峰值窗口同时存活。连续 100 批、共 1000 个 Job 的检查点稳定，没有形成阶梯增长；固定 warm runner 仍约 `43-46 MiB footprint`，后续优化应瞄准共享底座而非恢复每 Job executor。
 - 0.47.0 候选：Rust `cargo test`、七个受影响 TypeScript package 的 `tsc`、App Runtime/Kernel/Server/UI/CLI 定向测试、治理检查和 diff-only maintainability 均通过。
 - 正式 Spin runner smoke 通过，覆盖 32 个执行、权限、Job、流、AI、Provider、Resident、资源隔离与 SQLite 重启持久化检查；同一 runner PID 装载 16 个 Component 实例。
 - 真实产品 HTTP smoke 通过，覆盖安装启用、Panel/Agent/CLI 同实例调用、入口事实等价、验收合同/记录/导出，以及 Resident 停用后重启。
@@ -52,6 +53,8 @@ API、CLI 与 Agent tool 复用同一个 AppPackage dependency owner 完成 insp
 5. 安装并启用独立 Provider App，执行 `nextclaw app dependencies setup <consumer-id>`，确认 Consumer 变为 ready 并能跨 App 调用；停用 Consumer 后 unbind，确认再次回到 needs-configuration。
 
 ## 可维护性总结汇总
+
+- 删除 Action Job 路径中的 per-Job Tokio Runtime、Runner、Engine 和 `load_uncached`，App 级不可变执行对象只保留一个 owner；任务身份与权限通过 Factor instance builder 注入独立 Store，避免为降低内存而共享跨 Job 可变状态。
 
 0.47.0 收口时把 Registry parser、readiness、capability resolver、Job/activation/AI manager、runner protocol 和 HTTP smoke helpers 从临界大文件中拆到明确 owner；删除平行能力 provider owner，保持单一事实链。治理和 maintainability 检查均为 0 error；子 Agent 使用规则改为默认单 Agent、显式授权且有累计上限，避免再次以并行名义放大 Token 与共享 WIP 风险。
 

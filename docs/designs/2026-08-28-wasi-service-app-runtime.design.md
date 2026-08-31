@@ -2,8 +2,8 @@
 
 ## 文档状态
 
-- 日期：2026-08-28；2026-08-30 完成 Spin-first Review、判别性 Spike 与正式执行器迁移
-- 状态：**Spin-first 执行底座已冻结并完成本机迁移验证**；跨平台发布矩阵仍是交付门
+- 日期：2026-08-28；2026-08-30 完成 Spin-first Review、判别性 Spike 与正式执行器迁移；2026-08-31 补充 Action Job 共享生命周期与并发内存硬门
+- 状态：**Spin-first 执行底座已冻结**；Action Job 共享生命周期已完成本机修正与并发内存复验，跨平台发布矩阵仍是交付门
 - 文档层级：稳定设计；实施顺序由总体阶段计划负责，本文不构成发布承诺
 - 当前目的：冻结 Service App 内存、跨平台分发、WASM/WASI、Spin、可安装宿主能力、外部资源绑定与原生逃生路径的统一架构
 - 配套认知材料：[NextClaw 可移植能力运行时全景说明与场景设想](../thoughts/2026-08-28-portable-capability-runtime-panorama.thought.md)，保存完整比喻、端到端解释、场景、生态潜力、多语言边界与长期推演；本文继续作为架构决策 owner
@@ -403,6 +403,32 @@ FastAPI 也不能通常意义上“原封不动编译成 WASM”：FastAPI 应�
 同时，不应把“永远只有一个 OS 进程”冻结为公共合同。首版可以使用单 runner；当真实证据显示单点崩溃影响过大时，可以按信任等级、权限等级或资源等级形成有限 runner pool。产品语义不感知该拓扑变化。
 
 Wasmtime pooling allocator 可以提升实例化速度和密度，但会预留较大虚拟地址空间，也可能保留已使用 slot 的常驻内存；桌面端需要针对 RSS、虚拟内存、空闲回收和跨平台差异实测，不能直接照搬服务端默认值。参考：[Wasmtime PoolingAllocationConfig](https://docs.wasmtime.dev/api/wasmtime/struct.PoolingAllocationConfig.html)。
+
+### 5.6 Action Job 的调用状态必须归实例，不能归 App 加载
+
+共享 runner 只有在昂贵对象的生命周期真正上移时才成立。Action Job 的标准结构冻结为：
+
+```text
+一个 Runner 进程
+  -> 一个 Tokio Runtime
+  -> 一个 Spin Engine / FactorsExecutor
+  -> 每个 App identity 一个缓存的 FactorsExecutorApp / InstancePre
+  -> 每个并发 Action Job 一个 Store / Component instance / JobContext
+```
+
+`jobId`、`callId`、`traceId`、取消令牌、deadline、事件预算和 host-call registry 只属于本次实例。它们通过 Factor 的 per-instance builder/state 或等价的 Store data 注入；不得进入 App runtime config，也不得迫使 Job 重新创建 Engine、FactorsExecutor、Component 或 `InstancePre`。
+
+因此正式 Action Job 路径必须满足：
+
+- 同一 runner 生命周期内只创建一个 Tokio Runtime、Engine 和 FactorsExecutor；
+- 相同 App identity 只加载和预链接一次 Component，权限、secret fingerprint、mount 或 artifact identity 变化时精确失效；
+- 每个 Job 仍拥有独立 Store、线性内存、fuel、deadline、取消和 capability 上下文；
+- Job 并发由共享 runtime 上的本地任务承载，不为每个 Job 新建 OS 线程和 Tokio Runtime；
+- “并发”在本内存门中表示多个独立 Store/instance 已同时进入并保持 in-flight，不等同于承诺占用同等数量 CPU 核；CPU 并行度如需扩展，应由有界 worker 拓扑单独治理，不能恢复为按 Job 创建线程；
+- Action 完成后 Store/instance 可以销毁或进入有界池，不能让批次调用形成无上限常驻阶梯；
+- 直接 `invoke`、`start-job`、Resident 与 Provider 不得分叉出两套权限或数据语义。
+
+本机性能门使用同一 Release runner、同一 Component 和同一 workload 做前后对照。macOS 以 warm-runner 相对 RSS 为主，Linux 以 PSS 为最终跨机器口径；共享固定页会在相对增量中抵消，但 macOS RSS 不能冒充 Linux PSS。简单 Action 的目标按单个真实并发槽计算：`<= 1.5 MiB` 为优秀，`<= 3 MiB` 为可接受，`3-5 MiB` 进入 Spin/直接 Wasmtime 等价 A/B，`> 5 MiB` 不满足低内存主路径，继续接近当前 `17-18 MiB` 则视为实现失败。
 
 ## 六、有限的基础 capability 集合
 

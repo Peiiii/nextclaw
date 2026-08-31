@@ -118,6 +118,14 @@ try {
   await expectOk("invoke", state, "counter_increment", { step: 3 });
   const stateRead = await expectOk("invoke", state, "counter_read");
   if (stateRead.counter !== 3 || stateRead.persistedBy !== "host.kv") throw new Error(`bad KV result: ${JSON.stringify(stateRead)}`);
+  const runtimeInfoJob = await startJob(state, "runtime_info", {});
+  const runtimeInfoTerminal = await runtimeInfoJob.terminal;
+  if (runtimeInfoTerminal.status !== "succeeded"
+    || runtimeInfoTerminal.result?.runnerPid !== runner.pid
+    || !(runtimeInfoTerminal.result?.loadedComponents >= 1)) {
+    throw new Error(`shared Job runtime info is inaccurate: ${JSON.stringify(runtimeInfoTerminal)}`);
+  }
+  checks.push("job-shared-runtime-info");
   await expectError("invoke", stateDenied, "counter_read", undefined, "WASI_CAPABILITY_DENIED");
   const mountedRead = await expectOk("invoke", filesystemGranted, "filesystem_read", { path: "/documents/notes/note.txt" });
   if (mountedRead.content !== "portable filesystem grant" || mountedRead.mediatedBy !== "wasi.filesystem") {
