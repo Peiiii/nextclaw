@@ -24,24 +24,24 @@
 | 设计 | owner、状态合同、迁移与恢复冻结 | 设计和 active ledger 可直接指导实现 | 已完成 |
 | 实现 | materializer、workflow、producer guard、测试完成 | diff 无未解释路径，定向检查可运行 | 已完成 |
 | 验证与 Review | 本地行为、合同、类型和维护性证据通过 | findings 关闭，外部迁移条件满足 | 已完成 |
-| 主线与部署 | 改动进入 `origin/master`，Actions Pages 首次成功 | 原 URL 三类公开面通过 | 未开始 |
-| 历史清理 | 紧凑状态 force-with-lease 生效，本地/fresh clone 审计完成 | Required IDs 全部 passed | 未开始 |
+| 主线与部署 | 改动进入 `origin/master`，Actions Pages 首次成功 | 原 URL 三类公开面通过 | 已完成 |
+| 历史清理 | 紧凑状态 force-with-lease 生效，本地/fresh clone 审计完成 | Required IDs 全部 passed | 已完成 |
 
 ## Active acceptance ledger
 
 | ID | Required | 合同 | Status | 当前证据 | 失效原因 |
 | --- | --- | --- | --- | --- | --- |
-| GPA-01 | true | 原 `peiiii.github.io/nextclaw` URL 由 Actions Pages 提供 | not-run | 当前仍是 legacy branch source | 实现或 Pages 配置变化 |
+| GPA-01 | true | 原 `peiiii.github.io/nextclaw` URL 由 Actions Pages 提供 | passed | Pages API 为 workflow；三次 Actions deployment 成功 | 实现或 Pages 配置变化 |
 | GPA-02 | true | APT `.deb` 从 GitHub Release 物化并通过 filename/size/SHA 校验 | passed | 真实 97,388,124-byte APT 包从紧凑状态物化，SHA 与签名 `Packages` 一致 | materializer 或状态 schema 变化 |
-| GPA-03 | true | APT fresh install、upgrade 和 recovery 合同不退化 | not-run | 现有 smoke 与 recovery 路径已调查 | APT workflow 变化 |
-| GPA-04 | true | Desktop stable/beta manifest 均保留且公开可读 | not-run | 当前公开路径已取证 | Desktop producer 变化 |
-| GPA-05 | true | NPM runtime stable/beta manifest 均保留且公开可读 | not-run | 当前状态路径已取证 | NPM producer 变化 |
+| GPA-03 | true | APT fresh install、upgrade 和 recovery 合同不退化 | passed | APT recovery run 33402591007 的 build、fresh install、upgrade 和 deploy 全绿 | APT workflow 变化 |
+| GPA-04 | true | Desktop stable/beta manifest 均保留且公开可读 | passed | 两个公网 manifest 与紧凑状态逐字节一致 | Desktop producer 变化 |
+| GPA-05 | true | NPM runtime stable/beta manifest 均保留且公开可读 | passed | 两个公网 manifest 与紧凑状态逐字节一致 | NPM producer 变化 |
 | GPA-06 | true | producer 提交前拒绝大文件，`.deb` 不再进入 Git | passed | 三个 producer 均调用 compact state guard；合同测试通过 | guard 或 workflow 变化 |
-| GPA-07 | true | `gh-pages` 被重建为单根紧凑状态且不改写 `master`/tag | not-run | 两条历史无共同祖先 | 远端引用变化 |
-| GPA-08 | true | 迁移前失败可保留 legacy；迁移后失败可从 Release + state 重试 | not-run | 恢复策略已设计 | rollout 顺序变化 |
+| GPA-07 | true | `gh-pages` 被重建为单根紧凑状态且不改写 `master`/tag | passed | 当前 2 commits/1 root、tree 22,164 bytes、零大文件；只 force `gh-pages` | 远端引用变化 |
+| GPA-08 | true | 迁移前失败可保留 legacy；迁移后失败可从 Release + state 重试 | passed | 首次部署前保留完整旧分支；compact 后 recovery 从 `.pages.deb` 恢复成功 | rollout 顺序变化 |
 | GPA-09 | true | 受影响测试、YAML、lint、TypeScript 和维护性检查通过 | passed | 43 项 release 测试、actionlint、ESLint、治理检查通过；Review 0 findings；未触达 TypeScript，tsc 不适用 | diff 变化 |
-| GPA-10 | true | fresh clone / pull 不再下载旧 APT 历史，本地对象完成回收 | not-run | 当前 `.git` pack 约 4.27 GiB | 引用或 GC 状态变化 |
-| GPA-11 | true | 设计、执行计划和独立交付留痕完整 | not-run | 设计与计划已创建 | 交付范围变化 |
+| GPA-10 | true | fresh clone / pull 不再下载旧 APT 历史，本地对象完成回收 | passed | fresh clone `.git` 274,788,352 bytes、0 APT deb；本地回收 4,534,099,968 bytes | 引用或 GC 状态变化 |
+| GPA-11 | true | 设计、执行计划和独立交付留痕完整 | passed | design、plan、v0.45.4 iteration log 已记录实际证据 | 交付范围变化 |
 
 ## 执行部分
 
@@ -86,13 +86,12 @@
 - owner：Review / Retrospective / Delivery。
 - 结果：findings 关闭，适用迭代记录落盘，最终证据与未验证边界清楚交付。
 
-## 当前阶段门
+## 完成门
 
-- 结果：设计和 plan 能直接指导单一路径实现。
-- 保持项：URL、签名、更新 channel、recovery、`master` 历史。
-- 场景：五类发布/恢复场景和迁移失败恢复。
-- 本阶段不做：尚不执行 Pages 配置、部署和 branch rewrite。
-- 待关闭缺口：实现 materializer 与 workflow 后验证 GitHub 权限和实际 artifact 部署。
+- 结果：GPA-01 至 GPA-11 全部 passed，parent goal 完成。
+- 保持项：URL、签名、更新 channel、recovery、`master` 与 tag 历史均保持。
+- 外部证据：主线 `2ba4b9150`；Pages runs `33402130115`、`33402467650`；APT recovery `33402591007`；紧凑状态 tip `12779d409`。
+- 本地边界：主工作区存在另一任务 WIP，因此 mainline retry worker 正等待安全快进；远端主线和本任务隔离分支已一致，不覆盖该 WIP。
 
 ## 新发现与契约变更
 
@@ -112,4 +111,4 @@
 
 ## 尚未关闭
 
-- GPA-01 至 GPA-11 均待实现、验证或交付证据。
+- 无 Required acceptance 缺口。

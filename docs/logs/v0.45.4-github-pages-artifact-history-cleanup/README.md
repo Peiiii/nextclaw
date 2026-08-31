@@ -13,11 +13,13 @@
 - 43 项定向 release 测试通过，覆盖 Desktop asset closure、APT source schema、错误包拒绝、紧凑状态 guard、三个 producer 和 Pages workflow 合同。
 - `actionlint`、定向 ESLint、`lint:new-code:governance`、governance backlog ratchet 与 `git diff --check` 通过。
 - 使用真实 `origin/gh-pages` 状态和当前 APT 包完成本地物化：紧凑状态为 29 个文件，输出 artifact 为 100,843,520 bytes，包 SHA-256 为 `f22a4c70f5171d44a6e06276a044833c4158c8eb945eb97086d775a660ff3cb8`，与签名 `Packages` 一致。
-- 本机 Docker daemon 未运行，因此容器化 fresh install/upgrade 不在本地冒充通过；交付阶段由正式 APT recovery workflow 的 Ubuntu runner 补齐并记录运行证据。
+- 本机 Docker daemon 未运行，因此容器化 fresh install/upgrade 没有在本地冒充通过；正式 APT recovery workflow [`33402591007`](https://github.com/Peiiii/nextclaw/actions/runs/33402591007) 在 GitHub Ubuntu runner 完成重建、fresh install、upgrade、状态提交和 Pages deploy，全部通过。
 
 ## 发布/部署方式
 
-内部基础设施改动合入 `origin/master` 后，使用当前稳定 Desktop tag `v0.47.0-desktop.1` 完成 APT recovery 和 Actions Pages 首次部署。随后以 `force-with-lease` 把远端 `gh-pages` 重建为单根紧凑状态，再次部署并验证原有 URL。最终 workflow、commit、Pages API 与 clone 体积证据在部署完成后补入本节。
+基础设施提交 `e67e3e985` 与最新远端主线合并为 `2ba4b9150` 并普通推送到 `origin/master`。Actions Pages 首次部署 run [`33402130115`](https://github.com/Peiiii/nextclaw/actions/runs/33402130115) 通过后，以旧 tip `ff08605b9` 为 exact lease 把 `gh-pages` 重建为 root `2f5036e51`；紧凑分支二次部署 run [`33402467650`](https://github.com/Peiiii/nextclaw/actions/runs/33402467650) 通过。最终 APT recovery 把状态推进到 `12779d409` 并自动部署。
+
+GitHub Pages API 最终为 `build_type=workflow`。交付中只发生用户授权的首次 dispatch、Pages source 切换、Release asset 上传和 exact-lease 历史重建，没有外部人工救援：`AUTOMATION_INTERVENTIONS: 0`。
 
 ## 用户/产品视角的验收步骤
 
@@ -25,6 +27,10 @@
 2. Linux APT fresh install 与从上一仓库状态升级通过。
 3. 远端 `gh-pages` 不含 `.deb` 或至少 20 MiB 文件，且只有一个根提交。
 4. 全新 clone 不再取得旧 APT 大 blob；后续 stable/beta producer 仍能部署完整站点。
+
+最终线上核对结果：Desktop stable/beta、NPM runtime stable/beta、APT `Packages`、`InRelease` 和安装脚本均与紧凑状态逐字节一致；公开 `.deb` 为 97,366,144 bytes，SHA-256 为 `877a7fcec3dd176f5174f6c16434bf3506bfa1f7a9b91c29ef2a6a753154701c`。
+
+远端 `gh-pages` 有 2 个提交、1 个根，当前状态树 22,164 bytes，零 `.deb` 和零至少 20 MiB 文件。标准、无 shallow/filter 的 HTTPS fresh clone 用时 96 秒，pack 259,839,734 bytes，整个 `.git` 274,788,352 bytes，APT `.deb` 对象为 0。共享本地 `.git` 经定向 reflog 过期和 `git gc --prune=now` 从 5,145,067,520 bytes 降至 610,967,552 bytes，共回收 4,534,099,968 bytes；旧历史 tip 已不可读，Git garbage 为 0。
 
 ## 可维护性总结汇总
 
