@@ -100,6 +100,7 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   const runtime = readFileSync(new URL("../../.github/workflows/npm-runtime-update-release.yml", import.meta.url), "utf8");
   const prepare = readFileSync(new URL("../../.github/workflows/npm-release-prepare.yml", import.meta.url), "utf8");
   const release = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
+  const beta = readFileSync(new URL("./release-beta.mjs", import.meta.url), "utf8");
 
   assert.match(preflight, /run-name: .*dispatch=\$\{\{ inputs\.dispatch_id \}\}/);
   assert.match(preflight, /ref: \$\{\{ inputs\.target_sha \}\}/);
@@ -124,6 +125,9 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(release, /git merge-base --is-ancestor "\$candidate_sha" "\$release_commit"/);
   assert.match(release, /timeout-minutes: 45/);
   assert.match(release, /actions: write/);
+  assert.match(beta, /`release_target=\$\{releaseTarget\}`/);
+  assert.match(beta, /`dispatch_id=\$\{dispatchId\}`/);
+  assert.match(beta, /displayTitle.*dispatch=\$\{dispatchId\}/);
 });
 
 test("runtime manifest verification waits through missing and stale gh-pages projections", async () => {
