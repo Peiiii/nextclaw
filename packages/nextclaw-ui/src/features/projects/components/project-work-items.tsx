@@ -219,15 +219,16 @@ export function ProjectWorkItems({
           aria-label={t("projectsWorkDetails")}
         >
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <h3 className="font-semibold">{selected.name}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 break-all text-xs text-muted-foreground">
                 {selected.id} · {selected.reference.label}
               </p>
             </div>
             <Button
               size="sm"
               variant="ghost"
+              className="shrink-0"
               onClick={() => setSelectedId(null)}
             >
               {t("projectsCloseDetails")}

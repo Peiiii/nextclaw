@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   useProjectObservation: vi.fn(),
   openFilePreview: vi.fn(),
   createSession: vi.fn(),
+  workspaceProps: vi.fn(),
+  useViewportLayout: vi.fn(),
 }));
 
 vi.mock("@/shared/hooks/use-projects", () => ({
@@ -29,7 +31,13 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   }),
 }));
 vi.mock("@/features/chat/components/conversation/chat-conversation-workspace-section", () => ({
-  ChatConversationWorkspaceSection: () => <div data-testid="project-workspace-preview" />,
+  ChatConversationWorkspaceSection: (props: unknown) => {
+    mocks.workspaceProps(props);
+    return <div data-testid="project-workspace-preview" />;
+  },
+}));
+vi.mock("@/app/hooks/use-viewport-layout", () => ({
+  useViewportLayout: mocks.useViewportLayout,
 }));
 
 const observedAt = "2026-08-30T00:00:00.000Z";
@@ -155,6 +163,8 @@ const snapshot: ProjectObservationSnapshot = {
 describe("ProjectsPage", () => {
   beforeEach(() => {
     mocks.createSession.mockReset();
+    mocks.workspaceProps.mockReset();
+    mocks.useViewportLayout.mockReturnValue({ isMobile: false });
     mocks.useProjects.mockReturnValue({
       data: {
         projects: [
@@ -175,6 +185,28 @@ describe("ProjectsPage", () => {
       isLoading: false,
       isError: false,
     });
+  });
+
+  it("uses the existing overlay workspace mode on mobile", () => {
+    mocks.useViewportLayout.mockReturnValue({ isMobile: true });
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter initialEntries={["/projects/project-research/overview"]}>
+          <Routes>
+            <Route path="/projects/:projectId/:tab" element={<ProjectsPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(mocks.workspaceProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        layoutMode: "mobile",
+        projectRoot: "/tmp/research",
+        sessionKey: null,
+      }),
+    );
   });
 
   it("uses the project selected by the sidebar route without rendering another selector", () => {

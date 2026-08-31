@@ -7,6 +7,7 @@ import type {
 } from "@nextclaw/client-sdk";
 import { toast } from "sonner";
 import { useProjects } from "@/shared/hooks/use-projects";
+import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { t } from "@/shared/lib/i18n";
 import {
   Tabs,
@@ -63,6 +64,7 @@ export function ProjectsPage() {
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const presenter = usePresenter();
+  const { isMobile } = useViewportLayout();
   const projects = useProjects();
   const registered = projects.data?.projects ?? [];
   const selectedProject = registered.find((project) => project.id === projectId) ?? null;
@@ -151,9 +153,9 @@ export function ProjectsPage() {
     });
   return (
     <>
-    <main className="h-full min-w-0 flex-1 overflow-y-auto p-4 md:p-6">
-      <div className="mx-auto max-w-6xl space-y-4">
-        <header className="flex flex-wrap items-center gap-3">
+    <main className="h-full min-w-0 flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+      <div className="mx-auto max-w-6xl space-y-3 sm:space-y-4">
+        <header className="hidden flex-wrap items-center gap-3 md:flex">
           <h1 className="text-xl font-semibold">{t("projectsTitle")}</h1>
         </header>
 
@@ -169,7 +171,7 @@ export function ProjectsPage() {
         ) : null}
         {snapshot ? (
           <>
-            <section className="rounded-2xl border border-border/60 bg-card p-4">
+            <section className="rounded-2xl border border-border/60 bg-card p-3 sm:p-4">
               <h2 className="text-lg font-semibold">{snapshot.project.name}</h2>
               {snapshot.project.summary ? (
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -244,7 +246,7 @@ export function ProjectsPage() {
       </div>
     </main>
     <ChatConversationWorkspaceSection
-      layoutMode="desktop"
+      layoutMode={isMobile ? "mobile" : "desktop"}
       sessionKey={null}
       projectRoot={selectedProject.rootPath}
     />
