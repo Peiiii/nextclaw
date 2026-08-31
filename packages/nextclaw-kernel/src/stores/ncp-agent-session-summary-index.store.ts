@@ -179,6 +179,7 @@ export class NcpAgentSessionSummaryIndexStore {
       ...summary,
       messageCount: readEventMessage(event) ? 1 : 0,
     });
+    const { deleted_at: _deletedAt, ...upsertParams } = row;
     this.db().prepare(
       `INSERT INTO sessions (
          session_id, peer_id, agent_id, created_at, updated_at,
@@ -201,7 +202,7 @@ export class NcpAgentSessionSummaryIndexStore {
          message_count = sessions.message_count + excluded.message_count,
          status = excluded.status
        WHERE sessions.deleted_at IS NULL`,
-    ).run(row);
+    ).run(upsertParams);
   };
 
   remove = async (sessionId: string): Promise<void> => {

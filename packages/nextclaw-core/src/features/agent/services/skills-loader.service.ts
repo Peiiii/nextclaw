@@ -74,7 +74,7 @@ export class SkillSelectionAmbiguityError extends Error {
     super(
       [
         `Requested skill "${selector}" is ambiguous.`,
-        "Multiple skills share this name. Retry with requested_skill_refs using one of:",
+        "Multiple skills share this name. Use one of these exact skill refs:",
         ...matches.map((skill) => `- ${skill.ref}`),
       ].join("\n"),
     );

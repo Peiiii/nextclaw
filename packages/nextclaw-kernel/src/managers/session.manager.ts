@@ -47,7 +47,7 @@ import type { EventBus } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
-import type { ProjectManager } from "@kernel/managers/project.manager.js";
+import type { ProjectManager } from "@kernel/features/projects/index.js";
 import { buildSessionTokenUsageSummary } from "@kernel/managers/session-token-usage.manager.js";
 import { SessionEventCoordinatorService, type PublishSessionEventParams } from "@kernel/services/session-event-coordinator.service.js";
 import { SessionSettingsService } from "@kernel/services/session-settings.service.js";

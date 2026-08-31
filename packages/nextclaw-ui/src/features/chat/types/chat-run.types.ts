@@ -16,7 +16,6 @@ export type SendMessageParams = {
   model?: string;
   thinkingLevel?: ThinkingLevel;
   projectRoot?: string | null;
-  requestedSkills?: string[];
   attachments?: NcpDraftAttachment[];
   parts?: NcpMessagePart[];
   composerNodes?: ChatComposerNode[];

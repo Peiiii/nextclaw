@@ -240,7 +240,7 @@ describe('useSessionConversationController backend run queue', () => {
         parts: [{ type: 'text', text: 'Update this session title' }],
       }),
     });
-    expect(envelope?.metadata).not.toHaveProperty('requested_skill_refs');
+    expect(envelope?.metadata).not.toHaveProperty('ui_inline_tokens');
     expect(params.resetComposer).not.toHaveBeenCalled();
     expect(params.restoreComposer).not.toHaveBeenCalled();
   });

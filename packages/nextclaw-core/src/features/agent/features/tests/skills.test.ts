@@ -58,6 +58,80 @@ describe("SkillsLoader visualization builtin", () => {
 });
 
 describe("SkillsLoader observation builtin", () => {
+  it("discovers the project observation setup skill and its project-owned runtime contract", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const entry = loader
+      .listSkills(false)
+      .find(({ name }) => name === "project-observation-setup");
+
+    expect(entry).toEqual(
+      expect.objectContaining({
+        source: "builtin",
+        scope: "builtin",
+      }),
+    );
+    expect(loader.getSkillMetadata(entry!)?.description).toContain(
+      "setting up or maintaining a project's observation contract",
+    );
+    expect(loader.loadSkill("project-observation-setup")).toContain(
+      "`.nextclaw/project.yaml`",
+    );
+    const skill = loader.loadSkill("project-observation-setup");
+    const requiredContractFragments = [
+      "`.nextclaw/project.yaml` 是什么",
+      "只读观察配置",
+      "Setup 必须同时建立三件事",
+      "项目根 `AGENTS.md`",
+      "`.agents/skills/project-work-tracking/SKILL.md`",
+      "真正让后续机制持续生效的是项目自己的",
+      "Projects 页面不注入本 Skill",
+      "不要另建一套运行时注入、项目绑定、`requested skills` 或 Skill 追踪元数据机制",
+      "提出一套可确认的推荐",
+      "不要把 setup 变成多轮访谈",
+      "完全空白的项目属于上述必要问题场景",
+      "不得默认它是软件开发、研究、写作或其它项目",
+      "这个项目准备做什么？用一句话描述目标或希望产出的结果即可。",
+      "每个 Workflow 描述“一项工作如何从开始走到交付”",
+      "它不是整个项目的宏观阶段、路线图或里程碑",
+      "默认推荐：通用工作项生命周期",
+      "id: general-work",
+      "id: exploration",
+      "id: proposal-review",
+      "id: verification",
+      "id: acceptance",
+      "AI 验证通过只表示结果具备提交条件",
+      "stage=acceptance",
+      "response=confirm-reject",
+      "status=resolved",
+      "references/scenarios/software-development.md",
+      "references/scenarios/creative-writing.md",
+      "references/scenarios/research-analysis.md",
+      "Workflow 对单条工作项是可选分类",
+      "`context` 只引用已经存在、已经读取",
+      "此时使用 `context: []`",
+      "Artifact 的 include glob 可以规划",
+      "`stage` 表示它在所选生命周期中的业务节点",
+      "顶层只允许 `schema_version`、`project`、`workflows`、`observation`",
+      "尤其不要把 `skills` 写成顶层字段",
+      "确认后一次写入",
+      "三者共同构成 setup 完成态",
+      "写入后必须重新读取三份文件",
+      "`observation.artifacts`",
+      "不要只输出 `project.context`",
+      "项目内 `project-work-tracking` Skill",
+      "[nextclaw.project/v1 id=wi_",
+      "切换工作项必须重新声明 `id`",
+      "AI 验证通过进入 `acceptance`",
+      "`status=completed`",
+      "不要为了填满项目页虚构已有数据",
+      "不追踪使用了哪个 Skill",
+    ];
+    for (const fragment of requiredContractFragments) {
+      expect(skill).toContain(fragment);
+    }
+  });
+
   it("loads the always-on continuous attention skill", () => {
     const workspace = createWorkspace();
     const loader = new SkillsLoader(workspace);

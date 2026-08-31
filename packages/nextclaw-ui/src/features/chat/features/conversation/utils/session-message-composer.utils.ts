@@ -14,7 +14,6 @@ import {
   resolveInlineTokensForText,
   type ChatInlineTokenSource,
 } from '@/features/chat/features/input/utils/chat-inline-token.utils';
-import { normalizeRequestedSkills } from '@/features/chat/features/runtime/utils/chat-runtime.utils';
 import type { SessionConversationComposerState } from '@/features/chat/features/conversation/hooks/use-session-conversation-input-state';
 
 export type SessionMessageComposerSnapshot = SessionConversationComposerState & {
@@ -53,15 +52,6 @@ function buildTextNodes(
     offset = nextToken.index + nextToken.token.rawText.length;
   }
   return nodes;
-}
-
-function readRequestedSkills(metadata: Record<string, unknown>): string[] {
-  const raw = metadata.requested_skill_refs;
-  return normalizeRequestedSkills(
-    Array.isArray(raw)
-      ? raw.filter((value): value is string => typeof value === 'string')
-      : undefined,
-  );
 }
 
 export function buildSessionMessageComposerSnapshot(params: {
@@ -107,8 +97,17 @@ export function buildSessionMessageComposerSnapshot(params: {
   });
 
   const normalizedNodes = normalizeChatComposerNodes(nodes);
-  const selectedSkills = readRequestedSkills(metadata);
+  const skillTokens = metadataTokens.filter(
+    (token): token is Extract<ChatInlineTokenSource, { kind: 'skill' }> =>
+      token.kind === 'skill',
+  );
+  const selectedSkills = [...new Set(skillTokens.map((token) => token.ref))];
   const skillNameByRef = new Map(availableSkills.map(({ ref, name }) => [ref, name]));
+  for (const token of skillTokens) {
+    if (!skillNameByRef.has(token.ref)) {
+      skillNameByRef.set(token.ref, token.name);
+    }
+  }
   return {
     text: deriveChatComposerDraft(normalizedNodes),
     nodes: normalizedNodes,

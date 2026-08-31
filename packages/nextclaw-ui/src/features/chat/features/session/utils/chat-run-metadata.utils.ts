@@ -8,7 +8,6 @@ import {
   createInlineTokensMetadata,
   type ChatSkillReferenceSnapshot,
 } from "@/features/chat/features/input/utils/chat-inline-token.utils";
-import { normalizeRequestedSkills } from "@/features/chat/features/runtime/utils/chat-runtime.utils";
 import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
 
 function createMetadataFields(
@@ -24,7 +23,6 @@ export function buildChatRunMetadata(payload: {
   thinkingLevel?: string;
   sessionType?: string;
   projectRoot?: string | null;
-  requestedSkills?: string[];
   skillRecords?: readonly ChatSkillReferenceSnapshot[];
   composerNodes?: Parameters<typeof buildInlineTokensFromComposer>[0];
   sessionMaterialization?: AgentRunSessionMaterializationMetadata | null;
@@ -37,10 +35,6 @@ export function buildChatRunMetadata(payload: {
     ...createMetadataFields(payload.agentId?.trim(), ["agentId", "agent_id"]),
     ...createMetadataFields(projectRoot ?? undefined, ["projectRoot", "project_root"]),
   };
-  const requestedSkills = normalizeRequestedSkills(payload.requestedSkills);
-  if (requestedSkills.length > 0) {
-    metadata.requested_skill_refs = requestedSkills;
-  }
   const inlineTokens = payload.composerNodes
     ? buildInlineTokensFromComposer(payload.composerNodes, payload.skillRecords)
     : [];

@@ -41,7 +41,6 @@ function buildEditedMessageMetadata(
   snapshot: SessionMessageComposerSnapshot,
 ): Record<string, unknown> | undefined {
   const metadata = { ...message.metadata };
-  delete metadata.requested_skill_refs;
   delete metadata[CHAT_INLINE_TOKENS_METADATA_KEY];
   const skillRecords = readInlineTokensFromMetadata(message.metadata).flatMap(
     (token) =>
@@ -59,7 +58,6 @@ function buildEditedMessageMetadata(
   );
   Object.assign(metadata, buildChatRunMetadata({
     composerNodes: [...snapshot.nodes],
-    requestedSkills: [...snapshot.selectedSkills],
     skillRecords,
   }));
   return Object.keys(metadata).length > 0 ? metadata : undefined;

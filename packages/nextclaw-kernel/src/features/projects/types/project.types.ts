@@ -8,6 +8,7 @@ export type ProjectTemplate = {
   description: string;
 };
 export type ProjectRecord = {
+  id: string;
   name: string;
   rootPath: string;
   template?: ProjectTemplateId;

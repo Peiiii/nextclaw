@@ -1,6 +1,5 @@
 export * from "./services/route-resolver.service.js";
 export * from "./utils/tool-catalog.utils.js";
-export * from "./utils/skill-context.utils.js";
 export { SkillsLoader } from "./services/skills-loader.service.js";
 export type {
   SkillInfo,

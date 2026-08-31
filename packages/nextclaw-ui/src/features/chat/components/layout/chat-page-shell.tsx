@@ -1,4 +1,4 @@
-import { useLayoutEffect } from "react";
+import { lazy, Suspense, useLayoutEffect } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { AgentsPage } from "@/features/agents";
@@ -9,11 +9,22 @@ import { ChatMobileShell } from "@/platforms/mobile";
 import { InboxPage } from "@/features/inbox";
 import { PanelAppMainPage } from "@/features/panel-apps";
 import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
-export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox" | "panel-app";
+const ProjectsPage = lazy(async () => ({
+  default: (await import("@/features/projects")).ProjectsPage,
+}));
+
+export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox" | "panel-app" | "projects";
 export type ChatPageProps = {
   view: MainPanelView;
 };
 const MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS = "max-w-[min(1180px,100%)]";
+
+function resolveManagementWorkspaceClass(view: MainPanelView): string {
+  return view === "projects"
+    ? "relative flex flex-1 min-h-0 overflow-hidden bg-background"
+    : "flex-1 min-h-0 overflow-hidden bg-background";
+}
+
 type UseChatSessionSyncParams = {
   routeSessionKey: string | null;
   syncRouteSessionSelection: (routeSessionKey: string | null) => void;
@@ -55,9 +66,13 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
       ) : (
         <section
           data-theme-surface="workspace"
-          className="flex-1 min-h-0 overflow-hidden bg-background"
+          className={resolveManagementWorkspaceClass(view)}
         >
-          {view === "inbox" ? (
+          {view === "projects" ? (
+            <Suspense fallback={<div className="h-full animate-pulse bg-card/30" />}>
+              <ProjectsPage />
+            </Suspense>
+          ) : view === "inbox" ? (
             <div className={`mx-auto flex h-full min-h-0 w-full flex-col py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
               <InboxPage />
             </div>

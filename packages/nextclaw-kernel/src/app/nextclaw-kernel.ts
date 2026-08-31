@@ -25,7 +25,10 @@ import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { PreferenceManager } from "@kernel/managers/preference.manager.js";
-import type { ProjectManager } from "@kernel/managers/project.manager.js";
+import type {
+  ProjectManager,
+  ProjectObservationService,
+} from "@kernel/features/projects/index.js";
 import type { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
@@ -154,6 +157,7 @@ export class NextclawKernel {
   readonly panelAppManager: PanelAppManager;
   readonly preferenceManager: PreferenceManager;
   readonly projectManager: ProjectManager;
+  readonly projectObservation: ProjectObservationService;
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager = new AgentRuntimeManager();
@@ -202,6 +206,7 @@ export class NextclawKernel {
       journalStore: this.ncpAgentSessionJournalStore,
       observations: this.observations,
       projectManager: this.projectManager,
+      projectObservation: this.projectObservation,
       sessionManager: this.sessionManager,
       sessionSearch: this.sessionSearch,
     } = createKernelSessionManagers({
@@ -355,6 +360,7 @@ export class NextclawKernel {
     void this.sessionSearch.start();
     this.mcpManager.start();
     this.providerModelCatalog.start();
+    await this.projectManager.migrateLegacyProjects();
     await this.projectManager.importSessionProjects(
       (await this.sessionManager.listSessions()).map((session) =>
         readProjectRoot(session.metadata),

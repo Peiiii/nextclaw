@@ -8,11 +8,13 @@ import { normalizeSessionProjectRootValue } from "@/shared/lib/session-project";
 type ChatConversationWorkspaceSectionProps = {
   layoutMode: "desktop" | "mobile";
   sessionKey: string | null;
+  projectRoot?: string | null;
 };
 
 export function ChatConversationWorkspaceSection({
   layoutMode,
   sessionKey,
+  projectRoot,
 }: ChatConversationWorkspaceSectionProps) {
   const snapshot = useChatThreadStore((state) => state.snapshot);
   const defaultWorkspacePath = useChatQueryStore((state) =>
@@ -21,9 +23,9 @@ export function ChatConversationWorkspaceSection({
     ),
   );
   const selectedSession = useNcpChatSelectedSession(sessionKey);
-  const draftProjectRoot = sessionKey
+  const draftProjectRoot = projectRoot ?? (sessionKey
     ? null
-    : snapshot.draftProjectRoot ?? defaultWorkspacePath;
+    : snapshot.draftProjectRoot ?? defaultWorkspacePath);
   const {
     childSessionTabs,
     activeSideChatDraft,

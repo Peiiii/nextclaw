@@ -7,7 +7,7 @@ import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { EventBus, eventKeys } from "@nextclaw/shared";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
-import { ProjectManager } from "@kernel/managers/project.manager.js";
+import { ProjectManager } from "@kernel/features/projects/index.js";
 
 const tempDirs: string[] = [];
 

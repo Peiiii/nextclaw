@@ -30,7 +30,7 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | Host management              | Install or remove autostart services on Linux, macOS, and Windows                             |
 | Remote access                | Enable, disable, diagnose, and debug remote connections                                       |
 | Agents and task execution    | Chat in a terminal, run Headless tasks, and manage Agents and Runtimes                        |
-| Projects and sessions        | Create projects, inspect templates, and organize session bindings                             |
+| Projects and sessions        | Create projects, inspect project progress, and organize session bindings                      |
 | Automation and learning loop | Manage scheduled jobs and learning-loop policy                                                |
 | Configuration and secrets    | Read and write configuration, audit secrets, and apply secret references                      |
 | MCP and messaging channels   | Manage MCP servers and messaging-channel connections                                          |
@@ -108,6 +108,7 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | `nextclaw projects list`          | List registered projects, including projects without sessions   |
 | `nextclaw projects templates`     | List built-in project templates                                 |
 | `nextclaw projects create`        | Create and register a project                                   |
+| `nextclaw projects observe`       | Read a registered project's observation snapshot                |
 | `nextclaw sessions rename`        | Rename a session                                                |
 | `nextclaw sessions set-project`   | Bind a session to an existing project directory                 |
 | `nextclaw sessions clear-project` | Clear a session's explicit project binding                      |

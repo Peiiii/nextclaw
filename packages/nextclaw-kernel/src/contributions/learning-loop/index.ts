@@ -12,7 +12,6 @@ import {
   LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY,
   LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY,
   LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY,
-  LEARNING_LOOP_REQUESTED_SKILLS,
   LEARNING_LOOP_SOURCE_SESSION_ID_METADATA_KEY,
   readLearningLoopRuntimeConfig,
   type LearningLoopRuntimeConfig,
@@ -152,7 +151,6 @@ export class LearningLoopContribution extends Contribution {
         sourceSessionId: sessionId,
         sourceSessionMetadata: metadata,
         metadataOverrides: {
-          requested_skills: LEARNING_LOOP_REQUESTED_SKILLS,
           [LEARNING_LOOP_DISABLED_METADATA_KEY]: true,
           [LEARNING_LOOP_SOURCE_SESSION_ID_METADATA_KEY]: sessionId,
         },

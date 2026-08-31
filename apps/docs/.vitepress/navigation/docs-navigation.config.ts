@@ -99,6 +99,7 @@ const enSections: LocaleSections = {
           { text: 'Tasks and sessions', link: '/en/guide/chat' },
           { text: 'Session management', link: '/en/guide/sessions' },
           { text: 'Session workspace', link: '/en/guide/workspace' },
+          { text: 'Project observations', link: '/en/guide/projects' },
           { text: 'Agents and subtasks', link: '/en/guide/multi-agent' },
           { text: 'Tools and actions', link: '/en/guide/tools' },
           { text: 'Keep an agent watching', link: '/en/guide/agent-observation' }
@@ -269,6 +270,7 @@ const zhSections: LocaleSections = {
           { text: '任务与会话', link: '/zh/guide/chat' },
           { text: '会话管理', link: '/zh/guide/sessions' },
           { text: '会话工作区', link: '/zh/guide/workspace' },
+          { text: '项目观测', link: '/zh/guide/projects' },
           { text: 'Agent 与子任务', link: '/zh/guide/multi-agent' },
           { text: '工具与操作', link: '/zh/guide/tools' },
           { text: '让 Agent 持续关注', link: '/zh/guide/agent-observation' }

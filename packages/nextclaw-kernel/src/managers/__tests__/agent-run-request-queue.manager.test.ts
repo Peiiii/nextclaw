@@ -344,7 +344,7 @@ describe("AgentRunRequestManager session run queue", () => {
       payload: {
         sessionId: "session-1",
         content: [{ type: "text", text: "second" }],
-        metadata: { requested_skill_refs: ["project:review"] },
+        metadata: { project_root: "/tmp/project" },
       },
     }, { source: "test" });
     const other = await send("session-2", "other");
@@ -361,7 +361,7 @@ describe("AgentRunRequestManager session run queue", () => {
       {
         sessionId: "session-1",
         message: { parts: [{ type: "text", text: "second" }] },
-        metadata: { requested_skill_refs: ["project:review"] },
+        metadata: { project_root: "/tmp/project" },
       },
     ]);
 
