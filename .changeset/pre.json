@@ -66,5 +66,8 @@
     "@nextclaw/marketplace-api-worker": "0.0.14",
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
-  "changesets": []
+  "changesets": [
+    "add-read-only-project-observation",
+    "auto-release-batch-20260831015422553"
+  ]
 }
