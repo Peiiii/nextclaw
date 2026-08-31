@@ -180,19 +180,8 @@ describe('buildChatRunMetadata', () => {
     ).not.toHaveProperty('project_root');
   });
 
-  it('sends requested skill refs instead of legacy requested skill names', () => {
-    expect(
-      buildChatRunMetadata({
-        requestedSkills: ['project:/tmp/project-alpha/.agents/skills/review'],
-      }),
-    ).toMatchObject({
-      requested_skill_refs: ['project:/tmp/project-alpha/.agents/skills/review'],
-    });
-  });
-
-  it('snapshots explicit skill references while keeping internal refs out of message text', () => {
+  it('snapshots skill token presentation without creating runtime selection metadata', () => {
     expect(buildChatRunMetadata({
-      requestedSkills: ['workspace:/tmp/workspace/skills/review'],
       skillRecords: [{
         ref: 'workspace:/tmp/workspace/skills/review',
         name: 'review',
@@ -204,8 +193,7 @@ describe('buildChatRunMetadata', () => {
         tokenKey: 'workspace:/tmp/workspace/skills/review',
         label: 'review',
       })],
-    })).toMatchObject({
-      requested_skill_refs: ['workspace:/tmp/workspace/skills/review'],
+    })).toEqual({
       ui_inline_tokens: {
         schemaVersion: 2,
         items: [{

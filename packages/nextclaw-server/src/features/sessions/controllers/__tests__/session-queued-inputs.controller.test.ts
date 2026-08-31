@@ -23,7 +23,7 @@ function createApp() {
     id: "queued-1",
     sessionId: "session-1",
     enqueuedAt: "2026-07-22T10:00:00.000Z",
-    metadata: { requested_skill_refs: ["project:review"] },
+    metadata: { project_root: "/tmp/project" },
     message: {
       id: "message-1",
       sessionId: "session-1",
@@ -92,7 +92,7 @@ describe("NcpSessionRoutesController queued inputs", () => {
         inputs: [{
           id: "queued-1",
           sessionId: "session-1",
-          metadata: { requested_skill_refs: ["project:review"] },
+          metadata: { project_root: "/tmp/project" },
         }],
       },
     });

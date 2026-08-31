@@ -1,7 +1,7 @@
 import { normalizeToolParams } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
-import type { ProjectManager } from "@kernel/managers/project.manager.js";
-import type { ProjectTemplateId } from "@kernel/types/project.types.js";
+import type { ProjectManager } from "@kernel/features/projects/index.js";
+import type { ProjectTemplateId } from "@kernel/features/projects/index.js";
 
 function readRequiredString(value: unknown, key: string): string {
   if (typeof value !== "string" || !value.trim()) {

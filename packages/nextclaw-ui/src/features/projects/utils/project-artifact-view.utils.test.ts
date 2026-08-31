@@ -1,0 +1,63 @@
+import { describe, expect, it } from "vitest";
+import {
+  formatProjectRelativeTime,
+  sortProjectArtifacts,
+} from "./project-artifact-view.utils";
+
+const artifacts = [
+  {
+    id: "older-update",
+    path: "docs/designs/older.md",
+    categoryId: "designs",
+    categoryLabel: "Designs",
+    exists: true,
+    fileCreatedAt: "2026-08-01T00:00:00.000Z",
+    fileUpdatedAt: "2026-08-28T00:00:00.000Z",
+    references: [],
+  },
+  {
+    id: "newer-update",
+    path: "docs/designs/newer.md",
+    categoryId: "designs",
+    categoryLabel: "Designs",
+    exists: true,
+    fileCreatedAt: "2026-08-29T00:00:00.000Z",
+    fileUpdatedAt: "2026-08-30T00:00:00.000Z",
+    references: [],
+  },
+  {
+    id: "untimed",
+    path: "docs/designs/alpha.md",
+    categoryId: "designs",
+    categoryLabel: "Designs",
+    exists: false,
+    references: [],
+  },
+];
+
+describe("project artifact view", () => {
+  it("prioritizes recent updates by default and supports alternate sort orders", () => {
+    expect(sortProjectArtifacts(artifacts).map((artifact) => artifact.id)).toEqual([
+      "newer-update",
+      "older-update",
+      "untimed",
+    ]);
+    expect(sortProjectArtifacts(artifacts, "created-desc").map((artifact) => artifact.id)).toEqual([
+      "newer-update",
+      "older-update",
+      "untimed",
+    ]);
+    expect(sortProjectArtifacts(artifacts, "name").map((artifact) => artifact.id)).toEqual([
+      "untimed",
+      "newer-update",
+      "older-update",
+    ]);
+  });
+
+  it("renders recent timestamps in people-friendly language", () => {
+    const now = new Date("2026-08-30T12:00:00.000Z");
+    expect(formatProjectRelativeTime("2026-08-30T11:57:00.000Z", now)).toBe("3 minutes ago");
+    expect(formatProjectRelativeTime("2026-08-30T09:00:00.000Z", now)).toBe("3 hours ago");
+    expect(formatProjectRelativeTime("2026-08-29T12:00:00.000Z", now)).toBe("Yesterday");
+  });
+});

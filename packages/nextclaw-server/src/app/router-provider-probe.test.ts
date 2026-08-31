@@ -65,6 +65,7 @@ function createProviderProbeApp(configPath: string) {
         listProjects: async () => [],
         listTemplates: () => [],
       } as never,
+      projectObservation: { observe: async () => { throw new Error("not used"); } } as never,
       serviceAppManager: {} as never,
       portableRuntimeAcceptance: {} as never,
       sessionContextCompactionManager: {} as never,

@@ -3,7 +3,7 @@ import { mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { ProjectError, ProjectManager } from "@kernel/managers/project.manager.js";
+import { ProjectError, ProjectManager } from "@kernel/features/projects/index.js";
 
 const tempDirs: string[] = [];
 
@@ -85,6 +85,34 @@ describe("ProjectManager", () => {
     expect(project).not.toHaveProperty("template");
     expect(await readdir(rootPath)).toEqual(["keep.txt"]);
     expect(await readFile(join(rootPath, "keep.txt"), "utf8")).toBe("keep");
+  });
+
+  it("migrates historical project records by preserving their data and adding stable ids", async () => {
+    const fixture = createFixture();
+    const rootPath = join(fixture.workspace, "historical");
+    await mkdir(rootPath, { recursive: true });
+    await mkdir(join(fixture.storePath, ".."), { recursive: true });
+    await writeFile(fixture.storePath, JSON.stringify({
+      version: 1,
+      projects: [{
+        name: "Historical",
+        rootPath: await realpath(rootPath),
+        createdAt: "2026-07-01T00:00:00.000Z",
+        updatedAt: "2026-07-02T00:00:00.000Z",
+      }],
+    }), "utf8");
+
+    await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(true);
+    const [project] = await fixture.manager.listProjects();
+    expect(project).toMatchObject({
+      name: "Historical",
+      rootPath: await realpath(rootPath),
+      createdAt: "2026-07-01T00:00:00.000Z",
+      updatedAt: "2026-07-02T00:00:00.000Z",
+    });
+    expect(project?.id).toMatch(/^[A-Za-z0-9_-]{12}$/);
+    await expect(fixture.manager.getProjectById(project!.id)).resolves.toEqual(project);
+    await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(false);
   });
 
   it("rejects invalid project path types at the owner boundary", async () => {

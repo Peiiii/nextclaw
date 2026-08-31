@@ -33,7 +33,10 @@ import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtim
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
 import { PreferencesRoutesController } from "@nextclaw-server/features/preferences/index.js";
-import { ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
+import {
+  ProjectObservationRoutesController,
+  ProjectsRoutesController,
+} from "@nextclaw-server/features/projects/index.js";
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
@@ -77,6 +80,10 @@ function createUiRouteControllers(
     }),
     preferences: new PreferencesRoutesController(kernel.preferenceManager),
     projects: new ProjectsRoutesController(kernel.projectManager),
+    projectObservation: new ProjectObservationRoutesController(
+      kernel.projectManager,
+      kernel.projectObservation,
+    ),
     serviceApps: new ServiceAppsRoutesController({
       panelAppManager: kernel.panelAppManager,
       serviceAppManager: kernel.serviceAppManager,
@@ -271,6 +278,7 @@ class UiRouteRegistry {
       panelApps,
       preferences,
       projects,
+      projectObservation,
       serviceApps,
       serverPath,
       systemObjectReferences,
@@ -344,6 +352,7 @@ class UiRouteRegistry {
       ["put", "/api/preferences/:key", preferences.update],
       ["delete", "/api/preferences/:key", preferences.delete],
       ["get", "/api/projects", projects.list],
+      ["get", "/api/projects/:projectId/observation", projectObservation.get],
       ["post", "/api/projects", projects.create],
       ["post", "/api/projects/existing", projects.addExisting],
       ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],

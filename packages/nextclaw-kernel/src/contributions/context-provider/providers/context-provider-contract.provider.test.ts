@@ -262,7 +262,6 @@ describe("ContextProviderContribution native prompt contract", () => {
 
     const blocks = await contextProviderManager.buildContext(
       createRequest(projectRoot, {
-        requested_skill_refs: [`project:${projectSkillDir}`],
         [CHAT_INLINE_TOKENS_METADATA_KEY]: {
           schemaVersion: CHAT_INLINE_TOKENS_SCHEMA_VERSION,
           items: [
@@ -314,7 +313,7 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## AGENTS.md\n\nNextClaw workspace rules.",
       "## Skill Sources",
       `${join(projectRoot, ".agents", "skills")}/<skill-name>/SKILL.md`,
-      "# Active Skills",
+      "# Always-on Skills",
       "### project skills",
       `Root: \`${join(projectRoot, ".agents", "skills")}\``,
       "- project-review — Project review instructions",
@@ -346,11 +345,11 @@ describe("ContextProviderContribution native prompt contract", () => {
     expect(context).not.toContain("- read_file: Read file contents");
     expect(context).not.toContain("<skill_group");
     expect(context).not.toContain("<location>");
-    const activeSkillsContext = context.slice(
-      context.indexOf("# Active Skills"),
+    const alwaysOnSkillsContext = context.slice(
+      context.indexOf("# Always-on Skills"),
       context.indexOf("## Skills"),
     );
-    expect(activeSkillsContext).toContain("- project-review — Project review instructions");
+    expect(alwaysOnSkillsContext).not.toContain("- project-review — Project review instructions");
     for (const forbidden of [
       'placement="inline"',
       'placement="side_panel"',

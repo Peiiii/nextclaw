@@ -1,14 +1,14 @@
 import { mkdir, readdir, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { expandHome } from "@nextclaw/core";
-import { ProjectStore } from "@kernel/stores/project.store.js";
+import { createProjectId, ProjectStore } from "@kernel/features/projects/stores/project.store.js";
 import {
   PROJECT_TEMPLATE_IDS,
   type CreateProjectInput,
   type ProjectRecord,
   type ProjectTemplate,
   type ProjectTemplateId,
-} from "@kernel/types/project.types.js";
+} from "@kernel/features/projects/types/project.types.js";
 
 const PROJECT_TEMPLATES: ProjectTemplate[] = [
   {
@@ -62,6 +62,23 @@ export class ProjectManager {
     (await this.store.list()).sort((left, right) =>
       right.updatedAt.localeCompare(left.updatedAt) || left.name.localeCompare(right.name)
     );
+
+  migrateLegacyProjects = async (): Promise<boolean> =>
+    await this.store.migrateLegacyRecords();
+
+  getProjectById = async (projectId: string): Promise<ProjectRecord | null> => {
+    const project = (await this.store.list()).find((entry) => entry.id === projectId);
+    return project ? structuredClone(project) : null;
+  };
+
+  getRegisteredProject = async (rootPath: unknown): Promise<ProjectRecord | null> => {
+    const canonicalPath = await this.resolveExistingProjectRoot(rootPath);
+    if (!canonicalPath) {
+      return null;
+    }
+    const project = (await this.store.list()).find((entry) => entry.rootPath === canonicalPath);
+    return project ? structuredClone(project) : null;
+  };
 
   listTemplates = (): ProjectTemplate[] => structuredClone(PROJECT_TEMPLATES);
 
@@ -154,6 +171,7 @@ export class ProjectManager {
     }
     const now = new Date().toISOString();
     const project: ProjectRecord = {
+      id: createProjectId(),
       name: input.name,
       rootPath: input.rootPath,
       ...(input.template ? { template: input.template } : {}),

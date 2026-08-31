@@ -147,6 +147,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       createProject: async () => unavailable("projectManager.createProject"),
       resolveExistingProjectRoot: async () => null,
     } as never,
+    projectObservation: {
+      observe: async () => unavailable("projectObservation.observe"),
+    } as never,
     serviceAppManager: {
       listServiceApps: async () => ({
         workspacePath: "",

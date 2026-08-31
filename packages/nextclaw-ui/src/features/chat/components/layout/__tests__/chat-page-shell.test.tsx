@@ -38,6 +38,10 @@ vi.mock("@/features/marketplace", () => ({
   MarketplacePage: () => <div>Marketplace</div>,
 }));
 
+vi.mock("@/features/projects", () => ({
+  ProjectsPage: () => <div>Project Home</div>,
+}));
+
 describe("ChatPageLayout", () => {
   it("uses the same canvas width for management pages", () => {
     const agentsView = render(
@@ -80,5 +84,22 @@ describe("ChatPageLayout", () => {
     expect(screen.queryByTestId("desktop-chat-sidebar")).toBeNull();
     expect(screen.queryByTestId("chat-conversation-panel")).toBeNull();
     expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+  });
+
+  it("keeps the chat sidebar while rendering the project home in the workspace", async () => {
+    useViewportLayoutMock.mockReturnValue({
+      mode: "desktop",
+      isMobile: false,
+      isDesktop: true,
+    });
+
+    render(<ChatPageLayout view="projects" confirmDialog={<div />} />);
+
+    expect(screen.getByTestId("desktop-chat-sidebar")).toBeTruthy();
+    const projectHome = await screen.findByText("Project Home");
+    expect(projectHome).toBeTruthy();
+    expect(projectHome.parentElement?.className).toContain("flex");
+    expect(projectHome.parentElement?.className).toContain("overflow-hidden");
+    expect(screen.queryByTestId("chat-conversation-panel")).toBeNull();
   });
 });

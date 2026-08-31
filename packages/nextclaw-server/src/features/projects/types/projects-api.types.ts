@@ -4,6 +4,14 @@ import type {
   ProjectTemplateId,
 } from "@nextclaw/kernel";
 
+export type {
+  ObservedRequest,
+  ObservedProjectRun,
+  ObservedWorkItem,
+  ObservedWorkflow,
+  ProjectObservationSnapshot,
+} from "@nextclaw/kernel";
+
 export type ProjectView = ProjectRecord;
 export type ProjectTemplateView = ProjectTemplate;
 

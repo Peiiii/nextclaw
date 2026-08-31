@@ -80,7 +80,6 @@ export function cloneInheritedMetadata(sourceMetadata: Record<string, unknown>):
     "preferred_model",
     "preferred_thinking",
     "project_root",
-    "requested_skill_refs",
     "codex_runtime_backend",
     "reasoningNormalizationMode",
     "reasoning_normalization_mode",

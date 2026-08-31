@@ -11,7 +11,7 @@ import type {
   ContextBlock,
   ContextProvider,
 } from "@kernel/types/agent-run.types.js";
-import type { ProjectManager } from "@kernel/managers/project.manager.js";
+import type { ProjectManager } from "@kernel/features/projects/index.js";
 import type { ContextProviderRunContextService } from "@kernel/contributions/context-provider/services/context-provider-run-context.service.js";
 import {
   type RegisteredProjectReference,

@@ -183,6 +183,35 @@ describe("ChatConversationWorkspaceSection", () => {
     );
   });
 
+  it("uses an explicit project root for a project-owned file preview", () => {
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: null,
+      activeWorkspacePanelKind: "file",
+      workspaceFileTabs: [{
+        key: "project-skill",
+        parentSessionKey: null,
+        path: "/Users/peiwang/Projects/nextbot/.agents/skills/project/SKILL.md",
+        viewMode: "preview",
+      }],
+      activeWorkspaceFileKey: "project-skill",
+    });
+
+    render(
+      <ChatConversationWorkspaceSection
+        layoutMode="desktop"
+        sessionKey={null}
+        projectRoot="/Users/peiwang/Projects/nextbot"
+      />,
+    );
+
+    expect(mocks.panelProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionProjectRoot: "/Users/peiwang/Projects/nextbot",
+        sessionWorkingDir: "/Users/peiwang/Projects/nextbot",
+      }),
+    );
+  });
+
   it("keeps the workspace panel mounted while a root draft materializes", () => {
     useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: null });
     useChatThreadStore.getState().setSnapshot({

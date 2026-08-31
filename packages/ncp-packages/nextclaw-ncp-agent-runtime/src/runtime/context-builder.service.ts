@@ -37,9 +37,7 @@ function mergeMessageAndRequestMetadata(input: NcpAgentRunInput): Record<string,
 function readRequestedToolNames(metadata: Record<string, unknown>): string[] {
   const raw =
     metadata.requested_tools ??
-    metadata.requestedTools ??
-    metadata.requested_skills ??
-    metadata.requestedSkills;
+    metadata.requestedTools;
   if (!Array.isArray(raw)) {
     return [];
   }

@@ -1,12 +1,12 @@
 export default {
-  "generatedAt": "2026-08-30T12:30:33.199Z",
+  "generatedAt": "2026-08-31T01:51:14.767Z",
   "hero": {
     "currentLoc": 279457,
     "testLoc": 116861,
     "trackedFiles": 2959,
-    "recentCommitCount": 566,
+    "recentCommitCount": 588,
     "activeDays30": 30,
-    "recentReleaseCount": 52,
+    "recentReleaseCount": 51,
     "latestReleaseDate": "2026-08-30",
     "latestNoteDate": "2026-08-30",
     "benchmarkName": "openclaw",
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-03",
-        "label": "05-03",
-        "value": 0
-      },
       {
         "key": "2026-05-04",
         "label": "05-04",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-30",
         "label": "08-30",
         "value": 279457
+      },
+      {
+        "key": "2026-08-31",
+        "label": "08-31",
+        "value": 279457
       }
     ],
     "testLocDaily": [
@@ -1181,11 +1181,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-08-01",
-        "label": "08-01",
-        "value": 1
-      },
-      {
         "key": "2026-08-02",
         "label": "08-02",
         "value": 1
@@ -1328,15 +1323,15 @@ export default {
       {
         "key": "2026-08-30",
         "label": "08-30",
-        "value": 72
+        "value": 84
+      },
+      {
+        "key": "2026-08-31",
+        "label": "08-31",
+        "value": 11
       }
     ],
     "commitWeekly": [
-      {
-        "key": "2026-06-08",
-        "label": "06-08",
-        "value": 61
-      },
       {
         "key": "2026-06-15",
         "label": "06-15",
@@ -1390,7 +1385,12 @@ export default {
       {
         "key": "2026-08-24",
         "label": "08-24",
-        "value": 239
+        "value": 251
+      },
+      {
+        "key": "2026-08-31",
+        "label": "08-31",
+        "value": 11
       }
     ],
     "releaseMonthly": [
@@ -1524,7 +1524,7 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-08-30",
-        "tagCount": 10,
+        "tagCount": 34,
         "sampleTags": [
           "@nextclaw/app-runtime@0.15.0",
           "@nextclaw/client-sdk@0.9.5",

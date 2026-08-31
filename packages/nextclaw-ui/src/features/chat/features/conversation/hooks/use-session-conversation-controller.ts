@@ -175,7 +175,6 @@ function buildSubmissionDraft(params: BuildSubmissionDraftParams): SubmissionDra
         : sessionKey
           ? inputQuery.selectedSession?.projectRoot ?? null
           : inputSnapshot.pendingProjectRoot,
-      requestedSkills: [...composerSnapshot.selectedSkills],
       skillRecords: inputQuery.skillRecords.filter((record) =>
         composerSnapshot.selectedSkills.includes(record.ref)
       ),

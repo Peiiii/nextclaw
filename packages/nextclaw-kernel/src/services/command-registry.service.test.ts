@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { NcpEventType } from "@nextclaw/ncp";
 import { EventBus } from "@nextclaw/shared";
 import { SessionManager } from "@kernel/managers/session.manager.js";
-import { ProjectManager } from "@kernel/managers/project.manager.js";
+import { ProjectManager } from "@kernel/features/projects/index.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { CommandRegistry } from "./command-registry.service.js";
 
