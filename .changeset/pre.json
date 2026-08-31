@@ -67,8 +67,13 @@
     "@nextclaw/provider-gateway-api-worker": "0.0.1"
   },
   "changesets": [
+    "add-persistent-project-work",
     "add-read-only-project-observation",
     "auto-release-batch-20260831015422553",
-    "fix-npm-runtime-version-skew"
+    "fix-npm-runtime-version-skew",
+    "fix-project-mobile-layout",
+    "gentle-folders-authorize",
+    "optimize-spin-action-memory",
+    "sync-mini-app-creator-skills"
   ]
 }
