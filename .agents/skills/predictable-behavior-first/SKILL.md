@@ -13,6 +13,7 @@ description: 仅当任务实际新增或改变 fallback、兼容、降级、救�
 - dev convenience 必须显式开启；发布产物不得借用 cwd、源码 checkout 或本机偶然资源。
 - 内部重构迁移所有已知调用方并删除旧入口，不为方便保留 alias、proxy、adapter 或双 manager。
 - 未发布中间态不是兼容合同；旧 route/API 只有在承载持久用户数据、已证明外部合同或不可避免的分阶段 rollout 时才保留。
+- 瞬态参数和内部 tool schema 无持久数据/外部合同时直接删除，不留兼容期、迁移或 legacy 分支。
 - 无效的 prompt、schema、协议或上游值应修 producer 并显式拒绝，不在下游用别名或归一化悄悄接受。
 - read/get/list/status/discover/report 必须纯读、可重复且无副作用；加载、注册、授权、写入和外部调用使用显式 action。
 - schema/tool 只表达自身合同，不承载动态 catalog、CLI 教程和 AI 工作流；发现与操作流程归对应 owner。
