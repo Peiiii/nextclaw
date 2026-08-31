@@ -1,20 +1,20 @@
 Architectures: amd64
 Codename: stable
 Components: main
-Date: Sun, 30 Aug 2026 19:17:32 +0000
+Date: Mon, 31 Aug 2026 14:28:18 +0000
 Description: NextClaw Linux APT Repository
 Label: NextClaw
 Origin: NextClaw
 Suite: stable
 MD5Sum:
- 8fa295ffa52c853fa81d5ab1a5938b85              697 main/binary-amd64/Packages
- d9dd6380954cdc581c87b6cfc8b4ebaa              466 main/binary-amd64/Packages.gz
+ 71edcf5c871b61e6b7a3573286fe92fb              697 main/binary-amd64/Packages
+ 90eaa6c84183408ab07119adb831b682              466 main/binary-amd64/Packages.gz
 SHA1:
- 0330b127ca271f17af904238b9821c20c43e1e77              697 main/binary-amd64/Packages
- 3b141be3fd891f1de9574baeb070fbed3324e5ba              466 main/binary-amd64/Packages.gz
+ 806a01ccda0d0a019f81cadb3a6a3f589f06f376              697 main/binary-amd64/Packages
+ a1d64cde42c50ba4535a534a12e549fd698c28d7              466 main/binary-amd64/Packages.gz
 SHA256:
- 042ce8384144eea107d7ba6f9b3bddbf9b109a907a3e25e8f32e782119644d15              697 main/binary-amd64/Packages
- a078ef26926454c1e8b8f5d2a986e91aa341bbcb3f23bc83fb11ecf0fef6c5e3              466 main/binary-amd64/Packages.gz
+ 0151e9c71d2944c7cb362b82c1d005001f2fb4d05dcd02d540501707431c2de0              697 main/binary-amd64/Packages
+ aff305f3e2afd9c0a934004f749d443e49c85777bef59d035b101b45315654f7              466 main/binary-amd64/Packages.gz
 SHA512:
- d73c93b2557a6e74b7920426b8be407328f36c1cc80229d0e0534039ceb7d6c64358e4f2b7a5bb4924499e4bea826d1bfb9d56d5b1dc4c68cd51128ba38183d1              697 main/binary-amd64/Packages
- 73461ae12e6216da041faad8fbad7c18446c817ada6946f8cce0b33027d4a7281a4e9ea5237b6cee9555b63ae8a7d7fcff2c1adef79febabc7a9196c1232fbae              466 main/binary-amd64/Packages.gz
+ e02d678af08dc05c00557bbcfecffbf217129fb3a90220d60d37f9c5a0d65241abbf6fefa5b44f900ebb3f0fa78a9398f13f40958ac99be97aabff64901dee1a              697 main/binary-amd64/Packages
+ 9c80804dd454931d8928995d8aadb4de6cd7af82fc8a02b8f5035005400a3a548233be4701947f4b0ce702e3ae089c3f341d7a53b4fdbd3f8d6193f13d9ec791              466 main/binary-amd64/Packages.gz
