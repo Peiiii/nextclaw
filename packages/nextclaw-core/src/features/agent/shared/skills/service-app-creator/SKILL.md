@@ -1,161 +1,96 @@
 ---
 name: service-app-creator
-description: Create or update the Service App backend action part of a NextClaw lightweight app. Use after nextclaw-app-creator selects Service-only or Panel + Service, or when the user explicitly asks for workspace service-apps, MCP-compatible backend helpers, file access, external API calls, local commands, or privileged actions.
-description_zh: 创建或修改 NextClaw 轻量应用中的 Service App 后端 action 部分。适用于 nextclaw-app-creator 判断为 Service-only 或 Panel + Service 后，或用户明确要求 workspace/service-apps、MCP 后端 helper、文件访问、外部 API、本地命令或需要授权的动作。
+description: Create or update the Service component of a NextClaw Mini App, choosing between Portable Rust/WASI Components and native-process MCP services. Use after nextclaw-app-creator selects a Service-backed app, or when the user explicitly asks for Service Actions, portable components, local files, external APIs, commands, Resident events, or capability Providers.
+description_zh: 创建或修改 NextClaw Mini App 的 Service 组件，并在 Portable Rust/WASI Component 与 native-process MCP 服务之间选择。适用于 nextclaw-app-creator 判断应用需要 Service 后，或用户明确要求 Service Actions、可移植组件、本地文件、外部 API、命令、Resident 事件或能力 Provider。
 ---
 
 # NextClaw Service App Creator
 
-当用户要给 Panel App、小工具或轻量应用增加后端 actions 时使用这个专项 skill。若用户表达的是“做一个完整 NextClaw 小应用”，先读取 `nextclaw-app-creator` 判断是否还需要 Panel App。第一版 Service App 是用户自定义后端扩展，不是 NextClaw 内部系统能力，也不默认投射给 Agent 使用。
+本 skill 是 Service 运行形态、`service-app.json`、Service Action、risk 和验证入口的唯一 owner。若用户表达的是“做一个完整 NextClaw 小应用”，先由 `nextclaw-app-creator` 判断是否还需要 Panel；本 skill 不拥有 Panel UI 或 bridge 字段。
 
-Service App 只负责浏览器做不了或不该做的后端动作：本地文件、外部 API、本地命令、权限边界和可授权原子能力。AI 分析、总结、分类、结构化 JSON 输出默认走 Panel App 的 `window.nextclaw.agent.generateObject()`，不要为了 AI 分析新建 Service App 自己调用模型，除非用户明确要求接入某个外部模型服务。
+不要再把所有 schema v2 Service 都等同于 `command/args + MCP stdio + native-process`。当前 NextClaw 同时支持：
 
-本 skill 是 `service-app.json`、Service Action、`risk`、MCP stdio server、Service App command 和依赖安装的唯一专项规则源。只读 `nextclaw-app-creator` 或 `panel-app-creator` 时，不得编写或修改 Service App 后端细节。
+- **Portable WASI Service**：`protocol: "wasi-component"`，由 NextClaw 随产品提供的 runner 执行 Rust/WASI Component；
+- **native-process Service**：`protocol: "mcp"`，由宿主启动 Node、Python、系统命令或其它本地进程。
 
-## 运行与发布边界
+## 先选择运行形态
 
-- 当前 Service App 通过 `command` 和 `args` 启动宿主进程，继承当前用户可访问的环境；action grant 是调用授权，不是 OS 进程沙箱。
-- `command: "node"` 或 `command: "node.exe"` 是 NextClaw 宿主 Node 的保留别名：NPM/CLI 使用当前 Node executable，Desktop 使用 Electron 内置 Node；不得依赖、优先探测或回退到用户系统 PATH 中的另一套 Node。Rust、Go 等原生进程和 `python3`、`git` 等显式系统命令仍按各自 command 启动。
-- 把 Service App 组装进 schema v2 Mini App 时，根 manifest 必须声明 `runtime.profile: native-process` 和真实权限。当前没有 schema v2 WASI Service component 合同，禁止改成 `wasi` 规避审核。
-- 社区 Service App 可以提交公开上架，但必须进入高权限人工审核；管理员可以根据代码、权限和来源证据审核为 `listed` 或 `unlisted`。安装后默认停用，用户显式启用后才运行组件。
-- 如果用户要求社区公开上架，如实保留 Service 和 `native-process` 声明并准备审核证据；不能删除安全声明、伪造 profile 或承诺自动通过。
+### 优先 Portable WASI
 
-## 输出位置
+满足以下条件时选择 Portable：
 
-- Service App 必须写入 NextClaw workspace 的 `service-apps/<app-id>/` 目录。
-- 默认 workspace 是 `~/.nextclaw/workspace`；如果当前任务能读取 NextClaw 配置，则以 `agents.defaults.workspace` 为准。
-- `<app-id>` 使用 kebab-case，并且必须和 `service-app.json` 里的 `id` 完全一致。
+- Service 可以表达为明确的 Action，或确实需要 Resident / Provider 生命周期；
+- KV、SQLite、受授权文件、允许域名、密钥槽位、Provider、model slot 或 agent slot 能覆盖需求；
+- 希望同一份 `.napp` 在支持的平台运行，且不把用户完整宿主权限交给 Guest；
+- 应用面向分发、安装或长期维护，安全能力边界比快速脚本更重要。
 
-## 文件形态
+选择后必须读取 [`references/portable-wasi-service-app.md`](references/portable-wasi-service-app.md)，不能凭本入口猜 WIT、manifest、生命周期或构建命令。
 
-每个 Service App 至少包含：
+### 仅在真实需要时选择 native-process
+
+以下情况选择 native-process：
+
+- 必须直接运行 Node/Python/系统程序、平台 SDK、驱动、socket 或外部守护进程；
+- 依赖无法由当前 Portable Runtime 能力合同承接；
+- 用户明确只要一个快速、本机、无需 Rust 工具链的 Service helper，并接受宿主用户权限边界；
+- 正在维护现有 workspace `service-apps/<id>/` MCP Service。
+
+选择后必须读取 [`references/native-process-service-app.md`](references/native-process-service-app.md)。不能仅因开发机暂时缺少 Rust，就把需要可移植或受限能力边界的应用静默降级为宿主进程。
+
+## Rust 工具链边界
+
+必须准确区分创作者与最终用户：
+
+- 在本机**创建并构建** Rust/WASI Guest，需要 `cargo`、`rustc` 和 `wasm32-wasip2`；先运行 `nextclaw app doctor --profile wasi`。
+- **安装和运行已经构建好的** Portable `.napp` 不要求最终用户安装 Rust、Cargo、Wasmtime 或系统 Node。WebAssembly Component 已在包内，runner 由 NextClaw 提供。
+- 纯 Panel App 和 native-process Service 不因 Portable Runtime 的存在而需要 Rust。
+
+如果用户目标明确要求 Portable，但工具链检查失败，保留已创建的源码和失败证据，说明缺少的开发依赖；未经授权不要自动安装 Rust，也不要把未构建源码说成可交付应用。
+
+## 两种交付边界
+
+### 完整或可发布的 schema v2 Mini App
+
+Service 应位于应用包根：
 
 ```text
-service-apps/
-  workspace-notes/
-    service-app.json
-    server.mjs
+my-app/
+├── manifest.json
+├── marketplace.json
+├── panels/<panel-id>.panel/              # 可选
+├── service-components/<service-id>/
+│   └── service-app.json
+└── ...runtime-specific sources and artifacts
 ```
 
-默认优先做零依赖 Service App：`server.mjs` 使用 Node.js 内置模块，并手写最小 MCP stdio / JSON-RPC 分发即可。不要为了简单 tools 默认引入 `package.json`、`node_modules` 或官方 MCP SDK。
+根 `manifest.json.components` 是组件归属的事实源。Portable 使用 `runtime.profile: wasi`；native-process 使用 `runtime.profile: native-process`。适用的 `build/check/test/dev/call/pack/validate-publish` 命令都从包根运行。
 
-只有当用户目标确实需要第三方包时，才让 Service App 目录包含自己的 `package.json` 并安装依赖。NextClaw 只负责按 `service-app.json` 启动这个目录里的后端进程，不把 NextClaw 自身的 `node_modules` 或 `@nextclaw/mcp` 依赖注入给用户 Service App。
+### 明确只做本机 loose Service
 
-`service-app.json` 第一版只使用轻量字段：
+仅 native-process MCP Service 可以继续落在 NextClaw workspace 的 `service-apps/<app-id>/`。默认 workspace 是 `~/.nextclaw/workspace`，但能读取配置时以 `agents.defaults.workspace` 为准。不要把 loose workspace 目录说成完整可发布包。
 
-```json
-{
-  "id": "workspace-notes",
-  "title": "Workspace Notes",
-  "description": "Read and update notes in a controlled workspace folder.",
-  "enabled": true,
-  "protocol": "mcp",
-  "command": "node",
-  "args": ["server.mjs"],
-  "actions": {
-    "readNote": {
-      "title": "Read note",
-      "description": "Read one note from the app data folder.",
-      "risk": "read"
-    },
-    "writeNote": {
-      "title": "Write note",
-      "description": "Create or update one note in the app data folder.",
-      "risk": "write"
-    }
-  }
-}
+## 两种运行时共享的 Service Action 合同
+
+- action id 统一为 `<service-id>.<action-name>`；service id 不包含点号。
+- `service-app.json.actions` 静态声明每个 action；Panel、Agent 授权和列表都以它为事实源。
+- `risk` 只使用 `read`、`write`、`external`、`dangerous`；不确定时用 `dangerous`。
+- 每个 action 使用收窄的 `inputSchema`、准确标题与描述；不要做无类型万能 RPC。
+- Panel 在 `panel-app.json.actions` 声明完整 allowlist，并继续通过 `window.nextclaw.serviceActions.invoke()` 调用；Panel 不需要知道后端是 WASI 还是 native-process。
+- AI 分析默认走 NextClaw Agent/App Client。只有外部模型服务或 Portable manifest 中明确声明的 model/agent slot 才属于 Service 依赖。
+- 不保存 token、宿主私有路径或用户数据到 manifest、日志、验证记录或 action 错误中。
+
+## 统一验收门
+
+完整 schema v2 包从包根运行：
+
+```bash
+nextclaw app check <app-dir> --json
+nextclaw app dev <app-dir> --json
+nextclaw app call <app-dir> <action-name> --input '{}' --json
 ```
 
-## 前置检查
+Portable 分支还必须运行 `build` 和 `test`；native-process 分支必须验证 MCP `tools/list` 与 manifest actions 对齐。一个包有多个 Service 时，为 `dev/call` 提供 `--component <service-id>`。
 
-当前 NextClaw 版本可能尚未支持 Service App 运行时（配置中无 `serviceApps` 字段、`nextclaw doctor` 无 service app 检查项）。在创建 Service App 前：
+调用带写入、外部访问或危险副作用的 action 前需要用户授权；默认只抽测无副作用的 read action 或专用 smoke fixture。修改普通组件后不要求重启 NextClaw 宿主。live native-process runtime 需要刷新时只运行 `nextclaw app restart <service-id> --json`，不要重启整个产品。
 
-1. 检查 `nextclaw doctor` 输出中是否有 service app 相关检查。
-2. 如果不确定，先创建一个最小 Service App 并通过 Panel App 验证 `window.nextclaw.serviceActions.invoke()` 是否可用。
-3. 如果 Service App 不可用，**仍应创建 Service App 文件**（未来版本会支持），但必须同时告知用户：当前版本的 Panel App 只能使用页面内临时状态或显式导出/导入 JSON；不要把 `localStorage` 当作临时后端。
-
-## 实现规则
-
-1. 第一版只创建 `protocol: "mcp"` 的 stdio 服务，不创建 HTTP server、不后台常驻监听端口。
-2. `command` 和 `args` 的相对路径以 Service App 目录作为 cwd。
-3. 每个 MCP tool 都必须在 `service-app.json.actions` 中静态声明；NextClaw 的列表、授权和 allowlist 都以 manifest 为事实源，不靠启动服务后临时发现。
-4. action id 形如 `<service-app-id>.<tool-name>`；`<app-id>` 不包含点号，tool name 可以包含点号。
-5. `actions` 里为每个 tool 声明风险等级；`risk` 只能使用 `read`、`write`、`external`、`dangerous` 四个值，不允许 `low`、`medium`、`high`、`safe`、`file`、`filesystem` 等自造值；不确定时用 `dangerous`。
-6. 推荐为每个 action 写 `title` 和 `description`；有稳定入参时可补 `inputSchema`，但运行时 schema 仍以 MCP `tools/list` 作为校验来源。
-7. 不把 NextClaw 内部 kernel/server API 当作默认能力暴露；需要访问用户文件、外部服务或本地命令时，在 Service App 自己的代码里清楚收敛边界。
-8. 完成后告诉用户在右侧面板的“服务应用”页刷新查看状态；需要运行时 schema 或 mismatch 时，点击单个服务应用的发现/刷新动作。
-9. 创建或修改 Service App 后不需要重启 NextClaw 宿主、server 或桌面应用；Service App 会按 workspace manifest 动态发现。`nextclaw app dev/call` 使用隔离临时 runtime，live 产品实例或 Panel-to-Service 调用复测前必须先运行 `nextclaw app restart <app-id> --json` 断开旧 runtime。
-
-## 依赖策略
-
-- 零依赖优先：能用 Node.js 内置模块完成的本地文件、JSON 数据、目录扫描、简单计算和本地命令封装，不创建 `package.json`，不安装 `node_modules`。
-- Service App 可以自由使用第三方包；一旦使用，运行依赖归 Service App 自己声明和安装，不要把依赖加到 NextClaw 仓库根 `package.json`、`@nextclaw/service` 或 `@nextclaw/mcp` 来让用户后端“顺便能跑”。
-- 如果确实使用官方 MCP SDK，可在 Service App 目录创建：
-
-```json
-{
-  "type": "module",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1"
-  }
-}
-```
-
-- 创建或改动依赖后，必须在该 Service App 目录运行安装命令；优先用当前环境可用的 `pnpm install`，不可用时用 `npm install`。不要假设用户已经手动装过。
-- `service-app.json.command` 继续使用宿主 Node 别名 `node`、`args` 指向 `server.mjs`；安装后的 `node_modules` 由宿主 Node 按 Service App 目录解析。不要用绝对 Node 路径，也不要要求用户额外安装系统 Node。
-- 验收时除了检查 manifest，还要验证依赖可解析：最小可用 `node -e "import('@modelcontextprotocol/sdk/server/mcp.js').then(() => console.log('ok'))"`，更完整的是通过“服务应用”面板 discovery 确认 MCP tools 能列出。
-
-## 配套 Panel App
-
-如果 Panel App 需要调用 Service App，必须在目录式 Panel App 的 `panel-app.json.actions` 声明 allowlist：
-
-```json
-{
-  "actions": ["workspace-notes.readNote", "workspace-notes.writeNote"]
-}
-```
-
-Panel App 内通过宿主注入的 SDK 调用：
-
-```js
-const actions = await window.nextclaw.serviceActions.list();
-// invoke() 返回 Service App tool 的业务结果 payload，不需要读取 response.result
-const note = await window.nextclaw.serviceActions.invoke(
-  "workspace-notes.readNote",
-  { path: "notes/today.md" }
-);
-renderNote(note.content ?? "");
-```
-
-如果 tool 返回 `{ files: [...] }`，Panel App 应直接读取：
-
-```js
-const payload = await window.nextclaw.serviceActions.invoke("workspace-files.list", {});
-const files = payload.files ?? [];
-```
-
-Bridge SDK 返回合同：
-
-- `serviceActions.list()` 返回 action 数组，不返回 `{ actions }`。
-- `serviceActions.invoke()` 返回业务 payload，不返回 `{ actionId, result }`。
-- 如果 MCP tool result 使用 `structuredContent`，Panel App 会收到 `structuredContent`。
-- 如果 MCP tool result 使用单条 text content 且 text 是 JSON，Panel App 会收到解析后的对象。
-- 如果 text 不是 JSON，Panel App 会收到字符串。
-
-因此 Service App 的 MCP server 可以按 MCP 标准返回 tool result，但业务 JSON 应保持稳定 shape，避免同一个 action 有时返回数组、有时返回对象、有时返回纯文本。
-
-第一次调用需要用户授权。不要在 Panel App 中伪造 caller、保存 bridge token 或直接调用 Service Gateway；caller、allowlist 和 grant 都由宿主与 kernel 管理。
-
-## 验收建议
-
-- 新建或修改 Service App 后，必须运行 `nextclaw app check ~/.nextclaw/workspace/service-apps/<app-id>`；检查失败必须先修复，再交付给用户。
-- 静态检查通过后，必须运行 `nextclaw app dev ~/.nextclaw/workspace/service-apps/<app-id>`；它会通过真实 Service App runtime 启动 MCP server、执行 `tools/list`，并标出 matched / missing / undeclared actions。
-- 至少选择一个关键 action 运行 `nextclaw app call ~/.nextclaw/workspace/service-apps/<app-id> <action-name> --input '{}'`；有必填参数时传入最小合法 JSON。`app call` 是显式副作用测试，不要默认调用所有 action。
-- 如果要通过 live 产品实例、服务应用面板或 Panel App 复测刚修改的 Service App，先运行 `nextclaw app restart <app-id> --json`，再触发 live discover / invoke；否则可能仍在调用旧的运行进程。
-- 检查 `service-app.json` 是合法 JSON，`id` 与目录名一致。
-- 检查 manifest `actions` 非空，并且每个 action 都有 `risk`。
-- 检查 MCP server 至少能列出 tools，并且 tool 名和 manifest `actions` 对齐；manifest 声明但 runtime 缺失、runtime 多出未声明 tool 都需要向用户说明。
-- 如果配套 Panel App，同时检查 `panel-app.json.actions` 包含要调用的 action id。
-- 用“服务应用”面板刷新，确认 app 状态不是 failed；再从 Panel App 触发一次调用，确认授权和结果都能走通。
-- 交付说明不要要求用户重启宿主；Service App 普通代码/manifest 修改应由 AI 自己用 `nextclaw app restart <app-id> --json` 重启 live Service App runtime，再用 `app dev` / `app call` 或 live Panel 调用验收。
+完成后返回使用了哪种 runtime、为什么、创作者工具链状态、实际验证范围，以及最终用户是否需要额外运行时依赖。

@@ -54,6 +54,17 @@ test("rejects a release with a missing or stale asset", () => {
   );
 });
 
+test("allows the APT-specific Pages package after the core release closes", () => {
+  const assets = buildExpectedDesktopReleaseAssetNames(releaseOptions);
+  assert.deepEqual(
+    assertDesktopReleaseAssetSet(
+      [...assets, `nextclaw-desktop_${releaseOptions.desktopVersion}_amd64.pages.deb`],
+      releaseOptions
+    ),
+    assets
+  );
+});
+
 test("rejects an asset that is empty or not fully uploaded", () => {
   assert.throws(
     () =>
