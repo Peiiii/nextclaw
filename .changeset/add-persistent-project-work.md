@@ -4,6 +4,7 @@
 "@nextclaw/server": minor
 "@nextclaw/client-sdk": minor
 "@nextclaw/service": minor
+"@nextclaw/shared": minor
 "@nextclaw/ui": minor
 ---
 

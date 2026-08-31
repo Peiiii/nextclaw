@@ -37,4 +37,4 @@
 
 ## NPM 包发布记录
 
-项目工作项作为 minor 级用户能力进入统一 beta batch；涉及 `nextclaw`、`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/client-sdk`、`@nextclaw/service` 和 `@nextclaw/ui`，实际版本与 dist-tag 以统一发布入口的 registry 验证为准。
+项目工作项作为 minor 级用户能力进入统一 beta batch；涉及 `nextclaw`、`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/client-sdk`、`@nextclaw/service`、`@nextclaw/shared` 和 `@nextclaw/ui`，实际版本与 dist-tag 以统一发布入口的 registry 验证为准。
