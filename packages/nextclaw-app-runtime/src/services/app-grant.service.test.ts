@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,12 +54,13 @@ describe("AppGrantService", () => {
       scopeId: "notes",
       directoryPath: notesDirectory,
     });
-    expect(granted.grantedPath).toBe(path.resolve(notesDirectory));
+    const canonicalNotesDirectory = await realpath(notesDirectory);
+    expect(granted.grantedPath).toBe(canonicalNotesDirectory);
 
     const afterGrant = await grantService.summarize(installed.appId);
     expect(afterGrant.documentAccess[0]?.granted).toBe(true);
     expect(afterGrant.documentAccess[0]?.grantedPath).toBe(
-      path.resolve(notesDirectory),
+      canonicalNotesDirectory,
     );
 
     const revoked = await grantService.revokeDocumentScope({
@@ -105,15 +106,32 @@ describe("AppGrantService", () => {
     ).resolves.toMatchObject({
       documentAccess: [{ id: "notes", mode: "read", granted: false }],
     });
+    await expect(
+      grantService.grantDocumentScope({
+        appId: installed.appId,
+        scopeId: "notes",
+        directoryPath: notesDirectory,
+        mode: "read-write",
+      }),
+    ).rejects.toThrow("只声明了 read");
     await grantService.grantDocumentScope({
       appId: installed.appId,
       scopeId: "notes",
       directoryPath: notesDirectory,
+      mode: "read",
     });
     await expect(
       grantService.summarize(installed.appId),
     ).resolves.toMatchObject({
-      documentAccess: [{ id: "notes", mode: "read", granted: true }],
+      documentAccess: [
+        {
+          id: "notes",
+          mode: "read",
+          effectiveMode: "read",
+          status: "granted",
+          granted: true,
+        },
+      ],
     });
   });
 });

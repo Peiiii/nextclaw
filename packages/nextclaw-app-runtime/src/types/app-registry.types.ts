@@ -4,7 +4,7 @@ import type {
   AppPlatformSecuritySummary,
   AppResolvedComponent,
 } from "#app-runtime/types/app-manifest.types.js";
-import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
+import type { AppStoredDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
 import type { AppInstanceRecord } from "#app-runtime/types/app-storage.types.js";
@@ -50,14 +50,17 @@ export type AppRegistryAppRecord = {
   dataDirectory: string;
   defaultInstance: AppInstanceRecord;
   installedVersions: Record<string, AppRegistryInstalledVersion>;
-  grants: AppDocumentGrantMap;
+  grants: AppStoredDocumentGrantMap;
   secretBindings: AppSecretBindingMap;
 };
 
 export type AppRegistry = {
   schemaVersion: 1;
   apps: Record<string, AppRegistryAppRecord>;
-  suppressedBuiltIns: Record<string, {
-    suppressedAt: string;
-  }>;
+  suppressedBuiltIns: Record<
+    string,
+    {
+      suppressedAt: string;
+    }
+  >;
 };

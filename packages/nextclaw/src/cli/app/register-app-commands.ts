@@ -16,21 +16,12 @@ import { ServiceAppDevService } from "./services/service-app-dev.service.js";
 import { AppCheckService } from "./services/app-check.service.js";
 import { registerPortableRuntimeAppCommands } from "./commands/register-portable-runtime-app-commands.js";
 
-export function registerAppCommands(
-  program: Command,
-  options: { portableServiceRunnerPath?: string } = {},
-): void {
-  const app = program
-    .command("app")
-    .description("Develop, validate, and publish NextClaw apps");
+export function registerAppCommands(program: Command, options: { portableServiceRunnerPath?: string } = {}): void {
+  const app = program.command("app").description("Develop, validate, and publish NextClaw apps");
   const serviceAppDev = new ServiceAppDevService({
     portableServiceRunnerPath: options.portableServiceRunnerPath,
   });
-  const appCheckService = new AppCheckService(
-    undefined,
-    undefined,
-    serviceAppDev,
-  );
+  const appCheckService = new AppCheckService(undefined, undefined, serviceAppDev);
   const appCheck = new AppCheckCommandController(appCheckService);
   const appBuild = new AppBuildCommandController();
   const appCreate = new AppCreateCommandController();
@@ -56,10 +47,7 @@ export function registerAppCommands(
     .command("pack <app-dir>")
     .description("Pack a universal or declared platform NextClaw App artifact")
     .option("--target <target-key>", "Pack a declared platform target")
-    .requiredOption(
-      "--out <path>",
-      "Write the .napp artifact to a specific path",
-    )
+    .requiredOption("--out <path>", "Write the .napp artifact to a specific path")
     .option("--json", "Output JSON", false)
     .action(async (target, opts) => appPack.pack(target, opts));
 
@@ -67,10 +55,7 @@ export function registerAppCommands(
     .command("validate-publish <app-dir>")
     .description("Validate a NextClaw Mini App before Marketplace submission")
     .option("--meta <path>", "Use a custom marketplace metadata file")
-    .option(
-      "--artifacts <dir>",
-      "Use target-keyed .napp artifacts from a directory",
-    )
+    .option("--artifacts <dir>", "Use target-keyed .napp artifacts from a directory")
     .option("--json", "Output JSON", false)
     .action(async (target, opts) => appValidatePublish.validate(target, opts));
 
@@ -78,15 +63,8 @@ export function registerAppCommands(
     .command("publish <app-dir>")
     .description("Submit a NextClaw Mini App to the App Marketplace")
     .option("--meta <path>", "Use a custom marketplace metadata file")
-    .option(
-      "--artifacts <dir>",
-      "Publish target-keyed .napp artifacts from a directory",
-    )
-    .option(
-      "--allow-warnings",
-      "Submit after reviewing validation warnings",
-      false,
-    )
+    .option("--artifacts <dir>", "Publish target-keyed .napp artifacts from a directory")
+    .option("--allow-warnings", "Submit after reviewing validation warnings", false)
     .option("--json", "Output JSON", false)
     .action(async (target, opts) => appPublish.publish(target, opts));
 
@@ -98,34 +76,18 @@ export function registerAppCommands(
 
   app
     .command("dev <app-dir>")
-    .description(
-      "Start a Service App or schema v2 package and inspect its actions",
-    )
-    .option(
-      "--component <service-id>",
-      "Select a Service Component from a package",
-    )
+    .description("Start a Service App or schema v2 package and inspect its actions")
+    .option("--component <service-id>", "Select a Service Component from a package")
     .option("--json", "Output JSON", false)
-    .option(
-      "--reset-data",
-      "Reset the exact development instance before starting",
-      false,
-    )
-    .option(
-      "--confirm <app-id>",
-      "Confirm the Service App id when resetting data",
-    )
+    .option("--reset-data", "Reset the exact development instance before starting", false)
+    .option("--confirm <app-id>", "Confirm the Service App id when resetting data")
     .action(async (target, opts) => appDev.dev(target, opts));
 
-  const data = app
-    .command("data")
-    .description("Inspect and manage NextClaw App data");
+  const data = app.command("data").description("Inspect and manage NextClaw App data");
 
   data
     .command("list")
-    .description(
-      "List active and retained App data through the running NextClaw host",
-    )
+    .description("List active and retained App data through the running NextClaw host")
     .option("--json", "Output JSON", false)
     .action(async (opts) => appData.list(opts));
 
@@ -138,24 +100,15 @@ export function registerAppCommands(
 
   app
     .command("call <app-dir> <action-name>")
-    .description(
-      "Call a Service App or schema v2 package action through the real runtime",
-    )
-    .option(
-      "--component <service-id>",
-      "Select a Service Component from a package",
-    )
+    .description("Call a Service App or schema v2 package action through the real runtime")
+    .option("--component <service-id>", "Select a Service Component from a package")
     .option("--input <json>", "JSON object input for the action")
     .option("--json", "Output JSON", false)
-    .action(async (target, actionName, opts) =>
-      appCall.call(target, actionName, opts),
-    );
+    .action(async (target, actionName, opts) => appCall.call(target, actionName, opts));
 
   app
     .command("restart <app-id>")
-    .description(
-      "Restart a live Service App runtime in the running NextClaw UI",
-    )
+    .description("Restart a live Service App runtime in the running NextClaw UI")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => appRestart.restart(appId, opts));
 
@@ -175,30 +128,20 @@ function registerAppGuestDevelopmentCommands(
   app
     .command("create <app-dir>")
     .description("Create a NextClaw App from a runnable template")
-    .option(
-      "--template <name>",
-      "Template: rust-wasi, starter, ts-http, or ts-http-lite",
-      "rust-wasi",
-    )
+    .option("--template <name>", "Template: rust-wasi, starter, ts-http, or ts-http-lite", "rust-wasi")
     .option("--json", "Output JSON", false)
     .action(async (target, opts) => appCreate.create(target, opts));
 
   app
     .command("doctor")
     .description("Check the App Guest development toolchain")
-    .option(
-      "--profile <profile>",
-      "Toolchain profile: wasi, wasi-http, or all",
-      "wasi",
-    )
+    .option("--profile <profile>", "Toolchain profile: wasi, wasi-http, or all", "wasi")
     .option("--json", "Output JSON", false)
     .action(async (opts) => appDoctor.doctor(opts));
 
   app
     .command("build <app-dir>")
-    .description(
-      "Build a NextClaw App Guest into its declared runtime artifact",
-    )
+    .description("Build a NextClaw App Guest into its declared runtime artifact")
     .option("--json", "Output JSON", false)
     .action(async (target, opts) => appBuild.build(target, opts));
 
@@ -209,13 +152,8 @@ function registerAppGuestDevelopmentCommands(
     .action(async (target, opts) => appTest.test(target, opts));
 }
 
-function registerAppPackageCommands(
-  app: Command,
-  appPackages: AppPackageCommandController,
-): void {
-  const marketplace = app
-    .command("marketplace")
-    .description("Browse NextClaw App Marketplace");
+function registerAppPackageCommands(app: Command, appPackages: AppPackageCommandController): void {
+  const marketplace = app.command("marketplace").description("Browse NextClaw App Marketplace");
 
   marketplace
     .command("search")
@@ -231,9 +169,7 @@ function registerAppPackageCommands(
     .command("info <selector>")
     .description("Show an App Marketplace item")
     .option("--json", "Output JSON", false)
-    .action(async (selector, opts) =>
-      appPackages.marketplaceInfo(selector, opts),
-    );
+    .action(async (selector, opts) => appPackages.marketplaceInfo(selector, opts));
 
   app
     .command("list")
@@ -249,6 +185,7 @@ function registerAppPackageCommands(
 
   registerAppDependencyCommands(app, appPackages);
   registerAppSecretCommands(app, appPackages);
+  registerAppPermissionCommands(app, appPackages);
   registerPortableRuntimeAppCommands(app, appPackages);
 
   app
@@ -307,21 +244,44 @@ function registerAppPackageCommands(
     .action(async (appId, opts) => appPackages.uninstall(appId, opts));
 }
 
-function registerAppSecretCommands(
-  app: Command,
-  controller: AppPackageCommandController,
-): void {
-  const secrets = app.command("secrets")
-    .description("Inspect and manage non-sensitive SecretRef bindings for an App");
-  secrets.command("inspect <app-id>")
+function registerAppPermissionCommands(app: Command, controller: AppPackageCommandController): void {
+  const permissions = app.command("permissions").description("Inspect and manage an App's user-approved permissions");
+  permissions
+    .command("inspect <app-id>")
+    .description("Show declared document scopes and current grants")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.inspectDocumentAccess(appId, opts));
+  const document = permissions.command("document").description("Grant or revoke access to a runtime-host directory");
+  document
+    .command("grant <app-id>")
+    .description("Grant or replace one declared document scope")
+    .requiredOption("--scope <id>", "Declared document scope id")
+    .requiredOption("--path <path>", "Directory path on the runtime host")
+    .requiredOption("--mode <mode>", "Effective mode: read or read-write")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.grantDocumentAccess(appId, opts));
+  document
+    .command("revoke <app-id>")
+    .description("Revoke one declared document scope")
+    .requiredOption("--scope <id>", "Declared document scope id")
+    .option("--json", "Output JSON", false)
+    .action(async (appId, opts) => controller.revokeDocumentAccess(appId, opts));
+}
+
+function registerAppSecretCommands(app: Command, controller: AppPackageCommandController): void {
+  const secrets = app.command("secrets").description("Inspect and manage non-sensitive SecretRef bindings for an App");
+  secrets
+    .command("inspect <app-id>")
     .description("Show declared Secret slots and non-sensitive bindings")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => controller.inspectSecrets(appId, opts));
-  secrets.command("verify <app-id>")
+  secrets
+    .command("verify <app-id>")
     .description("Resolve each declared Secret binding without returning its value")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => controller.verifySecrets(appId, opts));
-  secrets.command("bind <app-id>")
+  secrets
+    .command("bind <app-id>")
     .description("Bind one declared Secret slot to a configured Secret provider")
     .requiredOption("--slot <id>", "Declared Secret slot id")
     .requiredOption("--source <source>", "Secret source: env, file, or exec")
@@ -329,50 +289,61 @@ function registerAppSecretCommands(
     .requiredOption("--id <id>", "Secret id within the provider")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => controller.bindSecret(appId, opts));
-  secrets.command("unbind <app-id>")
+  secrets
+    .command("unbind <app-id>")
     .description("Remove a SecretRef binding from an App")
     .requiredOption("--slot <id>", "Declared Secret slot id")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => controller.unbindSecret(appId, opts));
 }
 
-function registerAppDependencyCommands(
-  app: Command,
-  controller: AppPackageCommandController,
-): void {
-  const dependencies = app.command("dependencies")
-    .description("Inspect and manage an App's capability and resource dependencies");
-  dependencies.command("inspect <app-id>")
+function registerAppDependencyCommands(app: Command, controller: AppPackageCommandController): void {
+  const dependencies = app.command("dependencies").description("Inspect and manage an App's capability and resource dependencies");
+  dependencies
+    .command("inspect <app-id>")
     .description("Inspect dependency readiness and available providers")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => controller.inspectDependencies(appId, opts));
-  dependencies.command("verify <app-id>")
+  dependencies
+    .command("verify <app-id>")
     .description("Verify dependency readiness")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => controller.verifyDependencies(appId, opts));
-  dependencies.command("setup <app-id>")
+  dependencies
+    .command("setup <app-id>")
     .description("Bind dependencies when exactly one compatible provider is available")
     .option("--json", "Output JSON", false)
     .action(async (appId, opts) => controller.setupDependencies(appId, opts));
-  dependencies.command("bind <app-id>")
+  dependencies
+    .command("bind <app-id>")
     .description("Bind one dependency to a trusted installed provider")
     .requiredOption("--component <id>", "Service component id")
     .requiredOption("--kind <kind>", "Requirement kind: capability or resource")
     .requiredOption("--requirement <id>", "Declared requirement id")
     .requiredOption("--provider <id>", "Installed provider id")
     .option("--json", "Output JSON", false)
-    .action(async (appId, opts) => controller.bindDependency(appId, {
-      componentId: opts.component, requirementKind: opts.kind,
-      requirementId: opts.requirement, providerId: opts.provider, json: opts.json,
-    }));
-  dependencies.command("unbind <app-id>")
+    .action(async (appId, opts) =>
+      controller.bindDependency(appId, {
+        componentId: opts.component,
+        requirementKind: opts.kind,
+        requirementId: opts.requirement,
+        providerId: opts.provider,
+        json: opts.json,
+      }),
+    );
+  dependencies
+    .command("unbind <app-id>")
     .description("Remove one dependency binding")
     .requiredOption("--component <id>", "Service component id")
     .requiredOption("--kind <kind>", "Requirement kind: capability or resource")
     .requiredOption("--requirement <id>", "Declared requirement id")
     .option("--json", "Output JSON", false)
-    .action(async (appId, opts) => controller.unbindDependency(appId, {
-      componentId: opts.component, requirementKind: opts.kind,
-      requirementId: opts.requirement, json: opts.json,
-    }));
+    .action(async (appId, opts) =>
+      controller.unbindDependency(appId, {
+        componentId: opts.component,
+        requirementKind: opts.kind,
+        requirementId: opts.requirement,
+        json: opts.json,
+      }),
+    );
 }

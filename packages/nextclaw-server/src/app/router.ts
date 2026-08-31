@@ -1,13 +1,7 @@
 import { Hono, type Handler } from "hono";
 import type { NcpMessageAbortPayload, NcpRunHandle, NcpStreamRequestPayload } from "@nextclaw/ncp";
 import { AccessManager } from "@nextclaw/kernel";
-import {
-  ingressKeys,
-  type AgentRunContinueIngressPayload,
-  type AgentRunEditMessageIngressPayload,
-  type AgentRunSendIngressPayload,
-  type IngressEnvelope,
-} from "@nextclaw/shared";
+import { ingressKeys, type AgentRunContinueIngressPayload, type AgentRunEditMessageIngressPayload, type AgentRunSendIngressPayload, type IngressEnvelope } from "@nextclaw/shared";
 import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
 import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
 import { CapabilityAccessRoutesController } from "@nextclaw-server/app/controllers/capability-access.controller.js";
@@ -21,40 +15,24 @@ import { CronRoutesController } from "@nextclaw-server/features/cron/index.js";
 import { InboxDeliveriesRoutesController } from "@nextclaw-server/features/inbox-deliveries/index.js";
 import { NcpAssetRoutesController } from "@nextclaw-server/features/attachments/index.js";
 import { NcpSessionRoutesController } from "@nextclaw-server/features/sessions/index.js";
-import {
-  McpMarketplaceController,
-  mountMarketplaceRoutes,
-  resolveMarketplaceBaseUrls,
-  SkillMarketplaceController,
-} from "@nextclaw-server/features/marketplace/index.js";
+import { McpMarketplaceController, mountMarketplaceRoutes, resolveMarketplaceBaseUrls, SkillMarketplaceController } from "@nextclaw-server/features/marketplace/index.js";
 import { McpRoutesController, mountMcpRoutes } from "@nextclaw-server/features/mcp/index.js";
 import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/index.js";
 import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
 import { PreferencesRoutesController } from "@nextclaw-server/features/preferences/index.js";
-import {
-  ProjectObservationRoutesController,
-  ProjectsRoutesController,
-} from "@nextclaw-server/features/projects/index.js";
+import { ProjectObservationRoutesController, ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
-import {
-  ServerPathRoutesController,
-  type ServerPathWatchService,
-} from "@nextclaw-server/features/server-path/index.js";
+import { ServerPathRoutesController, type ServerPathWatchService } from "@nextclaw-server/features/server-path/index.js";
 import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 const NCP_AGENT_BASE_PATH = "/api/ncp/agent";
 const AGENT_RUNS_BASE_PATH = "/api/agent-runs";
 
-function createUiRouteControllers(
-  options: UiRouterOptions,
-  authService: UiAuthService,
-  marketplaceBaseUrls: readonly string[],
-  serverPathWatchService?: ServerPathWatchService,
-) {
+function createUiRouteControllers(options: UiRouterOptions, authService: UiAuthService, marketplaceBaseUrls: readonly string[], serverPathWatchService?: ServerPathWatchService) {
   const { kernel, panelAppClientSdkScript, remoteAccess, runtimeControl, runtimeUpdate } = options;
   return {
     app: new AppRoutesController(options),
@@ -70,9 +48,7 @@ function createUiRouteControllers(
     config: new ConfigRoutesController(options),
     cron: new CronRoutesController(options),
     inboxDeliveries: new InboxDeliveriesRoutesController(kernel.inboxDeliveryManager),
-    systemObjectReferences: new SystemObjectReferencesRoutesController(
-      kernel.systemObjectReferenceManager,
-    ),
+    systemObjectReferences: new SystemObjectReferencesRoutesController(kernel.systemObjectReferenceManager),
     ncpSession: new NcpSessionRoutesController(options),
     ncpAsset: new NcpAssetRoutesController(options),
     panelApps: new PanelAppsRoutesController(kernel.panelAppManager, {
@@ -80,10 +56,7 @@ function createUiRouteControllers(
     }),
     preferences: new PreferencesRoutesController(kernel.preferenceManager),
     projects: new ProjectsRoutesController(kernel.projectManager),
-    projectObservation: new ProjectObservationRoutesController(
-      kernel.projectManager,
-      kernel.projectObservation,
-    ),
+    projectObservation: new ProjectObservationRoutesController(kernel.projectManager, kernel.projectObservation),
     serviceApps: new ServiceAppsRoutesController({
       panelAppManager: kernel.panelAppManager,
       serviceAppManager: kernel.serviceAppManager,
@@ -128,10 +101,7 @@ function isValidSendEnvelope(value: unknown): value is AgentRunSendIngressPayloa
   return hasMessage ? isRecord(value.message) : Array.isArray(value.content);
 }
 
-function readOptionalSendIdentity(
-  value: Record<string, unknown>,
-  key: "peerId" | "sessionId",
-): string | null | undefined {
+function readOptionalSendIdentity(value: Record<string, unknown>, key: "peerId" | "sessionId"): string | null | undefined {
   if (!hasOwn(value, key)) {
     return undefined;
   }
@@ -157,24 +127,11 @@ function isContinuePayload(value: unknown): value is AgentRunContinueIngressPayl
 }
 
 function isEditMessagePayload(value: unknown): value is AgentRunEditMessageIngressPayload {
-  if (
-    !isRecord(value) ||
-    typeof value.sessionId !== "string" ||
-    !value.sessionId.trim() ||
-    typeof value.messageId !== "string" ||
-    !value.messageId.trim() ||
-    !isRecord(value.message)
-  ) {
+  if (!isRecord(value) || typeof value.sessionId !== "string" || !value.sessionId.trim() || typeof value.messageId !== "string" || !value.messageId.trim() || !isRecord(value.message)) {
     return false;
   }
   const message = value.message;
-  return (
-    typeof message.id === "string" &&
-    message.id.trim().length > 0 &&
-    message.role === "user" &&
-    Array.isArray(message.parts) &&
-    message.parts.length > 0
-  );
+  return typeof message.id === "string" && message.id.trim().length > 0 && message.role === "user" && Array.isArray(message.parts) && message.parts.length > 0;
 }
 
 class UiRouteRegistry {
@@ -256,10 +213,7 @@ class UiRouteRegistry {
     });
   };
 
-  private readonly mountNcpAgentRoutes = (
-    kernel: UiRouterOptions["kernel"],
-    ncpAsset: UiRouteControllers["ncpAsset"],
-  ): void => {
+  private readonly mountNcpAgentRoutes = (kernel: UiRouterOptions["kernel"], ncpAsset: UiRouteControllers["ncpAsset"]): void => {
     this.mountAgentRunRoutes(NCP_AGENT_BASE_PATH, kernel);
     this.mountRoutes([
       ["post", "/api/ncp/assets", ncpAsset.putAssets],
@@ -268,21 +222,8 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const {
-      appData,
-      appPackages,
-      capabilityAccess,
-      featureControls,
-      ncpSession,
-      inboxDeliveries,
-      panelApps,
-      preferences,
-      projects,
-      projectObservation,
-      serviceApps,
-      serverPath,
-      systemObjectReferences,
-    } = this.controllers;
+    const { appData, appPackages, capabilityAccess, featureControls, ncpSession, inboxDeliveries, panelApps, preferences, projects, projectObservation, serviceApps, serverPath, systemObjectReferences } =
+      this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -329,6 +270,9 @@ class UiRouteRegistry {
       ["post", "/api/app-packages/:appId/dependencies/bind", appPackages.bindDependency],
       ["post", "/api/app-packages/:appId/dependencies/unbind", appPackages.unbindDependency],
       ["get", "/api/app-packages/:appId/secrets", appPackages.inspectSecrets],
+      ["get", "/api/app-packages/:appId/document-access", appPackages.inspectDocumentAccess],
+      ["post", "/api/app-packages/:appId/document-access/grant", appPackages.grantDocumentAccess],
+      ["post", "/api/app-packages/:appId/document-access/revoke", appPackages.revokeDocumentAccess],
       ["post", "/api/app-packages/:appId/secrets/verify", appPackages.verifySecrets],
       ["post", "/api/app-packages/:appId/secrets/bind", appPackages.bindSecret],
       ["post", "/api/app-packages/:appId/secrets/unbind", appPackages.unbindSecret],
@@ -518,34 +462,17 @@ class UiRouteRegistry {
   };
 }
 
-export function createUiRouter(
-  options: UiRouterOptions,
-  authServiceOverride?: UiAuthService,
-  internal?: { serverPathWatchService?: ServerPathWatchService },
-): Hono {
+export function createUiRouter(options: UiRouterOptions, authServiceOverride?: UiAuthService, internal?: { serverPathWatchService?: ServerPathWatchService }): Hono {
   const app = new Hono();
   const marketplaceBaseUrls = resolveMarketplaceBaseUrls(options);
-  const authService =
-    authServiceOverride ??
-    options.authService ??
-    new UiAuthService(options.kernel.accessManager ?? new AccessManager({ configPath: options.configPath }));
-  const controllers = createUiRouteControllers(
-    options,
-    authService,
-    marketplaceBaseUrls,
-    internal?.serverPathWatchService,
-  );
+  const authService = authServiceOverride ?? options.authService ?? new UiAuthService(options.kernel.accessManager ?? new AccessManager({ configPath: options.configPath }));
+  const controllers = createUiRouteControllers(options, authService, marketplaceBaseUrls, internal?.serverPathWatchService);
 
   app.notFound((c) => c.json(err("NOT_FOUND", "endpoint not found"), 404));
 
   app.use("/api/*", async (c, next) => {
     const path = c.req.path;
-    if (
-      path === "/api/health" ||
-      path === "/api/runtime/bootstrap-status" ||
-      path.startsWith("/api/auth/") ||
-      path.startsWith("/api/panel-app-assets/")
-    ) {
+    if (path === "/api/health" || path === "/api/runtime/bootstrap-status" || path.startsWith("/api/auth/") || path.startsWith("/api/panel-app-assets/")) {
       await next();
       return;
     }

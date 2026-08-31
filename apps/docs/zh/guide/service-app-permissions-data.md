@@ -14,7 +14,19 @@ Portable Component 有一套很小的私有文件空间：
 | `/tmp` | 可读写 | 临时文件 |
 | `/documents/<scope>` | 由你授权的方式决定 | 应用在 `documentAccess` 中声明的文件夹 |
 
-文件权限会声明一个 scope，并请求 `read` 或 `read-write`。授权时由你选择对应的文件夹。运行时会规范化该目录并阻止通过符号链接越界；撤销授权后，下一次运行不会再挂载该目录。
+文件权限会声明一个 scope 和允许的最高模式。安装应用时不会自动授权。需要使用文件功能时，可在“应用”页面的“文件与文件夹”区域选择运行主机上的目录，并决定只读或读写；也可以随时替换目录或撤销访问。读写授权会直接修改所选目录里的原始文件，不会先复制到 NextClaw。
+
+命令行使用同一套授权记录：
+
+```bash
+nextclaw app permissions inspect <app-id>
+nextclaw app permissions document grant <app-id> --scope <scope-id> --path <directory> --mode read|read-write
+nextclaw app permissions document revoke <app-id> --scope <scope-id>
+```
+
+NextClaw 会把目录规范化并确认它真实存在。应用只能看到 `/documents/<scope>`，看不到宿主路径；只读授权不能写入。替换或撤销会停止旧的运行实例，新调用不会继续持有原目录。授权记录在 NextClaw 重启后仍会保留；目录被移动或磁盘离线时会显示为不可用，需要替换或撤销。
+
+没有目录授权时，应用仍可使用自己的 `/data`、`/cache` 和 `/tmp`。这些目录位于 NextClaw 管理的应用实例中，和你的 Documents、桌面或项目目录不是一回事。
 
 ## 网络与密钥
 

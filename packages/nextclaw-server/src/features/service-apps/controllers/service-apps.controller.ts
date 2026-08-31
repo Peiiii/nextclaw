@@ -1,28 +1,19 @@
 import type { Context } from "hono";
-import {
-  isPanelAppError,
-  isServiceAppError,
-  type PanelAppManager,
-  type PortableRuntimeAcceptanceManager,
-  type ServiceAppManager,
-} from "@nextclaw/kernel";
-import {
-  err,
-  isRecord,
-  ok,
-  readJson,
-} from "@nextclaw-server/shared/utils/http-response.utils.js";
-import type {
-  ServiceActionGrantBatchRequestView,
-  ServiceActionInvokeRequestView,
-} from "@nextclaw-server/shared/types/server-api.types.js";
+import { isPanelAppError, isServiceAppError, type PanelAppManager, type PortableRuntimeAcceptanceManager, type ServiceAppManager } from "@nextclaw/kernel";
+import { err, isRecord, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { ServiceActionGrantBatchRequestView, ServiceActionInvokeRequestView } from "@nextclaw-server/shared/types/server-api.types.js";
 
 const PANEL_BRIDGE_SESSION_HEADER = "x-nextclaw-panel-bridge-session";
 
-function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 422 | 502 {
+function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 409 | 422 | 502 {
   switch (code) {
     case "AUTHORIZATION_REQUIRED":
       return 401;
+    case "DOCUMENT_SCOPE_NOT_GRANTED":
+      return 401;
+    case "DOCUMENT_SCOPE_MODE_INSUFFICIENT":
+    case "DOCUMENT_SCOPE_UNAVAILABLE":
+      return 409;
     case "SERVICE_APP_ACTION_NOT_DECLARED":
       return 403;
     case "SERVICE_APP_ACTION_NOT_FOUND":
@@ -47,11 +38,13 @@ function statusForServiceAppError(code: string): 400 | 401 | 403 | 404 | 422 | 5
   }
 }
 export class ServiceAppsRoutesController {
-  constructor(private readonly params: {
-    panelAppManager: PanelAppManager;
-    serviceAppManager: ServiceAppManager;
-    portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
-  }) {}
+  constructor(
+    private readonly params: {
+      panelAppManager: PanelAppManager;
+      serviceAppManager: ServiceAppManager;
+      portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
+    },
+  ) {}
 
   readonly listServiceApps = async (c: Context) => {
     return c.json(ok(await this.params.serviceAppManager.listServiceApps()));
@@ -82,15 +75,19 @@ export class ServiceAppsRoutesController {
   };
 
   readonly bindServiceAppAiCapability = async (c: Context) => {
-    const body = await readJson<{ kind?: unknown; slotId?: unknown; targetId?: unknown }>(c.req.raw);
-    if (!body.ok || (body.data?.kind !== "model" && body.data?.kind !== "agent") ||
-      typeof body.data.slotId !== "string" || typeof body.data.targetId !== "string") {
+    const body = await readJson<{
+      kind?: unknown;
+      slotId?: unknown;
+      targetId?: unknown;
+    }>(c.req.raw);
+    if (!body.ok || (body.data?.kind !== "model" && body.data?.kind !== "agent") || typeof body.data.slotId !== "string" || typeof body.data.targetId !== "string") {
       return c.json(err("INVALID_SERVICE_APP_AI_BINDING", "kind, slotId, and targetId are required."), 400);
     }
     try {
-      const result = body.data.kind === "model"
-        ? await this.params.serviceAppManager.bindServiceAppModelSlot(c.req.param("appId"), body.data.slotId, body.data.targetId)
-        : await this.params.serviceAppManager.bindServiceAppAgentSlot(c.req.param("appId"), body.data.slotId, body.data.targetId);
+      const result =
+        body.data.kind === "model"
+          ? await this.params.serviceAppManager.bindServiceAppModelSlot(c.req.param("appId"), body.data.slotId, body.data.targetId)
+          : await this.params.serviceAppManager.bindServiceAppAgentSlot(c.req.param("appId"), body.data.slotId, body.data.targetId);
       return c.json(ok(result));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -103,9 +100,7 @@ export class ServiceAppsRoutesController {
       return c.json(err("INVALID_SERVICE_APP_AI_BINDING", "kind and slotId are required."), 400);
     }
     try {
-      return c.json(ok(await this.params.serviceAppManager.unbindServiceAppAiSlot(
-        c.req.param("appId"), body.data.kind, body.data.slotId,
-      )));
+      return c.json(ok(await this.params.serviceAppManager.unbindServiceAppAiSlot(c.req.param("appId"), body.data.kind, body.data.slotId)));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -132,9 +127,7 @@ export class ServiceAppsRoutesController {
 
   readonly discoverServiceAppActions = async (c: Context) => {
     try {
-      const actions = await this.params.serviceAppManager.discoverServiceAppActions(
-        c.req.param("appId"),
-      );
+      const actions = await this.params.serviceAppManager.discoverServiceAppActions(c.req.param("appId"));
       return c.json(ok({ actions }));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -148,14 +141,11 @@ export class ServiceAppsRoutesController {
     }
     try {
       const bridgeSession = this.requireBridgeSession(c);
-      const payload = await this.params.serviceAppManager.invokeServiceAction(
-        c.req.param("actionId"),
-        {
-          caller: bridgeSession.caller,
-          declaredActions: bridgeSession.declaredActions,
-          input: isRecord(body.data.input) ? body.data.input : {},
-        },
-      );
+      const payload = await this.params.serviceAppManager.invokeServiceAction(c.req.param("actionId"), {
+        caller: bridgeSession.caller,
+        declaredActions: bridgeSession.declaredActions,
+        input: isRecord(body.data.input) ? body.data.input : {},
+      });
       return c.json(ok(payload));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -168,11 +158,7 @@ export class ServiceAppsRoutesController {
       return c.json(err("INVALID_SERVICE_ACTION_REQUEST", "invalid service action request"), 400);
     }
     try {
-      return c.json(ok(await this.params.serviceAppManager.invokeInstalledServiceAction(
-        c.req.param("appId"),
-        c.req.param("actionName"),
-        isRecord(body.data?.input) ? body.data.input : {},
-      )));
+      return c.json(ok(await this.params.serviceAppManager.invokeInstalledServiceAction(c.req.param("appId"), c.req.param("actionName"), isRecord(body.data?.input) ? body.data.input : {})));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -190,13 +176,14 @@ export class ServiceAppsRoutesController {
       return c.json(err("INVALID_SERVICE_ACTION_REQUEST", "invalid service action request"), 400);
     }
     try {
-      return c.json(ok(await this.params.serviceAppManager.invokeServiceAction(
-        c.req.param("actionId"),
-        {
-          caller: { surface: "agent", agentId: c.req.param("agentId") },
-          input: isRecord(body.data?.input) ? body.data.input : {},
-        },
-      )));
+      return c.json(
+        ok(
+          await this.params.serviceAppManager.invokeServiceAction(c.req.param("actionId"), {
+            caller: { surface: "agent", agentId: c.req.param("agentId") },
+            input: isRecord(body.data?.input) ? body.data.input : {},
+          }),
+        ),
+      );
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -204,11 +191,15 @@ export class ServiceAppsRoutesController {
 
   readonly listVerificationRecords = async (c: Context) => {
     try {
-      return c.json(ok(await this.params.serviceAppManager.listVerificationRecords({
-        acceptanceId: this.readOptionalQuery(c, "acceptanceId"),
-        appId: this.readOptionalQuery(c, "appId"),
-        limit: this.readLimit(c),
-      })));
+      return c.json(
+        ok(
+          await this.params.serviceAppManager.listVerificationRecords({
+            acceptanceId: this.readOptionalQuery(c, "acceptanceId"),
+            appId: this.readOptionalQuery(c, "appId"),
+            limit: this.readLimit(c),
+          }),
+        ),
+      );
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -225,9 +216,14 @@ export class ServiceAppsRoutesController {
 
   readonly getPortableRuntimeAcceptanceStatus = async (c: Context) => {
     try {
-      return c.json(ok(await this.params.portableRuntimeAcceptance.status({
-        appId: this.readOptionalQuery(c, "appId"), locale: this.readLocale(c),
-      })));
+      return c.json(
+        ok(
+          await this.params.portableRuntimeAcceptance.status({
+            appId: this.readOptionalQuery(c, "appId"),
+            locale: this.readLocale(c),
+          }),
+        ),
+      );
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -235,9 +231,14 @@ export class ServiceAppsRoutesController {
 
   readonly exportPortableRuntimeAcceptance = async (c: Context) => {
     try {
-      return c.json(ok(await this.params.portableRuntimeAcceptance.export({
-        appId: this.readOptionalQuery(c, "appId"), locale: this.readLocale(c),
-      })));
+      return c.json(
+        ok(
+          await this.params.portableRuntimeAcceptance.export({
+            appId: this.readOptionalQuery(c, "appId"),
+            locale: this.readLocale(c),
+          }),
+        ),
+      );
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -253,9 +254,7 @@ export class ServiceAppsRoutesController {
 
   readonly getServiceAppJob = async (c: Context) => {
     try {
-      return c.json(ok(await this.params.serviceAppManager.getServiceAppJob(
-        c.req.param("appId"), c.req.param("jobId"),
-      )));
+      return c.json(ok(await this.params.serviceAppManager.getServiceAppJob(c.req.param("appId"), c.req.param("jobId"))));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -268,9 +267,7 @@ export class ServiceAppsRoutesController {
       return c.json(err("INVALID_JOB_CURSOR", "afterSequence must be a non-negative integer"), 400);
     }
     try {
-      return c.json(ok(await this.params.serviceAppManager.watchServiceAppJob(
-        c.req.param("appId"), c.req.param("jobId"), afterSequence,
-      )));
+      return c.json(ok(await this.params.serviceAppManager.watchServiceAppJob(c.req.param("appId"), c.req.param("jobId"), afterSequence)));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -278,9 +275,7 @@ export class ServiceAppsRoutesController {
 
   readonly cancelServiceAppJob = async (c: Context) => {
     try {
-      return c.json(ok(await this.params.serviceAppManager.cancelServiceAppJob(
-        c.req.param("appId"), c.req.param("jobId"),
-      )));
+      return c.json(ok(await this.params.serviceAppManager.cancelServiceAppJob(c.req.param("appId"), c.req.param("jobId"))));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -289,10 +284,7 @@ export class ServiceAppsRoutesController {
   /** Inspect durable Resident delivery facts; payload stays private to the instance journal. */
   readonly listResidentInbox = async (c: Context) => {
     try {
-      return c.json(ok(await this.params.serviceAppManager.listResidentInbox(
-        c.req.param("appId"),
-        { deadLettersOnly: c.req.query("deadLetters") === "true" },
-      )));
+      return c.json(ok(await this.params.serviceAppManager.listResidentInbox(c.req.param("appId"), { deadLettersOnly: c.req.query("deadLetters") === "true" })));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -300,9 +292,7 @@ export class ServiceAppsRoutesController {
 
   readonly replayResidentDeadLetter = async (c: Context) => {
     try {
-      return c.json(ok(await this.params.serviceAppManager.replayResidentDeadLetter(
-        c.req.param("appId"), c.req.param("eventId"),
-      )));
+      return c.json(ok(await this.params.serviceAppManager.replayResidentDeadLetter(c.req.param("appId"), c.req.param("eventId"))));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -311,13 +301,10 @@ export class ServiceAppsRoutesController {
   readonly grantServiceAction = async (c: Context) => {
     try {
       const bridgeSession = this.requireBridgeSession(c);
-      const payload = await this.params.serviceAppManager.grantServiceAction(
-        c.req.param("actionId"),
-        {
-          caller: bridgeSession.caller,
-          declaredActions: bridgeSession.declaredActions,
-        },
-      );
+      const payload = await this.params.serviceAppManager.grantServiceAction(c.req.param("actionId"), {
+        caller: bridgeSession.caller,
+        declaredActions: bridgeSession.declaredActions,
+      });
       return c.json(ok(payload));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -331,13 +318,10 @@ export class ServiceAppsRoutesController {
     }
     try {
       const bridgeSession = this.requireBridgeSession(c);
-      const grants = await this.params.serviceAppManager.grantServiceActions(
-        body.data.actionIds,
-        {
-          caller: bridgeSession.caller,
-          declaredActions: bridgeSession.declaredActions,
-        },
-      );
+      const grants = await this.params.serviceAppManager.grantServiceActions(body.data.actionIds, {
+        caller: bridgeSession.caller,
+        declaredActions: bridgeSession.declaredActions,
+      });
       return c.json(ok({ grants }));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -348,16 +332,10 @@ export class ServiceAppsRoutesController {
     const body = await readJson<ServiceActionGrantBatchRequestView>(c.req.raw);
     const agentId = c.req.param("agentId").trim();
     if (!body.ok || !Array.isArray(body.data?.actionIds) || !agentId) {
-      return c.json(err(
-        "INVALID_SERVICE_ACTION_GRANT_REQUEST",
-        "invalid Agent service action grant request",
-      ), 400);
+      return c.json(err("INVALID_SERVICE_ACTION_GRANT_REQUEST", "invalid Agent service action grant request"), 400);
     }
     try {
-      const grants = await this.params.serviceAppManager.grantServiceActions(
-        body.data.actionIds,
-        { caller: { surface: "agent", agentId } },
-      );
+      const grants = await this.params.serviceAppManager.grantServiceActions(body.data.actionIds, { caller: { surface: "agent", agentId } });
       return c.json(ok({ grants }));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -365,18 +343,17 @@ export class ServiceAppsRoutesController {
   };
 
   readonly listServiceActionGrants = async (c: Context) => {
-    return c.json(ok({
-      grants: await this.params.serviceAppManager.listServiceActionGrants(),
-    }));
+    return c.json(
+      ok({
+        grants: await this.params.serviceAppManager.listServiceActionGrants(),
+      }),
+    );
   };
 
   readonly revokeServiceAction = async (c: Context) => {
     try {
       const bridgeSession = this.requireBridgeSession(c);
-      await this.params.serviceAppManager.revokeServiceAction(
-        bridgeSession.caller,
-        c.req.param("actionId"),
-      );
+      await this.params.serviceAppManager.revokeServiceAction(bridgeSession.caller, c.req.param("actionId"));
       return c.json(ok({ revoked: true }));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -389,10 +366,7 @@ export class ServiceAppsRoutesController {
       return c.json(err("INVALID_SERVICE_ACTION_CALLER", "invalid service action caller"), 400);
     }
     try {
-      await this.params.serviceAppManager.revokeServiceAction(
-        caller,
-        c.req.param("actionId"),
-      );
+      await this.params.serviceAppManager.revokeServiceAction(caller, c.req.param("actionId"));
       return c.json(ok({ revoked: true }));
     } catch (error) {
       return this.handleServiceAppError(c, error);
@@ -411,10 +385,7 @@ export class ServiceAppsRoutesController {
     const body = await readJson<unknown>(c.req.raw);
     const purgeData = body.ok && isRecord(body.data) && body.data.purgeData === true;
     try {
-      return c.json(ok(await this.params.serviceAppManager.deleteServiceApp(
-        c.req.param("appId"),
-        purgeData,
-      )));
+      return c.json(ok(await this.params.serviceAppManager.deleteServiceApp(c.req.param("appId"), purgeData)));
     } catch (error) {
       return this.handleServiceAppError(c, error);
     }
@@ -430,9 +401,7 @@ export class ServiceAppsRoutesController {
 
   private readOptionalBridgeSession = (c: Context) => {
     const token = c.req.raw.headers.get(PANEL_BRIDGE_SESSION_HEADER)?.trim();
-    return token
-      ? this.params.panelAppManager.resolvePanelAppBridgeSession(token)
-      : null;
+    return token ? this.params.panelAppManager.resolvePanelAppBridgeSession(token) : null;
   };
 
   private readCallerQuery = (c: Context) => {
@@ -449,7 +418,7 @@ export class ServiceAppsRoutesController {
     return value || undefined;
   };
 
-  private readLocale = (c: Context): "zh-CN" | "en" => c.req.query("locale") === "en" ? "en" : "zh-CN";
+  private readLocale = (c: Context): "zh-CN" | "en" => (c.req.query("locale") === "en" ? "en" : "zh-CN");
 
   private readLimit = (c: Context): number | undefined => {
     const raw = c.req.query("limit");
@@ -467,10 +436,7 @@ export class ServiceAppsRoutesController {
 
   private handleServiceAppError = (c: Context, error: unknown) => {
     if (isServiceAppError(error)) {
-      return c.json(
-        err(error.code, error.message, error.details),
-        statusForServiceAppError(error.code),
-      );
+      return c.json(err(error.code, error.message, error.details), statusForServiceAppError(error.code));
     }
     if (isPanelAppError(error)) {
       return c.json(err(error.code, error.message), 404);

@@ -3,7 +3,10 @@ import type {
   AppPermissions,
   AppResolvedComponent,
 } from "#app-runtime/types/app-manifest.types.js";
-import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
+import type {
+  AppDocumentGrantMap,
+  AppStoredDocumentGrantMap,
+} from "#app-runtime/types/app-permissions.types.js";
 import type { AppDistributionMode } from "#app-runtime/types/app-bundle.types.js";
 import type { AppInstallSourceKind } from "#app-runtime/types/app-registry.types.js";
 import type { AppPublisher } from "#app-runtime/types/app-remote-registry.types.js";
@@ -74,7 +77,7 @@ export type AppInfoResult = {
     primaryPanelId?: string;
     contentSha256?: string;
   }>;
-  grants: AppDocumentGrantMap;
+  grants: AppStoredDocumentGrantMap;
 };
 
 export type InstalledAppListItem = {

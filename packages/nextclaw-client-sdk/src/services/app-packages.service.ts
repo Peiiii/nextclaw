@@ -1,4 +1,6 @@
 import type {
+  AppDocumentGrantMutationResult,
+  AppInstalledPermissionState,
   AppPackageList,
   AppPackageOperationList,
   AppPackageOperationView,
@@ -11,19 +13,51 @@ export class AppPackagesClientService {
 
   readonly list = async (
     options: { includeStorageUsage?: boolean } = {},
-  ): Promise<AppPackageList> => await this.requestService.get<AppPackageList>(
-    options.includeStorageUsage === false
-      ? "/api/app-packages?includeStorageUsage=false"
-      : "/api/app-packages",
-  );
+  ): Promise<AppPackageList> =>
+    await this.requestService.get<AppPackageList>(
+      options.includeStorageUsage === false
+        ? "/api/app-packages?includeStorageUsage=false"
+        : "/api/app-packages",
+    );
 
   readonly get = async (appId: string): Promise<AppPackageView> =>
     await this.requestService.get<AppPackageView>(
       `/api/app-packages/${encodeURIComponent(appId)}`,
     );
 
+  readonly inspectDocumentAccess = async (
+    appId: string,
+  ): Promise<AppInstalledPermissionState> =>
+    await this.requestService.get<AppInstalledPermissionState>(
+      `/api/app-packages/${encodeURIComponent(appId)}/document-access`,
+    );
+
+  readonly grantDocumentAccess = async (
+    appId: string,
+    input: {
+      scopeId: string;
+      directoryPath: string;
+      mode: "read" | "read-write";
+    },
+  ): Promise<AppDocumentGrantMutationResult> =>
+    await this.requestService.post<AppDocumentGrantMutationResult>(
+      `/api/app-packages/${encodeURIComponent(appId)}/document-access/grant`,
+      input,
+    );
+
+  readonly revokeDocumentAccess = async (
+    appId: string,
+    scopeId: string,
+  ): Promise<AppDocumentGrantMutationResult> =>
+    await this.requestService.post<AppDocumentGrantMutationResult>(
+      `/api/app-packages/${encodeURIComponent(appId)}/document-access/revoke`,
+      { scopeId },
+    );
+
   readonly listOperations = async (): Promise<AppPackageOperationList> =>
-    await this.requestService.get<AppPackageOperationList>("/api/app-package-operations");
+    await this.requestService.get<AppPackageOperationList>(
+      "/api/app-package-operations",
+    );
 
   readonly startInstall = async (input: {
     source: string;
@@ -65,7 +99,10 @@ export class AppPackagesClientService {
     source: string;
     registryUrl?: string;
   }): Promise<AppPackageView> =>
-    await this.requestService.post<AppPackageView>("/api/app-packages/install", input);
+    await this.requestService.post<AppPackageView>(
+      "/api/app-packages/install",
+      input,
+    );
 
   readonly enable = async (appId: string): Promise<AppPackageView> =>
     await this.requestService.post<AppPackageView>(
@@ -98,7 +135,11 @@ export class AppPackagesClientService {
   readonly uninstall = async (
     appId: string,
     purgeData: boolean = false,
-  ): Promise<{ appId: string; removedVersions: string[]; dataRemoved: boolean }> =>
+  ): Promise<{
+    appId: string;
+    removedVersions: string[];
+    dataRemoved: boolean;
+  }> =>
     await this.requestService.request(
       `/api/app-packages/${encodeURIComponent(appId)}`,
       { method: "DELETE", body: { purgeData } },

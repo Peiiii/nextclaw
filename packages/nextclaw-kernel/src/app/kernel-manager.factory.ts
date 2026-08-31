@@ -111,6 +111,7 @@ export function createKernelServiceAppManagers(params: {
     appHomeDirectory,
     configManager,
     listPackageComponentSources: appPackageManager.listActiveComponentSources,
+    assertDocumentAccess: appPackageManager.assertDocumentAccess,
     capabilityGrantManager,
     hasAgent,
     providerManager,
@@ -170,7 +171,12 @@ export function createPortableRuntimeAcceptanceServices(params: {
   verificationRecords: VerificationRecordService;
   portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
 } {
-  const { productVersion, runtimeVersion, portableServiceRunnerPath, verificationRecordStorePath } = params;
+  const {
+    productVersion,
+    runtimeVersion,
+    portableServiceRunnerPath,
+    verificationRecordStorePath,
+  } = params;
   const identity = new PortableRuntimeAcceptanceIdentityService({
     productVersion,
     runtimeVersion,
@@ -185,7 +191,10 @@ export function createPortableRuntimeAcceptanceServices(params: {
   });
   return {
     verificationRecords,
-    portableRuntimeAcceptance: new PortableRuntimeAcceptanceManager({ verificationRecords, identity }),
+    portableRuntimeAcceptance: new PortableRuntimeAcceptanceManager({
+      verificationRecords,
+      identity,
+    }),
   };
 }
 
@@ -269,7 +278,9 @@ export function createKernelSessionManagers(params: {
   };
 }
 
-export function createKernelContributions(kernel: NextclawKernel): KernelContribution[] {
+export function createKernelContributions(
+  kernel: NextclawKernel,
+): KernelContribution[] {
   return [
     new ToolProviderContribution(kernel),
     new LearningLoopContribution(kernel),
@@ -298,13 +309,26 @@ export function installKernelAppPackageRuntimeHooks(params: {
       panelAppManager.deactivatePackageComponents(sources);
       await serviceAppManager.deactivatePackageComponents(sources);
     },
+    prepareCapabilityChange: async (sources) =>
+      await serviceAppManager.preparePackageComponentDeactivation(sources),
+    afterCapabilityChange: async (sources) => {
+      await serviceAppManager.activatePackageComponents(sources);
+    },
     beforeUninstall: async (sources) => {
       const rollbacks: Array<() => Promise<void>> = [];
       try {
-        rollbacks.push(panelAppManager.preparePackageComponentDeactivation(sources));
-        rollbacks.push(await serviceAppManager.preparePackageComponentDeactivation(sources));
-        rollbacks.push(await panelAppManager.removePackageComponentState(sources));
-        rollbacks.push(await serviceAppManager.removePackageComponentGrants(sources));
+        rollbacks.push(
+          panelAppManager.preparePackageComponentDeactivation(sources),
+        );
+        rollbacks.push(
+          await serviceAppManager.preparePackageComponentDeactivation(sources),
+        );
+        rollbacks.push(
+          await panelAppManager.removePackageComponentState(sources),
+        );
+        rollbacks.push(
+          await serviceAppManager.removePackageComponentGrants(sources),
+        );
       } catch (error) {
         const recoveryErrors = await runAppPackageRollbacks(rollbacks);
         if (recoveryErrors.length > 0) {

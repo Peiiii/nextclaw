@@ -251,5 +251,20 @@
   "serviceActionAuthorizationRisk": "Risk",
   "serviceActionAuthorizationInput": "Input",
   "serviceActionAuthorizationReject": "Reject",
-  "serviceActionAuthorizationAllow": "Allow"
+  "serviceActionAuthorizationAllow": "Allow",
+  "appPackagesDocumentAccessTitle": "Files and folders",
+  "appPackagesDocumentAccessUngranted": "Not granted",
+  "appPackagesDocumentAccessUnavailable": "Folder unavailable",
+  "appPackagesDocumentAccessRead": "Read only",
+  "appPackagesDocumentAccessReadWrite": "Read and write",
+  "appPackagesDocumentAccessMode": "Access mode",
+  "appPackagesDocumentAccessChoose": "Choose folder",
+  "appPackagesDocumentAccessReplace": "Replace",
+  "appPackagesDocumentAccessRevoke": "Revoke access",
+  "appPackagesDocumentAccessGrant": "Grant this folder",
+  "appPackagesDocumentAccessChooseTitle": "Choose a folder on the runtime host",
+  "appPackagesDocumentAccessChooseDescription": "Choose the folder this app may access.",
+  "appPackagesDocumentAccessPath": "Granted folder",
+  "appPackagesDocumentAccessWriteWarning": "Read and write access lets this app modify the original files in this folder. You can revoke it from the app card at any time.",
+  "appPackagesDocumentAccessReadHint": "Read-only access lets this app view the folder but not modify files through this mount."
 }
