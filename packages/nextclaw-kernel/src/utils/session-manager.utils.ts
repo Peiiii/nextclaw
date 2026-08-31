@@ -117,17 +117,29 @@ export function applySessionSettingsMetadataPatch(
 export async function applySessionProjectMetadataPatch(
   metadata: Record<string, unknown>,
   patch: SessionSettingsPatch,
-  normalizeProjectRoot: (value: unknown) => Promise<string | null>,
+  normalizeProjectContext: (value: unknown) => Promise<{
+    projectId: string;
+    rootPath: string;
+  } | null>,
 ): Promise<Record<string, unknown>> {
   if (!Object.prototype.hasOwnProperty.call(patch, "projectRoot")) {
     return metadata;
   }
-  const projectRoot = await normalizeProjectRoot(patch.projectRoot);
-  const { projectRoot: _legacyProjectRoot, ...nextMetadata } = metadata;
-  if (projectRoot) return { ...nextMetadata, project_root: projectRoot };
-  const { project_root: _projectRoot, ...metadataWithoutProjectRoot } =
-    nextMetadata;
-  return metadataWithoutProjectRoot;
+  const project = await normalizeProjectContext(patch.projectRoot);
+  const {
+    projectRoot: _legacyProjectRoot,
+    projectId: _legacyProjectId,
+    project_root: _projectRoot,
+    project_id: _projectId,
+    ...nextMetadata
+  } = metadata;
+  return project
+    ? {
+        ...nextMetadata,
+        project_id: project.projectId,
+        project_root: project.rootPath,
+      }
+    : nextMetadata;
 }
 
 export function publishSessionMetadataChanged(

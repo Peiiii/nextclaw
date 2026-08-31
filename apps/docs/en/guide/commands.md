@@ -103,16 +103,31 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 
 ## Projects and sessions
 
-| Command                           | Purpose                                                         |
-| --------------------------------- | --------------------------------------------------------------- |
-| `nextclaw projects list`          | List registered projects, including projects without sessions   |
-| `nextclaw projects templates`     | List built-in project templates                                 |
-| `nextclaw projects create`        | Create and register a project                                   |
-| `nextclaw projects observe`       | Read a registered project's observation snapshot                |
-| `nextclaw sessions rename`        | Rename a session                                                |
-| `nextclaw sessions set-project`   | Bind a session to an existing project directory                 |
-| `nextclaw sessions clear-project` | Clear a session's explicit project binding                      |
-| `nextclaw sessions delete`        | Permanently delete a session; requires `--confirm <session-id>` |
+| Command                                  | Purpose                                                         |
+| ---------------------------------------- | --------------------------------------------------------------- |
+| `nextclaw projects list`                 | List registered projects, including projects without sessions   |
+| `nextclaw projects templates`            | List built-in project templates                                 |
+| `nextclaw projects create`               | Create and register a project                                   |
+| `nextclaw projects observe`              | Read a registered project's observation snapshot                |
+| `nextclaw projects work list`            | List work items by project ID                                   |
+| `nextclaw projects work get`             | Show work-item details                                          |
+| `nextclaw projects work create`          | Create a persistent work item                                   |
+| `nextclaw projects work update`          | Update fields, state, or attention                              |
+| `nextclaw projects work delete`          | Soft-delete a work item                                         |
+| `nextclaw projects work restore`         | Restore a deleted work item                                     |
+| `nextclaw projects work activity`        | Show immutable work-item activity                               |
+| `nextclaw projects work artifact link`   | Link an artifact file inside the project                        |
+| `nextclaw projects work artifact unlink` | Remove an artifact link                                         |
+| `nextclaw projects work state list`      | List custom project work states                                 |
+| `nextclaw projects work state create`    | Create a work state                                             |
+| `nextclaw projects work state update`    | Update or reorder a work state                                  |
+| `nextclaw projects work state delete`    | Delete a state and optionally migrate existing items            |
+| `nextclaw sessions rename`               | Rename a session                                                |
+| `nextclaw sessions set-project`          | Bind a session to an existing project directory                 |
+| `nextclaw sessions clear-project`        | Clear a session's explicit project binding                      |
+| `nextclaw sessions delete`               | Permanently delete a session; requires `--confirm <session-id>` |
+
+Every `projects work` command requires `--project <project-id>` and runs through the local NextClaw service.
 
 ## Automation and learning loop
 
@@ -159,72 +174,72 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 ## Skills and Marketplace
 
 | --------------------------------------- | -------------------------------------------- |
-| `nextclaw skills installed`             | List Skills installed in the current runtime |
-| `nextclaw skills info`                  | Inspect an installed Skill                   |
-| `nextclaw skills install`               | Install a Skill from NextClaw Marketplace    |
-| `nextclaw skills publish`               | Create or publish a Marketplace Skill        |
-| `nextclaw skills update`                | Update a published Marketplace Skill         |
-| `nextclaw marketplace skills search`    | Search Marketplace Skills                    |
-| `nextclaw marketplace skills info`      | Inspect a Marketplace Skill                  |
-| `nextclaw marketplace skills recommend` | List recommended Skills                      |
-| `nextclaw marketplace skills install`   | Install a Marketplace Skill                  |
-| `nextclaw marketplace skills update`    | Update a locally installed Marketplace Skill |
+| `nextclaw skills installed` | List Skills installed in the current runtime |
+| `nextclaw skills info` | Inspect an installed Skill |
+| `nextclaw skills install` | Install a Skill from NextClaw Marketplace |
+| `nextclaw skills publish` | Create or publish a Marketplace Skill |
+| `nextclaw skills update` | Update a published Marketplace Skill |
+| `nextclaw marketplace skills search` | Search Marketplace Skills |
+| `nextclaw marketplace skills info` | Inspect a Marketplace Skill |
+| `nextclaw marketplace skills recommend` | List recommended Skills |
+| `nextclaw marketplace skills install` | Install a Marketplace Skill |
+| `nextclaw marketplace skills update` | Update a locally installed Marketplace Skill |
 
 ## NextClaw Apps
 
-| Command                           | Purpose                                                                                |
-| --------------------------------- | -------------------------------------------------------------------------------------- |
-| `nextclaw app create`             | Create a standalone App; the default template is Rust/WASI                             |
-| `nextclaw app doctor`             | Diagnose the WASI Guest build environment and print repair commands                    |
-| `nextclaw app build`              | Build Rust/WASI Service Components in an App                                           |
-| `nextclaw app check`              | Check a complete App package, Panel, or Service directory                              |
-| `nextclaw app test`               | Run an App's Action smoke tests in the isolated Runtime                                |
-| `nextclaw app dev`                | Start the real Runtime from an App package or Service directory                        |
-| `nextclaw app pack`               | Package a `.napp`; pure WASI Apps default to a universal artifact                      |
-| `nextclaw app validate-publish`   | Validate an App and its artifacts before Marketplace submission                        |
-| `nextclaw app publish`            | Submit an App to App Marketplace                                                       |
-| `nextclaw app call`               | Call a real Action from an App package or Service directory                            |
-| `nextclaw app restart`            | Restart a Service App running in the NextClaw UI                                       |
-| `nextclaw app data list`          | List active and retained App data instances                                            |
-| `nextclaw app data delete`        | Permanently delete retained App data with an exact App-ID confirmation                 |
-| `nextclaw app marketplace search` | Search Apps in the official App Marketplace                                            |
-| `nextclaw app marketplace info`   | Show a Marketplace App and its derived install command                                 |
-| `nextclaw app list`               | List Apps installed in the running NextClaw host                                       |
-| `nextclaw app info`               | Show installed App state and versions                                                  |
-| `nextclaw app invoke`             | Call an Action on an enabled installed App through the running host                    |
-| `nextclaw app verification`       | Read redacted runtime verification records from the running host                       |
-| `nextclaw app acceptance contract` | Read the stable Portable Runtime acceptance contract                                  |
-| `nextclaw app acceptance status`   | Read current Portable Runtime acceptance status and evidence freshness                |
-| `nextclaw app acceptance export`   | Export the contract, current runtime identity, and acceptance status as JSON          |
-| `nextclaw app jobs list`          | List durable Jobs for one installed App instance                                       |
-| `nextclaw app jobs inspect`       | Inspect one durable App Job                                                            |
-| `nextclaw app jobs watch`         | Replay retained Job progress and output after an optional sequence cursor              |
-| `nextclaw app jobs cancel`        | Request Job cancellation; completion remains pending until runtime confirmation        |
-| `nextclaw app resident-inbox list` | Inspect durable Resident delivery state; `--dead-letters` narrows to recoverable failures |
-| `nextclaw app resident-inbox replay` | Replay one dead-letter Resident event through the host-owned inbox                    |
-| `nextclaw app dependencies inspect` | Inspect external capability/resource dependencies, Provider candidates, and bindings |
-| `nextclaw app dependencies verify`  | Verify whether current dependencies are satisfied                                |
-| `nextclaw app dependencies setup`   | Establish bindings only when a compatible Provider is unique                      |
-| `nextclaw app dependencies bind`    | Bind one dependency to an installed trusted Provider                             |
-| `nextclaw app dependencies unbind`  | Remove one dependency binding                                                      |
-| `nextclaw app secrets inspect`      | Show declared Secret slots and non-sensitive SecretRef bindings                   |
-| `nextclaw app secrets verify`       | Resolve bindings without revealing Secret values                                   |
-| `nextclaw app secrets bind`         | Bind one declared Secret slot to an env, file, or exec provider                   |
-| `nextclaw app secrets unbind`       | Remove an App SecretRef binding and its active Secret permission                  |
-| `nextclaw app permissions inspect`  | Inspect declared directory scopes, grant status, and effective access mode        |
-| `nextclaw app permissions document grant` | Grant or replace a runtime-host directory as read-only or read-write       |
-| `nextclaw app permissions document revoke` | Revoke a directory scope and stop the previous mount                       |
-| `nextclaw app ai-capabilities inspect` | Inspect declared non-secret model and Agent slots with current bindings         |
-| `nextclaw app ai-capabilities verify`  | Verify required model and Agent slot readiness                                  |
-| `nextclaw app ai-capabilities bind`    | Bind one declared model or Agent slot to a configured target                    |
-| `nextclaw app ai-capabilities unbind`  | Remove one model or Agent slot binding                                          |
-| `nextclaw app operations`         | List durable App lifecycle operations                                                  |
-| `nextclaw app install`            | Install a Marketplace App, local directory, or `.napp` bundle through the running host |
-| `nextclaw app enable`             | Enable an installed App                                                                |
-| `nextclaw app disable`            | Disable an installed App                                                               |
-| `nextclaw app update`             | Start a background App update                                                          |
-| `nextclaw app rollback`           | Roll back to an installed version                                                      |
-| `nextclaw app uninstall`          | Start an uninstall; purging data requires exact App-ID confirmation                    |
+| Command                                    | Purpose                                                                                   |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `nextclaw app create`                      | Create a standalone App; the default template is Rust/WASI                                |
+| `nextclaw app doctor`                      | Diagnose the WASI Guest build environment and print repair commands                       |
+| `nextclaw app build`                       | Build Rust/WASI Service Components in an App                                              |
+| `nextclaw app check`                       | Check a complete App package, Panel, or Service directory                                 |
+| `nextclaw app test`                        | Run an App's Action smoke tests in the isolated Runtime                                   |
+| `nextclaw app dev`                         | Start the real Runtime from an App package or Service directory                           |
+| `nextclaw app pack`                        | Package a `.napp`; pure WASI Apps default to a universal artifact                         |
+| `nextclaw app validate-publish`            | Validate an App and its artifacts before Marketplace submission                           |
+| `nextclaw app publish`                     | Submit an App to App Marketplace                                                          |
+| `nextclaw app call`                        | Call a real Action from an App package or Service directory                               |
+| `nextclaw app restart`                     | Restart a Service App running in the NextClaw UI                                          |
+| `nextclaw app data list`                   | List active and retained App data instances                                               |
+| `nextclaw app data delete`                 | Permanently delete retained App data with an exact App-ID confirmation                    |
+| `nextclaw app marketplace search`          | Search Apps in the official App Marketplace                                               |
+| `nextclaw app marketplace info`            | Show a Marketplace App and its derived install command                                    |
+| `nextclaw app list`                        | List Apps installed in the running NextClaw host                                          |
+| `nextclaw app info`                        | Show installed App state and versions                                                     |
+| `nextclaw app invoke`                      | Call an Action on an enabled installed App through the running host                       |
+| `nextclaw app verification`                | Read redacted runtime verification records from the running host                          |
+| `nextclaw app acceptance contract`         | Read the stable Portable Runtime acceptance contract                                      |
+| `nextclaw app acceptance status`           | Read current Portable Runtime acceptance status and evidence freshness                    |
+| `nextclaw app acceptance export`           | Export the contract, current runtime identity, and acceptance status as JSON              |
+| `nextclaw app jobs list`                   | List durable Jobs for one installed App instance                                          |
+| `nextclaw app jobs inspect`                | Inspect one durable App Job                                                               |
+| `nextclaw app jobs watch`                  | Replay retained Job progress and output after an optional sequence cursor                 |
+| `nextclaw app jobs cancel`                 | Request Job cancellation; completion remains pending until runtime confirmation           |
+| `nextclaw app resident-inbox list`         | Inspect durable Resident delivery state; `--dead-letters` narrows to recoverable failures |
+| `nextclaw app resident-inbox replay`       | Replay one dead-letter Resident event through the host-owned inbox                        |
+| `nextclaw app dependencies inspect`        | Inspect external capability/resource dependencies, Provider candidates, and bindings      |
+| `nextclaw app dependencies verify`         | Verify whether current dependencies are satisfied                                         |
+| `nextclaw app dependencies setup`          | Establish bindings only when a compatible Provider is unique                              |
+| `nextclaw app dependencies bind`           | Bind one dependency to an installed trusted Provider                                      |
+| `nextclaw app dependencies unbind`         | Remove one dependency binding                                                             |
+| `nextclaw app secrets inspect`             | Show declared Secret slots and non-sensitive SecretRef bindings                           |
+| `nextclaw app secrets verify`              | Resolve bindings without revealing Secret values                                          |
+| `nextclaw app secrets bind`                | Bind one declared Secret slot to an env, file, or exec provider                           |
+| `nextclaw app secrets unbind`              | Remove an App SecretRef binding and its active Secret permission                          |
+| `nextclaw app permissions inspect`         | Inspect declared directory scopes, grant status, and effective access mode                |
+| `nextclaw app permissions document grant`  | Grant or replace a runtime-host directory as read-only or read-write                      |
+| `nextclaw app permissions document revoke` | Revoke a directory scope and stop the previous mount                                      |
+| `nextclaw app ai-capabilities inspect`     | Inspect declared non-secret model and Agent slots with current bindings                   |
+| `nextclaw app ai-capabilities verify`      | Verify required model and Agent slot readiness                                            |
+| `nextclaw app ai-capabilities bind`        | Bind one declared model or Agent slot to a configured target                              |
+| `nextclaw app ai-capabilities unbind`      | Remove one model or Agent slot binding                                                    |
+| `nextclaw app operations`                  | List durable App lifecycle operations                                                     |
+| `nextclaw app install`                     | Install a Marketplace App, local directory, or `.napp` bundle through the running host    |
+| `nextclaw app enable`                      | Enable an installed App                                                                   |
+| `nextclaw app disable`                     | Disable an installed App                                                                  |
+| `nextclaw app update`                      | Start a background App update                                                             |
+| `nextclaw app rollback`                    | Roll back to an installed version                                                         |
+| `nextclaw app uninstall`                   | Start an uninstall; purging data requires exact App-ID confirmation                       |
 
 See [Service Apps](/en/guide/service-apps) for the user workflow and [Develop a WASM Service App](/en/developers/portable-service-apps) for runtime development commands.
 

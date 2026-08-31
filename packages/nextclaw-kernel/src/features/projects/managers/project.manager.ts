@@ -1,11 +1,15 @@
 import { mkdir, readdir, realpath, stat, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { expandHome } from "@nextclaw/core";
-import { createProjectId, ProjectStore } from "@kernel/features/projects/stores/project.store.js";
+import {
+  createProjectId,
+  ProjectStore,
+} from "@kernel/features/projects/stores/project.store.js";
 import {
   PROJECT_TEMPLATE_IDS,
   type CreateProjectInput,
   type ProjectRecord,
+  type ProjectSessionBinding,
   type ProjectTemplate,
   type ProjectTemplateId,
 } from "@kernel/features/projects/types/project.types.js";
@@ -26,6 +30,7 @@ const PROJECT_TEMPLATES: ProjectTemplate[] = [
 export type ProjectManagerOptions = {
   storePath: string;
   getDefaultWorkspacePath: () => string;
+  onProjectRegistered?: (project: ProjectRecord) => Promise<void>;
 };
 
 export type ProjectErrorCode =
@@ -59,24 +64,32 @@ export class ProjectManager {
   }
 
   listProjects = async (): Promise<ProjectRecord[]> =>
-    (await this.store.list()).sort((left, right) =>
-      right.updatedAt.localeCompare(left.updatedAt) || left.name.localeCompare(right.name)
+    (await this.store.list()).sort(
+      (left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt) ||
+        left.name.localeCompare(right.name),
     );
 
   migrateLegacyProjects = async (): Promise<boolean> =>
     await this.store.migrateLegacyRecords();
 
   getProjectById = async (projectId: string): Promise<ProjectRecord | null> => {
-    const project = (await this.store.list()).find((entry) => entry.id === projectId);
+    const project = (await this.store.list()).find(
+      (entry) => entry.id === projectId,
+    );
     return project ? structuredClone(project) : null;
   };
 
-  getRegisteredProject = async (rootPath: unknown): Promise<ProjectRecord | null> => {
+  getRegisteredProject = async (
+    rootPath: unknown,
+  ): Promise<ProjectRecord | null> => {
     const canonicalPath = await this.resolveExistingProjectRoot(rootPath);
     if (!canonicalPath) {
       return null;
     }
-    const project = (await this.store.list()).find((entry) => entry.rootPath === canonicalPath);
+    const project = (await this.store.list()).find(
+      (entry) => entry.rootPath === canonicalPath,
+    );
     return project ? structuredClone(project) : null;
   };
 
@@ -85,16 +98,23 @@ export class ProjectManager {
   createProject = async (input: CreateProjectInput): Promise<ProjectRecord> => {
     const name = this.normalizeName(input.name);
     const template = this.normalizeTemplate(input.template);
-    const targetPath = input.rootPath === undefined
-      ? join(this.resolveDefaultWorkspacePath(), name)
-      : this.resolvePath(input.rootPath);
+    const targetPath =
+      input.rootPath === undefined
+        ? join(this.resolveDefaultWorkspacePath(), name)
+        : this.resolvePath(input.rootPath);
     await this.assertNotDefaultWorkspace(targetPath);
     const existing = await this.readPathState(targetPath);
     if (existing === "file") {
-      throw new ProjectError("PROJECT_PATH_NOT_DIRECTORY", "project path must point to a directory");
+      throw new ProjectError(
+        "PROJECT_PATH_NOT_DIRECTORY",
+        "project path must point to a directory",
+      );
     }
     if (existing === "non-empty-directory") {
-      throw new ProjectError("PROJECT_PATH_NOT_EMPTY", "project path must be empty");
+      throw new ProjectError(
+        "PROJECT_PATH_NOT_EMPTY",
+        "project path must be empty",
+      );
     }
     await mkdir(targetPath, { recursive: true });
     const rootPath = await realpath(targetPath);
@@ -111,12 +131,21 @@ export class ProjectManager {
       return null;
     }
     return await this.upsertProject({
-      name: name === undefined ? basename(canonicalPath) : this.normalizeName(name),
+      name:
+        name === undefined ? basename(canonicalPath) : this.normalizeName(name),
       rootPath: canonicalPath,
     });
   };
 
-  normalizeSessionProjectRoot = async (value: unknown): Promise<string | null> => {
+  normalizeSessionProjectRoot = async (
+    value: unknown,
+  ): Promise<string | null> => {
+    return (await this.normalizeSessionProjectContext(value))?.rootPath ?? null;
+  };
+
+  normalizeSessionProjectContext = async (
+    value: unknown,
+  ): Promise<ProjectSessionBinding | null> => {
     if (value == null || (typeof value === "string" && !value.trim())) {
       return null;
     }
@@ -124,37 +153,58 @@ export class ProjectManager {
     if (!rootPath) {
       return null;
     }
-    await this.upsertProject({ name: basename(rootPath), rootPath });
-    return rootPath;
+    const project = await this.upsertProject({
+      name: basename(rootPath),
+      rootPath,
+    });
+    return { projectId: project.id, rootPath: project.rootPath };
   };
 
-  resolveExistingProjectRoot = async (value: unknown): Promise<string | null> => {
+  resolveExistingProjectRoot = async (
+    value: unknown,
+  ): Promise<string | null> => {
     if (typeof value !== "string") {
-      throw new ProjectError("PROJECT_PATH_INVALID_TYPE", "project path must be a string or null");
+      throw new ProjectError(
+        "PROJECT_PATH_INVALID_TYPE",
+        "project path must be a string or null",
+      );
     }
     const candidate = this.resolvePath(value);
     let canonicalPath: string;
     try {
       canonicalPath = await realpath(candidate);
     } catch {
-      throw new ProjectError("PROJECT_PATH_NOT_FOUND", "project directory does not exist");
+      throw new ProjectError(
+        "PROJECT_PATH_NOT_FOUND",
+        "project directory does not exist",
+      );
     }
     if (!(await stat(canonicalPath)).isDirectory()) {
-      throw new ProjectError("PROJECT_PATH_NOT_DIRECTORY", "project path must point to a directory");
+      throw new ProjectError(
+        "PROJECT_PATH_NOT_DIRECTORY",
+        "project path must point to a directory",
+      );
     }
-    return await this.isDefaultWorkspace(canonicalPath) ? null : canonicalPath;
+    return (await this.isDefaultWorkspace(canonicalPath))
+      ? null
+      : canonicalPath;
   };
 
   importSessionProjects = async (projectRoots: unknown[]): Promise<void> => {
     for (const projectRoot of projectRoots) {
-      if (projectRoot == null || (typeof projectRoot === "string" && !projectRoot.trim())) {
+      if (
+        projectRoot == null ||
+        (typeof projectRoot === "string" && !projectRoot.trim())
+      ) {
         continue;
       }
       try {
         await this.registerExistingProject(projectRoot);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(`[project-manager] skipped historical project root: ${message}`);
+        console.warn(
+          `[project-manager] skipped historical project root: ${message}`,
+        );
       }
     }
   };
@@ -165,7 +215,9 @@ export class ProjectManager {
     template?: ProjectTemplateId;
   }): Promise<ProjectRecord> => {
     const projects = await this.store.list();
-    const existing = projects.find((project) => project.rootPath === input.rootPath);
+    const existing = projects.find(
+      (project) => project.rootPath === input.rootPath,
+    );
     if (existing) {
       return existing;
     }
@@ -179,10 +231,13 @@ export class ProjectManager {
       updatedAt: now,
     };
     await this.store.save([...projects, project]);
+    await this.options.onProjectRegistered?.(structuredClone(project));
     return structuredClone(project);
   };
 
-  private assertNotDefaultWorkspace = async (rootPath: string): Promise<void> => {
+  private assertNotDefaultWorkspace = async (
+    rootPath: string,
+  ): Promise<void> => {
     if (await this.isDefaultWorkspace(rootPath)) {
       throw new ProjectError(
         "PROJECT_PATH_IS_DEFAULT_WORKSPACE",
@@ -200,7 +255,7 @@ export class ProjectManager {
       canonicalRootPath = resolve(rootPath);
     }
     try {
-      return canonicalRootPath === await realpath(defaultWorkspace);
+      return canonicalRootPath === (await realpath(defaultWorkspace));
     } catch {
       return canonicalRootPath === defaultWorkspace;
     }
@@ -225,13 +280,17 @@ export class ProjectManager {
 
   private readPathState = async (
     path: string,
-  ): Promise<"missing" | "file" | "empty-directory" | "non-empty-directory"> => {
+  ): Promise<
+    "missing" | "file" | "empty-directory" | "non-empty-directory"
+  > => {
     try {
       const pathStat = await stat(path);
       if (!pathStat.isDirectory()) {
         return "file";
       }
-      return (await readdir(path)).length === 0 ? "empty-directory" : "non-empty-directory";
+      return (await readdir(path)).length === 0
+        ? "empty-directory"
+        : "non-empty-directory";
     } catch (error) {
       if (this.isMissingFileError(error)) {
         return "missing";
@@ -242,7 +301,13 @@ export class ProjectManager {
 
   private normalizeName = (value: string): string => {
     const name = typeof value === "string" ? value.trim() : "";
-    if (!name || name.includes("/") || name.includes("\\") || name === "." || name === "..") {
+    if (
+      !name ||
+      name.includes("/") ||
+      name.includes("\\") ||
+      name === "." ||
+      name === ".."
+    ) {
       throw new ProjectError("PROJECT_NAME_INVALID", "project name is invalid");
     }
     return name;
@@ -251,18 +316,27 @@ export class ProjectManager {
   private normalizeTemplate = (value: unknown): ProjectTemplateId => {
     const template = value ?? "empty";
     if (!PROJECT_TEMPLATE_IDS.some((templateId) => templateId === template)) {
-      throw new ProjectError("PROJECT_TEMPLATE_INVALID", "project template is not supported");
+      throw new ProjectError(
+        "PROJECT_TEMPLATE_INVALID",
+        "project template is not supported",
+      );
     }
     return template as ProjectTemplateId;
   };
 
   private resolvePath = (value: unknown): string => {
     if (typeof value !== "string") {
-      throw new ProjectError("PROJECT_PATH_INVALID_TYPE", "project path must be a string");
+      throw new ProjectError(
+        "PROJECT_PATH_INVALID_TYPE",
+        "project path must be a string",
+      );
     }
     const path = value.trim();
     if (!path) {
-      throw new ProjectError("PROJECT_PATH_INVALID_TYPE", "project path must not be empty");
+      throw new ProjectError(
+        "PROJECT_PATH_INVALID_TYPE",
+        "project path must not be empty",
+      );
     }
     return resolve(expandHome(path));
   };

@@ -2,30 +2,27 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import type { Database, SqlJsStatic, Statement } from "sql.js";
 
-export type SessionCatalogSqliteStatement = {
+export type SqliteStatement = {
   all: (...params: unknown[]) => unknown[];
   get: (...params: unknown[]) => unknown;
   run: (...params: unknown[]) => unknown;
 };
 
-export type SessionCatalogSqliteDatabase = {
+export type SqliteDatabase = {
   close: () => void;
   exec: (sql: string) => void;
-  prepare: (sql: string) => SessionCatalogSqliteStatement;
+  prepare: (sql: string) => SqliteStatement;
 };
 
 const require = createRequire(import.meta.url);
-const portableDatabases = new Map<
-  string,
-  Promise<PortableSessionCatalogSqliteDatabase>
->();
+const portableDatabases = new Map<string, Promise<PortableSqliteDatabase>>();
 
-export async function openSessionCatalogSqliteDatabase(
+export async function openSqliteDatabase(
   databasePath: string,
-): Promise<SessionCatalogSqliteDatabase> {
+): Promise<SqliteDatabase> {
   try {
     const native = require("node:sqlite") as {
-      DatabaseSync: new (path: string) => SessionCatalogSqliteDatabase;
+      DatabaseSync: new (path: string) => SqliteDatabase;
     };
     return new native.DatabaseSync(databasePath);
   } catch (error) {
@@ -34,8 +31,8 @@ export async function openSessionCatalogSqliteDatabase(
   }
 }
 
-export function runSessionCatalogSqliteTransaction<T>(
-  database: SessionCatalogSqliteDatabase,
+export function runSqliteTransaction<T>(
+  database: SqliteDatabase,
   operation: () => T,
   mode: "DEFERRED" | "IMMEDIATE" = "DEFERRED",
 ): T {
@@ -60,7 +57,7 @@ function isMissingNodeSqlite(error: unknown): boolean {
 
 async function openPortableDatabase(
   databasePath: string,
-): Promise<SessionCatalogSqliteDatabase> {
+): Promise<SqliteDatabase> {
   const existing = portableDatabases.get(databasePath);
   if (existing) return (await existing).acquire();
   const opening = createPortableDatabase(databasePath).catch((error) => {
@@ -73,7 +70,7 @@ async function openPortableDatabase(
 
 async function createPortableDatabase(
   databasePath: string,
-): Promise<PortableSessionCatalogSqliteDatabase> {
+): Promise<PortableSqliteDatabase> {
   const imported = await import("sql.js");
   const initialize = imported.default as unknown as (params: {
     locateFile: (file: string) => string;
@@ -84,10 +81,10 @@ async function createPortableDatabase(
   const database = existsSync(databasePath)
     ? new sqlite.Database(readFileSync(databasePath))
     : new sqlite.Database();
-  return new PortableSessionCatalogSqliteDatabase(databasePath, database);
+  return new PortableSqliteDatabase(databasePath, database);
 }
 
-class PortableSessionCatalogSqliteDatabase {
+class PortableSqliteDatabase {
   private inTransaction = false;
   private dirty = false;
   private leaseCount = 0;
@@ -97,9 +94,9 @@ class PortableSessionCatalogSqliteDatabase {
     private readonly database: Database,
   ) {}
 
-  acquire = (): SessionCatalogSqliteDatabase => {
+  acquire = (): SqliteDatabase => {
     this.leaseCount += 1;
-    return new PortableSessionCatalogSqliteLease(this);
+    return new PortableSqliteLease(this);
   };
 
   exec = (sql: string): void => {
@@ -122,8 +119,8 @@ class PortableSessionCatalogSqliteDatabase {
     if (!command.startsWith("PRAGMA")) this.markDirty();
   };
 
-  prepare = (sql: string): SessionCatalogSqliteStatement =>
-    new PortableSessionCatalogSqliteStatement(this, sql);
+  prepare = (sql: string): SqliteStatement =>
+    new PortableSqliteStatement(this, sql);
 
   release = (): void => {
     this.leaseCount -= 1;
@@ -167,10 +164,10 @@ class PortableSessionCatalogSqliteDatabase {
   };
 }
 
-class PortableSessionCatalogSqliteLease implements SessionCatalogSqliteDatabase {
+class PortableSqliteLease implements SqliteDatabase {
   private closed = false;
 
-  constructor(private readonly owner: PortableSessionCatalogSqliteDatabase) {}
+  constructor(private readonly owner: PortableSqliteDatabase) {}
 
   close = (): void => {
     if (this.closed) return;
@@ -180,13 +177,12 @@ class PortableSessionCatalogSqliteLease implements SessionCatalogSqliteDatabase 
 
   exec = (sql: string): void => this.owner.exec(sql);
 
-  prepare = (sql: string): SessionCatalogSqliteStatement =>
-    this.owner.prepare(sql);
+  prepare = (sql: string): SqliteStatement => this.owner.prepare(sql);
 }
 
-class PortableSessionCatalogSqliteStatement implements SessionCatalogSqliteStatement {
+class PortableSqliteStatement implements SqliteStatement {
   constructor(
-    private readonly database: PortableSessionCatalogSqliteDatabase,
+    private readonly database: PortableSqliteDatabase,
     private readonly sql: string,
   ) {}
 

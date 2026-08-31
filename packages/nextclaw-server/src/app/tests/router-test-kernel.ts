@@ -4,7 +4,6 @@ import type { UiKernelHost } from "@nextclaw-server/app/types/router-options.typ
 function unavailable(name: string): never {
   throw new Error(`test kernel ${name} is not configured`);
 }
-
 export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): UiKernelHost {
   return {
     listSessionTypes: async () => ({
@@ -149,6 +148,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
     } as never,
     projectObservation: {
       observe: async () => unavailable("projectObservation.observe"),
+    } as never,
+    projectWorkManager: {
+      list: async () => unavailable("projectWorkManager.list"),
     } as never,
     serviceAppManager: {
       listServiceApps: async () => ({

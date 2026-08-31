@@ -45,7 +45,9 @@ export class SessionMessageCursorError extends Error {
   }
 }
 
-export function isSessionMessageCursorError(error: unknown): error is SessionMessageCursorError {
+export function isSessionMessageCursorError(
+  error: unknown,
+): error is SessionMessageCursorError {
   return error instanceof SessionMessageCursorError;
 }
 
@@ -56,6 +58,7 @@ export type AgentRunSession = {
   metadata: Record<string, unknown>;
   model?: string;
   projectRoot?: string;
+  projectId?: string;
   workingDir: string;
   thinkingEffort?: ThinkingEffort | null;
 };
@@ -89,13 +92,15 @@ export type SessionSettingsPatch = {
 export class SessionSettingsError extends Error {
   constructor(
     readonly code: "PREFERRED_THINKING_INVALID",
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "SessionSettingsError";
   }
 }
 
-export function isSessionSettingsError(error: unknown): error is SessionSettingsError {
+export function isSessionSettingsError(
+  error: unknown,
+): error is SessionSettingsError {
   return error instanceof SessionSettingsError;
 }

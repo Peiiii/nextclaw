@@ -5,6 +5,16 @@ import type {
   ProjectListView,
   ProjectObservationSnapshot,
   ProjectView,
+  CreateProjectWorkItemInput,
+  CreateProjectWorkStateInput,
+  ProjectWorkActivityPage,
+  ProjectWorkArtifactLink,
+  ProjectWorkItemDetail,
+  ProjectWorkList,
+  ProjectWorkState,
+  ProjectWorkSummary,
+  UpdateProjectWorkItemInput,
+  UpdateProjectWorkStateInput,
 } from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
@@ -13,10 +23,12 @@ type ProjectObservationWireSnapshot = Omit<
   "runs" | "workItems"
 > & {
   runs?: ProjectObservationSnapshot["runs"];
-  workItems?: Array<Omit<ObservedWorkItem, "name"> & {
-    name?: string;
-    title?: string;
-  }>;
+  workItems?: Array<
+    Omit<ObservedWorkItem, "name"> & {
+      name?: string;
+      title?: string;
+    }
+  >;
 };
 
 function normalizeProjectObservationSnapshot(
@@ -38,7 +50,9 @@ export class ProjectsService {
   readonly list = async (): Promise<ProjectListView> =>
     await this.requestService.get<ProjectListView>("/api/projects");
 
-  readonly getObservation = async (projectId: string): Promise<ProjectObservationSnapshot> =>
+  readonly getObservation = async (
+    projectId: string,
+  ): Promise<ProjectObservationSnapshot> =>
     normalizeProjectObservationSnapshot(
       await this.requestService.get<ProjectObservationWireSnapshot>(
         `/api/projects/${encodeURIComponent(projectId)}/observation`,
@@ -48,6 +62,146 @@ export class ProjectsService {
   readonly create = async (input: ProjectCreateRequest): Promise<ProjectView> =>
     await this.requestService.post<ProjectView>("/api/projects", input);
 
-  readonly addExisting = async (input: ProjectAddExistingRequest): Promise<ProjectView> =>
-    await this.requestService.post<ProjectView>("/api/projects/existing", input);
+  readonly addExisting = async (
+    input: ProjectAddExistingRequest,
+  ): Promise<ProjectView> =>
+    await this.requestService.post<ProjectView>(
+      "/api/projects/existing",
+      input,
+    );
+
+  readonly listWork = async (
+    projectId: string,
+    includeDeleted = false,
+  ): Promise<ProjectWorkList> =>
+    await this.requestService.get<ProjectWorkList>(
+      `/api/projects/${encodeURIComponent(projectId)}/work`,
+      includeDeleted ? { query: { includeDeleted: true } } : {},
+    );
+
+  readonly getWorkSummary = async (
+    projectId: string,
+  ): Promise<ProjectWorkSummary> =>
+    await this.requestService.get<ProjectWorkSummary>(
+      `/api/projects/${encodeURIComponent(projectId)}/work/summary`,
+    );
+
+  readonly getWorkItem = async (
+    projectId: string,
+    workItemId: string,
+  ): Promise<ProjectWorkItemDetail> =>
+    await this.requestService.get<ProjectWorkItemDetail>(
+      workItemPath(projectId, workItemId),
+    );
+
+  readonly createWorkItem = async (
+    projectId: string,
+    input: CreateProjectWorkItemInput,
+  ): Promise<ProjectWorkItemDetail> =>
+    await this.requestService.post<ProjectWorkItemDetail>(
+      `/api/projects/${encodeURIComponent(projectId)}/work/items`,
+      input,
+    );
+
+  readonly updateWorkItem = async (
+    projectId: string,
+    workItemId: string,
+    input: UpdateProjectWorkItemInput,
+  ): Promise<ProjectWorkItemDetail> =>
+    await this.requestService.patch<ProjectWorkItemDetail>(
+      workItemPath(projectId, workItemId),
+      input,
+    );
+
+  readonly deleteWorkItem = async (
+    projectId: string,
+    workItemId: string,
+  ): Promise<ProjectWorkItemDetail> =>
+    await this.requestService.delete<ProjectWorkItemDetail>(
+      workItemPath(projectId, workItemId),
+    );
+
+  readonly restoreWorkItem = async (
+    projectId: string,
+    workItemId: string,
+  ): Promise<ProjectWorkItemDetail> =>
+    await this.requestService.post<ProjectWorkItemDetail>(
+      `${workItemPath(projectId, workItemId)}/restore`,
+    );
+
+  readonly listWorkItemActivities = async (
+    projectId: string,
+    workItemId: string,
+    options: { cursor?: string; limit?: number } = {},
+  ): Promise<ProjectWorkActivityPage> =>
+    await this.requestService.get<ProjectWorkActivityPage>(
+      `${workItemPath(projectId, workItemId)}/activities`,
+      { query: options },
+    );
+
+  readonly linkWorkItemArtifact = async (
+    projectId: string,
+    workItemId: string,
+    input: { path: string; label?: string },
+  ): Promise<ProjectWorkArtifactLink> =>
+    await this.requestService.post<ProjectWorkArtifactLink>(
+      `${workItemPath(projectId, workItemId)}/artifacts`,
+      input,
+    );
+
+  readonly unlinkWorkItemArtifact = async (
+    projectId: string,
+    workItemId: string,
+    artifactLinkId: string,
+  ): Promise<{ removed: true }> =>
+    await this.requestService.delete<{ removed: true }>(
+      `${workItemPath(projectId, workItemId)}/artifacts/${encodeURIComponent(artifactLinkId)}`,
+    );
+
+  readonly listWorkStates = async (
+    projectId: string,
+  ): Promise<ProjectWorkState[]> =>
+    await this.requestService.get<ProjectWorkState[]>(
+      `/api/projects/${encodeURIComponent(projectId)}/work/states`,
+    );
+
+  readonly createWorkState = async (
+    projectId: string,
+    input: CreateProjectWorkStateInput,
+  ): Promise<ProjectWorkState> =>
+    await this.requestService.post<ProjectWorkState>(
+      `/api/projects/${encodeURIComponent(projectId)}/work/states`,
+      input,
+    );
+
+  readonly updateWorkState = async (
+    projectId: string,
+    stateId: string,
+    input: UpdateProjectWorkStateInput,
+  ): Promise<ProjectWorkState> =>
+    await this.requestService.patch<ProjectWorkState>(
+      workStatePath(projectId, stateId),
+      input,
+    );
+
+  readonly deleteWorkState = async (
+    projectId: string,
+    stateId: string,
+    migrateToStateId?: string | null,
+  ): Promise<{ removed: true }> =>
+    await this.requestService.request<{ removed: true }>(
+      workStatePath(projectId, stateId),
+      {
+        method: "DELETE",
+        body: { migrateToStateId: migrateToStateId ?? null },
+      },
+    );
+}
+
+function workItemPath(projectId: string, workItemId: string): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/work/items/${encodeURIComponent(workItemId)}`;
+}
+
+function workStatePath(projectId: string, stateId: string): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/work/states/${encodeURIComponent(stateId)}`;
 }

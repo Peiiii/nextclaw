@@ -57,6 +57,7 @@ export {
   createEventKey,
   eventKeys,
 } from "./configs/event-keys.config.js";
+export type { ProjectWorkChangedEventPayload } from "./configs/event-keys.config.js";
 export {
   CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY,
   CHAT_SESSION_MATERIALIZATION_METADATA_KEY,

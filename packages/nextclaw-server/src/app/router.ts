@@ -22,7 +22,7 @@ import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtim
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
 import { PreferencesRoutesController } from "@nextclaw-server/features/preferences/index.js";
-import { ProjectObservationRoutesController, ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
+import { ProjectObservationRoutesController, ProjectWorkRoutesController, ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
@@ -57,6 +57,7 @@ function createUiRouteControllers(options: UiRouterOptions, authService: UiAuthS
     preferences: new PreferencesRoutesController(kernel.preferenceManager),
     projects: new ProjectsRoutesController(kernel.projectManager),
     projectObservation: new ProjectObservationRoutesController(kernel.projectManager, kernel.projectObservation),
+    projectWork: new ProjectWorkRoutesController(kernel.projectWorkManager),
     serviceApps: new ServiceAppsRoutesController({
       panelAppManager: kernel.panelAppManager,
       serviceAppManager: kernel.serviceAppManager,
@@ -71,7 +72,6 @@ function createUiRouteControllers(options: UiRouterOptions, authService: UiAuthS
     mcp: new McpRoutesController(options),
   };
 }
-
 type UiRouteControllers = ReturnType<typeof createUiRouteControllers>;
 type HttpMethod = "delete" | "get" | "patch" | "post" | "put";
 type RouteDefinition = readonly [HttpMethod, string, Handler];
@@ -222,7 +222,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const { appData, appPackages, capabilityAccess, featureControls, ncpSession, inboxDeliveries, panelApps, preferences, projects, projectObservation, serviceApps, serverPath, systemObjectReferences } =
+    const { appData, appPackages, capabilityAccess, featureControls, ncpSession, inboxDeliveries, panelApps, preferences, projects, projectObservation, projectWork, serviceApps, serverPath, systemObjectReferences } =
       this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
@@ -297,6 +297,20 @@ class UiRouteRegistry {
       ["delete", "/api/preferences/:key", preferences.delete],
       ["get", "/api/projects", projects.list],
       ["get", "/api/projects/:projectId/observation", projectObservation.get],
+      ["get", "/api/projects/:projectId/work", projectWork.list],
+      ["get", "/api/projects/:projectId/work/summary", projectWork.summary],
+      ["post", "/api/projects/:projectId/work/items", projectWork.create],
+      ["get", "/api/projects/:projectId/work/items/:workItemId", projectWork.get],
+      ["patch", "/api/projects/:projectId/work/items/:workItemId", projectWork.update],
+      ["delete", "/api/projects/:projectId/work/items/:workItemId", projectWork.delete],
+      ["post", "/api/projects/:projectId/work/items/:workItemId/restore", projectWork.restore],
+      ["get", "/api/projects/:projectId/work/items/:workItemId/activities", projectWork.activities],
+      ["post", "/api/projects/:projectId/work/items/:workItemId/artifacts", projectWork.linkArtifact],
+      ["delete", "/api/projects/:projectId/work/items/:workItemId/artifacts/:artifactLinkId", projectWork.unlinkArtifact],
+      ["get", "/api/projects/:projectId/work/states", projectWork.listStates],
+      ["post", "/api/projects/:projectId/work/states", projectWork.createState],
+      ["patch", "/api/projects/:projectId/work/states/:stateId", projectWork.updateState],
+      ["delete", "/api/projects/:projectId/work/states/:stateId", projectWork.deleteState],
       ["post", "/api/projects", projects.create],
       ["post", "/api/projects/existing", projects.addExisting],
       ["delete", "/api/panel-apps/:id", panelApps.deletePanelApp],

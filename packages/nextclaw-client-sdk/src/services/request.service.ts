@@ -2,7 +2,7 @@ import type { ApiError, ApiResponse } from "@nextclaw/server";
 import type {
   NextClawClientOptions,
   NextClawRequestOptions,
-  NextClawUploadOptions
+  NextClawUploadOptions,
 } from "../types/nextclaw-request.types.js";
 import type { NextClawQueryParams } from "../types/nextclaw-transport.types.js";
 import { resolveFetchImpl } from "../utils/fetch.utils.js";
@@ -13,7 +13,12 @@ export class NextClawClientError extends Error {
   readonly code?: string;
   readonly details?: Record<string, unknown>;
 
-  constructor(params: { message: string; status?: number; code?: string; details?: Record<string, unknown> }) {
+  constructor(params: {
+    message: string;
+    status?: number;
+    code?: string;
+    details?: Record<string, unknown>;
+  }) {
     const { code, details, message, status } = params;
     super(message);
     this.name = "NextClawClientError";
@@ -27,7 +32,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function readTransportErrorField(error: unknown, key: "code" | "details" | "status"): unknown {
+function readTransportErrorField(
+  error: unknown,
+  key: "code" | "details" | "status",
+): unknown {
   return isRecord(error) ? error[key] : undefined;
 }
 
@@ -47,33 +55,45 @@ export class RequestService {
     this.defaultHeaders = {
       Accept: "application/json",
       ...(headers ?? {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
-  readonly request = async <T>(path: string, options: NextClawRequestOptions = {}): Promise<T> => {
+  readonly request = async <T>(
+    path: string,
+    options: NextClawRequestOptions = {},
+  ): Promise<T> => {
     const { body, headers, method, query, signal, timeoutMs } = options;
     if (this.transport) {
       return await this.requestWithTransport(path, options);
     }
 
     const controller = new AbortController();
-    const effectiveTimeoutMs = Math.max(1000, timeoutMs ?? this.requestTimeoutMs);
+    const effectiveTimeoutMs = Math.max(
+      1000,
+      timeoutMs ?? this.requestTimeoutMs,
+    );
     const abortOnSignal = this.bindAbortSignal(controller, signal);
     const timeoutId = setTimeout(() => controller.abort(), effectiveTimeoutMs);
     const requestHeaders = {
       ...this.defaultHeaders,
-      ...(headers ?? {})
+      ...(headers ?? {}),
     };
     const requestBody = this.normalizeRequestBody(body, requestHeaders);
 
     try {
-      const response = await this.fetchImpl(resolveApiUrl(this.baseUrl, appendQueryToPath(path, this.serializeQuery(query))), {
-        method: method ?? "GET",
-        headers: requestHeaders,
-        body: requestBody,
-        signal: controller.signal
-      });
+      const response = await this.fetchImpl(
+        resolveApiUrl(
+          this.baseUrl,
+          appendQueryToPath(path, this.serializeQuery(query)),
+        ),
+        {
+          method: method ?? "GET",
+          headers: requestHeaders,
+          body: requestBody,
+          signal: controller.signal,
+        },
+      );
       const payload = (await response.json()) as ApiResponse<T> | ApiError;
 
       if (!response.ok) {
@@ -82,14 +102,14 @@ export class RequestService {
           message: errorPayload.message,
           status: response.status,
           code: errorPayload.code,
-          details: errorPayload.details
+          details: errorPayload.details,
         });
       }
 
       if (!this.isApiResponse<T>(payload)) {
         throw new NextClawClientError({
           message: "Unexpected NextClaw API response shape.",
-          status: response.status
+          status: response.status,
         });
       }
 
@@ -98,7 +118,7 @@ export class RequestService {
           message: payload.error.message,
           status: response.status,
           code: payload.error.code,
-          details: payload.error.details
+          details: payload.error.details,
         });
       }
 
@@ -109,11 +129,14 @@ export class RequestService {
       }
       if (error instanceof Error && error.name === "AbortError") {
         throw new NextClawClientError({
-          message: `NextClaw API request timed out after ${effectiveTimeoutMs}ms.`
+          message: `NextClaw API request timed out after ${effectiveTimeoutMs}ms.`,
         });
       }
       throw new NextClawClientError({
-        message: error instanceof Error ? error.message : "NextClaw API request failed."
+        message:
+          error instanceof Error
+            ? error.message
+            : "NextClaw API request failed.",
       });
     } finally {
       signal?.removeEventListener("abort", abortOnSignal);
@@ -144,7 +167,9 @@ export class RequestService {
     const { body, headers, method, query, signal, timeoutMs } = options;
     const { transport } = this;
     if (!transport) {
-      throw new NextClawClientError({ message: "NextClaw transport is not configured." });
+      throw new NextClawClientError({
+        message: "NextClaw transport is not configured.",
+      });
     }
     try {
       return await transport.request<T>({
@@ -154,7 +179,7 @@ export class RequestService {
         ...(query ? { query } : {}),
         ...(headers ? { headers } : {}),
         ...(signal ? { signal } : {}),
-        ...(timeoutMs !== undefined ? { timeoutMs } : {})
+        ...(timeoutMs !== undefined ? { timeoutMs } : {}),
       });
     } catch (error) {
       if (error instanceof NextClawClientError) {
@@ -164,17 +189,20 @@ export class RequestService {
       const details = readTransportErrorField(error, "details");
       const status = readTransportErrorField(error, "status");
       throw new NextClawClientError({
-        message: error instanceof Error ? error.message : "NextClaw API request failed.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "NextClaw API request failed.",
         code: typeof code === "string" ? code : undefined,
         details: isRecord(details) ? details : undefined,
-        status: typeof status === "number" ? status : undefined
+        status: typeof status === "number" ? status : undefined,
       });
     }
   };
 
   readonly get = async <T>(
     path: string,
-    options: Omit<NextClawRequestOptions, "method" | "body"> = {}
+    options: Omit<NextClawRequestOptions, "method" | "body"> = {},
   ): Promise<T> => {
     return await this.request<T>(path, { ...options, method: "GET" });
   };
@@ -182,22 +210,42 @@ export class RequestService {
   readonly post = async <T>(
     path: string,
     body?: unknown,
-    options: Omit<NextClawRequestOptions, "method" | "body"> = {}
+    options: Omit<NextClawRequestOptions, "method" | "body"> = {},
   ): Promise<T> => {
-    return await this.request<T>(path, { ...options, method: "POST", ...(body !== undefined ? { body } : {}) });
+    return await this.request<T>(path, {
+      ...options,
+      method: "POST",
+      ...(body !== undefined ? { body } : {}),
+    });
   };
 
   readonly put = async <T>(
     path: string,
     body?: unknown,
-    options: Omit<NextClawRequestOptions, "method" | "body"> = {}
+    options: Omit<NextClawRequestOptions, "method" | "body"> = {},
   ): Promise<T> => {
-    return await this.request<T>(path, { ...options, method: "PUT", ...(body !== undefined ? { body } : {}) });
+    return await this.request<T>(path, {
+      ...options,
+      method: "PUT",
+      ...(body !== undefined ? { body } : {}),
+    });
+  };
+
+  readonly patch = async <T>(
+    path: string,
+    body?: unknown,
+    options: Omit<NextClawRequestOptions, "method" | "body"> = {},
+  ): Promise<T> => {
+    return await this.request<T>(path, {
+      ...options,
+      method: "PATCH",
+      ...(body !== undefined ? { body } : {}),
+    });
   };
 
   readonly delete = async <T>(
     path: string,
-    options: Omit<NextClawRequestOptions, "method" | "body"> = {}
+    options: Omit<NextClawRequestOptions, "method" | "body"> = {},
   ): Promise<T> => {
     return await this.request<T>(path, { ...options, method: "DELETE" });
   };
@@ -205,7 +253,7 @@ export class RequestService {
   readonly upload = async <T>(
     path: string,
     formData: FormData,
-    options: NextClawUploadOptions = {}
+    options: NextClawUploadOptions = {},
   ): Promise<T> => {
     const { headers, signal, timeoutMs } = options;
     if (this.transport?.upload) {
@@ -214,12 +262,15 @@ export class RequestService {
         formData,
         ...(headers ? { headers } : {}),
         ...(signal ? { signal } : {}),
-        ...(timeoutMs !== undefined ? { timeoutMs } : {})
+        ...(timeoutMs !== undefined ? { timeoutMs } : {}),
       });
     }
 
     const controller = new AbortController();
-    const effectiveTimeoutMs = Math.max(1000, timeoutMs ?? this.requestTimeoutMs);
+    const effectiveTimeoutMs = Math.max(
+      1000,
+      timeoutMs ?? this.requestTimeoutMs,
+    );
     const abortOnSignal = () => controller.abort(signal?.reason);
     if (signal) {
       if (signal.aborted) {
@@ -237,10 +288,10 @@ export class RequestService {
           Accept: "application/json",
           ...(tokenHeader(this.options.token) ?? {}),
           ...(this.options.headers ?? {}),
-          ...(headers ?? {})
+          ...(headers ?? {}),
         },
         body: formData,
-        signal: controller.signal
+        signal: controller.signal,
       });
       const payload = (await response.json()) as ApiResponse<T> | ApiError;
       if (!response.ok) {
@@ -249,13 +300,13 @@ export class RequestService {
           message: errorPayload.message,
           status: response.status,
           code: errorPayload.code,
-          details: errorPayload.details
+          details: errorPayload.details,
         });
       }
       if (!this.isApiResponse<T>(payload) || !payload.ok) {
         throw new NextClawClientError({
           message: "Unexpected NextClaw upload response shape.",
-          status: response.status
+          status: response.status,
         });
       }
       return payload.data;
@@ -265,11 +316,14 @@ export class RequestService {
       }
       if (error instanceof Error && error.name === "AbortError") {
         throw new NextClawClientError({
-          message: `NextClaw API upload timed out after ${effectiveTimeoutMs}ms.`
+          message: `NextClaw API upload timed out after ${effectiveTimeoutMs}ms.`,
         });
       }
       throw new NextClawClientError({
-        message: error instanceof Error ? error.message : "NextClaw API upload failed."
+        message:
+          error instanceof Error
+            ? error.message
+            : "NextClaw API upload failed.",
       });
     } finally {
       signal?.removeEventListener("abort", abortOnSignal);
@@ -277,7 +331,9 @@ export class RequestService {
     }
   };
 
-  private readonly isApiResponse = <T>(value: unknown): value is ApiResponse<T> => {
+  private readonly isApiResponse = <T>(
+    value: unknown,
+  ): value is ApiResponse<T> => {
     return value !== null && typeof value === "object" && "ok" in value;
   };
 
@@ -292,23 +348,30 @@ export class RequestService {
         details?: unknown;
       };
       return {
-        code: typeof errorCandidate.code === "string" ? errorCandidate.code : "HTTP_ERROR",
-        message: typeof errorCandidate.message === "string" ? errorCandidate.message : "NextClaw API request failed.",
+        code:
+          typeof errorCandidate.code === "string"
+            ? errorCandidate.code
+            : "HTTP_ERROR",
+        message:
+          typeof errorCandidate.message === "string"
+            ? errorCandidate.message
+            : "NextClaw API request failed.",
         details:
-          errorCandidate.details !== null && typeof errorCandidate.details === "object"
+          errorCandidate.details !== null &&
+          typeof errorCandidate.details === "object"
             ? (errorCandidate.details as Record<string, unknown>)
-            : undefined
+            : undefined,
       };
     }
     return {
       code: "HTTP_ERROR",
-      message: "NextClaw API request failed."
+      message: "NextClaw API request failed.",
     };
   };
 
   private readonly normalizeRequestBody = (
     body: unknown,
-    headers: Record<string, string>
+    headers: Record<string, string>,
   ): BodyInit | undefined => {
     if (body === undefined) {
       return undefined;
@@ -333,7 +396,9 @@ export class RequestService {
     return JSON.stringify(body);
   };
 
-  private readonly serializeQuery = (query?: NextClawQueryParams): URLSearchParams | undefined => {
+  private readonly serializeQuery = (
+    query?: NextClawQueryParams,
+  ): URLSearchParams | undefined => {
     if (!query) {
       return undefined;
     }

@@ -5,6 +5,18 @@ import type { UiShowContentEventPayload } from "../types/ui-show-content.types.j
 import type { InboxDeliveryChangedEventPayload } from "../types/inbox-delivery.types.js";
 import type { UpdateSnapshot } from "../types/update.types.js";
 
+export type ProjectWorkChangedEventPayload = {
+  projectId: string;
+  workItemId?: string;
+  change:
+    | "artifact"
+    | "created"
+    | "deleted"
+    | "restored"
+    | "state-config"
+    | "updated";
+};
+
 export function createEventKey<T>(id: string): EventKey<T> {
   return createTypedKey<T>(id);
 }
@@ -40,12 +52,16 @@ export const eventKeys = {
   sessionSummaryDelete: createAppEventKey<{ sessionKey: string }>(
     "session.summary.delete",
   ),
-  uiShowContent: createAppEventKey<UiShowContentEventPayload>("ui.show-content"),
+  uiShowContent:
+    createAppEventKey<UiShowContentEventPayload>("ui.show-content"),
   serverPathChanged: createAppEventKey<{ directoryPath: string }>(
     "server-path.changed",
   ),
   inboxDeliveryChanged: createAppEventKey<InboxDeliveryChangedEventPayload>(
     "inbox.delivery.changed",
+  ),
+  projectWorkChanged: createAppEventKey<ProjectWorkChangedEventPayload>(
+    "project.work.changed",
   ),
   configReloadStarted: createAppEventKey<Record<string, unknown> | undefined>(
     "config.reload.started",

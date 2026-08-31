@@ -1,105 +1,61 @@
-# 查看项目进展与材料
+# 管理项目工作与材料
 
-Projects 页面把一个已注册项目里的工作项、产物、Skills、上下文和 AI 报告集中到同一处。它适合写作、研究、投资分析、软件开发等需要多轮推进和持续积累材料的工作。
+Projects 页面把一个已注册项目里的工作项、产物、Skills、工作约定和项目会话集中到同一处。项目必须有真实根目录；工作项数据由 NextClaw 独立保存，不会要求你在项目目录中添加 Marker、配置文件或追踪 Skill。
 
-## 打开项目主页
+## 查看项目主页
 
-先在聊天侧边栏创建项目或添加已有目录。在项目视图中，点击项目名称打开项目主页；前置图标只用于展开或收起该项目的会话。项目主页可以查看五类信息：
+先在聊天侧边栏创建项目或添加已有目录，再点击项目名称打开项目主页。页面保留原有的产物、Skills、工作约定和项目会话能力，同时提供工作项概览、列表与看板。
 
-- **概览**：项目摘要、待关注事项、数据来源和最近变化；
-- **工作项**：以列表、看板或甘特图查看 AI 明确报告的工作项；
-- **产物**：查看配置匹配或 AI 标记的项目文件；
-- **Skills**：查看项目目录中可用的 Skills；
-- **工作约定**：查看愿景、规则和其它上下文文件的引用。
+概览页只请求工作项摘要和最近更新，不会为显示统计而扫描项目文件或重放会话历史。产物、Skills 与工作约定仍在各自页面按需加载。
 
-这些内容是只读观测结果。Projects 页面不会创建任务、改变阶段、修改文件或安装 Skill。只有 AI 明确表示正在等待回复时，页面才会提供确认或拒绝；回复会发送回原会话，并由 AI 后续报告最终状态。
+## 创建和推进工作项
 
-## 首次建立项目观察
+在 **工作项** 页面创建工作项。每个项目首次使用时会获得一组通用状态：Backlog、Planned、In Progress、In Review、Awaiting Acceptance、Completed 和 Canceled。
 
-配置不是前置条件。没有可用的 `.nextclaw/project.yaml` 时，概览页会显示 **让 AI 帮我建立项目观察**。点击它会复用普通新建会话，自动选中当前项目，并把引导内容预填到输入框；不会自动发送，也没有额外的“绑定项目”步骤。
+状态名称和顺序可以按项目调整，也可以增加自定义状态。每个状态同时归属于一个稳定的生命周期类别：backlog、unstarted、started、completed 或 canceled。这样既能自定义流程，又能让概览统计保持一致。删除仍在使用的状态时，需要先选择迁移目标。
 
-你可以补充背景后再发送。内置的“项目观察设置”Skill 会先阅读已有材料、会话和 Skills，然后直接给出一套可修改的推荐，包括适合当前项目中**单个工作项**的生命周期与节点、产物分类与路径，以及三个相互引用的项目资产：`.nextclaw/project.yaml`、根 `AGENTS.md` 中的最小常驻规则、`.agents/skills/project-work-tracking/SKILL.md` 中的日常追踪方法。项目没有已经确认的专属流程时，默认推荐同一套 `general-work` 通用生命周期；软件、写作和研究等场景只改变节点的具体解释，不各自发明一套流程。已有项目已经采用明确流程时则保留原约定。
+工作项的状态变化不会覆盖历史。比如从 In Progress 进入 In Review、评审未通过后回到 In Progress、再次进入 In Review，每次变化都会保留在活动时间线里。
 
-Workflow 描述的是一项工作如何从开始走到交付，供多个工作项复用，不是整个项目的宏观阶段。例如小说项目的“全书构思、世界观、全书写作、出版”属于项目级推进；单个章节或设定任务的“明确目标、起草、修订、定稿”才属于工作项 Workflow。项目路线和里程碑可以保留在愿景、路线图或计划文档中，当前 V1 不把它们塞进工作项看板。
+列表、看板和概览中的工作项都可以点击。它们统一在右侧详情抽屉中打开，不会把详情平铺追加到当前页面。抽屉中可以：
 
-默认生命周期是“探索与目标澄清 → 规划与拆解 → 方案设计 → 方案评审 → 执行与产出 → 结果验证 → 用户验收”。节点是可跳过、可回退的观测坐标，不是强制打卡清单。最后两步具有不同权限：AI 只能完成结果验证；验证通过后工作项仍保持进行中，并进入用户验收。只有用户看到结果后明确确认，或者通过已有确认入口发出确认消息，AI 才会把工作项报告为完成。用户要求修改时沿用原工作项并退回真实节点。
+- 修改标题、说明、状态和关注标记；
+- 查看完整活动时间线；
+- 软删除或恢复工作项；
+- 关联或移除项目内的产物文件，并直接打开关联文件。
 
-setup 不会变成多轮问卷。项目完全为空、用户也没有说明目标时，AI 只会先问“这个项目准备做什么或希望产出什么”，不会擅自假设成软件、研究或写作项目；得到一句目标说明后便直接给出整套推荐。通常只需要一次确认，或提出少量修改后再确认；确认后 AI 才通过正常文件编辑链路统一写入并复核三个资产。YAML 供 Projects 页面解析，根规则让每轮 AI 知道必须加载项目 tracking Skill，Skill 则渐进提供完整语法和项目专属方法。尚未支持的 TODO/Issue 筛选、正文语义匹配等自然语言约定，也不会被伪装成可执行配置。
+## AI 如何使用工作项
 
-## 开始项目工作
+只有归属于某个项目的会话才会获得 Project Work 工具。AI 可以列出、查看、创建和更新工作项，也可以关联或移除产物；不在项目中的会话不会看到这些工具。
 
-项目已有可用配置、但还没有工作项时，概览和工作项页会提供 **开始项目工作**。它同样只是复用普通新建会话，自动选中当前项目并预填可编辑的引导文字。你也可以直接在新会话中使用原有的项目选择器，两者进入的是同一条会话链路。
+工作项表示需要长期追踪的用户意图和交付目标。AI 在一次运行中临时使用的步骤或计划不属于本功能，本功能也不会替换运行计划。
 
-setup 完成后，真正持续生效的是项目根 `.nextclaw/project.yaml`、`AGENTS.md` 和项目内 `project-work-tracking` Skill：配置保存项目专属的流程、产物范围和协议声明，根规则负责稳定触发，项目 Skill 负责日常执行方法。内置 `project-observation-setup` 只在建立或维护约定时使用；Projects 页面不会建立特殊会话类型、运行时注入链路、`requested skills` 或额外的 Skill 追踪元数据。
+工作项变更通过实时事件通知页面刷新当前数据。事件只承担“发生了变化”的通知，不作为数据库，也不要求读取事件历史。
 
-## 可选项目配置
+## 数据与项目目录边界
 
-在项目根目录创建 `.nextclaw/project.yaml`，可以声明项目摘要、完整上下文文件、Workflow、产物目录和 Skill 目录。复杂目标不需要压缩成一句话，可以直接引用愿景或工作约定文件。
+工作项、状态、活动历史和产物关联存放在 NextClaw 自己的数据目录。项目根路径仍是项目身份和文件边界的一部分，但 NextClaw 不会为了工作项追踪向该目录写入专用文件。
 
-```yaml
-schema_version: 1
+产物关联只接受项目根目录内真实存在的文件。数据库保存相对于项目根目录的路径，因此移动 NextClaw 数据目录时不会把本机绝对路径写进工作项记录。
 
-project:
-  summary: 一个长期研究项目
-  context:
-    - id: vision
-      role: 愿景
-      source: docs/VISION.md
-    - id: working-rules
-      role: 工作约定
-      source: AGENTS.md
+## 从 CLI 管理
 
-workflows:
-  - id: general-work
-    label: 通用工作项生命周期
-    stages:
-      - id: exploration
-        label: 探索与目标澄清
-      - id: planning
-        label: 规划与拆解
-      - id: design
-        label: 方案设计
-      - id: proposal-review
-        label: 方案评审
-      - id: execution
-        label: 执行与产出
-      - id: verification
-        label: 结果验证
-      - id: acceptance
-        label: 用户验收
+CLI 无法像项目会话一样从上下文得知当前项目，因此所有工作项命令都必须显式传入项目 ID：
 
-observation:
-  markers:
-    - protocol: nextclaw.project/v1
-  artifacts:
-    - id: reports
-      label: 研究报告
-      include:
-        - reports/**/*.md
-  skills:
-    - root: .agents/skills
+```bash
+nextclaw projects work list --project <project-id>
+nextclaw projects work create "完善项目页" --project <project-id>
+nextclaw projects work update <work-item-id> --project <project-id> --state <state-id>
+nextclaw projects work activity <work-item-id> --project <project-id>
 ```
 
-配置文件不是打开项目页的前置条件。没有配置时，页面仍会显示项目注册信息以及能够明确归属的会话和 Skills；没有证据的工作项、节点、产物和日期不会被自动补全。当前产物分类只支持路径或 glob 匹配；工作项则需要 AI 在真实状态变化时显式报告 Marker。推荐通过页面入口完成整套 setup；如果手动创建配置，也应同时建立根 `AGENTS.md` 的简短入口和项目内 `project-work-tracking` Skill，避免后续 AI 不知道要遵守观察约定。
+CLI 通过正在运行的本地 NextClaw 服务复用同一套 Kernel 写入合同；服务未运行时会直接报错，不会另起第二个写入进程。完整命令见[命令行参考](./commands.md)。
 
-## AI 如何报告项目事实
+## 原有项目观测能力
 
-根规则会让 AI 在实质工作前读取项目 tracking Skill。Marker 表示“现在进入这个节点”，必须在该节点的分析、工具调用或文件修改前输出，不能在最终回复中批量补写。例如：
+产物、Skills、工作约定和旧版只读观测仍然保留。已有 `.nextclaw/project.yaml`、项目规则、项目 Skill 和历史 Marker 不会因为工作项存储上线而失效；它们只是不再是创建、统计或推进工作项的前置条件。
 
-```text
-[nextclaw.project/v1 id=wi_7km4q2x9dn name="完成研究报告" stage=exploration]
-[nextclaw.project/v1 stage=execution]
-[nextclaw.project/v1 artifact path="reports/final.md" category=reports]
-```
-
-同一会话会继承当前工作项、名称和流程，因此节点切换只需报告变化字段；切换工作项或开启新会话时必须重新声明稳定随机 ID。AI 自检通过后只进入 `acceptance`，不会提前报告 `completed`；用户看到结果并明确确认后才完成。历史完整 V1 Marker 仍然可以读取。
-
-页面会保留来源会话和观测时间，并区分“AI 报告”“文件观测”“项目配置”和“系统记录”。非法 Marker、损坏的配置或越界路径只会产生诊断，不会让整个项目主页失效。
-
-## 从命令行读取同一快照
+如需读取旧版观测快照，仍可使用：
 
 ```bash
 nextclaw projects observe /absolute/path/to/project --json
 ```
-
-CLI 与 Projects 页面读取同一份 Kernel 快照，适合脚本、Agent 或无界面环境。命令只接受已经注册的项目根目录，也不会创建新的项目数据。

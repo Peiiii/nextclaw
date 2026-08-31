@@ -22,6 +22,7 @@ import { type NcpAgentSessionJournalReplayEvent } from "@kernel/utils/ncp-agent-
 import { createAgentPeerSessionIdentity } from "@kernel/utils/agent-peer-session.utils.js";
 import {
   applyLimit,
+  applySessionProjectMetadataPatch,
   buildSessionId,
   isSessionSummaryRefreshEvent,
   normalizeSessionId,
@@ -37,6 +38,7 @@ import {
   DEFAULT_SESSION_TYPE,
   mergeMetadataOverrides,
   readAgentRuntimeId,
+  readProjectId,
   readProjectRoot,
   readThinkingEffort,
   resolveSessionType,
@@ -100,7 +102,7 @@ export class SessionManager implements NcpSessionApi {
       createSession: this.createSession,
       getSession: this.getSession,
       getSessionRecord: this.getSessionRecord,
-      normalizeProjectRoot: options.projectManager.normalizeSessionProjectRoot,
+      normalizeProjectContext: options.projectManager.normalizeSessionProjectContext,
       setSessionMetadata: this.setSessionMetadata,
     });
   }
@@ -159,20 +161,15 @@ export class SessionManager implements NcpSessionApi {
       title,
     });
     const now = new Date().toISOString();
-    const nextMetadata = mergeMetadataOverrides(metadata, metadataOverrides);
+    let nextMetadata = mergeMetadataOverrides(metadata, metadataOverrides);
     const requestedProjectRoot =
       projectRoot !== undefined ? projectRoot : readProjectRoot(nextMetadata);
     if (requestedProjectRoot !== undefined) {
-      const normalizedProjectRoot =
-        await this.options.projectManager.normalizeSessionProjectRoot(
-          requestedProjectRoot,
-        );
-      delete nextMetadata.projectRoot;
-      if (normalizedProjectRoot) {
-        nextMetadata.project_root = normalizedProjectRoot;
-      } else {
-        delete nextMetadata.project_root;
-      }
+      nextMetadata = await applySessionProjectMetadataPatch(
+        nextMetadata,
+        { projectRoot: requestedProjectRoot },
+        this.options.projectManager.normalizeSessionProjectContext,
+      );
     }
     const agentId =
       readOptionalString(requestedAgentId) ??
@@ -492,6 +489,7 @@ export class SessionManager implements NcpSessionApi {
         readOptionalMetadataString(created.metadata?.model) ??
         readOptionalMetadataString(created.metadata?.preferred_model),
       projectRoot: readProjectRoot(created.metadata),
+      projectId: readProjectId(created.metadata),
       workingDir: this.workingDirResolver.resolve({
         agentId: created.agentId,
         metadata: created.metadata,
@@ -525,6 +523,7 @@ export class SessionManager implements NcpSessionApi {
       metadata: structuredClone(metadata),
       model: readOptionalMetadataString(metadata.model) ?? readOptionalMetadataString(metadata.preferred_model),
       projectRoot: readProjectRoot(metadata),
+      projectId: readProjectId(metadata),
       workingDir: this.workingDirResolver.resolve({
         agentId: summary.agentId,
         metadata,

@@ -14,7 +14,10 @@ export type SessionSettingsServiceOptions = {
   }) => Promise<unknown>;
   getSession: (sessionId: string) => Promise<NcpSessionSummary | null>;
   getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>;
-  normalizeProjectRoot: (value: unknown) => Promise<string | null>;
+  normalizeProjectContext: (value: unknown) => Promise<{
+    projectId: string;
+    rootPath: string;
+  } | null>;
   setSessionMetadata: (
     sessionId: string,
     metadata: Record<string, unknown>,
@@ -42,7 +45,7 @@ export class SessionSettingsService {
     const metadata = await applySessionProjectMetadataPatch(
       applySessionSettingsMetadataPatch(existing.metadata ?? {}, patch),
       patch,
-      this.options.normalizeProjectRoot,
+      this.options.normalizeProjectContext,
     );
     return (await this.options.setSessionMetadata(sessionId, metadata))
       ? await this.options.getSession(sessionId)

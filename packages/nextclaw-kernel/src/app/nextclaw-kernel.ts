@@ -27,10 +27,7 @@ import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { PreferenceManager } from "@kernel/managers/preference.manager.js";
-import type {
-  ProjectManager,
-  ProjectObservationService,
-} from "@kernel/features/projects/index.js";
+import type { ProjectManager, ProjectObservationService, ProjectWorkManager } from "@kernel/features/projects/index.js";
 import type { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
@@ -76,6 +73,7 @@ import {
   resolveKernelVerificationRecordStorePath,
   resolveKernelPreferenceStorePath,
   resolveKernelProjectStorePath,
+  resolveKernelProjectWorkStorePath,
   resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
@@ -133,7 +131,6 @@ class NextclawKernelControlManager<TGatewayInput, TUiInput, TStartInput> {
     return this.runtimeControl;
   };
 }
-
 export class NextclawKernel {
   readonly eventBus: EventBus = new EventBus();
   readonly ingress: Ingress = new Ingress();
@@ -164,6 +161,7 @@ export class NextclawKernel {
   readonly preferenceManager: PreferenceManager;
   readonly projectManager: ProjectManager;
   readonly projectObservation: ProjectObservationService;
+  readonly projectWorkManager: ProjectWorkManager;
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager = new AgentRuntimeManager();
@@ -216,7 +214,7 @@ export class NextclawKernel {
       journalStore: this.ncpAgentSessionJournalStore,
       observations: this.observations,
       projectManager: this.projectManager,
-      projectObservation: this.projectObservation,
+      projectObservation: this.projectObservation, projectWorkManager: this.projectWorkManager,
       sessionManager: this.sessionManager,
       sessionSearch: this.sessionSearch,
     } = createKernelSessionManagers({
@@ -226,7 +224,7 @@ export class NextclawKernel {
       eventBus: this.eventBus,
       ingress: this.ingress,
       observationStorePath: resolveKernelObservationStorePath(options),
-      projectStorePath: resolveKernelProjectStorePath(options),
+      projectStorePath: resolveKernelProjectStorePath(options), projectWorkStorePath: resolveKernelProjectWorkStorePath(options),
       sessionsDir,
     }));
     this.inboxDeliveryManager = new InboxDeliveryManager({
@@ -375,6 +373,7 @@ export class NextclawKernel {
         readProjectRoot(session.metadata),
       ),
     );
+    await this.projectWorkManager.initialize();
     await this.sessionManager.start();
     for (const contribution of this.contributions) {
       await contribution.start();
@@ -399,5 +398,6 @@ export class NextclawKernel {
     await this.mcpManager.dispose();
     await this.serviceAppManager.dispose();
     await this.sessionSearch.dispose();
+    this.projectWorkManager.dispose();
   };
 }

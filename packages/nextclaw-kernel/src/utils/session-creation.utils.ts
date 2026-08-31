@@ -19,10 +19,19 @@ export async function assertCanCreateSessionFromLineage(
   metadataOverrides: Record<string, unknown> | undefined,
   getSessionRecord: (sessionId: string) => Promise<AgentSessionRecord | null>,
 ): Promise<void> {
-  if (Object.prototype.hasOwnProperty.call(metadataOverrides ?? {}, CHILD_SESSION_PARENT_METADATA_KEY)) {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      metadataOverrides ?? {},
+      CHILD_SESSION_PARENT_METADATA_KEY,
+    )
+  ) {
     throw new Error("Session parent must be set through parentSessionId.");
   }
-  if (readOptionalMetadataString(sourceRecord?.metadata?.[CHILD_SESSION_PARENT_METADATA_KEY])) {
+  if (
+    readOptionalMetadataString(
+      sourceRecord?.metadata?.[CHILD_SESSION_PARENT_METADATA_KEY],
+    )
+  ) {
     throw new Error(
       `Child sessions cannot create additional sessions. Source session: ${sourceRecord?.sessionId}.`,
     );
@@ -30,20 +39,27 @@ export async function assertCanCreateSessionFromLineage(
   if (!parentSessionId) {
     return;
   }
-  const parentRecord = sourceRecord?.sessionId === parentSessionId
-    ? sourceRecord
-    : await getSessionRecord(parentSessionId);
+  const parentRecord =
+    sourceRecord?.sessionId === parentSessionId
+      ? sourceRecord
+      : await getSessionRecord(parentSessionId);
   if (!parentRecord) {
     throw new Error(`Parent session not found: ${parentSessionId}`);
   }
-  if (readOptionalMetadataString(parentRecord.metadata?.[CHILD_SESSION_PARENT_METADATA_KEY])) {
+  if (
+    readOptionalMetadataString(
+      parentRecord.metadata?.[CHILD_SESSION_PARENT_METADATA_KEY],
+    )
+  ) {
     throw new Error(
       `Child sessions cannot create additional sessions. Parent session: ${parentSessionId}.`,
     );
   }
 }
 
-export function readThinkingEffort(metadata: Record<string, unknown> | undefined): ThinkingEffort | null {
+export function readThinkingEffort(
+  metadata: Record<string, unknown> | undefined,
+): ThinkingEffort | null {
   return (
     readOptionalMetadataString(metadata?.thinkingEffort) ??
     readOptionalMetadataString(metadata?.preferred_thinking) ??
@@ -52,11 +68,27 @@ export function readThinkingEffort(metadata: Record<string, unknown> | undefined
   );
 }
 
-export function readProjectRoot(metadata: Record<string, unknown> | undefined): string | undefined {
-  return readOptionalMetadataString(metadata?.project_root) ?? readOptionalMetadataString(metadata?.projectRoot);
+export function readProjectRoot(
+  metadata: Record<string, unknown> | undefined,
+): string | undefined {
+  return (
+    readOptionalMetadataString(metadata?.project_root) ??
+    readOptionalMetadataString(metadata?.projectRoot)
+  );
 }
 
-export function readAgentRuntimeId(metadata: Record<string, unknown> | undefined): string | undefined {
+export function readProjectId(
+  metadata: Record<string, unknown> | undefined,
+): string | undefined {
+  return (
+    readOptionalMetadataString(metadata?.project_id) ??
+    readOptionalMetadataString(metadata?.projectId)
+  );
+}
+
+export function readAgentRuntimeId(
+  metadata: Record<string, unknown> | undefined,
+): string | undefined {
   return (
     readOptionalMetadataString(metadata?.agentRuntimeId) ??
     readOptionalMetadataString(metadata?.runtime) ??
@@ -72,7 +104,9 @@ export function summarizeTask(task: string): string {
   return normalized.length <= 72 ? normalized : `${normalized.slice(0, 69)}...`;
 }
 
-export function cloneInheritedMetadata(sourceMetadata: Record<string, unknown>): Record<string, unknown> {
+export function cloneInheritedMetadata(
+  sourceMetadata: Record<string, unknown>,
+): Record<string, unknown> {
   const nextMetadata: Record<string, unknown> = {};
   const inheritedKeys = [
     "runtime",
@@ -80,6 +114,7 @@ export function cloneInheritedMetadata(sourceMetadata: Record<string, unknown>):
     "preferred_model",
     "preferred_thinking",
     "project_root",
+    "project_id",
     "codex_runtime_backend",
     "reasoningNormalizationMode",
     "reasoning_normalization_mode",

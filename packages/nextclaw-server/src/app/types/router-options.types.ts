@@ -1,10 +1,10 @@
 import type * as NextclawCore from "@nextclaw/core";
 import type { NextclawKernel } from "@nextclaw/kernel";
+import type { EventBus, UpdateSnapshot } from "@nextclaw/shared";
 import type {
-  EventBus,
-  UpdateSnapshot,
-} from "@nextclaw/shared";
-import type { ExtensionChannelBinding, ExtensionUiMetadata } from "@nextclaw/core";
+  ExtensionChannelBinding,
+  ExtensionUiMetadata,
+} from "@nextclaw/core";
 import type { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import type {
   BootstrapStatusView,
@@ -22,7 +22,10 @@ import type {
   RemoteSettingsUpdateRequest,
   ProductAnalyticsStatusView,
 } from "@nextclaw-server/shared/types/server-api.types.js";
-import type { RuntimeControlActionResult, RuntimeControlView } from "@nextclaw-server/features/runtime-control/index.js";
+import type {
+  RuntimeControlActionResult,
+  RuntimeControlView,
+} from "@nextclaw-server/features/runtime-control/index.js";
 
 export type UiAppEventBus = Pick<EventBus, "emit" | "subscribeAll">;
 
@@ -66,6 +69,7 @@ export type UiKernelHost = Pick<
   | "preferenceManager"
   | "projectManager"
   | "projectObservation"
+  | "projectWorkManager"
   | "serviceAppManager"
   | "sessionContextCompactionManager"
 > & {
@@ -91,7 +95,10 @@ export type UiRouterOptions = {
   kernel: UiKernelHost;
   configPath: string;
   appEventBus: UiAppEventBus;
-  uiConfig?: Pick<NextclawCore.Config["ui"], "enabled" | "host" | "open" | "port">;
+  uiConfig?: Pick<
+    NextclawCore.Config["ui"],
+    "enabled" | "host" | "open" | "port"
+  >;
   uiStaticDir?: string | null;
   panelAppClientSdkScript?: () => Promise<string> | string;
   corsOrigins?: string[] | "*";
@@ -116,20 +123,36 @@ export type UiProductActivityHost = {
 export type UiRemoteAccessHost = {
   getStatus: () => Promise<RemoteAccessView> | RemoteAccessView;
   login: (input: RemoteLoginRequest) => Promise<RemoteAccessView>;
-  startBrowserAuth: (input: RemoteBrowserAuthStartRequest) => Promise<RemoteBrowserAuthStartResult>;
-  pollBrowserAuth: (input: RemoteBrowserAuthPollRequest) => Promise<RemoteBrowserAuthPollResult>;
+  startBrowserAuth: (
+    input: RemoteBrowserAuthStartRequest,
+  ) => Promise<RemoteBrowserAuthStartResult>;
+  pollBrowserAuth: (
+    input: RemoteBrowserAuthPollRequest,
+  ) => Promise<RemoteBrowserAuthPollResult>;
   logout: () => Promise<RemoteAccessView> | RemoteAccessView;
-  updateProfile: (input: RemoteAccountProfileUpdateRequest) => Promise<RemoteAccessView> | RemoteAccessView;
-  updateSettings: (input: RemoteSettingsUpdateRequest) => Promise<RemoteAccessView> | RemoteAccessView;
+  updateProfile: (
+    input: RemoteAccountProfileUpdateRequest,
+  ) => Promise<RemoteAccessView> | RemoteAccessView;
+  updateSettings: (
+    input: RemoteSettingsUpdateRequest,
+  ) => Promise<RemoteAccessView> | RemoteAccessView;
   runDoctor: () => Promise<RemoteDoctorView>;
-  controlService: (action: RemoteServiceAction) => Promise<RemoteServiceActionResult>;
+  controlService: (
+    action: RemoteServiceAction,
+  ) => Promise<RemoteServiceActionResult>;
 };
 
 export type UiRuntimeControlHost = {
   getControl: () => Promise<RuntimeControlView> | RuntimeControlView;
-  startService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
-  restartService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
-  stopService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
+  startService: () =>
+    | Promise<RuntimeControlActionResult>
+    | RuntimeControlActionResult;
+  restartService: () =>
+    | Promise<RuntimeControlActionResult>
+    | RuntimeControlActionResult;
+  stopService: () =>
+    | Promise<RuntimeControlActionResult>
+    | RuntimeControlActionResult;
 };
 
 export type UiRuntimeUpdateHost = {
@@ -137,7 +160,9 @@ export type UiRuntimeUpdateHost = {
   checkForUpdates: () => Promise<UpdateSnapshot> | UpdateSnapshot;
   downloadUpdate: () => Promise<UpdateSnapshot> | UpdateSnapshot;
   applyDownloadedUpdate: () => Promise<UpdateSnapshot> | UpdateSnapshot;
-  updateChannel: (channel: UpdateSnapshot["channel"]) => Promise<UpdateSnapshot> | UpdateSnapshot;
+  updateChannel: (
+    channel: UpdateSnapshot["channel"],
+  ) => Promise<UpdateSnapshot> | UpdateSnapshot;
 };
 
 export type CronJobEntry = {
@@ -178,7 +203,9 @@ export type SkillInfo = {
 
 export type SkillsLoaderInstance = {
   listSkills: (filterUnavailable?: boolean) => SkillInfo[];
-  getSkillMetadata?: (selector: string | SkillInfo) => Record<string, string> | null;
+  getSkillMetadata?: (
+    selector: string | SkillInfo,
+  ) => Record<string, string> | null;
 };
 
 export type SkillsLoaderConstructor = new (
@@ -190,5 +217,5 @@ export type SkillsLoaderConstructor = new (
         includeBuiltin?: boolean;
         includeGlobal?: boolean;
         globalSkillsRoot?: string;
-      }
+      },
 ) => SkillsLoaderInstance;

@@ -1,105 +1,61 @@
-# Inspect project progress and materials
+# Manage project work and materials
 
-The Projects page brings together work items, artifacts, Skills, context, and AI reports for a registered project. It works for long-running writing, research, investment analysis, software development, and other work that grows across many sessions.
+The Projects page brings together work items, artifacts, Skills, working agreements, and project sessions for a registered project. A project still has a real root directory, but NextClaw stores work-item data separately. You do not need to add markers, configuration files, or a tracking Skill to the project directory.
 
 ## Open a project home
 
-Create a project or add an existing directory from the Chat sidebar. In project view, select the project name to open its project home; the leading icon only expands or collapses that project's sessions. The project home shows five areas:
+Create a project or add an existing directory from the Chat sidebar, then select the project name. The page keeps the existing Artifacts, Skills, Working agreement, and project-session capabilities while adding a work summary, list, and board.
 
-- **Overview**: the project summary, attention items, source health, and recent changes;
-- **Work items**: AI-reported work shown as a list, board, or Gantt view;
-- **Artifacts**: project files matched by configuration or reported by AI;
-- **Skills**: Skills available from the project directory;
-- **Working rules**: references to vision, rules, and other context files.
+Overview requests only the work summary and recent items. It does not scan project files or replay session history to calculate statistics. Artifacts, Skills, and the working agreement load on demand in their own views.
 
-These are read-only observations. The Projects page does not create tasks, change stages, edit files, or install Skills. Confirm and reject actions appear only when AI explicitly reports that it is waiting for a reply. That reply is sent to the source session, and AI reports the eventual state.
+## Create and advance work items
 
-## Set up project observation for the first time
+Create an item from **Work items**. A project receives these general-purpose states on first use: Backlog, Planned, In Progress, In Review, Awaiting Acceptance, Completed, and Canceled.
 
-Configuration is not a prerequisite. When no usable `.nextclaw/project.yaml` exists, Overview offers **Let AI set up project observation**. It reuses the ordinary new-chat flow, automatically selects the current project, and pre-fills a guided draft. It does not send the message automatically, and there is no separate project-binding step.
+You can rename and reorder states or add project-specific ones. Each state maps to one stable lifecycle category: backlog, unstarted, started, completed, or canceled. This keeps summary counts consistent while letting each project customize its workflow. When deleting a state that still has items, select a migration destination first.
 
-You can add context before sending. The built-in project observation setup Skill inspects existing materials, sessions, and Skills, then directly proposes one editable setup: a lifecycle and stages for an **individual work item**, artifact categories and paths, and three linked project assets—`.nextclaw/project.yaml`, the minimal always-on root `AGENTS.md` rule, and the daily method in `.agents/skills/project-work-tracking/SKILL.md`. Unless the project already has a confirmed custom workflow, setup recommends the same `general-work` lifecycle. Software, writing, and research projects interpret the stages in context instead of inventing separate workflows; established project conventions remain intact.
+State changes append to an immutable activity timeline instead of replacing history. For example, moving from In Progress to In Review, back for changes, and into review again remains visible as three separate transitions.
 
-A Workflow describes how one item of work moves from start to delivery and can be reused by many work items. It is not the macro lifecycle of the whole project. For example, “whole-book concept, worldbuilding, manuscript, publication” is project-level progress, while “define the goal, draft, revise, finalize” is a work-item Workflow for a chapter or setting task. Project roadmaps and milestones remain in vision, roadmap, or planning documents; V1 does not place them on the work-item board.
+Every work item shown in Overview, the list, or the board is clickable. All of them open the same right-side detail drawer instead of appending a flat detail panel to the page. In the drawer you can:
 
-The default lifecycle is Explore and clarify → Plan and decompose → Design → Proposal review → Execute and produce → Verify results → User acceptance. These stages are observable coordinates that may be skipped or revisited, not a mandatory checklist. The final two stages have different owners: AI may verify the result, but verification only moves the active work item to User acceptance. The item becomes complete only after the user has seen and explicitly accepted the result, including through the existing confirmation action. Requested changes keep the same work-item ID and move it back to the stage where work resumes.
+- edit the title, description, state, and attention flag;
+- inspect the complete activity timeline;
+- soft-delete or restore the item;
+- link or unlink artifact files inside the project and open linked files directly.
 
-Setup is not a long questionnaire. When the project is completely empty and the user has not described a goal, AI asks only what the project is meant to do or produce; it does not silently assume software, research, or writing. Once it has that one-line goal, it proposes the complete setup directly. Setup normally takes one confirmation, or one small revision followed by confirmation. Only then does AI write and verify all three assets through the normal file-edit flow. The YAML is machine-readable by Projects, the root rule reliably routes each Agent to the project tracking Skill, and that Skill progressively supplies the full syntax and project-specific method. Unsupported rules such as TODO/Issue filters or semantic body matching are not presented as executable configuration.
+## How AI uses work items
 
-## Start project work
+Project Work tools are available only to sessions that belong to a project. AI can list, inspect, create, and update work items and manage artifact links. Sessions without a project do not receive these tools.
 
-When a project has usable configuration but no observed work items, Overview and Work items offer **Start project work**. This also reuses the ordinary new-chat flow: it selects the current project and pre-fills an editable draft. You can instead use the existing project picker in any new chat; both paths enter the same conversation flow.
+A work item represents a user intention or deliverable worth tracking over time. Temporary execution steps and run plans are outside this feature; Project Work does not replace a run plan.
 
-After setup, the project-owned `.nextclaw/project.yaml`, root `AGENTS.md`, and project-local `project-work-tracking` Skill keep observation active. The configuration carries the workflow, artifact scope, and protocol declaration; the root rule provides reliable activation; the project Skill owns the daily method. The built-in `project-observation-setup` Skill is used only to establish or maintain those assets. Projects does not create a special chat type, runtime-injection path, `requested skills`, or extra Skill-tracking metadata.
+Committed changes publish real-time notifications so the page can refetch current data. Events mean only that something changed. They are not the database, and consumers do not replay event history.
 
-## Optional project configuration
+## Data and project-directory boundaries
 
-Create `.nextclaw/project.yaml` in the project root to declare a summary, full context files, workflows, artifact locations, and Skill roots. A complex goal does not need to fit in one sentence: reference the authoritative vision or working-rules file instead.
+NextClaw stores work items, states, activity history, and artifact links in its own data directory. The project root remains the identity and file boundary, but work tracking never requires a dedicated file inside it.
 
-```yaml
-schema_version: 1
+An artifact link must point to an existing file under the project root. The database stores a project-relative path rather than a machine-specific absolute path.
 
-project:
-  summary: A long-running research project
-  context:
-    - id: vision
-      role: Vision
-      source: docs/VISION.md
-    - id: working-rules
-      role: Working rules
-      source: AGENTS.md
+## Manage work from the CLI
 
-workflows:
-  - id: general-work
-    label: General work-item lifecycle
-    stages:
-      - id: exploration
-        label: Explore and clarify
-      - id: planning
-        label: Plan and decompose
-      - id: design
-        label: Design
-      - id: proposal-review
-        label: Review the proposal
-      - id: execution
-        label: Execute and produce
-      - id: verification
-        label: Verify results
-      - id: acceptance
-        label: User acceptance
+Unlike a project-bound session, the CLI cannot infer a current project from conversation context. Every Project Work command therefore requires a project ID:
 
-observation:
-  markers:
-    - protocol: nextclaw.project/v1
-  artifacts:
-    - id: reports
-      label: Research reports
-      include:
-        - reports/**/*.md
-  skills:
-    - root: .agents/skills
+```bash
+nextclaw projects work list --project <project-id>
+nextclaw projects work create "Improve the project page" --project <project-id>
+nextclaw projects work update <work-item-id> --project <project-id> --state <state-id>
+nextclaw projects work activity <work-item-id> --project <project-id>
 ```
 
-Configuration is not required to open a project page. Without it, the page still shows registration details and sessions or Skills that can be attributed to the project. It does not invent work items, stages, artifacts, or dates when evidence is missing. Artifact categories currently use only paths or globs; work items require an AI Marker when a real state changes. The recommended path is to complete the full setup from the page. If you create the YAML manually, also establish the concise root `AGENTS.md` entry and the project-local `project-work-tracking` Skill so future AI knows how to follow the convention.
+The CLI calls the running local NextClaw service and reuses the same Kernel write contract. If the service is not running, it fails directly instead of starting a second writer. See the [command reference](./commands.md) for the complete command set.
 
-## How AI reports project facts
+## Existing project observation
 
-The root rule tells AI to load the project tracking Skill before substantive work. A Marker means “enter this stage now” and must appear before the analysis, tool calls, or file edits for that stage; stages are never batched at the end. For example:
+Artifacts, Skills, working agreements, and the legacy read-only observation remain available. Existing `.nextclaw/project.yaml` files, project rules, project Skills, and historical markers continue to work; they are simply no longer prerequisites for creating, counting, or advancing work items.
 
-```text
-[nextclaw.project/v1 id=wi_7km4q2x9dn name="Finish the research report" stage=exploration]
-[nextclaw.project/v1 stage=execution]
-[nextclaw.project/v1 artifact path="reports/final.md" category=reports]
-```
-
-The current work item, name, and workflow are inherited within a session, so a stage transition reports only what changed. Switching work items or starting a new session requires the stable random ID again. AI verification only enters `acceptance`; `completed` is emitted only after the user has seen and explicitly accepted the result. Historical verbose V1 Markers remain readable.
-
-The page keeps the source session and observation time, and distinguishes AI reports, file observations, project configuration, and system records. An invalid marker, malformed configuration, or escaping path produces a diagnostic without taking down the rest of the page.
-
-## Read the same snapshot from the CLI
+You can still read the legacy observation snapshot with:
 
 ```bash
 nextclaw projects observe /absolute/path/to/project --json
 ```
-
-The CLI and Projects page read the same Kernel snapshot. This is useful for scripts, agents, and headless environments. The command accepts only registered project roots and does not create project data.

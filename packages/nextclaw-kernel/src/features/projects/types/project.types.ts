@@ -21,3 +21,8 @@ export type CreateProjectInput = {
   rootPath?: string;
   template?: ProjectTemplateId;
 };
+
+export type ProjectSessionBinding = {
+  projectId: string;
+  rootPath: string;
+};

@@ -9,10 +9,10 @@ import {
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { scanNcpAgentSessionCatalogJournals } from "./ncp-agent-session-catalog-migration.store.js";
 import {
-  openSessionCatalogSqliteDatabase,
-  runSessionCatalogSqliteTransaction,
-  type SessionCatalogSqliteDatabase,
-} from "./ncp-session-catalog-sqlite-driver.store.js";
+  openSqliteDatabase,
+  runSqliteTransaction,
+  type SqliteDatabase,
+} from "./sqlite-database.store.js";
 
 const SQLITE_DATABASE_FILE = ".ncp-agent-session-catalog.sqlite";
 const CATALOG_SCHEMA_VERSION = 1;
@@ -62,7 +62,6 @@ function readEventMessage(event: NcpAgentSessionJournalReplayEvent): NcpMessage 
   }
   return undefined;
 }
-
 function summaryToRow(summary: NcpSessionSummary, deletedAt: string | null = null) {
   const updatedAt = summary.updatedAt || summary.createdAt || new Date().toISOString();
   return {
@@ -93,7 +92,7 @@ function rowToSummary(row: SessionCatalogRow): NcpSessionSummary {
 }
 
 export class NcpAgentSessionSummaryIndexStore {
-  private database: SessionCatalogSqliteDatabase | null = null;
+  private database: SqliteDatabase | null = null;
   private readyPromise: Promise<void> | null = null;
 
   constructor(
@@ -209,7 +208,7 @@ export class NcpAgentSessionSummaryIndexStore {
     await this.ensureReady();
     const normalizedSessionId = normalizeNcpSessionId(sessionId);
     const deletedAt = new Date().toISOString();
-    runSessionCatalogSqliteTransaction(this.db(), () => {
+    runSqliteTransaction(this.db(), () => {
       const existing = this.db().prepare(
         "SELECT session_id FROM sessions WHERE session_id = ? LIMIT 1",
       ).get(normalizedSessionId) as { session_id: string } | undefined;
@@ -246,7 +245,7 @@ export class NcpAgentSessionSummaryIndexStore {
 
   private initializeCatalog = async (): Promise<void> => {
     await mkdir(this.journalDir, { recursive: true });
-    this.database = await openSessionCatalogSqliteDatabase(
+    this.database = await openSqliteDatabase(
       resolve(this.journalDir, SQLITE_DATABASE_FILE),
     );
     this.database.exec(`
@@ -295,7 +294,7 @@ export class NcpAgentSessionSummaryIndexStore {
       loadSession: (sessionId) => this.loadSession(sessionId),
       loadSessionSummary: this.loadSessionSummary,
     });
-    runSessionCatalogSqliteTransaction(this.db(), () => {
+    runSqliteTransaction(this.db(), () => {
       const status = this.db().prepare(
         "SELECT value FROM storage_meta WHERE key = ? LIMIT 1",
       ).get(MIGRATION_STATUS_KEY) as { value: string } | undefined;
@@ -373,7 +372,7 @@ export class NcpAgentSessionSummaryIndexStore {
     ).run({ ...row, restore_deleted: restoreDeleted ? 1 : 0 });
   };
 
-  private db = (): SessionCatalogSqliteDatabase => {
+  private db = (): SqliteDatabase => {
     if (!this.database) {
       throw new Error("NCP session catalog database is not initialized.");
     }

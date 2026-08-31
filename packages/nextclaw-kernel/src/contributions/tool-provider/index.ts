@@ -53,7 +53,11 @@ export class ToolProviderContribution extends Contribution {
         this.kernel.automation,
         this.kernel.extensions,
       ),
-      new ProjectToolProvider(this.kernel.projectManager),
+      new ProjectToolProvider(
+        runContextService,
+        this.kernel.projectManager,
+        this.kernel.projectWorkManager,
+      ),
       new SessionToolProvider(
         runContextService,
         this.kernel.sessionManager,
@@ -61,8 +65,14 @@ export class ToolProviderContribution extends Contribution {
         this.kernel.sessionSearch,
       ),
       new AssetToolProvider(this.kernel.assetStore),
-      new ServiceActionToolProvider(runContextService, this.kernel.serviceAppManager),
-      new ServiceAppJobToolProvider(runContextService, this.kernel.serviceAppManager),
+      new ServiceActionToolProvider(
+        runContextService,
+        this.kernel.serviceAppManager,
+      ),
+      new ServiceAppJobToolProvider(
+        runContextService,
+        this.kernel.serviceAppManager,
+      ),
       new ServiceAppAiCapabilityToolProvider(this.kernel.serviceAppManager),
       new AppPackageDependencyToolProvider(this.kernel.appPackageManager),
       new McpToolProvider(runContextService, this.kernel.mcpManager),

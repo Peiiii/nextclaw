@@ -20,6 +20,7 @@ import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import {
   ProjectManager,
   ProjectObservationService,
+  ProjectWorkManager,
 } from "@kernel/features/projects/index.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import {
@@ -206,12 +207,14 @@ export function createKernelSessionManagers(params: {
   ingress: Ingress;
   observationStorePath: string;
   projectStorePath: string;
+  projectWorkStorePath: string;
   sessionsDir: string;
 }): {
   journalStore: NcpAgentSessionJournalStore;
   observations: ObservationManager;
   projectManager: ProjectManager;
   projectObservation: ProjectObservationService;
+  projectWorkManager: ProjectWorkManager;
   sessionManager: SessionManager;
   sessionSearch: SessionSearchService;
 } {
@@ -223,6 +226,7 @@ export function createKernelSessionManagers(params: {
     ingress,
     observationStorePath,
     projectStorePath,
+    projectWorkStorePath,
     sessionsDir,
   } = params;
   const sessionSearch = new SessionSearchService({
@@ -232,11 +236,23 @@ export function createKernelSessionManagers(params: {
   const journalStore = new NcpAgentSessionJournalStore(
     resolve(sessionsDir, ".ncp-agent-journal"),
   );
+  const projectWorkOwner: { current: ProjectWorkManager | null } = {
+    current: null,
+  };
   const projectManager = new ProjectManager({
     storePath: projectStorePath,
     getDefaultWorkspacePath: () =>
       getWorkspacePathFromConfig(configManager.config),
+    onProjectRegistered: async (project) => {
+      await projectWorkOwner.current?.ensureProject(project.id);
+    },
   });
+  const projectWorkManager = new ProjectWorkManager({
+    databasePath: projectWorkStorePath,
+    eventBus,
+    projectManager,
+  });
+  projectWorkOwner.current = projectWorkManager;
   const observationOwner: { current: ObservationManager | null } = {
     current: null,
   };
@@ -273,6 +289,7 @@ export function createKernelSessionManagers(params: {
     observations,
     projectManager,
     projectObservation,
+    projectWorkManager,
     sessionManager,
     sessionSearch,
   };

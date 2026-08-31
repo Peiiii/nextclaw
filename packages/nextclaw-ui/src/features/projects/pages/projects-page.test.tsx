@@ -2,16 +2,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProjectObservationSnapshot } from "@nextclaw/client-sdk";
 import { ProjectsPage } from "./project-home-page";
 
 const mocks = vi.hoisted(() => ({
-  useProjects: vi.fn(),
+  drawerProps: vi.fn(),
   useProjectObservation: vi.fn(),
-  openFilePreview: vi.fn(),
-  createSession: vi.fn(),
-  workspaceProps: vi.fn(),
-  useViewportLayout: vi.fn(),
+  useProjects: vi.fn(),
 }));
 
 vi.mock("@/shared/hooks/use-projects", () => ({
@@ -24,375 +20,118 @@ vi.mock("@/features/projects/hooks/use-project-observation", () => ({
   ],
   useProjectObservation: mocks.useProjectObservation,
 }));
-vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
-  usePresenter: () => ({
-    chatThreadManager: { openFilePreview: mocks.openFilePreview },
-    chatSessionListManager: { createSession: mocks.createSession },
-  }),
-}));
-vi.mock("@/features/chat/components/conversation/chat-conversation-workspace-section", () => ({
-  ChatConversationWorkspaceSection: (props: unknown) => {
-    mocks.workspaceProps(props);
-    return <div data-testid="project-workspace-preview" />;
-  },
+vi.mock("@/features/chat", () => ({
+  ChatConversationWorkspaceSection: () => <div data-testid="workspace" />,
+  usePresenter: () => ({ chatThreadManager: { openFilePreview: vi.fn() } }),
 }));
 vi.mock("@/app/hooks/use-viewport-layout", () => ({
-  useViewportLayout: mocks.useViewportLayout,
+  useViewportLayout: () => ({ isMobile: false }),
+}));
+vi.mock("@/features/projects/components/project-overview", () => ({
+  ProjectOverview: ({
+    onOpenWorkItem,
+  }: {
+    onOpenWorkItem: (id: string) => void;
+  }) => (
+    <button onClick={() => onOpenWorkItem("work-overview")}>
+      Overview work
+    </button>
+  ),
+}));
+vi.mock("@/features/projects/components/work/project-work-items", () => ({
+  ProjectWorkItems: ({
+    onOpenWorkItem,
+  }: {
+    onOpenWorkItem: (id: string) => void;
+  }) => <button onClick={() => onOpenWorkItem("work-list")}>List work</button>,
+}));
+vi.mock("@/features/projects/components/work/project-work-item-drawer", () => ({
+  ProjectWorkItemDrawer: ({ workItemId }: { workItemId: string | null }) => {
+    mocks.drawerProps({ workItemId });
+    return <div data-testid="work-drawer">{workItemId}</div>;
+  },
+}));
+vi.mock("@/features/projects/components/project-artifacts", () => ({
+  ProjectArtifacts: () => <div>Artifact content</div>,
+}));
+vi.mock("@/features/projects/components/project-skills", () => ({
+  ProjectSkills: () => <div>Skills content</div>,
+}));
+vi.mock("@/features/projects/components/project-agreement", () => ({
+  ProjectAgreement: () => <div>Agreement content</div>,
+}));
+vi.mock("@/features/projects/components/project-requests", () => ({
+  ProjectRequests: () => null,
 }));
 
-const observedAt = "2026-08-30T00:00:00.000Z";
-const snapshot: ProjectObservationSnapshot = {
-  asOf: observedAt,
-  project: {
-    name: "Research",
-    rootPath: "/tmp/research",
-    context: [{
-      id: "vision",
-      role: "Project vision",
-      source: "docs/VISION.md",
-      accessible: true,
-      reference: {
-        kind: "file-observation",
-        label: "File observation",
-        observedAt,
-        projectRelativePath: "docs/VISION.md",
-      },
-    }],
-  },
-  sources: [
-    {
-      id: "config",
-      label: "Project config",
-      status: "error",
-      itemCount: 0,
-      observedAt,
-      diagnosticIds: ["config:broken"],
-    },
-    {
-      id: "files",
-      label: "Project files",
-      status: "empty",
-      itemCount: 0,
-      observedAt,
-      diagnosticIds: [],
-    },
-    {
-      id: "sessions",
-      label: "Project sessions",
-      status: "empty",
-      itemCount: 0,
-      observedAt,
-      diagnosticIds: [],
-    },
-    {
-      id: "skills",
-      label: "Project Skills",
-      status: "empty",
-      itemCount: 0,
-      observedAt,
-      diagnosticIds: [],
-    },
-  ],
-  workflows: [],
-  runs: [],
-  workItems: [],
-  artifactCategories: [
-    { id: "designs", label: "Designs" },
-    { id: "plans", label: "Plans" },
-  ],
-  artifacts: [
-    {
-      id: "designs:docs/designs/observer.md",
-      path: "docs/designs/observer.md",
-      categoryId: "designs",
-      categoryLabel: "Designs",
-      exists: true,
-      references: [],
-    },
-    {
-      id: "plans:docs/plans/delivery.md",
-      path: "docs/plans/delivery.md",
-      categoryId: "plans",
-      categoryLabel: "Plans",
-      exists: true,
-      references: [],
-    },
-  ],
-  signals: [],
-  requests: [],
-  activity: [],
-  skills: [
-    {
-      ref: "project:research-skill",
-      name: "Research skill",
-      description: "Collects and organizes source material.",
-      source: "project",
-      path: "/tmp/research/.agents/skills/research/SKILL.md",
-      readable: true,
-      reference: {
-        kind: "project-config",
-        label: "Project config",
-        observedAt,
-      },
-    },
-    {
-      ref: "project:unavailable-skill",
-      name: "Unavailable skill",
-      source: "project",
-      path: "/tmp/research/.agents/skills/unavailable/SKILL.md",
-      readable: false,
-      reference: {
-        kind: "project-config",
-        label: "Project config",
-        observedAt,
-      },
-    },
-  ],
-  diagnostics: [
-    {
-      id: "config:broken",
-      source: "config",
-      level: "error",
-      code: "PROJECT_CONFIG_PARSE_FAILED",
-      message: "The project configuration is invalid.",
-    },
-  ],
-  dataQuality: "partial",
-};
+function renderPage(path: string) {
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:projectId/:tab" element={<ProjectsPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
 describe("ProjectsPage", () => {
   beforeEach(() => {
-    mocks.createSession.mockReset();
-    mocks.workspaceProps.mockReset();
-    mocks.useViewportLayout.mockReturnValue({ isMobile: false });
+    mocks.drawerProps.mockReset();
     mocks.useProjects.mockReturnValue({
       data: {
         projects: [
-          {
-            id: "project-research",
-            name: "Research",
-            rootPath: "/tmp/research",
-            createdAt: observedAt,
-            updatedAt: observedAt,
-          },
+          { id: "project-1", name: "Research", rootPath: "/tmp/research" },
         ],
       },
       isLoading: false,
       isError: false,
     });
     mocks.useProjectObservation.mockReturnValue({
-      data: snapshot,
+      data: undefined,
       isLoading: false,
       isError: false,
     });
   });
 
-  it("uses the existing overlay workspace mode on mobile", () => {
-    mocks.useViewportLayout.mockReturnValue({ isMobile: true });
-
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <MemoryRouter initialEntries={["/projects/project-research/overview"]}>
-          <Routes>
-            <Route path="/projects/:projectId/:tab" element={<ProjectsPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-
-    expect(mocks.workspaceProps).toHaveBeenCalledWith(
-      expect.objectContaining({
-        layoutMode: "mobile",
-        projectRoot: "/tmp/research",
-        sessionKey: null,
-      }),
-    );
-  });
-
-  it("uses the project selected by the sidebar route without rendering another selector", () => {
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <MemoryRouter initialEntries={["/projects/project-research/overview"]}>
-          <Routes>
-            <Route path="/projects/:projectId/:tab" element={<ProjectsPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
+  it("keeps overview scan-free and opens its work item in the unified drawer", () => {
+    renderPage("/projects/project-1/overview");
 
     expect(mocks.useProjectObservation).toHaveBeenCalledWith(
-      "project-research",
+      "project-1",
       "/tmp/research",
+      false,
     );
-    expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.getAllByRole("tab")).toHaveLength(5);
-    expect(screen.getByRole("tab", { name: "Skills" })).toBeTruthy();
-    expect(
-      screen.queryByText(
-        /This project has no configured summary|项目没有配置摘要/,
-      ),
-    ).toBeNull();
-    expect(screen.queryByText(/Partially available|部分可用/)).toBeNull();
-    expect(screen.queryByText(observedAt)).toBeNull();
-    expect(
-      screen.getByText(
-        /Set up project observation first|先建立项目观察配置/,
-      ),
-    ).toBeTruthy();
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Let AI set up project observation|让 AI 帮我建立项目观察/,
-      }),
-    );
-    expect(mocks.createSession).toHaveBeenCalledWith({
-      projectRoot: "/tmp/research",
-      prompt: expect.stringMatching(/project observation|项目观察/),
+    fireEvent.click(screen.getByRole("button", { name: "Overview work" }));
+    expect(screen.getByTestId("work-drawer").textContent).toBe("work-overview");
+  });
+
+  it("enables legacy observation only for preserved artifact, skill, and agreement surfaces", () => {
+    mocks.useProjectObservation.mockReturnValue({
+      data: { requests: [] },
+      isLoading: false,
+      isError: false,
     });
-    expect(mocks.createSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: expect.stringContaining("AGENTS.md"),
-      }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: /docs\/designs\/observer\.md/ }));
-    expect(mocks.openFilePreview).toHaveBeenCalledWith({
-      path: "docs/designs/observer.md",
-      label: "docs/designs/observer.md",
-      viewMode: "preview",
-      previewViewer: "rendered",
-    });
+    renderPage("/projects/project-1/artifacts");
 
-    fireEvent.click(screen.getByRole("tab", { name: /Work items|工作项/ }));
+    expect(mocks.useProjectObservation).toHaveBeenCalledWith(
+      "project-1",
+      "/tmp/research",
+      true,
+    );
+    expect(screen.getByText("Artifact content")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /Skills/ })).toBeTruthy();
     expect(
-      screen.queryByRole("heading", { name: /Work items|工作项/ }),
-    ).toBeNull();
-
-    fireEvent.click(screen.getByRole("tab", { name: /Artifacts|产物/ }));
-    expect(
-      screen.queryByRole("heading", { name: /Artifacts|产物/ }),
-    ).toBeNull();
-    expect(screen.getByRole("button", { name: /Designs 1/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /docs\/plans\/delivery\.md/ })).toBeTruthy();
-    expect(screen.queryByText(/File observed|文件已观测/)).toBeNull();
-
-    fireEvent.click(screen.getByRole("tab", { name: /Skills/ }));
-    expect(screen.getByText("2 skills")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Skills" })).toBeNull();
-    const skillPath = screen.getByText(
-      "/tmp/research/.agents/skills/research/SKILL.md",
-    );
-    expect(skillPath.className).toContain("truncate");
-    expect(skillPath.getAttribute("title")).toBe(
-      "/tmp/research/.agents/skills/research/SKILL.md",
-    );
-    const skillDescription = screen.getByText(
-      "Collects and organizes source material.",
-    );
-    expect(skillDescription.className).toContain("line-clamp-2");
-    expect(skillDescription.getAttribute("title")).toBe(
-      "Collects and organizes source material.",
-    );
-    expect(screen.queryByText(/Readable|可读取/)).toBeNull();
-    expect(screen.getByText(/Unavailable|不可用/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Research skill/ }));
-    expect(mocks.openFilePreview).toHaveBeenCalledWith({
-      path: "/tmp/research/.agents/skills/research/SKILL.md",
-      label: "Research skill",
-      viewMode: "preview",
-      previewViewer: "rendered",
-    });
-
-    fireEvent.click(
       screen.getByRole("tab", { name: /Working rules|工作约定/ }),
-    );
-    expect(
-      screen.queryByRole("heading", { name: /Working rules|工作约定/ }),
-    ).toBeNull();
-    expect(
-      screen.getByRole("heading", { name: /Vision and context|愿景与上下文/ }),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Project vision/ }));
-    expect(mocks.openFilePreview).toHaveBeenCalledWith({
-      path: "docs/VISION.md",
-      label: "Project vision",
-      viewMode: "preview",
-      previewViewer: "rendered",
-    });
-    expect(screen.getByText("PROJECT_CONFIG_PARSE_FAILED")).toBeTruthy();
   });
 
-  it("keeps rendering while an older server snapshot has no runs field", () => {
-    const { runs: _runs, ...legacySnapshot } = snapshot;
-    mocks.useProjectObservation.mockReturnValue({
-      data: legacySnapshot as ProjectObservationSnapshot,
-      isLoading: false,
-      isError: false,
-    });
-
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <MemoryRouter initialEntries={["/projects/project-research/overview"]}>
-          <Routes>
-            <Route path="/projects/:projectId/:tab" element={<ProjectsPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-
-    expect(screen.getAllByRole("tab")).toHaveLength(5);
-    expect(screen.getByText(/No AI-reported activity|暂无 AI 上报动态/)).toBeTruthy();
-  });
-
-  it("asks the user to choose from the sidebar when the route has no registered project", () => {
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <MemoryRouter initialEntries={["/projects"]}>
-          <Routes>
-            <Route path="/projects" element={<ProjectsPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-
-    expect(mocks.useProjectObservation).toHaveBeenLastCalledWith(null, null);
+  it("asks the user to choose from the sidebar when no project route is selected", () => {
+    renderPage("/projects");
+    expect(mocks.useProjectObservation).toHaveBeenCalledWith(null, null, false);
     expect(screen.getByText(/Choose a project|选择项目/)).toBeTruthy();
-    expect(screen.queryByRole("combobox")).toBeNull();
-  });
-
-  it("keeps the observation setup entry out of an already configured project", () => {
-    mocks.useProjectObservation.mockReturnValue({
-      data: {
-        ...snapshot,
-        sources: snapshot.sources.map((source) =>
-          source.id === "config" ? { ...source, status: "available" as const } : source,
-        ),
-      },
-      isLoading: false,
-      isError: false,
-    });
-
-    render(
-      <QueryClientProvider client={new QueryClient()}>
-        <MemoryRouter initialEntries={["/projects/project-research/overview"]}>
-          <Routes>
-            <Route path="/projects/:projectId/:tab" element={<ProjectsPage />} />
-          </Routes>
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-
-    expect(
-      screen.queryByRole("button", {
-        name: /Let AI set up project observation|让 AI 帮我建立项目观察/,
-      }),
-    ).toBeNull();
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Start project work|开始项目工作/,
-      }),
-    );
-    expect(mocks.createSession).toHaveBeenCalledWith({
-      projectRoot: "/tmp/research",
-      prompt: expect.stringMatching(/Start working on this project|请开始处理这个项目/),
-    });
   });
 });
