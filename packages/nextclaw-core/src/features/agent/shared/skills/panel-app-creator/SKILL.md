@@ -1,7 +1,7 @@
 ---
 name: panel-app-creator
-description: Create or update the Panel App UI part of a NextClaw lightweight app. Use after nextclaw-app-creator selects Panel-only or Panel + Service, or when the user explicitly asks for a right-side Panel App UI, folder-based static panel, Service Actions UI, Agent-powered Panel App, React/Vite/Tailwind Panel App, or asks what a Panel App can do and which injected APIs/capabilities it can use.
-description_zh: 创建或修改 NextClaw 轻量应用中的 Panel App UI 部分。适用于 nextclaw-app-creator 判断为 Panel-only 或 Panel + Service 后，或用户明确要求右侧面板 UI、目录式静态面板、Service Actions UI、Agent 驱动的 Panel App、React/Vite/Tailwind Panel App，或询问 Panel App 能做什么、能使用哪些注入 API/能力。
+description: Create or update the Panel UI component of a complete schema v2 NextClaw Mini App or an explicitly loose local Panel. Use after nextclaw-app-creator selects Panel-only or Panel + Service, or for right-side UI, Service Actions, Agent-powered panels, React/Vite panels, and App bridge capability questions.
+description_zh: 创建或修改完整 schema v2 NextClaw Mini App 的 Panel UI 组件，或用户明确要求的 loose 本地 Panel。适用于 nextclaw-app-creator 判断为纯 Panel 或 Panel + Service 后，以及右侧 UI、Service Actions、Agent Panel、React/Vite Panel 与 App bridge 能力问题。
 ---
 
 # NextClaw Panel App Creator
@@ -34,17 +34,21 @@ description_zh: 创建或修改 NextClaw 轻量应用中的 Panel App UI 部分�
 
 `window.nextclaw.serviceActions.*` 是当前 Panel App 调用 Service Actions 的推荐入口，不要因为 App Client 里存在 `client.serviceActions.*` 就默认替代。`window.nextclaw.agent.*` 暂时保留为旧 Agent bridge；只有实际不想开启整体 client 授权、维护旧应用，或需要旧 Agent bridge 独有便利能力时才提它。
 
-## 输出位置
+## 输出位置与包边界
 
-- Panel App 必须写入 NextClaw workspace 的 `panels/` 目录。
-- 默认 workspace 是 `~/.nextclaw/workspace`；如果当前任务能读取 NextClaw 配置，则以 `agents.defaults.workspace` 为准。
-- 目录式应用的目录名必须使用 kebab-case，并以 `.panel` 结尾，例如 `todo-board.panel/`。
+先沿用 `nextclaw-app-creator` 已经确定的边界，不要把完整 Mini App 拆成散落 workspace 组件：
+
+- 完整、可安装、可发布或长期维护的 schema v2 Mini App：写入包根 `panels/<panel-id>.panel/`，并由根 `manifest.json.components` 以 `{ "kind": "panel", "path": "panels/<panel-id>.panel" }` 引用。
+- 用户明确只要临时、本机、不可发布的 loose Panel：写入 NextClaw workspace 的 `panels/<panel-id>.panel/`。默认 workspace 是 `~/.nextclaw/workspace`；能读取配置时以 `agents.defaults.workspace` 为准。
+- `<panel-id>` 必须使用 kebab-case，目录以 `.panel` 结尾，例如 `todo-board.panel/`。
+
+如果 Panel 属于 Portable 或 native-process Service 包，Panel 仍只是静态 UI 组件；不要把 Guest 源码、MCP server 或根权限字段塞进 `.panel` 目录。
 
 ## 文件形态
 
-- 新建或重写 Panel App 时只使用目录式 Panel App。
+- 新建或重写 Panel App 时只使用目录式 Panel App；完整包和 loose Panel 使用同一种组件格式。
 - 目录式 Panel App 必须包含 `panel-app.json` 和入口 HTML；不要求服务器部署，不创建 npm 项目，不运行构建工具。
-- 需要后端能力时，可配套 `service-app-creator` 创建 Service App，但必须先执行 Service App 可用性检查（见下方"Service App 可用性"节）。
+- 需要后端能力时，必须由 `service-app-creator` 选择 Portable WASI 或 native-process，并先完成对应 Service 验证；Panel bridge 不按 runtime 分叉。
 - Panel App 运行在 sandbox iframe 中，不能依赖 `localStorage`、`sessionStorage`、cookie 或 IndexedDB。轻量状态默认只放内存；需要保存时提供导出/导入 JSON，或配套 Service App / App Client 能力。
 - `panel-app.json` 是标题、描述、图标、入口、Agent capabilities 和 Service actions 的唯一 manifest 事实源；不要把 NextClaw manifest 字段写到 HTML meta。
 
@@ -67,7 +71,7 @@ Panel App 不是普通同源网页。宿主为了隔离应用，iframe sandbox �
 适合需要后续扩展、持续维护、资源拆分或更清晰代码组织的静态应用：
 
 ```text
-panels/markdown-manager.panel/
+<package-root-or-workspace>/panels/markdown-manager.panel/
   panel-app.json
   index.html
   app.js
@@ -95,8 +99,8 @@ panels/markdown-manager.panel/
 - 只有确实需要完整 NextClaw Client SDK 时才写 `"client": true`；不需要 client 的 Panel App 不要声明。
 - `icon` 可以是 emoji、data URL、http/https/绝对路径，也可以是目录内相对资源路径，例如 `assets/icon.svg`。
 - 相对 CSS、JS、图片路径可以直接写 `styles.css`、`app.js`、`assets/icon.svg`；NextClaw 会通过资源接口托管它们。
-- 不要在目录式 Panel App 里创建 `package.json`、`node_modules`、Vite 配置或后台 dev server，除非用户明确要求后续升级为更重的形态。
-- 创建或修改 Panel App 后不需要重启 NextClaw 宿主、server 或桌面应用；目录内容会在 workspace 中被重新读取。需要看到最新效果时，刷新“面板应用”列表、重新打开该 Panel App，或使用面板右上角刷新/重新加载内容。
+- 轻量目录式 Panel 不创建 `package.json`、`node_modules`、Vite 配置或后台 dev server。工程化源码按 `panel-app-react-vite-creator` 管理，最终 `.panel` 目录仍只放静态构建产物和 manifest。
+- 创建或修改 Panel App 后不需要重启 NextClaw 宿主、server 或桌面应用。loose Panel 刷新“面板应用”列表或重新打开；包内 Panel 通过当前 `app dev/install` 生命周期重新加载。也可以使用面板右上角刷新内容。
 
 ## 启动器元信息
 
@@ -265,11 +269,19 @@ const sessions = await client.sessions.list();
 
 ## 交付前自检
 
-新建或修改 Panel App 后，必须运行：
+新建或修改 loose Panel 后，必须运行：
 
 ```bash
 nextclaw app check ~/.nextclaw/workspace/panels/<app-id>.panel
 ```
+
+Panel 属于 schema v2 完整包时，从包根运行：
+
+```bash
+nextclaw app check <app-dir> --json
+```
+
+包根检查会额外验证根 component 引用、Panel action allowlist 与同包 Service actions；只检查 `.panel` 目录不能替代完整包检查。Portable 包还必须由 `service-app-creator` 执行 `build/test`。
 
 `nextclaw app check` 失败时必须先修复，再交付给用户。它会检查目录式 `panel-app.json`、入口 HTML、资源路径、Agent capabilities、Service action allowlist 以及常见 bridge 调用漏声明问题。
 
@@ -389,4 +401,4 @@ await window.nextclaw.agent.send({
 3. 每次新建或重写 Panel App 时，都要先补齐 `panel-app.json` 的 `title`、`description`、`icon` 和 `entry`。
 4. 本地状态优先用内存变量或框架 state；需要导入导出时，用文本框、复制、下载 JSON 等浏览器原生能力。不要使用 `localStorage`、`sessionStorage`、cookie 或 IndexedDB。
 5. 视觉保持克制、清晰、信息密度适中，避免营销页式 hero 和装饰性堆叠。
-6. 完成后告诉用户在 NextClaw 左下角设置菜单打开“面板应用”，再选择对应应用。
+6. loose Panel 完成后告诉用户刷新“面板应用”列表；schema v2 包则通过 `nextclaw app dev/install` 或 Apps 页面打开其 primary Panel，不要让用户手工复制到 workspace。

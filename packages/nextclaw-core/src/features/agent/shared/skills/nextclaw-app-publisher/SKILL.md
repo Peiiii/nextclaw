@@ -1,92 +1,143 @@
 ---
 name: nextclaw-app-publisher
-description: Validate, package, and submit schema v2 NextClaw Mini Apps made from Panel Apps, Service Apps, or both. Use when the user asks to publish, submit, list, or share their app in the App Marketplace, including login, personal scope, marketplace metadata, and review-status handling. Do not use for legacy schema v1 WASI NApps.
-description_zh: 使用 NextClaw 原生命令校验、组装并提交由 Panel App、Service App 或二者组合而成的 schema v2 Mini App。用户说“发布这个应用”“提交到应用市场”“分享我的 Panel/Service App”“上架 Mini App”，或需要处理登录、个人 scope、marketplace.json、审核状态时使用；不适用于 legacy schema v1 WASI NApp。
+description: Validate, package, and submit schema v2 NextClaw Mini Apps with Panel-only, Service-only, or Panel + Service composition, supporting Portable WASI and native-process Service runtimes. Use when the user asks to publish, submit, list, or share an App in the Marketplace, including account readiness, universal or targeted artifacts, metadata, and review-status handling.
+description_zh: 校验、打包并提交纯 Panel、纯 Service 或 Panel + Service 组成的 schema v2 NextClaw Mini App，并支持 Portable WASI 与 native-process 两种 Service runtime。适用于用户要求发布、提交、上架或分享应用，以及处理账户就绪、通用或定向制品、元数据和审核状态。
 ---
 
 # 发布 NextClaw Mini App
 
-把用户已经开发好的 Panel App、Service App 或组合应用提交到 NextClaw 应用市场。对外只使用 `nextclaw app ...`；不要要求用户安装、理解或调用 `napp`，也不要暴露 registry URL、token、bundle mode 等底层参数。
+把已经完成开发和验证的 schema v2 Mini App 提交到 NextClaw Marketplace。对外只使用 `nextclaw app ...`；不要要求用户安装或调用 `napp`，也不要暴露 registry URL、token 或内部 bundle mode。
 
 ## 边界
 
-- 只处理 root `manifest.json` 为 `schemaVersion: 2` 的 Mini App 包。
-- 创建或修改组件本身时先读取 `nextclaw-app-creator` 及其路由的 Panel/Service 专项 skill；本 skill 只拥有组包、发布前校验、登录和提交流程。
-- 只有用户明确要求“发布 / 提交 / 上架”时才执行 `nextclaw app publish`。仅询问方案、检查应用或准备发布时停在 `validate-publish`。
-- 当前 schema v2 Service component 会在用户机器上启动本地进程并继承宿主环境，根 manifest 必须如实声明 `runtime.profile: native-process`；不要把它改成 `wasi`，因为当前没有 schema v2 WASI Service 执行合同。
-- 社区 Service App 可以提交公开上架，但必须进入高权限人工审核；管理员可审核为 `listed` 或 `unlisted`。不要承诺自动通过，也不要把人工审核说成平台不支持发布。
-- 不在 `~/.nextclaw/apps` 中创建开发源码。需要组包时写入当前 NextClaw workspace 的 `app-packages/<username>.<app-name>/`。
-- 原生 App 可只支持一个 target，也可支持多个 targets；root `distribution.targets` 是支持范围的唯一声明，`--artifacts` 目录中的 `<target-key>.napp` 必须与之精确一致。
+- 本 skill 只拥有组包、发布前校验、账户就绪和提交流程。
+- 创建或修改 Panel/Service 时读取 `nextclaw-app-creator` 及其路由的专项 skill。
+- 只有用户明确要求“发布、提交、上架”时才执行 `nextclaw app publish`；检查或准备发布停在 `validate-publish`。
+- 只处理 root `manifest.json` 为 `schemaVersion: 2` 的 Mini App 包；legacy schema v1 NApp 不进入本流程。
+- 不在 `~/.nextclaw/apps` 中创建开发源码；该目录属于已安装包和实例数据 owner。
 
-## 上架资格门
+## 先确认组件组成，再确认 Service runtime 与 distribution
 
-在组包和发布前先按真实组件确定资格，声明必须与执行方式一致：
+先独立判断包的组件组成：
 
-| 包形态 | schema v2 runtime | 社区审核结果 | 可以进入公开目录 |
+- Panel-only：只有 Panel components；
+- Service-only：只有 Service components；
+- Panel + Service：两类 components 同时存在。
+
+只有后两种组成需要继续判断 Service runtime。Panel-only 与 Portable WASI、native-process 不是同一层的三个选项：前者描述组件组成，后两者只描述 Service 如何运行。
+
+| Service runtime | 根 runtime profile | distribution | 发布边界 |
 | --- | --- | --- | --- |
-| 仅 Panel component | `panel-only` | 通过并公开，或通过但不公开 | 是 |
-| 任意 Service component | `native-process` | 高权限人工审核，可通过并公开或通过但不公开 | 审核通过后可以 |
-| Service component + `wasi` 标签 | 非法组合 | 校验失败 | 否 |
+| 不适用（Panel-only） | `panel-only` | 通常 `universal` | 普通审核 |
+| Portable Rust/WASI | `wasi` | 纯可移植资源使用 `universal` | 按声明能力审核 |
+| native-process | `native-process` | 自包含时可通用；含平台原生资源时使用 `targeted` | 高权限人工审核 |
 
-只有 manifest、组件格式和宿主运行时都实现 WASI，才能把应用称为 WASI。当前 schema v2 Service 使用 `service-app.json` 的 `command/args` 启动宿主进程，因此仅修改 `runtime.profile` 属于错误安全声明，必须停止并修正。
+不要按“包里存在 Service”就推断为 native-process。判断以 `service-app.json` 为准：
 
-如果用户明确要求公开上架，而核心功能依赖 Service component，如实保留 `native-process`、权限和组件声明，说明它会进入高权限人工审核并准备源码、权限用途和网络目标等证据；不要为了降低审核等级删除 Service 或伪造 WASI。
+- `protocol: "wasi-component"` + `component.entry` 对应 Portable WASI；
+- `protocol: "mcp"` + `command/args` 对应 native-process。
+
+不能只改 `runtime.profile` 来改变真实安全边界。WASI 包必须有合法 Component、匹配 WIT/manifest action 合同和宿主能力声明；native-process 包必须如实保留宿主进程、权限与外部依赖。
+
+## Rust 与最终用户
+
+- 应用作者在发布前构建 Rust/WASI Guest 时需要 Rust 工具链，并运行 `nextclaw app build/test`。
+- 最终用户安装、启用和运行已构建的 Portable `.napp` 不需要 Rust、Cargo、Wasmtime 或系统 Node；NextClaw 提供 runner。
+- 发布结果不能把开发工具链写成终端安装前置条件。
+
+## 发布资格门
+
+有效包至少包含：
+
+- `manifest.json`：schema v2、稳定 app id/version、真实 runtime、distribution、permissions 与 component 引用；
+- `marketplace.json`：`slug`、`summary`、`summaryI18n`、`author`、非空 tags 和真实展示信息；
+- 根 manifest 引用的所有 Panel/Service 目录、图标和 Marketplace 图片；
+- Portable Service 的已构建 `.wasm`、版本匹配 WIT 和 service smoke fixture；
+- targeted App 声明的精确 target 集与对应自包含 artifacts。
+
+如果用户只有散落的 loose Panel/native Service，先按 `nextclaw-app-creator` 的 package-root 合同组装到 workspace `app-packages/<username>.<app-name>/`。复制组件时保留原开发目录，根 manifest 成为发布包组件归属的事实源。
 
 ## 发布流程
 
-1. 运行账户检查：
+### 1. 账户就绪
 
-   ```bash
-   nextclaw account status --json
-   ```
+```bash
+nextclaw account status --json
+```
 
-   如果未登录，运行 `nextclaw login` 并让用户完成浏览器登录；如果缺少 username，引导用户在平台账号页设置，或由用户明确给出名称后运行 `nextclaw account set-username <username>`。不要索取或拼接原始 token。
+未登录时运行 `nextclaw login`，让用户完成浏览器登录。缺少 username 时，引导用户在平台账号页设置，或在用户明确给出后运行 `nextclaw account set-username <username>`。不要索取、拼接或回显原始 token。
 
-2. 找到 Mini App 包根目录。有效包至少包含：
+个人 App id 使用账户 username scope，例如 `alice.notes`。
 
-   - `manifest.json`：`schemaVersion` 为 `2`，`id` 使用 `<username>.<app-name>`，`components` 引用真实 Panel/Service 目录；仅 Panel 时声明 `panel-only`，含 Service 时声明 `native-process`。
-   - `marketplace.json`：至少包含 `slug`、`summary`、`summaryI18n`、`author` 和非空 `tags`。
-   - 所有组件目录、图标和 marketplace 图片都位于包根目录内。
+### 2. 组件与运行时验证
 
-   如果用户只有散落的 Panel/Service 目录，创建 `app-packages/<username>.<app-name>/`，复制组件源码并生成 root `manifest.json`、`marketplace.json`。保留原开发目录，不要把多个组件直接塞入任一组件目录。
+所有包先从完整包根运行：
 
-3. 校验每个组件：
+```bash
+nextclaw app check <app-dir> --json
+```
 
-   ```bash
-   nextclaw app check <panel-or-service-dir> --json
-   nextclaw app dev <service-app-dir> --json
-   ```
+含 Service 的包再运行 `dev`；Portable Service 还必须先运行 `build` 并执行 smoke fixture：
 
-   每个 Panel App 和 Service App 都要运行 `check`。Service App 额外运行 `dev` 核对真实 runtime 与 action 列表；存在无需敏感输入且无副作用的 read action 时，用 `nextclaw app call` 抽测一个。除非用户已授权，不调用会写文件、运行命令或访问外部服务的 action。
+```bash
+nextclaw app build <app-dir> --json
+nextclaw app test <app-dir> --json
+nextclaw app dev <app-dir> --json
+```
 
-4. 校验完整发布包：
+native-process Service 不运行 Portable `build/test`，但必须运行 `dev` 验证真实 MCP discovery。Panel-only 包不运行 `dev`。
 
-   ```bash
-   nextclaw app validate-publish <mini-app-dir> [--artifacts <dir>] --json
-   ```
+存在无需敏感输入且无副作用的 read action 时，用 `nextclaw app call` 抽测一个。除非用户已授权，不调用写文件、外部访问或危险 action。
 
-   修复所有 error。`schema v2 Service components do not support a WASI runtime yet` 表示声明和真实执行方式冲突，必须恢复为 `native-process`，不能用 `--allow-warnings` 或删除权限声明绕过。出现其它 warning 时先用普通语言说明影响；只有用户确认后才在发布命令中加入 `--allow-warnings`。
+### 3. 打包与整包校验
 
-5. 用户已明确授权发布且校验通过后提交：
+纯 Portable 或其它 universal App：
 
-   ```bash
-   nextclaw app publish <mini-app-dir> [--artifacts <dir>] --json
-   ```
+```bash
+nextclaw app pack <app-dir> --out dist/<app-name>.napp --json
+nextclaw app validate-publish <app-dir> --json
+```
 
-   不传 `--token`、API base、registry 或分发 mode；这些由 NextClaw 登录态和内置发布链路负责。
+包含平台原生资源的 targeted App：
+
+```bash
+nextclaw app pack <app-dir> --target linux-x64-gnu --out dist/linux-x64-gnu.napp --json
+nextclaw app pack <app-dir> --target darwin-arm64 --out dist/darwin-arm64.napp --json
+nextclaw app validate-publish <app-dir> --artifacts dist --json
+```
+
+`distribution.targets` 与 `--artifacts` 中的 canonical target 文件必须精确一致。不要给 universal App 传原生 target，也不要给 targeted App 混入 `universal.napp`。
+
+修复全部 error。Warning 先用普通语言解释影响；只有用户确认后才在发布命令加入 `--allow-warnings`。不得通过删除权限、伪造 runtime 或漏传 artifact 绕过校验。
+
+### 4. 明确授权后提交
+
+```bash
+nextclaw app publish <app-dir> --json
+```
+
+targeted App 使用已经校验的 artifacts：
+
+```bash
+nextclaw app publish <app-dir> --artifacts dist --json
+```
+
+不传 token、API base、registry 或分发 mode；它们由 NextClaw 登录态与内置发布链路负责。
 
 ## 结果说明
 
-- `publishStatus: pending`：明确告诉用户“已提交审核，尚未出现在应用市场”，并提供 `https://platform.nextclaw.io/apps` 管理入口。不要返回安装命令或把公开详情页说成已经可访问。
-- `publishStatus: published` 且 `catalogVisibility: listed`：说明已经审核通过并进入公开目录，返回命令结果中的公开详情页。
-- `publishStatus: published` 且 `catalogVisibility: unlisted`：说明已经审核通过，可按 App ID 安装，但不会出现在公开目录或搜索结果中；不要把它说成“已公开上架”。
-- `rejected` 后可以修复并重新提交；`pending` 时也可以重新提交同一应用。
-- 已发布的个人应用当前不能直接覆盖更新。若服务端拒绝更新，说明现有线上版本仍保持可用，等待后续版本级审核能力；不要改 app id 绕过保护。
+- `publishStatus: pending`：已提交审核，尚未出现在 Marketplace；提供 `https://platform.nextclaw.io/apps` 管理入口。
+- `publishStatus: published` + `catalogVisibility: listed`：已审核并进入公开目录，返回命令给出的公开详情页。
+- `publishStatus: published` + `catalogVisibility: unlisted`：已审核，可按 App id 安装，但不会出现在公开目录或搜索中。
+- `rejected`：保留线上已有版本，按反馈修复后重新提交。
+- 已发布个人 App 当前不能直接覆盖更新时，不要更换 app id 绕过版本级审核保护。
+
+社区 native-process Service 会进入高权限人工审核；Portable Service 也必须按实际文件、网络、secret、Provider 和 AI slot 请求接受审核。不要承诺自动通过。
 
 ## 完成条件
 
-- 发布前的组件检查和整包校验都有真实成功输出。
-- 远端提交只发生在用户明确要求后。
-- 最终准确区分“本地校验通过”“已提交审核”和“已公开发布”。
-- 最终准确区分 `listed` 与 `unlisted`，并确认运行时声明没有把 native process 伪装成 WASI。
-- 用户全程只需要理解 NextClaw、自己的应用和审核状态。
+- creator 对应 runtime 的 build/check/test/dev/call 证据完整；
+- `validate-publish` 对当前 package 与 artifact 集成功；
+- 远端提交只在用户明确授权后发生；
+- 最终准确区分本地验证、已提交审核、公开 listed 与 unlisted；
+- runtime、distribution、权限和最终用户依赖描述都与真实制品一致。
