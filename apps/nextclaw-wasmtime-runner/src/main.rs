@@ -400,7 +400,6 @@ struct NextClawFactorConfig {
     app: RunnerApp,
     loaded_components: u32,
     providers: ProviderRegistry,
-    provider_bridge: Option<ProviderBridge>,
     task: Option<TaskHostContext>,
 }
 
@@ -473,15 +472,6 @@ enum ActiveResidentInstance {
 }
 
 type ProviderRegistry = Arc<Mutex<HashMap<String, ActiveInstance>>>;
-
-struct ProviderCall {
-    provider_id: String,
-    action: String,
-    input_json: String,
-    reply: oneshot::Sender<std::result::Result<String, String>>,
-}
-
-type ProviderBridge = mpsc::UnboundedSender<ProviderCall>;
 
 struct PathComponentLoader {
     component_path: PathBuf,
@@ -558,22 +548,13 @@ impl ComponentLoader<SpinFactors, ()> for PathComponentLoader {
 
 struct Runner {
     executor: Arc<FactorsExecutor<SpinFactors, ()>>,
-    apps: HashMap<String, LoadedSpinApp>,
+    apps: HashMap<String, Arc<LoadedSpinApp>>,
     providers: ProviderRegistry,
     residents: HashMap<String, ActiveResidentInstance>,
-    provider_bridge: Option<ProviderBridge>,
-    loaded_components_base: u32,
 }
 
 impl Runner {
     fn new() -> Result<Self> {
-        Self::new_with_job_context(None, 0)
-    }
-
-    fn new_with_job_context(
-        provider_bridge: Option<ProviderBridge>,
-        loaded_components_base: u32,
-    ) -> Result<Self> {
         let factors = SpinFactors {
             wasi: WasiFactor::new(NextClawFilesMounter),
             // Variables are deliberately empty until the kernel resolves an
@@ -597,8 +578,6 @@ impl Runner {
             apps: HashMap::new(),
             providers: Arc::new(Mutex::new(HashMap::new())),
             residents: HashMap::new(),
-            provider_bridge,
-            loaded_components_base,
         })
     }
 
@@ -727,17 +706,17 @@ impl Runner {
     /// their own serial lanes only for lifecycle/event work, never for an
     /// unrelated Action or Job.
     async fn invoke(&mut self, app: &RunnerApp, action: &str, input: Value) -> Result<Value> {
-        self.invoke_with_task(app, action, input, None).await
+        let loaded = self.loaded_app(app).await?;
+        Self::invoke_loaded_with_task(loaded, action, input, None).await
     }
 
-    async fn invoke_with_task(
-        &mut self,
-        app: &RunnerApp,
+    async fn invoke_loaded_with_task(
+        loaded: Arc<LoadedSpinApp>,
         action: &str,
         input: Value,
         task: Option<TaskHostContext>,
     ) -> Result<Value> {
-        match self.instantiate_with_task(app, task.clone()).await {
+        match Self::instantiate_loaded_with_task(&loaded, task.clone()).await {
             Ok((bindings, mut store)) => {
                 let output = bindings
                     .nextclaw_portable_service_service()
@@ -748,7 +727,7 @@ impl Runner {
             }
             Err(_legacy_error) => {
                 let (bindings, mut store) =
-                    self.instantiate_resident_v2_with_task(app, task).await?;
+                    Self::instantiate_loaded_resident_v2_with_task(&loaded, task).await?;
                 let output = bindings
                     .nextclaw_portable_service_resident_v2()
                     .call_invoke(&mut store, action, &input.to_string())
@@ -757,24 +736,6 @@ impl Runner {
                 parse_guest_json(output)
             }
         }
-    }
-
-    async fn invoke_provider_raw(
-        &mut self,
-        provider_id: &str,
-        action: &str,
-        input_json: &str,
-    ) -> std::result::Result<String, String> {
-        let mut providers = self.providers.lock().await;
-        let provider = providers
-            .get_mut(provider_id)
-            .ok_or_else(|| format!("PROVIDER_NOT_RUNNING: {provider_id}"))?;
-        provider
-            .bindings
-            .nextclaw_portable_service_service()
-            .call_invoke(&mut provider.store, action, input_json)
-            .await
-            .map_err(to_string)?
     }
 
     async fn start_provider(&mut self, app: &RunnerApp, config: Value) -> Result<Value> {
@@ -912,12 +873,7 @@ impl Runner {
 
     async fn instantiate(&mut self, app: &RunnerApp) -> Result<(ServiceApp, SpinStore)> {
         let loaded = self.loaded_app(app).await?;
-        let mut builder = loaded.prepare("service")?;
-        builder.store_builder().max_memory_size(64 * 1024 * 1024);
-        let (instance, mut store) = builder.instantiate(()).await?;
-        store.as_mut().set_fuel(500_000_000)?;
-        let bindings = ServiceApp::new(&mut store, &instance)?;
-        Ok((bindings, store))
+        Self::instantiate_loaded_with_task(&loaded, None).await
     }
 
     async fn instantiate_resident_v2(
@@ -925,91 +881,80 @@ impl Runner {
         app: &RunnerApp,
     ) -> Result<(resident_v2::ServiceAppV2, SpinStore)> {
         let loaded = self.loaded_app(app).await?;
-        let mut builder = loaded.prepare("service")?;
-        builder.store_builder().max_memory_size(64 * 1024 * 1024);
-        let (instance, mut store) = builder.instantiate(()).await?;
-        store.as_mut().set_fuel(500_000_000)?;
-        let bindings = resident_v2::ServiceAppV2::new(&mut store, &instance)?;
-        Ok((bindings, store))
+        Self::instantiate_loaded_resident_v2_with_task(&loaded, None).await
     }
 
-    async fn instantiate_resident_v2_with_task(
-        &mut self,
-        app: &RunnerApp,
+    async fn instantiate_loaded_resident_v2_with_task(
+        loaded: &LoadedSpinApp,
         task: Option<TaskHostContext>,
     ) -> Result<(resident_v2::ServiceAppV2, SpinStore)> {
-        if task.is_none() {
-            return self.instantiate_resident_v2(app).await;
-        }
-        let task = task.expect("checked above");
-        let loaded = self.load_uncached(app, Some(task.clone())).await?;
         let mut builder = loaded.prepare("service")?;
         builder.store_builder().max_memory_size(64 * 1024 * 1024);
-        let (instance, mut store) = builder.instantiate(()).await?;
-        store.set_deadline(std::time::Instant::now() + task.execution_timeout);
-        store.as_mut().set_fuel(500_000_000)?;
-        let bindings = resident_v2::ServiceAppV2::new(&mut store, &instance)?;
-        Ok((bindings, store))
-    }
-
-    /// Job factors are deliberately not cached: their task host import owns a
-    /// job-specific cancel token and bounded event channel. Reusing a cached
-    /// factor here would cross those identities even if Store allocation were
-    /// separate.
-    async fn instantiate_with_task(
-        &mut self,
-        app: &RunnerApp,
-        task: Option<TaskHostContext>,
-    ) -> Result<(ServiceApp, SpinStore)> {
-        if task.is_none() {
-            return self.instantiate(app).await;
+        if let Some(task) = task.clone() {
+            let nextclaw = builder
+                .factor_builder::<NextClawFactor>()
+                .context("NextClaw Factor instance builder is missing")?;
+            nextclaw.config.task = Some(task.clone());
         }
-        let loaded = self.load_uncached(app, task.clone()).await?;
-        let mut builder = loaded.prepare("service")?;
-        builder.store_builder().max_memory_size(64 * 1024 * 1024);
         let (instance, mut store) = builder.instantiate(()).await?;
         if let Some(task) = task {
             store.set_deadline(std::time::Instant::now() + task.execution_timeout);
             store.as_mut().set_fuel(20_000_000)?;
+        } else {
+            store.as_mut().set_fuel(500_000_000)?;
+        }
+        let bindings = resident_v2::ServiceAppV2::new(&mut store, &instance)?;
+        Ok((bindings, store))
+    }
+
+    async fn instantiate_loaded_with_task(
+        loaded: &LoadedSpinApp,
+        task: Option<TaskHostContext>,
+    ) -> Result<(ServiceApp, SpinStore)> {
+        let mut builder = loaded.prepare("service")?;
+        builder.store_builder().max_memory_size(64 * 1024 * 1024);
+        if let Some(task) = task.clone() {
+            let nextclaw = builder
+                .factor_builder::<NextClawFactor>()
+                .context("NextClaw Factor instance builder is missing")?;
+            nextclaw.config.task = Some(task.clone());
+        }
+        let (instance, mut store) = builder.instantiate(()).await?;
+        if let Some(task) = task {
+            store.set_deadline(std::time::Instant::now() + task.execution_timeout);
+            store.as_mut().set_fuel(20_000_000)?;
+        } else {
+            store.as_mut().set_fuel(500_000_000)?;
         }
         let bindings = ServiceApp::new(&mut store, &instance)?;
         Ok((bindings, store))
     }
 
-    async fn loaded_app(&mut self, app: &RunnerApp) -> Result<&LoadedSpinApp> {
+    async fn loaded_app(&mut self, app: &RunnerApp) -> Result<Arc<LoadedSpinApp>> {
         let key = app_key(app);
         if !self.apps.contains_key(&key) {
-            let loaded = self.load_app(app, None).await?;
+            let loaded = Arc::new(self.load_app(app).await?);
             self.apps.insert(key.clone(), loaded);
         }
         self.apps
             .get(&key)
+            .cloned()
             .context("Spin app cache entry disappeared")
     }
 
-    async fn load_uncached(
-        &self,
-        app: &RunnerApp,
-        task: Option<TaskHostContext>,
-    ) -> Result<LoadedSpinApp> {
-        self.load_app(app, task).await
-    }
-
-    async fn load_app(
-        &self,
-        app: &RunnerApp,
-        task: Option<TaskHostContext>,
-    ) -> Result<LoadedSpinApp> {
+    async fn load_app(&self, app: &RunnerApp) -> Result<LoadedSpinApp> {
         let locked = locked_app_for(app)?;
         let spin_app = App::new(format!("nextclaw:{}", app.id), locked);
         let config = spin_factors_runtime_config(
             app,
             NextClawFactorConfig {
                 app: app.clone(),
-                loaded_components: self.loaded_components_base + self.apps.len() as u32,
+                // The App being configured is not inserted into `apps` until
+                // `load_app` returns, but it is already a loaded Component
+                // from the Guest's point of view.
+                loaded_components: self.apps.len() as u32 + 1,
                 providers: Arc::clone(&self.providers),
-                provider_bridge: self.provider_bridge.clone(),
-                task,
+                task: None,
             },
         )?;
         Arc::clone(&self.executor)
@@ -1358,22 +1303,6 @@ impl Host for NextClawFactorState {
                 self.config.app.id, provider_id
             ));
         }
-        if let Some(bridge) = &self.config.provider_bridge {
-            let (reply, response) = oneshot::channel();
-            bridge
-                .send(ProviderCall {
-                    provider_id,
-                    action: _action,
-                    input_json: _input_json,
-                    reply,
-                })
-                .map_err(|_| {
-                    "PROVIDER_NOT_RUNNING: runner provider lane is unavailable".to_string()
-                })?;
-            return response
-                .await
-                .map_err(|_| "PROVIDER_NOT_RUNNING: provider lane exited".to_string())?;
-        }
         let mut providers = self.config.providers.lock().await;
         let provider = providers
             .get_mut(&provider_id)
@@ -1682,13 +1611,12 @@ fn main() -> Result<()> {
         .build()?;
     let local = tokio::task::LocalSet::new();
     local.block_on(&runtime, async move {
-        let runner = Rc::new(Mutex::new(Runner::new()?));
         let (input_tx, mut input_rx) = mpsc::unbounded_channel::<String>();
         let (output_tx, mut output_rx) = mpsc::channel::<RunnerOutput>(1024);
         let jobs = Rc::new(Mutex::new(HashMap::<String, ActiveJob>::new()));
         let host_calls: HostCallRegistry = Arc::new(Mutex::new(HashMap::new()));
         let (job_complete_tx, mut job_complete_rx) = mpsc::unbounded_channel::<String>();
-        let (provider_bridge, mut provider_calls) = mpsc::unbounded_channel::<ProviderCall>();
+        let runner = Rc::new(Mutex::new(Runner::new()?));
 
         // stdin is a dedicated blocking reader. It never awaits component
         // execution, so cancel/status control can enter while a Guest runs.
@@ -1726,13 +1654,6 @@ fn main() -> Result<()> {
                     jobs.lock().await.remove(&job_id);
                     continue;
                 }
-                Some(call) = provider_calls.recv() => {
-                    let result = runner.lock().await
-                        .invoke_provider_raw(&call.provider_id, &call.action, &call.input_json)
-                        .await;
-                    let _ = call.reply.send(result);
-                    continue;
-                }
                 else => break,
             };
             let request = match serde_json::from_str::<RunnerRequest>(&line) {
@@ -1762,12 +1683,11 @@ fn main() -> Result<()> {
                         ) }).await;
                         continue;
                     };
-                    let loaded_components = match async {
+                    let loaded = match async {
                         let mut runner = runner.lock().await;
-                        runner.loaded_app(&app).await?;
-                        Ok::<u32, anyhow::Error>(runner.apps.len() as u32)
+                        runner.loaded_app(&app).await
                     }.await {
-                        Ok(count) => count,
+                        Ok(loaded) => loaded,
                         Err(error) => {
                             let _ = output_tx.send(RunnerOutput::Response { response: response_for(
                                 request.request_id, Err(error),
@@ -1793,42 +1713,22 @@ fn main() -> Result<()> {
                     };
                     let task_context = context.clone();
                     let task_complete_tx = job_complete_tx.clone();
-                    let task_provider_bridge = provider_bridge.clone();
                     let input = request.input.clone().unwrap_or_else(|| json!({}));
-                    // Task Stores must remain !Send, but Spin's standard KV
-                    // factor uses Tokio block_in_place. A per-job OS thread
-                    // owns a multi-thread Tokio runtime, so neither that
-                    // blocking bridge nor a slow Guest can occupy dispatch.
-                    std::thread::spawn(move || {
-                        let runtime = match tokio::runtime::Builder::new_multi_thread()
-                            .worker_threads(2)
-                            .enable_all()
-                            .build()
-                        {
-                            Ok(runtime) => runtime,
-                            Err(error) => {
-                                let context = task_context.clone();
-                                let _ = tokio::runtime::Builder::new_current_thread()
-                                    .enable_all()
-                                    .build()
-                                    .map(|fallback| fallback.block_on(context.terminal("failed", None, Some(RunnerError {
-                                        code: "PORTABLE_RUNNER_INIT_FAILED".into(), message: error.to_string(),
-                                    }))));
-                                let _ = task_complete_tx.send(task_context.job_id.clone());
-                                return;
-                            }
+                    // Stores are !Send, so every Job stays on this LocalSet.
+                    // Engine, FactorsExecutor and InstancePre remain owned by
+                    // the shared Runner; only Store/instance/TaskHostContext
+                    // are created per concurrent Job.
+                    tokio::task::spawn_local(async move {
+                        let result = tokio::select! {
+                            result = Runner::invoke_loaded_with_task(
+                                loaded,
+                                &action_name,
+                                input,
+                                Some(task_context.clone()),
+                            ) => result,
+                            _ = task_context.wait_cancelled() => Err(anyhow!("JOB_CANCELLED: job cancellation was requested")),
+                            _ = tokio::time::sleep(task_context.execution_timeout) => Err(anyhow!("PORTABLE_RUNTIME_TIMEOUT: task timed out")),
                         };
-                        let result = runtime.block_on(async {
-                            let mut task_runner = Runner::new_with_job_context(
-                                Some(task_provider_bridge),
-                                loaded_components,
-                            )?;
-                            tokio::select! {
-                                result = task_runner.invoke_with_task(&app, &action_name, input, Some(task_context.clone())) => result,
-                                _ = task_context.wait_cancelled() => Err(anyhow!("JOB_CANCELLED: job cancellation was requested")),
-                                _ = tokio::time::sleep(task_context.execution_timeout) => Err(anyhow!("PORTABLE_RUNTIME_TIMEOUT: task timed out")),
-                            }
-                        });
                         let (status, result, error) = match result {
                             Ok(value) => ("succeeded", Some(value), None),
                             Err(error) => {
@@ -1843,8 +1743,8 @@ fn main() -> Result<()> {
                                 }))
                             }
                         };
-                        runtime.block_on(task_context.clear_host_calls());
-                        runtime.block_on(task_context.terminal(status, result, error));
+                        task_context.clear_host_calls().await;
+                        task_context.terminal(status, result, error).await;
                         let _ = task_complete_tx.send(task_context.job_id.clone());
                     });
                     jobs.lock().await.insert(job_id.clone(), ActiveJob {

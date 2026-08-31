@@ -28,6 +28,7 @@
 - 现有 State Component 已在 Spin runner 上完成 `list-actions -> counter_increment -> counter_read`，原 WIT、NDJSON 和宿主 KV 合同保持不变。
 - 同一 Spin runner 已同时装载三个 Component：Provider 启动后，Composition 经 `host.component-call` 得到规范化联系人；Resident 启动、接收事件并在同一实例读回内存计数；stats 报告 3 个已加载 Component、1 个 Provider、1 个 Resident。
 - macOS arm64 release 基线已完成同 workload 对照：Spin runner 31 MiB、直接 Wasmtime 25 MiB；空载 RSS 9.89/7.70 MiB，1 个 Component 40.28/34.84 MiB，5 个 48.92/42.94 MiB，10 个 56.36/49.16 MiB。Spin 固定增量约 6–7 MiB，但仍远低于 5 个独立 Node Service 的约 203 MiB。
+- Action Job 的高内存根因已经定位并修复：旧链路为每个 Job 新建 Tokio Runtime、Runner、Engine、FactorsExecutor 并执行 `load_uncached`；当前链路只保留进程级共享执行底座与 App 缓存，每个 Job 独立创建 Store、Instance 和 Task context。相同 hold-barrier 基准下，十并发增量从 `113.60 MiB` 降至 `2.61 MiB physical footprint`，即 `0.26 MiB/Action`；1000 个 Job 没有阶梯增长。
 - 同轮方向性延迟：Spin 首个 `list-actions` 70.09 ms、热 `counter_read` 中位数 0.11 ms；直接 Wasmtime 为 73.70 ms / 0.17 ms。当前证据未发现 Spin 造成有意义的调用延迟退化。
 - Spin 实现已迁入正式 `apps/nextclaw-wasmtime-runner`，发布 artifact 名、WIT 与 NDJSON `0.1.0` 合同保持不变；旧直接 Wasmtime bindings/主实现已移除，未保留长期双 executor。
 - 正式五 Guest smoke 已自动化并通过：Action discover/invoke、Host KV、storage/network denied、Provider、Composition、Resident、同 PID、stop 后角色释放。
@@ -41,7 +42,7 @@
 
 ## 活跃假设
 
-- Spin 的额外固定 RSS 和二进制体积不会抵消多 Component 共享运行时的收益。
+- Spin 约 `43-46 MiB physical footprint` 的共享固定底座不会抵消多 Component、低到中等并发场景的收益；Action 边际成本已不再是主要内存风险。
 
 ## 已排除项
 
@@ -54,6 +55,7 @@
 ## 关键决策
 
 - 架构推荐已调整为 Spin-first，直接 Wasmtime只保留为判别性基线。
+- Action 生命周期固定为“进程级 Runtime/Engine/FactorsExecutor、App 级 Component、Job 级 Store/Instance/context”；禁止为每个 Job 重新创建 executor，也不通过排队或共享可变 Store 伪装低边际成本。
 - 能力供给分为内置 Factor、可安装 Capability Provider、可移植 Component、Native Provider；外部资源绑定与 capability 实现分离。Spin 4 Factor 是静态 Rust 类型，生态扩展通过通用 Provider/Action 桥完成，不虚构任意动态 Factor ABI。
 - App readiness 至少区分 `ready`、`needs-capability`、`needs-configuration`、`incompatible`，缺依赖时可以安装但禁止误启用。
 

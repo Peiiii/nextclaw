@@ -34,7 +34,10 @@ function createRequest({ child, pending }) {
     const response = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         pending.delete(request.requestId);
-        reject(new Error(`timed out waiting for ${request.operation}`));
+        const target = request.app?.id
+          ? ` ${request.app.id}${request.actionName ? `.${request.actionName}` : ""}`
+          : "";
+        reject(new Error(`timed out waiting for ${request.operation}${target}`));
       }, 10_000);
       pending.set(request.requestId, (value) => { clearTimeout(timer); resolve(value); });
     });
