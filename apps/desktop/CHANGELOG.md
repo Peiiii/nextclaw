@@ -1,5 +1,12 @@
 # @nextclaw/desktop
 
+## 0.0.279-beta.1
+
+### Patch Changes
+
+- Updated dependencies [c4fb100]
+  - nextclaw@0.48.0-beta.1
+
 ## 0.0.279-beta.0
 
 ### Patch Changes

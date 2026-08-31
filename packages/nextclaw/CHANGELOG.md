@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.48.0-beta.1
+
+### Patch Changes
+
+- c4fb100: 修复 NPM launcher 更新后继续运行旧 runtime bundle 的问题。launcher 版本高于当前 bundle 时，会先通过已配置的更新通道获取匹配 runtime，避免新包与旧执行代码混用。
+- Updated dependencies [c4fb100]
+  - @nextclaw/service@0.6.0-beta.1
+
 ## 0.48.0-beta.0
 
 ### Minor Changes

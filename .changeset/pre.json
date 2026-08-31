@@ -68,6 +68,7 @@
   },
   "changesets": [
     "add-read-only-project-observation",
-    "auto-release-batch-20260831015422553"
+    "auto-release-batch-20260831015422553",
+    "fix-npm-runtime-version-skew"
   ]
 }
