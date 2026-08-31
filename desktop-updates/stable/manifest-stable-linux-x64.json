@@ -1,0 +1,12 @@
+{
+  "channel": "stable",
+  "platform": "linux",
+  "arch": "x64",
+  "latestVersion": "0.47.0",
+  "minimumLauncherVersion": "0.0.141",
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.47.0-desktop.1/nextclaw-bundle-linux-x64-0.47.0.zip",
+  "bundleSha256": "84a099d65ecbf866d60df50bbbc060a895c4f6302db5aec57f37eb68c0b2d120",
+  "bundleSignature": "AG1IBSPpyNGApWeltTVG7ZYRcy4czuiiG0SUAZg3MsoBDvjJCljYg5TCXJr/c+zTNVfMZ0vMDDOdwj7tzY0dDQ==",
+  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-30-nextclaw-v0-47-0",
+  "manifestSignature": "sLtggwwKbMQ5QX4pdPZ8unQU7MlzVpVPoixT1TlKAIT8XwwuUhwOc2CVhYGfstwL2Qt/O0WLyVzf3Me0PuPYDQ=="
+}

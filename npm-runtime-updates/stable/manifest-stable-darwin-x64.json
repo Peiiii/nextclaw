@@ -1,0 +1,13 @@
+{
+  "channel": "stable",
+  "platform": "darwin",
+  "arch": "x64",
+  "hostKind": "npm-runtime-bundle",
+  "latestVersion": "0.47.0",
+  "minimumLauncherVersion": "0.18.11",
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.47.0/nextclaw-runtime-darwin-x64-0.47.0.zip",
+  "bundleSha256": "754739acb2ce29454773064afab471ed80b67e949e88b7ab8f17022566656f98",
+  "bundleSignature": "g+jsyAMm98kegJ86fzbXC/b1OaLqP+InYgYZ+/BxT65jDHPw+Xtq7dwZ9umAWAm7W3lWDvXnwp9iLlkXIEteAg==",
+  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-30-nextclaw-v0-47-0",
+  "manifestSignature": "VyqrC0qU9/PgnzVcTaz+9pJkN2HJ7+U0G04ZNd4omSvr07Cl/IUX9nefcQICyNxEvstlR/s8CP5/Yf304K5RCQ=="
+}

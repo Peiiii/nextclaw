@@ -1,0 +1,20 @@
+Architectures: amd64
+Codename: stable
+Components: main
+Date: Sun, 30 Aug 2026 19:17:32 +0000
+Description: NextClaw Linux APT Repository
+Label: NextClaw
+Origin: NextClaw
+Suite: stable
+MD5Sum:
+ 8fa295ffa52c853fa81d5ab1a5938b85              697 main/binary-amd64/Packages
+ d9dd6380954cdc581c87b6cfc8b4ebaa              466 main/binary-amd64/Packages.gz
+SHA1:
+ 0330b127ca271f17af904238b9821c20c43e1e77              697 main/binary-amd64/Packages
+ 3b141be3fd891f1de9574baeb070fbed3324e5ba              466 main/binary-amd64/Packages.gz
+SHA256:
+ 042ce8384144eea107d7ba6f9b3bddbf9b109a907a3e25e8f32e782119644d15              697 main/binary-amd64/Packages
+ a078ef26926454c1e8b8f5d2a986e91aa341bbcb3f23bc83fb11ecf0fef6c5e3              466 main/binary-amd64/Packages.gz
+SHA512:
+ d73c93b2557a6e74b7920426b8be407328f36c1cc80229d0e0534039ceb7d6c64358e4f2b7a5bb4924499e4bea826d1bfb9d56d5b1dc4c68cd51128ba38183d1              697 main/binary-amd64/Packages
+ 73461ae12e6216da041faad8fbad7c18446c817ada6946f8cce0b33027d4a7281a4e9ea5237b6cee9555b63ae8a7d7fcff2c1adef79febabc7a9196c1232fbae              466 main/binary-amd64/Packages.gz

@@ -1,0 +1,39 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Architectures: amd64
+Codename: stable
+Components: main
+Date: Sun, 30 Aug 2026 19:17:32 +0000
+Description: NextClaw Linux APT Repository
+Label: NextClaw
+Origin: NextClaw
+Suite: stable
+MD5Sum:
+ 8fa295ffa52c853fa81d5ab1a5938b85              697 main/binary-amd64/Packages
+ d9dd6380954cdc581c87b6cfc8b4ebaa              466 main/binary-amd64/Packages.gz
+SHA1:
+ 0330b127ca271f17af904238b9821c20c43e1e77              697 main/binary-amd64/Packages
+ 3b141be3fd891f1de9574baeb070fbed3324e5ba              466 main/binary-amd64/Packages.gz
+SHA256:
+ 042ce8384144eea107d7ba6f9b3bddbf9b109a907a3e25e8f32e782119644d15              697 main/binary-amd64/Packages
+ a078ef26926454c1e8b8f5d2a986e91aa341bbcb3f23bc83fb11ecf0fef6c5e3              466 main/binary-amd64/Packages.gz
+SHA512:
+ d73c93b2557a6e74b7920426b8be407328f36c1cc80229d0e0534039ceb7d6c64358e4f2b7a5bb4924499e4bea826d1bfb9d56d5b1dc4c68cd51128ba38183d1              697 main/binary-amd64/Packages
+ 73461ae12e6216da041faad8fbad7c18446c817ada6946f8cce0b33027d4a7281a4e9ea5237b6cee9555b63ae8a7d7fcff2c1adef79febabc7a9196c1232fbae              466 main/binary-amd64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEftow2+KCd730BV/ph7cXlsPi8LIFAmqUgc0ACgkQh7cXlsPi
+8LIydQ//cnR6Me+a0QuCVFyoGzkvwJ/78A5IpksPcFCh6xRSm92i3mXvIG0f89ts
+FhxFXfxWb5d8n8lzCPeOrBGXbcWOkaEBovcjjTPHYUDEuGzv1iQoNLg8pfDdlkOR
+G0AmtWFKJYiLZEpE9GoI1rHcjpCfYfI+yB0PKlwharZBlLZgb9gWuNByxQlkI9Aw
+bz7uYX1kPD1AMi4vFN54fSMiAGiQZ9X84exA4dlfk+zE3uk1nF295U0fqQYH8evE
+NE/hqITduY+Y6mfo32nqdLcQwUacJ03n+P/Vpwhiir2G7HXluIYTs/QgYuqSJ8sk
+0ZkUy2EaCDAVbFxnwMvv+DObZQyyAzKGWOT3zuaUedKTf86G7XltO2hfUCH9qFPr
+L3bRf+a3UOrq6Rg5DjkWTz2Rhwspsxw8fwsYQepTEZNDwMQo00MxwjoCwNLE0KYX
+wcFvuZT1Cl+tAg5wpD0PPbDBR8s8vIOF+hYtRBpOWsljnaK7gUBmskwY3y04vTr+
+S/xiOwWrdFVDS6JYLSoW/Ib0H6r5LifZwdFeY1L8zqoF1MGTEUIkQBcGlj+U/4rn
+55dM7GRmdMM7LsSAbDv5zrdcnGdfU36StVBgLZoymlL3UTXfO0xmJwTlNgMTht5w
+zCxGSj+u/xjGdG02e3mtdOJUb5aO1m3BFGap08duZC0z46fH6kA=
+=Yz2m
+-----END PGP SIGNATURE-----

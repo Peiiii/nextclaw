@@ -1,0 +1,13 @@
+{
+  "channel": "stable",
+  "platform": "linux",
+  "arch": "x64",
+  "hostKind": "npm-runtime-bundle",
+  "latestVersion": "0.47.0",
+  "minimumLauncherVersion": "0.18.11",
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.47.0/nextclaw-runtime-linux-x64-0.47.0.zip",
+  "bundleSha256": "b4429320755f0b760b6fb269ee18f516aea4698de24e881b3126e37bec3cef65",
+  "bundleSignature": "2bGx5OK0YDNK/gqkFTCm6/NmiR5JnGDVekXsmnzMBNy75MMkak6Xt5VvuRiEQ0sFioEdmDwLyHH9PAAPSntnDg==",
+  "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-08-30-nextclaw-v0-47-0",
+  "manifestSignature": "CzWfqFbb/x2X3VlZJ5YJgRxbq1FCRmLhjHZMPihzAeNkU8vQLuE7IxMqoE4/0u4gP3olF8oy7/Z6arNfAWt4Cw=="
+}
