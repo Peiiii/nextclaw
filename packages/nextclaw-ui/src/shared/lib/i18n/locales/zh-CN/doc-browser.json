@@ -251,5 +251,20 @@
   "serviceActionAuthorizationRisk": "风险",
   "serviceActionAuthorizationInput": "输入",
   "serviceActionAuthorizationReject": "拒绝",
-  "serviceActionAuthorizationAllow": "允许"
+  "serviceActionAuthorizationAllow": "允许",
+  "appPackagesDocumentAccessTitle": "文件与文件夹",
+  "appPackagesDocumentAccessUngranted": "未授权",
+  "appPackagesDocumentAccessUnavailable": "目录不可用",
+  "appPackagesDocumentAccessRead": "只读",
+  "appPackagesDocumentAccessReadWrite": "读写",
+  "appPackagesDocumentAccessMode": "访问模式",
+  "appPackagesDocumentAccessChoose": "选择目录",
+  "appPackagesDocumentAccessReplace": "替换",
+  "appPackagesDocumentAccessRevoke": "撤销访问",
+  "appPackagesDocumentAccessGrant": "授权此目录",
+  "appPackagesDocumentAccessChooseTitle": "选择运行主机上的目录",
+  "appPackagesDocumentAccessChooseDescription": "选择此应用可以访问的目录。",
+  "appPackagesDocumentAccessPath": "授权目录",
+  "appPackagesDocumentAccessWriteWarning": "读写授权允许应用直接修改这个目录中的原始文件；你可以随时在应用卡片中撤销。",
+  "appPackagesDocumentAccessReadHint": "只读授权允许应用查看这个目录，但不能通过此挂载修改文件。"
 }

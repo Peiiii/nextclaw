@@ -211,6 +211,9 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 | `nextclaw app secrets verify`       | Resolve bindings without revealing Secret values                                   |
 | `nextclaw app secrets bind`         | Bind one declared Secret slot to an env, file, or exec provider                   |
 | `nextclaw app secrets unbind`       | Remove an App SecretRef binding and its active Secret permission                  |
+| `nextclaw app permissions inspect`  | Inspect declared directory scopes, grant status, and effective access mode        |
+| `nextclaw app permissions document grant` | Grant or replace a runtime-host directory as read-only or read-write       |
+| `nextclaw app permissions document revoke` | Revoke a directory scope and stop the previous mount                       |
 | `nextclaw app ai-capabilities inspect` | Inspect declared non-secret model and Agent slots with current bindings         |
 | `nextclaw app ai-capabilities verify`  | Verify required model and Agent slot readiness                                  |
 | `nextclaw app ai-capabilities bind`    | Bind one declared model or Agent slot to a configured target                    |
@@ -232,6 +235,8 @@ See [Service Apps](/en/guide/service-apps) for the user workflow and [Develop a 
 `app acceptance contract|status|export` reads the single Portable Runtime acceptance registry used by the product, server, CLI, and release gate. `status` evaluates evidence against the active product version, runtime version, runner fingerprint, and contract fingerprint; only `current-passed` means the evidence is current. `export` always writes the complete machine-readable status document. Use `--locale en` for English presentation and `--app <id>` only when inspecting a non-default acceptance App.
 
 For Apps that declare Secret slots, use `app secrets inspect <app-id>` to see required configuration without revealing values. Bind a declared slot with `app secrets bind <app-id> --slot <slot> --source env|file|exec --id <secret-id> [--provider <provider>]`, then run `app secrets verify <app-id>`. A required unbound or unresolved slot leaves the App in `needs-configuration` and blocks enable with a `SECRET_*` error code. `app secrets unbind` removes the active Secret permission; retaining App data never retains Secret bindings.
+
+Installing an App never grants its declared directory scopes automatically. Use `app permissions inspect <app-id>` to inspect them, `app permissions document grant <app-id> --scope <scope-id> --path <directory> --mode read|read-write` to grant or replace a runtime-host directory, and `app permissions document revoke <app-id> --scope <scope-id>` to revoke it. The effective mode cannot exceed the App's declaration, and every grant change immediately retires the previous runtime mount.
 
 ## Automation guidance
 

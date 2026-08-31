@@ -1,7 +1,14 @@
 import { open, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
-import type { AppPermissions, AppPlatformSecuritySummary, AppResolvedComponent } from "#app-runtime/types/app-manifest.types.js";
-import type { AppDocumentGrantMap } from "#app-runtime/types/app-permissions.types.js";
+import type {
+  AppPermissions,
+  AppPlatformSecuritySummary,
+  AppResolvedComponent,
+} from "#app-runtime/types/app-manifest.types.js";
+import type {
+  AppDocumentGrantMap,
+  AppStoredDocumentGrant,
+} from "#app-runtime/types/app-permissions.types.js";
 import { AppHomeService } from "#app-runtime/services/app-home.service.js";
 import { AppRegistryParserService } from "#app-runtime/services/app-registry-parser.service.js";
 import { FileLockService } from "#app-runtime/services/file-lock.service.js";
@@ -18,13 +25,18 @@ export class AppRegistryService {
   private readonly fileLockService = new FileLockService();
   private readonly parser: AppRegistryParserService;
 
-  constructor(private readonly appHomeService: AppHomeService = new AppHomeService()) {
+  constructor(
+    private readonly appHomeService: AppHomeService = new AppHomeService(),
+  ) {
     this.parser = new AppRegistryParserService(appHomeService);
   }
 
   load = async (): Promise<AppRegistry> => {
     try {
-      const raw = await readFile(this.appHomeService.getRegistryPath(), "utf-8");
+      const raw = await readFile(
+        this.appHomeService.getRegistryPath(),
+        "utf-8",
+      );
       return this.parser.parse(JSON.parse(raw) as unknown);
     } catch (error) {
       if (this.isMissingFileError(error)) {
@@ -62,7 +74,9 @@ export class AppRegistryService {
 
   listApps = async (): Promise<AppRegistryAppRecord[]> => {
     const registry = await this.load();
-    return Object.values(registry.apps).sort((left, right) => left.appId.localeCompare(right.appId));
+    return Object.values(registry.apps).sort((left, right) =>
+      left.appId.localeCompare(right.appId),
+    );
   };
 
   getApp = async (appId: string): Promise<AppRegistryAppRecord | undefined> => {
@@ -70,7 +84,9 @@ export class AppRegistryService {
     return registry.apps[appId];
   };
 
-  getActiveVersion = async (appId: string): Promise<AppRegistryInstalledVersion | undefined> => {
+  getActiveVersion = async (
+    appId: string,
+  ): Promise<AppRegistryInstalledVersion | undefined> => {
     const appRecord = await this.getApp(appId);
     return appRecord?.installedVersions[appRecord.activeVersion];
   };
@@ -104,26 +120,34 @@ export class AppRegistryService {
     return await this.withMutation(async () => {
       const registry = await this.load();
       const currentRecord = registry.apps[params.appId];
-      const currentPublisher = currentRecord?.publisher ??
-        currentRecord?.installedVersions[currentRecord.activeVersion]?.publisher;
+      const currentPublisher =
+        currentRecord?.publisher ??
+        currentRecord?.installedVersions[currentRecord.activeVersion]
+          ?.publisher;
       if (currentPublisher && currentPublisher.id !== params.publisher?.id) {
         throw new Error(
           `应用 ${params.appId} 已绑定发布者 ${currentPublisher.id}，拒绝由 ${params.publisher?.id ?? "未验证本地来源"} 覆盖。`,
         );
       }
-      const activeVersion = params.activate === false && currentRecord
-        ? currentRecord.activeVersion
-        : params.version;
-      const activePermissions = activeVersion === params.version
-        ? params.permissions
-        : currentRecord?.installedVersions[activeVersion]?.permissions ?? {};
+      const activeVersion =
+        params.activate === false && currentRecord
+          ? currentRecord.activeVersion
+          : params.version;
+      const activePermissions =
+        activeVersion === params.version
+          ? params.permissions
+          : (currentRecord?.installedVersions[activeVersion]?.permissions ??
+            {});
       const nextRecord: AppRegistryAppRecord = {
         appId: params.appId,
         name: params.name,
         description: params.description,
         publisher: currentPublisher ?? params.publisher,
         activeVersion,
-        enabled: params.enabled ?? currentRecord?.enabled ?? params.manifestSchemaVersion === 1,
+        enabled:
+          params.enabled ??
+          currentRecord?.enabled ??
+          params.manifestSchemaVersion === 1,
         dataDirectory: params.defaultInstance.storage.dataDirectory,
         defaultInstance: params.defaultInstance,
         installedVersions: {
@@ -149,7 +173,10 @@ export class AppRegistryService {
             contentSha256: params.contentSha256,
           },
         },
-        grants: currentRecord?.grants ?? {},
+        grants: this.parser.retainCompatibleDocumentGrants(
+          currentRecord?.grants ?? {},
+          activePermissions,
+        ),
         // A SecretRef is an active permission, not retained App data. Keep only
         // bindings declared by the active version so an update cannot leave an
         // undeclared credential reachable by a later runtime snapshot.
@@ -164,7 +191,10 @@ export class AppRegistryService {
     });
   };
 
-  setEnabled = async (appId: string, enabled: boolean): Promise<AppRegistryAppRecord> => {
+  setEnabled = async (
+    appId: string,
+    enabled: boolean,
+  ): Promise<AppRegistryAppRecord> => {
     return await this.updateApp(appId, (record) => ({ ...record, enabled }));
   };
 
@@ -179,6 +209,10 @@ export class AppRegistryService {
       return {
         ...record,
         activeVersion: version,
+        grants: this.parser.retainCompatibleDocumentGrants(
+          record.grants,
+          record.installedVersions[version].permissions,
+        ),
         secretBindings: this.parser.retainDeclaredSecretBindings(
           record.secretBindings,
           record.installedVersions[version].permissions,
@@ -197,8 +231,13 @@ export class AppRegistryService {
       if (!installedVersion) {
         throw new Error(`应用 ${appId} 未安装版本 ${version}。`);
       }
-      if (installedVersion.contentSha256 && installedVersion.contentSha256 !== contentSha256) {
-        throw new Error(`应用 ${appId}@${version} 已存在不同的代码完整性摘要。`);
+      if (
+        installedVersion.contentSha256 &&
+        installedVersion.contentSha256 !== contentSha256
+      ) {
+        throw new Error(
+          `应用 ${appId}@${version} 已存在不同的代码完整性摘要。`,
+        );
       }
       return {
         ...record,
@@ -214,21 +253,81 @@ export class AppRegistryService {
     appId: string,
     grants: AppDocumentGrantMap,
   ): Promise<AppRegistryAppRecord> => {
-    return await this.updateApp(appId, (record) => ({
-      ...record,
-      grants: { ...record.grants, ...grants },
-    }));
+    return await this.updateApp(appId, (record) => {
+      const permissions =
+        record.installedVersions[record.activeVersion]?.permissions ?? {};
+      const scopes = new Map(
+        (permissions.documentAccess ?? []).map((scope) => [scope.id, scope]),
+      );
+      const now = new Date().toISOString();
+      const stored = Object.fromEntries(
+        Object.entries(grants).map(([scopeId, directoryPath]) => {
+          const scope = scopes.get(scopeId);
+          if (!scope)
+            throw new Error(
+              `应用 ${appId} 未声明 documentAccess scope：${scopeId}`,
+            );
+          return [
+            scopeId,
+            { path: directoryPath, mode: scope.mode, grantedAt: now },
+          ];
+        }),
+      );
+      return { ...record, grants: { ...record.grants, ...stored } };
+    });
   };
 
   setDocumentGrant = async (
     appId: string,
     scopeId: string,
     directoryPath: string,
+    mode?: "read" | "read-write",
   ): Promise<AppRegistryAppRecord> => {
-    return await this.updateGrants(appId, { [scopeId]: directoryPath });
+    return await this.updateApp(appId, (record) => {
+      const scope = record.installedVersions[
+        record.activeVersion
+      ]?.permissions.documentAccess?.find((entry) => entry.id === scopeId);
+      if (!scope)
+        throw new Error(
+          `应用 ${appId} 未声明 documentAccess scope：${scopeId}`,
+        );
+      const effectiveMode = mode ?? scope.mode;
+      if (effectiveMode === "read-write" && scope.mode !== "read-write") {
+        throw new Error(
+          `应用 ${appId} 的 documentAccess scope ${scopeId} 只声明了 read。`,
+        );
+      }
+      return {
+        ...record,
+        grants: {
+          ...record.grants,
+          [scopeId]: {
+            path: directoryPath,
+            mode: effectiveMode,
+            grantedAt: new Date().toISOString(),
+          },
+        },
+      };
+    });
   };
 
-  removeDocumentGrant = async (appId: string, scopeId: string): Promise<boolean> => {
+  restoreDocumentGrant = async (
+    appId: string,
+    scopeId: string,
+    grant: AppStoredDocumentGrant | undefined,
+  ): Promise<void> => {
+    await this.updateApp(appId, (record) => {
+      const grants = { ...record.grants };
+      if (grant) grants[scopeId] = grant;
+      else delete grants[scopeId];
+      return { ...record, grants };
+    });
+  };
+
+  removeDocumentGrant = async (
+    appId: string,
+    scopeId: string,
+  ): Promise<boolean> => {
     let removed = false;
     await this.updateApp(appId, (record) => {
       if (!(scopeId in record.grants)) {
@@ -247,13 +346,21 @@ export class AppRegistryService {
     slotId: string,
     binding: AppSecretBinding,
   ): Promise<AppRegistryAppRecord> => {
-    const normalizedSlotId = this.parser.parseSecretSlotId(slotId, "secret slot id");
-    const normalizedBinding = this.parser.parseSecretBinding(binding, `secret binding ${normalizedSlotId}`);
+    const normalizedSlotId = this.parser.parseSecretSlotId(
+      slotId,
+      "secret slot id",
+    );
+    const normalizedBinding = this.parser.parseSecretBinding(
+      binding,
+      `secret binding ${normalizedSlotId}`,
+    );
     return await this.updateApp(appId, (record) => {
       const activeVersion = record.installedVersions[record.activeVersion];
       const declaredSlots = activeVersion?.permissions.secrets ?? [];
       if (!declaredSlots.some((slot) => slot.id === normalizedSlotId)) {
-        throw new Error(`应用 ${appId} 未声明 Secret slot：${normalizedSlotId}`);
+        throw new Error(
+          `应用 ${appId} 未声明 Secret slot：${normalizedSlotId}`,
+        );
       }
       return {
         ...record,
@@ -266,7 +373,10 @@ export class AppRegistryService {
   };
 
   unbindSecret = async (appId: string, slotId: string): Promise<boolean> => {
-    const normalizedSlotId = this.parser.parseSecretSlotId(slotId, "secret slot id");
+    const normalizedSlotId = this.parser.parseSecretSlotId(
+      slotId,
+      "secret slot id",
+    );
     let removed = false;
     await this.updateApp(appId, (record) => {
       if (!(normalizedSlotId in record.secretBindings)) {
@@ -280,7 +390,9 @@ export class AppRegistryService {
     return removed;
   };
 
-  removeApp = async (appId: string): Promise<AppRegistryAppRecord | undefined> => {
+  removeApp = async (
+    appId: string,
+  ): Promise<AppRegistryAppRecord | undefined> => {
     return await this.withMutation(async () => {
       const registry = await this.load();
       const appRecord = registry.apps[appId];
@@ -298,11 +410,16 @@ export class AppRegistryService {
     return Boolean(registry.suppressedBuiltIns[appId]);
   };
 
-  setBuiltInSuppressed = async (appId: string, suppressed: boolean): Promise<void> => {
+  setBuiltInSuppressed = async (
+    appId: string,
+    suppressed: boolean,
+  ): Promise<void> => {
     await this.withMutation(async () => {
       const registry = await this.load();
       if (suppressed) {
-        registry.suppressedBuiltIns[appId] = { suppressedAt: new Date().toISOString() };
+        registry.suppressedBuiltIns[appId] = {
+          suppressedAt: new Date().toISOString(),
+        };
       } else {
         delete registry.suppressedBuiltIns[appId];
       }
@@ -329,11 +446,15 @@ export class AppRegistryService {
 
   private withMutation = async <T>(operation: () => Promise<T>): Promise<T> => {
     const registryPath = path.resolve(this.appHomeService.getRegistryPath());
-    return await this.fileLockService.withLock(`${registryPath}.lock`, operation);
+    return await this.fileLockService.withLock(
+      `${registryPath}.lock`,
+      operation,
+    );
   };
 
-
   private isMissingFileError = (error: unknown): boolean =>
-    typeof error === "object" && error !== null &&
-    "code" in error && (error as { code?: unknown }).code === "ENOENT";
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "ENOENT";
 }

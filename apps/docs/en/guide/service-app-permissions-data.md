@@ -14,7 +14,19 @@ Portable Components receive a small private filesystem:
 | `/tmp` | read-write | Temporary App files |
 | `/documents/<scope>` | the mode you grant | A folder named by the App's `documentAccess` permission |
 
-A file permission names a scope and asks for `read` or `read-write`. You choose the matching folder when granting it. The runtime canonicalizes the folder and rejects escapes through symbolic links; revoking the grant removes the mount from the next run.
+A file permission names a scope and its maximum mode. Installing an App does not grant any folder automatically. When you need the file feature, open the App's **Files and folders** section, choose a directory on the runtime host, and grant read-only or read-write access. You can replace the directory or revoke access at any time. Read-write access modifies the original files in the selected directory; NextClaw does not make a private copy first.
+
+The CLI uses the same grants:
+
+```bash
+nextclaw app permissions inspect <app-id>
+nextclaw app permissions document grant <app-id> --scope <scope-id> --path <directory> --mode read|read-write
+nextclaw app permissions document revoke <app-id> --scope <scope-id>
+```
+
+NextClaw canonicalizes the directory and verifies that it exists. The App sees only `/documents/<scope>`, never the host path, and a read-only grant cannot write. Replacing or revoking a grant stops the old runtime lane so new calls cannot keep using the previous directory. Grants survive a NextClaw restart. If the directory moves or its disk becomes unavailable, replace or revoke the unavailable grant.
+
+Without a folder grant, the App can still use its own `/data`, `/cache`, and `/tmp`. Those paths belong to the NextClaw-managed App instance; they are not your Documents, Desktop, or project directory.
 
 ## Network and secrets
 

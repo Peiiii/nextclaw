@@ -1,4 +1,5 @@
 import type {
+  AppDocumentGrantState,
   AppPermissions,
   AppRuntimeIsolation,
   AppRuntimeProfile,
@@ -8,6 +9,11 @@ import type {
   AppStorageUsage,
 } from "@nextclaw/app-runtime";
 import type { ServiceAppWitContract } from "@kernel/types/service-app.types.js";
+
+export type {
+  AppDocumentGrantMutationResult,
+  AppInstalledPermissionState,
+} from "@nextclaw/app-runtime";
 
 export type AppPackageComponentKind = "panel" | "service";
 
@@ -80,7 +86,11 @@ export type AppPackageReadiness = {
   requirements: AppPackageReadinessRequirement[];
 };
 
-export type AppPackageSecretStatus = "bound" | "ready" | "unbound" | "unresolved";
+export type AppPackageSecretStatus =
+  | "bound"
+  | "ready"
+  | "unbound"
+  | "unresolved";
 
 export type AppPackageSecretSlotView = Pick<
   AppSecretSlot,
@@ -171,6 +181,7 @@ export type AppPackageView = {
   readiness: AppPackageReadiness;
   secrets: AppPackageSecretReadiness;
   dependencies: AppPackageDependencyView;
+  documentAccess: AppDocumentGrantState[];
 };
 
 export type AppPackageHostTarget = {
@@ -185,7 +196,11 @@ export type AppPackageList = {
   hostTarget?: AppPackageHostTarget;
 };
 
-export type AppPackageOperationAction = "install" | "rollback" | "uninstall" | "update";
+export type AppPackageOperationAction =
+  | "install"
+  | "rollback"
+  | "uninstall"
+  | "update";
 
 export type AppPackageOperationStatus =
   | "queued"
@@ -262,6 +277,12 @@ export type AppPackageRuntimeHooks = {
   assertCanActivate: (sources: AppPackageComponentSource[]) => Promise<void>;
   afterActivate: (sources: AppPackageComponentSource[]) => Promise<void>;
   beforeDeactivate: (sources: AppPackageComponentSource[]) => Promise<void>;
+  prepareCapabilityChange: (
+    sources: AppPackageComponentSource[],
+  ) => Promise<AppPackageUninstallRollback>;
+  afterCapabilityChange: (
+    sources: AppPackageComponentSource[],
+  ) => Promise<void>;
   beforeUninstall: (
     sources: AppPackageComponentSource[],
   ) => Promise<AppPackageUninstallRollback | void>;
@@ -278,7 +299,12 @@ export type AppPackageErrorCode =
   | "APP_PACKAGE_OPERATION_FAILED"
   | "SECRET_SLOT_NOT_DECLARED"
   | "SECRET_BINDING_MISSING"
-  | "SECRET_RESOLUTION_FAILED";
+  | "SECRET_RESOLUTION_FAILED"
+  | "DOCUMENT_SCOPE_NOT_DECLARED"
+  | "DOCUMENT_SCOPE_NOT_GRANTED"
+  | "DOCUMENT_SCOPE_MODE_INSUFFICIENT"
+  | "DOCUMENT_SCOPE_UNAVAILABLE"
+  | "DOCUMENT_SCOPE_MUTATION_FAILED";
 
 export class AppPackageError extends Error {
   constructor(

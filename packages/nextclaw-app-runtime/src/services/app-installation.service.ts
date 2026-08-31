@@ -19,10 +19,7 @@ import type { AppRegistryInstalledVersion } from "#app-runtime/types/app-registr
 import { AppRegistryConfigService } from "#app-runtime/services/app-registry-config.service.js";
 import { AppRemoteRegistryClientService } from "#app-runtime/services/app-remote-registry-client.service.js";
 import { AppRegistryService } from "#app-runtime/services/app-registry.service.js";
-import {
-  AppInstallSourceService,
-  type ResolvedAppInstallSource,
-} from "#app-runtime/services/app-install-source.service.js";
+import { AppInstallSourceService, type ResolvedAppInstallSource } from "#app-runtime/services/app-install-source.service.js";
 import { resolveAppInstallationContract } from "#app-runtime/utils/app-installation-contract.utils.js";
 import type {
   AppInfoResult,
@@ -70,19 +67,11 @@ export class AppInstallationService {
     private readonly manifestService: AppManifestService = new AppManifestService(),
     private readonly buildService: AppBuildService = new AppBuildService(),
     private readonly registryService: AppRegistryService = new AppRegistryService(appHomeService),
-    private readonly registryConfigService: AppRegistryConfigService = new AppRegistryConfigService(
-      appHomeService,
-    ),
-    private readonly remoteRegistryClient: AppRemoteRegistryClientService = new AppRemoteRegistryClientService(
-      new AppRegistryConfigService(appHomeService),
-    ),
+    private readonly registryConfigService: AppRegistryConfigService = new AppRegistryConfigService(appHomeService),
+    private readonly remoteRegistryClient: AppRemoteRegistryClientService = new AppRemoteRegistryClientService(new AppRegistryConfigService(appHomeService)),
     instanceStorageService?: AppInstanceStorageService,
   ) {
-    this.installSourceService = new AppInstallSourceService(
-      this.manifestService,
-      this.remoteRegistryClient,
-      this.bundleService,
-    );
+    this.installSourceService = new AppInstallSourceService(this.manifestService, this.remoteRegistryClient, this.bundleService);
     this.instanceStorageService = instanceStorageService ?? new AppInstanceStorageService(appHomeService);
     this.integrityService = new AppInstallationIntegrityService(manifestService);
     this.filesystemService = new AppInstallationFilesystemService({
@@ -101,20 +90,13 @@ export class AppInstallationService {
     });
   }
 
-  install = async (
-    appSource: string,
-    options: AppInstallOptions = {},
-  ): Promise<AppInstallResult> => {
+  install = async (appSource: string, options: AppInstallOptions = {}): Promise<AppInstallResult> => {
     const { onProgress, registryUrl } = options;
     await onProgress?.("resolving");
     const source = await this.installSourceService.resolve(appSource, registryUrl);
     const tempDirectory = await this.appHomeService.createTemporaryDirectory("napp-install-");
     try {
-      const bundlePath = await this.installSourceService.materializeBundle(
-        source,
-        tempDirectory,
-        onProgress,
-      );
+      const bundlePath = await this.installSourceService.materializeBundle(source, tempDirectory, onProgress);
       await onProgress?.("verifying");
       const extractedDirectory = path.join(tempDirectory, "bundle");
       const extractedMetadata = await this.bundleService.extractBundle({
@@ -138,54 +120,44 @@ export class AppInstallationService {
     }
   };
 
-  private installPreparedBundle = async (
-    prepared: PreparedAppInstall,
-  ): Promise<AppInstallResult> => {
+  private installPreparedBundle = async (prepared: PreparedAppInstall): Promise<AppInstallResult> => {
     const appId = prepared.manifestBundle.manifest.id;
-    return await this.withAppOperation(
-      appId,
-      async () => await this.commitPreparedInstall(prepared),
-    );
+    return await this.withAppOperation(appId, async () => await this.commitPreparedInstall(prepared));
   };
 
-  private commitPreparedInstall = async (
-    prepared: PreparedAppInstall,
-  ): Promise<AppInstallResult> => {
+  private commitPreparedInstall = async (prepared: PreparedAppInstall): Promise<AppInstallResult> => {
     const { extractedDirectory, extractedMetadata, manifestBundle, options, source } = prepared;
     const { onProgress } = options;
     const { id: appId, version } = manifestBundle.manifest;
     const installDirectory = this.appHomeService.getInstallDirectory(appId, version);
     if (source.kind === "registry" && appId !== source.registryResolution.appId) {
-      throw new Error(
-        `bundle manifest.appId 与 registry 请求不一致：期望 ${source.registryResolution.appId}，实际 ${appId}`,
-      );
+      throw new Error(`bundle manifest.appId 与 registry 请求不一致：期望 ${source.registryResolution.appId}，实际 ${appId}`);
     }
     await onProgress?.("installing");
     const existingRecord = await this.registryService.getApp(appId);
-    const { currentPublisher, dataSchemaVersion, publisher } =
-      resolveAppInstallationContract({
-        appId, existingRecord, manifestBundle, source,
-        trustedPublisher: options.trustedPublisher,
-      });
+    const { currentPublisher, dataSchemaVersion, publisher } = resolveAppInstallationContract({
+      appId,
+      existingRecord,
+      manifestBundle,
+      source,
+      trustedPublisher: options.trustedPublisher,
+    });
     const instanceDirectory = this.appHomeService.getAppInstanceDirectory(appId, "default");
     const instanceExisted = await this.integrityService.pathExists(instanceDirectory);
     const contentSha256 = await this.filesystemService.copyToImmutableInstallDirectory({
-      appId, appVersion: version, extractedDirectory, installDirectory,
-      target: extractedMetadata.metadata.target?.kind === "native"
-        ? extractedMetadata.metadata.target
-        : undefined,
+      appId,
+      appVersion: version,
+      extractedDirectory,
+      installDirectory,
+      target: extractedMetadata.metadata.target?.kind === "native" ? extractedMetadata.metadata.target : undefined,
     });
-    let defaultInstance: Awaited<ReturnType<
-      AppInstanceStorageService["materializeDefaultInstance"]
-    >> | undefined;
+    let defaultInstance: Awaited<ReturnType<AppInstanceStorageService["materializeDefaultInstance"]>> | undefined;
     let registryRecord;
     try {
       defaultInstance = await this.instanceStorageService.materializeDefaultInstance({
         appId,
         publisherId: (currentPublisher ?? publisher)?.id,
-        legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy"
-          ? existingRecord.dataDirectory
-          : undefined,
+        legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy" ? existingRecord.dataDirectory : undefined,
         dataSchemaVersion,
       });
       await onProgress?.("finalizing");
@@ -197,14 +169,10 @@ export class AppInstallationService {
         installDirectory,
         defaultInstance,
         sourceKind: source.kind,
-        distributionMode: source.kind === "registry"
-          ? source.registryResolution.distributionMode
-          : extractedMetadata.metadata.distributionMode,
+        distributionMode: source.kind === "registry" ? source.registryResolution.distributionMode : extractedMetadata.metadata.distributionMode,
         sourceRef: source.sourceRef,
         installedAt: new Date().toISOString(),
-        permissions: manifestBundle.manifest.schemaVersion === 1
-          ? manifestBundle.manifest.permissions ?? {}
-          : this.manifestService.resolvePlatformSecurity(manifestBundle.manifest).permissions,
+        permissions: manifestBundle.manifest.schemaVersion === 1 ? (manifestBundle.manifest.permissions ?? {}) : this.manifestService.resolvePlatformSecurity(manifestBundle.manifest).permissions,
         ...this.readRemoteSourceFields(source.kind === "registry" ? source.registryResolution : undefined),
         publisher,
         manifestSchemaVersion: manifestBundle.manifest.schemaVersion,
@@ -212,19 +180,11 @@ export class AppInstallationService {
           ? manifestBundle.components.map((component) => ({
               ...component,
               componentDirectory: path.join(installDirectory, component.path),
-              manifestPath: path.join(
-                installDirectory,
-                component.path,
-                component.kind === "panel" ? "panel-app.json" : "service-app.json",
-              ),
+              manifestPath: path.join(installDirectory, component.path, component.kind === "panel" ? "panel-app.json" : "service-app.json"),
             }))
           : undefined,
-        primaryPanelId: isAppComponentManifestBundle(manifestBundle)
-          ? manifestBundle.primaryPanelId
-          : undefined,
-        security: isAppComponentManifestBundle(manifestBundle)
-          ? this.manifestService.resolvePlatformSecurity(manifestBundle.manifest)
-          : undefined,
+        primaryPanelId: isAppComponentManifestBundle(manifestBundle) ? manifestBundle.primaryPanelId : undefined,
+        security: isAppComponentManifestBundle(manifestBundle) ? this.manifestService.resolvePlatformSecurity(manifestBundle.manifest) : undefined,
         dataSchemaVersion,
         contentSha256,
         activate: options.activate,
@@ -234,9 +194,7 @@ export class AppInstallationService {
       if (!instanceExisted && defaultInstance) {
         await this.instanceStorageService.rollbackNewInstance({
           instance: defaultInstance,
-          legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy"
-            ? existingRecord.dataDirectory
-            : undefined,
+          legacyDataDirectory: existingRecord?.defaultInstance.storage.layout === "legacy" ? existingRecord.dataDirectory : undefined,
         });
       }
       throw error;
@@ -274,20 +232,11 @@ export class AppInstallationService {
       activate?: boolean;
     },
   ): Promise<AppUpdateResult> => {
-    return await this.withAppOperation(
-      appId,
-      async () => await this.lifecycleService.update(appId, options),
-    );
+    return await this.withAppOperation(appId, async () => await this.lifecycleService.update(appId, options));
   };
 
-  uninstall = async (
-    appId: string,
-    purgeData: boolean,
-  ): Promise<AppUninstallResult> => {
-    return await this.withAppOperation(
-      appId,
-      async () => await this.lifecycleService.uninstall(appId, purgeData),
-    );
+  uninstall = async (appId: string, purgeData: boolean): Promise<AppUninstallResult> => {
+    return await this.withAppOperation(appId, async () => await this.lifecycleService.uninstall(appId, purgeData));
   };
 
   list = async (): Promise<InstalledAppListItem[]> => {
@@ -296,15 +245,11 @@ export class AppInstallationService {
       appId: appRecord.appId,
       name: appRecord.name,
       activeVersion: appRecord.activeVersion,
-      sourceKind:
-        appRecord.installedVersions[appRecord.activeVersion]?.sourceKind ?? "directory",
-      distributionMode:
-        appRecord.installedVersions[appRecord.activeVersion]?.distributionMode,
+      sourceKind: appRecord.installedVersions[appRecord.activeVersion]?.sourceKind ?? "directory",
+      distributionMode: appRecord.installedVersions[appRecord.activeVersion]?.distributionMode,
       enabled: appRecord.enabled,
-      manifestSchemaVersion:
-        appRecord.installedVersions[appRecord.activeVersion]?.manifestSchemaVersion ?? 1,
-      primaryPanelId:
-        appRecord.installedVersions[appRecord.activeVersion]?.primaryPanelId,
+      manifestSchemaVersion: appRecord.installedVersions[appRecord.activeVersion]?.manifestSchemaVersion ?? 1,
+      primaryPanelId: appRecord.installedVersions[appRecord.activeVersion]?.primaryPanelId,
     }));
   };
 
@@ -314,50 +259,31 @@ export class AppInstallationService {
     for (const appRecord of appRecords) {
       await this.withAppOperation(appRecord.appId, async () => {
         for (const versionRecord of Object.values(appRecord.installedVersions)) {
-          if (!await this.integrityService.pathExists(versionRecord.installDirectory)) {
+          if (!(await this.integrityService.pathExists(versionRecord.installDirectory))) {
             continue;
           }
           if (!versionRecord.contentSha256) {
-            const contentSha256 = await this.integrityService.calculateDigest(
-              versionRecord.installDirectory,
-            );
-            await this.registryService.setVersionContentDigest(
-              appRecord.appId,
-              versionRecord.version,
-              contentSha256,
-            );
+            const contentSha256 = await this.integrityService.calculateDigest(versionRecord.installDirectory);
+            await this.registryService.setVersionContentDigest(appRecord.appId, versionRecord.version, contentSha256);
           }
           await this.integrityService.protectDirectory(versionRecord.installDirectory);
         }
       });
     }
     appRecords = await this.registryService.listApps();
-    const referencedInstallPaths = new Set(appRecords.flatMap((record) =>
-      Object.values(record.installedVersions).map((version) => path.resolve(version.installDirectory))));
-    const referencedDataPaths = new Set(appRecords.map((record) => path.resolve(
-      record.defaultInstance.storage.layout === "instance-v1"
-        ? record.defaultInstance.storage.instanceDirectory
-        : record.dataDirectory,
-    )));
+    const referencedInstallPaths = new Set(appRecords.flatMap((record) => Object.values(record.installedVersions).map((version) => path.resolve(version.installDirectory))));
+    const referencedDataPaths = new Set(appRecords.map((record) => path.resolve(record.defaultInstance.storage.layout === "instance-v1" ? record.defaultInstance.storage.instanceDirectory : record.dataDirectory)));
 
-    const packageDirectories = await this.filesystemService.readDirectories(
-      this.appHomeService.getPackagesDirectory(),
-    );
+    const packageDirectories = await this.filesystemService.readDirectories(this.appHomeService.getPackagesDirectory());
     for (const appDirectory of packageDirectories) {
       await this.filesystemService.reconcileGeneratedSiblings(appDirectory, referencedInstallPaths);
     }
-    await this.filesystemService.reconcileGeneratedSiblings(
-      this.appHomeService.getDataDirectory(),
-      referencedDataPaths,
-    );
+    await this.filesystemService.reconcileGeneratedSiblings(this.appHomeService.getDataDirectory(), referencedDataPaths);
     for (const appRecord of appRecords) {
       if (appRecord.defaultInstance.storage.layout !== "instance-v1") {
         continue;
       }
-      await this.filesystemService.reconcileGeneratedSiblings(
-        appRecord.defaultInstance.storage.instanceDirectory,
-        new Set([path.resolve(appRecord.defaultInstance.storage.dataDirectory)]),
-      );
+      await this.filesystemService.reconcileGeneratedSiblings(appRecord.defaultInstance.storage.instanceDirectory, new Set([path.resolve(appRecord.defaultInstance.storage.dataDirectory)]));
     }
     for (const appRecord of appRecords) {
       if (appRecord.defaultInstance.storage.layout !== "legacy") {
@@ -412,20 +338,13 @@ export class AppInstallationService {
     }
   };
 
-  info = async (
-    appId: string,
-    options: { measureStorageUsage?: boolean } = {},
-  ): Promise<AppInfoResult> => {
+  info = async (appId: string, options: { measureStorageUsage?: boolean } = {}): Promise<AppInfoResult> => {
     const appRecord = await this.registryService.getApp(appId);
     if (!appRecord) {
       throw new Error(`未找到已安装应用：${appId}`);
     }
-    const installedVersions = Object.values(appRecord.installedVersions).sort((left, right) =>
-      left.version.localeCompare(right.version),
-    );
-    const storageUsage = options.measureStorageUsage === false
-      ? undefined
-      : await this.instanceStorageService.measureUsage(appRecord.defaultInstance.storage);
+    const installedVersions = Object.values(appRecord.installedVersions).sort((left, right) => left.version.localeCompare(right.version));
+    const storageUsage = options.measureStorageUsage === false ? undefined : await this.instanceStorageService.measureUsage(appRecord.defaultInstance.storage);
     return {
       appId: appRecord.appId,
       name: appRecord.name,
@@ -468,37 +387,35 @@ export class AppInstallationService {
 
   rollback = async (appId: string, version: string): Promise<AppRollbackResult> => {
     return await this.withAppOperation(appId, async () => {
-    const currentRecord = await this.registryService.getApp(appId);
-    if (!currentRecord) {
-      throw new Error(`未找到已安装应用：${appId}`);
-    }
-    if (currentRecord.activeVersion === version) {
+      const currentRecord = await this.registryService.getApp(appId);
+      if (!currentRecord) {
+        throw new Error(`未找到已安装应用：${appId}`);
+      }
+      if (currentRecord.activeVersion === version) {
+        return {
+          appId,
+          activeVersion: version,
+          previousVersion: version,
+          enabled: currentRecord.enabled,
+          rolledBack: false,
+        };
+      }
+      const targetVersion = currentRecord.installedVersions[version];
+      if (!targetVersion) {
+        throw new Error(`应用 ${appId} 未安装版本 ${version}。`);
+      }
+      if (targetVersion.dataSchemaVersion !== currentRecord.defaultInstance.dataSchemaVersion) {
+        throw new Error(`应用 ${appId}@${version} 需要数据 schema ${targetVersion.dataSchemaVersion}，当前实例为 ${currentRecord.defaultInstance.dataSchemaVersion}。没有可用 checkpoint，已阻止回滚。`);
+      }
+      await this.assertVersionIntegrity(appId, version);
+      const appRecord = await this.registryService.activateVersion(appId, version);
       return {
         appId,
-        activeVersion: version,
-        previousVersion: version,
-        enabled: currentRecord.enabled,
-        rolledBack: false,
+        activeVersion: appRecord.activeVersion,
+        previousVersion: currentRecord.activeVersion,
+        enabled: appRecord.enabled,
+        rolledBack: true,
       };
-    }
-    const targetVersion = currentRecord.installedVersions[version];
-    if (!targetVersion) {
-      throw new Error(`应用 ${appId} 未安装版本 ${version}。`);
-    }
-    if (targetVersion.dataSchemaVersion !== currentRecord.defaultInstance.dataSchemaVersion) {
-      throw new Error(
-        `应用 ${appId}@${version} 需要数据 schema ${targetVersion.dataSchemaVersion}，当前实例为 ${currentRecord.defaultInstance.dataSchemaVersion}。没有可用 checkpoint，已阻止回滚。`,
-      );
-    }
-    await this.assertVersionIntegrity(appId, version);
-    const appRecord = await this.registryService.activateVersion(appId, version);
-    return {
-      appId,
-      activeVersion: appRecord.activeVersion,
-      previousVersion: currentRecord.activeVersion,
-      enabled: appRecord.enabled,
-      rolledBack: true,
-    };
     });
   };
 
@@ -539,10 +456,7 @@ export class AppInstallationService {
     });
   };
 
-  resolveLaunch = async (
-    appReference: string,
-    explicitDocumentGrantMap: AppDocumentGrantMap,
-  ): Promise<AppLaunchResolution> => {
+  resolveLaunch = async (appReference: string, explicitDocumentGrantMap: AppDocumentGrantMap): Promise<AppLaunchResolution> => {
     const sourceType = await this.installSourceService.detectLocal(appReference, false);
     if (sourceType.kind === "directory") {
       return {
@@ -565,7 +479,7 @@ export class AppInstallationService {
       dataDirectory: appRecord.dataDirectory,
       storage: appRecord.defaultInstance.storage,
       documentGrantMap: {
-        ...appRecord.grants,
+        ...Object.fromEntries(Object.entries(appRecord.grants).map(([scopeId, grant]) => [scopeId, grant.path])),
         ...explicitDocumentGrantMap,
       },
     };
@@ -578,14 +492,10 @@ export class AppInstallationService {
     target: source?.target,
   });
 
-  persistGrants = async (
-    appId: string | undefined,
-    documentGrantMap: AppDocumentGrantMap,
-  ): Promise<void> => {
+  persistGrants = async (appId: string | undefined, documentGrantMap: AppDocumentGrantMap): Promise<void> => {
     if (!appId || Object.keys(documentGrantMap).length === 0) {
       return;
     }
     await this.registryService.updateGrants(appId, documentGrantMap);
   };
-
 }

@@ -136,6 +136,93 @@ describe("AppRegistryService Secret bindings", () => {
   });
 });
 
+describe("AppRegistryService document grants", () => {
+  it("migrates legacy grants and drops them after declaration shrink, removal, and uninstall", async () => {
+    const { appHome, registry } = await createFixture();
+    await registry.setDocumentGrant(
+      APP_ID,
+      "notes",
+      "/srv/notes",
+      "read-write",
+    );
+
+    const registryJson = JSON.parse(
+      await readFile(appHome.getRegistryPath(), "utf8"),
+    ) as {
+      apps: Record<string, { grants: Record<string, unknown> }>;
+    };
+    const fixtureApp = registryJson.apps[APP_ID];
+    if (!fixtureApp) throw new Error("Fixture registry app is missing.");
+    fixtureApp.grants.notes = "/srv/legacy-notes";
+    await writeFile(
+      appHome.getRegistryPath(),
+      `${JSON.stringify(registryJson, null, 2)}\n`,
+    );
+
+    await expect(
+      new AppRegistryService(appHome).getApp(APP_ID),
+    ).resolves.toMatchObject({
+      grants: {
+        notes: {
+          path: "/srv/legacy-notes",
+          mode: "read-write",
+        },
+      },
+    });
+
+    const record = await registry.getApp(APP_ID);
+    if (!record) throw new Error("Fixture registry app is missing.");
+    await registry.upsertInstallation({
+      appId: APP_ID,
+      name: record.name,
+      version: "0.2.0",
+      installDirectory: appHome.getInstallDirectory(APP_ID, "0.2.0"),
+      defaultInstance: record.defaultInstance,
+      sourceKind: "directory",
+      sourceRef: "fixture-read-only",
+      installedAt: new Date().toISOString(),
+      permissions: {
+        documentAccess: [{ id: "notes", mode: "read" }],
+      },
+      manifestSchemaVersion: 2,
+      dataSchemaVersion: 1,
+      enabled: false,
+      activate: false,
+    });
+    expect((await registry.activateVersion(APP_ID, "0.2.0")).grants).toEqual(
+      {},
+    );
+
+    await registry.setDocumentGrant(
+      APP_ID,
+      "notes",
+      "/srv/read-only-notes",
+      "read",
+    );
+    await registry.upsertInstallation({
+      appId: APP_ID,
+      name: record.name,
+      version: "0.3.0",
+      installDirectory: appHome.getInstallDirectory(APP_ID, "0.3.0"),
+      defaultInstance: record.defaultInstance,
+      sourceKind: "directory",
+      sourceRef: "fixture-no-documents",
+      installedAt: new Date().toISOString(),
+      permissions: {},
+      manifestSchemaVersion: 2,
+      dataSchemaVersion: 1,
+      enabled: false,
+      activate: false,
+    });
+    expect((await registry.activateVersion(APP_ID, "0.3.0")).grants).toEqual(
+      {},
+    );
+
+    await registry.removeApp(APP_ID);
+    await expect(registry.getApp(APP_ID)).resolves.toBeUndefined();
+  });
+});
+
 async function createFixture(): Promise<{
   appHome: AppHomeService;
   registry: AppRegistryService;
@@ -163,6 +250,7 @@ async function createFixture(): Promise<{
     sourceRef: "fixture",
     installedAt: new Date().toISOString(),
     permissions: {
+      documentAccess: [{ id: "notes", mode: "read-write" }],
       secrets: [
         {
           id: "issue-api-token",

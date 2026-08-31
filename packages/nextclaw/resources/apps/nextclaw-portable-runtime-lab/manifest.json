@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "nextclaw.portable-runtime-lab",
   "name": "日常小工具箱",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "清单、便签、专注计时和联系人整理，四个能直接使用的日常小应用。",
   "icon": "assets/icon.svg",
   "engines": {
@@ -25,8 +25,18 @@
     "storage": {
       "namespace": "portable-runtime-lab"
     },
-    "allowedDomains": [
-      "httpbin.org"
+    "allowedDomains": ["httpbin.org"],
+    "documentAccess": [
+      {
+        "id": "documents-read",
+        "mode": "read",
+        "description": "读取你选择的验收目录，用于验证只读文件访问。"
+      },
+      {
+        "id": "documents-write",
+        "mode": "read-write",
+        "description": "读取并修改你选择的验收目录，用于验证文件写入。"
+      }
     ],
     "secrets": [
       {

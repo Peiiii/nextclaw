@@ -211,6 +211,9 @@ nextclaw <command> --help
 | `nextclaw app secrets verify`       | 解析绑定但绝不返回密钥值                                           |
 | `nextclaw app secrets bind`         | 将声明的密钥槽位绑定到 env、file 或 exec Provider                  |
 | `nextclaw app secrets unbind`       | 移除 App SecretRef 绑定及其活动密钥权限                            |
+| `nextclaw app permissions inspect`  | 查看声明的目录 scope、授权状态和实际访问模式                       |
+| `nextclaw app permissions document grant` | 授予或替换运行主机上的目录，可选择只读或读写                 |
+| `nextclaw app permissions document revoke` | 撤销一个目录 scope，停止旧挂载并阻止后续访问                 |
 | `nextclaw app ai-capabilities inspect` | 查看声明的非敏感模型和 Agent 槽位及当前绑定                      |
 | `nextclaw app ai-capabilities verify`  | 验证必填模型和 Agent 槽位是否就绪                               |
 | `nextclaw app ai-capabilities bind`    | 将声明的模型或 Agent 槽位绑定到已配置目标                       |
@@ -232,6 +235,8 @@ Service App 的使用方式见 [Service Apps](/zh/guide/service-apps)；WASM 开
 `app acceptance contract|status|export` 读取产品、Server、CLI 与发布门共同使用的唯一 Portable Runtime 验收合同。`status` 会用当前产品版本、Runtime 版本、runner 指纹与合同指纹重新判断证据；只有 `current-passed` 才代表证据仍然当前有效。`export` 始终输出完整的机器可读状态文档。英文展示使用 `--locale en`；只有检查非默认验收 App 时才传 `--app <id>`。
 
 声明了密钥槽位的 App，可先用 `app secrets inspect <app-id>` 查看需要的配置；该命令不会返回密钥值。用 `app secrets bind <app-id> --slot <slot> --source env|file|exec --id <secret-id> [--provider <provider>]` 绑定已声明槽位，再运行 `app secrets verify <app-id>`。必填槽位未绑定或无法解析时，App 会显示为 `needs-configuration`，启用会返回 `SECRET_*` 错误码。`app secrets unbind` 会移除活动密钥权限；即使保留 App 数据，也绝不保留 Secret 绑定。
+
+声明了目录 scope 的 App 不会在安装时自动获得文件权限。用 `app permissions inspect <app-id>` 查看状态；用 `app permissions document grant <app-id> --scope <scope-id> --path <directory> --mode read|read-write` 授予或替换运行主机目录；用 `app permissions document revoke <app-id> --scope <scope-id>` 撤销。实际模式不能超过 App 声明的上限，授权变化会立即淘汰旧的 Runtime 挂载。
 
 ## 自动化使用建议
 

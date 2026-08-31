@@ -67,8 +67,25 @@
 
 ## 下一步
 
-1. 当前实现、文档、主干回流与验证已完成。
-2. 后续统一稳定版发布时，由正式 release workflow 消费本批 changeset；不得把本次合入误写为已发布。
+1. 按 `docs/plans/2026-08-31-wasi-document-access-authorization.plan.md` 交付 NC-163 Phase A：命名 document scope 的 inspect/grant/replace/mode/revoke 产品闭环。
+2. 复用现有 WASI preopen 和已构建 runner，不修改或重编 Rust；先完成 TypeScript 垂直链和真实产品 smoke。
+3. 在当前普通实例的常用端口完成用户验收交付；不创建隔离 worktree/实例，不提交、不推送、不发布。
+
+## NC-163 当前事实与决策
+
+- registry grant → Kernel capability snapshot → `/documents/<scope-id>` preopen 的底层链路已经存在，缺口是正式产品授权入口、状态 owner、错误恢复和撤权证据。
+- Kernel `AppPackageManager` 是 document access 唯一产品 owner；App registry 是唯一持久事实源。
+- Apps UI 复用 shared `ServerPathPickerDialog`，不复制目录浏览组件；Phase A 选择的是 Portable App 实际运行主机上的目录。
+- `DocumentRef` 是已冻结设计中的 Phase B；当前不存在稳定 action input、ephemeral snapshot 和 job-bound cleanup 消费合同，不纳入 NC-163 Phase A。
+- 当前 CLI 路径会触发昂贵 portable runtime CI，但 Phase A 不需要 Rust 源码变更。本地验收只复用既有 runner artifact，完整 native matrix 留给冻结候选/发布门。
+
+## NC-163 本地交付证据（2026-08-31）
+
+- App Runtime、Kernel、Server、Client SDK、CLI 与 Apps UI 已接入同一 document access owner；持久 grant 仍只存 registry，runtime resolver 只消费有效记录。
+- 普通开发实例 `127.0.0.1:18792` / `127.0.0.1:5174` 已完成真实产品链：未授权拒绝、只读读取、只读写入拒绝、读写成功、替换、撤销、资源失效和 `..` 越界拒绝。
+- watcher 冷重载后 `documents-read` grant 仍存在，真实 WASI 再次读取 `.local/nc163-acceptance/read/source.txt` 成功；`documents-write` 已恢复未授权状态，留给用户验收 picker 与写入授权。
+- registry 回归覆盖旧字符串 grant 迁移、mode 收窄、scope 删除和 uninstall 清理；6 个受影响包 tsc、73 个定向测试、targeted ESLint、new-code governance 与 diff-only maintainability 均通过。
+- 本轮没有修改 Rust/Cargo/Guest 源，也没有执行 Rust 编译；本地 normal instance 仅复用已经存在的 protocol 0.2.0 runner artifact。
 
 ## 剩余缺口 / 交接提醒
 
