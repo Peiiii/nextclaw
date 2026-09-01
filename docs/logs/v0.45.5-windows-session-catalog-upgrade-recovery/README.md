@@ -17,6 +17,7 @@
 - Windows 2025 实机 CI `33536374327`（提交 `1dafc115e`）通过：官方 0.47.0 Desktop EXE 真实产生 `Unknown named parameter 'deleted_at'`，且 journal 已持久化。
 - 同一 CI 将受影响目录固定为 `migration=complete catalog=missing journal=present` 后，官方 0.48.0 Desktop EXE 冷启动仍返回 `catalog=missing`；候选 EXE 在同一 home 冷启动后返回 `catalog=recovered messages=1`。
 - 同一 job 的候选 Windows unpacked EXE 与 Portable archive 冒烟全部通过；Windows 定向 SQLite 测试为 2 个文件、6 项通过。
+- Windows 2025 实机 CI `33543765684`（提交 `f905313a5`）进一步闭合用户报告的直接升级路径：官方 0.44.1 Desktop renderer 通过产品 API 下载并应用固定的官方 0.48.0 manifest，随后精确命中 `sql-wasm=missing runtime=not-ready`；候选 EXE 接管同一 home 后返回 `catalog=recovered messages=2`，再由原版 0.44.1 外壳启动候选 bundle 仍返回相同恢复结果。该 run 同时复验 0.47 → 0.48 catalog 缺失链路、候选 EXE 和 Windows Portable，全部通过。
 
 ## 发布/部署方式
 
