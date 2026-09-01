@@ -1,5 +1,49 @@
 # @nextclaw/service
 
+## 0.6.0
+
+### Minor Changes
+
+- 3cd57bf: 新增由 NextClaw 独立持久化的项目工作项：支持自定义状态、完整状态变化历史、关注标记、软删除恢复和项目内产物关联，不再依赖扫描会话历史或向项目目录写入追踪文件。
+
+  项目内会话会按条件获得工作项工具；CLI 提供同一套 CRUD、状态与产物入口并强制指定项目 ID。项目主页的概览、列表和看板会响应实时变更，所有工作项统一在右侧详情抽屉中打开，同时保留原有产物、Skills、工作约定与项目会话能力。
+
+- 86d3479: 新增 Projects 项目主页：通过项目配置、项目文件、会话 Marker 和项目 Skills 展示可追溯的工作项、产物、上下文、AI 运行状态、待关注事项与诊断。已有项目会话与旧版观测快照会保持可读。
+
+  新增 `client.projects.getObservation()`、`GET /api/projects/:projectId/observation` 和 `nextclaw projects observe`，三条入口复用同一份 Kernel 快照合同。项目 setup 经用户确认后会建立 `.nextclaw/project.yaml`、根 `AGENTS.md` 与项目内工作追踪 Skill；后续 AI 在每个工作节点开始前输出紧凑 Marker，项目页会在流式输出期间更新。不会新增项目任务数据库、特殊会话类型或运行时 Skill 注入。
+
+### Patch Changes
+
+- c4fb100: 修复 NPM launcher 更新后继续运行旧 runtime bundle 的问题。launcher 版本高于当前 bundle 时，会先通过已配置的更新通道获取匹配 runtime，避免新包与旧执行代码混用。
+- Updated dependencies [3cd57bf]
+- Updated dependencies [86d3479]
+- Updated dependencies [862dbf2]
+- Updated dependencies [7518fc6]
+- Updated dependencies [50f2129]
+- Updated dependencies [3c17608]
+  - @nextclaw/kernel@0.15.0
+  - @nextclaw/server@0.22.0
+  - @nextclaw/client-sdk@0.11.0
+  - @nextclaw/shared@0.5.0
+  - @nextclaw/core@0.17.16
+  - @nextclaw/ncp-agent-runtime@0.4.22
+  - @nextclaw/remote@0.3.54
+  - @nextclaw/channel-extension-dingtalk@0.2.42
+  - @nextclaw/channel-extension-discord@0.2.42
+  - @nextclaw/channel-extension-email@0.2.42
+  - @nextclaw/channel-extension-slack@0.2.42
+  - @nextclaw/channel-extension-telegram@0.2.42
+  - @nextclaw/channel-extension-wecom@0.2.42
+  - @nextclaw/channel-extension-whatsapp@0.2.42
+  - @nextclaw/mcp@0.3.43
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.43
+  - @nextclaw/runtime@0.4.42
+  - @nextclaw/ncp-toolkit@0.6.23
+  - @nextclaw/channel-extension-feishu@0.2.32
+  - @nextclaw/channel-extension-qq@0.2.31
+  - @nextclaw/channel-extension-weixin@0.2.32
+  - @nextclaw/ncp-mcp@0.2.43
+
 ## 0.6.0-beta.2
 
 ### Minor Changes

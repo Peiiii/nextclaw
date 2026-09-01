@@ -1,5 +1,19 @@
 # nextclaw-core
 
+## 0.17.16
+
+### Patch Changes
+
+- 862dbf2: Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+  - @nextclaw/ncp-agent-runtime
+
+- 3c17608: NextClaw's built-in App creator can now build schema v2 Portable Rust/WASI Apps, keep native-process Services for host-dependent tools, validate complete package roots, and explain that Rust is required for authoring rather than for installing a finished App.
+- Updated dependencies [3cd57bf]
+  - @nextclaw/shared@0.5.0
+
 ## 0.17.16-beta.1
 
 ### Patch Changes

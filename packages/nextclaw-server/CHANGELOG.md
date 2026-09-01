@@ -1,5 +1,31 @@
 # nextclaw-server
 
+## 0.22.0
+
+### Minor Changes
+
+- 3cd57bf: 新增由 NextClaw 独立持久化的项目工作项：支持自定义状态、完整状态变化历史、关注标记、软删除恢复和项目内产物关联，不再依赖扫描会话历史或向项目目录写入追踪文件。
+
+  项目内会话会按条件获得工作项工具；CLI 提供同一套 CRUD、状态与产物入口并强制指定项目 ID。项目主页的概览、列表和看板会响应实时变更，所有工作项统一在右侧详情抽屉中打开，同时保留原有产物、Skills、工作约定与项目会话能力。
+
+- 86d3479: 新增 Projects 项目主页：通过项目配置、项目文件、会话 Marker 和项目 Skills 展示可追溯的工作项、产物、上下文、AI 运行状态、待关注事项与诊断。已有项目会话与旧版观测快照会保持可读。
+
+  新增 `client.projects.getObservation()`、`GET /api/projects/:projectId/observation` 和 `nextclaw projects observe`，三条入口复用同一份 Kernel 快照合同。项目 setup 经用户确认后会建立 `.nextclaw/project.yaml`、根 `AGENTS.md` 与项目内工作追踪 Skill；后续 AI 在每个工作节点开始前输出紧凑 Marker，项目页会在流式输出期间更新。不会新增项目任务数据库、特殊会话类型或运行时 Skill 注入。
+
+### Patch Changes
+
+- 50f2129: 为 WASI 应用补齐用户目录授权闭环。用户现在可以在应用页面或 CLI 中查看声明的目录权限，选择运行主机上的文件夹，以只读或读写方式授权，并随时替换或撤销；授权变化会立即淘汰旧的 Runtime 挂载。
+- Updated dependencies [3cd57bf]
+- Updated dependencies [86d3479]
+- Updated dependencies [862dbf2]
+- Updated dependencies [7518fc6]
+- Updated dependencies [50f2129]
+- Updated dependencies [3c17608]
+  - @nextclaw/kernel@0.15.0
+  - @nextclaw/core@0.17.16
+  - @nextclaw/mcp@0.3.43
+  - @nextclaw/runtime@0.4.42
+
 ## 0.22.0-beta.1
 
 ### Minor Changes

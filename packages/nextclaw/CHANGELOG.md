@@ -1,5 +1,44 @@
 # nextclaw
 
+## 0.48.0
+
+### Minor Changes
+
+- 3cd57bf: 新增由 NextClaw 独立持久化的项目工作项：支持自定义状态、完整状态变化历史、关注标记、软删除恢复和项目内产物关联，不再依赖扫描会话历史或向项目目录写入追踪文件。
+
+  项目内会话会按条件获得工作项工具；CLI 提供同一套 CRUD、状态与产物入口并强制指定项目 ID。项目主页的概览、列表和看板会响应实时变更，所有工作项统一在右侧详情抽屉中打开，同时保留原有产物、Skills、工作约定与项目会话能力。
+
+- 86d3479: 新增 Projects 项目主页：通过项目配置、项目文件、会话 Marker 和项目 Skills 展示可追溯的工作项、产物、上下文、AI 运行状态、待关注事项与诊断。已有项目会话与旧版观测快照会保持可读。
+
+  新增 `client.projects.getObservation()`、`GET /api/projects/:projectId/observation` 和 `nextclaw projects observe`，三条入口复用同一份 Kernel 快照合同。项目 setup 经用户确认后会建立 `.nextclaw/project.yaml`、根 `AGENTS.md` 与项目内工作追踪 Skill；后续 AI 在每个工作节点开始前输出紧凑 Marker，项目页会在流式输出期间更新。不会新增项目任务数据库、特殊会话类型或运行时 Skill 注入。
+
+### Patch Changes
+
+- c4fb100: 修复 NPM launcher 更新后继续运行旧 runtime bundle 的问题。launcher 版本高于当前 bundle 时，会先通过已配置的更新通道获取匹配 runtime，避免新包与旧执行代码混用。
+- 7518fc6: 修复 Desktop 0.47.0 中会话事件写入 SQLite 目录时因多余命名参数持续失败的问题。消息发送后的 journal、会话摘要和列表投影会重新保持一致，并新增真实 SQLite 回归测试阻止同类伪成功进入发布。
+- 50f2129: 为 WASI 应用补齐用户目录授权闭环。用户现在可以在应用页面或 CLI 中查看声明的目录权限，选择运行主机上的文件夹，以只读或读写方式授权，并随时替换或撤销；授权变化会立即淘汰旧的 Runtime 挂载。
+- 2da6df0: 显著降低 Portable Rust/WASI Action 的并发内存成本。Spin runner 现在在进程内共享 Runtime、Engine、FactorsExecutor 和已加载 Component，每个调用只创建独立的 Store、Instance 与任务上下文；十个简单 Action 的本机并发 physical footprint 增量由约 113.60 MiB 降至 2.61 MiB，连续 1000 个 Job 不再形成阶梯增长，同时保留权限、数据、取消、超时、Provider 与 Resident 合同。
+- Updated dependencies [3cd57bf]
+- Updated dependencies [86d3479]
+- Updated dependencies [862dbf2]
+- Updated dependencies [c4fb100]
+- Updated dependencies [7518fc6]
+- Updated dependencies [50f2129]
+- Updated dependencies [3c17608]
+  - @nextclaw/kernel@0.15.0
+  - @nextclaw/server@0.22.0
+  - @nextclaw/service@0.6.0
+  - @nextclaw/shared@0.5.0
+  - @nextclaw/core@0.17.16
+  - @nextclaw/ncp-agent-runtime@0.4.22
+  - @nextclaw/app-runtime@0.16.1
+  - @nextclaw/remote@0.3.54
+  - @nextclaw/mcp@0.3.43
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.43
+  - @nextclaw/runtime@0.4.42
+  - @nextclaw/ncp-toolkit@0.6.23
+  - @nextclaw/ncp-mcp@0.2.43
+
 ## 0.48.0-beta.2
 
 ### Minor Changes
