@@ -335,6 +335,36 @@ jobs:
 
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $pre047Exe -StartupTimeoutSec 120 -MaxReadySec 30 -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "baseline-pre047"
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $broken047Exe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "seed-broken-047"
+
+          # The isolated no-provider send path creates a placeholder catalog row
+          # before the 0.47 event-index write fails. Affected upgraded homes
+          # already have the inverse durable state: journal present, catalog row
+          # absent, and migration marked complete. Materialize that exact state
+          # before proving whether released 0.48 can repair it on a cold start.
+          $sessionId = "windows-session-catalog-upgrade-regression"
+          $journalRoot = Join-Path $env:RUNNER_TEMP "nextclaw-desktop-smoke-home/sessions/.ncp-agent-journal"
+          $journalPath = Join-Path $journalRoot "$sessionId.jsonl"
+          $catalogPath = Join-Path $journalRoot ".ncp-agent-session-catalog.sqlite"
+          if (-not (Test-Path $journalPath) -or -not (Test-Path $catalogPath)) {
+            throw "Released 0.47 persisted-state fixture is incomplete. journal=$journalPath catalog=$catalogPath"
+          }
+          $catalogStateScript = @'
+          const { DatabaseSync } = require("node:sqlite");
+          const [catalogPath, sessionId] = process.argv.slice(1);
+          const database = new DatabaseSync(catalogPath);
+          const migration = database.prepare("SELECT value FROM storage_meta WHERE key = ? LIMIT 1").get("migration_status");
+          if (migration?.value !== "complete") throw new Error(`Expected completed migration, got ${JSON.stringify(migration)}`);
+          database.prepare("DELETE FROM sessions WHERE session_id = ?").run(sessionId);
+          const remaining = database.prepare("SELECT COUNT(*) AS count FROM sessions WHERE session_id = ?").get(sessionId);
+          database.close();
+          process.stdout.write(JSON.stringify({ migration: migration.value, remaining: Number(remaining.count) }));
+          '@
+          $catalogState = node -e $catalogStateScript $catalogPath $sessionId | ConvertFrom-Json
+          if ($catalogState.migration -ne "complete" -or [int]$catalogState.remaining -ne 0) {
+            throw "Failed to materialize the released 0.47 persisted failure state."
+          }
+          Write-Host "[desktop-smoke] materialized released 0.47 persisted failure state: migration=complete catalog=missing journal=present"
+
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $released048Exe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "expect-missing-048"
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $candidateExe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "expect-recovered"
 
