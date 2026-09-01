@@ -76,6 +76,39 @@ describe("NcpAgentSessionJournalStore SQLite catalog migration", () => {
     await expect(new NcpAgentSessionJournalStore(tempDir).listSessionSummaries()).resolves.toEqual([]);
   });
 
+  it("reconciles a journal created after the catalog migration completed", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-catalog-reconciliation-"));
+    const migratedStore = new NcpAgentSessionJournalStore(tempDir);
+    await migratedStore.initialize();
+
+    await writeLegacyJournal(tempDir, sessionId, message);
+
+    const upgradedStore = new NcpAgentSessionJournalStore(tempDir);
+    await upgradedStore.initialize();
+    await expect(upgradedStore.listSessionSummaries()).resolves.toEqual([
+      expect.objectContaining({
+        sessionId,
+        messageCount: 1,
+        lastMessageAt: message.timestamp,
+      }),
+    ]);
+    await expect(upgradedStore.listSessionMessages(sessionId)).resolves.toEqual([message]);
+  });
+
+  it("keeps a deletion tombstone when reconciliation finds a leftover journal", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-catalog-tombstone-"));
+    await writeLegacyJournal(tempDir, sessionId, message);
+    const migratedStore = new NcpAgentSessionJournalStore(tempDir);
+    await migratedStore.initialize();
+    await expect(migratedStore.deleteSession(sessionId)).resolves.toMatchObject({ sessionId });
+
+    await writeLegacyJournal(tempDir, sessionId, message);
+
+    const upgradedStore = new NcpAgentSessionJournalStore(tempDir);
+    await upgradedStore.initialize();
+    await expect(upgradedStore.listSessionSummaries()).resolves.toEqual([]);
+  });
+
   it("keeps concurrent runtime writes for different sessions", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-catalog-concurrency-"));
     const first = new NcpAgentSessionJournalStore(tempDir);

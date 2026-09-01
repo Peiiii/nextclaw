@@ -109,6 +109,8 @@ CREATE TABLE migration_diagnostics (
 
 因此正常事件写入必须只绑定语句实际声明的参数，墓碑字段只由删除/恢复链路拥有。回归测试必须使用真实 SQLite 驱动执行 `upsertForEvent`，并在同一场景中证明：事件写入不抛错、会话可从 catalog 读回、消息计数与状态按事件推进。只 mock statement 或只验证 HTTP `200` 不能作为发送成功证据。
 
+0.47 已经完成首次迁移的数据库还需要覆盖升级恢复：事件链路先持久化 journal 和消息 projection，再更新 catalog，因此 catalog 写失败会留下“事实仍在、列表缺记录”的合法恢复输入。`migration_complete` 只表示首次迁移曾经成功，不能作为后续启动跳过 reconciliation 的依据。每次启动必须扫描 journal 的轻量摘要并与 catalog 对账，恢复缺失或陈旧记录；已有删除墓碑继续优先，残留 journal 不得复活用户已删除的会话。Windows Desktop 验证门必须在真实 `node:sqlite` 上覆盖“迁移完成后出现孤立 journal，再由升级版本启动恢复”的场景。
+
 ## 删除与恢复
 
 删除先在 SQLite 事务中写入 `deleted_at`，再删除 journal、metadata 和 projection，最后清理或保留墓碑。中途崩溃时：
@@ -151,11 +153,11 @@ CREATE TABLE migration_diagnostics (
 
 ### 执行环境矩阵
 
-| 产物 | 实际执行器 | `better-sqlite3` 合同 | 构建 owner |
-| --- | --- | --- | --- |
-| NPM package / runtime channel | 用户安装的受支持 Node.js | 保留 Node ABI，由 `pnpm --prod deploy` 形成完整依赖闭包 | NPM runtime channel builder |
-| Desktop shell 安装包 | 打包的 Electron，以 `ELECTRON_RUN_AS_NODE=1` 启动 runtime | 必须按目标 Electron 版本、平台和架构重建 | Desktop native resource staging |
-| Desktop seed / product update bundle | 已安装 Desktop 的 Electron | 必须包含与 shell 相同目标的 native 模块和运行时依赖闭包 | 同一个 Desktop native resource staging |
+| 产物                                 | 实际执行器                                                | `better-sqlite3` 合同                                   | 构建 owner                             |
+| ------------------------------------ | --------------------------------------------------------- | ------------------------------------------------------- | -------------------------------------- |
+| NPM package / runtime channel        | 用户安装的受支持 Node.js                                  | 保留 Node ABI，由 `pnpm --prod deploy` 形成完整依赖闭包 | NPM runtime channel builder            |
+| Desktop shell 安装包                 | 打包的 Electron，以 `ELECTRON_RUN_AS_NODE=1` 启动 runtime | 必须按目标 Electron 版本、平台和架构重建                | Desktop native resource staging        |
+| Desktop seed / product update bundle | 已安装 Desktop 的 Electron                                | 必须包含与 shell 相同目标的 native 模块和运行时依赖闭包 | 同一个 Desktop native resource staging |
 
 Node ABI 产物与 Electron ABI 产物不得共享可变的 workspace `node_modules`。Desktop 构建必须把依赖复制到隔离目录后重建，避免破坏同时生成的 NPM runtime，也避免多平台 CI 并发竞争。
 
@@ -184,14 +186,14 @@ Node ABI 产物与 Electron ABI 产物不得共享可变的 workspace `node_modu
 
 ### 安装、更新与迁移状态矩阵
 
-| 场景 | 预期行为 |
-| --- | --- |
-| 全新安装 | shell 与 seed bundle 都携带 Electron ABI native 闭包；首次启动创建空 catalog 并达到 ready |
-| 旧 Desktop + 新 product bundle | 更新包自身携带 native 闭包；不依赖旧 shell 里不存在的模块即可启动 |
-| 旧 JSON 索引升级 | 在隔离 home 中扫描 journal/metadata，创建 SQLite，列表数量与稳定 ID 可核对，旧文件不被删除 |
-| 已迁移 home 重启 | 复用现有 SQLite，重复启动幂等，列表与详情保持一致 |
-| native binary 缺失或 ABI 错误 | bootstrap 进入 error 或进程失败；所有 Desktop 发布 smoke 必须失败并输出 native load 错误 |
-| 迁移写入失败 | 旧文件保持不变、发布 smoke 失败；不回退到旧 JSON 写入主链路 |
+| 场景                           | 预期行为                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| 全新安装                       | shell 与 seed bundle 都携带 Electron ABI native 闭包；首次启动创建空 catalog 并达到 ready  |
+| 旧 Desktop + 新 product bundle | 更新包自身携带 native 闭包；不依赖旧 shell 里不存在的模块即可启动                          |
+| 旧 JSON 索引升级               | 在隔离 home 中扫描 journal/metadata，创建 SQLite，列表数量与稳定 ID 可核对，旧文件不被删除 |
+| 已迁移 home 重启               | 复用现有 SQLite，重复启动幂等，列表与详情保持一致                                          |
+| native binary 缺失或 ABI 错误  | bootstrap 进入 error 或进程失败；所有 Desktop 发布 smoke 必须失败并输出 native load 错误   |
+| 迁移写入失败                   | 旧文件保持不变、发布 smoke 失败；不回退到旧 JSON 写入主链路                                |
 
 迁移验证必须使用隔离的 `NEXTCLAW_HOME` 或旧 home 的只读复制，不允许为了发布验证直接操作用户当前运行实例的数据目录。
 

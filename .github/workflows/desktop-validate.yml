@@ -272,6 +272,12 @@ jobs:
           pnpm -r --filter @nextclaw/desktop... build
           pnpm --filter @nextclaw/server exec vitest run src/features/server-path/controllers/server-path.controller.test.ts
 
+      - name: Verify Windows session catalog upgrade recovery
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          pnpm --filter @nextclaw/kernel exec vitest run src/stores/ncp-agent-session-catalog-migration.store.test.ts src/stores/ncp-agent-session-summary-index.store.test.ts
+
       - name: Smoke Service Apps with Electron host Node
         shell: pwsh
         run: |

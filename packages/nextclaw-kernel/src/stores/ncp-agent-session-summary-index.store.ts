@@ -283,13 +283,9 @@ export class NcpAgentSessionSummaryIndexStore {
       ON sessions (deleted_at, last_message_at, created_at, updated_at);
     `);
 
-    const migrationStatus = this.database.prepare(
-      "SELECT value FROM storage_meta WHERE key = ? LIMIT 1",
-    ).get(MIGRATION_STATUS_KEY) as { value: string } | undefined;
-    if (migrationStatus?.value === MIGRATION_COMPLETE) {
-      return;
-    }
-
+    // A completed migration only proves that the catalog matched the journals
+    // at that point in time. Reconcile on every startup so an interrupted event
+    // write cannot leave a durable journal permanently absent from the list.
     const scan = await scanNcpAgentSessionCatalogJournals({
       journalDir: this.journalDir,
       loadSession: (sessionId) => this.loadSession(sessionId),
@@ -369,7 +365,16 @@ export class NcpAgentSessionSummaryIndexStore {
          deleted_at = CASE
            WHEN @restore_deleted = 1 THEN NULL
            ELSE sessions.deleted_at
-         END`,
+         END
+       WHERE sessions.peer_id IS NOT excluded.peer_id
+          OR sessions.agent_id IS NOT excluded.agent_id
+          OR sessions.created_at IS NOT excluded.created_at
+          OR sessions.updated_at IS NOT excluded.updated_at
+          OR sessions.last_message_at IS NOT excluded.last_message_at
+          OR sessions.message_count IS NOT excluded.message_count
+          OR sessions.status IS NOT excluded.status
+          OR sessions.metadata_json IS NOT excluded.metadata_json
+          OR (@restore_deleted = 1 AND sessions.deleted_at IS NOT NULL)`,
     ).run({ ...row, restore_deleted: restoreDeleted ? 1 : 0 });
   };
 
