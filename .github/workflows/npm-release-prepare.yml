@@ -110,6 +110,8 @@ jobs:
     permissions:
       actions: read
       contents: write
+      pages: write
+      id-token: write
     uses: ./.github/workflows/npm-runtime-update-release.yml
     with:
       channel: stable

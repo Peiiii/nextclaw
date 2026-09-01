@@ -130,6 +130,11 @@ test("release workflows bind dispatch identity and immutable source commits", ()
   assert.match(beta, /displayTitle.*dispatch=\$\{dispatchId\}/);
 });
 
+test("Runtime preparation grants permissions required by the nested Pages deployment", () => {
+  const prepare = readFileSync(new URL("../../.github/workflows/npm-release-prepare.yml", import.meta.url), "utf8");
+  assert.match(prepare, /prepare-runtime:[\s\S]*permissions:[\s\S]*pages: write[\s\S]*id-token: write/);
+});
+
 test("runtime manifest verification waits through missing and stale gh-pages projections", async () => {
   let ghPagesReads = 0;
   const expected = {
