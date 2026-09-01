@@ -34,7 +34,7 @@ export const LOCALE_OPTIONS: Array<{ value: Locale; label: string }> = [
 export const LINKS: Record<'github' | 'npm' | 'wechatGroupImage', string> & { docs: Record<Locale, string> } = {
   github: 'https://github.com/Peiiii/nextclaw',
   npm: 'https://www.npmjs.com/package/nextclaw',
-  wechatGroupImage: '/contact/nextclaw-contact-wechat-group-2026-08-25.png',
+  wechatGroupImage: '/contact/nextclaw-contact-wechat-group-2026-09-01.png',
   docs: {
     en: 'https://docs.nextclaw.io/en/',
     zh: 'https://docs.nextclaw.io/zh/'
