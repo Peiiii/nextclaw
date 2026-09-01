@@ -1,5 +1,11 @@
 # @nextclaw/kernel
 
+## 0.15.1
+
+### Patch Changes
+
+- 1bac8be: Restore Windows Desktop conversations after upgrading from older releases by shipping the SQL.js compatibility asset required by legacy launchers and reconciling durable session journals with the SQLite conversation catalog on startup.
+
 ## 0.15.0
 
 ### Minor Changes

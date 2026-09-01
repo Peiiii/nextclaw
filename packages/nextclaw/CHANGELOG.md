@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.48.1
+
+### Patch Changes
+
+- Updated dependencies [1bac8be]
+  - @nextclaw/kernel@0.15.1
+  - @nextclaw/remote@0.3.55
+  - @nextclaw/server@0.22.1
+  - @nextclaw/service@0.6.1
+
 ## 0.48.0
 
 ### Minor Changes

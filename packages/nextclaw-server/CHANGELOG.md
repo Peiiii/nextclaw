@@ -1,5 +1,12 @@
 # nextclaw-server
 
+## 0.22.1
+
+### Patch Changes
+
+- Updated dependencies [1bac8be]
+  - @nextclaw/kernel@0.15.1
+
 ## 0.22.0
 
 ### Minor Changes
