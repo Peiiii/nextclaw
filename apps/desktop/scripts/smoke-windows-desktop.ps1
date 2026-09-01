@@ -5,7 +5,11 @@ param(
   [int]$StartupTimeoutSec = 90,
   [int]$MaxReadySec = 20,
   [switch]$SeedStaleSameVersionBundle,
-  [switch]$AllowRendererOnlyTitlebarProbe
+  [switch]$AllowRendererOnlyTitlebarProbe,
+  [switch]$ReuseSmokeHome,
+  [switch]$SkipExtendedProbes,
+  [ValidateSet("none", "baseline-pre047", "seed-broken-047", "expect-missing-048", "expect-recovered")]
+  [string]$SessionCatalogUpgradeProbe = "none"
 )
 
 $ErrorActionPreference = "Stop"
@@ -204,6 +208,91 @@ function Invoke-DesktopApiProbe {
 
   $results | ConvertTo-Json -Depth 20 | Set-Content -Path $apiProbeLog
   return $allPassed
+}
+
+function Invoke-SessionCatalogUpgradeProbe {
+  param([string]$RuntimeBaseUrl, [string]$Mode)
+
+  if ($Mode -eq "none") {
+    return
+  }
+
+  $sessionId = "windows-session-catalog-upgrade-regression"
+  $prompt = "WINDOWS_SESSION_CATALOG_UPGRADE_REGRESSION"
+  $journalPath = Join-Path $portableRuntimeHome "sessions\.ncp-agent-journal\$sessionId.jsonl"
+
+  if ($Mode -eq "seed-broken-047") {
+    $timestamp = [DateTime]::UtcNow.ToString("o")
+    $body = @{
+      sessionId = $sessionId
+      correlationId = "windows-upgrade-correlation"
+      metadata = @{
+        agentRuntimeId = "native"
+        session_type = "native"
+        sessionType = "native"
+      }
+      message = @{
+        id = "windows-upgrade-user-message"
+        sessionId = $sessionId
+        role = "user"
+        status = "final"
+        timestamp = $timestamp
+        parts = @(@{ type = "text"; text = $prompt })
+      }
+    }
+    $sendResult = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/agent/send" -Method Post -ContentType "application/json" -Body ($body | ConvertTo-Json -Depth 12 -Compress) -TimeoutSec 30
+    if ($sendResult.ok -ne $true) {
+      throw "0.47 send endpoint did not accept the regression message."
+    }
+
+    $journalDeadline = (Get-Date).AddSeconds(30)
+    while (-not (Test-Path $journalPath) -and (Get-Date) -lt $journalDeadline) {
+      Start-Sleep -Milliseconds 250
+    }
+    if (-not (Test-Path $journalPath)) {
+      throw "0.47 did not persist the regression journal: $journalPath"
+    }
+
+    $errorDeadline = (Get-Date).AddSeconds(30)
+    $bindingError = $null
+    while ($null -eq $bindingError -and (Get-Date) -lt $errorDeadline) {
+      $bindingError = Get-ChildItem -Path $portableRuntimeHome -Recurse -File -Filter "*.log" -ErrorAction SilentlyContinue |
+        Select-String -Pattern "Unknown named parameter.*deleted_at" -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+      if ($null -eq $bindingError) {
+        Start-Sleep -Milliseconds 500
+      }
+    }
+    if ($null -eq $bindingError) {
+      throw "0.47 regression did not emit the expected deleted_at named-parameter failure."
+    }
+    Write-Host "[desktop-smoke] reproduced 0.47 binding failure: $($bindingError.Line.Trim())"
+  }
+
+  $sessions = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions?limit=100" -Method Get -TimeoutSec 10
+  $matchingSessions = @($sessions.data.sessions | Where-Object { $_.sessionId -eq $sessionId })
+  if ($Mode -in @("baseline-pre047", "seed-broken-047", "expect-missing-048")) {
+    if ($matchingSessions.Count -ne 0) {
+      throw "$Mode expected the regression session to be absent from the catalog."
+    }
+    if ($Mode -eq "expect-missing-048" -and -not (Test-Path $journalPath)) {
+      throw "0.48 missing-session reproduction lost the durable journal."
+    }
+    Write-Host "[desktop-smoke] session catalog probe passed: mode=$Mode catalog=missing"
+    return
+  }
+
+  if ($matchingSessions.Count -ne 1 -or [int]$matchingSessions[0].messageCount -lt 1) {
+    throw "candidate did not reconcile the durable Windows session journal."
+  }
+  $messages = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions/$sessionId/messages?limit=20" -Method Get -TimeoutSec 10
+  $matchingMessages = @($messages.data.messages | Where-Object {
+    $_.role -eq "user" -and @($_.parts | Where-Object { $_.type -eq "text" -and $_.text -eq $prompt }).Count -gt 0
+  })
+  if ($matchingMessages.Count -ne 1) {
+    throw "candidate restored the catalog row but not the durable regression message."
+  }
+  Write-Host "[desktop-smoke] session catalog probe passed: mode=$Mode catalog=recovered messages=$($messages.data.total)"
 }
 
 function Invoke-DesktopServiceAppProbe {
@@ -745,7 +834,13 @@ Write-Host "[desktop-smoke] startup timeout: ${StartupTimeoutSec}s"
 Write-Host "[desktop-smoke] max GUI ready time: ${MaxReadySec}s"
 Write-Host "[desktop-smoke] seed stale same-version bundle: $($SeedStaleSameVersionBundle.IsPresent)"
 
-Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $smokeHome
+if ($ReuseSmokeHome.IsPresent) {
+  if (-not (Test-Path $smokeHome)) {
+    throw "Cannot reuse missing smoke home: $smokeHome"
+  }
+} else {
+  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $smokeHome
+}
 if ($isPortableSmoke) {
   Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $resolvedPortableRoot "data")
 }
@@ -827,8 +922,11 @@ try {
       $elapsedMs = [int]((Get-Date) - $startedAt).TotalMilliseconds
       Write-Host "[desktop-smoke] GUI smoke passed in ${elapsedMs}ms"
       Write-Host "[desktop-smoke] API probes passed: $runtimeBaseUrl"
-      Invoke-DesktopServiceAppProbe -RuntimeBaseUrl $runtimeBaseUrl
-      Invoke-DesktopTitlebarDragProbe -RootPid $desktopRootPid -DesktopExePath $resolvedExe
+      Invoke-SessionCatalogUpgradeProbe -RuntimeBaseUrl $runtimeBaseUrl -Mode $SessionCatalogUpgradeProbe
+      if (-not $SkipExtendedProbes.IsPresent) {
+        Invoke-DesktopServiceAppProbe -RuntimeBaseUrl $runtimeBaseUrl
+        Invoke-DesktopTitlebarDragProbe -RootPid $desktopRootPid -DesktopExePath $resolvedExe
+      }
       Write-Host "[desktop-smoke] main log: $script:MainLog"
       if (Test-Path $script:MainLog) {
         Get-Content -Path $script:MainLog -Tail 80

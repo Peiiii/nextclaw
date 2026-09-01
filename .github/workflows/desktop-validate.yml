@@ -246,7 +246,7 @@ jobs:
     if: ${{ inputs.target == '' || inputs.target == 'all' || inputs.target == 'windows-exe' }}
     name: desktop-windows-exe-smoke
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -302,6 +302,41 @@ jobs:
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop native-resources -- --platform win32 --arch x64
           pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never
+
+      - name: Reproduce and repair the released Windows upgrade regression
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $upgradeRoot = Join-Path $env:RUNNER_TEMP "nextclaw-windows-session-catalog-upgrade"
+          New-Item -ItemType Directory -Path $upgradeRoot -Force | Out-Null
+
+          function Get-ReleasedDesktopExecutable {
+            param([string]$Tag, [string]$Asset)
+            $releaseRoot = Join-Path $upgradeRoot $Tag
+            New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
+            gh release download $Tag --repo Peiiii/nextclaw --pattern $Asset --dir $releaseRoot
+            $zipPath = Join-Path $releaseRoot $Asset
+            $unpackedRoot = Join-Path $releaseRoot "unpacked"
+            Expand-Archive -Path $zipPath -DestinationPath $unpackedRoot -Force
+            $desktopExe = Get-ChildItem -Path $unpackedRoot -Filter "NextClaw Desktop.exe" -Recurse -File |
+              Select-Object -First 1
+            if ($null -eq $desktopExe) {
+              throw "Released Windows Desktop executable missing after extracting $Asset"
+            }
+            return $desktopExe.FullName
+          }
+
+          $pre047Exe = Get-ReleasedDesktopExecutable "v0.45.5-desktop.1" "NextClaw.Desktop-0.0.276-win32-x64-unpacked.zip"
+          $broken047Exe = Get-ReleasedDesktopExecutable "v0.47.0-desktop.1" "NextClaw.Desktop-0.0.278-win32-x64-unpacked.zip"
+          $released048Exe = Get-ReleasedDesktopExecutable "v0.48.0-desktop.1" "NextClaw.Desktop-0.0.279-win32-x64-unpacked.zip"
+          $candidateExe = (Resolve-Path "apps/desktop/release/win-unpacked/NextClaw Desktop.exe").Path
+
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $pre047Exe -StartupTimeoutSec 120 -MaxReadySec 30 -SkipExtendedProbes -SessionCatalogUpgradeProbe "baseline-pre047"
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $broken047Exe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -SkipExtendedProbes -SessionCatalogUpgradeProbe "seed-broken-047"
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $released048Exe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -SkipExtendedProbes -SessionCatalogUpgradeProbe "expect-missing-048"
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $candidateExe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -SkipExtendedProbes -SessionCatalogUpgradeProbe "expect-recovered"
 
       - name: Smoke test Windows desktop executable
         shell: pwsh
