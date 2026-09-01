@@ -178,6 +178,7 @@ export class NcpAgentSessionSummaryIndexStore {
       ...summary,
       messageCount: readEventMessage(event) ? 1 : 0,
     });
+    // node:sqlite rejects named parameters that are not declared by the statement.
     const { deleted_at: _deletedAt, ...upsertParams } = row;
     this.db().prepare(
       `INSERT INTO sessions (

@@ -103,6 +103,12 @@ CREATE TABLE migration_diagnostics (
 
 列表只读 SQLite，不再把整个索引加载到内存后整体覆写。多个 NextClaw 进程通过 SQLite 的事务、锁和 WAL 协作，不互相覆盖完整快照。
 
+### 事件写入的严格绑定合同
+
+2026-09-01 对 Desktop 0.47.0 发布产物的复现证明，`node:sqlite` 会拒绝传入 SQL 中未声明的命名参数。catalog 行模型包含删除墓碑字段 `deleted_at`，但正常事件 upsert 固定写入 `NULL`；如果把完整行对象直接绑定给该语句，HTTP 发送入口会先返回接受成功，随后的 journal/catalog 事件处理却持续以 `Unknown named parameter 'deleted_at'` 失败，最终同时破坏消息发送和会话列表投影。
+
+因此正常事件写入必须只绑定语句实际声明的参数，墓碑字段只由删除/恢复链路拥有。回归测试必须使用真实 SQLite 驱动执行 `upsertForEvent`，并在同一场景中证明：事件写入不抛错、会话可从 catalog 读回、消息计数与状态按事件推进。只 mock statement 或只验证 HTTP `200` 不能作为发送成功证据。
+
 ## 删除与恢复
 
 删除先在 SQLite 事务中写入 `deleted_at`，再删除 journal、metadata 和 projection，最后清理或保留墓碑。中途崩溃时：
