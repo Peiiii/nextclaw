@@ -18,12 +18,14 @@
 - 同一 CI 将受影响目录固定为 `migration=complete catalog=missing journal=present` 后，官方 0.48.0 Desktop EXE 冷启动仍返回 `catalog=missing`；候选 EXE 在同一 home 冷启动后返回 `catalog=recovered messages=1`。
 - 同一 job 的候选 Windows unpacked EXE 与 Portable archive 冒烟全部通过；Windows 定向 SQLite 测试为 2 个文件、6 项通过。
 - Windows 2025 实机 CI `33543765684`（提交 `f905313a5`）进一步闭合用户报告的直接升级路径：官方 0.44.1 Desktop renderer 通过产品 API 下载并应用固定的官方 0.48.0 manifest，随后精确命中 `sql-wasm=missing runtime=not-ready`；候选 EXE 接管同一 home 后返回 `catalog=recovered messages=2`，再由原版 0.44.1 外壳启动候选 bundle 仍返回相同恢复结果。该 run 同时复验 0.47 → 0.48 catalog 缺失链路、候选 EXE 和 Windows Portable，全部通过。
+- 主干 `desktop-validate` CI `33546199597`（提交 `601ee5d4b`）在 macOS、Windows 和 Linux 全部通过；Windows job `99984183233` 固定复现官方 0.44.1 → 0.48.0 的缺失 WASM 故障，并验证候选 runtime 在同一 home 和原版 0.44.1 外壳下恢复会话与消息。
+- 正式 Desktop 发布 CI `33551958945`（发布提交 `5da5c3052`）通过 Windows x64/arm64、macOS x64/arm64 和 Linux x64 的构建、安装与实包冒烟；公开 Windows x64 bundle 反查确认包含 `bundle/runtime/dist/cli/app/sql-wasm.wasm`。
 
 ## 发布/部署方式
 
 - 通过主干 `desktop-validate` 的 Windows job 验证真实 Windows Node 行为。
 - 验证通过后按稳定补丁发布流程统一发布 NPM、Runtime channel 与 Desktop stable bundle；不要求用户手工删除数据库或迁移文件。
-- 当前状态：Windows 真实复现与候选修复验证已闭环，待稳定补丁发布。
+- 当前状态：NextClaw `0.48.1` 与 Desktop `v0.48.1-desktop.1` 已稳定发布；NPM、四平台 Runtime、五平台 Desktop、稳定升级 manifest 和 Linux APT 均完成发布与反查。
 
 ## 用户/产品视角的验收步骤
 
@@ -50,4 +52,6 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/kernel`：patch，修复 Desktop 升级后的会话目录恢复；当前未发布，待统一稳定补丁发布。
+- `@nextclaw/kernel@0.15.1`：patch，修复 Desktop 升级后的会话目录恢复，已随 NextClaw `0.48.1` 发布。
+- `nextclaw@0.48.1`：已发布并设为 NPM `latest`；Windows、Linux、macOS x64/arm64 的 Node 20/22/24/26 兼容矩阵全部通过。
+- `v0.48.1-desktop.1`：已发布为 Latest Desktop Release，包含 Desktop `0.0.280` 的 Windows、macOS、Linux 安装与便携资产，以及五个平台的签名 product bundle 和 stable manifest。
