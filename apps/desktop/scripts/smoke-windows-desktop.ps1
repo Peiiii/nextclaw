@@ -9,6 +9,8 @@ param(
   [switch]$ReuseSmokeHome,
   [switch]$SkipExtendedProbes,
   [switch]$DisableGuardian,
+  [switch]$ApplyAvailableUpdate,
+  [int]$RemoteDebuggingPort = 0,
   [ValidateSet("none", "baseline-pre047", "seed-visible-044", "seed-broken-047", "expect-missing-048", "expect-recovered")]
   [string]$SessionCatalogUpgradeProbe = "none"
 )
@@ -888,7 +890,16 @@ try {
   if (Test-Path $script:MainLog) {
     $script:MainLogStartLine = ((Get-Content -Path $script:MainLog | Measure-Object -Line).Lines + 1)
   }
-  $appProc = Start-Process -FilePath $resolvedExe -PassThru -RedirectStandardOutput $appStdoutLog -RedirectStandardError $appStderrLog
+  $startProcessArguments = @{
+    FilePath = $resolvedExe
+    PassThru = $true
+    RedirectStandardOutput = $appStdoutLog
+    RedirectStandardError = $appStderrLog
+  }
+  if ($RemoteDebuggingPort -gt 0) {
+    $startProcessArguments.ArgumentList = @("--remote-debugging-port=$RemoteDebuggingPort")
+  }
+  $appProc = Start-Process @startProcessArguments
   $desktopRootPid = $appProc.Id
   $deadline = (Get-Date).AddSeconds($StartupTimeoutSec)
   $readyDeadline = (Get-Date).AddSeconds($MaxReadySec)
@@ -941,6 +952,31 @@ try {
       Write-Host "[desktop-smoke] GUI smoke passed in ${elapsedMs}ms"
       Write-Host "[desktop-smoke] API probes passed: $runtimeBaseUrl"
       Invoke-SessionCatalogUpgradeProbe -RuntimeBaseUrl $runtimeBaseUrl -Mode $SessionCatalogUpgradeProbe
+      if ($ApplyAvailableUpdate.IsPresent) {
+        if ($RemoteDebuggingPort -le 0) {
+          throw "ApplyAvailableUpdate requires RemoteDebuggingPort."
+        }
+        $updateLogStartLine = (Get-Content -Path $script:MainLog | Measure-Object -Line).Lines + 1
+        node "apps/desktop/scripts/drive-desktop-update-cdp.mjs" $RemoteDebuggingPort
+        $updateDeadline = (Get-Date).AddSeconds(120)
+        $updatedRuntimeBaseUrl = $null
+        while ((Get-Date) -lt $updateDeadline) {
+          $updatedLines = @(Get-Content -Path $script:MainLog | Select-Object -Skip ($updateLogStartLine - 1))
+          if ($updatedLines -match "Runtime source: bundle bundleVersion=0\.48\.0") {
+            $updatedRuntimeBaseUrl = Get-DesktopRuntimeBaseUrlFromLog
+            if ($updatedRuntimeBaseUrl -and (Invoke-DesktopApiProbe -RuntimeBaseUrl $updatedRuntimeBaseUrl)) {
+              break
+            }
+          }
+          Start-Sleep -Seconds 1
+        }
+        if (-not $updatedRuntimeBaseUrl) {
+          throw "Official in-app update did not restart into runtime bundle 0.48.0."
+        }
+        Write-Host "[desktop-smoke] official in-app update applied: bundleVersion=0.48.0 runtimeBaseUrl=$updatedRuntimeBaseUrl"
+        Invoke-SessionCatalogUpgradeProbe -RuntimeBaseUrl $updatedRuntimeBaseUrl -Mode "expect-missing-048"
+        $desktopRootPid = Get-DesktopRootProcessIdFromLog
+      }
       if (-not $SkipExtendedProbes.IsPresent) {
         Invoke-DesktopServiceAppProbe -RuntimeBaseUrl $runtimeBaseUrl
         Invoke-DesktopTitlebarDragProbe -RootPid $desktopRootPid -DesktopExePath $resolvedExe
