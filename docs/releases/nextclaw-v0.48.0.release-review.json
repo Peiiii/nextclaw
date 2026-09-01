@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.48.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-09-01-nextclaw-v0-48-0.md",
+        "apps/docs/en/notes/2026-09-01-nextclaw-v0-48-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.48.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "The project workspace expands in-product project tracking without changing the website's positioning, download flow, or pricing."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.48.0 makes projects durable workspaces for work items, artifacts, and AI progress—and restores reliable desktop sessions.\nhttps://docs.nextclaw.io/en/notes/2026-09-01-nextclaw-v0-48-0",
+      "imagePath": "images/screenshots/nextclaw-workspace-explorer-cn.png",
+      "imageAlt": "NextClaw workspace explorer showing project files and working context",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-09-01-nextclaw-v0-48-0"
+    }
+  }
+}

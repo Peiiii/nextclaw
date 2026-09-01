@@ -173,7 +173,7 @@ export function parseStableReleaseArgs(argv) {
 }
 
 export function resolveStableReleasePlan(changesetStatus) {
-  if (changesetStatus?.preState) {
+  if (changesetStatus?.preState?.mode === "pre") {
     throw new Error(
       "release:stable cannot run while Changesets pre mode is active.",
     );

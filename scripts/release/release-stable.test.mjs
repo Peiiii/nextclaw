@@ -165,6 +165,18 @@ test("resolves nextclaw versions from the changeset release plan", () => {
   );
 });
 
+test("allows a stable release after Changesets prerelease mode is marked for exit", () => {
+  assert.deepEqual(
+    resolveStableReleasePlan({
+      preState: { mode: "exit" },
+      releases: [
+        { name: "nextclaw", oldVersion: "0.48.0-beta.2", newVersion: "0.48.0" },
+      ],
+    }),
+    { packageCount: 1, previousVersion: "0.48.0-beta.2", targetVersion: "0.48.0" },
+  );
+});
+
 test("resolves the public previous version when promoting a beta to stable", () => {
   assert.equal(
     resolveStablePublishedPreviousVersion({

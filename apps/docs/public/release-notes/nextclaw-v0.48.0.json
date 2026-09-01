@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.48.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-09-01",
+  "title": {
+    "zh-CN": "NextClaw v0.48.0",
+    "en-US": "NextClaw v0.48.0"
+  },
+  "summary": {
+    "zh-CN": "项目现在可以持续追踪工作项、产物与 AI 进展，桌面端会话列表和消息发送也恢复正常。",
+    "en-US": "Projects can now track work items, artifacts, and AI progress over time, with desktop session lists and message sending restored."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-01-nextclaw-v0-48-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-01-nextclaw-v0-48-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "项目工作空间", "en-US": "Project workspaces" },
+      "items": [
+        {
+          "title": { "zh-CN": "持续追踪工作与产物", "en-US": "Track work and artifacts over time" },
+          "body": {
+            "zh-CN": "项目主页通过概览、列表和看板展示工作项、状态历史、关联产物、AI 进展和待关注事项。",
+            "en-US": "The project home uses overview, list, and board views to present work items, status history, linked artifacts, AI progress, and attention items."
+          }
+        },
+        {
+          "title": { "zh-CN": "WASI 应用目录授权", "en-US": "Folder grants for WASI apps" },
+          "body": {
+            "zh-CN": "用户可以为应用授予只读或读写目录，并随时替换或撤销授权。",
+            "en-US": "Users can grant read-only or read-write folders to apps and replace or revoke those grants at any time."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "运行效率与一致性", "en-US": "Runtime efficiency and consistency" },
+      "items": [
+        {
+          "title": { "zh-CN": "Portable Action 共享运行资源", "en-US": "Shared runtime resources for Portable Actions" },
+          "body": {
+            "zh-CN": "并发 Action 共享 Runtime、Engine 和 Component，同时保持每次调用的状态隔离。",
+            "en-US": "Concurrent Actions share the Runtime, Engine, and Component while preserving isolated state for every call."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "桌面会话可靠性", "en-US": "Desktop session reliability" },
+      "items": [
+        {
+          "title": { "zh-CN": "会话列表和消息发送恢复", "en-US": "Session lists and message sending restored" },
+          "body": {
+            "zh-CN": "会话摘要和消息会可靠写入本地数据库，并在桌面端重启后继续可用。",
+            "en-US": "Session summaries and messages are stored reliably in the local database and remain available after a desktop restart."
+          }
+        }
+      ]
+    }
+  ]
+}

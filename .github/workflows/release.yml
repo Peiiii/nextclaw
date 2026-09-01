@@ -59,7 +59,7 @@ jobs:
           const { execFileSync } = require("node:child_process");
           const fs = require("node:fs");
           const status = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
-          if (status.preState) throw new Error("stable release cannot use Changesets prerelease mode");
+          if (status.preState?.mode === "pre") throw new Error("stable release cannot use Changesets prerelease mode");
           const planned = (status.releases ?? []).find((entry) => entry.name === "nextclaw");
           if (planned && /^\d+\.\d+\.\d+$/.test(planned.newVersion ?? "")) {
             process.stdout.write(`mode=new\ntarget_version=${planned.newVersion}\n`);

@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-09-01T04:17:29.225Z",
+  "generatedAt": "2026-09-01T04:31:47.511Z",
   "hero": {
     "currentLoc": 287963,
     "testLoc": 121591,
     "trackedFiles": 3024,
-    "recentCommitCount": 615,
+    "recentCommitCount": 617,
     "activeDays30": 30,
     "recentReleaseCount": 52,
     "latestReleaseDate": "2026-09-01",
@@ -1333,7 +1333,7 @@ export default {
       {
         "key": "2026-09-01",
         "label": "09-01",
-        "value": 8
+        "value": 10
       }
     ],
     "commitWeekly": [
@@ -1395,7 +1395,7 @@ export default {
       {
         "key": "2026-08-31",
         "label": "08-31",
-        "value": 39
+        "value": 41
       }
     ],
     "releaseMonthly": [
@@ -1586,22 +1586,22 @@ export default {
   "timeline": {
     "notes": [
       {
-        "slug": "2026-09-01-nextclaw-v0-47-1",
+        "slug": "2026-09-01-nextclaw-v0-48-0",
         "date": "2026-09-01",
         "tags": [
           "release",
-          "desktop",
-          "patch"
+          "projects",
+          "desktop"
         ],
         "en": {
-          "title": "2026-09-01 · NextClaw v0.47.1",
-          "description": "Fix desktop session lists failing to load and messages failing to send.",
-          "href": "/en/notes/2026-09-01-nextclaw-v0-47-1"
+          "title": "2026-09-01 · NextClaw v0.48.0",
+          "description": "Projects can now track work, artifacts, and AI progress over time, with desktop session reliability restored.",
+          "href": "/en/notes/2026-09-01-nextclaw-v0-48-0"
         },
         "zh": {
-          "title": "2026-09-01 · NextClaw v0.47.1",
-          "description": "修复桌面端会话列表无法加载和消息无法发送的问题。",
-          "href": "/zh/notes/2026-09-01-nextclaw-v0-47-1"
+          "title": "2026-09-01 · NextClaw v0.48.0",
+          "description": "项目现在可以持续追踪工作项、产物与 AI 进展，并修复桌面端会话故障。",
+          "href": "/zh/notes/2026-09-01-nextclaw-v0-48-0"
         }
       },
       {
