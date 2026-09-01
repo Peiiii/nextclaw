@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.48.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-09-02",
+  "title": {
+    "zh-CN": "NextClaw v0.48.1",
+    "en-US": "NextClaw v0.48.1"
+  },
+  "summary": {
+    "zh-CN": "修复 Windows 桌面端从旧版本升级到 v0.48.0 后会话列表无法加载、消息无法发送的问题。",
+    "en-US": "Fixes Windows Desktop upgrades from older releases to v0.48.0 that could prevent sessions from loading and messages from sending."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-02-nextclaw-v0-48-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-02-nextclaw-v0-48-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "Windows 桌面端升级恢复", "en-US": "Windows Desktop upgrade recovery" },
+      "items": [
+        {
+          "title": { "zh-CN": "恢复运行时启动", "en-US": "Runtime startup restored" },
+          "body": {
+            "zh-CN": "补齐旧版 Windows 桌面外壳启动新版运行时所需的兼容资源，升级后会话列表和消息发送可以重新连接本地运行时。",
+            "en-US": "Ships the compatibility asset required when older Windows Desktop launchers start the new runtime, allowing session lists and message sending to reconnect after an upgrade."
+          }
+        },
+        {
+          "title": { "zh-CN": "恢复已有会话和消息", "en-US": "Existing sessions and messages restored" },
+          "body": {
+            "zh-CN": "从已有本地历史恢复升级后缺失的会话目录和消息，同时保持用户已删除的会话不再显示。",
+            "en-US": "Rebuilds missing session entries and messages from existing local history while keeping intentionally deleted sessions hidden."
+          }
+        }
+      ]
+    }
+  ]
+}
