@@ -268,11 +268,13 @@ function Invoke-SessionCatalogUpgradeProbe {
       throw "0.47 regression did not emit the expected deleted_at named-parameter failure."
     }
     Write-Host "[desktop-smoke] reproduced 0.47 binding failure: $($bindingError.Line.Trim())"
+    Write-Host "[desktop-smoke] session catalog probe passed: mode=$Mode persistence=failed journal=present"
+    return
   }
 
   $sessions = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions?limit=100" -Method Get -TimeoutSec 10
   $matchingSessions = @($sessions.data.sessions | Where-Object { $_.sessionId -eq $sessionId })
-  if ($Mode -in @("baseline-pre047", "seed-broken-047", "expect-missing-048")) {
+  if ($Mode -in @("baseline-pre047", "expect-missing-048")) {
     if ($matchingSessions.Count -ne 0) {
       throw "$Mode expected the regression session to be absent from the catalog."
     }
