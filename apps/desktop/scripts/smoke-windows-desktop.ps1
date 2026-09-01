@@ -258,8 +258,16 @@ function Invoke-SessionCatalogUpgradeProbe {
     }
 
     if ($Mode -eq "seed-visible-044") {
-      $sessions = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions?limit=100" -Method Get -TimeoutSec 10
-      $matchingSessions = @($sessions.data.sessions | Where-Object { $_.sessionId -eq $sessionId })
+      $visibilityDeadline = (Get-Date).AddSeconds(30)
+      $matchingSessions = @()
+      while ($matchingSessions.Count -ne 1 -and (Get-Date) -lt $visibilityDeadline) {
+        Start-Sleep -Seconds 2
+        $sessions = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions?limit=100" -Method Get -TimeoutSec 10
+        $matchingSessions = @($sessions.data.sessions | Where-Object { $_.sessionId -eq $sessionId })
+        if ($matchingSessions.Count -eq 0 -and (Get-Date) -lt $visibilityDeadline) {
+          Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/agent/send" -Method Post -ContentType "application/json" -Body ($body | ConvertTo-Json -Depth 12 -Compress) -TimeoutSec 30 | Out-Null
+        }
+      }
       if ($matchingSessions.Count -ne 1 -or [int]$matchingSessions[0].messageCount -lt 1) {
         throw "Released 0.44 did not expose the seeded session before the direct upgrade."
       }
