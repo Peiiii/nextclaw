@@ -403,7 +403,7 @@ jobs:
 
   deploy-public-pages:
     needs: [publish-npm-runtime-update-channel]
-    if: ${{ needs.publish-npm-runtime-update-channel.result == 'success' }}
+    if: ${{ always() && needs.publish-npm-runtime-update-channel.result == 'success' }}
     permissions:
       contents: read
       pages: write

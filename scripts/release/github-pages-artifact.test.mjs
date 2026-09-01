@@ -214,3 +214,14 @@ test("release workflows keep Git state compact and deploy one complete Pages art
   assert.match(pagesWorkflow, /actions\/upload-pages-artifact@v4/u);
   assert.match(pagesWorkflow, /actions\/deploy-pages@v4/u);
 });
+
+test("Runtime publication always evaluates the Pages deployment after promotion", async () => {
+  const runtimeWorkflow = await readFile(
+    new URL("../../.github/workflows/npm-runtime-update-release.yml", import.meta.url),
+    "utf8"
+  );
+  assert.match(
+    runtimeWorkflow,
+    /deploy-public-pages:[\s\S]*?if: \$\{\{ always\(\) && needs\.publish-npm-runtime-update-channel\.result == 'success' \}\}/u
+  );
+});
