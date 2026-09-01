@@ -8,6 +8,7 @@ param(
   [switch]$AllowRendererOnlyTitlebarProbe,
   [switch]$ReuseSmokeHome,
   [switch]$SkipExtendedProbes,
+  [switch]$DisableGuardian,
   [ValidateSet("none", "baseline-pre047", "seed-broken-047", "expect-missing-048", "expect-recovered")]
   [string]$SessionCatalogUpgradeProbe = "none"
 )
@@ -862,6 +863,11 @@ if ($isPortableSmoke) {
   $env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = $smokeHome
 }
 $env:NEXTCLAW_DESKTOP_SMOKE_TITLEBAR_HIT_TEST = "1"
+if ($DisableGuardian.IsPresent) {
+  $env:NEXTCLAW_DESKTOP_DISABLE_GUARDIAN = "1"
+} else {
+  Remove-Item Env:\NEXTCLAW_DESKTOP_DISABLE_GUARDIAN -ErrorAction SilentlyContinue
+}
 
 $appProc = $null
 $desktopRootPid = $null
