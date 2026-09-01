@@ -135,6 +135,14 @@ test("Runtime preparation grants permissions required by the nested Pages deploy
   assert.match(prepare, /prepare-runtime:[\s\S]*permissions:[\s\S]*pages: write[\s\S]*id-token: write/);
 });
 
+test("stable recovery excludes prerelease tags when resolving the previous version", () => {
+  const release = readFileSync(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
+  assert.match(
+    release,
+    /git tag -l 'nextclaw@\*'[\s\S]*?grep -E '\^\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$'[\s\S]*?grep -vx "\$target_version"/,
+  );
+});
+
 test("runtime manifest verification waits through missing and stale gh-pages projections", async () => {
   let ghPagesReads = 0;
   const expected = {

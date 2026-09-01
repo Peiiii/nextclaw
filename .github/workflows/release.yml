@@ -193,7 +193,7 @@ jobs:
             --jobs-file "$RUNNER_TEMP/previous-compatibility-jobs.ndjson")"
           compatibility_matrix="$(node -e 'const result = JSON.parse(process.argv[1]); process.stdout.write(JSON.stringify({ include: result.include }))' "$compatibility_result")"
           compatibility_reused="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).reused))' "$compatibility_result")"
-          previous_version="$(git tag -l 'nextclaw@*' --sort=-version:refname | sed 's/^nextclaw@//' | grep -vx "$target_version" | head -n 1)"
+          previous_version="$(git tag -l 'nextclaw@*' --sort=-version:refname | sed 's/^nextclaw@//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -vx "$target_version" | head -n 1)"
           {
             echo "is_recovery=$is_recovery"
             echo "compatibility_matrix=$compatibility_matrix"
