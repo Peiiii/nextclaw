@@ -76,6 +76,7 @@ export class NcpAgentSessionJournalStore {
     );
   }
   initialize = async (): Promise<void> => await this.summaryIndexStore.initialize();
+  close = (): void => this.summaryIndexStore.close();
 
   appendSessionEvent = async (params: {
     sessionId: string;

@@ -17,8 +17,17 @@ const message: NcpMessage = {
 };
 
 let tempDir: string | null = null;
+let stores: NcpAgentSessionJournalStore[] = [];
+
+function createStore(journalDir: string): NcpAgentSessionJournalStore {
+  const store = new NcpAgentSessionJournalStore(journalDir);
+  stores.push(store);
+  return store;
+}
 
 afterEach(async () => {
+  for (const store of stores) store.close();
+  stores = [];
   if (tempDir) {
     await rm(tempDir, { recursive: true, force: true });
     tempDir = null;
@@ -49,7 +58,7 @@ describe("NcpAgentSessionJournalStore SQLite catalog migration", () => {
     const legacyIndex = JSON.stringify({ version: 1, records: [] }) + "\n";
     await writeFile(join(tempDir, NCP_AGENT_SESSION_JOURNAL_INDEX_FILE), legacyIndex, "utf8");
 
-    const store = new NcpAgentSessionJournalStore(tempDir);
+    const store = createStore(tempDir);
     await store.initialize();
     await expect(store.listSessionSummaries()).resolves.toEqual([
       expect.objectContaining({
@@ -70,20 +79,20 @@ describe("NcpAgentSessionJournalStore SQLite catalog migration", () => {
     await writeLegacyJournal(tempDir, sessionId, message);
     await writeFile(join(tempDir, NCP_AGENT_SESSION_JOURNAL_INDEX_FILE), "not-json\n", "utf8");
 
-    const store = new NcpAgentSessionJournalStore(tempDir);
+    const store = createStore(tempDir);
     await expect(store.hasSession(sessionId)).resolves.toBe(true);
     await expect(store.deleteSession(sessionId)).resolves.toMatchObject({ sessionId });
-    await expect(new NcpAgentSessionJournalStore(tempDir).listSessionSummaries()).resolves.toEqual([]);
+    await expect(createStore(tempDir).listSessionSummaries()).resolves.toEqual([]);
   });
 
   it("reconciles a journal created after the catalog migration completed", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-catalog-reconciliation-"));
-    const migratedStore = new NcpAgentSessionJournalStore(tempDir);
+    const migratedStore = createStore(tempDir);
     await migratedStore.initialize();
 
     await writeLegacyJournal(tempDir, sessionId, message);
 
-    const upgradedStore = new NcpAgentSessionJournalStore(tempDir);
+    const upgradedStore = createStore(tempDir);
     await upgradedStore.initialize();
     await expect(upgradedStore.listSessionSummaries()).resolves.toEqual([
       expect.objectContaining({
@@ -98,21 +107,21 @@ describe("NcpAgentSessionJournalStore SQLite catalog migration", () => {
   it("keeps a deletion tombstone when reconciliation finds a leftover journal", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-catalog-tombstone-"));
     await writeLegacyJournal(tempDir, sessionId, message);
-    const migratedStore = new NcpAgentSessionJournalStore(tempDir);
+    const migratedStore = createStore(tempDir);
     await migratedStore.initialize();
     await expect(migratedStore.deleteSession(sessionId)).resolves.toMatchObject({ sessionId });
 
     await writeLegacyJournal(tempDir, sessionId, message);
 
-    const upgradedStore = new NcpAgentSessionJournalStore(tempDir);
+    const upgradedStore = createStore(tempDir);
     await upgradedStore.initialize();
     await expect(upgradedStore.listSessionSummaries()).resolves.toEqual([]);
   });
 
   it("keeps concurrent runtime writes for different sessions", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-catalog-concurrency-"));
-    const first = new NcpAgentSessionJournalStore(tempDir);
-    const second = new NcpAgentSessionJournalStore(tempDir);
+    const first = createStore(tempDir);
+    const second = createStore(tempDir);
     const firstMessage = { ...message, sessionId: "ncp-concurrent-1", id: "concurrent-message-1" };
     const secondMessage = { ...message, sessionId: "ncp-concurrent-2", id: "concurrent-message-2" };
 
@@ -135,7 +144,7 @@ describe("NcpAgentSessionJournalStore SQLite catalog migration", () => {
       }),
     ]);
 
-    await expect(new NcpAgentSessionJournalStore(tempDir).listSessionSummaries()).resolves.toEqual(
+    await expect(createStore(tempDir).listSessionSummaries()).resolves.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ sessionId: firstMessage.sessionId, messageCount: 1 }),
         expect.objectContaining({ sessionId: secondMessage.sessionId, messageCount: 1 }),
