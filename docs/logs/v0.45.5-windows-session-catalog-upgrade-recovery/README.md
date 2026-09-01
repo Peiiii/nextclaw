@@ -13,13 +13,15 @@
 - 修复后定向测试：2 个测试文件、6 项全部通过，覆盖升级恢复、墓碑保护和正常事件写入。
 - `@nextclaw/kernel` 全量测试：136 个测试文件、618 项全部通过。
 - `@nextclaw/kernel` TypeScript 检查通过；全包 lint 为 0 error，保留 16 条既有 warning。
-- Windows CI 与发布产物升级验证在提交推送后执行，结果回填本记录。
+- Windows 2025 实机 CI `33536374327`（提交 `1dafc115e`）通过：官方 0.47.0 Desktop EXE 真实产生 `Unknown named parameter 'deleted_at'`，且 journal 已持久化。
+- 同一 CI 将受影响目录固定为 `migration=complete catalog=missing journal=present` 后，官方 0.48.0 Desktop EXE 冷启动仍返回 `catalog=missing`；候选 EXE 在同一 home 冷启动后返回 `catalog=recovered messages=1`。
+- 同一 job 的候选 Windows unpacked EXE 与 Portable archive 冒烟全部通过；Windows 定向 SQLite 测试为 2 个文件、6 项通过。
 
 ## 发布/部署方式
 
 - 通过主干 `desktop-validate` 的 Windows job 验证真实 Windows Node 行为。
 - 验证通过后按稳定补丁发布流程统一发布 NPM、Runtime channel 与 Desktop stable bundle；不要求用户手工删除数据库或迁移文件。
-- 当前状态：待 Windows CI 与补丁发布闭环。
+- 当前状态：Windows 真实复现与候选修复验证已闭环，待稳定补丁发布。
 
 ## 用户/产品视角的验收步骤
 
