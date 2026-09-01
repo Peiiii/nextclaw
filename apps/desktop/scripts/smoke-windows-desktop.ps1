@@ -836,7 +836,7 @@ $appStderrLog = Join-Path $logRoot "app-stderr.log"
 $apiProbeLog = Join-Path $logRoot "api-probes.json"
 $script:ServiceAppProbeLog = Join-Path $logRoot "service-app-probes.json"
 $script:MainLog = Join-Path $smokeHome "launcher\\main.log"
-$script:ServiceLog = Join-Path $portableRuntimeHome "service.log"
+$script:ServiceLog = Join-Path $portableRuntimeHome "logs\service.log"
 $script:MainLogStartLine = 1
 
 Write-Host "[desktop-smoke] desktop exe: $resolvedExe"
