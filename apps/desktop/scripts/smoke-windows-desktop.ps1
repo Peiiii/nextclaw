@@ -9,7 +9,7 @@ param(
   [switch]$ReuseSmokeHome,
   [switch]$SkipExtendedProbes,
   [switch]$DisableGuardian,
-  [ValidateSet("none", "baseline-pre047", "seed-broken-047", "expect-missing-048", "expect-recovered")]
+  [ValidateSet("none", "baseline-pre047", "seed-visible-044", "seed-broken-047", "expect-missing-048", "expect-recovered")]
   [string]$SessionCatalogUpgradeProbe = "none"
 )
 
@@ -222,7 +222,7 @@ function Invoke-SessionCatalogUpgradeProbe {
   $prompt = "WINDOWS_SESSION_CATALOG_UPGRADE_REGRESSION"
   $journalPath = Join-Path $portableRuntimeHome "sessions\.ncp-agent-journal\$sessionId.jsonl"
 
-  if ($Mode -eq "seed-broken-047") {
+  if ($Mode -in @("seed-visible-044", "seed-broken-047")) {
     $timestamp = [DateTime]::UtcNow.ToString("o")
     $body = @{
       sessionId = $sessionId
@@ -243,7 +243,7 @@ function Invoke-SessionCatalogUpgradeProbe {
     }
     $sendResult = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/agent/send" -Method Post -ContentType "application/json" -Body ($body | ConvertTo-Json -Depth 12 -Compress) -TimeoutSec 30
     if ($sendResult.ok -ne $true) {
-      throw "0.47 send endpoint did not accept the regression message."
+      throw "$Mode send endpoint did not accept the regression message."
     }
 
     $journalDeadline = (Get-Date).AddSeconds(30)
@@ -251,7 +251,17 @@ function Invoke-SessionCatalogUpgradeProbe {
       Start-Sleep -Milliseconds 250
     }
     if (-not (Test-Path $journalPath)) {
-      throw "0.47 did not persist the regression journal: $journalPath"
+      throw "$Mode did not persist the regression journal: $journalPath"
+    }
+
+    if ($Mode -eq "seed-visible-044") {
+      $sessions = Invoke-RestMethod -Uri "$RuntimeBaseUrl/api/ncp/sessions?limit=100" -Method Get -TimeoutSec 10
+      $matchingSessions = @($sessions.data.sessions | Where-Object { $_.sessionId -eq $sessionId })
+      if ($matchingSessions.Count -ne 1 -or [int]$matchingSessions[0].messageCount -lt 1) {
+        throw "Released 0.44 did not expose the seeded session before the direct upgrade."
+      }
+      Write-Host "[desktop-smoke] session catalog probe passed: mode=$Mode catalog=visible journal=present"
+      return
     }
 
     $errorDeadline = (Get-Date).AddSeconds(30)
