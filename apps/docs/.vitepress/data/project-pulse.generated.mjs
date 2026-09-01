@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-08-31T08:36:56.962Z",
+  "generatedAt": "2026-09-01T04:17:29.225Z",
   "hero": {
     "currentLoc": 287963,
     "testLoc": 121591,
     "trackedFiles": 3024,
-    "recentCommitCount": 595,
+    "recentCommitCount": 615,
     "activeDays30": 30,
     "recentReleaseCount": 52,
-    "latestReleaseDate": "2026-08-31",
-    "latestNoteDate": "2026-08-30",
+    "latestReleaseDate": "2026-09-01",
+    "latestNoteDate": "2026-09-01",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2706029,
     "basePercentOfBenchmark": 10.64,
@@ -16,11 +16,6 @@ export default {
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-04",
-        "label": "05-04",
-        "value": 0
-      },
       {
         "key": "2026-05-05",
         "label": "05-05",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-08-31",
         "label": "08-31",
         "value": 287963
+      },
+      {
+        "key": "2026-09-01",
+        "label": "09-01",
+        "value": 287963
       }
     ],
     "testLocDaily": [
@@ -1186,11 +1186,6 @@ export default {
     ],
     "commitDaily": [
       {
-        "key": "2026-08-02",
-        "label": "08-02",
-        "value": 1
-      },
-      {
         "key": "2026-08-03",
         "label": "08-03",
         "value": 2
@@ -1333,7 +1328,12 @@ export default {
       {
         "key": "2026-08-31",
         "label": "08-31",
-        "value": 18
+        "value": 31
+      },
+      {
+        "key": "2026-09-01",
+        "label": "09-01",
+        "value": 8
       }
     ],
     "commitWeekly": [
@@ -1395,15 +1395,10 @@ export default {
       {
         "key": "2026-08-31",
         "label": "08-31",
-        "value": 18
+        "value": 39
       }
     ],
     "releaseMonthly": [
-      {
-        "key": "2025-09",
-        "label": "09/25",
-        "value": 0
-      },
       {
         "key": "2025-10",
         "label": "10/25",
@@ -1458,6 +1453,11 @@ export default {
         "key": "2026-08",
         "label": "08/26",
         "value": 21
+      },
+      {
+        "key": "2026-09",
+        "label": "09/26",
+        "value": 1
       }
     ]
   },
@@ -1528,6 +1528,15 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-09-01",
+        "tagCount": 29,
+        "sampleTags": [
+          "@nextclaw/app-runtime@0.16.1-beta.0",
+          "@nextclaw/channel-extension-dingtalk@0.2.42-beta.1",
+          "@nextclaw/channel-extension-discord@0.2.42-beta.1"
+        ]
+      },
+      {
         "date": "2026-08-31",
         "tagCount": 27,
         "sampleTags": [
@@ -1571,20 +1580,30 @@ export default {
           "@nextclaw/channel-extension-discord@0.2.36",
           "@nextclaw/channel-extension-email@0.2.36"
         ]
-      },
-      {
-        "date": "2026-08-25",
-        "tagCount": 68,
-        "sampleTags": [
-          "v0.42.3-desktop.5",
-          "@nextclaw/channel-extension-dingtalk@0.2.34",
-          "@nextclaw/channel-extension-discord@0.2.34"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-09-01-nextclaw-v0-47-1",
+        "date": "2026-09-01",
+        "tags": [
+          "release",
+          "desktop",
+          "patch"
+        ],
+        "en": {
+          "title": "2026-09-01 · NextClaw v0.47.1",
+          "description": "Fix desktop session lists failing to load and messages failing to send.",
+          "href": "/en/notes/2026-09-01-nextclaw-v0-47-1"
+        },
+        "zh": {
+          "title": "2026-09-01 · NextClaw v0.47.1",
+          "description": "修复桌面端会话列表无法加载和消息无法发送的问题。",
+          "href": "/zh/notes/2026-09-01-nextclaw-v0-47-1"
+        }
+      },
       {
         "slug": "2026-08-30-nextclaw-v0-47-0",
         "date": "2026-08-30",
@@ -2835,7 +2854,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-08-31T08:36:54.878Z",
     "sourceCount": {
-      "notes": 61,
+      "notes": 62,
       "scopes": 8
     }
   }
