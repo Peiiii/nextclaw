@@ -2,4 +2,4 @@
 "@nextclaw/kernel": patch
 ---
 
-Restore Desktop conversations after upgrading from 0.47 by reconciling durable session journals with the SQLite conversation catalog on startup.
+Restore Windows Desktop conversations after upgrading from older releases by shipping the SQL.js compatibility asset required by legacy launchers and reconciling durable session journals with the SQLite conversation catalog on startup.

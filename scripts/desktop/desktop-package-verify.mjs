@@ -228,6 +228,7 @@ function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
   const expectedChannelExtensionPackages = JSON.stringify(channelExtensionPackages);
   const allowedRuntimeNodeModulePackageNames = JSON.stringify(resolveDesktopNativeResourcePackageNames(platform, arch));
   const requiredSqliteNativeBinaryPath = JSON.stringify(`bundle/${DESKTOP_SQLITE_NATIVE_BINARY_RELATIVE_PATH.replaceAll("\\", "/")}`);
+  const requiredSqlJsWasmPath = JSON.stringify("bundle/runtime/dist/cli/app/sql-wasm.wasm");
   const script = [
     "const JSZip=require('jszip');",
     "const fs=require('fs');",
@@ -236,6 +237,7 @@ function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
     `const expectedChannelExtensionPackages=${expectedChannelExtensionPackages};`,
     `const allowedRuntimeNodeModulePackageNames=${allowedRuntimeNodeModulePackageNames};`,
     `const requiredSqliteNativeBinaryPath=${requiredSqliteNativeBinaryPath};`,
+    `const requiredSqlJsWasmPath=${requiredSqlJsWasmPath};`,
     "function packageNameToZipPath(packageName) {",
     "  return `bundle/node_modules/${packageName}/package.json`;",
     "}",
@@ -263,6 +265,7 @@ function assertSeedBundleRuntimeShape(seedBundlePath, platform, arch) {
     "      throw new Error(`seed bundle is missing native runtime dependencies: ${missingRuntimeNodeModulePackageNames.join(', ')}`);",
     "    }",
     "    if (!zip.file(requiredSqliteNativeBinaryPath)) throw new Error(`seed bundle is missing SQLite native binary: ${requiredSqliteNativeBinaryPath}`);",
+    "    if (!zip.file(requiredSqlJsWasmPath)) throw new Error(`seed bundle is missing SQL.js WASM fallback: ${requiredSqlJsWasmPath}`);",
     "    const runtimeFiles = entries.filter((name) => name.startsWith('bundle/runtime/') && !zip.files[name].dir);",
     "    if (runtimeFiles.length > runtimeFileBudget) {",
     "      throw new Error(`seed bundle runtime file count ${runtimeFiles.length} exceeds budget ${runtimeFileBudget}: ${zipPath}`);",

@@ -10,6 +10,7 @@ param(
   [switch]$SkipExtendedProbes,
   [switch]$DisableGuardian,
   [switch]$ApplyAvailableUpdate,
+  [switch]$ExpectUpdatedRuntimeFailure,
   [int]$RemoteDebuggingPort = 0,
   [ValidateSet("none", "baseline-pre047", "seed-visible-044", "seed-broken-047", "expect-missing-048", "expect-recovered")]
   [string]$SessionCatalogUpgradeProbe = "none"
@@ -960,17 +961,31 @@ try {
         node "apps/desktop/scripts/drive-desktop-update-cdp.mjs" $RemoteDebuggingPort
         $updateDeadline = (Get-Date).AddSeconds(120)
         $updatedRuntimeBaseUrl = $null
+        $updatedRuntimeReady = $false
+        $updatedRuntimeFailure = $false
         while ((Get-Date) -lt $updateDeadline) {
           $updatedLines = @(Get-Content -Path $script:MainLog | Select-Object -Skip ($updateLogStartLine - 1))
           if ($updatedLines -match "Runtime source: bundle bundleVersion=0\.48\.0") {
             $updatedRuntimeBaseUrl = Get-DesktopRuntimeBaseUrlFromLog
             if ($updatedRuntimeBaseUrl -and (Invoke-DesktopApiProbe -RuntimeBaseUrl $updatedRuntimeBaseUrl)) {
+              $updatedRuntimeReady = $true
               break
             }
           }
+          if ((Test-Path $script:ServiceLog) -and (Select-String -Path $script:ServiceLog -Pattern "Cannot find module 'sql\.js/dist/sql-wasm\.wasm'" -Quiet)) {
+            $updatedRuntimeFailure = $true
+            break
+          }
           Start-Sleep -Seconds 1
         }
-        if (-not $updatedRuntimeBaseUrl) {
+        if ($ExpectUpdatedRuntimeFailure.IsPresent) {
+          if (-not $updatedRuntimeBaseUrl -or -not $updatedRuntimeFailure) {
+            throw "Official 0.44 to 0.48 in-app update did not reproduce the missing SQL.js WASM startup failure."
+          }
+          Write-Host "[desktop-smoke] reproduced official in-app update failure: source=0.44.1 target=0.48.0 sql-wasm=missing runtime=not-ready"
+          return
+        }
+        if (-not $updatedRuntimeBaseUrl -or -not $updatedRuntimeReady) {
           throw "Official in-app update did not restart into runtime bundle 0.48.0."
         }
         Write-Host "[desktop-smoke] official in-app update applied: bundleVersion=0.48.0 runtimeBaseUrl=$updatedRuntimeBaseUrl"

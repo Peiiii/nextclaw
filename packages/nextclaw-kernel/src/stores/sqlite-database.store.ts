@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import type { Database, SqlJsStatic, Statement } from "sql.js";
 
 export type SqliteStatement = {
@@ -76,12 +77,24 @@ async function createPortableDatabase(
     locateFile: (file: string) => string;
   }) => Promise<SqlJsStatic>;
   const sqlite = await initialize({
-    locateFile: (file) => require.resolve(`sql.js/dist/${file}`),
+    locateFile: resolveSqlJsAsset,
   });
   const database = existsSync(databasePath)
     ? new sqlite.Database(readFileSync(databasePath))
     : new sqlite.Database();
   return new PortableSqliteDatabase(databasePath, database);
+}
+
+function resolveSqlJsAsset(file: string): string {
+  try {
+    return require.resolve(`sql.js/dist/${file}`);
+  } catch (error) {
+    const bundledAssetPath = fileURLToPath(new URL(file, import.meta.url));
+    if (file === "sql-wasm.wasm" && existsSync(bundledAssetPath)) {
+      return bundledAssetPath;
+    }
+    throw error;
+  }
 }
 
 class PortableSqliteDatabase {

@@ -334,8 +334,9 @@ jobs:
           $released048Exe = Get-ReleasedDesktopExecutable "v0.48.0-desktop.1" "NextClaw.Desktop-0.0.279-win32-x64-unpacked.zip"
           $candidateExe = (Resolve-Path "apps/desktop/release/win-unpacked/NextClaw Desktop.exe").Path
 
-          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $released044Exe -StartupTimeoutSec 120 -MaxReadySec 30 -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "seed-visible-044" -ApplyAvailableUpdate -RemoteDebuggingPort 9223
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $released044Exe -StartupTimeoutSec 120 -MaxReadySec 30 -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "seed-visible-044" -ApplyAvailableUpdate -ExpectUpdatedRuntimeFailure -RemoteDebuggingPort 9223
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $candidateExe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "expect-recovered"
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $released044Exe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "expect-recovered"
 
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $pre047Exe -StartupTimeoutSec 120 -MaxReadySec 30 -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "baseline-pre047"
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $broken047Exe -StartupTimeoutSec 120 -MaxReadySec 30 -ReuseSmokeHome -DisableGuardian -SkipExtendedProbes -SessionCatalogUpgradeProbe "seed-broken-047"

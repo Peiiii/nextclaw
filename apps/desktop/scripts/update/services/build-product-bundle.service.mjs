@@ -14,6 +14,7 @@ import {
 const desktopDir = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
 const nextclawCorePackageRoot = resolve(workspaceRoot, "packages", "nextclaw-core");
+const nextclawKernelPackageRoot = resolve(workspaceRoot, "packages", "nextclaw-kernel");
 const nextclawAppRuntimePackageRoot = resolve(workspaceRoot, "packages", "nextclaw-app-runtime");
 const nextclawPackageRoot = resolve(workspaceRoot, "packages", "nextclaw");
 const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
@@ -212,6 +213,10 @@ async function copyRuntimeAssets(workspace) {
       { recursive: true }
     ),
     cp(join(nextclawPackageRoot, "bridge"), join(workspace.runtimeRoot, "bridge"), { recursive: true }),
+    cp(
+      join(nextclawKernelPackageRoot, "node_modules", "sql.js", "dist", "sql-wasm.wasm"),
+      join(workspace.runtimeEntrypointDir, "sql-wasm.wasm")
+    ),
     writeFile(join(workspace.runtimeRoot, "package.json"), readFileSync(nextclawPackageJsonPath, "utf8"), "utf8")
   ]);
 }
@@ -363,6 +368,7 @@ function assertRuntimeBundleContract(
   const requiredFiles = [
     "dist/cli/app/index.js",
     "dist/cli/app/index.mjs",
+    "dist/cli/app/sql-wasm.wasm",
     `dist/cli/app/${SESSION_SEARCH_WORKER_RELATIVE_PATH}`,
     "dist/cli/app/skills/nextclaw-self-manage/SKILL.md",
     "dist/resources/wit/portable-service.wit",
