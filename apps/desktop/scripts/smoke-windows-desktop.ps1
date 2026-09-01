@@ -983,6 +983,7 @@ try {
             throw "Official 0.44 to 0.48 in-app update did not reproduce the missing SQL.js WASM startup failure."
           }
           Write-Host "[desktop-smoke] reproduced official in-app update failure: source=0.44.1 target=0.48.0 sql-wasm=missing runtime=not-ready"
+          $desktopRootPid = Get-DesktopRootProcessIdFromLog
           return
         }
         if (-not $updatedRuntimeBaseUrl -or -not $updatedRuntimeReady) {

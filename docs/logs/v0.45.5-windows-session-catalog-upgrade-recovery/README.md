@@ -2,9 +2,10 @@
 
 ## 迭代完成说明
 
-- 根因：Windows Desktop 0.47.0 会先把会话事件写入 JSONL journal 和消息 projection，再因 `node:sqlite` 严格命名参数绑定拒绝多余的 `deleted_at`，导致 SQLite catalog 缺少新会话或保留陈旧摘要。0.48.0 修复了后续事件写入，但启动初始化把 `migration_complete` 错当成 catalog 永久完整的证明，直接跳过 journal reconciliation，因此从旧版经过 0.47 再升级到 0.48 的用户仍可能看到空列表。
+- 根因一：Windows Desktop 0.47.0 会先把会话事件写入 JSONL journal 和消息 projection，再因 `node:sqlite` 严格命名参数绑定拒绝多余的 `deleted_at`，导致 SQLite catalog 缺少新会话或保留陈旧摘要。0.48.0 修复了后续事件写入，但启动初始化把 `migration_complete` 错当成 catalog 永久完整的证明，直接跳过 journal reconciliation，因此从旧版经过 0.47 再升级到 0.48 的用户仍可能看到空列表。
+- 根因二：从官方 0.44.1 桌面端点击升级到官方 0.48.0 时，旧外壳使用 Node 20 启动下载的 0.48 runtime；该运行时会走 SQL.js 兼容路径，但 product bundle 没有包含 `sql-wasm.wasm`。NCP agent 因 `Cannot find module 'sql.js/dist/sql-wasm.wasm'` 无法 ready，最终整个 runtime 被外壳停止，所以会话接口拒绝连接、列表无法加载且消息无法发送。
 - 确认方式：构造“空 catalog 已完成迁移，随后出现持久 journal”的真实 SQLite 状态；修复前升级实例返回空列表，复现与 Windows 用户反馈一致。
-- 根因修复：每次 kernel 启动都使用现有轻量 journal summary 与 catalog 对账，补回缺失或陈旧记录；删除墓碑继续优先，残留 journal 不会复活已删除会话。UPSERT 只在字段确有差异时更新，避免正常启动产生整库 WAL 写放大。
+- 根因修复：Desktop product bundle 明确携带 SQL.js WASM，并让兼容数据库 owner 在包解析失败时定位同目录 bundle 资产；每次 kernel 启动还会使用现有轻量 journal summary 与 catalog 对账，补回缺失或陈旧记录。删除墓碑继续优先，残留 journal 不会复活已删除会话；UPSERT 只在字段确有差异时更新，避免正常启动产生整库 WAL 写放大。
 - Windows Desktop CI 新增升级恢复门禁，打包前在 Windows Node 上执行迁移后孤立 journal、删除墓碑和严格 SQLite 命名参数测试。
 
 ## 测试/验证/验收方式
