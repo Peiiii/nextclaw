@@ -42,6 +42,16 @@ nextclaw app rollback <app-id> --version <installed-version> --json
 
 ## Marketplace 与发布检查
 
-提交 Marketplace 前运行 `validate-publish`。它会检查应用和声明的产物结构，但不能替代你自己的 `app test`。稳定 Runtime 渠道还会在支持的平台矩阵中检查 Portable Runtime 和参考应用，全部通过后才会接受发布。
+提交 Marketplace 前运行 `validate-publish`。它会检查应用和声明的产物结构，但不能替代你自己的 `app test`。WASI Service App 必须同时使用 `runtime.profile: "wasi"`、Service 的 `protocol: "wasi-component"`、指向 `.wasm` 文件的 `component.entry`，以及 `distribution.mode: "universal"`。Marketplace 会再次检查这些声明和实际 Component 产物，组合不一致时拒绝提交。
+
+```bash
+nextclaw app publish . --json
+nextclaw app marketplace info <app-id> --json
+nextclaw app install <app-id> --json
+nextclaw app operations --json
+nextclaw app enable <app-id> --json
+```
+
+个人提交先进入审核；审核通过并公开后，其他用户可以按 App ID 从 Registry 下载并安装同一份通用产物。安装完成后仍需显式启用。稳定 Runtime 渠道还会在支持的平台矩阵中检查 Portable Runtime 和参考应用，全部通过后才会接受发布。
 
 一个公开仓库可自包含运行的真实例子见 [GitHub Issue Watcher](/zh/guide/service-apps-github-issue-watcher)。

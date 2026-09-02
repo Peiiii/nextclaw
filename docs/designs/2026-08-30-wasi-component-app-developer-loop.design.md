@@ -98,6 +98,22 @@ Portable Runtime 的错误分类归 Kernel runtime owner，CLI、HTTP 与 Panel 
 
 每次 Action 结果附带 action/component、耗时与 runner 内存快照；Guest 日志作为有界结构化记录随失败诊断返回。普通用户看到解释与修复建议，`--json` 保留稳定字段供 Agent、脚本和 CI 判断。
 
+### 3.7 Marketplace 分发与公共合同传播
+
+NC-165 证明原设计把开发者闭环停在了本地 artifact：`runtime.profile: "wasi"` 已进入 App Runtime、模板和 CLI，但 Marketplace 的发布解析与公开目录准入仍按 `native-process` 的旧闭集判断，导致本地校验通过后才被远端拒绝。这属于同一能力面的分发缺口，不是第二套 Marketplace，也不能由客户端提前复制远端策略来掩盖。
+
+`@nextclaw/app-runtime` 继续拥有 schema v2 包、runtime profile、Service protocol、Component entry 和 artifact 完整性的公共合同。Marketplace 只补充它独有的发布身份、审核、目录可见性和存储策略，并复用共享 artifact validator 验证上传 bundle。新增或扩展公开 schema variant 时，设计必须列出其传播矩阵，至少核对 producer、parser/validator、序列化与持久化、目录/索引、分发与下载、安装/升级、启用与最终 runtime consumer；某一环节不适用时写明依据，不能因类型 union 已编译或本地入口已通过就宣称能力完整。
+
+WASI Service 的组合合同冻结为：
+
+- 根 manifest 必须是 schema v2、`runtime.profile: "wasi"`、`distribution.mode: "universal"`，并包含至少一个 Service component；
+- 每个 Service component 都必须声明 `protocol: "wasi-component"` 与安全的 package-relative `.wasm` `component.entry`，artifact 必须真实包含该文件并通过 bundle path/checksum/identity 校验；
+- `wasi` 不隐式获得 `nativeProcess` 权限；manifest 声明的宿主能力继续进入审核与安装授权摘要；
+- 个人发布先进入 `pending`，审核后可进入现有公开 App catalog；官方与个人 scope 都走同一 runtime 合同，不靠 scope 绕过错误声明；
+- Registry 下载、全新目录安装、显式 enable 和至少一个真实 Service Action 调用必须消费同一已审核 artifact，不能用本地原始目录替代发布后的包。
+
+`native-process` 与 `panel-only` 的既有行为保持不变；根 profile 与组件协议不一致、缺少 Component、把 native Service 伪装成 `wasi`、或把 WASI 包声明成 targeted distribution 都应在写入 Marketplace 存储前明确失败。
+
 ## 四、兼容与失败边界
 
 - 现有 `app check/dev/call <service-dir>` 完全保留；包根目录是新增等价入口。
@@ -142,10 +158,12 @@ Portable Runtime 的错误分类归 Kernel runtime owner，CLI、HTTP 与 Panel 
 6. 正式产品链：启动真实 HTTP host，安装生成包、POST enable、通过正式 HTTP Service Action 调用并读回数据；失败响应仍为 JSON，宿主 PID 不退出；
 7. 发布门：正式 NPM 产物必须能创建并构建该模板；Linux published-runtime smoke 覆盖创建/构建/检查/测试/安装/启用/调用，不再只检查 runner 文件或直接调用单一内置 Component；
 8. 合同与诊断：破坏 WIT 版本、删掉 Guest export、越权访问、制造 trap 和输入 schema 错误时，CLI/HTTP 返回对应稳定错误码；Action 声明不一致在 check/pack 阶段失败。
+9. Marketplace 正向链：从真实 Rust/WASI App 执行 publish，服务端完成共享 artifact 校验并进入 pending/review；审核后通过 Registry 下载，在空白 `NEXTCLAW_HOME` 安装、enable，并调用 Action 读回持久数据。
+10. Marketplace 反向链：分别拒绝 profile/protocol 不一致、缺失或越界 `.wasm` entry、缺文件/坏 checksum、WASI targeted distribution；同时回归 panel-only 与 native-process 的发布和目录资格。
 
 ## 七、非目标
 
-- 不把 WASI 变成新的 App 类型或第二套 Marketplace；
+- 不把 WASI 变成新的 App 类型或第二套 Marketplace；它必须完整接入现有 Marketplace/Registry 主链；
 - 不承诺把 FastAPI/Python 项目直接编译为该 Component；
 - 不在本轮增加 Docker/POSIX、任意系统调用或 Native Provider；
 - 不为了一个样例自动吞掉组件 ID 冲突、权限拒绝或生命周期错误；

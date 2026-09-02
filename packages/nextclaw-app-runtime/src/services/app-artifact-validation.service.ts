@@ -1,4 +1,5 @@
 import { strFromU8, unzipSync } from "fflate";
+import { AppComponentContractService } from "#app-runtime/services/app-component-contract.service.js";
 import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
 import { AppServiceLaunchService } from "#app-runtime/services/app-service-launch.service.js";
 import type { AppArtifactTarget } from "#app-runtime/types/app-manifest.types.js";
@@ -31,6 +32,8 @@ type ArtifactManifestIdentity = {
   main?: unknown;
   ui?: unknown;
   components?: unknown;
+  runtime?: unknown;
+  distribution?: unknown;
 };
 
 export type AppArtifactValidationExpectation = {
@@ -57,6 +60,9 @@ type ZipCentralEntry = {
 
 export class AppArtifactValidationService {
   private readonly platformTargetService = new AppPlatformTargetService();
+  private readonly componentContractService = new AppComponentContractService(
+    this.platformTargetService,
+  );
   private readonly serviceLaunchService = new AppServiceLaunchService(
     this.platformTargetService,
   );
@@ -407,36 +413,12 @@ export class AppArtifactValidationService {
       throw new Error("bundle metadata 与 manifest.json 身份不一致。");
     }
     if (identity.schemaVersion === 2) {
-      if (metadata.distributionMode !== "bundle") {
-        throw new Error("schema v2 组合包只支持 bundle 分发。");
-      }
-      if (
-        !Array.isArray(identity.components) ||
-        identity.components.length === 0
-      ) {
-        throw new Error("schema v2 manifest.components 必须是非空数组。");
-      }
-      for (const [index, rawComponent] of identity.components.entries()) {
-        if (!this.isRecord(rawComponent)) {
-          throw new Error(`manifest.components[${index}] 必须是对象。`);
-        }
-        const kind = rawComponent.kind;
-        const componentPath = rawComponent.path;
-        if (
-          (kind !== "panel" && kind !== "service") ||
-          typeof componentPath !== "string"
-        ) {
-          throw new Error(`manifest.components[${index}] 无效。`);
-        }
-        const normalizedPath = this.normalizeEntry(componentPath);
-        const manifestPath = `${normalizedPath}/${kind === "panel" ? "panel-app.json" : "service-app.json"}`;
-        if (!archive[manifestPath]) {
-          throw new Error(`bundle 缺少组件 manifest：${manifestPath}`);
-        }
-      }
-      if (!archive["marketplace.json"]) {
-        throw new Error("schema v2 bundle 缺少 marketplace.json。");
-      }
+      this.componentContractService.assertArtifact({
+        archive,
+        identity,
+        manifest,
+        distributionMode: metadata.distributionMode,
+      });
     } else if (identity.schemaVersion === 1) {
       this.assertStandaloneEntry(archive, identity.main, "main.entry");
       this.assertStandaloneEntry(archive, identity.ui, "ui.entry");

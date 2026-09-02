@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { AppBundleService } from "@nextclaw/app-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MarketplaceAppArtifactValidationService } from "../marketplace-app-artifact-validation.service";
-import { MarketplaceAppPayloadParser } from "../marketplace-app-payload.service";
+import { MarketplaceAppArtifactValidationService } from "@/infrastructure/apps/marketplace-app-artifact-validation.service";
+import { MarketplaceAppPayloadParser } from "@/infrastructure/apps/marketplace-app-payload.service";
 import { MarketplaceAppReleaseArtifactService } from "./marketplace-app-release-artifact.service";
 
 describe("MarketplaceAppReleaseArtifactService", () => {
@@ -111,5 +111,56 @@ describe("MarketplaceAppReleaseArtifactService", () => {
       input,
       input.artifacts![0],
     )).resolves.toBeUndefined();
+  });
+
+  it("accepts and stores a universal WASI component bundle", async () => {
+    const workspaceDirectory = await mkdtemp(path.join(tmpdir(), "marketplace-wasi-artifact-"));
+    cleanupPaths.push(workspaceDirectory);
+    const appDirectory = path.resolve(
+      import.meta.dirname,
+      "../../../../../../packages/nextclaw/resources/apps/nextclaw-github-issue-watcher",
+    );
+    const bundlePath = path.join(workspaceDirectory, "github-issue-watcher.napp");
+    const manifest = JSON.parse(
+      await readFile(path.join(appDirectory, "manifest.json"), "utf-8"),
+    ) as Record<string, unknown>;
+    await new AppBundleService().packAppDirectory({ appDirectory, outputPath: bundlePath });
+    const bytes = new Uint8Array(await readFile(bundlePath));
+    const bundleSha256 = createHash("sha256").update(bytes).digest("hex");
+    const parser = new MarketplaceAppPayloadParser();
+    const input = parser.parsePublishInput({
+      slug: "github-issue-watcher",
+      appId: manifest.id,
+      name: manifest.name,
+      version: manifest.version,
+      summary: "GitHub issue watcher",
+      summaryI18n: { en: "GitHub issue watcher" },
+      author: "NextClaw",
+      tags: ["github"],
+      featured: false,
+      publisher: { id: "nextclaw", name: "NextClaw" },
+      manifest,
+      permissions: (manifest.permissions as Record<string, unknown> | undefined) ?? {},
+      distributionMode: "bundle",
+      files: [{ path: "marketplace.json", contentBase64: "e30=" }],
+      bundleBase64: Buffer.from(bytes).toString("base64"),
+      bundleSha256,
+    });
+    const putBundle = vi.fn().mockResolvedValue({
+      storageKey: "apps/nextclaw.github-issue-watcher/0.1.0.napp",
+      sha256: bundleSha256,
+      sizeBytes: bytes.byteLength,
+    });
+    const service = new MarketplaceAppReleaseArtifactService(
+      parser,
+      new MarketplaceAppArtifactValidationService(),
+      { putBundle } as never,
+    );
+
+    const result = await service.prepare(input, () => undefined);
+
+    expect(result.releaseSha256).toBe(bundleSha256);
+    expect(result.artifacts).toEqual([]);
+    expect(putBundle).toHaveBeenCalledOnce();
   });
 });

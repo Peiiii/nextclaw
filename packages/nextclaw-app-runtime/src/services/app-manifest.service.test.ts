@@ -97,7 +97,9 @@ describe("AppManifestService", () => {
       await rm(appDirectory, { recursive: true, force: true });
     }
   });
+});
 
+describe("AppManifestService WASI contract", () => {
   it("accepts a schema v2 WASI Service package as host-mediated", async () => {
     const appDirectory = await createComponentPackage();
     try {
@@ -105,7 +107,26 @@ describe("AppManifestService", () => {
       const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
       await writeFile(
         manifestPath,
-        JSON.stringify({ ...manifest, runtime: { profile: "wasi" } }),
+        JSON.stringify({
+          ...manifest,
+          runtime: { profile: "wasi" },
+          distribution: { mode: "universal" },
+        }),
+      );
+      await writeFile(
+        path.join(
+          appDirectory,
+          "services",
+          "nextclaw-personal-organizer-data",
+          "service-app.json",
+        ),
+        JSON.stringify({
+          id: "nextclaw-personal-organizer-data",
+          title: "Personal Organizer Data",
+          protocol: "wasi-component",
+          component: { entry: "service.wasm" },
+          actions: { "todo-list": { risk: "read" } },
+        }),
       );
 
       const service = new AppManifestService();
@@ -124,6 +145,42 @@ describe("AppManifestService", () => {
     }
   });
 
+  it("rejects WASI packages with native Service protocols or targeted distribution", async () => {
+    const appDirectory = await createComponentPackage();
+    try {
+      const manifestPath = path.join(appDirectory, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          ...manifest,
+          runtime: { profile: "wasi" },
+          distribution: { mode: "universal" },
+        }),
+      );
+      await expect(new AppManifestService().load(appDirectory))
+        .rejects.toThrow("必须使用 wasi-component");
+
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          ...manifest,
+          runtime: { profile: "wasi" },
+          distribution: {
+            mode: "targeted",
+            targets: [{ kind: "native", os: "darwin", arch: "arm64" }],
+          },
+        }),
+      );
+      await expect(new AppManifestService().load(appDirectory))
+        .rejects.toThrow("只支持 distribution.mode=universal");
+    } finally {
+      await rm(appDirectory, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("AppManifestService component packages", () => {
   it("rejects overlapping schema v2 component paths", async () => {
     const appDirectory = await createComponentPackage();
     try {

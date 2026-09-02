@@ -33,7 +33,7 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 ### L3：跨边界与高影响
 
 - tsc、targeted lint 和相关定向测试必需。
-- 增加 assembled boundary test 或真实链路冒烟；两者都跑时必须分别证明不同风险。
+- 增加 assembled boundary test 或真实链路冒烟；两者都跑时分别证明不同风险。公开闭集 variant 同时读取[合同变体传播验证](references/public-contract-variant-validation.md)。
 - 只有影响面确实扩大时才增加 package/full regression。
 - HTTP/API/transport 变更应在组装后的真实边界断言精确 contract，不只检查状态码或方法被调用。
 
