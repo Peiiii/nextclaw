@@ -21,9 +21,9 @@
 
 - Marketplace Worker 使用仓库既有入口 `pnpm -C workers/marketplace-api run deploy` 部署。
 - Worker 已部署到 `marketplace-api.nextclaw.io` / `apps-registry.nextclaw.io`，Version ID 为 `0602c585-d219-4dd8-a460-ad689695083d`，上传与部署耗时 13.09 秒。
-- 官方 `nextclaw.github-issue-watcher@0.1.0` 已通过真实 CLI 发布并进入公开 Catalog/Registry；生产 bundle SHA-256 为 `b5f23b2dbfab1c158d76f7824e82f6b7943b0445f3232c27632b981ec958227e`。
+- 官方 `nextclaw.github-issue-watcher@0.1.0` 曾通过真实 CLI 发布并进入 Catalog/Registry，生产 bundle SHA-256 为 `b5f23b2dbfab1c158d76f7824e82f6b7943b0445f3232c27632b981ec958227e`；因正式 runtime action 未通过，收尾时已改为 `rejected/unlisted`，没有把不可运行条目留给用户。
 - 唯一个人验收 App 完成 `404 -> pending -> 审核 published/listed -> Registry/Catalog -> 冷安装 5/5`，随后已审核为 `rejected/unlisted`；Registry 恢复 404、Catalog 0 条，不保留公开测试项。
-- 生产安装后使用正式 `0.48.1` runtime runner 启用成功，但 action 暴露既有 runner 缺陷：`spin-key-value` 在单线程 runtime 调用 blocking 时 panic，外层表现为 7 秒预算超时。该 runner 不在本次 diff；Marketplace 生产发布、分发和安装闭环成立，action/persistence 继续由部署前同一冻结代码的隔离全链路证据覆盖，不能把本次生产 action 写成通过。
+- 生产安装后使用正式 `0.48.1` runtime runner 启用成功，但 action 暴露既有 runner 缺陷：`spin-key-value` 在单线程 runtime 调用 blocking 时 panic，外层表现为 7 秒预算超时。该 runner 不在本次 diff；Marketplace 生产发布、分发和安装闭环成立，action/persistence 继续由部署前同一冻结代码的隔离全链路证据覆盖，不能把本次生产 action 写成通过。官方与个人验收 App 均已退出公开面，最终 Registry 为 404、Catalog 匹配数为 0。
 - 本次不发布 NextClaw NPM、runtime channel 或 Desktop；app-runtime 用户可见变化由 changeset 进入后续统一稳定版。
 
 `AUTOMATION_INTERVENTIONS: 1`。人工介入点是用户阻止在 runner 未变化时继续全量 Rust 重建；根因是验证流程只检查默认路径，没有先盘点已安装 runtime bundle 与发布缓存。已在 `development-validation/references/runtime-instance-validation.md` 增加通用产物复用门：核对平台、权限和 protocol/version 后优先复用，只有不存在兼容产物或打包本身是验收对象才重建。
