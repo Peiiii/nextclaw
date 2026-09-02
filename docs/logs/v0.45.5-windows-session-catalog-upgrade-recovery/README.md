@@ -7,6 +7,7 @@
 - 确认方式：构造“空 catalog 已完成迁移，随后出现持久 journal”的真实 SQLite 状态；修复前升级实例返回空列表，复现与 Windows 用户反馈一致。
 - 根因修复：Desktop product bundle 明确携带 SQL.js WASM，并让兼容数据库 owner 在包解析失败时定位同目录 bundle 资产；每次 kernel 启动还会使用现有轻量 journal summary 与 catalog 对账，补回缺失或陈旧记录。删除墓碑继续优先，残留 journal 不会复活已删除会话；UPSERT 只在字段确有差异时更新，避免正常启动产生整库 WAL 写放大。
 - Windows Desktop CI 新增升级恢复门禁，打包前在 Windows Node 上执行迁移后孤立 journal、删除墓碑和严格 SQLite 命名参数测试。
+- 同批次防复发治理：新增 `desktop-runtime-assets-v1` 资源声明合同，把 UI、templates、resources、bridge、WASM、worker/chunks、skills 和原生依赖的 source/target/平台条件收敛到一个 owner；构建复制与最终 ZIP 验证共享该合同，manifest 携带逐文件大小与 SHA-256 inventory，缺失、额外或被篡改的归档直接阻断构建/CI，不再依赖两份容易漂移的手写资源名单。
 
 ## 测试/验证/验收方式
 
@@ -20,12 +21,15 @@
 - Windows 2025 实机 CI `33543765684`（提交 `f905313a5`）进一步闭合用户报告的直接升级路径：官方 0.44.1 Desktop renderer 通过产品 API 下载并应用固定的官方 0.48.0 manifest，随后精确命中 `sql-wasm=missing runtime=not-ready`；候选 EXE 接管同一 home 后返回 `catalog=recovered messages=2`，再由原版 0.44.1 外壳启动候选 bundle 仍返回相同恢复结果。该 run 同时复验 0.47 → 0.48 catalog 缺失链路、候选 EXE 和 Windows Portable，全部通过。
 - 主干 `desktop-validate` CI `33546199597`（提交 `601ee5d4b`）在 macOS、Windows 和 Linux 全部通过；Windows job `99984183233` 固定复现官方 0.44.1 → 0.48.0 的缺失 WASM 故障，并验证候选 runtime 在同一 home 和原版 0.44.1 外壳下恢复会话与消息。
 - 正式 Desktop 发布 CI `33551958945`（发布提交 `5da5c3052`）通过 Windows x64/arm64、macOS x64/arm64 和 Linux x64 的构建、安装与实包冒烟；公开 Windows x64 bundle 反查确认包含 `bundle/runtime/dist/cli/app/sql-wasm.wasm`。
+- 统一资源合同定向测试 5/5 通过，覆盖 file/tree/pattern/prepared-tree、Windows x64 专属资产与原生包规则，以及缺失、额外、篡改、目标错配、声明漂移、越界、冲突和空 pattern 失败路径。
+- 统一资源合同的 macOS arm64 完整实包复验通过：最终 seed ZIP 为 45.8 MB，runtime 493/520 文件、11 个 extensions、54 个 plugin files、6 个精确 native packages；随后 runtime init、DMG 安装启动、`/chat` 加载和 bootstrap readiness 均成功。该合同提交对应的 Windows/macOS/Linux runner 结果在合入前单独刷新，不复用此前发布 run 冒充新证据。
 
 ## 发布/部署方式
 
 - 通过主干 `desktop-validate` 的 Windows job 验证真实 Windows Node 行为。
 - 验证通过后按稳定补丁发布流程统一发布 NPM、Runtime channel 与 Desktop stable bundle；不要求用户手工删除数据库或迁移文件。
 - 当前状态：NextClaw `0.48.1` 与 Desktop `v0.48.1-desktop.1` 已稳定发布；NPM、四平台 Runtime、五平台 Desktop、稳定升级 manifest 和 Linux APT 均完成发布与反查。
+- 资源合同属于内部发布防线，不改变 0.48.1 的用户可见修复或 bundle 路径协议；合入后由后续每次 Desktop 构建和发布自动执行，无需为该治理改动单独发布新安装包。
 
 ## 用户/产品视角的验收步骤
 
@@ -41,6 +45,7 @@
 - 启动扫描优先读取轻量 projection；SQL conflict update 增加 null-safe 差异条件，正常记录不产生无意义重写。
 - diff-only maintainability 检查 0 error；唯一 warning 为 `ncp-agent-session-summary-index.store.ts` 当前 388 行、接近 400 行预算。本次非测试代码净增集中在同一 SQLite owner，未达到拆分阈值。
 - 新增 changeset 与迭代路径通过 planned-path preflight；现有设计文档同步补充升级恢复合同。
+- 同批次资源治理删除 build service 和 package verifier 的专用复制/验证名单，统一由 config + executor/verifier owner 消费。最终 Review 为 no findings，新代码治理全通过；自动检查仅提示共享 utils 为 407/500 行、package verifier 为 495/500 行，后者已由 573 行下降，当前继续拆分会增加跨文件跳转而没有新变化轴。
 
 ## 红区触达与减债记录
 
@@ -55,3 +60,4 @@
 - `@nextclaw/kernel@0.15.1`：patch，修复 Desktop 升级后的会话目录恢复，已随 NextClaw `0.48.1` 发布。
 - `nextclaw@0.48.1`：已发布并设为 NPM `latest`；Windows、Linux、macOS x64/arm64 的 Node 20/22/24/26 兼容矩阵全部通过。
 - `v0.48.1-desktop.1`：已发布为 Latest Desktop Release，包含 Desktop `0.0.280` 的 Windows、macOS、Linux 安装与便携资产，以及五个平台的签名 product bundle 和 stable manifest。
+- 本次统一资源合同治理：不涉及 NPM 包发布，也不单独触发 Desktop 版本发布；它保护后续所有 Desktop product bundle 构建。
