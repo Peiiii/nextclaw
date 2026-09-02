@@ -222,7 +222,7 @@ export function assessAppPublicListing(params: {
     : undefined;
   const runtimeProfile = explicitProfile ?? (hasService ? "native-process" : "panel-only");
   if (
-    (hasService && runtimeProfile !== "native-process") ||
+    (hasService && runtimeProfile !== "native-process" && runtimeProfile !== "wasi") ||
     (!hasService && runtimeProfile !== "panel-only")
   ) {
     return { eligible: false, reason: "invalid-runtime" };
@@ -230,9 +230,12 @@ export function assessAppPublicListing(params: {
   if (normalizeScope(params.ownerScope) === "nextclaw") {
     return { eligible: true, reason: "official-scope" };
   }
-  return hasService
-    ? { eligible: true, reason: "community-native-process" }
-    : { eligible: true, reason: "panel-only" };
+  if (!hasService) {
+    return { eligible: true, reason: "panel-only" };
+  }
+  return runtimeProfile === "wasi"
+    ? { eligible: true, reason: "community-wasi" }
+    : { eligible: true, reason: "community-native-process" };
 }
 
 export function resolveAppReviewCatalogVisibility(

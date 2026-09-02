@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { MarketplaceSkillPublishActor } from "@/infrastructure/skills/d1-section-types";
 import { D1MarketplaceAppDataSource } from "@/infrastructure/apps/d1-marketplace-app.repository";
 import {
+  assessAppPublicListing,
   assertAppVersionCanBeReplaced,
   assertAppCanBePubliclyListed,
   assertPersonalPublishedAppIsImmutable,
@@ -120,15 +121,15 @@ describe("assertAppCanBePubliclyListed", () => {
     })).not.toThrow();
   });
 
-  it("does not let a WASI profile label hide a community Service App", () => {
-    expect(() => assertAppCanBePubliclyListed({
+  it("allows community WASI Service Apps into the reviewed catalog", () => {
+    expect(assessAppPublicListing({
       ownerScope: "peiwang",
       manifestJson: JSON.stringify({
         schemaVersion: 2,
         runtime: { profile: "wasi" },
         components: [{ kind: "service", path: "services/notes" }],
       }),
-    })).toThrow("runtime declaration does not match");
+    })).toEqual({ eligible: true, reason: "community-wasi" });
   });
 
   it("allows official native process apps while keeping the risk visible", () => {

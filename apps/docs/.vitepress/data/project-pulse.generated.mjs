@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-01T07:45:51.874Z",
+  "generatedAt": "2026-09-02T07:04:25.732Z",
   "hero": {
-    "currentLoc": 292798,
-    "testLoc": 122432,
+    "currentLoc": 292814,
+    "testLoc": 122467,
     "trackedFiles": 3044,
-    "recentCommitCount": 621,
+    "recentCommitCount": 639,
     "activeDays30": 30,
-    "recentReleaseCount": 52,
+    "recentReleaseCount": 51,
     "latestReleaseDate": "2026-09-01",
-    "latestNoteDate": "2026-09-01",
+    "latestNoteDate": "2026-09-02",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2721815,
-    "basePercentOfBenchmark": 10.76,
-    "lighterByPercent": 89.24
+    "benchmarkCodeLines": 2737549,
+    "basePercentOfBenchmark": 10.7,
+    "lighterByPercent": 89.3
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-05",
-        "label": "05-05",
-        "value": 0
-      },
       {
         "key": "2026-05-06",
         "label": "05-06",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-01",
         "label": "09-01",
         "value": 292798
+      },
+      {
+        "key": "2026-09-02",
+        "label": "09-02",
+        "value": 292814
       }
     ],
     "testLocDaily": [
@@ -1187,14 +1187,14 @@ export default {
         "key": "2026-09-01",
         "label": "09-01",
         "value": 122432
+      },
+      {
+        "key": "2026-09-02",
+        "label": "09-02",
+        "value": 122467
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-03",
-        "label": "08-03",
-        "value": 2
-      },
       {
         "key": "2026-08-04",
         "label": "08-04",
@@ -1338,7 +1338,12 @@ export default {
       {
         "key": "2026-09-01",
         "label": "09-01",
-        "value": 14
+        "value": 16
+      },
+      {
+        "key": "2026-09-02",
+        "label": "09-02",
+        "value": 18
       }
     ],
     "commitWeekly": [
@@ -1400,7 +1405,7 @@ export default {
       {
         "key": "2026-08-31",
         "label": "08-31",
-        "value": 45
+        "value": 65
       }
     ],
     "releaseMonthly": [
@@ -1477,8 +1482,8 @@ export default {
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 47905,
-        "testCodeLines": 24269,
+        "codeLines": 47921,
+        "testCodeLines": 24304,
         "files": 441,
         "sharePercent": 16.4
       },
@@ -1527,14 +1532,14 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2721815,
-      "basePercentOfBenchmark": 10.76,
-      "lighterByPercent": 89.24
+      "benchmarkCodeLines": 2737549,
+      "basePercentOfBenchmark": 10.7,
+      "lighterByPercent": 89.3
     },
     "recentReleaseBatches": [
       {
         "date": "2026-09-01",
-        "tagCount": 62,
+        "tagCount": 72,
         "sampleTags": [
           "@nextclaw/app-runtime@0.16.1-beta.0",
           "@nextclaw/channel-extension-dingtalk@0.2.42-beta.1",
@@ -1590,6 +1595,23 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-09-02-nextclaw-v0-48-1",
+        "date": "2026-09-02",
+        "tags": [
+          "Windows, Desktop, session recovery"
+        ],
+        "en": {
+          "title": "2026-09-02 · NextClaw v0.48.1",
+          "description": "Fixes Windows Desktop upgrades to v0.48.0 that could prevent sessions from loading and messages from sending.",
+          "href": "/en/notes/2026-09-02-nextclaw-v0-48-1"
+        },
+        "zh": {
+          "title": "2026-09-02 · NextClaw v0.48.1",
+          "description": "修复 Windows 桌面端从旧版升级到 v0.48.0 后，会话列表无法加载、消息无法发送的问题。",
+          "href": "/zh/notes/2026-09-02-nextclaw-v0-48-1"
+        }
+      },
       {
         "slug": "2026-09-01-nextclaw-v0-48-0",
         "date": "2026-09-01",
@@ -2857,9 +2879,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-01T07:45:49.852Z",
+    "locGeneratedAt": "2026-09-02T07:04:23.739Z",
     "sourceCount": {
-      "notes": 62,
+      "notes": 63,
       "scopes": 8
     }
   }

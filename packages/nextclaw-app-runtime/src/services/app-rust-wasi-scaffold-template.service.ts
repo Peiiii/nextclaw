@@ -2,10 +2,6 @@ import { readFileSync } from "node:fs";
 import type { AppScaffoldFile } from "./app-ts-http-scaffold-template.service.js";
 
 const RUST_WASI_GUEST_CRATE_NAME = "nextclaw-rust-wasi-guest";
-const PORTABLE_SERVICE_WIT = readFileSync(
-  new URL("../../resources/wit/portable-service.wit", import.meta.url),
-  "utf8",
-);
 const STANDARD_PORTABLE_WIT_FILES = [
   "deps/http@0.2.6/package.wit",
   "deps/http@0.2.6/handler.wit",
@@ -23,14 +19,6 @@ const STANDARD_PORTABLE_WIT_FILES = [
   "deps/spin@2.0.0/package.wit",
   "deps/spin@2.0.0/sqlite.wit",
 ] as const;
-const STANDARD_PORTABLE_WIT_DEPS: AppScaffoldFile[] = STANDARD_PORTABLE_WIT_FILES.map((relativePath) => ({
-  relativePath: `guest/wit/${relativePath}`,
-  content: readFileSync(new URL(`../../resources/wit/${relativePath}`, import.meta.url), "utf8"),
-}));
-const RUST_WASI_CARGO_LOCK = readFileSync(
-  new URL("../../resources/rust-wasi/Cargo.lock", import.meta.url),
-  "utf8",
-);
 
 export class AppRustWasiScaffoldTemplateService {
   buildFiles = (params: { appId: string; appName: string }): AppScaffoldFile[] => {
@@ -59,10 +47,16 @@ export class AppRustWasiScaffoldTemplateService {
         content: `${JSON.stringify(this.buildServiceManifest(serviceId), null, 2)}\n`,
       },
       { relativePath: "guest/Cargo.toml", content: this.buildCargoToml() },
-      { relativePath: "guest/Cargo.lock", content: RUST_WASI_CARGO_LOCK },
+      { relativePath: "guest/Cargo.lock", content: this.readResource("rust-wasi/Cargo.lock") },
       { relativePath: "guest/src/lib.rs", content: this.buildRustSource() },
-      { relativePath: "guest/wit/portable-service.wit", content: PORTABLE_SERVICE_WIT },
-      ...STANDARD_PORTABLE_WIT_DEPS,
+      {
+        relativePath: "guest/wit/portable-service.wit",
+        content: this.readResource("wit/portable-service.wit"),
+      },
+      ...STANDARD_PORTABLE_WIT_FILES.map((relativePath) => ({
+        relativePath: `guest/wit/${relativePath}`,
+        content: this.readResource(`wit/${relativePath}`),
+      })),
       {
         relativePath: "tests/service-smoke.json",
         content: `${JSON.stringify(this.buildServiceSmokeFixture(serviceId), null, 2)}\n`,
@@ -70,6 +64,11 @@ export class AppRustWasiScaffoldTemplateService {
       { relativePath: "assets/icon.svg", content: this.buildIconSvg() },
     ];
   };
+
+  private readResource = (relativePath: string): string => readFileSync(
+    new URL(`../../resources/${relativePath}`, import.meta.url),
+    "utf8",
+  );
 
   private buildManifest = (
     appId: string,

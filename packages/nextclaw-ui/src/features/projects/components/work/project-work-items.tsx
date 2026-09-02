@@ -9,6 +9,7 @@ import {
   useProjectWork,
   useProjectWorkActions,
 } from "@/features/projects/hooks/use-project-work";
+import { getProjectWorkStateLabel } from "@/features/projects/utils/project-work-state-label.utils";
 import { ProjectWorkStateSettings } from "./project-work-state-settings";
 
 function WorkItemButton({
@@ -26,7 +27,7 @@ function WorkItemButton({
     >
       <span className="block font-medium">{item.title}</span>
       <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-        <span>{item.state.name}</span>
+        <span>{getProjectWorkStateLabel(item.state.name)}</span>
         {item.attention !== "none" ? (
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-700 dark:text-amber-300">
             {t(`projectsWorkAttention_${item.attention}`)}
@@ -169,7 +170,9 @@ export function ProjectWorkItems({
                 className="min-w-0 rounded-xl bg-muted/35 p-3"
               >
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">{state.name}</h3>
+                  <h3 className="text-sm font-semibold">
+                    {getProjectWorkStateLabel(state.name)}
+                  </h3>
                   <span className="text-xs text-muted-foreground">
                     {items.length}
                   </span>

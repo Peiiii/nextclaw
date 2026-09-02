@@ -10,7 +10,7 @@ Projects 页面把一个已注册项目里的工作项、产物、Skills、工�
 
 ## 创建和推进工作项
 
-在 **工作项** 页面创建工作项。每个项目首次使用时会获得一组通用状态：Backlog、Planned、In Progress、In Review、Awaiting Acceptance、Completed 和 Canceled。
+在 **工作项** 页面创建工作项。每个项目首次使用时会获得一组通用状态：待整理、已计划、进行中、评审中、等待验收、已完成和已取消。这些内置状态会跟随界面语言显示；重命名后则始终显示你设置的名称。
 
 状态名称和顺序可以按项目调整，也可以增加自定义状态。每个状态同时归属于一个稳定的生命周期类别：backlog、unstarted、started、completed 或 canceled。这样既能自定义流程，又能让概览统计保持一致。删除仍在使用的状态时，需要先选择迁移目标。
 
