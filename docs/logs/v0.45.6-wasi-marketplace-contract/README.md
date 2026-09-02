@@ -20,8 +20,13 @@
 ## 发布/部署方式
 
 - Marketplace Worker 使用仓库既有入口 `pnpm -C workers/marketplace-api run deploy` 部署。
-- 生产 Version ID 与线上冒烟结果在部署完成后补记。
+- Worker 已部署到 `marketplace-api.nextclaw.io` / `apps-registry.nextclaw.io`，Version ID 为 `0602c585-d219-4dd8-a460-ad689695083d`，上传与部署耗时 13.09 秒。
+- 官方 `nextclaw.github-issue-watcher@0.1.0` 已通过真实 CLI 发布并进入公开 Catalog/Registry；生产 bundle SHA-256 为 `b5f23b2dbfab1c158d76f7824e82f6b7943b0445f3232c27632b981ec958227e`。
+- 唯一个人验收 App 完成 `404 -> pending -> 审核 published/listed -> Registry/Catalog -> 冷安装 5/5`，随后已审核为 `rejected/unlisted`；Registry 恢复 404、Catalog 0 条，不保留公开测试项。
+- 生产安装后使用正式 `0.48.1` runtime runner 启用成功，但 action 暴露既有 runner 缺陷：`spin-key-value` 在单线程 runtime 调用 blocking 时 panic，外层表现为 7 秒预算超时。该 runner 不在本次 diff；Marketplace 生产发布、分发和安装闭环成立，action/persistence 继续由部署前同一冻结代码的隔离全链路证据覆盖，不能把本次生产 action 写成通过。
 - 本次不发布 NextClaw NPM、runtime channel 或 Desktop；app-runtime 用户可见变化由 changeset 进入后续统一稳定版。
+
+`AUTOMATION_INTERVENTIONS: 1`。人工介入点是用户阻止在 runner 未变化时继续全量 Rust 重建；根因是验证流程只检查默认路径，没有先盘点已安装 runtime bundle 与发布缓存。已在 `development-validation/references/runtime-instance-validation.md` 增加通用产物复用门：核对平台、权限和 protocol/version 后优先复用，只有不存在兼容产物或打包本身是验收对象才重建。
 
 ## 用户/产品视角的验收步骤
 
@@ -38,6 +43,7 @@
 - 未新增平行 Marketplace 特例或兼容 fallback；共享事实保持单一 owner，既有 native 安全策略不变。
 - 自动 maintainability guard 最终无 error；近预算文件经过主观复核，无阻塞 finding。
 - 新增文件均通过 planned-path/new-code governance，目录角色边界未恶化。
+- 用户反馈暴露的昂贵 runtime 重建误判已收敛到 Validation owner，并以模型能力补丁标记，便于模型升级后做代表性无补丁复核；没有把个案提升到常驻 `AGENTS.md`。
 
 ## NPM 包发布记录
 
