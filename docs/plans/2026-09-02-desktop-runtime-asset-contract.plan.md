@@ -23,7 +23,7 @@
 | --- | --- | --- | --- |
 | 合同与执行器 | config、复制器、inventory/ZIP verifier 完整 | 通用合同测试通过 | completed |
 | 编排迁移 | build 与 package verifier 使用统一合同，旧名单删除 | 定向构建和最终 ZIP 验证通过 | completed |
-| CI 与收尾 | CI 执行合同测试，全部适用验证与 Review 通过 | Required IDs 全部 passed | in-progress |
+| CI 与收尾 | CI 执行合同测试，全部适用验证与 Review 通过 | Required IDs 全部 passed | completed |
 
 ## Active acceptance ledger
 
@@ -36,7 +36,7 @@
 | RA-05 | true | build service 与 package verifier 不再维护资源专用复制/必需名单 | passed | 两处消费者均调用共享合同/verifier，旧资源专用复制与内嵌 ZIP 名单已删除 | — |
 | RA-06 | true | 通用测试证明缺失、额外、篡改、空 pattern、冲突和平台错误均被拦截 | passed | `pnpm -C apps/desktop bundle:test` 5/5 | — |
 | RA-07 | true | 当前宿主最终 product bundle、共享 ZIP verifier、安装包真实启动、TypeScript/lint 无回归 | passed | macOS arm64 DMG 208.1 MB；seed 45.8 MB；runtime 493/520；runtime init、GUI/chat load、bootstrap readiness、tsc、lint 全通过 | — |
-| RA-08 | true | Windows 旧外壳升级及 Windows/macOS/Linux Desktop CI 保持通过 | pending | CI 门禁已接入合同测试，等待本分支远端全平台运行 | 尚无本次提交对应的三平台 runner 结果 |
+| RA-08 | true | Windows 旧外壳升级及 Windows/macOS/Linux Desktop CI 保持通过 | passed | `desktop-validate` run `33656218716`：runtime、macOS DMG、Windows installer、Linux packages、Windows EXE/Portable 五个 jobs 全通过；Windows job 真实复现并修复已发布旧版升级回归 | — |
 
 ## 执行顺序
 
@@ -55,7 +55,7 @@
 - 保持项：不改变现有 bundle 路径、原生资源生成 owner和 extension 构建语义。
 - 场景：四种资源 kind、错误 source/target、最终 ZIP inventory。
 - 本阶段不做：不发布稳定版本；该边界不影响实现和完整验证。
-- 待关闭缺口：RA-08 远端 Windows/macOS/Linux Desktop CI。
+- 待关闭缺口：无。
 
 ## 新发现与契约变更
 
@@ -64,4 +64,4 @@
 
 ## 尚未关闭
 
-- open-required：RA-08。
+- open-required：无；RA-01 至 RA-08 全部 passed。

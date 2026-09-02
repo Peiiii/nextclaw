@@ -22,7 +22,8 @@
 - 主干 `desktop-validate` CI `33546199597`（提交 `601ee5d4b`）在 macOS、Windows 和 Linux 全部通过；Windows job `99984183233` 固定复现官方 0.44.1 → 0.48.0 的缺失 WASM 故障，并验证候选 runtime 在同一 home 和原版 0.44.1 外壳下恢复会话与消息。
 - 正式 Desktop 发布 CI `33551958945`（发布提交 `5da5c3052`）通过 Windows x64/arm64、macOS x64/arm64 和 Linux x64 的构建、安装与实包冒烟；公开 Windows x64 bundle 反查确认包含 `bundle/runtime/dist/cli/app/sql-wasm.wasm`。
 - 统一资源合同定向测试 5/5 通过，覆盖 file/tree/pattern/prepared-tree、Windows x64 专属资产与原生包规则，以及缺失、额外、篡改、目标错配、声明漂移、越界、冲突和空 pattern 失败路径。
-- 统一资源合同的 macOS arm64 完整实包复验通过：最终 seed ZIP 为 45.8 MB，runtime 493/520 文件、11 个 extensions、54 个 plugin files、6 个精确 native packages；随后 runtime init、DMG 安装启动、`/chat` 加载和 bootstrap readiness 均成功。该合同提交对应的 Windows/macOS/Linux runner 结果在合入前单独刷新，不复用此前发布 run 冒充新证据。
+- 统一资源合同的 macOS arm64 完整实包复验通过：最终 seed ZIP 为 45.8 MB，runtime 493/520 文件、11 个 extensions、54 个 plugin files、6 个精确 native packages；随后 runtime init、DMG 安装启动、`/chat` 加载和 bootstrap readiness 均成功。
+- 统一资源合同提交 `7bfb635d7` 的全平台 `desktop-validate` run `33656218716` 全绿：runtime 3m25s、macOS DMG 4m39s、Windows installer 7m53s、Linux AppImage/deb/APT 9m58s、Windows EXE/Portable 13m15s。Windows job 再次真实复现已发布旧版升级故障并验证候选恢复，整次运行无需人工重试或介入。
 
 ## 发布/部署方式
 
