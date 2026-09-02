@@ -10,7 +10,7 @@ Overview requests only the work summary and recent items. It does not scan proje
 
 ## Create and advance work items
 
-Create an item from **Work items**. A project receives these general-purpose states on first use: Backlog, Planned, In Progress, In Review, Awaiting Acceptance, Completed, and Canceled.
+Create an item from **Work items**. A project receives these general-purpose states on first use: Backlog, Planned, In Progress, In Review, Awaiting Acceptance, Completed, and Canceled. Built-in state names follow the interface language; renamed states keep the name you set.
 
 You can rename and reorder states or add project-specific ones. Each state maps to one stable lifecycle category: backlog, unstarted, started, completed, or canceled. This keeps summary counts consistent while letting each project customize its workflow. When deleting a state that still has items, select a migration destination first.
 

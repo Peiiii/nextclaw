@@ -3,6 +3,7 @@ import {
   useProjectWork,
   useProjectWorkSummary,
 } from "@/features/projects/hooks/use-project-work";
+import { getProjectWorkStateLabel } from "@/features/projects/utils/project-work-state-label.utils";
 
 export function ProjectOverview({
   projectId,
@@ -65,7 +66,7 @@ export function ProjectOverview({
                 {item.title}
               </span>
               <span className="shrink-0 text-xs text-muted-foreground">
-                {item.state.name}
+                {getProjectWorkStateLabel(item.state.name)}
               </span>
             </button>
           ))}
