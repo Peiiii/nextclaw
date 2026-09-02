@@ -32,6 +32,7 @@ import {
   useProjectWorkActivity,
   useProjectWorkItem,
 } from "@/features/projects/hooks/use-project-work";
+import { getProjectWorkStateLabel } from "@/features/projects/utils/project-work-state-label.utils";
 
 export function ProjectWorkItemDrawer({
   onOpenArtifact,
@@ -193,7 +194,7 @@ function ProjectWorkItemEditor({
                 <SelectContent>
                   {states.map((state) => (
                     <SelectItem key={state.id} value={state.id}>
-                      {state.name}
+                      {getProjectWorkStateLabel(state.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>

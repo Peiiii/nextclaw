@@ -27,6 +27,7 @@ import {
   sortProjectWorkStates,
   useProjectWorkActions,
 } from "@/features/projects/hooks/use-project-work";
+import { getProjectWorkStateLabel } from "@/features/projects/utils/project-work-state-label.utils";
 
 const CATEGORIES: ProjectWorkStateCategory[] = [
   "backlog",
@@ -103,10 +104,13 @@ export function ProjectWorkStateSettings({
               >
                 <Input
                   aria-label={t("projectsWorkStateName")}
-                  defaultValue={state.name}
+                  defaultValue={getProjectWorkStateLabel(state.name)}
                   onBlur={(event) => {
                     const nextName = event.currentTarget.value.trim();
-                    if (nextName && nextName !== state.name)
+                    if (
+                      nextName &&
+                      nextName !== getProjectWorkStateLabel(state.name)
+                    )
                       void run(() =>
                         actions.updateState.mutateAsync({
                           stateId: state.id,
@@ -252,7 +256,7 @@ export function ProjectWorkStateSettings({
                   .filter((state) => state.id !== deleting?.id)
                   .map((state) => (
                     <SelectItem key={state.id} value={state.id}>
-                      {state.name}
+                      {getProjectWorkStateLabel(state.name)}
                     </SelectItem>
                   ))}
               </SelectContent>
