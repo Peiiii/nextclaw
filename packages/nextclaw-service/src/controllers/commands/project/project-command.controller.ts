@@ -2,7 +2,6 @@ import type {
   CreateProjectInput,
   NextclawKernel,
   ProjectRecord,
-  ProjectObservationSnapshot,
   ProjectWorkActivityPage,
   ProjectWorkItemDetail,
   ProjectWorkItemPage,
@@ -132,20 +131,6 @@ export class ProjectCommands {
         return;
       }
       console.log(`Removed project "${project.name}" from the project list`);
-    });
-  };
-
-  observe = async (
-    rootPath: string,
-    options: ProjectCommandOptions = {},
-  ): Promise<void> => {
-    await this.withKernel(async (kernel) => {
-      const snapshot = await kernel.projectObservation.observe(rootPath);
-      if (options.json) {
-        console.log(JSON.stringify(snapshot, null, 2));
-        return;
-      }
-      this.printObservationSummary(snapshot);
     });
   };
 
@@ -409,17 +394,6 @@ export class ProjectCommands {
       return;
     }
     console.log(`Created project "${project.name}" at ${project.rootPath}`);
-  };
-
-  private printObservationSummary = (
-    snapshot: ProjectObservationSnapshot,
-  ): void => {
-    console.log(
-      `${snapshot.project.name}\t${snapshot.dataQuality}\t${snapshot.project.rootPath}`,
-    );
-    console.log(
-      `artifacts: ${snapshot.artifacts.length}, sessions: ${snapshot.runs.length}, skills: ${snapshot.skills.length}`,
-    );
   };
 
   private api = async <T>(

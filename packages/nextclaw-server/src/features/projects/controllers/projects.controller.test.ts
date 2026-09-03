@@ -4,17 +4,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
-import { ProjectManager, ProjectObservationError } from "@nextclaw/kernel";
+import { ProjectManager } from "@nextclaw/kernel";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
-function createProjectsApp(projectManager: object, projectObservation?: object) {
+function createProjectsApp(projectManager: object) {
   return createUiRouter({
     appEventBus: new EventBus(),
     configPath: "/tmp/nextclaw-project-routes-test-config.json",
     kernel: createRouterTestKernel({
       projectManager,
-      ...(projectObservation ? { projectObservation } : {}),
     } as never),
   });
 }
@@ -179,42 +178,4 @@ describe("projects routes", () => {
     expect(removeProject).toHaveBeenCalledWith("project-knowledge", "project-knowledge");
   });
 
-  it("observes a registered project through the kernel owner", async () => {
-    const observe = vi.fn(async (rootPath: string) => ({
-      asOf: "2026-08-30T00:00:00.000Z",
-      project: { name: "Knowledge", rootPath, context: [] },
-      sources: [], runs: [], artifactCategories: [], artifacts: [], skills: [],
-      diagnostics: [], dataQuality: "complete",
-    }));
-    const getProjectById = vi.fn(async (projectId: string) =>
-      projectId === "project-knowledge"
-        ? { id: projectId, name: "Knowledge", rootPath: "/tmp/knowledge space", createdAt: "2026-08-30T00:00:00.000Z", updatedAt: "2026-08-30T00:00:00.000Z", }
-        : null,
-    );
-    const app = createProjectsApp({ getProjectById }, { observe });
-    const response = await app.request(
-      "http://localhost/api/projects/project-knowledge/observation",
-    );
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ ok: true, data: { dataQuality: "complete" }, });
-    expect(getProjectById).toHaveBeenCalledWith("project-knowledge");
-    expect(observe).toHaveBeenCalledWith("/tmp/knowledge space");
-  });
-
-  it("returns not found when the observation owner rejects an unregistered root", async () => {
-    const observe = vi.fn(async () => {
-      throw new ProjectObservationError("PROJECT_NOT_REGISTERED", "Project is not registered.");
-    });
-    const app = createProjectsApp({ getProjectById: async () => null }, { observe });
-
-    const response = await app.request(
-      "http://localhost/api/projects/project-missing/observation"
-    );
-
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toMatchObject({
-      ok: false,
-      error: { code: "PROJECT_NOT_FOUND" },
-    });
-  });
 });

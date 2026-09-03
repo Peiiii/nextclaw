@@ -2,47 +2,57 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectOverview } from "./project-overview";
 
-vi.mock("@/features/projects/hooks/use-project-work", () => ({
-  useProjectWorkEvents: vi.fn(),
-  useProjectWorkSummary: () => ({
-    data: { total: 4, active: 2, attention: 1, completed: 1 },
-    isLoading: false,
-    isError: false,
+vi.mock(
+  "@/features/projects/hooks/use-project-work",
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    useProjectWorkEvents: vi.fn(),
+    useProjectWorkSummary: () => ({
+      data: { total: 4, active: 2, attention: 1, completed: 1 },
+      isLoading: false,
+      isError: false,
+    }),
+    useProjectWork: () => ({
+      data: {
+        pages: [
+          {
+            items: [
+              {
+                id: "work-1",
+                title: "Current work",
+                state: { name: "In Progress" },
+              },
+            ],
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    }),
+    useProjectArtifacts: () => ({
+      data: {
+        pages: [
+          {
+            artifacts: [
+              {
+                id: "artifact-1",
+                path: "docs/design.md",
+                label: "Design",
+                workItemTitle: "Current work",
+                createdAt: "2026-09-03T00:00:00.000Z",
+                exists: true,
+              },
+            ],
+            nextCursor: null,
+            total: 1,
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    }),
   }),
-  useProjectWork: () => ({
-    data: {
-      pages: [
-        {
-          items: [
-            {
-              id: "work-1",
-              title: "Current work",
-              state: { name: "In Progress" },
-            },
-          ],
-        },
-      ],
-    },
-    isLoading: false,
-    isError: false,
-  }),
-  useProjectRecentArtifacts: () => ({
-    data: {
-      artifacts: [
-        {
-          id: "artifact-1",
-          path: "docs/design.md",
-          label: "Design",
-          workItemTitle: "Current work",
-          createdAt: "2026-09-03T00:00:00.000Z",
-          exists: true,
-        },
-      ],
-    },
-    isLoading: false,
-    isError: false,
-  }),
-}));
+);
 
 describe("ProjectOverview", () => {
   it("renders current work and recent artifacts as equal wide-layout columns", () => {

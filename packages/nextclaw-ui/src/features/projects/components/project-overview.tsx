@@ -1,6 +1,6 @@
 import { formatDateTime, t } from "@/shared/lib/i18n";
 import {
-  useProjectRecentArtifacts,
+  useProjectArtifacts,
   useProjectWork,
   useProjectWorkEvents,
   useProjectWorkSummary,
@@ -25,7 +25,8 @@ export function ProjectOverview({
   useProjectWorkEvents(projectId);
   const summary = useProjectWorkSummary(projectId);
   const work = useProjectWork(projectId, { limit: 5 });
-  const artifacts = useProjectRecentArtifacts(projectId, 5);
+  const artifacts = useProjectArtifacts(projectId, { limit: 5 });
+  const recentArtifacts = artifacts.data?.pages[0]?.artifacts ?? [];
   const recent =
     work.data?.pages.flatMap((page) => page.items).slice(0, 5) ?? [];
   return (
@@ -100,9 +101,9 @@ export function ProjectOverview({
             <p className="py-5 text-sm text-destructive">
               {t("projectsLoadFailed")}
             </p>
-          ) : artifacts.data?.artifacts.length ? (
+          ) : recentArtifacts.length ? (
             <div className="space-y-2">
-              {artifacts.data.artifacts.map((artifact) => (
+              {recentArtifacts.map((artifact) => (
                 <ProjectFilePreviewButton
                   key={artifact.id}
                   available={artifact.exists}

@@ -142,6 +142,31 @@ describe("SkillsLoader skill sources", () => {
     expect(summary).not.toContain("<location>");
   });
 
+  it("can isolate project skills without collecting workspace skills", () => {
+    const workspace = createWorkspace();
+    const projectRoot = join(workspace, "project");
+    for (const [skillsRoot, name] of [
+      [join(projectRoot, ".agents", "skills"), "project-only"],
+      [join(workspace, "skills"), "workspace-ignored"],
+    ] as const) {
+      const skillDir = join(skillsRoot, name);
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, "SKILL.md"), `---\nname: ${name}\n---\n`);
+    }
+
+    const loader = new SkillsLoader({
+      workspace,
+      projectRoot,
+      includeBuiltin: false,
+      includeWorkspace: false,
+      includeGlobal: false,
+    });
+
+    expect(loader.listSkills(false).map((skill) => skill.name)).toEqual([
+      "project-only",
+    ]);
+  });
+
   it("loads builtin skills even when the workspace has no copied skill directories", () => {
     const workspace = createWorkspace();
     const loader = new SkillsLoader(workspace);

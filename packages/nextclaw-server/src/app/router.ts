@@ -22,7 +22,7 @@ import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtim
 import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
 import { PanelAppsRoutesController } from "@nextclaw-server/features/panel-apps/index.js";
 import { PreferencesRoutesController } from "@nextclaw-server/features/preferences/index.js";
-import { ProjectObservationRoutesController, ProjectWorkRoutesController, ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
+import { ProjectMaterialRoutesController, ProjectWorkRoutesController, ProjectsRoutesController } from "@nextclaw-server/features/projects/index.js";
 import { ServiceAppsRoutesController } from "@nextclaw-server/features/service-apps/index.js";
 import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 import { createNcpSessionEventStreamResponse } from "@nextclaw-server/app/utils/ncp-session-event-stream.utils.js";
@@ -56,7 +56,7 @@ function createUiRouteControllers(options: UiRouterOptions, authService: UiAuthS
     }),
     preferences: new PreferencesRoutesController(kernel.preferenceManager),
     projects: new ProjectsRoutesController(kernel.projectManager),
-    projectObservation: new ProjectObservationRoutesController(kernel.projectManager, kernel.projectObservation),
+    projectMaterials: new ProjectMaterialRoutesController(kernel.projectMaterials),
     projectWork: new ProjectWorkRoutesController(kernel.projectWorkManager),
     serviceApps: new ServiceAppsRoutesController({
       panelAppManager: kernel.panelAppManager,
@@ -79,7 +79,6 @@ type RouteDefinition = readonly [HttpMethod, string, Handler];
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
-
 function hasOwn(value: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
@@ -222,7 +221,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const { appData, appPackages, capabilityAccess, featureControls, ncpSession, inboxDeliveries, panelApps, preferences, projects, projectObservation, projectWork, serviceApps, serverPath, systemObjectReferences } = this.controllers;
+    const { appData, appPackages, capabilityAccess, featureControls, ncpSession, inboxDeliveries, panelApps, preferences, projects, projectMaterials, projectWork, serviceApps, serverPath, systemObjectReferences } = this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -297,10 +296,11 @@ class UiRouteRegistry {
       ["delete", "/api/preferences/:key", preferences.delete],
       ["get", "/api/projects", projects.list],
       ["delete", "/api/projects/:projectId", projects.remove],
-      ["get", "/api/projects/:projectId/observation", projectObservation.get],
+      ["get", "/api/projects/:projectId/agreement", projectMaterials.agreement],
+      ["get", "/api/projects/:projectId/skills", projectMaterials.skills],
       ["get", "/api/projects/:projectId/work", projectWork.list],
       ["get", "/api/projects/:projectId/work/summary", projectWork.summary],
-      ["get", "/api/projects/:projectId/work/artifacts", projectWork.recentArtifacts],
+      ["get", "/api/projects/:projectId/work/artifacts", projectWork.artifacts],
       ["post", "/api/projects/:projectId/work/items", projectWork.create],
       ["get", "/api/projects/:projectId/work/items/:workItemId", projectWork.get],
       ["patch", "/api/projects/:projectId/work/items/:workItemId", projectWork.update],

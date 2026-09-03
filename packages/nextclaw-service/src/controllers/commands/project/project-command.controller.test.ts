@@ -1,33 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectCommands } from "./project-command.controller.js";
 
-describe("ProjectCommands observe", () => {
+describe("ProjectCommands", () => {
   beforeEach(() => vi.restoreAllMocks());
-
-  it("uses the kernel observation owner and prints JSON", async () => {
-    const snapshot = {
-      asOf: "2026-08-30T00:00:00.000Z",
-      project: { name: "Demo", rootPath: "/tmp/demo", context: [] },
-      sources: [],
-      artifacts: [],
-      skills: [],
-      diagnostics: [],
-      dataQuality: "complete",
-    };
-    const observe = vi.fn(async () => snapshot);
-    const dispose = vi.fn(async () => undefined);
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const commands = new ProjectCommands(
-      () => ({
-          projectManager: { initialize: vi.fn(async () => undefined) }, projectObservation: { observe }, dispose, }) as never,
-    );
-
-    await commands.observe("/tmp/demo", { json: true });
-
-    expect(observe).toHaveBeenCalledWith("/tmp/demo");
-    expect(log).toHaveBeenCalledWith(JSON.stringify(snapshot, null, 2));
-    expect(dispose).toHaveBeenCalledOnce();
-  });
 
   it("requires an exact id confirmation before removing a project", async () => {
     const removeProject = vi.fn(async () => ({

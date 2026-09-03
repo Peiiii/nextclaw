@@ -104,9 +104,6 @@ describe("ProjectManager", () => {
     await expect(fixture.manager.listProjects()).resolves.toEqual([]);
     await expect(readdir(rootPath)).resolves.toEqual(["keep.txt"]);
 
-    await fixture.manager.importSessionProjects([rootPath]);
-    await expect(fixture.manager.listProjects()).resolves.toEqual([]);
-
     const restored = await fixture.manager.addExistingProject(rootPath);
     expect(restored).toMatchObject({
       id: project!.id,
@@ -208,7 +205,6 @@ describe("ProjectManager legacy migration", () => {
     );
 
     await expect(fixture.manager.listProjects()).resolves.toEqual([]);
-    await fixture.manager.importSessionProjects([rootPath]);
     await expect(fixture.manager.listProjects()).resolves.toEqual([]);
     const restored = await fixture.manager.addExistingProject(rootPath);
     expect(restored).toMatchObject({ id: "project-removed" });

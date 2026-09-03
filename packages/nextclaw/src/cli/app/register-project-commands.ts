@@ -23,12 +23,6 @@ export function registerProjectCommands(
     .action((options) => commands.templates(options));
 
   projects
-    .command("observe <root-path>")
-    .description("Observe a registered project without changing project data")
-    .option("--json", "Output JSON", false)
-    .action((rootPath, options) => commands.observe(rootPath, options));
-
-  projects
     .command("create <name>")
     .description("Create and register a project")
     .option("--path <directory>", "Target directory")

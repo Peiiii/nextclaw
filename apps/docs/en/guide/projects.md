@@ -6,7 +6,7 @@ The Projects page brings together work items, artifacts, Skills, working agreeme
 
 Create a project or add an existing directory from the Chat sidebar, then select the project name. The page keeps the existing Artifacts, Skills, Working agreement, and project-session capabilities while adding a work summary, list, and board.
 
-Overview treats Current work and Recent artifacts as equal primary regions: they sit side by side in a wide layout and stack only in a narrow layout. Recent artifacts come from files explicitly linked to work items. Overview does not scan the project directory, read messages, or replay session history for either region. The complete Artifacts, Skills, and Working agreement views still load on demand.
+Overview treats Current work and Recent artifacts as equal primary regions: they sit side by side in a wide layout and stack only in a narrow layout. Recent artifacts come from files explicitly linked to work items. Overview does not scan the project directory, read messages, or replay session history for either region. The complete Artifacts view uses the same explicit links, Skills come from `.agents/skills`, and Working agreement comes from `AGENTS.md` at the project root.
 
 ## Remove a project from the list
 
@@ -65,12 +65,10 @@ nextclaw projects work activity <work-item-id> --project <project-id>
 
 `work list` returns 20 items by default and at most 100. When another page exists, it returns an opaque cursor that can be passed with `--cursor`. The CLI calls the running local NextClaw service and reuses the same Kernel contract. If the service is not running, it fails directly instead of starting a second writer. See the [command reference](./commands.md) for the complete command set.
 
-## Project material observation
+## Project material sources
 
-The complete Artifacts, Skills, and Working agreement views read project files on demand. An optional `.nextclaw/project.yaml` configures only the project summary, context files, artifact directories, and Skill directories. Work items always come from Project Work; NextClaw does not rebuild their state from historical conversation text.
+- **Artifacts** shows only files explicitly linked from Project Work items. Paths are deduplicated and the list supports search and pagination. Removing a file preserves its link history and marks it unavailable.
+- **Skills** reads only `.agents/skills` under the project root; project-specific scan paths are not supported. To inspect them from the CLI, use `nextclaw skills installed --workdir /absolute/path/to/project --scope project`.
+- **Working agreement** reads only `AGENTS.md` at the project root. A missing file produces an empty state, not a configuration diagnostic.
 
-You can read the project material observation snapshot with:
-
-```bash
-nextclaw projects observe /absolute/path/to/project --json
-```
+Projects does not read `.nextclaw/project.yaml` or scan all project files or historical sessions to infer these materials.

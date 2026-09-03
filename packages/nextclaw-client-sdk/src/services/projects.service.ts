@@ -1,8 +1,9 @@
 import type {
   ProjectAddExistingRequest,
+  ProjectAgreementMaterial,
   ProjectCreateRequest,
   ProjectListView,
-  ProjectObservationSnapshot,
+  ProjectSkillMaterial,
   ProjectView,
   CreateProjectWorkItemInput,
   CreateProjectWorkStateInput,
@@ -19,35 +20,24 @@ import type {
 } from "@nextclaw/server";
 import type { RequestService } from "./request.service.js";
 
-type ProjectObservationWireSnapshot = Omit<
-  ProjectObservationSnapshot,
-  "runs"
-> & {
-  runs?: ProjectObservationSnapshot["runs"];
-};
-
-function normalizeProjectObservationSnapshot(
-  snapshot: ProjectObservationWireSnapshot,
-): ProjectObservationSnapshot {
-  return {
-    ...snapshot,
-    runs: Array.isArray(snapshot.runs) ? snapshot.runs : [],
-  };
-}
-
 export class ProjectsService {
   constructor(private readonly requestService: RequestService) {}
 
   readonly list = async (): Promise<ProjectListView> =>
     await this.requestService.get<ProjectListView>("/api/projects");
 
-  readonly getObservation = async (
+  readonly getAgreement = async (
     projectId: string,
-  ): Promise<ProjectObservationSnapshot> =>
-    normalizeProjectObservationSnapshot(
-      await this.requestService.get<ProjectObservationWireSnapshot>(
-        `/api/projects/${encodeURIComponent(projectId)}/observation`,
-      ),
+  ): Promise<ProjectAgreementMaterial> =>
+    await this.requestService.get<ProjectAgreementMaterial>(
+      `/api/projects/${encodeURIComponent(projectId)}/agreement`,
+    );
+
+  readonly listProjectSkills = async (
+    projectId: string,
+  ): Promise<ProjectSkillMaterial[]> =>
+    await this.requestService.get<ProjectSkillMaterial[]>(
+      `/api/projects/${encodeURIComponent(projectId)}/skills`,
     );
 
   readonly create = async (input: ProjectCreateRequest): Promise<ProjectView> =>
@@ -84,7 +74,7 @@ export class ProjectsService {
 
   readonly listRecentWorkArtifacts = async (
     projectId: string,
-    input: { cursor?: string; limit?: number } = {},
+    input: { cursor?: string; limit?: number; query?: string } = {},
   ): Promise<ProjectRecentArtifactPage> =>
     await this.requestService.get<ProjectRecentArtifactPage>(
       `/api/projects/${encodeURIComponent(projectId)}/work/artifacts`,

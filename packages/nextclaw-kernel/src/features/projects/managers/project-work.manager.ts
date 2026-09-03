@@ -69,9 +69,9 @@ export class ProjectWorkManager {
 
   listRecentArtifacts = async (
     projectId: string,
-    input: { cursor?: string; limit?: number } = {},
+    input: { cursor?: string; limit?: number; query?: string } = {},
   ): Promise<ProjectRecentArtifactPage> =>
-    await this.queries.listRecentArtifacts(projectId, input);
+    await this.queries.listArtifacts(projectId, input);
 
   get = async (
     projectId: string,

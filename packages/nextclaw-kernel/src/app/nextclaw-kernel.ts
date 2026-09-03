@@ -27,7 +27,7 @@ import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { PreferenceManager } from "@kernel/managers/preference.manager.js";
-import type { ProjectManager, ProjectObservationService, ProjectWorkManager } from "@kernel/features/projects/index.js";
+import type { ProjectManager, ProjectMaterialService, ProjectWorkManager } from "@kernel/features/projects/index.js";
 import type { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
 import { SessionRunManager } from "@kernel/managers/session-run.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
@@ -62,7 +62,6 @@ import {
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
-import { readProjectRoot } from "@kernel/utils/session-creation.utils.js";
 import {
   resolveKernelAppHomeDirectory,
   resolveKernelAutomationStorePath,
@@ -160,7 +159,7 @@ export class NextclawKernel {
   readonly panelAppManager: PanelAppManager;
   readonly preferenceManager: PreferenceManager;
   readonly projectManager: ProjectManager;
-  readonly projectObservation: ProjectObservationService;
+  readonly projectMaterials: ProjectMaterialService;
   readonly projectWorkManager: ProjectWorkManager;
   readonly serviceAppManager: ServiceAppManager;
   readonly extensions: ExtensionManager;
@@ -214,7 +213,7 @@ export class NextclawKernel {
       journalStore: this.ncpAgentSessionJournalStore,
       observations: this.observations,
       projectManager: this.projectManager,
-      projectObservation: this.projectObservation, projectWorkManager: this.projectWorkManager,
+      projectMaterials: this.projectMaterials, projectWorkManager: this.projectWorkManager,
       sessionManager: this.sessionManager,
       sessionSearch: this.sessionSearch,
     } = createKernelSessionManagers({
@@ -368,11 +367,6 @@ export class NextclawKernel {
     this.mcpManager.start();
     this.providerModelCatalog.start();
     await this.projectManager.initialize();
-    await this.projectManager.importSessionProjects(
-      (await this.sessionManager.listSessions()).map((session) =>
-        readProjectRoot(session.metadata),
-      ),
-    );
     await this.projectWorkManager.initialize();
     await this.sessionManager.start();
     for (const contribution of this.contributions) {

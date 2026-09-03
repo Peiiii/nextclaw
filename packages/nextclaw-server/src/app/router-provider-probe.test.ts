@@ -73,8 +73,11 @@ function createProviderProbeApp(configPath: string) {
         listProjects: async () => [],
         listTemplates: () => [],
       } as never,
-      projectObservation: {
-        observe: async () => {
+      projectMaterials: {
+        getAgreement: async () => {
+          throw new Error("not used");
+        },
+        listSkills: async () => {
           throw new Error("not used");
         },
       } as never,

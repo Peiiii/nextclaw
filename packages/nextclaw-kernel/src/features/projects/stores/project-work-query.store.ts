@@ -18,7 +18,7 @@ type WorkItemListRow = {
   artifact_count: number;
 };
 
-export type ProjectRecentArtifactRow = {
+export type ProjectArtifactRow = {
   id: string;
   path: string;
   label: string | null;
@@ -129,23 +129,28 @@ export class ProjectWorkQueryStore {
     };
   };
 
-  listRecentArtifacts = (params: {
+  listArtifacts = (params: {
     projectId: string;
     cursor?: ProjectArtifactStoreCursor;
     limit: number;
+    query?: string;
   }): {
-    artifacts: ProjectRecentArtifactRow[];
+    artifacts: ProjectArtifactRow[];
     hasMore: boolean;
     total: number;
   } => {
-    const { cursor, limit, projectId } = params;
+    const { cursor, limit, projectId, query } = params;
+    const queryCondition = query ? "AND instr(lower(path), lower(?)) > 0" : "";
+    const queryValues = query ? [query] : [];
     const total = Number(
       (
         this.db()
           .prepare(
-            "SELECT COUNT(DISTINCT path) AS count FROM project_work_artifact_links WHERE project_id = ?",
+            `SELECT COUNT(DISTINCT path) AS count
+             FROM project_work_artifact_links
+             WHERE project_id = ? ${queryCondition}`,
           )
-          .get(projectId) as { count: number }
+          .get(projectId, ...queryValues) as { count: number }
       ).count,
     );
     const cursorCondition = cursor
@@ -167,15 +172,16 @@ export class ProjectWorkQueryStore {
         )
         SELECT id, path, label, work_item_id, work_item_title, created_at
         FROM ranked
-        WHERE path_rank = 1 ${cursorCondition}
+        WHERE path_rank = 1 ${queryCondition} ${cursorCondition}
         ORDER BY created_at DESC, id DESC
         LIMIT ?`,
       )
       .all(
         projectId,
+        ...queryValues,
         ...(cursor ? [cursor.createdAt, cursor.createdAt, cursor.id] : []),
         limit + 1,
-      ) as ProjectRecentArtifactRow[];
+      ) as ProjectArtifactRow[];
     return {
       artifacts: rows.slice(0, limit),
       hasMore: rows.length > limit,

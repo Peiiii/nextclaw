@@ -461,9 +461,6 @@ nextclaw projects create research --template empty --json
 # Create a knowledge-base project at an explicit path
 nextclaw projects create knowledge --path ~/Projects/knowledge --template knowledge-base --json
 
-# Read the same project observation snapshot used by the Projects page
-nextclaw projects observe ~/Projects/knowledge --json
-
 # Remove a project from the list without deleting its folder, sessions, or work
 nextclaw projects remove <project-id> --confirm <project-id> --json
 
@@ -729,7 +726,6 @@ nextclaw app dev <app-dir> --reset-data --confirm <app-id> --json
 | `nextclaw projects templates`                                | List built-in project templates                                                                                                                              |
 | `nextclaw projects create <name>`                            | Create an empty or knowledge-base project                                                                                                                    |
 | `nextclaw projects remove <project-id>`                      | Remove a project from the list while preserving its folder, sessions, and work; requires `--confirm <project-id>`                                            |
-| `nextclaw projects observe <root-path>`                      | Read the registered project's read-only observation snapshot                                                                                                 |
 | `nextclaw sessions rename <session-id> <label>`              | Rename a session                                                                                                                                             |
 | `nextclaw sessions set-project <session-id> <directory>`     | Bind a session to an existing project directory                                                                                                              |
 | `nextclaw sessions clear-project <session-id>`               | Clear a session project binding                                                                                                                              |

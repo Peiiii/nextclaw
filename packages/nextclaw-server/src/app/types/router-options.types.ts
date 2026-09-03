@@ -68,7 +68,7 @@ export type UiKernelHost = Pick<
   | "panelAppManager"
   | "preferenceManager"
   | "projectManager"
-  | "projectObservation"
+  | "projectMaterials"
   | "projectWorkManager"
   | "serviceAppManager"
   | "sessionContextCompactionManager"

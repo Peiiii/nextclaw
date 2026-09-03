@@ -19,7 +19,7 @@ import type { AgentContextWindowManager } from "@kernel/managers/agent-context-w
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import {
   ProjectManager,
-  ProjectObservationService,
+  ProjectMaterialService,
   ProjectWorkManager,
 } from "@kernel/features/projects/index.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
@@ -213,7 +213,7 @@ export function createKernelSessionManagers(params: {
   journalStore: NcpAgentSessionJournalStore;
   observations: ObservationManager;
   projectManager: ProjectManager;
-  projectObservation: ProjectObservationService;
+  projectMaterials: ProjectMaterialService;
   projectWorkManager: ProjectWorkManager;
   sessionManager: SessionManager;
   sessionSearch: SessionSearchService;
@@ -279,17 +279,15 @@ export function createKernelSessionManagers(params: {
     ingress,
     eventBus,
   });
-  const projectObservation = new ProjectObservationService({
+  const projectMaterials = new ProjectMaterialService({
     projectManager,
-    sessionManager,
-    workspacePath: getWorkspacePathFromConfig(configManager.config),
   });
   observationOwner.current = observations;
   return {
     journalStore,
     observations,
     projectManager,
-    projectObservation,
+    projectMaterials,
     projectWorkManager,
     sessionManager,
     sessionSearch,

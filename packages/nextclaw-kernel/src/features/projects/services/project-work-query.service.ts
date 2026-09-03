@@ -69,9 +69,9 @@ export class ProjectWorkQueryService {
     return this.store.queries.summarizeItems(projectId);
   };
 
-  listRecentArtifacts = async (
+  listArtifacts = async (
     projectId: string,
-    input: { cursor?: string; limit?: number } = {},
+    input: { cursor?: string; limit?: number; query?: string } = {},
   ): Promise<ProjectRecentArtifactPage> => {
     const project = await this.requireProject(projectId);
     await this.store.ensureProject(projectId);
@@ -83,9 +83,11 @@ export class ProjectWorkQueryService {
           "createdAt",
         )
       : undefined;
-    const page = this.store.queries.listRecentArtifacts({
+    const query = input.query?.trim();
+    const page = this.store.queries.listArtifacts({
       projectId,
       limit,
+      ...(query ? { query } : {}),
       ...(cursor ? { cursor } : {}),
     });
     const artifacts = await Promise.all(
