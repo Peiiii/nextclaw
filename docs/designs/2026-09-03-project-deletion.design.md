@@ -53,9 +53,9 @@ Project 页面 / nextclaw projects remove
 
 ## 用户交互与失败反馈
 
-- Project 页面标题区提供“从项目列表移除”按钮，名称直接说明影响范围。
-- 点击后显示危险操作二次确认，正文明确：本地目录、历史会话和 Project Work 不删除；历史会话仍可在会话列表使用；重新添加同一目录会恢复原项目。
-- 确认按钮为危险色“移除项目”；取消不产生请求。
+- 按项目查看的会话列表在项目行最右侧提供“更多操作”菜单，其中包含“从项目列表移除”；Project 详情页不常驻展示该动作。
+- 菜单项和确认按钮均使用普通样式，不通过红色制造过高视觉权重；点击后仍显示二次确认，正文明确：本地目录、历史会话和 Project Work 不删除；历史会话仍可在会话列表使用；重新添加同一目录会恢复原项目。
+- 取消确认不产生请求。
 - 成功后刷新唯一 projects query、提示成功并导航到 `/projects`；失败时保留当前页面并显示错误。
 - HTTP 与 CLI 还必须收到精确匹配的 `confirmProjectId` / `--confirm <project-id>`，不能只依赖前端确认。
 
@@ -78,7 +78,7 @@ Project 页面 / nextclaw projects remove
 
 - contract-id：`project-deletion-v1`
 - parent-goal：用户可安全、明确地从 NextClaw 移除 Project，并在验证后交付到主干。
-- scope-revision：1（用户补充要求名称清晰并二次确认）
+- scope-revision：2（用户要求入口对齐项目行更多操作且不使用红色）
 
 | ID   | Required | 合同                                                             | Status  | 当前证据                |
 | ---- | -------- | ---------------------------------------------------------------- | ------- | ----------------------- |
@@ -90,6 +90,7 @@ Project 页面 / nextclaw projects remove
 | PD-6 | true     | 中英文用户文档、自管理资源和 changeset 与真实合同同步            | passed  | 命令全集同步测试和构建资源同步通过          |
 | PD-7 | true     | 触达包的定向测试、TypeScript 编译与维护性审查通过                | passed  | 53 项定向测试、六包 tsc、lint 与 diff-only Review 通过 |
 | PD-8 | true     | 已提交分支由主线协调流程合入并推送 `origin/master`               | passed  | 集成候选已推送；本地主镜像由 retry worker 安全续跑 |
+| PD-9 | true     | 移除入口位于项目行最右侧更多菜单，详情页无常驻按钮且动作不使用红色 | passed  | UI 构建、类型检查及 12 项交互测试通过 |
 
 ## 非目标
 

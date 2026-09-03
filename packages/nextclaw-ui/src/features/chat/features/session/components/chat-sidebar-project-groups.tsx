@@ -1,11 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AlarmClock,
   ChevronDown,
   ChevronRight,
   Folder,
+  FolderMinus,
   MessageSquareText,
+  MoreHorizontal,
   Pin,
   Plus,
 } from "lucide-react";
@@ -22,6 +24,9 @@ import { t } from "@/shared/lib/i18n";
 import { ChatSidebarContextCard } from "@/features/chat/features/session/components/chat-sidebar-context-card";
 import { SessionRunBadge } from "@/features/chat/features/session/components/session-run-badge";
 import { cn } from "@/shared/lib/utils";
+import { useRemoveProject } from "@/shared/hooks/use-projects";
+import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
+import { ChatSessionHeaderMenuItem } from "@/features/chat/features/session/components/session-header/chat-session-header-menu-item";
 
 export type { ChatSidebarProjectGroup };
 
@@ -57,10 +62,16 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
   } = props;
   const presenter = usePresenter();
   const location = useLocation();
+  const navigate = useNavigate();
+  const projectRemoval = useRemoveProject();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const collapsedProjectRoots = useChatSessionListStore(
     (state) => state.snapshot.collapsedProjectRoots,
   );
   const [openProjectRoot, setOpenProjectRoot] = useState<string | null>(null);
+  const [openProjectMenuRoot, setOpenProjectMenuRoot] = useState<string | null>(
+    null,
+  );
   const preferredSessionType = useMemo(
     () =>
       resolveProjectGroupDefaultSessionType(
@@ -70,6 +81,25 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
     [defaultSessionType, sessionTypeOptions],
   );
   const supportsSessionTypeChoice = sessionTypeOptions.length > 1;
+  const removeProject = async (group: ChatSidebarProjectGroup) => {
+    if (!group.projectId) return;
+    setOpenProjectMenuRoot(null);
+    const confirmed = await confirm({
+      title: `${t("projectsRemoveConfirmTitle")} “${group.projectName}”`,
+      description: t("projectsRemoveConfirmDescription"),
+      confirmLabel: t("projectsRemoveConfirmAction"),
+      variant: "default",
+    });
+    if (!confirmed) return;
+    try {
+      await projectRemoval.mutateAsync(group.projectId);
+      if (location.pathname.startsWith(`/projects/${group.projectId}/`)) {
+        navigate("/projects");
+      }
+    } catch {
+      // The mutation owns the visible error and the project stays available.
+    }
+  };
 
   return (
     <div className="space-y-0.5">
@@ -116,7 +146,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
               >
                 <div
                   className={cn(
-                    "flex h-full w-full min-w-0 items-center group-hover/project:pr-14 group-has-[[data-project-actions]:focus-within]/project:pr-14",
+                    "flex h-full w-full min-w-0 items-center group-hover/project:pr-20 group-has-[[data-project-actions]:focus-within]/project:pr-20",
                     hasRunningSession && "pr-7",
                   )}
                 >
@@ -243,6 +273,37 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                     )
                   }
                 />
+                {group.projectId ? (
+                  <Popover
+                    open={openProjectMenuRoot === group.projectRoot}
+                    onOpenChange={(nextOpen) =>
+                      setOpenProjectMenuRoot(
+                        nextOpen ? group.projectRoot : null,
+                      )
+                    }
+                  >
+                    <PopoverTrigger asChild>
+                      <IconActionButton
+                        icon={<MoreHorizontal className="h-3.5 w-3.5" />}
+                        label={t("projectsMoreActions").replace(
+                          "{name}",
+                          group.projectName,
+                        )}
+                        tooltip={false}
+                        disabled={projectRemoval.isPending}
+                        onClick={(event) => event.stopPropagation()}
+                      />
+                    </PopoverTrigger>
+                    <ChatPopoverContent align="end" className="w-56 p-2">
+                      <ChatSessionHeaderMenuItem
+                        icon={FolderMinus}
+                        label={t("projectsRemoveFromList")}
+                        disabled={projectRemoval.isPending}
+                        onClick={() => void removeProject(group)}
+                      />
+                    </ChatPopoverContent>
+                  </Popover>
+                ) : null}
               </div>
             </div>
             {isCollapsed ? null : (
@@ -253,6 +314,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
           </div>
         );
       })}
+      <ConfirmDialog key="project-remove-confirm-dialog" />
     </div>
   );
 }

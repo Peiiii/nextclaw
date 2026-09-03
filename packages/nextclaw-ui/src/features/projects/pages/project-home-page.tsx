@@ -3,11 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ObservedRequest } from "@nextclaw/client-sdk";
 import { toast } from "sonner";
-import { useProjects, useRemoveProject } from "@/shared/hooks/use-projects";
+import { useProjects } from "@/shared/hooks/use-projects";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { t } from "@/shared/lib/i18n";
-import { Button } from "@/shared/components/ui/button";
-import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import {
   Tabs,
   TabsContent,
@@ -58,8 +56,6 @@ export function ProjectsPage() {
   const queryClient = useQueryClient();
   const { isMobile } = useViewportLayout();
   const projects = useProjects();
-  const projectRemoval = useRemoveProject();
-  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(
     null,
   );
@@ -105,23 +101,6 @@ export function ProjectsPage() {
       prompt: request.prompt,
     });
   };
-  const removeSelectedProject = async () => {
-    if (!selectedProject) return;
-    const confirmed = await confirm({
-      title: `${t("projectsRemoveConfirmTitle")} “${selectedProject.name}”`,
-      description: t("projectsRemoveConfirmDescription"),
-      confirmLabel: t("projectsRemoveConfirmAction"),
-      variant: "destructive",
-    });
-    if (!confirmed) return;
-    try {
-      await projectRemoval.mutateAsync(selectedProject.id);
-      navigate("/projects");
-    } catch {
-      // The mutation owns the visible error and the current project stays open.
-    }
-  };
-
   if (projects.isLoading)
     return (
       <main className="flex h-full items-center justify-center p-6 text-sm text-muted-foreground">
@@ -159,22 +138,11 @@ export function ProjectsPage() {
     <>
       <main className="h-full min-w-0 flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
         <div className="mx-auto max-w-6xl space-y-4">
-          <header className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-3 sm:flex-row sm:items-start sm:justify-between sm:p-4">
-            <div className="min-w-0">
-              <h1 className="text-lg font-semibold">{selectedProject.name}</h1>
-              <p className="mt-1 break-all text-xs text-muted-foreground">
-                {selectedProject.rootPath}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={projectRemoval.isPending}
-              onClick={() => void removeSelectedProject()}
-            >
-              {t("projectsRemoveFromList")}
-            </Button>
+          <header className="rounded-2xl border border-border/60 bg-card p-3 sm:p-4">
+            <h1 className="text-lg font-semibold">{selectedProject.name}</h1>
+            <p className="mt-1 break-all text-xs text-muted-foreground">
+              {selectedProject.rootPath}
+            </p>
           </header>
           {snapshot ? (
             <ProjectRequests
@@ -267,7 +235,6 @@ export function ProjectsPage() {
         sessionKey={null}
         projectRoot={selectedProject.rootPath}
       />
-      <ConfirmDialog />
     </>
   );
 }

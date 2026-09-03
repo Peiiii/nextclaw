@@ -10,7 +10,7 @@ Overview treats Current work and Recent artifacts as equal primary regions: they
 
 ## Remove a project from the list
 
-When you no longer need a project in NextClaw, select **Remove from project list** on its project home. A confirmation explains the impact before the project is removed.
+When you no longer need a project in NextClaw, switch the session list to the project view, open the project's **More actions** menu, and select **Remove from project list**. A confirmation explains the impact before the project is removed.
 
 This removes only the project-list entry. It does not delete the local folder, previous sessions, or Project Work. Existing sessions remain available in the session list. Adding or binding the same folder again restores the original project and its work records.
 

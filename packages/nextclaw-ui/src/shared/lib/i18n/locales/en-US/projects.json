@@ -11,6 +11,7 @@
   "projectsLoadFailed": "Failed to load project",
   "projectsEmpty": "No registered projects",
   "projectsChoose": "Choose a project",
+  "projectsMoreActions": "More actions for {name}",
   "projectsRemoveFromList": "Remove from project list",
   "projectsRemoveConfirmTitle": "Remove from project list",
   "projectsRemoveConfirmDescription": "The local folder, previous sessions, and project work records will not be deleted. Existing sessions remain available in the session list, and adding the same folder again restores the original project.",

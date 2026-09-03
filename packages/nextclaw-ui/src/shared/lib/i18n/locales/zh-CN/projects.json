@@ -11,6 +11,7 @@
   "projectsLoadFailed": "项目读取失败",
   "projectsEmpty": "还没有注册项目",
   "projectsChoose": "选择项目",
+  "projectsMoreActions": "{name} 的更多操作",
   "projectsRemoveFromList": "从项目列表移除",
   "projectsRemoveConfirmTitle": "从项目列表移除",
   "projectsRemoveConfirmDescription": "本地目录、历史会话和项目工作记录不会删除。已有会话仍可在会话列表中使用；以后重新添加同一目录时，会恢复原项目。",
