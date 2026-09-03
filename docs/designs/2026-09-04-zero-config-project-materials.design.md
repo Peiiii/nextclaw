@@ -157,7 +157,7 @@ Chat session catalog
 | ZCP-006 | true     | observation service/API/SDK/CLI/UI/types/tests 与无消费者残留全部删除        | passed  | 旧实现文件已删除；精确残留扫描为零；旧 HTTP endpoint 回归测试返回 404，CLI help 无 observe |
 | ZCP-007 | true     | Overview、工作项列表/看板、详情抽屉、产物打开和项目聊天工作区无功能回归      | passed  | Projects UI 全功能集 11 files / 37 tests 通过，Vite build 通过 |
 | ZCP-008 | true     | 受影响包定向测试、TypeScript、治理检查、真实链路验证和 diff-only Review 通过 | passed  | 104 项定向测试、7 包 TypeScript、完整构建、ESLint、治理与产物扫描通过；Review 50 files / 0 errors / no findings |
-| ZCP-009 | true     | 变更精确提交并合入本地 `master`，不推送、不发布                              | not-run | 待交付   |
+| ZCP-009 | true     | 变更精确提交并合入本地 `master`，不推送、不发布                              | passed  | 功能提交 `4c6e72973` 经合并提交 `e363d73b0` 进入本地 `master`；`origin/master` 保持 `e8a4ec84f` |
 
 ## 验收场景
 

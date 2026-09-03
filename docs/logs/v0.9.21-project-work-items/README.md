@@ -22,7 +22,7 @@
 
 - 实现与验证在隔离 worktree `codex/project-work-items` 中完成，提交后安全合入远程 `master`，不切换或清理带有活跃 WIP 的主工作区。
 - Marker 删除与状态分组简化在隔离分支 `codex/simplify-work-state-groups` 完成，经合并提交 `581960bc2` 合入并推送 `origin/master`；`release:reconcile:mainline` 返回 `LOCAL_MAINLINE_SYNCED`。
-- 零配置材料收口在隔离分支 `codex/remove-project-observation` 完成；本批交付边界是提交后仅合入本地 `master`，明确不推送、不发布、不重启当前实例。
+- 零配置材料收口在隔离分支 `codex/remove-project-observation` 完成，功能提交 `4c6e72973` 经合并提交 `e363d73b0` 进入本地 `master`；`origin/master` 保持在 `e8a4ec84f`，未推送、未发布、未重启当前实例。
 - Beta 通过仓库统一入口 `pnpm release:beta` 消费 `.changeset/add-persistent-project-work.md`，发布 NPM beta batch，并在 batch 包含 `nextclaw` 时闭合 beta runtime channel；不包含桌面安装包。
 
 ## 用户/产品视角的验收步骤
