@@ -7,7 +7,17 @@ export type ProjectArtifactSort =
   | "created-desc"
   | "name";
 
-export const DEFAULT_PROJECT_ARTIFACT_SORT: ProjectArtifactSort = "updated-desc";
+export const DEFAULT_PROJECT_ARTIFACT_SORT: ProjectArtifactSort =
+  "updated-desc";
+
+export function joinProjectPath(
+  rootPath: string,
+  relativePath: string,
+): string {
+  const separator =
+    rootPath.endsWith("/") || rootPath.endsWith("\\") ? "" : "/";
+  return `${rootPath}${separator}${relativePath}`;
+}
 
 function timestamp(value?: string): number {
   if (!value) return Number.NEGATIVE_INFINITY;
@@ -30,33 +40,40 @@ export function sortProjectArtifacts(
     if (sort === "name") return byName(left, right);
     const leftTimestamp = timestamp(
       sort === "created-desc"
-        ? left.fileCreatedAt ?? left.fileUpdatedAt
-        : left.fileUpdatedAt ?? left.fileCreatedAt,
+        ? (left.fileCreatedAt ?? left.fileUpdatedAt)
+        : (left.fileUpdatedAt ?? left.fileCreatedAt),
     );
     const rightTimestamp = timestamp(
       sort === "created-desc"
-        ? right.fileCreatedAt ?? right.fileUpdatedAt
-        : right.fileUpdatedAt ?? right.fileCreatedAt,
+        ? (right.fileCreatedAt ?? right.fileUpdatedAt)
+        : (right.fileUpdatedAt ?? right.fileCreatedAt),
     );
-    const order = sort === "updated-asc"
-      ? leftTimestamp - rightTimestamp
-      : rightTimestamp - leftTimestamp;
+    const order =
+      sort === "updated-asc"
+        ? leftTimestamp - rightTimestamp
+        : rightTimestamp - leftTimestamp;
     return order || byName(left, right);
   });
 }
 
-export function formatProjectRelativeTime(value?: string, now: Date = new Date()): string {
+export function formatProjectRelativeTime(
+  value?: string,
+  now: Date = new Date(),
+): string {
   if (!value) return "-";
   const date = new Date(value);
   const differenceMs = now.getTime() - date.getTime();
   if (Number.isNaN(date.getTime())) return value;
   if (differenceMs < 60_000) return t("projectsTimeJustNow");
   const minutes = Math.floor(differenceMs / 60_000);
-  if (minutes < 60) return t("projectsTimeMinutesAgo").replace("{count}", String(minutes));
+  if (minutes < 60)
+    return t("projectsTimeMinutesAgo").replace("{count}", String(minutes));
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return t("projectsTimeHoursAgo").replace("{count}", String(hours));
+  if (hours < 24)
+    return t("projectsTimeHoursAgo").replace("{count}", String(hours));
   const days = Math.floor(hours / 24);
   if (days === 1) return t("projectsTimeYesterday");
-  if (days < 7) return t("projectsTimeDaysAgo").replace("{count}", String(days));
+  if (days < 7)
+    return t("projectsTimeDaysAgo").replace("{count}", String(days));
   return formatDateShort(value);
 }

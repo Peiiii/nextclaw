@@ -42,13 +42,27 @@ function agentActor(context: ProjectWorkToolContext) {
 export class ProjectWorkListTool implements NcpTool {
   readonly name = "project_work_list";
   readonly description =
-    "List persistent work items and custom states for the current project.";
+    "List one bounded page of persistent work items for the current project.";
   readonly parameters = {
     type: "object",
     properties: {
       include_deleted: {
         type: "boolean",
         description: "Include deleted work items.",
+      },
+      state_id: {
+        type: "string",
+        description: "Only return work items in this custom state.",
+      },
+      cursor: {
+        type: "string",
+        description: "Opaque next_cursor from an earlier list response.",
+      },
+      limit: {
+        type: "integer",
+        minimum: 1,
+        maximum: 100,
+        description: "Page size. Defaults to 20.",
       },
     },
     additionalProperties: false,
@@ -62,10 +76,18 @@ export class ProjectWorkListTool implements NcpTool {
   execute = async (args: unknown): Promise<string> => {
     const params = normalizeToolParams(args);
     return JSON.stringify(
-      await this.work.list(
-        this.context.projectId,
-        optionalBoolean(params.include_deleted) ?? false,
-      ),
+      await this.work.list(this.context.projectId, {
+        includeDeleted: optionalBoolean(params.include_deleted) ?? false,
+        ...(optionalString(params.state_id)
+          ? { stateId: optionalString(params.state_id) }
+          : {}),
+        ...(optionalString(params.cursor)
+          ? { cursor: optionalString(params.cursor) }
+          : {}),
+        ...(optionalNumber(params.limit)
+          ? { limit: optionalNumber(params.limit) }
+          : {}),
+      }),
       null,
       2,
     );

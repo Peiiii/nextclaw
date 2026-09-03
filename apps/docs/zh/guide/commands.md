@@ -103,29 +103,29 @@ nextclaw <command> --help
 
 ## 项目与会话
 
-| 命令                                     | 用途                                   |
-| ---------------------------------------- | -------------------------------------- |
-| `nextclaw projects list`                 | 列出所有已注册项目，包括尚无会话的项目 |
-| `nextclaw projects templates`            | 列出内置项目模板                       |
-| `nextclaw projects create`               | 创建并注册项目                         |
-| `nextclaw projects observe`              | 读取已注册项目的只读观测快照           |
-| `nextclaw projects work list`            | 按项目 ID 列出工作项                   |
-| `nextclaw projects work get`             | 查看工作项详情                         |
-| `nextclaw projects work create`          | 创建持久化工作项                       |
-| `nextclaw projects work update`          | 更新工作项字段、状态或关注标记         |
-| `nextclaw projects work delete`          | 软删除工作项                           |
-| `nextclaw projects work restore`         | 恢复已删除工作项                       |
-| `nextclaw projects work activity`        | 查看工作项的不可变活动历史             |
-| `nextclaw projects work artifact link`   | 关联项目内的产物文件                   |
-| `nextclaw projects work artifact unlink` | 移除产物关联                           |
-| `nextclaw projects work state list`      | 列出项目的自定义工作状态               |
-| `nextclaw projects work state create`    | 创建工作状态                           |
-| `nextclaw projects work state update`    | 更新或重排工作状态                     |
-| `nextclaw projects work state delete`    | 删除状态并按需迁移现有工作项           |
-| `nextclaw sessions rename`               | 重命名会话                             |
-| `nextclaw sessions set-project`          | 把会话绑定到现有项目目录               |
-| `nextclaw sessions clear-project`        | 清除会话的显式项目绑定                 |
-| `nextclaw sessions delete`               | 永久删除会话；需 `--confirm <会话 ID>` |
+| 命令                                     | 用途                                                                                   |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| `nextclaw projects list`                 | 列出所有已注册项目，包括尚无会话的项目                                                 |
+| `nextclaw projects templates`            | 列出内置项目模板                                                                       |
+| `nextclaw projects create`               | 创建并注册项目                                                                         |
+| `nextclaw projects observe`              | 读取已注册项目的只读观测快照                                                           |
+| `nextclaw projects work list`            | 按项目 ID 分页列出工作项；支持 `--state`、`--cursor`、`--limit` 和 `--include-deleted` |
+| `nextclaw projects work get`             | 查看工作项详情                                                                         |
+| `nextclaw projects work create`          | 创建持久化工作项                                                                       |
+| `nextclaw projects work update`          | 更新工作项字段、状态或关注标记                                                         |
+| `nextclaw projects work delete`          | 软删除工作项                                                                           |
+| `nextclaw projects work restore`         | 恢复已删除工作项                                                                       |
+| `nextclaw projects work activity`        | 查看工作项的不可变活动历史                                                             |
+| `nextclaw projects work artifact link`   | 关联项目内的产物文件                                                                   |
+| `nextclaw projects work artifact unlink` | 移除产物关联                                                                           |
+| `nextclaw projects work state list`      | 列出项目的自定义工作状态                                                               |
+| `nextclaw projects work state create`    | 创建工作状态                                                                           |
+| `nextclaw projects work state update`    | 更新或重排工作状态                                                                     |
+| `nextclaw projects work state delete`    | 删除状态并按需迁移现有工作项                                                           |
+| `nextclaw sessions rename`               | 重命名会话                                                                             |
+| `nextclaw sessions set-project`          | 把会话绑定到现有项目目录                                                               |
+| `nextclaw sessions clear-project`        | 清除会话的显式项目绑定                                                                 |
+| `nextclaw sessions delete`               | 永久删除会话；需 `--confirm <会话 ID>`                                                 |
 
 所有 `projects work` 命令都必须显式传入 `--project <项目 ID>`，并通过正在运行的本地 NextClaw 服务执行。
 
