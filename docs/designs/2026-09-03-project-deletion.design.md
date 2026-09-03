@@ -89,7 +89,7 @@ Project 页面 / nextclaw projects remove
 | PD-5 | true     | CLI 复用 kernel owner 并要求精确 Project ID 确认                 | passed  | CLI 注册测试、错误确认与真实命令冒烟通过   |
 | PD-6 | true     | 中英文用户文档、自管理资源和 changeset 与真实合同同步            | passed  | 命令全集同步测试和构建资源同步通过          |
 | PD-7 | true     | 触达包的定向测试、TypeScript 编译与维护性审查通过                | passed  | 53 项定向测试、六包 tsc、lint 与 diff-only Review 通过 |
-| PD-8 | true     | 已提交分支由主线协调流程合入并推送 `origin/master`               | not-run | 用户已授权，待 Delivery |
+| PD-8 | true     | 已提交分支由主线协调流程合入并推送 `origin/master`               | passed  | 集成候选已推送；本地主镜像由 retry worker 安全续跑 |
 
 ## 非目标
 
