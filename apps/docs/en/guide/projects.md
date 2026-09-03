@@ -1,6 +1,6 @@
 # Manage project work and materials
 
-The Projects page brings together work items, artifacts, Skills, working agreements, and project sessions for a registered project. A project still has a real root directory, but NextClaw stores work-item data separately. You do not need to add markers, configuration files, or a tracking Skill to the project directory.
+The Projects page brings together work items, artifacts, Skills, working agreements, and project sessions for a registered project. A project still has a real root directory, but NextClaw stores work-item data separately. You do not need tracking files or a dedicated tracking Skill in the project directory.
 
 ## Open a project home
 
@@ -65,11 +65,11 @@ nextclaw projects work activity <work-item-id> --project <project-id>
 
 `work list` returns 20 items by default and at most 100. When another page exists, it returns an opaque cursor that can be passed with `--cursor`. The CLI calls the running local NextClaw service and reuses the same Kernel contract. If the service is not running, it fails directly instead of starting a second writer. See the [command reference](./commands.md) for the complete command set.
 
-## Existing project observation
+## Project material observation
 
-Artifacts, Skills, working agreements, and the legacy read-only observation remain available. Existing `.nextclaw/project.yaml` files, project rules, project Skills, and historical markers continue to work; they are simply no longer prerequisites for creating, counting, or advancing work items.
+The complete Artifacts, Skills, and Working agreement views read project files on demand. An optional `.nextclaw/project.yaml` configures only the project summary, context files, artifact directories, and Skill directories. Work items always come from Project Work; NextClaw does not rebuild their state from historical conversation text.
 
-You can still read the legacy observation snapshot with:
+You can read the project material observation snapshot with:
 
 ```bash
 nextclaw projects observe /absolute/path/to/project --json

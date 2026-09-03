@@ -1,7 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { NcpEventType } from "@nextclaw/ncp";
 import { eventKeys, type ProjectObservationSnapshot } from "@nextclaw/client-sdk";
 import { EventBus } from "@nextclaw/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -22,7 +21,6 @@ const snapshot: ProjectObservationSnapshot = {
   asOf: observedAt,
   project: { name: "Demo", rootPath: "/tmp/demo", context: [] },
   sources: [],
-  workflows: [],
   runs: [{
     sessionId: "session-1",
     state: "running",
@@ -34,12 +32,8 @@ const snapshot: ProjectObservationSnapshot = {
       sessionId: "session-1",
     },
   }],
-  workItems: [],
   artifactCategories: [],
   artifacts: [],
-  signals: [],
-  requests: [],
-  activity: [],
   skills: [],
   diagnostics: [],
   dataQuality: "complete",
@@ -79,12 +73,12 @@ describe("useProjectObservation", () => {
     expect(mocks.getObservation).toHaveBeenCalledTimes(1);
 
     act(() => {
-      nextclawClient.eventBus.emit(eventKeys.ncpEvent, {
-        type: NcpEventType.MessageTextDelta,
-        payload: {
+      nextclawClient.eventBus.emit(eventKeys.sessionSummaryUpsert, {
+        summary: {
           sessionId: "session-1",
-          messageId: "assistant-1",
-          delta: '[nextclaw.project/v1 id=wi_7km4q2x9dn name="Live work" stage=exploration]',
+          messageCount: 1,
+          updatedAt: observedAt,
+          metadata: { project_root: "/tmp/demo" },
         },
       });
     });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseProjectObservationConfig } from "@kernel/features/projects/utils/project-observation-config.utils.js";
 
 describe("parseProjectObservationConfig", () => {
-  it("parses context, workflows, artifacts and skill roots", () => {
+  it("parses context, artifacts and skill roots", () => {
     const result = parseProjectObservationConfig(`
 schema_version: 1
 project:
@@ -11,15 +11,7 @@ project:
     - id: vision
       role: Vision
       source: docs/VISION.md
-workflows:
-  - id: research
-    label: Research
-    stages:
-      - id: collect
-        label: Collect
 observation:
-  markers:
-    - protocol: nextclaw.project/v1
   artifacts:
     - id: reports
       label: Reports
@@ -33,10 +25,30 @@ observation:
     expect(result.config).toMatchObject({
       summary: "Long-running research",
       context: [{ id: "vision", role: "Vision", source: "docs/VISION.md" }],
-      workflows: [{ id: "research", stages: [{ id: "collect" }] }],
       artifactCategories: [{ id: "reports", include: ["reports/**/*.md"] }],
       skillRoots: [".agents/skills"],
     });
+  });
+
+  it("treats removed workflow and marker fields as unknown", () => {
+    const result = parseProjectObservationConfig(`
+schema_version: 1
+workflows: []
+observation:
+  markers: []
+`);
+
+    expect(result.config).not.toBeNull();
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        code: "PROJECT_CONFIG_UNKNOWN_FIELD",
+        message: expect.stringContaining("workflows"),
+      }),
+      expect.objectContaining({
+        code: "PROJECT_CONFIG_UNKNOWN_FIELD",
+        message: expect.stringContaining("markers"),
+      }),
+    ]);
   });
 
   it("rejects unsupported versions without inventing a fallback config", () => {

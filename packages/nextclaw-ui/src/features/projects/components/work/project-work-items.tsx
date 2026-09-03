@@ -227,14 +227,14 @@ function ProjectWorkStateGroup({
     <section
       className={
         view === "board"
-          ? "flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-muted/25"
-          : "min-w-0 overflow-hidden rounded-xl border border-border/60"
+          ? "flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
+          : "min-w-0"
       }
       aria-label={getProjectWorkStateLabel(state.name)}
     >
       <button
         type="button"
-        className="flex w-full shrink-0 items-center gap-2 bg-muted/30 px-3 py-2.5 text-left transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+        className="flex w-full shrink-0 items-center gap-2 rounded-lg px-1 py-2 text-left transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
         aria-expanded={!collapsed}
         onClick={() => setCollapsed((value) => !value)}
       >
@@ -247,7 +247,7 @@ function ProjectWorkStateGroup({
         <span className="min-w-0 truncate text-sm font-semibold">
           {getProjectWorkStateLabel(state.name)}
         </span>
-        <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-full bg-background/85 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-foreground ring-1 ring-border/60">
+        <span className="ml-0.5 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
           {total ?? "…"}
         </span>
       </button>
@@ -255,8 +255,8 @@ function ProjectWorkStateGroup({
         <div
           className={
             view === "board"
-              ? "min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
-              : "space-y-2 p-3"
+              ? "min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-1 pb-3"
+              : "space-y-2 px-1 pb-3"
           }
         >
           <ProjectWorkStateGroupBody
@@ -389,7 +389,7 @@ export function ProjectWorkItems({
         {t("projectsWorkShowDeleted")}
       </label>
       {view === "list" ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {listStates.map((state) => (
             <ProjectWorkStateGroup
               key={state.id}

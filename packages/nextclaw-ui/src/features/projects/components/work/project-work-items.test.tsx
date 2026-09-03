@@ -129,7 +129,17 @@ describe("ProjectWorkItems", () => {
 
     const group = screen.getByRole("button", { name: /Planned.*21/ });
     const count = screen.getByText("21");
-    expect(count.className).toContain("rounded-full");
+    const groupSection = group.closest("section");
+    const workItem = screen.getByRole("button", {
+      name: /Clickable work item/,
+    });
+    expect(groupSection?.className).not.toContain("border");
+    expect(groupSection?.className).not.toContain("rounded-xl");
+    expect(groupSection?.className).not.toContain("bg-muted");
+    expect(workItem.className).toContain("border");
+    expect(workItem.className).toContain("rounded-xl");
+    expect(count.className).not.toContain("rounded-full");
+    expect(count.className).toContain("text-muted-foreground");
     expect(count.className).toContain("tabular-nums");
     fireEvent.click(group);
     expect(group.textContent).toContain("21");
@@ -162,6 +172,8 @@ describe("ProjectWorkItems", () => {
 
     const group = screen.getByRole("region", { name: /Planned|计划中/ });
     expect(group.className).toContain("h-full");
+    expect(group.className).not.toContain("rounded-xl");
+    expect(group.className).not.toContain("bg-muted");
     const cards = screen.getByRole("button", {
       name: /Clickable work item/,
     }).parentElement;

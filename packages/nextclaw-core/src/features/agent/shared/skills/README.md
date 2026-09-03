@@ -24,7 +24,6 @@ The skill format and metadata structure follow OpenClaw's conventions to maintai
 | `tmux` | Remote-control tmux sessions |
 | `skill-creator` | Create new skills |
 | `nextclaw-autostart` | Guide NextClaw host autostart setup, reboot recovery, and service registration diagnostics |
-| `project-observation-setup` | Establish or maintain the project-owned observation contract in `.nextclaw/project.yaml` and root `AGENTS.md` |
 | `nextclaw-skill-resource-hub` | Curate NextClaw, OpenClaw, and community skill resources |
 | `visualize-output` | Present answers and results with focused Markdown, diagrams, images, or inline HTML |
 | `nextclaw-app-creator` | Create complete schema v2 Mini Apps by choosing component composition first, then Portable WASI or native-process for any Service |

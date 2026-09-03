@@ -1,5 +1,4 @@
 import type {
-  ObservedWorkItem,
   ProjectAddExistingRequest,
   ProjectCreateRequest,
   ProjectListView,
@@ -22,15 +21,9 @@ import type { RequestService } from "./request.service.js";
 
 type ProjectObservationWireSnapshot = Omit<
   ProjectObservationSnapshot,
-  "runs" | "workItems"
+  "runs"
 > & {
   runs?: ProjectObservationSnapshot["runs"];
-  workItems?: Array<
-    Omit<ObservedWorkItem, "name"> & {
-      name?: string;
-      title?: string;
-    }
-  >;
 };
 
 function normalizeProjectObservationSnapshot(
@@ -39,10 +32,6 @@ function normalizeProjectObservationSnapshot(
   return {
     ...snapshot,
     runs: Array.isArray(snapshot.runs) ? snapshot.runs : [],
-    workItems: (snapshot.workItems ?? []).map(({ title, name, ...item }) => ({
-      ...item,
-      name: name?.trim() || title?.trim() || item.id,
-    })),
   };
 }
 

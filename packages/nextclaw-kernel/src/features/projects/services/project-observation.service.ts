@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SkillsLoader } from "@nextclaw/core";
-import type { NcpMessage, NcpSessionSummary } from "@nextclaw/ncp";
+import type { NcpSessionSummary } from "@nextclaw/ncp";
 import type { ProjectManager } from "@kernel/features/projects/managers/project.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import {
@@ -23,45 +23,19 @@ import {
   scanProjectArtifactFiles,
 } from "@kernel/features/projects/utils/project-observation-files.utils.js";
 import {
-  mergeProjectObservedArtifacts,
   projectObservationConfigReference,
   projectObservationFileReference,
-  projectObservedActivity,
-  projectObservedRequests,
   projectObservedRuns,
-  projectObservedSignals,
-  projectObservedWorkItems,
 } from "@kernel/features/projects/utils/project-observation-projection.utils.js";
-import {
-  createProjectObservationMarkerParseState,
-  parseProjectObservationMarkers,
-  readProjectObservationResponseMetadata,
-  type ProjectObservationMarker,
-  type ProjectObservationMarkerIssue,
-  type ProjectObservationMarkerParseState,
-} from "@kernel/features/projects/utils/project-observation-marker.utils.js";
 
 type ProjectObservationServiceOptions = {
   projectManager: Pick<ProjectManager, "getRegisteredProject">;
-  sessionManager: Pick<SessionManager, "listSessions" | "listSessionMessages">;
+  sessionManager: Pick<SessionManager, "listSessions">;
   workspacePath: string;
   now?: () => Date;
 };
 
 type DiagnosticSource = ProjectObservationDiagnostic["source"];
-
-type ProjectObservationResponse = {
-  requestId: string;
-  decision: "confirmed" | "rejected";
-  sentAt: string;
-  messageId: string;
-};
-
-type ParsedProjectSessionMessage = {
-  markers: ProjectObservationMarker[];
-  markerIssues: ProjectObservationMarkerIssue[];
-  response?: ProjectObservationResponse;
-};
 
 const SOURCE_LABELS: Record<DiagnosticSource, string> = {
   config: "项目配置",
@@ -80,81 +54,6 @@ const readOptionalString = (value: unknown): string | undefined => {
 
 const readSessionProjectRoot = (session: NcpSessionSummary): string | undefined =>
   readOptionalString(session.metadata?.project_root) ?? readOptionalString(session.metadata?.projectRoot);
-
-const readMessageText = (message: NcpMessage): string => message.parts
-  .flatMap((part) => part.type === "text" || part.type === "rich-text" ? [part.text] : [])
-  .join("\n");
-
-const compareMarkerSource = (left: ProjectObservationMarker, right: ProjectObservationMarker): number =>
-  left.timestamp.localeCompare(right.timestamp)
-  || left.sessionId.localeCompare(right.sessionId)
-  || left.messageId.localeCompare(right.messageId)
-  || left.line - right.line;
-
-const markerConflictKey = (marker: ProjectObservationMarker): string | null => {
-  switch (marker.kind) {
-    case "work-item":
-    case "signal":
-    case "request":
-      return `${marker.kind}:${marker.id}`;
-    case "schedule":
-      return `${marker.kind}:${marker.itemId}`;
-    case "artifact":
-      return null;
-  }
-};
-
-const markerSemanticValue = (marker: ProjectObservationMarker): string => {
-  const { line: _line, messageId: _messageId, sessionId: _sessionId, timestamp: _timestamp, ...semantic } = marker;
-  return JSON.stringify(semantic);
-};
-
-const parseProjectSessionMessage = (
-  sessionId: string,
-  message: NcpMessage,
-  state: ProjectObservationMarkerParseState,
-): ParsedProjectSessionMessage => {
-  if (message.role === "assistant") {
-    const parsed = parseProjectObservationMarkers({
-      text: readMessageText(message),
-      sessionId,
-      messageId: message.id,
-      timestamp: message.timestamp,
-      reportInvalid: message.status === "final" || message.status === "error",
-      state,
-    });
-    return { markers: parsed.markers, markerIssues: parsed.issues };
-  }
-  if (message.role !== "user") {
-    return { markers: [], markerIssues: [] };
-  }
-  const response = readProjectObservationResponseMetadata(message.metadata);
-  return {
-    markers: [],
-    markerIssues: [],
-    ...(response ? {
-      response: {
-        requestId: response.requestId,
-        decision: response.decision,
-        sentAt: message.timestamp,
-        messageId: message.id,
-      },
-    } : {}),
-  };
-};
-
-const mergeLatestResponse = (
-  responses: Map<string, Omit<ProjectObservationResponse, "requestId">>,
-  response: ProjectObservationResponse,
-): Map<string, Omit<ProjectObservationResponse, "requestId">> => {
-  const next = new Map(responses);
-  const current = next.get(response.requestId);
-  if (!current || current.sentAt.localeCompare(response.sentAt) <= 0) {
-    const { requestId, ...value } = response;
-    next.set(requestId, value);
-  }
-  return next;
-};
 
 export class ProjectObservationService {
   private readonly now: () => Date;
@@ -206,33 +105,18 @@ export class ProjectObservationService {
 
     const config = await this.readConfig(project.rootPath, addDiagnostic);
     const context = await this.observeContext(project.rootPath, config, asOf, addDiagnostic);
-    addSourceCount("config", (config ? 1 : 0) + context.length + (config?.workflows.length ?? 0));
+    addSourceCount("config", (config ? 1 : 0) + context.length);
 
     const artifacts = await this.observeArtifacts(project.rootPath, config, asOf, addDiagnostic);
     addSourceCount("files", artifacts.length);
 
-    const sessionObservation = await this.observeSessions(project.rootPath, addDiagnostic);
-    addSourceCount("sessions", sessionObservation.sessions.length);
+    const sessions = await this.observeSessions(project.rootPath, addDiagnostic);
+    addSourceCount("sessions", sessions.length);
 
     const skills = this.observeSkills(project.rootPath, config, asOf, addDiagnostic);
     addSourceCount("skills", skills.length);
 
-    const workflows = (config?.workflows ?? []).map((workflow) => ({
-      ...workflow,
-      reference: projectObservationConfigReference(asOf),
-    }));
-    const workItems = projectObservedWorkItems(sessionObservation.markers, workflows, addDiagnostic);
-    const runs = projectObservedRuns(sessionObservation.sessions, sessionObservation.markers);
-    const mergedArtifacts = await mergeProjectObservedArtifacts(
-      project.rootPath,
-      artifacts,
-      config,
-      sessionObservation.markers,
-      addDiagnostic,
-    );
-    const signals = projectObservedSignals(sessionObservation.markers);
-    const requests = projectObservedRequests(sessionObservation.markers, sessionObservation.responses);
-    const activity = projectObservedActivity(sessionObservation.markers);
+    const runs = projectObservedRuns(sessions);
     const sources = (Object.keys(SOURCE_LABELS) as DiagnosticSource[]).map((source) => this.createSourceStatus(
       source,
       asOf,
@@ -251,14 +135,9 @@ export class ProjectObservationService {
         context,
       },
       sources,
-      workflows,
       runs,
-      workItems,
       artifactCategories: (config?.artifactCategories ?? []).map(({ id, label }) => ({ id, label })),
-      artifacts: mergedArtifacts,
-      signals,
-      requests,
-      activity,
+      artifacts,
       skills,
       diagnostics,
       dataQuality: errorSourceCount === sources.length
@@ -381,91 +260,13 @@ export class ProjectObservationService {
       message: string,
       details?: Pick<ProjectObservationDiagnostic, "sessionId" | "messageId">,
     ) => void,
-  ): Promise<{
-    markers: ProjectObservationMarker[];
-    responses: Map<string, { decision: "confirmed" | "rejected"; sentAt: string; messageId: string }>;
-    sessions: NcpSessionSummary[];
-  }> => {
-    const markers: ProjectObservationMarker[] = [];
-    let responses = new Map<string, { decision: "confirmed" | "rejected"; sentAt: string; messageId: string }>();
-    let sessions: NcpSessionSummary[];
+  ): Promise<NcpSessionSummary[]> => {
     try {
-      sessions = (await this.options.sessionManager.listSessions())
+      return (await this.options.sessionManager.listSessions())
         .filter((session) => readSessionProjectRoot(session) === rootPath);
     } catch (error) {
       addDiagnostic("sessions", "error", "PROJECT_SESSIONS_READ_FAILED", error instanceof Error ? error.message : "Project sessions could not be listed.");
-      return { markers, responses, sessions: [] };
-    }
-    const messages: Array<{ message: NcpMessage; sessionId: string }> = [];
-    for (const session of sessions) {
-      try {
-        messages.push(...(await this.options.sessionManager.listSessionMessages(session.sessionId))
-          .map((message) => ({ message, sessionId: session.sessionId })));
-      } catch (error) {
-        addDiagnostic("sessions", "error", "PROJECT_SESSION_MESSAGES_READ_FAILED", error instanceof Error ? error.message : "Project session messages could not be read.", { sessionId: session.sessionId });
-      }
-    }
-    messages.sort((left, right) =>
-      left.message.timestamp.localeCompare(right.message.timestamp)
-      || left.sessionId.localeCompare(right.sessionId)
-      || left.message.id.localeCompare(right.message.id));
-    const parseState = createProjectObservationMarkerParseState();
-    for (const { message, sessionId } of messages) {
-      const parsed = parseProjectSessionMessage(sessionId, message, parseState);
-      markers.push(...parsed.markers);
-      for (const issue of parsed.markerIssues) {
-        addDiagnostic("sessions", "warning", issue.code, issue.message, {
-          sessionId,
-          messageId: message.id,
-        });
-      }
-      if (parsed.response) {
-        responses = mergeLatestResponse(responses, parsed.response);
-      }
-    }
-    markers.sort(compareMarkerSource);
-    this.addMarkerConflictDiagnostics(markers, addDiagnostic);
-    return { markers, responses, sessions };
-  };
-
-  private addMarkerConflictDiagnostics = (
-    markers: ProjectObservationMarker[],
-    addDiagnostic: (
-      source: DiagnosticSource,
-      level: ProjectObservationDiagnostic["level"],
-      code: string,
-      message: string,
-      details?: Pick<ProjectObservationDiagnostic, "sessionId" | "messageId">,
-    ) => void,
-  ): void => {
-    const latestAtByKey = new Map<string, {
-      messageId: string;
-      sessionId: string;
-      timestamp: string;
-      value: string;
-    }>();
-    for (const marker of markers) {
-      const key = markerConflictKey(marker);
-      if (!key) continue;
-      const current = latestAtByKey.get(key);
-      const value = markerSemanticValue(marker);
-      if (current?.timestamp === marker.timestamp &&
-          (current.sessionId !== marker.sessionId || current.messageId !== marker.messageId) &&
-          current.value !== value) {
-        addDiagnostic(
-          "sessions",
-          "warning",
-          "PROJECT_MARKER_CONFLICT",
-          `Conflicting '${key}' markers share the same observation time; a deterministic source order was used.`,
-          { sessionId: marker.sessionId, messageId: marker.messageId },
-        );
-      }
-      latestAtByKey.set(key, {
-        messageId: marker.messageId,
-        sessionId: marker.sessionId,
-        timestamp: marker.timestamp,
-        value,
-      });
+      return [];
     }
   };
 

@@ -135,8 +135,8 @@ describe("projects routes", () => {
     const observe = vi.fn(async (rootPath: string) => ({
       asOf: "2026-08-30T00:00:00.000Z",
       project: { name: "Knowledge", rootPath, context: [] },
-      sources: [], workflows: [], runs: [], workItems: [], artifacts: [], signals: [], requests: [],
-      activity: [], skills: [], diagnostics: [], dataQuality: "complete",
+      sources: [], runs: [], artifactCategories: [], artifacts: [], skills: [],
+      diagnostics: [], dataQuality: "complete",
     }));
     const getProjectById = vi.fn(async (projectId: string) =>
       projectId === "project-knowledge"

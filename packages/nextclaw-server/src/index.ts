@@ -9,9 +9,6 @@ export * from "@nextclaw-server/features/service-apps/index.js";
 export type {
   CreateProjectWorkItemInput,
   CreateProjectWorkStateInput,
-  ObservedRequest,
-  ObservedWorkItem,
-  ObservedWorkflow,
   ProjectObservationSnapshot,
   ProjectWorkActivity,
   ProjectWorkActivityPage,

@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ObservedRequest } from "@nextclaw/client-sdk";
-import { toast } from "sonner";
 import { useProjects } from "@/shared/hooks/use-projects";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { t } from "@/shared/lib/i18n";
@@ -15,7 +12,6 @@ import {
 import { ProjectAgreement } from "@/features/projects/components/project-agreement";
 import { ProjectArtifacts } from "@/features/projects/components/project-artifacts";
 import { ProjectOverview } from "@/features/projects/components/project-overview";
-import { ProjectRequests } from "@/features/projects/components/project-requests";
 import { ProjectSkills } from "@/features/projects/components/project-skills";
 import { ProjectWorkItemDrawer } from "@/features/projects/components/work/project-work-item-drawer";
 import { ProjectWorkItems } from "@/features/projects/components/work/project-work-items";
@@ -24,18 +20,12 @@ import {
   usePresenter,
 } from "@/features/chat";
 import {
-  projectObservationQueryKey,
   useProjectObservation,
 } from "@/features/projects/hooks/use-project-observation";
 import {
-  getOpenProjectRequests,
   isProjectHomeTab,
   type ProjectHomeTab,
 } from "@/features/projects/presenters/project-home.presenter";
-import {
-  sendProjectRequestResponse,
-  type ProjectRequestDecision,
-} from "@/features/projects/utils/project-request-response.utils";
 import { joinProjectPath } from "@/features/projects/utils/project-artifact-view.utils";
 
 const PROJECT_TABS: ProjectHomeTab[] = [
@@ -53,13 +43,11 @@ export function ProjectsPage() {
   }>();
   const navigate = useNavigate();
   const presenter = usePresenter();
-  const queryClient = useQueryClient();
   const { isMobile } = useViewportLayout();
   const projects = useProjects();
   const [selectedWorkItemId, setSelectedWorkItemId] = useState<string | null>(
     null,
   );
-  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   const registered = projects.data?.projects ?? [];
   const selectedProject =
     registered.find((project) => project.id === projectId) ?? null;
@@ -73,34 +61,6 @@ export function ProjectsPage() {
     selectedProject?.rootPath ?? null,
     needsObservation,
   );
-  const response = useMutation({
-    mutationFn: sendProjectRequestResponse,
-    onMutate: (input) => setPendingRequestId(input.requestId),
-    onSuccess: async () => {
-      if (selectedProject)
-        await queryClient.invalidateQueries({
-          queryKey: projectObservationQueryKey(selectedProject.id),
-        });
-      toast.success(t("projectsResponseSent"));
-    },
-    onError: (error) =>
-      toast.error(
-        `${t("projectsResponseFailed")}: ${error instanceof Error ? error.message : String(error)}`,
-      ),
-    onSettled: () => setPendingRequestId(null),
-  });
-  const reply = (
-    request: ObservedRequest,
-    decision: ProjectRequestDecision,
-  ) => {
-    if (!request.reference.sessionId) return;
-    response.mutate({
-      requestId: request.id,
-      sessionId: request.reference.sessionId,
-      decision,
-      prompt: request.prompt,
-    });
-  };
   if (projects.isLoading)
     return (
       <main className="flex h-full items-center justify-center p-6 text-sm text-muted-foreground">
@@ -144,13 +104,6 @@ export function ProjectsPage() {
               {selectedProject.rootPath}
             </p>
           </header>
-          {snapshot ? (
-            <ProjectRequests
-              requests={getOpenProjectRequests(snapshot)}
-              pendingRequestId={pendingRequestId}
-              onReply={reply}
-            />
-          ) : null}
           <Tabs
             value={tab}
             onValueChange={(value) =>
