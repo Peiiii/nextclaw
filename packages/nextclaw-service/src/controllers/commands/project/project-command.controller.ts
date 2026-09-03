@@ -459,7 +459,7 @@ export class ProjectCommands {
   ): Promise<T> => {
     const kernel = this.createKernel();
     try {
-      await kernel.projectManager.migrateLegacyProjects();
+      await kernel.projectManager.initialize();
       return await action(kernel);
     } finally {
       await kernel.dispose();

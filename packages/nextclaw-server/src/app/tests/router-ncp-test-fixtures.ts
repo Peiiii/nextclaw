@@ -117,7 +117,8 @@ export class RouterNcpSessionSettingsStub {
 
 export function createRouterNcpProjectManager(storeDirectory: string): ProjectManager {
   return new ProjectManager({
-    storePath: join(storeDirectory, "projects.json"),
+    databasePath: join(storeDirectory, "projects.db"),
+    legacyStorePath: join(storeDirectory, "projects.json"),
     getDefaultWorkspacePath: () => join(tmpdir(), "nextclaw-default-workspace"),
   });
 }

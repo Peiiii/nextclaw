@@ -11,13 +11,16 @@ function createFixture() {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-project-manager-"));
   tempDirs.push(dir);
   const workspace = join(dir, "workspace");
-  const storePath = join(dir, "home", "projects", "projects.json");
+  const legacyStorePath = join(dir, "home", "projects", "projects.json");
+  const databasePath = join(dir, "home", "projects", "work-items.db");
   return {
     manager: new ProjectManager({
-      storePath,
+      databasePath,
+      legacyStorePath,
       getDefaultWorkspacePath: () => workspace,
     }),
-    storePath,
+    databasePath,
+    legacyStorePath,
     workspace,
   };
 }
@@ -117,13 +120,15 @@ describe("ProjectManager", () => {
 
     await expect(fixture.manager.removeProject("missing", "missing")).rejects.toMatchObject({ code: "PROJECT_NOT_FOUND" });
   });
+});
 
+describe("ProjectManager legacy migration", () => {
   it("migrates historical project records by preserving their data and adding stable ids", async () => {
     const fixture = createFixture();
     const rootPath = join(fixture.workspace, "historical");
     await mkdir(rootPath, { recursive: true });
-    await mkdir(join(fixture.storePath, ".."), { recursive: true });
-    await writeFile(fixture.storePath, JSON.stringify({
+    await mkdir(join(fixture.legacyStorePath, ".."), { recursive: true });
+    const legacySource = JSON.stringify({
       version: 1,
       projects: [{
         name: "Historical",
@@ -131,11 +136,9 @@ describe("ProjectManager", () => {
         createdAt: "2026-07-01T00:00:00.000Z",
         updatedAt: "2026-07-02T00:00:00.000Z",
       },],
-      }),
-      "utf8",
-    );
+    });
+    await writeFile(fixture.legacyStorePath, legacySource, "utf8");
 
-    await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(true);
     const [project] = await fixture.manager.listProjects();
     expect(project).toMatchObject({
       name: "Historical",
@@ -145,15 +148,24 @@ describe("ProjectManager", () => {
     });
     expect(project?.id).toMatch(/^[A-Za-z0-9_-]{12}$/);
     await expect(fixture.manager.getProjectById(project!.id)).resolves.toEqual(project);
-    await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(false);
-    await expect(readFile(fixture.storePath, "utf8")).resolves.toContain('"removedProjects": []');
+    await expect(readFile(fixture.legacyStorePath, "utf8")).resolves.toBe(legacySource);
+
+    fixture.manager.dispose();
+    await writeFile(fixture.legacyStorePath, "{ignored-after-migration", "utf8");
+    const reopened = new ProjectManager({
+      databasePath: fixture.databasePath,
+      legacyStorePath: fixture.legacyStorePath,
+      getDefaultWorkspacePath: () => fixture.workspace,
+    });
+    await expect(reopened.listProjects()).resolves.toEqual([project]);
+    reopened.dispose();
   });
 
   it("migrates the previous stable registry without changing project ids", async () => {
     const fixture = createFixture();
-    await mkdir(join(fixture.storePath, ".."), { recursive: true });
+    await mkdir(join(fixture.legacyStorePath, ".."), { recursive: true });
     await writeFile(
-      fixture.storePath,
+      fixture.legacyStorePath,
       JSON.stringify({
         version: 2,
         projects: [
@@ -169,10 +181,74 @@ describe("ProjectManager", () => {
       "utf8",
     );
 
-    await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(true);
     await expect(fixture.manager.listProjects()).resolves.toMatchObject([{ id: "project-stable", name: "Stable" }]);
   });
 
+  it("preserves removed projects from the stable JSON registry", async () => {
+    const fixture = createFixture();
+    const rootPath = join(fixture.workspace, "removed");
+    await mkdir(join(fixture.legacyStorePath, ".."), { recursive: true });
+    await mkdir(rootPath, { recursive: true });
+    await writeFile(
+      fixture.legacyStorePath,
+      JSON.stringify({
+        version: 3,
+        projects: [],
+        removedProjects: [
+          {
+            id: "project-removed",
+            name: "Removed",
+            rootPath: await realpath(rootPath),
+            createdAt: "2026-07-01T00:00:00.000Z",
+            updatedAt: "2026-07-02T00:00:00.000Z",
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    await expect(fixture.manager.listProjects()).resolves.toEqual([]);
+    await fixture.manager.importSessionProjects([rootPath]);
+    await expect(fixture.manager.listProjects()).resolves.toEqual([]);
+    const restored = await fixture.manager.addExistingProject(rootPath);
+    expect(restored).toMatchObject({ id: "project-removed" });
+  });
+
+  it("serializes concurrent first reads through one SQLite migration", async () => {
+    const fixture = createFixture();
+    const rootPath = join(fixture.workspace, "concurrent");
+    await mkdir(join(fixture.legacyStorePath, ".."), { recursive: true });
+    await writeFile(
+      fixture.legacyStorePath,
+      JSON.stringify({
+        version: 2,
+        projects: [
+          {
+            id: "project-concurrent",
+            name: "Concurrent",
+            rootPath,
+            createdAt: "2026-07-01T00:00:00.000Z",
+            updatedAt: "2026-07-02T00:00:00.000Z",
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const results = await Promise.all([
+      fixture.manager.listProjects(),
+      fixture.manager.listProjects(),
+      fixture.manager.initialize().then(() => fixture.manager.listProjects()),
+    ]);
+    expect(results).toEqual([
+      [expect.objectContaining({ id: "project-concurrent" })],
+      [expect.objectContaining({ id: "project-concurrent" })],
+      [expect.objectContaining({ id: "project-concurrent" })],
+    ]);
+  });
+});
+
+describe("ProjectManager boundaries", () => {
   it("rejects invalid project path types at the owner boundary", async () => {
     const fixture = createFixture();
 
@@ -200,12 +276,26 @@ describe("ProjectManager", () => {
 
   it("surfaces a corrupted registry instead of overwriting it", async () => {
     const fixture = createFixture();
-    await mkdir(join(fixture.storePath, ".."), { recursive: true });
-    await writeFile(fixture.storePath, "{broken", "utf8");
+    await mkdir(join(fixture.legacyStorePath, ".."), { recursive: true });
+    await writeFile(fixture.legacyStorePath, "{broken", "utf8");
 
     await expect(fixture.manager.listProjects()).rejects.toThrow(
       "project registry contains invalid JSON"
     );
-    expect(await readFile(fixture.storePath, "utf8")).toBe("{broken");
+    expect(await readFile(fixture.legacyStorePath, "utf8")).toBe("{broken");
+
+    fixture.manager.dispose();
+    await writeFile(
+      fixture.legacyStorePath,
+      JSON.stringify({ version: 2, projects: [] }),
+      "utf8",
+    );
+    const recovered = new ProjectManager({
+      databasePath: fixture.databasePath,
+      legacyStorePath: fixture.legacyStorePath,
+      getDefaultWorkspacePath: () => fixture.workspace,
+    });
+    await expect(recovered.listProjects()).resolves.toEqual([]);
+    recovered.dispose();
   });
 });

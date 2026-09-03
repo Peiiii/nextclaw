@@ -1,6 +1,10 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "@nextclaw/shared";
-import { ProjectObservationError } from "@nextclaw/kernel";
+import { ProjectManager, ProjectObservationError } from "@nextclaw/kernel";
 import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { createRouterTestKernel } from "@nextclaw-server/app/tests/router-test-kernel.js";
 
@@ -16,6 +20,50 @@ function createProjectsApp(projectManager: object, projectObservation?: object) 
 }
 
 describe("projects routes", () => {
+  it("waits for legacy migration when the UI requests projects before kernel startup", async () => {
+    const directory = mkdtempSync(join(tmpdir(), "nextclaw-project-route-migration-"));
+    const legacyStorePath = join(directory, "projects", "projects.json");
+    const projectManager = new ProjectManager({
+      databasePath: join(directory, "projects", "work-items.db"),
+      legacyStorePath,
+      getDefaultWorkspacePath: () => join(directory, "workspace"),
+    });
+    try {
+      await mkdir(join(directory, "projects"), { recursive: true });
+      await writeFile(
+        legacyStorePath,
+        JSON.stringify({
+          version: 2,
+          projects: [
+            {
+              id: "project-legacy",
+              name: "Legacy",
+              rootPath: join(directory, "legacy"),
+              createdAt: "2026-07-01T00:00:00.000Z",
+              updatedAt: "2026-07-02T00:00:00.000Z",
+            },
+          ],
+        }),
+        "utf8",
+      );
+      const app = createProjectsApp(projectManager);
+
+      const response = await app.request("http://localhost/api/projects");
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        ok: true,
+        data: {
+          projects: [{ id: "project-legacy", name: "Legacy" }],
+          total: 1,
+        },
+      });
+    } finally {
+      projectManager.dispose();
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("mounts the independent project list through the assembled UI router", async () => {
     const listProjects = vi.fn(async () => [{
       id: "project-knowledge",

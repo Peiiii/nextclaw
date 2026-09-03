@@ -46,7 +46,8 @@ async function createFixture(options: { dispatch?: () => Promise<{ finalResponse
     eventBus: new EventBus(),
     journalStore: new NcpAgentSessionJournalStore(join(dir, "journal")),
     projectManager: new ProjectManager({
-      storePath: join(dir, "projects.json"),
+      databasePath: join(dir, "projects.db"),
+      legacyStorePath: join(dir, "projects.json"),
       getDefaultWorkspacePath: () => dir,
     }),
     sessionSearch: { handleSessionUpdated: async () => undefined } as never,

@@ -17,7 +17,8 @@ async function createFixture() {
   const rootPath = join(dir, "project");
   await mkdir(rootPath, { recursive: true });
   const projectManager = new ProjectManager({
-    storePath: join(dir, "data", "projects.json"),
+    databasePath: join(dir, "data", "work-items.db"),
+    legacyStorePath: join(dir, "data", "projects.json"),
     getDefaultWorkspacePath: () => join(dir, "workspace"),
   });
   const project = await projectManager.registerExistingProject(rootPath);
