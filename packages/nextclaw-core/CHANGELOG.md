@@ -1,5 +1,19 @@
 # nextclaw-core
 
+## 0.17.18
+
+### Patch Changes
+
+- b51f599: 修复正常 AI 回复在说明 `<noreply/>` 静默标记时被整条隐藏的问题。现在只有完整可见正文严格匹配该标记时才会静默，消息列表、回复策略与继续运行锚点使用一致语义。
+- db88c76: 完全移除旧项目 Marker 与项目观测机制。Projects 不再读取 `.nextclaw/project.yaml`、扫描项目文件或全部历史会话，也不再提供 observation API 与 `nextclaw projects observe`；历史配置不会再产生 Marker 或未知字段诊断。
+
+  项目材料改为零配置的单一来源：产物只展示 Project Work 工作项显式关联的文件，支持去重、分页与搜索；Skills 固定读取 `.agents/skills`；工作约定固定读取项目根目录 `AGENTS.md`。
+
+  同时简化项目工作项列表与看板的状态分组，移除外层卡片边框和底色，只保留工作项自身的边界与轻量分组标题。
+
+- Updated dependencies [b51f599]
+  - @nextclaw/shared@0.5.1
+
 ## 0.17.17
 
 ### Patch Changes

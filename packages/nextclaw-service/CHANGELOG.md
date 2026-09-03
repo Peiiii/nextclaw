@@ -1,5 +1,41 @@
 # @nextclaw/service
 
+## 0.6.3
+
+### Patch Changes
+
+- db88c76: 完全移除旧项目 Marker 与项目观测机制。Projects 不再读取 `.nextclaw/project.yaml`、扫描项目文件或全部历史会话，也不再提供 observation API 与 `nextclaw projects observe`；历史配置不会再产生 Marker 或未知字段诊断。
+
+  项目材料改为零配置的单一来源：产物只展示 Project Work 工作项显式关联的文件，支持去重、分页与搜索；Skills 固定读取 `.agents/skills`；工作约定固定读取项目根目录 `AGENTS.md`。
+
+  同时简化项目工作项列表与看板的状态分组，移除外层卡片边框和底色，只保留工作项自身的边界与轻量分组标题。
+
+- cb1a9bd: 将项目注册与项目工作项统一存入同一个 SQLite 数据库，并在首次使用时自动、事务化迁移旧 `projects.json`，避免服务启动期间项目列表因旧格式而加载失败。
+- Updated dependencies [236ce18]
+- Updated dependencies [b51f599]
+- Updated dependencies [db88c76]
+- Updated dependencies [cb1a9bd]
+  - @nextclaw/kernel@0.16.0
+  - @nextclaw/shared@0.5.1
+  - @nextclaw/core@0.17.18
+  - @nextclaw/server@0.23.0
+  - @nextclaw/client-sdk@0.12.0
+  - @nextclaw/remote@0.3.57
+  - @nextclaw/channel-extension-dingtalk@0.2.44
+  - @nextclaw/channel-extension-discord@0.2.44
+  - @nextclaw/channel-extension-email@0.2.44
+  - @nextclaw/channel-extension-slack@0.2.44
+  - @nextclaw/channel-extension-telegram@0.2.44
+  - @nextclaw/channel-extension-wecom@0.2.44
+  - @nextclaw/channel-extension-whatsapp@0.2.44
+  - @nextclaw/mcp@0.3.45
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.45
+  - @nextclaw/runtime@0.4.44
+  - @nextclaw/channel-extension-feishu@0.2.33
+  - @nextclaw/channel-extension-qq@0.2.32
+  - @nextclaw/channel-extension-weixin@0.2.33
+  - @nextclaw/ncp-mcp@0.2.45
+
 ## 0.6.2
 
 ### Patch Changes
