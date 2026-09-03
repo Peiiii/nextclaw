@@ -221,14 +221,14 @@ describe("ProjectWorkManager queries", () => {
       { kind: "user" },
     );
     vi.setSystemTime(new Date("2026-09-03T01:00:00.000Z"));
-    await fixture.manager.linkArtifact({
+    const earlierShared = await fixture.manager.linkArtifact({
       projectId: fixture.project.id,
       workItemId: firstItem.id,
       path: "shared.md",
       actor: { kind: "user" },
     });
     vi.setSystemTime(new Date("2026-09-03T02:00:00.000Z"));
-    await fixture.manager.linkArtifact({
+    const latestShared = await fixture.manager.linkArtifact({
       projectId: fixture.project.id,
       workItemId: secondItem.id,
       path: "shared.md",
@@ -245,11 +245,16 @@ describe("ProjectWorkManager queries", () => {
 
     const first = await fixture.manager.listRecentArtifacts(
       fixture.project.id,
-      { limit: 1 },
+      {
+        limit: 1,
+      },
     );
     const second = await fixture.manager.listRecentArtifacts(
       fixture.project.id,
-      { limit: 1, cursor: first.nextCursor! },
+      {
+        limit: 1,
+        cursor: first.nextCursor!,
+      },
     );
     expect(first).toMatchObject({
       total: 2,
@@ -274,6 +279,46 @@ describe("ProjectWorkManager queries", () => {
         await fixture.manager.listRecentArtifacts(fixture.project.id)
       ).artifacts.find((artifact) => artifact.path === "shared.md")?.exists,
     ).toBe(false);
+
+    await expect(
+      fixture.manager.listRecentArtifacts(fixture.project.id, {
+        query: "SHARED",
+      }),
+    ).resolves.toMatchObject({
+      total: 1,
+      artifacts: [{ path: "shared.md" }],
+    });
+    await fixture.manager.unlinkArtifact({
+      projectId: fixture.project.id,
+      workItemId: secondItem.id,
+      artifactLinkId: latestShared.id,
+      actor: { kind: "user" },
+    });
+    await expect(
+      fixture.manager.listRecentArtifacts(fixture.project.id, {
+        query: "shared",
+      }),
+    ).resolves.toMatchObject({
+      total: 1,
+      artifacts: [
+        {
+          path: "shared.md",
+          label: null,
+          workItemId: firstItem.id,
+        },
+      ],
+    });
+    await fixture.manager.unlinkArtifact({
+      projectId: fixture.project.id,
+      workItemId: firstItem.id,
+      artifactLinkId: earlierShared.id,
+      actor: { kind: "user" },
+    });
+    await expect(
+      fixture.manager.listRecentArtifacts(fixture.project.id, {
+        query: "shared",
+      }),
+    ).resolves.toMatchObject({ total: 0, artifacts: [] });
     fixture.manager.dispose();
   });
 });

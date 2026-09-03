@@ -5,20 +5,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectsPage } from "./project-home-page";
 
 const mocks = vi.hoisted(() => ({
+  agreementProps: vi.fn(),
+  artifactsProps: vi.fn(),
   drawerProps: vi.fn(),
-  useProjectObservation: vi.fn(),
+  skillsProps: vi.fn(),
+  useProjectAgreement: vi.fn(),
+  useProjectSkills: vi.fn(),
   useProjects: vi.fn(),
 }));
 
 vi.mock("@/shared/hooks/use-projects", () => ({
   useProjects: mocks.useProjects,
 }));
-vi.mock("@/features/projects/hooks/use-project-observation", () => ({
-  projectObservationQueryKey: (projectId: string) => [
-    "project-observation",
-    projectId,
-  ],
-  useProjectObservation: mocks.useProjectObservation,
+vi.mock("@/features/projects/hooks/use-project-materials", () => ({
+  useProjectAgreement: mocks.useProjectAgreement,
+  useProjectSkills: mocks.useProjectSkills,
 }));
 vi.mock("@/features/chat", () => ({
   ChatConversationWorkspaceSection: () => <div data-testid="workspace" />,
@@ -52,13 +53,22 @@ vi.mock("@/features/projects/components/work/project-work-item-drawer", () => ({
   },
 }));
 vi.mock("@/features/projects/components/project-artifacts", () => ({
-  ProjectArtifacts: () => <div>Artifact content</div>,
+  ProjectArtifacts: (props: { projectId: string }) => {
+    mocks.artifactsProps(props);
+    return <div>Artifact content</div>;
+  },
 }));
 vi.mock("@/features/projects/components/project-skills", () => ({
-  ProjectSkills: () => <div>Skills content</div>,
+  ProjectSkills: (props: { skills: unknown[] }) => {
+    mocks.skillsProps(props);
+    return <div>Skills content</div>;
+  },
 }));
 vi.mock("@/features/projects/components/project-agreement", () => ({
-  ProjectAgreement: () => <div>Agreement content</div>,
+  ProjectAgreement: (props: { agreement?: unknown }) => {
+    mocks.agreementProps(props);
+    return <div>Agreement content</div>;
+  },
 }));
 function renderPage(path: string) {
   return render(
@@ -76,6 +86,9 @@ function renderPage(path: string) {
 describe("ProjectsPage", () => {
   beforeEach(() => {
     mocks.drawerProps.mockReset();
+    mocks.agreementProps.mockReset();
+    mocks.artifactsProps.mockReset();
+    mocks.skillsProps.mockReset();
     mocks.useProjects.mockReturnValue({
       data: {
         projects: [
@@ -85,38 +98,35 @@ describe("ProjectsPage", () => {
       isLoading: false,
       isError: false,
     });
-    mocks.useProjectObservation.mockReturnValue({
+    mocks.useProjectAgreement.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    });
+    mocks.useProjectSkills.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: false,
     });
   });
 
-  it("keeps overview scan-free and opens its work item in the unified drawer", () => {
+  it("keeps overview material-free and opens its work item in the unified drawer", () => {
     renderPage("/projects/project-1/overview");
 
-    expect(mocks.useProjectObservation).toHaveBeenCalledWith(
-      "project-1",
-      "/tmp/research",
-      false,
-    );
+    expect(mocks.useProjectAgreement).toHaveBeenCalledWith(null);
+    expect(mocks.useProjectSkills).toHaveBeenCalledWith(null);
     expect(screen.getAllByRole("tab")).toHaveLength(5);
     fireEvent.click(screen.getByRole("button", { name: "Overview work" }));
     expect(screen.getByTestId("work-drawer").textContent).toBe("work-overview");
   });
 
-  it("enables file and skill observation only for their project surfaces", () => {
-    mocks.useProjectObservation.mockReturnValue({
-      data: {},
-      isLoading: false,
-      isError: false,
-    });
+  it("loads artifacts from project work without material observation", () => {
     renderPage("/projects/project-1/artifacts");
 
-    expect(mocks.useProjectObservation).toHaveBeenCalledWith(
-      "project-1",
-      "/tmp/research",
-      true,
+    expect(mocks.useProjectAgreement).toHaveBeenCalledWith(null);
+    expect(mocks.useProjectSkills).toHaveBeenCalledWith(null);
+    expect(mocks.artifactsProps).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: "project-1" }),
     );
     expect(screen.getByText("Artifact content")).toBeTruthy();
     expect(screen.getByRole("tab", { name: /Skills/ })).toBeTruthy();
@@ -127,8 +137,40 @@ describe("ProjectsPage", () => {
 
   it("asks the user to choose from the sidebar when no project route is selected", () => {
     renderPage("/projects");
-    expect(mocks.useProjectObservation).toHaveBeenCalledWith(null, null, false);
+    expect(mocks.useProjectAgreement).toHaveBeenCalledWith(null);
+    expect(mocks.useProjectSkills).toHaveBeenCalledWith(null);
     expect(screen.getByText(/Choose a project|选择项目/)).toBeTruthy();
+  });
+
+  it("loads each fixed project material only on its own tab", () => {
+    mocks.useProjectAgreement.mockReturnValue({
+      data: { path: "AGENTS.md", available: true },
+      isLoading: false,
+      isError: false,
+    });
+    const { unmount } = renderPage("/projects/project-1/agreement");
+    expect(mocks.useProjectAgreement).toHaveBeenCalledWith("project-1");
+    expect(mocks.useProjectSkills).toHaveBeenCalledWith(null);
+    expect(mocks.agreementProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agreement: { path: "AGENTS.md", available: true },
+      }),
+    );
+    unmount();
+
+    mocks.useProjectSkills.mockReturnValue({
+      data: [{ ref: "project:alpha", name: "alpha" }],
+      isLoading: false,
+      isError: false,
+    });
+    renderPage("/projects/project-1/skills");
+    expect(mocks.useProjectAgreement).toHaveBeenLastCalledWith(null);
+    expect(mocks.useProjectSkills).toHaveBeenLastCalledWith("project-1");
+    expect(mocks.skillsProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skills: [{ ref: "project:alpha", name: "alpha" }],
+      }),
+    );
   });
 
   it("does not expose project removal as a persistent detail-page action", () => {

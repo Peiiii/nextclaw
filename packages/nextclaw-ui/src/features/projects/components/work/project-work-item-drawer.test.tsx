@@ -8,8 +8,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/projects/hooks/use-project-work", () => ({
-  useProjectWork: () => ({
-    data: { states: [{ id: "planned", name: "Planned" }] },
+  useProjectWorkEvents: vi.fn(),
+  useProjectWorkStates: () => ({
+    data: [{ id: "planned", name: "Planned" }],
   }),
   useProjectWorkItem: mocks.useProjectWorkItem,
   useProjectWorkActivity: () => ({ data: { activities: [] } }),

@@ -9,7 +9,7 @@ export * from "@nextclaw-server/features/service-apps/index.js";
 export type {
   CreateProjectWorkItemInput,
   CreateProjectWorkStateInput,
-  ProjectObservationSnapshot,
+  ProjectAgreementMaterial,
   ProjectWorkActivity,
   ProjectWorkActivityPage,
   ProjectWorkArtifactLink,
@@ -20,6 +20,7 @@ export type {
   ProjectWorkListInput,
   ProjectRecentArtifact,
   ProjectRecentArtifactPage,
+  ProjectSkillMaterial,
   ProjectWorkState,
   ProjectWorkStateCategory,
   ProjectWorkSummary,

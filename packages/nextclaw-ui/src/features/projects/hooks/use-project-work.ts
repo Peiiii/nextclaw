@@ -68,14 +68,20 @@ export function useProjectWorkStates(projectId: string | null) {
   });
 }
 
-export function useProjectRecentArtifacts(projectId: string | null, limit = 5) {
-  return useQuery({
-    queryKey: [...projectWorkArtifactsQueryKey(projectId ?? ""), limit],
+export function useProjectArtifacts(
+  projectId: string | null,
+  input: { limit?: number; query?: string } = {},
+) {
+  return useInfiniteQuery({
+    queryKey: [...projectWorkArtifactsQueryKey(projectId ?? ""), input],
     enabled: Boolean(projectId),
-    queryFn: async () =>
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) =>
       await nextclawClient.projects.listRecentWorkArtifacts(projectId!, {
-        limit,
+        ...input,
+        ...(pageParam ? { cursor: pageParam } : {}),
       }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 }
 

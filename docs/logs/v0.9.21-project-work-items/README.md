@@ -7,6 +7,7 @@
 - 完成内容：新增项目工作项 SQLite owner、自定义状态、不可变活动时间线、产物关联、软删除与乐观并发；已提交变化只发轻量事件通知 UI 刷新，不读取事件历史生成事实。
 - 用户入口：项目会话条件式提供 4 个 CRUD 工具；CLI 使用显式 `--project`；项目概览、列表与看板中的工作项统一点击打开右侧详情抽屉。
 - 后续根因收敛：Project Work 上线时仍保留了旧 `nextclaw.project/v1` 会话 Marker 的只读兼容链，导致历史消息中的无效 Marker 继续生成 `PROJECT_MARKER_INVALID`。本批通过端到端检索 producer、parser、projection、公共类型与 UI consumer 确认双 owner 仍然存在，并彻底删除 Marker 解析、生成 Skill、request/response UI 和旧配置合同；历史 Marker 现在只作为普通消息文本存在。
+- 零配置材料收口：进一步确认 Marker 删除后仍残留 `ProjectObservationService`，它会读取 `.nextclaw/project.yaml`、扫描项目文件与全部历史会话，Kernel 冷启动还会通过全部会话反向导入项目。本批删除整条 observation 链和启动导入；产物、Skills、工作约定分别收敛到 Project Work 显式关联、当前项目 `.agents/skills` 和根 `AGENTS.md`。
 
 ## 测试/验证/验收方式
 
@@ -15,11 +16,13 @@
 - 变更文件 ESLint、`git diff --check`、新代码治理和 skill 渐进加载检查通过。
 - 维护性检查检查 56 个文件，结果为 0 error、12 warning；warning 均为既有目录例外或未越过预算的文件增长，已进行主观复核。
 - Marker 删除批次补充验证：Kernel 10 项、UI 12 项定向测试通过，Kernel、UI、Core、Server、Client SDK、Service TypeScript 检查通过；旧协议、错误码、响应桥与生成 Skill 的当前源码扫描无命中。skill 渐进加载总体积检查在主工作区原基线同样超出 42 字节，与本批无关。
+- 零配置材料收口验证：Core 16 项、Kernel 25 项、Server 17 项、SDK 3 项、Service 3 项、CLI 3 项、Projects UI 37 项定向测试通过；7 个受影响包 TypeScript、完整发布构建、变更文件 ESLint、文档镜像、生成资源、新代码治理和 backlog ratchet 通过。冷启动测试直接断言 `sessionManager.listSessions` 调用为 0；旧 observation 源码与构建产物扫描无命中，HTTP 旧入口返回 404，构建后的 CLI help 不再注册 `projects observe`。diff-only Review 覆盖 50 个文件，0 error、no findings。
 
 ## 发布/部署方式
 
 - 实现与验证在隔离 worktree `codex/project-work-items` 中完成，提交后安全合入远程 `master`，不切换或清理带有活跃 WIP 的主工作区。
 - Marker 删除与状态分组简化在隔离分支 `codex/simplify-work-state-groups` 完成，经合并提交 `581960bc2` 合入并推送 `origin/master`；`release:reconcile:mainline` 返回 `LOCAL_MAINLINE_SYNCED`。
+- 零配置材料收口在隔离分支 `codex/remove-project-observation` 完成；本批交付边界是提交后仅合入本地 `master`，明确不推送、不发布、不重启当前实例。
 - Beta 通过仓库统一入口 `pnpm release:beta` 消费 `.changeset/add-persistent-project-work.md`，发布 NPM beta batch，并在 batch 包含 `nextclaw` 时闭合 beta runtime channel；不包含桌面安装包。
 
 ## 用户/产品视角的验收步骤

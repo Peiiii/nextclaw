@@ -30,7 +30,7 @@ nextclaw <command> --help
 | 宿主托管              | 安装或移除 Linux、macOS、Windows 自启动服务       |
 | 远程访问              | 启用、关闭、诊断和调试远程连接                    |
 | Agent 与任务执行      | 终端聊天、Headless 执行、Agent 与 Runtime 管理    |
-| 项目与会话            | 创建项目、观测项目进展、绑定和整理会话            |
+| 项目与会话            | 创建项目、管理工作项和产物关联、绑定和整理会话    |
 | 自动化与学习循环      | 管理定时任务和学习循环策略                        |
 | 配置与密钥            | 读写配置、审计和应用密钥引用                      |
 | MCP 与消息渠道        | 管理 MCP 服务和消息渠道连接                       |
@@ -109,7 +109,6 @@ nextclaw <command> --help
 | `nextclaw projects templates`            | 列出内置项目模板                                                                       |
 | `nextclaw projects create`               | 创建并注册项目                                                                         |
 | `nextclaw projects remove`               | 从项目列表移除项目；保留本地目录、历史会话和项目工作记录，并要求精确项目 ID 确认       |
-| `nextclaw projects observe`              | 读取已注册项目的只读观测快照                                                           |
 | `nextclaw projects work list`            | 按项目 ID 分页列出工作项；支持 `--state`、`--cursor`、`--limit` 和 `--include-deleted` |
 | `nextclaw projects work get`             | 查看工作项详情                                                                         |
 | `nextclaw projects work create`          | 创建持久化工作项                                                                       |

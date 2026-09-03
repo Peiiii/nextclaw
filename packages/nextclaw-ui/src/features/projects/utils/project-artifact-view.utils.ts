@@ -1,14 +1,4 @@
-import type { ProjectObservationSnapshot } from "@nextclaw/client-sdk";
 import { formatDateShort, t } from "@/shared/lib/i18n";
-
-export type ProjectArtifactSort =
-  | "updated-desc"
-  | "updated-asc"
-  | "created-desc"
-  | "name";
-
-export const DEFAULT_PROJECT_ARTIFACT_SORT: ProjectArtifactSort =
-  "updated-desc";
 
 export function joinProjectPath(
   rootPath: string,
@@ -17,43 +7,6 @@ export function joinProjectPath(
   const separator =
     rootPath.endsWith("/") || rootPath.endsWith("\\") ? "" : "/";
   return `${rootPath}${separator}${relativePath}`;
-}
-
-function timestamp(value?: string): number {
-  if (!value) return Number.NEGATIVE_INFINITY;
-  const parsed = new Date(value).getTime();
-  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
-}
-
-function byName(
-  left: ProjectObservationSnapshot["artifacts"][number],
-  right: ProjectObservationSnapshot["artifacts"][number],
-): number {
-  return left.path.localeCompare(right.path);
-}
-
-export function sortProjectArtifacts(
-  artifacts: ProjectObservationSnapshot["artifacts"],
-  sort: ProjectArtifactSort = DEFAULT_PROJECT_ARTIFACT_SORT,
-): ProjectObservationSnapshot["artifacts"] {
-  return [...artifacts].sort((left, right) => {
-    if (sort === "name") return byName(left, right);
-    const leftTimestamp = timestamp(
-      sort === "created-desc"
-        ? (left.fileCreatedAt ?? left.fileUpdatedAt)
-        : (left.fileUpdatedAt ?? left.fileCreatedAt),
-    );
-    const rightTimestamp = timestamp(
-      sort === "created-desc"
-        ? (right.fileCreatedAt ?? right.fileUpdatedAt)
-        : (right.fileUpdatedAt ?? right.fileCreatedAt),
-    );
-    const order =
-      sort === "updated-asc"
-        ? leftTimestamp - rightTimestamp
-        : rightTimestamp - leftTimestamp;
-    return order || byName(left, right);
-  });
 }
 
 export function formatProjectRelativeTime(

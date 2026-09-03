@@ -161,7 +161,9 @@ export class ProjectManager {
     return await this.upsertProject(
       {
         name:
-          name === undefined ? basename(canonicalPath) : this.normalizeName(name),
+          name === undefined
+            ? basename(canonicalPath)
+            : this.normalizeName(name),
         rootPath: canonicalPath,
       },
       { restoreRemoved: true },
@@ -236,36 +238,6 @@ export class ProjectManager {
     return (await this.isDefaultWorkspace(canonicalPath))
       ? null
       : canonicalPath;
-  };
-
-  importSessionProjects = async (projectRoots: unknown[]): Promise<void> => {
-    for (const projectRoot of projectRoots) {
-      if (
-        projectRoot == null ||
-        (typeof projectRoot === "string" && !projectRoot.trim())
-      ) {
-        continue;
-      }
-      try {
-        const canonicalPath =
-          await this.resolveExistingProjectRoot(projectRoot);
-        if (
-          !canonicalPath ||
-          (await this.store.isRemovedRootPath(canonicalPath))
-        ) {
-          continue;
-        }
-        await this.upsertProject({
-          name: basename(canonicalPath),
-          rootPath: canonicalPath,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn(
-          `[project-manager] skipped historical project root: ${message}`,
-        );
-      }
-    }
   };
 
   private upsertProject = async (

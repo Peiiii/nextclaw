@@ -6,7 +6,7 @@ Projects 页面把一个已注册项目里的工作项、产物、Skills、工�
 
 先在聊天侧边栏创建项目或添加已有目录，再点击项目名称打开项目主页。页面保留原有的产物、Skills、工作约定和项目会话能力，同时提供工作项概览、列表与看板。
 
-概览页把“当前工作”和“最近产物”作为两个同等重要的区域：宽布局左右并列，窄布局上下排列。最近产物来自工作项已经显式关联的项目文件；概览不会为了显示统计或最近产物而扫描项目目录、读取消息或重放会话历史。完整产物、Skills 与工作约定仍在各自页面按需加载。
+概览页把“当前工作”和“最近产物”作为两个同等重要的区域：宽布局左右并列，窄布局上下排列。最近产物来自工作项已经显式关联的项目文件；概览不会为了显示统计或最近产物而扫描项目目录、读取消息或重放会话历史。完整产物页使用相同的显式关联记录，Skills 固定来自 `.agents/skills`，工作约定固定来自项目根目录 `AGENTS.md`。
 
 ## 从项目列表移除
 
@@ -65,12 +65,10 @@ nextclaw projects work activity <work-item-id> --project <project-id>
 
 `work list` 默认返回 20 条，最多 100 条；还有结果时会返回 opaque cursor，可通过 `--cursor` 继续读取。CLI 通过正在运行的本地 NextClaw 服务复用同一套 Kernel 合同；服务未运行时会直接报错，不会另起第二个写入进程。完整命令见[命令行参考](./commands.md)。
 
-## 项目材料观测
+## 项目材料来源
 
-完整产物、Skills 和工作约定页面按需读取项目文件。可选的 `.nextclaw/project.yaml` 只配置项目摘要、上下文文件、产物目录和 Skill 目录；工作项始终来自 Project Work，不会从历史会话正文重建状态。
+- **产物**只展示通过 Project Work 工作项显式关联的文件；同一路径会去重，支持搜索和分页。删除文件不会删除关联历史，页面会将它标记为不可用。
+- **Skills**只读取项目根目录下的 `.agents/skills`，不支持项目级自定义扫描路径。需要在 CLI 查看时，使用 `nextclaw skills installed --workdir /absolute/path/to/project --scope project`。
+- **工作约定**只读取项目根目录 `AGENTS.md`。文件不存在时显示空态，不会生成配置诊断。
 
-如需读取项目材料观测快照，可以使用：
-
-```bash
-nextclaw projects observe /absolute/path/to/project --json
-```
+Projects 不读取 `.nextclaw/project.yaml`，也不会扫描全部项目文件或历史会话来推断这些材料。

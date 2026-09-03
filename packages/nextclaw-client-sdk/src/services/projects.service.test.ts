@@ -2,29 +2,42 @@ import { describe, expect, it, vi } from "vitest";
 import { NextClawClient } from "../nextclaw-client.manager.js";
 
 describe("ProjectsService", () => {
-  it("observes a registered project through the projects namespace", async () => {
-    const fetchImpl = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            ok: true,
-            data: { asOf: "2026-08-30T00:00:00.000Z", dataQuality: "complete" },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-    );
+  it("reads project materials through bounded routes", async () => {
+    const fetchImpl = vi.fn(async (url: string | URL | Request) => {
+      const data = String(url).endsWith("/agreement")
+        ? { path: "AGENTS.md", available: true }
+        : [
+            {
+              ref: "project:alpha",
+              name: "alpha",
+              path: ".agents/skills/alpha/SKILL.md",
+            },
+          ];
+      return new Response(JSON.stringify({ ok: true, data }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
     const client = new NextClawClient({
       baseUrl: "http://127.0.0.1:55667",
       fetchImpl,
     });
 
-    await expect(
-      client.projects.getObservation("project-123"),
-    ).resolves.toMatchObject({
-      dataQuality: "complete",
+    await expect(client.projects.getAgreement("project-123")).resolves.toEqual({
+      path: "AGENTS.md",
+      available: true,
     });
-    expect(fetchImpl).toHaveBeenCalledWith(
-      "http://127.0.0.1:55667/api/projects/project-123/observation",
+    await expect(
+      client.projects.listProjectSkills("project-123"),
+    ).resolves.toEqual([expect.objectContaining({ name: "alpha" })]);
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      "http://127.0.0.1:55667/api/projects/project-123/agreement",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      2,
+      "http://127.0.0.1:55667/api/projects/project-123/skills",
       expect.objectContaining({ method: "GET" }),
     );
   });
@@ -72,7 +85,7 @@ describe("ProjectsService", () => {
     );
   });
 
-  it("uses a separate bounded route for recent work artifacts", async () => {
+  it("uses a separate bounded route for project work artifacts", async () => {
     const fetchImpl = vi.fn(
       async () =>
         new Response(
@@ -88,10 +101,13 @@ describe("ProjectsService", () => {
       fetchImpl,
     });
 
-    await client.projects.listRecentWorkArtifacts("project-1", { limit: 5 });
+    await client.projects.listRecentWorkArtifacts("project-1", {
+      limit: 5,
+      query: "report",
+    });
 
     expect(fetchImpl).toHaveBeenCalledWith(
-      "http://127.0.0.1:55667/api/projects/project-1/work/artifacts?limit=5",
+      "http://127.0.0.1:55667/api/projects/project-1/work/artifacts?limit=5&query=report",
       expect.objectContaining({ method: "GET" }),
     );
   });

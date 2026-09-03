@@ -6,6 +6,7 @@ import type { ProjectWorkState } from "@nextclaw/client-sdk";
 import {
   sortProjectWorkStates,
   sortProjectWorkStatesForList,
+  useProjectArtifacts,
   useProjectWork,
   useProjectWorkEvents,
 } from "./use-project-work";
@@ -15,11 +16,15 @@ const mocks = vi.hoisted(() => ({
     | null
     | ((event: { projectId: string; workItemId?: string }) => void),
   listWork: vi.fn(),
+  listRecentWorkArtifacts: vi.fn(),
 }));
 
 vi.mock("@/shared/lib/api", () => ({
   nextclawClient: {
-    projects: { listWork: mocks.listWork },
+    projects: {
+      listWork: mocks.listWork,
+      listRecentWorkArtifacts: mocks.listRecentWorkArtifacts,
+    },
     eventBus: {
       on: (
         _key: unknown,
@@ -38,6 +43,12 @@ describe("useProjectWork", () => {
   beforeEach(() => {
     mocks.listWork.mockReset();
     mocks.listWork.mockResolvedValue({ items: [], nextCursor: null, total: 0 });
+    mocks.listRecentWorkArtifacts.mockReset();
+    mocks.listRecentWorkArtifacts.mockResolvedValue({
+      artifacts: [],
+      nextCursor: null,
+      total: 0,
+    });
   });
 
   it("refreshes the project query from committed work events only for the matching project", async () => {
@@ -104,6 +115,51 @@ describe("useProjectWork", () => {
       cursor: "next",
     });
     await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
+  });
+
+  it("loads filtered artifacts through the paginated project-work owner", async () => {
+    mocks.listRecentWorkArtifacts
+      .mockResolvedValueOnce({
+        artifacts: [{ id: "one", path: "docs/report.md" }],
+        nextCursor: "artifact-next",
+        total: 2,
+      })
+      .mockResolvedValueOnce({
+        artifacts: [{ id: "two", path: "docs/report-final.md" }],
+        nextCursor: null,
+        total: 2,
+      });
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    );
+    const { result } = renderHook(
+      () => useProjectArtifacts("project-1", { limit: 20, query: "report" }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.hasNextPage).toBe(true));
+
+    await act(async () => await result.current.fetchNextPage());
+
+    expect(mocks.listRecentWorkArtifacts).toHaveBeenNthCalledWith(
+      1,
+      "project-1",
+      {
+        limit: 20,
+        query: "report",
+      },
+    );
+    expect(mocks.listRecentWorkArtifacts).toHaveBeenNthCalledWith(
+      2,
+      "project-1",
+      {
+        limit: 20,
+        query: "report",
+        cursor: "artifact-next",
+      },
+    );
   });
 });
 

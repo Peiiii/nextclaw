@@ -58,7 +58,7 @@ describe("project work routes", () => {
       "http://localhost/api/projects/project-1/work?stateId=review&includeDeleted=true&cursor=next&limit=20",
     );
     const artifacts = await app.request(
-      "http://localhost/api/projects/project-1/work/artifacts?cursor=more&limit=5",
+      "http://localhost/api/projects/project-1/work/artifacts?cursor=more&limit=5&query=report",
     );
 
     expect(listed.status).toBe(200);
@@ -72,6 +72,7 @@ describe("project work routes", () => {
     expect(listRecentArtifacts).toHaveBeenCalledWith("project-1", {
       cursor: "more",
       limit: 5,
+      query: "report",
     });
   });
 

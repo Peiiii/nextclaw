@@ -5,8 +5,8 @@ import type {
 } from "@nextclaw/kernel";
 
 export type {
-  ObservedProjectRun,
-  ProjectObservationSnapshot,
+  ProjectAgreementMaterial,
+  ProjectSkillMaterial,
 } from "@nextclaw/kernel";
 
 export type {

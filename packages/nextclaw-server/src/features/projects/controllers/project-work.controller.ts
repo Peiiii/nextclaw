@@ -34,7 +34,7 @@ export class ProjectWorkRoutesController {
         }),
     );
 
-  readonly recentArtifacts = async (c: Context) =>
+  readonly artifacts = async (c: Context) =>
     this.respond(
       c,
       async () =>
@@ -43,6 +43,7 @@ export class ProjectWorkRoutesController {
           ...(readLimit(c.req.query("limit")) !== undefined
             ? { limit: readLimit(c.req.query("limit")) }
             : {}),
+          ...(c.req.query("query") ? { query: c.req.query("query") } : {}),
         }),
     );
 

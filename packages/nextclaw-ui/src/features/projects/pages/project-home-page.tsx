@@ -20,8 +20,9 @@ import {
   usePresenter,
 } from "@/features/chat";
 import {
-  useProjectObservation,
-} from "@/features/projects/hooks/use-project-observation";
+  useProjectAgreement,
+  useProjectSkills,
+} from "@/features/projects/hooks/use-project-materials";
 import {
   isProjectHomeTab,
   type ProjectHomeTab,
@@ -54,12 +55,11 @@ export function ProjectsPage() {
   const tab: ProjectHomeTab | null = isProjectHomeTab(tabParam)
     ? tabParam
     : null;
-  const needsObservation =
-    tab === "artifacts" || tab === "skills" || tab === "agreement";
-  const observation = useProjectObservation(
-    selectedProject?.id ?? null,
-    selectedProject?.rootPath ?? null,
-    needsObservation,
+  const agreement = useProjectAgreement(
+    tab === "agreement" ? (selectedProject?.id ?? null) : null,
+  );
+  const skills = useProjectSkills(
+    tab === "skills" ? (selectedProject?.id ?? null) : null,
   );
   if (projects.isLoading)
     return (
@@ -93,7 +93,6 @@ export function ProjectsPage() {
       viewMode: "preview",
       previewViewer: "rendered",
     });
-  const snapshot = observation.data;
   return (
     <>
       <main className="h-full min-w-0 flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
@@ -139,38 +138,43 @@ export function ProjectsPage() {
                 onOpenWorkItem={setSelectedWorkItemId}
               />
             </TabsContent>
-            {needsObservation && observation.isLoading ? (
-              <div className="mt-4 rounded-xl border border-border/60 p-5 text-sm text-muted-foreground">
-                {t("projectsLoading")}
-              </div>
-            ) : null}
-            {needsObservation && observation.isError ? (
-              <div className="mt-4 rounded-xl border border-destructive/40 p-5 text-sm text-destructive">
-                {t("projectsLoadFailed")}: {observation.error.message}
-              </div>
-            ) : null}
-            {snapshot ? (
-              <>
-                <TabsContent value="artifacts" className="mt-4">
-                  <ProjectArtifacts
-                    snapshot={snapshot}
-                    onOpenFile={openProjectFile}
-                  />
-                </TabsContent>
-                <TabsContent value="skills" className="mt-4">
-                  <ProjectSkills
-                    snapshot={snapshot}
-                    onOpen={(skill) => openProjectFile(skill.path, skill.name)}
-                  />
-                </TabsContent>
-                <TabsContent value="agreement" className="mt-4">
-                  <ProjectAgreement
-                    snapshot={snapshot}
-                    onOpenFile={openProjectFile}
-                  />
-                </TabsContent>
-              </>
-            ) : null}
+            <TabsContent value="artifacts" className="mt-4">
+              <ProjectArtifacts
+                projectId={selectedProject.id}
+                onOpenFile={(path, label) =>
+                  openProjectFile(
+                    joinProjectPath(selectedProject.rootPath, path),
+                    label,
+                  )
+                }
+              />
+            </TabsContent>
+            <TabsContent value="skills" className="mt-4">
+              <ProjectSkills
+                skills={skills.data ?? []}
+                isLoading={skills.isLoading}
+                isError={skills.isError}
+                onOpen={(skill) =>
+                  openProjectFile(
+                    joinProjectPath(selectedProject.rootPath, skill.path),
+                    skill.name,
+                  )
+                }
+              />
+            </TabsContent>
+            <TabsContent value="agreement" className="mt-4">
+              <ProjectAgreement
+                agreement={agreement.data}
+                isLoading={agreement.isLoading}
+                isError={agreement.isError}
+                onOpenFile={(path, label) =>
+                  openProjectFile(
+                    joinProjectPath(selectedProject.rootPath, path),
+                    label,
+                  )
+                }
+              />
+            </TabsContent>
           </Tabs>
         </div>
       </main>

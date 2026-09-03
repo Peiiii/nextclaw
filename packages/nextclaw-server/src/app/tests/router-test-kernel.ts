@@ -148,8 +148,9 @@ export function createRouterTestKernel(overrides: Partial<UiKernelHost> = {}): U
       removeProject: async () => unavailable("projectManager.removeProject"),
       resolveExistingProjectRoot: async () => null,
     } as never,
-    projectObservation: {
-      observe: async () => unavailable("projectObservation.observe"),
+    projectMaterials: {
+      getAgreement: async () => unavailable("projectMaterials.getAgreement"),
+      listSkills: async () => unavailable("projectMaterials.listSkills"),
     } as never,
     projectWorkManager: {
       list: async () => unavailable("projectWorkManager.list"),
