@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-02T07:04:25.732Z",
+  "generatedAt": "2026-09-03T07:08:38.060Z",
   "hero": {
-    "currentLoc": 292814,
-    "testLoc": 122467,
-    "trackedFiles": 3044,
-    "recentCommitCount": 639,
+    "currentLoc": 294588,
+    "testLoc": 123942,
+    "trackedFiles": 3069,
+    "recentCommitCount": 667,
     "activeDays30": 30,
     "recentReleaseCount": 51,
-    "latestReleaseDate": "2026-09-01",
+    "latestReleaseDate": "2026-09-03",
     "latestNoteDate": "2026-09-02",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2737549,
-    "basePercentOfBenchmark": 10.7,
-    "lighterByPercent": 89.3
+    "benchmarkCodeLines": 2750448,
+    "basePercentOfBenchmark": 10.71,
+    "lighterByPercent": 89.29
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-06",
-        "label": "05-06",
-        "value": 0
-      },
       {
         "key": "2026-05-07",
         "label": "05-07",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-02",
         "label": "09-02",
         "value": 292814
+      },
+      {
+        "key": "2026-09-03",
+        "label": "09-03",
+        "value": 294588
       }
     ],
     "testLocDaily": [
@@ -1192,14 +1192,14 @@ export default {
         "key": "2026-09-02",
         "label": "09-02",
         "value": 122467
+      },
+      {
+        "key": "2026-09-03",
+        "label": "09-03",
+        "value": 123942
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-04",
-        "label": "08-04",
-        "value": 1
-      },
       {
         "key": "2026-08-05",
         "label": "08-05",
@@ -1343,7 +1343,12 @@ export default {
       {
         "key": "2026-09-02",
         "label": "09-02",
-        "value": 18
+        "value": 19
+      },
+      {
+        "key": "2026-09-03",
+        "label": "09-03",
+        "value": 28
       }
     ],
     "commitWeekly": [
@@ -1405,7 +1410,7 @@ export default {
       {
         "key": "2026-08-31",
         "label": "08-31",
-        "value": 65
+        "value": 94
       }
     ],
     "releaseMonthly": [
@@ -1467,7 +1472,7 @@ export default {
       {
         "key": "2026-09",
         "label": "09/26",
-        "value": 1
+        "value": 2
       }
     ]
   },
@@ -1475,22 +1480,22 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 72065,
-        "testCodeLines": 39073,
-        "files": 866,
-        "sharePercent": 24.6
+        "codeLines": 72791,
+        "testCodeLines": 39688,
+        "files": 881,
+        "sharePercent": 24.7
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 47921,
-        "testCodeLines": 24304,
-        "files": 441,
-        "sharePercent": 16.4
+        "codeLines": 48537,
+        "testCodeLines": 24565,
+        "files": 446,
+        "sharePercent": 16.5
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 16935,
-        "testCodeLines": 8064,
+        "codeLines": 17006,
+        "testCodeLines": 8187,
         "files": 171,
         "sharePercent": 5.8
       },
@@ -1499,7 +1504,7 @@ export default {
         "codeLines": 16620,
         "testCodeLines": 6735,
         "files": 173,
-        "sharePercent": 5.7
+        "sharePercent": 5.6
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
@@ -1510,8 +1515,8 @@ export default {
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 13573,
-        "testCodeLines": 10540,
+        "codeLines": 13647,
+        "testCodeLines": 10651,
         "files": 157,
         "sharePercent": 4.6
       },
@@ -1524,19 +1529,28 @@ export default {
       },
       {
         "name": "packages/nextclaw-app-runtime",
-        "codeLines": 10821,
-        "testCodeLines": 3481,
-        "files": 92,
-        "sharePercent": 3.7
+        "codeLines": 11059,
+        "testCodeLines": 3661,
+        "files": 95,
+        "sharePercent": 3.8
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2737549,
-      "basePercentOfBenchmark": 10.7,
-      "lighterByPercent": 89.3
+      "benchmarkCodeLines": 2750448,
+      "basePercentOfBenchmark": 10.71,
+      "lighterByPercent": 89.29
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-09-03",
+        "tagCount": 23,
+        "sampleTags": [
+          "@nextclaw/app-runtime@0.16.2",
+          "@nextclaw/channel-extension-dingtalk@0.2.43",
+          "@nextclaw/channel-extension-discord@0.2.43"
+        ]
+      },
       {
         "date": "2026-09-01",
         "tagCount": 72,
@@ -1580,15 +1594,6 @@ export default {
           "@nextclaw/app-runtime@0.13.3",
           "@nextclaw/channel-extension-dingtalk@0.2.37",
           "@nextclaw/channel-extension-discord@0.2.37"
-        ]
-      },
-      {
-        "date": "2026-08-27",
-        "tagCount": 24,
-        "sampleTags": [
-          "@nextclaw/channel-extension-dingtalk@0.2.36",
-          "@nextclaw/channel-extension-discord@0.2.36",
-          "@nextclaw/channel-extension-email@0.2.36"
         ]
       }
     ]
@@ -2879,7 +2884,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-02T07:04:23.739Z",
+    "locGeneratedAt": "2026-09-03T07:08:35.897Z",
     "sourceCount": {
       "notes": 63,
       "scopes": 8
