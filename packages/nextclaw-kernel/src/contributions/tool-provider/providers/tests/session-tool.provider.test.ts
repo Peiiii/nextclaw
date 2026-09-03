@@ -51,7 +51,8 @@ async function createPersistedFixture() {
     eventBus: new EventBus(),
     journalStore,
     projectManager: new ProjectManager({
-      storePath: join(homeDir, "projects.json"),
+      databasePath: join(homeDir, "projects.db"),
+      legacyStorePath: join(homeDir, "projects.json"),
       getDefaultWorkspacePath: () => workspace,
     }),
     sessionSearch: { handleSessionUpdated: () => undefined } as never,

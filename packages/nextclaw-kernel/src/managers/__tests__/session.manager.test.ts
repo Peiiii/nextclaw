@@ -112,7 +112,8 @@ async function createFixture(
     eventBus,
     journalStore,
     projectManager: new ProjectManager({
-      storePath: join(sessionsDir, "projects.json"),
+      databasePath: join(sessionsDir, "projects.db"),
+      legacyStorePath: join(sessionsDir, "projects.json"),
       getDefaultWorkspacePath: () =>
         (config as { agents: { defaults: { workspace: string } } }).agents.defaults.workspace,
     }),

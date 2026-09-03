@@ -38,13 +38,13 @@ export function resolveKernelPreferenceStorePath(
   return resolveKernelDataPath(options, "preferences", "preferences.json");
 }
 
-export function resolveKernelProjectStorePath(
+export function resolveKernelLegacyProjectStorePath(
   options: KernelStoragePathOptions,
 ): string {
   return resolveKernelDataPath(options, "projects", "projects.json");
 }
 
-export function resolveKernelProjectWorkStorePath(
+export function resolveKernelProjectDatabasePath(
   options: KernelStoragePathOptions,
 ): string {
   return resolveKernelDataPath(options, "projects", "work-items.db");

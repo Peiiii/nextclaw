@@ -28,7 +28,8 @@ const PROJECT_TEMPLATES: ProjectTemplate[] = [
 ];
 
 export type ProjectManagerOptions = {
-  storePath: string;
+  databasePath: string;
+  legacyStorePath: string;
   getDefaultWorkspacePath: () => string;
   onProjectRegistered?: (project: ProjectRecord) => Promise<void>;
 };
@@ -62,8 +63,15 @@ export class ProjectManager {
   private readonly store: ProjectStore;
 
   constructor(private readonly options: ProjectManagerOptions) {
-    this.store = new ProjectStore(options.storePath);
+    this.store = new ProjectStore({
+      databasePath: options.databasePath,
+      legacyStorePath: options.legacyStorePath,
+    });
   }
+
+  initialize = async (): Promise<void> => await this.store.initialize();
+
+  dispose = (): void => this.store.close();
 
   listProjects = async (): Promise<ProjectRecord[]> =>
     (await this.store.list()).sort(
@@ -71,9 +79,6 @@ export class ProjectManager {
         right.updatedAt.localeCompare(left.updatedAt) ||
         left.name.localeCompare(right.name),
     );
-
-  migrateLegacyProjects = async (): Promise<boolean> =>
-    await this.store.migrateLegacyRecords();
 
   getProjectById = async (projectId: string): Promise<ProjectRecord | null> => {
     const project = (await this.store.list()).find(
@@ -294,7 +299,7 @@ export class ProjectManager {
       createdAt: now,
       updatedAt: now,
     };
-    await this.store.save([...projects, project]);
+    await this.store.add(project);
     await this.options.onProjectRegistered?.(structuredClone(project));
     return structuredClone(project);
   };

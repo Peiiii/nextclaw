@@ -206,8 +206,8 @@ export function createKernelSessionManagers(params: {
   eventBus: EventBus;
   ingress: Ingress;
   observationStorePath: string;
-  projectStorePath: string;
-  projectWorkStorePath: string;
+  legacyProjectStorePath: string;
+  projectDatabasePath: string;
   sessionsDir: string;
 }): {
   journalStore: NcpAgentSessionJournalStore;
@@ -225,8 +225,8 @@ export function createKernelSessionManagers(params: {
     eventBus,
     ingress,
     observationStorePath,
-    projectStorePath,
-    projectWorkStorePath,
+    legacyProjectStorePath,
+    projectDatabasePath,
     sessionsDir,
   } = params;
   const sessionSearch = new SessionSearchService({
@@ -240,7 +240,8 @@ export function createKernelSessionManagers(params: {
     current: null,
   };
   const projectManager = new ProjectManager({
-    storePath: projectStorePath,
+    databasePath: projectDatabasePath,
+    legacyStorePath: legacyProjectStorePath,
     getDefaultWorkspacePath: () =>
       getWorkspacePathFromConfig(configManager.config),
     onProjectRegistered: async (project) => {
@@ -248,7 +249,7 @@ export function createKernelSessionManagers(params: {
     },
   });
   const projectWorkManager = new ProjectWorkManager({
-    databasePath: projectWorkStorePath,
+    databasePath: projectDatabasePath,
     eventBus,
     projectManager,
   });

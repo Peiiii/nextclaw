@@ -72,8 +72,8 @@ import {
   resolveKernelObservationStorePath,
   resolveKernelVerificationRecordStorePath,
   resolveKernelPreferenceStorePath,
-  resolveKernelProjectStorePath,
-  resolveKernelProjectWorkStorePath,
+  resolveKernelLegacyProjectStorePath,
+  resolveKernelProjectDatabasePath,
   resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
@@ -224,7 +224,7 @@ export class NextclawKernel {
       eventBus: this.eventBus,
       ingress: this.ingress,
       observationStorePath: resolveKernelObservationStorePath(options),
-      projectStorePath: resolveKernelProjectStorePath(options), projectWorkStorePath: resolveKernelProjectWorkStorePath(options),
+      legacyProjectStorePath: resolveKernelLegacyProjectStorePath(options), projectDatabasePath: resolveKernelProjectDatabasePath(options),
       sessionsDir,
     }));
     this.inboxDeliveryManager = new InboxDeliveryManager({
@@ -367,7 +367,7 @@ export class NextclawKernel {
     void this.sessionSearch.start();
     this.mcpManager.start();
     this.providerModelCatalog.start();
-    await this.projectManager.migrateLegacyProjects();
+    await this.projectManager.initialize();
     await this.projectManager.importSessionProjects(
       (await this.sessionManager.listSessions()).map((session) =>
         readProjectRoot(session.metadata),
@@ -398,6 +398,6 @@ export class NextclawKernel {
     await this.mcpManager.dispose();
     await this.serviceAppManager.dispose();
     await this.sessionSearch.dispose();
-    this.projectWorkManager.dispose();
+    this.projectWorkManager.dispose(); this.projectManager.dispose();
   };
 }

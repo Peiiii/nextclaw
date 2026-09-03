@@ -19,7 +19,7 @@ describe("ProjectCommands observe", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const commands = new ProjectCommands(
       () => ({
-          projectManager: { migrateLegacyProjects: vi.fn(async () => false) }, projectObservation: { observe }, dispose, }) as never,
+          projectManager: { initialize: vi.fn(async () => undefined) }, projectObservation: { observe }, dispose, }) as never,
     );
 
     await commands.observe("/tmp/demo", { json: true });
@@ -40,7 +40,7 @@ describe("ProjectCommands observe", () => {
       () =>
         ({
           projectManager: {
-            migrateLegacyProjects: vi.fn(async () => false),
+            initialize: vi.fn(async () => undefined),
             removeProject,
           },
           dispose,
