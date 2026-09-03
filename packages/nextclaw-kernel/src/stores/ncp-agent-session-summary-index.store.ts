@@ -8,6 +8,7 @@ import {
   upsertNcpAgentSessionSummaryEvent,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { scanNcpAgentSessionCatalogJournals } from "./ncp-agent-session-catalog-migration.store.js";
+import { NcpAgentRunRecoveryIndexStore } from "./ncp-agent-run-recovery-index.store.js";
 import {
   openSqliteDatabase,
   runSqliteTransaction,
@@ -15,7 +16,7 @@ import {
 } from "./sqlite-database.store.js";
 
 const SQLITE_DATABASE_FILE = ".ncp-agent-session-catalog.sqlite";
-const CATALOG_SCHEMA_VERSION = 1;
+const CATALOG_SCHEMA_VERSION = 2;
 const MIGRATION_STATUS_KEY = "migration_status";
 const MIGRATION_COMPLETE = "complete";
 
@@ -94,6 +95,7 @@ function rowToSummary(row: SessionCatalogRow): NcpSessionSummary {
 export class NcpAgentSessionSummaryIndexStore {
   private database: SqliteDatabase | null = null;
   private readyPromise: Promise<void> | null = null;
+  private readonly runRecovery = new NcpAgentRunRecoveryIndexStore(() => this.db(), () => this.ensureReady());
 
   constructor(
     private readonly journalDir: string,
@@ -205,6 +207,9 @@ export class NcpAgentSessionSummaryIndexStore {
     ).run(upsertParams);
   };
 
+  listRunRecoveryCheckpoints = this.runRecovery.list;
+  writeRunRecoveryCheckpoint = this.runRecovery.write;
+  recordRunRecoveryEvent = this.runRecovery.recordEvent;
   remove = async (sessionId: string): Promise<void> => {
     await this.ensureReady();
     const normalizedSessionId = normalizeNcpSessionId(sessionId);
@@ -282,20 +287,31 @@ export class NcpAgentSessionSummaryIndexStore {
       CREATE INDEX IF NOT EXISTS sessions_activity_idx
       ON sessions (deleted_at, last_message_at, created_at, updated_at);
     `);
+    this.runRecovery.initializeSchema();
+    this.db().prepare(
+      `INSERT INTO storage_meta (key, value) VALUES ('schema_version', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    ).run(String(CATALOG_SCHEMA_VERSION));
 
-    // A completed migration only proves that the catalog matched the journals
-    // at that point in time. Reconcile on every startup so an interrupted event
-    // write cannot leave a durable journal permanently absent from the list.
+    const migrationStatus = this.db()
+      .prepare("SELECT value FROM storage_meta WHERE key = ? LIMIT 1")
+      .get(MIGRATION_STATUS_KEY) as { value: string } | undefined;
+    const migrationComplete = migrationStatus?.value === MIGRATION_COMPLETE;
+    const knownSessionIds = migrationComplete
+      ? new Set((this.db().prepare("SELECT session_id FROM sessions").all() as Array<{ session_id: string }>).map((row) => row.session_id))
+      : undefined;
+
+    // After the initial migration, runtime writes keep known catalog rows current.
+    // Only journals missing from SQLite need startup recovery. Including tombstones
+    // in knownSessionIds prevents a leftover journal from resurrecting a deletion.
     const scan = await scanNcpAgentSessionCatalogJournals({
       journalDir: this.journalDir,
       loadSession: (sessionId) => this.loadSession(sessionId),
       loadSessionSummary: this.loadSessionSummary,
+      knownSessionIds,
     });
     runSqliteTransaction(this.db(), () => {
-      const status = this.db().prepare(
-        "SELECT value FROM storage_meta WHERE key = ? LIMIT 1",
-      ).get(MIGRATION_STATUS_KEY) as { value: string } | undefined;
-      if (status?.value === MIGRATION_COMPLETE) {
+      if (migrationComplete) {
         this.reconcileRecords(scan.records);
         return;
       }
@@ -323,10 +339,6 @@ export class NcpAgentSessionSummaryIndexStore {
         `INSERT INTO storage_meta (key, value) VALUES (?, ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
       ).run(MIGRATION_STATUS_KEY, MIGRATION_COMPLETE);
-      this.db().prepare(
-        `INSERT INTO storage_meta (key, value) VALUES ('schema_version', ?)
-         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-      ).run(String(CATALOG_SCHEMA_VERSION));
     }, "IMMEDIATE");
   };
 

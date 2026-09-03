@@ -8,6 +8,15 @@ export type UnfinishedNcpAgentRun = {
   startedAt?: string;
 };
 
+export function isNcpAgentRunLifecycleEvent(
+  event: NcpAgentSessionJournalReplayEvent,
+): boolean {
+  return event.type === NcpEventType.RunStarted
+    || event.type === NcpEventType.RunFinished
+    || event.type === NcpEventType.RunError
+    || event.type === NcpEventType.MessageAbort;
+}
+
 export function applyNcpAgentRunLifecycleEvent(
   sessionId: string,
   activeRun: UnfinishedNcpAgentRun | null,
