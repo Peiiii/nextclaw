@@ -153,6 +153,7 @@ describe("Messaging context delivery policy", () => {
     const [context] = await createSilentRepliesContextProvider().provide(createRequest(workspace));
 
     expect(context).toContain("respond with EXACTLY <noreply/>");
+    expect(context).toContain("Only an entire reply matching <noreply/> is silent");
     expect(context).toContain('✅ Right: "<noreply/>"');
     expect(context).not.toContain("two blank lines");
     expect(context).not.toContain("\\n\\n<noreply/>");

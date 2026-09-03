@@ -918,7 +918,7 @@ Status/diagnostics tips:
 
 Silent reply behavior:
 
-- If the model contains `<noreply/>`, NextClaw does not send any channel reply.
+- If the model's entire normalized reply matches `<noreply/>`, NextClaw does not send any channel reply. Mentioning the token inside normal content remains visible.
 - If the final normalized reply is empty/whitespace, NextClaw also keeps silent (no fallback text).
 - This matches OpenClaw's core no-reply expectation while keeping logic minimal.
 

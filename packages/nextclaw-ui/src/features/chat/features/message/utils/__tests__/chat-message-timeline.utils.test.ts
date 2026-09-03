@@ -125,6 +125,16 @@ describe("chat message timeline visibility", () => {
     })).toBe(false);
     expect(isVisibleChatMessage(visibleMessage)).toBe(true);
   });
+
+  it("keeps a normal assistant reply visible when it explains the silent marker", () => {
+    expect(isVisibleChatMessage({
+      ...visibleMessage,
+      parts: [{
+        type: "text",
+        text: "空转 tick 调用一次服务，然后返回 `<noreply/>`，成本很低。",
+      }],
+    })).toBe(true);
+  });
 });
 
 describe("chat message continuation projection", () => {

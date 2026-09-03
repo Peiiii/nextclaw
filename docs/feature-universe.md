@@ -222,7 +222,7 @@ Extension 当前只通过 channel contribution 接入；旧的 `extensionRegistr
 ## 13. 自更新与运维
 
 - **update**：`nextclaw update` 或通过 Agent 调用 `gateway` 的 `update.run`；可配置 `NEXTCLAW_UPDATE_COMMAND`；更新后支持自重启并通知会话。
-- **静默回复**：模型输出含 `<noreply/>` 或最终回复为空/空白时不发送渠道回复（与 OpenClaw 对齐）。
+- **静默回复**：模型的完整规范化回复严格匹配 `<noreply/>`，或最终回复为空/空白时不发送渠道回复；正常正文中提及该标记仍会展示。
 
 ---
 
