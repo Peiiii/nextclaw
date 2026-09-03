@@ -31,6 +31,7 @@
 - 生产安装后使用正式 `0.48.1` runtime runner 启用成功，但 action 暴露既有 runner 缺陷：`spin-key-value` 在单线程 runtime 调用 blocking 时 panic，外层表现为 7 秒预算超时。该 runner 不在本次 diff；Marketplace 生产发布、分发和安装闭环成立，action/persistence 继续由部署前同一冻结代码的隔离全链路证据覆盖，不能把本次生产 action 写成通过。官方与个人验收 App 均已退出公开面，最终 Registry 为 404、Catalog 匹配数为 0。
 - 主干 [`portable-runtime-validate`](https://github.com/Peiiii/nextclaw/actions/runs/33657164113) 在 Darwin arm64、Linux x64、Windows x64 上独立复现同一 `spin-key-value` panic；三个 job 的 runner 合同、真实 HTTP、生命周期和 Kernel 持久化基础合同均已先通过，失败集中在公开 GitHub Issue Watcher 的 `issues_list`。这把残余边界确定为既有 runner Tokio runtime 配置问题，而不是 NC-165 Marketplace schema 传播问题。
 - 本次只合入源码、测试、脚手架资源、规则和 changeset，不执行 NPM/runtime channel/Desktop 发布；`portable-runtime-validate` 由主干 push 自动完成三平台最终门。
+- 首次修复矩阵中 macOS 已通过 build、runner/Factor、真实安装启用与 Kernel 合同，但公网 Issue Watcher 收到匿名 GitHub API 403；Linux 同一步通过，证明不是 runtime 回归。CI 随后改为通过 App 既有 `github-token` Secret slot 注入 Actions 只读 token，继续验证真实公网请求且不依赖共享匿名限额。
 - [`Docs Deploy`](https://github.com/Peiiii/nextclaw/actions/runs/33657164227) 的首次 verify 因 GitHub runner 连续四次无法连接 `docs.nextclaw.net` 失败；仅重跑失败 job 后，构建、全球部署、国内部署和线上校验全部通过。
 - 本次不发布 NextClaw NPM、runtime channel 或 Desktop；app-runtime 用户可见变化由 changeset 进入后续统一稳定版。
 

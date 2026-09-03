@@ -57,6 +57,7 @@ runner control loop
 2. runner smoke 使用真实 GitHub Issue Watcher Component 调用 `issues_list`，覆盖 `tokio::spawn -> Component -> wasi:keyvalue/store -> Spin SQLite`。测试预置确定性 snapshot，校验 Component 读到标准 WASI key-value 数据，不访问 GitHub。
 3. 现有完整 runner smoke 继续覆盖自有 `host.kv`、Spin SQLite、并发 Job、取消、Resident 和 Provider，防止适配器破坏相邻 runtime 能力。
 4. 现有公网 Issue Watcher smoke 继续覆盖 `issues_sync` 写入与随后 `issues_list` 复读，但它是外部集成证据，不再是发现线程模型错误的第一道门。
+   CI 通过 App 已声明的 `github-token` Secret slot 注入 Actions 只读 token，避免三平台并发依赖匿名 API 限额；本地无 token 时仍可验证公开仓库。
 5. 脚手架测试禁止新模板生成 `host::kv_*`，真实生成并编译一次 Rust Component，防止 WIT、Cargo component metadata 与示例代码彼此漂移。
 6. 提交前比较同一 runner benchmark 的热调用延迟、吞吐与 action/resident 内存；共享 runtime/cache 不变量不能为修复而退化。
 
