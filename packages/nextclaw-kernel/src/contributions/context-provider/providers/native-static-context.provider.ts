@@ -116,7 +116,7 @@ export const createSilentRepliesContextProvider = (): ContextProvider =>
     "",
     "⚠️ Rules:",
     "- It must be your ENTIRE message — nothing else",
-    "- If <noreply/> appears anywhere, the system will stop reply/output and subsequent processing",
+    "- Only an entire reply matching <noreply/> is silent; mentioning the token in normal content remains visible",
     "- Never wrap it in markdown or code blocks",
     "",
     '❌ Wrong: "Here\'s help... <noreply/>"',
