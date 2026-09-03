@@ -6,6 +6,7 @@
 - 确认方式：端到端核对项目注册、会话元数据、Agent 工具装配、Kernel、HTTP、SDK、CLI 与项目页，确认项目路径身份仍应保留，但工作项数据和统计不应写入或扫描项目目录。
 - 完成内容：新增项目工作项 SQLite owner、自定义状态、不可变活动时间线、产物关联、软删除与乐观并发；已提交变化只发轻量事件通知 UI 刷新，不读取事件历史生成事实。
 - 用户入口：项目会话条件式提供 4 个 CRUD 工具；CLI 使用显式 `--project`；项目概览、列表与看板中的工作项统一点击打开右侧详情抽屉。
+- 后续根因收敛：Project Work 上线时仍保留了旧 `nextclaw.project/v1` 会话 Marker 的只读兼容链，导致历史消息中的无效 Marker 继续生成 `PROJECT_MARKER_INVALID`。本批通过端到端检索 producer、parser、projection、公共类型与 UI consumer 确认双 owner 仍然存在，并彻底删除 Marker 解析、生成 Skill、request/response UI 和旧配置合同；历史 Marker 现在只作为普通消息文本存在。
 
 ## 测试/验证/验收方式
 
@@ -13,10 +14,12 @@
 - 定向测试通过：Kernel 10、Server 7、SDK 3、Service 2、UI 7、CLI 文档合同 2。
 - 变更文件 ESLint、`git diff --check`、新代码治理和 skill 渐进加载检查通过。
 - 维护性检查检查 56 个文件，结果为 0 error、12 warning；warning 均为既有目录例外或未越过预算的文件增长，已进行主观复核。
+- Marker 删除批次补充验证：Kernel 10 项、UI 12 项定向测试通过，Kernel、UI、Core、Server、Client SDK、Service TypeScript 检查通过；旧协议、错误码、响应桥与生成 Skill 的当前源码扫描无命中。skill 渐进加载总体积检查在主工作区原基线同样超出 42 字节，与本批无关。
 
 ## 发布/部署方式
 
 - 实现与验证在隔离 worktree `codex/project-work-items` 中完成，提交后安全合入远程 `master`，不切换或清理带有活跃 WIP 的主工作区。
+- Marker 删除与状态分组简化在隔离分支 `codex/simplify-work-state-groups` 完成，经合并提交 `581960bc2` 合入并推送 `origin/master`；`release:reconcile:mainline` 返回 `LOCAL_MAINLINE_SYNCED`。
 - Beta 通过仓库统一入口 `pnpm release:beta` 消费 `.changeset/add-persistent-project-work.md`，发布 NPM beta batch，并在 batch 包含 `nextclaw` 时闭合 beta runtime channel；不包含桌面安装包。
 
 ## 用户/产品视角的验收步骤
@@ -27,6 +30,7 @@
 4. 自定义状态与类别并迁移被删除状态上的工作项，确认看板和筛选按新配置展示。
 5. 在项目会话中确认工作项工具可用，在非项目会话中确认工具不出现；CLI 未传 `--project` 时必须拒绝执行。
 6. 检查项目根目录，确认没有为工作项写入 marker、skill、配置或数据库文件。
+7. 打开包含历史 Marker 文本的项目，确认项目主页不再出现 Marker 诊断或确认/拒绝请求；列表与看板的状态分组没有外层卡片，工作项自身边界仍然保留。
 
 ## 可维护性总结汇总
 
@@ -34,7 +38,10 @@
 - SQLite 通用驱动被复用；状态、活动与工作项存储按 owner 拆分，避免单文件越过预算；UI 工作项组件进入独立 `work/` 子树。
 - 会话只保存项目身份元数据，事件只承担失效通知，消除了扫描事件历史与项目目录侵入。
 - 自动维护性检查无错误；12 条 warning 已审阅，不需要为消除提醒制造无真实变化点的 wrapper 或空目录层级。
+- 后续批次净删除旧 Marker 主链及 UI 残留，工作项事实 owner 进一步收敛到 Project Work；diff-only 检查为 0 error、2 条未恶化的既有预算 warning，没有新增兼容层或抽象跳转。
 
 ## NPM 包发布记录
 
 项目工作项作为 minor 级用户能力进入统一 beta batch；涉及 `nextclaw`、`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/client-sdk`、`@nextclaw/service`、`@nextclaw/shared` 和 `@nextclaw/ui`，实际版本与 dist-tag 以统一发布入口的 registry 验证为准。
+
+Marker 删除通过 `.changeset/remove-project-markers.md` 进入后续统一发布批次；本次只完成提交与主干集成，没有执行 NPM 发布。
