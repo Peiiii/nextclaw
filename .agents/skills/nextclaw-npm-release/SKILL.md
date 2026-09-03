@@ -18,6 +18,8 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 
 ## 永久合同
 
+- **渐进交付、最早结果优先**：`target=npm|product` 在 package 身份、产物和授权成立后立即 dispatch，固定按 `NPM_READY -> Runtime/update READY -> CONTENT_READY` 交付；release notes、官网、配图、博客和 X 不得阻塞首次 NPM。Agent 若先进入这些非阻塞分支，立即停止并返回最早可交付门。
+- **发布后提交**：release 与 reconcile 完成后，把本次已验证的流程、Skill 和记录改动精确 commit、push，不留临时 worktree。未获“合入主干”授权时只推当前隔离分支并报告；无关 WIP 排除。
 - 正式发布同时交付产物与自动化闭环；用结构化时序/依赖图找 critical path、错误等待和无效串行/重复，超预算须修 owner、补合同并沿同 identity/recovery 验证。报告总/NPM_READY 耗时、瓶颈、优化和干预数；dispatch/准备/只读不计，非零时逐项写问题→修复。
 - 使用仓库 release flow，不以包目录 raw `npm publish` 作为默认路径。
 - 正式发布只 dispatch 一次 parent；Actions 独立闭合构建、发布、传播、真实升级验证、终态与 Git 回流，任何观察者在线都不是完成条件。
@@ -41,13 +43,6 @@ description: NextClaw NPM package 与 runtime channel 发布的专项流程 owne
 - “发 NPM beta”、`/发布NPM测试版`：`pnpm release:npm:beta`，只闭合 beta NPM，完成点 `NPM_READY (channel: beta)`。
 - “发布 NextClaw 正式版”、`/发布NextClaw正式版`：一次 dispatch `release.yml target=product`，完成点 `NEXTCLAW_STABLE_READY`；desktop 排除。
 - “发布 NextClaw 全平台版”：一次 dispatch `target=all`，父 workflow 再调用 desktop owner，完成点 `ALL_PLATFORMS_READY`。
-
-发布开始先报告 `EXISTING_RELEASE_PATH`，再报告版本变化包数、上传包数、验证闭包和排除表面：
-
-- 读取正式 owner `.github/workflows/release.yml`，按实际 environment、secret 和 publish command 判断入口与认证，禁止从旧文档、记忆或迁移方案反推现状。
-- 用 `gh run list --workflow release.yml --status success --limit 1` 查最近成功 run；已有生产证据时复用同一 workflow、认证和恢复合同，只有实证失效才讨论重建或迁移。
-- 用 `npm view`、`gh release view` 和公开 manifest 判断 identity；已成立阶段只恢复/复用，不得重发。
-- 输出 workflow、observed auth mode、latest successful run URL、reusable、evidence gap。远端暂不可读只标 gap，不得把未知说成未实现。
 
 每个不可逆阶段使用 checkpoint；下游失败只恢复未完成阶段。
 

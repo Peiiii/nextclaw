@@ -15,6 +15,8 @@ description: 当 NextClaw 产品更新后需要生成、替换、挑毛病或检
 - **整页宣传工作室**：把新功能、主题、版本或真实场景做成精美的单文件 HTML showcase/campaign 页面时，执行下方流程。
 - **AI 辅助单张视觉**：只需一张概念主图或截图包装时，使用 `imagegen`；真实 UI 仍由原始截图承担证据，概念图不得冒充产品界面。
 
+Stable/major 版本传播图在选图或生成后、绑定 release review 前，读取 [版本传播图质量门](references/release-visual-quality.md)。
+
 只选择当前任务需要的模式，不批量读取其它参考。
 
 ## 整页宣传工作室

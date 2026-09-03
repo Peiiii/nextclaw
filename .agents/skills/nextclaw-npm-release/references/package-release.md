@@ -14,6 +14,8 @@ stable NPM-only 的用户入口仍是“发布 NPM”。分钟级 version、stri
 
 常规 stable 产品 dispatch `release.yml` 的 `target=product`。它复用同一 package 主链路，在 `NPM_READY` 后闭合 stable runtime 和旧版本升级；结构化 release notes 与 release surface review 作为同一版本的 `CONTENT_READY|CONTENT_PENDING` 独立报告，不阻塞核心 Runtime。先用本地 `pnpm release:product:stable -- --dry-run` 审计；发布后失败按 workflow 失败 job 或现有 `--resume-from git|runtime|install` 精确续跑，不重新执行 package publish。
 
+`target=product` 的本地执行顺序也必须体现这条依赖关系：dry-run 和 exact-SHA prepare 证据通过后先 dispatch，并把 `NPM_READY` 作为第一个可报告完成点；不要在 dispatch 前生成 release notes、配图、官网内容或 X 帖。内容准备只能在 owning workflow 已经接管 package 发布之后开始，且不得占用 Agent 对 NPM 失败恢复的关键路径。
+
 全平台 stable 单次 dispatch 同一 workflow 的 `target=all`。父 workflow 在 `NPM_READY` 与 `NEXTCLAW_STABLE_READY` 后调用 Desktop owner，并等待 `DESKTOP_READY` 才报告 `ALL_PLATFORMS_READY`；AI/本地 Delivery 只监控，不再顺序触发 product 与 desktop。failed-job rerun 复用成功上游 outputs；完整重跑仍由 publisher 的 identity/integrity precheck 保证不重复 publish。
 
 Agent 执行正式发布时默认把完整 stdout/stderr 写入临时日志，只向会话回传阶段、耗时、包数、最终摘要和失败附近的有限行；禁止把数万行 build/lint 输出整体送入上下文。日志保留到闭环完成，失败恢复仍使用原 checkpoint，不靠截断输出猜阶段。
