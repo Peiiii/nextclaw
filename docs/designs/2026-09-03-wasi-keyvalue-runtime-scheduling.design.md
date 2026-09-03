@@ -74,7 +74,7 @@ runner control loop
 | WKV-03 | true | 无公网的真实 Component smoke 覆盖标准 `wasi:keyvalue/store` | passed | 预置 Issue Watcher snapshot；Job 读取与重启复读通过 | 无 |
 | WKV-04 | true | 原 runner runtime、Job、SQLite、取消、Resident、Provider 合同无回归 | passed | 完整 runner smoke 42 checks 全部通过 | 无 |
 | WKV-05 | true | 公网 Issue Watcher 完成 sync 写入和 list 复读 | passed | `github-sync`、`persisted-list`、`standard-wasi-kv`、`public-issue-shape` | 无 |
-| WKV-06 | true | Rust 构建、格式、lint/治理和 diff review 通过 | passed | cargo test/build、定向 rustfmt/ESLint、maintainability/governance 通过；无阻塞 finding | 无 |
+| WKV-06 | true | Rust 构建、格式、lint/治理和 diff review 通过 | passed | cargo test/build、定向 rustfmt/ESLint、maintainability/governance 通过；三平台主干 CI `33705606500` 通过；无阻塞 finding | 无 |
 | WKV-07 | true | 新 Rust/WASI 脚手架使用标准 key-value 且真实可构建 | passed | app-runtime tsc、4 个定向测试、真实 `napp create` + `napp build` 产出 wasm32-wasip2 Component | 无 |
 | WKV-08 | true | legacy `host.kv` 与 JSON migration 只通过 Spin 公共 Store API 访问同一存储 | passed | cargo migration test；runner smoke 的 legacy KV 与标准 KV 42 项通过 | 无 |
 | WKV-09 | true | 修复不回退共享 runtime/cache 的性能设计 | passed | 同机复测：P95 3.68 ms（基线 11.33），691 ops/s（基线 165）；10 action 81.36 MiB（基线 74.59），10 resident 88.39 MiB（基线 90.06） | 无 |
