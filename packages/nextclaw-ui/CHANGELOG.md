@@ -1,5 +1,23 @@
 # @nextclaw/ui
 
+## 0.24.3
+
+### Patch Changes
+
+- b51f599: 修复正常 AI 回复在说明 `<noreply/>` 静默标记时被整条隐藏的问题。现在只有完整可见正文严格匹配该标记时才会静默，消息列表、回复策略与继续运行锚点使用一致语义。
+- 35079f9: 修复已安装 NextClaw PWA 时 Panel App 的“在新标签页中打开”被捕获到 PWA 专属窗口的问题，让链接继续交由当前浏览器的新标签页处理。
+- 8bbb717: 将项目移除入口调整到按项目查看的会话列表项目行“更多操作”菜单中，并使用普通样式展示菜单项和确认动作，避免在项目详情页常驻显示高权重的危险按钮。
+- db88c76: 完全移除旧项目 Marker 与项目观测机制。Projects 不再读取 `.nextclaw/project.yaml`、扫描项目文件或全部历史会话，也不再提供 observation API 与 `nextclaw projects observe`；历史配置不会再产生 Marker 或未知字段诊断。
+
+  项目材料改为零配置的单一来源：产物只展示 Project Work 工作项显式关联的文件，支持去重、分页与搜索；Skills 固定读取 `.agents/skills`；工作约定固定读取项目根目录 `AGENTS.md`。
+
+  同时简化项目工作项列表与看板的状态分组，移除外层卡片边框和底色，只保留工作项自身的边界与轻量分组标题。
+
+- Updated dependencies [b51f599]
+- Updated dependencies [db88c76]
+  - @nextclaw/shared@0.5.1
+  - @nextclaw/client-sdk@0.12.0
+
 ## 0.24.2
 
 ### Patch Changes

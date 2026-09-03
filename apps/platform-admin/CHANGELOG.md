@@ -1,5 +1,12 @@
 # @nextclaw/platform-admin
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [b51f599]
+  - @nextclaw/shared@0.5.1
+
 ## 0.0.4
 
 ### Patch Changes
