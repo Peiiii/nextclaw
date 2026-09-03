@@ -1,9 +1,20 @@
 #!/usr/bin/env node
 
-import { chmod, copyFile, mkdir, rename, rm, stat } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  buildPortableRuntimeFromCache,
+  createPortableRuntimeFingerprint,
+  resolvePortableRuntimeCacheRoot,
+  syncArtifactAtomically,
+} from "./portable-runtime-build-cache.mjs";
+
+export {
+  createPortableRuntimeFingerprint,
+  resolvePortableRuntimeCacheRoot,
+  syncArtifactAtomically,
+};
 
 const scriptPath = fileURLToPath(import.meta.url);
 const runnerRoot = resolve(dirname(scriptPath), "..");
@@ -71,6 +82,7 @@ export function createPortableRuntimeBuildPlan(options = {}) {
       ["build", "--release", "--target", runnerTarget.cargoTarget],
     ],
     guests: GUESTS.map(([, artifact, componentId]) => ({
+      componentId,
       source: join(sourceRoot, "target", "wasm32-wasip1", "release", artifact),
       destination: join(appRoot, "service-components", componentId, "service.wasm"),
     })),
@@ -85,31 +97,17 @@ function runCargo(args, cwd) {
   }
 }
 
-export async function syncArtifactAtomically(source, destination, executable = false) {
-  await mkdir(dirname(destination), { recursive: true });
-  const temporaryPath = `${destination}.tmp-${process.pid}-${Date.now()}`;
-  try {
-    await copyFile(source, temporaryPath);
-    if (executable) {
-      await chmod(temporaryPath, 0o755);
-    }
-    await rename(temporaryPath, destination);
-  } catch (error) {
-    await rm(temporaryPath, { force: true });
-    throw error;
-  }
-  return { destination, bytes: (await stat(destination)).size };
+async function executeCargoBuild(plan) {
+  for (const args of plan.commands) runCargo(args, plan.sourceRoot);
 }
 
 export async function buildPortableProductRuntime(options = {}) {
   const plan = createPortableRuntimeBuildPlan(options);
-  for (const args of plan.commands) runCargo(args, plan.sourceRoot);
-  const runner = await syncArtifactAtomically(plan.runner.source, plan.runner.destination, true);
-  const guests = [];
-  for (const artifact of plan.guests) {
-    guests.push(await syncArtifactAtomically(artifact.source, artifact.destination));
-  }
-  return { target: plan.target, runner, guests };
+  return await buildPortableRuntimeFromCache(
+    plan,
+    options,
+    options.executeBuild ?? executeCargoBuild,
+  );
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
@@ -120,5 +118,6 @@ if (process.argv[1] && resolve(process.argv[1]) === scriptPath) {
   console.log(JSON.stringify(await buildPortableProductRuntime({
     platform: optionValue("--platform"),
     arch: optionValue("--arch"),
+    rebuild: process.argv.includes("--rebuild"),
   }), null, 2));
 }

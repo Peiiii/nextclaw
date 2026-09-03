@@ -42,7 +42,13 @@ node apps/nextclaw-wasmtime-runner/tools/spin-runner-smoke.tools.mjs \
 pnpm portable-runtime:build
 ```
 
-该命令构建五个 guest Component 和当前平台 runner，把 guest artifact 同步到内置体验包，并把 runner 同步到 `packages/nextclaw/resources/native/<os>-<arch>`。NextClaw Distribution 从该标准资源路径注入 Kernel；正常产品启动不需要 `NEXTCLAW_WASMTIME_RUNNER_PATH`。该环境变量只保留给 runner 开发者做显式 override，路径无效时会直接报错，不静默回退。
+该命令解析六个 guest Component 和当前平台 runner，把 guest artifact 同步到内置体验包，并把 runner 同步到 `packages/nextclaw/resources/native/<os>-<arch>`。NextClaw Distribution 从该标准资源路径注入 Kernel；正常产品启动不需要 `NEXTCLAW_WASMTIME_RUNNER_PATH`。该环境变量只保留给 runner 开发者做显式 override，路径无效时会直接报错，不静默回退。
+
+构建 owner 会对 runner/Guest/WIT/锁文件、目标平台和 Rust 工具链计算内容指纹，并把最终产物缓存到当前 Git 仓库的 common dir。相同输入在不同 worktree 中命中同一个缓存时只做 SHA-256 校验和原子同步，不执行 Cargo；输入变化或缓存损坏时才重新构建。同一指纹的并发请求由构建锁合并为一次真实编译。可用 `NEXTCLAW_PORTABLE_RUNTIME_CACHE_DIR` 改写缓存目录；runner 开发者需要显式刷新时使用：
+
+```bash
+pnpm portable-runtime:build -- --rebuild
+```
 
 构建合同覆盖 macOS arm64/x64、Linux arm64/x64 和 Windows x64。runner 必须在对应原生系统上构建，CI 使用三平台矩阵验证；guest Component 是同一份平台无关 artifact。也可以显式指定目标供 CI 或打包流程使用：
 
