@@ -40,6 +40,15 @@ export function registerProjectCommands(
     .option("--json", "Output JSON", false)
     .action((name, options) => commands.create(name, options));
 
+  projects
+    .command("remove <project-id>")
+    .description(
+      "Remove a project from the project list without deleting files or sessions",
+    )
+    .requiredOption("--confirm <project-id>", "Confirm the exact project id")
+    .option("--json", "Output JSON", false)
+    .action((projectId, options) => commands.remove(projectId, options));
+
   registerProjectWorkCommands(projects, commands);
 }
 

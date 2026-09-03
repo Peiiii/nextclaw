@@ -3,10 +3,16 @@ import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { ProjectRecord } from "@kernel/features/projects/types/project.types.js";
 
-const PROJECT_STORE_VERSION = 2;
+const PROJECT_STORE_VERSION = 3;
 
 type ProjectStoreFile = {
   version: typeof PROJECT_STORE_VERSION;
+  projects: ProjectRecord[];
+  removedProjects: ProjectRecord[];
+};
+
+type PreviousProjectStoreFile = {
+  version: 2;
   projects: ProjectRecord[];
 };
 
@@ -52,7 +58,7 @@ export class ProjectStore {
       if (this.isMissingFileError(error)) return false;
       throw error;
     }
-    let storeFile: ProjectStoreFile | LegacyProjectStoreFile;
+    let storeFile: ProjectStoreFile | PreviousProjectStoreFile | LegacyProjectStoreFile;
     try {
       storeFile = this.parseStoredFile(source);
     } catch (error) {
@@ -62,15 +68,20 @@ export class ProjectStore {
       throw error;
     }
     if (storeFile.version === PROJECT_STORE_VERSION) return false;
-    await this.save(storeFile.projects.map((project) => ({ id: createProjectId(), ...project })));
+    await this.save(
+      storeFile.version === 1
+        ? storeFile.projects.map((project) => ({ id: createProjectId(), ...project }))
+        : storeFile.projects,
+    );
     return true;
   };
 
-  save = async (projects: ProjectRecord[]): Promise<void> => {
+  save = async (projects: ProjectRecord[], removedProjects: ProjectRecord[] = []): Promise<void> => {
     const tempPath = `${this.storePath}.${randomUUID()}.tmp`;
     const storeFile: ProjectStoreFile = {
       version: PROJECT_STORE_VERSION,
       projects,
+      removedProjects,
     };
     await mkdir(dirname(this.storePath), { recursive: true });
     try {
@@ -82,30 +93,94 @@ export class ProjectStore {
     }
   };
 
+  remove = async (projectId: string): Promise<ProjectRecord | null> => {
+    const storeFile = await this.readStoreFile();
+    const project = storeFile.projects.find((entry) => entry.id === projectId);
+    if (!project) return null;
+    await this.save(
+      storeFile.projects.filter((entry) => entry.id !== projectId),
+      [...storeFile.removedProjects.filter((entry) => entry.id !== projectId), project],
+    );
+    return structuredClone(project);
+  };
+
+  restoreByRootPath = async (rootPath: string, updatedAt: string): Promise<ProjectRecord | null> => {
+    const storeFile = await this.readStoreFile();
+    const project = storeFile.removedProjects.find((entry) => entry.rootPath === rootPath);
+    if (!project) return null;
+    const restored = { ...project, updatedAt };
+    await this.save(
+      [...storeFile.projects, restored],
+      storeFile.removedProjects.filter((entry) => entry.id !== project.id),
+    );
+    return structuredClone(restored);
+  };
+
+  isRemovedRootPath = async (rootPath: string): Promise<boolean> =>
+    (await this.readStoreFile()).removedProjects.some((entry) => entry.rootPath === rootPath);
+
+  private readStoreFile = async (): Promise<ProjectStoreFile> => {
+    try {
+      return this.parseStoreFile(await readFile(this.storePath, "utf8"));
+    } catch (error) {
+      if (this.isMissingFileError(error)) {
+        return {
+          version: PROJECT_STORE_VERSION,
+          projects: [],
+          removedProjects: [],
+        };
+      }
+      if (error instanceof SyntaxError) {
+        throw new ProjectStoreError("project registry contains invalid JSON");
+      }
+      throw error;
+    }
+  };
+
   private parseStoreFile = (source: string): ProjectStoreFile => {
     const value = this.parseStoredFile(source);
     if (
       value.version !== PROJECT_STORE_VERSION ||
-      !value.projects.every(this.isProjectRecord)
+      !value.projects.every(this.isProjectRecord) ||
+      !value.removedProjects.every(this.isProjectRecord)
     ) {
       throw new ProjectStoreError("project registry has an unsupported structure");
     }
     return {
       version: PROJECT_STORE_VERSION,
       projects: value.projects.map((project) => structuredClone(project)),
+      removedProjects: value.removedProjects.map((project) => structuredClone(project)),
     };
   };
 
-  private parseStoredFile = (source: string): ProjectStoreFile | LegacyProjectStoreFile => {
+  private parseStoredFile = (source: string): ProjectStoreFile | PreviousProjectStoreFile | LegacyProjectStoreFile => {
     const value = JSON.parse(source) as unknown;
     if (!this.isRecord(value) || !Array.isArray(value.projects)) {
       throw new ProjectStoreError("project registry has an unsupported structure");
     }
-    if (value.version === PROJECT_STORE_VERSION && value.projects.every(this.isProjectRecord)) {
-      return { version: PROJECT_STORE_VERSION, projects: value.projects.map((project) => structuredClone(project)) };
+    if (
+      value.version === PROJECT_STORE_VERSION &&
+      Array.isArray(value.removedProjects) &&
+      value.projects.every(this.isProjectRecord) &&
+      value.removedProjects.every(this.isProjectRecord)
+    ) {
+      return {
+        version: PROJECT_STORE_VERSION,
+        projects: value.projects.map((project) => structuredClone(project)),
+        removedProjects: value.removedProjects.map((project) => structuredClone(project)),
+      };
+    }
+    if (value.version === 2 && value.projects.every(this.isProjectRecord)) {
+      return {
+        version: 2,
+        projects: value.projects.map((project) => structuredClone(project)),
+      };
     }
     if (value.version === 1 && value.projects.every(this.isLegacyProjectRecord)) {
-      return { version: 1, projects: value.projects.map((project) => structuredClone(project)) };
+      return {
+        version: 1,
+        projects: value.projects.map((project) => structuredClone(project)),
+      };
     }
     throw new ProjectStoreError("project registry has an unsupported structure");
   };

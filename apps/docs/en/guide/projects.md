@@ -8,6 +8,18 @@ Create a project or add an existing directory from the Chat sidebar, then select
 
 Overview treats Current work and Recent artifacts as equal primary regions: they sit side by side in a wide layout and stack only in a narrow layout. Recent artifacts come from files explicitly linked to work items. Overview does not scan the project directory, read messages, or replay session history for either region. The complete Artifacts, Skills, and Working agreement views still load on demand.
 
+## Remove a project from the list
+
+When you no longer need a project in NextClaw, select **Remove from project list** on its project home. A confirmation explains the impact before the project is removed.
+
+This removes only the project-list entry. It does not delete the local folder, previous sessions, or Project Work. Existing sessions remain available in the session list. Adding or binding the same folder again restores the original project and its work records.
+
+The CLI uses the same safety contract and requires the confirmation value to exactly match the project ID:
+
+```bash
+nextclaw projects remove <project-id> --confirm <project-id> --json
+```
+
 ## Create and advance work items
 
 Create an item from **Work items**. A project receives these general-purpose states on first use: Backlog, Planned, In Progress, In Review, Awaiting Acceptance, Completed, and Canceled. Built-in state names follow the interface language; renamed states keep the name you set.

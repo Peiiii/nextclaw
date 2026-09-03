@@ -72,6 +72,18 @@ export class ProjectsService {
       input,
     );
 
+  readonly remove = async (
+    projectId: string,
+    confirmProjectId: string,
+  ): Promise<ProjectView> =>
+    await this.requestService.request<ProjectView>(
+      `/api/projects/${encodeURIComponent(projectId)}`,
+      {
+        method: "DELETE",
+        body: { confirmProjectId },
+      },
+    );
+
   readonly listWork = async (
     projectId: string,
     input: Omit<ProjectWorkListInput, "projectId"> = {},

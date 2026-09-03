@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { addExistingProject, createProject, fetchProjects } from "@/shared/lib/api";
+import { addExistingProject, createProject, fetchProjects, removeProject } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
 
 const PROJECTS_QUERY_KEY = ["projects"] as const;
@@ -38,6 +38,20 @@ export function useAddExistingProject() {
     },
     onError: (error: Error) => {
       toast.error(`${t("chatProjectExistingFailed")}: ${error.message}`);
+    },
+  });
+}
+
+export function useRemoveProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: removeProject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY });
+      toast.success(t("projectsRemoveSuccess"));
+    },
+    onError: (error: Error) => {
+      toast.error(`${t("projectsRemoveFailed")}: ${error.message}`);
     },
   });
 }

@@ -23,13 +23,42 @@ describe("ProjectCommands observe", () => {
     const dispose = vi.fn(async () => undefined);
     const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const commands = new ProjectCommands(
-      () => ({ projectObservation: { observe }, dispose }) as never,
+      () => ({
+          projectManager: { migrateLegacyProjects: vi.fn(async () => false) }, projectObservation: { observe }, dispose, }) as never,
     );
 
     await commands.observe("/tmp/demo", { json: true });
 
     expect(observe).toHaveBeenCalledWith("/tmp/demo");
     expect(log).toHaveBeenCalledWith(JSON.stringify(snapshot, null, 2));
+    expect(dispose).toHaveBeenCalledOnce();
+  });
+
+  it("requires an exact id confirmation before removing a project", async () => {
+    const removeProject = vi.fn(async () => ({
+      id: "project-1",
+      name: "Research",
+      rootPath: "/tmp/research",
+    }));
+    const dispose = vi.fn(async () => undefined);
+    const commands = new ProjectCommands(
+      () =>
+        ({
+          projectManager: {
+            migrateLegacyProjects: vi.fn(async () => false),
+            removeProject,
+          },
+          dispose,
+        }) as never,
+    );
+
+    await expect(
+      commands.remove("project-1", { confirm: "wrong" }),
+    ).rejects.toThrow("must exactly match");
+    expect(removeProject).not.toHaveBeenCalled();
+
+    await commands.remove("project-1", { confirm: "project-1" });
+    expect(removeProject).toHaveBeenCalledWith("project-1", "project-1");
     expect(dispose).toHaveBeenCalledOnce();
   });
 

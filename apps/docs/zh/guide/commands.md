@@ -108,6 +108,7 @@ nextclaw <command> --help
 | `nextclaw projects list`                 | 列出所有已注册项目，包括尚无会话的项目                                                 |
 | `nextclaw projects templates`            | 列出内置项目模板                                                                       |
 | `nextclaw projects create`               | 创建并注册项目                                                                         |
+| `nextclaw projects remove`               | 从项目列表移除项目；保留本地目录、历史会话和项目工作记录，并要求精确项目 ID 确认       |
 | `nextclaw projects observe`              | 读取已注册项目的只读观测快照                                                           |
 | `nextclaw projects work list`            | 按项目 ID 分页列出工作项；支持 `--state`、`--cursor`、`--limit` 和 `--include-deleted` |
 | `nextclaw projects work get`             | 查看工作项详情                                                                         |

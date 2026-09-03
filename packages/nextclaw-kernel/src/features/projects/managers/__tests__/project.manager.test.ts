@@ -87,6 +87,37 @@ describe("ProjectManager", () => {
     expect(await readFile(join(rootPath, "keep.txt"), "utf8")).toBe("keep");
   });
 
+  it("removes a project without deleting its directory and restores the same id only when explicitly added", async () => {
+    const fixture = createFixture();
+    const rootPath = join(fixture.workspace, "existing");
+    await mkdir(rootPath, { recursive: true });
+    await writeFile(join(rootPath, "keep.txt"), "keep", "utf8");
+    const project = await fixture.manager.addExistingProject(rootPath);
+
+    await expect(fixture.manager.removeProject(project!.id, "wrong-id")).rejects.toMatchObject({
+      code: "PROJECT_REMOVE_CONFIRMATION_MISMATCH",
+    });
+    await expect(fixture.manager.removeProject(project!.id, project!.id)).resolves.toEqual(project);
+    await expect(fixture.manager.listProjects()).resolves.toEqual([]);
+    await expect(readdir(rootPath)).resolves.toEqual(["keep.txt"]);
+
+    await fixture.manager.importSessionProjects([rootPath]);
+    await expect(fixture.manager.listProjects()).resolves.toEqual([]);
+
+    const restored = await fixture.manager.addExistingProject(rootPath);
+    expect(restored).toMatchObject({
+      id: project!.id,
+      rootPath: project!.rootPath,
+    });
+    await expect(fixture.manager.listProjects()).resolves.toEqual([restored]);
+  });
+
+  it("returns a not-found error when removing an inactive project", async () => {
+    const fixture = createFixture();
+
+    await expect(fixture.manager.removeProject("missing", "missing")).rejects.toMatchObject({ code: "PROJECT_NOT_FOUND" });
+  });
+
   it("migrates historical project records by preserving their data and adding stable ids", async () => {
     const fixture = createFixture();
     const rootPath = join(fixture.workspace, "historical");
@@ -99,8 +130,10 @@ describe("ProjectManager", () => {
         rootPath: await realpath(rootPath),
         createdAt: "2026-07-01T00:00:00.000Z",
         updatedAt: "2026-07-02T00:00:00.000Z",
-      }],
-    }), "utf8");
+      },],
+      }),
+      "utf8",
+    );
 
     await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(true);
     const [project] = await fixture.manager.listProjects();
@@ -113,15 +146,42 @@ describe("ProjectManager", () => {
     expect(project?.id).toMatch(/^[A-Za-z0-9_-]{12}$/);
     await expect(fixture.manager.getProjectById(project!.id)).resolves.toEqual(project);
     await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(false);
+    await expect(readFile(fixture.storePath, "utf8")).resolves.toContain('"removedProjects": []');
+  });
+
+  it("migrates the previous stable registry without changing project ids", async () => {
+    const fixture = createFixture();
+    await mkdir(join(fixture.storePath, ".."), { recursive: true });
+    await writeFile(
+      fixture.storePath,
+      JSON.stringify({
+        version: 2,
+        projects: [
+          {
+            id: "project-stable",
+            name: "Stable",
+            rootPath: join(fixture.workspace, "stable"),
+            createdAt: "2026-07-01T00:00:00.000Z",
+            updatedAt: "2026-07-02T00:00:00.000Z",
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    await expect(fixture.manager.migrateLegacyProjects()).resolves.toBe(true);
+    await expect(fixture.manager.listProjects()).resolves.toMatchObject([{ id: "project-stable", name: "Stable" }]);
   });
 
   it("rejects invalid project path types at the owner boundary", async () => {
     const fixture = createFixture();
 
-    await expect(fixture.manager.createProject({
-      name: "Invalid",
-      rootPath: 42,
-    } as never)).rejects.toMatchObject({ code: "PROJECT_PATH_INVALID_TYPE" });
+    await expect(
+      fixture.manager.createProject({
+        name: "Invalid",
+        rootPath: 42,
+      } as never),
+    ).rejects.toMatchObject({ code: "PROJECT_PATH_INVALID_TYPE" });
   });
 
   it("collapses the default workspace instead of registering it", async () => {
@@ -130,10 +190,12 @@ describe("ProjectManager", () => {
 
     await expect(fixture.manager.normalizeSessionProjectRoot(fixture.workspace)).resolves.toBeNull();
     await expect(fixture.manager.listProjects()).resolves.toEqual([]);
-    await expect(fixture.manager.createProject({
-      name: "Workspace",
-      rootPath: fixture.workspace,
-    })).rejects.toBeInstanceOf(ProjectError);
+    await expect(
+      fixture.manager.createProject({
+        name: "Workspace",
+        rootPath: fixture.workspace,
+      }),
+    ).rejects.toBeInstanceOf(ProjectError);
   });
 
   it("surfaces a corrupted registry instead of overwriting it", async () => {
@@ -142,7 +204,7 @@ describe("ProjectManager", () => {
     await writeFile(fixture.storePath, "{broken", "utf8");
 
     await expect(fixture.manager.listProjects()).rejects.toThrow(
-      "project registry contains invalid JSON",
+      "project registry contains invalid JSON"
     );
     expect(await readFile(fixture.storePath, "utf8")).toBe("{broken");
   });

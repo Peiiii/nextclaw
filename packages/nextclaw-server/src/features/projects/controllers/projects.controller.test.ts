@@ -23,13 +23,13 @@ describe("projects routes", () => {
       rootPath: "/tmp/knowledge",
       createdAt: "2026-07-15T00:00:00.000Z",
       updatedAt: "2026-07-15T00:00:00.000Z",
-    }]);
+    },]);
     const app = createProjectsApp({
       listProjects,
       listTemplates: () => [{
         id: "knowledge-base",
         description: "Knowledge base",
-      }],
+      },],
     });
 
     const response = await app.request("http://localhost/api/projects");
@@ -78,7 +78,7 @@ describe("projects routes", () => {
   });
 
   it("mounts existing-directory registration without a template payload", async () => {
-    const registerExistingProject = vi.fn(async (rootPath) => ({
+    const addExistingProject = vi.fn(async (rootPath) => ({
       id: "project-existing",
       name: "existing",
       rootPath,
@@ -86,7 +86,7 @@ describe("projects routes", () => {
       updatedAt: "2026-07-20T00:00:00.000Z",
     }));
     const app = createProjectsApp({
-      registerExistingProject,
+      addExistingProject,
       listProjects: async () => [],
       listTemplates: () => [],
     });
@@ -102,7 +102,33 @@ describe("projects routes", () => {
       ok: true,
       data: { name: "existing", rootPath: "/tmp/existing" },
     });
-    expect(registerExistingProject).toHaveBeenCalledWith("/tmp/existing");
+    expect(addExistingProject).toHaveBeenCalledWith("/tmp/existing");
+  });
+
+  it("requires exact confirmation and removes through the kernel owner", async () => {
+    const removed = {
+      id: "project-knowledge",
+      name: "Knowledge",
+      rootPath: "/tmp/knowledge",
+      createdAt: "2026-07-15T00:00:00.000Z",
+      updatedAt: "2026-07-15T00:00:00.000Z",
+    };
+    const removeProject = vi.fn(async () => removed);
+    const app = createProjectsApp({ removeProject });
+
+    const invalid = await app.request("http://localhost/api/projects/project-knowledge", {
+      method: "DELETE",
+    });
+    const response = await app.request("http://localhost/api/projects/project-knowledge", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ confirmProjectId: "project-knowledge" }),
+    });
+
+    expect(invalid.status).toBe(400);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true, data: removed });
+    expect(removeProject).toHaveBeenCalledWith("project-knowledge", "project-knowledge");
   });
 
   it("observes a registered project through the kernel owner", async () => {
@@ -114,7 +140,7 @@ describe("projects routes", () => {
     }));
     const getProjectById = vi.fn(async (projectId: string) =>
       projectId === "project-knowledge"
-        ? { id: projectId, name: "Knowledge", rootPath: "/tmp/knowledge space", createdAt: "2026-08-30T00:00:00.000Z", updatedAt: "2026-08-30T00:00:00.000Z" }
+        ? { id: projectId, name: "Knowledge", rootPath: "/tmp/knowledge space", createdAt: "2026-08-30T00:00:00.000Z", updatedAt: "2026-08-30T00:00:00.000Z", }
         : null,
     );
     const app = createProjectsApp({ getProjectById }, { observe });
@@ -122,7 +148,7 @@ describe("projects routes", () => {
       "http://localhost/api/projects/project-knowledge/observation",
     );
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ ok: true, data: { dataQuality: "complete" } });
+    await expect(response.json()).resolves.toMatchObject({ ok: true, data: { dataQuality: "complete" }, });
     expect(getProjectById).toHaveBeenCalledWith("project-knowledge");
     expect(observe).toHaveBeenCalledWith("/tmp/knowledge space");
   });
@@ -134,7 +160,7 @@ describe("projects routes", () => {
     const app = createProjectsApp({ getProjectById: async () => null }, { observe });
 
     const response = await app.request(
-      "http://localhost/api/projects/project-missing/observation",
+      "http://localhost/api/projects/project-missing/observation"
     );
 
     expect(response.status).toBe(404);

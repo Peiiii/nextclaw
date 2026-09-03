@@ -2,7 +2,7 @@
 name: nextclaw-self-manage
 description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/projects/sessions/apps and App data/cron/remote/update operations, discovering local HTTP/API/webhook addresses, and diagnosing a NextClaw Desktop background exit, crash, restart, or suspected external termination.
 description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、项目、会话、应用及应用数据、定时任务、远程访问、更新、本地 HTTP/API/webhook 地址发现，以及 Windows Desktop 后台退出、崩溃、重启或疑似外部终止的自助排查。
-metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
+metadata: { "nextclaw": { "always": true, "emoji": "🛠️" } }
 ---
 
 # NextClaw Self-Management
@@ -52,7 +52,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
 - For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Run `nextclaw restart` in an external terminal after changing it.
-- For project creation and discovery, use `nextclaw projects list|templates|create --json`; do not synthesize placeholder sessions or edit the project registry file directly.
+- For project creation, discovery, or removal, use `nextclaw projects list|templates|create|remove --json`; project removal also requires `--confirm <project-id>` and preserves the local folder, sessions, and Project Work. Do not synthesize placeholder sessions or edit the project registry file directly.
 - For session naming, project binding, or deletion, use `nextclaw sessions rename|set-project|clear-project|delete --json`; deletion also requires `--confirm <session-id>`. Do not edit session journal metadata directly.
 - Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.
 - When creating an Agent, prefer an explicit non-text avatar and avoid text-based styles such as DiceBear `initials`.
@@ -96,7 +96,7 @@ When the user reports missing messages, missing replies, intermittent failures, 
 - Channels: `nextclaw channels list --json|status|login`
 - Config: `nextclaw config get|set|unset`
 - Agents: `nextclaw agents list|runtimes|runtime config|new|update|remove`
-- Projects: `nextclaw projects list|templates|create`
+- Projects: `nextclaw projects list|templates|create|remove`
 - Sessions: `nextclaw sessions rename|set-project|clear-project|delete`
 - Automation: `nextclaw cron list|add|remove|enable|run`
 - Installed skills: `nextclaw skills installed|info`

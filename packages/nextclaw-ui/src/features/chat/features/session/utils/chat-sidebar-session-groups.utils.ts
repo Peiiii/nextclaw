@@ -1,6 +1,5 @@
 import type { ProjectView, SessionEntryView } from "@/shared/lib/api";
 import type { NcpSessionListItemView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
-import { getSessionProjectName } from "@/shared/lib/session-project";
 import { t } from "@/shared/lib/i18n";
 
 export type ChatSidebarDateGroup = {
@@ -127,16 +126,6 @@ export function groupSessionsByProject(
       );
       continue;
     }
-    grouped.set(projectRoot, {
-      projectRoot,
-      projectName:
-        item.session.projectName?.trim() ||
-        getSessionProjectName(projectRoot) ||
-        projectRoot,
-      items: [item],
-      latestUpdatedAt: updatedAt,
-      isPinned: pinnedProjectRoots.has(projectRoot),
-    });
   }
 
   return [...grouped.values()]

@@ -10,7 +10,7 @@ describe("groupSessionsByProject", () => {
       template: "knowledge-base",
       createdAt: "2026-07-15T00:00:00.000Z",
       updatedAt: "2026-07-15T00:00:00.000Z",
-    }]);
+    },]);
 
     expect(groups).toEqual([{
       projectId: "project-knowledge",
@@ -19,6 +19,31 @@ describe("groupSessionsByProject", () => {
       items: [],
       latestUpdatedAt: new Date("2026-07-15T00:00:00.000Z").getTime(),
       isPinned: false,
-    }]);
+    },
+    ]);
+  });
+
+  it("keeps sessions for removed projects out of the project-first view", () => {
+    const groups = groupSessionsByProject(
+      [
+        {
+          session: {
+            key: "session:removed-project",
+            projectRoot: "/tmp/removed",
+            projectName: "Removed",
+            createdAt: "2026-07-15T00:00:00.000Z",
+            updatedAt: "2026-07-15T00:00:00.000Z",
+            sessionType: "native",
+            sessionTypeMutable: false,
+            messageCount: 1,
+          },
+        },
+      ],
+      new Set(),
+      new Set(),
+      [],
+    );
+
+    expect(groups).toEqual([]);
   });
 });

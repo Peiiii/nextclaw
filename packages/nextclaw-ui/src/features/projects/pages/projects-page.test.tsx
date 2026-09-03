@@ -5,13 +5,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProjectsPage } from "./project-home-page";
 
 const mocks = vi.hoisted(() => ({
+  confirm: vi.fn(),
   drawerProps: vi.fn(),
+  removeProject: vi.fn(),
   useProjectObservation: vi.fn(),
   useProjects: vi.fn(),
 }));
 
 vi.mock("@/shared/hooks/use-projects", () => ({
   useProjects: mocks.useProjects,
+  useRemoveProject: () => ({
+    mutateAsync: mocks.removeProject,
+    isPending: false,
+  }),
+}));
+vi.mock("@/shared/hooks/use-confirm-dialog", () => ({
+  useConfirmDialog: () => ({
+    confirm: mocks.confirm,
+    ConfirmDialog: () => <div data-testid="confirm-dialog" />,
+  }),
 }));
 vi.mock("@/features/projects/hooks/use-project-observation", () => ({
   projectObservationQueryKey: (projectId: string) => [
@@ -80,6 +92,10 @@ function renderPage(path: string) {
 describe("ProjectsPage", () => {
   beforeEach(() => {
     mocks.drawerProps.mockReset();
+    mocks.confirm.mockReset();
+    mocks.confirm.mockResolvedValue(true);
+    mocks.removeProject.mockReset();
+    mocks.removeProject.mockResolvedValue(undefined);
     mocks.useProjects.mockReturnValue({
       data: {
         projects: [
@@ -133,5 +149,45 @@ describe("ProjectsPage", () => {
     renderPage("/projects");
     expect(mocks.useProjectObservation).toHaveBeenCalledWith(null, null, false);
     expect(screen.getByText(/Choose a project|选择项目/)).toBeTruthy();
+  });
+
+  it("explains the impact before removing a project and returns to project selection", async () => {
+    renderPage("/projects/project-1/overview");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Remove from project list|从项目列表移除/,
+      }),
+    );
+
+    await vi.waitFor(() =>
+      expect(mocks.confirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: expect.stringMatching(/local folder|本地目录/),
+          variant: "destructive",
+        }),
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(mocks.removeProject).toHaveBeenCalledWith("project-1"),
+    );
+    await vi.waitFor(() =>
+      expect(screen.getByText(/Choose a project|选择项目/)).toBeTruthy(),
+    );
+  });
+
+  it("keeps the project when removal is cancelled", async () => {
+    mocks.confirm.mockResolvedValue(false);
+    renderPage("/projects/project-1/overview");
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Remove from project list|从项目列表移除/,
+      }),
+    );
+
+    await vi.waitFor(() => expect(mocks.confirm).toHaveBeenCalledOnce());
+    expect(mocks.removeProject).not.toHaveBeenCalled();
+    expect(screen.getByText("Research")).toBeTruthy();
   });
 });

@@ -222,8 +222,7 @@ class UiRouteRegistry {
   };
 
   private readonly mountResourceRoutes = (): void => {
-    const { appData, appPackages, capabilityAccess, featureControls, ncpSession, inboxDeliveries, panelApps, preferences, projects, projectObservation, projectWork, serviceApps, serverPath, systemObjectReferences } =
-      this.controllers;
+    const { appData, appPackages, capabilityAccess, featureControls, ncpSession, inboxDeliveries, panelApps, preferences, projects, projectObservation, projectWork, serviceApps, serverPath, systemObjectReferences } = this.controllers;
     this.mountRoutes([
       ["get", "/api/ncp/session-types", ncpSession.getSessionTypes],
       ["get", "/api/ncp/sessions", ncpSession.listSessions],
@@ -296,6 +295,7 @@ class UiRouteRegistry {
       ["put", "/api/preferences/:key", preferences.update],
       ["delete", "/api/preferences/:key", preferences.delete],
       ["get", "/api/projects", projects.list],
+      ["delete", "/api/projects/:projectId", projects.remove],
       ["get", "/api/projects/:projectId/observation", projectObservation.get],
       ["get", "/api/projects/:projectId/work", projectWork.list],
       ["get", "/api/projects/:projectId/work/summary", projectWork.summary],

@@ -22,6 +22,10 @@ export type ProjectCreateCommandOptions = ProjectCommandOptions & {
   template?: "empty" | "knowledge-base";
 };
 
+export type ProjectRemoveCommandOptions = ProjectCommandOptions & {
+  confirm: string;
+};
+
 export type ProjectWorkCommandOptions = ProjectCommandOptions & {
   project: string;
 };
@@ -106,6 +110,28 @@ export class ProjectCommands {
       };
       const project = await kernel.projectManager.createProject(input);
       this.printCreatedProject(project, Boolean(options.json));
+    });
+  };
+
+  remove = async (
+    projectId: string,
+    options: ProjectRemoveCommandOptions,
+  ): Promise<void> => {
+    if (options.confirm !== projectId) {
+      throw new Error(
+        `--confirm must exactly match the project id: ${projectId}`,
+      );
+    }
+    await this.withKernel(async (kernel) => {
+      const project = await kernel.projectManager.removeProject(
+        projectId,
+        options.confirm,
+      );
+      if (options.json) {
+        this.printJson(project);
+        return;
+      }
+      console.log(`Removed project "${project.name}" from the project list`);
     });
   };
 
@@ -433,6 +459,7 @@ export class ProjectCommands {
   ): Promise<T> => {
     const kernel = this.createKernel();
     try {
+      await kernel.projectManager.migrateLegacyProjects();
       return await action(kernel);
     } finally {
       await kernel.dispose();

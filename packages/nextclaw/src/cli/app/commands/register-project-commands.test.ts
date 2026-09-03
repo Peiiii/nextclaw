@@ -3,6 +3,19 @@ import { describe, expect, it, vi } from "vitest";
 import { registerProjectCommands } from "@nextclaw-cli/cli/app/register-project-commands.js";
 
 describe("registerProjectCommands", () => {
+  it("forwards the explicit project removal confirmation", async () => {
+    const remove = vi.fn(async () => undefined);
+    const program = new Command();
+    program.exitOverride();
+    registerProjectCommands(program, {
+      commands: { projects: { remove } },
+    } as never);
+
+    await program.parseAsync(["node", "nextclaw", "projects", "remove", "project-1", "--confirm", "project-1"]);
+
+    expect(remove).toHaveBeenCalledWith("project-1", expect.objectContaining({ confirm: "project-1" }));
+  });
+
   it("forwards bounded work-list pagination options", async () => {
     const workList = vi.fn(async () => undefined);
     const program = new Command();

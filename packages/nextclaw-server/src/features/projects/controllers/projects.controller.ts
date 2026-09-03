@@ -17,11 +17,13 @@ export class ProjectsRoutesController {
 
   readonly list = async (c: Context) => {
     const projects = await this.projectManager.listProjects();
-    return c.json(ok({
-      projects,
-      templates: this.projectManager.listTemplates(),
-      total: projects.length,
-    } satisfies ProjectListView));
+    return c.json(
+      ok({
+        projects,
+        templates: this.projectManager.listTemplates(),
+        total: projects.length,
+      } satisfies ProjectListView),
+    );
   };
 
   readonly create = async (c: Context) => {
@@ -45,12 +47,15 @@ export class ProjectsRoutesController {
       return c.json(err("INVALID_PROJECT", "project directory is required"), 400);
     }
     try {
-      const project = await this.projectManager.registerExistingProject(body.data.rootPath);
+      const project = await this.projectManager.addExistingProject(body.data.rootPath);
       if (!project) {
-        return c.json(err(
-          "PROJECT_PATH_IS_DEFAULT_WORKSPACE",
-          "the default workspace cannot be registered as a project",
-        ), 400);
+        return c.json(
+          err(
+            "PROJECT_PATH_IS_DEFAULT_WORKSPACE",
+            "the default workspace cannot be registered as a project",
+          ),
+          400,
+        );
       }
       return c.json(ok(project), 201);
     } catch (error) {
@@ -58,6 +63,19 @@ export class ProjectsRoutesController {
         return c.json(err(error.code, error.message), 400);
       }
       throw error;
+    }
+  };
+
+  readonly remove = async (c: Context) => {
+    const body = await readJson<unknown>(c.req.raw);
+    if (!body.ok || !isRecord(body.data) || typeof body.data.confirmProjectId !== "string") {
+      return c.json(err("INVALID_PROJECT_REMOVE_REQUEST", "confirmProjectId is required"), 400);
+    }
+    try {
+      return c.json(ok(await this.projectManager.removeProject(c.req.param("projectId"), body.data.confirmProjectId)));
+    } catch (error) {
+      if (!isProjectError(error)) throw error;
+      return c.json(err(error.code, error.message), error.code === "PROJECT_NOT_FOUND" ? 404 : 400);
     }
   };
 }

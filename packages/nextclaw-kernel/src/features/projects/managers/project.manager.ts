@@ -40,7 +40,9 @@ export type ProjectErrorCode =
   | "PROJECT_PATH_NOT_DIRECTORY"
   | "PROJECT_PATH_IS_DEFAULT_WORKSPACE"
   | "PROJECT_PATH_NOT_EMPTY"
-  | "PROJECT_TEMPLATE_INVALID";
+  | "PROJECT_TEMPLATE_INVALID"
+  | "PROJECT_NOT_FOUND"
+  | "PROJECT_REMOVE_CONFIRMATION_MISMATCH";
 
 export class ProjectError extends Error {
   constructor(
@@ -119,7 +121,28 @@ export class ProjectManager {
     await mkdir(targetPath, { recursive: true });
     const rootPath = await realpath(targetPath);
     await this.materializeTemplate({ name, rootPath, template });
-    return await this.upsertProject({ name, rootPath, template });
+    return await this.upsertProject(
+      { name, rootPath, template },
+      { restoreRemoved: true },
+    );
+  };
+
+  addExistingProject = async (
+    rootPath: unknown,
+    name?: string,
+  ): Promise<ProjectRecord | null> => {
+    const canonicalPath = await this.resolveExistingProjectRoot(rootPath);
+    if (!canonicalPath) return null;
+    return await this.upsertProject(
+      {
+        name:
+          name === undefined
+            ? basename(canonicalPath)
+            : this.normalizeName(name),
+        rootPath: canonicalPath,
+      },
+      { restoreRemoved: true },
+    );
   };
 
   registerExistingProject = async (
@@ -130,11 +153,31 @@ export class ProjectManager {
     if (!canonicalPath) {
       return null;
     }
-    return await this.upsertProject({
-      name:
-        name === undefined ? basename(canonicalPath) : this.normalizeName(name),
-      rootPath: canonicalPath,
-    });
+    return await this.upsertProject(
+      {
+        name:
+          name === undefined ? basename(canonicalPath) : this.normalizeName(name),
+        rootPath: canonicalPath,
+      },
+      { restoreRemoved: true },
+    );
+  };
+
+  removeProject = async (
+    projectId: string,
+    confirmProjectId: string,
+  ): Promise<ProjectRecord> => {
+    if (confirmProjectId !== projectId) {
+      throw new ProjectError(
+        "PROJECT_REMOVE_CONFIRMATION_MISMATCH",
+        "project removal confirmation must exactly match the project id",
+      );
+    }
+    const removed = await this.store.remove(projectId);
+    if (!removed) {
+      throw new ProjectError("PROJECT_NOT_FOUND", "project was not found");
+    }
+    return removed;
   };
 
   normalizeSessionProjectRoot = async (
@@ -199,7 +242,18 @@ export class ProjectManager {
         continue;
       }
       try {
-        await this.registerExistingProject(projectRoot);
+        const canonicalPath =
+          await this.resolveExistingProjectRoot(projectRoot);
+        if (
+          !canonicalPath ||
+          (await this.store.isRemovedRootPath(canonicalPath))
+        ) {
+          continue;
+        }
+        await this.upsertProject({
+          name: basename(canonicalPath),
+          rootPath: canonicalPath,
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.warn(
@@ -209,11 +263,14 @@ export class ProjectManager {
     }
   };
 
-  private upsertProject = async (input: {
-    name: string;
-    rootPath: string;
-    template?: ProjectTemplateId;
-  }): Promise<ProjectRecord> => {
+  private upsertProject = async (
+    input: {
+      name: string;
+      rootPath: string;
+      template?: ProjectTemplateId;
+    },
+    options: { restoreRemoved?: boolean } = {},
+  ): Promise<ProjectRecord> => {
     const projects = await this.store.list();
     const existing = projects.find(
       (project) => project.rootPath === input.rootPath,
@@ -222,6 +279,13 @@ export class ProjectManager {
       return existing;
     }
     const now = new Date().toISOString();
+    if (options.restoreRemoved) {
+      const restored = await this.store.restoreByRootPath(input.rootPath, now);
+      if (restored) {
+        await this.options.onProjectRegistered?.(structuredClone(restored));
+        return restored;
+      }
+    }
     const project: ProjectRecord = {
       id: createProjectId(),
       name: input.name,

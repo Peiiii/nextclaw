@@ -19,3 +19,7 @@ export async function addExistingProject(
 ): Promise<ProjectView> {
   return await nextclawClient.projects.addExisting(input);
 }
+
+export async function removeProject(projectId: string): Promise<ProjectView> {
+  return await nextclawClient.projects.remove(projectId, projectId);
+}
