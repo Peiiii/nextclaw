@@ -60,10 +60,6 @@ vi.mock("@/features/projects/components/project-skills", () => ({
 vi.mock("@/features/projects/components/project-agreement", () => ({
   ProjectAgreement: () => <div>Agreement content</div>,
 }));
-vi.mock("@/features/projects/components/project-requests", () => ({
-  ProjectRequests: () => null,
-}));
-
 function renderPage(path: string) {
   return render(
     <QueryClientProvider client={new QueryClient()}>
@@ -109,9 +105,9 @@ describe("ProjectsPage", () => {
     expect(screen.getByTestId("work-drawer").textContent).toBe("work-overview");
   });
 
-  it("enables legacy observation only for preserved artifact, skill, and agreement surfaces", () => {
+  it("enables file and skill observation only for their project surfaces", () => {
     mocks.useProjectObservation.mockReturnValue({
-      data: { requests: [] },
+      data: {},
       isLoading: false,
       isError: false,
     });

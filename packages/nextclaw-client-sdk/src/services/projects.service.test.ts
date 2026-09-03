@@ -29,51 +29,6 @@ describe("ProjectsService", () => {
     );
   });
 
-  it("normalizes older observation snapshots while a server is being upgraded", async () => {
-    const fetchImpl = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            ok: true,
-            data: {
-              asOf: "2026-08-30T00:00:00.000Z",
-              dataQuality: "complete",
-              workItems: [
-                {
-                  id: "legacy-item",
-                  title: "Legacy item title",
-                  status: "active",
-                  updatedAt: "2026-08-30T00:00:00.000Z",
-                  reference: {
-                    kind: "ai-report",
-                    label: "AI",
-                    observedAt: "2026-08-30T00:00:00.000Z",
-                  },
-                },
-              ],
-            },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
-    );
-    const client = new NextClawClient({
-      baseUrl: "http://127.0.0.1:55667",
-      fetchImpl,
-    });
-
-    await expect(
-      client.projects.getObservation("project-legacy"),
-    ).resolves.toMatchObject({
-      runs: [],
-      workItems: [
-        expect.objectContaining({
-          id: "legacy-item",
-          name: "Legacy item title",
-        }),
-      ],
-    });
-  });
-
   it("uses project-scoped work item routes for reads and mutations", async () => {
     const fetchImpl = vi.fn(
       async (url: string | URL | Request, init?: RequestInit) => {

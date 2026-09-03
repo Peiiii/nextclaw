@@ -1,10 +1,7 @@
-export const PROJECT_OBSERVATION_PROTOCOL = "nextclaw.project/v1" as const;
-
 export type ProjectObservationDataQuality = "complete" | "partial" | "unavailable";
 export type ProjectObservationEvidenceKind =
   | "project-config"
   | "file-observation"
-  | "ai-report"
   | "system-record";
 
 export type ProjectObservationReference = {
@@ -51,36 +48,6 @@ export type ObservedProjectContext = {
   context: ObservedProjectContextReference[];
 };
 
-export type ObservedWorkflowStage = {
-  id: string;
-  label: string;
-};
-
-export type ObservedWorkflow = {
-  id: string;
-  label: string;
-  stages: ObservedWorkflowStage[];
-  reference: ProjectObservationReference;
-};
-
-export type ObservedWorkItemSchedule = {
-  start?: string;
-  end?: string;
-  milestone: boolean;
-  dependsOn: string[];
-};
-
-export type ObservedWorkItem = {
-  id: string;
-  name: string;
-  status: "active" | "blocked" | "completed" | "cancelled";
-  workflowId?: string;
-  stageId?: string;
-  schedule?: ObservedWorkItemSchedule;
-  updatedAt: string;
-  reference: ProjectObservationReference;
-};
-
 export type ObservedProjectRun = {
   sessionId: string;
   state: "running" | "completed" | "failed" | "cancelled" | "idle";
@@ -89,7 +56,6 @@ export type ObservedProjectRun = {
   model?: string;
   label?: string;
   statusText?: string;
-  workItemId?: string;
   reference: ProjectObservationReference;
 };
 
@@ -99,7 +65,6 @@ export type ObservedArtifact = {
   categoryId: string;
   categoryLabel: string;
   exists: boolean;
-  itemId?: string;
   size?: number;
   fileCreatedAt?: string;
   fileUpdatedAt?: string;
@@ -109,40 +74,6 @@ export type ObservedArtifact = {
 export type ObservedArtifactCategory = {
   id: string;
   label: string;
-};
-
-export type ObservedSignal = {
-  id: string;
-  itemId?: string;
-  status: "open" | "resolved";
-  level: "info" | "attention" | "warning";
-  message: string;
-  updatedAt: string;
-  reference: ProjectObservationReference;
-};
-
-export type ObservedRequest = {
-  id: string;
-  itemId?: string;
-  status: "open" | "resolved" | "expired";
-  response: "confirm-reject" | "open-session";
-  prompt: string;
-  updatedAt: string;
-  reply?: {
-    decision: "confirmed" | "rejected";
-    sentAt: string;
-    messageId: string;
-  };
-  reference: ProjectObservationReference;
-};
-
-export type ObservedActivity = {
-  id: string;
-  kind: "work-item" | "artifact" | "schedule" | "signal" | "request";
-  message: string;
-  at: string;
-  itemId?: string;
-  reference: ProjectObservationReference;
 };
 
 export type ObservedSkill = {
@@ -159,14 +90,9 @@ export type ProjectObservationSnapshot = {
   asOf: string;
   project: ObservedProjectContext;
   sources: ProjectObservationSourceStatus[];
-  workflows: ObservedWorkflow[];
   runs: ObservedProjectRun[];
-  workItems: ObservedWorkItem[];
   artifactCategories: ObservedArtifactCategory[];
   artifacts: ObservedArtifact[];
-  signals: ObservedSignal[];
-  requests: ObservedRequest[];
-  activity: ObservedActivity[];
   skills: ObservedSkill[];
   diagnostics: ProjectObservationDiagnostic[];
   dataQuality: ProjectObservationDataQuality;

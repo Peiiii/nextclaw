@@ -418,7 +418,7 @@ export class ProjectCommands {
       `${snapshot.project.name}\t${snapshot.dataQuality}\t${snapshot.project.rootPath}`,
     );
     console.log(
-      `work-items: ${snapshot.workItems.length}, artifacts: ${snapshot.artifacts.length}, signals: ${snapshot.signals.length}, requests: ${snapshot.requests.length}`,
+      `artifacts: ${snapshot.artifacts.length}, sessions: ${snapshot.runs.length}, skills: ${snapshot.skills.length}`,
     );
   };
 

@@ -5,10 +5,7 @@ import type {
 } from "@nextclaw/kernel";
 
 export type {
-  ObservedRequest,
   ObservedProjectRun,
-  ObservedWorkItem,
-  ObservedWorkflow,
   ProjectObservationSnapshot,
 } from "@nextclaw/kernel";
 

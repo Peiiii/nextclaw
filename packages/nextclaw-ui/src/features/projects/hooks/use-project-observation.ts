@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import {
   eventKeys,
   type ProjectObservationSnapshot,
@@ -9,32 +8,6 @@ import { nextclawClient } from "@/shared/lib/api";
 
 export const projectObservationQueryKey = (projectId: string) =>
   ["project-observation", projectId] as const;
-
-const REFRESHING_NCP_EVENTS = new Set<NcpEventType>([
-  NcpEventType.MessageTextEnd,
-  NcpEventType.MessageTextDelta,
-  NcpEventType.MessageCompleted,
-  NcpEventType.MessageFailed,
-  NcpEventType.MessageAbort,
-  NcpEventType.RunStarted,
-  NcpEventType.RunFinished,
-  NcpEventType.RunError,
-]);
-
-const readNcpEventSessionId = (event: NcpEndpointEvent): string | null => {
-  if (
-    !("payload" in event) ||
-    !event.payload ||
-    typeof event.payload !== "object" ||
-    !("sessionId" in event.payload)
-  ) {
-    return null;
-  }
-  const { sessionId } = event.payload;
-  return typeof sessionId === "string" && sessionId.trim()
-    ? sessionId.trim()
-    : null;
-};
 
 const readProjectRoot = (
   metadata: Record<string, unknown> | undefined,
@@ -63,22 +36,9 @@ export function useProjectObservation(
     const hasObservedSession = (sessionId: string): boolean => {
       const snapshot =
         queryClient.getQueryData<ProjectObservationSnapshot>(queryKey);
-      return Boolean(
-        snapshot?.runs?.some((run) => run.sessionId === sessionId) ||
-        snapshot?.workItems.some(
-          (item) => item.reference.sessionId === sessionId,
-        ) ||
-        snapshot?.activity.some(
-          (activity) => activity.reference.sessionId === sessionId,
-        ),
-      );
+      return Boolean(snapshot?.runs.some((run) => run.sessionId === sessionId));
     };
     const unsubscribers = [
-      nextclawClient.eventBus.on(eventKeys.ncpEvent, (event) => {
-        if (!REFRESHING_NCP_EVENTS.has(event.type)) return;
-        const sessionId = readNcpEventSessionId(event);
-        if (sessionId && hasObservedSession(sessionId)) scheduleRefresh();
-      }),
       nextclawClient.eventBus.on(
         eventKeys.sessionRunStatus,
         ({ sessionKey }) => {

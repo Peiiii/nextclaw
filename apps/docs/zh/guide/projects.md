@@ -1,6 +1,6 @@
 # 管理项目工作与材料
 
-Projects 页面把一个已注册项目里的工作项、产物、Skills、工作约定和项目会话集中到同一处。项目必须有真实根目录；工作项数据由 NextClaw 独立保存，不会要求你在项目目录中添加 Marker、配置文件或追踪 Skill。
+Projects 页面把一个已注册项目里的工作项、产物、Skills、工作约定和项目会话集中到同一处。项目必须有真实根目录；工作项数据由 NextClaw 独立保存，不要求在项目目录中添加追踪文件或专用 Skill。
 
 ## 查看项目主页
 
@@ -65,11 +65,11 @@ nextclaw projects work activity <work-item-id> --project <project-id>
 
 `work list` 默认返回 20 条，最多 100 条；还有结果时会返回 opaque cursor，可通过 `--cursor` 继续读取。CLI 通过正在运行的本地 NextClaw 服务复用同一套 Kernel 合同；服务未运行时会直接报错，不会另起第二个写入进程。完整命令见[命令行参考](./commands.md)。
 
-## 原有项目观测能力
+## 项目材料观测
 
-产物、Skills、工作约定和旧版只读观测仍然保留。已有 `.nextclaw/project.yaml`、项目规则、项目 Skill 和历史 Marker 不会因为工作项存储上线而失效；它们只是不再是创建、统计或推进工作项的前置条件。
+完整产物、Skills 和工作约定页面按需读取项目文件。可选的 `.nextclaw/project.yaml` 只配置项目摘要、上下文文件、产物目录和 Skill 目录；工作项始终来自 Project Work，不会从历史会话正文重建状态。
 
-如需读取旧版观测快照，仍可使用：
+如需读取项目材料观测快照，可以使用：
 
 ```bash
 nextclaw projects observe /absolute/path/to/project --json

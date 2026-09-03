@@ -1,16 +1,9 @@
 import { parse as parseYaml } from "yaml";
-import { PROJECT_OBSERVATION_PROTOCOL } from "@kernel/features/projects/types/project-observation.types.js";
 
 export type ProjectObservationConfigContext = {
   id: string;
   role: string;
   source: string;
-};
-
-export type ProjectObservationConfigWorkflow = {
-  id: string;
-  label: string;
-  stages: Array<{ id: string; label: string }>;
 };
 
 export type ProjectObservationArtifactCategory = {
@@ -22,7 +15,6 @@ export type ProjectObservationArtifactCategory = {
 export type ProjectObservationConfig = {
   summary?: string;
   context: ProjectObservationConfigContext[];
-  workflows: ProjectObservationConfigWorkflow[];
   artifactCategories: ProjectObservationArtifactCategory[];
   skillRoots: string[];
 };
@@ -95,50 +87,6 @@ function parseContext(
     return [{ id, role, source }];
   });
   return { value: context, issues };
-}
-
-function parseWorkflows(
-  value: unknown,
-): ParsedConfigSection<ProjectObservationConfigWorkflow[]> {
-  if (value === undefined) {
-    return { value: [], issues: [] };
-  }
-  if (!Array.isArray(value)) {
-    return {
-      value: [],
-      issues: [{ code: "PROJECT_CONFIG_WORKFLOWS_INVALID", message: "workflows must be an array." }],
-    };
-  }
-  const issues: ProjectObservationConfigIssue[] = [];
-  const workflows = value.flatMap((entry, workflowIndex) => {
-    if (!isRecord(entry) || !Array.isArray(entry.stages)) {
-      issues.push({ code: "PROJECT_CONFIG_WORKFLOW_INVALID", message: `workflows[${workflowIndex}] requires a stages array.` });
-      return [];
-    }
-    issues.push(...collectUnknownKeyIssues(entry, ["id", "label", "stages"], `workflows[${workflowIndex}]`));
-    const id = readString(entry.id);
-    const label = readString(entry.label);
-    const stages = entry.stages.flatMap((stage, stageIndex) => {
-      if (!isRecord(stage)) {
-        issues.push({ code: "PROJECT_CONFIG_STAGE_INVALID", message: `workflows[${workflowIndex}].stages[${stageIndex}] must be an object.` });
-        return [];
-      }
-      issues.push(...collectUnknownKeyIssues(stage, ["id", "label"], `workflows[${workflowIndex}].stages[${stageIndex}]`));
-      const stageId = readString(stage.id);
-      const stageLabel = readString(stage.label);
-      if (!stageId || !stageLabel) {
-        issues.push({ code: "PROJECT_CONFIG_STAGE_INVALID", message: `workflows[${workflowIndex}].stages[${stageIndex}] requires id and label.` });
-        return [];
-      }
-      return [{ id: stageId, label: stageLabel }];
-    });
-    if (!id || !label) {
-      issues.push({ code: "PROJECT_CONFIG_WORKFLOW_INVALID", message: `workflows[${workflowIndex}] requires id and label.` });
-      return [];
-    }
-    return [{ id, label, stages }];
-  });
-  return { value: workflows, issues };
 }
 
 function parseArtifactCategories(
@@ -218,7 +166,7 @@ export function parseProjectObservationConfig(source: string): ProjectObservatio
   if (!isRecord(parsed)) {
     return { config: null, issues: [{ code: "PROJECT_CONFIG_INVALID", message: "project.yaml must contain an object." }] };
   }
-  issues.push(...collectUnknownKeyIssues(parsed, ["schema_version", "project", "workflows", "observation"], "project.yaml"));
+  issues.push(...collectUnknownKeyIssues(parsed, ["schema_version", "project", "observation"], "project.yaml"));
   if (parsed.schema_version !== 1) {
     return { config: null, issues: [{ code: "PROJECT_CONFIG_VERSION_UNSUPPORTED", message: "Only schema_version 1 is supported." }, ...issues] };
   }
@@ -231,24 +179,15 @@ export function parseProjectObservationConfig(source: string): ProjectObservatio
     issues.push({ code: "PROJECT_CONFIG_OBSERVATION_INVALID", message: "observation must be an object." });
   }
   issues.push(...collectUnknownKeyIssues(project, ["summary", "context"], "project"));
-  issues.push(...collectUnknownKeyIssues(observation, ["markers", "work_items", "artifacts", "skills"], "observation"));
-  if (observation.markers !== undefined) {
-    const markers = Array.isArray(observation.markers) ? observation.markers : [];
-    const valid = markers.some((marker) => isRecord(marker) && marker.protocol === PROJECT_OBSERVATION_PROTOCOL);
-    if (!valid) {
-      issues.push({ code: "PROJECT_CONFIG_MARKERS_INVALID", message: `observation.markers must enable protocol '${PROJECT_OBSERVATION_PROTOCOL}'.` });
-    }
-  }
+  issues.push(...collectUnknownKeyIssues(observation, ["artifacts", "skills"], "observation"));
   const context = parseContext(project.context);
-  const workflows = parseWorkflows(parsed.workflows);
   const artifactCategories = parseArtifactCategories(observation.artifacts);
   const skillRoots = parseSkillRoots(observation.skills);
-  issues.push(...context.issues, ...workflows.issues, ...artifactCategories.issues, ...skillRoots.issues);
+  issues.push(...context.issues, ...artifactCategories.issues, ...skillRoots.issues);
   return {
     config: {
       ...(readString(project.summary) ? { summary: readString(project.summary)! } : {}),
       context: context.value,
-      workflows: workflows.value,
       artifactCategories: artifactCategories.value,
       skillRoots: skillRoots.value,
     },
