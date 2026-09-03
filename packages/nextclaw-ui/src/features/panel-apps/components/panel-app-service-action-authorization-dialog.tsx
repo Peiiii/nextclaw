@@ -9,11 +9,11 @@ import {
 } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { t } from '@/shared/lib/i18n';
-import { useServiceActionAuthorizationStore } from '@/features/service-apps/stores/service-action-authorization.store';
+import { usePanelAppServiceActionAuthorizationStore } from '@/features/panel-apps/stores/panel-app-service-action-authorization.store';
 
-export function ServiceActionAuthorizationDialog() {
-  const pending = useServiceActionAuthorizationStore((state) => state.pending);
-  const resolveAuthorization = useServiceActionAuthorizationStore(
+export function PanelAppServiceActionAuthorizationDialog() {
+  const pending = usePanelAppServiceActionAuthorizationStore((state) => state.pending);
+  const resolveAuthorization = usePanelAppServiceActionAuthorizationStore(
     (state) => state.resolveAuthorization,
   );
 

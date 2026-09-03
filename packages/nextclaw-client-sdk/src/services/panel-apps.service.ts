@@ -36,6 +36,12 @@ export class PanelAppsClientService {
     return await this.requestService.get<PanelAppListView>("/api/panel-apps");
   };
 
+  readonly getPanelApp = async (id: string): Promise<PanelAppEntryView> => {
+    return await this.requestService.get<PanelAppEntryView>(
+      `/api/panel-apps/${encodeURIComponent(id)}`,
+    );
+  };
+
   readonly updatePanelAppPreferences = async (
     id: string,
     preferences: PanelAppPreferencesUpdateView,

@@ -27,6 +27,8 @@ Agent 可以生成 `.panel.html` 或带清单的应用，再在右侧打开预�
 
 ![Panel Apps 列表](/product-screenshots/nextclaw-panel-apps-page-cn.png)
 
+从应用列表或已打开应用的“更多操作”中，可以把 Panel App 单独打开。NextClaw Desktop 会在默认浏览器中打开，网页版会在新标签页中打开。独立页面只显示应用内容，但仍连接当前 NextClaw 实例，所以原有授权、Service Action 和 Agent 调用保持可用。关闭 NextClaw 实例后，本地独立页面也会停止工作。
+
 ## Service Apps
 
 如果 Panel App 需要本地运行时或受控操作，可以配合 Service App。授权前要确认它提供哪些动作、可访问哪些文件或服务，并只开放完成任务所需的范围。

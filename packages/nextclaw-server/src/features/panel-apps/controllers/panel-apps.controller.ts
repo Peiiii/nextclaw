@@ -64,6 +64,20 @@ export class PanelAppsRoutesController {
     return c.json(ok(payload));
   };
 
+  readonly get = async (c: Context) => {
+    try {
+      return c.json(ok(await this.panelAppManager.getPanelApp(c.req.param("id"))));
+    } catch (error) {
+      if (isPanelAppError(error)) {
+        return c.json(
+          err(error.code, error.message),
+          statusForPanelAppError(error.code),
+        );
+      }
+      throw error;
+    }
+  };
+
   readonly updatePanelAppPreferences = async (c: Context) => {
     const body = await readJson<unknown>(c.req.raw);
     if (!body.ok || !isRecord(body.data)) {

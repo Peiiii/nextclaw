@@ -141,6 +141,15 @@ export class PanelAppManager {
     };
   };
 
+  getPanelApp = async (id: string): Promise<PanelAppEntry> => {
+    const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    const resolved = await this.packageStateManager.resolveSourceByIdOrAppId(id);
+    const appState = await this.createStateStore(panelsPath).load();
+    return await this.entryPresenter.build(resolved.source,
+      appState.apps[encodePanelAppId(resolved.source.sourceName)] ?? {},
+      resolved.packageSource, appState.mainSidebarAppIds);
+  };
+
   getPanelAppContent = async (id: string, sourcePath?: string): Promise<PanelAppContent> => {
     try {
       const resolved = sourcePath
@@ -344,31 +353,27 @@ export class PanelAppManager {
     id: string,
     preferences: PanelAppPreferencesUpdate,
   ): Promise<PanelAppEntry> => {
-    const fileName = await this.resolvePanelAppFileName(id);
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
-    const source = await this.packageStateManager.resolveSource(encodePanelAppId(fileName));
-    const packageSource = await this.packageStateManager.findPackageSourceBySourceName(fileName);
-    const manifest = source.manifest ?? parsePanelAppManifest(await readFile(source.entryPath, "utf8"));
-    const appId = resolvePanelAppAppId(source, manifest);
+    const resolved = await this.packageStateManager.resolveSourceByIdOrAppId(id);
+    const fileName = resolved.source.sourceName;
+    const appId = resolvePanelAppAppId(resolved.source, resolved.manifest);
     const result = await this.createStateStore(panelsPath).updatePreferences(
       encodePanelAppId(fileName), appId, preferences,
     );
     return await this.entryPresenter.build(
-      source, result.entry, packageSource, result.mainSidebarAppIds,
+      resolved.source, result.entry, resolved.packageSource, result.mainSidebarAppIds,
     );
   };
 
   recordPanelAppOpened = async (id: string): Promise<PanelAppEntry> => {
-    const fileName = await this.resolvePanelAppFileName(id);
     const panelsPath = this.getPanelsPath(this.getWorkspacePath());
+    const resolved = await this.packageStateManager.resolveSourceByIdOrAppId(id);
+    const fileName = resolved.source.sourceName;
     const result = await this.createStateStore(panelsPath).recordOpened(
       encodePanelAppId(fileName),
     );
     return await this.entryPresenter.build(
-      await this.packageStateManager.resolveSource(encodePanelAppId(fileName)),
-      result.entry,
-      await this.packageStateManager.findPackageSourceBySourceName(fileName),
-      result.mainSidebarAppIds,
+      resolved.source, result.entry, resolved.packageSource, result.mainSidebarAppIds,
     );
   };
 
@@ -414,11 +419,6 @@ export class PanelAppManager {
 
   private createStateStore = (panelsPath: string): PanelAppStateStore =>
     new PanelAppStateStore(panelsPath);
-
-  private resolvePanelAppFileName = async (id: string): Promise<string> => {
-    const source = await this.packageStateManager.resolveSource(id);
-    return source.sourceName;
-  };
 
   assertCanActivatePackageComponents = async (
     components: AppPackageComponentSource[],

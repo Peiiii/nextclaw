@@ -26,6 +26,10 @@ export type ResolvedPanelAppSource = {
   packageSource?: AppPackageComponentSource;
 };
 
+export type ResolvedPanelAppTarget = ResolvedPanelAppSource & {
+  manifest: ReturnType<typeof parsePanelAppManifest>;
+};
+
 export class PanelAppPackageStateManager {
   constructor(private readonly params: {
     sourceService: PanelAppSourceService;
@@ -56,7 +60,10 @@ export class PanelAppPackageStateManager {
     try {
       return await this.params.sourceService.resolveSource(this.params.getPanelsPath(), id);
     } catch (error) {
-      if (!isPanelAppError(error) || error.code !== "PANEL_APP_NOT_FOUND") {
+      if (
+        !isPanelAppError(error) ||
+        (error.code !== "PANEL_APP_NOT_FOUND" && error.code !== "PANEL_APP_INVALID_ID")
+      ) {
         throw error;
       }
     }
@@ -82,24 +89,53 @@ export class PanelAppPackageStateManager {
 
   readContentSourceByIdOrAppId = async (id: string) => {
     const panelsPath = this.params.getPanelsPath();
-    for (const { source, packageSource } of await this.listSources()) {
-      const manifest = source.manifest ?? parsePanelAppManifest(
-        await readFile(source.entryPath, "utf8"),
+    const { source } = await this.resolveSourceByIdOrAppId(id);
+    return await readPanelAppContentSourceByIdOrPath({
+      createAssetBaseHref: this.params.createAssetBaseHref,
+      id,
+      panelsPath,
+      sourcePath: source.sourcePath,
+      sourceService: this.params.sourceService,
+    });
+  };
+
+  resolveSourceByIdOrAppId = async (id: string): Promise<ResolvedPanelAppTarget> => {
+    const panelsPath = this.params.getPanelsPath();
+    try {
+      return await this.toResolvedTarget(
+        await this.params.sourceService.resolveSource(panelsPath, id),
       );
+    } catch (error) {
       if (
-        encodePanelAppId(source.sourceName) !== id &&
-        resolvePanelAppAppId(source, manifest) !== id &&
-        packageSource?.id !== id
+        !isPanelAppError(error) ||
+        (error.code !== "PANEL_APP_NOT_FOUND" && error.code !== "PANEL_APP_INVALID_ID")
       ) {
-        continue;
+        throw error;
       }
-      return await readPanelAppContentSourceByIdOrPath({
-        createAssetBaseHref: this.params.createAssetBaseHref,
-        id,
-        panelsPath,
-        sourcePath: source.sourcePath,
-        sourceService: this.params.sourceService,
-      });
+    }
+
+    const packageSources = (await this.listPackageComponentSources())
+      .filter((component) => component.kind === "panel");
+    const exactPackageSource = packageSources.find((component) => component.id === id);
+    if (exactPackageSource) {
+      return await this.toResolvedTarget(
+        await this.params.sourceService.resolveSourcePath(exactPackageSource.sourcePath),
+        exactPackageSource,
+      );
+    }
+
+    const workspaceSources = await this.params.sourceService.listSources(panelsPath);
+    for (const source of workspaceSources) {
+      const target = await this.toResolvedTarget(source);
+      if (resolvePanelAppAppId(source, target.manifest) === id) return target;
+    }
+    for (const packageSource of packageSources) {
+      const source = await this.params.sourceService.resolveSourcePath(packageSource.sourcePath);
+      const target = await this.toResolvedTarget(source, packageSource);
+      if (
+        encodePanelAppId(source.sourceName) === id ||
+        resolvePanelAppAppId(source, target.manifest) === id
+      ) return target;
     }
     throw new PanelAppError("PANEL_APP_NOT_FOUND", "panel app not found");
   };
@@ -235,4 +271,15 @@ export class PanelAppPackageStateManager {
 
   private listPackageComponentSources = async (): Promise<AppPackageComponentSource[]> =>
     await this.params.listPackageComponentSources?.() ?? [];
+
+  private toResolvedTarget = async (
+    source: PanelAppSource,
+    packageSource?: AppPackageComponentSource,
+  ): Promise<ResolvedPanelAppTarget> => ({
+    source,
+    packageSource,
+    manifest: source.manifest ?? parsePanelAppManifest(
+      await readFile(source.entryPath, "utf8"),
+    ),
+  });
 }

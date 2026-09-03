@@ -3,6 +3,7 @@ import { MoreVertical, Star, Trash2, type LucideIcon } from 'lucide-react';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { PanelAppIcon } from '@/features/panel-apps/components/panel-app-icon';
 import { PanelAppMainSidebarMenuItem } from '@/features/panel-apps/components/panel-app-main-sidebar-menu-item';
+import { PanelAppOpenStandaloneMenuItem } from '@/features/panel-apps/components/panel-app-open-standalone-menu-item';
 import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { getLanguage, getLocale, t } from '@/shared/lib/i18n';
@@ -76,6 +77,10 @@ export function PanelAppListItem({
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
+              <PanelAppOpenStandaloneMenuItem
+                entry={entry}
+                onSelect={() => setIsMenuOpen(false)}
+              />
               <PanelAppMainSidebarMenuItem
                 entry={entry}
                 onSelect={() => setIsMenuOpen(false)}

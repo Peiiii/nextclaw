@@ -282,6 +282,7 @@ class UiRouteRegistry {
       ["post", "/api/app-packages/:appId/rollback", appPackages.rollback],
       ["delete", "/api/app-packages/:appId", appPackages.uninstall],
       ["get", "/api/panel-apps", panelApps.list],
+      ["get", "/api/panel-apps/:id", panelApps.get],
       ["get", "/api/panel-app-bridge.js", panelApps.getPanelAppBridgeScript],
       ["get", "/api/panel-app-client-sdk.js", panelApps.getPanelAppClientSdkScript],
       ["post", "/api/panel-app-bridge-sessions", panelApps.createBridgeSession],

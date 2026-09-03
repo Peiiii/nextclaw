@@ -519,6 +519,7 @@ describe("AppPackageManager package projection lifecycle", () => {
       if (!manifestPath) throw new Error("package panel fixture is unavailable");
       chmodSync(manifestPath, 0o600);
       writeFileSync(manifestPath, "{ invalid");
+      await kernel.appPackageManager.start();
 
       const workspacePanelPath = join("workspace", "panels", "healthy.panel.html");
       const workspacePanelFile = join(homeDirectory, workspacePanelPath);

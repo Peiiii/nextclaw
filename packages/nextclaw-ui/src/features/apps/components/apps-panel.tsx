@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { AppWindow, Boxes, Server } from 'lucide-react';
 import type { PanelAppEntryView } from '@/shared/lib/api';
 import { AppPackagesPanel } from '@/features/apps/components/app-packages-panel';
 import { PanelAppsList } from '@/features/panel-apps';
-import { ServiceAppsPanel } from '@/features/service-apps';
+import { loadServiceAppsPanel } from '@/features/service-apps';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { t } from '@/shared/lib/i18n';
 
 export type AppsPanelTab = 'apps' | 'panel-apps' | 'service-apps';
+
+const ServiceAppsPanel = lazy(async () => ({
+  default: (await loadServiceAppsPanel()).ServiceAppsPanel,
+}));
 
 export function AppsPanel({
   activeTab,
@@ -54,7 +58,9 @@ export function AppsPanel({
         ) : activeTab === 'panel-apps' ? (
           <PanelAppsList onOpenPanelApp={onOpenPanelApp} />
         ) : (
-          <ServiceAppsPanel onManagePackage={managePackage} />
+          <Suspense fallback={null}>
+            <ServiceAppsPanel onManagePackage={managePackage} />
+          </Suspense>
         )}
       </div>
     </div>

@@ -1,11 +1,11 @@
 import { useCallback, useRef } from "react";
-import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { usePanelAppHostPresenter } from "@/features/panel-apps/providers/panel-app-host.provider";
 import { useGrantPanelAppClient } from "@/features/panel-apps/hooks/use-panel-apps";
 import type { PanelAppEntryView } from "@/shared/lib/api";
 import { t } from "@/shared/lib/i18n";
 
 export function usePanelAppClientGrant() {
-  const presenter = useAppPresenter();
+  const presenter = usePanelAppHostPresenter();
   const { isPending, mutateAsync: grantPanelAppClient } = useGrantPanelAppClient();
   const pendingGrantsRef = useRef(new Map<string, Promise<boolean>>());
 

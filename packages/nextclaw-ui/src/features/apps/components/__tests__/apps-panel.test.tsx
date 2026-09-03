@@ -14,11 +14,13 @@ vi.mock('@/features/panel-apps', () => ({
   PanelAppsList: () => <div>panel-apps-content</div>,
 }));
 vi.mock('@/features/service-apps', () => ({
-  ServiceAppsPanel: ({ onManagePackage }: { onManagePackage: (packageId: string) => void }) => (
-    <button type="button" onClick={() => onManagePackage('nextclaw.personal-organizer')}>
-      service-apps-content
-    </button>
-  ),
+  loadServiceAppsPanel: async () => ({
+    ServiceAppsPanel: ({ onManagePackage }: { onManagePackage: (packageId: string) => void }) => (
+      <button type="button" onClick={() => onManagePackage('nextclaw.personal-organizer')}>
+        service-apps-content
+      </button>
+    ),
+  }),
 }));
 
 function AppsPanelHarness() {

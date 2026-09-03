@@ -2,6 +2,7 @@ import { useId } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePanelAppClientGrant } from "@/features/panel-apps/hooks/use-panel-app-client-grant";
 import {
+  PANEL_APP_QUERY_KEY,
   PANEL_APPS_QUERY_KEY,
   replacePanelAppListEntry,
 } from "@/features/panel-apps/hooks/use-panel-apps";
@@ -11,9 +12,9 @@ import {
   type PanelAppListView,
 } from "@/shared/lib/api";
 
-export type PanelAppMainRuntimeState = "allowed" | "checking" | "denied" | "error" | "idle";
+export type PanelAppRuntimeState = "allowed" | "checking" | "denied" | "error" | "idle";
 
-export function usePanelAppMainRuntime(entry: PanelAppEntryView | undefined) {
+export function usePanelAppRuntime(entry: PanelAppEntryView | undefined) {
   const queryClient = useQueryClient();
   const runtimeInstanceId = useId();
   const { ensurePanelAppClientGrant } = usePanelAppClientGrant();
@@ -22,7 +23,7 @@ export function usePanelAppMainRuntime(entry: PanelAppEntryView | undefined) {
   );
   const grantQuery = useQuery({
     queryKey: [
-      "panel-app-main-client-grant",
+      "panel-app-client-grant",
       entry?.appId ?? "none",
       entry?.clientGranted ?? false,
     ],
@@ -32,7 +33,7 @@ export function usePanelAppMainRuntime(entry: PanelAppEntryView | undefined) {
     retry: false,
     staleTime: Number.POSITIVE_INFINITY,
   });
-  const state: PanelAppMainRuntimeState = !entry
+  const state: PanelAppRuntimeState = !entry
     ? "idle"
     : !requiresClientGrant
       ? "allowed"
@@ -45,13 +46,14 @@ export function usePanelAppMainRuntime(entry: PanelAppEntryView | undefined) {
             : "denied";
 
   useQuery({
-    queryKey: ["panel-app-main-open", runtimeInstanceId, entry?.appId ?? "none"],
+    queryKey: ["panel-app-open", runtimeInstanceId, entry?.appId ?? "none"],
     queryFn: async () => {
       const opened = await nextclawClient.panelApps.recordPanelAppOpened(entry!.id);
       queryClient.setQueryData<PanelAppListView>(
         PANEL_APPS_QUERY_KEY,
         (current) => replacePanelAppListEntry(current, opened),
       );
+      queryClient.setQueryData([...PANEL_APP_QUERY_KEY, opened.appId], opened);
       return opened;
     },
     enabled: Boolean(entry && state === "allowed"),

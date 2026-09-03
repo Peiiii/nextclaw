@@ -1,35 +1,3 @@
-import zhAgents from './locales/zh-CN/agents.json';
-import zhChannelAuth from './locales/zh-CN/channel-auth.json';
-import zhChannels from './locales/zh-CN/channels.json';
-import zhChat from './locales/zh-CN/chat.json';
-import zhCore from './locales/zh-CN/core.json';
-import zhCron from './locales/zh-CN/cron.json';
-import zhDesktopUpdate from './locales/zh-CN/desktop-update.json';
-import zhDocBrowser from './locales/zh-CN/doc-browser.json';
-import zhMarketplace from './locales/zh-CN/marketplace.json';
-import zhInbox from './locales/zh-CN/inbox.json';
-import zhPathPicker from './locales/zh-CN/path-picker.json';
-import zhPwa from './locales/zh-CN/pwa.json';
-import zhProjects from './locales/zh-CN/projects.json';
-import zhRemote from './locales/zh-CN/remote.json';
-import zhRuntimeControl from './locales/zh-CN/runtime-control.json';
-import zhSearch from './locales/zh-CN/search.json';
-import enAgents from './locales/en-US/agents.json';
-import enChannelAuth from './locales/en-US/channel-auth.json';
-import enChannels from './locales/en-US/channels.json';
-import enChat from './locales/en-US/chat.json';
-import enCore from './locales/en-US/core.json';
-import enCron from './locales/en-US/cron.json';
-import enDesktopUpdate from './locales/en-US/desktop-update.json';
-import enDocBrowser from './locales/en-US/doc-browser.json';
-import enMarketplace from './locales/en-US/marketplace.json';
-import enInbox from './locales/en-US/inbox.json';
-import enPathPicker from './locales/en-US/path-picker.json';
-import enPwa from './locales/en-US/pwa.json';
-import enProjects from './locales/en-US/projects.json';
-import enRemote from './locales/en-US/remote.json';
-import enRuntimeControl from './locales/en-US/runtime-control.json';
-import enSearch from './locales/en-US/search.json';
 import {
   getLanguage,
   getLocale,
@@ -44,61 +12,41 @@ import {
 export type { I18nLanguage };
 export { getLanguage, getLocale, initializeI18n, LANGUAGE_OPTIONS, resolveInitialLanguage, setLanguage, subscribeLanguageChange };
 
-type MessageCatalog = Record<string, string>;
+export type MessageCatalog = Record<string, string>;
+export type I18nCatalogBundle = Record<I18nLanguage, MessageCatalog>;
 type LegacyLabelCatalog = Record<string, Record<I18nLanguage, string>>;
 
-const zhCatalog: MessageCatalog = {
-  ...zhCore,
-  ...zhDesktopUpdate,
-  ...zhSearch,
-  ...zhChannels,
-  ...zhCron,
-  ...zhRemote,
-  ...zhRuntimeControl,
-  ...zhChat,
-  ...zhAgents,
-  ...zhMarketplace,
-  ...zhInbox,
-  ...zhDocBrowser,
-  ...zhPathPicker,
-  ...zhPwa,
-  ...zhChannelAuth,
-  ...zhProjects
+const CATALOGS: I18nCatalogBundle = {
+  zh: {},
+  en: {},
 };
 
-const enCatalog: MessageCatalog = {
-  ...enCore,
-  ...enDesktopUpdate,
-  ...enSearch,
-  ...enChannels,
-  ...enCron,
-  ...enRemote,
-  ...enRuntimeControl,
-  ...enChat,
-  ...enAgents,
-  ...enMarketplace,
-  ...enInbox,
-  ...enDocBrowser,
-  ...enPathPicker,
-  ...enPwa,
-  ...enChannelAuth,
-  ...enProjects
-};
+export const LABELS: LegacyLabelCatalog = {};
 
-const CATALOGS: Record<I18nLanguage, MessageCatalog> = {
-  zh: zhCatalog,
-  en: enCatalog
-};
+export function registerI18nCatalogs(bundle: I18nCatalogBundle): void {
+  Object.assign(CATALOGS.zh, bundle.zh);
+  Object.assign(CATALOGS.en, bundle.en);
 
-export const LABELS: LegacyLabelCatalog = Object.fromEntries(
-  Object.keys(enCatalog).map((key) => [
-    key,
-    {
-      zh: zhCatalog[key] ?? enCatalog[key] ?? key,
-      en: enCatalog[key] ?? key
-    }
-  ])
-);
+  for (const key of new Set([
+    ...Object.keys(CATALOGS.zh),
+    ...Object.keys(CATALOGS.en),
+  ])) {
+    LABELS[key] = {
+      zh: CATALOGS.zh[key] ?? CATALOGS.en[key] ?? key,
+      en: CATALOGS.en[key] ?? key,
+    };
+  }
+}
+
+export async function installMainI18nCatalog(): Promise<void> {
+  const catalog = await import('@/shared/lib/i18n/configs/main-i18n-catalog.config');
+  catalog.installMainI18nCatalog();
+}
+
+export async function installPanelAppI18nCatalog(): Promise<void> {
+  const catalog = await import('@/shared/lib/i18n/configs/panel-app-i18n-catalog.config');
+  catalog.installPanelAppI18nCatalog();
+}
 
 export function formatDateTime(value?: string | Date, lang: I18nLanguage = getLanguage()): string {
   if (!value) {
@@ -134,5 +82,5 @@ export function formatNumber(value: number, lang: I18nLanguage = getLanguage()):
 }
 
 export function t(key: string, lang: I18nLanguage = getLanguage()): string {
-  return CATALOGS[lang]?.[key] ?? enCatalog[key] ?? key;
+  return CATALOGS[lang]?.[key] ?? CATALOGS.en[key] ?? key;
 }

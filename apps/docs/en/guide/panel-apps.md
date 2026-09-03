@@ -27,6 +27,8 @@ Manage existing Panel Apps from the app list and reference one from the session 
 
 ![The NextClaw Panel Apps list](/product-screenshots/nextclaw-panel-apps-page-en.png)
 
+Use a Panel App's More Actions menu to open it on its own. NextClaw Desktop opens the app in your default browser, while the web app opens it in a new tab. The standalone page only shows the app, but it remains connected to the current NextClaw instance, so existing approvals, Service Actions, and agent calls keep working. A local standalone page stops working when its NextClaw instance stops.
+
 ## Service Apps
 
 When a Panel App needs a local runtime or controlled action, pair it with a Service App. Review every exposed action and permission, and grant only what the app needs.
