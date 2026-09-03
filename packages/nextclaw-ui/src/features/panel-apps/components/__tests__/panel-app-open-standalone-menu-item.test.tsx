@@ -32,7 +32,7 @@ describe("PanelAppOpenStandaloneMenuItem", () => {
     setDesktopHost(undefined);
   });
 
-  it("uses a real new-tab link on the web", () => {
+  it("uses an auxiliary new-tab link that installed PWA navigation cannot capture", () => {
     const onSelect = vi.fn();
     setDesktopHost(undefined);
     render(
@@ -44,7 +44,8 @@ describe("PanelAppOpenStandaloneMenuItem", () => {
       "/apps/panel/publisher.todo%20board/standalone",
     );
     expect(link.getAttribute("target")).toBe("_blank");
-    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.getAttribute("rel")).toBe("opener");
+    expect(link.getAttribute("referrerpolicy")).toBe("no-referrer");
   });
 
   it("describes the same link as opening in the browser inside Desktop", () => {

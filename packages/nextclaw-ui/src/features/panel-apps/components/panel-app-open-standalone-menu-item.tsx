@@ -18,7 +18,10 @@ export function PanelAppOpenStandaloneMenuItem({
     <a
       href={href}
       target="_blank"
-      rel="noopener noreferrer"
+      // Chrome captures non-auxiliary in-scope links into an installed PWA.
+      // `opener` keeps this trusted same-origin target auxiliary, so the current browser owns the new tab.
+      rel="opener"
+      referrerPolicy="no-referrer"
       className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground"
       onClick={onSelect}
     >

@@ -22,6 +22,7 @@
 - 构建闭包：standalone 初始闭包共 18 文件，442,334 B raw / 131,715 B gzip；`AppPresenter`、主 entry、Chat、Inbox、PWA、DocBrowser、Office/图表依赖命中数均为 0。登录页仅在未认证时动态加载。
 - 真实本地生产链路 30 轮：HTML p95 3.24ms，单目标 descriptor p95 5.19ms，Panel content p95 5.05ms，18 个静态资源并发闭包 p95 11.87ms；unknown id 返回结构化 404。
 - `--no-build` 重启隔离 source runtime 成功，不触发未变底层依赖重建。UI lint 、新代码 governance、`git diff --check` 和 diff-only maintainability 均为 0 error。
+- 用户在 NPM Web UI 验收时发现直接点击会被已安装 NextClaw PWA 捕获为专属窗口。根因是 PWA `scope: "/"` 与 Chrome 139+ 导航捕获遇到 `_blank` 默认 `noopener` 的非辅助上下文，与 Electron 无关。回归修复将同源 standalone 链接改为显式 `rel="opener"` + `referrerPolicy="no-referrer"`，并用 DOM 合同测试防止重新退化成可捕获导航。
 - Codex 内置浏览器当前落在 `data:` 错误页，安全策略禁止自动跳转 localhost；未绕过该策略。因此自动化已证明资源、API、性能和错误语义，最终主观视觉保留给用户在交付 URL 验收。
 
 ## 发布/部署方式

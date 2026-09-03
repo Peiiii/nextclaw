@@ -146,7 +146,8 @@ content 和 record-open 复用同一个 target resolver；不能为了判断 pac
 - Vite build 声明主 HTML 与 standalone HTML 两个 input；
 - 开发中间件只 rewrite 匹配的 document request；API、assets 和 iframe content 不参与；
 - 生产静态 server 对 standalone 路由返回第二份 HTML，其它 SPA route 继续返回 `index.html`；
-- Desktop/Web 继续使用真实 `_blank` 链接和现有系统浏览器接管，不新增 IPC/window manager。
+- Web 使用真实 `_blank` + `rel="opener"` 链接：NextClaw PWA 的 scope 是 `/`，Chrome 139+ 会捕获 scope 内的非辅助浏览上下文；显式 `opener` 使该同源、可信 standalone 页保持 auxiliary context，由当前浏览器按新标签页处理，同时用 `referrerPolicy="no-referrer"` 不传递来源。
+- 不依赖尚未稳定的 `handle_links` manifest 提案，不改变 PWA scope，不新增 IPC/window manager。
 
 ## 8. 状态与恢复
 
