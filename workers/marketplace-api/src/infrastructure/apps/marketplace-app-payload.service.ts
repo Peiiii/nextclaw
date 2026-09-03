@@ -178,6 +178,15 @@ export class MarketplaceAppPayloadParser {
       : undefined;
     const hasService = components.some((component) => component.kind === "service");
     const runtimeProfile = this.readRuntimeProfile(candidate.runtime, hasService);
+    const distribution = this.readDistribution(candidate.distribution);
+    if (
+      runtimeProfile === "wasi" &&
+      this.platformTargetService.resolveDistribution(distribution).mode !== "universal"
+    ) {
+      throw new DomainValidationError(
+        "manifest.runtime.profile=wasi requires distribution.mode=universal",
+      );
+    }
     const storage = this.readOptionalRecord(candidate.storage, "manifest.storage");
     const storageScope = storage
       ? this.readString(storage.scope, "manifest.storage.scope")
@@ -206,7 +215,7 @@ export class MarketplaceAppPayloadParser {
       runtime: runtimeProfile
         ? { profile: runtimeProfile }
         : undefined,
-      distribution: this.readDistribution(candidate.distribution),
+      distribution,
       storage: storageScope && typeof storageSchemaVersion === "number"
         ? { scope: storageScope, schemaVersion: storageSchemaVersion }
         : undefined,
@@ -281,11 +290,6 @@ export class MarketplaceAppPayloadParser {
     }
     if (runtimeProfile === "panel-only" && hasService) {
       throw new DomainValidationError("panel-only apps cannot contain service components");
-    }
-    if (runtimeProfile === "wasi") {
-      throw new DomainValidationError(
-        "schema v2 Service components do not support a WASI runtime yet; current Service Apps launch host processes, so use native-process or publish a panel-only app",
-      );
     }
     if (runtimeProfile && runtimeProfile !== "panel-only" && !hasService) {
       throw new DomainValidationError(`${runtimeProfile} apps must contain a service component`);

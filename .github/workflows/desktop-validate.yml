@@ -86,6 +86,7 @@ jobs:
         run: |
           pnpm -r --filter @nextclaw/desktop... build
           pnpm --filter @nextclaw/server exec vitest run src/features/server-path/controllers/server-path.controller.test.ts
+          pnpm -C apps/desktop bundle:test
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop smoke

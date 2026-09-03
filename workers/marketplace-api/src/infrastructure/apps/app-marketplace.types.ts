@@ -402,6 +402,7 @@ export type MarketplaceAppPublicListingAssessment = {
     | "official-scope"
     | "panel-only"
     | "legacy-schema"
+    | "community-wasi"
     | "community-native-process"
     | "invalid-runtime";
 };

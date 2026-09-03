@@ -1,5 +1,6 @@
 import { access, lstat, readFile } from "node:fs/promises";
 import path from "node:path";
+import { AppComponentContractService } from "#app-runtime/services/app-component-contract.service.js";
 import { AppPlatformTargetService } from "#app-runtime/services/app-platform-target.service.js";
 import type {
   AppComponentManifest,
@@ -18,12 +19,14 @@ import type {
 } from "#app-runtime/types/app-manifest.types.js";
 
 const PACKAGE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
-const COMPONENT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SECRET_SLOT_ID_PATTERN = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$/;
 
 export class AppManifestService {
   constructor(
     private readonly platformTargetService = new AppPlatformTargetService(),
+    private readonly componentContractService = new AppComponentContractService(
+      platformTargetService,
+    ),
   ) {}
 
   load = async (appDirectory: string): Promise<AppManifestBundle> => {
@@ -118,7 +121,11 @@ export class AppManifestService {
         component.path,
         `components[${index}].path`,
       );
-      const componentId = await this.readComponentId(component, componentDirectory);
+      const { id: componentId } = await this.componentContractService.loadDirectoryComponent({
+        component,
+        componentDirectory,
+        runtimeProfile: manifest.runtime?.profile ?? "native-process",
+      });
       const expectedPrefix = `${manifest.id.replace(/[^a-z0-9]+/g, "-")}-`;
       if (!componentId.startsWith(expectedPrefix)) {
         throw new Error(
@@ -187,13 +194,15 @@ export class AppManifestService {
     const components = this.parseComponents(candidate.components);
     const runtime = this.parseRuntime(candidate.runtime);
     this.assertRuntimeMatchesComponents(runtime, components);
+    const distribution = this.platformTargetService.parseDistribution(candidate.distribution);
+    this.componentContractService.assertRuntimeDistribution(runtime, distribution);
     return {
       schemaVersion: 2,
       ...common,
       engines: this.parseEngines(candidate.engines),
       presentation: this.parsePresentation(candidate.presentation),
       runtime,
-      distribution: this.platformTargetService.parseDistribution(candidate.distribution),
+      distribution,
       storage: this.parseAppStorage(candidate.storage),
       permissions: this.parsePermissions(candidate.permissions),
       components,
@@ -381,32 +390,6 @@ export class AppManifestService {
     if (runtime.profile !== "panel-only" && !hasService) {
       throw new Error(`${runtime.profile} runtime 必须包含 Service component。`);
     }
-  };
-
-  private readComponentId = async (
-    component: AppComponentReference,
-    componentDirectory: string,
-  ): Promise<string> => {
-    const manifestFile = component.kind === "panel" ? "panel-app.json" : "service-app.json";
-    const raw = JSON.parse(
-      await readFile(path.join(componentDirectory, manifestFile), "utf-8"),
-    ) as unknown;
-    const manifest = this.assertObject(raw, `${component.path}/${manifestFile}`);
-    const id = this.readRequiredString(manifest.id, `${component.path}/${manifestFile}.id`);
-    if (!COMPONENT_ID_PATTERN.test(id)) {
-      throw new Error(`组件 id 必须是 kebab-case：${id}`);
-    }
-    const directoryName = path.basename(componentDirectory);
-    const expectedId = component.kind === "panel"
-      ? directoryName.replace(/\.panel$/, "")
-      : directoryName;
-    if (component.kind === "panel" && !directoryName.endsWith(".panel")) {
-      throw new Error(`Panel component 目录必须以 .panel 结尾：${component.path}`);
-    }
-    if (id !== expectedId) {
-      throw new Error(`组件 id 必须与目录名一致：期望 ${expectedId}，实际 ${id}`);
-    }
-    return id;
   };
 
   private parsePermissions = (rawPermissions: unknown): AppPermissions | undefined => {
