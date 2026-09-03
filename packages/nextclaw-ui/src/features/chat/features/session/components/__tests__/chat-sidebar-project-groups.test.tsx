@@ -195,6 +195,7 @@ describe("ChatSidebarProjectGroups", () => {
     const moreButton = screen.getByLabelText(
       "More actions for analysis-project",
     );
+    expect(moreButton.querySelector(".lucide-ellipsis-vertical")).not.toBeNull();
     expect(
       pinButton.compareDocumentPosition(moreButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,

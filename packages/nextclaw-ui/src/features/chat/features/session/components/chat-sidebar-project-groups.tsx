@@ -7,7 +7,7 @@ import {
   Folder,
   FolderMinus,
   MessageSquareText,
-  MoreHorizontal,
+  MoreVertical,
   Pin,
   Plus,
 } from "lucide-react";
@@ -284,7 +284,7 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                   >
                     <PopoverTrigger asChild>
                       <IconActionButton
-                        icon={<MoreHorizontal className="h-3.5 w-3.5" />}
+                        icon={<MoreVertical className="h-3.5 w-3.5" />}
                         label={t("projectsMoreActions").replace(
                           "{name}",
                           group.projectName,
