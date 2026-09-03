@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-extension-whatsapp",
-  "version": "0.2.42",
+  "version": "0.2.43",
   "private": false,
   "description": "NextClaw WhatsApp channel extension process.",
   "type": "module",

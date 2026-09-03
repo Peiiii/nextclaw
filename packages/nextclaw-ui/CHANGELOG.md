@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.24.2
+
+### Patch Changes
+
+- 25a59ef: 新增安全的项目移除能力：用户可在项目页面确认影响后将项目从列表移除，或通过要求精确项目 ID 确认的 CLI 执行同一操作；本地目录、历史会话和 Project Work 保持不变，重新添加同一目录会恢复原项目。
+- 76cf3df: 让项目工作项的内置默认状态跟随界面语言显示，同时保留自定义状态名称。
+- d3a705a: 支持从 Panel App 的更多操作中在浏览器或新标签页单独打开应用；独立页面只显示应用内容，并继续连接当前 NextClaw 实例。
+- 7b960b9: 恢复项目概览中同等重要的当前工作与最近产物双区域，并为 UI、API、Agent Tool 和 CLI 增加按状态分组的有界工作项游标分页。
+- Updated dependencies [25a59ef]
+- Updated dependencies [7b960b9]
+  - @nextclaw/client-sdk@0.11.2
+
 ## 0.24.1
 
 ### Patch Changes

@@ -1,5 +1,29 @@
 # nextclaw
 
+## 0.48.2
+
+### Patch Changes
+
+- 25a59ef: 新增安全的项目移除能力：用户可在项目页面确认影响后将项目从列表移除，或通过要求精确项目 ID 确认的 CLI 执行同一操作；本地目录、历史会话和 Project Work 保持不变，重新添加同一目录会恢复原项目。
+- 2a3ef71: 修复 NPM 安装选择 Beta 更新渠道后，无法发现版本更高的正式版 Runtime 更新的问题。
+- 04cb0a3: Prevent Portable WASI Apps that use standard key-value storage from crashing the native runner, generate new Rust/WASI Apps against the standard interface, and keep legacy host KV data on Spin's public store contract.
+- 7b960b9: 恢复项目概览中同等重要的当前工作与最近产物双区域，并为 UI、API、Agent Tool 和 CLI 增加按状态分组的有界工作项游标分页。
+- Updated dependencies [6f69aba]
+- Updated dependencies [25a59ef]
+- Updated dependencies
+- Updated dependencies [04cb0a3]
+- Updated dependencies [7b960b9]
+  - @nextclaw/app-runtime@0.16.2
+  - @nextclaw/kernel@0.15.2
+  - @nextclaw/server@0.22.2
+  - @nextclaw/service@0.6.2
+  - @nextclaw/core@0.17.17
+  - @nextclaw/remote@0.3.56
+  - @nextclaw/mcp@0.3.44
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.44
+  - @nextclaw/runtime@0.4.43
+  - @nextclaw/ncp-mcp@0.2.44
+
 ## 0.48.1
 
 ### Patch Changes

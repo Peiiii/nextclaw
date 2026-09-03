@@ -1,5 +1,12 @@
 # @nextclaw/app-runtime
 
+## 0.16.2
+
+### Patch Changes
+
+- 6f69aba: Allow schema v2 Portable WASI Apps to pass the shared Marketplace artifact contract while rejecting mismatched runtime protocols, targeted WASI distributions, missing Component entries, and non-Component WebAssembly binaries.
+- 04cb0a3: Prevent Portable WASI Apps that use standard key-value storage from crashing the native runner, generate new Rust/WASI Apps against the standard interface, and keep legacy host KV data on Spin's public store contract.
+
 ## 0.16.1
 
 ### Patch Changes

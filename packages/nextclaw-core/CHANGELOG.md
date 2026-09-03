@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.17.17
+
+### Patch Changes
+
+- Auto-generated full public release batch.
+
+  Packages:
+  - @nextclaw/core
+
 ## 0.17.16
 
 ### Patch Changes
