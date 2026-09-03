@@ -112,7 +112,7 @@ function resolvePrivateKey(args) {
   );
 }
 
-function serializeUnsignedManifest(manifest) {
+export function serializeUnsignedManifest(manifest) {
   return JSON.stringify({
     channel: manifest.channel,
     platform: manifest.platform,
@@ -125,6 +125,13 @@ function serializeUnsignedManifest(manifest) {
     bundleSignature: manifest.bundleSignature,
     releaseNotesUrl: manifest.releaseNotesUrl
   });
+}
+
+export function signUpdateManifest(manifest, privateKey) {
+  return {
+    ...manifest,
+    manifestSignature: sign(null, Buffer.from(serializeUnsignedManifest(manifest)), privateKey).toString("base64")
+  };
 }
 
 export async function addDirectoryToZip(zip, sourceDir, zipRoot) {
@@ -209,8 +216,10 @@ class NpmRuntimeUpdateChannelBuilder {
       const pruneResult = await this.prepareBundleWorkspace(workspace);
       await this.writeBundleManifest(workspace.bundleRoot);
       const bundlePath = await this.writeBundleArchive(workspace.bundleRoot);
-      const manifestPath = this.writeUpdateManifest(bundlePath, privateKey);
-      this.printResult({ bundlePath, manifestPath, pruneResult });
+      const manifest = this.createUpdateManifest(bundlePath, privateKey);
+      const manifestPath = this.writeSignedUpdateManifest(manifest, privateKey);
+      const compatibilityManifestPath = this.writeCompatibilityManifest(manifest, privateKey);
+      this.printResult({ bundlePath, manifestPath, compatibilityManifestPath, pruneResult });
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }
@@ -316,9 +325,9 @@ class NpmRuntimeUpdateChannelBuilder {
     return archivePath;
   };
 
-  writeUpdateManifest = (bundlePath, privateKey) => {
+  createUpdateManifest = (bundlePath, privateKey) => {
     const bundleBytes = readFileSync(bundlePath);
-    const manifest = {
+    return {
       channel: this.channel,
       platform: this.platform,
       arch: this.arch,
@@ -330,20 +339,32 @@ class NpmRuntimeUpdateChannelBuilder {
       bundleSignature: sign(null, bundleBytes, privateKey).toString("base64"),
       releaseNotesUrl: this.releaseNotesUrl
     };
-    const signedManifest = {
-      ...manifest,
-      manifestSignature: sign(null, Buffer.from(serializeUnsignedManifest(manifest)), privateKey).toString("base64")
-    };
-    const manifestPath = resolve(this.outputRoot, this.channel, `manifest-${this.channel}-${this.platform}-${this.arch}.json`);
+  };
+
+  writeSignedUpdateManifest = (manifest, privateKey) => {
+    const signedManifest = signUpdateManifest(manifest, privateKey);
+    const manifestPath = resolve(this.outputRoot, manifest.channel, `manifest-${manifest.channel}-${this.platform}-${this.arch}.json`);
     mkdirSync(dirname(manifestPath), { recursive: true });
     writeFileSync(manifestPath, `${JSON.stringify(signedManifest, null, 2)}\n`, "utf8");
     return manifestPath;
   };
 
-  printResult = ({ bundlePath, manifestPath, pruneResult }) => {
+  writeCompatibilityManifest = (manifest, privateKey) => {
+    const compatibilityChannel = this.args["compatibility-channel"]?.trim();
+    if (!compatibilityChannel) {
+      return null;
+    }
+    if (this.channel !== "stable" || compatibilityChannel !== "beta") {
+      throw new Error("--compatibility-channel only supports projecting a stable release into beta.");
+    }
+    return this.writeSignedUpdateManifest({ ...manifest, channel: "beta" }, privateKey);
+  };
+
+  printResult = ({ bundlePath, manifestPath, compatibilityManifestPath, pruneResult }) => {
     process.stdout.write(`${JSON.stringify({
       bundlePath,
       manifestPath,
+      compatibilityManifestPath,
       channel: this.channel,
       version: this.version,
       platform: this.platform,

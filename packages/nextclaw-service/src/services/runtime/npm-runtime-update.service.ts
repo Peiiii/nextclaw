@@ -55,7 +55,24 @@ export class NpmRuntimeUpdateService {
   hasSignatureVerifier = (): boolean => Boolean(this.bundlePublicKey);
 
   checkForUpdate = async (manifestUrl: string, currentVersion: string | null, badVersions: string[] = []): Promise<NpmRuntimeAvailableUpdate | null> => {
-    const manifest = await this.fetchManifest(manifestUrl);
+    return await this.checkForUpdates([manifestUrl], currentVersion, badVersions);
+  };
+
+  checkForUpdates = async (manifestUrls: string[], currentVersion: string | null, badVersions: string[] = []): Promise<NpmRuntimeAvailableUpdate | null> => {
+    const manifests = await Promise.all([...new Set(manifestUrls)].map(this.fetchManifest));
+    const manifest = manifests.reduce<UpdateManifest | null>((selected, candidate) => {
+      if (!selected) {
+        return candidate;
+      }
+      const versionComparison = compareNpmRuntimeVersions(candidate.latestVersion, selected.latestVersion);
+      if (versionComparison > 0 || (versionComparison === 0 && candidate.channel === "stable")) {
+        return candidate;
+      }
+      return selected;
+    }, null);
+    if (!manifest) {
+      return null;
+    }
     if (currentVersion && compareNpmRuntimeVersions(manifest.latestVersion, currentVersion) <= 0) {
       return null;
     }

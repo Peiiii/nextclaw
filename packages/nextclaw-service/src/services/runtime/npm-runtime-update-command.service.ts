@@ -33,7 +33,7 @@ export class NpmRuntimeUpdateCommandService {
     });
     const launcherVersion = distribution.launcherVersion;
     const channel = source.resolveChannel(opts.channel, launcherVersion);
-    const manifestUrl = source.resolveManifestUrl(channel, opts.manifestUrl);
+    const manifestUrls = source.resolveManifestUrls(channel, opts.manifestUrl);
     const layout = new NpmRuntimeBundleLayoutStore();
     const stateStore = new NpmRuntimeUpdateStateStore(layout.getStatePath(), {
       defaultChannel: channel
@@ -54,7 +54,7 @@ export class NpmRuntimeUpdateCommandService {
       stateStore,
       bundleService,
       updateService,
-      resolveManifestUrl: () => manifestUrl,
+      resolveManifestUrls: () => manifestUrls,
       launcherVersion,
       channel
     });

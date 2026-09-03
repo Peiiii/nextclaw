@@ -934,6 +934,7 @@ Behavior:
 
 - If `NEXTCLAW_UPDATE_COMMAND` is set, the CLI executes it (useful for custom update flows).
 - Otherwise `nextclaw update` checks the runtime update channel, downloads the latest compatible runtime bundle, and applies it.
+- The `stable` channel checks production releases only. The `beta` channel compares preview and production releases, then offers whichever version is newer.
 - Use `nextclaw update --check` to check without downloading or applying.
 - Use `nextclaw update --download-only` to stage an update without switching the active runtime. `nextclaw update --apply` applies an already staged runtime update.
 - If the background service is running, restart it after `nextclaw update` reports that the runtime update was applied.

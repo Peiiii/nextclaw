@@ -207,6 +207,9 @@ jobs:
               --allow-minimum-launcher-version-override true
             )
           fi
+          if [ "$NPM_RUNTIME_UPDATE_CHANNEL" = "stable" ]; then
+            extra_args+=(--compatibility-channel beta)
+          fi
 
           pnpm -C packages/nextclaw runtime-update:build -- \
             --channel "$NPM_RUNTIME_UPDATE_CHANNEL" \
@@ -301,6 +304,14 @@ jobs:
               --arg channel "$NPM_RUNTIME_UPDATE_CHANNEL" \
               '.latestVersion == $version and .channel == $channel and .hostKind == "npm-runtime-bundle"' \
               "$manifest" >/dev/null
+            if [ "$NPM_RUNTIME_UPDATE_CHANNEL" = "stable" ]; then
+              compatibility_manifest="dist/npm-runtime-updates/beta/manifest-beta-${target}.json"
+              test -f "$compatibility_manifest"
+              jq -e \
+                --arg version "$expected_version" \
+                '.latestVersion == $version and .channel == "beta" and .hostKind == "npm-runtime-bundle"' \
+                "$compatibility_manifest" >/dev/null
+            fi
           done
 
       - name: Publish NPM runtime release metadata
@@ -356,14 +367,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! find dist/npm-runtime-updates -type f -name 'manifest-*.json' | grep -q .; then
-            echo "No NPM runtime update manifests were downloaded."
-            exit 1
-          fi
-
-          mkdir -p .tmp/gh-pages/npm-runtime-updates
-          cp -R dist/npm-runtime-updates/. .tmp/gh-pages/npm-runtime-updates/
-          find .tmp/gh-pages/npm-runtime-updates -type f -name 'nextclaw-runtime-*.zip' -delete
+          node .tmp/publisher/scripts/release/npm-runtime-update-channel-publisher.mjs \
+            --artifacts-dir dist/npm-runtime-updates \
+            --state-dir .tmp/gh-pages \
+            --release-channel "$NPM_RUNTIME_UPDATE_CHANNEL"
           touch .tmp/gh-pages/.nojekyll
 
       - name: Publish NPM runtime update channel to gh-pages

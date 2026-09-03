@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@nextclaw-service/services/runtime/npm-runtime-update-source.service.js", () => ({
   NpmRuntimeUpdateSourceService: class {
     resolveChannel = () => "stable";
-    resolveManifestUrl = () => "https://example.invalid/manifest.json";
+    resolveManifestUrls = () => ["https://example.invalid/manifest.json"];
     resolveBundlePublicKey = () => "test-public-key";
   },
 }));
