@@ -14,7 +14,7 @@ import {
   safeNcpSessionFilename,
 } from "@kernel/utils/ncp-agent-session-journal.utils.js";
 import { loadNcpAgentSessionSummary } from "./ncp-agent-session-journal-summary-recovery.store.js";
-import type { UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
+import { isNcpAgentRunLifecycleEvent, type UnfinishedNcpAgentRun } from "@kernel/utils/ncp-agent-unfinished-run.utils.js";
 import { NcpAgentUnfinishedRunStore } from "@kernel/stores/ncp-agent-unfinished-run.store.js";
 import {
   isNcpAgentSessionMessageProjectionBoundaryEvent,
@@ -70,10 +70,7 @@ export class NcpAgentSessionJournalStore {
       readMetadata: (sessionId, fallback) => this.metadataStore.read(sessionId, fallback),
       readProjectedMessageCount: async (sessionId) => (await this.messageProjectionStore.readMeta(sessionId))?.total ?? null,
     });
-    this.unfinishedRunStore = new NcpAgentUnfinishedRunStore(
-      journalDir,
-      async () => (await this.summaryIndexStore.list()).map(({ sessionId }) => sessionId),
-    );
+    this.unfinishedRunStore = new NcpAgentUnfinishedRunStore(journalDir, this.summaryIndexStore.listRunRecoveryCheckpoints, this.summaryIndexStore.writeRunRecoveryCheckpoint);
   }
   initialize = async (): Promise<void> => await this.summaryIndexStore.initialize();
   close = (): void => this.summaryIndexStore.close();
@@ -343,11 +340,13 @@ export class NcpAgentSessionJournalStore {
     await this.appendJournalEntry(path, entry);
     this.nextSeqBySession.set(sessionId, nextSeq + 1);
     this.sessions.delete(sessionId);
+    let journalOffset: number | null = null;
     if (isNcpAgentSessionMessageProjectionBoundaryEvent(event)) {
       const journalStat = await stat(path);
+      journalOffset = journalStat.size;
       await this.messageProjectionStore.synchronizeJournalTail({
         sessionId,
-        journalOffset: journalStat.size,
+        journalOffset,
       });
     }
     await this.summaryIndexStore.upsertForEvent({
@@ -355,6 +354,7 @@ export class NcpAgentSessionJournalStore {
       event,
       updatedAt
     });
+    if (isNcpAgentRunLifecycleEvent(event)) await this.summaryIndexStore.recordRunRecoveryEvent({ sessionId, event, journalOffset: journalOffset ?? (await stat(path)).size });
   };
 
   private loadSession = async (sessionId: string): Promise<LoadedNcpAgentJournalSession | null> => {

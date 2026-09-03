@@ -1,9 +1,10 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
+import { openSqliteDatabase } from "./sqlite-database.store.js";
 
 const sessionId = "desktop-session-catalog-regression";
 const userMessage: NcpMessage = {
@@ -32,14 +33,16 @@ describe("NcpAgentSessionSummaryIndexStore", () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-session-summary-index-"));
     store = new NcpAgentSessionSummaryIndexStore(tempDir, async () => null);
 
-    await expect(store.upsertForEvent({
-      sessionId,
-      event: {
-        type: NcpEventType.MessageSent,
-        payload: { sessionId, message: userMessage },
-      },
-      updatedAt: userMessage.timestamp,
-    })).resolves.toBeUndefined();
+    await expect(
+      store.upsertForEvent({
+        sessionId,
+        event: {
+          type: NcpEventType.MessageSent,
+          payload: { sessionId, message: userMessage },
+        },
+        updatedAt: userMessage.timestamp,
+      }),
+    ).resolves.toBeUndefined();
 
     await expect(store.listPage({ offset: 0, limit: 20 })).resolves.toEqual([
       expect.objectContaining({
@@ -50,5 +53,50 @@ describe("NcpAgentSessionSummaryIndexStore", () => {
       }),
     ]);
     await expect(store.count()).resolves.toBe(1);
+  });
+
+  it("does not load known journal contents when reopening a migrated catalog", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-session-summary-index-"));
+    store = new NcpAgentSessionSummaryIndexStore(tempDir, async () => null);
+    await store.upsert({
+      sessionId,
+      messageCount: 1,
+      createdAt: userMessage.timestamp,
+      updatedAt: userMessage.timestamp,
+      lastMessageAt: userMessage.timestamp,
+      status: "idle",
+    });
+    store.close();
+
+    await writeFile(
+      join(tempDir, `${sessionId}.jsonl`),
+      "known journal must not be read\n",
+      "utf8",
+    );
+    let fullLoadCount = 0;
+    let summaryLoadCount = 0;
+    store = new NcpAgentSessionSummaryIndexStore(
+      tempDir,
+      async () => {
+        fullLoadCount += 1;
+        return null;
+      },
+      async () => {
+        summaryLoadCount += 1;
+        return null;
+      },
+    );
+
+    await store.initialize();
+
+    expect(fullLoadCount).toBe(0);
+    expect(summaryLoadCount).toBe(0);
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({ sessionId, messageCount: 1 }),
+    ]);
+    store.close();
+    const database = await openSqliteDatabase(join(tempDir, ".ncp-agent-session-catalog.sqlite"));
+    expect(database.prepare("SELECT value FROM storage_meta WHERE key = 'schema_version'").get()).toEqual({ value: "2" });
+    database.close();
   });
 });

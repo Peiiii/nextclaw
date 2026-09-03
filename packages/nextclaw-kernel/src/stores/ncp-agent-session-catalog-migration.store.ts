@@ -28,8 +28,11 @@ type JournalScanItem = {
 
 export async function scanNcpAgentSessionCatalogJournals(params: {
   journalDir: string;
-  loadSession: (sessionId: string) => Promise<LoadedNcpAgentJournalSession | null>;
+  loadSession: (
+    sessionId: string,
+  ) => Promise<LoadedNcpAgentJournalSession | null>;
   loadSessionSummary?: (sessionId: string) => Promise<NcpSessionSummary | null>;
+  knownSessionIds?: ReadonlySet<string>;
 }): Promise<CatalogLegacyScanResult> {
   const diagnostics: CatalogLegacyScanResult["diagnostics"] = [];
   const legacyRecords = await readLegacyRecords(params.journalDir, diagnostics);
@@ -46,13 +49,22 @@ export async function scanNcpAgentSessionCatalogJournals(params: {
     return { records, journalSessionIds, diagnostics };
   }
   for (const entry of entries) {
+    const sessionId = readJournalSessionId(entry);
+    if (sessionId && params.knownSessionIds?.has(sessionId)) {
+      journalSessionIds.add(sessionId);
+      continue;
+    }
     const item = await scanJournalEntry(params, entry, legacyRecords);
     if (!item) continue;
     journalSessionIds.add(item.sessionId);
     if (item.summary) {
       records.push(item.summary);
     } else if (item.unreadable) {
-      diagnostics.push({ sessionId: item.sessionId, kind: "journal-unreadable", detail: { file: entry } });
+      diagnostics.push({
+        sessionId: item.sessionId,
+        kind: "journal-unreadable",
+        detail: { file: entry },
+      });
     }
   }
   for (const record of legacyRecords.values()) {
@@ -67,17 +79,32 @@ export async function scanNcpAgentSessionCatalogJournals(params: {
   return { records, journalSessionIds, diagnostics };
 }
 
+function readJournalSessionId(entry: string): string | null {
+  if (!entry.endsWith(".jsonl")) return null;
+  return normalizeNcpSessionId(
+    entry.replace(/\.jsonl$/, "").replace(/_/g, ":"),
+  );
+}
+
 async function scanJournalEntry(
   params: Parameters<typeof scanNcpAgentSessionCatalogJournals>[0],
   entry: string,
   legacyRecords: Map<string, NcpSessionSummary>,
 ): Promise<JournalScanItem | null> {
-  if (!entry.endsWith(".jsonl")) return null;
-  const sessionId = normalizeNcpSessionId(entry.replace(/\.jsonl$/, "").replace(/_/g, ":"));
-  const lightweight = params.loadSessionSummary ? await params.loadSessionSummary(sessionId) : null;
-  if (lightweight) return { sessionId, summary: lightweight, unreadable: false };
+  const sessionId = readJournalSessionId(entry);
+  if (!sessionId) return null;
+  const lightweight = params.loadSessionSummary
+    ? await params.loadSessionSummary(sessionId)
+    : null;
+  if (lightweight)
+    return { sessionId, summary: lightweight, unreadable: false };
   const loaded = await params.loadSession(sessionId);
-  if (loaded) return { sessionId, summary: createNcpAgentSessionSummary(loaded.record), unreadable: false };
+  if (loaded)
+    return {
+      sessionId,
+      summary: createNcpAgentSessionSummary(loaded.record),
+      unreadable: false,
+    };
   const legacy = legacyRecords.get(sessionId);
   return legacy
     ? { sessionId, summary: structuredClone(legacy), unreadable: false }
@@ -90,18 +117,37 @@ async function readLegacyRecords(
 ): Promise<Map<string, NcpSessionSummary>> {
   try {
     const parsed = JSON.parse(
-      await readFile(resolve(journalDir, NCP_AGENT_SESSION_JOURNAL_INDEX_FILE), "utf-8"),
+      await readFile(
+        resolve(journalDir, NCP_AGENT_SESSION_JOURNAL_INDEX_FILE),
+        "utf-8",
+      ),
     ) as NcpAgentSessionJournalIndex;
-    if (parsed.version === NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION && Array.isArray(parsed.records)) {
-      return new Map(parsed.records.map((record) => [record.sessionId, structuredClone(record)]));
+    if (
+      parsed.version === NCP_AGENT_SESSION_JOURNAL_ENTRY_VERSION &&
+      Array.isArray(parsed.records)
+    ) {
+      return new Map(
+        parsed.records.map((record) => [
+          record.sessionId,
+          structuredClone(record),
+        ]),
+      );
     }
-    diagnostics.push({ kind: "legacy-index-invalid", detail: { source: NCP_AGENT_SESSION_JOURNAL_INDEX_FILE } });
+    diagnostics.push({
+      kind: "legacy-index-invalid",
+      detail: { source: NCP_AGENT_SESSION_JOURNAL_INDEX_FILE },
+    });
   } catch (error) {
-    const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? error.code
+        : undefined;
     if (code !== "ENOENT") {
       diagnostics.push({
         kind: "legacy-index-unreadable",
-        detail: { error: error instanceof Error ? error.message : String(error) },
+        detail: {
+          error: error instanceof Error ? error.message : String(error),
+        },
       });
     }
   }
