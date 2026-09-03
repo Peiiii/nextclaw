@@ -97,6 +97,7 @@ interface resident-v2 {
 world service-app {
   import host;
   import wasi:http/outgoing-handler@0.2.6;
+  import wasi:keyvalue/store@0.2.0-draft2;
   import wasi:config/store@0.2.0-draft-2024-09-27;
   export service;
 }
@@ -115,6 +116,7 @@ world service-app-sqlite {
 world service-app-v2 {
   import host;
   import wasi:http/outgoing-handler@0.2.6;
+  import wasi:keyvalue/store@0.2.0-draft2;
   import wasi:config/store@0.2.0-draft-2024-09-27;
   export resident-v2;
 }

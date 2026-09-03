@@ -15,7 +15,7 @@ description: 通用开发生命周期的「方案设计」阶段 owner；当用�
 
 进入本阶段必须形成设计结论并输出 `design-document: required | not-required`；`feature` 和 `bugfix` 使用同一产物门，不按类型机械决定。
 
-轻量设计仅限单一 owner、无跨层合同/状态/兼容、无真实分叉，改动局部可逆且不会复用；写清问题、主链路、理由与验证，不能只写“直接改某文件”。
+轻量设计仅限单一 owner、无跨层合同/状态/兼容和真实分叉，且改动局部可逆、不复用；仍须写清问题、主链路、理由与验证。
 
 出现以下任一情况，必须写入或更新稳定的 `docs/designs` 文档：
 
@@ -29,7 +29,7 @@ L0 文档修正和 lifecycle 可跳过的 L1 单路径改动无需进入；不�
 
 ## 计划门
 
-进入 Implementation 前输出 `plan: required | not-required`；单批无法可信闭环时使用 `project-knowledge-governance` 并读取[开发执行 Plan 合同](../project-knowledge-governance/references/development-plan-contract.md)，否则不建。Plan 冻结细化策略，不是新 phase。
+进入 Implementation 前输出 `plan: required | not-required`。单批无法可信闭环时使用 `project-knowledge-governance` 的[开发执行 Plan 合同](../project-knowledge-governance/references/development-plan-contract.md)，否则不建；Plan 不是新 phase。
 
 ## 设计合同
 
@@ -39,10 +39,11 @@ L0 文档修正和 lifecycle 可跳过的 L1 单路径改动无需进入；不�
 - producer、owner、consumer 与已有约束；
 - 真实分叉时的 2-4 个候选：用户价值、owner、复杂度、可逆性、验证成本及主链路；路径明显不虚构候选；
 - 状态、生命周期、不变量、失败/恢复、目录/公共入口/依赖边界；
+- 第三方框架/runtime/协议：冻结上游执行、线程、生命周期、资源与错误合同及产品保留职责；偏离须有必要性、官方依据、验证和退出条件；
 - 删除或禁止的平行路径，兼容/迁移/fallback 的必要性与退出条件；
 - 非目标与最小验证标准。
 
-证据足够时由 AI 推荐并冻结明显占优方案；只有不同选择会显著改变用户可见行为或任务范围，且无法从上下文判断偏好时，才请求用户决定。
+证据足够时冻结占优方案；仅当选择显著改变用户行为或范围且无法判断偏好时，才请求用户决定。
 
 ## 思考投入
 
@@ -81,6 +82,6 @@ L0 文档修正和 lifecycle 可跳过的 L1 单路径改动无需进入；不�
 
 ## 完成
 
-设计必须形成统一模型，不能以修正记录、截图或局部失败替代。完成时说明设计/plan 落点、owner、主链路、删除点、验证与非目标；有 plan 时确认各部分策略已冻结。
+设计须形成统一模型。完成时说明设计/plan 落点、owner、主链路、删除点、验证与非目标；有 plan 时确认策略已冻结。
 
 新现象暴露模型缺口则返工设计；仅实现偏差不扩大。本阶段不编辑产品实现、验证、review、提交或发布。

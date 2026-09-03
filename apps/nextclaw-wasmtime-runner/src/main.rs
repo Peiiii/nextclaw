@@ -1,8 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::io::Write;
-use std::path::PathBuf;
-use std::rc::Rc;
+use std::path::{Path, PathBuf};
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
@@ -14,7 +13,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use spin_app::{App, AppComponent, locked::LockedApp};
 use spin_core::{Component, async_trait};
-use spin_factor_key_value::{KeyValueFactor, runtime_config::spin::MakeKeyValueStore};
+use spin_factor_key_value::{
+    KeyValueFactor, StoreManager, runtime_config::spin::MakeKeyValueStore,
+};
 use spin_factor_outbound_http::OutboundHttpFactor;
 use spin_factor_outbound_networking::OutboundNetworkingFactor;
 use spin_factor_sqlite::{ConnectionCreator, SqliteFactor};
@@ -400,6 +401,7 @@ struct NextClawFactorConfig {
     app: RunnerApp,
     loaded_components: u32,
     providers: ProviderRegistry,
+    legacy_key_value: Option<Arc<dyn StoreManager>>,
     task: Option<TaskHostContext>,
 }
 
@@ -942,7 +944,7 @@ impl Runner {
             .context("Spin app cache entry disappeared")
     }
 
-    async fn load_app(&self, app: &RunnerApp) -> Result<LoadedSpinApp> {
+    async fn load_app(&mut self, app: &RunnerApp) -> Result<LoadedSpinApp> {
         let locked = locked_app_for(app)?;
         let spin_app = App::new(format!("nextclaw:{}", app.id), locked);
         let config = spin_factors_runtime_config(
@@ -954,9 +956,11 @@ impl Runner {
                 // from the Guest's point of view.
                 loaded_components: self.apps.len() as u32 + 1,
                 providers: Arc::clone(&self.providers),
+                legacy_key_value: None,
                 task: None,
             },
-        )?;
+        )
+        .await?;
         Arc::clone(&self.executor)
             .load_app(
                 spin_app,
@@ -1047,18 +1051,17 @@ fn spin_allowed_hosts(domains: &[String]) -> Result<Vec<String>> {
 /// Runtime configuration owns the physical stores. Each loaded synthetic App
 /// receives its own configuration, rooted in its already-isolated instance
 /// directory. `default` is the only label exposed to a Component.
-fn spin_factors_runtime_config(
+async fn spin_factors_runtime_config(
     app: &RunnerApp,
-    nextclaw: NextClawFactorConfig,
+    mut nextclaw: NextClawFactorConfig,
 ) -> Result<SpinFactorsRuntimeConfig> {
     let mut key_value = spin_factor_key_value::RuntimeConfig::default();
     let mut sqlite = spin_factor_sqlite::RuntimeConfig::default();
     if app.storage_enabled {
-        migrate_legacy_json_kv(&app.data_directory)?;
-        let kv_store = SpinKeyValueStore::new(Some(app.data_directory.clone())).make_store(
-            SpinKeyValueRuntimeConfig::new(Some(PathBuf::from("portable-kv.sqlite"))),
-        )?;
-        key_value.add_store_manager("default".into(), Arc::new(kv_store));
+        let kv_store = spin_key_value_store(&app.data_directory)?;
+        migrate_legacy_json_kv(&app.data_directory, &kv_store).await?;
+        key_value.add_store_manager("default".into(), Arc::clone(&kv_store));
+        nextclaw.legacy_key_value = Some(kv_store);
 
         let sqlite_path = app.data_directory.join("portable-runtime.sqlite");
         let sqlite_factory = move || {
@@ -1101,6 +1104,13 @@ fn spin_factors_runtime_config(
     })
 }
 
+fn spin_key_value_store(data_directory: &Path) -> Result<Arc<dyn StoreManager>> {
+    let store = SpinKeyValueStore::new(Some(data_directory.to_path_buf())).make_store(
+        SpinKeyValueRuntimeConfig::new(Some(PathBuf::from("portable-kv.sqlite"))),
+    )?;
+    Ok(Arc::new(store))
+}
+
 fn nextclaw_blocked_ip_networks() -> Result<Vec<ip_network::IpNetwork>> {
     [
         "0.0.0.0/8",
@@ -1135,30 +1145,42 @@ fn nextclaw_blocked_ip_networks() -> Result<Vec<ip_network::IpNetwork>> {
 /// One-way compatibility migration from the original JSON file to the SQLite
 /// schema used by SpinKeyValueStore. The old payload remains recoverable as a
 /// clearly isolated `.legacy.json` file and is never used by the runner again.
-fn migrate_legacy_json_kv(data_directory: &PathBuf) -> Result<()> {
+async fn migrate_legacy_json_kv(
+    data_directory: &Path,
+    store_manager: &Arc<dyn StoreManager>,
+) -> Result<()> {
     let legacy_path = data_directory.join("portable-kv.json");
     if !legacy_path.exists() {
         return Ok(());
     }
     let values: HashMap<String, String> = serde_json::from_slice(&fs::read(&legacy_path)?)
         .context("Portable legacy KV file is not valid JSON")?;
-    let database_path = data_directory.join("portable-kv.sqlite");
-    let mut connection = open_portable_kv_database(&database_path)?;
-    let transaction = connection.transaction()?;
+    let store = store_manager
+        .get("default")
+        .await
+        .map_err(|error| anyhow!(error.to_string()))?;
+    store
+        .after_open()
+        .await
+        .map_err(|error| anyhow!(error.to_string()))?;
     for (key, value) in values {
         assert_safe_key(&key).map_err(|error| anyhow!(error))?;
-        transaction.execute(
-            "INSERT INTO spin_key_value (store, key, value) VALUES (?1, ?2, ?3)
-             ON CONFLICT(store, key) DO NOTHING",
-            rusqlite::params!["default", key, value.into_bytes()],
-        )?;
+        if !store
+            .exists(&key)
+            .await
+            .map_err(|error| anyhow!(error.to_string()))?
+        {
+            store
+                .set(&key, value.as_bytes())
+                .await
+                .map_err(|error| anyhow!(error.to_string()))?;
+        }
     }
-    transaction.commit()?;
     fs::rename(&legacy_path, next_legacy_archive_path(data_directory))?;
     Ok(())
 }
 
-fn next_legacy_archive_path(data_directory: &PathBuf) -> PathBuf {
+fn next_legacy_archive_path(data_directory: &Path) -> PathBuf {
     let base = data_directory.join("portable-kv.legacy.json");
     if !base.exists() {
         return base;
@@ -1170,24 +1192,6 @@ fn next_legacy_archive_path(data_directory: &PathBuf) -> PathBuf {
         }
     }
     unreachable!("u32 archive suffix space is exhausted")
-}
-
-fn open_portable_kv_database(path: &PathBuf) -> Result<rusqlite::Connection> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let connection = rusqlite::Connection::open(path)?;
-    connection.busy_timeout(std::time::Duration::from_secs(5))?;
-    connection.execute_batch(
-        "PRAGMA journal_mode=WAL;
-         CREATE TABLE IF NOT EXISTS spin_key_value (
-           store TEXT NOT NULL,
-           key TEXT NOT NULL,
-           value BLOB NOT NULL,
-           PRIMARY KEY (store, key)
-         );",
-    )?;
-    Ok(connection)
 }
 
 fn runner_file_mounts(app: &RunnerApp) -> Result<Vec<Value>> {
@@ -1242,13 +1246,13 @@ impl Host for NextClawFactorState {
     async fn kv_get(&mut self, key: String) -> std::result::Result<Option<String>, String> {
         self.assert_storage_enabled()?;
         assert_safe_key(&key)?;
-        self.read_legacy_kv(&key)
+        self.read_legacy_kv(&key).await
     }
 
     async fn kv_set(&mut self, key: String, value: String) -> std::result::Result<(), String> {
         self.assert_storage_enabled()?;
         assert_safe_key(&key)?;
-        self.write_legacy_kv(&key, &value)
+        self.write_legacy_kv(&key, &value).await
     }
 
     /// Compatibility for the original host WIT. New Components must use the
@@ -1412,41 +1416,40 @@ impl NextClawFactorState {
         }
     }
 
-    /// Compatibility implementation for the original NextClaw host WIT.
-    /// It writes the same SQLite table used by Spin's KeyValueFactor, so an
-    /// upgrade cannot strand legacy lab data in a separate active store.
-    fn legacy_kv_database_path(&self) -> PathBuf {
-        self.config.app.data_directory.join("portable-kv.sqlite")
+    async fn legacy_store(
+        &self,
+    ) -> std::result::Result<Arc<dyn spin_factor_key_value::Store>, String> {
+        let manager = self
+            .config
+            .legacy_key_value
+            .as_ref()
+            .ok_or_else(|| "CAPABILITY_DENIED: storage permission is required".to_string())?;
+        let store = manager
+            .get("default")
+            .await
+            .map_err(|error| error.to_string())?;
+        store
+            .after_open()
+            .await
+            .map_err(|error| error.to_string())?;
+        Ok(store)
     }
 
-    fn read_legacy_kv(&self, key: &str) -> std::result::Result<Option<String>, String> {
-        let connection =
-            open_portable_kv_database(&self.legacy_kv_database_path()).map_err(to_string)?;
-        connection
-            .query_row(
-                "SELECT value FROM spin_key_value WHERE store = ?1 AND key = ?2",
-                rusqlite::params!["default", key],
-                |row| row.get::<_, Vec<u8>>(0),
-            )
-            .map(|bytes| Some(String::from_utf8_lossy(&bytes).into_owned()))
-            .or_else(|error| match error {
-                rusqlite::Error::QueryReturnedNoRows => Ok(None),
-                error => Err(error),
-            })
-            .map_err(to_string)
+    async fn read_legacy_kv(&self, key: &str) -> std::result::Result<Option<String>, String> {
+        self.legacy_store()
+            .await?
+            .get(key, MAX_HOST_CALL_BYTES)
+            .await
+            .map(|value| value.map(|bytes| String::from_utf8_lossy(&bytes).into_owned()))
+            .map_err(|error| error.to_string())
     }
 
-    fn write_legacy_kv(&self, key: &str, value: &str) -> std::result::Result<(), String> {
-        let connection =
-            open_portable_kv_database(&self.legacy_kv_database_path()).map_err(to_string)?;
-        connection
-            .execute(
-                "INSERT INTO spin_key_value (store, key, value) VALUES (?1, ?2, ?3)
-                 ON CONFLICT(store, key) DO UPDATE SET value = excluded.value",
-                rusqlite::params!["default", key, value.as_bytes()],
-            )
-            .map(drop)
-            .map_err(to_string)
+    async fn write_legacy_kv(&self, key: &str, value: &str) -> std::result::Result<(), String> {
+        self.legacy_store()
+            .await?
+            .set(key, value.as_bytes())
+            .await
+            .map_err(|error| error.to_string())
     }
 }
 
@@ -1601,22 +1604,21 @@ fn serialize_host_call_result(value: Value) -> std::result::Result<String, Strin
     Ok(encoded)
 }
 
-// Spin's standard keyvalue store may use blocking work internally and requires
-// Tokio's multi-thread runtime. Component Stores remain !Send, so dispatch
-// still runs inside this LocalSet and never crosses worker threads.
+// Spin trigger executors dispatch Component Stores on ordinary Tokio workers.
+// This is also required by Spin's SQLite key-value backend, whose synchronous
+// database sections use block_in_place.
 fn main() -> Result<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
         .enable_all()
         .build()?;
-    let local = tokio::task::LocalSet::new();
-    local.block_on(&runtime, async move {
+    runtime.block_on(async move {
         let (input_tx, mut input_rx) = mpsc::unbounded_channel::<String>();
         let (output_tx, mut output_rx) = mpsc::channel::<RunnerOutput>(1024);
-        let jobs = Rc::new(Mutex::new(HashMap::<String, ActiveJob>::new()));
+        let jobs = Arc::new(Mutex::new(HashMap::<String, ActiveJob>::new()));
         let host_calls: HostCallRegistry = Arc::new(Mutex::new(HashMap::new()));
         let (job_complete_tx, mut job_complete_rx) = mpsc::unbounded_channel::<String>();
-        let runner = Rc::new(Mutex::new(Runner::new()?));
+        let runner = Arc::new(Mutex::new(Runner::new()?));
 
         // stdin is a dedicated blocking reader. It never awaits component
         // execution, so cancel/status control can enter while a Guest runs.
@@ -1635,9 +1637,9 @@ fn main() -> Result<()> {
 
         // stdout has exactly one owner; every response and unsolicited event
         // is serialized through this bounded channel.
-        tokio::task::spawn_local(async move {
-            let mut stdout = std::io::stdout().lock();
+        tokio::spawn(async move {
             while let Some(output) = output_rx.recv().await {
+                let mut stdout = std::io::stdout().lock();
                 if serde_json::to_writer(&mut stdout, &output).is_err()
                     || stdout.write_all(b"\n").is_err()
                     || stdout.flush().is_err()
@@ -1714,11 +1716,11 @@ fn main() -> Result<()> {
                     let task_context = context.clone();
                     let task_complete_tx = job_complete_tx.clone();
                     let input = request.input.clone().unwrap_or_else(|| json!({}));
-                    // Stores are !Send, so every Job stays on this LocalSet.
-                    // Engine, FactorsExecutor and InstancePre remain owned by
-                    // the shared Runner; only Store/instance/TaskHostContext
-                    // are created per concurrent Job.
-                    tokio::task::spawn_local(async move {
+                    // Match Spin's native trigger model: each Component Store
+                    // runs on a normal Tokio worker. Engine, FactorsExecutor
+                    // and InstancePre remain shared; Store and task context are
+                    // still created per concurrent Job.
+                    tokio::spawn(async move {
                         let result = tokio::select! {
                             result = Runner::invoke_loaded_with_task(
                                 loaded,
@@ -1823,9 +1825,9 @@ fn main() -> Result<()> {
                     let _ = output_tx.send(RunnerOutput::Response { response }).await;
                 }
                 _ => {
-                    let task_runner = Rc::clone(&runner);
+                    let task_runner = Arc::clone(&runner);
                     let task_output = output_tx.clone();
-                    tokio::task::spawn_local(async move {
+                    tokio::spawn(async move {
                         let request_id = request.request_id.clone();
                         let response = response_for(request_id, task_runner.lock().await.handle(&request).await);
                         let _ = task_output.send(RunnerOutput::Response { response }).await;
@@ -1841,7 +1843,7 @@ fn main() -> Result<()> {
 mod tests {
     use super::{
         RunnerApp, RunnerFileMount, app_key, assert_safe_guest_path, classify_error,
-        migrate_legacy_json_kv, open_portable_kv_database, spin_allowed_hosts,
+        migrate_legacy_json_kv, spin_allowed_hosts, spin_key_value_store,
     };
     use std::{collections::BTreeMap, fs, path::PathBuf};
 
@@ -1950,33 +1952,24 @@ mod tests {
         }
     }
 
-    #[test]
-    fn migrates_legacy_json_to_spin_kv_sqlite_without_data_loss() {
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn migrates_legacy_json_through_spin_store_without_data_loss() {
         let directory = tempfile::tempdir().unwrap();
         let legacy_path = directory.path().join("portable-kv.json");
         fs::write(&legacy_path, r#"{"counter":"7","note":"preserve me"}"#).unwrap();
+        let store_manager = spin_key_value_store(directory.path()).unwrap();
 
-        migrate_legacy_json_kv(&directory.path().to_path_buf()).unwrap();
+        migrate_legacy_json_kv(directory.path(), &store_manager)
+            .await
+            .unwrap();
 
         assert!(!legacy_path.exists());
         assert!(directory.path().join("portable-kv.legacy.json").exists());
-        let connection =
-            open_portable_kv_database(&directory.path().join("portable-kv.sqlite")).unwrap();
-        let counter: Vec<u8> = connection
-            .query_row(
-                "SELECT value FROM spin_key_value WHERE store = ?1 AND key = ?2",
-                rusqlite::params!["default", "counter"],
-                |row| row.get(0),
-            )
-            .unwrap();
-        let note: Vec<u8> = connection
-            .query_row(
-                "SELECT value FROM spin_key_value WHERE store = ?1 AND key = ?2",
-                rusqlite::params!["default", "note"],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(counter, b"7");
-        assert_eq!(note, b"preserve me");
+        let store = store_manager.get("default").await.unwrap();
+        assert_eq!(store.get("counter", 1024).await.unwrap().unwrap(), b"7");
+        assert_eq!(
+            store.get("note", 1024).await.unwrap().unwrap(),
+            b"preserve me"
+        );
     }
 }

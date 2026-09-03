@@ -16,6 +16,7 @@ const STANDARD_PORTABLE_WIT_FILES = [
   "deps/clocks@0.2.6/world.wit",
   "deps/config@0.2.0-draft-2024-09-27/package.wit",
   "deps/config@0.2.0-draft-2024-09-27/store.wit",
+  "deps/keyvalue@0.2.0-draft2/store.wit",
   "deps/spin@2.0.0/package.wit",
   "deps/spin@2.0.0/sqlite.wit",
 ] as const;
@@ -106,7 +107,7 @@ export class AppRustWasiScaffoldTemplateService {
   private buildServiceManifest = (serviceId: string) => ({
     id: serviceId,
     title: "Rust/WASI 持久计数组件",
-    description: "通过宿主 KV 读取和增加持久计数。",
+    description: "通过标准 WASI key-value 读取和增加持久计数。",
     protocol: "wasi-component",
     component: { entry: "service.wasm" },
     actions: {
@@ -131,12 +132,12 @@ export class AppRustWasiScaffoldTemplateService {
       {
         action: "counter_increment",
         input: { step: 3 },
-        expect: { counter: 3, persistedBy: "host.kv" },
+        expect: { counter: 3, persistedBy: "wasi:keyvalue/store" },
       },
       {
         action: "counter_read",
         input: {},
-        expect: { counter: 3, persistedBy: "host.kv" },
+        expect: { counter: 3, persistedBy: "wasi:keyvalue/store" },
       },
     ],
   });
@@ -166,6 +167,7 @@ world = "service-app"
 "wasi:http" = { path = "wit/deps/http@0.2.6" }
 "wasi:io" = { path = "wit/deps/io@0.2.6" }
 "wasi:clocks" = { path = "wit/deps/clocks@0.2.6" }
+"wasi:keyvalue" = { path = "wit/deps/keyvalue@0.2.0-draft2" }
 "wasi:config" = { path = "wit/deps/config@0.2.0-draft-2024-09-27" }
 `;
 
@@ -179,6 +181,9 @@ world = "service-app"
 use exports::nextclaw::portable_service::service::{Action, Guest};
 use nextclaw::portable_service::host;
 use serde_json::{Value, json};
+use wasi::keyvalue::store as keyvalue_store;
+
+const STORE_NAME: &str = "default";
 
 struct Component;
 
@@ -188,12 +193,12 @@ impl Guest for Component {
             Action {
                 name: "counter_read".into(),
                 title: "读取持久计数".into(),
-                description: "从宿主管理的 KV 存储读取计数。".into(),
+                description: "从标准 WASI key-value 存储读取计数。".into(),
             },
             Action {
                 name: "counter_increment".into(),
                 title: "增加持久计数".into(),
-                description: "在 Rust/WASM 中计算，并通过宿主 KV 持久化。".into(),
+                description: "在 Rust/WASM 中计算，并通过标准 WASI key-value 持久化。".into(),
             },
         ]
     }
@@ -209,7 +214,10 @@ impl Guest for Component {
                     return Err("INVALID_INPUT: step must be between 1 and 100".into());
                 }
                 let counter = read_counter()?.saturating_add(step);
-                host::kv_set("counter", &counter.to_string())?;
+                let bucket = keyvalue_store::open(STORE_NAME).map_err(format_keyvalue_error)?;
+                bucket
+                    .set("counter", counter.to_string().as_bytes())
+                    .map_err(format_keyvalue_error)?;
                 Ok(counter_result(counter))
             }
             _ => Err(format!("UNKNOWN_ACTION: {action}")),
@@ -230,13 +238,21 @@ impl Guest for Component {
 }
 
 fn read_counter() -> Result<i64, String> {
-    Ok(host::kv_get("counter")?
+    let bucket = keyvalue_store::open(STORE_NAME).map_err(format_keyvalue_error)?;
+    Ok(bucket
+        .get("counter")
+        .map_err(format_keyvalue_error)?
+        .and_then(|value| String::from_utf8(value).ok())
         .and_then(|value| value.parse().ok())
         .unwrap_or(0))
 }
 
 fn counter_result(counter: i64) -> String {
-    json!({ "counter": counter, "persistedBy": "host.kv" }).to_string()
+    json!({ "counter": counter, "persistedBy": "wasi:keyvalue/store" }).to_string()
+}
+
+fn format_keyvalue_error(_error: keyvalue_store::Error) -> String {
+    "WASI_KEYVALUE_ERROR: application storage is unavailable".into()
 }
 
 export!(Component with_types_in self);
@@ -244,7 +260,7 @@ export!(Component with_types_in self);
 
   private buildReadme = (appName: string, serviceId: string): string => `# ${appName}
 
-这是一个可以独立构建的 Rust/WASI Component App。Panel 和 Agent 调用同一组 Service Action，计数通过 NextClaw 宿主 KV 持久保存。
+这是一个可以独立构建的 Rust/WASI Component App。Panel 和 Agent 调用同一组 Service Action，计数通过标准 WASI key-value 持久保存。
 
 ## 1. 准备 Rust 工具链
 
@@ -301,7 +317,7 @@ nextclaw app install ./${this.normalizeSlug(appName)}.napp
   <body>
     <main>
       <h1>${appName}</h1>
-      <p>这个数字由 Rust/WASI Component 计算，并通过宿主 KV 持久保存。</p>
+      <p>这个数字由 Rust/WASI Component 计算，并通过标准 WASI key-value 持久保存。</p>
       <output id="counter">…</output>
       <button id="increment" type="button">增加 1</button>
       <p id="error" role="alert"></p>
