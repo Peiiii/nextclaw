@@ -15,7 +15,7 @@
 - 必须不发生：通过 CSS/React 条件渲染伪装隔离；请求热路径全量 hash；复制 bridge/grant；standalone 启动主工作台副作用。
 - 架构不变量：稳定 appId、同源认证、同一 content/asset/token/bridge/sandbox 合同；App Package lifecycle 是 active component snapshot 的唯一 owner。
 - 代表性场景：workspace `inline-todo` 直接打开/刷新；package Panel 打开；client grant 允许/拒绝；not found；主 App 原入口。
-- 交付边界：隔离 worktree 中完成代码、测试、构建和真实本地验收；commit、push、PR、release、deploy 未授权。
+- 交付边界：隔离 worktree 中完成代码、测试、构建和真实本地验收；用户后续授权合入主干，commit 与 `origin/master` push 已完成，PR、release、deploy 不在授权范围。
 - 真实边界：不包含独立部署、公开分享、匿名访问、跨 origin 或 PWA 子应用。
 
 ## Active acceptance ledger
@@ -75,7 +75,7 @@
 - 结果：实现、客观验证、Review 和本地生产交付已完成，进入用户视觉验收。
 - 保持项：稳定 URL、共享 Panel 行为、主 App 不退化、完整性边界不降低均已有证据。
 - 验收入口：`http://127.0.0.1:18899/apps/panel/inline-todo/standalone`（隔离 home 和端口，不影响用户当前 15174/18792 实例）。
-- 未授权事项：commit、push、PR、release 和 deploy 均未执行。
+- 主干交付：runner cache 与 standalone 功能分别以 `4221f57b3` / `d3a705a09` 提交，并与最新远端主干合并后推送；PR、release 和 deploy 未执行。
 - 唯一未自动关闭项：Codex 内置浏览器的 localhost 安全策略阻止视觉自动化；需用户打开上述 URL 确认视觉偏好。
 
 ## 中断恢复入口
