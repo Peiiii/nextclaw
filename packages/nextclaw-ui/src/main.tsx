@@ -4,7 +4,10 @@ import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import App from './app';
 import { I18nProvider } from '@/components/providers/I18nProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { installMainI18nCatalog } from '@/shared/lib/i18n';
 import './index.css';
+
+await installMainI18nCatalog();
 
 const AppRouter = window.nextclawDesktop?.platform === 'win32' ? MemoryRouter : BrowserRouter;
 const root = createRoot(document.getElementById('root')!);

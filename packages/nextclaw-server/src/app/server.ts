@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { compress } from "hono/compress";
 import { serve } from "@hono/node-server";
 import { AccessManager } from "@nextclaw/kernel";
@@ -129,6 +129,16 @@ function mountUiStaticAssets(app: Hono, staticDir: string): void {
   }
 
   const indexHtml = readFileSync(join(staticDir, "index.html"), "utf-8");
+  const panelStandaloneHtmlPath = join(staticDir, "panel-standalone.html");
+  const panelStandaloneHtml = existsSync(panelStandaloneHtmlPath)
+    ? readFileSync(panelStandaloneHtmlPath, "utf-8")
+    : undefined;
+  if (panelStandaloneHtml) {
+    const servePanelStandalone = (c: Context) =>
+      c.html(panelStandaloneHtml, 200, { "cache-control": NO_STORE_CACHE_CONTROL });
+    app.get("/apps/panel/:appId/standalone", servePanelStandalone);
+    app.get("/apps/panel/:appId/standalone/", servePanelStandalone);
+  }
   app.use(
     "/*",
     serveStatic({

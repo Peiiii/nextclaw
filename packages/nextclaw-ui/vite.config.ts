@@ -11,10 +11,36 @@ const marketplacePreviewCovers = new Map([
   ['starter-card', path.resolve(__dirname, '../../apps/examples/starter-card/marketplace-assets/cover.webp')],
   ['workspace-glance', path.resolve(__dirname, '../../apps/examples/workspace-glance/marketplace-assets/cover.webp')],
 ]);
+const standalonePanelAppPath = /^\/apps\/panel\/[^/]+\/standalone\/?(?:\?.*)?$/;
+
+class StandalonePanelAppRequestRewriter {
+  rewrite = (request: { url?: string }) => {
+    if (request.url && standalonePanelAppPath.test(request.url)) {
+      request.url = '/panel-standalone.html';
+    }
+  };
+}
+
+const standalonePanelAppRequestRewriter = new StandalonePanelAppRequestRewriter();
 
 export default defineConfig({
   plugins: [
     react(),
+    {
+      name: 'nextclaw-panel-app-standalone-entry',
+      configureServer: (server) => {
+        server.middlewares.use((request, _response, next) => {
+          standalonePanelAppRequestRewriter.rewrite(request);
+          next();
+        });
+      },
+      configurePreviewServer: (server) => {
+        server.middlewares.use((request, _response, next) => {
+          standalonePanelAppRequestRewriter.rewrite(request);
+          next();
+        });
+      },
+    },
     {
       name: 'nextclaw-app-marketplace-preview-assets',
       apply: 'serve',
@@ -89,5 +115,14 @@ export default defineConfig({
         ws: true
       }
     }
-  }
+  },
+  build: {
+    manifest: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        panelStandalone: path.resolve(__dirname, 'panel-standalone.html'),
+      },
+    },
+  },
 });

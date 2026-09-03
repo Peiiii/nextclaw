@@ -9,6 +9,7 @@ import type {
 import { t } from '@/shared/lib/i18n';
 
 export const PANEL_APPS_QUERY_KEY = ['panel-apps'] as const;
+export const PANEL_APP_QUERY_KEY = ['panel-app'] as const;
 
 type PanelAppPreferencesMutation = {
   id: string;
@@ -75,6 +76,15 @@ export function usePanelApps(options: { enabled?: boolean } = {}) {
   });
 }
 
+export function usePanelApp(id: string, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: [...PANEL_APP_QUERY_KEY, id],
+    queryFn: () => nextclawClient.panelApps.getPanelApp(id),
+    enabled: Boolean(id) && (options.enabled ?? true),
+    staleTime: 5_000,
+  });
+}
+
 export function useUpdatePanelAppPreferences() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -96,6 +106,7 @@ export function useUpdatePanelAppPreferences() {
         PANEL_APPS_QUERY_KEY,
         (current) => replacePanelAppListEntry(current, entry),
       );
+      queryClient.setQueryData([...PANEL_APP_QUERY_KEY, entry.appId], entry);
     },
     onError: (error, mutation, context) => {
       const previousEntry = context?.previousEntry;
@@ -124,6 +135,7 @@ export function useRecordPanelAppOpened() {
         PANEL_APPS_QUERY_KEY,
         (current) => replacePanelAppListEntry(current, entry),
       );
+      queryClient.setQueryData([...PANEL_APP_QUERY_KEY, entry.appId], entry);
     },
   });
 }
@@ -134,6 +146,7 @@ export function useGrantPanelAppClient() {
     mutationFn: (appId: string) => nextclawClient.panelApps.grantClient(appId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PANEL_APPS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PANEL_APP_QUERY_KEY });
     },
   });
 }
@@ -144,6 +157,7 @@ export function useDeletePanelApp() {
     mutationFn: (id: string) => nextclawClient.panelApps.deletePanelApp(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PANEL_APPS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PANEL_APP_QUERY_KEY });
     },
   });
 }

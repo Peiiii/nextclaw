@@ -185,7 +185,8 @@ describe("PanelAppManager listing", () => {
     writeFileSync(join(panelsPath, "notes.html"), "<h1>Notes</h1>");
     writeFileSync(join(panelsPath, "nested", "deep.panel.html"), "<h1>Deep</h1>");
 
-    const list = await createPanelAppManager(workspacePath).listPanelApps();
+    const manager = createPanelAppManager(workspacePath);
+    const list = await manager.listPanelApps();
 
     expect(list.workspacePath).toBe(workspacePath);
     expect(list.panelsPath).toBe(panelsPath);
@@ -196,6 +197,9 @@ describe("PanelAppManager listing", () => {
         title: "daily board",
         contentPath: expect.stringMatching(/^\/api\/panel-apps\/.+\/content$/),
       }),
+    );
+    await expect(manager.getPanelApp(list.entries[0]!.appId)).resolves.toEqual(
+      expect.objectContaining({ appId: list.entries[0]!.appId }),
     );
   });
 

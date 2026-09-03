@@ -13,7 +13,7 @@ import type {
   PortableRuntimeAcceptanceStatusApiView,
   RuntimeVerificationRecordListView,
 } from '@nextclaw/client-sdk';
-import type { ServiceActionAuthorizationManager } from '@/features/service-apps';
+import type { PanelAppServiceActionAuthorizationManager } from '@/features/panel-apps/managers/panel-app-service-action-authorization.manager';
 import { nextclawClient } from '@/shared/lib/api';
 
 export type PanelAppIframeMessageParams = {
@@ -71,7 +71,7 @@ type PanelAppBridgeResponse =
     };
 
 export class PanelAppBridgeManager {
-  constructor(private readonly authorizationManager: ServiceActionAuthorizationManager) {}
+  constructor(private readonly authorizationManager: PanelAppServiceActionAuthorizationManager) {}
 
   handleIframeMessage = ({ event, iframe }: PanelAppIframeMessageParams): void => {
     if (!this.isBridgeRequest(event.data)) {

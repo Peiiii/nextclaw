@@ -100,6 +100,26 @@ describe("panel apps routes", () => {
     expect(payload.data.entries[0]?.fileName).toBe("demo.panel.html");
   });
 
+  it("reads one panel app without requiring the full list contract", async () => {
+    let requestedId: string | undefined;
+    const app = createTestApp({
+      getPanelApp: async (id: string) => {
+        requestedId = id;
+        return createPanelAppEntry({ appId: "publisher.todo" });
+      },
+    } as never);
+
+    const response = await app.request("http://localhost/api/panel-apps/publisher.todo");
+    const payload = await response.json() as {
+      ok: true;
+      data: { appId: string };
+    };
+
+    expect(response.status).toBe(200);
+    expect(requestedId).toBe("publisher.todo");
+    expect(payload.data.appId).toBe("publisher.todo");
+  });
+
   it("serves panel app HTML content without wrapping it as JSON", async () => {
     let requestedSource: [string, string | undefined] | undefined;
     const app = createTestApp({

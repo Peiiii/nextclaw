@@ -1,4 +1,7 @@
 import { vi } from 'vitest';
+import { installMainI18nCatalog } from '@/shared/lib/i18n';
+
+await installMainI18nCatalog();
 
 Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
   value: vi.fn(),

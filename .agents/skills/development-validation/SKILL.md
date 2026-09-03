@@ -45,7 +45,7 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 
 - 分页/懒加载、虚拟列表瞬态、IME/选区、结构化输入、附件消费闭环或外部主题复刻：读取[复杂 UI 验证](references/ui-validation.md)。普通 CSS 和审美修改不读取。
 - 用户已在真实实例复现，或任务触达冷/热启动、重复状态转换、journal/projection/hydrate、accepted run handle 或启动恢复：读取[真实运行实例验证](references/runtime-instance-validation.md)。
-- 需要隔离全局安装版验证当前仓库源码：读取[本地源码运行验证](references/local-source-runtime.md)。
+- 需要隔离全局安装版验证时，按 diff 过构建资格门并读取[本地源码运行验证](references/local-source-runtime.md)；纯前端不得触发未变化的 Runtime/Cargo/CLI 构建。
 - 验证 `packages/extensions/*` 未发布源码：读取[本地 Extension 源码验证](references/local-extension-source.md)。
 - 触达 Desktop 内嵌 Runtime 的文件集合、native resources、bundle 复制规则或产物预算：开发收尾先在当前平台运行一次 `pnpm -C apps/desktop bundle:build -- --channel stable`，用本地 bundle 的文件数、缺失资产和产物形状作快速门；通过后才运行远端多平台 Desktop 验证。不得等正式发布首次发现这类确定性打包错误。
 - 对指定 session/model 执行真实 NCP chat：读取[NCP Chat 冒烟](references/ncp-chat-smoke.md)。

@@ -163,6 +163,22 @@ async function expectCacheControl(
   return response;
 }
 
+async function startPanelStandaloneFixture(port: number) {
+  const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-server-panel-standalone-"));
+  const staticDir = join(rootDir, "ui-dist");
+  mkdirSync(staticDir, { recursive: true });
+  writeFileSync(join(staticDir, "index.html"), "<!doctype html><main>workspace shell</main>");
+  writeFileSync(
+    join(staticDir, "panel-standalone.html"),
+    "<!doctype html><main>panel standalone host</main>",
+  );
+  return await startUiServer(createTestGateway({
+    configPath: join(rootDir, "config.json"),
+    port,
+    uiStaticDir: staticDir,
+  }));
+}
+
 describe("ui server api cors", () => {
   const handles: Array<{ close: () => Promise<void> }> = [];
 
@@ -402,5 +418,22 @@ describe("ui server api cors", () => {
         port,
       }))
     ).rejects.toThrow(/EADDRINUSE|address already in use/i);
+  });
+});
+
+describe("panel standalone static host", () => {
+  it("serves the dedicated panel app host for standalone routes", async () => {
+    const port = await reservePort();
+    const handle = await startPanelStandaloneFixture(port);
+    try {
+      const baseUrl = `http://127.0.0.1:${port}`;
+      await waitForServer(baseUrl);
+      const response = await fetch(`${baseUrl}/apps/panel/publisher.todo/standalone`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(await response.text()).toContain("panel standalone host");
+    } finally {
+      await handle.close();
+    }
   });
 });

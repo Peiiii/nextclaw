@@ -124,4 +124,22 @@ describe('PanelAppListItem', () => {
       preferences: { mainSidebar: false },
     });
   });
+
+  it('offers the standalone app link from the more-actions menu', async () => {
+    const user = userEvent.setup();
+    render(
+      <PanelAppListItem
+        deletePending={false}
+        entry={baseEntry}
+        favoritePending={false}
+        onDelete={vi.fn()}
+        onOpen={vi.fn()}
+        onToggleFavorite={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
+    const link = screen.getByRole('link', { name: 'Open in New Tab' });
+    expect(link.getAttribute('href')).toBe('/apps/panel/demo/standalone');
+  });
 });

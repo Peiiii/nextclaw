@@ -11,9 +11,9 @@ import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styl
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
 import { ChatPage } from "@/components/chat/chat-page";
-import { AccountPanel } from "@/features/account";
+import { loadAccountPanel } from "@/features/account";
 import { InboxRuntime } from "@/features/inbox";
-import { ServiceActionAuthorizationDialog } from "@/features/service-apps";
+import { PanelAppServiceActionAuthorizationDialog } from "@/features/panel-apps";
 import { DesktopAuthorizationDialog } from "@/features/desktop-capabilities";
 import { runtimeUpdateManager, useSystemStatusSources } from "@/features/system-status";
 import {
@@ -25,8 +25,14 @@ import {
   PwaInstallBanner,
 } from "@/pwa/components/pwa-install-entry";
 import { startNextClawPwa } from "@/pwa/register-pwa";
+import { pwaShellThemeManager } from "@/features/pwa";
+import { useTheme } from "@/app/components/theme-provider";
 
 const NOTIFICATION_TOASTER_STYLE = { "--width": "320px" } as CSSProperties;
+
+const AccountPanel = lazy(async () => ({
+  default: (await loadAccountPanel()).AccountPanel,
+}));
 
 const ModelConfigPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/model-config-page"))
@@ -266,8 +272,10 @@ function ProtectedApp() {
       <AppLayout>
         <ProtectedRoutes />
       </AppLayout>
-      <AccountPanel />
-      <ServiceActionAuthorizationDialog />
+      <Suspense fallback={null}>
+        <AccountPanel />
+      </Suspense>
+      <PanelAppServiceActionAuthorizationDialog />
       <DesktopAuthorizationDialog />
     </AppPresenterProvider>
   );
@@ -294,9 +302,15 @@ function AuthGate() {
 }
 
 export default function AppContent() {
+  const { theme } = useTheme();
+
   useEffect(() => {
     startNextClawPwa();
   }, []);
+
+  useEffect(() => {
+    pwaShellThemeManager.syncTheme(theme);
+  }, [theme]);
 
   return (
     <QueryClientProvider client={appQueryClient}>

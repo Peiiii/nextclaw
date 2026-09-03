@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, type Context, type ReactNode } from 'react';
 import { getAppPresenter, type AppPresenter } from '@/app/presenters/app.presenter';
+import { PanelAppHostProvider } from '@/features/panel-apps';
 
 type AppPresenterContextGlobal = typeof globalThis & {
   __NEXTCLAW_APP_PRESENTER_CONTEXT__?: Context<AppPresenter | null>;
@@ -18,7 +19,13 @@ type AppPresenterProviderProps = {
 
 export function AppPresenterProvider({ children }: AppPresenterProviderProps) {
   const presenter = useMemo(() => getAppPresenter(), []);
-  return <AppPresenterContext.Provider value={presenter}>{children}</AppPresenterContext.Provider>;
+  return (
+    <AppPresenterContext.Provider value={presenter}>
+      <PanelAppHostProvider presenter={presenter.panelAppHostPresenter}>
+        {children}
+      </PanelAppHostProvider>
+    </AppPresenterContext.Provider>
+  );
 }
 
 export function useAppPresenter() {

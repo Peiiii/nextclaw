@@ -14,7 +14,6 @@ import {
   subscribeThemeChange,
   type UiTheme,
 } from '@/shared/lib/theme';
-import { pwaShellThemeManager } from '@/features/pwa';
 
 type ThemeContextValue = {
   theme: UiTheme;
@@ -25,10 +24,6 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<UiTheme>(() => initializeTheme());
-
-  useEffect(() => {
-    pwaShellThemeManager.syncTheme(theme);
-  }, [theme]);
 
   useEffect(() => {
     const unsubscribe = subscribeThemeChange((nextTheme) => {

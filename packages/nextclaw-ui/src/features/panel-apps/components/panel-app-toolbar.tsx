@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { MoreVertical, RefreshCw } from 'lucide-react';
 import { PanelAppMainSidebarMenuItem } from '@/features/panel-apps/components/panel-app-main-sidebar-menu-item';
+import { PanelAppOpenStandaloneMenuItem } from '@/features/panel-apps/components/panel-app-open-standalone-menu-item';
 import { usePanelApps } from '@/features/panel-apps/hooks/use-panel-apps';
 import { readPanelAppIdFromTab } from '@/features/right-panel-resources';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
@@ -39,6 +40,10 @@ export function PanelAppToolbar({
             />
           </PopoverTrigger>
           <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
+            <PanelAppOpenStandaloneMenuItem
+              entry={entry}
+              onSelect={() => setIsMenuOpen(false)}
+            />
             <PanelAppMainSidebarMenuItem
               entry={entry}
               onSelect={() => setIsMenuOpen(false)}

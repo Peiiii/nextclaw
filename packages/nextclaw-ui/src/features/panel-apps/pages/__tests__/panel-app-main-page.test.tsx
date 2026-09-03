@@ -19,8 +19,8 @@ const mocks = vi.hoisted(() => ({
   updatePreferences: vi.fn(),
 }));
 
-vi.mock("@/app/components/app-presenter-provider", () => ({
-  useAppPresenter: () => ({
+vi.mock("@/features/panel-apps/providers/panel-app-host.provider", () => ({
+  usePanelAppHostPresenter: () => ({
     panelAppBridgeManager: { handleIframeMessage: mocks.bridgeMessage },
   }),
 }));
@@ -33,6 +33,15 @@ vi.mock("@/features/panel-apps/hooks/use-panel-app-client-grant", () => ({
 }));
 
 vi.mock("@/features/panel-apps/hooks/use-panel-apps", () => ({
+  PANEL_APP_QUERY_KEY: ["panel-app"],
+  PANEL_APPS_QUERY_KEY: ["panel-apps"],
+  usePanelApp: (appId: string) => ({
+    data: mocks.entries.find((entry) => entry.appId === appId),
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: mocks.refetch,
+  }),
   usePanelApps: () => ({
     data: { entries: mocks.entries },
     error: null,
@@ -161,7 +170,7 @@ describe("PanelAppMainPage", () => {
 
     first.unmount();
     await waitFor(() => expect(queryClient.getQueryData([
-      "panel-app-main-client-grant",
+      "panel-app-client-grant",
       "publisher.todo",
       false,
     ])).toBeUndefined());

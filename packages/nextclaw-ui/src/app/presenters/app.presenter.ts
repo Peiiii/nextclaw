@@ -7,12 +7,11 @@ import {
   useChatThreadStore,
 } from '@/features/chat';
 import { AppNotificationManager } from '@/features/notifications';
-import { PanelAppBridgeManager } from '@/features/panel-apps';
+import { PanelAppHostPresenter } from '@/features/panel-apps';
 import { InboxManager } from '@/features/inbox';
 import { AppPackageOperationSettlementManager } from '@/features/apps';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 import { RemoteAccessManager } from '@/features/remote';
-import { ServiceActionAuthorizationManager } from '@/features/service-apps';
 import { SideDockManager } from '@/features/side-dock';
 import { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
@@ -50,8 +49,9 @@ export class AppPresenter {
   sideDockManager = new SideDockManager(this.docBrowserManager);
   chatComposerIntentManager = new ChatComposerIntentManager();
   chatDraftIntentManager = new ChatDraftIntentManager();
-  serviceActionAuthorizationManager = new ServiceActionAuthorizationManager();
-  panelAppBridgeManager = new PanelAppBridgeManager(this.serviceActionAuthorizationManager);
+  panelAppHostPresenter = new PanelAppHostPresenter();
+  serviceActionAuthorizationManager = this.panelAppHostPresenter.serviceActionAuthorizationManager;
+  panelAppBridgeManager = this.panelAppHostPresenter.panelAppBridgeManager;
   remoteAccessManager = new RemoteAccessManager({
     accountManager: this.accountManager,
   });

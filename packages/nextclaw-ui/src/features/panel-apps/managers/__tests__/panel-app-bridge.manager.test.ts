@@ -2,7 +2,7 @@ import { NextClawClientError } from '@nextclaw/client-sdk';
 import { waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PanelAppBridgeManager } from '@/features/panel-apps/managers/panel-app-bridge.manager';
-import type { ServiceActionAuthorizationManager } from '@/features/service-apps';
+import type { PanelAppServiceActionAuthorizationManager } from '@/features/panel-apps/managers/panel-app-service-action-authorization.manager';
 
 const mocks = vi.hoisted(() => ({
   generateAgentObject: vi.fn(),
@@ -45,7 +45,7 @@ afterEach(() => {
 function createManager(): PanelAppBridgeManager {
   return new PanelAppBridgeManager({
     requestAuthorization: mocks.requestAuthorization,
-  } as unknown as ServiceActionAuthorizationManager);
+  } as unknown as PanelAppServiceActionAuthorizationManager);
 }
 
 function createIframeHarness(manager: PanelAppBridgeManager) {

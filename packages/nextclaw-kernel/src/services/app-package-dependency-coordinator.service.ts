@@ -103,7 +103,7 @@ export class AppPackageDependencyCoordinator {
     target: AppPackageDependencyTarget,
   ): Promise<AppPackageDependencyBinding[]> => await this.dependencyService.listBindings(target);
 
-  listActiveComponentSourcesWithDiagnostics = async (): Promise<AppPackageComponentSourceList> => {
+  loadActiveComponentSourcesWithDiagnostics = async (): Promise<AppPackageComponentSourceList> => {
     const records = await this.params.registryService.listApps();
     const results = await Promise.all(records
       .filter((record) => record.enabled)

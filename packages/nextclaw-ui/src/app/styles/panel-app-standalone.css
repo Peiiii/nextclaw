@@ -1,0 +1,31 @@
+@import "./design-system.css";
+@import "./charcoal-theme.css";
+@import "./island-theme.css";
+
+@config "../../../panel-standalone.tailwind.config.js";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    overflow: hidden;
+  }
+}

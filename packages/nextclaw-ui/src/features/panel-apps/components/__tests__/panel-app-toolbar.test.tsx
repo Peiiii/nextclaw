@@ -82,4 +82,19 @@ describe('PanelAppToolbar', () => {
       preferences: { mainSidebar: false },
     });
   });
+
+  it('offers the standalone app link from the toolbar menu', async () => {
+    const user = userEvent.setup();
+    render(
+      <PanelAppToolbar
+        appTitle="墨爪助手"
+        entry={entry}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
+    const link = screen.getByRole('link', { name: 'Open in New Tab' });
+    expect(link.getAttribute('href')).toBe('/apps/panel/ink-assistant/standalone');
+  });
 });

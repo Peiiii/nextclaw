@@ -1,69 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  fetchAuthStatus,
   loginAuth,
   logoutAuth,
   setupAuth,
   updateAuthEnabled,
   updateAuthPassword
 } from '@/shared/lib/api';
-import type { AuthStatusView } from '@/shared/lib/api';
 import { toast } from 'sonner';
 import { t } from '@/shared/lib/i18n';
-import { isTransientRuntimeConnectionErrorMessage } from '@/shared/lib/transport';
-
-const AUTH_STATUS_BOOTSTRAP_PROBE_POLICY = {
-  maxRetries: 8,
-  startupTimeoutMs: 2_000,
-  settledTimeoutMs: 5_000,
-  retryBaseDelayMs: 500,
-  retryMaxDelayMs: 3_000,
-} as const;
-
-export function isTransientAuthStatusBootstrapError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false;
-  }
-  return isTransientRuntimeConnectionErrorMessage(error.message);
-}
-
-export function shouldRetryAuthStatusBootstrap(failureCount: number, error: unknown): boolean {
-  if (failureCount >= AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.maxRetries) {
-    return false;
-  }
-  return isTransientAuthStatusBootstrapError(error);
-}
-
-export function resolveAuthStatusBootstrapRetryDelay(failureCount: number): number {
-  return Math.min(
-    AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.retryMaxDelayMs,
-    AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.retryBaseDelayMs * 2 ** Math.max(0, failureCount - 1)
-  );
-}
-
-export function useAuthStatus() {
-  const [bootstrapSettled, setBootstrapSettled] = useState(false);
-  const query = useQuery<AuthStatusView>({
-    queryKey: ['auth-status'],
-    queryFn: () => fetchAuthStatus({
-      timeoutMs: bootstrapSettled
-        ? AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.settledTimeoutMs
-        : AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.startupTimeoutMs,
-    }),
-    staleTime: 5_000,
-    retry: shouldRetryAuthStatusBootstrap,
-    retryDelay: resolveAuthStatusBootstrapRetryDelay
-  });
-
-  useEffect(() => {
-    if (query.isSuccess && !bootstrapSettled) {
-      setBootstrapSettled(true);
-    }
-  }, [bootstrapSettled, query.isSuccess]);
-
-  return query;
-}
+export {
+  isTransientAuthStatusBootstrapError,
+  resolveAuthStatusBootstrapRetryDelay,
+  shouldRetryAuthStatusBootstrap,
+  useAuthStatus,
+} from "@/shared/hooks/use-auth-status";
 
 function invalidateProtectedQueries(queryClient: ReturnType<typeof useQueryClient>): Promise<unknown[]> {
   return Promise.all([
