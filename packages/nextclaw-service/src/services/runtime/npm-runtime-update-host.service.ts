@@ -295,7 +295,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       stateStore: this.stateStore,
       bundleService: this.bundleService,
       updateService: this.updateService,
-      resolveManifestUrl: (resolvedChannel) => this.source.resolveManifestUrl(resolvedChannel),
+      resolveManifestUrls: (resolvedChannel) => this.source.resolveManifestUrls(resolvedChannel),
       launcherVersion: this.launcherVersion,
       runningVersion: this.runningVersion,
       channel

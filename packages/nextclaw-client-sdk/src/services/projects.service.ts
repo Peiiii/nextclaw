@@ -10,7 +10,9 @@ import type {
   ProjectWorkActivityPage,
   ProjectWorkArtifactLink,
   ProjectWorkItemDetail,
-  ProjectWorkList,
+  ProjectWorkItemPage,
+  ProjectWorkListInput,
+  ProjectRecentArtifactPage,
   ProjectWorkState,
   ProjectWorkSummary,
   UpdateProjectWorkItemInput,
@@ -72,11 +74,20 @@ export class ProjectsService {
 
   readonly listWork = async (
     projectId: string,
-    includeDeleted = false,
-  ): Promise<ProjectWorkList> =>
-    await this.requestService.get<ProjectWorkList>(
+    input: Omit<ProjectWorkListInput, "projectId"> = {},
+  ): Promise<ProjectWorkItemPage> =>
+    await this.requestService.get<ProjectWorkItemPage>(
       `/api/projects/${encodeURIComponent(projectId)}/work`,
-      includeDeleted ? { query: { includeDeleted: true } } : {},
+      { query: input },
+    );
+
+  readonly listRecentWorkArtifacts = async (
+    projectId: string,
+    input: { cursor?: string; limit?: number } = {},
+  ): Promise<ProjectRecentArtifactPage> =>
+    await this.requestService.get<ProjectRecentArtifactPage>(
+      `/api/projects/${encodeURIComponent(projectId)}/work/artifacts`,
+      { query: input },
     );
 
   readonly getWorkSummary = async (

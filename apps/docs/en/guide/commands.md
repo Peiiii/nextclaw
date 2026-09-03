@@ -103,29 +103,29 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 
 ## Projects and sessions
 
-| Command                                  | Purpose                                                         |
-| ---------------------------------------- | --------------------------------------------------------------- |
-| `nextclaw projects list`                 | List registered projects, including projects without sessions   |
-| `nextclaw projects templates`            | List built-in project templates                                 |
-| `nextclaw projects create`               | Create and register a project                                   |
-| `nextclaw projects observe`              | Read a registered project's observation snapshot                |
-| `nextclaw projects work list`            | List work items by project ID                                   |
-| `nextclaw projects work get`             | Show work-item details                                          |
-| `nextclaw projects work create`          | Create a persistent work item                                   |
-| `nextclaw projects work update`          | Update fields, state, or attention                              |
-| `nextclaw projects work delete`          | Soft-delete a work item                                         |
-| `nextclaw projects work restore`         | Restore a deleted work item                                     |
-| `nextclaw projects work activity`        | Show immutable work-item activity                               |
-| `nextclaw projects work artifact link`   | Link an artifact file inside the project                        |
-| `nextclaw projects work artifact unlink` | Remove an artifact link                                         |
-| `nextclaw projects work state list`      | List custom project work states                                 |
-| `nextclaw projects work state create`    | Create a work state                                             |
-| `nextclaw projects work state update`    | Update or reorder a work state                                  |
-| `nextclaw projects work state delete`    | Delete a state and optionally migrate existing items            |
-| `nextclaw sessions rename`               | Rename a session                                                |
-| `nextclaw sessions set-project`          | Bind a session to an existing project directory                 |
-| `nextclaw sessions clear-project`        | Clear a session's explicit project binding                      |
-| `nextclaw sessions delete`               | Permanently delete a session; requires `--confirm <session-id>` |
+| Command                                  | Purpose                                                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `nextclaw projects list`                 | List registered projects, including projects without sessions                                        |
+| `nextclaw projects templates`            | List built-in project templates                                                                      |
+| `nextclaw projects create`               | Create and register a project                                                                        |
+| `nextclaw projects observe`              | Read a registered project's observation snapshot                                                     |
+| `nextclaw projects work list`            | Page through work items by project ID with `--state`, `--cursor`, `--limit`, and `--include-deleted` |
+| `nextclaw projects work get`             | Show work-item details                                                                               |
+| `nextclaw projects work create`          | Create a persistent work item                                                                        |
+| `nextclaw projects work update`          | Update fields, state, or attention                                                                   |
+| `nextclaw projects work delete`          | Soft-delete a work item                                                                              |
+| `nextclaw projects work restore`         | Restore a deleted work item                                                                          |
+| `nextclaw projects work activity`        | Show immutable work-item activity                                                                    |
+| `nextclaw projects work artifact link`   | Link an artifact file inside the project                                                             |
+| `nextclaw projects work artifact unlink` | Remove an artifact link                                                                              |
+| `nextclaw projects work state list`      | List custom project work states                                                                      |
+| `nextclaw projects work state create`    | Create a work state                                                                                  |
+| `nextclaw projects work state update`    | Update or reorder a work state                                                                       |
+| `nextclaw projects work state delete`    | Delete a state and optionally migrate existing items                                                 |
+| `nextclaw sessions rename`               | Rename a session                                                                                     |
+| `nextclaw sessions set-project`          | Bind a session to an existing project directory                                                      |
+| `nextclaw sessions clear-project`        | Clear a session's explicit project binding                                                           |
+| `nextclaw sessions delete`               | Permanently delete a session; requires `--confirm <session-id>`                                      |
 
 Every `projects work` command requires `--project <project-id>` and runs through the local NextClaw service.
 

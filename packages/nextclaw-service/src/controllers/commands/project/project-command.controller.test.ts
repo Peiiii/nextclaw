@@ -64,4 +64,42 @@ describe("ProjectCommands observe", () => {
       "Updated work item work-1\tIn Progress\tUpdated",
     );
   });
+
+  it("forwards work list cursor filters and exposes the next cursor", async () => {
+    const request = vi.fn(async () => ({
+      items: [
+        {
+          id: "work-1",
+          title: "Paged",
+          state: { name: "In Review" },
+          attention: "none",
+        },
+      ],
+      nextCursor: "next-page",
+      total: 21,
+    }));
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    const commands = new ProjectCommands(
+      () => {
+        throw new Error("work commands must not create a kernel");
+      },
+      () => ({ request }) as never,
+    );
+
+    await commands.workList({
+      project: "project-1",
+      state: "review",
+      cursor: "cursor-1",
+      limit: "20",
+      includeDeleted: true,
+    });
+
+    expect(request).toHaveBeenCalledWith({
+      path: "/api/projects/project-1/work?limit=20&includeDeleted=true&stateId=review&cursor=cursor-1",
+      method: "GET",
+    });
+    expect(log).toHaveBeenLastCalledWith(
+      "More work items available. Next cursor: next-page",
+    );
+  });
 });

@@ -1,9 +1,15 @@
 import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type {
   CreateProjectWorkItemInput,
   CreateProjectWorkStateInput,
   ProjectWorkState,
+  ProjectWorkListInput,
   UpdateProjectWorkItemInput,
   UpdateProjectWorkStateInput,
 } from "@nextclaw/client-sdk";
@@ -14,6 +20,10 @@ export const projectWorkQueryKey = (projectId: string) =>
   ["project-work", projectId] as const;
 export const projectWorkSummaryQueryKey = (projectId: string) =>
   ["project-work-summary", projectId] as const;
+export const projectWorkStatesQueryKey = (projectId: string) =>
+  ["project-work-states", projectId] as const;
+export const projectWorkArtifactsQueryKey = (projectId: string) =>
+  ["project-work-artifacts", projectId] as const;
 export const projectWorkItemQueryKey = (
   projectId: string,
   workItemId: string,
@@ -25,24 +35,47 @@ export const projectWorkActivityQueryKey = (
 
 export function useProjectWork(
   projectId: string | null,
-  includeDeleted = false,
+  input: Omit<ProjectWorkListInput, "cursor"> = {},
 ) {
-  useProjectWorkEvents(projectId);
-  return useQuery({
-    queryKey: [...projectWorkQueryKey(projectId ?? ""), includeDeleted],
+  return useInfiniteQuery({
+    queryKey: [...projectWorkQueryKey(projectId ?? ""), input],
     enabled: Boolean(projectId),
-    queryFn: async () =>
-      await nextclawClient.projects.listWork(projectId!, includeDeleted),
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }) =>
+      await nextclawClient.projects.listWork(projectId!, {
+        ...input,
+        ...(pageParam ? { cursor: pageParam } : {}),
+      }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
   });
 }
 
 export function useProjectWorkSummary(projectId: string | null) {
-  useProjectWorkEvents(projectId);
   return useQuery({
     queryKey: projectWorkSummaryQueryKey(projectId ?? ""),
     enabled: Boolean(projectId),
     queryFn: async () =>
       await nextclawClient.projects.getWorkSummary(projectId!),
+  });
+}
+
+export function useProjectWorkStates(projectId: string | null) {
+  return useQuery({
+    queryKey: projectWorkStatesQueryKey(projectId ?? ""),
+    enabled: Boolean(projectId),
+    queryFn: async () =>
+      await nextclawClient.projects.listWorkStates(projectId!),
+  });
+}
+
+export function useProjectRecentArtifacts(projectId: string | null, limit = 5) {
+  return useQuery({
+    queryKey: [...projectWorkArtifactsQueryKey(projectId ?? ""), limit],
+    enabled: Boolean(projectId),
+    queryFn: async () =>
+      await nextclawClient.projects.listRecentWorkArtifacts(projectId!, {
+        limit,
+      }),
   });
 }
 
@@ -83,6 +116,12 @@ export function useProjectWorkActions(projectId: string) {
       }),
       queryClient.invalidateQueries({
         queryKey: projectWorkSummaryQueryKey(projectId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: projectWorkStatesQueryKey(projectId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: projectWorkArtifactsQueryKey(projectId),
       }),
       ...(workItemId
         ? [
@@ -181,7 +220,7 @@ export function useProjectWorkActions(projectId: string) {
   };
 }
 
-function useProjectWorkEvents(projectId: string | null): void {
+export function useProjectWorkEvents(projectId: string | null): void {
   const queryClient = useQueryClient();
   useEffect(() => {
     if (!projectId) return;
@@ -192,6 +231,12 @@ function useProjectWorkEvents(projectId: string | null): void {
       });
       void queryClient.invalidateQueries({
         queryKey: projectWorkSummaryQueryKey(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: projectWorkStatesQueryKey(projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: projectWorkArtifactsQueryKey(projectId),
       });
       if (event.workItemId) {
         void queryClient.invalidateQueries({
@@ -212,4 +257,32 @@ export function sortProjectWorkStates(
     (left, right) =>
       left.position - right.position || left.name.localeCompare(right.name),
   );
+}
+
+const LIST_CATEGORY_ORDER: Readonly<
+  Record<ProjectWorkState["category"], number>
+> = {
+  started: 0,
+  unstarted: 1,
+  backlog: 2,
+  completed: 3,
+  canceled: 4,
+};
+
+export function sortProjectWorkStatesForList(
+  states: ProjectWorkState[],
+): ProjectWorkState[] {
+  return [...states].sort((left, right) => {
+    const categoryOrder =
+      LIST_CATEGORY_ORDER[left.category] - LIST_CATEGORY_ORDER[right.category];
+    if (categoryOrder !== 0) return categoryOrder;
+    if (left.category === "completed" || left.category === "canceled") {
+      return (
+        left.position - right.position || left.name.localeCompare(right.name)
+      );
+    }
+    return (
+      right.position - left.position || left.name.localeCompare(right.name)
+    );
+  });
 }

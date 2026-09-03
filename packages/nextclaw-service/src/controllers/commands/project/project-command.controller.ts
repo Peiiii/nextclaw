@@ -5,7 +5,7 @@ import type {
   ProjectObservationSnapshot,
   ProjectWorkActivityPage,
   ProjectWorkItemDetail,
-  ProjectWorkList,
+  ProjectWorkItemPage,
   ProjectWorkState,
 } from "@nextclaw/kernel";
 import {
@@ -24,6 +24,13 @@ export type ProjectCreateCommandOptions = ProjectCommandOptions & {
 
 export type ProjectWorkCommandOptions = ProjectCommandOptions & {
   project: string;
+};
+
+export type ProjectWorkListCommandOptions = ProjectWorkCommandOptions & {
+  includeDeleted?: boolean;
+  state?: string;
+  cursor?: string;
+  limit?: string;
 };
 
 export type ProjectWorkCreateCommandOptions = ProjectWorkCommandOptions & {
@@ -116,18 +123,33 @@ export class ProjectCommands {
     });
   };
 
-  workList = async (
-    options: ProjectWorkCommandOptions & { includeDeleted?: boolean },
-  ): Promise<void> => {
-    const work = await this.api<ProjectWorkList>(
-      `/api/projects/${encodeURIComponent(options.project)}/work${options.includeDeleted ? "?includeDeleted=true" : ""}`,
+  workList = async (options: ProjectWorkListCommandOptions): Promise<void> => {
+    const {
+      cursor,
+      includeDeleted,
+      json,
+      limit: rawLimit,
+      project,
+      state,
+    } = options;
+    const limit = rawLimit === undefined ? 20 : Number(rawLimit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+      throw new Error("--limit must be an integer from 1 to 100");
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (includeDeleted) query.set("includeDeleted", "true");
+    if (state) query.set("stateId", state);
+    if (cursor) query.set("cursor", cursor);
+    const work = await this.api<ProjectWorkItemPage>(
+      `/api/projects/${encodeURIComponent(project)}/work?${query.toString()}`,
     );
-    if (options.json) return this.printJson(work);
+    if (json) return this.printJson(work);
     if (!work.items.length) return void console.log("No work items.");
     for (const item of work.items)
       console.log(
         `${item.id}\t${item.state.name}\t${item.attention}\t${item.title}`,
       );
+    if (work.nextCursor)
+      console.log(`More work items available. Next cursor: ${work.nextCursor}`);
   };
 
   workGet = async (

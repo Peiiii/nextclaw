@@ -125,9 +125,11 @@ function createManifest(overrides: Partial<UnsignedUpdateManifest> & Pick<Unsign
 function createManager(params: {
   rootDir: string;
   manifest: UpdateManifest;
+  manifestsByChannel?: Partial<Record<"stable" | "beta", UpdateManifest>>;
   archiveBytes?: Buffer;
   launcherVersion?: string;
   runningVersion?: string;
+  channel?: "stable" | "beta";
 }) {
   const {
     rootDir,
@@ -149,7 +151,8 @@ function createManager(params: {
     bundlePublicKey: publicKey,
     fetchImpl: async (url) => {
       if (String(url).includes("manifest")) {
-        return Response.json(manifest);
+        const requestedChannel = String(url).includes("/beta/") ? "beta" : "stable";
+        return Response.json(params.manifestsByChannel?.[requestedChannel] ?? manifest);
       }
       return new Response(archiveBytes ?? Buffer.from(""), {
         status: 200,
@@ -160,15 +163,18 @@ function createManager(params: {
     }
   });
   const runningVersion = params.runningVersion ?? stateStore.read().currentVersion ?? launcherVersion;
+  const source = new NpmRuntimeUpdateSourceService({
+    env: { NEXTCLAW_UPDATE_MANIFEST_BASE_URL: "https://example.com/npm-runtime-updates" }
+  });
   const manager = new RuntimeUpdateManager({
     layout,
     stateStore,
     bundleService,
     updateService,
-    resolveManifestUrl: () => "https://example.com/manifest.json",
+    resolveManifestUrls: source.resolveManifestUrls,
     launcherVersion,
     runningVersion,
-    channel: "stable"
+    channel: params.channel ?? "stable"
   });
   return {
     layout,
@@ -371,6 +377,51 @@ describe("RuntimeUpdateManager", () => {
       expect(snapshot.currentVersion).toBe("0.21.5-beta.0");
       expect(snapshot.availableVersion).toBe("0.21.5");
     }));
+
+  it("offers a newer stable runtime while the selected channel is beta", async () =>
+    await withTempDir(async (rootDir) => {
+      const betaManifest = createManifest({
+        channel: "beta",
+        latestVersion: "0.48.0-beta.2"
+      });
+      const stableManifest = createManifest({
+        channel: "stable",
+        latestVersion: "0.48.1"
+      });
+      const { manager } = createManager({
+        rootDir,
+        manifest: betaManifest,
+        manifestsByChannel: { beta: betaManifest, stable: stableManifest },
+        launcherVersion: "0.48.0-beta.2",
+        runningVersion: "0.48.0-beta.2",
+        channel: "beta"
+      });
+
+      const snapshot = await manager.run({ checkOnly: true });
+
+      expect(snapshot.status).toBe("update-available");
+      expect(snapshot.currentVersion).toBe("0.48.0-beta.2");
+      expect(snapshot.availableVersion).toBe("0.48.1");
+    }));
+
+  it("keeps a newer beta runtime ahead of the stable candidate", async () =>
+    await withTempDir(async (rootDir) => {
+      const betaManifest = createManifest({ channel: "beta", latestVersion: "0.49.0-beta.1" });
+      const stableManifest = createManifest({ channel: "stable", latestVersion: "0.48.1" });
+      const { manager } = createManager({
+        rootDir,
+        manifest: betaManifest,
+        manifestsByChannel: { beta: betaManifest, stable: stableManifest },
+        launcherVersion: "0.48.0-beta.2",
+        runningVersion: "0.48.0-beta.2",
+        channel: "beta"
+      });
+
+      const snapshot = await manager.run({ checkOnly: true });
+
+      expect(snapshot.status).toBe("update-available");
+      expect(snapshot.availableVersion).toBe("0.49.0-beta.1");
+    }));
 });
 
 describe("Npm runtime update defaults", () => {
@@ -432,6 +483,25 @@ describe("Npm runtime update defaults", () => {
 
       expect(stateStore.read().channel).toBe("beta");
     }));
+
+  it("resolves beta checks to beta and stable manifests while stable remains isolated", () => {
+    const source = new NpmRuntimeUpdateSourceService({
+      env: { NEXTCLAW_UPDATE_MANIFEST_BASE_URL: "https://example.test/updates" },
+      platform: "linux",
+      arch: "x64"
+    });
+
+    expect(source.resolveManifestUrls("beta")).toEqual([
+      "https://example.test/updates/beta/manifest-beta-linux-x64.json",
+      "https://example.test/updates/stable/manifest-stable-linux-x64.json"
+    ]);
+    expect(source.resolveManifestUrls("stable")).toEqual([
+      "https://example.test/updates/stable/manifest-stable-linux-x64.json"
+    ]);
+    expect(source.resolveManifestUrls("beta", "https://mirror.test/custom.json")).toEqual([
+      "https://mirror.test/custom.json"
+    ]);
+  });
 
   it("keeps an existing persisted channel instead of overwriting it with the launcher default", async () =>
     await withTempDir(async (rootDir) => {

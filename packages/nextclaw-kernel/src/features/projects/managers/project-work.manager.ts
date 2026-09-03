@@ -6,6 +6,7 @@ import {
   type ProjectWorkChangedEventPayload,
 } from "@nextclaw/shared";
 import { ProjectWorkStore } from "@kernel/features/projects/stores/project-work.store.js";
+import { ProjectWorkQueryService } from "@kernel/features/projects/services/project-work-query.service.js";
 import { ProjectWorkError } from "@kernel/features/projects/types/project-work-error.types.js";
 import {
   PROJECT_WORK_ATTENTION_VALUES,
@@ -16,7 +17,9 @@ import {
   type ProjectWorkActor,
   type ProjectWorkArtifactLink,
   type ProjectWorkItemDetail,
-  type ProjectWorkList,
+  type ProjectWorkItemPage,
+  type ProjectWorkListInput,
+  type ProjectRecentArtifactPage,
   type ProjectWorkState,
   type ProjectWorkSummary,
   type UpdateProjectWorkItemInput,
@@ -26,6 +29,7 @@ import type { ProjectManager } from "./project.manager.js";
 
 export class ProjectWorkManager {
   private readonly store: ProjectWorkStore;
+  private readonly queries: ProjectWorkQueryService;
 
   constructor(
     private readonly options: {
@@ -35,6 +39,10 @@ export class ProjectWorkManager {
     },
   ) {
     this.store = new ProjectWorkStore(options.databasePath);
+    this.queries = new ProjectWorkQueryService(
+      this.store,
+      options.projectManager,
+    );
   }
 
   initialize = async (): Promise<void> => {
@@ -53,39 +61,17 @@ export class ProjectWorkManager {
 
   list = async (
     projectId: string,
-    includeDeleted = false,
-  ): Promise<ProjectWorkList> => {
-    await this.ensureProject(projectId);
-    const [states, items] = await Promise.all([
-      this.store.listStates(projectId),
-      this.store.listItems(projectId, includeDeleted),
-    ]);
-    const stateById = new Map(states.map((state) => [state.id, state]));
-    const detailed = await Promise.all(
-      items.map(async (item) => ({
-        ...item,
-        state: this.requireMappedState(stateById, item.stateId),
-        artifacts: await this.store.listArtifacts(projectId, item.id),
-      })),
-    );
-    return { items: detailed, states, total: detailed.length };
-  };
+    input: ProjectWorkListInput = {},
+  ): Promise<ProjectWorkItemPage> => await this.queries.list(projectId, input);
 
-  summary = async (projectId: string): Promise<ProjectWorkSummary> => {
-    const { items } = await this.list(projectId);
-    return {
-      total: items.length,
-      active: items.filter(
-        (item) =>
-          item.state.category !== "completed" &&
-          item.state.category !== "canceled",
-      ).length,
-      completed: items.filter((item) => item.state.category === "completed")
-        .length,
-      attention: items.filter((item) => item.attention !== "none").length,
-      updatedAt: items[0]?.updatedAt ?? null,
-    };
-  };
+  summary = async (projectId: string): Promise<ProjectWorkSummary> =>
+    await this.queries.summary(projectId);
+
+  listRecentArtifacts = async (
+    projectId: string,
+    input: { cursor?: string; limit?: number } = {},
+  ): Promise<ProjectRecentArtifactPage> =>
+    await this.queries.listRecentArtifacts(projectId, input);
 
   get = async (
     projectId: string,
@@ -477,19 +463,6 @@ export class ProjectWorkManager {
     if (!project)
       throw new ProjectWorkError("PROJECT_NOT_FOUND", "project was not found");
     return project;
-  };
-
-  private requireMappedState = (
-    states: Map<string, ProjectWorkState>,
-    stateId: string,
-  ): ProjectWorkState => {
-    const state = states.get(stateId);
-    if (!state)
-      throw new ProjectWorkError(
-        "PROJECT_WORK_STATE_NOT_FOUND",
-        "work item state was not found",
-      );
-    return state;
   };
 
   private requireName = (value: unknown, label: string): string => {

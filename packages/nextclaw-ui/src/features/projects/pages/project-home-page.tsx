@@ -36,6 +36,7 @@ import {
   sendProjectRequestResponse,
   type ProjectRequestDecision,
 } from "@/features/projects/utils/project-request-response.utils";
+import { joinProjectPath } from "@/features/projects/utils/project-artifact-view.utils";
 
 const PROJECT_TABS: ProjectHomeTab[] = [
   "overview",
@@ -171,6 +172,12 @@ export function ProjectsPage() {
             <TabsContent value="overview" className="mt-4">
               <ProjectOverview
                 projectId={selectedProject.id}
+                onOpenArtifact={(path, label) =>
+                  openProjectFile(
+                    joinProjectPath(selectedProject.rootPath, path),
+                    label,
+                  )
+                }
                 onOpenWorkItem={setSelectedWorkItemId}
               />
             </TabsContent>

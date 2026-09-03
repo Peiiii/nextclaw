@@ -33,6 +33,7 @@ async function createFixture() {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   while (tempDirs.length > 0)
     rmSync(tempDirs.pop()!, { recursive: true, force: true });
 });
@@ -134,7 +135,149 @@ describe("ProjectWorkManager", () => {
     );
     fixture.manager.dispose();
   });
+});
 
+describe("ProjectWorkManager queries", () => {
+  it("paginates work items with stable cursors and state-scoped totals", async () => {
+    vi.useFakeTimers();
+    const fixture = await createFixture();
+    const planned = (await fixture.manager.listStates(fixture.project.id)).find(
+      (state) => state.name === "Planned",
+    )!;
+    for (let index = 0; index < 25; index += 1) {
+      vi.setSystemTime(
+        new Date(`2026-09-03T00:00:${String(index).padStart(2, "0")}.000Z`),
+      );
+      await fixture.manager.create(
+        fixture.project.id,
+        { title: `Work ${index}`, stateId: planned.id },
+        { kind: "user" },
+      );
+    }
+
+    const first = await fixture.manager.list(fixture.project.id, {
+      stateId: planned.id,
+      limit: 10,
+    });
+    const second = await fixture.manager.list(fixture.project.id, {
+      stateId: planned.id,
+      cursor: first.nextCursor!,
+      limit: 10,
+    });
+    const third = await fixture.manager.list(fixture.project.id, {
+      stateId: planned.id,
+      cursor: second.nextCursor!,
+      limit: 10,
+    });
+
+    expect(first.total).toBe(25);
+    expect(first.items).toHaveLength(10);
+    expect(second.items).toHaveLength(10);
+    expect(third.items).toHaveLength(5);
+    expect(third.nextCursor).toBeNull();
+    expect(
+      new Set(
+        [...first.items, ...second.items, ...third.items].map(
+          (item) => item.id,
+        ),
+      ),
+    ).toHaveProperty("size", 25);
+    expect(first.items.every((item) => item.artifactCount === 0)).toBe(true);
+    expect(await fixture.manager.summary(fixture.project.id)).toMatchObject({
+      total: 25,
+      active: 25,
+      completed: 0,
+    });
+    await expect(
+      fixture.manager.list(fixture.project.id, { cursor: "not-a-cursor" }),
+    ).rejects.toMatchObject({ code: "PROJECT_WORK_VALIDATION_FAILED" });
+    const artifactCursor = Buffer.from(
+      JSON.stringify({ createdAt: new Date().toISOString(), id: "artifact" }),
+      "utf8",
+    ).toString("base64url");
+    await expect(
+      fixture.manager.list(fixture.project.id, { cursor: artifactCursor }),
+    ).rejects.toMatchObject({ code: "PROJECT_WORK_VALIDATION_FAILED" });
+    await expect(
+      fixture.manager.list(fixture.project.id, { limit: 101 }),
+    ).rejects.toMatchObject({ code: "PROJECT_WORK_VALIDATION_FAILED" });
+    fixture.manager.dispose();
+  });
+
+  it("deduplicates recent artifacts by path and paginates the latest links", async () => {
+    vi.useFakeTimers();
+    const fixture = await createFixture();
+    await writeFile(join(fixture.rootPath, "shared.md"), "shared", "utf8");
+    await writeFile(join(fixture.rootPath, "latest.md"), "latest", "utf8");
+    const firstItem = await fixture.manager.create(
+      fixture.project.id,
+      { title: "First" },
+      { kind: "user" },
+    );
+    const secondItem = await fixture.manager.create(
+      fixture.project.id,
+      { title: "Second" },
+      { kind: "user" },
+    );
+    vi.setSystemTime(new Date("2026-09-03T01:00:00.000Z"));
+    await fixture.manager.linkArtifact({
+      projectId: fixture.project.id,
+      workItemId: firstItem.id,
+      path: "shared.md",
+      actor: { kind: "user" },
+    });
+    vi.setSystemTime(new Date("2026-09-03T02:00:00.000Z"));
+    await fixture.manager.linkArtifact({
+      projectId: fixture.project.id,
+      workItemId: secondItem.id,
+      path: "shared.md",
+      label: "Latest shared",
+      actor: { kind: "user" },
+    });
+    vi.setSystemTime(new Date("2026-09-03T03:00:00.000Z"));
+    await fixture.manager.linkArtifact({
+      projectId: fixture.project.id,
+      workItemId: firstItem.id,
+      path: "latest.md",
+      actor: { kind: "user" },
+    });
+
+    const first = await fixture.manager.listRecentArtifacts(
+      fixture.project.id,
+      { limit: 1 },
+    );
+    const second = await fixture.manager.listRecentArtifacts(
+      fixture.project.id,
+      { limit: 1, cursor: first.nextCursor! },
+    );
+    expect(first).toMatchObject({
+      total: 2,
+      artifacts: [{ path: "latest.md", exists: true }],
+    });
+    expect(second).toMatchObject({
+      total: 2,
+      nextCursor: null,
+      artifacts: [
+        {
+          path: "shared.md",
+          label: "Latest shared",
+          workItemId: secondItem.id,
+          workItemTitle: "Second",
+          exists: true,
+        },
+      ],
+    });
+    rmSync(join(fixture.rootPath, "shared.md"));
+    expect(
+      (
+        await fixture.manager.listRecentArtifacts(fixture.project.id)
+      ).artifacts.find((artifact) => artifact.path === "shared.md")?.exists,
+    ).toBe(false);
+    fixture.manager.dispose();
+  });
+});
+
+describe("ProjectWorkManager mutations", () => {
   it("checks optimistic versions and publishes only committed mutations", async () => {
     const fixture = await createFixture();
     const changed = vi.fn();

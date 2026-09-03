@@ -80,7 +80,7 @@ describe("ProjectsService", () => {
         const data =
           init?.method === "PATCH"
             ? { id: "work-1", title: "Updated" }
-            : { items: [], states: [], total: 0 };
+            : { items: [], nextCursor: null, total: 0 };
         return new Response(JSON.stringify({ ok: true, data }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -92,7 +92,11 @@ describe("ProjectsService", () => {
       fetchImpl,
     });
 
-    await client.projects.listWork("project with space");
+    await client.projects.listWork("project with space", {
+      stateId: "in review",
+      cursor: "next/page",
+      limit: 20,
+    });
     await client.projects.updateWorkItem("project with space", "work/1", {
       title: "Updated",
       expectedVersion: 2,
@@ -100,7 +104,7 @@ describe("ProjectsService", () => {
 
     expect(fetchImpl).toHaveBeenNthCalledWith(
       1,
-      "http://127.0.0.1:55667/api/projects/project%20with%20space/work",
+      "http://127.0.0.1:55667/api/projects/project%20with%20space/work?stateId=in+review&cursor=next%2Fpage&limit=20",
       expect.objectContaining({ method: "GET" }),
     );
     expect(fetchImpl).toHaveBeenNthCalledWith(
@@ -110,6 +114,30 @@ describe("ProjectsService", () => {
         method: "PATCH",
         body: JSON.stringify({ title: "Updated", expectedVersion: 2 }),
       }),
+    );
+  });
+
+  it("uses a separate bounded route for recent work artifacts", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ok: true,
+            data: { artifacts: [], nextCursor: null, total: 0 },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+    );
+    const client = new NextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl,
+    });
+
+    await client.projects.listRecentWorkArtifacts("project-1", { limit: 5 });
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/projects/project-1/work/artifacts?limit=5",
+      expect.objectContaining({ method: "GET" }),
     );
   });
 });

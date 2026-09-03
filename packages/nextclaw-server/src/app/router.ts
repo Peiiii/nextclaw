@@ -299,6 +299,7 @@ class UiRouteRegistry {
       ["get", "/api/projects/:projectId/observation", projectObservation.get],
       ["get", "/api/projects/:projectId/work", projectWork.list],
       ["get", "/api/projects/:projectId/work/summary", projectWork.summary],
+      ["get", "/api/projects/:projectId/work/artifacts", projectWork.recentArtifacts],
       ["post", "/api/projects/:projectId/work/items", projectWork.create],
       ["get", "/api/projects/:projectId/work/items/:workItemId", projectWork.get],
       ["patch", "/api/projects/:projectId/work/items/:workItemId", projectWork.update],

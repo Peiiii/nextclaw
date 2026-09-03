@@ -55,6 +55,9 @@ function registerProjectWorkCommands(
     .description("List work items")
     .requiredOption("--project <id>", "Project id")
     .option("--include-deleted", "Include deleted work items", false)
+    .option("--state <id>", "Only work items in this state")
+    .option("--cursor <cursor>", "Opaque cursor from a previous page")
+    .option("--limit <count>", "Page size from 1 to 100", "20")
     .option("--json", "Output JSON", false)
     .action((options) => commands.workList(options));
   work

@@ -121,7 +121,7 @@ vi.mock("@nextclaw-service/services/runtime/npm-runtime-update-source.service.js
 
     resolveChannel = () => "stable";
     resolveBundlePublicKey = () => "mock-public-key";
-    resolveManifestUrl = () => "https://example.invalid/manifest.json";
+    resolveManifestUrls = () => ["https://example.invalid/manifest.json"];
   }
 }));
 
