@@ -62,7 +62,7 @@ describe("MarketplaceAppPayloadParser runtime risk", () => {
       .toThrow("panel-only apps cannot contain service components");
   });
 
-  it("rejects a schema v2 WASI label until Service components have a WASI execution contract", () => {
+  it("accepts a universal schema v2 WASI Service without native process permissions", () => {
     const input = buildInput({
       cover: "marketplace-assets/cover.webp",
       accentColor: "#74816B",
@@ -73,11 +73,44 @@ describe("MarketplaceAppPayloadParser runtime risk", () => {
       name: "Hello Notes",
       version: "0.1.0",
       runtime: { profile: "wasi" },
+      distribution: { mode: "universal" },
       components: [{ kind: "service", path: "services/notes" }],
     };
 
+    const parsed = new MarketplaceAppPayloadParser().parsePublishInput(input);
+
+    expect(parsed.manifest).toMatchObject({ runtime: { profile: "wasi" } });
+    expect(parsed.permissions.capabilities?.nativeProcess).toBeUndefined();
+  });
+
+  it("rejects a targeted schema v2 WASI Service", () => {
+    const input = buildInput({
+      cover: "marketplace-assets/cover.webp",
+      accentColor: "#74816B",
+    });
+    input.manifest = {
+      schemaVersion: 2,
+      id: "nextclaw.hello-notes",
+      name: "Hello Notes",
+      version: "0.1.0",
+      runtime: { profile: "wasi" },
+      distribution: {
+        mode: "targeted",
+        targets: [{ kind: "native", os: "darwin", arch: "arm64" }],
+      },
+      components: [{ kind: "service", path: "services/notes" }],
+    };
+    delete input.bundleBase64;
+    delete input.bundleSha256;
+    input.artifacts = [{
+      target: { kind: "native", os: "darwin", arch: "arm64" },
+      bundleBase64: "YXBw",
+      bundleSha256: "darwin-sha",
+      sizeBytes: 3,
+    }];
+
     expect(() => new MarketplaceAppPayloadParser().parsePublishInput(input))
-      .toThrow("schema v2 Service components do not support a WASI runtime yet");
+      .toThrow("runtime.profile=wasi requires distribution.mode=universal");
   });
 });
 

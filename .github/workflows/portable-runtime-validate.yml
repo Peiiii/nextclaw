@@ -249,6 +249,8 @@ jobs:
           --output "${{ runner.temp }}/portable-runtime-kernel.json"
 
       - name: Verify public GitHub Issue Watcher sync and persisted list
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: node packages/nextclaw/resources/apps/nextclaw-github-issue-watcher/tests/public-github-runner-smoke.tools.mjs --runner "packages/nextclaw/resources/native/${{ matrix.target }}/nextclaw-wasmtime-runner${{ matrix.platform == 'win32' && '.exe' || '' }}" --repository Peiiii/nextclaw --output "${{ runner.temp }}/portable-runtime-reference.json"
 
       - name: Measure equivalent WASM and Node counter workload

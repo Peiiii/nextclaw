@@ -21,6 +21,7 @@ const repository = args.get("--repository") ?? "Peiiii/nextclaw";
 if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
   throw new Error("--repository must be owner/repository.");
 }
+const githubToken = process.env.GITHUB_TOKEN?.trim();
 
 const appDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -97,6 +98,9 @@ function runAction(actionName, input) {
           dataDirectory,
           storageEnabled: true,
           allowedDomains: ["api.github.com"],
+          secretVariables: githubToken
+            ? { nextclaw_secret_6769746875622d746f6b656e: githubToken }
+            : {},
         },
       })}\n`,
     );

@@ -60,12 +60,22 @@ export class NpmRuntimeUpdateSourceService {
   };
 
   resolveManifestUrl = (channel: NpmRuntimeReleaseChannel, explicitManifestUrl?: unknown): string | null => {
+    return this.resolveManifestUrls(channel, explicitManifestUrl)[0] ?? null;
+  };
+
+  resolveManifestUrls = (channel: NpmRuntimeReleaseChannel, explicitManifestUrl?: unknown): string[] => {
     const manifestUrl = normalizeOptionalString(explicitManifestUrl) ?? normalizeOptionalString(this.env.NEXTCLAW_UPDATE_MANIFEST_URL);
     if (manifestUrl) {
-      return manifestUrl;
+      return [manifestUrl];
     }
     const baseUrl = normalizeOptionalString(this.env.NEXTCLAW_UPDATE_MANIFEST_BASE_URL) ?? DEFAULT_NPM_RUNTIME_UPDATE_BASE_URL;
-    return new URL(`${channel}/manifest-${channel}-${this.platform}-${this.arch}.json`, `${baseUrl.replace(/\/+$/, "")}/`).toString();
+    const channels: NpmRuntimeReleaseChannel[] = channel === "beta" ? ["beta", "stable"] : ["stable"];
+    return channels.map((candidateChannel) =>
+      new URL(
+        `${candidateChannel}/manifest-${candidateChannel}-${this.platform}-${this.arch}.json`,
+        `${baseUrl.replace(/\/+$/, "")}/`
+      ).toString()
+    );
   };
 
   resolveBundlePublicKey = (): string | null => {

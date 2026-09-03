@@ -1812,7 +1812,6 @@ dependencies = [
  "ip_network",
  "openssl",
  "reqwest",
- "rusqlite",
  "serde",
  "serde_json",
  "spin-app",

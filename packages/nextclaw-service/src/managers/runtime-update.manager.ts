@@ -15,7 +15,7 @@ type RuntimeUpdateManagerOptions = {
   stateStore: NpmRuntimeUpdateStateStore;
   bundleService: NpmRuntimeBundleService;
   updateService: NpmRuntimeUpdateService;
-  resolveManifestUrl: (channel: NpmRuntimeReleaseChannel) => string | null;
+  resolveManifestUrls: (channel: NpmRuntimeReleaseChannel) => string[];
   launcherVersion?: string;
   runningVersion?: string;
   channel: NpmRuntimeReleaseChannel;
@@ -79,7 +79,7 @@ export class RuntimeUpdateManager {
   };
 
   checkForUpdate = async (): Promise<UpdateSnapshot> => {
-    const manifestUrl = this.options.resolveManifestUrl(this.options.channel);
+    const manifestUrls = this.options.resolveManifestUrls(this.options.channel);
     if (!this.options.updateService.hasSignatureVerifier()) {
       return this.toSnapshotFromState(this.options.stateStore.read(), {
         status: "blocked",
@@ -89,7 +89,7 @@ export class RuntimeUpdateManager {
         errorMessage: "Runtime bundle updates require a configured update public key."
       });
     }
-    if (!manifestUrl) {
+    if (manifestUrls.length === 0) {
       return this.toSnapshotFromState(this.options.stateStore.read(), {
         status: "blocked",
         installationKind: "npm-runtime-bundle",
@@ -105,7 +105,7 @@ export class RuntimeUpdateManager {
       channel: this.options.channel,
       lastUpdateCheckAt: checkedAt
     }));
-    const availableUpdate = await this.options.updateService.checkForUpdate(manifestUrl, state.currentVersion, state.badVersions);
+    const availableUpdate = await this.options.updateService.checkForUpdates(manifestUrls, state.currentVersion, state.badVersions);
     return this.toSnapshotAfterCheck(availableUpdate, this.options.stateStore.read());
   };
 

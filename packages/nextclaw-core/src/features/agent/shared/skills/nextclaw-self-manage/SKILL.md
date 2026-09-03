@@ -27,6 +27,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 ## Stable Execution Rules
 
 - Map version lookup directly to `nextclaw --version`; do not substitute `status` for version queries.
+- Treat `nextclaw update --channel beta` as opting into both preview and production candidates; the updater offers whichever compatible version is newer. The `stable` channel remains production-only.
 - Prefer machine-readable output: use `--json` when available.
 - Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
 - For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.

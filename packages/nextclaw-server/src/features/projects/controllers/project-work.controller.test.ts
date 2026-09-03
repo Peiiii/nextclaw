@@ -14,7 +14,7 @@ function createApp(projectWorkManager: object) {
 
 describe("project work routes", () => {
   it("mounts list and create through the kernel owner", async () => {
-    const list = vi.fn(async () => ({ items: [], states: [], total: 0 }));
+    const list = vi.fn(async () => ({ items: [], nextCursor: null, total: 0 }));
     const create = vi.fn(async (_projectId, input) => ({
       id: "work-1",
       ...input,
@@ -35,12 +35,56 @@ describe("project work routes", () => {
 
     expect(listed.status).toBe(200);
     expect(created.status).toBe(201);
-    expect(list).toHaveBeenCalledWith("project-1", false);
+    expect(list).toHaveBeenCalledWith("project-1", {
+      includeDeleted: false,
+    });
     expect(create).toHaveBeenCalledWith(
       "project-1",
       { title: "Implement" },
       { kind: "user", id: "ui" },
     );
+  });
+
+  it("passes bounded list and recent artifact cursors to the kernel owner", async () => {
+    const list = vi.fn(async () => ({ items: [], nextCursor: null, total: 0 }));
+    const listRecentArtifacts = vi.fn(async () => ({
+      artifacts: [],
+      nextCursor: null,
+      total: 0,
+    }));
+    const app = createApp({ list, listRecentArtifacts });
+
+    const listed = await app.request(
+      "http://localhost/api/projects/project-1/work?stateId=review&includeDeleted=true&cursor=next&limit=20",
+    );
+    const artifacts = await app.request(
+      "http://localhost/api/projects/project-1/work/artifacts?cursor=more&limit=5",
+    );
+
+    expect(listed.status).toBe(200);
+    expect(artifacts.status).toBe(200);
+    expect(list).toHaveBeenCalledWith("project-1", {
+      stateId: "review",
+      includeDeleted: true,
+      cursor: "next",
+      limit: 20,
+    });
+    expect(listRecentArtifacts).toHaveBeenCalledWith("project-1", {
+      cursor: "more",
+      limit: 5,
+    });
+  });
+
+  it("rejects malformed list limits instead of falling back to an unbounded read", async () => {
+    const list = vi.fn();
+    const app = createApp({ list });
+
+    const response = await app.request(
+      "http://localhost/api/projects/project-1/work?limit=all",
+    );
+
+    expect(response.status).toBe(400);
+    expect(list).not.toHaveBeenCalled();
   });
 
   it("maps optimistic concurrency conflicts to HTTP 409", async () => {

@@ -42,6 +42,16 @@ An external dependency is not a reason to weaken the package boundary. It is a d
 
 ## Marketplace and release checks
 
-Run `validate-publish` before Marketplace submission. It validates the App and declared artifact shape; it does not replace your own `app test` cases. The release path also verifies the portable runtime and reference App across the supported platform matrix before a stable runtime channel is accepted.
+Run `validate-publish` before Marketplace submission. It validates the App and declared artifact shape; it does not replace your own `app test` cases. A WASI Service App must combine `runtime.profile: "wasi"`, Service `protocol: "wasi-component"`, a `component.entry` that points to a `.wasm` file, and `distribution.mode: "universal"`. The Marketplace checks these declarations and the actual Component artifact again, rejecting mismatched combinations.
+
+```bash
+nextclaw app publish . --json
+nextclaw app marketplace info <app-id> --json
+nextclaw app install <app-id> --json
+nextclaw app operations --json
+nextclaw app enable <app-id> --json
+```
+
+Personal submissions enter review first. After approval and public listing, another user can download and install the same universal artifact from the Registry by App ID. Installation still requires explicit enablement. The release path also verifies the portable runtime and reference App across the supported platform matrix before a stable runtime channel is accepted.
 
 For a real pattern that remains self-contained for public repositories, see [GitHub Issue Watcher](/en/guide/service-apps-github-issue-watcher).

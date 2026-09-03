@@ -6,7 +6,7 @@ Projects 页面把一个已注册项目里的工作项、产物、Skills、工�
 
 先在聊天侧边栏创建项目或添加已有目录，再点击项目名称打开项目主页。页面保留原有的产物、Skills、工作约定和项目会话能力，同时提供工作项概览、列表与看板。
 
-概览页只请求工作项摘要和最近更新，不会为显示统计而扫描项目文件或重放会话历史。产物、Skills 与工作约定仍在各自页面按需加载。
+概览页把“当前工作”和“最近产物”作为两个同等重要的区域：宽布局左右并列，窄布局上下排列。最近产物来自工作项已经显式关联的项目文件；概览不会为了显示统计或最近产物而扫描项目目录、读取消息或重放会话历史。完整产物、Skills 与工作约定仍在各自页面按需加载。
 
 ## 创建和推进工作项
 
@@ -15,6 +15,8 @@ Projects 页面把一个已注册项目里的工作项、产物、Skills、工�
 状态名称和顺序可以按项目调整，也可以增加自定义状态。每个状态同时归属于一个稳定的生命周期类别：backlog、unstarted、started、completed 或 canceled。这样既能自定义流程，又能让概览统计保持一致。删除仍在使用的状态时，需要先选择迁移目标。
 
 工作项的状态变化不会覆盖历史。比如从 In Progress 进入 In Review、评审未通过后回到 In Progress、再次进入 In Review，每次变化都会保留在活动时间线里。
+
+列表默认按项目的自定义状态分组，每个状态显示完整数量，可以折叠并独立加载下一批。看板复用相同的状态分组、排序和分页结果，不会先把全部工作项下载到前端再切分。
 
 列表、看板和概览中的工作项都可以点击。它们统一在右侧详情抽屉中打开，不会把详情平铺追加到当前页面。抽屉中可以：
 
@@ -43,12 +45,13 @@ CLI 无法像项目会话一样从上下文得知当前项目，因此所有工�
 
 ```bash
 nextclaw projects work list --project <project-id>
+nextclaw projects work list --project <project-id> --state <state-id> --limit 20
 nextclaw projects work create "完善项目页" --project <project-id>
 nextclaw projects work update <work-item-id> --project <project-id> --state <state-id>
 nextclaw projects work activity <work-item-id> --project <project-id>
 ```
 
-CLI 通过正在运行的本地 NextClaw 服务复用同一套 Kernel 写入合同；服务未运行时会直接报错，不会另起第二个写入进程。完整命令见[命令行参考](./commands.md)。
+`work list` 默认返回 20 条，最多 100 条；还有结果时会返回 opaque cursor，可通过 `--cursor` 继续读取。CLI 通过正在运行的本地 NextClaw 服务复用同一套 Kernel 合同；服务未运行时会直接报错，不会另起第二个写入进程。完整命令见[命令行参考](./commands.md)。
 
 ## 原有项目观测能力
 

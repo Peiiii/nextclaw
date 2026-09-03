@@ -18,6 +18,7 @@ import type {
   UpdateProjectWorkStateInput,
 } from "@kernel/features/projects/types/project-work.types.js";
 import { ProjectWorkActivityStore } from "@kernel/features/projects/stores/project-work-activity.store.js";
+import { ProjectWorkQueryStore } from "@kernel/features/projects/stores/project-work-query.store.js";
 import { ProjectWorkStateStore } from "@kernel/features/projects/stores/project-work-state.store.js";
 
 type WorkItemRow = {
@@ -37,6 +38,7 @@ export class ProjectWorkStore {
   private database: SqliteDatabase | null = null;
   private readyPromise: Promise<void> | null = null;
   private readonly activities = new ProjectWorkActivityStore(() => this.db());
+  readonly queries = new ProjectWorkQueryStore(() => this.db(), toItem);
   private readonly states = new ProjectWorkStateStore(
     () => this.db(),
     this.activities.insertActivity,
@@ -100,21 +102,6 @@ export class ProjectWorkStore {
       migrateToStateId,
       actor,
     );
-  };
-
-  listItems = async (
-    projectId: string,
-    includeDeleted = false,
-  ): Promise<ProjectWorkItem[]> => {
-    await this.ensureReady();
-    const rows = this.db()
-      .prepare(
-        `SELECT * FROM project_work_items
-       WHERE project_id = ? ${includeDeleted ? "" : "AND deleted_at IS NULL"}
-       ORDER BY updated_at DESC, created_at DESC`,
-      )
-      .all(projectId) as WorkItemRow[];
-    return rows.map(toItem);
   };
 
   getItem = async (
@@ -355,8 +342,12 @@ export class ProjectWorkStore {
       );
       CREATE INDEX IF NOT EXISTS project_work_items_list_idx
       ON project_work_items(project_id, deleted_at, updated_at);
+      CREATE INDEX IF NOT EXISTS project_work_items_state_list_idx
+      ON project_work_items(project_id, state_id, deleted_at, updated_at, id);
       CREATE INDEX IF NOT EXISTS project_work_activity_timeline_idx
       ON project_work_activities(project_id, work_item_id, created_at);
+      CREATE INDEX IF NOT EXISTS project_work_artifacts_recent_idx
+      ON project_work_artifact_links(project_id, created_at, id);
     `);
   };
 

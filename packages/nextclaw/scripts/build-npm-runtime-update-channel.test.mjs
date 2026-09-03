@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import { generateKeyPairSync, verify } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -9,7 +10,39 @@ import {
   addDirectoryToZip,
   assertPortableRunnerResource,
   resolvePortableRunnerResourcePath,
+  serializeUnsignedManifest,
+  signUpdateManifest,
 } from "./build-npm-runtime-update-channel.mjs";
+
+test("stable compatibility manifests can be independently signed for the beta channel", () => {
+  const keyPair = generateKeyPairSync("ed25519");
+  const stable = {
+    channel: "stable",
+    platform: "darwin",
+    arch: "arm64",
+    hostKind: "npm-runtime-bundle",
+    latestVersion: "0.48.1",
+    minimumLauncherVersion: "0.18.11",
+    bundleUrl: "https://example.test/runtime.zip",
+    bundleSha256: "sha256",
+    bundleSignature: "bundle-signature",
+    releaseNotesUrl: null
+  };
+  const beta = { ...stable, channel: "beta" };
+  const signedBeta = signUpdateManifest(beta, keyPair.privateKey);
+
+  assert.equal(beta.bundleUrl, stable.bundleUrl);
+  assert.equal(beta.latestVersion, stable.latestVersion);
+  assert.equal(
+    verify(
+      null,
+      Buffer.from(serializeUnsignedManifest(beta)),
+      keyPair.publicKey,
+      Buffer.from(signedBeta.manifestSignature, "base64")
+    ),
+    true
+  );
+});
 
 test("rejects a runtime bundle when its platform runner is missing", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "nextclaw-runtime-runner-missing-"));

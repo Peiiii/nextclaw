@@ -27,12 +27,14 @@ import {
 import { Textarea } from "@/shared/components/ui/textarea";
 import { t } from "@/shared/lib/i18n";
 import {
-  useProjectWork,
   useProjectWorkActions,
   useProjectWorkActivity,
+  useProjectWorkEvents,
   useProjectWorkItem,
+  useProjectWorkStates,
 } from "@/features/projects/hooks/use-project-work";
 import { getProjectWorkStateLabel } from "@/features/projects/utils/project-work-state-label.utils";
+import { joinProjectPath } from "@/features/projects/utils/project-artifact-view.utils";
 
 export function ProjectWorkItemDrawer({
   onOpenArtifact,
@@ -49,7 +51,8 @@ export function ProjectWorkItemDrawer({
 }) {
   const item = useProjectWorkItem(projectId, workItemId);
   const activity = useProjectWorkActivity(projectId, workItemId);
-  const work = useProjectWork(projectId, true);
+  useProjectWorkEvents(projectId);
+  const states = useProjectWorkStates(projectId);
   return (
     <Sheet open={Boolean(workItemId)} onOpenChange={onOpenChange}>
       <SheetContent
@@ -71,7 +74,7 @@ export function ProjectWorkItemDrawer({
           <ProjectWorkItemEditor
             key={`${item.data.id}:${item.data.version}`}
             item={item.data}
-            states={work.data?.states ?? []}
+            states={states.data ?? []}
             activities={activity.data?.activities ?? []}
             onOpenArtifact={(path, label) =>
               onOpenArtifact(joinProjectPath(projectRoot, path), label)
@@ -359,10 +362,4 @@ function ProjectWorkItemEditor({
       />
     </>
   );
-}
-
-function joinProjectPath(rootPath: string, relativePath: string): string {
-  const separator =
-    rootPath.endsWith("/") || rootPath.endsWith("\\") ? "" : "/";
-  return `${rootPath}${separator}${relativePath}`;
 }

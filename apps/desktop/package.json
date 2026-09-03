@@ -9,6 +9,7 @@
   "license": "MIT",
   "scripts": {
     "bundle:build": "node scripts/update/services/build-product-bundle.service.mjs",
+    "bundle:test": "node --test scripts/update/utils/product-bundle-assets.utils.test.mjs",
     "bundle:public-key": "node scripts/update/services/write-bundle-public-key.service.mjs",
     "bundle:public-key:ensure": "node scripts/update/services/ensure-bundle-public-key.service.mjs --output build/update-bundle-public.pem",
     "bundle:release-metadata": "node scripts/update/services/write-release-metadata.service.mjs",

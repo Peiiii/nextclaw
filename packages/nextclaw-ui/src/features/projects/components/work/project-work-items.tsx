@@ -1,22 +1,125 @@
 import { useState } from "react";
-import type { ProjectWorkItemDetail } from "@nextclaw/client-sdk";
-import { LayoutGrid, List, Plus, Settings2 } from "lucide-react";
+import type {
+  ProjectWorkItemListEntry,
+  ProjectWorkState,
+} from "@nextclaw/client-sdk";
+import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  CircleDashed,
+  CircleX,
+  LayoutGrid,
+  List,
+  Plus,
+  Settings2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { t } from "@/shared/lib/i18n";
 import {
+  sortProjectWorkStates,
+  sortProjectWorkStatesForList,
   useProjectWork,
   useProjectWorkActions,
+  useProjectWorkEvents,
+  useProjectWorkStates,
 } from "@/features/projects/hooks/use-project-work";
 import { getProjectWorkStateLabel } from "@/features/projects/utils/project-work-state-label.utils";
 import { ProjectWorkStateSettings } from "./project-work-state-settings";
+
+function ProjectWorkStateIcon({
+  startedProgress,
+  state,
+}: {
+  startedProgress: number | null;
+  state: ProjectWorkState;
+}) {
+  if (state.category === "backlog")
+    return (
+      <span
+        aria-hidden="true"
+        data-state-visual="backlog"
+        className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground/65"
+      >
+        <CircleDashed className="h-4 w-4" />
+      </span>
+    );
+  if (state.category === "unstarted")
+    return (
+      <span
+        aria-hidden="true"
+        data-state-visual="unstarted"
+        className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground"
+      >
+        <Circle className="h-4 w-4" strokeWidth={2} />
+      </span>
+    );
+  if (state.category === "completed")
+    return (
+      <span
+        aria-hidden="true"
+        data-state-visual="completed"
+        className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-emerald-600 dark:text-emerald-400"
+      >
+        <CheckCircle2 className="h-4 w-4" strokeWidth={2.25} />
+      </span>
+    );
+  if (state.category === "canceled")
+    return (
+      <span
+        aria-hidden="true"
+        data-state-visual="canceled"
+        className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground/65"
+      >
+        <CircleX className="h-4 w-4" />
+      </span>
+    );
+  const progress = Math.round((startedProgress ?? 0.5) * 100);
+  const tone =
+    progress >= 67
+      ? "text-emerald-600 dark:text-emerald-400"
+      : progress >= 40
+        ? "text-orange-500 dark:text-orange-400"
+        : "text-amber-500 dark:text-amber-400";
+  return (
+    <span
+      aria-hidden="true"
+      data-state-visual="started"
+      className={`inline-flex h-4 w-4 shrink-0 items-center justify-center ${tone}`}
+    >
+      <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">
+        <circle
+          cx="8"
+          cy="8"
+          r="5.5"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          opacity="0.22"
+        />
+        <circle
+          cx="8"
+          cy="8"
+          r="5.5"
+          pathLength="100"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={`${progress} ${100 - progress}`}
+          transform="rotate(-90 8 8)"
+        />
+      </svg>
+    </span>
+  );
+}
 
 function WorkItemButton({
   item,
   onOpen,
 }: {
-  item: ProjectWorkItemDetail;
+  item: ProjectWorkItemListEntry;
   onOpen: () => void;
 }) {
   return (
@@ -39,6 +142,138 @@ function WorkItemButton({
   );
 }
 
+function ProjectWorkStateGroupBody({
+  hasNextPage,
+  isError,
+  isFetchingNextPage,
+  isLoading,
+  items,
+  onLoadMore,
+  onOpenWorkItem,
+}: {
+  hasNextPage: boolean;
+  isError: boolean;
+  isFetchingNextPage: boolean;
+  isLoading: boolean;
+  items: ProjectWorkItemListEntry[];
+  onLoadMore: () => void;
+  onOpenWorkItem: (workItemId: string) => void;
+}) {
+  if (isLoading)
+    return (
+      <p className="py-3 text-xs text-muted-foreground">
+        {t("projectsLoading")}
+      </p>
+    );
+  if (isError)
+    return (
+      <p className="py-3 text-xs text-destructive">{t("projectsLoadFailed")}</p>
+    );
+  return (
+    <>
+      {items.length ? (
+        items.map((item) => (
+          <WorkItemButton
+            key={item.id}
+            item={item}
+            onOpen={() => onOpenWorkItem(item.id)}
+          />
+        ))
+      ) : (
+        <p className="py-3 text-xs text-muted-foreground">
+          {t("projectsNoData")}
+        </p>
+      )}
+      {hasNextPage ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-full"
+          disabled={isFetchingNextPage}
+          onClick={onLoadMore}
+        >
+          {isFetchingNextPage
+            ? t("projectsLoading")
+            : t("projectsWorkLoadMore")}
+        </Button>
+      ) : null}
+    </>
+  );
+}
+
+function ProjectWorkStateGroup({
+  includeDeleted,
+  onOpenWorkItem,
+  state,
+  startedProgress,
+  view,
+}: {
+  includeDeleted: boolean;
+  onOpenWorkItem: (workItemId: string) => void;
+  state: ProjectWorkState;
+  startedProgress: number | null;
+  view: "list" | "board";
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const work = useProjectWork(state.projectId, {
+    stateId: state.id,
+    includeDeleted,
+    limit: 20,
+  });
+  const items = work.data?.pages.flatMap((page) => page.items) ?? [];
+  const total = work.data?.pages[0]?.total;
+  return (
+    <section
+      className={
+        view === "board"
+          ? "flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-muted/25"
+          : "min-w-0 overflow-hidden rounded-xl border border-border/60"
+      }
+      aria-label={getProjectWorkStateLabel(state.name)}
+    >
+      <button
+        type="button"
+        className="flex w-full shrink-0 items-center gap-2 bg-muted/30 px-3 py-2.5 text-left transition-colors hover:bg-[var(--interaction-hover)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+        aria-expanded={!collapsed}
+        onClick={() => setCollapsed((value) => !value)}
+      >
+        {collapsed ? (
+          <ChevronRight className="h-4 w-4 shrink-0" />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0" />
+        )}
+        <ProjectWorkStateIcon state={state} startedProgress={startedProgress} />
+        <span className="min-w-0 truncate text-sm font-semibold">
+          {getProjectWorkStateLabel(state.name)}
+        </span>
+        <span className="inline-flex min-w-6 shrink-0 items-center justify-center rounded-full bg-background/85 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-foreground ring-1 ring-border/60">
+          {total ?? "…"}
+        </span>
+      </button>
+      {!collapsed ? (
+        <div
+          className={
+            view === "board"
+              ? "min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
+              : "space-y-2 p-3"
+          }
+        >
+          <ProjectWorkStateGroupBody
+            hasNextPage={work.hasNextPage}
+            isError={work.isError}
+            isFetchingNextPage={work.isFetchingNextPage}
+            isLoading={work.isLoading}
+            items={items}
+            onLoadMore={() => void work.fetchNextPage()}
+            onOpenWorkItem={onOpenWorkItem}
+          />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function ProjectWorkItems({
   onOpenWorkItem,
   projectId,
@@ -50,7 +285,8 @@ export function ProjectWorkItems({
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const work = useProjectWork(projectId, includeDeleted);
+  useProjectWorkEvents(projectId);
+  const states = useProjectWorkStates(projectId);
   const actions = useProjectWorkActions(projectId);
   const create = async () => {
     if (!newTitle.trim()) return;
@@ -68,19 +304,29 @@ export function ProjectWorkItems({
       );
     }
   };
-  if (work.isLoading)
+  if (states.isLoading)
     return (
       <div className="rounded-xl border border-border/60 p-5 text-sm text-muted-foreground">
         {t("projectsLoading")}
       </div>
     );
-  if (work.isError)
+  if (states.isError)
     return (
       <div className="rounded-xl border border-destructive/40 p-5 text-sm text-destructive">
         {t("projectsLoadFailed")}
       </div>
     );
-  const data = work.data!;
+  const sortedStates = sortProjectWorkStates(states.data ?? []);
+  const listStates = sortProjectWorkStatesForList(states.data ?? []);
+  const startedStates = sortedStates.filter(
+    (state) => state.category === "started",
+  );
+  const startedProgressById = new Map(
+    startedStates.map((state, index) => [
+      state.id,
+      (index + 1) / (startedStates.length + 1),
+    ]),
+  );
   return (
     <section aria-label={t("projectsWork")} className="min-w-0 space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -142,60 +388,39 @@ export function ProjectWorkItems({
         />
         {t("projectsWorkShowDeleted")}
       </label>
-      {!data.items.length ? (
-        <div className="rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
-          {t("projectsWorkEmpty")}
-        </div>
-      ) : null}
-      {view === "list" && data.items.length ? (
+      {view === "list" ? (
         <div className="space-y-2">
-          {data.items.map((item) => (
-            <WorkItemButton
-              key={item.id}
-              item={item}
-              onOpen={() => onOpenWorkItem(item.id)}
+          {listStates.map((state) => (
+            <ProjectWorkStateGroup
+              key={state.id}
+              state={state}
+              startedProgress={startedProgressById.get(state.id) ?? null}
+              view={view}
+              includeDeleted={includeDeleted}
+              onOpenWorkItem={onOpenWorkItem}
             />
           ))}
         </div>
       ) : null}
-      {view === "board" && data.items.length ? (
-        <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {data.states.map((state) => {
-            const items = data.items.filter(
-              (item) => item.stateId === state.id,
-            );
-            return (
-              <section
-                key={state.id}
-                className="min-w-0 rounded-xl bg-muted/35 p-3"
-              >
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold">
-                    {getProjectWorkStateLabel(state.name)}
-                  </h3>
-                  <span className="text-xs text-muted-foreground">
-                    {items.length}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <WorkItemButton
-                      key={item.id}
-                      item={item}
-                      onOpen={() => onOpenWorkItem(item.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+      {view === "board" ? (
+        <div className="grid h-[calc(100dvh-17rem)] min-h-[28rem] max-h-[52rem] min-w-0 auto-cols-[minmax(18rem,1fr)] grid-flow-col items-stretch gap-3 overflow-x-auto overflow-y-hidden pb-2">
+          {sortedStates.map((state) => (
+            <ProjectWorkStateGroup
+              key={state.id}
+              state={state}
+              startedProgress={startedProgressById.get(state.id) ?? null}
+              view={view}
+              includeDeleted={includeDeleted}
+              onOpenWorkItem={onOpenWorkItem}
+            />
+          ))}
         </div>
       ) : null}
       <ProjectWorkStateSettings
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
         projectId={projectId}
-        states={data.states}
+        states={sortedStates}
       />
     </section>
   );

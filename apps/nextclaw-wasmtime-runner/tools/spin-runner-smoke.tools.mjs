@@ -4,6 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
 import { startRunnerSession } from "./spin-runner-session.tools.mjs";
+import {
+  createIssueWatcherKeyValueApp,
+  verifyIssueWatcherKeyValueJob,
+  verifyIssueWatcherKeyValueRestart,
+} from "./spin-runner-keyvalue-fixture.tools.mjs";
 
 const packagedRunnerName = process.platform === "win32"
   ? "nextclaw-wasmtime-runner.exe"
@@ -21,6 +26,10 @@ const runnerPath = path.resolve(
 const outputPath = outputOptionIndex >= 0 ? process.argv[outputOptionIndex + 1] : undefined;
 const componentsRoot = fileURLToPath(new URL(
   "../../../packages/nextclaw/resources/apps/nextclaw-portable-runtime-lab/service-components/",
+  import.meta.url,
+));
+const issueWatcherComponentPath = fileURLToPath(new URL(
+  "../../../packages/nextclaw/resources/apps/nextclaw-github-issue-watcher/service-components/nextclaw-github-issue-watcher-service/service.wasm",
   import.meta.url,
 ));
 const workDirectory = await mkdtemp(path.join(tmpdir(), "nextclaw-spin-smoke-"));
@@ -84,6 +93,7 @@ try {
   const checks = ["list-actions", "host.kv", "storage-denied", "standard-wasi-http-network-denied"];
   const app = (id, component, options = {}) => ({ id, componentPath: path.join(componentsRoot, component, "service.wasm"), dataDirectory: path.join(workDirectory, id), ...options });
   const state = app("smoke-state", "nextclaw-portable-runtime-lab-state", { storageEnabled: true });
+  const issueWatcher = createIssueWatcherKeyValueApp(workDirectory, issueWatcherComponentPath);
   const stateDenied = app("smoke-state-denied", "nextclaw-portable-runtime-lab-state");
   const capability = app("smoke-capability", "nextclaw-portable-runtime-lab-capabilities");
   const sqlite = app("smoke-sqlite", "nextclaw-portable-runtime-lab-sqlite", { storageEnabled: true });
@@ -118,6 +128,8 @@ try {
   await expectOk("invoke", state, "counter_increment", { step: 3 });
   const stateRead = await expectOk("invoke", state, "counter_read");
   if (stateRead.counter !== 3 || stateRead.persistedBy !== "host.kv") throw new Error(`bad KV result: ${JSON.stringify(stateRead)}`);
+  const issueSnapshot = await verifyIssueWatcherKeyValueJob(issueWatcher, startJob);
+  checks.push("standard-wasi-keyvalue-job");
   const runtimeInfoJob = await startJob(state, "runtime_info", {});
   const runtimeInfoTerminal = await runtimeInfoJob.terminal;
   if (runtimeInfoTerminal.status !== "succeeded"
@@ -342,10 +354,11 @@ try {
     if (!restartedResponse.ok || restartedResponse.result?.value !== "persisted") {
       throw new Error(`SQLite restart persistence failed: ${JSON.stringify(restartedResponse)}`);
     }
+    await verifyIssueWatcherKeyValueRestart(restartedSession, issueWatcher, issueSnapshot);
   } finally {
     await restartedSession.stop();
   }
-  checks.push("sqlite-restart-persistence");
+  checks.push("sqlite-restart-persistence", "standard-wasi-keyvalue-restart-persistence");
   const summary = {
     schemaVersion: 1,
     kind: "nextclaw.portable-runtime.runner-smoke",

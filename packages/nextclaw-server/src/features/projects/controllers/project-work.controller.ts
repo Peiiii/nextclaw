@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import {
   isProjectWorkError,
+  ProjectWorkError,
   type CreateProjectWorkItemInput,
   type CreateProjectWorkStateInput,
   type ProjectWorkManager,
@@ -21,10 +22,28 @@ export class ProjectWorkRoutesController {
     this.respond(
       c,
       async () =>
-        await this.projectWork.list(
-          c.req.param("projectId"),
-          c.req.query("includeDeleted") === "true",
-        ),
+        await this.projectWork.list(c.req.param("projectId"), {
+          includeDeleted: c.req.query("includeDeleted") === "true",
+          ...(c.req.query("stateId")
+            ? { stateId: c.req.query("stateId") }
+            : {}),
+          ...(c.req.query("cursor") ? { cursor: c.req.query("cursor") } : {}),
+          ...(readLimit(c.req.query("limit")) !== undefined
+            ? { limit: readLimit(c.req.query("limit")) }
+            : {}),
+        }),
+    );
+
+  readonly recentArtifacts = async (c: Context) =>
+    this.respond(
+      c,
+      async () =>
+        await this.projectWork.listRecentArtifacts(c.req.param("projectId"), {
+          ...(c.req.query("cursor") ? { cursor: c.req.query("cursor") } : {}),
+          ...(readLimit(c.req.query("limit")) !== undefined
+            ? { limit: readLimit(c.req.query("limit")) }
+            : {}),
+        }),
     );
 
   readonly summary = async (c: Context) =>
@@ -263,7 +282,13 @@ export class ProjectWorkRoutesController {
 function readLimit(value: string | undefined): number | undefined {
   if (!value) return undefined;
   const parsed = Number(value);
-  return Number.isInteger(parsed) ? parsed : undefined;
+  if (!Number.isInteger(parsed)) {
+    throw new ProjectWorkError(
+      "PROJECT_WORK_VALIDATION_FAILED",
+      "page limit must be an integer",
+    );
+  }
+  return parsed;
 }
 
 function actorFor(c: Context) {

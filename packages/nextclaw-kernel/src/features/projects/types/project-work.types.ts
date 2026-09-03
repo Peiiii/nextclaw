@@ -81,9 +81,37 @@ export type ProjectWorkItemDetail = ProjectWorkItem & {
   artifacts: ProjectWorkArtifactLink[];
 };
 
-export type ProjectWorkList = {
-  items: ProjectWorkItemDetail[];
-  states: ProjectWorkState[];
+export type ProjectWorkItemListEntry = ProjectWorkItem & {
+  state: ProjectWorkState;
+  artifactCount: number;
+};
+
+export type ProjectWorkListInput = {
+  stateId?: string;
+  includeDeleted?: boolean;
+  cursor?: string;
+  limit?: number;
+};
+
+export type ProjectWorkItemPage = {
+  items: ProjectWorkItemListEntry[];
+  nextCursor: string | null;
+  total: number;
+};
+
+export type ProjectRecentArtifact = {
+  id: string;
+  path: string;
+  label: string | null;
+  workItemId: string;
+  workItemTitle: string;
+  createdAt: string;
+  exists: boolean;
+};
+
+export type ProjectRecentArtifactPage = {
+  artifacts: ProjectRecentArtifact[];
+  nextCursor: string | null;
   total: number;
 };
 
