@@ -24,6 +24,16 @@ test("desktop recovery isolates packaging fixes from the published runtime ident
   assert.throws(() => resolve("pnpm-lock.yaml"), /unpublished runtime changes/);
 });
 
+test("desktop recovery rejects runtime drift at the selected historical build source", () => {
+  assert.throws(() => resolveDesktopReleaseTarget("published", "current", {
+    runCommand: (_command, args) => {
+      if (args[0] === "log") return "desktop-fix";
+      if (args[0] !== "diff") return "";
+      return args[3] === "current" ? "apps/desktop/package.json" : "packages/nextclaw/src/index.ts";
+    }
+  }), /unpublished runtime changes/);
+});
+
 test("workflow dispatch selectors use unique caller identity instead of mutable branch head", () => {
   const startedAt = Date.parse("2026-08-26T00:00:00Z");
   const runs = [

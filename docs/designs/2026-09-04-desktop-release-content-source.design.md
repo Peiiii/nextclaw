@@ -24,7 +24,7 @@
 | --- | -------- | --------------------------------------------------------------------- | ------- | ------------------------------------------ |
 | D01 | true | Draft/正式调用使用同版本显式内容；NPM/runtime target 不变，Desktop 修复使用经漂移检查的独立 target | passed | 40 项回归、来源隔离与 Draft 序号测试；实际正文合同 |
 | D02 | true     | 既有 0.48.3 NPM/runtime 保留且公开可用                                | passed  | NPM latest=0.48.3；原始 release/tag 已发布 |
-| D03 | true | 五平台 Desktop build/smoke、30 assets、公开 channel 与 APT 同版本闭环 | not-run | 第三次失败已修复，本地 bundle build 与 6 项资产合同通过；远程待复验 |
+| D03 | true | 五平台 Desktop build/smoke、30 assets、公开 channel 与 APT 同版本闭环 | passed | 父 33825935214 / child 33826355524 成功；30+1 资产、公开五平台清单与 APT 验证通过 |
 | D04 | true | 中英文说明与结构化说明公开可读 | passed | 中英文 200；JSON 0.48.3 stable；全球/国内部署验证通过 |
 | D05 | true | 本任务精确提交、推送并同步 master | not-run | 47d73232a 已合入推送；最终记录和 reconcile 待完成 |
 | D06 | true | 发布 Skill 明确稳定契约、减少耦合与不过度设计原则 | passed | release-evolution.md 核心原则及条件路由；progressive-loading 通过 |
