@@ -66,9 +66,16 @@ function SettingsSidebarHeader({
   isCollapsed: boolean;
   onToggle: () => void;
 }) {
+  const shouldReserveMacWindowControls =
+    typeof window !== "undefined" &&
+    window.nextclawDesktop?.platform === "darwin";
   return (
     <div
-      className={cn("shrink-0", isCollapsed ? "px-0 py-1.5" : "px-2 py-2")}
+      className={cn(
+        "shrink-0",
+        isCollapsed ? "px-0 py-1.5" : "px-2 py-2",
+        shouldReserveMacWindowControls ? "pt-8" : null,
+      )}
     >
       <div
         className={cn(

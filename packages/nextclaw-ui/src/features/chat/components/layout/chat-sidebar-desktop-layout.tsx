@@ -27,6 +27,7 @@ import { ChatSidebarSessionList } from "@/features/chat/features/session/compone
 import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-sidebar-utility-menu";
 import { PanelAppMainSidebarNav } from "@/features/panel-apps";
 import { isWindowsDesktopHost } from "@/platforms/desktop";
+import { useUiMode } from "@/app/components/ui-mode-provider";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
 import {
@@ -114,11 +115,16 @@ export function ChatSidebarDesktopNav({
   isCollapsed: boolean;
 }) {
   const unreadCount = useInboxUnreadCount();
+  const { mode } = useUiMode();
+  const visibleNavItems =
+    mode === "minimal"
+      ? navItems.filter((item) => !["/cron", "/skills"].includes(item.target))
+      : navItems;
   return (
     <div className="pb-1">
       <div className={isCollapsed ? "px-0" : "px-3"}>
         <ul className={isCollapsed ? SIDEBAR_RAIL_STACK_CLASS : "space-y-0.5"}>
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <li
               key={item.target}
               className={isCollapsed ? "flex justify-center" : undefined}

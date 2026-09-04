@@ -31,6 +31,20 @@ describe("project home navigation", () => {
     expect(getMobileBottomNavItems(translate).map((item) => item.target)).not.toContain("/projects");
   });
 
+  it("folds low-frequency entries in minimal mode", () => {
+    const minimalMainTargets = getMainSidebarNavItems(translate, "minimal").map((item) => item.target);
+    const minimalMobileTargets = getMobileBottomNavItems(translate, "minimal").map((item) => item.target);
+    expect(minimalMainTargets).not.toContain("/chat/cron");
+    expect(minimalMainTargets).not.toContain("/chat/skills");
+    expect(minimalMobileTargets).not.toContain("/skills");
+    expect(minimalMobileTargets).not.toContain("/agents");
+    expect(minimalMainTargets).toContain("/chat");
+    expect(minimalMainTargets).toContain("/inbox");
+    expect(minimalMobileTargets).toContain("/chat");
+    expect(minimalMobileTargets).toContain("/inbox");
+    expect(minimalMobileTargets).toContain("/settings");
+  });
+
   it("returns mobile project pages to the chat project list", () => {
     expect(resolveMobileRouteMeta("/projects", translate)).toEqual({
       title: "projectsTitle",
