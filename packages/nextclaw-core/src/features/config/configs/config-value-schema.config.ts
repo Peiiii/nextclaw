@@ -528,6 +528,20 @@ export const SecretsConfigSchema = z.object({
   refs: z.record(SecretRefSchema).default({})
 });
 
+export const ToolRiskLevelSchema = z.enum(["low", "medium", "high", "critical"]);
+
+export const ToolRiskPolicyEntrySchema = z.object({
+  risk: ToolRiskLevelSchema.default("low"),
+  reasonHint: z.string().optional(),
+  requireConfirmWhen: z.array(z.string()).default([])
+});
+
+export const ToolRiskPolicySchema = z.object({
+  entries: z.record(z.string(), ToolRiskPolicyEntrySchema).default({}),
+  confirmTimeoutSec: z.number().int().min(1).default(120),
+  rememberConfirmations: z.boolean().default(true)
+});
+
 export const ConfigSchema = z.object({
   agents: AgentsConfigSchema.default({}),
   channels: ChannelsConfigSchema.default({}),
