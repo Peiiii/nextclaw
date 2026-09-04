@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.48.3",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-09-04",
+  "title": {
+    "zh-CN": "NextClaw v0.48.3",
+    "en-US": "NextClaw v0.48.3"
+  },
+  "summary": {
+    "zh-CN": "启动更快、静默回复更准确，并让项目数据与项目入口更简单可靠。",
+    "en-US": "Faster startup, more accurate silent replies, and simpler, more reliable project data and controls."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-04-nextclaw-v0-48-3",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-04-nextclaw-v0-48-3"
+    }
+  },
+  "sections": [
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "更快、更清晰的日常体验", "en-US": "Faster, clearer everyday use" },
+      "items": [
+        {
+          "title": { "zh-CN": "更快启动与可靠恢复", "en-US": "Faster startup with reliable recovery" },
+          "body": {
+            "zh-CN": "启动时不再扫描全部历史会话，历史较多时等待更短；上次意外中断的会话仍会正常恢复。",
+            "en-US": "Startup no longer scans the full session history, reducing delays for larger histories while still recovering sessions interrupted during the previous run."
+          }
+        },
+        {
+          "title": { "zh-CN": "项目数据统一保存", "en-US": "Unified project storage" },
+          "body": {
+            "zh-CN": "项目注册信息与工作项统一进入本地数据库，已有 projects.json 数据会自动、完整地迁移。",
+            "en-US": "Project registrations and work items now share one local database, with existing projects.json data migrated automatically and transactionally."
+          }
+        },
+        {
+          "title": { "zh-CN": "项目入口与资料来源更清楚", "en-US": "Clearer project controls and context" },
+          "body": {
+            "zh-CN": "项目移除入口已移至项目行的更多菜单；项目工作区、Skills 与长期约定分别使用明确来源，产物列表也改进了去重、分页和搜索。",
+            "en-US": "Project removal now lives in each project's More menu. Project Work, Skills, and durable agreements use explicit sources, while artifact lists improve deduplication, pagination, and search."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "回复与链接行为修复", "en-US": "Reply and link behavior fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "静默标记不再误隐藏回复", "en-US": "Silent markers no longer hide normal replies" },
+          "body": {
+            "zh-CN": "只有内容完全等于 noreply 标记的回复才会静默，带有解释文字的正常回复会继续显示。",
+            "en-US": "Only a reply that exactly matches the noreply marker is silent; normal responses containing explanatory text remain visible."
+          }
+        },
+        {
+          "title": { "zh-CN": "PWA 新标签页行为恢复正常", "en-US": "PWA new-tab behavior restored" },
+          "body": {
+            "zh-CN": "PWA 不再接管 Panel App 的在新标签页打开操作，链接会按用户选择在浏览器标签页中打开。",
+            "en-US": "The PWA no longer captures Panel App's Open in new tab action, so links open in a browser tab as requested."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": { "zh-CN": "项目上下文入口收拢", "en-US": "Consolidated project context" },
+      "items": [
+        {
+          "title": { "zh-CN": "移除旧项目观察入口", "en-US": "Legacy project observation removed" },
+          "body": {
+            "zh-CN": "旧的 Project Markers、.nextclaw/project.yaml、项目观察接口与 nextclaw projects observe 已移除，项目上下文改用明确的产物、Skills 和 AGENTS.md 来源。",
+            "en-US": "Project Markers, .nextclaw/project.yaml, the project observation API, and nextclaw projects observe have been removed in favor of explicit artifact, Skills, and AGENTS.md sources."
+          }
+        }
+      ]
+    }
+  ]
+}
