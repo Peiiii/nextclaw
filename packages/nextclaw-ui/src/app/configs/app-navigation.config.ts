@@ -6,6 +6,8 @@ import {
   AlarmClock,
   Cpu,
   Download,
+  EyeOff,
+  Globe,
   Inbox,
   KeyRound,
   MessageCircle,
@@ -17,6 +19,7 @@ import {
   Settings,
   Shield,
   Sparkles,
+  UserX,
   Wifi,
   Wrench,
 } from "lucide-react";
@@ -174,6 +177,21 @@ export function getSettingsNavItems(
       target: "/privacy",
       label: translate("privacy"),
       icon: Activity,
+    },
+    {
+      target: "/redaction",
+      label: translate("redaction"),
+      icon: EyeOff,
+    },
+    {
+      target: "/localization",
+      label: translate("localization"),
+      icon: Globe,
+    },
+    {
+      target: "/pseudonym",
+      label: translate("pseudonym"),
+      icon: UserX,
     },
     {
       target: "/desktop-capabilities",

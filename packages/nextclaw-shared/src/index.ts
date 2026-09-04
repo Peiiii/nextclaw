@@ -102,6 +102,23 @@ export { readInlineContentHeight } from "./utils/inline-content-height.utils.js"
 export { classifyDiagnosticError } from "./utils/diagnostic-error.utils.js";
 export type { DiagnosticErrorClassification } from "./utils/diagnostic-error.utils.js";
 export {
+  DEFAULT_ENABLED_RULE_IDS,
+  DEFAULT_REDACTION_RULES,
+  REDACTED_PLACEHOLDER,
+  redactText,
+  redactWithDefaults,
+} from "./utils/redaction.utils.js";
+export type {
+  RedactResult,
+  RedactionRule,
+  RedactionRuleKind,
+} from "./utils/redaction.utils.js";
+export {
+  decryptLocal,
+  encryptLocal,
+  randomSalt,
+} from "./utils/local-crypto.utils.js";
+export {
   containsSilentReplyMarker,
   isSilentReplyNcpMessage,
   SILENT_REPLY_TOKEN,
