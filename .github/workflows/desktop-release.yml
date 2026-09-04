@@ -130,32 +130,6 @@ jobs:
           fi
           test -f "$headers_root/include/node/node_api.h"
 
-      - name: Apply release bundle budget compatibility
-        shell: bash
-        run: |
-          set -euo pipefail
-          # An immutable release target can predate the current Portable Runtime bundle budget.
-          # This only updates the local release builder guard; packaged runtime sources still come
-          # from the verified release_target checkout above.
-          for script_path in \
-            apps/desktop/scripts/update/services/build-product-bundle.service.mjs \
-            scripts/desktop/desktop-package-verify.mjs; do
-            node - "$script_path" <<'NODE'
-          const { readFileSync, writeFileSync } = require("node:fs");
-          const scriptPath = process.argv[2];
-          const compatibleBudget = "const RUNTIME_BUNDLE_FILE_BUDGET = 520;";
-          const source = readFileSync(scriptPath, "utf8");
-          const updated = source.replace(
-            /const RUNTIME_BUNDLE_FILE_BUDGET = (?:400|450);/,
-            compatibleBudget,
-          );
-          if (!updated.includes(compatibleBudget)) {
-            throw new Error(`Unsupported runtime bundle budget in ${scriptPath}`);
-          }
-          if (updated !== source) writeFileSync(scriptPath, updated, "utf8");
-          NODE
-          done
-
       - name: Write bundled update public key
         env:
           NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}

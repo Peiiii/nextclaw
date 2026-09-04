@@ -22,12 +22,16 @@
 
 | ID  | Required | 合同                                                                  | Status  | 当前证据                                   |
 | --- | -------- | --------------------------------------------------------------------- | ------- | ------------------------------------------ |
-| D01 | true     | Draft/正式调用使用同版本显式内容，产品 target 不变                    | failed  | run 33822701444                            |
+| D01 | true | Draft/正式调用使用同版本显式内容，产品 target 不变 | passed | 25 项回归；实际正文合同；恢复 run Draft 成功 |
 | D02 | true     | 既有 0.48.3 NPM/runtime 保留且公开可用                                | passed  | NPM latest=0.48.3；原始 release/tag 已发布 |
-| D03 | true     | 五平台 Desktop build/smoke、30 assets、公开 channel 与 APT 同版本闭环 | not-run | Draft 尚未创建                             |
-| D04 | true     | 中英文说明与结构化说明公开可读                                        | failed  | 新文档 URL 尚为 404                        |
-| D05 | true     | 本任务精确提交、推送并同步 master                                     | not-run | 说明已合入；修复未提交                     |
+| D03 | true | 五平台 Desktop build/smoke、30 assets、公开 channel 与 APT 同版本闭环 | not-run | v0.48.3-desktop.1 Draft 已创建，Desktop 执行中 |
+| D04 | true | 中英文说明与结构化说明公开可读 | passed | 中英文 200；JSON 0.48.3 stable；全球/国内部署验证通过 |
+| D05 | true | 本任务精确提交、推送并同步 master | not-run | 47d73232a 已合入推送；最终记录和 reconcile 待完成 |
 
 当前门：定向回归证明两个调用点参数及双语内容合同，diff-only Review 通过，再恢复同版本发布。最后以父流水线及 Desktop closure 验证 D03，不用局部测试替代真实构建。无需改产品文档/changeset，因为本修复只改变内部发布编排。
 
 契约 Review：不以单平台、NPM 成功或新版本号替代全平台结果；不加入与本次发布无关的性能和源码重构标准。
+
+## 恢复中发现的过期构建补丁
+
+run 33823735524 在 Apply release bundle budget compatibility 失败。0.48.3 的预算已经统一为 product-bundle-assets.config.mjs 中的 520，builder 与 verifier 共同消费；旧 workflow 仍要求在两个文件中正则替换本地常量。删除过期补丁并反向测试 workflow 不再修改源码，不提高预算、不改变 delivered bits，继续复用 v0.48.3-desktop.1 Draft。失败 child 已取消，避免继续消耗构建资源。D03 保持未通过；重新发布验证前不宣称完成。

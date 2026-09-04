@@ -42,6 +42,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 有独立用户任务、可核查证据和公开叙事价值的产品成果：`nextclaw-product-blog-storytelling`；
 - NextClaw NPM package、runtime channel、真实安装和分支闭环：`nextclaw-npm-release`；
 - NextClaw Desktop installer、DMG、update manifest、发布和恢复：`nextclaw-desktop-release`。
+- 维护发布机制或修复发布失败：[版本演进门](references/release-evolution.md)。
 
 专项 owner 可以被本阶段路由，也可以在用户明确提出完整场景时直接触发；它们不重新编排上游开发阶段。
 
@@ -65,7 +66,6 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 用户要求“提交”或使用 `/commit` 时，只在当前任务分支精确 stage/commit；用户明确说“合入主干”时，才安全集成本地 `master` 并推送 `origin/master`。用户限制为本地时跳过 push，禁止混入无关 WIP 或把隔离分支报告为合入完成。
 - 发布使用仓库既有 release flow，不以零散原子命令伪装完整闭环。
 - 发布完成必须覆盖授权范围内适用的 artifact、manifest、update channel、release notes、部署后 smoke 和分支回流。
-- tag、release 页面、workflow 触发或 registry publish 只是中间状态，不自动等于交付完成。
 - 任何向远程 `master` 写入的交付或发布在远程完成门后运行 `pnpm release:reconcile:mainline`。本地独有提交由协调器在隔离 worktree 合并、验证并普通 push；本地主 worktree 有活跃 WIP 时由单例 retry worker 自动续跑，禁止要求用户手工 pull/rebase/stash。只有脚本返回 `LOCAL_MAINLINE_SYNCED` 才报告本地同步；`LOCAL_WORKTREE_RETRYING` 表示自动任务仍在运行，不是用户待办。
 - 可恢复分叉、并行 WIP 或隔离分支只是中间状态，必须安全集成并回流主线。冲突留在恢复 worktree 继续解决和验证，不污染活跃区、不重复发布；只有真实外部依赖无法消除时报告未完成。
 - 部分发布或外部失败优先进入专项恢复分支；不得重复发布已经成功的不可逆步骤。
