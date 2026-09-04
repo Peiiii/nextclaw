@@ -2,7 +2,7 @@ import { SettingsPage } from '@/shared/components/settings/settings-page';
 import { Switch } from '@/shared/components/ui/switch';
 import { t } from '@/shared/lib/i18n';
 import { RuntimeSecurityCard } from '@/features/system-status/components/runtime-security-card';
-import { useAccountLoginEnabled } from '@/features/account/hooks/use-account-login-enabled';
+import { useAccountLoginEnabled } from '@/features/account';
 
 export function SecurityConfig() {
   const { enabled: accountLoginEnabled, setEnabled: setAccountLoginEnabled } = useAccountLoginEnabled();
