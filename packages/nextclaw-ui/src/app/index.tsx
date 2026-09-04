@@ -46,6 +46,18 @@ const SearchConfigPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/search-config-page"))
     .SearchConfigPage,
 }));
+const RedactionSettingsPage = lazy(async () => ({
+  default: (await import("@/features/settings/pages/redaction-settings-page"))
+    .RedactionSettingsPage,
+}));
+const LocalizationSettingsPage = lazy(async () => ({
+  default: (await import("@/features/settings/pages/localization-settings-page"))
+    .LocalizationSettingsPage,
+}));
+const PseudonymSettingsPage = lazy(async () => ({
+  default: (await import("@/features/settings/pages/pseudonym-settings-page"))
+    .PseudonymSettingsPage,
+}));
 const ProvidersListPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/providers-config-page"))
     .ProvidersConfigPage,
@@ -164,6 +176,18 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/search",
     element: createLazyElement(<SearchConfigPage />),
+  },
+  {
+    path: "/redaction",
+    element: createLazyElement(<RedactionSettingsPage />),
+  },
+  {
+    path: "/localization",
+    element: createLazyElement(<LocalizationSettingsPage />),
+  },
+  {
+    path: "/pseudonym",
+    element: createLazyElement(<PseudonymSettingsPage />),
   },
   {
     path: "/providers",
