@@ -17,7 +17,6 @@ import {
 
 const fixtureContract = Object.freeze({
   schemaVersion: 1,
-  runtimeFileBudget: 50,
   generatedRequiredPaths: Object.freeze(["runtime/index.js"]),
   packagedExtensions: Object.freeze([]),
   assets: Object.freeze([
@@ -194,6 +193,17 @@ test("applies Windows-only assets and validates the Windows native runtime contr
   assert.deepEqual(windowsAsset?.paths, ["runtime/windows.dll"]);
   assert.ok(result.nativeRuntimeDependencies.includes("@img/sharp-win32-x64"));
   assert.ok(!result.nativeRuntimeDependencies.some((name) => name.includes("sharp-libvips-win32")));
+});
+
+test("declared resource growth does not invalidate an otherwise complete bundle", async (t) => {
+  const fixture = createFixture();
+  t.after(() => rmSync(fixture.root, { recursive: true, force: true }));
+  for (let index = 0; index < 60; index += 1) {
+    writeFixtureFile(join(fixture.sourceRoots.static, "resources", `resource-${index}.txt`), "resource");
+  }
+  await createValidArchive(fixture);
+  const result = await verifyProductBundleArchive(fixture.archivePath, { contract: fixtureContract });
+  assert.ok(result.runtimeFileCount > 60);
 });
 
 test("rejects missing, unexpected, and modified files in the final archive", async (t) => {

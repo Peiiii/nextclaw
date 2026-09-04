@@ -20,6 +20,20 @@ function blockingSleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
+export function resolveDesktopReleaseTarget(publishedCommit, sourceCommit, options = {}) {
+  const runCommand = options.runCommand ?? run;
+  runCommand("git", ["merge-base", "--is-ancestor", publishedCommit, sourceCommit]);
+  const paths = runCommand("git", ["diff", "--name-only", publishedCommit, sourceCommit])
+    .split("\n").filter(Boolean);
+  const allowed = /^(apps\/(desktop|docs)\/|scripts\/(desktop|release)\/|\.github\/workflows\/|\.agents\/|docs\/|commands\/|AGENTS\.md$|CLAUDE\.md$)/;
+  const runtimeChanges = paths.filter((path) => !allowed.test(path));
+  if (runtimeChanges.length > 0) {
+    throw new Error(`Desktop recovery cannot include unpublished runtime changes: ${runtimeChanges.join(", ")}`);
+  }
+  if (!paths.some((path) => /^(apps\/desktop|scripts\/desktop)\//.test(path))) return publishedCommit;
+  return runCommand("git", ["log", "-1", "--format=%H", sourceCommit, "--", "apps/desktop", "scripts/desktop"]);
+}
+
 export function assertPublishedDesktopRuntimeIdentity(channel, runtimeVersion, options = {}) {
   const distTag = channel === "beta" ? "beta" : "latest";
   const runCommand = options.runCommand ?? run;

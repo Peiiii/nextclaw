@@ -1,6 +1,5 @@
 export const PRODUCT_BUNDLE_ASSET_CONTRACT_SCHEMA_VERSION = 1;
 export const PRODUCT_BUNDLE_INVENTORY_SCHEMA_VERSION = 1;
-export const RUNTIME_BUNDLE_FILE_BUDGET = 520;
 export const RUNTIME_ENTRYPOINT = "runtime/dist/cli/app/index.js";
 
 export const PACKAGED_EXTENSION_PACKAGE_DIRS = Object.freeze([
@@ -19,7 +18,6 @@ export const PACKAGED_EXTENSION_PACKAGE_DIRS = Object.freeze([
 
 export const PRODUCT_BUNDLE_ASSET_CONTRACT = Object.freeze({
   schemaVersion: PRODUCT_BUNDLE_ASSET_CONTRACT_SCHEMA_VERSION,
-  runtimeFileBudget: RUNTIME_BUNDLE_FILE_BUDGET,
   generatedRequiredPaths: Object.freeze([
     "runtime/dist/cli/app/index.js",
     "runtime/dist/cli/app/index.mjs",

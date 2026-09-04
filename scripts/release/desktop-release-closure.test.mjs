@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { inferExistingDesktopDraft, readNextDesktopReleaseTag } from "./desktop-release-recovery.mjs";
 import {
   assertDesktopReleaseAssetMetadata,
   assertDesktopReleaseAssetSet,
@@ -15,6 +16,16 @@ const releaseOptions = {
   runtimeVersion: "0.42.3",
   tag: "v0.42.3-desktop.5"
 };
+
+test("desktop identities reserve hidden drafts and reuse only an exact target", () => {
+  const options = { ...releaseOptions, repo: "owner/repo", target: "new-source" };
+  const run = (command) => command === "git" ? "old refs/tags/v0.42.3-desktop.1" :
+    '["v0.42.3-desktop.2",false,"old-source"]\n["v0.42.3-desktop.3",false,"new-source"]';
+  assert.equal(readNextDesktopReleaseTag(options, run), "v0.42.3-desktop.4");
+  assert.deepEqual(inferExistingDesktopDraft(options, run), { reuseExistingRelease: true, tag: "v0.42.3-desktop.3" });
+  assert.equal(inferExistingDesktopDraft({ ...options, target: "other-source" }, run), undefined);
+  assert.throws(() => readNextDesktopReleaseTag(options, () => { throw new Error("auth unavailable"); }), /auth unavailable/);
+});
 
 test("defines the complete five-platform desktop release asset set", () => {
   const assets = buildExpectedDesktopReleaseAssetNames(releaseOptions);

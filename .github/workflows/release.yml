@@ -84,6 +84,7 @@ jobs:
       contents: write
     outputs:
       closure_commit: ${{ steps.release.outputs.closure_commit || steps.recovery.outputs.closure_commit }}
+      desktop_target: ${{ steps.recovery.outputs.desktop_target || steps.release.outputs.closure_commit }}
       content_ready: ${{ steps.release.outputs.content_ready || steps.recovery.outputs.content_ready }}
       compatibility_matrix: ${{ steps.mode.outputs.compatibility_matrix }}
       compatibility_reused: ${{ steps.mode.outputs.compatibility_reused }}
@@ -240,6 +241,14 @@ jobs:
           git fetch origin "refs/tags/$tag:refs/tags/$tag"
           release_commit="$(git rev-list -n 1 "$tag")"
           prepared_source_sha="$(git rev-parse "$release_commit^")"
+          desktop_target="$release_commit"
+          if [ "${{ inputs.target }}" = "all" ]; then
+            desktop_target="$(node --input-type=module - "$release_commit" "$GITHUB_SHA" <<'NODE'
+          import { resolveDesktopReleaseTarget } from './scripts/release/desktop-release-preflight.mjs';
+          process.stdout.write(resolveDesktopReleaseTarget(...process.argv.slice(2)));
+          NODE
+            )"
+          fi
           test "$(npm view "nextclaw@$TARGET_VERSION" version)" = "$TARGET_VERSION"
           content_ready="$(node --input-type=module - "$PREVIOUS_VERSION" "$TARGET_VERSION" <<'NODE'
           import {
@@ -258,6 +267,7 @@ jobs:
           fi
           {
             echo "closure_commit=$release_commit"
+            echo "desktop_target=$desktop_target"
             echo "content_ready=$content_ready"
             echo "has_nextclaw=true"
             echo "previous_version=$PREVIOUS_VERSION"
@@ -271,7 +281,7 @@ jobs:
         if: ${{ inputs.target == 'all' && (steps.release.outputs.has_nextclaw == 'true' || steps.recovery.outputs.has_nextclaw == 'true') }}
         env:
           GH_TOKEN: ${{ github.token }}
-          CLOSURE_COMMIT: ${{ steps.release.outputs.closure_commit || steps.recovery.outputs.closure_commit }}
+          DESKTOP_TARGET: ${{ steps.recovery.outputs.desktop_target || steps.release.outputs.closure_commit }}
           TARGET_VERSION: ${{ steps.release.outputs.target_version || steps.recovery.outputs.target_version }}
         shell: bash
         run: |
@@ -283,7 +293,7 @@ jobs:
           pnpm release:desktop:stable -- \
             --prepare-draft-only \
             --branch master \
-            --target "$CLOSURE_COMMIT" \
+            --target "$DESKTOP_TARGET" \
             --runtime-version "$TARGET_VERSION" \
             --notes-file "$notes_file" \
             --release-notes-url "$notes_url" \
@@ -483,7 +493,7 @@ jobs:
           notes_url="$(node scripts/release/release-core-notes.mjs --version "$TARGET_VERSION" --format url)"
           pnpm release:desktop:stable -- \
             --branch master \
-            --target "${{ needs.publish-npm.outputs.closure_commit }}" \
+            --target "${{ needs.publish-npm.outputs.desktop_target }}" \
             --runtime-version "$TARGET_VERSION" \
             --notes-file "$notes_file" \
             --release-notes-url "$notes_url" \

@@ -8,9 +8,11 @@
 
 使用 `pnpm release:desktop:stable`。必须先证明目标 runtime identity 已经作为 stable NPM/runtime 发布且 release target 没有静默混入后续 package 源码，再闭合 clean/non-behind、签名 secret preflight、适用的 package verify、GitHub release、workflow、assets、stable manifest 和 APT。Stable GitHub body 默认从 exact-version 结构化 release-notes JSON 确定性生成；也可由 standalone/recovery 显式传入 `--notes-file`。两条路径都必须满足中文在前、英文在后、绝对文档链接、无 frontmatter 和无自动生成提交噪音；结构化 JSON 缺失、版本/语言/链接不完整时 fail closed，禁止扫描其它目录或降级到单语言页面。该入口不调用任何 NPM publish 命令。
 
-全平台正式发布只触发一次 `release.yml target=all`。父 workflow 在 Runtime 成功且内容 ready 后，以 closure commit 在 GitHub Runner 调用本入口；允许跳过重复的本地 package verify，但 Desktop child workflow 的五平台 build/smoke、签名 preflight、Draft-first 公开门和 closure 均不得跳过。父 job 不持有 NPM token 或 Desktop signing key。
+全平台正式发布只触发一次 `release.yml target=all`。父 workflow 在 Runtime 成功且内容 ready 后，以冻结的 Desktop target 在 GitHub Runner 调用本入口；允许跳过重复的本地 package verify，但 Desktop child workflow 的五平台 build/smoke、签名 preflight、Draft-first 公开门和 closure 均不得跳过。父 job 不持有 NPM token 或 Desktop signing key。
 
 内容后补的恢复场景中，产品 target 仍为已发布的不可变提交；父 workflow 从本次冻结的内容 checkout 生成同版本正文与 URL，显式传入已有 `--notes-file` / `--release-notes-url`，Draft 和正式发布必须一致。禁止把当前 checkout 的 CONTENT_READY 当成旧产品提交也含内容的证据。打包预算等配置直接消费产品 target 的既有 owner，不在 workflow 内用正则改写源码以兼容当前版本。
+
+Desktop 独立修复由既有 preflight owner 先拒绝未发布的 runtime 源码或共享依赖漂移，再选最近改变 Desktop shipping source 的提交；NPM/runtime identity 不变，Desktop app version 和构建身份随其产物变化。仅内容或控制流程变化不制造新 Desktop identity。分配构建序号同时计入隐藏 Draft；只复用 target/channel 一致的 Draft，禁止重定向旧身份。
 
 全自动等待必须有父子分层上限：Desktop child 的 Draft、五平台构建、资产上传、公开、update channel 和 APT job 都声明独立 timeout；CLI 等待预算必须覆盖 child 的阶段预算，父 `publish-desktop` job 再覆盖 CLI 等待和公开传播预算。CLI 等待耗尽时必须取消仍在运行的精确 child run，禁止父流程已失败而子流程继续公开。正常时长以 closure 的结构化观测为准，timeout 只是异常硬上限，不得被当作预计耗时。
 

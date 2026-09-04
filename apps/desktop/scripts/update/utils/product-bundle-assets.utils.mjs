@@ -35,9 +35,6 @@ export function validateProductBundleAssetContract(contract = PRODUCT_BUNDLE_ASS
   if (!Array.isArray(contract.assets) || contract.assets.length === 0) {
     throw new Error("Product bundle asset contract must declare at least one asset.");
   }
-  if (!Number.isInteger(contract.runtimeFileBudget) || contract.runtimeFileBudget < 1) {
-    throw new Error("Product bundle asset contract must declare a positive runtimeFileBudget.");
-  }
   if (!Array.isArray(contract.generatedRequiredPaths) || !Array.isArray(contract.packagedExtensions)) {
     throw new Error("Product bundle asset contract must declare generatedRequiredPaths and packagedExtensions arrays.");
   }
@@ -302,18 +299,14 @@ function assertRequiredBundlePaths(
   }
 }
 
-function assertRuntimeBundlePolicy(paths, runtimeFileBudget) {
+function assertRuntimeBundlePolicy(paths) {
   const forbiddenNodeModules = paths.filter(
     (path) => path.startsWith("runtime/node_modules/") || /^plugins\/[^/]+\/(?:dist\/)?node_modules\//.test(path)
   );
   if (forbiddenNodeModules.length > 0) {
     throw new Error(`Product bundle contains forbidden nested node_modules: ${forbiddenNodeModules[0]}`);
   }
-  const runtimeFileCount = paths.filter((path) => path.startsWith("runtime/")).length;
-  if (runtimeFileCount > runtimeFileBudget) {
-    throw new Error(`Product bundle runtime file count ${runtimeFileCount} exceeds budget ${runtimeFileBudget}.`);
-  }
-  return runtimeFileCount;
+  return paths.filter((path) => path.startsWith("runtime/")).length;
 }
 
 export function assertPreparedProductBundle(options) {
@@ -331,7 +324,7 @@ export function assertPreparedProductBundle(options) {
   assertRequiredBundlePaths(paths, assetContract, contract, platform, arch);
   assertNativeRuntimeContract(paths, platform, arch, nativeRuntimeDependencies);
   return {
-    runtimeFileCount: assertRuntimeBundlePolicy(paths, contract.runtimeFileBudget),
+    runtimeFileCount: assertRuntimeBundlePolicy(paths),
     pluginFileCount: paths.filter((path) => path.startsWith("plugins/")).length
   };
 }
@@ -393,10 +386,7 @@ export async function verifyProductBundleArchive(archivePath, options = {}) {
     arch
   );
   assertNativeRuntimeContract(inventoryPaths, platform, arch, manifest.assetContract.nativeRuntimeDependencies);
-  const runtimeFileCount = assertRuntimeBundlePolicy(
-    inventoryPaths,
-    (options.contract ?? PRODUCT_BUNDLE_ASSET_CONTRACT).runtimeFileBudget
-  );
+  const runtimeFileCount = assertRuntimeBundlePolicy(inventoryPaths);
   return {
     manifest,
     runtimeFileCount,

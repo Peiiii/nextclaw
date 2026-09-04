@@ -5,14 +5,21 @@ function buildTagPrefix(channel, runtimeVersion) {
   return channel === "beta" ? `v${runtimeVersion}-desktop-beta.` : `v${runtimeVersion}-desktop.`;
 }
 
+function readDrafts(options, run) {
+  const output = run("gh", ["api", "--paginate", `repos/${options.repo}/releases`, "--jq",
+    '.[] | select(.draft) | [.tag_name, .prerelease, .target_commitish] | @json']);
+  return output.split("\n").filter(Boolean).map((line) => JSON.parse(line));
+}
+
 export function readNextDesktopReleaseTag(options, run) {
   const prefix = buildTagPrefix(options.channel, options.runtimeVersion);
   const output = run("git", ["ls-remote", "--tags", "origin", `refs/tags/${prefix}*`]);
   const nextNumber =
-    output
+    [...output
       .split("\n")
       .map((line) => line.trim().split(/\s+/)[1] ?? "")
-      .map((ref) => ref.replace(/^refs\/tags\//, "").replace(/\^\{\}$/, ""))
+      .map((ref) => ref.replace(/^refs\/tags\//, "").replace(/\^\{\}$/, "")),
+      ...readDrafts(options, run).map(([tag]) => tag)]
       .map((tag) => Number(tag.startsWith(prefix) ? tag.slice(prefix.length) : Number.NaN))
       .filter(Number.isInteger)
       .reduce((max, value) => Math.max(max, value), 0) + 1;
@@ -60,19 +67,14 @@ export function inferExistingReleaseRecovery(options, run) {
 }
 
 export function inferExistingDesktopDraft(options, run) {
-  const tag = readNextDesktopReleaseTag(options, run);
-  try {
-    const release = readRelease({ ...options, tag });
-    if (
-      release.isDraft === true &&
-      Boolean(release.isPrerelease) === (options.channel === "beta") &&
-      release.targetCommitish === options.target
-    ) {
-      console.log(`[desktop:release] inferred existing hidden Draft ${tag}; reusing the immutable release identity.`);
-      return { reuseExistingRelease: true, tag };
-    }
-  } catch {
-    // A missing draft is the normal new-release path. Creation stays with the
-    // stable release owner; this recovery helper only recognizes exact matches.
-  }
+  const prefix = buildTagPrefix(options.channel, options.runtimeVersion);
+  const match = readDrafts(options, run)
+    .filter(([tag, prerelease, target]) => tag.startsWith(prefix) &&
+      Number.isInteger(Number(tag.slice(prefix.length))) &&
+      Boolean(prerelease) === (options.channel === "beta") && target === options.target)
+    .sort(([left], [right]) => Number(right.slice(prefix.length)) - Number(left.slice(prefix.length)))[0];
+  if (!match) return;
+  const [tag] = match;
+  console.log(`[desktop:release] inferred existing hidden Draft ${tag}; reusing the immutable release identity.`);
+  return { reuseExistingRelease: true, tag };
 }

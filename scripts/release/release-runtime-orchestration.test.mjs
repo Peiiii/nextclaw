@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   assertPublishedDesktopRuntimeIdentity,
+  resolveDesktopReleaseTarget,
   selectPreflightWorkflowRun
 } from "./desktop-release-preflight.mjs";
 import {
@@ -11,6 +12,17 @@ import {
   selectRuntimeWorkflowRun,
 } from "./release-beta-runtime.mjs";
 import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
+
+test("desktop recovery isolates packaging fixes from the published runtime identity", () => {
+  const resolve = (paths) => resolveDesktopReleaseTarget("published", "current", {
+    runCommand: (_command, args) => args[0] === "diff" ? paths : args[0] === "log" ? "desktop-fix" : ""
+  });
+  assert.equal(resolve("apps/docs/notes.md\n.github/workflows/release.yml"), "published");
+  assert.equal(resolve("apps/desktop/package.json\napps/docs/notes.md"), "desktop-fix");
+  assert.equal(resolve("apps/desktop/package.json\ndocs/later.md"), "desktop-fix");
+  assert.throws(() => resolve("packages/nextclaw/src/index.ts"), /unpublished runtime changes/);
+  assert.throws(() => resolve("pnpm-lock.yaml"), /unpublished runtime changes/);
+});
 
 test("workflow dispatch selectors use unique caller identity instead of mutable branch head", () => {
   const startedAt = Date.parse("2026-08-26T00:00:00Z");
@@ -219,7 +231,7 @@ test("all-platform Desktop calls pass frozen content separately from the product
     assert.match(step, /--release-notes-url "\$notes_url"/);
     assert.match(
       step,
-      /--target "(?:\$CLOSURE_COMMIT|\$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\})"/,
+      /--target "(?:\$DESKTOP_TARGET|\$\{\{ needs\.publish-npm\.outputs\.desktop_target \}\})"/,
     );
   }
 });

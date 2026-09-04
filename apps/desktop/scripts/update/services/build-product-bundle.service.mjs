@@ -9,7 +9,6 @@ import { prepareDesktopNativeResources } from "../../prepare-native-app-resource
 import {
   PACKAGED_EXTENSION_PACKAGE_DIRS,
   PRODUCT_BUNDLE_ASSET_CONTRACT,
-  RUNTIME_BUNDLE_FILE_BUDGET,
   RUNTIME_ENTRYPOINT
 } from "../configs/product-bundle-assets.config.mjs";
 import {
@@ -344,7 +343,6 @@ function reportBundleBuildResult(archivePath, options, workspace, buildResult) {
         platform: options.platform,
         arch: options.arch,
         runtimeFileCount: buildResult.runtimeFileCount,
-        runtimeFileBudget: RUNTIME_BUNDLE_FILE_BUDGET,
         nativeRuntimeDependencies: buildResult.nativeRuntimeDependencies,
         packagedExtensionCount: buildResult.packagedExtensionCount,
         pluginFileCount: buildResult.pluginFileCount,
