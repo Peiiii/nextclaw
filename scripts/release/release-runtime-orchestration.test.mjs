@@ -193,3 +193,33 @@ test("runtime manifest verification does not retry a confirmed immutable-field m
   );
   assert.equal(reads, 1);
 });
+
+test("all-platform Desktop calls pass frozen content separately from the product target", () => {
+  const release = readFileSync(
+    new URL("../../.github/workflows/release.yml", import.meta.url),
+    "utf8",
+  );
+  for (const stepName of [
+    "Create or reuse stable Desktop Draft",
+    "Publish and verify stable Desktop release",
+  ]) {
+    const step = release
+      .split(`- name: ${stepName}\n`)[1]
+      ?.split("\n      - name:")[0];
+    assert.ok(step, `Missing ${stepName}`);
+    assert.match(
+      step,
+      /release-core-notes\.mjs --version "\$TARGET_VERSION" --format notes/,
+    );
+    assert.match(
+      step,
+      /release-core-notes\.mjs --version "\$TARGET_VERSION" --format url/,
+    );
+    assert.match(step, /--notes-file "\$notes_file"/);
+    assert.match(step, /--release-notes-url "\$notes_url"/);
+    assert.match(
+      step,
+      /--target "(?:\$CLOSURE_COMMIT|\$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\})"/,
+    );
+  }
+});
