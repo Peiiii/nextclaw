@@ -21,7 +21,8 @@
 - Desktop child：<https://github.com/Peiiii/nextclaw/actions/runs/33826355524>；identity：v0.48.3-desktop.2；app version：0.0.283；正式 Release 已公开，30 个合同资产与 1 个 APT Pages 补充包均 uploaded 且非空。
 - 核心 Release 占位正文已补成正式双语说明，未改既有资产。
 - AUTOMATION_INTERVENTIONS: 3。第一处是 Draft 内容来源不一致；第二处是旧 workflow 的预算源码替换补丁在配置迁移后失效；第三处是固定文件总数 520 与声明资源正常增长冲突（实际 560）。前两处已修复，第三处删除数量硬门槛，保留资源声明、完整 inventory/哈希及平台合同，并补齐 Desktop 独立修复的来源校验和 Draft 序号分配。旧 Draft 未公开，不重定向。
-- 最终单次复验干预为 0。父 run 从 01:29:04Z 至 01:59:22Z，共 30 分 18 秒；NPM_READY 为 2 分 27 秒。Desktop 父 job 24 分 41 秒，child 工作区间 23 分 21 秒。最慢矩阵 job 为 Windows x64（15 分 17 秒，最慢 step 为 portable smoke 4 分 36 秒）；全部 job 的最长单 step 为 macOS x64 构建 6 分 05 秒。耗时来自必要的平台构建/冒烟及串行公开投影，没有为提速跳过校验或增加第二套发布器。最终 Git 收尾另行核对。
+- 最终单次复验干预为 0。父 run 从 01:29:04Z 至 01:59:22Z，共 30 分 18 秒；NPM_READY 为 2 分 27 秒。Desktop 父 job 24 分 41 秒，child 工作区间 23 分 21 秒。最慢矩阵 job 为 Windows x64（15 分 17 秒，最慢 step 为 portable smoke 4 分 36 秒）；全部 job 的最长单 step 为 macOS x64 构建 6 分 05 秒。耗时来自必要的平台构建/冒烟及串行公开投影，没有为提速跳过校验或增加第二套发布器。
+- d71d7a692 与来源复核补充 a877c3a02 已精确提交并合入、推送 master。主线 reconcile 返回 LOCAL_MAINLINE_SYNCED（localOnly=0、remoteOnly=0，工作区干净）。补充提交之后仍解析出同一 Desktop source d71d7a692，不制造新构建身份。
 
 ## 用户/产品视角的验收步骤
 

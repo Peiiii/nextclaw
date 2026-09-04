@@ -26,10 +26,10 @@
 | D02 | true     | 既有 0.48.3 NPM/runtime 保留且公开可用                                | passed  | NPM latest=0.48.3；原始 release/tag 已发布 |
 | D03 | true | 五平台 Desktop build/smoke、30 assets、公开 channel 与 APT 同版本闭环 | passed | 父 33825935214 / child 33826355524 成功；30+1 资产、公开五平台清单与 APT 验证通过 |
 | D04 | true | 中英文说明与结构化说明公开可读 | passed | 中英文 200；JSON 0.48.3 stable；全球/国内部署验证通过 |
-| D05 | true | 本任务精确提交、推送并同步 master | not-run | 47d73232a 已合入推送；最终记录和 reconcile 待完成 |
+| D05 | true | 本任务精确提交、推送并同步 master | passed | d71d7a692 / a877c3a02 已合入推送；reconcile 返回 LOCAL_MAINLINE_SYNCED，主工作区干净 |
 | D06 | true | 发布 Skill 明确稳定契约、减少耦合与不过度设计原则 | passed | release-evolution.md 核心原则及条件路由；progressive-loading 通过 |
 
-当前门：定向回归证明两个调用点参数及双语内容合同，diff-only Review 通过，再恢复同版本发布。最后以父流水线及 Desktop closure 验证 D03，不用局部测试替代真实构建。无需改产品文档/changeset，因为本修复只改变内部发布编排。
+当前门：completed。定向回归、类型检查和 diff-only Review 通过，父流水线及 Desktop closure 已验证 D03，主干同步验证 D05；D01-D06 均成立。无需新增产品文档/changeset，因为本修复只改变内部打包和发布机制，已有同版本产品说明已经公开。
 
 契约 Review：不以单平台、NPM 成功或新版本号替代全平台结果；不加入与本次发布无关的性能和源码重构标准。
 
