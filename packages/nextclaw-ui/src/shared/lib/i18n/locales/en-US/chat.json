@@ -638,5 +638,14 @@
   "chatWorkspaceExcerptCharacterCount": "{count} characters",
   "chatInputAttachmentUnsupported": "This file type is not supported in the current upload flow.",
   "chatInputAttachmentTooLarge": "Files must be {maxMb} MB or smaller.",
-  "chatInputAttachmentReadFailed": "Failed to read the file. Please try again."
+  "chatInputAttachmentReadFailed": "Failed to read the file. Please try again.",
+  "chatInputVoice": "Voice input",
+  "chatInputVoiceBound": "Voice key: {key}",
+  "chatInputVoiceBoundDone": "Set: hold {key} to talk, release to finish. The text lands in the input; press Enter to send.",
+  "chatInputVoiceListeningPlaceholder": "Listening… release {key} to finish",
+  "chatInputVoiceCaptureHint": "Press a key to set it as the voice key (release to confirm).",
+  "chatInputVoicePermissionDenied": "Microphone permission was denied. Allow it in the browser or system settings and retry.",
+  "chatInputVoiceUnsupported": "Speech input is not supported in this browser.",
+  "chatInputVoiceNoSpeech": "Could not hear you. Please try again.",
+  "chatInputVoiceFailed": "Voice input failed. Please try again."
 }
