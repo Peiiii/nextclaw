@@ -3,6 +3,7 @@ import { NextClawClientError } from '@nextclaw/client-sdk';
 import { toast } from 'sonner';
 import { useDiscoverProviderModels, useTestProviderConnection } from '@/shared/hooks/use-config';
 import { t } from '@/shared/lib/i18n';
+import type { ProviderConnectionTestResult } from '@/shared/lib/api';
 import {
   buildProviderConnectionTestPayload,
   buildProviderModelDiscoveryPayload,
@@ -92,6 +93,46 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
     wireApi
   ]);
 
+  const testModelLatency = useCallback(async (modelName: string): Promise<ProviderConnectionTestResult | null> => {
+    if (!providerName) {
+      return null;
+    }
+    if (apiKeyRequired && !apiKey.trim() && !apiKeySet) {
+      toast.error(t('providerModelsApiKeyRequired'));
+      return null;
+    }
+    const payload = buildProviderConnectionTestPayload({
+      apiKey,
+      apiBase,
+      extraHeaders,
+      supportsWireApi,
+      wireApi,
+      models: [modelName],
+      providerModelAliases,
+    });
+    try {
+      return await testProviderConnection.mutateAsync({
+        provider: providerName,
+        data: payload,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`${t('providerTestConnectionFailed')}: ${message}`);
+      return null;
+    }
+  }, [
+    apiBase,
+    apiKey,
+    apiKeyRequired,
+    apiKeySet,
+    extraHeaders,
+    providerModelAliases,
+    providerName,
+    supportsWireApi,
+    testProviderConnection,
+    wireApi,
+  ]);
+
   const discoverModels = useCallback(async () => {
     if (!providerName) {
       return null;
@@ -127,6 +168,7 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
     fetchedModels: modelDiscovery?.key === discoveryKey ? modelDiscovery.models : [],
     isDiscoveringModels: discoverProviderModels.isPending,
     isTestPending: testProviderConnection.isPending,
-    testConnection
+    testConnection,
+    testModelLatency,
   };
 }

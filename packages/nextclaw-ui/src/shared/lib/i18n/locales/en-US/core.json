@@ -187,6 +187,7 @@
   "providerTestingConnection": "Testing...",
   "providerTestConnectionSuccess": "Connection test passed",
   "providerTestConnectionFailed": "Connection test failed",
+  "providerModelLatencyTest": "Test this model's latency",
   "providerModelsTitle": "Available Models",
   "providerModelsFetch": "Fetch model list",
   "providerModelsFetching": "Fetching...",
