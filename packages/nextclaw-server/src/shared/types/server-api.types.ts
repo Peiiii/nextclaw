@@ -431,6 +431,7 @@ export type SessionHistoryView = {
 export type SessionPatchUpdate = {
   label?: string | null;
   preferredModel?: string | null;
+  fallbackModel?: string | null;
   preferredThinking?: ThinkingLevel | null;
   sessionType?: string | null;
   projectRoot?: string | null;
