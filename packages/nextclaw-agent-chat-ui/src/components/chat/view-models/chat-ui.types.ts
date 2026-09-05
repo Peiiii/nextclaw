@@ -123,7 +123,7 @@ export type ChatToolbarSelect = {
   onValueChange: (value: string) => void;
 };
 
-export type ChatToolbarAccessoryIcon = "paperclip";
+export type ChatToolbarAccessoryIcon = "paperclip" | "mic";
 
 export type ChatToolbarAccessory = {
   key: string;

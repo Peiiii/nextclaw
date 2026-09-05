@@ -638,5 +638,14 @@
   "chatWorkspaceExcerptCharacterCount": "{count} 个字符",
   "chatInputAttachmentUnsupported": "当前上传流程不支持该文件类型。",
   "chatInputAttachmentTooLarge": "文件不能超过 {maxMb} MB。",
-  "chatInputAttachmentReadFailed": "读取文件失败，请重试。"
+  "chatInputAttachmentReadFailed": "读取文件失败，请重试。",
+  "chatInputVoice": "语音输入",
+  "chatInputVoiceBound": "语音键：{key}",
+  "chatInputVoiceBoundDone": "已设置：按住 {key} 说话，松开结束。文字进入输入框后，按 Enter 发送。",
+  "chatInputVoiceListeningPlaceholder": "正在聆听…松开 {key} 结束",
+  "chatInputVoiceCaptureHint": "请按下一个按键，把它设为语音键（松开完成）。",
+  "chatInputVoicePermissionDenied": "麦克风权限被拒绝，请在浏览器或系统中允许后重试。",
+  "chatInputVoiceUnsupported": "当前浏览器不支持语音输入。",
+  "chatInputVoiceNoSpeech": "没有听清，请再试一次。",
+  "chatInputVoiceFailed": "语音输入失败，请重试。"
 }

@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
-import { Check, ChevronLeft, ChevronRight, ExternalLink, Paperclip, Plus, Search, Sparkles } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, ExternalLink, Mic, Paperclip, Plus, Search, Sparkles } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import {
   ChatUiPrimitives,
@@ -273,6 +273,7 @@ export function ChatInputBarAddMenu(props: {
                 className={ADD_MENU_ACTION_CLASS_NAME}
               >
                 {item.icon === 'paperclip' ? <Paperclip className="h-4 w-4" /> : null}
+                {item.icon === 'mic' ? <Mic className="h-4 w-4" /> : null}
                 <span className="min-w-0 flex-1 truncate">{item.label}</span>
               </button>
             ))}
