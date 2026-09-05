@@ -259,7 +259,9 @@ export const ContextBootstrapSchema = z.object({
     ]),
   minimalFiles: z.array(z.string()).default(["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"]),
   perFileChars: z.number().int().default(4000),
-  totalChars: z.number().int().default(12000)
+  totalChars: z.number().int().default(12000),
+  /** 用户固定事实文件：最高优先、贴近决策尾部注入，不被记忆压缩裁剪 */
+  pinnedFile: z.string().default("pinned.md")
 });
 
 export const ContextMemorySchema = z.object({
