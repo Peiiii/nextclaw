@@ -51,7 +51,7 @@ export function resolveEffectiveModel(params: {
   sessionMetadata: Record<string, unknown>;
   requestMetadata: Record<string, unknown>;
   fallbackModel: string;
-}): { metadata: Record<string, unknown>; model: string } {
+}): { metadata: Record<string, unknown>; model: string; fallbackModel: string } {
   const { fallbackModel, requestMetadata } = params;
   const metadata = structuredClone(params.sessionMetadata);
   const clearModel =
@@ -59,6 +59,7 @@ export function resolveEffectiveModel(params: {
     requestMetadata.reset_model === true;
   if (clearModel) {
     delete metadata.preferred_model;
+    delete metadata.fallback_model;
   }
 
   const inboundModel = readMetadataModel(requestMetadata);
@@ -70,6 +71,12 @@ export function resolveEffectiveModel(params: {
     metadata.model = inboundModel;
   }
 
+  const rawFallback = normalizeOptionalString(metadata.fallback_model);
+  const resolvedFallback =
+    rawFallback && !isRuntimeDefaultModelValue(rawFallback)
+      ? rawFallback
+      : fallbackModel;
+
   return {
     metadata,
     model: (
@@ -77,6 +84,7 @@ export function resolveEffectiveModel(params: {
         ? undefined
         : normalizeOptionalString(metadata.preferred_model)
     ) ?? fallbackModel,
+    fallbackModel: resolvedFallback,
   };
 }
 

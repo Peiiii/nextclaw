@@ -9,7 +9,7 @@ import type {
 
 type SessionPreferencePatch = Pick<
   SessionPatchUpdate,
-  'preferredModel' | 'preferredThinking'
+  'preferredModel' | 'fallbackModel' | 'preferredThinking'
 >;
 
 type SessionPreferenceRollback = Pick<

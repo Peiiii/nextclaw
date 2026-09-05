@@ -67,6 +67,9 @@ export class RouterNcpSessionSettingsStub {
       nextMetadata = setOptionalMetadataValue(nextMetadata, "preferred_model", patch.preferredModel);
       nextMetadata = setOptionalMetadataValue(nextMetadata, "model", patch.preferredModel);
     }
+    if (hasPatchField(patch, "fallbackModel")) {
+      nextMetadata = setOptionalMetadataValue(nextMetadata, "fallback_model", patch.fallbackModel);
+    }
     if (hasPatchField(patch, "preferredThinking")) {
       nextMetadata = setOptionalMetadataValue(
         nextMetadata,
