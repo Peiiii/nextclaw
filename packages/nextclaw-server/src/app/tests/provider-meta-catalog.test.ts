@@ -148,6 +148,7 @@ describe("provider meta catalog", () => {
       "aihubmix",
       "anthropic",
       "deepseek",
+      "freellmapi",
       "groq",
       "minimax",
       "moonshot",

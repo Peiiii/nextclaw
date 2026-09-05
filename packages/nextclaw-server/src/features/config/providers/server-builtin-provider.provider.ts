@@ -72,7 +72,40 @@ const MINIMAX_PORTAL_PROVIDER_SPEC: ProviderSpec = {
   }
 };
 
-const SERVER_BUILTIN_PROVIDER_OVERRIDES: ProviderSpec[] = [MINIMAX_PORTAL_PROVIDER_SPEC];
+const FREELMAPI_PROVIDER_SPEC: ProviderSpec = {
+  name: "freellmapi",
+  keywords: ["freellmapi", "free-llm"],
+  envKey: "FREELMAPI_API_KEY",
+  displayName: "freellmapi",
+  modelPrefix: "freellmapi",
+  litellmPrefix: "freellmapi",
+  skipPrefixes: ["freellmapi/"],
+  envExtras: [],
+  isGateway: true,
+  isLocal: false,
+  detectByKeyPrefix: "",
+  detectByBaseKeyword: "freellmapi",
+  defaultApiBase: "http://localhost:3001/v1",
+  defaultModels: [],
+  modelDiscovery: {
+    kind: "openai-compatible",
+  },
+  stripModelPrefix: false,
+  modelOverrides: [],
+  supportsWireApi: true,
+  wireApiOptions: ["chat"],
+  defaultWireApi: "chat",
+  supportsResponsesApi: false,
+  apiBaseHelp: {
+    zh: "freellmapi 是免费的 LLM 聚合端点：填入你的 freellmapi 服务地址（默认 http://localhost:3001/v1）与统一 API Key 后，点击“获取模型列表”即可批量导入全部聚合模型。",
+    en: "freellmapi aggregates free LLM providers behind one OpenAI-compatible endpoint. Point apiBase at your freellmapi instance (default http://localhost:3001/v1), enter the unified API key, then use \"Fetch model list\" to bulk-import its aggregated models."
+  }
+};
+
+const SERVER_BUILTIN_PROVIDER_OVERRIDES: ProviderSpec[] = [
+  MINIMAX_PORTAL_PROVIDER_SPEC,
+  FREELMAPI_PROVIDER_SPEC,
+];
 const SERVER_BUILTIN_PROVIDER_OVERRIDE_MAP = new Map(SERVER_BUILTIN_PROVIDER_OVERRIDES.map((provider) => [provider.name, provider] as const));
 
 export function listServerBuiltinProviders(): ProviderSpec[] {
