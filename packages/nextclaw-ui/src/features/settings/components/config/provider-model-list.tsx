@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Settings2, Trash2, X } from "lucide-react";
-import type { ThinkingLevel } from "@/shared/lib/api";
+import { Gauge, LoaderCircle, Settings2, Trash2, X } from "lucide-react";
+import type { ProviderConnectionTestResult, ThinkingLevel } from "@/shared/lib/api";
 import { Label } from "@/shared/components/ui/label";
 import {
   Popover,
@@ -38,7 +38,63 @@ type ProviderModelListProps = {
   onSetModelVision: (modelName: string, vision: boolean) => void;
   thinkingLevels: ThinkingLevel[];
   formatThinkingLevelLabel: (level: ThinkingLevel) => string;
+  onTestModelLatency?: (modelName: string) => Promise<ProviderConnectionTestResult | null>;
 };
+
+export function ProviderModelLatencyAction({
+  modelName,
+  onTestModelLatency,
+}: {
+  modelName: string;
+  onTestModelLatency: (modelName: string) => Promise<ProviderConnectionTestResult | null>;
+}) {
+  const [testing, setTesting] = useState(false);
+  const [latency, setLatency] = useState<{
+    latencyMs: number;
+    message: string;
+  } | null>(null);
+  const runTest = async () => {
+    if (testing) {
+      return;
+    }
+    setTesting(true);
+    setLatency(null);
+    try {
+      const result = await onTestModelLatency(modelName);
+      if (result?.success) {
+        setLatency({ latencyMs: result.latencyMs, message: result.message });
+      }
+    } finally {
+      setTesting(false);
+    }
+  };
+  return (
+    <>
+      {latency ? (
+        <span
+          className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-primary"
+          title={latency.message || undefined}
+        >
+          {latency.latencyMs}ms
+        </span>
+      ) : null}
+      <button
+        type="button"
+        disabled={testing}
+        onClick={() => void runTest()}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-muted hover:text-foreground disabled:cursor-wait disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+        aria-label={t("providerModelLatencyTest")}
+        title={t("providerModelLatencyTest")}
+      >
+        {testing ? (
+          <LoaderCircle className="h-3 w-3 animate-spin" />
+        ) : (
+          <Gauge className="h-3 w-3" />
+        )}
+      </button>
+    </>
+  );
+}
 
 export function ProviderModelList(props: ProviderModelListProps) {
   const {
@@ -51,6 +107,7 @@ export function ProviderModelList(props: ProviderModelListProps) {
     onSetModelVision,
     thinkingLevels,
     formatThinkingLevelLabel,
+    onTestModelLatency,
   } = props;
   const [selecting, setSelecting] = useState(false);
   const [selection, setSelection] = useState<Set<string>>(() => new Set());
@@ -176,6 +233,12 @@ export function ProviderModelList(props: ProviderModelListProps) {
               <span className="max-w-[140px] truncate text-sm text-foreground sm:max-w-[220px]">
                 {modelName}
               </span>
+              {onTestModelLatency ? (
+                <ProviderModelLatencyAction
+                  modelName={modelName}
+                  onTestModelLatency={onTestModelLatency}
+                />
+              ) : null}
               <Popover>
                 <PopoverTrigger asChild>
                   <button
