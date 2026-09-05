@@ -121,6 +121,8 @@ export class AgentBootstrapContextProvider implements ContextProvider {
   }): string => {
     const { budget, compactedSession, config, root, sessionKey } = params;
     const parts: string[] = [];
+    // pinned 固定事实：先占预算保证必达，输出时置于文件内容尾部（贴近决策）。
+    const pinnedContent = this.readPinnedFile({ config, root, budget });
     const fileList = this.selectBootstrapFiles(config, sessionKey, compactedSession);
 
     for (const filename of fileList) {
@@ -152,7 +154,37 @@ export class AgentBootstrapContextProvider implements ContextProvider {
       }
     }
 
+    if (pinnedContent) {
+      parts.push(pinnedContent);
+    }
+
     return parts.join("\n\n");
+  };
+
+  private readPinnedFile = (params: {
+    root: string;
+    config: BootstrapContextConfig;
+    budget: BootstrapReadBudget;
+  }): string => {
+    const { budget, config, root } = params;
+    const pinnedFilename = config.pinnedFile?.trim();
+    if (!pinnedFilename) {
+      return "";
+    }
+    const pinnedPath = join(root, pinnedFilename);
+    if (!existsSync(pinnedPath)) {
+      return "";
+    }
+    const raw = readFileSync(pinnedPath, "utf-8").trim();
+    if (!raw || budget.remaining <= 0) {
+      return "";
+    }
+    const pinnedLimit =
+      config.perFileChars > 0 ? config.perFileChars : raw.length;
+    const allowed = Math.min(pinnedLimit, budget.remaining);
+    const content = truncateContextText(raw, allowed);
+    budget.remaining -= content.length;
+    return `## ${pinnedFilename}\n\n${content}`;
   };
 
   private createReadBudget = (
