@@ -187,6 +187,7 @@
   "providerTestingConnection": "测试中...",
   "providerTestConnectionSuccess": "连接测试通过",
   "providerTestConnectionFailed": "连接测试失败",
+  "providerModelLatencyTest": "测速该模型",
   "providerModelsTitle": "可用模型列表",
   "providerModelsFetch": "获取模型列表",
   "providerModelsFetching": "获取中...",
