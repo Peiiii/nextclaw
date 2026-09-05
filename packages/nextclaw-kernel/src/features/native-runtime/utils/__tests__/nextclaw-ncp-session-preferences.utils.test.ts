@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveEffectiveModel } from "../nextclaw-ncp-session-preferences.utils.js";
+import { resolveEffectiveModel } from "@kernel/features/native-runtime/utils/nextclaw-ncp-session-preferences.utils.js";
 
 describe("resolveEffectiveModel", () => {
   const defaultModel = "profile/default-model";

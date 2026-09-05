@@ -61,7 +61,7 @@ export class RouterNcpSessionSettingsStub {
   private applyPreferencePatch = (
     metadata: Record<string, unknown>,
     patch: SessionSettingsPatch,
-  ): Record<string, unknown> {
+  ): Record<string, unknown> => {
     let nextMetadata = metadata;
     if (hasPatchField(patch, "preferredModel")) {
       nextMetadata = setOptionalMetadataValue(nextMetadata, "preferred_model", patch.preferredModel);
