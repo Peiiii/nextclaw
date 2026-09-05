@@ -225,9 +225,20 @@ function extractTerminalMeta(structuredOutput?: unknown): {
 export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartViewModel; toolLabel?: string }) {
   const isRunning = card.statusTone === 'running';
   const commandPart = card.summary?.replace(/^(command|path|args|query|input):\s*/i, '');
-  const hasOutput = Boolean(card.output?.trim()) || card.outputData !== null && card.outputData !== undefined;
-  const canExpand = isRunning || hasOutput || Boolean(commandPart?.trim());
   const meta = extractTerminalMeta(card.outputData);
+  const hasStructuredTerminalOutput =
+    isRecord(card.outputData) && isStructuredTerminalRecord(card.outputData);
+  const normalizedOutput = normalizeTerminalOutput(card.output, card.outputData);
+  const terminalOutput = normalizedOutput ||
+    (hasStructuredTerminalOutput
+      ? ''
+      : formatToolCardPayload(undefined, card.outputData));
+  const hasOutput = Boolean(terminalOutput);
+  const canExpand =
+    isRunning ||
+    hasOutput ||
+    hasStructuredTerminalOutput ||
+    Boolean(commandPart?.trim());
   const { expanded, onToggle } = useToolCardExpandedState({
     canExpand,
     isRunning,
@@ -235,9 +246,7 @@ export function TerminalExecutionView({ card, toolLabel }: { card: ChatToolPartV
     expandOnError: canExpand,
     statusTone: card.statusTone,
   });
-  const output = expanded
-    ? normalizeTerminalOutput(card.output, card.outputData) || formatToolCardPayload(undefined, card.outputData)
-    : '';
+  const output = expanded ? terminalOutput : '';
 
   return (
     <ToolCardRoot>
