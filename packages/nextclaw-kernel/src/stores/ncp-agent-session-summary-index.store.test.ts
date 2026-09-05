@@ -99,4 +99,24 @@ describe("NcpAgentSessionSummaryIndexStore", () => {
     expect(database.prepare("SELECT value FROM storage_meta WHERE key = 'schema_version'").get()).toEqual({ value: "2" });
     database.close();
   });
+
+  it("round-trips metadata through the catalog read model", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-session-summary-index-"));
+    store = new NcpAgentSessionSummaryIndexStore(tempDir, async () => null);
+    await store.upsert({
+      sessionId,
+      messageCount: 1,
+      createdAt: userMessage.timestamp,
+      updatedAt: userMessage.timestamp,
+      status: "idle",
+      metadata: { label: "Catalog metadata", project_root: "/workspace" },
+    });
+
+    await expect(store.listPage({ offset: 0, limit: 20 })).resolves.toEqual([
+      expect.objectContaining({
+        sessionId,
+        metadata: { label: "Catalog metadata", project_root: "/workspace" },
+      }),
+    ]);
+  });
 });

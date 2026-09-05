@@ -24,6 +24,8 @@
 - `nextclaw` 发布构建现在为符合条件的 UI 文本资产生成确定性 `.gz` sidecar，prepack、registry tarball 和真实安装验证共用同一逐文件完整性检查；它只证明发布包完整性，不能授权外部 `gzip_static` 以固定全局安装目录提供 runtime asset。
 - 2026-08-26 回归排查确认首屏分级载荷没有失效，新的全局尖峰来自 session-search 增量索引：每次单会话更新都重新扫描 2,756 个 legacy 文件，且会与启动 reconcile 并发写同一 SQLite，日志已出现 `database is locked`。修复后全量 reconcile 与增量更新共享单一队列，同 session 重复通知合并但保留执行期间的最后一次更新，增量路径按 canonical 文件名直读目标会话；缺失文件仍沿原语义删除搜索记录。
 - 同轮修复列表读模型的上界泄漏：`limit=200` 过去只在 SQLite 全表取回后做内存切片，现在从 HTTP/manager 一直下推为 SQLite `LIMIT`。现有活动时间排序、metadata、前端搜索、项目分组、置顶、未读和 200 条可见范围不变；修后门槛已通过，因此没有为追求形式新增游标分页或预测预取协议。
+- 2026-09-06 真实 VPS 复盘定位到两条叠加根因：summary index 已持久化 `metadata_json`，但读取转换将其丢弃，导致 98 条会话列表每次都重新打开 sidecar；前端又在每条实时状态/摘要事件后失效整页查询，使已打开页面约每 2–4 秒重复触发该读放大。修复后列表直接使用 SQLite summary，实时事件原位更新缓存，仅在列表成员关系未知或改变时重新获取。
+- 同机持续满核并非会话 journal 本身造成，而是 resident inbox 中一条 timer 死信阻塞后仍接收同流事件，累计约 25.5 万条 pending；空 lease 轮询使用近似 O(n²) 查找并在没有状态变化时仍原子重写约 196 MB JSON。修复把候选选择收敛为 O(n)，无变化不持久化，同流存在死信时明确拒绝新事件且保留 replay，其他流继续工作，因此同时止住 CPU、磁盘写放大和无界积压，而不删除事故数据。
 
 ## 测试/验证/验收方式
 
@@ -42,12 +44,16 @@
 - 2026-08-21 runtime update 后，公网 HTML 来自 active `0.42.1` runtime，但固定 Nginx alias 仍从旧全局 `0.40.1` 包取 `/assets/`，新 hash 的 24 个资源全部 404，因而前端无法启动。已禁用该 alias，通过 `nginx -t` 后无中断 reload；公网 HTML 与 runtime 本地 HTML 的哈希一致，HTML 引用的 24 个 asset 均成功返回，Nginx、NextClaw 和 health 均正常。
 - 2026-08-26 隔离当前源码实例使用 2,756 个 legacy 文件、1,314 条 SQLite summary、42 MB 压力 journal 和末条 500-tool 消息。全量搜索 reconcile 占用最高 163% CPU 时，30 轮交错采样最大总耗时：health 20.196ms、会话列表 408.196ms、compact history 54.185ms、普通 summary 96.116ms；搜索库最终 2,756 条 meta 与 2,756 条 FTS 记录，无 `database is locked`。
 - 浏览器连续 15 次冷进入，首条真实会话可见最大 914ms，压力会话最近 500-tool 摘要可见最大 878ms；详情按既有 40 项批次继续 12 次后完整显示 500 项，四类工具各 125 项。Core 定向 4 项、Kernel journal store 19 项测试、两包 `tsc`、目标 ESLint、`git diff --check` 与 diff-only maintainability 检查通过；ESLint 仅报告两个既有预算 warning，maintainability 为 0 error、4 个文件增长/临界预算 warning并已做主观复核。
+- 2026-09-06 修复前目标会话 compact 消息接口约 26 秒，NextClaw Node 持续约 98%–144% CPU；修复后 98 条列表三次为 0.172–0.330 秒，真实 UI 消息请求三次为 0.019–0.056 秒。浏览器热刷新 DOM ready 548ms，目标消息 1.443 秒可见。
+- resident inbox 修复后连续观测中，196,627,126 字节队列文件的 inode、mtime、size 不再变化，8 秒 `strace` 中临时文件路径与目标文件写入均为 0；runtime Node 的 8 秒平均 CPU 为 2.38%，RSS 约 406 MiB，服务日志没有新增 error。相关 Kernel 定向 25 项、UI 定向 16 项、两包 TypeScript、目标 ESLint、Kernel/UI 构建与 `git diff --check` 通过；diff-only maintainability 为 0 error、3 个既有预算 warning。
 
 ## 发布/部署方式
 
 原迭代源码与预压缩资产已进入 `nextclaw@0.42.1`；本次线上事故修复是服务器配置止血：禁用把 `/assets/` 固定映射到全局 npm 安装目录的 Nginx alias，回到同一 active runtime 的代理主链路。该动作不改变 npm 包，也不创建新的 runtime/桌面发布；后续若要再次引入外部静态直出，必须先由 runtime updater 提供与 runtime 切换同一原子操作的稳定静态目录。
 
 2026-08-26 性能回归修复目前仅完成源码、changeset、设计与隔离实例验证；没有获得 commit、push、release、deploy 或重启当前 55667 实例的授权，因此这些动作均未执行。要让当前安装态生效，需要后续经授权提交并发布/更新对应包，再重启加载新对象图。
+
+2026-09-06 经用户授权，将未发布修复作为可回滚热修复安装到 VPS active runtime `0.48.3` 并重启 `nextclaw`。会话读取备份位于 `hotfix-deployments/20260905-2337-vps-session-loading`，Kernel 与 resident inbox 数据备份位于 `hotfix-deployments/20260906-0035-resident-inbox`；服务已恢复 active 并通过 HTTP、CPU、文件写入、API 与真实浏览器验收。源码仍未 commit、push 或发布，后续正式交付应通过统一 NPM/runtime 发布替换该热修复。
 
 ## 用户/产品视角的验收步骤
 
@@ -61,12 +67,15 @@
 8. 在包含至少 1,000 条 session summary 的实例打开根路径，确认首条真实会话在 1 秒内出现，排序、置顶、项目分组、未读和搜索结果与修前一致。
 9. 同时让 session-search 执行全量 reconcile 并重复通知同一 session 更新，确认 health、列表和任意未运行会话不再出现数秒尖峰，搜索最终包含最新状态且日志没有 `database is locked`。
 10. 打开 `stress-tool-call-heavy-local`，确认最近消息在 1.5 秒内出现；展开 500-tool 摘要并继续加载到剩余项为零，最终仍为 500 项。
+11. 在真实 VPS 刷新目标长会话，确认列表不随实时状态事件反复请求、目标消息在约 1.5 秒内可见；观察 resident inbox 队列文件至少两个轮询周期，确认无状态变化时 inode、mtime 与 size 不变，死信仍可查询和 replay。
 
 ## 可维护性总结汇总
 
 本次把事实 owner 收敛为 projection 负责稳定游标、server 负责 UI 载荷预算、前端 history hook 负责详情状态与缓存；没有引入逐工具请求或平行 journal 事实源。compact 只是同一 history API 的显式表示合同，HTML prefetch 只消费一次且失败回到 canonical SDK 路径。history hook 进一步拆为 252 行交互状态 owner 与 134 行 seed/prefetch owner；没有为了指标增加 wrapper。发布资产由单一 `UiDistPrecompressionManager` 负责生成和验证，copy、prepack、tarball 与安装检查复用同一候选规则。事故复盘进一步收敛了运行时 asset owner：sidecar 完整性与运行时路由是两个合同，不能让 Nginx 以固定全局安装目录绕开 active runtime。博客发布继续复用 changeset、草稿 frontmatter 和既有 `release:summary`，没有新增平行 manifest 或发布阶段。新增文件均通过 planned-path preflight，未新增 barrel。自动检查最初发现函数复杂度与文件行数问题，拆出工具载荷 hook、summary read store 和局部纯函数后清零 error；release 脚本 scoped maintainability 检查也通过，三个现有热点文件保持在既定预算边界，没有扩大预算。
 
 2026-08-26 跟进仍由既有 search worker、summary index 和 summary read store 持有事实，没有把缓存或限流散落到 HTTP/UI。生产代码净增长只用于单队列 dirty-set 调度、目标文件直读和 SQL limit 下推；没有新增 service/wrapper/fallback。diff-only guard 为 0 error；4 个 warning 分别是测试增长与既有文件临界预算，主观复核确认并发/IO 测试集中在既有 worker controller test 仍最清晰，局部拆文件会增加无收益跳转。`ncp-agent-session-journal.store.ts` 保持 400 行，后续若 journal 协调职责继续增长再沿 summary owner 缝拆分。
+
+2026-09-06 跟进继续复用 summary index、query cache 与 resident inbox 三个既有 owner，没有新增 service、wrapper、双写或数据迁移。索引读取删除 sidecar 重水化，实时事件只改已有缓存，inbox 的“无变化不写盘”由 inode 回归测试证明；死信阻塞采用显式失败而非静默 fallback。自动维护性检查 0 error；3 条 warning 均为既有测试/目录预算，没有新增目录或恶化边界，主观复核未发现需返工项。
 
 ## 红区触达与减债记录
 
@@ -93,3 +102,5 @@
 原 changeset 覆盖 `@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/client-sdk`、`@nextclaw/agent-chat-ui`、`@nextclaw/ui` 和 `nextclaw`。本轮性能跟进新增 changeset，覆盖 `@nextclaw/server`、`@nextclaw/ncp-react`、`@nextclaw/ui` 和 `nextclaw`；本轮不发布，状态为待统一发布。
 
 2026-08-26 新增 `.changeset/fast-session-loading.md`，覆盖 `@nextclaw/core`、`@nextclaw/kernel` 与 `nextclaw` 的 patch。当前仅为未提交本地改动，未发布到 NPM，状态为待后续授权后统一提交与发布。
+
+2026-09-06 新增 `.changeset/fix-session-loading-performance.md`，直接覆盖 `@nextclaw/kernel` 与 `@nextclaw/ui` patch，并由固定组依赖传播到相关包。当前 VPS 仅应用可回滚热修复，NPM 未发布，状态为待后续授权后统一提交与发布。

@@ -219,6 +219,30 @@ NextClaw 内置 HTTP server 继续使用动态 `compress()` 和 immutable cache�
 
 2026-08-26 首轮性能验证证明首屏速度达标，但把“前 200 条加载很快”误判成“列表体验完整”，遗漏了第 201 条以后不可达这一功能违约。纠正后的验收同时覆盖：首页返回页码元数据、第二页与第一页不重叠、搜索总数由后端计算、滚动接近底部会继续请求，且最终可到达全部匹配会话。性能门槛仍是列表首条真实数据小于 1 秒；分页不能以丢失任何旧会话、排序、筛选或状态体验换取速度。
 
+### 22. 实时 summary 事件更新分页缓存，catalog metadata 不再回读 sidecar
+
+2026-09-05 的 VPS 复现暴露出分页上线后的刷新生命周期缺口：两个已打开的客户端消费 `session.summary.upsert` 时，都无条件 invalidation `ncp-session-pages`。活跃会话持续发布 summary 后，每个客户端约每 2–4 秒重新请求 100 条会话；Server 虽从 SQLite 取得行，却丢弃行内已有的 `metadata_json`，随后再为每条 summary 读取 metadata sidecar。`strace` 在 4 秒内观察到同一批约 100 个 sidecar 被完整读取两遍，NextClaw Node 进程持续占满一个 CPU 核并出现约 0.5–1.3 GiB RSS 波动；同一事件循环上的 49 MiB 代表会话 compact history 虽只返回约 16 KiB，仍排队约 26 秒，health 也从约 34ms 波动到 1.7 秒。
+
+这不是 pagination、message projection 或虚拟列表失效，而是 realtime consumer 与 catalog read model 各保留了一条重复刷新路径。采用以下单一主链路：
+
+- 未带搜索条件的 paginated query 已包含目标 session 时，summary upsert 直接在 QueryClient 的全部已加载页中替换、按既有活动时间规则排序并重新切回原页长度；run status 同样只更新已有页。更新既有成员不得 invalidate 或重新请求 Server。
+- 新 session 不在已加载页、删除 session、或搜索条件可能因 metadata 变化而改变成员关系时，才 invalidate 对应 paginated query，由 Server 重新确定总数和页边界。不能为了避免这一低频重拉而在前端复制后端搜索谓词或猜测未加载页面。
+- SQLite catalog 的 `metadata_json` 是 summary read projection 的组成部分，读取行时必须恢复到 `NcpSessionSummary.metadata`。metadata set/update 与 snapshot import 已同步 upsert catalog，因此常规 list/get 直接消费 catalog；只有 catalog 缺项的旧数据恢复路径允许读取 metadata sidecar。
+
+不采用固定轮询、debounce 或 HTTP 缓存：它们仍会保留周期性全页读取、引入陈旧窗口，或只掩盖 Server 重复 I/O。消息 journal、message projection、cursor 和 UI history payload 合同不变，不需要迁移用户数据。修后验证必须证明既有 summary/run-status 在 paginated cache 中原位更新且 query 未失效，新建/删除/搜索仍能触发边界重算；catalog metadata round-trip 后删除 sidecar 仍可列出已有 summary metadata；VPS 同入口不再重复打开整批 sidecar，compact history 与 health 恢复到既有性能上界。
+
+### 23. Resident inbox 积压对会话读取的跨域争用修复
+
+2026-09-06 进一步取证发现 `nextclaw.portable-runtime-lab` 的 Resident inbox 已增长到约 196 MB：timer stream 的第 2246 个事件进入 dead-letter 后，后续约 25 万个 pending 事件仍持续入队。原实现的自动 lease 轮询即使没有状态变化，也会原子重写整个 JSON；候选判断还会对 pending 事件执行嵌套扫描。结果是同一 Node 进程每轮写出约 196 MB 并长期占满 CPU，继续与会话 API 争用事件循环。
+
+本轮保持持久事件与 replay 合同，不删除或静默合并既有 pending：
+
+- lease 轮询只有在回收 lease/retry 或成功租出事件时才持久化；纯观察轮询不产生写副作用；
+- 每个 stream 只考察最早未 ack 事件，跨 stream 选择最早可租事件，将候选查找收敛为单次线性扫描；
+- stream 已存在 dead-letter 时，新 enqueue 明确 fail-fast，防止不可恢复阻塞继续形成无界积压；其它 stream 仍可接收，既有 dead-letter 仍由 replay 入口显式恢复。
+
+验收必须证明：无候选 lease 不替换存储文件；dead-letter 只阻塞所属 stream；replay 仍能恢复原事件；VPS 原 196 MB inbox 保持不丢失且不再周期性重写，CPU 与会话接口延迟同步下降。
+
 ## 数据与事件主链路
 
 1. 会话发生标准变更时，`publishSessionChange` 读取 canonical record、计算 context window、写入 message projection 并发布 session summary。

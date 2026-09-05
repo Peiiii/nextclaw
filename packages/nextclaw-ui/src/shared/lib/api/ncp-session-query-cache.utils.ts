@@ -1,4 +1,4 @@
-import type { QueryClient } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import type { NcpSessionSummaryView, NcpSessionsListView, WsEvent } from '@/shared/lib/api';
 
 function readSessionActivityAt(summary: NcpSessionSummaryView): string {
@@ -24,6 +24,73 @@ function queryKeyAcceptsSessionSummary(queryKey: readonly unknown[], summary: Nc
   }
   const peerId = typeof queryKey[2] === 'string' ? queryKey[2].trim() : '';
   return !peerId || summary.peerId === peerId;
+}
+
+function updateSessionPages(
+  current: InfiniteData<NcpSessionsListView> | undefined,
+  update: (sessions: NcpSessionsListView) => NcpSessionsListView | undefined
+): InfiniteData<NcpSessionsListView> | undefined {
+  if (!current) return current;
+  const pageLengths = current.pages.map((page) => page.sessions.length);
+  const sessions = current.pages.flatMap((page) => page.sessions);
+  const updated = update({
+    sessions,
+    total: current.pages[0]?.total ?? sessions.length
+  });
+  if (!updated) return current;
+  let offset = 0;
+  return {
+    ...current,
+    pages: current.pages.map((page, index) => {
+      const nextOffset = offset + (pageLengths[index] ?? 0);
+      const nextPage = {
+        ...page,
+        sessions: updated.sessions.slice(offset, nextOffset)
+      };
+      offset = nextOffset;
+      return nextPage;
+    })
+  };
+}
+
+function updateExistingNcpSessionSummaryPages(
+  queryClient: QueryClient | undefined,
+  summary: NcpSessionSummaryView
+): void {
+  if (!queryClient) return;
+  const entries = queryClient.getQueriesData<InfiniteData<NcpSessionsListView>>({
+    queryKey: ['ncp-session-pages']
+  });
+  for (const [queryKey, current] of entries) {
+    const query = typeof queryKey[2] === 'string' ? queryKey[2].trim() : '';
+    const containsSession = current?.pages.some((page) =>
+      page.sessions.some((session) => session.sessionId === summary.sessionId)
+    );
+    if (query || !containsSession) {
+      void queryClient.invalidateQueries({ queryKey, exact: true });
+      continue;
+    }
+    queryClient.setQueryData<InfiniteData<NcpSessionsListView>>(
+      queryKey,
+      (value) => updateSessionPages(
+        value,
+        (sessions) => upsertNcpSessionSummaryList(sessions, summary)
+      )
+    );
+  }
+}
+
+function updateNcpSessionRunStatusPages(
+  queryClient: QueryClient | undefined,
+  payload: { sessionKey: string; status: 'running' | 'idle' }
+): void {
+  queryClient?.setQueriesData<InfiniteData<NcpSessionsListView>>(
+    { queryKey: ['ncp-session-pages'] },
+    (current) => updateSessionPages(
+      current,
+      (sessions) => updateNcpSessionRunStatusList(sessions, payload)
+    )
+  );
 }
 
 export function upsertNcpSessionSummaryList(
@@ -149,13 +216,14 @@ export function applyNcpSessionRealtimeEvent(
   queryClient: QueryClient | undefined,
   event: Extract<WsEvent, { type: 'session.run-status' | 'session.summary.upsert' | 'session.summary.delete' }>
 ): void {
-  void queryClient?.invalidateQueries({ queryKey: ['ncp-session-pages'] });
   if (event.type === 'session.run-status') {
     updateNcpSessionRunStatusInQueryClient(queryClient, event.payload);
+    updateNcpSessionRunStatusPages(queryClient, event.payload);
     return;
   }
   if (event.type === 'session.summary.upsert') {
     upsertNcpSessionSummaryInQueryClient(queryClient, event.payload.summary);
+    updateExistingNcpSessionSummaryPages(queryClient, event.payload.summary);
     void queryClient?.invalidateQueries({
       queryKey: ['ncp-session-token-usage', event.payload.summary.sessionId],
       exact: true,
@@ -164,4 +232,5 @@ export function applyNcpSessionRealtimeEvent(
   }
 
   deleteNcpSessionSummaryInQueryClient(queryClient, event.payload.sessionKey);
+  void queryClient?.invalidateQueries({ queryKey: ['ncp-session-pages'] });
 }

@@ -372,6 +372,7 @@ describe("NcpAgentSessionJournalStore replay", () => {
     await store.importSessionSnapshot(createRecord([userMessage, assistantMessage]));
 
     const eventTypes = await readJournalEventTypes(tempDir);
+    await rm(join(tempDir, `${sessionId}.metadata.json`));
 
     const reloaded = new NcpAgentSessionJournalStore(tempDir);
     const messages = await reloaded.listSessionMessages(sessionId);
