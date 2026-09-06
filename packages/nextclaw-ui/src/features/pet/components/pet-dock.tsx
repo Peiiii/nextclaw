@@ -73,7 +73,7 @@ export const PetDock = memo(function PetDock({
       onPointerLeave={handlePointerUp}
     >
       {expanded && pet ? (
-        <div className="pet-dock__bubble w-64 rounded-xl border border-border bg-background p-3 shadow-lg">
+        <div className="pet-dock__bubble w-64 rounded-xl border border-border bg-background p-3 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center gap-2">
             <PetSprite view={view} size="sm" />
             <div className="min-w-0">
@@ -110,7 +110,7 @@ export const PetDock = memo(function PetDock({
       <button
         type="button"
         data-pet-action
-        className="pet-dock__button flex h-12 items-center gap-1 rounded-full border border-border bg-background px-3 shadow-md transition hover:shadow-lg"
+        className="pet-dock__button flex h-12 items-center gap-1 rounded-full border border-border bg-background px-3 shadow-md transition duration-200 hover:shadow-xl cursor-pointer"
         onClick={toggleExpanded}
         aria-expanded={expanded}
         aria-label={label}
