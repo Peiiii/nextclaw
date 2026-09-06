@@ -7,6 +7,7 @@ export type {
   RightPanelResourceTarget,
 } from '@/features/right-panel-resources/types/right-panel-resource.types';
 export {
+  createChatUiResourceReferenceFromTab,
   createPanelAppContentPath,
   createPanelAppResourceUri,
   createPanelAppRightPanelResourceTarget,

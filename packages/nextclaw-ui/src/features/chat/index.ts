@@ -10,6 +10,7 @@ export { ChatCompletionNotificationManager } from "./managers/chat-completion-no
 export {
   buildSessionPath,
   CHAT_DRAFT_SESSION_PATH,
+  parseSessionKeyFromRoute,
 } from "./features/session/utils/chat-session-route.utils";
 export { useChatSessionListStore } from "./stores/chat-session-list.store";
 export { useChatThreadStore } from "./stores/chat-thread.store";

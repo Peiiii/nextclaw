@@ -39,6 +39,7 @@ type DocBrowserProps = {
   customTabRenderers?: DocBrowserCustomTabRenderers;
   displayMode?: 'desktop' | 'fullscreen';
   dockControls?: DocBrowserDockControls;
+  dockSide?: 'left' | 'right';
   getTabMenuGroups?: (tab: DocBrowserTab) => readonly ContextMenuGroup[] | undefined;
 };
 
@@ -168,6 +169,7 @@ export function DocBrowser({
   customTabRenderers = {},
   displayMode = 'desktop',
   dockControls,
+  dockSide = 'right',
   getTabMenuGroups,
 }: DocBrowserProps) {
   const {
@@ -416,6 +418,7 @@ export function DocBrowser({
         minWidth={DOC_BROWSER_DOCKED_MIN_WIDTH}
         maxWidth={DOC_BROWSER_DOCKED_MAX_WIDTH}
         onWidthCommit={setDockedWidth}
+        side={dockSide}
       >
         {panelContent}
       </ResizableRightPanel>

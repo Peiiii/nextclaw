@@ -6,6 +6,7 @@ import {
 } from "@/app/stores/viewport-layout.store";
 
 export const DENSE_RIGHT_PANELS_AUTO_COLLAPSE_MAX_WIDTH = 1800;
+export const MIN_SIDEBAR_COLLAPSE_WIDTH = 1024;
 
 type DenseRightPanelsLayout = {
   isDocBrowserDocked: boolean;
@@ -93,7 +94,9 @@ export class ViewportLayoutManager {
       return;
     }
 
-    this.setSidebarCollapsed(true);
+    if (width < MIN_SIDEBAR_COLLAPSE_WIDTH) {
+      this.setSidebarCollapsed(true);
+    }
   };
 
   toggleSidebarCollapsed = () => {
