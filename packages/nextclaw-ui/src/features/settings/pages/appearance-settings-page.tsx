@@ -8,6 +8,8 @@ import { SettingsPage } from '@/shared/components/settings/settings-page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Switch } from '@/shared/components/ui/switch';
 import { useSideDockStore } from '@/features/side-dock';
+import { useUiMode } from '@/app/components/ui-mode-provider';
+import { UI_MODE_OPTIONS, type UiMode } from '@/shared/lib/ui-mode';
 import { t } from '@/shared/lib/i18n';
 import { THEME_OPTIONS, type UiTheme } from '@/shared/lib/theme';
 import { cn } from '@/shared/lib/utils';
@@ -29,8 +31,14 @@ const CHAT_MESSAGE_LAYOUT_OPTIONS: Array<{
   }
 ];
 
+const UI_MODE_DESCRIPTION_KEYS: Record<UiMode, string> = {
+  standard: 'uiModeStandardDescription',
+  minimal: 'uiModeMinimalDescription'
+};
+
 export function AppearanceSettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { mode, setMode } = useUiMode();
   const { currentLanguage, languageOptions, selectLanguage } = useLanguagePreference();
   const messageLayout = useChatMessageLayoutStore((state) => state.layout);
   const setMessageLayout = useChatMessageLayoutStore((state) => state.setLayout);
@@ -116,6 +124,51 @@ export function AppearanceSettingsPage() {
                       <span className='block text-sm font-medium'>{t(option.labelKey)}</span>
                       <span className='mt-1 block text-xs leading-5 text-muted-foreground'>
                         {t(option.descriptionKey)}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </SettingRow>
+          <SettingRow
+            title={t('uiModeTitle')}
+            description={t('uiModeDescription')}
+            layout='stacked'
+          >
+            <div
+              role='radiogroup'
+              aria-label={t('uiModeTitle')}
+              className='grid gap-1 rounded-xl bg-background/65 p-1 sm:grid-cols-2'
+            >
+              {UI_MODE_OPTIONS.map((option) => {
+                const selected = option.value === mode;
+                return (
+                  <button
+                    key={option.value}
+                    type='button'
+                    role='radio'
+                    aria-checked={selected}
+                    onClick={() => setMode(option.value)}
+                    className={cn(
+                      'flex min-w-0 items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
+                      selected
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-card/60 hover:text-foreground'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ring-1',
+                        selected ? 'bg-primary text-primary-foreground ring-primary' : 'bg-background ring-border'
+                      )}
+                    >
+                      {selected ? <Check className='h-2.5 w-2.5' strokeWidth={3} /> : null}
+                    </span>
+                    <span className='min-w-0'>
+                      <span className='block text-sm font-medium'>{t(option.labelKey)}</span>
+                      <span className='mt-1 block text-xs leading-5 text-muted-foreground'>
+                        {t(UI_MODE_DESCRIPTION_KEYS[option.value])}
                       </span>
                     </span>
                   </button>

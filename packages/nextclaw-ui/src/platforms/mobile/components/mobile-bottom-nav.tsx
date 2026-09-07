@@ -10,11 +10,13 @@ import { useInboxUnreadCount } from "@/features/inbox";
 import { useDocBrowser } from "@/shared/components/doc-browser";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
+import { useUiMode } from "@/app/components/ui-mode-provider";
 
 export function MobileBottomNav() {
   const { pathname } = useLocation();
   const docBrowser = useDocBrowser();
   const unreadCount = useInboxUnreadCount();
+  const { mode } = useUiMode();
 
   return (
     <nav
@@ -26,7 +28,7 @@ export function MobileBottomNav() {
       }}
     >
       <ul className="grid grid-cols-6 gap-1 px-2 pt-1">
-        {getMobileBottomNavItems(t).map((item) => {
+        {getMobileBottomNavItems(t, mode).map((item) => {
           const active = item.target === "/settings"
             ? isSettingsRoute(pathname)
             : matchesRouteTarget(pathname, item.target);

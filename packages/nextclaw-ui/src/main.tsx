@@ -4,6 +4,7 @@ import { BrowserRouter, MemoryRouter } from 'react-router-dom';
 import App from './app';
 import { I18nProvider } from '@/components/providers/I18nProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { UiModeProvider } from '@/app/components/ui-mode-provider';
 import { installMainI18nCatalog } from '@/shared/lib/i18n';
 import './index.css';
 
@@ -26,11 +27,13 @@ if (import.meta.env.DEV && window.location.pathname === '/__debug/chat-tool-call
   root.render(
     <StrictMode>
       <ThemeProvider>
-        <I18nProvider>
-          <AppRouter>
-            <App />
-          </AppRouter>
-        </I18nProvider>
+        <UiModeProvider>
+          <I18nProvider>
+            <AppRouter>
+              <App />
+            </AppRouter>
+          </I18nProvider>
+        </UiModeProvider>
       </ThemeProvider>
     </StrictMode>,
   );

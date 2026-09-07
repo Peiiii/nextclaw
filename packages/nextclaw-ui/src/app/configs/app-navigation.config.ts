@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { UiMode } from "@/shared/lib/ui-mode";
 import {
   Activity,
   Bot,
@@ -73,8 +74,9 @@ export function isChatSessionDetailRoute(pathname: string): boolean {
 
 export function getMobileBottomNavItems(
   translate: Translate,
+  mode: UiMode = "standard",
 ): AppNavigationItem[] {
-  return [
+  const items: AppNavigationItem[] = [
     {
       target: "/chat",
       label: translate("chat"),
@@ -101,12 +103,17 @@ export function getMobileBottomNavItems(
       icon: Settings,
     },
   ];
+
+  return mode === "minimal"
+    ? items.filter((item) => !["/skills", "/agents"].includes(item.target))
+    : items;
 }
 
 export function getMainSidebarNavItems(
   translate: Translate,
+  mode: UiMode = "standard",
 ): AppNavigationItem[] {
-  return [
+  const items: AppNavigationItem[] = [
     {
       target: "/chat",
       label: translate("chat"),
@@ -133,6 +140,10 @@ export function getMainSidebarNavItems(
       icon: Bot,
     },
   ];
+
+  return mode === "minimal"
+    ? items.filter((item) => !["/chat/cron", "/chat/skills"].includes(item.target))
+    : items;
 }
 
 export function getSettingsNavItems(

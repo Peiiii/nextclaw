@@ -19,7 +19,7 @@ import { IconActionButton } from "@/shared/components/ui/actions/icon-action-but
 import { SCROLL_BOTTOM_EDGE_FADE_CLASS } from "@/shared/components/ui/scroll-area";
 import { useAppPresenter } from "@/app/components/app-presenter-provider";
 import { useRemoteStatus } from "@/features/remote";
-import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities/hooks/use-desktop-capabilities";
+import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities";
 import { getSettingsNavSections } from "@/app/configs/app-navigation.config";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
@@ -66,9 +66,16 @@ function SettingsSidebarHeader({
   isCollapsed: boolean;
   onToggle: () => void;
 }) {
+  const shouldReserveMacWindowControls =
+    typeof window !== "undefined" &&
+    window.nextclawDesktop?.platform === "darwin";
   return (
     <div
-      className={cn("shrink-0", isCollapsed ? "px-0 py-1.5" : "px-2 py-2")}
+      className={cn(
+        "shrink-0",
+        isCollapsed ? "px-0 py-1.5" : "px-2 py-2",
+        shouldReserveMacWindowControls ? "pt-8" : null,
+      )}
     >
       <div
         className={cn(
