@@ -38,7 +38,6 @@ type SessionCatalogPageOptions = {
   limit: number;
   query?: string;
 };
-
 function buildCatalogFilter(query?: string): { sql: string; params: string[] } {
   const normalized = query?.trim().toLocaleLowerCase();
   if (!normalized) return { sql: "deleted_at IS NULL", params: [] };
@@ -80,6 +79,7 @@ function summaryToRow(summary: NcpSessionSummary, deletedAt: string | null = nul
 }
 
 function rowToSummary(row: SessionCatalogRow): NcpSessionSummary {
+  const metadata = JSON.parse(row.metadata_json) as Record<string, unknown>;
   return {
     sessionId: row.session_id,
     ...(row.peer_id ? { peerId: row.peer_id } : {}),
@@ -89,9 +89,9 @@ function rowToSummary(row: SessionCatalogRow): NcpSessionSummary {
     updatedAt: row.updated_at,
     ...(row.last_message_at ? { lastMessageAt: row.last_message_at } : {}),
     status: row.status as NcpSessionSummary["status"],
+    ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
   };
 }
-
 export class NcpAgentSessionSummaryIndexStore {
   private database: SqliteDatabase | null = null;
   private readyPromise: Promise<void> | null = null;

@@ -99,10 +99,13 @@ export class ServiceAppResidentEventInboxService {
       const existing = store.events.find((candidate) => candidate.eventId === input.eventId);
       if (existing) {
         event = existing;
-        return;
+        return false;
       }
       const now = new Date().toISOString();
       const streamKey = input.streamKey?.trim() || "default";
+      if (store.events.some((candidate) => candidate.streamKey === streamKey && candidate.status === "dead-letter")) {
+        throw new ServiceAppError("SERVICE_APP_RESIDENT_EVENT_CONFLICT", `Resident stream ${streamKey} is blocked by a dead-letter event.`);
+      }
       const sequence = store.events
         .filter((candidate) => candidate.streamKey === streamKey)
         .reduce((maximum, candidate) => Math.max(maximum, candidate.sequence), 0) + 1;
@@ -160,34 +163,40 @@ export class ServiceAppResidentEventInboxService {
     const now = params.now ?? new Date();
     const leaseMs = this.clampLease(params.leaseMs ?? DEFAULT_LEASE_MS);
     await this.mutate(scope, (store) => {
-      if (store.frozen) return;
+      if (store.frozen) return false;
       const nowMs = now.getTime();
+      let changed = false;
       for (const event of store.events) {
         if (event.status === "leased" && this.readTime(event.leaseExpiresAt) <= nowMs) {
           this.transition(event, "pending");
           event.leaseExpiresAt = undefined;
+          changed = true;
         }
         if (event.status === "retry-wait" && this.readTime(event.nextAttemptAt) <= nowMs) {
           this.transition(event, "pending");
           event.nextAttemptAt = undefined;
+          changed = true;
         }
       }
       // Do not let a later event overtake the earliest unacknowledged member
       // of a stream. The single Resident lane then makes the contract global
       // and preserves each individual stream's order.
-      const candidate = store.events
-        .filter((event) => event.status === "pending")
-        .filter((event) => !store.events.some((earlier) =>
-          earlier.streamKey === event.streamKey &&
-          earlier.sequence < event.sequence &&
-          earlier.status !== "acked",
-        ))
-        .sort((left, right) => left.receivedAt.localeCompare(right.receivedAt))[0];
-      if (!candidate) return;
+      const streamHeads = new Map<string, StoredEvent>();
+      for (const event of store.events) {
+        if (event.status === "acked") continue;
+        const current = streamHeads.get(event.streamKey);
+        if (!current || event.sequence < current.sequence) streamHeads.set(event.streamKey, event);
+      }
+      let candidate: StoredEvent | undefined;
+      for (const event of streamHeads.values()) {
+        if (event.status === "pending" && (!candidate || event.receivedAt < candidate.receivedAt)) candidate = event;
+      }
+      if (!candidate) return changed;
       candidate.attempt += 1;
       this.transition(candidate, "leased");
       candidate.leaseExpiresAt = new Date(nowMs + leaseMs).toISOString();
       leased = candidate;
+      return true;
     });
     return leased ? this.toLeased(leased) : undefined;
   };
@@ -341,14 +350,14 @@ export class ServiceAppResidentEventInboxService {
     this.stores.set(scope.stateDirectory, store);
   };
 
-  private mutate = async (scope: ServiceAppResidentEventScope, operation: (store: InboxStore) => void): Promise<void> => {
+  private mutate = async (scope: ServiceAppResidentEventScope, operation: (store: InboxStore) => boolean | void): Promise<void> => {
     await this.ensureLoaded(scope);
     const key = scope.stateDirectory;
     const next = (this.mutationQueues.get(key) ?? Promise.resolve())
       .catch(() => undefined)
       .then(async () => {
-        operation(this.requireStore(scope));
-        await this.save(scope);
+        const changed = operation(this.requireStore(scope));
+        if (changed !== false) await this.save(scope);
       });
     this.mutationQueues.set(key, next);
     await next;

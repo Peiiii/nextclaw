@@ -1,5 +1,6 @@
 import type { ApiError } from '@nextclaw/client-sdk';
 import type { AppEvent, AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
+import { BrowserRealtimeRecoveryService } from './browser-realtime-recovery.service';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
 
 type RemoteTarget = {
@@ -95,6 +96,9 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
   private subscribers = new Set<(event: AppEvent) => void>();
   private pendingRequests = new Map<string, PendingRequest>();
   private pendingStreams = new Map<string, PendingStream>();
+  private readonly browserRecovery = new BrowserRealtimeRecoveryService(() => {
+    this.replaceSocket();
+  });
 
   constructor(
     private readonly runtime: RemoteRuntimeInfo,
@@ -215,6 +219,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
 
   subscribe = (handler: (event: AppEvent) => void): () => void => {
     this.subscribers.add(handler);
+    this.browserRecovery.start();
     void this.ensureSocket().catch((error) => {
       handler({
         type: 'connection.error',
@@ -223,6 +228,9 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     });
     return () => {
       this.subscribers.delete(handler);
+      if (this.subscribers.size === 0) {
+        this.browserRecovery.stop();
+      }
     };
   }
 
@@ -319,6 +327,28 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
       this.reconnectTimer = null;
       void this.ensureSocket().catch(() => undefined);
     }, 3_000);
+  }
+
+  private replaceSocket = (): void => {
+    if (this.subscribers.size === 0 || this.connectPromise !== null) {
+      return;
+    }
+    if (this.reconnectTimer !== null) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    const staleSocket = this.socket;
+    this.socket = null;
+    if (staleSocket) {
+      staleSocket.onopen = null;
+      staleSocket.onmessage = null;
+      staleSocket.onerror = null;
+      staleSocket.onclose = null;
+      staleSocket.close();
+      this.failPendingWork(new Error('Remote transport connection replaced after browser recovery.'));
+      this.emit({ type: 'connection.close', payload: {} });
+    }
+    void this.ensureSocket().catch(() => undefined);
   }
 
   private failPendingWork = (error: Error): void => {

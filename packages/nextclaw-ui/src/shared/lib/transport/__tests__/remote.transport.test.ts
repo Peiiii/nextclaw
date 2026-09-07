@@ -25,7 +25,6 @@ class MockWebSocket {
 
   close = (): void => {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({} as CloseEvent);
   }
 
   open = (): void => {
@@ -37,6 +36,11 @@ class MockWebSocket {
     this.onmessage?.({
       data: JSON.stringify(frame)
     } as MessageEvent);
+  }
+
+  finishClose = (): void => {
+    this.readyState = MockWebSocket.CLOSED;
+    this.onclose?.({} as CloseEvent);
   }
 
   static reset(): void {
@@ -143,5 +147,36 @@ describe('RemoteSessionMultiplexTransport request path', () => {
     await vi.advanceTimersByTimeAsync(15_000);
 
     await timeoutExpectation;
+  });
+
+  it('replaces a possibly stale open socket when a mobile page becomes visible again', async () => {
+    let visibilityState: DocumentVisibilityState = 'hidden';
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibilityState);
+    const transport = new RemoteSessionMultiplexTransport({
+      mode: 'remote',
+      protocolVersion: 1,
+      wsPath: '/_remote/ws'
+    }, 'https://remote.claw.cool');
+
+    const handler = vi.fn();
+    const unsubscribe = transport.subscribe(handler);
+    const staleSocket = MockWebSocket.instances[0];
+    staleSocket?.open();
+    await Promise.resolve();
+
+    visibilityState = 'visible';
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(staleSocket?.readyState).toBe(MockWebSocket.CLOSED);
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(handler).toHaveBeenCalledWith({ type: 'connection.close', payload: {} });
+
+    const replacementSocket = MockWebSocket.instances[1];
+    replacementSocket?.open();
+    staleSocket?.finishClose();
+
+    expect(MockWebSocket.instances).toHaveLength(2);
+    expect(handler).toHaveBeenLastCalledWith({ type: 'connection.open', payload: {} });
+    unsubscribe();
   });
 });

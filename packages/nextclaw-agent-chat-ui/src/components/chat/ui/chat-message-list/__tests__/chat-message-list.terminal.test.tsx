@@ -59,12 +59,12 @@ it("resets completed terminal cards to collapsed when the list remounts", () => 
   expect(screen.queryByText("short finished output")).toBeNull();
 });
 
-it("renders structured terminal result objects without showing raw json payloads", () => {
+it("renders exec stdout from structured results without showing raw json payloads", () => {
   render(
     <ChatMessageList
       messages={[
         {
-          id: "assistant-terminal-object-output",
+          id: "assistant-exec-object-output",
           role: "assistant",
           roleLabel: "Assistant",
           timestampLabel: "10:15",
@@ -73,13 +73,14 @@ it("renders structured terminal result objects without showing raw json payloads
               type: "tool-card",
               card: {
                 kind: "result",
-                toolName: "command_execution",
-                summary: "command: echo hello",
+                toolName: "exec",
+                summary: "command: nextclaw --version",
                 outputData: {
-                  status: "completed",
-                  command: "echo hello",
-                  aggregated_output: "hello\n",
-                  exit_code: 0,
+                  ok: true,
+                  command: "nextclaw --version",
+                  exitCode: 0,
+                  stdout: "0.48.3\n",
+                  stderr: "",
                 },
                 hasResult: true,
                 statusTone: "success",
@@ -98,15 +99,15 @@ it("renders structured terminal result objects without showing raw json payloads
     />,
   );
 
-  fireEvent.click(screen.getByText("echo hello"));
+  fireEvent.click(screen.getByText("nextclaw --version"));
 
   expect(screen.getByTestId("chat-terminal-surface")).toBeTruthy();
   const content = screen.getByTestId("chat-terminal-surface").parentElement;
   expect(content?.className).toContain("pl-[calc(1.15em+0.375rem)]");
-  expect(screen.getAllByText("hello")).toHaveLength(2);
+  expect(screen.getByText("0.48.3")).toBeTruthy();
   expect(screen.queryByText("zsh")).toBeNull();
-  expect(screen.queryByText(/"aggregated_output":/)).toBeNull();
-  expect(screen.queryByText(/"status": "completed"/)).toBeNull();
+  expect(screen.queryByText(/"stdout":/)).toBeNull();
+  expect(screen.queryByText(/"exitCode":/)).toBeNull();
 });
 
 it("uses localized names for recognized tools while preserving their raw summaries", () => {

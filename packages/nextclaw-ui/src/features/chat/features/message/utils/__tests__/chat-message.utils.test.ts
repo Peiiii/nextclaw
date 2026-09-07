@@ -242,10 +242,11 @@ it("preserves full generic tool args for the expanded body while keeping the hea
 
 it("keeps structured terminal results as structured data instead of raw json output", () => {
   const terminalResult = {
-    status: "completed",
-    command: "python3 -m http.server 8765",
-    aggregated_output: "",
-    exit_code: 0,
+    ok: true,
+    command: "nextclaw --version",
+    exitCode: 0,
+    stdout: "0.48.3\n",
+    stderr: "",
   };
 
   const adapted = adapt([
@@ -259,7 +260,7 @@ it("keeps structured terminal results as structured data instead of raw json out
             status: ToolInvocationStatus.RESULT,
             toolCallId: "call-terminal-result",
             toolName: "command_execution",
-            args: '{"command":"python3 -m http.server 8765"}',
+            args: '{"command":"nextclaw --version"}',
             result: terminalResult,
           },
         },
@@ -271,7 +272,7 @@ it("keeps structured terminal results as structured data instead of raw json out
     type: "tool-card",
     card: {
       toolName: "command_execution",
-      summary: "command: python3 -m http.server 8765",
+      summary: "command: nextclaw --version",
       output: undefined,
       outputData: terminalResult,
       statusTone: "success",

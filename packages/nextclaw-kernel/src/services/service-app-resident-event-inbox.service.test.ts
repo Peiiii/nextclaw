@@ -33,7 +33,11 @@ describe("ServiceAppResidentEventInboxService", () => {
     const second = await inbox.leaseNext(target);
     expect(second).toMatchObject({ eventId: "a-2", sequence: 2 });
 
-    const saved = JSON.parse(await readFile(path.join(target.stateDirectory, "service-resident-events.json"), "utf8"));
+    const storePath = path.join(target.stateDirectory, "service-resident-events.json");
+    const inodeBeforeNoopLease = (await stat(storePath)).ino;
+    expect(await inbox.leaseNext(target)).toBeUndefined();
+    expect((await stat(storePath)).ino).toBe(inodeBeforeNoopLease);
+    const saved = JSON.parse(await readFile(storePath, "utf8"));
     expect(saved.cursors).toEqual({ alpha: 1 });
     expect((await stat(path.join(target.stateDirectory, "service-resident-events.json"))).mode & 0o777).toBe(0o600);
   });
@@ -54,6 +58,10 @@ describe("ServiceAppResidentEventInboxService", () => {
     }
     const dead = await inbox.list(target, { deadLettersOnly: true });
     expect(dead.entries).toMatchObject([{ eventId: "retry-1", status: "dead-letter", attempt: 5 }]);
+    await expect(inbox.enqueue(target, { eventId: "blocked", payload: {} }))
+      .rejects.toThrow("blocked by a dead-letter event");
+    await expect(inbox.enqueue(target, { eventId: "other-1", streamKey: "other", payload: {} }))
+      .resolves.toMatchObject({ streamKey: "other", status: "pending" });
     await inbox.replayDeadLetter(target, "retry-1");
     event = await inbox.leaseNext(target);
     expect(event).toMatchObject({ eventId: "retry-1", status: "leased", attempt: 1 });
