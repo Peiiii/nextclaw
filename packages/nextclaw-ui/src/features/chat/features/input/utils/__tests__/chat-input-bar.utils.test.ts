@@ -438,16 +438,22 @@ describe('buildModelToolbarSelect selection', () => {
         ]
       },
       {
-        key: 'all-models',
-        label: 'All models',
+        key: 'provider-openai',
+        label: 'OpenAI',
         options: [
           {
             value: 'openai/gpt-5',
-            label: 'OpenAI/gpt-5'
-          },
+            label: 'gpt-5'
+          }
+        ]
+      },
+      {
+        key: 'provider-minimax',
+        label: 'MiniMax',
+        options: [
           {
             value: 'minimax/MiniMax-M2.7',
-            label: 'MiniMax/MiniMax-M2.7'
+            label: 'MiniMax-M2.7'
           }
         ]
       }
@@ -487,11 +493,12 @@ describe('buildModelToolbarSelect selection', () => {
     expect(select.groups?.map((group) => group.key)).toEqual([
       'favorite-models',
       'recent-models',
-      'all-models'
+      'provider-minimax'
     ]);
     expect(select.groups?.[0]?.options.map((option) => option.value)).toEqual(['openai/gpt-5']);
     expect(select.groups?.[1]?.options.map((option) => option.value)).toEqual(['anthropic/claude-sonnet-4']);
     expect(select.groups?.[2]?.options.map((option) => option.value)).toEqual(['minimax/MiniMax-M2.7']);
+    expect(select.groups?.[2]?.label).toBe('MiniMax');
     expect(select.optionAction).toMatchObject({
       kind: 'favorite',
       activeValues: ['openai/gpt-5'],

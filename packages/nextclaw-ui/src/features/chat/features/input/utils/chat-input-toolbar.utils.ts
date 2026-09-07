@@ -31,6 +31,22 @@ function buildDiscoveredModelGroups(options: ChatModelRecord[]) {
   return [...groups.values()];
 }
 
+function buildRemainingModelGroups(options: ChatModelRecord[], allModelsLabel: string) {
+  const groups = new Map<string, { key: string; label: string; options: Array<{ value: string; label: string }> }>();
+  for (const option of options) {
+    const separatorIndex = option.value.indexOf('/');
+    const providerKey = separatorIndex > 0 ? option.value.slice(0, separatorIndex) : "other";
+    const group = groups.get(providerKey) ?? {
+      key: `provider-${providerKey}`,
+      label: option.providerLabel.trim() || allModelsLabel,
+      options: [],
+    };
+    group.options.push({ value: option.value, label: option.modelLabel.trim() });
+    groups.set(providerKey, group);
+  }
+  return [...groups.values()];
+}
+
 export function toChatModelRecords(snapshotModels: ChatModelOption[]): ChatModelRecord[] {
   return snapshotModels.map((model) => ({
     value: model.value,
@@ -183,8 +199,9 @@ export function buildModelToolbarSelect({
   const remainingOptions = modelOptions.filter(
     (option) => !favoriteValueSet.has(option.value) && !recentValueSet.has(option.value),
   );
-  const optionGroups = favoriteOptions.length > 0 || recentOptions.length > 0
-    ? [
+  const groups = [
+    ...(favoriteOptions.length > 0
+      ? [
           {
             key: "favorite-models",
             label: texts.favoriteModelsLabel,
@@ -193,6 +210,10 @@ export function buildModelToolbarSelect({
               label: formatModelOptionLabel(option),
             })),
           },
+        ]
+      : []),
+    ...(recentOptions.length > 0
+      ? [
           {
             key: "recent-models",
             label: texts.recentModelsLabel,
@@ -201,16 +222,11 @@ export function buildModelToolbarSelect({
               label: formatModelOptionLabel(option),
             })),
           },
-          {
-            key: "all-models",
-            label: texts.allModelsLabel,
-            options: remainingOptions.map((option) => ({
-              value: option.value,
-              label: formatModelOptionLabel(option),
-            })),
-          },
-        ].filter((group) => group.options.length > 0)
-    : undefined;
+        ]
+      : []),
+    ...buildRemainingModelGroups(remainingOptions, texts.allModelsLabel),
+  ].filter((group) => group.options.length > 0);
+  const optionGroups = groups.length > 0 ? groups : undefined;
   const discoveryOptions = discoveredModelOptions ?? [];
 
   return {
