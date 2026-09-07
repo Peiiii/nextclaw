@@ -36,6 +36,10 @@ OpenRouter 这类目录可能包含数百个模型。候选超过 50 个时，Ne
 
 内建提供方采用显式能力白名单：只有目录地址、协议和认证方式经过核对的提供方才显示“获取模型列表”并参与后台刷新。当前已启用 NextClaw、OpenAI、Anthropic、OpenRouter、DeepSeek、MiniMax API、AiHubMix、Groq、OpenCode Zen 和 vLLM。Gemini、普通 DashScope、DashScope Coding Plan、Kimi、Kimi Coding、Zhipu AI、Xiaomi MiMo、MiniMax Portal 与 Qwen Portal 当前只保留手工添加；这不影响已经配置模型的正常调用。后续完成相应目录合同验证后才会开放入口。
 
+## 在聊天中选择模型
+
+打开聊天输入框的模型选择器，收藏和最近使用的模型会优先显示，其余模型按提供方分组。分组内显示模型名，收藏和最近使用列表保留提供方名称，方便区分不同来源的同名模型。
+
 ## 自动发现新增模型
 
 NextClaw 启动后会自动读取已启用提供方的模型目录，并每 12 小时刷新一次。自动刷新只更新本机内存中的远端目录快照，不会擅自新增、删除、重排或切换你配置的模型。
