@@ -11,6 +11,7 @@ export {
 export {
   deleteChatComposerContent,
   getChatComposerNodesSignature,
+  getDocumentLength,
   insertChatComposerTokenIntoChatComposer,
   insertFileTokenIntoChatComposer,
   insertInputSurfaceItemIntoChatComposer,

@@ -6,12 +6,14 @@ import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { ChatQueryManager } from '@/features/chat/managers/chat-query.manager';
 import type { ChatThreadManager } from '@/features/chat/managers/chat-thread.manager';
 import type { ChatComposerIntentManager } from '@/features/chat/managers/chat-composer-intent.manager';
+import type { ChatVoiceInputManager } from '@/features/chat/managers/chat-voice-input.manager';
 
 type PublicManager<T extends object> = Pick<T, keyof T>;
 
 export type ChatThreadManagerLike = PublicManager<ChatThreadManager>;
 
 export type ChatPresenterLike = {
+  chatVoiceInputManager: ChatVoiceInputManager;
   chatUiManager: ChatUiManager;
   chatQueryManager: ChatQueryManager;
   chatSessionListManager: ChatSessionListManager;

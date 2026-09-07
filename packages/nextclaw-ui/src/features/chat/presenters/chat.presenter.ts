@@ -4,8 +4,10 @@ import { ChatQueryManager } from '@/features/chat/managers/chat-query.manager';
 import { ChatThreadManager } from '@/features/chat/managers/chat-thread.manager';
 import type { ChatComposerIntentManager } from '@/features/chat/managers/chat-composer-intent.manager';
 import type { AppPresenter } from '@/app/presenters/app.presenter';
+import { ChatVoiceInputManager } from '@/features/chat/managers/chat-voice-input.manager';
 
 export class ChatPresenter {
+  readonly chatVoiceInputManager = new ChatVoiceInputManager();
   readonly chatUiManager: ChatUiManager;
   readonly chatSessionListManager: ChatSessionListManager;
   readonly chatQueryManager: ChatQueryManager;

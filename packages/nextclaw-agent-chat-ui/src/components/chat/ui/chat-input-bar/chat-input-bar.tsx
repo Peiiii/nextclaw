@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import type {
   ChatInputBarProps,
+  ChatComposerDictationSession,
   ChatInputSurfaceConfig,
   ChatComposerTokenData,
   ChatComposerTokenKind,
@@ -100,6 +101,7 @@ function ChatInputBarSendError({ sendError, sendErrorDetailsLabel }: Pick<ChatIn
 }
 
 export type ChatInputBarHandle = {
+  beginDictation: (onInterrupt: () => void) => ChatComposerDictationSession | null;
   insertInputSurfaceToken: (token: {
     data?: ChatComposerTokenData;
     tokenKind: ChatComposerTokenKind;
@@ -119,10 +121,11 @@ export type ChatInputBarHandle = {
 };
 
 export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(function ChatInputBar(
-  { composer, hint, inputSurface, sendError, sendErrorDetailsLabel, slashMenu, surface, toolbar: toolbarProps, topSlot },
+  { composer, hint, inputSurface, sendError, sendErrorDetailsLabel, slashMenu, surface, toolbar: toolbarProps, topSlot, floatingSlot },
   ref
 ) {
   const composerRef = useRef<ChatComposerEditorHandle | null>(null);
+  const { Popover, PopoverAnchor, PopoverContent } = ChatUiPrimitives;
   const resolvedInputSurface: ChatInputSurfaceConfig | null = inputSurface ?? (slashMenu
       ? {
         isLoading: slashMenu.isLoading,
@@ -166,6 +169,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
       tokenKey: token.tokenKey,
       data: token.data,
     }, composer.inputSurfaceTriggerSpecs),
+    beginDictation: (onInterrupt) => composerRef.current?.beginDictation(onInterrupt) ?? null,
     insertToken: (token) => composerRef.current?.insertToken(token),
     insertFileToken: (tokenKey, label, previewUrl) => composerRef.current?.insertFileToken(tokenKey, label, previewUrl),
     insertFileTokens: (tokens) => composerRef.current?.insertFileTokens(tokens),
@@ -179,7 +183,18 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
 
   return (
     <div className={`nextclaw-chat-input-bar-surface ${surfaceClassName}`}>
-      <div className="nextclaw-chat-input-bar-shell mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
+      <div className="nextclaw-chat-input-bar-shell relative mx-auto w-full max-w-[min(1120px,100%)] [container:nextclaw-chat-input-bar/inline-size]">
+        {floatingSlot ? <Popover open>
+          <PopoverAnchor asChild><span className="pointer-events-none absolute left-1/2 top-0 h-px w-px -translate-x-1/2" /></PopoverAnchor>
+          <PopoverContent side="top" align="center" sideOffset={8} collisionPadding={12}
+            className="w-auto max-w-[calc(100vw-24px)] overflow-visible rounded-none border-0 bg-transparent p-0 shadow-none"
+            style={{ maxHeight: 'none' }}
+            onOpenAutoFocus={(event) => event.preventDefault()}
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            onInteractOutside={(event) => event.preventDefault()}>
+            {floatingSlot}
+          </PopoverContent>
+        </Popover> : null}
         <div className="nextclaw-chat-composer-surface overflow-hidden rounded-2xl border border-border bg-card shadow-card">
           {topSlot ? (
             <div className="px-3 pb-0 pt-2 sm:px-4 sm:pt-2.5">

@@ -11,6 +11,16 @@ A session is not merely chat history. It is the container where a task keeps its
 
 Continue the current session when you are refining its files, asking more questions about the same sources, adding the next step, or relying on decisions already confirmed there.
 
+## Voice input
+
+Click the microphone beside the composer to record, then click to finish. Words appear at the cursor or selection captured when recording starts. Underlined words are provisional and may change; the underline disappears when transcription finishes. A small floating indicator shows recording status and duration. Nothing is sent automatically. Cancel restores the original content; surrounding text, references, and attachments stay intact. Each recording is limited to 60 seconds.
+
+Typing, pasting, or moving the cursor inside the composer ends dictation and keeps the visible words so you can edit. Late recognition results cannot overwrite your edits. During dictation, Enter ends dictation without sending; Esc cancels this dictation.
+
+On desktop layouts, configure hold-to-talk in **Settings → Keyboard shortcuts → Voice input**. The gear at the right of the recording overlay opens the same settings. Opening settings finishes the current transcription first; closing settings does not restart recording. Bind, change, or disable the shortcut there. Release the key to finish. Single letters and F6–F10 only trigger outside text inputs; combinations using Ctrl or ⌘ with Alt/⌥ also work inside. Standard editing shortcuts and IME composition are protected. Phones use the microphone button without shortcut settings. System-reserved keys may not reach the page.
+
+Switching conversations cancels recording. Losing window focus or hiding the page stops capture. Permission, network, and device errors appear beside the input; confirmed text remains in your draft and provisional words are removed. Your browser's speech service may process audio online. Offline recognition is not guaranteed, and availability depends on the browser, system, and service.
+
 ## Session types
 
 NextClaw can host Native, Codex, Claude Code, Weixin, Feishu, and scheduled-task entry points. Their tools and interaction details differ, but each should begin with a clear outcome, working directory, and inspectable result.

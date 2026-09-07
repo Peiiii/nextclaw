@@ -59,6 +59,13 @@ export type ChatComposerSelection = {
   end: number;
 };
 
+/** One reversible edit at the selection captured when dictation begins. */
+export type ChatComposerDictationSession = {
+  update: (text: string, interim: string) => void;
+  commit: (text?: string) => void;
+  cancel: () => void;
+};
+
 export type ChatToolbarIcon = "sparkles" | "brain";
 
 export type ChatToolbarSelectOption = {
@@ -185,6 +192,7 @@ export type ChatContextWindowIndicator = {
 };
 
 export type ChatInputBarToolbarProps = {
+  leadingSlot?: ReactNode;
   addMenuLabel?: string;
   selects: ChatToolbarSelect[];
   trailingSelects?: ChatToolbarSelect[];
@@ -220,6 +228,7 @@ export type ChatSlashMenuProps = Omit<
 export type ChatInputBarProps = {
   surface?: 'default' | 'embedded';
   topSlot?: ReactNode;
+  floatingSlot?: ReactNode;
   sendError?: string | null;
   sendErrorDetailsLabel?: string;
   composer: {

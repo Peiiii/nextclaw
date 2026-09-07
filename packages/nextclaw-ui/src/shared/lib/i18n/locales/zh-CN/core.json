@@ -15,6 +15,8 @@
   "settingsGroupBasic": "基础配置",
   "settingsGroupAdvanced": "高级配置",
   "appearance": "外观",
+  "keyboardShortcuts": "快捷键",
+  "keyboardShortcutsDesktopOnly": "请在桌面端配置键盘快捷键。手机可使用麦克风按钮输入。",
   "chatMessageLayoutTitle": "消息布局",
   "chatMessageLayoutDescription": "选择聊天消息的展示方式。",
   "chatMessageLayoutCard": "卡片式",

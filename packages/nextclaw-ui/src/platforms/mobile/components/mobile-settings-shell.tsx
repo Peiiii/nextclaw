@@ -2,11 +2,12 @@ import { NavLink } from "react-router-dom";
 import { getSettingsNavItems } from "@/app/configs/app-navigation.config";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
-import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities/hooks/use-desktop-capabilities";
+import { useDesktopCapabilityAvailability } from "@/features/desktop-capabilities";
 
 export function MobileSettingsShell() {
   const desktopCapabilityAvailable = useDesktopCapabilityAvailability();
   const settingsNavItems = getSettingsNavItems(t, {
+    includeKeyboardShortcuts: false,
     includeDesktopCapabilities: desktopCapabilityAvailable,
   });
 

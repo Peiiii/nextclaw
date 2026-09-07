@@ -31,6 +31,8 @@ import { useSessionConversationInputState } from '@/features/chat/features/conve
 import { useChatMessageLayoutStore } from '@/features/chat/stores/chat-message-layout.store';
 import { useChatComposerDraftStore } from '@/features/chat/stores/chat-composer-draft.store';
 import { ChatComposerIntentManager } from '@/features/chat/managers/chat-composer-intent.manager';
+import { verifyVoiceDraftLifecycle } from './session-voice-input.test-utils';
+import { ChatVoiceInputManager } from '@/features/chat/managers/chat-voice-input.manager';
 import type { ThinkingLevel } from '@/shared/lib/api';
 
 const uploadNcpAssetsMock = vi.hoisted(() => vi.fn());
@@ -221,6 +223,7 @@ type StreamingInputControl = {
 
 const chatComposerIntentManager = new ChatComposerIntentManager();
 const presenter = {
+  chatVoiceInputManager: new ChatVoiceInputManager(),
   chatComposerIntentManager,
   chatThreadManager: {
     openSideChatDraft: vi.fn(),
@@ -270,6 +273,13 @@ function createStreamingInputSnapshot(
   };
 }
 
+it('dictation uses the latest draft and never sends; cancel discards late results', async () => {
+  await verifyVoiceDraftLifecycle((voiceManager, send) => renderInput(
+    <StreamingSessionConversationInputHarness voiceManager={voiceManager} controlRef={{ current: null }}
+      initialText='Original' controllerOverride={{ ...controller, send, sendDisabled: false }} />,
+  ));
+});
+
 function setImeDomText(textbox: HTMLElement, text: string): HTMLParagraphElement {
   const paragraph = textbox.querySelector('p');
   if (!paragraph) {
@@ -307,12 +317,14 @@ async function insertText(textbox: HTMLElement, text: string): Promise<void> {
 }
 
 function StreamingSessionConversationInputHarness({
+  voiceManager = presenter.chatVoiceInputManager,
   controllerOverride = controller,
   controlRef,
   initialText = '',
   sendError = null,
 }: {
   controllerOverride?: SessionConversationInputController;
+  voiceManager?: ChatVoiceInputManager;
   controlRef: MutableRefObject<StreamingInputControl | null>;
   initialText?: string;
   sendError?: string | null;
@@ -389,7 +401,7 @@ function StreamingSessionConversationInputHarness({
 
   return (
     <I18nProvider>
-      <ChatPresenterProvider presenter={presenter}>
+      <ChatPresenterProvider presenter={{ ...presenter, chatVoiceInputManager: voiceManager }}>
         <div data-testid="stream-chunk">{streamChunk}</div>
         <SessionConversationInput
           contextWindow={null}

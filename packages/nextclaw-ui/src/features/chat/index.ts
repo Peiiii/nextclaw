@@ -22,3 +22,4 @@ export {
   resolveSessionTypeLabel,
   type ChatSessionTypeOption,
 } from "./features/session-type/utils/chat-session-type.utils";
+export { ChatVoiceShortcutControl } from './features/conversation/components/chat-voice-shortcut-control';
