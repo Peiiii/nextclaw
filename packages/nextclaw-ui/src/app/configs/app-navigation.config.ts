@@ -1,9 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  AlarmClock,
+  BookOpen,
   Bot,
   BrainCircuit,
-  AlarmClock,
   Cpu,
   Download,
   Inbox,
@@ -17,6 +18,7 @@ import {
   Settings,
   Shield,
   Sparkles,
+  User,
   Wifi,
   Wrench,
 } from "lucide-react";
@@ -100,6 +102,11 @@ export function getMobileBottomNavItems(
       label: translate("settings"),
       icon: Settings,
     },
+    {
+      target: "/wiki",
+      label: translate("wikiKnowledgeBase"),
+      icon: BookOpen,
+    },
   ];
 }
 
@@ -166,14 +173,14 @@ export function getSettingsNavItems(
       icon: Palette,
     },
     {
+      target: "/auth",
+      label: translate("advancedAuth"),
+      icon: User,
+    },
+    {
       target: "/security",
       label: translate("security"),
       icon: Shield,
-    },
-    {
-      target: "/privacy",
-      label: translate("privacy"),
-      icon: Activity,
     },
     {
       target: "/desktop-capabilities",
@@ -191,24 +198,19 @@ export function getSettingsNavItems(
       icon: Download,
     },
     {
-      target: "/remote",
-      label: translate("remote"),
-      icon: Wifi,
-    },
-    {
       target: "/runtime",
       label: translate("runtime"),
       icon: Cpu,
     },
     {
-      target: "/secrets",
-      label: translate("secrets"),
-      icon: KeyRound,
-    },
-    {
       target: "/marketplace/mcp",
       label: translate("marketplaceFilterMcp"),
       icon: Wrench,
+    },
+    {
+      target: "/wiki",
+      label: translate("wikiKnowledgeBase"),
+      icon: BookOpen,
     },
   ];
   return options.includeDesktopCapabilities === false

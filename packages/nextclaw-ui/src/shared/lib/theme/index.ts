@@ -16,6 +16,8 @@ type UiThemeDefinition = {
   value: UiTheme;
   labelKey: string;
   appearance: UiThemeAppearance;
+  /** 背景图 URL（可选，为空则使用纯色背景） */
+  backgroundImage?: string;
 };
 
 const THEME_STORAGE_KEY = 'nextclaw.ui.theme';
@@ -39,10 +41,11 @@ const THEME_VALUES: readonly UiTheme[] = THEME_DEFINITIONS.map(
   ({ value }) => value,
 );
 
-export const THEME_OPTIONS: Array<{ value: UiTheme; labelKey: string }> =
-  THEME_DEFINITIONS.map(({ value, labelKey }) => ({
+export const THEME_OPTIONS: Array<{ value: UiTheme; labelKey: string; backgroundImage?: string }> =
+  THEME_DEFINITIONS.map(({ value, labelKey, backgroundImage }) => ({
     value,
     labelKey,
+    backgroundImage,
   }));
 
 export function normalizeTheme(value: unknown): UiTheme | null {

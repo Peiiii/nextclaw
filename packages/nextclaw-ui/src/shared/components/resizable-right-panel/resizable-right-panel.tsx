@@ -8,6 +8,7 @@ type ResizableRightPanelProps = ComponentPropsWithoutRef<'aside'> & {
   onWidthCommit?: (width: number) => void;
   overlay?: boolean;
   overlayScope?: 'viewport' | 'container';
+  side?: 'left' | 'right';
   width?: number;
 };
 
@@ -21,6 +22,7 @@ export function ResizableRightPanel({
   onWidthCommit,
   overlay = false,
   overlayScope = 'viewport',
+  side = 'right',
   width: controlledWidth,
   ...props
 }: ResizableRightPanelProps) {
@@ -30,11 +32,14 @@ export function ResizableRightPanel({
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [uncontrolledWidth, setUncontrolledWidth] = useState(defaultWidth);
   const width = dragWidth ?? controlledWidth ?? uncontrolledWidth;
+  const isLeft = side === 'left';
   const overlayClassName = overlay
     ? overlayScope === 'container'
       ? 'absolute inset-0 z-30'
       : 'fixed inset-0 z-40'
-    : 'border-l border-border';
+    : isLeft
+      ? 'border-r border-border'
+      : 'border-l border-border';
 
   const onResizeStart = (event: React.PointerEvent<HTMLDivElement>) => {
     if (overlay) return;
@@ -47,7 +52,10 @@ export function ResizableRightPanel({
     const onMove = (moveEvent: PointerEvent) => {
       const resizing = resizeRef.current;
       if (!resizing) return;
-      const nextWidth = resizing.startWidth + resizing.startX - moveEvent.clientX;
+      const delta = isLeft
+        ? moveEvent.clientX - resizing.startX
+        : resizing.startX - moveEvent.clientX;
+      const nextWidth = resizing.startWidth + delta;
       const clampedWidth = Math.max(minWidth, Math.min(maxWidth, nextWidth));
       widthRef.current = clampedWidth;
       setDragWidth(clampedWidth);
@@ -82,7 +90,10 @@ export function ResizableRightPanel({
       <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">{children}</div>
       {!overlay ? (
         <div
-          className="absolute left-0 top-0 z-30 h-full w-3 cursor-ew-resize transition-colors hover:bg-primary/10"
+          className={cn(
+            "absolute top-0 z-30 h-full w-3 cursor-ew-resize transition-colors hover:bg-primary/10",
+            isLeft ? "right-0" : "left-0",
+          )}
           data-testid="resizable-right-panel-handle"
           onPointerDown={onResizeStart}
         />

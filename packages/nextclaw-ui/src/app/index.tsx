@@ -9,6 +9,8 @@ import { AppNotificationRuntime } from "@/app/components/app-notification-runtim
 import { AppLayout } from "@/app/components/layout/app-layout";
 import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styles";
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
+import { WikiManagementPage } from "@/features/wiki";
+import { AuthSettingsPage } from "@/features/auth";
 import { LoginPage } from "@/components/auth/login-page";
 import { ChatPage } from "@/components/chat/chat-page";
 import { loadAccountPanel } from "@/features/account";
@@ -208,6 +210,14 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/settings",
     element: <SettingsEntryPage />,
+  },
+  {
+    path: "/auth",
+    element: createLazyElement(<AuthSettingsPage />),
+  },
+  {
+    path: "/wiki",
+    element: createLazyElement(<WikiManagementPage />),
   },
   {
     path: "/marketplace/skills",

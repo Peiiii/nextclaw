@@ -1,13 +1,13 @@
 import type { ChatMessageLayout } from '@nextclaw/agent-chat-ui';
-import { Check } from 'lucide-react';
+import { Check, Wand2 } from 'lucide-react';
 import { useTheme } from '@/app/components/theme-provider';
 import { useChatMessageLayoutStore } from '@/features/chat';
+import { PRESET_BACKGROUNDS, useThemeManagerStore } from '@/features/theme-manager';
 import { useLanguagePreference } from '@/features/settings/hooks/use-language-preference';
 import { SettingRow, SettingsGroup, SettingsSection } from '@/shared/components/settings/setting-row';
 import { SettingsPage } from '@/shared/components/settings/settings-page';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
-import { Switch } from '@/shared/components/ui/switch';
-import { useSideDockStore } from '@/features/side-dock';
+import { useI18n } from '@/app/components/i18n-provider';
 import { t } from '@/shared/lib/i18n';
 import { THEME_OPTIONS, type UiTheme } from '@/shared/lib/theme';
 import { cn } from '@/shared/lib/utils';
@@ -32,10 +32,10 @@ const CHAT_MESSAGE_LAYOUT_OPTIONS: Array<{
 export function AppearanceSettingsPage() {
   const { theme, setTheme } = useTheme();
   const { currentLanguage, languageOptions, selectLanguage } = useLanguagePreference();
+  const { t: translate } = useI18n();
   const messageLayout = useChatMessageLayoutStore((state) => state.layout);
   const setMessageLayout = useChatMessageLayoutStore((state) => state.setLayout);
-  const isSideDockVisible = useSideDockStore((state) => state.isVisible);
-  const setSideDockVisible = useSideDockStore((state) => state.setVisible);
+  const { currentBackground, setCurrentBackground } = useThemeManagerStore();
 
   return (
     <SettingsPage title={t('appearance')}>
@@ -124,17 +124,46 @@ export function AppearanceSettingsPage() {
             </div>
           </SettingRow>
           <SettingRow
-            title={t('sideDockVisibilityTitle')}
-            description={t('sideDockVisibilityDescription')}
+            title={t('backgroundImageTitle')}
+            description={t('backgroundImageDescription')}
             control={
-              <Switch
-                id='appearance-side-dock-visible'
-                aria-label={t('sideDockVisibilityTitle')}
-                checked={isSideDockVisible}
-                onCheckedChange={setSideDockVisible}
-              />
+              <Select
+                value={currentBackground.id}
+                onValueChange={(value) => {
+                  const bg = PRESET_BACKGROUNDS.find((b) => b.id === value);
+                  if (bg) setCurrentBackground(bg);
+                }}
+              >
+                <SelectTrigger aria-label={t('backgroundImageTitle')} className='w-36 sm:w-44'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRESET_BACKGROUNDS.map((bg) => (
+                    <SelectItem key={bg.id} value={bg.id}>
+                      {bg.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             }
           />
+          <SettingRow
+            title={t('aiThemeGeneration')}
+            description={t('aiThemeGenerationHint')}
+            layout='stacked'
+          >
+            <button
+              type='button'
+              onClick={() => {
+                const prompt = translate('aiThemeGenerationExamplePrompt');
+                void navigator.clipboard.writeText(prompt);
+              }}
+              className='flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground'
+            >
+              <Wand2 className='h-4 w-4' />
+              {t('aiThemeCopyPrompt')}
+            </button>
+          </SettingRow>
         </SettingsGroup>
       </SettingsSection>
     </SettingsPage>

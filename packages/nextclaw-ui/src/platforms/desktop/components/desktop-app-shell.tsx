@@ -15,6 +15,7 @@ import { cn } from "@/shared/lib/utils";
 import { useViewportLayoutStore } from "@/app/stores/viewport-layout.store";
 import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styles";
 import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
+import { ThemeBackgroundLayer } from "@/features/theme-manager";
 
 const DocBrowser = lazy(async () => ({
   default: (await import("@/shared/components/doc-browser/doc-browser"))
@@ -29,7 +30,6 @@ type DesktopAppShellProps = {
   docBrowserDockControls?: DocBrowserDockControls;
   docBrowserRenderers?: DocBrowserCustomTabRenderers;
   docBrowserTabMenuGroups?: DocBrowserTabMenuGroupsResolver;
-  sideDock?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -41,7 +41,6 @@ export function DesktopAppShell({
   docBrowserDockControls,
   docBrowserRenderers = {},
   docBrowserTabMenuGroups,
-  sideDock,
   children,
 }: DesktopAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
@@ -132,10 +131,32 @@ export function DesktopAppShell({
       </div>
       {shouldUseWindowsChrome ? (
         <DesktopWindowChrome sidebarCollapsed={isSidebarCollapsed} />
-      ) : null}
+      ) : (
+        <div
+          className="desktop-window-drag flex h-8 shrink-0 select-none"
+          data-testid="macos-drag-region"
+        >
+          <div
+            className="shrink-0 bg-secondary transition-[width] duration-200 ease-out"
+            style={{ width: desktopSidebarWidth }}
+          />
+          <div className="min-w-0 flex-1 bg-background" />
+        </div>
+      )}
       <div className="relative z-[1] flex min-h-0 flex-1 overflow-hidden">
+        <ThemeBackgroundLayer className="-z-[1]" />
         {!isMainRoute && <Sidebar />}
         <div className="flex-1 flex min-w-0 overflow-hidden relative">
+          {isDocBrowserOpen && docBrowserMode === "docked" ? (
+            <Suspense fallback={null}>
+              <DocBrowser
+                customTabRenderers={docBrowserRenderers}
+                dockControls={docBrowserDockControls}
+                dockSide="left"
+                getTabMenuGroups={docBrowserTabMenuGroups}
+              />
+            </Suspense>
+          ) : null}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {isMainRoute ? (
               <div className="flex-1 h-full overflow-hidden">{children}</div>
@@ -152,16 +173,6 @@ export function DesktopAppShell({
               </main>
             )}
           </div>
-          {isDocBrowserOpen && docBrowserMode === "docked" ? (
-            <Suspense fallback={null}>
-              <DocBrowser
-                customTabRenderers={docBrowserRenderers}
-                dockControls={docBrowserDockControls}
-                getTabMenuGroups={docBrowserTabMenuGroups}
-              />
-            </Suspense>
-          ) : null}
-          {sideDock}
         </div>
       </div>
       {showMobileBottomNav ? <MobileBottomNav /> : null}
