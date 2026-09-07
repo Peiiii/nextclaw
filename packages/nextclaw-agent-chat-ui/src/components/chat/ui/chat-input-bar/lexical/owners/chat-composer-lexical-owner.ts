@@ -27,6 +27,7 @@ import {
   CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,
   type ChatComposerEditorSnapshot,
   getChatComposerNodesSignature,
+  getDocumentLength,
   insertChatComposerTokenIntoChatComposer,
   insertFileTokenIntoChatComposer,
   insertInputSurfaceItemIntoChatComposer,
@@ -41,6 +42,7 @@ import {
   handleLexicalComposerKeyboardCommand,
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/chat-composer-lexical-controller';
 import { ChatComposerClipboardOwner } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-clipboard.owner';
+import { ChatComposerDictationOwner } from '@agent-chat-ui/components/chat/ui/chat-input-bar/lexical/owners/chat-composer-dictation.owner';
 
 type ComposerActions = Pick<ChatInputBarActionsProps, 'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'>;
 
@@ -63,6 +65,8 @@ type ComposerRuntime = {
 };
 
 type PublishOptions = {
+  preview?: boolean;
+  dictation?: { range: ChatComposerSelection | null };
   focusAfterSync?: boolean;
   inputSurfaceReason?: ChatInputSurfaceTriggerChangeReason;
 };
@@ -71,11 +75,8 @@ function createMutableRef<T>(value: T): { current: T } {
   return { current: value };
 }
 
-function getChatComposerDocumentLength(nodes: ChatComposerNode[]): number {
-  return nodes.reduce((cursor, node) => cursor + (node.type === 'text' ? node.text.length : 1), 0);
-}
-
 export class ChatComposerLexicalOwner {
+  private dictation: ChatComposerDictationOwner | null = null;
   readonly pendingOwnerSignatureRef = createMutableRef<string | null>(null);
   readonly pendingSelectionRef = createMutableRef<ChatComposerSelection | null>(null);
   readonly selectionRef = createMutableRef<ChatComposerSelection | null>(null);
@@ -100,6 +101,7 @@ export class ChatComposerLexicalOwner {
     this.lastPublishedSignatureRef.current = signature;
     return () => {
       if (this.editor === editor) {
+        this.dictation?.cancel();
         this.editor = null;
       }
     };
@@ -150,6 +152,11 @@ export class ChatComposerLexicalOwner {
       return;
     }
     const nextSignature = getChatComposerNodesSignature(nodes);
+    if (this.dictation?.isActive() && nextSignature !== this.editorSignatureRef.current &&
+      nextSignature !== this.lastPublishedSignatureRef.current) {
+      this.dictation.abandon();
+      this.pendingOwnerSignatureRef.current = null;
+    }
     const pendingSelection = this.pendingSelectionRef.current;
     const pendingOwnerSignature = this.pendingOwnerSignatureRef.current;
 
@@ -170,6 +177,7 @@ export class ChatComposerLexicalOwner {
     const preserveDomSelection = editor.getRootElement() !== document.activeElement;
 
     if (shouldSyncDocument) {
+      this.dictation?.abandon();
       this.editorSignatureRef.current = nextSignature;
       this.lastPublishedSignatureRef.current = nextSignature;
       syncLexicalEditorFromChatComposerState(editor, nodes, pendingSelection, preserveDomSelection);
@@ -196,12 +204,12 @@ export class ChatComposerLexicalOwner {
   publishSnapshot = (
     snapshot: ChatComposerEditorSnapshot,
     callbacks: ChatComposerLexicalOwnerCallbacks,
-    options?: PublishOptions,
+    { dictation, preview, focusAfterSync, inputSurfaceReason = { type: 'programmatic' } }: PublishOptions = {},
   ): void => {
     this.selectionRef.current = snapshot.selection;
     this.pendingSelectionRef.current = snapshot.selection;
 
-    if (options?.focusAfterSync) {
+    if (focusAfterSync) {
       this.shouldFocusAfterSyncRef.current = true;
     }
 
@@ -211,12 +219,13 @@ export class ChatComposerLexicalOwner {
     if (editor) {
       this.editorSignatureRef.current = signature;
       const preserveDomSelection = editor.getRootElement() !== document.activeElement;
-      syncLexicalEditorFromChatComposerState(editor, snapshot.nodes, snapshot.selection, preserveDomSelection);
+      syncLexicalEditorFromChatComposerState(editor, snapshot.nodes, snapshot.selection, preserveDomSelection, dictation);
     }
+    if (preview) return;
     callbacks.onInputSurfaceSnapshotChange?.(
       snapshot.nodes,
       snapshot.selection,
-      options?.inputSurfaceReason ?? { type: 'programmatic' },
+      inputSurfaceReason,
     );
 
     if (signature !== this.lastPublishedSignatureRef.current) {
@@ -245,7 +254,7 @@ export class ChatComposerLexicalOwner {
       return;
     }
     const targetNodes = nodes ?? readChatComposerSnapshotFromEditorState(editor.getEditorState()).nodes;
-    const end = getChatComposerDocumentLength(targetNodes);
+    const end = getDocumentLength(targetNodes);
     const targetSelection = { start: end, end };
     this.selectionRef.current = targetSelection;
     editor.getRootElement()?.focus({ preventScroll: true });
@@ -305,6 +314,12 @@ export class ChatComposerLexicalOwner {
     };
 
     return {
+      beginDictation: (onInterrupt: () => void) => {
+        if (!this.editor || this.editor.isComposing()) return null;
+        this.dictation?.cancel();
+        this.dictation = new ChatComposerDictationOwner(this, this.editor, this.getRuntime(), onInterrupt);
+        return this.dictation;
+      },
       insertToken: (token: {
         data?: ChatComposerTokenData;
         tokenKind: ChatComposerTokenKind;
@@ -413,6 +428,7 @@ export class ChatComposerLexicalOwner {
     callbacks: ChatComposerLexicalOwnerCallbacks,
     tags: ReadonlySet<string>,
   ): void => {
+    if (this.dictation?.isActive()) return;
     const snapshot = readChatComposerSnapshotFromEditorState(editorState);
     const root = this.editor?.getRootElement();
     if (root) {
@@ -446,6 +462,7 @@ export class ChatComposerLexicalOwner {
   };
 
   handleSelectionChange = (editor: LexicalEditor, callbacks: ChatComposerLexicalOwnerCallbacks): void => {
+    if (this.dictation?.isActive()) return;
     const snapshot = readChatComposerSnapshotFromEditorState(editor.getEditorState());
     const root = editor.getRootElement();
     if (root) {
@@ -468,6 +485,7 @@ export class ChatComposerLexicalOwner {
     createSnapshot: (snapshot: ChatComposerEditorSnapshot) => ChatComposerEditorSnapshot,
     options: PublishOptions,
   ): void => {
+    this.dictation?.interrupt();
     const { callbacks, fallbackNodes } = this.getRuntime();
     this.publishSnapshot(createSnapshot(this.readComposerSnapshot(fallbackNodes)), callbacks, options);
   };

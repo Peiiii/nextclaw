@@ -1,189 +1,185 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  readBoundVoiceKey,
-  useChatVoiceInput,
-  writeBoundVoiceKey,
-  type SpeechRecognitionLike,
-} from '@/features/chat/features/conversation/hooks/use-chat-voice-input';
+import { ChatVoiceInputManager, type SpeechRecognitionLike } from '@/features/chat/managers/chat-voice-input.manager';
+import { useChatVoiceInput } from '@/features/chat/features/conversation/hooks/use-chat-voice-input';
+import { isVoiceShortcut, useChatVoiceShortcutStore } from '@/features/chat/stores/chat-voice-shortcut.store';
+import type { ChatComposerDictationSession } from '@nextclaw/agent-chat-ui';
 
-const VOICE_KEY_STORAGE_KEY = 'nextclaw.chat.voiceInput.key';
-
-class MockSpeechRecognition implements SpeechRecognitionLike {
+class Recognition implements SpeechRecognitionLike {
   lang = '';
   continuous = false;
   interimResults = false;
-  start = vi.fn(() => {
-    // 模拟异步 onstart 后进入 listening；测试用同步即可
-  });
+  start = vi.fn();
   stop = vi.fn();
   abort = vi.fn();
-  onresult: SpeechRecognitionLike['onresult'] = null;
-  onend: (() => void) | null = null;
+  onstart: SpeechRecognitionLike['onstart'] = null;
+  onend: SpeechRecognitionLike['onend'] = null;
   onerror: SpeechRecognitionLike['onerror'] = null;
-
-  /** 测试辅助：触发一次最终结果 */
-  emitFinal = (transcript: string): void => {
-    this.onresult?.({
-      results: [{ isFinal: true, 0: { transcript } }],
-    });
-  };
-
-  /** 测试辅助：触发结束事件 */
-  emitEnd = (): void => {
-    this.onend?.();
-  };
-
-  emitError = (error: string): void => {
-    this.onerror?.({ error });
-  };
+  onresult: SpeechRecognitionLike['onresult'] = null;
+  result = (...texts: string[]) => this.onresult?.({ results: texts.map((transcript) => ({ isFinal: true, 0: { transcript } })) });
 }
-
-let mockInstance: MockSpeechRecognition | null = null;
-
-class SpeechRecognitionMockConstructor {
-  constructor() {
-    mockInstance = new MockSpeechRecognition();
-    return mockInstance;
-  }
-}
-
-const installMockRecognition = (): void => {
-  mockInstance = null;
-  Object.defineProperty(window, 'SpeechRecognition', {
-    configurable: true,
-    value: SpeechRecognitionMockConstructor,
-  });
-};
-
+let recognition: Recognition;
+let manager: ChatVoiceInputManager;
+let commit = vi.fn<(text?: string) => void>();
+let draft: ChatComposerDictationSession;
+const beginDraft = () => draft;
 beforeEach(() => {
-  window.localStorage.clear();
-  installMockRecognition();
+  vi.useFakeTimers();
+  recognition = new Recognition();
+  manager = new ChatVoiceInputManager(() => recognition);
+  commit = vi.fn<(text?: string) => void>();
+  draft = { commit, update: vi.fn(), cancel: vi.fn() };
+  useChatVoiceShortcutStore.getState().setShortcut(null);
+  vi.spyOn(document, 'hasFocus').mockReturnValue(true);
 });
-
 afterEach(() => {
+  manager.cancel();
+  vi.useRealTimers();
   vi.restoreAllMocks();
-  window.localStorage.clear();
 });
 
-describe('voice input key storage', () => {
-  it('round-trips a bound key through localStorage', () => {
-    expect(readBoundVoiceKey()).toBeNull();
-    writeBoundVoiceKey('KeyV');
-    expect(readBoundVoiceKey()).toBe('KeyV');
-    writeBoundVoiceKey(null);
-    expect(readBoundVoiceKey()).toBeNull();
+describe('dictation lifecycle', () => {
+  it('waits for the final transcript before opening settings without restarting recording', () => {
+    manager.start('zh', 'one', draft);
+    recognition.onstart?.();
+    recognition.result('first');
+    manager.openSettings();
+    expect(manager.getSnapshot().phase).toBe('stopping');
+    expect(commit).not.toHaveBeenCalled();
+    recognition.result('first', 'tail');
+    recognition.onend?.();
+    expect(commit).toHaveBeenCalledExactlyOnceWith('first tail');
+    expect(manager.getSnapshot().phase).toBe('ready');
+    manager.cancel();
+    expect(recognition.start).toHaveBeenCalledOnce();
+  });
+  it('still opens settings when finishing recognition fails', () => {
+    manager.start('en', 'one', draft);
+    recognition.onstart?.();
+    manager.openSettings();
+    recognition.onerror?.({ error: 'no-speech' });
+    expect(manager.getSnapshot()).toMatchObject({ phase: 'ready', error: null, text: '', interim: '' });
+  });
+  it('replaces cumulative results, waits for the final tail, and inserts once', () => {
+    manager.start('zh', 'one', draft);
+    expect(manager.getSnapshot().phase).toBe('starting');
+    recognition.onstart?.();
+    recognition.result('hello');
+    recognition.result('hello', 'world');
+    expect(commit).not.toHaveBeenCalled();
+    manager.finish();
+    expect(recognition.stop).toHaveBeenCalledOnce();
+    recognition.result('hello', 'world', 'again');
+    recognition.onend?.();
+    expect(commit).toHaveBeenCalledExactlyOnceWith('hello world again');
+    expect(manager.getSnapshot().phase).toBe('idle');
+  });
+  it('ignores late callbacks after cancellation and a new recording', () => {
+    manager.start('en', 'one', draft);
+    const lateEnd = recognition.onend;
+    const lateResult = recognition.onresult;
+    manager.cancel();
+    expect(recognition.abort).toHaveBeenCalledOnce();
+    recognition = new Recognition();
+    manager.start('zh', 'two', draft);
+    lateResult?.({ results: [{ isFinal: true, 0: { transcript: 'old' } }] });
+    lateEnd?.();
+    expect(commit).not.toHaveBeenCalled();
+    expect(manager.getSnapshot().text).toBe('');
+    expect(recognition.lang).toBe('zh-CN');
+  });
+  it('cancels a quick release before permission or onstart without later recording', () => {
+    manager.start('en', 'one', draft);
+    const lateStart = recognition.onstart;
+    manager.finish();
+    lateStart?.();
+    expect(recognition.abort).toHaveBeenCalledOnce();
+    expect(manager.getSnapshot().phase).toBe('idle');
+    vi.advanceTimersByTime(20000);
+    expect(manager.getSnapshot().phase).toBe('idle');
+  });
+  it.each(['not-allowed', 'network', 'audio-capture', 'no-speech'])('surfaces %s without modifying the draft', (error) => {
+    manager.start('en', 'one', draft);
+    recognition.onerror?.({ error });
+    expect(manager.getSnapshot().phase).toBe('error');
+    expect(recognition.abort).toHaveBeenCalledOnce();
+    expect(commit).not.toHaveBeenCalled();
+  });
+  it('commits confirmed text on interruption without a second insertion', () => {
+    manager.start('en', 'one', draft);
+    recognition.onstart?.();
+    recognition.result('keep this');
+    manager.interrupt();
+    expect(commit).toHaveBeenCalledExactlyOnceWith('keep this');
+    manager.cancel();
+    expect(commit).toHaveBeenCalledOnce();
+  });
+  it('times out startup and stopping and ends recording at 60 seconds', () => {
+    manager.start('en', 'one', draft);
+    vi.advanceTimersByTime(15000);
+    expect(manager.getSnapshot().error).toBe('timeout');
+    manager.start('en', 'one', draft);
+    recognition.onstart?.();
+    vi.advanceTimersByTime(60000);
+    expect(manager.getSnapshot().phase).toBe('stopping');
+    expect(recognition.stop).toHaveBeenCalledOnce();
+    vi.advanceTimersByTime(8000);
+    expect(manager.getSnapshot().error).toBe('timeout');
+  });
+  it('handles unsupported APIs and thrown starts', () => {
+    const unsupported = new ChatVoiceInputManager(() => null);
+    unsupported.start('en', 'one', draft);
+    expect(unsupported.getSnapshot().error).toBe('unsupported');
+    recognition.start.mockImplementation(() => { throw new Error('device'); });
+    manager.start('en', 'one', draft);
+    expect(manager.getSnapshot().error).toBe('failed');
   });
 
-  it('ignores reads when localStorage is unavailable', () => {
-    const original = window.localStorage.getItem;
-    vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
-      throw new Error('blocked');
-    });
-    expect(readBoundVoiceKey()).toBeNull();
-    original;
-  });
 });
 
-describe('useChatVoiceInput', () => {
-  it('reports supported when SpeechRecognition exists', () => {
-    const { result } = renderHook(() =>
-      useChatVoiceInput({ language: 'zh', onTranscript: vi.fn() }),
-    );
-    expect(result.current.supported).toBe(true);
-    expect(result.current.boundKey).toBeNull();
-    expect(result.current.listening).toBe(false);
-    expect(result.current.error).toBeNull();
+describe('keyboard and page integration', () => {
+  const bind = (ctrl = false, alt = false) => useChatVoiceShortcutStore.getState().setShortcut({ code: 'KeyV', ctrl, meta: false, alt, shift: false });
+  const key = (type: string, options: KeyboardEventInit = {}) => new KeyboardEvent(type, { code: 'KeyV', bubbles: true, cancelable: true, ...options });
+  it('never steals paste, normal typing, or input-method composition', () => {
+    bind();
+    renderHook(() => useChatVoiceInput(manager, 'one', 'en', true, beginDraft));
+    const input = document.createElement('textarea'); document.body.append(input);
+    const typing = key('keydown');
+    const paste = key('keydown', { ctrlKey: true });
+    const composing = key('keydown', { isComposing: true });
+    act(() => { input.dispatchEvent(typing); input.dispatchEvent(paste); window.dispatchEvent(composing); });
+    expect(typing.defaultPrevented).toBe(false);
+    expect(paste.defaultPrevented).toBe(false);
+    expect(recognition.start).not.toHaveBeenCalled();
+    input.remove();
   });
-
-  it('reports unsupported when no SpeechRecognition is available', () => {
-    Object.defineProperty(window, 'SpeechRecognition', { value: undefined });
-    Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefined });
-    const { result } = renderHook(() =>
-      useChatVoiceInput({ language: 'zh', onTranscript: vi.fn() }),
-    );
-    expect(result.current.supported).toBe(false);
+  it('holds a configured combination and stops when a modifier is released', () => {
+    bind(true, true);
+    renderHook(() => useChatVoiceInput(manager, 'one', 'en', true, beginDraft));
+    act(() => { window.dispatchEvent(key('keydown', { ctrlKey: true, altKey: true })); recognition.onstart?.(); });
+    expect(recognition.start).toHaveBeenCalledOnce();
+    act(() => { window.dispatchEvent(key('keyup', { code: 'AltLeft', key: 'Alt' })); });
+    expect(recognition.stop).toHaveBeenCalledOnce();
   });
-
-  it('captures a key and persists it', () => {
-    const { result } = renderHook(() =>
-      useChatVoiceInput({ language: 'zh', onTranscript: vi.fn() }),
-    );
-    act(() => result.current.startCaptureKey());
-    expect(result.current.capturingKey).toBe(true);
-
-    const event = new KeyboardEvent('keydown', { code: 'KeyV', bubbles: true });
-    act(() => {
-      window.dispatchEvent(event);
-    });
-    expect(result.current.capturingKey).toBe(false);
-    expect(result.current.boundKey).toBe('KeyV');
-    expect(readBoundVoiceKey()).toBe('KeyV');
+  it('does not register recording shortcuts in a mobile or disabled composer', () => {
+    bind();
+    renderHook(() => useChatVoiceInput(manager, 'one', 'en', false, beginDraft));
+    act(() => { window.dispatchEvent(key('keydown')); });
+    expect(recognition.start).not.toHaveBeenCalled();
   });
-
-  it('ignores modifier-only keys while capturing', () => {
-    const { result } = renderHook(() =>
-      useChatVoiceInput({ language: 'zh', onTranscript: vi.fn() }),
-    );
-    act(() => result.current.startCaptureKey());
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ControlLeft', bubbles: true }));
-    });
-    expect(result.current.capturingKey).toBe(true);
-    expect(result.current.boundKey).toBeNull();
-    act(() => result.current.cancelCaptureKey());
-    expect(result.current.capturingKey).toBe(false);
+  it('cancels recording on context switch and unmount', () => {
+    const hook = renderHook(({ context }) => useChatVoiceInput(manager, context, 'en', true, beginDraft), { initialProps: { context: 'one' } });
+    act(() => { manager.start('en', 'one', draft); });
+    hook.rerender({ context: 'two' });
+    expect(recognition.abort).toHaveBeenCalledOnce();
+    expect(manager.getSnapshot().phase).toBe('idle');
+    act(() => { manager.start('en', 'two', draft); });
+    hook.unmount();
+    expect(recognition.abort).toHaveBeenCalledTimes(2);
   });
-
-  it('transcribes final results into the transcript callback after key release', () => {
-    const onTranscript = vi.fn();
-    const { result } = renderHook(() =>
-      useChatVoiceInput({ language: 'en', onTranscript }),
-    );
-    act(() => {
-      writeBoundVoiceKey('KeyV');
-    });
-    // hook 内部从 localStorage 初始化 boundKey 只在首 render；直接重跑以读到新 key
-    const second = renderHook(() =>
-      useChatVoiceInput({ language: 'en', onTranscript }),
-    );
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', bubbles: true }));
-    });
-    expect(second.result.current.listening).toBe(true);
-
-    act(() => {
-      mockInstance?.emitFinal('hello world');
-      mockInstance?.emitEnd();
-      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyV', bubbles: true }));
-    });
-    expect(onTranscript).toHaveBeenCalledWith('hello world');
-    expect(second.result.current.listening).toBe(false);
-    void result;
-  });
-
-  it('surfaces permission errors', () => {
-    const { result } = renderHook(() =>
-      useChatVoiceInput({ language: 'zh', onTranscript: vi.fn() }),
-    );
-    act(() => {
-      writeBoundVoiceKey('KeyV');
-    });
-    const second = renderHook(() =>
-      useChatVoiceInput({ language: 'zh', onTranscript: vi.fn() }),
-    );
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', bubbles: true }));
-      mockInstance?.emitError('not-allowed');
-    });
-    expect(second.result.current.error).toBe('permission');
-    void result;
-  });
-});
-
-describe('voice key storage', () => {
-  it('keeps VOICE_KEY_STORAGE_KEY aligned with the implementation', () => {
-    // 若 key 常量被改，此断言提醒同步测试
-    expect(VOICE_KEY_STORAGE_KEY).toBe('nextclaw.chat.voiceInput.key');
+  it('rejects editing keys and persisted invalid shortcut definitions', () => {
+    expect(isVoiceShortcut({ code: 'KeyV', ctrl: true, meta: false, alt: false, shift: false })).toBe(false);
+    expect(isVoiceShortcut({ code: 'Enter', ctrl: false, meta: false, alt: false, shift: false })).toBe(false);
+    expect(isVoiceShortcut({ code: 'KeyV', ctrl: false, meta: false, alt: false, shift: false })).toBe(true);
   });
 });

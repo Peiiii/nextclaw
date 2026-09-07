@@ -111,25 +111,19 @@ function buildTrimmedTextEdges(
   nodeStart: number,
   rangeStart: number,
   rangeEnd: number
-): ChatComposerTextNode[] {
+): Array<ChatComposerTextNode | null> {
   const prefixLength = Math.max(0, rangeStart - nodeStart);
   const suffixLength = Math.max(0, nodeStart + node.text.length - rangeEnd);
-  const edges: ChatComposerTextNode[] = [];
-
-  if (prefixLength > 0) {
-    edges.push({
+  return [
+    prefixLength > 0 ? {
       ...node,
       text: node.text.slice(0, prefixLength)
-    });
-  }
-  if (suffixLength > 0) {
-    edges.push({
+    } : null,
+    suffixLength > 0 ? {
       ...node,
       text: node.text.slice(node.text.length - suffixLength)
-    });
-  }
-
-  return edges;
+    } : null,
+  ];
 }
 
 function isNodeOutsideComposerRange(

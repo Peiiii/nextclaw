@@ -7,12 +7,14 @@ import {
 } from 'react';
 import {
   ChatInputBar,
-  createChatComposerTextNode,
   type ChatContextWindowIndicator,
   type ChatInputBarHandle,
 } from '@nextclaw/agent-chat-ui';
 import { isRuntimeDefaultModelValue } from '@nextclaw/shared';
 
+import { Mic, Square } from 'lucide-react';
+import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
+import { ChatVoiceInputPanel } from './chat-voice-input-panel';
 import { useI18n } from '@/app/components/i18n-provider';
 import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import { type SessionSkillEntryView } from '@/shared/lib/api';
@@ -290,57 +292,16 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
   const persistSessionPreferences = useSessionConversationPreferencePersistence({ inputActions, selectedSessionKey: inputQuery.selectedSessionKey });
   const handleNodesChange = useSessionConversationComposerNodes(inputActions);
 
-  const handleVoiceTranscript = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) {
-      return;
-    }
-    const nextNodes = [...inputSnapshot.nodes];
-    const last = nextNodes[nextNodes.length - 1];
-    if (last?.type === 'text') {
-      nextNodes[nextNodes.length - 1] = {
-        ...last,
-        text: last.text ? `${last.text} ${trimmed}` : trimmed,
-      };
-    } else {
-      nextNodes.push(createChatComposerTextNode(trimmed));
-    }
-    handleNodesChange(nextNodes);
-  }, [handleNodesChange, inputSnapshot.nodes]);
-  const voice = useChatVoiceInput({
-    language,
-    onTranscript: handleVoiceTranscript,
-  });
-  const voiceEntryLabel = voice.boundKey
-    ? t('chatInputVoiceBound').replace('{key}', voice.boundKey)
-    : t('chatInputVoice');
-  const voicePlaceholder = voice.listening ? t('chatInputVoiceListeningPlaceholder').replace('{key}', voice.boundKey ?? '') : null;
-  const previousBoundKeyRef = useRef(voice.boundKey);
-
-  useEffect(() => {
-    const previous = previousBoundKeyRef.current;
-    previousBoundKeyRef.current = voice.boundKey;
-    if (voice.boundKey && voice.boundKey !== previous) {
-      toast.success(
-        t('chatInputVoiceBoundDone').replace('{key}', voice.boundKey),
-      );
-    }
-  }, [voice.boundKey]);
-
-  useEffect(() => {
-    if (!voice.error) {
-      return;
-    }
-    const message =
-      voice.error === 'permission'
-        ? t('chatInputVoicePermissionDenied')
-        : voice.error === 'unsupported'
-          ? t('chatInputVoiceUnsupported')
-          : voice.error === 'no-speech'
-            ? t('chatInputVoiceNoSpeech')
-            : t('chatInputVoiceFailed');
-    toast.error(message);
-  }, [voice.error]);
+  const voiceManager = presenter.chatVoiceInputManager;
+  const voiceContext = JSON.stringify([
+    inputQuery.selectedSessionKey, inputQuery.sessionTypeState.selectedSessionType,
+    contextReferenceProjectRoot, selectedModel, inputDisabled,
+  ]);
+  const beginVoiceDraft = useCallback(() => inputBarRef.current?.beginDictation(voiceManager.cancel) ?? null, [voiceManager]);
+  const voice = useChatVoiceInput(voiceManager, voiceContext, language, !isMobile && !inputDisabled, beginVoiceDraft);
+  const startVoice = () => voiceManager.start(language, voiceContext, beginVoiceDraft());
+  const sendWithVoiceCancelled = () => { voiceManager.acceptDraft(); return controller.send(); };
+  const steerWithVoiceCancelled = () => { voiceManager.acceptDraft(); return controller.sendSteering(); };
 
   useChatComposerReferenceIntent({
     inputBarRef,
@@ -470,12 +431,12 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
     <ChatInputBar
       ref={inputBarRef}
       surface={useReadingTrack ? 'embedded' : surface}
-      topSlot={controller.queuedInputs.length > 0
-        ? <SessionQueuedInputRows controller={controller} />
-        : null}
+      topSlot={controller.queuedInputs.length > 0 ? <SessionQueuedInputRows controller={controller} /> : null}
+      floatingSlot={voice.phase !== 'idle' ? <ChatVoiceInputPanel manager={voiceManager} snapshot={voice}
+        desktop={!isMobile} onStart={startVoice} /> : null}
       composer={{
         nodes: composerNodes,
-        placeholder: voicePlaceholder ?? textareaPlaceholder,
+        placeholder: textareaPlaceholder,
         excerptCharacterCountTemplate: t('chatWorkspaceExcerptCharacterCount'),
         removeTokenLabel: t('chatInputRemoveReference'),
         disabled: inputDisabled,
@@ -495,6 +456,15 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
       })}
       toolbar={{
         addMenuLabel: t('chatInputAdd'),
+        leadingSlot: <>
+          <IconActionButton icon={voice.phase === 'recording' ? <Square className='h-4 w-4' /> : <Mic className='h-4 w-4' />}
+            label={t(voice.phase === 'recording' ? 'chatInputVoiceFinish' : 'chatInputVoice')}
+            size='lg'
+            disabled={inputDisabled || voice.phase === 'stopping'}
+            aria-pressed={voice.phase === 'recording'}
+            onClick={() => voice.phase === 'recording' ? voiceManager.finish()
+              : voice.phase === 'starting' ? voiceManager.cancel() : startVoice()} />
+        </>,
         selects: [],
         trailingSelects: toolbarSelects,
         accessories: [
@@ -504,24 +474,6 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
             icon: 'paperclip' as const,
             disabled: !attachmentSupported || inputDisabled,
             onClick: () => fileInputRef.current?.click(),
-          },
-          {
-            key: 'voice-input',
-            label: voiceEntryLabel,
-            icon: 'mic' as const,
-            disabled: !voice.supported || inputDisabled,
-            onClick: () => {
-              if (!voice.supported) {
-                toast.error(t('chatInputVoiceUnsupported'));
-                return;
-              }
-              if (voice.listening) {
-                return;
-              }
-              // 点击入口：进入自定义按键引导（capture key）
-              voice.startCaptureKey();
-              toast.info(t('chatInputVoiceCaptureHint'));
-            },
           },
         ],
         skillPicker,
@@ -537,8 +489,8 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
           sendIcon: controller.primaryAction,
           stopButtonLabel: t('chatStop'),
           contextWindow,
-          onSend: controller.send,
-          onAlternateSend: controller.sendSteering,
+          onSend: sendWithVoiceCancelled,
+          onAlternateSend: steerWithVoiceCancelled,
           onStop: controller.stop,
         },
       }}

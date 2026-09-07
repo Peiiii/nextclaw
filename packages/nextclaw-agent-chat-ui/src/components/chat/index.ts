@@ -78,6 +78,7 @@ export type {
   ChatInlineHint,
   ChatSlashMenuProps,
   ChatInputBarProps,
+  ChatComposerDictationSession,
   ChatContextWindowIndicator,
   ChatMessageLayout,
   ChatMessageRole,

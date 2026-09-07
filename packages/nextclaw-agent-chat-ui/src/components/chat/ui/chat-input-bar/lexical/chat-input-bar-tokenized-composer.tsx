@@ -11,6 +11,7 @@ import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary';
 import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
 import type {
   ChatComposerNode,
+  ChatComposerDictationSession,
   ChatComposerSelection,
   ChatComposerTokenData,
   ChatComposerTokenKind,
@@ -32,6 +33,7 @@ import {
 import { ChatComposerTokenUiProvider } from './views/chat-composer-token-view';
 
 export type ChatInputBarTokenizedComposerHandle = {
+  beginDictation: (onInterrupt: () => void) => ChatComposerDictationSession | null;
   insertToken: (token: {
     data?: ChatComposerTokenData;
     tokenKind: ChatComposerTokenKind;

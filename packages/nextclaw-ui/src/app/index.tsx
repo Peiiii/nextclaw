@@ -42,6 +42,9 @@ const AppearanceSettingsPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/appearance-settings-page"))
     .AppearanceSettingsPage,
 }));
+const KeyboardShortcutsSettingsPage = lazy(async () => ({
+  default: (await import("@/features/settings/pages/keyboard-shortcuts-settings-page")).KeyboardShortcutsSettingsPage,
+}));
 const SearchConfigPage = lazy(async () => ({
   default: (await import("@/features/settings/pages/search-config-page"))
     .SearchConfigPage,
@@ -156,6 +159,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/appearance",
     element: createLazyElement(<AppearanceSettingsPage />),
+  },
+  {
+    path: "/keyboard-shortcuts",
+    element: createLazyElement(<KeyboardShortcutsSettingsPage />),
   },
   {
     path: "/model",

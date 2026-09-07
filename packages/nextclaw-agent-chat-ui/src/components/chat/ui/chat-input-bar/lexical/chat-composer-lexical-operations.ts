@@ -21,7 +21,7 @@ import {
 } from '@agent-chat-ui/components/chat/ui/chat-input-bar/chat-composer.utils';
 import type { ChatComposerEditorSnapshot } from './chat-composer-lexical-editor-state';
 
-function getDocumentLength(nodes: ChatComposerNode[]): number {
+export function getDocumentLength(nodes: ChatComposerNode[]): number {
   return nodes.reduce((sum, node) => sum + getChatComposerNodeLength(node), 0);
 }
 

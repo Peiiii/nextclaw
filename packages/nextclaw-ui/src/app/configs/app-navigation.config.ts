@@ -8,6 +8,7 @@ import {
   Download,
   Inbox,
   KeyRound,
+  Keyboard,
   MessageCircle,
   MessageSquare,
   MonitorCog,
@@ -35,6 +36,7 @@ export type AppNavigationSection = {
 };
 
 type SettingsNavigationOptions = {
+  includeKeyboardShortcuts?: boolean;
   includeDesktopCapabilities?: boolean;
 };
 
@@ -166,6 +168,11 @@ export function getSettingsNavItems(
       icon: Palette,
     },
     {
+      target: "/keyboard-shortcuts",
+      label: translate("keyboardShortcuts"),
+      icon: Keyboard,
+    },
+    {
       target: "/security",
       label: translate("security"),
       icon: Shield,
@@ -211,9 +218,9 @@ export function getSettingsNavItems(
       icon: Wrench,
     },
   ];
-  return options.includeDesktopCapabilities === false
-    ? items.filter((item) => item.target !== "/desktop-capabilities")
-    : items;
+  return items.filter((item) =>
+    (options.includeDesktopCapabilities !== false || item.target !== "/desktop-capabilities") &&
+    (options.includeKeyboardShortcuts !== false || item.target !== "/keyboard-shortcuts"));
 }
 
 export function getSettingsNavSections(
