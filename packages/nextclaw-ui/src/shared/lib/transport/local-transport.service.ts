@@ -1,5 +1,6 @@
 import { systemStatusManager } from '@/features/system-status';
 import type { AppEvent, AppTransport, RequestInput, StreamInput, StreamSession } from './transport.types';
+import { BrowserRealtimeRecoveryService } from './browser-realtime-recovery.service';
 import { requestRawApiResponse } from './request-raw-api-response.utils';
 import { readSseStreamResult } from './sse-stream.utils';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
@@ -53,13 +54,18 @@ class LocalRealtimeGateway {
   private socket: WebSocket | null = null;
   private reconnectTimer: number | null = null;
   private manualClose = false;
+  private replacingAfterBrowserRecovery = false;
   private subscribers = new Set<EventHandler>();
+  private readonly browserRecovery = new BrowserRealtimeRecoveryService(() => {
+    this.replaceSocket();
+  });
 
   constructor(private readonly wsUrl: string) {}
 
   subscribe = (handler: EventHandler): () => void => {
     this.subscribers.add(handler);
     if (this.subscribers.size === 1) {
+      this.browserRecovery.start();
       this.connect();
     } else if (this.socket?.readyState === WebSocket.OPEN) {
       handler({ type: 'connection.open', payload: {} });
@@ -68,6 +74,7 @@ class LocalRealtimeGateway {
     return () => {
       this.subscribers.delete(handler);
       if (this.subscribers.size === 0) {
+        this.browserRecovery.stop();
         this.disconnect();
       }
     };
@@ -88,6 +95,7 @@ class LocalRealtimeGateway {
     this.socket = socket;
 
     socket.onopen = () => {
+      this.replacingAfterBrowserRecovery = false;
       this.emit({ type: 'connection.open', payload: {} });
     };
 
@@ -105,6 +113,7 @@ class LocalRealtimeGateway {
     };
 
     socket.onclose = () => {
+      this.replacingAfterBrowserRecovery = false;
       this.emit({ type: 'connection.close', payload: {} });
       this.socket = null;
       if (!this.manualClose && this.subscribers.size > 0) {
@@ -123,8 +132,31 @@ class LocalRealtimeGateway {
     }, 3_000);
   };
 
+  private replaceSocket = (): void => {
+    if (this.subscribers.size === 0 || this.replacingAfterBrowserRecovery) {
+      return;
+    }
+    this.replacingAfterBrowserRecovery = true;
+    if (this.reconnectTimer !== null) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    const staleSocket = this.socket;
+    this.socket = null;
+    if (staleSocket) {
+      staleSocket.onopen = null;
+      staleSocket.onmessage = null;
+      staleSocket.onerror = null;
+      staleSocket.onclose = null;
+      staleSocket.close();
+      this.emit({ type: 'connection.close', payload: {} });
+    }
+    this.connect();
+  };
+
   private disconnect = (): void => {
     this.manualClose = true;
+    this.replacingAfterBrowserRecovery = false;
     if (this.reconnectTimer !== null) {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
