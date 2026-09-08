@@ -36,6 +36,40 @@
   font-size: 14px;
 }
 
+.VPNavBarMenuLink[href^='https://nextclaw.io/'][href$='/download/'] {
+  margin: 14px 8px;
+  border-radius: 6px;
+  padding: 0 14px;
+  background: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+  line-height: 36px;
+}
+
+.VPNavBarMenuLink[href^='https://nextclaw.io/'][href$='/download/']:hover {
+  background: var(--vp-button-brand-hover-bg);
+  color: var(--vp-button-brand-hover-text);
+}
+
+.VPNavBarMenuLink[href^='https://nextclaw.io/'][href$='/download/']:focus-visible,
+.VPNavScreenMenuLink[href^='https://nextclaw.io/'][href$='/download/']:focus-visible {
+  outline: 3px solid var(--vp-c-brand-soft);
+  outline-offset: 2px;
+}
+
+.VPNavScreenMenuLink[href^='https://nextclaw.io/'][href$='/download/'] {
+  margin-top: 12px;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+}
+
+.VPNavScreenMenuLink[href^='https://nextclaw.io/'][href$='/download/']:hover {
+  background: var(--vp-button-brand-hover-bg);
+  color: var(--vp-button-brand-hover-text);
+}
+
 .VPSidebarItem.level-0 > .item > .text,
 .VPSidebarItem.level-0 > .item > .link > .text {
   font-size: 14px;

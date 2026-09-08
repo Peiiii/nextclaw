@@ -7,11 +7,11 @@ hero:
   tagline: 安装后直接使用内置免费试用模型，无需 API Key。NextClaw 可以在你自己的设备上读取资料、使用工具、操作文件，并生成可检查的文档、图表、代码和应用。
   actions:
     - theme: brand
+      text: 下载 NextClaw
+      link: https://nextclaw.io/zh/download/
+    - theme: alt
       text: 创建第一个任务
       link: /zh/guide/create-task
-    - theme: alt
-      text: 查看任务案例
-      link: /zh/tasks/
 ---
 
 ## 一项任务会经历什么

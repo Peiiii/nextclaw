@@ -7,11 +7,11 @@ hero:
   tagline: Install and start with built-in free-trial models—no API key required. NextClaw can read source material, use tools, work with local files, and create documents, charts, code, and apps on a machine you control.
   actions:
     - theme: brand
+      text: Download NextClaw
+      link: https://nextclaw.io/en/download/
+    - theme: alt
       text: Create your first task
       link: /en/guide/create-task
-    - theme: alt
-      text: Browse task guides
-      link: /en/tasks/
 ---
 
 ## What happens inside a task
