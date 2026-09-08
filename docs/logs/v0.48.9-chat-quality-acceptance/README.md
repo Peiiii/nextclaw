@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-批次进度与验收账本见[计划](../../plans/2026-09-08-chat-quality-four-fixes.plan.md)。本记录随每项交付更新，不代表四项已全部完成。
+四项均已完成本地交付，验收账本见[计划](../../plans/2026-09-08-chat-quality-four-fixes.plan.md)。Linear 已同步 Done；产品尚未推送或发布。
 
 - NC-169：手机用户头像和 flex 占位隐藏，桌面保持显示；提交 `665b10425` 已本地合入。
 - NC-167：`message.completed` 清空 streaming 后，`run.finished/error` 原本只收尾 streaming，漏掉已完成消息的生命周期。真实顺序测试修前两条失败，修后按明确消息 ID 定位 assistant，在同一 owner 保留结束时间。设计见[完成时序](../../designs/2026-09-08-chat-completion-timing.design.md)。
@@ -15,6 +15,7 @@
 - NC-167：toolkit agent 47 测试通过；UI 处理摘要 5 测试通过，包括真实状态 owner 输出“已处理 3m 51s”；kernel journal recovery 5 测试通过，包括事件落盘、冷重载与分页读取的 lifecycle 一致。
 - toolkit/UI/kernel tsc 通过；隔离工作区补足同源码构建声明后运行，toolkit 使用本次源码重新构建。
 - NC-170：4 个相关 UI 测试文件共 59 用例通过，覆盖旧缓存不覆盖终态、消息完成后任务仍可运行、RunFinished 后退出 busy，以及现有 hydration/commands/controller 行为；UI tsc、定向 lint 通过。未改变组件 type/key/父级和焦点，既有流式 DOM 身份用例通过。
+- Native runtime 13 用例和 Codex runtime 15 用例通过，覆盖文本、工具事件与完成序列；使用真实 runtime 类和可控上游输入，不声称已调用远程真实模型。
 - 修前失败日志、临时截图在隔离工作区 `.local/chat-quality/`；不进入用户发布素材。
 - NC-168：6 个 UI 文件共 32 用例通过，覆盖 WS 生命周期恢复、连接事件 consumer、会话缓存与连续两次聊天断流后补消息并继续发送；HTTP agent client 9 用例覆盖 SSE 无数据超时与注释心跳。
 - NC-168 真实浏览器：Chrome 手机视口 + 实际 LocalAppTransport + 本地 WebSocket server，两次 offline/online 后共有 3 次连接，收到 recovered-1/2/3 各一次；页面 URL 与草稿保持不变。结果：`.local/chat-quality/nc168-browser.json`。
@@ -23,6 +24,8 @@
 ## 发布/部署方式
 
 每项独立提交后合入本地 master，不推送、不发布、不重启用户实例。NC-168 的已有部署不属于本批次操作。
+
+本地提交：流程 `4f9871386`、NC-169 `665b10425`、NC-167 `a9fcbd968`、NC-170 `55a63199a`、NC-168 验收 `cec56fa0f`。他人未提交文档原样保留，测试服务已停止。
 
 ## 用户/产品视角的验收步骤
 
