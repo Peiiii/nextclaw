@@ -4,6 +4,8 @@ A session is not merely chat history. It is the container where a task keeps its
 
 ## Start a new task when
 
+On phones, your messages hide the user avatar to leave more room for content. Desktop messages keep the avatar.
+
 - you move to another project or working directory;
 - the new outcome is unrelated to the current material;
 - you need another agent or runtime;

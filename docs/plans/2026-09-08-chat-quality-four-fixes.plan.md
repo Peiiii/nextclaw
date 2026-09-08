@@ -20,7 +20,7 @@
 | ID | Required | 合同 | Status | 当前证据 |
 | --- | --- | --- | --- | --- |
 | FLOW | true | 设计有针对性自审；验证按真实风险选最低充分证据；不新增重型默认流程 | passed | progressive-loading、governance ratchet、diff 检查通过；内容自审无 findings；38 skills/37 edges/4368 description chars 不变，入口净增 20 字节 |
-| NC-169 | true | 手机用户头像及占位消失，消息宽度自然；桌面与助手布局正常 | not-run | Linear issue |
+| NC-169 | true | 手机用户头像及占位消失，消息宽度自然；桌面与助手布局正常 | passed | Chrome 375/767/768/1280px 实际共享组件及产品 CSS：用户占位 0/0/32/32px，助手均 32px，无溢出；截图已检查；tsc、lint、governance、maintainability 通过 |
 | NC-167 | true | 完成消息显示正确耗时，已有持久化数据刷新可恢复，失败/运行态不混淆 | not-run | Linear issue |
 | NC-170 | true | 真实结束及时反映至 UI；仍在执行时不错误标记完成；重进会话状态一致 | not-run | Linear issue |
 | NC-168 | true | 假活连接在页面/网络恢复时重建并同步状态，不重复提交请求或消息 | not-run | 已有修复 e6de142d0 及部署记录，待当前边界核验 |
@@ -30,7 +30,8 @@
 
 ## 当前阶段、事实与恢复入口
 
-- 当前：流程治理验证与内容 review 完成，进入本地交付后开始 NC-169。纯规则无需 tsc/产品冒烟/changeset/独立迭代日志；计划保留审计证据。
+- 当前：NC-169 完成，交付后进入 NC-167 调查。流程提交 `4f9871386` 已本地快进。NC-169 为 L1 small-change，skip-design/design-document: not-required，单一 avatar 展示 owner，无状态变化；纯视觉无 CLI 适用入口。中英文用户文档与 changeset 已同步。
+- NC-169 review：无 findings；原有目录 17/12 预算例外未恶化。临时浏览器 harness 已清理，截图保留于工作区 `.local/chat-quality/nc169-mobile.png`，不作对外产品截图。
 - 用户再次强调：故障必须构造复现并使用同条件验证；NC-168 将复查修前失败与当前通过，不能仅引用已有部署。
 - 治理收益：消除“定向测试 + 同合同边界测试”的机械重复，补设计冻结前的针对性审查。新增成本仅命中现有 design/validation 的数行规则；可原地撤回，不涉及命令/script/baseline。
 - 初始规则体积：AGENTS 11951，lifecycle 7500，design 6028，validation 5397，review 4020 字节。
