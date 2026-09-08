@@ -36,6 +36,31 @@
   font-size: 14px;
 }
 
+@media (min-width: 1200px) {
+  .VPNavBarMenuGroup:has(a[href='https://nextclaw.io/en/']),
+  .VPNavBarMenuGroup:has(a[href='https://nextclaw.io/zh/']) {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .VPNavBarMenuLink[href='/en/developers/'],
+  .VPNavBarMenuLink[href='/en/project/'],
+  .VPNavBarMenuLink[href='https://nextclaw.io/en/'],
+  .VPNavBarMenuLink[href='/zh/developers/'],
+  .VPNavBarMenuLink[href='/zh/project/'],
+  .VPNavBarMenuLink[href='https://nextclaw.io/zh/'] {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .VPNavScreenMenuGroup:has(a[href='https://nextclaw.io/en/']),
+  .VPNavScreenMenuGroup:has(a[href='https://nextclaw.io/zh/']) {
+    display: none;
+  }
+}
+
 .VPNavBarMenuLink[href^='https://nextclaw.io/'][href$='/download/'] {
   margin: 14px 8px;
   border-radius: 6px;

@@ -18,6 +18,9 @@ export const enNav: DefaultTheme.NavItem[] = [
   { text: 'Using NextClaw', link: '/en/guide/chat' },
   { text: 'Task Guides', link: '/en/tasks/' },
   { text: 'Settings & Help', link: '/en/guide/model-selection' },
+  { text: 'Developers', link: '/en/developers/' },
+  { text: 'About NextClaw', link: '/en/project/' },
+  { text: 'Website', link: 'https://nextclaw.io/en/' },
   {
     text: 'More',
     items: [
@@ -34,6 +37,9 @@ export const zhNav: DefaultTheme.NavItem[] = [
   { text: '使用指南', link: '/zh/guide/chat' },
   { text: '使用案例', link: '/zh/tasks/' },
   { text: '设置与帮助', link: '/zh/guide/model-selection' },
+  { text: '开发者', link: '/zh/developers/' },
+  { text: '关于 NextClaw', link: '/zh/project/' },
+  { text: '官网', link: 'https://nextclaw.io/zh/' },
   {
     text: '更多',
     items: [
