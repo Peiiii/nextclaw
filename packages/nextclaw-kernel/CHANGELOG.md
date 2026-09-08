@@ -1,5 +1,35 @@
 # @nextclaw/kernel
 
+## 0.16.1
+
+### Patch Changes
+
+- 5b2a035: Add CLI commands to manage model providers, discover and configure models, test connections, authorize supported providers, select the default model, and configure web search. AI self-management now prefers these commands over direct configuration edits. Existing configuration tools remain available for uncovered settings and explicit recovery.
+- f09ef09: 保留连续工具调用的历史顺序，减少多步任务中的重复输入与缓存失效；修复公共 Harness 模型流式调用无法正常执行的问题。
+
+  精简重复的会话参数和消息交付说明，将 inline 展示细则改为使用前读取，保留能力触发、关键约束及完整展示协议。
+
+  保持会话搜索工具声明稳定，未就绪时明确返回索引状态。修复压缩保留最后一轮回复时恢复整段旧工具历史的问题，并校正后续轮次边界。
+
+  原生模型保留工具名称与用途声明，将较大的非基础工具参数改为通过 tool_schema 按需查询；执行时继续使用完整参数校验，减少不使用工具的持续输入开销。
+
+- f6f78a5: 显著提升会话列表和大型会话消息的加载速度。会话摘要现在直接复用索引数据，实时状态更新不再反复刷新整页列表；同时避免驻留事件流被死信阻塞后持续重写大型队列文件、占满 CPU。
+- e12f7d3: 修复多轮工具调用的回复在刷新后出现重复工具消息和持续等待动画的问题，保留完整回复与工具结果，并重建旧版本的会话历史缓存。
+- Updated dependencies [a9fcbd9]
+- Updated dependencies [5b2a035]
+- Updated dependencies [f09ef09]
+- Updated dependencies [e12f7d3]
+  - @nextclaw/ncp-toolkit@0.6.24
+  - @nextclaw/core@0.17.19
+  - @nextclaw/ncp-agent-runtime@0.4.23
+  - @nextclaw/ncp-agent-runtime-next@0.1.25
+  - @nextclaw/channel-extension-feishu@0.2.34
+  - @nextclaw/channel-extension-weixin@0.2.34
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.46
+  - @nextclaw/mcp@0.3.46
+  - @nextclaw/runtime@0.4.45
+  - @nextclaw/ncp-mcp@0.2.46
+
 ## 0.16.0
 
 ### Minor Changes
