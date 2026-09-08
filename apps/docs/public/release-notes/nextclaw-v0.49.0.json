@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.49.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-09-09",
+  "title": {
+    "zh-CN": "NextClaw v0.49.0",
+    "en-US": "NextClaw v0.49.0"
+  },
+  "summary": {
+    "zh-CN": "用语音开始输入，通过 CLI 管理模型，并让大型会话加载与工具记录更加可靠。",
+    "en-US": "Start with your voice, manage models from the CLI, and load large sessions with more reliable tool history."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-09-nextclaw-v0-49-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-09-nextclaw-v0-49-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "语音输入与对象级 CLI", "en-US": "Voice input and object-level CLI" },
+      "items": [
+        {
+          "title": { "zh-CN": "可控的聊天语音输入", "en-US": "Controlled voice input in chat" },
+          "body": {
+            "zh-CN": "点击即可录音，桌面端可选按住说话；转录文字写入当前光标位置并保留为草稿，不会自动发送。",
+            "en-US": "Click to record or optionally use desktop push-to-talk. Transcribed text is inserted at the cursor and remains a draft instead of being sent automatically."
+          }
+        },
+        {
+          "title": { "zh-CN": "从 CLI 管理模型与搜索", "en-US": "Manage models and search from the CLI" },
+          "body": {
+            "zh-CN": "通过 nextclaw CLI 管理提供商、发现和配置模型、测试连接、授权受支持的提供商、选择默认模型并配置网页搜索。",
+            "en-US": "Use the nextclaw CLI to manage providers, discover and configure models, test connections, authorize supported providers, choose a default model, and configure web search."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "更快、更清楚的聊天体验", "en-US": "Faster, clearer chat" },
+      "items": [
+        {
+          "title": { "zh-CN": "大型会话加载更快", "en-US": "Faster large-session loading" },
+          "body": {
+            "zh-CN": "会话摘要直接复用索引数据，实时状态变化不再反复刷新整页列表。",
+            "en-US": "Session summaries reuse indexed data, and live status changes no longer refresh the entire list repeatedly."
+          }
+        },
+        {
+          "title": { "zh-CN": "模型和移动端布局更顺手", "en-US": "Better model and mobile layouts" },
+          "body": {
+            "zh-CN": "收藏与最近模型优先显示，其余按提供商分组；手机聊天为消息正文释放更多空间。",
+            "en-US": "Favorites and recent models appear first, remaining models are grouped by provider, and mobile chat leaves more room for message text."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": { "zh-CN": "状态、工具记录与连接修复", "en-US": "Status, tool history, and connection fixes" },
+      "items": [
+        {
+          "title": { "zh-CN": "任务结束状态及时同步", "en-US": "Task completion stays in sync" },
+          "body": {
+            "zh-CN": "任务完成后不再残留“正在思考”，已处理消息会保留耗时，并在刷新后继续显示。",
+            "en-US": "Finished tasks no longer remain stuck on Thinking, and completed messages preserve their elapsed time across refreshes."
+          }
+        },
+        {
+          "title": { "zh-CN": "工具历史和终端输出可靠显示", "en-US": "Reliable tool history and terminal output" },
+          "body": {
+            "zh-CN": "刷新后不会重复多轮工具消息或持续等待，成功命令会显示 stdout、stderr 等终端内容。",
+            "en-US": "Refreshes no longer duplicate multi-step tool messages or leave endless waits, and successful commands show terminal output such as stdout and stderr."
+          }
+        },
+        {
+          "title": { "zh-CN": "移动端自动恢复实时连接", "en-US": "Automatic mobile reconnection" },
+          "body": {
+            "zh-CN": "页面重新可见或网络恢复时会替换失效连接，并补齐会话与任务状态。",
+            "en-US": "When the page becomes visible or the network returns, stale connections are replaced and session and task state are synchronized."
+          }
+        }
+      ]
+    }
+  ]
+}

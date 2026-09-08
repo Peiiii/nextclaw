@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.49.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-09-09-nextclaw-v0-49-0.md",
+        "apps/docs/en/notes/2026-09-09-nextclaw-v0-49-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.49.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "Voice input, object-level configuration commands, and session reliability improve existing product workflows without changing the website positioning, download flow, or pricing."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.49.0 adds voice input, CLI-first provider/model/search setup, faster large-session loading, and more reliable tool history.\nhttps://docs.nextclaw.io/en/notes/2026-09-09-nextclaw-v0-49-0",
+      "imagePath": "images/screenshots/nextclaw-providers-page-cn.png",
+      "imageAlt": "NextClaw provider settings showing configured AI providers, connection status, models, and connection testing",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-09-09-nextclaw-v0-49-0"
+    }
+  }
+}
