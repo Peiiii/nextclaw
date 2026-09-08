@@ -43,6 +43,10 @@ On desktop, hover over a session to see its project, child-session count, and sc
 
 Open **More actions** in the current session header, a session in the session list, a child session in the session workspace, or a child-session tab, then choose **Copy session ID**. This copies the complete ID for that session. Draft sessions do not have a stable ID yet, so this action is not shown for them.
 
+## Tool activity after refreshing
+
+Multiple rounds of tool calls remain part of the same reply. Refreshing or reopening a session does not execute the tools again, and loading a completed reply does not add another message showing tools as still running.
+
 ## Add files and selected text to a message
 
 Type `@` to reference a file, folder, project, or Panel App. You can also open a file in the session workspace and choose **Add to chat** from its action menu. In a text file, select a passage first when only that excerpt should be included.

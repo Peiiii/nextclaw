@@ -258,6 +258,11 @@ export function upsertMessageByEventOrder(
       : messages.length;
     nextMessages.splice(insertIndex, 0, normalizedMessage);
   }
+  if (normalizedMessage.role === "assistant" && (normalizedMessage.status === "pending" || normalizedMessage.status === "streaming") && (!streamingMessage || settlesStreamingMessage)) {
+    const activeIndex = nextMessages.findIndex((item) => item.id === normalizedMessage.id);
+    nextMessages.splice(activeIndex, 1);
+    return { messages: nextMessages, streamingMessage: normalizedMessage, streamingMessageIndex: activeIndex };
+  }
   return {
     messages: nextMessages,
     streamingMessage: settlesStreamingMessage ? null : streamingMessage,

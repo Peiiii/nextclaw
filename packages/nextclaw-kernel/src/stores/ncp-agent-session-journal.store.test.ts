@@ -401,7 +401,7 @@ describe("NcpAgentSessionJournalStore replay", () => {
 });
 
 describe("NcpAgentSessionJournalStore metadata recovery", () => {
-  it("recovers assistant snapshot history that was written with a draft status", async () => {
+  it("preserves draft snapshot status without evidence of completion", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
 
@@ -424,12 +424,12 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
     expect(eventTypes).not.toContain(NcpEventType.MessageSent);
     expect(messages[0]).toMatchObject({
       id: "assistant-1",
-      status: "final",
+      status: "pending",
       parts: [{ type: "text", text: "already done" }],
     });
   });
 
-  it("recovers legacy assistant message.sent history that was written with a draft status", async () => {
+  it("does not infer completion from a legacy draft message.sent", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const store = new NcpAgentSessionJournalStore(tempDir);
 
@@ -467,7 +467,7 @@ describe("NcpAgentSessionJournalStore metadata recovery", () => {
 
     expect(messages[0]).toMatchObject({
       id: "assistant-1",
-      status: "final",
+      status: "pending",
       parts: [{ type: "text", text: "already done" }],
     });
   });

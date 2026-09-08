@@ -119,7 +119,7 @@ export function readEventRunId(event: NcpAgentSessionJournalReplayEvent): string
   return null;
 }
 
-function readEventToolCallId(event: NcpAgentSessionJournalReplayEvent): string | null {
+export function readEventToolCallId(event: NcpAgentSessionJournalReplayEvent): string | null {
   if (isJournalOnlyEvent(event)) {
     return null;
   }
@@ -141,10 +141,8 @@ export function createReplayEvent(
   if (replayMessage && legacyCompactionMessageId) {
     replayMessage.id = legacyCompactionMessageId;
   }
-  if (
-    replayMessage?.role === "assistant" &&
-    (replayMessage.status === "pending" || replayMessage.status === "streaming")
-  ) {
+  // A persisted draft is a checkpoint, not evidence that its run completed.
+  if (replayMessage && replayEvent.type === NcpEventType.MessageCompleted) {
     replayMessage.status = "final";
   }
   if (
