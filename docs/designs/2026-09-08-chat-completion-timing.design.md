@@ -12,4 +12,9 @@
 
 ## NC-170
 
-尚未调查，不以 NC-167 根因推断思考状态延迟；该部分开始时按真实时序补充设计。
+- 风险 L2，bugfix，reproduce；用户可见状态取舍，稳定设计必需。
+- 证据：`useNcpAgentRuntime` 从 snapshot.activeRun 派生 isRunning；`useHydratedNcpAgent` 初始与重连时把 seed.status 转入同一 owner。页面 input query 从会话列表取得 selectedSession，却再次 `agent.isRunning || selectedSession.status === running`，使过期 running 压住实时终态。构造 live=false/cache=running，修前测试实际得到 true。
+- 选择：页面直接传 agent 给 controller，删除 currentSessionRunning 和覆写 agent 的 memo；controller 仍使用 isSending（请求中）或 isRunning（任务中）控制忙态。无需 timer、等待超时、强制刷新列表或第二状态 owner。
+- 反例：MessageCompleted 只是一个消息步骤，不能据文本已经显示提前结束；RunFinished/Error/Abort 才使 owner 离开 active。首次进入与刷新继续由 seed 初始化运行状态。
+- 自审：删除无条件 OR，不把“更快”解释为提早宣称完成；无新的状态/协议/重试分支。真实运行在最终文本后仍执行的时间不属于本修复已证明范围。
+- 验收：页面 stale-cache 失败转通过；真实 toolkit + React hook 在完成消息后仍 running、终态后停止；现有 hydration/reconnect、发送/取消与 controller 测试通过。此问题的合同是事件状态而非视觉布局，不机械重复浏览器截图。

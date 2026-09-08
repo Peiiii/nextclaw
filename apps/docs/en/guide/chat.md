@@ -17,6 +17,8 @@ Continue the current session when you are refining its files, asking more questi
 
 Reasoning and tool activity can collapse into a “Processed” summary. When the run records its start and end times, the summary shows elapsed time and keeps it after a refresh. Older messages without timing records do not show an estimated duration.
 
+The thinking indicator follows the current task. A task may continue after a reply appears; the generation indicator ends when the task reports completion.
+
 ## Voice input
 
 Click the microphone beside the composer to record, then click to finish. Words appear at the cursor or selection captured when recording starts. Underlined words are provisional and may change; the underline disappears when transcription finishes. A small floating indicator shows recording status and duration. Nothing is sent automatically. Cancel restores the original content; surrounding text, references, and attachments stay intact. Each recording is limited to 60 seconds.

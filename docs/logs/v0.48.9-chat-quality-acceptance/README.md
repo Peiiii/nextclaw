@@ -6,12 +6,14 @@
 
 - NC-169：手机用户头像和 flex 占位隐藏，桌面保持显示；提交 `665b10425` 已本地合入。
 - NC-167：`message.completed` 清空 streaming 后，`run.finished/error` 原本只收尾 streaming，漏掉已完成消息的生命周期。真实顺序测试修前两条失败，修后按明确消息 ID 定位 assistant，在同一 owner 保留结束时间。设计见[完成时序](../../designs/2026-09-08-chat-completion-timing.design.md)。
+- NC-170：页面将实时 isRunning 与会话列表缓存 running 取 OR，缓存滞后时覆盖了实时终态。修前 stale-cache 测试失败，修后页面只消费已负责 seed/live/reconnect 的 agent owner，移除 10 行重复派生。
 
 ## 测试/验证/验收方式
 
 - NC-169：真实共享组件与产品 CSS 在 Chrome 375/767/768/1280px 下用户头像占位分别 0/0/32/32px；助手均 32px，无水平溢出；截图已检查。agent-chat-ui tsc、定向 lint、维护性与治理通过。
 - NC-167：toolkit agent 47 测试通过；UI 处理摘要 5 测试通过，包括真实状态 owner 输出“已处理 3m 51s”；kernel journal recovery 5 测试通过，包括事件落盘、冷重载与分页读取的 lifecycle 一致。
 - toolkit/UI/kernel tsc 通过；隔离工作区补足同源码构建声明后运行，toolkit 使用本次源码重新构建。
+- NC-170：4 个相关 UI 测试文件共 59 用例通过，覆盖旧缓存不覆盖终态、消息完成后任务仍可运行、RunFinished 后退出 busy，以及现有 hydration/commands/controller 行为；UI tsc、定向 lint 通过。未改变组件 type/key/父级和焦点，既有流式 DOM 身份用例通过。
 - 修前失败日志、临时截图在隔离工作区 `.local/chat-quality/`；不进入用户发布素材。
 
 ## 发布/部署方式
