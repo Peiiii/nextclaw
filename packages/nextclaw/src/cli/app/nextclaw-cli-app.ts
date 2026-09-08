@@ -10,6 +10,8 @@ import { registerAppCommands } from "./register-app-commands.js";
 import { registerProjectCommands } from "./register-project-commands.js";
 import { registerSessionCommands } from "./register-session-commands.js";
 import { registerExecCommand } from "./exec-command-registration.utils.js";
+import { registerProviderCommands } from "./commands/provider-command-registration.utils.js";
+import { registerModelSearchCommands } from "./commands/model-search-command-registration.utils.js";
 
 const LOGO = "🤖";
 
@@ -151,6 +153,9 @@ registerAppCommands(program, {
 });
 
 const config = program.command("config").description("Manage config values");
+
+registerProviderCommands(program);
+registerModelSearchCommands(program);
 
 config
   .command("get <path>")

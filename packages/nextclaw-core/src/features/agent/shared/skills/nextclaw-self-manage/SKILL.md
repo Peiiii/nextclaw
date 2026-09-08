@@ -32,6 +32,11 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
 - For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.
 - Execute only commands documented in the self-management guide or CLI help; do not invent commands or config paths.
+- Prefer object-level CLI commands for configuration management. For providers/models/search, use `nextclaw providers ...`, `nextclaw models ...`, and `nextclaw search ...`; do not read/edit config files or substitute generic `config set/unset` or gateway config actions for these covered tasks.
+- Generic config commands and gateway config tools remain transitional options only for documented capabilities not covered by object-level CLI or explicit manual recovery. A missing running host is not a reason to silently edit files instead.
+- Read API keys from a named environment variable with `--api-key-env`; never print the variable or copy credentials into a command argument. Query saved settings with the relevant `show` command, and verify provider connectivity with `providers test`. An API apply failure is not success even if values were saved.
+- Provider model discovery does not save models. `providers models set` replaces the full list; `providers models configure` replaces all capability overrides. Query existing settings first and include entries the user intends to keep.
+- For provider authorization, follow the URI/code from `providers auth start`, poll the returned session id at the advertised interval, and treat only `authorized` as completion. `providers auth import` is available for supported external CLI credentials.
 - In desktop-installed runtimes, still use the same `nextclaw ...` commands. The desktop launcher provides a managed command surface to AI command tools; do not ask the user to install the NPM CLI just to run self-management commands.
 - Keep installed skills and marketplace catalog as two different domains:
   - local installed: `nextclaw skills installed|info`
@@ -94,7 +99,10 @@ When the user reports missing messages, missing replies, intermittent failures, 
 - Retained App data deletion: `nextclaw app data delete <data-id> --confirm <app-id> --json`
 - Service App development data reset: `nextclaw app dev <service-app-dir> --reset-data --confirm <app-id> --json`
 - Channels: `nextclaw channels list --json|status|login`
-- Config: `nextclaw config get|set|unset`
+- Providers: `nextclaw providers list|templates|show|add|update|remove|enable|disable|test`, plus `providers models list|discover|set|configure` and `providers auth start|poll|import`
+- Models: `nextclaw models list|show|set`
+- Search: `nextclaw search show|configure|provider`
+- Uncovered configuration or explicit recovery only: `nextclaw config get|set|unset`
 - Agents: `nextclaw agents list|runtimes|runtime config|new|update|remove`
 - Projects: `nextclaw projects list|templates|create|remove`
 - Sessions: `nextclaw sessions rename|set-project|clear-project|delete`

@@ -65,10 +65,9 @@ export const createSelfUpdateContextProvider = (): ContextProvider =>
     `## ${APP_NAME} Self-Update`,
     "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
     "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
-    "Actions: config.get, config.schema, config.apply (validate + write full config), config.patch (merge config), update.run (update the runtime and relaunch the service).",
-    "When patching config, copy enum values exactly from config.schema; never invent new variants.",
-    "session.dmScope legal values are exactly: main | per-peer | per-channel-peer | per-account-channel-peer.",
-    "If an enum/path is uncertain, stop and call config.schema first; do not guess.",
+    "For configuration management, prefer object-level CLI commands from the self-management guide: nextclaw providers, models, search, agents, mcp and other covered commands. Do not read or edit config files, or use generic config set/unset or gateway config actions, for tasks covered by these commands.",
+    "Gateway config.get/config.schema/config.apply/config.patch remain transitional tools for documented CLI gaps or explicit manual recovery; they are not the recommended path. update.run updates the runtime and relaunches the service.",
+    "Only when a transitional config write is needed, read config.get and config.schema first, copy legal values exactly, use the minimal config.patch, then verify with config.get. Do not guess paths or enum values.",
     `If a config change requires restart, tell the user to run \`${APP_NAME.toLowerCase()} restart\` in an external terminal. Do not run it from the active agent session.`,
   ]);
 
