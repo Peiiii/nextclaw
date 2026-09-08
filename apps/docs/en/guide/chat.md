@@ -4,12 +4,30 @@ A session is not merely chat history. It is the container where a task keeps its
 
 ## Start a new task when
 
+On phones, your messages hide the user avatar to leave more room for content. Desktop messages keep the avatar.
+
 - you move to another project or working directory;
 - the new outcome is unrelated to the current material;
 - you need another agent or runtime;
 - an experiment should stay separate from long-running work.
 
 Continue the current session when you are refining its files, asking more questions about the same sources, adding the next step, or relying on decisions already confirmed there.
+
+## Processing details
+
+Reasoning and tool activity can collapse into a “Processed” summary. When the run records its start and end times, the summary shows elapsed time and keeps it after a refresh. Older messages without timing records do not show an estimated duration.
+
+The thinking indicator follows the current task. A task may continue after a reply appears; the generation indicator ends when the task reports completion.
+
+## Voice input
+
+Click the microphone beside the composer to record, then click to finish. Words appear at the cursor or selection captured when recording starts. Underlined words are provisional and may change; the underline disappears when transcription finishes. A small floating indicator shows recording status and duration. Nothing is sent automatically. Cancel restores the original content; surrounding text, references, and attachments stay intact. Each recording is limited to 60 seconds.
+
+Typing, pasting, or moving the cursor inside the composer ends dictation and keeps the visible words so you can edit. Late recognition results cannot overwrite your edits. During dictation, Enter ends dictation without sending; Esc cancels this dictation.
+
+On desktop layouts, configure hold-to-talk in **Settings → Keyboard shortcuts → Voice input**. The gear at the right of the recording overlay opens the same settings. Opening settings finishes the current transcription first; closing settings does not restart recording. Bind, change, or disable the shortcut there. Release the key to finish. Single letters and F6–F10 only trigger outside text inputs; combinations using Ctrl or ⌘ with Alt/⌥ also work inside. Standard editing shortcuts and IME composition are protected. Phones use the microphone button without shortcut settings. System-reserved keys may not reach the page.
+
+Switching conversations cancels recording. Losing window focus or hiding the page stops capture. Permission, network, and device errors appear beside the input; confirmed text remains in your draft and provisional words are removed. Your browser's speech service may process audio online. Offline recognition is not guaranteed, and availability depends on the browser, system, and service.
 
 ## Session types
 

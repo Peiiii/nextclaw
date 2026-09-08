@@ -277,8 +277,6 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     setPendingSessionType: inputActions.setPendingSessionType,
   });
   const isRuntimeBlocked = isNcpChatRuntimeBlocked(systemStatus);
-  const currentSessionRunning =
-    agent.isRunning || inputQuery.selectedSession?.status === "running";
   const runtimeError = agent.snapshot.error;
   const rawLastSendError = agent.hydrateError?.message
     ?? (runtimeError?.code === "run-interrupted" ? null : runtimeError?.message)
@@ -296,16 +294,8 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
           message: filteredLastSendError,
           status: systemStatus,
         });
-  const controllerAgent = useMemo(
-    () => ({
-      ...agent,
-      isRunning: currentSessionRunning,
-      isSending: agent.isSending,
-    }),
-    [agent, currentSessionRunning],
-  );
   const controller = useSessionConversationController({
-    agent: controllerAgent,
+    agent,
     inputSnapshot,
     inputQuery,
     isRuntimeBlocked,

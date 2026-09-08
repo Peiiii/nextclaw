@@ -36,6 +36,10 @@ Catalog suggestions are limited to chat models. NextClaw excludes specialized im
 
 Built-in providers use an explicit capability allowlist: **Fetch model list** and background refresh are enabled only after the catalog URL, protocol, and authentication contract have been audited. The current allowlist is NextClaw, OpenAI, Anthropic, OpenRouter, DeepSeek, MiniMax API, AiHubMix, Groq, OpenCode Zen, and vLLM. Gemini, regular DashScope, DashScope Coding Plan, Kimi, Kimi Coding, Zhipu AI, Xiaomi MiMo, MiniMax Portal, and Qwen Portal currently retain manual model entry only. This does not affect normal calls to configured models; discovery can be enabled later after its exact contract is verified.
 
+## Choose a model in chat
+
+Open the model selector in the chat input. Favorites and recently used models appear first; remaining models are grouped by provider. Provider groups show model names, while favorites and recent entries retain the provider name to distinguish models with matching names.
+
 ## Discover newly available models automatically
 
 After NextClaw starts, it reads the catalogs of enabled providers and refreshes them every 12 hours. Automatic refresh only updates an in-memory snapshot of upstream facts. It never adds, removes, reorders, or switches configured models on its own.

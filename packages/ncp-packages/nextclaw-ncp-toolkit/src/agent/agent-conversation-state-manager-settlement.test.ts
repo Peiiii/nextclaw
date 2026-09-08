@@ -13,6 +13,40 @@ const createMessage = (overrides: Partial<NcpMessage> = {}): NcpMessage => ({
 });
 
 describe("DefaultNcpAgentConversationStateManager settlement", () => {
+  it.each([NcpEventType.RunFinished, NcpEventType.RunError] as const)(
+    "retains lifecycle timing when %s follows message.completed",
+    async (type) => {
+      const manager = new DefaultNcpAgentConversationStateManager();
+      const lifecycle = {
+        startedAt: "2026-03-12T00:00:00.000Z",
+        endedAt: "2026-03-12T00:03:51.000Z",
+      };
+      await manager.dispatchBatch([
+        { type: NcpEventType.RunStarted, payload: { sessionId: "session-1", runId: "run-1" } },
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: { sessionId: "session-1", messageId: "msg-1", delta: "Done" },
+        },
+        {
+          type: NcpEventType.MessageCompleted,
+          payload: { sessionId: "session-1", message: createMessage({ parts: [{ type: "text", text: "Done" }] }) },
+        },
+        {
+          type,
+          payload: { sessionId: "session-1", runId: "run-1", messageId: "msg-1", ...lifecycle },
+        },
+      ]);
+      const snapshot = manager.getSnapshot();
+      expect(snapshot.messages[0]?.lifecycle).toEqual(lifecycle);
+      expect(snapshot.messages[0]?.status).toBe(type === NcpEventType.RunError ? "error" : "final");
+      expect(snapshot.activeRun).toBeNull();
+      expect(snapshot.streamingMessage).toBeNull();
+      const reloaded = new DefaultNcpAgentConversationStateManager();
+      reloaded.hydrate({ sessionId: "session-1", messages: JSON.parse(JSON.stringify(snapshot.messages)) });
+      expect(reloaded.getSnapshot().messages).toEqual(snapshot.messages);
+    },
+  );
+
   it("finalizes one assistant message without settling the active run", async () => {
     const manager = new DefaultNcpAgentConversationStateManager();
     await manager.dispatch({

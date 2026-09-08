@@ -164,6 +164,11 @@ describe('RemoteSessionMultiplexTransport request path', () => {
     staleSocket?.open();
     await Promise.resolve();
 
+    const pending = transport.request({ method: 'POST', path: '/api/ncp/agent/messages', body: { text: 'once' } });
+    const pendingFailure = expect(pending).rejects.toThrow('connection replaced');
+    await Promise.resolve();
+    expect(staleSocket?.sent).toHaveLength(1);
+
     visibilityState = 'visible';
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -177,6 +182,19 @@ describe('RemoteSessionMultiplexTransport request path', () => {
 
     expect(MockWebSocket.instances).toHaveLength(2);
     expect(handler).toHaveBeenLastCalledWith({ type: 'connection.open', payload: {} });
+    await pendingFailure;
+    await Promise.resolve();
+    expect(replacementSocket?.sent).toHaveLength(0);
+    window.dispatchEvent(new Event('online'));
+    const secondReplacement = MockWebSocket.instances[2];
+    secondReplacement?.open();
+    await Promise.resolve();
+    const recovered = transport.request({ method: 'GET', path: '/api/sessions' });
+    await Promise.resolve();
+    const frame = lastSentRequestFrame(secondReplacement!);
+    secondReplacement?.receive({ type: 'response', id: frame.id, status: 200, body: { ok: true, data: { total: 1 } } });
+    await expect(recovered).resolves.toEqual({ total: 1 });
+    expect(MockWebSocket.instances).toHaveLength(3);
     unsubscribe();
   });
 });

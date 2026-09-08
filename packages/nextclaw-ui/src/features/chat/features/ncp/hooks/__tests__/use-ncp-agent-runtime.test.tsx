@@ -513,6 +513,26 @@ describe("useNcpAgentRuntime", () => {
 });
 
 describe("useNcpAgentRuntime commands and live stream", () => {
+  it("keeps the run active after message completion and settles immediately on the terminal event", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const { result } = renderHook(() => useNcpAgentRuntime({ sessionId: "session-1", client, manager }));
+    await act(async () => {
+      await client.emit({ type: NcpEventType.RunStarted, payload: { sessionId: "session-1", runId: "run-1" } });
+      await client.emit({ type: NcpEventType.MessageCompleted, payload: {
+        sessionId: "session-1",
+        message: { id: "assistant-1", sessionId: "session-1", role: "assistant", status: "final", timestamp: now, parts: [{ type: "text", text: "Done" }] },
+      } });
+    });
+    await waitFor(() => expect(result.current.visibleMessages[0]?.status).toBe("final"));
+    expect(result.current.isRunning).toBe(true);
+    await act(async () => {
+      await client.emit({ type: NcpEventType.RunFinished, payload: { sessionId: "session-1", runId: "run-1", messageId: "assistant-1" } });
+    });
+    await waitFor(() => expect(result.current.isRunning).toBe(false));
+    expect(result.current.isSending).toBe(false);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

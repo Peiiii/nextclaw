@@ -421,10 +421,23 @@ export function syncLexicalEditorFromChatComposerState(
   nodes: ChatComposerNode[],
   selection: ChatComposerSelection | null,
   preserveDomSelection = false,
+  dictation?: { range: ChatComposerSelection | null },
 ): void {
   editor.update(() => {
     writeChatComposerStateToLexicalRoot(nodes, selection);
+    if (dictation?.range) {
+      const { start, end } = dictation.range;
+      for (const leaf of getComposerLeafDescriptors().descriptors) {
+        if (!$isTextNode(leaf.node) || leaf.start >= end || leaf.start + leaf.length <= start) continue;
+        const from = Math.max(0, start - leaf.start);
+        const to = Math.min(leaf.length, end - leaf.start);
+        const pieces = leaf.node.splitText(from, to);
+        const marked = pieces[from > 0 ? 1 : 0];
+        marked?.setStyle('text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px');
+      }
+    }
   }, {
+    ...(dictation ? { discrete: true } : {}),
     tag: preserveDomSelection
       ? [CHAT_COMPOSER_EXTERNAL_UPDATE_TAG, SKIP_DOM_SELECTION_TAG]
       : CHAT_COMPOSER_EXTERNAL_UPDATE_TAG,

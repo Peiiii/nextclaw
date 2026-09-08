@@ -404,6 +404,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
 }
 
 export function ChatInputBarToolbar({
+  leadingSlot,
   actions,
   accessories = [],
   addMenuLabel,
@@ -426,6 +427,7 @@ export function ChatInputBarToolbar({
         {selects.map((item) => (
           <ToolbarSelect key={item.key} item={item} />
         ))}
+        {leadingSlot}
       </div>
       <div className="flex shrink-0 items-end gap-1">
         {trailingSelects.length > 0 ? (

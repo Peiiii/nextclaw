@@ -1,4 +1,5 @@
-import type { NcpMessage } from "@nextclaw/ncp";
+import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
+import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import { describe, expect, it } from "vitest";
 import { buildChatMessageProcessSummary } from "@/features/chat/features/message/utils/chat-message-process-summary.utils";
 
@@ -29,6 +30,23 @@ const baseAssistantMessage = {
 } satisfies NcpMessage;
 
 describe("buildChatMessageProcessSummary", () => {
+  it("shows elapsed time from the real completed-message then run-finished event sequence", async () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+    await manager.dispatchBatch([
+      { type: NcpEventType.RunStarted, payload: { sessionId: "session-1", runId: "run-1" } },
+      { type: NcpEventType.MessageCompleted, payload: { sessionId: "session-1", message: baseAssistantMessage } },
+      {
+        type: NcpEventType.RunFinished,
+        payload: {
+          sessionId: "session-1", runId: "run-1", messageId: baseAssistantMessage.id,
+          startedAt: "2026-03-31T10:00:00.000Z", endedAt: "2026-03-31T10:03:51.000Z",
+        },
+      },
+    ]);
+    const message = manager.getSnapshot().messages[0]!;
+    expect(buildChatMessageProcessSummary({ message, processedLabel: "已处理" })?.label).toBe("已处理 3m 51s");
+  });
+
   it("does not invent duration when lifecycle timing is absent", () => {
     expect(
       buildChatMessageProcessSummary({

@@ -309,6 +309,18 @@ describe("SessionConversationArea input boundary", () => {
     expect(params.agent.isSending).toBe(false);
   });
 
+  it("does not keep a settled run active because the session list cache is stale", () => {
+    mocks.inputQuery.selectedSession = { status: "running" };
+    mocks.agent.isRunning = false;
+    mocks.agent.isSending = false;
+    renderArea("session-1");
+    const params = mocks.controllerParamsSpy.mock.calls.at(-1)?.[0] as {
+      agent: { isRunning: boolean; isSending: boolean };
+    };
+    expect(params.agent.isRunning).toBe(false);
+    expect(params.agent.isSending).toBe(false);
+  });
+
   it("disables message recovery actions until the NCP agent is ready", () => {
     mocks.agent.isRunning = false;
     mocks.agent.isSending = false;
