@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-07T07:17:16.816Z",
+  "generatedAt": "2026-09-08T07:12:44.015Z",
   "hero": {
-    "currentLoc": 292880,
-    "testLoc": 124019,
-    "trackedFiles": 3067,
-    "recentCommitCount": 628,
+    "currentLoc": 293429,
+    "testLoc": 124496,
+    "trackedFiles": 3077,
+    "recentCommitCount": 632,
     "activeDays30": 30,
     "recentReleaseCount": 49,
     "latestReleaseDate": "2026-09-04",
     "latestNoteDate": "2026-09-04",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2838589,
-    "basePercentOfBenchmark": 10.32,
-    "lighterByPercent": 89.68
+    "benchmarkCodeLines": 2852793,
+    "basePercentOfBenchmark": 10.29,
+    "lighterByPercent": 89.71
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-11",
-        "label": "05-11",
-        "value": 187155
-      },
       {
         "key": "2026-05-12",
         "label": "05-12",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-07",
         "label": "09-07",
         "value": 292880
+      },
+      {
+        "key": "2026-09-08",
+        "label": "09-08",
+        "value": 293429
       }
     ],
     "testLocDaily": [
@@ -1217,14 +1217,14 @@ export default {
         "key": "2026-09-07",
         "label": "09-07",
         "value": 124019
+      },
+      {
+        "key": "2026-09-08",
+        "label": "09-08",
+        "value": 124496
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-09",
-        "label": "08-09",
-        "value": 12
-      },
       {
         "key": "2026-08-10",
         "label": "08-10",
@@ -1358,7 +1358,7 @@ export default {
       {
         "key": "2026-09-05",
         "label": "09-05",
-        "value": 3
+        "value": 4
       },
       {
         "key": "2026-09-06",
@@ -1368,7 +1368,12 @@ export default {
       {
         "key": "2026-09-07",
         "label": "09-07",
-        "value": 2
+        "value": 5
+      },
+      {
+        "key": "2026-09-08",
+        "label": "09-08",
+        "value": 12
       }
     ],
     "commitWeekly": [
@@ -1425,12 +1430,12 @@ export default {
       {
         "key": "2026-08-31",
         "label": "08-31",
-        "value": 126
+        "value": 127
       },
       {
         "key": "2026-09-07",
         "label": "09-07",
-        "value": 2
+        "value": 17
       }
     ],
     "releaseMonthly": [
@@ -1500,15 +1505,15 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 72528,
-        "testCodeLines": 39989,
-        "files": 881,
-        "sharePercent": 24.8
+        "codeLines": 72938,
+        "testCodeLines": 40312,
+        "files": 889,
+        "sharePercent": 24.9
       },
       {
         "name": "packages/nextclaw-kernel",
         "codeLines": 47135,
-        "testCodeLines": 24310,
+        "testCodeLines": 24328,
         "files": 442,
         "sharePercent": 16.1
       },
@@ -1538,14 +1543,14 @@ export default {
         "codeLines": 13637,
         "testCodeLines": 10736,
         "files": 158,
-        "sharePercent": 4.7
+        "sharePercent": 4.6
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 13265,
-        "testCodeLines": 8559,
-        "files": 127,
-        "sharePercent": 4.5
+        "codeLines": 13396,
+        "testCodeLines": 8662,
+        "files": 129,
+        "sharePercent": 4.6
       },
       {
         "name": "packages/nextclaw-app-runtime",
@@ -1557,9 +1562,9 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2838589,
-      "basePercentOfBenchmark": 10.32,
-      "lighterByPercent": 89.68
+      "benchmarkCodeLines": 2852793,
+      "basePercentOfBenchmark": 10.29,
+      "lighterByPercent": 89.71
     },
     "recentReleaseBatches": [
       {
@@ -2919,7 +2924,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-07T07:17:14.639Z",
+    "locGeneratedAt": "2026-09-08T07:12:42.494Z",
     "sourceCount": {
       "notes": 64,
       "scopes": 8
