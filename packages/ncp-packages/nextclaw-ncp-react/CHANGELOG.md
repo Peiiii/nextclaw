@@ -1,5 +1,13 @@
 # @nextclaw/ncp-react
 
+## 0.5.27
+
+### Patch Changes
+
+- Updated dependencies [a9fcbd9]
+- Updated dependencies [e12f7d3]
+  - @nextclaw/ncp-toolkit@0.6.24
+
 ## 0.5.26
 
 ### Patch Changes
