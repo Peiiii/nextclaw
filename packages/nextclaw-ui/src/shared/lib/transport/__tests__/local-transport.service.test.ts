@@ -70,6 +70,16 @@ describe('LocalAppTransport browser connection recovery', () => {
 
     expect(MockWebSocket.instances).toHaveLength(2);
     expect(handler).toHaveBeenLastCalledWith({ type: 'connection.open', payload: {} });
+    window.dispatchEvent(new Event('online'));
+    const secondReplacement = MockWebSocket.instances[2];
+    secondReplacement?.open();
+    replacementSocket?.finishClose();
+    const event = { type: 'session.updated', payload: { sessionKey: 'after-second-recovery' } };
+    secondReplacement?.onmessage?.({ data: JSON.stringify(event) } as MessageEvent);
+    expect(handler).toHaveBeenLastCalledWith(event);
+    expect(MockWebSocket.instances).toHaveLength(3);
     unsubscribe();
+    window.dispatchEvent(new Event('online'));
+    expect(MockWebSocket.instances).toHaveLength(3);
   });
 });
