@@ -170,6 +170,15 @@ export function readMessageLifecycleFromRunPayload(
   };
 }
 
+export function resolveRunTerminalMessage(
+  messages: readonly NcpMessage[],
+  streamingMessage: NcpMessage | null,
+  messageId?: string,
+): NcpMessage | null | undefined {
+  if (!messageId || streamingMessage?.id === messageId) return streamingMessage;
+  return messages.find((message) => message.id === messageId && message.role === "assistant");
+}
+
 export function settleMessageWithLifecycle(
   message: NcpMessage,
   status: Extract<NcpMessageStatus, "final" | "error">,

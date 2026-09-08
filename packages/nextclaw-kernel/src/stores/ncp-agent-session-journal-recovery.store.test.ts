@@ -35,6 +35,25 @@ afterEach(async () => {
 });
 
 describe("NcpAgentSessionJournalStore recovery", () => {
+  it("preserves completed-message run timing through journal reload and the message page", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-timing-"));
+    const store = new NcpAgentSessionJournalStore(tempDir);
+    const message = { ...userMessage, id: "assistant-1", role: "assistant" as const };
+    const lifecycle = { startedAt: "2026-05-14T00:00:00.000Z", endedAt: "2026-05-14T00:00:05.000Z" };
+    await store.appendSessionEvent({ sessionId, event: {
+      type: NcpEventType.RunStarted, payload: { sessionId, runId: "run-1", startedAt: lifecycle.startedAt },
+    } });
+    await store.appendSessionEvent({ sessionId, event: {
+      type: NcpEventType.MessageCompleted, payload: { sessionId, message },
+    } });
+    await store.appendSessionEvent({ sessionId, event: {
+      type: NcpEventType.RunFinished, payload: { sessionId, runId: "run-1", messageId: message.id, ...lifecycle },
+    } });
+    const cold = new NcpAgentSessionJournalStore(tempDir);
+    await expect(cold.getSession(sessionId)).resolves.toMatchObject({ messages: [{ id: message.id, lifecycle }] });
+    await expect(cold.listSessionMessagePage({ sessionId, limit: 10 })).resolves.toMatchObject({ messages: [{ id: message.id, lifecycle }] });
+  });
+
   it("does not block a second runtime from opening the same journal directory", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "nextclaw-ncp-journal-"));
     const first = new NcpAgentSessionJournalStore(tempDir);

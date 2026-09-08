@@ -41,6 +41,7 @@ import {
   prependConversationHistory,
   rebaseStreamingMessageIndex,
   readMessageLifecycleFromRunPayload,
+  resolveRunTerminalMessage,
   routeAgentConversationEvent,
   settleMessageWithLifecycle,
   shouldPromoteStreamingMessageId,
@@ -181,18 +182,15 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   };
 
   handleMessageCompleted = (payload: NcpCompletedEnvelope): void => {
-    const runId = this.activeRun?.runId;
     const message = this.runExecution.attach(
       normalizeConversationMessage({
         ...payload.message,
         status: "final"
       }),
-      this.runExecution.take(runId),
+      this.runExecution.take(this.activeRun?.runId),
     );
     if (this.streamingMessage?.id === message.id) {
-      this.upsertMessage(message);
       this.toolCalls.clearByMessageId(message.id);
-      return;
     }
     this.upsertMessage(message);
   };
@@ -228,7 +226,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   handleMessageFailed = (payload: NcpFailedEnvelope, occurredAt?: string): void => {
     if (this.streamingMessage && (!payload.messageId || this.streamingMessage.id === payload.messageId)) {
-      this.settleStreamingMessage(
+      this.settleRunMessage(
         "error",
         occurredAt ? { endedAt: occurredAt } : undefined,
         this.activeRun?.runId,
@@ -372,13 +370,14 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   handleRunFinished = (payload: NcpRunFinishedPayload, occurredAt?: string): void => {
     this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
-    this.settleStreamingMessage(
+    this.settleRunMessage(
       "final",
       readMessageLifecycleFromRunPayload({
         ...payload,
         endedAt: payload.endedAt ?? occurredAt,
       }),
       payload.runId ?? this.activeRun?.runId,
+      payload.messageId,
     );
     this.setError(null);
     this.clearActiveRun();
@@ -386,13 +385,14 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   handleRunError = (payload: NcpRunErrorPayload, occurredAt?: string): void => {
     this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
-    this.settleStreamingMessage(
+    this.settleRunMessage(
       "error",
       readMessageLifecycleFromRunPayload({
         ...payload,
         endedAt: payload.endedAt ?? occurredAt,
       }),
       payload.runId ?? this.activeRun?.runId,
+      payload.messageId,
     );
     this.setError(buildRuntimeError(payload));
     this.clearActiveRun();
@@ -429,7 +429,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       }, occurredAt);
       return;
     }
-    this.settleStreamingMessage("error", occurredAt ? { endedAt: occurredAt } : undefined);
+    this.settleRunMessage("error", occurredAt ? { endedAt: occurredAt } : undefined);
     this.clearActiveRun();
     this.setError(payload);
   };
@@ -580,15 +580,15 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.lastSettledRunId = runId?.trim() || null;
   };
 
-  private settleStreamingMessage = (status: Extract<NcpMessageStatus, "final" | "error">, lifecycle?: NcpMessage["lifecycle"], runId?: string | null): void => {
+  private settleRunMessage = (status: Extract<NcpMessageStatus, "final" | "error">, lifecycle?: NcpMessage["lifecycle"], runId?: string | null, messageId?: string): void => {
     const metadata = this.runExecution.take(runId);
-    if (!this.streamingMessage) return;
+    const message = resolveRunTerminalMessage(this.messages, this.streamingMessage, messageId);
+    if (!message) return;
     const settledMessage = this.runExecution.attach(
-      settleMessageWithLifecycle(this.streamingMessage, status, lifecycle),
+      settleMessageWithLifecycle(message, status, lifecycle),
       metadata,
     );
     this.upsertMessage(settledMessage);
-    this.replaceStreamingMessage(null);
     this.toolCalls.clearByMessageId(settledMessage.id);
   };
 

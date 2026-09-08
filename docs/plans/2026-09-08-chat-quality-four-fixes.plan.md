@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | FLOW | true | 设计有针对性自审；验证按真实风险选最低充分证据；不新增重型默认流程 | passed | progressive-loading、governance ratchet、diff 检查通过；内容自审无 findings；38 skills/37 edges/4368 description chars 不变，入口净增 20 字节 |
 | NC-169 | true | 手机用户头像及占位消失，消息宽度自然；桌面与助手布局正常 | passed | Chrome 375/767/768/1280px 实际共享组件及产品 CSS：用户占位 0/0/32/32px，助手均 32px，无溢出；截图已检查；tsc、lint、governance、maintainability 通过 |
-| NC-167 | true | 完成消息显示正确耗时，已有持久化数据刷新可恢复，失败/运行态不混淆 | not-run | Linear issue |
+| NC-167 | true | 完成消息显示正确耗时，已有持久化数据刷新可恢复，失败/运行态不混淆 | passed | MessageCompleted→RunFinished/Error 修前 2 失败、修后通过；UI 组装 summary 与 kernel journal 冷重载/分页通过；三包 tsc、lint 与治理通过 |
 | NC-170 | true | 真实结束及时反映至 UI；仍在执行时不错误标记完成；重进会话状态一致 | not-run | Linear issue |
 | NC-168 | true | 假活连接在页面/网络恢复时重建并同步状态，不重复提交请求或消息 | not-run | 已有修复 e6de142d0 及部署记录，待当前边界核验 |
 | LOCAL | true | 每项新改动验证后提交并合入本地 master，保留他人 WIP，不推送 | not-run | 待逐项记录 SHA |
@@ -30,11 +30,12 @@
 
 ## 当前阶段、事实与恢复入口
 
-- 当前：NC-169 完成，交付后进入 NC-167 调查。流程提交 `4f9871386` 已本地快进。NC-169 为 L1 small-change，skip-design/design-document: not-required，单一 avatar 展示 owner，无状态变化；纯视觉无 CLI 适用入口。中英文用户文档与 changeset 已同步。
+- 当前：NC-167 完成验证与 review，待提交合入后进入 NC-170。NC-169 提交 `665b10425` 已本地合入。NC-169 为 L1 small-change，skip-design/design-document: not-required，单一 avatar 展示 owner，无状态变化；纯视觉无 CLI 适用入口。
+- NC-167：L3 bugfix，设计见[完成时序](../designs/2026-09-08-chat-completion-timing.design.md)，稳定设计自审无模型缺口；toolkit 同一 owner 根据明确 ID 补全终态时间，UI 不猜值。无新增用户操作，CLI 不适用。用户文档、changeset 与[迭代](../logs/v0.48.9-chat-quality-acceptance/README.md)已同步。主观复核无 findings，600 行原预算不恶化，纯定位归既有 utils。
 - NC-169 review：无 findings；原有目录 17/12 预算例外未恶化。临时浏览器 harness 已清理，截图保留于工作区 `.local/chat-quality/nc169-mobile.png`，不作对外产品截图。
 - 用户再次强调：故障必须构造复现并使用同条件验证；NC-168 将复查修前失败与当前通过，不能仅引用已有部署。
 - 治理收益：消除“定向测试 + 同合同边界测试”的机械重复，补设计冻结前的针对性审查。新增成本仅命中现有 design/validation 的数行规则；可原地撤回，不涉及命令/script/baseline。
 - 初始规则体积：AGENTS 11951，lifecycle 7500，design 6028，validation 5397，review 4020 字节。
 - NC-168 在 Linear Backlog，但主干代码和日志显示已修复且此前部署；不能仅凭 tracker 重复实现。
-- 活跃假设：NC-167/170 根因未确认，不据 issue 初步线索冻结方案。
+- 活跃假设：NC-170 存在 agent.isRunning 与缓存 selectedSession.status 的 OR；缓存可能遮蔽终态，待复现证明，尚不据此改实现。
 - 尚未关闭：所有 ledger 项；每次阶段转换更新本文件，压缩恢复时先读本文件和 git status，不重读全部技能。
