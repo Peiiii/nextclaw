@@ -36,8 +36,11 @@ function renderSkillSourcesSection(params: {
   ].join("\n");
 }
 
-function renderAvailableSkillsSection(skills: SkillsLoader): string {
-  const summary = skills.buildSkillsSummary();
+function renderAvailableSkillsSection(skills: SkillsLoader, alwaysOnSkills: string[]): string {
+  const activeRefs = new Set(alwaysOnSkills);
+  const summary = skills.buildSkillsManifest(
+    skills.listSkills().filter((skill) => !activeRefs.has(skill.ref)).map((skill) => skill.ref),
+  );
   if (!summary) {
     return "";
   }
@@ -84,7 +87,7 @@ export class SkillsContextProvider implements ContextProvider {
       }
     }
 
-    const availableSkillsSection = renderAvailableSkillsSection(skills);
+    const availableSkillsSection = renderAvailableSkillsSection(skills, alwaysOnSkills);
     if (availableSkillsSection) {
       blocks.push(availableSkillsSection);
     }

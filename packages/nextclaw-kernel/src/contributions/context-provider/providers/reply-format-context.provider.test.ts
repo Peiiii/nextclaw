@@ -1,4 +1,5 @@
 import { sep } from "node:path";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { estimateInputTokens } from "@nextclaw/core";
 import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
@@ -14,9 +15,12 @@ const request = {
 } as AgentRunRequest;
 
 describe("ReplyFormatContextProvider", () => {
-  it("keeps the complete delivery contract within a bounded prompt", () => {
+  it("retains delivery rules across the stable prompt and the mandatory display skill", () => {
     const provider = new ReplyFormatContextProvider();
     const context = provider.provide(request).join("\n");
+    const skill = readFileSync(new URL("../../../../../nextclaw-core/src/features/agent/shared/skills/visualize-output/SKILL.md", import.meta.url), "utf8");
+    const inline = readFileSync(new URL("../../../../../nextclaw-core/src/features/agent/shared/skills/visualize-output/references/inline-display.md", import.meta.url), "utf8");
+    const completeContract = context + "\n" + skill + "\n" + inline;
 
     for (const expected of [
       "## Agent Output & Reply Formatting Contract",
@@ -66,11 +70,17 @@ describe("ReplyFormatContextProvider", () => {
       "nextclawDisplayMode=card",
       "nextclawPlacement=inline",
     ]) {
-      expect(context).toContain(expected);
+      expect(completeContract).toContain(expected);
     }
 
     expect(
       estimateInputTokens([{ role: "system", content: context }]),
-    ).toBeLessThan(2_000);
+    ).toBeLessThan(1_200);
+    expect(context).toContain("Before any inline display (including an existing Panel App)");
+    expect(context).toContain("If required rules are no longer in context, read them again");
+    expect(context).not.toContain("window.nextclaw.params");
+    expect(skill).toContain("references/inline-display.md");
+    expect(skill).toContain("普通文本、表格和 Mermaid 不读取该 reference");
+    expect(inline).toContain("window.nextclaw.params");
   });
 });

@@ -56,9 +56,6 @@ export class SessionToolProvider implements ToolProvider {
       });
       tools.unshift(sessionsSpawnTool);
     }
-    if (!this.sessionSearch.isReady()) {
-      return tools;
-    }
     tools.push(
       new SessionSearchTool(
         { search: this.sessionSearch.search },

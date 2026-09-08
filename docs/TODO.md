@@ -20,6 +20,7 @@
 
 | Date | Idea | Source | Owner | Issue | Next Action |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-08 | Review 应用管理工具默认声明范围及重复入口：Service App Jobs、AI 绑定、依赖/凭据共 18 个工具；检查无相关应用时是否应常驻，核对 AI inspect/verify 同实现；同时评估完整参数按需加载对记忆、会话、消息等常用工具的成功率与成本影响 | user-feedback | @owner | `TBD` | 等用户 review 后再决定调整；先审查声明与合并边界，再决定是否保留参数按需查询；当前仅记录，不自动修改产品或创建远端 Issue |
 | 2026-08-30 | 建设克制的功能验证用例体系：区分任务期临时验证、按需 AI/浏览器验证与少数核心自动化用例，明确资产目录、永久用例准入与退出、成本感知运行及 AI 触发规则，避免用例泛滥或把单测通过误当成功能可用 | user-feedback | @owner | `TBD` | revisit: freeze the minimal case ownership, storage and lifecycle design before deciding whether to promote this into roadmap or an implementation issue |
 | 2026-05-26 | 设计渠道多账号管理：微信、飞书等渠道统一支持显式列出、切换、禁用、删除账号/智能体，避免历史账号隐式参与运行 | user-feedback | @owner | `TBD` | create issue: define cross-channel multi-account UX, runtime selection semantics, and migration from single-default replacement |
 | 2026-05-14 | 为 toolkit / library 类 package 设计 `lib` 类型 module-structure protocol，并将 `@nextclaw/ncp-toolkit` 从本次授权豁免迁回正式目录治理 | user-feedback | @owner | `TBD` | create issue: define lib protocol, migration plan, and remove authorized waiver |

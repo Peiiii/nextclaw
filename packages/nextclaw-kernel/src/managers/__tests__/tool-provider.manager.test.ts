@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { NcpTool } from "@nextclaw/ncp";
+import type { NcpMessage, NcpTool } from "@nextclaw/ncp";
 import {
   DiagnosticRuntime,
   FileLogSink,
@@ -10,6 +10,11 @@ import {
   type DiagnosticRecord,
 } from "@nextclaw/core";
 import { ToolProviderManager } from "../tool-provider.manager.js";
+
+function createMessage(): NcpMessage {
+  return { id: "message", sessionId: "session", role: "user", parts: [],
+    status: "final", timestamp: "2026-09-07T00:00:00.000Z" };
+}
 
 function createTool(name: string): NcpTool {
   return {
@@ -32,7 +37,8 @@ describe("ToolProviderManager", () => {
       provide: () => [secondSearch],
     });
 
-    await expect(manager.buildTools({ message: { role: "user", parts: [] } })).resolves.toEqual([
+    await expect(manager.buildTools({ message: createMessage() })).resolves.toEqual([
+      expect.objectContaining({ name: "tool_schema" }),
       firstSearch,
       edit,
     ]);
@@ -46,7 +52,9 @@ describe("ToolProviderManager", () => {
 
     dispose();
 
-    await expect(manager.buildTools({ message: { role: "user", parts: [] } })).resolves.toEqual([]);
+    const tools = await manager.buildTools({ message: createMessage() });
+    expect(tools).toEqual([expect.objectContaining({ name: "tool_schema" })]);
+    await expect(tools[0]?.execute({ name: "read" })).rejects.toThrow("allowed catalog");
   });
 
   it("records every provided tool execution without parameters or results", async () => {
@@ -59,9 +67,9 @@ describe("ToolProviderManager", () => {
       },
     });
     manager.register({ provide: () => [createTool("search")] });
-    const [tool] = await manager.buildTools({
+    const [, tool] = await manager.buildTools({
       correlationId: "run-1",
-      message: { role: "user", parts: [] },
+      message: createMessage(),
     });
 
     await expect(tool?.execute({ secretQuery: "must-not-appear" }, {
@@ -111,7 +119,7 @@ describe("ToolProviderManager", () => {
         },
       }],
     });
-    const [remote] = await manager.buildTools({ message: { role: "user", parts: [] } });
+    const [, remote] = await manager.buildTools({ message: createMessage() });
     await expect(remote?.execute({}, { toolCallId: "network-call" })).rejects.toThrow("private endpoint");
 
     manager.dispose();
@@ -123,7 +131,7 @@ describe("ToolProviderManager", () => {
         },
       }],
     });
-    const [cancelled] = await manager.buildTools({ message: { role: "user", parts: [] } });
+    const [, cancelled] = await manager.buildTools({ message: createMessage() });
     await expect(cancelled?.execute({}, { toolCallId: "cancel-call" })).rejects.toThrow();
 
     expect(records).toEqual(expect.arrayContaining([
@@ -177,10 +185,10 @@ describe("ToolProviderManager", () => {
       });
       const tools = await manager.buildTools({
         correlationId: "agent-run-fault",
-        message: { role: "user", parts: [] },
+        message: createMessage(),
       });
-      await expect(tools[0]?.execute({ secret: "tool-argument" }, { toolCallId: "cancel-1" })).rejects.toThrow();
-      await expect(tools[1]?.execute({ secret: "tool-argument" }, { toolCallId: "network-1" })).rejects.toThrow();
+      await expect(tools.find((tool) => tool.name === "cancelled-tool")?.execute({ secret: "tool-argument" }, { toolCallId: "cancel-1" })).rejects.toThrow();
+      await expect(tools.find((tool) => tool.name === "network-tool")?.execute({ secret: "tool-argument" }, { toolCallId: "network-1" })).rejects.toThrow();
 
       const cancelled = logging.query({ outcome: "cancelled" });
       const network = logging.query({ reasonCode: "network_dns_failure" });
@@ -195,5 +203,22 @@ describe("ToolProviderManager", () => {
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("tool schema snapshot", () => {
+  it("reserves lookup ownership and does not rediscover providers during a query", async () => {
+    const manager = new ToolProviderManager();
+    let collections = 0;
+    const dispose = manager.register({ provide: () => {
+      collections += 1;
+      return [createTool("tool_schema"), createTool("allowed")];
+    } });
+    const tools = await manager.buildTools({ message: createMessage() });
+    dispose();
+    expect(tools.map((tool) => tool.name)).toEqual(["tool_schema", "allowed"]);
+    await expect(tools[0]?.execute({ name: "allowed" })).resolves.toMatchObject({ name: "allowed" });
+    await expect(tools[0]?.execute({ name: "hidden" })).rejects.toThrow("allowed catalog");
+    expect(collections).toBe(1);
   });
 });

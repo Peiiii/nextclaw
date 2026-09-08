@@ -14,7 +14,7 @@ import {
 } from "@nextclaw/core";
 import { type NcpMessage, type NcpTool } from "@nextclaw/ncp";
 import {
-  ncpMessageToOpenAiMessages,
+  ncpMessageToOpenAiMessageGroups,
   type LocalAssetStore,
 } from "@nextclaw/ncp-agent-runtime";
 import { CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY } from "@nextclaw/shared";
@@ -29,6 +29,7 @@ import {
   buildContextCompactionModelProjection,
   buildContextCompactionTimelineNcpMessage,
   CONTEXT_COMPACTION_CONTINUATION_TEXT,
+  CONTEXT_COMPACTION_PART_START,
   CONTEXT_COMPACTION_SYSTEM_PREAMBLE,
   createContextCompactionMessageId,
   isContextCompactionProjectionMessage,
@@ -80,11 +81,12 @@ function toCompactionModelMessages(
   assetStore: LocalAssetStore | null,
 ): Record<string, unknown>[] {
   return messages.flatMap((message) =>
-    ncpMessageToOpenAiMessages(message, { assetStore }).map((providerMessage) => ({
+    ncpMessageToOpenAiMessageGroups(message, { assetStore }).flatMap((group) => group.messages.map((providerMessage) => ({
       ...providerMessage,
       ncp_message_id: message.id,
+      ncp_part_start: group.partStart + Number(message.metadata?.[CONTEXT_COMPACTION_PART_START] ?? 0),
       timestamp: message.timestamp,
-    })),
+    }))),
   );
 }
 

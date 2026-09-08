@@ -5,11 +5,13 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import { readCompressedContextCompactionCheckpoint, type ContextCompactionCheckpoint } from "@nextclaw/core";
+import { MODEL_ROUND_PART_OFFSETS } from "@nextclaw/ncp-agent-runtime";
 
 export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
 export const CONTEXT_COMPACTION_TIMELINE_KIND = "context_compaction";
 export const CONTEXT_COMPACTION_PROJECTION_METADATA_KEY = "nextclaw_context_projection";
 export const CONTEXT_COMPACTION_PROJECTION_KIND = "compressed_context";
+export const CONTEXT_COMPACTION_PART_START = "nextclaw_compaction_part_start";
 export const CONTEXT_COMPACTION_CONTINUATION_TEXT = "Continue the active run from the compressed working context. Do not repeat completed tool calls; proceed with the next required action.";
 export const CONTEXT_COMPACTION_SYSTEM_PREAMBLE = [
   "Authoritative compressed prior conversation context for this session.",
@@ -87,6 +89,21 @@ function buildMidRunContinuationMessage(params: {
   };
 }
 
+function sliceMessageParts(message: NcpMessage, start: number): NcpMessage {
+  if (!Number.isInteger(start) || start < 0 || start > message.parts.length) {
+    throw new Error("Invalid compacted message part boundary");
+  }
+  const projected = structuredClone(message);
+  projected.parts = projected.parts.slice(start);
+  projected.metadata = { ...projected.metadata, [CONTEXT_COMPACTION_PART_START]: start };
+  const offsets = projected.metadata?.[MODEL_ROUND_PART_OFFSETS];
+  if (Array.isArray(offsets)) {
+    projected.metadata = { ...projected.metadata, [MODEL_ROUND_PART_OFFSETS]:
+      offsets.filter((offset) => offset > start).map((offset) => offset - start) };
+  }
+  return projected;
+}
+
 function projectMessageAfterCheckpoint(
   message: NcpMessage,
   checkpoint: ContextCompactionCheckpoint,
@@ -100,7 +117,7 @@ function projectMessageAfterCheckpoint(
   ) {
     const parts = message.parts.slice(coveredPartCount);
     return parts.length > 0
-      ? { ...structuredClone(message), parts: structuredClone(parts) }
+      ? sliceMessageParts(message, coveredPartCount)
       : null;
   }
   return Date.parse(message.timestamp) > Date.parse(readCheckpointCoveredUntil(checkpoint))
@@ -204,7 +221,7 @@ export function buildContextCompactionModelProjection(params: {
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   const retainedMessages = regularMessages
     .filter((message) => retainedMessageIds.has(message.id))
-    .map((message) => structuredClone(message))
+    .map((message) => sliceMessageParts(message, checkpoint.retainedMessagePartStarts?.[message.id] ?? 0))
     .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp));
   const projectedRegularMessages = regularMessages
     .filter((message) =>

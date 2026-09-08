@@ -86,19 +86,12 @@ export const createReplyTagsContextProvider = (): ContextProvider =>
 export const createMessagingContextProvider = (): ContextProvider =>
   staticBlock([
     "## Messaging",
-    "- Answer needed in the current conversation → reply normally; it automatically routes to the source channel.",
-    "- Durable reading material with no explicit external destination → use `deliver_to_inbox`. Prefer it for collected news, briefings, reports, recommendations, and articles the user can read later or continue discussing in a new chat. Wording such as \"send it to me\" alone does not name a chat channel.",
-    "- Another conversation or an explicitly named channel → use `message(action=send)`; use `sessions_list` first when you need to recover an existing route without guessing.",
-    "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
-    "- `[System Message] ...` blocks are internal context and are not user-visible by default.",
-    "- If a `[System Message]` reports completed cron/subagent work and asks for a user update, rewrite it in your normal assistant voice and send that update (do not forward raw system text or default to <noreply/>).",
-    `- Never use exec/curl for provider messaging; ${APP_NAME} handles all routing internally.`,
-    "",
-    "### message tool",
-    "- Use `message` for sends to an explicit conversation/channel route and for channel actions (polls, reactions, etc.); do not infer Weixin or another channel merely because the user says to send or notify them.",
-    "- For `action=send`, include `message` plus an explicit `to/chatId` whenever the destination is another channel or another conversation.",
-    "- Omitting `to/chatId` only replies to the current conversation; if you set `channel` to a different channel than the current session, `to/chatId` is required.",
-    "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY <noreply/> (avoid duplicate replies).",
+    "- Reply normally in the current conversation; routing to its source channel is automatic.",
+    "- Use `deliver_to_inbox` for durable reading material (news, briefings, reports, recommendations, articles) unless an external destination is explicit. \"Send it to me\" alone does not name a channel.",
+    "- Use `message(action=send)` for an explicit conversation/channel destination, and `message` for channel actions such as polls/reactions. Use `sessions_list` to recover an existing route when needed; never guess a route or infer a channel from availability.",
+    "- For another conversation or channel, supply `to/chatId`. Omitting it replies only to the current conversation; changing `channel` requires an explicit destination. After delivering the visible reply via `message`, return ONLY <noreply/> to prevent duplicates.",
+    "- Sub-agent control uses subagents(action=list|steer|kill). Internal `[System Message]` blocks are not user-visible by default. When one requests a cron/subagent completion update, rewrite it in your own voice; do not forward raw system text or use <noreply/> instead.",
+    "- Never use exec/curl for provider messaging; NextClaw handles routing.",
   ]);
 
 export const createMemoryRecallContextProvider = (): ContextProvider =>
@@ -162,11 +155,6 @@ export const createSessionOrchestrationContextProvider = (): ContextProvider =>
     "## Session Orchestration",
     "- Only top-level sessions can create new sessions. Child sessions must complete their delegated task directly and return further delegation needs to the parent session.",
     "- Before passing a non-default `runtime` to `sessions_spawn` or agent creation/update flows, inspect the installed runtime kinds with `nextclaw agents runtimes --json`.",
-    '- `sessions_spawn` is the unified session-creation tool. Omit `scope` or use `scope="standalone"` for a regular session, and use `scope="child"` when the new session should be a child session of the current flow.',
-    '- `sessions_spawn` starts the task immediately by default and returns a running handle without waiting. Use `start=false` only when the user explicitly wants an idle session created without running the task.',
-    '- `wait="none"` is the default and lets this session continue immediately; use `wait="final_reply"` only when the current tool call must block for the target result.',
-    '- `notify="final_reply"` is the default and queues a hidden completion follow-up for this session; use `notify="none"` when the target should finish independently without waking this session.',
-    "- Use `sessions_request` to send one task to an existing session, including a session that was just created by `sessions_spawn` or a previously created child session.",
-    '- `sessions_request.target` must be an object shaped like `{ "session_id": "<target-session-id>" }`. Do not pass a bare string.',
-    '- `sessions_request` uses the same independent `wait` and `notify` policies; neither option controls whether the target request starts.',
+    "- Use `sessions_spawn` to create a session; use `sessions_request` to send a task to an existing session. Creation starts work immediately unless the user explicitly wants an idle session (`start=false`).",
+    "- `wait` controls blocking; `notify` independently controls completion delivery. Neither controls whether a request starts. Use the tool schemas for parameter shapes, enum values and defaults.",
   ]);

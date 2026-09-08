@@ -1,0 +1,9 @@
+{
+  "contractKind": "protocol",
+  "protocol": "app-l1",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": ["app", "adapters", "measurement", "reporting", "tasks", "diagnostics"],
+  "allowedRootFiles": ["index.mjs"],
+  "importAliasPrefixes": ["#benchmark/"]
+}

@@ -1,4 +1,5 @@
 import type { NcpTool } from "@nextclaw/ncp";
+import { TOOL_SCHEMA_NAME, ToolSchemaTool } from "@kernel/tools/tool-schema.tools.js";
 import type {
   Config,
   DiagnosticRuntime,
@@ -40,7 +41,8 @@ export class ToolProviderManager {
 
   buildTools = async (request: AgentRunRequest): Promise<readonly NcpTool[]> => {
     const tools: NcpTool[] = [];
-    const seen = new Set<string>();
+    tools.push(this.wrapTool(new ToolSchemaTool(() => tools), request));
+    const seen = new Set<string>([TOOL_SCHEMA_NAME]);
     for (const provider of [...this.providers]) {
       for (const tool of await provider.provide(request)) {
         if (seen.has(tool.name)) {

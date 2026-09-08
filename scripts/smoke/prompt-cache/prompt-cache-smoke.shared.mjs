@@ -11,7 +11,7 @@ export const DEFAULT_USAGE_SETTLE_MS = 1_500;
 export const DEFAULT_TIMEOUT_MS = 180_000;
 export const DEFAULT_MIN_CACHE_RATE = 0.5;
 export const DEFAULT_PROMPT_TARGET_CHARS = 30_000;
-export const DEFAULT_EXPECTED_REPLY = "CACHE-SMOKE-OK";
+export { DEFAULT_EXPECTED_REPLY, buildStablePrompt } from "@nextclaw/agent-benchmark";
 export const SESSION_TYPE_READY_POLL_MS = 500;
 
 export function printHelp() {
@@ -19,7 +19,14 @@ export function printHelp() {
 
 Options:
   --model <id>               Real model to test, e.g. minimax/MiniMax-M2.7
-  --transport <mode>         provider-direct or ncp-chat (default: ${DEFAULT_TRANSPORT})
+  --transport <mode>         provider-direct, ncp-chat, or task-suite (default: ${DEFAULT_TRANSPORT})
+  --budget-usd <amount>      Task suite maximum estimated spend, checked before dispatch (default: 0.10)
+  --max-calls <n>            Task suite request limit including retries (default: 18)
+  --max-output-tokens <n>    Task suite per-call output cap (default: 512)
+  --prices <miss,hit,out>    Override USD per million tokens; otherwise dated DeepSeek price snapshot
+  --output <file>            Save task suite JSON report (parent directory must exist)
+  --baseline <file>          Compare this run to a compatible saved report
+  --compare <old> <new>      Compare two saved suite reports offline; no --model or paid calls
   --runs <n>                 Total repeated runs (default: ${DEFAULT_RUNS})
   --prompt <text>            Exact stable system prompt to reuse across all runs
   --prompt-target-chars <n>  Generated prompt target size when --prompt is omitted (default: ${DEFAULT_PROMPT_TARGET_CHARS})
@@ -57,95 +64,117 @@ function normalizeBaseUrl(options) {
   options.baseUrl = `http://${DEFAULT_HOST}:${port}`;
 }
 
-function assertOptionRanges(options) {
-  if (!options.model.trim()) {
-    fail("--model is required", options.json);
+function assertOptionRanges({
+  model, json, transport, budgetUsd, maxCalls, maxOutputTokens, prices, runs, promptTargetChars,
+  minCacheRate, timeoutMs, usageSettleMs, home, sessionType, usageSource
+}) {
+  if (!model.trim()) {
+    fail("--model is required", json);
   }
-  if (!["provider-direct", "ncp-chat"].includes(options.transport.trim())) {
-    fail("--transport must be provider-direct or ncp-chat", options.json);
+  if (!["provider-direct", "ncp-chat", "task-suite"].includes(transport.trim())) {
+    fail("--transport must be provider-direct, ncp-chat or task-suite", json);
   }
-  if (!Number.isFinite(options.runs) || options.runs < 2) {
-    fail("--runs must be an integer >= 2", options.json);
+  if (!Number.isFinite(budgetUsd) || budgetUsd <= 0 || budgetUsd > 5
+    || !Number.isSafeInteger(maxCalls) || maxCalls < 1 || maxCalls > 100
+    || !Number.isSafeInteger(maxOutputTokens) || maxOutputTokens < 32 || maxOutputTokens > 4096) {
+    fail("Invalid suite budget, call count or output cap", json);
   }
-  if (!Number.isFinite(options.promptTargetChars) || options.promptTargetChars < 2_000) {
-    fail("--prompt-target-chars must be an integer >= 2000", options.json);
+  if (prices && Object.values(prices).some((price) => !Number.isFinite(price) || price < 0)) {
+    fail("--prices requires three nonnegative USD prices: miss,hit,out", json);
   }
-  if (!Number.isFinite(options.minCacheRate) || options.minCacheRate < 0 || options.minCacheRate > 1) {
-    fail("--min-cache-rate must be between 0 and 1", options.json);
+  if (!Number.isFinite(runs) || runs < 2) {
+    fail("--runs must be an integer >= 2", json);
   }
-  if (!Number.isFinite(options.timeoutMs) || options.timeoutMs < 1_000) {
-    fail("--timeout-ms must be an integer >= 1000", options.json);
+  if (!Number.isFinite(promptTargetChars) || promptTargetChars < 2_000) {
+    fail("--prompt-target-chars must be an integer >= 2000", json);
   }
-  if (!Number.isFinite(options.usageSettleMs) || options.usageSettleMs < 0) {
-    fail("--usage-settle-ms must be an integer >= 0", options.json);
+  if (!Number.isFinite(minCacheRate) || minCacheRate < 0 || minCacheRate > 1) {
+    fail("--min-cache-rate must be between 0 and 1", json);
   }
-  if (!options.home.trim()) {
-    fail("--home cannot be empty", options.json);
+  if (!Number.isFinite(timeoutMs) || timeoutMs < 1_000) {
+    fail("--timeout-ms must be an integer >= 1000", json);
   }
-  if (!options.sessionType.trim()) {
-    fail("--session-type cannot be empty", options.json);
+  if (!Number.isFinite(usageSettleMs) || usageSettleMs < 0) {
+    fail("--usage-settle-ms must be an integer >= 0", json);
   }
-  if (!options.usageSource.trim()) {
-    fail("--usage-source cannot be empty", options.json);
+  if (!home.trim()) {
+    fail("--home cannot be empty", json);
+  }
+  if (!sessionType.trim()) {
+    fail("--session-type cannot be empty", json);
+  }
+  if (!usageSource.trim()) {
+    fail("--usage-source cannot be empty", json);
   }
 }
 
-function applyArgument(options, arg, next) {
+function applyArgument(currentOptions, arg, next) {
+  const options = { ...currentOptions };
   switch (arg) {
+    case "--budget-usd": options.budgetUsd = Number(next); return { options, consumed: 1 };
+    case "--max-calls": options.maxCalls = Number(next); return { options, consumed: 1 };
+    case "--max-output-tokens": options.maxOutputTokens = Number(next); return { options, consumed: 1 };
+    case "--output": options.output = next ?? ""; return { options, consumed: 1 };
+    case "--baseline": options.baseline = next ?? ""; return { options, consumed: 1 };
+    case "--prices": {
+      const values = (next ?? "").split(",").map(Number);
+      options.prices = { input: values.length === 3 ? values[0] : NaN, cached: values[1], output: values[2] };
+      return { options, consumed: 1 };
+    }
     case "--model":
       options.model = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--transport":
       options.transport = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--runs":
       options.runs = Number.parseInt(next ?? "", 10);
-      return 1;
+      return { options, consumed: 1 };
     case "--prompt":
       options.prompt = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--prompt-target-chars":
       options.promptTargetChars = Number.parseInt(next ?? "", 10);
-      return 1;
+      return { options, consumed: 1 };
     case "--min-cache-rate":
       options.minCacheRate = Number.parseFloat(next ?? "");
-      return 1;
+      return { options, consumed: 1 };
     case "--home":
       options.home = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--base-url":
       options.baseUrl = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--port":
       options.port = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--session-type":
       options.sessionType = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--usage-source":
       options.usageSource = next ?? "";
-      return 1;
+      return { options, consumed: 1 };
     case "--usage-settle-ms":
       options.usageSettleMs = Number.parseInt(next ?? "", 10);
-      return 1;
+      return { options, consumed: 1 };
     case "--timeout-ms":
       options.timeoutMs = Number.parseInt(next ?? "", 10);
-      return 1;
+      return { options, consumed: 1 };
     case "--json":
       options.json = true;
-      return 0;
+      return { options, consumed: 0 };
     case "--help":
       printHelp();
       process.exit(0);
-      return 0;
+      return { options, consumed: 0 };
     default:
       fail(`Unknown argument: ${arg}`, options.json);
-      return 0;
+      return { options, consumed: 0 };
   }
 }
 
 export function parseArgs(argv) {
-  const options = {
+  let options = {
     model: "",
     transport: DEFAULT_TRANSPORT,
     runs: DEFAULT_RUNS,
@@ -160,6 +189,12 @@ export function parseArgs(argv) {
     usageSettleMs: DEFAULT_USAGE_SETTLE_MS,
     timeoutMs: DEFAULT_TIMEOUT_MS,
     json: false,
+    budgetUsd: 0.10,
+    maxCalls: 18,
+    maxOutputTokens: 512,
+    prices: null,
+    output: "",
+    baseline: "",
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -167,10 +202,13 @@ export function parseArgs(argv) {
     if (arg === "--") {
       continue;
     }
-    index += applyArgument(options, arg, argv[index + 1]);
+    const parsed = applyArgument(options, arg, argv[index + 1]);
+    options = parsed.options;
+    index += parsed.consumed;
   }
 
   assertOptionRanges(options);
+  if (options.transport === "task-suite" && !argv.includes("--min-cache-rate")) options.minCacheRate = 0.8;
   options.home = resolve(options.home.trim());
   normalizeBaseUrl(options);
   return options;
@@ -184,30 +222,6 @@ export function createId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function buildStablePrompt(options) {
-  if (options.prompt.trim()) {
-    return options.prompt.trim();
-  }
-  const lines = [
-    "Prompt cache smoke test.",
-    "Read the stable reference below and follow the final instruction exactly.",
-    "",
-    "Stable reference document begins below.",
-  ];
-  let index = 1;
-  while (lines.join("\n").length < options.promptTargetChars) {
-    const label = String(index).padStart(3, "0");
-    lines.push(
-      `Section ${label}: NextClaw unifies software, services, internet resources, and cloud actions into one intent-first operating layer. ` +
-        "This paragraph is intentionally repeated to create a large stable prompt prefix for provider-level prompt-cache verification. " +
-        "The content must stay identical across repeated runs so cache-capable providers can reuse the same prefix efficiently.",
-    );
-    index += 1;
-  }
-  lines.push("");
-  lines.push(`Final instruction source of truth: the assistant must reply exactly ${DEFAULT_EXPECTED_REPLY}.`);
-  return lines.join("\n");
-}
 
 export function printPretty(result) {
   console.log("Prompt Cache Smoke");

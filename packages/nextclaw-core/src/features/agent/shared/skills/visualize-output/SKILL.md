@@ -1,6 +1,6 @@
 ---
 name: visualize-output
-description: Create clear, restrained visual presentations for answers and results by choosing among Markdown, tables, Mermaid, images, and self-contained inline HTML. Use when the user asks for a visualization, chart, diagram, comparison, timeline, status/result view, or when spatial layout would materially improve understanding in the current conversation; read this skill before any other visualization tool call. Use nextclaw-app-creator instead for reusable apps, editors, or sustained workflows.
+description: Create clear, restrained visual presentations for answers and results by choosing among Markdown, tables, Mermaid, images, and self-contained inline HTML. Use when the user asks for a visualization, chart, diagram, comparison, timeline, status/result view, or when spatial layout would materially improve understanding in the current conversation; read this skill before any other visualization tool call or inline display of an existing app. Use nextclaw-app-creator instead for reusable apps, editors, or sustained workflows.
 description_zh: 为回答和结果选择 Markdown、表格、Mermaid、图片或自包含内联 HTML，产出清晰、克制的可视化。适用于用户要求可视化、图表、关系图、对比、时间线、状态/结果视图，或空间布局能显著提升当前对话中的理解时；任何其他可视化工具调用前必须先读取本 skill。可复用应用、编辑器或长期工作流应改用 nextclaw-app-creator。
 ---
 
@@ -90,3 +90,9 @@ description_zh: 为回答和结果选择 Markdown、表格、Mermaid、图片或
 - 内联 HTML 文件是否真实存在，路径是否正确，声明是否使用 `viewer: "rendered"`？
 - 会话生成的可视化是否位于系统指定的 NextClaw 持久资产目录，而不是 `/tmp`、临时目录、用户项目或工作目录根部？
 - 最终回复是否只有内联声明，并在声明关闭围栏处立即结束，没有验证叙述、引导语或数据复述？
+
+## 专项展示协议
+
+Mermaid: use a focused fenced `mermaid` block and quote punctuated labels; ASCII/code-fence substitutes do not count. Prefer it for 3+ ordered, dependent, owned, or feedback-linked nodes unless prose is unambiguous. A table already counts as visualization; escalate only when requested or a graphic reveals a material pattern.
+
+仅当将输出 inline HTML、inline JSON 或展示已有 Panel App 时，继续读取 [inline 展示协议](references/inline-display.md)，再生成声明或执行展示操作。普通文本、表格和 Mermaid 不读取该 reference。展示已有应用不要求创建、修改或安装应用。完整规则若被压缩移出上下文，执行前重新读取。

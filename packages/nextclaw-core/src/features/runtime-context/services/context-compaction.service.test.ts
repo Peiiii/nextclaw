@@ -17,6 +17,21 @@ function assistantMessage(id: string, content: string): Record<string, unknown> 
   };
 }
 
+describe("ContextCompactionService model-round retention", () => {
+  it("retains a model-round tail by part boundary when rounds share one message id", async () => {
+    const service = new ContextCompactionService();
+    const messages = [
+      { ...assistantMessage("reply", "earlier ".repeat(200)), ncp_part_start: 0 },
+      { ...assistantMessage("reply", "final answer"), ncp_part_start: 8 },
+    ];
+    const plan = service.prepareForModelInput({ messages, contextTokens: 1000, compactionThresholdTokens: 20 });
+    const result = await service.compactPreparedForModelInput({
+      contextTokens: 1000, plan: plan!, generateSummary: async () => "Earlier work completed.",
+    });
+    expect(result.checkpoint?.retainedMessagePartStarts).toEqual({ reply: 8 });
+  });
+});
+
 describe("ContextCompactionService", () => {
   it("keeps the latest raw tail out of the compression source", () => {
     const service = new ContextCompactionService();

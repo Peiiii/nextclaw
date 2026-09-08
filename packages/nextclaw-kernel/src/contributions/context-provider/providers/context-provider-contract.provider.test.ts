@@ -31,27 +31,27 @@ import type { AgentRunRequest } from "@kernel/types/agent-run.types.js";
 const tempWorkspaces: string[] = [];
 const NATIVE_CONTEXT_SECTION_ORDER = [
   "You are a personal assistant running inside nextclaw.",
-  "## Tooling",
   "## Tool Call Style",
   "## Chat Composer Tokens",
   "## Safety",
   "## nextclaw CLI Quick Reference",
   "## nextclaw Self-Update",
-  "## Workspace",
   "## Reply Tags",
   "## Messaging",
   "## Memory Recall",
   "## Silent Replies",
   "## Runtime",
   "## nextclaw Self-Management Guide",
+  "## Session Orchestration",
+  "## Agent Output & Reply Formatting Contract",
+  "## Tooling",
+  "## Workspace",
   "# Project Context",
   "# Agent Bootstrap Context",
   "## Skills",
   "# Skill Learning Loop",
-  "## Session Orchestration",
   "## Tool Use Enforcement",
   "## Current Session",
-  "## Agent Output & Reply Formatting Contract",
 ] as const;
 
 function createWorkspace(): string {
@@ -142,10 +142,10 @@ describe("Messaging context delivery policy", () => {
     const workspace = createWorkspace();
     const [context] = await createMessagingContextProvider().provide(createRequest(workspace));
 
-    expect(context).toContain("Durable reading material with no explicit external destination");
-    expect(context).toContain("collected news, briefings, reports, recommendations, and articles");
-    expect(context).toContain('Wording such as "send it to me" alone does not name a chat channel');
-    expect(context).toContain("do not infer Weixin or another channel");
+    expect(context).toContain("durable reading material (news, briefings, reports, recommendations, articles)");
+    expect(context).toContain("unless an external destination is explicit");
+    expect(context).toContain('"Send it to me" alone does not name a channel');
+    expect(context).toContain("never guess a route or infer a channel from availability");
   });
 
   it("requires the silent marker without escaped or leading newlines", async () => {
@@ -254,6 +254,7 @@ describe("ContextProviderContribution native prompt contract", () => {
             name: "read_file",
             description: "Read file contents",
             parameters: { type: "object", properties: {} },
+            execute: async () => "fixture contents",
           },
           ...createShowContentTools(new EventBus()),
         ],
@@ -328,17 +329,16 @@ describe("ContextProviderContribution native prompt contract", () => {
       "## Current Session\nChannel: ui\nChat ID: web-ui\nSession: session-1\nModel: openai/gpt-5",
       "## Agent Output & Reply Formatting Contract",
       "After that call, always write a concise, self-contained final response",
-      "fenced `mermaid` block",
+      "focused Mermaid",
       "FIRST tool call MUST be `read_file`",
       "built-in `visualize-output` SKILL.md",
       "use only supported facts and mathematics",
       "calculate derived values with a tool",
       "For summary-only requests, stop at what the data shows",
-      "use a `nextclaw-inline` `file` target",
-      "must contain only the fenced `nextclaw-inline` declaration",
+      "Before any inline display (including an existing Panel App)",
+      "If required rules are no longer in context, read them again",
       "Visualization assets:",
       ["assets", "visualizations", "session-1"].join(sep),
-      "Inline display:",
       "display-only",
     ]) {
       expect(context).toContain(expected);
@@ -351,6 +351,8 @@ describe("ContextProviderContribution native prompt contract", () => {
       context.indexOf("## Skills"),
     );
     expect(alwaysOnSkillsContext).not.toContain("- project-review — Project review instructions");
+    expect(context.match(/- nextclaw-self-manage —/g)).toHaveLength(1);
+    expect(alwaysOnSkillsContext).toContain("- nextclaw-self-manage —");
     for (const forbidden of [
       'placement="inline"',
       'placement="side_panel"',

@@ -7,6 +7,8 @@ export {
 export { buildNcpUserContent } from "./runtime/user-content.utils.js";
 export {
   ncpMessageToOpenAiMessages,
+  ncpMessageToOpenAiMessageGroups,
+  MODEL_ROUND_PART_OFFSETS,
   type NcpMessageToOpenAiMessagesOptions,
 } from "./runtime/utils/message-converter.utils.js";
 export { DefaultNcpRoundBuffer } from "./runtime/round-buffer.js";

@@ -36,7 +36,7 @@ export class NextclawKernelFacade implements IKernel {
         this.kernel.llmProviders.registerProviderPlugin(plugin),
       listProviders: () => this.kernel.llmProviders.listProviderSpecs(),
       chat: this.kernel.llmProviders.chat,
-      chatStream: this.kernel.llmProviders.chatStream,
+      chatStream: this.kernel.llmProviders.chatStream.bind(this.kernel.llmProviders),
     };
     this.runtimes = {
       registerProvider: (provider) =>

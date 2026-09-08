@@ -25,6 +25,7 @@ export type ContextCompactionCheckpoint = {
   continuationMessageCoveredPartCount?: number;
   preservedUserMessageIds?: string[];
   retainedMessageIds?: string[];
+  retainedMessagePartStarts?: Record<string, number>;
   truncatedPreservedUserMessage?: {
     messageId: string;
     text: string;
@@ -295,6 +296,14 @@ export class ContextCompactionService {
         const messageId = readMessageId(message);
         return messageId ? [messageId] : [];
       }),
+      retainedMessagePartStarts: retainedMessages.reduce<Record<string, number>>((starts, message) => {
+        const id = readMessageId(message);
+        const start = message.ncp_part_start;
+        if (id && typeof start === "number" && Number.isInteger(start) && start >= 0) {
+          starts[id] = Math.min(starts[id] ?? start, start);
+        }
+        return starts;
+      }, Object.create(null) as Record<string, number>),
       truncatedPreservedUserMessage: preserved.truncatedMessage,
       coveredUntil: readCoveredUntil(coveredMessages, createdAt),
       coveredMessageCount: coveredMessages.length,

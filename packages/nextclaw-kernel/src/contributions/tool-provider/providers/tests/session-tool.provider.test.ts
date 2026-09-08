@@ -94,6 +94,7 @@ async function createPersistedFixture() {
 function createProvider(
   sessionMetadata: Record<string, unknown>,
   requestMetadata: Record<string, unknown> = sessionMetadata,
+  sessionSearch = { isReady: () => false },
 ) {
   const runContextService = {
     resolve: async () => ({
@@ -111,11 +112,25 @@ function createProvider(
     runContextService,
     {} as never,
     {} as never,
-    { isReady: () => false } as never,
+    sessionSearch as never,
   );
 }
 
 describe("SessionToolProvider child delegation policy", () => {
+  it("keeps tool declarations stable while the search index becomes ready", async () => {
+    let ready = false;
+    const provider = createProvider({}, {}, { isReady: () => ready });
+    const request = createRequest("current-session") as never;
+    const startingTools = await provider.provide(request);
+    ready = true;
+    const readyTools = await provider.provide(request);
+    const declarations = (tools: typeof startingTools) => tools.map(
+      ({ name, description, parameters }) => ({ name, description, parameters }),
+    );
+    expect(declarations(startingTools)).toEqual(declarations(readyTools));
+    expect(startingTools.map((tool) => tool.name)).toContain("session_search");
+  });
+
   it("provides session creation only to top-level sessions", async () => {
     const rootTools = await createProvider({}).provide(createRequest("current-session") as never);
     const childTools = await createProvider({
@@ -129,6 +144,7 @@ describe("SessionToolProvider child delegation policy", () => {
       "sessions_list",
       "sessions_history",
       "sessions_update",
+      "session_search",
     ]);
   });
 

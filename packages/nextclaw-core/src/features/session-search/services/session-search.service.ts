@@ -43,8 +43,15 @@ export class SessionSearchService {
     }
   };
 
-  search = (request: SessionSearchRequest): Promise<SessionSearchResult> =>
-    this.workerController.query(request);
+  search = async (request: SessionSearchRequest): Promise<SessionSearchResult> => {
+    if (!this.isReady()) {
+      const state = this.workerController.getState();
+      throw new Error(state === "starting"
+        ? "SESSION_SEARCH_NOT_READY: the index is initializing in the background; no search was performed."
+        : `SESSION_SEARCH_UNAVAILABLE: index state is ${state}; no search was performed.`);
+    }
+    return this.workerController.query(request);
+  };
 
   handleSessionUpdated = (sessionKey: string): void => {
     if (!this.enabled || !this.ready) {

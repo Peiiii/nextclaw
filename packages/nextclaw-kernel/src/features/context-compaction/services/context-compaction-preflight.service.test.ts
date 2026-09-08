@@ -5,7 +5,7 @@ import {
   estimateInputTokens,
   type ContextCompactionCheckpoint,
 } from "@nextclaw/core";
-import { ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
+import { MODEL_ROUND_PART_OFFSETS, ncpMessageToOpenAiMessages } from "@nextclaw/ncp-agent-runtime";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
   buildContextCompactionModelProjection,
@@ -104,6 +104,36 @@ function createAssistantMessage(params: {
     parts: [{ type: "text", text: params.text }],
   };
 }
+
+describe("ContextCompactionPreflightService model-round projection", () => {
+  it("does not restore summarized tool rounds when retaining the final assistant round", async () => {
+    const service = new ContextCompactionPreflightService(createAgentManager(20_000), {
+      chat: async () => createSummaryResponse(),
+    } as never);
+    const assistant: NcpMessage = { id: "multi-round", sessionId: SESSION_ID, role: "assistant", status: "final",
+      timestamp: "2026-06-05T17:00:00.000Z", metadata: { [MODEL_ROUND_PART_OFFSETS]: [2] },
+      parts: [{ type: "reasoning", text: "old deliberation" },
+        { type: "tool-invocation", state: "result", toolCallId: "old-call", toolName: "read_file", args: { path: "old.txt" }, result: "OLD_TOOL_RESULT ".repeat(300) },
+        { type: "text", text: "completed answer" }] };
+    const begin = service.begin({ inputMessages: [], model: "test-model", trigger: "manual", requestMetadata: {},
+      sessionId: SESSION_ID, sessionMessages: [assistant], storedMetadata: {} });
+    const finish = await service.finish(begin.pendingCompaction!);
+    const checkpoint = finish.timelineMessage!.metadata!.checkpoint as ContextCompactionCheckpoint;
+    expect(checkpoint.retainedMessagePartStarts).toEqual({ "multi-round": 2 });
+    const projected = buildContextCompactionModelProjection({ sessionId: SESSION_ID, sessionMessages: [assistant, finish.timelineMessage!] });
+    const wire = projected.messages.flatMap((message) => ncpMessageToOpenAiMessages(message));
+    expect(JSON.stringify(wire)).not.toContain("OLD_TOOL_RESULT");
+    expect(wire.at(-1)?.content).toBe("completed answer");
+    expect(assistant.parts).toHaveLength(3);
+    const updated: NcpMessage = { ...assistant, parts: [...assistant.parts, { type: "text", text: "next answer" }],
+      metadata: { [MODEL_ROUND_PART_OFFSETS]: [2, 3] } };
+    const again = service.begin({ inputMessages: [], model: "test-model", trigger: "manual", requestMetadata: {},
+      sessionId: SESSION_ID, sessionMessages: [updated, finish.timelineMessage!], storedMetadata: {} });
+    const second = await service.finish(again.pendingCompaction!);
+    expect((second.timelineMessage!.metadata!.checkpoint as ContextCompactionCheckpoint).retainedMessagePartStarts)
+      .toEqual({ "multi-round": 3 });
+  });
+});
 
 describe("ContextCompactionPreflightService", () => {
   it("estimates tool results from the provider projection without counting stored content twice", () => {

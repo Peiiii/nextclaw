@@ -31,6 +31,17 @@ function createKernelFixture() {
 }
 
 describe("NextclawKernelFacade", () => {
+  it("preserves the provider owner when consuming the public model stream", async () => {
+    const kernel = createKernelFixture();
+    const owners: unknown[] = [];
+    kernel.llmProviders.chatStream = vi.fn(async function* (this: unknown) {
+      owners.push(this);
+      yield { type: "delta", content: "hello" };
+    });
+    const facade = new NextclawKernelFacade(kernel as unknown as NextclawKernel);
+    for await (const _event of facade.models.chatStream({ messages: [] })) { /* consume */ }
+    expect(owners).toEqual([kernel.llmProviders]);
+  });
   it("exposes every first-batch platform composition capability", () => {
     const kernel = createKernelFixture();
     const facade = new NextclawKernelFacade(

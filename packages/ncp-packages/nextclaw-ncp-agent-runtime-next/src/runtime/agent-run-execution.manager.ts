@@ -112,6 +112,20 @@ export class AgentRunExecutionManager {
     },
   ) {}
 
+  createStartedEvent = (startedAt: string): NcpEndpointEvent => {
+    const { spec, sessionId, messageId } = this.run;
+    return createNcpEndpointEvent({
+      type: NcpEventType.RunStarted,
+      payload: {
+        messageId,
+        runId: spec.runId,
+        sessionId,
+        correlationId: spec.correlationId,
+        startedAt,
+      },
+    }, startedAt);
+  };
+
   get toolCallBudget(): RuntimeToolCallBudget {
     this.currentToolCallBudget ??= new RuntimeToolCallBudget(
       FIXED_NATIVE_TOOL_CALL_LIMIT,

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   defaultToolResultContentManager,
   DefaultNcpStreamEncoder,
+  MODEL_ROUND_PART_OFFSETS,
   type ToolResultContentManager,
 } from "@nextclaw/ncp-agent-runtime";
 import {
@@ -227,44 +228,15 @@ export class DefaultNcpAgentRuntime {
       runStartedAt = new Date().toISOString();
       yield await this.applyEvent(
         sessionRun,
-        createRuntimeEvent(
-          {
-            type: NcpEventType.RunStarted,
-            payload: {
-              messageId,
-              runId: spec.runId,
-              sessionId,
-              correlationId: spec.correlationId,
-              startedAt: runStartedAt,
-            },
-          },
-          runStartedAt,
-        ),
+        executionManager.createStartedEvent(runStartedAt),
       );
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(
-          sessionRun,
-          executionManager.createMetadataEvent({
-            outcome: "aborted",
-            messageId,
-          }),
-        );
-        yield await this.applyEvent(
-          sessionRun,
-          this.toAbortEvent(sessionId, messageId, spec, signal),
-        );
+        yield* this.abortRun(options, spec, executionManager, messageId);
         return;
       }
 
       while (!this.isAbortRequested(signal)) {
-        const modelInput = await this.modelInputBuilder.build({
-          spec,
-          sessionId,
-          messages: sessionRun.getSnapshot().messages,
-          contextBlocks,
-          tools,
-          signal,
-        });
+        const modelInput = yield* this.prepareModelRound(options, messageId, spec);
         if (this.isAbortRequested(signal)) {
           break;
         }
@@ -354,27 +326,10 @@ export class DefaultNcpAgentRuntime {
         return;
       }
 
-      yield await this.applyEvent(
-        sessionRun,
-        executionManager.createMetadataEvent({ outcome: "aborted", messageId }),
-      );
-      yield await this.applyEvent(
-        sessionRun,
-        this.toAbortEvent(sessionId, messageId, spec, signal),
-      );
+      yield* this.abortRun(options, spec, executionManager, messageId);
     } catch (error) {
       if (this.isAbortRequested(signal)) {
-        yield await this.applyEvent(
-          sessionRun,
-          executionManager.createMetadataEvent({
-            outcome: "aborted",
-            messageId,
-          }),
-        );
-        yield await this.applyEvent(
-          sessionRun,
-          this.toAbortEvent(sessionId, messageId, spec, signal),
-        );
+        yield* this.abortRun(options, spec, executionManager, messageId);
         return;
       }
       const endedAt = new Date().toISOString();
@@ -388,22 +343,25 @@ export class DefaultNcpAgentRuntime {
       );
       yield await this.applyEvent(
         sessionRun,
-        createRuntimeEvent(
-          {
-            type: NcpEventType.RunError,
-            payload: {
-              sessionId,
-              runId: spec.runId,
-              correlationId: spec.correlationId,
-              error: error instanceof Error ? error.message : String(error),
-              startedAt: runStartedAt,
-              endedAt,
-            },
-          },
-          endedAt,
-        ),
+        this.toRunErrorEvent(sessionId, spec, error, runStartedAt, endedAt),
       );
     }
+  }
+
+  private async *abortRun(
+    { sessionRun, signal }: DefaultNcpAgentRuntimeRunOptions,
+    spec: DefaultNcpAgentRunSpec,
+    executionManager: AgentRunExecutionManager,
+    messageId: string,
+  ): AsyncIterable<NcpEndpointEvent> {
+    yield await this.applyEvent(
+      sessionRun,
+      executionManager.createMetadataEvent({ outcome: "aborted", messageId }),
+    );
+    yield await this.applyEvent(
+      sessionRun,
+      this.toAbortEvent(sessionRun.sessionId, messageId, spec, signal),
+    );
   }
 
   private async *runPreflightPhase(
@@ -569,6 +527,38 @@ export class DefaultNcpAgentRuntime {
     return { completedAssistantEvent, consumed: true, messageSentEvents };
   };
 
+  private async *prepareModelRound(
+    options: DefaultNcpAgentRuntimeRunOptions,
+    messageId: string,
+    spec: DefaultNcpAgentRunSpec,
+  ): AsyncGenerator<NcpEndpointEvent, Awaited<ReturnType<AgentModelInputBuilder["build"]>>> {
+    const { sessionRun, contextBlocks, tools, signal } = options;
+    const sessionId = sessionRun.sessionId;
+    const previousRound = sessionRun.getSnapshot().messages.find((message) => message.id === messageId);
+    if (previousRound && previousRound.parts.length > 0) {
+      const offsets = (previousRound.metadata?.[MODEL_ROUND_PART_OFFSETS] ?? []) as number[];
+      if (offsets.at(-1) !== previousRound.parts.length) {
+        yield await this.applyEvent(sessionRun, createRuntimeEvent({
+          type: NcpEventType.MessageSent,
+          payload: {
+            sessionId,
+            correlationId: spec.correlationId,
+            message: {
+              ...previousRound,
+              metadata: {
+                ...previousRound.metadata,
+                [MODEL_ROUND_PART_OFFSETS]: [...offsets, previousRound.parts.length],
+              },
+            },
+          },
+        }));
+      }
+    }
+    return await this.modelInputBuilder.build({
+      spec, sessionId, messages: sessionRun.getSnapshot().messages, contextBlocks, tools, signal,
+    });
+  }
+
   private completeAssistantStep = async (
     sessionRun: AgentRuntimeSessionState,
     messageId: string,
@@ -618,8 +608,8 @@ export class DefaultNcpAgentRuntime {
     spec: DefaultNcpAgentRunSpec,
     error: unknown,
     startedAt?: string,
+    endedAt = new Date().toISOString(),
   ): NcpEndpointEvent => {
-    const endedAt = new Date().toISOString();
     return createRuntimeEvent(
       {
         type: NcpEventType.RunError,

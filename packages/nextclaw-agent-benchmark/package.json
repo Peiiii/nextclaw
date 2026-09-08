@@ -1,0 +1,20 @@
+{
+  "name": "@nextclaw/agent-benchmark",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned, budgeted real-task harness benchmarks for local development.",
+  "exports": { ".": "./src/index.mjs" },
+  "imports": { "#benchmark/*": "./src/*" },
+  "scripts": {
+    "benchmark": "tsx --conditions=development --tsconfig ../../scripts/dev/dev-runtime.tsconfig.json src/app/cli.controller.mjs",
+    "test": "node --test src/measurement/usage.test.mjs src/reporting/report.test.mjs",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@nextclaw/core": "workspace:*",
+    "@nextclaw/kernel": "workspace:*",
+    "openai": "^4.74.0"
+  },
+  "devDependencies": { "tsx": "^4.20.6" }
+}

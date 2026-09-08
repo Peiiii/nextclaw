@@ -17,6 +17,9 @@ export type NcpMessageToOpenAiMessagesOptions = {
   toolResultContentManager?: ToolResultContentManager;
 };
 
+/** Original part boundaries between model calls within one persisted UI message. */
+export const MODEL_ROUND_PART_OFFSETS = "model_round_part_offsets";
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -30,6 +33,36 @@ const readText = (parts: readonly NcpMessagePart[]): string =>
 export function ncpMessageToOpenAiMessages(
   rawMessage: NcpMessage,
   options: NcpMessageToOpenAiMessagesOptions = {},
+): OpenAIChatMessage[] {
+  return ncpMessageToOpenAiMessageGroups(rawMessage, options).flatMap((group) => group.messages);
+}
+
+/** Keeps the persisted part coordinate for compaction consumers selecting a model-round tail. */
+export function ncpMessageToOpenAiMessageGroups(
+  rawMessage: NcpMessage,
+  options: NcpMessageToOpenAiMessagesOptions = {},
+): Array<{ partStart: number; messages: OpenAIChatMessage[] }> {
+  const offsets = rawMessage.metadata?.[MODEL_ROUND_PART_OFFSETS];
+  if (rawMessage.role === "assistant" && offsets !== undefined) {
+    if (!Array.isArray(offsets) || offsets.some((offset, index) =>
+      !Number.isInteger(offset) || offset <= 0 || offset > rawMessage.parts.length ||
+      (index > 0 && offset <= offsets[index - 1])
+    )) {
+      throw new Error("Invalid assistant model round part offsets");
+    }
+    const boundaries = [0, ...offsets, rawMessage.parts.length];
+    return boundaries.slice(0, -1).flatMap((start, index) => {
+      const parts = rawMessage.parts.slice(start, boundaries[index + 1]);
+      return parts.length === 0 ? [] : [{ partStart: start,
+        messages: convertModelRound({ ...rawMessage, parts }, options) }];
+    });
+  }
+  return [{ partStart: 0, messages: convertModelRound(rawMessage, options) }];
+}
+
+function convertModelRound(
+  rawMessage: NcpMessage,
+  options: NcpMessageToOpenAiMessagesOptions,
 ): OpenAIChatMessage[] {
   const message =
     rawMessage.role === "assistant" ? sanitizeAssistantReplyTags(rawMessage) : rawMessage;

@@ -14,6 +14,7 @@ description: 用更长的篇幅解释产品判断、设计取舍与 NextClaw 的
 
 ## 最新文章
 
+- [2026-09-08 · NextClaw × DeepSeek：五阶段优化降低成本 62.0%，实测比 DeepSeek Harness 低 10.8%](./2026-09-08-deepseek-cache-benchmark)
 - [2026-08-24 · 长会话不再被截断的压缩摘要卡住](./2026-08-24-context-compaction-without-dead-ends)
 - [2026-08-20 · 从 6.94 秒到最快 1.13 秒：NextClaw 重载大型会话提速约 6 倍](./2026-08-20-large-tool-session-performance)
 - [2026-07-18 · 在外面，也能继续使用家里的 NextClaw](./2026-07-18-remote-access-your-nextclaw)
