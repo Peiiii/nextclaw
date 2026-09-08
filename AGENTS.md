@@ -50,7 +50,7 @@
 
 ## 开发与实现边界
 
-- 默认开发流程由 `development-lifecycle` 单独编排；七个 `development-*` 阶段 owner 分别拥有本阶段的进入、决策、产物、证据和退出合同。不要在本文件复制阶段清单。
+- `development-lifecycle` 是唯一流程 Meta Skill，分类后编排 standard/trivial/bugfix；阶段 Skill 提供方法，知识库提供事实。不在常驻层复制阶段合同。
 - 实现优先单一路径、清晰 owner、删除或复用旧实现；必要且清晰的最小增长允许存在，禁止为抵消行数扩大无关范围或损害可读性、类型和协议安全。
 - 同一事实、事件、状态变化或传输语义只保留一个 owner 和一条标准主链路；新增 wrapper、adapter、factory、service、manager 前必须证明它减少真实复杂度或隔离真实变化点。
 - NextClaw 产品语义默认归 kernel owner；service 只承载宿主、进程、升级、远程访问、CLI/daemon 外壳和环境适配，触达产品语义时调用 kernel。
@@ -87,4 +87,4 @@
 - 修改 AGENTS、commands、Rulebook、skill 分层或治理脚本时使用 `nextclaw-agent-instructions-governance`，同步检查文本 owner、命令、脚本和 baseline 是否一致。
 - 新增治理脚本前证明问题通用、反复且高影响；禁止为一次性坏味道创建窄检查。
 - 规则变更的目标是减少常驻 token、提高触发可靠性和消除重复 owner。高层硬约束与 skill 冲突时，以本文件为准并同步修正 skill。
-- 项目元命令统一维护在 `commands/commands.md`；用户使用 `/validate`、`/commit`、`/release-*` 等命令时读取对应条目和 owning skill，不在本文件复制完整命令索引。
+- 意图宏统一定义在 `commands/commands.md`；调用时展开对应条目，解释/引用不执行。事实维护归 `project-knowledge-governance`，宏维护归规则治理。

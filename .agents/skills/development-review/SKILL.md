@@ -1,13 +1,19 @@
 ---
 name: development-review
-description: 通用开发生命周期的「Code Review」阶段 owner；当实现和验证形成可审查结果，或用户明确要求代码/PR/风险评审时使用，负责 findings-first 审查和维护性自动检查，不负责修改实现或执行发布。
+description: 通用开发的 Review 方法 owner；mode=design 审查实现前方案与验收设计，mode=implementation 审查已验证产物；返回 findings 和返工目标，不修改产物或执行发布。
 ---
 
 # Development Review
 
 ## 目标
 
-回答“这份已经实现并验证的改动是否可以被接受”。优先检查正确性、回归风险、契约清晰度和可维护性压力，而不是停留在样式偏好。
+先明确 mode=design 或 implementation，不因尚无代码跳过方案审查。两个 mode 都按证据输出 findings，由总流程决定下一步。
+
+## 方案 Review（mode=design）
+
+输入为目标、方案、验收标准及必要矩阵。检查：目标是否完整覆盖，owner/主链路是否唯一，重要反例和失败边界是否遗漏，方法是否可实施，验收能否发现错误，以及全部标准通过后用户是否仍可能拿到不完整结果。
+
+问题给出对应设计位置、影响和修正方向；未关闭 finding 返回 Design，通过返回 design-review: passed。后续设计语义变化后重审受影响部分。不运行代码维护性脚本，不要求子代理，不复制完整方案。以下环节仅适用于 implementation。
 
 ## 进入
 

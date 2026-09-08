@@ -31,6 +31,7 @@ description: 当确定要修改 AGENTS.md、commands、项目 AI 规则、skill/
 
 ## 条件方法
 
+- 新增、修订、合并或退役意图宏时，读取[意图宏维护](references/intent-macros.md)；调用只读命中定义，不加载维护合同。
 - 用户明确要求优化 AI 驱动开发体系，或有效反馈暴露重复、系统性、高影响机制缺口时，读取[开发体系演进闭环](references/development-system-evolution.md)。
 - 修改、提升、下沉、合并或删除规则资产，或者要标记/复核模型能力补丁时，读取[规则资产生命周期](references/rule-asset-lifecycle.md)。
 - 任务明确涉及常驻上下文膨胀、渐进加载、重复读取或 Token 成本时，读取[上下文与 Token 治理](references/context-token-governance.md)。

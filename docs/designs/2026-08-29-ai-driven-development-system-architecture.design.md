@@ -2,6 +2,8 @@
 
 日期：2026-08-29
 
+> 2026-09-08：流程、方法、事实、意图宏与复盘的现行操作模型见[新架构](2026-09-08-ai-development-system.design.md)。本文保留愿景与历史决策；阶段和 owner 的历史快照不作为新的执行入口。
+
 ## 文档身份
 
 - 规范名称：`AI-Driven Development System`

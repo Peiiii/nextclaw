@@ -7,7 +7,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 目标
 
-回答“如何安全交付结果”。每个任务都交接结果；commit、push、PR、release、deploy 等外部写入仅在用户明确授权后执行。
+每个任务都交接结果；commit、push、PR、release、deploy 和不可逆操作须用户明确授权。
 
 ## 进入门
 
@@ -20,16 +20,16 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 - 外部动作的对象、范围和授权明确。
 - active contract 存在时，本次交付对应 stable acceptance IDs 已明确且证据当前有效。
 
-前置合同不成立就返回正确阶段，不在 Delivery 内修代码或设计。
+前置条件不成立则返工，不在 Delivery 修代码或设计。
 
 ## 轻量交付
 
+用户要求交付验收，或用户可见变化需实际操作确认时，执行[用户验收交付](references/user-acceptance.md)。
+
 没有外部发布授权时也要完成：
 
-- 汇报结果和主要证据；
-- 披露未验证技术路径、主观确认项和残余风险；
-- 判断生成物是否应保留；
-- 判断 changeset、release notes 和迭代记录是否适用；
+- 汇报结果、证据、未验证链路、主观确认项和残余风险；
+- 判断生成物保留及 changeset、release notes、迭代记录的适用性；
 - 判断已经形成稳定证据的用户可见结果是否值得提前准备产品博客；
 - 明确 commit、push、release 和 deploy 已因未授权跳过。
 
@@ -62,7 +62,6 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 外部动作
 
-- 未经用户明确要求，不 commit、push、建 PR、release、deploy 或执行不可逆操作。
 - 用户要求“提交”或使用 `/commit` 时，只在当前任务分支精确 stage/commit；用户明确说“合入主干”时，才安全集成本地 `master` 并推送 `origin/master`。用户限制为本地时跳过 push，禁止混入无关 WIP 或把隔离分支报告为合入完成。
 - 发布使用仓库既有 release flow，不以零散原子命令伪装完整闭环。
 - 发布完成必须覆盖授权范围内适用的 artifact、manifest、update channel、release notes、部署后 smoke 和分支回流。
@@ -73,6 +72,6 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 输出
 
-报告交付范围、主要证据、外部动作及其结果、未完成项、恢复入口和残余 WIP；有 active contract 时同时报告 stable ID 更新并返回 parent。没有外部动作时说明授权边界；不得把部分完成表述成全部完成。
+报告范围、证据、授权与执行结果、缺口、恢复入口及残余 WIP；验收交付一次给齐入口、步骤和预期。有 active contract 时报告 stable ID 更新并返回 parent；不得把部分完成表述成全部完成。
 
 本阶段不修改产品实现、不关闭 Review findings，也不把内部工程记录直接拼成用户 release notes。
