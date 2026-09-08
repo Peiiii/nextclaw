@@ -9,11 +9,15 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 
 以最少充分证据验证真实风险；新增验证必须排除不同失败类型。
 
+## AI 验收（mode=acceptance）
+
+实现稳定后对照预先设计的验收标准/矩阵，逐项核对用户结果、真实证据入口与版本，标记 passed、failed 或 unverified；已有有效测试可复用，测试数量不能替代结果覆盖。active contract 同步 stable acceptance IDs。发现标准漏项则返回设计补齐，不能按已实现结果降低标准。输出 acceptance-ready 或具体缺口，交回总流程结合实现 Review 决定交付；不宣称用户验收通过。
+
 ## 风险分级
 
 ### L0：文档与元信息
 
-- 只做链接、标题、格式、结构或 diff 检查；build、lint、tsc、单测和冒烟默认不适用。
+- 普通文档只做链接、格式、结构或 diff 检查。流程/授权等规则语义变更按实际影响验证路由、反例与合同，不因 Markdown 归为低风险；纯规则不运行产品 build/tsc/冒烟。
 
 ### L1：局部低风险
 
@@ -31,7 +35,7 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 
 ### L3：跨边界与高影响
 
-- tsc、targeted lint 和相关定向测试必需。
+- 纯规则用治理检查与场景审查；以下运行链路要求不适用。源码/类型/运行链路须 tsc、targeted lint 与定向测试。
 - 增加 assembled boundary test 或真实链路冒烟；两者都跑时分别证明不同风险。公开闭集 variant 同时读取[合同变体传播验证](references/public-contract-variant-validation.md)。
 - 第三方框架/Factor/协议须用真实标准接口和上游执行形态命中触达合同；兼容接口、mock 或相邻能力不能替代，偏离另测。
 - 只有影响面确实扩大时才增加 package/full regression。
@@ -68,6 +72,6 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 
 ## 输出
 
-只报告风险、主要证据、结果、未验证路径和需用户确认的主观结果；不要把 tsc/lint 通过写成“功能验证通过”。
+报告风险、证据层级、结果、未验证链路和主观确认项；tsc/lint、mock 和回放不能冒充真实功能验证。用户验收交接归 Delivery。
 
 本阶段不做 findings-first 可维护性审查，不运行 maintainability guard，也不决定改动是否可以发布；失败时返回证据和正确返工目标。
