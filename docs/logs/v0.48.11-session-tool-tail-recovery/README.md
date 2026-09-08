@@ -2,7 +2,7 @@
 
 ## 迭代完成说明
 
-实现、代码验证与真实实例复验完成，本批提交用于主干集成。根因：journal replay 将中途 assistant 快照误转为 final，后续工具开始被过滤，结果却经 fallback 合成新 assistant；增量投影将错误消息保留下来。真实 journal 增量恢复精确复现三个重复结果，完整重放复现七个；保留真实状态的判别实验消除了两者。
+实现、代码验证与真实实例复验完成，修复提交 e12f7d315 已推送 origin/master，本地主干已快进，其它 WIP 文件哈希保持不变。根因：journal replay 将中途 assistant 快照误转为 final，后续工具开始被过滤，结果却经 fallback 合成新 assistant；增量投影将错误消息保留下来。真实 journal 增量恢复精确复现三个重复结果，完整重放复现七个；保留真实状态的判别实验消除了两者。
 
 修复保留 draft 状态，在原有消息 upsert owner 中恢复活动快照，按已证明工具归属处理恢复事件；迟到结果需要旧消息时重读同一 journal 前缀，未知事件不制造消息。投影升级至版本 8，旧派生记录从原 journal 重建。详见[设计与验收契约](../../designs/2026-09-08-session-tool-tail-recovery.design.md)。
 

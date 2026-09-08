@@ -1,6 +1,6 @@
 # 会话刷新后重复工具消息：定位与恢复方案
 
-日期：2026-09-08。状态：修复与真实实例验证完成，用户已授权合入主干并推送。
+日期：2026-09-08。状态：修复与真实实例验证完成，已合入并推送主干。
 
 ## Active acceptance ledger
 
@@ -12,9 +12,9 @@ contract-id: session-tool-tail-recovery；parent-goal: 修复刷新后重复工�
 | TAIL-02 | true | 活动 checkpoint、完整恢复和增量恢复等价，取消/错误/完成后不被迟到工具复活 | passed | 六轮九工具的 live/full/incremental 等价及终态迟到事件回归通过 |
 | TAIL-03 | true | 旧错误投影可从 journal 重建，原始事件不变，不执行模型或工具 | passed | v7 错误投影重建回归；两个真实原会话修复，journal 哈希不变 |
 | TAIL-04 | true | 匹配类型检查、回归与审查通过，真实产品链路复验 | passed | 101 项测试、两个包 tsc、治理审查；真实新会话三次请求六次工具，运行中与完成后刷新通过 |
-| TAIL-05 | true | 仅本任务改动合入 origin/master，主工作区 WIP 保留 | not-run | 已创建隔离分支 codex/fix-session-tool-tail |
+| TAIL-05 | true | 仅本任务改动合入 origin/master，主工作区 WIP 保留 | passed | 修复提交 e12f7d315 已推送 origin/master，本地主干快进；五个其它 WIP 文件哈希不变 |
 
-阶段图：实现 → 验证 → Review → 合入主干。当前阶段门是形成覆盖状态与归属根因的单一路径；上述 Required ID 全部关闭前不报告整体完成。省略与本问题无关的发布平台和视觉偏好标准。
+阶段图：实现 → 验证 → Review → 合入主干，均已完成。上述 Required ID 全部关闭。省略与本问题无关的发布平台和视觉偏好标准。
 
 实现学习：旧 pending 快照没有独立旧格式或完成证据，不能安全推定 final，因此保留事实，不新增猜测式 legacy 兼容。状态管理器须将活动 assistant 快照纳入 streaming 槽位，才能一致处理取消。增量 tail 出现 seed 无法归属的工具事件时，回到同一 journal replay 获取历史归属；正常活动链路仍只重放 tail。
 
