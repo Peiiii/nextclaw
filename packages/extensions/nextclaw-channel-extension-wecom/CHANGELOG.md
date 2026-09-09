@@ -1,5 +1,13 @@
 # @nextclaw/channel-extension-wecom
 
+## 0.2.45
+
+### Patch Changes
+
+- Updated dependencies [5b2a035]
+- Updated dependencies [f09ef09]
+  - @nextclaw/core@0.17.19
+
 ## 0.2.44
 
 ### Patch Changes

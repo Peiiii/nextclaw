@@ -8,7 +8,7 @@
 
 - 开始产品、架构、交互、命名、文档或实现决策前，先对齐 [NextClaw 产品愿景](docs/VISION.md)。
 - NextClaw 的长期目标是成为 AI 时代的个人操作层：用户使用软件、互联网、系统、服务与云计算的默认入口。
-- `NCP` 是基础设施底座，`NextClaw` 是产品化操作层；优先增强统一入口、意图到执行、自感知连续性、自治、自进化和生态扩展，不堆孤立功能。
+- `NCP` 是历史基础设施名；存量兼容可保留，新增类型、文件、包、字段、owner 或产品概念禁用 `NCP` / `Ncp*` 前缀。`NextClaw` 是产品化操作层。
 
 ## 沟通与推进
 
@@ -31,7 +31,7 @@
 ## 协作与 Git 安全
 
 - 未经用户明确要求，不得 commit、push、建 PR、发布、部署或执行破坏性 Git 操作。
-- 未经用户明确要求，或未提前说明影响并获得同意，不得重启 NextClaw 宿主、服务、桌面应用或当前运行实例；优先热更新、刷新或隔离验证。
+- 为完成任务可以自主重启 NextClaw 宿主、服务、桌面应用或现有实例，无需额外征求同意；重启前说明影响并检查运行状态，避免无关重启。
 - 工作区可能有用户或其它任务的改动；不得覆盖、revert、格式化或混入无关改动。触达已修改文件前先读懂现状并做双向范围审计。
 - 主工作区常驻 `master`，作为可自动快进的主线镜像。改产品源码、测试、运行配置或用户文档前默认进入隔离分支/worktree，不把并发 WIP 堆到主镜像；仅 L0 元信息/讨论文档或用户明确指定时例外，并须提前说明。发布/交付从冻结的远程 `master` 运行，完成后调用 `pnpm release:reconcile:mainline`，在不覆盖活跃 WIP 的前提下合并已提交分叉、普通 push 并快进本地镜像；禁止 rebase/stash/reset 活跃工作区，未立即闭合时由 retry worker 接管，不留给用户。
 - “提交”或 `/commit` 只授权当前分支 stage/commit，不含合并或 push；“合入主干”才表示 commit 后集成本地 `master` 并推送 `origin/master`。要求“只合入本地”或“不要推送”时跳过 push；只停在隔离分支不算完成。changeset、迭代与 NPM 记录由 `development-delivery` 提交前判断。
@@ -50,11 +50,11 @@
 
 ## 开发与实现边界
 
-- 默认开发流程由 `development-lifecycle` 单独编排；七个 `development-*` 阶段 owner 分别拥有本阶段的进入、决策、产物、证据和退出合同。不要在本文件复制阶段清单。
+- `development-lifecycle` 是唯一流程 Meta Skill，分类后编排 standard/trivial/bugfix；阶段 Skill 提供方法，知识库提供事实。不在常驻层复制阶段合同。
 - 实现优先单一路径、清晰 owner、删除或复用旧实现；必要且清晰的最小增长允许存在，禁止为抵消行数扩大无关范围或损害可读性、类型和协议安全。
 - 同一事实、事件、状态变化或传输语义只保留一个 owner 和一条标准主链路；新增 wrapper、adapter、factory、service、manager 前必须证明它减少真实复杂度或隔离真实变化点。
 - NextClaw 产品语义默认归 kernel owner；service 只承载宿主、进程、升级、远程访问、CLI/daemon 外壳和环境适配，触达产品语义时调用 kernel。
-- `nextclaw` CLI 是一等操作入口；新增或改造用户可用能力时，默认评估并尽可能提供对应命令行入口，持续提高 CLI 能力完整度。纯视觉或直接操控等不适合命令行的体验可明确不适用；CLI 复用对应 owner 的公共 contract，不复制产品语义。
+- `nextclaw` CLI 是一等入口；新增或改造能力尽可能提供 CLI，不适用时说明。复用 owner 公共 contract。配置内部化：AI 优先使用对象级 CLI，通用字段读写不算完备；直接配置工具暂留但不推荐，覆盖并验证后逐步退出，未覆盖不得提前移除。详见 `docs/VISION.md`「配置内部化」。
 - 新增、删除或重命名 `nextclaw` CLI 命令时，同步维护文档站中英文 CLI 能力全集 `apps/docs/{zh,en}/guide/commands.md`；命令注册树是事实源，完整覆盖由对应同步测试保证。
 - “平台 SDK 化”是长期伴随式技术目标：触达可复用的 agent、session、runtime、tool、skill、provider 等核心能力时，优先把稳定语义沉淀为 NCP / kernel 公共 contract，并让 NextClaw 自身通过同一入口消费；不为追求导出数量暴露未稳定内部实现，也不为无关产品改动强加 SDK 工作。阶段路线与验收归 `docs/ROADMAP.md`。
 - 业务层传递 owner 或本次调用的数据快照，不把稳定 owner 拆成多层参数、proxy 或同名转发方法。
@@ -87,4 +87,4 @@
 - 修改 AGENTS、commands、Rulebook、skill 分层或治理脚本时使用 `nextclaw-agent-instructions-governance`，同步检查文本 owner、命令、脚本和 baseline 是否一致。
 - 新增治理脚本前证明问题通用、反复且高影响；禁止为一次性坏味道创建窄检查。
 - 规则变更的目标是减少常驻 token、提高触发可靠性和消除重复 owner。高层硬约束与 skill 冲突时，以本文件为准并同步修正 skill。
-- 项目元命令统一维护在 `commands/commands.md`；用户使用 `/validate`、`/commit`、`/release-*` 等命令时读取对应条目和 owning skill，不在本文件复制完整命令索引。
+- 意图宏统一定义在 `commands/commands.md`；调用时展开对应条目，解释/引用不执行。事实维护归 `project-knowledge-governance`，宏维护归规则治理。

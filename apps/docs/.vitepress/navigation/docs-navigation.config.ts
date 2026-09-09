@@ -19,7 +19,17 @@ export const enNav: DefaultTheme.NavItem[] = [
   { text: 'Task Guides', link: '/en/tasks/' },
   { text: 'Settings & Help', link: '/en/guide/model-selection' },
   { text: 'Developers', link: '/en/developers/' },
-  { text: 'About NextClaw', link: '/en/project/' }
+  { text: 'About NextClaw', link: '/en/project/' },
+  { text: 'Website', link: 'https://nextclaw.io/en/' },
+  {
+    text: 'More',
+    items: [
+      { text: 'Website', link: 'https://nextclaw.io/en/' },
+      { text: 'Developers', link: '/en/developers/' },
+      { text: 'About NextClaw', link: '/en/project/' }
+    ]
+  },
+  { text: 'Download', link: 'https://nextclaw.io/en/download/', noIcon: true }
 ];
 
 export const zhNav: DefaultTheme.NavItem[] = [
@@ -28,7 +38,17 @@ export const zhNav: DefaultTheme.NavItem[] = [
   { text: '使用案例', link: '/zh/tasks/' },
   { text: '设置与帮助', link: '/zh/guide/model-selection' },
   { text: '开发者', link: '/zh/developers/' },
-  { text: '关于 NextClaw', link: '/zh/project/' }
+  { text: '关于 NextClaw', link: '/zh/project/' },
+  { text: '官网', link: 'https://nextclaw.io/zh/' },
+  {
+    text: '更多',
+    items: [
+      { text: '官网', link: 'https://nextclaw.io/zh/' },
+      { text: '开发者', link: '/zh/developers/' },
+      { text: '关于 NextClaw', link: '/zh/project/' }
+    ]
+  },
+  { text: '下载', link: 'https://nextclaw.io/zh/download/', noIcon: true }
 ];
 
 const readMarkdownTitle = (locale: Locale, directory: 'blog' | 'notes', fileName: string): string => {

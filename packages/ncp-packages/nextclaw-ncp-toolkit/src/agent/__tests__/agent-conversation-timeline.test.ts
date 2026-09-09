@@ -165,13 +165,14 @@ describe("agent conversation timeline", () => {
 
     const snapshot = manager.getSnapshot();
     expect(snapshot.messages).toMatchObject([
-      { id: "assistant-old", status: "final", parts: [{ text: "partial" }] },
+      // The explicit text-start after an active snapshot opens a new text part.
+      { id: "assistant-old", status: "final", parts: [{ text: "partial" }, { text: "" }] },
       { id: "user-later" }
     ]);
     expect(snapshot.streamingMessage).toMatchObject({
       id: "assistant-new",
       status: "streaming",
-      parts: [{ text: "new reply" }]
+      parts: [{ text: "new reply" }, { text: "" }]
     });
     expect(snapshot.activeRun?.runId).toBe("run-new");
   });

@@ -18,26 +18,47 @@ import {
   isStreamingMessageCreationEvent,
   readEventMessageId,
   readEventRunId,
+  readEventToolCallId,
   readMessageFromSummaryEvent,
   readReplayMessageId,
   readStreamingMessageId,
   readSupersededSyntheticRecoveryIndexes,
   type NcpAgentSessionReplayableEvent,
 } from "./ncp-agent-session-replay-event.utils.js";
+import { seedReplayToolOwners, readReplayToolOwners } from "./ncp-agent-session-replay-tool-ownership.utils.js";
 
 type NcpToolCallResultReplayPayload = Extract<
   NcpEndpointEvent,
   { type: NcpEventType.MessageToolCallResult }
 >["payload"];
 
-type ReplayContext = {
-  stateManager: DefaultNcpAgentConversationStateManager;
-  knownMessageIds: Set<string>;
-  terminalMessageIds: Set<string>;
-  toolResultsByCallId: Map<string, NcpToolCallResultReplayPayload>;
-  compactionRecovery: ContextCompactionJournalRecoveryService;
-  activeTailRunIds: Set<string>;
-};
+class ReplayContext {
+  readonly knownMessageIds: Set<string>;
+  readonly terminalMessageIds: Set<string>;
+  readonly toolResultsByCallId = new Map<string, NcpToolCallResultReplayPayload>();
+  readonly compactionRecovery = new ContextCompactionJournalRecoveryService();
+  readonly activeTailRunIds = new Set<string>();
+  readonly toolOwners: Map<string, string>;
+
+  constructor(readonly stateManager: DefaultNcpAgentConversationStateManager, seeds: readonly NcpMessage[]) {
+    this.knownMessageIds = new Set(seeds.map(message => message.id));
+    this.terminalMessageIds = new Set(seeds.filter(message => message.role === "assistant" && (message.status === "final" || message.status === "error")).map(message => message.id));
+    this.toolOwners = seedReplayToolOwners(seeds);
+    this.compactionRecovery.seed(seeds);
+  }
+
+  recordEvent = (event: NcpEndpointEvent, activeMessageId?: string): void => {
+    for (const [callId, messageId] of readReplayToolOwners(event)) this.toolOwners.set(callId, messageId);
+    const message = readMessageFromSummaryEvent(event);
+    if (message?.role === "assistant" && (message.status === "final" || message.status === "error")) {
+      this.terminalMessageIds.add(message.id);
+    }
+    if (event.type === NcpEventType.RunError || event.type === NcpEventType.RunFinished || event.type === NcpEventType.MessageAbort) {
+      const messageId = readEventMessageId(event) ?? activeMessageId;
+      if (messageId) this.terminalMessageIds.add(messageId);
+    }
+  };
+}
 
 export async function replayNcpAgentSessionEvents(
   events: readonly NcpAgentSessionJournalReplayEvent[],
@@ -71,30 +92,14 @@ async function createReplayContext(
   if (activeMessage) {
     await stateManager.dispatch({
       occurredAt: activeMessage.timestamp,
-      type: NcpEventType.MessageReasoningStart,
+      type: NcpEventType.MessageSent,
       payload: {
         sessionId: activeMessage.sessionId,
-        messageId: activeMessage.id,
+        message: activeMessage,
       },
     });
   }
-  const knownMessageIds = new Set(seedMessages.map((message) => message.id));
-  const terminalMessageIds = new Set(
-    seedMessages
-      .filter((message) => message.role === "assistant" && (message.status === "final" || message.status === "error"))
-      .map((message) => message.id),
-  );
-  const toolResultsByCallId = new Map<string, NcpToolCallResultReplayPayload>();
-  const compactionRecovery = new ContextCompactionJournalRecoveryService();
-  compactionRecovery.seed(seedMessages);
-  return {
-    stateManager,
-    knownMessageIds,
-    terminalMessageIds,
-    toolResultsByCallId,
-    compactionRecovery,
-    activeTailRunIds: new Set(),
-  };
+  return new ReplayContext(stateManager, seedMessages);
 }
 
 async function replayJournalEvents(
@@ -144,10 +149,28 @@ function updateActiveTailRunIds(
 
 async function replayJournalEvent(
   context: ReplayContext,
-  replayEvent: NcpEndpointEvent,
+  sourceEvent: NcpEndpointEvent,
   allowUnknownStreamingBootstrap: boolean,
 ): Promise<void> {
-  const { activeTailRunIds, compactionRecovery, knownMessageIds, terminalMessageIds } = context;
+  let replayEvent = sourceEvent;
+  const { activeTailRunIds, compactionRecovery, knownMessageIds, terminalMessageIds, stateManager, toolOwners, recordEvent } = context;
+  const summary = readMessageFromSummaryEvent(replayEvent);
+  if (summary && (summary.status === "pending" || summary.status === "streaming") && terminalMessageIds.has(summary.id)) return;
+  if (replayEvent.type === NcpEventType.MessageToolCallStart && !replayEvent.payload.messageId) {
+    const activeId = stateManager.getSnapshot().streamingMessage?.id;
+    if (!activeId) {
+      console.warn(`[ncp-agent-session-journal] ignored tool start without a message: ${replayEvent.payload.toolCallId}`);
+      return;
+    }
+    replayEvent = { ...replayEvent, payload: { ...replayEvent.payload, messageId: activeId } };
+  }
+  const toolCallId = readEventToolCallId(replayEvent);
+  const toolOwner = toolCallId ? toolOwners.get(toolCallId) : undefined;
+  if (toolCallId && replayEvent.type !== NcpEventType.MessageToolCallStart && !toolOwner) {
+    console.warn(`[ncp-agent-session-journal] ignored unowned ${replayEvent.type}: ${toolCallId}`);
+    return;
+  }
+  if (toolOwner && terminalMessageIds.has(toolOwner) && replayEvent.type !== NcpEventType.MessageToolCallResult) return;
   const streamingMessageId = readStreamingMessageId(replayEvent);
   if (streamingMessageId && terminalMessageIds.has(streamingMessageId)) {
     return;
@@ -164,8 +187,9 @@ async function replayJournalEvent(
     return;
   }
   compactionRecovery.track(replayEvent);
+  const activeMessageId = stateManager.getSnapshot().streamingMessage?.id;
   await dispatchReplayEvent(context, replayEvent, streamingMessageId, allowUnknownStreamingBootstrap);
-  recordReplayTerminal(context, replayEvent);
+  recordEvent(replayEvent, activeMessageId);
 }
 
 async function dispatchReplayEvent(
@@ -195,21 +219,5 @@ async function dispatchReplayEvent(
     replayEvent.payload.final !== false
   ) {
     toolResultsByCallId.set(replayEvent.payload.toolCallId, replayEvent.payload);
-  }
-}
-
-function recordReplayTerminal(context: ReplayContext, replayEvent: NcpEndpointEvent): void {
-  const replayMessage = readMessageFromSummaryEvent(replayEvent);
-  if (
-    replayMessage?.role === "assistant" &&
-    (replayMessage.status === "final" || replayMessage.status === "error")
-  ) {
-    context.terminalMessageIds.add(replayMessage.id);
-  }
-  if (replayEvent.type === NcpEventType.RunError || replayEvent.type === NcpEventType.MessageAbort) {
-    const messageId = readEventMessageId(replayEvent);
-    if (messageId) {
-      context.terminalMessageIds.add(messageId);
-    }
   }
 }

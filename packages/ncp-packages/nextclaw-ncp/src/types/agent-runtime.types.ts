@@ -84,16 +84,15 @@ export type NcpJsonValue =
   | NcpJsonValue[]
   | { [key: string]: NcpJsonValue };
 
-export type NcpContextTail = {
-  kind: "context_tail";
-  entries: ReadonlyArray<{
-    bindingId: string;
-    extensionId: string;
-    snapshotId?: string;
-    freshness: "fresh" | "stale" | "unknown" | "unavailable";
-    observedAt?: string;
-    payload: NcpJsonValue;
-  }>;
+export type ModelInputTailSection = {
+  source: string;
+  trust: "trusted" | "untrusted";
+  content: NcpJsonValue;
+};
+
+export type ModelInputTail = {
+  kind: "model_input_tail";
+  sections: ReadonlyArray<ModelInputTailSection>;
 };
 
 export type OpenAIToolCallDelta = {
@@ -124,7 +123,7 @@ export type OpenAIChatChunk = {
 
 export type NcpLLMApiInput = {
   messages: OpenAIChatMessage[];
-  contextTail?: NcpContextTail;
+  contextTail?: ModelInputTail;
   tools?: OpenAITool[];
   model?: string;
   thinkingLevel?: string | null;

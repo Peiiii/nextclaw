@@ -3,8 +3,8 @@ import { mkdir, mkdtemp, open, readFile, rename, rm, stat, writeFile } from "nod
 import { dirname, join } from "node:path";
 import type { NcpMessage } from "@nextclaw/ncp";
 import type { SessionMessagePage } from "@kernel/types/session.types.js";
-import { parseNcpAgentSessionJournal } from "@kernel/utils/ncp-agent-session-journal-entry.utils.js";
-import { replayNcpAgentSessionEvents, safeNcpSessionFilename } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+import { safeNcpSessionFilename } from "@kernel/utils/ncp-agent-session-journal.utils.js";
+import { readNcpAgentSessionProjectionTail } from "./ncp-agent-session-message-projection-tail.store.js";
 import {
   decodeNcpAgentSessionMessageCursor,
   deduplicateNcpAgentSessionTailMessages,
@@ -254,36 +254,11 @@ export class NcpAgentSessionMessageProjectionPersistenceStore {
   private readJournalTailMessages = async (
     sessionId: string,
     meta: NcpAgentSessionMessageProjectionMeta,
-  ): Promise<NcpMessage[]> => {
-    const file = await open(this.journalPath(sessionId), "r");
-    try {
-      const fileStat = await file.stat();
-      const offset = meta.projectedJournalOffset;
-      if (offset < 0 || offset > fileStat.size || offset === fileStat.size) {
-        return [];
-      }
-      const buffer = Buffer.alloc(fileStat.size - offset);
-      const result = await file.read(buffer, 0, buffer.length, offset);
-      const journal = parseNcpAgentSessionJournal(buffer.subarray(0, result.bytesRead).toString("utf-8"));
-      const seedMessageIds = new Set(meta.pendingCompactionMessageIds);
-      if (meta.activeMessageId) {
-        seedMessageIds.add(meta.activeMessageId);
-      }
-      const seedMessages = (await Promise.all(
-        [...seedMessageIds].map((messageId) =>
-          this.readMessageById(sessionId, meta, messageId),
-        ),
-      )).filter((message): message is NcpMessage => Boolean(message));
-      return await replayNcpAgentSessionEvents(
-        journal.events,
-        seedMessages,
-        meta.activeMessageId,
-        false,
-      );
-    } finally {
-      await file.close();
-    }
-  };
+  ): Promise<NcpMessage[]> => readNcpAgentSessionProjectionTail(
+    this.journalPath(sessionId),
+    meta,
+    (messageId) => this.readMessageById(sessionId, meta, messageId),
+  );
   delete = async (sessionId: string): Promise<void> => {
     this.messageOrdinals.delete(sessionId);
     await rm(this.projectionPath(sessionId), { recursive: true, force: true });

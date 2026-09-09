@@ -36,6 +36,65 @@
   font-size: 14px;
 }
 
+@media (min-width: 1200px) {
+  .VPNavBarMenuGroup:has(a[href='https://nextclaw.io/en/']),
+  .VPNavBarMenuGroup:has(a[href='https://nextclaw.io/zh/']) {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .VPNavBarMenuLink[href='/en/developers/'],
+  .VPNavBarMenuLink[href='/en/project/'],
+  .VPNavBarMenuLink[href='https://nextclaw.io/en/'],
+  .VPNavBarMenuLink[href='/zh/developers/'],
+  .VPNavBarMenuLink[href='/zh/project/'],
+  .VPNavBarMenuLink[href='https://nextclaw.io/zh/'] {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .VPNavScreenMenuGroup:has(a[href='https://nextclaw.io/en/']),
+  .VPNavScreenMenuGroup:has(a[href='https://nextclaw.io/zh/']) {
+    display: none;
+  }
+}
+
+.VPNavBarMenuLink[href^='https://nextclaw.io/'][href$='/download/'] {
+  margin: 14px 8px;
+  border-radius: 6px;
+  padding: 0 14px;
+  background: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+  line-height: 36px;
+}
+
+.VPNavBarMenuLink[href^='https://nextclaw.io/'][href$='/download/']:hover {
+  background: var(--vp-button-brand-hover-bg);
+  color: var(--vp-button-brand-hover-text);
+}
+
+.VPNavBarMenuLink[href^='https://nextclaw.io/'][href$='/download/']:focus-visible,
+.VPNavScreenMenuLink[href^='https://nextclaw.io/'][href$='/download/']:focus-visible {
+  outline: 3px solid var(--vp-c-brand-soft);
+  outline-offset: 2px;
+}
+
+.VPNavScreenMenuLink[href^='https://nextclaw.io/'][href$='/download/'] {
+  margin-top: 12px;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: var(--vp-button-brand-bg);
+  color: var(--vp-button-brand-text);
+}
+
+.VPNavScreenMenuLink[href^='https://nextclaw.io/'][href$='/download/']:hover {
+  background: var(--vp-button-brand-hover-bg);
+  color: var(--vp-button-brand-hover-text);
+}
+
 .VPSidebarItem.level-0 > .item > .text,
 .VPSidebarItem.level-0 > .item > .link > .text {
   font-size: 14px;

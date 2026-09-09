@@ -53,7 +53,7 @@ export class GatewayTool extends Tool {
   }
 
   get description(): string {
-    return "Inspect and apply gateway config changes, or run an explicitly requested runtime update.";
+    return "Run an explicitly requested runtime update. Config actions are transitional for documented gaps in object-level CLI or explicit recovery; prefer nextclaw providers/models/search/agents/mcp commands for covered management tasks.";
   }
 
   get parameters(): Record<string, unknown> {

@@ -177,62 +177,34 @@ Unknown ingress types are rejected instead of being turned into chat messages. U
 
 ## Configuration
 
-- **Config file:** `~/.nextclaw/config.json`
-- **Data directory:** Override with `NEXTCLAW_HOME=/path/to/dir` (config path becomes `$NEXTCLAW_HOME/config.json`).
+Use the UI or the object-level CLI commands below to manage providers, models and search. These commands require a running NextClaw host and return JSON, including with `--json`. Use `NEXTCLAW_HOME` to select a separate data directory when needed.
 
-### Minimal config
+### Connect a provider and select a model
 
-```json
-{
-  "providers": {
-    "openrouter": { "apiKey": "sk-or-v1-xxx" }
-  },
-  "agents": {
-    "defaults": { "model": "minimax/MiniMax-M2.5" }
-  }
-}
+```bash
+nextclaw providers templates --json
+nextclaw providers list --json
+# MY_PROVIDER_KEY is an environment variable containing your API key.
+nextclaw providers add office --type openai --api-key-env MY_PROVIDER_KEY --json
+nextclaw providers models discover office --json
+nextclaw providers models set office <provider-scoped-model-id> --json
+nextclaw providers test office --model <provider-scoped-model-id> --json
+nextclaw models set <provider-scoped-model-id> --json
+nextclaw models show --json
+nextclaw providers show office --json
 ```
 
-### Provider examples
+Discovery returns upstream model names. For a provider-scoped model id, prefix the chosen name with the instance id: a discovered `gpt-example` on `office` becomes `office/gpt-example`; an upstream name containing slashes keeps those slashes. Do not add the instance prefix again if it is already present.
 
-**OpenRouter (recommended)**
+Choose a template returned by `providers templates`; use `--type custom --api-base <url>` for a custom endpoint. Use `providers update <id>` for an existing provider. Options include `--name`, `--api-base`, `--wire-api auto|chat|responses`, `--api-key-env`, `--clear-api-key`, `--header name=value` (repeatable, replaces all custom headers), and `--clear-headers`. Read commands do not print API keys or custom header values.
 
-```json
-{
-  "providers": { "openrouter": { "apiKey": "sk-or-v1-xxx" } },
-  "agents": { "defaults": { "model": "minimax/MiniMax-M2.5" } }
-}
-```
+`providers enable|disable|remove <id>` manages availability and removal. `providers models list <id>` shows configured models and capability overrides. `models list` shows the runtime catalog and discovery status. Discovery does not save models. `providers models set <id> [models...]` replaces the complete configured list; no models clears it.
 
-**MiniMax (Mainland China)**
+`providers models configure <id>` replaces all capability overrides while leaving the model list unchanged. Supply repeatable `--vision <model=true|false>`, `--thinking <model=off,low,high>`, and `--thinking-default <model=high>`, or `--clear` to remove all overrides. Include every override you want to retain. A default thinking level must be included in that model's supplied supported levels. Vision `false` removes the positive vision override; it does not override built-in model capabilities with a negative capability.
 
-```json
-{
-  "providers": {
-    "minimax": {
-      "apiKey": "sk-api-xxx",
-      "apiBase": "https://api.minimaxi.com/v1"
-    }
-  },
-  "agents": { "defaults": { "model": "minimax/MiniMax-M2.5" } }
-}
-```
+For supported provider authorization, use `providers auth start <id> [--method <method-id>]`, follow the returned verification URI and user code, then `providers auth poll <id> <session-id>`. Respect the returned polling interval; pending is not completion. `providers auth import <id>` imports credentials from a supported provider CLI. Connection failures and denied/expired/error authorization results exit non-zero.
 
-**Local vLLM (or any OpenAI-compatible server)**
-
-```json
-{
-  "providers": {
-    "vllm": {
-      "apiKey": "dummy",
-      "apiBase": "http://localhost:8000/v1"
-    }
-  },
-  "agents": { "defaults": { "model": "meta-llama/Llama-3.1-8B-Instruct" } }
-}
-```
-
-Supported providers include OpenRouter, OpenAI, Anthropic, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and AiHubMix. You can configure them in the UI or by editing `config.json`.
+After changes, use the corresponding `show` command to verify saved settings; use `providers test` to verify connectivity. Writes use the same running host API as the UI and await its configuration apply step. A reported apply failure must be investigated even if a subsequent query shows the saved value. These commands do not restart the host.
 
 ### Runtime config apply behavior (no restart)
 
@@ -419,10 +391,10 @@ Pass criteria: stable routing, no cross-session context leakage, predictable gro
 
 For internal AI operations (same as other built-in capabilities):
 
-- Yes, the runtime registers the `gateway` tool (`config.get` / `config.schema` / `config.apply` / `config.patch`).
-- The AI can use it to manage the same config surface when you explicitly ask.
-- As with all config mutations, it follows the explicit-request rule (no silent self-mutation).
-- **Required safe flow for AI config writes:**
+- Prefer object-level CLI commands for providers, models, search, Agents, MCP and other covered tasks. Do not read or edit configuration files, or substitute generic `config set/unset`, for these normal operations.
+- The `gateway` config actions and generic `config get/set/unset` remain transitional paths for documented capabilities not yet covered by object-level commands, or explicit manual recovery. They are not the recommended management interface.
+- Configuration changes still require user intent; do not silently self-mutate.
+- **Only when a transitional config write is necessary:**
   1. run `config.get` to read current config + hash;
   2. run `config.schema` and copy enum values exactly (no invented suffixes/variants);
   3. run `config.patch` with minimal patch;
@@ -1211,37 +1183,17 @@ After changing channel config, NextClaw hot-reloads channel runtime automaticall
 
 ### Web search (Bocha default; Tavily, Brave, and Exa optional)
 
-Configure the active search provider under `search`. Bocha is the default and is recommended for mainland China users. Tavily supports configurable retrieval depth and optional synthesized answers. Exa provides semantic web search with extracted page content:
+Use `nextclaw search` with a running host. Bocha is the default. Tavily supports retrieval depth and synthesized answers; Exa supports semantic search with extracted content.
 
-```json
-{
-  "search": {
-    "provider": "exa",
-    "enabledProviders": ["bocha", "tavily", "brave", "exa"],
-    "defaults": {
-      "maxResults": 10
-    },
-    "providers": {
-      "bocha": {
-        "apiKey": "YOUR_BOCHA_KEY",
-        "summary": true,
-        "freshness": "noLimit"
-      },
-      "tavily": {
-        "apiKey": "YOUR_TAVILY_KEY",
-        "searchDepth": "advanced",
-        "includeAnswer": true
-      },
-      "brave": {
-        "apiKey": "YOUR_BRAVE_KEY"
-      },
-      "exa": {
-        "apiKey": "YOUR_EXA_KEY"
-      }
-    }
-  }
-}
+```bash
+nextclaw search show --json
+nextclaw search provider exa --api-key-env MY_EXA_KEY --json
+nextclaw search configure --provider exa --enabled-provider exa tavily --max-results 10 --json
+nextclaw search provider tavily --api-key-env MY_TAVILY_KEY --search-depth advanced --include-answer true --json
+nextclaw search show --json
 ```
+
+`search configure --enabled-provider` replaces the enabled list; `--clear-enabled-providers` disables all. `--max-results` accepts 1–50. All four providers support `--api-key-env`, `--clear-api-key` and `--base-url`. Bocha additionally supports `--summary true|false`, `--freshness` and `--docs-url`; Tavily supports `--search-depth basic|advanced` and `--include-answer true|false`. Options for another provider are rejected. Use `search show` to confirm saved settings; it does not test the upstream search service.
 
 ### Command execution (exec)
 

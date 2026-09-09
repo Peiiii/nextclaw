@@ -146,6 +146,54 @@ Every `projects work` command requires `--project <project-id>` and runs through
 
 ## Configuration and secrets
 
+### Providers, models and search
+
+These commands require a running NextClaw host and return JSON. Discover templates with `providers templates`, then create a provider with `providers add office --type openai --api-key-env MY_PROVIDER_KEY`. Keys are read from the named environment variable; API keys and custom header values are not printed.
+
+```bash
+nextclaw providers models discover office --json
+nextclaw providers models set office <provider-scoped-model-id> --json
+nextclaw providers test office --model <provider-scoped-model-id> --json
+nextclaw models set <provider-scoped-model-id> --json
+nextclaw models show --json
+nextclaw providers show office --json
+```
+
+Discovery returns upstream names. Prefix the selected name with the instance id: `gpt-example` on `office` becomes `office/gpt-example`. Preserve upstream slashes and do not duplicate an existing instance prefix. Discovery does not save models. `providers models set` replaces the entire configured list; omit models to clear it. `providers models configure` replaces all capability overrides: use repeatable `--vision model=true|false`, `--thinking model=off,high`, `--thinking-default model=high`, or `--clear`. Query first and include entries to retain. The default thinking level must occur in the supplied supported levels. Vision=false removes the positive override, rather than forcing built-in vision capability off.
+
+Failed connection tests exit non-zero. Start authorization with `auth start`, follow the returned URI/code, and use `auth poll` at the returned interval; pending is not completion. Writes await the host's apply step. An apply failure needs investigation even if values were saved. Commands do not restart the host.
+
+For search, run `nextclaw search provider exa --api-key-env MY_EXA_KEY`, then `nextclaw search configure --provider exa --enabled-provider exa --max-results 10` and verify with `search show`. Result counts accept 1–50. The enabled list is replaced; `--clear-enabled-providers` disables all. Bocha supports summary/freshness/docs-url; Tavily supports search-depth/include-answer. Other providers reject these specific options. See command help for all flags.
+
+| Command | Purpose |
+| --- | --- |
+| `nextclaw providers list` | List provider instances |
+| `nextclaw providers templates` | List templates and authorization methods |
+| `nextclaw providers show` | Inspect one provider |
+| `nextclaw providers add` | Add a template or custom provider |
+| `nextclaw providers update` | Update name, endpoint, credentials, protocol and headers |
+| `nextclaw providers remove` | Remove a provider and its secret references |
+| `nextclaw providers enable` | Enable a provider |
+| `nextclaw providers disable` | Disable a provider |
+| `nextclaw providers test` | Test a model connection |
+| `nextclaw providers models list` | Inspect configured models and capabilities |
+| `nextclaw providers models discover` | Discover models without saving |
+| `nextclaw providers models set` | Replace or clear the model list |
+| `nextclaw providers models configure` | Replace or clear model capability overrides |
+| `nextclaw providers auth start` | Start provider authorization |
+| `nextclaw providers auth poll` | Poll authorization once |
+| `nextclaw providers auth import` | Import supported provider CLI credentials |
+| `nextclaw models list` | Inspect the runtime model catalog |
+| `nextclaw models show` | Inspect the default model |
+| `nextclaw models set` | Set the default model |
+| `nextclaw search show` | Inspect search settings |
+| `nextclaw search configure` | Select default/enabled providers and result count |
+| `nextclaw search provider` | Configure one search provider |
+
+### Generic configuration and secrets
+
+Prefer object-level commands for covered tasks. Generic config commands remain for settings without a dedicated command or explicit manual recovery.
+
 | Command                      | Purpose                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------- |
 | `nextclaw config get`        | Read a configuration value by dot path                                      |

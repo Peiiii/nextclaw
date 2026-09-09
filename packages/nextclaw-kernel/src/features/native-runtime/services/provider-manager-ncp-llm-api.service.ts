@@ -12,7 +12,7 @@ import {
   type ToolCallRequest,
 } from "@nextclaw/core";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import { serializeContextTail } from "@kernel/features/observation/index.js";
+import { serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
 
 function normalizeModel(value: string | undefined): string | null {
   if (typeof value !== "string") {
@@ -109,7 +109,7 @@ export class ProviderManagerNcpLLMApi implements NcpLLMApi {
           ...input.messages,
           {
             role: "user" as const,
-            content: serializeContextTail(input.contextTail),
+            content: serializeModelInputTail(input.contextTail),
           },
         ]
       : input.messages;

@@ -1,5 +1,30 @@
 # nextclaw
 
+## 0.49.0
+
+### Minor Changes
+
+- 5b2a035: Add CLI commands to manage model providers, discover and configure models, test connections, authorize supported providers, select the default model, and configure web search. AI self-management now prefers these commands over direct configuration edits. Existing configuration tools remain available for uncovered settings and explicit recovery.
+
+### Patch Changes
+
+- Updated dependencies [a9fcbd9]
+- Updated dependencies [5b2a035]
+- Updated dependencies [f09ef09]
+- Updated dependencies [f6f78a5]
+- Updated dependencies [e12f7d3]
+  - @nextclaw/ncp-toolkit@0.6.24
+  - @nextclaw/core@0.17.19
+  - @nextclaw/kernel@0.16.1
+  - @nextclaw/ncp-agent-runtime@0.4.23
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.46
+  - @nextclaw/service@0.6.4
+  - @nextclaw/mcp@0.3.46
+  - @nextclaw/remote@0.3.58
+  - @nextclaw/runtime@0.4.45
+  - @nextclaw/server@0.23.1
+  - @nextclaw/ncp-mcp@0.2.46
+
 ## 0.48.3
 
 ### Patch Changes

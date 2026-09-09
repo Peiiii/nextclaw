@@ -146,6 +146,54 @@ nextclaw <command> --help
 
 ## 配置与密钥
 
+### 供应商、模型与搜索
+
+这些命令通过正在运行的 NextClaw 管理设置，输出 JSON。先启动 NextClaw，使用 `providers templates` 查看模板，再用 `providers add office --type openai --api-key-env MY_PROVIDER_KEY` 添加供应商；密钥从指定环境变量读取，不会输出明文密钥或自定义请求头值。
+
+```bash
+nextclaw providers models discover office --json
+nextclaw providers models set office <模型标识> --json
+nextclaw providers test office --model <模型标识> --json
+nextclaw models set <模型标识> --json
+nextclaw models show --json
+nextclaw providers show office --json
+```
+
+发现返回上游模型名称；选择后加上供应商实例前缀，例如 office 的 `gpt-example` 使用 `office/gpt-example`，已有前缀时不重复添加，上游名称中的斜杠保留。发现只查询，不自动保存；`models set`（在 `providers` 下）替换该供应商完整模型列表，不传模型则清空。`models configure` 替换全部模型能力覆盖，支持重复的 `--vision 模型=true|false`、`--thinking 模型=off,high`、`--thinking-default 模型=high`，或 `--clear`；请先查询并包含需要保留的条目。默认思考级别必须包含在提供的支持列表中，vision=false 表示移除正向覆盖，不强制否定内置能力。
+
+连接测试失败返回非零退出码。授权先执行 `auth start`，按返回的网址与代码操作，再按返回间隔执行 `auth poll`；pending 表示尚未完成。配置写入等待服务应用步骤返回，应用失败即使已经保存也需要排查；命令不会重启服务。
+
+搜索示例：`nextclaw search provider exa --api-key-env MY_EXA_KEY`，再执行 `nextclaw search configure --provider exa --enabled-provider exa --max-results 10`，通过 `search show` 确认。结果数量支持 1–50；启用列表整体替换，`--clear-enabled-providers` 禁用全部。Bocha 的 summary/freshness/docs-url 和 Tavily 的 search-depth/include-answer 通过相应命令帮助查看，其他供应商不接受这些专属选项。
+
+| 命令 | 用途 |
+| --- | --- |
+| `nextclaw providers list` | 查看供应商实例 |
+| `nextclaw providers templates` | 查看模板与授权方法 |
+| `nextclaw providers show` | 查看指定供应商 |
+| `nextclaw providers add` | 添加模板或自定义供应商 |
+| `nextclaw providers update` | 修改名称、地址、凭据、协议和请求头 |
+| `nextclaw providers remove` | 移除供应商及其密钥引用 |
+| `nextclaw providers enable` | 启用供应商 |
+| `nextclaw providers disable` | 停用供应商 |
+| `nextclaw providers test` | 测试模型连接 |
+| `nextclaw providers models list` | 查看已配置模型及能力覆盖 |
+| `nextclaw providers models discover` | 发现可用模型，不自动保存 |
+| `nextclaw providers models set` | 替换或清空模型列表 |
+| `nextclaw providers models configure` | 替换或清空模型能力覆盖 |
+| `nextclaw providers auth start` | 启动供应商授权 |
+| `nextclaw providers auth poll` | 查询一次授权进度 |
+| `nextclaw providers auth import` | 从支持的供应商 CLI 导入授权 |
+| `nextclaw models list` | 查看运行时模型目录 |
+| `nextclaw models show` | 查看默认模型 |
+| `nextclaw models set` | 设置默认模型 |
+| `nextclaw search show` | 查看搜索设置 |
+| `nextclaw search configure` | 选择默认、启用的搜索供应商及结果数量 |
+| `nextclaw search provider` | 配置单个搜索供应商 |
+
+### 通用配置与密钥
+
+供应商、模型、搜索等已覆盖任务优先使用上述命令；通用配置命令用于尚无对应命令的设置或明确的人工恢复。
+
 | 命令                         | 用途                                   |
 | ---------------------------- | -------------------------------------- |
 | `nextclaw config get`        | 按点路径读取配置值                     |

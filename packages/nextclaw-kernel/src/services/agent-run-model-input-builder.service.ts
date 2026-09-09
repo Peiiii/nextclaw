@@ -17,11 +17,9 @@ import { stripCompactedSessionOnboardingSections } from "@kernel/utils/agent-onb
 import type { AgentRunMessageProjector } from "./agent-run-message-projector.service.js";
 import type { AgentRunModelInputBudgeter } from "./agent-run-model-input-budgeter.service.js";
 import { buildProviderTools } from "@kernel/utils/agent-model-input-budget.utils.js";
-import {
-  buildObservationEventModelMessage,
-  serializeContextTail,
-  type ObservationManager,
-} from "@kernel/features/observation/index.js";
+import { serializeModelInputTail } from "@kernel/utils/agent-model-input-tail.utils.js";
+import { buildObservationEventModelMessage } from "@kernel/features/observation/index.js";
+import type { RequestContextTailManager } from "@kernel/managers/request-context-tail.manager.js";
 
 function readSystemContent(messages: OpenAIChatMessage[]): string[] {
   return messages
@@ -56,9 +54,9 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
     private readonly messageProjector: AgentRunMessageProjector,
     private readonly modelInputBudgeter: AgentRunModelInputBudgeter,
     private readonly assetStore: LocalAssetStore | null = null,
-    private readonly observationManager: Pick<
-      ObservationManager,
-      "buildContextTail"
+    private readonly requestContextTailManager: Pick<
+      RequestContextTailManager,
+      "build"
     > | null = null,
   ) {}
 
@@ -109,13 +107,16 @@ export class AgentRunModelInputBuilder implements AgentModelInputBuilder {
         ? contextMessages.length + stableConversationMessages.length
         : 0;
     const tools = buildProviderTools(request.tools);
-    const contextTail = await this.observationManager?.buildContextTail({
+    const contextTail = await this.requestContextTailManager?.build({
       sessionId: request.sessionId,
+      runId: request.spec.runId,
+      agentId: request.spec.agentId,
+      model: request.spec.model,
       signal: request.signal,
     });
     const contextTailInputTokens = contextTail
       ? estimateInputTokens([
-          { role: "user", content: serializeContextTail(contextTail) },
+          { role: "user", content: serializeModelInputTail(contextTail) },
         ])
       : 0;
     const pruned = await this.modelInputBudgeter.prune({

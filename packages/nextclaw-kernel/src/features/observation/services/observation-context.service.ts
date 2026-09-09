@@ -109,7 +109,6 @@ export class ObservationContextService {
     });
     let remainingChars = MAX_CONTEXT_TAIL_CHARS;
     return {
-      kind: "context_tail",
       entries: results.map(({ entry }) => {
         const payload = toBoundedJson(
           entry.payload,
