@@ -10,7 +10,7 @@
 
 **你的长期个人智能搭档。**
 
-说出你要完成的事。NextClaw 会把会话、文件、工具和生成结果放进同一个工作台，一路推进到真正可以交付的结果。
+NextClaw 以做好你的长期搭档为使命，向懂你、主动参与、持续自我改进的 1.0 迈进。现在，你可以用它讨论问题、分析资料、完成工作，并通过定时任务持续跟进。
 
 </div>
 
@@ -29,6 +29,21 @@
 开源 · 本地优先 · 支持 macOS、Windows、Linux、Docker 和云服务器
 
 </div>
+
+## 通往 1.0
+
+1.0 的目标是：**交付一个懂用户、会主动帮忙、能持续自我改进的长期智能搭档。** 主动帮忙包括自主分析、规划、告知和主动找你讨论，也包括在授权范围内执行。
+
+| 阶段 | 规划交付 |
+| --- | --- |
+| 理解用户与目标 | 整理用户背景，查看和纠正记忆，管理个人目标与阶段计划，在新会话和后台使用最新理解 |
+| 主动分析与交流 | 自主识别关注事项，后台分析规划，控制参与节奏，主动发起并接续讨论，按需执行与跟进结果 |
+| 持续自我改进 | 从结果和反馈复盘，应用经验，查看改进效果，纠正、禁用或撤销不合适的改动 |
+| 长期可用 | 完善启用引导、能力状态、中断恢复和升级，通过核心案例与连续试用 |
+
+以上是规划中的交付范围，复用现有记忆、调度、会话和技能能力逐步建设，尚未完成整体验收，发布日期未定。下文介绍当前产品的使用方式。
+
+[产品愿景](docs/VISION.md) · [分阶段开发功能表](docs/ROADMAP.md) · [1.0 产品定义与验收案例](docs/prd/2026-09-09-nextclaw-1-0.prd.md) · [现状与差距](docs/prd/2026-09-09-nextclaw-1-0-gap-analysis.md)
 
 ## 为什么选择 NextClaw
 
@@ -216,8 +231,8 @@ pnpm run screenshots:refresh
 - [模型选择](https://docs.nextclaw.io/zh/guide/model-selection)
 - [命令参考](https://docs.nextclaw.io/zh/guide/commands)
 - [飞书接入](https://docs.nextclaw.io/zh/guide/tutorials/feishu)
-- [产品愿景](https://docs.nextclaw.io/zh/guide/vision)
-- [路线图](https://docs.nextclaw.io/zh/guide/roadmap)
+- [产品愿景](https://docs.nextclaw.io/zh/project/vision)
+- [1.0 路线图](https://docs.nextclaw.io/zh/project/roadmap)
 - [版本更新](https://nextclaw.io/zh/releases/)
 
 仓库内规划：[Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)

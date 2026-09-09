@@ -1,6 +1,8 @@
 # nextclaw
 
-Turn your computer into a powerful AI assistant that coordinates agents, skills, CLI tools, automations, and messaging apps.
+NextClaw aims to be your proactive, continuously improving, long-term AI partner. Today, it brings conversations, agents, skills, CLI tools, automations, and messaging apps together to help you discuss questions and complete work.
+
+The [1.0 roadmap](https://docs.nextclaw.io/en/project/roadmap) covers user understanding, proactive analysis and conversation, self-improvement, and reliable long-term use. These are planned outcomes; full acceptance testing is not complete, and no release date is set.
 
 ## Install
 
