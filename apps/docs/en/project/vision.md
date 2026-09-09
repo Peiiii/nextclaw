@@ -2,115 +2,64 @@
 
 **NextClaw, your long-term personal AI partner.**
 
-NextClaw's long-term vision is to become the personal operating layer for the AI era.
+NextClaw has one fundamental mission: to be a good long-term partner to its user. We aim to build a proactive AI partner that continuously improves itself to fulfill that mission.
 
-It is not a traditional operating system kernel. It is the default entry point through which users interact with software, the internet, systems, services, and cloud computing.
+This vision describes the product we want to build; it does not mean every capability is available today. See the [Roadmap](/en/project/roadmap) for scope and milestones.
 
-This is the public documentation version of the vision and should stay aligned with the canonical repository document at `docs/VISION.md`.
+## Understanding What Matters to You
 
-## What It Is Really Trying to Build
+We want NextClaw to develop an ongoing understanding of your goals, plans across different time horizons, preferences, circumstances, and current state, using that understanding to make sense of the task at hand.
 
-NextClaw is not trying to become "an AI product with many features." It aims to become a native AI entry point that is unified, natural, powerful, and trustworthy enough to be used every day.
+You can ask it to handle a piece of work or discuss something you have not yet figured out, develop plans, follow progress, and adjust when circumstances change. Its role as your partner continues after an individual task ends.
 
-In the ideal state, users do not first think, "Which app, website, or service should I open?" They start with NextClaw, express the goal, and let NextClaw understand the intent, call tools, connect services, orchestrate the workflow, and deliver the result.
+That understanding needs to stay current and be open to correction. You remain in charge of your goals, pace, and how much you want it to participate.
 
-If traditional operating systems defined how people use computers, NextClaw wants to help define how people use the digital world in the AI era.
+## Taking Initiative at the Right Time
 
-## How to Read This Vision
+NextClaw should respond to your requests and use relevant context and changes to judge when to ask a question, offer a reminder or suggestion, or act within your authorization.
 
-"Personal operating layer" is the top-level goal, but it is not an empty slogan. To make it real, NextClaw needs several threads to hold at the same time.
+For example, when a change could affect a plan you are pursuing, it could bring that change up for discussion. When nothing needs your attention, staying quiet can be the right choice.
 
-### 1. Unified Entry Point
+It should also analyze what it already knows, notice conflicts between your goals and plans, compare the tradeoffs of different options, or reach out with a question worth discussing. A useful new insight can warrant a conversation even when nothing external has changed. Helping you think something through, plan ahead, or learn something important can be a complete contribution without leading to a task or tool call.
 
-NextClaw should become a unified entry point, not just one more parallel tool.
+Initiative is valuable when it helps you. Sending more messages, obtaining more permissions, or collecting more data does not by itself make it a better partner.
 
-- users should increasingly start with NextClaw when they want to get something done
-- software, services, channels, devices, and cloud resources should be brought together through NextClaw
-- it should grow into a default workspace for workflows, conversations, and information flows
+## Improving Itself to Be a Better Partner
 
-A unified entry point does not mean a GUI-only product. When an operation can be expressed clearly from a terminal, NextClaw aims to expose it through the `nextclaw` CLI so users, developers, scripts, CI jobs, and Agents can work with the same product capabilities. Visual and direct-manipulation experiences can remain UI-first.
+NextClaw should learn from experience, outcomes, and your feedback to identify weaknesses, correct its understanding of you, improve its timing and methods, and reduce repeated mistakes.
 
-### 2. Capability Orchestration
+It should be able to identify opportunities to improve without waiting for you to point out every problem. Its improvement does not require you to grow alongside it or serve independent interests of its own. Its purpose remains to be a better partner to you.
 
-NextClaw does not create value by rebuilding every tool itself. It creates value by connecting, coordinating, and composing the software, systems, services, and compute that already exist.
+We want these improvements to be observable, correctable, and reversible when needed, so you can understand and control changes that affect you.
 
-- translating user intent into executable workflows
-- calling tools, connecting services, and organizing multi-step tasks
-- converging multiple models, channels, plugins, and runtime environments into one understandable experience
+## Providing Practical Help
 
-The direction is "unified entry point plus orchestration," not "feature landfill."
+A long-term partner needs to get real work done. NextClaw will continue developing the following capabilities to support that responsibility.
 
-### 3. Self-Awareness and Self-Governance
+### A Unified Entry Point and Capability Orchestration
 
-We can fold the old "self-knowledge" idea into a broader notion of self-awareness, then pair it with self-governance.
+Use natural language and consistent controls to work with software, connect services, call tools, and complete multi-step work, with less switching between tools and repeating background information.
 
-- knowing who it is: identity, version, rules, capability boundaries, and tool boundaries
-- knowing its own system state: configuration, runtime state, health, and service connections
-- knowing who it is working for: the user, preferences, and recurring patterns
-- knowing what context it is in: session, project, channel, device, and runtime environment
-- knowing what it has done, how things went, and where errors came from
-- being able to perform key management actions through tools, such as config changes, channel control, task management, extension management, diagnostics, and recovery
+Where an operation can be expressed clearly in structured form, NextClaw aims to expose it through the `nextclaw` CLI so users, developers, scripts, CI jobs, and Agents can use the same product capabilities. Visual operations can remain available through the interface.
 
-The goal is not to mythologize the agent. The goal is to let users understand and control NextClaw itself through natural language and a unified control surface.
+### Self-Awareness and Self-Governance
 
-### 4. Self-Evolution
+Help NextClaw understand its capabilities, runtime state, connections, outcomes, and failures, and perform configuration, extension management, diagnostics, and recovery within its authorization.
 
-NextClaw cannot remain a static entry point. It should develop a governable, accumulative, reusable ability to improve over time.
+These capabilities support reliable work and help you understand what it is doing. Judging whether to take initiative also requires understanding your goals and circumstances.
 
-- learning from mistakes instead of repeating them
-- reflecting on user feedback, task outcomes, and failure replays
-- improving execution strategies, tool discipline, context organization, and memory structures
-- turning repeated experience into longer-lived user preferences, project knowledge, procedural memory, and skill memory
-- becoming more like "this user's own operating layer" as usage grows
+### Extensions and Digital Resources
 
-### 5. Plugin-Based Extensibility and Ecosystem Growth
+Use plugins, skills, and service connections to extend what your partner can do as needed. Work with files, local systems, the internet, and cloud resources to gather information and deliver results.
 
-A personal operating layer cannot grow by inflating the core forever. It needs a stable core plus an expansion ecosystem.
+Stable protocols, runtimes, and SDKs support composition and reuse. The existing NCP infrastructure continues to support the product.
 
-- the core runtime, plugin SDK, and channel protocols should converge toward stable boundaries
-- long-term capability expansion should increasingly come through plugins, skills, and the marketplace
-- users and developers should be able to form a loop of use -> build -> share -> discover
+### Easy to Start and Keep Using
 
-### 6. Digital World Infrastructure
+Help you understand what you can ask of your partner, provide the necessary background, and manage permissions when getting started. Reduce the configuration and maintenance needed for ongoing use.
 
-NextClaw is not just a chatbot. It aims to become a general operating infrastructure for users in the digital world.
+## Relationship to the Personal Operating Layer
 
-- understanding and using the host system, local services, filesystems, and hardware resources
-- connecting to internet data sources, APIs, and cloud computing resources
-- giving users a more unified way to work with data scattered across many systems
+The personal operating layer for the AI era remains an important direction for NextClaw: connecting software, the internet, systems, services, and cloud computing so your partner can take practical action.
 
-### 7. Out-of-the-Box Experience
-
-If NextClaw is meant to become a personal operating layer, it cannot work only for advanced users. It must also be easy to activate for new users.
-
-- users should quickly understand what it can do on first launch
-- important scenarios should support one-click setup and activation
-- the path from learning to installing to first successful use should be short and smooth
-
-## The Product Level We Aim For
-
-The goal is a product important enough to become:
-
-- the user's first entry point
-- a unified layer above software, services, platforms, and compute
-- a place where users express intent more and switch tools less
-- a continuous workspace that does not feel like amnesia every turn
-- a trustworthy default working surface
-- an operating layer that becomes more useful over time
-
-## What This Does Not Mean
-
-This vision does not mean:
-
-- stuffing every possible capability into a monolithic product
-- rebuilding everything ourselves
-- piling on isolated features just to appear powerful
-- shipping a chat shell that cannot actually orchestrate the real world
-- turning "self-awareness" into mystical language without real system capabilities behind it
-- turning "self-evolution" into an uncontrollable black-box self-modifying system
-
-## Relationship with NCP
-
-`NextClaw` is the productized operating layer facing end users. `NCP` is the protocol, runtime, and building-block foundation beneath it.
-
-You can think of NCP as the infrastructure base, and NextClaw as the productized entry point for real users.
+It is a way to support the partner's mission. Product progress ultimately depends on whether NextClaw understands you better, works more reliably, participates at the right time, and better supports what matters to you.

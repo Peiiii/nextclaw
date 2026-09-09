@@ -22,7 +22,7 @@ If you are here to get value quickly, start with:
 
 - [Project Pulse](/en/project/project-pulse): the public dashboard for shipping rhythm, code growth, release cadence, and automated screenshots.
 - [Vision](/en/project/vision): what NextClaw is trying to become over the long term.
-- [Roadmap](/en/project/roadmap): current priorities and next-stage directions.
+- [1.0 Roadmap](/en/project/roadmap): planned features and acceptance requirements across understanding the user, taking initiative, self-improvement, and reliable long-term use.
 - [Release Notes](/en/project/release-notes): recent public updates written from user value first.
 - [Blog](/en/blog/): short essays about product advantages, design trade-offs, and the thinking behind NextClaw.
 - [Community](/en/project/community): GitHub, notes, blog, and follow-up entry points.

@@ -10,7 +10,7 @@
 
 **Your long-term personal AI partner.**
 
-Tell NextClaw what you want done. It brings the conversation, files, tools, and generated results into one workspace—and keeps working until there is something useful to deliver.
+NextClaw's mission is to be a good long-term partner to you. We are building toward a 1.0 that understands you, takes useful initiative, and continuously improves itself. Today, you can use it to discuss questions, analyze material, complete work, and follow up through scheduled tasks.
 
 </div>
 
@@ -29,6 +29,23 @@ Tell NextClaw what you want done. It brings the conversation, files, tools, and 
 Open source · Local-first · macOS, Windows, Linux, Docker, and cloud VMs
 
 </div>
+
+## Toward 1.0
+
+The goal for 1.0 is to **deliver a long-term AI partner that understands you, takes useful initiative, and continuously improves itself.** Initiative includes independent analysis, planning, sharing relevant information, and starting a conversation, as well as acting within your authorization.
+
+| Stage | Planned delivery |
+| --- | --- |
+| Understand you and your goals | Organize user background, review and correct memory, manage personal goals and plans, and use current understanding in new conversations and background work |
+| Proactive analysis and conversation | Identify ongoing interests, analyze and plan in the background, control timing, start and continue discussions, and act and follow up when appropriate |
+| Continuous self-improvement | Reflect on results and feedback, apply experience, inspect its effects, and correct, disable, or reverse unsuitable changes |
+| Reliable long-term use | Improve setup, capability status, recovery, and upgrades; pass core acceptance cases and continuous user trials |
+
+This is planned scope, building on existing memory, scheduling, conversations, and skills. Full acceptance testing is not complete, and no release date is set. The sections below describe how to use the current product.
+
+[Public roadmap](https://docs.nextclaw.io/en/project/roadmap) · [Vision](https://docs.nextclaw.io/en/project/vision)
+
+Repository planning documents (Chinese): [Feature development table](docs/ROADMAP.md) · [1.0 definition and acceptance cases](docs/prd/2026-09-09-nextclaw-1-0.prd.md) · [Current capabilities and gaps](docs/prd/2026-09-09-nextclaw-1-0-gap-analysis.md)
 
 ## Why NextClaw
 
@@ -216,8 +233,8 @@ pnpm run screenshots:refresh
 - [Model Selection](https://docs.nextclaw.io/en/guide/model-selection)
 - [Commands](https://docs.nextclaw.io/en/guide/commands)
 - [Feishu Setup](https://docs.nextclaw.io/en/guide/tutorials/feishu)
-- [Vision](https://docs.nextclaw.io/en/guide/vision)
-- [Roadmap](https://docs.nextclaw.io/en/guide/roadmap)
+- [Vision](https://docs.nextclaw.io/en/project/vision)
+- [1.0 Roadmap](https://docs.nextclaw.io/en/project/roadmap)
 - [Product Updates](https://nextclaw.io/en/releases/)
 
 Repository planning: [Roadmap](docs/ROADMAP.md) · [TODO](docs/TODO.md)
