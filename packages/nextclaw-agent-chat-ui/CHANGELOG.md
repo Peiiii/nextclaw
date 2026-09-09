@@ -1,5 +1,13 @@
 # @nextclaw/agent-chat-ui
 
+## 0.9.0
+
+### Minor Changes
+
+- 9eeb274: Support inline and display LaTeX math in chat messages, including fractions, integrals, and matrices. Wide formulas scroll horizontally, and skill references continue to work alongside formulas.
+
+  Keep unfinished display formulas in a neutral pending state during generation, and show parsing errors only after generation ends.
+
 ## 0.8.0
 
 ### Minor Changes

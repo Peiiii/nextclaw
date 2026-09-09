@@ -1,5 +1,27 @@
 # nextclaw
 
+## 0.49.1
+
+### Patch Changes
+
+- Updated dependencies [ecf3f81]
+  - @nextclaw/kernel@0.17.0
+  - @nextclaw/ncp@0.11.0
+  - @nextclaw/remote@0.3.59
+  - @nextclaw/server@0.23.2
+  - @nextclaw/service@0.6.5
+  - @nextclaw/ncp-agent-runtime@0.4.24
+  - @nextclaw/ncp-mcp@0.2.47
+  - @nextclaw/ncp-toolkit@0.6.25
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.3.22
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.3.23
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.47
+  - @nextclaw/shared@0.5.2
+  - @nextclaw/app-runtime@0.16.4
+  - @nextclaw/core@0.17.20
+  - @nextclaw/mcp@0.3.47
+  - @nextclaw/runtime@0.4.46
+
 ## 0.49.0
 
 ### Minor Changes

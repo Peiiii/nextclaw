@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.17.20
+
+### Patch Changes
+
+- @nextclaw/shared@0.5.2
+
 ## 0.17.19
 
 ### Patch Changes

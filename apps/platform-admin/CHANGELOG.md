@@ -1,5 +1,11 @@
 # @nextclaw/platform-admin
 
+## 0.0.6
+
+### Patch Changes
+
+- @nextclaw/shared@0.5.2
+
 ## 0.0.5
 
 ### Patch Changes

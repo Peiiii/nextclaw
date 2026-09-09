@@ -1,5 +1,19 @@
 # @nextclaw/ui
 
+## 0.25.1
+
+### Patch Changes
+
+- Updated dependencies [9eeb274]
+- Updated dependencies [ecf3f81]
+  - @nextclaw/agent-chat-ui@0.9.0
+  - @nextclaw/ncp@0.11.0
+  - @nextclaw/ncp-http-agent-client@0.4.23
+  - @nextclaw/ncp-react@0.5.28
+  - @nextclaw/ncp-toolkit@0.6.25
+  - @nextclaw/client-sdk@0.12.2
+  - @nextclaw/shared@0.5.2
+
 ## 0.25.0
 
 ### Minor Changes
