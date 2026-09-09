@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react";
-import { ChatMessageMarkdown } from "../chat-message-markdown";
+import { ChatMessageMarkdown } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-markdown";
 
 const texts = { copyCodeLabel: "Copy", copiedCodeLabel: "Copied" };
 

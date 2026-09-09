@@ -155,7 +155,7 @@ export function createRemarkInlineTokenPlugin(
     const references: Extension = {
       text: {
         36: tokens.filter((token) => token.rawText.startsWith("$")).map((token) => ({
-          tokenize(effects, ok, nok) {
+          tokenize: (effects, ok, nok) => {
             let index = 0;
             return function consumeReference(code) {
               if (code !== token.rawText.charCodeAt(index)) {
