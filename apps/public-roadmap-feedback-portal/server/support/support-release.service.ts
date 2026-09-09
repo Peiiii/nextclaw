@@ -8,7 +8,7 @@ export class SupportReleaseService {
     const response = await fetch("https://api.github.com" + path, {
       headers: { Accept: "application/vnd.github+json", "User-Agent": "NextClaw-Feedback",
         ...(this.env.SUPPORT_GITHUB_TOKEN ? { Authorization: "Bearer " + this.env.SUPPORT_GITHUB_TOKEN } : {}) },
-      signal: AbortSignal.timeout(10000), redirect: "error"
+      signal: AbortSignal.timeout(10000), redirect: "manual"
     });
     if (!response.ok) reject(503, "暂时无法核实发布记录。");
     return await response.json() as Record<string, unknown>;

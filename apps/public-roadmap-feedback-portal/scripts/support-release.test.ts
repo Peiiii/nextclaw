@@ -1,6 +1,7 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { SupportReleaseService } from "../server/support/support-release.service.js";
+import { SupportAuthService } from "../server/support/support-auth.service.js";
 import type { SupportRelease } from "../shared/support-feedback.types.js";
 const originalFetch = globalThis.fetch;
 after(() => { globalThis.fetch = originalFetch; });
@@ -21,6 +22,18 @@ function responses(options: { target?: string; conclusion?: string; ancestor?: s
     return Response.json(data);
   }) as typeof fetch;
 }
+test("Worker-compatible requests reject redirects without forwarding credentials", async () => {
+  let calls = 0;
+  globalThis.fetch = (async (_input, init) => {
+    calls += 1;
+    assert.equal(init?.redirect, "manual");
+    return new Response(null, { status: 302, headers: { location: "https://untrusted.invalid" } });
+  }) as typeof fetch;
+  const auth = new SupportAuthService({ SUPPORT_PLATFORM_API_BASE: "https://platform.example" });
+  assert.equal(await auth.user("Bearer test-only"), null);
+  await assert.rejects(service.verify(release, fixed), /无法核实/);
+  assert.equal(calls, 2);
+});
 test("FB-11/12 independently verified npm release canonicalizes URL", async () => {
   responses();
   const verified = await service.verify(release, fixed);

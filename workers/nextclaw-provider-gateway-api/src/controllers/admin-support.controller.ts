@@ -23,13 +23,15 @@ export async function adminSupportHandler(c: Context<{ Bindings: Env }>): Promis
   if (body && new TextEncoder().encode(body).length > 16000) return apiError(c, 413, "PAYLOAD_TOO_LARGE", "评审内容过长。");
   try {
     const response = await fetch(url, {
-      method: c.req.method, body, redirect: "error", signal: AbortSignal.timeout(15000),
+      method: c.req.method, body, redirect: "manual", signal: AbortSignal.timeout(15000),
       headers: { authorization: "Bearer " + token, "content-type": "application/json" }
     });
+    if (response.status >= 300 && response.status < 400) return apiError(c, 503, "SUPPORT_UNAVAILABLE", "反馈服务不接受重定向。");
     return new Response(await response.text(), {
       status: response.status, headers: { "content-type": "application/json", "cache-control": "no-store" }
     });
-  } catch {
+  } catch (error) {
+    console.error("Support upstream request failed", error instanceof Error ? error.message : "Unknown transport error");
     return apiError(c, 503, "SUPPORT_UNAVAILABLE", "反馈服务暂时不可用，请稍后重试。");
   }
 }

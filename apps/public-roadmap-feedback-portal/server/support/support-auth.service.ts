@@ -10,7 +10,7 @@ export class SupportAuthService {
     if (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname)) return null;
     try {
       const response = await fetch(base + "/platform/auth/me", {
-        headers: { authorization }, signal: AbortSignal.timeout(5000), redirect: "error"
+        headers: { authorization }, signal: AbortSignal.timeout(5000), redirect: "manual"
       });
       if (!response.ok) return null;
       const data = await response.json() as { ok?: boolean; data?: { user?: { id?: unknown } } };
