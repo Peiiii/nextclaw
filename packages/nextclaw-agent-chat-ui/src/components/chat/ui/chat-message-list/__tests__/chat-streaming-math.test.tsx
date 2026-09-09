@@ -3,6 +3,35 @@ import { ChatMessageMarkdown } from "@agent-chat-ui/components/chat/ui/chat-mess
 
 const texts = { copyCodeLabel: "Copy", copiedCodeLabel: "Copied" };
 
+it("renders both delimiter families in the shared chat and document renderer", () => {
+  const view = render(<ChatMessageMarkdown text={String.raw`Inline $a$ and \(b\).
+
+$$
+c
+$$
+
+\[
+\frac{d}{2}
+\]`} role="assistant" texts={texts} />);
+  expect(view.container.querySelectorAll(".katex")).toHaveLength(4);
+  expect(view.container.querySelectorAll(".katex-display")).toHaveLength(2);
+  expect(view.container.querySelector(".katex-error")).toBeNull();
+});
+
+it("preserves code, escaped delimiters, links and surrounding Markdown", () => {
+  const view = render(<ChatMessageMarkdown text={String.raw`**bold** \(x_1\) [link](https://example.com)
+
+\`\(code\)\` and \\(literal\\)
+
+\`\`\`text
+\[code\]
+\`\`\``.replaceAll("\\`", "`")} role="assistant" texts={texts} />);
+  expect(view.container.querySelectorAll(".katex")).toHaveLength(1);
+  expect(view.container.querySelector("strong")?.textContent).toBe("bold");
+  expect(view.container.querySelector("a")?.getAttribute("href")).toBe("https://example.com");
+  expect(view.container.textContent).toContain("(literal");
+});
+
 it("does not color unsupported commands red during generation", () => {
   const view = render(<ChatMessageMarkdown text={"$\\notARealCommand$"} role="assistant" texts={texts} isStreaming />);
   expect(view.container.innerHTML).not.toContain("#cc0000");
@@ -12,6 +41,10 @@ it("does not color unsupported commands red during generation", () => {
 });
 
 it.each([
+  String.raw`\(\frac{1}{2}\)`,
+  String.raw`\[
+\begin{pmatrix}1&2\\3&4\end{pmatrix}
+\]`,
   "$$\n\\frac{1}{2}\n$$",
   "$$\n\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}\n$$",
   "```math\n\\frac{1}{2}\n```",

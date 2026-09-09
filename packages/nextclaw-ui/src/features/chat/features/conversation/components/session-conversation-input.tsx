@@ -458,12 +458,12 @@ export const SessionConversationInput = memo(function SessionConversationInput(p
         addMenuLabel: t('chatInputAdd'),
         leadingSlot: <>
           <IconActionButton icon={voice.phase === 'recording' ? <Square className='h-4 w-4' /> : <Mic className='h-4 w-4' />}
-            label={t(voice.phase === 'recording' ? 'chatInputVoiceFinish' : 'chatInputVoice')}
+            label={t(voice.phase === 'recording' ? 'chatInputVoiceSaveAndClose' : 'chatInputVoice')}
+            tooltip={voice.phase === 'recording' ? t('chatInputVoiceEscapeHint') : undefined}
             size='lg'
             disabled={inputDisabled || voice.phase === 'stopping'}
             aria-pressed={voice.phase === 'recording'}
-            onClick={() => voice.phase === 'recording' ? voiceManager.finish()
-              : voice.phase === 'starting' ? voiceManager.cancel() : startVoice()} />
+            onClick={() => voice.phase === 'recording' || voice.phase === 'starting' ? voiceManager.saveAndClose() : startVoice()} />
         </>,
         selects: [],
         trailingSelects: toolbarSelects,

@@ -14,6 +14,7 @@ import {
 } from "./landing-route-pages.utils";
 import { PROACTIVE_DELIVERY_COPY } from "./landing-proactive-delivery.config";
 import { LINKS } from "./landing-route.utils";
+import { renderScreenshot } from './landing-images.utils';
 import { renderInteractiveArtifactShowcase } from "./utils/interactive-artifact.utils";
 
 function renderProactiveDeliveryShowcase(
@@ -48,7 +49,7 @@ function renderProactiveDeliveryShowcase(
               <strong>${showcase.inboxTitle}</strong>
             </figcaption>
             <div class="proactive-delivery-media proactive-delivery-media--inbox">
-              <img src="${showcase.inboxImageSrc}" alt="${showcase.inboxImageAlt}" loading="lazy" />
+              ${renderScreenshot(showcase.inboxImageSrc, showcase.inboxImageAlt)}
             </div>
           </figure>
 
@@ -58,7 +59,7 @@ function renderProactiveDeliveryShowcase(
               <strong>${showcase.notificationTitle}</strong>
             </figcaption>
             <div class="proactive-delivery-media proactive-delivery-media--notification">
-              <img src="${showcase.notificationImageSrc}" alt="${showcase.notificationImageAlt}" loading="lazy" />
+              ${renderScreenshot(showcase.notificationImageSrc, showcase.notificationImageAlt)}
             </div>
           </figure>
         </div>
@@ -97,7 +98,6 @@ export function renderHomeSections(
           ${renderShowcaseCards(copy.appSurfaceItems, {
             cardClass: (index) =>
               `app-surface-card ${index < 2 ? "app-surface-card--feature" : "app-surface-card--compact"}`,
-            eagerCount: 2,
           })}
         </div>
       </div>
@@ -185,7 +185,7 @@ export function renderHomeSections(
       </div>
       <div class="max-w-sm mx-auto">
         <a href="${LINKS.wechatGroupImage}" target="_blank" rel="noopener noreferrer" class="glass-card rounded-2xl p-6 flex flex-col items-center gap-4 hover:-translate-y-1 transition-transform focus:ring-2 focus:ring-primary focus:outline-none">
-          <img src="${LINKS.wechatGroupImage}" alt="${copy.communityWechatLabel}" class="w-40 h-40 object-contain rounded-lg" />
+          <img src="${LINKS.wechatGroupImage}" alt="${copy.communityWechatLabel}" class="w-40 h-40 object-contain rounded-lg" loading="lazy" decoding="async" width="160" height="160" />
           <span class="font-medium text-foreground">${copy.communityWechatLabel}</span>
           <span class="text-sm text-muted-foreground">${copy.communityScanHint}</span>
         </a>

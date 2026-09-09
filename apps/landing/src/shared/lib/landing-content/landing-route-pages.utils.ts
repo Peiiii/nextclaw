@@ -6,14 +6,14 @@ import type {
   ShowcaseItem
 } from './landing-content.types';
 import { LINKS } from './landing-route.utils';
+import { originalScreenshot, renderScreenshot } from './landing-images.utils';
 
 export function renderShowcaseCards(
   items: ShowcaseItem[],
-  options: { cardClass?: (index: number) => string; eagerCount?: number } = {}
+  options: { cardClass?: (index: number) => string } = {}
 ): string {
   return items.map((item, index) => {
     const cardClass = options.cardClass ? ` ${options.cardClass(index)}` : '';
-    const loading = index < (options.eagerCount ?? 1) ? 'eager' : 'lazy';
 
     return `
       <article class="showcase-card${cardClass}">
@@ -22,8 +22,8 @@ export function renderShowcaseCards(
           <h3 class="showcase-card__title">${item.title}</h3>
           <p class="showcase-card__description">${item.description}</p>
         </div>
-        <a href="${item.imageSrc}" target="_blank" rel="noopener noreferrer" class="showcase-card__media">
-          <img src="${item.imageSrc}" alt="${item.imageAlt}" class="showcase-card__image" loading="${loading}" />
+        <a href="${originalScreenshot(item.imageSrc)}" target="_blank" rel="noopener noreferrer" class="showcase-card__media">
+          ${renderScreenshot(item.imageSrc, item.imageAlt, { className: 'showcase-card__image' })}
         </a>
       </article>
     `;
@@ -55,17 +55,12 @@ export function renderRuntimeShowcase(showcase: RuntimeShowcase): string {
         </div>
 
         <a
-          href="${showcase.imageSrc}"
+          href="${originalScreenshot(showcase.imageSrc)}"
           target="_blank"
           rel="noopener noreferrer"
           class="runtime-showcase-media"
         >
-          <img
-            src="${showcase.imageSrc}"
-            alt="${showcase.imageAlt}"
-            class="runtime-showcase-image"
-            loading="eager"
-          />
+          ${renderScreenshot(showcase.imageSrc, showcase.imageAlt, { className: 'runtime-showcase-image' })}
         </a>
       </div>
     </section>
@@ -151,7 +146,7 @@ export function renderLandingHomeHero(
         ${renderHomeHeroActions(copy, downloadRoute, useCasesRoute)}
       </div>
       <figure class="landing-hero__product animate-slide-up opacity-0" style="animation-delay: 0.48s">
-        <img src="${copy.screenshotChatSrc}" alt="${copy.heroScreenshotAlt}" class="landing-hero__product-image" loading="eager" />
+        ${renderScreenshot(copy.screenshotChatSrc, copy.heroScreenshotAlt, { className: 'landing-hero__product-image', hero: true })}
       </figure>
     </section>
   `;
@@ -285,7 +280,7 @@ export function renderIntegrationsPage(copy: LandingCopy, downloadRoute: string,
   return `
     <section class="w-full max-w-7xl mx-auto text-left animate-slide-up opacity-0" style="animation-delay: 0.35s">
       <div class="integration-showcase-grid">
-        ${renderShowcaseCards(copy.integrationShowcaseItems, { eagerCount: 2 })}
+        ${renderShowcaseCards(copy.integrationShowcaseItems)}
       </div>
     </section>
     <section class="w-full max-w-7xl mx-auto mt-14 text-left animate-slide-up opacity-0">
