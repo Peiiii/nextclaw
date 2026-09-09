@@ -7,11 +7,15 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 
 ## 目标
 
-以最少充分证据验证真实风险；新增验证必须排除不同失败类型。
+用充分证据覆盖风险，避免重复验证。
 
 ## AI 验收（mode=acceptance）
 
-实现稳定后对照预先设计的验收标准/矩阵，逐项核对用户结果、真实证据入口与版本，标记 passed、failed 或 unverified；已有有效测试可复用，测试数量不能替代结果覆盖。active contract 同步 stable acceptance IDs。发现标准漏项则返回设计补齐，不能按已实现结果降低标准。输出 acceptance-ready 或具体缺口，交回总流程结合实现 Review 决定交付；不宣称用户验收通过。
+实现稳定后按原始需求及已确认变更逐项核对“用户结果 → 产物/真实入口 → 当前证据”，标记 passed/failed/unverified，同步已有验收账本及 stable IDs。沿约定角色、触发到最终结果验证，区分真实运行与演练；复用有效证据，测试数量或局部记录不能证明完整覆盖。
+
+缺实现/证据返回对应阶段继续循环；标准漏项返回设计，不按已实现部分缩减需求。仅缺授权/外部依赖时完成可做准备并报告阻塞。阶段验收须用户明确约定。
+
+必需项全部有效通过才输出 acceptance-ready，附范围、证据与主观确认项；总流程结合 Review 进入 Delivery。Delivery只消费结论和交接，不重做需求验收；不宣称用户验收通过。
 
 ## 风险分级
 
@@ -54,7 +58,7 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 - 触达 Desktop 内嵌 Runtime 的文件集合、native resources、bundle 复制规则或产物预算：开发收尾先在当前平台运行一次 `pnpm -C apps/desktop bundle:build -- --channel stable`，用本地 bundle 的文件数、缺失资产和产物形状作快速门；通过后才运行远端多平台 Desktop 验证。不得等正式发布首次发现这类确定性打包错误。
 - 对指定 session/model 执行真实 NCP chat：读取[NCP Chat 冒烟](references/ncp-chat-smoke.md)。
 
-一次只选择当前风险需要的环境参考。
+仅读当前风险所需参考。
 
 ## 执行节奏
 
@@ -62,8 +66,7 @@ description: 通用开发生命周期的「验证与测试」阶段 owner；当�
 - 相关实现未变化时，不重复运行已经通过的同一验证。
 - 自主验收按预定标准完成可控验证，不因用户离线升级全套端到端；浏览器仅证明低成本证据无法覆盖的风险。环境缺口披露，不能冒充通过或阻断其余可做工作。
 - 目标能力的实现或装配链路继续变化后，旧证据立即失效。
-- TypeScript 源码、类型声明、导入导出或运行链路触达时，tsc 必跑，测试和 lint 不能替代。
-- 源码、脚本、测试或运行链路配置触达时，targeted ESLint 默认必跑；package lint 只在影响面或合同要求时追加。
+- 按上述风险分级和 AGENTS 执行 tsc/lint，不以测试替代类型检查。
 - `lint:new-code:governance` 只在新增/移动/重命名文件、改变 owner/目录/跨包依赖、触达治理敏感规则或提交前运行。
 - `check:governance-backlog-ratchet` 只在治理规则、baseline、相关脚本变化或提交/发布闭环时运行。
 - 长日志只保留结论、失败切片和 artifact 路径。

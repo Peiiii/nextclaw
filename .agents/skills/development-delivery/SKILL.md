@@ -24,7 +24,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 轻量交付
 
-用户要求交付验收，或用户可见变化需实际操作确认时，执行[用户验收交付](references/user-acceptance.md)。
+用户验收交付须有当前范围的有效 AI 验收结论，再按[用户验收交付](references/user-acceptance.md)准备交接。
 
 没有外部发布授权时也要完成：
 
