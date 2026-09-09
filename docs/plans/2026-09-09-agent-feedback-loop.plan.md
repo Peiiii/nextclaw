@@ -1,80 +1,87 @@
 # 用户反馈闭环执行计划与验收账本
 
-- active-contract / contract-id：agent-feedback-loop-20260909
-- parent-goal：用户无需外部登录，由 AI 通过 CLI 管理反馈；原平台评审，维护 Codex 处理并回评。
-- scope-revision：4。2026-09-10 用户明确三端结构、代码提醒、Codex 直接 CLI 回写与本地 skill 路径；最新纠偏要求长期维护端使用私有 package。原会话主动通知为可选，已撤除默认 AI 定时查询。
-- flow：standard；风险 L3；task-id：dt-a9f03c72。
-- worktree：/Users/peiwang/Projects/nextbot-agent-feedback-loop；branch：codex/agent-feedback-loop。
-- 设计：[当前冻结方案](../designs/2026-09-09-agent-feedback-loop.design.md)。
-- 授权：用户已明确授予本任务提交、主干集成推送、部署和NPM/runtime发布及正式验收权限；无关WIP和Desktop仍排除。旧的“待发布授权”说明为历史边界，当前继续执行真实发布验证。
+- active-contract：agent-feedback-loop-20260909；scope-revision：4；风险：L3。
+- 完整目标：用户 AI/CLI 提交和管理个人反馈 → 原管理平台分类与审批 → 私有维护应用提醒 Codex → Codex 经 CLI 修复并回写 → 同批正式发行 → 用户 AI 查询原反馈结果。
+- 用户已授权本任务提交、主干集成推送、部署、NPM/runtime 发行和正式验收；无关 WIP、Desktop 二进制发行不在范围内。
+- 设计：[冻结方案](../designs/2026-09-09-agent-feedback-loop.design.md)。
+- 版本：NextClaw 0.50.0；发行提交：7e2dde431872ff289d7471da4c89eb467b80bbfe。
+- AI 验收结论：acceptance-ready。18 个必需项均有有效证据；FB-18 为已确认可选项，不默认启用。状态为待用户验收，不代表用户已验收通过。
 
-## 当前阶段
+## 完整交付对象
 
-发布前只读核验：release.yml通过actionlint；反馈服务13项测试通过。既有生产发布路径为GitHub Actions release.yml，最近成功证据run34245612525。stable dry-run识别当前待发布依赖闭包（29个NPM包、41个验证package），仅为计划，不是已冻结发行物；工作区有未提交改动，尚不能dispatch。真实发行须先获得提交/集成/推送/部署发布授权，再精确冻结本任务范围并沿既有发布owner执行，不把dry-run写成真实发布通过。未进行任何远程mutation。
+| 角色 | 已交付能力 | 真实入口 |
+| --- | --- | --- |
+| 用户 AI | 已发布的 feedback CLI、自管理 skill 索引、匿名回执、个人查询与补充；无需 GitHub 登录 | 下方 0.50.0 正式安装版会话 |
+| 管理员 | 原平台身份登录、待评审队列、补充/不处理/撤销、修复与发布独立审批 | 原 Platform Admin 的用户反馈页 |
+| 维护者 | private workspace package；代码轮询、去重提醒、实际 Codex 执行、本地随包 skill 路径；Codex 自行调用维护 CLI | apps/feedback-maintainer，运行配置与凭据仅在本机 .local |
+| 发行与反馈闭环 | 原 release workflow、平台独立核验发行证明、同一版本发布两项真实修复、原反馈回评及安装验证 | release run 34387275723、两条原始报告 |
 
-整体尚未具备最终验收条件。用户未授权把局部成果作为阶段性交付；当前记录是交付对账，不是整体已交付声明。私有 package 承载应用生命周期，反馈客户端归 CLI 应用服务，kernel 不包含反馈概念。原生产 scripts 入口已删除。
+平台是业务状态的唯一 owner；维护器不代写模板结果，kernel 不引入反馈概念。修复子进程不获得无限提交/发布权限；本轮发行由当前维护 Codex 在用户授权及独立发布审批后执行既有发行入口。未引入 Docker 或 AI 定时扫描。
 
-真实记录：17099dac-d89f-48b2-b31f-ad167914c0dc，标题“维护CLI闭环验收：反馈能力发现”。私有 package 自动发现批准→实际 Codex 经 CLI claim→comment→限定修复→验证→result ready，用户 CLI 已读回。UTC 2026-09-09 16:52:58 批准，16:56:27 ready；revision 5，attempts 1。外层只记录 agent-exited，未代写结果。
+## 正式验收入口与步骤
 
-产物：/Users/peiwang/Projects/nextbot-feedback-cli-acceptance/packages/nextclaw-core/src/features/agent/shared/skills/nextclaw-self-manage/SKILL.md，仅两个发现字段修改。无 commit/push/发布。早期外层代回写的 be5284d8 记录仅是历史证据，不能证明当前链路。
+1. 打开 [正式安装版 AI 会话](http://127.0.0.1:55668/chat/sid_ZmVlZGJhY2stZm9ybWFsLWFjY2VwdGFuY2UtMjAyNjA5MTA)。已完成真实查询，也可问“我的那两条反馈发布到哪个版本了？”预期由 AI 自行查询，回答两条均已发布到 0.50.0。
+2. 打开 [管理平台已结束队列](https://platform-admin.nextclaw.io/?feedback=closed&q=&page=1&pageSize=10#/support)，沿用现有管理账号。查看下面两条真实问题的审批、修复证据、发布链接及最终回评，预期都为已发布 0.50.0。
+3. 用户主要确认评审操作、信息组织及 AI 答复是否符合预期；无需重新填表、运行命令或承担功能排障。
 
-## Active acceptance ledger
+验收 AI 实例使用从 Registry 安装的 0.50.0，并通过正常 launcher 下载/启动官方 runtime；独立 home 使用现有 DeepSeek 配置和导入的个人回执。AI 会话及维护进程依赖本机在线；平台已部署，不承诺本机休眠时执行修复。
 
-| ID | Required | 合同 | Status / 证据与限制 |
+## 两项真实修复
+
+| 报告 | 修复与触发证据 | 最终状态 |
+| --- | --- | --- |
+| 1a946c86-acf5-4f3a-8b61-75db7d3dd908：反馈命令携带受影响版本时没有提交反馈 | 真实管理员批准 → 私有应用唤醒 Codex → CLI claim → 修复 --affected-version 及中英文指南 → 验证 → CLI result；修复提交 58b940138073a8a83925f40201df9232bd6eb0de，提醒记录 agent-exited | published，revision 7，0.50.0，4 条回复 |
+| f60f303c-61e9-4468-94b8-4530dd14326b：正式后台反馈接口因Workers重定向选项不可用 | 当前维护 Codex 修复实际生产 503、部署复验并经 CLI 回写；修复提交 41194a8d881fc70c7a29d79464f35646700fbd99 | published，revision 7，0.50.0，4 条回复 |
+
+两条均由真实管理平台独立批准发布，再通过正式安装版维护 CLI 关联修复 SHA、提交同一真实发行证明和各自回复。平台独立核验 workflow、tag、提交包含关系和四平台资产。对第一条重复相同 publish 操作，revision 与评论数不变。
+
+## 原始需求逐项对账
+
+| ID | Required | 用户结果/合同 | AI 验收证据与判定 |
 | --- | --- | --- | --- |
-| FB-01 | true | 匿名提交和再次查看 | 本地通过：真实匿名回执、服务重启持久化；新真实记录用户 CLI 读回。 |
-| FB-02 | true | 身份验证、过期及伪造 | 合同测试通过：受控认证服务拒绝伪造/过期关联。生产身份接入未实测。 |
-| FB-03 | true | 私密报告隔离 | 测试通过：公开编号及其它账号不能读，公开列表不含私密记录。 |
-| FB-04 | true | 丢响应重试与回执恢复 | 本地通过：requestId/opId 幂等、导出导入再读取；客户端现归 CLI 应用。 |
-| FB-05 | true | 严重度、身份、防饥饿 | 私有包队列测试通过，身份不授予权限。 |
-| FB-06 | true | 分页、恢复、重叠扫描与代码唤醒 | 分页/SQLite/并发 claim 既有测试通过；新 worker 测试与真实 Codex 唤醒通过。无需 heartbeat。 |
-| FB-07 | true | 新证据与维护评论区别 | 测试通过：新增输入使批准失效，维护回复不重排队，伪造 role 无效。 |
-| FB-08 | true | 中断、额度、撤回 | 通过：次数、时间上限，撤销取消、旧代次拒写、显式恢复；未实现 token 数量硬预算。 |
-| FB-09 | true | 实际低风险修复并由 Codex 自己回写 | 通过：当前真实记录 claim/comment/result 与实际两字段 diff，用户 CLI 读回。 |
-| FB-10 | true | 两修复一批及正式批次发布 | 部分验证：提交映射/额外提交阻断测试通过；正式合入及 dispatch 未执行，待发布授权。 |
-| FB-11 | true | 部分发行失败与幂等回评 | 受控外部响应测试通过，非正式发行证据。 |
-| FB-12 | true | 渠道回写、复验失败重新处理 | 合同测试通过；真实新发行安装未验证。 |
-| FB-13 | true | 滥用及运行权限边界 | HTTP限流/大小/认证与路径策略已测；仅管理员审阅后的受控执行，OS级私密读取隔离未实现，不开放陌生输入全权限无人值守。 |
-| FB-14 | true | 旧公开与新私密共存 | 本地通过，未替换线上服务。 |
-| FB-15 | true | 原管理平台身份审批 | 真实平台登录、普通用户403、无身份401、管理员批准/领取/撤销拒写及刷新会话已通过。 |
-| FB-16 | true | 高效评审 | 真实UI通过：列表详情、搜索分页、连续下一条、撤销、发布确认取消、刷新恢复和窄屏返回。 |
-| FB-17 | true | 用户 AI 实际提交及个人查询 | 实际 NextClaw AI 使用 DeepSeek 提交 be5284d8；新反馈通过用户 CLI 读取真实 Codex 结果。默认 MiniMax429未冒充通过，未改全局模型。 |
-| FB-18 | false | 原会话主动定时通知 | 用户后续三端需求确认其为可选；旧 AI heartbeat 已暂停，测试 cron 已清理，不默认消耗模型 token。 |
-| FB-19 | true | 人无需代替 AI 操作或排障 | 当前原管理平台同一反馈记录可验收，AI 已完成提交、修复与回写；正式上线边界明确。 |
+| FB-01 | true | 匿名提交、持久化与再次查看 | passed：生产匿名原单；正式安装 CLI 提交/读回；本地重启持久化验证。 |
+| FB-02 | true | 已登录身份关联，伪造/过期不冒充身份 | passed：真实本地平台签名身份与受控认证合同验证，伪造/过期拒绝关联、匿名降级。生产普通账号关联未额外重演，不把该路径写成生产实测。 |
+| FB-03 | true | 私密报告隔离 | passed：合同验证其它账号拒绝读取；生产公开列表不含两条私密报告，无回执读取返回 404。 |
+| FB-04 | true | 丢响应重试、回执恢复 | passed：requestId/opId 合同；生产两条回执经 CLI export/import 恢复到正式安装实例并查询。 |
+| FB-05 | true | 严重度、身份排序和防饥饿 | passed：队列定向测试；身份不授予执行权限，分类不能自行批准修复。 |
+| FB-06 | true | 分页、恢复、并发与代码触发 | passed：分页、SQLite、并发 claim 测试；生产实际 Codex 被唤醒；空队列路径不调用模型。 |
+| FB-07 | true | 新用户证据使批准失效，维护评论不循环触发 | passed：输入版本/角色/审批测试；生产回评后无新增修复提醒。 |
+| FB-08 | true | 中断、次数限制、撤销和显式恢复 | passed：时间/次数上限与取消测试，真实平台撤销后旧执行拒写。未承诺 token 数硬预算。 |
+| FB-09 | true | Codex 实际修复并自行写回 | passed：上述生产 CLI bug 的实际代码 diff、验证证据与 result；外层只记执行状态。 |
+| FB-10 | true | 两项修复同一批正式发行 | passed：两 SHA 都进入 0.50.0；两单平台独立核验同一 run 34387275723；额外提交阻断另有批次测试。 |
+| FB-11 | true | 部分失败恢复与幂等回评 | passed：真实发行失败后仅重跑失败项；NPM 未重复上传。生产相同 publish 操作重复调用不增加评论或 revision。 |
+| FB-12 | true | 渠道、安装与复验失败再处理 | passed：四平台 runtime、原 stable 升级、正式包安装和真实 CLI 提交；补充输入重新进入处理的合同测试。 |
+| FB-13 | true | 滥用与运行权限边界 | passed：限流、大小、认证及路径策略验证。仅适用于管理员审阅后的受控维护，不声称 OS 级私密文件读取隔离。 |
+| FB-14 | true | 原公开与新私密反馈共存 | passed：已部署，生产原公开接口 200，私密报告不进入公开列表。 |
+| FB-15 | true | 接入原管理平台审批 | passed：本地真实登录、401/403、撤销与刷新；生产真实管理员完成两单修复和发布审批。 |
+| FB-16 | true | 高效人工评审体验 | passed：真实 UI 列表/详情、搜索分页、连续处理、发布确认、刷新及窄屏返回；总览仍在反馈之前。体验偏好待用户确认。 |
+| FB-17 | true | 用户 AI 提交与个人查询 | passed：前序真实 NextClaw AI 提交；本轮正式安装版 native + DeepSeek 通过真实 SSE 自行发现 skill、调用 CLI 查询生产原单并报告 0.50.0，run.finished。 |
+| FB-18 | false | 原会话主动定时通知 | optional：用户后续三端设计确认可选；旧 AI heartbeat 暂停，测试 cron 清理；默认无 AI 轮询。 |
+| FB-19 | true | 人无需代替 AI 操作或排障 | passed：AI 完成提交、修复、部署发行、安装、回评与最终查询，交付真实会话和同单平台记录。 |
 
-## 验证清单
+FB-02 的生产普通账号重演、OS 级隔离、token 数硬预算不冒充已有证据或保证；采用当前设计约定的受控维护及分层验证。以上不把合同测试描述为真实模型或线上发行。
 
-本轮私有 package 的 14 项测试、lint、目录 preflight 通过。CLI 命令全集2项同步测试通过。NextClaw tsc 与完整 build（含 UI 资源）通过。迁移后 diff-only maintainability 对7个相关源码文件为0 error / 0 warning。CLI 服务按反馈职责归入 services/feedback，未为目录告警添加例外。
+## 验证与 Review
 
-迁移后的 test:platform 真实浏览器验收通过，记录 fc9b1ea5-c0c7-42c4-8a22-7d17dfd33b5b：原登录、普通用户拒绝、审批到领取、撤销后旧执行拒写及刷新保持会话。首次运行发现测试仍精确匹配旧的“处理中”文本，已修正为当前状态与优先级组合；不涉及产品逻辑修改。
+- 私有维护包 15 项、门户 14 项、CLI 命令全集 2 项及相关 tsc/build/targeted lint 已通过；源码 maintainability Review 无阻断 findings。
+- CLI 参数修复由实际 Codex 完成类型检查、定向检查、临时命令边界测试和 Review；正式安装包又实际提交携带版本的反馈并读回。临时记录 formal-installed-version-20260910 已撤回。
+- actionlint 通过；Linux 工具链源修复在实际四平台 prepare 中通过；规则渐进加载检查通过。
+- 正式用户 AI 查询返回 ok=true、run.finished、真实工具调用与 0.50.0。首次自然语言答复误写第二条的简写编号，已通过真实 UI 对话更正；系统原始记录始终正确，历史答复未被人工改写。
+- 保留的开发、本地与受控合同证据覆盖边界风险；生产与真实模型证据覆盖主链路。详细运行结果保存在本机 .local/feedback-production，凭据不提交。
 
-历史有效证据：门户三套 tsc、support 合同测试、管理平台 tsc/build、平台 worker build、真实浏览器审批和撤销。发布证明测试使用受控外部响应，不能替代实际发布。
+## 发行与部署证据
 
-## 人工验收交接
+- [正式发行任务](https://github.com/Peiiii/nextclaw/actions/runs/34387275723)：attempt 2，success；源码 f9f0e0485942d58adb32c29fcee7af0c35a18dfa，发行提交 7e2dde431872ff289d7471da4c89eb467b80bbfe。
+- [精确提交准备](https://github.com/Peiiii/nextclaw/actions/runs/34386552247)：NPM 与四平台 runtime 均成功。
+- [版本与安装资产](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.50.0)：0.50.0；30 个 NPM 包，Desktop 二进制未发行。
+- D1 migration 0003 已执行；反馈服务版本 212a2775-dc9f-495c-83cc-18ef33b2910f；网关 ddbeee52-31b0-4e00-b64a-67d8bc00eb2d；管理平台 Pages d53f65fa。本次使用已认证 Wrangler 人工部署，不声称 Cloudflare CI 无人值守部署。
+- [中英文文档部署](https://github.com/Peiiii/nextclaw/actions/runs/34385479106)：build、global、domestic、verify 全部成功。
+- 正式任务 UTC 18:09:18–18:31:07，共 21分49秒，包含一次 Windows 安装超时后的 failed-only 恢复。NPM 阶段197.21秒；artifact6.40秒、package183.08秒、Git/install7.74秒；package 内 precheck4.42秒、upload10.74秒、verify165.80秒。60秒性能目标未达成，主要等待 registry 传播验证（14次），事实门禁均通过。
 
-完整验收对象是“用户 AI/CLI → 原平台审批 → 私有维护应用唤醒 Codex → Codex 修复与 CLI 回写 → 批次发行与回评”的可运行系统，不是某个 package 或报告页面。当前已完成证据与尚缺结果如下：
+## 开发体系修正与恢复
 
-| 用户结果 | 可验收产物与入口 | AI证据 | 判定 |
-| --- | --- | --- | --- |
-| AI代办个人反馈，无外部登录 | NextClaw feedback CLI、自管理skill、匿名回执 | 实际模型提交与个人CLI读取 | 本地通过 |
-| 管理员分类并批准 | 现有5177后台与8787 API | 真实登录、审批、撤销及拒绝越权 | 本地通过 |
-| 批准后唤醒并由Codex自行处理 | 私有维护package、随包skill、当前反馈记录 | 实际claim/comment/result及修复文件 | 本地通过 |
-| 批次真实发行并由Codex回评，安装复验 | 既有release workflow、维护publish命令 | 合同测试；没有实际新发行与安装 | 尚缺，不能整体交付 |
+原缺陷是未把原始需求完整覆盖、AI验收和用户交付体验放入方案及生命周期合同。已将需求逐项覆盖和返工循环归 Validation(mode=acceptance)，Delivery只接收有效 acceptance-ready/Review 并准备真实交接；Design/Review 补现状调查、验收与交付方案约束。没有新建平行验收阶段或扩大常驻规则预算。
 
-已完成部分的复核路径：打开 http://127.0.0.1:5177/?feedback=ready&q=17099dac-d89f-48b2-b31f-ad167914c0dc&page=1&pageSize=10#/support ，查看同一反馈的审批、Codex评论及修复证据，预期为ready且无发行版本；通过用户AI请求“查询维护CLI闭环验收：反馈能力发现的处理结果”，应读取同一报告，不能宣称已发布。这是证据入口，不代替整体交付。
+长期运行逻辑从 scripts 迁为私有 package，删除外层代写业务评论，保留公共 CLI 客户端及随包 skill。本次 Google Chrome 源校验失败通过限定 Ubuntu 工具链所需源修复；Windows 安装超时沿同一发行任务恢复，未降低校验门禁。
 
-正式链路的待授权对象：本任务分支上的反馈平台/管理端接入、CLI与私有维护应用、关联shared合同及release workflow改动；正式验证将涉及精确提交、主干集成与推送、反馈服务迁移部署、发布NextClaw NPM/runtime版本，以及隔离安装和原报告回评。管理员“批准修复”不提供这些授权，不能为验收自动执行。发布不包含Desktop，不涉及无关WIP；发布owner还须在执行前核实远程主干和渠道准备状态。
-
-打开现有管理平台，搜索当前反馈编号即可查看批准、Codex 的进展评论、验证证据和 ready 状态；不要求用户重新提交或执行测试。ready 表示本地修复待交付，不代表已发布。服务依赖本机3197、8787、5177及维护进程在线。
-
-私有应用启动、配置、恢复及测试说明见 apps/feedback-maintainer/README.md。默认代码轮询，无空模型调用。异常启动保留提醒记录；确认旧执行停止后显式恢复/重新审批，不自动重复执行。
-
-## 纠偏与恢复
-
-2026-09-10再次纠偏：AI验收此前主要对照设计标准，没有明确从原始需求及确认变更恢复完整范围；漏项后又用局部证据宣布阶段交付。用户指出职责应归AI验收，已将需求逐项覆盖、证据有效性及返工loop集中到Validation(mode=acceptance)；Delivery只接收有效acceptance-ready/Review结论并准备交接，不重复验收。主工作区既有修改保留，同步当前任务规则副本。未新增skill、AGENTS常驻规则或专用检查脚本。规则推演：仅一条记录且发行缺证据→AI验收不通过并返工；显式原型任务→仅按原型范围；完整链路证据齐全→输出acceptance-ready；仅缺发布授权→准备后报告阻塞。推演不宣称模型行为已可靠，后续同类交付复核；无收益则收窄原owner。渐进加载与diff检查通过，合并重复tsc/lint说明，未提高预算。
-
-范围对账同时发现发布reconcile仍代写模板评论，已删除；现在只返回发行证据，由Codex经维护CLI写入。新增回归证明外层不会调用act，错误workflow SHA拒绝；私有包15项测试通过。changeset移除已无变化的kernel包，避免无关版本升级。
-
-此前设计把持续运行应用写成散落脚本，缺少依赖和生命周期归属。本次通过私有 package、公共客户端、删除旧入口和共置测试修复；不新增“所有脚本都禁止”的泛化规则。方案现状、审批接入和验收合同的体系修订仍归此前理解、设计、Review、Validation 原 owner。
-
-恢复先读本计划、设计与工作区状态，复用已验证证据。正式交付仍需上线授权后完成生产迁移、身份接入、常驻环境、发行和安装复验；不把模拟或本地结果标成线上完成。
+维护应用配置、恢复及边界见 apps/feedback-maintainer/README.md。继续工作前读本账本并核对实际服务状态，复用有效证据。主镜像存在其它任务活跃 WIP 时不得覆盖；交付代码已进入远程 master，本地镜像由既有 reconcile/retry owner 安全对齐。
