@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.49.1",
+  "channel": "stable",
+  "releaseType": "patch",
+  "publishedAt": "2026-09-09",
+  "title": {
+    "zh-CN": "NextClaw v0.49.1",
+    "en-US": "NextClaw v0.49.1"
+  },
+  "summary": {
+    "zh-CN": "在聊天里直接排版 LaTeX 公式，生成过程中不再闪现临时错误。",
+    "en-US": "Render LaTeX formulas directly in chat without temporary errors flashing during generation."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-09-nextclaw-v0-49-1",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-09-nextclaw-v0-49-1"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": { "zh-CN": "聊天公式", "en-US": "Math in chat" },
+      "items": [
+        {
+          "title": { "zh-CN": "Markdown 支持 LaTeX 公式", "en-US": "LaTeX math in Markdown" },
+          "body": {
+            "zh-CN": "聊天消息可以排版行内和独立公式，支持分数、根号、求和、积分、矩阵等 KaTeX 语法，宽公式可横向滚动。",
+            "en-US": "Chat messages render inline and display math with KaTeX syntax for fractions, roots, sums, integrals, matrices, and more. Wide formulas scroll horizontally."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": { "zh-CN": "流式生成更稳定", "en-US": "Smoother streaming" },
+      "items": [
+        {
+          "title": { "zh-CN": "未完成公式不再闪现错误", "en-US": "No error flashes for unfinished formulas" },
+          "body": {
+            "zh-CN": "独立公式生成完整前显示中性省略号，闭合后再排版；代码与转义美元符号保持原样。",
+            "en-US": "Display math shows a neutral ellipsis until its closing delimiter arrives, while code and escaped dollar signs remain literal."
+          }
+        }
+      ]
+    }
+  ]
+}
