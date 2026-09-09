@@ -1,25 +1,21 @@
 ---
 name: x-twitter-bird
-description: Use when the user wants to read bookmarks, likes, threads, search X/Twitter, or draft/post/reply through bird CLI with reusable local credentials stored on this machine.
+description: 当用户需要搜索或读取 X/Twitter，或通过真实浏览器及 bird CLI 发布、回复和核验帖子时使用；写作内容策略不由本 skill 负责。
 ---
 
-# X / Twitter via bird
-
-Use this skill when the user wants X/Twitter operations in this repo workflow.
-
-What this skill owns:
-
-- Store and reuse local X credentials for `bird`
-- Read bookmarks / likes / tweets / threads / search results
-- Draft or send posts and replies when the user explicitly asks
+# X / Twitter 读取与发布
 
 ## Primary contract
 
 - Credentials live in a user-local file, not in the repo:
   - default path: `~/.nextclaw/secrets/x-bird.json`
-- All X operations go through `scripts/x-bird.mjs`
+- CLI 操作统一通过 `scripts/x-bird.mjs`；真实浏览器操作走当前可用的 Computer Use 工具，不受 CLI 路径限制。
 - The script passes `--auth-token` and `--ct0` explicitly to `bird`
-- Do not rely on `bird` auto-reading env vars; the installed `bird 0.9.0` in this environment hard-fails unless the CLI args are present
+- 不依赖 bird 自动读取凭据环境变量；由 wrapper 显式传入。版本从实际解析到的 `@steipete/bird/package.json` 核对，不把历史版本当成本机现状。
+
+## 操作路由
+
+读取与搜索使用下方命令。发布、浏览器操作或 CLI 故障时，读取[发布路径与故障处理](references/publishing-paths.md)。已有发布授权不重复询问。
 
 ## Setup
 
@@ -73,10 +69,10 @@ node .agents/skills/x-twitter-bird/scripts/x-bird.mjs reply <tweet-id-or-url> 't
 
 - Treat `auth_token` and `ct0` as full login credentials
 - Never write them into repo files, docs, tests, or iteration logs
-- Before posting, confirm the exact text or use the user-provided text verbatim. If the user has explicitly granted standing authorization for stable minor release posts, do not request confirmation again; publish the release-validated draft directly after its public link returns 200.
+- 发布授权按发布路径 reference 处理。已授权的稳定 minor 发布在发布核验及公共链接检查完成后直接执行，不重复确认。
 - Stable minor release posts should include one public-safe, high-information image by default. Choose the best fit among a real product screenshot, a benchmark/release summary card, AI-generated campaign art, or an AI-assisted composition containing an unaltered real screenshot. Never present generated UI as a real product screenshot or change verified release facts. Patch releases do not post unless the user explicitly overrides this rule.
 - When `HTTP_PROXY`/`HTTPS_PROXY` is required, invoke this wrapper with a Node version that supports environment proxies (for example `NODE_USE_ENV_PROXY=1 <node-24+> scripts/x-bird.mjs ...`). The wrapper launches `bird` with the same Node executable so the proxy setting reaches X requests.
-- The wrapper refreshes current GraphQL query IDs before every `tweet` or `reply`. If X returns a limit-looking error while the account timeline disproves it, verify the refreshed write operation before concluding that the account is rate-limited.
-- A successful write response is not completion by itself. Read the returned post ID/URL through this wrapper and verify the expected author, text, and media presence; only then report success and record the URL. Missing IDs, readback failures, or mismatched content remain incomplete and must not trigger a blind repost.
+- The wrapper refreshes current GraphQL query IDs before every `tweet` or `reply`. 报错后区分 query ID、网络、频率限制和 226，不把所有错误归为账号封控；后续操作遵守 reference 的查重与停止条件。
+- A successful write response is not completion by itself. 通过浏览器详情或 wrapper 回读已知 ID，核对作者、完整正文及素材后才报告成功并记录 URL。缺少 ID、回读失败或内容不符不能盲目重发。多个平台分别报告状态，一个成功不代表整批完成；新发不隐含授权删除旧帖。
 - Prefer `--json` for read/search workflows so downstream analysis stays structured
 - If the user asks for only reading, do not post, like, follow, or unbookmark anything
