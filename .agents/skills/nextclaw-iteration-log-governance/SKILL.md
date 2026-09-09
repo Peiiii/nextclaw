@@ -123,18 +123,6 @@ docs/logs/v<semver>-<slug>/work/working-notes.md
 
 Reference work notes from the iteration `README.md`.
 
-## Goal Progress Anchor
-
-Use `goal-mode` and its progress-anchor reference when the user explicitly enables goal mode.
-
-Anchor file:
-
-```text
-docs/logs/v<semver>-<slug>/work/goal-progress.md
-```
-
-Keep it under 50 lines by default and never over 100 lines. When enabled, user-visible replies must include the anchor counter after the required prefix.
-
 ## Red-Zone Touches
 
 If source red-zone files are touched, add:
