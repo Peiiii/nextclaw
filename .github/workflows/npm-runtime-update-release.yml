@@ -178,7 +178,13 @@ jobs:
 
       - name: Install Linux static toolchain
         if: ${{ matrix.platform == 'linux' }}
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
+        run: |
+          # musl-tools comes from Ubuntu; unrelated runner browser feeds must not block this build.
+          test -s /etc/apt/sources.list
+          runtime_apt_sources=$(mktemp -d)
+          sudo apt-get -o Dir::Etc::sourceparts="$runtime_apt_sources" update
+          sudo apt-get -o Dir::Etc::sourceparts="$runtime_apt_sources" install -y musl-tools
+          rmdir "$runtime_apt_sources"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
