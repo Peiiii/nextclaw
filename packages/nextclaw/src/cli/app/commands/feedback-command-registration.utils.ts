@@ -4,7 +4,7 @@ import { getDataPath, loadConfig } from "@nextclaw/core";
 import { FeedbackClient } from "@nextclaw-cli/cli/app/services/feedback/feedback-client.service.js";
 import { registerFeedbackMaintenanceCommands } from "./feedback-maintenance-command-registration.utils.js";
 
-type Options = { endpoint?: string; title?: string; description?: string; environment?: string; version?: string; requestId?: string; operationId?: string };
+type Options = { endpoint?: string; title?: string; description?: string; environment?: string; affectedVersion?: string; requestId?: string; operationId?: string };
 function manager(options: Options): FeedbackClient {
   const config = loadConfig();
   return new FeedbackClient({
@@ -20,8 +20,8 @@ export function registerFeedbackCommands(program: Command): void {
   const command = (name: string, description: string) => feedback.command(name).description(description).option("--endpoint <url>", "Feedback service origin");
   command("submit", "Submit a private report; receipt is saved locally")
     .requiredOption("--title <text>", "Short summary").requiredOption("--description <text>", "Problem and expected behavior")
-    .option("--environment <text>", "Environment details").option("--version <version>", "Affected version")
-    .option("--request-id <id>", "Retry a saved submission").action(async (o: Options) => print(await manager(o).submit({ title: o.title!, description: o.description!, environment: o.environment, version: o.version, requestId: o.requestId })));
+    .option("--environment <text>", "Environment details").option("--affected-version <version>", "Affected version")
+    .option("--request-id <id>", "Retry a saved submission").action(async (o: Options) => print(await manager(o).submit({ title: o.title!, description: o.description!, environment: o.environment, version: o.affectedVersion, requestId: o.requestId })));
   command("list", "List local feedback receipts").action(async (o: Options) => print(await manager(o).list()));
   command("get <id>", "Read a report and maintainer replies").action(async (id: string, o: Options) => print(await manager(o).get(id)));
   command("reply <id> <message>", "Add reproduction details or report that a fix still fails")

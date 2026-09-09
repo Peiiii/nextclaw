@@ -5,7 +5,7 @@
 告诉 AI：“帮我反馈刚才的问题，附上复现步骤。”它可以用 `nextclaw feedback submit` 提交描述、版本和运行环境。发送前应检查内容，不要附带密钥、密码、完整会话或无关个人信息。
 
 ```bash
-nextclaw feedback submit --title "工具运行失败" --description "复现步骤、实际结果和期望结果" --version "你的版本"
+nextclaw feedback submit --title "工具运行失败" --description "复现步骤、实际结果和期望结果" --affected-version "受影响的版本"
 nextclaw feedback list
 nextclaw feedback get <反馈编号>
 nextclaw feedback reply <反馈编号> "补充复现步骤"

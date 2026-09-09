@@ -5,7 +5,7 @@ Ask “What happened to my last report?” to have the AI retrieve its current s
 Ask your NextClaw AI to report a problem, or use the feedback portal's report page. A GitHub account is never required. New reports are private to you and maintainers.
 
 ```bash
-nextclaw feedback submit --title "Tool failed" --description "Steps, actual result, expected result" --version "your-version"
+nextclaw feedback submit --title "Tool failed" --description "Steps, actual result, expected result" --affected-version "affected-version"
 nextclaw feedback list
 nextclaw feedback get <report-id>
 nextclaw feedback reply <report-id> "Additional reproduction details"
