@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchAdminMarketplaceApps } from '@/api/client';
+import { fetchAdminMarketplaceApps } from '@/api/platform-client.utils';
 import type {
   AdminMarketplaceAppCountsView,
   AdminMarketplaceAppPublishStatus,

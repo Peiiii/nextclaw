@@ -10,10 +10,7 @@ export const RUNTIME_SHOWCASE_COPY: Record<Locale, RuntimeShowcase> = {
     runtimeLabel: "Runtime",
     runtimeDescription: "Decides how the session runs",
     runtimeNames: ["Native", "Codex", "Claude Code", "OpenCode", "Hermes"],
-    imageSrc: new URL(
-      "../../../../../../images/screenshots/nextclaw-agent-runtime-picker-en.png",
-      import.meta.url,
-    ).href,
+    imageSrc: '/screenshots/nextclaw-agent-runtime-picker-en.png',
     imageAlt:
       "NextClaw task screen with separate Agent and Agent Runtime selectors",
   },
@@ -26,10 +23,7 @@ export const RUNTIME_SHOWCASE_COPY: Record<Locale, RuntimeShowcase> = {
     runtimeLabel: "Runtime",
     runtimeDescription: "决定这次会话如何执行",
     runtimeNames: ["Native", "Codex", "Claude Code", "OpenCode", "Hermes"],
-    imageSrc: new URL(
-      "../../../../../../images/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png",
-      import.meta.url,
-    ).href,
+    imageSrc: '/screenshots/nextclaw-codex-runtime-markdown-preview-cn.png',
     imageAlt: "NextClaw 使用 Codex 推进项目并在右侧预览 Markdown 架构文档",
   },
 };

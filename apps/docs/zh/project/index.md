@@ -22,7 +22,7 @@ description: 了解 NextClaw 的公开项目脉搏、愿景、路线图、更新
 
 - [Project Pulse](/zh/project/project-pulse)：公开看板，快速看最近的交付节奏、代码规模趋势、发版频率与自动化截图。
 - [愿景](/zh/project/vision)：解释 NextClaw 长期到底想成为什么。
-- [路线图](/zh/project/roadmap)：看当前阶段优先级和下一阶段方向。
+- [1.0 路线图](/zh/project/roadmap)：查看理解用户、主动参与、自我改进和长期可用四个阶段的具体规划功能与验收要求。
 - [更新笔记](/zh/project/release-notes)：按用户价值读近期公开更新。
 - [博客](/zh/blog/)：用更短、更有判断力的文章解释产品优势、设计取舍和构建思路。
 - [社区](/zh/project/community)：GitHub、博客、反馈与跟进入口。

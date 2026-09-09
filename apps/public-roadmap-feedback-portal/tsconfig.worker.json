@@ -10,5 +10,5 @@
     "types": ["@cloudflare/workers-types"]
   },
   "include": ["worker", "server/**/*.ts", "shared"],
-  "exclude": ["server/index.ts"]
+  "exclude": ["server/index.ts", "server/support/support-local-database.service.ts"]
 }

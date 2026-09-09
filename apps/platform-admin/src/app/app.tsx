@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchMe } from '@/api/client';
+import { ApiError, fetchMe } from '@/api/platform-client.utils';
 import { Button } from '@/components/ui/button';
-import { LoginPage } from '@/pages/LoginPage';
+import { LoginPage } from '@/app/login-page';
 import { AdminDashboardPage } from '@/app/admin-dashboard-page';
 import { useAuthStore } from '@/store/auth';
 
@@ -15,9 +15,19 @@ export default function App(): JSX.Element {
       if (!token) {
         throw new Error('No token');
       }
-      return await fetchMe(token);
+      try {
+        return await fetchMe(token);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          logout();
+        }
+        throw error;
+      }
     },
-    enabled: Boolean(token)
+    enabled: Boolean(token),
+    retry: (failureCount, error) => {
+      return !(error instanceof ApiError && error.status === 401) && failureCount < 3;
+    }
   });
 
   if (!token) {

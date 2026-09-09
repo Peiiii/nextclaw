@@ -1,8 +1,17 @@
 name: release
+run-name: ${{ inputs.feedback_batch && format('feedback-{0}', inputs.feedback_batch) || 'release' }}
 
 on:
   workflow_dispatch:
     inputs:
+      feedback_batch:
+        description: "Optional feedback batch identity"
+        required: false
+        type: string
+      expected_head:
+        description: "Optional immutable master SHA approved by feedback delivery"
+        required: false
+        type: string
       target:
         description: "Stable release target"
         required: true
@@ -29,6 +38,13 @@ jobs:
       mode: ${{ steps.identity.outputs.mode }}
       target_version: ${{ steps.identity.outputs.target_version }}
     steps:
+      - name: Check feedback batch head before any release work
+        env:
+          EXPECTED_HEAD: ${{ inputs.expected_head }}
+        run: |
+          if [ -n "$EXPECTED_HEAD" ]; then
+            test "$GITHUB_SHA" = "$EXPECTED_HEAD"
+          fi
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
@@ -573,3 +589,17 @@ jobs:
               exit 1
             fi
           fi
+
+      - name: Record feedback delivery proof
+        env:
+          PROOF_VERSION: ${{ needs.publish-npm.outputs.target_version }}
+          PROOF_SHA: ${{ needs.publish-npm.outputs.release_commit }}
+          PROOF_TARGET: ${{ inputs.target }}
+        run: |
+          node -e 'const fs = require("node:fs"); fs.writeFileSync("feedback-release-proof.json", JSON.stringify({version: process.env.PROOF_VERSION, sha: process.env.PROOF_SHA, target: process.env.PROOF_TARGET, runId: process.env.GITHUB_RUN_ID}));'
+      - name: Upload feedback delivery proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: feedback-release-${{ needs.publish-npm.outputs.target_version }}-${{ needs.publish-npm.outputs.release_commit }}-${{ inputs.target }}
+          path: feedback-release-proof.json
+          retention-days: 90

@@ -14,6 +14,12 @@ hero:
       link: /en/guide/create-task
 ---
 
+## Toward a Proactive Long-Term Partner
+
+NextClaw's mission is to be a good long-term partner to you. The four stages toward 1.0 cover understanding you and your goals, proactive analysis and conversation, continuous self-improvement, and reliable long-term use. Initiative also means thinking independently and reaching out with something worth discussing, without requiring every exchange to become an execution task.
+
+Full acceptance testing is not complete, and no release date is set. [Read the vision](/en/project/vision) · [Explore the 1.0 feature roadmap](/en/project/roadmap). The guides below describe the current product.
+
 ## What happens inside a task
 
 Provide an outcome, source material, and a working directory. The agent can use models, skills, a browser, the terminal, and local files. You can observe, redirect, or stop it, then inspect the actual artifact in the same workspace.

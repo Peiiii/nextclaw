@@ -211,6 +211,7 @@ const enSections: LocaleSections = {
           { text: 'Troubleshooting', link: '/en/guide/troubleshooting' },
           { text: 'Core commands', link: '/en/guide/core-commands' },
           { text: 'CLI capability map', link: '/en/guide/commands' },
+          { text: 'Report a problem', link: '/en/guide/feedback' },
           { text: 'Advanced configuration', link: '/en/guide/advanced' }
         ]
       }
@@ -386,6 +387,7 @@ const zhSections: LocaleSections = {
           { text: '故障排查', link: '/zh/guide/troubleshooting' },
           { text: '核心命令', link: '/zh/guide/core-commands' },
           { text: 'CLI 能力全景与命令全集', link: '/zh/guide/commands' },
+          { text: '问题反馈与修复跟踪', link: '/zh/guide/feedback' },
           { text: '进阶配置', link: '/zh/guide/advanced' }
         ]
       }

@@ -8,6 +8,10 @@ pattern = "roadmap.nextclaw.io"
 custom_domain = true
 
 [vars]
+SUPPORT_PLATFORM_API_BASE = "https://ai-gateway-api.nextclaw.io"
+SUPPORT_MAX_AUTHORITY = "deliver"
+SUPPORT_PAUSED = "false"
+SUPPORT_GITHUB_REPOSITORY = "Peiiii/nextclaw"
 PUBLIC_ROADMAP_FEEDBACK_PORTAL_DATA_MODE = "live"
 PUBLIC_ROADMAP_FEEDBACK_PORTAL_LINEAR_API_URL = "https://api.linear.app/graphql"
 PUBLIC_ROADMAP_FEEDBACK_PORTAL_LINEAR_AUTH_MODE = "personal-key"

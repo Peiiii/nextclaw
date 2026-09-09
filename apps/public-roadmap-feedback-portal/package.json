@@ -14,12 +14,14 @@
     "lint": "cd ../.. && pnpm exec eslint apps/public-roadmap-feedback-portal --config apps/public-roadmap-feedback-portal/eslint.config.mjs --max-warnings=0",
     "tsc": "tsc -p tsconfig.json && tsc -p tsconfig.backend.json --noEmit && tsc -p tsconfig.worker.json",
     "smoke": "node scripts/smoke.test.mjs",
+    "test:support": "tsx --test scripts/support-smoke.test.ts scripts/support-release.test.ts",
     "smoke:remote": "PUBLIC_ROADMAP_FEEDBACK_PORTAL_SKIP_LOCAL_SERVER=1 node scripts/smoke.test.mjs",
     "deploy": "pnpm run build && pnpm exec wrangler deploy --config wrangler.toml",
     "db:migrate:local": "wrangler d1 migrations apply PUBLIC_ROADMAP_PORTAL_DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply PUBLIC_ROADMAP_PORTAL_DB --remote"
   },
   "dependencies": {
+    "@nextclaw/shared": "workspace:*",
     "@hono/node-server": "^1.19.9",
     "@tanstack/react-query": "^5.90.21",
     "hono": "^4.11.9",

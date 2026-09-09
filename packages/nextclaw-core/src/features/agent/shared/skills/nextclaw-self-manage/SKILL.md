@@ -1,13 +1,13 @@
 ---
 name: nextclaw-self-manage
-description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/projects/sessions/apps and App data/cron/remote/update operations, discovering local HTTP/API/webhook addresses, and diagnosing a NextClaw Desktop background exit, crash, restart, or suspected external termination.
-description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、项目、会话、应用及应用数据、定时任务、远程访问、更新、本地 HTTP/API/webhook 地址发现，以及 Windows Desktop 后台退出、崩溃、重启或疑似外部终止的自助排查。
+description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/channels/config/agents/projects/sessions/apps and App data/cron/remote/update operations, discovering local HTTP/API/webhook addresses, submitting feedback issues, querying personal feedback, and diagnosing a NextClaw Desktop background exit, crash, restart, or suspected external termination.
+description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、渠道、配置、Agent、项目、会话、应用及应用数据、定时任务、远程访问、更新、本地 HTTP/API/webhook 地址发现、提交反馈问题、查询个人反馈，以及 Windows Desktop 后台退出、崩溃、重启或疑似外部终止的自助排查。
 metadata: { "nextclaw": { "always": true, "emoji": "🛠️" } }
 ---
 
 # NextClaw Self-Management
 
-Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, channels, config, agents, projects, sessions, apps and App data, cron, remote, update, installed skills, marketplace skills, local HTTP/API/webhook addresses).
+Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, channels, config, agents, projects, sessions, apps and App data, cron, remote, update, installed skills, marketplace skills, local HTTP/API/webhook addresses), report a NextClaw problem, or follow up on a reported problem.
 
 ## Source of Truth
 
@@ -32,6 +32,8 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
 - For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.
 - Execute only commands documented in the self-management guide or CLI help; do not invent commands or config paths.
+- When the user asks to report a NextClaw problem, use the guide's private feedback commands yourself, without sending the user to a form. Submit only relevant, redacted reproduction details; never require GitHub login. Keep receipt keys private, reuse saved request IDs after uncertain submission, and query the original report for replies. A released fix does not authorize upgrading the user's environment.
+- When the user asks about their reports, use feedback list/get/reply yourself and explain actual maintainer replies. Do not create an AI polling job by default. Distinguish ready from published; report query failures honestly and never infer resolution from silence. Suggest submitting a report when a relevant bug is observed, but obtain the user's intent to submit before sending diagnostic details.
 - Prefer object-level CLI commands for configuration management. For providers/models/search, use `nextclaw providers ...`, `nextclaw models ...`, and `nextclaw search ...`; do not read/edit config files or substitute generic `config set/unset` or gateway config actions for these covered tasks.
 - Generic config commands and gateway config tools remain transitional options only for documented capabilities not covered by object-level CLI or explicit manual recovery. A missing running host is not a reason to silently edit files instead.
 - Read API keys from a named environment variable with `--api-key-env`; never print the variable or copy credentials into a command argument. Query saved settings with the relevant `show` command, and verify provider connectivity with `providers test`. An API apply failure is not success even if values were saved.

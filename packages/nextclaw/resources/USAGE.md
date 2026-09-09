@@ -636,6 +636,28 @@ nextclaw app dev <app-dir> --reset-data --confirm <app-id> --json
 
 ## Commands
 
+### Private problem feedback
+
+Use `nextclaw feedback submit --title <summary> --description <steps>` when the user asks to report a NextClaw problem. GitHub login is not required. Include only relevant reproduction details and redact secrets; do not attach complete conversations or logs by default.
+
+The receipt is saved locally before sending. On an uncertain response, retry using the reported `--request-id` and original arguments. Use `nextclaw feedback list`, `get <id>`, and `reply <id> <message>` to track the original report. Reuse `--operation-id` when retrying a reply.
+
+The CLI associates a server-verified existing NextClaw login when available; expired credentials still allow anonymous submission. `link <id>` associates an existing receipt after login, and `sync` retrieves account reports. Use `export <id> <file>` and `import <file>` for private receipt backups, never disclose their keys. `withdraw <id>` stops new processing. All commands take `--endpoint` for a custom feedback service; platform credentials are never forwarded to custom hosts.
+
+#### Maintainer CLI
+
+Maintainers use `nextclaw feedback maintain skill-path` to locate the packaged maintenance skill. Read that file before using `maintain list/get/claim/comment/result/triage/recover/authorize-delivery/publish`. Use the latest revision and run ID for writes, a stable operation ID for retries, and file arguments for comments and evidence. Provide maintenance credentials through `SUPPORT_MAINTAINER_TOKEN` or `--token-file`; administrator approval stays in the existing platform. The private `@nextclaw/feedback-maintainer` application polls with code and passes the skill path to Codex, which performs these CLI operations itself. An agent exit is not proof of a repair or release.
+
+#### Personal queries
+
+When asked about a submitted problem, use feedback list/get to retrieve its current status and maintainer replies. Use reply to add relevant information and withdraw when requested. Perform these operations yourself; do not send the user to a form or ask them to copy credentials. Do not create an AI polling task by default.
+
+Maintenance is performed by an ordinary code polling process: no eligible approved report means no model call. The platform remains the source of truth for approval and progress, and maintainers reply to the original report. A ready repair is awaiting publication, not an available update; query errors and silence do not mean success.
+
+The initial reply should confirm actual submission and explain that the user can ask about progress later. Do not promise proactive notifications unless a separate, verified notification mechanism is configured.
+
+Feedback release status identifies its version and channel. Query it before reporting success, and obtain the user's usual update authorization before upgrading their environment. A local acceptance server does not imply the production endpoint is deployed.
+
 | Command                                                      | Description                                                                                                                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `nextclaw start`                                             | Start gateway + UI in the background                                                                                                                         |

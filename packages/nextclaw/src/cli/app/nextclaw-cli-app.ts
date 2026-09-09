@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { registerFeedbackCommands } from "./commands/feedback-command-registration.utils.js";
 import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
 import { NextclawDistributionService, NextclawServiceRuntime } from "@nextclaw/service";
@@ -50,6 +51,7 @@ program
   .action(async (opts) => runtime.login(opts));
 
 const account = program.command("account").description("Inspect and manage your NextClaw account");
+registerFeedbackCommands(program);
 
 account
   .command("status")

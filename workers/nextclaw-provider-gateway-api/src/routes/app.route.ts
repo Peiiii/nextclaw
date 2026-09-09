@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { adminSupportHandler } from "@/controllers/admin-support.controller.js";
 import {
   completeBrowserPasswordResetHandler,
   completeBrowserRegisterHandler,
@@ -230,6 +231,8 @@ function registerAdminRoutes(app: Hono<{ Bindings: Env }>): void {
   app.post("/platform/admin/distribution/refresh", refreshAdminDistributionAdoptionHandler);
   app.get("/platform/admin/remote/quota/v2", adminRemoteQuotaSummaryV2Handler);
   app.get("/platform/admin/profit/overview", adminProfitOverviewHandler);
+  app.get("/platform/admin/support", adminSupportHandler);
+  app.post("/platform/admin/support/:id", adminSupportHandler);
   app.get("/platform/admin/marketplace/skills", adminMarketplaceSkillsHandler);
   app.get(
     "/platform/admin/marketplace/skills/:selector",

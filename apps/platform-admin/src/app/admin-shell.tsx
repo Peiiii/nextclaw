@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { AdminConsoleRoute, AdminConsoleRouteKey } from '@/pages/admin-console-navigation';
+import type { AdminConsoleRoute, AdminConsoleRouteKey } from '@/app/admin-console-navigation.config';
 
 type Props = {
   routes: AdminConsoleRoute[];
@@ -58,7 +58,7 @@ export function AdminShell({
 
             <div className="hidden shrink-0 items-center gap-3 sm:flex">
               <span className="rounded-full border border-[#ddd7c8] bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8f8a7d]">
-                production
+                {import.meta.env.DEV ? '本地开发' : 'production'}
               </span>
               <div className="hidden text-right lg:block">
                 <p className="text-xs font-medium text-[#1f1f1d]">{currentUserEmail}</p>
@@ -99,7 +99,7 @@ function AdminNavigation(props: {
   if (props.variant === 'mobile') {
     return (
       <nav data-testid="admin-mobile-navigation" className="shrink-0 border-t border-[#e4e0d7] bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-6">
           {props.routes.map((route) => {
             const isActive = route.key === props.currentRoute.key;
             return (
@@ -150,6 +150,7 @@ function AdminNavigation(props: {
 }
 
 function adminMobileRouteLabel(routeKey: AdminConsoleRouteKey): string {
+  if (routeKey === 'support') return '反馈';
   if (routeKey === 'overview') {
     return '总览';
   }

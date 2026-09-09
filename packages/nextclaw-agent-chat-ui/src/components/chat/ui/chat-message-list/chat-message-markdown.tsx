@@ -11,6 +11,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import { createRemarkLatexDelimitersPlugin } from "./utils/chat-latex-delimiters.utils";
 import { createRemarkStreamingMathPlugin, rehypeStreamingMath } from "./utils/chat-streaming-math.utils";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatInlineTokenBadge } from "./chat-inline-token-badge";
@@ -359,8 +360,8 @@ export function ChatMessageMarkdown({
   const isUser = role === "user";
   const markdown = trimMarkdown(text);
   const remarkPlugins: NonNullable<Options["remarkPlugins"]> = inlineTokens?.length
-    ? [remarkGfm, remarkMath, createRemarkInlineTokenPlugin(inlineTokens)]
-    : [remarkGfm, remarkMath];
+    ? [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown), createRemarkInlineTokenPlugin(inlineTokens)]
+    : [remarkGfm, remarkMath, createRemarkLatexDelimitersPlugin(markdown)];
   if (isStreaming) remarkPlugins.push(createRemarkStreamingMathPlugin(markdown));
   const WrapperTag = inline ? "span" : "div";
 

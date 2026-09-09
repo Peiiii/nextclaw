@@ -26,6 +26,13 @@ export type PortalAssetsBinding = {
 };
 
 export type PortalWorkerEnv = {
+  SUPPORT_PLATFORM_API_BASE?: string;
+  SUPPORT_MAINTAINER_TOKEN?: string;
+  SUPPORT_ADMIN_TOKEN?: string;
+  SUPPORT_MAX_AUTHORITY?: "analyze" | "repair" | "deliver";
+  SUPPORT_PAUSED?: string;
+  SUPPORT_GITHUB_REPOSITORY?: string;
+  SUPPORT_GITHUB_TOKEN?: string;
   ASSETS?: PortalAssetsBinding;
   PUBLIC_ROADMAP_PORTAL_DB?: D1Database;
   PUBLIC_ROADMAP_FEEDBACK_PORTAL_DATA_MODE?: string;

@@ -24,3 +24,5 @@ apps/desktop/.local/
 /website
 /packages/nextclaw-service/build/
 /packages/nextclaw/ui-dist/
+/apps/landing/public/assets/screenshots/
+/apps/landing/src/shared/lib/landing-content/landing-images.generated.json
