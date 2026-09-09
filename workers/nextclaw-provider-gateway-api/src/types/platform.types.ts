@@ -4,6 +4,8 @@ export type Env = {
   AUTH_TOKEN_SECRET?: string;
   MARKETPLACE_API_BASE?: string;
   MARKETPLACE_ADMIN_TOKEN?: string;
+  SUPPORT_API_BASE?: string;
+  SUPPORT_ADMIN_TOKEN?: string;
   NEXTCLAW_WEB_BASE_URL?: string;
   REMOTE_ACCESS_BASE_DOMAIN?: string;
   REMOTE_ACCESS_FIXED_DOMAIN?: string;

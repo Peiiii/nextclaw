@@ -1,5 +1,5 @@
 import { AdminPage } from '@/components/admin/admin-page';
-import { AdminMarketplaceReviewSection } from '@/pages/admin-marketplace-review-section';
+import { AdminMarketplaceReviewSection } from '@/features/marketplace-skill-review';
 
 type Props = {
   token: string;

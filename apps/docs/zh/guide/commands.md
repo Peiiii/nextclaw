@@ -21,6 +21,32 @@ nextclaw <command> --help
 
 查看版本使用 `nextclaw --version`。许多查询和管理命令支持 `--json`；用于脚本、CI 或 Agent 集成前，请先查看对应命令的帮助。首次安装和启动请看[快速开始](/zh/guide/getting-started)，日常最常用的少量命令请看[核心命令](/zh/guide/core-commands)。
 
+## 问题反馈
+
+无需 GitHub 登录，详见[问题反馈](./feedback)。
+
+| 命令 | 用途 |
+| --- | --- |
+| `nextclaw feedback submit` | 提交私密反馈并保存回执 |
+| `nextclaw feedback list` | 列出本机回执 |
+| `nextclaw feedback get` | 读取反馈详情和回复 |
+| `nextclaw feedback reply` | 补充复现信息 |
+| `nextclaw feedback withdraw` | 撤回反馈 |
+| `nextclaw feedback link` | 关联当前 NextClaw 账号 |
+| `nextclaw feedback sync` | 同步账号反馈 |
+| `nextclaw feedback export` | 导出私密回执 |
+| `nextclaw feedback import` | 恢复私密回执 |
+| `nextclaw feedback maintain skill-path` | 定位随包维护 skill |
+| `nextclaw feedback maintain list` | 查询维护队列 |
+| `nextclaw feedback maintain get` | 读取反馈及当前审批 |
+| `nextclaw feedback maintain claim` | 领取已批准反馈 |
+| `nextclaw feedback maintain comment` | 写入维护回复 |
+| `nextclaw feedback maintain result` | 提交验证结果或阻塞原因 |
+| `nextclaw feedback maintain triage` | 分类，不能授予修复权限 |
+| `nextclaw feedback maintain recover` | 确认旧执行停止后恢复 |
+| `nextclaw feedback maintain authorize-delivery` | 关联获准发布的修复提交 |
+| `nextclaw feedback maintain publish` | 核验发布证明并回写 |
+
 ## 能力地图
 
 | 能力域                | 可以完成的事                                      |

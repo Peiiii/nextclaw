@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchAdminOverview,
   updateGlobalFreeLimit,
-} from '@/api/client';
+} from '@/api/platform-client.utils';
 import type { AdminOverview } from '@/api/types';
 import {
   AdminMetricCard,

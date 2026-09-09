@@ -12,7 +12,7 @@ import { DistributionAdoptionOverviewPanel } from '@/features/admin-overview/com
 import {
   fetchAdminMarketplaceSkills,
   fetchAdminOverview
-} from '@/api/client';
+} from '@/api/platform-client.utils';
 import { AdminRemoteQuotaApiService } from '@/features/admin-overview/services/remote-quota-api.service';
 import { AdminProductActivityApiService } from '@/features/admin-overview/services/product-activity-api.service';
 import { AdminDistributionAdoptionApiService } from '@/features/admin-overview/services/distribution-adoption-api.service';
@@ -23,7 +23,7 @@ import type {
 import type { AdminDistributionAssetListQuery } from '@/features/admin-overview/types/distribution-adoption.types';
 import type { AdminRemoteQuotaSummary } from '@/features/admin-overview/types/remote-quota.types';
 import { formatUsd } from '@/lib/utils';
-import { GatewayBusinessLoopSection } from '@/pages/admin-gateway-business-loop';
+import { GatewayBusinessLoopSection } from '@/features/admin-overview/components/admin-gateway-business-loop';
 
 type Props = {
   token: string;

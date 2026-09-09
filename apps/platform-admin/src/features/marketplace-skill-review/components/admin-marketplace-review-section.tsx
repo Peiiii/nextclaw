@@ -4,7 +4,7 @@ import {
   fetchAdminMarketplaceSkillDetail,
   fetchAdminMarketplaceSkills,
   reviewAdminMarketplaceSkill
-} from '@/api/client';
+} from '@/api/platform-client.utils';
 import type {
   AdminMarketplaceSkillCountsView,
   AdminMarketplaceSkillDetailPayload,

@@ -1,7 +1,7 @@
 import {
   fetchAdminMarketplaceAppDetail as fetchMarketplaceAppDetail,
   reviewAdminMarketplaceApp as reviewMarketplaceApp,
-} from '@/api/client';
+} from '@/api/platform-client.utils';
 import type { AdminMarketplaceAppReviewStatus } from '@/api/types';
 import type {
   AdminMarketplaceAppCatalogVisibility,

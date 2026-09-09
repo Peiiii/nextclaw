@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createRechargeIntent, fetchBillingLedger, fetchBillingOverview, fetchRechargeIntents } from '@/api/client';
+import { createRechargeIntent, fetchBillingLedger, fetchBillingOverview, fetchRechargeIntents } from '@/api/platform-client.utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

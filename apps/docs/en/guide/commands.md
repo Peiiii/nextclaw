@@ -21,6 +21,32 @@ nextclaw <command> --help
 
 Use `nextclaw --version` to inspect the installed version. Many query and management commands support `--json`; check the command help before integrating it into a script, CI job, or Agent. For first-time setup, start with [Quickstart](/en/guide/getting-started). For the small set of commands used most often, see [Core Commands](/en/guide/core-commands).
 
+## Feedback
+
+No GitHub login required. See [Feedback](./feedback).
+
+| Command | Purpose |
+| --- | --- |
+| `nextclaw feedback submit` | Submit a private report and save its receipt |
+| `nextclaw feedback list` | List local receipts |
+| `nextclaw feedback get` | Read a report and replies |
+| `nextclaw feedback reply` | Add reproduction details |
+| `nextclaw feedback withdraw` | Withdraw a report |
+| `nextclaw feedback link` | Link to the current NextClaw account |
+| `nextclaw feedback sync` | Sync account reports |
+| `nextclaw feedback export` | Export a private receipt |
+| `nextclaw feedback import` | Restore a private receipt |
+| `nextclaw feedback maintain skill-path` | Locate the packaged maintainer skill |
+| `nextclaw feedback maintain list` | Read the maintenance queue |
+| `nextclaw feedback maintain get` | Read a report and its approval |
+| `nextclaw feedback maintain claim` | Claim approved work |
+| `nextclaw feedback maintain comment` | Write a maintainer reply |
+| `nextclaw feedback maintain result` | Submit verification evidence or a blocker |
+| `nextclaw feedback maintain triage` | Classify without granting repair permission |
+| `nextclaw feedback maintain recover` | Recover after confirming the previous run stopped |
+| `nextclaw feedback maintain authorize-delivery` | Associate an approved repair commit |
+| `nextclaw feedback maintain publish` | Verify release proof and update the report |
+
 ## Capability map
 
 | Area                         | What you can do                                                                               |

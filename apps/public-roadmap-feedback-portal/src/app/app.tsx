@@ -1,19 +1,24 @@
 import { useEffect } from "react";
+import { SupportPage } from "@/features/support";
 import { useQuery } from "@tanstack/react-query";
-import { CommunityFeedbackSection } from "../features/community-feedback/components/community-feedback-section";
-import { ItemDetailPanel } from "../features/item-detail/components/item-detail-panel";
-import { OverviewSection } from "../features/overview/components/overview-section";
-import { RoadmapSection } from "../features/roadmap/components/roadmap-section";
-import { UpdatesSection } from "../features/updates/components/updates-section";
-import { portalApiService, portalQueryKeys } from "../services/portal-api.service";
-import { PortalSectionNav } from "../shared/components/portal-section-nav";
-import { useCommunityFeedbackStore } from "../stores/community-feedback.store";
-import { useItemDetailStore } from "../stores/item-detail.store";
-import { useRoadmapViewStore } from "../stores/roadmap-view.store";
+import { CommunityFeedbackSection } from "@/features/community-feedback";
+import { ItemDetailPanel } from "@/features/item-detail";
+import { OverviewSection } from "@/features/overview";
+import { RoadmapSection } from "@/features/roadmap";
+import { UpdatesSection } from "@/features/updates";
+import { portalApiService, portalQueryKeys } from "@/services/portal-api.service";
+import { PortalSectionNav } from "@/shared/components/portal-section-nav";
+import { useCommunityFeedbackStore } from "@/stores/community-feedback.store";
+import { useItemDetailStore } from "@/stores/item-detail.store";
+import { useRoadmapViewStore } from "@/stores/roadmap-view.store";
 import { AppRoot } from "./app-root";
 import { usePortalPresenter } from "./portal-presenter.service";
 
 export default function App(): JSX.Element {
+  return location.pathname === "/support" || location.pathname === "/support/" ? <SupportPage /> : <RoadmapApp />;
+}
+
+function RoadmapApp(): JSX.Element {
   const presenter = usePortalPresenter();
   const viewMode = useRoadmapViewStore((state) => state.snapshot.viewMode);
   const phaseFilter = useRoadmapViewStore((state) => state.snapshot.phaseFilter);
@@ -66,6 +71,7 @@ export default function App(): JSX.Element {
     <AppRoot>
       <OverviewSection data={overviewQuery.data} isPending={overviewQuery.isPending} />
       <PortalSectionNav />
+      <a href="/support">反馈问题 / Report a problem</a>
       <RoadmapSection
         data={itemsQuery.data}
         error={itemsQuery.error}

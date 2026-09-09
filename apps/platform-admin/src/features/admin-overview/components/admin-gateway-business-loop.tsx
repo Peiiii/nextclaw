@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createAdminProvider,
@@ -7,7 +7,7 @@ import {
   fetchAdminProviders,
   updateAdminProvider,
   upsertAdminModel
-} from '@/api/client';
+} from '@/api/platform-client.utils';
 import type { AdminProfitOverview, ModelCatalogView, ProviderAccountView } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
@@ -53,7 +53,7 @@ export function GatewayBusinessLoopSection({ token }: Props): JSX.Element {
     priority: '100',
     enabled: true
   });
-  const [modelForm, setModelForm] = useState<ModelFormState>({
+  const [modelDraft, setModelForm] = useState<ModelFormState>({
     publicModelId: 'openai/gpt-4o',
     providerAccountId: '',
     upstreamModel: 'qwen-plus',
@@ -74,6 +74,11 @@ export function GatewayBusinessLoopSection({ token }: Props): JSX.Element {
     queryKey: ['admin-models'],
     queryFn: async () => await fetchAdminModels(token)
   });
+
+  const modelForm = {
+    ...modelDraft,
+    providerAccountId: modelDraft.providerAccountId.trim() || providersQuery.data?.items[0]?.id || ''
+  };
 
   const profitQuery = useQuery({
     queryKey: ['admin-profit', profitDays],
@@ -133,18 +138,6 @@ export function GatewayBusinessLoopSection({ token }: Props): JSX.Element {
 
   const providers = providersQuery.data?.items ?? [];
   const models = modelsQuery.data?.items ?? [];
-
-  useEffect(() => {
-    if (providers.length === 0) {
-      return;
-    }
-    setModelForm((prev) => {
-      if (prev.providerAccountId.trim().length > 0) {
-        return prev;
-      }
-      return { ...prev, providerAccountId: providers[0].id };
-    });
-  }, [providers]);
 
   return (
     <>

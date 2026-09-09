@@ -36,7 +36,7 @@ function toApiUrl(path: string): string {
   return path.startsWith('/') ? `${apiBase}${path}` : `${apiBase}/${path}`;
 }
 
-async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
+export async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers ?? {});
   headers.set('Content-Type', 'application/json');
   if (token) {

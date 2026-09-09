@@ -23,6 +23,7 @@ import {
 import type { PortalWorkerEnv } from "./portal-env.types.js";
 import { PortalRequestError } from "./portal-request-error.utils.js";
 import { PortalRuntimeService } from "./portal-runtime.service.js";
+import { supportController } from "./support/support.controller.js";
 
 function okEnvelope<T>(data: T): ApiEnvelope<T> {
   return {
@@ -46,6 +47,7 @@ export const publicRoadmapFeedbackPortalApp = new Hono<{
 }>();
 
 publicRoadmapFeedbackPortalApp.use("/api/*", cors());
+publicRoadmapFeedbackPortalApp.route("/api/support", supportController);
 
 publicRoadmapFeedbackPortalApp.get("/health", (c) => {
   return c.json(okEnvelope({

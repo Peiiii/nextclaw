@@ -11,5 +11,5 @@
     "allowJs": true,
     "noEmit": false
   },
-  "include": ["server", "shared"]
+  "include": ["server", "shared", "scripts/support-*.test.ts"]
 }

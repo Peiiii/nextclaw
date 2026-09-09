@@ -1,15 +1,16 @@
 import type { UserView } from '@/api/types';
+import { AdminSupportReviewPage } from '@/features/support-review';
 import { AdminShell } from '@/app/admin-shell';
 import {
   ADMIN_CONSOLE_ROUTES,
   useAdminConsoleRoute,
   type AdminConsoleRouteKey
-} from '@/pages/admin-console-navigation';
-import { AdminMarketplaceReviewPage } from '@/pages/admin-marketplace-review-page';
+} from '@/app/admin-console-navigation.config';
+import { AdminMarketplaceReviewPage } from '@/app/admin-marketplace-review-page';
 import { AdminMarketplaceAppReviewPage } from '@/features/marketplace-app-review';
 import { AdminOverviewPage } from '@/features/admin-overview';
 import { AdminUserQuotaPage } from '@/features/admin-users';
-import { AdminRechargeReviewPage } from '@/pages/admin-recharge-review-page';
+import { AdminRechargeReviewPage } from '@/app/admin-recharge-review-page';
 
 type Props = {
   token: string;
@@ -35,6 +36,8 @@ export function AdminDashboardPage({ token, user, onLogout }: Props): JSX.Elemen
 
 function renderRoutePage(token: string, routeKey: AdminConsoleRouteKey): JSX.Element {
   switch (routeKey) {
+    case 'support':
+      return <AdminSupportReviewPage token={token} />;
     case 'marketplace':
       return <AdminMarketplaceReviewPage token={token} />;
     case 'marketplace-apps':

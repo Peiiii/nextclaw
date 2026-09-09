@@ -1,0 +1,8 @@
+{
+  "contractKind": "protocol",
+  "protocol": "app-l1",
+  "allowedRootFiles": ["main.mjs"],
+  "importAliasPrefixes": ["#feedback-maintainer/"],
+  "rootPolicy": "contract-only",
+  "enforcement": "error"
+}

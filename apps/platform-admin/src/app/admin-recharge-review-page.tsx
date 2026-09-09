@@ -10,7 +10,7 @@ import {
   confirmRechargeIntent,
   fetchAdminRechargeIntents,
   rejectRechargeIntent
-} from '@/api/client';
+} from '@/api/platform-client.utils';
 import type { RechargeIntentItem } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { TableWrap } from '@/components/ui/table';

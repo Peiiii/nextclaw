@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-export type AdminConsoleRouteKey = 'overview' | 'marketplace' | 'marketplace-apps' | 'users' | 'recharge';
+export type AdminConsoleRouteKey = 'overview' | 'marketplace' | 'marketplace-apps' | 'users' | 'recharge' | 'support';
 
 export type AdminConsoleRoute = {
   key: AdminConsoleRouteKey;
@@ -18,6 +18,7 @@ export const ADMIN_CONSOLE_ROUTES: AdminConsoleRoute[] = [
     description: '平台治理入口与关键运行状态。',
     hash: '#/overview'
   },
+  { key: 'support', label: '用户反馈', description: '查看用户问题，评审自动修复与发布。', hash: '#/support' },
   {
     key: 'marketplace',
     label: 'Marketplace 审核',
@@ -45,7 +46,7 @@ export const ADMIN_CONSOLE_ROUTES: AdminConsoleRoute[] = [
 ];
 
 function getDefaultRoute(): AdminConsoleRoute {
-  return ADMIN_CONSOLE_ROUTES[0];
+  return ADMIN_CONSOLE_ROUTES.find(route => route.key === DEFAULT_ROUTE_KEY)!;
 }
 
 function normalizeHash(hash: string): string {

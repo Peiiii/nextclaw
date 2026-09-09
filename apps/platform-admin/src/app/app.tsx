@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchMe } from '@/api/client';
+import { fetchMe } from '@/api/platform-client.utils';
 import { Button } from '@/components/ui/button';
-import { LoginPage } from '@/pages/LoginPage';
+import { LoginPage } from '@/app/login-page';
 import { AdminDashboardPage } from '@/app/admin-dashboard-page';
 import { useAuthStore } from '@/store/auth';
 
