@@ -15,9 +15,9 @@ export async function adminSupportHandler(c: Context<{ Bindings: Env }>): Promis
   }
   const id = c.req.param("id");
   const url = new URL("/api/support/review" + (id ? "/" + encodeURIComponent(id) : ""), base);
-  if (!id) for (const key of ["bucket", "q", "page", "pageSize"]) {
-    const value = c.req.query(key);
-    if (value !== undefined) url.searchParams.set(key, value);
+  if (!id) {
+    const filters = Object.entries(c.req.query()).filter(([key]) => ["bucket", "q", "page", "pageSize"].includes(key));
+    url.search = new URLSearchParams(filters).toString();
   }
   const body = c.req.method === "POST" ? await c.req.text() : undefined;
   if (body && new TextEncoder().encode(body).length > 16000) return apiError(c, 413, "PAYLOAD_TOO_LARGE", "评审内容过长。");
