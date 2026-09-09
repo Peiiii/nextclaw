@@ -6,6 +6,13 @@ NextClaw has one fundamental mission: to be a good long-term partner to its user
 
 This vision describes the product we want to build; it does not mean every capability is available today. See the [Roadmap](/en/project/roadmap) for scope and milestones.
 
+<figure>
+  <a href="/vision/nextclaw-1-0-vision-zh.webp" aria-label="View the full-size NextClaw 1.0 vision illustration">
+    <img src="/vision/nextclaw-1-0-vision-zh.webp" srcset="/vision/nextclaw-1-0-vision-zh-768.webp 768w, /vision/nextclaw-1-0-vision-zh.webp 1536w" sizes="(max-width: 767px) calc(100vw - 48px), 688px" width="1536" height="1024" decoding="async" alt="NextClaw 1.0 vision: one mission, to be a good partner to you. Three goals: understand the user, take useful initiative, and continuously improve itself. The partner notices a scheduling conflict and invites the user to discuss it.">
+  </a>
+  <figcaption>1.0 concept illustration, with Chinese text: understand you, take useful initiative, and continuously improve. Click for the full-size image; the goals are explained in English below.</figcaption>
+</figure>
+
 ## Understanding What Matters to You
 
 We want NextClaw to develop an ongoing understanding of your goals, plans across different time horizons, preferences, circumstances, and current state, using that understanding to make sense of the task at hand.

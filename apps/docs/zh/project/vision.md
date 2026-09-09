@@ -6,6 +6,13 @@ NextClaw 以做好用户的长期搭档为根本使命，致力于成为一个�
 
 这份愿景描述我们希望实现的产品形态，并不表示所有能力都已提供。版本范围和阶段安排请参阅 [路线图](/zh/project/roadmap)。
 
+<figure>
+  <a href="/vision/nextclaw-1-0-vision-zh.webp" aria-label="查看完整尺寸的 NextClaw 1.0 愿景图">
+    <img src="/vision/nextclaw-1-0-vision-zh.webp" srcset="/vision/nextclaw-1-0-vision-zh-768.webp 768w, /vision/nextclaw-1-0-vision-zh.webp 1536w" sizes="(max-width: 767px) calc(100vw - 48px), 688px" width="1536" height="1024" decoding="async" alt="NextClaw 1.0 愿景：唯一的使命是做好你的搭档。三个目标是懂用户、主动帮忙、持续自我改进；搭档主动发现安排冲突并邀请用户讨论。">
+  </a>
+  <figcaption>1.0 愿景概念图：懂用户、主动帮忙、持续自我改进。点击可查看大图；具体目标详见下文。</figcaption>
+</figure>
+
 ## 理解你在意的事情
 
 我们希望 NextClaw 能持续理解你的目标、长中短期计划、偏好、处境和当前状态，把眼前的任务放回这些背景中理解。
