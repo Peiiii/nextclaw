@@ -26,6 +26,16 @@ import type {
 const rawApiBase = (import.meta.env.VITE_PLATFORM_API_BASE ?? '').trim();
 const apiBase = rawApiBase.replace(/\/+$/, '');
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 function toApiUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) {
     return path;
@@ -59,12 +69,12 @@ export async function request<T>(path: string, options: RequestInit = {}, token?
     const body = parsed as ApiFailure | { error?: { message?: string } } | null;
     const fallback = `Request failed: ${response.status}`;
     if (body && 'ok' in body && body.ok === false && body.error?.message) {
-      throw new Error(body.error.message);
+      throw new ApiError(response.status, body.error.message);
     }
     if (body && 'error' in body && body.error?.message) {
-      throw new Error(body.error.message);
+      throw new ApiError(response.status, body.error.message);
     }
-    throw new Error(fallback);
+    throw new ApiError(response.status, fallback);
   }
 
   return parsed as T;

@@ -21,9 +21,17 @@ The thinking indicator follows the current task. A task may continue after a rep
 
 ## Voice input
 
-Click the microphone beside the composer to record, then click to finish. Words appear at the cursor or selection captured when recording starts. Underlined words are provisional and may change; the underline disappears when transcription finishes. A small floating indicator shows recording status and duration. Nothing is sent automatically. Cancel restores the original content; surrounding text, references, and attachments stay intact. Each recording is limited to 60 seconds.
+When recording starts, the overlay explains why microphone access is needed. Choose Allow in the browser permission prompt. If access is denied, the overlay shows site permission instructions and the settings path for your operating system. After changing permissions, select **Check microphone and retry**. The check immediately releases its temporary microphone capture before starting speech recognition. Missing or unreadable devices have separate messages. Save your draft before restarting the app if your system requires it.
 
-Typing, pasting, or moving the cursor inside the composer ends dictation and keeps the visible words so you can edit. Late recognition results cannot overwrite your edits. During dictation, Enter ends dictation without sending; Esc cancels this dictation.
+Both first use and retries check the microphone first. Waiting for your permission choice is not interrupted by the prompt taking focus or counted toward the speech-service connection timeout. Leaving the page or choosing Save and close still ends the request; granting permission afterward will not start recording automatically.
+
+Startup, recording, and finalization share one compact bar, labeled Preparing, Listening, and Finishing respectively. State changes keep the bar's dimensions stable without flashing a larger panel first. Hover over the startup status for the microphone purpose explanation. Instructions expand only when an error needs attention.
+
+Browsers cannot always distinguish a site-level denial from a system-level denial, so the instructions cover both settings. A disabled speech recognition service is reported separately.
+
+Click the microphone beside the composer to record, then press Esc or choose **Save and close**. Words appear at the cursor or selection captured when recording starts. Underlined words are provisional and may change; the underline disappears when transcription finishes. The overlay shows recording status and duration, without a discard button; the Esc shortcut appears only in the save button's tooltip. Saving waits for the final words; if finalization fails, the words already displayed are retained. Nothing is sent automatically; surrounding text, references, and attachments stay intact. Each recording is limited to 60 seconds.
+
+Typing, pasting, or moving the cursor inside the composer ends dictation and keeps the visible words so you can edit. Late recognition results cannot overwrite your edits. During dictation, Enter ends dictation without sending; Esc saves and closes dictation.
 
 On desktop layouts, configure hold-to-talk in **Settings → Keyboard shortcuts → Voice input**. The gear at the right of the recording overlay opens the same settings. Opening settings finishes the current transcription first; closing settings does not restart recording. Bind, change, or disable the shortcut there. Release the key to finish. Single letters and F6–F10 only trigger outside text inputs; combinations using Ctrl or ⌘ with Alt/⌥ also work inside. Standard editing shortcuts and IME composition are protected. Phones use the microphone button without shortcut settings. System-reserved keys may not reach the page.
 
@@ -93,6 +101,14 @@ You can also use `/compact` to compact earlier context on demand. For both autom
 
 ## Math formulas
 
+Chat messages and Markdown files in the session workspace support `$...$`, `$$...$$`, inline `\(...\)` and display `\[...\]`. For example, use `\(E = mc^2\)` inline, or:
+
+```text
+\[
+\frac{1}{2}
+\]
+```
+
 Chat messages support LaTeX math. Use `$E = mc^2$` for inline formulas. For a display formula, put `$$` on separate lines before and after it:
 
 ```text
@@ -101,6 +117,6 @@ $$
 $$
 ```
 
-Fractions, roots, sums, integrals, matrices, and other KaTeX syntax are supported. Wide display formulas scroll horizontally. During generation, unfinished display formulas show an ellipsis until their closing delimiter arrives. Temporary parsing errors do not flash red; formulas that remain invalid show an error marker once generation ends. Unclosed inline formulas remain plain text. Inline code and ordinary code blocks preserve their literal text. Escape dollar signs as `\$`.
+Fractions, roots, sums, integrals, matrices, and other KaTeX syntax are supported. Wide display formulas scroll horizontally. During generation, unfinished `$$` display formulas show an ellipsis until their closing delimiter arrives. Backslash-delimited and inline formulas remain plain text until closed. Temporary parsing errors do not flash red; closed formulas that remain invalid show an error marker once generation ends. Inline code and ordinary code blocks preserve their literal text. Escape dollar signs as `\$`.
 
 Inside a session you can open the [workspace](/en/guide/workspace), create subtasks, add a scheduled job, or reference a Panel App or skill.

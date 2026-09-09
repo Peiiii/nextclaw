@@ -86,6 +86,70 @@ async function assertLoginPage(browser) {
   await page.close();
 }
 
+async function assertExpiredSessionRecovery(browser) {
+  const page = await browser.newPage();
+  let authRequestCount = 0;
+  await page.route("**/platform/auth/me", async (route) => {
+    authRequestCount += 1;
+    await route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: false,
+        error: { code: "UNAUTHORIZED", message: "Invalid or expired token." }
+      })
+    });
+  });
+  await page.addInitScript(() => {
+    window.localStorage.clear();
+    window.localStorage.setItem("nextclaw.platform.token", "expired-admin-token");
+  });
+
+  await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "登录管理后台" }).waitFor();
+
+  if (authRequestCount !== 1) {
+    throw new Error(`过期登录态应只校验一次，实际请求 ${authRequestCount} 次`);
+  }
+  const storedToken = await page.evaluate(() => window.localStorage.getItem("nextclaw.platform.token"));
+  if (storedToken !== null) {
+    throw new Error("过期登录态返回登录页后仍保留本地 token");
+  }
+  await page.close();
+}
+
+async function assertTransientSessionFailurePreservesToken(browser) {
+  const page = await browser.newPage();
+  let authRequestCount = 0;
+  await page.route("**/platform/auth/me", async (route) => {
+    authRequestCount += 1;
+    await route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: false,
+        error: { code: "SERVICE_UNAVAILABLE", message: "Service temporarily unavailable." }
+      })
+    });
+  });
+  await page.addInitScript(() => {
+    window.localStorage.clear();
+    window.localStorage.setItem("nextclaw.platform.token", "valid-admin-token");
+  });
+
+  await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "登录态加载失败" }).waitFor();
+
+  if (authRequestCount !== 4) {
+    throw new Error(`瞬态登录态校验应保留三次重试，实际请求 ${authRequestCount} 次`);
+  }
+  const storedToken = await page.evaluate(() => window.localStorage.getItem("nextclaw.platform.token"));
+  if (storedToken !== "valid-admin-token") {
+    throw new Error("瞬态登录态校验失败不应清除本地 token");
+  }
+  await page.close();
+}
+
 async function assertAdminUsersPage(page) {
   await page.getByRole("link", { name: /用户与额度/ }).first().click();
   await page.waitForFunction(() => document.body.innerText.includes("用户列表"));
@@ -216,6 +280,44 @@ async function assertAdminMobileLayout(page) {
   await page.setViewportSize({ width: 1440, height: 900 });
 }
 
+async function assertProductActivityTrend(page) {
+  const trendDetail = page.getByTestId("product-activity-trend-detail");
+  await trendDetail.waitFor();
+  if ((await trendDetail.innerText()) !== "2026年8月30日\n活跃 15\n成功 8\n悬停、聚焦或点击日期可查看详情") {
+    throw new Error(`产品活跃趋势默认详情异常: ${await trendDetail.innerText()}`);
+  }
+
+  const trendAxis = page.getByTestId("product-activity-trend-axis");
+  if ((await trendAxis.getAttribute("aria-label")) !== "Y 轴刻度：18、9、0") {
+    throw new Error(`产品活跃趋势 Y 轴刻度异常: ${await trendAxis.getAttribute("aria-label")}`);
+  }
+
+  await page.getByTestId("product-activity-day-2026-08-05").hover();
+  if (!(await trendDetail.innerText()).includes("2026年8月5日\n活跃 12\n成功 10")) {
+    throw new Error(`产品活跃趋势 hover 详情异常: ${await trendDetail.innerText()}`);
+  }
+  await page.getByTestId("product-activity-day-2026-08-06").focus();
+  if (!(await trendDetail.innerText()).includes("2026年8月6日\n活跃 13\n成功 11")) {
+    throw new Error(`产品活跃趋势键盘聚焦详情异常: ${await trendDetail.innerText()}`);
+  }
+  await page.getByTestId("product-activity-day-2026-08-07").click();
+  if (!(await trendDetail.innerText()).includes("2026年8月7日\n活跃 14\n成功 12")) {
+    throw new Error(`产品活跃趋势点击详情异常: ${await trendDetail.innerText()}`);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const trendLayout = await page.getByTestId("product-activity-trend-scroller").evaluate((scroller) => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+    scrollerClientWidth: scroller.clientWidth,
+    scrollerScrollWidth: scroller.scrollWidth
+  }));
+  if (trendLayout.documentWidth > trendLayout.viewportWidth + 1 || trendLayout.scrollerScrollWidth <= trendLayout.scrollerClientWidth) {
+    throw new Error(`产品活跃趋势窄屏滚动异常: ${JSON.stringify(trendLayout)}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+}
+
 async function assertConsoleShell(browser) {
   const page = await browser.newPage();
   const fixtures = PLATFORM_ADMIN_SMOKE_FIXTURES;
@@ -258,6 +360,8 @@ async function assertConsoleShell(browser) {
     }
   }
 
+  await assertProductActivityTrend(page);
+
   const qaActivityRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
     return url.pathname.endsWith("/platform/admin/analytics/activity")
@@ -285,6 +389,8 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   try {
     await assertLoginPage(browser);
+    await assertExpiredSessionRecovery(browser);
+    await assertTransientSessionFailurePreservesToken(browser);
     await assertConsoleShell(browser);
     console.log(`platform-admin smoke ok: ${baseUrl}`);
   } finally {
