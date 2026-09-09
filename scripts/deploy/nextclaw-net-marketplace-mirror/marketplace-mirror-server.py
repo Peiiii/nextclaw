@@ -240,12 +240,26 @@ def cache_path_belongs_to_skill(path_query, selector):
 def sync_snapshot():
     started_at = utc_now_iso()
     previous_manifest = load_json(MANIFEST_PATH, {})
+    previous_skills = previous_manifest.get("skills", {})
+    previous_source_versions = previous_skills.get("sourceVersions", {})
+    previous_file_counts = previous_skills.get("fileCounts", {})
+    previous_failed_slugs = {
+        item.get("slug")
+        for item in previous_skills.get("failed", [])
+        if item.get("slug")
+    }
+    has_incremental_state = (
+        isinstance(previous_source_versions, dict)
+        and bool(previous_source_versions)
+        and isinstance(previous_file_counts, dict)
+    )
     prewarm_path("/health")
     scenes = prewarm_path("/api/v1/skills/scenes")
     recommendations = prewarm_path("/api/v1/skills/recommendations")
 
     slugs = []
     package_names = {}
+    source_versions = {}
     failed = []
     total = 0
     total_pages = 1
@@ -261,31 +275,52 @@ def sync_snapshot():
             slug = item.get("slug")
             if slug:
                 slugs.append(slug)
+                source_versions[slug] = item.get("updatedAt")
                 package_name = item.get("packageName")
                 if package_name:
                     package_names[slug] = package_name
         page += 1
 
-    evicted = evict_removed_skill_cache(previous_manifest, slugs, package_names)
-    file_count = 0
-    for slug in sorted(set(slugs)):
+    current_slugs = sorted(set(slugs))
+    evicted = evict_removed_skill_cache(previous_manifest, current_slugs, package_names)
+    refresh_slugs = {
+        slug
+        for slug in current_slugs
+        if (
+            not has_incremental_state
+            or not source_versions.get(slug)
+            or previous_source_versions.get(slug) != source_versions.get(slug)
+            or slug in previous_failed_slugs
+            or slug not in previous_file_counts
+        )
+    }
+    file_counts = {
+        slug: previous_file_counts[slug]
+        for slug in current_slugs
+        if slug in previous_file_counts
+    }
+    for slug in current_slugs:
+        if slug not in refresh_slugs:
+            continue
         try:
             prewarm_path(f"/api/v1/skills/items/{slug}")
             prewarm_path(f"/api/v1/skills/items/{slug}/content")
             files_cached = prewarm_path(f"/api/v1/skills/items/{slug}/files")
             files_payload = json.loads(files_cached["body"].decode("utf-8"))
             files_data = files_payload.get("data", {})
+            skill_file_count = 0
             for file_item in files_data.get("files", []):
                 download_path = file_item.get("downloadPath")
                 if download_path:
                     prewarm_path(download_path)
-                    file_count += 1
+                    skill_file_count += 1
+            file_counts[slug] = skill_file_count
         except (RuntimeError, URLError, TimeoutError, OSError) as error:
             failed.append({"slug": slug, "error": str(error)})
             print(f"sync warning: {slug}: {error}", file=sys.stderr)
 
     manifest = {
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "source": SOURCE_BASE_URL,
         "storage": "snapshot-mirror",
         "startedAt": started_at,
@@ -293,9 +328,11 @@ def sync_snapshot():
         "skills": {
             "total": total,
             "pages": total_pages,
-            "slugs": sorted(set(slugs)),
+            "slugs": current_slugs,
             "packageNames": package_names,
-            "fileCount": file_count,
+            "sourceVersions": source_versions,
+            "fileCounts": file_counts,
+            "fileCount": sum(file_counts.values()),
             "failed": failed,
             "evictedSlugs": evicted["slugs"],
             "evictedCacheEntries": evicted["cacheEntries"],

@@ -213,18 +213,35 @@ snapshot/
 
 ## 镜像同步策略
 
-同步任务每 5 到 15 分钟执行一次：
+同步任务每 5 到 15 分钟执行一次，但同步频率不应等同于全量内容刷新频率。
+
+### 2026-09-09 增量同步修正
+
+Cloudflare Analytics 的真实生产数据表明，原实现每 10 分钟无条件刷新全部技能详情、content、files 和 blob。32 个技能在 24 小时内触发约 137 轮全量同步，仅国内镜像单一来源就产生 35,064 次 Worker 请求，占 `marketplace-api.nextclaw.io` 请求量的 98.5%。该流量与用户访问无关，是镜像同步器自身的请求放大。
+
+目录接口已经为每个技能提供 `updatedAt`，它是技能发布内容版本的现有 owner。镜像应复用该事实，不新增平行 revision 服务：
+
+1. 每轮仍请求官方 `/health`、`/api/v1/skills/scenes`、`/api/v1/skills/recommendations` 和全部技能目录页，保持 10 分钟目录新鲜度。
+2. 将目录中的 `slug -> updatedAt` 持久化到 manifest，并与上一版 manifest 比较。
+3. 只对新增、`updatedAt` 变化、上轮同步失败，或本地缺少完整版本状态的技能刷新详情、content、files 和 files/blob。
+4. 未变化技能直接复用已有快照和已记录的文件数量，不向官方源重复请求内容。
+5. 删除技能继续清理 slug、package selector 和文件缓存；失败技能保留在 manifest 中并在下一轮重试。
+6. 从旧版 manifest 升级时执行一次全量同步，建立完整的版本和文件数量基线；之后进入增量路径。
+
+稳定态下，当前单页目录规模每轮只需 4 次官方请求，理论日请求量从约 3.5 万次降到约 576 次，降幅约 98.4%。当技能发生更新时，只增加该技能详情及文件对应的请求量。
+
+完整同步主链路为：
 
 1. 请求官方 `/health`。
 2. 拉取 `/api/v1/skills/items?page=n&pageSize=100` 直到结束。
 3. 拉取 `/api/v1/skills/scenes` 和 `/api/v1/skills/recommendations`。
-4. 对每个 skill 拉取详情、files 列表、content。
-5. 对 files/blob 下载文件并按 sha256 写入对象存储或本地 cache。
+4. 计算本轮需要刷新的 skill 集合。
+5. 仅对该集合拉取详情、files 列表、content，并对 files/blob 下载文件写入本地 cache。
 6. 生成新的 snapshot 到临时目录。
 7. 校验 snapshot 完整性。
 8. 原子切换 `current -> snapshot/<generatedAt>`。
 
-同步任务中的详情、content、files 列表和 files/blob 都必须强制刷新官方源；服务请求路径才允许按 TTL 命中已有缓存。尤其不能用旧 files 列表驱动 blob 预热，否则新增文件不会进入国内镜像，即使技能详情的 `updatedAt` 已变化。
+需要刷新的技能中，详情、content、files 列表和 files/blob 都必须强制刷新官方源；服务请求路径才允许按 TTL 命中已有缓存。尤其不能用旧 files 列表驱动变化技能的 blob 预热，否则新增文件不会进入国内镜像。未变化技能则不得为“确保新鲜”重复刷新，因为 `updatedAt` 已经提供了版本边界。
 
 同步失败时保留上一版 snapshot，不让国内 API 因官方源短暂不可达而整体失败。
 

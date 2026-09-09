@@ -181,10 +181,190 @@ class MarketplaceMirrorServerTest(unittest.TestCase):
             manifest = MIRROR.sync_snapshot()
 
         self.assertEqual(manifest["skills"]["fileCount"], 1)
+        self.assertEqual(manifest["schemaVersion"], 3)
+        self.assertEqual(
+            manifest["skills"]["sourceVersions"],
+            {"weather": None},
+        )
         prewarm_path.assert_any_call("/api/v1/skills/items/weather/files")
         prewarm_path.assert_any_call(
             "/api/v1/skills/items/weather/files/blob?path=scripts%2Fnew-file.mjs"
         )
+
+    def test_sync_skips_unchanged_skill_content(self):
+        updated_at = "2026-09-09T00:00:00.000Z"
+
+        def cached(body):
+            return {
+                "body": json.dumps(body).encode("utf-8"),
+                "meta": {"sizeBytes": 1},
+            }
+
+        def prewarm(path):
+            if path == "/api/v1/skills/items?page=1&pageSize=100":
+                return cached({
+                    "data": {
+                        "total": 1,
+                        "totalPages": 1,
+                        "items": [{
+                            "slug": "weather",
+                            "packageName": "@nextclaw/weather",
+                            "updatedAt": updated_at,
+                        }],
+                    },
+                })
+            if path in (
+                "/health",
+                "/api/v1/skills/scenes",
+                "/api/v1/skills/recommendations",
+            ):
+                return cached({})
+            raise AssertionError(f"unexpected content refresh: {path}")
+
+        previous_manifest = {
+            "schemaVersion": 3,
+            "skills": {
+                "slugs": ["weather"],
+                "packageNames": {"weather": "@nextclaw/weather"},
+                "sourceVersions": {"weather": updated_at},
+                "fileCounts": {"weather": 2},
+                "failed": [],
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            manifest_path = Path(temp_dir) / "manifest.json"
+            manifest_path.write_text(json.dumps(previous_manifest), encoding="utf-8")
+            with patch.object(MIRROR, "MANIFEST_PATH", manifest_path), patch.object(
+                MIRROR, "prewarm_path", side_effect=prewarm
+            ) as prewarm_path, patch.object(
+                MIRROR,
+                "evict_removed_skill_cache",
+                return_value={"slugs": [], "cacheEntries": 0},
+            ):
+                manifest = MIRROR.sync_snapshot()
+
+        self.assertEqual(manifest["skills"]["fileCount"], 2)
+        self.assertEqual(prewarm_path.call_count, 4)
+
+    def test_sync_refreshes_changed_and_previously_failed_skills_only(self):
+        old_version = "2026-09-08T00:00:00.000Z"
+        new_version = "2026-09-09T00:00:00.000Z"
+
+        def cached(body):
+            return {
+                "body": json.dumps(body).encode("utf-8"),
+                "meta": {"sizeBytes": 1},
+            }
+
+        def prewarm(path):
+            if path == "/api/v1/skills/items?page=1&pageSize=100":
+                return cached({
+                    "data": {
+                        "total": 3,
+                        "totalPages": 1,
+                        "items": [
+                            {"slug": "stable", "updatedAt": old_version},
+                            {"slug": "changed", "updatedAt": new_version},
+                            {"slug": "retry", "updatedAt": old_version},
+                        ],
+                    },
+                })
+            if path.endswith("/files"):
+                slug = path.split("/")[-2]
+                return cached({
+                    "data": {
+                        "files": [{
+                            "downloadPath": f"/api/v1/skills/items/{slug}/files/blob?path=SKILL.md",
+                        }],
+                    },
+                })
+            return cached({})
+
+        previous_manifest = {
+            "schemaVersion": 3,
+            "skills": {
+                "slugs": ["stable", "changed", "retry"],
+                "sourceVersions": {
+                    "stable": old_version,
+                    "changed": old_version,
+                    "retry": old_version,
+                },
+                "fileCounts": {"stable": 2, "changed": 3, "retry": 4},
+                "failed": [{"slug": "retry", "error": "temporary"}],
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            manifest_path = Path(temp_dir) / "manifest.json"
+            manifest_path.write_text(json.dumps(previous_manifest), encoding="utf-8")
+            with patch.object(MIRROR, "MANIFEST_PATH", manifest_path), patch.object(
+                MIRROR, "prewarm_path", side_effect=prewarm
+            ) as prewarm_path, patch.object(
+                MIRROR,
+                "evict_removed_skill_cache",
+                return_value={"slugs": [], "cacheEntries": 0},
+            ):
+                manifest = MIRROR.sync_snapshot()
+
+        calls = [call.args[0] for call in prewarm_path.call_args_list]
+        self.assertFalse(any("/stable/" in path for path in calls))
+        self.assertTrue(any("/changed/" in path for path in calls))
+        self.assertTrue(any("/retry/" in path for path in calls))
+        self.assertEqual(manifest["skills"]["fileCounts"], {
+            "stable": 2,
+            "changed": 1,
+            "retry": 1,
+        })
+
+    def test_sync_failure_preserves_previous_file_count_for_retry(self):
+        version = "2026-09-09T00:00:00.000Z"
+
+        def cached(body):
+            return {
+                "body": json.dumps(body).encode("utf-8"),
+                "meta": {"sizeBytes": 1},
+            }
+
+        def prewarm(path):
+            if path == "/api/v1/skills/items?page=1&pageSize=100":
+                return cached({
+                    "data": {
+                        "total": 1,
+                        "totalPages": 1,
+                        "items": [{"slug": "weather", "updatedAt": version}],
+                    },
+                })
+            if path == "/api/v1/skills/items/weather/content":
+                raise URLError("temporary")
+            return cached({})
+
+        previous_manifest = {
+            "schemaVersion": 3,
+            "skills": {
+                "slugs": ["weather"],
+                "sourceVersions": {"weather": "2026-09-08T00:00:00.000Z"},
+                "fileCounts": {"weather": 2},
+                "failed": [],
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            manifest_path = Path(temp_dir) / "manifest.json"
+            manifest_path.write_text(json.dumps(previous_manifest), encoding="utf-8")
+            with patch.object(MIRROR, "MANIFEST_PATH", manifest_path), patch.object(
+                MIRROR, "prewarm_path", side_effect=prewarm
+            ), patch.object(
+                MIRROR,
+                "evict_removed_skill_cache",
+                return_value={"slugs": [], "cacheEntries": 0},
+            ):
+                first = MIRROR.sync_snapshot()
+                second = MIRROR.sync_snapshot()
+
+        self.assertEqual(first["skills"]["fileCounts"], {"weather": 2})
+        self.assertEqual(first["skills"]["failed"][0]["slug"], "weather")
+        self.assertEqual(second["skills"]["failed"][0]["slug"], "weather")
 
 
 if __name__ == "__main__":
