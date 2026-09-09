@@ -6,6 +6,36 @@ const defaultTexts = {
   copiedCodeLabel: "Copied",
 };
 
+it("renders inline and display math with accessible formula source", () => {
+  const { container } = render(
+    <ChatMessageMarkdown text={"Energy $E=mc^2$\n\n$$\n\\frac{1}{2}\n$$"} role="assistant" texts={defaultTexts} />,
+  );
+  expect(container.querySelectorAll(".katex")).toHaveLength(2);
+  expect(container.querySelector(".katex-display")?.getAttribute("style")).toContain("overflow-x: auto");
+  expect(container.querySelector("annotation")?.textContent).toBe("E=mc^2");
+  expect(container.querySelector("math")).not.toBeNull();
+});
+
+it("preserves code and escaped currency while rendering streamed math", () => {
+  const { container, rerender } = render(
+    <ChatMessageMarkdown text={"`$x$`\n\n```text\n$x$\n```\n\n\\$5 and \\$10\n\n$x"} role="user" texts={defaultTexts} isStreaming />,
+  );
+  expect(container.querySelector(".katex")).toBeNull();
+  expect(container.textContent).toContain("$5 and $10");
+  expect(container.querySelector("code")?.textContent).toBe("$x$");
+  rerender(<ChatMessageMarkdown text="$x^2$" role="user" texts={defaultTexts} />);
+  expect(container.querySelector(".katex")).not.toBeNull();
+});
+
+it("contains invalid formulas and does not trust embedded HTML commands", () => {
+  const { container } = render(
+    <ChatMessageMarkdown text={"$\\frac{$\n\nStill readable\n\n$\\href{javascript:alert(1)}{click}$"} role="assistant" texts={defaultTexts} />,
+  );
+  expect(container.querySelector(".katex-error")).not.toBeNull();
+  expect(container.textContent).toContain("Still readable");
+  expect(container.querySelector('a[href^="javascript:"]')).toBeNull();
+});
+
 function selectText(node: Node): Selection {
   const range = document.createRange();
   range.selectNodeContents(node);
@@ -78,7 +108,7 @@ it("keeps same-name skill references aligned with their message order", () => {
   const onInlineTokenClick = vi.fn();
   render(
     <ChatMessageMarkdown
-      text="$review and $review"
+      text="$review and $review with $x^2$"
       role="user"
       texts={defaultTexts}
       inlineTokens={[
@@ -106,6 +136,7 @@ it("keeps same-name skill references aligned with their message order", () => {
   );
 
   const buttons = screen.getAllByRole("button", { name: "review" });
+  expect(document.querySelector(".katex annotation")?.textContent).toBe("x^2");
   fireEvent.click(buttons[0]);
   fireEvent.click(buttons[1]);
 

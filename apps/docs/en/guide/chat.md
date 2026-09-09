@@ -87,4 +87,16 @@ The context-window indicator separates system and tools, conversation content, o
 
 You can also use `/compact` to compact earlier context on demand. For both automatic and manual compaction, keep critical paths, final criteria, and non-editable boundaries explicit near the work that depends on them.
 
+## Math formulas
+
+Chat messages support LaTeX math. Use `$E = mc^2$` for inline formulas. For a display formula, put `$$` on separate lines before and after it:
+
+```text
+$$
+\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+$$
+```
+
+Fractions, roots, sums, integrals, matrices, and other KaTeX syntax are supported. Wide display formulas scroll horizontally. During generation, unfinished display formulas show an ellipsis until their closing delimiter arrives. Temporary parsing errors do not flash red; formulas that remain invalid show an error marker once generation ends. Unclosed inline formulas remain plain text. Inline code and ordinary code blocks preserve their literal text. Escape dollar signs as `\$`.
+
 Inside a session you can open the [workspace](/en/guide/workspace), create subtasks, add a scheduled job, or reference a Panel App or skill.

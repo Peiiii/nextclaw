@@ -3,10 +3,15 @@ import {
   useContext,
   type MouseEvent,
   type ReactNode,
+  type CSSProperties,
 } from "react";
-import type { Components } from "react-markdown";
+import type { Components, Options } from "react-markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+import { createRemarkStreamingMathPlugin, rehypeStreamingMath } from "./utils/chat-streaming-math.utils";
 import { cn } from "@agent-chat-ui/components/chat/internal/cn";
 import { ChatInlineTokenBadge } from "./chat-inline-token-badge";
 import { ChatCodeBlock } from "./chat-code-block";
@@ -38,6 +43,9 @@ import {
 } from "./utils/chat-inline-token-markdown.utils";
 
 const MARKDOWN_MAX_CHARS = 140_000;
+const MATH_STYLES: Record<string, CSSProperties> = {
+  "katex-display": { overflowX: "auto", overflowY: "hidden", paddingBlock: "0.25em" },
+};
 
 function trimMarkdown(value: string): string {
   if (value.length <= MARKDOWN_MAX_CHARS) {
@@ -184,7 +192,14 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         />
       );
     }
-    return <span {...rest}>{children}</span>;
+    return (
+      <span
+        {...rest}
+        style={{ ...rest.style, ...MATH_STYLES[rest.className ?? ""] }}
+      >
+        {children}
+      </span>
+    );
   },
 
   a: function ChatMarkdownLink({ node: _node, href, children, ...rest }) {
@@ -342,9 +357,11 @@ export function ChatMessageMarkdown({
   renderInlineDisplay,
 }: ChatMessageMarkdownProps) {
   const isUser = role === "user";
-  const remarkPlugins = inlineTokens?.length
-    ? [remarkGfm, createRemarkInlineTokenPlugin(inlineTokens)]
-    : [remarkGfm];
+  const markdown = trimMarkdown(text);
+  const remarkPlugins: NonNullable<Options["remarkPlugins"]> = inlineTokens?.length
+    ? [remarkGfm, remarkMath, createRemarkInlineTokenPlugin(inlineTokens)]
+    : [remarkGfm, remarkMath];
+  if (isStreaming) remarkPlugins.push(createRemarkStreamingMathPlugin(markdown));
   const WrapperTag = inline ? "span" : "div";
 
   return (
@@ -370,10 +387,14 @@ export function ChatMessageMarkdown({
         <ReactMarkdown
           skipHtml
           remarkPlugins={remarkPlugins}
+          rehypePlugins={[
+            [rehypeKatex, { trust: false, maxExpand: 1000, ...(isStreaming ? { errorColor: "currentColor" } : {}) }],
+            ...(isStreaming ? [rehypeStreamingMath] : []),
+          ]}
           components={CHAT_MESSAGE_MARKDOWN_COMPONENTS}
           urlTransform={transformChatResourceHref}
         >
-          {trimMarkdown(text)}
+          {markdown}
         </ReactMarkdown>
       </WrapperTag>
     </ChatMessageMarkdownRuntimeContext.Provider>

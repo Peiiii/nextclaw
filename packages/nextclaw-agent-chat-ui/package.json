@@ -49,11 +49,14 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "highlight.js": "^11.11.1",
+    "katex": "^0.16.47",
     "lexical": "^0.43.0",
     "lucide-react": "^0.462.0",
     "mermaid": "^11.16.0",
     "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
     "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
@@ -63,6 +66,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^6.0.1",
     "jsdom": "^25.0.1",
+    "micromark-util-types": "^2.0.2",
     "prettier": "^3.3.3",
     "typescript": "^5.6.3",
     "vite": "^8.0.3",

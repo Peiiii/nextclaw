@@ -1,4 +1,5 @@
 import type { ChatInlineTokenViewModel } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
+import type { Extension } from "micromark-util-types";
 
 const INLINE_TOKEN_KIND_ATTR = "data-chat-inline-token-kind";
 const INLINE_TOKEN_KEY_ATTR = "data-chat-inline-token-key";
@@ -148,8 +149,34 @@ export function createRemarkInlineTokenPlugin(
   inlineTokens: readonly ChatInlineTokenViewModel[],
 ) {
   const tokens = prepareInlineTokens(inlineTokens);
-  return () => (tree: ChatMarkdownNode) => {
-    return tokens.length > 0
+  return function (this: { data(): object }) {
+    const data = this.data() as { micromarkExtensions?: Extension[] };
+    // Registered dollar-prefixed references take precedence over math delimiters.
+    const references: Extension = {
+      text: {
+        36: tokens.filter((token) => token.rawText.startsWith("$")).map((token) => ({
+          tokenize(effects, ok, nok) {
+            let index = 0;
+            return function consumeReference(code) {
+              if (code !== token.rawText.charCodeAt(index)) {
+                return nok(code);
+              }
+              if (index === 0) effects.enter("data");
+              effects.consume(code);
+              index += 1;
+              if (index === token.rawText.length) {
+                effects.exit("data");
+                return ok;
+              }
+              return consumeReference;
+            };
+          },
+        })),
+      },
+    };
+    const extensions = (data.micromarkExtensions ??= []);
+    extensions.push(references);
+    return (tree: ChatMarkdownNode) => tokens.length > 0
       ? new InlineTokenMarkdownTransformer(tokens).transform(tree)
       : tree;
   };
