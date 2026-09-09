@@ -1,7 +1,8 @@
 import type { ChatComposerDictationSession } from '@nextclaw/agent-chat-ui';
+import { checkMicrophoneAccess, classifyMicrophoneError } from '@/features/chat/utils/chat-voice-permissions.utils';
 
 export type VoicePhase = 'idle' | 'ready' | 'starting' | 'recording' | 'stopping' | 'error';
-export type VoiceError = 'unsupported' | 'permission' | 'network' | 'audio-capture' | 'no-speech' | 'interrupted' | 'timeout' | 'failed';
+export type VoiceError = 'unsupported' | 'permission' | 'service-denied' | 'no-device' | 'device-busy' | 'network' | 'audio-capture' | 'no-speech' | 'interrupted' | 'timeout' | 'failed';
 export type VoiceSnapshot = { phase: VoicePhase; text: string; interim: string; seconds: number; error: VoiceError | null };
 export type SpeechRecognitionLike = {
   lang: string;
@@ -33,9 +34,11 @@ export class ChatVoiceInputManager {
   private ticker: ReturnType<typeof setInterval> | undefined;
   private context = '';
   private settingsRequested = false;
+  private exitRequested = false;
   private draft: ChatComposerDictationSession | null = null;
 
-  constructor(private readonly createRecognition = createBrowserRecognition) {}
+  constructor(private readonly createRecognition = createBrowserRecognition,
+    private readonly checkMicrophone = checkMicrophoneAccess) {}
 
   getSnapshot = (): VoiceSnapshot => this.snapshot;
   subscribe = (listener: () => void): (() => void) => {
@@ -74,9 +77,19 @@ export class ChatVoiceInputManager {
       recognition.continuous = true;
       recognition.interimResults = true;
       this.connect(recognition);
+      void this.checkAndStart(recognition);
+    } catch (error) { this.fail(classifyMicrophoneError(error)); }
+  };
+  private checkAndStart = async (recognition: SpeechRecognitionLike): Promise<void> => {
+    try {
+      const error = await this.checkMicrophone();
+      if (this.recognition !== recognition || this.snapshot.phase !== 'starting') return;
+      if (error) { this.fail(error); return; }
       this.setDeadline(15000);
       recognition.start();
-    } catch { this.fail('failed'); }
+    } catch (error) {
+      if (this.recognition === recognition) this.fail(classifyMicrophoneError(error));
+    }
   };
   private connect = (recognition: SpeechRecognitionLike): void => {
     recognition.onstart = () => {
@@ -104,13 +117,14 @@ export class ChatVoiceInputManager {
     };
     recognition.onerror = ({ error }) => {
       if (this.recognition !== recognition) return;
-      const reason: VoiceError = error === 'not-allowed' || error === 'service-not-allowed'
+      const reason: VoiceError = error === 'service-not-allowed' ? 'service-denied' : error === 'not-allowed'
         ? 'permission'
         : error === 'network' || error === 'audio-capture' || error === 'no-speech' ? error : 'failed';
       this.fail(reason);
     };
     recognition.onend = () => {
       if (this.recognition !== recognition) return;
+      if (this.exitRequested) { this.release(false); this.acceptDraft(); return; }
       const text = this.snapshot.text.trim();
       this.release(false);
       if (!text) { this.fail('no-speech'); return; }
@@ -129,6 +143,12 @@ export class ChatVoiceInputManager {
     this.setDeadline(8000);
     try { this.recognition.stop(); } catch { this.fail('failed'); }
   };
+  saveAndClose = (): void => {
+    this.exitRequested = true;
+    if (this.snapshot.phase === 'recording') { this.finish(); return; }
+    if (this.snapshot.phase === 'stopping') return;
+    this.acceptDraft();
+  };
   interrupt = (): void => {
     if (isActive(this.snapshot.phase)) this.fail('interrupted');
   };
@@ -139,6 +159,7 @@ export class ChatVoiceInputManager {
   };
   cancel = (): void => {
     this.settingsRequested = false;
+    this.exitRequested = false;
     this.release();
     this.context = '';
     this.draft?.cancel();
@@ -146,6 +167,7 @@ export class ChatVoiceInputManager {
     this.update(initialSnapshot());
   };
   private fail = (error: VoiceError): void => {
+    if (this.exitRequested) { this.acceptDraft(); return; }
     this.release();
     if (this.snapshot.text) this.draft?.commit(this.snapshot.text);
     else this.draft?.cancel();

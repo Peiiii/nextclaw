@@ -1,4 +1,22 @@
 import type { Locale } from "@/shared/lib/landing-content/landing-content.types";
+import { renderScreenshot, screenshotPoster } from '../landing-images.utils';
+
+export function bindInteractiveArtifactMedia(root: HTMLElement): IntersectionObserver | undefined {
+  const videos = root.querySelectorAll<HTMLVideoElement>('video[data-deferred-src]');
+  if (videos.length === 0) return undefined;
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const video = entry.target as HTMLVideoElement;
+      video.poster = video.dataset.deferredPoster ?? '';
+      video.src = video.dataset.deferredSrc ?? '';
+      video.load();
+      observer.unobserve(video);
+    }
+  }, { rootMargin: '300px' });
+  videos.forEach((video) => observer.observe(video));
+  return observer;
+}
 
 const INTERACTIVE_ARTIFACT_COPY: Record<Locale, {
   eyebrow: string;
@@ -50,17 +68,17 @@ export function renderInteractiveArtifactShowcase(locale: Locale): string {
         <figure class="interactive-artifact-product-shot">
           <div class="interactive-artifact-product-shot__media">
             <video
-              src="/nextclaw-inline-engineering-20260827-demo.webm"
-              poster="/nextclaw-inline-engineering-20260827-cn.webp"
+              data-deferred-src="/nextclaw-inline-engineering-20260827-demo.webm"
+              data-deferred-poster="${screenshotPoster('/nextclaw-inline-engineering-20260827-cn.webp')}"
               aria-label="${copy.imageAlt}"
               autoplay
               muted
               loop
               playsinline
               controls
-              preload="metadata"
+              preload="none"
             >
-              <img src="/nextclaw-inline-engineering-20260827-cn.webp" alt="${copy.imageAlt}" loading="lazy" />
+              ${renderScreenshot('/nextclaw-inline-engineering-20260827-cn.webp', copy.imageAlt)}
             </video>
           </div>
           <figcaption>${copy.caption}</figcaption>

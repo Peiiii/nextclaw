@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-08T07:12:44.015Z",
+  "generatedAt": "2026-09-09T07:20:56.284Z",
   "hero": {
-    "currentLoc": 293429,
-    "testLoc": 124496,
-    "trackedFiles": 3077,
-    "recentCommitCount": 632,
+    "currentLoc": 295113,
+    "testLoc": 125443,
+    "trackedFiles": 3109,
+    "recentCommitCount": 641,
     "activeDays30": 30,
-    "recentReleaseCount": 49,
-    "latestReleaseDate": "2026-09-04",
-    "latestNoteDate": "2026-09-04",
+    "recentReleaseCount": 50,
+    "latestReleaseDate": "2026-09-09",
+    "latestNoteDate": "2026-09-09",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2852793,
-    "basePercentOfBenchmark": 10.29,
-    "lighterByPercent": 89.71
+    "benchmarkCodeLines": 2862706,
+    "basePercentOfBenchmark": 10.31,
+    "lighterByPercent": 89.69
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-12",
-        "label": "05-12",
-        "value": 187096
-      },
       {
         "key": "2026-05-13",
         "label": "05-13",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-08",
         "label": "09-08",
         "value": 293429
+      },
+      {
+        "key": "2026-09-09",
+        "label": "09-09",
+        "value": 295113
       }
     ],
     "testLocDaily": [
@@ -1222,14 +1222,14 @@ export default {
         "key": "2026-09-08",
         "label": "09-08",
         "value": 124496
+      },
+      {
+        "key": "2026-09-09",
+        "label": "09-09",
+        "value": 125443
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-10",
-        "label": "08-10",
-        "value": 18
-      },
       {
         "key": "2026-08-11",
         "label": "08-11",
@@ -1373,7 +1373,12 @@ export default {
       {
         "key": "2026-09-08",
         "label": "09-08",
-        "value": 12
+        "value": 22
+      },
+      {
+        "key": "2026-09-09",
+        "label": "09-09",
+        "value": 17
       }
     ],
     "commitWeekly": [
@@ -1435,7 +1440,7 @@ export default {
       {
         "key": "2026-09-07",
         "label": "09-07",
-        "value": 17
+        "value": 44
       }
     ],
     "releaseMonthly": [
@@ -1497,7 +1502,7 @@ export default {
       {
         "key": "2026-09",
         "label": "09/26",
-        "value": 3
+        "value": 5
       }
     ]
   },
@@ -1508,14 +1513,14 @@ export default {
         "codeLines": 72938,
         "testCodeLines": 40312,
         "files": 889,
-        "sharePercent": 24.9
+        "sharePercent": 24.7
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 47135,
-        "testCodeLines": 24328,
-        "files": 442,
-        "sharePercent": 16.1
+        "codeLines": 47283,
+        "testCodeLines": 24728,
+        "files": 450,
+        "sharePercent": 16
       },
       {
         "name": "packages/nextclaw-service",
@@ -1526,10 +1531,10 @@ export default {
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 16626,
-        "testCodeLines": 6701,
-        "files": 174,
-        "sharePercent": 5.7
+        "codeLines": 16642,
+        "testCodeLines": 6755,
+        "files": 175,
+        "sharePercent": 5.6
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
@@ -1541,15 +1546,15 @@ export default {
       {
         "name": "packages/nextclaw-server",
         "codeLines": 13637,
-        "testCodeLines": 10736,
-        "files": 158,
+        "testCodeLines": 10834,
+        "files": 159,
         "sharePercent": 4.6
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 13396,
-        "testCodeLines": 8662,
-        "files": 129,
+        "codeLines": 13501,
+        "testCodeLines": 8763,
+        "files": 131,
         "sharePercent": 4.6
       },
       {
@@ -1557,16 +1562,34 @@ export default {
         "codeLines": 11059,
         "testCodeLines": 3661,
         "files": 95,
-        "sharePercent": 3.8
+        "sharePercent": 3.7
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2852793,
-      "basePercentOfBenchmark": 10.29,
-      "lighterByPercent": 89.71
+      "benchmarkCodeLines": 2862706,
+      "basePercentOfBenchmark": 10.31,
+      "lighterByPercent": 89.69
     },
     "recentReleaseBatches": [
+      {
+        "date": "2026-09-09",
+        "tagCount": 47,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.9.0",
+          "@nextclaw/app-runtime@0.16.4",
+          "@nextclaw/channel-extension-dingtalk@0.2.46"
+        ]
+      },
+      {
+        "date": "2026-09-08",
+        "tagCount": 31,
+        "sampleTags": [
+          "@nextclaw/agent-chat-ui@0.8.0",
+          "@nextclaw/channel-extension-dingtalk@0.2.45",
+          "@nextclaw/channel-extension-discord@0.2.45"
+        ]
+      },
       {
         "date": "2026-09-04",
         "tagCount": 1,
@@ -1600,29 +1623,45 @@ export default {
           "@nextclaw/channel-extension-discord@0.2.42-beta.0",
           "@nextclaw/channel-extension-email@0.2.42-beta.0"
         ]
-      },
-      {
-        "date": "2026-08-30",
-        "tagCount": 34,
-        "sampleTags": [
-          "@nextclaw/app-runtime@0.15.0",
-          "@nextclaw/client-sdk@0.9.5",
-          "@nextclaw/companion@0.2.52"
-        ]
-      },
-      {
-        "date": "2026-08-29",
-        "tagCount": 84,
-        "sampleTags": [
-          "v0.45.0-desktop.1",
-          "@nextclaw/app-runtime@0.14.1",
-          "@nextclaw/channel-extension-dingtalk@0.2.38"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-09-09-nextclaw-v0-49-1",
+        "date": "2026-09-09",
+        "tags": [
+          "Markdown, LaTeX, math, chat"
+        ],
+        "en": {
+          "title": "2026-09-09 · NextClaw v0.49.1",
+          "description": "Render LaTeX formulas directly in chat without temporary errors flashing during generation.",
+          "href": "/en/notes/2026-09-09-nextclaw-v0-49-1"
+        },
+        "zh": {
+          "title": "2026-09-09 · NextClaw v0.49.1",
+          "description": "在聊天里直接排版 LaTeX 公式，生成过程中不再闪现临时错误。",
+          "href": "/zh/notes/2026-09-09-nextclaw-v0-49-1"
+        }
+      },
+      {
+        "slug": "2026-09-09-nextclaw-v0-49-0",
+        "date": "2026-09-09",
+        "tags": [
+          "voice input, CLI, models, sessions, mobile"
+        ],
+        "en": {
+          "title": "2026-09-09 · NextClaw v0.49.0",
+          "description": "Start with your voice, manage models from the CLI, and load large sessions with more reliable tool history.",
+          "href": "/en/notes/2026-09-09-nextclaw-v0-49-0"
+        },
+        "zh": {
+          "title": "2026-09-09 · NextClaw v0.49.0",
+          "description": "用语音开始输入，通过 CLI 管理模型，并让大型会话加载与工具记录更加可靠。",
+          "href": "/zh/notes/2026-09-09-nextclaw-v0-49-0"
+        }
+      },
       {
         "slug": "2026-09-04-nextclaw-v0-48-3",
         "date": "2026-09-04",
@@ -2924,9 +2963,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-08T07:12:42.494Z",
+    "locGeneratedAt": "2026-09-09T07:20:54.105Z",
     "sourceCount": {
-      "notes": 64,
+      "notes": 66,
       "scopes": 8
     }
   }

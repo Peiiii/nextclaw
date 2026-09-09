@@ -37,12 +37,25 @@ export function useChatVoiceInput(manager: ChatVoiceInputManager, context: strin
     };
   }, [manager, context, language, keyboardEnabled, beginDraft, shortcut]);
   useEffect(() => {
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.isComposing || ['idle', 'ready'].includes(manager.getSnapshot().phase)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      manager.saveAndClose();
+    };
+    window.addEventListener('keydown', onEscape, true);
+    return () => { window.removeEventListener('keydown', onEscape, true); };
+  }, [manager]);
+  useEffect(() => {
     const onVisibility = () => { if (document.hidden) manager.interrupt(); };
-    window.addEventListener('blur', manager.interrupt);
+    // Native authorization prompts can blur the window before recognition starts.
+    // Actual page departure is handled independently, including pending requests.
+    const onBlur = () => { if (manager.getSnapshot().phase !== 'starting') manager.interrupt(); };
+    window.addEventListener('blur', onBlur);
     window.addEventListener('pagehide', manager.cancel);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      window.removeEventListener('blur', manager.interrupt);
+      window.removeEventListener('blur', onBlur);
       window.removeEventListener('pagehide', manager.cancel);
       document.removeEventListener('visibilitychange', onVisibility);
       manager.cancel();
