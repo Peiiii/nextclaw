@@ -1,5 +1,15 @@
 # nextclaw-server
 
+## 0.23.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.17.21
+  - @nextclaw/kernel@0.17.1
+  - @nextclaw/mcp@0.3.48
+  - @nextclaw/runtime@0.4.47
+
 ## 0.23.2
 
 ### Patch Changes

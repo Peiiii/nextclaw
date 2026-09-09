@@ -1,16 +1,24 @@
 {
   "name": "@nextclaw/feedback-maintainer",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "type": "module",
-  "imports": { "#feedback-maintainer/*": "./src/*" },
-  "engines": { "node": ">=22.12.0" },
+  "imports": {
+    "#feedback-maintainer/*": "./src/*"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "node src/main.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:platform": "node acceptance/platform.test.mjs",
     "lint": "eslint src tests acceptance --max-warnings=0"
   },
-  "dependencies": { "nextclaw": "workspace:*" },
-  "devDependencies": { "playwright": "^1.52.0" }
+  "dependencies": {
+    "nextclaw": "workspace:*"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
 }

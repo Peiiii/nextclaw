@@ -1,5 +1,13 @@
 # @nextclaw/platform-admin
 
+## 0.0.7
+
+### Patch Changes
+
+- a6e983b: Recover expired administrator sessions immediately instead of repeatedly showing the login-state loading screen. Make the 30-day product activity chart readable with visible Y-axis values and per-day details for pointer, keyboard, and touch input.
+- Updated dependencies [4ed8b89]
+  - @nextclaw/shared@0.6.0
+
 ## 0.0.6
 
 ### Patch Changes

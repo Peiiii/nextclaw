@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.9.1
+
+### Patch Changes
+
+- 9e5e034: Support LaTeX parenthesis and bracket delimiters in chat and Markdown file previews. Add actionable microphone permission recovery, device checks and retry, and a compact recording bar with Esc to save dictation and close without discarding visible words.
+
 ## 0.9.0
 
 ### Minor Changes

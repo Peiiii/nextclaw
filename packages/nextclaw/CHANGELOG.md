@@ -1,5 +1,27 @@
 # nextclaw
 
+## 0.50.0
+
+### Minor Changes
+
+- 4ed8b89: 新增私密问题反馈与回执管理命令，支持匿名提交、关联 NextClaw 账号、补充信息和查询修复状态，无需 GitHub 登录。
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [4ed8b89]
+  - @nextclaw/core@0.17.21
+  - @nextclaw/shared@0.6.0
+  - @nextclaw/kernel@0.17.1
+  - @nextclaw/mcp@0.3.48
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.48
+  - @nextclaw/remote@0.3.60
+  - @nextclaw/runtime@0.4.47
+  - @nextclaw/server@0.23.3
+  - @nextclaw/service@0.6.6
+  - @nextclaw/app-runtime@0.16.5
+  - @nextclaw/ncp-mcp@0.2.48
+
 ## 0.49.1
 
 ### Patch Changes

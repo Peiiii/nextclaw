@@ -1,5 +1,21 @@
 # @nextclaw/kernel
 
+## 0.17.1
+
+### Patch Changes
+
+- Updated dependencies
+- Updated dependencies [4ed8b89]
+  - @nextclaw/core@0.17.21
+  - @nextclaw/shared@0.6.0
+  - @nextclaw/mcp@0.3.48
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.48
+  - @nextclaw/runtime@0.4.47
+  - @nextclaw/app-runtime@0.16.5
+  - @nextclaw/ncp-mcp@0.2.48
+  - @nextclaw/channel-extension-feishu@0.2.36
+  - @nextclaw/channel-extension-weixin@0.2.36
+
 ## 0.17.0
 
 ### Minor Changes

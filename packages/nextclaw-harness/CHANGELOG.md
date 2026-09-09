@@ -1,5 +1,11 @@
 # @nextclaw/harness
 
+## 0.2.17
+
+### Patch Changes
+
+- @nextclaw/kernel@0.17.1
+
 ## 0.2.16
 
 ### Patch Changes
