@@ -10,6 +10,7 @@ import type { AppDataManager } from "@kernel/managers/app-data.manager.js";
 import type { ChannelManager } from "@kernel/managers/channel.manager.js";
 import type { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ContextProviderManager } from "@kernel/managers/context-provider.manager.js";
+import { RequestContextTailManager } from "@kernel/managers/request-context-tail.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { ProviderModelCatalogManager } from "@kernel/managers/provider-model-catalog.manager.js";
@@ -167,6 +168,7 @@ export class NextclawKernel {
   readonly agentContextWindowManager: AgentContextWindowManager;
   readonly contextCompactionManager: AgentRunContextCompactionManager;
   readonly contextProviderManager = new ContextProviderManager();
+  readonly requestContextTailManager = new RequestContextTailManager();
   readonly sessionRunManager: SessionRunManager;
   readonly sessionContextCompactionManager: SessionContextCompactionManager;
   readonly toolProviderManager = new ToolProviderManager(this.diagnostics);
@@ -180,7 +182,6 @@ export class NextclawKernel {
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
   private gatewayController: GatewayController | undefined;
-
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
     const desktopHost = options.desktopHost ?? new UnavailableDesktopHost();
@@ -385,6 +386,7 @@ export class NextclawKernel {
       await contribution.dispose();
     }
     this.toolProviderManager.dispose();
+    this.requestContextTailManager.dispose();
     this.contextProviderManager.dispose();
     await this.agentRuntimeManager.dispose();
     this.sessionRunManager.dispose();

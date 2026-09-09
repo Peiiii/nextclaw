@@ -1,8 +1,4 @@
-import type {
-  NcpContextTail,
-  NcpJsonValue,
-  NcpResolvedInputDelivery,
-} from "@nextclaw/ncp";
+import type { NcpJsonValue, NcpResolvedInputDelivery } from "@nextclaw/ncp";
 
 export type JsonValue = NcpJsonValue;
 
@@ -147,7 +143,16 @@ export type BuildContextTailInput = {
   signal?: AbortSignal;
 };
 
-export type ObservationContextTail = NcpContextTail;
+export type ObservationContextTail = {
+  entries: ReadonlyArray<{
+    bindingId: string;
+    extensionId: string;
+    snapshotId?: string;
+    freshness: "fresh" | "stale" | "unknown" | "unavailable";
+    observedAt?: string;
+    payload: JsonValue;
+  }>;
+};
 
 export type ObservationExtensionRuntime = {
   discoverObservations: (input?: {

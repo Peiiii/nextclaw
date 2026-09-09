@@ -690,19 +690,29 @@ describe("AgentRunModelInputBuilder observation projection", () => {
         },
       ],
     };
-    const buildContextTail = vi.fn(async () => ({
-      kind: "context_tail" as const,
-      entries: [
+    const build = vi.fn(async () => ({
+      kind: "model_input_tail" as const,
+      sections: [
         {
-          bindingId: "binding-1",
-          extensionId: "test-extension",
-          snapshotId: "snapshot-1",
-          freshness: "fresh" as const,
-          observedAt: "2026-08-22T00:00:01.000Z",
-          payload: { healthy: false },
+          source: "observation",
+          trust: "untrusted" as const,
+          content: [
+            {
+              bindingId: "binding-1",
+              extensionId: "test-extension",
+              snapshotId: "snapshot-1",
+              freshness: "fresh",
+              observedAt: "2026-08-22T00:00:01.000Z",
+              payload: { healthy: false },
+            },
+          ],
         },
       ],
     }));
+    const modelInputBudgeter = new AgentRunModelInputBudgeter(
+      createAgentManager(20_000, 4_000),
+    );
+    const prune = vi.spyOn(modelInputBudgeter, "prune");
     const builder = new AgentRunModelInputBuilder(
       {
         project: ({ messages }: { messages: readonly NcpMessage[] }) => ({
@@ -710,9 +720,9 @@ describe("AgentRunModelInputBuilder observation projection", () => {
           stablePrefixMessageCount: 0,
         }),
       } as unknown as AgentRunMessageProjector,
-      new AgentRunModelInputBudgeter(createAgentManager(20_000, 4_000)),
+      modelInputBudgeter,
       null,
-      { buildContextTail } as never,
+      { build } as never,
     );
 
     const input = await builder.build({
@@ -727,13 +737,20 @@ describe("AgentRunModelInputBuilder observation projection", () => {
       tools: [],
     });
 
-    expect(buildContextTail).toHaveBeenCalledWith({
+    expect(build).toHaveBeenCalledWith({
       sessionId: SESSION_ID,
+      runId: "run-observation",
+      agentId: "researcher",
+      model: "test-model",
       signal: undefined,
     });
     expect(input.contextTail).toMatchObject({
-      entries: [{ bindingId: "binding-1", snapshotId: "snapshot-1" }],
+      sections: [{ source: "observation", trust: "untrusted" }],
     });
+    expect(prune).toHaveBeenCalledWith(
+      expect.objectContaining({ fixedInputTokens: expect.any(Number) }),
+    );
+    expect(prune.mock.calls[0]?.[0].fixedInputTokens).toBeGreaterThan(0);
     const projectedEvent = input.messages.find(
       (message) =>
         message.role === "user" && String(message.content).includes("event-1"),

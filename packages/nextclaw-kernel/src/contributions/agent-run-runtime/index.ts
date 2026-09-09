@@ -25,11 +25,30 @@ export class AgentRunRuntimeContribution extends Contribution {
       new AgentRunMessageProjector(),
       new AgentRunModelInputBudgeter(kernel.agents),
       kernel.assetStore,
-      kernel.observations,
+      kernel.requestContextTailManager,
     );
   }
 
   protected setup = (): void => {
+    this.effect(() =>
+      this.kernel.requestContextTailManager.register({
+        provide: async ({ sessionId, signal }) => {
+          const tail = await this.kernel.observations.buildContextTail({
+            sessionId,
+            signal,
+          });
+          return tail
+            ? [
+                {
+                  source: "observation",
+                  trust: "untrusted" as const,
+                  content: [...tail.entries],
+                },
+              ]
+            : [];
+        },
+      }),
+    );
     this.effect(() => {
       this.applyRuntimeConfig(this.kernel.configManager.loadConfig());
       return this.kernel.configManager.installRuntimeHooks({
