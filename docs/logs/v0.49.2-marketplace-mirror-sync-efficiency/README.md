@@ -17,7 +17,13 @@ Cloudflare Workers 日请求量异常的根因是国内 Marketplace 镜像每 10
 
 ## 发布/部署方式
 
-本次尚未部署。部署时将更新后的 `marketplace-mirror-server.py` 同步到备案 ECS 的 `/opt/nextclaw-marketplace-mirror/`，先手动运行一次 sync 生成 v3 manifest，再观察下一轮 timer 仅刷新核心目录请求；随后核对 `api.nextclaw.net` 的健康、目录、详情与 blob 下载。
+已于 2026-09-09 通过阿里云 Cloud Assistant 部署到备案 ECS 的 `/opt/nextclaw-marketplace-mirror/marketplace-mirror-server.py`。部署前保留了时间戳备份，远端文件 SHA-256 与提交 `ae8f2f566` 一致。
+
+旧 schema v2 manifest 已通过一次全量同步升级为 v3；基线包含 32 个技能、156 个文件、完整 `sourceVersions/fileCounts` 且无失败项。随后稳定态同步实测耗时 5.741 秒。Cloudflare Analytics 在 `2026-09-09T01:57:45Z` 至 `01:58:05Z` 精确记录到 4 次 `nextclaw-marketplace-mirror/1.0` 请求：`/health`、技能目录、scenes 和 recommendations 各 1 次，全部返回 200。
+
+`nextclaw-marketplace-mirror-api.service` 与 `nextclaw-marketplace-mirror-sync.timer` 均已恢复为 active，下一轮 timer 已正常排期。公网健康、目录、详情、content、files、blob 均返回 200，写入接口保持 405。
+
+`AUTOMATION_INTERVENTIONS: 2`：首次部署命令同时遇到旧 systemd 对 oneshot `activating` 状态的返回码差异和 5 分钟云助手等待窗，需拆分为“启动同步”和“等待完成”两个远端任务；API 重启后的首次健康检查缺少就绪重试，需补跑带重试的最终冒烟。后续部署入口应原生使用 `ActiveState/SubState`、异步启动长同步并内置 API readiness retry。
 
 ## 用户/产品视角的验收步骤
 
