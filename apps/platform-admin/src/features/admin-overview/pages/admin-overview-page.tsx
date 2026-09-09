@@ -9,6 +9,7 @@ import {
 } from '@/components/admin/admin-page';
 import { Button } from '@/components/ui/button';
 import { DistributionAdoptionOverviewPanel } from '@/features/admin-overview/components/distribution-adoption-overview-panel';
+import { ProductActivityTrend } from '@/features/admin-overview/components/product-activity-trend';
 import {
   fetchAdminMarketplaceSkills,
   fetchAdminOverview
@@ -203,38 +204,6 @@ function ProductActivityOverviewPanel(props: {
         </div>
         <ProductActivityTrend trend={trend} />
       </AdminSurface>
-    </div>
-  );
-}
-
-function ProductActivityTrend(props: {
-  trend: AdminProductActivityOverview['trend'];
-}): JSX.Element {
-  const maximum = Math.max(1, ...props.trend.flatMap((item) => [item.active, item.successful]));
-  return (
-    <div className="overflow-x-auto pb-1">
-      <ol className="flex h-44 min-w-[720px] items-end gap-1" aria-label="最近 30 日产品活跃趋势">
-        {props.trend.map((item) => (
-          <li
-            key={item.date}
-            className="flex min-w-0 flex-1 flex-col items-center gap-2"
-            title={`${item.date}：活跃 ${item.active}，成功 ${item.successful}`}
-          >
-            <div className="flex h-32 w-full items-end justify-center gap-px rounded-t bg-[#f5f3ee] px-px" aria-hidden="true">
-              <div
-                className="w-1/2 rounded-t bg-[#4f7ee8]"
-                style={{ height: `${(item.active / maximum) * 100}%`, minHeight: item.active > 0 ? 3 : 0 }}
-              />
-              <div
-                className="w-1/2 rounded-t bg-[#39a36d]"
-                style={{ height: `${(item.successful / maximum) * 100}%`, minHeight: item.successful > 0 ? 3 : 0 }}
-              />
-            </div>
-            <span className="text-[10px] text-[#8f8a7d]">{item.date.slice(8)}</span>
-            <span className="sr-only">{item.date}：活跃 {item.active}，成功 {item.successful}</span>
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }
