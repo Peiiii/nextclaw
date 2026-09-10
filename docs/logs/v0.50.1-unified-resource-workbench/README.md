@@ -65,3 +65,5 @@
 - 原数据 5186 预览实际 AI 会话 ncp-mtvw2bii-6yljjeoi：05:56 运行可直接感知九种已注册对象类型及“文件无需目录收录”边界；resource_list 指定 panel-app + novel-reader + limit=1 实际返回 total=1。模型第一次最终摘要错误沿用历史空结果，核对持久化工具结果后，第二次单次查询正确回答 total=1 与真实 URI。没有用模型口头结论代替工具证据。
 - 实际点击 nextclaw://panel-app/novel-reader：主区会话 URL 不变，global-resources 内加载原应用 iframe；点击 objects/panel-app URI：同一侧栏显示读书笔记只读快照和 Open application 链接。修复源码由标准 pnpm dev 提供，原数据未复制；预览继续运行。
 - 复盘落点：现有设计、用户文档与回归测试，区分类型发现、实例检索和链接解析；不新增常驻规则。常规验收修复不另写产品博客。用户随后明确授权本轮验证后合入主干。提交范围为本轮 16 个补丁文件，不包含其它任务改动；不发布 NPM。提交前新增代码治理和 backlog ratchet 通过；先集成远程背压修复 865317e98，再复验 kernel 交叉点，普通推送后由主线协调器同步本地主镜像。
+
+集成候选 09bc9a610 复验：kernel 资源/上下文/事件队列 18 项通过，kernel/server tsc 通过。新增原生背压测试首次因隔离工作区缺 runner 失败；使用 NEXTCLAW_WASMTIME_RUNNER_PATH 指向主工作区现有 darwin-arm64 产物后，真实 resident 启动与背压断言通过（1 项）。未修改测试或创建替代 runner。5186 原数据接口仍精确返回 novel-reader 对象 total=1；UI 源码未受远程提交影响，复用本轮 19 项定向及类型检查证据。
