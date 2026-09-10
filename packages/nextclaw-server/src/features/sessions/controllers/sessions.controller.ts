@@ -9,6 +9,7 @@ import type {
 } from "@nextclaw-server/shared/types/server-api.types.js";
 import type { UiNcpSessionObservationsView } from "@nextclaw-server/features/sessions/types/session-observation-api.types.js";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
+import { CONTEXT_COMPACTION_METADATA_KEY } from "@nextclaw/core";
 import {
   isProjectError,
   isSessionContextCompactionError,
@@ -107,6 +108,16 @@ function normalizeSessionActivityPreview(session: NcpSessionSummary): NcpSession
   };
 }
 
+function omitInternalSessionListMetadata(session: NcpSessionSummary): NcpSessionSummary {
+  const metadata = readSessionMetadata(session.metadata);
+  if (!Object.prototype.hasOwnProperty.call(metadata, CONTEXT_COMPACTION_METADATA_KEY)) {
+    return session;
+  }
+  const listMetadata = { ...metadata };
+  delete listMetadata[CONTEXT_COMPACTION_METADATA_KEY];
+  return { ...session, metadata: listMetadata };
+}
+
 export class NcpSessionRoutesController {
   private readonly sessionSkillsViewBuilder: SessionSkillsViewBuilder;
 
@@ -118,6 +129,9 @@ export class NcpSessionRoutesController {
     this.options.kernel.isSessionRunning(session.sessionId)
       ? { ...session, status: "running" }
       : normalizeSessionActivityPreview(session);
+
+  private readonly toSessionListSummary = (session: NcpSessionSummary): NcpSessionSummary =>
+    omitInternalSessionListMetadata(this.withRuntimeStatus(session));
 
   readonly getSessionTypes = async (c: Context) => {
     const payload: ChatSessionTypesView = await this.options.kernel.listSessionTypes({
@@ -140,7 +154,7 @@ export class NcpSessionRoutesController {
     if (peerId) {
       const sessions = await sessionManager.listSessions({ limit: pageSize, peerId });
       const payload: UiNcpSessionListView = {
-        sessions: sessions.map(this.withRuntimeStatus),
+        sessions: sessions.map(this.toSessionListSummary),
         total: sessions.length,
         page: 1,
         pageSize,
@@ -154,7 +168,7 @@ export class NcpSessionRoutesController {
       ...(rawQuery ? { query: rawQuery } : {}),
     });
     const payload: UiNcpSessionListView = {
-      sessions: result.sessions.map(this.withRuntimeStatus),
+      sessions: result.sessions.map(this.toSessionListSummary),
       total: result.total,
       page,
       pageSize,

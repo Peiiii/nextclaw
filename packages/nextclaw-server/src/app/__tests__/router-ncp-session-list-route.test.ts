@@ -50,6 +50,11 @@ it("passes peerId filters through the ncp session list route", async () => {
                 peerId: "peer-1",
                 messageCount: 2,
                 updatedAt: "2026-03-17T00:00:00.000Z",
+                metadata: {
+                  label: "Peer session",
+                  last_activity_preview: { state: "completed", replyText: "Ready" },
+                  last_context_compaction: { summary: "internal snapshot" },
+                },
               }]
             : [];
         },
@@ -62,7 +67,7 @@ it("passes peerId filters through the ncp session list route", async () => {
     ok: boolean;
     data: {
       total: number;
-      sessions: Array<{ peerId?: string; sessionId: string }>;
+      sessions: Array<{ peerId?: string; sessionId: string; metadata?: Record<string, unknown> }>;
     };
   };
 
@@ -72,7 +77,12 @@ it("passes peerId filters through the ncp session list route", async () => {
   expect(payload.data.sessions[0]).toMatchObject({
     peerId: "peer-1",
     sessionId: "session-1",
+    metadata: {
+      label: "Peer session",
+      last_activity_preview: { state: "completed", replyText: "Ready" },
+    },
   });
+  expect(payload.data.sessions[0]?.metadata).not.toHaveProperty("last_context_compaction");
   expect(listSessionCalls).toEqual([{ limit: 10, peerId: "peer-1" }]);
 });
 
@@ -90,6 +100,10 @@ it("passes numbered pagination and search to the session catalog", async () => {
               sessionId: "session-101",
               messageCount: 1,
               updatedAt: "2026-03-16T00:00:00.000Z",
+              metadata: {
+                label: "Older session",
+                last_context_compaction: { summary: "internal snapshot" },
+              },
             }],
             total: 201,
           };
@@ -101,19 +115,58 @@ it("passes numbered pagination and search to the session catalog", async () => {
   const response = await app.request(
     "http://localhost/api/ncp/sessions?page=2&pageSize=100&query=older",
   );
+  const payload = await response.json() as {
+    ok: boolean;
+    data: {
+      page: number;
+      pageSize: number;
+      total: number;
+      hasMore: boolean;
+      sessions: Array<{ sessionId: string; metadata?: Record<string, unknown> }>;
+    };
+  };
 
   expect(response.status).toBe(200);
-  await expect(response.json()).resolves.toMatchObject({
+  expect(payload).toMatchObject({
     ok: true,
     data: {
       page: 2,
       pageSize: 100,
       total: 201,
       hasMore: true,
-      sessions: [{ sessionId: "session-101" }],
+      sessions: [{ sessionId: "session-101", metadata: { label: "Older session" } }],
     },
   });
+  expect(payload.data.sessions[0]?.metadata).not.toHaveProperty("last_context_compaction");
   expect(calls).toEqual([{ page: 2, pageSize: 100, query: "older" }]);
+});
+
+it("keeps large context snapshots out of the session list payload", async () => {
+  const sessions = Array.from({ length: 100 }, (_, index) => ({
+    sessionId: `session-${index}`,
+    messageCount: index,
+    updatedAt: "2026-03-17T00:00:00.000Z",
+    metadata: {
+      label: `Session ${index}`,
+      last_context_compaction: { summary: "x".repeat(12_000) },
+    },
+  }));
+  const app = createUiRouter({
+    configPath: createConfigPath(),
+    appEventBus: new EventBus(),
+    kernel: createRouterTestKernel({
+      sessionManager: {
+        listSessionPage: async () => ({ sessions, total: sessions.length }),
+      } as never,
+    }),
+  });
+
+  const response = await app.request("http://localhost/api/ncp/sessions?page=1&pageSize=100");
+  const responseText = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(responseText).not.toContain("last_context_compaction");
+  expect(responseText.length).toBeLessThan(JSON.stringify(sessions).length * 0.1);
 });
 
 it("returns session token usage from the kernel owner", async () => {
@@ -171,6 +224,7 @@ it("completes idle running previews that already have a final reply", async () =
           updatedAt: "2026-03-17T00:00:00.000Z",
           status: "idle",
           metadata: {
+            last_context_compaction: { summary: "full detail snapshot" },
             last_activity_preview: {
               state: "running",
               timestamp: "2026-03-17T00:00:01.000Z",
@@ -185,7 +239,12 @@ it("completes idle running previews that already have a final reply", async () =
 
   const response = await app.request("http://localhost/api/ncp/sessions/session-1");
   const payload = await response.json() as {
-    data: { metadata?: { last_activity_preview?: { state?: string; statusText?: string; replyText?: string } } };
+    data: {
+      metadata?: {
+        last_activity_preview?: { state?: string; statusText?: string; replyText?: string };
+        last_context_compaction?: { summary?: string };
+      };
+    };
   };
 
   expect(payload.data.metadata?.last_activity_preview).toMatchObject({
@@ -193,6 +252,7 @@ it("completes idle running previews that already have a final reply", async () =
     replyText: "上一条回复",
   });
   expect(payload.data.metadata?.last_activity_preview?.statusText).toBeUndefined();
+  expect(payload.data.metadata?.last_context_compaction).toEqual({ summary: "full detail snapshot" });
 });
 
 it("marks idle running previews without a final reply as interrupted", async () => {
