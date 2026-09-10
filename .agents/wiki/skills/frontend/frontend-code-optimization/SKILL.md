@@ -19,11 +19,11 @@ description: 仅当用户明确要求前端可维护性治理、组件/逻辑系
 
 ## 专项选择
 
-- 状态归属、MVP、store/manager/presenter、prop drilling：`mvp-view-logic-decoupling`。
-- React key、动态组件、streaming DOM、焦点/选区/iframe/editor 连续性：`react-rendering-lifecycle-safety`。
-- 样式 owner、响应式、基础组件可移植性：`frontend-style-encapsulation`。
-- 操作语义、状态反馈、键盘可达性、tooltip/menu：`frontend-interaction-quality`。
-- 文件和 feature root 变化：`file-organization-governance`。
+- 状态归属、MVP、store/manager/presenter、prop drilling：[View Logic 解耦](../mvp-view-logic-decoupling/SKILL.md)。
+- React key、动态组件、streaming DOM、焦点/选区/iframe/editor 连续性：[渲染生命周期安全](../react-rendering-lifecycle-safety/SKILL.md)。
+- 样式 owner、响应式、基础组件可移植性：[样式封装](../frontend-style-encapsulation/SKILL.md)。
+- 操作语义、状态反馈、键盘可达性、tooltip/menu：[交互质量](../frontend-interaction-quality/SKILL.md)。
+- 文件和 feature root 变化：[文件组织治理](../../governance/file-organization-governance/SKILL.md)。
 
 同一判断只加载一个上述专项；完成该 slice 后再决定是否需要下一项。
 

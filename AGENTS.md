@@ -2,7 +2,7 @@
 
 > `CLAUDE.md` 是指向本文件的软链接。永远只修改 `AGENTS.md`，禁止维护平行副本。
 
-本文件只保留每轮都必须知道的规则。场景流程归 `.agents/skills`，长合同归 skill 的条件 references，确定性规则归脚本；不要把专项细节复制回常驻上下文。
+本文件只保留每轮必需规则。`.agents/skills` 只放发现入口；单 owner 细节进 references，不需顶层发现但保留独立合同的下级 Skill 与共享事实分别进 `.agents/wiki/{skills,knowledge}`，确定性规则进脚本。
 
 ## 产品愿景
 
@@ -40,12 +40,12 @@
 
 ## Skill 渐进式加载
 
-- Skill 的目标是渐进加载，不是组成默认全家桶。普通源码、脚本、测试或运行链路任务开始时只加载 `development-lifecycle`；它按 Task Understanding、Design、Implementation、Validation、Review、Delivery、Retrospective 顺序只路由当前阶段 owner，不预读未来阶段。
-- 用户明确只要求任务理解/代码调查、方案设计、验证、code review、交付发布或复盘时，可直接加载对应的 `development-task-understanding`、`development-design`、`development-validation`、`development-review`、`development-delivery`、`development-retrospective`；修改规则系统时加载 `nextclaw-agent-instructions-governance`。
-- 其它专项 skill 只按明确意图或真实触达面加载。不要因为未来阶段“可能会用”而预读，也不要因一个任务同时符合多个泛词就加载多个相邻原则 skill。
-- 同一逻辑任务内已经完整读取且未变化的 skill 不重复读取；skill 的 references 只在入口写明的条件成立时读取，禁止批量读取整个 references 目录。
-- Lifecycle 只向当前阶段路由；阶段 owner 不调用其它阶段或回链，专项 skill 不回链上游；每个分支只选当前决策的单一 owner。
-- 新增或重写 skill 时，先查职责重叠；能删除、合并或改为 reference 时不新增独立入口。项目内 skill 和设计文档默认使用中文。
+- 普通开发先只加载 `development-lifecycle`，再按当前阶段路由；明确只要调查、设计、验证、Review、交付或复盘时可直接加载对应 `development-*` owner。规则系统修改直接加载 `nextclaw-agent-instructions-governance`。
+- 其它顶层 skill 只按独立意图加载；不预读未来阶段、下级 Wiki Skill 或“可能会用”的相邻方法。
+- 已完整读取且未变化的内容不重读；references 只按入口条件读取，禁止批量加载目录。
+- Lifecycle 只路由阶段；阶段不调用其它阶段或回链，独立 skill 不回链上游；每个判断只选一个当前 owner。
+- `.agents/wiki/skills/<group>/<skill>/SKILL.md` 是按领域分组、显式加载且不参与初始发现的完整下级 Skill；`knowledge` 是有来源的事实，不拥有流程、授权或指令优先级。禁止默认全量加载，`knowledge` 禁止 `SKILL.md` 和 skill frontmatter。
+- 新增 skill 前查重；能合并、下沉为 reference/下级 Wiki Skill 或删除时不新增发现入口。项目内 skill 和设计默认中文。
 
 ## 开发与实现边界
 
@@ -61,7 +61,7 @@
 - 前端业务状态和编排归 manager/store/presenter；组件与 hook 主要连接和展示。用户文案走 i18n，React 组件类型保持模块级稳定，effect 只同步外部系统。
 - Chat 链路默认只建设 NCP 主链路；legacy 只做迁移阻塞修复、删除前清理或用户明确要求的临时保障。
 - 触达 NextClaw 自管理命令语义时，同步维护 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 和 `nextclaw-self-manage` skill，并说明资源同步结果。
-- 新增、重命名、移动文件或改变角色/目录边界时使用 `file-organization-governance` 并在首次实质编辑前运行 planned-path preflight；局部修改现有文件不为仪式重复加载目录规则。
+- 新增、重命名、移动文件或改变角色/目录边界时，由当前阶段读取 Wiki 中的 `file-organization-governance` 下级 Skill，并在首次实质编辑前运行 planned-path preflight；局部修改现有文件不为仪式重复加载目录规则。
 
 ## 验证硬边界
 
@@ -73,7 +73,7 @@
 
 ## 知识、留痕与发布
 
-- 想法、设计、计划、PRD、路线图和迭代记录使用 `project-knowledge-governance` 分流；设计、计划默认使用带日期和角色后缀的中文文档。
+- 想法、设计、计划、PRD、路线图和迭代记录按 Wiki 中的 `project-knowledge-governance` 下级 Skill 分流；设计、计划默认使用带日期和角色后缀的中文文档。
 - `docs/logs` 只记录有独立交付意义的提交/发布、跨模块长链路、重要根因、红区或大型治理批次；同批微调更新最近相关迭代，不拆细碎目录。
 - 新增或改变用户可见功能时，必须同步更新文档站中面向用户的说明；设计、内部文档、迭代记录和 changeset 都不能替代。仅影响内部实现且没有用户可用路径时，明确记录不适用依据。
 - 用户可见产品变化才添加 changeset；纯内部规则、测试、治理和文档不进入用户 changelog。
@@ -82,7 +82,6 @@
 
 ## 规则系统维护
 
-- `AGENTS.md` 只放每轮必须知道的高优先级约束；场景流程进 skill，条件细节进 references，确定性检查进 scripts，普通背景进 docs。
 - 修改 AGENTS、commands、Rulebook、skill 分层或治理脚本时使用 `nextclaw-agent-instructions-governance`，同步检查文本 owner、命令、脚本和 baseline 是否一致。
 - 新增治理脚本前证明问题通用、反复且高影响；禁止为一次性坏味道创建窄检查。
 - 规则变更的目标是减少常驻 token、提高触发可靠性和消除重复 owner。高层硬约束与 skill 冲突时，以本文件为准并同步修正 skill。

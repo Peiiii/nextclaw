@@ -352,9 +352,9 @@ test("release workflow, agent contract, and command catalog share one observed a
     new URL("../../.github/workflows/release.yml", import.meta.url),
     "utf8",
   );
-  const releaseSkill = readFileSync(
+  const releaseMethod = readFileSync(
     new URL(
-      "../../.agents/skills/nextclaw-npm-release/SKILL.md",
+      "../../.agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md",
       import.meta.url,
     ),
     "utf8",
@@ -368,13 +368,13 @@ test("release workflow, agent contract, and command catalog share one observed a
   assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/);
   assert.doesNotMatch(workflow, /id-token: write|--trusted-publishing/);
 
-  assert.match(releaseSkill, /EXISTING_RELEASE_PATH/);
+  assert.match(releaseMethod, /EXISTING_RELEASE_PATH/);
   assert.match(
-    releaseSkill,
+    releaseMethod,
     /gh run list --workflow release\.yml --status success --limit 1/,
   );
   assert.match(
-    releaseSkill,
+    releaseMethod,
     /通过 GitHub Actions 发布[^\n]+不等于[^\n]+OIDC\/Trusted Publishing/,
   );
 

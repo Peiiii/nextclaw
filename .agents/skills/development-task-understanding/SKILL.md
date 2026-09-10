@@ -36,7 +36,7 @@ description: 通用开发生命周期的「任务理解与现状调查」阶段 
 6. 区分已确认事实、合理假设和仍需验证的未知项。
 7. 判断路径是否显然，或存在会改变结果、owner、复杂度或验证的真实设计空间。
 
-使用可复用知识时核对来源、版本/环境和有效性；设计决定不等于已经实现，历史成功不证明当前状态。维护事实或出现资料冲突时读取[事实知识合同](../project-knowledge-governance/references/fact-knowledge.md)。
+使用可复用知识时核对来源、版本/环境和有效性；设计决定不等于已经实现，历史成功不证明当前状态。维护事实或出现资料冲突时读取[事实知识合同](../../wiki/skills/process/project-knowledge-governance/references/fact-knowledge.md)。
 
 ## Bug 复现门
 
@@ -59,6 +59,7 @@ description: 通用开发生命周期的「任务理解与现状调查」阶段 
 - 用户只给出方向、目标边界模糊或“做到什么程度”会改变交付时，读取[最小完整结果边界](references/minimum-complete-outcome.md)。
 - 跨多 hop、runtime、transport、异步边界，或真实复现昂贵时，读取[链路切片](references/chain-slicing.md)。
 - 用户要求系统根因、事故复盘或机制沉淀，且已有足够直接证据时，读取[根因分层](references/root-cause-layers.md)。
+- 用户明确要求扫描、识别或清理仓库死代码时，读取[NextClaw 死代码治理](../../wiki/skills/operations/nextclaw-dead-code-governance/SKILL.md)。
 
 普通任务理解不读取这些参考；一次只选择当前需要的一种方法。
 

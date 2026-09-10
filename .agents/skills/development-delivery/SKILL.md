@@ -37,11 +37,12 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 每个决策只进入当前需要的一个 owner：
 
-- 提交范围、changeset、版本笔记和用户可见更新摘要：`nextclaw-release-notes`；
-- 重要交付、跨模块长链路、红区和发布留痕：`nextclaw-iteration-log-governance`；
+- 提交范围、changeset、版本笔记和用户可见更新摘要：[Release Notes 方法](../../wiki/skills/operations/nextclaw-release-notes/SKILL.md)；
+- 重要交付、跨模块长链路、红区和发布留痕：[迭代记录治理](../../wiki/skills/governance/nextclaw-iteration-log-governance/SKILL.md)；
 - 有独立用户任务、可核查证据和公开叙事价值的产品成果：`nextclaw-product-blog-storytelling`；
-- NextClaw NPM package、runtime channel、真实安装和分支闭环：`nextclaw-npm-release`；
-- NextClaw Desktop installer、DMG、update manifest、发布和恢复：`nextclaw-desktop-release`。
+- NextClaw NPM package、runtime channel、真实安装和分支闭环：[NPM 发布方法](../../wiki/skills/operations/nextclaw-npm-release/SKILL.md)；
+- NextClaw Desktop installer、DMG、update manifest、发布和恢复：[Desktop 发布方法](../../wiki/skills/operations/nextclaw-desktop-release/SKILL.md)；
+- Marketplace skill 发布：[Marketplace skill 集成](../../wiki/skills/operations/nextclaw-marketplace-skill-integration/SKILL.md)并只进入 publishing 分支。
 - 维护发布机制或修复发布失败：[版本演进门](references/release-evolution.md)。
 
 专项 owner 可以被本阶段路由，也可以在用户明确提出完整场景时直接触发；它们不重新编排上游开发阶段。
@@ -52,7 +53,7 @@ description: 通用开发生命周期的「交付、发布与部署」阶段 own
 
 ## 发布语义
 
-- release/deploy 使用 `development-task-telemetry` 记录阶段、wall time、等待、重试和人工边界；workflow 输出 job/step 耗时与失败，恢复沿用 identity；最终报告实测耗时、最慢阶段和提效项。
+- release/deploy 使用[任务遥测方法](../../wiki/skills/process/development-task-telemetry/SKILL.md)记录阶段、wall time、等待、重试和人工边界；workflow 输出 job/step 耗时与失败，恢复沿用 identity；最终报告实测耗时、最慢阶段和提效项。
 - 每次 release/deploy 结束（含失败/取消）固定报告 `AUTOMATION_INTERVENTIONS: <n>`，目标为 `0`。`owning entry/prewarm` 至终态的 owner 外人工动作按根因计数；初始 dispatch、准备、只读观察和 owner 自动重试/恢复不计。非 `0` 时逐项报告介入点、根因和自动化消除落点；不报主观分数。
 - 外部等待只在完成点、风险、失败或需决策时更新；状态未变不发心跳。优先一次有界 wait/sleep；重复只读监控仅在净省 Token 时交给低成本 Agent，不把等待变成定时任务或高频轮询。
 - 清晰自然语言与 `commands/commands.md` 中对应的中文发布命令等价；执行前用一句话复述包含项、排除项和第一个完成点。

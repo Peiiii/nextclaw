@@ -1,6 +1,6 @@
 # 规则资产生命周期
 
-规则资产包括 `AGENTS.md`、Skill、Reference、命令合同和治理脚本。它们不是只增不减的永久文本。
+规则资产包括 `AGENTS.md`、顶层 Skill、下级 Wiki Skill、Reference、Wiki knowledge、命令合同和治理脚本。它们不是只增不减的永久文本。
 
 ## 生命周期
 
@@ -20,6 +20,8 @@
 | `AGENTS.md` | 每轮都必须知道的高优先级边界 |
 | `SKILL.md` | 明确意图命中后每次都需要的决策 |
 | `references/` | 只在条件分支成立时需要的长合同或方法 |
+| `.agents/wiki/skills/<group>/<skill>/SKILL.md` | 分组保存、由上层显式加载且不参与初始发现的完整下级 Skill |
+| `.agents/wiki/knowledge` | 有来源和适用范围的事实；不承担指令或授权 |
 | `scripts/` / tests | 可确定执行、信号高且误报低的约束 |
 | `docs/` | 人类背景、设计、历史和非自动硬规则 |
 
@@ -44,7 +46,7 @@
 - `gap` 说明它补偿什么，不写抽象口号；
 - `remove-when` 描述移除后模型仍能稳定达到同等或更好结果的可观察条件。
 
-模型、工具或运行时显著变化时，用 `rg -n "model-capability-patch" AGENTS.md .agents/skills` 找到补丁，选择代表性任务做无补丁对照。效果相当或更好时删除；只在局部仍需要时收窄。不能仅按时间自动删除，也不为首版另建补丁注册表。
+模型、工具或运行时显著变化时，用 `rg -n "model-capability-patch" AGENTS.md .agents/skills .agents/wiki` 找到补丁，选择代表性任务做无补丁对照。效果相当或更好时删除；只在局部仍需要时收窄。不能仅按时间自动删除，也不为首版另建补丁注册表。
 
 ## 变更证明
 

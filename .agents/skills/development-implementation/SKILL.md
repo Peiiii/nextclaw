@@ -19,7 +19,7 @@ standard 或正式 bugfix 设计还须有 design-review: passed 及预定验收�
 2. 事实、状态和生命周期的 owner 是否正确？
 3. 是否新增无当前调用者、只服务未来可能性的 type、interface、方法、配置字段，或无语义 wrapper、adapter、factory、proxy、参数搬运和第二入口？命中时不得边写边扩张，返回设计收窄范围。
 4. fallback、兼容和恢复是否位于真实边界，并有可观察信号和退出条件？
-5. 是否新增、移动、重命名文件或改变目录角色？命中时加载 `file-organization-governance` 并在编辑前运行 planned-path preflight。
+5. 是否新增、移动、重命名文件或改变目录角色？命中时读取[文件组织治理](../../wiki/skills/governance/file-organization-governance/SKILL.md)并在编辑前运行 planned-path preflight。
 
 存在稳定 plan 时只实现当前部分，并先执行其设计策略；要求或触发细化设计但文档缺失时返回 Design，不边编码边补未冻结设计。
 
@@ -36,7 +36,7 @@ standard 或正式 bugfix 设计还须有 design-review: passed 及预定验收�
 
 ## 条件方法
 
-- 当前决策确实涉及前端状态、React 生命周期、交互、样式、兼容策略或外部 runtime 时，只选择对应的一个专项 skill。
+- 当前决策涉及样式封装时读取[前端样式封装](../../wiki/skills/frontend/frontend-style-encapsulation/SKILL.md)，涉及动态组件、列表 key、streaming UI 或需保持实例状态的界面时读取[React 渲染生命周期安全](../../wiki/skills/frontend/react-rendering-lifecycle-safety/SKILL.md)；其它前端状态、交互、兼容或 runtime 方法由已冻结设计给出，不在实现阶段重新选型。
 - 只有用户明确讨论简单性、拆分收益、过度防卫、过度抽象或代码审美，且需要裁决保留、拆分还是抽象时，才读取[实现工艺](references/implementation-craft.md)。
 - 只有 `node/pnpm/npx/corepack` 无法从 PATH 解析，或实际 Node 与仓库 `.nvmrc` 不一致时，才读取[Node/pnpm 环境恢复](references/node-pnpm-environment.md)。
 

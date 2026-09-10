@@ -31,7 +31,7 @@ L0 文档修正和 lifecycle 可跳过的 L1 单路径改动无需进入；不�
 
 ## 计划门
 
-进入 Implementation 前输出 `plan: required | not-required`。单批无法可信闭环时使用 `project-knowledge-governance` 的[开发执行 Plan 合同](../project-knowledge-governance/references/development-plan-contract.md)，否则不建；Plan 不是新 phase。
+进入 Implementation 前输出 `plan: required | not-required`。单批无法可信闭环时使用[开发执行 Plan 合同](../../wiki/skills/process/project-knowledge-governance/references/development-plan-contract.md)，否则不建；Plan 不是新 phase。
 
 ## 设计合同
 
@@ -75,10 +75,13 @@ L0 文档修正和 lifecycle 可跳过的 L1 单路径改动无需进入；不�
 
 - 通用 owner、生命周期、不变量、职责边界或抽象力度：读取[架构设计原则](references/architecture-principles.md)；
 - NextClaw kernel/runtime host/manager/store/presenter 主干依赖：读取[NextClaw Kernel Owner 架构](references/nextclaw-kernel-owner-architecture.md)；
-- 前端状态和 view logic：`mvp-view-logic-decoupling`；
-- 目录、角色、命名：`file-organization-governance`；
-- fallback、兼容、恢复：`predictable-behavior-first`；
-- 样式或交互：选择对应一个 frontend skill。
+- 前端状态和 view logic：读取[View Logic 解耦](../../wiki/skills/frontend/mvp-view-logic-decoupling/SKILL.md)；
+- 目录、角色、命名：读取[文件组织治理](../../wiki/skills/governance/file-organization-governance/SKILL.md)；
+- fallback、兼容、恢复：读取[可预测行为优先](../../wiki/skills/architecture/predictable-behavior-first/SKILL.md)；
+- 前端系统性重构、交互或参考皮肤：分别选择[前端代码优化](../../wiki/skills/frontend/frontend-code-optimization/SKILL.md)、[交互质量](../../wiki/skills/frontend/frontend-interaction-quality/SKILL.md)或[参考皮肤复刻](../../wiki/skills/frontend/replicating-reference-skins/SKILL.md)中的一个；
+- Hermes HTTP 或 NARP stdio runtime 接入：分别读取[HTTP runtime 接入](../../wiki/skills/architecture/nextclaw-http-agent-runtime-integration/SKILL.md)或[NARP stdio 接入](../../wiki/skills/architecture/nextclaw-narp-stdio-runtime-integration/SKILL.md)；
+- 用户可见内容边界：读取[用户内容边界](../../wiki/skills/content/user-facing-content-boundary/SKILL.md)；
+- Marketplace skill 的评估与集成设计：读取[Marketplace skill 集成](../../wiki/skills/operations/nextclaw-marketplace-skill-integration/SKILL.md)并只进入 design 分支。
 
 前两项仅按条件读取。
 

@@ -84,31 +84,31 @@
 
 - 用途：尽快发布当前待发布的 stable NPM package batch。
 - 输入格式：`/发布NPM`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 路由 [NPM package owner](../.agents/skills/nextclaw-npm-release/SKILL.md) 与其 package 合同，完成 stable NPM registry/payload 验证及必要 Git 闭合，报告 `NPM_READY` 和主线协调状态。只授权 NPM `latest` 与必要 Git 写入；不包含 runtime channel、desktop、文档站、官网或 X。prepare、认证、冻结 SHA、下载、发布与恢复细节由 owner 维护。
+- 输出/期望行为：由 `development-delivery` 路由 [NPM package 方法](../.agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md) 与其 package 合同，完成 stable NPM registry/payload 验证及必要 Git 闭合，报告 `NPM_READY` 和主线协调状态。只授权 NPM `latest` 与必要 Git 写入；不包含 runtime channel、desktop、文档站、官网或 X。prepare、认证、冻结 SHA、下载、发布与恢复细节由 owner 维护。
 
 ## `/发布NPM测试版`
 
 - 用途：尽快发布当前待发布的 beta NPM package batch。
 - 输入格式：`/发布NPM测试版`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 路由 [NPM owner](../.agents/skills/nextclaw-npm-release/SKILL.md) 的 Beta package 合同；包含 NPM `beta`、registry/真实安装验证和必要 Git 闭合，报告 `NPM_READY (channel: beta)`。不包含 beta runtime channel、desktop 或正式发布材料。
+- 输出/期望行为：由 `development-delivery` 路由 [NPM 方法](../.agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md) 的 Beta package 合同；包含 NPM `beta`、registry/真实安装验证和必要 Git 闭合，报告 `NPM_READY (channel: beta)`。不包含 beta runtime channel、desktop 或正式发布材料。
 
 ## `/发布NextClaw正式版`
 
 - 用途：发布 NextClaw 常规 stable 产品版本，明确不包含桌面端。
 - 输入格式：`/发布NextClaw正式版`，可附目标版本、版本级别或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 路由 [NPM/Runtime owner](../.agents/skills/nextclaw-npm-release/SKILL.md) 的常规产品合同，包含 stable NPM、Runtime bundle/update channel、旧版本升级验证和主线协调；不包含 desktop。依次报告 `NPM_READY`、`NEXTCLAW_STABLE_READY`；同版本 release notes、文档站、官网和 X 以 `CONTENT_READY|CONTENT_PENDING` 独立报告，不阻塞核心发布。
+- 输出/期望行为：由 `development-delivery` 路由 [NPM/Runtime 方法](../.agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md) 的常规产品合同，包含 stable NPM、Runtime bundle/update channel、旧版本升级验证和主线协调；不包含 desktop。依次报告 `NPM_READY`、`NEXTCLAW_STABLE_READY`；同版本 release notes、文档站、官网和 X 以 `CONTENT_READY|CONTENT_PENDING` 独立报告，不阻塞核心发布。
 
 ## `/发布NextClaw桌面版`
 
 - 用途：基于已经发布的 NextClaw stable identity 发布桌面安装包与更新通道。
 - 输入格式：`/发布NextClaw桌面版`，可附 runtime 版本、desktop 版本、tag 或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 路由 [Desktop owner](../.agents/skills/nextclaw-desktop-release/SKILL.md)，包含 installer、portable、update manifest、适用 APT/GitHub Release 与主线协调，报告 `DESKTOP_READY`。基于已发布 stable identity，不重发 NPM；存在未发布 runtime 语义变化时先明确改用常规产品或全平台范围，不隐式扩大授权。
+- 输出/期望行为：由 `development-delivery` 路由 [Desktop 方法](../.agents/wiki/skills/operations/nextclaw-desktop-release/SKILL.md)，包含 installer、portable、update manifest、适用 APT/GitHub Release 与主线协调，报告 `DESKTOP_READY`。基于已发布 stable identity，不重发 NPM；存在未发布 runtime 语义变化时先明确改用常规产品或全平台范围，不隐式扩大授权。
 
 ## `/发布NextClaw全平台版`
 
 - 用途：发布 NextClaw 常规 stable 产品与桌面端的完整组合。
 - 输入格式：`/发布NextClaw全平台版`，可附目标版本、版本级别、desktop 参数或 dry-run 说明。
-- 输出/期望行为：由 `development-delivery` 按 [NPM/Runtime owner](../.agents/skills/nextclaw-npm-release/SKILL.md) 与 [Desktop owner](../.agents/skills/nextclaw-desktop-release/SKILL.md) 的全平台合同，单次 `release.yml target=all` 完成 NPM、Runtime、五平台 Desktop、适用更新通道/APT、内容与主线协调。完成点 `ALL_PLATFORMS_READY`；下游失败仅恢复未完成阶段，不重复已成立的 NPM/runtime identity。具体阶段编排归父 workflow。
+- 输出/期望行为：由 `development-delivery` 按 [NPM/Runtime 方法](../.agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md) 与 [Desktop 方法](../.agents/wiki/skills/operations/nextclaw-desktop-release/SKILL.md) 的全平台合同，单次 `release.yml target=all` 完成 NPM、Runtime、五平台 Desktop、适用更新通道/APT、内容与主线协调。完成点 `ALL_PLATFORMS_READY`；下游失败仅恢复未完成阶段，不重复已成立的 NPM/runtime identity。具体阶段编排归父 workflow。
 
 以上五个命令的清晰自然语言等价表达具有相同语义；例如“发 NPM”只表示 `/发布NPM`，“发布 NextClaw 正式版”不包含 desktop，“全平台发布”才包含 desktop。上下文无法确定发布对象时只询问一次“NPM、NextClaw 常规正式版，还是桌面版？”，执行前用一句话复述包含项与排除项。
 
@@ -116,42 +116,42 @@
 
 - 用途：前端一键发布，仅 UI 变更场景。
 - 输入格式：`/release-frontend`
-- 输出/期望行为：由 `development-delivery` 编排，使用 `nextclaw-release-notes` 生成 UI changeset，并执行既有前端发布流程；最终说明发布包、版本、验证和不适用项。
+- 输出/期望行为：由 `development-delivery` 编排，读取 Wiki 中的 `nextclaw-release-notes` 方法生成 UI changeset，并执行既有前端发布流程；最终说明发布包、版本、验证和不适用项。
 
 ## `/release-beta`
 
 - 用途：执行 NextClaw NPM beta 一键发布闭环。
 - 输入格式：`/release-beta`，可附 `--skip-runtime-channel`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-release-notes` 与 `nextclaw-npm-release`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
+- 输出/期望行为：由 `development-delivery` 读取 Wiki 中的 `nextclaw-release-notes` 与 `nextclaw-npm-release` 方法；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
 
 ## `/release-beta-npm`
 
 - 用途：只发布 NextClaw NPM beta 包，不触发 runtime update channel。
 - 输入格式：`/release-beta-npm`，可附 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-release-notes` 与 `nextclaw-npm-release`；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再执行 `pnpm release:beta:npm`。适用于“先把 npm beta 包发出去，但暂时不开放自动更新通道”的场景。
+- 输出/期望行为：由 `development-delivery` 读取 Wiki 中的 `nextclaw-release-notes` 与 `nextclaw-npm-release` 方法；后者读取 Beta 发布 reference。先汇总未发布 `.changeset` 生成用户可读变更摘要，再执行 `pnpm release:beta:npm`。适用于“先把 npm beta 包发出去，但暂时不开放自动更新通道”的场景。
 
 ## `/release-beta-runtime`
 
 - 用途：只发布 NextClaw beta runtime update channel，不重复发 npm 包。
 - 输入格式：`/release-beta-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-npm-release` 并读取 Beta 发布 reference；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
+- 输出/期望行为：由 `development-delivery` 读取 Wiki 中的 `nextclaw-npm-release` 方法及 Beta 发布 reference；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
 
 ## `/release-stable-runtime`
 
 - 用途：只发布 NextClaw stable runtime update channel，不重复发 npm 包。
 - 输入格式：`/release-stable-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-npm-release`；执行 `pnpm release:stable:runtime`。默认读取已发布的 `nextclaw@latest` 版本，并闭合 workflow / release assets / `gh-pages` manifest / 公网 manifest / 旧 NPM 安装态检查更新验收。
+- 输出/期望行为：由 `development-delivery` 读取 Wiki 中的 `nextclaw-npm-release` 方法；执行 `pnpm release:stable:runtime`。默认读取已发布的 `nextclaw@latest` 版本，并闭合 workflow / release assets / `gh-pages` manifest / 公网 manifest / 旧 NPM 安装态检查更新验收。
 
 ## `/release-desktop-beta`
 
 - 用途：发布桌面端 beta preview，包括 installer / portable / update bundle / update manifest 的完整闭环。
 - 输入格式：`/release-desktop-beta`，可附目标版本、tag 或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:beta`，先确认发布身份和签名 preflight，再创建隐藏 GitHub prerelease Draft；`desktop-release` workflow 对同一批五平台产物完成单次构建、冒烟与上传，精确资产集合通过后才公开，并等待 `gh-pages` beta manifest 与公网 beta manifest 全部闭合。不能把 Draft 创建、空 assets 页面或只完成部分平台 workflow 当成发布完成。
+- 输出/期望行为：由 `development-delivery` 读取 Wiki 中的 `nextclaw-desktop-release` 方法；默认执行 `pnpm release:desktop:beta`，先确认发布身份和签名 preflight，再创建隐藏 GitHub prerelease Draft；`desktop-release` workflow 对同一批五平台产物完成单次构建、冒烟与上传，精确资产集合通过后才公开，并等待 `gh-pages` beta manifest 与公网 beta manifest 全部闭合。不能把 Draft 创建、空 assets 页面或只完成部分平台 workflow 当成发布完成。
 
 ## `/release-desktop-stable`
 
 - 用途：发布桌面端正式版，包括 installer / portable / update bundle / update manifest / stable APT repo 的完整闭环。
 - 输入格式：`/release-desktop-stable`，可附目标版本、tag、release notes 文件或 dry-run 说明。
-- 输出/期望行为：使用 `nextclaw-desktop-release`；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和签名 preflight，再创建隐藏 GitHub Draft 并显式触发 `desktop-release` workflow。正式 workflow 对同一批五平台产物各构建一次并完成安装/启动冒烟，禁止先运行一轮不会发布的平行平台构建；只有完整 release assets 核验通过后才公开同一 Release，失败或取消不得留下公众可见空壳；随后等待 `gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
+- 输出/期望行为：由 `development-delivery` 读取 Wiki 中的 `nextclaw-desktop-release` 方法；默认执行 `pnpm release:desktop:stable`，先确认发布身份、正式发布说明和签名 preflight，再创建隐藏 GitHub Draft 并显式触发 `desktop-release` workflow。正式 workflow 对同一批五平台产物各构建一次并完成安装/启动冒烟，禁止先运行一轮不会发布的平行平台构建；只有完整 release assets 核验通过后才公开同一 Release，失败或取消不得留下公众可见空壳；随后等待 `gh-pages` stable manifest、公网 stable manifest 与 stable APT repo 全部闭合。官网 landing 更新属于正式 release 完成后的下游发布面，必须在 release 闭合后单独评估和验证。
 
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。

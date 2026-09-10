@@ -13,6 +13,7 @@ import {
 
 const generousBudgets = {
   agentsBytes: 10_000,
+  discoveryChars: 20_000,
   descriptionChars: 1_000,
   descriptionTotalChars: 10_000,
   skillBytes: 10_000,
@@ -51,6 +52,7 @@ test("accepts a minimal acyclic skill catalog", (t) => {
 
   assert.deepEqual(result.violations, []);
   assert.equal(result.metrics.skillCount, 2);
+  assert.ok(result.metrics.discoveryChars > 0);
 });
 
 test("reports dependency cycles and broken local links", (t) => {
@@ -115,6 +117,90 @@ test("reports reference skill frontmatter and catalog count overflow", (t) => {
   assert.ok(result.violations.some((violation) => violation.includes("skill count")));
 });
 
+test("accepts grouped Wiki skills without adding them to discovery", (t) => {
+  const repoRoot = createFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const skillPath = path.join(repoRoot, ".agents/wiki/skills/process/hidden-method/SKILL.md");
+  fs.mkdirSync(path.dirname(skillPath), { recursive: true });
+  fs.writeFileSync(
+    skillPath,
+    "---\nname: hidden-method\ndescription: Shared hidden method.\n---\n\n# Method\n"
+  );
+
+  const result = auditSkillProgressiveLoading({
+    budgets: generousBudgets,
+    enforceDevelopmentLifecycle: false,
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.deepEqual(result.violations, []);
+  assert.equal(result.metrics.skillCount, 2);
+});
+
+test("rejects grouped skills inside the discoverable root", (t) => {
+  const repoRoot = createFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const nestedPath = path.join(repoRoot, ".agents/skills/group/gamma/SKILL.md");
+  fs.mkdirSync(path.dirname(nestedPath), { recursive: true });
+  fs.writeFileSync(
+    nestedPath,
+    "---\nname: gamma\ndescription: Invalid nested discoverable skill.\n---\n\n# Gamma\n"
+  );
+
+  const result = auditSkillProgressiveLoading({
+    budgets: generousBudgets,
+    enforceDevelopmentLifecycle: false,
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.ok(result.violations.some((violation) => violation.includes("must be direct children")));
+});
+
+test("rejects ungrouped Wiki skills and skill files in knowledge", (t) => {
+  const repoRoot = createFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+  const ungroupedPath = path.join(repoRoot, ".agents/wiki/skills/ungrouped/SKILL.md");
+  const knowledgePath = path.join(repoRoot, ".agents/wiki/knowledge/codex/SKILL.md");
+  fs.mkdirSync(path.dirname(ungroupedPath), { recursive: true });
+  fs.mkdirSync(path.dirname(knowledgePath), { recursive: true });
+  fs.writeFileSync(
+    ungroupedPath,
+    "---\nname: ungrouped\ndescription: Invalid ungrouped skill.\n---\n\n# Ungrouped\n"
+  );
+  fs.writeFileSync(
+    knowledgePath,
+    "---\nname: knowledge-skill\ndescription: Invalid knowledge skill.\n---\n\n# Knowledge\n"
+  );
+
+  const result = auditSkillProgressiveLoading({
+    budgets: generousBudgets,
+    enforceDevelopmentLifecycle: false,
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.ok(result.violations.some((violation) => violation.includes("grouping directory")));
+  assert.ok(
+    result.violations.some((violation) => violation.includes("must live under .agents/wiki/skills"))
+  );
+});
+
+test("reports discovery character overflow", (t) => {
+  const repoRoot = createFixture();
+  t.after(() => fs.rmSync(repoRoot, { recursive: true, force: true }));
+
+  const result = auditSkillProgressiveLoading({
+    budgets: { ...generousBudgets, discoveryChars: 1 },
+    enforceDevelopmentLifecycle: false,
+    repoRoot,
+    retiredNames: []
+  });
+
+  assert.ok(result.violations.some((violation) => violation.includes("skill discovery list")));
+});
+
 test("matches retired skill names exactly instead of matching longer active names", () => {
   assert.equal(containsSkillName("Use product-blog-storytelling.", "product-blog-storytelling"), true);
   assert.equal(
@@ -141,23 +227,23 @@ const createLifecycleFixture = () => {
   }
 
   const contractFiles = {
-    ".agents/skills/acceptance-contract-governance/SKILL.md": [
+    ".agents/wiki/skills/process/acceptance-contract-governance/SKILL.md": [
       "---",
       "name: acceptance-contract-governance",
       "description: Acceptance contract.",
       "---",
       "active contract stable acceptance IDs"
     ].join("\n"),
-    ".agents/skills/acceptance-contract-governance/references/acceptance-contract-method.md":
+    ".agents/wiki/skills/process/acceptance-contract-governance/references/acceptance-contract-method.md":
       "`contract-id` `parent-goal` `scope-confirmation: user-confirmed` `acceptance_updates` `parent_status: in-progress` `active-contract` `open-required` 全部 `Required: true` ID 当前均为 passed",
-    ".agents/skills/nextclaw-npm-release/SKILL.md": [
+    ".agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md": [
       "---",
       "name: nextclaw-npm-release",
       "description: NPM release.",
       "---",
       "stable acceptance IDs `acceptance_updates` parent-goal"
     ].join("\n"),
-    ".agents/skills/nextclaw-desktop-release/SKILL.md": [
+    ".agents/wiki/skills/operations/nextclaw-desktop-release/SKILL.md": [
       "---",
       "name: nextclaw-desktop-release",
       "description: Desktop release.",
@@ -188,6 +274,7 @@ test("accepts the standard development lifecycle topology", (t) => {
 
   const result = auditSkillProgressiveLoading({
     budgets: generousBudgets,
+    enforceWikiSkillCatalog: false,
     repoRoot,
     retiredNames: []
   });
@@ -209,6 +296,7 @@ test("reports missing lifecycle owners and cross-stage routing", (t) => {
 
   const result = auditSkillProgressiveLoading({
     budgets: generousBudgets,
+    enforceWikiSkillCatalog: false,
     repoRoot,
     retiredNames: []
   });
@@ -231,17 +319,21 @@ test("reports drift in the acceptance completion contract", (t) => {
   fs.writeFileSync(
     path.join(
       repoRoot,
-      ".agents/skills/acceptance-contract-governance/references/acceptance-contract-method.md"
+      ".agents/wiki/skills/process/acceptance-contract-governance/references/acceptance-contract-method.md"
     ),
     "`contract-id` `parent-goal` `acceptance_updates`\n"
   );
   fs.writeFileSync(
-    path.join(repoRoot, ".agents/skills/nextclaw-npm-release/SKILL.md"),
-    "---\nname: nextclaw-npm-release\ndescription: NPM release.\n---\n"
+    path.join(
+      repoRoot,
+      ".agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md"
+    ),
+    "# NPM release\n"
   );
 
   const result = auditSkillProgressiveLoading({
     budgets: generousBudgets,
+    enforceWikiSkillCatalog: false,
     repoRoot,
     retiredNames: []
   });

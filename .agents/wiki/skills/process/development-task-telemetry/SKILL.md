@@ -60,7 +60,7 @@ description: Use when a development task needs visible phase tracing, task-level
 用户说“查看统计”“这个任务用了多少 Token”或给出 task/thread/session ID 时，AI 是查询入口：自己定位并运行脚本，禁止把命令交给用户执行。定位顺序是显式 task-id、当前上下文最近的 marker、用户给出的 thread/session ID；仍有多个候选时先列出简短候选，不猜测归属。
 
 ```text
-node .agents/skills/development-task-telemetry/scripts/report-task-phase-usage.mjs --sessions-root ~/.codex/sessions [--thread <thread-id>] [--task <task-id>] [--format json]
+node .agents/wiki/skills/process/development-task-telemetry/scripts/report-task-phase-usage.mjs --sessions-root ~/.codex/sessions [--thread <thread-id>] [--task <task-id>] [--format json]
 ```
 
 AI 默认文本回答，需要比较或计算时用 JSON。按需报告给任务类型、总 Token、阶段占比、模型/effort、调用与工具轮次、耗时、覆盖率和警告；无 marker 时只报告可观察总量并说明不能可靠分阶段。

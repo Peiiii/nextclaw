@@ -48,7 +48,7 @@ find skills/<slug> -maxdepth 2 -type f | sort
 2. 先做本地元数据校验：
 
 ```bash
-python3 .agents/skills/nextclaw-marketplace-skill-integration/scripts/validate-marketplace-skill.py --skill-dir skills/<slug>
+python3 .agents/wiki/skills/operations/nextclaw-marketplace-skill-integration/scripts/validate-marketplace-skill.py --skill-dir skills/<slug>
 ```
 
 3. 先判断远端是否已经存在。若是更新，必须在发布前通过默认读源保留一份旧安装，用于发布后的真实 update 验收：
@@ -87,7 +87,7 @@ curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/<slug>
 7. 使用同一个确定性校验器等待官方源和国内默认读源达到精确文件一致。该检查比较完整相对路径集合和每个文件的 SHA-256，不允许只看 `updatedAt`、详情 `200` 或发布命令的 `Files: N`：
 
 ```bash
-python3 .agents/skills/nextclaw-marketplace-skill-integration/scripts/validate-marketplace-skill.py \
+python3 .agents/wiki/skills/operations/nextclaw-marketplace-skill-integration/scripts/validate-marketplace-skill.py \
   --skill-dir skills/<slug> \
   --verify-api-base https://marketplace-api.nextclaw.io \
   --verify-api-base https://api.nextclaw.net \
@@ -111,7 +111,7 @@ node packages/nextclaw/dist/cli/app/index.js marketplace skills update <slug> --
 node packages/nextclaw/dist/cli/app/index.js marketplace skills update <slug> --workdir "$smoke_dir" --json
 
 # 两类发布都要验证最终安装目录与远端完全一致
-python3 .agents/skills/nextclaw-marketplace-skill-integration/scripts/validate-marketplace-skill.py \
+python3 .agents/wiki/skills/operations/nextclaw-marketplace-skill-integration/scripts/validate-marketplace-skill.py \
   --skill-dir "$smoke_dir/skills/<slug>" \
   --verify-api-base https://api.nextclaw.net
 rm -rf "$smoke_dir"

@@ -9,7 +9,7 @@ description: 通用开发流程的唯一 Meta Skill；理解后选择 standard�
 
 只管理流程、阶段状态与完成判断，不复制阶段方法或动态项目事实。意图宏读取 `commands/commands.md` 展开；解释、引用不执行。仅调查、设计、Review 等请求止于指定产物，不自动扩展为实现或发布。
 
-当前 observer：[`development-task-telemetry`](../development-task-telemetry/SKILL.md)。路径存在即加载一次，只观察既定状态；不可用时说明并继续。并发提交/主线并发才读[Worktree 合同](references/parallel-worktree-development.md)；用户同时明确省 Token 和子代理才读[委派合同](references/token-efficient-delegation.md)。
+需要阶段追踪、Token/耗时测量、模型对比或本地 dashboard 时，读取 Wiki 中的[任务遥测方法](../../wiki/skills/process/development-task-telemetry/SKILL.md)；普通任务不默认加载 observer。并发提交/主线并发才读[Worktree 合同](references/parallel-worktree-development.md)；用户同时明确省 Token 和子代理才读[委派合同](references/token-efficient-delegation.md)。
 
 共同入口由 Task Understanding 给出用户结果、范围/授权、成功判定、事实/假设/未知、owner、风险与分类依据。上下文足够时不反问；会改变目标或关键选择的缺口才澄清。
 
@@ -25,7 +25,7 @@ description: 通用开发流程的唯一 Meta Skill；理解后选择 standard�
 
 `task-type` 仍按主要意图为 feature / bugfix / small-change，flow 独立记录，不机械替换统计字段。observer phase 使用原七个值；方案审查使用 review，AI 验收依次使用 validation/review，不新增 marker 值。
 
-风险 L3-L4，或用户明确要求大型、多阶段、低监督完整交付/验收标准时加载 [`acceptance-contract-governance`](../acceptance-contract-governance/SKILL.md)，登记 active contract 与 stable acceptance IDs；普通任务也有判定，但不普遍创建 ledger。
+风险 L3-L4，或用户明确要求大型、多阶段、低监督完整交付/验收标准时读取 Wiki 中的[验收合同方法](../../wiki/skills/process/acceptance-contract-governance/SKILL.md)，登记 active contract 与 stable acceptance IDs；普通任务也有判定，但不普遍创建 ledger。
 
 ## 三条流程
 
@@ -50,6 +50,8 @@ standard 不因 diff 小跳过设计：设计含验收标准、必要测试矩�
 - 定向证明或最终 AI 验收(mode=acceptance)：`development-validation`。
 - 可用入口、用户验收、授权内交付：`development-delivery`。
 - 轻量反思与条件沉淀：`development-retrospective`。
+
+跨阶段下级 Skill 不占顶层发现入口：只有任务跨上下文/会话时读取[迭代工作记录](../../wiki/skills/process/iteration-work-notes/SKILL.md)；用户明确要求持续自评收敛时读取[质量迭代收敛](../../wiki/skills/process/iterative-quality-convergence/SKILL.md)；事实维护、知识分流或资料冲突时读取[项目知识治理](../../wiki/skills/process/project-knowledge-governance/SKILL.md)。每次只加载当前决策需要的一项。
 
 AI 验收结合 Validation 合同证据与 Review 结论，不新增平行 Skill。方案 Review 不要求多代理。用户验收不适用于纯内部产物时说明依据，不强加产品运行环境。
 

@@ -3,110 +3,39 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  collectSkillEntries,
+  indexSkillEntries,
+  parseFrontmatter,
+  relativeToRepo,
+  validateTopLevelSkillPlacement,
+  validateWikiSkillHierarchy,
+  walkFiles
+} from "./skill-progressive-loading.catalog.mjs";
+import {
+  acceptanceContractSkillName,
+  defaultSkillBudgets,
+  developmentLifecycleSkillName,
+  developmentStageSkillNames,
+  retiredSkillNames
+} from "./skill-progressive-loading.constants.mjs";
+
+export {
+  acceptanceContractSkillName,
+  defaultSkillBudgets,
+  developmentLifecycleSkillName,
+  developmentStageSkillNames,
+  retiredSkillNames,
+  wikiSkillNames
+} from "./skill-progressive-loading.constants.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const defaultRepoRoot = path.resolve(path.dirname(scriptPath), "../../..");
-
-export const defaultSkillBudgets = Object.freeze({
-  agentsBytes: 12_000,
-  descriptionChars: 260,
-  descriptionTotalChars: 6_000,
-  skillBytes: 8_000,
-  skillCount: 38,
-  skillTotalBytes: 162_000
-});
-
-export const developmentLifecycleSkillName = "development-lifecycle";
-export const acceptanceContractSkillName = "acceptance-contract-governance";
-
-export const developmentStageSkillNames = Object.freeze([
-  "development-task-understanding",
-  "development-design",
-  "development-implementation",
-  "development-validation",
-  "development-review",
-  "development-delivery",
-  "development-retrospective"
-]);
-
-export const retiredSkillNames = Object.freeze([
-  "collapsible-feature-root-architecture",
-  "code-investigation-workflow",
-  "code-review",
-  "contract-driven-delivery-campaign",
-  "development-discovery",
-  "desktop-release-contract-guard",
-  "directory-structure-governance-overview",
-  "file-naming-convention",
-  "goal-progress-anchor",
-  "integrating-http-agent-runtime",
-  "integrating-narp-stdio-runtime",
-  "isolated-npm-release-worktree",
-  "kernel-branch-owner-architecture",
-  "layered-root-cause-analysis",
-  "learning-from-failures",
-  "local-source-runtime-validation",
-  "long-chain-debugging",
-  "marketplace-skill-publisher",
-  "nextclaw-clean-implementation",
-  "nextclaw-delivery-workflow",
-  "nextclaw-release-notes-automation",
-  "nextclaw-solution-design",
-  "nextclaw-validation-workflow",
-  "node-pnpm-locator",
-  "npm-beta-release",
-  "npm-release-contract-guard",
-  "post-edit-maintainability-guard",
-  "post-edit-maintainability-review",
-  "proactive-work-continuation",
-  "product-blog-storytelling",
-  "project-os",
-  "refresh-product-visual-assets",
-  "role-first-file-organization",
-  "smoke-testing-ncp-chat",
-  "testing-local-extension-development-source",
-  "classic-software-design-principles",
-  "writing-beautiful-code",
-  "unsigned-desktop-release-playbook"
-]);
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const containsSkillName = (text, skillName) =>
   new RegExp(`(^|[^a-z0-9-])${escapeRegExp(skillName)}(?=$|[^a-z0-9-])`).test(text);
-
-const walkFiles = (directoryPath, predicate) => {
-  if (!fs.existsSync(directoryPath)) {
-    return [];
-  }
-
-  return fs.readdirSync(directoryPath, { withFileTypes: true }).flatMap((entry) => {
-    const entryPath = path.join(directoryPath, entry.name);
-    return entry.isDirectory()
-      ? walkFiles(entryPath, predicate)
-      : predicate(entryPath)
-        ? [entryPath]
-        : [];
-  });
-};
-
-const relativeToRepo = (repoRoot, filePath) => path.relative(repoRoot, filePath);
-
-const parseFrontmatter = (text) => {
-  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
-  if (!match) {
-    return null;
-  }
-
-  const fields = new Map();
-  for (const line of match[1].split(/\r?\n/)) {
-    const fieldMatch = line.match(/^([a-z][a-z0-9_-]*):\s*(.*)$/i);
-    if (fieldMatch) {
-      fields.set(fieldMatch[1], fieldMatch[2].trim());
-    }
-  }
-  return fields;
-};
 
 const markdownTargets = (text) => {
   const targets = [];
@@ -183,72 +112,18 @@ const findCycles = (edges) => {
   return cycles;
 };
 
-const collectSkillEntries = ({ budgets, repoRoot, skillsRoot }) => {
-  const skillPaths = walkFiles(skillsRoot, (filePath) => path.basename(filePath) === "SKILL.md");
-  const skillEntries = [];
-  const violations = [];
-
-  for (const skillPath of skillPaths) {
-    const text = fs.readFileSync(skillPath, "utf8");
-    const frontmatter = parseFrontmatter(text);
-    const file = relativeToRepo(repoRoot, skillPath);
-    if (!frontmatter) {
-      violations.push(`${file}: missing YAML frontmatter`);
-      continue;
-    }
-
-    const name = frontmatter.get("name");
-    const description = frontmatter.get("description");
-    if (!name) {
-      violations.push(`${file}: missing frontmatter name`);
-    }
-    if (!description) {
-      violations.push(`${file}: missing frontmatter description`);
-    }
-    const directoryName = path.basename(path.dirname(skillPath));
-    if (name && directoryName !== name) {
-      violations.push(`${file}: frontmatter name ${name} must match skill directory ${directoryName}`);
-    }
-
-    const bytes = Buffer.byteLength(text);
-    if (bytes > budgets.skillBytes) {
-      violations.push(`${file}: ${bytes} bytes exceeds SKILL.md budget ${budgets.skillBytes}`);
-    }
-    if ((description?.length ?? 0) > budgets.descriptionChars) {
-      violations.push(
-        `${file}: description has ${description.length} chars; budget is ${budgets.descriptionChars}`
-      );
-    }
-
-    if (name) {
-      skillEntries.push({ bytes, description: description ?? "", file, name, path: skillPath, text });
-    }
-  }
-  return { skillEntries, violations };
-};
-
-const indexSkillEntries = (skillEntries) => {
-  const entriesByName = new Map();
-  const violations = [];
-  for (const entry of skillEntries) {
-    const existing = entriesByName.get(entry.name);
-    if (existing) {
-      violations.push(`${entry.file}: duplicate skill name ${entry.name}; first declared by ${existing.file}`);
-    } else {
-      entriesByName.set(entry.name, entry);
-    }
-  }
-  return { entriesByName, violations };
-};
-
-const validateActiveMarkdown = ({ repoRoot, retiredNames, skillsRoot }) => {
+const validateActiveMarkdown = ({ repoRoot, retiredNames, skillsRoot, wikiRoot }) => {
   const agentsPath = path.join(repoRoot, "AGENTS.md");
   const commandsPath = path.join(repoRoot, "commands/commands.md");
   const violations = [];
   const skillMarkdownPaths = walkFiles(skillsRoot, (filePath) => filePath.endsWith(".md"));
-  const activeMarkdownPaths = [agentsPath, commandsPath, ...skillMarkdownPaths].filter((filePath) =>
-    fs.existsSync(filePath)
-  );
+  const wikiMarkdownPaths = walkFiles(wikiRoot, (filePath) => filePath.endsWith(".md"));
+  const activeMarkdownPaths = [
+    agentsPath,
+    commandsPath,
+    ...skillMarkdownPaths,
+    ...wikiMarkdownPaths
+  ].filter((filePath) => fs.existsSync(filePath));
 
   for (const markdownPath of activeMarkdownPaths) {
     const text = fs.readFileSync(markdownPath, "utf8");
@@ -320,17 +195,16 @@ const validateDevelopmentLifecycle = ({ edges, entriesByName }) => {
 };
 
 const acceptanceCompletionContractSources = new Map([
-  [".agents/skills/acceptance-contract-governance/SKILL.md", ["active contract", "stable acceptance IDs"]],
-  [".agents/skills/acceptance-contract-governance/references/acceptance-contract-method.md", ["`contract-id`", "`parent-goal`", "`scope-confirmation: user-confirmed`", "`acceptance_updates`", "`parent_status:", "`active-contract`", "`open-required`", "全部 `Required: true` ID 当前均为"]],
+  [".agents/wiki/skills/process/acceptance-contract-governance/SKILL.md", ["active contract", "stable acceptance IDs"]],
+  [".agents/wiki/skills/process/acceptance-contract-governance/references/acceptance-contract-method.md", ["`contract-id`", "`parent-goal`", "`scope-confirmation: user-confirmed`", "`acceptance_updates`", "`parent_status:", "`active-contract`", "`open-required`", "全部 `Required: true` ID 当前均为"]],
   [".agents/skills/development-lifecycle/SKILL.md", [acceptanceContractSkillName, "Required acceptance IDs", "`parent_status`", "scope reduction", "上下文压缩"]],
   [".agents/skills/development-delivery/SKILL.md", ["`acceptance_updates`", "`parent_status`", "completion gate"]],
-  [".agents/skills/nextclaw-npm-release/SKILL.md", ["stable acceptance IDs", "`acceptance_updates`", "parent-goal"]],
-  [".agents/skills/nextclaw-desktop-release/SKILL.md", ["stable ID", "`acceptance_updates`", "parent-goal"]]
+  [".agents/wiki/skills/operations/nextclaw-npm-release/SKILL.md", ["stable acceptance IDs", "`acceptance_updates`", "parent-goal"]],
+  [".agents/wiki/skills/operations/nextclaw-desktop-release/SKILL.md", ["stable ID", "`acceptance_updates`", "parent-goal"]]
 ]);
 
-const validateAcceptanceCompletionContract = ({ entriesByName, repoRoot }) => {
+const validateAcceptanceCompletionContract = ({ repoRoot }) => {
   const violations = [];
-  if (!entriesByName.has(acceptanceContractSkillName)) violations.push(`acceptance completion contract: missing owner ${acceptanceContractSkillName}`);
   for (const [relativePath, markers] of acceptanceCompletionContractSources) {
     const filePath = path.join(repoRoot, relativePath);
     if (!fs.existsSync(filePath)) {
@@ -344,20 +218,26 @@ const validateAcceptanceCompletionContract = ({ entriesByName, repoRoot }) => {
   return violations;
 };
 
-const collectMetrics = ({ agentsPath, edges, skillEntries }) => {
+const collectMetrics = ({ agentsPath, edges, skillEntries, wikiSkillEntries }) => {
   const agentsBytes = fs.existsSync(agentsPath) ? fs.statSync(agentsPath).size : 0;
   const skillTotalBytes = skillEntries.reduce((total, entry) => total + entry.bytes, 0);
   const descriptionTotalChars = skillEntries.reduce(
     (total, entry) => total + entry.description.length,
     0
   );
+  const discoveryChars = skillEntries.reduce(
+    (total, entry) => total + entry.name.length + entry.description.length + entry.file.length + 12,
+    0
+  );
   const dependencyEdges = [...edges.values()].reduce((total, dependencies) => total + dependencies.size, 0);
   return {
     agentsBytes,
     dependencyEdges,
+    discoveryChars,
     descriptionTotalChars,
     skillCount: skillEntries.length,
-    skillTotalBytes
+    skillTotalBytes,
+    wikiSkillCount: wikiSkillEntries.length
   };
 };
 
@@ -369,6 +249,11 @@ const validateAggregateBudgets = (metrics, budgets) => {
   if (metrics.skillTotalBytes > budgets.skillTotalBytes) {
     violations.push(
       `SKILL.md total: ${metrics.skillTotalBytes} bytes exceeds budget ${budgets.skillTotalBytes}`
+    );
+  }
+  if (metrics.discoveryChars > budgets.discoveryChars) {
+    violations.push(
+      `skill discovery list: ${metrics.discoveryChars} chars exceeds budget ${budgets.discoveryChars}`
     );
   }
   if (metrics.skillCount > budgets.skillCount) {
@@ -386,28 +271,52 @@ export const auditSkillProgressiveLoading = ({
   repoRoot = defaultRepoRoot,
   budgets = defaultSkillBudgets,
   retiredNames = retiredSkillNames,
-  enforceDevelopmentLifecycle = true
+  enforceDevelopmentLifecycle = true,
+  enforceWikiSkillCatalog = enforceDevelopmentLifecycle
 } = {}) => {
   const skillsRoot = path.join(repoRoot, ".agents/skills");
+  const wikiRoot = path.join(repoRoot, ".agents/wiki");
+  const wikiSkillsRoot = path.join(wikiRoot, "skills");
   const collectedSkills = collectSkillEntries({ budgets, repoRoot, skillsRoot });
   const { skillEntries } = collectedSkills;
-  const indexedSkills = indexSkillEntries(skillEntries);
+  const topLevelPlacementViolations = validateTopLevelSkillPlacement({ skillEntries, skillsRoot });
+  const collectedWikiSkills = collectSkillEntries({ budgets, repoRoot, skillsRoot: wikiSkillsRoot });
+  const { skillEntries: wikiSkillEntries } = collectedWikiSkills;
+  const allSkillEntries = [...skillEntries, ...wikiSkillEntries];
+  const indexedSkills = indexSkillEntries(allSkillEntries);
   const { entriesByName } = indexedSkills;
-  const activeMarkdown = validateActiveMarkdown({ repoRoot, retiredNames, skillsRoot });
-  const edges = createDependencyEdges(skillEntries, entriesByName);
+  const topLevelEntriesByName = new Map(skillEntries.map((entry) => [entry.name, entry]));
+  const activeMarkdown = validateActiveMarkdown({ repoRoot, retiredNames, skillsRoot, wikiRoot });
+  const wikiViolations = validateWikiSkillHierarchy({
+    enforceWikiSkillCatalog,
+    repoRoot,
+    topLevelEntriesByName,
+    wikiRoot,
+    wikiSkillEntries,
+    wikiSkillsRoot
+  });
+  const edges = createDependencyEdges(allSkillEntries, entriesByName);
   const lifecycleViolations = enforceDevelopmentLifecycle
-    ? validateDevelopmentLifecycle({ edges, entriesByName })
+    ? validateDevelopmentLifecycle({ edges, entriesByName: topLevelEntriesByName })
     : [];
   const acceptanceCompletionViolations = enforceDevelopmentLifecycle
-    ? validateAcceptanceCompletionContract({ entriesByName, repoRoot })
+    ? validateAcceptanceCompletionContract({ repoRoot })
     : [];
   const dependencyViolations = validateDependencyCycles(edges);
-  const metrics = collectMetrics({ agentsPath: activeMarkdown.agentsPath, edges, skillEntries });
+  const metrics = collectMetrics({
+    agentsPath: activeMarkdown.agentsPath,
+    edges,
+    skillEntries,
+    wikiSkillEntries
+  });
   const budgetViolations = validateAggregateBudgets(metrics, budgets);
   const violations = [
     ...collectedSkills.violations,
+    ...topLevelPlacementViolations,
+    ...collectedWikiSkills.violations,
     ...indexedSkills.violations,
     ...activeMarkdown.violations,
+    ...wikiViolations,
     ...lifecycleViolations,
     ...acceptanceCompletionViolations,
     ...dependencyViolations,
@@ -424,6 +333,8 @@ export const printSkillProgressiveLoadingAudit = (result) => {
   const { metrics, violations } = result;
   console.log("Skill progressive-loading audit");
   console.log(`- skills: ${metrics.skillCount}`);
+  console.log(`- grouped Wiki skills: ${metrics.wikiSkillCount}`);
+  console.log(`- discovery chars: ${metrics.discoveryChars}`);
   console.log(`- SKILL.md bytes: ${metrics.skillTotalBytes}`);
   console.log(`- description chars: ${metrics.descriptionTotalChars}`);
   console.log(`- AGENTS.md bytes: ${metrics.agentsBytes}`);
