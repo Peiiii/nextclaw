@@ -4,12 +4,29 @@ import { PageResourceIcon } from "@/features/right-panel-resources/components/pa
 
 vi.mock("@/features/panel-apps/hooks/use-panel-apps", () => ({
   usePanelApps: () => ({
-    data: { entries: [{ appId: "notes", icon: "/notes.png" }] },
+    data: { entries: [{ id: "source:notes", appId: "notes", icon: "/notes.png" }] },
   }),
 }));
 afterEach(cleanup);
 
 describe("resource icon precedence", () => {
+  it("keeps avatar links inline under Markdown body-image styles without resizing body images", () => {
+    const view = render(
+      <div className="chat-markdown">
+        <style>{'.chat-markdown img { display: block; width: auto; height: auto; max-width: 32rem; }'}</style>
+        <a href="nextclaw://objects/agent/coder">
+          <PageResourceIcon uri="nextclaw://objects/agent/coder" icon={{ type: "url", url: "/avatar.png" }} />
+          Coder
+        </a>
+        <img src="/body.png" alt="Body illustration" />
+      </div>,
+    );
+    const icon = view.container.querySelector("a img")!;
+    expect(getComputedStyle(icon).width).toBe("1em");
+    expect(getComputedStyle(icon).height).toBe("1em");
+    expect(getComputedStyle(icon).display).toBe("inline-block");
+    expect(getComputedStyle(view.getByAltText("Body illustration")).width).toBe("auto");
+  });
   it("uses installed app metadata for an ordinary resource URI and falls back after a load error", () => {
     const view = render(<PageResourceIcon uri="nextclaw://panel-app/notes" />);
     const image = view.container.querySelector("img")!;
@@ -30,6 +47,13 @@ describe("resource icon precedence", () => {
     expect(view.container.querySelector(".lucide-globe")).not.toBeNull();
     view.rerender(<PageResourceIcon uri="nextclaw://unknown/item" />);
     expect(view.container.querySelector(".lucide-link2")).not.toBeNull();
+  });
+  it("uses Panel object identity for its installed icon and falls back to the application icon", () => {
+    const view = render(<PageResourceIcon uri="nextclaw://objects/panel-app/source%3Anotes" />);
+    const icon = view.container.querySelector("img")!;
+    expect(icon.getAttribute("src")).toBe("/notes.png");
+    fireEvent.error(icon);
+    expect(view.container.querySelector(".lucide-app-window")).not.toBeNull();
   });
   it("honors precise builtin icons", () => {
     const view = render(

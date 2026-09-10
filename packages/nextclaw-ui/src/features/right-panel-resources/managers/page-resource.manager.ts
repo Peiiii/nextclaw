@@ -216,7 +216,7 @@ export class PageResourceManager {
     if (
       location === "main" ||
       page.target.kind === "route" ||
-      (location === "default" && page.mainPath)
+      (location === "default" && page.mainPath && page.target.kind !== "panel-app")
     ) {
       navigate(pageResourceMainPath(page));
     } else if (location === "floating" && sessionKey) {

@@ -45,7 +45,7 @@ A resource link identifies content, not a temporary window. A normal Markdown li
 
 Replace the example app ID with a real one. For conversations, files, and other pages, use **Copy resource link** instead of constructing the URI manually. Links display a resource-specific icon, falling back to a category icon and then a generic link icon. They remain ordinary links, not embedded app cards.
 
-Internal links first reuse an already open resource view. Otherwise conversations and apps with main routes open in the main area; reference materials open in the global sidebar. Explicit menu choices override this default. Ordinary external website links retain external browsing behavior. Unknown internal resources show an unavailable notice instead of executing an unknown scheme.
+Internal links first reuse an already open resource view. Otherwise conversations open in the main area; Panel apps and reference materials open in the global right sidebar. Explicit menu choices override this default. Ordinary external website links retain external browsing behavior. Unknown internal resources show an unavailable notice instead of executing an unknown scheme.
 
 Pinning does not copy resource data or change permissions. **Add to chat** inserts a reference without sending a message. Main-page-dependent forms such as settings only offer main-area opening. Generic page pins are local to the browser; app pin preferences keep their existing server-side owner.
 
@@ -69,3 +69,7 @@ AI tools `resource_list` and `resource_resolve` consume the same catalog. Adding
 File links accept `nextclaw://file/absolute/path/without/leading/slash` or `nextclaw://file/workspace/relative/path?base=encoded-absolute-directory`, optionally with `view=source&line=12&column=3`. Relative links inside a conversation use that message's source directory. Preserve base when sharing elsewhere; another conversation's directory must not be substituted.
 
 Contextual workspace pages, such as a conversation overview or file tree, remain owned by their conversation. Their shared menu offers Maximize instead of a separate main page; ordinary settings routes open only in the main area. Object snapshots keep reading positions by resource URI, even when their snapshot filenames are identical.
+
+Panel apps are also discoverable in the object picker, through `resource_list`, or with `nextclaw resources list --type panel-app`. An object link opens a read-only metadata snapshot whose “Open application” link opens the original interactive app. Existing `nextclaw://panel-app/...` page links remain valid. Resource avatars stay at inline-icon size without resizing Markdown body illustrations.
+
+The resource catalog is not a link allowlist. AI tool descriptions advertise the currently registered object types. Unfiltered `resource_list` calls return type metadata only; a type or query loads matching objects. Prefer a specific type and a bounded limit. Providers load instances on demand, but filtering within a type is not storage-level pagination. Files, conversations, original Panel App pages and web links may come from their own tools or existing references without catalog membership; URI, path and permission checks still apply. Never guess object IDs.

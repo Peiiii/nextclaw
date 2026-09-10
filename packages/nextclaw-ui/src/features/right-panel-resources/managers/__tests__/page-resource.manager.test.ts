@@ -53,13 +53,15 @@ describe("shared resource opening policy", () => {
     expect(app.workbenchSurfaceManager.toggleMaximize).toHaveBeenCalledWith("session-workspace:parent");
     expect(navigate).toHaveBeenCalledWith(buildSessionPath("parent"));
   });
-  it("resolves an ordinary Panel App URI and opens its main page by default", () => {
+  it("opens an ordinary Panel App URI in the global sidebar by default, preserving explicit main navigation", () => {
     const { manager, app, navigate } = setup();
     const page = manager.resolve("nextclaw://panel-app/example-notes")!;
     expect(page.target.kind).toBe("panel-app");
     manager.open(page, "default", navigate);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(app.docBrowserManager.openTarget).toHaveBeenCalledWith(page.target, { newTab: true, placement: "docked" });
+    manager.open(page, "main", navigate);
     expect(navigate).toHaveBeenCalledWith("/apps/panel/example-notes");
-    expect(app.docBrowserManager.openTarget).not.toHaveBeenCalled();
   });
   it("reuses an already open resource before default main navigation, while an explicit choice overrides it", () => {
     const { manager, app, navigate } = setup();

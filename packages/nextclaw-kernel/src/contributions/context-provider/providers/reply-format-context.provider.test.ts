@@ -28,6 +28,8 @@ describe("ReplyFormatContextProvider", () => {
       "Ordinary Markdown links `[title](nextclaw://...)`",
       "not inline embeds and require no display tool",
       "never invent resource IDs",
+      "Catalog membership is not required for valid links",
+      "tool description lists available object types without loading instances",
       "not live content or permission to read it",
       "After that call, always write a concise, self-contained final response",
       "choose the smallest medium that materially reduces effort",

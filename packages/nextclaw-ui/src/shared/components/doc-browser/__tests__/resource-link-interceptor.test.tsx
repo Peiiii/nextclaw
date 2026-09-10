@@ -72,14 +72,15 @@ describe("ordinary Markdown resource links end to end", () => {
       expect(screen.getByTestId("route").textContent).toBe("/chat");
     },
   );
-  it("renders the compact resource icon and routes a normal link to the main app", () => {
+  it("opens a normal Panel App link in the global sidebar without a catalog lookup", () => {
     setup();
     const link = screen.getByRole("link", { name: "Notes" });
     expect(link.querySelector("span")?.textContent).toContain("✎");
     fireEvent.click(link);
-    expect(screen.getByTestId("route").textContent).toBe(
-      "/apps/panel/example-notes",
-    );
+    expect(screen.getByTestId("route").textContent).toBe("/chat");
+    const { snapshot } = useDocBrowserStore.getState();
+    expect(snapshot.isOpen).toBe(true);
+    expect(snapshot.tabs.find((tab) => tab.id === snapshot.activeTabId)).toMatchObject({ kind: "panel-app", resourceUri: "nextclaw://panel-app/example-notes" });
   });
   it("focuses an existing global tab without navigating the main conversation away", () => {
     const page = getPresenter().pageResourceManager.resolve(

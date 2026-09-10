@@ -1,10 +1,10 @@
 import { ResourceToolProvider } from "@kernel/contributions/tool-provider/index.js";
 import { createSkillResourceProvider } from "@kernel/utils/skill-resource-provider.utils.js";
-import { createAgentResourceProvider, createProjectResourceProvider, createServiceAppResourceProvider, createMcpResourceProvider, createProjectWorkResourceProvider } from "@kernel/utils/catalog-resource-providers.utils.js";
+import { createPanelAppResourceProvider, createAgentResourceProvider, createProjectResourceProvider, createServiceAppResourceProvider, createMcpResourceProvider, createProjectWorkResourceProvider } from "@kernel/utils/catalog-resource-providers.utils.js";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventBus, SYSTEM_OBJECT_TYPE_CRON_JOB, SYSTEM_OBJECT_TYPE_INBOX_DELIVERY } from "@nextclaw/shared";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
@@ -50,6 +50,26 @@ async function createFixture() {
 }
 
 describe("SystemObjectReferenceManager", () => {
+  it("advertises types without enumerating instances and queries only the selected provider", async () => {
+    const { manager } = await createFixture();
+    const list = vi.fn(() => []);
+    const resolve = vi.fn(() => null);
+    const unregister = manager.registerProvider({
+      group: { objectType: "lazy-object", label: { default: "Lazy objects" }, description: { default: "Lazy test provider" }, icon: "file", order: 999 },
+      list, resolve,
+    });
+    const tool = new ResourceToolProvider(manager).provide()[0];
+    expect(tool.description).toContain("lazy-object");
+    expect(await tool.execute({})).toMatchObject({ objectTypes: expect.arrayContaining([expect.objectContaining({ objectType: "lazy-object" })]) });
+    expect(list).not.toHaveBeenCalled();
+    expect(resolve).not.toHaveBeenCalled();
+    await tool.execute({ objectType: "cron-job" });
+    expect(list).not.toHaveBeenCalled();
+    await tool.execute({ objectType: "lazy-object", limit: 1 });
+    expect(list).toHaveBeenCalledTimes(1);
+    unregister();
+    expect(new ResourceToolProvider(manager).provide()[0].description).not.toContain("lazy-object");
+  });
   it("exposes the same exact URIs and immutable snapshots to AI tools", async () => {
     const { manager, assetStore } = await createFixture();
     const tools = new ResourceToolProvider(manager).provide();
@@ -171,6 +191,24 @@ describe("SystemObjectReferenceManager", () => {
 });
 
 describe("resource catalog providers", () => {
+  it("discovers Panel apps through AI tools and resolves exact read-only snapshots with an original app link", async () => {
+    const { manager, assetStore } = await createFixture();
+    const entry = { id: "source:notes", appId: "notes app", title: "Notes", description: "Personal notes", kind: "folder", sourceKind: "package", updatedAt: "2026-09-11T00:00:00Z", html: "private-html", clientToken: "private-token" };
+    let entries = [entry];
+    manager.registerProvider(createPanelAppResourceProvider({ listPanelApps: async () => ({ entries }) } as never));
+    const tools = new ResourceToolProvider(manager).provide();
+    const catalog = await tools.find((tool) => tool.name === "resource_list")!.execute({ objectType: "panel-app", query: "notes app" });
+    expect(catalog).toMatchObject({ groups: [{ objectType: "panel-app", items: [{ uri: "nextclaw://objects/panel-app/source%3Anotes", objectId: entry.id }] }] });
+    const uri = "nextclaw://objects/panel-app/source%3Anotes";
+    const reference = await manager.resolveReference(uri);
+    const content = (await assetStore.readAssetBytes(reference.assetUri))!.toString("utf8");
+    expect(content).toContain("[Open application](nextclaw://panel-app/notes%20app)");
+    expect(content).not.toContain("private-html");
+    expect(content).not.toContain("private-token");
+    await expect(manager.resolveReference("nextclaw://objects/panel-app/notes%20app")).rejects.toMatchObject({ code: "SYSTEM_OBJECT_NOT_FOUND" });
+    entries = [];
+    await expect(manager.resolveReference(uri)).rejects.toMatchObject({ code: "SYSTEM_OBJECT_NOT_FOUND" });
+  });
   it("includes exact project skill refs without treating other paths as installed skills", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nextclaw-project-skill-resource-"));
     tempDirs.push(directory);

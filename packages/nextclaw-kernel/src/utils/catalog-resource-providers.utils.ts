@@ -5,10 +5,11 @@ import {
 } from "@kernel/managers/system-object-reference.manager.js";
 import { createSkillResourceProvider } from "./skill-resource-provider.utils.js";
 import type { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
+import type { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import type { McpManager } from "@kernel/managers/mcp.manager.js";
 import type { ProjectWorkManager } from "@kernel/features/projects/index.js";
 import { statSync } from "node:fs";
-import { createSystemObjectReferenceUri } from "@nextclaw/shared";
+import { createPanelAppResourceUri, createSystemObjectReferenceUri } from "@nextclaw/shared";
 import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import type { ProjectManager } from "@kernel/features/projects/index.js";
 import type {
@@ -122,6 +123,44 @@ export function createProjectResourceProvider(
     resolve: async (id) => {
       const project = await projects.getProjectById(id);
       return project ? toSnapshot(project) : null;
+    },
+  };
+}
+
+export function createPanelAppResourceProvider(
+  apps: PanelAppManager,
+): SystemObjectReferenceProvider {
+  const toSnapshot = (app: Awaited<ReturnType<PanelAppManager["listPanelApps"]>>["entries"][number]) => {
+    const result = snapshot("panel-app", app.id, app.title, app.updatedAt, [
+      `# ${app.title}`,
+      "",
+      app.description ?? "",
+      "",
+      `[Open application](${createPanelAppResourceUri(app.appId)})`,
+      "",
+      `- ID: ${app.id}`,
+      `- App ID: ${app.appId}`,
+      `- Kind: ${app.kind}`,
+      `- Source: ${app.sourceKind}`,
+    ].join("\n"));
+    result.item.description = [app.appId, app.description].filter(Boolean).join(" — ");
+    return result;
+  };
+  return {
+    group: {
+      objectType: "panel-app",
+      label: { default: "Panel apps", translations: { zh: "Panel 应用" } },
+      description: {
+        default: "Reference an installed panel application and its original page link.",
+        translations: { zh: "引用已安装的 Panel 应用及其原始页面链接。" },
+      },
+      icon: "panel-app",
+      order: 550,
+    },
+    list: async () => (await apps.listPanelApps()).entries.map((app) => toSnapshot(app).item),
+    resolve: async (id) => {
+      const app = (await apps.listPanelApps()).entries.find((entry) => entry.id === id);
+      return app ? toSnapshot(app) : null;
     },
   };
 }
@@ -308,6 +347,7 @@ export function createKernelResourceProviders(
     }),
     createAgentResourceProvider(kernel.agents, kernel.configManager.configPath),
     createProjectResourceProvider(kernel.projectManager),
+    createPanelAppResourceProvider(kernel.panelAppManager),
     createServiceAppResourceProvider(kernel.serviceAppManager),
     createMcpResourceProvider(
       kernel.mcpManager,

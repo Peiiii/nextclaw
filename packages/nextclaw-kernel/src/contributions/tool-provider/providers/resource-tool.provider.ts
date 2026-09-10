@@ -12,7 +12,7 @@ export class ResourceToolProvider implements ToolProvider {
     {
       name: "resource_list",
       description:
-        "Discover real NextClaw resource URIs for ordinary Markdown links. Without filters returns registered object categories; supply objectType or query to list matching objects. Never invent IDs. Read-only; does not execute resource content.",
+        `Search registered system objects, not all linkable resources. Queryable objectTypes: ${this.resources.listTypes().map((group) => group.objectType).join(", ")}. Without filters returns objectTypes metadata without loading instances; supply objectType or query to retrieve matching object URIs, with a bounded limit. Prefer objectType to avoid querying unrelated providers. Files, conversations, Panel App pages and web links do not require catalog membership. Never invent IDs. Read-only; does not execute resource content.`,
       parameters: {
         type: "object",
         properties: {
@@ -32,8 +32,11 @@ export class ResourceToolProvider implements ToolProvider {
           if (params[key] !== undefined && typeof params[key] !== "string")
             throw new Error(`${key} must be a string`);
         }
-        if (params.limit !== undefined && typeof params.limit !== "number")
-          throw new Error("limit must be a number");
+        if (params.limit !== undefined && (typeof params.limit !== "number" || !Number.isSafeInteger(params.limit) || params.limit < 1 || params.limit > SYSTEM_OBJECT_REFERENCE_MAX_LIMIT))
+          throw new Error(`limit must be an integer between 1 and ${SYSTEM_OBJECT_REFERENCE_MAX_LIMIT}`);
+        if (params.objectType === undefined && !(params.query as string | undefined)?.trim()) {
+          return { objectTypes: this.resources.listTypes() };
+        }
         return this.resources.listReferences({
           query: params.query as string | undefined,
           objectType: params.objectType as string | undefined,

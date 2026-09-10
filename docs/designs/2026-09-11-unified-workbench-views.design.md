@@ -138,3 +138,20 @@ AI 必须在稳定运行上下文中知道资源协议，区分普通 Markdown �
 | 其它已有路由页（设置等） | page?path=本地路由 | 固定、复制、添加聊天；主路由专属页不虚构侧栏渲染能力 |
 
 注册不等于无限制序列化：供应商密钥、渠道凭据、应用秘密和内部运行进程不是可公开引用的快照。服务应用、MCP 连接与项目工作项已补对象级 URI：分别用现有 app.id、server.name、JSON 序列化的 [projectId, workItemId] 作为精确 ID，并使用字段白名单。它们不包含启动参数、请求地址、请求头或密钥；项目 Skill 从既有 ProjectMaterialService 获取准确来源，不另行扫描目录。
+
+## 验收补充：Panel App 对象目录与行内头像
+
+用户验收发现 Panel App 只有页面入口，未进入对象目录。这是既有“对象可发现与引用”合同的覆盖缺口：复用 PanelAppManager.listPanelApps，注册 panel-app 类别；以 entry.id 标识可解析对象，不以标题或 appId 猜测来源。列表、AI resource_list、CLI 与对象选择器自动消费同一注册。只读快照包含名称、描述、来源、应用类型及使用现有 createPanelAppResourceUri(appId) 生成的“打开应用”链接，不复制 HTML、授权、运行时状态或凭据。对象 URI 表达元数据快照，既有 panel-app URI 继续表达可交互页面；不新增另一份应用状态。缺失/删除对象沿统一资源错误返回。验证目录与工具发现、快照解析、精确身份、删除后失效，以及原应用页面链接仍可打开。
+
+资源头像固有尺寸由 PageResourceIcon 持有：1em 正方形、inline-block、无正文图片边距；不可被 Markdown 正文图片 width/height:auto 放大。实际浏览器已复现 16px 字号下头像变成 128×128；修后应为 16×16，正文图片尺寸不变。无需改变正文图片渲染或头像数据。
+
+用户进一步确认默认位置：普通 Panel App 资源链接没有已打开视图时，默认在全局右侧栏停靠；已有视图仍复用，明确“在主区域打开”以及左侧固定导航保留主区入口。资源身份不绑定位置，规则只在 PageResourceManager 修改，不复制各入口策略。
+
+
+### 发现目录不等于链接许可（验收纠偏）
+
+保留 provider 注册模型，不预注册对象实例。SystemObjectReferenceManager 提供纯元数据类型读取，ResourceToolProvider 每次生成工具定义时从同一注册表列出可查询 objectType，无需先调用工具才能知道类型。resource_list 无筛选只返回 objectTypes 元数据；有 objectType 时仅调用对应 provider，有 query 无类型时跨已注册对象目录搜索。UI 原有带数量分组浏览仍按需读取，不冒充元数据零加载。当前 provider 内的实例查询仍是按类型读取后筛选，并非存储层分页；不将无限文件系统纳入该目录。
+
+resource_list/resource_resolve 只负责 objects URI 的发现与快照，不是所有资源的准入检查。已知文件路径、会话链接、Panel App 页面、文档、市场和 HTTP(S) 链接由各自既有 owner 解析，使用已有工具或引用中的真实标识，不先要求目录命中。不存在与未收录必须区分；不能将未命中自动降级成随意构造 ID。AI 稳定说明明确这一边界，工具类型说明从注册表生成，避免手写类型清单漏项。
+
+方案自审：复用现有 manager、工具与 Markdown 拦截链，无新注册中心；保留 UI 分组计数合同、对象权限与 URI 校验；不声称存储层分页。验收覆盖：注册及工具定义/无参调用均不枚举实例，定向查询不调用其它 provider；Panel App 的 appId 可检索；未查目录的普通页面链接可直接打开；AI 类型感知与原始预览链路实测。

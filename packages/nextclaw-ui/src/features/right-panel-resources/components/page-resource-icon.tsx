@@ -59,6 +59,7 @@ const OBJECT_TYPE_ICONS: Record<string, keyof typeof RESOURCE_ICONS> = {
   "cron-job": "cron",
   "inbox-delivery": "inbox",
   "service-app": "app",
+  "panel-app": "app",
   "mcp-server": "mcp",
   "project-work": "work",
 };
@@ -119,7 +120,7 @@ function PanelAppResourceIcon({ uri, appId }: { uri: string; appId: string }) {
     <ResourceIcon
       uri={uri}
       specific={appIcon(
-        apps.data?.entries.find((entry) => entry.appId === appId)?.icon,
+        apps.data?.entries.find((entry) => entry.appId === appId || entry.id === appId)?.icon,
       )}
     />
   );
@@ -173,6 +174,8 @@ export function PageResourceIcon({
   const appId = readPanelAppIdFromParsedResourceUri(parseResourceUri(uri));
   const sessionKey = parseSessionKeyFromPanelUrl(uri);
   const object = parseSystemObjectReferenceUri(uri);
+  if (object?.objectType === "panel-app" && !icon)
+    return <PanelAppResourceIcon uri={uri} appId={object.objectId} />;
   if (object?.objectType === "agent" && !icon)
     return <AgentResourceIcon uri={uri} agentId={object.objectId} />;
   if (sessionKey && !icon)
@@ -203,7 +206,9 @@ function ResourceIcon({
         src={specific.url}
         alt=""
         referrerPolicy="no-referrer"
-        className="inline-block h-[1em] w-[1em] shrink-0 rounded-sm object-contain align-[-0.12em]"
+        className="shrink-0 rounded-sm object-contain align-[-0.12em]"
+        // Inline geometry keeps prose image rules from expanding resource icons.
+        style={{ display: "inline-block", width: "1em", height: "1em", maxWidth: "1em", margin: 0 }}
         onError={() => setFailedUrl(specific.url)}
       />
     );

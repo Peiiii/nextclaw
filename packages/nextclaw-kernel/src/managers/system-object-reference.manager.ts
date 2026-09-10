@@ -176,6 +176,9 @@ export class SystemObjectReferenceManager {
     };
   };
 
+  listTypes = (): SystemObjectReferenceGroupDescriptor[] =>
+    [...this.providers.values()].map((provider) => structuredClone(provider.group));
+
   listReferences = async (params: {
     query?: string;
     limit?: number;
