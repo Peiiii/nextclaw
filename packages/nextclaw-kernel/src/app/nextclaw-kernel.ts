@@ -184,12 +184,25 @@ export class NextclawKernel {
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
     ({ verificationRecords: this.verificationRecords, portableRuntimeAcceptance: this.portableRuntimeAcceptance } =
       createPortableRuntimeAcceptanceServices({ ...options, verificationRecordStorePath: resolveKernelVerificationRecordStorePath(options) }));
-    this.featureControls = new FeatureControlsService(desktopHost);
-    this.coreHealth = new CoreHealthCheckService({
-      getConfig: () => this.configManager.config,
+    ({
+      automation: this.automation,
+      channels: this.channels,
+      configManager: this.configManager,
+    } = createKernelOperationalManagers({
+      automationStorePath: resolveKernelAutomationStorePath(options),
+      configPath: options.configPath,
+      diagnostics: this.diagnostics,
+      messageBus: this.messageBus,
+      providerManager: this.llmProviders,
+      providerModelCatalogManager: this.providerModelCatalog,
+    }));
+    this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
+    ({ coreHealth: this.coreHealth, featureControls: this.featureControls } = createKernelCoreServices({
+      desktopHost,
       getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
-      sessionsDir: resolveKernelSessionsDir({ homeDir: options.homeDir }),
-    });
+      sessionsDir,
+      configManager: this.configManager,
+    }));
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.accessManager = new AccessManager({ configManager: this.configManager, homeDir: options.homeDir });
     this.capabilityGrantLegacyMigration = this.createCapabilityGrantLegacyMigration(options);
