@@ -18,7 +18,7 @@
 
 ## Scope revision 6 正式交付证据
 
-- D1 `0004_private_discussions.sql` 已应用；5 条既有反馈对应 5 个 support thread，迁移后共 29 条帖子。讨论服务版本 `5c27fcbc-4cdd-41e9-a3ea-a64bc2e096ff`，Gateway 版本 `923db7bf-09d9-43c4-a3d8-31e6ab46c697`，管理端 Pages 部署 `45017585`。
+- D1 `0004_private_discussions.sql` 已应用；5 条既有反馈对应 5 个 support thread，迁移后共 29 条帖子。讨论服务版本 `5c27fcbc-4cdd-41e9-a3ea-a64bc2e096ff`，Gateway 版本 `923db7bf-09d9-43c4-a3d8-31e6ab46c697`，管理端 Pages 最终部署 `6fe514d4`；线上资源已核对只显示“讨论 / 用户反馈 / 直接对话”。
 - [0.52.0 正式发布任务](https://github.com/Peiiii/nextclaw/actions/runs/34489292206) 全部成功；NPM 与 macOS/Linux/Windows 四个平台 Runtime 已发布，上一稳定版升级验证成功，Desktop 不在本次范围。
 - 本机沿正式 NPM 与 stable Runtime 路径升级为 0.52.0，NextClaw 服务已重启。正式 `discussion listen` 使用 5 秒代码轮询，状态为 running；空闲不调用模型，状态目录权限为 0700、文件为 0600。
 - 本地真实论坛链路两次在 3 秒内完成 Codex 接收握手，同一 discussion 复用 task `01a08b9d-cfb9-7003-bafa-2a9a6997d770`；Agent 分别回写“已收到”和“第二次已收到”。错误消费者首轮明确失败并回到 stopped。
