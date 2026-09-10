@@ -72,7 +72,7 @@ export class DiscussionListenerWorkerService {
     }
     journal.cursor = page.nextCursor;
     await store.writeJournal(journal);
-    await this.heartbeat({ lastScanAt: this.now().toISOString() });
+    await this.heartbeat({ lastScanAt: this.now().toISOString(), lastError: undefined });
     return "idle";
   };
 
