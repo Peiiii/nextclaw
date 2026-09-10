@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.53.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-09-11",
+  "title": {
+    "zh-CN": "NextClaw v0.53.0",
+    "en-US": "NextClaw v0.53.0"
+  },
+  "summary": {
+    "zh-CN": "在统一工作台中打开更多对象，受控重启后继续未完成工作，并增强移动端与运行时可靠性。",
+    "en-US": "Open more objects in one workbench, continue unfinished work after controlled restarts, and improve mobile and runtime reliability."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-11-nextclaw-v0-53-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-11-nextclaw-v0-53-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "统一资源工作台",
+        "en-US": "Unified resource workbench"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "在主区域、侧栏或浮窗中打开对象",
+            "en-US": "Open objects in the main area, sidebar, or floating windows"
+          },
+          "body": {
+            "zh-CN": "会话、文件、应用和对象快照可以切换呈现方式并保留内容与阅读位置，支持的资源还能固定到 Pages。",
+            "en-US": "Conversations, files, apps, and object snapshots can change presentation while retaining content and reading position, with supported resources pinned to Pages."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "AI 与 CLI 使用同一套真实对象 URI",
+            "en-US": "AI and CLI use the same real object URIs"
+          },
+          "body": {
+            "zh-CN": "技能、定时任务、收件箱交付、Agent、项目和应用通过资源协议提供可发现的只读快照，不执行对象内容或暴露连接凭据。",
+            "en-US": "Skills, scheduled tasks, inbox deliveries, agents, projects, and apps expose discoverable read-only snapshots without executing their content or revealing connection credentials."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "受控重启后继续工作",
+        "en-US": "Continue working after controlled restarts"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "自动继续符合条件的活跃会话",
+            "en-US": "Resume eligible active conversations automatically"
+          },
+          "body": {
+            "zh-CN": "新进程会继续符合条件的会话，但不会恢复或重放重启前中断的工具进程；每份重启交接只领取一次。",
+            "en-US": "The new process resumes eligible conversations without restoring or replaying interrupted tool processes, and claims each restart handoff once."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "会话与移动端体验",
+        "en-US": "Conversation and mobile experience"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "更紧凑、可触控的会话操作",
+            "en-US": "More compact, touch-accessible conversation controls"
+          },
+          "body": {
+            "zh-CN": "移动端按需显示搜索与操作，窄容器精简消息信息；会话标题来自实际主题，子会话与工作区显示实时活动状态。",
+            "en-US": "Mobile search and actions appear on demand, message details stay compact in narrow views, titles follow the actual topic, and child-session activity stays visible."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "fix",
+      "title": {
+        "zh-CN": "Resident inbox 保护",
+        "en-US": "Resident inbox protection"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "阻止 dead-letter 风暴耗尽宿主资源",
+            "en-US": "Prevent dead-letter storms from exhausting the host"
+          },
+          "body": {
+            "zh-CN": "Resident timer 到达 dead-letter 边界后停止继续写入，并在读取前隔离过大的 inbox。",
+            "en-US": "Resident timer ingress stops at the dead-letter boundary, and oversized inboxes are isolated before they are read."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "compatibility",
+      "title": {
+        "zh-CN": "重启恢复范围",
+        "en-US": "Restart recovery scope"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "当前覆盖本地运行时 API 宿主",
+            "en-US": "Currently covers local runtime API hosts"
+          },
+          "body": {
+            "zh-CN": "桌面与系统 supervisor 退出、崩溃恢复、旧版本首次升级和任意排队任务的持久调度不在本次范围内。",
+            "en-US": "Desktop and system-supervisor exits, crash recovery, first upgrades from older releases, and durable scheduling for arbitrary queued work are outside this release."
+          }
+        }
+      ]
+    }
+  ]
+}

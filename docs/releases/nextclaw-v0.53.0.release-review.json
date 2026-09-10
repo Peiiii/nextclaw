@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.53.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-09-11-nextclaw-v0-53-0.md",
+        "apps/docs/en/notes/2026-09-11-nextclaw-v0-53-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.53.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md",
+        "apps/docs/zh/blog/2026-09-11-self-management-restart-continuity.md",
+        "apps/docs/en/blog/2026-09-11-self-management-restart-continuity.md",
+        "apps/docs/zh/blog/index.md",
+        "apps/docs/en/blog/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "The release adds workbench, conversation, restart-continuity, and reliability improvements without changing product positioning, pricing, downloads, or onboarding."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.53.0 把会话、文件、应用和对象快照带进同一个工作台，也让受控重启后的活跃会话自动接着做。移动端会话操作更紧凑，Resident inbox 也补上了资源保护。\n\n更新说明：\nhttps://docs.nextclaw.io/zh/notes/2026-09-11-nextclaw-v0-53-0",
+      "imagePath": "images/screenshots/nextclaw-hero-workbench-cn.png",
+      "imageAlt": "NextClaw 统一工作台中的会话、资源与任务内容",
+      "releaseNotesUrl": "https://docs.nextclaw.io/zh/notes/2026-09-11-nextclaw-v0-53-0"
+    }
+  }
+}

@@ -14,6 +14,7 @@ If you want the broader public project layer first, start here:
 
 ## Latest
 
+- [2026-09-11 · NextClaw: pick up where you left off after a restart](./2026-09-11-self-management-restart-continuity)
 - [2026-09-08 · NextClaw × DeepSeek: five-stage optimization cuts cost 62.0%, 10.8% below DeepSeek Harness](./2026-09-08-deepseek-cache-benchmark)
 - [2026-08-24 · Long sessions no longer get stuck on truncated compaction summaries](./2026-08-24-context-compaction-without-dead-ends)
 - [2026-08-20 · From 6.94 Seconds to as Fast as 1.13: NextClaw Reopens Large Sessions About 6× Faster](./2026-08-20-large-tool-session-performance)
