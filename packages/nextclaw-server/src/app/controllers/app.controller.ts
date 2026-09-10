@@ -77,7 +77,9 @@ export class AppRoutesController {
 
   readonly health = (c: Context) => {
     const bootstrapStatus = this.options.bootstrapStatus?.getStatus() ?? buildFallbackBootstrapStatus();
-    const coreHealth = this.options.kernel.coreHealth?.evaluate();
+    // /api/health 是未登录也可访问的公共路由，脱敏快照只暴露稳定 reason code，
+    // 不泄露本机路径与原始异常。已鉴权面（日志、诊断面板）消费原始 evaluate()。
+    const coreHealth = this.options.kernel.coreHealth?.toPublicSnapshot();
     return c.json(
       ok({
         status: "ok",
