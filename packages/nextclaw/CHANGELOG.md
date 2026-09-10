@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.51.0
+
+### Minor Changes
+
+- a32b4a5: Add a feedback maintenance listener with generic command triggers and a Codex Desktop preset that creates and resumes visible tasks for approved reports.
+
 ## 0.50.0
 
 ### Minor Changes
