@@ -1,26 +1,21 @@
 export default {
-  "generatedAt": "2026-09-09T07:20:56.284Z",
+  "generatedAt": "2026-09-10T07:16:18.203Z",
   "hero": {
-    "currentLoc": 295113,
-    "testLoc": 125443,
-    "trackedFiles": 3109,
-    "recentCommitCount": 641,
+    "currentLoc": 297633,
+    "testLoc": 125943,
+    "trackedFiles": 3148,
+    "recentCommitCount": 653,
     "activeDays30": 30,
-    "recentReleaseCount": 50,
-    "latestReleaseDate": "2026-09-09",
-    "latestNoteDate": "2026-09-09",
+    "recentReleaseCount": 51,
+    "latestReleaseDate": "2026-09-10",
+    "latestNoteDate": "2026-09-10",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 2862706,
-    "basePercentOfBenchmark": 10.31,
-    "lighterByPercent": 89.69
+    "benchmarkCodeLines": 2891216,
+    "basePercentOfBenchmark": 10.29,
+    "lighterByPercent": 89.71
   },
   "trends": {
     "locDaily": [
-      {
-        "key": "2026-05-13",
-        "label": "05-13",
-        "value": 188034
-      },
       {
         "key": "2026-05-14",
         "label": "05-14",
@@ -615,6 +610,11 @@ export default {
         "key": "2026-09-09",
         "label": "09-09",
         "value": 295113
+      },
+      {
+        "key": "2026-09-10",
+        "label": "09-10",
+        "value": 297633
       }
     ],
     "testLocDaily": [
@@ -1227,14 +1227,14 @@ export default {
         "key": "2026-09-09",
         "label": "09-09",
         "value": 125443
+      },
+      {
+        "key": "2026-09-10",
+        "label": "09-10",
+        "value": 125943
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-08-11",
-        "label": "08-11",
-        "value": 22
-      },
       {
         "key": "2026-08-12",
         "label": "08-12",
@@ -1378,7 +1378,12 @@ export default {
       {
         "key": "2026-09-09",
         "label": "09-09",
-        "value": 17
+        "value": 26
+      },
+      {
+        "key": "2026-09-10",
+        "label": "09-10",
+        "value": 25
       }
     ],
     "commitWeekly": [
@@ -1440,7 +1445,7 @@ export default {
       {
         "key": "2026-09-07",
         "label": "09-07",
-        "value": 44
+        "value": 78
       }
     ],
     "releaseMonthly": [
@@ -1502,7 +1507,7 @@ export default {
       {
         "key": "2026-09",
         "label": "09/26",
-        "value": 5
+        "value": 6
       }
     ]
   },
@@ -1510,24 +1515,24 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 72938,
-        "testCodeLines": 40312,
-        "files": 889,
-        "sharePercent": 24.7
+        "codeLines": 73020,
+        "testCodeLines": 40462,
+        "files": 891,
+        "sharePercent": 24.5
       },
       {
         "name": "packages/nextclaw-kernel",
         "codeLines": 47283,
         "testCodeLines": 24728,
         "files": 450,
-        "sharePercent": 16
+        "sharePercent": 15.9
       },
       {
         "name": "packages/nextclaw-service",
         "codeLines": 16982,
         "testCodeLines": 8160,
         "files": 171,
-        "sharePercent": 5.8
+        "sharePercent": 5.7
       },
       {
         "name": "packages/nextclaw-core",
@@ -1538,10 +1543,10 @@ export default {
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
-        "codeLines": 15230,
+        "codeLines": 15270,
         "testCodeLines": 0,
-        "files": 77,
-        "sharePercent": 5.2
+        "files": 78,
+        "sharePercent": 5.1
       },
       {
         "name": "packages/nextclaw-server",
@@ -1552,9 +1557,9 @@ export default {
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 13501,
-        "testCodeLines": 8763,
-        "files": 131,
+        "codeLines": 13580,
+        "testCodeLines": 8790,
+        "files": 132,
         "sharePercent": 4.6
       },
       {
@@ -1567,14 +1572,21 @@ export default {
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 2862706,
-      "basePercentOfBenchmark": 10.31,
-      "lighterByPercent": 89.69
+      "benchmarkCodeLines": 2891216,
+      "basePercentOfBenchmark": 10.29,
+      "lighterByPercent": 89.71
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-09-10",
+        "tagCount": 1,
+        "sampleTags": [
+          "nextclaw@0.51.0"
+        ]
+      },
+      {
         "date": "2026-09-09",
-        "tagCount": 47,
+        "tagCount": 77,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.9.0",
           "@nextclaw/app-runtime@0.16.4",
@@ -1614,20 +1626,28 @@ export default {
           "@nextclaw/channel-extension-dingtalk@0.2.42-beta.1",
           "@nextclaw/channel-extension-discord@0.2.42-beta.1"
         ]
-      },
-      {
-        "date": "2026-08-31",
-        "tagCount": 27,
-        "sampleTags": [
-          "@nextclaw/channel-extension-dingtalk@0.2.42-beta.0",
-          "@nextclaw/channel-extension-discord@0.2.42-beta.0",
-          "@nextclaw/channel-extension-email@0.2.42-beta.0"
-        ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-09-10-nextclaw-v0-51-0",
+        "date": "2026-09-10",
+        "tags": [
+          "user feedback, maintenance automation, CLI, Codex"
+        ],
+        "en": {
+          "title": "2026-09-10 · NextClaw v0.51.0",
+          "description": "Hand approved user feedback to any local handler with one background command, then write the result back to the original report.",
+          "href": "/en/notes/2026-09-10-nextclaw-v0-51-0"
+        },
+        "zh": {
+          "title": "2026-09-10 · NextClaw v0.51.0",
+          "description": "用一个后台命令把已审批的用户反馈交给任意本地处理器，并把处理结果写回原反馈。",
+          "href": "/zh/notes/2026-09-10-nextclaw-v0-51-0"
+        }
+      },
       {
         "slug": "2026-09-09-nextclaw-v0-49-1",
         "date": "2026-09-09",
@@ -2963,9 +2983,9 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-09-09T07:20:54.105Z",
+    "locGeneratedAt": "2026-09-10T07:16:16.051Z",
     "sourceCount": {
-      "notes": 66,
+      "notes": 67,
       "scopes": 8
     }
   }
