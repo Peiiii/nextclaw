@@ -3,6 +3,8 @@ import type { AppPackageManager } from "@kernel/managers/app-package.manager.js"
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
+import type { ExtensionManager } from "@kernel/managers/extension.manager.js";
+import type { McpManager } from "@kernel/managers/mcp.manager.js";
 import type { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import type { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
@@ -332,6 +334,27 @@ export function createKernelContributions(
     new AgentRunRuntimeContribution(kernel),
     new ContextWindowContribution(kernel),
   ];
+}
+
+export function installKernelConfigRuntimeHooks(params: {
+  configManager: ConfigManager;
+  extensions: ExtensionManager;
+  mcpManager: McpManager;
+}): void {
+  const { configManager, extensions, mcpManager } = params;
+  configManager.installRuntimeHooks({
+    resolveChannelConfig: extensions.toConfigView,
+    getExtensionChannels: () =>
+      extensions.getExtensionRegistry().channels,
+    reloadExtensions: async ({ config, changedPaths }) => {
+      await extensions.reloadForConfigChange({
+        config,
+        changedPaths,
+      });
+    },
+    reloadMcp: async ({ config }) =>
+      await mcpManager.applyConfig(config),
+  });
 }
 
 export function installKernelAppPackageRuntimeHooks(params: {
