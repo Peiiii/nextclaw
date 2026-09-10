@@ -1,5 +1,12 @@
 # nextclaw-core
 
+## 0.17.22
+
+### Patch Changes
+
+- Updated dependencies [643949e]
+  - @nextclaw/shared@0.7.0
+
 ## 0.17.21
 
 ### Patch Changes

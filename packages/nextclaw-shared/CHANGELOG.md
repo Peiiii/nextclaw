@@ -1,5 +1,11 @@
 # @nextclaw/shared
 
+## 0.7.0
+
+### Minor Changes
+
+- 643949e: Add the generic private discussion CLI, role-addressed event listener, and Codex Desktop consumer preset. Move approved feedback processing under `feedback workflow` and expose verified participant identities in feedback conversations.
+
 ## 0.6.0
 
 ### Minor Changes

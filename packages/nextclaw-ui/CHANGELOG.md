@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.25.3
+
+### Patch Changes
+
+- Updated dependencies [643949e]
+  - @nextclaw/shared@0.7.0
+  - @nextclaw/client-sdk@0.12.4
+
 ## 0.25.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/agent-benchmark",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "private": true,
   "type": "module",
   "description": "Versioned, budgeted real-task harness benchmarks for local development.",

@@ -1,5 +1,14 @@
 # nextclaw-server
 
+## 0.23.4
+
+### Patch Changes
+
+- @nextclaw/core@0.17.22
+- @nextclaw/kernel@0.17.2
+- @nextclaw/mcp@0.3.49
+- @nextclaw/runtime@0.4.48
+
 ## 0.23.3
 
 ### Patch Changes
