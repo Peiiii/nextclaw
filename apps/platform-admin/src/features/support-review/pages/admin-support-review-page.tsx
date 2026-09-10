@@ -13,15 +13,15 @@ export function AdminSupportReviewPage({ token }: { token: string }): JSX.Elemen
   const { queue, review, filters, selected } = work;
   const page = queue.data?.page ?? filters.page;
   if (view === 'direct') return <section className="space-y-4">
-    <div className="flex gap-1 border-b border-[#e4e0d7]" role="tablist" aria-label="反馈与对话">
-      <button type="button" role="tab" aria-selected={false} onClick={() => setView('feedback')} className="px-3 py-2 text-sm text-[#656561]">反馈队列</button>
+    <div className="flex gap-1 border-b border-[#e4e0d7]" role="tablist" aria-label="讨论">
+      <button type="button" role="tab" aria-selected={false} onClick={() => setView('feedback')} className="px-3 py-2 text-sm text-[#656561]">用户反馈</button>
       <button type="button" role="tab" aria-selected className="border-b-2 border-[#1f1f1d] px-3 py-2 text-sm font-semibold">直接对话</button>
     </div>
     <DirectDiscussionPanel token={token} />
   </section>;
   return <section className="space-y-4">
-    <div className="flex gap-1 border-b border-[#e4e0d7]" role="tablist" aria-label="反馈与对话">
-      <button type="button" role="tab" aria-selected className="border-b-2 border-[#1f1f1d] px-3 py-2 text-sm font-semibold">反馈队列</button>
+    <div className="flex gap-1 border-b border-[#e4e0d7]" role="tablist" aria-label="讨论">
+      <button type="button" role="tab" aria-selected className="border-b-2 border-[#1f1f1d] px-3 py-2 text-sm font-semibold">用户反馈</button>
       <button type="button" role="tab" aria-selected={false} onClick={() => setView('direct')} className="px-3 py-2 text-sm text-[#656561]">直接对话</button>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-2">

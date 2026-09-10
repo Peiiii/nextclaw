@@ -18,7 +18,7 @@ export const ADMIN_CONSOLE_ROUTES: AdminConsoleRoute[] = [
     description: '平台治理入口与关键运行状态。',
     hash: '#/overview'
   },
-  { key: 'support', label: '反馈与对话', description: '评审用户反馈，并直接与已连接的参与端沟通。', hash: '#/support' },
+  { key: 'support', label: '讨论', description: '管理用户反馈，并与已连接的参与端直接沟通。', hash: '#/support' },
   {
     key: 'marketplace',
     label: 'Marketplace 审核',

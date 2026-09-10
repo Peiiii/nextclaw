@@ -12,9 +12,16 @@
 | 讨论 owner 与迁移 | thread/post/actor/audienceRole/event cursor 成为私密讨论唯一事实源，旧反馈可读 | migration、事务、身份和角色定向事件验证通过 | 已完成 |
 | 应用与入口接入 | 反馈 workflow、管理员 Gateway、管理端创建/发帖、对象级 CLI 使用同一讨论合同 | 双端 tsc、API 合同与管理端交互通过 | 已完成 |
 | 本地消费闭环 | listener 按游标触发任意命令，管理员追问复用同一任务，Agent 独立回评 | 空闲、重复、失败、重启与同线程真实链路通过 | 已完成 |
-| AI 验收与交付 | FB-20 至 FB-26 全部 current passed，文档、changeset、部署与正式入口闭合 | Review 无 findings，用户无需代替 AI 排障 | 进行中 |
-- 版本：NextClaw 0.50.0；发行提交：7e2dde431872ff289d7471da4c89eb467b80bbfe。
-- AI 验收结论：acceptance-ready。18 个必需项均有有效证据；FB-18 为已确认可选项，不默认启用。状态为待用户验收，不代表用户已验收通过。
+| AI 验收与交付 | FB-20 至 FB-26 全部 current passed，文档、changeset、部署与正式入口闭合 | Review 无 findings，用户无需代替 AI 排障 | 已完成 |
+- 当前版本：NextClaw 0.52.0；功能提交：643949e3dee8d6ef1c20bca852d6437c74bc3376；发行提交：05db9d803d70635bacf6bf7432c984fbef03d3ed。
+- AI 验收结论：acceptance-ready。25 个必需项均有有效证据；FB-18 为已确认可选项，不默认启用。状态为待用户验收，不代表用户已验收通过。
+
+## Scope revision 6 正式交付证据
+
+- D1 `0004_private_discussions.sql` 已应用；5 条既有反馈对应 5 个 support thread，迁移后共 29 条帖子。讨论服务版本 `5c27fcbc-4cdd-41e9-a3ea-a64bc2e096ff`，Gateway 版本 `923db7bf-09d9-43c4-a3d8-31e6ab46c697`，管理端 Pages 部署 `45017585`。
+- [0.52.0 正式发布任务](https://github.com/Peiiii/nextclaw/actions/runs/34489292206) 全部成功；NPM 与 macOS/Linux/Windows 四个平台 Runtime 已发布，上一稳定版升级验证成功，Desktop 不在本次范围。
+- 本机沿正式 NPM 与 stable Runtime 路径升级为 0.52.0，NextClaw 服务已重启。正式 `discussion listen` 使用 5 秒代码轮询，状态为 running；空闲不调用模型，状态目录权限为 0700、文件为 0600。
+- 本地真实论坛链路两次在 3 秒内完成 Codex 接收握手，同一 discussion 复用 task `01a08b9d-cfb9-7003-bafa-2a9a6997d770`；Agent 分别回写“已收到”和“第二次已收到”。错误消费者首轮明确失败并回到 stopped。
 
 ## 完整交付对象
 
