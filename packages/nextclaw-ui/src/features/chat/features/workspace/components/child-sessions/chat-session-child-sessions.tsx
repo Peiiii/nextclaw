@@ -63,6 +63,7 @@ export function ChatSessionChildSessions({
                 </button>
                 <ChatSessionMoreActionsMenu
                   sessionKey={tab.sessionKey}
+                  sessionTitle={tab.title}
                   triggerSize="sm"
                   triggerTone="strong"
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-white opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"

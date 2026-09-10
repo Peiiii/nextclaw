@@ -12,6 +12,7 @@ export type AppNotification = {
   ariaLabel?: string;
   dismissLabel?: string;
   durationMs?: number;
+  action?: { label: string; onClick: () => void };
 };
 
 const DEFAULT_NOTIFICATION_DURATION_MS = 8_000;
@@ -26,6 +27,7 @@ export class AppNotificationManager {
           href: notification.href,
           iconSrc: notification.iconSrc,
           ariaLabel: notification.ariaLabel,
+          action: notification.action,
           dismissLabel: notification.dismissLabel ?? t("notificationDismiss"),
           onDismiss: () => {
             toast.dismiss(toastId);

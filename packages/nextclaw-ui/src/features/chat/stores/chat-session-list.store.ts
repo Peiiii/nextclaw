@@ -78,8 +78,11 @@ export function shouldShowUnreadSessionIndicator(params: {
 type ChatSessionListStore = {
   snapshot: ChatSessionListSnapshot;
   optimisticReadAtBySessionKey: Record<string, string>;
+  runningSessionKeys: string[];
   setSnapshot: (patch: Partial<ChatSessionListSnapshot>) => void;
   markSessionRead: (sessionKey: string, readAt: string | null | undefined) => void;
+  setSessionRunStatus: (sessionKey: string, status: 'running' | 'idle') => void;
+  clearSessionRunStatuses: () => void;
 };
 
 type ChatSessionListStoreSet = Parameters<StateCreator<ChatSessionListStore>>[0];
@@ -126,13 +129,36 @@ function createMarkSessionReadAction(set: ChatSessionListStoreSet) {
     });
 }
 
+function createSetSessionRunStatusAction(set: ChatSessionListStoreSet) {
+  return (sessionKey: string, status: 'running' | 'idle') =>
+    set((state) => {
+      const normalizedSessionKey = sessionKey.trim();
+      if (!normalizedSessionKey) {
+        return state;
+      }
+      const isRunning = state.runningSessionKeys.includes(normalizedSessionKey);
+      if ((status === 'running') === isRunning) {
+        return state;
+      }
+      return {
+        ...state,
+        runningSessionKeys: status === 'running'
+          ? [...state.runningSessionKeys, normalizedSessionKey]
+          : state.runningSessionKeys.filter((key) => key !== normalizedSessionKey),
+      };
+    });
+}
+
 export const useChatSessionListStore = create<ChatSessionListStore>()(
   persist(
     (set) => ({
       snapshot: initialSnapshot,
       optimisticReadAtBySessionKey: {},
+      runningSessionKeys: [],
       setSnapshot: createSetSnapshotAction(set),
-      markSessionRead: createMarkSessionReadAction(set)
+      markSessionRead: createMarkSessionReadAction(set),
+      setSessionRunStatus: createSetSessionRunStatusAction(set),
+      clearSessionRunStatuses: () => set({ runningSessionKeys: [] }),
     }),
     {
       name: CHAT_SESSION_LIST_MODE_STORAGE_KEY,

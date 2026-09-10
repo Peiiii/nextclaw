@@ -105,7 +105,6 @@ export function ChatSidebar({
   const isSidebarCollapsed = useViewportLayoutStore(
     (state) => state.isSidebarCollapsed,
   );
-  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const [isProjectAddOpen, setIsProjectAddOpen] = useState(false);
   const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
@@ -226,6 +225,7 @@ export function ChatSidebar({
   };
   const renderSessionItem = (item: NcpSessionListItemView) => (
     <ChatSidebarSessionEntry
+      variant={variant}
       key={item.session.key}
       item={item}
       selectedSessionKey={listSnapshot.selectedSessionKey}
@@ -250,13 +250,9 @@ export function ChatSidebar({
       onDeleteSession={presenter.chatThreadManager.deleteSession}
     />
   );
-  const createSessionAndOpenIfNeeded = (
-    sessionType: string,
-    projectRoot?: string | null,
-  ) => {
+  const createSessionAndOpenIfNeeded = () => {
     presenter.chatSessionListManager.createSession({
-      projectRoot: typeof projectRoot === "string" ? projectRoot : undefined,
-      sessionType,
+      sessionType: newSessionTypePreference.selectedSessionType,
     });
   };
   const openProjectAdd = () => {
@@ -283,7 +279,7 @@ export function ChatSidebar({
       className={cn(
         "flex h-full min-h-0 flex-col bg-secondary transition-[width] duration-200 ease-out",
         isMobileVariant
-          ? "flex-1 overflow-hidden"
+          ? "flex-1 overflow-hidden bg-background"
           : shouldCollapse
             ? cn(SIDEBAR_RAIL_WIDTH_CLASS, "shrink-0")
             : "w-[280px] shrink-0",
@@ -299,36 +295,17 @@ export function ChatSidebar({
 
       {isMobileVariant ? (
         <ChatSidebarMobileToolbar
+          isProjectFirstView={isProjectFirstView}
+          onSelectMode={presenter.chatSessionListManager.setListMode}
+          onAddProject={openProjectAdd}
           query={listSnapshot.query}
-          defaultSessionType={newSessionTypePreference.selectedSessionType}
-          sessionTypeOptions={sessionTypeOptions}
-          selectedNewSessionType={newSessionTypePreference.selectedSessionType}
-          selectedNewSessionTypeOption={
-            newSessionTypePreference.selectedSessionTypeOption
-          }
-          isCreateMenuOpen={isCreateMenuOpen}
-          onCreateMenuOpenChange={setIsCreateMenuOpen}
           onCreateSession={createSessionAndOpenIfNeeded}
-          onSelectNewSessionType={
-            newSessionTypePreference.setSelectedSessionType
-          }
           onQueryChange={presenter.chatSessionListManager.setQuery}
         />
       ) : (
         <ChatSidebarDesktopToolbar
           query={listSnapshot.query}
-          defaultSessionType={defaultSessionType}
-          sessionTypeOptions={sessionTypeOptions}
-          selectedNewSessionType={newSessionTypePreference.selectedSessionType}
-          selectedNewSessionTypeOption={
-            newSessionTypePreference.selectedSessionTypeOption
-          }
-          isCreateMenuOpen={isCreateMenuOpen}
-          onCreateMenuOpenChange={setIsCreateMenuOpen}
           onCreateSession={createSessionAndOpenIfNeeded}
-          onSelectNewSessionType={
-            newSessionTypePreference.setSelectedSessionType
-          }
           onQueryChange={presenter.chatSessionListManager.setQuery}
           collapsed={shouldCollapse}
         />
@@ -339,6 +316,7 @@ export function ChatSidebar({
       ) : null}
 
       <ChatSidebarSessionArea
+        variant={variant}
         defaultSessionType={newSessionTypePreference.selectedSessionType}
         groups={groups}
         isCollapsed={shouldCollapse}

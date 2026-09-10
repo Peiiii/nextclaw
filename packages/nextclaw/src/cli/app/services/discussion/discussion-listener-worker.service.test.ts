@@ -40,7 +40,7 @@ function event(cursor: number, actor: DiscussionActor = administrator): {
   };
 }
 
-async function setup(source: DiscussionEvent, view: DiscussionThreadView) {
+async function setup(source?: DiscussionEvent, view?: DiscussionThreadView) {
   const root = await mkdtemp(join(tmpdir(), "nextclaw-discussion-listener-"));
   const tokenFile = join(root, "token");
   await writeFile(tokenFile, "x".repeat(32));
@@ -49,7 +49,7 @@ async function setup(source: DiscussionEvent, view: DiscussionThreadView) {
   const execute = vi.fn().mockResolvedValue(undefined);
   const worker = new DiscussionListenerWorkerService({
     discussion: {
-      events: vi.fn().mockResolvedValue({ items: [source], nextCursor: source.cursor }),
+      events: vi.fn().mockResolvedValue({ items: source ? [source] : [], nextCursor: source?.cursor ?? 0 }),
       get: vi.fn().mockResolvedValue(view),
     } as never,
     config: {
@@ -93,5 +93,19 @@ describe("DiscussionListenerWorkerService", () => {
     await expect(worker.tick()).resolves.toBe("idle");
     expect(execute).not.toHaveBeenCalled();
     expect((await store.readJournal()).cursor).toBe(2);
+  });
+
+  it("clears a transient fetch error after the next successful idle scan", async () => {
+    const { worker, store } = await setup();
+    await store.writeRuntime({
+      instanceId: "listener-1",
+      pid: process.pid,
+      startedAt: "2026-09-10T00:00:00.000Z",
+      heartbeatAt: "2026-09-10T00:00:05.000Z",
+      lastError: "fetch failed",
+    });
+
+    await expect(worker.tick()).resolves.toBe("idle");
+    expect((await store.readRuntime())?.lastError).toBeUndefined();
   });
 });

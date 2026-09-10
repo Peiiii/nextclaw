@@ -1,8 +1,10 @@
+import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppPresenterProvider } from '@/app/components/app-presenter-provider';
+import { ChatRuntimeProvider } from '@/features/chat/components/providers/chat-runtime.provider';
 import { NcpChatPage } from '@/features/chat/pages/ncp-chat-page';
 import { buildSessionPath } from '@/features/chat/features/session/utils/chat-session-route.utils';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
@@ -56,8 +58,13 @@ vi.mock('@/features/chat/features/ncp/hooks/use-ui-show-content-event', () => ({
   useUiShowContentEvent: () => undefined,
 }));
 
-describe('NcpChatPage render boundary', () => {
+vi.mock('@/features/chat/features/conversation/components/floating-session-conversation', () => ({
+  FloatingSessionConversation: () => null,
+}));
+
+describe('Shared chat runtime and page boundary', () => {
   beforeEach(() => {
+    sessionSurfaceManager.close();
     mocks.syncVisibleSessions.mockReset();
     mocks.useChatSessionSync.mockReset();
     useChatThreadStore.getState().setSnapshot({
@@ -70,9 +77,9 @@ describe('NcpChatPage render boundary', () => {
   it('creates its chat presenter from the global app presenter provider', () => {
     render(
       <MemoryRouter initialEntries={['/chat']}>
-        <AppPresenterProvider>
+        <AppPresenterProvider><ChatRuntimeProvider>
           <NcpChatPage view="chat" />
-        </AppPresenterProvider>
+        </ChatRuntimeProvider></AppPresenterProvider>
       </MemoryRouter>,
     );
 
@@ -89,17 +96,19 @@ describe('NcpChatPage render boundary', () => {
     });
     const view = render(
       <MemoryRouter initialEntries={[sessionPath]}>
-        <AppPresenterProvider>
+        <AppPresenterProvider><ChatRuntimeProvider>
           <Routes>
             <Route path="/chat/:sessionId?" element={<NcpChatPage view="chat" />} />
           </Routes>
-        </AppPresenterProvider>
+        </ChatRuntimeProvider></AppPresenterProvider>
       </MemoryRouter>,
     );
 
     expect(mocks.syncVisibleSessions).toHaveBeenCalledWith([
       'session-background',
       'session-child',
+      undefined,
+      null,
     ]);
 
     act(() => {
@@ -111,9 +120,17 @@ describe('NcpChatPage render boundary', () => {
       expect(mocks.syncVisibleSessions).toHaveBeenLastCalledWith([
         'session-background',
         null,
+        undefined,
+        null,
       ]);
     });
 
+    act(() => {
+      sessionSurfaceManager.open({ sessionKey: 'session-float', title: 'Float' });
+    });
+    expect(mocks.syncVisibleSessions).toHaveBeenLastCalledWith(['session-background', null, 'session-float', null]);
+    act(() => sessionSurfaceManager.minimize());
+    expect(mocks.syncVisibleSessions).toHaveBeenLastCalledWith(['session-background', null, null, null]);
     view.unmount();
     expect(mocks.syncVisibleSessions).toHaveBeenLastCalledWith([]);
   });

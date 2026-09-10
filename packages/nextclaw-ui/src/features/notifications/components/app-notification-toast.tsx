@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Maximize2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
 
@@ -10,13 +10,14 @@ export type AppNotificationToastProps = {
   ariaLabel?: string;
   dismissLabel: string;
   onDismiss: () => void;
+  action?: { label: string; onClick: () => void };
 };
 
 const NOTIFICATION_CARD_CLASS =
-  "relative ml-auto flex min-h-[74px] w-[320px] max-w-[calc(100vw-2rem)] rounded-[20px] border border-border/80 bg-background text-left text-foreground shadow-[0_8px_18px_rgba(0,0,0,0.12),0_2px_5px_rgba(0,0,0,0.06)]";
+  "relative ml-auto flex min-h-[68px] w-[360px] max-w-[calc(100vw-2rem)] items-center rounded-2xl border border-border/80 bg-background text-left text-foreground shadow-[0_8px_18px_rgba(0,0,0,0.12),0_2px_5px_rgba(0,0,0,0.06)]";
 
 const NOTIFICATION_CONTENT_CLASS =
-  "flex min-h-[72px] min-w-0 flex-1 items-center gap-3 rounded-[inherit] py-3 pl-[18px] pr-[52px]";
+  "flex min-h-[66px] min-w-0 flex-1 items-center gap-2.5 rounded-[inherit] py-3 pl-3.5 pr-1";
 
 function AppNotificationContent({
   title,
@@ -47,19 +48,33 @@ function AppNotificationContent({
   );
 }
 
-function AppNotificationDismissButton({
+function AppNotificationActions({
   dismissLabel,
   onDismiss,
-}: Pick<AppNotificationToastProps, "dismissLabel" | "onDismiss">) {
+  action,
+}: Pick<AppNotificationToastProps, "dismissLabel" | "onDismiss" | "action">) {
   return (
-    <IconActionButton
-      className="absolute right-2.5 top-2.5 z-10"
-      icon={<X className="h-4 w-4" aria-hidden="true" />}
-      label={dismissLabel}
-      onClick={onDismiss}
-      size="lg"
-      tooltipSide="left"
-    />
+    <div className="flex shrink-0 items-center gap-0.5 pr-2">
+      {action ? (
+        <IconActionButton
+          icon={<Maximize2 className="h-4 w-4" aria-hidden="true" />}
+          label={action.label}
+          className="h-9 w-9"
+          size="lg"
+          onClick={() => {
+            action.onClick();
+            onDismiss();
+          }}
+        />
+      ) : null}
+      <IconActionButton
+        icon={<X className="h-4 w-4" aria-hidden="true" />}
+        label={dismissLabel}
+        onClick={onDismiss}
+        className="h-9 w-9"
+        size="lg"
+      />
+    </div>
   );
 }
 
@@ -71,6 +86,7 @@ export function AppNotificationToast({
   ariaLabel,
   dismissLabel,
   onDismiss,
+  action,
 }: AppNotificationToastProps) {
   const accessibleLabel = ariaLabel ?? [title, description].filter(Boolean).join(": ");
 
@@ -89,7 +105,8 @@ export function AppNotificationToast({
             iconSrc={iconSrc}
           />
         </Link>
-        <AppNotificationDismissButton
+        <AppNotificationActions
+          action={action}
           dismissLabel={dismissLabel}
           onDismiss={onDismiss}
         />
@@ -110,7 +127,8 @@ export function AppNotificationToast({
           iconSrc={iconSrc}
         />
       </div>
-      <AppNotificationDismissButton
+      <AppNotificationActions
+        action={action}
         dismissLabel={dismissLabel}
         onDismiss={onDismiss}
       />

@@ -44,7 +44,7 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
 }
 type ChatPageLayoutProps = {
   view: MainPanelView;
-  confirmDialog: JSX.Element;
+  confirmDialog?: JSX.Element;
 };
 export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
   const { isMobile } = useViewportLayout();

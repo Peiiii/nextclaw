@@ -1,7 +1,9 @@
+import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ChatSidebarSessionItem } from "@/features/chat/features/session/components/chat-sidebar-session-item";
+import { useFloatingSessionStore } from '@/features/chat/stores/floating-session.store';
 
 const mocks = vi.hoisted(() => ({
   copyText: vi.fn(),
@@ -20,6 +22,7 @@ vi.mock("sonner", () => ({
 }));
 
 beforeEach(() => {
+  sessionSurfaceManager.close();
   mocks.copyText.mockReset();
   mocks.copyText.mockResolvedValue(true);
   mocks.deleteSession.mockReset();
@@ -79,6 +82,15 @@ it("shows session actions only on hover or when an action owns focus", () => {
     screen.queryByRole("button", { name: "View child sessions" }),
   ).toBeNull();
   expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
+});
+
+it("opens any sidebar session as a floating conversation", async () => {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: 'More actions' }));
+  await user.click(screen.getByRole('button', { name: 'Chat in a floating window' }));
+  expect(useFloatingSessionStore.getState().session).toEqual({
+    sessionKey: 'session:current', title: 'Current Task',
+  });
 });
 
 it("copies the sidebar session ID from the more-actions menu", async () => {

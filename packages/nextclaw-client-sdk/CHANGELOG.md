@@ -1,5 +1,12 @@
 # @nextclaw/client-sdk
 
+## 0.12.5
+
+### Patch Changes
+
+- Updated dependencies [b21c811]
+  - @nextclaw/server@0.23.5
+
 ## 0.12.4
 
 ### Patch Changes

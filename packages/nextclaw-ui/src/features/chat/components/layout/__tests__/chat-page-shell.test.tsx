@@ -45,7 +45,7 @@ vi.mock("@/features/projects", () => ({
 describe("ChatPageLayout", () => {
   it("uses the same canvas width for management pages", () => {
     const agentsView = render(
-      <ChatPageLayout view="agents" confirmDialog={<div />} />,
+      <ChatPageLayout view="agents" />,
     );
     const agentsCanvas = screen.getByText("Agents").parentElement;
 
@@ -53,14 +53,14 @@ describe("ChatPageLayout", () => {
     agentsView.unmount();
 
     const cronView = render(
-      <ChatPageLayout view="cron" confirmDialog={<div />} />,
+      <ChatPageLayout view="cron" />,
     );
     const cronCanvas = screen.getByText("Cron").parentElement;
 
     expect(cronCanvas?.className).toContain("max-w-[min(1180px,100%)]");
     cronView.unmount();
 
-    render(<ChatPageLayout view="skills" confirmDialog={<div />} />);
+    render(<ChatPageLayout view="skills" />);
     const skillsCanvas = screen.getByText("Marketplace").parentElement;
 
     expect(skillsCanvas?.className).toContain("max-w-[min(1180px,100%)]");
@@ -76,14 +76,12 @@ describe("ChatPageLayout", () => {
     render(
       <ChatPageLayout
         view="chat"
-        confirmDialog={<div data-testid="confirm-dialog">Confirm</div>}
       />,
     );
 
     expect(screen.getByTestId("chat-mobile-shell")).toBeTruthy();
     expect(screen.queryByTestId("desktop-chat-sidebar")).toBeNull();
     expect(screen.queryByTestId("chat-conversation-panel")).toBeNull();
-    expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
   });
 
   it("keeps the chat sidebar while rendering the project home in the workspace", async () => {
@@ -93,7 +91,7 @@ describe("ChatPageLayout", () => {
       isDesktop: true,
     });
 
-    render(<ChatPageLayout view="projects" confirmDialog={<div />} />);
+    render(<ChatPageLayout view="projects" />);
 
     expect(screen.getByTestId("desktop-chat-sidebar")).toBeTruthy();
     const projectHome = await screen.findByText("Project Home");

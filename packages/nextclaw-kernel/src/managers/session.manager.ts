@@ -1,4 +1,7 @@
 import type { CreatedSession, CreateSessionInput, SessionSearchService } from "@nextclaw/core";
+import { NcpEventType } from '@nextclaw/ncp';
+import { SessionTitleService } from '@kernel/services/session-title.service.js';
+import type { LlmProviderRuntime } from '@kernel/managers/llm-provider.manager.js';
 import { BUILTIN_MAIN_AGENT_ID } from "@nextclaw/core";
 import type {
   ListMessagesOptions,
@@ -61,6 +64,7 @@ type CreateNcpSessionInput = CreateSessionInput & {
 };
 
 export type SessionManagerOptions = {
+  providerManager?: LlmProviderRuntime;
   agentContextWindowManager: AgentContextWindowManager;
   agentManager: AgentManager;
   configManager: ConfigManager;
@@ -72,12 +76,14 @@ export type SessionManagerOptions = {
 };
 
 export class SessionManager implements NcpSessionApi {
+  private readonly titles?: SessionTitleService;
   private readonly sessionEvents: SessionEventCoordinatorService;
   private readonly settings: SessionSettingsService;
   private readonly summaryProjection: SessionSummaryProjectionService;
   private readonly workingDirResolver: SessionWorkingDirResolver;
 
   constructor(private readonly options: SessionManagerOptions) {
+    this.titles = options.providerManager ? new SessionTitleService(this, options.providerManager) : undefined;
     this.sessionEvents = new SessionEventCoordinatorService({
       appendSessionEvent: this.appendSessionEvent,
       getSessionRecord: this.getSessionRecord,
@@ -108,7 +114,7 @@ export class SessionManager implements NcpSessionApi {
 
   start = async (): Promise<void> => await this.sessionEvents.start();
 
-  dispose = (): void => this.sessionEvents.dispose();
+  dispose = (): void => { this.titles?.dispose(); this.sessionEvents.dispose(); };
 
   publishSessionEvent = async (params: PublishSessionEventParams): Promise<void> =>
     await this.sessionEvents.publish(params);
@@ -163,6 +169,7 @@ export class SessionManager implements NcpSessionApi {
     });
     const now = new Date().toISOString();
     let nextMetadata = mergeMetadataOverrides(metadata, metadataOverrides);
+    nextMetadata.label_source = requestedTitle || metadataOverrides?.label ? 'manual' : 'fallback';
     const requestedProjectRoot =
       projectRoot !== undefined ? projectRoot : readProjectRoot(nextMetadata);
     if (requestedProjectRoot !== undefined) {
@@ -227,54 +234,43 @@ export class SessionManager implements NcpSessionApi {
     if (isSessionSummaryRefreshEvent(event)) {
       await this.publishSessionChange(sessionId);
     }
+    if (event.type === NcpEventType.RunFinished) void this.titles?.schedule(sessionId);
   };
 
-  setSessionMetadata = async (
-    sessionId: string,
-    metadata: Record<string, unknown>,
+  applyGeneratedTitle = async (
+    sessionId: string, expectedMetadata: Record<string, unknown>, title: string | null, messageId: string,
   ): Promise<boolean> => {
-    const normalizedSessionId = normalizeSessionId(sessionId);
-    if (!normalizedSessionId) {
-      return false;
-    }
-    const updated = await this.options.journalStore.setSessionMetadata({
-      sessionId: normalizedSessionId,
-      metadata: structuredClone(metadata),
-    });
-    if (!updated) {
-      return false;
-    }
-    publishSessionMetadataChanged(
-      this.options.eventBus,
-      normalizedSessionId,
-      metadata,
-      "set",
-    );
-    await this.publishSessionChange(normalizedSessionId);
-    return true;
-  };
-
-  updateSessionMetadata = async (
-    sessionId: string,
-    metadata: Record<string, unknown>,
-  ): Promise<boolean> => {
-    const normalizedSessionId = normalizeSessionId(sessionId);
-    if (!normalizedSessionId) {
-      return false;
-    }
     const updated = await this.options.journalStore.updateSessionMetadata({
-      sessionId: normalizedSessionId,
-      metadata: structuredClone(metadata),
+      sessionId,
+      expectedMetadata,
+      metadata: {
+        title_attempt_message_id: messageId,
+        ...(title ? { label: title, label_source: 'generated' } : {}),
+      },
     });
-    if (!updated) {
-      return false;
-    }
-    publishSessionMetadataChanged(
-      this.options.eventBus,
-      normalizedSessionId,
-      metadata,
-      "update",
-    );
+    if (updated) await this.publishSessionChange(sessionId);
+    return updated;
+  };
+
+  setSessionMetadata = async (sessionId: string, metadata: Record<string, unknown>): Promise<boolean> =>
+    this.writeSessionMetadata(sessionId, metadata, "set");
+
+  updateSessionMetadata = async (sessionId: string, metadata: Record<string, unknown>): Promise<boolean> =>
+    this.writeSessionMetadata(sessionId, {
+      ...metadata,
+      ...(Object.prototype.hasOwnProperty.call(metadata, 'label') ? { label_source: 'manual' } : {}),
+    }, "update");
+
+  private writeSessionMetadata = async (
+    sessionId: string, metadata: Record<string, unknown>, mode: "set" | "update",
+  ): Promise<boolean> => {
+    const normalizedSessionId = normalizeSessionId(sessionId);
+    if (!normalizedSessionId) return false;
+    const store = this.options.journalStore;
+    const write = mode === "set" ? store.setSessionMetadata : store.updateSessionMetadata;
+    const updated = await write({ sessionId: normalizedSessionId, metadata: structuredClone(metadata) });
+    if (!updated) return false;
+    publishSessionMetadataChanged(this.options.eventBus, normalizedSessionId, metadata, mode);
     await this.publishSessionChange(normalizedSessionId);
     return true;
   };

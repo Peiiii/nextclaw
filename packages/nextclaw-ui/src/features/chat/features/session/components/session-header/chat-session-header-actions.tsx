@@ -12,6 +12,7 @@ const SESSION_HEADER_ACTION_GROUP_CLASS = 'flex shrink-0 items-center gap-1.5';
 
 type ChatSessionHeaderActionsProps = {
   sessionKey: string | null;
+  sessionTitle?: string;
   canDeleteSession: boolean;
   isDeletePending: boolean;
   currentPath?: string | null;
@@ -24,6 +25,7 @@ type ChatSessionHeaderActionsProps = {
 
 export function ChatSessionHeaderActions({
   sessionKey,
+  sessionTitle,
   canDeleteSession,
   isDeletePending,
   currentPath,
@@ -62,6 +64,7 @@ export function ChatSessionHeaderActions({
       {sessionKey ? (
         <ChatSessionMoreActionsMenu
           sessionKey={sessionKey}
+          sessionTitle={sessionTitle}
           disabled={isBusy}
         >
           <ChatSessionHeaderMenuItem

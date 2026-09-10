@@ -55,11 +55,13 @@ export function useDirectDiscussions(token: string) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const list = useQuery({
     queryKey: ['direct-discussions', token],
+    refetchInterval: 15000,
     queryFn: async () => (await request<{ data: DiscussionThreadPage }>('/platform/admin/discussions?space=direct', {}, token)).data,
   });
   const selected = selectedId ?? list.data?.items[0]?.id ?? null;
   const detail = useQuery({
     queryKey: ['direct-discussion', token, selected],
+    refetchInterval: 5000,
     enabled: Boolean(selected),
     queryFn: async () => (await request<{ data: DiscussionThreadView }>('/platform/admin/discussions/' + encodeURIComponent(selected!), {}, token)).data,
   });
@@ -82,5 +84,13 @@ export function useDirectDiscussions(token: string) {
       await client.invalidateQueries({ queryKey: ['direct-discussions'] });
     },
   });
-  return { list, selectedId: selected, select: setSelectedId, detail, create, post };
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const setDraft = (id: string, body: string) => setDrafts(current => ({ ...current, [id]: body }));
+  const send = async (id: string) => {
+    const body = drafts[id]?.trim();
+    if (!body || post.isPending) return;
+    await post.mutateAsync({ id, body });
+    setDraft(id, '');
+  };
+  return { list, selectedId: selected, select: setSelectedId, detail, create, post, drafts, setDraft, send };
 }

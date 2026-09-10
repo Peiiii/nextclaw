@@ -111,6 +111,7 @@ export function applySessionSettingsMetadataPatch(
     structuredClone(currentMetadata),
     patch,
   );
+  if (Object.prototype.hasOwnProperty.call(patch, 'label')) metadata.label_source = 'manual';
   return applySessionRuntimePatch(metadata, patch);
 }
 

@@ -1,6 +1,8 @@
+import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
 import { useState, type ReactNode } from 'react';
 import { copyText } from '@nextclaw/agent-chat-ui';
-import { Copy, MoreVertical } from 'lucide-react';
+import { Copy, Maximize2, MoreVertical, PanelRight } from 'lucide-react';
+import { getAppPresenter } from '@/app/presenters/app.presenter';
 import { toast } from 'sonner';
 import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
 import {
@@ -14,6 +16,7 @@ import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 
 type ChatSessionMoreActionsMenuProps = {
   sessionKey: string;
+  sessionTitle?: string;
   children?: ReactNode;
   disabled?: boolean;
   triggerSize?: IconActionButtonSize;
@@ -30,6 +33,7 @@ export async function copySessionId(sessionKey: string) {
 
 export function ChatSessionMoreActionsMenu({
   sessionKey,
+  sessionTitle,
   children,
   disabled = false,
   triggerSize = 'md',
@@ -59,6 +63,24 @@ export function ChatSessionMoreActionsMenu({
       </PopoverTrigger>
       <ChatPopoverContent align="end" className="w-56 p-2">
         <div className="space-y-1" onClick={() => setIsOpen(false)}>
+          <ChatSessionHeaderMenuItem
+            icon={Maximize2}
+            label={t('chatFloatingExpand')}
+            onClick={() => sessionSurfaceManager.open({
+              sessionKey,
+              title: sessionTitle || t('chatFloatingConversation'),
+            })}
+            disabled={disabled}
+          />
+          <ChatSessionHeaderMenuItem
+            label={t('chatPanelOpen')}
+            icon={PanelRight}
+            onClick={() => sessionSurfaceManager.dock({
+              sessionKey,
+              title: sessionTitle || t('chatFloatingConversation'),
+            }, getAppPresenter().docBrowserManager)}
+            disabled={disabled}
+          />
           <ChatSessionHeaderMenuItem
             icon={Copy}
             label={t('chatSessionCopyId')}

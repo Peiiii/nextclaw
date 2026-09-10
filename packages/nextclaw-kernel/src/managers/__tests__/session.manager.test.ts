@@ -1,131 +1,10 @@
-import { mkdtempSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { createTempDir, createConfig, createMessage, createRecord, createFixture, cleanupSessionFixtures } from "@kernel/utils/__tests__/session-manager-fixture.utils.js";
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpMessage } from "@nextclaw/ncp";
-import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
-import { EventBus, eventKeys } from "@nextclaw/shared";
+import { eventKeys } from "@nextclaw/shared";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
-import { SessionManager } from "@kernel/managers/session.manager.js";
-import { ProjectManager } from "@kernel/features/projects/index.js";
-
-const tempDirs: string[] = [];
-
-function createTempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "nextclaw-ncp-session-manager-"));
-  tempDirs.push(dir);
-  return dir;
-}
-
-function createConfig(workspace = createTempDir()) {
-  return {
-    agents: {
-      defaults: {
-        workspace,
-        model: "",
-        engine: "native",
-        engineConfig: {},
-        thinkingDefault: "off",
-        models: {},
-        contextTokens: 200000,
-      },
-      list: [],
-    },
-  } as never;
-}
-
-function createMessage(params: {
-  id: string;
-  sessionId: string;
-  text: string;
-  timestamp?: string;
-  role?: NcpMessage["role"];
-}): NcpMessage {
-  const {
-    id,
-    role = "user",
-    sessionId,
-    text,
-    timestamp = "2026-05-12T00:00:00.000Z",
-  } = params;
-  return {
-    id,
-    sessionId,
-    role,
-    status: "final",
-    parts: [{ type: "text", text }],
-    timestamp,
-  };
-}
-
-function createRecord(params: {
-  sessionId: string;
-  agentId?: string;
-  metadata?: Record<string, unknown>;
-  messages?: NcpMessage[];
-  createdAt?: string;
-  updatedAt?: string;
-}): AgentSessionRecord {
-  const {
-    agentId,
-    createdAt = "2026-05-12T00:00:00.000Z",
-    messages = [],
-    metadata = {},
-    sessionId,
-    updatedAt = createdAt,
-  } = params;
-  return {
-    sessionId,
-    ...(agentId ? { agentId } : {}),
-    messages: messages.map((message) => structuredClone(message)),
-    createdAt,
-    updatedAt,
-    metadata: structuredClone(metadata),
-  };
-}
-
-async function createFixture(
-  records: AgentSessionRecord[] = [],
-  config: unknown = createConfig(),
-) {
-  const eventBus = new EventBus();
-  const sessionsDir = createTempDir();
-  const journalStore = new NcpAgentSessionJournalStore(join(sessionsDir, ".ncp-agent-journal"));
-  const handleSessionUpdated = vi.fn();
-  const sessionSearch = {
-    handleSessionUpdated,
-  };
-  for (const record of records) {
-    await journalStore.importSessionSnapshot(record);
-  }
-  const manager = new SessionManager({
-    agentContextWindowManager: {
-      forgetSession: () => undefined,
-      previewSession: async () => null,
-    } as never,
-    agentManager: {
-      resolveAgentProfile: () => ({
-        workspace: (config as { agents: { defaults: { workspace: string } } }).agents.defaults.workspace,
-      }),
-    } as never,
-    configManager: { loadConfig: () => config } as never,
-    eventBus,
-    journalStore,
-    projectManager: new ProjectManager({
-      databasePath: join(sessionsDir, "projects.db"),
-      legacyStorePath: join(sessionsDir, "projects.json"),
-      getDefaultWorkspacePath: () =>
-        (config as { agents: { defaults: { workspace: string } } }).agents.defaults.workspace,
-    }),
-    sessionSearch: sessionSearch as never,
-  });
-  return {
-    eventBus,
-    journalStore,
-    manager,
-    handleSessionUpdated,
-  };
-}
 
 async function waitForCondition(assertion: () => void | Promise<void>): Promise<void> {
   const deadline = Date.now() + 2_000;
@@ -146,16 +25,38 @@ async function waitForCondition(assertion: () => void | Promise<void>): Promise<
   }
 }
 
-afterEach(() => {
-  while (tempDirs.length > 0) {
-    const dir = tempDirs.pop();
-    if (dir) {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  }
-});
+afterEach(cleanupSessionFixtures);
 
 describe("SessionManager", () => {
+  it('generates titles after a durable completed run and preserves manual edits in flight', async () => {
+    let finish!: (result: { content: string }) => void;
+    const chat = vi.fn(() => new Promise(resolve => { finish = resolve; }));
+    const fixture = await createFixture([createRecord({ sessionId: 'title-session', metadata: { label: 'hello', label_source: 'fallback' }, messages: [
+      createMessage({ id: 'title-user', sessionId: 'title-session', text: 'hello' }),
+      createMessage({ id: 'title-answer', sessionId: 'title-session', role: 'assistant', text: 'Discussing the weather.' }),
+    ] })], createConfig(), { chat } as never);
+    const applyTitle = vi.spyOn(fixture.manager, 'applyGeneratedTitle');
+    await fixture.manager.appendSessionEvent({ sessionId: 'title-session', event: { type: NcpEventType.RunFinished, payload: { sessionId: 'title-session', runId: 'title-run' } } });
+    await vi.waitFor(() => expect(chat).toHaveBeenCalledOnce());
+    await fixture.manager.patchSessionSettings('title-session', { label: 'My weather notes' });
+    finish({ content: '{"title":"Weather summary"}' });
+    await vi.waitFor(() => expect(applyTitle).toHaveBeenCalledOnce());
+    await vi.waitFor(async () => expect((await fixture.manager.getSession('title-session'))?.metadata?.label).toBe('My weather notes'));
+    // The journal's serialized compare-and-set also rejects a stale result after a rename.
+    expect(await fixture.manager.applyGeneratedTitle('title-session', { label: 'hello', label_source: 'fallback' }, 'Stale title', 'title-answer')).toBe(false);
+    expect(await fixture.manager.applyGeneratedTitle('missing', {}, 'Do not recreate', 'none')).toBe(false);
+    fixture.manager.dispose();
+  });
+
+  it('persists an automatic title through the existing summary index and reload', async () => {
+    const fixture = await createFixture([createRecord({ sessionId: 'title-persist', metadata: { label: 'hello', label_source: 'fallback' } })]);
+    expect(await fixture.manager.applyGeneratedTitle('title-persist', { label: 'hello', label_source: 'fallback' }, '杭州天气查询', 'answer')).toBe(true);
+    expect((await fixture.manager.listSessions())[0].metadata).toMatchObject({ label: '杭州天气查询', label_source: 'generated' });
+    expect((await fixture.manager.getSessionRecord('title-persist'))?.metadata?.label).toBe('杭州天气查询');
+    const reloaded = new NcpAgentSessionJournalStore(join(fixture.sessionsDir, '.ncp-agent-journal'));
+    expect((await reloaded.getSessionSummary('title-persist'))?.metadata?.label).toBe('杭州天气查询');
+    fixture.manager.dispose();
+  });
   it("serves UI session API from the journal owner", async () => {
     const fixture = await createFixture([
       createRecord({
@@ -238,7 +139,7 @@ describe("SessionManager", () => {
     });
     await fixture.manager.deleteSession("session-1");
 
-    expect(updated?.metadata).toEqual({ label: "After" });
+    expect(updated?.metadata).toEqual({ label: "After", label_source: 'manual' });
     expect(fixture.handleSessionUpdated).toHaveBeenCalledWith("session-1");
     expect(events).toEqual([
       "session.metadata.changed",

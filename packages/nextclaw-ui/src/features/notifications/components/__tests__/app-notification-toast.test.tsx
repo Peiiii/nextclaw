@@ -9,6 +9,25 @@ function CurrentPathname() {
 }
 
 describe("AppNotificationToast", () => {
+  it("expands through a separate keyboard action without navigating", async () => {
+    const onDismiss = vi.fn();
+    const onExpand = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/chat/current']}>
+        <AppNotificationToast title="Reply" href="/chat/other" dismissLabel="Dismiss"
+          onDismiss={onDismiss} action={{ label: 'Expand', onClick: onExpand }} />
+        <CurrentPathname />
+      </MemoryRouter>,
+    );
+    await user.tab();
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Expand' }));
+    await user.keyboard('{Enter}');
+    expect(onExpand).toHaveBeenCalledOnce();
+    expect(onDismiss).toHaveBeenCalledOnce();
+    expect(screen.getByTestId('current-pathname').textContent).toBe('/chat/current');
+  });
   it("keeps opening and dismissing a route notification as separate actions", async () => {
     const onDismiss = vi.fn();
     const user = userEvent.setup();

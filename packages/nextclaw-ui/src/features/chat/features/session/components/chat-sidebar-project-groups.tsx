@@ -12,7 +12,6 @@ import {
   Plus,
 } from "lucide-react";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
-import { ChatSessionTypeMenu } from "@/features/chat/features/session-type/components/chat-session-type-menu";
 import { Popover, PopoverTrigger } from "@/shared/components/ui/popover";
 import { ChatPopoverContent } from "@/features/chat/components/chat-popover-content";
 import { IconActionButton } from "@/shared/components/ui/actions/icon-action-button";
@@ -68,7 +67,6 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
   const collapsedProjectRoots = useChatSessionListStore(
     (state) => state.snapshot.collapsedProjectRoots,
   );
-  const [openProjectRoot, setOpenProjectRoot] = useState<string | null>(null);
   const [openProjectMenuRoot, setOpenProjectMenuRoot] = useState<string | null>(
     null,
   );
@@ -80,7 +78,6 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
       ),
     [defaultSessionType, sessionTypeOptions],
   );
-  const supportsSessionTypeChoice = sessionTypeOptions.length > 1;
   const removeProject = async (group: ChatSidebarProjectGroup) => {
     if (!group.projectId) return;
     setOpenProjectMenuRoot(null);
@@ -213,37 +210,6 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                 data-project-actions
                 className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover/project:pointer-events-auto group-hover/project:opacity-100 focus-within:pointer-events-auto focus-within:opacity-100"
               >
-                {supportsSessionTypeChoice ? (
-                  <Popover
-                    open={openProjectRoot === group.projectRoot}
-                    onOpenChange={(nextOpen) => {
-                      setOpenProjectRoot(nextOpen ? group.projectRoot : null);
-                    }}
-                  >
-                    <PopoverTrigger asChild>
-                      <IconActionButton
-                        icon={<Plus className="h-3.5 w-3.5" />}
-                        label={actionLabel}
-                      />
-                    </PopoverTrigger>
-                    <ChatPopoverContent
-                      align="end"
-                      className="w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
-                    >
-                      <ChatSessionTypeMenu
-                        options={sessionTypeOptions}
-                        selectedSessionType={preferredSessionType}
-                        onSelect={(sessionType) => {
-                          presenter.chatSessionListManager.createSession({
-                            projectRoot: group.projectRoot,
-                            sessionType,
-                          });
-                          setOpenProjectRoot(null);
-                        }}
-                      />
-                    </ChatPopoverContent>
-                  </Popover>
-                ) : (
                   <IconActionButton
                     icon={<Plus className="h-3.5 w-3.5" />}
                     label={actionLabel}
@@ -254,7 +220,6 @@ export function ChatSidebarProjectGroups(props: ChatSidebarProjectGroupsProps) {
                       })
                     }
                   />
-                )}
                 <IconActionButton
                   icon={
                     <Pin

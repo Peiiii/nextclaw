@@ -84,6 +84,18 @@ export function renderHomeSections(
 
     ${renderProactiveDeliveryShowcase(PROACTIVE_DELIVERY_COPY[locale], docsLink)}
 
+    <section id="mobile" class="mx-auto grid w-full max-w-6xl items-center gap-10 px-6 py-16 md:grid-cols-2">
+      <div class="max-w-lg">
+        <p class="mb-4 text-sm font-medium text-muted-foreground">${locale === 'zh' ? '移动端界面' : 'Mobile interface'}</p>
+        <h2 class="mb-6 text-3xl font-bold tracking-normal md:text-5xl">${locale === 'zh' ? '换到手机，继续聊。' : 'Pick up the conversation on your phone.'}</h2>
+        <p class="mb-6 text-lg leading-relaxed text-muted-foreground">${locale === 'zh' ? '浏览最近的会话，查看回复，再继续追问。紧凑的列表、随手可用的搜索和操作，让小屏幕也能从容使用。' : 'Browse recent conversations, read replies, and follow up. A compact list with accessible search and actions makes the most of a smaller screen.'}</p>
+        <a href="${docsLink}guide/background-results" class="font-medium underline underline-offset-4">${locale === 'zh' ? '了解如何继续对话' : 'Explore conversation features'}</a>
+      </div>
+      <figure class="mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-border shadow-xl">
+        ${renderScreenshot('/screenshots/nextclaw-mobile-chat-list-cn.png', locale === 'zh' ? 'NextClaw 移动端会话列表：标题、摘要、搜索和新建入口' : 'NextClaw mobile conversation list, shown in Chinese, with search and new-chat actions', { className: 'block h-auto w-full object-contain', sizes: '(min-width: 768px) 384px, calc(100vw - 48px)' })}
+      </figure>
+    </section>
+
     ${renderInteractiveArtifactShowcase(locale)}
 
     ${renderRuntimeShowcase(copy.runtimeShowcase)}

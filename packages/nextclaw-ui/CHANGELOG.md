@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.25.4
+
+### Patch Changes
+
+- a24ff88: Keep the session list running indicator visible throughout active runs, including when a new session summary arrives after the realtime status event or the session summary refreshes mid-run.
+  - @nextclaw/client-sdk@0.12.5
+
 ## 0.25.3
 
 ### Patch Changes

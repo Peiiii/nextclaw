@@ -12,6 +12,7 @@ import { t } from "@/shared/lib/i18n";
 type SessionTypeOption = ChatSessionTypeOption;
 
 type ChatSidebarSessionListProps = {
+  variant?: 'desktop' | 'mobile';
   isLoading: boolean;
   isProjectFirstView: boolean;
   groups: ChatSidebarDateGroup[];
@@ -32,6 +33,7 @@ function ChatSidebarEmptyState({ label }: { label: string }) {
 }
 
 export function ChatSidebarSessionList({
+  variant = 'desktop',
   defaultSessionType,
   groups,
   isLoading,
@@ -68,13 +70,13 @@ export function ChatSidebarSessionList({
   }
 
   return (
-    <div className="space-y-2">
+    <div className={variant === 'mobile' ? undefined : 'space-y-2'}>
       {groups.map((group) => (
         <div key={group.label}>
-          <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/65">
+          <div className={variant === 'mobile' ? 'px-4 py-1 text-[11px] text-muted-foreground' : 'px-2 pb-1 pt-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/65'}>
             {group.label}
           </div>
-          <div className="space-y-0.5">
+          <div className={variant === 'mobile' ? undefined : 'space-y-0.5'}>
             {group.items.map(renderSessionItem)}
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { t } from '@/shared/lib/i18n';
+import { buildSessionPanelUrl, CHAT_SESSION_PANEL_KIND, parseSessionKeyFromPanelUrl } from '@/features/chat';
 import { parseResourceUri, type ParsedResourceUri, type ResourceUriRouteDefinition } from '@/shared/lib/resource-uri';
 import {
   getDefaultDocsUrl,
@@ -95,6 +96,25 @@ function arePanelAppUrlsEquivalent(left: string, right: string): boolean {
 }
 
 export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefinition[] = [
+  {
+    defaultUrl: () => 'nextclaw://chat-session/',
+    id: CHAT_SESSION_PANEL_KIND,
+    kind: CHAT_SESSION_PANEL_KIND,
+    match: (uri) => uri.scheme === 'nextclaw' && uri.authority === 'chat-session',
+    resolve: (uri) => {
+      const sessionKey = parseSessionKeyFromPanelUrl(uri.raw);
+      const url = sessionKey ? buildSessionPanelUrl(sessionKey) : uri.raw;
+      return {
+        kind: CHAT_SESSION_PANEL_KIND,
+        title: t('chatFloatingConversation'),
+        url,
+        resourceUri: url,
+        dedupeKey: url,
+        historyPolicy: 'none',
+      };
+    },
+    areEquivalent: (left, right) => left === right,
+  },
   {
     defaultUrl: () => RIGHT_PANEL_HOME_URL,
     id: 'home',

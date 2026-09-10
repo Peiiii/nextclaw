@@ -3,6 +3,7 @@ import { eventKeys } from '@nextclaw/shared';
 import { applyNcpSessionRealtimeEvent, nextclawClient } from '@/shared/lib/api';
 import { runtimeUpdateManager, systemStatusManager } from '@/features/system-status';
 import type { QueryClient } from '@tanstack/react-query';
+import { useChatSessionListStore } from '@/features/chat';
 
 function shouldInvalidateConfigQuery(configPath: string) {
   const normalized = configPath.trim().toLowerCase();
@@ -55,7 +56,9 @@ export function useAppEventConsumers(queryClient?: QueryClient) {
       void runtimeUpdateManager.refreshAfterRealtimeReconnect();
       if (shouldResyncSessionsRef.current) {
         shouldResyncSessionsRef.current = false;
+        useChatSessionListStore.getState().clearSessionRunStatuses();
         queryClient?.invalidateQueries({ queryKey: ['ncp-sessions'] });
+        queryClient?.invalidateQueries({ queryKey: ['ncp-session-pages'] });
       }
     });
     const unsubscribeConnectionClose = nextclawClient.eventBus.on(eventKeys.connectionClose, () => {
@@ -77,12 +80,14 @@ export function useAppEventConsumers(queryClient?: QueryClient) {
       runtimeUpdateManager.reportSnapshot(snapshot);
     });
     const unsubscribeSessionRunStatus = nextclawClient.eventBus.on(eventKeys.sessionRunStatus, (payload) => {
+      useChatSessionListStore.getState().setSessionRunStatus(payload.sessionKey, payload.status);
       applyNcpSessionRealtimeEvent(queryClient, { type: 'session.run-status', payload });
     });
     const unsubscribeSessionSummaryUpsert = nextclawClient.eventBus.on(eventKeys.sessionSummaryUpsert, (payload) => {
       applyNcpSessionRealtimeEvent(queryClient, { type: 'session.summary.upsert', payload });
     });
     const unsubscribeSessionSummaryDelete = nextclawClient.eventBus.on(eventKeys.sessionSummaryDelete, (payload) => {
+      useChatSessionListStore.getState().setSessionRunStatus(payload.sessionKey, 'idle');
       applyNcpSessionRealtimeEvent(queryClient, { type: 'session.summary.delete', payload });
     });
     const unsubscribeError = nextclawClient.eventBus.on(eventKeys.error, (payload) => {
