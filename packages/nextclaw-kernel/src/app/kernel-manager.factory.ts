@@ -1,4 +1,8 @@
 import { AppDataManager } from "@kernel/managers/app-data.manager.js";
+import { CoreHealthCheckService } from "@kernel/features/core-health/index.js";
+import { FeatureControlsService } from "@kernel/features/feature-controls/index.js";
+import type { DesktopHost } from "@kernel/features/desktop-host/index.js";
+import type { Config } from "@nextclaw/core";
 import type { AppPackageManager } from "@kernel/managers/app-package.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
@@ -334,6 +338,25 @@ export function createKernelContributions(
     new AgentRunRuntimeContribution(kernel),
     new ContextWindowContribution(kernel),
   ];
+}
+
+export function createKernelCoreServices(params: {
+  desktopHost: DesktopHost;
+  getWorkspacePath: () => string;
+  sessionsDir: string;
+  configManager: { config: Config };
+}): { coreHealth: CoreHealthCheckService; featureControls: FeatureControlsService } {
+  const coreHealth = new CoreHealthCheckService({
+    getConfig: () => params.configManager.config,
+    getWorkspacePath: () => params.getWorkspacePath(),
+    sessionsDir: params.sessionsDir,
+  });
+  const featureControls = new FeatureControlsService({
+    desktopHost: params.desktopHost,
+    coreHealth,
+    getConfig: () => params.configManager.config,
+  });
+  return { coreHealth, featureControls };
 }
 
 export function installKernelConfigRuntimeHooks(params: {

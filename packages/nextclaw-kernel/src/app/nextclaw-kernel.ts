@@ -82,6 +82,7 @@ import {
   createKernelAgentRunRequests,
   createKernelPlannedRestartRecovery,
   createKernelAppRuntimeManagers,
+  createKernelCoreServices,
   createKernelOperationalManagers,
   createKernelSessionManagers,
   createPortableRuntimeAcceptanceServices,
@@ -193,7 +194,6 @@ export class NextclawKernel {
     this.capabilityGrants = new CapabilityGrantManager(resolveKernelCapabilityGrantStorePath(options));
     ({ verificationRecords: this.verificationRecords, portableRuntimeAcceptance: this.portableRuntimeAcceptance } =
       createPortableRuntimeAcceptanceServices({ ...options, verificationRecordStorePath: resolveKernelVerificationRecordStorePath(options) }));
-    this.featureControls = new FeatureControlsService(desktopHost);
     ({
       automation: this.automation,
       channels: this.channels,
@@ -207,11 +207,12 @@ export class NextclawKernel {
       providerModelCatalogManager: this.providerModelCatalog,
     }));
     this.assetStore = new LocalAssetStore({ rootDir: resolve(getDataDir(), "assets") });
-    this.coreHealth = new CoreHealthCheckService({
-      getConfig: () => this.configManager.config,
+    ({ coreHealth: this.coreHealth, featureControls: this.featureControls } = createKernelCoreServices({
+      desktopHost,
       getWorkspacePath: () => getWorkspacePath(this.configManager.config.agents.defaults.workspace),
       sessionsDir,
-    });
+      configManager: this.configManager,
+    }));
     this.control = new NextclawKernelControlManager<unknown, unknown, unknown>();
     this.agents = new AgentManager(this.configManager);
     this.agentContextWindowManager = new AgentContextWindowManager(

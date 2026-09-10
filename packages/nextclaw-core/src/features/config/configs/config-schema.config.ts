@@ -419,6 +419,10 @@ export const McpConfigSchema = z.object({
   servers: z.record(McpServerDefinitionSchema).default({})
 });
 
+export const CoreHealthConfigSchema = z.object({
+  autoDegrade: z.boolean().default(false)
+});
+
 export const WebSearchConfigSchema = z.object({
   apiKey: z.string().default(""),
   maxResults: z.number().int().default(5)
@@ -545,6 +549,7 @@ export const ConfigSchema = z.object({
   companion: CompanionConfigSchema.default({}),
   productAnalytics: ProductAnalyticsConfigSchema.default({}),
   tools: ToolsConfigSchema.default({}),
+  coreHealth: CoreHealthConfigSchema.default({}),
   secrets: SecretsConfigSchema.default({})
 });
 
@@ -567,6 +572,7 @@ export type SecretsConfig = z.infer<typeof SecretsConfigSchema>;
 export type SearchConfig = z.infer<typeof SearchConfigSchema>;
 export type SearchProviderName = z.infer<typeof SearchProviderNameSchema>;
 export type McpConfig = z.infer<typeof McpConfigSchema>;
+export type CoreHealthConfig = z.infer<typeof CoreHealthConfigSchema>;
 export type McpServerDefinition = z.infer<typeof McpServerDefinitionSchema>;
 export type McpServerMetadata = z.infer<typeof McpServerMetadataSchema>;
 export type McpServerScope = z.infer<typeof McpServerScopeSchema>;
