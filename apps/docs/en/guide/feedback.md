@@ -30,6 +30,7 @@ Administrators keep using their existing Platform Admin login. The Discussions a
 
 - Feedback Queue classifies reports, requests details, approves repair, and separately approves release. Reporter, administrator, and processing-client posts show their server-verified identities.
 - Direct Discussions lets an administrator create a private thread without a prior report or CLI command. A subscribed local participant receives the opening post and later administrator messages.
+- The topic list organizes discussions, while each topic shows a chronological conversation with distinct administrator and Agent labels. Replies refresh automatically without moving you away from older messages. Switching topics retains drafts on the current page; failed sends keep the draft for editing or retry. Press Ctrl / Cmd + Enter to send and Enter for a new line. On narrow screens, return from the topic to the list.
 
 Configure the generic discussion listener once. Codex Desktop is the recommended preset:
 

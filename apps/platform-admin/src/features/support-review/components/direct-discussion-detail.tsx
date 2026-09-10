@@ -1,36 +1,55 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { DiscussionThreadView } from '@nextclaw/shared';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { discussionActorLabel } from '@/features/support-review/configs/support-review.config';
+import { DiscussionMessage } from './discussion-message';
 
-export function DirectDiscussionDetail({ value, busy, onPost }: {
-  value: DiscussionThreadView;
-  busy: boolean;
-  onPost: (body: string) => Promise<void>;
+export function DirectDiscussionDetail({ value, busy, body, onBody, onPost, onBack }: {
+  value: DiscussionThreadView; busy: boolean; body: string;
+  onBody: (body: string) => void; onPost: () => Promise<void>; onBack: () => void;
 }): JSX.Element {
-  const [body, setBody] = useState('');
-  return <article className="space-y-5 p-4 sm:p-6">
-    <header>
-      <p className="mb-2 text-xs text-[#8f8a7d]">直接对话 · {value.posts.length} 条消息</p>
-      <h3 className="break-words text-xl font-semibold leading-7">{value.thread.title}</h3>
-      <p className="mt-2 text-xs text-[#656561]">由 {discussionActorLabel(value.thread.openedBy)} 发起 · {new Date(value.thread.createdAt).toLocaleString()}</p>
+  const viewport = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  const [away, setAway] = useState(false);
+  const latest = value.posts[value.posts.length - 1]?.id;
+  const showLatest = () => {
+    if (viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight;
+    following.current = true; setAway(false);
+  };
+  useLayoutEffect(() => {
+    if (following.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight;
+  }, [latest]);
+  return <article aria-label="主题对话" className="flex h-[calc(100dvh-240px)] min-h-[360px] min-w-0 flex-col lg:h-[min(720px,calc(100dvh-280px))]">
+    <header className="shrink-0 border-b border-[#eeeae1] px-5 py-4">
+      <button type="button" onClick={onBack} className="mb-2 text-sm text-[#656561] lg:hidden">← 返回主题</button>
+      <h3 className="break-words text-lg font-semibold leading-7">{value.thread.title}</h3>
+      <p className="mt-1 text-xs text-[#8f8a7d]">私密讨论 · {value.posts.length} 条消息 · 回复自动更新</p>
     </header>
-    <ol className="space-y-4 border-t border-[#eeeae1] pt-4">{value.posts.map(post => <li key={post.id}>
-      <p className="text-xs text-[#8f8a7d]">{discussionActorLabel(post.author)} · {new Date(post.createdAt).toLocaleString()}</p>
-      <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">{post.body}</p>
-    </li>)}</ol>
-    <form className="space-y-3 border-t border-[#eeeae1] pt-4" onSubmit={event => {
-      event.preventDefault();
-      const message = body.trim();
-      if (!message) return;
-      void onPost(message).then(() => setBody(''));
+    <div ref={viewport} aria-label="消息记录" className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6" onScroll={event => {
+      const element = event.currentTarget;
+      following.current = element.scrollHeight - element.scrollTop - element.clientHeight < 64;
+      setAway(!following.current);
     }}>
-      <label className="block text-sm font-medium">继续对话
-        <Textarea rows={4} maxLength={4000} required value={body} onChange={event => setBody(event.target.value)} className="mt-2" />
-      </label>
-      <p className="text-xs text-[#656561]">这条消息会以已认证管理员身份发布，并唤醒已订阅的参与端。</p>
-      <Button disabled={busy || !body.trim()}>发送</Button>
+      <ol className="space-y-7">{value.posts.map(post => <li key={post.id}>
+        <DiscussionMessage actor={post.author} body={post.body} createdAt={post.createdAt} />
+      </li>)}</ol>
+    </div>
+    {away && <button type="button" onClick={showLatest} className="shrink-0 border-t border-[#eeeae1] bg-[#f7f8f2] py-2 text-xs text-[#425331]">↓ 查看最新消息</button>}
+    <form className="shrink-0 border-t border-[#eeeae1] bg-[#fafaf7] p-4" onSubmit={event => {
+      event.preventDefault();
+      if (!busy && body.trim()) void onPost().then(showLatest).catch(() => undefined);
+    }}>
+      <label className="sr-only" htmlFor="discussion-reply">回复当前主题</label>
+      <Textarea id="discussion-reply" rows={3} maxLength={4000} disabled={busy} value={body} placeholder="继续讨论，或告诉参与者下一步要做什么…" onChange={event => onBody(event.target.value)}
+        className="resize-none bg-white" onKeyDown={event => {
+          if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && !event.nativeEvent.isComposing) {
+            event.preventDefault(); event.currentTarget.form?.requestSubmit();
+          }
+        }} />
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="text-xs text-[#8f8a7d]">以管理员身份发送<span className="hidden sm:inline"> · Ctrl / ⌘ + Enter</span></p>
+        <Button disabled={busy || !body.trim()}>{busy ? '发送中…' : '发送'}</Button>
+      </div>
     </form>
   </article>;
 }
