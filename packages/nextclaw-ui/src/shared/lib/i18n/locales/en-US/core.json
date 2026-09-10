@@ -450,5 +450,9 @@
   "feishuVerifyFailed": "Verification failed",
   "enterTag": "Type and press Enter...",
   "headerName": "Header Name",
-  "headerValue": "Header Value"
+  "headerValue": "Header Value",
+  "providerModelLatencyTest": "Test",
+  "providerModelLatencyTestFailed": "Failed",
+  "providerModelLatencyTimeout": "Timed out (15s)",
+  "providerModelLatencyTestHint": "Sends a real request that may consume a small amount of tokens; 15s timeout"
 }

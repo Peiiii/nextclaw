@@ -52,6 +52,10 @@ export function ProviderModelLatencyAction({
   const [latency, setLatency] = useState<{
     latencyMs: number;
     message: string;
+<<<<<<< Updated upstream
+=======
+    success: boolean;
+>>>>>>> Stashed changes
   } | null>(null);
   const runTest = async () => {
     if (testing) {
@@ -61,8 +65,13 @@ export function ProviderModelLatencyAction({
     setLatency(null);
     try {
       const result = await onTestModelLatency(modelName);
+<<<<<<< Updated upstream
       if (result?.success) {
         setLatency({ latencyMs: result.latencyMs, message: result.message });
+=======
+      if (result) {
+        setLatency({ latencyMs: result.latencyMs, message: result.message, success: result.success });
+>>>>>>> Stashed changes
       }
     } finally {
       setTesting(false);
@@ -72,10 +81,21 @@ export function ProviderModelLatencyAction({
     <>
       {latency ? (
         <span
+<<<<<<< Updated upstream
           className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-primary"
           title={latency.message || undefined}
         >
           {latency.latencyMs}ms
+=======
+          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${
+            latency.success
+              ? "bg-primary/10 text-primary"
+              : "bg-destructive/10 text-destructive"
+          }`}
+          title={latency.message || undefined}
+        >
+          {latency.success ? `${latency.latencyMs}ms` : t("providerModelLatencyTestFailed")}
+>>>>>>> Stashed changes
         </span>
       ) : null}
       <button
@@ -84,7 +104,11 @@ export function ProviderModelLatencyAction({
         onClick={() => void runTest()}
         className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 opacity-100 transition-opacity hover:bg-muted hover:text-foreground disabled:cursor-wait disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
         aria-label={t("providerModelLatencyTest")}
+<<<<<<< Updated upstream
         title={t("providerModelLatencyTest")}
+=======
+        title={t("providerModelLatencyTestHint")}
+>>>>>>> Stashed changes
       >
         {testing ? (
           <LoaderCircle className="h-3 w-3 animate-spin" />

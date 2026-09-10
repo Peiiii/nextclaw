@@ -450,5 +450,9 @@
   "feishuVerifyFailed": "验证失败",
   "enterTag": "输入后按回车...",
   "headerName": "Header 名称",
-  "headerValue": "Header 值"
+  "headerValue": "Header 值",
+  "providerModelLatencyTest": "测速",
+  "providerModelLatencyTestFailed": "测速失败",
+  "providerModelLatencyTimeout": "测速超时（超过 15s）",
+  "providerModelLatencyTestHint": "测速会发送一次真实请求，可能消耗少量 token；超时 15s"
 }
