@@ -17,6 +17,7 @@ import { ChatSessionWorkspaceFilePreview } from '@/features/chat/features/worksp
 import { ChatSessionWorkspaceDirectoryBrowser } from '@/features/chat/features/workspace/components/chat-session-workspace-directory-browser';
 import { SessionCronJobContent } from '@/features/chat/features/workspace/components/session-cron-job-content';
 import { ChatSessionChildSessions } from '@/features/chat/features/workspace/components/child-sessions/chat-session-child-sessions';
+import { SessionRunBadge } from '@/features/chat/features/session/components/session-run-badge';
 import { ChatSessionTokenUsage } from '@/features/chat/features/workspace/components/overview/chat-session-token-usage';
 import { ChatSessionContinuousAttention } from '@/features/chat/features/workspace/components/overview/chat-session-continuous-attention';
 import { useNcpSessionObservations } from '@/features/chat/features/ncp/hooks/use-ncp-session-queries';
@@ -32,6 +33,7 @@ import { t } from '@/shared/lib/i18n';
 import { resolveWorkspaceRelativePath } from '@/shared/lib/session-project';
 import { cn } from '@/shared/lib/utils';
 import { IconActionButton } from '@/shared/components/ui/actions/icon-action-button';
+import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 
 type ChatSessionWorkspacePanelContentProps = {
   activeSelection: WorkspaceSelection;
@@ -51,12 +53,14 @@ function WorkspaceOverviewEntry({
   description,
   icon,
   onClick,
+  runStatus,
   title,
 }: {
   count?: number;
   description: string;
   icon: ReactNode;
   onClick: () => void;
+  runStatus?: SessionRunStatus;
   title: string;
 }) {
   return (
@@ -76,6 +80,7 @@ function WorkspaceOverviewEntry({
               {count}
             </span>
           ) : null}
+          {runStatus ? <SessionRunBadge status={runStatus} /> : null}
         </span>
         <span className="mt-0.5 block text-xs leading-5 text-gray-500">{description}</span>
       </span>
@@ -117,6 +122,7 @@ function WorkspaceOverview({
             count={childSessionTabs.length}
             description={t('chatWorkspaceChildSessionsDescription')}
             icon={<GitBranch className="h-4 w-4" />}
+            runStatus={childSessionTabs.some((tab) => tab.runStatus === 'running') ? 'running' : undefined}
             title={t('chatWorkspaceChildSessions')}
             onClick={() => {
               if (sessionKey) {
