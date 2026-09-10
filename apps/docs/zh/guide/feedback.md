@@ -32,7 +32,26 @@ nextclaw feedback import receipt.json
 
 ## 处理与回复
 
-维护者可运行 `nextclaw feedback maintain skill-path` 定位随包提供的维护 skill，再通过 `maintain get/claim/comment/result` 读取、领取及回写。长期运行由私有应用 `@nextclaw/feedback-maintainer` 承载：代码扫描已批准事项，给 Codex 提供本地 skill 路径，由 Codex 自己操作 CLI。空扫描不调用模型，进程退出不等于修复完成。
+维护者先准备权限为 `0600` 的维护 token 文件和用于修复的工作目录。推荐 Codex Desktop 时只需配置一次并启动：
+
+```bash
+nextclaw feedback maintain configure --workspace /path/to/project --token-file /path/to/token --preset codex-desktop
+nextclaw feedback maintain start
+nextclaw feedback maintain status
+```
+
+管理员批准后，普通代码轮询器才唤醒消费者；空扫描不调用模型。Codex Desktop 预设会以配置的工作目录运行，并在 **Tasks** 中创建“反馈：[项目目录] <反馈标题>”任务，便于按项目搜索和管理；同一反馈的后续用户消息继续进入同一任务。Codex 当前公开的 App Server 协议没有桌面端项目归属参数，因此 NextClaw 不修改 Codex 私有状态来伪造归属。需要原生项目分组时，可以用通用命令入口接入具备该能力的宿主。Codex 读取随包 skill，并自行通过 `maintain get/claim/comment/result` 读取、领取和回写原反馈。进程退出不等于修复完成，平台状态才是业务事实。
+
+监听器不感知消费者是不是 AI。要接入其他 Agent、队列或普通程序，把可信参数数组放在 `--` 后；它会通过 stdin 和 `NEXTCLAW_FEEDBACK_*` 环境变量传递反馈 ID、事件 ID、标题、revision、endpoint 和 skill 路径，不执行 shell：
+
+```bash
+nextclaw feedback maintain configure --token-file /path/to/token -- /path/to/consumer --fixed-arg
+nextclaw feedback maintain restart
+```
+
+通用监听配置不保存或传递工作目录；消费者需要目录时，把它写进自己的参数或脚本。
+
+运行 `nextclaw feedback maintain stop` 停止监听。首次修复必须经过管理员审批；已进入维护链路的用户补充可以唤醒同一任务，但会撤销旧审批，重新修复前仍需管理员再次批准。
 
 管理员在现有管理平台的“用户反馈”中评审，沿用原管理员登录；无需输入另一套反馈管理凭据。
 

@@ -644,7 +644,11 @@ The CLI associates a server-verified existing NextClaw login when available; exp
 
 #### Maintainer CLI
 
-Maintainers use `nextclaw feedback maintain skill-path` to locate the packaged maintenance skill. Read that file before using `maintain list/get/claim/comment/result/triage/recover/authorize-delivery/publish`. Use the latest revision and run ID for writes, a stable operation ID for retries, and file arguments for comments and evidence. Provide maintenance credentials through `SUPPORT_MAINTAINER_TOKEN` or `--token-file`; administrator approval stays in the existing platform. The private `@nextclaw/feedback-maintainer` application polls with code and passes the skill path to Codex, which performs these CLI operations itself. An agent exit is not proof of a repair or release.
+Maintainers use `nextclaw feedback maintain skill-path` to locate the packaged maintenance skill. Read that file before using `maintain list/get/claim/comment/result/triage/recover/authorize-delivery/publish`. Use the latest revision and run ID for writes, a stable operation ID for retries, and file arguments for comments and evidence. Provide maintenance credentials through `SUPPORT_MAINTAINER_TOKEN` or `--token-file`; administrator approval stays in the existing platform.
+
+Configure the low-cost local listener once, then start it with `nextclaw feedback maintain start`. The recommended setup is `nextclaw feedback maintain configure --workspace /path/to/project --token-file /path/to/token --preset codex-desktop`. It polls with ordinary code, creates a visible `反馈：[project directory] <title>` task under Codex Desktop Tasks after approval, and resumes that task for later messages on the same feedback ID. Idle polling invokes no model. The configured workspace is the task's working directory; the project label makes it searchable without depending on Codex private project metadata.
+
+The listener is consumer-neutral. Provide any trusted executable and fixed arguments after `--` to dispatch another Agent, queue, script, or non-AI program. It executes the argv directly, passes stable feedback/event identities and the skill path through stdin and `NEXTCLAW_FEEDBACK_*`, and treats a zero exit only as successful event delivery. The generic configuration has no Agent, session, project, or working-directory field; consumers express those details in their own argv or script. The consumer performs CLI operations itself; platform state is the only proof of repair or release. Use `maintain status/stop/restart` for lifecycle control.
 
 #### Personal queries
 
@@ -829,6 +833,7 @@ When NextClaw AI is asked to create, update, or remove an Agent, use this exact 
    ```
 
 4. Treat the JSON output as the source of truth:
+
    - `agent`: created or updated Agent profile
    - `removed` + `agentId`: removal result
 
@@ -851,6 +856,7 @@ Rules:
 - Humans should use the `Agents` page or the CLI for Agent identities. `Routing & Runtime` is not the identity-management entry point.
 - If the user asked AI to perform Agent CRUD, AI should run the command, not only describe it.
 - Avatar guidance for AI-created agents:
+
   - When AI creates an Agent, prefer passing an explicit `--avatar` instead of relying on the generated fallback.
   - Prefer non-text avatars for long-lived Agent identities; avoid letter-based or initials-based avatar styles as the default recommendation.
   - DiceBear `initials` is a text-based avatar style and should not be the default recommendation for Agents.

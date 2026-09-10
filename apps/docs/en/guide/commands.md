@@ -25,27 +25,34 @@ Use `nextclaw --version` to inspect the installed version. Many query and manage
 
 No GitHub login required. See [Feedback](./feedback).
 
-| Command | Purpose |
-| --- | --- |
-| `nextclaw feedback submit` | Submit a private report and save its receipt |
-| `nextclaw feedback list` | List local receipts |
-| `nextclaw feedback get` | Read a report and replies |
-| `nextclaw feedback reply` | Add reproduction details |
-| `nextclaw feedback withdraw` | Withdraw a report |
-| `nextclaw feedback link` | Link to the current NextClaw account |
-| `nextclaw feedback sync` | Sync account reports |
-| `nextclaw feedback export` | Export a private receipt |
-| `nextclaw feedback import` | Restore a private receipt |
-| `nextclaw feedback maintain skill-path` | Locate the packaged maintainer skill |
-| `nextclaw feedback maintain list` | Read the maintenance queue |
-| `nextclaw feedback maintain get` | Read a report and its approval |
-| `nextclaw feedback maintain claim` | Claim approved work |
-| `nextclaw feedback maintain comment` | Write a maintainer reply |
-| `nextclaw feedback maintain result` | Submit verification evidence or a blocker |
-| `nextclaw feedback maintain triage` | Classify without granting repair permission |
-| `nextclaw feedback maintain recover` | Recover after confirming the previous run stopped |
-| `nextclaw feedback maintain authorize-delivery` | Associate an approved repair commit |
-| `nextclaw feedback maintain publish` | Verify release proof and update the report |
+| Command                                            | Purpose                                                                                               |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `nextclaw feedback submit`                         | Submit a private report and save its receipt                                                          |
+| `nextclaw feedback list`                           | List local receipts                                                                                   |
+| `nextclaw feedback get`                            | Read a report and replies                                                                             |
+| `nextclaw feedback reply`                          | Add reproduction details                                                                              |
+| `nextclaw feedback withdraw`                       | Withdraw a report                                                                                     |
+| `nextclaw feedback link`                           | Link to the current NextClaw account                                                                  |
+| `nextclaw feedback sync`                           | Sync account reports                                                                                  |
+| `nextclaw feedback export`                         | Export a private receipt                                                                              |
+| `nextclaw feedback import`                         | Restore a private receipt                                                                             |
+| `nextclaw feedback maintain skill-path`            | Locate the packaged maintainer skill                                                                  |
+| `nextclaw feedback maintain configure`             | Save the endpoint, credential file, and consumer command; the Codex setup helper can take a workspace |
+| `nextclaw feedback maintain start`                 | Start the listener in the background and complete its first scan                                      |
+| `nextclaw feedback maintain status`                | Inspect listener health, heartbeat, and the latest error                                              |
+| `nextclaw feedback maintain stop`                  | Stop the current listener instance                                                                    |
+| `nextclaw feedback maintain restart`               | Restart the listener with its saved configuration                                                     |
+| `nextclaw feedback maintain worker`                | Internal listener process entry point                                                                 |
+| `nextclaw feedback maintain codex-desktop-trigger` | Internal Codex Desktop consumer preset entry point                                                    |
+| `nextclaw feedback maintain list`                  | Read the maintenance queue                                                                            |
+| `nextclaw feedback maintain get`                   | Read a report and its approval                                                                        |
+| `nextclaw feedback maintain claim`                 | Claim approved work                                                                                   |
+| `nextclaw feedback maintain comment`               | Write a maintainer reply                                                                              |
+| `nextclaw feedback maintain result`                | Submit verification evidence or a blocker                                                             |
+| `nextclaw feedback maintain triage`                | Classify without granting repair permission                                                           |
+| `nextclaw feedback maintain recover`               | Recover after confirming the previous run stopped                                                     |
+| `nextclaw feedback maintain authorize-delivery`    | Associate an approved repair commit                                                                   |
+| `nextclaw feedback maintain publish`               | Verify release proof and update the report                                                            |
 
 ## Capability map
 
@@ -191,30 +198,30 @@ Failed connection tests exit non-zero. Start authorization with `auth start`, fo
 
 For search, run `nextclaw search provider exa --api-key-env MY_EXA_KEY`, then `nextclaw search configure --provider exa --enabled-provider exa --max-results 10` and verify with `search show`. Result counts accept 1–50. The enabled list is replaced; `--clear-enabled-providers` disables all. Bocha supports summary/freshness/docs-url; Tavily supports search-depth/include-answer. Other providers reject these specific options. See command help for all flags.
 
-| Command | Purpose |
-| --- | --- |
-| `nextclaw providers list` | List provider instances |
-| `nextclaw providers templates` | List templates and authorization methods |
-| `nextclaw providers show` | Inspect one provider |
-| `nextclaw providers add` | Add a template or custom provider |
-| `nextclaw providers update` | Update name, endpoint, credentials, protocol and headers |
-| `nextclaw providers remove` | Remove a provider and its secret references |
-| `nextclaw providers enable` | Enable a provider |
-| `nextclaw providers disable` | Disable a provider |
-| `nextclaw providers test` | Test a model connection |
-| `nextclaw providers models list` | Inspect configured models and capabilities |
-| `nextclaw providers models discover` | Discover models without saving |
-| `nextclaw providers models set` | Replace or clear the model list |
-| `nextclaw providers models configure` | Replace or clear model capability overrides |
-| `nextclaw providers auth start` | Start provider authorization |
-| `nextclaw providers auth poll` | Poll authorization once |
-| `nextclaw providers auth import` | Import supported provider CLI credentials |
-| `nextclaw models list` | Inspect the runtime model catalog |
-| `nextclaw models show` | Inspect the default model |
-| `nextclaw models set` | Set the default model |
-| `nextclaw search show` | Inspect search settings |
-| `nextclaw search configure` | Select default/enabled providers and result count |
-| `nextclaw search provider` | Configure one search provider |
+| Command                               | Purpose                                                  |
+| ------------------------------------- | -------------------------------------------------------- |
+| `nextclaw providers list`             | List provider instances                                  |
+| `nextclaw providers templates`        | List templates and authorization methods                 |
+| `nextclaw providers show`             | Inspect one provider                                     |
+| `nextclaw providers add`              | Add a template or custom provider                        |
+| `nextclaw providers update`           | Update name, endpoint, credentials, protocol and headers |
+| `nextclaw providers remove`           | Remove a provider and its secret references              |
+| `nextclaw providers enable`           | Enable a provider                                        |
+| `nextclaw providers disable`          | Disable a provider                                       |
+| `nextclaw providers test`             | Test a model connection                                  |
+| `nextclaw providers models list`      | Inspect configured models and capabilities               |
+| `nextclaw providers models discover`  | Discover models without saving                           |
+| `nextclaw providers models set`       | Replace or clear the model list                          |
+| `nextclaw providers models configure` | Replace or clear model capability overrides              |
+| `nextclaw providers auth start`       | Start provider authorization                             |
+| `nextclaw providers auth poll`        | Poll authorization once                                  |
+| `nextclaw providers auth import`      | Import supported provider CLI credentials                |
+| `nextclaw models list`                | Inspect the runtime model catalog                        |
+| `nextclaw models show`                | Inspect the default model                                |
+| `nextclaw models set`                 | Set the default model                                    |
+| `nextclaw search show`                | Inspect search settings                                  |
+| `nextclaw search configure`           | Select default/enabled providers and result count        |
+| `nextclaw search provider`            | Configure one search provider                            |
 
 ### Generic configuration and secrets
 

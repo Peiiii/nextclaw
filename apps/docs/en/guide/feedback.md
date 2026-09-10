@@ -26,7 +26,26 @@ Anyone holding a receipt can access that report. Keep it private. The signed-in 
 
 ## Progress and releases
 
-Maintainers can run `nextclaw feedback maintain skill-path` to locate the packaged maintenance skill, then use `maintain get/claim/comment/result` to read, claim and update reports. The private `@nextclaw/feedback-maintainer` application polls approved work with ordinary code and passes the local skill path to Codex. Codex performs the CLI operations itself; idle polling invokes no model, and a process exit does not prove a completed repair.
+Maintainers prepare a mode-`0600` token file and a repair workspace, then configure and start the recommended Codex Desktop consumer:
+
+```bash
+nextclaw feedback maintain configure --workspace /path/to/project --token-file /path/to/token --preset codex-desktop
+nextclaw feedback maintain start
+nextclaw feedback maintain status
+```
+
+Ordinary polling code invokes a consumer only after administrator approval; idle scans make no model calls. The Codex Desktop preset runs in the configured workspace, creates a task named `反馈：[project directory] <report title>` under **Tasks**, and resumes the same task for later user messages on that report. This makes tasks searchable by project. Codex's current public App Server protocol has no Desktop project-assignment parameter, so NextClaw does not alter Codex's private state to fabricate one. Use the generic command trigger with a capable host API when native project grouping is required. Codex reads the packaged skill and uses `maintain get/claim/comment/result` itself to read, claim, and update the original report. Process completion is not business completion; the platform state remains authoritative.
+
+The listener does not know whether its consumer is an AI. To connect another Agent, queue, or ordinary program, provide a trusted argument array after `--`. The listener sends the feedback ID, event ID, title, revision, endpoint, and skill path through stdin and `NEXTCLAW_FEEDBACK_*` variables without invoking a shell:
+
+```bash
+nextclaw feedback maintain configure --token-file /path/to/token -- /path/to/consumer --fixed-arg
+nextclaw feedback maintain restart
+```
+
+The generic listener neither stores nor passes a working directory. Put any directory required by a consumer in that command's own arguments or script.
+
+Use `nextclaw feedback maintain stop` to stop listening. Initial repair always requires administrator approval. A later user message can resume an engaged task, but it invalidates the previous approval; repair still waits for reapproval.
 
 Administrators review reports under User Feedback in the existing Platform Admin, using their usual administrator login.
 

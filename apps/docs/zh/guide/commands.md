@@ -25,27 +25,34 @@ nextclaw <command> --help
 
 无需 GitHub 登录，详见[问题反馈](./feedback)。
 
-| 命令 | 用途 |
-| --- | --- |
-| `nextclaw feedback submit` | 提交私密反馈并保存回执 |
-| `nextclaw feedback list` | 列出本机回执 |
-| `nextclaw feedback get` | 读取反馈详情和回复 |
-| `nextclaw feedback reply` | 补充复现信息 |
-| `nextclaw feedback withdraw` | 撤回反馈 |
-| `nextclaw feedback link` | 关联当前 NextClaw 账号 |
-| `nextclaw feedback sync` | 同步账号反馈 |
-| `nextclaw feedback export` | 导出私密回执 |
-| `nextclaw feedback import` | 恢复私密回执 |
-| `nextclaw feedback maintain skill-path` | 定位随包维护 skill |
-| `nextclaw feedback maintain list` | 查询维护队列 |
-| `nextclaw feedback maintain get` | 读取反馈及当前审批 |
-| `nextclaw feedback maintain claim` | 领取已批准反馈 |
-| `nextclaw feedback maintain comment` | 写入维护回复 |
-| `nextclaw feedback maintain result` | 提交验证结果或阻塞原因 |
-| `nextclaw feedback maintain triage` | 分类，不能授予修复权限 |
-| `nextclaw feedback maintain recover` | 确认旧执行停止后恢复 |
-| `nextclaw feedback maintain authorize-delivery` | 关联获准发布的修复提交 |
-| `nextclaw feedback maintain publish` | 核验发布证明并回写 |
+| 命令                                               | 用途                                                                    |
+| -------------------------------------------------- | ----------------------------------------------------------------------- |
+| `nextclaw feedback submit`                         | 提交私密反馈并保存回执                                                  |
+| `nextclaw feedback list`                           | 列出本机回执                                                            |
+| `nextclaw feedback get`                            | 读取反馈详情和回复                                                      |
+| `nextclaw feedback reply`                          | 补充复现信息                                                            |
+| `nextclaw feedback withdraw`                       | 撤回反馈                                                                |
+| `nextclaw feedback link`                           | 关联当前 NextClaw 账号                                                  |
+| `nextclaw feedback sync`                           | 同步账号反馈                                                            |
+| `nextclaw feedback export`                         | 导出私密回执                                                            |
+| `nextclaw feedback import`                         | 恢复私密回执                                                            |
+| `nextclaw feedback maintain skill-path`            | 定位随包维护 skill                                                      |
+| `nextclaw feedback maintain configure`             | 保存监听 endpoint、凭据文件和消费命令；Codex 预设可在配置时接收工作目录 |
+| `nextclaw feedback maintain start`                 | 后台启动监听并完成首次扫描                                              |
+| `nextclaw feedback maintain status`                | 查看监听、心跳和最近错误                                                |
+| `nextclaw feedback maintain stop`                  | 停止当前监听实例                                                        |
+| `nextclaw feedback maintain restart`               | 使用已保存配置重启监听                                                  |
+| `nextclaw feedback maintain worker`                | 内部监听进程入口                                                        |
+| `nextclaw feedback maintain codex-desktop-trigger` | 内部 Codex Desktop 消费预设入口                                         |
+| `nextclaw feedback maintain list`                  | 查询维护队列                                                            |
+| `nextclaw feedback maintain get`                   | 读取反馈及当前审批                                                      |
+| `nextclaw feedback maintain claim`                 | 领取已批准反馈                                                          |
+| `nextclaw feedback maintain comment`               | 写入维护回复                                                            |
+| `nextclaw feedback maintain result`                | 提交验证结果或阻塞原因                                                  |
+| `nextclaw feedback maintain triage`                | 分类，不能授予修复权限                                                  |
+| `nextclaw feedback maintain recover`               | 确认旧执行停止后恢复                                                    |
+| `nextclaw feedback maintain authorize-delivery`    | 关联获准发布的修复提交                                                  |
+| `nextclaw feedback maintain publish`               | 核验发布证明并回写                                                      |
 
 ## 能力地图
 
@@ -191,30 +198,30 @@ nextclaw providers show office --json
 
 搜索示例：`nextclaw search provider exa --api-key-env MY_EXA_KEY`，再执行 `nextclaw search configure --provider exa --enabled-provider exa --max-results 10`，通过 `search show` 确认。结果数量支持 1–50；启用列表整体替换，`--clear-enabled-providers` 禁用全部。Bocha 的 summary/freshness/docs-url 和 Tavily 的 search-depth/include-answer 通过相应命令帮助查看，其他供应商不接受这些专属选项。
 
-| 命令 | 用途 |
-| --- | --- |
-| `nextclaw providers list` | 查看供应商实例 |
-| `nextclaw providers templates` | 查看模板与授权方法 |
-| `nextclaw providers show` | 查看指定供应商 |
-| `nextclaw providers add` | 添加模板或自定义供应商 |
-| `nextclaw providers update` | 修改名称、地址、凭据、协议和请求头 |
-| `nextclaw providers remove` | 移除供应商及其密钥引用 |
-| `nextclaw providers enable` | 启用供应商 |
-| `nextclaw providers disable` | 停用供应商 |
-| `nextclaw providers test` | 测试模型连接 |
-| `nextclaw providers models list` | 查看已配置模型及能力覆盖 |
-| `nextclaw providers models discover` | 发现可用模型，不自动保存 |
-| `nextclaw providers models set` | 替换或清空模型列表 |
-| `nextclaw providers models configure` | 替换或清空模型能力覆盖 |
-| `nextclaw providers auth start` | 启动供应商授权 |
-| `nextclaw providers auth poll` | 查询一次授权进度 |
-| `nextclaw providers auth import` | 从支持的供应商 CLI 导入授权 |
-| `nextclaw models list` | 查看运行时模型目录 |
-| `nextclaw models show` | 查看默认模型 |
-| `nextclaw models set` | 设置默认模型 |
-| `nextclaw search show` | 查看搜索设置 |
-| `nextclaw search configure` | 选择默认、启用的搜索供应商及结果数量 |
-| `nextclaw search provider` | 配置单个搜索供应商 |
+| 命令                                  | 用途                                 |
+| ------------------------------------- | ------------------------------------ |
+| `nextclaw providers list`             | 查看供应商实例                       |
+| `nextclaw providers templates`        | 查看模板与授权方法                   |
+| `nextclaw providers show`             | 查看指定供应商                       |
+| `nextclaw providers add`              | 添加模板或自定义供应商               |
+| `nextclaw providers update`           | 修改名称、地址、凭据、协议和请求头   |
+| `nextclaw providers remove`           | 移除供应商及其密钥引用               |
+| `nextclaw providers enable`           | 启用供应商                           |
+| `nextclaw providers disable`          | 停用供应商                           |
+| `nextclaw providers test`             | 测试模型连接                         |
+| `nextclaw providers models list`      | 查看已配置模型及能力覆盖             |
+| `nextclaw providers models discover`  | 发现可用模型，不自动保存             |
+| `nextclaw providers models set`       | 替换或清空模型列表                   |
+| `nextclaw providers models configure` | 替换或清空模型能力覆盖               |
+| `nextclaw providers auth start`       | 启动供应商授权                       |
+| `nextclaw providers auth poll`        | 查询一次授权进度                     |
+| `nextclaw providers auth import`      | 从支持的供应商 CLI 导入授权          |
+| `nextclaw models list`                | 查看运行时模型目录                   |
+| `nextclaw models show`                | 查看默认模型                         |
+| `nextclaw models set`                 | 设置默认模型                         |
+| `nextclaw search show`                | 查看搜索设置                         |
+| `nextclaw search configure`           | 选择默认、启用的搜索供应商及结果数量 |
+| `nextclaw search provider`            | 配置单个搜索供应商                   |
 
 ### 通用配置与密钥
 
