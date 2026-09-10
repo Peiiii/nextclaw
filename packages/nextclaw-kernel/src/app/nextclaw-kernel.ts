@@ -1,3 +1,4 @@
+import { createKernelResourceProviders } from "@kernel/utils/catalog-resource-providers.utils.js";
 import { AgentManager } from "@kernel/managers/agent.manager.js";
 import { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
@@ -19,8 +20,6 @@ import { AgentRunClient } from "@kernel/services/agent-run-client.service.js";
 import type { VerificationRecordService } from "@kernel/services/verification-record.service.js";
 import { InboxDeliveryManager } from "@kernel/managers/inbox-delivery.manager.js";
 import {
-  createCronJobSystemObjectProvider,
-  createInboxDeliverySystemObjectProvider,
   SystemObjectReferenceManager,
 } from "@kernel/managers/system-object-reference.manager.js";
 import { McpManager } from "@kernel/managers/mcp.manager.js";
@@ -227,12 +226,6 @@ export class NextclawKernel {
       eventBus: this.eventBus,
       storePath: resolveKernelInboxDeliveryStorePath(options),
     });
-    this.systemObjectReferenceManager = new SystemObjectReferenceManager(
-      this.assetStore,
-      [
-        createInboxDeliverySystemObjectProvider(this.inboxDeliveryManager), createCronJobSystemObjectProvider(this.automation),
-      ],
-    );
     this.appPackageManager = new AppPackageManager({
       appHomeDirectory: resolveKernelAppHomeDirectory(options),
       builtInAppsDirectory: options.builtInAppsDirectory,
@@ -281,6 +274,7 @@ export class NextclawKernel {
       workspace: getWorkspacePath(this.configManager.config.agents.defaults.workspace),
     });
     this.mcpManager = new McpManager(this.configManager.loadConfig);
+    this.systemObjectReferenceManager = new SystemObjectReferenceManager(this.assetStore, createKernelResourceProviders(this));
     this.configManager.installRuntimeHooks({
       resolveChannelConfig: this.extensions.toConfigView,
       getExtensionChannels: () =>

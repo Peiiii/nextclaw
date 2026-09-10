@@ -52,6 +52,7 @@ export function matchesRouteTarget(pathname: string, target: string): boolean {
 export function isMainWorkspaceRoute(pathname: string): boolean {
   const normalized = pathname.toLowerCase();
   return (
+    normalized === "/resource" ||
     normalized === "/chat" ||
     normalized.startsWith("/chat/") ||
     normalized === "/inbox" ||
@@ -260,6 +261,7 @@ export function resolveMobileRouteMeta(
 } {
   const normalized = pathname.toLowerCase();
   const settingsItems = getSettingsNavItems(translate);
+  if (normalized === "/resource") return { title: translate("resourcePageTitle"), backTarget: null, backLabel: null };
 
   if (isChatSessionDetailRoute(normalized)) {
     return {

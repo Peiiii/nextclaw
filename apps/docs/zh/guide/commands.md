@@ -355,3 +355,10 @@ Service App 的使用方式见 [Service Apps](/zh/guide/service-apps)；WASM 开
 - [配置手册](/zh/guide/configuration)
 - [故障排查](/zh/guide/troubleshooting)
 - [安全与权限](/zh/guide/security-and-permissions)
+
+## 资源协议
+
+| Command | 说明 |
+| --- | --- |
+| `nextclaw resources list` | 发现运行中服务注册的资源分类，支持 --type、--query、--limit，输出 JSON |
+| `nextclaw resources resolve` | 解析真实对象 URI 为不可变资产快照引用，不执行对象内容 |

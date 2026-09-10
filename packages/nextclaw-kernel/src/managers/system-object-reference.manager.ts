@@ -87,6 +87,7 @@ function normalizeLimit(limit: number | undefined): number {
 
 const SYSTEM_OBJECT_GROUP_ICONS = new Set<SystemObjectReferenceGroupIcon>([
   "calendar-clock",
+  "skill", "agent", "project", "panel-app", "mcp", "work",
   "file",
   "inbox",
 ]);

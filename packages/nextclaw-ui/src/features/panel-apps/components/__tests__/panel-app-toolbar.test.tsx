@@ -5,11 +5,12 @@ import { PanelAppToolbar } from '@/features/panel-apps/components/panel-app-tool
 
 const mainSidebarMutation = vi.hoisted(() => ({
   isPending: false,
+  pinned: false,
   mutate: vi.fn(),
 }));
 
 vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
-  usePanelApps: vi.fn(),
+  usePanelApps: () => ({ data:{ entries:[{ ...entry, mainSidebar: mainSidebarMutation.pinned }] } }),
   useUpdatePanelAppPreferences: () => mainSidebarMutation,
 }));
 
@@ -33,6 +34,7 @@ const entry = {
 describe('PanelAppToolbar', () => {
   beforeEach(() => {
     mainSidebarMutation.isPending = false;
+    mainSidebarMutation.pinned = false;
     mainSidebarMutation.mutate.mockReset();
   });
 
@@ -49,9 +51,9 @@ describe('PanelAppToolbar', () => {
     expect(screen.getByText('墨爪助手')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Apps' })).toBeNull();
 
-    expect(screen.queryByRole('button', { name: 'Add to main sidebar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Pin to left sidebar' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
-    const addButton = screen.getByRole('button', { name: 'Add to main sidebar' });
+    const addButton = screen.getByRole('button', { name: 'Pin to left sidebar' });
     expect(addButton.getAttribute('aria-pressed')).toBe('false');
     await user.click(addButton);
 
@@ -59,10 +61,11 @@ describe('PanelAppToolbar', () => {
       id: 'ink-assistant',
       preferences: { mainSidebar: true },
     });
-    expect(screen.queryByRole('button', { name: 'Add to main sidebar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Pin to left sidebar' })).toBeNull();
   });
 
   it('uses the same menu item to remove an app already in the main sidebar', async () => {
+    mainSidebarMutation.pinned = true;
     const user = userEvent.setup();
     render(
       <PanelAppToolbar
@@ -73,7 +76,7 @@ describe('PanelAppToolbar', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
-    const removeButton = screen.getByRole('button', { name: 'Remove from main sidebar' });
+    const removeButton = screen.getByRole('button', { name: 'Unpin from left sidebar' });
     expect(removeButton.getAttribute('aria-pressed')).toBe('true');
     await user.click(removeButton);
 
@@ -98,3 +101,6 @@ describe('PanelAppToolbar', () => {
     expect(link.getAttribute('href')).toBe('/apps/panel/ink-assistant/standalone');
   });
 });
+
+vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()),useNavigate: () => vi.fn(), useLocation: () => ({ pathname:'/apps',search:'' }) }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager:{ open:vi.fn() } }) }));

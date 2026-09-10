@@ -32,7 +32,8 @@ vi.mock("@/app/presenters/app.presenter", () => ({
   }),
 }));
 
-vi.mock("@/features/panel-apps", () => ({
+vi.mock("@/features/panel-apps", async (importOriginal) => ({
+  ...await importOriginal<object>(),
   PANEL_APP_IFRAME_SANDBOX:
     "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads allow-pointer-lock allow-presentation",
   findPanelAppEntryByDisplayId: (

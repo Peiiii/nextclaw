@@ -534,6 +534,15 @@ describe("ChatSessionWorkspaceFilePreview Office rendering", () => {
 });
 
 describe("ChatSessionWorkspaceFilePreview text rendering", () => {
+  it("renders an immutable object snapshot without reading a same-named local file", () => {
+    serverPathReadMock.mockReturnValue({ data: null, isLoading: false });
+    serverPathBrowseMock.mockReturnValue({ data: null, isLoading: false });
+    renderWorkspaceFilePreview({ file: { path: "snapshot.md", rawText: "# Resource snapshot", previewViewer: "rendered" } });
+    expect(screen.getByTestId("markdown-preview").textContent).toBe("# Resource snapshot");
+    expect(serverPathReadMock).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
+    expect(serverPathBrowseMock).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
+  });
+
   it("renders preview files inside a full-height workspace code surface", () => {
     mockTextRead();
     renderWorkspaceFilePreview();

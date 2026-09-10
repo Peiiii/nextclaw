@@ -1,6 +1,7 @@
 import type { ChatFileOpenActionViewModel } from "@agent-chat-ui/components/chat/view-models/chat-ui.types";
 
 const SAFE_BROWSER_LINK_PROTOCOLS = new Set([
+  "nextclaw:",
   "http:",
   "https:",
   "mailto:",

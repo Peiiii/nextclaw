@@ -1,3 +1,4 @@
+import { useChatResourceLinkIcon } from './chat-resource-link-provider';
 import {
   createContext,
   useContext,
@@ -206,6 +207,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
   a: function ChatMarkdownLink({ node: _node, href, children, ...rest }) {
     const { onFileOpen } = useChatMessageMarkdownRuntime();
     const safeHref = resolveSafeChatResourceHref(href);
+    const resourceIcon = useChatResourceLinkIcon(safeHref);
     const external = safeHref ? isExternalChatResourceHref(safeHref) : false;
     const localFileAction = external
       ? null
@@ -243,7 +245,7 @@ const CHAT_MESSAGE_MARKDOWN_COMPONENTS: Components = {
         target={external ? "_blank" : undefined}
         rel={external ? "noreferrer noopener" : undefined}
       >
-        {children}
+        {resourceIcon && <span aria-hidden="true" style={{ display: 'inline-flex', marginInlineEnd: '0.25em', verticalAlign: '-0.1em' }}>{resourceIcon}</span>}{children}
       </a>
     );
   },

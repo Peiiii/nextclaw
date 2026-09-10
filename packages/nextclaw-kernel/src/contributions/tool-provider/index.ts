@@ -18,7 +18,9 @@ import { ServiceAppAiCapabilityToolProvider } from "./providers/service-app-ai-c
 import { AppPackageDependencyToolProvider } from "./providers/app-package-dependency-tool.provider.js";
 import { ToolProviderRunContextService } from "./services/tool-provider-run-context.service.js";
 
-export { ShowContentToolProvider };
+import { ResourceToolProvider } from "./providers/resource-tool.provider.js";
+
+export { ShowContentToolProvider, ResourceToolProvider };
 
 export class ToolProviderContribution extends Contribution {
   constructor(private readonly kernel: NextclawKernel) {
@@ -39,6 +41,7 @@ export class ToolProviderContribution extends Contribution {
     );
     return [
       new StructuredResultToolProvider(),
+      new ResourceToolProvider(this.kernel.systemObjectReferenceManager),
       new ShowContentToolProvider(this.kernel.eventBus),
       new InboxDeliveryToolProvider(this.kernel.inboxDeliveryManager),
       new ObservationToolProvider(this.kernel.observations),

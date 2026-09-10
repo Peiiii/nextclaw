@@ -1,3 +1,5 @@
+import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
+import { createWorkspaceFilePanelTarget, type WorkspaceFileViewContext } from '@/features/chat/features/workspace/utils/workspace-file-panel-route.utils';
 import { appQueryClient } from '@/app-query-client';
 import { deleteNcpSession as deleteNcpSessionApi, deleteNcpSessionSummaryInQueryClient } from '@/shared/lib/api';
 import { toast } from 'sonner';
@@ -40,6 +42,7 @@ import {
 } from '@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils';
 import {
   createWorkspaceFileTab,
+  createWorkspaceFileViewerTab,
   upsertWorkspaceFileTab,
 } from '@/features/chat/features/workspace/utils/chat-workspace-file-tab.utils';
 import {
@@ -148,13 +151,14 @@ export class ChatThreadManager {
           );
     useChatThreadStore.getState().setSnapshot({
       ...patch,
+      workspacePanelHidden: false,
       closedWorkspaceTabEntries,
       workspaceNavigationHistory: [...history.entries],
       workspaceNavigationHistoryIndex: history.index,
     });
   };
 
-  private openWorkspacePage = (
+  openWorkspacePage = (
     rawParentSessionKey: string | null,
     kind: 'overview' | 'child-sessions' | 'project-files' | 'cron' | 'continuous-attention',
   ) => {
@@ -184,7 +188,10 @@ export class ChatThreadManager {
     const normalizedSessionKey = sessionKey?.trim() || null;
     const { snapshot } = useChatThreadStore.getState();
     if (snapshot.workspacePanelParentKey === normalizedSessionKey && snapshot.activeWorkspacePanelKind) {
-      this.closeWorkspacePanel();
+      if (snapshot.workspacePanelHidden) {
+        useChatThreadStore.getState().setSnapshot({ workspacePanelHidden: false });
+        this.onWorkspacePanelOpened?.();
+      } else this.closeWorkspacePanel();
       return;
     }
     if (normalizedSessionKey) {
@@ -327,6 +334,13 @@ export class ChatThreadManager {
     this.activateWorkspaceFileTab(nextTab);
   };
 
+  moveFileToGlobal = (fileKey: string, context: WorkspaceFileViewContext, docBrowser: DocBrowserManager): void => {
+    const file = useChatThreadStore.getState().snapshot.workspaceFileTabs.find((item) => item.key === fileKey);
+    if (!file) return;
+    docBrowser.openTarget(createWorkspaceFilePanelTarget(file, context), { newTab: true, placement: 'docked' });
+    this.closeWorkspaceTab({ kind: 'file', key: file.key });
+  };
+
   openWorkspaceFileViewer = (fileKey: string, viewer?: ChatWorkspaceFileViewer) => {
     const sourceTab = useChatThreadStore
       .getState()
@@ -338,21 +352,7 @@ export class ChatThreadManager {
     if (!nextViewer) {
       return;
     }
-    const nextTab = createWorkspaceFileTab(
-      {
-        path: sourceTab.path,
-        label: sourceTab.label ?? undefined,
-        viewMode: 'preview',
-        previewViewer: nextViewer,
-        line: sourceTab.line ?? undefined,
-        column: sourceTab.column ?? undefined,
-        params: sourceTab.params ?? undefined,
-        rawText: sourceTab.rawText ?? undefined,
-        contentUrl: sourceTab.contentUrl ?? undefined,
-        mimeType: sourceTab.mimeType ?? undefined,
-      },
-      sourceTab.parentSessionKey,
-    );
+    const nextTab = createWorkspaceFileViewerTab(sourceTab, nextViewer);
     if (nextTab) {
       this.activateWorkspaceFileTab(nextTab, sourceTab.key);
     }
@@ -486,16 +486,7 @@ export class ChatThreadManager {
   };
 
   closeWorkspacePanel = () => {
-    useChatThreadStore.getState().setSnapshot({
-      workspacePanelParentKey: null,
-      activeWorkspacePanelKind: null,
-      activeChildSessionKey: null,
-      activeSideChatDraft: null,
-      activeWorkspaceFileKey: null,
-      closedWorkspaceTabEntries: [],
-      workspaceNavigationHistory: [],
-      workspaceNavigationHistoryIndex: 0,
-    });
+    useChatThreadStore.getState().setSnapshot({ workspacePanelHidden: true });
   };
 
   openSessionCronPanel = (sessionKey: string) => {

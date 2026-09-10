@@ -18,18 +18,11 @@ import {
   DocBrowserFrameContent,
 } from './doc-browser-panel-parts';
 import { DocBrowserTabStrip } from './doc-browser-tab-strip';
-import {
-  createInitialFloatingPanelRect,
-  moveFloatingPanelRect,
-  resizeFloatingPanelRect,
-  type FloatingPanelRect,
-  type FloatingPanelResizeEdge,
-} from './utils/doc-browser-floating-panel.utils';
-import { ResizableRightPanel } from '@/shared/components/resizable-right-panel/resizable-right-panel';
-import { cn } from '@/shared/lib/utils';
+import { WorkbenchSurface } from '@/shared/components/workbench/workbench-surface';
+import { GLOBAL_WORKBENCH_SURFACE } from '@/shared/components/workbench/types/workbench-surface.types';
+import { getAppPresenter } from '@/app/presenters/app.presenter';
 import { t } from '@/shared/lib/i18n';
 import type { ContextMenuGroup } from '@/shared/components/ui/context-menu/context-menu';
-import { GripVertical } from 'lucide-react';
 import {
   DOC_BROWSER_DOCKED_MAX_WIDTH,
   DOC_BROWSER_DOCKED_MIN_WIDTH,
@@ -44,16 +37,8 @@ type DocBrowserProps = {
 
 export type DocBrowserTabMenuGroupsResolver = NonNullable<DocBrowserProps['getTabMenuGroups']>;
 
-type FloatingPanelInteraction = {
-  startX: number;
-  startY: number;
-  startRect: FloatingPanelRect;
-} & (
-  | { kind: 'drag' }
-  | { kind: 'resize'; edge: FloatingPanelResizeEdge }
-);
 
-const DEFAULT_DOCS_IFRAME_SANDBOX = 'allow-same-origin allow-scripts allow-popups allow-forms';
+
 
 function resolveContentUrlInput(input: string, currentUrl: string): string {
   if (input.startsWith('/')) {
@@ -70,20 +55,6 @@ function resolveContentUrlInput(input: string, currentUrl: string): string {
     return `http://${input}`;
   }
   return `https://${input}`;
-}
-
-function resolveIframeSandbox(
-  customRenderer: DocBrowserCustomTabRenderers[string] | undefined,
-  currentTab: DocBrowserTab | undefined,
-): string | undefined {
-  if (!currentTab) {
-    return DEFAULT_DOCS_IFRAME_SANDBOX;
-  }
-  const customSandbox = customRenderer?.getIframeSandbox?.(currentTab);
-  if (customSandbox !== undefined) {
-    return customSandbox;
-  }
-  return currentTab.kind === 'content' ? undefined : DEFAULT_DOCS_IFRAME_SANDBOX;
 }
 
 function useDocBrowserDockAction(
@@ -172,7 +143,6 @@ export function DocBrowser({
 }: DocBrowserProps) {
   const {
     isOpen,
-    mode,
     dockedWidth,
     tabs,
     activeTabId,
@@ -183,7 +153,6 @@ export function DocBrowser({
     openTarget,
     openNewTab,
     close,
-    toggleMode,
     setDockedWidth,
     goBack,
     goForward,
@@ -194,8 +163,6 @@ export function DocBrowser({
   } = useDocBrowser();
 
   const [iframeReloadVersion, setIframeReloadVersion] = useState(0);
-  const [floatRect, setFloatRect] = useState<FloatingPanelRect>(createInitialFloatingPanelRect);
-  const [floatInteraction, setFloatInteraction] = useState<FloatingPanelInteraction | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const currentUrl = currentTab?.currentUrl ?? getDefaultDocsUrl();
   const navVersion = currentTab?.navVersion ?? 0;
@@ -251,7 +218,7 @@ export function DocBrowser({
 
   useEffect(() => {
     const handler = (e: MessageEvent) => {
-      if (!isDocsTab) {
+      if (!isDocsTab || e.source !== iframeRef.current?.contentWindow) {
         return;
       }
       if (e.data?.type === 'docs-route-change' && typeof e.data.url === 'string') {
@@ -283,65 +250,13 @@ export function DocBrowser({
     return () => window.removeEventListener('message', handler);
   }, [currentTab, customRenderer, iframeInstanceId]);
 
-  const startFloatDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
-    event.preventDefault();
-    setFloatInteraction({
-      kind: 'drag',
-      startX: event.clientX,
-      startY: event.clientY,
-      startRect: floatRect,
-    });
-  }, [floatRect]);
-
-  const startFloatResize = useCallback((edge: FloatingPanelResizeEdge) => (event: React.PointerEvent<HTMLElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setFloatInteraction({
-      kind: 'resize',
-      edge,
-      startX: event.clientX,
-      startY: event.clientY,
-      startRect: floatRect,
-    });
-  }, [floatRect]);
-
-  useEffect(() => {
-    if (!floatInteraction) return;
-
-    const onMove = (event: PointerEvent) => {
-      const { startRect, startX, startY } = floatInteraction;
-      const dx = event.clientX - startX;
-      const dy = event.clientY - startY;
-
-      if (floatInteraction.kind === 'drag') {
-        setFloatRect(moveFloatingPanelRect(startRect, dx, dy));
-        return;
-      }
-
-      setFloatRect(resizeFloatingPanelRect(floatInteraction.edge, startRect, dx, dy));
-    };
-
-    const onEnd = () => setFloatInteraction(null);
-
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onEnd);
-    window.addEventListener('pointercancel', onEnd);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onEnd);
-      window.removeEventListener('pointercancel', onEnd);
-    };
-  }, [floatInteraction]);
-
   const refreshIframe = useCallback(() => {
     setIframeReloadVersion((version) => version + 1);
   }, []);
 
   const handleToggleDock = useDocBrowserDockAction(dockControls, currentTab, dockState);
 
-  if (!isOpen) return null;
 
-  const isDocked = mode === 'docked';
   const isFullscreen = displayMode === 'fullscreen';
   const customRenderParams = currentTab ? {
     currentUrl,
@@ -354,29 +269,11 @@ export function DocBrowser({
   const customContent = customRenderParams
     ? customRenderer?.renderContent?.(customRenderParams) ?? (isHomeTab ? <DocBrowserHomePage /> : null)
     : null;
-  const iframeSandbox = resolveIframeSandbox(customRenderer, currentTab);
+  const iframeSandbox = currentTab ? customRenderer?.getIframeSandbox?.(currentTab) : undefined;
 
   const panelContent = (
     <>
-      <DocBrowserTabStrip
-        tabs={tabs}
-        activeTabId={activeTabId}
-        canGoBack={canGoBack}
-        canGoForward={canGoForward}
-        dockState={dockState}
-        isDocked={isDocked}
-        isFullscreen={isFullscreen}
-        onGoBack={goBack}
-        onGoForward={goForward}
-        onOpenNewTab={openNewTab}
-        onToggleDock={handleToggleDock}
-        onSetActiveTab={setActiveTab}
-        onCloseTab={closeTab}
-        onClose={close}
-        onDragStart={startFloatDrag}
-        onToggleMode={toggleMode}
-        getTabMenuGroups={getTabMenuGroups}
-      />
+
 
       <DocBrowserAddressToolbar
         isVisible={isAddressToolbarTab}
@@ -396,8 +293,8 @@ export function DocBrowser({
         iframeRef={iframeRef}
         iframeInstanceId={iframeInstanceId}
         iframeSandbox={iframeSandbox}
-        isDragging={floatInteraction?.kind === 'drag'}
-        isResizing={floatInteraction?.kind === 'resize'}
+        isDragging={false}
+        isResizing={false}
         onIframeLoad={restoreScroll}
         onIframePointerOver={customRenderer?.onIframePointerOver}
       />
@@ -406,89 +303,28 @@ export function DocBrowser({
     </>
   );
 
-  if (isDocked && !isFullscreen) {
-    return (
-      <ResizableRightPanel
-        data-testid="doc-browser-panel"
-        data-theme-surface="doc-browser"
-        defaultWidth={dockedWidth}
-        width={dockedWidth}
-        minWidth={DOC_BROWSER_DOCKED_MIN_WIDTH}
-        maxWidth={DOC_BROWSER_DOCKED_MAX_WIDTH}
-        onWidthCommit={setDockedWidth}
-      >
-        {panelContent}
-      </ResizableRightPanel>
-    );
-  }
-
   return (
-    <div
-      data-testid="doc-browser-panel"
-      data-theme-surface="doc-browser"
-      className={cn(
-        'relative flex flex-col overflow-hidden bg-card text-card-foreground',
-        isFullscreen
-          ? 'fixed inset-0 z-[var(--z-floating-panel)] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
-          : 'rounded-2xl border border-border shadow-2xl',
-      )}
-      style={
-        isFullscreen
-          ? undefined
-          : {
-              position: 'fixed',
-              left: floatRect.x,
-              top: floatRect.y,
-              width: floatRect.w,
-              height: floatRect.h,
-              zIndex: 'var(--z-floating-panel)',
-            }
-      }
-    >
+    <WorkbenchSurface id={GLOBAL_WORKBENCH_SURFACE} manager={getAppPresenter().workbenchSurfaceManager}
+      title={currentTab?.title || t('workbenchGlobalGroup')} testId="doc-browser-panel"
+      width={dockedWidth} minWidth={DOC_BROWSER_DOCKED_MIN_WIDTH} maxWidth={DOC_BROWSER_DOCKED_MAX_WIDTH}
+      onWidthCommit={setDockedWidth} onClose={close} closeLabel={t('workbenchHideGroup')}
+      hidden={!isOpen} fullscreen={isFullscreen} navigation={
+      <DocBrowserTabStrip
+        tabs={tabs}
+        activeTabId={activeTabId}
+        canGoBack={canGoBack}
+        canGoForward={canGoForward}
+        dockState={dockState}
+        onGoBack={goBack}
+        onGoForward={goForward}
+        onOpenNewTab={openNewTab}
+        onToggleDock={handleToggleDock}
+        onSetActiveTab={setActiveTab}
+        onCloseTab={closeTab}
+        getTabMenuGroups={getTabMenuGroups}
+      />
+      }>
       {panelContent}
-
-      {!isDocked && !isFullscreen && (
-        <>
-          <div className="absolute top-0 left-0 h-3 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors" data-testid="doc-browser-resize-top" onPointerDown={startFloatResize('top')} />
-          <div
-            className="absolute top-0 left-0 w-3 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
-            data-testid="doc-browser-resize-left"
-            onPointerDown={startFloatResize('left')}
-          />
-          <div
-            className="absolute top-0 right-0 w-3 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
-            data-testid="doc-browser-resize-right"
-            onPointerDown={startFloatResize('right')}
-          />
-          <div
-            className="absolute bottom-0 left-0 h-3 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors"
-            data-testid="doc-browser-resize-bottom"
-            onPointerDown={startFloatResize('bottom')}
-          />
-          <div
-            className="absolute top-0 left-0 z-30 h-4 w-4 cursor-nw-resize hover:bg-primary/10 transition-colors"
-            data-testid="doc-browser-resize-top-left"
-            onPointerDown={startFloatResize('top-left')}
-          />
-          <div
-            className="absolute top-0 right-0 z-30 h-4 w-4 cursor-ne-resize hover:bg-primary/10 transition-colors"
-            data-testid="doc-browser-resize-top-right"
-            onPointerDown={startFloatResize('top-right')}
-          />
-          <div
-            className="absolute bottom-0 left-0 z-30 h-4 w-4 cursor-sw-resize hover:bg-primary/10 transition-colors"
-            data-testid="doc-browser-resize-bottom-left"
-            onPointerDown={startFloatResize('bottom-left')}
-          />
-          <div
-            className="absolute bottom-0 right-0 z-30 flex h-4 w-4 cursor-se-resize items-center justify-center text-muted-foreground/45 transition-colors hover:text-muted-foreground"
-            data-testid="doc-browser-resize-bottom-right"
-            onPointerDown={startFloatResize('bottom-right')}
-          >
-            <GripVertical className="w-3 h-3 rotate-[-45deg]" />
-          </div>
-        </>
-      )}
-    </div>
+    </WorkbenchSurface>
   );
 }

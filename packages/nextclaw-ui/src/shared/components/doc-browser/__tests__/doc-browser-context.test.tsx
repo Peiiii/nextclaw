@@ -1,3 +1,4 @@
+import { WorkbenchSurfaceManager } from '@/shared/components/workbench/managers/workbench-surface.manager';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { DocBrowserProvider, useDocBrowser } from '@/shared/components/doc-browser/doc-browser-context';
@@ -18,7 +19,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <DocBrowserProvider manager={testDocBrowserManager}>{children}</DocBrowserProvider>
 );
 
-const testDocBrowserManager = new DocBrowserManager(new RightPanelResourceRouteResolver());
+const testDocBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), new RightPanelResourceRouteResolver());
 
 const docBrowserStorageKey = 'nextclaw.doc-browser.state';
 
@@ -56,7 +57,7 @@ async function resetMemoryThenRehydrate(savedState: string | null) {
 describe('DocBrowserManager layout notifications', () => {
   it('notifies the app layout coordinator after opening the docked browser', () => {
     const onRightPanelOpened = vi.fn();
-    const manager = new DocBrowserManager(
+    const manager = new DocBrowserManager(new WorkbenchSurfaceManager(),
       new RightPanelResourceRouteResolver(),
       onRightPanelOpened,
     );
@@ -71,7 +72,7 @@ describe('DocBrowserManager layout notifications', () => {
 
   it('notifies the app layout coordinator after changing dock mode', () => {
     const onRightPanelOpened = vi.fn();
-    const manager = new DocBrowserManager(
+    const manager = new DocBrowserManager(new WorkbenchSurfaceManager(),
       new RightPanelResourceRouteResolver(),
       onRightPanelOpened,
     );

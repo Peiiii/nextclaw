@@ -1,8 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { useCallback } from "react";
 import type { ChatInlineTokenViewModel } from "@nextclaw/agent-chat-ui";
 import {
   CHAT_PROJECT_TOKEN_KIND,
   CHAT_UI_RESOURCE_TOKEN_KIND,
+  CHAT_SYSTEM_OBJECT_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
 } from "@nextclaw/shared";
 import { toast } from "sonner";
@@ -23,12 +25,14 @@ export function useChatInlineTokenActions(params: {
 }) {
   const { selectedSession, sessionKey } = params;
   const presenter = usePresenter();
+  const navigate = useNavigate();
   const appPresenter = useAppPresenter();
   const projectRoot = selectedSession?.projectRoot ?? selectedSession?.workingDir;
 
   const handleInlineTokenClick = useCallback((token: ChatInlineTokenViewModel) => {
-    if (token.kind === CHAT_UI_RESOURCE_TOKEN_KIND && "key" in token) {
-      appPresenter.docBrowserManager.open(token.key);
+    if ((token.kind === CHAT_UI_RESOURCE_TOKEN_KIND || token.kind === CHAT_SYSTEM_OBJECT_TOKEN_KIND) && "key" in token) {
+      const page = appPresenter.pageResourceManager.resolve(token.key);
+      if (page) appPresenter.pageResourceManager.open(page, 'default', navigate);
       return;
     }
     if (token.kind === "panel_app" && "key" in token) {
@@ -105,7 +109,7 @@ export function useChatInlineTokenActions(params: {
         previewViewer: "rendered",
       });
     }).catch(() => toast.error(t("chatSkillPreviewUnavailable")));
-  }, [appPresenter.docBrowserManager, presenter, projectRoot, selectedSession?.projectRoot, sessionKey]);
+  }, [appPresenter, navigate, presenter, projectRoot, selectedSession?.projectRoot, sessionKey]);
 
   const handleAttachmentOpen = useCallback((file: {
     label: string;

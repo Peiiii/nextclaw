@@ -13,6 +13,7 @@ import {
   DOC_BROWSER_HOME_URL,
   inferTabTitle,
 } from './doc-browser-url.utils';
+import { pushNavigationHistoryEntry } from '@/shared/lib/navigation-history';
 import { t } from '@/shared/lib/i18n';
 import {
   createUiContentParamsWindowName,
@@ -44,6 +45,7 @@ export function createDocBrowserTab(
   resourceUri?: string,
   dockIcon?: DocBrowserDockIcon,
   contentParams?: UiContentParams,
+  viewState?: unknown,
 ): DocBrowserTab {
   const tabTitle = title?.trim() || inferTabTitle(url, kind, kind === 'docs' ? t('docBrowserHelp') : 'Detail');
   const normalizedResourceUri = resourceUri?.trim();
@@ -55,6 +57,7 @@ export function createDocBrowserTab(
     currentUrl: url,
     resourceUri: normalizedResourceUri ? normalizedResourceUri : undefined,
     contentParams,
+    viewState,
     dockIcon,
     dedupeKey,
     history: [url],
@@ -67,11 +70,8 @@ export function appendManualNavigation(
   tab: DocBrowserTab,
   url: string,
 ): Pick<DocBrowserTab, 'history' | 'historyIndex'> {
-  const history = [...tab.history.slice(0, tab.historyIndex + 1), url];
-  return {
-    history,
-    historyIndex: history.length - 1,
-  };
+  const next = pushNavigationHistoryEntry({ entries: tab.history, index: tab.historyIndex }, url);
+  return { history: [...next.entries], historyIndex: next.index };
 }
 
 export function updateTabForOpen(
@@ -89,6 +89,7 @@ export function updateTabForOpen(
     dockIcon: options?.dockIcon ?? target.dockIcon,
     dedupeKey,
     contentParams: target.contentParams,
+    viewState: options?.viewState ?? target.viewState ?? tab.viewState,
   };
   const hasSameUrl = routeResolver.areUrlsEquivalent(
     tab.currentUrl,
@@ -130,7 +131,6 @@ export function createDefaultDocBrowserState(): DocBrowserState {
   const initialTab = createDocBrowserTab(DOC_BROWSER_HOME_URL, DOC_BROWSER_HOME_TAB_KIND, t('docBrowserHomeTitle'));
   return {
     isOpen: false,
-    mode: 'docked',
     dockedWidth: DOC_BROWSER_DOCKED_DEFAULT_WIDTH,
     tabs: [initialTab],
     activeTabId: initialTab.id,

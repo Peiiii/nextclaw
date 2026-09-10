@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/app/presenters/app.presenter', () => ({
   getAppPresenter: () => ({
     docBrowserManager: {},
+    pageResourceManager: { bindWorkspace: vi.fn() },
     chatDraftIntentManager: {
       consumePending: mocks.consumePending,
       markConsumed: mocks.markConsumed,

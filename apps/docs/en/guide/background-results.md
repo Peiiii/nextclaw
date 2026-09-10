@@ -12,7 +12,7 @@ To keep working on the current page, select the notification's **Chat in a float
 
 You can also choose **More actions → Chat in a floating window** from the conversation list, the current conversation header, or the workspace's child conversation list. Any existing conversation can open this way without waiting for a notification. If the main view and floating window show the same conversation, they share its draft and receive live message updates.
 
-Use the title bar to minimize, restore, open the conversation in the main view, or close it. Minimizing preserves your input; closing does not stop a running reply. One floating conversation opens at a time, so expanding another notification switches its target. Refreshing closes the window while keeping history in the original conversation. An expanded floating conversation suppresses duplicate notifications; minimizing restores them.
+The shared title bar supports docking, collapsing/expanding, maximizing/restoring size, opening in the main area, and closing. Floating windows can be dragged and resized. Minimizing preserves your input; closing does not stop a running reply. One floating conversation opens at a time, so expanding another notification switches its target. Refreshing closes the window while keeping history in the original conversation. An expanded floating conversation suppresses duplicate notifications; minimizing restores them.
 
 ![NextClaw showing a clickable result notification after a background session completes](/product-screenshots/nextclaw-background-session-notification-en.png)
 
@@ -20,7 +20,7 @@ This notification is useful for “the reply I was waiting for is ready.” The 
 
 ### Continue chatting in the right sidebar
 
-Choose **More actions → Chat in right sidebar** on an existing conversation, or **Dock to right sidebar** in the floating window. The sidebar toolbar can pop it back out. Moving a conversation keeps its identity and shared draft; different conversations keep separate drafts. Multiple conversation tabs can coexist with documents and other sidebar tabs.
+Choose **More actions → Chat in right sidebar** on an existing conversation, or **Dock to sidebar** in the floating window. The tab menu can open that conversation alone in a floating window; **Float view group** moves the entire tab group. Moving a conversation keeps its identity and shared draft; different conversations keep separate drafts. Multiple conversation tabs can coexist with documents and other sidebar tabs.
 
 On mobile, conversation rows show a title, recent message, time and unread indicator. Agent avatars take priority; ordinary conversations use title initials and a stable color for recognition. Open search from the header button and switch time/project views from the title menu. Each row has a touch-accessible actions button. In narrow chat containers, message footers retain the time and actions; full model and usage information remains available through the message's more-actions menu.
 

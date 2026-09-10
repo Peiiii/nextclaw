@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, AppWindow, CalendarClock, CircleAlert, Command, File, Files, Folder, FolderKanban, Inbox, ListCollapse, MessageSquarePlus, Sparkles } from 'lucide-react';
+import { Bot, Plug, ListTodo, ArrowLeft, AppWindow, CalendarClock, CircleAlert, Command, File, Files, Folder, FolderKanban, Inbox, ListCollapse, MessageSquarePlus, Sparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
 import { useElementWidth } from '@agent-chat-ui/components/chat/hooks/use-element-width';
@@ -31,6 +31,9 @@ type ChatInputSurfaceFilterView = ChatInputSurfaceFilterOption & {
 
 const INPUT_SURFACE_ITEM_ICONS: Record<ChatInputSurfaceItemIcon, LucideIcon> = {
   back: ArrowLeft,
+  agent: Bot,
+  mcp: Plug,
+  work: ListTodo,
   'calendar-clock': CalendarClock,
   command: Command,
   file: File,

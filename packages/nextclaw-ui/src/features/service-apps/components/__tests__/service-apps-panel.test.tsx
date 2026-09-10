@@ -206,3 +206,5 @@ describe('ServiceAppsPanel', () => {
     });
   });
 });
+
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));

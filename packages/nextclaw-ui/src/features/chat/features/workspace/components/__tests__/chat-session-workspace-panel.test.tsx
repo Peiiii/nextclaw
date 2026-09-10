@@ -1,4 +1,18 @@
-import { render, screen } from "@testing-library/react";
+import { getPresenter } from '@/app/presenters/app.presenter';
+import { buildSessionPath } from '@/features/chat/features/session/utils/chat-session-route.utils';
+import { AppPresenterProvider } from '@/app/components/app-presenter-provider';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
+
+vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
+  usePanelApps: () => ({ data: { entries: [] } }),
+  useUpdatePanelAppPreferences: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+function render(ui: ReactElement) {
+  return renderUi(<AppPresenterProvider><MemoryRouter initialEntries={[buildSessionPath('session-1')]}>{ui}</MemoryRouter></AppPresenterProvider>);
+}
+import { useWorkbenchSurfaceStore } from '@/shared/components/workbench/stores/workbench-surface.store';
+import { render as renderUi, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatSessionWorkspacePanel } from "@/features/chat/features/workspace/components/chat-session-workspace-panel";
@@ -91,7 +105,9 @@ function renderPanel(displayMode: "docked" | "overlay" = "docked") {
 
 describe("ChatSessionWorkspacePanel", () => {
   beforeEach(() => {
+    useWorkbenchSurfaceStore.setState({ surfaces: {} });
     vi.clearAllMocks();
+    vi.spyOn(getPresenter().chatComposerIntentManager, 'requestFileReference').mockImplementation(mocks.requestFileReference);
   });
 
   it("refreshes the active workspace file from the top action bar", async () => {
@@ -130,13 +146,12 @@ describe("ChatSessionWorkspacePanel", () => {
             onSelect: vi.fn(),
           },
         ]}
-        onClose={vi.fn()}
         onGoBack={vi.fn()}
         onGoForward={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(screen.getByRole("button", { name: "Page actions: Child session" }));
 
     expect(screen.getByRole("menuitem", { name: "Copy session ID" })).toBeTruthy();
   });
@@ -146,7 +161,7 @@ describe("ChatSessionWorkspacePanel", () => {
     renderPanel();
 
     await user.click(
-      screen.getByRole("button", { name: "File actions" }),
+      screen.getByRole("button", { name: "Page actions: Preview: README.md" }),
     );
     await user.click(screen.getByRole("menuitem", { name: "Add to chat" }));
 
@@ -166,17 +181,17 @@ describe("ChatSessionWorkspacePanel", () => {
     expect(panel.getAttribute("data-theme-surface")).toBe("workspace-panel");
 
     await user.click(
-      screen.getByRole("button", { name: "Maximize workspace panel" }),
+      screen.getByRole("button", { name: "Maximize" }),
     );
 
-    expect(panel.className).toContain("absolute");
-    expect(panel.className).not.toContain("fixed");
+    expect(panel.style.position).toBe("fixed");
+    expect(panel.style.position).toBe("fixed");
     expect(
       screen.queryByTestId("resizable-right-panel-handle"),
     ).toBeNull();
 
     await user.click(
-      screen.getByRole("button", { name: "Restore workspace panel" }),
+      screen.getByRole("button", { name: "Restore size" }),
     );
 
     expect(panel.className).not.toContain("absolute");
@@ -187,10 +202,8 @@ describe("ChatSessionWorkspacePanel", () => {
     renderPanel("overlay");
 
     expect(
-      screen.queryByRole("button", { name: "Maximize workspace panel" }),
+      screen.queryByRole("button", { name: "Maximize" }),
     ).toBeNull();
-    expect(screen.getByTestId("chat-session-workspace-panel").className).toContain(
-      "fixed",
-    );
+    expect(screen.getByTestId("chat-session-workspace-panel").style.position).toBe("fixed");
   });
 });

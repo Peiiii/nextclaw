@@ -4,6 +4,28 @@ import { describe, expect, it, vi } from 'vitest';
 import { ContextMenu, ContextMenuTrigger } from '@/shared/components/ui/context-menu/context-menu';
 
 describe('ContextMenu', () => {
+  it('keeps modal actions inside the dialog focus boundary and consumes Escape', async () => {
+    const onSelect = vi.fn();
+    const onDialogKeyDown = vi.fn();
+    render(
+      <div role="dialog" onKeyDown={onDialogKeyDown}>
+        <ContextMenu label="Resource actions" groups={[{ key: 'open', items: [{ key: 'open', label: 'Open resource', onSelect }] }]}>
+          <div><ContextMenuTrigger><button type="button">Actions</button></ContextMenuTrigger></div>
+        </ContextMenu>
+      </div>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
+    const menu = screen.getByRole('menu');
+    expect(menu.closest('[role="dialog"]')).toBe(screen.getByRole('dialog'));
+    expect(menu.parentElement?.className).toContain('pointer-events-auto');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(onDialogKeyDown).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Actions' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Open resource' }));
+    expect(onSelect).toHaveBeenCalledOnce();
+  });
+
   it('opens at the trigger and supports keyboard selection', async () => {
     const onSelect = vi.fn();
     render(

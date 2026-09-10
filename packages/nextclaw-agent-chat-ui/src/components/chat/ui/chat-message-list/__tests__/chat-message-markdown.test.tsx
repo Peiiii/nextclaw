@@ -1,3 +1,4 @@
+import { ChatResourceLinkProvider } from '@agent-chat-ui/components/chat/ui/chat-message-list/chat-resource-link-provider';
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ChatMessageMarkdown } from "@agent-chat-ui/components/chat/ui/chat-message-list/chat-message-markdown";
 
@@ -794,4 +795,18 @@ it("renders tokens outside fenced code while preserving code literals", () => {
 
   expect(screen.getAllByText("Task Board")).toHaveLength(1);
   expect(container.querySelector(".chat-codeblock code")?.textContent).toBe("@panel-app:task-board");
+});
+
+it("renders an ordinary Panel App Markdown link with a host resource icon and preserves its URI", () => {
+  const uri = "nextclaw://panel-app/example-notes";
+  const view = render(
+    <ChatResourceLinkProvider renderIcon={(href) => <span data-testid="resource-icon" data-uri={href}>✎</span>}>
+      <ChatMessageMarkdown text={`[Notes](${uri})`} role="assistant" texts={defaultTexts} />
+    </ChatResourceLinkProvider>,
+  );
+  const anchor = view.container.querySelector("a");
+  expect(anchor?.getAttribute("href")).toBe(uri);
+  expect(anchor?.querySelector('[data-testid="resource-icon"]')?.getAttribute("data-uri")).toBe(uri);
+  expect(anchor?.textContent).toContain("Notes");
+  expect(view.container.querySelector("iframe")).toBeNull();
 });

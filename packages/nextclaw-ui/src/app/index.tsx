@@ -118,6 +118,7 @@ function createLazyElement(element: ReactElement): ReactElement {
 }
 
 const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
+  { path: '/resource', element: createLazyElement(<ChatPage view="resource" />) },
   {
     path: "/projects/:projectId/:tab",
     element: createLazyElement(<ChatPage view="projects" />),

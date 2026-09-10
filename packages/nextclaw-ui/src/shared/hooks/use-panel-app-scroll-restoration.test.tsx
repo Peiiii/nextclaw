@@ -64,3 +64,22 @@ describe("usePanelAppScrollRestoration", () => {
     expect(postMessage).not.toHaveBeenCalled();
   });
 });
+
+it("keeps independent URL positions when navigating A to B and back to A", () => {
+  scrollRestorationManager.clear();
+  const view = render(<PanelAppFrame currentUrl="/a" />);
+  const frame = view.getByTestId('panel-app-frame') as HTMLIFrameElement;
+  const post = vi.spyOn(frame.contentWindow!, 'postMessage');
+  const record = (y: number) => window.dispatchEvent(new MessageEvent('message', {
+    source: frame.contentWindow, data: { type: PANEL_APP_SCROLL_RESTORATION_CONTRACT.scrollMessageType, version: PANEL_APP_SCROLL_RESTORATION_CONTRACT.version, target: { kind: 'document' }, x: 0, y },
+  }));
+  record(400);
+  view.rerender(<PanelAppFrame currentUrl="/b" />);
+  record(80);
+  view.rerender(<PanelAppFrame currentUrl="/a" />);
+  fireEvent.load(frame);
+  expect(post).toHaveBeenLastCalledWith(expect.objectContaining({ y: 400 }), '*');
+  view.rerender(<PanelAppFrame currentUrl="/b" />);
+  fireEvent.load(frame);
+  expect(post).toHaveBeenLastCalledWith(expect.objectContaining({ y: 80 }), '*');
+});

@@ -18,6 +18,7 @@ type ContextMenuItemBase = {
   icon?: ReactNode;
   destructive?: boolean;
   disabled?: boolean;
+  pressed?: boolean;
   restoreFocus?: boolean;
 };
 
@@ -68,26 +69,31 @@ function ContextMenuSurface({
   position: ContextMenuPosition;
 }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
+  // Keep modal menus inside the dialog's focus and pointer-event boundary.
+  const portalHost = position.trigger.closest<HTMLElement>('[role="dialog"]') ?? document.body;
+  const isModal = portalHost !== document.body;
 
   useLayoutEffect(() => {
     const menu = menuRef.current;
     if (!menu) {
       return;
     }
+    const bounds = isModal ? portalHost.getBoundingClientRect() : { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, height: window.innerHeight };
+    menu.style.maxHeight = `${Math.max(0, bounds.height - CONTEXT_MENU_EDGE_GAP * 2)}px`;
     const rect = menu.getBoundingClientRect();
     const preferredLeft = position.align === 'end' ? position.x - rect.width : position.x;
     const left = Math.max(
-      CONTEXT_MENU_EDGE_GAP,
-      Math.min(preferredLeft, window.innerWidth - rect.width - CONTEXT_MENU_EDGE_GAP),
+      bounds.left + CONTEXT_MENU_EDGE_GAP,
+      Math.min(preferredLeft, bounds.right - rect.width - CONTEXT_MENU_EDGE_GAP),
     );
     const top = Math.max(
-      CONTEXT_MENU_EDGE_GAP,
-      Math.min(position.y, window.innerHeight - rect.height - CONTEXT_MENU_EDGE_GAP),
+      bounds.top + CONTEXT_MENU_EDGE_GAP,
+      Math.min(position.y, bounds.bottom - rect.height - CONTEXT_MENU_EDGE_GAP),
     );
-    menu.style.left = `${left}px`;
-    menu.style.top = `${top}px`;
+    menu.style.left = `${left - bounds.left}px`;
+    menu.style.top = `${top - bounds.top}px`;
     menu.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus();
-  }, [position]);
+  }, [position, portalHost, isModal]);
 
   const moveFocus = (direction: 1 | -1) => {
     const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []);
@@ -101,7 +107,7 @@ function ContextMenuSurface({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[var(--z-tooltip)]"
+      className={cn("pointer-events-auto inset-0 z-[var(--z-tooltip)]", isModal ? "absolute" : "fixed")}
       onContextMenu={(event) => event.preventDefault()}
       onPointerDown={() => onClose(true)}
     >
@@ -110,12 +116,13 @@ function ContextMenuSurface({
         role="menu"
         data-theme-overlay="menu"
         aria-label={label}
-        className="fixed min-w-52 max-w-72 overflow-hidden rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_18px_48px_-20px_rgba(15,23,42,0.42)]"
+        className={cn("min-w-52 max-w-72 overflow-y-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_18px_48px_-20px_rgba(15,23,42,0.42)]", isModal ? "absolute" : "fixed")}
         style={{ left: position.x, top: position.y }}
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault();
+            event.stopPropagation();
             onClose(true);
           } else if (event.key === 'ArrowDown') {
             event.preventDefault();
@@ -176,6 +183,7 @@ function ContextMenuSurface({
                   type="button"
                   role="menuitem"
                   disabled={item.disabled}
+                  aria-pressed={item.pressed}
                   className={itemClassName}
                   onClick={() => {
                     item.onSelect?.();
@@ -190,7 +198,7 @@ function ContextMenuSurface({
         ))}
       </div>
     </div>,
-    document.body,
+    portalHost,
   );
 }
 

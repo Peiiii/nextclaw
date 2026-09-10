@@ -1,3 +1,4 @@
+import { parseSystemObjectReferenceUri, createPanelAppResourceUri as buildPanelAppResourceUri } from '@nextclaw/shared';
 import { t } from '@/shared/lib/i18n';
 import { buildSessionPanelUrl, CHAT_SESSION_PANEL_KIND, parseSessionKeyFromPanelUrl } from '@/features/chat';
 import { parseResourceUri, type ParsedResourceUri, type ResourceUriRouteDefinition } from '@/shared/lib/resource-uri';
@@ -78,9 +79,7 @@ function createPanelAppResourceUri(uri: ParsedResourceUri): string {
   if (!appId) {
     return 'nextclaw://panel-app';
   }
-  const resourceUri = `nextclaw://panel-app/${encodeURIComponent(appId)}`;
-  const path = uri.searchParams.get('path')?.trim();
-  return path ? `${resourceUri}?${new URLSearchParams({ path }).toString()}` : resourceUri;
+  return buildPanelAppResourceUri(appId, uri.searchParams.get('path') ?? undefined);
 }
 
 function arePanelAppUrlsEquivalent(left: string, right: string): boolean {
@@ -96,6 +95,30 @@ function arePanelAppUrlsEquivalent(left: string, right: string): boolean {
 }
 
 export const RIGHT_PANEL_RESOURCE_ROUTE_DEFINITIONS: RightPanelResourceRouteDefinition[] = [
+  {
+    id: 'system-object', kind: 'system-object', defaultUrl: () => 'nextclaw://objects',
+    match: (uri) => Boolean(parseSystemObjectReferenceUri(uri.raw)),
+    resolve: (uri) => ({ kind: 'system-object', title: parseSystemObjectReferenceUri(uri.raw)!.objectId, url: uri.raw, resourceUri: uri.raw, historyPolicy: 'none' }),
+    areEquivalent: (left, right) => left === right,
+  },
+  {
+    id: 'marketplace-detail', kind: 'marketplace-detail', defaultUrl: () => 'nextclaw://marketplace-detail',
+    match: (uri) => uri.scheme === 'nextclaw' && uri.authority === 'marketplace-detail' && uri.pathSegments.length === 1,
+    resolve: (uri) => ({ kind: 'marketplace-detail', title: decodeURIComponent(uri.pathSegments[0]), url: uri.raw, resourceUri: uri.raw, historyPolicy: 'managed' }),
+    areEquivalent: (left, right) => left === right,
+  },
+  {
+    id: 'marketplace', kind: 'route', defaultUrl: () => 'nextclaw://marketplace',
+    match: (uri) => uri.scheme === 'nextclaw' && uri.authority === 'marketplace' && uri.pathSegments.length === 0,
+    resolve: (uri) => ({ kind: 'route', title: t('marketplaceTypeSkill'), url: '/skills', resourceUri: uri.raw, historyPolicy: 'none' }),
+    areEquivalent: (left, right) => left === right,
+  },
+  {
+    id: 'workspace-file', kind: 'workspace-file', defaultUrl: () => 'nextclaw://workspace-file',
+    match: (uri) => uri.scheme === 'nextclaw' && uri.authority === 'workspace-file',
+    resolve: (uri) => ({ kind: 'workspace-file', title: t('chatWorkspaceProjectFiles'), url: uri.raw, resourceUri: uri.raw, dedupeKey: uri.raw, historyPolicy: 'none' }),
+    areEquivalent: (left, right) => left === right,
+  },
   {
     defaultUrl: () => 'nextclaw://chat-session/',
     id: CHAT_SESSION_PANEL_KIND,

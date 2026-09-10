@@ -1,18 +1,10 @@
-import { useState, type PointerEvent } from "react";
+import { PageResourceIcon } from '@/features/right-panel-resources';
 import {
-  AppWindow,
   ArrowLeft,
   ArrowRight,
-  BookOpen,
-  Boxes,
-  Github,
-  PanelRightOpen,
-  PictureInPicture2,
   Pin,
   PinOff,
   Plus,
-  X,
-  type LucideIcon,
 } from "lucide-react";
 import type { DocBrowserDockState, DocBrowserTab } from "./doc-browser-context";
 import type { ContextMenuGroup } from "@/shared/components/ui/context-menu/context-menu";
@@ -21,7 +13,6 @@ import {
   type CompactTabStripAction,
   type CompactTabStripTab,
 } from "@/shared/components/ui/tab-strip/compact-tab-strip";
-import { cn } from "@/shared/lib/utils";
 import { t } from "@/shared/lib/i18n";
 
 type DocBrowserTabStripProps = {
@@ -29,8 +20,6 @@ type DocBrowserTabStripProps = {
   activeTabId: string;
   canGoBack: boolean;
   canGoForward: boolean;
-  isDocked: boolean;
-  isFullscreen: boolean;
   dockState?: DocBrowserDockState;
   onGoBack: () => void;
   onGoForward: () => void;
@@ -38,78 +27,11 @@ type DocBrowserTabStripProps = {
   onToggleDock?: () => void;
   onSetActiveTab: (tabId: string) => void;
   onCloseTab: (tabId: string) => void;
-  onClose: () => void;
-  onDragStart: (event: PointerEvent<HTMLElement>) => void;
-  onToggleMode: () => void;
   getTabMenuGroups?: (tab: DocBrowserTab) => readonly ContextMenuGroup[] | undefined;
 };
 
-const DOC_BROWSER_BUILTIN_TAB_ICONS: Record<string, LucideIcon> = {
-  apps: Boxes,
-  docs: BookOpen,
-  github: Github,
-  "new-tab": Plus,
-  "panel-app": AppWindow,
-  "service-apps": AppWindow,
-};
-
-function DocBrowserUrlTabIcon({
-  fallbackIcon: FallbackIcon,
-  url,
-}: {
-  fallbackIcon: LucideIcon;
-  url: string;
-}) {
-  const [loadFailed, setLoadFailed] = useState(false);
-  return loadFailed ? (
-    <FallbackIcon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-  ) : (
-    <img
-      src={url}
-      alt=""
-      className="h-3.5 w-3.5 rounded-sm object-cover"
-      onError={() => setLoadFailed(true)}
-    />
-  );
-}
-
 function DocBrowserTabIcon({ tab }: { tab: DocBrowserTab }) {
-  const { dockIcon } = tab;
-  const fallbackIcon = tab.kind === "docs"
-    ? BookOpen
-    : tab.kind === "home"
-      ? Plus
-      : tab.kind === "apps"
-        ? Boxes
-        : AppWindow;
-  const Icon = dockIcon?.type === "builtin"
-    ? (DOC_BROWSER_BUILTIN_TAB_ICONS[dockIcon.name] ?? fallbackIcon)
-      : fallbackIcon;
-
-  if (dockIcon?.type === "url") {
-    return (
-      <DocBrowserUrlTabIcon
-        key={dockIcon.url}
-        fallbackIcon={fallbackIcon}
-        url={dockIcon.url}
-      />
-    );
-  }
-  if (dockIcon?.type === "text") {
-    return (
-      <span className="max-w-3.5 truncate text-[10px] font-semibold leading-none" aria-hidden="true">
-        {dockIcon.value}
-      </span>
-    );
-  }
-
-  return <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />;
-}
-
-function shouldBlockHeaderDrag(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(
-    target.closest("button, a, input, textarea, select, [data-compact-tab-item]"),
-  );
+  return <PageResourceIcon uri={tab.resourceUri ?? tab.currentUrl} icon={tab.dockIcon} />;
 }
 
 export function DocBrowserTabStrip({
@@ -117,8 +39,6 @@ export function DocBrowserTabStrip({
   activeTabId,
   canGoBack,
   canGoForward,
-  isDocked,
-  isFullscreen,
   dockState,
   onGoBack,
   onGoForward,
@@ -126,21 +46,16 @@ export function DocBrowserTabStrip({
   onToggleDock,
   onSetActiveTab,
   onCloseTab,
-  onClose,
-  onDragStart,
-  onToggleMode,
   getTabMenuGroups,
 }: DocBrowserTabStripProps) {
   const backLabel = t("docBrowserBack");
-  const closeLabel = t("docBrowserClose");
-  const closeTabLabel = t("docBrowserCloseTab");
+  const closeTabLabel = t("workbenchCloseTab");
   const dockLabel = dockState?.isDocked
     ? dockState.removable
       ? t("sideDockUnpinCurrent")
       : t("sideDockBuiltInDocked")
     : t("sideDockPinCurrent");
   const forwardLabel = t("docBrowserForward");
-  const modeLabel = isDocked ? t("docBrowserFloatMode") : t("docBrowserDockMode");
   const newTabLabel = t("docBrowserNewTab");
   const compactTabs: CompactTabStripTab[] = tabs.map((tab) => ({
     key: tab.id,
@@ -170,17 +85,6 @@ export function DocBrowserTabStrip({
           },
         ]
       : []),
-    ...(!isFullscreen
-      ? [
-          {
-            key: "mode",
-            icon: isDocked ? <PictureInPicture2 className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />,
-            label: modeLabel,
-            onClick: onToggleMode,
-          },
-        ]
-      : []),
-    { key: "close", icon: <X className="h-3.5 w-3.5" />, label: closeLabel, onClick: onClose },
   ];
 
   return (
@@ -189,14 +93,8 @@ export function DocBrowserTabStrip({
       actionsTestId="doc-browser-tab-actions"
       tabs={compactTabs}
       actions={actions}
-      className={cn(
-        "h-10 gap-1.5 border-border/50 bg-card/80 px-2 shrink-0 select-none",
-        isFullscreen && "h-[calc(env(safe-area-inset-top,0px)+2.5rem)] pt-[env(safe-area-inset-top,0px)]",
-      )}
-      scrollClassName={cn(
-        "doc-browser-tab-scrollbar flex h-full items-center gap-0.5",
-        !isDocked && !isFullscreen && "cursor-grab active:cursor-grabbing",
-      )}
+      className="h-10 min-w-0 flex-1 gap-1 border-0 bg-transparent px-0 select-none"
+      scrollClassName="doc-browser-tab-scrollbar flex h-full items-center gap-0.5"
       tabsClassName="items-center gap-0.5"
       actionsClassName="h-full items-center gap-0.5"
       actionButtonClassName="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
@@ -204,17 +102,7 @@ export function DocBrowserTabStrip({
       activeTabClassName="bg-muted/80 text-foreground"
       inactiveTabClassName="text-muted-foreground hover:bg-muted/45 hover:text-foreground"
       labelClassName="px-0.5 text-xs font-normal"
-      onPointerDown={!isDocked && !isFullscreen ? onDragStart : undefined}
-      onScrollPointerDown={(event) => {
-        if (shouldBlockHeaderDrag(event.target)) {
-          event.stopPropagation();
-          return;
-        }
-        if (!isDocked && !isFullscreen) {
-          event.stopPropagation();
-          onDragStart(event);
-        }
-      }}
+
     />
   );
 }

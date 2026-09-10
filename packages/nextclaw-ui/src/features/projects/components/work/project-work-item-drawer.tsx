@@ -1,3 +1,5 @@
+import { PageResourceActionsMenu } from "@/features/right-panel-resources";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 import { useState } from "react";
 import type {
   ProjectWorkActivity,
@@ -163,7 +165,7 @@ function ProjectWorkItemEditor({
   return (
     <>
       <SheetHeader className="shrink-0 border-b border-border/60 px-5 pb-5 pt-6 pr-14 sm:px-7 sm:pt-7">
-        <SheetTitle>{t("projectsWorkDetails")}</SheetTitle>
+        <div className="flex items-center justify-between gap-2"><SheetTitle>{t("projectsWorkDetails")}</SheetTitle><PageResourceActionsMenu page={pageResourceFromSystemObject("project-work", JSON.stringify([item.projectId, item.id]), item.title)} /></div>
         <SheetDescription>
           {item.id} · {t("projectsWorkVersion")} {item.version}
         </SheetDescription>

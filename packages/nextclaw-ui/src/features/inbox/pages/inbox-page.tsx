@@ -1,3 +1,5 @@
+import { PageResourceActionsMenu } from '@/features/right-panel-resources';
+import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useEffect, useMemo, useState } from "react";
 import type { InboxDelivery } from "@nextclaw/shared";
 import { Archive, ArrowLeft, Inbox, MessageCircle, RotateCcw, Trash2 } from "lucide-react";
@@ -129,6 +131,7 @@ function InboxListPane({
                   )}>
                     {delivery.title}
                   </h2>
+          <PageResourceActionsMenu page={pageResourceFromSystemObject("inbox-delivery", delivery.id, delivery.title)} />
                   <div className="mt-0.5 flex items-center gap-2 text-[11px] leading-4 text-muted-foreground/65">
                     <p className="min-w-0 flex-1 truncate">
                       {delivery.summary ?? t("inboxNoSummary")}

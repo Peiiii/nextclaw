@@ -74,9 +74,14 @@ describe('ChatThreadManager workspace pages', () => {
 
     manager.toggleWorkspacePanel('parent-session-1');
     expect(useChatThreadStore.getState().snapshot).toMatchObject({
-      workspacePanelParentKey: null,
-      activeWorkspacePanelKind: null,
+      workspacePanelParentKey: 'parent-session-1',
+      activeWorkspacePanelKind: 'overview',
+      workspacePanelHidden: true,
     });
+    const history = useChatThreadStore.getState().snapshot.workspaceNavigationHistory;
+    manager.toggleWorkspacePanel('parent-session-1');
+    expect(useChatThreadStore.getState().snapshot.workspacePanelHidden).toBe(false);
+    expect(useChatThreadStore.getState().snapshot.workspaceNavigationHistory).toEqual(history);
   });
 
   it('opens project files for a draft without exposing session-only pages', () => {

@@ -1,8 +1,9 @@
-import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
+import { PageResourceActionItems } from '@/features/right-panel-resources';
+import { pageResourceFromTarget } from '@/features/right-panel-resources';
+import { buildSessionPanelUrl } from '@/features/chat/features/session/utils/chat-session-route.utils';
 import { useState, type ReactNode } from 'react';
 import { copyText } from '@nextclaw/agent-chat-ui';
-import { Copy, Maximize2, MoreVertical, PanelRight } from 'lucide-react';
-import { getAppPresenter } from '@/app/presenters/app.presenter';
+import { Copy, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { ChatPopoverContent } from '@/features/chat/components/chat-popover-content';
 import {
@@ -63,24 +64,7 @@ export function ChatSessionMoreActionsMenu({
       </PopoverTrigger>
       <ChatPopoverContent align="end" className="w-56 p-2">
         <div className="space-y-1" onClick={() => setIsOpen(false)}>
-          <ChatSessionHeaderMenuItem
-            icon={Maximize2}
-            label={t('chatFloatingExpand')}
-            onClick={() => sessionSurfaceManager.open({
-              sessionKey,
-              title: sessionTitle || t('chatFloatingConversation'),
-            })}
-            disabled={disabled}
-          />
-          <ChatSessionHeaderMenuItem
-            label={t('chatPanelOpen')}
-            icon={PanelRight}
-            onClick={() => sessionSurfaceManager.dock({
-              sessionKey,
-              title: sessionTitle || t('chatFloatingConversation'),
-            }, getAppPresenter().docBrowserManager)}
-            disabled={disabled}
-          />
+          <PageResourceActionItems page={pageResourceFromTarget({ kind: 'chat-session', title: sessionTitle || t('chatFloatingConversation'), url: buildSessionPanelUrl(sessionKey), resourceUri: buildSessionPanelUrl(sessionKey), historyPolicy: 'none' })} onSelect={() => setIsOpen(false)} />
           <ChatSessionHeaderMenuItem
             icon={Copy}
             label={t('chatSessionCopyId')}

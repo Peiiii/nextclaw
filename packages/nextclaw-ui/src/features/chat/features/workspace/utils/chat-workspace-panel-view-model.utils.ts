@@ -63,6 +63,8 @@ export type WorkspaceTabViewModel = {
     onSelect: () => void;
   } | null;
   onAddToChat?: () => void;
+  onMoveGlobal?: () => void;
+  onFloat?: () => void;
   onSelect: () => void;
   onClose?: () => void;
   menuLabel?: string;

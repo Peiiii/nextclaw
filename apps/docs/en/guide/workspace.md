@@ -42,3 +42,9 @@ Scheduled jobs connected to the current work can also appear in the workspace. R
 - Verify the real artifact, not just the chat summary.
 
 Related: [Tasks and sessions](/en/guide/chat), [Inspect task results](/en/guide/results), and [Panel Apps](/en/guide/panel-apps).
+
+## View layout and navigation
+
+The session workspace uses the [same view controls](/en/guide/doc-browser#consistent-view-controls) as the global browser: float, collapse, maximize, and restore without losing tabs or navigation history. **Hide view group** preserves the workspace for reopening.
+
+Choose **Move to global sidebar** from a file tab menu to keep its source conversation, working directory, and diff preview while using it across pages. Switching the main conversation does not reinterpret its relative path. Child conversation tabs can also move to the global sidebar or a separate floating window. Other conversation-bound tools move with the workspace group.

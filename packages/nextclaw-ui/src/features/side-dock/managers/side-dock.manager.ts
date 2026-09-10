@@ -176,6 +176,8 @@ export class SideDockManager {
   };
 
   private getTabResourceUri = (tab?: DocBrowserTab): string | null => {
+    // Snapshot-backed previews cannot be reconstructed from a shortcut URI alone.
+    if (tab?.viewState != null) return null;
     const uri = tab?.resourceUri ?? tab?.currentUrl;
     const normalized = uri ? normalizeSideDockResourceUri(uri) : '';
     return normalized.length > 0 ? normalized : null;

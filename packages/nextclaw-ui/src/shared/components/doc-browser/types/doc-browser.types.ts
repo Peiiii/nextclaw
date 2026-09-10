@@ -10,6 +10,8 @@ export type DocBrowserTab = {
   currentUrl: string;
   resourceUri?: string;
   contentParams?: UiContentParams;
+  /** Serializable renderer-owned view context; validated by the renderer. */
+  viewState?: unknown;
   dockIcon?: DocBrowserDockIcon;
   dedupeKey?: string;
   history: string[];
@@ -25,6 +27,8 @@ export type DocBrowserRouteTarget = {
   kind: DocBrowserTabKind;
   resourceUri?: string;
   contentParams?: UiContentParams;
+  /** Serializable renderer-owned view context; validated by the renderer. */
+  viewState?: unknown;
   title: string;
   url: string;
 };
@@ -69,6 +73,7 @@ export type DocBrowserActiveHistoryEntry = {
 };
 
 export type DocBrowserOpenOptions = {
+  placement?: DocBrowserMode;
   activate?: boolean;
   dedupeKey?: string;
   dockIcon?: DocBrowserDockIcon;
@@ -76,11 +81,12 @@ export type DocBrowserOpenOptions = {
   title?: string;
   kind?: DocBrowserTabKind;
   contentParams?: UiContentParams;
+  /** Serializable renderer-owned view context; validated by the renderer. */
+  viewState?: unknown;
 };
 
 export type DocBrowserState = {
   isOpen: boolean;
-  mode: DocBrowserMode;
   dockedWidth: number;
   tabs: DocBrowserTab[];
   activeTabId: string;
@@ -106,5 +112,6 @@ export type DocBrowserActions = {
 };
 
 export type DocBrowserContextValue = DocBrowserState & DocBrowserActions & {
+  mode: DocBrowserMode;
   currentTab?: DocBrowserTab;
 };

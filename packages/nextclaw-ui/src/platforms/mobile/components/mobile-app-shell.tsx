@@ -1,3 +1,4 @@
+import { CurrentPageActions } from '@/features/right-panel-resources';
 import { lazy, Suspense } from "react";
 import {
   isChatSessionDetailRoute,
@@ -25,7 +26,6 @@ type MobileAppShellProps = {
 
 export function MobileAppShell({
   pathname,
-  isDocBrowserOpen,
   docBrowserDockControls,
   docBrowserRenderers = {},
   docBrowserTabMenuGroups,
@@ -39,6 +39,7 @@ export function MobileAppShell({
   return (
     <div className="flex h-[100svh] flex-col bg-background font-sans text-foreground supports-[height:100dvh]:h-[100dvh]">
       {showTopbar ? <MobileTopbar leadingInset={topbarLeadingInset} /> : null}
+      {!isMainRoute ? <CurrentPageActions /> : null}
       <div className="relative flex-1 min-h-0 overflow-hidden">
         {isMainRoute ? (
           <div className="h-full min-h-0 overflow-hidden">{children}</div>
@@ -49,7 +50,7 @@ export function MobileAppShell({
         )}
       </div>
       {showBottomNav ? <MobileBottomNav /> : null}
-      {isDocBrowserOpen ? (
+      {(
         <Suspense fallback={null}>
           <DocBrowser
             customTabRenderers={docBrowserRenderers}
@@ -58,7 +59,7 @@ export function MobileAppShell({
             getTabMenuGroups={docBrowserTabMenuGroups}
           />
         </Suspense>
-      ) : null}
+      )}
     </div>
   );
 }

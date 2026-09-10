@@ -7,6 +7,10 @@ import {
 } from "@/app/configs/app-navigation.config";
 
 describe("panel app main navigation", () => {
+  it("labels resource pages as resources, not settings", () => {
+    expect(isMainWorkspaceRoute("/resource")).toBe(true);
+    expect(resolveMobileRouteMeta("/resource", key => key).title).toBe("resourcePageTitle");
+  });
   it("keeps panel app routes inside the main workspace shell", () => {
     expect(isMainWorkspaceRoute("/apps/panel/rust-todo")).toBe(true);
     expect(isMainWorkspaceRoute("/apps")).toBe(false);

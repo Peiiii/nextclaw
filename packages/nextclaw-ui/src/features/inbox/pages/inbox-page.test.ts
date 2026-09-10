@@ -145,3 +145,6 @@ describe("InboxPage", () => {
     );
   });
 });
+
+// Resource policy has separate integration coverage; keep this fixture scoped to its business UI.
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));

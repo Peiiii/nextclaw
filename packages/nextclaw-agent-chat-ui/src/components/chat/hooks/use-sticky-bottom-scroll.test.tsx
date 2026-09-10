@@ -206,3 +206,27 @@ it("scrolls back to the bottom on demand", () => {
     vi.unstubAllGlobals();
   }
 });
+
+it("keeps restored reading through content updates until the user returns to the bottom", () => {
+  const schedule = vi.fn(() => 1);
+  vi.stubGlobal("requestAnimationFrame", schedule);
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  try {
+    const element = document.createElement("div");
+    setScrollMetrics(element, { clientHeight: 100, scrollHeight: 1000, scrollTop: 400 });
+    const view = renderHook(({ version }) => useStickyBottomScroll({
+      scrollRef: { current: element }, resetKey: "restored", isLoading: false,
+      hasContent: true, contentVersion: version, initialScrollTop: 400,
+    }), { initialProps: { version: 1 } });
+    view.rerender({ version: 2 });
+    expect(schedule).not.toHaveBeenCalled();
+    expect(view.result.current.isAtBottom).toBe(false);
+    element.scrollTop = 900;
+    act(() => view.result.current.onScroll());
+    view.rerender({ version: 3 });
+    expect(schedule).toHaveBeenCalled();
+    view.unmount();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

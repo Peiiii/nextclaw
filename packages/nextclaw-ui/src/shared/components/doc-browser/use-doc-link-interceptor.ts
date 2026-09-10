@@ -1,36 +1,34 @@
 import { useEffect } from 'react';
-import { isDocsUrl, useDocBrowser } from './doc-browser-context';
+import { useNavigate } from 'react-router-dom';
+import { useAppPresenter } from '@/app/components/app-presenter-provider';
+import { isDocsUrl } from './doc-browser-context';
+import { toast } from 'sonner';
+import { t } from '@/shared/lib/i18n';
 
-/**
- * Global click interceptor for docs links.
- * Captures clicks on <a> tags pointing to the docs domain
- * and opens them in the in-app micro-browser instead.
- */
+/** Resource links use the same opening policy as navigation and page menus. */
 export function useDocLinkInterceptor() {
-    const docBrowser = useDocBrowser();
-
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            // Walk up from the click target to find an anchor
-            const anchor = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
-            if (!anchor) return;
-
-            const href = anchor.getAttribute('href') || '';
-            if (!isDocsUrl(href)) return;
-
-            // Don't intercept links explicitly marked for external opening
-            if (anchor.hasAttribute('data-doc-external')) return;
-
-            // Don't intercept if modifier keys are held (user wants new tab behavior)
-            if (e.ctrlKey || e.metaKey || e.shiftKey) return;
-
-            e.preventDefault();
-            e.stopPropagation();
-            docBrowser.open(href);
-        };
-
-        // Use capture phase to intercept before React's synthetic events
-        document.addEventListener('click', handler, true);
-        return () => document.removeEventListener('click', handler, true);
-    }, [docBrowser]);
+  const app = useAppPresenter();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handler = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href]') : null;
+      if (!anchor || anchor.hasAttribute('data-doc-external') || anchor.hasAttribute('download')) return;
+      const href = anchor.getAttribute('href') ?? '';
+      if (!href.startsWith('nextclaw://') && !isDocsUrl(href)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const origin = anchor.closest<HTMLElement>('[data-resource-session]');
+      const page = app.pageResourceManager.resolve(href, { workingDir: origin?.dataset.resourceWorkingDir, sessionKey: origin?.dataset.resourceSession });
+      if (page) {
+        const label = anchor.cloneNode(true) as HTMLAnchorElement;
+        label.querySelectorAll('[aria-hidden="true"]').forEach((element) => element.remove());
+        const title = label.textContent?.trim();
+        app.pageResourceManager.open(title ? { ...page, title, target: { ...page.target, title } } : page, 'default', navigate);
+      }
+      else toast.error(t('pageUnavailable'));
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [app, navigate]);
 }

@@ -99,7 +99,7 @@ describe('chat thread workspace panel persistence', () => {
     expect(persisted.state.snapshot.workspaceFileTabs[0].params).toEqual({
       chart: { series: [3, 5, 8] },
     });
-    expect(persisted.state.snapshot.workspaceFileTabs[0].fullLines).toBeUndefined();
+    expect(persisted.state.snapshot.workspaceFileTabs[0].fullLines).toEqual([]);
   });
 
   it('does not persist an unmaterialized side chat draft', () => {
@@ -228,7 +228,7 @@ describe('chat thread workspace panel persistence', () => {
             ],
           },
         },
-        version: 2,
+        version: 3,
       }),
     );
 

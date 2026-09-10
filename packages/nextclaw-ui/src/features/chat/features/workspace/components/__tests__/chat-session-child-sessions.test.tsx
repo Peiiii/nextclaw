@@ -75,3 +75,11 @@ it('copies a child session ID from its own more-actions menu', async () => {
   expect(mocks.copyText).toHaveBeenCalledWith('child-1');
   expect(mocks.selectChildSessionDetail).not.toHaveBeenCalled();
 });
+
+vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()), useNavigate: () => vi.fn(), useLocation: () => ({ pathname: '/chat', search: '' }) }));
+vi.mock("@/features/panel-apps/hooks/use-panel-apps", () => ({ usePanelApps: () => ({ data: { entries: [] } }), useUpdatePanelAppPreferences: () => ({ mutate: vi.fn() }) }));
+vi.mock("@/app/components/app-presenter-provider", async () => {
+  const { PageResourceManager } = await import("@/features/right-panel-resources/managers/page-resource.manager");
+  const app = { docBrowserManager: { openTarget: vi.fn() }, chatComposerIntentManager: { requestUiResourceReference: vi.fn() } };
+  return { useAppPresenter: () => ({ ...app, pageResourceManager: new PageResourceManager(app as never) }) };
+});

@@ -1,3 +1,5 @@
+import { useWorkbenchSurfaceStore } from '@/shared/components/workbench/stores/workbench-surface.store';
+import { GLOBAL_WORKBENCH_SURFACE } from '@/shared/components/workbench/types/workbench-surface.types';
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
@@ -44,6 +46,7 @@ export function DocBrowserProvider({
   children: ReactNode;
   manager: DocBrowserManager;
 }) {
+  const mode = useWorkbenchSurfaceStore((state) => state.surfaces[GLOBAL_WORKBENCH_SURFACE]?.placement ?? 'docked');
   const snapshot = useDocBrowserStore((state) => state.snapshot);
   const currentTab = useMemo(() => {
     return snapshot.tabs.find((tab) => tab.id === snapshot.activeTabId) ?? snapshot.tabs[0];
@@ -51,6 +54,7 @@ export function DocBrowserProvider({
 
   const value = useMemo<DocBrowserContextValue>(() => ({
     ...snapshot,
+    mode,
     currentTab,
     open: manager.open,
     openTarget: manager.openTarget,
@@ -64,7 +68,7 @@ export function DocBrowserProvider({
     goForward: manager.goForward,
     closeTab: manager.closeTab,
     setActiveTab: manager.setActiveTab,
-  }), [currentTab, manager, snapshot]);
+  }), [currentTab, manager, snapshot, mode]);
 
   return (
     <DocBrowserContext.Provider value={value}>

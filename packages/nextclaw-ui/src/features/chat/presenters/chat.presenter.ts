@@ -22,7 +22,8 @@ export class ChatPresenter {
     this.chatThreadManager = new ChatThreadManager(
       this.chatUiManager,
       this.chatSessionListManager,
-      appPresenter.notifyRightPanelOpened,
+      appPresenter.notifyWorkspacePanelOpened,
     );
+    appPresenter.pageResourceManager.bindWorkspace(this.chatThreadManager);
   }
 }

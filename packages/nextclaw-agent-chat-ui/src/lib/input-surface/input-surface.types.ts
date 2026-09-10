@@ -31,6 +31,9 @@ export type ChatInputSurfaceMenuTexts = {
 export type ChatInputSurfaceItemIcon =
   | 'back'
   | 'calendar-clock'
+  | 'agent'
+  | 'mcp'
+  | 'work'
   | 'command'
   | 'file'
   | 'files'

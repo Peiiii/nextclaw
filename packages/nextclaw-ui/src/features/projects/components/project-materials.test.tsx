@@ -78,3 +78,5 @@ describe("project materials", () => {
     ).toBeTruthy();
   });
 });
+
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));

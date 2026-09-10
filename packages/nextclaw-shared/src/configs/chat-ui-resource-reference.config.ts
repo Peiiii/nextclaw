@@ -1,6 +1,13 @@
 import type { UiContentParams } from "../types/ui-show-content.types.js";
 import { readUiContentParams } from "../utils/ui-content-params.utils.js";
 
+/** Canonical Panel App identity in the NextClaw Resource Protocol; placement is not identity. */
+export function createPanelAppResourceUri(appId: string, sourcePath?: string): string {
+  const uri = `nextclaw://panel-app/${encodeURIComponent(appId)}`;
+  const path = sourcePath?.trim();
+  return path ? `${uri}?${new URLSearchParams({ path }).toString()}` : uri;
+}
+
 export const CHAT_UI_RESOURCE_TOKEN_KIND = "ui_resource";
 
 const UI_RESOURCE_KIND_MAX_LENGTH = 80;

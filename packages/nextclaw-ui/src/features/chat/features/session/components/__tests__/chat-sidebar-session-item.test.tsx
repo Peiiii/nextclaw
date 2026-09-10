@@ -87,7 +87,7 @@ it("shows session actions only on hover or when an action owns focus", () => {
 it("opens any sidebar session as a floating conversation", async () => {
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'More actions' }));
-  await user.click(screen.getByRole('button', { name: 'Chat in a floating window' }));
+  await user.click(screen.getByRole('button', { name: 'Open in floating window' }));
   expect(useFloatingSessionStore.getState().session).toEqual({
     sessionKey: 'session:current', title: 'Current Task',
   });
@@ -132,4 +132,12 @@ it("shows session context from the row on hover", async () => {
   expect(within(tooltip).getByText("nextbot")).toBeTruthy();
   expect(within(tooltip).getByText("2")).toBeTruthy();
   expect(within(tooltip).getByText("3")).toBeTruthy();
+});
+
+vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()), useNavigate: () => vi.fn(), useLocation: () => ({ pathname: '/chat', search: '' }) }));
+vi.mock("@/features/panel-apps/hooks/use-panel-apps", () => ({ usePanelApps: () => ({ data: { entries: [] } }), useUpdatePanelAppPreferences: () => ({ mutate: vi.fn() }) }));
+vi.mock("@/app/components/app-presenter-provider", async () => {
+  const { PageResourceManager } = await import("@/features/right-panel-resources/managers/page-resource.manager");
+  const app = { docBrowserManager: { openTarget: vi.fn() }, chatComposerIntentManager: { requestUiResourceReference: vi.fn() } };
+  return { useAppPresenter: () => ({ ...app, pageResourceManager: new PageResourceManager(app as never) }) };
 });

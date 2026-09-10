@@ -2,6 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 
 describe('RightPanelResourceRouteResolver', () => {
+  it.each(['cron-job', 'inbox-delivery', 'skill', 'agent', 'project'])('resolves %s as an object, not an unsupported website', (type) => {
+    const uri = 'nextclaw://objects/' + type + '/' + encodeURIComponent('workspace:项目/对象');
+    expect(new RightPanelResourceRouteResolver().resolve(uri)).toMatchObject({ kind: 'system-object', url: uri, resourceUri: uri });
+  });
+  it('distinguishes a marketplace skill detail from its collection', () => {
+    const resolver = new RightPanelResourceRouteResolver();
+    expect(resolver.resolve('nextclaw://marketplace-detail/skill%3Aexample')).toMatchObject({ kind:'marketplace-detail' });
+    expect(resolver.resolve('nextclaw://marketplace')).toMatchObject({ kind:'route', url:'/skills' });
+  });
+
   it('normalizes apps resources and keeps service apps distinct', () => {
     const resolver = new RightPanelResourceRouteResolver();
 

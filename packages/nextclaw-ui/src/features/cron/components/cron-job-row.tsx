@@ -1,3 +1,5 @@
+import { PageResourceActionItems } from '@/features/right-panel-resources';
+import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useState } from "react";
 import {
   CalendarClock,
@@ -190,7 +192,9 @@ export function CronJobRow({
                   </TooltipTrigger>
                   <TooltipContent>{t("cronMoreActions")}</TooltipContent>
                 </Tooltip>
-                <PopoverContent align="end" sideOffset={4} className="w-40 p-1">
+                <PopoverContent align="end" sideOffset={4} className="w-56 p-1">
+                  <PageResourceActionItems page={pageResourceFromSystemObject("cron-job", job.id, jobLabel)} onSelect={() => setMenuOpen(false)} />
+                  <div className="my-1 h-px bg-border" />
                   <button
                     type="button"
                     onClick={() => {

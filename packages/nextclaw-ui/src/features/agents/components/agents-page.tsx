@@ -1,3 +1,5 @@
+import { PageResourceActionItems } from '@/features/right-panel-resources';
+import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useMemo, useState } from "react";
 import {
   useDeleteAgent,
@@ -37,7 +39,7 @@ import {
   Eye,
   House,
   MessageCircle,
-  MoreHorizontal,
+  MoreVertical,
   Pencil,
   Plus,
   ShieldCheck,
@@ -189,10 +191,12 @@ function AgentListCard(props: {
                 aria-label={t("chatSessionMoreActions")}
                 title={t("chatSessionMoreActions")}
               >
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreVertical className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-44 p-1.5">
+            <PopoverContent align="end" className="w-56 p-1.5">
+              <PageResourceActionItems page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />
+              <div className="my-1 border-t border-border" />
               <AgentActionMenuItem
                 icon={Eye}
                 label={t("agentsViewDetailsAction")}

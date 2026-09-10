@@ -1,9 +1,9 @@
+import { ViewMemoryStorage } from '@/shared/lib/navigation-history';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type {
   DocBrowserActiveHistoryEntry,
   DocBrowserDockIcon,
-  DocBrowserMode,
   DocBrowserState,
   DocBrowserStateUpdate,
   DocBrowserTab,
@@ -28,9 +28,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
 }
 
-function isDocBrowserMode(value: unknown): value is DocBrowserMode {
-  return value === 'floating' || value === 'docked';
-}
 
 function normalizePersistedStringList(value: unknown, fallback: string): string[] {
   if (!Array.isArray(value)) {
@@ -91,6 +88,7 @@ function normalizePersistedDocBrowserTab(value: unknown): DocBrowserTab | null {
     currentUrl: history[historyIndex] ?? value.currentUrl,
     resourceUri,
     dockIcon,
+    viewState: value.viewState,
     dedupeKey,
     history,
     historyIndex,
@@ -170,7 +168,6 @@ function normalizePersistedDocBrowserState(value: unknown): DocBrowserState | nu
 
   return {
     isOpen: value.isOpen === true,
-    mode: isDocBrowserMode(value.mode) ? value.mode : 'docked',
     dockedWidth: normalizeDocBrowserDockedWidth(value.dockedWidth),
     tabs,
     activeTabId: resolvedActiveTabId,
@@ -197,11 +194,10 @@ export const useDocBrowserStore = create<DocBrowserStore>()(
     {
       name: DOC_BROWSER_STORAGE_KEY,
       version: DOC_BROWSER_STORAGE_VERSION,
-      storage: createJSONStorage(() => window.localStorage),
+      storage: createJSONStorage(() => new ViewMemoryStorage()),
       partialize: (state): { snapshot: PersistedDocBrowserState } => ({
         snapshot: {
           isOpen: state.snapshot.isOpen,
-          mode: state.snapshot.mode,
           dockedWidth: state.snapshot.dockedWidth,
           tabs: state.snapshot.tabs.slice(-DOC_BROWSER_MAX_PERSISTED_TABS),
           activeTabId: state.snapshot.activeTabId,

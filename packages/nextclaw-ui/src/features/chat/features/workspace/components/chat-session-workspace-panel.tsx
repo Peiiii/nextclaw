@@ -1,3 +1,8 @@
+import { usePageResourceActions } from '@/features/right-panel-resources';
+import { pageResourceFromTarget } from '@/features/right-panel-resources';
+import { createWorkspaceFilePanelTarget } from '@/features/chat/features/workspace/utils/workspace-file-panel-route.utils';
+import { buildSessionPanelUrl } from '@/features/chat/features/session/utils/chat-session-route.utils';
+import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { CronJobView } from "@/shared/lib/api";
@@ -23,8 +28,9 @@ import {
 import { WorkspaceTabsBar } from "./chat-session-workspace-panel-nav";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { ChatSessionWorkspacePanelContent } from "@/features/chat/features/workspace/components/chat-session-workspace-panel-content";
-import { ResizableRightPanel } from "@/shared/components/resizable-right-panel/resizable-right-panel";
-import { cn } from "@/shared/lib/utils";
+import { WorkbenchSurface } from "@/shared/components/workbench/workbench-surface";
+import { getAppPresenter } from "@/app/presenters/app.presenter";
+import { t } from "@/shared/lib/i18n";
 import {
   canGoBackInNavigationHistory,
   canGoForwardInNavigationHistory,
@@ -34,6 +40,7 @@ import { buildServerPathReadQueryKey } from "@/shared/hooks/use-server-path-read
 
 type ChatSessionWorkspacePanelProps = {
   sessionKey: string | null;
+  hidden?: boolean;
   childSessionTabs: readonly ChatChildSessionTab[];
   activeChildSessionKey: string | null;
   activeSideChatDraft: ChatWorkspaceSideChatDraft | null;
@@ -55,6 +62,7 @@ type ChatSessionWorkspacePanelProps = {
 
 export function ChatSessionWorkspacePanel({
   sessionKey,
+  hidden = false,
   childSessionTabs,
   activeChildSessionKey,
   activeSideChatDraft,
@@ -74,8 +82,8 @@ export function ChatSessionWorkspacePanel({
   displayMode = "docked",
 }: ChatSessionWorkspacePanelProps) {
   const presenter = usePresenter();
+  const pageActions = usePageResourceActions();
   const queryClient = useQueryClient();
-  const [isMaximized, setIsMaximized] = useState(false);
   const [filePreviewRefreshVersion, setFilePreviewRefreshVersion] = useState(0);
   const resolvedChildTabs = useNcpChildSessionTabsView(childSessionTabs);
   const optimisticReadAtBySessionKey = useChatSessionListStore(
@@ -159,8 +167,6 @@ export function ChatSessionWorkspacePanel({
     return null;
   }
 
-  const isContainerMaximized = displayMode === "docked" && isMaximized;
-  const isOverlayPanel = displayMode === "overlay" || isContainerMaximized;
   const activeFile =
     activeSelection.kind === "file" && activeSelection.file.viewMode === "preview"
       ? activeSelection.file
@@ -185,40 +191,43 @@ export function ChatSessionWorkspacePanel({
     : undefined;
 
   return (
-    <ResizableRightPanel
-      data-testid="chat-session-workspace-panel"
-      data-theme-surface="workspace-panel"
-      className={cn(
-        isOverlayPanel
-          ? "bg-white"
-          : "hidden border-gray-200/70 bg-white/95 backdrop-blur-sm md:flex",
-        isContainerMaximized ? "shadow-xl" : null,
-      )}
-      defaultWidth={workspacePanelWidth}
-      width={workspacePanelWidth}
-      minWidth={CHAT_WORKSPACE_PANEL_MIN_WIDTH}
-      maxWidth={CHAT_WORKSPACE_PANEL_MAX_WIDTH}
+    <WorkbenchSurface
+      id={`session-workspace:${sessionKey ?? 'draft'}`} manager={getAppPresenter().workbenchSurfaceManager}
+      title={t('workbenchSessionGroup')} testId="chat-session-workspace-panel" hidden={hidden}
+      width={workspacePanelWidth} minWidth={CHAT_WORKSPACE_PANEL_MIN_WIDTH} maxWidth={CHAT_WORKSPACE_PANEL_MAX_WIDTH}
       onWidthCommit={presenter.chatThreadManager.setWorkspacePanelWidth}
-      overlay={isOverlayPanel}
-      overlayScope={isContainerMaximized ? "container" : "viewport"}
-    >
+      fullscreen={displayMode === "overlay"} onClose={presenter.chatThreadManager.closeWorkspacePanel} closeLabel={t('workbenchHideGroup')}
+      navigation={
       <WorkspaceTabsBar
-        tabs={workspaceTabs}
+        tabs={workspaceTabs.map((tab) => ({
+          ...tab,
+          menuGroups: (() => {
+            const file = workspaceFileTabs.find((item) => `file:${item.key}` === tab.key);
+            const target = file ? createWorkspaceFilePanelTarget(file, { workingDir: sessionWorkingDir, projectRoot: sessionProjectRoot })
+              : tab.sessionKey ? { kind: 'chat-session', title: tab.title, url: buildSessionPanelUrl(tab.sessionKey), resourceUri: buildSessionPanelUrl(tab.sessionKey), historyPolicy: 'none' as const } : tab.kind !== 'side-chat-draft' ? { kind: 'workspace', title: tab.title, url: `nextclaw://workspace?${new URLSearchParams({ session: sessionKey ?? '', page: tab.kind })}`, historyPolicy: 'none' as const } : null;
+            return target ? [...pageActions(pageResourceFromTarget(target), 'workspace'), ...(tab.menuGroups ?? [])] : tab.menuGroups;
+          })(),
+          onMoveGlobal: tab.kind === 'file' ? () => presenter.chatThreadManager.moveFileToGlobal(tab.key.slice('file:'.length), { workingDir: sessionWorkingDir, projectRoot: sessionProjectRoot }, getAppPresenter().docBrowserManager)
+            : tab.kind === 'child-session' && tab.sessionKey ? () => {
+              sessionSurfaceManager.dock({ sessionKey: tab.sessionKey!, title: tab.title }, getAppPresenter().docBrowserManager);
+              tab.onClose?.();
+            } : undefined,
+          onFloat: tab.kind === 'child-session' && tab.sessionKey ? () => {
+            sessionSurfaceManager.open({ sessionKey: tab.sessionKey!, title: tab.title });
+            tab.onClose?.();
+          } : undefined,
+        }))}
         canGoBack={canGoBackInNavigationHistory(workspaceHistory)}
         canGoForward={canGoForwardInNavigationHistory(workspaceHistory)}
-        isMaximized={isContainerMaximized}
         onGoBack={presenter.chatThreadManager.goBackWorkspacePanel}
         onGoForward={presenter.chatThreadManager.goForwardWorkspacePanel}
         onRefreshFile={refreshActiveFile}
-        onToggleMaximize={
-          displayMode === "docked"
-            ? () => setIsMaximized((value) => !value)
-            : undefined
-        }
-        onClose={presenter.chatThreadManager.closeWorkspacePanel}
-      />
 
-      <div className="flex min-h-0 flex-1 flex-col bg-white">
+      />
+      }
+    >
+
+      <div className="flex min-h-0 flex-1 flex-col bg-card">
         <ChatSessionWorkspacePanelContent
           activeSelection={activeSelection}
           childSessionTabs={resolvedChildTabs}
@@ -232,6 +241,6 @@ export function ChatSessionWorkspacePanel({
           sessionWorkingDir={sessionWorkingDir}
         />
       </div>
-    </ResizableRightPanel>
+    </WorkbenchSurface>
   );
 }

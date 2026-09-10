@@ -10,7 +10,7 @@ export type SystemObjectReferenceDisplayText = {
   translations?: Record<string, string>;
 };
 
-export type SystemObjectReferenceGroupIcon = "calendar-clock" | "file" | "inbox";
+export type SystemObjectReferenceGroupIcon = "calendar-clock" | "file" | "inbox" | "skill" | "agent" | "project" | "panel-app" | "mcp" | "work";
 
 export type SystemObjectReferenceGroupDescriptor = {
   objectType: string;

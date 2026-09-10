@@ -1,5 +1,4 @@
 export { PanelAppsList } from './components/panel-apps-list';
-export { PanelAppMainSidebarNav } from './components/panel-app-main-sidebar-nav';
 export { PanelAppMainPage } from './pages/panel-app-main-page';
 export { PanelAppStandalonePage } from './pages/panel-app-standalone-page';
 export { PanelAppServiceActionAuthorizationDialog } from './components/panel-app-service-action-authorization-dialog';
@@ -9,6 +8,7 @@ export {
   usePanelApp,
   useGrantPanelAppClient,
   usePanelApps,
+  useUpdatePanelAppPreferences,
   useRecordPanelAppOpened,
 } from './hooks/use-panel-apps';
 export { PanelAppBridgeManager } from './managers/panel-app-bridge.manager';

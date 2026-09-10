@@ -1,4 +1,14 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { MemoryRouter } from 'react-router-dom';
+import { AppPresenterProvider } from '@/app/components/app-presenter-provider';
+import type { ReactElement } from 'react';
+
+function render(ui: ReactElement) {
+  return renderUi(<MemoryRouter><AppPresenterProvider>{ui}</AppPresenterProvider></MemoryRouter>);
+}
+
+import { WorkbenchSurfaceManager } from '@/shared/components/workbench/managers/workbench-surface.manager';
+import { useWorkbenchSurfaceStore } from '@/shared/components/workbench/stores/workbench-surface.store';
+import { fireEvent, render as renderUi, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DocBrowser } from "@/shared/components/doc-browser/doc-browser";
@@ -137,6 +147,7 @@ function firePointerEvent(
 }
 
 function resetDocBrowserTestState() {
+  useWorkbenchSurfaceStore.setState({ surfaces: {} });
   vi.clearAllMocks();
   docBrowserState.mode = "docked";
   docBrowserState.tabs = [
@@ -190,7 +201,7 @@ describe("DocBrowser", () => {
     expect(screen.getByTestId("doc-browser-panel").style.width).toBe("420px");
     expect(
       screen.getByTestId("doc-browser-panel").getAttribute("data-theme-surface"),
-    ).toBe("doc-browser");
+    ).toBe("workspace-panel");
     expect(screen.getByTestId("resizable-right-panel-handle")).toBeTruthy();
   });
 
@@ -213,9 +224,9 @@ describe("DocBrowser", () => {
 
     const panel = screen.getByTestId("doc-browser-panel");
 
-    expect(panel.className).toContain("fixed");
-    expect(panel.className).toContain("inset-0");
-    expect(panel.className).toContain("w-screen");
+    expect(panel.style.position).toBe("fixed");
+    expect(panel.style.inset).toBe("0");
+    expect(panel.style.width).toBe("100%");
     expect(
       screen.queryByRole("button", { name: /float/i }) ??
         screen.queryByRole("button", { name: /dock/i }),
@@ -224,7 +235,7 @@ describe("DocBrowser", () => {
     expect(panel.querySelector(".cursor-se-resize")).toBeNull();
   });
 
-  it("keeps browser window controls on the tab strip", async () => {
+  it("separates shared window controls from navigation", async () => {
     const user = userEvent.setup();
     render(
       <DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />,
@@ -232,7 +243,7 @@ describe("DocBrowser", () => {
 
     const tabStrip = screen.getByTestId("doc-browser-tab-strip");
     const tabActions = screen.getByTestId("doc-browser-tab-actions");
-    const floatButton = screen.getByRole("button", { name: "Float Window" });
+    const floatButton = screen.getByRole("button", { name: "Float view group" });
     const newTabButton = screen.getByRole("button", { name: "New Tab" });
 
     expect(
@@ -243,12 +254,12 @@ describe("DocBrowser", () => {
     ).toBe(true);
     expect(
       tabStrip.contains(floatButton),
-    ).toBe(true);
+    ).toBe(false);
     expect(floatButton.querySelector(".lucide-picture-in-picture2")).toBeTruthy();
     expect(floatButton.querySelector(".lucide-maximize2")).toBeNull();
     expect(
-      tabStrip.contains(screen.getByRole("button", { name: "Close" })),
-    ).toBe(true);
+      tabStrip.contains(screen.getByRole("button", { name: "Hide view group" })),
+    ).toBe(false);
     expect(tabActions.contains(newTabButton)).toBe(true);
     expect(screen.queryByText("Embedded Browser")).toBeNull();
 
@@ -532,9 +543,9 @@ describe("DocBrowser panel app navigation", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(docBrowserState.goBack).toHaveBeenCalledTimes(1);
 
-    expect(screen.queryByRole("button", { name: "Add to main sidebar" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pin to left sidebar" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "More panel app actions" }));
-    await user.click(screen.getByRole("button", { name: "Add to main sidebar" }));
+    await user.click(screen.getByRole("button", { name: "Pin to left sidebar" }));
     expect(panelAppHooks.mutate).toHaveBeenCalledWith({
       id: "piano",
       preferences: { mainSidebar: true },
@@ -560,7 +571,7 @@ describe("DocBrowser panel app navigation", () => {
     render(<DocBrowser customTabRenderers={PANEL_APPS_DOC_BROWSER_RENDERERS} />);
 
     await user.click(screen.getByRole("button", { name: "More panel app actions" }));
-    await user.click(screen.getByRole("button", { name: "Add to main sidebar" }));
+    await user.click(screen.getByRole("button", { name: "Pin to left sidebar" }));
     expect(panelAppHooks.mutate).toHaveBeenCalledWith({
       id: "piano",
       preferences: { mainSidebar: true },
@@ -640,40 +651,18 @@ describe("DocBrowser floating interactions", () => {
     installDocBrowserPointerTestEnvironment();
   });
 
-  it("starts floating drag from the header background without stealing tab actions", () => {
-    const onDragStart = vi.fn();
-
-    render(
-      <DocBrowserTabStrip
-        tabs={docBrowserState.tabs}
-        activeTabId="docs"
-        canGoBack={false}
-        canGoForward={false}
-        isDocked={false}
-        isFullscreen={false}
-        onGoBack={vi.fn()}
-        onGoForward={vi.fn()}
-        onOpenNewTab={vi.fn()}
-        onSetActiveTab={vi.fn()}
-        onCloseTab={vi.fn()}
-        onClose={vi.fn()}
-        onDragStart={onDragStart}
-        onToggleMode={vi.fn()}
-      />,
-    );
-
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Docs" }));
-    expect(onDragStart).not.toHaveBeenCalled();
-
-    const tabStrip = screen.getByTestId("doc-browser-tab-strip");
-    const headerDragSurface = tabStrip.querySelector(".doc-browser-tab-scrollbar");
-    expect(headerDragSurface).toBeInstanceOf(HTMLElement);
-    expect((headerDragSurface as HTMLElement).className).toContain("cursor-grab");
-    expect(screen.getByRole("button", { name: "Docs" }).parentElement?.className).toContain("cursor-pointer");
-
-    fireEvent.pointerDown(headerDragSurface as HTMLElement);
-
-    expect(onDragStart).toHaveBeenCalledTimes(1);
+  it("drags the shared header without stealing tab actions", () => {
+    new WorkbenchSurfaceManager().place('global-resources', 'floating');
+    render(<DocBrowser />);
+    const panel = screen.getByTestId('doc-browser-panel');
+    const before = panel.style.left;
+    firePointerEvent(screen.getByRole('button', { name: 'Docs' }), 'pointerdown', { clientX: 100, pointerId: 1 });
+    firePointerEvent(window, 'pointermove', { clientX: 120, pointerId: 1 });
+    expect(panel.style.left).toBe(before);
+    firePointerEvent(panel.querySelector('header')!, 'pointerdown', { clientX: 100, pointerId: 1 });
+    firePointerEvent(window, 'pointermove', { clientX: 140, pointerId: 1 });
+    firePointerEvent(window, 'pointerup', { clientX: 140, pointerId: 1 });
+    expect(parseFloat(panel.style.left)).toBe(parseFloat(before) + 40);
   });
 
   it("opens the same tab action from right click and the more button", () => {
@@ -685,16 +674,11 @@ describe("DocBrowser floating interactions", () => {
         activeTabId="docs"
         canGoBack={false}
         canGoForward={false}
-        isDocked={true}
-        isFullscreen={false}
         onGoBack={vi.fn()}
         onGoForward={vi.fn()}
         onOpenNewTab={vi.fn()}
         onSetActiveTab={vi.fn()}
         onCloseTab={vi.fn()}
-        onClose={vi.fn()}
-        onDragStart={vi.fn()}
-        onToggleMode={vi.fn()}
         getTabMenuGroups={() => [{
           key: "chat",
           items: [{ key: "add", label: "Add to Chat", onSelect: onAddToChat }],
@@ -711,12 +695,12 @@ describe("DocBrowser floating interactions", () => {
   });
 
   it("keeps the floating panel left edge stable when resizing from the right", () => {
-    docBrowserState.mode = "floating";
+    new WorkbenchSurfaceManager().place('global-resources', 'floating');
 
     render(<DocBrowser />);
 
     firePointerEvent(
-      screen.getByTestId("doc-browser-resize-right"),
+      document.querySelector('[data-workbench-resize="right"]')!,
       "pointerdown",
       {
         clientX: 1160,
@@ -726,17 +710,17 @@ describe("DocBrowser floating interactions", () => {
     firePointerEvent(window, "pointermove", { clientX: 1120, pointerId: 1 });
 
     const panel = screen.getByTestId("doc-browser-panel");
-    expect(panel.style.left).toBe("680px");
-    expect(panel.style.width).toBe("440px");
+    expect(panel.style.left).toBe("80px");
+    expect(panel.style.width).toBe("520px");
   });
 
   it("keeps the floating panel right edge stable when resizing from the left", () => {
-    docBrowserState.mode = "floating";
+    new WorkbenchSurfaceManager().place('global-resources', 'floating');
 
     render(<DocBrowser />);
 
     firePointerEvent(
-      screen.getByTestId("doc-browser-resize-left"),
+      document.querySelector('[data-workbench-resize="left"]')!,
       "pointerdown",
       {
         clientX: 680,
@@ -746,17 +730,17 @@ describe("DocBrowser floating interactions", () => {
     firePointerEvent(window, "pointermove", { clientX: 620, pointerId: 1 });
 
     const panel = screen.getByTestId("doc-browser-panel");
-    expect(panel.style.left).toBe("620px");
-    expect(panel.style.width).toBe("540px");
+    expect(panel.style.left).toBe("20px");
+    expect(panel.style.width).toBe("620px");
   });
 
   it("keeps the floating panel bottom edge stable when resizing from the top", () => {
-    docBrowserState.mode = "floating";
+    new WorkbenchSurfaceManager().place('global-resources', 'floating');
 
     render(<DocBrowser />);
 
     firePointerEvent(
-      screen.getByTestId("doc-browser-resize-top"),
+      document.querySelector('[data-workbench-resize="top"]')!,
       "pointerdown",
       {
         clientX: 900,
@@ -772,16 +756,16 @@ describe("DocBrowser floating interactions", () => {
 
     const panel = screen.getByTestId("doc-browser-panel");
     expect(panel.style.top).toBe("120px");
-    expect(panel.style.height).toBe("560px");
+    expect(panel.style.height).toBe("600px");
   });
 
   it("resizes the floating panel from the bottom-left corner", () => {
-    docBrowserState.mode = "floating";
+    new WorkbenchSurfaceManager().place('global-resources', 'floating');
 
     render(<DocBrowser />);
 
     firePointerEvent(
-      screen.getByTestId("doc-browser-resize-bottom-left"),
+      document.querySelector('[data-workbench-resize="bottom-left"]')!,
       "pointerdown",
       {
         clientX: 680,
@@ -796,19 +780,19 @@ describe("DocBrowser floating interactions", () => {
     });
 
     const panel = screen.getByTestId("doc-browser-panel");
-    expect(panel.style.left).toBe("620px");
+    expect(panel.style.left).toBe("20px");
     expect(panel.style.top).toBe("80px");
-    expect(panel.style.width).toBe("540px");
-    expect(panel.style.height).toBe("640px");
+    expect(panel.style.width).toBe("620px");
+    expect(panel.style.height).toBe("680px");
   });
 
   it("resizes the floating panel from the top-right corner", () => {
-    docBrowserState.mode = "floating";
+    new WorkbenchSurfaceManager().place('global-resources', 'floating');
 
     render(<DocBrowser />);
 
     firePointerEvent(
-      screen.getByTestId("doc-browser-resize-top-right"),
+      document.querySelector('[data-workbench-resize="top-right"]')!,
       "pointerdown",
       {
         clientX: 1160,
@@ -823,10 +807,10 @@ describe("DocBrowser floating interactions", () => {
     });
 
     const panel = screen.getByTestId("doc-browser-panel");
-    expect(panel.style.left).toBe("680px");
+    expect(panel.style.left).toBe("80px");
     expect(panel.style.top).toBe("120px");
-    expect(panel.style.width).toBe("440px");
-    expect(panel.style.height).toBe("560px");
+    expect(panel.style.width).toBe("520px");
+    expect(panel.style.height).toBe("600px");
   });
 });
 

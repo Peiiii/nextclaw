@@ -152,30 +152,34 @@ export function resolveWorkspacePreviewErrorText(error: unknown): string {
     : t('chatWorkspacePreviewFailed');
 }
 
-function WorkspaceDiffBody({ diffBlock }: { diffBlock: ChatFileOperationBlockViewModel | null }) {
+function WorkspaceDiffBody({ diffBlock, fileKey }: { diffBlock: ChatFileOperationBlockViewModel | null; fileKey: string }) {
   if (!diffBlock) {
     return <WorkspaceFilePreviewStatus text={t('chatWorkspaceDiffEmpty')} />;
   }
-  return <WorkspaceCodeSurface block={diffBlock} />;
+  return <WorkspaceCodeSurface block={diffBlock} restorationKey={`workspace-preview:diff:${fileKey}`} />;
 }
 
 function WorkspaceCodeSurface({
   block,
+  restorationKey,
   targetColumn,
   targetLine,
 }: {
   block: ChatFileOperationBlockViewModel;
+  restorationKey: string;
   targetColumn?: number | null;
   targetLine?: number | null;
 }) {
+  const { scrollRef, onScroll } = useScrollRestoration<HTMLDivElement>({ restorationKey, isEnabled: !targetLine });
   return (
-    <div className="h-full overflow-auto custom-scrollbar bg-white">
+    <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-auto custom-scrollbar bg-card">
       <FileOperationCodeSurface block={block} layout="workspace" targetColumn={targetColumn} targetLine={targetLine} />
     </div>
   );
 }
 
 function WorkspacePreviewBody({
+  fileKey,
   contentUrl,
   contentUrlKind,
   contentLabel,
@@ -194,6 +198,7 @@ function WorkspacePreviewBody({
   targetColumn,
   targetLine,
 }: {
+  fileKey: string;
   contentUrl: string | null;
   contentUrlKind: WorkspaceFileContentKind | null;
   contentLabel: string;
@@ -272,7 +277,7 @@ function WorkspacePreviewBody({
   }
 
   if (previewBlock) {
-    return <WorkspaceCodeSurface block={previewBlock} targetColumn={targetColumn} targetLine={targetLine} />;
+    return <WorkspaceCodeSurface block={previewBlock} restorationKey={`workspace-preview:source:${fileKey}`} targetColumn={targetColumn} targetLine={targetLine} />;
   }
 
   return <WorkspaceFilePreviewStatus text={t('chatWorkspacePreviewEmpty')} />;
@@ -304,7 +309,7 @@ export function ChatSessionWorkspaceFilePreview({
   const markdownScrollRef = useRef<HTMLDivElement>(null);
   const isPreviewMode = file.viewMode === 'preview';
   const suppliedContentUrl = file.contentUrl?.trim() || null;
-  const usesServerPath = isPreviewMode && !suppliedContentUrl;
+  const usesServerPath = isPreviewMode && !suppliedContentUrl && file.rawText == null;
   const previewQuery = useServerPathRead({
     path: file.path,
     basePath: sessionWorkingDir,
@@ -338,6 +343,7 @@ export function ChatSessionWorkspaceFilePreview({
   const localContentUrlCandidate = buildServerPathContentUrl(file.path, sessionWorkingDir);
   const shouldRenderLocalContent = Boolean(
     !suppliedContentUrl &&
+    file.rawText == null &&
     isPreviewMode &&
     localContentUrlCandidate &&
     file.previewViewer !== 'source' &&
@@ -400,6 +406,7 @@ export function ChatSessionWorkspaceFilePreview({
   );
   const previewBody = (
     <WorkspacePreviewBody
+      fileKey={file.key}
       contentUrl={contentUrl}
       contentUrlKind={contentUrlKind}
       contentLabel={file.label?.trim() || resolvedPath}
@@ -445,7 +452,7 @@ export function ChatSessionWorkspaceFilePreview({
 
       <div className="flex-1 min-h-0 overflow-hidden">
         {file.viewMode === 'diff' ? (
-          <WorkspaceDiffBody diffBlock={diffBlock} />
+          <WorkspaceDiffBody diffBlock={diffBlock} fileKey={file.key} />
         ) : excerptPath && previewText ? (
           <WorkspaceTextSelectionMenu
             fileLabel={file.label?.trim() || excerptPath.split('/').at(-1) || excerptPath}

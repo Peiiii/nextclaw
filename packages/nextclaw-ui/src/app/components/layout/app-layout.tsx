@@ -1,6 +1,10 @@
-import { useCallback, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { MessageSquarePlus } from "lucide-react";
+import { ChatResourceLinkProvider } from '@nextclaw/agent-chat-ui';
+import { PageResourceIcon } from '@/features/right-panel-resources';
+import { usePageResourceActions } from '@/features/right-panel-resources';
+import { pageResourceFromTab } from '@/features/right-panel-resources';
+import { PAGE_RESOURCE_RENDERERS } from '@/app/configs/page-resource-renderers.config';
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   DocBrowserProvider,
   useDocBrowser,
@@ -10,30 +14,21 @@ import { useI18n } from "@/app/components/i18n-provider";
 import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 import { DesktopAppShell, getDesktopHostPlatform } from "@/platforms/desktop";
 import { MobileAppShell } from "@/platforms/mobile";
-import { PANEL_APPS_DOC_BROWSER_RENDERERS } from "@/features/panel-apps";
-import { MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS } from "@/features/marketplace";
 import {
   SideDock,
   type SideDockManager,
   useSideDockStore,
 } from "@/features/side-dock";
 import { getPresenter } from "@/app/presenters/app.presenter";
-import { CHAT_DRAFT_SESSION_PATH, CHAT_SESSION_PANEL_RENDERERS, parseSessionKeyFromRoute } from "@/features/chat";
-import { createChatUiResourceReferenceFromTab } from "@/features/right-panel-resources";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
 import type { DocBrowserTabMenuGroupsResolver } from "@/shared/components/doc-browser/doc-browser";
-import { t } from "@/shared/lib/i18n";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const DOC_BROWSER_RENDERERS = {
-  ...CHAT_SESSION_PANEL_RENDERERS,
-  ...PANEL_APPS_DOC_BROWSER_RENDERERS,
-  ...MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS,
-};
+const renderResourceIcon = (uri: string) => <PageResourceIcon uri={uri} />;
 
 function AppLayoutInner({
   children,
@@ -42,8 +37,6 @@ function AppLayoutInner({
   const { isOpen, mode } = useDocBrowser();
   useDocLinkInterceptor();
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const presenter = getPresenter();
   const { language } = useI18n();
   const { isMobile } = useViewportLayout();
   const desktopHostPlatform = getDesktopHostPlatform();
@@ -54,32 +47,8 @@ function AppLayoutInner({
     pinTab: sideDockManager.pinTab,
     unpinTab: sideDockManager.unpinTab,
   };
-  const getDocBrowserTabMenuGroups = useCallback<DocBrowserTabMenuGroupsResolver>((tab) => {
-    const reference = createChatUiResourceReferenceFromTab(tab);
-    if (!reference) return undefined;
-    return [{
-      key: "chat",
-      items: [{
-        key: "add-to-chat",
-        icon: <MessageSquarePlus className="h-4 w-4" />,
-        label: t("docBrowserAddToChat"),
-        restoreFocus: false,
-        onSelect: () => {
-          const isChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
-          const routeSessionKey = pathname === "/chat"
-            ? null
-            : parseSessionKeyFromRoute(pathname.slice("/chat/".length));
-          presenter.chatComposerIntentManager.requestUiResourceReference({
-            targetSessionKey: isChatRoute ? routeSessionKey : null,
-            reference,
-          });
-          if (!isChatRoute) {
-            navigate(CHAT_DRAFT_SESSION_PATH);
-          }
-        },
-      }],
-    }];
-  }, [navigate, pathname, presenter]);
+  const pageActions = usePageResourceActions();
+  const getDocBrowserTabMenuGroups: DocBrowserTabMenuGroupsResolver = (tab) => pageActions(pageResourceFromTab(tab), 'global');
 
   useEffect(() => {
     document.title = resolveUiDocumentTitle(pathname, window.location);
@@ -91,7 +60,7 @@ function AppLayoutInner({
         pathname={pathname}
         isDocBrowserOpen={isOpen}
         docBrowserDockControls={docBrowserDockControls}
-        docBrowserRenderers={DOC_BROWSER_RENDERERS}
+        docBrowserRenderers={PAGE_RESOURCE_RENDERERS}
         docBrowserTabMenuGroups={getDocBrowserTabMenuGroups}
         topbarLeadingInset={
           desktopHostPlatform === "darwin" ? "4.75rem" : undefined
@@ -109,9 +78,12 @@ function AppLayoutInner({
       isDocBrowserOpen={isOpen}
       docBrowserMode={mode}
       docBrowserDockControls={docBrowserDockControls}
-      docBrowserRenderers={DOC_BROWSER_RENDERERS}
+      docBrowserRenderers={PAGE_RESOURCE_RENDERERS}
       docBrowserTabMenuGroups={getDocBrowserTabMenuGroups}
-      sideDock={isSideDockVisible ? <SideDock manager={sideDockManager} /> : null}
+      sideDock={isSideDockVisible ? <SideDock manager={sideDockManager} getItemMenuGroups={(item) => {
+        const page = getPresenter().pageResourceManager.resolve(item.target.type === 'right-panel-resource' ? item.target.uri : item.target.url);
+        return page ? pageActions(page) : [];
+      }} /> : null}
     >
       {children}
     </DesktopAppShell>
@@ -123,9 +95,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <DocBrowserProvider manager={presenter.docBrowserManager}>
-      <AppLayoutInner sideDockManager={presenter.sideDockManager}>
+      <ChatResourceLinkProvider renderIcon={renderResourceIcon}><AppLayoutInner sideDockManager={presenter.sideDockManager}>
         {children}
       </AppLayoutInner>
-    </DocBrowserProvider>
+    </ChatResourceLinkProvider></DocBrowserProvider>
   );
 }

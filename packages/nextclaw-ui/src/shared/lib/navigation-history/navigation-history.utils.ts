@@ -40,7 +40,7 @@ export function pushNavigationHistoryEntry<Entry>(
       index: normalizedIndex,
     };
   }
-  const entries = [...history.entries.slice(0, normalizedIndex + 1), entry];
+  const entries = [...history.entries.slice(0, normalizedIndex + 1), entry].slice(-100);
   return {
     entries,
     index: entries.length - 1,

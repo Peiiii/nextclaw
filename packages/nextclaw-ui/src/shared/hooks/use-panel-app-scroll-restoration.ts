@@ -74,13 +74,15 @@ export function usePanelAppScrollRestoration({
   isEnabled,
   restorationKey,
 }: UsePanelAppScrollRestorationParams) {
+  const routeKey = restorationKey && currentUrl ? JSON.stringify([restorationKey, currentUrl]) : null;
   useEffect(() => {
-    if (!currentUrl || !isEnabled || !restorationKey) return;
+    if (!currentUrl || !isEnabled || !routeKey) return;
+    const key = routeKey;
     const onMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow || !isScrollMessage(event.data)) {
         return;
       }
-      scrollRestorationManager.save(restorationKey, {
+      scrollRestorationManager.save(key, {
         x: event.data.x,
         y: event.data.y,
         payload: { currentUrl, target: event.data.target } satisfies PanelAppScrollSnapshot,
@@ -88,11 +90,11 @@ export function usePanelAppScrollRestoration({
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [currentUrl, iframeRef, isEnabled, restorationKey]);
+  }, [currentUrl, iframeRef, isEnabled, routeKey]);
 
   return useCallback(() => {
-    if (!currentUrl || !isEnabled || !restorationKey) return;
-    const position = scrollRestorationManager.read(restorationKey);
+    if (!currentUrl || !isEnabled || !routeKey) return;
+    const position = scrollRestorationManager.read(routeKey);
     if (!position || !isPanelAppScrollSnapshot(position.payload) || position.payload.currentUrl !== currentUrl) {
       return;
     }
@@ -103,5 +105,5 @@ export function usePanelAppScrollRestoration({
       x: position.x,
       y: position.y,
     }, "*");
-  }, [currentUrl, iframeRef, isEnabled, restorationKey]);
+  }, [currentUrl, iframeRef, isEnabled, routeKey]);
 }

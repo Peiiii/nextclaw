@@ -1,5 +1,15 @@
+import { AppPresenterProvider } from '@/app/components/app-presenter-provider';
+import type { ReactElement } from 'react';
+
+vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
+  usePanelApps: () => ({ data: { entries: [] } }),
+  useUpdatePanelAppPreferences: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+function render(ui: ReactElement) {
+  return renderUi(<AppPresenterProvider>{ui}</AppPresenterProvider>);
+}
 import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
-import { act, render, screen } from '@testing-library/react';
+import { act, render as renderUi, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,13 +41,13 @@ describe('Floating conversation shell', () => {
     await user.type(floating, 'follow-up');
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('textbox', { name: 'other' })).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Restore conversation' }));
+    await user.click(screen.getByRole('button', { name: 'Expand view' }));
     expect(screen.getByRole('textbox', { name: 'other' })).toBe(floating);
     expect((floating as HTMLTextAreaElement).value).toBe('follow-up');
     expect(screen.getByRole('textbox', { name: 'main' })).toBe(main);
     expect((main as HTMLTextAreaElement).value).toBe('main draft');
     expect(screen.getByTestId('path').textContent).toBe('/chat/current');
-    await user.click(screen.getByRole('button', { name: 'Close floating conversation' }));
+    await user.click(screen.getByRole('button', { name: 'Close view' }));
     expect(floating.isConnected).toBe(false);
     expect(main.isConnected).toBe(true);
   });
@@ -53,7 +63,7 @@ describe('Floating conversation shell', () => {
     expect(previous.isConnected).toBe(false);
     expect(screen.getByRole('textbox', { name: 'two' })).toBeTruthy();
     expect(screen.getByTestId('path').textContent).toBe('/settings');
-    await user.click(screen.getByRole('button', { name: 'Open in main view' }));
+    await user.click(screen.getByRole('button', { name: 'Open in main area' }));
     expect(screen.getByTestId('path').textContent).toBe(buildSessionPath('two'));
     expect(screen.queryByTestId('floating-session-conversation')).toBeNull();
   });

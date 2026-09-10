@@ -15,6 +15,8 @@ type UseStickyBottomScrollParams = {
   hasContent: boolean;
   contentVersion: unknown;
   stickyThresholdPx?: number;
+  /** A host-owned restored reading position takes precedence over initial bottom following. */
+  initialScrollTop?: number;
 };
 
 type UseStickyBottomScrollResult = {
@@ -33,9 +35,10 @@ export function useStickyBottomScroll({
   resetKey,
   scrollRef,
   stickyThresholdPx,
+  initialScrollTop,
 }: UseStickyBottomScrollParams): UseStickyBottomScrollResult {
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const isStickyRef = useRef(true);
+  const isStickyRef = useRef(initialScrollTop === undefined);
   const previousResetKeyRef = useRef<string | null>(null);
   const pendingInitialScrollRef = useRef(false);
   const scheduledScrollFrameRef = useRef<number | null>(null);
@@ -110,15 +113,15 @@ export function useStickyBottomScroll({
     updateStickyState(nextIsAtBottom);
   }, [cancelQueuedScroll, resolveIsAtBottom, scrollRef, updateStickyState]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (previousResetKeyRef.current === resetKey) {
       return;
     }
 
     previousResetKeyRef.current = resetKey;
-    updateStickyState(true);
-    pendingInitialScrollRef.current = true;
-  }, [resetKey, updateStickyState]);
+    updateStickyState(initialScrollTop === undefined);
+    pendingInitialScrollRef.current = initialScrollTop === undefined;
+  }, [resetKey, initialScrollTop, updateStickyState]);
 
   useEffect(() => {
     return cancelQueuedScroll;

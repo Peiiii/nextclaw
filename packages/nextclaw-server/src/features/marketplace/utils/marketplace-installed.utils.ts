@@ -1,3 +1,4 @@
+import { createSystemObjectReferenceUri } from "@nextclaw/shared";
 import * as NextclawCore from "@nextclaw/core";
 import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
 import { existsSync, readFileSync } from "node:fs";
@@ -48,6 +49,7 @@ export function collectInstalledSkillRecords(options: UiRouterOptions): {
       const installedAt = marketplaceState?.installedAt;
       return {
         type: "skill",
+        resourceUri: createSystemObjectReferenceUri("skill", skill.ref),
         id: skill.name,
         spec: skill.name,
         label: skill.name,

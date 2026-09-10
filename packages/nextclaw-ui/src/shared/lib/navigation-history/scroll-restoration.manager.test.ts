@@ -35,3 +35,14 @@ describe("ScrollRestorationManager", () => {
     expect(manager.read("second")).toBeNull();
   });
 });
+
+it("restores reading memory after reload without reviving deleted entries", () => {
+  sessionStorage.clear();
+  const first = new ScrollRestorationManager(2, sessionStorage);
+  first.save('file:one', { x: 2, y: 200 });
+  first.save('file:two', { x: 0, y: 300 });
+  const reloaded = new ScrollRestorationManager(2, sessionStorage);
+  expect(reloaded.read('file:one')).toEqual({ x: 2, y: 200 });
+  reloaded.delete('file:one');
+  expect(new ScrollRestorationManager(2, sessionStorage).read('file:one')).toBeNull();
+});

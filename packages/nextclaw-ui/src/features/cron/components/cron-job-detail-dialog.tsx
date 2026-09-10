@@ -1,3 +1,5 @@
+import { PageResourceActionsMenu } from '@/features/right-panel-resources';
+import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import type { ReactNode } from "react";
 import { Play, Trash2 } from "lucide-react";
 
@@ -87,7 +89,7 @@ export function CronJobDetailDialog({
               {isBound ? t("cronBoundSession") : t("cronDedicatedSession")}
             </span>
           </div>
-          <SheetTitle>{job.name || job.id}</SheetTitle>
+          <div className="flex items-center justify-between gap-2"><SheetTitle>{job.name || job.id}</SheetTitle><PageResourceActionsMenu page={pageResourceFromSystemObject('cron-job', job.id, job.name || job.id)} /></div>
           <SheetDescription>{t("cronDetailDescription")}</SheetDescription>
         </SheetHeader>
 

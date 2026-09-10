@@ -8,11 +8,11 @@ import {
   FolderTree,
   GitBranch,
   LayoutDashboard,
-  Maximize2,
   MessageSquarePlus,
   MessageSquareText,
-  Minimize2,
   RefreshCw,
+  PanelRight,
+  PictureInPicture2,
   X,
 } from "lucide-react";
 import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
@@ -104,7 +104,7 @@ function buildWorkspaceFileMenuGroups(
     ? [{
         key: "close",
         icon: <X className="h-4 w-4" />,
-        label: t("chatWorkspaceCloseFile"),
+        label: t("workbenchCloseTab"),
         onSelect: tab.onClose,
       }]
     : [];
@@ -162,41 +162,39 @@ function buildCompactWorkspaceTabs(
     closeLabel: `${
       tab.kind === "file"
         ? t("chatWorkspaceCloseFile")
-        : t("chatWorkspaceCloseTab")
+        : t("workbenchCloseTab")
     }: ${tab.title}`,
     closePlacement: "leading-hover",
     onSelect: tab.onSelect,
     onClose: tab.onClose,
-    menuLabel:
-      tab.kind === "child-session"
-        ? t("chatSessionMoreActions")
-        : t("chatWorkspaceFileMoreActions"),
-    menuGroups:
-      tab.menuGroups ??
-      buildWorkspaceSessionMenuGroups(tab) ??
-      buildWorkspaceFileMenuGroups(tab),
+    menuLabel: `${t('pageActions')}: ${tab.title}`,
+    menuGroups: [
+      ...(tab.menuGroups ?? []),
+      ...(buildWorkspaceSessionMenuGroups(tab) ?? buildWorkspaceFileMenuGroups(tab) ?? []).map((group) => ({
+        ...group,
+        items: group.items.filter((item) => !tab.menuGroups?.some((shared) => shared.items.some((action) => action.key === item.key))),
+      })).filter((group) => group.items.length > 0),
+      { key: 'placement', items: [
+        ...(tab.onMoveGlobal ? [{ key: 'move-global', label: t('workbenchMoveGlobal'), icon: <PanelRight className="h-4 w-4" />, onSelect: tab.onMoveGlobal }] : []),
+        ...(tab.onFloat ? [{ key: 'float', label: t('workbenchFloatView'), icon: <PictureInPicture2 className="h-4 w-4" />, onSelect: tab.onFloat }] : []),
+      ] },
+    ],
   }));
 }
 
 export function WorkspaceTabsBar({
   canGoBack,
   canGoForward,
-  isMaximized = false,
-  onClose,
   onGoBack,
   onGoForward,
   onRefreshFile,
-  onToggleMaximize,
   tabs,
 }: {
   canGoBack: boolean;
   canGoForward: boolean;
-  isMaximized?: boolean;
-  onClose: () => void;
   onGoBack: () => void;
   onGoForward: () => void;
   onRefreshFile?: () => void;
-  onToggleMaximize?: () => void;
   tabs: readonly WorkspaceTabViewModel[];
 }) {
   const compactTabs = buildCompactWorkspaceTabs(tabs);
@@ -213,27 +211,11 @@ export function WorkspaceTabsBar({
           },
         ]
       : []),
-    ...(onToggleMaximize
-      ? [
-          {
-            key: "maximize",
-            icon: isMaximized ? (
-              <Minimize2 className="h-4 w-4" />
-            ) : (
-              <Maximize2 className="h-4 w-4" />
-            ),
-            label: isMaximized
-              ? t("chatWorkspaceRestorePanel")
-              : t("chatWorkspaceMaximizePanel"),
-            onClick: onToggleMaximize,
-          },
-        ]
-      : []),
-    { key: "close", icon: <X className="h-4 w-4" />, label: t("chatWorkspaceClosePanel"), onClick: onClose },
   ];
 
   return (
     <CompactTabStrip
+      className="h-10 min-w-0 flex-1 border-0 bg-transparent px-0"
       testId="workspace-tabs-bar"
       scrollTestId="workspace-tabs-scroll"
       tabs={compactTabs}

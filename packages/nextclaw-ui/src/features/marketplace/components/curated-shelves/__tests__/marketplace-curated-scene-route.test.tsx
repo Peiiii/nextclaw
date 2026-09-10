@@ -273,3 +273,5 @@ describe("Marketplace curated scene routes", () => {
     expect(screen.queryByRole("button", { name: /Development/ })).toBeNull();
   });
 });
+
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));

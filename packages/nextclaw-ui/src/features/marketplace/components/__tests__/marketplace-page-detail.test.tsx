@@ -43,7 +43,8 @@ vi.mock("@/shared/components/doc-browser", () => ({
   }),
 }));
 
-vi.mock("@/shared/lib/api", () => ({
+vi.mock("@/shared/lib/api", async (importOriginal) => ({
+  ...await importOriginal<object>(),
   fetchMarketplaceSkillContent: mocks.fetchMarketplaceSkillContent,
 }));
 
@@ -348,3 +349,6 @@ describe("MarketplacePage detail loading", () => {
     expect(useMarketplaceDetailDocStore.getState().entries["skill:web-search"]?.contentRaw).not.toContain("Stale");
   });
 });
+
+// Resource policy has separate integration coverage; keep this fixture scoped to its business UI.
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));

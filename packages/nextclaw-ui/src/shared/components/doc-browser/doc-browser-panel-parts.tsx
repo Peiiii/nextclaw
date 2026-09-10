@@ -92,7 +92,7 @@ export function DocBrowserFrameContent({
           name={createUiContentParamsWindowName(currentTab?.contentParams)}
           className="absolute inset-0 w-full h-full border-0"
           title={currentTab?.title || 'NextClaw Docs'}
-          sandbox={iframeSandbox}
+          sandbox={iframeSandbox ?? (currentTab?.kind === 'content' ? undefined : 'allow-same-origin allow-scripts allow-popups allow-forms')}
           tabIndex={onIframePointerOver ? 0 : undefined}
           onLoad={onIframeLoad}
           onPointerOver={onIframePointerOver}

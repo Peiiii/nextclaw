@@ -84,6 +84,7 @@ export {
 } from "./configs/chat-composer-token.config.js";
 export {
   CHAT_UI_RESOURCE_TOKEN_KIND,
+  createPanelAppResourceUri,
   readChatUiResourceReference,
 } from "./configs/chat-ui-resource-reference.config.js";
 export {

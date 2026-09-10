@@ -1,3 +1,5 @@
+import type { WorkbenchSurfaceManager } from '@/shared/components/workbench/managers/workbench-surface.manager';
+import { GLOBAL_WORKBENCH_SURFACE } from '@/shared/components/workbench/types/workbench-surface.types';
 import type {
   DocBrowserActiveHistoryEntry,
   DocBrowserOpenOptions,
@@ -187,6 +189,7 @@ function openResolvedDocBrowserState(
       target.resourceUri ?? target.url,
       options?.dockIcon ?? target.dockIcon,
       target.contentParams,
+      options?.viewState ?? target.viewState,
     );
     if (isClosedDefaultHomeState(prev, activeTab)) {
       const nextState = {
@@ -244,6 +247,7 @@ function openDocBrowserState(
 
 export class DocBrowserManager {
   constructor(
+    private readonly surfaces: WorkbenchSurfaceManager,
     private readonly routeResolver: DocBrowserRouteResolver = defaultDocBrowserRouteResolver,
     private readonly onRightPanelOpened?: RightPanelOpenedHandler,
   ) {}
@@ -254,6 +258,8 @@ export class DocBrowserManager {
 
   readonly open = (url?: string, options?: DocBrowserOpenOptions): void => {
     this.setSnapshot((prev) => openDocBrowserState(this.routeResolver, prev, url, options));
+    if (options?.placement) this.surfaces.place(GLOBAL_WORKBENCH_SURFACE, options.placement);
+    this.surfaces.restore(GLOBAL_WORKBENCH_SURFACE);
     this.onRightPanelOpened?.();
   };
 
@@ -264,6 +270,8 @@ export class DocBrowserManager {
       kind: options?.kind ?? target.kind,
       title: options?.title ?? target.title,
     }));
+    if (options?.placement) this.surfaces.place(GLOBAL_WORKBENCH_SURFACE, options.placement);
+    this.surfaces.restore(GLOBAL_WORKBENCH_SURFACE);
     this.onRightPanelOpened?.();
   };
 
@@ -289,7 +297,9 @@ export class DocBrowserManager {
   };
 
   readonly toggleMode = (): void => {
-    this.setSnapshot((prev) => ({ ...prev, mode: prev.mode === 'floating' ? 'docked' : 'floating' }));
+    const { surfaces } = this;
+    surfaces.place(GLOBAL_WORKBENCH_SURFACE, surfaces.get(GLOBAL_WORKBENCH_SURFACE).placement === 'floating' ? 'docked' : 'floating');
+    this.surfaces.restore(GLOBAL_WORKBENCH_SURFACE);
     this.onRightPanelOpened?.();
   };
 

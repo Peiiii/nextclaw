@@ -13,6 +13,8 @@ import {
   CHAT_INLINE_TOKENS_METADATA_KEY,
   CHAT_INLINE_TOKENS_SCHEMA_VERSION,
   CHAT_PROJECT_TOKEN_KIND,
+  CHAT_UI_RESOURCE_TOKEN_KIND,
+  createPanelAppResourceUri,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
   EventBus,
@@ -268,6 +270,13 @@ describe("ContextProviderContribution native prompt contract", () => {
           schemaVersion: CHAT_INLINE_TOKENS_SCHEMA_VERSION,
           items: [
             {
+              kind: CHAT_UI_RESOURCE_TOKEN_KIND,
+              key: createPanelAppResourceUri("reference-reader"),
+              label: "Reference Reader",
+              rawText: "@resource:reference-reader",
+              reference: { uri: createPanelAppResourceUri("reference-reader"), resourceKind: "panel-app", title: "Reference Reader", currentUrl: "/api/panel-apps/reference-reader/content" },
+            },
+            {
               kind: CHAT_WORKSPACE_FILE_TOKEN_KIND,
               key: "reference.ts",
               label: "reference.ts",
@@ -302,6 +311,10 @@ describe("ContextProviderContribution native prompt contract", () => {
       "You are a personal assistant running inside nextclaw.",
       "provider tool schemas are the complete policy-filtered tool catalog",
       "# Project Context",
+      "NextClaw Resource Protocol (NextClaw 资源协议)",
+      "## Explicit UI Resource References",
+      "nextclaw://panel-app/reference-reader",
+      "not a snapshot of iframe DOM or live application state",
       "## Explicit Workspace References",
       "export const referenced = true;",
       '<workspace_excerpt path="reference.ts" start_line="3" end_line="4">',

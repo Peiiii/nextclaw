@@ -1,28 +1,31 @@
+import { workbenchSurfaceManager } from '@/shared/components/workbench/managers/workbench-surface.manager';
+import { GLOBAL_WORKBENCH_SURFACE, SESSION_WORKBENCH_SURFACE } from '@/shared/components/workbench/types/workbench-surface.types';
 import { useFloatingSessionStore, type FloatingSession } from '@/features/chat/stores/floating-session.store';
 import type { DocBrowserManager } from '@/shared/components/doc-browser/managers/doc-browser.manager';
 import type { DocBrowserTab } from '@/shared/components/doc-browser/types/doc-browser.types';
-import { useDocBrowserStore } from '@/shared/components/doc-browser/stores/doc-browser.store';
 import { buildSessionPanelUrl, CHAT_SESSION_PANEL_KIND, parseSessionKeyFromPanelUrl } from '@/features/chat/features/session/utils/chat-session-route.utils';
 
 class SessionSurfaceManager {
   open = (session: FloatingSession): void => {
-    useFloatingSessionStore.setState({ session, minimized: false });
+    useFloatingSessionStore.setState({ session });
+    workbenchSurfaceManager.place(SESSION_WORKBENCH_SURFACE, 'floating');
   };
 
   minimize = (): void => {
-    useFloatingSessionStore.setState({ minimized: true });
+    workbenchSurfaceManager.minimize(SESSION_WORKBENCH_SURFACE);
   };
 
   restore = (): void => {
-    useFloatingSessionStore.setState({ minimized: false });
+    workbenchSurfaceManager.restore(SESSION_WORKBENCH_SURFACE);
   };
 
   close = (): void => {
-    useFloatingSessionStore.setState({ session: null, minimized: false });
+    useFloatingSessionStore.setState({ session: null });
+    workbenchSurfaceManager.place(SESSION_WORKBENCH_SURFACE, 'floating');
   };
 
   dock = (session: FloatingSession, docBrowser: DocBrowserManager): void => {
-    if (useDocBrowserStore.getState().snapshot.mode !== 'docked') docBrowser.toggleMode();
+    workbenchSurfaceManager.place(GLOBAL_WORKBENCH_SURFACE, 'docked');
     docBrowser.open(buildSessionPanelUrl(session.sessionKey), {
       kind: CHAT_SESSION_PANEL_KIND,
       title: session.title,

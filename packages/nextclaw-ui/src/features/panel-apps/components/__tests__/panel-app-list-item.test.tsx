@@ -7,10 +7,12 @@ import { PanelAppListItem } from '@/features/panel-apps/components/panel-app-lis
 
 const mainSidebarMutation = vi.hoisted(() => ({
   isPending: false,
+  pinned: false,
   mutate: vi.fn(),
 }));
 
 vi.mock('@/features/panel-apps/hooks/use-panel-apps', () => ({
+  usePanelApps: () => ({ data:{ entries:[{ ...baseEntry, mainSidebar: mainSidebarMutation.pinned }] } }),
   useUpdatePanelAppPreferences: () => mainSidebarMutation,
 }));
 
@@ -37,6 +39,7 @@ describe('PanelAppListItem', () => {
     window.localStorage.clear();
     viewportLayoutManager.resetForTests();
     mainSidebarMutation.isPending = false;
+    mainSidebarMutation.pinned = false;
     mainSidebarMutation.mutate.mockReset();
   });
 
@@ -95,9 +98,9 @@ describe('PanelAppListItem', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: 'Add to main sidebar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Pin to left sidebar' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
-    await user.click(screen.getByRole('button', { name: 'Add to main sidebar' }));
+    await user.click(screen.getByRole('button', { name: 'Pin to left sidebar' }));
     expect(mainSidebarMutation.mutate).toHaveBeenCalledWith({
       id: 'demo',
       preferences: { mainSidebar: true },
@@ -106,6 +109,7 @@ describe('PanelAppListItem', () => {
       useViewportLayoutStore.getState().isMainSidebarAppGroupCollapsed,
     ).toBe(false);
 
+    mainSidebarMutation.pinned = true;
     rerender(
       <PanelAppListItem
         deletePending={false}
@@ -116,9 +120,9 @@ describe('PanelAppListItem', () => {
         onToggleFavorite={vi.fn()}
       />,
     );
-    expect(screen.queryByRole('button', { name: 'Remove from main sidebar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Unpin from left sidebar' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'More panel app actions' }));
-    await user.click(screen.getByRole('button', { name: 'Remove from main sidebar' }));
+    await user.click(screen.getByRole('button', { name: 'Unpin from left sidebar' }));
     expect(mainSidebarMutation.mutate).toHaveBeenLastCalledWith({
       id: 'demo',
       preferences: { mainSidebar: false },
@@ -143,3 +147,6 @@ describe('PanelAppListItem', () => {
     expect(link.getAttribute('href')).toBe('/apps/panel/demo/standalone');
   });
 });
+
+vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()),useNavigate: () => vi.fn(), useLocation: () => ({ pathname:'/apps',search:'' }) }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager:{ open:vi.fn() } }) }));

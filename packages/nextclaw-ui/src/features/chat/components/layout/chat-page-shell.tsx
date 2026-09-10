@@ -1,3 +1,5 @@
+import { CurrentPageActions } from '@/features/right-panel-resources';
+import { ResourcePage } from '@/features/right-panel-resources';
 import { lazy, Suspense, useLayoutEffect } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
@@ -13,7 +15,7 @@ const ProjectsPage = lazy(async () => ({
   default: (await import("@/features/projects")).ProjectsPage,
 }));
 
-export type MainPanelView = "chat" | "cron" | "skills" | "agents" | "inbox" | "panel-app" | "projects";
+export type MainPanelView = "resource" | "chat" | "cron" | "skills" | "agents" | "inbox" | "panel-app" | "projects";
 export type ChatPageProps = {
   view: MainPanelView;
 };
@@ -46,68 +48,35 @@ type ChatPageLayoutProps = {
   view: MainPanelView;
   confirmDialog?: JSX.Element;
 };
+function ManagementPageContent({ view }: ChatPageProps) {
+  const { onScroll, scrollRef } = useScrollRestoration<HTMLDivElement>({
+    restorationKey: view === 'cron' || view === 'agents' ? `main-page:${view}` : null,
+  });
+  switch (view) {
+    case 'resource': return <ResourcePage />;
+    case 'projects': return <Suspense fallback={<div className="h-full animate-pulse bg-card/30" />}><ProjectsPage /></Suspense>;
+    case 'panel-app': return <PanelAppMainPage />;
+    case 'inbox': return <div className={`mx-auto flex h-full min-h-0 w-full flex-col py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}><InboxPage /></div>;
+    case 'cron':
+    case 'agents': return <div ref={scrollRef} onScroll={onScroll} className="h-full overflow-auto custom-scrollbar">
+      <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
+        {view === 'cron' ? <CronConfig /> : <AgentsPage />}
+      </div>
+    </div>;
+    default: return <div className={`mx-auto flex h-full min-h-0 w-full flex-col px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}><MarketplacePage forcedType="skills" /></div>;
+  }
+}
+
 export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
   const { isMobile } = useViewportLayout();
-  const cronScroll = useScrollRestoration<HTMLDivElement>({
-    restorationKey: "main-page:cron",
-  });
-  const agentsScroll = useScrollRestoration<HTMLDivElement>({
-    restorationKey: "main-page:agents",
-  });
-  const { onScroll: onCronScroll, scrollRef: cronScrollRef } = cronScroll;
-  const { onScroll: onAgentsScroll, scrollRef: agentsScrollRef } = agentsScroll;
-
-  return (
-    <div className="h-full flex">
-      {!isMobile ? <ChatSidebar /> : null}
-
-      {view === "chat" ? (
-        isMobile ? <ChatMobileShell /> : <ChatConversationPanel />
-      ) : (
-        <section
-          data-theme-surface="workspace"
-          className={resolveManagementWorkspaceClass(view)}
-        >
-          {view === "projects" ? (
-            <Suspense fallback={<div className="h-full animate-pulse bg-card/30" />}>
-              <ProjectsPage />
-            </Suspense>
-          ) : view === "inbox" ? (
-            <div className={`mx-auto flex h-full min-h-0 w-full flex-col py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
-              <InboxPage />
-            </div>
-          ) : view === "panel-app" ? (
-            <PanelAppMainPage />
-          ) : view === "cron" ? (
-            <div
-              ref={cronScrollRef}
-              onScroll={onCronScroll}
-              className="h-full overflow-auto custom-scrollbar"
-            >
-              <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
-                <CronConfig />
-              </div>
-            </div>
-          ) : view === "agents" ? (
-            <div
-              ref={agentsScrollRef}
-              onScroll={onAgentsScroll}
-              className="h-full overflow-auto custom-scrollbar"
-            >
-              <div className={`mx-auto w-full px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
-                <AgentsPage />
-              </div>
-            </div>
-          ) : (
-            <div className="h-full overflow-hidden">
-              <div className={`mx-auto flex h-full min-h-0 w-full flex-col px-4 py-4 sm:px-6 sm:py-5 ${MANAGEMENT_PAGE_CANVAS_WIDTH_CLASS}`}>
-                <MarketplacePage forcedType="skills" />
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-      {confirmDialog}
-    </div>
-  );
+  return <div className="h-full flex">
+    {!isMobile ? <ChatSidebar /> : null}
+    {view === 'chat' ? (isMobile ? <ChatMobileShell /> : <ChatConversationPanel />) : (
+      <section data-theme-surface="workspace" className={`${resolveManagementWorkspaceClass(view)} flex flex-col`}>
+        {view !== 'resource' && view !== 'panel-app' ? <CurrentPageActions /> : null}
+        <div className="min-h-0 flex-1 overflow-hidden"><ManagementPageContent view={view} /></div>
+      </section>
+    )}
+    {confirmDialog}
+  </div>;
 }

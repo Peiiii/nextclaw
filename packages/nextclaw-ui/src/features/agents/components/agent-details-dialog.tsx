@@ -1,3 +1,5 @@
+import { PageResourceActionsMenu } from '@/features/right-panel-resources';
+import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import type { ReactNode } from "react";
 import type { AgentProfileView, ConfigView } from "@/shared/lib/api";
 import { normalizeSessionType, resolveSessionTypeLabel } from "@/features/chat";
@@ -84,6 +86,7 @@ export function AgentDetailsDialog({
                 <DialogTitle className="truncate text-base">
                   {agent.displayName?.trim() || agent.id}
                 </DialogTitle>
+                <PageResourceActionsMenu page={pageResourceFromSystemObject('agent', agent.id, agent.displayName || agent.id)} />
                 <DialogDescription className="truncate text-xs">
                   @{agent.id}
                 </DialogDescription>

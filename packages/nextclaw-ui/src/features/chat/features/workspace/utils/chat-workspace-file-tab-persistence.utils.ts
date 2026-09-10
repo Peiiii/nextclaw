@@ -70,6 +70,7 @@ export function normalizePersistedWorkspaceFileTab(
     patchText: normalizeOptionalText(value.patchText),
     oldStartLine: normalizeOptionalNumber(value.oldStartLine),
     newStartLine: normalizeOptionalNumber(value.newStartLine),
+    fullLines: Array.isArray(value.fullLines) ? value.fullLines.filter((line) => line && ['context', 'add', 'remove'].includes(line.kind) && typeof line.text === 'string' && (line.oldLineNumber === undefined || Number.isFinite(line.oldLineNumber)) && (line.newLineNumber === undefined || Number.isFinite(line.newLineNumber))) : undefined,
   };
 }
 
@@ -94,6 +95,7 @@ export function toPersistedWorkspaceFileTab(
     patchText: tab.patchText,
     oldStartLine: tab.oldStartLine,
     newStartLine: tab.newStartLine,
+    fullLines: tab.fullLines,
   };
 }
 

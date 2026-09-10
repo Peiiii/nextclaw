@@ -1,3 +1,4 @@
+import { registerResourceCommands } from "./commands/resource-command-registration.utils.js";
 import { Command } from "commander";
 import { registerFeedbackCommands } from "./commands/feedback-command-registration.utils.js";
 import { registerDiscussionCommands } from "./commands/discussion-command-registration.utils.js";
@@ -147,6 +148,7 @@ registerSkillsCommands(program, runtime);
 registerAgentsCommands(program, runtime);
 
 registerProjectCommands(program, runtime);
+registerResourceCommands(program);
 
 registerSessionCommands(program, runtime);
 

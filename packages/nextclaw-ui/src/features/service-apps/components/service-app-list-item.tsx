@@ -1,3 +1,5 @@
+import { PageResourceActionItems } from "@/features/right-panel-resources";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 import { useState } from "react";
 import type {
   AgentProfileView,
@@ -165,7 +167,9 @@ export function ServiceAppListItem({
                   {t("serviceAppsMoreActions")}
                 </TooltipContent>
               </Tooltip>
-              <PopoverContent align="end" className="w-48 rounded-xl p-1.5">
+              <PopoverContent align="end" className="w-56 rounded-xl p-1.5">
+                <PageResourceActionItems page={pageResourceFromSystemObject("service-app", app.id, app.title)} onSelect={() => setIsMenuOpen(false)} />
+                <div className="my-1 h-px bg-border" />
                 <ServiceAppMenuItem
                   disabled={!canDisconnectRuntime}
                   icon={Unplug}

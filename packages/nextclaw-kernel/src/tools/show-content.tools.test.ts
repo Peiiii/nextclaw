@@ -208,6 +208,11 @@ describe("show content tools", () => {
 });
 
 describe("show_panel_app", () => {
+  it("returns a canonical ordinary-link URI preserving encoded identity and source path", async () => {
+    const result = await getTool("show_panel_app").execute({ appId: "reader notes", path: "/tmp/My panel.panel.html" });
+    expect(result).toMatchObject({ resourceUri: "nextclaw://panel-app/reader%20notes?path=%2Ftmp%2FMy+panel.panel.html" });
+  });
+
   it("opens panel app showContent requests in the side panel", async () => {
     const eventBus = new EventBus();
     const events: unknown[] = [];
@@ -227,6 +232,7 @@ describe("show_panel_app", () => {
     expect(result).toEqual({
       ok: true,
       action: "showContent",
+      resourceUri: "nextclaw://panel-app/reader",
       request: {
         target: {
           type: "panel_app",

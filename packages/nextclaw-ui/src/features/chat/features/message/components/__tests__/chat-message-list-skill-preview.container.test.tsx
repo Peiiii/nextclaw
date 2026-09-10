@@ -168,3 +168,6 @@ it("shows an error when a persisted v1 skill is no longer resolvable", async () 
   ));
   expect(captures.openFilePreview).not.toHaveBeenCalled();
 });
+
+vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()), useNavigate: () => vi.fn() }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { resolve: vi.fn(), open: vi.fn() } }) }));

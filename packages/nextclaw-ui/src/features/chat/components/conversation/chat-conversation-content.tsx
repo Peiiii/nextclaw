@@ -1,5 +1,7 @@
+import { scrollRestorationManager } from '@/shared/lib/navigation-history';
 import {
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
   type UIEvent,
@@ -31,6 +33,7 @@ type ChatConversationContentProps = {
   messages: readonly NcpMessage[];
   messageDetailStates?: Readonly<Record<string, SessionMessageToolPayloadState>>;
   sessionKey: string | null;
+  resourceWorkingDir?: string | null;
   showWelcome: boolean;
   onLoadPreviousMessages: () => Promise<void>;
   onLoadMessageDetails?: (messageId: string) => Promise<void>;
@@ -49,6 +52,26 @@ function createConversationScrollRestorationKey(
   return sessionKey && !showWelcome ? `chat-conversation:${sessionKey}` : null;
 }
 
+function ConversationHistoryStatus({ historyError, isLoadingPreviousMessages, onLoadPreviousMessages }: Pick<ChatConversationContentProps, 'historyError' | 'isLoadingPreviousMessages' | 'onLoadPreviousMessages'>) {
+  return <>{historyError ? (
+                  <div role="alert" className="flex h-8 justify-center">
+                    <button
+                      type="button"
+                      aria-label={t("chatHistoryRetry")}
+                      className="rounded px-1.5 text-xs text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      onClick={() => void onLoadPreviousMessages()}
+                    >
+                      {t("chatHistoryLoadFailed")} · {t("chatHistoryRetry")}
+                    </button>
+                  </div>
+                ) : isLoadingPreviousMessages ? (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-1/2 top-[13px] block h-1.5 w-1.5 -translate-x-1/2 animate-pulse rounded-full bg-muted-foreground/50 sm:top-[17px]"
+                  />
+                ) : null}</>;
+}
+
 export function ChatConversationContent({
   bottomSlot,
   canContinue = false,
@@ -62,6 +85,7 @@ export function ChatConversationContent({
   messages,
   messageDetailStates,
   sessionKey,
+  resourceWorkingDir,
   showWelcome,
   onLoadPreviousMessages,
   onLoadMessageDetails,
@@ -72,16 +96,19 @@ export function ChatConversationContent({
   const threadRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const hasConversationContent = messages.length > 0 || isSending;
+  const readingKey = createConversationScrollRestorationKey(sessionKey, showWelcome);
+  const initialReadingPosition = useMemo(() => readingKey ? scrollRestorationManager.read(readingKey) : null, [readingKey]);
   const scrollRestoration = useScrollRestoration({
-    restorationKey: createConversationScrollRestorationKey(sessionKey, showWelcome),
+    restorationKey: readingKey,
     scrollRef: threadRef,
-    isEnabled: !showWelcome,
+    isEnabled: !showWelcome && !isHistoryLoading,
   });
   const { onScroll: onScrollPositionSave } = scrollRestoration;
   const { isAtBottom, onScroll, scrollToBottom } = useStickyBottomScroll({
     contentRef,
     scrollRef: threadRef,
     resetKey: sessionKey,
+    initialScrollTop: initialReadingPosition?.y,
     isLoading: isHistoryLoading,
     hasContent: hasConversationContent,
     contentVersion: messages[messages.length - 1] ?? isSending,
@@ -113,6 +140,8 @@ export function ChatConversationContent({
         ref={threadRef}
         onScroll={handleScroll}
         data-chat-scroll-container="true"
+        data-resource-session={sessionKey ?? undefined}
+        data-resource-working-dir={resourceWorkingDir ?? undefined}
         className={showWelcome ? "h-full overflow-y-auto custom-scrollbar" : `h-full overflow-y-auto custom-scrollbar ${SCROLL_BOTTOM_EDGE_FADE_CLASS}`}
         style={{ overflowAnchor: "none" }}
       >
@@ -122,23 +151,7 @@ export function ChatConversationContent({
           <div ref={contentRef} className="pb-7">
             {hasConversationContent ? (
               <ChatConversationTrack className="relative py-4 sm:py-5">
-                {historyError ? (
-                  <div role="alert" className="flex h-8 justify-center">
-                    <button
-                      type="button"
-                      aria-label={t("chatHistoryRetry")}
-                      className="rounded px-1.5 text-xs text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      onClick={() => void onLoadPreviousMessages()}
-                    >
-                      {t("chatHistoryLoadFailed")} · {t("chatHistoryRetry")}
-                    </button>
-                  </div>
-                ) : isLoadingPreviousMessages ? (
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-1/2 top-[13px] block h-1.5 w-1.5 -translate-x-1/2 animate-pulse rounded-full bg-muted-foreground/50 sm:top-[17px]"
-                  />
-                ) : null}
+                <ConversationHistoryStatus historyError={historyError} isLoadingPreviousMessages={isLoadingPreviousMessages} onLoadPreviousMessages={onLoadPreviousMessages} />
                 <ChatMessageListContainer
                   canContinue={canContinue}
                   messages={messages}

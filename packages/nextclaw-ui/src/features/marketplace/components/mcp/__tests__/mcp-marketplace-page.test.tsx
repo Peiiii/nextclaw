@@ -226,3 +226,5 @@ describe("McpMarketplacePage", () => {
     expect(screen.getByText("Disable")).toBeTruthy();
   });
 });
+
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));

@@ -5,6 +5,7 @@ import {
 } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
 import {
+  createPanelAppResourceUri,
   eventKeys,
   readUiContentParams,
   type EventBus,
@@ -197,7 +198,10 @@ class ShowContentDisplayTool implements NcpTool {
       createShowContentEventPayload(request, context),
       { source: "kernel" },
     );
-    return { ok: true, action: "showContent", request };
+    const resourceUri = request.target.type === "panel_app"
+      ? createPanelAppResourceUri(request.target.payload.appId, request.target.payload.path)
+      : undefined;
+    return { ok: true, action: "showContent", request, ...(resourceUri ? { resourceUri } : {}) };
   };
 }
 
@@ -238,7 +242,7 @@ const SHOW_CONTENT_TOOL_SPECS: readonly ShowContentToolSpec[] = [
   },
   {
     name: "show_panel_app",
-    description: 'Open a Panel App in the current chat UI as an immediate tool-driven preview. This tool is side-panel only. For inline Panel App display in a final reply, do not call this tool; output a Markdown nextclaw-inline fenced JSON block instead.',
+    description: 'Open a Panel App in the current chat UI as an immediate tool-driven preview. This tool is side-panel only. The result resourceUri is a NextClaw Resource Protocol URI usable in an ordinary Markdown link; linking alone needs no tool call. For inline Panel App display in a final reply, do not call this tool; output a Markdown nextclaw-inline fenced JSON block instead.',
     parameters: {
       type: "object",
       properties: {

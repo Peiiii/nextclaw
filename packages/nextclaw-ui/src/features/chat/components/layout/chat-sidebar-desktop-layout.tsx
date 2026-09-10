@@ -25,7 +25,7 @@ import {
 import { useInboxUnreadCount } from "@/features/inbox";
 import { ChatSidebarSessionList } from "@/features/chat/features/session/components/chat-sidebar-session-list";
 import { ChatSidebarUtilityMenu } from "@/features/chat/components/layout/chat-sidebar-utility-menu";
-import { PanelAppMainSidebarNav } from "@/features/panel-apps";
+import { PageResourceSidebarNav } from "@/features/right-panel-resources";
 import { isWindowsDesktopHost } from "@/platforms/desktop";
 import { viewportLayoutManager } from "@/app/managers/viewport-layout.manager";
 import { useScrollRestoration } from "@/shared/hooks/use-scroll-restoration";
@@ -143,7 +143,7 @@ export function ChatSidebarDesktopNav({
           ))}
         </ul>
       </div>
-      <PanelAppMainSidebarNav isCollapsed={isCollapsed} />
+      <PageResourceSidebarNav isCollapsed={isCollapsed} />
     </div>
   );
 }

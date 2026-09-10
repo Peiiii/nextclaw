@@ -1,3 +1,6 @@
+import { PageResourceActionsMenu } from '@/features/right-panel-resources';
+import { pageResourceFromTarget } from '@/features/right-panel-resources';
+import { createMarketplaceDetailDocTarget } from '@/features/marketplace/components/marketplace-detail-doc';
 import type {
   MarketplaceInstalledRecord,
   MarketplaceItemSummary,
@@ -273,6 +276,7 @@ export function MarketplaceListCard(props: {
         </div>
 
         <MarketplaceListCardStatus record={record} disabled={isDisabled} />
+        {record?.resourceUri ? <PageResourceActionsMenu page={{ uri: record.resourceUri, title, target: { kind: "system-object", title, url: record.resourceUri, resourceUri: record.resourceUri, historyPolicy: "none" } }} /> : item && <PageResourceActionsMenu page={pageResourceFromTarget(createMarketplaceDetailDocTarget({ id: `skill:${item.slug}`, title, typeLabel: t("marketplaceTypeSkill"), spec, status: "loading" }))} />}
       </div>
 
       <div className="mt-2 flex min-w-0 flex-1 flex-col">

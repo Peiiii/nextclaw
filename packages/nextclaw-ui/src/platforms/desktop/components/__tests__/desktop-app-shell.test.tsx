@@ -167,3 +167,6 @@ describe("DesktopAppShell", () => {
     expect(screen.getByTestId("app-content")).toBeTruthy();
   });
 });
+
+vi.mock("@/shared/components/doc-browser/doc-browser", () => ({ DocBrowser: () => null }));
+vi.mock("@/features/right-panel-resources/components/current-page-actions", () => ({ CurrentPageActions: () => null }));

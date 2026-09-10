@@ -1,3 +1,5 @@
+import { PageResourceActionsMenu } from "@/features/right-panel-resources";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 import type {
   MarketplaceInstalledRecord,
   MarketplaceItemSummary,
@@ -58,6 +60,7 @@ export function McpMarketplaceCard(props: {
         </div>
 
         <div className="flex shrink-0 flex-col gap-2">
+          {record?.id && <PageResourceActionsMenu page={pageResourceFromSystemObject("mcp-server", record.id, name)} />}
           {!installed && item && onInstall ? (
             <Button
               type="button"

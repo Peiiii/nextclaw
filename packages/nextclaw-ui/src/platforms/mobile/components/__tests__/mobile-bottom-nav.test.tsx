@@ -7,7 +7,8 @@ import { MobileBottomNav } from "@/platforms/mobile/components/mobile-bottom-nav
 
 const { openAppsMock } = vi.hoisted(() => ({ openAppsMock: vi.fn() }));
 
-vi.mock("@/features/panel-apps", () => ({ openApps: openAppsMock }));
+vi.mock("@/features/panel-apps", async (importOriginal) => ({
+  ...await importOriginal<object>(), openApps: openAppsMock }));
 vi.mock("@/shared/components/doc-browser", () => ({
   useDocBrowser: () => ({ open: vi.fn() }),
 }));

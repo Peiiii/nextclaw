@@ -36,6 +36,7 @@ vi.mock("@/features/cron", () => ({
 
 vi.mock("@/features/marketplace", () => ({
   MarketplacePage: () => <div>Marketplace</div>,
+  MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS: {},
 }));
 
 vi.mock("@/features/projects", () => ({
@@ -101,3 +102,5 @@ describe("ChatPageLayout", () => {
     expect(screen.queryByTestId("chat-conversation-panel")).toBeNull();
   });
 });
+
+vi.mock("@/features/right-panel-resources/components/current-page-actions", () => ({ CurrentPageActions: () => null }));

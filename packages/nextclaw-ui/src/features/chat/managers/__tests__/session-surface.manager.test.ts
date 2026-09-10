@@ -1,3 +1,4 @@
+import { WorkbenchSurfaceManager } from '@/shared/components/workbench/managers/workbench-surface.manager';
 import { beforeEach, expect, it } from 'vitest';
 import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
 import { useFloatingSessionStore } from '@/features/chat/stores/floating-session.store';
@@ -7,7 +8,7 @@ import { createDefaultDocBrowserState } from '@/shared/components/doc-browser/ut
 import { RightPanelResourceRouteResolver } from '@/features/right-panel-resources';
 import { parseSessionKeyFromPanelUrl } from '@/features/chat/features/session/utils/chat-session-route.utils';
 
-const docBrowser = new DocBrowserManager(new RightPanelResourceRouteResolver());
+const docBrowser = new DocBrowserManager(new WorkbenchSurfaceManager(), new RightPanelResourceRouteResolver());
 const session = { sessionKey: 'session:中文/path', title: 'Review' };
 
 beforeEach(() => {
@@ -23,7 +24,7 @@ it('docks and deduplicates a session without replacing unrelated tabs', () => {
   sessionSurfaceManager.dock(session, docBrowser);
   const state = useDocBrowserStore.getState().snapshot;
   const tab = state.tabs.find(item => item.id === state.activeTabId)!;
-  expect(state.mode).toBe('docked');
+  expect(new WorkbenchSurfaceManager().get('global-resources').placement).toBe('docked');
   expect(state.isOpen).toBe(true);
   expect(tab.kind).toBe('chat-session');
   expect(tab.title).toBe(session.title);

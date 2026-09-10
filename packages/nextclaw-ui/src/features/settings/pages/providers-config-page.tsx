@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { KeyRound, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
+import { KeyRound, MoreVertical, Plus, Search, Trash2 } from 'lucide-react';
 import {
   useCreateProvider,
   useDeleteProvider,
@@ -304,7 +304,7 @@ export function ProvidersConfigPage() {
                             onClick={(event) => event.stopPropagation()}
                             title={t('more')}
                           >
-                            <MoreHorizontal className='h-4 w-4' />
+                            <MoreVertical className='h-4 w-4' />
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className='w-40 p-1' align='end' onClick={(event) => event.stopPropagation()}>

@@ -5,6 +5,7 @@ const PRODUCT = "NextClaw";
 type UiDocumentTitleLocation = Pick<Location, "host" | "hostname" | "port">;
 
 const ROUTE_TITLE_KEYS: Array<{ prefix: string; key: string }> = [
+  { prefix: "/resource", key: "resourcePageTitle" },
   { prefix: "/marketplace/mcp", key: "marketplaceMcpPageTitle" },
   { prefix: "/marketplace/skills", key: "marketplaceSkillsPageTitle" },
   { prefix: "/marketplace", key: "marketplace" },

@@ -1,3 +1,5 @@
+import { PageResourceActionsMenu } from "@/features/right-panel-resources";
+import { pageResourceFromSystemObject } from "@/features/right-panel-resources";
 import type { ProjectSkillMaterial } from "@nextclaw/client-sdk";
 import { formatNumber, t } from "@/shared/lib/i18n";
 import { ProjectEmptyState } from "./project-section";
@@ -33,13 +35,13 @@ export function ProjectSkills({
       {skills.length ? (
         <div className="grid min-w-0 gap-3 md:grid-cols-2">
           {skills.map((skill) => (
+            <div key={skill.ref} className="relative group/page-row">
             <button
               type="button"
-              key={skill.ref}
-              className="min-w-0 rounded-xl border border-border/60 p-3 text-left transition-colors hover:border-border hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
+              className="w-full min-w-0 rounded-xl border border-border/60 p-3 text-left transition-colors hover:border-border hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border"
               onClick={() => onOpen(skill)}
             >
-              <h3 className="text-sm font-medium">{skill.name}</h3>
+              <h3 className="pr-7 text-sm font-medium">{skill.name}</h3>
               <p
                 className="mt-1 truncate text-xs text-muted-foreground"
                 title={skill.path}
@@ -53,6 +55,8 @@ export function ProjectSkills({
                 {skill.description ?? skill.ref}
               </p>
             </button>
+            <span className="absolute right-2 top-2"><PageResourceActionsMenu revealOnHover page={pageResourceFromSystemObject("skill", skill.ref, skill.name)} /></span>
+            </div>
           ))}
         </div>
       ) : (

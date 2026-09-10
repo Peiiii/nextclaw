@@ -3,6 +3,7 @@ import { type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
 import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_UI_RESOURCE_TOKEN_KIND,
+  CHAT_SYSTEM_OBJECT_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
 } from '@nextclaw/shared';
 
@@ -42,7 +43,7 @@ export function useChatComposerReferenceIntent(params: {
                 role: intent.role,
                 excerpt: intent.excerpt,
               }
-            : intent.kind === CHAT_UI_RESOURCE_TOKEN_KIND
+            : (intent.kind === CHAT_UI_RESOURCE_TOKEN_KIND || intent.kind === CHAT_SYSTEM_OBJECT_TOKEN_KIND)
               ? { reference: intent.reference }
               : undefined,
       });

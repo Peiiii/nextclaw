@@ -243,3 +243,11 @@ describe("AppLayout", () => {
     expect(screen.queryByTestId("desktop-window-chrome")).toBeNull();
   });
 });
+
+// Resource policy has separate integration coverage; keep this fixture scoped to its business UI.
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));
+
+vi.mock("@/shared/components/doc-browser/use-doc-link-interceptor", () => ({ useDocLinkInterceptor: () => {} }));
+
+vi.mock("@/shared/components/doc-browser/doc-browser", () => ({ DocBrowser: () => null }));
+vi.mock("@/features/right-panel-resources/components/current-page-actions", () => ({ CurrentPageActions: () => null }));

@@ -7,7 +7,7 @@ import {
   CalendarDays,
   CheckSquare2,
   ChevronRight,
-  MoreHorizontal,
+  MoreVertical,
   NotebookText,
   RefreshCw,
   RotateCcw,
@@ -150,7 +150,7 @@ export function AppPackageCard({
                 disabled={pending}
                 className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-[var(--interaction-hover)] hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border disabled:opacity-50"
               >
-                <MoreHorizontal className="h-4 w-4" />
+                <MoreVertical className="h-4 w-4" />
               </button>
             </PopoverTrigger>
             <PopoverContent

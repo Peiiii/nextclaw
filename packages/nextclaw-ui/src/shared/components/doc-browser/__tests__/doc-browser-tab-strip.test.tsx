@@ -20,16 +20,11 @@ function renderTabStrip(tabs: DocBrowserTab[]) {
       activeTabId={tabs[0]?.id ?? ""}
       canGoBack={false}
       canGoForward={false}
-      isDocked={true}
-      isFullscreen={false}
       onGoBack={vi.fn()}
       onGoForward={vi.fn()}
       onOpenNewTab={vi.fn()}
       onSetActiveTab={vi.fn()}
       onCloseTab={vi.fn()}
-      onClose={vi.fn()}
-      onDragStart={vi.fn()}
-      onToggleMode={vi.fn()}
     />,
   );
 }

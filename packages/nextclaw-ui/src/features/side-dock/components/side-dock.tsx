@@ -1,4 +1,4 @@
-import { AppWindow, BookOpen, Boxes, Github, PanelRightClose, Plus, X } from 'lucide-react';
+import { PanelRightClose, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { SideDockManager } from '@/features/side-dock/managers/side-dock.manager';
 import {
@@ -7,9 +7,7 @@ import {
 } from '@/features/side-dock/configs/side-dock-built-in-items.config';
 import { useSideDockStore } from '@/features/side-dock/stores/side-dock.store';
 import type {
-  SideDockIconName,
   SideDockItem,
-  SideDockItemIcon,
 } from '@/features/side-dock/types/side-dock.types';
 import { mergeSideDockItems } from '@/features/side-dock/utils/side-dock-item.utils';
 import {
@@ -26,56 +24,23 @@ import { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 
+import { PageResourceIcon } from '@/features/right-panel-resources';
+import { ContextMenu, type ContextMenuGroup } from '@/shared/components/ui/context-menu/context-menu';
+
 type SideDockProps = {
+  getItemMenuGroups?: (item: SideDockItem) => ContextMenuGroup[];
   manager: SideDockManager;
 };
 
-const SIDE_DOCK_ICON_COMPONENTS: Record<SideDockIconName, LucideIcon> = {
-  apps: Boxes,
-  docs: BookOpen,
-  github: Github,
-  'new-tab': Plus,
-  'panel-app': AppWindow,
-  'service-apps': AppWindow,
-};
-
-const SIDE_DOCK_UTILITY_ITEM_IDS = new Set<string>([SIDE_DOCK_GITHUB_PROJECT_ITEM_ID]);
-
-const SIDE_DOCK_EMOJI_ICON_PATTERN = /^\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\uFE0E)?)*$/u;
-
-function isSideDockEmojiIcon(value: string): boolean {
-  return SIDE_DOCK_EMOJI_ICON_PATTERN.test(value.trim());
-}
-
-function SideDockItemIconView({ icon }: { icon: SideDockItemIcon }) {
-  if (icon.type === 'url') {
-    return <img src={icon.url} alt="" className="h-5 w-5 rounded object-cover" />;
-  }
-  if (icon.type === 'text') {
-    if (isSideDockEmojiIcon(icon.value)) {
-      return (
-        <span className="flex h-7 w-7 items-center justify-center text-[20px] leading-none" aria-hidden="true">
-          {icon.value}
-        </span>
-      );
-    }
-    return (
-      <span className="max-w-7 truncate text-center text-[13px] font-semibold leading-none" aria-hidden="true">
-        {icon.value}
-      </span>
-    );
-  }
-
-  const Icon = SIDE_DOCK_ICON_COMPONENTS[icon.name];
-  return <Icon className="h-5 w-5" aria-hidden="true" />;
-}
 
 function SideDockButton({
   active,
   item,
   onOpen,
   onUnpin,
+  menuGroups = [],
 }: {
+  menuGroups?: ContextMenuGroup[];
   active: boolean;
   item: SideDockItem;
   onOpen: (item: SideDockItem) => void;
@@ -85,7 +50,7 @@ function SideDockButton({
 
   return (
     <Tooltip>
-      <div className="group relative">
+      <ContextMenu groups={menuGroups} label={t('pageActions')}><div className="group relative">
         <TooltipTrigger asChild>
           <button
             type="button"
@@ -101,7 +66,7 @@ function SideDockButton({
                 : 'bg-transparent',
             )}
           >
-            <SideDockItemIconView icon={item.icon} />
+            <span className="flex items-center text-xl"><PageResourceIcon uri={getSideDockResourceUri(item) ?? ''} icon={item.icon} /></span>
           </button>
         </TooltipTrigger>
         {item.removable ? (
@@ -118,7 +83,7 @@ function SideDockButton({
             <X className="h-3 w-3" aria-hidden="true" />
           </button>
         ) : null}
-      </div>
+      </div></ContextMenu>
       <TooltipContent side="left">{label}</TooltipContent>
     </Tooltip>
   );
@@ -202,10 +167,10 @@ function hasExactActiveSideDockItem(items: SideDockItem[], currentTab?: DocBrows
 }
 
 function isSideDockUtilityItem(item: SideDockItem): boolean {
-  return SIDE_DOCK_UTILITY_ITEM_IDS.has(item.id);
+  return item.id === SIDE_DOCK_GITHUB_PROJECT_ITEM_ID;
 }
 
-export function SideDock({ manager }: SideDockProps) {
+export function SideDock({ manager, getItemMenuGroups }: SideDockProps) {
   const pinnedItems = useSideDockStore((state) => state.pinnedItems);
   const setSideDockVisible = useSideDockStore((state) => state.setVisible);
   const { currentTab, isOpen } = useDocBrowser();
@@ -237,6 +202,7 @@ export function SideDock({ manager }: SideDockProps) {
           {mainItems.map((item) => (
             <SideDockButton
               key={item.id}
+              menuGroups={getItemMenuGroups?.(item)}
               active={isSideDockItemActive(item, isOpen, currentTab, hasExactActiveItem)}
               item={item}
               onOpen={manager.openItem}
@@ -249,6 +215,7 @@ export function SideDock({ manager }: SideDockProps) {
             {utilityItems.map((item) => (
               <SideDockButton
                 key={item.id}
+              menuGroups={getItemMenuGroups?.(item)}
                 active={isSideDockItemActive(item, isOpen, currentTab, hasExactActiveItem)}
                 item={item}
                 onOpen={manager.openItem}

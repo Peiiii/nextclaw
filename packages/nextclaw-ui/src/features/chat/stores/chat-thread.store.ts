@@ -1,3 +1,4 @@
+import { ViewMemoryStorage } from '@/shared/lib/navigation-history';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { NcpMessage } from '@nextclaw/ncp';
@@ -71,6 +72,7 @@ export type ChatWorkspaceNavigationEntry =
   | { kind: 'continuous-attention' };
 
 export type ChatThreadSnapshot = {
+  workspacePanelHidden?: boolean;
   sessionTypeLabel?: string | null;
   sessionTypeIcon?: SessionTypeIconView | null;
   sessionKey: string | null;
@@ -115,6 +117,7 @@ type ChatThreadStore = {
 type PersistedChatThreadStore = {
   snapshot?: {
     workspacePanelParentKey?: unknown;
+    workspacePanelHidden?: unknown;
     activeWorkspacePanelKind?: unknown;
     activeChildSessionKey?: unknown;
     workspaceFileTabs?: unknown;
@@ -130,6 +133,7 @@ type PersistedChatThreadStore = {
 
 type PersistedChatWorkspaceSnapshot = Pick<
   ChatThreadSnapshot,
+  | 'workspacePanelHidden'
   | 'workspacePanelParentKey'
   | 'activeWorkspacePanelKind'
   | 'activeChildSessionKey'
@@ -280,6 +284,7 @@ function normalizePersistedWorkspaceSnapshot(value: unknown): PersistedChatWorks
       : 0;
 
   return {
+    workspacePanelHidden: value.workspacePanelHidden === true,
     workspacePanelParentKey,
     activeWorkspacePanelKind: resolvedActiveWorkspacePanelKind,
     activeChildSessionKey,
@@ -309,7 +314,7 @@ export const useChatThreadStore = create<ChatThreadStore>()(
     {
       name: CHAT_THREAD_WORKSPACE_STORAGE_KEY,
       version: CHAT_THREAD_WORKSPACE_STORAGE_VERSION,
-      storage: createJSONStorage(() => window.localStorage),
+      storage: createJSONStorage(() => new ViewMemoryStorage()),
       partialize: (state): PersistedChatThreadStore => {
         const workspaceNavigationHistory = state.snapshot.workspaceNavigationHistory.filter(
           (entry) => entry.kind !== 'side-chat-draft',
@@ -320,6 +325,7 @@ export const useChatThreadStore = create<ChatThreadStore>()(
             : 0;
         return {
           snapshot: {
+            workspacePanelHidden: state.snapshot.workspacePanelHidden,
             workspacePanelParentKey: state.snapshot.workspacePanelParentKey,
             activeWorkspacePanelKind:
               state.snapshot.activeWorkspacePanelKind === 'side-chat-draft'

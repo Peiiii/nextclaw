@@ -1,3 +1,4 @@
+import { WorkbenchSurfaceManager } from '@/shared/components/workbench/managers/workbench-surface.manager';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -23,7 +24,7 @@ describe('SideDock', () => {
   it('renders built-in entries and opens the selected resource', () => {
     const openItem = vi.fn();
     const manager = { openItem } as unknown as SideDockManager;
-    const docBrowserManager = new DocBrowserManager();
+    const docBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), );
 
     render(
       <DocBrowserProvider manager={docBrowserManager}>
@@ -47,7 +48,7 @@ describe('SideDock', () => {
 
   it('places the GitHub project shortcut in the utility section', () => {
     const manager = { openItem: vi.fn() } as unknown as SideDockManager;
-    const docBrowserManager = new DocBrowserManager();
+    const docBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), );
 
     render(
       <DocBrowserProvider manager={docBrowserManager}>
@@ -62,7 +63,7 @@ describe('SideDock', () => {
 
   it('confirms before hiding the dock and persists the visibility preference', async () => {
     const manager = { openItem: vi.fn() } as unknown as SideDockManager;
-    const docBrowserManager = new DocBrowserManager();
+    const docBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), );
 
     render(
       <DocBrowserProvider manager={docBrowserManager}>
@@ -85,7 +86,7 @@ describe('SideDock', () => {
 
   it('does not highlight the default docs tab while DocBrowser is closed', () => {
     const manager = { openItem: vi.fn() } as unknown as SideDockManager;
-    const docBrowserManager = new DocBrowserManager();
+    const docBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), );
 
     render(
       <DocBrowserProvider manager={docBrowserManager}>
@@ -105,7 +106,7 @@ describe('SideDock', () => {
       openItem: vi.fn(),
       unpinItem: vi.fn(),
     } as unknown as SideDockManager;
-    const docBrowserManager = new DocBrowserManager();
+    const docBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), );
     useSideDockStore.getState().setPinnedItems([
       {
         createdAt: '2026-06-02T00:00:00.000Z',
@@ -134,7 +135,7 @@ describe('SideDock', () => {
       openItem: vi.fn(),
       unpinItem: vi.fn(),
     } as unknown as SideDockManager;
-    const docBrowserManager = new DocBrowserManager();
+    const docBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), );
     useSideDockStore.getState().setPinnedItems([
       {
         createdAt: '2026-06-02T00:00:00.000Z',
@@ -159,7 +160,7 @@ describe('SideDock', () => {
       openItem: vi.fn(),
       unpinItem: vi.fn(),
     } as unknown as SideDockManager;
-    const docBrowserManager = new DocBrowserManager();
+    const docBrowserManager = new DocBrowserManager(new WorkbenchSurfaceManager(), );
     useSideDockStore.getState().setPinnedItems([
       {
         createdAt: '2026-06-02T00:00:00.000Z',
@@ -176,6 +177,6 @@ describe('SideDock', () => {
       </DocBrowserProvider>,
     );
 
-    expect(screen.getByText('🎨').className).toContain('text-[20px]');
+    expect(screen.getByText('🎨').parentElement?.className).toContain('text-xl');
   });
 });

@@ -6,7 +6,7 @@ import {
   Check,
   Folder,
   FolderOpen,
-  MoreHorizontal,
+  MoreVertical,
   X,
 } from 'lucide-react';
 import type {
@@ -429,7 +429,7 @@ export function WorkspaceDirectoryTreeEntry({
             <ContextMenuTrigger>
               <IconActionButton
                 className="mr-1 opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 data-[context-menu-open]:pointer-events-auto data-[context-menu-open]:opacity-100"
-                icon={<MoreHorizontal className="h-3.5 w-3.5" />}
+                icon={<MoreVertical className="h-3.5 w-3.5" />}
                 label={t('chatWorkspaceMoreActionsFor').replace('{name}', entry.name)}
                 size="sm"
                 tooltipSide="left"

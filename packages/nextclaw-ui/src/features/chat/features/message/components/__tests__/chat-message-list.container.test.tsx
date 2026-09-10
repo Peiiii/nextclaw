@@ -891,3 +891,6 @@ it("shows edit only while the latest user message is actually editable", () => {
     );
   expect(busyUserMessage).not.toHaveProperty("actions");
 });
+
+vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()), useNavigate: () => vi.fn() }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { resolve: vi.fn(), open: vi.fn() } }) }));

@@ -24,6 +24,11 @@ describe("ReplyFormatContextProvider", () => {
 
     for (const expected of [
       "## Agent Output & Reply Formatting Contract",
+      "NextClaw Resource Protocol (NextClaw 资源协议)",
+      "Ordinary Markdown links `[title](nextclaw://...)`",
+      "not inline embeds and require no display tool",
+      "never invent resource IDs",
+      "not live content or permission to read it",
       "After that call, always write a concise, self-contained final response",
       "choose the smallest medium that materially reduces effort",
       "Keep simple facts, short explanations, one or two steps, and simple edits in prose",

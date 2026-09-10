@@ -1,3 +1,5 @@
+import { PageResourceActionsMenu } from '@/features/right-panel-resources';
+import { pageResourceFromSystemObject } from '@/features/right-panel-resources';
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -151,6 +153,7 @@ export function InboxReaderDialog() {
                     {formatDateTime(activeDelivery.createdAt)}
                   </time>
                 </div>
+                {activeDelivery && <PageResourceActionsMenu page={pageResourceFromSystemObject("inbox-delivery", activeDelivery.id, activeDelivery.title)} />}
                 {positionControls}
               </div>
               <DialogDescription className="sr-only">

@@ -1,3 +1,5 @@
+import { createPanelAppResourceUri } from '@nextclaw/shared';
+export { createPanelAppResourceUri } from '@nextclaw/shared';
 import {
   readChatUiResourceReference,
   type ChatUiResourceReference,
@@ -65,12 +67,6 @@ export function getRightPanelAppsTabFromUrl(url: string): RightPanelAppsTab {
 
 export function normalizeRightPanelAppsUrl(url: string): string {
   return createRightPanelAppsUrl(getRightPanelAppsTabFromUrl(url));
-}
-
-export function createPanelAppResourceUri(appId: string, sourcePath?: string): string {
-  const uri = `nextclaw://panel-app/${encodeURIComponent(appId)}`;
-  const path = sourcePath?.trim();
-  return path ? `${uri}?${new URLSearchParams({ path }).toString()}` : uri;
 }
 
 export function createPanelAppContentPath(appId: string, sourcePath?: string): string {

@@ -415,6 +415,7 @@ export function SessionConversationArea(props: SessionConversationAreaProps) {
     <>
       <SessionConversationAlerts inputQuery={inputQuery} />
       <ChatConversationContent
+        resourceWorkingDir={selectedSession?.workingDir ?? selectedSession?.projectRoot ?? null}
         hasPreviousMessages={agent.hasPreviousMessages}
         historyError={agent.historyError}
         isHistoryLoading={agent.isHydrating}

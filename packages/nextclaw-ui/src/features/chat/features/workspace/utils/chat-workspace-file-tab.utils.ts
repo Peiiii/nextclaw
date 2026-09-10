@@ -82,3 +82,18 @@ export function reparentWorkspaceFileTab(tab: ChatWorkspaceFileTab, parentSessio
     parentSessionKey: normalizedParentSessionKey,
   };
 }
+
+export function createWorkspaceFileViewerTab(sourceTab: ChatWorkspaceFileTab, viewer: 'source' | 'rendered'): ChatWorkspaceFileTab | null {
+  return createWorkspaceFileTab({
+    path: sourceTab.path,
+    label: sourceTab.label ?? undefined,
+    viewMode: 'preview',
+    previewViewer: viewer,
+    line: sourceTab.line ?? undefined,
+    column: sourceTab.column ?? undefined,
+    params: sourceTab.params ?? undefined,
+    rawText: sourceTab.rawText ?? undefined,
+    contentUrl: sourceTab.contentUrl ?? undefined,
+    mimeType: sourceTab.mimeType ?? undefined,
+  }, sourceTab.parentSessionKey);
+}

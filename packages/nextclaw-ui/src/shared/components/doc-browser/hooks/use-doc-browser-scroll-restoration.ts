@@ -17,6 +17,6 @@ export function useDocBrowserScrollRestoration({
     currentUrl: currentTab?.currentUrl ?? null,
     iframeRef,
     isEnabled,
-    restorationKey: currentTab ? `panel-app:doc-browser:${currentTab.id}` : null,
+    restorationKey: currentTab ? `panel-app:resource:${currentTab.dedupeKey ?? currentTab.resourceUri ?? currentTab.currentUrl}` : null,
   });
 }

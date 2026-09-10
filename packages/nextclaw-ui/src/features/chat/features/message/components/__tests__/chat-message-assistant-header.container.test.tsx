@@ -147,3 +147,6 @@ it("keeps a new session's empty first assistant draft in the awaiting state", ()
   );
   expect(assistantDraftRender?.isSending).toBe(true);
 });
+
+vi.mock("react-router-dom", async (importOriginal) => ({ ...(await importOriginal<object>()), useNavigate: () => vi.fn() }));
+vi.mock("@/app/components/app-presenter-provider", () => ({ useAppPresenter: () => ({ pageResourceManager: { resolve: vi.fn(), open: vi.fn() } }) }));

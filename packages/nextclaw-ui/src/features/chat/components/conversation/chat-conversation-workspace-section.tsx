@@ -44,6 +44,7 @@ export function ChatConversationWorkspaceSection({
   return (
     <ChatSessionWorkspacePanel
       sessionKey={sessionKey}
+      hidden={snapshot.workspacePanelHidden === true}
       childSessionTabs={sessionKey ? childSessionTabs : []}
       activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
       activeSideChatDraft={activeSideChatDraft}

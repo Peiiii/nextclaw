@@ -469,3 +469,7 @@ describe("AgentsPage", () => {
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
   });
 });
+
+vi.mock("@/features/right-panel-resources/hooks/use-page-resource-actions", () => ({ usePageResourceActions: () => () => [] }));
+
+vi.mock("@/features/right-panel-resources", () => ({ PageResourceActionsMenu: () => null, PageResourceActionItems: () => null, pageResourceFromSystemObject: vi.fn() }));

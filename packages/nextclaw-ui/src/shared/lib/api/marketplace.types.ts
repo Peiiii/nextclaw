@@ -107,6 +107,7 @@ export type MarketplaceScenesView = {
 };
 
 export type MarketplaceInstalledRecord = {
+  resourceUri?: string;
   type: MarketplaceItemType;
   id?: string;
   spec: string;

@@ -1,3 +1,5 @@
+import { useWorkbenchSurfaceStore } from '@/shared/components/workbench/stores/workbench-surface.store';
+import { GLOBAL_WORKBENCH_SURFACE, SESSION_WORKBENCH_SURFACE } from '@/shared/components/workbench/types/workbench-surface.types';
 import { useEffect, useMemo, type ReactNode } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
 import { useAppPresenter } from '@/app/components/app-presenter-provider';
@@ -20,17 +22,18 @@ function ChatRuntime({ children }: { children: ReactNode }) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const match = useMatch('/chat/:sessionId');
   const sessionKey = parseSessionKeyFromRoute(match?.params.sessionId);
+  const workspaceMinimized = useWorkbenchSurfaceStore((state) => state.surfaces[`session-workspace:${sessionKey ?? 'draft'}`]?.minimized ?? false);
   const workspaceSessionKey = useChatThreadStore(({ snapshot }) =>
-    snapshot.workspacePanelParentKey === sessionKey && sessionKey &&
+    snapshot.workspacePanelParentKey === sessionKey && sessionKey && !snapshot.workspacePanelHidden && !workspaceMinimized &&
     snapshot.activeWorkspacePanelKind === 'child-session'
       ? snapshot.activeChildSessionKey : null,
   );
-  const floatingSessionKey = useFloatingSessionStore((state) =>
-    state.minimized ? null : state.session?.sessionKey,
-  );
+  const floatingMinimized = useWorkbenchSurfaceStore((state) => state.surfaces[SESSION_WORKBENCH_SURFACE]?.minimized ?? false);
+  const panelMinimized = useWorkbenchSurfaceStore((state) => state.surfaces[GLOBAL_WORKBENCH_SURFACE]?.minimized ?? false);
+  const floatingSessionKey = useFloatingSessionStore((state) => floatingMinimized ? null : state.session?.sessionKey);
   const panelSessionKey = useDocBrowserStore(({ snapshot }) => {
     const tab = snapshot.tabs.find((item) => item.id === snapshot.activeTabId);
-    return snapshot.isOpen && tab?.kind === CHAT_SESSION_PANEL_KIND
+    return snapshot.isOpen && !panelMinimized && tab?.kind === CHAT_SESSION_PANEL_KIND
       ? parseSessionKeyFromPanelUrl(tab.currentUrl) : null;
   });
   useChatQueryStoreSync({ sessionKey });

@@ -1,6 +1,9 @@
 import {
   CHAT_CONVERSATION_EXCERPT_TOKEN_KIND,
   CHAT_UI_RESOURCE_TOKEN_KIND,
+  CHAT_SYSTEM_OBJECT_TOKEN_KIND,
+  readSystemObjectResolvedReference,
+  type SystemObjectResolvedReference,
   CHAT_WORKSPACE_DIRECTORY_TOKEN_KIND,
   CHAT_WORKSPACE_EXCERPT_TOKEN_KIND,
   CHAT_WORKSPACE_FILE_TOKEN_KIND,
@@ -43,7 +46,13 @@ export type ChatComposerUiResourceReferenceIntent = ChatComposerReferenceIntentB
   reference: ChatUiResourceReference;
 };
 
+export type ChatComposerSystemObjectReferenceIntent = ChatComposerReferenceIntentBase & {
+  kind: typeof CHAT_SYSTEM_OBJECT_TOKEN_KIND;
+  reference: SystemObjectResolvedReference;
+};
+
 export type ChatComposerReferenceIntent =
+  | ChatComposerSystemObjectReferenceIntent
   | ChatComposerFileReferenceIntent
   | ChatComposerDirectoryReferenceIntent
   | ChatComposerExcerptReferenceIntent
@@ -51,6 +60,7 @@ export type ChatComposerReferenceIntent =
   | ChatComposerUiResourceReferenceIntent;
 
 type ChatComposerReferenceRequest =
+  | Omit<ChatComposerSystemObjectReferenceIntent, 'id'>
   | Omit<ChatComposerFileReferenceIntent, 'id'>
   | Omit<ChatComposerDirectoryReferenceIntent, 'id'>
   | Omit<ChatComposerExcerptReferenceIntent, 'id'>
@@ -177,6 +187,12 @@ export class ChatComposerIntentManager {
       label,
       excerpt,
     });
+  };
+
+  requestSystemObjectReference = (params: { targetSessionKey: string | null; reference: SystemObjectResolvedReference }) => {
+    const reference = readSystemObjectResolvedReference(params.reference);
+    if (!reference) return;
+    this.publish({ kind: CHAT_SYSTEM_OBJECT_TOKEN_KIND, targetSessionKey: params.targetSessionKey, tokenKey: reference.uri, label: reference.label, reference });
   };
 
   requestUiResourceReference = (params: {

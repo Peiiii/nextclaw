@@ -355,3 +355,10 @@ Installing an App never grants its declared directory scopes automatically. Use 
 - [Configuration](/en/guide/configuration)
 - [Troubleshooting](/en/guide/troubleshooting)
 - [Security and permissions](/en/guide/security-and-permissions)
+
+## Resource protocol
+
+| Command | Description |
+| --- | --- |
+| `nextclaw resources list` | Discover registered categories and objects from the running service; supports --type, --query and --limit; JSON output |
+| `nextclaw resources resolve` | Resolve a real object URI into an immutable asset snapshot reference without executing its content |

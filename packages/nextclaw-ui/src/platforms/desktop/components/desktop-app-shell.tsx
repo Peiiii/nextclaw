@@ -1,3 +1,4 @@
+import { CurrentPageActions } from '@/features/right-panel-resources';
 import { lazy, Suspense } from "react";
 import type { CSSProperties } from "react";
 import {
@@ -36,8 +37,6 @@ type DesktopAppShellProps = {
 export function DesktopAppShell({
   pathname,
   isMobileLayout = false,
-  isDocBrowserOpen,
-  docBrowserMode,
   docBrowserDockControls,
   docBrowserRenderers = {},
   docBrowserTabMenuGroups,
@@ -133,10 +132,11 @@ export function DesktopAppShell({
       {shouldUseWindowsChrome ? (
         <DesktopWindowChrome sidebarCollapsed={isSidebarCollapsed} />
       ) : null}
-      <div className="relative z-[1] flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {!isMainRoute && <Sidebar />}
         <div className="flex-1 flex min-w-0 overflow-hidden relative">
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {!isMainRoute ? <CurrentPageActions /> : null}
             {isMainRoute ? (
               <div className="flex-1 h-full overflow-hidden">{children}</div>
             ) : (
@@ -152,7 +152,7 @@ export function DesktopAppShell({
               </main>
             )}
           </div>
-          {isDocBrowserOpen && docBrowserMode === "docked" ? (
+          {(
             <Suspense fallback={null}>
               <DocBrowser
                 customTabRenderers={docBrowserRenderers}
@@ -160,20 +160,11 @@ export function DesktopAppShell({
                 getTabMenuGroups={docBrowserTabMenuGroups}
               />
             </Suspense>
-          ) : null}
+          )}
           {sideDock}
         </div>
       </div>
       {showMobileBottomNav ? <MobileBottomNav /> : null}
-      {isDocBrowserOpen && docBrowserMode === "floating" ? (
-        <Suspense fallback={null}>
-          <DocBrowser
-            customTabRenderers={docBrowserRenderers}
-            dockControls={docBrowserDockControls}
-            getTabMenuGroups={docBrowserTabMenuGroups}
-          />
-        </Suspense>
-      ) : null}
     </div>
   );
 }
