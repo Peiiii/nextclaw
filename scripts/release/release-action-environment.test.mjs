@@ -177,16 +177,16 @@ test("one all-platform dispatch closes NPM, Runtime, and Desktop inside GitHub A
   assert.match(desktopJob, /actions: write[\s\S]*?contents: write/);
   assert.match(
     desktopJob,
-    /ref: \$\{\{ github\.sha \}\}/,
+    /ref: \$\{\{ needs\.publish-npm\.outputs\.is_recovery == 'true' && github\.sha \|\| needs\.publish-npm\.outputs\.closure_commit \}\}[\s\S]*?checkout_sha="\$\(git rev-parse HEAD\)"[\s\S]*?git switch -C master "\$checkout_sha"[\s\S]*?test "\$\(git rev-parse HEAD\)" = "\$checkout_sha"/,
   );
   assert.match(desktopJob, /pnpm release:desktop:stable/);
   assert.match(
     desktopJob,
-    /--target "\$\{\{ needs\.publish-npm\.outputs\.closure_commit \}\}"/,
+    /--target "\$\{\{ needs\.publish-npm\.outputs\.desktop_target \}\}"/,
   );
   assert.match(
     desktopJob,
-    /--runtime-version "\$\{\{ needs\.publish-npm\.outputs\.target_version \}\}"/,
+    /TARGET_VERSION: \$\{\{ needs\.publish-npm\.outputs\.target_version \}\}[\s\S]*?--runtime-version "\$TARGET_VERSION"/,
   );
   assert.match(desktopJob, /--skip-local-verify/);
   assert.doesNotMatch(
@@ -254,7 +254,7 @@ test("the writable NPM release checkpoint prepares the immutable Desktop Draft",
   );
   assert.match(
     workflow,
-    /Create or reuse stable Desktop Draft[\s\S]*?--prepare-draft-only[\s\S]*?--target "\$CLOSURE_COMMIT"[\s\S]*?--runtime-version "\$TARGET_VERSION"/,
+    /Create or reuse stable Desktop Draft[\s\S]*?--prepare-draft-only[\s\S]*?--target "\$DESKTOP_TARGET"[\s\S]*?--runtime-version "\$TARGET_VERSION"/,
   );
 });
 
@@ -359,6 +359,13 @@ test("release workflow, agent contract, and command catalog share one observed a
     ),
     "utf8",
   );
+  const packageReleaseContract = readFileSync(
+    new URL(
+      "../../.agents/wiki/skills/operations/nextclaw-npm-release/references/package-release.md",
+      import.meta.url,
+    ),
+    "utf8",
+  );
   const commands = readFileSync(
     new URL("../../commands/commands.md", import.meta.url),
     "utf8",
@@ -368,9 +375,9 @@ test("release workflow, agent contract, and command catalog share one observed a
   assert.match(workflow, /NODE_AUTH_TOKEN: \$\{\{ secrets\.NPM_TOKEN \}\}/);
   assert.doesNotMatch(workflow, /id-token: write|--trusted-publishing/);
 
-  assert.match(releaseSkill, /EXISTING_RELEASE_PATH/);
+  assert.match(packageReleaseContract, /EXISTING_RELEASE_PATH/);
   assert.match(
-    releaseSkill,
+    packageReleaseContract,
     /gh run list --workflow release\.yml --status success --limit 1/,
   );
   assert.match(
@@ -382,9 +389,12 @@ test("release workflow, agent contract, and command catalog share one observed a
     /## `\/发布NPM`([\s\S]*?)(?=\n## `\/发布NPM测试版`)/,
   )?.[1];
   assert.ok(npmCommand, "the /发布NPM command contract must exist");
-  assert.match(npmCommand, /EXISTING_RELEASE_PATH/);
-  assert.match(npmCommand, /npm-production/);
-  assert.match(npmCommand, /NPM_TOKEN/);
+  assert.match(npmCommand, /NPM package 方法/);
+  assert.match(npmCommand, /prepare、认证、冻结 SHA、下载、发布与恢复细节由 owner 维护/);
+  assert.doesNotMatch(
+    npmCommand,
+    /EXISTING_RELEASE_PATH|npm-production|NPM_TOKEN/,
+  );
   assert.doesNotMatch(npmCommand, /通过 OIDC|60 秒硬目标/);
 });
 
