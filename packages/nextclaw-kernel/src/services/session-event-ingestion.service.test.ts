@@ -37,6 +37,18 @@ function createMarkerEvent(status: ContextCompactionCheckpoint["status"]): NcpEn
 }
 
 describe("SessionEventIngestionService context compaction", () => {
+  it("refuses restart flush after a failed durable write even when later writes succeed", async () => {
+    const appendSessionEvent = vi.fn().mockRejectedValueOnce(new Error("disk full")).mockResolvedValue(undefined);
+    const service = new SessionEventIngestionService({
+      appendSessionEvent, getSessionRecord: async () => null, listUnfinishedRuns: async () => [],
+      onError: vi.fn(), subscribe: () => () => undefined, updateSessionMetadata: async () => true,
+    });
+    await expect(service.ingestEvent(createMarkerEvent("compressing"))).rejects.toThrow("disk full");
+    await service.ingestEvent(createMarkerEvent("failed"));
+    await expect(service.flush()).rejects.toThrow("session journal write failed");
+    service.dispose();
+  });
+
   it("flushes the durable chain before a session owner deletes its files", async () => {
     let subscribed: ((event: NcpEndpointEvent) => void) | null = null;
     let releaseAppend: (() => void) | null = null;

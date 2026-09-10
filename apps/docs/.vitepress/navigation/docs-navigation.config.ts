@@ -148,6 +148,7 @@ const enSections: LocaleSections = {
         text: 'Automation and connections',
         items: [
           { text: 'Scheduled tasks', link: '/en/guide/cron' },
+          { text: 'Self-management', link: '/en/guide/self-management' },
           { text: 'Messaging channels', link: '/en/guide/channels' },
           { text: 'Remote access', link: '/en/guide/remote-access' }
         ]
@@ -324,6 +325,7 @@ const zhSections: LocaleSections = {
         text: '自动化与连接',
         items: [
           { text: '定时任务', link: '/zh/guide/cron' },
+          { text: '自我管理', link: '/zh/guide/self-management' },
           { text: '消息渠道', link: '/zh/guide/channels' },
           { text: '远程访问', link: '/zh/guide/remote-access' }
         ]

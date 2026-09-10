@@ -1,7 +1,7 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
 import { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
 import { AgentRunContextCompactionManager } from "@kernel/managers/agent-run-context-compaction.manager.js";
-import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
+import type { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
 import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AccessManager } from "@kernel/managers/access.manager.js";
 import type { AutomationManager } from "@kernel/managers/automation.manager.js";
@@ -27,6 +27,7 @@ import { McpManager } from "@kernel/managers/mcp.manager.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import { SessionContextCompactionManager } from "@kernel/managers/session-context-compaction.manager.js";
 import { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
+import type { PlannedRestartRecoveryManager } from "@kernel/managers/planned-restart-recovery.manager.js";
 import { PreferenceManager } from "@kernel/managers/preference.manager.js";
 import type { ProjectManager, ProjectMaterialService, ProjectWorkManager } from "@kernel/features/projects/index.js";
 import type { ServiceAppManager } from "@kernel/managers/service-app.manager.js";
@@ -58,7 +59,6 @@ import {
   getWorkspacePath,
   MessageBus,
   DiagnosticRuntime,
-  LocalExecutionClaimService,
   type SessionSearchService,
 } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
@@ -74,10 +74,13 @@ import {
   resolveKernelPreferenceStorePath,
   resolveKernelLegacyProjectStorePath,
   resolveKernelProjectDatabasePath,
+  resolveKernelPlannedRestartRecoveryPath,
   resolveKernelSessionsDir,
 } from "@kernel/app/kernel-storage-paths.js";
 import {
   createKernelContributions,
+  createKernelAgentRunRequests,
+  createKernelPlannedRestartRecovery,
   createKernelAppRuntimeManagers,
   createKernelOperationalManagers,
   createKernelSessionManagers,
@@ -178,6 +181,7 @@ export class NextclawKernel {
   readonly featureControls: FeatureControlsService;
   readonly verificationRecords: VerificationRecordService;
   readonly portableRuntimeAcceptance: PortableRuntimeAcceptanceManager;
+  readonly plannedRestartRecovery: PlannedRestartRecoveryManager;
   private readonly capabilityGrantLegacyMigration: CapabilityGrantLegacyMigrationService;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private readonly contributions: KernelContribution[];
@@ -314,17 +318,9 @@ export class NextclawKernel {
       this.sessionManager,
       this.sessionRunManager,
     );
-    this.agentRunRequestManager = new AgentRunRequestManager(
-      this.agentRuntimeManager,
-      this.agents,
-      this.configManager,
-      this.agentContextWindowManager,
-      this.eventBus,
-      this.ingress,
-      this.sessionManager,
-      this.sessionRunManager,
-      this.diagnostics,
-      new LocalExecutionClaimService(resolve(sessionsDir, ".execution-claims", "session-runs")),
+    this.agentRunRequestManager = createKernelAgentRunRequests(this, sessionsDir);
+    this.plannedRestartRecovery = createKernelPlannedRestartRecovery(
+      this, resolveKernelPlannedRestartRecoveryPath(options),
     );
     this.contributions = createKernelContributions(this);
   }

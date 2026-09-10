@@ -13,6 +13,7 @@ function createGateway(params: {
   loadExtensions?: () => Promise<void>;
   startExtensions?: () => Promise<void>;
   startChannels?: () => Promise<void>;
+  recoverPlannedRestart?: () => Promise<unknown>;
   wakeFromRestartSentinel?: () => Promise<void>;
   markNcpAgentError?: (message: string) => void;
 }): ServiceGatewayManager {
@@ -21,11 +22,18 @@ function createGateway(params: {
     loadExtensions,
     markNcpAgentError,
     order: inputOrder,
+    recoverPlannedRestart,
     startChannels,
     uiEnabled,
     wakeFromRestartSentinel,
   } = params;
   const order = inputOrder ?? [];
+  const appKernel = {
+    ...kernel,
+    plannedRestartRecovery: {
+      recover: recoverPlannedRestart ?? vi.fn(async () => ({ status: "none" })),
+    },
+  };
   const gateway = {
     appEventBus: new EventBus(),
     bootstrapStatus: {
@@ -40,7 +48,7 @@ function createGateway(params: {
       enabled: uiEnabled === true,
     },
     uiStartup: {},
-    kernel,
+    kernel: appKernel,
     sessions: {
       publishSessionChange: vi.fn(),
     },
@@ -83,6 +91,10 @@ describe("NextclawApp", () => {
       startChannels: vi.fn(async () => {
         order.push("start-channels");
       }),
+      recoverPlannedRestart: vi.fn(async () => {
+        order.push("recover-planned-restart");
+        return { status: "recovered", resumed: 1, skipped: 0, failed: 0 };
+      }),
       wakeFromRestartSentinel: vi.fn(async () => {
         order.push("wake-restart-sentinel");
       }),
@@ -99,9 +111,14 @@ describe("NextclawApp", () => {
         "bootstrap-kernel",
         "start-extensions",
         "start-channels",
+        "recover-planned-restart",
         "wake-restart-sentinel",
       ]),
     );
+    expect(order.indexOf("recover-planned-restart"))
+      .toBeGreaterThan(order.indexOf("start-channels"));
+    expect(order.indexOf("recover-planned-restart"))
+      .toBeLessThan(order.indexOf("wake-restart-sentinel"));
   });
 
   it("records kernel startup errors but still continues deferred extension work", async () => {
@@ -109,6 +126,7 @@ describe("NextclawApp", () => {
     const startChannels = vi.fn(async () => undefined);
     const wakeFromRestartSentinel = vi.fn(async () => undefined);
     const markNcpAgentError = vi.fn();
+    const recoverPlannedRestart = vi.fn();
     const gateway = createGateway({
       kernel: {
         start: vi.fn(async () => {
@@ -122,12 +140,14 @@ describe("NextclawApp", () => {
       startChannels,
       wakeFromRestartSentinel,
       markNcpAgentError,
+      recoverPlannedRestart,
     });
     const app = new NextclawApp(gateway);
 
     await app.start();
 
     expect(markNcpAgentError).toHaveBeenCalledWith("kernel failed");
+    expect(recoverPlannedRestart).not.toHaveBeenCalled();
     expect(loadExtensions).toHaveBeenCalledTimes(1);
     expect(startChannels).toHaveBeenCalledTimes(1);
     expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1);

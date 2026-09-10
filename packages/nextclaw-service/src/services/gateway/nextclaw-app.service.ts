@@ -8,11 +8,12 @@ export type UiStartupHandle = {
 
 type NextclawAppKernel = Pick<
   NextclawKernel,
-  "extensions" | "start"
+  "extensions" | "plannedRestartRecovery" | "start"
 >;
 
 export class NextclawApp {
   private readonly kernel: NextclawAppKernel;
+  private kernelReady = false;
 
   constructor(private readonly gateway: ServiceGatewayManager) {
     this.kernel = gateway.kernel;
@@ -38,6 +39,7 @@ export class NextclawApp {
       async () => await this.kernel.start(),
     );
     this.gateway.bootstrapStatus.markNcpAgentReady();
+    this.kernelReady = true;
     if (this.gateway.uiConfig.enabled) {
       console.log("✓ UI NCP agent: ready");
       return;
@@ -55,6 +57,20 @@ export class NextclawApp {
       async () => await this.kernel.extensions.start({ endpoint: this.gateway.uiStartup.endpoint }),
     );
     await measureStartupAsync("service.deferred_startup.start_channels", this.gateway.startDeferredChannels);
+    await measureStartupAsync(
+      "service.deferred_startup.recover_planned_restart",
+      async () => {
+        if (!this.kernelReady) return;
+        const result = await this.kernel.plannedRestartRecovery.recover(
+          process.env.NEXTCLAW_RESTART_OPERATION_ID,
+        );
+        if (result.status === "recovered") {
+          console.log(
+            `✓ Planned restart recovery: ${result.resumed} resumed, ${result.skipped} skipped, ${result.failed} failed`,
+          );
+        }
+      },
+    );
     await measureStartupAsync(
       "service.deferred_startup.wake_restart_sentinel",
       this.gateway.restartWake.wakeFromRestartSentinel,

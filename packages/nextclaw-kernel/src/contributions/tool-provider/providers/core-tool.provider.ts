@@ -41,7 +41,6 @@ export class CoreToolProvider implements ToolProvider {
     });
     execTool.setContext({ channel, chatId, sessionKey: sessionId });
     const gatewayTool = new GatewayTool(this.getGatewayController());
-    gatewayTool.setContext({ sessionKey: sessionId });
     return [
       new ReadFileTool(allowedDir),
       new WriteFileTool(allowedDir),

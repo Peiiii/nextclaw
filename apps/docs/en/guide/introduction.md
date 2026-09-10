@@ -38,6 +38,10 @@ Browse the complete [task guides](/en/tasks/) for step-by-step examples.
 - **Doc Browser** keeps websites, documentation, and browser tabs in the global right dock.
 - **Scheduled tasks and channels** let work run later or arrive from the apps you already use.
 
+## Self-management and continuity
+
+You can ask NextClaw to inspect its version and health, then update or restart with explicit authorization. Upcoming controlled-restart recovery lets eligible unfinished sessions continue once the replacement process is ready, including concurrent sessions. Maintaining its runtime should support the work it is doing for you. See [Self-management](/en/guide/self-management) for usage and supported scope.
+
 ## Data and permissions
 
 NextClaw runs on a machine or server you control. Your workspace, sessions, configuration, and secrets live in that environment. Connected models, channels, and external tools still receive the data you explicitly send through them. Review the target directory, permission scope, and real result before high-impact actions.

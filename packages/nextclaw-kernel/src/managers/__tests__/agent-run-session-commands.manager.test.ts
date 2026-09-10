@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY,
   EventBus,
@@ -255,6 +255,45 @@ describe('AgentRunRequestManager edit and continuation commands', () => {
     fixture.manager.dispose();
   });
 
+  it('tells a recovered run to verify state and never repeat the interrupted update or restart command', async () => {
+    const fixture = createSessionCommandFixture({
+      messages: [
+        {
+          ...createMessage({ id: 'user-1', role: 'user', text: 'update yourself' }),
+          metadata: { run_spec: { runId: 'interrupted-update-run' } },
+        },
+        {
+          ...createMessage({ id: 'assistant-partial', role: 'assistant', text: 'starting update' }),
+          status: 'error',
+        },
+      ],
+      metadata: { last_activity_preview: { state: 'failed', statusKind: 'run-interrupted' } },
+    });
+
+    await fixture.manager.continueRunIfEligible({
+      sessionId: fixture.sourceSessionId,
+      trigger: {
+        actor: 'system',
+        source: 'planned-restart-recovery',
+        triggeredAt: '2026-09-10T10:00:00.000Z',
+        sourceSessionId: fixture.sourceSessionId,
+        sourceRunId: 'interrupted-update-run',
+      },
+    });
+
+    const continuation = fixture.sessionRun.getSnapshot().messages.at(-1);
+    expect(continuation?.parts).toEqual([
+      expect.objectContaining({
+        type: 'text',
+        text: expect.stringMatching(/Do not repeat the update or restart command/),
+      }),
+    ]);
+    expect(continuation?.parts[0]).toMatchObject({
+      text: expect.stringMatching(/verify the current version, service health, and any external side effects/),
+    });
+    fixture.manager.dispose();
+  });
+
   it('deduplicates repeated edits and rejects a different session command while history is changing', async () => {
     const rewind = createDeferred();
     const fixture = createSessionCommandFixture({
@@ -287,6 +326,71 @@ describe('AgentRunRequestManager edit and continuation commands', () => {
 
     expect(duplicateHandle).toEqual(firstHandle);
     expect(fixture.rewindCalls).toHaveLength(1);
+    fixture.manager.dispose();
+  });
+
+});
+
+describe('planned restart admission and continuation', () => {
+  it.each([
+    ['failed', 'run-error', 'old-run'],
+    ['failed', 'run-interrupted', 'newer-run'],
+    ['completed', 'run-completed', 'old-run'],
+  ])('does not recover a %s session with status %s and run %s', async (state, statusKind, runId) => {
+    const fixture = createSessionCommandFixture({
+      messages: [{
+        ...createMessage({ id: 'user-1', role: 'user', text: 'original' }),
+        metadata: { run_spec: { runId } },
+      }],
+      metadata: { last_activity_preview: { state, statusKind } },
+    });
+    expect(await fixture.manager.continueRunIfEligible({
+      sessionId: fixture.sourceSessionId,
+      trigger: { actor: 'system', source: 'planned-restart-recovery',
+        sourceRunId: 'old-run', triggeredAt: new Date().toISOString() },
+    })).toBeNull();
+    fixture.manager.dispose();
+  });
+
+  it('drains an accepted request before suspending new run admissions and can reopen them after abort', async () => {
+    const rewind = createDeferred();
+    const fixture = createSessionCommandFixture({
+      beforeRewind: () => rewind.promise,
+      messages: [createMessage({ id: 'user-1', role: 'user', text: 'original' })],
+      metadata: { last_activity_preview: { state: 'cancelled' } },
+    });
+    const edit = fixture.ingress.handle<AgentRunEditMessageIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.editMessage,
+      payload: {
+        message: createMessage({ id: 'edited-user-1', role: 'user', text: 'edited' }),
+        messageId: 'user-1',
+        sessionId: fixture.sourceSessionId,
+      },
+    }, { source: 'test' });
+    await vi.waitFor(() => expect(fixture.rewindCalls).toHaveLength(1));
+    let suspended = false;
+    const suspension = fixture.manager.admissions.suspend().then(() => {
+      suspended = true;
+    });
+    await Promise.resolve();
+    expect(suspended).toBe(false);
+
+    rewind.resolve();
+    await edit;
+    await suspension;
+    await expect(fixture.ingress.handle<AgentRunContinueIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.continue,
+      payload: { sessionId: fixture.sourceSessionId },
+    }, { source: 'test' })).rejects.toThrow(
+      'Agent run admissions are suspended for a planned restart.',
+    );
+
+    fixture.manager.admissions.resume();
+    const handle = await fixture.ingress.handle<AgentRunContinueIngressPayload, NcpRunHandle>({
+      type: ingressKeys.agentRun.continue,
+      payload: { sessionId: fixture.sourceSessionId },
+    }, { source: 'test' });
+    expect(handle.sessionId).toBe(fixture.sourceSessionId);
     fixture.manager.dispose();
   });
 });

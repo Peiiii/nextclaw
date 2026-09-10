@@ -85,13 +85,12 @@ export class SessionManager implements NcpSessionApi {
   constructor(private readonly options: SessionManagerOptions) {
     this.titles = options.providerManager ? new SessionTitleService(this, options.providerManager) : undefined;
     this.sessionEvents = new SessionEventCoordinatorService({
-      appendSessionEvent: (params) => this.appendSessionEvent(params),
-      getSessionRecord: (sessionId) => this.getSessionRecord(sessionId),
+      appendSessionEvent: this.appendSessionEvent,
+      getSessionRecord: this.getSessionRecord,
       listUnfinishedRuns: () => this.options.journalStore.listUnfinishedRuns(),
       eventBus: this.options.eventBus,
       journalStore: this.options.journalStore,
-      updateSessionMetadata: (sessionId, metadata) =>
-        this.updateSessionMetadata(sessionId, metadata),
+      updateSessionMetadata: this.updateSessionMetadata,
     });
     this.workingDirResolver = new SessionWorkingDirResolver(
       options.agentManager,
@@ -119,6 +118,8 @@ export class SessionManager implements NcpSessionApi {
 
   publishSessionEvent = async (params: PublishSessionEventParams): Promise<void> =>
     await this.sessionEvents.publish(params);
+
+  flushSessionEvents = async (): Promise<void> => await this.sessionEvents.flush();
 
   createSession = async (
     params: CreateNcpSessionInput,

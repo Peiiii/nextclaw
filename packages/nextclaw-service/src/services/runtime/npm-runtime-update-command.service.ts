@@ -55,6 +55,7 @@ export class NpmRuntimeUpdateCommandService {
       bundleService,
       updateService,
       resolveManifestUrls: () => manifestUrls,
+      runningVersion: distribution.version,
       launcherVersion,
       channel
     });

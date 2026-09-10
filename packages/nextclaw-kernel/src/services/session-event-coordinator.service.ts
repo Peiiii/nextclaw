@@ -49,6 +49,7 @@ export class SessionEventCoordinatorService {
   start = async (): Promise<void> => await this.ingestion.start();
   dispose = (): void => this.ingestion.dispose();
   flushSession = async (sessionId: string): Promise<void> => await this.ingestion.flushSession(sessionId);
+  flush = async (): Promise<void> => await this.ingestion.flush();
 
   publish = async (params: PublishSessionEventParams): Promise<void> => {
     const { event, sessionId, source, synchronizeMessageProjection } = params;

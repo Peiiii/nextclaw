@@ -97,11 +97,6 @@ describe("RuntimeControlHost", () => {
       })
       .mockResolvedValueOnce({
         accepted: true,
-        action: "restart",
-        message: "Managed service restarted."
-      })
-      .mockResolvedValueOnce({
-        accepted: true,
         action: "stop",
         message: "Managed service stopped."
       });
@@ -114,7 +109,7 @@ describe("RuntimeControlHost", () => {
     await expect(host.restartService()).resolves.toMatchObject({
       action: "restart-service",
       lifecycle: "restarting-service",
-      message: "Managed service restarted."
+      message: "Restart scheduled for the current host."
     });
     await expect(host.stopService()).resolves.toMatchObject({
       action: "stop-service",
@@ -123,7 +118,6 @@ describe("RuntimeControlHost", () => {
     });
 
     expect(mocks.controlRemoteService).toHaveBeenNthCalledWith(1, "start", expect.any(Object));
-    expect(mocks.controlRemoteService).toHaveBeenNthCalledWith(2, "restart", expect.any(Object));
-    expect(mocks.controlRemoteService).toHaveBeenNthCalledWith(3, "stop", expect.any(Object));
+    expect(mocks.controlRemoteService).toHaveBeenNthCalledWith(2, "stop", expect.any(Object));
   });
 });

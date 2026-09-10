@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as NextclawCoreModule from "@nextclaw/core";
 import { RestartCommands } from "@nextclaw-service/controllers/commands/restart-command.controller.js";
 
@@ -81,6 +81,80 @@ describe("RestartCommands", () => {
     mocks.managedServiceStateStore.read.mockReturnValue(null);
     mocks.localUiRuntimeStore.read.mockReturnValue(null);
     mocks.cliUtils.isProcessRunning.mockReturnValue(false);
+    vi.stubGlobal("fetch", vi.fn(async () => ({ status: 404 })));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each([{}, { open: false }])("asks the running service to restart itself with CLI options %j", async (options) => {
+    const runtimeCommandService = {
+      stopService: vi.fn(),
+    };
+    const startCommands = {
+      run: vi.fn(),
+    };
+    const writeRestartSentinelFromExecContext = vi.fn();
+    mocks.managedServiceStateStore.read.mockReturnValue({
+      pid: 46598,
+      startedAt: "2026-09-10T00:00:00.000Z",
+      uiUrl: "http://127.0.0.1:55667",
+      apiUrl: "http://127.0.0.1:55667/api",
+      uiHost: "0.0.0.0",
+      uiPort: 55667,
+    });
+    mocks.cliUtils.isProcessRunning.mockImplementation((pid: number) => pid === 46598);
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ ok: true, data: { accepted: true } }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const commands = new RestartCommands({
+      runtimeCommandService: runtimeCommandService as never,
+      startCommands: startCommands as never,
+      forcedPublicHost: "0.0.0.0",
+      writeRestartSentinelFromExecContext,
+    });
+
+    await commands.run(options);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/runtime/control/restart-service",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(runtimeCommandService.stopService).not.toHaveBeenCalled();
+    expect(startCommands.run).not.toHaveBeenCalled();
+    expect(writeRestartSentinelFromExecContext).not.toHaveBeenCalled();
+  });
+
+  it("keeps direct stop/start semantics when restart flags change the replacement runtime", async () => {
+    const runtimeCommandService = {
+      stopService: vi.fn(),
+    };
+    const startCommands = {
+      run: vi.fn(),
+    };
+    mocks.managedServiceStateStore.read.mockReturnValue({
+      pid: 46598,
+      apiUrl: "http://127.0.0.1:55667/api",
+      uiPort: 55667,
+    });
+    mocks.cliUtils.isProcessRunning.mockReturnValue(true);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const commands = new RestartCommands({
+      runtimeCommandService: runtimeCommandService as never,
+      startCommands: startCommands as never,
+      forcedPublicHost: "0.0.0.0",
+      writeRestartSentinelFromExecContext: vi.fn(),
+    });
+
+    await commands.run({ uiPort: 55668 });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(runtimeCommandService.stopService).toHaveBeenCalledOnce();
+    expect(startCommands.run).toHaveBeenCalledWith({ uiPort: 55668 });
   });
 
   it("restarts a tracked foreground local runtime on the target port before starting the managed service", async () => {

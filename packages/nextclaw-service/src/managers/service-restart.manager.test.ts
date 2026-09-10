@@ -7,6 +7,7 @@ import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-s
 import { ServiceRestartManager } from "@nextclaw-service/managers/service-restart.manager.js";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
+import { localUiRuntimeStore } from "@nextclaw-service/stores/local-ui-runtime.store.js";
 import { pendingRestartStore } from "@nextclaw-service/stores/pending-restart.store.js";
 
 const mocks = vi.hoisted(() => ({
@@ -40,6 +41,7 @@ describe("ServiceRestartManager self relaunch", () => {
     vi.useFakeTimers();
     mocks.spawn.mockClear();
     pendingRestartStore.clear();
+    localUiRuntimeStore.clearIfOwnedByProcess();
     restartManager = new ServiceRestartManager({
       managedService: {} as ManagedServiceManager
     });
@@ -112,6 +114,86 @@ describe("ServiceRestartManager self relaunch", () => {
     expect(helperScript).toContain("/repo/packages/nextclaw/src/cli/launcher/index.ts");
     expect(helperScript).not.toContain("/repo/packages/nextclaw/src/cli/app/index.ts");
     expect(helperScript).toContain('"start","--ui-port","19199"');
+  });
+
+  it("prepares active-run recovery and passes its operation id to the replacement process", async () => {
+    const recovery = {
+      prepare: vi.fn(async () => ({ operationId: "restart-operation-1" })),
+      abort: vi.fn(async () => undefined),
+      recover: vi.fn(),
+    };
+    restartManager.installPlannedRestartRecovery(recovery);
+
+    await restartManager.requestRestart({
+      reason: "AI requested update",
+      manualMessage: "Restart NextClaw.",
+      strategy: "background-service-or-exit",
+      delayMs: 100_000,
+    });
+
+    expect(recovery.prepare).toHaveBeenCalledWith("AI requested update");
+    const spawnCalls = mocks.spawn.mock.calls as unknown as Array<
+      [string, string[], { env?: NodeJS.ProcessEnv }]
+    >;
+    const spawnOptions = spawnCalls[0]?.[2];
+    expect(spawnOptions.env?.NEXTCLAW_RESTART_OPERATION_ID).toBe("restart-operation-1");
+    expect(recovery.abort).not.toHaveBeenCalled();
+  });
+
+  it("does not exit when a recoverable relaunch cannot be armed", async () => {
+    managedServiceStateStore.clear();
+    const recovery = {
+      prepare: vi.fn(async () => ({ operationId: "restart-operation-2" })),
+      abort: vi.fn(async () => undefined),
+      recover: vi.fn(),
+    };
+    restartManager.installPlannedRestartRecovery(recovery);
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => undefined) as never);
+
+    await expect(restartManager.requestRestart({
+      reason: "AI requested update",
+      manualMessage: "Restart NextClaw.",
+      strategy: "background-service-or-exit",
+      delayMs: 0,
+    })).rejects.toThrow("replacement process could not be armed");
+
+    expect(recovery.abort).toHaveBeenCalledWith("restart-operation-2");
+    expect(mocks.spawn).not.toHaveBeenCalled();
+    await vi.runAllTimersAsync();
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+
+  it("can arm a foreground runtime so CLI and AI restarts share the same recovery path", async () => {
+    managedServiceStateStore.clear();
+    localUiRuntimeStore.write({
+      pid: process.pid,
+      startedAt: "2026-09-10T00:00:00.000Z",
+      uiUrl: "http://127.0.0.1:19199",
+      apiUrl: "http://127.0.0.1:19199/api",
+      uiHost: "0.0.0.0",
+      uiPort: 19199,
+    });
+    const recovery = {
+      prepare: vi.fn(async () => ({ operationId: "foreground-operation" })),
+      abort: vi.fn(async () => undefined),
+      recover: vi.fn(),
+    };
+    restartManager.installPlannedRestartRecovery(recovery);
+
+    await restartManager.requestRestart({
+      reason: "cli.restart",
+      manualMessage: "Restart NextClaw.",
+      strategy: "background-service-or-exit",
+      delayMs: 100_000,
+    });
+
+    expect(mocks.spawn).toHaveBeenCalledTimes(1);
+    const spawnCalls = mocks.spawn.mock.calls as unknown as Array<
+      [string, string[], { env?: NodeJS.ProcessEnv }]
+    >;
+    const spawnOptions = spawnCalls[0]?.[2];
+    expect(spawnOptions.env?.NEXTCLAW_RESTART_OPERATION_ID).toBe("foreground-operation");
   });
 
   it("lets a supervisor own relaunch and exits with the requested code", async () => {

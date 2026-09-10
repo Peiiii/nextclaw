@@ -667,7 +667,7 @@ Feedback release status identifies its version and channel. Query it before repo
 | Command                                                      | Description                                                                                                                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `nextclaw start`                                             | Start gateway + UI in the background                                                                                                                         |
-| `nextclaw restart`                                           | Restart the background service with optional start flags                                                                                                     |
+| `nextclaw restart`                                           | Request a controlled restart; running conversations are continued automatically after the replacement process is ready                                      |
 | `nextclaw stop`                                              | Stop the background service                                                                                                                                  |
 | `nextclaw app create <app-dir> --template rust-wasi`         | Create a standalone Rust/WASI App with WIT, Panel, Service, lockfile, and smoke test                                                                         |
 | `nextclaw app doctor --profile wasi`                         | Diagnose Cargo, Rust, and the `wasm32-wasip2` target                                                                                                         |
@@ -934,16 +934,17 @@ nextclaw update
 
 Behavior:
 
-- If `NEXTCLAW_UPDATE_COMMAND` is set, the CLI executes it (useful for custom update flows).
-- Otherwise `nextclaw update` checks the runtime update channel, downloads the latest compatible runtime bundle, and applies it.
+- `nextclaw update` checks the runtime update channel, downloads the latest compatible runtime bundle, and applies it.
 - The `stable` channel checks production releases only. The `beta` channel compares preview and production releases, then offers whichever version is newer.
 - Use `nextclaw update --check` to check without downloading or applying.
 - Use `nextclaw update --download-only` to stage an update without switching the active runtime. `nextclaw update --apply` applies an already staged runtime update.
 - If the background service is running, restart it after `nextclaw update` reports that the runtime update was applied.
-- When update is triggered from the running gateway (agent `update.run`), NextClaw arms a self-relaunch helper before exiting, so the service comes back automatically (like an OS reboot flow).
-- A restart interrupts active conversations. Confirm recovery with `nextclaw status --json` from an external terminal.
+- `nextclaw restart` and gateway-triggered restarts use the running host's controlled-restart path when available. Before exiting, the host records the exact active runs; the replacement process continues eligible interrupted sessions after channels are ready.
+- Recovery currently covers managed services and foreground hosts registered with the local runtime API. Use `nextclaw restart` without configuration-changing flags. Explicit port/open/timeout overrides, older hosts returning HTTP 404, desktop/supervisor-owned restarts, and direct stop/start do not use this recovery handoff. A timeout or other API error is reported without a second destructive fallback restart; inspect `nextclaw status --json` before retrying.
+- Recovery starts a new run from the persisted conversation. It does not resume an in-flight tool process or replay its execution stack, so the agent must verify external state before continuing.
+- Direct process termination, crashes, machine restarts, expired handoff records, and the first restart from an older runtime without this capability do not trigger automatic continuation. Use `nextclaw status --json` to confirm the replacement process is healthy.
 
-If the gateway is running, you can also ask the agent to update. The agent will call the gateway update tool only when you explicitly request it; the service relaunch is scheduled afterward, but the active conversation can disconnect.
+If the gateway is running, you can also ask the agent to update or restart NextClaw. The agent acts only when explicitly requested and uses the same `nextclaw update` and `nextclaw restart` CLI as a human operator; there is no separate agent-only updater. Its current connection can briefly disconnect, then the planned-restart recovery continues the conversation in a new run once the replacement host is ready.
 
 ---
 
