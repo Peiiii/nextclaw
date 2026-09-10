@@ -18,3 +18,5 @@ Keep resource-link avatars at inline text size even inside Markdown with body-im
 Open ordinary Panel app resource links in the global right sidebar by default while preserving explicit main-area actions and existing-view reuse.
 
 Expose registered object types to AI without enumerating instances, make unfiltered resource discovery metadata-only, and clarify that valid resource links do not require catalog membership. Panel apps can also be found by app ID.
+
+Make concrete resource names clickable by default in AI Markdown replies when listing, recommending, locating or delivering results, without requiring a separate request for links. Preserve accurate identities and avoid unnecessary links or side effects.

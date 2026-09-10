@@ -24,6 +24,14 @@ describe("ReplyFormatContextProvider", () => {
 
     for (const expected of [
       "## Agent Output & Reply Formatting Contract",
+      "Make actionable resource names clickable by default",
+      "without waiting for the user to ask for links",
+      "after successful creation or modification, include a link to the result",
+      "targeted read-only lookup, not an exhaustive catalog scan",
+      "Never fabricate a URI",
+      "Do not link generic concepts or every repeated mention",
+      "respect requests for plain text",
+      "A link is not permission to open, execute or modify anything",
       "NextClaw Resource Protocol (NextClaw 资源协议)",
       "Ordinary Markdown links `[title](nextclaw://...)`",
       "not inline embeds and require no display tool",
