@@ -110,23 +110,13 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
       models: [modelName],
       providerModelAliases,
     });
-<<<<<<< Updated upstream
-=======
     // 测速会产生一次真实模型请求，可能消耗少量 token；设置 15s 超时避免思考模型长等。
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
->>>>>>> Stashed changes
     try {
       return await testProviderConnection.mutateAsync({
         provider: providerName,
         data: payload,
-<<<<<<< Updated upstream
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast.error(`${t('providerTestConnectionFailed')}: ${message}`);
-      return null;
-=======
       }, { signal: controller.signal });
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -144,7 +134,6 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
       return null;
     } finally {
       clearTimeout(timeoutId);
->>>>>>> Stashed changes
     }
   }, [
     apiBase,
@@ -157,10 +146,7 @@ export function useProviderConnectivity(params: UseProviderConnectivityParams) {
     supportsWireApi,
     testProviderConnection,
     wireApi,
-<<<<<<< Updated upstream
-=======
     t,
->>>>>>> Stashed changes
   ]);
 
   const discoverModels = useCallback(async () => {
