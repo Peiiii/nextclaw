@@ -79,6 +79,12 @@ export class CoreHealthCheckService {
     };
   };
 
+  /**
+   * 同步评估快照（不缓存、不轮询）。调用方拿到结果后自行处理异常——本方法本身不向外抛异常。
+   * 供 MCP 工具枚举等需要"不调 Desktop、不触发异步探测"的同步路径使用，避免外部状态探测失败连带阻断核心功能。
+   */
+  readonly evaluateSync = (): CoreHealthStatus => this.evaluate();
+
   private readonly evaluateCheck = (id: CoreHealthCheckId): CoreHealthCheckResult => {
     const checkedAt = new Date().toISOString();
     try {
