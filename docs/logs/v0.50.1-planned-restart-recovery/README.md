@@ -44,6 +44,8 @@ pnpm --filter @nextclaw/service exec vitest run src/services/runtime/tests/plann
 
 ## 发布/部署方式
 
+主干集成复验：合并 `af2e90aba` 后无冲突，kernel 全量 142 个文件 / 660 项通过；service 相关 8 个文件 / 27 项通过（含两轮真实重启验收）；kernel/service tsc、kernel build、VitePress 完整构建和集成 diff 检查通过。初始实现提交为 `ff217d4c8`。
+
 初次验收未执行外部写入；用户随后明确授权“合入主干”，按任务提交、合并最新 master、复验、普通推送和本地主干同步的顺序集成，最终提交记录以 Git 为准。不创建 PR、不发布或部署。本次只验收本地测试源，不修改在线更新源，也不自动更新用户正在使用的安装。
 
 ## 用户/产品视角的验收步骤
