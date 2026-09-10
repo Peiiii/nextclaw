@@ -29,6 +29,7 @@ export function useNcpSessionListView(
   params: { limit?: number; query?: string | null } = {},
 ) {
   const storedQuery = useChatSessionListStore((state) => state.snapshot.query);
+  const runningSessionKeys = useChatSessionListStore((state) => state.runningSessionKeys);
   const query = params.query ?? storedQuery;
   const deferredQuery = useDeferredValue(query);
   const sessionsQuery = useInfiniteNcpSessions({
@@ -38,11 +39,14 @@ export function useNcpSessionListView(
 
   const allItems = useMemo<NcpSessionListItemView[]>(() => {
     const summaries = sessionsQuery.data?.pages.flatMap((page) => page.sessions) ?? [];
+    const runningSessionKeySet = new Set(runningSessionKeys);
     return adaptNcpSessionSummaries(summaries).map((session) => ({
       session,
-      runStatus: session.status === "running" ? "running" : undefined,
+      runStatus: runningSessionKeySet.has(session.key) || session.status === "running"
+        ? "running"
+        : undefined,
     }));
-  }, [sessionsQuery.data?.pages]);
+  }, [runningSessionKeys, sessionsQuery.data?.pages]);
   const items = useMemo<NcpSessionListItemView[]>(() => {
     const visibleItems = allItems.filter(({ session }) =>
       shouldShowSessionInSidebar(session),
