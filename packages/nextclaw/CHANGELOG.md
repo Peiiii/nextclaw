@@ -1,5 +1,48 @@
 # nextclaw
 
+## 0.53.0
+
+### Minor Changes
+
+- ff217d4: Continue all eligible active conversations automatically after a controlled NextClaw restart without restoring or replaying in-flight tool execution, and standardize agent self-updates on the ordinary `nextclaw update` plus `nextclaw restart` CLI flow.
+
+  Remove the agent-only `gateway update.run` action; configuration actions remain unchanged. Recovery applies to supported managed/foreground hosts, not desktop/supervisor restarts or legacy direct stop/start transitions.
+
+  <!-- release-note-blog: docs/blog-drafts/2026-09-11-self-management-restart-continuity.blog-draft.md -->
+
+- 4b3d27d: Use a unified resource workbench to open conversations, files, apps, and object snapshots in the main area, right sidebar, or floating views. Keep content and reading position when changing presentation, and pin supported resources to the left Pages section.
+
+  Follow ordinary Markdown resource links with consistent icons and opening behavior. Shared page actions include opening, pinning, copying the URI, and adding a resource to chat; overflow controls use vertical dots and remain accessible on hover, keyboard focus, and touch.
+
+  Reference installed and project skills, scheduled tasks, inbox deliveries, agents, projects, panel apps, service apps, MCP connections, and project work items through the NextClaw Resource Protocol. AI tools and the `nextclaw resources list` / `resolve` commands discover the same real object URIs and immutable snapshots without executing their contents or exposing connection credentials.
+
+  Keep resource-link avatars at inline text size even inside Markdown with body-image styles. Panel app objects include a read-only metadata snapshot linking to the original interactive application.
+
+  Open ordinary Panel app resource links in the global right sidebar by default while preserving explicit main-area actions and existing-view reuse.
+
+  Expose registered object types to AI without enumerating instances, make unfiltered resource discovery metadata-only, and clarify that valid resource links do not require catalog membership. Panel apps can also be found by app ID.
+
+  Make concrete resource names clickable by default in AI Markdown replies when listing, recommending, locating or delivering results, without requiring a separate request for links. Preserve accurate identities and avoid unnecessary links or side effects.
+
+### Patch Changes
+
+- 865317e: Stop resident timer ingress at dead-letter boundaries and isolate oversized inboxes before they can exhaust host memory or disk I/O.
+- Updated dependencies [67f6035]
+- Updated dependencies [ff217d4]
+- Updated dependencies [865317e]
+- Updated dependencies [4b3d27d]
+  - @nextclaw/kernel@0.18.0
+  - @nextclaw/service@0.7.0
+  - @nextclaw/core@0.18.0
+  - @nextclaw/server@0.23.6
+  - @nextclaw/shared@0.8.0
+  - @nextclaw/remote@0.3.63
+  - @nextclaw/mcp@0.3.50
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.50
+  - @nextclaw/runtime@0.4.49
+  - @nextclaw/app-runtime@0.16.7
+  - @nextclaw/ncp-mcp@0.2.50
+
 ## 0.52.1
 
 ### Patch Changes

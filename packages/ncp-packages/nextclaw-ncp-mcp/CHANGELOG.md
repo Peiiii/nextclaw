@@ -1,5 +1,11 @@
 # @nextclaw/ncp-mcp
 
+## 0.2.50
+
+### Patch Changes
+
+- @nextclaw/mcp@0.3.50
+
 ## 0.2.49
 
 ### Patch Changes

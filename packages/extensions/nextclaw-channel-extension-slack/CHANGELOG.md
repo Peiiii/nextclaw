@@ -1,5 +1,13 @@
 # @nextclaw/channel-extension-slack
 
+## 0.2.49
+
+### Patch Changes
+
+- Updated dependencies [ff217d4]
+  - @nextclaw/core@0.18.0
+  - @nextclaw/extension-sdk@0.5.7
+
 ## 0.2.48
 
 ### Patch Changes

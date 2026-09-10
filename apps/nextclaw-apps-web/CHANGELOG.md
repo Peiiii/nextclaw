@@ -1,5 +1,12 @@
 # @nextclaw/apps-web
 
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [4b3d27d]
+  - @nextclaw/shared@0.8.0
+
 ## 0.1.7
 
 ### Patch Changes

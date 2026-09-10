@@ -1,5 +1,42 @@
 # @nextclaw/service
 
+## 0.7.0
+
+### Minor Changes
+
+- ff217d4: Continue all eligible active conversations automatically after a controlled NextClaw restart without restoring or replaying in-flight tool execution, and standardize agent self-updates on the ordinary `nextclaw update` plus `nextclaw restart` CLI flow.
+
+  Remove the agent-only `gateway update.run` action; configuration actions remain unchanged. Recovery applies to supported managed/foreground hosts, not desktop/supervisor restarts or legacy direct stop/start transitions.
+
+  <!-- release-note-blog: docs/blog-drafts/2026-09-11-self-management-restart-continuity.blog-draft.md -->
+
+### Patch Changes
+
+- Updated dependencies [67f6035]
+- Updated dependencies [ff217d4]
+- Updated dependencies [865317e]
+- Updated dependencies [4b3d27d]
+  - @nextclaw/kernel@0.18.0
+  - @nextclaw/core@0.18.0
+  - @nextclaw/server@0.23.6
+  - @nextclaw/shared@0.8.0
+  - @nextclaw/remote@0.3.63
+  - @nextclaw/channel-extension-dingtalk@0.2.49
+  - @nextclaw/channel-extension-discord@0.2.49
+  - @nextclaw/channel-extension-email@0.2.49
+  - @nextclaw/channel-extension-slack@0.2.49
+  - @nextclaw/channel-extension-telegram@0.2.49
+  - @nextclaw/channel-extension-wecom@0.2.49
+  - @nextclaw/channel-extension-whatsapp@0.2.49
+  - @nextclaw/mcp@0.3.50
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.3.50
+  - @nextclaw/runtime@0.4.49
+  - @nextclaw/client-sdk@0.12.6
+  - @nextclaw/ncp-mcp@0.2.50
+  - @nextclaw/channel-extension-feishu@0.2.38
+  - @nextclaw/channel-extension-qq@0.2.36
+  - @nextclaw/channel-extension-weixin@0.2.38
+
 ## 0.6.8
 
 ### Patch Changes
