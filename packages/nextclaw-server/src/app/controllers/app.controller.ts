@@ -77,13 +77,16 @@ export class AppRoutesController {
 
   readonly health = (c: Context) => {
     const bootstrapStatus = this.options.bootstrapStatus?.getStatus() ?? buildFallbackBootstrapStatus();
+    const coreHealth = this.options.kernel.coreHealth?.evaluate();
     return c.json(
       ok({
         status: "ok",
         services: {
           ncpAgent: bootstrapStatus.ncpAgent.state,
           cronService: this.options.cron ? "ready" : "unavailable"
-        }
+        },
+        // 核心健康是独立事实：检查失败不改变服务器存活的 ok 语义
+        ...(coreHealth ? { coreHealth } : {})
       })
     );
   };
