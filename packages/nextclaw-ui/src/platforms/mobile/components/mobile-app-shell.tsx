@@ -33,7 +33,7 @@ export function MobileAppShell({
   children,
 }: MobileAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
-  const showTopbar = !isChatSessionDetailRoute(pathname);
+  const showTopbar = pathname !== '/chat' && !isChatSessionDetailRoute(pathname);
   const showBottomNav = !isChatSessionDetailRoute(pathname);
 
   return (

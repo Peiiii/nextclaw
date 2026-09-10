@@ -1,4 +1,5 @@
 import { AgentAvatar } from "@/shared/components/common/agent-avatar";
+import { ChatMobileSessionRow } from './chat-mobile-session-row';
 import { SessionContextIconNode } from "@/features/chat/features/session/components/session-context-icon";
 import { SessionRunBadge } from "@/features/chat/features/session/components/session-run-badge";
 import { ChatSessionMoreActionsMenu } from "@/features/chat/features/session/components/session-header/chat-session-more-actions-menu";
@@ -21,7 +22,8 @@ import {
 import { ChatSidebarContextCard } from "@/features/chat/features/session/components/chat-sidebar-context-card";
 import { ChatSessionHeaderMenuItem } from "@/features/chat/features/session/components/session-header/chat-session-header-menu-item";
 
-type ChatSidebarSessionItemProps = {
+export type ChatSidebarSessionItemProps = {
+  variant?: 'desktop' | 'mobile';
   sessionKey: string;
   active: boolean;
   showUnreadDot: boolean;
@@ -264,6 +266,7 @@ function ChatSidebarSessionDisplayView({
         />
         <ChatSessionMoreActionsMenu
           sessionKey={sessionKey}
+          sessionTitle={title}
           triggerSize="sm"
           triggerTone="strong"
         >
@@ -279,7 +282,8 @@ function ChatSidebarSessionDisplayView({
   );
 }
 
-export function ChatSidebarSessionItem({
+export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
+  const {
   sessionKey,
   active,
   showUnreadDot,
@@ -305,17 +309,20 @@ export function ChatSidebarSessionItem({
   onCancel,
   onTogglePinned,
   onDelete,
-}: ChatSidebarSessionItemProps) {
+  } = props;
   return (
     <div
       className={cn(
-        "w-full rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
+        props.variant === 'mobile'
+          ? 'w-full border-b border-border/50 bg-background text-left'
+          : "w-full rounded-lg px-2.5 py-2 text-left text-[13px] transition-colors",
         active
           ? "bg-background/90 font-medium text-foreground"
           : "text-foreground/80 hover:bg-background/65 hover:text-foreground",
       )}
     >
       {isEditing ? (
+        <div className={props.variant === 'mobile' ? 'p-4' : undefined}>
         <ChatSidebarSessionEditingView
           sessionKey={sessionKey}
           draftLabel={draftLabel}
@@ -324,7 +331,8 @@ export function ChatSidebarSessionItem({
           onSave={onSave}
           onCancel={onCancel}
         />
-      ) : (
+        </div>
+      ) : props.variant === 'mobile' ? <ChatMobileSessionRow {...props} /> : (
         <ChatSidebarSessionDisplayView
           sessionKey={sessionKey}
           active={active}

@@ -39,7 +39,7 @@ describe("MobileBottomNav", () => {
     ).toBeNull();
     expect(screen.getByTestId("mobile-nav-active-indicator")).toBeTruthy();
     expect(screen.getByRole("link", { name: /settings/i }).className).toContain(
-      "bg-gray-100",
+      "bg-muted",
     );
     expect(screen.getByTestId("mobile-nav-active-indicator").textContent).toMatch(
       /settings/i,

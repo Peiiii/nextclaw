@@ -18,9 +18,8 @@ import {
   useSideDockStore,
 } from "@/features/side-dock";
 import { getPresenter } from "@/app/presenters/app.presenter";
-import { CHAT_DRAFT_SESSION_PATH } from "@/features/chat";
-import { parseSessionKeyFromRoute } from "@/features/chat/features/session/utils/chat-session-route.utils";
-import { createChatUiResourceReferenceFromTab } from "@/features/right-panel-resources/utils/right-panel-resource-uri.utils";
+import { CHAT_DRAFT_SESSION_PATH, CHAT_SESSION_PANEL_RENDERERS, parseSessionKeyFromRoute } from "@/features/chat";
+import { createChatUiResourceReferenceFromTab } from "@/features/right-panel-resources";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 import type { DocBrowserDockControls } from "@/shared/components/doc-browser/doc-browser-context";
 import type { DocBrowserTabMenuGroupsResolver } from "@/shared/components/doc-browser/doc-browser";
@@ -31,6 +30,7 @@ interface AppLayoutProps {
 }
 
 const DOC_BROWSER_RENDERERS = {
+  ...CHAT_SESSION_PANEL_RENDERERS,
   ...PANEL_APPS_DOC_BROWSER_RENDERERS,
   ...MARKETPLACE_DETAIL_DOC_BROWSER_RENDERERS,
 };

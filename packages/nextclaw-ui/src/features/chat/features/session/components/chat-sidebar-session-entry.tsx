@@ -11,6 +11,7 @@ import type { ChatSessionTypeOption } from "@/features/chat/features/session-typ
 import { t } from "@/shared/lib/i18n";
 
 export function ChatSidebarSessionEntry(props: {
+  variant?: 'desktop' | 'mobile';
   item: NcpSessionListItemView;
   selectedSessionKey: string | null;
   optimisticReadAtBySessionKey: Record<string, string>;
@@ -74,6 +75,7 @@ export function ChatSidebarSessionEntry(props: {
 
   return (
     <ChatSidebarSessionItem
+      variant={props.variant}
       sessionKey={session.key}
       active={active}
       showUnreadDot={shouldShowUnreadSessionIndicator({

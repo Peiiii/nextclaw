@@ -15,8 +15,6 @@ import { PortableRuntimeAcceptanceManager } from "@kernel/services/portable-runt
 import type { PanelAppManager } from "@kernel/managers/panel-app.manager.js";
 import { SessionManager } from "@kernel/managers/session.manager.js";
 import { ObservationManager } from "@kernel/features/observation/index.js";
-import type { AgentContextWindowManager } from "@kernel/managers/agent-context-window.manager.js";
-import type { AgentManager } from "@kernel/managers/agent.manager.js";
 import {
   ProjectManager,
   ProjectMaterialService,
@@ -30,7 +28,6 @@ import {
   type MessageBus,
   SessionSearchService,
 } from "@nextclaw/core";
-import type { EventBus, Ingress } from "@nextclaw/shared";
 import type { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
 import { AgentRunRuntimeContribution } from "@kernel/contributions/agent-run-runtime/index.js";
 import { ContextProviderContribution } from "@kernel/contributions/context-provider/index.js";
@@ -200,11 +197,7 @@ export function createPortableRuntimeAcceptanceServices(params: {
 }
 
 export function createKernelSessionManagers(params: {
-  agentContextWindowManager: AgentContextWindowManager;
-  agentManager: AgentManager;
-  configManager: ConfigManager;
-  eventBus: EventBus;
-  ingress: Ingress;
+  kernel: Pick<NextclawKernel, "llmProviders" | "agentContextWindowManager" | "agents" | "configManager" | "eventBus" | "ingress">;
   observationStorePath: string;
   legacyProjectStorePath: string;
   projectDatabasePath: string;
@@ -219,16 +212,13 @@ export function createKernelSessionManagers(params: {
   sessionSearch: SessionSearchService;
 } {
   const {
-    agentContextWindowManager,
-    agentManager,
-    configManager,
-    eventBus,
-    ingress,
+    kernel,
     observationStorePath,
     legacyProjectStorePath,
     projectDatabasePath,
     sessionsDir,
   } = params;
+  const { agentContextWindowManager, agents: agentManager, configManager, eventBus, ingress } = kernel;
   const sessionSearch = new SessionSearchService({
     databasePath: resolve(getDataDir(), "session-search.db"),
     sessionsDir,
@@ -258,6 +248,7 @@ export function createKernelSessionManagers(params: {
     current: null,
   };
   const sessionManager = new SessionManager({
+    providerManager: kernel.llmProviders,
     agentContextWindowManager,
     agentManager,
     configManager,

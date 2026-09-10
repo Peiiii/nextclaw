@@ -1,4 +1,16 @@
 const SESSION_ROUTE_PREFIX = 'sid_';
+export const CHAT_SESSION_PANEL_KIND = 'chat-session';
+const SESSION_PANEL_PREFIX = 'nextclaw://chat-session/';
+
+export function buildSessionPanelUrl(sessionKey: string): string {
+  return SESSION_PANEL_PREFIX + encodeSessionRouteId(sessionKey);
+}
+
+export function parseSessionKeyFromPanelUrl(url: string): string | null {
+  return url.startsWith(SESSION_PANEL_PREFIX)
+    ? decodeSessionRouteId(url.slice(SESSION_PANEL_PREFIX.length))
+    : null;
+}
 export const CHAT_DRAFT_SESSION_PATH = '/chat/draft';
 const DRAFT_SESSION_ROUTE_ID = CHAT_DRAFT_SESSION_PATH.slice('/chat/'.length);
 

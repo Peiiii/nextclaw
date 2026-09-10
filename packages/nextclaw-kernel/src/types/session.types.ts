@@ -2,6 +2,12 @@ import type { CreateSessionContextInheritanceInput } from "@nextclaw/core";
 import type { NcpMessage, NcpSessionMessagePageInfo } from "@nextclaw/ncp";
 import type { ThinkingEffort } from "@kernel/types/agent-run.types.js";
 
+export type SessionMetadataUpdate = {
+  sessionId: string;
+  metadata: Record<string, unknown>;
+  expectedMetadata?: Record<string, unknown>;
+};
+
 export type SessionMessagePage = {
   messages: NcpMessage[];
   messageDetailCursors: Record<string, string>;

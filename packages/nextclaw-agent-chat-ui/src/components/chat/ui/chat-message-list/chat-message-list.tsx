@@ -206,7 +206,7 @@ export function ChatMessageList({
   const hasAssistantDraftContent = hasRenderableAssistantDraft(visibleMessages);
 
   return (
-    <div className={cn('space-y-5', className)}>
+    <div className={cn('nextclaw-message-list space-y-5 [container:message-list/inline-size]', className)}>
       {visibleMessages.map((message) => {
         const isUser = message.role === 'user';
         const isGenerating = isGeneratingAssistantMessage(message);
@@ -267,10 +267,10 @@ export function ChatMessageList({
                   <ChatMessageTypingFooter />
                 </div>
               ) : (
-                <div data-chat-message-footer="flat" className="flex flex-wrap items-center gap-2">
-                  <span className="px-1 text-[11px] leading-4 text-muted-foreground">
+                <div data-chat-message-footer="flat" className="flex min-w-0 items-center gap-1">
+                  <span className="min-w-0 truncate px-1 text-[11px] leading-4 text-muted-foreground" title={message.timestampLabel}>
                     {message.timestampLabel}
-                    {message.executionSummaryLabel ? ` · ${message.executionSummaryLabel}` : null}
+                    {message.executionSummaryLabel ? <span className="[@container_message-list_(max-width:520px)]:hidden"> · {message.executionSummaryLabel}</span> : null}
                   </span>
                   <ChatMessageActions
                     message={message}
@@ -301,7 +301,7 @@ export function ChatMessageList({
             ) : null}
             <div className={cn('w-fit max-w-[92%] space-y-2 has-[[data-chat-message-wide-content=true]]:w-full', isUser && 'flex flex-col items-end')}>
               {content}
-              <div className={cn('flex flex-wrap items-center gap-2', isUser && 'justify-end')}>
+              <div className={cn('flex min-w-0 max-w-full items-center gap-1', isUser && 'justify-end')}>
                 {isGenerating ? (
                   <ChatMessageTypingFooter />
                 ) : (
@@ -309,12 +309,12 @@ export function ChatMessageList({
                     <div
                       role={meta.role}
                       className={cn(
-                        'px-1 text-[11px] leading-4 text-muted-foreground',
+                        'min-w-0 truncate px-1 text-[11px] leading-4 text-muted-foreground',
                         isUser ? 'text-right' : 'text-left'
                       )}
                     >
                       {meta.label}
-                      {message.executionSummaryLabel ? ` · ${message.executionSummaryLabel}` : null}
+                      {message.executionSummaryLabel ? <span className="[@container_message-list_(max-width:520px)]:hidden"> · {message.executionSummaryLabel}</span> : null}
                     </div>
                     <ChatMessageActions
                       message={message}

@@ -20,7 +20,7 @@ export function ChatMessageAvatar({
       <div
         data-testid="chat-message-avatar-user"
         className={cn(
-          'nextclaw-chat-message-avatar-user hidden shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm md:flex',
+          'nextclaw-chat-message-avatar-user hidden shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm md:flex [@container_message-list_(max-width:520px)]:hidden',
           frameSize,
         )}
       >

@@ -2,6 +2,8 @@ export { ChatConversationPanel } from "./components/conversation/chat-conversati
 export { ChatConversationWorkspaceSection } from "./components/conversation/chat-conversation-workspace-section";
 export { ChatSidebar } from "./components/layout/chat-sidebar";
 export { ChatPresenterProvider } from "./components/providers/chat-presenter.provider";
+export { ChatRuntimeProvider } from "./components/providers/chat-runtime.provider";
+export { CHAT_SESSION_PANEL_RENDERERS } from './features/conversation/components/session-conversation-panel-tab';
 export { usePresenter } from "./components/providers/chat-presenter.provider";
 export { ChatPresenter } from "./presenters/chat.presenter";
 export { ChatDraftIntentManager } from "./managers/chat-draft-intent.manager";
@@ -9,6 +11,10 @@ export { ChatComposerIntentManager } from "./managers/chat-composer-intent.manag
 export { ChatCompletionNotificationManager } from "./managers/chat-completion-notification.manager";
 export {
   buildSessionPath,
+  buildSessionPanelUrl,
+  CHAT_SESSION_PANEL_KIND,
+  parseSessionKeyFromPanelUrl,
+  parseSessionKeyFromRoute,
   CHAT_DRAFT_SESSION_PATH,
 } from "./features/session/utils/chat-session-route.utils";
 export { useChatSessionListStore } from "./stores/chat-session-list.store";

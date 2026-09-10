@@ -11,6 +11,7 @@ import { SIDEBAR_RAIL_WIDTH_PX } from "@/app/components/layout/sidebar-rail.styl
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
 import { ChatPage } from "@/components/chat/chat-page";
+import { ChatRuntimeProvider } from "@/features/chat";
 import { loadAccountPanel } from "@/features/account";
 import { InboxRuntime } from "@/features/inbox";
 import { PanelAppServiceActionAuthorizationDialog } from "@/features/panel-apps";
@@ -274,6 +275,7 @@ function ProtectedApp() {
 
   return (
     <AppPresenterProvider>
+      <ChatRuntimeProvider>
       <AppNotificationRuntime />
       <InboxRuntime />
       <AppLayout>
@@ -284,6 +286,7 @@ function ProtectedApp() {
       </Suspense>
       <PanelAppServiceActionAuthorizationDialog />
       <DesktopAuthorizationDialog />
+      </ChatRuntimeProvider>
     </AppPresenterProvider>
   );
 }

@@ -8,9 +8,21 @@ You do not need to remain in one conversation while work finishes. NextClaw retu
 
 When an AI reply finishes in another conversation, a clickable notification appears in the upper-right corner. It shows the conversation title and a cleaned plain-text preview instead of raw Markdown. Select it to return to the completed conversation.
 
+To keep working on the current page, select the notification's **Chat in a floating window** icon beside the dismiss button on the right; hover over an icon to see its label. The floating conversation loads that chat's history and lets you ask follow-up questions, read streaming replies, and inspect tool results while preserving your main conversation and draft.
+
+You can also choose **More actions → Chat in a floating window** from the conversation list, the current conversation header, or the workspace's child conversation list. Any existing conversation can open this way without waiting for a notification. If the main view and floating window show the same conversation, they share its draft and receive live message updates.
+
+Use the title bar to minimize, restore, open the conversation in the main view, or close it. Minimizing preserves your input; closing does not stop a running reply. One floating conversation opens at a time, so expanding another notification switches its target. Refreshing closes the window while keeping history in the original conversation. An expanded floating conversation suppresses duplicate notifications; minimizing restores them.
+
 ![NextClaw showing a clickable result notification after a background session completes](/product-screenshots/nextclaw-background-session-notification-en.png)
 
 This notification is useful for “the reply I was waiting for is ready.” The conversation already on screen does not trigger a redundant notification, and the notification is not a permanent record.
+
+### Continue chatting in the right sidebar
+
+Choose **More actions → Chat in right sidebar** on an existing conversation, or **Dock to right sidebar** in the floating window. The sidebar toolbar can pop it back out. Moving a conversation keeps its identity and shared draft; different conversations keep separate drafts. Multiple conversation tabs can coexist with documents and other sidebar tabs.
+
+On mobile, conversation rows show a title, recent message, time and unread indicator. Agent avatars take priority; ordinary conversations use title initials and a stable color for recognition. Open search from the header button and switch time/project views from the title menu. Each row has a touch-accessible actions button. In narrow chat containers, message footers retain the time and actions; full model and usage information remains available through the message's more-actions menu.
 
 ### Proactive inbox deliveries
 
@@ -43,6 +55,10 @@ The inbox is suited to weekly reports, research, recommendations, monitoring fin
 The inbox supports self-contained static HTML reports. Inline styles render normally, while scripts, forms, popups, remote resources, and external network requests remain isolated. Interactive pages that require JavaScript or external services are better delivered through a trusted file preview or a Panel App.
 
 ## Continue working from a result
+
+After a completed reply, the configured model can generate a concise title based on the conversation's actual topic. Greetings without a topic wait for a later turn; failed generation keeps the current title. Manually renamed conversations are preserved. Older conversations still named after their first message can improve after their next completed reply; opening the list does not rename them in bulk.
+
+The conversation list's plus button opens the new-conversation screen directly. Choose a different runtime below the input area on that screen.
 
 Select “Continue Chat” to create or reuse a linked conversation. NextClaw supplies the delivery to AI as context, so you can question a conclusion, request a revised report, or turn a recommendation into the next task without pasting the entire document again.
 

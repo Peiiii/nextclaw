@@ -105,7 +105,7 @@ function ChatMessageDetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-xl"
+        className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl"
         closeLabel={action.dialog.closeLabel}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
@@ -236,7 +236,7 @@ export function ChatMessageActions({
   );
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex shrink-0 items-center gap-0.5 [@container_message-list_(max-width:520px)]:[&>button]:min-h-9 [@container_message-list_(max-width:520px)]:[&>button]:min-w-9">
       {onAction
         ? message.actions?.map((action) => (
           <ChatMessageAction key={action.key} action={action} onAction={onAction} />

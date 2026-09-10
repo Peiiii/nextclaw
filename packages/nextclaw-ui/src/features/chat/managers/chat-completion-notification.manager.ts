@@ -1,3 +1,4 @@
+import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
 import {
   isHiddenNcpMessage,
   NcpEventType,
@@ -146,6 +147,10 @@ export class ChatCompletionNotificationManager {
       title,
       description: preview || t("chatBackgroundReplyFallbackPreview"),
       href: buildSessionPath(sessionId),
+      action: {
+        label: t('chatFloatingExpand'),
+        onClick: () => sessionSurfaceManager.open({ sessionKey: sessionId, title }),
+      },
       ariaLabel: t("chatBackgroundReplyOpenAriaLabel").replace("{title}", title),
     });
   };

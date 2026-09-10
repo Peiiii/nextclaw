@@ -1,3 +1,4 @@
+import { sessionSurfaceManager } from '@/features/chat/managers/session-surface.manager';
 import {
   NCP_INTERNAL_VISIBILITY_METADATA_KEY,
   NcpEventType,
@@ -8,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatCompletionNotificationManager } from "@/features/chat/managers/chat-completion-notification.manager";
 import { buildSessionPath } from "@/features/chat/features/session/utils/chat-session-route.utils";
 import { useChatQueryStore } from "@/features/chat/stores/ncp-chat-query.store";
+import { useFloatingSessionStore } from '@/features/chat/stores/floating-session.store';
 
 const mocks = vi.hoisted(() => ({
   eventHandler: null as ((event: NcpEndpointEvent) => void) | null,
@@ -98,7 +100,13 @@ describe("ChatCompletionNotificationManager", () => {
       description: "The requested research is complete.",
       href: buildSessionPath("session-background"),
       ariaLabel: "Open the new reply in Quarterly research",
+      action: { label: 'Chat in a floating window', onClick: expect.any(Function) },
     });
+    show.mock.calls[0][0].action.onClick();
+    expect(useFloatingSessionStore.getState().session).toEqual({
+      sessionKey: 'session-background', title: 'Quarterly research',
+    });
+    sessionSurfaceManager.close();
   });
 
   it("suppresses messages completed in any visible session, including later replays", () => {

@@ -218,11 +218,7 @@ export class NextclawKernel {
       sessionManager: this.sessionManager,
       sessionSearch: this.sessionSearch,
     } = createKernelSessionManagers({
-      agentContextWindowManager: this.agentContextWindowManager,
-      agentManager: this.agents,
-      configManager: this.configManager,
-      eventBus: this.eventBus,
-      ingress: this.ingress,
+      kernel: this,
       observationStorePath: resolveKernelObservationStorePath(options),
       legacyProjectStorePath: resolveKernelLegacyProjectStorePath(options), projectDatabasePath: resolveKernelProjectDatabasePath(options),
       sessionsDir,

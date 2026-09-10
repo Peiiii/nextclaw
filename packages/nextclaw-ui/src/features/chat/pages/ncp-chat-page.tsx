@@ -1,100 +1,20 @@
-import {
-  useEffect,
-  useMemo,
-} from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   ChatPageLayout,
   type ChatPageProps,
   useChatSessionSync,
 } from "@/features/chat/components/layout/chat-page-shell";
 import { parseSessionKeyFromRoute } from "@/features/chat/features/session/utils/chat-session-route.utils";
-import { ChatPresenter } from "@/features/chat/presenters/chat.presenter";
-import { useChatQueryStoreSync } from "@/features/chat/features/ncp/hooks/use-ncp-chat-query-store-sync";
-import {
-  ChatPresenterProvider,
-  usePresenter,
-} from "@/features/chat/components/providers/chat-presenter.provider";
-import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
-import { useAppPresenter } from "@/app/components/app-presenter-provider";
+import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { useUiShowContentEvent } from "@/features/chat/features/ncp/hooks/use-ui-show-content-event";
-import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
-
-function useNcpChatRouteSelection() {
-  const { sessionId: routeSessionIdParam } = useParams<{ sessionId?: string }>();
-  const routeSessionKey = useMemo(
-    () => parseSessionKeyFromRoute(routeSessionIdParam),
-    [routeSessionIdParam],
-  );
-  return {
-    routeSessionKey,
-    sessionKey: routeSessionKey ?? undefined,
-  };
-}
-
-function useNcpChatUiBindings() {
-  const presenter = usePresenter();
-  const { confirm, ConfirmDialog } = useConfirmDialog();
-  const location = useLocation();
-  const navigate = useNavigate();
-  useEffect(() => {
-    presenter.chatUiManager.syncState({
-      pathname: location.pathname,
-    });
-    presenter.chatUiManager.bindActions({
-      navigate,
-      confirm,
-    });
-  }, [confirm, location.pathname, navigate, presenter]);
-  return <ConfirmDialog />;
-}
 
 export function NcpChatPage({ view }: ChatPageProps) {
-  const appPresenter = useAppPresenter();
-  const presenter = useMemo(() => new ChatPresenter(appPresenter), [appPresenter]);
-  return (
-    <ChatPresenterProvider presenter={presenter}>
-      <NcpChatPageContent view={view} />
-    </ChatPresenterProvider>
-  );
-}
-
-function NcpChatPageContent({ view }: ChatPageProps) {
-  const appPresenter = useAppPresenter();
   const presenter = usePresenter();
-  const confirmDialog = useNcpChatUiBindings();
-  const routeSelection = useNcpChatRouteSelection();
-  const { routeSessionKey, sessionKey } = routeSelection;
-  const visibleWorkspaceSessionKey = useChatThreadStore((state) => {
-    const { snapshot } = state;
-    if (
-      snapshot.workspacePanelParentKey !== (sessionKey ?? null) ||
-      snapshot.activeWorkspacePanelKind !== "child-session"
-    ) {
-      return null;
-    }
-    return snapshot.activeChildSessionKey?.trim() || null;
-  });
-  useEffect(() => {
-    appPresenter.chatCompletionNotificationManager.syncVisibleSessions(
-      [sessionKey, visibleWorkspaceSessionKey],
-    );
-    return () => {
-      appPresenter.chatCompletionNotificationManager.syncVisibleSessions([]);
-    };
-  }, [
-    appPresenter.chatCompletionNotificationManager,
-    sessionKey,
-    visibleWorkspaceSessionKey,
-  ]);
-  useChatQueryStoreSync({
-    sessionKey: sessionKey ?? null,
-  });
+  const { sessionId } = useParams<{ sessionId?: string }>();
   useChatSessionSync({
-    routeSessionKey,
-    syncRouteSessionSelection:
-      presenter.chatSessionListManager.syncRouteSessionSelection,
+    routeSessionKey: parseSessionKeyFromRoute(sessionId),
+    syncRouteSessionSelection: presenter.chatSessionListManager.syncRouteSessionSelection,
   });
   useUiShowContentEvent();
-  return <ChatPageLayout view={view} confirmDialog={confirmDialog} />;
+  return <ChatPageLayout view={view} />;
 }

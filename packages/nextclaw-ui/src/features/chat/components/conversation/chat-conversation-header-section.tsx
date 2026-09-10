@@ -165,6 +165,7 @@ export function ChatConversationHeaderSection({
           ) : null}
           <ChatSessionHeaderActions
             sessionKey={sessionKey}
+            sessionTitle={sessionHeaderTitle}
             canDeleteSession={canDeleteSession}
             isDeletePending={snapshot.isDeletePending}
             currentPath={

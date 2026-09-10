@@ -149,6 +149,7 @@ export function ChatSidebarDesktopNav({
 }
 
 export function ChatSidebarSessionArea({
+  variant = 'desktop',
   defaultSessionType,
   groups,
   isCollapsed,
@@ -162,6 +163,7 @@ export function ChatSidebarSessionArea({
   renderSessionItem,
   sessionTypeOptions,
 }: {
+  variant?: 'desktop' | 'mobile';
   defaultSessionType: string;
   groups: ReturnType<typeof groupSessionsByDate>;
   isCollapsed: boolean;
@@ -188,7 +190,7 @@ export function ChatSidebarSessionArea({
 
   return (
     <>
-      <div className="flex h-8 items-center justify-end gap-1 px-3">
+      <div className={variant === 'mobile' ? 'hidden' : 'flex h-8 items-center justify-end gap-1 px-3'}>
         {isProjectFirstView ? (
           <IconActionButton
             icon={<FolderPlus className="h-3.5 w-3.5" />}
@@ -213,11 +215,13 @@ export function ChatSidebarSessionArea({
           }
         }}
         className={cn(
-          "custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1",
+          'custom-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain',
+          variant === 'mobile' ? 'bg-background' : 'px-3 pb-4 pt-1',
           SCROLL_BOTTOM_EDGE_FADE_CLASS,
         )}
       >
         <ChatSidebarSessionList
+          variant={variant}
           isLoading={isLoading}
           isProjectFirstView={isProjectFirstView}
           groups={groups}

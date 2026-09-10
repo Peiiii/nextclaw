@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from "vitest";
 import {
   ChatSidebarDesktopToolbar,
@@ -47,17 +48,18 @@ describe("ChatSidebarToolbar", () => {
     ).toBe("chat-search");
   });
 
-  it("keeps mobile search icon transparent to pointer input", () => {
-    render(<ChatSidebarMobileToolbar {...toolbarProps} />);
-
-    expect(searchIconClassName()).toContain("pointer-events-none");
-    expect(
-      screen.getByPlaceholderText("Search conversations...").className,
-    ).toContain("border-0");
-    expect(
-      screen
-        .getByPlaceholderText("Search conversations...")
-        .getAttribute("data-theme-control"),
-    ).toBe("chat-search");
+  it('reveals mobile search on demand and clears the filter when closed', async () => {
+    const user = userEvent.setup();
+    const onQueryChange = vi.fn();
+    render(<ChatSidebarMobileToolbar {...toolbarProps} onQueryChange={onQueryChange} isProjectFirstView={false} onSelectMode={vi.fn()} onAddProject={vi.fn()} />);
+    expect(screen.queryByRole('textbox')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Search conversations...' }));
+    const search = screen.getByRole('textbox');
+    expect(document.activeElement).toBe(search);
+    await user.type(search, 'a');
+    expect(onQueryChange).toHaveBeenLastCalledWith('a');
+    await user.click(screen.getByRole('button', { name: 'Close search' }));
+    expect(onQueryChange).toHaveBeenLastCalledWith('');
+    expect(screen.queryByRole('textbox')).toBeNull();
   });
 });

@@ -25,7 +25,7 @@ import { NcpAgentSessionMetadataStore } from "./ncp-agent-session-metadata.store
 import { NcpAgentSessionMessageProjectionStore } from "./ncp-agent-session-message-projection.store.js";
 import { NcpAgentSessionSummaryIndexStore } from "./ncp-agent-session-summary-index.store.js";
 import { NcpAgentSessionSummaryReadStore } from "./ncp-agent-session-summary-read.store.js";
-import type { SessionMessagePage } from "@kernel/types/session.types.js";
+import type { SessionMessagePage, SessionMetadataUpdate } from "@kernel/types/session.types.js";
 export class NcpAgentSessionJournalStore {
   private readonly sessions = new Map<string, LoadedNcpAgentJournalSession>();
   private readonly nextSeqBySession = new Map<string, number>();
@@ -186,10 +186,7 @@ export class NcpAgentSessionJournalStore {
     );
     return await next;
   };
-  updateSessionMetadata = async (params: {
-    sessionId: string;
-    metadata: Record<string, unknown>;
-  }): Promise<boolean> => {
+  updateSessionMetadata = async (params: SessionMetadataUpdate): Promise<boolean> => {
     const sessionId = normalizeNcpSessionId(params.sessionId);
     if (!sessionId) {
       return false;
@@ -234,19 +231,20 @@ export class NcpAgentSessionJournalStore {
     await this.summaryIndexStore.upsert(createNcpAgentSessionSummary(nextRecord));
     return true;
   };
-  private updateSessionMetadataNow = async (params: {
-    sessionId: string;
-    metadata: Record<string, unknown>;
-  }): Promise<boolean> => {
-    const loaded = this.sessions.get(params.sessionId) ?? (await this.loadSession(params.sessionId));
+  private updateSessionMetadataNow = async (params: SessionMetadataUpdate): Promise<boolean> => {
+    const { sessionId, metadata, expectedMetadata } = params;
+    const loaded = this.sessions.get(sessionId) ?? (await this.loadSession(sessionId));
     if (!loaded) {
       return false;
     }
+    if (expectedMetadata && Object.entries(expectedMetadata).some(
+      ([key, value]) => loaded.record.metadata?.[key] !== value,
+    )) return false;
     return await this.setSessionMetadataNow({
-      ...params,
+      sessionId,
       metadata: {
         ...(loaded.record.metadata ? structuredClone(loaded.record.metadata) : {}),
-        ...structuredClone(params.metadata)
+        ...structuredClone(metadata)
       }
     });
   };

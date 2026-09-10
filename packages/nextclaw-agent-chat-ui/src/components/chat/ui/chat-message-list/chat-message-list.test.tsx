@@ -83,8 +83,8 @@ it("renders user, assistant, and tool content and supports code copy", async () 
 
   expect(screen.getByText("You · 10:00")).toBeTruthy();
   expect(
-    screen.getByText("Assistant · 10:01 · openai/gpt-5 · 120 input / 30 output"),
-  ).toBeTruthy();
+    screen.getByText("Assistant · 10:01").textContent,
+  ).toBe("Assistant · 10:01 · openai/gpt-5 · 120 input / 30 output");
   expect(screen.getByText("Tool · 10:02")).toBeTruthy();
   expect(screen.queryByText("Completed")).toBeNull();
   expect(screen.queryByText("Input Summary")).toBeNull();

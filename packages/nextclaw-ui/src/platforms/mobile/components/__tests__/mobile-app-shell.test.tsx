@@ -38,6 +38,7 @@ describe("MobileAppShell", () => {
     expect(shell.className).toContain("supports-[height:100dvh]:h-[100dvh]");
     expect(shell.className).not.toContain("h-screen");
     expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
+    expect(screen.queryByTestId('mobile-topbar')).toBeNull();
   });
 
   it("centers primary route titles without reserving back-button spacers", () => {
