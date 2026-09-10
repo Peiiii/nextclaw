@@ -30,6 +30,7 @@ Installing the CLI and installing a host-managed service are separate actions.
 
 ## Related guides
 
+- [Self-management: update, restart, and continue working](/en/guide/self-management)
 - [Background & Autostart](/en/guide/background-autostart)
 - [Remote Access](/en/guide/remote-access)
 - [Docker Deployment](/en/guide/tutorials/docker-one-click)

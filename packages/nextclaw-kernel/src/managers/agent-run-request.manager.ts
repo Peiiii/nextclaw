@@ -34,12 +34,14 @@ import type {
   SessionRunManager,
 } from "./session-run.manager.js";
 import { AgentRunInputDeliveryService } from "@kernel/services/agent-run-input-delivery.service.js";
+import { AgentRunAdmissionService } from "@kernel/services/agent-run-admission.service.js";
 import { AgentRunRequestIdempotencyService } from "@kernel/services/agent-run-request-idempotency.service.js";
 import { AgentRuntimeRunObserverService } from "@kernel/services/agent-runtime-run-observer.service.js";
 import type { SessionManager } from "@kernel/managers/session.manager.js";
 import type {
   AgentRunAbortRequest,
   AgentRunAccepted,
+  AgentRunContinueRequest,
   AgentRunRequest,
   AgentRunSpec,
 } from "@kernel/types/agent-run.types.js";
@@ -69,6 +71,7 @@ export class AgentRunRequestManager {
   private readonly runtimeRuns: AgentRuntimeRunObserverService;
   readonly pendingInputs: AgentRunInputDeliveryService;
   private started = false;
+  readonly admissions = new AgentRunAdmissionService();
 
   constructor(
     private readonly agentRuntimeManager: AgentRuntimeManager,
@@ -112,7 +115,9 @@ export class AgentRunRequestManager {
     this.cleanups.push(
       this.ingress.addHandler(
         ingressKeys.agentRun.send,
-        this.handleSendRequest,
+        (envelope, context) => this.admissions.accept(
+          () => this.handleSendRequest(envelope, context),
+        ),
       ),
       this.ingress.addHandler(
         ingressKeys.agentRun.abort,
@@ -120,15 +125,21 @@ export class AgentRunRequestManager {
       ),
       this.ingress.addHandler(
         ingressKeys.agentRun.editMessage,
-        this.handleEditMessageRequest,
+        (envelope) => this.admissions.accept(
+          () => this.handleEditMessageRequest(envelope),
+        ),
       ),
       this.ingress.addHandler(
         ingressKeys.agentRun.continue,
-        this.handleContinueRequest,
+        (envelope) => this.admissions.accept(
+          () => this.handleContinueRequest(envelope),
+        ),
       ),
       this.ingress.addHandler(
         ingressKeys.agentRun.sessionMessageRequest,
-        this.handleSessionMessageRequest,
+        (envelope) => this.admissions.accept(
+          () => this.handleSessionMessageRequest(envelope),
+        ),
       ),
     );
   };
@@ -140,8 +151,14 @@ export class AgentRunRequestManager {
     this.observedSessionRuns.clear();
     this.idempotency.dispose();
     this.sessionCommandManager.dispose();
+    this.admissions.resume();
     this.started = false;
   };
+
+  continueRunIfEligible = async (
+    request: AgentRunContinueRequest,
+  ): Promise<AgentRunAccepted | null> =>
+    await this.admissions.accept(() => this.sessionCommandManager.continueRunIfEligible(request));
 
   private handleSendRequest = async (
     envelope: IngressEnvelope<AgentRunSendIngressPayload>,
@@ -233,6 +250,9 @@ export class AgentRunRequestManager {
       sessionId: session.sessionId,
       message: baseMessage,
     };
+    if (request.trigger?.source === "planned-restart-recovery" && sessionRun.isBusy()) {
+      throw new Error("Session received new input before planned restart recovery could start.");
+    }
     const queuedRequest = sessionRun.enqueueRequest(normalizedRequest, session);
     const steeringRequest =
       request.delivery === "prefer-steer" && sessionRun.isRunning()
@@ -363,7 +383,7 @@ export class AgentRunRequestManager {
         executionClaim,
       });
     } catch (error) {
-      this.releaseExecutionClaim(executionClaim);
+      executionClaim?.release();
       const classification = classifyDiagnosticError(
         error,
         activeRequest.signal,
@@ -446,19 +466,10 @@ export class AgentRunRequestManager {
     this.runtimeRuns.start({
       ...runtimeParams,
       onSettled: (sessionRun) => {
-        this.releaseExecutionClaim(executionClaim);
+        executionClaim?.release();
         this.startNextQueuedRun(sessionRun);
       },
     });
-  };
-
-  private releaseExecutionClaim = (
-    claim?: LocalExecutionClaimHandle<void>,
-  ): void => {
-    if (!claim) {
-      return;
-    }
-    claim.release();
   };
 
   private publishRunStartupFailure = async (params: {

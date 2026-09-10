@@ -6,25 +6,11 @@ import { ConfigSchema, type Config } from "@nextclaw/core";
 import { ConfigManager, LlmProviderManager } from "@nextclaw/kernel";
 import { GatewayControllerImpl } from "./gateway.controller.js";
 
-const mocks = vi.hoisted(() => ({
-  writeRestartSentinel: vi.fn(async (_payload: unknown) => "/tmp/restart-sentinel.json")
-}));
-
-vi.mock("@nextclaw-service/utils/restart-sentinel.utils.js", () => ({
-  parseSessionKey: () => null,
-  writeRestartSentinel: (payload: unknown) => mocks.writeRestartSentinel(payload)
-}));
-
-vi.mock("@nextclaw-service/services/runtime/npm-runtime-update-command.service.js", () => ({
-  NpmRuntimeUpdateCommandService: class {}
-}));
-
 describe("GatewayControllerImpl", () => {
   let configDir = "";
   let configPath = "";
   let configManager: ConfigManager;
   let applyReloadPlan: ReturnType<typeof vi.fn>;
-  let requestRestart: ReturnType<typeof vi.fn<() => Promise<void>>>;
 
   const createBaseConfig = (): Config => ConfigSchema.parse({});
 
@@ -35,15 +21,12 @@ describe("GatewayControllerImpl", () => {
   const createController = (): GatewayControllerImpl => {
     return new GatewayControllerImpl({
       configManager,
-      requestRestart
     });
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
     configDir = mkdtempSync(join(tmpdir(), "nextclaw-gateway-controller-test-"));
     configPath = join(configDir, "config.json");
-    requestRestart = vi.fn(async () => undefined);
     writeConfig(createBaseConfig());
     configManager = new ConfigManager({
       configPath,
@@ -85,8 +68,6 @@ describe("GatewayControllerImpl", () => {
       changedPaths: ["agents.context.bootstrap.perFileChars"]
     });
     expect(applyReloadPlan).toHaveBeenCalledTimes(1);
-    expect(requestRestart).not.toHaveBeenCalled();
-    expect(mocks.writeRestartSentinel).not.toHaveBeenCalled();
     expect(configManager.config.agents.context.bootstrap.perFileChars).toBe(4500);
   });
 
@@ -115,7 +96,5 @@ describe("GatewayControllerImpl", () => {
     });
     expect((result as { message?: string }).message).toContain("nextclaw restart");
     expect(applyReloadPlan).toHaveBeenCalledTimes(1);
-    expect(requestRestart).not.toHaveBeenCalled();
-    expect(mocks.writeRestartSentinel).not.toHaveBeenCalled();
   });
 });

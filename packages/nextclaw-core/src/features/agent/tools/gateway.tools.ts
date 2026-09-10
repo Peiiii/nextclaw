@@ -23,37 +23,19 @@ export type GatewayController = {
     baseHash?: string;
     note?: string;
   }) => Promise<Record<string, unknown> | string | void> | Record<string, unknown> | string | void;
-  updateRun?: (params: {
-    note?: string;
-    restartDelayMs?: number;
-    timeoutMs?: number;
-    sessionKey?: string;
-  }) => Promise<Record<string, unknown> | string | void> | Record<string, unknown> | string | void;
-};
-
-type GatewayToolContext = {
-  sessionKey?: string;
 };
 
 export class GatewayTool extends Tool {
-  private context: GatewayToolContext = {};
-
   constructor(private controller?: GatewayController) {
     super();
   }
-
-  setContext = (context: GatewayToolContext): void => {
-    this.context = {
-      sessionKey: typeof context.sessionKey === "string" ? context.sessionKey.trim() || undefined : undefined
-    };
-  };
 
   get name(): string {
     return "gateway";
   }
 
   get description(): string {
-    return "Run an explicitly requested runtime update. Config actions are transitional for documented gaps in object-level CLI or explicit recovery; prefer nextclaw providers/models/search/agents/mcp commands for covered management tasks.";
+    return "Read or update gateway config for documented gaps in object-level CLI or explicit recovery; prefer nextclaw providers/models/search/agents/mcp commands for covered management tasks.";
   }
 
   get parameters(): Record<string, unknown> {
@@ -66,20 +48,13 @@ export class GatewayTool extends Tool {
             "config.get",
             "config.schema",
             "config.apply",
-            "config.patch",
-            "update.run"
+            "config.patch"
           ],
           description: "Action to perform"
         },
-        timeoutMs: { type: "number", description: "Optional timeout (ms)" },
         raw: { type: "string", description: "Raw config JSON string for apply/patch" },
         baseHash: { type: "string", description: "Config base hash (from config.get)" },
-        sessionKey: { type: "string", description: "Session key for update completion notification" },
         note: { type: "string", description: "Optional completion note" },
-        restartDelayMs: {
-          type: "number",
-          description: "Delay before the update relaunch (ms)"
-        }
       },
       required: ["action"]
     };
@@ -87,13 +62,6 @@ export class GatewayTool extends Tool {
 
   private renderResult = (result: Record<string, unknown>): string => {
     return JSON.stringify(result, null, 2);
-  };
-
-  private resolveSessionKey = (params: Record<string, unknown>): string | undefined => {
-    if (typeof params.sessionKey === "string" && params.sessionKey.trim()) {
-      return params.sessionKey.trim();
-    }
-    return this.context.sessionKey;
   };
 
   private resolveBaseHash = async (params: Record<string, unknown>): Promise<string | undefined> => {
@@ -159,29 +127,6 @@ export class GatewayTool extends Tool {
     return this.renderResult({ ok: true, result });
   };
 
-  private executeUpdateRun = async (params: Record<string, unknown>): Promise<string> => {
-    if (!this.controller?.updateRun) {
-      return this.renderResult({ ok: false, error: "update.run not supported in this runtime" });
-    }
-    const {
-      note: rawNote,
-      restartDelayMs: rawRestartDelayMs,
-      timeoutMs: rawTimeoutMs,
-    } = params;
-    const restartDelayMs =
-      typeof rawRestartDelayMs === "number" && Number.isFinite(rawRestartDelayMs)
-        ? Math.floor(rawRestartDelayMs)
-        : undefined;
-    const timeoutMs =
-      typeof rawTimeoutMs === "number" && Number.isFinite(rawTimeoutMs)
-        ? Math.max(1, Math.floor(rawTimeoutMs))
-        : undefined;
-    const note = typeof rawNote === "string" ? rawNote.trim() || undefined : undefined;
-    const sessionKey = this.resolveSessionKey(params);
-    const result = await this.controller.updateRun({ note, restartDelayMs, timeoutMs, sessionKey });
-    return this.renderResult({ ok: true, result });
-  };
-
   execute = async (args: unknown): Promise<string> => {
     const params = normalizeToolParams(args);
     const action = String(params.action ?? "");
@@ -193,9 +138,6 @@ export class GatewayTool extends Tool {
     }
     if (action === "config.apply" || action === "config.patch") {
       return this.executeConfigWrite(action, params);
-    }
-    if (action === "update.run") {
-      return this.executeUpdateRun(params);
     }
     return this.renderResult({ ok: false, error: `Unknown action: ${action}` });
   };

@@ -74,12 +74,12 @@ export class RuntimeControlHost implements UiRuntimeControlHost {
   };
 
   restartService = async (): Promise<RuntimeControlActionResult> => {
-    const result = await controlRemoteService("restart", this.createServiceControlDeps());
+    await requestManagedServiceRestart(this.deps.requestRestart, { uiPort: this.deps.uiConfig.port });
     return {
-      accepted: result.accepted,
+      accepted: true,
       action: "restart-service",
       lifecycle: "restarting-service",
-      message: result.message
+      message: "Restart scheduled for the current host."
     };
   };
 

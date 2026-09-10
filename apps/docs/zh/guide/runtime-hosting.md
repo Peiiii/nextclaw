@@ -30,6 +30,7 @@
 
 ## 相关指南
 
+- [自我管理：更新、重启与继续工作](/zh/guide/self-management)
 - [后台运行与自启动](/zh/guide/background-autostart)
 - [远程访问](/zh/guide/remote-access)
 - [Docker 部署](/zh/guide/tutorials/docker-one-click)

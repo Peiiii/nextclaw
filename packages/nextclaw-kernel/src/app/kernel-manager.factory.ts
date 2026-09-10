@@ -29,6 +29,7 @@ import {
   type DiagnosticRuntime,
   type MessageBus,
   SessionSearchService,
+  LocalExecutionClaimService,
 } from "@nextclaw/core";
 import type { EventBus, Ingress } from "@nextclaw/shared";
 import type { CapabilityGrantManager } from "@kernel/features/capability-grants/index.js";
@@ -40,6 +41,42 @@ import { ToolProviderContribution } from "@kernel/contributions/tool-provider/in
 import type { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import { resolve } from "node:path";
+import { PlannedRestartRecoveryManager } from "@kernel/managers/planned-restart-recovery.manager.js";
+import { AgentRunRequestManager } from "@kernel/managers/agent-run-request.manager.js";
+
+export function createKernelAgentRunRequests(kernel: Pick<NextclawKernel,
+  "agentRuntimeManager" | "agents" | "configManager" | "agentContextWindowManager" |
+  "eventBus" | "ingress" | "sessionManager" | "sessionRunManager" | "diagnostics"
+>, sessionsDir: string): AgentRunRequestManager {
+  return new AgentRunRequestManager(
+    kernel.agentRuntimeManager, kernel.agents, kernel.configManager,
+    kernel.agentContextWindowManager, kernel.eventBus, kernel.ingress,
+    kernel.sessionManager, kernel.sessionRunManager, kernel.diagnostics,
+    new LocalExecutionClaimService(resolve(sessionsDir, ".execution-claims", "session-runs")),
+  );
+}
+
+export function createKernelPlannedRestartRecovery(
+  kernel: Pick<NextclawKernel, "sessionRunManager" | "sessionManager" | "agentRunRequestManager">,
+  manifestPath: string,
+): PlannedRestartRecoveryManager {
+  return new PlannedRestartRecoveryManager({
+    manifestPath,
+    listActiveRuns: kernel.sessionRunManager.listActiveRuns,
+    flushSessionEvents: kernel.sessionManager.flushSessionEvents,
+    suspendAdmissions: kernel.agentRunRequestManager.admissions.suspend,
+    resumeAdmissions: kernel.agentRunRequestManager.admissions.resume,
+    continueRun: async ({ operationId, sessionId, sourceRunId, triggeredAt }) =>
+      Boolean(await kernel.agentRunRequestManager.continueRunIfEligible({
+        correlationId: `planned-restart:${operationId}:${sessionId}`,
+        sessionId,
+        trigger: {
+          actor: "system", source: "planned-restart-recovery", triggeredAt,
+          sourceSessionId: sessionId, sourceRunId,
+        },
+      })),
+  });
+}
 
 export function createKernelOperationalManagers(params: {
   automationStorePath: string;

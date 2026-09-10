@@ -20,10 +20,17 @@ import type { SessionRunManager } from "./session-run.manager.js";
 
 const CONTINUATION_PROMPT =
   "Continue from where you stopped. Preserve completed work and avoid repeating it.";
+const PLANNED_RESTART_CONTINUATION_PROMPT = [
+  "System event: the planned NextClaw restart completed successfully.",
+  "Continue the unfinished work from the persisted conversation.",
+  "The previous tool process and execution stack were not resumed.",
+  "Do not repeat the update or restart command because its tool result was interrupted.",
+  "First verify the current version, service health, and any external side effects before deciding what remains.",
+].join(" ");
 
 type PendingSessionCommand = {
   key: string;
-  promise: Promise<AgentRunAccepted>;
+  promise: Promise<AgentRunAccepted | null>;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -95,6 +102,24 @@ export class AgentRunSessionCommandManager {
     if (this.sessionRunManager.isSessionRunning(sessionId)) {
       throw new Error("Cannot continue a session that is already running.");
     }
+    const accepted = await this.runCommand(
+      sessionId,
+      "continue-run",
+      () => this.continueRunOnce({ ...request, sessionId }),
+    );
+    if (!accepted) {
+      throw new Error("Only a cancelled or failed session can continue running.");
+    }
+    return accepted;
+  };
+
+  continueRunIfEligible = async (
+    request: AgentRunContinueRequest,
+  ): Promise<AgentRunAccepted | null> => {
+    const sessionId = request.sessionId.trim();
+    if (!sessionId || this.sessionRunManager.isSessionRunning(sessionId)) {
+      return null;
+    }
     return await this.runCommand(
       sessionId,
       "continue-run",
@@ -146,14 +171,24 @@ export class AgentRunSessionCommandManager {
 
   private continueRunOnce = async (
     request: AgentRunContinueRequest,
-  ): Promise<AgentRunAccepted> => {
+  ): Promise<AgentRunAccepted | null> => {
     const sourceRecord = await this.sessionManager.getSessionRecord(request.sessionId);
     if (!sourceRecord) {
       throw new Error(`Session not found: ${request.sessionId}`);
     }
     const activityState = readSessionActivityState(sourceRecord.metadata);
     if (activityState !== "cancelled" && activityState !== "failed") {
-      throw new Error("Only a cancelled or failed session can continue running.");
+      return null;
+    }
+    if (request.trigger?.source === "planned-restart-recovery") {
+      const preview = sourceRecord.metadata?.[SESSION_ACTIVITY_PREVIEW_METADATA_KEY];
+      const latestInput = [...sourceRecord.messages].reverse().find((message) => message.role === "user");
+      const runSpec = latestInput?.metadata?.run_spec;
+      if (
+        !isRecord(preview) || preview.statusKind !== "run-interrupted" ||
+        !isRecord(runSpec) || runSpec.runId !== request.trigger.sourceRunId ||
+        this.sessionRunManager.isSessionRunning(request.sessionId)
+      ) return null;
     }
     const latestVisibleConversationMessage = [...sourceRecord.messages]
       .reverse()
@@ -163,6 +198,11 @@ export class AgentRunSessionCommandManager {
         !isSilentReplyNcpMessage(message),
       );
     const triggeredAt = new Date().toISOString();
+    const continuationPrompt =
+      request.trigger?.actor === "system" &&
+      request.trigger.source === "planned-restart-recovery"
+        ? PLANNED_RESTART_CONTINUATION_PROMPT
+        : CONTINUATION_PROMPT;
     return await this.send({
       correlationId: request.correlationId,
       sessionId: request.sessionId,
@@ -172,7 +212,7 @@ export class AgentRunSessionCommandManager {
         role: "user",
         status: "final",
         timestamp: triggeredAt,
-        parts: [{ type: "text", text: CONTINUATION_PROMPT }],
+        parts: [{ type: "text", text: continuationPrompt }],
         metadata: {
           [NCP_INTERNAL_VISIBILITY_METADATA_KEY]: "hidden",
           [CHAT_CONTINUATION_TARGET_MESSAGE_METADATA_KEY]:
@@ -181,7 +221,7 @@ export class AgentRunSessionCommandManager {
               : undefined,
         },
       },
-      trigger: {
+      trigger: request.trigger ?? {
         actor: "human",
         source: "continue-run",
         triggeredAt,
@@ -193,17 +233,17 @@ export class AgentRunSessionCommandManager {
     });
   };
 
-  private runCommand = async (
+  private runCommand = async <Result extends AgentRunAccepted | null>(
     sessionId: string,
     commandKey: string,
-    command: () => Promise<AgentRunAccepted>,
-  ): Promise<AgentRunAccepted> => {
+    command: () => Promise<Result>,
+  ): Promise<Result> => {
     const pending = this.pendingCommands.get(sessionId);
     if (pending) {
       if (pending.key !== commandKey) {
         throw new Error("Another command is already changing this session.");
       }
-      return await pending.promise;
+      return await pending.promise as Result;
     }
     const operation = command().finally(() => {
       if (this.pendingCommands.get(sessionId)?.promise === operation) {

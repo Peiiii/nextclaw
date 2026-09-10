@@ -1,9 +1,11 @@
 import { APP_NAME, createExternalCommandEnv } from "@nextclaw/core";
+import type { PlannedRestartRecovery } from "@nextclaw/kernel";
 import { spawn } from "node:child_process";
 import type { ManagedServiceManager } from "@nextclaw-service/managers/managed-service.manager.js";
 import { NextclawDistributionService } from "@nextclaw-service/services/runtime/nextclaw-distribution.service.js";
 import { RestartCoordinator } from "@nextclaw-service/services/restart/restart-coordinator.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/stores/managed-service-state.store.js";
+import { localUiRuntimeStore } from "@nextclaw-service/stores/local-ui-runtime.store.js";
 import { pendingRestartStore } from "@nextclaw-service/stores/pending-restart.store.js";
 import type { RequestRestartParams } from "@nextclaw-service/types/cli.types.js";
 import { isProcessRunning } from "@nextclaw-service/utils/cli.utils.js";
@@ -24,8 +26,13 @@ export class ServiceRestartManager {
   });
   private serviceRestartTask: Promise<boolean> | null = null;
   private selfRelaunchArmed = false;
+  private plannedRestartRecovery: PlannedRestartRecovery | null = null;
 
   constructor(private readonly deps: ServiceRestartManagerDeps) {}
+
+  installPlannedRestartRecovery = (recovery: PlannedRestartRecovery): void => {
+    this.plannedRestartRecovery = recovery;
+  };
 
   requestRestart = async (params: RequestRestartParams): Promise<void> => {
     const {
@@ -51,11 +58,20 @@ export class ServiceRestartManager {
       return;
     }
 
-    this.armManagedServiceRelaunch({
+    const recoveryTicket =
+      strategy === "background-service-or-exit" && this.plannedRestartRecovery
+        ? await this.plannedRestartRecovery.prepare(reason)
+        : null;
+    const selfRelaunchArmed = this.armManagedServiceRelaunch({
       reason,
       strategy,
-      delayMs
+      delayMs,
+      operationId: recoveryTicket?.operationId,
     });
+    if (recoveryTicket && !selfRelaunchArmed) {
+      await this.plannedRestartRecovery?.abort(recoveryTicket.operationId);
+      throw new Error("Cannot perform a recoverable restart because the replacement process could not be armed.");
+    }
 
     const result = await this.restartCoordinator.requestRestart({
       reason,
@@ -65,6 +81,9 @@ export class ServiceRestartManager {
       manualMessage
     });
     if (result.status === "manual-required" || result.status === "restart-in-progress") {
+      if (recoveryTicket) {
+        await this.plannedRestartRecovery?.abort(recoveryTicket.operationId);
+      }
       console.log(result.message);
       return;
     }
@@ -155,19 +174,29 @@ export class ServiceRestartManager {
     reason: string;
     strategy?: RequestRestartParams["strategy"];
     delayMs?: number;
-  }): void => {
-    const { delayMs: requestedDelayMs, reason, strategy = "background-service-or-manual" } = params;
+    operationId?: string;
+  }): boolean => {
+    const {
+      delayMs: requestedDelayMs,
+      operationId,
+      reason,
+      strategy = "background-service-or-manual",
+    } = params;
     if (strategy !== "background-service-or-exit") {
-      return;
+      return false;
     }
     if (this.selfRelaunchArmed) {
-      return;
+      return true;
     }
 
-    const state = managedServiceStateStore.read();
-    if (!state || state.pid !== process.pid) {
-      return;
-    }
+    const managedState = managedServiceStateStore.read();
+    const foregroundState = localUiRuntimeStore.read();
+    const state = managedState?.pid === process.pid
+      ? managedState
+      : foregroundState?.pid === process.pid
+        ? foregroundState
+        : null;
+    if (!state) return false;
 
     const uiPort =
       typeof state.uiPort === "number" && Number.isFinite(state.uiPort)
@@ -213,6 +242,10 @@ setTimeout(() => {
       process.exit(0);
       return;
     }
+    if (isRunning(parentPid)) {
+      setTimeout(tick, retryIntervalMs);
+      return;
+    }
     tryStart();
     if (hasReplacementService()) {
       process.exit(0);
@@ -228,14 +261,22 @@ setTimeout(() => {
       const helper = spawn(process.execPath, ["-e", helperScript], {
         detached: true,
         stdio: "ignore",
-        env: createExternalCommandEnv(process.env),
+        env: createExternalCommandEnv({
+          ...process.env,
+          NEXTCLAW_RUNTIME_BUNDLE_CHILD: "0",
+          ...(operationId
+            ? { NEXTCLAW_RESTART_OPERATION_ID: operationId }
+            : {}),
+        }),
         windowsHide: true
       });
       helper.unref();
       this.selfRelaunchArmed = true;
       console.warn(`Gateway self-restart armed (${reason}).`);
+      return true;
     } catch (error) {
       console.error(`Failed to arm gateway self-restart: ${String(error)}`);
+      return false;
     }
   };
 }

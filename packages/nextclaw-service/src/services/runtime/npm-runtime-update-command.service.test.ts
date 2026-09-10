@@ -72,6 +72,7 @@ describe("NpmRuntimeUpdateCommandService", () => {
     await new NpmRuntimeUpdateCommandService({}).run({});
 
     expect(log).toHaveBeenCalledWith("Runtime update applied: 0.45.1");
+    expect(mocks.managerOptions[0]).toMatchObject({ runningVersion: "0.45.1-beta.0" });
     log.mockRestore();
   });
 
