@@ -26,7 +26,7 @@ Anyone holding a receipt can access that report. Keep it private. The signed-in 
 
 ## Processing, approval, and direct discussions
 
-Administrators keep using their existing Platform Admin login. The Feedback and Discussions area has two focused views:
+Administrators keep using their existing Platform Admin login. The Discussions area has two focused views:
 
 - Feedback Queue classifies reports, requests details, approves repair, and separately approves release. Reporter, administrator, and processing-client posts show their server-verified identities.
 - Direct Discussions lets an administrator create a private thread without a prior report or CLI command. A subscribed local participant receives the opening post and later administrator messages.
