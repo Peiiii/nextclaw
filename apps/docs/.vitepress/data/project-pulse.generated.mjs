@@ -1,14 +1,14 @@
 export default {
-  "generatedAt": "2026-09-10T07:16:18.203Z",
+  "generatedAt": "2026-09-10T22:41:10.439Z",
   "hero": {
     "currentLoc": 297633,
     "testLoc": 125943,
     "trackedFiles": 3148,
-    "recentCommitCount": 653,
+    "recentCommitCount": 666,
     "activeDays30": 30,
     "recentReleaseCount": 51,
     "latestReleaseDate": "2026-09-10",
-    "latestNoteDate": "2026-09-10",
+    "latestNoteDate": "2026-09-11",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 2891216,
     "basePercentOfBenchmark": 10.29,
@@ -1383,7 +1383,7 @@ export default {
       {
         "key": "2026-09-10",
         "label": "09-10",
-        "value": 25
+        "value": 38
       }
     ],
     "commitWeekly": [
@@ -1445,7 +1445,7 @@ export default {
       {
         "key": "2026-09-07",
         "label": "09-07",
-        "value": 78
+        "value": 110
       }
     ],
     "releaseMonthly": [
@@ -1579,9 +1579,11 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-09-10",
-        "tagCount": 1,
+        "tagCount": 39,
         "sampleTags": [
-          "nextclaw@0.51.0"
+          "nextclaw@0.51.0",
+          "@nextclaw/app-runtime@0.16.6",
+          "@nextclaw/channel-extension-dingtalk@0.2.48"
         ]
       },
       {
@@ -1631,6 +1633,23 @@ export default {
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-09-11-nextclaw-v0-53-0",
+        "date": "2026-09-11",
+        "tags": [
+          "workbench, conversations, self-management, mobile, reliability"
+        ],
+        "en": {
+          "title": "2026-09-11 · NextClaw v0.53.0",
+          "description": "Open conversations, files, and apps in one workbench, continue unfinished work after controlled restarts, and get a more reliable mobile and runtime experience.",
+          "href": "/en/notes/2026-09-11-nextclaw-v0-53-0"
+        },
+        "zh": {
+          "title": "2026-09-11 · NextClaw v0.53.0",
+          "description": "在统一工作台中打开会话、文件与应用，受控重启后继续未完成工作，并增强移动端与运行时可靠性。",
+          "href": "/zh/notes/2026-09-11-nextclaw-v0-53-0"
+        }
+      },
       {
         "slug": "2026-09-10-nextclaw-v0-51-0",
         "date": "2026-09-10",
@@ -2985,7 +3004,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-09-10T07:16:16.051Z",
     "sourceCount": {
-      "notes": 67,
+      "notes": 68,
       "scopes": 8
     }
   }

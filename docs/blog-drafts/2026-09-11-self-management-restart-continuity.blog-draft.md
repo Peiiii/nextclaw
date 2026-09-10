@@ -3,7 +3,9 @@ title: "NextClaw：重启之后，接着做事"
 description: "自我管理不止是更新和重启，还要能回到未完成的工作。NextClaw 为受控重启补上多会话恢复。"
 releaseBlogTarget: next-stable
 releaseBlogChangeset: planned-restart-run-recovery
-releaseBlogState: draft
+releaseBlogState: ready
+releaseBlogZhPath: apps/docs/zh/blog/2026-09-11-self-management-restart-continuity.md
+releaseBlogEnPath: apps/docs/en/blog/2026-09-11-self-management-restart-continuity.md
 ---
 
 # NextClaw：重启之后，接着做事
