@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "product": "nextclaw",
+  "version": "0.51.0",
+  "releaseType": "minor",
+  "surfaces": {
+    "docsSite": {
+      "decision": "updated",
+      "paths": [
+        "apps/docs/zh/notes/2026-09-10-nextclaw-v0-51-0.md",
+        "apps/docs/en/notes/2026-09-10-nextclaw-v0-51-0.md",
+        "apps/docs/public/release-notes/nextclaw-v0.51.0.json",
+        "apps/docs/zh/notes/index.md",
+        "apps/docs/en/notes/index.md"
+      ]
+    },
+    "website": {
+      "decision": "not-needed",
+      "reason": "The maintainer bridge extends the existing feedback workflow without changing product positioning, pricing, download, or onboarding pages."
+    },
+    "socialPost": {
+      "decision": "publish",
+      "channel": "x",
+      "account": "@XiaotiaoWang",
+      "text": "NextClaw v0.51.0 closes the loop from approved user feedback to local AI or script handling, with results written back to the original report. Idle watching uses no model calls.\nhttps://docs.nextclaw.io/en/notes/2026-09-10-nextclaw-v0-51-0",
+      "imagePath": "images/screenshots/nextclaw-ai-delivery-inbox-en.png",
+      "imageAlt": "NextClaw delivery inbox showing AI-managed work items and their status",
+      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-09-10-nextclaw-v0-51-0"
+    }
+  }
+}

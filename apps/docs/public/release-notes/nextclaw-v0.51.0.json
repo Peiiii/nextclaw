@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "product": "NextClaw",
+  "version": "0.51.0",
+  "channel": "stable",
+  "releaseType": "minor",
+  "publishedAt": "2026-09-10",
+  "title": {
+    "zh-CN": "NextClaw v0.51.0",
+    "en-US": "NextClaw v0.51.0"
+  },
+  "summary": {
+    "zh-CN": "把已审批的用户反馈交给任意本地处理器，并把结果写回原反馈。",
+    "en-US": "Hand approved user feedback to any local handler and write the result back to the original report."
+  },
+  "links": {
+    "html": {
+      "zh-CN": "https://docs.nextclaw.io/zh/notes/2026-09-10-nextclaw-v0-51-0",
+      "en-US": "https://docs.nextclaw.io/en/notes/2026-09-10-nextclaw-v0-51-0"
+    }
+  },
+  "sections": [
+    {
+      "kind": "feature",
+      "title": {
+        "zh-CN": "反馈维护闭环",
+        "en-US": "Feedback maintenance loop"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "一个命令启动后台维护",
+            "en-US": "Start background maintenance with one command"
+          },
+          "body": {
+            "zh-CN": "监听已审批反馈，执行任意配置命令，并提供启动、状态、停止和重启生命周期；空闲扫描不调用模型。",
+            "en-US": "Watch approved feedback, run any configured command, and manage start, status, stop, and restart without model calls while idle."
+          }
+        },
+        {
+          "title": {
+            "zh-CN": "可选的 Codex Desktop 预设",
+            "en-US": "Optional Codex Desktop preset"
+          },
+          "body": {
+            "zh-CN": "首次反馈创建可见任务，用户补充时续接同一任务；其它 AI、脚本或通知系统可通过普通命令接入。",
+            "en-US": "Create a visible task for the first event and resume it for user follow-ups, while other AI tools, scripts, or notification systems connect through a regular command."
+          }
+        }
+      ]
+    },
+    {
+      "kind": "enhancement",
+      "title": {
+        "zh-CN": "审批、恢复与回写",
+        "en-US": "Approval, recovery, and writeback"
+      },
+      "items": [
+        {
+          "title": {
+            "zh-CN": "处理状态回到原反馈",
+            "en-US": "Results return to the original report"
+          },
+          "body": {
+            "zh-CN": "维护处理器通过 NextClaw CLI 领取反馈、评论并提交结果；审批、身份和自回复过滤仍由平台约束。",
+            "en-US": "The handler uses the NextClaw CLI to claim feedback, comment, and report results while the platform continues to enforce approval, identity, and self-reply filtering."
+          }
+        }
+      ]
+    }
+  ]
+}
