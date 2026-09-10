@@ -8,6 +8,28 @@ import {
   type CoreHealthStatus,
 } from "@kernel/features/core-health/types/core-health.types.js";
 
+const PUBLIC_REASON_CODE_MAP: Record<string, Record<string, string>> = {
+  config: { "config is unavailable": "unconfigured", "agents defaults are missing": "unconfigured" },
+  provider: { "no-enabled-provider": "no-enabled-provider", "no-key-configured": "no-key-configured" },
+  workspace: {
+    notWritable: "not-writable",
+  },
+  sessions: {
+    notWritable: "not-writable",
+  },
+};
+
+const notWritablePattern = /^not writable:/i;
+
+function toPublicReasonCode(id: string, detail: string): string {
+  // 绝对路径 / 原始异常统一收敛为稳定的 short code。
+  if (notWritablePattern.test(detail)) return "not-writable";
+  const codes = PUBLIC_REASON_CODE_MAP[id];
+  if (!codes) return `check-failed:${id}`;
+  if (codes[detail] !== undefined) return codes[detail];
+  return `unconfigured`;
+}
+
 export type CoreHealthCheckServiceDeps = {
   getConfig: () => Config;
   getWorkspacePath: () => string;
@@ -25,6 +47,9 @@ export type CoreHealthCheckServiceDeps = {
  *
  * evaluate() 是纯读快照：不发网络请求、不创建目录、不缓存；单项失败只记录
  * detail，不向上传播异常——健康检查自身不能成为新的崩溃点。
+ *
+ * toPublicSnapshot() 输出仅面向公共端点（如 /api/health），将 detail 收窄为
+ * 稳定 reason code，隐藏绝对路径、原始异常等可能泄露本机环境信息的细节。
  */
 export class CoreHealthCheckService {
   constructor(private readonly deps: CoreHealthCheckServiceDeps) {}
@@ -34,6 +59,22 @@ export class CoreHealthCheckService {
     return {
       healthy: checks.every((check) => check.ok),
       checks,
+      evaluatedAt: new Date().toISOString(),
+    };
+  };
+
+  /**
+   * 面向未登录可访问端点（如 /api/health）的脱敏快照：把 detail 统一收敛为
+   * 稳定 reason code，避免暴露绝对路径与原始异常。保留原始 checks 供已鉴权
+   * 的诊断面（日志、诊断面板）消费。
+   */
+  readonly toPublicSnapshot = (): CoreHealthStatus => {
+    const checks = CORE_HEALTH_CHECK_IDS.map((id) => this.evaluateCheck(id));
+    return {
+      healthy: checks.every((check) => check.ok),
+      checks: checks.map((c) =>
+        c.ok ? c : { ...c, detail: toPublicReasonCode(c.id, c.detail ?? "") },
+      ),
       evaluatedAt: new Date().toISOString(),
     };
   };
@@ -83,11 +124,11 @@ export class CoreHealthCheckService {
     const providers = this.deps.getConfig().providers;
     const enabled = Object.entries(providers ?? {}).filter(([, spec]) => spec.enabled);
     if (enabled.length === 0) {
-      return "no enabled provider";
+      return "no-enabled-provider";
     }
     const withKey = enabled.some(([, spec]) => (spec.apiKey ?? "").trim().length > 0);
     if (!withKey) {
-      return "no enabled provider has an api key";
+      return "no-key-configured";
     }
     return undefined;
   };

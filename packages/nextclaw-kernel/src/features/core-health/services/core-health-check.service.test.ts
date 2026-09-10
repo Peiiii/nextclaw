@@ -61,7 +61,7 @@ describe("CoreHealthCheckService", () => {
     }).evaluate();
     const provider = status.checks.find((check) => check.id === "provider");
     expect(provider?.ok).toBe(false);
-    expect(provider?.detail).toBe("no enabled provider has an api key");
+    expect(provider?.detail).toBe("no-key-configured");
     expect(status.healthy).toBe(false);
   });
 
