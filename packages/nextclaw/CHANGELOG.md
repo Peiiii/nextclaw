@@ -1,5 +1,17 @@
 # nextclaw
 
+## 0.52.1
+
+### Patch Changes
+
+- 34a25d5: Clear a transient discussion listener error after the next successful scan so status reflects current listener health.
+- Updated dependencies [94153d9]
+- Updated dependencies [b21c811]
+  - @nextclaw/kernel@0.17.3
+  - @nextclaw/server@0.23.5
+  - @nextclaw/remote@0.3.62
+  - @nextclaw/service@0.6.8
+
 ## 0.52.0
 
 ### Minor Changes

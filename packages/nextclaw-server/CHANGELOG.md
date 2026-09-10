@@ -1,5 +1,13 @@
 # nextclaw-server
 
+## 0.23.5
+
+### Patch Changes
+
+- b21c811: Reduce chat session list payloads by excluding internal context-compaction snapshots while preserving full session detail metadata.
+- Updated dependencies [94153d9]
+  - @nextclaw/kernel@0.17.3
+
 ## 0.23.4
 
 ### Patch Changes

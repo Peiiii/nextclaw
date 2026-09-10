@@ -1,5 +1,11 @@
 # @nextclaw/kernel
 
+## 0.17.3
+
+### Patch Changes
+
+- 94153d9: Expose memory search and retrieval schemas directly to native models so mandatory recall no longer needs a preliminary `tool_schema` call.
+
 ## 0.17.2
 
 ### Patch Changes

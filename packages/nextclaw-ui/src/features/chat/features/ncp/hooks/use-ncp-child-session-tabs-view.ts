@@ -5,6 +5,7 @@ import { adaptNcpSessionSummaries } from "@/features/chat/features/session/utils
 import { resolveSessionTypeLabel } from "@/features/chat/features/session-type/utils/chat-session-type.utils";
 import type { ChatChildSessionTab } from "@/features/chat/stores/chat-thread.store";
 import { useNcpSessions } from "@/features/chat/features/ncp/hooks/use-ncp-session-queries";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import type { SessionRunStatus } from "@/features/chat/types/session-run-status.types";
 
 export type ResolvedChildSessionTab = {
@@ -39,6 +40,7 @@ export function useNcpChildSessionTabsView(
   tabs: readonly ChatChildSessionTab[],
 ): ResolvedChildSessionTab[] {
   const sessionsQuery = useNcpSessions({ limit: 200 });
+  const runningSessionKeys = useChatSessionListStore((state) => state.runningSessionKeys);
   const summaries = useMemo(
     () => sessionsQuery.data?.sessions ?? [],
     [sessionsQuery.data?.sessions],
@@ -48,6 +50,10 @@ export function useNcpChildSessionTabsView(
     const sessions = adaptNcpSessionSummaries(summaries);
     return new Map(sessions.map((session) => [session.key, session]));
   }, [summaries]);
+  const runningSessionKeySet = useMemo(
+    () => new Set(runningSessionKeys),
+    [runningSessionKeys],
+  );
 
   return useMemo(
     () =>
@@ -62,7 +68,9 @@ export function useNcpChildSessionTabsView(
           updatedAt: session?.updatedAt ?? null,
           lastMessageAt: session?.lastMessageAt ?? null,
           readAt: session?.readAt ?? null,
-          runStatus: session?.status === "running" ? "running" : undefined,
+          runStatus: runningSessionKeySet.has(tab.sessionKey) || session?.status === "running"
+            ? "running"
+            : undefined,
           sessionTypeLabel: session?.sessionType
             ? resolveSessionTypeLabel(session.sessionType)
             : null,
@@ -71,6 +79,6 @@ export function useNcpChildSessionTabsView(
           projectRoot: session?.projectRoot?.trim() || null,
         };
       }),
-    [sessionByKey, tabs],
+    [runningSessionKeySet, sessionByKey, tabs],
   );
 }

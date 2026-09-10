@@ -1,5 +1,6 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { useNcpChildSessionTabsView } from "@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view";
 import { useNcpSessionListView } from "@/features/chat/features/ncp/hooks/use-ncp-session-list-view";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import type { NcpSessionSummaryView } from "@/shared/lib/api";
@@ -9,6 +10,11 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/features/chat/features/ncp/hooks/use-ncp-session-queries", () => ({
+  useNcpSessions: () => ({
+    data: {
+      sessions: mocks.sessions,
+    },
+  }),
   useInfiniteNcpSessions: () => ({
     data: {
       pages: [{
@@ -50,6 +56,7 @@ describe("useNcpSessionListView", () => {
       createSummary("session:beta", "Beta Task"),
     ];
     useChatSessionListStore.setState({
+      runningSessionKeys: [],
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         query: "",
@@ -99,5 +106,41 @@ describe("useNcpSessionListView", () => {
       "session:beta",
       "session:alpha:child",
     ]);
+  });
+
+  it("keeps a realtime running overlay when the persisted summary is still idle", () => {
+    useChatSessionListStore.getState().setSessionRunStatus("session:alpha", "running");
+
+    const { result } = renderHook(() => useNcpSessionListView());
+
+    expect(result.current.items[0]).toMatchObject({
+      session: { key: "session:alpha", status: "idle" },
+      runStatus: "running",
+    });
+  });
+
+  it("clears the realtime running overlay when the session becomes idle", () => {
+    useChatSessionListStore.getState().setSessionRunStatus("session:alpha", "running");
+    const { result } = renderHook(() => useNcpSessionListView());
+
+    act(() => {
+      useChatSessionListStore.getState().setSessionRunStatus("session:alpha", "idle");
+    });
+
+    expect(result.current.items[0]?.runStatus).toBeUndefined();
+  });
+
+  it("projects the same realtime running overlay into child session tabs", () => {
+    useChatSessionListStore.getState().setSessionRunStatus("session:alpha", "running");
+
+    const { result } = renderHook(() => useNcpChildSessionTabsView([{
+      sessionKey: "session:alpha",
+      parentSessionKey: "session:parent",
+    }]));
+
+    expect(result.current[0]).toMatchObject({
+      sessionKey: "session:alpha",
+      runStatus: "running",
+    });
   });
 });
