@@ -156,6 +156,31 @@ describe("ChatSessionWorkspacePanel", () => {
     expect(screen.getByRole("menuitem", { name: "Copy session ID" })).toBeTruthy();
   });
 
+  it("shows the running spinner on workspace tabs", () => {
+    render(
+      <WorkspaceTabsBar
+        canGoBack={false}
+        canGoForward={false}
+        tabs={[
+          {
+            key: "child-sessions",
+            kind: "child-sessions",
+            title: "Child sessions",
+            tooltip: "Child sessions",
+            active: true,
+            runStatus: "running",
+            onSelect: vi.fn(),
+          },
+        ]}
+        onClose={vi.fn()}
+        onGoBack={vi.fn()}
+        onGoForward={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Running")).toBeTruthy();
+  });
+
   it("adds an opened project file to the active chat from its action menu", async () => {
     const user = userEvent.setup();
     renderPanel();

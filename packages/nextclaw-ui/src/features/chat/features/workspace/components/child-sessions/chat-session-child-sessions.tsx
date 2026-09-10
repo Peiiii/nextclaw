@@ -2,6 +2,7 @@ import { ChevronRight, GitBranch, MessageSquarePlus } from 'lucide-react';
 
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import type { ResolvedChildSessionTab } from '@/features/chat/features/ncp/hooks/use-ncp-child-session-tabs-view';
+import { SessionRunBadge } from '@/features/chat/features/session/components/session-run-badge';
 import { ChatSessionMoreActionsMenu } from '@/features/chat/features/session/components/session-header/chat-session-more-actions-menu';
 import { t } from '@/shared/lib/i18n';
 
@@ -52,7 +53,10 @@ export function ChatSessionChildSessions({
                     <GitBranch className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-gray-900">{tab.title}</span>
+                    <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-gray-900">
+                      <span className="truncate">{tab.title}</span>
+                      {tab.runStatus ? <SessionRunBadge status={tab.runStatus} /> : null}
+                    </span>
                     {tab.projectName || tab.sessionTypeLabel ? (
                       <span className="mt-0.5 block truncate text-xs text-gray-500">
                         {[tab.sessionTypeLabel, tab.projectName].filter(Boolean).join(' · ')}

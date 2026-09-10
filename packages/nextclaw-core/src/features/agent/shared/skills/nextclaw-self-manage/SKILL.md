@@ -28,6 +28,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 
 - Map version lookup directly to `nextclaw --version`; do not substitute `status` for version queries.
 - Treat `nextclaw update --channel beta` as opting into both preview and production candidates; the updater offers whichever compatible version is newer. The `stable` channel remains production-only.
+- For an explicitly authorized self-update, run `nextclaw update` through the ordinary exec/CLI path. If its result requires a restart, then run `nextclaw restart`; never look for or invent an agent-only update tool.
 - Prefer machine-readable output: use `--json` when available.
 - Before calling local HTTP APIs or `/webhook`, run `nextclaw status --json` and read `endpoints.uiUrl` / `endpoints.apiUrl`; do not guess the service port.
 - For webhook payload details, read the focused guide linked from the self-management guide only when you need to implement or debug a webhook caller.
@@ -46,7 +47,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - After mutating operations, close the loop with:
   - `nextclaw status --json`
   - and `nextclaw doctor --json` when needed
-- Be explicit about restart semantics after changes. When a restart is required, ask the user to run `nextclaw restart` in an external terminal; do not invoke a restart from the active agent session.
+- Be explicit about restart semantics after changes. When the user has authorized a required restart, invoke `nextclaw restart` directly. The active connection can briefly disconnect; the controlled-restart handoff continues eligible interrupted sessions after the replacement host is ready. If the running host is unavailable or predates recovery support, use an external-terminal restart and disclose that automatic continuation is unavailable for that transition.
 - `nextclaw gateway` starts a foreground gateway. It has no `start`, `status`, `restart`, or `stop` subcommands.
 - After modifying a running Service App, run `nextclaw app restart <app-id> --json` before validating through the live product UI or panel-to-service action calls.
 - Treat App code and managed App data as separate lifecycles. Uninstall/removal keeps managed data by default; delete it only when the user explicitly chooses the destructive data-removal option.
@@ -58,7 +59,8 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - For channel discovery before messaging, use `nextclaw channels list --json` and treat returned `channels[].id` values as authoritative.
 - For cron notifications, do not add delivery flags to the cron command. Put the notification intent in the scheduled message and let the scheduled agent call the `message` tool with an explicit channel and recipient.
 - For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
-- For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Run `nextclaw restart` in an external terminal after changing it.
+- For runtime context injection, use `nextclaw agents runtime config <runtime-id> --json` to inspect and `--inject-nextclaw-context <true|false>` to update. Apply the authorized restart using the lifecycle guidance above.
+- Automatic continuation requires a supported managed/foreground host and plain `nextclaw restart`, without port/open/timeout overrides. Desktop/supervisor exits and legacy stop/start transitions do not carry this handoff. If the restart request times out, inspect status before retrying; an interrupted tool result is not proof that the restart failed.
 - For project creation, discovery, or removal, use `nextclaw projects list|templates|create|remove --json`; project removal also requires `--confirm <project-id>` and preserves the local folder, sessions, and Project Work. Do not synthesize placeholder sessions or edit the project registry file directly.
 - For session naming, project binding, or deletion, use `nextclaw sessions rename|set-project|clear-project|delete --json`; deletion also requires `--confirm <session-id>`. Do not edit session journal metadata directly.
 - Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.

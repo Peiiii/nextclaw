@@ -7,10 +7,6 @@ import { ConfigManager, LlmProviderManager } from "@nextclaw/kernel";
 import { GatewayControllerImpl } from "@nextclaw-service/controllers/gateway.controller.js";
 import { pendingRestartStore } from "@nextclaw-service/stores/pending-restart.store.js";
 
-vi.mock("@nextclaw-service/services/runtime/npm-runtime-update-command.service.js", () => ({
-  NpmRuntimeUpdateCommandService: class {}
-}));
-
 describe("gateway manual restart contract", () => {
   let configDir = "";
   let configPath = "";
@@ -18,6 +14,14 @@ describe("gateway manual restart contract", () => {
   let applyAgentRuntimeConfig: ReturnType<typeof vi.fn<(config: Config) => void>>;
 
   const createBaseConfig = (): Config => ConfigSchema.parse({});
+
+  it("does not advertise or execute an agent-only updater", async () => {
+    const tool = createTool();
+    expect(JSON.stringify(tool.parameters)).not.toContain("update.run");
+    expect(JSON.parse(await tool.execute({ action: "update.run" }))).toMatchObject({
+      error: expect.stringContaining("Unknown action"),
+    });
+  });
 
   const writeConfig = (config: Config): void => {
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf-8");

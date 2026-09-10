@@ -15,6 +15,7 @@ import {
 } from "@/features/chat/features/workspace/utils/chat-workspace-file-viewer.utils";
 import { areWorkspaceNavigationEntriesEqual } from "@/features/chat/features/workspace/utils/chat-thread-workspace-session.utils";
 import { resolveWorkspaceRelativePath } from "@/shared/lib/session-project";
+import type { SessionRunStatus } from "@/features/chat/types/session-run-status.types";
 
 export type WorkspaceSelection =
   | {
@@ -55,6 +56,7 @@ export type WorkspaceTabViewModel = {
   sessionKey?: string | null;
   fileName?: string | null;
   showUnreadDot?: boolean;
+  runStatus?: SessionRunStatus;
   viewMode?: "preview" | "diff";
   isRenderedPreview?: boolean;
   alternateViewerAction?: {
@@ -192,6 +194,7 @@ type WorkspaceTabsViewModelParams = {
 function buildWorkspacePageTabs({
   activeSelection,
   hasSession,
+  resolvedChildTabs,
   onSelectChildSessions,
   onSelectCronJobs,
   onSelectOverview,
@@ -201,6 +204,7 @@ function buildWorkspacePageTabs({
   WorkspaceTabsViewModelParams,
   | "activeSelection"
   | "hasSession"
+  | "resolvedChildTabs"
   | "onSelectChildSessions"
   | "onSelectCronJobs"
   | "onSelectOverview"
@@ -222,6 +226,9 @@ function buildWorkspacePageTabs({
       title: t("chatWorkspaceChildSessions"),
       tooltip: t("chatWorkspaceChildSessions"),
       active: activeSelection?.kind === "child-sessions",
+      runStatus: resolvedChildTabs.some((tab) => tab.runStatus === "running")
+        ? "running"
+        : undefined,
       onSelect: onSelectChildSessions,
     },
     {
@@ -281,6 +288,7 @@ export function buildWorkspaceTabsViewModel(
   const workspacePages = buildWorkspacePageTabs({
     activeSelection,
     hasSession,
+    resolvedChildTabs,
     onSelectChildSessions,
     onSelectCronJobs,
     onSelectOverview,
@@ -342,6 +350,7 @@ export function buildWorkspaceTabsViewModel(
         readAt: effectiveReadAt,
         runStatus: tab.runStatus,
       }),
+      runStatus: tab.runStatus,
       onSelect: () => onSelectSession(tab.sessionKey),
       onClose: () => onCloseTab({
         kind: "child-session",

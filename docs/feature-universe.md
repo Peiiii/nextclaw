@@ -169,7 +169,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 | memory_search | 工作区 memory 检索 |
 | memory_get | 读取 memory 条目 |
 | subagents | 子代理能力查询/编排 |
-| gateway | 配置与运维：config.get / config.schema / config.apply / config.patch / update.run |
+| gateway | 配置运维：config.get / config.schema / config.apply / config.patch；自更新统一走 `nextclaw update` 与 `nextclaw restart` |
 | cron | 定时任务列表/添加/删除/启用/禁用/立即执行（依赖 cronService） |
 
 Extension 当前只通过 channel contribution 接入；旧的 `extensionRegistry.tools` / `ExtensionToolAdapter` 工具适配链路已删除。
@@ -221,7 +221,7 @@ Extension 当前只通过 channel contribution 接入；旧的 `extensionRegistr
 
 ## 13. 自更新与运维
 
-- **update**：`nextclaw update` 或通过 Agent 调用 `gateway` 的 `update.run`；可配置 `NEXTCLAW_UPDATE_COMMAND`；更新后支持自重启并通知会话。
+- **update**：用户或 Agent 统一调用 `nextclaw update`；需要切换运行时后再调用 `nextclaw restart`，受控重启会恢复被中断的并行会话。
 - **静默回复**：模型的完整规范化回复严格匹配 `<noreply/>`，或最终回复为空/空白时不发送渠道回复；正常正文中提及该标记仍会展示。
 
 ---

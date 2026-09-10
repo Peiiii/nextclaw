@@ -3,6 +3,16 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const workspaceStateKey = 'nextclaw.chat.workspace-panel.state';
+export function resolveScreenshotViewport(env) {
+  const viewport = {
+    width: Number(env.SCREENSHOT_VIEWPORT_WIDTH || 1512),
+    height: Number(env.SCREENSHOT_VIEWPORT_HEIGHT || 828)
+  };
+  if (Object.values(viewport).some(value => !Number.isInteger(value) || value < 240 || value > 3840)) {
+    throw new Error('Screenshot viewport dimensions must be integers between 240 and 3840.');
+  }
+  return viewport;
+}
 const binaryWorkspacePreviewExtensions = new Set([
   '.docx',
   '.ods',
@@ -144,7 +154,7 @@ async function waitForCuratedSession(page, options) {
     }, undefined, { timeout: 20_000 });
   }
 
-  const minimumTargetX = keepSidebar ? 275 : 56;
+  const minimumTargetX = page.viewportSize()?.width < 768 ? -1 : keepSidebar ? 275 : 56;
   let target;
   if (targetSelector) {
     target = await waitForVisibleMainTarget(

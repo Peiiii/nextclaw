@@ -65,6 +65,26 @@ it('keeps existing child sessions selectable beside the create action', async ()
   expect(mocks.selectChildSessionDetail).toHaveBeenCalledWith('child-1');
 });
 
+it('shows a spinner only for child sessions that are running', () => {
+  render(
+    <ChatSessionChildSessions
+      childSessionTabs={[
+        createChildSession(),
+        {
+          ...createChildSession(),
+          sessionKey: 'child-2',
+          title: 'Running branch',
+          runStatus: 'running',
+        },
+      ]}
+      sessionKey="parent-1"
+    />,
+  );
+
+  expect(screen.getAllByLabelText('Running')).toHaveLength(1);
+  expect(screen.getByRole('button', { name: /Running branch.*Running/ })).toBeTruthy();
+});
+
 it('copies a child session ID from its own more-actions menu', async () => {
   const user = userEvent.setup();
   render(<ChatSessionChildSessions childSessionTabs={[createChildSession()]} sessionKey="parent-1" />);

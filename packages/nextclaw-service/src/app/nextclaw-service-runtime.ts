@@ -48,6 +48,8 @@ export class NextclawServiceRuntime {
     this.workspaceManager = new ServiceWorkspaceManager(NextclawDistributionService.get().templatesDir);
     this.managedServiceManager = new ManagedServiceManager({
       requestRestart: (params) => this.restartManager.requestRestart(params),
+      installPlannedRestartRecovery: (recovery) =>
+        this.restartManager.installPlannedRestartRecovery(recovery),
       initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
     });
     this.restartManager = new ServiceRestartManager({

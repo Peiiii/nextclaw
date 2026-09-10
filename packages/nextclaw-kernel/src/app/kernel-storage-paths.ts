@@ -84,6 +84,16 @@ export function resolveKernelCapabilityGrantMigrationMarkerPath(
   );
 }
 
+export function resolveKernelPlannedRestartRecoveryPath(
+  options: KernelStoragePathOptions,
+): string {
+  return resolveKernelDataPath(
+    options,
+    "runtime",
+    "planned-restart-recovery.json",
+  );
+}
+
 function resolveKernelDataPath(
   options: KernelStoragePathOptions,
   ...segments: string[]

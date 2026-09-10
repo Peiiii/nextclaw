@@ -205,7 +205,9 @@ beforeEach(() => {
   });
 });
 
-function createChildTab(): ResolvedChildSessionTab {
+function createChildTab(
+  overrides: Partial<ResolvedChildSessionTab> = {},
+): ResolvedChildSessionTab {
   return {
     sessionKey: 'child-1',
     parentSessionKey: 'parent-1',
@@ -219,6 +221,7 @@ function createChildTab(): ResolvedChildSessionTab {
     preferredModel: 'minimax/MiniMax-M3',
     projectName: 'nextbot',
     projectRoot: '/Users/peiwang/Projects/nextbot',
+    ...overrides,
   };
 }
 
@@ -252,7 +255,7 @@ it('shows child session content without a redundant metadata header', () => {
 
 it('shows all session workspace entries in the overview', async () => {
   const user = userEvent.setup();
-  const childTab = createChildTab();
+  const childTab = createChildTab({ runStatus: 'running' });
 
   render(
     <ChatSessionWorkspacePanelContent
@@ -277,6 +280,7 @@ it('shows all session workspace entries in the overview', async () => {
   const projectFilesButton = screen.getByRole('button', { name: /Project files/ });
 
   expect((childSessionsButton as HTMLButtonElement).disabled).toBe(false);
+  expect(within(childSessionsButton).getByLabelText('Running')).toBeTruthy();
   expect((cronJobsButton as HTMLButtonElement).disabled).toBe(false);
   expect(projectFilesButton.compareDocumentPosition(screen.getByText('Token usage')) & Node.DOCUMENT_POSITION_FOLLOWING)
     .toBeTruthy();

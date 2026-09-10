@@ -346,16 +346,6 @@ export class ServiceGatewayManager {
       "service.gateway.gateway_controller",
       () => new GatewayControllerImpl({
         configManager: this.configManager,
-        sessionManager: this.sessionManager,
-        requestRestart: async (options) => {
-          await this.deps.requestRestart({
-            reason: options?.reason ?? "gateway update relaunch",
-            manualMessage: "Run nextclaw restart in an external terminal.",
-            strategy: "background-service-or-exit",
-            delayMs: options?.delayMs,
-            silentOnServiceRestart: true,
-          });
-        },
       })
     );
   };

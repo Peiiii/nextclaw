@@ -18,6 +18,7 @@ export * from "@kernel/managers/llm-usage.manager.js";
 export * from "@kernel/managers/mcp.manager.js";
 export * from "@kernel/managers/panel-app.manager.js";
 export * from "@kernel/managers/preference.manager.js";
+export * from "@kernel/managers/planned-restart-recovery.manager.js";
 export * from "@kernel/features/projects/index.js";
 export * from "@kernel/managers/service-app.manager.js";
 export * from "@kernel/stores/llm-usage.store.js";

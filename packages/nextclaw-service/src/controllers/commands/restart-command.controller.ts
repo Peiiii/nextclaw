@@ -19,15 +19,15 @@ export class RestartCommands {
   ) {}
 
   run = async (opts: StartCommandOptions): Promise<void> => {
-    await this.deps.writeRestartSentinelFromExecContext("cli.restart");
+    if (await this.tryControlledRestart(opts)) return;
     const uiOverrides = resolveManagedServiceUiOverrides({
       uiPort: opts.uiPort,
       forcedPublicHost: this.deps.forcedPublicHost
     });
     const targetUi = resolveUiConfig(loadConfig(), uiOverrides);
-
     const state = managedServiceStateStore.read();
     if (state && isProcessRunning(state.pid)) {
+      await this.deps.writeRestartSentinelFromExecContext("cli.restart");
       console.log(`Restarting ${APP_NAME}...`);
       await this.deps.runtimeCommandService.stopService();
     } else {
@@ -38,11 +38,7 @@ export class RestartCommands {
         foregroundRuntime.uiPort === targetUi.port
       );
       if (foregroundRuntime && foregroundMatchesTarget) {
-        const restarted = await this.restartForegroundRuntime(foregroundRuntime.pid);
-        if (!restarted) {
-          return;
-        }
-        await this.deps.startCommands.run(opts);
+        await this.replaceForegroundRuntime(foregroundRuntime.pid, opts);
         return;
       }
       if (state) {
@@ -54,11 +50,7 @@ export class RestartCommands {
       if (unmanagedHealthyServiceMessage) {
         const adoptedRuntimePid = this.resolveAdoptableForegroundRuntimePid(targetUi.port);
         if (adoptedRuntimePid) {
-          const restarted = await this.restartForegroundRuntime(adoptedRuntimePid);
-          if (!restarted) {
-            return;
-          }
-          await this.deps.startCommands.run(opts);
+          await this.replaceForegroundRuntime(adoptedRuntimePid, opts);
           return;
         }
         console.error(`Error: Cannot restart ${APP_NAME} because the target UI/API port is already served by a healthy unmanaged instance.`);
@@ -71,6 +63,48 @@ export class RestartCommands {
     }
 
     await this.deps.startCommands.run(opts);
+  };
+
+  private replaceForegroundRuntime = async (pid: number, opts: StartCommandOptions): Promise<void> => {
+    await this.deps.writeRestartSentinelFromExecContext("cli.restart");
+    if (await this.restartForegroundRuntime(pid)) await this.deps.startCommands.run(opts);
+  };
+
+  private tryControlledRestart = async (opts: StartCommandOptions): Promise<boolean> => {
+    if (opts.uiPort !== undefined || opts.open === true || opts.startTimeout !== undefined) return false;
+    const managed = managedServiceStateStore.read();
+    const foreground = localUiRuntimeStore.read();
+    const targetUi = resolveUiConfig(loadConfig(), resolveManagedServiceUiOverrides({
+      uiPort: undefined,
+      forcedPublicHost: this.deps.forcedPublicHost,
+    }));
+    const target = managed && isProcessRunning(managed.pid)
+      ? managed
+      : foreground && foreground.uiPort === targetUi.port && isProcessRunning(foreground.pid)
+        ? foreground : null;
+    if (!target || !await this.requestRuntimeRestart(target.apiUrl)) return false;
+    console.log(`Restarting ${APP_NAME} through the running host...`);
+    return true;
+  };
+
+  private requestRuntimeRestart = async (apiUrl: string): Promise<boolean> => {
+    const response = await fetch(
+        `${apiUrl.replace(/\/$/, "")}/runtime/control/restart-service`,
+        {
+          method: "POST",
+          signal: AbortSignal.timeout(30_000),
+        },
+      );
+    if (response.status === 404) return false;
+    const result = await response.json() as {
+      ok?: boolean;
+      data?: { accepted?: boolean };
+      error?: { message?: string };
+    };
+    if (!response.ok || result.ok !== true || result.data?.accepted !== true) {
+      throw new Error(result.error?.message ?? "The running host did not accept the restart.");
+    }
+    return true;
   };
 
   private restartForegroundRuntime = async (pid: number): Promise<boolean> => {

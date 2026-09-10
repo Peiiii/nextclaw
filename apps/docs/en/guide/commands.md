@@ -93,7 +93,7 @@ No GitHub login is required; see [problem feedback](./feedback). `feedback` name
 | `nextclaw gateway`    | Start the Gateway in the foreground, optionally with the UI            |
 | `nextclaw ui`         | Start the Gateway and UI                                               |
 | `nextclaw start`      | Start the Gateway and UI in the background                             |
-| `nextclaw restart`    | Restart the background service                                         |
+| `nextclaw restart`    | Restart the service; supported hosts resume sessions interrupted by this restart |
 | `nextclaw serve`      | Run the Gateway and UI in the foreground for debugging                 |
 | `nextclaw stop`       | Stop the background service                                            |
 | `nextclaw status`     | Inspect processes, health, configuration summary, and endpoints        |
@@ -104,7 +104,13 @@ No GitHub login is required; see [problem feedback](./feedback). `feedback` name
 | `nextclaw usage`      | Inspect recent model usage, history, and cache statistics              |
 | `nextclaw update`     | Check, download, or apply a NextClaw Runtime update                    |
 
+With explicit user authorization, an agent can run ordinary `nextclaw update`, then `nextclaw restart` if required. Managed services and foreground hosts with the local runtime API record active sessions before exit. Once ready, the replacement process continues both the initiating session and concurrent sessions once, with context stating that the restart succeeded and interrupted commands must not be replayed.
+
+Use plain `nextclaw restart`, without port/open/timeout overrides, for this handoff. Desktop/supervisor exits, legacy stop/start, crashes, and ordinary startup are outside its scope. A request timeout does not prove failure: check `nextclaw status --json` before retrying. Completed or ordinarily failed tasks are not automatically rerun.
+
 ## Host management and autostart
+
+For the user workflow, restart-continuation behavior, and complete limits, see [Self-management](/en/guide/self-management).
 
 | Command                                   | Purpose                                                    |
 | ----------------------------------------- | ---------------------------------------------------------- |

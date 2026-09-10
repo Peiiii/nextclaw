@@ -93,7 +93,7 @@ nextclaw <command> --help
 | `nextclaw gateway`    | 前台启动 Gateway，可选择同时启用 UI              |
 | `nextclaw ui`         | 启动 Gateway 和 UI                               |
 | `nextclaw start`      | 在后台启动 Gateway 和 UI                         |
-| `nextclaw restart`    | 重启后台服务                                     |
+| `nextclaw restart`    | 受控重启服务；支持恢复的宿主就绪后续跑本次中断的会话 |
 | `nextclaw serve`      | 前台运行 Gateway 和 UI，适合调试                 |
 | `nextclaw stop`       | 停止后台服务                                     |
 | `nextclaw status`     | 查看进程、健康度、配置摘要和可用端点             |
@@ -104,7 +104,13 @@ nextclaw <command> --help
 | `nextclaw usage`      | 查看最近模型用量、历史记录和缓存统计             |
 | `nextclaw update`     | 检查、下载或应用 NextClaw Runtime 更新           |
 
+经用户授权，AI 可通过普通命令行执行 `nextclaw update`，在结果要求重启时执行 `nextclaw restart`。支持本地运行时 API 的后台服务和前台宿主会记录当时正在运行的会话；新进程就绪后，发起会话和并行会话各续跑一次，并收到“重启已完成、不要重放中断命令”的上下文。
+
+自动恢复要求不带修改配置的端口、打开浏览器或超时参数。桌面/系统 supervisor 托管的退出、旧版本兼容 stop/start、崩溃及普通启动不在此恢复范围内。请求超时不代表重启失败：先用 `nextclaw status --json` 检查状态，不要连续重试更新或重启。已完成或普通失败的任务不会因此自动重跑。
+
 ## 宿主托管与自启动
+
+为什么重启后能继续工作、如何授权 AI 自行维护，以及完整限制，见[自我管理专题](/zh/guide/self-management)。
 
 | 命令                                      | 用途                                   |
 | ----------------------------------------- | -------------------------------------- |

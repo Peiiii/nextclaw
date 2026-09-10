@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { WorkspaceTabViewModel } from "@/features/chat/features/workspace/utils/chat-workspace-panel-view-model.utils";
 import { copySessionId } from "@/features/chat/features/session/components/session-header/chat-session-more-actions-menu";
+import { SessionRunBadge } from "@/features/chat/features/session/components/session-run-badge";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { FileTypeIcon } from "@/shared/components/file-type-icon";
 import {
@@ -153,7 +154,9 @@ function buildCompactWorkspaceTabs(
         fileName={tab.fileName}
       />
     ),
-    badge: tab.kind === "file" && tab.viewMode === "diff" ? (
+    badge: tab.runStatus ? (
+      <SessionRunBadge status={tab.runStatus} />
+    ) : tab.kind === "file" && tab.viewMode === "diff" ? (
         <span className="shrink-0 rounded border border-amber-200 bg-amber-50 px-1 py-0 text-[9px] font-medium uppercase tracking-[0.08em] text-amber-700">
           {t("chatWorkspaceDiff")}
         </span>

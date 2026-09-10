@@ -1,6 +1,6 @@
 import * as NextclawCore from "@nextclaw/core";
 import { spawn } from "node:child_process";
-import { SkillManager } from "@nextclaw/kernel";
+import { SkillManager, type PlannedRestartRecovery } from "@nextclaw/kernel";
 import { classifyDiagnosticError } from "@nextclaw/shared";
 import type { RequestRestartParams } from "@nextclaw-service/types/cli.types.js";
 import { ManagedServiceCommandService, type StartServiceOptions } from "@nextclaw-service/services/runtime/service-managed-startup.service.js";
@@ -33,6 +33,7 @@ export class ManagedServiceManager {
 
   constructor(private deps: {
     requestRestart: (params: RequestRestartParams) => Promise<void>;
+    installPlannedRestartRecovery: (recovery: PlannedRestartRecovery) => void;
     initializeAgentHomeDirectory: (homeDirectory: string) => void;
   }) {}
 
@@ -49,6 +50,7 @@ export class ManagedServiceManager {
     }, {
       ...options
     });
+    this.deps.installPlannedRestartRecovery(gateway.kernel.plannedRestartRecovery);
     this.managedServiceSupervisor.installCurrentProcessLifecycleTracking({
       onSignal: async () => await gateway.stop(),
     });

@@ -21,7 +21,7 @@ import {
   runtimeUpdatePayload
 } from './product-screenshot-status-mocks.mjs';
 import { createScreenshotRouteMockResolver } from './product-screenshot-route-mocks.utils.mjs';
-import { createScreenshotModeState, parseBooleanEnv } from './product-screenshots/curated-scenes.utils.mjs';
+import { createScreenshotModeState, parseBooleanEnv, resolveScreenshotViewport } from './product-screenshots/curated-scenes.utils.mjs';
 import { createAgentRuntimeScreenshotScenes } from './product-screenshots/agent-runtime-scenes.config.mjs';
 import { createBackgroundSessionNotificationScreenshotScenes } from './product-screenshots/background-session-notification-scenes.config.mjs';
 import { createInboxDeliveryScreenshotScenes, resolveInboxDeliveryScreenshotMock } from './product-screenshots/inbox-delivery-scenes.config.mjs';
@@ -53,7 +53,7 @@ const realMarketplaceBase = normalizeBaseUrl(
 const languageStorageKey = 'nextclaw.ui.language';
 const themeStorageKey = 'nextclaw.ui.theme';
 const screenshotTheme = process.env.SCREENSHOT_UI_THEME || 'cool';
-const viewport = { width: 1512, height: 828 };
+const viewport = resolveScreenshotViewport(process.env);
 
 function normalizeBaseUrl(raw) {
   const value = String(raw || '').trim();

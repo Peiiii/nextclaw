@@ -257,6 +257,33 @@ describe("fixed workspace tabs", () => {
   });
 });
 
+it("projects child running state onto both the collection and child tabs", () => {
+  const tabs = buildWorkspaceTabsViewModel({
+    hasSession: true,
+    resolvedChildTabs: [
+      createChildTab({ runStatus: "running" }),
+      createChildTab({ sessionKey: "child-2" }),
+    ],
+    activeSideChatDraft: null,
+    closedWorkspaceTabEntries: [],
+    workspaceFileTabs: [],
+    activeSelection: { kind: "overview" },
+    optimisticReadAtBySessionKey: {},
+    onSelectSession: vi.fn(),
+    onSelectFile: vi.fn(),
+    onOpenFileViewer: vi.fn(),
+    onCloseTab: vi.fn(),
+    onSelectOverview: vi.fn(),
+    onSelectChildSessions: vi.fn(),
+    onSelectProjectFiles: vi.fn(),
+    onSelectCronJobs: vi.fn(),
+  });
+
+  expect(tabs.find((tab) => tab.kind === "child-sessions")?.runStatus).toBe("running");
+  expect(tabs.find((tab) => tab.key === "child:child-1")?.runStatus).toBe("running");
+  expect(tabs.find((tab) => tab.key === "child:child-2")?.runStatus).toBeUndefined();
+});
+
 describe("buildWorkspaceTabsViewModel", () => {
   beforeEach(() => setLanguage("en"));
 

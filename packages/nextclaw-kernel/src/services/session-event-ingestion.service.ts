@@ -51,6 +51,7 @@ function readRuntimeSessionMetadataPatch(
 export class SessionEventIngestionService {
   private readonly activityPreview: SessionActivityPreviewEventService;
   private readonly chains = new Map<string, Promise<void>>();
+  private readonly failedWrites = new Map<string, unknown>();
   private cleanup: (() => void) | null = null;
 
   constructor(private readonly options: SessionEventIngestionServiceOptions) {
@@ -99,7 +100,9 @@ export class SessionEventIngestionService {
     }
     const next = (this.chains.get(sessionId) ?? Promise.resolve())
       .then(() => this.handleDurableEvent(sessionId, event));
-    this.chains.set(sessionId, next.catch(() => undefined));
+    this.chains.set(sessionId, next.catch((error: unknown) => {
+      this.failedWrites.set(sessionId, error);
+    }));
     await next;
   };
 
@@ -107,10 +110,18 @@ export class SessionEventIngestionService {
     await this.chains.get(sessionId);
   };
 
+  flush = async (): Promise<void> => {
+    await Promise.all([...this.chains.values()]);
+    if (this.failedWrites.size > 0) {
+      throw new Error("Cannot prepare a restart after a session journal write failed.");
+    }
+  };
+
   dispose = (): void => {
     this.cleanup?.();
     this.cleanup = null;
     this.chains.clear();
+    this.failedWrites.clear();
     this.activityPreview.clear();
   };
 

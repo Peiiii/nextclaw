@@ -404,6 +404,12 @@ export class SessionRunManager {
 
   isSessionRunning = (sessionId: string): boolean => this.runs.get(sessionId.trim())?.isBusy() ?? false;
 
+  listActiveRuns = (): ReadonlyArray<{ sessionId: string; runId: string }> =>
+    [...this.runs.values()].flatMap((run) => {
+      const runId = run.getActiveRunId();
+      return runId ? [{ sessionId: run.sessionId, runId }] : [];
+    });
+
   getOrCreateSessionRun = async (sessionId: string): Promise<SessionRun> => {
     const existing = this.getSessionRun(sessionId);
     if (existing) {

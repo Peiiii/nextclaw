@@ -46,6 +46,7 @@ export type AgentRunEditMessageRequest = {
 export type AgentRunContinueRequest = {
   correlationId?: string;
   sessionId: string;
+  trigger?: NcpRunTriggerInput;
 };
 
 export type AgentRunAccepted = {
