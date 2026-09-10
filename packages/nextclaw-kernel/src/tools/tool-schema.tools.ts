@@ -5,6 +5,7 @@ export const TOOL_SCHEMA_NAME = "tool_schema";
 const EAGER_TOOL_NAMES = new Set([
   TOOL_SCHEMA_NAME, STRUCTURED_RESULT_TOOL_NAME, "node_repl",
   "read_file", "write_file", "edit_file", "list_dir", "exec", "web_search", "web_fetch", "view_image",
+  "memory_search", "memory_get",
 ]);
 
 /** Model-facing disclosure only; execution continues to validate the original schema. */

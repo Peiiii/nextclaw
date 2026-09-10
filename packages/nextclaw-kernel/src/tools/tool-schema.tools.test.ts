@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { NcpTool } from "@nextclaw/ncp";
 import { executeCollectedToolCall } from "@nextclaw/ncp-agent-runtime";
+import { MemoryGetTool, MemorySearchTool } from "@nextclaw/core";
 import { buildProviderTools } from "@kernel/utils/agent-model-input-budget.utils.js";
 import { ProjectsCreateTool } from "./project.tools.js";
 import { ToolSchemaTool, selectToolModelParameters } from "./tool-schema.tools.js";
@@ -39,12 +40,32 @@ describe("tool parameter disclosure", () => {
     expect(tool.execute).not.toHaveBeenCalled();
   });
 
-  it("keeps foundational and structured-result schemas eager, and needs a lookup tool to defer", () => {
+  it("keeps foundational and structured-result schemas eager", () => {
     const parameters = { type: "object", properties: { value: { type: "string", description: "contract ".repeat(30) } } };
     for (const name of ["read_file", "exec", "node_repl", "nextclaw_submit_result"]) {
       expect(selectToolModelParameters({ name, parameters, execute: vi.fn() })).toBe(parameters);
     }
+  });
+
+  it("exposes mandatory memory schemas directly in provider model input", () => {
+    const memoryTools = [new MemorySearchTool("."), new MemoryGetTool(".")];
+    const lookup = new ToolSchemaTool(() => memoryTools);
+    const providerTools = buildProviderTools([lookup, ...memoryTools]);
+
+    expect(providerTools[1]?.function).toMatchObject({
+      name: "memory_search",
+      parameters: { required: ["query"], properties: { query: { type: "string" } } },
+    });
+    expect(providerTools[2]?.function).toMatchObject({
+      name: "memory_get",
+      parameters: { required: ["path"], properties: { path: { type: "string" } } },
+    });
+  });
+
+  it("still defers large optional tool schemas when a lookup tool is available", () => {
+    const parameters = { type: "object", properties: { value: { type: "string", description: "contract ".repeat(30) } } };
     const tool = { name: "optional", parameters, execute: vi.fn() };
-    expect(buildProviderTools([tool])[0]?.function.parameters).toBe(parameters);
+    const lookup = new ToolSchemaTool(() => [tool]);
+    expect(buildProviderTools([lookup, tool])[1]?.function.parameters).toEqual({ type: "object" });
   });
 });
