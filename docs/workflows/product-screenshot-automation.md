@@ -176,7 +176,7 @@ pnpm release:summary -- --json
 1. 根据本次 UI diff 只刷新受影响场景，不机械更新全部二进制文件。
 2. 打开每张新图，确认真实、非空、有代表性，且完整显示文案声称的结果。
 3. 检查密钥、token、私人标识、无关会话、失败提示、加载态和裁切。
-4. 检查同批图片主题一致，标准截图尺寸为 `3024 x 1656`。
+4. 检查同批图片主题一致，标准截图尺寸为 `3024 x 1656`。精选场景可通过 `SCREENSHOT_VIEWPORT_WIDTH` / `SCREENSHOT_VIEWPORT_HEIGHT` 指定 CSS 视口（默认 `1512 x 828`，整数范围 `240–3840`），按两倍分辨率输出；例如手机使用 `390 x 844`。尺寸仅应用于脚本独立创建的 headless context，不对用户可见浏览器设置视口模拟。
 5. 用 `shasum -a 256` 检查 GitHub 源图与 landing 镜像。
 6. 用 `rg` 检查 README、landing 和 docs 的实际引用没有指向旧资源。
 7. 运行 `pnpm --filter @nextclaw/landing build`，并在本地页面打开实际图片入口。
