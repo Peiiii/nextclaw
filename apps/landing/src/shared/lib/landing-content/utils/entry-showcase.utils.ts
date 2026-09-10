@@ -14,6 +14,15 @@ export function renderEntryShowcase(locale: Locale, docsLink: string): string {
       link: `${docsLink}guide/results`,
     },
     {
+      icon: 'messages-square',
+      title: zh ? '手机上，找到想聊的事' : 'Find a conversation on your phone',
+      description: zh ? '浏览会话标题和最近回复，搜索旧话题，或开始一段新会话。' : 'Browse titles and recent replies, search past topics, or start a new conversation.',
+      image: '/screenshots/nextclaw-mobile-chat-list-cn.png',
+      alt: zh ? '用户提供的 NextClaw 移动端会话列表真实截图，展示会话摘要、搜索、新建与底部导航' : 'A user-provided screenshot of the NextClaw mobile conversation list, with previews, search, new chat and bottom navigation, shown in Chinese',
+      imageClass: 'w-full max-w-[280px]',
+      link: `${docsLink}guide/background-results`,
+    },
+    {
       icon: 'smartphone',
       title: zh ? '手机上，随时接着聊' : 'Follow up on your phone',
       description: zh ? '打开手机浏览器，查看回复，把一个想法变成可执行的清单。' : 'Open your phone browser, read the reply, and turn an idea into an actionable checklist.',
@@ -29,7 +38,7 @@ export function renderEntryShowcase(locale: Locale, docsLink: string): string {
       <h2 class="mb-4 text-3xl font-bold md:text-5xl">${zh ? '在你习惯的地方，找到你的 AI 搭档。' : 'Your AI partner, wherever you work.'}</h2>
       <p class="text-lg leading-relaxed text-muted-foreground">${zh ? '电脑、手机，还有每天都在用的聊天工具。选择顺手的入口，开始一件事。' : 'On your computer, on your phone, or in your everyday messaging app. Choose a familiar place to get started.'}</p>
     </div>
-    <div class="grid gap-5 lg:grid-cols-[1.6fr_1fr]">${scenes.map(scene => `<article class="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-background">
+    <div class="grid gap-5 lg:grid-cols-[1.4fr_1fr_1fr]">${scenes.map(scene => `<article class="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-background">
       <div class="px-5 pt-5">
         <i data-lucide="${scene.icon}" class="mb-4 h-5 w-5 text-muted-foreground" aria-hidden="true"></i>
         <h3 class="mb-2 text-xl font-semibold">${scene.title}</h3>
