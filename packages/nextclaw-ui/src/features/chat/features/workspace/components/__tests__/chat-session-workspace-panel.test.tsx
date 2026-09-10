@@ -172,7 +172,6 @@ describe("ChatSessionWorkspacePanel", () => {
             onSelect: vi.fn(),
           },
         ]}
-        onClose={vi.fn()}
         onGoBack={vi.fn()}
         onGoForward={vi.fn()}
       />,
