@@ -22,10 +22,10 @@
       "decision": "publish",
       "channel": "x",
       "account": "@XiaotiaoWang",
-      "text": "NextClaw v0.51.0 closes the loop from approved user feedback to local AI or script handling, with results written back to the original report. Idle watching uses no model calls.\nhttps://docs.nextclaw.io/en/notes/2026-09-10-nextclaw-v0-51-0",
-      "imagePath": "images/screenshots/nextclaw-ai-delivery-inbox-en.png",
-      "imageAlt": "NextClaw delivery inbox showing AI-managed work items and their status",
-      "releaseNotesUrl": "https://docs.nextclaw.io/en/notes/2026-09-10-nextclaw-v0-51-0"
+      "text": "NextClaw v0.51.0 补齐用户反馈闭环：管理员审批后，本地维护器把问题交给你配置的 AI 或脚本，并把结果写回原帖。空闲监听不调用模型，也不与 Codex 绑定。\n\n更新说明：\nhttps://docs.nextclaw.io/zh/notes/2026-09-10-nextclaw-v0-51-0",
+      "imagePath": "images/screenshots/nextclaw-ai-delivery-inbox-cn.png",
+      "imageAlt": "NextClaw 交付收件箱中的 AI 管理任务及其状态",
+      "releaseNotesUrl": "https://docs.nextclaw.io/zh/notes/2026-09-10-nextclaw-v0-51-0"
     }
   }
 }
