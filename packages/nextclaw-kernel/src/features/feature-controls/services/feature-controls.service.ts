@@ -26,25 +26,39 @@ export class FeatureControlsService {
   constructor(private readonly deps: FeatureControlsServiceDeps) {}
 
   get = async (): Promise<ProductFeatureControls> => {
-    const desktop = await this.deps.desktopHost.status();
-    const core = this.deps.coreHealth.evaluate();
+    // 纯同步的核心健康判断面：不调用 Desktop，避免 Desktop 超时/异常连带阻断 MCP 工具枚举。
+    const coreSync = this.deps.coreHealth.evaluate();
     const { autoDegrade } = this.deps.getConfig().coreHealth;
-    const degraded = autoDegrade && !core.healthy;
+    const degraded = autoDegrade && !coreSync.healthy;
     const reason = degraded
-      ? `core-degraded: ${core.checks.filter((check) => !check.ok).map((check) => check.id).join(",")}`
+      ? `core-degraded: ${coreSync.checks.filter((check) => !check.ok).map((check) => check.id).join(",")}`
       : undefined;
 
+    // Desktop 状态单独求值：异常时降为 available=false + 稳定 reason，
+    // 不向其它 ToolProvider 传播失败——保住最小核心。
+    let desktop: { online: boolean; platform: string; supportedOperations: string[] };
+    try {
+      desktop = await this.deps.desktopHost.status();
+    } catch {
+      desktop = { online: false, platform: "unknown", supportedOperations: [] };
+    }
+
+    const desktopAvailable =
+      desktop.online && desktop.platform === "darwin" && desktop.supportedOperations.includes("host.ui.snapshot");
+    const mcpAvailable = this.hasConfiguredMcpServer();
+
     return {
-      core: this.buildCoreView(core, autoDegrade),
+      core: this.buildCoreView(coreSync, autoDegrade),
       desktopAutomation: {
-        available:
-          desktop.online && desktop.platform === "darwin" && desktop.supportedOperations.includes("host.ui.snapshot"),
-        active: !degraded,
+        available: desktopAvailable,
+        // 契约定义 active 为"现在真的可用"：必须同时满足平台可用（available）且未进入降级（!degraded）。
+        // 修前 `active = !degraded` 会在 available=false、degraded=false 时产出矛盾值（如 Windows 平台 active=true）。
+        active: desktopAvailable && !degraded,
         ...(reason ? { reason } : {}),
       },
       mcp: {
-        available: this.hasConfiguredMcpServer(),
-        active: !degraded,
+        available: mcpAvailable,
+        active: mcpAvailable && !degraded,
         ...(reason ? { reason } : {}),
       },
     };

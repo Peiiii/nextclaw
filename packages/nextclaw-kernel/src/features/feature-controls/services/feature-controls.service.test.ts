@@ -67,12 +67,12 @@ describe("FeatureControlsService", () => {
 
     await expect(supported.get()).resolves.toEqual({
       desktopAutomation: { available: true, active: true },
-      mcp: { available: false, active: true },
+      mcp: { available: false, active: false },
       core: { healthy: true, autoDegrade: false, failedCheckIds: [] },
     });
     await expect(unsupported.get()).resolves.toEqual({
-      desktopAutomation: { available: false, active: true },
-      mcp: { available: false, active: true },
+      desktopAutomation: { available: false, active: false },
+      mcp: { available: false, active: false },
       core: { healthy: true, autoDegrade: false, failedCheckIds: [] },
     });
   });
@@ -83,8 +83,10 @@ describe("FeatureControlsService", () => {
     );
 
     const view = await service.get();
+    // active = available && !degraded；darwin 平台 available=true、degraded=false → active=true
     expect(view.desktopAutomation.active).toBe(true);
-    expect(view.mcp.active).toBe(true);
+    // MCP available=false（无服务器配置）→ active=false
+    expect(view.mcp.active).toBe(false);
     expect(view.core).toEqual({ healthy: false, autoDegrade: false, failedCheckIds: ["provider", "workspace"] });
   });
 
@@ -104,12 +106,39 @@ describe("FeatureControlsService", () => {
 
   it("does not degrade when autoDegrade is on but core is healthy", async () => {
     const service = new FeatureControlsService(
-      buildDeps({ snapshot: healthySnapshot, config: configWith({ autoDegrade: true }) }),
+      buildDeps({ snapshot: healthySnapshot, config: configWith({ autoDegrade: true, mcpServers: 1 }) }),
     );
 
     const view = await service.get();
     expect(view.desktopAutomation.active).toBe(true);
     expect(view.mcp.active).toBe(true);
     expect(view.desktopAutomation.reason).toBeUndefined();
+  });
+
+  it("gracefully degrades when desktopHost.status() throws", async () => {
+    const crashingHost = { status: async () => { throw new Error("desktop unreachable"); } } as never;
+    const service = new FeatureControlsService(buildDeps({ host: crashingHost }));
+
+    const view = await service.get();
+    // 桌面不可达 → available=false；active = available&&!degraded=false
+    expect(view.desktopAutomation.available).toBe(false);
+    expect(view.desktopAutomation.active).toBe(false);
+    expect(view.mcp).toEqual({ available: false, active: false });
+    expect(view.core).toEqual({ healthy: true, autoDegrade: false, failedCheckIds: [] });
+  });
+
+  it("unifies active = available && !degraded under degradation", async () => {
+    // degraded + unavailable desktop → active=false（而不是 !degraded 的 true）
+    const degradedAndUnavailable = new FeatureControlsService(
+      buildDeps({
+        snapshot: degradedSnapshot,
+        config: configWith({ autoDegrade: true, mcpServers: 1 }),
+        host: win32Host, // Windows → desktop unavailable
+      }),
+    );
+    const v = await degradedAndUnavailable.get();
+    expect(v.desktopAutomation).toEqual({ available: false, active: false, reason: "core-degraded: provider,workspace" });
+    // MCP available=true 但 degraded → active=false
+    expect(v.mcp).toEqual({ available: true, active: false, reason: "core-degraded: provider,workspace" });
   });
 });
